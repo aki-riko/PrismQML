@@ -36,8 +36,8 @@ jobs:
           # 每个 Linux 容器内安装 Rust
           CIBW_BEFORE_ALL_LINUX: "curl -sSf https://sh.rustup.rs | sh -s -- -y"
           CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
-          # 跳过 musllinux(rusqlite bundled 在 musl 上编译慢且少用)
-          CIBW_SKIP: "*-musllinux*"
+          # 跳过 musllinux(rusqlite bundled 在 musl 上编译慢) + 32位i686(PySide6不支持,rustup装不上)
+          CIBW_SKIP: "*-musllinux* *_i686 *-win32"
 
       - uses: actions/upload-artifact@v4
         with:
