@@ -92,8 +92,8 @@ Widget {
     // 水平模式也按内容动态:title + message 实际高度堆叠,长文本/多行不被固定高裁切
     readonly property real _horizontalHeight: {
         var contentH = 0
-        if (title !== "") contentH += titleText.implicitHeight + Enums.spacing.xs
-        if (message !== "") contentH += messageText.implicitHeight
+        if (title !== "") contentH += titleText.contentHeight + Enums.spacing.xs
+        if (message !== "") contentH += messageText.contentHeight
         var h = contentH + Enums.spacing.l * 2  // 上下边距
         return Math.max(Enums.controlSize.toastHeight, h)
     }

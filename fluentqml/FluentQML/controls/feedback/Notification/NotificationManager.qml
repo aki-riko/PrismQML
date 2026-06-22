@@ -246,7 +246,9 @@ QtObject {
         }
         var item = component.createObject(windowParent, {
             "severity": severity, "title": title, "message": message,
-            "duration": duration, "position": position, "feature": feature
+            "duration": duration, "position": position, "feature": feature,
+            // 长文本/多行自动用垂直布局(水平布局高度受限,长内容易裁切)
+            "orient": (message && (message.indexOf("\n") >= 0 || message.length > 60)) ? Qt.Vertical : Qt.Horizontal
         })
         if (item) {
             item.z = Enums.zIndex.overlay
