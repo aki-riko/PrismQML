@@ -243,7 +243,8 @@ Widget {
             color: Enums.textColor.primary
             visible: control.message !== ""
             width: Math.min(implicitWidth, 800 - parent.x - (closeBtn.visible ? closeBtn.width + Enums.infoBarMetrics.margin * 2 : 0))
-            elide: Text.ElideRight
+            // 长文本/多行折行显示,不再单行省略号截断
+            wrapMode: Text.Wrap
         }
     }
     

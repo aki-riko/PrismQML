@@ -89,7 +89,14 @@ Widget {
         return Math.min(Math.max(targetWidth, Enums.controlSize.toastWidth), 800)
     }
     // Height auto-adapts based on layout orientation 高度自适应：根据布局方向计算
-    readonly property real _horizontalHeight: Enums.controlSize.toastHeight  // 80
+    // 水平模式也按内容动态:title + message 实际高度堆叠,长文本/多行不被固定高裁切
+    readonly property real _horizontalHeight: {
+        var contentH = 0
+        if (title !== "") contentH += titleText.implicitHeight + Enums.spacing.xs
+        if (message !== "") contentH += messageText.implicitHeight
+        var h = contentH + Enums.spacing.l * 2  // 上下边距
+        return Math.max(Enums.controlSize.toastHeight, h)
+    }
     readonly property real _verticalHeight: {
         var h = Enums.spacing.m * 2 + Enums.spacing.l  // Margins + color bar offset
         if (title !== "") h += titleTextVertical.implicitHeight + Enums.spacing.xs
@@ -228,15 +235,12 @@ Widget {
                 anchors.topMargin: titleText.visible ? Enums.spacing.xs : Enums.spacing.l
                 anchors.right: closeBtn.left
                 anchors.rightMargin: Enums.spacing.m
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: Enums.spacing.l
                 text: control.message
                 type: Enums.label.type_caption
                 color: Enums.textColor.secondary
                 visible: text !== "" && !_isVertical
-                width: titleText.visible ? undefined : Math.min(implicitWidth, 800 - parent.x - (closeBtn.visible ? closeBtn.width + Enums.spacing.l + Enums.spacing.m : 0))
-                elide: titleText.visible ? Text.ElideNone : Text.ElideRight
-                wrapMode: titleText.visible ? Text.WordWrap : Text.NoWrap
+                // 用 anchors 左右约束确定宽度→触发自动换行;Text.Wrap 处理 \n 硬换行+长行折行
+                wrapMode: Text.Wrap
                 verticalAlignment: Text.AlignTop
             }
             
