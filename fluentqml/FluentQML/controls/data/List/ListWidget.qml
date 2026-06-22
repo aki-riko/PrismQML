@@ -12,7 +12,10 @@ Rectangle {
     id: control
     
     // ==================== Background 背景 ====================
-    color: Enums.headerColor
+    // cardColor 可覆盖(默认主题 headerColor): 透明场景设 cardColor:"transparent",
+    // 与 DataWidgetCore 系列(ListView/TableView 等)API 命名一致。
+    property color cardColor: Enums.headerColor
+    color: cardColor
     radius: Enums.radius.card
     
     // ==================== Selection Mode 选择模式 ====================

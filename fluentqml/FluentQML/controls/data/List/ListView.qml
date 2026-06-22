@@ -26,12 +26,14 @@ DataWidgetCore {
     property alias model: control.listModel
     property alias delegate: control.contentDelegate
     // spacing 由父类 DataWidgetCore 暴露(本地id alias合法),此处勿重复三级alias control.listView.spacing(非法)
-    readonly property int count: listView.count
+    // count 指向基类自维护的 itemCount(可靠跟踪延迟注入的 model); 不写
+    // control.listView.count —— 那是对 ListView.count 的绑定, 延迟 model 下不更新。
+    readonly property int count: itemCount
     property int currentIndex: -1
 
     onCurrentIndexChanged: {
-        if (listView && listView.currentIndex !== currentIndex)
-            listView.currentIndex = currentIndex
+        if (control.listView && control.listView.currentIndex !== currentIndex)
+            control.listView.currentIndex = currentIndex
     }
     Binding {
         target: control
@@ -46,7 +48,7 @@ DataWidgetCore {
     borderVisible: framed
     // showFooter 不在此硬编码: 基类默认 false (轻量模式), 但保留给用户/demo 覆盖
     showHeader: false
-    itemCount: listView.count
+    // itemCount 由基类 DataWidgetCore 自维护(Connections 跟踪 model 信号), 此处不再赋值
 
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.listDefaultWidth

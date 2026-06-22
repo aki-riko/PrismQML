@@ -68,7 +68,9 @@ Rectangle {
     property var _selectedIndices: []
     property var _previousItem: null
     property int _hoverIndex: -1
-    readonly property color cardColor: Enums.cardColor
+    // cardColor 可覆盖(默认主题卡片色): 透明场景设 cardColor:"transparent",与
+    // DataWidgetCore 系列(ListView/TableView 等)API 一致。
+    property color cardColor: Enums.cardColor
     readonly property color headerColor: Enums.headerColor
     readonly property color borderColor: Enums.stateColor.borderLight
     readonly property color textColor: Enums.textColor.primary

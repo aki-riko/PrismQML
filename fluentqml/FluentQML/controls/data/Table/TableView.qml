@@ -38,7 +38,7 @@ DataWidgetCore {
     shadowLevel: Enums.shadow.level2
     showHeader: true
     showFooter: true
-    itemCount: listView.count
+    // itemCount 由基类 DataWidgetCore 自维护(Connections 跟踪 model 信号)
 
     implicitWidth: 400
     implicitHeight: 300

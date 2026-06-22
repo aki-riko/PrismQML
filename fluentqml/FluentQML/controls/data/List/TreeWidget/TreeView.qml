@@ -35,7 +35,7 @@ DataWidgetCore {
     borderVisible: true
     showFooter: true
     showHeader: false
-    itemCount: listView.count
+    // itemCount 由基类 DataWidgetCore 自维护(Connections 跟踪 model 信号)
 
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.listDefaultWidth

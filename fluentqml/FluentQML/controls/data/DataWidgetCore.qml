@@ -30,7 +30,13 @@ Rectangle {
     property string footerText: ""  // Footer text template ({count} placeholder) 底部文本模板
     property bool showFooter: false  // Whether to show the count footer 是否显示底部计数栏
     property int rowHeight: Enums.controlSize.tableHeaderHeight  // Row height 行高
-    property int itemCount: 0  // Item count (set by subclass) 项目数量（子类设置）
+    // itemCount: 列表项数量。默认自维护(跟踪内部 listView 的 model),
+    // 子类(如 TableWidget 用 rowCount)可覆盖。
+    // 注意: 不能写 `itemCount: listView.count` —— QAbstractListModel 延迟注入时
+    // ListView.count 的 countChanged 不触发绑定重算(getter 实时但绑定不更新),
+    // 故用 Connections 显式监听 model 信号刷新 _autoItemCount(见下方)。
+    property int itemCount: _autoItemCount
+    property int _autoItemCount: 0
     
     // Header 表头
     property bool showHeader: false  // Show header 显示表头
@@ -72,6 +78,27 @@ Rectangle {
     property alias contentDelegate: listView.delegate
     property alias listModel: listView.model
     property alias spacing: listView.spacing  // 透传内部ListView间距(此处listView为本地id,alias合法;子类勿用control.listView.spacing三级alias)
+
+    // ==================== itemCount 自维护 ====================
+    // Qt.callLater 确保在 ListView 处理完 model 变化后再读 count(同帧直接读会差一拍)。
+    function _refreshItemCount() { Qt.callLater(function() { root._autoItemCount = listView.count }) }
+    onListModelChanged: _refreshItemCount()
+    Connections {
+        // 仅当 model 是 QAbstractItemModel(QObject, 有 rowCount/modelReset) 时挂信号;
+        // 排除 JS 数组/QVariantList(有 length, 非 QObject, 赋给 target 会报
+        // "Unable to assign QVariantList to QObject*")。判据同 TableWidget。
+        target: (listView.model && typeof listView.model === 'object'
+                 && typeof listView.model.length !== 'number'
+                 && (typeof listView.model.rowCount === 'function'
+                     || listView.model.modelReset !== undefined))
+                ? listView.model : null
+        ignoreUnknownSignals: true
+        function onRowsInserted() { root._refreshItemCount() }
+        function onRowsRemoved() { root._refreshItemCount() }
+        function onModelReset() { root._refreshItemCount() }
+        function onLayoutChanged() { root._refreshItemCount() }
+        function onCountChanged() { root._refreshItemCount() }
+    }
     
     // Expose scroll helper for external use 暴露滚动助手供外部使用
     function smoothScrollBy(delta) { scrollHelper.scrollBy(delta) }
@@ -83,7 +110,9 @@ Rectangle {
     }
 
     // ==================== Colors 颜色 ====================
-    readonly property color cardColor: Enums.cardColor
+    // cardColor 可覆盖(默认取主题卡片色): 透明/无卡片场景设 cardColor:"transparent"。
+    // 配 showShadow:false + borderVisible:false 可得纯透明数据列表(如便签编辑器)。
+    property color cardColor: Enums.cardColor
     readonly property color headerColor: Enums.headerColor
     readonly property color borderColor: Enums.stateColor.borderLight
     readonly property color textColor: Enums.textColor.primary
@@ -213,12 +242,23 @@ Rectangle {
                 }
             }
             
+            // ==================== Body 主体区(恒定伸缩容器) ====================
+            // contentArea / emptyArea / skeletonArea 三者互斥, 原先各自用
+            // Layout.fillHeight 绑 itemCount/loading 在 ColumnLayout 里抢高度。
+            // 但 QtQuick.Layouts 在 fillHeight 绑定值**异步变化**(QAbstractListModel
+            // 延迟注入 → itemCount 经 Connections+callLater 迟到更新)时不重新分配尺寸,
+            // 导致内容区塌成 0 高(实测复现)。故包一个恒定 fillHeight:true 的容器,
+            // Layout 永远只有这一个伸缩项尺寸恒定; 三区改用 anchors.fill + visible
+            // 切换(anchors 对 visible 异步变化可靠响应)。
+            Item {
+                id: bodyContainer
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
             // ==================== Content 内容区域 ====================
             Item {
                 id: contentArea
-                Layout.fillWidth: true
-                Layout.fillHeight: itemCount > 0 || loading
-                Layout.preferredHeight: (itemCount > 0 || loading) ? -1 : 0
+                anchors.fill: parent
                 visible: itemCount > 0 || loading
                 opacity: loading ? 0 : 1
                 Behavior on opacity {
@@ -325,9 +365,7 @@ Rectangle {
             // ==================== Empty State 空状态 ====================
             Item {
                 id: emptyArea
-                Layout.fillWidth: true
-                Layout.fillHeight: itemCount === 0 && !loading
-                Layout.preferredHeight: (itemCount === 0 && !loading) ? -1 : 0
+                anchors.fill: parent
                 visible: itemCount === 0 && !loading
 
                 opacity: visible ? 1 : 0
@@ -352,9 +390,7 @@ Rectangle {
             // ==================== Loading Skeleton 骨架屏 ====================
             Item {
                 id: skeletonArea
-                Layout.fillWidth: true
-                Layout.fillHeight: loading
-                Layout.preferredHeight: loading ? -1 : 0
+                anchors.fill: parent
                 visible: loading
 
                 opacity: loading ? 1 : 0
@@ -378,7 +414,8 @@ Rectangle {
                     }
                 }
             }
-            
+            }  // bodyContainer (恒定 fillHeight 容器, 包 contentArea/emptyArea/skeletonArea)
+
             // ==================== Footer 底栏 ====================
             Rectangle {
                 id: footerBar
