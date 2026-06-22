@@ -68,3 +68,8 @@ target = "fluentqml_rs"
 path = "rust/Cargo.toml"
 binding = "PyO3"
 py-limited-api = "auto"
+
+# 强制 abi3 wheel(cp39-abi3): 一个 wheel 兼容 py3.9+, 与 Cargo abi3-py39 对齐。
+# setuptools-rust 的 py-limited-api="auto" 会读取此处; 不配则退化成 cp3XX 绑死单版本。
+[tool.distutils.bdist_wheel]
+py-limited-api = "cp39"
