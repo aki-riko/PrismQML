@@ -399,6 +399,18 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 - 建 Release 前需 `gh auth login`（浏览器授权，推荐），或设 `GH_TOKEN` 环境变量。
 - **绝不把 PAT / token 明文贴进对话或提交进代码**。token 一旦明文出现即视为泄露，必须立即去 `github.com/settings/tokens` 吊销。临时用 token 只通过环境变量传入：`GH_TOKEN=xxx gh release create ...`。
 
+### 包命名（🔴 分发名 ≠ 导入名）
+
+PyPI **分发名** `fqml`（`fluentqml` 已被占用）；Python **导入名** 仍是 `fluentqml`。两者刻意不同，类似 `pip install pillow` 但 `import PIL`。
+
+- **只有"如何安装"语境用 `fqml`**：`pip install fqml`、README 安装命令、PyPI 元数据（`pyproject.toml` 的 `[project] name = "fqml"`）。
+- **其余一律保持 `fluentqml`，禁止改动**：
+  - import 语句 `from fluentqml import ...` / `import fluentqml`
+  - 包目录 `fluentqml/python/...`、QML 模块路径
+  - 配置目录 `~/.fluentqml/`
+  - Rust crate 名 `fluentqml_rs`（`rust/Cargo.toml`，与 PyPI 无关）
+- 改安装命令时只动 `pip install` 那一行，**绝不要批量把 `fluentqml` 替换成 `fqml`**——会改坏所有 import 和路径。
+
 ---
 
 ## 九、违规检测清单
