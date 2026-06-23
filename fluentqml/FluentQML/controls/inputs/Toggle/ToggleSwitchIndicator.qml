@@ -28,10 +28,10 @@ Rectangle {
     // disabled-unchecked: 深灰 (实色饱满) + opacity 0.65 → 看起来"灰扑扑且暗淡"
     // disabled-checked:   accent + opacity 0.65 → 淡 accent
     color: {
+        // 选中=checkedColor(=accentColor, neo 下自动橙); neo 未选要白轨道(Fluent 为灰, 结构差异)
         if (Enums.isNeobrutalism) {
-            // neo: 选中橙轨道, 未选白轨道(靠黑粗边显形)
-            if (!enabled) return checked ? Qt.rgba(0.98,0.45,0.09,0.5) : Enums.neo.muted
-            return checked ? Enums.neo.primary : Enums.neo.surface
+            if (!enabled) return checked ? Qt.rgba(0.98,0.45,0.09,0.5) : Enums.stateColor.checkBoxFill
+            return checked ? checkedColor : Enums.stateColor.checkBoxFill
         }
         if (!enabled) {
             if (checked) return checkedColor
@@ -40,9 +40,9 @@ Rectangle {
         return checked ? checkedColor : (Enums.isDark ? "#4d4d4d" : "#c0c0c0")
     }
     opacity: enabled ? 1.0 : 0.65
-    // neo: 轨道黑粗边
+    // neo 结构差异: Fluent 开关无边, neo 轨道+滑块加黑边显形
     border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
-    border.color: Enums.isNeobrutalism ? (enabled ? Enums.neo.borderColor : Qt.rgba(0,0,0,0.4)) : Enums.transparent
+    border.color: Enums.isNeobrutalism ? Enums.stateColor.toggleBorder : Enums.transparent
 
     Behavior on color { ColorAnimation { duration: Enums.duration.normal } }
     Behavior on opacity { NumberAnimation { duration: Enums.duration.normal } }
@@ -56,7 +56,7 @@ Rectangle {
         color: enabled ? "white" : Enums.gray.background
         // neo: 滑块黑边显形(白轨道上白滑块否则看不见)
         border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
-        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.transparent
+        border.color: Enums.isNeobrutalism ? Enums.stateColor.toggleBorder : Enums.transparent
         anchors.verticalCenter: parent.verticalCenter
         x: checked ? parent.width - width - Enums.spacing.xxs : Enums.spacing.xxs
 

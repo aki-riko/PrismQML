@@ -23,20 +23,11 @@ Rectangle {
     radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
 
     // ==================== Color Calc 颜色计算 ====================
+    // 选中色=checkedColor(=accentColor, neo 下自动橙); 未选=checkBoxFill(neo 下自动白面)。颜色无需 neo 分支。
     color: {
-        if (Enums.isNeobrutalism) {
-            // neo: 选中橙底, 未选白底; hover/press 用变暗变亮
-            if (!enabled) return checkState > 0 ? Qt.rgba(0,0,0,0.2) : Enums.neo.muted
-            if (checkState > 0) {
-                if (pressed) return Qt.darker(Enums.neo.primary, 1.15)
-                if (hovered) return Qt.lighter(Enums.neo.primary, 1.08)
-                return Enums.neo.primary
-            }
-            return Enums.neo.surface
-        }
         if (!enabled) {
             if (checkState > 0) return Enums.stateColor.disabledBorder
-            return Enums.transparent
+            return Enums.isNeobrutalism ? Enums.stateColor.checkBoxFill : Enums.transparent
         }
         if (checkState > 0) {
             if (pressed) return Qt.darker(checkedColor, 1.15)
@@ -48,11 +39,12 @@ Rectangle {
         return Enums.stateColor.checkBoxFill
     }
 
-    // neo: 黑粗边始终在(包括选中态, 强调描边); Fluent: 选中无边
+    // neo 结构差异: 黑粗边始终在(含选中态强调描边); Fluent: 选中无边
     border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth
                   : (checkState > 0 ? 0 : Enums.border.medium)
     border.color: {
-        if (Enums.isNeobrutalism) return enabled ? Enums.neo.borderColor : Qt.rgba(0,0,0,0.4)
+        // neo 选中态也要黑边(结构差异, Fluent 选中返回 transparent); 非选中黑边由 token 自动返回
+        if (Enums.isNeobrutalism && checkState > 0) return enabled ? Enums.stateColor.toggleBorder : Qt.rgba(0,0,0,0.4)
         if (checkState > 0) return Enums.transparent
         if (!enabled) return Enums.stateColor.disabledBorder
         if (pressed) return Enums.stateColor.togglePressed
@@ -69,8 +61,8 @@ Rectangle {
         width: Enums.controlSize.checkboxInner
         height: Enums.controlSize.checkboxInner
         state: indicator.checkState
-        // neo: 橙底白勾; Fluent: 随明暗
-        color: Enums.isNeobrutalism ? "white" : (Enums.isDark ? "black" : "white")
+        // 勾色: neo(light)→白; Fluent 随明暗(neo 下 isDark=false 同样取白)
+        color: Enums.isDark && !Enums.isNeobrutalism ? "black" : "white"
         visible: indicator.checkState > 0
         scale: indicator.checkState > 0 ? 1 : 0
         Behavior on scale {

@@ -74,7 +74,7 @@ Widget {
     // Note: transparentBackground takes highest priority 透明背景优先级最高
     property color color: {
         if (transparentBackground) return Enums.transparent
-        if (Enums.isNeobrutalism) return !enabled ? Enums.neo.muted : Enums.neo.surface
+        // 颜色由 token 层在 neo 下自动返回白面/muted, 无需控件分支。
         if (!enabled) return Enums.stateColor.controlBgDisabled
         if (focused) return Enums.cardColor  // InputgHover
         return Enums.stateColor.controlBg
@@ -97,20 +97,14 @@ Widget {
         visible: !control.transparentBackground && !Enums.isNeobrutalism
     }
 
-    // Neobrutalism 硬阴影: 纯黑零模糊; 聚焦时转橙主色, 强调激活态。
-    Rectangle {
-        id: _neoShadow
+    // Neobrutalism 硬阴影: 复用 NeoShadow 组件; 聚焦时 accent=true 转橙主色强调。
+    NeoShadow {
+        target: _bg
         visible: Enums.isNeobrutalism && !control.transparentBackground
-        x: Enums.neo.shadowOffset
-        y: Enums.neo.shadowOffset
-        width: _bg.width
-        height: _bg.height
-        radius: control.radius
-        color: control.focused ? Enums.neo.primary : Enums.neo.shadowColor
+        accent: control.focused
         z: _bg.z - 1
-        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
-    
+
     // ==================== Background Rectangle 背景矩形 ====================
     Rectangle {
         id: _bg
@@ -135,11 +129,8 @@ Widget {
             : (Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin)
         border.color: {
             if (control.transparentBackground) return Enums.transparent
-            if (Enums.isNeobrutalism) {
-                // neo: 黑粗边, 聚焦转橙主色
-                if (!control.enabled) return Qt.rgba(0, 0, 0, 0.4)
-                return control.focused ? Enums.neo.primary : Enums.neo.borderColor
-            }
+            // neo 聚焦转橙(token 不含此交互, 属结构差异); 其余黑边由 token 自动返回
+            if (Enums.isNeobrutalism && control.enabled && control.focused) return Enums.neo.primary
             if (!control.enabled) return Enums.stateColor.borderLight
             return Enums.stateColor.border
         }

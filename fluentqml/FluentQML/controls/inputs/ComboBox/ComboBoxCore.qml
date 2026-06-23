@@ -212,27 +212,21 @@ Widget {
         visible: style === 0 && !Enums.isNeobrutalism  // Only for default style 仅默认样式
     }
 
-    // Neobrutalism 硬阴影: 纯黑零模糊; 展开/聚焦时转橙主色强调。
-    Rectangle {
-        id: _neoShadow
+    // Neobrutalism 硬阴影: 复用 NeoShadow 组件; 展开时 accent=true 转橙强调。
+    NeoShadow {
+        target: background
         visible: Enums.isNeobrutalism && style === 0
-        x: Enums.neo.shadowOffset
-        y: Enums.neo.shadowOffset
-        width: background.width
-        height: background.height
-        radius: control.radius
-        color: (control.popupVisible) ? Enums.neo.primary : Enums.neo.shadowColor
+        accent: control.popupVisible
         z: background.z - 1
-        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
-    
+
     // ==================== Background 背景 ====================
     Rectangle {
         id: background
         anchors.fill: parent
         radius: control.radius
         clip: false
-        
+
         layer.enabled: true
         layer.effect: OpacityMask {
             mask: Rectangle {
@@ -241,17 +235,12 @@ Widget {
                 radius: background.radius
             }
         }
-        
+
         // ==================== Fluent Design Style Fluent Design样式 ====================
         // Unified with Button/LineEdit controlBg series 与Button/LineEdit统一使用controlBg系列
+        // 颜色由 token 层在 neo 下自动返回白面/灰, 无需控件分支。
         color: {
             if (style !== 0) return styleHelper.getBackgroundColor()  // Other styles keep original 其他样式保持原样
-            if (Enums.isNeobrutalism) {
-                if (!control.enabled) return Enums.neo.muted
-                if (control.popupVisible || control.pressed) return Qt.darker(Enums.neo.surface, 1.08)
-                if (control.hovered) return Enums.neo.muted
-                return Enums.neo.surface
-            }
             if (!control.enabled) return Enums.stateColor.controlBgDisabled
             if (control.popupVisible) return Enums.stateColor.controlBgPressed
             if (control.pressed) return Enums.stateColor.controlBgPressed

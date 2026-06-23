@@ -28,9 +28,6 @@ QtObject {
     readonly property color bgColor: {
         if (!Enums || !Enums.stateColor) return Enums.stateColor.controlBg
 
-        // Neobrutalism 配色: primary/filled/gradient 用橙主色, 默认白面, 透明类保持透明。
-        if (Enums.isNeobrutalism) return _neoBgColor()
-
         if (isToggleChecked) {
             if (style === Enums.button.style_primary) {
                 if (!effectiveEnabled) return Enums.stateColor.disabled
@@ -89,43 +86,13 @@ QtObject {
     }
 
     // ==================== Neobrutalism 配色函数 ====================
-    // neo 不靠半透明叠加表达 hover/press, 用主色变暗/变亮(硬色块风格)。
+    // 颜色值已由 token 层(accentColor/stateColor/statusLevel)在 neo 下自动返回;
+    // 此处仅保留【结构差异】: neo 下 primary/filled 按钮也要黑边(Fluent 逻辑返回透明),
+    // 以及文本色统一(token textColor 近黑够用, 但 accent 类需白字)。
     function _neoIsAccentStyle() {
         return style === Enums.button.style_primary ||
                style === Enums.button.style_filled ||
                style === Enums.button.style_gradient
-    }
-    // level → neo 高饱和语义色(info=0/success=1/warning=2/error=3), 越界回退橙主色
-    function _neoLevelColor(lv) {
-        switch (lv) {
-            case Enums.statusLevel.success: return Enums.neo.success
-            case Enums.statusLevel.warning: return Enums.neo.warning
-            case Enums.statusLevel.error:   return Enums.neo.danger
-            case Enums.statusLevel.info:    return Enums.neo.info
-            default: return Enums.neo.primary
-        }
-    }
-    function _neoBgColor() {
-        // 透明/文本/超链接: 保持透明(neo 下这类按钮靠文字+硬阴影, 不填背景)
-        if (style === Enums.button.style_transparent ||
-            style === Enums.button.style_text ||
-            style === Enums.button.style_hyperlink) {
-            return Enums.transparent
-        }
-        if (_neoIsAccentStyle()) {
-            // filled 按 level 取 neo 高饱和语义色, 其余 accent 类用橙主色
-            var base = (style === Enums.button.style_filled)
-                       ? _neoLevelColor(level) : Enums.neo.primary
-            if (!effectiveEnabled) return Qt.rgba(base.r, base.g, base.b, 0.45)
-            if (pressed) return Qt.darker(base, 1.15)
-            if (hovered) return Qt.lighter(base, 1.08)
-            return base
-        }
-        // 默认按钮: 白面, hover/press 轻微变灰
-        if (!effectiveEnabled) return Enums.neo.muted
-        if (pressed) return Qt.darker(Enums.neo.surface, 1.08)
-        if (hovered) return Enums.neo.muted
-        return Enums.neo.surface
     }
     function _neoBorderColor() {
         // neo: 非透明类一律纯黑粗边; 透明/文本/超链接无边

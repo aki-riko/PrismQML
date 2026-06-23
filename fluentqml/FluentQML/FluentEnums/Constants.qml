@@ -91,6 +91,26 @@ QtObject {
         readonly property color tabSelectedLight: "#f9f9f9"
     }
 
+    // ==================== NeoColors 新粗野皮肤原始调色板 ====================
+    // neobrutalism 皮肤配色【单一真相源】, 参照 kiro_rs admin-ui(米白底/橙主色/黑边黑影)。
+    // 仅 light 一套(深色 neo 无成熟参照, neo+dark 由上层回退 Fluent 深色)。
+    // 下次加新皮肤照此模式新增一个调色板对象即可, 控件零改动。
+    readonly property QtObject neoColors: QtObject {
+        readonly property color background: "#FAFAF0"  // 窗口底色(米白)
+        readonly property color surface: "#FFFFFF"     // 卡片/控件面(纯白, 靠黑边+硬阴影区分)
+        readonly property color muted: "#F5F5F5"       // 弱化背景(禁用/hover)
+        readonly property color foreground: "#171717"  // 近黑文字
+        readonly property color secondaryForeground: "#666666" // 次要文字
+        readonly property color border: "#000000"      // 描边纯黑
+        readonly property color shadow: "#000000"      // 硬阴影纯黑
+        readonly property color primary: "#F97316"     // 主色(橙)
+        readonly property color primaryForeground: "#FFFFFF" // 主色上文字(白)
+        readonly property color success: "#16A34A"     // 成功(绿)
+        readonly property color danger: "#EF4444"      // 危险(红)
+        readonly property color warning: "#F59E0B"     // 警告(琥珀)
+        readonly property color info: "#3B82F6"        // 信息(亮蓝)
+    }
+
     // ==================== SemanticColors 语义色 ====================
     // success/warning/error 及其背景色取自微软 WinUI 官方 SystemFillColor 资源
     // (Common_themeresources_any.xaml: SystemFillColorSuccess/Caution/Critical[Background])，

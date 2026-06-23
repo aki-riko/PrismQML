@@ -10,7 +10,10 @@ QtObject {
     id: root
     
     required property bool isDark
+    property bool isNeo: false
     required property color accentColor
+    property var constants: null
+    readonly property QtObject _neo: constants ? constants.neoColors : null
     
     // Hover state bg 悬停状态背景
     readonly property color hover: root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.04)
@@ -20,9 +23,9 @@ QtObject {
     readonly property color pressed: root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04)
     readonly property color pressedStrong: root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
     // Border color 边框颜色
-    readonly property color border: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08)
-    readonly property color borderLight: root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
-    readonly property color borderStrong: root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12)
+    readonly property color border: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08))
+    readonly property color borderLight: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
+    readonly property color borderStrong: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12))
     // Divider 分隔线
     readonly property color divider: root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12)
     // Navigation divider (lighter in light mode) 导航分隔线（浅色模式更淡）
@@ -77,17 +80,17 @@ QtObject {
     // Disabled border 禁用边框
     readonly property color disabledBorder: root.isDark ? Qt.rgba(1,1,1,0.16) : Qt.rgba(0,0,0,0.22)
     // Toggle special states Toggle特殊状态
-    readonly property color toggleBorder: root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.45)
-    readonly property color toggleBorderHover: root.isDark ? Qt.rgba(1,1,1,0.78) : Qt.rgba(0,0,0,0.57)
-    readonly property color togglePressed: root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.45)
+    readonly property color toggleBorder: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.45))
+    readonly property color toggleBorderHover: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.78) : Qt.rgba(0,0,0,0.57))
+    readonly property color togglePressed: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.45))
     // CheckBox unchecked fill 复选框未勾选填充
     // Microsoft WinUI ControlAltFill 官方令牌:
     //   normal = ControlAltFillColorSecondary (Dark #19000000 / Light #06000000)
     //   hover  = ControlAltFillColorTertiary  (Dark #0BFFFFFF / Light #0F000000)
     //   press  = ControlAltFillColorQuarternary(Dark #12FFFFFF / Light #18000000)
-    readonly property color checkBoxFill: root.isDark ? Qt.rgba(0,0,0,0.098) : Qt.rgba(0,0,0,0.024)
-    readonly property color checkBoxFillHover: root.isDark ? Qt.rgba(1,1,1,0.043) : Qt.rgba(0,0,0,0.059)
-    readonly property color checkBoxFillPressed: root.isDark ? Qt.rgba(1,1,1,0.071) : Qt.rgba(0,0,0,0.094)
+    readonly property color checkBoxFill: isNeo ? _neo.surface : (root.isDark ? Qt.rgba(0,0,0,0.098) : Qt.rgba(0,0,0,0.024))
+    readonly property color checkBoxFillHover: isNeo ? _neo.muted : (root.isDark ? Qt.rgba(1,1,1,0.043) : Qt.rgba(0,0,0,0.059))
+    readonly property color checkBoxFillPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (root.isDark ? Qt.rgba(1,1,1,0.071) : Qt.rgba(0,0,0,0.094))
     // Semi-transparent text 半透明文字
     readonly property color textMedium: root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.5)
     // Drop zone 拖放区域
@@ -141,21 +144,21 @@ QtObject {
     // Unified opaque colors for all controls 所有控件统一不透明色
     // Light: 默认fefefe, 悬浮fafafa, 按下/聚焦fcfcfc
     // Dark: 默认4e4e4e, 悬浮595959, 按下/聚焦4e4e4e
-    readonly property color controlBg: root.isDark ? "#4e4e4e" : "#fefefe"
+    readonly property color controlBg: isNeo ? _neo.surface : (root.isDark ? "#4e4e4e" : "#fefefe")
     // 全局统一 hover/pressed 灰阶 (Fluent UI 标准 subtle hover):
     // controlBgHover = menuItemHover = tableHoverLight = #f0f0f0,
     // 所有可交互行/项 hover 视觉一致, 用户能明显感知。
-    readonly property color controlBgHover: root.isDark ? "#3c3c3c" : "#f0f0f0"
-    readonly property color controlBgPressed: root.isDark ? "#353535" : "#e5e5e5"
-    readonly property color controlBgDisabled: root.isDark ? "#3a3a3a" : "#ffffff"
+    readonly property color controlBgHover: isNeo ? _neo.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0")
+    readonly property color controlBgPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (root.isDark ? "#353535" : "#e5e5e5")
+    readonly property color controlBgDisabled: isNeo ? _neo.muted : (root.isDark ? "#3a3a3a" : "#ffffff")
     // Transparent button colors 透明按钮颜色
     // Light: hover ebebeb, pressed ededed | Dark: hover 3a3a3a, pressed 323232
-    readonly property color transparentHover: root.isDark ? "#3a3a3a" : "#ebebeb"
-    readonly property color transparentPressed: root.isDark ? "#323232" : "#ededed"
+    readonly property color transparentHover: isNeo ? _neo.muted : (root.isDark ? "#3a3a3a" : "#ebebeb")
+    readonly property color transparentPressed: isNeo ? Qt.darker(_neo.muted, 1.05) : (root.isDark ? "#323232" : "#ededed")
     // Transparent button default bg (same RGB as hover, alpha=0) 透明按钮默认背景（与悬浮色相同RGB，alpha=0）
     // Prevents gray flash during ColorAnimation from transparent to hover color 防止从透明到悬浮色的颜色动画出现灰色闪烁
     readonly property color controlBgTransparent: root.isDark ? Qt.rgba(58/255, 58/255, 58/255, 0) : Qt.rgba(235/255, 235/255, 235/255, 0)
-    readonly property color pickerBorder: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.07)
+    readonly property color pickerBorder: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.07))
     readonly property color pickerTextDisabled: root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.35)
     readonly property color pickerTextPlaceholder: root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.6)
     readonly property color pickerTextSecondary: root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.4)

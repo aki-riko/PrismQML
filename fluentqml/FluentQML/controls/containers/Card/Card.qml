@@ -79,20 +79,13 @@ Widget {
  Behavior on _shadowColor { ColorAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  }
 
- // Neobrutalism 硬阴影: 固定纯黑、零模糊、固定 offset。elevated 卡 hover 时阴影加大(偏移翻倍)。
- Rectangle {
- id: _neoShadow
+ // Neobrutalism 硬阴影: 复用 NeoShadow 组件。elevated 卡 hover 时偏移翻倍(阴影加大)。
+ NeoShadow {
+ target: card
  visible: Enums.isNeobrutalism
- readonly property real _off: (isElevated && hovered && !pressed) ? Enums.neo.shadowOffset * 1.5 : Enums.neo.shadowOffset
- x: _off
- y: _off
- width: card.width
- height: card.height
- radius: control.borderRadius
- color: Enums.neo.shadowColor
+ offset: (isElevated && hovered && !pressed) ? Enums.neo.shadowOffset * 1.5 : Enums.neo.shadowOffset
  z: card.z - 1
- Behavior on x { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
- Behavior on y { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
+ Behavior on offset { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  }
  
  // ==================== Card 卡片 ====================
@@ -113,12 +106,7 @@ Widget {
  color: _bgColor
  
  property color _bgColor: {
- // Neobrutalism: 卡片白面(靠黑边+硬阴影区分), hover/press 轻微变灰
- if (Enums.isNeobrutalism) {
- if ((isNormal || isElevated) && pressed) return Qt.darker(Enums.neo.surface, 1.08)
- if ((isNormal || isElevated) && hovered) return Enums.neo.muted
- return Enums.neo.surface
- }
+ // 颜色由 token 层(stateColor.controlBg/Hover/Pressed)在 neo 下自动返回白面/灰, 无需控件分支。
  // Default/Header card: no hover effect 默认卡片/标题卡片无悬停效果
  // HeaderCard inherits DefaultCard behavior 标题卡继承默认卡行为
  if (cardType === Enums.card.type_default || cardType === Enums.card.type_header) {
@@ -134,7 +122,7 @@ Widget {
  
  // Border 边框
  border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
- border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.stateColor.borderLight
+ border.color: Enums.stateColor.borderLight  // neo 黑边由 token 自动返回
  
  // ==================== Header (for header type) 标题区域 ====================
  Item {

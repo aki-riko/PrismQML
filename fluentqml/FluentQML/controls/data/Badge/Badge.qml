@@ -44,17 +44,6 @@ Rectangle {
     // Text color: always white 文字颜色：统一白色
     readonly property color _contentColor: Enums.accentForeground
 
-    // neo level → 高饱和语义色(与 Button filled 一致)
-    function _neoLevelColor(lv) {
-        switch (lv) {
-            case Enums.statusLevel.success: return Enums.neo.success
-            case Enums.statusLevel.warning: return Enums.neo.warning
-            case Enums.statusLevel.error:   return Enums.neo.danger
-            case Enums.statusLevel.info:    return Enums.neo.info
-            default: return Enums.neo.primary
-        }
-    }
-
     // ==================== Size 尺寸 ====================
     implicitWidth: _effectiveDot ? Enums.spacing.s : Math.max(Enums.controlSize.checkboxOuter, contentItem.implicitWidth + Enums.spacing.m)
     implicitHeight: _effectiveDot ? Enums.spacing.s : Enums.controlSize.checkboxOuter
@@ -62,7 +51,8 @@ Rectangle {
     visible: _visible
 
     // ==================== Color 颜色 ====================
-    color: Enums.isNeobrutalism ? _neoLevelColor(level) : Enums.statusLevel.getColorByLevel(level)
+    // 语义色由 getColorByLevel 在 neo 下自动返回高饱和值; 黑边为 neo 结构差异
+    color: Enums.statusLevel.getColorByLevel(level)
     // neo: 黑细粗边(徽章小, 用 medium 不用 thick)
     border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
     border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.transparent

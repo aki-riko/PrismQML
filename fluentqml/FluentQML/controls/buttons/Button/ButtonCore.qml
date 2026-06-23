@@ -243,16 +243,10 @@ Widget {
         visible: !control.flat && !Enums.isNeobrutalism
     }
 
-    // Neobrutalism 硬阴影: 固定纯黑、零模糊、带固定 offset。按下时控件位移压平它(高度随 _bg 缩)。
-    Rectangle {
-        id: _neoShadow
+    // Neobrutalism 硬阴影: 复用 NeoShadow 组件(纯黑零模糊, 偏移)。按下位移由下方 Translate 压平。
+    NeoShadow {
+        target: _bg
         visible: Enums.isNeobrutalism && !control.flat
-        x: Enums.neo.shadowOffset
-        y: Enums.neo.shadowOffset
-        width: _bg.width
-        height: _bg.height
-        radius: control.radius
-        color: Enums.neo.shadowColor
         z: _bg.z - 1
     }
 
@@ -265,7 +259,7 @@ Widget {
         border.width: Enums.isNeobrutalism
             ? (flat ? 0 : Enums.neo.borderWidth)
             : ((styleHelper.isToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin))
-        border.color: Enums.isNeobrutalism && !flat ? Enums.neo.borderColor : _animatedBorderColor
+        border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
 
         // Gradient (for gradient style) 渐变
         gradient: style === Enums.button.style_gradient ? _gradientDef : null
