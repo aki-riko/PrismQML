@@ -16,7 +16,7 @@ try:
     from importlib.metadata import version as _get_version
     __version__ = _get_version("fqml")  # PyPI 分发名为 fqml
 except Exception:
-    __version__ = "0.2.4"  # 回退值：开发模式或未安装时
+    __version__ = "0.2.5"  # 回退值：开发模式或未安装时
 __author__ = "aki-riko"
 
 from .python.core import (
