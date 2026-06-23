@@ -95,6 +95,16 @@ QtObject {
                style === Enums.button.style_filled ||
                style === Enums.button.style_gradient
     }
+    // level → neo 高饱和语义色(info=0/success=1/warning=2/error=3), 越界回退橙主色
+    function _neoLevelColor(lv) {
+        switch (lv) {
+            case Enums.statusLevel.success: return Enums.neo.success
+            case Enums.statusLevel.warning: return Enums.neo.warning
+            case Enums.statusLevel.error:   return Enums.neo.danger
+            case Enums.statusLevel.info:    return Enums.neo.info
+            default: return Enums.neo.primary
+        }
+    }
     function _neoBgColor() {
         // 透明/文本/超链接: 保持透明(neo 下这类按钮靠文字+硬阴影, 不填背景)
         if (style === Enums.button.style_transparent ||
@@ -103,9 +113,9 @@ QtObject {
             return Enums.transparent
         }
         if (_neoIsAccentStyle()) {
-            // filled 按 level 取状态色(成功/危险等), 其余 accent 类用橙主色
+            // filled 按 level 取 neo 高饱和语义色, 其余 accent 类用橙主色
             var base = (style === Enums.button.style_filled)
-                       ? Enums.statusLevel.getColorByLevel(level) : Enums.neo.primary
+                       ? _neoLevelColor(level) : Enums.neo.primary
             if (!effectiveEnabled) return Qt.rgba(base.r, base.g, base.b, 0.45)
             if (pressed) return Qt.darker(base, 1.15)
             if (hovered) return Qt.lighter(base, 1.08)

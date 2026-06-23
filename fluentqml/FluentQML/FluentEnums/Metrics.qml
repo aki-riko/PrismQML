@@ -137,6 +137,8 @@ QtObject {
  readonly property color primaryForeground: "#FFFFFF" // 主色上的文字
  readonly property color success: "#16A34A" // 成功/可用(绿)
  readonly property color danger: "#EF4444" // 危险/错误(红)
+ readonly property color warning: "#F59E0B" // 警告(琥珀)
+ readonly property color info: "#3B82F6" // 信息(亮蓝)
  readonly property color muted: "#F5F5F5" // 弱化背景
  }
  
