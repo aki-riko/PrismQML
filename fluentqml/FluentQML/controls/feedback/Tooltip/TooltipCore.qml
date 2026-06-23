@@ -87,12 +87,21 @@ Item {
             
             // ==================== Background 样式 ====================
             ShadowedRectangle {
+                id: _tipBg
                 anchors.fill: parent
-                radius: Enums.radius.small
+                radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
                 color: Enums.cardColor
-                border.width: Enums.border.thin
+                border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
                 border.color: Enums.stateColor.border
                 shadowLevel: Enums.shadow.level2
+                shadowVisible: !Enums.isNeobrutalism  // neo 关软阴影, 用下方硬阴影
+
+                // neo 硬阴影
+                NeoShadow {
+                    target: _tipBg
+                    visible: Enums.isNeobrutalism
+                    z: -1
+                }
                 
                 // ==================== Content 内容 ====================
                 Label {

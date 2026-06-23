@@ -70,8 +70,8 @@ Widget {
         anchors.topMargin: control._titleY
         color: "transparent"
         radius: control._borderRadius
-        border.width: Enums.border.thin
-        border.color: Enums.stateColor.groupBorder
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.stateColor.groupBorder
         visible: !control.flat
     }
 
