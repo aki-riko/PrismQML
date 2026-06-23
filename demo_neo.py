@@ -71,8 +71,21 @@ Window {
             }
         }
 
+        // 表单控件一排: 输入框 / 下拉框 (聚焦/展开时边框转橙)
+        Row {
+            spacing: 16
+            LineEdit {
+                width: 220
+                placeholderText: "点我聚焦,边框变橙"
+            }
+            ComboBoxDefault {
+                width: 200
+                model: ["选项一", "选项二", "选项三"]
+            }
+        }
+
         Text {
-            text: "鼠标按住按钮看「压平」效果;悬停悬浮卡看阴影变化"
+            text: "鼠标按住按钮看「压平」效果;悬停悬浮卡看阴影变化;点输入框/下拉看橙色聚焦"
             font.pixelSize: 13
             color: Enums.isNeobrutalism ? Enums.neo.secondaryForeground : Enums.secondaryForeground
         }

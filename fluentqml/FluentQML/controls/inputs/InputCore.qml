@@ -41,7 +41,7 @@ Widget {
     // Content size (inherited from Widget) 内容尺寸（继承自Widget）
     contentWidth: Enums.controlSize.inputDefaultWidth
     contentHeight: Enums.controlSize.inputHeight
-    property int radius: Enums.radius.small
+    property int radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
     
     // ==================== Content Padding 内容边距 ====================
     // Unified padding for all input controls 所有输入控件统一边距
@@ -74,6 +74,7 @@ Widget {
     // Note: transparentBackground takes highest priority 透明背景优先级最高
     property color color: {
         if (transparentBackground) return Enums.transparent
+        if (Enums.isNeobrutalism) return !enabled ? Enums.neo.muted : Enums.neo.surface
         if (!enabled) return Enums.stateColor.controlBgDisabled
         if (focused) return Enums.cardColor  // InputgHover
         return Enums.stateColor.controlBg
@@ -86,13 +87,28 @@ Widget {
     property int cursorShape: Qt.IBeamCursor  // Subclass can override 子类可覆盖
 
     // ==================== Shadow Layer 阴影层 ====================
+    // Fluent: 模糊阴影。Neobrutalism: 硬阴影(纯黑, 聚焦时转橙主色强调)。
     RectangularShadow {
         anchors.fill: _bg
         radius: _bg.radius
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
         offset: Qt.vector2d(0, Enums.shadow.level2.offset)
-        visible: !control.transparentBackground
+        visible: !control.transparentBackground && !Enums.isNeobrutalism
+    }
+
+    // Neobrutalism 硬阴影: 纯黑零模糊; 聚焦时转橙主色, 强调激活态。
+    Rectangle {
+        id: _neoShadow
+        visible: Enums.isNeobrutalism && !control.transparentBackground
+        x: Enums.neo.shadowOffset
+        y: Enums.neo.shadowOffset
+        width: _bg.width
+        height: _bg.height
+        radius: control.radius
+        color: control.focused ? Enums.neo.primary : Enums.neo.shadowColor
+        z: _bg.z - 1
+        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
     
     // ==================== Background Rectangle 背景矩形 ====================
@@ -115,9 +131,15 @@ Widget {
         
         // ==================== Border 边框 ====================
         // Use unified border colors 使用统一边框颜色
-        border.width: control.transparentBackground ? 0 : Enums.border.thin
+        border.width: control.transparentBackground ? 0
+            : (Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin)
         border.color: {
             if (control.transparentBackground) return Enums.transparent
+            if (Enums.isNeobrutalism) {
+                // neo: 黑粗边, 聚焦转橙主色
+                if (!control.enabled) return Qt.rgba(0, 0, 0, 0.4)
+                return control.focused ? Enums.neo.primary : Enums.neo.borderColor
+            }
             if (!control.enabled) return Enums.stateColor.borderLight
             return Enums.stateColor.border
         }
@@ -148,11 +170,12 @@ Widget {
     
     // ==================== Focus Line 聚焦底线 ====================
     // z 值确保在子类 Loader 等内容之上渲染（子类子项在基类子项之后添加，z 默认更高）
+    // Neobrutalism: 关闭蓝色聚焦底线(橙粗边+硬阴影已表达聚焦, 蓝线破坏 neo 配色)。
     FocusLine {
         z: 10
-        showLine: control.focused && control.showFocusedBorder
+        showLine: !Enums.isNeobrutalism && control.focused && control.showFocusedBorder
         lineColor: control.focusedBorderColor
         parentRadius: control.radius
-        visible: control.showFocusedBorder
+        visible: !Enums.isNeobrutalism && control.showFocusedBorder
     }
 }
