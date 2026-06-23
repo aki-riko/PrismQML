@@ -55,26 +55,37 @@ Widget {
  }
  
  // ==================== Shadow Layer 阴影层 ====================
+ // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯黑矩形, 无模糊)。
  RectangularShadow {
  anchors.fill: card
  radius: card.radius
  color: _shadowColor
  blur: _shadowBlur
  offset: Qt.vector2d(0, _shadowOffset)
- 
+ visible: !Enums.isNeobrutalism
+
  // Shadow properties based on type and state 根据类型和状态计算阴影
- property color _shadowColor: isElevated && hovered 
- ? Enums.shadow.level4.color 
+ property color _shadowColor: isElevated && hovered
+ ? Enums.shadow.level4.color
  : Enums.shadow.level2.color
- property real _shadowBlur: isElevated && hovered 
- ? Enums.shadow.level4.blur 
+ property real _shadowBlur: isElevated && hovered
+ ? Enums.shadow.level4.blur
  : Enums.shadow.level2.blur
- property real _shadowOffset: isElevated && hovered 
- ? Enums.shadow.level4.offset 
+ property real _shadowOffset: isElevated && hovered
+ ? Enums.shadow.level4.offset
  : Enums.shadow.level2.offset
- 
+
  Behavior on _shadowBlur { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  Behavior on _shadowColor { ColorAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
+ }
+
+ // Neobrutalism 硬阴影: 复用 NeoShadow 组件。elevated 卡 hover 时偏移翻倍(阴影加大)。
+ NeoShadow {
+ target: card
+ visible: Enums.isNeobrutalism
+ offset: (isElevated && hovered && !pressed) ? Enums.neo.shadowOffset * 1.5 : Enums.neo.shadowOffset
+ z: card.z - 1
+ Behavior on offset { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  }
  
  // ==================== Card 卡片 ====================
@@ -95,6 +106,7 @@ Widget {
  color: _bgColor
  
  property color _bgColor: {
+ // 颜色由 token 层(stateColor.controlBg/Hover/Pressed)在 neo 下自动返回白面/灰, 无需控件分支。
  // Default/Header card: no hover effect 默认卡片/标题卡片无悬停效果
  // HeaderCard inherits DefaultCard behavior 标题卡继承默认卡行为
  if (cardType === Enums.card.type_default || cardType === Enums.card.type_header) {
@@ -109,8 +121,8 @@ Widget {
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  
  // Border 边框
- border.width: Enums.border.thin
- border.color: Enums.stateColor.borderLight
+ border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+ border.color: Enums.stateColor.borderLight  // neo 黑边由 token 自动返回
  
  // ==================== Header (for header type) 标题区域 ====================
  Item {

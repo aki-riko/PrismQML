@@ -159,14 +159,22 @@ Window {
     }
 
     // ==================== Shadow Layer 阴影层 ====================
+    // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: card
         radius: card.radius
         color: Enums.shadow.level8.color
         blur: Enums.shadow.level8.blur
         offset: Qt.vector2d(0, Enums.shadow.level8.offset)
+        visible: !Enums.isNeobrutalism
     }
-    
+
+    NeoShadow {
+        target: card
+        visible: Enums.isNeobrutalism
+        z: card.z - 1
+    }
+
     // ==================== Content 内容 ====================
     Rectangle {
         id: card
@@ -174,7 +182,7 @@ Window {
         anchors.margins: Enums.spacing.m
         radius: Enums.radius.large
         color: Enums.cardColor
-        border.width: Enums.border.thin
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
         border.color: Enums.stateColor.border
         
         // Left color bar 左侧色条

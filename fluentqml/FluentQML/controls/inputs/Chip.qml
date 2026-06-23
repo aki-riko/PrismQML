@@ -47,28 +47,37 @@ Item {
     implicitHeight: 32
 
     // ==================== Shadow Layer 阴影层 ====================
+    // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: chipBg
         radius: chipBg.radius
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
         offset: Qt.vector2d(0, Enums.shadow.level2.offset)
+        visible: !Enums.isNeobrutalism
+    }
+
+    NeoShadow {
+        target: chipBg
+        visible: Enums.isNeobrutalism
+        z: chipBg.z - 1
     }
 
     // ==================== Background 背景 ====================
     Rectangle {
         id: chipBg
         anchors.fill: parent
-        radius: Enums.radius.small
-        
+        radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+
         color: {
             if (checked) return Enums.accentColor
             if (pressed) return Enums.stateColor.chipBgPressed
             if (hovered) return Enums.stateColor.chipBgHover
             return Enums.stateColor.chipBg
         }
-        
-        border.width: checked ? 0 : Enums.border.thin
+
+        // neo: 选中态也保留黑边(结构差异); Fluent 选中无边
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (checked ? 0 : Enums.border.thin)
         border.color: Enums.stateColor.border
 
         // ==================== Animations 动画 ====================

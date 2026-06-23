@@ -30,14 +30,22 @@ OverlayDialogCore {
     signal timeout()
     
     // ==================== Shadow Layer 阴影层 ====================
+    // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: container
         radius: container.radius
         color: Enums.shadow.level8.color
         blur: Enums.shadow.level8.blur
         offset: Qt.vector2d(0, Enums.shadow.level8.offset)
+        visible: !Enums.isNeobrutalism
     }
-    
+
+    NeoShadow {
+        target: container
+        visible: Enums.isNeobrutalism
+        z: container.z - 1
+    }
+
     // ==================== Main Container 主容器 ====================
     Rectangle {
         id: container
@@ -46,7 +54,7 @@ OverlayDialogCore {
         height: Math.max(110, contentRow.implicitHeight + 40)
         radius: Enums.radius.large
         color: Enums.cardColor
-        border.width: Enums.border.thin
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
         border.color: Enums.stateColor.dialogBorder
         
         // Animation 动画

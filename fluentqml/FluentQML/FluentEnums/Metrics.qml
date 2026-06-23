@@ -10,6 +10,8 @@ QtObject {
  id: root
  
  required property bool isDark
+ // neo 配色单一真相源(Constants.neoColors, dark-aware), 由 Enums 注入
+ property var constants: null
  
  // ==================== Duration 动画时长 ====================
  readonly property QtObject duration: QtObject {
@@ -113,6 +115,30 @@ QtObject {
  readonly property real medium: 1.5
  readonly property int normal: 2
  readonly property int thick: 3
+ }
+
+ // ==================== Neobrutalism 新粗野皮肤度量+配色 ====================
+ // 几何范式集中放此; 配色【引用 Constants.neoColors 单一真相源】(dark-aware), 不在此重复定义,
+ // 否则改一处忘另一处会出 bug(深色边框没反转即此坑)。控件读 Enums.neo.xxx。
+ readonly property QtObject neo: QtObject {
+ // ---- 几何 ----
+ readonly property int borderWidth: 2 // 粗描边宽度
+ readonly property int radius: 6 // 圆角(0.375rem≈6px, 接近直角)
+ readonly property real shadowOffset: 4 // 硬阴影偏移(X=Y), 即"纸面投影"距离
+ readonly property real pressOffset: 4 // 按下时控件下移/右移距离(= shadowOffset, 视觉上压平阴影)
+ // ---- 配色: 全部指向 Constants.neoColors(按 isDark 自动切 light/dark) ----
+ readonly property color shadowColor: root.constants.neoColors.shadow
+ readonly property color borderColor: root.constants.neoColors.border
+ readonly property color background: root.constants.neoColors.background
+ readonly property color surface: root.constants.neoColors.surface
+ readonly property color foreground: root.constants.neoColors.foreground
+ readonly property color secondaryForeground: root.constants.neoColors.secondaryForeground
+ readonly property color primary: root.constants.neoColors.primary
+ readonly property color primaryForeground: root.constants.neoColors.primaryForeground
+ readonly property color success: root.constants.neoColors.success
+ readonly property color danger: root.constants.neoColors.danger
+ readonly property color warning: root.constants.neoColors.warning
+ readonly property color info: root.constants.neoColors.info
  }
  
  // ==================== IconSize 图标尺寸 ====================

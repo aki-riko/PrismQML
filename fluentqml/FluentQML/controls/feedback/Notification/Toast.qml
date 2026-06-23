@@ -158,12 +158,20 @@ Widget {
         anchors.topMargin: Enums.spacing.m + 3  // Extra space for color bar
 
         // Shadow Layer 阴影层
+        // Fluent: 模糊阴影; Neobrutalism: 硬阴影(NeoShadow)。
         RectangularShadow {
             anchors.fill: card
             radius: card.radius
             color: Enums.shadow.level4.color
             blur: Enums.shadow.level4.blur
             offset: Qt.vector2d(0, Enums.shadow.level4.offset)
+            visible: !Enums.isNeobrutalism
+        }
+
+        NeoShadow {
+            target: card
+            visible: Enums.isNeobrutalism
+            z: card.z - 1
         }
 
         // Bottom Layer: Color bar 底层颜色条
@@ -184,7 +192,7 @@ Widget {
             anchors.fill: parent
             radius: Enums.radius.small
             color: control._cardColor  // 支持自定义背景色
-            border.width: Enums.border.thin
+            border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
             border.color: Enums.stateColor.borderLight
             
             // Icon container: ref InfoBar icon in progress bar mode, hidden in ring mode 图标容器：参考 InfoBar 进度条模式下的图标，环形模式下隐藏

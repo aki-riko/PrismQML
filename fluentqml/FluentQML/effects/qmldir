@@ -4,5 +4,6 @@ ColorOverlay ColorOverlay.qml
 OpacityMask OpacityMask.qml
 GaussianBlur GaussianBlur.qml
 ShadowedRectangle ShadowedRectangle.qml
+NeoShadow NeoShadow.qml
 ToggleAnimation ToggleAnimation.qml
 MatrixRain MatrixRain.qml

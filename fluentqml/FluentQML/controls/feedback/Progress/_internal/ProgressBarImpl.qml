@@ -93,6 +93,9 @@ Item {
         anchors.fill: parent
         radius: filled ? Enums.radius.small : (height / 2)
         color: control.trackColor
+        // neo: 轨道加黑边(白轨道靠黑边显形)
+        border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
+        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent
     }
     
     // Progress 进度

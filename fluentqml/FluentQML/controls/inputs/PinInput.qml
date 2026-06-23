@@ -65,19 +65,27 @@ Item {
                 property bool hovered: cellMouseArea.containsMouse
                 
                 // Shadow 阴影
+                // Fluent: 模糊阴影; neo: 硬阴影
                 RectangularShadow {
                     anchors.fill: pinCell
                     radius: pinCell.radius
                     color: Enums.shadow.level2.color
                     blur: Enums.shadow.level2.blur
                     offset: Qt.vector2d(0, Enums.shadow.level2.offset)
+                    visible: !Enums.isNeobrutalism
                 }
-                
+
+                NeoShadow {
+                    target: pinCell
+                    visible: Enums.isNeobrutalism
+                    z: pinCell.z - 1
+                }
+
                 Rectangle {
                     id: pinCell
                     anchors.fill: parent
-                    radius: Enums.radius.small
-                    
+                    radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+
                     // Fluent Design: default/hover/current cell states 默认/悬浮/当前格状态
                     color: {
                         if (!control.enabled) return Enums.stateColor.controlBgDisabled
@@ -85,9 +93,10 @@ Item {
                         if (cellItem.hovered) return Enums.stateColor.controlBgHover
                         return Enums.stateColor.controlBg
                     }
-                    
-                    border.width: Enums.border.thin
+
+                    border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
                     border.color: {
+                        if (Enums.isNeobrutalism) return cellItem.isCurrentCell ? Enums.neo.primary : Enums.stateColor.border
                         if (!control.enabled) return Enums.stateColor.borderLight
                         if (cellItem.hovered) return Enums.stateColor.borderStrong
                         return Enums.stateColor.inputBorderNormal

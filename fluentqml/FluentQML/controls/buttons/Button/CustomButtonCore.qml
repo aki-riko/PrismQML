@@ -81,21 +81,29 @@ Widget {
     readonly property bool hasIcon: icon !== ""
     
     // ==================== Shadow Layer 阴影层 ====================
+    // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: background
         radius: background.radius
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
         offset: Qt.vector2d(0, Enums.shadow.level2.offset)
+        visible: !control.flat && !Enums.isNeobrutalism
     }
-    
+
+    NeoShadow {
+        target: background
+        visible: !control.flat && Enums.isNeobrutalism
+        z: background.z - 1
+    }
+
     // ==================== Background 背景 ====================
     Rectangle {
         id: background
         anchors.fill: parent
         radius: control.radius_
         color: control.getBackgroundColor()
-        border.width: control.flat ? 0 : 1
+        border.width: control.flat ? 0 : (Enums.isNeobrutalism ? Enums.neo.borderWidth : 1)
         border.color: control.getBorderColor()
         
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }

@@ -21,8 +21,11 @@ __author__ = "aki-riko"
 
 from .python.core import (
     Theme,
+    Skin,
     setTheme,
     getTheme,
+    setSkin,
+    getSkin,
     isDark,
     setAccentColor,
     getAccentColor,
@@ -96,8 +99,11 @@ from .python.providers import (
 __all__ = [
     # Theme
     "Theme",
+    "Skin",
     "setTheme",
     "getTheme",
+    "setSkin",
+    "getSkin",
     "isDark",
     "setAccentColor",
     "getAccentColor",

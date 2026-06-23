@@ -10,6 +10,8 @@ QtObject {
     id: root
     
     required property bool isDark
+    // neo 皮肤标志: neo 仅 light 配色, 文字色等需无视 isDark 强制走 light(否则深色主题下白字落 neo 米白底=隐形)
+    property bool isNeo: false
 
     // ==================== ThemeColors 主题基础色 ====================
     readonly property QtObject themeColors: QtObject {
@@ -89,6 +91,30 @@ QtObject {
         // Tab selected background Tab选中背景
         readonly property color tabSelectedDark: "#282828"
         readonly property color tabSelectedLight: "#f9f9f9"
+    }
+
+    // ==================== NeoColors 新粗野皮肤原始调色板 ====================
+    // neobrutalism 皮肤配色【单一真相源】, 参照 kiro_rs admin-ui(light) + neobrutalism.dev(dark 范式)。
+    // light: 米白底/橙主色/黑边黑影; dark: 深炭底/提亮主色/黑边黑影(靠 surface 提亮区分)。
+    // 控件与上层 token 读 neo.xxx 不变, 值按 isDark 自动切 → 加深色支持零控件改动。
+    readonly property QtObject neoColors: QtObject {
+        // 背景层: light 米白 / dark 深炭(surface 比 background 亮以靠层次区分)
+        readonly property color background: root.isDark ? "#1A1A1A" : "#FAFAF0"
+        readonly property color surface: root.isDark ? "#262626" : "#FFFFFF"
+        readonly property color muted: root.isDark ? "#2E2E2E" : "#F5F5F5"
+        // 文字: light 近黑 / dark 近白
+        readonly property color foreground: root.isDark ? "#F5F5F0" : "#171717"
+        readonly property color secondaryForeground: root.isDark ? "#A0A0A0" : "#666666"
+        // 描边+硬阴影: light 纯黑(招牌); dark 反转成浅色(黑边在深底隐形, neo dark 用浅边+浅影立体区分)
+        readonly property color border: root.isDark ? "#F5F5F0" : "#000000"
+        readonly property color shadow: root.isDark ? "#F5F5F0" : "#000000"
+        // 主色/语义色: dark 下提亮一档保证深底对比
+        readonly property color primary: root.isDark ? "#FB923C" : "#F97316"      // 橙
+        readonly property color primaryForeground: root.isDark ? "#1A1A1A" : "#FFFFFF"  // 主色块上文字(亮橙配深字)
+        readonly property color success: root.isDark ? "#22C55E" : "#16A34A"      // 绿
+        readonly property color danger: root.isDark ? "#F87171" : "#EF4444"       // 红
+        readonly property color warning: root.isDark ? "#FBBF24" : "#F59E0B"      // 琥珀
+        readonly property color info: root.isDark ? "#60A5FA" : "#3B82F6"         // 蓝
     }
 
     // ==================== SemanticColors 语义色 ====================
@@ -258,11 +284,12 @@ QtObject {
     
     // ==================== TextColor 文字颜色 ====================
     readonly property QtObject textColor: QtObject {
-        readonly property color primary: root.isDark ? themeColors.foregroundDark : grayColors.textPrimaryLight
-        readonly property color secondary: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.secondary) : Qt.rgba(0, 0, 0, 0.6)
-        readonly property color tertiary: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.tertiary) : Qt.rgba(0, 0, 0, textOpacity.tertiary)
+        // neo: 文字色走 neoColors(已 dark-aware, light 近黑/dark 近白); 非 neo 走原 Fluent 明暗逻辑
+        readonly property color primary: root.isNeo ? neoColors.foreground : (root.isDark ? themeColors.foregroundDark : grayColors.textPrimaryLight)
+        readonly property color secondary: root.isNeo ? neoColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.secondary) : Qt.rgba(0, 0, 0, 0.6))
+        readonly property color tertiary: root.isNeo ? neoColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.tertiary) : Qt.rgba(0, 0, 0, textOpacity.tertiary))
         readonly property color disabled: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.disabled) : Qt.rgba(0, 0, 0, textOpacity.disabled)
-        readonly property color strong: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.strong)
+        readonly property color strong: root.isNeo ? neoColors.foreground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.strong))
         readonly property color pressed: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.pressedLight)
     }
     

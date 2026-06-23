@@ -193,31 +193,40 @@ Widget {
     // Content size (inherited from Widget) 内容尺寸（继承自Widget）
     contentWidth: Enums.comboBoxMetrics.defaultWidth
     contentHeight: Enums.controlSize.inputHeight
-    property int radius: Enums.radius.small
-    
+    property int radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+
     // ==================== Style Helper 样式辅助 ====================
     ComboBoxStyleHelper {
         id: styleHelper
         control: control
     }
-    
+
     // ==================== Shadow Layer 阴影层 (在背景下方) ====================
+    // Fluent: 模糊阴影。Neobrutalism: 硬阴影(纯黑, 展开时转橙强调)。
     RectangularShadow {
         anchors.fill: background
         radius: background.radius
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
         offset: Qt.vector2d(0, Enums.shadow.level2.offset)
-        visible: style === 0  // Only for default style 仅默认样式
+        visible: style === 0 && !Enums.isNeobrutalism  // Only for default style 仅默认样式
     }
-    
+
+    // Neobrutalism 硬阴影: 复用 NeoShadow 组件; 展开时 accent=true 转橙强调。
+    NeoShadow {
+        target: background
+        visible: Enums.isNeobrutalism && style === 0
+        accent: control.popupVisible
+        z: background.z - 1
+    }
+
     // ==================== Background 背景 ====================
     Rectangle {
         id: background
         anchors.fill: parent
         radius: control.radius
         clip: false
-        
+
         layer.enabled: true
         layer.effect: OpacityMask {
             mask: Rectangle {
@@ -226,9 +235,10 @@ Widget {
                 radius: background.radius
             }
         }
-        
+
         // ==================== Fluent Design Style Fluent Design样式 ====================
         // Unified with Button/LineEdit controlBg series 与Button/LineEdit统一使用controlBg系列
+        // 颜色由 token 层在 neo 下自动返回白面/灰, 无需控件分支。
         color: {
             if (style !== 0) return styleHelper.getBackgroundColor()  // Other styles keep original 其他样式保持原样
             if (!control.enabled) return Enums.stateColor.controlBgDisabled
@@ -237,24 +247,28 @@ Widget {
             if (control.hovered) return Enums.stateColor.controlBgHover
             return Enums.stateColor.controlBg
         }
-        
+
         // Color animation (not applied during close to avoid delay) 颜色动画
         Behavior on color {
             enabled: !comboPopup.isClosing
             ColorAnimation { duration: Enums.duration.fast }
         }
-        
+
         // Fluent Design 边框:亮/暗主题各用低透明度描边,具体取值见 StateColor.pickerBorder
-        border.width: style !== 0 ? 0 : Enums.border.thin
-        border.color: styleHelper.getBorderColor()
+        border.width: style !== 0 ? 0
+            : (Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin)
+        border.color: Enums.isNeobrutalism && style === 0
+            ? (!control.enabled ? Qt.rgba(0, 0, 0, 0.4)
+               : (control.popupVisible ? Enums.neo.primary : Enums.neo.borderColor))
+            : styleHelper.getBorderColor()
     }
     
     // Focus accent line (ONLY for editable mode) 聚焦主题色底线(仅editable模式)
     FocusLine {
-        showLine: control.editable && editableInput.activeFocus && showFocusedBorder
+        showLine: !Enums.isNeobrutalism && control.editable && editableInput.activeFocus && showFocusedBorder
         lineColor: control.focusedBorderColor
         parentRadius: control.radius
-        visible: control.editable && showFocusedBorder
+        visible: !Enums.isNeobrutalism && control.editable && showFocusedBorder
     }
     
     

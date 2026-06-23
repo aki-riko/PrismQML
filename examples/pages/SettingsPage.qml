@@ -127,6 +127,32 @@ Item {
                         }
                     }
                 }
+
+                // 设计皮肤 Design skin (Fluent / Neobrutalism)
+                SettingsCard {
+                    id: skinCard
+                    width: parent ? parent.width : 0
+                    title: "设计皮肤"
+                    content: "切换设计语言：Fluent 圆角模糊阴影 / 新粗野粗黑边硬阴影"
+                    icon: iconPath("Color")
+                    type: Fluent.Enums.settingCard.type_combobox
+                    model: ["Fluent", "新粗野 Neobrutalism"]
+
+                    property var skinValues: ["fluent", "neobrutalism"]
+
+                    Component.onCompleted: {
+                        if (ThemeManager) {
+                            var idx = skinValues.indexOf(ThemeManager.skin)
+                            currentIndex = idx >= 0 ? idx : 0
+                        }
+                    }
+
+                    onIndexSelected: function(idx) {
+                        if (ThemeManager && idx >= 0 && idx < skinValues.length) {
+                            ThemeManager.setSkinFromQml(skinValues[idx])
+                        }
+                    }
+                }
                 
                 // 懒加载
                 SettingsCard {

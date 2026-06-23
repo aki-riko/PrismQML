@@ -52,21 +52,24 @@ Item {
             var ctx = getContext("2d")
             var w = width, h = height, r = root.cornerRadius
             ctx.clearRect(0, 0, w, h)
-            ctx.strokeStyle = Enums.stateColor.contentBorder.toString()
-            ctx.lineWidth = Enums.border.thin
+            // neo: 粗黑边; Fluent: 细 contentBorder
+            var neo = Enums.isNeobrutalism
+            ctx.strokeStyle = (neo ? Enums.neo.borderColor : Enums.stateColor.contentBorder).toString()
+            ctx.lineWidth = neo ? Enums.neo.borderWidth : Enums.border.thin
+            var off = ctx.lineWidth / 2  // 描边中心偏移, 对齐像素
             // Top border 顶部边框
             ctx.beginPath()
-            ctx.moveTo(r, 0.5)
-            ctx.lineTo(w, 0.5)
+            ctx.moveTo(r, off)
+            ctx.lineTo(w, off)
             ctx.stroke()
             // Left border 左侧边框
             ctx.beginPath()
-            ctx.moveTo(0.5, r)
-            ctx.lineTo(0.5, h)
+            ctx.moveTo(off, r)
+            ctx.lineTo(off, h)
             ctx.stroke()
             // Top-left arc 左上角圆弧
             ctx.beginPath()
-            ctx.arc(r, r, r - 0.5, Math.PI, Math.PI * 1.5)
+            ctx.arc(r, r, r - off, Math.PI, Math.PI * 1.5)
             ctx.stroke()
         }
         
@@ -79,14 +82,15 @@ Item {
     Connections {
         target: ThemeManager
         function onThemeChanged() { borderCanvas.requestPaint() }
+        function onSkinChanged() { borderCanvas.requestPaint() }
     }
     
     // ==================== Content Container 内容容器 ====================
     Item {
         id: contentItem
         anchors.fill: parent
-        anchors.topMargin: Enums.border.thin
-        anchors.leftMargin: Enums.border.thin
+        anchors.topMargin: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+        anchors.leftMargin: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
         clip: true
 
         // 点击空白区域时清除输入焦点（z:-1 确保在页面内容之下）

@@ -43,15 +43,19 @@ Rectangle {
     
     // Text color: always white 文字颜色：统一白色
     readonly property color _contentColor: Enums.accentForeground
-    
+
     // ==================== Size 尺寸 ====================
     implicitWidth: _effectiveDot ? Enums.spacing.s : Math.max(Enums.controlSize.checkboxOuter, contentItem.implicitWidth + Enums.spacing.m)
     implicitHeight: _effectiveDot ? Enums.spacing.s : Enums.controlSize.checkboxOuter
     radius: height / 2
     visible: _visible
-    
+
     // ==================== Color 颜色 ====================
+    // 语义色由 getColorByLevel 在 neo 下自动返回高饱和值; 黑边为 neo 结构差异
     color: Enums.statusLevel.getColorByLevel(level)
+    // neo: 黑细粗边(徽章小, 用 medium 不用 thick)
+    border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
+    border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.transparent
     
     // ==================== Content 内容 ====================
     Item {

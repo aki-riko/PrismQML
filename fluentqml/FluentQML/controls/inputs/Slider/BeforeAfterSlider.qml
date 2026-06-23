@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../../.."
+import "../../../effects"
 import ".."
 import "../../icons"
 import "../../data/Label"
@@ -26,12 +27,21 @@ Item {
     clip: true  // Clip handle overflow 裁剪手柄溢出
     
     // ==================== Shadow Layer 阴影层 ====================
+    // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: parent
         radius: control.radius
         color: Enums.shadow.level8.color
         blur: Enums.shadow.level8.blur
         offset: Qt.vector2d(0, Enums.shadow.level8.offset)
+        visible: !Enums.isNeobrutalism
+    }
+
+    NeoShadow {
+        target: control
+        visible: Enums.isNeobrutalism
+        radius: control.radius
+        z: -1
     }
     
     // Canvas for rounded corner images 使用Canvas实现圆角图片

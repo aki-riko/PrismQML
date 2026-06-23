@@ -10,6 +10,7 @@ QtObject {
     id: root
     
     required property bool isDark
+    property bool isNeo: false
     required property color accentColor
     required property var constants
     
@@ -47,6 +48,16 @@ QtObject {
     
     // Get color by level 根据level获取颜色
     function getColorByLevel(level) {
+        if (isNeo) {
+            // neo 高饱和语义色(success/warning/error/info), attention/processing 回退橙主色
+            switch (level) {
+                case 1: return constants.neoColors.success
+                case 2: return constants.neoColors.warning
+                case 3: return constants.neoColors.danger
+                case 0: return constants.neoColors.info
+                default: return constants.neoColors.primary
+            }
+        }
         switch (level) {
             case 1: return root.isDark ? successColorDark : successColor
             case 2: return root.isDark ? warningColorDark : warningColor

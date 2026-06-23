@@ -38,11 +38,12 @@ Rectangle {
     
     implicitWidth: contentRow.implicitWidth + 16
     implicitHeight: Enums.spacing.xxxl
-    radius: Enums.radius.small
-    
+    radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+
     color: Enums.stateColor.accentSubtle
-    border.width: showBorder ? Enums.border.thin : 0
-    border.color: Enums.isDark ? borderColorDark : borderColorLight
+    // neo: 始终黑粗边(标签靠黑边显形); Fluent: 按 showBorder
+    border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (showBorder ? Enums.border.thin : 0)
+    border.color: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isDark ? borderColorDark : borderColorLight)
     
     Row {
         id: contentRow

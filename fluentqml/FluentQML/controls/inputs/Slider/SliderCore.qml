@@ -165,7 +165,7 @@ Item {
                 x: isHorizontal ? (control.value - control.from) / (control.to - control.from) * (track.width - width) + track.x : (parent.width - width) / 2
                 y: isHorizontal ? (parent.height - height) / 2 : (1 - (control.value - control.from) / (control.to - control.from)) * (track.height - height) + track.y
                 color: control.handleColor
-                border.width: Enums.border.thin
+                border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin  // neo 粗黑边
                 border.color: Enums.stateColor.border
                 
                 Rectangle {

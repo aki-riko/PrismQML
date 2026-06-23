@@ -27,6 +27,9 @@ Rectangle {
     radius: size / 2
     color: source !== "" ? Enums.transparent : Enums.accentColor
     antialiasing: true
+    // neo: 头像加黑边(圆形粗黑边框)
+    border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
+    border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent
     
     // Text avatar 文字头像
     Label {

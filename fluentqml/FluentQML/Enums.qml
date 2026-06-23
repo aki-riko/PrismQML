@@ -24,24 +24,33 @@ Item {
     
     // ==================== Global Theme Props 全局主题属性 ====================
     readonly property bool isDark: ThemeManager ? ThemeManager.isDark : false
+    // Skin (design language) 皮肤（设计语言）: "fluent" | "neobrutalism"
+    // 与 isDark 正交: isDark 控明暗, skin 控设计语言。控件按 skin 切换几何/阴影范式。
+    readonly property string skin: ThemeManager ? ThemeManager.skin : "fluent"
+    readonly property bool isNeobrutalism: skin === "neobrutalism"
     readonly property string fontFamily: ThemeManager ? ThemeManager.fontFamily : "Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, Microsoft YaHei UI, sans-serif"
     readonly property string canvasFontFamily: "'" + fontFamily.split(",")[0].trim() + "', sans-serif"
-    readonly property color accentColor: ThemeManager ? ThemeManager.accentColor : _constants.accentDefaults.accent
-    readonly property color accentColorLight: ThemeManager ? ThemeManager.accentColorLight : _constants.accentDefaults.accentLight
-    readonly property color accentColorDark: ThemeManager ? ThemeManager.accentColorDark : _constants.accentDefaults.accentDark
+    // accentColor 在 neo 皮肤下解析成 neo 主色(橙) —— 这是换皮杠杆点:
+    // 凡引用 accentColor 的 Fluent 逻辑(primary 按钮/toggle 选中/输入聚焦)在 neo 下自动变橙, 控件零改动。
+    readonly property color _rawAccentColor: ThemeManager ? ThemeManager.accentColor : _constants.accentDefaults.accent
+    readonly property color accentColor: isNeobrutalism ? _constants.neoColors.primary : _rawAccentColor
+    readonly property color accentColorLight: isNeobrutalism ? Qt.lighter(_constants.neoColors.primary, 1.08)
+        : (ThemeManager ? ThemeManager.accentColorLight : _constants.accentDefaults.accentLight)
+    readonly property color accentColorDark: isNeobrutalism ? Qt.darker(_constants.neoColors.primary, 1.15)
+        : (ThemeManager ? ThemeManager.accentColorDark : _constants.accentDefaults.accentDark)
     
     // Transparent color constant 透明色常量
     readonly property color transparent: "transparent"
     
     // ==================== Modular Components 模块化组件 ====================
-    Theme { id: _theme; isDark: root.isDark; accentColor: root.accentColor; accentColorLight: root.accentColorLight; accentColorDark: root.accentColorDark; constants: _constants }
-    StatusLevel { id: _statusLevel; isDark: root.isDark; accentColor: root.accentColor; constants: _constants }
+    Theme { id: _theme; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; accentColorLight: root.accentColorLight; accentColorDark: root.accentColorDark; constants: _constants }
+    StatusLevel { id: _statusLevel; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; constants: _constants }
     Button { id: _button }
     Tab { id: _tab }
     CommandBar { id: _commandBar }
-    StateColor { id: _stateColor; isDark: root.isDark; accentColor: root.accentColor }
-    Constants { id: _constants; isDark: root.isDark }
-    Metrics { id: _metrics; isDark: root.isDark }
+    StateColor { id: _stateColor; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; constants: _constants }
+    Constants { id: _constants; isDark: root.isDark; isNeo: root.isNeobrutalism }
+    Metrics { id: _metrics; isDark: root.isDark; constants: _constants }
     Orient { id: _orient }
     Flow { id: _flow }
     Chart { id: _chart }
@@ -187,6 +196,7 @@ Item {
     readonly property alias opacityLevel: _metrics.opacity
     readonly property alias mask: _metrics.mask
     readonly property alias border: _metrics.border
+    readonly property alias neo: _metrics.neo
     readonly property alias iconSize: _metrics.iconSize
     readonly property alias spacing: _metrics.spacing
     readonly property alias radius: _metrics.radius

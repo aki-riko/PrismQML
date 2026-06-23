@@ -79,6 +79,8 @@ Widget {
             return Enums.isDark ? Enums.cardColor : "white"
         }
         // Normal mode or after complete: use semantic background color 普通模式或完成后：使用语义背景色
+        // Neobrutalism: 白底(靠黑边+左侧色条+硬阴影区分), 不用语义淡背景
+        if (Enums.isNeobrutalism) return Enums.neo.surface
 
         if (Enums.isDark) {
             var c = Enums.statusLevel.getColorByLevel(_severityLevel)
@@ -87,8 +89,8 @@ Widget {
         return Enums.statusLevel.getBgColor(severity)
     }
     
-    // Border color 边框色
-    readonly property color borderColor: Enums.stateColor.divider
+    // Border color 边框色 (neo 用控件边框 token=黑; Fluent 用 divider 轻分隔)
+    readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.stateColor.divider
     
     // ==================== Size 尺寸 ====================
     // Content size (inherited from Widget) 内容尺寸：根据内部文字自适应
@@ -153,21 +155,29 @@ Widget {
     function close() { hide() }
 
     // ==================== Shadow Layer 阴影层 ====================
+    // Fluent: 模糊阴影; Neobrutalism: 硬阴影(NeoShadow)。
     RectangularShadow {
         anchors.fill: card
         radius: card.radius
         color: Enums.shadow.level4.color
         blur: Enums.shadow.level4.blur
         offset: Qt.vector2d(0, Enums.shadow.level4.offset)
+        visible: !Enums.isNeobrutalism
     }
-    
+
+    NeoShadow {
+        target: card
+        visible: Enums.isNeobrutalism
+        z: card.z - 1
+    }
+
     // ==================== Card 卡片 ====================
     Rectangle {
         id: card
         anchors.fill: parent
         radius: Enums.radius.large  // 6px
         color: backgroundColor
-        border.width: Enums.border.thin  // 1px
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin  // neo 粗黑边
         border.color: borderColor
     }
     

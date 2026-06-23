@@ -90,12 +90,21 @@ Widget {
     implicitHeight: mainContainer.height + Enums.spacing.xs
     
     // ==================== Shadow Layer 阴影层 ====================
+    // Fluent: 模糊阴影; Neobrutalism: 硬阴影(NeoShadow)。
     RectangularShadow {
         anchors.fill: mainContainer
         radius: control._radius
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
         offset: Qt.vector2d(0, Enums.shadow.level2.offset)
+        visible: !Enums.isNeobrutalism
+    }
+
+    NeoShadow {
+        target: mainContainer
+        visible: Enums.isNeobrutalism
+        radius: control._radius
+        z: mainContainer.z - 1
     }
     
     // ==================== Main Container 主容器（无边框，只做裁剪）====================
@@ -122,6 +131,9 @@ Widget {
             anchors.fill: parent
             radius: control._radius
             color: Enums.stateColor.controlBg
+            // neo: 粗黑边(Fluent 无边靠阴影区分; neo 需黑边)
+            border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
+            border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent
         }
         
         // ==================== Header Content 头部内容 ====================
@@ -247,6 +259,7 @@ Widget {
             anchors.left: parent.left
             anchors.right: parent.right
             lineColor: Enums.stateColor.expanderSeparator
+            lineWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin  // neo: 粗黑分隔线
             visible: control.expanded
             // 必须高于 viewContainer, 否则 viewContainer 内 expandViewBg
             // (anchors.topMargin: -_radius 向上延伸) 会盖住 separator
@@ -272,7 +285,12 @@ Widget {
                 radius: control._radius
                 // Clip top corners by extending above 通过向上延伸裁剪顶部圆角
                 anchors.topMargin: -control._radius
-                anchors.bottomMargin: 0
+                // neo: 左右下各内缩边框宽度, 露出底层 bgRect 的黑边(否则白块贴边盖住黑边,
+                // 展开后底部+两侧看不到边)。不加自己的边框, 避免盒中盒。
+                readonly property int _neoInset: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
+                anchors.leftMargin: _neoInset
+                anchors.rightMargin: _neoInset
+                anchors.bottomMargin: _neoInset
             }
 
             // Content area 内容区域（Column 布局，子控件垂直排列）

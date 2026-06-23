@@ -68,6 +68,7 @@ OverlayDialogCore {
         height: dialogBody.height
         
         // Shadow effect using RectangularShadow 使用RectangularShadow实现阴影
+        // Fluent: 模糊浮层阴影; Neobrutalism: 硬阴影(NeoShadow), 跟随对话框开合 opacity/scale。
         RectangularShadow {
             anchors.fill: dialogBody
             radius: dialogBody.radius
@@ -76,19 +77,29 @@ OverlayDialogCore {
             offset: Qt.vector2d(0, Enums.shadow.level8.offset)
             opacity: dialogBody.opacity
             scale: dialogBody.scale
+            visible: !Enums.isNeobrutalism
         }
-        
+
+        NeoShadow {
+            target: dialogBody
+            visible: Enums.isNeobrutalism
+            opacity: dialogBody.opacity
+            scale: dialogBody.scale
+            transformOrigin: dialogBody.transformOrigin
+            z: dialogBody.z - 1
+        }
+
         Rectangle {
             id: dialogBody
             anchors.fill: parent
             radius: Enums.radius.dialog
             clip: true  // Clip children to rounded corners 裁剪子元素以适应圆角
-            
+
             // Background color 背景色
             color: Enums.dialogColor
-            
+
             // Border 边框
-            border.width: Enums.border.thin
+            border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
             border.color: Enums.stateColor.dialogBorder
             
             // Animation 动画
