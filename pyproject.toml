@@ -39,12 +39,12 @@ dev = [
     "pytest>=7.0",
     "black>=23.0",
     "isort>=5.0",
-    "maturin>=1.0",  # 构建 fluentqml-rs Rust 加速模块
+    "maturin>=1.0",  # 构建 prismqml-rs Rust 加速模块
 ]
 # 可选: Rust 加速 (FluentSqlListModel 自动检测使用)
-# 安装: cd rust && maturin build --release && pip install target/wheels/fluentqml_rs-*.whl
+# 安装: cd rust && maturin build --release && pip install target/wheels/prismqml_rs-*.whl
 rust = [
-    "fluentqml-rs>=0.1.0",
+    "prismqml-rs>=0.1.0",
 ]
 
 [project.urls]
@@ -61,10 +61,10 @@ include = ["fluentqml*"]
 fluentqml = ["FluentQML/**/*.qml", "FluentQML/**/*.js", "FluentQML/qmldir", "FluentQML/**/qmldir", "FluentQML/**/*.json", "FluentQML/**/*.frag", "**/*.svg", "**/*.png", "**/*.qsb", "py.typed", "FluentQML/controls/icons/fluent/LICENSE"]
 
 # Rust 加速扩展(可选):SqlListModel 的 SQLite 分页加速。
-# 编为顶层模块 fluentqml_rs(代码 import fluentqml_rs),abi3 一个 wheel 兼容 py3.9+。
+# 编为顶层模块 prismqml_rs(代码 import prismqml_rs),abi3 一个 wheel 兼容 py3.9+。
 # 编译失败时 SqlListModel 自动回退纯 Python 实现,不影响主功能。
 [[tool.setuptools-rust.ext-modules]]
-target = "fluentqml_rs"
+target = "prismqml_rs"
 path = "rust/Cargo.toml"
 binding = "PyO3"
 py-limited-api = "auto"

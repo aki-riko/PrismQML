@@ -1,4 +1,4 @@
-// fluentqml_rs - FluentQML Rust 加速模块
+// prismqml_rs - PrismQML Rust 加速模块
 // 提供 SQLite 分页拉取,绕开 Python sqlite3 + dict 创建的瓶颈
 //
 // 设计:
@@ -269,7 +269,7 @@ fn count_rows(
 
 /// 模块定义
 #[pymodule]
-fn fluentqml_rs(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn prismqml_rs(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fetch_page, m)?)?;
     m.add_function(wrap_pyfunction!(count_rows, m)?)?;
     m.add_function(wrap_pyfunction!(shard::fan_out_fetch_page, m)?)?;

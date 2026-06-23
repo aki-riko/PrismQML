@@ -15,7 +15,7 @@ QML ListView/TableView 对接 1M+ 行 SQLite 数据,内存恒定 + 滚动 120fps
 - model 持 (db_path, sql_template, params, formatters),不一次性 fetch
 - data(idx, role) 命中时,定位 page = idx // PAGE_SIZE,LRU 缓存按页加载
 - LRU 容量足以覆盖典型滚动 (默认 16 页 = 16,000 行)
-- 加速路径: 优先用 Rust crate fluentqml_rs.fetch_page (cargo build,详见 rust/);
+- 加速路径: 优先用 Rust crate prismqml_rs.fetch_page (cargo build,详见 rust/);
   无 Rust 时自动 fallback 到内置 sqlite3 (功能完全等价,只是慢一档)
 - formatters: 业务层提供 column_name -> callable 字典,新页加载时对每行该列原始值
   跑一遍 formatter,结果缓存进 page。data() 命中只是查表,无每帧开销。
@@ -55,7 +55,7 @@ from PySide6.QtCore import (
 
 # 优先 Rust 实现
 try:
-    import fluentqml_rs as _rs  # noqa: WPS433
+    import prismqml_rs as _rs  # noqa: WPS433
 
     _HAS_RUST = True
 except ImportError:
@@ -514,7 +514,7 @@ class SqlListModel(QAbstractListModel):
         # ====== 多 shard fan-out 路径 ======
         if is_multi_shard:
             if not _HAS_RUST:
-                raise RuntimeError("多 shard fan-out 需要 fluentqml_rs Rust 模块,Python fallback 不支持")
+                raise RuntimeError("多 shard fan-out 需要 prismqml_rs Rust 模块,Python fallback 不支持")
             if not cursor_indices:
                 # 还没建过 column 映射,临时按列名匹配 (假设 SELECT 顺序与下面 cursor_columns 一致)
                 # 但这种情况只发生在 setQuery 后第一页 fetch,我们用一个 hack: 跑一次 noop fetch 拿 columns
