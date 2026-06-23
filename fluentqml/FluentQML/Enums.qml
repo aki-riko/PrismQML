@@ -24,6 +24,10 @@ Item {
     
     // ==================== Global Theme Props 全局主题属性 ====================
     readonly property bool isDark: ThemeManager ? ThemeManager.isDark : false
+    // Skin (design language) 皮肤（设计语言）: "fluent" | "neobrutalism"
+    // 与 isDark 正交: isDark 控明暗, skin 控设计语言。控件按 skin 切换几何/阴影范式。
+    readonly property string skin: ThemeManager ? ThemeManager.skin : "fluent"
+    readonly property bool isNeobrutalism: skin === "neobrutalism"
     readonly property string fontFamily: ThemeManager ? ThemeManager.fontFamily : "Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, Microsoft YaHei UI, sans-serif"
     readonly property string canvasFontFamily: "'" + fontFamily.split(",")[0].trim() + "', sans-serif"
     readonly property color accentColor: ThemeManager ? ThemeManager.accentColor : _constants.accentDefaults.accent
@@ -187,6 +191,7 @@ Item {
     readonly property alias opacityLevel: _metrics.opacity
     readonly property alias mask: _metrics.mask
     readonly property alias border: _metrics.border
+    readonly property alias neo: _metrics.neo
     readonly property alias iconSize: _metrics.iconSize
     readonly property alias spacing: _metrics.spacing
     readonly property alias radius: _metrics.radius

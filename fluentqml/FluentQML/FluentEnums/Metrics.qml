@@ -114,6 +114,18 @@ QtObject {
  readonly property int normal: 2
  readonly property int thick: 3
  }
+
+ // ==================== Neobrutalism 新粗野皮肤度量 ====================
+ // 新粗野皮肤的几何/阴影范式与 Fluent 不同, 集中放此, 仅在 skin==neobrutalism 时由控件读取。
+ // 招牌特征: 粗黑边 + 硬阴影(无模糊, 带 offset) + 按下时控件位移+阴影消失(被压进纸面)。
+ readonly property QtObject neo: QtObject {
+ readonly property int borderWidth: 2 // 粗描边宽度
+ readonly property int radius: 6 // 圆角(新粗野多用小圆角或直角, 这里取温和值)
+ readonly property real shadowOffset: 4 // 硬阴影偏移(X=Y), 即"纸面投影"距离
+ readonly property real pressOffset: 4 // 按下时控件下移/右移距离(= shadowOffset, 视觉上压平阴影)
+ readonly property color shadowColor: "#000000" // 硬阴影固定纯黑(新粗野不随明暗渐变)
+ readonly property color borderColor: "#000000" // 描边固定纯黑
+ }
  
  // ==================== IconSize 图标尺寸 ====================
  readonly property QtObject iconSize: QtObject {

@@ -88,8 +88,12 @@ Widget {
     }
 
     // ==================== Appearance Props 外观属性 ====================
-    property int radius: shape === Enums.button.shape_pill ? height / 2 : Enums.radius.small
+    property int radius: shape === Enums.button.shape_pill ? height / 2
+                         : (Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small)
     property color color: styleHelper.bgColor
+
+    // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
+    readonly property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat) ? Enums.neo.pressOffset : 0
 
     // Animated colors with instant press, smooth release 动画颜色：按下瞬间，释放平滑
     property color _animatedBgColor
@@ -229,13 +233,27 @@ Widget {
     }
 
     // ==================== Shadow 阴影 ====================
+    // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯色矩形, 无模糊)。
     RectangularShadow {
         anchors.fill: _bg
         radius: _bg.radius
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
         offset: Qt.vector2d(0, Enums.shadow.level2.offset)
-        visible: !control.flat
+        visible: !control.flat && !Enums.isNeobrutalism
+    }
+
+    // Neobrutalism 硬阴影: 固定纯黑、零模糊、带固定 offset。按下时控件位移压平它(高度随 _bg 缩)。
+    Rectangle {
+        id: _neoShadow
+        visible: Enums.isNeobrutalism && !control.flat
+        x: Enums.neo.shadowOffset
+        y: Enums.neo.shadowOffset
+        width: _bg.width
+        height: _bg.height
+        radius: control.radius
+        color: Enums.neo.shadowColor
+        z: _bg.z - 1
     }
 
     // ==================== Background 背景 ====================
@@ -244,11 +262,20 @@ Widget {
         anchors.fill: parent
         radius: control.radius
         color: _animatedBgColor
-        border.width: (styleHelper.isToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin)
-        border.color: _animatedBorderColor
+        border.width: Enums.isNeobrutalism
+            ? (flat ? 0 : Enums.neo.borderWidth)
+            : ((styleHelper.isToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin))
+        border.color: Enums.isNeobrutalism && !flat ? Enums.neo.borderColor : _animatedBorderColor
 
         // Gradient (for gradient style) 渐变
         gradient: style === Enums.button.style_gradient ? _gradientDef : null
+
+        // Neobrutalism 按下位移: face 向右下滑向硬阴影, 视觉压平。Fluent 下 shift 恒 0 无影响。
+        transform: Translate {
+            x: control._neoPressShift; y: control._neoPressShift
+            Behavior on x { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+            Behavior on y { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+        }
     }
 
     Component.onCompleted: {
@@ -318,6 +345,12 @@ Widget {
                                         (feature === Enums.button.feature_dropdown ? -Enums.spacing.m : 0)) : 0
         z: Enums.zIndex.content
         visible: control.hasCustomContent
+        // Neobrutalism 按下位移: 内容随 face 一起滑动
+        transform: Translate {
+            x: control._neoPressShift; y: control._neoPressShift
+            Behavior on x { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+            Behavior on y { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+        }
     }
 
     Loader {
@@ -333,6 +366,12 @@ Widget {
                                         (feature === Enums.button.feature_dropdown ? -Enums.spacing.m : 0)) : 0
         z: Enums.zIndex.content
         active: !control.hasCustomContent  // Only load default content when no custom content 仅在无自定义内容时加载默认内容
+        // Neobrutalism 按下位移: 默认内容(文字/图标)随 face 一起滑动
+        transform: Translate {
+            x: control._neoPressShift; y: control._neoPressShift
+            Behavior on x { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+            Behavior on y { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+        }
         sourceComponent: ButtonContent {
             feature: control.feature
             style: control.style

@@ -25,6 +25,18 @@ class Theme(Enum):
     AUTO = "auto"
 
 
+class Skin(Enum):
+    """皮肤（设计语言）枚举
+
+    与 Theme（明暗）正交：theme 控制明暗，skin 控制设计语言。
+    fluent       → 默认 Fluent Design（圆角、模糊阴影）
+    neobrutalism → 新粗野（粗黑边、硬阴影、按下位移）
+    """
+
+    FLUENT = "fluent"
+    NEOBRUTALISM = "neobrutalism"
+
+
 class ThemeManager(QObject):
     """
     主题管理器（单例）
@@ -49,6 +61,7 @@ class ThemeManager(QObject):
     # Signals 信号
     themeChanged = Signal(str)
     accentColorChanged = Signal(str)
+    skinChanged = Signal(str)
 
     # Default accent color (deep Fluent blue) 默认主题色：沉稳深蓝
     # 选用 #0E5A9C 的依据：白字对比度 7.09 达 WCAG AAA 级，浅色背景上比 #0078D4 更沉稳不刺眼，
@@ -72,6 +85,7 @@ class ThemeManager(QObject):
             return
         super().__init__()
         self._theme = Theme.LIGHT
+        self._skin = Skin.FLUENT
         self._accent_color = self.DEFAULT_ACCENT
         self._accent_color_light = self._lighten_color(self._accent_color, self.LIGHTEN_FACTOR)
         self._accent_color_dark = self._darken_color(self._accent_color, self.DARKEN_FACTOR)
@@ -131,6 +145,34 @@ class ThemeManager(QObject):
         theme_map = {"light": Theme.LIGHT, "dark": Theme.DARK, "auto": Theme.AUTO}
         theme = theme_map.get(theme_str.lower(), Theme.LIGHT)
         self.setTheme(theme)
+
+    # ==================== 皮肤属性 ====================
+
+    @Property(str, notify=skinChanged)
+    def skin(self) -> str:
+        """当前皮肤（fluent/neobrutalism）"""
+        return self._skin.value
+
+    def setSkin(self, skin: Skin):
+        """设置皮肤（设计语言）"""
+        if self._skin != skin:
+            self._skin = skin
+            self.skinChanged.emit(skin.value)
+
+    def getSkin(self) -> Skin:
+        """获取当前皮肤枚举"""
+        return self._skin
+
+    @Slot(str)
+    def setSkinFromQml(self, skin_str: str):
+        """从QML设置皮肤（Slot方法）
+
+        Args:
+            skin_str: 皮肤字符串 "fluent"/"neobrutalism"
+        """
+        skin_map = {"fluent": Skin.FLUENT, "neobrutalism": Skin.NEOBRUTALISM}
+        skin = skin_map.get(skin_str.lower(), Skin.FLUENT)
+        self.setSkin(skin)
 
     # ==================== 字体属性 ====================
 
@@ -230,6 +272,23 @@ def setTheme(theme: Theme):
 def getTheme() -> Theme:
     """获取当前主题"""
     return ThemeManager().getTheme()
+
+
+def setSkin(skin: Skin):
+    """设置皮肤（设计语言）
+
+    Args:
+        skin: Skin.FLUENT 或 Skin.NEOBRUTALISM
+
+    示例:
+        setSkin(Skin.NEOBRUTALISM)  # 切到新粗野皮肤
+    """
+    ThemeManager().setSkin(skin)
+
+
+def getSkin() -> Skin:
+    """获取当前皮肤"""
+    return ThemeManager().getSkin()
 
 
 def isDark() -> bool:

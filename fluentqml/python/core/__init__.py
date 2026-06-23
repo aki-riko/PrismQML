@@ -7,9 +7,12 @@
 
 from .theme import (
     Theme,
+    Skin,
     ThemeManager,
     setTheme,
     getTheme,
+    setSkin,
+    getSkin,
     isDark,
     setAccentColor,
     getAccentColor,
@@ -57,9 +60,12 @@ from .notification import (
 __all__ = [
     # Theme
     "Theme",
+    "Skin",
     "ThemeManager",
     "setTheme",
     "getTheme",
+    "setSkin",
+    "getSkin",
     "isDark",
     "setAccentColor",
     "getAccentColor",
