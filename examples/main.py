@@ -97,6 +97,12 @@ def main():
     
     engine = QQmlApplicationEngine()
     log_time("QML引擎创建完成")
+
+    # 安装异步孵化控制器: 让 asynchronous Loader(StackedWidget 懒加载)分帧切片
+    # 实例化, 避免切到未加载页时单帧建整棵页面树阻塞 GUI 线程造成掉帧。
+    # 注: 走 fluentqml.App 的应用会自动安装; 此处直接裸建 engine 故需显式调用。
+    from fluentqml.python.core.incubation import install_incubation_controller
+    install_incubation_controller(engine)
     
     # 资源已通过 QResource.registerResource(gallery.rcc) 在模块加载时注册
     

@@ -32,3 +32,6 @@ Thumbs.db
 
 # Rust build
 rust/target/
+
+# 测试临时产物 (headless 测试写结果到 .result.txt)
+tests/**/*.result.txt

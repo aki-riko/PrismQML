@@ -69,6 +69,12 @@ class App:
         self._engine = QQmlApplicationEngine()
         EngineManager.set_engine(self._engine)
 
+        # 安装异步孵化控制器: 让 asynchronous Loader(StackedWidget 懒加载)分帧
+        # 切片实例化, 避免切到未加载页时单帧建整棵页面树阻塞 GUI 线程(与导航
+        # 指示器动画抢帧)造成掉帧。
+        from ..core.incubation import install_incubation_controller
+        install_incubation_controller(self._engine)
+
         # 注册所有provider（包括ScreenEyedropperManager等）
         register_types(self._engine)
 
