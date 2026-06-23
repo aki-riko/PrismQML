@@ -1,6 +1,6 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import "../../.."
 import "."
@@ -11,7 +11,7 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
  * ChatMessageList — 消息列表 (变高 ListView + SmoothScrollHelper + ScrollBar)
  *
  * 接 ListModel,每项含 { role, content, timestamp }。
- * 用 FluentQML SmoothScrollHelper 接管滚轮 → 平滑滚动 + 边界回弹;
+ * 用 PrismQML SmoothScrollHelper 接管滚轮 → 平滑滚动 + 边界回弹;
  * 自动滚到底部、消息更新时保持位置。
  * 气泡变高,故不套 ScrollArea 的虚拟化定高列表 (type_list 要求 itemHeight 等高)。
  *
@@ -109,7 +109,7 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         // 关键: 滚动驱动权交给 SmoothScrollHelper 独占 (handleWheel)。
         // ListView 自身 interactive 会形成第二个滚动源 → 与 helper 的 _smoothY 各记一套
-        // contentY,互相拽回 = "滚动界面回弹"。FluentQML ScrollAreaList/Default 同样 false。
+        // contentY,互相拽回 = "滚动界面回弹"。PrismQML ScrollAreaList/Default 同样 false。
         interactive: false
         // 气泡变高,ListView 对回收掉的 delegate 用平均高度估算 contentHeight,
         // 短用户气泡+长助手气泡交替时高估可达十几% → 能滚过真实底部露出大片空白。
@@ -134,7 +134,7 @@ Item {
         }
     }
 
-    // FluentQML 平滑滚动: 接管滚轮 → 缓动 + 边界回弹 (不主动驱动,仅响应滚轮)
+    // PrismQML 平滑滚动: 接管滚轮 → 缓动 + 边界回弹 (不主动驱动,仅响应滚轮)
     SmoothScrollHelper {
         id: scrollHelper
         target: listView

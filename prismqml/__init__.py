@@ -1,10 +1,10 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 
-"""FluentQML - A QML-based Fluent Design component library"""
+"""PrismQML - A QML-based Fluent Design component library"""
 
 # Allow QML XHR to read local files (needed by Translator to load i18n JSON).
 # Must be set before QQmlEngine construction. Downstream code can opt out by setting

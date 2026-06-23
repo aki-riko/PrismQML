@@ -1,6 +1,6 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
+# This file is part of PrismQML, licensed under MIT.
 """Card autoHeight 回归测试 — 普通卡片可选地跟随内容自撑。
 
 背景: Card 默认高度固定(Enums.controlSize.cardHeight=64), 内容超出会溢出/重叠。
@@ -32,7 +32,7 @@ from prismqml.python.core.utils import register_types  # noqa: E402
 
 QML = '''
 import QtQuick
-import FluentQML as Fluent
+import PrismQML as Fluent
 Item { width: 400; height: 800
  Column { width: 320; spacing: 10
   Fluent.Card { objectName: "ah_tall"; autoHeight: true; cardType: Fluent.Enums.card.type_default; width: 300

@@ -2,7 +2,7 @@
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 """
-FluentQML SystemTray Types - 系统托盘类型
+PrismQML SystemTray Types - 系统托盘类型
 """
 
 from enum import IntEnum

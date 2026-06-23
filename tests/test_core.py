@@ -2,7 +2,7 @@
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 """
-FluentQML 核心模块单元测试
+PrismQML 核心模块单元测试
 
 覆盖：
 - ThemeManager（主题系统）

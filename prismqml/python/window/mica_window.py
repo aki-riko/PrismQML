@@ -1,13 +1,13 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """
 Mica Effect Manager & Acrylic Helper 云母效果管理器 & 亚克力助手
 
-Provides Windows 11 Mica backdrop effect and Acrylic blur for FluentQML windows.
-为 FluentQML 窗口提供 Windows 11 云母背景效果和亚克力模糊。
+Provides Windows 11 Mica backdrop effect and Acrylic blur for PrismQML windows.
+为 PrismQML 窗口提供 Windows 11 云母背景效果和亚克力模糊。
 """
 import sys
 from typing import Optional

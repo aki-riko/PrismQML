@@ -1,9 +1,9 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
+# This file is part of PrismQML, licensed under MIT.
 """Splash 默认挂载回归 — 验证 Window 默认创建启动画面并可关闭。
 
-背景: FluentQML 框架(NavigationWindowCore)早有 _splashInstance + 首屏就绪
+背景: PrismQML 框架(NavigationWindowCore)早有 _splashInstance + 首屏就绪
 自动 finish 的机制,但 Python 端 WindowCore 从不创建 splash 实例,导致默认
 窗口从未显示启动画面。本测试锁定"默认即挂载"这一行为。
 

@@ -1,9 +1,9 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
-"""FluentQML Window - 窗口模块 Window module"""
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
+"""PrismQML Window - 窗口模块 Window module"""
 
 # Windows: Set AppUserModelID at module import (earliest possible)
 # Windows: 在模块导入时设置AppUserModelID（最早时机）
@@ -11,7 +11,7 @@
 # Applications can set this variable before importing this module to customize AppUserModelID
 import sys
 
-APP_USER_MODEL_ID = "FluentQML.App"
+APP_USER_MODEL_ID = "PrismQML.App"
 
 if sys.platform == "win32":
     import ctypes

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 """通用应用更新组件 - 基于 GitHub Releases 的检测 / 下载 / 静默安装。
 
-设计为引擎级通用组件(与 SingleInstance 平级),任何基于 FluentQML 的应用都可复用:
+设计为引擎级通用组件(与 SingleInstance 平级),任何基于 PrismQML 的应用都可复用:
 仅依赖 PySide6 自带的 QNetworkAccessManager / QProcess,不引入第三方网络库。
 
 典型用法(应用层)::
@@ -43,7 +43,7 @@ from .logger import getLogger
 logger = getLogger()
 
 # GitHub API 要求带 User-Agent,否则返回 403。
-_USER_AGENT = b"FluentQML-Updater"
+_USER_AGENT = b"PrismQML-Updater"
 _GITHUB_API_TMPL = "https://api.github.com/repos/{repo}/releases/latest"
 
 

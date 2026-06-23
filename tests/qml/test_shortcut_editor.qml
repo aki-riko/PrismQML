@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Window
-import FluentQML
-import "../../fluentqml/FluentQML/controls/inputs"
-import "../../fluentqml/FluentQML/controls/data"
+import PrismQML
+import "../../fluentqml/PrismQML/controls/inputs"
+import "../../fluentqml/PrismQML/controls/data"
 
 Window {
     width: 500

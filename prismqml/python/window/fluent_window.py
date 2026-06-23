@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-"""FluentQML Window Classes - Python版窗口类
+"""PrismQML Window Classes - Python版窗口类
 
 统一窗口入口模块。
 """
@@ -14,7 +14,7 @@ from .window_base import WindowCore, WindowType, NavigationItem
 # ==================== 统一窗口类 ====================
 
 class Window(WindowCore):
-    """FluentQML统一窗口类
+    """PrismQML统一窗口类
 
     通过window_type参数选择窗口风格：
     - WindowType.SPLIT (0): 展开式侧边导航

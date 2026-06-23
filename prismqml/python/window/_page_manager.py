@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-"""FluentQML Page Manager - 页面生命周期管理
+"""PrismQML Page Manager - 页面生命周期管理
 
 负责懒加载、页面创建、异步加载等页面管理逻辑。
 从 window_base.py 抽取，作为 Mixin 注入 WindowCore。

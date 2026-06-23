@@ -1,8 +1,8 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """Regression test for Carousel.itemDelegate.
 
 Carousel 原本仅支持 image/color/text 三种内容形态；本次新增 itemDelegate
@@ -68,7 +68,7 @@ def _find_by_object_name(root, name):
 def test_carousel_default_renders_without_item_delegate(app):
     qml = """
     import QtQuick
-    import "../prismqml/FluentQML/controls/data/Carousel"
+    import "../prismqml/PrismQML/controls/data/Carousel"
 
     Item {
         id: root
@@ -96,8 +96,8 @@ def test_carousel_border_radius_and_shadow(app):
     """Carousel 暴露的 borderRadius / shadowLevel 应可配置且不破坏加载。"""
     qml = """
     import QtQuick
-    import FluentQML as Fluent
-    import "../prismqml/FluentQML/controls/data/Carousel"
+    import PrismQML as Fluent
+    import "../prismqml/PrismQML/controls/data/Carousel"
 
     Item {
         id: root
@@ -124,7 +124,7 @@ def test_carousel_border_radius_and_shadow(app):
 def test_carousel_uses_custom_item_delegate(app):
     qml = """
     import QtQuick
-    import "../prismqml/FluentQML/controls/data/Carousel"
+    import "../prismqml/PrismQML/controls/data/Carousel"
 
     Item {
         id: root
@@ -188,8 +188,8 @@ def test_peek_carousel_instantiates_delegates(app):
     for orient in ("Qt.Horizontal", "Qt.Vertical"):
         qml = """
         import QtQuick
-        import FluentQML as Fluent
-        import "../prismqml/FluentQML/controls/data/Carousel"
+        import PrismQML as Fluent
+        import "../prismqml/PrismQML/controls/data/Carousel"
 
         Item {
             id: root
@@ -283,8 +283,8 @@ def test_carousel_effect_slide_instantiates_delegate(app):
     """
     qml = """
     import QtQuick
-    import FluentQML as Fluent
-    import "../prismqml/FluentQML/controls/data/Carousel"
+    import PrismQML as Fluent
+    import "../prismqml/PrismQML/controls/data/Carousel"
 
     Item {
         id: root

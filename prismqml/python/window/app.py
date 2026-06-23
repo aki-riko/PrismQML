@@ -2,7 +2,7 @@
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 """
-FluentQML 应用入口类 FluentQML Application Entry
+PrismQML 应用入口类 PrismQML Application Entry
 
 提供统一的应用管理API，封装 QApplication 常用操作。
 """
@@ -20,7 +20,7 @@ from .fluent_window import Window, WindowCore, WindowType
 
 class App:
     """
-    FluentQML应用入口 FluentQML Application Entry
+    PrismQML应用入口 PrismQML Application Entry
 
     统一的应用管理类，封装QApplication常用API。
 

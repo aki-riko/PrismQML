@@ -1,18 +1,18 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
 import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../fluentqml/FluentQML/_internal" as FluentInternal
-import "../fluentqml/FluentQML/controls/buttons"
-import "../fluentqml/FluentQML/controls/containers"
-import "../fluentqml/FluentQML/controls/feedback"
+import "../fluentqml/PrismQML/_internal" as FluentInternal
+import "../fluentqml/PrismQML/controls/buttons"
+import "../fluentqml/PrismQML/controls/containers"
+import "../fluentqml/PrismQML/controls/feedback"
 
-// FluentQML Gallery - 组件展示应用
+// PrismQML Gallery - 组件展示应用
 // 使用QtObject作为根元素，动态创建窗口
 QtObject {
     id: root
@@ -23,7 +23,7 @@ QtObject {
     // ==================== Common Config 公共配置 ====================
     readonly property int windowWidth: 1200
     readonly property int windowHeight: 800
-    readonly property string windowTitle: "FluentQML Gallery"
+    readonly property string windowTitle: "PrismQML Gallery"
     readonly property string windowIcon: "qrc:/app_icon.svg"
     readonly property bool windowIconColored: true  // Use colored icon 使用彩色图标
     readonly property int shadowMode: (ConfigManager && ConfigManager.dwmShadow) ? Fluent.Enums.windowShadow.mode_native : Fluent.Enums.windowShadow.mode_none
@@ -33,7 +33,7 @@ QtObject {
     
     // 图标路径解析函数
     function iconPath(name) {
-        return Qt.resolvedUrl("../fluentqml/FluentQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     // 导航项配置

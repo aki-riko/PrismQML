@@ -1,8 +1,8 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是 FluentQML 的一部分, 采用 MIT 许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分, 采用 MIT 许可证授权。
 """图标基础设施
 
 定义 Fluent 风格图标的抽象基类与两类 QIconEngine:

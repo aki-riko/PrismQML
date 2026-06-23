@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Window
-import FluentQML as Fluent
-import "../../fluentqml/FluentQML/controls/data/List"
+import PrismQML as Fluent
+import "../../fluentqml/PrismQML/controls/data/List"
 
 // Test ListWidget - 测试列表控件
 Window {

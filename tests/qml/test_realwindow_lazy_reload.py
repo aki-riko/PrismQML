@@ -1,6 +1,6 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
+# This file is part of PrismQML, licensed under MIT.
 """真机路径懒加载复现 — 经完整 WindowsBar 链路, 而非顶层 StackedWidget。
 
 为什么需要这个: test_lazy_reload.py 直接实例化顶层 StackedWidget, 但真机
@@ -54,7 +54,7 @@ def main():
 
     qml = f'''
 import QtQuick
-import FluentQML as Fluent
+import PrismQML as Fluent
 
 Fluent.Windows {{
     width: 900; height: 650

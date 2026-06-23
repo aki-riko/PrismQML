@@ -1,15 +1,15 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
 import QtQuick.Layouts
 
 // Import components 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/FluentQML/controls/containers"
-import "../../fluentqml/FluentQML/controls/data/Carousel"
-import "../../fluentqml/FluentQML/controls/data/FlipView"
+import "../../fluentqml/PrismQML/controls/containers"
+import "../../fluentqml/PrismQML/controls/data/Carousel"
+import "../../fluentqml/PrismQML/controls/data/FlipView"
 
 // Carousel Page 轮播页面
 Item {

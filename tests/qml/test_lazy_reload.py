@@ -1,7 +1,7 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是 FluentQML 的一部分，采用 MIT 许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Headless 懒加载回归测试 — 切走再切回主页不应重新懒加载。
 
 复现 bug: 初始当前页(主页 index 0)启动时 Loader.active 默认即 true,
@@ -25,7 +25,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression
 
 PKG_ROOT = Path(__file__).resolve().parents[2] / "prismqml"
-NAV_DIR = PKG_ROOT / "FluentQML" / "controls" / "navigation"
+NAV_DIR = PKG_ROOT / "PrismQML" / "controls" / "navigation"
 PAGES_DIR = Path(__file__).resolve().parents[2] / "examples" / "pages"
 
 
@@ -58,7 +58,7 @@ def main():
 
     qml = f'''
 import QtQuick
-import FluentQML
+import PrismQML
 import "{NAV_DIR.as_posix()}"
 
 StackedWidget {{

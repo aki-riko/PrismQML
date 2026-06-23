@@ -1,10 +1,10 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """
-FluentQML 主题系统
+PrismQML 主题系统
 
 支持功能：
 - 深色/浅色/自动主题切换
@@ -50,7 +50,7 @@ class ThemeManager(QObject):
         # Python端
         from prismqml import setTheme, setAccentColor, Theme
         setTheme(Theme.DARK)
-        setAccentColor("#0078d4")  # FluentQML 默认 Fluent 蓝
+        setAccentColor("#0078d4")  # PrismQML 默认 Fluent 蓝
 
         # QML端
         Rectangle {
@@ -304,7 +304,7 @@ def setAccentColor(color: str):
         color: HEX颜色值，如 "#0078d4" 或 "#107c10"
 
     示例:
-        setAccentColor("#0078d4")  # FluentQML 默认 Fluent 蓝
+        setAccentColor("#0078d4")  # PrismQML 默认 Fluent 蓝
         setAccentColor("#0078d4")  # Microsoft Fluent蓝
     """
     ThemeManager().setAccentColor(color)

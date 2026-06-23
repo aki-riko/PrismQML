@@ -20,7 +20,7 @@ from prismqml import Skin, setSkin, register_types
 QML = """
 import QtQuick
 import QtQuick.Window
-import FluentQML
+import PrismQML
 
 Window {
     id: win

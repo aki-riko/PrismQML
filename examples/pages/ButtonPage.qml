@@ -1,15 +1,15 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
 import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/FluentQML/controls/buttons"
-import "../../fluentqml/FluentQML/controls/containers"
-import "../../fluentqml/FluentQML/controls/data/Badge"
+import "../../fluentqml/PrismQML/controls/buttons"
+import "../../fluentqml/PrismQML/controls/containers"
+import "../../fluentqml/PrismQML/controls/data/Badge"
 
 // 按钮展示页面
 Item {
@@ -17,7 +17,7 @@ Item {
     
     // 图标路径解析函数
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/FluentQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {

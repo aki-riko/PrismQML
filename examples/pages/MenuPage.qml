@@ -1,25 +1,25 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
 import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/FluentQML/controls/buttons"
-import "../../fluentqml/FluentQML/controls/menus"
-import "../../fluentqml/FluentQML/controls/data"
-import "../../fluentqml/FluentQML/controls/containers"
-import "../../fluentqml/FluentQML/controls/navigation"
-import "../../fluentqml/FluentQML/controls/inputs"
+import "../../fluentqml/PrismQML/controls/buttons"
+import "../../fluentqml/PrismQML/controls/menus"
+import "../../fluentqml/PrismQML/controls/data"
+import "../../fluentqml/PrismQML/controls/containers"
+import "../../fluentqml/PrismQML/controls/navigation"
+import "../../fluentqml/PrismQML/controls/inputs"
 
 // 菜单与列表页面
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/FluentQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -65,7 +65,7 @@ Item {
                 description: "Marquee"
                 ComponentCard {
                     label: "Marquee"
-                    Marquee { width: 280; text: "滚动文字 - FluentQML 组件库展示"; forceScroll: true }
+                    Marquee { width: 280; text: "滚动文字 - PrismQML 组件库展示"; forceScroll: true }
                 }
             }
             

@@ -1,6 +1,6 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
+# This file is part of PrismQML, licensed under MIT.
 """孵化控制器回归测试 — 防止异步懒加载掉帧修复被回退。
 
 背景: 切到未加载页时, 异步 Loader 实例化整棵页面树。若引擎未装

@@ -3,16 +3,16 @@ requires = ["setuptools>=61.0", "wheel", "setuptools-rust>=1.5"]
 build-backend = "setuptools.build_meta"
 
 [project]
-# PyPI 分发名为 fqml(pip install fqml);导入名仍为 fluentqml(import fluentqml)
-name = "fqml"
+# PyPI 分发名为 prismqml(pip install prismqml);导入名 prismqml(import prismqml)
+name = "prismqml"
 version = "0.2.13"
-description = "A pure QML-based Fluent Design component library with 120fps+ smooth animations"
+description = "A pure QML multi-skin component engine (Fluent + Neobrutalism) with 120fps+ smooth animations"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
     {name = "aki-riko"}
 ]
-keywords = ["qml", "fluent", "ui", "pyside6", "qt", "design"]
+keywords = ["qml", "fluent", "neobrutalism", "ui", "pyside6", "qt", "design", "skin"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -48,10 +48,10 @@ rust = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/aki-riko/FluentQML"
-Documentation = "https://github.com/aki-riko/FluentQML#readme"
-Repository = "https://github.com/aki-riko/FluentQML"
-Issues = "https://github.com/aki-riko/FluentQML/issues"
+Homepage = "https://github.com/aki-riko/PrismQML"
+Documentation = "https://github.com/aki-riko/PrismQML#readme"
+Repository = "https://github.com/aki-riko/PrismQML"
+Issues = "https://github.com/aki-riko/PrismQML/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -1,14 +1,14 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
+# This file is part of PrismQML, licensed under MIT.
 """配置子系统 — 入口模块
 
 模块结构 Module Structure:
 - validators.py     : Validator + ValidationKind
 - config_item.py    : SettingEntry / RangedEntry / EnumEntry
 - settings_base.py  : SettingsCore (持久化容器基类)
-- app_config.py     : AppConfig (FluentQML 自带的应用级条目)
+- app_config.py     : AppConfig (PrismQML 自带的应用级条目)
 - config_manager.py : ConfigManager (QML 友好接口 + 单例)
 - dpi.py            : DPI 缩放工具
 """

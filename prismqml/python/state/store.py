@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-"""FluentQML Store - 响应式状态存储
+"""PrismQML Store - 响应式状态存储
 
 核心特性：
 - 细粒度订阅：watch 特定 key，不会收到无关通知

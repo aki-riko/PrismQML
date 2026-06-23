@@ -2,7 +2,7 @@
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 """
-FluentQML 配置系统扩展单元测试
+PrismQML 配置系统扩展单元测试
 
 覆盖：
 - 验证器边界测试（Validator: passthrough / between / choice / boolean）

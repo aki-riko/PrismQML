@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-"""FluentQML Window Builder - 窗口构建器
+"""PrismQML Window Builder - 窗口构建器
 
 负责 QML 窗口的动态构建与字符串拼接。
 """

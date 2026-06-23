@@ -1,4 +1,4 @@
-# FluentQML
+# PrismQML
 
 **简体中文** | [English](./README.en.md)
 
@@ -17,23 +17,23 @@
 ## 📦 安装
 
 ```bash
-pip install fqml
+pip install prismqml
 ```
 
-> 注:PyPI 包名为 `fqml`(`fluentqml` 已被占用),但导入名仍是 `fluentqml`(`from fluentqml import ...`)。
+> 注:PyPI 包名为 `prismqml`(`prismqml` 已被占用),但导入名仍是 `prismqml`(`from prismqml import ...`)。
 
 开发模式安装：
 
 ```bash
-git clone https://github.com/aki-riko/FluentQML.git
-cd FluentQML
+git clone https://github.com/aki-riko/PrismQML.git
+cd PrismQML
 pip install -e ".[dev]"
 ```
 
 ## 🚀 快速开始
 
 ```python
-from fluentqml import App, Window, WindowType
+from prismqml import App, Window, WindowType
 
 app = App()
 window = app.create_window(WindowType.BAR)
@@ -51,8 +51,8 @@ app.exec()
 ## 🏗️ 架构
 
 ```
-fluentqml/
-├── FluentQML/              # QML 组件（模块名 FluentQML）
+prismqml/
+├── PrismQML/              # QML 组件（模块名 PrismQML）
 │   ├── controls/           # UI 控件
 │   ├── _internal/          # 内部窗口实现
 │   └── FluentEnums/        # 枚举与常量
@@ -74,7 +74,7 @@ fluentqml/
 | `WindowType.FILLED` | 2 | 填充式分割窗口 |
 
 ```python
-from fluentqml import App, Window, WindowType
+from prismqml import App, Window, WindowType
 
 app = App()
 
@@ -90,7 +90,7 @@ window = app.create_window(WindowType.SPLIT)
 ### 切换主题
 
 ```python
-from fluentqml import setTheme, Theme
+from prismqml import setTheme, Theme
 
 setTheme(Theme.LIGHT)   # 浅色
 setTheme(Theme.DARK)    # 深色
@@ -100,7 +100,7 @@ setTheme(Theme.AUTO)    # 跟随系统
 ### 自定义主题色
 
 ```python
-from fluentqml import setAccentColor, getAccentColor
+from prismqml import setAccentColor, getAccentColor
 
 setAccentColor("#0078d4")
 print(getAccentColor())  # "#0078d4"
@@ -109,7 +109,7 @@ print(getAccentColor())  # "#0078d4"
 ### QML 中使用
 
 ```qml
-import FluentQML as Fluent
+import PrismQML as Fluent
 
 // Primary 按钮（style_primary 自动使用全局主题色）
 Fluent.Button {
@@ -123,19 +123,19 @@ Rectangle {
 }
 ```
 
-> 说明：`ComboBox`、`Slider` 因与 QtQuick.Controls 原生类型同名，未在顶层 `FluentQML` 模块导出，
-> 需按子模块目录导入后使用，例如 `import "../fluentqml/FluentQML/controls/inputs"`。
+> 说明：`ComboBox`、`Slider` 因与 QtQuick.Controls 原生类型同名，未在顶层 `PrismQML` 模块导出，
+> 需按子模块目录导入后使用，例如 `import "../prismqml/PrismQML/controls/inputs"`。
 
 ## ⚙️ 配置系统
 
 配置系统采用五层架构：`Validator` → `SettingEntry` → `SettingsBase` → `AppConfig` → `ConfigManager`
 
-- **JSON 持久化**：默认存储于 `~/.fluentqml/app.json`
+- **JSON 持久化**：默认存储于 `~/.prismqml/app.json`
 - **原子写入**：先写临时文件再替换，防止断电数据丢失
 - **QML 桥接**：通过 `ConfigManager` 单例暴露为 QML Property
 
 ```python
-from fluentqml.python.config import AppConfig, getConfigManager
+from prismqml.python.config import AppConfig, getConfigManager
 
 # 获取配置值
 config = getConfigManager()
@@ -150,7 +150,7 @@ config.setDpiScale(150)
 
 ```python
 from typing import ClassVar
-from fluentqml.python.config import (
+from prismqml.python.config import (
     SettingsBase, SettingEntry, EnumEntry,
     Validator,
 )
@@ -173,7 +173,7 @@ class MyAppConfig(SettingsBase):
 `Store` 提供响应式状态存储，支持细粒度 watch 和批量更新：
 
 ```python
-from fluentqml import Store
+from prismqml import Store
 
 class AppStore(Store):
     def __init__(self):
@@ -203,7 +203,7 @@ print(store["count"])      # 20
 ## 🔔 系统托盘
 
 ```python
-from fluentqml import SystemTrayIcon, Icon
+from prismqml import SystemTrayIcon, Icon
 
 tray = SystemTrayIcon(icon="AppIcon.png", toolTip="我的应用")
 tray.addAction(text="显示", icon="Visibility", triggered=window.show)
@@ -233,7 +233,7 @@ python -m pytest tests/ -v
 
 ## 📄 License
 
-FluentQML is licensed under the [MIT License](./LICENSE).
+PrismQML is licensed under the [MIT License](./LICENSE).
 
 Copyright © 2026 aki-riko.
 

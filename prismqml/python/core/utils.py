@@ -1,9 +1,9 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
-"""FluentQML 工具函数"""
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
+"""PrismQML 工具函数"""
 import os
 from pathlib import Path
 from PySide6.QtQml import QQmlApplicationEngine
@@ -80,6 +80,6 @@ def register_types(engine: QQmlApplicationEngine):
     context.setContextProperty("WindowHelper", get_window_helper())
 
     # Add QML import path 添加QML导入路径
-    # importPath 指向 module 根目录的**父**：Qt 会扫描 <importPath>/FluentQML/qmldir。
-    # qml_path() 返回 prismqml/FluentQML（module 根本身），故传 .parent。
+    # importPath 指向 module 根目录的**父**：Qt 会扫描 <importPath>/PrismQML/qmldir。
+    # qml_path() 返回 prismqml/PrismQML（module 根本身），故传 .parent。
     engine.addImportPath(str(qml_path().parent))

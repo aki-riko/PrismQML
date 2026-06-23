@@ -1,6 +1,6 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -8,7 +8,7 @@ import "../.."
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
 
-// Widget - Base component for all FluentQML widgets 所有FluentQML组件的基类
+// Widget - Base component for all PrismQML widgets 所有PrismQML组件的基类
 Item {
     id: widget
     clip: false  // Allow tooltip to overflow 允许tooltip溢出显示

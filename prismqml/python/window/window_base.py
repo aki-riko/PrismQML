@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-"""FluentQML Window Classes - Python版窗口类
+"""PrismQML Window Classes - Python版窗口类
 
 提供统一的Window API，通过window_type参数选择窗口风格：
 - WindowType.BAR (1): 紧凑侧边导航（默认）
@@ -106,7 +106,7 @@ from ._page_manager import PageManagerMixin
 
 
 class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
-    """FluentQML窗口基类"""
+    """PrismQML窗口基类"""
 
     # 信号
     currentIndexChanged = Signal(int)
@@ -144,7 +144,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
         self._pending_props: Dict[str, Any] = {}
         self._pending_calls: List[tuple] = []   # [(method_name, qvariant_arg), ...]
 
-        self._title = "FluentQML App"
+        self._title = "PrismQML App"
         self._width = 1200
         self._height = 800
         self._icon = ""

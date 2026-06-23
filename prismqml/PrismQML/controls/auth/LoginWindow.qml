@@ -1,6 +1,6 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
 import QtQuick.Layouts
@@ -32,7 +32,7 @@ Rectangle {
     property string title: mode === Enums.auth.mode_login ? qsTr("Welcome Back") : qsTr("Create Account")
     property string subtitle: mode === Enums.auth.mode_login ? qsTr("Sign in to continue") : qsTr("Sign up to get started")
     property string logoSource: ""
-    property string logoText: "FluentQML"
+    property string logoText: "PrismQML"
     
     // OAuth providers 支持的OAuth提供商
     property var oauthProviders: [

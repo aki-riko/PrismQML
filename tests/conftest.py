@@ -4,7 +4,7 @@
 """
 pytest 共享 fixture。
 
-提供自包含的 ``qapp`` fixture：FluentQML 是 GUI 库，部分测试（如 IconBase
+提供自包含的 ``qapp`` fixture：PrismQML 是 GUI 库，部分测试（如 IconBase
 的 _bake_pixmap）需要一个就绪的 QApplication 才能构造 QPainter / 烘焙
 QPixmap。pytest-qt 插件本身会提供同名 ``qapp`` fixture，但当运行命令带
 ``-p no:pytest-qt`` 禁用插件时，该 fixture 会消失，导致这些测试在 setup

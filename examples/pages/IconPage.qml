@@ -1,15 +1,15 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
 import QtQuick.Effects
 
 import PrismQML as Fluent
-import "../../fluentqml/FluentQML/controls/containers"
-import "../../fluentqml/FluentQML/controls/inputs"
-import "../../fluentqml/FluentQML/controls/icons"
-import "../../fluentqml/FluentQML/controls/buttons"
+import "../../fluentqml/PrismQML/controls/containers"
+import "../../fluentqml/PrismQML/controls/inputs"
+import "../../fluentqml/PrismQML/controls/icons"
+import "../../fluentqml/PrismQML/controls/buttons"
 
 Item {
     id: root

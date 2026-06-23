@@ -1,23 +1,23 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
 import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/FluentQML/controls/buttons"
-import "../../fluentqml/FluentQML/controls/containers"
-import "../../fluentqml/FluentQML/controls/data"
-import "../../fluentqml/FluentQML/controls/feedback"
+import "../../fluentqml/PrismQML/controls/buttons"
+import "../../fluentqml/PrismQML/controls/containers"
+import "../../fluentqml/PrismQML/controls/data"
+import "../../fluentqml/PrismQML/controls/feedback"
 
 // 容器组件页面
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/FluentQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -256,7 +256,7 @@ Item {
                 Row {
                     spacing: Fluent.Enums.spacing.xxxl
                     ComponentCard { label: "size: 120"; QRCode { content: "https://github.com"; size: 120 } }
-                    ComponentCard { label: "size: 150"; QRCode { content: "FluentQML 组件库"; size: 150 } }
+                    ComponentCard { label: "size: 150"; QRCode { content: "PrismQML 组件库"; size: 150 } }
                     ComponentCard { label: "errorLevel: H"; QRCode { content: "高纠错"; size: 120; errorLevel: "H" } }
                 }
             }

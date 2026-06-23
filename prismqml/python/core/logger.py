@@ -1,10 +1,10 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """
-FluentQML Logger - 统一日志组件 Unified logging component
+PrismQML Logger - 统一日志组件 Unified logging component
 
 功能 Features:
 - 时间戳（精确到毫秒）Timestamp (millisecond precision)
@@ -157,7 +157,7 @@ def _get_module_tag(filename: str) -> str:
 
 
 class Logger:
-    """FluentQML统一日志组件 Unified logging component"""
+    """PrismQML统一日志组件 Unified logging component"""
 
     # Log levels 日志级别
     DEBUG = logging.DEBUG
@@ -180,7 +180,7 @@ class Logger:
 
     def __init__(
         self,
-        name: str = "FluentQML",
+        name: str = "PrismQML",
         log_file: Optional[str] = None,
         level: int = logging.DEBUG,
         max_bytes: int = DEFAULT_MAX_BYTES,
@@ -277,7 +277,7 @@ _logger: Optional[Logger] = None
 
 
 def getLogger(
-    name: str = "FluentQML",
+    name: str = "PrismQML",
     log_file: Optional[str] = None,
     level: int = logging.DEBUG,
     colored: bool = True,

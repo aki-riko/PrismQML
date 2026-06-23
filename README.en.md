@@ -1,4 +1,4 @@
-# FluentQML
+# PrismQML
 
 [简体中文](./README.md) | **English**
 
@@ -17,23 +17,23 @@ A Fluent Design component library built on PySide6 + QML, delivering 120fps+ smo
 ## 📦 Installation
 
 ```bash
-pip install fqml
+pip install prismqml
 ```
 
-> Note: the PyPI package is named `fqml` (`fluentqml` is taken), but the import name is still `fluentqml` (`from fluentqml import ...`).
+> Note: the PyPI package is named `prismqml` (`prismqml` is taken), but the import name is still `prismqml` (`from prismqml import ...`).
 
 Development install:
 
 ```bash
-git clone https://github.com/aki-riko/FluentQML.git
-cd FluentQML
+git clone https://github.com/aki-riko/PrismQML.git
+cd PrismQML
 pip install -e ".[dev]"
 ```
 
 ## 🚀 Quick Start
 
 ```python
-from fluentqml import App, Window, WindowType
+from prismqml import App, Window, WindowType
 
 app = App()
 window = app.create_window(WindowType.BAR)
@@ -51,8 +51,8 @@ app.exec()
 ## 🏗️ Architecture
 
 ```
-fluentqml/
-├── FluentQML/              # QML components (module name: FluentQML)
+prismqml/
+├── PrismQML/              # QML components (module name: PrismQML)
 │   ├── controls/           # UI controls
 │   ├── _internal/          # internal window implementation
 │   └── FluentEnums/        # enums & constants
@@ -74,7 +74,7 @@ fluentqml/
 | `WindowType.FILLED` | 2 | Filled split window |
 
 ```python
-from fluentqml import App, Window, WindowType
+from prismqml import App, Window, WindowType
 
 app = App()
 
@@ -90,7 +90,7 @@ window = app.create_window(WindowType.SPLIT)
 ### Switching themes
 
 ```python
-from fluentqml import setTheme, Theme
+from prismqml import setTheme, Theme
 
 setTheme(Theme.LIGHT)   # light
 setTheme(Theme.DARK)    # dark
@@ -100,7 +100,7 @@ setTheme(Theme.AUTO)    # follow system
 ### Custom accent color
 
 ```python
-from fluentqml import setAccentColor, getAccentColor
+from prismqml import setAccentColor, getAccentColor
 
 setAccentColor("#0078d4")
 print(getAccentColor())  # "#0078d4"
@@ -109,7 +109,7 @@ print(getAccentColor())  # "#0078d4"
 ### Using in QML
 
 ```qml
-import FluentQML as Fluent
+import PrismQML as Fluent
 
 // Primary button (style_primary automatically uses the global accent color)
 Fluent.Button {
@@ -124,19 +124,19 @@ Rectangle {
 ```
 
 > Note: `ComboBox` and `Slider` share names with QtQuick.Controls native types, so they are
-> not exported from the top-level `FluentQML` module. Import them via their submodule directory,
-> e.g. `import "../fluentqml/FluentQML/controls/inputs"`.
+> not exported from the top-level `PrismQML` module. Import them via their submodule directory,
+> e.g. `import "../prismqml/PrismQML/controls/inputs"`.
 
 ## ⚙️ Config System
 
 The config system uses a five-layer architecture: `Validator` → `SettingEntry` → `SettingsBase` → `AppConfig` → `ConfigManager`
 
-- **JSON persistence**: stored at `~/.fluentqml/app.json` by default
+- **JSON persistence**: stored at `~/.prismqml/app.json` by default
 - **Atomic writes**: write to a temp file then replace, preventing data loss on power failure
 - **QML bridging**: exposed as QML Properties via the `ConfigManager` singleton
 
 ```python
-from fluentqml.python.config import AppConfig, getConfigManager
+from prismqml.python.config import AppConfig, getConfigManager
 
 # Read config values
 config = getConfigManager()
@@ -151,7 +151,7 @@ config.setDpiScale(150)
 
 ```python
 from typing import ClassVar
-from fluentqml.python.config import (
+from prismqml.python.config import (
     SettingsBase, SettingEntry, EnumEntry,
     Validator,
 )
@@ -174,7 +174,7 @@ class MyAppConfig(SettingsBase):
 `Store` provides reactive state storage with fine-grained watch and batch updates:
 
 ```python
-from fluentqml import Store
+from prismqml import Store
 
 class AppStore(Store):
     def __init__(self):
@@ -204,7 +204,7 @@ print(store["count"])      # 20
 ## 🔔 System Tray
 
 ```python
-from fluentqml import SystemTrayIcon, Icon
+from prismqml import SystemTrayIcon, Icon
 
 tray = SystemTrayIcon(icon="AppIcon.png", toolTip="My App")
 tray.addAction(text="Show", icon="Visibility", triggered=window.show)
@@ -234,7 +234,7 @@ python -m pytest tests/ -v
 
 ## 📄 License
 
-FluentQML is licensed under the [MIT License](./LICENSE).
+PrismQML is licensed under the [MIT License](./LICENSE).
 
 Copyright © 2026 aki-riko.
 

@@ -1,14 +1,14 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """
-FluentQML 配置项验证器
+PrismQML 配置项验证器
 
 设计要点：
 - 单一类 Validator + ValidationKind 枚举，工厂方法分发
-- 与 FluentQML 其他模块的 Enum 范式对齐
+- 与 PrismQML 其他模块的 Enum 范式对齐
   (Theme / ShadowMode / Position / WindowType / Icon 同风格)
 - 验证接口:
     accepts(value) -> bool   是否允许该值

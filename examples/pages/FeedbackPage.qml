@@ -1,26 +1,26 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
 import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/FluentQML/controls/buttons"
-import "../../fluentqml/FluentQML/controls/feedback"
-import "../../fluentqml/FluentQML/controls/feedback/State"
-import "../../fluentqml/FluentQML/controls/feedback/Tooltip"
-import "../../fluentqml/FluentQML/controls/containers"
-import "../../fluentqml/FluentQML/controls/dialogs"
-import "../../fluentqml/FluentQML/controls/data"
+import "../../fluentqml/PrismQML/controls/buttons"
+import "../../fluentqml/PrismQML/controls/feedback"
+import "../../fluentqml/PrismQML/controls/feedback/State"
+import "../../fluentqml/PrismQML/controls/feedback/Tooltip"
+import "../../fluentqml/PrismQML/controls/containers"
+import "../../fluentqml/PrismQML/controls/dialogs"
+import "../../fluentqml/PrismQML/controls/data"
 
 // 反馈组件页面
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/FluentQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -471,7 +471,7 @@ Item {
         cancelButtonVisible: false
     }
     MessageBox { 
-        id: copyableBox; title: "可复制内容"; content: "选中此文本可以复制：FluentQML是一个QML组件库"
+        id: copyableBox; title: "可复制内容"; content: "选中此文本可以复制：PrismQML是一个QML组件库"
         contentCopyable: true
     }
     // Dialog - 无边框对话框

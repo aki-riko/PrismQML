@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-"""FluentQML State Management - 响应式状态管理
+"""PrismQML State Management - 响应式状态管理
 
 提供现代化的状态管理方案，替代传统的 EventBus：
 - Store: 响应式状态存储基类

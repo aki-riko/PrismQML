@@ -1,7 +1,7 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是 FluentQML 的一部分，采用 MIT 许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Headless 全组件加载 probe — 重排验证工具
 
 遍历根 qmldir 注册的全部公开组件,逐个 createComponent 实例化,

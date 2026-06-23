@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-"""FluentQML Models - 高性能数据模型"""
+"""PrismQML Models - 高性能数据模型"""
 
 from typing import List, Dict, Any, Optional
 from PySide6.QtCore import QAbstractListModel, QModelIndex, Qt, QByteArray, Property, Signal

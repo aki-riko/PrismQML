@@ -1,7 +1,7 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是 FluentQML 的一部分，采用 MIT 许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Headless 欢迎页关闭时机回归测试 — 直接测真实 _dismissSplashWhenReady。
 
 复现 bug: 窗口框架壳 Loader.onLoaded(NavigationBar/ContentFrame 加载完)就
@@ -30,7 +30,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 PKG_ROOT = Path(__file__).resolve().parents[2] / "prismqml"
-NAV_DIR = PKG_ROOT / "FluentQML" / "controls" / "navigation"
+NAV_DIR = PKG_ROOT / "PrismQML" / "controls" / "navigation"
 PAGES_DIR = Path(__file__).resolve().parents[2] / "examples" / "pages"
 
 
@@ -52,7 +52,7 @@ def main():
     # onCompleted(等同框架 onLoaded 时机)调真函数 _dismissSplashWhenReady。
     qml = f'''
 import QtQuick
-import FluentQML
+import PrismQML
 import "{NAV_DIR.as_posix()}"
 
 NavigationWindowCore {{

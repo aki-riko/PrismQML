@@ -1,9 +1,9 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
+# This file is part of PrismQML, licensed under MIT.
 
-"""FluentQML 通知 Python helper
+"""PrismQML 通知 Python helper
 
 让 Python 端直接调 NotificationManager.desktop / .infoBar / .toast,不需要业务方
 自己写 NotificationBridge.qml 胶水 + 靠 getattr 撞运气访问 QML function。

@@ -1,10 +1,10 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """
-FluentQML Gallery - 组件展示应用
+PrismQML Gallery - 组件展示应用
 
 运行方式：python examples/main.py
 """

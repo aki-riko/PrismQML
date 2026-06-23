@@ -1,6 +1,6 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
-// This file is part of FluentQML, licensed under MIT.
+// This file is part of PrismQML, licensed under MIT.
 
 import ".."
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
