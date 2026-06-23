@@ -23,7 +23,7 @@ import FluentQML
 Window {
     id: win
     visible: true
-    width: 720; height: 760
+    width: 720; height: 880
     title: "Neobrutalism 预览"
     color: Enums.isNeobrutalism ? Enums.neo.background : Enums.backgroundColor
 
@@ -106,6 +106,15 @@ Window {
             width: 480
             title: "折叠面板"
             content: "点击展开,黑边 + 硬阴影"
+        }
+
+        // 滑块 / 进度条 / 标签筹码
+        SliderCore { width: 240; value: 60 }
+        ProgressBar { width: 240; value: 65 }
+        Row {
+            spacing: 12
+            Chip { text: "已选"; checked: true; closable: false }
+            Chip { text: "未选"; closable: false }
         }
 
         Text {

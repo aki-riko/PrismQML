@@ -122,7 +122,7 @@ QtObject {
     readonly property color contentBgTransparent: root.isDark ? Qt.rgba(1,1,1,0.03) : Qt.rgba(1,1,1,0.5)
     // Loading/Progress 加载/进度
     readonly property color loadingBorder: root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1)
-    readonly property color progressTrack: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06)
+    readonly property color progressTrack: isNeo ? _neo.muted : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06))
     
     // Skeleton loading 骨架屏
     readonly property color skeletonBase: root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.09)

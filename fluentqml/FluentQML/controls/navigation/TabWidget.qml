@@ -290,23 +290,32 @@ Widget {
             on_LayoutWChanged: _followLayout()
 
             // Selected tab indicator shadow 选中标签指示器投影
+            // Fluent: 模糊阴影; neo: 硬阴影(NeoShadow)
             RectangularShadow {
                 anchors.fill: indicatorBg
                 radius: indicatorBg.radius
                 color: Enums.shadow.level2.color
                 blur: Enums.shadow.level2.blur
                 offset: Qt.vector2d(0, Enums.shadow.level2.offset)
-                visible: control.shadowEnabled
+                visible: control.shadowEnabled && !Enums.isNeobrutalism
             }
-            
+
+            NeoShadow {
+                target: indicatorBg
+                visible: control.shadowEnabled && Enums.isNeobrutalism
+                z: indicatorBg.z - 1
+            }
+
             // Fluent Design selected tab background with border
             Rectangle {
                 id: indicatorBg
                 anchors.fill: parent
-                radius: Enums.radius.card
-                color: Enums.isDark ? Enums.themeColors.tabSelectedDark : Enums.themeColors.tabSelectedLight
-                border.width: Enums.border.thin
-                border.color: Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border
+                radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.card
+                color: Enums.isNeobrutalism ? Enums.neo.surface
+                       : (Enums.isDark ? Enums.themeColors.tabSelectedDark : Enums.themeColors.tabSelectedLight)
+                border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+                border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
+                       : (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border)
             }
         }
     }
