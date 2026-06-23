@@ -51,7 +51,13 @@ def main():
             failures.append(msg)
 
     BTN = b'import FluentQML\nButton { text: "Click"; width: 120; height: 36 }\n'
+    BTN_PRIMARY = b'import FluentQML\nButton { text: "OK"; style: Enums.button.style_primary; width: 120; height: 36 }\n'
     CARD = b'import FluentQML\nCard { width: 200; height: 120 }\n'
+
+    def hexish(qcolor):
+        if qcolor is None:
+            return None
+        return (round(qcolor.redF() * 255), round(qcolor.greenF() * 255), round(qcolor.blueF() * 255))
 
     print("--- Fluent ---")
     setSkin(Skin.FLUENT)
@@ -67,6 +73,14 @@ def main():
     b = build(engine, BTN)
     check(b.property("radius") == 6, "neo Button: radius=6")
     check(has_hard_shadow(b) is not None, "neo Button: 有硬阴影(x=y=4)")
+    # 配色: primary 按钮 bg=橙 #F97316(249,115,22)。
+    # styleHelper 是 QML 自定义类型 Python 取不到, 改读按钮顶层暴露的 color 属性(=styleHelper.bgColor)。
+    bp = build(engine, BTN_PRIMARY)
+    bg = hexish(bp.property("color"))
+    txt = hexish(bp.property("getTextColor")) if False else None
+    # textColor 经方法暴露, 直接调用 QML 方法读取
+    print(f"    neo primary bg={bg}")
+    check(bg == (249, 115, 22), "neo primary Button: bg=橙#F97316")
     c = build(engine, CARD)
     cs = has_hard_shadow(c)
     check(cs is not None, "neo Card: 有硬阴影(x=y=4)")

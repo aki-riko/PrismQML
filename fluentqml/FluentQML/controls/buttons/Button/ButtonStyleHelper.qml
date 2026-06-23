@@ -27,7 +27,10 @@ QtObject {
     // ==================== Background Color 背景色 ====================
     readonly property color bgColor: {
         if (!Enums || !Enums.stateColor) return Enums.stateColor.controlBg
-        
+
+        // Neobrutalism 配色: primary/filled/gradient 用橙主色, 默认白面, 透明类保持透明。
+        if (Enums.isNeobrutalism) return _neoBgColor()
+
         if (isToggleChecked) {
             if (style === Enums.button.style_primary) {
                 if (!effectiveEnabled) return Enums.stateColor.disabled
@@ -84,11 +87,63 @@ QtObject {
         if (hovered) return Enums.stateColor.controlBgHover
         return Enums.stateColor.controlBg
     }
+
+    // ==================== Neobrutalism 配色函数 ====================
+    // neo 不靠半透明叠加表达 hover/press, 用主色变暗/变亮(硬色块风格)。
+    function _neoIsAccentStyle() {
+        return style === Enums.button.style_primary ||
+               style === Enums.button.style_filled ||
+               style === Enums.button.style_gradient
+    }
+    function _neoBgColor() {
+        // 透明/文本/超链接: 保持透明(neo 下这类按钮靠文字+硬阴影, 不填背景)
+        if (style === Enums.button.style_transparent ||
+            style === Enums.button.style_text ||
+            style === Enums.button.style_hyperlink) {
+            return Enums.transparent
+        }
+        if (_neoIsAccentStyle()) {
+            // filled 按 level 取状态色(成功/危险等), 其余 accent 类用橙主色
+            var base = (style === Enums.button.style_filled)
+                       ? Enums.statusLevel.getColorByLevel(level) : Enums.neo.primary
+            if (!effectiveEnabled) return Qt.rgba(base.r, base.g, base.b, 0.45)
+            if (pressed) return Qt.darker(base, 1.15)
+            if (hovered) return Qt.lighter(base, 1.08)
+            return base
+        }
+        // 默认按钮: 白面, hover/press 轻微变灰
+        if (!effectiveEnabled) return Enums.neo.muted
+        if (pressed) return Qt.darker(Enums.neo.surface, 1.08)
+        if (hovered) return Enums.neo.muted
+        return Enums.neo.surface
+    }
+    function _neoBorderColor() {
+        // neo: 非透明类一律纯黑粗边; 透明/文本/超链接无边
+        if (style === Enums.button.style_transparent ||
+            style === Enums.button.style_text ||
+            style === Enums.button.style_hyperlink) {
+            return Enums.transparent
+        }
+        return Enums.neo.borderColor
+    }
+    function _neoTextColor() {
+        if (_neoIsAccentStyle()) {
+            if (!effectiveEnabled) return Qt.rgba(1, 1, 1, 0.7)
+            return Enums.neo.primaryForeground
+        }
+        if (style === Enums.button.style_hyperlink) {
+            return Enums.neo.primary
+        }
+        if (!effectiveEnabled) return Enums.neo.secondaryForeground
+        return Enums.neo.foreground
+    }
     
     // ==================== Border Color 边框色 ====================
     readonly property color borderColor: {
         if (!Enums.stateColor) return Enums.stateColor.border
-        
+
+        if (Enums.isNeobrutalism) return _neoBorderColor()
+
         if (isToggleChecked && style === Enums.button.style_primary) {
             return Enums.accentColor
         }
@@ -111,7 +166,9 @@ QtObject {
     // ==================== Text Color 文字色 ====================
     readonly property color textColor: {
         if (!Enums.textColor) return Enums.textColor.primary
-        
+
+        if (Enums.isNeobrutalism) return _neoTextColor()
+
         if (isToggleChecked) {
             if (style === Enums.button.style_primary) {
                 if (!effectiveEnabled) return Enums.textColor.disabled

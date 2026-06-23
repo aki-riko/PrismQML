@@ -113,6 +113,12 @@ Widget {
  color: _bgColor
  
  property color _bgColor: {
+ // Neobrutalism: 卡片白面(靠黑边+硬阴影区分), hover/press 轻微变灰
+ if (Enums.isNeobrutalism) {
+ if ((isNormal || isElevated) && pressed) return Qt.darker(Enums.neo.surface, 1.08)
+ if ((isNormal || isElevated) && hovered) return Enums.neo.muted
+ return Enums.neo.surface
+ }
  // Default/Header card: no hover effect 默认卡片/标题卡片无悬停效果
  // HeaderCard inherits DefaultCard behavior 标题卡继承默认卡行为
  if (cardType === Enums.card.type_default || cardType === Enums.card.type_header) {

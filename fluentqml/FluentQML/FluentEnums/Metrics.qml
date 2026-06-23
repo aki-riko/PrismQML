@@ -115,16 +115,29 @@ QtObject {
  readonly property int thick: 3
  }
 
- // ==================== Neobrutalism 新粗野皮肤度量 ====================
- // 新粗野皮肤的几何/阴影范式与 Fluent 不同, 集中放此, 仅在 skin==neobrutalism 时由控件读取。
- // 招牌特征: 粗黑边 + 硬阴影(无模糊, 带 offset) + 按下时控件位移+阴影消失(被压进纸面)。
+ // ==================== Neobrutalism 新粗野皮肤度量+配色 ====================
+ // 新粗野皮肤的几何/阴影/配色范式与 Fluent 不同, 集中放此, 仅在 skin==neobrutalism 时由控件读取。
+ // 招牌特征: 粗黑边 + 硬阴影(无模糊, 带 offset) + 按下时控件位移+阴影消失(被压进纸面) + 米白底撞色点缀。
+ // 配色参照 kiro_rs admin-ui(米白底/橙主色/黑描边/绿成功), 仅做 light 一套;
+ // neo+dark 暂回退 Fluent 深色(深色 neo 无成熟参照, 留后续单独设计)。
  readonly property QtObject neo: QtObject {
+ // ---- 几何 ----
  readonly property int borderWidth: 2 // 粗描边宽度
- readonly property int radius: 6 // 圆角(新粗野多用小圆角或直角, 这里取温和值)
+ readonly property int radius: 6 // 圆角(0.375rem≈6px, 接近直角)
  readonly property real shadowOffset: 4 // 硬阴影偏移(X=Y), 即"纸面投影"距离
  readonly property real pressOffset: 4 // 按下时控件下移/右移距离(= shadowOffset, 视觉上压平阴影)
- readonly property color shadowColor: "#000000" // 硬阴影固定纯黑(新粗野不随明暗渐变)
- readonly property color borderColor: "#000000" // 描边固定纯黑
+ // ---- 配色(固定值, 不随明暗渐变; neo 性格来自高对比硬色块) ----
+ readonly property color shadowColor: "#000000" // 硬阴影纯黑
+ readonly property color borderColor: "#000000" // 描边纯黑
+ readonly property color background: "#FAFAF0" // 窗口底色(米白)
+ readonly property color surface: "#FFFFFF" // 卡片/控件面(纯白, 靠黑边+硬阴影区分)
+ readonly property color foreground: "#171717" // 近黑文字
+ readonly property color secondaryForeground: "#666666" // 次要文字
+ readonly property color primary: "#F97316" // 主色(橙), 用于 primary 按钮填充/强调
+ readonly property color primaryForeground: "#FFFFFF" // 主色上的文字
+ readonly property color success: "#16A34A" // 成功/可用(绿)
+ readonly property color danger: "#EF4444" // 危险/错误(红)
+ readonly property color muted: "#F5F5F5" // 弱化背景
  }
  
  // ==================== IconSize 图标尺寸 ====================
