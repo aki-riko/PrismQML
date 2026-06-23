@@ -19,7 +19,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 # 定位 qml 包根
-PKG_ROOT = Path(__file__).resolve().parents[2] / "fluentqml"
+PKG_ROOT = Path(__file__).resolve().parents[2] / "prismqml"
 QML_DIR = PKG_ROOT / "PrismQML"
 QMLDIR = QML_DIR / "qmldir"
 

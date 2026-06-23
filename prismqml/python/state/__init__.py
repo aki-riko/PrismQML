@@ -9,7 +9,7 @@
 - 可追踪：状态变化有迹可循
 
 使用示例：
-    from fluentqml.state import Store
+    from prismqml.state import Store
     
     # 方式1：继承模式（推荐）
     class SettingStore(Store):

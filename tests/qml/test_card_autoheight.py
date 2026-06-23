@@ -28,7 +28,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from fluentqml.python.core.utils import register_types  # noqa: E402
+from prismqml.python.core.utils import register_types  # noqa: E402
 
 QML = '''
 import QtQuick

@@ -12,13 +12,13 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QUrl, QTimer
 
-import fluentqml
-from fluentqml import Skin, setSkin, register_types
+import prismqml
+from prismqml import Skin, setSkin, register_types
 
 QML = """
 import QtQuick
 import QtQuick.Window
-import FluentQML
+import PrismQML
 
 Window {
     id: win

@@ -37,7 +37,7 @@ def pump(ms):
 def main():
     app = QApplication.instance() or QApplication(sys.argv)
 
-    from fluentqml import Window, WindowType
+    from prismqml import Window, WindowType
 
     failures = []
 

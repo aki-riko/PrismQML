@@ -4,7 +4,7 @@
 """单实例检查组件 - Windows使用Named Mutex，其他平台使用QSharedMemory
 
 使用方式:
-    from fluentqml.python.core import SingleInstance
+    from prismqml.python.core import SingleInstance
 
     # 方式1: 上下文管理器
     with SingleInstance("MyApp") as instance:

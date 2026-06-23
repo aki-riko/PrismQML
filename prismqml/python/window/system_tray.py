@@ -51,7 +51,7 @@ class SystemTrayIcon(QObject):
 
     Example:
         ```python
-        from fluentqml import SystemTrayIcon
+        from prismqml import SystemTrayIcon
 
         tray = SystemTrayIcon(icon=window.windowIcon(), parent=window)
         tray.setToolTip("FluentQML App")

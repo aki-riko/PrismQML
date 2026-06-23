@@ -81,5 +81,5 @@ def register_types(engine: QQmlApplicationEngine):
 
     # Add QML import path 添加QML导入路径
     # importPath 指向 module 根目录的**父**：Qt 会扫描 <importPath>/FluentQML/qmldir。
-    # qml_path() 返回 fluentqml/FluentQML（module 根本身），故传 .parent。
+    # qml_path() 返回 prismqml/FluentQML（module 根本身），故传 .parent。
     engine.addImportPath(str(qml_path().parent))

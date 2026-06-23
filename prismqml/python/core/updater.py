@@ -8,7 +8,7 @@
 
 典型用法(应用层)::
 
-    from fluentqml import Updater
+    from prismqml import Updater
 
     updater = Updater("owner/repo", "v1.0.3", asset_keyword="Setup")
     ctx.setContextProperty("Updater", updater)

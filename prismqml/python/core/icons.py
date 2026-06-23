@@ -13,7 +13,7 @@ Total icons: 2484
 
 Usage:
     # Python
-    from fluentqml.python.core.icons import Icon
+    from prismqml.python.core.icons import Icon
     icon = Icon.CALENDAR
     
     # QML (通过FluentEnums.icon)

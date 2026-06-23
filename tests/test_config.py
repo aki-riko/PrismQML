@@ -8,8 +8,8 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import pytest
-from fluentqml.python.config import SettingsCore, SettingEntry
-from fluentqml.python.config.config_manager import ConfigManager
+from prismqml.python.config import SettingsCore, SettingEntry
+from prismqml.python.config.config_manager import ConfigManager
 
 
 class MockConfig(SettingsCore):

@@ -55,10 +55,10 @@ Issues = "https://github.com/aki-riko/FluentQML/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["fluentqml*"]
+include = ["prismqml*"]
 
 [tool.setuptools.package-data]
-fluentqml = ["PrismQML/**/*.qml", "PrismQML/**/*.js", "PrismQML/qmldir", "PrismQML/**/qmldir", "PrismQML/**/*.json", "PrismQML/**/*.frag", "**/*.svg", "**/*.png", "**/*.qsb", "py.typed", "PrismQML/controls/icons/fluent/LICENSE"]
+prismqml = ["PrismQML/**/*.qml", "PrismQML/**/*.js", "PrismQML/qmldir", "PrismQML/**/qmldir", "PrismQML/**/*.json", "PrismQML/**/*.frag", "**/*.svg", "**/*.png", "**/*.qsb", "py.typed", "PrismQML/controls/icons/fluent/LICENSE"]
 
 # Rust 加速扩展(可选):SqlListModel 的 SQLite 分页加速。
 # 编为顶层模块 prismqml_rs(代码 import prismqml_rs),abi3 一个 wheel 兼容 py3.9+。

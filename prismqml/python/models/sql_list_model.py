@@ -22,7 +22,7 @@ QML ListView/TableView 对接 1M+ 行 SQLite 数据,内存恒定 + 滚动 120fps
 
 接入示例
 ========
-    from fluentqml import SqlListModel
+    from prismqml import SqlListModel
     model = SqlListModel("/path/to/db.sqlite", parent=self)
     model.setQuery(
         "SELECT id, date, time, type, character FROM records WHERE book_id=:bid",

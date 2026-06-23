@@ -55,7 +55,7 @@ class ShadowManager(QObject):
     跨平台窗口阴影管理器
 
     使用示例：
-        from fluentqml.python.shadow import ShadowManager
+        from prismqml.python.shadow import ShadowManager
 
         shadow = ShadowManager()
         shadow.enableShadow(window.winId())

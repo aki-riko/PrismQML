@@ -8,7 +8,7 @@
 
 # Allow QML XHR to read local files (needed by Translator to load i18n JSON).
 # Must be set before QQmlEngine construction. Downstream code can opt out by setting
-# the env var to "0" before importing fluentqml.
+# the env var to "0" before importing prismqml.
 import os as _os
 _os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
 

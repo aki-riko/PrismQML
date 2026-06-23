@@ -11,8 +11,8 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlApplicationEngine
 from PySide6.QtQuick import QQuickItem
 
-import fluentqml  # noqa: E402
-from fluentqml import Skin, setSkin, register_types  # noqa: E402
+import prismqml  # noqa: E402
+from prismqml import Skin, setSkin, register_types  # noqa: E402
 
 _KEEP = []
 

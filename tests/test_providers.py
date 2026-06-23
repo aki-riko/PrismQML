@@ -6,8 +6,8 @@
 import pytest
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QImage
-from fluentqml.python.providers.qrcode_generator import QRCodeImageProvider
-from fluentqml.python.providers.svg_provider import SvgImageProvider
+from prismqml.python.providers.qrcode_generator import QRCodeImageProvider
+from prismqml.python.providers.svg_provider import SvgImageProvider
 
 
 class TestImageProviders:

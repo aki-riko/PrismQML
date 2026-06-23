@@ -16,10 +16,10 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from fluentqml.python.config.validators import Validator, ValidationKind
-from fluentqml.python.config.config_item import SettingEntry, RangedEntry, EnumEntry
-from fluentqml.python.config.settings_base import SettingsCore
-from fluentqml.python.config.config_manager import ConfigManager
+from prismqml.python.config.validators import Validator, ValidationKind
+from prismqml.python.config.config_item import SettingEntry, RangedEntry, EnumEntry
+from prismqml.python.config.settings_base import SettingsCore
+from prismqml.python.config.config_manager import ConfigManager
 
 
 # ==================== 验证器测试 ====================

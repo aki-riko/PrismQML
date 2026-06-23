@@ -10,7 +10,7 @@ import json
 import os
 import pytest
 
-from fluentqml.python.core.updater import (
+from prismqml.python.core.updater import (
     Updater,
     _parse_version,
     _is_newer,
@@ -158,7 +158,7 @@ class TestInstaller:
         只验证分支可达、返回 True、不抛异常。
         """
         import sys as _sys
-        import fluentqml.python.core.updater as mod
+        import prismqml.python.core.updater as mod
 
         installer = tmp_path / "Setup.exe"
         installer.write_bytes(b"dummy")

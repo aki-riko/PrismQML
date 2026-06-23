@@ -2,7 +2,7 @@
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 # This file is part of FluentQML, licensed under MIT.
-"""FluentQML 应用级设置 — 落盘到 ~/.fluentqml/app.json
+"""FluentQML 应用级设置 — 落盘到 ~/.prismqml/app.json
 
 这是 FluentQML 自带的 SettingsCore 子类,承载窗口外观、DPI、窗口类型等
 进程级偏好。下游业务可自行继承 SettingsCore 定义业务条目,
@@ -19,7 +19,7 @@ from .validators import Validator
 
 # ---------- 默认存放路径 ----------
 
-DEFAULT_CONFIG_DIR: Path = Path.home() / ".fluentqml"
+DEFAULT_CONFIG_DIR: Path = Path.home() / ".prismqml"
 DEFAULT_APP_CONFIG: Path = DEFAULT_CONFIG_DIR / "app.json"
 
 
@@ -27,7 +27,7 @@ DEFAULT_APP_CONFIG: Path = DEFAULT_CONFIG_DIR / "app.json"
 # 注意:SettingEntry 作为类属性,所有 AppConfig 实例共享同一组条目。
 # 当前由 ConfigManager 单例保证安全;若未来需要多实例,改成 instance 属性。
 class AppConfig(SettingsCore):
-    """FluentQML app-level settings persisted under ~/.fluentqml/app.json."""
+    """FluentQML app-level settings persisted under ~/.prismqml/app.json."""
 
     # ── Window appearance ──
     lazy_loading: ClassVar[SettingEntry] = SettingEntry(

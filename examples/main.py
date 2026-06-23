@@ -26,7 +26,7 @@ os.environ["QML_XHR_ALLOW_FILE_READ"] = "1"
 # 添加项目根目录到路径(main.py 在 examples/,上 2 层到项目根)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fluentqml.python.core import log_time
+from prismqml.python.core import log_time
 log_time("Python启动与核心库导入完成")
 
 # 添加项目根目录到路径
@@ -38,15 +38,15 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtCore import Qt, QUrl, QResource
 
-from fluentqml.python.core import ThemeManager, getShadowManager, installDwmSyncFilter, install_qt_message_handler
-from fluentqml.python.config import getConfigManager, applyDpiScale
-from fluentqml.python.providers import (
+from prismqml.python.core import ThemeManager, getShadowManager, installDwmSyncFilter, install_qt_message_handler
+from prismqml.python.config import getConfigManager, applyDpiScale
+from prismqml.python.providers import (
     get_qrcode_generator, get_qrcode_provider,
     get_screen_eyedropper_manager,
     get_clipboard_helper,
     get_svg_provider,
 )
-from fluentqml.python.window import get_mica_manager, get_acrylic_helper
+from prismqml.python.window import get_mica_manager, get_acrylic_helper
 
 # 注册二进制资源文件(QML 通过 qrc:/ 访问图片等)
 # 用 .rcc 二进制资源代替编译成 .py 的资源(体积更小,不污染代码仓库)
@@ -100,8 +100,8 @@ def main():
 
     # 安装异步孵化控制器: 让 asynchronous Loader(StackedWidget 懒加载)分帧切片
     # 实例化, 避免切到未加载页时单帧建整棵页面树阻塞 GUI 线程造成掉帧。
-    # 注: 走 fluentqml.App 的应用会自动安装; 此处直接裸建 engine 故需显式调用。
-    from fluentqml.python.core.incubation import install_incubation_controller
+    # 注: 走 prismqml.App 的应用会自动安装; 此处直接裸建 engine 故需显式调用。
+    from prismqml.python.core.incubation import install_incubation_controller
     install_incubation_controller(engine)
     
     # 资源已通过 QResource.registerResource(gallery.rcc) 在模块加载时注册
@@ -117,7 +117,7 @@ def main():
     engine.rootContext().setContextProperty("ClipboardHelper", get_clipboard_helper())
     
     # 注册窗口辅助工具（任务栏图标同步等）
-    from fluentqml.python.core.window_helper import get_window_helper
+    from prismqml.python.core.window_helper import get_window_helper
     engine.rootContext().setContextProperty("WindowHelper", get_window_helper())
     
     # 注册二维码图片提供器
@@ -129,11 +129,11 @@ def main():
     log_time("上下文属性注册完成")
     
     # 添加QML导入路径
-    # importPath 指向 fluentqml/ 父级，Qt 会扫描其中的 PrismQML/qmldir
+    # importPath 指向 prismqml/ 父级，Qt 会扫描其中的 PrismQML/qmldir
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    fluentqml_root = os.path.join(project_root, "fluentqml")
-    engine.addImportPath(fluentqml_root)
-    qml_dir = os.path.join(fluentqml_root, "PrismQML")
+    prismqml_root = os.path.join(project_root, "prismqml")
+    engine.addImportPath(prismqml_root)
+    qml_dir = os.path.join(prismqml_root, "PrismQML")
 
     # 添加组件子目录（用于 main.qml 中的字面量 subdir import 兼容）
     for subdir in ["controls/buttons", "controls/inputs", "controls/data",

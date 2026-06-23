@@ -48,7 +48,7 @@ class ThemeManager(QObject):
 
     使用示例：
         # Python端
-        from fluentqml import setTheme, setAccentColor, Theme
+        from prismqml import setTheme, setAccentColor, Theme
         setTheme(Theme.DARK)
         setAccentColor("#0078d4")  # FluentQML 默认 Fluent 蓝
 

@@ -23,13 +23,13 @@ class TestThemeManager:
 
     def setup_method(self):
         """每个测试方法前重置单例"""
-        from fluentqml.python.core.theme import ThemeManager
+        from prismqml.python.core.theme import ThemeManager
 
         ThemeManager._instance = None
 
     def test_singleton(self):
         """单例模式应返回同一实例"""
-        from fluentqml.python.core.theme import ThemeManager
+        from prismqml.python.core.theme import ThemeManager
 
         a = ThemeManager()
         b = ThemeManager()
@@ -37,7 +37,7 @@ class TestThemeManager:
 
     def test_default_theme_is_light(self):
         """默认主题应为 light"""
-        from fluentqml.python.core.theme import ThemeManager, Theme
+        from prismqml.python.core.theme import ThemeManager, Theme
 
         tm = ThemeManager()
         assert tm.getTheme() == Theme.LIGHT
@@ -45,7 +45,7 @@ class TestThemeManager:
 
     def test_set_theme(self):
         """设置主题应生效"""
-        from fluentqml.python.core.theme import ThemeManager, Theme
+        from prismqml.python.core.theme import ThemeManager, Theme
 
         tm = ThemeManager()
         tm.setTheme(Theme.DARK)
@@ -54,7 +54,7 @@ class TestThemeManager:
 
     def test_set_theme_from_qml(self):
         """从 QML 侧设置主题字符串"""
-        from fluentqml.python.core.theme import ThemeManager, Theme
+        from prismqml.python.core.theme import ThemeManager, Theme
 
         tm = ThemeManager()
         tm.setThemeFromQml("dark")
@@ -68,7 +68,7 @@ class TestThemeManager:
 
     def test_toggle_theme(self):
         """切换主题应在 Light/Dark 之间交替"""
-        from fluentqml.python.core.theme import ThemeManager, Theme
+        from prismqml.python.core.theme import ThemeManager, Theme
 
         tm = ThemeManager()
         assert tm.getTheme() == Theme.LIGHT
@@ -79,14 +79,14 @@ class TestThemeManager:
 
     def test_default_accent_color(self):
         """默认主题色应为预设值"""
-        from fluentqml.python.core.theme import ThemeManager
+        from prismqml.python.core.theme import ThemeManager
 
         tm = ThemeManager()
         assert tm.getAccentColor() == ThemeManager.DEFAULT_ACCENT
 
     def test_set_accent_color(self):
         """设置主题色应更新 accent 和派生色"""
-        from fluentqml.python.core.theme import ThemeManager
+        from prismqml.python.core.theme import ThemeManager
 
         tm = ThemeManager()
         tm.setAccentColor("#ff0000")
@@ -97,7 +97,7 @@ class TestThemeManager:
 
     def test_set_invalid_accent_color_raises(self):
         """无效的颜色格式应抛出 ValueError"""
-        from fluentqml.python.core.theme import ThemeManager
+        from prismqml.python.core.theme import ThemeManager
 
         tm = ThemeManager()
         with pytest.raises(ValueError):
@@ -107,7 +107,7 @@ class TestThemeManager:
 
     def test_global_functions(self):
         """全局便捷函数应正确工作"""
-        from fluentqml.python.core.theme import (
+        from prismqml.python.core.theme import (
             setTheme,
             getTheme,
             isDark,
@@ -132,7 +132,7 @@ class TestStore:
 
     def test_define_and_get(self):
         """定义和获取状态"""
-        from fluentqml.python.state.store import Store
+        from prismqml.python.state.store import Store
 
         store = Store("test")
         store.define("count", 0)
@@ -140,7 +140,7 @@ class TestStore:
 
     def test_set_and_get(self):
         """设置和获取状态"""
-        from fluentqml.python.state.store import Store
+        from prismqml.python.state.store import Store
 
         store = Store("test")
         store.set("name", "Alice")
@@ -148,7 +148,7 @@ class TestStore:
 
     def test_set_triggers_watcher(self):
         """设置值应触发 watcher 回调"""
-        from fluentqml.python.state.store import Store
+        from prismqml.python.state.store import Store
 
         store = Store("test")
         store.define("count", 0)
@@ -164,7 +164,7 @@ class TestStore:
 
     def test_same_value_no_notify(self):
         """相同值不应触发通知"""
-        from fluentqml.python.state.store import Store
+        from prismqml.python.state.store import Store
 
         store = Store("test")
         store.define("x", 10)
@@ -177,7 +177,7 @@ class TestStore:
 
     def test_unwatch(self):
         """取消监听后不应再收到通知"""
-        from fluentqml.python.state.store import Store
+        from prismqml.python.state.store import Store
 
         store = Store("test")
         store.define("x", 0)
@@ -194,7 +194,7 @@ class TestStore:
 
     def test_batch_mode(self):
         """批量模式应合并通知"""
-        from fluentqml.python.state.store import Store
+        from prismqml.python.state.store import Store
 
         store = Store("test")
         store.define("a", 0)
@@ -216,7 +216,7 @@ class TestStore:
 
     def test_reset(self):
         """重置应恢复默认值"""
-        from fluentqml.python.state.store import Store
+        from prismqml.python.state.store import Store
 
         store = Store("test")
         store.define("theme", "light")
@@ -228,7 +228,7 @@ class TestStore:
 
     def test_dict_syntax(self):
         """应支持字典语法"""
-        from fluentqml.python.state.store import Store
+        from prismqml.python.state.store import Store
 
         store = Store("test")
         store["key"] = "value"
@@ -237,7 +237,7 @@ class TestStore:
 
     def test_keys_and_values(self):
         """keys 和 values 方法应正常工作"""
-        from fluentqml.python.state.store import Store
+        from prismqml.python.state.store import Store
 
         store = Store("test")
         store.define("a", 1)
@@ -254,7 +254,7 @@ class TestWindowType:
 
     def test_intenum_values(self):
         """IntEnum 值应正确"""
-        from fluentqml.python.window.fluent_window import WindowType
+        from prismqml.python.window.fluent_window import WindowType
 
         assert WindowType.SPLIT == 0
         assert WindowType.BAR == 1
@@ -263,14 +263,14 @@ class TestWindowType:
     def test_intenum_type(self):
         """WindowType 应为 IntEnum 实例"""
         from enum import IntEnum
-        from fluentqml.python.window.fluent_window import WindowType
+        from prismqml.python.window.fluent_window import WindowType
 
         assert issubclass(WindowType, IntEnum)
 
     def test_qml_names_mapping(self):
         """QML 名称映射应覆盖所有类型"""
-        from fluentqml.python.window.fluent_window import WindowType
-        from fluentqml.python.window.window_base import _WINDOW_TYPE_QML_NAMES
+        from prismqml.python.window.fluent_window import WindowType
+        from prismqml.python.window.window_base import _WINDOW_TYPE_QML_NAMES
 
         for wt in WindowType:
             assert wt in _WINDOW_TYPE_QML_NAMES
@@ -279,21 +279,21 @@ class TestWindowType:
 class TestIconBase:
     def test_get_icon_color_normal(self):
         """resolveIconColor 在普通模式下应返回 black/white 字符串契约。"""
-        from fluentqml.python.core import resolveIconColor, Theme
+        from prismqml.python.core import resolveIconColor, Theme
 
         assert resolveIconColor(Theme.LIGHT) == "black"
         assert resolveIconColor(Theme.DARK) == "white"
 
     def test_get_icon_color_reversed(self):
         """resolveIconColor reverse=True 应反转颜色。"""
-        from fluentqml.python.core import resolveIconColor, Theme
+        from prismqml.python.core import resolveIconColor, Theme
 
         assert resolveIconColor(Theme.LIGHT, reverse=True) == "white"
         assert resolveIconColor(Theme.DARK, reverse=True) == "black"
 
     def test_svg_engine_clone_preserves_source(self):
         """SvgRenderEngine.clone() 应保留 SVG 源串。"""
-        from fluentqml.python.core.icon_base import SvgRenderEngine
+        from prismqml.python.core.icon_base import SvgRenderEngine
 
         engine = SvgRenderEngine("<svg/>")
         cloned = engine.clone()
@@ -303,7 +303,7 @@ class TestIconBase:
         """ThemedIconProxy 按渲染模式给出弱化态不透明度。"""
         from PySide6.QtGui import QIcon
 
-        from fluentqml.python.core.icon_base import ThemedIconProxy
+        from prismqml.python.core.icon_base import ThemedIconProxy
 
         assert ThemedIconProxy._state_alpha(QIcon.Disabled) == 0.5
         assert ThemedIconProxy._state_alpha(QIcon.Selected) == 0.7
@@ -311,7 +311,7 @@ class TestIconBase:
 
     def test_fluent_engine_field_names(self):
         """ThemedIconProxy 内部字段名为 _iconSource/_invertTheme。"""
-        from fluentqml.python.core.icon_base import ThemedIconProxy
+        from prismqml.python.core.icon_base import ThemedIconProxy
 
         engine = ThemedIconProxy("foo.svg", reverse=True)
         assert engine._iconSource == "foo.svg"
@@ -323,7 +323,7 @@ class TestIconBase:
     def test_rewrite_svg_preserves_xmlns_and_xlink(self, tmp_path):
         """_rewrite_svg_attrs 必须保留 xmlns / xmlns:xlink 命名空间声明,
         以及 xlink:href 这种带前缀属性, 否则复杂 SVG (渐变 / use 引用) 渲染会废。"""
-        from fluentqml.python.core.icon_base import _rewrite_svg_attrs
+        from prismqml.python.core.icon_base import _rewrite_svg_attrs
 
         svg = (
             '<?xml version="1.0" encoding="UTF-8"?>'
@@ -353,7 +353,7 @@ class TestIconBase:
 
     def test_rewrite_svg_indexes_empty_list(self, tmp_path):
         """indexes=[] 应等价于"一个都不改", 与 indexes=None"全改"区分。"""
-        from fluentqml.python.core.icon_base import _rewrite_svg_attrs
+        from prismqml.python.core.icon_base import _rewrite_svg_attrs
 
         svg = (
             '<?xml version="1.0"?>'
@@ -381,7 +381,7 @@ class TestIconBase:
         from PySide6.QtCore import QSize
         from PySide6.QtGui import QIcon
 
-        from fluentqml.python.core.icon_base import (
+        from prismqml.python.core.icon_base import (
             ThemedIconProxy,
             _bake_pixmap,
         )
@@ -402,7 +402,7 @@ class TestIconBase:
         from PySide6.QtCore import QSize
         from PySide6.QtGui import QIcon
 
-        from fluentqml.python.core.icon_base import (
+        from prismqml.python.core.icon_base import (
             SvgRenderEngine,
             _bake_pixmap,
         )
@@ -428,7 +428,7 @@ class TestIconBase:
 class TestTrayTypes:
     def test_tray_enums(self):
         """测试 P2-2: 系统托盘枚举拆分结果"""
-        from fluentqml.python.window.tray_types import MessageIcon, ActivationReason
+        from prismqml.python.window.tray_types import MessageIcon, ActivationReason
 
         assert hasattr(MessageIcon, "Information")
         assert hasattr(ActivationReason, "Context")
@@ -442,25 +442,25 @@ class TestEscapeQml:
 
     def test_normal_text_unchanged(self):
         """普通文本不应被修改"""
-        from fluentqml.python.window.fluent_window import WindowCore
+        from prismqml.python.window.fluent_window import WindowCore
 
         assert WindowCore._escape_qml("Hello World") == "Hello World"
 
     def test_escape_quotes(self):
         """双引号应被转义"""
-        from fluentqml.python.window.fluent_window import WindowCore
+        from prismqml.python.window.fluent_window import WindowCore
 
         assert WindowCore._escape_qml('say "hello"') == 'say \\"hello\\"'
 
     def test_escape_backslash(self):
         """反斜杠应被转义"""
-        from fluentqml.python.window.fluent_window import WindowCore
+        from prismqml.python.window.fluent_window import WindowCore
 
         assert WindowCore._escape_qml("a\\b") == "a\\\\b"
 
     def test_escape_newlines(self):
         """换行符应被转义"""
-        from fluentqml.python.window.fluent_window import WindowCore
+        from prismqml.python.window.fluent_window import WindowCore
 
         result = WindowCore._escape_qml("line1\nline2\r\n")
         assert "\\n" in result
@@ -468,7 +468,7 @@ class TestEscapeQml:
 
     def test_escape_combined(self):
         """组合特殊字符都应被正确转义"""
-        from fluentqml.python.window.fluent_window import WindowCore
+        from prismqml.python.window.fluent_window import WindowCore
 
         input_str = 'path "C:\\Users"\nend'
         result = WindowCore._escape_qml(input_str)

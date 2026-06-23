@@ -13,8 +13,8 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 
-import fluentqml
-from fluentqml import Skin, setSkin, register_types
+import prismqml
+from prismqml import Skin, setSkin, register_types
 
 # 控件密集场景: 一列 N 个卡片, 每个含按钮/输入/开关/徽章 — 触发滚动重绘
 QML = """

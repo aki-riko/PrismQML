@@ -8,7 +8,7 @@ QApplication.installEventFilter 是唯一可靠的全局事件拦截方式 (QML 
 PointerHandler/MouseArea 都因 grab 机制不可靠).
 
 使用:
-    from fluentqml.python.core.input_focus_filter import install_input_focus_filter
+    from prismqml.python.core.input_focus_filter import install_input_focus_filter
     app = QApplication(...)
     install_input_focus_filter(app)
 """

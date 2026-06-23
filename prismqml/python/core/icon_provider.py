@@ -8,7 +8,7 @@
 
 Usage:
     # 在引擎初始化时
-    from fluentqml.python.core.icon_provider import register_icon_provider
+    from prismqml.python.core.icon_provider import register_icon_provider
     register_icon_provider(engine)
     
     # QML中使用

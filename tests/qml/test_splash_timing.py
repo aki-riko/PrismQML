@@ -29,7 +29,7 @@ from PySide6.QtCore import QUrl, QTimer, QEventLoop
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
-PKG_ROOT = Path(__file__).resolve().parents[2] / "fluentqml"
+PKG_ROOT = Path(__file__).resolve().parents[2] / "prismqml"
 NAV_DIR = PKG_ROOT / "FluentQML" / "controls" / "navigation"
 PAGES_DIR = Path(__file__).resolve().parents[2] / "examples" / "pages"
 

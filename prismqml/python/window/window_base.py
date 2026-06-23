@@ -15,7 +15,7 @@
 - Loading动画使用QML的_pythonLoading覆盖层，保持流畅
 
 使用示例：
-    from fluentqml import Window, WindowType
+    from prismqml import Window, WindowType
 
     # 紧凑侧边导航（默认）
     window = Window()

@@ -24,7 +24,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import fluentqml  # noqa: F401  确保资源/导入路径生效
+import prismqml  # noqa: F401  确保资源/导入路径生效
 
 
 @pytest.fixture(scope="module")
@@ -39,7 +39,7 @@ def app():
 
 def _load_qml(app, source: str):
     engine = QQmlApplicationEngine()
-    engine.addImportPath(str(ROOT / "fluentqml"))
+    engine.addImportPath(str(ROOT / "prismqml"))
 
     tmp = ROOT / "tests" / "_tmp_carousel_test.qml"
     tmp.write_text(source, encoding="utf-8")
@@ -68,7 +68,7 @@ def _find_by_object_name(root, name):
 def test_carousel_default_renders_without_item_delegate(app):
     qml = """
     import QtQuick
-    import "../fluentqml/FluentQML/controls/data/Carousel"
+    import "../prismqml/FluentQML/controls/data/Carousel"
 
     Item {
         id: root
@@ -97,7 +97,7 @@ def test_carousel_border_radius_and_shadow(app):
     qml = """
     import QtQuick
     import FluentQML as Fluent
-    import "../fluentqml/FluentQML/controls/data/Carousel"
+    import "../prismqml/FluentQML/controls/data/Carousel"
 
     Item {
         id: root
@@ -124,7 +124,7 @@ def test_carousel_border_radius_and_shadow(app):
 def test_carousel_uses_custom_item_delegate(app):
     qml = """
     import QtQuick
-    import "../fluentqml/FluentQML/controls/data/Carousel"
+    import "../prismqml/FluentQML/controls/data/Carousel"
 
     Item {
         id: root
@@ -189,7 +189,7 @@ def test_peek_carousel_instantiates_delegates(app):
         qml = """
         import QtQuick
         import FluentQML as Fluent
-        import "../fluentqml/FluentQML/controls/data/Carousel"
+        import "../prismqml/FluentQML/controls/data/Carousel"
 
         Item {
             id: root
@@ -284,7 +284,7 @@ def test_carousel_effect_slide_instantiates_delegate(app):
     qml = """
     import QtQuick
     import FluentQML as Fluent
-    import "../fluentqml/FluentQML/controls/data/Carousel"
+    import "../prismqml/FluentQML/controls/data/Carousel"
 
     Item {
         id: root

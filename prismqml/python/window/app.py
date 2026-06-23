@@ -26,7 +26,7 @@ class App:
 
     Example:
         ```python
-        from fluentqml import App, Window
+        from prismqml import App, Window
 
         app = App()
         window = app.create_window()

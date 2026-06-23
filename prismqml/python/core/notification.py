@@ -19,7 +19,7 @@ helper 全局单例缓存, 第一次调用时按需 lazy load。
 
 接入示例
 ========
-    from fluentqml.python.core.notification import (
+    from prismqml.python.core.notification import (
         showDesktopWarning, showDesktopInfo, Position, Severity,
     )
     showDesktopWarning("标题", "消息内容")

@@ -10,10 +10,10 @@
 import sys
 import os
 
-# 确保可以导入 fluentqml
+# 确保可以导入 prismqml
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from fluentqml import App, Window, WindowType
+from prismqml import App, Window, WindowType
 
 def main():
     app = App(sys.argv)
