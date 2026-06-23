@@ -34,10 +34,10 @@ QtObject {
     readonly property color navDivider: root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.04)
     // Selected state 选中状态 — 浅色模式必须用 accent 浅色 (#cce4f7), 之前的 "white"
     // 跟 cardColor 完全一样, 用户看不见选中, 列表/表格看似永远没选中。
-    readonly property color selected: root.isDark ? "#0d3d6d" : "#cce4f7"
+    readonly property color selected: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.20) : (root.isDark ? "#0d3d6d" : "#cce4f7")
     // Selected + hover 叠加色 — 选中行 hover 时颜色再加深一点, 跟 Excel/QTableWidget 一致,
     // 让用户知道悬浮在选中行上 (而不是 hover 被 selected 覆盖看似没反应)
-    readonly property color selectedHover: root.isDark ? "#13558f" : "#b8d8f0"
+    readonly property color selectedHover: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.30) : (root.isDark ? "#13558f" : "#b8d8f0")
     // Track/Background 轨道/背景
     readonly property color track: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08)
     // Close button hover 关闭按钮悬停
@@ -225,8 +225,8 @@ QtObject {
     
     // ==================== PipsPager Specific 分页指示器专用 ====================
     // Pip indicator colors 分页指示器颜色
-    readonly property color pipNormal: root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.45)
-    readonly property color pipActive: root.isDark ? Qt.rgba(1,1,1,0.8) : Qt.rgba(0,0,0,0.62)
+    readonly property color pipNormal: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.45))
+    readonly property color pipActive: isNeo ? _neo.primary : (root.isDark ? Qt.rgba(1,1,1,0.8) : Qt.rgba(0,0,0,0.62))
     
     // ==================== Chart Colors 图表颜色 ====================
     // Chart tooltip text (white on dark bg) 图表tooltip文字（深色背景上的白字）
