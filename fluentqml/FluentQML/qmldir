@@ -207,6 +207,7 @@ MaskedDialog controls/dialogs/MaskedDialog.qml
 MessageBox controls/dialogs/MessageBox.qml
 DialogBoxCore controls/dialogs/DialogBoxCore.qml
 ConfirmDialog controls/dialogs/ConfirmDialog.qml
+UpdateDialog controls/dialogs/UpdateDialog.qml
 FlyoutSheet controls/dialogs/FlyoutSheet.qml
 ProgressDialog controls/dialogs/ProgressDialog.qml
 
