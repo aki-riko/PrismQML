@@ -1,4 +1,4 @@
-module FluentQML
+module PrismQML
 
 # ==================== Core 核心 ====================
 singleton Enums Enums.qml

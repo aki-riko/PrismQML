@@ -5,7 +5,7 @@
 import QtQuick
 import QtQuick.Effects
 
-import FluentQML as Fluent
+import PrismQML as Fluent
 import "../../fluentqml/FluentQML/controls/containers"
 import "../../fluentqml/FluentQML/controls/inputs"
 import "../../fluentqml/FluentQML/controls/icons"

@@ -6,7 +6,7 @@ import QtQuick
 import QtQuick.Effects
 
 // Import components 导入组件
-import FluentQML as Fluent
+import PrismQML as Fluent
 import "../../fluentqml/FluentQML/controls/data"
 import "../../fluentqml/FluentQML/controls/containers"
 

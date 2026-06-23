@@ -12,10 +12,10 @@ from PySide6.QtQml import QQmlApplicationEngine
 def qml_path(relative_path: str = "") -> Path:
     """获取QML文件路径
 
-    返回的目录即 QML module 根（`module FluentQML` 在其 qmldir 中声明）。
+    返回的目录即 QML module 根（`module PrismQML` 在其 qmldir 中声明）。
     Qt 6 QML 要求 importPath 指向该目录的**父**（见 register_types 中的 addImportPath）。
     """
-    base = Path(__file__).parent.parent.parent / "FluentQML"
+    base = Path(__file__).parent.parent.parent / "PrismQML"
     if relative_path:
         return base / relative_path
     return base

@@ -20,7 +20,7 @@ from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 # 定位 qml 包根
 PKG_ROOT = Path(__file__).resolve().parents[2] / "fluentqml"
-QML_DIR = PKG_ROOT / "FluentQML"
+QML_DIR = PKG_ROOT / "PrismQML"
 QMLDIR = QML_DIR / "qmldir"
 
 
@@ -40,7 +40,7 @@ def parse_qmldir(path: Path):
 def main():
     app = QApplication(sys.argv)
     engine = QQmlEngine()
-    # 注册 import 路径:包根的父目录,使 `import FluentQML` 生效
+    # 注册 import 路径:包根的父目录,使 `import PrismQML` 生效
     engine.addImportPath(str(PKG_ROOT))
 
     types = parse_qmldir(QMLDIR)
@@ -53,7 +53,7 @@ def main():
             # 单例(Enums/Translator/DpiManager)由引擎托管,不单独 createComponent
             skipped.append(type_name)
             continue
-        qml = f"import FluentQML\n{type_name} {{}}\n"
+        qml = f"import PrismQML\n{type_name} {{}}\n"
         comp = QQmlComponent(engine)
         comp.setData(qml.encode("utf-8"), QUrl("inline"))
         if comp.isError():

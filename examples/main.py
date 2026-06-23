@@ -129,11 +129,11 @@ def main():
     log_time("上下文属性注册完成")
     
     # 添加QML导入路径
-    # importPath 指向 fluentqml/ 父级，Qt 会扫描其中的 FluentQML/qmldir
+    # importPath 指向 fluentqml/ 父级，Qt 会扫描其中的 PrismQML/qmldir
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fluentqml_root = os.path.join(project_root, "fluentqml")
     engine.addImportPath(fluentqml_root)
-    qml_dir = os.path.join(fluentqml_root, "FluentQML")
+    qml_dir = os.path.join(fluentqml_root, "PrismQML")
 
     # 添加组件子目录（用于 main.qml 中的字面量 subdir import 兼容）
     for subdir in ["controls/buttons", "controls/inputs", "controls/data",

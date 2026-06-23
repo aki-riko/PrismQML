@@ -50,9 +50,9 @@ def main():
         if not cond:
             failures.append(msg)
 
-    BTN = b'import FluentQML\nButton { text: "Click"; width: 120; height: 36 }\n'
-    BTN_PRIMARY = b'import FluentQML\nButton { text: "OK"; style: Enums.button.style_primary; width: 120; height: 36 }\n'
-    CARD = b'import FluentQML\nCard { width: 200; height: 120 }\n'
+    BTN = b'import PrismQML\nButton { text: "Click"; width: 120; height: 36 }\n'
+    BTN_PRIMARY = b'import PrismQML\nButton { text: "OK"; style: Enums.button.style_primary; width: 120; height: 36 }\n'
+    CARD = b'import PrismQML\nCard { width: 200; height: 120 }\n'
 
     def hexish(qcolor):
         if qcolor is None:

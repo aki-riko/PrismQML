@@ -67,7 +67,7 @@ _helper: Optional[QObject] = None
 
 _HELPER_QML = """
 import QtQuick
-import FluentQML
+import PrismQML
 
 QtObject {
     function desktopShow(severity, title, message, duration, position) {

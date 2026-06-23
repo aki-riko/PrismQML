@@ -27,7 +27,7 @@ from PySide6.QtCore import QTimer, Qt
 from PySide6.QtQml import QQmlIncubationController
 
 
-class FluentIncubationController(QQmlIncubationController):
+class PrismIncubationController(QQmlIncubationController):
     """驱动 QML 异步孵化的时间分片控制器。
 
     安装后, 异步 Loader 的实例化按每帧 ``budget_ms`` 毫秒切片推进, 避免单帧
@@ -64,16 +64,16 @@ class FluentIncubationController(QQmlIncubationController):
 
 
 def install_incubation_controller(engine, budget_ms: int = 5):
-    """给 ``engine`` 安装 FluentIncubationController 并返回它。
+    """给 ``engine`` 安装 PrismIncubationController 并返回它。
 
     幂等: 引擎已装则直接返回已有 controller, 不重复安装。
     controller 内部 QTimer 以 engine 为 parent; controller 自身挂到 engine 的
     属性上(``_fluent_incubation_ctrl``)防止被 Python GC 回收。
     """
     existing = engine.incubationController()
-    if isinstance(existing, FluentIncubationController):
+    if isinstance(existing, PrismIncubationController):
         return existing
-    controller = FluentIncubationController(engine, budget_ms=budget_ms)
+    controller = PrismIncubationController(engine, budget_ms=budget_ms)
     engine.setIncubationController(controller)
     # 防 GC: setIncubationController 不取 Python 引用所有权, 必须自己留引用。
     engine._fluent_incubation_ctrl = controller

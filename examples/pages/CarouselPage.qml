@@ -6,7 +6,7 @@ import QtQuick
 import QtQuick.Layouts
 
 // Import components 导入组件
-import FluentQML as Fluent
+import PrismQML as Fluent
 import "../../fluentqml/FluentQML/controls/containers"
 import "../../fluentqml/FluentQML/controls/data/Carousel"
 import "../../fluentqml/FluentQML/controls/data/FlipView"
