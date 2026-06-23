@@ -7,19 +7,19 @@ import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/PrismQML/controls/buttons"
-import "../../fluentqml/PrismQML/controls/menus"
-import "../../fluentqml/PrismQML/controls/data"
-import "../../fluentqml/PrismQML/controls/containers"
-import "../../fluentqml/PrismQML/controls/navigation"
-import "../../fluentqml/PrismQML/controls/inputs"
+import "../../prismqml/PrismQML/controls/buttons"
+import "../../prismqml/PrismQML/controls/menus"
+import "../../prismqml/PrismQML/controls/data"
+import "../../prismqml/PrismQML/controls/containers"
+import "../../prismqml/PrismQML/controls/navigation"
+import "../../prismqml/PrismQML/controls/inputs"
 
 // 菜单与列表页面
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -34,7 +34,7 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: "菜单与列表"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "fluentqml.controls.menus"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                Text { text: "prismqml.controls.menus"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // 右键菜单

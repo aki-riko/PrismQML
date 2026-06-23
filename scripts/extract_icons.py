@@ -1,13 +1,13 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """图标枚举生成工具 - Python作为单一来源
 
 从SVG图标文件夹读取所有图标，生成：
-1. Python枚举文件 (fluentqml/python/core/icons.py)
-2. QML图标文件 (fluentqml/FluentQML/FluentEnums/Icons.qml)
+1. Python枚举文件 (prismqml/python/core/icons.py)
+2. QML图标文件 (prismqml/PrismQML/FluentEnums/Icons.qml)
 
 Usage:
     python tools/extract_icons.py
@@ -33,7 +33,7 @@ QML_RESERVED_WORDS = {
 
 def get_icons_from_svg_folder() -> list:
     """从SVG文件夹读取所有图标名"""
-    svg_dir = Path(__file__).parent.parent / 'fluentqml/FluentQML/controls/icons/fluent'
+    svg_dir = Path(__file__).parent.parent / 'prismqml/PrismQML/controls/icons/fluent'
     icons = []
     
     for svg_file in sorted(svg_dir.glob('*.svg')):
@@ -68,8 +68,8 @@ def generate_python_enum(icons: list) -> str:
     header = '''# coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 
 """Icon - Fluent UI图标枚举
 
@@ -80,7 +80,7 @@ Total icons: {count}
 
 Usage:
     # Python
-    from fluentqml.python.core.icons import Icon
+    from prismqml.python.core.icons import Icon
     icon = Icon.CALENDAR
     
     # QML (通过FluentEnums.icon)
@@ -193,14 +193,14 @@ if __name__ == '__main__':
     print(f'Total icons from SVG folder: {len(icons)}')
     
     # 生成Python枚举文件
-    py_output = Path(__file__).parent.parent / 'fluentqml/python/core/icons.py'
+    py_output = Path(__file__).parent.parent / 'prismqml/python/core/icons.py'
     py_output.parent.mkdir(parents=True, exist_ok=True)
     py_content = generate_python_enum(icons)
     py_output.write_text(py_content, encoding='utf-8')
     print(f'Generated Python: {py_output} ({len(py_content)} bytes)')
     
     # 生成QML图标文件
-    qml_output = Path(__file__).parent.parent / 'fluentqml/FluentQML/FluentEnums/Icons.qml'
+    qml_output = Path(__file__).parent.parent / 'prismqml/PrismQML/FluentEnums/Icons.qml'
     qml_content = generate_qml_icons(icons)
     qml_output.write_text(qml_content, encoding='utf-8')
     print(f'Generated QML: {qml_output} ({len(qml_content)} bytes)')

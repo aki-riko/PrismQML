@@ -1,8 +1,8 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """ScrollArea 掉帧 profiler.
 
 复用 gallery 的引擎初始化, 打开窗口后程序化驱动一个 default 模式 ScrollArea
@@ -86,13 +86,13 @@ def main():
     # auto: 不调用 setGraphicsApi, 用 Qt 平台默认 (Windows 上是 D3D11)
     print(f"[probe] graphics backend = {_backend}")
 
-    from fluentqml.python.core import (ThemeManager, getShadowManager,
+    from prismqml.python.core import (ThemeManager, getShadowManager,
                                        installDwmSyncFilter, install_qt_message_handler)
-    from fluentqml.python.config import getConfigManager, applyDpiScale
-    from fluentqml.python.providers import (get_qrcode_generator, get_qrcode_provider,
+    from prismqml.python.config import getConfigManager, applyDpiScale
+    from prismqml.python.providers import (get_qrcode_generator, get_qrcode_provider,
                                             get_screen_eyedropper_manager,
                                             get_clipboard_helper, get_svg_provider)
-    from fluentqml.python.window import get_mica_manager, get_acrylic_helper
+    from prismqml.python.window import get_mica_manager, get_acrylic_helper
 
     os.chdir(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                           "examples"))
@@ -126,16 +126,16 @@ def main():
     ctx.setContextProperty("QRCodeGenerator", get_qrcode_generator())
     ctx.setContextProperty("ScreenEyedropperManager", scpm)
     ctx.setContextProperty("ClipboardHelper", get_clipboard_helper())
-    from fluentqml.python.core.window_helper import get_window_helper
+    from prismqml.python.core.window_helper import get_window_helper
     ctx.setContextProperty("WindowHelper", get_window_helper())
     engine.addImageProvider("qrcode", get_qrcode_provider())
     engine.addImageProvider("acrylic", ah.imageProvider)
     engine.addImageProvider("svg", get_svg_provider())
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    fq = os.path.join(root, "fluentqml")
+    fq = os.path.join(root, "prismqml")
     engine.addImportPath(fq)
-    qml_dir = os.path.join(fq, "FluentQML")
+    qml_dir = os.path.join(fq, "PrismQML")
     for sub in ["controls/buttons", "controls/inputs", "controls/data",
                 "controls/containers", "controls/feedback", "controls/menus",
                 "controls/dialogs", "controls/icons", "controls/utils",

@@ -7,9 +7,9 @@ import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/PrismQML/controls/buttons"
-import "../../fluentqml/PrismQML/controls/containers"
-import "../../fluentqml/PrismQML/controls/data/Badge"
+import "../../prismqml/PrismQML/controls/buttons"
+import "../../prismqml/PrismQML/controls/containers"
+import "../../prismqml/PrismQML/controls/data/Badge"
 
 // 按钮展示页面
 Item {
@@ -17,7 +17,7 @@ Item {
     
     // 图标路径解析函数
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -32,7 +32,7 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: "按钮"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "fluentqml.controls.buttons"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.tertiary; font.family: Fluent.Enums.fontFamily }
+                Text { text: "prismqml.controls.buttons"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.tertiary; font.family: Fluent.Enums.fontFamily }
             }
             
             // Button - 自动类型识别

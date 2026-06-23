@@ -81,7 +81,7 @@ def check_method_exists(file_path: Path, method_name: str) -> bool:
 
 def verify_coverage():
     """验证覆盖率"""
-    python_dir = Path(__file__).parent.parent / 'fluentqml' / 'python'
+    python_dir = Path(__file__).parent.parent / 'prismqml' / 'python'
     
     results = {}
     

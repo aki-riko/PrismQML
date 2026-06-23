@@ -1,8 +1,8 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """将 FluentTranslator.qml 中的翻译数据提取到外部 JSON 文件"""
 import re
 import json
@@ -11,8 +11,8 @@ from pathlib import Path
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _PROJECT_ROOT = _SCRIPT_DIR.parent
 
-qml_path = _PROJECT_ROOT / "fluentqml" / "FluentQML" / "FluentTranslator.qml"
-output_dir = _PROJECT_ROOT / "fluentqml" / "FluentQML" / "i18n"
+qml_path = _PROJECT_ROOT / "prismqml" / "PrismQML" / "FluentTranslator.qml"
+output_dir = _PROJECT_ROOT / "prismqml" / "PrismQML" / "i18n"
 output_dir.mkdir(exist_ok=True)
 
 content = qml_path.read_text(encoding="utf-8")

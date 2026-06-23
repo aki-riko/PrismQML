@@ -7,20 +7,20 @@ import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/PrismQML/controls/buttons"
-import "../../fluentqml/PrismQML/controls/feedback"
-import "../../fluentqml/PrismQML/controls/feedback/State"
-import "../../fluentqml/PrismQML/controls/feedback/Tooltip"
-import "../../fluentqml/PrismQML/controls/containers"
-import "../../fluentqml/PrismQML/controls/dialogs"
-import "../../fluentqml/PrismQML/controls/data"
+import "../../prismqml/PrismQML/controls/buttons"
+import "../../prismqml/PrismQML/controls/feedback"
+import "../../prismqml/PrismQML/controls/feedback/State"
+import "../../prismqml/PrismQML/controls/feedback/Tooltip"
+import "../../prismqml/PrismQML/controls/containers"
+import "../../prismqml/PrismQML/controls/dialogs"
+import "../../prismqml/PrismQML/controls/data"
 
 // 反馈组件页面
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -35,7 +35,7 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: "反馈组件"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "fluentqml.controls.feedback"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                Text { text: "prismqml.controls.feedback"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // 进度指示

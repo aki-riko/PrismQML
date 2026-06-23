@@ -8,11 +8,11 @@ import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/PrismQML/controls/buttons"
-import "../../fluentqml/PrismQML/controls/settings"
-import "../../fluentqml/PrismQML/controls/settings/SettingsCard"
-import "../../fluentqml/PrismQML/controls/inputs"
-import "../../fluentqml/PrismQML/controls/containers"
+import "../../prismqml/PrismQML/controls/buttons"
+import "../../prismqml/PrismQML/controls/settings"
+import "../../prismqml/PrismQML/controls/settings/SettingsCard"
+import "../../prismqml/PrismQML/controls/inputs"
+import "../../prismqml/PrismQML/controls/containers"
 
 // 设置组件页面
 Item {
@@ -22,7 +22,7 @@ Item {
     readonly property var parentWindow: Window.window
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -37,7 +37,7 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: "设置组件"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "fluentqml.controls.settings"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.tertiary; font.family: Fluent.Enums.fontFamily }
+                Text { text: "prismqml.controls.settings"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.tertiary; font.family: Fluent.Enums.fontFamily }
             }
             
             // ==================== 实际功能设置 Functional Settings ====================

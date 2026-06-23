@@ -7,15 +7,15 @@ import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/PrismQML/controls/containers"
-import "../../fluentqml/PrismQML/controls/settings"
+import "../../prismqml/PrismQML/controls/containers"
+import "../../prismqml/PrismQML/controls/settings"
 
 // 卡片与容器页面
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -30,7 +30,7 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: "卡片与容器"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "fluentqml.controls.containers"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                Text { text: "prismqml.controls.containers"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // 基础卡片

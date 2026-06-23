@@ -7,15 +7,15 @@ import QtQuick.Effects
 
 // Import components 导入组件
 import PrismQML as Fluent
-import "../../fluentqml/PrismQML/controls/data"
-import "../../fluentqml/PrismQML/controls/containers"
+import "../../prismqml/PrismQML/controls/data"
+import "../../prismqml/PrismQML/controls/containers"
 
 // Chart components page - Fluent Design style 图表组件页面 - Fluent Design 风格
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -30,7 +30,7 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: "图表组件"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "fluentqml.controls.data - Fluent Design Style"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                Text { text: "prismqml.controls.data - Fluent Design Style"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // ==================== Bar Chart - Multi Series 柱状图 - 多系列 ====================

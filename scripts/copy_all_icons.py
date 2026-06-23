@@ -1,9 +1,9 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
-"""复制全部Microsoft Fluent UI Icons到FluentQML"""
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
+"""复制全部Microsoft Fluent UI Icons到PrismQML"""
 import os
 import shutil
 from pathlib import Path
@@ -12,7 +12,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 SOURCE_DIR = PROJECT_ROOT / "fluentui-system-icons" / "assets"
-TARGET_DIR = PROJECT_ROOT / "fluentqml" / "FluentQML" / "controls" / "icons" / "fluent"
+TARGET_DIR = PROJECT_ROOT / "prismqml" / "PrismQML" / "controls" / "icons" / "fluent"
 
 # 清空目标目录
 if TARGET_DIR.exists():

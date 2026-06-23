@@ -7,19 +7,19 @@ import QtQuick.Effects
 
 // 导入组件
 import PrismQML
-import "../../fluentqml/PrismQML/controls/buttons"
-import "../../fluentqml/PrismQML/controls/inputs"
-import "../../fluentqml/PrismQML/controls/inputs/ColorPicker/_internal"
-import "../../fluentqml/PrismQML/controls/containers"
-import "../../fluentqml/PrismQML/controls/containers/ScrollBar"
-import "../../fluentqml/PrismQML/controls/data"
+import "../../prismqml/PrismQML/controls/buttons"
+import "../../prismqml/PrismQML/controls/inputs"
+import "../../prismqml/PrismQML/controls/inputs/ColorPicker/_internal"
+import "../../prismqml/PrismQML/controls/containers"
+import "../../prismqml/PrismQML/controls/containers/ScrollBar"
+import "../../prismqml/PrismQML/controls/data"
 
 // 输入组件展示页面
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -35,7 +35,7 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Enums.spacing.xs
                 Text { text: "输入组件"; font.pixelSize: Enums.typography.displayLarge; font.bold: true; color: Enums.textColor.primary; font.family: Enums.fontFamily }
-                Text { text: "fluentqml.controls.inputs"; font.pixelSize: Enums.typography.caption; color: Enums.textColor.secondary; font.family: Enums.fontFamily }
+                Text { text: "prismqml.controls.inputs"; font.pixelSize: Enums.typography.caption; color: Enums.textColor.secondary; font.family: Enums.fontFamily }
             }
             
             // 文本输入

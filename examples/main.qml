@@ -7,10 +7,10 @@ import QtQuick.Effects
 
 // 导入组件
 import PrismQML as Fluent
-import "../fluentqml/PrismQML/_internal" as FluentInternal
-import "../fluentqml/PrismQML/controls/buttons"
-import "../fluentqml/PrismQML/controls/containers"
-import "../fluentqml/PrismQML/controls/feedback"
+import "../prismqml/PrismQML/_internal" as FluentInternal
+import "../prismqml/PrismQML/controls/buttons"
+import "../prismqml/PrismQML/controls/containers"
+import "../prismqml/PrismQML/controls/feedback"
 
 // PrismQML Gallery - 组件展示应用
 // 使用QtObject作为根元素，动态创建窗口
@@ -33,7 +33,7 @@ QtObject {
     
     // 图标路径解析函数
     function iconPath(name) {
-        return Qt.resolvedUrl("../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     // 导航项配置

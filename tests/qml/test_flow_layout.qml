@@ -1,9 +1,9 @@
 import QtQuick
 import QtQuick.Window
 import PrismQML
-import "../../fluentqml/PrismQML/controls/containers/Layout"
-import "../../fluentqml/PrismQML/controls/data"
-import "../../fluentqml/PrismQML/controls/buttons"
+import "../../prismqml/PrismQML/controls/containers/Layout"
+import "../../prismqml/PrismQML/controls/data"
+import "../../prismqml/PrismQML/controls/buttons"
 
 // FlowLayout Test - Property-based testing for FlowLayout modes
 // FlowLayout测试 - 流式布局模式的属性测试

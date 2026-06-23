@@ -7,17 +7,17 @@ import QtQuick.Effects
 
 // 导入组件
 import PrismQML
-import "../../fluentqml/PrismQML/controls/buttons"
-import "../../fluentqml/PrismQML/controls/inputs"
-import "../../fluentqml/PrismQML/controls/containers"
-import "../../fluentqml/PrismQML/effects"
+import "../../prismqml/PrismQML/controls/buttons"
+import "../../prismqml/PrismQML/controls/inputs"
+import "../../prismqml/PrismQML/controls/containers"
+import "../../prismqml/PrismQML/effects"
 
 // 特效展示页面 Effects showcase page
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../fluentqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
     
     ScrollArea {
@@ -32,7 +32,7 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Enums.spacing.xs
                 Text { text: "特效"; font.pixelSize: Enums.typography.displayLarge; font.bold: true; color: Enums.textColor.primary; font.family: Enums.fontFamily }
-                Text { text: "fluentqml.effects"; font.pixelSize: Enums.typography.caption; color: Enums.textColor.secondary; font.family: Enums.fontFamily }
+                Text { text: "prismqml.effects"; font.pixelSize: Enums.typography.caption; color: Enums.textColor.secondary; font.family: Enums.fontFamily }
             }
             
             // MatrixRain 展示 MatrixRain showcase

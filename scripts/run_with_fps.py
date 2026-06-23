@@ -1,8 +1,8 @@
 # coding: utf-8
 # Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-# This file is part of FluentQML, licensed under MIT.
-# 本文件是FluentQML的一部分，采用MIT许可证授权。
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是PrismQML的一部分，采用MIT许可证授权。
 """带实时 FPS 叠加层的 gallery 启动脚本.
 
 用法: python scripts/run_with_fps.py
@@ -96,16 +96,16 @@ def main():
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, PROJECT_ROOT)
 
-    from fluentqml.python.core import (ThemeManager, getShadowManager,
+    from prismqml.python.core import (ThemeManager, getShadowManager,
                                        installDwmSyncFilter,
                                        install_qt_message_handler)
-    from fluentqml.python.config import getConfigManager, applyDpiScale
-    from fluentqml.python.providers import (get_qrcode_generator,
+    from prismqml.python.config import getConfigManager, applyDpiScale
+    from prismqml.python.providers import (get_qrcode_generator,
                                             get_qrcode_provider,
                                             get_screen_eyedropper_manager,
                                             get_clipboard_helper,
                                             get_svg_provider)
-    from fluentqml.python.window import get_mica_manager, get_acrylic_helper
+    from prismqml.python.window import get_mica_manager, get_acrylic_helper
     from PySide6.QtWidgets import QApplication
     from PySide6.QtGui import QGuiApplication
     from PySide6.QtQml import QQmlApplicationEngine
@@ -137,15 +137,15 @@ def main():
     ctx.setContextProperty("QRCodeGenerator", get_qrcode_generator())
     ctx.setContextProperty("ScreenEyedropperManager", scpm)
     ctx.setContextProperty("ClipboardHelper", get_clipboard_helper())
-    from fluentqml.python.core.window_helper import get_window_helper
+    from prismqml.python.core.window_helper import get_window_helper
     ctx.setContextProperty("WindowHelper", get_window_helper())
     engine.addImageProvider("qrcode", get_qrcode_provider())
     engine.addImageProvider("acrylic", ah.imageProvider)
     engine.addImageProvider("svg", get_svg_provider())
 
-    fluentqml_root = os.path.join(PROJECT_ROOT, "fluentqml")
-    engine.addImportPath(fluentqml_root)
-    qml_dir = os.path.join(fluentqml_root, "FluentQML")
+    prismqml_root = os.path.join(PROJECT_ROOT, "prismqml")
+    engine.addImportPath(prismqml_root)
+    qml_dir = os.path.join(prismqml_root, "PrismQML")
     for subdir in ["controls/buttons", "controls/inputs", "controls/data",
                    "controls/containers", "controls/feedback", "controls/menus",
                    "controls/dialogs", "controls/icons", "controls/utils",

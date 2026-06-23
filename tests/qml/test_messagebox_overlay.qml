@@ -1,9 +1,9 @@
 import QtQuick
 import QtQuick.Window
 import PrismQML
-import "../../fluentqml/PrismQML/controls/dialogs"
-import "../../fluentqml/PrismQML/controls/buttons/Button"
-import "../../fluentqml/PrismQML/controls/data"
+import "../../prismqml/PrismQML/controls/dialogs"
+import "../../prismqml/PrismQML/controls/buttons/Button"
+import "../../prismqml/PrismQML/controls/data"
 
 // Test: MessageBox inside a component should overlay entire window
 // 测试：组件内的MessageBox应该覆盖整个窗口
