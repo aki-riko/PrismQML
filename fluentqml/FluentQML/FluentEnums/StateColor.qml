@@ -27,7 +27,7 @@ QtObject {
     readonly property color borderLight: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
     readonly property color borderStrong: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12))
     // Divider 分隔线
-    readonly property color divider: root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12)
+    readonly property color divider: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12))
     // Navigation divider (lighter in light mode) 导航分隔线（浅色模式更淡）
     readonly property color navDivider: root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.04)
     // Selected state 选中状态 — 浅色模式必须用 accent 浅色 (#cce4f7), 之前的 "white"
@@ -99,7 +99,7 @@ QtObject {
     readonly property color disabledTextLight: root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.35)
     readonly property color disabledGray: Qt.rgba(0.5,0.5,0.5,0.5)
     readonly property color dialogOverlay: Qt.rgba(0,0,0,0.4)
-    readonly property color dialogBorder: root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
+    readonly property color dialogBorder: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1))
     // GroupBox border 组边框
     readonly property color groupBorder: root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12)
     // Strong text 强调文字
@@ -130,14 +130,14 @@ QtObject {
     readonly property color settingCardBg: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7)
     readonly property color settingCardBorder: root.isDark ? Qt.rgba(0,0,0,0.2) : Qt.rgba(0,0,0,0.075)
     // Expand view bg 展开视图背景
-    readonly property color expandViewBg: root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7)
+    readonly property color expandViewBg: isNeo ? _neo.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7))
     // Content label color (Microsoft WinUI TextFillColorSecondary: Dark #C5FFFFFF / Light #9E000000)
     readonly property color settingCardContent: root.isDark ? Qt.rgba(1,1,1,0.77) : Qt.rgba(0,0,0,0.61)
     // Expand button hover/pressed
     readonly property color expandBtnHover: root.isDark ? Qt.rgba(1,1,1,0.055) : Qt.rgba(0,0,0,0.055)
     readonly property color expandBtnPressed: root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04)
     // Expander separator (stronger than border) 展开器分隔线（比边框更深）
-    readonly property color expanderSeparator: root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15)
+    readonly property color expanderSeparator: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15))
     
     // ==================== Fluent Design Precise Values 精确匹配值 ====================
     // Control background colors 控件背景颜色（按钮、输入框、下拉框等）
@@ -260,7 +260,7 @@ QtObject {
     
     // ==================== Dialog Button Group 对话框按钮组 ====================
     // Button group background 按钮组背景
-    readonly property color actionsRowBg: root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.024)
+    readonly property color actionsRowBg: isNeo ? _neo.muted : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.024))
     
     // ==================== Navigation Selected 导航选中 ====================
     // Navigation bar item selected bg 导航栏项选中背景

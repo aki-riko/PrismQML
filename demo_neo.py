@@ -23,7 +23,7 @@ import FluentQML
 Window {
     id: win
     visible: true
-    width: 720; height: 620
+    width: 720; height: 760
     title: "Neobrutalism 预览"
     color: Enums.isNeobrutalism ? Enums.neo.background : Enums.backgroundColor
 
@@ -92,6 +92,20 @@ Window {
             ToggleSwitch { text: "开关"; checked: true }
             Badge { count: 8; level: Enums.statusLevel.error }
             Badge { text: "NEW"; level: Enums.statusLevel.success }
+        }
+
+        // 信息条 + 折叠面板(弹层/容器类)
+        InfoBar {
+            width: 480
+            severity: "success"
+            title: "操作成功"
+            message: "信息条: neo 白底黑边硬阴影 + 高饱和语义色"
+            duration: 0  // 预览常驻不自动消失(默认 duration>0 会定时关闭)
+        }
+        Expander {
+            width: 480
+            title: "折叠面板"
+            content: "点击展开,黑边 + 硬阴影"
         }
 
         Text {
