@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 # PyPI 分发名为 fqml(pip install fqml);导入名仍为 fluentqml(import fluentqml)
 name = "fqml"
-version = "0.2.9"
+version = "0.2.10"
 description = "A pure QML-based Fluent Design component library with 120fps+ smooth animations"
 readme = "README.md"
 license = {file = "LICENSE"}
