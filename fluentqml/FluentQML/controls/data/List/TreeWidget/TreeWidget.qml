@@ -140,14 +140,22 @@ Rectangle {
     onModelChanged: Core.rebuildModel(control, internalModel)
 
     // ==================== Shadow 阴影 ====================
+    // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: card
         radius: card.radius
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
         offset: Qt.vector2d(0, Enums.shadow.level2.offset)
+        visible: !Enums.isNeobrutalism
     }
-    
+
+    NeoShadow {
+        target: card
+        visible: Enums.isNeobrutalism
+        z: card.z - 1
+    }
+
     // ==================== Card 卡片容器 ====================
     Rectangle {
         id: card
@@ -155,8 +163,8 @@ Rectangle {
         anchors.margins: Enums.spacing.m
         color: cardColor
         radius: borderRadius
-        border.width: borderVisible ? Enums.border.thin : 0
-        border.color: borderColor
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (borderVisible ? Enums.border.thin : 0)
+        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : borderColor
         
         ColumnLayout {
             anchors.fill: parent

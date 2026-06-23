@@ -147,7 +147,7 @@ Rectangle {
         id: shadowEffect
         anchors.fill: card
         radius: card.radius
-        visible: showShadow
+        visible: showShadow && !Enums.isNeobrutalism
 
         // Active shadow level — 销毁时序里 Enums singleton 的 _metrics 可能先被拆,
         // 导致 Enums.shadow 整个 undefined,旧的 `|| Enums.shadow.level2` 兜底本身也会炸。
@@ -172,6 +172,13 @@ Rectangle {
         }
     }
 
+    // neo 硬阴影
+    NeoShadow {
+        target: card
+        visible: showShadow && Enums.isNeobrutalism
+        z: card.z - 1
+    }
+
     // ==================== Card 卡片容器 ====================
     Rectangle {
         id: card
@@ -179,8 +186,9 @@ Rectangle {
         anchors.margins: cardMargin
         color: cardColor
         radius: borderRadius
-        border.width: borderVisible ? Enums.border.thin : 0
-        border.color: borderVisible ? Enums.stateColor.borderLight : "transparent"
+        // neo: 粗黑边(neo 下始终显边, 靠边+硬阴影区分)
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (borderVisible ? Enums.border.thin : 0)
+        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : (borderVisible ? Enums.stateColor.borderLight : "transparent")
 
         ColumnLayout {
             anchors.fill: parent

@@ -377,6 +377,7 @@ Item {
         
         // Shadow Layer 阴影层 (z: background to ensure it's behind popupPanel)
         // Sync opacity with popupPanel for smooth fade animation 与面板同步透明度实现平滑淡入
+        // Fluent: 模糊阴影; neo: 硬阴影(偏移纯色矩形)
         RectangularShadow {
             z: Enums.zIndex.background
             x: clipContainer.x
@@ -387,6 +388,20 @@ Item {
             color: Enums.shadow.level4.color
             blur: Enums.shadow.level4.blur
             offset: Qt.vector2d(0, Enums.shadow.level4.offset)
+            opacity: popupPanel.opacity
+            visible: !Enums.isNeobrutalism
+        }
+
+        // neo 硬阴影: 偏移纯色矩形(弹层用 explicit 几何, 不用 NeoShadow 的 target)
+        Rectangle {
+            z: Enums.zIndex.background
+            visible: Enums.isNeobrutalism
+            x: clipContainer.x + Enums.neo.shadowOffset
+            y: clipContainer.y + Enums.neo.shadowOffset
+            width: clipContainer.width
+            height: clipContainer.height
+            radius: control.popupRadius
+            color: Enums.neo.shadowColor
             opacity: popupPanel.opacity
         }
         
@@ -406,7 +421,7 @@ Item {
                 height: control.popupHeight
                 radius: control.popupRadius
                 color: Enums.cardColor
-                border.width: Enums.border.thin
+                border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
                 border.color: Enums.stateColor.border
                 opacity: Enums.opacityLevel.invisible
 

@@ -158,13 +158,21 @@ Item {
     }
 
     // ==================== Shadow Layer (仅助手卡片) ====================
+    // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
-        visible: !control._isUser && !control._isSystem
+        visible: !control._isUser && !control._isSystem && !Enums.isNeobrutalism
         anchors.fill: bubble
         radius: Enums.radius.large
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
         offset: Qt.vector2d(0, Enums.shadow.level2.offset)
+    }
+
+    NeoShadow {
+        target: bubble
+        visible: !control._isUser && !control._isSystem && Enums.isNeobrutalism
+        radius: Enums.radius.large
+        z: bubble.z - 1
     }
 
     // ==================== Bubble ====================
@@ -199,8 +207,9 @@ Item {
             if (control._isUser) return Enums.accentColor
             return Enums.cardColor
         }
-        border.width: control._isUser ? 0 : Enums.border.thin
-        border.color: control._isUser ? "transparent" : Enums.borderColor
+        // neo: 所有气泡黑粗边(含用户气泡); Fluent: 仅助手细边
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (control._isUser ? 0 : Enums.border.thin)
+        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : (control._isUser ? "transparent" : Enums.borderColor)
 
         // ==================== Content ====================
         MarkdownView {

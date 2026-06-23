@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../../.."
+import "../../../effects"
 import "../FlipView"
 import "_internal"
 
@@ -124,14 +125,22 @@ Item {
     }
     
     // ==================== Shadow Layer 阴影层（在内容后面，不影响布局） ====================
+    // Fluent: 模糊阴影; neo: 硬阴影(同样 opt-in, 仅 shadowLevel 设置时显示)
     RectangularShadow {
         anchors.fill: contentArea
-        visible: control.shadowLevel !== null && control.shadowLevel !== undefined
+        visible: control.shadowLevel !== null && control.shadowLevel !== undefined && !Enums.isNeobrutalism
         radius: control.borderRadius
         color: control.shadowLevel ? control.shadowLevel.color : "transparent"
         blur: control.shadowLevel ? control.shadowLevel.blur : 0
         offset.x: 0
         offset.y: control.shadowLevel ? control.shadowLevel.offset : 0
+    }
+
+    NeoShadow {
+        target: contentArea
+        visible: Enums.isNeobrutalism && control.shadowLevel !== null && control.shadowLevel !== undefined
+        radius: control.borderRadius
+        z: contentArea.z - 1
     }
 
     // ==================== Content Area 内容区域 ====================

@@ -43,12 +43,21 @@ OverlayDialogCore {
 
     // ==================== Shadow Layer 阴影层 ====================
     // Shadow: soft drop shadow under the dialog body 主体下方柔和投影
+    // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: dialogBody
         radius: Enums.radius.dialog
         color: Enums.stateColor.maskMedium
         blur: Enums.shadow.level16.blur
         offset: Qt.vector2d(0, Enums.shadow.level16.offset)
+        visible: !Enums.isNeobrutalism
+    }
+
+    NeoShadow {
+        target: dialogBody
+        visible: Enums.isNeobrutalism
+        radius: Enums.radius.dialog
+        z: dialogBody.z - 1
     }
 
     // ==================== Dialog Body 对话框主体 ====================
@@ -56,17 +65,18 @@ OverlayDialogCore {
         id: dialogBody
         objectName: "dialogBody"
         anchors.centerIn: parent
-        
+
         // Default size, will be overridden by child 默认尺寸，由子类覆盖
         width: Enums.controlSize.dialogDefaultWidth
         height: Enums.controlSize.dialogDefaultHeight
-        
+
         radius: Enums.radius.dialog
 
-        color: Enums.dialogColors.containerBg
+        // neo: 白面+黑边; Fluent: dialogColors
+        color: Enums.isNeobrutalism ? Enums.dialogColor : Enums.dialogColors.containerBg
 
-        border.width: Enums.border.thin
-        border.color: Enums.dialogColors.border
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.dialogColors.border
         
         // Clip children to rounded corners 裁剪子元素以适应圆角
         clip: true

@@ -79,6 +79,9 @@ OverlayDialogCore {
         id: drawer
         color: Enums.cardColor
         radius: control.radius
+        // neo: 抽屉面板加黑边(与内容区分隔)
+        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
+        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent
         
         // Use parent size directly when control size is 0 (Python setParentItem timing issue) 当 control 尺寸为 0 时直接使用 parent 尺寸（Python setParentItem 时序问题）
 
