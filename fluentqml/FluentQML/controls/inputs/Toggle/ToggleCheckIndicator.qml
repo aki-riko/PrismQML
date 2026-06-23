@@ -20,10 +20,20 @@ Rectangle {
     // ==================== Size 尺寸 ====================
     width: Enums.controlSize.checkboxOuter
     height: Enums.controlSize.checkboxOuter
-    radius: Enums.radius.small
+    radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
 
     // ==================== Color Calc 颜色计算 ====================
     color: {
+        if (Enums.isNeobrutalism) {
+            // neo: 选中橙底, 未选白底; hover/press 用变暗变亮
+            if (!enabled) return checkState > 0 ? Qt.rgba(0,0,0,0.2) : Enums.neo.muted
+            if (checkState > 0) {
+                if (pressed) return Qt.darker(Enums.neo.primary, 1.15)
+                if (hovered) return Qt.lighter(Enums.neo.primary, 1.08)
+                return Enums.neo.primary
+            }
+            return Enums.neo.surface
+        }
         if (!enabled) {
             if (checkState > 0) return Enums.stateColor.disabledBorder
             return Enums.transparent
@@ -38,8 +48,11 @@ Rectangle {
         return Enums.stateColor.checkBoxFill
     }
 
-    border.width: checkState > 0 ? 0 : Enums.border.medium
+    // neo: 黑粗边始终在(包括选中态, 强调描边); Fluent: 选中无边
+    border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth
+                  : (checkState > 0 ? 0 : Enums.border.medium)
     border.color: {
+        if (Enums.isNeobrutalism) return enabled ? Enums.neo.borderColor : Qt.rgba(0,0,0,0.4)
         if (checkState > 0) return Enums.transparent
         if (!enabled) return Enums.stateColor.disabledBorder
         if (pressed) return Enums.stateColor.togglePressed
@@ -56,7 +69,8 @@ Rectangle {
         width: Enums.controlSize.checkboxInner
         height: Enums.controlSize.checkboxInner
         state: indicator.checkState
-        color: Enums.isDark ? "black" : "white"
+        // neo: 橙底白勾; Fluent: 随明暗
+        color: Enums.isNeobrutalism ? "white" : (Enums.isDark ? "black" : "white")
         visible: indicator.checkState > 0
         scale: indicator.checkState > 0 ? 1 : 0
         Behavior on scale {

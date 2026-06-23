@@ -23,7 +23,7 @@ import FluentQML
 Window {
     id: win
     visible: true
-    width: 720; height: 520
+    width: 720; height: 620
     title: "Neobrutalism 预览"
     color: Enums.isNeobrutalism ? Enums.neo.background : Enums.backgroundColor
 
@@ -82,6 +82,16 @@ Window {
                 width: 200
                 model: ["选项一", "选项二", "选项三"]
             }
+        }
+
+        // 开关类 + 徽章: 复选框 / 单选 / 开关 / 徽章
+        Row {
+            spacing: 20
+            CheckBox { text: "复选"; checked: true }
+            RadioButton { text: "单选"; checked: true }
+            ToggleSwitch { text: "开关"; checked: true }
+            Badge { count: 8; level: Enums.statusLevel.error }
+            Badge { text: "NEW"; level: Enums.statusLevel.success }
         }
 
         Text {
