@@ -55,26 +55,44 @@ Widget {
  }
  
  // ==================== Shadow Layer 阴影层 ====================
+ // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯黑矩形, 无模糊)。
  RectangularShadow {
  anchors.fill: card
  radius: card.radius
  color: _shadowColor
  blur: _shadowBlur
  offset: Qt.vector2d(0, _shadowOffset)
- 
+ visible: !Enums.isNeobrutalism
+
  // Shadow properties based on type and state 根据类型和状态计算阴影
- property color _shadowColor: isElevated && hovered 
- ? Enums.shadow.level4.color 
+ property color _shadowColor: isElevated && hovered
+ ? Enums.shadow.level4.color
  : Enums.shadow.level2.color
- property real _shadowBlur: isElevated && hovered 
- ? Enums.shadow.level4.blur 
+ property real _shadowBlur: isElevated && hovered
+ ? Enums.shadow.level4.blur
  : Enums.shadow.level2.blur
- property real _shadowOffset: isElevated && hovered 
- ? Enums.shadow.level4.offset 
+ property real _shadowOffset: isElevated && hovered
+ ? Enums.shadow.level4.offset
  : Enums.shadow.level2.offset
- 
+
  Behavior on _shadowBlur { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  Behavior on _shadowColor { ColorAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
+ }
+
+ // Neobrutalism 硬阴影: 固定纯黑、零模糊、固定 offset。elevated 卡 hover 时阴影加大(偏移翻倍)。
+ Rectangle {
+ id: _neoShadow
+ visible: Enums.isNeobrutalism
+ readonly property real _off: (isElevated && hovered && !pressed) ? Enums.neo.shadowOffset * 1.5 : Enums.neo.shadowOffset
+ x: _off
+ y: _off
+ width: card.width
+ height: card.height
+ radius: control.borderRadius
+ color: Enums.neo.shadowColor
+ z: card.z - 1
+ Behavior on x { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
+ Behavior on y { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  }
  
  // ==================== Card 卡片 ====================
@@ -109,8 +127,8 @@ Widget {
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  
  // Border 边框
- border.width: Enums.border.thin
- border.color: Enums.stateColor.borderLight
+ border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+ border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.stateColor.borderLight
  
  // ==================== Header (for header type) 标题区域 ====================
  Item {
