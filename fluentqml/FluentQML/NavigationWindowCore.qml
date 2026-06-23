@@ -28,7 +28,8 @@ WindowsCore {
     // ==================== Mica Effect 云母效果 ====================
     property bool micaEnabled: false
     readonly property bool _micaAvailable: MicaManager ? MicaManager.isWin11 : false
-    readonly property bool _micaActive: micaEnabled && _micaAvailable
+    // neo 皮肤强制关 Mica: neo 是实心米白底+硬阴影的扁平风, Mica 半透明模糊与之冲突
+    readonly property bool _micaActive: micaEnabled && _micaAvailable && !Enums.isNeobrutalism
     windowColor: _micaActive ? Enums.transparent : Enums.backgroundColor
     
     // ==================== Content Area Props 内容区域属性 ====================

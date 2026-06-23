@@ -27,7 +27,9 @@ QtObject {
     readonly property color borderLight: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
     readonly property color borderStrong: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12))
     // Divider 分隔线
-    readonly property color divider: isNeo ? _neo.border : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12))
+    // divider: 轻量分隔线(非控件边框)。neo 用中等灰, 不用纯黑(纯黑细线滚动会抖动闪烁,
+    // 且 neo 的轻分隔不该和粗黑边一样重)。控件边框需黑用 border/dialogBorder。
+    readonly property color divider: isNeo ? Qt.rgba(0,0,0,0.22) : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12))
     // Navigation divider (lighter in light mode) 导航分隔线（浅色模式更淡）
     readonly property color navDivider: root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.04)
     // Selected state 选中状态 — 浅色模式必须用 accent 浅色 (#cce4f7), 之前的 "white"
@@ -115,7 +117,7 @@ QtObject {
     readonly property color notificationText: root.isDark ? Qt.rgba(1,1,1,0.75) : Qt.rgba(0,0,0,0.65)
     // compact-nav window content area 内容区
     readonly property color contentBorder: root.isDark ? Qt.rgba(0,0,0,0.18) : "#e4e7ea"
-    readonly property color contentBg: root.isDark ? "#272727" : "#f7f9fc"
+    readonly property color contentBg: isNeo ? _neo.background : (root.isDark ? "#272727" : "#f7f9fc")
     // Semi-transparent content bg for Mica effect 云母效果半透明内容背景
     readonly property color contentBgTransparent: root.isDark ? Qt.rgba(1,1,1,0.03) : Qt.rgba(1,1,1,0.5)
     // Loading/Progress 加载/进度

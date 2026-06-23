@@ -89,8 +89,8 @@ Widget {
         return Enums.statusLevel.getBgColor(severity)
     }
     
-    // Border color 边框色
-    readonly property color borderColor: Enums.stateColor.divider
+    // Border color 边框色 (neo 用控件边框 token=黑; Fluent 用 divider 轻分隔)
+    readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.stateColor.divider
     
     // ==================== Size 尺寸 ====================
     // Content size (inherited from Widget) 内容尺寸：根据内部文字自适应

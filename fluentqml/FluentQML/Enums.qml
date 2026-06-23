@@ -49,8 +49,8 @@ Item {
     Tab { id: _tab }
     CommandBar { id: _commandBar }
     StateColor { id: _stateColor; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; constants: _constants }
-    Constants { id: _constants; isDark: root.isDark }
-    Metrics { id: _metrics; isDark: root.isDark }
+    Constants { id: _constants; isDark: root.isDark; isNeo: root.isNeobrutalism }
+    Metrics { id: _metrics; isDark: root.isDark; constants: _constants }
     Orient { id: _orient }
     Flow { id: _flow }
     Chart { id: _chart }

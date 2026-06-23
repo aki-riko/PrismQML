@@ -527,6 +527,8 @@ Item {
             indicatorWidth: control.indicatorWidth
             indicatorHeight: control.indicatorHeight
             animationEnabled: control.indicatorAnimationEnabled
+            // neo: 隐藏滑动指示条(选中态用橙实心块代替, 避免双重标记)
+            visible: !Enums.isNeobrutalism
         }
     }
     

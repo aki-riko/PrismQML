@@ -43,11 +43,12 @@ Item {
         anchors.rightMargin: Enums.spacing.xxs
         anchors.topMargin: Enums.spacing.xxs
         anchors.bottomMargin: Enums.spacing.xxs
-        radius: Enums.radius.small
-        
+        radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+
         color: {
             if (control.selected) {
-                // Fluent Design: selected state color 选中状态色
+                // neo: 选中=橙实心块; Fluent: 淡色高亮
+                if (Enums.isNeobrutalism) return Enums.neo.primary
                 return Enums.stateColor.navSelected
             }
             if (control.pressed || control.hovered) {
@@ -56,7 +57,11 @@ Item {
             }
             return Enums.transparent
         }
-        
+
+        // neo: 选中态加黑边
+        border.width: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : 0
+        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.transparent
+
         // No animation to avoid flicker 无动画避免闪烁
     }
     
@@ -97,7 +102,7 @@ Item {
             // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
             layer.enabled: true
             layer.effect: ColorOverlay {
-                color: control.selected ? control.accentColor : Enums.textColor.primary
+                color: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
             }
             
             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
@@ -147,7 +152,7 @@ Item {
             anchors.centerIn: parent
             text: control.selected && control.selectedIcon ? control.selectedIcon : control.icon
             visible: !iconContainer.isPathIcon && control.icon !== ""
-            color: control.selected ? control.accentColor : Enums.textColor.primary
+            color: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
             opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
             
             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
@@ -165,8 +170,8 @@ Item {
         font.pixelSize: Enums.typography.caption - 1
         horizontalAlignment: Text.AlignHCenter
         
-        color: control.selected ? control.accentColor : Enums.textColor.primary
-        
+        color: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
+
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
     

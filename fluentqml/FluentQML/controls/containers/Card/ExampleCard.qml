@@ -65,12 +65,21 @@ Item {
  color: Enums.isDark ? Enums.exampleCardColors.bgDark : Enums.exampleCardColors.bgLight
  
  // Shadow: soft shadow, bottom-right direction 阴影：柔和阴影，右下角方向
+ // neo: 关软阴影, 改用硬阴影 NeoShadow
+ shadowVisible: !Enums.isNeobrutalism
 
  y: cardContainer.shadowMargin / 2
  shadowLevel: Enums.shadow.level2
  shadowOffsetX: Enums.shadow.level2.offset // 右偏移
  shadowOffsetY: Enums.shadow.level2.offset // 下偏移
- 
+
+ // neo 硬阴影
+ NeoShadow {
+ target: card
+ visible: Enums.isNeobrutalism
+ z: -1
+ }
+
  Column {
  id: cardContent
  width: parent.width
@@ -127,6 +136,9 @@ Item {
  // Top separator line 顶部分隔线
  Separator {
  width: parent.width
+ // neo: 实黑 2px 硬分隔线(对齐偶数像素宽, 消除细黑线滚动抖动闪烁)
+ lineColor: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.stateColor.divider
+ lineWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
  }
  
  Label {
@@ -150,8 +162,9 @@ Item {
  anchors.fill: card
  radius: card.radius
  color: "transparent"
- border.width: 1
- border.color: Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle
+ border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 1
+ border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
+ : (Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle)
  }
  }
  }
