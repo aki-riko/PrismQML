@@ -18,6 +18,10 @@ Widget {
  // ==================== Public Props 公开属性 ====================
  property int cardType: Enums.card.type_default // Card type 卡片类型
  property int borderRadius: Enums.radius.card // Border radius 圆角
+ // autoHeight: 普通卡片高度跟随内容自撑(默认 false 保持固定 cardHeight)。
+ // ⚠️ 开启时内容**不要用 anchors.fill: parent**(fill 的子项不计入 childrenRect→自撑失效退回兜底),
+ //    用 width: parent.width 让内容自然堆叠撑高。header 卡不受此开关影响(本就按内容算高)。
+ property bool autoHeight: false
  property bool clickEnabled: false // Enable click 启用点击
  property bool interactionEnabled: true // Enable mouse interaction 启用鼠标交互
  property string title: "" // Header title (for header type) 标题
@@ -37,8 +41,12 @@ Widget {
  
  // ==================== Size 尺寸 ====================
  // Content size (inherited from Widget) 内容尺寸（继承自Widget）
+ // autoHeight 时普通卡片跟随内容自撑(childrenRect + 上下 border 边距, 带最小兜底);
+ // 否则保持原行为(固定 cardHeight)。header 卡始终由 card 自身按标题区算高。
  contentWidth: Enums.controlSize.cardContentWidth
- contentHeight: isHeader ? card.height : Enums.controlSize.cardHeight
+ contentHeight: isHeader ? card.height
+                : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + Enums.border.thin * 2)
+                              : Enums.controlSize.cardHeight)
  
  // ==================== Elevation Animation 上浮动画 (only for elevated) ====================
  transform: Translate { 
@@ -75,9 +83,12 @@ Widget {
  anchors.left: parent.left
  anchors.right: parent.right
  anchors.top: parent.top
- // Use preferredHeight if set, otherwise auto-calculate for HeaderCard or fill parent 如果设置了preferredHeight则使用，否则HeaderCard自动计算、普通卡片填充父容器
-
- height: preferredHeight > 0 ? preferredHeight : (isHeader ? (headerView.height + separator.height + contentLoader.childrenRect.height + Enums.spacing.xxxl * 2) : parent.height)
+ // Use preferredHeight if set, otherwise auto-calculate for HeaderCard, fit content when autoHeight, else fill parent
+ // preferredHeight 优先; header 卡按标题区+分隔线+内容算高; autoHeight 时普通卡按内容自撑; 否则填充父容器(原行为)。
+ height: preferredHeight > 0 ? preferredHeight
+         : (isHeader ? (headerView.height + separator.height + contentLoader.childrenRect.height + Enums.spacing.xxxl * 2)
+                     : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + Enums.border.thin * 2)
+                                   : parent.height))
  radius: control.borderRadius
  
  // Background Color 背景色
@@ -130,8 +141,13 @@ Widget {
  Item {
  id: contentLoader
  objectName: "contentLoader"
+ readonly property bool _fitContent: !isHeader && control.autoHeight
  anchors.top: isHeader ? separator.bottom : parent.top
- anchors.bottom: parent.bottom
+ // _fitContent 时不绑 bottom, 高度由内容(childrenRect)决定 → 反向撑 card.height;
+ // 绑 bottom 会与 card.height←childrenRect 形成 binding loop。
+ // 其余情况(固定高/ header)维持原 anchors.fill 行为, 内容用 anchors.fill:parent 填满。
+ anchors.bottom: _fitContent ? undefined : parent.bottom
+ height: _fitContent ? childrenRect.height : undefined
  anchors.left: parent.left
  anchors.right: parent.right
  anchors.margins: isHeader ? Enums.spacing.xxxl : Enums.border.thin
