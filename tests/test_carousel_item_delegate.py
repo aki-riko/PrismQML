@@ -255,8 +255,8 @@ def test_peek_geometry_is_visible():
     """
     axis_len = 480.0
     center_ratio = 0.82
-    scale = 0.85       # FluentEnums.carousel.peekScale
-    spacing = 0.02     # FluentEnums.carousel.peekSpacing
+    scale = 0.85       # PrismEnums.carousel.peekScale
+    spacing = 0.02     # PrismEnums.carousel.peekSpacing
 
     card_len = axis_len * center_ratio
     slot_offset = axis_len * (center_ratio + scale * center_ratio) / 2 + axis_len * spacing

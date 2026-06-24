@@ -1,0 +1,91 @@
+site_name: PrismQML
+site_description: 多皮肤 QML UI 引擎 (Fluent + Neobrutalism) for PySide6
+site_author: aki-riko
+repo_url: https://github.com/aki-riko/PrismQML
+repo_name: aki-riko/PrismQML
+copyright: Copyright &copy; 2026 aki-riko · MIT License
+
+theme:
+  name: material
+  language: zh
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: 切换到深色
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: 切换到浅色
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search:
+      lang:
+        - zh
+        - en
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: zh
+          default: true
+          name: 简体中文
+        - locale: en
+          name: English
+
+nav:
+  - 首页: index.md
+  - 快速开始: getting-started.md
+  - 指南:
+      - 皮肤系统: guide/skins.md
+      - 主题: guide/theming.md
+      - 窗口: guide/windows.md
+      - 配置系统: guide/config.md
+      - 状态管理: guide/state.md
+      - 系统托盘: guide/tray.md
+  - 控件:
+      - 总览: components/index.md
+      - 按钮: components/buttons.md
+      - 输入: components/inputs.md
+      - 卡片: components/cards.md
+      - 数据: components/data.md
+      - 反馈: components/feedback.md
+      - 弹层: components/dialogs.md
+      - 导航: components/navigation.md
+      - 容器: components/containers.md
+      - 图表: components/charts.md
+      - 图标: components/icons.md
+      - 菜单: components/menus.md
+      - 标签: components/badges.md
+      - 特效: components/effects.md
+  - API: api/python.md
+  - 关于: about.md

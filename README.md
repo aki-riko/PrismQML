@@ -65,7 +65,7 @@ prismqml/
 ├── PrismQML/              # QML 组件（模块名 PrismQML）
 │   ├── controls/           # UI 控件
 │   ├── _internal/          # 内部窗口实现
-│   └── FluentEnums/        # 枚举与常量
+│   └── PrismEnums/        # 枚举与常量
 └── python/                 # Python 模块
     ├── config/             # 配置管理系统
     ├── core/               # 核心引擎（主题/日志/图标/阴影）

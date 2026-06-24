@@ -65,7 +65,7 @@ prismqml/
 ├── PrismQML/              # QML components (module name: PrismQML)
 │   ├── controls/           # UI controls
 │   ├── _internal/          # internal window implementation
-│   └── FluentEnums/        # enums & constants
+│   └── PrismEnums/        # enums & constants
 └── python/                 # Python modules
     ├── config/             # configuration management
     ├── core/               # core engine (theme/logging/icons/shadow)

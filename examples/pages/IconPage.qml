@@ -19,7 +19,7 @@ Item {
 
     Component.onCompleted: { allIcons = getIconList() }
 
-    // Get all icons from Enums.icons singleton 从FluentEnums获取完整图标列表
+    // Get all icons from Enums.icons singleton 从PrismEnums获取完整图标列表
     function getIconList() {
         var icons = Fluent.Enums.icons.iconList
         var result = []
