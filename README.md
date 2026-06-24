@@ -2,7 +2,7 @@
 
 **简体中文** | [English](./README.en.md)
 
-基于 PySide6 + QML 的 Fluent Design 组件库，提供 120fps+ 流畅动画体验。
+基于 PySide6 + QML 的多皮肤 UI 引擎（Fluent + 新粗野），提供 120fps+ 流畅动画体验。
 
 ## ✨ 特性
 

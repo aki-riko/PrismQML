@@ -2,7 +2,7 @@
 
 [简体中文](./README.md) | **English**
 
-A Fluent Design component library built on PySide6 + QML, delivering 120fps+ smooth animations.
+A multi-skin UI engine (Fluent + Neobrutalism) built on PySide6 + QML, delivering 120fps+ smooth animations.
 
 ## ✨ Features
 
