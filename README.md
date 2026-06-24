@@ -20,7 +20,7 @@
 pip install prismqml
 ```
 
-> 注:PyPI 包名为 `prismqml`(`prismqml` 已被占用),但导入名仍是 `prismqml`(`from prismqml import ...`)。
+> 分发名与导入名一致：`pip install prismqml` 后 `from prismqml import ...`。
 
 开发模式安装：
 
