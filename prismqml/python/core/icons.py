@@ -16,8 +16,8 @@ Usage:
     from prismqml.python.core.icons import Icon
     icon = Icon.CALENDAR
     
-    # QML (通过FluentEnums.icon)
-    icon: FluentEnums.icon.calendar
+    # QML (通过PrismEnums.icon)
+    icon: PrismEnums.icon.calendar
 """
 
 from enum import Enum

@@ -4,7 +4,7 @@
 
 pragma Singleton
 import QtQuick
-import "FluentEnums"
+import "PrismEnums"
 
 // Enums - Global unified enum entry point 全局统一枚举入口
 // Usage 使用方式: Enums.radius.large, Enums.button.type_primary

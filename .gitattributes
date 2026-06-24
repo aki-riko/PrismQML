@@ -1,5 +1,5 @@
 # 自动生成文件标记
-fluentqml/python/core/icons.py linguist-generated=true
+prismqml/python/core/icons.py linguist-generated=true
 
 # 统一行尾为 LF,防止跨平台/批量编辑导致 CRLF↔LF diff 噪声
 *.qml text eol=lf

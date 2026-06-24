@@ -42,7 +42,7 @@ _logger = getLogger("notification")
 
 
 class Position(IntEnum):
-    """通知位置, 跟 FluentEnums.notification.posX 对齐"""
+    """通知位置, 跟 PrismEnums.notification.posX 对齐"""
     TopLeft = 0
     Top = 1
     TopRight = 2

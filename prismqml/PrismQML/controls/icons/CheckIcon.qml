@@ -3,7 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import "../.."  // FluentEnums
+import "../.."  // PrismEnums
 
 // CheckIcon - 可复用的勾选标记图标
 // state: 0=无, 1=部分选中(横线), 2=完全选中(勾)

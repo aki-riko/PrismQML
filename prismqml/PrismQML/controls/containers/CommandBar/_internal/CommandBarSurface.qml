@@ -3,7 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import "../../../.."       // → qml/ (FluentEnums)
+import "../../../.."       // → qml/ (PrismEnums)
 import "../../../icons"    // → controls/icons/
 import "../../../../effects"  // → qml/effects/
 

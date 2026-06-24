@@ -5,7 +5,7 @@
 import QtQuick
 
 // Theme - Global theme properties 全局主题属性
-// Part of Enums modular system FluentEnums模块化系统
+// Part of Enums modular system PrismEnums模块化系统
 QtObject {
     id: root
     

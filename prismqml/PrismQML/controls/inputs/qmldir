@@ -18,7 +18,7 @@ PinInput PinInput.qml
 ShortcutEditor ShortcutEditor.qml
 
 # Toggle 切换控件 (统一入口)
-# Use: Toggle { controlType: FluentEnums.toggle.control_xxx; type: FluentEnums.toggle.type_xxx }
+# Use: Toggle { controlType: PrismEnums.toggle.control_xxx; type: PrismEnums.toggle.type_xxx }
 Toggle Toggle/Toggle.qml
 CheckBox Toggle/CheckBox.qml
 RadioButton Toggle/RadioButton.qml
@@ -26,12 +26,12 @@ ToggleSwitch Toggle/ToggleSwitch.qml
 CheckIndicator Toggle/ToggleCheckIndicator.qml
 
 # LineEdit 单行输入 (统一入口，通过 inputType 枚举切换类型)
-# Use: LineEdit { inputType: FluentEnums.input.type_xxx }
+# Use: LineEdit { inputType: PrismEnums.input.type_xxx }
 # Types: type_normal, type_password, type_search, type_label, type_tag
 LineEdit LineEdit/LineEditCore.qml
 
 # TextEdit 多行输入 (统一入口，通过 multilineType 枚举切换类型)
-# Use: TextEdit { multilineType: FluentEnums.input.multiline_xxx }
+# Use: TextEdit { multilineType: PrismEnums.input.multiline_xxx }
 # Types: multiline_plain, multiline_browser
 TextEdit TextEdit/TextEditCore.qml
 
@@ -58,12 +58,12 @@ ComboBoxMultiTree ComboBox/ComboBoxMultiTree.qml
 DateTimePicker Picker/DateTimePicker.qml
 
 # CalendarPicker 日历选择
-# Use CalendarPicker { type: FluentEnums.calendarPicker.type_range } for range mode
+# Use CalendarPicker { type: PrismEnums.calendarPicker.type_range } for range mode
 CalendarPickerCore DatePicker/CalendarPickerCore.qml
 CalendarPicker DatePicker/CalendarPicker.qml
 
 # ColorPicker 颜色选择 (modular architecture 模块化架构)
-# Use ColorPicker { type: FluentEnums.colorPicker.type_xxx } for different modes
+# Use ColorPicker { type: PrismEnums.colorPicker.type_xxx } for different modes
 # Types: type_dialog, type_palette, type_picker, type_circle, type_screen
 ColorPicker ColorPicker/ColorPicker.qml
 # Internal modules (keep GradientSlider for standalone use) 内部模块

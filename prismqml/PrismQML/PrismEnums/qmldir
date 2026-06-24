@@ -1,4 +1,4 @@
-module FluentEnums
+module PrismEnums
 Theme Theme.qml
 StatusLevel StatusLevel.qml
 Button Button.qml

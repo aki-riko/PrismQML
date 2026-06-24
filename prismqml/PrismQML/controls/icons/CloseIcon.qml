@@ -3,7 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import "../.."  // FluentEnums
+import "../.."  // PrismEnums
 
 // CloseIcon - Reusable close/cancel icon 可复用的关闭/取消图标
 // Draw X shape 绘制 X 形状

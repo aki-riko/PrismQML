@@ -51,7 +51,7 @@ from ..core.logger import warning, info, error, debug
 class WindowType(IntEnum):
     """窗口类型枚举
 
-    与QML侧 FluentEnums.windowType 对应：
+    与QML侧 PrismEnums.windowType 对应：
     - SPLIT (0): 展开式侧边导航
     - BAR (1): 紧凑侧边导航（默认）
     - FILLED (2): 填充式分割窗口

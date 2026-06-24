@@ -26,7 +26,7 @@ Item {
     property alias border: content.border
     
     // ==================== Shadow Props 阴影属性 ====================
-    // Use shadow level from Enums 使用FluentEnums的阴影等级
+    // Use shadow level from Enums 使用PrismEnums的阴影等级
     property var shadowLevel: Enums.shadow.level4
     
     // Shadow visibility control 阴影显隐控制
