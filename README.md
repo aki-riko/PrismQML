@@ -2,17 +2,27 @@
 
 **简体中文** | [English](./README.en.md)
 
-基于 PySide6 + QML 的多皮肤 UI 引擎（Fluent + 新粗野），提供 120fps+ 流畅动画体验。
+> **一套 QML 控件，多种设计语言一键切换。**
+> PrismQML 是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件，运行时在 **Fluent** 与 **新粗野（Neobrutalism）** 之间自由切换，120fps+ 流畅动画。
+
+<!-- TODO: 此处放 Fluent vs Neobrutalism 同界面并排对比图 (same code, one setSkin() call) -->
+
+```python
+from prismqml import setSkin, Skin
+setSkin(Skin.NEOBRUTALISM)   # 一行切换整个应用的设计语言
+```
 
 ## ✨ 特性
 
-- **纯 QML 渲染**：无帧率限制，120fps+ 流畅动画
-- **Fluent Design**：微软 Fluent Design System 组件
-- **Python 集成**：PySide6 无缝集成，Python 侧管理业务逻辑
-- **配置系统**：JSON 持久化 + 原子写入 + QML Property 桥接
-- **响应式状态**：细粒度 Store 状态管理，支持 watch / batch 模式
-- **窗口管理**：多种窗口布局 + 懒加载 + 云母效果 + 系统托盘
-- **跨平台**：Windows、macOS、Linux
+- **🎨 多皮肤引擎**：同一套控件，`setSkin()` 一键切换 Fluent / 新粗野，支持 light/dark
+- **🧩 token 驱动架构**：颜色、几何、阴影全走 token —— 新增皮肤几乎**零控件改动**
+- **⚡ 纯 QML 渲染**：无帧率限制，120fps+ 流畅动画
+- **🐍 PySide6 原生**：无缝集成，Python 侧管理业务逻辑，不碰 C++
+- **📦 控件齐全**：按钮 / 输入 / 卡片 / 对话框 / 表格 / 图表 / 导航等全套
+- **💾 配置系统**：JSON 持久化 + 原子写入 + QML Property 桥接
+- **🔄 响应式状态**：细粒度 Store 状态管理，支持 watch / batch 模式
+- **🪟 窗口管理**：多种窗口布局 + 懒加载 + 云母效果 + 系统托盘
+- **🌍 跨平台**：Windows、macOS、Linux
 
 ## 📦 安装
 
@@ -85,7 +95,31 @@ window = app.create_window(WindowType.BAR)
 window = app.create_window(WindowType.SPLIT)
 ```
 
-## 🎨 主题系统
+## 🎨 皮肤系统（核心）
+
+PrismQML 的招牌能力：**皮肤与明暗正交**。`skin` 控制设计语言，`theme` 控制明暗，两者独立组合。
+
+```python
+from prismqml import setSkin, Skin
+
+setSkin(Skin.FLUENT)          # Fluent Design：圆角、模糊阴影、蓝主色
+setSkin(Skin.NEOBRUTALISM)    # 新粗野：粗黑边、硬阴影、橙撞色
+```
+
+QML 侧通过 `Enums.skin` / `Enums.isNeobrutalism` 读取当前皮肤：
+
+```qml
+import PrismQML
+Rectangle {
+    radius: Enums.isNeobrutalism ? 0 : Enums.radius.small
+    // 但大多数情况你无需判断——控件已自动适配皮肤
+}
+```
+
+**架构亮点**：皮肤差异收敛在 token 层（颜色 / 几何 / 阴影），控件本身对皮肤无感知。
+新增第三套皮肤只需扩展 token，几乎不动控件代码。
+
+## 🌗 主题系统
 
 ### 切换主题
 
