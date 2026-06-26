@@ -295,22 +295,34 @@ Item {
                 width: componentContainer.width
                 height: componentContainer.height
                 sourceComponent: control.pageComponents[index]
-                active: !control.lazyLoading || index === control.currentIndex || control._loaders[index]?.active
+                // latch 用独立布尔 _loadOnce(同 sourceLoader 做法): 不命令式写 active
+                // (Loader 已是绑定, 命令式写会破绑定), 也不自引用 _loaders[index].active
+                // (slice 重建会连锁触发全页一启动就 active, 懒加载失效)。
+                // _loadOnce 初始 false → 初始 active 仅跟 index===currentIndex(只当前页);
+                // 页面一旦被激活/加载完成即锁 _loadOnce=true, 切走再切回仍 active。
+                property bool _loadOnce: false
+                onActiveChanged: if (active) _loadOnce = true
+                active: !control.lazyLoading || index === control.currentIndex || _loadOnce
                 visible: index === control._displayIndex
                 opacity: index === control._displayIndex ? 1 : 0
                 scale: 1
                 transformOrigin: Item.Center
                 asynchronous: control.lazyLoading
-                
+
                 property int pageIndex: index
-                
+
                 Component.onCompleted: {
                     var loaders = control._loaders.slice()
                     loaders[index] = componentLoader
                     control._loaders = loaders
                 }
-                
-                onLoaded: control.pageLoaded(index)
+
+                // onLoaded 是"已加载"权威信号, 补锁兜底(同 sourceLoader):
+                // 初始当前页 active 默认即 true、值未变 → onActiveChanged 不触发 → 漏锁。
+                onLoaded: {
+                    _loadOnce = true
+                    control.pageLoaded(index)
+                }
             }
         }
     }
@@ -369,7 +381,7 @@ Item {
     LazyLoadingHelper {
         id: lazyHelper
         anchors.fill: parent
-        visible: control.lazyLoading && control._useSourceMode
+        visible: control.lazyLoading && (control._useSourceMode || control.pageComponents.length > 0)
         loaders: control._loaders
         targetIndex: control.currentIndex
         currentVisibleIndex: control._displayIndex
@@ -426,7 +438,11 @@ Item {
 
         // QML lazy loading mode: use LazyLoadingHelper
         // QML懒加载模式：使用LazyLoadingHelper
-        if (lazyLoading && _useSourceMode && !_isPageLoaded(currentIndex)) {
+        // ✅ 两种 lazy 模式统一走 helper(去掉 _useSourceMode 限定): pageComponents
+        // 模式 Loader 同为 asynchronous 异步孵化, 不等加载完成就 _doAnimation 会把
+        // 还没孵化好的新页推上来、旧页移走(表现为"懒加载未完成就被移除")。helper
+        // 经 isPageLoadedFunc/activateLoaderFunc 回调操作 Loader, 不依赖 source, 两模式通用。
+        if (lazyLoading && !_isPageLoaded(currentIndex)) {
             // 不回退 currentIndex: 旧页靠 _displayIndex(仍为旧值)保持可见,
             // loading 完成后由 LazyLoadingHelper.onLoadingComplete 更新 _displayIndex。
             lazyHelper.showLoadingAndSwitch(currentIndex)
