@@ -392,6 +392,9 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
    - `prismqml/__init__.py` 的 `__version__ = "x.y.z"`（回退值）
 2. **验证**：发布前 headless 跑一遍确认无新增 QML 警告/错误
    （`QT_QPA_PLATFORM=offscreen` + 加载关键组件，零 `unavailable`/`Duplicate`/属性覆盖警告）。
+   - 工具 = `QT_QPA_PLATFORM=offscreen python tests/qml/probe_all_components.py`（遍历 qmldir 全组件 createComponent）。
+   - 🔴 **probe 退出码 1 + 约 7 个 `Required property ... was not initialized` 失败是既有基线，不是回归**：ButtonContent / ButtonDropdown / ButtonProgress / ListWidgetItem / SettingsCardContent / HorizontalScrollMixin / ViewportMixin 等是内部子模块，设计上必须由父组件传入 `required property`，单独 createComponent 必然报未初始化。基线约 `163 OK / 7 失败 / 5 跳过 = 175`。
+   - 🔴 **判是否新增回归的权威法**：`git worktree add /tmp/baseline <改动前 commit>`，从主 venv 把编译好的 `prismqml_rs*.pyd` cp 进去 + `PYTHONPATH=/tmp/baseline` 跑同一 probe，对比 OK/失败/跳过三个数字是否一致；一致即零新增。别看到 exit 1 就当发版被卡。
 3. **提交**：`git add -A && git commit`（commit message 写清修复内容 + 版本号）。
 4. **打 tag + 推送**：
    ```bash
@@ -400,6 +403,10 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
    git push github vx.y.z
    ```
 5. **建 GitHub Release**：`gh release create vx.y.z --repo aki-riko/PrismQML --title "vx.y.z" --notes "..."`
+6. **下游消费者生效（🔴 发版 ≠ 下游自动更新）**：下游应用（Gitora / quicksketch / Kaleidos 等）各自带**独立 `.venv`**，且 `.venv` 被 gitignore——它们装的是 PyPI 包 `prismqml`，**不随引擎源码推送而更新**。引擎发版后，每个下游需：
+   - `pip install -U prismqml==x.y.z`（升级各自 venv 里的包），
+   - 然后**重新打包**（Nuitka）。打包态把 prismqml 整包嵌进 exe，**旧 exe 不重打包则修复不生效**（如 AUMID 这类在导入/启动时生效的逻辑，必须重打包才落到二进制）。
+   - 修源码时若直接改了某个下游 venv 内的 prismqml 副本（如热修验证），记得全盘 `find -path "*prismqml*<改的文件>"` 扫所有副本（源库 + 各 venv）按 md5 对齐，避免只改一份。
 
 ### 认证注意（🔴 安全）
 
