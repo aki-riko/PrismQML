@@ -61,7 +61,8 @@ Widget {
  radius: card.radius
  color: _shadowColor
  blur: _shadowBlur
- offset: Qt.vector2d(0, _shadowOffset)
+ offset.x: 0
+ offset.y: _shadowOffset
  visible: !Enums.isNeobrutalism
 
  // Shadow properties based on type and state 根据类型和状态计算阴影

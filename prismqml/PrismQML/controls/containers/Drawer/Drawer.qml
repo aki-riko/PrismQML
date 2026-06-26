@@ -70,7 +70,8 @@ OverlayDialogCore {
         radius: Enums.radius.none
         color: Enums.shadow.level28.color
         blur: Enums.shadow.level28.blur
-        offset: Qt.vector2d(0, Enums.shadow.level28.offset)
+        offset.x: 0
+        offset.y: Enums.shadow.level28.offset
         visible: control._isOpen || control._isClosing
     }
     

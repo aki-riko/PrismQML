@@ -160,7 +160,8 @@ Rectangle {
                                  || _staticFallbackShadow
         color: _activeLevel ? _activeLevel.color : "transparent"
         blur: _activeLevel ? _activeLevel.blur : 0
-        offset: Qt.vector2d(0, _activeLevel ? _activeLevel.offset : 0)
+        offset.x: 0
+        offset.y: _activeLevel ? _activeLevel.offset : 0
 
         Behavior on blur {
             enabled: root.animated && hoverElevation

@@ -387,7 +387,8 @@ Item {
             radius: control.popupRadius
             color: Enums.shadow.level4.color
             blur: Enums.shadow.level4.blur
-            offset: Qt.vector2d(0, Enums.shadow.level4.offset)
+            offset.x: 0
+            offset.y: Enums.shadow.level4.offset
             opacity: popupPanel.opacity
             visible: !Enums.isNeobrutalism
         }

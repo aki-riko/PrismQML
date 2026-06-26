@@ -165,7 +165,8 @@ Item {
         radius: Enums.radius.large
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
-        offset: Qt.vector2d(0, Enums.shadow.level2.offset)
+        offset.x: 0
+        offset.y: Enums.shadow.level2.offset
     }
 
     NeoShadow {
