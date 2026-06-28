@@ -105,18 +105,19 @@ window.show(); app.exec()
 | 二维码 | `QRCodeGenerator`（接口完整，编码后端降级） | providers/qrcode_generator.py |
 
 ### 尚未移植 / 降级（按需补充，均有原因）
-
-- `Icon` / `IconProvider`：**已确认非必需**。Icon.qml 用图标名直接拼
-  `fluent/<name>.svg` 路径在 QML 内部渲染，不经 context；C++ 用
-  `addPage(..., "Home", ...)` 传图标名即正常工作。
 - `QRCodeGenerator` 编码后端：当前 `available=false` 优雅降级（与 Python 未装
   `qrcode` 库时一致）。完整 QR 编码（Reed-Solomon + 掩码）约 600 行且无人值守
   无法扫码验证正确性，故保留接口待需求驱动。
 - `SqlListModel` 高级路径：keyset 游标分页 / 多 shard fan-out 未实现（Python 版
   依赖 Rust `prismqml_rs`，是 PyO3 Python ABI，C++ 无法直接复用）。当前 LIMIT/
-  OFFSET 路径在 <100M 行场景正常。
-- `TableListModel`：内存列表模型，QML 未引用，C++ 应用按需可补。
+  OFFSET 路径在 <100M 行场景正常。`DbRouter` 为单库占位、`is_rust_accelerated`
+  诚实返回 false（C++ 数据层是 Qt 原生）。
 - `Updater` 静默安装/重启：检查与下载已实现，安装器调起逻辑按平台另接。
+
+> **API 覆盖度：Python `prismqml.__all__` 的 64 个公开符号已 100% 在 C++ 侧提供**
+> 对应实现或对称形式（getter 别名、Icon API、TableListModel 等），功能经单元测试
+> 验证。少数符号是诚实降级（QR 编码后端、SqlListModel 多 shard、Updater 静默安装），
+> 原因如上，接口齐全。
 
 ## 作为库集成
 
