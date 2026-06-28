@@ -102,9 +102,22 @@ if(PRISM_BUILD_DEMO)
         endforeach()
         file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
              "<RCC>\n  <qresource prefix=\"/\">\n${_qrc_body}  </qresource>\n</RCC>\n")
-        target_sources(prism_demo PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc")
-        set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
-             PROPERTIES AUTORCC ON)
+        # 用 rcc 显式预编译 qrc -> cpp (最可控, 不依赖 AUTORCC 对生成qrc的处理)
+        # rcc 在 host Qt 的 libexec 或 bin
+        find_program(PRISM_RCC NAMES rcc
+            PATHS "${QT_HOST_PATH}/bin" "${QT_HOST_PATH}/libexec"
+            NO_DEFAULT_PATH)
+        if(NOT PRISM_RCC)
+            find_program(PRISM_RCC NAMES rcc)
+        endif()
+        set(_qrc_cpp "${CMAKE_CURRENT_BINARY_DIR}/qrc_prism_qml.cpp")
+        add_custom_command(
+            OUTPUT "${_qrc_cpp}"
+            COMMAND "${PRISM_RCC}" --name prism_qml
+                    -o "${_qrc_cpp}" "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
+            DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
+            VERBATIM)
+        target_sources(prism_demo PRIVATE "${_qrc_cpp}")
         target_compile_definitions(prism_demo PRIVATE PRISM_QML_FROM_QRC)
     endif()
 endif()
