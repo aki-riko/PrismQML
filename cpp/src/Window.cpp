@@ -4,6 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - Window 实现 (镜像 _window_builder.py + _page_manager.py)
 #include "prism/Window.h"
+#include "prism/Platform.h"
 
 #include <QQmlEngine>
 #include <QQmlComponent>
@@ -254,8 +255,15 @@ QQuickItem *Window::findChildByName(const QString &name) const {
 void Window::show() {
     if (!m_built)
         build();
-    if (m_root)
-        m_root->setProperty("visible", true);
+    if (!m_root)
+        return;
+#if PRISM_MOBILE
+    // 移动端: 全屏单窗口 (无边框/标题栏概念)
+    // QWindow::Visibility::FullScreen = 5
+    m_root->setProperty("visibility", 5);
+#else
+    m_root->setProperty("visible", true);
+#endif
 }
 
 }  // namespace prism

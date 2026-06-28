@@ -15,6 +15,7 @@
 #include "prism/SvgImageProvider.h"
 #include "prism/QRCodeGenerator.h"
 #include "prism/ScreenEyedropper.h"
+#include "prism/PlatformInfo.h"
 
 #include <QQmlEngine>
 #include <QQmlContext>
@@ -37,6 +38,8 @@ void registerTypes(QQmlEngine *engine, const QString &importPath) {
     ctx->setContextProperty(QStringLiteral("QRCodeGenerator"), QRCodeGenerator::instance());
     ctx->setContextProperty(QStringLiteral("ScreenEyedropperManager"),
                             ScreenEyedropperManager::instance());
+    // 移动端触摸适配地基 (QML 防御式可选读取 isMobile/isCompact/touchTargetSize)
+    ctx->setContextProperty(QStringLiteral("PlatformInfo"), PlatformInfo::instance());
 
     // ==================== image provider 注入 ====================
     // 引擎接管 provider 所有权; 用 new 实例避免单例被 engine 析构二次释放。

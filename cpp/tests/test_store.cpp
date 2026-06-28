@@ -8,6 +8,7 @@
 #include "prism/Updater.h"
 #include "prism/SqlListModel.h"
 #include "prism/ConfigManager.h"
+#include "prism/PlatformInfo.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -181,6 +182,19 @@ int main(int argc, char *argv[]) {
         // 恢复真实配置文件
         if (hadFile) { QFile::remove(path); QFile::copy(backup, path); QFile::remove(backup); }
         else { QFile::remove(path); }
+    }
+
+    qInfo() << "=== PlatformInfo 测试(本机 Windows 桌面) ===";
+    {
+        PlatformInfo *pf = PlatformInfo::instance();
+        CHECK(!pf->isMobile(), "桌面 isMobile=false");
+        CHECK(pf->platformName() == QStringLiteral("windows"), "platformName=windows");
+        CHECK(!pf->isTouch(), "桌面默认 isTouch=false");
+        CHECK(pf->touchTargetSize() == 32, "桌面 touchTargetSize=32");
+        CHECK(pf->screenWidth() >= 0, "screenWidth 可读");
+        // 窄屏判据: 桌面宽屏应非 compact (除非真窄屏)
+        CHECK(pf->isCompact() == (pf->screenWidth() > 0 && pf->screenWidth() < 600),
+              "isCompact 与屏宽断点一致");
     }
 
     qInfo() << "";

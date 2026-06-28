@@ -29,6 +29,7 @@ add_library(prism STATIC
     src/ScreenEyedropper.cpp
     src/QRCodeGenerator.cpp
     src/SqlListModel.cpp
+    src/PlatformInfo.cpp
     src/Registry.cpp
     src/App.cpp
     src/Window.cpp
@@ -51,6 +52,8 @@ add_library(prism STATIC
     include/prism/ScreenEyedropper.h
     include/prism/QRCodeGenerator.h
     include/prism/SqlListModel.h
+    include/prism/Platform.h
+    include/prism/PlatformInfo.h
     include/prism/Registry.h
     include/prism/App.h
     include/prism/Window.h
