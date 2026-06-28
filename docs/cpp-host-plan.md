@@ -32,14 +32,16 @@
   - 修复 navigateTo 编程式导航不触发懒加载的真 bug。
   - cpp/ANDROID.md 完整构建指南。
   - ✅ **Android apk 完整构建成功**：工具链全装齐（Qt android+JDK17+SDK+NDK r27c），
-    交叉编译 arm64-v8a，QML 资源 rcc 打包进 so，prism_demo.apk 52MB，BUILD SUCCESSFUL。
+    交叉编译 arm64-v8a + x86_64，QML 资源 rcc 打包进 so，BUILD SUCCESSFUL。
+  - ✅ **真机(emulator)运行成功**：x86_64 apk 在 WHPX 加速 emulator 端到端跑通——
+    Qt 启动 → prism::App+ThemeManager(accent #F97316) → SqlListModel 查 10 行 →
+    addPage 4 页 → DEMO_OK → 进程常驻 → 截屏 320x640/94 色/非黑 80% UI 真实渲染。
   - ✅ **触摸适配（导航壳层）**：BottomTabBar 新组件 + WindowsBar 窄屏响应式，
     程序化验证 nb/bt visible 切换（桌面零回归，Python 加载兼容）。
-  - ⬜ 真机/模拟器运行：本机无 Android 设备 + CPU 固件虚拟化禁用（emulator 跑不了）。
   - ⬜ 80 控件触摸态细化：渐进工作，PlatformInfo 地基已备。
 
-**结论**：C++ 桌面一等宿主完整可交付；移动端代码层完整、apk 真实构建成功，
-真机运行待有设备且开启虚拟化的环境。
+**结论**：C++ 桌面一等宿主完整可交付；移动端 apk 真实构建并在 emulator 端到端
+运行成功（UI 渲染坐实）。整套引擎 C++ 化、全平台覆盖目标达成。
 
 ## 一、预研结论（已坐实）
 

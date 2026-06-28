@@ -106,21 +106,30 @@ height: (typeof PlatformInfo !== "undefined" && PlatformInfo.isTouch)
 - ✅ **交叉编译通过**：libprism.a / libprism_demo_arm64-v8a.so（NDK r27c, arm64-v8a）
 - ✅ **QML 资源 qrc 打包**：rcc 预编译 2880 个资源(323 qml/29 qmldir/2497 svg/
   20 json + demo pages)嵌入 so（4.9MB→9.7MB）
-- ✅ **完整 apk 构建成功**：`prism_demo.apk` 52MB（39 个 Qt6 arm64 so + 引擎 QML），
-  `cpp/build_android.bat` 一键构建，BUILD SUCCESSFUL
-- ⬜ 真机/模拟器**运行**：本机无物理 Android 设备；CPU 固件虚拟化被禁用
-  (VirtualizationFirmwareEnabled=False)，Android emulator 无法启动（需 BIOS 开
-  VT-x，物理操作）。apk 构建与资源完整性已验证，运行验证待有设备的环境。
+- ✅ **完整 apk 构建成功**：`prism_demo.apk`（arm64 52MB / x86_64 74MB），
+  `cpp/build_android.bat`(arm64) / `build_android_x64.bat`(x86_64) 一键构建。
+- ✅ **真机(emulator)运行成功**：x86_64 apk 在 Android emulator(WHPX 加速)端到端
+  跑通——Qt platform plugin started → prism::App+ThemeManager(accent #F97316) →
+  SqlListModel 查 10 行 → addPage 4 页 → DEMO_OK 窗口创建 → 进程常驻 → 截屏
+  320x640/94 色/非黑 80% UI 真实渲染。
 - 🟡 触摸适配：导航壳层窄屏底部 Tab 已做（BottomTabBar + WindowsBar 响应式，
   程序化验证 nb/bt visible 切换）；80 控件的触摸态/尺寸细化为渐进工作（PlatformInfo
   地基已备）。
 
 ### 关键踩坑记录
 
-- **Gradle 必须配代理**：Gradle 不读 `http_proxy` 环境变量，需 `~/.gradle/
-  gradle.properties` 写 `systemProp.https.proxyHost/Port`，否则卡在 AGP 依赖下载。
-- **compileSdk 要 android-35**：AGP 的 AAR metadata 检查要求，android-34 会
-  `CheckAarMetadataWorkAction` 失败。
-- **QML 资源用 rcc 显式预编译**：AUTORCC 对 CMake 生成的 .qrc 不可靠，用
-  `rcc --name xxx -o qrc_xxx.cpp xxx.qrc` + target_sources 最可控。
-- **QT_HOST_PATH 必传**：Android Qt 需 desktop Qt 提供 moc/rcc 等主机工具。
+- **x86 主机 emulator 不支持 arm64 镜像**（新版 emulator 移除 arm 转译）→ 真机
+  验证须 x86_64 apk(补装 Qt android_x86_64) + x86_64 系统镜像。
+- **apk 必须签名**才能装（release apk 无签名报 INSTALL_PARSE_FAILED_NO_CERTIFICATES）
+  → debug keystore + apksigner。
+- **QML 模块必须链接对应 Qt target**：WindowsBar 依赖 QtQuick.Effects/Layouts，
+  qmlimportscanner 扫不到 qrc/运行时拼接的 import → prism 链接 Qt6::QuickEffects/
+  QuickLayouts/QuickControls2, androiddeployqt 据链接依赖打包 QML plugin。
+  (QuickShapes 无公开 Config 只有 Private, 不能 find_package。)
+- **AVD config sysdir 路径重复**(android-sdk\ 前缀) → 改 config.ini image.sysdir.1。
+- **虚拟化"已开"判断**: Hyper-V 运行时 WMI VirtualizationFirmwareEnabled 报 False
+  是表象(宿主跑在 hypervisor 上), 实际 WHPX 加速可用。
+- **Gradle 必须配代理**：~/.gradle/gradle.properties systemProp.https.proxyHost/Port。
+- **compileSdk 要 android-35**：AGP AAR metadata 检查要求。
+- **QML 资源用 rcc 显式预编译**：AUTORCC 对 CMake 生成的 .qrc 不可靠。
+- **QT_HOST_PATH 必传** desktop Qt 路径(取 moc/rcc 主机工具)。
