@@ -92,7 +92,22 @@ if(PRISM_BUILD_TESTS)
     target_link_libraries(prism_test_mica PRIVATE prism)
 endif()
 
-# ==================== 安装 / 导出 (let other projects find_package(prism)) ====================
+# ==================== 移动端条件编译分支验证 ====================
+# 桌面编译器 + 强制 PRISM_MOBILE 编译全库, 验证移动端分支语法/类型正确
+# (不验证 Android 运行, 仅坐实移动分支不是写错的代码)
+option(PRISM_VERIFY_MOBILE "Compile a mobile-branch variant to verify conditional code" ON)
+if(PRISM_VERIFY_MOBILE)
+    add_library(prism_mobile_verify STATIC
+        src/Window.cpp src/PlatformInfo.cpp src/App.cpp
+        include/prism/Window.h include/prism/PlatformInfo.h include/prism/App.h
+        # Window.cpp 依赖的其余符号由桩满足? 不, 它依赖全库; 改为编译全部源
+    )
+    target_compile_definitions(prism_mobile_verify PRIVATE PRISM_FORCE_MOBILE_TEST)
+    target_include_directories(prism_mobile_verify PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+    target_link_libraries(prism_mobile_verify PUBLIC
+        Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Svg Qt6::Widgets Qt6::Network Qt6::Sql)
+endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 

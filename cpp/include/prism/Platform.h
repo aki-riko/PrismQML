@@ -8,7 +8,8 @@
 #include <QtGlobal>
 
 // 移动平台 (iOS / Android): 无窗口装饰/托盘/单实例/自更新概念, 全屏单窗口
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+// PRISM_FORCE_MOBILE_TEST: 仅供桌面编译器验证移动端条件编译分支语法正确性
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined(PRISM_FORCE_MOBILE_TEST)
 #  define PRISM_MOBILE 1
 #else
 #  define PRISM_MOBILE 0
