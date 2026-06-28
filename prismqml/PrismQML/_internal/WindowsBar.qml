@@ -81,6 +81,10 @@ NavigationWindowCore {
                 anchors.fill: parent
                 property alias navAlias: navigationBar
                 property alias stackAlias: stack
+
+                // 窄屏/移动端: 导航移到底部 (防御式读 PlatformInfo, 桌面无则 false)
+                readonly property bool _compactNav:
+                    typeof PlatformInfo !== "undefined" && PlatformInfo.isCompact
                 
         // 点击空白区域清除输入焦点（z极低，确保在所有内容之下）
         MouseArea {
@@ -91,10 +95,13 @@ NavigationWindowCore {
         
         NavigationBar {
             id: navigationBar
+            objectName: "navigationBar"
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.topMargin: contentTopMargin
             anchors.bottom: parent.bottom
+            visible: !parent._compactNav   // 窄屏隐藏左侧栏, 改用底部 Tab
+            width: parent._compactNav ? 0 : implicitWidth
             model: window.navigationItems
             bottomItems: window.bottomNavigationItems
             // Mica active: transparent to show Mica, Mica inactive: opaque background 云母激活：透明显示云母，云母关闭：不透明背景
@@ -113,13 +120,28 @@ NavigationWindowCore {
             }
         }
 
+        BottomTabBar {
+            id: bottomTabBar
+            objectName: "bottomTabBar"
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            visible: parent._compactNav
+            model: window.navigationItems
+            currentIndex: window.currentIndex
+            onItemClicked: (index) => {
+                window.currentIndex = index
+                window.currentPageChanged(index)
+            }
+        }
+
         ContentFrame {
             id: contentFrame
-            anchors.left: navigationBar.right
+            anchors.left: parent._compactNav ? parent.left : navigationBar.right
             anchors.top: parent.top
             anchors.topMargin: contentTopMargin
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: parent._compactNav ? bottomTabBar.top : parent.bottom
             backgroundColor: window.contentBgColor
             cornerRadius: window.contentCornerRadius
 

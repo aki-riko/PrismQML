@@ -60,6 +60,10 @@ int PlatformInfo::screenWidth() const {
 }
 
 bool PlatformInfo::isCompact() const {
+    // 测试钩子: 强制窄屏验证底部 Tab 布局
+    if (QProcessEnvironment::systemEnvironment()
+            .value(QStringLiteral("PRISM_FORCE_COMPACT")) == QLatin1String("1"))
+        return true;
     const int w = screenWidth();
     // 窄屏断点 600px (Material): 导航应改底部 Tab/抽屉
     return isMobile() || (w > 0 && w < 600);

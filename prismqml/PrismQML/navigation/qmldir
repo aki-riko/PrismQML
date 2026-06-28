@@ -1,5 +1,6 @@
 module navigation
 NavigationBar NavigationBar.qml
+BottomTabBar BottomTabBar.qml
 NavigationBarItem NavigationBarItem.qml
 NavigationView NavigationView.qml
 NavigationViewItem NavigationViewItem.qml

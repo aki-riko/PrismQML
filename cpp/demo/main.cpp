@@ -107,7 +107,16 @@ int main(int argc, char *argv[]) {
     if (!grabPath.isEmpty()) {
         if (auto *qw = qobject_cast<QQuickWindow *>(w.rootObject())) {
             w.navigateTo(1);  // 切到 DataPage 验证页面懒加载+SqlListModel渲染
-            QTimer::singleShot(1800, [qw, grabPath]() {
+            QObject *rootObj = w.rootObject();
+            QTimer::singleShot(1800, [qw, grabPath, rootObj]() {
+                // 诊断: Loader 异步加载完后查导航 visible (验证响应式导航切换)
+                QObject *bt = rootObj->findChild<QObject *>(QStringLiteral("bottomTabBar"));
+                QObject *nb = rootObj->findChild<QObject *>(QStringLiteral("navigationBar"));
+                qInfo() << "NAV_DIAG bottomTabBar.visible ="
+                        << (bt ? bt->property("visible").toBool() : false)
+                        << "navigationBar.visible ="
+                        << (nb ? nb->property("visible").toBool() : false)
+                        << "(bt:" << (bt != nullptr) << "nb:" << (nb != nullptr) << ")";
                 QImage img = qw->grabWindow();
                 if (!img.isNull() && img.save(grabPath))
                     qInfo().noquote() << "PRISM_GRABBED" << grabPath
