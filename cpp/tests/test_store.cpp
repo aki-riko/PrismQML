@@ -5,9 +5,15 @@
 // PrismQML C++ 宿主 - Store/Logger 单元测试 (验证阶段4 纯逻辑能力)
 #include "prism/Store.h"
 #include "prism/Logger.h"
+#include "prism/Updater.h"
+#include "prism/SqlListModel.h"
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QSqlDatabase>
+#include <QSqlQuery>
 #include <vector>
 
 static int g_failed = 0;
@@ -88,6 +94,58 @@ int main(int argc, char *argv[]) {
     log::debug(QStringLiteral("这条不该出现(级别过滤)"));
     log::error(QStringLiteral("Logger error 测试(应出现)"));
     CHECK(true, "Logger 调用无崩溃");
+
+    qInfo() << "=== Updater 版本比较测试 ===";
+    CHECK(versionIsNewer("v1.0.1", "v1.0.0"), "1.0.1 > 1.0.0");
+    CHECK(versionIsNewer("v1.2.0", "v1.1.9"), "1.2.0 > 1.1.9");
+    CHECK(!versionIsNewer("v1.0.0", "v1.0.0"), "1.0.0 不新于自身");
+    CHECK(!versionIsNewer("v1.0.0", "v1.0.1"), "1.0.0 不新于 1.0.1");
+    CHECK(versionIsNewer("v1.0.0", "v1.0.0-beta"), "正式版 > 预发布");
+    CHECK(!versionIsNewer("v1.0.0-beta", "v1.0.0"), "预发布 < 正式版");
+    CHECK(versionIsNewer("v2.0.0", "v1.9.9"), "主版本号优先");
+
+    qInfo() << "=== SqlListModel 测试 ===";
+    {
+        // 建临时 SQLite + 插数据 + setQuery 验证
+        QString dbPath = QDir::tempPath() + "/prism_test.db";
+        QFile::remove(dbPath);
+        {
+            QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "seed");
+            db.setDatabaseName(dbPath);
+            db.open();
+            QSqlQuery q(db);
+            q.exec("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, val INTEGER)");
+            for (int i = 1; i <= 250; ++i)
+                q.exec(QString("INSERT INTO items (id,name,val) VALUES (%1,'item%1',%2)")
+                           .arg(i).arg(i * 10));
+            db.close();
+        }
+        QSqlDatabase::removeDatabase("seed");
+
+        SqlListModel model;
+        CHECK(model.openDatabase(dbPath), "打开 SQLite");
+        model.setQuery("SELECT id, name, val FROM items ORDER BY id",
+                       "SELECT COUNT(*) FROM items");
+        CHECK(model.count() == 250, "count == 250");
+        CHECK(model.rowCount() == 250, "rowCount == 250");
+
+        // getRow(0) 第一行
+        QVariantMap r0 = model.getRow(0);
+        CHECK(r0.value("id").toInt() == 1 && r0.value("name").toString() == "item1",
+              "getRow(0) 正确");
+        // getRow(199) 跨页(pageSize=100, 第2页)
+        QVariantMap r199 = model.getRow(199);
+        CHECK(r199.value("id").toInt() == 200 && r199.value("val").toInt() == 2000,
+              "getRow(199) 跨页正确");
+        // data() 经 role 读取
+        auto roles = model.roleNames();
+        int nameRole = roles.key("name", -1);
+        CHECK(nameRole != -1, "roleNames 含 name 列");
+        QVariant nameVal = model.data(model.index(5, 0), nameRole);
+        CHECK(nameVal.toString() == "item6", "data(row5, name) == item6");
+
+        QFile::remove(dbPath);
+    }
 
     qInfo() << "";
     if (g_failed == 0)

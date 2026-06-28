@@ -13,6 +13,8 @@
 #include "prism/WindowHelper.h"
 #include "prism/AcrylicHelper.h"
 #include "prism/SvgImageProvider.h"
+#include "prism/QRCodeGenerator.h"
+#include "prism/ScreenEyedropper.h"
 
 #include <QQmlEngine>
 #include <QQmlContext>
@@ -32,15 +34,19 @@ void registerTypes(QQmlEngine *engine, const QString &importPath) {
     ctx->setContextProperty(QStringLiteral("ClipboardHelper"), ClipboardHelper::instance());
     ctx->setContextProperty(QStringLiteral("WindowHelper"), WindowHelper::instance());
     ctx->setContextProperty(QStringLiteral("AcrylicHelper"), AcrylicHelper::instance());
+    ctx->setContextProperty(QStringLiteral("QRCodeGenerator"), QRCodeGenerator::instance());
+    ctx->setContextProperty(QStringLiteral("ScreenEyedropperManager"),
+                            ScreenEyedropperManager::instance());
 
     // ==================== image provider 注入 ====================
     // 引擎接管 provider 所有权; 用 new 实例避免单例被 engine 析构二次释放。
     engine->addImageProvider(QStringLiteral("svg"), new SvgImageProvider());
     engine->addImageProvider(QStringLiteral("acrylic"),
                              AcrylicHelper::instance()->imageProvider());
+    engine->addImageProvider(QStringLiteral("qrcode"), new QRCodeImageProvider());
 
-    // TODO(后续): QRCodeGenerator / ScreenEyedropperManager / IconProvider(Icon)
-    //   QML 控件实测不直接调 Icon. context(用自带 FluentEnums/Icons.qml), 故 IconProvider 非必需。
+    // TODO(后续): IconProvider(Icon) — QML 控件实测不调 Icon. context(用自带
+    //   FluentEnums/Icons.qml), 故非必需。Updater/SqlListModel 由应用按需 new。
 
     // import path (镜像 addImportPath(qml_path().parent))
     if (!importPath.isEmpty())
