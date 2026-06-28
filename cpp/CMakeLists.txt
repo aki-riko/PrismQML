@@ -74,3 +74,37 @@ if(PRISM_BUILD_TESTS)
     qt_add_executable(prism_test_store tests/test_store.cpp)
     target_link_libraries(prism_test_store PRIVATE prism)
 endif()
+
+# ==================== 安装 / 导出 (let other projects find_package(prism)) ====================
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(TARGETS prism
+    EXPORT prismTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(DIRECTORY include/prism DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(EXPORT prismTargets
+    FILE prismTargets.cmake
+    NAMESPACE prism::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/prism
+)
+
+# 生成 prismConfig.cmake (转发 Qt6 依赖查找)
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/prismConfig.cmake.in"
+"@PACKAGE_INIT@\n\
+include(CMakeFindDependencyMacro)\n\
+find_dependency(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network)\n\
+include(\"\${CMAKE_CURRENT_LIST_DIR}/prismTargets.cmake\")\n")
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/prismConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/prismConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/prism
+)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/prismConfig.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/prism
+)

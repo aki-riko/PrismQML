@@ -6,6 +6,25 @@
 >
 > 本报告所有结论均经真实编译运行验证（非纸面推断）。
 
+## 实现进度（持续更新）
+
+预研结论之后已落地为可用的 C++ 宿主库 `prism`（见 `cpp/`，README 在 `cpp/README.md`）：
+
+- ✅ **阶段 1**：App / Window / ThemeManager 对称 API 跑通（QML 加载、主题注入生效）。
+- ✅ **阶段 2**：8 个注入对象补齐（ConfigManager / ShadowManager / MicaManager /
+  NativeWindow / Clipboard / WindowHelper / Acrylic / SvgImageProvider），
+  QML `ReferenceError` 清零，DWM 阴影 / NativeWindow.attach 真实生效。
+- ✅ **阶段 3**：Window.addPage 导航 + 页面懒加载管理；真实平台渲染验证
+  （1823×1256，accent 色像素级命中）。
+- ✅ **阶段 4**：Store / Logger / SystemTrayIcon / SingleInstance 应用框架能力；
+  单元测试 `prism_test_store` 全通过。
+- ✅ **阶段 5**：CMake 安装导出（`find_package(prism)`）+ README + 本文档。
+- ⬜ **按需**：Icon/QRCode/ScreenEyedropper/Updater/数据模型（Rust FFI）——
+  非核心渲染或应用框架路径，留待具体需求驱动。
+- ⬜ **移动 / WASM**：构建链路 + 触摸适配（控件原为鼠标桌面设计），独立立项。
+
+**结论**：C++ 已能作为与 Python 平等的一等宿主，独立构建完整的 PrismQML 桌面应用。
+
 ## 一、预研结论（已坐实）
 
 ### 1.1 工具链
