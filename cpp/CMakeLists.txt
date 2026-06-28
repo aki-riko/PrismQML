@@ -84,6 +84,9 @@ if(PRISM_BUILD_TESTS)
 
     qt_add_executable(prism_test_system tests/test_system.cpp)
     target_link_libraries(prism_test_system PRIVATE prism)
+
+    qt_add_executable(prism_test_mica tests/test_mica.cpp)
+    target_link_libraries(prism_test_mica PRIVATE prism)
 endif()
 
 # ==================== 安装 / 导出 (let other projects find_package(prism)) ====================
