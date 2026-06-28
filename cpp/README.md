@@ -99,15 +99,24 @@ window.show(); app.exec()
 | 日志 | `prism::log`（debug/info/warning/error + Qt 重定向） | core/logger.py |
 | 系统托盘 | `SystemTrayIcon` | window/system_tray.py |
 | 单实例 | `SingleInstance` | core/single_instance.py |
+| 自动更新 | `Updater`（GitHub releases 检查/下载 + 语义版本比较） | core/updater.py |
+| 屏幕取色 | `ScreenEyedropperManager`（全屏覆盖窗点击取色） | providers/screen_eyedropper.py |
+| 数据模型 | `SqlListModel`（QtSql + 分页 + LRU 缓存） | models/sql_list_model.py |
+| 二维码 | `QRCodeGenerator`（接口完整，编码后端降级） | providers/qrcode_generator.py |
 
-### 尚未移植（按需补充）
+### 尚未移植 / 降级（按需补充，均有原因）
 
-- `Icon` / `IconProvider`：QML 控件用自带 `FluentEnums/Icons.qml`，不经 context，
-  故 C++ 渲染不依赖它；仅当 C++ 代码需查图标值时才需补。
-- `QRCodeGenerator` / `ScreenEyedropperManager`：特定功能模块。
-- `Updater`：自动更新（移动端禁用）。
-- 数据模型 `TableListModel` / `SqlListModel` / `DbRouter`：底层 Rust（`prismqml_rs`），
-  C++ 可直接 FFI，比 Python 绑定更自然。
+- `Icon` / `IconProvider`：**已确认非必需**。Icon.qml 用图标名直接拼
+  `fluent/<name>.svg` 路径在 QML 内部渲染，不经 context；C++ 用
+  `addPage(..., "Home", ...)` 传图标名即正常工作。
+- `QRCodeGenerator` 编码后端：当前 `available=false` 优雅降级（与 Python 未装
+  `qrcode` 库时一致）。完整 QR 编码（Reed-Solomon + 掩码）约 600 行且无人值守
+  无法扫码验证正确性，故保留接口待需求驱动。
+- `SqlListModel` 高级路径：keyset 游标分页 / 多 shard fan-out 未实现（Python 版
+  依赖 Rust `prismqml_rs`，是 PyO3 Python ABI，C++ 无法直接复用）。当前 LIMIT/
+  OFFSET 路径在 <100M 行场景正常。
+- `TableListModel`：内存列表模型，QML 未引用，C++ 应用按需可补。
+- `Updater` 静默安装/重启：检查与下载已实现，安装器调起逻辑按平台另接。
 
 ## 作为库集成
 

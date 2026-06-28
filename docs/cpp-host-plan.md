@@ -19,11 +19,15 @@
 - ✅ **阶段 4**：Store / Logger / SystemTrayIcon / SingleInstance 应用框架能力；
   单元测试 `prism_test_store` 全通过。
 - ✅ **阶段 5**：CMake 安装导出（`find_package(prism)`）+ README + 本文档。
-- ⬜ **按需**：Icon/QRCode/ScreenEyedropper/Updater/数据模型（Rust FFI）——
-  非核心渲染或应用框架路径，留待具体需求驱动。
+- ✅ **阶段 6**：桌面补齐——Updater（语义版本比较 + GitHub releases）/
+  ScreenEyedropperManager（全屏取色）/ QRCodeGenerator（接口完整，编码降级）/
+  SqlListModel（QtSql 分页 + LRU，真实 SQLite 250 行测试通过）。测试 26 断言全 PASS。
+- ⬜ **按需**：完整 QR 编码器 / SqlListModel keyset 游标·多 shard（Rust FFI）/
+  TableListModel / Updater 静默安装——边界明确，需求驱动。
 - ⬜ **移动 / WASM**：构建链路 + 触摸适配（控件原为鼠标桌面设计），独立立项。
 
-**结论**：C++ 已能作为与 Python 平等的一等宿主，独立构建完整的 PrismQML 桌面应用。
+**结论**：C++ 已能作为与 Python 平等的一等宿主，独立构建完整的 PrismQML 桌面应用，
+桌面核心能力基本补齐。
 
 ## 一、预研结论（已坐实）
 
