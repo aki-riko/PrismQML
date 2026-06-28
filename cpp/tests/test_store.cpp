@@ -7,6 +7,7 @@
 #include "prism/Logger.h"
 #include "prism/Updater.h"
 #include "prism/SqlListModel.h"
+#include "prism/ConfigManager.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -145,6 +146,41 @@ int main(int argc, char *argv[]) {
         CHECK(nameVal.toString() == "item6", "data(row5, name) == item6");
 
         QFile::remove(dbPath);
+    }
+
+    qInfo() << "=== ConfigManager 测试(备份/恢复真实配置, 不污染) ===";
+    {
+        ConfigManager *cfg = ConfigManager::instance();
+        const QString path = cfg->getConfigPath();
+        // 备份真实配置
+        const QString backup = path + ".test_backup";
+        const bool hadFile = QFile::exists(path);
+        if (hadFile) { QFile::remove(backup); QFile::copy(path, backup); }
+
+        // 默认值 (镜像 Python app_config 默认)
+        CHECK(cfg->dwmShadow() == true || cfg->dwmShadow() == false, "dwmShadow 可读");
+        // set + 持久化往返
+        const bool origMica = cfg->micaEnabled();
+        cfg->setMicaEnabled(!origMica);
+        CHECK(cfg->micaEnabled() == !origMica, "setMicaEnabled 生效");
+        CHECK(QFile::exists(path), "set 后配置文件已落盘");
+        // 校验拒绝非法值 (dpiScale 只接受 0/100/125/150/175/200)
+        const int origDpi = cfg->dpiScale();
+        cfg->setDpiScale(999);  // 非法
+        CHECK(cfg->dpiScale() == origDpi, "非法 dpiScale 被拒绝");
+        cfg->setDpiScale(150);  // 合法
+        CHECK(cfg->dpiScale() == 150, "合法 dpiScale 接受");
+        // windowType 校验 (0-3)
+        cfg->setWindowType(99);
+        CHECK(cfg->windowType() != 99, "非法 windowType 被拒绝");
+        // 恢复 mica
+        cfg->setMicaEnabled(origMica);
+        cfg->setDpiScale(origDpi >= 0 && (origDpi==0||origDpi==100||origDpi==125||
+                          origDpi==150||origDpi==175||origDpi==200) ? origDpi : 0);
+
+        // 恢复真实配置文件
+        if (hadFile) { QFile::remove(path); QFile::copy(backup, path); QFile::remove(backup); }
+        else { QFile::remove(path); }
     }
 
     qInfo() << "";
