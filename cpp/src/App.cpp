@@ -6,7 +6,7 @@
 #include "prism/App.h"
 #include "prism/Registry.h"
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QDebug>
 
@@ -24,11 +24,11 @@ App::App(int &argc, char **argv, const QString &importPath) {
     // 镜像 Python prismqml/__init__.py: os.environ.setdefault("QML_XHR_ALLOW_FILE_READ","1")
     qputenv("QML_XHR_ALLOW_FILE_READ", "1");
 
-    // 高 DPI 透传 (镜像 Python: PassThrough)
-    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
+    // 高 DPI 透传 (镜像 Python: PassThrough); 静态方法继承自 QGuiApplication
+    QApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
-    m_app = std::make_unique<QGuiApplication>(argc, argv);
+    m_app = std::make_unique<QApplication>(argc, argv);
     m_engine = std::make_unique<QQmlApplicationEngine>();
 
     m_importPath = resolveImportPath(importPath);
