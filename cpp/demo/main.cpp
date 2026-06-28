@@ -13,6 +13,9 @@
 #include <QDir>
 #include <QString>
 #include <QProcessEnvironment>
+#include <QQuickWindow>
+#include <QImage>
+#include <QTimer>
 
 int main(int argc, char *argv[]) {
     using namespace prism;
@@ -51,5 +54,22 @@ int main(int argc, char *argv[]) {
         return 2;
     }
     qInfo() << "DEMO_OK: prism::Window with pages created via C++ host";
+
+    // PRISM_GRAB=<path>: 真实平台下延迟抓取窗口渲染存盘再退出 (验证非空白渲染)
+    const QString grabPath = QProcessEnvironment::systemEnvironment()
+                                 .value(QStringLiteral("PRISM_GRAB"));
+    if (!grabPath.isEmpty()) {
+        if (auto *qw = qobject_cast<QQuickWindow *>(w.rootObject())) {
+            QTimer::singleShot(1500, [qw, grabPath]() {
+                QImage img = qw->grabWindow();
+                if (!img.isNull() && img.save(grabPath))
+                    qInfo().noquote() << "PRISM_GRABBED" << grabPath
+                                      << img.width() << "x" << img.height();
+                else
+                    qWarning() << "PRISM_GRAB_FAIL";
+                QCoreApplication::exit(0);
+            });
+        }
+    }
     return app.exec();
 }
