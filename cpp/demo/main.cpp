@@ -53,6 +53,15 @@ int main(int argc, char *argv[]) {
     qInfo() << "skin =" << skinToString(getSkin())
             << "accent =" << getAccentColor() << "isDark =" << isDark();
 
+#ifdef PRISM_QML_FROM_QRC
+    // Android: QML 从 qrc 资源加载 (addImportPath qrc:/ 找 qrc:/PrismQML/qmldir)
+    app.engine()->addImportPath(QStringLiteral("qrc:/"));
+    const QString pagesDir = QStringLiteral("qrc:/pages");
+    const bool fromQrc = true;
+#else
+    const bool fromQrc = false;
+#endif
+
     // 注入应用级 Store + SqlListModel 给 QML (用 App 的 engine() 逃生口)
     static Store appStore(QStringLiteral("demoStore"));
     appStore.define(QStringLiteral("clicks"), 0);
@@ -67,24 +76,32 @@ int main(int argc, char *argv[]) {
     }
     app.engine()->rootContext()->setContextProperty(QStringLiteral("UserModel"), &userModel);
 
-    // 页面 QML 目录: 环境变量 PRISM_DEMO_PAGES, fallback 到源码相对路径
+#ifndef PRISM_QML_FROM_QRC
+    // 桌面: 页面 QML 磁盘目录 (环境变量或源码相对路径)
     QString pagesDir = QProcessEnvironment::systemEnvironment()
                            .value(QStringLiteral("PRISM_DEMO_PAGES"));
     if (pagesDir.isEmpty())
         pagesDir = QStringLiteral("D:/PrismQML/PrismQML/cpp/demo/pages");
+#endif
+    // 统一页面路径: Android 用 qrc, 桌面用磁盘
+    auto pagePath = [&](const QString &name) -> QString {
+        if (fromQrc)
+            return pagesDir + QLatin1Char('/') + name;       // qrc:/pages/Name.qml
+        return QDir(pagesDir).filePath(name);                // 磁盘绝对路径
+    };
 
     Window &w = app.createWindow(WindowType::Bar);
     w.setWindowTitle(QStringLiteral("PrismQML C++ 宿主 Demo"));
     w.resize(1200, 800);
 
     // 对称 API: addPage(页面QML, 图标, 文本)
-    int home = w.addPage(QDir(pagesDir).filePath(QStringLiteral("HomePage.qml")),
+    int home = w.addPage(pagePath(QStringLiteral("HomePage.qml")),
                          QStringLiteral("Home"), QStringLiteral("首页"));
-    int data = w.addPage(QDir(pagesDir).filePath(QStringLiteral("DataPage.qml")),
+    int data = w.addPage(pagePath(QStringLiteral("DataPage.qml")),
                          QStringLiteral("People"), QStringLiteral("用户"));
-    int settings = w.addPage(QDir(pagesDir).filePath(QStringLiteral("SettingsPage.qml")),
+    int settings = w.addPage(pagePath(QStringLiteral("SettingsPage.qml")),
                              QStringLiteral("Settings"), QStringLiteral("设置"));
-    int resp = w.addPage(QDir(pagesDir).filePath(QStringLiteral("ResponsivePage.qml")),
+    int resp = w.addPage(pagePath(QStringLiteral("ResponsivePage.qml")),
                          QStringLiteral("ResizeLarge"), QStringLiteral("响应式"));
     qInfo() << "addPage -> home" << home << "data" << data << "settings" << settings
             << "responsive" << resp;

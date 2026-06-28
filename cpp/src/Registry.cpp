@@ -61,7 +61,14 @@ QString resolveImportPath(const QString &fallback) {
                             .value(QStringLiteral("PRISMQML_QML_DIR"));
     if (!env.isEmpty())
         return env;
+    if (!fallback.isEmpty())
+        return fallback;
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+    // 移动端: QML 打进 qrc, import path 指向资源根
+    return QStringLiteral("qrc:/");
+#else
     return fallback;
+#endif
 }
 
 }  // namespace prism

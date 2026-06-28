@@ -77,6 +77,36 @@ option(PRISM_BUILD_DEMO "Build the C++ demo app" ON)
 if(PRISM_BUILD_DEMO)
     qt_add_executable(prism_demo demo/main.cpp)
     target_link_libraries(prism_demo PRIVATE prism)
+
+    # Android: QML 资源必须打进 apk(无磁盘路径)。glob PrismQML 引擎 QML + svg +
+    # i18n + demo pages 生成 qrc, prefix "/" 使 addImportPath("qrc:/") 能找到
+    # qrc:/PrismQML/qmldir。demo main.cpp 在 ANDROID 下走 qrc import path。
+    if(ANDROID)
+        set(_pqml_root "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML")
+        file(GLOB_RECURSE _pqml_res RELATIVE "${_pqml_root}"
+             "${_pqml_root}/*.qml" "${_pqml_root}/*.js" "${_pqml_root}/*.svg"
+             "${_pqml_root}/*.json")
+        # qmldir 无扩展名, 单独 glob
+        file(GLOB_RECURSE _pqml_dirs RELATIVE "${_pqml_root}" "${_pqml_root}/qmldir")
+        set(_qrc_body "")
+        foreach(f ${_pqml_res} ${_pqml_dirs})
+            string(APPEND _qrc_body
+                "    <file alias=\"PrismQML/${f}\">${_pqml_root}/${f}</file>\n")
+        endforeach()
+        # demo pages
+        file(GLOB _demo_pages RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/demo"
+             "${CMAKE_CURRENT_SOURCE_DIR}/demo/pages/*.qml")
+        foreach(f ${_demo_pages})
+            string(APPEND _qrc_body
+                "    <file alias=\"${f}\">${CMAKE_CURRENT_SOURCE_DIR}/demo/${f}</file>\n")
+        endforeach()
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
+             "<RCC>\n  <qresource prefix=\"/\">\n${_qrc_body}  </qresource>\n</RCC>\n")
+        target_sources(prism_demo PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc")
+        set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
+             PROPERTIES AUTORCC ON)
+        target_compile_definitions(prism_demo PRIVATE PRISM_QML_FROM_QRC)
+    endif()
 endif()
 
 # ==================== 单元测试 ====================

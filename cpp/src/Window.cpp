@@ -109,8 +109,19 @@ void Window::navigateTo(int index) {
 }
 
 void Window::build() {
-    QString qmlDir = QDir(m_importPath).filePath(QStringLiteral("PrismQML"));
-    qmlDir = QDir::fromNativeSeparators(qmlDir);
+    // Android: m_importPath 为 "qrc:/" → qmlDir="qrc:/PrismQML", import 用 qrc 前缀
+    // 桌面: m_importPath 为磁盘路径 → file:/// 前缀
+    const bool isQrc = m_importPath.startsWith(QStringLiteral("qrc:"));
+    QString qmlDir;
+    QString importPrefix;
+    if (isQrc) {
+        qmlDir = QStringLiteral("qrc:/PrismQML");
+        importPrefix = QString();  // qrc: 路径直接用, 无 file:/// 前缀
+    } else {
+        qmlDir = QDir(m_importPath).filePath(QStringLiteral("PrismQML"));
+        qmlDir = QDir::fromNativeSeparators(qmlDir);
+        importPrefix = QStringLiteral("file:///");
+    }
     const QString component = qmlComponentName(m_type);
 
     // 顶部导航项索引 0..N-1, 底部导航项索引接续 (与 page_N 容器一致)
@@ -129,8 +140,8 @@ void Window::build() {
 
     const QString qml = QStringLiteral(
         "import QtQuick\n"
-        "import \"file:///%1\"\n"
-        "import \"file:///%1/_internal\"\n"
+        "import \"%1\"\n"
+        "import \"%1/_internal\"\n"
         "\n"
         "%2 {\n"
         "    id: window\n"
@@ -143,7 +154,7 @@ void Window::build() {
         "    bottomNavigationItems: [%7]\n"
         "%8"
         "}\n"
-    ).arg(qmlDir, component)
+    ).arg(importPrefix + qmlDir, component)
      .arg(m_width).arg(m_height)
      .arg(escapeQml(m_title), navJson, bottomJson, pagesQml);
 
@@ -203,7 +214,9 @@ void Window::ensurePageCreated(int index) {
     }
 
     // 加载页面 QML 组件
-    QUrl url = item->pageQmlUrl.contains(QStringLiteral("://"))
+    // qrc:/ (Android资源) 或含 scheme:// 的用 QUrl 直接构造, 否则当本地磁盘路径
+    QUrl url = (item->pageQmlUrl.startsWith(QStringLiteral("qrc:"))
+                || item->pageQmlUrl.contains(QStringLiteral("://")))
                    ? QUrl(item->pageQmlUrl)
                    : QUrl::fromLocalFile(item->pageQmlUrl);
     auto *comp = new QQmlComponent(m_engine, url);
