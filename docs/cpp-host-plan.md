@@ -24,10 +24,19 @@
   SqlListModel（QtSql 分页 + LRU，真实 SQLite 250 行测试通过）。测试 26 断言全 PASS。
 - ⬜ **按需**：完整 QR 编码器 / SqlListModel keyset 游标·多 shard（Rust FFI）/
   TableListModel / Updater 静默安装——边界明确，需求驱动。
-- ⬜ **移动 / WASM**：构建链路 + 触摸适配（控件原为鼠标桌面设计），独立立项。
+- 🟡 **阶段 7 移动端（代码层就绪，真机构建待环境）**：
+  - Platform.h 平台条件编译宏 + Window 移动端全屏 + PlatformInfo 触摸适配地基
+    （isMobile/isTouch/touchTargetSize/isCompact），均测试验证。
+  - prism_mobile_verify 库坐实移动分支语法/类型正确（桌面编译器强制 PRISM_MOBILE）。
+  - ResponsivePage 范本 + 真机 grab 坐实 PlatformInfo 响应式生效（触摸按钮 71px>桌面 47px）。
+  - 修复 navigateTo 编程式导航不触发懒加载的真 bug。
+  - cpp/ANDROID.md 完整构建指南。
+  - ⬜ 真机 apk：需 Qt for Android + SDK + NDK + JDK（~7GB），本机无移动工具链未装。
+  - ⬜ 引擎 QML 控件触摸适配（导航壳改底部 Tab、80 控件触摸态）：触及引擎存量 +
+    开放式设计，地基已备，待产品决策后实施。
 
-**结论**：C++ 已能作为与 Python 平等的一等宿主，独立构建完整的 PrismQML 桌面应用，
-桌面核心能力基本补齐。
+**结论**：C++ 桌面一等宿主完整可交付；移动端代码层就绪并验证，真机构建与 QML 控件
+触摸适配待工具链环境与设计决策。
 
 ## 一、预研结论（已坐实）
 
