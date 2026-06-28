@@ -99,8 +99,13 @@ void Window::resize(int width, int height) {
 }
 
 void Window::navigateTo(int index) {
-    if (m_root)
-        QMetaObject::invokeMethod(m_root, "navigateTo", Q_ARG(QVariant, QVariant(index)));
+    if (!m_root)
+        return;
+    // 主动懒加载目标页: QML 的 currentPageChanged 信号仅在【点击导航项】时发,
+    // 编程式 navigateTo 只改 currentIndex 不发该信号, 故这里主动确保页面创建,
+    // 不依赖信号 (信号路径仍由 NavBridge 处理 UI 点击场景)。
+    ensurePageCreated(index);
+    QMetaObject::invokeMethod(m_root, "navigateTo", Q_ARG(QVariant, QVariant(index)));
 }
 
 void Window::build() {

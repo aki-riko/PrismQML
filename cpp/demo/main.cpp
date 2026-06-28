@@ -84,7 +84,10 @@ int main(int argc, char *argv[]) {
                          QStringLiteral("People"), QStringLiteral("用户"));
     int settings = w.addPage(QDir(pagesDir).filePath(QStringLiteral("SettingsPage.qml")),
                              QStringLiteral("Settings"), QStringLiteral("设置"));
-    qInfo() << "addPage -> home" << home << "data" << data << "settings" << settings;
+    int resp = w.addPage(QDir(pagesDir).filePath(QStringLiteral("ResponsivePage.qml")),
+                         QStringLiteral("ResizeLarge"), QStringLiteral("响应式"));
+    qInfo() << "addPage -> home" << home << "data" << data << "settings" << settings
+            << "responsive" << resp;
 
     if (!w.isValid() && (home < 0)) {
         // isValid 在 show() 前为 false 属正常; 这里仅占位
@@ -103,7 +106,7 @@ int main(int argc, char *argv[]) {
                                  .value(QStringLiteral("PRISM_GRAB"));
     if (!grabPath.isEmpty()) {
         if (auto *qw = qobject_cast<QQuickWindow *>(w.rootObject())) {
-            w.navigateTo(1);  // 切到 DataPage 验证 SqlListModel 渲染
+            w.navigateTo(1);  // 切到 DataPage 验证页面懒加载+SqlListModel渲染
             QTimer::singleShot(1800, [qw, grabPath]() {
                 QImage img = qw->grabWindow();
                 if (!img.isNull() && img.save(grabPath))
