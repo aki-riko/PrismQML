@@ -101,5 +101,26 @@ height: (typeof PlatformInfo !== "undefined" && PlatformInfo.isTouch)
 
 - ✅ 代码层条件编译就绪，桌面零回归
 - ✅ PlatformInfo 触摸适配地基（测试验证）
-- ⬜ 真机 apk 构建（需上述 ~7GB 工具链，本机未装）
-- ⬜ QML 控件触摸适配（引擎 QML 改动，独立工作量；地基已备）
+- ✅ **工具链全装齐**：Qt 6.10.3 android_arm64_v8a + JDK 17 + Android SDK
+  (cmdline-tools / platform-tools / android-34+35 / build-tools 34 / NDK r27c)
+- ✅ **交叉编译通过**：libprism.a / libprism_demo_arm64-v8a.so（NDK r27c, arm64-v8a）
+- ✅ **QML 资源 qrc 打包**：rcc 预编译 2880 个资源(323 qml/29 qmldir/2497 svg/
+  20 json + demo pages)嵌入 so（4.9MB→9.7MB）
+- ✅ **完整 apk 构建成功**：`prism_demo.apk` 52MB（39 个 Qt6 arm64 so + 引擎 QML），
+  `cpp/build_android.bat` 一键构建，BUILD SUCCESSFUL
+- ⬜ 真机/模拟器**运行**：本机无物理 Android 设备；CPU 固件虚拟化被禁用
+  (VirtualizationFirmwareEnabled=False)，Android emulator 无法启动（需 BIOS 开
+  VT-x，物理操作）。apk 构建与资源完整性已验证，运行验证待有设备的环境。
+- 🟡 触摸适配：导航壳层窄屏底部 Tab 已做（BottomTabBar + WindowsBar 响应式，
+  程序化验证 nb/bt visible 切换）；80 控件的触摸态/尺寸细化为渐进工作（PlatformInfo
+  地基已备）。
+
+### 关键踩坑记录
+
+- **Gradle 必须配代理**：Gradle 不读 `http_proxy` 环境变量，需 `~/.gradle/
+  gradle.properties` 写 `systemProp.https.proxyHost/Port`，否则卡在 AGP 依赖下载。
+- **compileSdk 要 android-35**：AGP 的 AAR metadata 检查要求，android-34 会
+  `CheckAarMetadataWorkAction` 失败。
+- **QML 资源用 rcc 显式预编译**：AUTORCC 对 CMake 生成的 .qrc 不可靠，用
+  `rcc --name xxx -o qrc_xxx.cpp xxx.qrc` + target_sources 最可控。
+- **QT_HOST_PATH 必传**：Android Qt 需 desktop Qt 提供 moc/rcc 等主机工具。
