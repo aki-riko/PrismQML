@@ -44,3 +44,4 @@ aqt_settings.ini
 aqtinstall.log
 cpp_probe/
 cpp/_install*/
+cpp/build-android/
