@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Svg)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network)
 
 qt_standard_project_setup()
 
@@ -22,6 +22,9 @@ add_library(prism STATIC
     src/NativeWindow.cpp
     src/Providers.cpp
     src/SvgImageProvider.cpp
+    src/Store.cpp
+    src/Logger.cpp
+    src/SystemAndInstance.cpp
     src/Registry.cpp
     src/App.cpp
     src/Window.cpp
@@ -36,6 +39,10 @@ add_library(prism STATIC
     include/prism/WindowHelper.h
     include/prism/AcrylicHelper.h
     include/prism/SvgImageProvider.h
+    include/prism/Store.h
+    include/prism/Logger.h
+    include/prism/SystemTray.h
+    include/prism/SingleInstance.h
     include/prism/Registry.h
     include/prism/App.h
     include/prism/Window.h
@@ -46,7 +53,7 @@ target_include_directories(prism PUBLIC
 )
 
 target_link_libraries(prism PUBLIC
-    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Svg
+    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Svg Qt6::Widgets Qt6::Network
 )
 
 # Windows: 链接 DWM API (Shadow/Mica) + user32 (NativeWindow)
@@ -59,4 +66,11 @@ option(PRISM_BUILD_DEMO "Build the C++ demo app" ON)
 if(PRISM_BUILD_DEMO)
     qt_add_executable(prism_demo demo/main.cpp)
     target_link_libraries(prism_demo PRIVATE prism)
+endif()
+
+# ==================== 单元测试 ====================
+option(PRISM_BUILD_TESTS "Build the C++ tests" ON)
+if(PRISM_BUILD_TESTS)
+    qt_add_executable(prism_test_store tests/test_store.cpp)
+    target_link_libraries(prism_test_store PRIVATE prism)
 endif()
