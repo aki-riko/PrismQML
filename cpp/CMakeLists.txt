@@ -8,7 +8,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network Sql)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network Sql
+    QuickControls2 QuickLayouts QuickEffects)
 
 qt_standard_project_setup()
 
@@ -70,6 +71,7 @@ target_include_directories(prism PUBLIC
 
 target_link_libraries(prism PUBLIC
     Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Svg Qt6::Widgets Qt6::Network Qt6::Sql
+    Qt6::QuickControls2 Qt6::QuickLayouts Qt6::QuickEffects
 )
 
 # Windows: 链接 DWM API (Shadow/Mica) + user32 (NativeWindow)
@@ -177,7 +179,7 @@ install(EXPORT prismTargets
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/prismConfig.cmake.in"
 "@PACKAGE_INIT@\n\
 include(CMakeFindDependencyMacro)\n\
-find_dependency(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network Sql)\n\
+find_dependency(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network Sql QuickControls2 QuickLayouts QuickEffects)\n\
 include(\"\${CMAKE_CURRENT_LIST_DIR}/prismTargets.cmake\")\n")
 
 configure_package_config_file(
