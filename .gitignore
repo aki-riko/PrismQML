@@ -38,3 +38,9 @@ tests/**/*.result.txt
 
 # MkDocs 构建产物
 site/
+
+# C++ 宿主预研/工具链临时产物 (非交付物)
+aqt_settings.ini
+aqtinstall.log
+cpp_probe/
+cpp/_install*/
