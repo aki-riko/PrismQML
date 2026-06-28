@@ -45,3 +45,5 @@ aqtinstall.log
 cpp_probe/
 cpp/_install*/
 cpp/build-android/
+cpp/build-android-x64/
+cpp/*.log
