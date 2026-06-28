@@ -2,37 +2,54 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
-// PrismQML C++ 宿主 - demo: 用对称 API 跑通最小可运行闭环
+// PrismQML C++ 宿主 - demo: 对称 API 多页面应用
 // 对照 Python README:
-//   app = App(); setSkin(Skin.NEOBRUTALISM)
-//   w = app.create_window(WindowType.BAR); w.setWindowTitle("..."); w.resize(...); w.show()
+//   app=App(); w=app.create_window(WindowType.BAR)
+//   w.addPage(HomePage,"Home","首页"); w.addPage(SettingsPage,"Settings","设置"); w.show()
 #include "prism/App.h"
 #include "prism/Theme.h"
 
 #include <QDebug>
+#include <QDir>
+#include <QString>
+#include <QProcessEnvironment>
 
 int main(int argc, char *argv[]) {
     using namespace prism;
 
     App app(argc, argv);
-
-    // 一行切换设计语言 (镜像 Python setSkin(Skin.NEOBRUTALISM))
     setSkin(Skin::Fluent);
-    setAccentColor("#F97316");   // PrismQML 招牌橙, 验证主题色流过 Enums
-
+    setAccentColor("#F97316");
     qInfo() << "skin =" << skinToString(getSkin())
             << "accent =" << getAccentColor() << "isDark =" << isDark();
+
+    // 页面 QML 目录: 环境变量 PRISM_DEMO_PAGES, fallback 到源码相对路径
+    QString pagesDir = QProcessEnvironment::systemEnvironment()
+                           .value(QStringLiteral("PRISM_DEMO_PAGES"));
+    if (pagesDir.isEmpty())
+        pagesDir = QStringLiteral("D:/PrismQML/PrismQML/cpp/demo/pages");
 
     Window &w = app.createWindow(WindowType::Bar);
     w.setWindowTitle(QStringLiteral("PrismQML C++ 宿主 Demo"));
     w.resize(1200, 800);
 
+    // 对称 API: addPage(页面QML, 图标, 文本)
+    int home = w.addPage(QDir(pagesDir).filePath(QStringLiteral("HomePage.qml")),
+                         QStringLiteral("Home"), QStringLiteral("首页"));
+    int settings = w.addPage(QDir(pagesDir).filePath(QStringLiteral("SettingsPage.qml")),
+                             QStringLiteral("Settings"), QStringLiteral("设置"));
+    qInfo() << "addPage -> home index" << home << ", settings index" << settings;
+
+    if (!w.isValid() && (home < 0)) {
+        // isValid 在 show() 前为 false 属正常; 这里仅占位
+    }
+
+    w.show();
+
     if (!w.isValid()) {
         qCritical() << "DEMO_FAIL: 窗口创建失败";
         return 2;
     }
-    qInfo() << "DEMO_OK: prism::Window created via C++ host";
-
-    w.show();
+    qInfo() << "DEMO_OK: prism::Window with pages created via C++ host";
     return app.exec();
 }
