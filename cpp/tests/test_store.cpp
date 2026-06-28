@@ -9,6 +9,9 @@
 #include "prism/SqlListModel.h"
 #include "prism/ConfigManager.h"
 #include "prism/PlatformInfo.h"
+#include "prism/Accessors.h"
+#include "prism/Icon.h"
+#include "prism/DataModels.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -195,6 +198,55 @@ int main(int argc, char *argv[]) {
         // 窄屏判据: 桌面宽屏应非 compact (除非真窄屏)
         CHECK(pf->isCompact() == (pf->screenWidth() > 0 && pf->screenWidth() < 600),
               "isCompact 与屏宽断点一致");
+    }
+
+    qInfo() << "=== Accessors 别名测试(与 Python API 对称) ===";
+    {
+        // getter 别名应返回与 instance() 同一单例
+        CHECK(getThemeManager() == ThemeManager::instance(), "getThemeManager==instance");
+        CHECK(getShadowManager() == ShadowManager::instance(), "getShadowManager==instance");
+        CHECK(get_mica_manager() == MicaManager::instance(), "get_mica_manager==instance");
+        CHECK(getConfigManager() == ConfigManager::instance(), "getConfigManager==instance");
+        // NavigationItem 构造
+        NavigationItem nav(QStringLiteral("首页"), QStringLiteral("Home"),
+                           QStringLiteral("qrc:/pages/Home.qml"));
+        CHECK(nav.text == QStringLiteral("首页") && nav.icon == QStringLiteral("Home")
+              && nav.pageQmlUrl.endsWith(QStringLiteral("Home.qml")),
+              "NavigationItem 构造正确");
+    }
+
+    qInfo() << "=== Icon API 测试 ===";
+    {
+        setIconResourceRoot(QStringLiteral("D:/PrismQML/PrismQML/prismqml/PrismQML/controls/icons/fluent"));
+        IconCore ic(QStringLiteral("Home"));
+        CHECK(ic.path().endsWith(QStringLiteral("Home.svg")), "IconCore.path 解析到 svg");
+        const QString c = resolveIconColor(Theme::Dark);
+        CHECK(c == QStringLiteral("#ffffff"), "深色主题图标色=白");
+        const QString c2 = resolveIconColor(Theme::Light);
+        CHECK(c2 == QStringLiteral("#1a1a1a"), "浅色主题图标色=深");
+        // get_icon_provider 单例
+        CHECK(get_icon_provider() == IconProvider::instance(), "get_icon_provider==instance");
+    }
+
+    qInfo() << "=== TableListModel + is_rust_accelerated 测试 ===";
+    {
+        CHECK(!is_rust_accelerated(), "is_rust_accelerated=false(C++用QtSql非Rust)");
+        TableListModel tm;
+        QVariantList items;
+        items.append(QVariantMap{{"name", "A"}, {"qty", 1}});
+        items.append(QVariantMap{{"name", "B"}, {"qty", 2}});
+        tm.setItems(items);
+        CHECK(tm.count() == 2, "TableListModel count=2");
+        CHECK(tm.getRow(1).value("name").toString() == "B", "getRow(1).name=B");
+        // role 名动态生成
+        auto roles = tm.roleNames();
+        bool hasName = false;
+        for (auto it = roles.constBegin(); it != roles.constEnd(); ++it)
+            if (it.value() == "name") hasName = true;
+        CHECK(hasName, "roleNames 含 name 列");
+        // data() 经 role
+        int nameRole = roles.key("name", -1);
+        CHECK(tm.data(tm.index(0, 0), nameRole).toString() == "A", "data(row0,name)=A");
     }
 
     qInfo() << "";

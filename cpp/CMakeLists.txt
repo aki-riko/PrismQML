@@ -30,6 +30,8 @@ add_library(prism STATIC
     src/QRCodeGenerator.cpp
     src/SqlListModel.cpp
     src/PlatformInfo.cpp
+    src/Icon.cpp
+    src/DataModels.cpp
     src/Registry.cpp
     src/App.cpp
     src/Window.cpp
@@ -54,6 +56,9 @@ add_library(prism STATIC
     include/prism/SqlListModel.h
     include/prism/Platform.h
     include/prism/PlatformInfo.h
+    include/prism/Accessors.h
+    include/prism/Icon.h
+    include/prism/DataModels.h
     include/prism/Registry.h
     include/prism/App.h
     include/prism/Window.h
