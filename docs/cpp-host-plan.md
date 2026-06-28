@@ -31,12 +31,15 @@
   - ResponsivePage 范本 + 真机 grab 坐实 PlatformInfo 响应式生效（触摸按钮 71px>桌面 47px）。
   - 修复 navigateTo 编程式导航不触发懒加载的真 bug。
   - cpp/ANDROID.md 完整构建指南。
-  - ⬜ 真机 apk：需 Qt for Android + SDK + NDK + JDK（~7GB），本机无移动工具链未装。
-  - ⬜ 引擎 QML 控件触摸适配（导航壳改底部 Tab、80 控件触摸态）：触及引擎存量 +
-    开放式设计，地基已备，待产品决策后实施。
+  - ✅ **Android apk 完整构建成功**：工具链全装齐（Qt android+JDK17+SDK+NDK r27c），
+    交叉编译 arm64-v8a，QML 资源 rcc 打包进 so，prism_demo.apk 52MB，BUILD SUCCESSFUL。
+  - ✅ **触摸适配（导航壳层）**：BottomTabBar 新组件 + WindowsBar 窄屏响应式，
+    程序化验证 nb/bt visible 切换（桌面零回归，Python 加载兼容）。
+  - ⬜ 真机/模拟器运行：本机无 Android 设备 + CPU 固件虚拟化禁用（emulator 跑不了）。
+  - ⬜ 80 控件触摸态细化：渐进工作，PlatformInfo 地基已备。
 
-**结论**：C++ 桌面一等宿主完整可交付；移动端代码层就绪并验证，真机构建与 QML 控件
-触摸适配待工具链环境与设计决策。
+**结论**：C++ 桌面一等宿主完整可交付；移动端代码层完整、apk 真实构建成功，
+真机运行待有设备且开启虚拟化的环境。
 
 ## 一、预研结论（已坐实）
 
