@@ -21,13 +21,23 @@ class PlatformInfo : public QObject {
     Q_PROPERTY(QString platformName READ platformName CONSTANT)
     // 推荐最小触摸目标尺寸(px): 移动端 44(iOS HIG)/48(Material), 桌面 32
     Q_PROPERTY(int touchTargetSize READ touchTargetSize CONSTANT)
-    // 主屏逻辑宽度(px) — 响应式断点用
-    Q_PROPERTY(int screenWidth READ screenWidth CONSTANT)
-    // 是否窄屏(<600px, 导航应改底部Tab/抽屉)
-    Q_PROPERTY(bool isCompact READ isCompact CONSTANT)
-    // 安全区 insets(px): 移动端状态栏/刘海/导航条避让, 桌面为 0。QML 内容据此留边。
-    Q_PROPERTY(int safeAreaTop READ safeAreaTop CONSTANT)
-    Q_PROPERTY(int safeAreaBottom READ safeAreaBottom CONSTANT)
+    // 主屏逻辑宽度(px) — 响应式断点用; 随旋转/屏幕变化更新
+    Q_PROPERTY(int screenWidth READ screenWidth NOTIFY screenChanged)
+    // 是否窄屏(<600px, 导航应改底部Tab/抽屉); 随旋转更新
+    Q_PROPERTY(bool isCompact READ isCompact NOTIFY screenChanged)
+    // 安全区 insets(px): 移动端状态栏/刘海/导航条避让, 桌面为 0。随旋转更新。
+    Q_PROPERTY(int safeAreaTop READ safeAreaTop NOTIFY screenChanged)
+    Q_PROPERTY(int safeAreaBottom READ safeAreaBottom NOTIFY screenChanged)
+    // 软键盘高度(px): 键盘弹出时>0, 输入框据此上移避让, 收起为0
+    Q_PROPERTY(int keyboardHeight READ keyboardHeight NOTIFY keyboardChanged)
+    // 软键盘是否可见
+    Q_PROPERTY(bool keyboardVisible READ keyboardVisible NOTIFY keyboardChanged)
+
+signals:
+    // 屏幕几何变化(旋转/分辨率): screenWidth/isCompact/safeArea 据此重算
+    void screenChanged();
+    // 软键盘弹出/收起: keyboardHeight/keyboardVisible 据此更新
+    void keyboardChanged();
 
 public:
     static PlatformInfo *instance();
@@ -40,9 +50,11 @@ public:
     bool isCompact() const;
     int safeAreaTop() const;
     int safeAreaBottom() const;
+    int keyboardHeight() const;
+    bool keyboardVisible() const;
 
 private:
-    explicit PlatformInfo(QObject *parent = nullptr) : QObject(parent) {}
+    explicit PlatformInfo(QObject *parent = nullptr);
 };
 
 }  // namespace prism

@@ -116,9 +116,9 @@ int main(int argc, char *argv[]) {
 
     w.show();
 
-    // 启动时导航建立历史 (演示返回键弹栈: 首页->用户页->设置页, 历史[0,1,2])
+    // 启动时导航建立历史 (演示返回键弹栈 + 响应式页含输入框测软键盘)
     w.navigateTo(1);
-    w.navigateTo(2);
+    w.navigateTo(3);
 
     if (!w.isValid()) {
         qCritical() << "DEMO_FAIL: 窗口创建失败";

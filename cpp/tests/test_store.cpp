@@ -200,6 +200,8 @@ int main(int argc, char *argv[]) {
               "isCompact 与屏宽断点一致");
         CHECK(pf->safeAreaTop() == 0 && pf->safeAreaBottom() == 0,
               "桌面 safeArea insets=0(移动端才避让)");
+        CHECK(pf->keyboardHeight() == 0 && !pf->keyboardVisible(),
+              "桌面无软键盘 keyboardHeight=0");
     }
 
     qInfo() << "=== Accessors 别名测试(与 Python API 对称) ===";

@@ -9,12 +9,48 @@
 #include <QGuiApplication>
 #include <QScreen>
 #include <QProcessEnvironment>
+#include <QInputMethod>
 
 namespace prism {
 
 PlatformInfo *PlatformInfo::instance() {
     static PlatformInfo *s = new PlatformInfo();
     return s;
+}
+
+PlatformInfo::PlatformInfo(QObject *parent) : QObject(parent) {
+    // 防御: 非 GUI app(如 QCoreApplication 单测) 下无屏幕/输入法, 跳过连接避免崩溃
+    if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance()))
+        return;
+    // 连接屏幕几何/方向变化 -> screenChanged, 使 isCompact/safeArea 随旋转更新
+    if (QScreen *s = QGuiApplication::primaryScreen()) {
+        connect(s, &QScreen::geometryChanged, this, &PlatformInfo::screenChanged);
+        connect(s, &QScreen::orientationChanged, this, &PlatformInfo::screenChanged);
+        connect(s, &QScreen::availableGeometryChanged, this, &PlatformInfo::screenChanged);
+    }
+    // 软键盘弹出/收起 -> keyboardChanged, 使输入框避让
+    if (QInputMethod *im = QGuiApplication::inputMethod()) {
+        connect(im, &QInputMethod::keyboardRectangleChanged, this, &PlatformInfo::keyboardChanged);
+        connect(im, &QInputMethod::visibleChanged, this, &PlatformInfo::keyboardChanged);
+    }
+}
+
+int PlatformInfo::keyboardHeight() const {
+    if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance()))
+        return 0;  // 非 GUI app 无输入法
+    if (QInputMethod *im = QGuiApplication::inputMethod()) {
+        if (im->isVisible())
+            return static_cast<int>(im->keyboardRectangle().height());
+    }
+    return 0;
+}
+
+bool PlatformInfo::keyboardVisible() const {
+    if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance()))
+        return false;
+    if (QInputMethod *im = QGuiApplication::inputMethod())
+        return im->isVisible();
+    return false;
 }
 
 bool PlatformInfo::isMobile() const {
