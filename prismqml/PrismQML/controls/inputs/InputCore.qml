@@ -17,12 +17,10 @@ Widget {
     
     // 焦点代理属性，子类覆盖指向内部能实际接受输入的组件
     property Item focusTarget: null
-    activeFocusOnTab: true
-    onActiveFocusChanged: {
-        if (activeFocus && focusTarget) {
-            focusTarget.forceActiveFocus()
-        }
-    }
+    // FocusScope 语义: 容器本身不持有焦点(不设 activeFocusOnTab 自聚焦), 焦点直接
+    // 落在 focusTarget 上, 消除"容器接焦点再 onActiveFocusChanged 转发"的竞态
+    // (旧设计在边缘点击时容器/child 焦点反复横跳导致进焦→立刻失焦)。
+    // Tab 键导航由 focusTarget 自身的 activeFocusOnTab 承担。
     
     // ==================== Base Props 基础属性 ====================
     
@@ -153,11 +151,26 @@ Widget {
             if (control.enabled && control.focusTarget) {
                 control.focusTarget.forceActiveFocus()
             }
-            mouse.accepted = false
+            // 根因修复: 点击落在 focusTarget(TextInput) 区域内 → 放行(accepted=false),
+            // 让 TextInput 自己 selectByMouse 定位光标; 落在 padding 边缘区(TextInput
+            // 接不住) → 消费(accepted=true), 不冒泡到下层"点空白失焦"MouseArea 夺焦
+            // (旧 bug: 边缘点击 accepted=false 冒泡到 blur 层 → 进焦立刻失焦)。
+            if (control.focusTarget) {
+                var p = mapToItem(control.focusTarget, mouse.x, mouse.y)
+                var inside = p.x >= 0 && p.y >= 0
+                            && p.x <= control.focusTarget.width && p.y <= control.focusTarget.height
+                mouse.accepted = !inside   // 命中输入区放行(TextInput定位光标), 边缘消费
+            } else {
+                mouse.accepted = false
+            }
         }
         // Let wheel events pass through to subclass handlers (SpinBox, etc.)
         // 把 wheel 事件让给子类处理（SpinBox 等），避免被本层吞掉
         onWheel: function(wheel) { wheel.accepted = false }
+        // 根因修复: 消费 composed clicked, 阻止其经 propagateComposedEvents 穿透到
+        // 下层"点空白失焦"MouseArea。旧 bug: 按住进焦→松开时 clicked 穿透到 blur 层
+        // onClicked 清焦点→松开瞬间失焦。控件内点击的 clicked 不该触发"点空白"逻辑。
+        onClicked: function(mouse) { mouse.accepted = true }
     }
     
     // ==================== Focus Line 聚焦底线 ====================
