@@ -9,11 +9,14 @@
 #include <QString>
 #include <memory>
 #include <vector>
+#include <functional>
 
 class QApplication;
 class QQmlApplicationEngine;
 
 namespace prism {
+
+class AppLifecycleBridge;  // 内部: 中转 Qt applicationStateChanged 信号
 
 // App - 应用入口门面 (镜像 Python App)
 // 内部持有 QApplication + QQmlApplicationEngine, 构造时完成注入装配。
@@ -36,6 +39,13 @@ public:
     // 进入事件循环 (转发 QApplication::exec)
     int exec();
 
+    // ==================== 移动端生命周期 (桌面也可用) ====================
+    // onPause: 应用进入后台(移动端切走/锁屏) — 宜保存状态/暂停动画。
+    // onResume: 应用回到前台 — 宜刷新/恢复。
+    // 基于 Qt applicationStateChanged(Suspended/Hidden -> pause, Active -> resume)。
+    void onPause(std::function<void()> cb);
+    void onResume(std::function<void()> cb);
+
     // 逃生口: 直接拿底层引擎/应用 (镜像 Python engine / qapp 属性)
     QQmlApplicationEngine *engine() const { return m_engine.get(); }
     QApplication *qapp() const { return m_app.get(); }
@@ -43,11 +53,16 @@ public:
     static App *instance() { return s_instance; }
 
 private:
+    friend class AppLifecycleBridge;
     static App *s_instance;
     std::unique_ptr<QApplication> m_app;
     std::unique_ptr<QQmlApplicationEngine> m_engine;
     std::vector<std::unique_ptr<Window>> m_windows;
     QString m_importPath;
+    std::unique_ptr<AppLifecycleBridge> m_lifecycle;
+    std::function<void()> m_onPause;
+    std::function<void()> m_onResume;
 };
 
 }  // namespace prism
+

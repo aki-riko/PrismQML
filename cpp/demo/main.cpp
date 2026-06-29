@@ -110,6 +110,10 @@ int main(int argc, char *argv[]) {
         // isValid 在 show() 前为 false 属正常; 这里仅占位
     }
 
+    // 移动端生命周期演示: 切后台/回前台时回调 (真机切走/锁屏触发)
+    app.onPause([]() { qInfo() << "LIFECYCLE: onPause (app 进入后台)"; });
+    app.onResume([]() { qInfo() << "LIFECYCLE: onResume (app 回到前台)"; });
+
     w.show();
 
     if (!w.isValid()) {
