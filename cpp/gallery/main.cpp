@@ -57,6 +57,10 @@ int main(int argc, char *argv[]) {
     }
     w.resize(1200, 800);
 
+    // 启动画面(标题/图标回退到窗口配置)
+    w.setSplash(/*enabled=*/true, QString(), QStringLiteral("PrismQML Gallery"),
+                QStringLiteral("加载中..."));
+
     // 13 个组件展示页 (图标/标题对照 examples/main.qml 的 navItems)
     struct Page { const char *file; const char *icon; const char *title; };
     const Page pages[] = {

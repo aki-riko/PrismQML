@@ -53,9 +53,16 @@ public:
 
     // addPage - 添加页面 (镜像 Python addPage)
     // pageQmlUrl: 页面 QML 文件路径(本地路径或 qrc/file url); 空则为纯功能导航项。
+    // selectable: false=纯功能项(点击只触发回调不切页, 如底部 User 头像)。
     // 返回页面索引。必须在 show() 之前调用。
     int addPage(const QString &pageQmlUrl, const QString &icon,
-                const QString &text, NavPosition position = NavPosition::Top);
+                const QString &text, NavPosition position = NavPosition::Top,
+                bool selectable = true);
+
+    // setSplash - 配置启动画面 (镜像 Python setSplash)。show() 前调用。
+    // 默认开启, icon/title 空则回退 windowIcon/windowTitle。enabled=false 禁用。
+    void setSplash(bool enabled, const QString &icon = QString(),
+                   const QString &title = QString(), const QString &subtitle = QString());
 
     void show();
     void navigateTo(int index);
@@ -75,6 +82,7 @@ private:
         QString icon;
         QString text;
         NavPosition position;
+        bool selectable = true;  // false=纯功能项(不切换页面, 如User头像), 仅触发回调
     };
 
     QQmlEngine *m_engine;
@@ -93,15 +101,20 @@ private:
     bool m_inGoBack = false;            // goBack 期间抑制历史压栈, 防自压
     bool m_built = false;
     NavBridge *m_navBridge = nullptr;
+    // 启动画面(SplashScreen): 默认开启, 图标/标题空则回退 windowIcon/windowTitle
+    bool m_splashEnabled = true;
+    QString m_splashIcon, m_splashTitle, m_splashSubtitle;
+    QObject *m_splashInstance = nullptr;
 
     void build();
+    void createSplash();  // show() 后挂 SplashScreen 覆盖层到 contentItem
     void ensurePageCreated(int index);
     QQuickItem *findChildByName(const QString &name) const;
     void onCurrentPageChanged(int index);
 
     static QString escapeQml(const QString &text);
     static QString qmlComponentName(WindowType type);
-    QString navItemsJson(const QList<NavItem> &items, int indexOffset) const;
+    QString navItemsJson(const QList<NavItem> &items, int indexOffset, bool isBottom = false) const;
 };
 
 }  // namespace prism

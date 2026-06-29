@@ -62,12 +62,12 @@ QString Window::qmlComponentName(WindowType type) {
 
 // addPage - 添加导航项 + 页面 (镜像 Python addPage), 必须在 show() 前
 int Window::addPage(const QString &pageQmlUrl, const QString &icon,
-                    const QString &text, NavPosition position) {
+                    const QString &text, NavPosition position, bool selectable) {
     if (m_built) {
         qWarning() << "prism::Window: addPage 必须在 show() 之前调用";
         return -1;
     }
-    NavItem item{pageQmlUrl, icon, text, position};
+    NavItem item{pageQmlUrl, icon, text, position, selectable};
     if (position == NavPosition::Bottom)
         m_bottomNavItems.append(item);
     else
@@ -75,14 +75,30 @@ int Window::addPage(const QString &pageQmlUrl, const QString &icon,
     return m_navItems.size() + m_bottomNavItems.size() - 1;
 }
 
-// 把导航项拼成 QML 数组字面量
-QString Window::navItemsJson(const QList<NavItem> &items, int indexOffset) const {
+void Window::setSplash(bool enabled, const QString &icon,
+                       const QString &title, const QString &subtitle) {
+    m_splashEnabled = enabled;
+    m_splashIcon = icon;
+    m_splashTitle = title;
+    m_splashSubtitle = subtitle;
+}
+
+// 把导航项拼成 QML 数组字面量。底部项额外带 selectable 字段(镜像 Python:
+// 底部项 selectable 控制是否切页, false=纯功能项如 User 头像)。
+QString Window::navItemsJson(const QList<NavItem> &items, int indexOffset, bool isBottom) const {
     QStringList parts;
     for (int i = 0; i < items.size(); ++i) {
         const NavItem &it = items.at(i);
-        parts << QStringLiteral("{ \"text\": \"%1\", \"icon\": \"%2\", \"key\": \"page_%3\" }")
-                     .arg(escapeQml(it.text), escapeQml(it.icon))
-                     .arg(indexOffset + i);
+        if (isBottom) {
+            parts << QStringLiteral("{ \"text\": \"%1\", \"icon\": \"%2\", \"key\": \"page_%3\", \"selectable\": %4 }")
+                         .arg(escapeQml(it.text), escapeQml(it.icon))
+                         .arg(indexOffset + i)
+                         .arg(it.selectable ? QStringLiteral("true") : QStringLiteral("false"));
+        } else {
+            parts << QStringLiteral("{ \"text\": \"%1\", \"icon\": \"%2\", \"key\": \"page_%3\" }")
+                         .arg(escapeQml(it.text), escapeQml(it.icon))
+                         .arg(indexOffset + i);
+        }
     }
     return parts.join(QStringLiteral(", "));
 }
@@ -145,7 +161,7 @@ void Window::build() {
 
     // 顶部导航项索引 0..N-1, 底部导航项索引接续 (与 page_N 容器一致)
     const QString navJson = navItemsJson(m_navItems, 0);
-    const QString bottomJson = navItemsJson(m_bottomNavItems, m_navItems.size());
+    const QString bottomJson = navItemsJson(m_bottomNavItems, m_navItems.size(), /*isBottom=*/true);
 
     // 为每个导航项生成 page_N 占位容器 (镜像 _window_builder page_items)
     const int total = m_navItems.size() + m_bottomNavItems.size();
@@ -236,6 +252,70 @@ void Window::build() {
         ensurePageCreated(0);
         m_navHistory.append(0);
     }
+}
+
+// 挂 SplashScreen 启动画面覆盖层到窗口 contentItem (镜像 Python _create_splash)。
+// 框架 NavigationWindowCore._dismissSplashWhenReady 在首屏就绪时自动 finish() 淡出。
+// 失败不致命: splash 仅视觉增强, 异常只 warning 并继续。
+void Window::createSplash() {
+    if (!m_splashEnabled || !m_root)
+        return;
+    auto *contentItem = m_root->property("contentItem").value<QQuickItem *>();
+    if (!contentItem)
+        return;
+
+    // 路径前缀(同 build): qrc 直接用, 桌面加 file:///
+    const bool isQrc = m_importPath.startsWith(QStringLiteral("qrc:"));
+    QString qmlDir, importPrefix;
+    if (isQrc) {
+        qmlDir = QStringLiteral("qrc:/PrismQML");
+    } else {
+        qmlDir = QDir::fromNativeSeparators(QDir(m_importPath).filePath(QStringLiteral("PrismQML")));
+        importPrefix = QStringLiteral("file:///");
+    }
+    // 图标/标题回退到窗口自身配置
+    QString icon = m_splashIcon.isEmpty() ? m_windowIcon : m_splashIcon;
+    // 图标名 → fluent svg url
+    if (!icon.isEmpty() && !icon.contains(QLatin1Char('/')) && !icon.contains(QLatin1Char('\\'))
+        && !icon.startsWith(QStringLiteral("qrc:")) && !icon.contains(QStringLiteral("://"))) {
+        icon = (isQrc ? QStringLiteral("qrc:/PrismQML/controls/icons/fluent/")
+                      : importPrefix + qmlDir + QStringLiteral("/controls/icons/fluent/"))
+               + icon + QStringLiteral(".svg");
+    }
+    const QString title = m_splashTitle.isEmpty() ? m_title : m_splashTitle;
+
+    const QString splashQml = QStringLiteral(
+        "import QtQuick\n"
+        "import \"%1/controls/feedback/SplashScreen\"\n"
+        "SplashScreen {\n"
+        "    iconSource: \"%2\"\n"
+        "    title: \"%3\"\n"
+        "    subtitle: \"%4\"\n"
+        "}\n"
+    ).arg(importPrefix + qmlDir, escapeQml(icon), escapeQml(title), escapeQml(m_splashSubtitle));
+
+    auto *comp = new QQmlComponent(m_engine);
+    comp->setData(splashQml.toUtf8(), QUrl(QStringLiteral("inline-prism-splash")));
+    if (comp->isError()) {
+        qWarning() << "prism::Window [Splash] 组件加载失败:";
+        for (const auto &e : comp->errors())
+            qWarning().noquote() << "  " << e.toString();
+        comp->deleteLater();
+        return;
+    }
+    auto *splash = qobject_cast<QQuickItem *>(comp->create());
+    if (!splash) {
+        qWarning() << "prism::Window [Splash] create() 失败, 跳过启动画面";
+        comp->deleteLater();
+        return;
+    }
+    comp->setParent(splash);
+    splash->setParentItem(contentItem);
+    splash->setWidth(contentItem->width());
+    splash->setHeight(contentItem->height());
+    // QML 端 _dismissSplashWhenReady 读此引用, 首屏就绪时自动 finish() 淡出
+    m_root->setProperty("_splashInstance", QVariant::fromValue(static_cast<QObject *>(splash)));
+    m_splashInstance = splash;
 }
 
 void Window::onCurrentPageChanged(int index) {
@@ -372,6 +452,7 @@ void Window::show() {
 #else
     m_root->setProperty("visible", true);
 #endif
+    createSplash();  // 挂启动画面覆盖层(首屏就绪后框架自动淡出)
 }
 
 }  // namespace prism
