@@ -32,8 +32,10 @@ Window::Window(QQmlEngine *engine, const QString &importPath, WindowType type)
     : m_engine(engine), m_importPath(importPath), m_type(type) {}
 
 Window::~Window() {
-    if (m_root)
+    if (m_root) {
         m_root->deleteLater();
+        m_root = nullptr;  // 置空使所有 if(m_root) 防御生效(裸指针删后不自动变 null)
+    }
 }
 
 // 镜像 Python _escape_qml
@@ -237,10 +239,23 @@ void Window::build() {
 }
 
 void Window::onCurrentPageChanged(int index) {
-    ensurePageCreated(index);
     // 压入导航历史(供返回键 goBack); goBack 期间不压, 连续重复同页不重复压
     if (!m_inGoBack && (m_navHistory.isEmpty() || m_navHistory.last() != index))
         m_navHistory.append(index);
+
+    // 异步懒加载(镜像 Python _async_load_page): 页面未建时先显示 loading 遮罩, 延迟
+    // 16ms 让遮罩动画渲染一帧, 再建页, 完成后隐藏遮罩。避免同步建页阻塞 UI 造成卡顿。
+    // 已建过的页直接返回(切换由 QML StackedWidget 处理, 无需重建)。
+    if (index < 0 || m_pages.contains(index) || !m_root)
+        return;
+    // context 用 m_navBridge(parent 为 m_root, 随窗口析构而亡): 窗口若在 16ms 内关闭,
+    // timer 自动取消, lambda 不再执行, 避免悬空访问已销毁的 this/m_root。
+    QMetaObject::invokeMethod(m_root, "_startPythonLoading", Q_ARG(QVariant, QVariant(index)));
+    QTimer::singleShot(16, m_navBridge, [this, index]() {
+        ensurePageCreated(index);
+        if (m_root)
+            QMetaObject::invokeMethod(m_root, "_finishPythonLoading");
+    });
 }
 
 // goBack - 返回上一页 (移动端返回键): 弹掉当前页, 导航到历史前一页。
