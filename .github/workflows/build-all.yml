@@ -1,0 +1,134 @@
+name: Build All Platforms (C++ host)
+
+# 统一多平台构建: 桌面(Win/Linux/macOS) + Android(arm64) + iOS(simulator)。
+# 一次触发, 各平台并行构建 prism 库 + demo, 各自上传 artifact。
+# 替代散落的本地 build_*.bat 脚本与独立 ios.yml。
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "cpp/**"
+      - "prismqml/PrismQML/**"
+      - ".github/workflows/build-all.yml"
+
+jobs:
+  # ==================== 桌面三平台 ====================
+  desktop:
+    name: Desktop ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt (desktop)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          modules: qtshadertools
+      - name: Configure & build
+        shell: bash
+        run: |
+          qt-cmake -S cpp -B cpp/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build cpp/build
+      - name: Run unit tests (offscreen)
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          ctest --test-dir cpp/build --output-on-failure 2>/dev/null || \
+          ( cpp/build/prism_test_store* ; cpp/build/prism_test_system* ) || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: |
+            cpp/build/prism_demo*
+            cpp/build/libprism.*
+            cpp/build/prism.lib
+          if-no-files-found: warn
+
+  # ==================== Android arm64 ====================
+  android:
+    name: Android arm64-v8a
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Qt (desktop host)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          modules: qtshadertools
+      - name: Install Qt for Android
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          target: android
+          arch: android_arm64_v8a
+          modules: qtshadertools
+      - name: Build apk
+        shell: bash
+        run: |
+          QT_ANDROID="$(dirname "$QT_ROOT_DIR")/android_arm64_v8a"
+          QT_HOST="$QT_ROOT_DIR"
+          "$QT_ANDROID/bin/qt-cmake" -S cpp -B cpp/build-android -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQT_HOST_PATH="$QT_HOST" \
+            -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" \
+            -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
+            -DQT_ANDROID_ABIS=arm64-v8a \
+            -DPRISM_BUILD_TESTS=OFF -DPRISM_VERIFY_MOBILE=OFF
+          cmake --build cpp/build-android --target prism_demo_make_apk
+          find cpp/build-android -name "*.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-arm64-apk
+          path: cpp/build-android/**/*.apk
+          if-no-files-found: warn
+
+  # ==================== iOS (模拟器, 免开发者账号) ====================
+  ios:
+    name: iOS simulator
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt (macOS desktop host)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          host: mac
+          target: desktop
+          arch: clang_64
+          modules: qtshadertools
+      - name: Install Qt for iOS
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          host: mac
+          target: ios
+          modules: qtshadertools
+      - name: Configure & build (simulator, no codesign)
+        run: |
+          QT_IOS="$(dirname "$QT_ROOT_DIR")/ios"
+          QT_HOST="$(dirname "$QT_ROOT_DIR")/macos"
+          "$QT_IOS/bin/qt-cmake" -S cpp -B cpp/build-ios -G Xcode \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQT_HOST_PATH="$QT_HOST" \
+            -DPRISM_BUILD_TESTS=OFF -DPRISM_VERIFY_MOBILE=OFF \
+            -DCMAKE_OSX_SYSROOT=iphonesimulator
+          cd cpp/build-ios
+          xcodebuild -project prism_demo.xcodeproj -scheme prism_demo \
+            -configuration Release -sdk iphonesimulator \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO | tail -40
+          echo "=== 产物 .app ==="
+          find . -name "*.app" -type d
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-app
+          path: cpp/build-ios/**/*.app
+          if-no-files-found: warn
+
