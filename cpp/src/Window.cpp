@@ -105,6 +105,8 @@ void Window::navigateTo(int index) {
     // 编程式 navigateTo 只改 currentIndex 不发该信号, 故这里主动确保页面创建,
     // 不依赖信号 (信号路径仍由 NavBridge 处理 UI 点击场景)。
     ensurePageCreated(index);
+    if (m_navHistory.isEmpty() || m_navHistory.last() != index)
+        m_navHistory.append(index);
     QMetaObject::invokeMethod(m_root, "navigateTo", Q_ARG(QVariant, QVariant(index)));
 }
 
@@ -184,14 +186,48 @@ void Window::build() {
         m_navBridge = new NavBridge(this, m_root);
     QObject::connect(m_root, SIGNAL(currentPageChanged(int)),
                      m_navBridge, SLOT(onChanged(int)));
+    // 返回键/关闭请求 -> NavBridge::onClosing (移动端返回键弹栈)
+    QObject::connect(m_root, SIGNAL(closing(QQuickCloseEvent*)),
+                     m_navBridge, SLOT(onClosing(QQuickCloseEvent*)));
 
-    // 立即创建第 0 页 (默认显示页)
-    if (total > 0)
+    // 立即创建第 0 页 (默认显示页) + 初始压入导航历史
+    if (total > 0) {
         ensurePageCreated(0);
+        m_navHistory.append(0);
+    }
 }
 
 void Window::onCurrentPageChanged(int index) {
     ensurePageCreated(index);
+    // 压入导航历史(供返回键 goBack); goBack 期间不压, 连续重复同页不重复压
+    if (!m_inGoBack && (m_navHistory.isEmpty() || m_navHistory.last() != index))
+        m_navHistory.append(index);
+}
+
+// goBack - 返回上一页 (移动端返回键): 弹掉当前页, 导航到历史前一页。
+// 返回 false 表示历史栈已空(只剩当前/为空), 调用方应退出 App。
+bool Window::goBack() {
+    if (m_navHistory.size() <= 1)
+        return false;  // 无更早历史, 应退出
+    m_navHistory.removeLast();          // 弹掉当前页
+    const int prev = m_navHistory.last();
+    if (m_root) {
+        ensurePageCreated(prev);
+        m_inGoBack = true;  // 抑制本次切换的历史压栈(防自压)
+        QMetaObject::invokeMethod(m_root, "navigateTo", Q_ARG(QVariant, QVariant(prev)));
+        m_inGoBack = false;
+    }
+    return true;
+}
+
+void NavBridge::onClosing(QQuickCloseEvent *event) {
+    // Android 返回键触发窗口 closing: 能 goBack 则拦截(不关窗), 否则放行(退出)。
+    // QQuickCloseEvent 公开头仅前向声明, 但它单继承 QObject 且 accepted 是
+    // Q_PROPERTY → 经 QObject* 用 setProperty 设置, 避免依赖私有头。
+    if (m_owner && m_owner->goBack()) {
+        if (event)
+            reinterpret_cast<QObject *>(event)->setProperty("accepted", false);
+    }
 }
 
 // 确保页面已创建并挂入 page_N 容器 (镜像 _create_page)

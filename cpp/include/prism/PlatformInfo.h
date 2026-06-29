@@ -25,6 +25,9 @@ class PlatformInfo : public QObject {
     Q_PROPERTY(int screenWidth READ screenWidth CONSTANT)
     // 是否窄屏(<600px, 导航应改底部Tab/抽屉)
     Q_PROPERTY(bool isCompact READ isCompact CONSTANT)
+    // 安全区 insets(px): 移动端状态栏/刘海/导航条避让, 桌面为 0。QML 内容据此留边。
+    Q_PROPERTY(int safeAreaTop READ safeAreaTop CONSTANT)
+    Q_PROPERTY(int safeAreaBottom READ safeAreaBottom CONSTANT)
 
 public:
     static PlatformInfo *instance();
@@ -35,6 +38,8 @@ public:
     int touchTargetSize() const;
     int screenWidth() const;
     bool isCompact() const;
+    int safeAreaTop() const;
+    int safeAreaBottom() const;
 
 private:
     explicit PlatformInfo(QObject *parent = nullptr) : QObject(parent) {}

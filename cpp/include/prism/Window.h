@@ -13,6 +13,7 @@
 class QQmlEngine;
 class QObject;
 class QQuickItem;
+class QQuickCloseEvent;
 
 namespace prism {
 
@@ -25,6 +26,7 @@ public:
     NavBridge(Window *owner, QObject *parent) : QObject(parent), m_owner(owner) {}
 public slots:
     void onChanged(int index);
+    void onClosing(QQuickCloseEvent *event);  // 返回键/关闭请求 -> goBack 或退出
 private:
     Window *m_owner;
 };
@@ -55,6 +57,11 @@ public:
     void show();
     void navigateTo(int index);
 
+    // goBack - 返回导航历史上一页 (移动端返回键惯例)。
+    // 返回 true=已弹栈到上一页; false=历史栈空(调用方应退出 App)。
+    bool goBack();
+    bool canGoBack() const { return m_navHistory.size() > 1; }
+
     QObject *rootObject() const { return m_root; }
     bool isValid() const { return m_root != nullptr; }
 
@@ -77,6 +84,8 @@ private:
     QList<NavItem> m_navItems;          // 顶部导航
     QList<NavItem> m_bottomNavItems;    // 底部导航
     QHash<int, QObject *> m_pages;      // 已创建的页面实例
+    QList<int> m_navHistory;            // 导航历史栈(页面索引), 供 goBack
+    bool m_inGoBack = false;            // goBack 期间抑制历史压栈, 防自压
     bool m_built = false;
     NavBridge *m_navBridge = nullptr;
 

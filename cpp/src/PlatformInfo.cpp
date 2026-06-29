@@ -69,4 +69,29 @@ bool PlatformInfo::isCompact() const {
     return isMobile() || (w > 0 && w < 600);
 }
 
+// 安全区 insets: 移动端避让状态栏/刘海/导航条。
+// 注: 精确 cutout 需 Android JNI 读 DisplayCutout/WindowInsets; 当前用基于
+// devicePixelRatio 的合理估算(状态栏~24dp, 手势导航条~24dp), 桌面为 0。
+int PlatformInfo::safeAreaTop() const {
+#if PRISM_MOBILE
+    qreal dpr = 1.0;
+    if (QScreen *s = QGuiApplication::primaryScreen())
+        dpr = s->devicePixelRatio();
+    return static_cast<int>(24 * dpr);  // 状态栏 ~24dp
+#else
+    return 0;
+#endif
+}
+
+int PlatformInfo::safeAreaBottom() const {
+#if PRISM_MOBILE
+    qreal dpr = 1.0;
+    if (QScreen *s = QGuiApplication::primaryScreen())
+        dpr = s->devicePixelRatio();
+    return static_cast<int>(24 * dpr);  // 手势导航条 ~24dp
+#else
+    return 0;
+#endif
+}
+
 }  // namespace prism

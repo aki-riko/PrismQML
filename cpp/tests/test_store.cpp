@@ -198,6 +198,8 @@ int main(int argc, char *argv[]) {
         // 窄屏判据: 桌面宽屏应非 compact (除非真窄屏)
         CHECK(pf->isCompact() == (pf->screenWidth() > 0 && pf->screenWidth() < 600),
               "isCompact 与屏宽断点一致");
+        CHECK(pf->safeAreaTop() == 0 && pf->safeAreaBottom() == 0,
+              "桌面 safeArea insets=0(移动端才避让)");
     }
 
     qInfo() << "=== Accessors 别名测试(与 Python API 对称) ===";
