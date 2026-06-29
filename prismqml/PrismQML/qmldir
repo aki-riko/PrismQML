@@ -55,7 +55,7 @@ GroupBox controls/containers/Expander/GroupBox.qml
 
 # Layout 布局
 FlowLayout controls/containers/Layout/FlowLayout.qml
-#GridLayout controls/containers/Layout/GridLayout.qml
+GridLayout controls/containers/Layout/GridLayout.qml
 HBoxLayout controls/containers/Layout/HBoxLayout.qml
 VBoxLayout controls/containers/Layout/VBoxLayout.qml
 RowFit controls/containers/Layout/RowFit.qml
@@ -136,10 +136,11 @@ EmptyDataState controls/feedback/State/EmptyDataState.qml
 OfflineState controls/feedback/State/OfflineState.qml
 ResultState controls/feedback/State/ResultState.qml
 Skeleton controls/feedback/State/Skeleton.qml
+StateWidget controls/feedback/State/StateWidget.qml
 TipPopup controls/feedback/Tooltip/TipPopup.qml
 Flyout controls/feedback/Tooltip/Flyout.qml
 TeachingTip controls/feedback/Tooltip/TeachingTip.qml
-#ToolTip controls/feedback/Tooltip/ToolTipEntry.qml
+ToolTip controls/feedback/Tooltip/ToolTipEntry.qml
 TooltipCore controls/feedback/Tooltip/TooltipCore.qml
 HintIcon controls/feedback/Tooltip/HintIcon.qml
 SplashScreen controls/feedback/SplashScreen/SplashScreen.qml
@@ -167,10 +168,10 @@ TextEdit controls/inputs/TextEdit/TextEditCore.qml
 SpinBox controls/inputs/SpinBox/SpinBox.qml
 SpinBoxCore controls/inputs/SpinBox/SpinBoxCore.qml
 SpinBoxButton controls/inputs/SpinBox/SpinBoxButton.qml
-#Slider controls/inputs/Slider/SliderCore.qml
+Slider controls/inputs/Slider/SliderCore.qml
 SliderCore controls/inputs/Slider/SliderCore.qml
 BeforeAfterSlider controls/inputs/Slider/BeforeAfterSlider.qml
-#ComboBox controls/inputs/ComboBox/ComboBoxEntry.qml
+ComboBox controls/inputs/ComboBox/ComboBoxEntry.qml
 ComboBoxCore controls/inputs/ComboBox/ComboBoxCore.qml
 ComboBoxEntry controls/inputs/ComboBox/ComboBoxEntry.qml
 ComboBoxDefault controls/inputs/ComboBox/ComboBoxDefault.qml
@@ -182,6 +183,7 @@ DateTimePicker controls/inputs/Picker/DateTimePicker.qml
 CalendarPickerCore controls/inputs/DatePicker/CalendarPickerCore.qml
 CalendarPicker controls/inputs/DatePicker/CalendarPicker.qml
 ColorPicker controls/inputs/ColorPicker/ColorPicker.qml
+ColorPickerDialog controls/inputs/ColorPicker/_internal/ColorPickerDialog.qml
 GradientSlider controls/inputs/ColorPicker/GradientSlider.qml
 Rating controls/inputs/Rating/Rating.qml
 RatingCore controls/inputs/Rating/RatingCore.qml

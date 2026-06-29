@@ -6,10 +6,8 @@ import QtQuick
 import QtQuick.Layouts
 
 // Import components 导入组件
+import PrismQML
 import PrismQML as Fluent
-import "../../prismqml/PrismQML/controls/containers"
-import "../../prismqml/PrismQML/controls/data/Carousel"
-import "../../prismqml/PrismQML/controls/data/FlipView"
 
 // Carousel Page 轮播页面
 Item {

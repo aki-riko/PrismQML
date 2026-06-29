@@ -7,19 +7,14 @@ import QtQuick.Effects
 
 // 导入组件
 import PrismQML
-import "../../prismqml/PrismQML/controls/buttons"
-import "../../prismqml/PrismQML/controls/inputs"
-import "../../prismqml/PrismQML/controls/inputs/ColorPicker/_internal"
-import "../../prismqml/PrismQML/controls/containers"
-import "../../prismqml/PrismQML/controls/containers/ScrollBar"
-import "../../prismqml/PrismQML/controls/data"
+import PrismQML as Fluent
 
 // 输入组件展示页面
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Fluent.Enums.iconPath + name + ".svg"
     }
     
     ScrollArea {

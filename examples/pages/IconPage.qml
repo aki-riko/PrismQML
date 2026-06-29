@@ -5,11 +5,8 @@
 import QtQuick
 import QtQuick.Effects
 
+import PrismQML
 import PrismQML as Fluent
-import "../../prismqml/PrismQML/controls/containers"
-import "../../prismqml/PrismQML/controls/inputs"
-import "../../prismqml/PrismQML/controls/icons"
-import "../../prismqml/PrismQML/controls/buttons"
 
 Item {
     id: root

@@ -6,16 +6,15 @@ import QtQuick
 import QtQuick.Effects
 
 // Import components 导入组件
+import PrismQML
 import PrismQML as Fluent
-import "../../prismqml/PrismQML/controls/data"
-import "../../prismqml/PrismQML/controls/containers"
 
 // Chart components page - Fluent Design style 图表组件页面 - Fluent Design 风格
 Item {
     id: root
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Fluent.Enums.iconPath + name + ".svg"
     }
     
     ScrollArea {

@@ -143,6 +143,15 @@ if(PRISM_BUILD_DEMO)
     endif()
 endif()
 
+# ==================== gallery 可执行 (纯 C++ 完整组件画廊) ====================
+# 加载 examples/pages 的 13 个组件展示页, 让纯 C++ 用户(无 Python)也能看到完整画廊。
+# 桌面: 从磁盘加载 examples/pages (与 Python gallery 共享同一份页面源)。
+option(PRISM_BUILD_GALLERY "Build the C++ gallery app" ON)
+if(PRISM_BUILD_GALLERY AND NOT ANDROID AND NOT IOS)
+    qt_add_executable(prism_gallery gallery/main.cpp)
+    target_link_libraries(prism_gallery PRIVATE prism)
+endif()
+
 # ==================== 单元测试 ====================
 option(PRISM_BUILD_TESTS "Build the C++ tests" ON)
 if(PRISM_BUILD_TESTS)
@@ -183,23 +192,45 @@ install(TARGETS prism
 )
 install(DIRECTORY include/prism DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
+# QML 组件模块: 把 PrismQML 引擎 QML 源安装到 <prefix>/qml/PrismQML/, 使纯 C++ 用户
+# find_package(prism) 后 addImportPath(prism_QML_DIR) 即可 `import PrismQML`。
+# (引擎内部 249 个组件用相对 import 互引, 故按目录原样安装, 不做 qt_add_qml_module 重构)
+set(PRISM_QML_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/prism/qml")
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML"
+    DESTINATION "${PRISM_QML_INSTALL_DIR}"
+    FILES_MATCHING
+        PATTERN "*.qml"
+        PATTERN "qmldir"
+        PATTERN "*.js"
+        PATTERN "*.json"
+        PATTERN "*.svg"
+        PATTERN "*.png"
+        PATTERN "*.frag"
+        PATTERN "*.qsb"
+        PATTERN "__pycache__" EXCLUDE
+)
+
 install(EXPORT prismTargets
     FILE prismTargets.cmake
     NAMESPACE prism::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/prism
 )
 
-# 生成 prismConfig.cmake (转发 Qt6 依赖查找)
+# 生成 prismConfig.cmake (转发 Qt6 依赖查找 + 暴露 QML import 路径)
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/prismConfig.cmake.in"
 "@PACKAGE_INIT@\n\
 include(CMakeFindDependencyMacro)\n\
 find_dependency(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network Sql QuickControls2 QuickLayouts QuickEffects)\n\
-include(\"\${CMAKE_CURRENT_LIST_DIR}/prismTargets.cmake\")\n")
+include(\"\${CMAKE_CURRENT_LIST_DIR}/prismTargets.cmake\")\n\
+# QML 组件 import 路径: engine->addImportPath(prism_QML_DIR) 后即可 import PrismQML\n\
+set_and_check(prism_QML_DIR \"@PACKAGE_PRISM_QML_INSTALL_DIR@\")\n")
 
+set(PACKAGE_PRISM_QML_INSTALL_DIR "${PRISM_QML_INSTALL_DIR}")
 configure_package_config_file(
     "${CMAKE_CURRENT_BINARY_DIR}/prismConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/prismConfig.cmake"
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/prism
+    PATH_VARS PRISM_QML_INSTALL_DIR
 )
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/prismConfig.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/prism

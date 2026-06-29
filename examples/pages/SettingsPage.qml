@@ -7,12 +7,8 @@ import QtQuick.Window
 import QtQuick.Effects
 
 // 导入组件
+import PrismQML
 import PrismQML as Fluent
-import "../../prismqml/PrismQML/controls/buttons"
-import "../../prismqml/PrismQML/controls/settings"
-import "../../prismqml/PrismQML/controls/settings/SettingsCard"
-import "../../prismqml/PrismQML/controls/inputs"
-import "../../prismqml/PrismQML/controls/containers"
 
 // 设置组件页面
 Item {
@@ -22,7 +18,7 @@ Item {
     readonly property var parentWindow: Window.window
     
     function iconPath(name) {
-        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Fluent.Enums.iconPath + name + ".svg"
     }
     
     ScrollArea {

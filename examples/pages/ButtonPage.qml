@@ -6,18 +6,16 @@ import QtQuick
 import QtQuick.Effects
 
 // 导入组件
+import PrismQML
 import PrismQML as Fluent
-import "../../prismqml/PrismQML/controls/buttons"
-import "../../prismqml/PrismQML/controls/containers"
-import "../../prismqml/PrismQML/controls/data/Badge"
 
 // 按钮展示页面
 Item {
     id: root
-    
-    // 图标路径解析函数
+
+    // 图标路径解析函数 (用模块内 Enums.iconPath, 可移植: 不依赖源码树位置)
     function iconPath(name) {
-        return Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+        return Fluent.Enums.iconPath + name + ".svg"
     }
     
     ScrollArea {
