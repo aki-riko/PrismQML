@@ -27,10 +27,15 @@ jobs:
         with:
           version: "6.10.3"
           modules: qtshadertools
+      # Windows: 激活 MSVC 环境(Qt 是 msvc2022_64, 必须 MSVC 编译; 否则 qt-cmake
+      # 选 PATH 里的 MinGW → 链接 MSVC 的 Qt .lib name-mangling 不兼容全 undefined)
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
       - name: Configure & build
         shell: bash
         run: |
-          # Windows: qt-cmake 不在 PATH, 用 QT_ROOT_DIR/bin 全路径(.bat); 其他平台 PATH 里有
+          # Windows: qt-cmake 全路径 + MSVC 已激活, 显式 NMake/Ninja 用 cl
           if [ "${{ runner.os }}" = "Windows" ]; then
             QTCMAKE="$QT_ROOT_DIR/bin/qt-cmake.bat"
           else

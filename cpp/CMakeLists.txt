@@ -120,7 +120,9 @@ if(PRISM_BUILD_DEMO)
         set(_qrc_cpp "${CMAKE_CURRENT_BINARY_DIR}/qrc_prism_qml.cpp")
         add_custom_command(
             OUTPUT "${_qrc_cpp}"
-            COMMAND "${PRISM_RCC}" --name prism_qml
+            # --no-zstd: 不用 zstd 压缩资源, 避免链接时 undefined symbol
+            # qt_resourceFeatureZstd(CI Android 链接配置下该符号未拉入 Qt6Core)
+            COMMAND "${PRISM_RCC}" --name prism_qml --no-zstd
                     -o "${_qrc_cpp}" "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
             DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
             VERBATIM)
