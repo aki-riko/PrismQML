@@ -31,11 +31,14 @@ int main(int argc, char *argv[]) {
     const bool fromQrc = true;
 #else
     const bool fromQrc = false;
-    // 桌面: 页面 QML 磁盘目录。默认指向 examples/pages(与 Python gallery 共享同一份页面)。
+    // 桌面: 页面 QML 磁盘目录。优先 PRISM_GALLERY_PAGES 环境变量, 否则用编译期注入的
+    // 源码树默认(CMake 定义 PRISM_GALLERY_PAGES_DIR), 使无需手动设环境变量即可运行。
     QString pagesDir = QProcessEnvironment::systemEnvironment()
                            .value(QStringLiteral("PRISM_GALLERY_PAGES"));
+#ifdef PRISM_GALLERY_PAGES_DIR
     if (pagesDir.isEmpty())
-        pagesDir = QStringLiteral("D:/PrismQML/PrismQML/examples/pages");
+        pagesDir = QStringLiteral(PRISM_GALLERY_PAGES_DIR);
+#endif
 #endif
     auto pagePath = [&](const QString &name) -> QString {
         if (fromQrc)
@@ -49,11 +52,14 @@ int main(int argc, char *argv[]) {
     {
         QString iconUrl = QProcessEnvironment::systemEnvironment()
                               .value(QStringLiteral("PRISM_GALLERY_ICON"));
+#ifdef PRISM_GALLERY_ICON_DEFAULT
         if (iconUrl.isEmpty() && !fromQrc)
-            iconUrl = QStringLiteral("file:///D:/PrismQML/PrismQML/examples/resources/app_icon.svg");
-        else if (iconUrl.isEmpty() && fromQrc)
+            iconUrl = QStringLiteral("file:///") + QStringLiteral(PRISM_GALLERY_ICON_DEFAULT);
+#endif
+        if (iconUrl.isEmpty() && fromQrc)
             iconUrl = QStringLiteral("qrc:/app_icon.svg");
-        w.setWindowIcon(iconUrl, /*colored=*/true);
+        if (!iconUrl.isEmpty())
+            w.setWindowIcon(iconUrl, /*colored=*/true);
     }
     w.resize(1200, 800);
 

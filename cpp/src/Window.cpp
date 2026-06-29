@@ -190,9 +190,19 @@ void Window::build() {
     auto *cfg = ConfigManager::instance();
     const QString micaQml = QStringLiteral("    micaEnabled: %1\n")
                                 .arg(cfg->micaEnabled() ? QStringLiteral("true") : QStringLiteral("false"));
-    // shadowMode: dwmShadow 配置 → mode_native(1) / mode_none(3)
-    const QString shadowQml = QStringLiteral("    shadowMode: %1\n")
-                                  .arg(cfg->dwmShadow() ? 1 : 3);
+    // shadowMode: dwmShadow=false → mode_none(3, 跨平台禁用); dwmShadow=true →
+    // Windows 用 DWM 原生阴影 mode_native(1), 非 Windows 用 mode_auto(0) 让组件自决
+    // (强制 native 在非 Windows 无 DWM 会导致完全无阴影)。
+    int shadowMode;
+    if (!cfg->dwmShadow())
+        shadowMode = 3;  // mode_none
+    else
+#ifdef Q_OS_WIN
+        shadowMode = 1;  // mode_native
+#else
+        shadowMode = 0;  // mode_auto
+#endif
+    const QString shadowQml = QStringLiteral("    shadowMode: %1\n").arg(shadowMode);
     const QString extraQml = iconQml + micaQml + shadowQml;
 
     const QString qml = QStringLiteral(

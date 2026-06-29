@@ -79,6 +79,14 @@ if(WIN32)
     target_link_libraries(prism PUBLIC dwmapi user32)
 endif()
 
+# 编译期默认 QML import 目录(开发树): 未设 PRISMQML_QML_DIR 环境变量时 resolveImportPath
+# 兜底用它, 使 demo/gallery 等无需手动设环境变量即可 import PrismQML。指向含 PrismQML
+# 子目录的父目录(addImportPath 约定)。安装后用户经 find_package(prism) 的 prism_QML_DIR。
+if(NOT ANDROID AND NOT IOS)
+    target_compile_definitions(prism PRIVATE
+        PRISM_QML_DIR_DEFAULT="${CMAKE_CURRENT_SOURCE_DIR}/../prismqml")
+endif()
+
 # ==================== demo 可执行 ====================
 option(PRISM_BUILD_DEMO "Build the C++ demo app" ON)
 if(PRISM_BUILD_DEMO)
@@ -150,6 +158,11 @@ option(PRISM_BUILD_GALLERY "Build the C++ gallery app" ON)
 if(PRISM_BUILD_GALLERY AND NOT ANDROID AND NOT IOS)
     qt_add_executable(prism_gallery gallery/main.cpp)
     target_link_libraries(prism_gallery PRIVATE prism)
+    # 注入源码树默认路径(开发树), 使 gallery 无需手动设环境变量即可运行。
+    # 用户分发时可设 PRISM_GALLERY_PAGES / PRISM_GALLERY_ICON 环境变量覆盖。
+    target_compile_definitions(prism_gallery PRIVATE
+        PRISM_GALLERY_PAGES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../examples/pages"
+        PRISM_GALLERY_ICON_DEFAULT="${CMAKE_CURRENT_SOURCE_DIR}/../examples/resources/app_icon.svg")
 endif()
 
 # ==================== 单元测试 ====================
@@ -209,6 +222,10 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML"
         PATTERN "*.qsb"
         PATTERN "__pycache__" EXCLUDE
 )
+
+# 随 QML 一并安装 LICENSE (MIT 合规: 分发的 QML 组件需附带许可证)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+    DESTINATION "${PRISM_QML_INSTALL_DIR}/PrismQML")
 
 install(EXPORT prismTargets
     FILE prismTargets.cmake

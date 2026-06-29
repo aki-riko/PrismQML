@@ -20,6 +20,7 @@
 #include <QQmlEngine>
 #include <QQmlContext>
 #include <QProcessEnvironment>
+#include <QDir>
 
 namespace prism {
 
@@ -72,6 +73,15 @@ QString resolveImportPath(const QString &fallback) {
     // 移动端: QML 打进 qrc, import path 指向资源根
     return QStringLiteral("qrc:/");
 #else
+    // 桌面兜底: 编译期注入的 QML 源/安装目录(CMake 定义 PRISM_QML_DIR_DEFAULT),
+    // 使未设 PRISMQML_QML_DIR 环境变量时 import PrismQML 仍可解析(开发树/安装树通用)。
+#  ifdef PRISM_QML_DIR_DEFAULT
+    {
+        const QString def = QStringLiteral(PRISM_QML_DIR_DEFAULT);
+        if (!def.isEmpty() && QDir(def).exists())
+            return def;
+    }
+#  endif
     return fallback;
 #endif
 }
