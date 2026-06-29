@@ -85,10 +85,10 @@ if(PRISM_BUILD_DEMO)
     qt_add_executable(prism_demo demo/main.cpp)
     target_link_libraries(prism_demo PRIVATE prism)
 
-    # Android: QML 资源必须打进 apk(无磁盘路径)。glob PrismQML 引擎 QML + svg +
+    # Android/iOS: QML 资源必须打进 bundle(无磁盘路径)。glob PrismQML 引擎 QML + svg +
     # i18n + demo pages 生成 qrc, prefix "/" 使 addImportPath("qrc:/") 能找到
-    # qrc:/PrismQML/qmldir。demo main.cpp 在 ANDROID 下走 qrc import path。
-    if(ANDROID)
+    # qrc:/PrismQML/qmldir。demo main.cpp 在移动端走 qrc import path。
+    if(ANDROID OR IOS)
         set(_pqml_root "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML")
         file(GLOB_RECURSE _pqml_res RELATIVE "${_pqml_root}"
              "${_pqml_root}/*.qml" "${_pqml_root}/*.js" "${_pqml_root}/*.svg"
@@ -126,6 +126,18 @@ if(PRISM_BUILD_DEMO)
             VERBATIM)
         target_sources(prism_demo PRIVATE "${_qrc_cpp}")
         target_compile_definitions(prism_demo PRIVATE PRISM_QML_FROM_QRC)
+    endif()
+
+    # iOS: 可执行需为 app bundle + bundle identifier(否则 Xcode 无法生成 .app)
+    if(IOS)
+        set_target_properties(prism_demo PROPERTIES
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_GUI_IDENTIFIER "life.9li.prism.demo"
+            MACOSX_BUNDLE_BUNDLE_NAME "PrismDemo"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"  # iPhone+iPad
+        )
     endif()
 endif()
 
