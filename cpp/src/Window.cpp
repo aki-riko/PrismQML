@@ -5,6 +5,8 @@
 // PrismQML C++ 宿主 - Window 实现 (镜像 _window_builder.py + _page_manager.py)
 #include "prism/Window.h"
 #include "prism/Platform.h"
+#include "prism/ConfigManager.h"
+#include "prism/WindowHelper.h"
 
 #include <QQmlEngine>
 #include <QQmlComponent>
@@ -89,6 +91,19 @@ void Window::setWindowTitle(const QString &title) {
         m_root->setProperty("windowTitle", title);
 }
 
+void Window::setWindowIcon(const QString &iconUrl, bool colored) {
+    m_windowIcon = iconUrl;
+    m_windowIconColored = colored;
+    if (m_root) {
+        m_root->setProperty("windowIcon", iconUrl);
+        m_root->setProperty("windowIconColored", colored);
+    }
+    // 双保险(镜像 Python window_base.py): 宿主侧直接设 QGuiApplication 任务栏/Alt-Tab
+    // 图标, 不只依赖 QML onWindowIconChanged 回调那一条路。
+    if (!iconUrl.isEmpty())
+        WindowHelper::instance()->setAppIcon(iconUrl);
+}
+
 void Window::resize(int width, int height) {
     m_width = width;
     m_height = height;
@@ -140,6 +155,28 @@ void Window::build() {
             .arg(i);
     }
 
+    // windowIcon: 标题栏 app 图标。未显式设则回退内置 Apps.svg(镜像 Python, 保证
+    // windowIcon 永远非空 → 触发 onWindowIconChanged → 任务栏图标也有)。
+    // 必须拼进 QML 字面量(同 windowTitle), 因 m_root 在 show()->build() 时才创建。
+    QString effectiveIcon = m_windowIcon;
+    if (effectiveIcon.isEmpty()) {
+        effectiveIcon = (isQrc ? QStringLiteral("qrc:/PrismQML/controls/icons/fluent/Apps.svg")
+                               : importPrefix + qmlDir + QStringLiteral("/controls/icons/fluent/Apps.svg"));
+    }
+    const QString iconQml =
+        QStringLiteral("    windowIcon: \"%1\"\n    windowIconColored: %2\n")
+            .arg(escapeQml(effectiveIcon),
+                 m_windowIconColored ? QStringLiteral("true") : QStringLiteral("false"));
+
+    // 消费 ConfigManager 设置 (镜像 Python _window_builder): mica 效果 + DWM 阴影模式。
+    auto *cfg = ConfigManager::instance();
+    const QString micaQml = QStringLiteral("    micaEnabled: %1\n")
+                                .arg(cfg->micaEnabled() ? QStringLiteral("true") : QStringLiteral("false"));
+    // shadowMode: dwmShadow 配置 → mode_native(1) / mode_none(3)
+    const QString shadowQml = QStringLiteral("    shadowMode: %1\n")
+                                  .arg(cfg->dwmShadow() ? 1 : 3);
+    const QString extraQml = iconQml + micaQml + shadowQml;
+
     const QString qml = QStringLiteral(
         "import QtQuick\n"
         "import \"%1\"\n"
@@ -151,6 +188,7 @@ void Window::build() {
         "    width: %3\n"
         "    height: %4\n"
         "    windowTitle: \"%5\"\n"
+        "%9"
         "    lazyLoading: false\n"
         "    navigationItems: [%6]\n"
         "    bottomNavigationItems: [%7]\n"
@@ -158,7 +196,8 @@ void Window::build() {
         "}\n"
     ).arg(importPrefix + qmlDir, component)
      .arg(m_width).arg(m_height)
-     .arg(escapeQml(m_title), navJson, bottomJson, pagesQml);
+     .arg(escapeQml(m_title), navJson, bottomJson, pagesQml)
+     .arg(extraQml);
 
     auto *comp = new QQmlComponent(m_engine);
     comp->setData(qml.toUtf8(), QUrl(QStringLiteral("inline-prism-window")));

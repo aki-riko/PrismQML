@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
     App app(argc, argv);
     setSkin(Skin::Fluent);
-    setAccentColor("#F97316");
+    // 用 Fluent 默认 accent(沉稳深蓝 #0e5a9c), 不强设橙色(#F97316 是 Neobrutalism 主色)
 
 #ifdef PRISM_QML_FROM_QRC
     app.engine()->addImportPath(QStringLiteral("qrc:/"));
@@ -45,6 +45,16 @@ int main(int argc, char *argv[]) {
 
     Window &w = app.createWindow(WindowType::Bar);
     w.setWindowTitle(QStringLiteral("PrismQML Gallery (C++ 宿主)"));
+    // 标题栏 app 图标 (桌面: examples/resources 磁盘路径; 可被 PRISM_GALLERY_ICON 覆盖)
+    {
+        QString iconUrl = QProcessEnvironment::systemEnvironment()
+                              .value(QStringLiteral("PRISM_GALLERY_ICON"));
+        if (iconUrl.isEmpty() && !fromQrc)
+            iconUrl = QStringLiteral("file:///D:/PrismQML/PrismQML/examples/resources/app_icon.svg");
+        else if (iconUrl.isEmpty() && fromQrc)
+            iconUrl = QStringLiteral("qrc:/app_icon.svg");
+        w.setWindowIcon(iconUrl, /*colored=*/true);
+    }
     w.resize(1200, 800);
 
     // 13 个组件展示页 (图标/标题对照 examples/main.qml 的 navItems)

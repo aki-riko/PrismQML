@@ -46,6 +46,9 @@ public:
     ~Window();
 
     void setWindowTitle(const QString &title);
+    // setWindowIcon - 设置标题栏 app 图标 (镜像 Python windowIcon 属性)
+    // iconUrl: 图标路径(qrc:/file:/磁盘路径或图标名); colored: true=彩色图标跳过着色叠加。
+    void setWindowIcon(const QString &iconUrl, bool colored = true);
     void resize(int width, int height);
 
     // addPage - 添加页面 (镜像 Python addPage)
@@ -79,6 +82,8 @@ private:
     WindowType m_type;
     QObject *m_root = nullptr;
     QString m_title;
+    QString m_windowIcon;
+    bool m_windowIconColored = true;
     int m_width = 1000;
     int m_height = 700;
     QList<NavItem> m_navItems;          // 顶部导航

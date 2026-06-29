@@ -21,7 +21,8 @@ Item {
     readonly property string _fluentBasePath: Qt.resolvedUrl("fluent/")
     
     // Check if icon is a Icon name (PascalCase or special cases like iOS*) 检查是否为图标名称
-    readonly property bool _isIconName: icon !== "" && /^[a-zA-Z][a-zA-Z0-9]*$/.test(icon) && icon.length > 1
+    // 含下划线: 大量图标名带下划线(如 Multiplier1_2x), 正则须含 _ 否则被当文本 fallback
+    readonly property bool _isIconName: icon !== "" && /^[a-zA-Z][a-zA-Z0-9_]*$/.test(icon) && icon.length > 1
     
     // Check if icon is an image path 检查是否为图片路径
     readonly property bool _isImagePath: icon !== "" && (

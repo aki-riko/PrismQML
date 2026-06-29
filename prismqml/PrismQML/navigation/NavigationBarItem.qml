@@ -76,20 +76,29 @@ Item {
         height: Enums.iconSize.xl
         
         // Check icon type 判断图标类型
-        readonly property bool isPathIcon: control.icon.length > 0 && 
-            (control.icon.startsWith("file:") || control.icon.startsWith("qrc:") || 
+        // 图标名(PascalCase 裸名, 如 "CursorClick") 解析为 fluent svg; C++ 宿主 addPage
+        // 传图标名而非完整路径, 需在此解析(否则裸名走文字 fallback)。
+        readonly property bool isIconName: control.icon.length > 1 &&
+            /^[a-zA-Z][a-zA-Z0-9_]*$/.test(control.icon)
+        readonly property bool isFilePathIcon: control.icon.length > 0 &&
+            (control.icon.startsWith("file:") || control.icon.startsWith("qrc:") ||
              control.icon.endsWith(".svg") || control.icon.endsWith(".png") ||
              control.icon.endsWith(".jpg") || control.icon.endsWith(".jpeg"))
-        
+        readonly property bool isPathIcon: isFilePathIcon || isIconName
+        // 解析后的图标源: 图标名→fluent/名字.svg(模块内可移植), 否则原值
+        function _resolveIcon(ic) {
+            return isIconName && !isFilePathIcon ? (Enums.iconPath + ic + ".svg") : ic
+        }
+
         // Check if avatar image (non-svg images need circular clipping) 是否为头像图片（非svg的图片需要圆形裁剪）
-        readonly property bool isAvatarIcon: isPathIcon && !control.icon.endsWith(".svg")
+        readonly property bool isAvatarIcon: isFilePathIcon && !control.icon.endsWith(".svg")
         
         // SVG icon (apply color overlay) SVG图标（应用颜色叠加）
         Image {
             id: svgIcon
             anchors.fill: parent
-            source: iconContainer.isPathIcon && !iconContainer.isAvatarIcon ? 
-                (control.selected && control.selectedIcon ? control.selectedIcon : control.icon) : ""
+            source: iconContainer.isPathIcon && !iconContainer.isAvatarIcon ?
+                iconContainer._resolveIcon(control.selected && control.selectedIcon ? control.selectedIcon : control.icon) : ""
             visible: iconContainer.isPathIcon && !iconContainer.isAvatarIcon
             fillMode: Image.PreserveAspectFit
             opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
