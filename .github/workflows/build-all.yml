@@ -30,7 +30,13 @@ jobs:
       - name: Configure & build
         shell: bash
         run: |
-          qt-cmake -S cpp -B cpp/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          # Windows: qt-cmake 不在 PATH, 用 QT_ROOT_DIR/bin 全路径(.bat); 其他平台 PATH 里有
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            QTCMAKE="$QT_ROOT_DIR/bin/qt-cmake.bat"
+          else
+            QTCMAKE="qt-cmake"
+          fi
+          "$QTCMAKE" -S cpp -B cpp/build -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build cpp/build
       - name: Run unit tests (offscreen)
         shell: bash
@@ -73,8 +79,13 @@ jobs:
       - name: Build apk
         shell: bash
         run: |
-          QT_ANDROID="$(dirname "$QT_ROOT_DIR")/android_arm64_v8a"
-          QT_HOST="$QT_ROOT_DIR"
+          # 两次 install-qt 后 QT_ROOT_DIR 被 android 覆盖, 故用固定路径结构(都在
+          # $RUNNER_WORKSPACE/Qt/6.10.3/<arch>)而非 dirname 推导, 避免 host 路径错。
+          QT_BASE="$RUNNER_WORKSPACE/Qt/6.10.3"
+          QT_ANDROID="$QT_BASE/android_arm64_v8a"
+          QT_HOST="$QT_BASE/gcc_64"
+          echo "QT_ANDROID=$QT_ANDROID  QT_HOST=$QT_HOST"
+          ls "$QT_HOST/lib/cmake/Qt6CoreTools" || echo "WARN: host 缺 CoreTools"
           "$QT_ANDROID/bin/qt-cmake" -S cpp -B cpp/build-android -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DQT_HOST_PATH="$QT_HOST" \
@@ -113,8 +124,10 @@ jobs:
           modules: qtshadertools
       - name: Configure & build (simulator, no codesign)
         run: |
-          QT_IOS="$(dirname "$QT_ROOT_DIR")/ios"
-          QT_HOST="$(dirname "$QT_ROOT_DIR")/macos"
+          QT_BASE="$RUNNER_WORKSPACE/Qt/6.10.3"
+          QT_IOS="$QT_BASE/ios"
+          QT_HOST="$QT_BASE/macos"
+          echo "QT_IOS=$QT_IOS  QT_HOST=$QT_HOST"
           "$QT_IOS/bin/qt-cmake" -S cpp -B cpp/build-ios -G Xcode \
             -DCMAKE_BUILD_TYPE=Release \
             -DQT_HOST_PATH="$QT_HOST" \
