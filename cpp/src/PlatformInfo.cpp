@@ -39,8 +39,15 @@ int PlatformInfo::keyboardHeight() const {
     if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance()))
         return 0;  // 非 GUI app 无输入法
     if (QInputMethod *im = QGuiApplication::inputMethod()) {
-        if (im->isVisible())
-            return static_cast<int>(im->keyboardRectangle().height());
+        if (im->isVisible()) {
+            // 实测(Android真机dpr3.5): keyboardRectangle()返回物理像素(~1076),
+            // 而 QML item 几何是逻辑像素(screenW 361=1264/3.5) → 除以 dpr 对齐。
+            qreal dpr = 1.0;
+            if (QScreen *s = QGuiApplication::primaryScreen())
+                dpr = s->devicePixelRatio();
+            if (dpr < 1.0) dpr = 1.0;
+            return static_cast<int>(im->keyboardRectangle().height() / dpr);
+        }
     }
     return 0;
 }
@@ -110,10 +117,8 @@ bool PlatformInfo::isCompact() const {
 // devicePixelRatio 的合理估算(状态栏~24dp, 手势导航条~24dp), 桌面为 0。
 int PlatformInfo::safeAreaTop() const {
 #if PRISM_MOBILE
-    qreal dpr = 1.0;
-    if (QScreen *s = QGuiApplication::primaryScreen())
-        dpr = s->devicePixelRatio();
-    return static_cast<int>(24 * dpr);  // 状态栏 ~24dp
+    // QML 坐标是逻辑像素(dp), 状态栏 ~24dp 直接用(不乘 dpr)
+    return 24;
 #else
     return 0;
 #endif
@@ -121,10 +126,8 @@ int PlatformInfo::safeAreaTop() const {
 
 int PlatformInfo::safeAreaBottom() const {
 #if PRISM_MOBILE
-    qreal dpr = 1.0;
-    if (QScreen *s = QGuiApplication::primaryScreen())
-        dpr = s->devicePixelRatio();
-    return static_cast<int>(24 * dpr);  // 手势导航条 ~24dp
+    // QML 坐标是逻辑像素(dp), 手势导航条 ~24dp 直接用(不乘 dpr)
+    return 24;
 #else
     return 0;
 #endif

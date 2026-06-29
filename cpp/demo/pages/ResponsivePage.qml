@@ -12,8 +12,6 @@ Rectangle {
     readonly property bool compact: typeof PlatformInfo !== "undefined" && PlatformInfo.isCompact
     readonly property int btnH: typeof PlatformInfo !== "undefined" ? PlatformInfo.touchTargetSize : 32
     readonly property string plat: typeof PlatformInfo !== "undefined" ? PlatformInfo.platformName : "?"
-    // 软键盘高度: 键盘弹出时输入框上移避让 (随 keyboardChanged 自动更新)
-    readonly property int kbH: typeof PlatformInfo !== "undefined" ? PlatformInfo.keyboardHeight : 0
 
     Column {
         anchors.centerIn: parent
@@ -34,6 +32,12 @@ Rectangle {
             font.pixelSize: Enums.typography.body
             wrapMode: Text.WordWrap
             width: parent.width
+        }
+
+        // 输入框: 放页面中部, 键盘弹出时本就在键盘上方(不贴底, 无需avoid计算)
+        LineEdit {
+            width: parent.width
+            placeholderText: "点此输入测试软键盘"
         }
 
         // 按钮高度随触摸态自适应 (桌面32 / 触摸48)
@@ -68,39 +72,6 @@ Rectangle {
                         font.family: Enums.fontFamily
                     }
                 }
-            }
-        }
-    }
-
-    // 软键盘避让示范: 输入框贴底, 键盘弹出时上移 kbH 不被遮挡
-    Rectangle {
-        id: inputBar
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: page.kbH   // 键盘高度避让
-        height: 56
-        color: Enums.isDark ? "#2a2a2a" : "#f0f0f0"
-        Behavior on anchors.bottomMargin { NumberAnimation { duration: 150 } }
-
-        TextInput {
-            id: ti
-            anchors.fill: parent
-            anchors.margins: 16
-            verticalAlignment: Text.AlignVCenter
-            color: Enums.foregroundColor
-            font.family: Enums.fontFamily
-            font.pixelSize: Enums.typography.body
-            clip: true
-            Text {
-                anchors.fill: parent
-                anchors.margins: parent.anchors ? 0 : 0
-                verticalAlignment: Text.AlignVCenter
-                text: "点此输入(测软键盘避让, kbH=" + page.kbH + ")"
-                color: Enums.foregroundColor
-                opacity: 0.4
-                visible: !ti.text && !ti.activeFocus
-                font.family: Enums.fontFamily
             }
         }
     }

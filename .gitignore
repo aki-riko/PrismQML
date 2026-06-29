@@ -47,3 +47,4 @@ cpp/_install*/
 cpp/build-android/
 cpp/build-android-x64/
 cpp/*.log
+cpp/build-android-apk/
