@@ -139,14 +139,18 @@ jobs:
             -DPRISM_BUILD_TESTS=OFF -DPRISM_VERIFY_MOBILE=OFF \
             -DCMAKE_OSX_SYSROOT=iphonesimulator
           cd cpp/build-ios
-          xcodebuild -project prism_demo.xcodeproj -scheme prism_demo \
+          # 工程名=顶层 project(prism) → prism.xcodeproj; target/scheme=prism_demo。
+          # 不用 | tail(pipefail下会吞 xcodebuild 失败码 → 假成功)。
+          xcodebuild -project prism.xcodeproj -scheme prism_demo \
             -configuration Release -sdk iphonesimulator \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO | tail -40
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
           echo "=== 产物 .app ==="
           find . -name "*.app" -type d
       - uses: actions/upload-artifact@v4
         with:
           name: ios-simulator-app
-          path: cpp/build-ios/**/*.app
-          if-no-files-found: warn
+          path: |
+            cpp/build-ios/**/*.app
+            cpp/build-ios/Release-iphonesimulator/**
+          if-no-files-found: error
 
