@@ -221,7 +221,10 @@ int main(int argc, char *argv[]) {
 
     qInfo() << "=== Icon API 测试 ===";
     {
-        setIconResourceRoot(QStringLiteral("D:/PrismQML/PrismQML/prismqml/PrismQML/controls/icons/fluent"));
+#ifndef PRISM_TEST_ICON_ROOT
+#define PRISM_TEST_ICON_ROOT "../prismqml/PrismQML/controls/icons/fluent"
+#endif
+        setIconResourceRoot(QStringLiteral(PRISM_TEST_ICON_ROOT));
         IconCore ic(QStringLiteral("Home"));
         CHECK(ic.path().endsWith(QStringLiteral("Home.svg")), "IconCore.path 解析到 svg");
         const QString c = resolveIconColor(Theme::Dark);

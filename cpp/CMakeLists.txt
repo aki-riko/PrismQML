@@ -175,6 +175,8 @@ option(PRISM_BUILD_TESTS "Build the C++ tests" ON)
 if(PRISM_BUILD_TESTS)
     qt_add_executable(prism_test_store tests/test_store.cpp)
     target_link_libraries(prism_test_store PRIVATE prism)
+    target_compile_definitions(prism_test_store PRIVATE
+        PRISM_TEST_ICON_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML/controls/icons/fluent")
 
     qt_add_executable(prism_test_system tests/test_system.cpp)
     target_link_libraries(prism_test_system PRIVATE prism)
