@@ -92,6 +92,11 @@ option(PRISM_BUILD_DEMO "Build the C++ demo app" ON)
 if(PRISM_BUILD_DEMO)
     qt_add_executable(prism_demo demo/main.cpp)
     target_link_libraries(prism_demo PRIVATE prism)
+    # 桌面: 注入源码树页面默认路径, 使 demo 无需手动设 PRISM_DEMO_PAGES 即可运行
+    if(NOT ANDROID AND NOT IOS)
+        target_compile_definitions(prism_demo PRIVATE
+            PRISM_DEMO_PAGES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/pages")
+    endif()
 
     # Android/iOS: QML 资源必须打进 bundle(无磁盘路径)。glob PrismQML 引擎 QML + svg +
     # i18n + demo pages 生成 qrc, prefix "/" 使 addImportPath("qrc:/") 能找到

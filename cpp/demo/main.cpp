@@ -77,11 +77,14 @@ int main(int argc, char *argv[]) {
     app.engine()->rootContext()->setContextProperty(QStringLiteral("UserModel"), &userModel);
 
 #ifndef PRISM_QML_FROM_QRC
-    // 桌面: 页面 QML 磁盘目录 (环境变量或源码相对路径)
+    // 桌面: 页面 QML 磁盘目录。优先 PRISM_DEMO_PAGES 环境变量, 否则用编译期注入的
+    // 源码树默认(CMake 定义 PRISM_DEMO_PAGES_DIR), 使无需手动设环境变量即可运行。
     QString pagesDir = QProcessEnvironment::systemEnvironment()
                            .value(QStringLiteral("PRISM_DEMO_PAGES"));
+#ifdef PRISM_DEMO_PAGES_DIR
     if (pagesDir.isEmpty())
-        pagesDir = QStringLiteral("D:/PrismQML/PrismQML/cpp/demo/pages");
+        pagesDir = QStringLiteral(PRISM_DEMO_PAGES_DIR);
+#endif
 #endif
     // 统一页面路径: Android 用 qrc, 桌面用磁盘
     auto pagePath = [&](const QString &name) -> QString {
