@@ -244,6 +244,12 @@ fn fetch_page(
 ///
 /// Returns:
 ///     int 行数
+///
+/// 注意: 当 sql_count 是返回 0 行的标量查询时 (例如读 count 缓存表
+/// `SELECT total FROM counts WHERE id=?` 而该行尚未建立),返回 0 而非抛异常。
+/// 这与 Python fallback 路径 (`row = cur.fetchone(); int(row[0]) if row else 0`)
+/// 语义一致 —— "count 查询无匹配行" 即计数 0,两路径行为对齐,避免下游因
+/// 缓存行缺失而崩溃 (count query returned no rows)。
 #[pyfunction]
 #[pyo3(signature = (db_path, sql_count, params=None))]
 fn count_rows(
@@ -257,14 +263,16 @@ fn count_rows(
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
 
     let mut rows = bind_params(&mut stmt, params)?;
-    let row = rows
+    // 标量查询返回 0 行 → 计数 0 (对齐 Python fallback 的 `if row else 0`),不抛异常。
+    match rows
         .next()
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?
-        .ok_or_else(|| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("count query returned no rows")
-        })?;
-    row.get::<_, i64>(0)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+    {
+        Some(row) => row
+            .get::<_, i64>(0)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string())),
+        None => Ok(0),
+    }
 }
 
 /// 模块定义
@@ -274,7 +282,7 @@ fn prismqml_rs(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(count_rows, m)?)?;
     m.add_function(wrap_pyfunction!(shard::fan_out_fetch_page, m)?)?;
     m.add_function(wrap_pyfunction!(verify_agg_monthly, m)?)?;
-    m.add("__version__", "0.3.0")?;
+    m.add("__version__", "0.3.1")?;
     Ok(())
 }
 
