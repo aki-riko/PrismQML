@@ -36,13 +36,18 @@ cmake --build cpp/build
 
 或直接运行 `cpp/build.bat`（已封装上述步骤）。
 
-## 运行 demo
+## 运行 demo / gallery
 
 ```bash
 export PATH="$QTDIR/bin:$PATH"
-export PRISMQML_QML_DIR="<repo>/prismqml"   # 指向 PrismQML 模块的父目录
-./cpp/build/prism_demo.exe
+./cpp/build/prism_demo.exe       # 4 页最小 demo
+./cpp/build/prism_gallery.exe    # 13 页完整组件画廊
 ```
+
+> 开发树下 **无需设环境变量** —— CMake 在编译期注入了源码树的 QML/页面默认路径
+> (`PRISM_QML_DIR_DEFAULT` 等)，`import PrismQML` 与页面加载自动解析。
+> 如需覆盖 (如分发后指向别处)，可设 `PRISMQML_QML_DIR`(QML 模块父目录) /
+> `PRISM_GALLERY_PAGES` / `PRISM_DEMO_PAGES`，优先级高于编译期默认。
 
 ## 快速开始（对称 API）
 
@@ -58,8 +63,11 @@ int main(int argc, char **argv) {
     Window &w = app.createWindow(WindowType::Bar);
     w.setWindowTitle("我的应用");
     w.resize(1200, 800);
+    w.setSplash(true, "", "我的应用", "加载中...");  // 启动画面(可选, 首屏就绪自动淡出)
     w.addPage("pages/HomePage.qml", "Home", "首页");
-    w.addPage("pages/SettingsPage.qml", "Settings", "设置");
+    w.addPage("pages/SettingsPage.qml", "Settings", "设置", NavPosition::Bottom);
+    // 纯功能项(点击只触发回调不切页, 如底部头像): selectable=false
+    w.addPage("", "Person", "用户", NavPosition::Bottom, /*selectable=*/false);
     w.show();
     return app.exec();
 }
@@ -121,16 +129,38 @@ window.show(); app.exec()
 
 ## 作为库集成
 
-安装后其他 CMake 项目可直接消费：
-
-```cmake
-find_package(prism REQUIRED)        # 自动转发 Qt6 依赖
-target_link_libraries(myapp PRIVATE prism::prism)
-```
+先安装（QML 组件、头文件、库、CMake config 一并装好）：
 
 ```bash
 cmake --install cpp/build --prefix <你的安装前缀>
 ```
+
+其他 CMake 项目消费时，`find_package(prism)` 会导出库目标 + QML 组件目录变量
+`prism_QML_DIR`。**纯 C++ 用户不需要源码树、不需要 Python**：
+
+```cmake
+find_package(prism REQUIRED)          # 自动转发 Qt6 依赖
+qt_add_executable(myapp main.cpp)
+target_link_libraries(myapp PRIVATE prism::prism)
+# 把安装的 QML 组件目录传给运行时, 使 import PrismQML 可解析
+target_compile_definitions(myapp PRIVATE PRISM_QML_DIR="${prism_QML_DIR}")
+```
+
+```cpp
+#include <prism/App.h>
+#include <prism/Window.h>
+int main(int argc, char **argv) {
+    prism::App app(argc, argv);
+    app.engine()->addImportPath(PRISM_QML_DIR);   // = prism_QML_DIR, 含 PrismQML/ 子目录
+    prism::Window &w = app.createWindow(prism::WindowType::Bar);
+    w.setWindowTitle("我的应用");
+    w.show();
+    return app.exec();
+}
+```
+
+> 已端到端验证：`make install` → 独立项目 `find_package(prism)` → 编译 → 运行 →
+> `import PrismQML` 全链路打通(消费程序无需源码树)。
 
 ## 平台说明
 
