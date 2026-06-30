@@ -67,6 +67,7 @@ add_library(prism STATIC
 
 target_include_directories(prism PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(prism PUBLIC
