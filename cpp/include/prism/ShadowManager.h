@@ -41,6 +41,13 @@ public slots:
 signals:
     void shadowModeChanged(const QString &mode);
 
+public:
+    // installDwmSyncFilter - 安装 DWM 同步原生事件过滤器 (镜像 Python core/shadow.py)。
+    // 在 WM_SIZING/WM_SIZE/WM_MOVING 时调 DwmFlush 消除无边框窗口 resize 撕裂。
+    // 应在 QGuiApplication 创建后调用; 幂等(重复调用只安装一次)。
+    // 返回 true=已安装(或已在装); 非 Windows / 无 app 返回 false。
+    static bool installDwmSyncFilter();
+
 private:
     explicit ShadowManager(QObject *parent = nullptr);
     static ShadowMode detectPlatformMode();

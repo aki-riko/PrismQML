@@ -8,6 +8,7 @@
 #include <QAbstractListModel>
 #include <QVariantList>
 #include <QVariantMap>
+#include <QStringList>
 #include <QHash>
 #include <QByteArray>
 
@@ -42,16 +43,38 @@ private:
 // 诚实返回 false: C++ 侧数据层是 Qt 原生, 无 Rust 加速路径。
 inline bool is_rust_accelerated() { return false; }
 
-// DbRouter: Python 用于多 shard 路由(配合 Rust fan_out)。C++ 单库 QtSql 无多 shard
-// 概念, 此处为对称占位 — 单库场景直接用 SqlListModel.openDatabase 即可。
+// DbRouter: 多 shard 路由基类 (镜像 Python models/sql_list_model.py DbRouter)。
+// route(params) 根据 SQL 参数返回需查询的 shard 数据库文件路径列表:
+//   - 返回 1 个: 走单 shard 路径 (与传单一 db_path 等价)
+//   - 返回 N 个: 走 fan-out 路径 (SqlListModel 对每 shard 执行查询后归并 + 全局排序分页)
+// 业务子类重写 route() 按 params (如 book_id / date_range) 决定 shard 集合。
 class DbRouter {
 public:
     explicit DbRouter(const QString &dbPath = QString()) : m_dbPath(dbPath) {}
+    virtual ~DbRouter() = default;
+
+    // 兼容访问器: 单库路径 (多 shard 场景无意义, 返回空)
     QString dbPath() const { return m_dbPath; }
-    // 多 shard 路由在 C++ QtSql 单库下不适用; 返回唯一库路径。
-    QString routeFor(const QVariant & /*cursor*/) const { return m_dbPath; }
-private:
+
+    // 路由: 返回本次查询需命中的 shard db 路径列表 (镜像 Python route)。
+    // 默认实现返回构造时的单库路径 (等价 SingleDbRouter); 空路径返回空列表。
+    virtual QStringList route(const QVariantList & /*params*/) const {
+        if (m_dbPath.isEmpty())
+            return {};
+        return {m_dbPath};
+    }
+
+protected:
     QString m_dbPath;
+};
+
+// SingleDbRouter: 单库默认 router, 恒返单一 db_path (镜像 Python _SingleDbRouter)。
+class SingleDbRouter : public DbRouter {
+public:
+    explicit SingleDbRouter(const QString &dbPath) : DbRouter(dbPath) {}
+    QStringList route(const QVariantList & /*params*/) const override {
+        return {m_dbPath};
+    }
 };
 
 }  // namespace prism

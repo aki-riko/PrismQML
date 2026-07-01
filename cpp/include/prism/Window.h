@@ -126,4 +126,10 @@ private:
     QString navItemsJson(const QList<NavItem> &items, int indexOffset, bool isBottom = false) const;
 };
 
+// WindowCore - 窗口核心类型别名 (镜像 Python window_base.py 的 WindowCore)。
+// Python 中 WindowCore 是核心实现 (QObject+Builder+PageManager mixin), Window 是其门面;
+// C++ 侧 Window 已内聚全部门面+核心逻辑, WindowCore 作为对称别名指向同一类型,
+// 使 prism::WindowCore 可与 Python 逐字对称引用。
+using WindowCore = Window;
+
 }  // namespace prism

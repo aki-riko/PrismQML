@@ -57,19 +57,13 @@ inline SystemTrayIcon *createSystemTrayIcon(const QString &icon = QString(),
 // C++ 用纯 QML 控件不依赖 QtQuick.Controls Style, 此处保留为对称 no-op。
 inline void init_style() { qputenv("QT_QUICK_CONTROLS_STYLE", "Basic"); }
 
-// installDwmSyncFilter: 安装 DWM 同步事件过滤器 (仅桌面 Windows 有意义)
-// C++ 的 NativeWindow 已用 QAbstractNativeEventFilter 处理, 此处对称保留。
-inline void installDwmSyncFilter() { /* 桌面 NativeWindow 已处理; 移动端 no-op */ }
+// installDwmSyncFilter: 安装 DWM 同步事件过滤器 (镜像 Python installDwmSyncFilter)。
+// 转发到 ShadowManager::installDwmSyncFilter(); 桌面 Windows 真实安装原生事件过滤器,
+// 在 WM_SIZING/WM_SIZE/WM_MOVING 时调 DwmFlush 消除无边框窗口 resize 撕裂; 非 Windows no-op。
+inline bool installDwmSyncFilter() { return ShadowManager::installDwmSyncFilter(); }
 
-// getLogger: 取日志器 (镜像 Python getLogger; C++ 日志是 prism::log 命名空间函数,
-// 返回一个轻量包装供链式调用对称)。直接用 prism::log::info(...) 更地道。
-struct LoggerRef {
-    void debug(const QString &m, const QString &t = {}) const { log::debug(m, t); }
-    void info(const QString &m, const QString &t = {}) const { log::info(m, t); }
-    void warning(const QString &m, const QString &t = {}) const { log::warning(m, t); }
-    void error(const QString &m, const QString &t = {}) const { log::error(m, t); }
-};
-inline LoggerRef getLogger() { return LoggerRef{}; }
+// getLogger / Logger 类见 Logger.h (镜像 Python Logger 单例 + getLogger)。
+// 直接用 prism::log::info(...) 或 prism::getLogger().info(...) 皆可。
 
 // ==================== NavigationItem (镜像 Python 数据类) ====================
 // 描述一个导航项。C++ 既可用 App/Window 的 addPage(url,icon,text) 直接添加,

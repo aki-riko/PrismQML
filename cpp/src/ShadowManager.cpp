@@ -7,6 +7,9 @@
 
 #include <QWindow>
 #include <QDebug>
+#include <QCoreApplication>
+#include <QAbstractNativeEventFilter>
+#include <QByteArray>
 
 #ifdef Q_OS_WIN
 #  include <windows.h>
@@ -122,5 +125,62 @@ bool ShadowManager::disableDwmShadow(qulonglong hwnd) {
     return true;
 }
 #endif
+
+// ==================== DWM 同步事件过滤器 (镜像 Python DwmSyncFilter) ====================
+#ifdef Q_OS_WIN
+namespace {
+// WM_SIZING/WM_SIZE/WM_MOVING 时调 DwmFlush, 消除无边框窗口 resize 撕裂
+class DwmSyncFilter : public QAbstractNativeEventFilter {
+public:
+    bool nativeEventFilter(const QByteArray &eventType, void *message,
+                           qintptr * /*result*/) override {
+        if (eventType != "windows_generic_MSG")
+            return false;
+        MSG *msg = static_cast<MSG *>(message);
+        if (!msg)
+            return false;
+        switch (msg->message) {
+            case WM_SIZING:   // 0x0214
+            case WM_SIZE:     // 0x0005
+            case WM_MOVING:   // 0x0216
+                DwmFlush();
+                break;
+            case WM_ENTERSIZEMOVE:  // 0x0231
+                m_inResize = true;
+                break;
+            case WM_EXITSIZEMOVE:   // 0x0232
+                m_inResize = false;
+                break;
+            default:
+                break;
+        }
+        return false;  // 不拦截消息, 继续传递 (镜像 Python return False,0)
+    }
+
+private:
+    bool m_inResize = false;
+};
+}  // namespace
+#endif
+
+bool ShadowManager::installDwmSyncFilter() {
+#ifdef Q_OS_WIN
+    static DwmSyncFilter *s_filter = nullptr;
+    if (s_filter)
+        return true;  // 已安装 (幂等)
+    QCoreApplication *app = QCoreApplication::instance();
+    if (!app) {
+        qWarning() << "prism::installDwmSyncFilter: QCoreApplication 未创建";
+        return false;
+    }
+    s_filter = new DwmSyncFilter();
+    app->installNativeEventFilter(s_filter);
+    qInfo() << "prism: DWM 同步过滤器已安装";
+    return true;
+#else
+    // 非 Windows: 无 DWM, 诚实降级 no-op
+    return false;
+#endif
+}
 
 }  // namespace prism

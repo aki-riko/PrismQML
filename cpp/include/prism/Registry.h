@@ -24,4 +24,9 @@ void registerTypes(QQmlEngine *engine, const QString &importPath);
 // 优先用环境变量 PRISMQML_QML_DIR; 否则用传入的 fallback。
 QString resolveImportPath(const QString &fallback = QString());
 
+// qml_path - 获取 QML module 根目录 (镜像 Python core/utils.py qml_path)。
+// 返回 `module PrismQML` 所在目录本身 (= resolveImportPath 的父路径下的 PrismQML 子目录);
+// relative 非空时返回该目录下的子路径。import path 应指向本目录的父 (见 register_types)。
+QString qml_path(const QString &relative = QString());
+
 }  // namespace prism

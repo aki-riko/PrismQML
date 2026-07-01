@@ -12,6 +12,9 @@
 #include "prism/Accessors.h"
 #include "prism/Icon.h"
 #include "prism/DataModels.h"
+#include "prism/SystemTray.h"
+#include "prism/Registry.h"
+#include "prism/Window.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -20,6 +23,7 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <vector>
+#include <type_traits>
 
 static int g_failed = 0;
 #define CHECK(cond, name) do { \
@@ -108,6 +112,15 @@ int main(int argc, char *argv[]) {
     CHECK(versionIsNewer("v1.0.0", "v1.0.0-beta"), "正式版 > 预发布");
     CHECK(!versionIsNewer("v1.0.0-beta", "v1.0.0"), "预发布 < 正式版");
     CHECK(versionIsNewer("v2.0.0", "v1.9.9"), "主版本号优先");
+
+    // runInstallerAndQuit 失败路径 (文件不存在应返回 false 且不退出应用)。
+    // 成功路径会调 QCoreApplication::quit() 退出进程, 无法在单测内断言, 属合理验证边界。
+    {
+        Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+        CHECK(!updater.runInstallerAndQuit(QString()), "runInstallerAndQuit 空路径返回 false");
+        CHECK(!updater.runInstallerAndQuit(QStringLiteral("Z:/no/such/installer.exe")),
+              "runInstallerAndQuit 不存在的文件返回 false");
+    }
 
     qInfo() << "=== SqlListModel 测试 ===";
     {
@@ -254,6 +267,43 @@ int main(int argc, char *argv[]) {
         // data() 经 role
         int nameRole = roles.key("name", -1);
         CHECK(tm.data(tm.index(0, 0), nameRole).toString() == "A", "data(row0,name)=A");
+    }
+
+    qInfo() << "=== 对称类型测试(与 Python __all__ 逐字对称) ===";
+    {
+        // Logger 类 (镜像 Python Logger 单例) + getLogger()
+        CHECK(&getLogger() == &Logger::instance(), "getLogger()==Logger::instance() 单例");
+        getLogger().info(QStringLiteral("Logger 类 info 测试"), QStringLiteral("SYM"));
+        Logger::instance().setLevel(log::Level::Info);  // 恢复级别(前面被设 Error)
+        CHECK(true, "Logger 类方法调用无崩溃");
+
+        // ActivationReason 枚举 (值对齐 QSystemTrayIcon::ActivationReason)
+        CHECK(int(ActivationReason::Unknown) == 0, "ActivationReason::Unknown==0");
+        CHECK(int(ActivationReason::Context) == 1, "ActivationReason::Context==1");
+        CHECK(int(ActivationReason::DoubleClick) == 2, "ActivationReason::DoubleClick==2");
+        CHECK(int(ActivationReason::Trigger) == 3, "ActivationReason::Trigger==3");
+        CHECK(int(ActivationReason::MiddleClick) == 4, "ActivationReason::MiddleClick==4");
+
+        // qml_path() (镜像 Python qml_path): 返回 module 根目录, relative 拼接
+        const QString qp = qml_path();
+        CHECK(qp.endsWith(QStringLiteral("PrismQML")), "qml_path() 以 PrismQML 结尾");
+        const QString qpr = qml_path(QStringLiteral("qmldir"));
+        CHECK(qpr.endsWith(QStringLiteral("PrismQML/qmldir")), "qml_path(qmldir) 拼接正确");
+        // qml_path().parent 即 import path (镜像 Python addImportPath(qml_path().parent))
+        CHECK(qp.startsWith(resolveImportPath()) || resolveImportPath().isEmpty(),
+              "qml_path 基于 resolveImportPath");
+
+        // WindowCore 别名 == Window (镜像 Python WindowCore, Window 是其门面)
+        CHECK((std::is_same<WindowCore, Window>::value), "WindowCore 是 Window 的对称别名");
+
+        // installDwmSyncFilter (镜像 Python): Windows 下应真实安装成功且幂等
+        const bool dwm1 = installDwmSyncFilter();
+        const bool dwm2 = installDwmSyncFilter();  // 幂等: 重复调用仍 true
+#ifdef Q_OS_WIN
+        CHECK(dwm1 && dwm2, "installDwmSyncFilter Windows 下安装成功且幂等");
+#else
+        CHECK(!dwm1, "installDwmSyncFilter 非 Windows 诚实降级 false");
+#endif
     }
 
     qInfo() << "";

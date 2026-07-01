@@ -5,6 +5,7 @@
 // PrismQML C++ 宿主 - App 实现 (镜像 Python window/app.py)
 #include "prism/App.h"
 #include "prism/Registry.h"
+#include "prism/ShadowManager.h"
 
 #include <QApplication>
 #include <QQmlApplicationEngine>
@@ -89,6 +90,10 @@ App::App(int &argc, char **argv, const QString &importPath) {
 
     // 注入装配 (镜像 Python register_types(engine))
     registerTypes(m_engine.get(), m_importPath);
+
+    // 安装 DWM 同步过滤器 (镜像 Python app.py: installDwmSyncFilter())。
+    // 消除无边框窗口 resize 撕裂; 非 Windows 内部 no-op。
+    ShadowManager::installDwmSyncFilter();
 
     // 移动端生命周期: 监听应用状态变化 (前台/后台)
     m_lifecycle = std::make_unique<AppLifecycleBridge>(this, m_app.get());

@@ -17,6 +17,17 @@ namespace prism {
 // MessageIcon - 通知图标 (值对齐 QSystemTrayIcon::MessageIcon)
 enum class MessageIcon { NoIcon = 0, Information = 1, Warning = 2, Critical = 3 };
 
+// ActivationReason - 托盘激活原因 (值对齐 QSystemTrayIcon::ActivationReason,
+// 镜像 Python tray_types.ActivationReason IntEnum)。activated(int) 信号的参数
+// 可直接与本枚举比对: if (reason == int(ActivationReason::Trigger)) ...
+enum class ActivationReason {
+    Unknown = 0,      // QSystemTrayIcon::Unknown
+    Context = 1,      // 右键上下文菜单请求
+    DoubleClick = 2,  // 双击
+    Trigger = 3,      // 单击
+    MiddleClick = 4,  // 中键点击
+};
+
 // SystemTrayIcon - 系统托盘 (镜像 Python SystemTrayIcon, 封装 QSystemTrayIcon+QMenu)
 class SystemTrayIcon : public QObject {
     Q_OBJECT
@@ -39,7 +50,9 @@ public:
     static bool isAvailable();
 
 signals:
-    void activated(int reason);  // 对齐 QSystemTrayIcon::ActivationReason int
+    // 托盘被激活。reason 值对齐 QSystemTrayIcon::ActivationReason,
+    // 可与 prism::ActivationReason 枚举比对 (如 int(ActivationReason::Trigger))。
+    void activated(int reason);
 
 private:
     QSystemTrayIcon *m_tray = nullptr;

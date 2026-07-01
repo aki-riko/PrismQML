@@ -86,4 +86,20 @@ QString resolveImportPath(const QString &fallback) {
 #endif
 }
 
+// qml_path - QML module 根目录 (镜像 Python qml_path)。import path 父目录 + "/PrismQML"。
+QString qml_path(const QString &relative) {
+    const QString parent = resolveImportPath();
+    QString base;
+    if (parent.isEmpty()) {
+        base = QStringLiteral("PrismQML");
+    } else if (parent.endsWith(QLatin1Char('/')) || parent.endsWith(QLatin1Char('\\'))) {
+        base = parent + QStringLiteral("PrismQML");
+    } else {
+        base = parent + QStringLiteral("/PrismQML");
+    }
+    if (relative.isEmpty())
+        return base;
+    return base + QLatin1Char('/') + relative;
+}
+
 }  // namespace prism

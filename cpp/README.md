@@ -104,28 +104,32 @@ window.show(); app.exec()
 | 应用图标 | `WindowHelper`（setAppIcon，SVG 多尺寸） | core/window_helper.py |
 | SVG 渲染 | `SvgImageProvider`（image://svg） | providers/svg_provider.py |
 | 状态管理 | `Store`（define/get/set/watch/batch） | state/store.py |
-| 日志 | `prism::log`（debug/info/warning/error + Qt 重定向） | core/logger.py |
-| 系统托盘 | `SystemTrayIcon` | window/system_tray.py |
+| 日志 | `prism::log` + `Logger` 类（debug/info/warning/error + Qt 重定向） | core/logger.py |
+| 系统托盘 | `SystemTrayIcon` + `MessageIcon` / `ActivationReason` 枚举 | window/system_tray.py |
 | 单实例 | `SingleInstance` | core/single_instance.py |
-| 自动更新 | `Updater`（GitHub releases 检查/下载 + 语义版本比较） | core/updater.py |
+| 自动更新 | `Updater`（检查/下载 + 语义版本比较 + `runInstallerAndQuit` 安装并重启） | core/updater.py |
 | 屏幕取色 | `ScreenEyedropperManager`（全屏覆盖窗点击取色） | providers/screen_eyedropper.py |
-| 数据模型 | `SqlListModel`（QtSql + 分页 + LRU 缓存） | models/sql_list_model.py |
-| 二维码 | `QRCodeGenerator`（接口完整，编码后端降级） | providers/qrcode_generator.py |
+| 数据模型 | `SqlListModel`（QtSql + 分页 + LRU 缓存 + keyset 游标 + `DbRouter` 多 shard fan-out） | models/sql_list_model.py |
+| 二维码 | `QRCodeGenerator`（完整编码后端，nayuki qrcodegen / MIT，`available=true`） | providers/qrcode_generator.py |
+| DWM 同步 | `installDwmSyncFilter`（无边框窗口 resize 防撕裂，桌面 Windows） | core/shadow.py |
 
-### 尚未移植 / 降级（按需补充，均有原因）
-- `QRCodeGenerator` 编码后端：当前 `available=false` 优雅降级（与 Python 未装
-  `qrcode` 库时一致）。完整 QR 编码（Reed-Solomon + 掩码）约 600 行且无人值守
-  无法扫码验证正确性，故保留接口待需求驱动。
-- `SqlListModel` 高级路径：keyset 游标分页 / 多 shard fan-out 未实现（Python 版
-  依赖 Rust `prismqml_rs`，是 PyO3 Python ABI，C++ 无法直接复用）。当前 LIMIT/
-  OFFSET 路径在 <100M 行场景正常。`DbRouter` 为单库占位、`is_rust_accelerated`
-  诚实返回 false（C++ 数据层是 Qt 原生）。
-- `Updater` 静默安装/重启：检查与下载已实现，安装器调起逻辑按平台另接。
+### 平台相关的诚实降级（非 Windows 按 `#ifdef` no-op，无功能缺口）
+- `installDwmSyncFilter` / `Updater::runInstallerAndQuit` 的 Windows 专属路径
+  （DwmFlush 同步、ShellExecuteW 提权安装）在非 Windows 平台按平台条件编译降级：
+  DWM 撕裂与 UAC 提权在这些平台物理不存在，非功能缺失。
+- `is_rust_accelerated` 诚实返回 false：C++ 数据层是 Qt 原生 QtSql，非 Rust
+  `prismqml_rs`（PyO3 Python ABI，C++ 无法复用）；keyset / 多 shard fan-out 已用
+  QtSql 原生等价实现（内存归并 + 全局排序），语义等价，适用 <100M 行场景。
 
 > **API 覆盖度：Python `prismqml.__all__` 的 64 个公开符号已 100% 在 C++ 侧提供**
-> 对应实现或对称形式（getter 别名、Icon API、TableListModel 等），功能经单元测试
-> 验证。少数符号是诚实降级（QR 编码后端、SqlListModel 多 shard、Updater 静默安装），
-> 原因如上，接口齐全。
+> 实质实现，功能经单元测试验证：
+> - QR 编码后端接入 nayuki qrcodegen（MIT），端到端解码验证（opencv 独立解码
+>   还原 == 原文，覆盖 URL / 中文 / 特殊符号 / 长文本）；
+> - `SqlListModel` keyset 游标与多 shard fan-out 用 QtSql 原生实现并测试坐实
+>   （keyset 翻页逐行 == OFFSET 路径；多 shard 归并全局排序正确）；
+> - `Updater::runInstallerAndQuit` 补齐安装器调起 + 退出重启；
+> - `WindowCore` / `Logger` / `ActivationReason` / `qml_path` / `installDwmSyncFilter`
+>   建为与 Python 逐字对称的同名实体，单测验证可用。
 
 ## 作为库集成
 
@@ -171,10 +175,16 @@ int main(int argc, char **argv) {
 
 ## 验证状态
 
-- Qt 6.11.1 + MSVC 全量编译链接通过。
+- Qt 6.11.1 + MSVC 全量编译链接通过（含 nayuki qrcodegen 第三方源）。
 - demo 真实平台渲染：1823×1256，96 种颜色，accent 色 `#F97316` 像素级命中
   （C++ ThemeManager 注入值流到渲染）。
-- `prism_test_store`：Store 11 项断言 + Logger 全部通过。
+- `prism_test_store`：Store / Logger / Updater 版本比较 + 对称类型（`Logger` /
+  `ActivationReason` / `qml_path` / `WindowCore` / `installDwmSyncFilter` /
+  `runInstallerAndQuit` 失败路径）共 68 项断言全部通过。
+- `prism_test_sqlmodel`：多 shard fan-out 归并 + keyset 升/降序翻页（逐行 ==
+  OFFSET 路径）+ 单库回归共 11 项断言通过；破坏谓词方向可复现 FAIL（区分力坐实）。
+- `prism_test_qrcode_gen` + `tests/qr/verify_qr.py`：C++ 生成的 QR PNG 由 opencv
+  独立解码还原 == 原文，5 组（URL / 中文 / 特殊符号 / 长文本）全部通过。
 - QML 加载真实 PrismQML 组件零 `ReferenceError`。
 
 详见 [`docs/cpp-host-plan.md`](../docs/cpp-host-plan.md)。

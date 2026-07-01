@@ -36,6 +36,8 @@ add_library(prism STATIC
     src/Registry.cpp
     src/App.cpp
     src/Window.cpp
+    # 第三方: nayuki QR-Code-generator (MIT), QRCodeGenerator 编码后端
+    third_party/qrcodegen/qrcodegen.cpp
     # 头文件显式列入: 确保 AUTOMOC 扫描到含 Q_OBJECT 的头
     include/prism/Theme.h
     include/prism/ThemeManager.h
@@ -70,14 +72,19 @@ target_include_directories(prism PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+# 第三方 QR 编码器头 (nayuki qrcodegen): 仅 prism 内部实现使用, 不对外暴露
+target_include_directories(prism PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party>
+)
+
 target_link_libraries(prism PUBLIC
     Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Svg Qt6::Widgets Qt6::Network Qt6::Sql
     Qt6::QuickControls2 Qt6::QuickLayouts Qt6::QuickEffects
 )
 
-# Windows: 链接 DWM API (Shadow/Mica) + user32 (NativeWindow)
+# Windows: 链接 DWM API (Shadow/Mica) + user32 (NativeWindow) + shell32 (Updater 安装包启动)
 if(WIN32)
-    target_link_libraries(prism PUBLIC dwmapi user32)
+    target_link_libraries(prism PUBLIC dwmapi user32 shell32)
 endif()
 
 # 编译期默认 QML import 目录(开发树): 未设 PRISMQML_QML_DIR 环境变量时 resolveImportPath
@@ -184,6 +191,14 @@ if(PRISM_BUILD_TESTS)
 
     qt_add_executable(prism_test_mica tests/test_mica.cpp)
     target_link_libraries(prism_test_mica PRIVATE prism)
+
+    # QR 端到端验证: 生成 QR PNG 供 tests/qr/verify_qr.py 用 opencv 解码比对
+    qt_add_executable(prism_test_qrcode_gen tests/test_qrcode_gen.cpp)
+    target_link_libraries(prism_test_qrcode_gen PRIVATE prism)
+
+    # SqlListModel 多 shard fan-out + keyset 游标验证
+    qt_add_executable(prism_test_sqlmodel tests/test_sqlmodel.cpp)
+    target_link_libraries(prism_test_sqlmodel PRIVATE prism)
 endif()
 
 # ==================== 移动端条件编译分支验证 ====================

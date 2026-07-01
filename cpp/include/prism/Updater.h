@@ -30,6 +30,14 @@ public slots:
     void checkForUpdate();
     void downloadUpdate(const QString &url);
 
+    // 启动安装包并退出当前应用, 让安装包覆盖文件 (镜像 Python runInstallerAndQuit)。
+    // Windows 用 ShellExecuteW open 动词 (安装包 manifest 标记需管理员权限时系统自动弹 UAC);
+    // 非 Windows 用 QProcess::startDetached。installerPath 通常是 downloadFinished 给出的 localPath;
+    // silentArgs 为传给安装包的参数(空格分隔), 留空走可见安装向导。
+    // 成功发起安装时本应用即将退出并返回 true; 文件不存在/启动失败返回 false 且不退出。
+    bool runInstallerAndQuit(const QString &installerPath,
+                             const QString &silentArgs = QString());
+
 signals:
     void updateAvailable(const QString &version, const QString &notes,
                          const QString &downloadUrl, const QString &htmlUrl);

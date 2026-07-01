@@ -17,6 +17,16 @@
 #include <QUrl>
 #include <QList>
 #include <QPair>
+#include <QProcess>
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QStringList>
+#include <QDebug>
+
+#ifdef Q_OS_WIN
+#  include <windows.h>
+#  include <shellapi.h>
+#endif
 
 namespace prism {
 
@@ -222,6 +232,51 @@ void Updater::onDownloadFinished() {
         return;
     }
     emit downloadFinished(localPath);
+}
+
+// ==================== 安装并退出 (镜像 Python runInstallerAndQuit) ====================
+bool Updater::runInstallerAndQuit(const QString &installerPath, const QString &silentArgs) {
+    if (installerPath.isEmpty() || !QFileInfo(installerPath).isFile()) {
+        qWarning() << "[Updater] 安装包不存在:" << installerPath;
+        return false;
+    }
+    // 拆分参数 (空格分隔, 过滤空段; 镜像 Python args 解析)
+    QStringList args;
+    const QString trimmed = silentArgs.trimmed();
+    if (!trimmed.isEmpty()) {
+        for (const QString &a : trimmed.split(QLatin1Char(' '), Qt::SkipEmptyParts))
+            args << a;
+    }
+
+#ifdef Q_OS_WIN
+    // Windows: ShellExecuteW open 动词。安装包(InnoSetup)若 manifest 标记需管理员权限,
+    // 系统自动弹标准 UAC 提权 (无需主动 runas, 主动 runas 在部分 UAC 配置下会卡住)。
+    const std::wstring file = installerPath.toStdWString();
+    const QString joined = args.join(QLatin1Char(' '));
+    const std::wstring params = joined.toStdWString();
+    HINSTANCE ret = ShellExecuteW(nullptr, L"open", file.c_str(),
+                                  params.empty() ? nullptr : params.c_str(),
+                                  nullptr, SW_SHOWNORMAL);
+    // ShellExecuteW 返回值 <= 32 表示失败
+    if (reinterpret_cast<INT_PTR>(ret) <= 32) {
+        qWarning() << "[Updater] 启动安装包失败(ShellExecute 返回"
+                   << reinterpret_cast<INT_PTR>(ret) << "):" << installerPath;
+        return false;
+    }
+    qInfo() << "[Updater] 已启动安装包, 应用即将退出:" << installerPath << args;
+    QCoreApplication::quit();
+    return true;
+#else
+    // 非 Windows: QProcess detached 启动
+    const bool ok = QProcess::startDetached(installerPath, args);
+    if (!ok) {
+        qWarning() << "[Updater] 启动安装包失败:" << installerPath;
+        return false;
+    }
+    qInfo() << "[Updater] 已启动安装包, 应用即将退出:" << installerPath << args;
+    QCoreApplication::quit();
+    return true;
+#endif
 }
 
 }  // namespace prism
