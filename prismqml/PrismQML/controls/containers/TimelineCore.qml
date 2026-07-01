@@ -346,6 +346,7 @@ Item {
             required property var model
             width: virtualList.width
             height: model.kind === "header" ? headerPart.height : cardPart.height
+            clip: true   // 防止复用切换(header↔card)瞬间旧内容溢出残留("鬼影")
 
             // ---------- 组头行 ----------
             Item {
@@ -399,12 +400,29 @@ Item {
                 Card {
                     id: cardBox
                     x: Enums.spacing.timelineIndent
-                    width: parent.width - Enums.spacing.timelineIndent - Enums.spacing.s
+                    // 右侧留出滚动条宽度 + 间距,避免卡片边缘与滚动条重叠
+                    width: parent.width - Enums.spacing.timelineIndent - Enums.spacing.xl
                     height: cardCol.implicitHeight + Enums.spacing.l * 2
                     cardType: Enums.card.type_hover
                     clickEnabled: true
-                    border.width: cardPart.isSelected ? Enums.border.thick : Enums.border.normal
-                    border.color: cardPart.isSelected ? Enums.accentColor : Enums.stateColor.border
+                    // 选中态走 Fluent 标准:边框/背景不变,仅左侧 accent 圆角指示条(下方),
+                    // 不做换边框色/背景染色(那样显花)
+                    border.width: Enums.border.normal
+                    border.color: Enums.stateColor.border
+
+                    // Fluent 左侧选中指示条(圆角 pill,accent 色,短竖条居中)
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.leftMargin: Enums.spacing.xs
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 3
+                        radius: 1.5
+                        color: Enums.accentColor
+                        height: cardPart.isSelected ? parent.height * 0.5 : 0
+                        opacity: cardPart.isSelected ? 1 : 0
+                        Behavior on height { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                    }
                     onClicked: {
                         control.cardClicked(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.text)
                         control.cardClickedData(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.cardData)

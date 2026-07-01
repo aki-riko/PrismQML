@@ -22,7 +22,11 @@ DialogBoxCore {
     property bool cancelButtonVisible: true      // Show cancel button 显示取消按钮
     
     // ==================== Internal 内部属性 ====================
-    readonly property int _contentWidth: Math.max(titleLabel.implicitWidth, contentLabel.implicitWidth, textLayout.implicitWidth)
+    // ==================== Layout Metrics 布局度量 ====================
+    // content 固定换行宽度(多行文本高度按此宽度换行后计算,避免用单行 implicitWidth
+    // 导致 _contentHeight 只算一行高度而裁切多行内容)
+    readonly property int _contentTextWidth: 360
+    readonly property int _contentWidth: Math.max(titleLabel.implicitWidth, control._contentTextWidth)
     readonly property int _contentHeight: titleLabel.implicitHeight + contentLabel.implicitHeight + 12
     
     // ==================== Footer 按钮组 ====================
@@ -83,7 +87,8 @@ DialogBoxCore {
             text: control.content
             visible: text !== ""
             wrapMode: Text.WordWrap
-            width: Math.min(implicitWidth, 400)
+            // 固定换行宽度,使 implicitHeight 反映换行后的真实多行高度(修内容被裁)
+            width: control._contentTextWidth
             readOnly: true
         }
     }
