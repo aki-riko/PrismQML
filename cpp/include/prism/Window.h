@@ -9,6 +9,7 @@
 #include <QList>
 #include <QHash>
 #include <QObject>
+#include <functional>
 
 class QQmlEngine;
 class QObject;
@@ -26,6 +27,7 @@ public:
     NavBridge(Window *owner, QObject *parent) : QObject(parent), m_owner(owner) {}
 public slots:
     void onChanged(int index);
+    void onBottomItemClicked(int index);  // 底部导航项点击(含纯功能项) -> 用户回调
     void onClosing(QQuickCloseEvent *event);  // 返回键/关闭请求 -> goBack 或退出
 private:
     Window *m_owner;
@@ -63,6 +65,11 @@ public:
     // 默认开启, icon/title 空则回退 windowIcon/windowTitle。enabled=false 禁用。
     void setSplash(bool enabled, const QString &icon = QString(),
                    const QString &title = QString(), const QString &subtitle = QString());
+
+    // onBottomItemClicked - 底部导航项点击回调 (镜像 QML bottomItemClicked 信号)。
+    // 纯功能项(selectable=false, 如 User 头像)点击时触发, 参数为该项的索引;
+    // 可选页面项点击也会触发(切页由框架处理, 回调用于额外响应)。
+    void onBottomItemClicked(std::function<void(int)> cb);
 
     void show();
     void navigateTo(int index);
@@ -105,9 +112,11 @@ private:
     bool m_splashEnabled = true;
     QString m_splashIcon, m_splashTitle, m_splashSubtitle;
     QObject *m_splashInstance = nullptr;
+    std::function<void(int)> m_onBottomItemClicked;  // 底部项点击回调
 
     void build();
     void createSplash();  // show() 后挂 SplashScreen 覆盖层到 contentItem
+    void handleBottomItemClicked(int localIndex);  // NavBridge 转发的底部项点击(局部索引→全局)
     void ensurePageCreated(int index);
     QQuickItem *findChildByName(const QString &name) const;
     void onCurrentPageChanged(int index);

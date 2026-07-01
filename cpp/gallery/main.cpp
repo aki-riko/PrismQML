@@ -93,6 +93,18 @@ int main(int argc, char *argv[]) {
     qInfo() << "Gallery: addPage x" << (int)(sizeof(pages) / sizeof(pages[0]))
             << "first idx =" << firstIdx;
 
+    // 纯功能底部项(selectable=false): 点击不切页, 触发 onBottomItemClicked 回调
+    // (演示导航项的功能项能力, 如 User 头像点击弹菜单)
+    const int aboutIdx = w.addPage(QString(), QStringLiteral("Person"),
+                                   QStringLiteral("关于"), NavPosition::Bottom,
+                                   /*selectable=*/false);
+    w.onBottomItemClicked([aboutIdx](int index) {
+        if (index == aboutIdx)
+            qInfo() << "GALLERY_FUNC_ITEM_CLICKED: 纯功能项'关于'被点击(未切页) index=" << index;
+        else
+            qInfo() << "GALLERY_BOTTOM_CLICKED: 底部项 index=" << index;
+    });
+
     w.show();
     w.navigateTo(0);
 

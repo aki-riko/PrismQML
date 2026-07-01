@@ -28,6 +28,11 @@ void NavBridge::onChanged(int index) {
         m_owner->onCurrentPageChanged(index);
 }
 
+void NavBridge::onBottomItemClicked(int index) {
+    if (m_owner)
+        m_owner->handleBottomItemClicked(index);
+}
+
 Window::Window(QQmlEngine *engine, const QString &importPath, WindowType type)
     : m_engine(engine), m_importPath(importPath), m_type(type) {}
 
@@ -81,6 +86,18 @@ void Window::setSplash(bool enabled, const QString &icon,
     m_splashIcon = icon;
     m_splashTitle = title;
     m_splashSubtitle = subtitle;
+}
+
+void Window::onBottomItemClicked(std::function<void(int)> cb) {
+    m_onBottomItemClicked = std::move(cb);
+}
+
+// NavBridge 转发的 QML bottomItemClicked 信号: 触发用户注册的回调。
+// QML 传的 index 是底部数组内的局部索引(0-based within bottomNavigationItems),
+// 转成全局索引(顶部项数 + 局部)再回调, 与 addPage 返回值坐标系一致, 供用户比对。
+void Window::handleBottomItemClicked(int localIndex) {
+    if (m_onBottomItemClicked)
+        m_onBottomItemClicked(m_navItems.size() + localIndex);
 }
 
 // 把导航项拼成 QML 数组字面量。底部项额外带 selectable 字段(镜像 Python:
@@ -253,6 +270,9 @@ void Window::build() {
         m_navBridge = new NavBridge(this, m_root);
     QObject::connect(m_root, SIGNAL(currentPageChanged(int)),
                      m_navBridge, SLOT(onChanged(int)));
+    // 底部导航项点击(含纯功能项 selectable=false) -> 用户回调
+    QObject::connect(m_root, SIGNAL(bottomItemClicked(int)),
+                     m_navBridge, SLOT(onBottomItemClicked(int)));
     // 返回键/关闭请求 -> NavBridge::onClosing (移动端返回键弹栈)
     QObject::connect(m_root, SIGNAL(closing(QQuickCloseEvent*)),
                      m_navBridge, SLOT(onClosing(QQuickCloseEvent*)));
