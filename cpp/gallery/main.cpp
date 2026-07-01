@@ -129,5 +129,24 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // PRISM_GALLERY_TEST_GOBACK=1: 自测返回键 goBack (桌面无返回键, 编程式验证历史栈)。
+    // 序列: navigateTo(2)→(5)→goBack 应回页5的前一个即页2, 再 goBack 回页0。
+    if (QProcessEnvironment::systemEnvironment()
+            .value(QStringLiteral("PRISM_GALLERY_TEST_GOBACK")) == QStringLiteral("1")) {
+        QTimer::singleShot(500, [&w]() {
+            w.navigateTo(2);
+            w.navigateTo(5);
+            qInfo() << "GOBACK_TEST: 导航 0→2→5, canGoBack=" << w.canGoBack();
+            const bool r1 = w.goBack();  // 应回 2
+            qInfo() << "GOBACK_TEST: goBack() =" << r1 << "(期望true, 回页2)";
+            const bool r2 = w.goBack();  // 应回 0
+            qInfo() << "GOBACK_TEST: goBack() =" << r2 << "(期望true, 回页0)";
+            const bool r3 = w.goBack();  // 历史空, 应false
+            qInfo() << "GOBACK_TEST: goBack() =" << r3 << "(期望false, 历史栈空)";
+            qInfo() << (r1 && r2 && !r3 ? "GOBACK_TEST_PASS" : "GOBACK_TEST_FAIL");
+            QCoreApplication::quit();
+        });
+    }
+
     return app.exec();
 }
