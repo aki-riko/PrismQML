@@ -4,12 +4,7 @@
 
 import QtQuick
 import QtQuick.Window
-import QtQuick.Effects
-import "effects"
 import "./_internal"
-import "controls/containers"
-import "controls/feedback/Notification"
-import "controls/data"
 
 // WindowsCore - Base class for all Window 所有 Window 的基类
 // Pure QML: rounded corners + shadow + titlebar + resize 纯QML实现
@@ -142,6 +137,17 @@ Window {
         profileTime("ensureVisiblePaintState " + reason)
         animHelper.restoreVisibleState()
     }
+    function _closeDesktopNotifications() {
+        var component = Qt.createComponent(Qt.resolvedUrl("_internal/DesktopNotificationCloser.qml"))
+        if (component.status !== Component.Ready) {
+            console.warn("DesktopNotificationCloser not ready:", component.errorString())
+            return
+        }
+        var closer = component.createObject(window)
+        if (!closer) return
+        closer.closeAll()
+        closer.destroy()
+    }
     function animatedMinimize() { animHelper.animatedMinimize() }
     function animatedMaximize() { animHelper.animatedMaximize() }
     function animatedRestore() { animHelper.animatedRestore() }
@@ -151,7 +157,7 @@ Window {
         id: animHelper
         targetWindow: window
         onCloseCallback: function() {
-            NotificationManager.closeAllDesktopNotifications()
+            _closeDesktopNotifications()
             var closed = window.close()
             if (closed === false) {
                 window._cancelCloseRequest()
@@ -301,29 +307,9 @@ Window {
         visible: active
         opacity: _animOpacity
         scale: _animScale
-        sourceComponent: Component {
-            Item {
-                anchors.fill: parent
-
-                RectangularShadow {
-                    anchors.fill: shadowSource
-                    radius: shadowSource.radius
-                    color: Enums.shadow.level28.color
-                    blur: Enums.shadow.level28.blur
-                    offset.x: 0
-                    offset.y: Enums.shadow.level28.offset
-                }
-
-                Rectangle {
-                    id: shadowSource
-                    anchors.centerIn: parent
-                    width: parent.width - shadowSize * 2
-                    height: parent.height - shadowSize * 2
-                    radius: windowRadius
-                    color: windowColor
-                }
-            }
-        }
+        asynchronous: true
+        source: active ? Qt.resolvedUrl("_internal/QmlShadowHost.qml") : ""
+        property var hostWindow: window
     }
     
     // ==================== Main Window 主窗口 ====================
@@ -356,10 +342,11 @@ Window {
                 visible: windowIcon !== "" && !_isLeftLayout
             }
             
-            Label {
+            Text {
                 id: titleText
                 x: window.titleBarLeftMargin + (titleIcon.visible ? Enums.window.titleIconSize + Enums.window.titleIconGap : 0)
-                type: Enums.label.type_body
+                font.family: Enums.fontFamily
+                font.pixelSize: Enums.typography.body
                 color: Enums.textColor.primary
                 anchors.verticalCenter: parent.verticalCenter
                 visible: !_isLeftLayout
@@ -454,13 +441,14 @@ Window {
                             }
 
                             // Window title 窗口标题
-                            Label {
+                            Text {
                                 id: leftTitleText
                                 anchors.left: leftTitleIcon.visible ? leftTitleIcon.right : parent.left
                                 anchors.leftMargin: leftTitleIcon.visible ? Enums.window.titleIconGap : window.titleBarLeftMargin
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: window.windowTitle
-                                type: Enums.label.type_body
+                                font.family: Enums.fontFamily
+                                font.pixelSize: Enums.typography.body
                                 color: Enums.textColor.primary
                             }
                         }
@@ -479,12 +467,13 @@ Window {
         }
         
         // ==================== Vertical Divider 垂直分割线 ====================
-        Separator {
+        Rectangle {
             id: verticalDivider
-            type: Enums.separator.vertical
             anchors.left: leftPanel.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
+            width: Enums.border.thin
+            color: Enums.stateColor.divider
             visible: _isLeftLayout
             z: Enums.zIndex.controls
         }

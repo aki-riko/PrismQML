@@ -193,7 +193,6 @@ class WindowBuilderMixin:
         window_qml = f"""import QtQuick
 import "file:///{qml_dir.as_posix()}"
 import "file:///{qml_dir.as_posix()}/_internal"
-import "file:///{qml_dir.as_posix()}/controls/containers"
 
 {qml_component} {{
     id: window
