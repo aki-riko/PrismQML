@@ -13,7 +13,7 @@ import os
 import time
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
-from PySide6.QtCore import QTimer, QMetaObject, Q_ARG, QUrl
+from PySide6.QtCore import QTimer, QMetaObject, Q_ARG, QUrl, QStandardPaths
 from ..core.logger import warning, info, error, debug
 from ..core.engine import EngineManager
 from ..providers import get_svg_provider
@@ -25,6 +25,7 @@ class WindowBuilderMixin:
     """窗口构建器 Mixin，提供 _create_window 等方法"""
 
     _GENERATED_QML_CACHE_DIR = Path.home() / ".prismqml" / "qml_cache" / "generated_windows"
+    _GENERATED_SPLASH_QML_CACHE_DIR = Path.home() / ".prismqml" / "qml_cache" / "generated_splash"
 
     @staticmethod
     def _escape_qml(text: str) -> str:
@@ -68,6 +69,24 @@ class WindowBuilderMixin:
         qml_file.write_bytes(source_bytes)
         return qml_file
 
+    @classmethod
+    def _write_generated_splash_qml(cls, source: str) -> Path:
+        """Write generated splash QML to a stable file so Qt can disk-cache it."""
+        source_bytes = source.encode("utf-8")
+        digest = hashlib.sha256(source_bytes).hexdigest()[:20]
+        qml_file = cls._GENERATED_SPLASH_QML_CACHE_DIR / f"splash_{digest}.qml"
+
+        cls._GENERATED_SPLASH_QML_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        if qml_file.exists():
+            try:
+                if qml_file.read_bytes() == source_bytes:
+                    return qml_file
+            except OSError:
+                pass
+
+        qml_file.write_bytes(source_bytes)
+        return qml_file
+
     def _create_window(self):
         """创建QML窗口"""
         profile_start = time.perf_counter()
@@ -89,6 +108,15 @@ class WindowBuilderMixin:
             "yes",
             "on",
         }
+        if startup_profile_verbose:
+            cache_location = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.CacheLocation)
+            info(
+                "[启动剖析] PrismQML QML cache env: "
+                f"QML_DISK_CACHE_PATH={os.environ.get('QML_DISK_CACHE_PATH', '')!r}, "
+                f"QML_DISABLE_DISK_CACHE={os.environ.get('QML_DISABLE_DISK_CACHE', '')!r}, "
+                f"QML_FORCE_DISK_CACHE={os.environ.get('QML_FORCE_DISK_CACHE', '')!r}, "
+                f"QtCacheLocation={cache_location!r}"
+            )
 
         from ..core import ThemeManager, getShadowManager
         from ..config import getConfigManager
@@ -467,15 +495,48 @@ Rectangle {{
 }}
 """
             profile("拼接 Splash QML")
-            component = QQmlComponent(self._engine)
-            component.setData(splash_qml.encode("utf-8"), QUrl("inline-splash"))
-            profile("component.setData")
+            startup_profile_verbose = os.environ.get("PRISMQML_STARTUP_PROFILE_VERBOSE", "").lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
+            component = None
+            component_source = "file"
+            try:
+                splash_qml_file = self._write_generated_splash_qml(splash_qml)
+                profile("写入/确认 Splash QML 缓存")
+                if startup_profile_verbose:
+                    try:
+                        qml_bytes = splash_qml_file.read_bytes()
+                        qml_digest = hashlib.sha256(qml_bytes).hexdigest()[:20]
+                        info(
+                            "[启动剖析] PrismQML._create_splash generated qml: "
+                            f"path={splash_qml_file}, bytes={len(qml_bytes)}, sha={qml_digest}, "
+                            f"iconSet={bool(icon_url)}, titleSet={bool(title)}, subtitleSet={bool(subtitle)}"
+                        )
+                    except OSError as exc:
+                        warning(f"[启动剖析] 读取生成 Splash QML 失败: {exc}")
+                    info("[启动剖析] PrismQML._create_splash QQmlComponent(file) begin")
+                component = QQmlComponent(self._engine, QUrl.fromLocalFile(str(splash_qml_file)))
+                profile("QQmlComponent(file)")
+                if component.isError():
+                    warning(f"[Splash] 文件化组件加载失败: {[e.toString() for e in component.errors()]}")
+                    component = None
+            except Exception as e:
+                warning(f"[Splash] 文件化加载失败，回退到 inline: {e}")
+
+            if component is None:
+                component_source = "inline"
+                component = QQmlComponent(self._engine)
+                component.setData(splash_qml.encode("utf-8"), QUrl("inline-splash"))
+                profile("component.setData fallback")
             if component.isError():
                 warning(f"[Splash] 组件加载失败: {[e.toString() for e in component.errors()]}")
                 return
 
             splash = component.create()
-            profile("component.create")
+            profile(f"component.create({component_source})")
             if splash is None:
                 warning("[Splash] create() 返回 None,跳过启动画面")
                 return
