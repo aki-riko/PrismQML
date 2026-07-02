@@ -49,6 +49,7 @@ if sys.platform == "win32":
 
 from .fluent_window import (
     Window,
+    WindowCloseEvent,
     WindowCore,
     WindowType,
     NavigationItem,
@@ -75,6 +76,7 @@ from .native_window import (
 __all__ = [
     "App",
     "Window",
+    "WindowCloseEvent",
     "WindowCore",
     "WindowType",
     "NavigationItem",

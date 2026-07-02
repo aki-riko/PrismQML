@@ -29,12 +29,29 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function startShow() {
+        closeAnim.stop()
+        showAnim.stop()
         animScale = 0.95
         animOpacity = 0
         showAnim.start()
     }
 
-    function animatedClose() { closeAnim.start() }
+    function restoreVisibleState() {
+        closeAnim.stop()
+        showAnim.stop()
+        if (targetWindow) {
+            targetWindow.opacity = 1
+        }
+        animScale = 1
+        animOpacity = 1
+    }
+
+    function animatedClose() {
+        if (!targetWindow) return
+        showAnim.stop()
+        closeAnim.stop()
+        closeAnim.start()
+    }
 
     /// 用户点最小化按钮: 直接 showMinimized,DWM 接管动画
     /// (NativeWindowHook v2 给 hwnd 加回了 WS_CAPTION,DWM 会做缩到任务栏的动画)

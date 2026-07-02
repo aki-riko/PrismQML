@@ -98,6 +98,30 @@ class NavigationItem:
         self._page_instance = None
 
 
+class WindowCloseEvent:
+    """Cancellable close event passed to WindowCore.closeEvent."""
+
+    def __init__(self):
+        self._accepted = True
+
+    @property
+    def accepted(self) -> bool:
+        return self._accepted
+
+    @accepted.setter
+    def accepted(self, value: bool):
+        self._accepted = bool(value)
+
+    def accept(self):
+        self._accepted = True
+
+    def ignore(self):
+        self._accepted = False
+
+    def isAccepted(self) -> bool:
+        return self._accepted
+
+
 # ==================== 窗口基类 ====================
 
 
@@ -613,10 +637,22 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
         if self._window:
             self._window.update()
 
+    def closeEvent(self, event: WindowCloseEvent):
+        """Handle a QML/native close request.
+
+        Subclasses may call event.ignore() to cancel the close. The default
+        mirrors QWidget behavior and accepts the request.
+        """
+        event.accept()
+
     def close(self):
         if self._window:
-            self._window.close()
-            self.windowClosed.emit()
+            result = self._window.close()
+            closed = result is not False
+            if closed:
+                self.windowClosed.emit()
+            return closed
+        return False
 
     def addOverlay(self, widget: Any):
         """添加覆盖层组件（如Drawer、Dialog等）到窗口层级
@@ -665,8 +701,30 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
     def _connect_signals(self):
         """连接QML信号到Python"""
         if self._window:
+            try:
+                self._window.closeRequested.connect(self._on_close_requested)
+            except AttributeError as e:
+                warning(f"关闭请求信号连接失败: {e}")
+
             # 连接导航切换信号
             try:
                 self._window.currentPageChanged.connect(self._on_nav_changed)
             except AttributeError as e:
                 warning(f"导航信号连接失败: {e}")
+
+    def _on_close_requested(self):
+        """Bridge QML closeRequested to the QWidget-compatible closeEvent hook."""
+        if not self._window:
+            return
+
+        event = WindowCloseEvent()
+        try:
+            self.closeEvent(event)
+        except Exception as e:
+            error(f"closeEvent 处理失败: {e}")
+            event.ignore()
+
+        try:
+            self._window.setProperty("closeRequestAccepted", event.isAccepted())
+        except Exception as e:
+            warning(f"关闭请求状态写回失败: {e}")

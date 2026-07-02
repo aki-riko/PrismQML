@@ -25,6 +25,9 @@ Window {
     // Fired after DWM-touching init done (shadow + native hook attached) 通知子类: DWM 相关初始化完成
     // 子类可挂这个信号设置 Mica 等会被 SWP_FRAMECHANGED 重置的 DWM 属性
     signal nativeHookReady()
+    // Fired before a user/system close request is accepted. Handlers may set
+    // closeRequestAccepted to false to keep the window alive.
+    signal closeRequested()
     
     // ==================== Window Props 窗口属性 ====================
     width: Enums.window.defaultWidth
@@ -35,6 +38,8 @@ Window {
     opacity: Enums.opacityLevel.invisible
     color: "transparent"
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint
+    property bool closeRequestAccepted: true
+    property bool _closeInProgress: false
     
     // ==================== Theme 主题 ====================
     readonly property color accentColor: ThemeManager ? ThemeManager.accentColor : Enums.accentColor
@@ -93,7 +98,22 @@ Window {
 
     // ==================== Public Methods 公开方法 ====================
     // Public animation methods 公开动画方法
-    function animatedClose() { animHelper.animatedClose() }
+    function requestClose() {
+        if (_closeInProgress) return
+        closeRequestAccepted = true
+        closeRequested()
+        if (closeRequestAccepted) {
+            _closeInProgress = true
+            animHelper.animatedClose()
+        } else {
+            animHelper.restoreVisibleState()
+        }
+    }
+    function animatedClose() {
+        _closeInProgress = true
+        animHelper.animatedClose()
+    }
+    function restoreVisibleState() { animHelper.restoreVisibleState() }
     function animatedMinimize() { animHelper.animatedMinimize() }
     function animatedMaximize() { animHelper.animatedMaximize() }
     function animatedRestore() { animHelper.animatedRestore() }
@@ -125,7 +145,16 @@ Window {
         _dwmDelayTimer.start()
     }
 
-    onClosing: {
+    onClosing: (close) => {
+        if (!_closeInProgress) {
+            closeRequestAccepted = true
+            closeRequested()
+            if (!closeRequestAccepted) {
+                close.accepted = false
+                animHelper.restoreVisibleState()
+                return
+            }
+        }
         // 注意: onClosing 在窗口收到「任何」关闭请求时都会触发,包括上层
         // event.ignore() 拦截后「隐藏到托盘」的场景 —— 此时窗口并未销毁,
         // 仍要继续使用。这里绝不能 detach NativeWindowHook,否则 hwnd 的
@@ -341,7 +370,7 @@ Window {
                         id: closeAreaTop
                         anchors.fill: parent
                         hoverEnabled: true
-                        onClicked: animatedClose()
+                        onClicked: requestClose()
                     }
                 }
             }
@@ -486,7 +515,7 @@ Window {
                     id: closeAreaRight
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: animatedClose()
+                    onClicked: requestClose()
                 }
             }
         }
