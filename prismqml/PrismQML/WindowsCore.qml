@@ -368,6 +368,7 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 source: windowIcon
                 colored: windowIconColored
+                deferLoad: true
                 profileTarget: window
                 visible: windowIcon !== "" && !_isLeftLayout
                 Component.onCompleted: window.profileDetail("titleIcon completed sourceSet=" + (source !== "") + " colored=" + colored)
@@ -482,6 +483,7 @@ Window {
                                 anchors.verticalCenter: parent.verticalCenter
                                 source: windowIcon
                                 colored: windowIconColored
+                                deferLoad: true
                                 profileTarget: window
                                 Component.onCompleted: window.profileDetail("leftTitleIcon completed sourceSet=" + (source !== ""))
                             }
