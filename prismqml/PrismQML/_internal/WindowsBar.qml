@@ -36,25 +36,24 @@ NavigationWindowCore {
 
     // ==================== Content Layout ====================
     content: Item {
-        property bool mainContentRequested: false
-
-        function loadMainContent() {
-            if (mainContentRequested) return
-            mainContentRequested = true
-            window.profileTime("WindowsBar loadMainContent requested")
-            mainLoader.setSource(Qt.resolvedUrl("WindowsBarContent.qml"), {
-                "hostWindow": window,
-                "contentTopMargin": window.contentTopMargin
-            })
-            mainLoader.active = true
-            window.profileTime("WindowsBar mainLoader.active=true")
-        }
-
         anchors.fill: parent
+        Component.onCompleted: window.profileDetail("WindowsBar content shell completed")
 
-        Component.onCompleted: {
-            window.profileDetail("WindowsBar content shell completed")
-            Qt.callLater(loadMainContent)
+        Timer {
+            id: startupTimer
+            interval: 50
+            running: true
+            Component.onCompleted: window.profileDetail("WindowsBar startupTimer completed running=" + running + " interval=" + interval)
+            onRunningChanged: window.profileDetail("WindowsBar startupTimer running=" + running)
+            onTriggered: {
+                window.profileTime("WindowsBar startupTimer triggered")
+                mainLoader.setSource(Qt.resolvedUrl("WindowsBarContent.qml"), {
+                    "hostWindow": window,
+                    "contentTopMargin": window.contentTopMargin
+                })
+                mainLoader.active = true
+                window.profileTime("WindowsBar mainLoader.active=true")
+            }
         }
 
         Loader {
