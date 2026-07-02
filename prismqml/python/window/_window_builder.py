@@ -429,6 +429,8 @@ Rectangle {{
     property string iconSource: "{esc(icon_url)}"
     property string title: "{esc(title)}"
     property string subtitle: "{esc(subtitle)}"
+    property string activeIconSource: ""
+    property bool startupProfilingVerbose: PrismQmlStartupProfileVerbose
 
     signal finished()
 
@@ -440,6 +442,18 @@ Rectangle {{
 
     function finish() {{
         fadeOutAnim.start()
+    }}
+
+    Timer {{
+        interval: 0
+        running: splash.iconSource !== ""
+        repeat: false
+        onTriggered: {{
+            splash.activeIconSource = splash.iconSource
+            if (splash.startupProfilingVerbose) {{
+                console.info("[启动剖析] Splash icon source activated")
+            }}
+        }}
     }}
 
     NumberAnimation {{
@@ -463,14 +477,14 @@ Rectangle {{
             anchors.horizontalCenter: parent.horizontalCenter
             width: 102
             height: 102
-            source: splash.iconSource
+            source: splash.activeIconSource
             sourceSize: Qt.size(102, 102)
             asynchronous: true
             cache: true
             smooth: true
             mipmap: true
             fillMode: Image.PreserveAspectFit
-            visible: splash.iconSource !== ""
+            visible: splash.activeIconSource !== ""
         }}
 
         Text {{
