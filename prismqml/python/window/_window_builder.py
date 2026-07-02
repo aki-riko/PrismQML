@@ -444,18 +444,6 @@ Rectangle {{
         fadeOutAnim.start()
     }}
 
-    Timer {{
-        interval: 0
-        running: splash.iconSource !== ""
-        repeat: false
-        onTriggered: {{
-            splash.activeIconSource = splash.iconSource
-            if (splash.startupProfilingVerbose) {{
-                console.info("[启动剖析] Splash icon source activated")
-            }}
-        }}
-    }}
-
     NumberAnimation {{
         id: fadeOutAnim
         target: splash
@@ -469,41 +457,87 @@ Rectangle {{
         }}
     }}
 
-    Column {{
-        anchors.centerIn: parent
-        spacing: Enums.spacing.xl
-
-        Image {{
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: 102
-            height: 102
-            source: splash.activeIconSource
-            sourceSize: Qt.size(102, 102)
-            asynchronous: true
-            cache: true
-            smooth: true
-            mipmap: true
-            fillMode: Image.PreserveAspectFit
-            visible: splash.activeIconSource !== ""
+    Timer {{
+        id: splashContentTimer
+        interval: 0
+        running: true
+        repeat: false
+        onTriggered: {{
+            contentLoader.active = true
+            if (splash.startupProfilingVerbose) {{
+                console.info("[启动剖析] Splash content Loader activated")
+            }}
         }}
+    }}
 
-        Text {{
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: splash.title
-            visible: text !== ""
-            color: Enums.textColor.primary
-            font.family: Enums.fontFamily
-            font.pixelSize: 20
-            font.bold: true
+    Timer {{
+        id: splashIconTimer
+        interval: 0
+        running: false
+        repeat: false
+        onTriggered: {{
+            splash.activeIconSource = splash.iconSource
+            if (splash.startupProfilingVerbose) {{
+                console.info("[启动剖析] Splash icon source activated")
+            }}
         }}
+    }}
 
-        Text {{
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: splash.subtitle
-            visible: text !== ""
-            color: Enums.textColor.secondary
-            font.family: Enums.fontFamily
-            font.pixelSize: 13
+    Loader {{
+        id: contentLoader
+        anchors.fill: parent
+        active: false
+        sourceComponent: splashContentComponent
+
+        onLoaded: {{
+            if (splash.iconSource !== "") {{
+                splashIconTimer.start()
+            }}
+            if (splash.startupProfilingVerbose) {{
+                console.info("[启动剖析] Splash content Loader loaded")
+            }}
+        }}
+    }}
+
+    Component {{
+        id: splashContentComponent
+
+        Column {{
+            anchors.centerIn: parent
+            spacing: Enums.spacing.xl
+
+            Image {{
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 102
+                height: 102
+                source: splash.activeIconSource
+                sourceSize: Qt.size(102, 102)
+                asynchronous: true
+                cache: true
+                smooth: true
+                mipmap: true
+                fillMode: Image.PreserveAspectFit
+                visible: splash.activeIconSource !== ""
+            }}
+
+            Text {{
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: splash.title
+                visible: text !== ""
+                color: Enums.textColor.primary
+                font.family: Enums.fontFamily
+                font.pixelSize: 20
+                font.bold: true
+            }}
+
+            Text {{
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: splash.subtitle
+                visible: text !== ""
+                color: Enums.textColor.secondary
+                font.family: Enums.fontFamily
+                font.pixelSize: 13
+            }}
         }}
     }}
 }}
