@@ -525,13 +525,38 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
 
     # ==================== 窗口生命周期 ====================
 
+    def _restore_visible_state(self):
+        if not self._window:
+            return
+
+        try:
+            from PySide6.QtCore import QMetaObject
+
+            QMetaObject.invokeMethod(self._window, "restoreVisibleState")
+        except Exception as e:
+            debug(f"restoreVisibleState invoke failed: {e}")
+
+        try:
+            self._window.setOpacity(1.0)
+            self._window.setProperty("opacity", 1.0)
+            self._window.setProperty("_animOpacity", 1.0)
+            self._window.setProperty("_animScale", 1.0)
+            self._window.update()
+        except Exception as e:
+            debug(f"visible state fallback failed: {e}")
+
     def show(self):
         """显示窗口"""
+        created_window = self._window is None
         if self._window is None:
             self._create_window()
 
         if self._window:
+            if not created_window:
+                self._restore_visible_state()
             self._window.show()
+            if not created_window:
+                self._restore_visible_state()
             # 设置为当前活动窗口
             WindowCore._current_window_instance = self
 
@@ -569,7 +594,9 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
         """转发到 QQuickWindow.showNormal — 跟 QWidget API 对齐;
         从最小化/最大化恢复为普通窗口状态"""
         if self._window:
+            self._restore_visible_state()
             self._window.showNormal()
+            self._restore_visible_state()
 
     def showMinimized(self):
         """转发到 QQuickWindow.showMinimized — 跟 QWidget API 对齐"""
@@ -579,7 +606,9 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
     def showMaximized(self):
         """转发到 QQuickWindow.showMaximized — 跟 QWidget API 对齐"""
         if self._window:
+            self._restore_visible_state()
             self._window.showMaximized()
+            self._restore_visible_state()
 
     def isMaximized(self) -> bool:
         """通过 QQuickWindow.visibility 判定 — 跟 QWidget API 对齐;

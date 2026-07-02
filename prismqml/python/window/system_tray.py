@@ -473,7 +473,7 @@ class SystemTrayIcon(QObject):
         self,
         title: str,
         message: str,
-        icon: MessageIcon = MessageIcon.Information,
+        icon: Union[MessageIcon, QSystemTrayIcon.MessageIcon, int, None] = MessageIcon.Information,
         msecs: int = 5000,
     ):
         """
@@ -485,7 +485,22 @@ class SystemTrayIcon(QObject):
             icon: 消息图标类型
             msecs: 显示时长（毫秒）
         """
-        self._tray.showMessage(title, message, QSystemTrayIcon.MessageIcon(icon.value), msecs)
+        message_icon = self._coerceMessageIcon(icon)
+        self._tray.showMessage(title, message, message_icon, msecs)
+
+    def _coerceMessageIcon(
+        self, icon: Union[MessageIcon, QSystemTrayIcon.MessageIcon, int, QIcon, None]
+    ) -> QSystemTrayIcon.MessageIcon:
+        if icon is None or isinstance(icon, QIcon):
+            return QSystemTrayIcon.MessageIcon.Information
+        if isinstance(icon, MessageIcon):
+            return QSystemTrayIcon.MessageIcon(icon.value)
+        if isinstance(icon, QSystemTrayIcon.MessageIcon):
+            return icon
+        try:
+            return QSystemTrayIcon.MessageIcon(int(icon))
+        except (TypeError, ValueError):
+            return QSystemTrayIcon.MessageIcon.Information
 
     def showInfoMessage(self, title: str, message: str, msecs: int = 5000):
         """显示信息消息 Show info message"""

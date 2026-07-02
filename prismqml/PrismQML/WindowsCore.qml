@@ -240,7 +240,7 @@ Window {
     // 守卫 opacity < 0.5: 避免与正常启动序列(startShow 已在跑)/最大化还原
     //   (opacity 已是 1)重复触发动画。
     onVisibleChanged: {
-        if (window.visible && window.opacity < 0.5) {
+        if (window.visible && (window.opacity < 0.5 || _animOpacity < 0.5 || _animScale < 0.99)) {
             animHelper.startShow()
         }
     }
