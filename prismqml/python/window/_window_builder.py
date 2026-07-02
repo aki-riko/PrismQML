@@ -8,6 +8,7 @@
 
 from typing import List, Optional, TYPE_CHECKING
 from pathlib import Path
+import hashlib
 import time
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
@@ -21,6 +22,8 @@ if TYPE_CHECKING:
 
 class WindowBuilderMixin:
     """窗口构建器 Mixin，提供 _create_window 等方法"""
+
+    _GENERATED_QML_CACHE_DIR = Path.home() / ".prismqml" / "qml_cache" / "generated_windows"
 
     @staticmethod
     def _escape_qml(text: str) -> str:
@@ -45,6 +48,24 @@ class WindowBuilderMixin:
         text = text.replace("{", "\\u007B")
         text = text.replace("}", "\\u007D")
         return text
+
+    @classmethod
+    def _write_generated_window_qml(cls, source: str) -> Path:
+        """Write generated root-window QML to a stable file for Qt's file cache path."""
+        source_bytes = source.encode("utf-8")
+        digest = hashlib.sha256(source_bytes).hexdigest()[:20]
+        qml_file = cls._GENERATED_QML_CACHE_DIR / f"window_{digest}.qml"
+
+        cls._GENERATED_QML_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        if qml_file.exists():
+            try:
+                if qml_file.read_bytes() == source_bytes:
+                    return qml_file
+            except OSError:
+                pass
+
+        qml_file.write_bytes(source_bytes)
+        return qml_file
 
     def _create_window(self):
         """创建QML窗口"""
@@ -197,13 +218,31 @@ import "file:///{qml_dir.as_posix()}/controls/containers"
 """
         profile("拼接窗口 QML")
 
-        self._engine.loadData(window_qml.encode("utf-8"))
-        profile("engine.loadData")
+        loaded_window = None
+        try:
+            window_qml_file = self._write_generated_window_qml(window_qml)
+            profile("写入/确认窗口 QML 缓存")
+            component = QQmlComponent(self._engine, QUrl.fromLocalFile(str(window_qml_file)))
+            profile("QQmlComponent(file)")
+            if component.isError():
+                warning(f"[WindowBuilder] 文件化窗口 QML 加载失败: {[e.toString() for e in component.errors()]}")
+            else:
+                loaded_window = component.create()
+                self._window_component = component
+                profile("component.create(file)")
+        except Exception as e:
+            warning(f"[WindowBuilder] 文件化加载窗口 QML 失败，回退到 loadData: {e}")
 
-        if not self._engine.rootObjects():
+        if loaded_window is None:
+            self._engine.loadData(window_qml.encode("utf-8"))
+            profile("engine.loadData fallback")
+            if self._engine.rootObjects():
+                loaded_window = self._engine.rootObjects()[-1]
+
+        if loaded_window is None:
             raise RuntimeError("Failed to create window")
 
-        self._window = self._engine.rootObjects()[-1]
+        self._window = loaded_window
         profile("获取 rootObject")
 
         # 找到内容区域（StackedWidget）
