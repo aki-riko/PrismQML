@@ -68,6 +68,8 @@ Window {
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint
     property bool closeRequestAccepted: true
     property bool _closeInProgress: false
+    property bool _titleChromeReady: false
+    property bool _resizeHandlesReady: false
     
     // ==================== Theme 主题 ====================
     readonly property color accentColor: ThemeManager ? ThemeManager.accentColor : Enums.accentColor
@@ -94,7 +96,7 @@ Window {
     property int captionButtonHeight: Enums.window.captionButtonHeight
     readonly property int captionButtonWidth: Enums.window.captionButtonWidth
     property int titleBarLeftMargin: Enums.window.titleBarLeftMargin
-    property alias windowTitle: titleText.text
+    property string windowTitle: ""
     title: windowTitle  // Sync to native Window.title for taskbar 同步到原生标题用于任务栏显示
     property int windowRadius: Enums.radius.large
     property int shadowSize: Enums.window.qmlShadowSize
@@ -204,6 +206,8 @@ Window {
         // _dwmDelayTimer 中的 finalizeAttach() 会在窗口显示后完成完整 attach。
         _dwmDelayTimer.start()
         profileTime("_dwmDelayTimer.start")
+        _titleChromeTimer.start()
+        profileTime("_titleChromeTimer.start")
     }
 
     onClosing: (close) => {
@@ -305,6 +309,17 @@ Window {
         onTriggered: animHelper.startShow()
     }
 
+    Timer {
+        id: _titleChromeTimer
+        interval: 1
+        repeat: false
+        onTriggered: {
+            _titleChromeReady = true
+            _resizeHandlesReady = true
+            profileDetail("title chrome ready")
+        }
+    }
+
     onVisibilityChanged: {
         animHelper.handleVisibilityChange(window.visibility)
         if (window.visibility !== Window.Hidden && window.visibility !== Window.Minimized) {
@@ -362,6 +377,18 @@ Window {
             Component.onCompleted: window.profileDetail("titleBar completed visible=" + visible + " height=" + height)
             
 
+            Loader {
+                anchors.fill: parent
+                active: !_isLeftLayout && _titleChromeReady
+                asynchronous: false
+                Component.onCompleted: window.profileDetail("titleBar chrome Loader completed active=" + active + " status=" + status)
+                onStatusChanged: window.profileDetail("titleBar chrome Loader status=" + status + " active=" + active)
+                onLoaded: window.profileDetail("titleBar chrome Loader loaded")
+                sourceComponent: Component {
+                    Item {
+                        anchors.fill: parent
+                        Component.onCompleted: window.profileDetail("titleBar chrome content completed")
+
             WindowIcon {
                 id: titleIcon
                 x: window.titleBarLeftMargin
@@ -377,6 +404,7 @@ Window {
             Text {
                 id: titleText
                 x: window.titleBarLeftMargin + (titleIcon.visible ? Enums.window.titleIconSize + Enums.window.titleIconGap : 0)
+                text: window.windowTitle
                 font.family: Enums.fontFamily
                 font.pixelSize: Enums.typography.body
                 color: Enums.textColor.primary
@@ -432,6 +460,9 @@ Window {
                 onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
                 Component.onCompleted: window.profileDetail("titleBar drag MouseArea completed")
             }
+                    }
+                }
+            }
         }
         
         // ==================== Left Layout Panel 左侧布局面板 ====================
@@ -458,7 +489,7 @@ Window {
 
                 Loader {
                     anchors.fill: parent
-                    active: _isLeftLayout
+                    active: _isLeftLayout && _titleChromeReady
                     Component.onCompleted: window.profileDetail("leftTitleBar Loader completed active=" + active + " status=" + status)
                     onStatusChanged: window.profileDetail("leftTitleBar Loader status=" + status + " active=" + active)
                     onLoaded: window.profileDetail("leftTitleBar Loader loaded")
@@ -524,7 +555,7 @@ Window {
             anchors.bottom: parent.bottom
             width: Enums.border.thin
             color: Enums.stateColor.divider
-            visible: _isLeftLayout
+            visible: _isLeftLayout && _titleChromeReady
             z: Enums.zIndex.controls
             Component.onCompleted: window.profileDetail("verticalDivider completed visible=" + visible)
         }
@@ -542,7 +573,7 @@ Window {
 
             Loader {
                 anchors.fill: parent
-                active: _isLeftLayout
+                active: _isLeftLayout && _titleChromeReady
                 Component.onCompleted: window.profileDetail("captionButtonsRight Loader completed active=" + active + " status=" + status)
                 onStatusChanged: window.profileDetail("captionButtonsRight Loader status=" + status + " active=" + active)
                 onLoaded: window.profileDetail("captionButtonsRight Loader loaded")
@@ -591,7 +622,7 @@ Window {
             anchors.right: captionButtonsRight.left
             anchors.top: parent.top
             height: titleBarHeight
-            visible: _isLeftLayout
+            visible: _isLeftLayout && _titleChromeReady
             z: Enums.zIndex.controls
             onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
             onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
@@ -630,8 +661,23 @@ Window {
     }
     
     // ==================== Resize Handles 调整大小手柄 ====================
-    ResizeArea { targetWindow: window; edge: Qt.LeftEdge; Component.onCompleted: window.profileDetail("ResizeArea left completed") }
-    ResizeArea { targetWindow: window; edge: Qt.RightEdge; Component.onCompleted: window.profileDetail("ResizeArea right completed") }
-    ResizeArea { targetWindow: window; edge: Qt.TopEdge; Component.onCompleted: window.profileDetail("ResizeArea top completed") }
-    ResizeArea { targetWindow: window; edge: Qt.BottomEdge; Component.onCompleted: window.profileDetail("ResizeArea bottom completed") }
+    Loader {
+        id: resizeHandlesLoader
+        anchors.fill: parent
+        active: _resizeHandlesReady
+        asynchronous: true
+        Component.onCompleted: window.profileDetail("resizeHandles Loader completed active=" + active + " status=" + status)
+        onStatusChanged: window.profileDetail("resizeHandles Loader status=" + status + " active=" + active)
+        onLoaded: window.profileDetail("resizeHandles Loader loaded")
+        sourceComponent: Component {
+            Item {
+                anchors.fill: parent
+                Component.onCompleted: window.profileDetail("resizeHandles content completed")
+                ResizeArea { targetWindow: window; edge: Qt.LeftEdge; Component.onCompleted: window.profileDetail("ResizeArea left completed") }
+                ResizeArea { targetWindow: window; edge: Qt.RightEdge; Component.onCompleted: window.profileDetail("ResizeArea right completed") }
+                ResizeArea { targetWindow: window; edge: Qt.TopEdge; Component.onCompleted: window.profileDetail("ResizeArea top completed") }
+                ResizeArea { targetWindow: window; edge: Qt.BottomEdge; Component.onCompleted: window.profileDetail("ResizeArea bottom completed") }
+            }
+        }
+    }
 }
