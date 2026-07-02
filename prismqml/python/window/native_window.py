@@ -142,6 +142,7 @@ class NativeWindowHook(QObject):
         super().__init__(parent)
         self._initialized = True
         self._hwnds = set()  # 已 attach 的 hwnd 集合
+        self._framechanged_hwnds = set()
         self._original_styles: Dict[int, int] = {}
         self._filter = None
 
@@ -154,11 +155,36 @@ class NativeWindowHook(QObject):
     @Slot(QWindow)
     def attach(self, window: QWindow):
         """加 WS_CAPTION + 注册 hwnd 到 filter 集合。"""
+        self._attach(window, apply_framechanged=True)
+
+    @Slot(QWindow)
+    def finalizeAttach(self, window: QWindow):
+        """补执行 SWP_FRAMECHANGED。未 attach 时退化为完整 attach。"""
         if sys.platform != "win32" or not window:
             return
         try:
             hwnd = int(window.winId())
-            if not hwnd or hwnd in self._hwnds:
+            if not hwnd:
+                return
+            if hwnd not in self._hwnds:
+                self._attach(window, apply_framechanged=True)
+                return
+            self._apply_framechanged(hwnd)
+        except Exception as e:
+            error(f"NativeWindowHook.finalizeAttach 失败: {e}")
+
+    def _attach(self, window: QWindow, apply_framechanged: bool):
+        """加 WS_CAPTION + 注册 hwnd 到 filter 集合。"""
+        if sys.platform != "win32" or not window:
+            return
+        try:
+            hwnd = int(window.winId())
+            if not hwnd:
+                return
+
+            if hwnd in self._hwnds:
+                if apply_framechanged:
+                    self._apply_framechanged(hwnd)
                 return
 
             original_style = user32.GetWindowLongPtrW(hwnd, GWL_STYLE)
@@ -175,15 +201,23 @@ class NativeWindowHook(QObject):
             self._hwnds.add(hwnd)
             self._original_styles[hwnd] = original_style
 
-            user32.SetWindowPos(
-                hwnd, 0, 0, 0, 0, 0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
-            )
+            if apply_framechanged:
+                self._apply_framechanged(hwnd)
 
             info(f"NativeWindowHook v4: attached hwnd={hwnd}, "
-                 f"style 0x{original_style:08x} → 0x{new_style:08x}")
+                 f"style 0x{original_style:08x} → 0x{new_style:08x}, "
+                 f"framechanged={apply_framechanged}")
         except Exception as e:
             error(f"NativeWindowHook.attach 失败: {e}")
+
+    def _apply_framechanged(self, hwnd: int):
+        if hwnd in self._framechanged_hwnds:
+            return
+        user32.SetWindowPos(
+            hwnd, 0, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+        )
+        self._framechanged_hwnds.add(hwnd)
 
     @Slot(QWindow)
     def detach(self, window: QWindow):
@@ -199,6 +233,7 @@ class NativeWindowHook(QObject):
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
             )
             self._hwnds.discard(hwnd)
+            self._framechanged_hwnds.discard(hwnd)
             del self._original_styles[hwnd]
             info(f"NativeWindowHook: detached hwnd={hwnd}")
         except Exception as e:

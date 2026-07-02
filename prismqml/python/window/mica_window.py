@@ -87,6 +87,12 @@ class MicaManager(QObject):
         self._mica_enabled = False
         self._is_win11 = _is_win11()
         self._dwm_set_attr = _get_dwm_set_attr()
+        self._windows_build = sys.getwindowsversion().build if sys.platform == "win32" else 0
+        self._is_mica_supported = (
+            self._is_win11
+            and self._dwm_set_attr is not None
+            and self._windows_build >= WIN11_BACKDROP_BUILD_THRESHOLD
+        )
         self._current_hwnd: Optional[int] = None
         self._current_window: Optional[QWindow] = None
     
@@ -94,6 +100,11 @@ class MicaManager(QObject):
     def isWin11(self) -> bool:
         """Check if running on Windows 11 检查是否运行在 Windows 11"""
         return self._is_win11
+
+    @Property(bool, constant=True)
+    def isMicaSupported(self) -> bool:
+        """Check if DWM system backdrop Mica is supported 检查 DWM 云母背板是否可用"""
+        return self._is_mica_supported
     
     @Property(bool, notify=micaEnabledChanged)
     def micaEnabled(self) -> bool:

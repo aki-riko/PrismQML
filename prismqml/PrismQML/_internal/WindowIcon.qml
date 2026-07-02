@@ -72,6 +72,7 @@ Item {
         fillMode: Image.PreserveAspectFit
         // Render at high resolution for crisp SVG display 高分辨率渲染以获得清晰的SVG显示
         sourceSize: Qt.size(Enums.window.iconRenderSize, Enums.window.iconRenderSize)
+        asynchronous: true
         cache: true
         smooth: true
         mipmap: true
@@ -93,6 +94,7 @@ Item {
         // sourceSize 精确匹配物理像素，Qt CPU 侧高质量重采样
         // 避免 GPU bilinear 大比例缩放导致模糊
         sourceSize: Qt.size(root._physicalSize, root._physicalSize)
+        asynchronous: true
         cache: true
         smooth: true
         mipmap: true

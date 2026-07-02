@@ -8,6 +8,7 @@
 """
 
 from typing import Any, Dict, Optional, Type
+import time
 
 from PySide6.QtCore import QObject, QTimer, QMetaObject, Q_ARG
 from PySide6.QtQuick import QQuickItem
@@ -30,18 +31,34 @@ class PageManagerMixin:
 
     def _create_page(self, index: int):
         """创建页面内容"""
+        profile_start = time.perf_counter()
+        profile_last = profile_start
+
+        def profile(label: str):
+            nonlocal profile_last
+            now = time.perf_counter()
+            info(
+                f"[启动剖析] PageManager._create_page[{index}] {label}: "
+                f"+{int((now - profile_last) * 1000)}ms / "
+                f"total {int((now - profile_start) * 1000)}ms"
+            )
+            profile_last = now
+
         # 获取导航项（顶部+底部）
         all_items = self._nav_items + self._bottom_nav_items
         if index >= len(all_items):
+            profile("索引越界")
             return
 
         item = all_items[index]
 
         if self._window is None:
+            profile("窗口未创建")
             return
 
         # 查找对应的页面占位容器
         page_container = self._find_child_by_name(f"page_{index}")
+        profile("查找页面容器")
 
         if page_container is None:
             warning(f"未找到页面容器: page_{index}")
@@ -49,16 +66,20 @@ class PageManagerMixin:
         
         # 检查是否已有实例（传入实例模式）或需要创建
         page_instance = None
+        page_source = "none"
         if item._page_instance is not None:
             page_instance = item._page_instance
+            page_source = "existing_instance"
         elif getattr(item, 'page_getter', None):
             # 使用page_getter获取页面实例（懒加载工厂模式）
             page_instance = item.page_getter()
             item._page_instance = page_instance
+            page_source = "page_getter"
         elif item.page_class:
             # 使用page_class创建页面实例（懒加载模式）
             page_instance = item.page_class()
             item._page_instance = page_instance
+            page_source = "page_class"
         elif item.page_builder:
             # 兼容旧的page_builder模式，直接返回普通对象并在后续直接赋值
             class Wrapper(QObject):
@@ -69,18 +90,25 @@ class PageManagerMixin:
             wrapper._children = []
             wrapper._pending_properties = {}
             item._page_instance = item.page_builder(wrapper)
+            profile("page_builder 创建页面")
             self._pages[index] = wrapper
             info(f"创建页面: {item.text}")
+            profile("完成")
             return
         else:
+            profile("无页面构建器")
             return
+
+        profile(f"创建页面实例 ({page_source})")
 
         # 将页面的QML组件添加到占位容器中
         if page_instance._qml_item:
             page_instance._qml_item.setParentItem(page_container)
+            profile("setParentItem")
 
             # 通过信号绑定尺寸到父容器
             from shiboken6 import isValid
+            profile("导入 shiboken")
 
             def bind_size():
                 if isValid(page_instance._qml_item) and isValid(page_container):
@@ -93,15 +121,22 @@ class PageManagerMixin:
             page_container.widthChanged.connect(bind_size)
             page_container.heightChanged.connect(bind_size)
             QTimer.singleShot(50, bind_size)
+            profile("绑定尺寸信号")
         else:
             warning(f"[_create_page] page_{index} _qml_item 为 None!")
+            profile("_qml_item 为空")
 
         self._pages[index] = page_instance
         info(f"创建页面: {item.text}")
+        profile("登记页面实例")
 
         # 检查页面是否有延迟创建队列
         if hasattr(page_instance, "_deferred_queue") and page_instance._deferred_queue:
+            profile("发现 deferred queue")
             page_instance.startBatchCreation()
+            profile("启动 deferred queue")
+        else:
+            profile("无 deferred queue")
 
 
     def _find_child_by_name(self, name: str) -> Optional[QQuickItem]:

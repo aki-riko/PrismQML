@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import QtQuick.Window
 import "navigation"
 import "controls/navigation"
 
@@ -27,13 +28,15 @@ WindowsCore {
     
     // ==================== Mica Effect 云母效果 ====================
     property bool micaEnabled: false
-    readonly property bool _micaAvailable: MicaManager ? MicaManager.isWin11 : false
+    property bool _micaBackdropReady: false
+    readonly property bool _micaAvailable: MicaManager ? MicaManager.isMicaSupported : false
     // neo 皮肤强制关 Mica: neo 是实心米白底+硬阴影的扁平风, Mica 半透明模糊与之冲突
     readonly property bool _micaActive: micaEnabled && _micaAvailable && !Enums.isNeobrutalism
-    windowColor: _micaActive ? Enums.transparent : Enums.backgroundColor
+    readonly property bool _micaTransparent: _micaActive && _micaBackdropReady
+    windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
     
     // ==================== Content Area Props 内容区域属性 ====================
-    readonly property color contentBgColor: _micaActive ? Enums.stateColor.contentBgTransparent : Enums.stateColor.contentBg
+    readonly property color contentBgColor: _micaTransparent ? Enums.stateColor.contentBgTransparent : Enums.stateColor.contentBg
     readonly property int contentCornerRadius: Enums.radius.large
     
     // ==================== Lazy Loading 懒加载 ====================
@@ -59,15 +62,38 @@ WindowsCore {
     }
     
     // ==================== Mica Methods 云母方法 ====================
+    function _applyMicaEffect(reason) {
+        if (!MicaManager || !_micaAvailable || !_nativeHookReady) {
+            _micaBackdropReady = false
+            return false
+        }
+        profileTime("NavigationWindowCore apply Mica " + reason + " start")
+        var success = MicaManager.setMicaEffect(window, micaEnabled, Enums.isDark)
+        _micaBackdropReady = micaEnabled && success
+        profileTime("NavigationWindowCore apply Mica " + reason + " done success=" + success)
+        return success
+    }
+
+    function _scheduleMicaReapply(reason) {
+        if (!_micaActive || !_nativeHookReady) return
+        // Hide the transparent QML fallback until DWM confirms the backdrop again.
+        // 在 DWM 重新确认云母背板前，先关闭 QML 透明兜底，避免只剩透明壳。
+        _micaBackdropReady = false
+        _micaReapplyReason = reason
+        _micaReapplyTimer.restart()
+        _micaLateReapplyTimer.restart()
+    }
+
     function setMicaEffectEnabled(enabled) {
+        micaEnabled = enabled
         if (!_micaAvailable) {
+            _micaBackdropReady = false
             console.log("[NavigationWindowCore] Mica not available")
             return false
         }
-        micaEnabled = enabled
-        return MicaManager.setMicaEffect(window, enabled, Enums.isDark)
+        return _applyMicaEffect("setMicaEffectEnabled")
     }
-    function isMicaEffectEnabled() { return _micaActive }
+    function isMicaEffectEnabled() { return _micaTransparent }
     
     // ==================== Language Methods 语言方法 ====================
     function setLanguage(lang) {
@@ -80,6 +106,7 @@ WindowsCore {
     // 在 nativeHookReady 触发前的 setMicaEffect 都会被 SWP_FRAMECHANGED 清,徒劳。
     // 这个守卫让早期调用直接跳过,等 hook 完成后由 nativeHookReady 一次性 apply 当前状态。
     property bool _nativeHookReady: false
+    property string _micaReapplyReason: ""
 
     // ==================== Signals 信号 ====================
     signal bottomItemClicked(int index)
@@ -92,11 +119,20 @@ WindowsCore {
     property bool _splashDismissed: false
 
     function _dismissSplashWhenReady(stack) {
-        if (_splashDismissed) return
-        if (!_splashInstance) { _splashDismissed = true; return }
+        profileTime("NavigationWindowCore _dismissSplashWhenReady start")
+        if (_splashDismissed) {
+            profileTime("NavigationWindowCore splash already dismissed")
+            return
+        }
+        if (!_splashInstance) {
+            _splashDismissed = true
+            profileTime("NavigationWindowCore no splash instance")
+            return
+        }
 
         // 主页此刻已就绪(同步/直接 children 模式, 或加载够快) → 立即关
         if (!stack || stack._isPageLoaded(stack.currentIndex)) {
+            profileTime("NavigationWindowCore splash ready immediate")
             _doDismissSplash()
             return
         }
@@ -107,20 +143,28 @@ WindowsCore {
             if (idx !== target) return
             stack.pageLoaded.disconnect(onPageLoaded)
             _splashTimeoutTimer.stop()
+            profileTime("NavigationWindowCore splash pageLoaded target=" + idx)
             _doDismissSplash()
         }
         stack.pageLoaded.connect(onPageLoaded)
         _splashTimeoutTimer._onTimeout = function() {
             stack.pageLoaded.disconnect(onPageLoaded)
+            profileTime("NavigationWindowCore splash timeout")
             _doDismissSplash()
         }
         _splashTimeoutTimer.restart()
+        profileTime("NavigationWindowCore splash wait pageLoaded target=" + target)
     }
 
     function _doDismissSplash() {
-        if (_splashDismissed) return
+        if (_splashDismissed) {
+            profileTime("NavigationWindowCore _doDismissSplash skipped")
+            return
+        }
         _splashDismissed = true
+        profileTime("NavigationWindowCore splash finish start")
         if (_splashInstance) _splashInstance.finish()
+        profileTime("NavigationWindowCore splash finish done")
     }
 
     Timer {
@@ -128,6 +172,18 @@ WindowsCore {
         interval: Enums.duration.splashTimeout
         property var _onTimeout: null
         onTriggered: if (_onTimeout) _onTimeout()
+    }
+
+    Timer {
+        id: _micaReapplyTimer
+        interval: 16
+        onTriggered: window._applyMicaEffect("restore:" + window._micaReapplyReason)
+    }
+
+    Timer {
+        id: _micaLateReapplyTimer
+        interval: 180
+        onTriggered: window._applyMicaEffect("late-restore:" + window._micaReapplyReason)
     }
 
     // ==================== Public Methods 公开方法 ====================
@@ -248,8 +304,25 @@ WindowsCore {
 
     onMicaEnabledChanged: {
         if (_micaAvailable && MicaManager && _nativeHookReady) {
-            MicaManager.setMicaEffect(window, micaEnabled, Enums.isDark)
+            _applyMicaEffect("micaEnabledChanged")
+        } else {
+            _micaBackdropReady = false
         }
+    }
+
+    onVisibleChanged: {
+        if (visible) _scheduleMicaReapply("visibleChanged")
+        else _micaBackdropReady = false
+    }
+
+    onVisibilityChanged: {
+        if (window.visibility !== Window.Hidden && window.visibility !== Window.Minimized) {
+            _scheduleMicaReapply("visibilityChanged")
+        }
+    }
+
+    onActiveChanged: {
+        if (active) _scheduleMicaReapply("activeChanged")
     }
 
     // 直接监听 ConfigManager 的 micaEnabledChanged signal,作为 binding 链路
@@ -260,7 +333,10 @@ WindowsCore {
         target: typeof ConfigManager !== "undefined" ? ConfigManager : null
         function onMicaEnabledChanged() {
             if (window._micaAvailable && MicaManager && window._nativeHookReady) {
-                MicaManager.setMicaEffect(window, ConfigManager.micaEnabled, Enums.isDark)
+                window.micaEnabled = ConfigManager.micaEnabled
+                window._applyMicaEffect("configChanged")
+            } else {
+                window._micaBackdropReady = false
             }
         }
     }
@@ -269,7 +345,7 @@ WindowsCore {
         target: ThemeManager
         enabled: window._micaActive
         function onThemeChanged() {
-            if (window._micaActive && MicaManager) MicaManager.updateDarkMode(Enums.isDark)
+            if (window._micaActive && MicaManager) window._scheduleMicaReapply("themeChanged")
         }
     }
     
@@ -287,10 +363,10 @@ WindowsCore {
         target: window
         enabled: window._micaAvailable
         function onNativeHookReady() {
+            window.profileTime("NavigationWindowCore nativeHookReady handler start")
             window._nativeHookReady = true
-            if (MicaManager) {
-                MicaManager.setMicaEffect(window, window.micaEnabled, Enums.isDark)
-            }
+            window._applyMicaEffect("nativeHookReady")
+            window.profileTime("NavigationWindowCore nativeHookReady handler done")
         }
     }
 }

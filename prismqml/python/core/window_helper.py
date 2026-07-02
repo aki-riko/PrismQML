@@ -11,6 +11,7 @@ Provides native window operations callable from QML, such as taskbar icon settin
 """
 import sys
 from pathlib import Path
+import time
 from typing import Optional
 
 from PySide6.QtCore import QObject, Slot, QUrl
@@ -62,8 +63,11 @@ class WindowHelper(QObject):
         if not icon:
             return
 
+        profile_start = time.perf_counter()
+
         # 解析图标路径 Resolve icon path
         icon_path = self._resolveIconPath(icon)
+        resolve_ms = int((time.perf_counter() - profile_start) * 1000)
         if not icon_path:
             warning(f"无法解析图标路径: {icon}")
             return
@@ -75,9 +79,16 @@ class WindowHelper(QObject):
 
         # SVG 需要特殊处理（渲染为多尺寸位图）
         if icon_path.lower().endswith(".svg"):
+            render_start = time.perf_counter()
             qicon = self._renderSvgIcon(icon_path)
             if qicon and not qicon.isNull():
                 app.setWindowIcon(qicon)
+                info(
+                    "[启动剖析] WindowHelper.setAppIcon SVG: "
+                    f"resolve={resolve_ms}ms / "
+                    f"render={int((time.perf_counter() - render_start) * 1000)}ms / "
+                    f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
+                )
                 debug(f"任务栏图标已设置 (SVG): {icon_path}")
                 return
 
@@ -85,6 +96,11 @@ class WindowHelper(QObject):
         qicon = QIcon(icon_path)
         if not qicon.isNull():
             app.setWindowIcon(qicon)
+            info(
+                "[启动剖析] WindowHelper.setAppIcon bitmap: "
+                f"resolve={resolve_ms}ms / "
+                f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
+            )
             debug(f"任务栏图标已设置: {icon_path}")
         else:
             warning(f"图标加载失败: {icon_path}")

@@ -28,6 +28,8 @@ Item {
     property var pageSources: []                 // New: QML file paths 新版：QML文件路径列表
     property string loadingText: Translator.tr("loading")
     property var _loaders: []
+    readonly property real _startupProfileStart: Date.now()
+    property real _startupProfileLast: _startupProfileStart
     
     // Use pageSources if provided, otherwise fall back to pageComponents 优先使用 pageSources，否则回退到 pageComponents
 
@@ -59,6 +61,13 @@ Item {
             return _loaders[_displayIndex]
         }
         return stackLayout.children[_displayIndex]
+    }
+    function profileTime(msg) {
+        var now = Date.now()
+        console.info("[启动剖析] StackedWidget " + msg + ": +" +
+                    Math.round(now - _startupProfileLast) + "ms / total " +
+                    Math.round(now - _startupProfileStart) + "ms")
+        _startupProfileLast = now
     }
 
     // ==================== Lazy Loading Functions 懒加载函数 ====================
@@ -245,6 +254,13 @@ Item {
         return widget(index)
     }
 
+    Component.onCompleted: {
+        profileTime("Component.onCompleted count=" + count +
+                    ", lazyLoading=" + lazyLoading +
+                    ", sourceMode=" + _useSourceMode +
+                    ", pageComponents=" + pageComponents.length)
+    }
+
     // ==================== Animation Helper 动画助手 ====================
     StackedAnimations {
         id: animations
@@ -266,6 +282,7 @@ Item {
         visible: !control._useSourceMode && control.pageComponents.length === 0
         
         Component.onCompleted: {
+            control.profileTime("stackLayout Component.onCompleted start children=" + children.length)
             for (let i = 0; i < children.length; i++) {
                 let child = children[i]
                 child.width = Qt.binding(function() { return stackLayout.width })
@@ -277,6 +294,7 @@ Item {
                 child.scale = 1
                 child.transformOrigin = Item.Center
             }
+            control.profileTime("stackLayout Component.onCompleted done")
         }
     }
     
@@ -315,6 +333,7 @@ Item {
                     var loaders = control._loaders.slice()
                     loaders[index] = componentLoader
                     control._loaders = loaders
+                    control.profileTime("componentLoader registered index=" + index)
                 }
 
                 // onLoaded 是"已加载"权威信号, 补锁兜底(同 sourceLoader):
@@ -322,6 +341,7 @@ Item {
                 onLoaded: {
                     _loadOnce = true
                     control.pageLoaded(index)
+                    control.profileTime("componentLoader onLoaded index=" + index)
                 }
             }
         }
@@ -363,6 +383,7 @@ Item {
                     var loaders = control._loaders.slice()
                     loaders[index] = sourceLoader
                     control._loaders = loaders
+                    control.profileTime("sourceLoader registered index=" + index)
                 }
 
                 // latch on actual load completion 加载完成即合锁。
@@ -372,6 +393,7 @@ Item {
                 onLoaded: {
                     _loadOnce = true
                     control.pageLoaded(index)
+                    control.profileTime("sourceLoader onLoaded index=" + index)
                 }
             }
         }
@@ -393,6 +415,7 @@ Item {
         activateLoaderFunc: control._activateLoader
 
         onLoadingComplete: (targetIdx, prevIdx) => {
+            control.profileTime("lazyHelper loadingComplete start target=" + targetIdx + ", prev=" + prevIdx)
             // 更新实际显示页(不写 currentIndex: 它已是 targetIdx 且不能命令式写,
             // 否则打破外部 'currentIndex: window.currentIndex' 绑定)。
             control.previousIndex = control._displayIndex
@@ -427,10 +450,12 @@ Item {
                 }
             }
             control._doEnterAnimation(targetIdx)
+            control.profileTime("lazyHelper loadingComplete done")
         }
     }
     // ==================== Index Change Handler 索引变化处理 ====================
     onCurrentIndexChanged: {
+        profileTime("currentIndex changed to " + currentIndex)
         // currentIndex 是目标页(外部输入)。用 _displayIndex(实际显示页)判重,
         // 内部绝不回写 currentIndex(否则打破外部声明式绑定)。
         if (currentIndex === _displayIndex) return

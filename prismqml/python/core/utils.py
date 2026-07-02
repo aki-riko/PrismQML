@@ -59,7 +59,7 @@ def register_types(engine: QQmlApplicationEngine):
     context.setContextProperty("AcrylicHelper", acrylic_helper)
 
     # Register NativeWindowHook 注册 frameless + DWM 动画 hook
-    # WindowCore 在 Component.onCompleted 里调 NativeWindow.attach(window)
+    # WindowCore 在 DWM 初始化定时点调用 NativeWindow.attach/finalizeAttach(window)
     # 让 frameless 窗口享受 DWM 原生 minimize/maximize/restore 动画
     context.setContextProperty("NativeWindow", get_native_window_hook())
     engine.addImageProvider("acrylic", acrylic_helper.imageProvider)

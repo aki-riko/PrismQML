@@ -18,11 +18,16 @@ Rectangle {
     property bool isClose: iconType === "close"
     property int buttonWidth: Enums.window.captionButtonWidth
     property int buttonHeight: Enums.window.captionButtonHeight
+    property int buttonRadius: 0
+    readonly property color iconColor: area.containsMouse && captionBtn.isClose
+        ? Enums.windowButtonColors.iconLight
+        : (Enums.isDark ? Enums.windowButtonColors.iconLight : Enums.windowButtonColors.iconDark)
     
     signal clicked()
     
     width: buttonWidth
     height: buttonHeight
+    radius: buttonRadius
     
     color: {
         if (area.pressed) {
@@ -38,39 +43,50 @@ Rectangle {
         return Enums.transparent
     }
     
+    Rectangle {
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: parent.radius
+        color: parent.color
+        visible: parent.radius > 0
+    }
+
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: parent.radius
+        color: parent.color
+        visible: parent.radius > 0
+    }
+
     // Draw icon with Canvas 用Canvas绘制图标
     Canvas {
         anchors.centerIn: parent
         width: Enums.window.captionIconSize
         height: Enums.window.captionIconSize
-        
-        readonly property color iconColor: area.containsMouse && captionBtn.isClose 
-            ? Enums.windowButtonColors.iconLight 
-            : (Enums.isDark ? Enums.windowButtonColors.iconLight : Enums.windowButtonColors.iconDark)
-        
+        readonly property color iconColor: captionBtn.iconColor
+
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
             ctx.strokeStyle = iconColor
             ctx.lineWidth = 1
-            
+
             if (captionBtn.iconType === "minimize") {
-                // Horizontal line 横线
                 ctx.beginPath()
                 ctx.moveTo(0, 5)
                 ctx.lineTo(width, 5)
                 ctx.stroke()
             } else if (captionBtn.iconType === "maximize") {
-                // Square frame 方框
                 ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
             } else if (captionBtn.iconType === "restore") {
-                // Two overlapping squares 两个重叠方框
                 ctx.strokeRect(2.5, 0.5, width - 3, height - 3)
                 ctx.strokeRect(0.5, 2.5, width - 3, height - 3)
                 ctx.clearRect(2.5, 2.5, width - 5, height - 5)
                 ctx.strokeRect(2.5, 2.5, width - 5, height - 5)
             } else if (captionBtn.iconType === "close") {
-                // X
                 ctx.beginPath()
                 ctx.moveTo(0, 0)
                 ctx.lineTo(width, height)
@@ -79,7 +95,7 @@ Rectangle {
                 ctx.stroke()
             }
         }
-        
+
         onIconColorChanged: requestPaint()
         Component.onCompleted: requestPaint()
     }

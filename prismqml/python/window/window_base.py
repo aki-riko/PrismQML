@@ -40,6 +40,7 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication, QIcon
 from pathlib import Path
+import time
 
 from ..core.engine import EngineManager
 from ..providers import get_svg_provider
@@ -259,8 +260,10 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
         self._icon = icon
         self._icon_colored = colored
 
-        # Set application-level icon for taskbar 设置应用程序级别图标（任务栏）
-        self._setAppIcon(icon)
+        # Window creation writes windowIcon into QML, which syncs the taskbar icon.
+        # Before the QML window exists, avoid rendering the same SVG twice.
+        if self._window:
+            self._setAppIcon(icon)
 
         self._set_window_property("windowIcon", icon)
         self._set_window_property("windowIconColored", colored)
@@ -285,6 +288,8 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
         if not icon:
             return
 
+        profile_start = time.perf_counter()
+
         # Resolve icon path 解析图标路径
         icon_path = icon
         if icon.startswith("qrc:/"):
@@ -300,6 +305,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
         if app:
             # SVG needs special handling SVG需要特殊处理
             if icon_path.lower().endswith(".svg"):
+                render_start = time.perf_counter()
                 from PySide6.QtSvg import QSvgRenderer
                 from PySide6.QtGui import QPixmap, QPainter
                 from PySide6.QtCore import QSize
@@ -316,8 +322,17 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
                         painter.end()
                         qicon.addPixmap(pixmap)
                     app.setWindowIcon(qicon)
+                    info(
+                        "[启动剖析] WindowCore._setAppIcon SVG: "
+                        f"render={int((time.perf_counter() - render_start) * 1000)}ms / "
+                        f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
+                    )
             else:
                 app.setWindowIcon(QIcon(icon_path))
+                info(
+                    "[启动剖析] WindowCore._setAppIcon bitmap: "
+                    f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
+                )
 
     def setMicaEffectEnabled(self, enabled: bool):
         """设置云母效果
@@ -547,16 +562,35 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
 
     def show(self):
         """显示窗口"""
+        profile_start = time.perf_counter()
+        profile_last = profile_start
+
+        def profile(label: str):
+            nonlocal profile_last
+            now = time.perf_counter()
+            info(
+                f"[启动剖析] WindowCore.show {label}: "
+                f"+{int((now - profile_last) * 1000)}ms / "
+                f"total {int((now - profile_start) * 1000)}ms"
+            )
+            profile_last = now
+
         created_window = self._window is None
         if self._window is None:
             self._create_window()
+            profile("_create_window")
+        else:
+            profile("复用已有窗口")
 
         if self._window:
             if not created_window:
                 self._restore_visible_state()
+                profile("show 前恢复可见状态")
             self._window.show()
+            profile("QQuickWindow.show")
             if not created_window:
                 self._restore_visible_state()
+                profile("show 后恢复可见状态")
             # 设置为当前活动窗口
             WindowCore._current_window_instance = self
 
@@ -564,11 +598,13 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin):
             if self._lazy_loading:
                 if self._nav_items or self._bottom_nav_items:
                     self._ensure_page_created(0)
+                    profile("创建/确认首页")
             else:
                 # 非懒加载：预创建所有页面
                 total = len(self._nav_items) + len(self._bottom_nav_items)
                 for i in range(total):
                     self._ensure_page_created(i)
+                profile("创建/确认全部页面")
 
             # ✅ 2026-05-25: Mica 初始化交给 QML 端的 nativeHookReady 信号,
             # 那里会等 _dwmDelayTimer 跑完(shadow + NativeWindow.attach 都会发

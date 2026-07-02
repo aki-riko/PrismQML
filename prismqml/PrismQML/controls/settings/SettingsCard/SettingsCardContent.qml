@@ -133,14 +133,9 @@ Item {
             currentIndex: root.currentIndex
             placeholderText: root.placeholderText
             implicitWidth: Enums.settingCard.combobox_width
-            onIndexChanged: function(index) {
-                // Don't imperatively assign root.currentIndex — it would
-                // break the outer binding SettingsCard.currentIndex has on
-                // us, preventing future data-source updates from reaching
-                // the ComboBox. Let data flow stay one-way: source -> view.
-                // 不命令式赋值 root.currentIndex —— 那会破坏外层 SettingsCard
-                // 的 binding，导致后续数据源变化无法再回到视图。
-                // 保持单向数据流：source -> view。
+            onActivated: function(index) {
+                // Only user selection writes back; programmatic sync stays source to view.
+                // 只有用户选择才回写数据源；程序同步保持从数据源到视图。
                 root.indexSelected(index)
             }
         }

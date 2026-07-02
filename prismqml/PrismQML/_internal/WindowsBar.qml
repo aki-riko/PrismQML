@@ -37,7 +37,11 @@ NavigationWindowCore {
             id: startupTimer
             interval: 50
             running: true
-            onTriggered: mainLoader.active = true
+            onTriggered: {
+                window.profileTime("WindowsBar startupTimer triggered")
+                mainLoader.active = true
+                window.profileTime("WindowsBar mainLoader.active=true")
+            }
         }
         
         Loader {
@@ -48,10 +52,13 @@ NavigationWindowCore {
             sourceComponent: contentComponent
             
             onLoaded: {
+                window.profileTime("WindowsBar mainLoader.onLoaded start")
                 window.navigationView = item.navAlias
                 window.stackedWidget = item.stackAlias
+                window.profileTime("WindowsBar bind navigation/stack")
                 
                 if (_hiddenStack.data.length > 0) {
+                    window.profileTime("WindowsBar move hidden pages start count=" + _hiddenStack.data.length)
                     let container = window.stackedWidget.containerItem
                     let items = []
                     for(let i=0; i<_hiddenStack.data.length; i++) {
@@ -68,10 +75,13 @@ NavigationWindowCore {
                         child.visible = (i === window.stackedWidget.currentIndex)
                         child.opacity = (i === window.stackedWidget.currentIndex ? 1 : 0)
                     }
+                    window.profileTime("WindowsBar move hidden pages done")
                 }
                 
                 // 等主页(首屏)真正加载完成再关欢迎页, 而非框架壳加载完就关
+                window.profileTime("WindowsBar dismissSplashWhenReady start")
                 window._dismissSplashWhenReady(window.stackedWidget)
+                window.profileTime("WindowsBar dismissSplashWhenReady done")
             }
         }
         
@@ -85,6 +95,10 @@ NavigationWindowCore {
                 // 窄屏/移动端: 导航移到底部 (防御式读 PlatformInfo, 桌面无则 false)
                 readonly property bool _compactNav:
                     typeof PlatformInfo !== "undefined" && PlatformInfo.isCompact
+
+                Component.onCompleted: {
+                    window.profileTime("WindowsBar contentComponent completed compactNav=" + _compactNav)
+                }
                 
         // 点击空白区域清除输入焦点（z极低，确保在所有内容之下）
         MouseArea {

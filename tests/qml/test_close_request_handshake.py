@@ -67,6 +67,61 @@ def main():
     if not win.isVisible():
         failures.append("ignored native close hid or closed the window")
 
+    if not QMetaObject.invokeMethod(win._window, "animatedClose"):
+        failures.append("animatedClose method was not invokable")
+    pump(450)
+    if win.close_events != 3:
+        failures.append(f"animatedClose emitted {win.close_events} close events, expected 3")
+    if not win.isVisible():
+        failures.append("ignored animatedClose hid or closed the window")
+    if win._window.property("_closeInProgress") is not False:
+        failures.append("ignored animatedClose left _closeInProgress=true")
+    if abs(float(win._window.opacity()) - 1.0) > 0.01:
+        failures.append(f"ignored animatedClose left window opacity at {win._window.opacity()}")
+
+    class TrayRejectingWindow(Window):
+        def __init__(self):
+            super().__init__(window_type=WindowType.BAR)
+            self.close_events = 0
+
+        def closeEvent(self, event):
+            self.close_events += 1
+            self.hide()
+            event.ignore()
+
+    tray_win = TrayRejectingWindow()
+    tray_win.setSplashEnabled(False)
+    tray_win.setWindowTitle("Close-to-tray regression")
+    tray_win.addPage(None, "Home", "Home")
+    tray_win.show()
+    pump(150)
+
+    if not QMetaObject.invokeMethod(tray_win._window, "requestClose"):
+        failures.append("tray requestClose method was not invokable")
+    pump(120)
+
+    if tray_win.close_events != 1:
+        failures.append(f"tray requestClose emitted {tray_win.close_events} close events, expected 1")
+    if tray_win.isVisible():
+        failures.append("close-to-tray requestClose restored a hidden window")
+    if tray_win._window.property("_closeInProgress") is not False:
+        failures.append("close-to-tray requestClose left _closeInProgress=true")
+    if tray_win._window.property("closeRequestAccepted") is not False:
+        failures.append("close-to-tray requestClose did not write closeRequestAccepted=false")
+
+    tray_win.show()
+    pump(180)
+    result = tray_win.close()
+    pump(120)
+    if result is not False:
+        failures.append(f"close-to-tray native close returned {result!r}, expected False")
+    if tray_win.close_events != 2:
+        failures.append(f"close-to-tray native close emitted {tray_win.close_events} close events, expected 2")
+    if tray_win.isVisible():
+        failures.append("close-to-tray native close restored a hidden window")
+    if tray_win._window.property("_closeInProgress") is not False:
+        failures.append("close-to-tray native close left _closeInProgress=true")
+
     print(f"\n{'=' * 60}")
     if failures:
         print("RESULT: FAIL - close request handshake regression failed")

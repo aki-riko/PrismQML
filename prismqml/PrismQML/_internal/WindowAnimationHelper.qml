@@ -31,8 +31,10 @@ Item {
     function startShow() {
         closeAnim.stop()
         showAnim.stop()
-        animScale = 0.95
-        animOpacity = 0
+        if (!targetWindow || targetWindow.opacity < 0.99) {
+            animScale = 0.95
+            animOpacity = 0
+        }
         showAnim.start()
     }
 

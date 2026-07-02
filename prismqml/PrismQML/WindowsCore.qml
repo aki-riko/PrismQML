@@ -19,7 +19,15 @@ Window {
     
     // ==================== Startup Timing 启动计时 ====================
     readonly property real _appStartTime: Date.now()
+    property real _lastStartupProfileTime: _appStartTime
     function logTime(msg) { console.log("[" + Math.round(Date.now() - _appStartTime) + "ms]", msg) }
+    function profileTime(msg) {
+        var now = Date.now()
+        console.info("[启动剖析] WindowsCore " + msg + ": +" +
+                    Math.round(now - _lastStartupProfileTime) + "ms / total " +
+                    Math.round(now - _appStartTime) + "ms")
+        _lastStartupProfileTime = now
+    }
 
     // ==================== Signals 信号 ====================
     // Fired after DWM-touching init done (shadow + native hook attached) 通知子类: DWM 相关初始化完成
@@ -34,7 +42,10 @@ Window {
     height: Enums.window.defaultHeight
     minimumWidth: Enums.window.minimumWidth
     minimumHeight: Enums.window.minimumHeight
-    visible: true
+    // Python show() displays the window after pending state and splash are mounted.
+    // Keep the QML root hidden during loadData so native show/render work does not
+    // block component creation.
+    visible: false
     opacity: Enums.opacityLevel.invisible
     color: "transparent"
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint
@@ -57,7 +68,9 @@ Window {
     onWindowIconChanged: {
         // Sync window icon to taskbar 同步窗口图标到任务栏
         if (windowIcon && typeof WindowHelper !== "undefined") {
+            profileTime("WindowHelper.setAppIcon start")
             WindowHelper.setAppIcon(windowIcon)
+            profileTime("WindowHelper.setAppIcon done")
         }
     }
     property int titleBarHeight: Enums.window.titleBarHeight
@@ -72,6 +85,7 @@ Window {
     
     // ==================== Shadow Mode 阴影模式 ====================
     property int shadowMode: Enums.windowShadow.mode_auto
+    property bool _dwmInitializationDone: false
     readonly property bool _platformSupportsNative: ShadowManager ? ShadowManager.useNative : false
     readonly property bool _useNativeShadow: {
         if (shadowMode === Enums.windowShadow.mode_none) return false
@@ -98,22 +112,36 @@ Window {
 
     // ==================== Public Methods 公开方法 ====================
     // Public animation methods 公开动画方法
+    function _cancelCloseRequest() {
+        _closeInProgress = false
+        if (window.visible) {
+            animHelper.restoreVisibleState()
+        }
+    }
+    function _startAcceptedClose() {
+        _closeInProgress = true
+        animHelper.animatedClose()
+    }
     function requestClose() {
         if (_closeInProgress) return
         closeRequestAccepted = true
         closeRequested()
         if (closeRequestAccepted) {
-            _closeInProgress = true
-            animHelper.animatedClose()
+            _startAcceptedClose()
         } else {
-            animHelper.restoreVisibleState()
+            _cancelCloseRequest()
         }
     }
     function animatedClose() {
-        _closeInProgress = true
-        animHelper.animatedClose()
+        requestClose()
     }
     function restoreVisibleState() { animHelper.restoreVisibleState() }
+    function ensureVisiblePaintState(reason) {
+        if (_closeInProgress || !window.visible) return
+        if (window.opacity >= 0.99 && _animOpacity >= 0.99 && _animScale >= 0.99) return
+        profileTime("ensureVisiblePaintState " + reason)
+        animHelper.restoreVisibleState()
+    }
     function animatedMinimize() { animHelper.animatedMinimize() }
     function animatedMaximize() { animHelper.animatedMaximize() }
     function animatedRestore() { animHelper.animatedRestore() }
@@ -124,7 +152,10 @@ Window {
         targetWindow: window
         onCloseCallback: function() {
             NotificationManager.closeAllDesktopNotifications()
-            window.close()
+            var closed = window.close()
+            if (closed === false) {
+                window._cancelCloseRequest()
+            }
         }
     }
 
@@ -134,15 +165,15 @@ Window {
 
     // ==================== Startup Sequence 启动序列 ====================
     Component.onCompleted: {
-        console.log("[WindowsCore] Component.onCompleted, NativeWindow defined:",
-                    typeof NativeWindow !== "undefined")
+        profileTime("Component.onCompleted start; NativeWindow defined=" +
+                    (typeof NativeWindow !== "undefined"))
         animHelper.animScale = 0.95
         animHelper.animOpacity = 0
-        // 直接尝试 attach: 多数情况 winId() 此时已可用; 失败也无副作用 (内部静默 return)
-        if (typeof NativeWindow !== "undefined") {
-            NativeWindow.attach(window)
-        }
+        profileTime("初始化动画状态")
+        // 延后 native hook: winId()/style 写入在冷启动可达 90ms+,不要阻塞 loadData。
+        // _dwmDelayTimer 中的 finalizeAttach() 会在窗口显示后完成完整 attach。
         _dwmDelayTimer.start()
+        profileTime("_dwmDelayTimer.start")
     }
 
     onClosing: (close) => {
@@ -151,7 +182,7 @@ Window {
             closeRequested()
             if (!closeRequestAccepted) {
                 close.accepted = false
-                animHelper.restoreVisibleState()
+                _cancelCloseRequest()
                 return
             }
         }
@@ -179,31 +210,47 @@ Window {
         id: _dwmDelayTimer
         interval: 50
         onTriggered: {
+            profileTime("_dwmDelayTimer triggered")
             if (_useNativeShadow && ShadowManager) {
-                logTime("DWM shadow enabled")
+                profileTime("ShadowManager.enableShadowForWindow start")
                 ShadowManager.enableShadowForWindow(window)
+                profileTime("ShadowManager.enableShadowForWindow done")
             }
             // NativeWindowHook 也在此时 attach,winId() 已可用
             if (typeof NativeWindow !== "undefined") {
-                logTime("NativeWindow.attach")
-                NativeWindow.attach(window)
+                profileTime("NativeWindow.finalizeAttach start")
+                NativeWindow.finalizeAttach(window)
+                profileTime("NativeWindow.finalizeAttach done")
             }
+            _dwmInitializationDone = true
+            profileTime("DWM initialization marked done")
             // Notify subclasses that DWM-touching ops finished — Mica 等会反复被
             // SWP_FRAMECHANGED 重置的 DWM 属性,必须在此之后才能稳定设置。
+            profileTime("nativeHookReady emit start")
             window.nativeHookReady()
+            profileTime("nativeHookReady emit done")
+            profileTime("animHelper.startShow start")
             animHelper.startShow()
+            profileTime("animHelper.startShow done")
         }
     }
     
     // ==================== Shadow Mode Change Handler 阴影模式变化处理 ====================
     on_UseNativeShadowChanged: {
+        profileTime("_useNativeShadow changed: " + _useNativeShadow)
+        if (!_dwmInitializationDone) {
+            profileTime("_useNativeShadow change skipped before DWM initialization")
+            return
+        }
         if (!ShadowManager) return
         if (_useNativeShadow) {
-            logTime("DWM shadow enabled (runtime)")
+            profileTime("ShadowManager.enableShadowForWindow runtime start")
             ShadowManager.enableShadowForWindow(window)
+            profileTime("ShadowManager.enableShadowForWindow runtime done")
         } else {
-            logTime("DWM shadow disabled (runtime)")
+            profileTime("ShadowManager.disableShadowForWindow runtime start")
             ShadowManager.disableShadowForWindow(window)
+            profileTime("ShadowManager.disableShadowForWindow runtime done")
         }
     }
     
@@ -228,7 +275,12 @@ Window {
         onTriggered: animHelper.startShow()
     }
 
-    onVisibilityChanged: animHelper.handleVisibilityChange(window.visibility)
+    onVisibilityChanged: {
+        animHelper.handleVisibilityChange(window.visibility)
+        if (window.visibility !== Window.Hidden && window.visibility !== Window.Minimized) {
+            ensureVisiblePaintState("visibilityChanged")
+        }
+    }
 
     // 从隐藏恢复显示时重新播放显示动画,把 opacity 拉回 1。
     // 背景: 窗口 opacity 初值为 0(invisible),靠 startShow() 动画拉到 1;
@@ -239,36 +291,38 @@ Window {
     // (含直接调 QWindow.show() 的)无需改调用方即可正确恢复显示。
     // 守卫 opacity < 0.5: 避免与正常启动序列(startShow 已在跑)/最大化还原
     //   (opacity 已是 1)重复触发动画。
-    onVisibleChanged: {
-        if (window.visible && (window.opacity < 0.5 || _animOpacity < 0.5 || _animScale < 0.99)) {
-            animHelper.startShow()
-        }
-    }
+    onVisibleChanged: ensureVisiblePaintState("visibleChanged")
 
     // ==================== Shadow Layer 阴影层 ====================
-    Item {
+    Loader {
         id: shadowHost
         anchors.fill: parent
-        visible: !isMaximized && _useQmlShadow
+        active: !isMaximized && _useQmlShadow
+        visible: active
         opacity: _animOpacity
         scale: _animScale
-        
-        RectangularShadow {
-            anchors.fill: shadowSource
-            radius: shadowSource.radius
-            color: Enums.shadow.level28.color
-            blur: Enums.shadow.level28.blur
-            offset.x: 0
-            offset.y: Enums.shadow.level28.offset
-        }
-        
-        Rectangle {
-            id: shadowSource
-            anchors.centerIn: parent
-            width: parent.width - shadowSize * 2
-            height: parent.height - shadowSize * 2
-            radius: windowRadius
-            color: windowColor
+        sourceComponent: Component {
+            Item {
+                anchors.fill: parent
+
+                RectangularShadow {
+                    anchors.fill: shadowSource
+                    radius: shadowSource.radius
+                    color: Enums.shadow.level28.color
+                    blur: Enums.shadow.level28.blur
+                    offset.x: 0
+                    offset.y: Enums.shadow.level28.offset
+                }
+
+                Rectangle {
+                    id: shadowSource
+                    anchors.centerIn: parent
+                    width: parent.width - shadowSize * 2
+                    height: parent.height - shadowSize * 2
+                    radius: windowRadius
+                    color: windowColor
+                }
+            }
         }
     }
     
@@ -335,43 +389,13 @@ Window {
                     onClicked: isMaximized ? window.showNormal() : window.showMaximized()
                 }
                 
-                Rectangle {
-                    width: window.captionButtonWidth
-                    height: captionButtonHeight
-                    radius: isMaximized ? 0 : windowRadius
-                    color: closeAreaTop.pressed ? Enums.windowButtonColors.closePressed : (closeAreaTop.containsMouse ? Enums.windowButtonColors.closeHover : "transparent")
-                    
-                    Rectangle {
-                        anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom
-                        width: parent.radius; color: parent.color; visible: parent.radius > 0
-                    }
-                    Rectangle {
-                        anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
-                        height: parent.radius; color: parent.color; visible: parent.radius > 0
-                    }
-                    
-                    Canvas {
-                        anchors.centerIn: parent
-                        width: Enums.window.captionIconSize
-                        height: Enums.window.captionIconSize
-                        readonly property color iconColor: closeAreaTop.containsMouse ? Enums.windowButtonColors.iconLight : (Enums.isDark ? Enums.windowButtonColors.iconLight : Enums.windowButtonColors.iconDark)
-                        onPaint: {
-                            var ctx = getContext("2d")
-                            ctx.clearRect(0, 0, width, height)
-                            ctx.strokeStyle = iconColor; ctx.lineWidth = 1
-                            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(width, height)
-                            ctx.moveTo(width, 0); ctx.lineTo(0, height); ctx.stroke()
-                        }
-                        onIconColorChanged: requestPaint()
-                        Component.onCompleted: requestPaint()
-                    }
-                    
-                    MouseArea {
-                        id: closeAreaTop
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: requestClose()
-                    }
+                CaptionButton {
+                    targetWindow: window
+                    iconType: "close"
+                    buttonWidth: window.captionButtonWidth
+                    buttonHeight: captionButtonHeight
+                    buttonRadius: isMaximized ? 0 : windowRadius
+                    onClicked: requestClose()
                 }
             }
             
@@ -404,33 +428,43 @@ Window {
                 anchors.top: parent.top
                 height: titleBarHeight
                 color: "transparent"
-                
-                // Window drag area 窗口拖拽区域
-                MouseArea {
+
+                Loader {
                     anchors.fill: parent
-                    onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
-                    onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
-                }
-                
-                // Window icon 窗口图标
-                WindowIcon {
-                    id: leftTitleIcon
-                    anchors.left: parent.left
-                    anchors.leftMargin: window.titleBarLeftMargin
-                    anchors.verticalCenter: parent.verticalCenter
-                    source: windowIcon
-                    colored: windowIconColored
-                }
-                
-                // Window title 窗口标题
-                Label {
-                    id: leftTitleText
-                    anchors.left: leftTitleIcon.visible ? leftTitleIcon.right : parent.left
-                    anchors.leftMargin: leftTitleIcon.visible ? Enums.window.titleIconGap : window.titleBarLeftMargin
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: window.windowTitle
-                    type: Enums.label.type_body
-                    color: Enums.textColor.primary
+                    active: _isLeftLayout
+                    sourceComponent: Component {
+                        Item {
+                            anchors.fill: parent
+
+                            // Window drag area 窗口拖拽区域
+                            MouseArea {
+                                anchors.fill: parent
+                                onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
+                                onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                            }
+
+                            // Window icon 窗口图标
+                            WindowIcon {
+                                id: leftTitleIcon
+                                anchors.left: parent.left
+                                anchors.leftMargin: window.titleBarLeftMargin
+                                anchors.verticalCenter: parent.verticalCenter
+                                source: windowIcon
+                                colored: windowIconColored
+                            }
+
+                            // Window title 窗口标题
+                            Label {
+                                id: leftTitleText
+                                anchors.left: leftTitleIcon.visible ? leftTitleIcon.right : parent.left
+                                anchors.leftMargin: leftTitleIcon.visible ? Enums.window.titleIconGap : window.titleBarLeftMargin
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: window.windowTitle
+                                type: Enums.label.type_body
+                                color: Enums.textColor.primary
+                            }
+                        }
+                    }
                 }
             }
             
@@ -456,66 +490,48 @@ Window {
         }
         
         // ==================== Right Caption Buttons 右侧窗口按钮 ====================
-        Row {
+        Item {
             id: captionButtonsRight
             anchors.right: parent.right
             anchors.top: parent.top
-            spacing: Enums.spacing.none
+            width: _isLeftLayout ? captionButtonWidth * 3 : 0
+            height: captionButtonHeight
             visible: _isLeftLayout
             z: Enums.zIndex.controlsAbove
-            
-            CaptionButton {
-                targetWindow: window
-                iconType: "minimize"
-                buttonWidth: window.captionButtonWidth
-                buttonHeight: captionButtonHeight
-                onClicked: animatedMinimize()
-            }
-            
-            CaptionButton {
-                targetWindow: window
-                iconType: isMaximized ? "restore" : "maximize"
-                buttonWidth: window.captionButtonWidth
-                buttonHeight: captionButtonHeight
-                onClicked: isMaximized ? window.showNormal() : window.showMaximized()
-            }
-            
-            Rectangle {
-                width: window.captionButtonWidth
-                height: captionButtonHeight
-                radius: isMaximized ? 0 : windowRadius
-                color: closeAreaRight.pressed ? Enums.windowButtonColors.closePressed : (closeAreaRight.containsMouse ? Enums.windowButtonColors.closeHover : "transparent")
-                
-                Rectangle {
-                    anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom
-                    width: parent.radius; color: parent.color; visible: parent.radius > 0
-                }
-                Rectangle {
-                    anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
-                    height: parent.radius; color: parent.color; visible: parent.radius > 0
-                }
-                
-                Canvas {
-                    anchors.centerIn: parent
-                    width: Enums.window.captionIconSize
-                    height: Enums.window.captionIconSize
-                    readonly property color iconColor: closeAreaRight.containsMouse ? Enums.windowButtonColors.iconLight : (Enums.isDark ? Enums.windowButtonColors.iconLight : Enums.windowButtonColors.iconDark)
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        ctx.strokeStyle = iconColor; ctx.lineWidth = 1
-                        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(width, height)
-                        ctx.moveTo(width, 0); ctx.lineTo(0, height); ctx.stroke()
+
+            Loader {
+                anchors.fill: parent
+                active: _isLeftLayout
+                sourceComponent: Component {
+                    Row {
+                        anchors.fill: parent
+                        spacing: Enums.spacing.none
+
+                        CaptionButton {
+                            targetWindow: window
+                            iconType: "minimize"
+                            buttonWidth: window.captionButtonWidth
+                            buttonHeight: captionButtonHeight
+                            onClicked: animatedMinimize()
+                        }
+
+                        CaptionButton {
+                            targetWindow: window
+                            iconType: isMaximized ? "restore" : "maximize"
+                            buttonWidth: window.captionButtonWidth
+                            buttonHeight: captionButtonHeight
+                            onClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                        }
+
+                        CaptionButton {
+                            targetWindow: window
+                            iconType: "close"
+                            buttonWidth: window.captionButtonWidth
+                            buttonHeight: captionButtonHeight
+                            buttonRadius: isMaximized ? 0 : windowRadius
+                            onClicked: requestClose()
+                        }
                     }
-                    onIconColorChanged: requestPaint()
-                    Component.onCompleted: requestPaint()
-                }
-                
-                MouseArea {
-                    id: closeAreaRight
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: requestClose()
                 }
             }
         }
