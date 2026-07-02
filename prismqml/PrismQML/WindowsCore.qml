@@ -15,6 +15,11 @@ Window {
     // ==================== Startup Timing 启动计时 ====================
     readonly property real _appStartTime: Date.now()
     property real _lastStartupProfileTime: _appStartTime
+    property real _lastStartupDetailTime: _appStartTime
+    property bool startupProfilingVerbose: false
+    readonly property bool _startupProfilingVerboseActive:
+        startupProfilingVerbose ||
+        (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
     function logTime(msg) { console.log("[" + Math.round(Date.now() - _appStartTime) + "ms]", msg) }
     function profileTime(msg) {
         var now = Date.now()
@@ -22,6 +27,23 @@ Window {
                     Math.round(now - _lastStartupProfileTime) + "ms / total " +
                     Math.round(now - _appStartTime) + "ms")
         _lastStartupProfileTime = now
+    }
+    function profileDetail(msg) {
+        if (!_startupProfilingVerboseActive) return
+        var now = Date.now()
+        console.info("[启动剖析] WindowsCore DETAIL " + msg + ": +" +
+                    Math.round(now - _lastStartupDetailTime) + "ms / total " +
+                    Math.round(now - _appStartTime) + "ms")
+        _lastStartupDetailTime = now
+    }
+    function profileDetailState(msg) {
+        if (!_startupProfilingVerboseActive) return
+        profileDetail(msg + " visible=" + visible +
+                      " size=" + Math.round(width) + "x" + Math.round(height) +
+                      " shadowMode=" + shadowMode +
+                      " native=" + _useNativeShadow +
+                      " qmlShadow=" + _useQmlShadow +
+                      " leftLayout=" + _isLeftLayout)
     }
 
     // ==================== Signals 信号 ====================
@@ -163,6 +185,7 @@ Window {
                 window._cancelCloseRequest()
             }
         }
+        Component.onCompleted: window.profileDetail("WindowAnimationHelper completed")
     }
 
     // Expose animation properties 暴露动画属性
@@ -171,6 +194,7 @@ Window {
 
     // ==================== Startup Sequence 启动序列 ====================
     Component.onCompleted: {
+        profileDetailState("Window root Component.onCompleted pre-init")
         profileTime("Component.onCompleted start; NativeWindow defined=" +
                     (typeof NativeWindow !== "undefined"))
         animHelper.animScale = 0.95
@@ -310,6 +334,9 @@ Window {
         asynchronous: true
         source: active ? Qt.resolvedUrl("_internal/QmlShadowHost.qml") : ""
         property var hostWindow: window
+        Component.onCompleted: window.profileDetail("shadowHost Loader completed active=" + active + " status=" + status)
+        onStatusChanged: window.profileDetail("shadowHost Loader status=" + status + " active=" + active + " source=" + source)
+        onLoaded: window.profileDetail("shadowHost Loader loaded")
     }
     
     // ==================== Main Window 主窗口 ====================
@@ -322,6 +349,7 @@ Window {
         opacity: _animOpacity
         scale: _animScale
         clip: true
+        Component.onCompleted: window.profileDetail("windowFrame completed margin=" + margin + " radius=" + radius)
         
         // ==================== Top Layout Title Bar 顶部布局标题栏 ====================
         Rectangle {
@@ -331,6 +359,7 @@ Window {
             color: "transparent"
             z: Enums.zIndex.controls
             visible: !_isLeftLayout
+            Component.onCompleted: window.profileDetail("titleBar completed visible=" + visible + " height=" + height)
             
 
             WindowIcon {
@@ -339,7 +368,9 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 source: windowIcon
                 colored: windowIconColored
+                profileTarget: window
                 visible: windowIcon !== "" && !_isLeftLayout
+                Component.onCompleted: window.profileDetail("titleIcon completed sourceSet=" + (source !== "") + " colored=" + colored)
             }
             
             Text {
@@ -350,6 +381,7 @@ Window {
                 color: Enums.textColor.primary
                 anchors.verticalCenter: parent.verticalCenter
                 visible: !_isLeftLayout
+                Component.onCompleted: window.profileDetail("titleText completed textLength=" + text.length)
             }
             
             Row {
@@ -359,6 +391,7 @@ Window {
                 spacing: Enums.spacing.none
                 visible: !_isLeftLayout
                 z: Enums.zIndex.controlsAbove  // 确保按钮在拖动区域之上
+                Component.onCompleted: window.profileDetail("captionButtonsTop Row completed visible=" + visible)
                 
                 CaptionButton {
                     targetWindow: window
@@ -366,6 +399,7 @@ Window {
                     buttonWidth: window.captionButtonWidth
                     buttonHeight: captionButtonHeight
                     onClicked: animatedMinimize()
+                    Component.onCompleted: window.profileDetail("captionButton top minimize completed")
                 }
                 
                 CaptionButton {
@@ -374,6 +408,7 @@ Window {
                     buttonWidth: window.captionButtonWidth
                     buttonHeight: captionButtonHeight
                     onClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                    Component.onCompleted: window.profileDetail("captionButton top max/restore completed iconType=" + iconType)
                 }
                 
                 CaptionButton {
@@ -383,6 +418,7 @@ Window {
                     buttonHeight: captionButtonHeight
                     buttonRadius: isMaximized ? 0 : windowRadius
                     onClicked: requestClose()
+                    Component.onCompleted: window.profileDetail("captionButton top close completed")
                 }
             }
             
@@ -393,6 +429,7 @@ Window {
                 z: Enums.zIndex.background  // 确保在按钮之下
                 onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
                 onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                Component.onCompleted: window.profileDetail("titleBar drag MouseArea completed")
             }
         }
         
@@ -406,6 +443,7 @@ Window {
             color: "transparent"
             visible: _isLeftLayout
             z: Enums.zIndex.controls
+            Component.onCompleted: window.profileDetail("leftPanel completed visible=" + visible + " width=" + width)
             
             // Left title bar area 左侧标题栏区域
             Rectangle {
@@ -415,19 +453,25 @@ Window {
                 anchors.top: parent.top
                 height: titleBarHeight
                 color: "transparent"
+                Component.onCompleted: window.profileDetail("leftTitleBar completed")
 
                 Loader {
                     anchors.fill: parent
                     active: _isLeftLayout
+                    Component.onCompleted: window.profileDetail("leftTitleBar Loader completed active=" + active + " status=" + status)
+                    onStatusChanged: window.profileDetail("leftTitleBar Loader status=" + status + " active=" + active)
+                    onLoaded: window.profileDetail("leftTitleBar Loader loaded")
                     sourceComponent: Component {
                         Item {
                             anchors.fill: parent
+                            Component.onCompleted: window.profileDetail("leftTitleBar content Item completed")
 
                             // Window drag area 窗口拖拽区域
                             MouseArea {
                                 anchors.fill: parent
                                 onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
                                 onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                                Component.onCompleted: window.profileDetail("leftTitleBar drag MouseArea completed")
                             }
 
                             // Window icon 窗口图标
@@ -438,6 +482,8 @@ Window {
                                 anchors.verticalCenter: parent.verticalCenter
                                 source: windowIcon
                                 colored: windowIconColored
+                                profileTarget: window
+                                Component.onCompleted: window.profileDetail("leftTitleIcon completed sourceSet=" + (source !== ""))
                             }
 
                             // Window title 窗口标题
@@ -450,6 +496,7 @@ Window {
                                 font.family: Enums.fontFamily
                                 font.pixelSize: Enums.typography.body
                                 color: Enums.textColor.primary
+                                Component.onCompleted: window.profileDetail("leftTitleText completed textLength=" + text.length)
                             }
                         }
                     }
@@ -463,6 +510,7 @@ Window {
                 anchors.right: parent.right
                 anchors.top: leftTitleBar.bottom
                 anchors.bottom: parent.bottom
+                Component.onCompleted: window.profileDetail("leftPanelContainer completed")
             }
         }
         
@@ -476,6 +524,7 @@ Window {
             color: Enums.stateColor.divider
             visible: _isLeftLayout
             z: Enums.zIndex.controls
+            Component.onCompleted: window.profileDetail("verticalDivider completed visible=" + visible)
         }
         
         // ==================== Right Caption Buttons 右侧窗口按钮 ====================
@@ -487,14 +536,19 @@ Window {
             height: captionButtonHeight
             visible: _isLeftLayout
             z: Enums.zIndex.controlsAbove
+            Component.onCompleted: window.profileDetail("captionButtonsRight host completed visible=" + visible)
 
             Loader {
                 anchors.fill: parent
                 active: _isLeftLayout
+                Component.onCompleted: window.profileDetail("captionButtonsRight Loader completed active=" + active + " status=" + status)
+                onStatusChanged: window.profileDetail("captionButtonsRight Loader status=" + status + " active=" + active)
+                onLoaded: window.profileDetail("captionButtonsRight Loader loaded")
                 sourceComponent: Component {
                     Row {
                         anchors.fill: parent
                         spacing: Enums.spacing.none
+                        Component.onCompleted: window.profileDetail("captionButtonsRight Row completed")
 
                         CaptionButton {
                             targetWindow: window
@@ -502,6 +556,7 @@ Window {
                             buttonWidth: window.captionButtonWidth
                             buttonHeight: captionButtonHeight
                             onClicked: animatedMinimize()
+                            Component.onCompleted: window.profileDetail("captionButton right minimize completed")
                         }
 
                         CaptionButton {
@@ -510,6 +565,7 @@ Window {
                             buttonWidth: window.captionButtonWidth
                             buttonHeight: captionButtonHeight
                             onClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                            Component.onCompleted: window.profileDetail("captionButton right max/restore completed iconType=" + iconType)
                         }
 
                         CaptionButton {
@@ -519,6 +575,7 @@ Window {
                             buttonHeight: captionButtonHeight
                             buttonRadius: isMaximized ? 0 : windowRadius
                             onClicked: requestClose()
+                            Component.onCompleted: window.profileDetail("captionButton right close completed")
                         }
                     }
                 }
@@ -536,6 +593,7 @@ Window {
             z: Enums.zIndex.controls
             onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
             onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
+            Component.onCompleted: window.profileDetail("rightTitleBarDragArea completed visible=" + visible)
         }
         
         // ==================== Content Area 内容区域 ====================
@@ -546,12 +604,14 @@ Window {
             anchors.left: _isLeftLayout ? verticalDivider.right : parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
+            Component.onCompleted: window.profileDetail("contentContainer completed dataChildren=" + data.length)
             
             // Click background to clear input focus 点击背景清除输入焦点
             MouseArea {
                 anchors.fill: parent
                 z: Enums.zIndex.background  // Below all content 在所有内容下方
                 onClicked: contentContainer.forceActiveFocus()
+                Component.onCompleted: window.profileDetail("contentContainer background MouseArea completed")
             }
         }
         
@@ -563,12 +623,13 @@ Window {
             border.width: Enums.border.thin
             border.color: Enums.borderColor
             z: Enums.zIndex.controls
+            Component.onCompleted: window.profileDetail("window border completed")
         }
     }
     
     // ==================== Resize Handles 调整大小手柄 ====================
-    ResizeArea { targetWindow: window; edge: Qt.LeftEdge }
-    ResizeArea { targetWindow: window; edge: Qt.RightEdge }
-    ResizeArea { targetWindow: window; edge: Qt.TopEdge }
-    ResizeArea { targetWindow: window; edge: Qt.BottomEdge }
+    ResizeArea { targetWindow: window; edge: Qt.LeftEdge; Component.onCompleted: window.profileDetail("ResizeArea left completed") }
+    ResizeArea { targetWindow: window; edge: Qt.RightEdge; Component.onCompleted: window.profileDetail("ResizeArea right completed") }
+    ResizeArea { targetWindow: window; edge: Qt.TopEdge; Component.onCompleted: window.profileDetail("ResizeArea top completed") }
+    ResizeArea { targetWindow: window; edge: Qt.BottomEdge; Component.onCompleted: window.profileDetail("ResizeArea bottom completed") }
 }

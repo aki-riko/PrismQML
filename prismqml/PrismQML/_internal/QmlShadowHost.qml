@@ -14,6 +14,7 @@ Item {
     readonly property var hostWindow: parent ? parent.hostWindow : null
 
     anchors.fill: parent
+    Component.onCompleted: if (hostWindow && hostWindow.profileDetail) hostWindow.profileDetail("QmlShadowHost root completed")
 
     RectangularShadow {
         anchors.fill: shadowSource
@@ -22,6 +23,7 @@ Item {
         blur: Enums.shadow.level28.blur
         offset.x: 0
         offset.y: Enums.shadow.level28.offset
+        Component.onCompleted: if (root.hostWindow && root.hostWindow.profileDetail) root.hostWindow.profileDetail("QmlShadowHost RectangularShadow completed")
     }
 
     Rectangle {
@@ -31,5 +33,6 @@ Item {
         height: parent.height - (root.hostWindow ? root.hostWindow.shadowSize * 2 : 0)
         radius: root.hostWindow ? root.hostWindow.windowRadius : Enums.radius.large
         color: root.hostWindow ? root.hostWindow.windowColor : Enums.backgroundColor
+        Component.onCompleted: if (root.hostWindow && root.hostWindow.profileDetail) root.hostWindow.profileDetail("QmlShadowHost shadowSource completed")
     }
 }

@@ -21,17 +21,30 @@ NavigationWindowCore {
     property list<Component> pageComponents
     property var pageSources: []
 
-    Item { id: _hiddenStack; visible: false }
+    Component.onCompleted: window.profileDetail(
+        "WindowsBar root completed nav=" + navigationItems.length +
+        " bottom=" + bottomNavigationItems.length +
+        " hidden=" + _hiddenStack.data.length
+    )
+
+    Item {
+        id: _hiddenStack
+        visible: false
+        Component.onCompleted: window.profileDetail("WindowsBar hiddenStack completed count=" + data.length)
+    }
     default property alias pages: _hiddenStack.data
 
     // ==================== Content Layout ====================
     content: Item {
         anchors.fill: parent
+        Component.onCompleted: window.profileDetail("WindowsBar content shell completed")
 
         Timer {
             id: startupTimer
             interval: 50
             running: true
+            Component.onCompleted: window.profileDetail("WindowsBar startupTimer completed running=" + running + " interval=" + interval)
+            onRunningChanged: window.profileDetail("WindowsBar startupTimer running=" + running)
             onTriggered: {
                 window.profileTime("WindowsBar startupTimer triggered")
                 mainLoader.setSource(Qt.resolvedUrl("WindowsBarContent.qml"), {
@@ -48,9 +61,13 @@ NavigationWindowCore {
             anchors.fill: parent
             active: false
             asynchronous: true
+            Component.onCompleted: window.profileDetail("WindowsBar mainLoader completed active=" + active + " status=" + status)
+            onActiveChanged: window.profileDetail("WindowsBar mainLoader active=" + active + " status=" + status)
+            onStatusChanged: window.profileDetail("WindowsBar mainLoader status=" + status + " active=" + active + " source=" + source)
 
             onLoaded: {
                 window.profileTime("WindowsBar mainLoader.onLoaded start")
+                window.profileDetail("WindowsBar mainLoader loaded item=" + item)
                 window.navigationView = item.navAlias
                 window.stackedWidget = item.stackAlias
                 window.profileTime("WindowsBar bind navigation/stack")

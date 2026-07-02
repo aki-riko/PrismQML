@@ -28,6 +28,11 @@ Rectangle {
     width: buttonWidth
     height: buttonHeight
     radius: buttonRadius
+    Component.onCompleted: {
+        if (targetWindow && targetWindow.profileDetail) {
+            targetWindow.profileDetail("CaptionButton root completed iconType=" + iconType)
+        }
+    }
     
     color: {
         if (area.pressed) {
@@ -97,7 +102,12 @@ Rectangle {
         }
 
         onIconColorChanged: requestPaint()
-        Component.onCompleted: requestPaint()
+        Component.onCompleted: {
+            if (captionBtn.targetWindow && captionBtn.targetWindow.profileDetail) {
+                captionBtn.targetWindow.profileDetail("CaptionButton canvas completed iconType=" + captionBtn.iconType)
+            }
+            requestPaint()
+        }
     }
     
     MouseArea {

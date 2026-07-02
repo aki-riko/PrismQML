@@ -12,6 +12,7 @@ import "../effects"
 // Uses Python QSvgRenderer for high-quality SVG rendering 使用Python QSvgRenderer实现高质量SVG渲染
 Item {
     id: root
+    property var profileTarget: null
     
     // ==================== Props 属性 ====================
     property string source: ""  // Icon source path 图标源路径
@@ -22,6 +23,11 @@ Item {
     height: Enums.window.titleIconSize
     
     visible: source !== ""
+    Component.onCompleted: {
+        if (profileTarget && profileTarget.profileDetail) {
+            profileTarget.profileDetail("WindowIcon root completed sourceSet=" + (source !== "") + " colored=" + colored)
+        }
+    }
     
     // DPI 感知：物理像素 = 逻辑像素 × devicePixelRatio
     readonly property real _dpr: Screen.devicePixelRatio || 1.0
@@ -76,6 +82,16 @@ Item {
         cache: true
         smooth: true
         mipmap: true
+        Component.onCompleted: {
+            if (root.profileTarget && root.profileTarget.profileDetail) {
+                root.profileTarget.profileDetail("WindowIcon svg Image completed status=" + status + " sourceSet=" + (source !== ""))
+            }
+        }
+        onStatusChanged: {
+            if (root.profileTarget && root.profileTarget.profileDetail) {
+                root.profileTarget.profileDetail("WindowIcon svg Image status=" + status)
+            }
+        }
         
         // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
         layer.enabled: !root.colored
@@ -98,6 +114,16 @@ Item {
         cache: true
         smooth: true
         mipmap: true
+        Component.onCompleted: {
+            if (root.profileTarget && root.profileTarget.profileDetail) {
+                root.profileTarget.profileDetail("WindowIcon direct Image completed status=" + status + " sourceSet=" + (source !== ""))
+            }
+        }
+        onStatusChanged: {
+            if (root.profileTarget && root.profileTarget.profileDetail) {
+                root.profileTarget.profileDetail("WindowIcon direct Image status=" + status)
+            }
+        }
         // PNG icons are typically colored, no overlay PNG图标通常是彩色的，不需要叠加
     }
 }

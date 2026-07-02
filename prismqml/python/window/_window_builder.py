@@ -9,6 +9,7 @@
 from typing import List, Optional, TYPE_CHECKING
 from pathlib import Path
 import hashlib
+import os
 import time
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
@@ -82,6 +83,13 @@ class WindowBuilderMixin:
             )
             profile_last = now
 
+        startup_profile_verbose = os.environ.get("PRISMQML_STARTUP_PROFILE_VERBOSE", "").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
         from ..core import ThemeManager, getShadowManager
         from ..config import getConfigManager
         profile("导入核心管理器")
@@ -108,6 +116,7 @@ class WindowBuilderMixin:
         ctx.setContextProperty("ConfigManager", getConfigManager())
         ctx.setContextProperty("MicaManager", get_mica_manager())
         ctx.setContextProperty("ClipboardHelper", get_clipboard_helper())
+        ctx.setContextProperty("PrismQmlStartupProfileVerbose", startup_profile_verbose)
         # WindowCore 延后调用 NativeWindow.attach/finalizeAttach，让 frameless 享受 DWM 动画
         ctx.setContextProperty("NativeWindow", get_native_window_hook())
         profile("注入 ContextProperty")
@@ -178,6 +187,8 @@ class WindowBuilderMixin:
             objectName: "page_{i}"
             width: parent ? parent.width : 0
             height: parent ? parent.height : 0
+            Component.onCompleted: window.profileDetail("generated page container page_{i} completed parent=" + parent)
+            onParentChanged: window.profileDetail("generated page container page_{i} parentChanged parent=" + parent)
         }}""")
 
         pages_qml = "\n".join(page_items) if page_items else ""
@@ -202,6 +213,7 @@ import "file:///{qml_dir.as_posix()}/_internal"
     windowTitle: "{esc(self._title)}"
     windowIcon: "{esc(window_icon_qml)}"
     windowIconColored: {'true' if self._icon_colored else 'false'}
+    startupProfilingVerbose: {'true' if startup_profile_verbose else 'false'}
     lazyLoading: false
     micaEnabled: {'true' if mica_enabled else 'false'}
     
@@ -221,14 +233,36 @@ import "file:///{qml_dir.as_posix()}/_internal"
         try:
             window_qml_file = self._write_generated_window_qml(window_qml)
             profile("写入/确认窗口 QML 缓存")
+            if startup_profile_verbose:
+                try:
+                    qml_bytes = window_qml_file.read_bytes()
+                    qml_digest = hashlib.sha256(qml_bytes).hexdigest()[:20]
+                    info(
+                        "[启动剖析] PrismQML._create_window generated qml: "
+                        f"path={window_qml_file}, bytes={len(qml_bytes)}, "
+                        f"sha={qml_digest}, component={qml_component}, "
+                        f"nav={len(self._nav_items)}, bottom={len(self._bottom_nav_items)}, "
+                        f"pages={len(self._nav_items) + len(self._bottom_nav_items)}, "
+                        f"verbose={startup_profile_verbose}"
+                    )
+                except OSError as exc:
+                    warning(f"[启动剖析] 读取生成窗口 QML 失败: {exc}")
+                info("[启动剖析] PrismQML._create_window QQmlComponent(file) begin")
             component = QQmlComponent(self._engine, QUrl.fromLocalFile(str(window_qml_file)))
             profile("QQmlComponent(file)")
             if component.isError():
                 warning(f"[WindowBuilder] 文件化窗口 QML 加载失败: {[e.toString() for e in component.errors()]}")
             else:
+                if startup_profile_verbose:
+                    info("[启动剖析] PrismQML._create_window component.create(file) begin")
                 loaded_window = component.create()
                 self._window_component = component
                 profile("component.create(file)")
+                if startup_profile_verbose:
+                    info(
+                        "[启动剖析] PrismQML._create_window component.create(file) result: "
+                        f"loaded={loaded_window is not None}, errors={[e.toString() for e in component.errors()]}"
+                    )
         except Exception as e:
             warning(f"[WindowBuilder] 文件化加载窗口 QML 失败，回退到 loadData: {e}")
 
