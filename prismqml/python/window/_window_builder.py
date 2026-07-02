@@ -502,41 +502,46 @@ Rectangle {{
     Component {{
         id: splashContentComponent
 
-        Column {{
-            anchors.centerIn: parent
-            spacing: Enums.spacing.xl
+        Item {{
+            width: contentLoader.width
+            height: contentLoader.height
 
-            Image {{
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 102
-                height: 102
-                source: splash.activeIconSource
-                sourceSize: Qt.size(102, 102)
-                asynchronous: true
-                cache: true
-                smooth: true
-                mipmap: true
-                fillMode: Image.PreserveAspectFit
-                visible: splash.activeIconSource !== ""
-            }}
+            Column {{
+                anchors.centerIn: parent
+                spacing: Enums.spacing.xl
 
-            Text {{
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: splash.title
-                visible: text !== ""
-                color: Enums.textColor.primary
-                font.family: Enums.fontFamily
-                font.pixelSize: 20
-                font.bold: true
-            }}
+                Image {{
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 102
+                    height: 102
+                    source: splash.activeIconSource
+                    sourceSize: Qt.size(102, 102)
+                    asynchronous: true
+                    cache: true
+                    smooth: true
+                    mipmap: true
+                    fillMode: Image.PreserveAspectFit
+                    visible: splash.activeIconSource !== ""
+                }}
 
-            Text {{
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: splash.subtitle
-                visible: text !== ""
-                color: Enums.textColor.secondary
-                font.family: Enums.fontFamily
-                font.pixelSize: 13
+                Text {{
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: splash.title
+                    visible: text !== ""
+                    color: Enums.textColor.primary
+                    font.family: Enums.fontFamily
+                    font.pixelSize: 20
+                    font.bold: true
+                }}
+
+                Text {{
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: splash.subtitle
+                    visible: text !== ""
+                    color: Enums.textColor.secondary
+                    font.family: Enums.fontFamily
+                    font.pixelSize: 13
+                }}
             }}
         }}
     }}
