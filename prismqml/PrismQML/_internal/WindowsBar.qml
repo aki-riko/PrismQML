@@ -41,7 +41,7 @@ NavigationWindowCore {
 
         Timer {
             id: startupTimer
-            interval: 50
+            interval: 0
             running: true
             Component.onCompleted: window.profileDetail("WindowsBar startupTimer completed running=" + running + " interval=" + interval)
             onRunningChanged: window.profileDetail("WindowsBar startupTimer running=" + running)

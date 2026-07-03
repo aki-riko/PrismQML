@@ -208,6 +208,8 @@ Window {
         profileTime("_dwmDelayTimer.start")
         _titleChromeTimer.start()
         profileTime("_titleChromeTimer.start")
+        _resizeHandlesTimer.start()
+        profileTime("_resizeHandlesTimer.start")
     }
 
     onClosing: (close) => {
@@ -315,8 +317,17 @@ Window {
         repeat: false
         onTriggered: {
             _titleChromeReady = true
-            _resizeHandlesReady = true
             profileDetail("title chrome ready")
+        }
+    }
+
+    Timer {
+        id: _resizeHandlesTimer
+        interval: 1200
+        repeat: false
+        onTriggered: {
+            _resizeHandlesReady = true
+            profileDetail("resize handles ready")
         }
     }
 
