@@ -29,6 +29,20 @@ from typing import Optional, Callable
 
 from PySide6.QtCore import QObject, Signal
 
+from .logger import getLogger
+
+logger = getLogger()
+
+# IPC 协议常量 IPC protocol constants
+_ACTIVATE_MESSAGE = b"activate"  # 第二实例 -> 主实例:请求激活窗口
+_ACK_MESSAGE = b"ok"             # 主实例 -> 第二实例:存活确认 ack
+# 连接/读写等待超时(ms)。IPC 均为本地环回,正常应在毫秒级完成。
+_IPC_TIMEOUT_MS = 500
+# 等主实例回 ack 的超时(ms)。取值需大于活实例处理一次连接的耗时,
+# 但又要短到用户可接受(超时后即接管启动)。1s 在实测中足以区分活实例与僵尸,
+# 且远大于活实例正常回 ack 所需的几毫秒,不会误判慢启动的活实例。
+_ACK_TIMEOUT_MS = 1000
+
 # 平台检测
 IS_WINDOWS = platform.system() == "Windows"
 
@@ -135,17 +149,28 @@ class SingleInstance(QObject):
             last_error = kernel32.GetLastError()
 
             if last_error == ERROR_ALREADY_EXISTS:
-                # Mutex已存在，说明有实例在运行
-                # 关闭我们刚刚获取到的句柄（因为我们要退出了）
-                if self._mutex_handle:
-                    kernel32.CloseHandle(self._mutex_handle)
-                    self._mutex_handle = None
+                # Mutex 已存在:可能是活着的主实例,也可能是卡死/残留的僵尸主实例。
+                # 通过 ack 往返探测主实例是否真的还在运行(仅凭 mutex 存在无法区分)。
+                alive = self._notify_primary()
+                if alive:
+                    # 主实例活着并已收到激活请求,当前进程作为第二实例退出。
+                    if self._mutex_handle:
+                        kernel32.CloseHandle(self._mutex_handle)
+                        self._mutex_handle = None
+                    if self._on_second_instance:
+                        self._on_second_instance()
+                    return False
 
-                # 通知主实例激活窗口
-                self._notify_primary()
-                if self._on_second_instance:
-                    self._on_second_instance()
-                return False
+                # 陈旧锁:持锁进程已死或卡死成僵尸(事件循环停转,不回 ack)。
+                # 接管启动 —— 保留刚拿到的 mutex 句柄(指向同一命名对象,使 mutex
+                # 在僵尸被清理后依然存在),重建 IPC server 以接收后续实例的激活请求。
+                # 按设计不主动终止僵尸进程(通常也无法终止),它不影响本实例运行。
+                logger.warning(
+                    "[SingleInstance] 检测到陈旧锁(主实例无响应),接管启动"
+                )
+                self._is_locked = True
+                self._start_server()
+                return True
 
             # 成功创建Mutex并持有所有权
             if self._mutex_handle:
@@ -161,11 +186,21 @@ class SingleInstance(QObject):
             try:
                 # 尝试attach到已存在的共享内存
                 if self._shared_memory.attach():
-                    self._shared_memory.detach()
-                    self._notify_primary()
-                    if self._on_second_instance:
-                        self._on_second_instance()
-                    return False
+                    # 探测主实例是否真的还活着(ack 往返),而非仅凭共享内存段存在判定。
+                    alive = self._notify_primary()
+                    if alive:
+                        self._shared_memory.detach()
+                        if self._on_second_instance:
+                            self._on_second_instance()
+                        return False
+                    # 陈旧锁:持锁进程已死或卡死成僵尸。保持 attach 以持有该段,
+                    # 接管启动并重建 IPC server。
+                    logger.warning(
+                        "[SingleInstance] 检测到陈旧锁(主实例无响应),接管启动"
+                    )
+                    self._is_locked = True
+                    self._start_server()
+                    return True
 
                 # 创建共享内存
                 if self._shared_memory.create(1):
@@ -221,6 +256,17 @@ class SingleInstance(QObject):
                 data = ""
             if data.startswith("activate"):
                 self.activateRequested.emit()
+                # 回 ack 让第二实例确认主实例事件循环仍在运行(存活探测)。
+                # 卡死的僵尸主实例事件循环停转,不会执行到这里,第二实例等 ack 超时
+                # 即可判定为陈旧锁并接管启动。Reply ack so the second instance can
+                # confirm this primary's event loop is alive; a hung primary never
+                # reaches here, so the peer's ack-wait times out and it takes over.
+                try:
+                    conn.write(_ACK_MESSAGE)
+                    conn.flush()
+                    conn.waitForBytesWritten(_IPC_TIMEOUT_MS)
+                except (OSError, RuntimeError) as exc:
+                    logger.warning(f"[SingleInstance] 回 ack 失败: {exc}")
             try:
                 conn.disconnectFromServer()
             except Exception:  # noqa: BLE001
@@ -239,22 +285,38 @@ class SingleInstance(QObject):
             _handle()
 
     def _notify_primary(self) -> bool:
-        """第二实例:连接主实例并发送激活请求。返回是否成功送达。"""
+        """第二实例:连接主实例、发激活请求并等待 ack。
+
+        返回值语义(存活探测):
+        - True:收到主实例回的 ack,证明主实例事件循环仍在运行(活实例);
+        - False:连不上,或连上后等 ack 超时——主实例已死或卡死成僵尸,
+          其持有的锁应视为陈旧锁,调用方可接管启动。
+
+        注意:仅凭 connectToServer 成功无法区分死活——卡死进程的 socket 仍会被
+        操作系统 backlog 接受连接(已实测)。故必须以应用层 ack 往返为准。
+        """
         from PySide6.QtNetwork import QLocalSocket
 
         sock = QLocalSocket()
         sock.connectToServer(self._server_name())
-        if not sock.waitForConnected(500):
+        if not sock.waitForConnected(_IPC_TIMEOUT_MS):
             return False
-        sock.write(b"activate")
+        sock.write(_ACTIVATE_MESSAGE)
         sock.flush()
-        sock.waitForBytesWritten(500)
-        # 不立即 disconnect:等待数据被主实例读取(否则主实例 accept 前连接就断)。
-        # waitForDisconnected 让主实例有机会处理;超时也无妨,进程即将退出。
+        sock.waitForBytesWritten(_IPC_TIMEOUT_MS)
+        # 等主实例回 ack。活实例事件循环在转,会及时回复;僵尸主实例事件循环
+        # 停转,这里必然超时——据此判定陈旧锁。
+        got_ack = sock.waitForReadyRead(_ACK_TIMEOUT_MS)
+        if got_ack:
+            try:
+                reply = bytes(sock.readAll())
+            except (OSError, RuntimeError):
+                reply = b""
+            got_ack = reply.startswith(_ACK_MESSAGE)
         sock.disconnectFromServer()
         if sock.state() != QLocalSocket.LocalSocketState.UnconnectedState:
-            sock.waitForDisconnected(500)
-        return True
+            sock.waitForDisconnected(_IPC_TIMEOUT_MS)
+        return got_ack
 
     def unlock(self):
         """释放单实例锁"""

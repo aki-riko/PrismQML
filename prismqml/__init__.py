@@ -19,7 +19,7 @@ try:
 
     __version__ = _get_version("prismqml")  # PyPI 分发名为 prismqml
 except Exception:
-    __version__ = "0.2.24.1"  # 回退值：开发模式或未安装时
+    __version__ = "0.2.24.2"  # 回退值：开发模式或未安装时
 __author__ = "aki-riko"
 
 __all__ = [
