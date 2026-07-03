@@ -17,6 +17,7 @@
 # AUMID determines how the Windows taskbar groups windows. Multiple PrismQML-based
 # apps sharing one AUMID get merged into a single taskbar icon group. We derive a
 # unique AUMID by the priority above.
+from importlib import import_module as _import_module
 import os
 import sys
 
@@ -47,32 +48,6 @@ if sys.platform == "win32":
         # 设置失败不应阻断应用启动,仅放弃任务栏分组定制
         pass
 
-from .fluent_window import (
-    Window,
-    WindowCloseEvent,
-    WindowCore,
-    WindowType,
-    NavigationItem,
-)
-from .app import App
-from .mica_window import (
-    MicaManager,
-    get_mica_manager,
-    AcrylicHelper,
-    AcrylicImageProvider,
-    get_acrylic_helper,
-)
-from .system_tray import (
-    SystemTrayIcon,
-    MessageIcon,
-    ActivationReason,
-    createSystemTrayIcon,
-)
-from .native_window import (
-    NativeWindowHook,
-    get_native_window_hook,
-)
-
 __all__ = [
     "App",
     "Window",
@@ -95,3 +70,40 @@ __all__ = [
     "NativeWindowHook",
     "get_native_window_hook",
 ]
+
+_LAZY_EXPORTS = {
+    "App": (".app", "App"),
+    "Window": (".fluent_window", "Window"),
+    "WindowCloseEvent": (".window_base", "WindowCloseEvent"),
+    "WindowCore": (".window_base", "WindowCore"),
+    "WindowType": (".window_base", "WindowType"),
+    "NavigationItem": (".window_base", "NavigationItem"),
+    # Mica/Acrylic
+    "MicaManager": (".mica_window", "MicaManager"),
+    "get_mica_manager": (".mica_window", "get_mica_manager"),
+    "AcrylicHelper": (".mica_window", "AcrylicHelper"),
+    "AcrylicImageProvider": (".mica_window", "AcrylicImageProvider"),
+    "get_acrylic_helper": (".mica_window", "get_acrylic_helper"),
+    # SystemTray
+    "SystemTrayIcon": (".system_tray", "SystemTrayIcon"),
+    "MessageIcon": (".system_tray", "MessageIcon"),
+    "ActivationReason": (".system_tray", "ActivationReason"),
+    "createSystemTrayIcon": (".system_tray", "createSystemTrayIcon"),
+    # NativeWindow
+    "NativeWindowHook": (".native_window", "NativeWindowHook"),
+    "get_native_window_hook": (".native_window", "get_native_window_hook"),
+}
+
+
+def __getattr__(name):
+    try:
+        module_name, attr_name = _LAZY_EXPORTS[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+    value = getattr(_import_module(module_name, __name__), attr_name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

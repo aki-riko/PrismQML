@@ -9,93 +9,18 @@
 # Allow QML XHR to read local files (needed by Translator to load i18n JSON).
 # Must be set before QQmlEngine construction. Downstream code can opt out by setting
 # the env var to "0" before importing prismqml.
+from importlib import import_module as _import_module
 import os as _os
+
 _os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
 
 try:
     from importlib.metadata import version as _get_version
+
     __version__ = _get_version("prismqml")  # PyPI 分发名为 prismqml
 except Exception:
     __version__ = "0.2.21"  # 回退值：开发模式或未安装时
 __author__ = "aki-riko"
-
-from .python.core import (
-    Theme,
-    Skin,
-    setTheme,
-    getTheme,
-    setSkin,
-    getSkin,
-    isDark,
-    setAccentColor,
-    getAccentColor,
-    accentQColor,
-    getThemeManager,
-    Logger,
-    getLogger,
-    debug,
-    info,
-    warning,
-    error,
-    exception,
-    qml_path,
-    register_types,
-    init_style,
-    Icon,
-    IconCore,
-    resolveIconColor,
-    make_icon,
-    make_theme_icon,
-    paint_icon,
-    IconProvider,
-    register_icon_provider,
-    get_icon_provider,
-    ShadowManager,
-    getShadowManager,
-    installDwmSyncFilter,
-    SingleInstance,
-    Updater,
-)
-
-# 状态管理模块
-from .python.state import Store
-
-# 模型模块 (提供长列表高性能数据源)
-from .python.models import TableListModel, SqlListModel, DbRouter, is_rust_accelerated
-
-# 窗口模块
-from .python.window import (
-    App,
-    Window,
-    WindowCloseEvent,
-    WindowCore,
-    WindowType,
-    NavigationItem,
-    MicaManager,
-    get_mica_manager,
-    AcrylicHelper,
-    AcrylicImageProvider,
-    get_acrylic_helper,
-    # SystemTray
-    SystemTrayIcon,
-    MessageIcon,
-    ActivationReason,
-    createSystemTrayIcon,
-)
-
-# 功能提供者模块
-from .python.providers import (
-    QRCodeGenerator,
-    QRCodeImageProvider,
-    get_qrcode_generator,
-    get_qrcode_provider,
-    ScreenEyedropperManager,
-    get_screen_eyedropper_manager,
-    ClipboardHelper,
-    get_clipboard_helper,
-    SvgImageProvider,
-    get_svg_provider,
-)
 
 __all__ = [
     # Theme
@@ -179,3 +104,100 @@ __all__ = [
     "DbRouter",
     "is_rust_accelerated",
 ]
+
+_LAZY_EXPORTS = {
+    # Theme
+    "Theme": (".python.core.theme", "Theme"),
+    "Skin": (".python.core.theme", "Skin"),
+    "setTheme": (".python.core.theme", "setTheme"),
+    "getTheme": (".python.core.theme", "getTheme"),
+    "setSkin": (".python.core.theme", "setSkin"),
+    "getSkin": (".python.core.theme", "getSkin"),
+    "isDark": (".python.core.theme", "isDark"),
+    "setAccentColor": (".python.core.theme", "setAccentColor"),
+    "getAccentColor": (".python.core.theme", "getAccentColor"),
+    "accentQColor": (".python.core.theme", "accentQColor"),
+    "getThemeManager": (".python.core.theme", "getThemeManager"),
+    # Icons
+    "Icon": (".python.core.icons", "Icon"),
+    "IconCore": (".python.core.icon_base", "IconCore"),
+    "resolveIconColor": (".python.core.icon_base", "resolveIconColor"),
+    "make_icon": (".python.core.icon_base", "make_icon"),
+    "make_theme_icon": (".python.core.icon_base", "make_theme_icon"),
+    "paint_icon": (".python.core.icon_base", "paint_icon"),
+    "IconProvider": (".python.core.icon_provider", "IconProvider"),
+    "register_icon_provider": (".python.core.icon_provider", "register_icon_provider"),
+    "get_icon_provider": (".python.core.icon_provider", "get_icon_provider"),
+    # Shadow
+    "ShadowManager": (".python.core.shadow", "ShadowManager"),
+    "getShadowManager": (".python.core.shadow", "getShadowManager"),
+    "installDwmSyncFilter": (".python.core.shadow", "installDwmSyncFilter"),
+    # Single Instance / Updater
+    "SingleInstance": (".python.core.single_instance", "SingleInstance"),
+    "Updater": (".python.core.updater", "Updater"),
+    # Window
+    "App": (".python.window.app", "App"),
+    "Window": (".python.window.fluent_window", "Window"),
+    "WindowCloseEvent": (".python.window.window_base", "WindowCloseEvent"),
+    "WindowCore": (".python.window.window_base", "WindowCore"),
+    "WindowType": (".python.window.window_base", "WindowType"),
+    "NavigationItem": (".python.window.window_base", "NavigationItem"),
+    # Logger
+    "Logger": (".python.core.logger", "Logger"),
+    "getLogger": (".python.core.logger", "getLogger"),
+    "debug": (".python.core.logger", "debug"),
+    "info": (".python.core.logger", "info"),
+    "warning": (".python.core.logger", "warning"),
+    "error": (".python.core.logger", "error"),
+    "exception": (".python.core.logger", "exception"),
+    # Utils
+    "qml_path": (".python.core.utils", "qml_path"),
+    "register_types": (".python.core.utils", "register_types"),
+    "init_style": (".python.core.utils", "init_style"),
+    # State
+    "Store": (".python.state.store", "Store"),
+    # QRCode
+    "QRCodeGenerator": (".python.providers.qrcode_generator", "QRCodeGenerator"),
+    "QRCodeImageProvider": (".python.providers.qrcode_generator", "QRCodeImageProvider"),
+    "get_qrcode_generator": (".python.providers.qrcode_generator", "get_qrcode_generator"),
+    "get_qrcode_provider": (".python.providers.qrcode_generator", "get_qrcode_provider"),
+    # Mica & Acrylic
+    "MicaManager": (".python.window.mica_window", "MicaManager"),
+    "get_mica_manager": (".python.window.mica_window", "get_mica_manager"),
+    "AcrylicHelper": (".python.window.mica_window", "AcrylicHelper"),
+    "AcrylicImageProvider": (".python.window.mica_window", "AcrylicImageProvider"),
+    "get_acrylic_helper": (".python.window.mica_window", "get_acrylic_helper"),
+    # Screen Eyedropper
+    "ScreenEyedropperManager": (".python.providers.screen_eyedropper", "ScreenEyedropperManager"),
+    "get_screen_eyedropper_manager": (".python.providers.screen_eyedropper", "get_screen_eyedropper_manager"),
+    # Clipboard
+    "ClipboardHelper": (".python.providers.clipboard", "ClipboardHelper"),
+    "get_clipboard_helper": (".python.providers.clipboard", "get_clipboard_helper"),
+    # SVG
+    "SvgImageProvider": (".python.providers.svg_provider", "SvgImageProvider"),
+    "get_svg_provider": (".python.providers.svg_provider", "get_svg_provider"),
+    # SystemTray
+    "SystemTrayIcon": (".python.window.system_tray", "SystemTrayIcon"),
+    "MessageIcon": (".python.window.system_tray", "MessageIcon"),
+    "ActivationReason": (".python.window.system_tray", "ActivationReason"),
+    "createSystemTrayIcon": (".python.window.system_tray", "createSystemTrayIcon"),
+    # Models
+    "TableListModel": (".python.models.table_models", "TableListModel"),
+    "SqlListModel": (".python.models.sql_list_model", "SqlListModel"),
+    "DbRouter": (".python.models.sql_list_model", "DbRouter"),
+    "is_rust_accelerated": (".python.models.sql_list_model", "is_rust_accelerated"),
+}
+
+
+def __getattr__(name):
+    try:
+        module_name, attr_name = _LAZY_EXPORTS[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+    value = getattr(_import_module(module_name, __name__), attr_name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
