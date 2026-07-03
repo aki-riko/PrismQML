@@ -388,6 +388,7 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 > 两边都要推时：`git push github main && git push origin main`，tag 同理。
 
 1. **改版本号（两处必须同步）**：
+   - **默认升构建号**：每次发版除非用户/维护者明确指定完整版本号或前三位升级策略，否则只递增最后一位构建号（`x.y.z.n` 中的 `n`）。例如 `0.2.24.1` 下一版默认 `0.2.24.2`，而不是 `0.2.25.0`。
    - `pyproject.toml` 的 `version = "x.y.z.n"`
    - `prismqml/__init__.py` 的 `__version__ = "x.y.z.n"`（回退值）
 2. **验证**：发布前 headless 跑一遍确认无新增 QML 警告/错误
