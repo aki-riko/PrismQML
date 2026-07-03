@@ -60,7 +60,7 @@ NavigationWindowCore {
             id: mainLoader
             anchors.fill: parent
             active: false
-            asynchronous: true
+            asynchronous: false
             Component.onCompleted: window.profileDetail("WindowsBar mainLoader completed active=" + active + " status=" + status)
             onActiveChanged: window.profileDetail("WindowsBar mainLoader active=" + active + " status=" + status)
             onStatusChanged: window.profileDetail("WindowsBar mainLoader status=" + status + " active=" + active + " source=" + source)
@@ -70,7 +70,11 @@ NavigationWindowCore {
                 window.profileDetail("WindowsBar mainLoader loaded item=" + item)
                 window.navigationView = item.navAlias
                 window.stackedWidget = item.stackAlias
-                window.profileTime("WindowsBar bind navigation/stack")
+                item.navigationReady.connect(function(navItem) {
+                    window.navigationView = navItem
+                    window.profileTime("WindowsBar navigationView ready")
+                })
+                window.profileTime("WindowsBar bind navigation/stack navReady=" + (window.navigationView !== null))
 
                 if (_hiddenStack.data.length > 0) {
                     window.profileTime("WindowsBar move hidden pages start count=" + _hiddenStack.data.length)
