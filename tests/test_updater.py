@@ -51,6 +51,10 @@ class TestVersionCompare:
         # 1.0 不比 1.0.0 新(段比较,1.0 的元组更短)
         assert not _is_newer("v1.0", "v1.0.0")
 
+    def test_four_part_version(self):
+        assert _is_newer("v0.2.24.1", "v0.2.24")
+        assert not _is_newer("v0.2.24", "v0.2.24.1")
+
 
 # ==================== asset 选择 ====================
 class TestPickAsset:
@@ -179,4 +183,3 @@ class TestInstaller:
         result = up.runInstallerAndQuit(str(installer), "/NORESTART")
         assert result is True
         assert called.get("shellexec") or called.get("qprocess")
-

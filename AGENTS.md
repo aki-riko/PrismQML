@@ -388,8 +388,8 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 > 两边都要推时：`git push github main && git push origin main`，tag 同理。
 
 1. **改版本号（两处必须同步）**：
-   - `pyproject.toml` 的 `version = "x.y.z"`
-   - `prismqml/__init__.py` 的 `__version__ = "x.y.z"`（回退值）
+   - `pyproject.toml` 的 `version = "x.y.z.n"`
+   - `prismqml/__init__.py` 的 `__version__ = "x.y.z.n"`（回退值）
 2. **验证**：发布前 headless 跑一遍确认无新增 QML 警告/错误
    （`QT_QPA_PLATFORM=offscreen` + 加载关键组件，零 `unavailable`/`Duplicate`/属性覆盖警告）。
    - 工具 = `QT_QPA_PLATFORM=offscreen python tests/qml/probe_all_components.py`（遍历 qmldir 全组件 createComponent）。
@@ -398,13 +398,13 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 3. **提交**：`git add -A && git commit`（commit message 写清修复内容 + 版本号）。
 4. **打 tag + 推送**：
    ```bash
-   git tag vx.y.z
+   git tag vx.y.z.n
    git push github main
-   git push github vx.y.z
+   git push github vx.y.z.n
    ```
-5. **建 GitHub Release**：`gh release create vx.y.z --repo aki-riko/PrismQML --title "vx.y.z" --notes "..."`
+5. **建 GitHub Release**：`gh release create vx.y.z.n --repo aki-riko/PrismQML --title "vx.y.z.n" --notes "..."`
 6. **下游消费者生效（🔴 发版 ≠ 下游自动更新）**：下游应用（Gitora / quicksketch / Kaleidos 等）各自带**独立 `.venv`**，且 `.venv` 被 gitignore——它们装的是 PyPI 包 `prismqml`，**不随引擎源码推送而更新**。引擎发版后，每个下游需：
-   - `pip install -U prismqml==x.y.z`（升级各自 venv 里的包），
+   - `pip install -U prismqml==x.y.z.n`（升级各自 venv 里的包），
    - 然后**重新打包**（Nuitka）。打包态把 prismqml 整包嵌进 exe，**旧 exe 不重打包则修复不生效**（如 AUMID 这类在导入/启动时生效的逻辑，必须重打包才落到二进制）。
    - 修源码时若直接改了某个下游 venv 内的 prismqml 副本（如热修验证），记得全盘 `find -path "*prismqml*<改的文件>"` 扫所有副本（源库 + 各 venv）按 md5 对齐，避免只改一份。
 
@@ -418,10 +418,10 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 
 `.github/workflows/release.yml` 是发版的真正执行者，**别在本地手动打包上传**：
 
-- **触发**：推送 `v*` 格式的 tag（如 `v0.2.3`）→ 自动触发。普通 push commit 不触发，`workflow_dispatch` 手动触发只构建不发布。
+- **触发**：推送 `v*` 格式的 tag（如 `v0.2.24.1`）→ 自动触发。普通 push commit 不触发，`workflow_dispatch` 手动触发只构建不发布。
 - **构建**：三平台（ubuntu / windows / macos-14）用 `cibuildwheel` 构建 abi3 wheel（`CIBW_BUILD=cp39-*` + `CIBW_CONFIG_SETTINGS=--build-option=--py-limited-api=cp39`）+ sdist。
 - **发布**：`publish` job 经 **PyPI Trusted Publishing**（`id-token: write` + `environment: pypi`）自动上传 PyPI，条件 `if: startsWith(github.ref, 'refs/tags/v')`（仅 tag 触发时发布）。
-- **看状态**：`gh run list` / `gh run watch`（需先 `gh auth login`）；或浏览器开 `github.com/aki-riko/PrismQML/actions`。三平台构建 + publish 全绿才算发布成功，几分钟后 `pip install prismqml==x.y.z` 能装到即坐实。
+- **看状态**：`gh run list` / `gh run watch`（需先 `gh auth login`）；或浏览器开 `github.com/aki-riko/PrismQML/actions`。三平台构建 + publish 全绿才算发布成功，几分钟后 `pip install prismqml==x.y.z.n` 能装到即坐实。
 - 本地 `python -m build` 仅用于调试 wheel 标签，**产物不上传**（CI 出的全平台包才是正式产物）。
 
 ### abi3 构建配置（🔴 wheel 必须是 cp39-abi3，不能退化）

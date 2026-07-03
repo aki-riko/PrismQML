@@ -112,6 +112,8 @@ int main(int argc, char *argv[]) {
     CHECK(versionIsNewer("v1.0.0", "v1.0.0-beta"), "正式版 > 预发布");
     CHECK(!versionIsNewer("v1.0.0-beta", "v1.0.0"), "预发布 < 正式版");
     CHECK(versionIsNewer("v2.0.0", "v1.9.9"), "主版本号优先");
+    CHECK(versionIsNewer("v0.2.24.1", "v0.2.24"), "四段版本: 0.2.24.1 > 0.2.24");
+    CHECK(!versionIsNewer("v0.2.24", "v0.2.24.1"), "四段版本: 0.2.24 不新于 0.2.24.1");
 
     // runInstallerAndQuit 失败路径 (文件不存在应返回 false 且不退出应用)。
     // 成功路径会调 QCoreApplication::quit() 退出进程, 无法在单测内断言, 属合理验证边界。
