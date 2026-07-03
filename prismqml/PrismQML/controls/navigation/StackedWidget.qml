@@ -85,6 +85,103 @@ Item {
         }
     }
 
+    property int _pendingLazySwitchIndex: -1
+
+    function _lazyHelperInitialProperties() {
+        return {
+            "loaders": control._loaders,
+            "targetIndex": control.currentIndex,
+            "currentVisibleIndex": control._displayIndex,
+            "loadingText": control.loadingText,
+            "animationType": control.animationType,
+            "animationDuration": control.animationDuration,
+            "popUpOffset": control.popUpOffset,
+            "isPageLoadedFunc": control._isPageLoaded,
+            "activateLoaderFunc": control._activateLoader
+        }
+    }
+
+    function _showLazyLoadingAndSwitch(index) {
+        _pendingLazySwitchIndex = index
+        if (!lazyHelperLoader.item && lazyHelperLoader.status === Loader.Null) {
+            lazyHelperLoader.active = true
+            lazyHelperLoader.setSource(Qt.resolvedUrl("_internal/LazyLoadingHelper.qml"), _lazyHelperInitialProperties())
+            profileTime("lazyHelper deferred load requested target=" + index)
+            return
+        }
+        if (!lazyHelperLoader.active) {
+            lazyHelperLoader.active = true
+            profileTime("lazyHelper deferred load reactivated target=" + index)
+            return
+        }
+        _flushPendingLazySwitch()
+    }
+
+    function _flushPendingLazySwitch() {
+        if (_pendingLazySwitchIndex < 0) return
+        if (!lazyHelperLoader.item) return
+
+        var target = _pendingLazySwitchIndex
+        _pendingLazySwitchIndex = -1
+        lazyHelperLoader.item.showLoadingAndSwitch(target)
+    }
+
+    function _configureLazyHelper(item) {
+        if (!item) return
+
+        item.width = Qt.binding(function() { return lazyHelperLoader.width })
+        item.height = Qt.binding(function() { return lazyHelperLoader.height })
+        item.loaders = Qt.binding(function() { return control._loaders })
+        item.targetIndex = Qt.binding(function() { return control.currentIndex })
+        item.currentVisibleIndex = Qt.binding(function() { return control._displayIndex })
+        item.loadingText = Qt.binding(function() { return control.loadingText })
+        item.animationType = Qt.binding(function() { return control.animationType })
+        item.animationDuration = Qt.binding(function() { return control.animationDuration })
+        item.popUpOffset = Qt.binding(function() { return control.popUpOffset })
+        item.isPageLoadedFunc = control._isPageLoaded
+        item.activateLoaderFunc = control._activateLoader
+        item.loadingComplete.connect(control._handleLazyLoadingComplete)
+    }
+
+    function _handleLazyLoadingComplete(targetIdx, prevIdx) {
+        control.profileTime("lazyHelper loadingComplete start target=" + targetIdx + ", prev=" + prevIdx)
+        // 更新实际显示页(不写 currentIndex: 它已是 targetIdx 且不能命令式写,
+        // 否则打破外部 'currentIndex: window.currentIndex' 绑定)。
+        control.previousIndex = control._displayIndex
+        control._displayIndex = targetIdx
+
+        var newWidget = control.widget(targetIdx)
+        if (newWidget) {
+            newWidget.visible = true
+            switch (control.animationType) {
+                case Enums.animation.opacity:
+                    newWidget.opacity = 0
+                    break
+                case Enums.animation.popup:
+                    newWidget.opacity = 0
+                    newWidget.y = control.popUpOffset
+                    break
+                case Enums.animation.popdown:
+                    newWidget.opacity = 0
+                    newWidget.y = -control.popUpOffset
+                    break
+                case Enums.animation.zoom:
+                    newWidget.scale = 0
+                    newWidget.opacity = 1
+                    break
+                case Enums.animation.slide:
+                case Enums.animation.card:
+                    newWidget.x = control.width
+                    newWidget.opacity = 1
+                    break
+                default:
+                    newWidget.opacity = 0
+            }
+        }
+        control._doEnterAnimation(targetIdx)
+        control.profileTime("lazyHelper loadingComplete done")
+    }
+
     // ==================== Animation Execution 动画执行 ====================
     function _doAnimation(oldIndex, newIndex) {
         var oldW = widget(oldIndex)
@@ -400,57 +497,15 @@ Item {
     }
     
     // ==================== QML Lazy Loading Helper (for pure QML) QML懒加载辅助（纯QML使用） ====================
-    LazyLoadingHelper {
-        id: lazyHelper
+    Loader {
+        id: lazyHelperLoader
         anchors.fill: parent
-        visible: control.lazyLoading && (control._useSourceMode || control.pageComponents.length > 0)
-        loaders: control._loaders
-        targetIndex: control.currentIndex
-        currentVisibleIndex: control._displayIndex
-        loadingText: control.loadingText
-        animationType: control.animationType
-        animationDuration: control.animationDuration
-        popUpOffset: control.popUpOffset
-        isPageLoadedFunc: control._isPageLoaded
-        activateLoaderFunc: control._activateLoader
-
-        onLoadingComplete: (targetIdx, prevIdx) => {
-            control.profileTime("lazyHelper loadingComplete start target=" + targetIdx + ", prev=" + prevIdx)
-            // 更新实际显示页(不写 currentIndex: 它已是 targetIdx 且不能命令式写,
-            // 否则打破外部 'currentIndex: window.currentIndex' 绑定)。
-            control.previousIndex = control._displayIndex
-            control._displayIndex = targetIdx
-
-            var newWidget = control.widget(targetIdx)
-            if (newWidget) {
-                newWidget.visible = true
-                switch (control.animationType) {
-                    case Enums.animation.opacity:
-                        newWidget.opacity = 0
-                        break
-                    case Enums.animation.popup:
-                        newWidget.opacity = 0
-                        newWidget.y = control.popUpOffset
-                        break
-                    case Enums.animation.popdown:
-                        newWidget.opacity = 0
-                        newWidget.y = -control.popUpOffset
-                        break
-                    case Enums.animation.zoom:
-                        newWidget.scale = 0
-                        newWidget.opacity = 1
-                        break
-                    case Enums.animation.slide:
-                    case Enums.animation.card:
-                        newWidget.x = control.width
-                        newWidget.opacity = 1
-                        break
-                    default:
-                        newWidget.opacity = 0
-                }
-            }
-            control._doEnterAnimation(targetIdx)
-            control.profileTime("lazyHelper loadingComplete done")
+        active: false
+        asynchronous: true
+        onLoaded: {
+            control._configureLazyHelper(item)
+            control.profileTime("lazyHelper loaded")
+            control._flushPendingLazySwitch()
         }
     }
     // ==================== Index Change Handler 索引变化处理 ====================
@@ -470,7 +525,7 @@ Item {
         if (lazyLoading && !_isPageLoaded(currentIndex)) {
             // 不回退 currentIndex: 旧页靠 _displayIndex(仍为旧值)保持可见,
             // loading 完成后由 LazyLoadingHelper.onLoadingComplete 更新 _displayIndex。
-            lazyHelper.showLoadingAndSwitch(currentIndex)
+            _showLazyLoadingAndSwitch(currentIndex)
         } else {
             // Normal switch or Python mode 正常切换或Python模式
             previousIndex = _displayIndex

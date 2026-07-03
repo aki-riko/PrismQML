@@ -7,7 +7,7 @@ PrismQML 应用入口类 PrismQML Application Entry
 提供统一的应用管理API，封装 QApplication 常用操作。
 """
 
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from PySide6.QtCore import Qt
 from PySide6.QtQml import QQmlApplicationEngine
@@ -15,7 +15,12 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
 
 from ..core.engine import EngineManager
-from .fluent_window import Window, WindowCore, WindowType
+
+if TYPE_CHECKING:
+    from .fluent_window import Window
+    from .window_base import WindowCore
+
+_DEFAULT_WINDOW_TYPE = 1
 
 
 class App:
@@ -78,7 +83,7 @@ class App:
         # 注册所有provider（包括ScreenEyedropperManager等）
         register_types(self._engine)
 
-        self._windows: List[WindowCore] = []
+        self._windows: List["WindowCore"] = []
 
     # ==================== 类方法 Class Methods ====================
 
@@ -215,7 +220,7 @@ class App:
 
     # ==================== 实例方法 Instance Methods ====================
 
-    def create_window(self, window_type: int = WindowType.BAR) -> Window:
+    def create_window(self, window_type: int = _DEFAULT_WINDOW_TYPE) -> "Window":
         """创建窗口 Create window
 
         Args:
@@ -227,6 +232,8 @@ class App:
         Returns:
             Window 实例
         """
+        from .fluent_window import Window
+
         window = Window(window_type=window_type)
         self._windows.append(window)
         return window
@@ -237,7 +244,7 @@ class App:
         return self._engine
 
     @property
-    def windows(self) -> List[WindowCore]:
+    def windows(self) -> List["WindowCore"]:
         """获取所有窗口 Get all windows"""
         return self._windows
 
@@ -281,5 +288,4 @@ class App:
                 f"App not fully initialized; cannot forward {name!r} to QApplication"
             ) from None
         return getattr(app, name)
-
 

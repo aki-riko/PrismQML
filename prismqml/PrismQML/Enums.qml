@@ -17,6 +17,17 @@ import "PrismEnums"
 Item {
     id: root
     visible: false
+    readonly property real _startupProfileStart: Date.now()
+    readonly property bool _startupProfilingVerboseActive:
+        (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
+
+    function _profileStartup(msg) {
+        if (!_startupProfilingVerboseActive) return
+        console.info("[启动剖析] Enums " + msg + ": total " +
+                    Math.round(Date.now() - _startupProfileStart) + "ms")
+    }
+
+    Component.onCompleted: _profileStartup("singleton completed")
     
     // ==================== Translation Shortcuts 快捷翻译方法 ====================
     function tr(key) { return Translator.tr(key) }

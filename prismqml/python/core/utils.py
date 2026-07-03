@@ -38,18 +38,24 @@ def register_types(engine: QQmlApplicationEngine):
     """
     # 延迟导入以避免循环依赖 Lazy imports to avoid circular dependencies
     from .theme import getThemeManager
-    from ..providers import get_qrcode_generator, get_qrcode_provider, get_screen_eyedropper_manager
+    from ..providers.lazy_context import LazyQRCodeGenerator, LazyScreenEyedropperManager
     from ..window import get_mica_manager, get_acrylic_helper, get_native_window_hook
 
     # Register theme manager 注册主题管理器
     context = engine.rootContext()
     context.setContextProperty("ThemeManager", getThemeManager())
 
-    # Register QRCode generator 注册二维码生成器
-    context.setContextProperty("QRCodeGenerator", get_qrcode_generator())
+    # Register optional providers as lazy QML-compatible proxies. This avoids
+    # importing qrcode / screen eyedropper backends during App cold start.
+    # Keep Python references on the engine; QQmlContext does not reliably keep
+    # wrapper objects alive on the Python side.
+    lazy_context_objects = getattr(engine, "_prismqml_lazy_context_objects", [])
+    qrcode_generator = LazyQRCodeGenerator(engine)
+    screen_eyedropper_manager = LazyScreenEyedropperManager()
+    lazy_context_objects.extend([qrcode_generator, screen_eyedropper_manager])
+    setattr(engine, "_prismqml_lazy_context_objects", lazy_context_objects)
 
-    # Register QRCode image provider 注册二维码图片提供器
-    engine.addImageProvider("qrcode", get_qrcode_provider())
+    context.setContextProperty("QRCodeGenerator", qrcode_generator)
 
     # Register Mica manager 注册云母效果管理器
     context.setContextProperty("MicaManager", get_mica_manager())
@@ -65,7 +71,7 @@ def register_types(engine: QQmlApplicationEngine):
     engine.addImageProvider("acrylic", acrylic_helper.imageProvider)
     
     # Register Screen Eyedropper manager 注册屏幕取色管理器
-    context.setContextProperty("ScreenEyedropperManager", get_screen_eyedropper_manager())
+    context.setContextProperty("ScreenEyedropperManager", screen_eyedropper_manager)
 
     # Register Shadow manager 注册阴影管理器
     # Used by WindowCore / TipPopup to enable DWM native window shadows.

@@ -3,68 +3,87 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Effects
-import "../navigation"
-import "../controls/navigation"
-import "../controls/data"
 import ".."
 
 // WindowsBar - Top navigation window bar
-// Extends NavigationWindowCore with NavigationBar (icon+text vertical) 继承NavigationWindowCore
+// Extends NavigationWindowCore with NavigationBar (icon+text vertical)
 NavigationWindowCore {
     id: window
-    
+
     windowTitle: ""
     titleBarHeight: Enums.spacing.xxxl * 2
     titleBarLeftMargin: Enums.spacing.xxl
-    
-    // ==================== Compact Navigation Props 紧凑导航属性 ====================
+
+    // ==================== Compact Navigation Props ====================
     property int contentTopMargin: Enums.spacing.none
 
-    // ==================== Lazy Loading Aliases 懒加载别名 ====================
+    // ==================== Lazy Loading Aliases ====================
     property list<Component> pageComponents
     property var pageSources: []
 
-    Item { id: _hiddenStack; visible: false }
+    Component.onCompleted: window.profileDetail(
+        "WindowsBar root completed nav=" + navigationItems.length +
+        " bottom=" + bottomNavigationItems.length +
+        " hidden=" + _hiddenStack.data.length
+    )
+
+    Item {
+        id: _hiddenStack
+        visible: false
+        Component.onCompleted: window.profileDetail("WindowsBar hiddenStack completed count=" + data.length)
+    }
     default property alias pages: _hiddenStack.data
 
     // ==================== Content Layout ====================
     content: Item {
         anchors.fill: parent
-        
+        Component.onCompleted: window.profileDetail("WindowsBar content shell completed")
+
         Timer {
             id: startupTimer
-            interval: 50
+            interval: 0
             running: true
+            Component.onCompleted: window.profileDetail("WindowsBar startupTimer completed running=" + running + " interval=" + interval)
+            onRunningChanged: window.profileDetail("WindowsBar startupTimer running=" + running)
             onTriggered: {
                 window.profileTime("WindowsBar startupTimer triggered")
+                mainLoader.setSource(Qt.resolvedUrl("WindowsBarContent.qml"), {
+                    "hostWindow": window,
+                    "contentTopMargin": window.contentTopMargin
+                })
                 mainLoader.active = true
                 window.profileTime("WindowsBar mainLoader.active=true")
             }
         }
-        
+
         Loader {
             id: mainLoader
             anchors.fill: parent
             active: false
-            asynchronous: true
-            sourceComponent: contentComponent
-            
+            asynchronous: false
+            Component.onCompleted: window.profileDetail("WindowsBar mainLoader completed active=" + active + " status=" + status)
+            onActiveChanged: window.profileDetail("WindowsBar mainLoader active=" + active + " status=" + status)
+            onStatusChanged: window.profileDetail("WindowsBar mainLoader status=" + status + " active=" + active + " source=" + source)
+
             onLoaded: {
                 window.profileTime("WindowsBar mainLoader.onLoaded start")
+                window.profileDetail("WindowsBar mainLoader loaded item=" + item)
                 window.navigationView = item.navAlias
                 window.stackedWidget = item.stackAlias
-                window.profileTime("WindowsBar bind navigation/stack")
-                
+                item.navigationReady.connect(function(navItem) {
+                    window.navigationView = navItem
+                    window.profileTime("WindowsBar navigationView ready")
+                })
+                window.profileTime("WindowsBar bind navigation/stack navReady=" + (window.navigationView !== null))
+
                 if (_hiddenStack.data.length > 0) {
                     window.profileTime("WindowsBar move hidden pages start count=" + _hiddenStack.data.length)
                     let container = window.stackedWidget.containerItem
                     let items = []
-                    for(let i=0; i<_hiddenStack.data.length; i++) {
+                    for (let i = 0; i < _hiddenStack.data.length; i++) {
                         items.push(_hiddenStack.data[i])
                     }
-                    for(let i=0; i<items.length; i++) {
+                    for (let i = 0; i < items.length; i++) {
                         let child = items[i]
                         child.parent = container
                         child.width = Qt.binding(function() { return container.width })
@@ -77,136 +96,11 @@ NavigationWindowCore {
                     }
                     window.profileTime("WindowsBar move hidden pages done")
                 }
-                
-                // 等主页(首屏)真正加载完成再关欢迎页, 而非框架壳加载完就关
+
                 window.profileTime("WindowsBar dismissSplashWhenReady start")
                 window._dismissSplashWhenReady(window.stackedWidget)
                 window.profileTime("WindowsBar dismissSplashWhenReady done")
             }
         }
-        
-        Component {
-            id: contentComponent
-            Item {
-                anchors.fill: parent
-                property alias navAlias: navigationBar
-                property alias stackAlias: stack
-
-                // 窄屏/移动端: 导航移到底部 (防御式读 PlatformInfo, 桌面无则 false)
-                readonly property bool _compactNav:
-                    typeof PlatformInfo !== "undefined" && PlatformInfo.isCompact
-
-                Component.onCompleted: {
-                    window.profileTime("WindowsBar contentComponent completed compactNav=" + _compactNav)
-                }
-                
-        // 点击空白区域清除输入焦点（z极低，确保在所有内容之下）
-        MouseArea {
-            anchors.fill: parent
-            z: -999
-            onClicked: parent.forceActiveFocus()
-        }
-        
-        NavigationBar {
-            id: navigationBar
-            objectName: "navigationBar"
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.topMargin: contentTopMargin
-            anchors.bottom: parent.bottom
-            visible: !parent._compactNav   // 窄屏隐藏左侧栏, 改用底部 Tab
-            width: parent._compactNav ? 0 : implicitWidth
-            model: window.navigationItems
-            bottomItems: window.bottomNavigationItems
-            // Mica active: transparent to show Mica, Mica inactive: opaque background 云母激活：透明显示云母，云母关闭：不透明背景
-
-            backgroundColor: window._micaActive ? Enums.transparent : Enums.backgroundColor
-            // 单向绑定 window.currentIndex → navigationBar.currentIndex
-            currentIndex: window.currentIndex
-
-
-            onItemClicked: (index) => {
-                window.currentIndex = index
-                window.currentPageChanged(index)
-            }
-            onBottomItemClicked: (index) => {
-                window._handleBottomItemClicked(index, navigationBar, stack, window.pageSources)
-            }
-        }
-
-        BottomTabBar {
-            id: bottomTabBar
-            objectName: "bottomTabBar"
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            visible: parent._compactNav
-            model: window.navigationItems
-            currentIndex: window.currentIndex
-            onItemClicked: (index) => {
-                window.currentIndex = index
-                window.currentPageChanged(index)
-            }
-        }
-
-        ContentFrame {
-            id: contentFrame
-            anchors.left: parent._compactNav ? parent.left : navigationBar.right
-            anchors.top: parent.top
-            anchors.topMargin: contentTopMargin
-            anchors.right: parent.right
-            anchors.bottom: parent._compactNav ? bottomTabBar.top : parent.bottom
-            backgroundColor: window.contentBgColor
-            cornerRadius: window.contentCornerRadius
-
-            StackedWidget {
-                id: stack
-                anchors.fill: parent
-                animationType: Enums.animation.popup
-                property alias contentContainerAlias: stack.content
-                pageComponents: window.pageComponents
-                pageSources: window.pageSources
-                lazyLoading: window.lazyLoading
-                // 单向绑定 window.currentIndex → stack.currentIndex
-                // currentIndex 为纯输入, StackedWidget 内部不再命令式写它
-                // (改用 _displayIndex 驱动显示), 故声明式绑定不会被打破。
-                currentIndex: window.currentIndex
-                onCurrentChanged: (index) => {
-                    if (window.currentIndex !== index) window.currentIndex = index
-                }
-            }
-            
-            // Python lazy loading overlay Python 懒加载覆盖层
-            LoadingOverlay {
-                anchors.fill: parent
-                loading: window._pythonLoading
-                backgroundColor: window.contentBgColor
-                text: window.loadingText
-            }
-        }
-        
-        Row {
-            anchors.left: navigationBar.right
-            anchors.leftMargin: Enums.spacing.xxxl
-            anchors.top: parent.top
-            anchors.bottom: contentFrame.top
-            spacing: Enums.spacing.l
-            
-            Item {
-                width: Enums.iconSize.l; height: Enums.iconSize.l
-                anchors.verticalCenter: parent.verticalCenter
-                visible: false
-            }
-            Label {
-                text: ""
-                type: Enums.label.type_body_strong
-                color: Enums.textColor.primary
-                anchors.verticalCenter: parent.verticalCenter
-                visible: text !== ""
-            }
-        }
-        }
     }
-}
-
 }

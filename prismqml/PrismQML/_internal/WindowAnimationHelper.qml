@@ -27,6 +27,12 @@ Item {
     property real animScale: 0.95
     property real animOpacity: 0
 
+    Component.onCompleted: {
+        if (targetWindow && targetWindow.profileDetail) {
+            targetWindow.profileDetail("WindowAnimationHelper root completed")
+        }
+    }
+
     // ==================== Public Methods 公开方法 ====================
     function startShow() {
         closeAnim.stop()
@@ -89,6 +95,7 @@ Item {
     // ==================== Show Animation 显示动画 ====================
     ParallelAnimation {
         id: showAnim
+        Component.onCompleted: if (targetWindow && targetWindow.profileDetail) targetWindow.profileDetail("WindowAnimationHelper showAnim completed")
         NumberAnimation { target: targetWindow; property: "opacity"; to: 1; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
         NumberAnimation { target: helper; property: "animScale"; to: 1; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
         NumberAnimation { target: helper; property: "animOpacity"; to: 1; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
@@ -97,6 +104,7 @@ Item {
     // ==================== Close Animation 关闭动画 ====================
     SequentialAnimation {
         id: closeAnim
+        Component.onCompleted: if (targetWindow && targetWindow.profileDetail) targetWindow.profileDetail("WindowAnimationHelper closeAnim completed")
         ParallelAnimation {
             NumberAnimation { target: targetWindow; property: "opacity"; to: 0; duration: Enums.duration.normal; easing.type: Easing.InCubic }
             NumberAnimation { target: helper; property: "animScale"; to: 0.95; duration: Enums.duration.normal; easing.type: Easing.InCubic }

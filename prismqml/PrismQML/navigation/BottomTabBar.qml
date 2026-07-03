@@ -14,31 +14,32 @@ Rectangle {
     // ==================== Public Props 公开属性 ====================
     property var model: []
     property int currentIndex: 0
+    property bool window_micaActiveFallback: false
+
+    // Touch target height: defensive PlatformInfo read, default uses metrics 触摸目标高度：防御式读 PlatformInfo，默认使用度量常量
+    readonly property int barHeight:
+        (typeof PlatformInfo !== "undefined" && PlatformInfo.touchTargetSize > 0)
+            ? Math.max(Enums.controlSize.bottomTabBarHeight, PlatformInfo.touchTargetSize + Enums.spacing.m)
+            : Enums.controlSize.bottomTabBarHeight
 
     // ==================== Signals 信号 ====================
     signal itemClicked(int index)
 
-    // 触摸目标高度: 防御式读 PlatformInfo, 缺省 56 (Material 底部导航栏标准高)
-    readonly property int barHeight:
-        (typeof PlatformInfo !== "undefined" && PlatformInfo.touchTargetSize > 0)
-            ? Math.max(56, PlatformInfo.touchTargetSize + 8) : 56
-
     implicitHeight: barHeight
+    height: implicitHeight
     color: window_micaActiveFallback ? Enums.transparent : Enums.backgroundColor
-    // 顶部分隔线
-    property bool window_micaActiveFallback: false
 
     Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 1
+        height: Enums.border.thin
         color: Enums.dividerColor
     }
 
     Row {
         anchors.fill: parent
-        anchors.topMargin: 1
+        anchors.topMargin: Enums.border.thin
 
         Repeater {
             id: rep

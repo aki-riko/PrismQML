@@ -112,6 +112,13 @@ WindowsCore {
     signal bottomItemClicked(int index)
     signal currentPageChanged(int index)
 
+    Component.onCompleted: profileDetail(
+        "NavigationWindowCore completed micaAvailable=" + _micaAvailable +
+        " micaEnabled=" + micaEnabled +
+        " nav=" + navigationItems.length +
+        " bottom=" + bottomNavigationItems.length
+    )
+
     // ==================== Splash 关闭时机 ====================
     // 关闭欢迎页必须等"主页(首屏 currentIndex 那一页)真正加载完成",
     // 而非外层框架壳 onLoaded 就关 —— 懒加载/异步模式下框架 ready 时

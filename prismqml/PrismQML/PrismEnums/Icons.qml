@@ -12,6 +12,15 @@ pragma Singleton
 
 QtObject {
     id: root
+    readonly property real _startupProfileStart: Date.now()
+    readonly property bool _startupProfilingVerboseActive:
+        (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
+    Component.onCompleted: {
+        if (_startupProfilingVerboseActive) {
+            console.info("[启动剖析] Icons singleton completed: total " +
+                         Math.round(Date.now() - _startupProfileStart) + "ms")
+        }
+    }
     
     readonly property string basePath: "fluent/"
     

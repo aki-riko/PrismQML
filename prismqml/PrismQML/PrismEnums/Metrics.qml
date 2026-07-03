@@ -219,6 +219,7 @@ QtObject {
  readonly property int navBarWidth: 68 // NavigationBar width (64px button + 2px margins) 导航栏宽度
  readonly property int navBarItemWidth: 64 // NavigationBarItem width 导航栏项宽度
  readonly property int navBarItemHeight: 60 // NavigationBarItem height 导航栏项高度
+ readonly property int bottomTabBarHeight: 56 // BottomTabBar height 底部导航栏高度
  readonly property int tabBarHeight: 40 // TabBar height
  readonly property int segmentedHeight: 36 // SegmentedControl height
  readonly property int segmentedMinWidth: 60 // SegmentedControl item min width 分段项最小宽度
