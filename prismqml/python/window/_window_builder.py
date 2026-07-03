@@ -238,6 +238,8 @@ import "file:///{qml_dir.as_posix()}/_internal"
     objectName: "mainWindow"
     width: {self._width}
     height: {self._height}
+    // Python WindowCore calls show() after pending state and splash are mounted.
+    visible: false
     windowTitle: "{esc(self._title)}"
     windowIcon: "{esc(window_icon_qml)}"
     windowIconColored: {'true' if self._icon_colored else 'false'}

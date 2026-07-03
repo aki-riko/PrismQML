@@ -59,10 +59,9 @@ Window {
     height: Enums.window.defaultHeight
     minimumWidth: Enums.window.minimumWidth
     minimumHeight: Enums.window.minimumHeight
-    // Python show() displays the window after pending state and splash are mounted.
-    // Keep the QML root hidden during loadData so native show/render work does not
-    // block component creation.
-    visible: false
+    // QML-created windows should show by default. Python WindowCore injects
+    // visible: false into its generated root QML before calling Window.show().
+    visible: true
     opacity: Enums.opacityLevel.invisible
     color: "transparent"
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint
