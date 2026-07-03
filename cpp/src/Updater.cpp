@@ -266,6 +266,10 @@ bool Updater::runInstallerAndQuit(const QString &installerPath, const QString &s
     qInfo() << "[Updater] 已启动安装包, 应用即将退出:" << installerPath << args;
     QCoreApplication::quit();
     return true;
+#elif defined(Q_OS_IOS)
+    // iOS sandbox does not support launching an external installer process.
+    qWarning() << "[Updater] 当前平台不支持启动外部安装包:" << installerPath;
+    return false;
 #else
     // 非 Windows: QProcess detached 启动
     const bool ok = QProcess::startDetached(installerPath, args);
