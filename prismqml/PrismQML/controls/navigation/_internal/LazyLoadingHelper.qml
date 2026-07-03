@@ -4,7 +4,6 @@
 
 import QtQuick
 import "../../.."
-import "../../feedback"
 import "../../data"
 
 // LazyLoadingHelper - Lazy loading logic for StackedWidget 懒加载逻辑辅助器

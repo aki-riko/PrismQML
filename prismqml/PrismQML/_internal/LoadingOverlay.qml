@@ -11,7 +11,7 @@ import "../controls/data/Label"
 Rectangle {
     id: root
     
-    required property bool loading
+    property bool loading: false
     property string text: Translator.tr("loading")
     property color backgroundColor: Enums.backgroundColor
 

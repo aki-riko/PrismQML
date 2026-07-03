@@ -3,7 +3,6 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import "../controls/navigation"
 import ".."
 
 // WindowsBarContent - Deferred compact navigation window content
@@ -104,6 +103,15 @@ Item {
     function _configureLoadingOverlay(item) {
         if (!item) return
 
+        item.loading = Qt.binding(function() {
+            return root.hostWindow ? root.hostWindow._pythonLoading : false
+        })
+        item.backgroundColor = Qt.binding(function() {
+            return root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
+        })
+        item.text = Qt.binding(function() {
+            return root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
+        })
         if (root.hostWindow) {
             root.hostWindow.profileDetail("LoadingOverlay completed deferred loading=" + item.loading)
         }
@@ -215,11 +223,7 @@ Item {
             anchors.fill: parent
             active: root.hostWindow ? root.hostWindow._pythonLoading : false
             asynchronous: true
-            sourceComponent: LoadingOverlay {
-                loading: root.hostWindow ? root.hostWindow._pythonLoading : false
-                backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
-                text: root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
-            }
+            source: active ? Qt.resolvedUrl("LoadingOverlay.qml") : ""
             onLoaded: root._configureLoadingOverlay(item)
         }
     }
