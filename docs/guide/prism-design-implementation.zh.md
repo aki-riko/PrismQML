@@ -1,6 +1,6 @@
 # Prism Design 落地标准
 
-本文是 [Prism Design 视觉规范](prism-design.md) 的执行口径。视觉规范回答“Prism Design 应该长什么样”，本文回答“组件、Gallery、测试和评审如何证明它已经按标准落地”。
+本文是 [Prism Design 视觉规范](prism-design.zh.md) 的执行口径。视觉规范回答“Prism Design 应该长什么样”，本文回答“组件、Gallery、测试和评审如何证明它已经按标准落地”。
 
 Prism Design 的落地不以“看起来像蓝色 Fluent”作为验收标准，而以 token 接入、状态完整、组件族覆盖、light/dark 对照、Gallery 截图和无硬编码为准。
 
@@ -8,7 +8,7 @@ Prism Design 的落地不以“看起来像蓝色 Fluent”作为验收标准，
 
 一个 Prism Design 相关改动只有同时满足以下条件，才可以称为完成：
 
-- 视觉规则已写入 `prism-design.md` 或本文。
+- 视觉规则已写入 `prism-design.zh.md` 或本文。
 - 需要的新值已进入 `Constants.prismDesign`、`Theme`、`StateColor`、`textColor` 或现有 `Enums` token。
 - 组件优先绑定通用 token，只有几何、层级或结构确实不同才读取 `Enums.prismDesign.*`。
 - light / dark 都通过同一组件样例验证。

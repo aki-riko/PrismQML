@@ -2,7 +2,7 @@
 
 Prism Design 是 PrismQML 的自有设计语言，也是 `Skin.PRISM_DESIGN` 的唯一视觉标准来源。后续所有 Prism Design 组件、Gallery、示例和截图验收，都应以本文为准。
 
-本文定义设计标准，不替代皮肤系统说明。皮肤切换 API、`Enums.skin`、`Enums.prismDesign` 等用法见 [皮肤系统](skins.md)，组件矩阵、Gallery 验收和评审门禁见 [Prism Design 落地标准](prism-design-implementation.md)。
+本文定义设计标准，不替代皮肤系统说明。皮肤切换 API、`Enums.skin`、`Enums.prismDesign` 等用法见 [皮肤系统](skins.zh.md)，组件矩阵、Gallery 验收和评审门禁见 [Prism Design 落地标准](prism-design-implementation.zh.md)。
 
 ## 规范状态
 
@@ -14,7 +14,7 @@ Prism Design 是 PrismQML 的自有设计语言，也是 `Skin.PRISM_DESIGN` 的
 | QML 判断 | `Enums.isPrismDesign` |
 | Token 入口 | `Enums.prismDesign.*` |
 | 规范等级 | 第三皮肤视觉口径的最高标准 |
-| 实现进度 | 以 [Prism Design 落地标准](prism-design-implementation.md)、Gallery 与测试记录为准 |
+| 实现进度 | 以 [Prism Design 落地标准](prism-design-implementation.zh.md)、Gallery 与测试记录为准 |
 
 Prism Design 是规范，不是单个主题色。任何组件只要声明支持 `prism_design`，就必须同时满足本文的颜色、层级、状态、密度、动效和可访问性要求。
 
@@ -722,7 +722,7 @@ ThemeManager.skin
 
 ## 规范治理
 
-本文描述目标标准，不记录阶段性完成度。实现进度、组件矩阵、Gallery 截图、测试结果和剩余缺口统一记录在 [Prism Design 落地标准](prism-design-implementation.md)、提交说明或 PR 描述中。
+本文描述目标标准，不记录阶段性完成度。实现进度、组件矩阵、Gallery 截图、测试结果和剩余缺口统一记录在 [Prism Design 落地标准](prism-design-implementation.zh.md)、提交说明或 PR 描述中。
 
 当文档、token 和控件表现冲突时，按以下方式处理：
 
