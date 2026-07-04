@@ -10,8 +10,8 @@ import "../.."
 Item {
     id: control
     
-    // ==================== Properties 属性 ====================
-    property color color: "black"
+    // ==================== Public Props 公开属性 ====================
+    property color color: Enums.textColor.primary
     property real strokeWidth: 1.5
     property string direction: "down"  // down, up, left, right
     

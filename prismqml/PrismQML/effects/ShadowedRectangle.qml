@@ -12,8 +12,8 @@ import ".."
 // Usage 用法:
 // ShadowedRectangle {
 //     width: 200; height: 100
-//     color: "white"
-//     radius: Enums.radius.large
+//     color: Enums.cardColor
+//     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
 //     shadowLevel: Enums.shadow.level4
 // }
 
@@ -28,16 +28,23 @@ Item {
     // ==================== Shadow Props 阴影属性 ====================
     // Use shadow level from Enums 使用PrismEnums的阴影等级
     property var shadowLevel: Enums.shadow.level4
-    
+
     // Shadow visibility control 阴影显隐控制
     property bool shadowVisible: true
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    readonly property color _rectangleColor: Enums.cardColor
+    readonly property int _rectangleRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
+    readonly property real _defaultShadowBlur: Enums.shadow.level4.blur
+    readonly property color _defaultShadowColor: Enums.shadow.level4.color
+    readonly property real _defaultShadowOffset: Enums.shadow.level4.offset
+
     // Or set individual props 或单独设置属性
     // blur 现在直接是像素值，无需转换
-    property real shadowBlur: shadowLevel ? shadowLevel.blur : (Enums.shadow && Enums.shadow.level4 ? Enums.shadow.level4.blur : 16)
-    property color shadowColor: shadowLevel ? shadowLevel.color : (Enums.shadow && Enums.shadow.level4 ? Enums.shadow.level4.color : "#1A000000")
+    property real shadowBlur: shadowLevel ? shadowLevel.blur : _defaultShadowBlur
+    property color shadowColor: shadowLevel ? shadowLevel.color : _defaultShadowColor
     property real shadowOffsetX: 0
-    property real shadowOffsetY: shadowLevel ? shadowLevel.offset : (Enums.shadow && Enums.shadow.level4 ? Enums.shadow.level4.offset : 4)
+    property real shadowOffsetY: shadowLevel ? shadowLevel.offset : _defaultShadowOffset
     property real shadowSpread: 0
     
     // ==================== Content Access 内容访问 ====================
@@ -69,7 +76,7 @@ Item {
     Rectangle {
         id: content
         anchors.fill: parent
-        color: Enums.cardColor
-        radius: Enums.radius.large
+        color: root._rectangleColor
+        radius: root._rectangleRadius
     }
 }
