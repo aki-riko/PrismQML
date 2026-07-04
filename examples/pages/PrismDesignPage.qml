@@ -239,6 +239,14 @@ Item {
 
                     Row {
                         spacing: Enums.spacing.l
+                        ComponentCard { label: "checkbox"; CheckBox { text: "Checked"; checked: true } }
+                        ComponentCard { label: "radio"; RadioButton { text: "Selected"; checked: true } }
+                        ComponentCard { label: "switch"; ToggleSwitch { text: "Enabled"; checked: true } }
+                        ComponentCard { label: "rating"; Rating { value: Enums.demoMetrics.ratingDefaultValue } }
+                    }
+
+                    Row {
+                        spacing: Enums.spacing.l
                         InfoBar { title: "Info"; content: "Overlay token"; severity: "info"; width: 280; duration: 0 }
                         InfoBar { title: "Success"; content: "Semantic token"; severity: "success"; width: 280; duration: 0 }
                     }

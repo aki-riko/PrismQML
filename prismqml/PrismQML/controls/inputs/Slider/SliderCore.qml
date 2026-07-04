@@ -49,8 +49,16 @@ Item {
     
     // ==================== Theme 主题 ====================
     property color accentColor: Enums.accentColor
-    property color handleColor: Enums.gray.handle  // Custom handle color 自定义手柄颜色
+    property color handleColor: Enums.isPrismDesign ? Enums.stateColor.controlBg : Enums.gray.handle  // Custom handle color 自定义手柄颜色
     readonly property bool isHorizontal: orientation === Qt.Horizontal
+    readonly property color _trackColor: control.enabled ? Enums.stateColor.sliderTrack : Enums.stateColor.sliderTrackDisabled
+    readonly property color _progressColor: control.enabled ? control.accentColor : Enums.stateColor.disabledBorder
+    readonly property int _handleBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
+                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+    readonly property color _handleBorderColor: control.enabled
+                                                ? (Enums.isPrismDesign ? Enums.stateColor.borderStrong : Enums.stateColor.border)
+                                                : Enums.stateColor.disabledBorder
+    readonly property color _handleInnerColor: control.enabled ? control.accentColor : Enums.textColor.disabled
 
     // Set range 设置范围
     function setRange(minimum, maximum) {
@@ -131,7 +139,7 @@ Item {
                 width: isHorizontal ? parent.width : Enums.radius.small
                 height: isHorizontal ? Enums.radius.small : parent.height
                 radius: Enums.radius.tiny
-                color: Enums.stateColor.border
+                color: control._trackColor
                 
                 // Progress 进度
                 Rectangle {
@@ -139,7 +147,7 @@ Item {
                     height: isHorizontal ? parent.height : parent.height - handle.y - handle.height / 2
                     y: isHorizontal ? 0 : handle.y + handle.height / 2
                     radius: parent.radius
-                    color: control.enabled ? accentColor : Enums.stateColor.disabledGray
+                    color: control._progressColor
                 }
                 
                 MouseArea {
@@ -165,15 +173,15 @@ Item {
                 x: isHorizontal ? (control.value - control.from) / (control.to - control.from) * (track.width - width) + track.x : (parent.width - width) / 2
                 y: isHorizontal ? (parent.height - height) / 2 : (1 - (control.value - control.from) / (control.to - control.from)) * (track.height - height) + track.y
                 color: control.handleColor
-                border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin  // neo 粗黑边
-                border.color: Enums.stateColor.border
+                border.width: control._handleBorderWidth
+                border.color: control._handleBorderColor
                 
                 Rectangle {
                     anchors.centerIn: parent
                     // Handle inner circle: shrinks on press, grows on hover 内圆:按下缩小,悬停放大
                     width: handleArea.pressed ? Enums.iconSize.micro : (hovered ? Enums.iconSize.xs : Enums.iconSize.tiny)
                     height: width; radius: width / 2
-                    color: control.enabled ? accentColor : Enums.gray.disabled
+                    color: control._handleInnerColor
                     Behavior on width { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
                 }
                 
@@ -236,7 +244,7 @@ Item {
                 width: isHorizontal ? parent.width : Enums.radius.small
                 height: isHorizontal ? Enums.radius.small : parent.height
                 radius: Enums.radius.tiny
-                color: control.enabled ? (Enums.stateColor.sliderTrack) : (Enums.stateColor.sliderTrackDisabled)
+                color: control._trackColor
             }
             
             Rectangle {
@@ -245,7 +253,7 @@ Item {
                 width: isHorizontal ? groove.width * Math.abs(secondPos - firstPos) : Enums.radius.small
                 height: isHorizontal ? Enums.radius.small : groove.height * Math.abs(secondPos - firstPos)
                 radius: Enums.radius.tiny
-                color: control.enabled ? accentColor : Enums.gray.disabled
+                color: control._progressColor
             }
             
             RangeHandle { handleValue: control.firstValue; onValueChanged: (v) => { control.firstValue = v; control.sliderMoved(control.firstValue, control.secondValue) } }
@@ -259,14 +267,15 @@ Item {
                 x: isHorizontal ? Math.max(0, Math.min(parent.width-width, (parent.width-width)*((handleValue-control.from)/(control.to-control.from)))) : (parent.width-width)/2
                 y: isHorizontal ? (parent.height-height)/2 : Math.max(0, Math.min(parent.height-height, (parent.height-height)*(1-(handleValue-control.from)/(control.to-control.from))))
                 color: control.handleColor
-                border.width: Enums.border.thin; border.color: Enums.stateColor.border
+                border.width: control._handleBorderWidth
+                border.color: control._handleBorderColor
                 
                 Rectangle {
                     anchors.centerIn: parent
                     // Handle inner circle: shrinks on press, grows on hover 内圆:按下缩小,悬停放大
                     width: rangeHandleArea.pressed ? Enums.iconSize.micro : (rangeHandleArea.containsMouse ? Enums.iconSize.xs : Enums.iconSize.tiny)
                     height: width; radius: width / 2
-                    color: control.enabled ? control.accentColor : Enums.gray.disabled
+                    color: control._handleInnerColor
                     Behavior on width { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
                 }
                 

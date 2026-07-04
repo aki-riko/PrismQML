@@ -335,6 +335,101 @@ PinInput {
 
         keep.append(_build(engine, b"""
 import PrismQML
+CheckIndicator {
+    checkState: 0
+}
+"""))
+        check_indicator = keep[-1][1]
+        assert check_indicator.property("_indicatorRadius") == 6
+        assert check_indicator.property("_indicatorBorderWidth") == 1
+        assert _rgb(check_indicator.property("_indicatorColor")) == (255, 255, 255)
+        assert _rgb(check_indicator.property("_indicatorBorderColor")) == (170, 184, 199)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+CheckIndicator {
+    checkState: 2
+}
+"""))
+        checked_indicator = keep[-1][1]
+        assert checked_indicator.property("_indicatorBorderWidth") == 1
+        assert _rgb(checked_indicator.property("_indicatorColor")) == (47, 111, 237)
+        assert _rgb(checked_indicator.property("_indicatorBorderColor")) == (36, 90, 199)
+        assert _rgb(checked_indicator.property("_checkIconColor")) == (255, 255, 255)
+
+        toggle_internal_dir = (
+            Path(__file__).resolve().parents[2]
+            / "prismqml"
+            / "PrismQML"
+            / "controls"
+            / "inputs"
+            / "Toggle"
+        )
+        radio_indicator_component = QQmlComponent(
+            engine,
+            QUrl.fromLocalFile(str(toggle_internal_dir / "ToggleRadioIndicator.qml")),
+        )
+        assert not radio_indicator_component.isError(), [
+            error.toString() for error in radio_indicator_component.errors()
+        ]
+        radio_indicator = radio_indicator_component.create(engine.rootContext())
+        assert radio_indicator is not None, [
+            error.toString() for error in radio_indicator_component.errors()
+        ]
+        keep.append((radio_indicator_component, radio_indicator))
+        radio_indicator.setProperty("checked", True)
+        assert radio_indicator.property("_indicatorBorderWidth") == 1
+        assert _rgb(radio_indicator.property("_indicatorColor")) == (47, 111, 237)
+        assert _rgb(radio_indicator.property("_borderColor")) == (36, 90, 199)
+        assert _rgb(radio_indicator.property("_innerDotColor")) == (255, 255, 255)
+
+        switch_indicator_component = QQmlComponent(
+            engine,
+            QUrl.fromLocalFile(str(toggle_internal_dir / "ToggleSwitchIndicator.qml")),
+        )
+        assert not switch_indicator_component.isError(), [
+            error.toString() for error in switch_indicator_component.errors()
+        ]
+        switch_indicator = switch_indicator_component.create(engine.rootContext())
+        assert switch_indicator is not None, [
+            error.toString() for error in switch_indicator_component.errors()
+        ]
+        keep.append((switch_indicator_component, switch_indicator))
+        assert switch_indicator.property("_trackBorderWidth") == 1
+        assert _rgb(switch_indicator.property("_trackColor")) == (255, 255, 255)
+        assert _rgb(switch_indicator.property("_trackBorderColor")) == (170, 184, 199)
+        assert _rgb(switch_indicator.property("_handleColor")) == (255, 255, 255)
+        switch_indicator.setProperty("checked", True)
+        assert _rgb(switch_indicator.property("_trackColor")) == (47, 111, 237)
+        assert _rgb(switch_indicator.property("_trackBorderColor")) == (36, 90, 199)
+        assert _rgb(switch_indicator.property("_handleColor")) == (255, 255, 255)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Slider {
+    width: 220
+    value: 55
+}
+"""))
+        slider = keep[-1][1]
+        assert _rgb(slider.property("handleColor")) == (255, 255, 255)
+        assert _rgb(slider.property("_trackColor")) == (234, 241, 247)
+        assert _rgb(slider.property("_progressColor")) == (47, 111, 237)
+        assert slider.property("_handleBorderWidth") == 1
+        assert _rgb(slider.property("_handleBorderColor")) == (170, 184, 199)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Rating {
+    value: 3
+}
+"""))
+        rating = keep[-1][1]
+        assert _rgb(rating.property("_effectiveFillColor")) == (255, 220, 6)
+        assert _rgb(rating.property("_effectiveOutlineColor")) == (131, 146, 164)
+
+        keep.append(_build(engine, b"""
+import PrismQML
 DropZone {
     preferredWidth: 260
     preferredHeight: 140
@@ -612,6 +707,38 @@ Item {
         assert _rgb(dark_tokens.property("background")) == (17, 20, 24)
         assert _rgb(dark_tokens.property("surface")) == (23, 28, 34)
         assert _rgb(dark_tokens.property("chartFirst")) == (122, 167, 255)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+CheckIndicator {
+    checkState: 0
+}
+"""))
+        dark_check_indicator = keep[-1][1]
+        assert _rgb(dark_check_indicator.property("_indicatorColor")) == (32, 38, 46)
+        assert _rgb(dark_check_indicator.property("_indicatorBorderColor")) == (75, 90, 107)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Slider {
+    width: 220
+    value: 55
+}
+"""))
+        dark_slider = keep[-1][1]
+        assert _rgb(dark_slider.property("handleColor")) == (32, 38, 46)
+        assert _rgb(dark_slider.property("_trackColor")) == (21, 26, 32)
+        assert _rgb(dark_slider.property("_progressColor")) == (122, 167, 255)
+        assert _rgb(dark_slider.property("_handleBorderColor")) == (75, 90, 107)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Rating {
+    value: 3
+}
+"""))
+        dark_rating = keep[-1][1]
+        assert _rgb(dark_rating.property("_effectiveOutlineColor")) == (118, 131, 148)
 
         dark_chart_tooltip_component = QQmlComponent(engine, QUrl.fromLocalFile(str(chart_tooltip_path)))
         assert not dark_chart_tooltip_component.isError(), [

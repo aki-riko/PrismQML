@@ -12,7 +12,58 @@ Rectangle {
 
     // ==================== Props 属性 ====================
     property bool checked: false
+    property bool hovered: false
+    property bool pressed: false
     property color checkedColor: Enums.accentColor
+    readonly property bool _effectiveHovered: hovered || switchArea.containsMouse
+    readonly property bool _effectivePressed: pressed || switchArea.pressed
+    readonly property color _trackColor: {
+        if (Enums.isNeobrutalism) {
+            if (!enabled) return checked ? Enums.stateColor.primaryDisabled : Enums.stateColor.checkBoxFill
+            return checked ? checkedColor : Enums.stateColor.checkBoxFill
+        }
+        if (Enums.isPrismDesign) {
+            if (!enabled) return checked ? Enums.stateColor.primaryDisabled : Enums.stateColor.controlBgDisabled
+            if (checked) {
+                if (_effectivePressed) return Qt.darker(checkedColor, 1.1)
+                if (_effectiveHovered) return Qt.lighter(checkedColor, 1.06)
+                return checkedColor
+            }
+            if (_effectivePressed) return Enums.stateColor.checkBoxFillPressed
+            if (_effectiveHovered) return Enums.stateColor.checkBoxFillHover
+            return Enums.stateColor.checkBoxFill
+        }
+        if (!enabled) {
+            if (checked) return checkedColor
+            return Enums.stateColor.disabledBorder
+        }
+        return checked ? checkedColor : Enums.stateColor.disabledBorder
+    }
+    readonly property real _trackOpacity: Enums.isPrismDesign ? 1.0 : (enabled ? 1.0 : 0.65)
+    readonly property int _trackBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
+                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.none)
+    readonly property color _trackBorderColor: {
+        if (Enums.isNeobrutalism) return Enums.stateColor.toggleBorder
+        if (Enums.isPrismDesign) {
+            if (!enabled) return Enums.stateColor.disabledBorder
+            return checked ? Enums.accentColorDark : Enums.stateColor.toggleBorder
+        }
+        return Enums.transparent
+    }
+    readonly property color _handleColor: {
+        if (Enums.isPrismDesign) {
+            if (!enabled) return Enums.stateColor.controlBgDisabled
+            return checked ? Enums.accentForeground : Enums.stateColor.controlBg
+        }
+        return enabled ? (Enums.isNeobrutalism ? Enums.neo.background : Enums.accentForeground) : Enums.gray.background
+    }
+    readonly property int _handleBorderWidth: Enums.isNeobrutalism ? Enums.border.medium
+                                                                   : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.none)
+    readonly property color _handleBorderColor: {
+        if (Enums.isNeobrutalism) return Enums.stateColor.toggleBorder
+        if (Enums.isPrismDesign) return enabled ? Enums.stateColor.border : Enums.stateColor.disabledBorder
+        return Enums.transparent
+    }
 
     // ==================== Signals 信号 ====================
     signal clicked()
@@ -23,26 +74,10 @@ Rectangle {
     radius: height / 2
 
     // ==================== Color 颜色 ====================
-    // enabled-unchecked: 浅灰 #c0c0c0 / #4d4d4d  (低对比, 不喧宾夺主)
-    // enabled-checked:   accent 实色
-    // disabled-unchecked: 深灰 (实色饱满) + opacity 0.65 → 看起来"灰扑扑且暗淡"
-    // disabled-checked:   accent + opacity 0.65 → 淡 accent
-    color: {
-        // 选中=checkedColor(=accentColor, neo 下自动橙); neo 未选要白轨道(Fluent 为灰, 结构差异)
-        if (Enums.isNeobrutalism) {
-            if (!enabled) return checked ? Qt.rgba(0.98,0.45,0.09,0.5) : Enums.stateColor.checkBoxFill
-            return checked ? checkedColor : Enums.stateColor.checkBoxFill
-        }
-        if (!enabled) {
-            if (checked) return checkedColor
-            return Enums.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.4)
-        }
-        return checked ? checkedColor : (Enums.isDark ? "#4d4d4d" : "#c0c0c0")
-    }
-    opacity: enabled ? 1.0 : 0.65
-    // neo 结构差异: Fluent 开关无边, neo 轨道+滑块加黑边显形
-    border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
-    border.color: Enums.isNeobrutalism ? Enums.stateColor.toggleBorder : Enums.transparent
+    color: _trackColor
+    opacity: _trackOpacity
+    border.width: _trackBorderWidth
+    border.color: _trackBorderColor
 
     Behavior on color { ColorAnimation { duration: Enums.duration.normal } }
     Behavior on opacity { NumberAnimation { duration: Enums.duration.normal } }
@@ -53,10 +88,9 @@ Rectangle {
         width: Enums.controlSize.switchThumb
         height: Enums.controlSize.switchThumb
         radius: width / 2
-        color: enabled ? "white" : Enums.gray.background
-        // neo: 滑块黑边显形(白轨道上白滑块否则看不见)
-        border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
-        border.color: Enums.isNeobrutalism ? Enums.stateColor.toggleBorder : Enums.transparent
+        color: track._handleColor
+        border.width: track._handleBorderWidth
+        border.color: track._handleBorderColor
         anchors.verticalCenter: parent.verticalCenter
         x: checked ? parent.width - width - Enums.spacing.xxs : Enums.spacing.xxs
 
@@ -70,8 +104,10 @@ Rectangle {
 
     // ==================== Interaction 交互 ====================
     MouseArea {
+        id: switchArea
         anchors.fill: parent
         enabled: track.enabled
+        hoverEnabled: true
         onClicked: track.clicked()
     }
 }
