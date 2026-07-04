@@ -11,8 +11,11 @@ import "../.."
 Column {
     id: popupContent
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var control  // Parent DateTimePicker 父日期时间选择器
+
+    // ==================== Internal Props 内部属性 ====================
+    readonly property color _selectionHighlightColor: Enums.stateColor.selected
     
     spacing: Enums.spacing.none
     
@@ -184,12 +187,7 @@ Column {
             width: parent.width - Enums.spacing.m
             height: Enums.controlSize.inputHeight
             radius: Enums.radius.small
-            color: Qt.rgba(
-                Enums.accentColor.r,
-                Enums.accentColor.g,
-                Enums.accentColor.b,
-                Enums.isDark ? 0.20 : 0.14
-            )
+            color: popupContent._selectionHighlightColor
             z: Enums.zIndex.popup
         }
     }
