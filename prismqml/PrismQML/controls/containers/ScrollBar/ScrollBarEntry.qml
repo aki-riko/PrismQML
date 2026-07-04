@@ -12,15 +12,22 @@ Rectangle {
  property Flickable flickable: null
  property bool horizontal: false
  property int minThumbSize: 30
+ readonly property bool hovered: mouseArea.containsMouse
+ readonly property bool active: flickable && (horizontal ? flickable.contentWidth > flickable.width : flickable.contentHeight > flickable.height)
+ readonly property color _scrollTrackColor: Enums.stateColor.scrollTrack
+ readonly property color _scrollThumbDefaultColor: Enums.stateColor.scrollHandleDefault
+ readonly property color _scrollThumbHoverColor: Enums.stateColor.scrollHandleHover
+ readonly property color _scrollThumbPressedColor: Enums.accentColor
+ readonly property color _scrollThumbColor: thumbArea.pressed ? _scrollThumbPressedColor : (hovered ? _scrollThumbHoverColor : _scrollThumbDefaultColor)
+ 
+ // Prevent flash: disable animation until ready 防止闪现：初始化完成前禁用动画
+ property bool _animEnabled: false
+
  signal valueChanged(int value)
  signal sliderPressed()
  signal sliderReleased()
  signal sliderMoved()
- readonly property bool hovered: mouseArea.containsMouse
- readonly property bool active: flickable && (horizontal ? flickable.contentWidth > flickable.width : flickable.contentHeight > flickable.height)
- 
- // Prevent flash: disable animation until ready 防止闪现：初始化完成前禁用动画
- property bool _animEnabled: false
+
  Component.onCompleted: Qt.callLater(() => { _animEnabled = true })
  
  implicitWidth: horizontal ? 200 : 8
@@ -39,7 +46,7 @@ Rectangle {
  Rectangle {
  anchors.fill: parent
  radius: parent.radius
- color: Enums.stateColor.scrollTrack
+ color: control._scrollTrackColor
  }
  
  // Thumb 滑块
@@ -60,7 +67,7 @@ Rectangle {
  height: horizontal ? parent.height : Math.max(control.minThumbSize, parent.height * ratio)
  radius: width / 2
  
- color: thumbArea.pressed ? Enums.accentColor : (hovered ? (Enums.stateColor.scrollHandleHover) : (Enums.stateColor.dropBorderHover))
+ color: control._scrollThumbColor
  
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  

@@ -14,13 +14,8 @@ Item {
     // Compatible with Widget.qml size system 与Widget.qml尺寸系统兼容
     property real preferredWidth: 0
     property real preferredHeight: 0
-    
-    implicitWidth: preferredWidth > 0 ? preferredWidth : 300
-    implicitHeight: preferredHeight > 0 ? preferredHeight : 200
-    width: implicitWidth
-    height: implicitHeight
 
-    // Public props 公开属性
+    // ==================== Public Props 公开属性 ====================
     property int orientation: Qt.Horizontal  // Qt.Horizontal or Qt.Vertical
     property real splitPosition: 0.5  // 0-1 range
     property int handleWidth: Enums.comboBoxMetrics.scrollBarWidth
@@ -30,12 +25,26 @@ Item {
     property alias firstContent: firstPane.data
     property alias secondContent: secondPane.data
     
-    // Internal state 内部状态
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool isHorizontal: orientation === Qt.Horizontal
+    readonly property color _splitHandleColor: handleArea.pressed
+        ? Enums.stateColor.controlBgPressed
+        : (handleArea.containsMouse ? Enums.stateColor.controlBgHover
+                                    : Enums.stateColor.controlBgTransparent)
+    readonly property color _splitGripColor: handleArea.pressed
+        ? Enums.stateColor.indicatorActive
+        : (handleArea.containsMouse ? Enums.stateColor.indicatorHover
+                                    : Enums.stateColor.indicator)
 
     // ==================== Public Methods 公共方法 ====================
     // Get child count 获取子组件数量
     function count() { return 2 }
+
+    // ==================== Size 尺寸 ====================
+    implicitWidth: preferredWidth > 0 ? preferredWidth : 300
+    implicitHeight: preferredHeight > 0 ? preferredHeight : 200
+    width: implicitWidth
+    height: implicitHeight
 
     // First pane 第一面板
     Item {
@@ -57,10 +66,7 @@ Item {
         height: control.isHorizontal ? parent.height : control.handleWidth
 
         // Default transparent, tint only on hover/press 默认透明，悬停/按下才着色
-        color: handleArea.pressed
-            ? Enums.stateColor.controlBgPressed
-            : (handleArea.containsMouse ? Enums.stateColor.controlBgHover
-                                        : Enums.stateColor.controlBgTransparent)
+        color: control._splitHandleColor
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
 
         // Grip pill — draggable cue 药丸抓手，提示可拖拽
@@ -78,10 +84,7 @@ Item {
             Behavior on height { NumberAnimation { duration: Enums.duration.fast } }
 
             // Neutral grey, deepens on interaction 中性灰，交互时加深
-            color: handleArea.pressed
-                ? Enums.stateColor.indicatorActive
-                : (handleArea.containsMouse ? Enums.stateColor.indicatorHover
-                                            : Enums.stateColor.indicator)
+            color: control._splitGripColor
             Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
         }
         

@@ -30,7 +30,12 @@ OverlayDialogCore {
     property alias opened: control._isOpen
 
     // Panel corner radius 面板圆角
-    property int radius: Enums.radius.none
+    property int radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.none
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property color _drawerBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _drawerBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : 0)
+    readonly property color _drawerBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.borderColor : Enums.transparent)
 
     // ==================== Public Methods 公开方法 ====================
     // Override open to use base class mechanism 重写open使用基类机制
@@ -67,7 +72,7 @@ OverlayDialogCore {
     // Shadow for drawer 抽屉阴影
     RectangularShadow {
         anchors.fill: drawer
-        radius: Enums.radius.none
+        radius: control.radius
         color: Enums.shadow.level28.color
         blur: Enums.shadow.level28.blur
         offset.x: 0
@@ -78,11 +83,11 @@ OverlayDialogCore {
     // Drawer panel 抽屉面板
     Rectangle {
         id: drawer
-        color: Enums.cardColor
+        color: control._drawerBackground
         radius: control.radius
-        // neo: 抽屉面板加黑边(与内容区分隔)
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
-        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent
+        // Drawer boundary for non-Fluent skins 非 Fluent 皮肤抽屉边界
+        border.width: control._drawerBorderWidth
+        border.color: control._drawerBorderColor
         
         // Use parent size directly when control size is 0 (Python setParentItem timing issue) 当 control 尺寸为 0 时直接使用 parent 尺寸（Python setParentItem 时序问题）
 
