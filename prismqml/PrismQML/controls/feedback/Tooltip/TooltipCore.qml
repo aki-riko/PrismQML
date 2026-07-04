@@ -89,8 +89,8 @@ Item {
             ShadowedRectangle {
                 id: _tipBg
                 anchors.fill: parent
-                radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
-                color: Enums.cardColor
+                radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small)
+                color: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
                 border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
                 border.color: Enums.stateColor.border
                 shadowLevel: Enums.shadow.level2

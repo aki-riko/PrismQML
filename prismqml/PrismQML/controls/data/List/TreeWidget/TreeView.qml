@@ -99,8 +99,8 @@ DataWidgetCore {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: Enums.spacing.xxs
-                radius: Enums.radius.small
-                color: delegateRoot.hovered ? Enums.stateColor.treeItemHover : Enums.transparent
+                radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                color: delegateRoot.hovered ? Qt.tint(Enums.cardColor, Enums.stateColor.treeItemHover) : Enums.transparent
                 Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
             }
 

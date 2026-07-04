@@ -43,7 +43,7 @@ Item {
         anchors.rightMargin: Enums.spacing.xxs
         anchors.topMargin: Enums.spacing.xxs
         anchors.bottomMargin: Enums.spacing.xxs
-        radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+        radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
 
         color: {
             if (control.selected) {
@@ -59,8 +59,8 @@ Item {
         }
 
         // neo: 选中态加黑边
-        border.width: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : 0
-        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.transparent
+        border.width: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : (Enums.isPrismDesign && control.selected ? Enums.prismDesign.borderWidth : 0)
+        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : (Enums.isPrismDesign ? Enums.borderStrongColor : Enums.transparent)
 
         // No animation to avoid flicker 无动画避免闪烁
     }

@@ -47,7 +47,7 @@ Widget {
     property int completeDuration: Enums.duration.progressComplete  // 进度完成后持续显示时间(ms)
     
     // ==================== Style Props 样式属性 ====================
-    property real radius: Enums.radius.large  // 圆角半径
+    property real radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large  // 圆角半径
     
     // ==================== Signals 信号 ====================
     signal closed()
@@ -76,7 +76,7 @@ Widget {
         // Progress bar/ring/indeterminate mode: white card (switch after complete) 进度条/进度环/不确定模式：白色卡片（进度完成后切换为语义色）
 
         if ((_isProgressMode || _isIndeterminateMode) && !_progressComplete) {
-            return Enums.isDark ? Enums.cardColor : "white"
+            return Enums.cardColor
         }
         // Normal mode or after complete: use semantic background color 普通模式或完成后：使用语义背景色
         // Neobrutalism: 白底(靠黑边+左侧色条+硬阴影区分), 不用语义淡背景
@@ -90,7 +90,7 @@ Widget {
     }
     
     // Border color 边框色 (neo 用控件边框 token=黑; Fluent 用 divider 轻分隔)
-    readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.stateColor.divider
+    readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.stateColor.border : Enums.stateColor.divider)
     
     // ==================== Size 尺寸 ====================
     // Content size (inherited from Widget) 内容尺寸：根据内部文字自适应
@@ -176,7 +176,7 @@ Widget {
     Rectangle {
         id: card
         anchors.fill: parent
-        radius: Enums.radius.large  // 6px
+        radius: control.radius
         color: backgroundColor
         border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin  // neo 粗黑边
         border.color: borderColor

@@ -59,10 +59,10 @@ Item {
  id: card
  width: parent.width
  height: cardContent.implicitHeight
- radius: Enums.radius.dialog
+ radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.dialog
  // Opaque background: light gray for light, dark gray for dark theme 不透明背景：浅色用浅灰，深色用深灰
 
- color: Enums.isDark ? Enums.exampleCardColors.bgDark : Enums.exampleCardColors.bgLight
+ color: Enums.isPrismDesign ? Enums.cardColor : (Enums.isDark ? Enums.exampleCardColors.bgDark : Enums.exampleCardColors.bgLight)
  
  // Shadow: soft shadow, bottom-right direction 阴影：柔和阴影，右下角方向
  // neo: 关软阴影, 改用硬阴影 NeoShadow
@@ -130,7 +130,7 @@ Item {
  height: parent.height + card.radius
  y: -card.radius
  radius: card.radius
- color: Enums.isDark ? Enums.exampleCardColors.descBgDark : Enums.exampleCardColors.descBgLight
+ color: Enums.isPrismDesign ? Enums.surfaceColor : (Enums.isDark ? Enums.exampleCardColors.descBgDark : Enums.exampleCardColors.descBgLight)
  }
  
  // Top separator line 顶部分隔线
@@ -164,7 +164,7 @@ Item {
  color: "transparent"
  border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 1
  border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
- : (Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle)
+ : (Enums.isPrismDesign ? Enums.stateColor.cardBorder : (Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle))
  }
  }
  }

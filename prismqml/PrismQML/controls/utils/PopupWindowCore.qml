@@ -18,8 +18,8 @@ Item {
     property bool isClosing: false  // Closing flag, prevent quick reopen 关闭标志
     property int popupWidth: 200
     property int popupHeight: 200
-    property int popupRadius: Enums.radius.large
-    property int shadowRadius: Enums.radius.large
+    property int popupRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+    property int shadowRadius: popupRadius
     property bool modal: false
     property bool closeOnClickOutside: true
     property bool stealFocus: true  // Whether to steal focus when opening 打开时是否抢夺焦点
@@ -421,7 +421,7 @@ Item {
                 width: control.popupWidth
                 height: control.popupHeight
                 radius: control.popupRadius
-                color: Enums.cardColor
+                color: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
                 border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
                 border.color: Enums.stateColor.border
                 opacity: Enums.opacityLevel.invisible

@@ -355,27 +355,30 @@ QtObject {
         readonly property color pressed: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.pressedLight)
     }
     
-    // ==================== ChartColors 图表颜色 (Fluent Design) ====================
+    // ==================== ChartColors 图表颜色 ====================
     readonly property QtObject chartColors: QtObject {
-        // Fluent Design chart palette 柔和的Fluent图表调色板
-        readonly property var palette: [
+        readonly property var _fluentPalette: [
             "#0078D4", "#107C10", "#FFB900", "#D13438", "#8764B8",
             "#00B7C3", "#498205", "#FF8C00", "#E81123", "#881798"
         ]
+        readonly property var _prismPalette: [
+            "#2F6FED", "#18A999", "#D97706", "#D64550", "#7C5CFF",
+            "#00A6D6", "#6E9F2E", "#C45D9B", "#5B7CFA", "#8A6FDF"
+        ]
+        readonly property var _prismDarkPalette: [
+            "#7AA7FF", "#59D6C7", "#F6B44B", "#FF8A94", "#A99BFF",
+            "#6EDBFF", "#A8D46E", "#F09BD1", "#9BB0FF", "#BDAEFF"
+        ]
+        // Fluent/Prism chart palette Fluent/Prism图表调色板
+        readonly property var palette: root.isPrismDesign ? (root.isDark ? _prismDarkPalette : _prismPalette) : _fluentPalette
         // Pie/Radar/Scatter chart palette 饼图/雷达图/散点图调色板
-        readonly property var pieRadarPalette: [
-            "#0078D4", "#107C10", "#FFB900", "#D13438", "#8764B8",
-            "#00B7C3", "#498205", "#FF8C00", "#E81123", "#881798"
-        ]
+        readonly property var pieRadarPalette: palette
         // Extended palette for more data series 扩展调色板
-        readonly property var extendedPalette: [
-            "#0078D4", "#107C10", "#FFB900", "#D13438", "#8764B8",
-            "#00B7C3", "#498205", "#FF8C00", "#E81123", "#881798"
-        ]
+        readonly property var extendedPalette: palette
         // Grid line color 网格线颜色
-        readonly property color gridLine: root.isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.08)
+        readonly property color gridLine: root.isPrismDesign ? prismDesign.divider : (root.isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.08))
         // Axis label color 坐标轴标签颜色
-        readonly property color axisLabel: root.isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
+        readonly property color axisLabel: root.isPrismDesign ? prismDesign.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6))
     }
     
     // ==================== ConfettiColors 彩纸颜色 ====================

@@ -71,13 +71,13 @@ OverlayDialogCore {
         width: Enums.controlSize.dialogDefaultWidth
         height: Enums.controlSize.dialogDefaultHeight
 
-        radius: Enums.radius.dialog
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.dialog
 
-        // neo: 白面+黑边; Fluent: dialogColors
-        color: Enums.isNeobrutalism ? Enums.dialogColor : Enums.dialogColors.containerBg
+        // neo: 白面+黑边; Prism: overlay; Fluent: dialogColors
+        color: Enums.isNeobrutalism || Enums.isPrismDesign ? Enums.dialogColor : Enums.dialogColors.containerBg
 
         border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.dialogColors.border
+        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.stateColor.dialogBorder
         
         // Clip children to rounded corners 裁剪子元素以适应圆角
         clip: true
