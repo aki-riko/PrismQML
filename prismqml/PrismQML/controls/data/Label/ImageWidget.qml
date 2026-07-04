@@ -15,11 +15,12 @@ Item {
     
     // ==================== Public Props 公开属性 ====================
     property string source: ""
-    property int radius: Enums.radius.small
+    property int radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     property int fillMode: Image.PreserveAspectCrop  // Fill mode 填充模式
     property bool loading: sourceImage.status === Image.Loading
     property bool error: sourceImage.status === Image.Error
     property bool ready: sourceImage.status === Image.Ready
+    property color accentColor: Enums.accentColor
     
     // HiDPI support 高DPI支持
     property bool hiDpiEnabled: true  // Enable HiDPI scaling 启用高DPI缩放
@@ -28,9 +29,10 @@ Item {
     // Original image info 原始图片信息
     readonly property int sourceWidth: sourceImage.sourceSize.width
     readonly property int sourceHeight: sourceImage.sourceSize.height
+    readonly property color _placeholderColor: Enums.stateColor.controlBgHover
+    readonly property color _placeholderIconColor: Enums.stateColor.dropBorderHover
     
     signal clicked()
-    property color accentColor: Enums.accentColor
 
     // ==================== Public Methods 公共方法 ====================
     // Set scaled contents (for compatibility) 设置缩放内容
@@ -45,13 +47,13 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: control.radius
-        color: Enums.stateColor.controlBgHover
+        color: control._placeholderColor
         visible: loading || error || source === ""
         
         Icon {
             anchors.centerIn: parent
             iconSize: Math.min(parent.width, parent.height) * 0.3
-            color: Enums.stateColor.dropBorderHover
+            color: control._placeholderIconColor
             icon: error ? "DismissCircle" : (loading ? "ArrowSync" : "Camera")
         }
     }

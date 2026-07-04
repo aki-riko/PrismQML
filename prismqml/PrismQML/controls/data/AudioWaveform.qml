@@ -23,19 +23,19 @@ Item {
     property bool animated: true  // Enable animations 启用动画
     property bool showProgressIndicator: true  // Show progress line 显示进度线
     
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _hovered: mouseArea.containsMouse
+    readonly property bool _pressed: mouseArea.pressed
+    readonly property int _waveformRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
+    readonly property int _waveformInnerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _waveformBorderColor: control._hovered ? Enums.accentColor : Enums.stateColor.cardBorder
+    readonly property color _progressOverlayColor: Enums.stateColor.accentSubtle
+
     // ==================== Signals 信号 ====================
     signal clicked(real position)  // Click position 0-1 点击位置
     signal progressUpdated(real newProgress)
     
-    // ==================== Internal State 内部状态 ====================
-    readonly property bool _hovered: mouseArea.containsMouse
-    readonly property bool _pressed: mouseArea.pressed
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: 300
-    implicitHeight: 80
-
-    // ==================== Fluent Design Methods 方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     // Set source (alias for setWaveformData) 设置音频源
     function setSource(src) { /* Use setWaveformData instead */ }
 
@@ -53,14 +53,18 @@ Item {
         waveformData = data
     }
 
+    // ==================== Size 尺寸 ====================
+    implicitWidth: 300
+    implicitHeight: 80
+
     // ==================== Background Card 背景卡片 ====================
     ShadowedRectangle {
         id: background
         anchors.fill: parent
         color: control.backgroundColor
-        radius: Enums.radius.large
+        radius: control._waveformRadius
         border.width: Enums.border.thin
-        border.color: control._hovered ? Enums.accentColor : Enums.stateColor.cardBorder
+        border.color: control._waveformBorderColor
         shadowLevel: control._hovered ? Enums.shadow.level4 : Enums.shadow.level2
         
         Behavior on border.color {
@@ -83,10 +87,8 @@ Item {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             width: parent.width * control.progress
-            color: Enums.isDark 
-                ? Qt.rgba(Enums.accentColor.r, Enums.accentColor.g, Enums.accentColor.b, 0.15)
-                : Qt.rgba(Enums.accentColor.r, Enums.accentColor.g, Enums.accentColor.b, 0.1)
-            radius: Enums.radius.small
+            color: control._progressOverlayColor
+            radius: control._waveformInnerRadius
             
             Behavior on width {
                 enabled: control.animated && !mouseArea.pressed

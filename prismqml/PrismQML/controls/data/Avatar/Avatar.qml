@@ -12,9 +12,16 @@ import "../../icons"
 Rectangle {
     id: control
     
+    // ==================== Public Props 公开属性 ====================
     property string source: ""
     property string text: ""
     property int size: 40
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property color _avatarBackground: source !== "" ? Enums.transparent : Enums.accentColor
+    readonly property int _avatarBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : 0)
+    readonly property color _avatarBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.borderStrongColor : Enums.transparent)
+    readonly property color _avatarContentColor: Enums.accentForeground
 
     // ==================== Public Methods 公共方法 ====================
     // Set avatar size 设置头像尺寸
@@ -25,11 +32,11 @@ Rectangle {
     width: size
     height: size
     radius: size / 2
-    color: source !== "" ? Enums.transparent : Enums.accentColor
+    color: control._avatarBackground
     antialiasing: true
-    // neo: 头像加黑边(圆形粗黑边框)
-    border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
-    border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent
+    // Avatar boundary for non-Fluent skins 非 Fluent 皮肤头像边界
+    border.width: control._avatarBorderWidth
+    border.color: control._avatarBorderColor
     
     // Text avatar 文字头像
     Label {
@@ -38,7 +45,7 @@ Rectangle {
         text: control.text.length > 0 ? control.text.charAt(0).toUpperCase() : ""
         font.pixelSize: size * 0.4
         font.bold: true
-        color: Enums.accentForeground
+        color: control._avatarContentColor
         visible: source === "" && text !== ""
     }
     
@@ -104,7 +111,7 @@ Rectangle {
         anchors.centerIn: parent
         icon: Enums.icon.person
         iconSize: size * 0.5
-        color: Enums.accentForeground
+        color: control._avatarContentColor
         visible: control.source === "" && control.text === ""
     }
 }

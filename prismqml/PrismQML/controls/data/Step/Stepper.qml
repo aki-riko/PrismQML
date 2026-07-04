@@ -18,28 +18,35 @@ Item {
     property int currentStep: 0
     property int indicatorSize: 36  // Circle size 圆形大小
     
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _stepWidth: steps.length > 0 ? width / steps.length : 0
+    readonly property real _lineStartX: _stepWidth / 2  // First circle center 第一个圆圈中心
+    readonly property real _lineEndX: width - _stepWidth / 2  // Last circle center 最后一个圆圈中心
+    readonly property real _lineWidth: _lineEndX - _lineStartX  // Total line width 总线宽
+    readonly property color _stepLineColor: Enums.stateColor.border
+    readonly property color _stepActiveColor: Enums.accentColor
+    readonly property color _stepInactiveColor: Enums.cardColor
+    readonly property color _stepBorderColor: Enums.stateColor.border
+    readonly property color _stepActiveContentColor: Enums.accentForeground
+    readonly property color _stepInactiveContentColor: Enums.textColor.secondary
+    readonly property color _stepActiveLabelColor: Enums.textColor.primary
+
     // ==================== Signals 信号 ====================
     signal stepChanged(int step)
     signal stepClicked(int index)
     
-    // ==================== Methods 方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function stepNext() { if (currentStep < steps.length - 1) currentStep++ }
     function stepBack() { if (currentStep > 0) currentStep-- }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _getStepText(step) { return typeof step === "string" ? step : (step.text || "") }
+    function _getStepIcon(step) { return typeof step === "string" ? "" : (step.icon || "") }
     
     onCurrentStepChanged: stepChanged(currentStep)
     
     implicitWidth: Math.max(400, steps.length * 100)
     implicitHeight: indicatorSize + Enums.spacing.m + Enums.typography.caption + Enums.spacing.s
-    
-    // ==================== Helper 辅助函数 ====================
-    function _getStepText(step) { return typeof step === "string" ? step : (step.text || "") }
-    function _getStepIcon(step) { return typeof step === "string" ? "" : (step.icon || "") }
-    
-    // Line position calculation 连接线位置计算
-    readonly property real _stepWidth: steps.length > 0 ? width / steps.length : 0
-    readonly property real _lineStartX: _stepWidth / 2  // First circle center 第一个圆圈中心
-    readonly property real _lineEndX: width - _stepWidth / 2  // Last circle center 最后一个圆圈中心
-    readonly property real _lineWidth: _lineEndX - _lineStartX  // Total line width 总线宽
     
     // ==================== Background Line 背景连接线 ====================
     Rectangle {
@@ -47,7 +54,7 @@ Item {
         y: indicatorSize / 2 - Enums.border.normal / 2
         width: _lineWidth
         height: Enums.border.normal
-        color: Enums.stateColor.border
+        color: control._stepLineColor
         visible: steps.length > 1
     }
     
@@ -57,7 +64,7 @@ Item {
         y: indicatorSize / 2 - Enums.border.normal / 2
         width: steps.length > 1 ? _lineWidth * currentStep / (steps.length - 1) : 0
         height: Enums.border.normal
-        color: Enums.accentColor
+        color: control._stepActiveColor
         visible: steps.length > 1
         
         Behavior on width { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
@@ -96,9 +103,9 @@ Item {
                             width: indicatorSize
                             height: indicatorSize
                             radius: indicatorSize / 2
-                            color: isActive ? Enums.accentColor : Enums.cardColor
+                            color: isActive ? control._stepActiveColor : control._stepInactiveColor
                             border.width: isActive ? 0 : Enums.border.normal
-                            border.color: Enums.stateColor.border
+                            border.color: control._stepBorderColor
                             
                             Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
                             Behavior on border.width { NumberAnimation { duration: Enums.duration.fast } }
@@ -119,7 +126,7 @@ Item {
                                 anchors.centerIn: parent
                                 icon: isCompleted ? Enums.icon.checkmark : stepIcon
                                 iconSize: Enums.iconSize.s
-                                color: "white"
+                                color: control._stepActiveContentColor
                                 visible: isCompleted || (isActive && stepIcon !== "")
                                 opacity: 0
                                 scale: 0.5
@@ -146,7 +153,7 @@ Item {
                                 anchors.centerIn: parent
                                 type: Enums.label.type_body
                                 text: String(index + 1)
-                                color: isActive ? "white" : Enums.secondaryForeground
+                                color: isActive ? control._stepActiveContentColor : control._stepInactiveContentColor
                                 visible: !isCompleted && (stepIcon === "" || !isActive)
                                 
                                 Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
@@ -171,7 +178,7 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         type: Enums.label.type_caption
                         text: control._getStepText(modelData)
-                        color: isActive ? Enums.foregroundColor : Enums.secondaryForeground
+                        color: isActive ? control._stepActiveLabelColor : control._stepInactiveContentColor
                         horizontalAlignment: Text.AlignHCenter
                         
                         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }

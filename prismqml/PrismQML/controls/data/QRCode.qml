@@ -18,8 +18,11 @@ Item {
     property color backgroundColor: Enums.cardColor          // 背景色
     property string errorLevel: "M"       // 错误纠正级别: L(7%) / M(15%) / Q(25%) / H(30%)
     
-    // ==================== Internal 内部属性 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool isAvailable: typeof QRCodeGenerator !== "undefined" && QRCodeGenerator !== null && QRCodeGenerator.available
+    readonly property int _qrPlaceholderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _qrBorderColor: Enums.stateColor.border
+    readonly property color _qrHintColor: Enums.textColor.secondary
 
     // ==================== Public Methods 公共方法 ====================
     function getContent() { return content }
@@ -52,9 +55,9 @@ Item {
         anchors.fill: parent
         visible: !qrImage.visible
         color: control.backgroundColor
-        radius: Enums.radius.small
+        radius: control._qrPlaceholderRadius
         border.width: Enums.border.thin
-        border.color: Enums.stateColor.border
+        border.color: control._qrBorderColor
         
         Column {
             anchors.centerIn: parent
@@ -73,7 +76,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 type: Enums.label.type_caption
                 text: control.content === "" ? "无内容" : "加载中..."
-                color: Enums.textColor.secondary
+                color: control._qrHintColor
                 horizontalAlignment: Text.AlignHCenter
             }
         }

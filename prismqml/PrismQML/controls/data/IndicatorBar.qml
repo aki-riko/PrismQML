@@ -29,7 +29,7 @@ Rectangle {
 
     // Colors 颜色
     property color activeColor: Enums.accentColor
-    property color inactiveColor: Enums.isDark ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(0, 0, 0, 0.16)
+    property color inactiveColor: Enums.stateColor.pipNormal
 
     // Sizes 尺寸（短边为 thickness，长边随 active 在 inactiveLength/activeLength 间切换）
     property real thickness: 3
@@ -37,22 +37,24 @@ Rectangle {
     property real activeLength: 36
 
     // Animation duration 动画时长
-    property int animationDuration: 250
+    property int animationDuration: Enums.duration.medium
 
-    // ==================== Internal 内部 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool _isVertical: orientation === Enums.indicatorBar.orientation_vertical
     readonly property real _length: active ? activeLength : inactiveLength
     readonly property int _easingType: animationStyle === Enums.indicatorBar.animation_bounce
         ? Easing.OutBack
         : Easing.OutCubic
+    readonly property color _indicatorActiveColor: activeColor
+    readonly property color _indicatorInactiveColor: inactiveColor
 
     // Gradient end color: solid → same as top; gradient → darker accent / faded inactive
     // 渐变末端色：纯色模式与首端相同；渐变模式 → accent 深色 / inactive 更淡
-    readonly property color _topColor: active ? activeColor : inactiveColor
+    readonly property color _topColor: active ? _indicatorActiveColor : _indicatorInactiveColor
     readonly property color _bottomColor: {
         if (colorStyle === Enums.indicatorBar.style_solid) return _topColor
-        if (active) return Qt.darker(activeColor, 1.4)
-        return Qt.rgba(inactiveColor.r, inactiveColor.g, inactiveColor.b, inactiveColor.a * 0.25)
+        if (active) return Qt.darker(_indicatorActiveColor, 1.4)
+        return Qt.rgba(_indicatorInactiveColor.r, _indicatorInactiveColor.g, _indicatorInactiveColor.b, _indicatorInactiveColor.a * 0.25)
     }
 
     // ==================== Geometry 几何 ====================
