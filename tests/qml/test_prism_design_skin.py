@@ -237,6 +237,43 @@ ToggleNavigationBar {
 
         keep.append(_build(engine, b"""
 import PrismQML
+Paginator {
+    currentPage: 2
+    totalPages: 6
+    visiblePages: 5
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Pivot {
+    items: [{ "key": "overview", "text": "Overview" }, { "key": "details", "text": "Details" }]
+    currentIndex: 1
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+TabWidget {
+    width: 320
+    height: 220
+    tabs: [{ "title": "Overview", "icon": "Home" }, { "title": "Details", "icon": "Settings" }]
+    currentIndex: 1
+    showAddButton: true
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+NavigationProfileCard {
+    title: "Prism"
+    subtitle: "Design Skin"
+    isCompacted: false
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
 DateTimePicker {
 }
 """))

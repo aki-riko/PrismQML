@@ -23,6 +23,9 @@ Item {
  property int _avatarSizeExpanded: Enums.controlSize.navBarHeight
  property int _currentAvatarSize: isCompacted ? _avatarSizeCompact : _avatarSizeExpanded
  
+ // ==================== Signals 信号 ====================
+ signal clicked()
+
  // Size 尺寸
  width: isCompacted ? Enums.controlSize.navItemHeight : Enums.controlSize.navFilledItemWidth + Enums.spacing.xxxl
  height: isCompacted ? Enums.controlSize.topNavItemHeight : Enums.controlSize.cardHeight
@@ -31,10 +34,9 @@ Item {
  Rectangle {
  id: background
  anchors.fill: parent
- radius: Enums.radius.small
- color: mouseArea.containsMouse ? 
- (Enums.isDark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.03)) : 
- Enums.transparent
+ radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+ color: mouseArea.pressed ? Enums.stateColor.pressed
+        : (mouseArea.containsMouse ? Enums.stateColor.hover : Enums.transparent)
  
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  }
@@ -96,22 +98,8 @@ Item {
  hoverEnabled: true
  cursorShape: Qt.PointingHandCursor
  
- onPressed: {
- background.color = Enums.isDark ? 
- Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.05)
- }
- 
- onReleased: {
- background.color = containsMouse ? 
- (Enums.isDark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.03)) : 
- Enums.transparent
- }
- 
  onClicked: {
  control.clicked()
  }
  }
- 
- // ==================== Signals 信号 ====================
- signal clicked()
 }

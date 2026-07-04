@@ -88,7 +88,7 @@ Item {
                     id: indicator
                     width: root._buttonSize
                     height: root._buttonSize
-                    radius: Enums.radius.small
+                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                     color: root.accentColor
                     
                     x: (root.currentPage - 1) * root._itemWidth
@@ -123,7 +123,7 @@ Item {
                             // Hover background 悬停背景
                             Rectangle {
                                 anchors.fill: parent
-                                radius: Enums.radius.small
+                                radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                                 color: pageMouseArea.containsMouse && !pageDelegate.isCurrentPage 
                                        ? Enums.stateColor.hover : "transparent"
                                 Behavior on color {
