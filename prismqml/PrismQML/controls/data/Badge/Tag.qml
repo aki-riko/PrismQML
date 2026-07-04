@@ -38,7 +38,7 @@ Rectangle {
     
     implicitWidth: contentRow.implicitWidth + 16
     implicitHeight: Enums.spacing.xxxl
-    radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+    radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
 
     color: Enums.stateColor.accentSubtle
     // neo: 始终黑粗边(标签靠黑边显形); Fluent: 按 showBorder

@@ -103,7 +103,7 @@ Item {
     
     // ==================== Background & Border 背景和边框 ====================
     // Right-side rounded corner radius 右侧圆角半径
-    readonly property int _cornerRadius: Enums.radius.large
+    readonly property int _cornerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
 
     // Update indicator position in real-time (no animation) 实时更新指示器位置（无动画）
     function _updateIndicatorPositionRealtime() {

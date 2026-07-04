@@ -36,12 +36,12 @@ Item {
     Rectangle {
         id: bg
         anchors.fill: parent
-        radius: Enums.radius.card
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
         
         color: {
             if (control.selected) {
                 // Selected = hover color 选中色=悬浮色
-                return Enums.stateColor.transparentHover
+                return Enums.stateColor.navSelected
             }
             if (control.pressed || control.hovered) {
                 // hover takes priority over pressed 悬浮优先于按下

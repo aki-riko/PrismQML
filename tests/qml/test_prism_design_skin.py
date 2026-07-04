@@ -146,6 +146,97 @@ Action {
 
         keep.append(_build(engine, b"""
 import PrismQML
+ListWidget {
+    width: 220
+    height: 120
+}
+"""))
+        list_widget = keep[-1][1]
+        assert list_widget.property("radius") == 8
+        assert list_widget.property("borderRadius") == 8
+
+        keep.append(_build(engine, b"""
+import PrismQML
+DataWidgetCore {
+    width: 240
+    height: 140
+}
+"""))
+        data_widget = keep[-1][1]
+        assert data_widget.property("borderRadius") == 8
+
+        keep.append(_build(engine, b"""
+import PrismQML
+TableWidget {
+    width: 260
+    height: 160
+    tableData: [{ "name": "Alpha" }]
+    columns: [{ "text": "Name", "role": "name" }]
+}
+"""))
+        table_widget = keep[-1][1]
+        assert table_widget.property("borderRadius") == 8
+
+        keep.append(_build(engine, b"""
+import PrismQML
+TreeWidget {
+    width: 260
+    height: 160
+    model: [{ "text": "Root", "children": [{ "text": "Child" }] }]
+}
+"""))
+        tree_widget = keep[-1][1]
+        assert tree_widget.property("borderRadius") == 8
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ChartView {
+    width: 260
+    height: 180
+    chartData: [{ "label": "Alpha", "value": 12 }]
+}
+"""))
+        chart_view = keep[-1][1]
+        assert chart_view.property("radius") == 8
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Tag {
+    text: "Stable"
+}
+"""))
+        tag = keep[-1][1]
+        assert tag.property("radius") == 6
+
+        keep.append(_build(engine, b"""
+import PrismQML
+NavigationViewItem {
+    text: "Dashboard"
+    icon: "Home"
+    selected: true
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+PipsPager {
+    pageCount: 4
+    currentIndex: 1
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ToggleNavigationBar {
+    width: 220
+    height: 160
+    model: [{ "text": "Files", "icon": "Home" }, { "text": "Settings", "icon": "Settings" }]
+    currentIndex: 1
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
 DateTimePicker {
 }
 """))

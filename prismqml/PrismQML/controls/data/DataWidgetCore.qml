@@ -65,7 +65,7 @@ Rectangle {
     property var shadowLevel: Enums.shadow.level8
     property real cardMargin: Enums.spacing.m
     property bool borderVisible: true
-    property int borderRadius: Enums.radius.large
+    property int borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
 
     // Animation 动画
     property bool animated: true

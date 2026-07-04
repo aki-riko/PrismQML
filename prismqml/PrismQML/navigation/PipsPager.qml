@@ -37,7 +37,7 @@ Item {
         anchors.horizontalCenter: control.isHorizontal ? undefined : parent.horizontalCenter
         width: Enums.iconSize.xl
         height: Enums.iconSize.xl
-        radius: Enums.radius.small
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
         color: prevArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
         visible: control.currentIndex > 0
         
@@ -74,10 +74,10 @@ Item {
             Rectangle {
                 width: index === control.currentIndex % control.visiblePipCount ? 16 : 8
                 height: 8
-                radius: Enums.radius.small
+                radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                 color: index === control.currentIndex % control.visiblePipCount 
                     ? control.accentColor 
-                    : (Enums.stateColor.dropBorderHover)
+                    : Enums.stateColor.pipNormal
                 
                 Behavior on width { NumberAnimation { duration: Enums.duration.normal } }
                 
@@ -105,10 +105,10 @@ Item {
             Rectangle {
                 width: 8
                 height: index === control.currentIndex % control.visiblePipCount ? 16 : 8
-                radius: Enums.radius.small
+                radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                 color: index === control.currentIndex % control.visiblePipCount 
                     ? control.accentColor 
-                    : (Enums.stateColor.dropBorderHover)
+                    : Enums.stateColor.pipNormal
                 
                 Behavior on height { NumberAnimation { duration: Enums.duration.normal } }
                 
@@ -132,7 +132,7 @@ Item {
         anchors.horizontalCenter: control.isHorizontal ? undefined : parent.horizontalCenter
         width: Enums.iconSize.xl
         height: Enums.iconSize.xl
-        radius: Enums.radius.small
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
         color: nextArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
         visible: control.currentIndex < control.pageCount - 1
         

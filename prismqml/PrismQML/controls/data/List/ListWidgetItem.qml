@@ -41,7 +41,7 @@ Rectangle {
 
     // ==================== Background 背景 ====================
     color: _bgColor
-    radius: Enums.radius.card
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
 
     // 状态色全部合成成不透明色, 在不透明色之间做 ColorAnimation 插值才平滑。
     // 若默认态用透明黑 (transparent = #00000000), 插值到浅蓝/灰时中间帧 RGB 从黑

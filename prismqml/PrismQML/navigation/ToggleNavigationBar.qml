@@ -137,7 +137,7 @@ Item {
         id: slidingIndicator
         orientation: Qt.Vertical
         z: Enums.zIndex.content  // Below bottom cover 低于底部遮盖层
-        radius: Enums.radius.small
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
         visible: (control.model.length + control.bottomItems.length) > 0
     }
     
@@ -186,7 +186,7 @@ Item {
                     
                     Rectangle {
                         anchors.fill: parent
-                        radius: Enums.radius.small
+                        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                         visible: !topNavItem.selected && (topNavItem.hovered || topNavItem.pressed)
                         color: topNavItem.pressed ? Enums.stateColor.transparentPressed : 
                                topNavItem.hovered ? Enums.stateColor.transparentHover : 
@@ -296,7 +296,7 @@ Item {
                 // Selected background 选中背景
                 Rectangle {
                     anchors.fill: parent
-                    radius: Enums.radius.small
+                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                     color: Enums.accentColor
                     visible: false
                 }
@@ -304,7 +304,7 @@ Item {
                 // Hover/Pressed background 悬停/按下背景
                 Rectangle {
                     anchors.fill: parent
-                    radius: Enums.radius.small
+                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                     visible: !bottomNavItem.selected && (bottomNavItem.hovered || bottomNavItem.pressed)
                     color: bottomNavItem.pressed ? Enums.stateColor.transparentPressed : 
                            bottomNavItem.hovered ? Enums.stateColor.transparentHover : 

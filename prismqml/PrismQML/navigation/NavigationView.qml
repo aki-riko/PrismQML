@@ -77,7 +77,7 @@ NavigationPanelCore {
         anchors.leftMargin: Enums.controlSize.navPanelPaddingH
         width: control.compactButtonWidth  // Always compact width 始终紧凑宽度
         height: Enums.controlSize.navItemHeight
-        radius: Enums.radius.card
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
         color: returnArea.containsMouse ? Enums.stateColor.hover : Enums.transparent
         
         readonly property int iconCenterMargin: (control.compactButtonWidth - Enums.iconSize.s) / 2
@@ -111,7 +111,7 @@ NavigationPanelCore {
         anchors.leftMargin: Enums.controlSize.navPanelPaddingH
         width: control.compactButtonWidth  // Always compact width 始终紧凑宽度
         height: Enums.controlSize.navItemHeight
-        radius: Enums.radius.card
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
         color: menuArea.containsMouse ? Enums.stateColor.hover : Enums.transparent
         
         readonly property int iconCenterMargin: (control.compactButtonWidth - Enums.iconSize.m) / 2

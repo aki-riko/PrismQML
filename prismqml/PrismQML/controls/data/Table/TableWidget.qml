@@ -578,7 +578,7 @@ DataWidgetCore {
         width: root._hasHorizontalScroll ? root._effectiveContentWidth - 10 : listView.width - 10
         height: rowHeight
 
-        radius: Enums.radius.small
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
 
         // Press scale 按压缩放
         scale: ma.pressed ? 0.98 : 1.0
