@@ -65,20 +65,32 @@ Rectangle {
     property int cardWidth: 400
     property real cardOpacity: 0.92
     
+    // ==================== Internal Props 内部属性 ====================
+    readonly property bool _isLogin: mode === Enums.auth.mode_login
+    readonly property int _cardRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
+    readonly property int _errorRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _cardColor: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property color _cardBackgroundColor: Qt.rgba(
+        root._cardColor.r,
+        root._cardColor.g,
+        root._cardColor.b,
+        root.cardOpacity
+    )
+    readonly property int _cardBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
+    readonly property color _cardBorderColor: Enums.stateColor.border
+    readonly property color _errorBackgroundColor: Enums.statusLevel.getBgColor(Enums.statusLevel.errorStr)
+    readonly property int _errorBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
+    readonly property color _errorBorderColor: Enums.statusLevel.getColor(Enums.statusLevel.errorStr)
+    readonly property color _errorTextColor: _errorBorderColor
+
     // ==================== Signals 信号 ====================
     signal loginRequested(string username, string password, bool rememberMe)
     signal registerRequested(string username, string email, string password)
     signal oauthRequested(int provider)
     signal forgotPasswordClicked()
     signal modeToggled(int newMode)  // Renamed to avoid conflict with property change signal 重命名避免与属性变化信号冲突
-    
-    // ==================== Internal 内部 ====================
-    readonly property bool _isLogin: mode === Enums.auth.mode_login
-    readonly property int _cardRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
-    readonly property int _errorRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    readonly property color _cardColor: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
 
-    // ==================== Private Functions 私有函数 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function _isFormValid() {
         if (_isLogin) {
             return usernameInput.text.length > 0 && passwordInput.text.length > 0
@@ -177,14 +189,9 @@ Rectangle {
         height: cardContent.height + Enums.spacing.xxl * 2
         anchors.centerIn: parent
         radius: root._cardRadius
-        color: Qt.rgba(
-            root._cardColor.r,
-            root._cardColor.g,
-            root._cardColor.b,
-            root.cardOpacity
-        )
-        border.width: Enums.border.thin
-        border.color: Enums.stateColor.border
+        color: root._cardBackgroundColor
+        border.width: root._cardBorderWidth
+        border.color: root._cardBorderColor
         
         // Card shadow 卡片阴影
         shadowLevel: Enums.shadow.level8
@@ -256,9 +263,9 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: errorText.height + Enums.spacing.m
                 radius: root._errorRadius
-                color: Qt.rgba(Enums.statusLevel.errorColor.r, Enums.statusLevel.errorColor.g, Enums.statusLevel.errorColor.b, 0.1)
-                border.width: Enums.border.thin
-                border.color: Enums.statusLevel.errorColor
+                color: root._errorBackgroundColor
+                border.width: root._errorBorderWidth
+                border.color: root._errorBorderColor
                 visible: root.errorMessage !== ""
                 
                 Text {
@@ -268,7 +275,7 @@ Rectangle {
                     text: root.errorMessage
                     font.family: Enums.fontFamily
                     font.pixelSize: Enums.typography.bodySmall
-                    color: Enums.statusLevel.errorColor
+                    color: root._errorTextColor
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                 }
