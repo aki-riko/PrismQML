@@ -3,7 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import "../../.."
+import "../.."
 
 /**
  * CodeBlock — 代码块组件
@@ -20,11 +20,17 @@ Rectangle {
 
     property string code: ""
     property string language: ""
+    readonly property int _radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
+    readonly property color _blockBackground: Enums.isPrismDesign ? Enums.dialogColor : "#1E1E1E"
+    readonly property color _blockBorder: Enums.isPrismDesign ? Enums.borderColor : Qt.rgba(1, 1, 1, 0.08)
+    readonly property color _mutedText: Enums.isPrismDesign ? Enums.textColor.secondary : "#9CA3AF"
+    readonly property color _codeText: Enums.isPrismDesign ? Enums.textColor.primary : "#E5E7EB"
+    readonly property color _copyHover: Enums.isPrismDesign ? Enums.hoverColor : Qt.rgba(1, 1, 1, 0.1)
 
-    color: "#1E1E1E"
-    radius: Enums.radius.small
-    border.color: Qt.rgba(1, 1, 1, 0.08)
-    border.width: 1
+    color: _blockBackground
+    radius: _radius
+    border.color: _blockBorder
+    border.width: Enums.border.thin
 
     implicitWidth: 400
     implicitHeight: codeText.implicitHeight + headerRow.height + 16
@@ -40,7 +46,7 @@ Rectangle {
         Text {
             id: langLabel
             text: control.language
-            color: "#9CA3AF"
+            color: control._mutedText
             font.family: Enums.fontFamily
             font.pixelSize: 11
             anchors.left: parent.left
@@ -59,13 +65,13 @@ Rectangle {
 
             Rectangle {
                 anchors.fill: parent
-                radius: 4
-                color: copyBtn.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                color: copyBtn.containsMouse ? control._copyHover : Enums.transparent
 
                 Text {
                     anchors.centerIn: parent
                     text: copyBtn._copied ? "已复制" : "复制"
-                    color: copyBtn._copied ? "#10B981" : "#9CA3AF"
+                    color: copyBtn._copied ? Enums.statusLevel.successColor : control._mutedText
                     font.family: Enums.fontFamily
                     font.pixelSize: 11
                 }
@@ -107,7 +113,7 @@ Rectangle {
         anchors.topMargin: 4
 
         text: control.code
-        color: "#E5E7EB"
+        color: control._codeText
         font.family: "Consolas, 'Courier New', monospace"
         font.pixelSize: 12
         wrapMode: Text.Wrap

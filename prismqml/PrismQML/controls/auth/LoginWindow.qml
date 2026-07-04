@@ -74,6 +74,9 @@ Rectangle {
     
     // ==================== Internal 内部 ====================
     readonly property bool _isLogin: mode === Enums.auth.mode_login
+    readonly property int _cardRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
+    readonly property int _errorRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _cardColor: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
 
     // ==================== Private Functions 私有函数 ====================
     function _isFormValid() {
@@ -173,11 +176,11 @@ Rectangle {
         width: root.cardWidth
         height: cardContent.height + Enums.spacing.xxl * 2
         anchors.centerIn: parent
-        radius: Enums.radius.large
+        radius: root._cardRadius
         color: Qt.rgba(
-            Enums.cardColor.r,
-            Enums.cardColor.g,
-            Enums.cardColor.b,
+            root._cardColor.r,
+            root._cardColor.g,
+            root._cardColor.b,
             root.cardOpacity
         )
         border.width: Enums.border.thin
@@ -252,7 +255,7 @@ Rectangle {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: errorText.height + Enums.spacing.m
-                radius: Enums.radius.small
+                radius: root._errorRadius
                 color: Qt.rgba(Enums.statusLevel.errorColor.r, Enums.statusLevel.errorColor.g, Enums.statusLevel.errorColor.b, 0.1)
                 border.width: Enums.border.thin
                 border.color: Enums.statusLevel.errorColor

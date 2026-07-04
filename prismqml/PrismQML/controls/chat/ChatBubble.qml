@@ -4,7 +4,7 @@
 
 import QtQuick
 import QtQuick.Effects
-import "../../.."
+import "../.."
 import "../../effects"
 import "../icons"
 import "../data/Avatar"
@@ -53,6 +53,8 @@ Item {
     readonly property int _avatarGap: Enums.spacing.m   // 8
     readonly property int _sideMargin: Enums.spacing.xl // 16
     readonly property int _pad: Enums.spacing.l         // 12
+    readonly property int _bubbleRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+    readonly property int _bubbleTailRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
 
     // 可用宽度 (扣掉左右边距 + 助手头像占位)
     readonly property real _availWidth: {
@@ -162,7 +164,7 @@ Item {
     RectangularShadow {
         visible: !control._isUser && !control._isSystem && !Enums.isNeobrutalism
         anchors.fill: bubble
-        radius: Enums.radius.large
+        radius: control._bubbleRadius
         color: Enums.shadow.level2.color
         blur: Enums.shadow.level2.blur
         offset.x: 0
@@ -172,7 +174,7 @@ Item {
     NeoShadow {
         target: bubble
         visible: !control._isUser && !control._isSystem && Enums.isNeobrutalism
-        radius: Enums.radius.large
+        radius: control._bubbleRadius
         z: bubble.z - 1
     }
 
@@ -197,20 +199,20 @@ Item {
         anchors.horizontalCenter: control._isSystem ? parent.horizontalCenter : undefined
 
         // 非对称圆角: 用户右下尖, 助手左上尖, system 全圆
-        radius: Enums.radius.large
-        topLeftRadius: control._isUser ? Enums.radius.large : Enums.radius.small
-        topRightRadius: Enums.radius.large
-        bottomLeftRadius: Enums.radius.large
-        bottomRightRadius: control._isUser ? Enums.radius.small : Enums.radius.large
+        radius: control._bubbleRadius
+        topLeftRadius: control._isUser ? control._bubbleRadius : control._bubbleTailRadius
+        topRightRadius: control._bubbleRadius
+        bottomLeftRadius: control._bubbleRadius
+        bottomRightRadius: control._isUser ? control._bubbleTailRadius : control._bubbleRadius
 
         color: {
             if (control._isSystem) return Enums.hoverColor
             if (control._isUser) return Enums.accentColor
-            return Enums.cardColor
+            return Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
         }
         // neo: 所有气泡黑粗边(含用户气泡); Fluent: 仅助手细边
         border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (control._isUser ? 0 : Enums.border.thin)
-        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : (control._isUser ? "transparent" : Enums.borderColor)
+        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : (control._isUser ? Enums.transparent : Enums.borderColor)
 
         // ==================== Content ====================
         MarkdownView {
@@ -232,7 +234,7 @@ Item {
             anchors.margins: Enums.spacing.s
             font.pixelSize: Enums.typography.tiny + 1
             font.family: Enums.fontFamily
-            color: control._isUser ? Qt.rgba(1, 1, 1, 0.6) : Enums.textColor.tertiary
+            color: control._isUser && Enums.isPrismDesign ? Enums.accentForeground : (control._isUser ? Qt.rgba(1, 1, 1, 0.6) : Enums.textColor.tertiary)
         }
     }
 }

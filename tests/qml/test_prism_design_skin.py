@@ -444,6 +444,74 @@ DesktopNotification {
 }
 """))
 
+        keep.append(_build(engine, b"""
+import PrismQML
+Skeleton {
+    shape: Enums.skeleton.shape_rect
+    width: 80
+    height: 24
+}
+"""))
+        skeleton = keep[-1][1]
+        assert skeleton.property("_radius") == 6
+
+        keep.append(_build(engine, b"""
+import PrismQML
+CodeBlock {
+    code: "print('prism')"
+    language: "python"
+}
+"""))
+        code_block = keep[-1][1]
+        assert code_block.property("_radius") == 8
+        assert _rgb(code_block.property("_blockBackground")) == (248, 251, 255)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ChatBubble {
+    width: 420
+    role: "assistant"
+    content: "Hello Prism"
+}
+"""))
+        chat_bubble = keep[-1][1]
+        assert chat_bubble.property("_bubbleRadius") == 10
+        assert chat_bubble.property("_bubbleTailRadius") == 6
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ColorPicker {
+    type: Enums.colorPicker.type_picker
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+GradientSlider {
+    width: 180
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ColorPickerDialog {
+    title: "Pick"
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+LoginWindow {
+    width: 640
+    height: 520
+    matrixEnabled: false
+    errorMessage: "Invalid credentials"
+}
+"""))
+        login_window = keep[-1][1]
+        assert login_window.property("_cardRadius") == 12
+        assert login_window.property("_errorRadius") == 6
+
         chart_tooltip_path = (
             Path(__file__).resolve().parents[2]
             / "prismqml"

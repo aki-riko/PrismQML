@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
 
-import "../../.."
+import "../.."
 import "."
 import "../containers/ScrollBar"
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖

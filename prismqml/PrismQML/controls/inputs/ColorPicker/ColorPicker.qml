@@ -219,7 +219,7 @@ Item {
                 Rectangle {
                     width: Enums.spacing.xl
                     height: Enums.spacing.xl
-                    radius: Enums.radius.small
+                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                     anchors.verticalCenter: parent.verticalCenter
                     color: control.selectedColor
                     border.width: Enums.border.thin
