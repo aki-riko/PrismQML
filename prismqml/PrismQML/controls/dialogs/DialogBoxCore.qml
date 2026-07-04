@@ -12,14 +12,25 @@ import "../buttons/Button"
 OverlayDialogCore {
     id: control
     
-    // Override mask color for dialog 对话框使用不同的遮罩颜色
-    maskColor: Enums.stateColor.dialogOverlay
+    // ==================== Public Props 公开属性 ====================
     
     property bool actionsVisible: true      // Show action row 显示动作按钮区
     property Component footer: null             // Footer button component 按钮组件（由子类提供）
 
     // Body content 主体内容
     default property alias bodyContent: bodyLayout.data
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int _dialogRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.dialog
+    readonly property color _dialogBackground: Enums.dialogColor
+    readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
+                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+    readonly property color _dialogBorderColor: Enums.stateColor.dialogBorder
+    readonly property color _dialogMaskColor: Enums.stateColor.dialogOverlay
+    readonly property color _actionsRowBackground: Enums.stateColor.actionsRowBg
+    readonly property color _dialogShadowColor: Enums.shadow.level16.color
+    readonly property real _dialogShadowBlur: Enums.shadow.level16.blur
+    readonly property real _dialogShadowOffset: Enums.shadow.level16.offset
 
     // ==================== Override Methods 重写方法 ====================
 
@@ -59,6 +70,9 @@ OverlayDialogCore {
         _isOpen = true
     }
 
+    // ==================== Self Props 自身属性 ====================
+    maskColor: control._dialogMaskColor
+
     // ==================== Dialog Body 对话框主体 ====================
     Item {
         id: dialogBodyContainer
@@ -72,10 +86,10 @@ OverlayDialogCore {
         RectangularShadow {
             anchors.fill: dialogBody
             radius: dialogBody.radius
-            color: Enums.shadow.level8.color
-            blur: Enums.shadow.level8.blur
+            color: control._dialogShadowColor
+            blur: control._dialogShadowBlur
             offset.x: 0
-            offset.y: Enums.shadow.level8.offset
+            offset.y: control._dialogShadowOffset
             opacity: dialogBody.opacity
             scale: dialogBody.scale
             visible: !Enums.isNeobrutalism
@@ -93,15 +107,15 @@ OverlayDialogCore {
         Rectangle {
             id: dialogBody
             anchors.fill: parent
-            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.dialog
+            radius: control._dialogRadius
             clip: true  // Clip children to rounded corners 裁剪子元素以适应圆角
 
             // Background color 背景色
-            color: Enums.dialogColor
+            color: control._dialogBackground
 
             // Border 边框
-            border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-            border.color: Enums.stateColor.dialogBorder
+            border.width: control._dialogBorderWidth
+            border.color: control._dialogBorderColor
             
             // Animation 动画
             scale: control._isOpen ? 1 : 0.9
@@ -157,7 +171,7 @@ OverlayDialogCore {
                 visible: control.actionsVisible
                 
                 // Background color 背景色
-                color: Enums.stateColor.actionsRowBg
+                color: control._actionsRowBackground
                 
                 // Top border 顶部边框
                 Separator {

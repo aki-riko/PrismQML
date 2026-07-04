@@ -22,6 +22,15 @@ OverlayDialogCore {
     // Dialog body reference 对话框主体引用
     readonly property alias body: dialogBody
 
+    readonly property int _dialogRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.dialog
+    readonly property color _dialogBackground: Enums.isNeobrutalism || Enums.isPrismDesign ? Enums.dialogColor : Enums.dialogColors.containerBg
+    readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
+                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+    readonly property color _dialogBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.stateColor.dialogBorder
+    readonly property color _dialogShadowColor: Enums.shadow.level16.color
+    readonly property real _dialogShadowBlur: Enums.shadow.level16.blur
+    readonly property real _dialogShadowOffset: Enums.shadow.level16.offset
+
     // ==================== Override Methods 重写方法 ====================
     // Override open to reset dialogBody position 重写open以重置 dialogBody 位置
     function open() {
@@ -46,18 +55,18 @@ OverlayDialogCore {
     // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: dialogBody
-        radius: Enums.radius.dialog
-        color: Enums.stateColor.maskMedium
-        blur: Enums.shadow.level16.blur
+        radius: control._dialogRadius
+        color: control._dialogShadowColor
+        blur: control._dialogShadowBlur
         offset.x: 0
-        offset.y: Enums.shadow.level16.offset
+        offset.y: control._dialogShadowOffset
         visible: !Enums.isNeobrutalism
     }
 
     NeoShadow {
         target: dialogBody
         visible: Enums.isNeobrutalism
-        radius: Enums.radius.dialog
+        radius: control._dialogRadius
         z: dialogBody.z - 1
     }
 
@@ -71,13 +80,13 @@ OverlayDialogCore {
         width: Enums.controlSize.dialogDefaultWidth
         height: Enums.controlSize.dialogDefaultHeight
 
-        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.dialog
+        radius: control._dialogRadius
 
         // neo: 白面+黑边; Prism: overlay; Fluent: dialogColors
-        color: Enums.isNeobrutalism || Enums.isPrismDesign ? Enums.dialogColor : Enums.dialogColors.containerBg
+        color: control._dialogBackground
 
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.stateColor.dialogBorder
+        border.width: control._dialogBorderWidth
+        border.color: control._dialogBorderColor
         
         // Clip children to rounded corners 裁剪子元素以适应圆角
         clip: true

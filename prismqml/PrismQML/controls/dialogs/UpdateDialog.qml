@@ -46,6 +46,7 @@ DialogBoxCore {
 
     readonly property bool isOpen: _isOpen
     readonly property color _accentColor: Enums.statusLevel.getColorByLevel(Enums.statusLevel.attention)
+    readonly property real _iconBackgroundOpacity: Enums.opacityLevel.pressed
 
     // ==================== Signals 信号 ====================
     signal confirmed()
@@ -103,7 +104,7 @@ DialogBoxCore {
                 anchors.fill: parent
                 radius: width / 2
                 color: control._accentColor
-                opacity: 0.12
+                opacity: control._iconBackgroundOpacity
             }
             Icon {
                 anchors.centerIn: parent
@@ -142,7 +143,7 @@ DialogBoxCore {
             Layout.fillHeight: true
             visible: control.notes !== ""
             radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.medium
-            color: "transparent"
+            color: Enums.transparent
             border.width: Enums.border.thin
             border.color: Enums.stateColor.cardBorder
 
@@ -161,7 +162,7 @@ DialogBoxCore {
                     color: Enums.textColor.primary
                     linkColor: Enums.accentColor
                     font.family: Enums.fontFamily
-                    font.pixelSize: 14
+                    font.pixelSize: Enums.typography.body
                     onLinkActivated: (url) => Qt.openUrlExternally(url)
                 }
             }
