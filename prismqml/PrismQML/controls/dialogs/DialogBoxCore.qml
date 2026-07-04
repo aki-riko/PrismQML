@@ -93,7 +93,7 @@ OverlayDialogCore {
         Rectangle {
             id: dialogBody
             anchors.fill: parent
-            radius: Enums.radius.dialog
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.dialog
             clip: true  // Clip children to rounded corners 裁剪子元素以适应圆角
 
             // Background color 背景色

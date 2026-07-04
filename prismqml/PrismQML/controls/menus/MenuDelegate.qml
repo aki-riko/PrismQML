@@ -42,7 +42,7 @@ Item {
         anchors.rightMargin: Enums.spacing.xs
         anchors.topMargin: Enums.spacing.xxs
         anchors.bottomMargin: Enums.spacing.xxs
-        radius: Enums.radius.small
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
         visible: !delegateRoot.isSeparator
         
         color: {

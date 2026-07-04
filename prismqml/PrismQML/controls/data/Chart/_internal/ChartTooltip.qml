@@ -25,6 +25,7 @@ Item {
     property color dotColor: "transparent"
     property bool showPointer: false     // Show triangle pointer 显示三角形指针
     property int pointerDirection: 0     // 0=down, 1=up, 2=left, 3=right 指针方向
+    readonly property color _tooltipBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.gray.tooltip
     
     // ==================== Size 尺寸 ====================
     width: tooltipRect.width
@@ -42,8 +43,8 @@ Item {
         width: tooltipContent.width + Enums.spacing.l
         height: tooltipContent.height + Enums.spacing.m
         
-        radius: Enums.radius.small
-        color: Enums.gray.tooltip
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small
+        color: root._tooltipBackground
         
         // Shadow 阴影
         layer.enabled: root.visible
@@ -77,7 +78,7 @@ Item {
                 Label {
                     type: Enums.label.type_caption
                     text: root.label
-                    color: Enums.stateColor.chartTooltipText
+                    color: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.stateColor.chartTooltipText
                     visible: root.label !== ""
                 }
             }
@@ -93,7 +94,7 @@ Item {
                     }
                     return root.value
                 }
-                color: "white"
+                color: Enums.isPrismDesign ? Enums.textColor.primary : "white"
                 visible: root.value !== "" && root.value !== undefined
             }
         }
@@ -111,7 +112,7 @@ Item {
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
-            ctx.fillStyle = Enums.gray.tooltip
+            ctx.fillStyle = root._tooltipBackground
             ctx.beginPath()
             ctx.moveTo(0, 0)
             ctx.lineTo(width, 0)

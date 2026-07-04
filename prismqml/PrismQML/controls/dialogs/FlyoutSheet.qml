@@ -85,8 +85,8 @@ Window {
         id: container
         anchors.fill: parent
         anchors.margins: Enums.spacing.m
-        radius: Enums.radius.large
-        color: Enums.cardColor
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+        color: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
         border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
         border.color: Enums.stateColor.dialogBorder
         

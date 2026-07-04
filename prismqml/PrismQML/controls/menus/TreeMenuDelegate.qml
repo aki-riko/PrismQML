@@ -39,7 +39,7 @@ Item {
     Rectangle {
         id: itemBg
         anchors.fill: parent
-        radius: Enums.radius.small
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
         color: {
             if (!delegateRoot.itemEnabled) return Enums.transparent
             if (delegateRoot.pressed) return Enums.stateColor.menuItemPressed

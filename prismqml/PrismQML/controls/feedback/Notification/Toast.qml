@@ -183,7 +183,7 @@ Widget {
             anchors.top: card.top
             anchors.topMargin: -3  // Extend 3px up 向上延伸
             height: Enums.spacing.l
-            radius: Enums.radius.large
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
             color: control.severityColor
         }
 
@@ -191,7 +191,7 @@ Widget {
         Rectangle {
             id: card
             anchors.fill: parent
-            radius: Enums.radius.small
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small
             color: control._cardColor  // 支持自定义背景色
             border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
             border.color: Enums.stateColor.borderLight

@@ -135,6 +135,44 @@ InfoBar {
         assert info_bar.property("radius") == 10
         assert _rgb(info_bar.property("borderColor")) == (217, 227, 236)
 
+        keep.append(_build(engine, b"""
+import PrismQML
+Action {
+    text: "Cut"
+}
+"""))
+        action = keep[-1][1]
+        assert action.property("radius") == 6
+
+        keep.append(_build(engine, b"""
+import PrismQML
+DateTimePicker {
+}
+"""))
+        picker = keep[-1][1]
+        assert picker.property("radius") == 6
+
+        chart_tooltip_path = (
+            Path(__file__).resolve().parents[2]
+            / "prismqml"
+            / "PrismQML"
+            / "controls"
+            / "data"
+            / "Chart"
+            / "_internal"
+            / "ChartTooltip.qml"
+        )
+        chart_tooltip_component = QQmlComponent(engine, QUrl.fromLocalFile(str(chart_tooltip_path)))
+        assert not chart_tooltip_component.isError(), [
+            error.toString() for error in chart_tooltip_component.errors()
+        ]
+        chart_tooltip = chart_tooltip_component.create(engine.rootContext())
+        assert chart_tooltip is not None, [
+            error.toString() for error in chart_tooltip_component.errors()
+        ]
+        keep.append((chart_tooltip_component, chart_tooltip))
+        assert _rgb(chart_tooltip.property("_tooltipBackground")) == (248, 251, 255)
+
         page_path = Path(__file__).resolve().parents[2] / "examples" / "pages" / "PrismDesignPage.qml"
         page_component = QQmlComponent(engine, QUrl.fromLocalFile(str(page_path)))
         assert not page_component.isError(), [error.toString() for error in page_component.errors()]

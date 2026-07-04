@@ -125,10 +125,10 @@ Item {
         Rectangle {
             id: contentRect
             anchors.fill: parent
-            radius: Enums.radius.large
-            color: Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+            color: Enums.isPrismDesign ? Enums.dialogColor : (Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight)
             border.width: Enums.border.thin
-            border.color: Enums.stateColor.maskLight
+            border.color: Enums.isPrismDesign ? Enums.stateColor.dialogBorder : Enums.stateColor.maskLight
             
             Column {
                 anchors.fill: parent
@@ -193,8 +193,8 @@ Item {
                 onPaint: {
                     var ctx = getContext("2d")
                     ctx.reset()
-                    var bgColor = Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight
-                    var borderColor = Enums.stateColor.maskLight
+                    var bgColor = Enums.isPrismDesign ? Enums.dialogColor : (Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight)
+                    var borderColor = Enums.isPrismDesign ? Enums.stateColor.dialogBorder : Enums.stateColor.maskLight
                     var w = width, h = height, inset = 2
                     
                     // Draw filled triangle 绘制填充三角形

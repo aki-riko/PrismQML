@@ -38,7 +38,7 @@ Rectangle {
         ? (Enums.iconSize.xxl + Enums.typography.bodySmall + Enums.spacing.m * 3)
         : Enums.controlSize.emptyStateButtonHeight
     height: implicitHeight
-    radius: Enums.radius.small
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     
     // ==================== Internal 内部属性 ====================
     readonly property bool _isBottomText: textPosition === Enums.position.bottom
