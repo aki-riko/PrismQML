@@ -20,12 +20,22 @@ Item {
     property bool compact: false  // Compact mode (icon only) 紧凑模式
     property bool selectable: true  // Whether item can be selected 是否可选中
     
-    signal clicked()
-    
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
     readonly property color accentColor: Enums.accentColor
+    readonly property int _navItemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
+    readonly property color _navItemBackground: {
+        if (control.selected) return Enums.stateColor.navSelected
+        if (control.pressed || control.hovered) return control.hovered ? Enums.stateColor.hover : Enums.stateColor.pressed
+        return Enums.transparent
+    }
+    readonly property int _navItemBorderWidth: Enums.isPrismDesign && control.selected ? Enums.prismDesign.borderWidth : 0
+    readonly property color _navItemBorderColor: Enums.isPrismDesign ? Enums.borderStrongColor : Enums.transparent
+    readonly property color _navItemContentColor: control.selected ? control.accentColor : Enums.textColor.primary
+
+    // ==================== Signals 信号 ====================
+    signal clicked()
     
     // ==================== Size 尺寸 ====================
     implicitWidth: parent ? parent.width : Enums.controlSize.navPanelExpandWidth
@@ -36,19 +46,11 @@ Item {
     Rectangle {
         id: bg
         anchors.fill: parent
-        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
+        radius: control._navItemRadius
         
-        color: {
-            if (control.selected) {
-                // Selected = hover color 选中色=悬浮色
-                return Enums.stateColor.navSelected
-            }
-            if (control.pressed || control.hovered) {
-                // hover takes priority over pressed 悬浮优先于按下
-                return control.hovered ? Enums.stateColor.hover : Enums.stateColor.pressed
-            }
-            return Enums.transparent
-        }
+        color: control._navItemBackground
+        border.width: control._navItemBorderWidth
+        border.color: control._navItemBorderColor
         
         // No animation to avoid flicker 无动画避免闪烁
     }
@@ -92,7 +94,7 @@ Item {
             // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
             layer.enabled: true
             layer.effect: ColorOverlay {
-                color: control.selected ? control.accentColor : Enums.textColor.primary
+                color: control._navItemContentColor
             }
         }
         
@@ -137,7 +139,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: control.icon
             visible: !parent.isPathIcon && control.icon !== ""
-            color: control.selected ? control.accentColor : Enums.textColor.primary
+            color: control._navItemContentColor
             
             Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
         }
@@ -157,6 +159,6 @@ Item {
         anchors.fill: parent
         enabled: control.enabled
         hoverEnabled: true
-                onClicked: control.clicked()
+        onClicked: control.clicked()
     }
 }
