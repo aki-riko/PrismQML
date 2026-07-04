@@ -40,7 +40,7 @@ Widget {
         return Enums.spacing.xl
     }
     readonly property bool _contentEnabled: !checkable || checked
-    readonly property real _borderRadius: Enums.radius.small
+    readonly property real _borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
     readonly property real _titleY: _titleHeight / 2
 
     // Title 文字下方的"边框遮盖块"颜色 — 必须与父容器底色一致, 否则断口处显出

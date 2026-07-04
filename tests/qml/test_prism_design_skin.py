@@ -333,6 +333,117 @@ PinInput {
 }
 """))
 
+        keep.append(_build(engine, b"""
+import PrismQML
+DropZone {
+    preferredWidth: 260
+    preferredHeight: 140
+}
+"""))
+        drop_zone = keep[-1][1]
+        assert drop_zone.property("radius") == 8
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Progress {
+    type: Enums.progress.type_bar_filled
+    value: 45
+    text: "45%"
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+EmptyState {
+    actionText: "Create"
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ResultState {
+    state: "success"
+    actionText: "Done"
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+StateWidget {
+    stateType: Enums.state.type_result
+    severity: "success"
+    actionText: "OK"
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+OfflineState {
+    retryText: "Retry"
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Expander {
+    title: "More"
+    content: "Details"
+    expanded: true
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+GroupBox {
+    title: "Options"
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+CommandBar {
+    type: Enums.commandBar.type_view
+    primaryCommands: [{ "text": "Open", "icon": "FolderOpen" }]
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Widget {
+    preferredWidth: 220
+    preferredHeight: 80
+    toolTipText: "Prism tooltip"
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ProgressDialog {
+    title: "Loading"
+    content: "Please wait"
+    progress: 45
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+UpdateDialog {
+    version: "1.2.3"
+    currentVersion: "1.2.2"
+    notes: "Prism skin update"
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+DesktopNotification {
+    title: "Prism"
+    message: "Container feedback"
+    severity: "success"
+    duration: 0
+}
+"""))
+
         chart_tooltip_path = (
             Path(__file__).resolve().parents[2]
             / "prismqml"

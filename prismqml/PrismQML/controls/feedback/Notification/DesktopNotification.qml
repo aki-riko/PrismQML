@@ -181,7 +181,7 @@ Window {
         id: card
         anchors.fill: parent
         anchors.margins: Enums.spacing.m
-        radius: Enums.radius.large
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
         color: Enums.cardColor
         border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
         border.color: Enums.stateColor.border
@@ -211,7 +211,7 @@ Window {
             anchors.leftMargin: Enums.spacing.xl
             anchors.top: parent.top
             anchors.topMargin: Enums.spacing.xl
-            width: Enums.spacing.xxxl; height: Enums.spacing.xxxl; radius: Enums.radius.large
+            width: Enums.spacing.xxxl; height: Enums.spacing.xxxl; radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.large
             color: severityColor
             
             Icon {

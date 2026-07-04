@@ -91,7 +91,7 @@ Item {
     // Track 轨道
     Rectangle {
         anchors.fill: parent
-        radius: filled ? Enums.radius.small : (height / 2)
+        radius: filled ? (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small) : (height / 2)
         color: control.trackColor
         // neo: 轨道加黑边(白轨道靠黑边显形)
         border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
@@ -104,7 +104,7 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: parent.width * control.position
-        radius: filled ? Enums.radius.small : (height / 2)
+        radius: filled ? (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small) : (height / 2)
         color: control.progressColor
         visible: !control.indeterminate
         Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
@@ -124,7 +124,7 @@ Item {
         anchors.fill: parent
         visible: control.indeterminate
         color: control.progressColor
-        radius: filled ? Enums.radius.small : (height / 2)
+        radius: filled ? (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small) : (height / 2)
         running: control.indeterminate && control._isInViewport && control.visible
     }
 }

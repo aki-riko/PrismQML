@@ -151,8 +151,8 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: actionBtnText.implicitWidth + (_isResultType ? Enums.controlSize.stateButtonPaddingLarge : Enums.controlSize.stateButtonPaddingSmall)
             height: _isResultType ? Enums.controlSize.topNavItemHeight : Enums.controlSize.emptyStateButtonHeight
-            radius: Enums.radius.small
-            color: actionArea.pressed ? Qt.darker(Enums.accentColor, 1.1) : (actionArea.containsMouse ? Qt.lighter(Enums.accentColor, 1.1) : Enums.accentColor)
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            color: actionArea.pressed ? Enums.accentColorDark : (actionArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
             visible: (control.actionText || _defaultActionText) !== ""
             
             Label {

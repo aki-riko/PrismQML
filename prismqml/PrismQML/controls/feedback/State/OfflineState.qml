@@ -55,8 +55,8 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: retryTextItem.width + 32
             height: 32
-            radius: Enums.radius.small
-            color: retryArea.pressed ? Qt.darker(Enums.accentColor, 1.1) : (retryArea.containsMouse ? Qt.lighter(Enums.accentColor, 1.1) : Enums.accentColor)
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            color: retryArea.pressed ? Enums.accentColorDark : (retryArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
             
             Label {
                 id: retryTextItem

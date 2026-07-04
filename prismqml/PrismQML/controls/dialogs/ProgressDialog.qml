@@ -53,7 +53,7 @@ OverlayDialogCore {
         anchors.centerIn: parent
         width: Math.max(288, contentRow.implicitWidth + 56)
         height: Math.max(110, contentRow.implicitHeight + 40)
-        radius: Enums.radius.large
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
         color: Enums.cardColor
         border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
         border.color: Enums.stateColor.dialogBorder
