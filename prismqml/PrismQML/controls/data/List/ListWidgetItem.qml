@@ -56,6 +56,7 @@ Rectangle {
         if (hovered) return Qt.tint(base, Enums.stateColor.listItemHover)
         return base
     }
+    readonly property color _revealGlowColor: Enums.stateColor.listItemRevealGlow
 
     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
 
@@ -71,7 +72,7 @@ Rectangle {
             radius: 60
             x: itemArea.mouseX - 60
             y: itemArea.mouseY - 60
-            color: Enums.isDark ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.03)
+            color: root._revealGlowColor
 
             opacity: hovered ? 1 : 0
             Behavior on opacity {

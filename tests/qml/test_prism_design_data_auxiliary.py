@@ -4,6 +4,8 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Prism Design auxiliary data and media skin tests."""
 
+from pathlib import Path
+
 from PySide6.QtCore import QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -86,6 +88,33 @@ def _assert_avatar(item, border, content):
     assert item.property("_avatarBorderWidth") == 1
     assert _rgb(item.property("_avatarBorderColor")) == border
     assert _rgb(item.property("_avatarContentColor")) == content
+
+
+def _list_item_qml():
+    list_dir = (
+        Path(__file__).resolve().parents[2]
+        / "prismqml"
+        / "PrismQML"
+        / "controls"
+        / "data"
+        / "List"
+    )
+    list_dir_url = QUrl.fromLocalFile(str(list_dir)).toString()
+    return f"""
+import QtQuick
+import PrismQML
+import "{list_dir_url}" as ListInternal
+
+Item {{
+    property color revealGlowColor: item._revealGlowColor
+
+    ListInternal.ListWidgetItem {{
+        id: item
+        itemIndex: 0
+        itemData: "Alpha"
+    }}
+}}
+""".encode()
 
 
 def test_prism_design_auxiliary_data_components_light_and_dark(qapp):
@@ -197,6 +226,10 @@ DataWidgetCore {
         data_widget = keep[-1][1]
         assert _rgba(data_widget.property("_headerEdgeShadowColor")) == (10, 26, 42, 20)
 
+        keep.append(_build(engine, _list_item_qml()))
+        list_item = keep[-1][1]
+        assert _rgba(list_item.property("revealGlowColor")) == (142, 197, 255, 31)
+
         setTheme(Theme.DARK)
         keep.append(_build(engine, b"""
 import PrismQML
@@ -296,6 +329,10 @@ DataWidgetCore {
 """))
         dark_data_widget = keep[-1][1]
         assert _rgba(dark_data_widget.property("_headerEdgeShadowColor")) == (0, 0, 0, 68)
+
+        keep.append(_build(engine, _list_item_qml()))
+        dark_list_item = keep[-1][1]
+        assert _rgba(dark_list_item.property("revealGlowColor")) == (78, 160, 255, 41)
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

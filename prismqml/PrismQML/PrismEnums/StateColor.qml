@@ -285,6 +285,9 @@ QtObject {
     //   press  = SubtleFillColorTertiary  (Dark #0AFFFFFF / Light #06000000)
     readonly property color listItemHover: isPrismDesign ? _prismDesign.hover : (root.isDark ? Qt.rgba(1,1,1,0.059) : Qt.rgba(0,0,0,0.035))
     readonly property color listItemPressed: isPrismDesign ? _prismDesign.pressed : (root.isDark ? Qt.rgba(1,1,1,0.039) : Qt.rgba(0,0,0,0.024))
+    readonly property color listItemRevealGlow: isPrismDesign
+        ? Qt.rgba(_prismDesign.glow.r, _prismDesign.glow.g, _prismDesign.glow.b, root.isDark ? 0.16 : 0.12)
+        : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03))
     
     // ==================== Acrylic Effect 亚克力效果 ====================
     // Acrylic tint color 亚克力 tint 颜色
