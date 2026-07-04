@@ -21,7 +21,7 @@ ButtonCore {
     preferredWidth: preferredHeight
     
     // Auto adjust radius to keep it rounded 自动调整圆角（可选）
-    radius: Enums.radius.small
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
 
     // 双击当作两次单击处理: 否则 MouseArea 在 doubleClickInterval (≈400ms) 内的
     // 第二次点击只会触发 doubleClicked,不会触发 clicked,导致快速连点 +/- 吞点击

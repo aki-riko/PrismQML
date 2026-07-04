@@ -39,7 +39,7 @@ Rectangle {
 
     // ==================== Background (跟 ListWidgetItem 一致的状态层) ====================
     color: _bgColor
-    radius: Enums.radius.card
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
 
     readonly property color _bgColor: {
         if (selected) {

@@ -280,6 +280,59 @@ DateTimePicker {
         picker = keep[-1][1]
         assert picker.property("radius") == 6
 
+        keep.append(_build(engine, b"""
+import PrismQML
+FilterBarCore {
+    items: ["All", "Open", "Closed"]
+    currentIndex: 1
+}
+"""))
+        filter_bar = keep[-1][1]
+        assert filter_bar.property("radius") == 6
+
+        keep.append(_build(engine, b"""
+import PrismQML
+SpinBoxCore {
+    value: 3
+    minimum: 0
+    maximum: 10
+}
+"""))
+        spin_box = keep[-1][1]
+        assert spin_box.property("radius") == 6
+
+        keep.append(_build(engine, b"""
+import PrismQML
+CalendarPicker {
+}
+"""))
+        calendar_picker = keep[-1][1]
+        assert calendar_picker.property("radius") == 6
+
+        keep.append(_build(engine, b"""
+import PrismQML
+TextEdit {
+    placeholderText: "Notes"
+}
+"""))
+        text_edit = keep[-1][1]
+        assert text_edit.property("radius") == 6
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Chip {
+    text: "Prism"
+    checked: true
+}
+"""))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+PinInput {
+    length: 4
+}
+"""))
+
         chart_tooltip_path = (
             Path(__file__).resolve().parents[2]
             / "prismqml"
