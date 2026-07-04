@@ -12,21 +12,30 @@ import "../data/Label"
 Item {
  id: control
  
- // ==================== Props 属性 ====================
+ // ==================== Public Props 公开属性 ====================
  property string avatar: "" // Avatar image path or icon name 头像图片路径或图标名
  property string title: "" // Username/title 用户名/标题
  property string subtitle: "" // Subtitle (e.g. email) 副标题（如邮箱）
  property bool isCompacted: true // Compact mode 是否紧凑模式
  
- // ==================== Internal 内部属性 ====================
+ // ==================== Internal Props 内部属性 ====================
  property int _avatarSizeCompact: Enums.spacing.xxxl
  property int _avatarSizeExpanded: Enums.controlSize.navBarHeight
  property int _currentAvatarSize: isCompacted ? _avatarSizeCompact : _avatarSizeExpanded
+
+ // ==================== Readonly State 只读状态 ====================
+ readonly property int _profileRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+ readonly property color _profileHoverColor: Enums.stateColor.hover
+ readonly property color _profilePressedColor: Enums.stateColor.pressed
+ readonly property color _profileBackground: mouseArea.pressed ? control._profilePressedColor
+        : (mouseArea.containsMouse ? control._profileHoverColor : Enums.transparent)
+ readonly property color _profileTitleColor: Enums.textColor.primary
+ readonly property color _profileSubtitleColor: Enums.textColor.secondary
  
  // ==================== Signals 信号 ====================
  signal clicked()
 
- // Size 尺寸
+ // ==================== Size 尺寸 ====================
  width: isCompacted ? Enums.controlSize.navItemHeight : Enums.controlSize.navFilledItemWidth + Enums.spacing.xxxl
  height: isCompacted ? Enums.controlSize.topNavItemHeight : Enums.controlSize.cardHeight
  
@@ -34,9 +43,8 @@ Item {
  Rectangle {
  id: background
  anchors.fill: parent
- radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
- color: mouseArea.pressed ? Enums.stateColor.pressed
-        : (mouseArea.containsMouse ? Enums.stateColor.hover : Enums.transparent)
+ radius: control._profileRadius
+ color: control._profileBackground
  
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  }
@@ -77,7 +85,7 @@ Item {
  text: control.title
  width: parent.width
  elide: Text.ElideRight
- color: Enums.textColor.primary
+ color: control._profileTitleColor
  }
  
  // Subtitle 副标题
@@ -86,7 +94,7 @@ Item {
  text: control.subtitle
  width: parent.width
  elide: Text.ElideRight
- color: Enums.textColor.secondary
+ color: control._profileSubtitleColor
  visible: control.subtitle !== ""
  }
  }

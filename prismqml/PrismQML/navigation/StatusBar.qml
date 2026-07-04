@@ -11,23 +11,28 @@ import "../controls/data/Label"
 Rectangle {
     id: control
     
-    // Public props 公开属性
+    // ==================== Public Props 公开属性 ====================
     property string message: ""
     property var leftItems: []  // Left items 左侧项
     property var rightItems: [] // Right items 右侧项
     
-    // Size 尺寸
+    // ==================== Readonly State 只读状态 ====================
+    readonly property color _statusBarBackground: Enums.surfaceColor
+    readonly property color _statusBarDividerColor: Enums.dividerColor
+    readonly property color _statusBarTextColor: Enums.textColor.secondary
+
+    // ==================== Size 尺寸 ====================
     implicitWidth: parent ? parent.width : 400
     implicitHeight: Enums.controlSize.statusBarHeight
     
-    color: Enums.surfaceColor
+    color: control._statusBarBackground
     
     // Top separator 顶部分隔线
     Separator {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        lineColor: Enums.stateColor.inputBorder
+        lineColor: control._statusBarDividerColor
     }
     
     // Left content 左侧内容
@@ -41,7 +46,7 @@ Rectangle {
         Label {
             type: Enums.label.type_caption
             text: control.message
-            color: Enums.textColor.secondary
+            color: control._statusBarTextColor
             visible: control.message !== ""
         }
         
@@ -52,7 +57,7 @@ Rectangle {
             Label {
                 type: Enums.label.type_caption
                 text: modelData.text || modelData
-                color: Enums.textColor.secondary
+                color: control._statusBarTextColor
             }
         }
     }
@@ -70,7 +75,7 @@ Rectangle {
             Label {
                 type: Enums.label.type_caption
                 text: modelData.text || modelData
-                color: Enums.textColor.secondary
+                color: control._statusBarTextColor
             }
         }
     }

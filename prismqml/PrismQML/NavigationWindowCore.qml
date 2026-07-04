@@ -37,7 +37,7 @@ WindowsCore {
     
     // ==================== Content Area Props 内容区域属性 ====================
     readonly property color contentBgColor: _micaTransparent ? Enums.stateColor.contentBgTransparent : Enums.stateColor.contentBg
-    readonly property int contentCornerRadius: Enums.radius.large
+    readonly property int contentCornerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
     
     // ==================== Lazy Loading 懒加载 ====================
     property bool lazyLoading: false
