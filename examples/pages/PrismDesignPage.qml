@@ -4,7 +4,6 @@
 
 import QtQuick
 import PrismQML
-import PrismQML as Fluent
 
 // PrismDesignPage - Prism Design gallery evidence Prism Design图库验收页
 Item {
@@ -30,13 +29,8 @@ Item {
     readonly property var chartTokens: Enums.chartColors.palette
 
     // ==================== Internal Methods 内部方法 ====================
-    function setSkin(value) {
-        if (ThemeManager) ThemeManager.setSkinFromQml(value)
-    }
-
-    function setTheme(value) {
-        if (ThemeManager) ThemeManager.setThemeFromQml(value)
-    }
+    function setSkin(value) { if (ThemeManager) ThemeManager.setSkinFromQml(value) }
+    function setTheme(value) { if (ThemeManager) ThemeManager.setThemeFromQml(value) }
 
     ScrollArea {
         anchors.fill: parent
@@ -69,44 +63,13 @@ Item {
             // ==================== Skin Switch 皮肤切换 ====================
             ExampleCard {
                 title: "Skin Compare"
-                description: "同一组控件实时切换三套 skin，Prism Design 不复制外部平台口径。"
+                description: "同一场景由脚本真实渲染为三套 skin 的 light/dark 截图，运行时切换用于继续审计当前页面。"
+                orientation: Qt.Vertical
 
-                Flow {
+                PrismSkinComparePanel {
                     width: parent ? parent.width : 0
-                    spacing: Enums.spacing.l
-
-                    ComponentCard {
-                        label: "skin"
-                        SegmentedControl {
-                            items: [
-                                { "key": "fluent", "text": "Fluent" },
-                                { "key": "neo", "text": "Neo" },
-                                { "key": "prism", "text": "Prism" }
-                            ]
-                            currentIndex: Enums.isPrismDesign ? 2 : (Enums.isNeobrutalism ? 1 : 0)
-                            onItemClicked: function(index) {
-                                if (index === 0) root.setSkin("fluent")
-                                if (index === 1) root.setSkin("neobrutalism")
-                                if (index === 2) root.setSkin("prism_design")
-                            }
-                        }
-                    }
-
-                    ComponentCard {
-                        label: "theme"
-                        SegmentedControl {
-                            items: [
-                                { "key": "light", "text": "Light" },
-                                { "key": "dark", "text": "Dark" }
-                            ]
-                            currentIndex: Enums.isDark ? 1 : 0
-                            onItemClicked: function(index) { root.setTheme(index === 0 ? "light" : "dark") }
-                        }
-                    }
-
-                    ComponentCard { label: "primary"; Button { style: Enums.button.style_primary; text: "Run" } }
-                    ComponentCard { label: "input"; LineEdit { width: 180; placeholderText: "Search tokens" } }
-                    ComponentCard { label: "combo"; ComboBox { width: 160; model: ["Layer", "State", "Density"]; currentIndex: 0 } }
+                    onSkinRequested: function(value) { root.setSkin(value) }
+                    onThemeRequested: function(value) { root.setTheme(value) }
                 }
             }
 

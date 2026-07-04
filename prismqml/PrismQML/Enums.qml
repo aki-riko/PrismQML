@@ -40,7 +40,7 @@ Item {
     readonly property string skin: ThemeManager ? ThemeManager.skin : "fluent"
     readonly property bool isNeobrutalism: skin === "neobrutalism"
     readonly property bool isPrismDesign: skin === "prism_design"
-    readonly property string fontFamily: ThemeManager ? ThemeManager.fontFamily : "Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, Microsoft YaHei UI, sans-serif"
+    readonly property string fontFamily: ThemeManager ? ThemeManager.fontFamily : "sans-serif"
     readonly property string canvasFontFamily: "'" + fontFamily.split(",")[0].trim() + "', sans-serif"
     // Skin accent resolver 皮肤主色解析器:
     // Existing accent consumers auto-switch colors under skins 现有主色消费者在皮肤下自动换色。
