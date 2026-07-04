@@ -124,17 +124,17 @@ Item {
                     }
                 }
 
-                // 设计皮肤 Design skin (Fluent / Neobrutalism)
+                // Design skin 设计皮肤 (Fluent / Neobrutalism / Prism Design)
                 SettingsCard {
                     id: skinCard
                     width: parent ? parent.width : 0
                     title: "设计皮肤"
-                    content: "切换设计语言：Fluent 圆角模糊阴影 / 新粗野粗黑边硬阴影"
+                    content: "切换设计语言：Fluent / 新粗野 / Prism Design"
                     icon: iconPath("Color")
                     type: Fluent.Enums.settingCard.type_combobox
-                    model: ["Fluent", "新粗野 Neobrutalism"]
+                    model: ["Fluent", "新粗野 Neobrutalism", "Prism Design"]
 
-                    property var skinValues: ["fluent", "neobrutalism"]
+                    property var skinValues: ["fluent", "neobrutalism", "prism_design"]
 
                     Component.onCompleted: {
                         if (ThemeManager) {

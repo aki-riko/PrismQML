@@ -21,7 +21,7 @@ window = app.create_window(WindowType.BAR)
 
 | 名称 | 说明 |
 |------|------|
-| `Skin` | 皮肤枚举（FLUENT / NEOBRUTALISM） |
+| `Skin` | 皮肤枚举（FLUENT / NEOBRUTALISM / PRISM_DESIGN） |
 | `setSkin` / `getSkin` | 切换 / 获取皮肤 |
 | `Theme` | 主题枚举（LIGHT / DARK / AUTO） |
 | `setTheme` / `getTheme` / `isDark` | 主题切换 / 查询 |

@@ -39,7 +39,8 @@ Widget {
     // Content size (inherited from Widget) 内容尺寸（继承自Widget）
     contentWidth: Enums.controlSize.inputDefaultWidth
     contentHeight: Enums.controlSize.inputHeight
-    property int radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+    property int radius: Enums.isNeobrutalism ? Enums.neo.radius
+                         : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
     
     // ==================== Content Padding 内容边距 ====================
     // Unified padding for all input controls 所有输入控件统一边距
@@ -57,7 +58,7 @@ Widget {
     
     // Input text color (enabled/disabled aware) 输入文本颜色(感知启用状态)
     readonly property color inputTextColor: !enabled ? Enums.textColor.disabled 
-        : (Enums.isDark ? "white" : "black")
+        : Enums.textColor.primary
     
     // ==================== Inner Button Colors 内部按钮颜色 ====================
     // Unified colors for clear/action/spin buttons 清除/操作/加减按钮统一颜色

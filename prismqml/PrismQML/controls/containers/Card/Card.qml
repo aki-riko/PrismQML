@@ -17,7 +17,7 @@ Widget {
  
  // ==================== Public Props 公开属性 ====================
  property int cardType: Enums.card.type_default // Card type 卡片类型
- property int borderRadius: Enums.radius.card // Border radius 圆角
+ property int borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card // Border radius 圆角
  // autoHeight: 普通卡片高度跟随内容自撑(默认 false 保持固定 cardHeight)。
  // ⚠️ 开启时内容**不要用 anchors.fill: parent**(fill 的子项不计入 childrenRect→自撑失效退回兜底),
  //    用 width: parent.width 让内容自然堆叠撑高。header 卡不受此开关影响(本就按内容算高)。

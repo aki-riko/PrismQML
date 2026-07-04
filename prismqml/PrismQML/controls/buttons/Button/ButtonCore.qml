@@ -89,7 +89,8 @@ Widget {
 
     // ==================== Appearance Props 外观属性 ====================
     property int radius: shape === Enums.button.shape_pill ? height / 2
-                         : (Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small)
+                         : (Enums.isNeobrutalism ? Enums.neo.radius
+                            : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small))
     property color color: styleHelper.bgColor
 
     // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。

@@ -193,7 +193,8 @@ Widget {
     // Content size (inherited from Widget) 内容尺寸（继承自Widget）
     contentWidth: Enums.comboBoxMetrics.defaultWidth
     contentHeight: Enums.controlSize.inputHeight
-    property int radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+    property int radius: Enums.isNeobrutalism ? Enums.neo.radius
+                         : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
 
     // ==================== Style Helper 样式辅助 ====================
     ComboBoxStyleHelper {
