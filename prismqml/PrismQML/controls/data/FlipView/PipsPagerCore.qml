@@ -12,7 +12,7 @@ import "../../buttons"
 Item {
     id: control
     
-    // ==================== Public Properties 公开属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int count: 5
     property int currentIndex: 0
     property bool vertical: false
@@ -24,19 +24,23 @@ Item {
     // ==================== Signals 信号 ====================
     signal indexClicked(int index)
     
-    // ==================== Internal 内部 ====================
+    // ==================== Internal Props 内部属性 ====================
     readonly property int _cellSize: Enums.spacing.l
-    readonly property int _normalRadius: Enums.radius.tiny
-    readonly property int _activeRadius: Enums.radius.tiny + 1
+    readonly property int _normalRadius: Enums.isPrismDesign ? Enums.radius.medium : Enums.radius.tiny
+    readonly property int _activeRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.tiny + 1
+    readonly property int _normalDiameter: _normalRadius
+    readonly property int _activeDiameter: _activeRadius * 2
+    readonly property color _pipActiveColor: Enums.stateColor.pipActive
+    readonly property color _pipInactiveColor: Enums.stateColor.pipNormal
+    readonly property color _pipHoverColor: Enums.stateColor.pipActive
     readonly property int _buttonSize: _cellSize
     readonly property int _visibleCount: Math.min(count, maxVisible)
+    readonly property bool _hasPrevButton: prevButtonMode !== Enums.pipsPager.button_never
+    readonly property bool _hasNextButton: nextButtonMode !== Enums.pipsPager.button_never
     
     // ==================== Size 尺寸 ====================
     implicitWidth: vertical ? _cellSize : _visibleCount * _cellSize + (_hasPrevButton ? _buttonSize : 0) + (_hasNextButton ? _buttonSize : 0)
     implicitHeight: vertical ? _visibleCount * _cellSize + (_hasPrevButton ? _buttonSize : 0) + (_hasNextButton ? _buttonSize : 0) : _cellSize
-    
-    readonly property bool _hasPrevButton: prevButtonMode !== Enums.pipsPager.button_never
-    readonly property bool _hasNextButton: nextButtonMode !== Enums.pipsPager.button_never
 
     // ==================== Button Visibility Logic 按钮可见性逻辑 ====================
     // 翻页按钮仅在"模式非 never"且"当前页留有余量"时显示。
@@ -131,10 +135,12 @@ Item {
                     
                     Rectangle {
                         anchors.centerIn: parent
-                        width: (index === control.currentIndex || pipMouse.containsMouse) ? control._activeRadius * 2 : control._normalRadius * 2
+                        width: (index === control.currentIndex || pipMouse.containsMouse) ? control._activeDiameter : control._normalDiameter
                         height: width
                         radius: width / 2
-                        color: (index === control.currentIndex || pipMouse.containsMouse) ? Enums.stateColor.pipActive : Enums.stateColor.pipNormal
+                        color: index === control.currentIndex
+                               ? control._pipActiveColor
+                               : (pipMouse.containsMouse ? control._pipHoverColor : control._pipInactiveColor)
                         
                         Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
                         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
@@ -178,10 +184,12 @@ Item {
                     
                     Rectangle {
                         anchors.centerIn: parent
-                        width: (index === control.currentIndex || pipMouseV.containsMouse) ? control._activeRadius * 2 : control._normalRadius * 2
+                        width: (index === control.currentIndex || pipMouseV.containsMouse) ? control._activeDiameter : control._normalDiameter
                         height: width
                         radius: width / 2
-                        color: (index === control.currentIndex || pipMouseV.containsMouse) ? Enums.stateColor.pipActive : Enums.stateColor.pipNormal
+                        color: index === control.currentIndex
+                               ? control._pipActiveColor
+                               : (pipMouseV.containsMouse ? control._pipHoverColor : control._pipInactiveColor)
                         
                         Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
                         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
