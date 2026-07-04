@@ -2,6 +2,8 @@
 
 皮肤系统是 PrismQML 的招牌能力：**同一套控件，多种设计语言**。
 
+Prism Design 的完整口径见 [Prism Design 视觉规范](prism-design.md)。新增或调整第三套皮肤时，必须先对齐该规范。
+
 ## 皮肤与主题正交
 
 PrismQML 把"设计语言"和"明暗"拆成两个独立维度：
