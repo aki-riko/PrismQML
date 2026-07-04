@@ -560,6 +560,14 @@ Item {
         assert _rgb(dark_tokens.property("background")) == (17, 20, 24)
         assert _rgb(dark_tokens.property("surface")) == (23, 28, 34)
         assert _rgb(dark_tokens.property("chartFirst")) == (122, 167, 255)
+
+        dark_page_component = QQmlComponent(engine, QUrl.fromLocalFile(str(page_path)))
+        assert not dark_page_component.isError(), [
+            error.toString() for error in dark_page_component.errors()
+        ]
+        dark_page = dark_page_component.create(engine.rootContext())
+        assert dark_page is not None, [error.toString() for error in dark_page_component.errors()]
+        keep.append((dark_page_component, dark_page))
     finally:
         setTheme(Theme.LIGHT)
         setSkin(Skin.FLUENT)

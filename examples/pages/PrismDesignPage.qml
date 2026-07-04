@@ -289,6 +289,164 @@ Item {
                 }
             }
 
+            // ==================== Special Components 特殊组件 ====================
+            ExampleCard {
+                title: "Special Components"
+                description: "Chat、Code、ColorPicker、Chart 等非基础控件同样接入 Prism 几何和层级。"
+                orientation: Qt.Vertical
+
+                Column {
+                    width: parent ? parent.width : 0
+                    spacing: Enums.spacing.l
+
+                    Row {
+                        spacing: Enums.spacing.l
+
+                        ComponentCard {
+                            label: "chat"
+                            ChatBubble {
+                                width: 280
+                                role: "assistant"
+                                content: "Prism keeps dense tools readable."
+                                timestamp: "12:24"
+                            }
+                        }
+
+                        ComponentCard {
+                            label: "code"
+                            CodeBlock {
+                                width: 260
+                                language: "qml"
+                                code: "Button {\\n    style: Enums.button.style_primary\\n}"
+                            }
+                        }
+                    }
+
+                    Row {
+                        spacing: Enums.spacing.l
+
+                        ComponentCard {
+                            label: "color"
+                            ColorPicker {
+                                type: Enums.colorPicker.type_picker
+                            }
+                        }
+
+                        ComponentCard {
+                            label: "chart"
+                            ChartView {
+                                width: 260
+                                height: 180
+                                title: "Throughput"
+                                chartData: [
+                                    { "label": "UI", "value": 42 },
+                                    { "label": "QML", "value": 68 },
+                                    { "label": "Docs", "value": 34 }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ==================== Dark Audit 深色审计 ====================
+            ExampleCard {
+                title: "Dark Audit"
+                description: "表格、输入、弹层和语义反馈在深色模式下必须仍有边界和层级。"
+                orientation: Qt.Vertical
+
+                Card {
+                    width: parent ? parent.width : 760
+                    autoHeight: true
+                    cardType: Enums.card.type_default
+
+                    Column {
+                        width: parent ? parent.width : 0
+                        spacing: Enums.spacing.l
+
+                        Row {
+                            spacing: Enums.spacing.l
+
+                            LineEdit {
+                                width: 220
+                                placeholderText: "Search dark audit"
+                            }
+
+                            ComboBox {
+                                width: 160
+                                model: ["Overlay", "Table", "Input"]
+                                currentIndex: 0
+                            }
+
+                            Button {
+                                style: Enums.button.style_primary
+                                text: "Focus"
+                            }
+                        }
+
+                        Row {
+                            spacing: Enums.spacing.l
+                            InfoBar { title: "Warning"; content: "Semantic color"; severity: "warning"; width: 280; duration: 0 }
+                            InfoBar { title: "Error"; content: "Border visible"; severity: "error"; width: 280; duration: 0 }
+                        }
+
+                        Column {
+                            width: parent.width
+                            spacing: 0
+
+                            Repeater {
+                                model: [
+                                    { "name": "dialog overlay", "state": "visible", "level": "overlay" },
+                                    { "name": "table row", "state": "selected", "level": "surface" },
+                                    { "name": "input focus", "state": "focused", "level": "raised" }
+                                ]
+
+                                Rectangle {
+                                    width: parent.width
+                                    height: 42
+                                    color: index % 2 === 0 ? Enums.tableBgColor : Enums.alternateRowColor
+                                    border.width: index === 1 ? Enums.border.thin : 0
+                                    border.color: Enums.borderColor
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: Enums.spacing.l
+                                        anchors.rightMargin: Enums.spacing.l
+                                        spacing: Enums.spacing.l
+
+                                        Text {
+                                            width: 180
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: modelData.name
+                                            font.pixelSize: Enums.typography.body
+                                            color: Enums.textColor.primary
+                                            font.family: Enums.fontFamily
+                                        }
+
+                                        Text {
+                                            width: 120
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: modelData.state
+                                            font.pixelSize: Enums.typography.caption
+                                            color: Enums.accentColor
+                                            font.family: Enums.fontFamily
+                                        }
+
+                                        Text {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: modelData.level
+                                            font.pixelSize: Enums.typography.caption
+                                            color: Enums.textColor.secondary
+                                            font.family: Enums.fontFamily
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // ==================== Real App Surface 真实应用界面 ====================
             ExampleCard {
                 title: "Real App Surface"
