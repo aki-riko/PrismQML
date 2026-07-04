@@ -48,13 +48,13 @@ Item {
                                                   parentStyle === Enums.button.style_gradient
     
     // Split button hover/pressed colors based on parent style Split按钮悬浮/按下颜色
-    // For accent styles (primary/filled/gradient): use semi-transparent white 强调样式用半透明白
+    // For accent styles (primary/filled/gradient): use on-accent overlays 强调样式用主色上状态层
     // For other styles: use transparent button colors 其他样式用透明按钮颜色
     readonly property color _splitHoverColor: _useAccentForeground 
-        ? (Enums.isDark ? "#4dffffff" : "#33ffffff")
+        ? Enums.stateColor.onAccentHoverOverlay
         : Enums.stateColor.transparentHover
     readonly property color _splitPressedColor: _useAccentForeground 
-        ? (Enums.isDark ? "#33ffffff" : "#26ffffff")
+        ? Enums.stateColor.onAccentPressedOverlay
         : Enums.stateColor.transparentPressed
     readonly property color _splitTransparent: _useAccentForeground
         ? Enums.stateColor.whiteTransparent

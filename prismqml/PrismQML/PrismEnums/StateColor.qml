@@ -215,6 +215,8 @@ QtObject {
     readonly property color whiteOverlayPressed: Qt.rgba(1,1,1,0.1)
     // On-accent semi-transparent (for Primary/Gradient button elements) 主题色按钮上的半透明白色
     readonly property color onAccentOverlay: Qt.rgba(1,1,1,0.3)
+    readonly property color onAccentHoverOverlay: root.isDark ? onAccentOverlay : whiteOverlayHover
+    readonly property color onAccentPressedOverlay: root.isDark ? whiteOverlayHover : whiteOverlay
     // White button on image (for FlipView nav buttons) 图片上的白色按钮
     readonly property color whiteButton: Qt.rgba(1,1,1,0.8)
     readonly property color whiteButtonHover: Qt.rgba(1,1,1,0.95)
