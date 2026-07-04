@@ -20,6 +20,12 @@ Item {
     property int popupHeight: 200
     property int popupRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
     property int shadowRadius: popupRadius
+    readonly property color _popupBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _popupBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property color _popupBorderColor: Enums.stateColor.border
+    readonly property color _popupShadowColor: Enums.shadow.level8.color
+    readonly property int _popupShadowBlur: Enums.shadow.level8.blur
+    readonly property int _popupShadowOffset: Enums.shadow.level8.offset
     property bool modal: false
     property bool closeOnClickOutside: true
     property bool stealFocus: true  // Whether to steal focus when opening 打开时是否抢夺焦点
@@ -385,10 +391,10 @@ Item {
             width: clipContainer.width
             height: clipContainer.height
             radius: control.popupRadius
-            color: Enums.shadow.level4.color
-            blur: Enums.shadow.level4.blur
+            color: control._popupShadowColor
+            blur: control._popupShadowBlur
             offset.x: 0
-            offset.y: Enums.shadow.level4.offset
+            offset.y: control._popupShadowOffset
             opacity: popupPanel.opacity
             visible: !Enums.isNeobrutalism
         }
@@ -421,9 +427,9 @@ Item {
                 width: control.popupWidth
                 height: control.popupHeight
                 radius: control.popupRadius
-                color: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
-                border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-                border.color: Enums.stateColor.border
+                color: control._popupBackground
+                border.width: control._popupBorderWidth
+                border.color: control._popupBorderColor
                 opacity: Enums.opacityLevel.invisible
 
                 // [Anim C] Uniform scale, top-center origin (iOS spring style)

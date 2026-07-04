@@ -21,6 +21,9 @@ Item {
     property bool checkable: false           // Show checkbox 显示复选框
     property int checkState: 0               // 0=Unchecked, 1=Partial, 2=Checked
     property bool itemEnabled: true
+    readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _itemHoverColor: Enums.stateColor.menuItemHover
+    readonly property color _itemPressedColor: Enums.stateColor.menuItemPressed
     
     // ==================== Signals 信号 ====================
     signal clicked()
@@ -39,11 +42,11 @@ Item {
     Rectangle {
         id: itemBg
         anchors.fill: parent
-        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+        radius: delegateRoot._itemRadius
         color: {
             if (!delegateRoot.itemEnabled) return Enums.transparent
-            if (delegateRoot.pressed) return Enums.stateColor.menuItemPressed
-            if (delegateRoot.hovered) return Enums.stateColor.menuItemHover
+            if (delegateRoot.pressed) return delegateRoot._itemPressedColor
+            if (delegateRoot.hovered) return delegateRoot._itemHoverColor
             return Enums.transparent
         }
     }

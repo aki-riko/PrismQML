@@ -17,6 +17,13 @@ Item {
     property string text: ""
     property int showDelay: 500
     property int hideDelay: 0
+    readonly property int _tooltipRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small)
+    readonly property color _tooltipBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _tooltipBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property color _tooltipBorderColor: Enums.stateColor.border
+    readonly property var _tooltipShadowLevel: Enums.shadow.level8
+    readonly property int _tooltipShadowBlur: Enums.shadow.level8.blur
+    readonly property int _tooltipShadowOffset: Enums.shadow.level8.offset
     
     // ==================== Size 尺寸 ====================
     readonly property int tooltipWidth: tooltipText.implicitWidth + Enums.spacing.xl
@@ -89,11 +96,11 @@ Item {
             ShadowedRectangle {
                 id: _tipBg
                 anchors.fill: parent
-                radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small)
-                color: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
-                border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-                border.color: Enums.stateColor.border
-                shadowLevel: Enums.shadow.level2
+                radius: control._tooltipRadius
+                color: control._tooltipBackground
+                border.width: control._tooltipBorderWidth
+                border.color: control._tooltipBorderColor
+                shadowLevel: control._tooltipShadowLevel
                 shadowVisible: !Enums.isNeobrutalism  // neo 关软阴影, 用下方硬阴影
 
                 // neo 硬阴影

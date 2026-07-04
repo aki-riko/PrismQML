@@ -28,6 +28,11 @@ Rectangle {
     signal clicked()  // Alias for triggered 兼容别名
     signal submenuRequested()  // Submenu open request 子菜单打开请求
     readonly property bool hovered: itemArea.containsMouse
+    readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _itemHoverColor: Enums.stateColor.menuItemHover
+    readonly property color _itemPressedColor: Enums.stateColor.menuItemPressed
+    readonly property color _itemTextColor: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled
+    readonly property color _shortcutTextColor: Enums.stateColor.textMedium
     
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : implicitWidth
@@ -38,7 +43,7 @@ Rectangle {
         ? (Enums.iconSize.xxl + Enums.typography.bodySmall + Enums.spacing.m * 3)
         : Enums.controlSize.emptyStateButtonHeight
     height: implicitHeight
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    radius: _itemRadius
     
     // ==================== Internal 内部属性 ====================
     readonly property bool _isBottomText: textPosition === Enums.position.bottom
@@ -48,9 +53,9 @@ Rectangle {
     // 上视觉过弱 (#fafafa vs 白底, 仅 2% 差) 几乎看不到 hover 反馈。
     color: {
         if (!enabled) return Enums.transparent
-        if (itemArea.pressed) return Enums.stateColor.menuItemPressed
-        if (checkable && checked) return Enums.stateColor.menuItemPressed
-        if (hovered) return Enums.stateColor.menuItemHover
+        if (itemArea.pressed) return _itemPressedColor
+        if (checkable && checked) return _itemPressedColor
+        if (hovered) return _itemHoverColor
         return Enums.transparent
     }
     
@@ -85,7 +90,7 @@ Rectangle {
         Label {
             type: Enums.label.type_caption
             text: control.text
-            color: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled
+            color: control._itemTextColor
             anchors.verticalCenter: parent.verticalCenter
         }
     }
@@ -109,7 +114,7 @@ Rectangle {
         Label {
             type: Enums.label.type_caption
             text: control.text
-            color: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled
+            color: control._itemTextColor
             anchors.horizontalCenter: parent.horizontalCenter
         }
     }
@@ -122,7 +127,7 @@ Rectangle {
         type: Enums.label.type_caption
         text: control.shortcut
         font.pixelSize: Enums.typography.caption - 1
-        color: Enums.stateColor.textMedium
+        color: control._shortcutTextColor
         visible: control.shortcut !== "" && !control._isBottomText && !control.hasSubmenu
     }
     

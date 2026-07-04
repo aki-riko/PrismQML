@@ -220,44 +220,8 @@ Item {
             }
 
             // ==================== Component Matrix 组件矩阵 ====================
-            ExampleCard {
-                title: "Component Matrix"
-                description: "核心控件、弹层反馈、进度与骨架屏共用 Prism token。"
-                orientation: Qt.Vertical
-
-                Column {
-                    width: parent ? parent.width : 0
-                    spacing: Enums.spacing.l
-
-                    Row {
-                        spacing: Enums.spacing.l
-                        ComponentCard { label: "combo"; ComboBox { width: 180; model: ["Prism Design", "Fluent", "Neobrutalism"]; currentIndex: 0 } }
-                        ComponentCard { label: "toggle"; Toggle { text: "Live preview"; checked: true } }
-                        ComponentCard { label: "slider"; Slider { width: 180; value: 64 } }
-                        ComponentCard { label: "progress"; Progress { type: Enums.progress.type_bar; width: 160; value: 72 } }
-                    }
-
-                    Row {
-                        spacing: Enums.spacing.l
-                        ComponentCard { label: "checkbox"; CheckBox { text: "Checked"; checked: true } }
-                        ComponentCard { label: "radio"; RadioButton { text: "Selected"; checked: true } }
-                        ComponentCard { label: "switch"; ToggleSwitch { text: "Enabled"; checked: true } }
-                        ComponentCard { label: "rating"; Rating { value: Enums.demoMetrics.ratingDefaultValue } }
-                    }
-
-                    Row {
-                        spacing: Enums.spacing.l
-                        InfoBar { title: "Info"; content: "Overlay token"; severity: "info"; width: 280; duration: 0 }
-                        InfoBar { title: "Success"; content: "Semantic token"; severity: "success"; width: 280; duration: 0 }
-                    }
-
-                    Row {
-                        spacing: Enums.spacing.l
-                        Skeleton { width: 180; height: 14 }
-                        Skeleton { width: 120; height: 14 }
-                        Skeleton { shape: Enums.skeleton.shape_circle; width: 42; height: 42 }
-                    }
-                }
+            PrismComponentMatrix {
+                width: parent ? parent.width : 0
             }
 
             // ==================== Special Components 特殊组件 ====================
