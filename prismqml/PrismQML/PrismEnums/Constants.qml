@@ -177,6 +177,7 @@ QtObject {
         // ---- Shadows 阴影 ----
         readonly property color shadow: root.isDark ? "#66000000" : "#240A1A2A"
         readonly property color shadowStrong: root.isDark ? "#88000000" : "#380A1A2A"
+        readonly property color edgeShadow: root.isDark ? "#44000000" : "#140A1A2A"
     }
 
     // ==================== SemanticColors 语义色 ====================

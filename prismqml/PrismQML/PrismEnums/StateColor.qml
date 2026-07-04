@@ -32,6 +32,8 @@ QtObject {
     // divider: 轻量分隔线(非控件边框)。neo 用中等灰, 不用纯黑(纯黑细线滚动会抖动闪烁,
     // 且 neo 的轻分隔不该和粗黑边一样重)。控件边框需黑用 border/dialogBorder。
     readonly property color divider: isNeo ? Qt.rgba(0,0,0,0.22) : (isPrismDesign ? _prismDesign.divider : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12)))
+    // Edge shadow for sticky headers / scroll edges 粘性表头/滚动边缘阴影
+    readonly property color edgeShadow: isPrismDesign ? _prismDesign.edgeShadow : (isNeo ? _neo.shadow : (root.isDark ? constants.themeColors.shadowDark : constants.themeColors.shadowLight))
     // Navigation divider (lighter in light mode) 导航分隔线（浅色模式更淡）
     readonly property color navDivider: isPrismDesign ? _prismDesign.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.04))
     // Selected state 选中状态 — 浅色模式必须用 accent 浅色 (#cce4f7), 之前的 "white"

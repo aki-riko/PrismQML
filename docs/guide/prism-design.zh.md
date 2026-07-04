@@ -324,6 +324,12 @@ Prism Design 使用软阴影和边界高光，不使用 Neobrutalism 的硬阴�
 | Level 8 | Menu、Flyout、Tooltip | 与内容明显分离 |
 | Level 16 | Dialog、Modal | 强阴影 + 遮罩 |
 
+边缘阴影 token：
+
+| Token | Light | Dark | 用途 |
+|-------|-------|------|------|
+| `edgeShadow` | `#140A1A2A` | `#44000000` | 粘性表头、滚动边缘、浮动分隔的短距离渐隐阴影 |
+
 材质规则：
 
 - 默认 surface 必须是实心色。

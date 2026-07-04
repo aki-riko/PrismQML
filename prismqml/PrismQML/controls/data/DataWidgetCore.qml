@@ -119,6 +119,7 @@ Rectangle {
     readonly property color secondaryColor: Enums.textColor.secondary
     readonly property color hoverColor: Enums.tableHoverColor
     readonly property color alternateColor: Enums.alternateRowColor
+    readonly property color _headerEdgeShadowColor: Enums.stateColor.edgeShadow
     
     // ==================== Size 尺寸 ====================
     implicitWidth: 200
@@ -242,8 +243,8 @@ Rectangle {
                 visible: showHeader && listView.contentY > 0
                 opacity: Math.min(1, listView.contentY / 20)
                 gradient: Gradient {
-                    GradientStop { position: 0; color: Qt.rgba(0, 0, 0, 0.06) }
-                    GradientStop { position: 1; color: "transparent" }
+                    GradientStop { position: 0; color: root._headerEdgeShadowColor }
+                    GradientStop { position: 1; color: Enums.transparent }
                 }
                 Behavior on opacity {
                     enabled: root.animated

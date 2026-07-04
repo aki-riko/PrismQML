@@ -32,6 +32,15 @@ def _alpha(qcolor):
     return round(qcolor.alphaF() * 255)
 
 
+def _rgba(qcolor):
+    return (
+        round(qcolor.redF() * 255),
+        round(qcolor.greenF() * 255),
+        round(qcolor.blueF() * 255),
+        round(qcolor.alphaF() * 255),
+    )
+
+
 def _assert_stepper(item, active, inactive, border, on_active, inactive_text, active_label):
     assert _rgb(item.property("_stepActiveColor")) == active
     assert _rgb(item.property("_stepInactiveColor")) == inactive
@@ -177,6 +186,17 @@ Avatar {
         avatar = keep[-1][1]
         _assert_avatar(avatar, (170, 184, 199), (255, 255, 255))
 
+        keep.append(_build(engine, b"""
+import PrismQML
+DataWidgetCore {
+    width: 240
+    height: 140
+    showHeader: true
+}
+"""))
+        data_widget = keep[-1][1]
+        assert _rgba(data_widget.property("_headerEdgeShadowColor")) == (10, 26, 42, 20)
+
         setTheme(Theme.DARK)
         keep.append(_build(engine, b"""
 import PrismQML
@@ -265,6 +285,17 @@ Avatar {
 """))
         dark_avatar = keep[-1][1]
         _assert_avatar(dark_avatar, (75, 90, 107), (15, 23, 42))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+DataWidgetCore {
+    width: 240
+    height: 140
+    showHeader: true
+}
+"""))
+        dark_data_widget = keep[-1][1]
+        assert _rgba(dark_data_widget.property("_headerEdgeShadowColor")) == (0, 0, 0, 68)
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

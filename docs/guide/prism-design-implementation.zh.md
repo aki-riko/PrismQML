@@ -65,6 +65,7 @@ Prism Design 的落地不以“看起来像蓝色 Fluent”作为验收标准，
 | 默认边框 | `Enums.borderColor` / `Enums.stateColor.border` | 控件边界 |
 | 强边框 | `Enums.borderStrongColor` / `Enums.stateColor.borderStrong` | focus、selected |
 | 分隔线 | `Enums.dividerColor` | list/table/menu 分隔 |
+| 边缘阴影 | `Enums.stateColor.edgeShadow` | sticky header、滚动边缘渐隐 |
 | hover | `Enums.hoverColor` / `Enums.stateColor.hover` | 悬停状态 |
 | pressed | `Enums.pressedColor` / `Enums.stateColor.pressed` | 按下状态 |
 | selected | `Enums.selectedColor` / `Enums.stateColor.selected` | 选中状态 |
