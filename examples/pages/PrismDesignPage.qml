@@ -301,11 +301,10 @@ Item {
                                 width: 260
                                 height: 180
                                 title: "Throughput"
-                                chartData: [
-                                    { "label": "UI", "value": 42 },
-                                    { "label": "QML", "value": 68 },
-                                    { "label": "Docs", "value": 34 }
-                                ]
+                                chartData: [{ "label": "UI", "value": 42 }, { "label": "QML", "value": 68 }, { "label": "Docs", "value": 34 }]
+                                series: [{ "name": "Build", "values": [42, 68, 34] }, { "name": "Audit", "values": [24, 52, 46] }]
+                                showLegend: true
+                                dataZoomEnabled: true
                             }
                         }
                     }

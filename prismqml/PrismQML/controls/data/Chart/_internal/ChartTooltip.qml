@@ -3,8 +3,8 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import QtQuick.Effects
 import "../../../.."
+import "../../../../effects"
 import "../../../data"
 
 // ChartTooltip - Tooltip component for chart widgets 图表提示框组件
@@ -26,6 +26,8 @@ Item {
     property bool showPointer: false     // Show triangle pointer 显示三角形指针
     property int pointerDirection: 0     // 0=down, 1=up, 2=left, 3=right 指针方向
     readonly property color _tooltipBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.gray.tooltip
+    readonly property color _tooltipBorderColor: Enums.isPrismDesign ? Enums.borderColor : Enums.transparent
+    readonly property int _tooltipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small
     
     // ==================== Size 尺寸 ====================
     width: tooltipRect.width
@@ -38,22 +40,17 @@ Item {
     Behavior on opacity { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
     
     // ==================== Tooltip Body 提示框主体 ====================
-    Rectangle {
+    ShadowedRectangle {
         id: tooltipRect
         width: tooltipContent.width + Enums.spacing.l
         height: tooltipContent.height + Enums.spacing.m
         
-        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small
+        radius: root._tooltipRadius
         color: root._tooltipBackground
-        
-        // Shadow 阴影
-        layer.enabled: root.visible
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowColor: Enums.shadow.level2.color
-            shadowBlur: Enums.shadow.level2.blurNormalized
-            shadowVerticalOffset: Enums.shadow.level2.offset
-        }
+        border.width: Enums.isPrismDesign ? Enums.border.thin : Enums.border.none
+        border.color: root._tooltipBorderColor
+        shadowLevel: Enums.shadow.level8
+        shadowVisible: root.visible
         
         // ==================== Content 内容 ====================
         Column {

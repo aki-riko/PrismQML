@@ -3,42 +3,40 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import QtQuick.Effects
 import "../../../.."
+import "../../../../effects"
 import "../../../data"
 
 // ChartMultiTooltip - Multi-series tooltip component 多系列提示框组件
 // Used for line/bar charts with multiple series 用于多系列折线图/柱状图
 
-Rectangle {
+ShadowedRectangle {
     id: root
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string xLabel: ""           // X-axis label (e.g. "Mon") X轴标签
     property var seriesData: []          // [{name: "", value: 0, color: ""}, ...]
     property bool showTotal: false       // Show total row for stacked charts 堆叠图显示总计
     property real totalValue: 0          // Total value for stacked charts 堆叠图总计值
     // Value formatter callback 自定义数值格式化器
     property var valueFormatter: null
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property color _tooltipBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property color _tooltipBorderColor: Enums.isPrismDesign ? Enums.borderColor : Enums.stateColor.border
+    readonly property int _tooltipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.medium
     
     // ==================== Size 尺寸 ====================
     width: Math.max(contentColumn.width + Enums.spacing.l, 80)
     height: Math.max(contentColumn.height + Enums.spacing.m, 30)
     
     // ==================== Style 样式 ====================
-    radius: Enums.radius.medium
-    color: Enums.cardColor
+    radius: _tooltipRadius
+    color: _tooltipBackground
     border.width: Enums.border.thin
-    border.color: Enums.stateColor.border
-    
-    // Shadow effect 阴影效果
-    layer.enabled: visible
-    layer.effect: MultiEffect {
-        shadowEnabled: true
-        shadowColor: Enums.shadow.level2.color
-        shadowBlur: Enums.shadow.level2.blurNormalized
-        shadowVerticalOffset: Enums.shadow.level2.offset
-    }
+    border.color: _tooltipBorderColor
+    shadowLevel: Enums.shadow.level8
+    shadowVisible: visible
     
     // Fluent Design: fade in animation 淡入动画
     opacity: visible ? 1.0 : 0.0

@@ -532,6 +532,58 @@ LoginWindow {
         ]
         keep.append((chart_tooltip_component, chart_tooltip))
         assert _rgb(chart_tooltip.property("_tooltipBackground")) == (248, 251, 255)
+        assert chart_tooltip.property("_tooltipRadius") == 10
+        assert _rgb(chart_tooltip.property("_tooltipBorderColor")) == (217, 227, 236)
+
+        chart_internal_dir = chart_tooltip_path.parent
+        chart_multi_tooltip_component = QQmlComponent(
+            engine,
+            QUrl.fromLocalFile(str(chart_internal_dir / "ChartMultiTooltip.qml")),
+        )
+        assert not chart_multi_tooltip_component.isError(), [
+            error.toString() for error in chart_multi_tooltip_component.errors()
+        ]
+        chart_multi_tooltip = chart_multi_tooltip_component.create(engine.rootContext())
+        assert chart_multi_tooltip is not None, [
+            error.toString() for error in chart_multi_tooltip_component.errors()
+        ]
+        keep.append((chart_multi_tooltip_component, chart_multi_tooltip))
+        assert chart_multi_tooltip.property("_tooltipRadius") == 10
+        assert _rgb(chart_multi_tooltip.property("_tooltipBackground")) == (248, 251, 255)
+        assert _rgb(chart_multi_tooltip.property("_tooltipBorderColor")) == (217, 227, 236)
+
+        chart_legend_component = QQmlComponent(
+            engine,
+            QUrl.fromLocalFile(str(chart_internal_dir / "ChartBottomLegend.qml")),
+        )
+        assert not chart_legend_component.isError(), [
+            error.toString() for error in chart_legend_component.errors()
+        ]
+        chart_legend = chart_legend_component.create(engine.rootContext())
+        assert chart_legend is not None, [
+            error.toString() for error in chart_legend_component.errors()
+        ]
+        keep.append((chart_legend_component, chart_legend))
+        assert chart_legend.property("_itemRadius") == 6
+        assert _rgb(chart_legend.property("_itemHoverColor")) == (238, 245, 255)
+        assert _rgb(chart_legend.property("_itemBorderColor")) == (231, 238, 245)
+
+        chart_data_zoom_path = chart_internal_dir.parent / "ChartDataZoom.qml"
+        chart_data_zoom_component = QQmlComponent(
+            engine,
+            QUrl.fromLocalFile(str(chart_data_zoom_path)),
+        )
+        assert not chart_data_zoom_component.isError(), [
+            error.toString() for error in chart_data_zoom_component.errors()
+        ]
+        chart_data_zoom = chart_data_zoom_component.create(engine.rootContext())
+        assert chart_data_zoom is not None, [
+            error.toString() for error in chart_data_zoom_component.errors()
+        ]
+        keep.append((chart_data_zoom_component, chart_data_zoom))
+        assert chart_data_zoom.property("_panelRadius") == 8
+        assert _rgb(chart_data_zoom.property("_panelColor")) == (251, 252, 254)
+        assert _rgb(chart_data_zoom.property("_panelBorderColor")) == (231, 238, 245)
 
         page_path = Path(__file__).resolve().parents[2] / "examples" / "pages" / "PrismDesignPage.qml"
         page_component = QQmlComponent(engine, QUrl.fromLocalFile(str(page_path)))
@@ -560,6 +612,33 @@ Item {
         assert _rgb(dark_tokens.property("background")) == (17, 20, 24)
         assert _rgb(dark_tokens.property("surface")) == (23, 28, 34)
         assert _rgb(dark_tokens.property("chartFirst")) == (122, 167, 255)
+
+        dark_chart_tooltip_component = QQmlComponent(engine, QUrl.fromLocalFile(str(chart_tooltip_path)))
+        assert not dark_chart_tooltip_component.isError(), [
+            error.toString() for error in dark_chart_tooltip_component.errors()
+        ]
+        dark_chart_tooltip = dark_chart_tooltip_component.create(engine.rootContext())
+        assert dark_chart_tooltip is not None, [
+            error.toString() for error in dark_chart_tooltip_component.errors()
+        ]
+        keep.append((dark_chart_tooltip_component, dark_chart_tooltip))
+        assert _rgb(dark_chart_tooltip.property("_tooltipBackground")) == (36, 43, 52)
+        assert _rgb(dark_chart_tooltip.property("_tooltipBorderColor")) == (48, 58, 70)
+
+        dark_chart_data_zoom_component = QQmlComponent(
+            engine,
+            QUrl.fromLocalFile(str(chart_data_zoom_path)),
+        )
+        assert not dark_chart_data_zoom_component.isError(), [
+            error.toString() for error in dark_chart_data_zoom_component.errors()
+        ]
+        dark_chart_data_zoom = dark_chart_data_zoom_component.create(engine.rootContext())
+        assert dark_chart_data_zoom is not None, [
+            error.toString() for error in dark_chart_data_zoom_component.errors()
+        ]
+        keep.append((dark_chart_data_zoom_component, dark_chart_data_zoom))
+        assert _rgb(dark_chart_data_zoom.property("_panelColor")) == (23, 28, 34)
+        assert _rgb(dark_chart_data_zoom.property("_panelBorderColor")) == (38, 48, 58)
 
         dark_page_component = QQmlComponent(engine, QUrl.fromLocalFile(str(page_path)))
         assert not dark_page_component.isError(), [
