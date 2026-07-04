@@ -19,31 +19,33 @@ Rectangle {
     property color borderColorLight: "transparent"  // Light border color 浅色边框颜色
     property color borderColorDark: "transparent"  // Dark border color 深色边框颜色
     property int iconSize: Enums.iconSize.s  // Icon size 图标尺寸
-    
-    
-    // ==================== Public Methods 公共方法 ====================
-    function getText() { return text }
-
-
-    readonly property color currentColor: {
+    readonly property string _statusKey: {
         switch (status) {
-            case Enums.statusLevel.success: return Enums.statusLevel.successColor
-            case Enums.statusLevel.warning: return Enums.statusLevel.warningColor
-            case Enums.statusLevel.error: return Enums.statusLevel.errorColor
-            case Enums.statusLevel.attention: return Enums.statusLevel.attentionColor
-            case Enums.statusLevel.processing: return Enums.isDark ? Enums.statusLevel.processingColorDark : Enums.statusLevel.processingColor
-            default: return Enums.statusLevel.infoColor
+            case Enums.statusLevel.success: return "success"
+            case Enums.statusLevel.warning: return "warning"
+            case Enums.statusLevel.error: return "error"
+            case Enums.statusLevel.attention: return "attention"
+            case Enums.statusLevel.processing: return "processing"
+            default: return "info"
         }
     }
+    readonly property color currentColor: Enums.statusLevel.getColorByLevel(status)
+    readonly property int _tagRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+    readonly property color _tagBackground: Enums.isPrismDesign ? Enums.statusLevel.getBgColor(_statusKey) : Enums.stateColor.accentSubtle
+    readonly property int _tagBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (showBorder ? Enums.border.thin : 0)
+    readonly property color _tagBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isDark ? borderColorDark : borderColorLight)
+
+    // ==================== Public Methods 公共方法 ====================
+    function getText() { return text }
     
     implicitWidth: contentRow.implicitWidth + 16
     implicitHeight: Enums.spacing.xxxl
-    radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+    radius: _tagRadius
 
-    color: Enums.stateColor.accentSubtle
+    color: _tagBackground
     // neo: 始终黑粗边(标签靠黑边显形); Fluent: 按 showBorder
-    border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (showBorder ? Enums.border.thin : 0)
-    border.color: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isDark ? borderColorDark : borderColorLight)
+    border.width: _tagBorderWidth
+    border.color: _tagBorderColor
     
     Row {
         id: contentRow

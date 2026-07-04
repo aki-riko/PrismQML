@@ -48,6 +48,13 @@ Widget {
     
     // ==================== Style Props 样式属性 ====================
     property real radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large  // 圆角半径
+    readonly property real _infoBarRadius: radius
+    readonly property color _infoBarBackground: backgroundColor
+    readonly property int _infoBarBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property color _infoBarBorderColor: borderColor
+    readonly property color _infoBarShadowColor: Enums.shadow.level4.color
+    readonly property int _infoBarShadowBlur: Enums.shadow.level4.blur
+    readonly property int _infoBarShadowOffset: Enums.shadow.level4.offset
     
     // ==================== Signals 信号 ====================
     signal closed()
@@ -159,10 +166,10 @@ Widget {
     RectangularShadow {
         anchors.fill: card
         radius: card.radius
-        color: Enums.shadow.level4.color
-        blur: Enums.shadow.level4.blur
+        color: control._infoBarShadowColor
+        blur: control._infoBarShadowBlur
         offset.x: 0
-        offset.y: Enums.shadow.level4.offset
+        offset.y: control._infoBarShadowOffset
         visible: !Enums.isNeobrutalism
     }
 
@@ -176,10 +183,10 @@ Widget {
     Rectangle {
         id: card
         anchors.fill: parent
-        radius: control.radius
-        color: backgroundColor
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin  // neo 粗黑边
-        border.color: borderColor
+        radius: control._infoBarRadius
+        color: control._infoBarBackground
+        border.width: control._infoBarBorderWidth  // neo 粗黑边
+        border.color: control._infoBarBorderColor
     }
     
     // ==================== Animation 动画 ====================
