@@ -2,7 +2,7 @@
 
 Prism Design 是 PrismQML 的自有设计语言，也是 `Skin.PRISM_DESIGN` 的唯一视觉标准来源。后续所有 Prism Design 组件、Gallery、示例和截图验收，都应以本文为准。
 
-本文只定义设计标准，不替代皮肤系统说明。皮肤切换 API、`Enums.skin`、`Enums.prismDesign` 等用法见 [皮肤系统](skins.md)。
+本文定义设计标准，不替代皮肤系统说明。皮肤切换 API、`Enums.skin`、`Enums.prismDesign` 等用法见 [皮肤系统](skins.md)，组件矩阵、Gallery 验收和评审门禁见 [Prism Design 落地标准](prism-design-implementation.md)。
 
 ## 规范状态
 

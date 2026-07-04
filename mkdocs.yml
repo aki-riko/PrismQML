@@ -68,6 +68,7 @@ nav:
   - 指南:
       - 皮肤系统: guide/skins.md
       - Prism Design 视觉规范: guide/prism-design.md
+      - Prism Design 落地标准: guide/prism-design-implementation.md
       - 主题: guide/theming.md
       - 窗口: guide/windows.md
       - 配置系统: guide/config.md
