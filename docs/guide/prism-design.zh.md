@@ -35,7 +35,7 @@ Prism Design 的标准范围覆盖：颜色、字体、图标、圆角、边框�
 
 Prism Design 的人格是“棱面工作台”：干净、稳定、边界清楚、信息优先。它应该让开发者工具、桌面应用、AI 工作流、数据看板和设置型界面看起来可靠且有辨识度。
 
-它不是“玻璃拟态”，也不是“青绿色 Fluent”。Prism 的识别度来自被切割过的界面层级：冷静的 surface、清楚的边框、克制阴影、局部冷光和准确的状态层。界面可以精致，但不能浮夸。
+它不是“玻璃拟态”，也不是“青绿色 Fluent”。Prism 的识别度来自被切割过的界面层级：冷静的 surface、清楚的边框、低阴影、局部冷光和准确的状态层。界面可以精致，但不能浮夸。
 
 ## 与其它皮肤的边界
 
@@ -77,7 +77,7 @@ Prism Design 面向桌面生产力应用、开发者工具、AI 工具、数据�
 
 ### 克制表达
 
-Prism Design 可以有柔和光感，但不能把光感做成装饰噪声。表达应集中在边缘高光、状态层、轻阴影、局部强调色。
+Prism Design 可以有边缘高光，但不能把光感做成装饰噪声。表达应集中在切面边界、状态层、低阴影、局部强调色。
 
 ### 桌面密度
 
@@ -217,6 +217,8 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 | `disabled` | `#E3E9E8` | `#1A2224` | 禁用背景 |
 | `selected` | `#D4EDEA` | `#163F43` | 选中 |
 | `selectedHover` | `#C3E4E0` | `#1B5055` | 选中悬停 |
+| `navSelected` | `#F6FAF9` | `#141D1F` | 导航选中中性面 |
+| `navSelectedHover` | `#EDF4F2` | `#192629` | 导航选中悬停 |
 | `tableHover` | `#E9F0EF` | `#1A2729` | 表格/列表悬停 |
 
 状态层必须有可见差异，但不能让组件尺寸变化。hover、pressed、selected 禁止通过改变文字大小、边距、布局来表达。
@@ -286,10 +288,10 @@ Prism Design 已提供独立图表色板，数据系列颜色必须通过 `Enums
 
 | Token | 值 | 用途 |
 |-------|----|------|
-| `radiusControl` | 4 | Button、Input、ComboBox、菜单项 |
-| `radiusCard` | 6 | Card、Panel、SettingCard |
-| `radiusPopup` | 8 | Menu、Flyout、Tooltip、Toast |
-| `radiusDialog` | 10 | Dialog、MessageBox |
+| `radiusControl` | 2 | Button、Input、ComboBox、菜单项 |
+| `radiusCard` | 4 | Card、Panel、SettingCard |
+| `radiusPopup` | 6 | Menu、Flyout、Tooltip、Toast |
+| `radiusDialog` | 8 | Dialog、MessageBox |
 | `borderWidth` | 1 | 默认边框 |
 | `focusBorderWidth` | 2 | 键盘焦点、输入焦点 |
 
@@ -316,7 +318,7 @@ Prism Design 不单独建立尺寸系统，默认继承 `Enums.controlSize`。�
 
 ## 阴影与材质
 
-Prism Design 使用克制阴影和边界高光，不使用 Neobrutalism 的硬阴影，也不依赖 Fluent 式柔软浮起作为主要层级。
+Prism Design 使用低阴影和边界高光，不使用 Neobrutalism 的硬阴影，也不依赖 Fluent 式柔软浮起作为主要层级。
 
 | 层级 | 用途 | 阴影策略 |
 |------|------|----------|
@@ -562,7 +564,8 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 ### Navigation / Tabs / Pagination
 
 - 当前项必须有位置指示，不只靠文字变色。
-- 选中态使用 `selected`，选中悬停使用 `selectedHover`。
+- 侧边栏/顶栏导航选中使用 `navSelected` + 主色边界，避免大面积主色 tint。
+- 列表、表格、分段控件等内容选择仍使用 `selected` / `selectedHover`。
 - Tab、Pivot、SegmentedControl 必须有明确当前项边界。
 - Paginator / PipsPager 的当前页使用 `primary` 或强边界，disabled 页码可识别。
 - 图标和文字必须共享同一状态逻辑。

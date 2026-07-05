@@ -101,7 +101,7 @@ def test_prism_design_public_input_entries_light_and_dark(qapp):
         direct_combo = keep[-1][1]
         direct_combo.setProperty("model", ["One", "Two"])
         direct_combo.setProperty("currentIndex", 1)
-        assert direct_combo.property("radius") == 4
+        assert direct_combo.property("radius") == 2
         assert direct_combo.property("currentText") == "Two"
 
         keep.append(_build(engine, b"""
@@ -156,12 +156,12 @@ Item {
         qapp.processEvents()
         assert combo_family.property("entryHeight") == 32
         assert combo_family.property("entryText") == "Beta"
-        assert combo_family.property("multiRadius") == 4
-        assert combo_family.property("treeRadius") == 4
+        assert combo_family.property("multiRadius") == 2
+        assert combo_family.property("treeRadius") == 2
         assert combo_family.property("treeFlatCount") == 2
-        assert combo_family.property("multiTreeRadius") == 4
+        assert combo_family.property("multiTreeRadius") == 2
         assert combo_family.property("multiTreeFlatCount") == 2
-        assert combo_family.property("fontRadius") == 4
+        assert combo_family.property("fontRadius") == 2
         assert combo_family.property("fontName") == "Consolas"
 
         keep.append(_build(engine, b"""
@@ -214,9 +214,9 @@ Item {
 }
 """))
         choice_inputs = keep[-1][1]
-        assert choice_inputs.property("filterRadius") == 4
+        assert choice_inputs.property("filterRadius") == 2
         assert _rgb(choice_inputs.property("filterColor")) == (248, 250, 249)
-        assert choice_inputs.property("spinRadius") == 4
+        assert choice_inputs.property("spinRadius") == 2
         assert _rgb(choice_inputs.property("spinColor")) == (252, 254, 253)
         assert _rgb(choice_inputs.property("spinTextColor")) == (21, 35, 38)
         assert choice_inputs.property("spinValue") == 4
@@ -288,7 +288,7 @@ Item {
         assert utility_inputs.property("searchPlaceholder") == "Search"
         assert utility_inputs.property("passwordStrength") == 4
         assert _rgb(utility_inputs.property("passwordStrongColor")) == (15, 123, 15)
-        assert utility_inputs.property("shortcutRadius") == 4
+        assert utility_inputs.property("shortcutRadius") == 2
         assert _rgb(utility_inputs.property("shortcutColor")) == (252, 254, 253)
         assert utility_inputs.property("shortcutValue") == "Ctrl+K"
         assert utility_inputs.property("wheelIndex") == 1
@@ -356,7 +356,7 @@ Item {
 }
 """))
         dark_inputs = keep[-1][1]
-        assert dark_inputs.property("comboRadius") == 4
+        assert dark_inputs.property("comboRadius") == 2
         assert _rgb(dark_inputs.property("filterColor")) == (18, 25, 27)
         assert _rgb(dark_inputs.property("spinColor")) == (25, 34, 36)
         assert _rgb(dark_inputs.property("spinTextColor")) == (238, 245, 243)
@@ -412,14 +412,14 @@ Item {
 }
 """))
         cropper = keep[-1][1]
-        assert cropper.property("previewRadius") == 4
+        assert cropper.property("previewRadius") == 2
         assert _rgb(cropper.property("previewBackground")) == (248, 250, 249)
         assert _rgb(cropper.property("previewBorder")) == (221, 230, 228)
         assert _rgb(cropper.property("previewIcon")) == (22, 124, 128)
         assert _rgb(cropper.property("previewText")) == (86, 106, 109)
         assert _rgb(cropper.property("dialogBackground")) == (238, 243, 242)
         assert cropper.property("dialogType") == 0
-        assert cropper.property("dialogPreviewRadius") == 4
+        assert cropper.property("dialogPreviewRadius") == 2
 
         setTheme(Theme.DARK)
         keep.append(_build(engine, b"""
@@ -446,14 +446,14 @@ Item {
 }
 """))
         dark_cropper = keep[-1][1]
-        assert dark_cropper.property("previewRadius") == 4
+        assert dark_cropper.property("previewRadius") == 2
         assert _rgb(dark_cropper.property("previewBackground")) == (18, 25, 27)
         assert _rgb(dark_cropper.property("previewBorder")) == (34, 48, 51)
         assert _rgb(dark_cropper.property("previewIcon")) == (85, 214, 210)
         assert _rgb(dark_cropper.property("previewText")) == (164, 181, 182)
         assert _rgb(dark_cropper.property("dialogBackground")) == (13, 18, 19)
         assert dark_cropper.property("dialogType") == 0
-        assert dark_cropper.property("dialogPreviewRadius") == 4
+        assert dark_cropper.property("dialogPreviewRadius") == 2
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

@@ -275,7 +275,7 @@ QtObject {
     // ==================== Navigation Selected 导航选中 ====================
     // Navigation bar item selected bg 导航栏项选中背景
     // dark: navigation selected overlay; Light: use transparentHover for Mica contrast
-    readonly property color navSelected: isPrismDesign ? _prismDesign.selected : (root.isDark ? Qt.rgba(1,1,1,0.16) : transparentHover)
+    readonly property color navSelected: isPrismDesign ? _prismDesign.navSelected : (root.isDark ? Qt.rgba(1,1,1,0.16) : transparentHover)
     
     // ==================== TreeWidget Colors 树形组件颜色 ====================
     // Tree item hover/selected bg 树形项悬停/选中背景

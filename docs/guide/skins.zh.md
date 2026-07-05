@@ -22,7 +22,7 @@ from prismqml import setSkin, Skin
 
 setSkin(Skin.FLUENT)          # Fluent Design：圆角、模糊阴影、蓝主色
 setSkin(Skin.NEOBRUTALISM)    # 新粗野：粗黑边、硬阴影、橙撞色
-setSkin(Skin.PRISM_DESIGN)    # Prism Design：清晰层次、柔和光感、自有设计语言
+setSkin(Skin.PRISM_DESIGN)    # Prism Design：硬边切面、低阴影、自有设计语言
 ```
 
 ```python
@@ -50,8 +50,8 @@ print(getSkin())   # Skin.PRISM_DESIGN
 === "Prism Design"
 
     - PrismQML 自有设计语言，不复刻外部平台
-    - 青绿主色、冷灰 surface 层次、清晰切面边界
-    - 细边框 + 克制阴影，保留桌面工具可读性
+    - 青绿主色、冷灰 surface 层次、硬边切面边界
+    - 细边框 + 低阴影，控件靠轮廓和窄指示表达状态
     - 按钮、输入框、卡片先使用专属 token 半径
     - light / dark 都有独立调色板
 
@@ -98,4 +98,4 @@ neo 皮肤的深色模式参照 [neobrutalism.dev](https://neobrutalism.dev) 的
 
 ## 深色 Prism Design
 
-Prism Design 的深色模式使用深石墨背景、提亮青绿主色、低噪声 surface 和更强的切面边界。它不依赖自动反色；`Constants.prismDesign` 中的 light/dark token 会随 `Enums.isDark` 自动切换。
+Prism Design 的深色模式使用深石墨背景、提亮青绿主色、低噪声 surface 和更强的硬边切面。它不依赖自动反色；`Constants.prismDesign` 中的 light/dark token 会随 `Enums.isDark` 自动切换。

@@ -28,6 +28,8 @@ QtObject {
     readonly property color bgColor: {
         if (!Enums || !Enums.stateColor) return Enums.stateColor.controlBg
 
+        if (Enums.isPrismDesign) return _prismBgColor()
+
         if (isToggleChecked) {
             if (style === Enums.button.style_primary) {
                 if (!effectiveEnabled) return Enums.stateColor.disabled
@@ -85,6 +87,51 @@ QtObject {
         return Enums.stateColor.controlBg
     }
 
+    function _prismIsAccentStyle() {
+        return style === Enums.button.style_primary ||
+               style === Enums.button.style_filled ||
+               style === Enums.button.style_gradient
+    }
+
+    function _prismBgColor() {
+        if (isToggleChecked) {
+            if (style === Enums.button.style_primary) {
+                if (!effectiveEnabled) return Enums.stateColor.disabled
+                if (pressed) return Enums.prismDesign.pressed
+                if (hovered) return Enums.prismDesign.hover
+                return Enums.prismDesign.raised
+            }
+            if (!effectiveEnabled) return Enums.stateColor.disabled
+            if (pressed) return Enums.prismDesign.primaryDark
+            if (hovered) return Enums.prismDesign.primaryLight
+            return Enums.prismDesign.primary
+        }
+
+        switch (style) {
+            case Enums.button.style_primary:
+            case Enums.button.style_gradient:
+                if (!effectiveEnabled) return Enums.stateColor.primaryDisabled
+                if (pressed) return Enums.prismDesign.primaryDark
+                if (hovered) return Enums.prismDesign.primaryLight
+                return Enums.prismDesign.primary
+            case Enums.button.style_transparent:
+            case Enums.button.style_text:
+            case Enums.button.style_hyperlink:
+                if (!effectiveEnabled) return Enums.stateColor.controlBgTransparent
+                if (pressed) return Enums.stateColor.transparentPressed
+                if (hovered) return Enums.stateColor.transparentHover
+                return Enums.stateColor.controlBgTransparent
+            case Enums.button.style_filled:
+                var fc = Enums.statusLevel.getColorByLevel(level)
+                if (!effectiveEnabled) return Qt.rgba(fc.r, fc.g, fc.b, Enums.stateColor.filledDisabledAlpha)
+                if (pressed) return Qt.darker(fc, 1.08)
+                if (hovered) return Qt.lighter(fc, 1.04)
+                return fc
+            default:
+                return _getDefaultBgColor()
+        }
+    }
+
     // ==================== Neobrutalism 配色函数 ====================
     // 颜色值已由 token 层(accentColor/stateColor/statusLevel)在 neo 下自动返回;
     // 此处仅保留【结构差异】: neo 下 primary/filled 按钮也要黑边(Fluent 逻辑返回透明),
@@ -114,12 +161,60 @@ QtObject {
         if (!effectiveEnabled) return Enums.neo.secondaryForeground
         return Enums.neo.foreground
     }
+
+    function _prismBorderColor() {
+        if (style === Enums.button.style_transparent ||
+            style === Enums.button.style_text ||
+            style === Enums.button.style_hyperlink) {
+            return Enums.transparent
+        }
+        if (!effectiveEnabled) return Enums.prismDesign.borderLight
+        if (style === Enums.button.style_primary ||
+            style === Enums.button.style_gradient ||
+            (isToggleChecked && _prismIsAccentStyle())) {
+            return Enums.prismDesign.primaryDark
+        }
+        if (style === Enums.button.style_filled) {
+            return Enums.statusLevel.getColorByLevel(level)
+        }
+        if (pressed) return Enums.prismDesign.primaryDark
+        if (hovered) return Enums.prismDesign.borderStrong
+        return Enums.prismDesign.border
+    }
+
+    function _prismTextColor() {
+        if (isToggleChecked && style === Enums.button.style_primary) {
+            if (!effectiveEnabled) return Enums.textColor.disabled
+            return Enums.prismDesign.primary
+        }
+        if (_prismIsAccentStyle()) {
+            if (!effectiveEnabled) return Enums.textColor.tertiary
+            return Enums.prismDesign.primaryForeground
+        }
+        if (style === Enums.button.style_hyperlink) {
+            if (!effectiveEnabled) return Enums.textColor.disabled
+            if (pressed) return Enums.prismDesign.primaryDark
+            if (hovered) return Enums.prismDesign.primaryLight
+            return Enums.prismDesign.primary
+        }
+        if (style === Enums.button.style_text) {
+            var sc = Enums.statusLevel.getColorByLevel(level)
+            if (!effectiveEnabled) return Enums.textColor.disabled
+            if (pressed) return Qt.darker(sc, 1.2)
+            if (hovered) return Qt.lighter(sc, 1.1)
+            return sc
+        }
+        if (!effectiveEnabled) return Enums.textColor.disabled
+        if (pressed) return Enums.prismDesign.primaryDark
+        return Enums.textColor.primary
+    }
     
     // ==================== Border Color 边框色 ====================
     readonly property color borderColor: {
         if (!Enums.stateColor) return Enums.stateColor.border
 
         if (Enums.isNeobrutalism) return _neoBorderColor()
+        if (Enums.isPrismDesign) return _prismBorderColor()
 
         if (isToggleChecked && style === Enums.button.style_primary) {
             return Enums.accentColor
@@ -145,6 +240,7 @@ QtObject {
         if (!Enums.textColor) return Enums.textColor.primary
 
         if (Enums.isNeobrutalism) return _neoTextColor()
+        if (Enums.isPrismDesign) return _prismTextColor()
 
         if (isToggleChecked) {
             if (style === Enums.button.style_primary) {

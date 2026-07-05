@@ -69,7 +69,7 @@ Paginator {
 }
 """))
         paginator = keep[-1][1]
-        assert paginator.property("_pageRadius") == 4
+        assert paginator.property("_pageRadius") == 2
         assert _rgb(paginator.property("_pageIndicatorColor")) == (22, 124, 128)
         assert _rgb(paginator.property("_pageHoverColor")) == (230, 238, 237)
         assert _rgb(paginator.property("_pageTextColor")) == (21, 35, 38)
@@ -83,8 +83,8 @@ PipsPager {
 }
 """))
         pips = keep[-1][1]
-        assert pips.property("_pipRadius") == 4
-        assert pips.property("_navButtonRadius") == 4
+        assert pips.property("_pipRadius") == 2
+        assert pips.property("_navButtonRadius") == 2
         assert _rgb(pips.property("_pipActiveColor")) == (22, 124, 128)
         assert _rgb(pips.property("_pipInactiveColor")) == (142, 164, 163)
         assert _rgb(pips.property("_navButtonHoverColor")) == (230, 238, 237)
@@ -107,7 +107,7 @@ Paginator {
 }
 """))
         dark_paginator = keep[-1][1]
-        assert dark_paginator.property("_pageRadius") == 4
+        assert dark_paginator.property("_pageRadius") == 2
         assert _rgb(dark_paginator.property("_pageIndicatorColor")) == (85, 214, 210)
         assert _rgb(dark_paginator.property("_pageHoverColor")) == (29, 41, 43)
         assert _rgb(dark_paginator.property("_pageTextColor")) == (238, 245, 243)
@@ -121,8 +121,8 @@ PipsPager {
 }
 """))
         dark_pips = keep[-1][1]
-        assert dark_pips.property("_pipRadius") == 4
-        assert dark_pips.property("_navButtonRadius") == 4
+        assert dark_pips.property("_pipRadius") == 2
+        assert dark_pips.property("_navButtonRadius") == 2
         assert _rgb(dark_pips.property("_pipActiveColor")) == (85, 214, 210)
         assert _rgb(dark_pips.property("_pipInactiveColor")) == (73, 96, 99)
         assert _rgb(dark_pips.property("_navButtonHoverColor")) == (29, 41, 43)

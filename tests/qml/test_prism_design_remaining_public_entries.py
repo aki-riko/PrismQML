@@ -31,9 +31,9 @@ def _rgb(qcolor):
 def _assert_common(item, accent, divider, header, card, border):
     expected_warning = (157, 93, 0) if accent == (22, 124, 128) else (192, 144, 0)
 
-    assert item.property("focusRadius") == 4
+    assert item.property("focusRadius") == 2
     assert _rgb(item.property("focusColor")) == accent
-    assert item.property("spinButtonRadius") == 4
+    assert item.property("spinButtonRadius") == 2
     assert _rgb(item.property("separatorColor")) == divider
     assert _rgb(item.property("timelineInfoColor")) == accent
     assert _rgb(item.property("timelineCoreWarningColor")) == expected_warning
@@ -41,9 +41,9 @@ def _assert_common(item, accent, divider, header, card, border):
     assert item.property("waterfallSpacing") == 12
     assert item.property("settingsImplicitHeight") > 0
     assert item.property("settingsContentImplicitWidth") > 0
-    assert item.property("listRadius") == 6
-    assert item.property("tableRadius") == 6
-    assert item.property("treeRadius") == 6
+    assert item.property("listRadius") == 4
+    assert item.property("tableRadius") == 4
+    assert item.property("treeRadius") == 4
     assert _rgb(item.property("listCardColor")) == card
     assert _rgb(item.property("tableHeaderColor")) == header
     assert _rgb(item.property("treeBorderColor")) == border

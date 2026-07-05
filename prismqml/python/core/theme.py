@@ -30,7 +30,7 @@ class Skin(Enum):
     与 Theme（明暗）正交：theme 控制明暗，skin 控制设计语言。
     fluent       → 默认 Fluent Design（圆角、模糊阴影）
     neobrutalism → 新粗野（粗黑边、硬阴影、按下位移）
-    prism_design → Prism Design（清晰层次、柔和光感、自有设计语言）
+    prism_design → Prism Design（硬边切面、低阴影、自有设计语言）
     """
 
     FLUENT = "fluent"

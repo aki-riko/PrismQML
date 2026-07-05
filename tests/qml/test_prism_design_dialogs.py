@@ -33,7 +33,7 @@ def _alpha(qcolor):
 
 
 def _assert_dialog_surface(dialog, background, border, action_row=None, shadow_alpha=46):
-    assert dialog.property("_dialogRadius") == 10
+    assert dialog.property("_dialogRadius") == 8
     assert dialog.property("_dialogBorderWidth") == 1
     assert _rgb(dialog.property("_dialogBackground")) == background
     assert _rgb(dialog.property("_dialogBorderColor")) == border

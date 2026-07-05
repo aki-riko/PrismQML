@@ -33,7 +33,7 @@ def _alpha(qcolor):
 
 
 def _assert_drawer(item, background, border):
-    assert item.property("radius") == 8
+    assert item.property("radius") == 6
     assert item.property("_drawerBorderWidth") == 1
     assert _rgb(item.property("_drawerBackground")) == background
     assert _rgb(item.property("_drawerBorderColor")) == border

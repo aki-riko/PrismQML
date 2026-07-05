@@ -67,21 +67,21 @@ def _assert_indicator(item, active, inactive, inactive_gradient_alpha=64):
 
 
 def _assert_audio(item, border, overlay):
-    assert item.property("_waveformRadius") == 6
-    assert item.property("_waveformInnerRadius") == 4
+    assert item.property("_waveformRadius") == 4
+    assert item.property("_waveformInnerRadius") == 2
     assert _rgb(item.property("_waveformBorderColor")) == border
     assert _rgb(item.property("_progressOverlayColor")) == overlay
     assert _alpha(item.property("_progressOverlayColor")) == 26
 
 
 def _assert_image_widget(item, placeholder, icon):
-    assert item.property("radius") == 4
+    assert item.property("radius") == 2
     assert _rgb(item.property("_placeholderColor")) == placeholder
     assert _rgb(item.property("_placeholderIconColor")) == icon
 
 
 def _assert_qr_code(item, border, hint):
-    assert item.property("_qrPlaceholderRadius") == 4
+    assert item.property("_qrPlaceholderRadius") == 2
     assert _rgb(item.property("_qrBorderColor")) == border
     assert _rgb(item.property("_qrHintColor")) == hint
 

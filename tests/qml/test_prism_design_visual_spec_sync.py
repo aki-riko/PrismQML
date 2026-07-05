@@ -44,6 +44,8 @@ PRISM_COLOR_TOKENS = (
     "disabled",
     "selected",
     "selectedHover",
+    "navSelected",
+    "navSelectedHover",
     "tableHover",
     "scrollTrack",
     "scrollHandle",

@@ -124,10 +124,10 @@ QtObject {
     // Single source of truth for the third skin 第三皮肤的单一真相源。
     readonly property QtObject prismDesign: QtObject {
         // ---- Geometry 几何 ----
-        readonly property int radiusControl: 4
-        readonly property int radiusCard: 6
-        readonly property int radiusPopup: 8
-        readonly property int radiusDialog: 10
+        readonly property int radiusControl: 2
+        readonly property int radiusCard: 4
+        readonly property int radiusPopup: 6
+        readonly property int radiusDialog: 8
         readonly property int borderWidth: 1
         readonly property int focusBorderWidth: 2
 
@@ -167,6 +167,8 @@ QtObject {
         readonly property color disabled: root.isDark ? "#1A2224" : "#E3E9E8"
         readonly property color selected: root.isDark ? "#163F43" : "#D4EDEA"
         readonly property color selectedHover: root.isDark ? "#1B5055" : "#C3E4E0"
+        readonly property color navSelected: root.isDark ? "#141D1F" : "#F6FAF9"
+        readonly property color navSelectedHover: root.isDark ? "#192629" : "#EDF4F2"
         readonly property color tableHover: root.isDark ? "#1A2729" : "#E9F0EF"
         readonly property color scrollTrack: root.isDark ? "#101719" : "#E1E9E7"
         readonly property color scrollHandle: root.isDark ? "#435A5D" : "#8EA4A3"

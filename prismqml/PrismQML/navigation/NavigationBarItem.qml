@@ -36,7 +36,7 @@ Item {
         return Enums.transparent
     }
     readonly property int _navItemBorderWidth: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : (Enums.isPrismDesign && control.selected ? Enums.prismDesign.borderWidth : 0)
-    readonly property color _navItemBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (Enums.isPrismDesign ? Enums.borderStrongColor : Enums.transparent)
+    readonly property color _navItemBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (Enums.isPrismDesign ? Enums.prismDesign.primaryDark : Enums.transparent)
     readonly property color _navItemContentColor: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
     
     // ==================== Internal Props 内部属性 ====================

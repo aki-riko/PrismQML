@@ -29,7 +29,7 @@ def _rgb(qcolor):
 
 
 def _assert_nav_item(item, background, border, content):
-    assert item.property("_navItemRadius") == 4
+    assert item.property("_navItemRadius") == 2
     assert item.property("_navItemBorderWidth") == 1
     assert _rgb(item.property("_navItemBackground")) == background
     assert _rgb(item.property("_navItemBorderColor")) == border
@@ -37,11 +37,11 @@ def _assert_nav_item(item, background, border, content):
 
 
 def _assert_nav_panels(item, nav_background, view_background):
-    assert item.property("navBarCornerRadius") == 6
+    assert item.property("navBarCornerRadius") == 4
     assert item.property("navBarBorderEnabled") is False
     assert item.property("navBarCurrentKey") == "settings"
     assert _rgb(item.property("navBarBackground")) == nav_background
-    assert item.property("navViewCornerRadius") == 6
+    assert item.property("navViewCornerRadius") == 4
     assert item.property("navViewCurrentKey") == "settings"
     assert item.property("navViewCompact") is True
     assert _rgb(item.property("navViewBackground")) == view_background
@@ -65,7 +65,7 @@ NavigationBarItem {
 }
 """))
         nav_bar_item = keep[-1][1]
-        _assert_nav_item(nav_bar_item, (212, 237, 234), (142, 164, 163), (22, 124, 128))
+        _assert_nav_item(nav_bar_item, (246, 250, 249), (14, 95, 100), (22, 124, 128))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -76,7 +76,7 @@ NavigationViewItem {
 }
 """))
         nav_view_item = keep[-1][1]
-        _assert_nav_item(nav_view_item, (212, 237, 234), (142, 164, 163), (22, 124, 128))
+        _assert_nav_item(nav_view_item, (246, 250, 249), (14, 95, 100), (22, 124, 128))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -86,7 +86,7 @@ Card {
 }
 """))
         card = keep[-1][1]
-        assert card.property("borderRadius") == 6
+        assert card.property("borderRadius") == 4
         assert _rgb(card.property("color")) == (252, 254, 253)
 
         keep.append(_build(engine, b"""
@@ -97,7 +97,7 @@ SettingsCardCore {
 }
 """))
         settings_card = keep[-1][1]
-        assert settings_card.property("borderRadius") == 6
+        assert settings_card.property("borderRadius") == 4
         assert _rgb(settings_card.property("color")) == (252, 254, 253)
 
         setTheme(Theme.DARK)
@@ -110,7 +110,7 @@ NavigationBarItem {
 }
 """))
         dark_nav_bar_item = keep[-1][1]
-        _assert_nav_item(dark_nav_bar_item, (22, 63, 67), (73, 96, 99), (85, 214, 210))
+        _assert_nav_item(dark_nav_bar_item, (20, 29, 31), (56, 189, 186), (85, 214, 210))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -121,7 +121,7 @@ NavigationViewItem {
 }
 """))
         dark_nav_view_item = keep[-1][1]
-        _assert_nav_item(dark_nav_view_item, (22, 63, 67), (73, 96, 99), (85, 214, 210))
+        _assert_nav_item(dark_nav_view_item, (20, 29, 31), (56, 189, 186), (85, 214, 210))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -131,7 +131,7 @@ Card {
 }
 """))
         dark_card = keep[-1][1]
-        assert dark_card.property("borderRadius") == 6
+        assert dark_card.property("borderRadius") == 4
         assert _rgb(dark_card.property("color")) == (25, 34, 36)
 
         keep.append(_build(engine, b"""
@@ -142,7 +142,7 @@ SettingsCardCore {
 }
 """))
         dark_settings_card = keep[-1][1]
-        assert dark_settings_card.property("borderRadius") == 6
+        assert dark_settings_card.property("borderRadius") == 4
         assert _rgb(dark_settings_card.property("color")) == (25, 34, 36)
     finally:
         for component, item in reversed(keep):

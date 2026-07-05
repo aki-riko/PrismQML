@@ -33,9 +33,9 @@ def _alpha(qcolor):
 
 
 def _assert_code_block(item, background, border, muted, code, hover):
-    assert item.property("_radius") == 6
+    assert item.property("_radius") == 4
     assert item.property("_blockBorderWidth") == 1
-    assert item.property("_copyRadius") == 4
+    assert item.property("_copyRadius") == 2
     assert item.property("_labelFontSize") == 12
     assert item.property("_codeFontSize") == 12
     assert _rgb(item.property("_blockBackground")) == background
@@ -46,8 +46,8 @@ def _assert_code_block(item, background, border, muted, code, hover):
 
 
 def _assert_assistant_bubble(item, background, border, text, link, timestamp):
-    assert item.property("_bubbleRadius") == 8
-    assert item.property("_bubbleTailRadius") == 4
+    assert item.property("_bubbleRadius") == 6
+    assert item.property("_bubbleTailRadius") == 2
     assert item.property("_bubbleBorderWidth") == 1
     assert item.property("_assistantShadowBlur") == 4
     assert item.property("_assistantShadowOffset") == 1
@@ -59,8 +59,8 @@ def _assert_assistant_bubble(item, background, border, text, link, timestamp):
 
 
 def _assert_user_bubble(item, background, foreground):
-    assert item.property("_bubbleRadius") == 8
-    assert item.property("_bubbleTailRadius") == 4
+    assert item.property("_bubbleRadius") == 6
+    assert item.property("_bubbleTailRadius") == 2
     assert item.property("_bubbleBorderWidth") == 0
     assert _rgb(item.property("_bubbleBackground")) == background
     assert _rgb(item.property("_contentTextColor")) == foreground
@@ -82,8 +82,8 @@ def _assert_chat_message_list(item):
 
 
 def _assert_login_window(item, card, border, error_bg, error):
-    assert item.property("_cardRadius") == 10
-    assert item.property("_errorRadius") == 4
+    assert item.property("_cardRadius") == 8
+    assert item.property("_errorRadius") == 2
     assert item.property("_cardBorderWidth") == 1
     assert item.property("_errorBorderWidth") == 1
     assert _rgb(item.property("_cardColor")) == card

@@ -33,7 +33,7 @@ def _alpha(qcolor):
 
 
 def _assert_info_bar(item, background, border, shadow_alpha):
-    assert item.property("_infoBarRadius") == 8
+    assert item.property("_infoBarRadius") == 6
     assert item.property("_infoBarBorderWidth") == 1
     assert _rgb(item.property("_infoBarBackground")) == background
     assert _rgb(item.property("_infoBarBorderColor")) == border
@@ -43,8 +43,8 @@ def _assert_info_bar(item, background, border, shadow_alpha):
 
 
 def _assert_toast(item, background, border, shadow_alpha):
-    assert item.property("_toastRadius") == 8
-    assert item.property("_toastColorBarRadius") == 8
+    assert item.property("_toastRadius") == 6
+    assert item.property("_toastColorBarRadius") == 6
     assert item.property("_toastBorderWidth") == 1
     assert _rgb(item.property("_toastBackground")) == background
     assert _rgb(item.property("_toastBorderColor")) == border
@@ -54,8 +54,8 @@ def _assert_toast(item, background, border, shadow_alpha):
 
 
 def _assert_desktop_notification(item, background, border, message, shadow_alpha):
-    assert item.property("_notificationRadius") == 8
-    assert item.property("_notificationIconRadius") == 4
+    assert item.property("_notificationRadius") == 6
+    assert item.property("_notificationIconRadius") == 2
     assert item.property("_notificationBorderWidth") == 1
     assert _rgb(item.property("_notificationBackground")) == background
     assert _rgb(item.property("_notificationBorderColor")) == border
@@ -83,19 +83,19 @@ def _assert_direct_progress_ring(item, progress, track):
 
 
 def _assert_skeleton(item, base, shimmer):
-    assert item.property("_radius") == 4
+    assert item.property("_radius") == 2
     assert _rgb(item.property("baseColor")) == base
     assert _rgb(item.property("shimmerColor")) == shimmer
 
 
 def _assert_tag(item, background, text):
-    assert item.property("_tagRadius") == 4
+    assert item.property("_tagRadius") == 2
     assert _rgb(item.property("_tagBackground")) == background
     assert _rgb(item.property("currentColor")) == text
 
 
 def _assert_tip_popup(item, background, border):
-    assert item.property("_tipRadius") == 8
+    assert item.property("_tipRadius") == 6
     assert item.property("_tipBorderWidth") == 1
     assert _rgb(item.property("_tipBackground")) == background
     assert _rgb(item.property("_tipBorderColor")) == border

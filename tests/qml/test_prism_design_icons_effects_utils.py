@@ -40,7 +40,7 @@ def _assert_icons(icon, chevron, check, close, color, accent):
 
 
 def _assert_shadowed_rectangle(item, card, shadow_alpha):
-    assert item.property("_rectangleRadius") == 6
+    assert item.property("_rectangleRadius") == 4
     assert item.property("_defaultShadowBlur") == 8
     assert item.property("_defaultShadowOffset") == 2
     assert _rgb(item.property("_rectangleColor")) == card
@@ -49,7 +49,7 @@ def _assert_shadowed_rectangle(item, card, shadow_alpha):
 
 
 def _assert_popup(item, background, border, shadow_alpha):
-    assert item.property("popupRadius") == 8
+    assert item.property("popupRadius") == 6
     assert item.property("_popupBorderWidth") == 1
     assert item.property("_popupShadowBlur") == 16
     assert item.property("_popupShadowOffset") == 4
@@ -61,7 +61,7 @@ def _assert_popup(item, background, border, shadow_alpha):
 def _assert_remaining_effects_utils(item, background, shadow_alpha):
     assert item.property("skinValue") == "prism_design"
     assert item.property("isPrismDesign") is True
-    assert item.property("radiusControl") == 4
+    assert item.property("radiusControl") == 2
     assert _rgb(item.property("prismBackground")) == background
     assert item.property("dpiBase") == 96
     assert item.property("dpiSpacing8") >= 8

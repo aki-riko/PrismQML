@@ -147,20 +147,20 @@ Item {
 """))
         controls = keep[-1][1]
         qapp.processEvents()
-        assert controls.property("buttonRadius") == 4
+        assert controls.property("buttonRadius") == 2
         assert _rgb(controls.property("buttonColor")) == (22, 124, 128)
-        assert controls.property("customRadius") == 4
+        assert controls.property("customRadius") == 2
         assert _rgb(controls.property("customColor")) == (252, 254, 253)
         assert controls.property("buttonContentWidth") > 0
         assert _rgb(controls.property("buttonContentRing")) == (255, 255, 255)
         assert _rgb(controls.property("buttonProgressColor")) == (255, 255, 255)
         assert _alpha(controls.property("buttonProgressTrack")) == 77
-        assert controls.property("lineRadius") == 4
+        assert controls.property("lineRadius") == 2
         assert _rgb(controls.property("lineColor")) == (252, 254, 253)
         assert controls.property("lineText") == "Prism"
         assert controls.property("comboEntryHeight") == 32
         assert controls.property("comboEntryText") == "Beta"
-        assert controls.property("comboDefaultRadius") == 4
+        assert controls.property("comboDefaultRadius") == 2
         assert controls.property("comboDefaultText") == "Two"
         assert controls.property("sliderBorderWidth") == 1
         assert _rgb(controls.property("sliderTrackColor")) == (225, 233, 231)
@@ -277,16 +277,16 @@ Item {
 """))
         structure = keep[-1][1]
         qapp.processEvents()
-        assert structure.property("tooltipCoreRadius") == 8
+        assert structure.property("tooltipCoreRadius") == 6
         assert _rgb(structure.property("tooltipCoreBackground")) == (244, 248, 247)
         assert _rgb(structure.property("tooltipCoreBorder")) == (199, 212, 211)
-        assert structure.property("toolTipRadius") == 8
-        assert structure.property("infoRadius") == 8
+        assert structure.property("toolTipRadius") == 6
+        assert structure.property("infoRadius") == 6
         assert _rgb(structure.property("infoBackground")) == (204, 228, 247)
         assert _rgb(structure.property("infoBorder")) == (199, 212, 211)
         assert _rgb(structure.property("progressColor")) == (22, 124, 128)
         assert _rgb(structure.property("progressTrack")) == (225, 233, 231)
-        assert structure.property("expanderRadius") == 6
+        assert structure.property("expanderRadius") == 4
         assert structure.property("settingsSpacing") == 2
         assert structure.property("breadcrumbCount") == 2
         assert structure.property("breadcrumbKey") == "settings"
@@ -420,8 +420,8 @@ Item {
 }
 """))
         dark_controls = keep[-1][1]
-        assert dark_controls.property("buttonRadius") == 4
-        assert dark_controls.property("customRadius") == 4
+        assert dark_controls.property("buttonRadius") == 2
+        assert dark_controls.property("customRadius") == 2
         assert _rgb(dark_controls.property("lineColor")) == (25, 34, 36)
         assert _rgb(dark_controls.property("lineTextColor")) == (238, 245, 243)
         assert _rgb(dark_controls.property("tooltipBackground")) == (31, 42, 45)

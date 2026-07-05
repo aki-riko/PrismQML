@@ -63,7 +63,7 @@ Widget {
  blur: _shadowBlur
  offset.x: 0
  offset.y: _shadowOffset
- visible: !Enums.isNeobrutalism
+ visible: !Enums.isNeobrutalism && !Enums.isPrismDesign
 
  // Shadow properties based on type and state 根据类型和状态计算阴影
  property color _shadowColor: isElevated && hovered
@@ -122,8 +122,19 @@ Widget {
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  
  // Border 边框
- border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
- border.color: Enums.stateColor.borderLight  // neo 黑边由 token 自动返回
+ border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+ border.color: Enums.isPrismDesign ? Enums.prismDesign.border : Enums.stateColor.borderLight  // neo 黑边由 token 自动返回
+
+ // Prism cut edge Prism切面边线
+ Rectangle {
+ id: prismCutEdge
+ anchors.left: parent.left
+ anchors.right: parent.right
+ anchors.bottom: parent.bottom
+ height: Enums.prismDesign.borderWidth
+ color: Enums.prismDesign.edgeShadow
+ visible: Enums.isPrismDesign
+ }
  
  // ==================== Header (for header type) 标题区域 ====================
  Item {

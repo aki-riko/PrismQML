@@ -86,7 +86,7 @@ Widget {
     property int cursorShape: Qt.IBeamCursor  // Subclass can override 子类可覆盖
 
     // ==================== Shadow Layer 阴影层 ====================
-    // Fluent: 模糊阴影。Neobrutalism: 硬阴影(纯黑, 聚焦时转橙主色强调)。
+    // Fluent: 模糊阴影。Neobrutalism: 硬阴影。Prism Design: 纯边界层级。
     RectangularShadow {
         anchors.fill: _bg
         radius: _bg.radius
@@ -94,7 +94,7 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !control.transparentBackground && !Enums.isNeobrutalism
+        visible: !control.transparentBackground && !Enums.isNeobrutalism && !Enums.isPrismDesign
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件; 聚焦时 accent=true 转橙主色强调。
@@ -126,11 +126,15 @@ Widget {
         // ==================== Border 边框 ====================
         // Use unified border colors 使用统一边框颜色
         border.width: control.transparentBackground ? 0
-            : (Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin)
+            : (Enums.isNeobrutalism ? Enums.neo.borderWidth
+               : (Enums.isPrismDesign && control.focused && control.showFocusedBorder ? Enums.prismDesign.focusBorderWidth
+                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)))
         border.color: {
             if (control.transparentBackground) return Enums.transparent
             // neo 聚焦转橙(token 不含此交互, 属结构差异); 其余黑边由 token 自动返回
             if (Enums.isNeobrutalism && control.enabled && control.focused) return Enums.neo.primary
+            if (Enums.isPrismDesign && control.enabled && control.focused && control.showFocusedBorder) return Enums.prismDesign.primary
+            if (Enums.isPrismDesign && control.enabled && control.hovered) return Enums.prismDesign.borderStrong
             if (!control.enabled) return Enums.stateColor.borderLight
             return Enums.stateColor.border
         }
@@ -176,12 +180,12 @@ Widget {
     
     // ==================== Focus Line 聚焦底线 ====================
     // z 值确保在子类 Loader 等内容之上渲染（子类子项在基类子项之后添加，z 默认更高）
-    // Neobrutalism: 关闭蓝色聚焦底线(橙粗边+硬阴影已表达聚焦, 蓝线破坏 neo 配色)。
+    // Neobrutalism/Prism: 关闭底线，改由整圈边界表达聚焦。
     FocusLine {
         z: 10
-        showLine: !Enums.isNeobrutalism && control.focused && control.showFocusedBorder
+        showLine: !Enums.isNeobrutalism && !Enums.isPrismDesign && control.focused && control.showFocusedBorder
         lineColor: control.focusedBorderColor
         parentRadius: control.radius
-        visible: !Enums.isNeobrutalism && control.showFocusedBorder
+        visible: !Enums.isNeobrutalism && !Enums.isPrismDesign && control.showFocusedBorder
     }
 }

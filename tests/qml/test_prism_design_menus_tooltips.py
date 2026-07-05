@@ -44,7 +44,7 @@ def _alpha(qcolor):
 
 
 def _assert_overlay_surface(item, background, border, shadow_alpha=None):
-    assert item.property("popupRadius") == 8
+    assert item.property("popupRadius") == 6
     assert item.property("_popupBorderWidth") == 1
     assert _rgb(item.property("_popupBackground")) == background
     assert _rgb(item.property("_popupBorderColor")) == border
@@ -55,7 +55,7 @@ def _assert_overlay_surface(item, background, border, shadow_alpha=None):
 
 
 def _assert_menu_item(item, hover, pressed, text):
-    assert item.property("_itemRadius") == 4
+    assert item.property("_itemRadius") == 2
     assert _rgb(item.property("_itemHoverColor")) == hover
     assert _rgb(item.property("_itemPressedColor")) == pressed
     assert _rgb(item.property("_itemTextColor")) == text
@@ -66,14 +66,14 @@ def _assert_menu_separator(item):
 
 
 def _assert_tip(item, background, border):
-    assert item.property("_tipRadius") == 8
+    assert item.property("_tipRadius") == 6
     assert item.property("_tipBorderWidth") == 1
     assert _rgb(item.property("_tipBackground")) == background
     assert _rgb(item.property("_tipBorderColor")) == border
 
 
 def _assert_tooltip(item, background, border):
-    assert item.property("_tooltipRadius") == 8
+    assert item.property("_tooltipRadius") == 6
     assert item.property("_tooltipBorderWidth") == 1
     assert _rgb(item.property("_tooltipBackground")) == background
     assert _rgb(item.property("_tooltipBorderColor")) == border
@@ -82,7 +82,7 @@ def _assert_tooltip(item, background, border):
 
 
 def _assert_sheet(item, background, border, divider):
-    assert item.property("_sheetRadius") == 8
+    assert item.property("_sheetRadius") == 6
     assert item.property("_sheetBorderWidth") == 1
     assert _rgb(item.property("_sheetBackground")) == background
     assert _rgb(item.property("_sheetBorderColor")) == border
@@ -172,7 +172,7 @@ TreeMenuDelegate {
 }
 """))
         tree_delegate = keep[-1][1]
-        assert tree_delegate.property("_itemRadius") == 4
+        assert tree_delegate.property("_itemRadius") == 2
         assert _rgb(tree_delegate.property("_itemHoverColor")) == (230, 238, 237)
         assert _rgb(tree_delegate.property("_itemPressedColor")) == (220, 231, 229)
 

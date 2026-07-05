@@ -31,7 +31,7 @@ Item {
         return Enums.transparent
     }
     readonly property int _navItemBorderWidth: Enums.isPrismDesign && control.selected ? Enums.prismDesign.borderWidth : 0
-    readonly property color _navItemBorderColor: Enums.isPrismDesign ? Enums.borderStrongColor : Enums.transparent
+    readonly property color _navItemBorderColor: Enums.isPrismDesign ? Enums.prismDesign.primaryDark : Enums.transparent
     readonly property color _navItemContentColor: control.selected ? control.accentColor : Enums.textColor.primary
 
     // ==================== Signals 信号 ====================

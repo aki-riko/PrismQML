@@ -524,8 +524,10 @@ Item {
             id: navIndicator
             x: control.indicatorX
             orientation: Qt.Vertical
+            mode: Enums.isPrismDesign ? "instant" : "stretch"
             indicatorWidth: control.indicatorWidth
             indicatorHeight: control.indicatorHeight
+            radius: Enums.isPrismDesign ? Enums.radius.none : Enums.radius.micro
             animationEnabled: control.indicatorAnimationEnabled
             // neo: 隐藏滑动指示条(选中态用橙实心块代替, 避免双重标记)
             visible: !Enums.isNeobrutalism

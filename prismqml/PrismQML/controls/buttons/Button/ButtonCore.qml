@@ -242,7 +242,7 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !control.flat && !Enums.isNeobrutalism
+        visible: !control.flat && !Enums.isNeobrutalism && !Enums.isPrismDesign
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件(纯黑零模糊, 偏移)。按下位移由下方 Translate 压平。
@@ -260,7 +260,9 @@ Widget {
         color: _animatedBgColor
         border.width: Enums.isNeobrutalism
             ? (flat ? 0 : Enums.neo.borderWidth)
-            : ((styleHelper.isToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin))
+            : (Enums.isPrismDesign
+               ? (flat ? 0 : Enums.prismDesign.borderWidth)
+               : ((styleHelper.isToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin)))
         border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
 
         // Gradient (for gradient style) 渐变
@@ -271,6 +273,16 @@ Widget {
             x: control._neoPressShift; y: control._neoPressShift
             Behavior on x { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
             Behavior on y { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+        }
+
+        // Prism cut edge Prism切面边线
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: Enums.prismDesign.borderWidth
+            color: Enums.prismDesign.edgeShadow
+            visible: Enums.isPrismDesign && !control.flat && control.enabled
         }
     }
 

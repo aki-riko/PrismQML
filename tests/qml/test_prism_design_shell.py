@@ -29,7 +29,7 @@ def _rgb(qcolor):
 
 
 def _assert_shell(window, content, background):
-    assert window.property("contentCornerRadius") == 6
+    assert window.property("contentCornerRadius") == 4
     assert _rgb(window.property("contentBgColor")) == content
     assert _rgb(window.property("windowColor")) == background
 
@@ -41,7 +41,7 @@ def _assert_status_bar(item, background, divider, text):
 
 
 def _assert_profile_card(item, hover, pressed, title, subtitle):
-    assert item.property("_profileRadius") == 4
+    assert item.property("_profileRadius") == 2
     assert _rgb(item.property("_profileHoverColor")) == hover
     assert _rgb(item.property("_profilePressedColor")) == pressed
     assert _rgb(item.property("_profileTitleColor")) == title
@@ -54,7 +54,7 @@ def _assert_windows(item, background):
 
 
 def _assert_compact_windows(item, content, background):
-    assert item.property("contentCornerRadius") == 6
+    assert item.property("contentCornerRadius") == 4
     assert _rgb(item.property("contentBgColor")) == content
     assert _rgb(item.property("windowColor")) == background
 

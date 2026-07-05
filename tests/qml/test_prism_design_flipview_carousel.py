@@ -30,9 +30,9 @@ def _rgb(qcolor):
 
 def _assert_pips(item, active, inactive):
     assert item.property("_normalRadius") == 6
-    assert item.property("_activeRadius") == 4
+    assert item.property("_activeRadius") == 2
     assert item.property("_normalDiameter") == 6
-    assert item.property("_activeDiameter") == 8
+    assert item.property("_activeDiameter") == 4
     assert _rgb(item.property("_pipActiveColor")) == active
     assert _rgb(item.property("_pipHoverColor")) == active
     assert _rgb(item.property("_pipInactiveColor")) == inactive
