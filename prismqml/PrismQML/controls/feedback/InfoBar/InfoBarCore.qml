@@ -89,10 +89,6 @@ Widget {
         // Neobrutalism: 白底(靠黑边+左侧色条+硬阴影区分), 不用语义淡背景
         if (Enums.isNeobrutalism) return Enums.neo.surface
 
-        if (Enums.isDark) {
-            var c = Enums.statusLevel.getColorByLevel(_severityLevel)
-            return Qt.rgba(c.r * 0.25, c.g * 0.25, c.b * 0.25, 1)
-        }
         return Enums.statusLevel.getBgColor(severity)
     }
     
