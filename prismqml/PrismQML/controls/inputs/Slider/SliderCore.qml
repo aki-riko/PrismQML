@@ -38,6 +38,15 @@ Item {
     // ==================== ToolTip Props ToolTip属性 ====================
     property string suffix: ""
     property int decimals: 0
+    // 可选:自定义 tooltip 文本格式化函数 (value)->string。
+    // 非 null 时覆盖默认的 value.toFixed(decimals)+suffix,
+    // 用于时间轴等需要把数值渲染成 00:33 之类格式的场景。
+    property var displayValueFn: null
+
+    // 内部:按当前值算 tooltip 文本(供 default/range 复用)
+    function _tipText(v) {
+        return displayValueFn ? displayValueFn(v) : (v.toFixed(decimals) + suffix)
+    }
     
     // ==================== Range Type Props Range类型属性 ====================
     property real firstValue: 25
@@ -162,8 +171,13 @@ Item {
             Rectangle {
                 id: handle
                 width: Enums.controlSize.switchHeight; height: Enums.controlSize.switchHeight; radius: width / 2
-                x: isHorizontal ? (control.value - control.from) / (control.to - control.from) * (track.width - width) + track.x : (parent.width - width) / 2
-                y: isHorizontal ? (parent.height - height) / 2 : (1 - (control.value - control.from) / (control.to - control.from)) * (track.height - height) + track.y
+                // 位置比例钳制到 [0,1]:value 与 to/from 瞬时错位(量程动态变化、
+                // 程序化改值早于 to 更新)时,防止手柄飞出轨道两端。
+                readonly property real _ratio: (control.to - control.from) !== 0
+                    ? Math.max(0, Math.min(1, (control.value - control.from) / (control.to - control.from)))
+                    : 0
+                x: isHorizontal ? _ratio * (track.width - width) + track.x : (parent.width - width) / 2
+                y: isHorizontal ? (parent.height - height) / 2 : (1 - _ratio) * (track.height - height) + track.y
                 color: control.handleColor
                 border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin  // neo 粗黑边
                 border.color: Enums.stateColor.border
@@ -181,8 +195,10 @@ Item {
                 TooltipCore {
                     x: (parent.width - width) / 2
                     y: -height - Enums.spacing.m
-                    text: control.value.toFixed(control.decimals) + control.suffix
+                    text: control._tipText(control.value)
                     visible: hovered || pressed
+                    // 手柄拖动/程序化改值时,handle.x 变化 → 让 tooltip 窗口跟随重定位
+                    followAnchor: hovered || pressed
                 }
                 
                 MouseArea {
@@ -273,8 +289,10 @@ Item {
                 TooltipCore {
                     x: (parent.width - width) / 2
                     y: -height - Enums.spacing.m
-                    text: Math.round(handleValue).toString()
+                    text: control.displayValueFn ? control.displayValueFn(handleValue)
+                                                 : Math.round(handleValue).toString()
                     visible: rangeHandleArea.containsMouse || rangeHandleArea.pressed
+                    followAnchor: rangeHandleArea.containsMouse || rangeHandleArea.pressed
                 }
                 
                 MouseArea {

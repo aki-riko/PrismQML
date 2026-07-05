@@ -17,6 +17,9 @@ Item {
     property string text: ""
     property int showDelay: 500
     property int hideDelay: 0
+    // 显示期间是否持续跟随锚点(parent)位置。用于手柄拖动这类
+    // parent 会移动的场景:开启后 tooltip 窗口每帧重算全局坐标跟着走。
+    property bool followAnchor: false
     
     // ==================== Size 尺寸 ====================
     readonly property int tooltipWidth: tooltipText.implicitWidth + Enums.spacing.xl
@@ -51,18 +54,30 @@ Item {
         _animOut.start()
     }
 
+    // 按当前锚点位置重算窗口全局坐标(show 时一次 + followAnchor 时持续)
+    function _reposition() {
+        if (!control.parent) return
+        var globalPos = control.parent.mapToGlobal(control.x, control.y)
+        _tipWindow.x = Math.round(globalPos.x)
+        _tipWindow.y = Math.round(globalPos.y)
+    }
+
     function _doOpen() {
         if (!_pendingShow) return
         if (!control.parent) return
 
-        // 将本地 x/y 映射到全局屏幕坐标
-        var globalPos = control.parent.mapToGlobal(control.x, control.y)
-        _tipWindow.x = Math.round(globalPos.x)
-        _tipWindow.y = Math.round(globalPos.y)
-
+        _reposition()
         _animOut.stop()
         _tipWindow.visible = true
         _animIn.start()
+    }
+
+    // followAnchor 开启且窗口可见时,持续跟随锚点位置(手柄拖动时 tooltip 不掉队)
+    Timer {
+        interval: 16
+        repeat: true
+        running: control.followAnchor && _tipWindow.visible
+        onTriggered: control._reposition()
     }
 
     // ==================== Tooltip Window 独立提示窗口 ====================
