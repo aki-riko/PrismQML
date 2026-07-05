@@ -4,6 +4,7 @@
 
 import QtQuick
 import QtQuick.Effects
+import ".."
 
 // GaussianBlur - Gaussian blur effect 高斯模糊效果
 // Replaces Qt5Compat.GraphicalEffects.GaussianBlur 替代

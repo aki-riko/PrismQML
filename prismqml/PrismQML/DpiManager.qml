@@ -22,7 +22,7 @@ QtObject {
     readonly property real devicePixelRatio: (Screen && Screen.devicePixelRatio) ? Screen.devicePixelRatio : 1.0
     
     // User configured DPI scale (0=system, 100/125/150/175/200=fixed) 用户配置的DPI缩放
-    readonly property int userDpiScale: ConfigManager ? ConfigManager.dpiScale : 0
+    readonly property int userDpiScale: (typeof ConfigManager !== "undefined" && ConfigManager) ? ConfigManager.dpiScale : 0
     
     // Effective scale factor 综合缩放因子
     // 0=跟随系统(devicePixelRatio), >0=用户指定比例
