@@ -225,6 +225,7 @@ Item {
     readonly property alias comboBoxMetrics: _metrics.comboBox
     readonly property alias skeletonMetrics: _metrics.skeletonMetrics
     readonly property alias imageCropperDialogMetrics: _metrics.imageCropperDialog
+    readonly property alias splashScreenMetrics: _metrics.splashScreen
     readonly property alias colorPickerMetrics: _metrics.colorPicker
     readonly property alias typography: _metrics.typography
     readonly property alias shadow: _metrics.shadow

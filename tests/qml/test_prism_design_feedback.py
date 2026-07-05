@@ -107,6 +107,30 @@ def _assert_hint_icon(item, color):
     assert _rgb(item.property("color")) == color
 
 
+def _assert_feedback_effects(item, background, accent):
+    assert item.property("confettiParticleCount") == 150
+    assert item.property("confettiDuration") == 3000
+    assert item.property("confettiZ") == 7
+    assert item.property("confettiPaletteLength") == 9
+    assert _rgb(item.property("confettiAccent")) == accent
+
+    assert item.property("splashIconSize") == 102
+    assert item.property("splashZ") == 8
+    assert _rgb(item.property("splashBackground")) == background
+    assert _rgb(item.property("splashProgressColor")) == accent
+    assert item.property("splashProgressRingSize") == 20
+    assert item.property("splashProgressRingBorderWidth") == 2
+    assert round(item.property("splashProgressTrackOpacity"), 2) == 0.3
+    assert item.property("splashProgressDotSize") == 6
+    assert item.property("splashProgressDotRadius") == 3
+    assert item.property("splashProgressDotTopMargin") == -1
+    assert round(item.property("splashIconShadowBlur"), 2) == 0.8
+    assert item.property("splashIconShadowOffset") == 6
+    assert round(item.property("splashContentEnterScale"), 2) == 0.8
+    assert round(item.property("splashContentExitScale"), 2) == 1.1
+    assert round(item.property("splashIconBreatheScale"), 2) == 1.03
+
+
 def test_prism_design_feedback_light_and_dark(qapp):
     setTheme(Theme.LIGHT)
     setSkin(Skin.PRISM_DESIGN)
@@ -222,6 +246,49 @@ HintIcon {
 """))
         hint_icon = keep[-1][1]
         _assert_hint_icon(hint_icon, (131, 146, 164))
+
+        keep.append(_build(engine, b"""
+import QtQuick
+import PrismQML
+Item {
+    width: 320
+    height: 240
+
+    property int confettiParticleCount: confetti.particleCount
+    property int confettiDuration: confetti.duration
+    property int confettiZ: confetti.z
+    property int confettiPaletteLength: confetti.colors.length
+    property color confettiAccent: confetti.colors[0]
+    property int splashIconSize: splash.iconSize
+    property int splashZ: splash.z
+    property color splashBackground: splash._splashBackground
+    property color splashProgressColor: splash._progressColor
+    property int splashProgressRingSize: splash._progressRingSize
+    property int splashProgressRingBorderWidth: splash._progressRingBorderWidth
+    property real splashProgressTrackOpacity: splash._progressTrackOpacity
+    property int splashProgressDotSize: splash._progressDotSize
+    property int splashProgressDotRadius: splash._progressDotRadius
+    property int splashProgressDotTopMargin: splash._progressDotTopMargin
+    property real splashIconShadowBlur: splash._iconShadowBlur
+    property int splashIconShadowOffset: splash._iconShadowOffset
+    property real splashContentEnterScale: splash._contentEnterScale
+    property real splashContentExitScale: splash._contentExitScale
+    property real splashIconBreatheScale: splash._iconBreatheScale
+
+    Confetti {
+        id: confetti
+    }
+
+    SplashScreen {
+        id: splash
+        title: "Prism"
+        subtitle: "Loading"
+        showTitleBar: false
+    }
+}
+"""))
+        effects = keep[-1][1]
+        _assert_feedback_effects(effects, (244, 247, 250), (47, 111, 237))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -349,6 +416,49 @@ HintIcon {
 """))
         dark_hint_icon = keep[-1][1]
         _assert_hint_icon(dark_hint_icon, (118, 131, 148))
+
+        keep.append(_build(engine, b"""
+import QtQuick
+import PrismQML
+Item {
+    width: 320
+    height: 240
+
+    property int confettiParticleCount: confetti.particleCount
+    property int confettiDuration: confetti.duration
+    property int confettiZ: confetti.z
+    property int confettiPaletteLength: confetti.colors.length
+    property color confettiAccent: confetti.colors[0]
+    property int splashIconSize: splash.iconSize
+    property int splashZ: splash.z
+    property color splashBackground: splash._splashBackground
+    property color splashProgressColor: splash._progressColor
+    property int splashProgressRingSize: splash._progressRingSize
+    property int splashProgressRingBorderWidth: splash._progressRingBorderWidth
+    property real splashProgressTrackOpacity: splash._progressTrackOpacity
+    property int splashProgressDotSize: splash._progressDotSize
+    property int splashProgressDotRadius: splash._progressDotRadius
+    property int splashProgressDotTopMargin: splash._progressDotTopMargin
+    property real splashIconShadowBlur: splash._iconShadowBlur
+    property int splashIconShadowOffset: splash._iconShadowOffset
+    property real splashContentEnterScale: splash._contentEnterScale
+    property real splashContentExitScale: splash._contentExitScale
+    property real splashIconBreatheScale: splash._iconBreatheScale
+
+    Confetti {
+        id: confetti
+    }
+
+    SplashScreen {
+        id: splash
+        title: "Prism"
+        subtitle: "Loading"
+        showTitleBar: false
+    }
+}
+"""))
+        dark_effects = keep[-1][1]
+        _assert_feedback_effects(dark_effects, (17, 20, 24), (122, 167, 255))
 
         keep.append(_build(engine, b"""
 import PrismQML

@@ -74,6 +74,7 @@ Rectangle {
 - `Enums.isPrismDesign` — Prism Design 布尔便捷判断
 - `Enums.neo.*` — neo 皮肤专属 token（borderWidth / radius / shadowOffset 等）
 - `Enums.prismDesign.*` — Prism Design 专属 token（radiusControl / radiusCard / primary / surface 等）
+- `Enums.splashScreenMetrics.*` — 启动画面专用度量（iconSize / progressRingSize / iconBreatheScale 等）
 
 ## 架构：token 驱动，皮肤与控件解耦
 
@@ -81,6 +82,7 @@ PrismQML 的皮肤切换不靠在每个控件里写 `if neo`，而是**把差异
 
 - **颜色**走 `Theme` / `StateColor` / `Constants.neoColors` / `Constants.prismDesign`
 - **几何**走 `Metrics`（radius / border / shadow）
+- **组件专用度量**走 `Metrics` 下的专用入口（如 `splashScreenMetrics` / `imageCropperDialogMetrics`）
 - **主色**：`Enums.accentColor` 在 neo 下自动解析成橙，在 Prism Design 下自动解析成 Prism 主色——所有引用主色的控件（primary 按钮、选中态、聚焦边框）自动变色，无需改动
 
 控件本身对皮肤**近乎无感知**。新增皮肤优先扩展 token 调色板 + 少量结构差异分支，避免把皮肤逻辑散落到每个控件里。

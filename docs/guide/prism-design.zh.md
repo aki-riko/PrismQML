@@ -619,6 +619,8 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 - Skeleton 使用低噪声 shimmer，深色下 shimmer 不应刺眼。
 - EmptyState、ResultState、OfflineState 使用语义图标 + 标题 + 说明 + 操作按钮的层级。
 - Loading 不得阻塞主线程动画，不得造成布局跳动。
+- SplashScreen 使用 `background`、`primary` 和 `Enums.splashScreenMetrics`，启动层应安静、居中、短促，不使用大面积 glow 或复杂材质。
+- Confetti 默认以 `accentColor` 与 `confettiColors.palette` 组合，作为完成/庆祝反馈使用，不得变成持续高噪声背景特效。
 
 ### Chart / Gauge / Indicator
 

@@ -29,7 +29,7 @@ Rectangle {
     // ==================== Public Props 公开属性 ====================
     property var icon: null                          // Icon enum value 图标枚举值
     property string iconSource: ""                   // Image path (png/svg/qrc) 图片路径
-    property int iconSize: 102                       // Icon size 图标尺寸
+    property int iconSize: Enums.splashScreenMetrics.iconSize  // Icon size 图标尺寸
     property bool enableShadow: true                 // Enable icon shadow 启用图标阴影
     property alias titleBar: titleBarLoader.sourceComponent  // Custom title bar 自定义标题栏
     property bool showTitleBar: Qt.platform.os !== "osx"  // Show title bar (hidden on macOS) 显示标题栏
@@ -38,6 +38,21 @@ Rectangle {
     property string title: ""                        // App title 应用标题
     property string subtitle: ""                     // Subtitle or loading text 副标题或加载文字
     property bool showProgress: true                 // Show progress ring 显示进度环
+
+    // ==================== Internal Props 内部属性 ====================
+    readonly property color _splashBackground: Enums.backgroundColor
+    readonly property color _progressColor: Enums.accentColor
+    readonly property int _progressRingSize: Enums.splashScreenMetrics.progressRingSize
+    readonly property int _progressRingBorderWidth: Enums.splashScreenMetrics.progressRingBorderWidth
+    readonly property real _progressTrackOpacity: Enums.splashScreenMetrics.progressTrackOpacity
+    readonly property int _progressDotSize: Enums.splashScreenMetrics.progressDotSize
+    readonly property int _progressDotRadius: Enums.splashScreenMetrics.progressDotRadius
+    readonly property int _progressDotTopMargin: Enums.splashScreenMetrics.progressDotTopMargin
+    readonly property real _iconShadowBlur: Enums.splashScreenMetrics.iconShadowBlur
+    readonly property int _iconShadowOffset: Enums.splashScreenMetrics.iconShadowOffset
+    readonly property real _contentEnterScale: Enums.splashScreenMetrics.contentEnterScale
+    readonly property real _contentExitScale: Enums.splashScreenMetrics.contentExitScale
+    readonly property real _iconBreatheScale: Enums.splashScreenMetrics.iconBreatheScale
     
     // ==================== Signals 信号 ====================
     signal finished()  // Emitted when splash screen is closed 启动画面关闭时触发
@@ -45,7 +60,7 @@ Rectangle {
     // ==================== Component Settings 组件设置 ====================
     anchors.fill: parent
     z: Enums.zIndex.tooltip  // Always on top 始终在最上层
-    color: Enums.backgroundColor
+    color: control._splashBackground
     visible: true
     opacity: 0  // Start invisible for fade-in 初始不可见用于淡入
     
@@ -85,7 +100,7 @@ Rectangle {
         NumberAnimation {
             target: contentColumn
             property: "scale"
-            from: 0.8; to: 1
+            from: control._contentEnterScale; to: 1
             duration: Enums.duration.slow
             easing.type: Easing.OutBack
         }
@@ -108,7 +123,7 @@ Rectangle {
             NumberAnimation {
                 target: contentColumn
                 property: "scale"
-                to: 1.1
+                to: control._contentExitScale
                 duration: Enums.duration.medium
                 easing.type: Easing.InCubic
             }
@@ -130,15 +145,15 @@ Rectangle {
         NumberAnimation {
             target: iconContainer
             property: "scale"
-            from: 1.0; to: 1.03
-            duration: 1200  // Enums.duration.xslow
+            from: 1.0; to: control._iconBreatheScale
+            duration: Enums.duration.xslow
             easing.type: Easing.InOutSine
         }
         NumberAnimation {
             target: iconContainer
             property: "scale"
-            from: 1.03; to: 1.0
-            duration: 1200  // Enums.duration.xslow
+            from: control._iconBreatheScale; to: 1.0
+            duration: Enums.duration.xslow
             easing.type: Easing.InOutSine
         }
     }
@@ -206,8 +221,8 @@ Rectangle {
             layer.effect: MultiEffect {
                 shadowEnabled: true
                 shadowColor: Enums.shadowStrongColor
-                shadowBlur: 0.8
-                shadowVerticalOffset: 6
+                shadowBlur: control._iconShadowBlur
+                shadowVerticalOffset: control._iconShadowOffset
             }
         }
         
@@ -227,8 +242,8 @@ Rectangle {
             
             // Progress Ring 进度环
             Item {
-                width: Enums.iconSize.xl
-                height: Enums.iconSize.xl
+                width: control._progressRingSize
+                height: control._progressRingSize
                 visible: control.showProgress
                 anchors.verticalCenter: parent.verticalCenter
                 
@@ -238,9 +253,9 @@ Rectangle {
                     anchors.fill: parent
                     radius: width / 2
                     color: Enums.transparent
-                    border.width: 2
-                    border.color: Enums.accentColor
-                    opacity: 0.3  // Enums.opacity.medium
+                    border.width: control._progressRingBorderWidth
+                    border.color: control._progressColor
+                    opacity: control._progressTrackOpacity
                 }
                 
                 // Arc indicator 弧形指示器
@@ -251,19 +266,19 @@ Rectangle {
                     color: Enums.transparent
                     
                     Rectangle {
-                        width: 6
-                        height: 6
-                        radius: Enums.radius.tiny  // 3
-                        color: Enums.accentColor
+                        width: control._progressDotSize
+                        height: control._progressDotSize
+                        radius: control._progressDotRadius
+                        color: control._progressColor
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.top: parent.top
-                        anchors.topMargin: -1
+                        anchors.topMargin: control._progressDotTopMargin
                     }
                     
                     RotationAnimation on rotation {
                         from: 0
                         to: 360
-                        duration: 1000  // Enums.duration.verySlow
+                        duration: Enums.duration.verySlow
                         loops: Animation.Infinite
                     }
                 }
