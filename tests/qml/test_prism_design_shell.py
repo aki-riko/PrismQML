@@ -48,6 +48,17 @@ def _assert_profile_card(item, hover, pressed, title, subtitle):
     assert _rgb(item.property("_profileSubtitleColor")) == subtitle
 
 
+def _assert_windows(item, background):
+    assert item.property("windowRadius") == 8
+    assert _rgb(item.property("windowColor")) == background
+
+
+def _assert_compact_windows(item, content, background):
+    assert item.property("contentCornerRadius") == 8
+    assert _rgb(item.property("contentBgColor")) == content
+    assert _rgb(item.property("windowColor")) == background
+
+
 def test_prism_design_window_shell_status_and_profile_light_and_dark(qapp):
     setTheme(Theme.LIGHT)
     setSkin(Skin.PRISM_DESIGN)
@@ -131,6 +142,63 @@ NavigationProfileCard {
             (238, 243, 248),
             (166, 177, 191),
         )
+    finally:
+        for component, item in reversed(keep):
+            item.deleteLater()
+            component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        qapp.processEvents()
+        setTheme(Theme.LIGHT)
+        setSkin(Skin.FLUENT)
+
+
+def test_prism_design_windows_public_entries_light_and_dark(qapp):
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.PRISM_DESIGN)
+
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    keep = []
+
+    try:
+        keep.append(_build(engine, b"""
+import PrismQML
+WindowsCore {
+    visible: false
+}
+"""))
+        windows_core = keep[-1][1]
+        _assert_windows(windows_core, (244, 247, 250))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Windows {
+    visible: false
+}
+"""))
+        windows = keep[-1][1]
+        _assert_compact_windows(windows, (251, 252, 254), (244, 247, 250))
+
+        setTheme(Theme.DARK)
+        keep.append(_build(engine, b"""
+import PrismQML
+WindowsCore {
+    visible: false
+}
+"""))
+        dark_windows_core = keep[-1][1]
+        _assert_windows(dark_windows_core, (17, 20, 24))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Windows {
+    visible: false
+}
+"""))
+        dark_windows = keep[-1][1]
+        _assert_compact_windows(dark_windows, (23, 28, 34), (17, 20, 24))
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

@@ -36,6 +36,17 @@ def _assert_nav_item(item, background, border, content):
     assert _rgb(item.property("_navItemContentColor")) == content
 
 
+def _assert_nav_panels(item, nav_background, view_background):
+    assert item.property("navBarCornerRadius") == 8
+    assert item.property("navBarBorderEnabled") is False
+    assert item.property("navBarCurrentKey") == "settings"
+    assert _rgb(item.property("navBarBackground")) == nav_background
+    assert item.property("navViewCornerRadius") == 8
+    assert item.property("navViewCurrentKey") == "settings"
+    assert item.property("navViewCompact") is True
+    assert _rgb(item.property("navViewBackground")) == view_background
+
+
 def test_prism_design_navigation_and_cards_light_and_dark(qapp):
     setTheme(Theme.LIGHT)
     setSkin(Skin.PRISM_DESIGN)
@@ -133,6 +144,117 @@ SettingsCardCore {
         dark_settings_card = keep[-1][1]
         assert dark_settings_card.property("borderRadius") == 8
         assert _rgb(dark_settings_card.property("color")) == (32, 38, 46)
+    finally:
+        for component, item in reversed(keep):
+            item.deleteLater()
+            component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        qapp.processEvents()
+        setTheme(Theme.LIGHT)
+        setSkin(Skin.FLUENT)
+
+
+def test_prism_design_navigation_panels_light_and_dark(qapp):
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.PRISM_DESIGN)
+
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    keep = []
+
+    try:
+        keep.append(_build(engine, b"""
+import QtQuick
+import PrismQML
+Item {
+    property int navBarCornerRadius: navBar._cornerRadius
+    property bool navBarBorderEnabled: navBar.borderEnabled
+    property string navBarCurrentKey: navBar.currentKey
+    property color navBarBackground: navBar.backgroundColor
+    property int navViewCornerRadius: navView._cornerRadius
+    property string navViewCurrentKey: navView.currentKey
+    property bool navViewCompact: navView.isCompact
+    property color navViewBackground: navView.backgroundColor
+
+    NavigationBar {
+        id: navBar
+        width: 72
+        height: 240
+        currentIndex: 1
+        model: [
+            { "key": "home", "text": "Home", "icon": "Home" },
+            { "key": "settings", "text": "Settings", "icon": "Settings" }
+        ]
+    }
+
+    NavigationView {
+        id: navView
+        x: 96
+        width: 240
+        height: 240
+        currentIndex: 1
+        backgroundColor: Enums.surfaceColor
+        model: [
+            { "key": "home", "text": "Home", "icon": "Home" },
+            { "key": "settings", "text": "Settings", "icon": "Settings" }
+        ]
+    }
+}
+"""))
+        panels = keep[-1][1]
+        _assert_nav_panels(
+            panels,
+            nav_background=(0, 0, 0),
+            view_background=(251, 252, 254),
+        )
+
+        setTheme(Theme.DARK)
+        keep.append(_build(engine, b"""
+import QtQuick
+import PrismQML
+Item {
+    property int navBarCornerRadius: navBar._cornerRadius
+    property bool navBarBorderEnabled: navBar.borderEnabled
+    property string navBarCurrentKey: navBar.currentKey
+    property color navBarBackground: navBar.backgroundColor
+    property int navViewCornerRadius: navView._cornerRadius
+    property string navViewCurrentKey: navView.currentKey
+    property bool navViewCompact: navView.isCompact
+    property color navViewBackground: navView.backgroundColor
+
+    NavigationBar {
+        id: navBar
+        width: 72
+        height: 240
+        currentIndex: 1
+        model: [
+            { "key": "home", "text": "Home", "icon": "Home" },
+            { "key": "settings", "text": "Settings", "icon": "Settings" }
+        ]
+    }
+
+    NavigationView {
+        id: navView
+        x: 96
+        width: 240
+        height: 240
+        currentIndex: 1
+        backgroundColor: Enums.surfaceColor
+        model: [
+            { "key": "home", "text": "Home", "icon": "Home" },
+            { "key": "settings", "text": "Settings", "icon": "Settings" }
+        ]
+    }
+}
+"""))
+        dark_panels = keep[-1][1]
+        _assert_nav_panels(
+            dark_panels,
+            nav_background=(0, 0, 0),
+            view_background=(23, 28, 34),
+        )
     finally:
         for component, item in reversed(keep):
             item.deleteLater()
