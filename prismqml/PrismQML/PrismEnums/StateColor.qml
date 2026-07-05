@@ -233,6 +233,7 @@ QtObject {
     // Pip indicator colors 分页指示器颜色
     readonly property color pipNormal: isNeo ? _neo.border : (isPrismDesign ? _prismDesign.borderStrong : (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.45)))
     readonly property color pipActive: isNeo ? _neo.primary : (isPrismDesign ? _prismDesign.primary : (root.isDark ? Qt.rgba(1,1,1,0.8) : Qt.rgba(0,0,0,0.62)))
+    readonly property real indicatorInactiveGradientAlpha: 0.25 // Inactive gradient end alpha 非激活渐变末端透明度
     
     // ==================== Chart Colors 图表颜色 ====================
     // Chart tooltip text (white on dark bg) 图表tooltip文字（深色背景上的白字）

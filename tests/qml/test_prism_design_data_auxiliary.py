@@ -59,9 +59,11 @@ def _assert_gauge(item, track, value, label):
     assert item.property("_gaugeStrokeWidth") == 12
 
 
-def _assert_indicator(item, active, inactive):
+def _assert_indicator(item, active, inactive, inactive_gradient_alpha=64):
     assert _rgb(item.property("_indicatorActiveColor")) == active
     assert _rgb(item.property("_indicatorInactiveColor")) == inactive
+    assert item.property("_inactiveGradientAlpha") == 0.25
+    assert _alpha(item.property("_bottomColor")) == inactive_gradient_alpha
 
 
 def _assert_audio(item, border, overlay):
@@ -168,7 +170,8 @@ CircularGauge {
         keep.append(_build(engine, b"""
 import PrismQML
 IndicatorBar {
-    active: true
+    active: false
+    colorStyle: Enums.indicatorBar.style_gradient
 }
 """))
         indicator = keep[-1][1]
@@ -273,7 +276,8 @@ CircularGauge {
         keep.append(_build(engine, b"""
 import PrismQML
 IndicatorBar {
-    active: true
+    active: false
+    colorStyle: Enums.indicatorBar.style_gradient
 }
 """))
         dark_indicator = keep[-1][1]

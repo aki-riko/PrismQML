@@ -47,6 +47,7 @@ Rectangle {
         : Easing.OutCubic
     readonly property color _indicatorActiveColor: activeColor
     readonly property color _indicatorInactiveColor: inactiveColor
+    readonly property real _inactiveGradientAlpha: Enums.stateColor.indicatorInactiveGradientAlpha
 
     // Gradient end color: solid → same as top; gradient → darker accent / faded inactive
     // 渐变末端色：纯色模式与首端相同；渐变模式 → accent 深色 / inactive 更淡
@@ -54,7 +55,7 @@ Rectangle {
     readonly property color _bottomColor: {
         if (colorStyle === Enums.indicatorBar.style_solid) return _topColor
         if (active) return Qt.darker(_indicatorActiveColor, 1.4)
-        return Qt.rgba(_indicatorInactiveColor.r, _indicatorInactiveColor.g, _indicatorInactiveColor.b, _indicatorInactiveColor.a * 0.25)
+        return Qt.rgba(_indicatorInactiveColor.r, _indicatorInactiveColor.g, _indicatorInactiveColor.b, _indicatorInactiveColor.a * _inactiveGradientAlpha)
     }
 
     // ==================== Geometry 几何 ====================

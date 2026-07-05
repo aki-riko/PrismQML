@@ -626,6 +626,7 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 - 轴标签使用 `Enums.chartColors.axisLabel`，网格线使用 `Enums.chartColors.gridLine`。
 - Tooltip / MultiTooltip 使用 `overlay`、`border`、`radiusPopup`。
 - Legend、DataZoom、IndicatorBar 必须使用同一套 hover / selected / disabled 逻辑。
+- IndicatorBar 非激活渐变端点透明度使用 `Enums.stateColor.indicatorInactiveGradientAlpha`，组件内不得散写 alpha。
 - CircularGauge 的 track、value、label 在 light/dark 下必须可读。
 - 图表空态、加载态、无数据态必须使用 State 组件语义，不留空白画布。
 
