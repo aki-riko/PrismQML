@@ -95,6 +95,7 @@ Widget {
 
     // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
     readonly property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat) ? Enums.neo.pressOffset : 0
+    readonly property int _spectralEdgeInset: Math.min(radius, Math.max(Enums.spacing.none, width / 2 - Enums.spacing.xs))
 
     // Animated colors with instant press, smooth release 动画颜色：按下瞬间，释放平滑
     property color _animatedBgColor
@@ -297,13 +298,15 @@ Widget {
         // Spectral edge for active glass 光谱边用于激活玻璃态
         Rectangle {
             anchors.left: parent.left
+            anchors.leftMargin: control._spectralEdgeInset
             anchors.right: parent.right
+            anchors.rightMargin: control._spectralEdgeInset
             anchors.bottom: parent.bottom
             height: Enums.prismDesign.focusBorderWidth
             color: Enums.prismDesign.spectralEdge
-            opacity: control.pressed ? 0.65 : (control.hovered || control.checked ? 0.42 : 0.0)
+            opacity: control.activeFocus ? 0.38 : 0.0
             visible: Enums.isPrismDesign && !control.flat && control.enabled
-                     && (control.hovered || control.pressed || control.checked || control.activeFocus)
+                     && control.activeFocus
 
             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
         }

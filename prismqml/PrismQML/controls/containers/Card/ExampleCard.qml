@@ -175,7 +175,7 @@ Item {
  anchors.fill: card
  radius: card.radius
  color: "transparent"
- border.width: control._isPrismGallery ? Enums.border.none : (Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin)
+ border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
  border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
  : (control._isPrismGallery ? Enums.prismDesign.borderLight : (Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle))
  }
