@@ -21,7 +21,7 @@ Widget {
     property string icon: ""           // Icon name / image path 图标名或图片路径
     property int iconSize: Enums.iconSize.m
     property bool flat: false          // No border 是否无边框
-    property int radius_: Enums.radius.small + 1  // Use radius_ to avoid Rectangle.radius conflict 避免冲突
+    property int radius_: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small + 1  // Use radius_ to avoid Rectangle.radius conflict 避免冲突
     property bool iconThemeAware: true // Icon follows theme color 图标跟随主题色
     
     // ==================== Signals 信号 ====================
