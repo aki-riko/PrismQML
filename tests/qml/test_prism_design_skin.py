@@ -696,6 +696,17 @@ LoginWindow {
             "Real App Surface",
             "Dark Audit",
         ]
+        assert page.property("stateWallEvidenceKeys").split("|") == [
+            "normal",
+            "hover",
+            "pressed",
+            "focused",
+            "disabled",
+            "selected",
+            "error",
+            "success",
+            "loading",
+        ]
 
         resource_dir = Path(__file__).resolve().parents[2] / "examples" / "resources"
         qrc_text = (resource_dir / "gallery.qrc").read_text(encoding="utf-8")

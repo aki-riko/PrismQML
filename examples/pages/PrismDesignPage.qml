@@ -28,6 +28,7 @@ Item {
     ]
     readonly property var chartTokens: Enums.chartColors.palette
     readonly property string galleryEvidenceViewKeys: "Token Board|State Wall|Component Matrix|Three Skin Compare|Real App Surface|Dark Audit"
+    readonly property string stateWallEvidenceKeys: stateWall.stateEvidenceKeys
 
     // ==================== Internal Methods 内部方法 ====================
     function setSkin(value) { if (ThemeManager) ThemeManager.setSkinFromQml(value) }
@@ -196,28 +197,9 @@ Item {
             }
 
             // ==================== State Wall 状态墙 ====================
-            ExampleCard {
-                title: "State Wall"
-                description: "按钮、输入、分段控件、语义反馈在同一 surface 上覆盖常见状态。"
-
-                Flow {
-                    width: parent ? parent.width : 0
-                    spacing: Enums.spacing.l
-
-                    ComponentCard { label: "default"; Button { text: "Default" } }
-                    ComponentCard { label: "primary"; Button { style: Enums.button.style_primary; text: "Primary" } }
-                    ComponentCard { label: "text"; Button { style: Enums.button.style_text; text: "Text" } }
-                    ComponentCard { label: "disabled"; Button { text: "Disabled"; enabled: false } }
-                    ComponentCard { label: "line edit"; LineEdit { width: 180; text: "PrismQML" } }
-                    ComponentCard { label: "disabled input"; LineEdit { width: 180; placeholderText: "Disabled"; enabled: false } }
-                    ComponentCard {
-                        label: "segmented"
-                        SegmentedControl {
-                            items: ["Tokens", "States", "App"]
-                            currentIndex: 1
-                        }
-                    }
-                }
+            PrismStateWall {
+                id: stateWall
+                width: parent ? parent.width : 0
             }
 
             // ==================== Component Matrix 组件矩阵 ====================
