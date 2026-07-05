@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
 
-import QtQuick.Controls
 import QtQuick.Dialogs
 import "../.."
 import "../icons"
@@ -32,6 +31,14 @@ Item {
         Enums.imageCropperDialogMetrics.cropRectDefaultW,
         Enums.imageCropperDialogMetrics.cropRectDefaultH
     )
+
+    // ==================== Prism Skin Tokens Prism皮肤Token ====================
+    readonly property int _previewRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _previewBackground: Enums.isPrismDesign ? Enums.surfaceColor : Enums.gray.background
+    readonly property color _previewBorderColor: Enums.isPrismDesign ? Enums.borderLightColor : Enums.gray.border
+    readonly property color _previewIconColor: Enums.isPrismDesign ? Enums.accentColor : Enums.gray.disabled
+    readonly property color _previewTextColor: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.gray.text
+    readonly property color _dialogBackground: Enums.isPrismDesign ? Enums.backgroundColor : Enums.gray.background
     
     // ==================== Signals 信号 ====================
     signal accepted(rect cropRect)
@@ -68,10 +75,10 @@ Item {
     // ==================== Preview Thumbnail 预览缩略图 ====================
     Rectangle {
         anchors.fill: parent
-        radius: Enums.radius.small
-        color: Enums.gray.background
+        radius: control._previewRadius
+        color: control._previewBackground
         border.width: Enums.border.thin
-        border.color: Enums.gray.border
+        border.color: control._previewBorderColor
         
         Image {
             anchors.fill: parent
@@ -90,13 +97,13 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 icon: Enums.icon.image
                 iconSize: Enums.iconSize.m
-                color: Enums.gray.disabled
+                color: control._previewIconColor
             }
             Label {
                 type: Enums.label.type_caption
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: { control._tv; return Translator.tr("select_image") }
-                color: Enums.gray.text
+                color: control._previewTextColor
             }
         }
         
@@ -125,7 +132,7 @@ Item {
         title: { control._tv; return Translator.tr("crop_image") }
         width: Enums.imageCropperDialogMetrics.panelWidth
         height: Enums.imageCropperDialogMetrics.panelHeight
-        color: Enums.gray.background
+        color: control._dialogBackground
         modality: Qt.ApplicationModal
         flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
         visible: false

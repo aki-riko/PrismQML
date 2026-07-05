@@ -377,3 +377,90 @@ Item {
         qapp.processEvents()
         setTheme(Theme.LIGHT)
         setSkin(Skin.FLUENT)
+
+
+def test_prism_design_image_cropper_light_and_dark(qapp):
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.PRISM_DESIGN)
+
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    keep = []
+
+    try:
+        keep.append(_build(engine, b"""
+import QtQuick
+import PrismQML
+Item {
+    property int previewRadius: cropper._previewRadius
+    property color previewBackground: cropper._previewBackground
+    property color previewBorder: cropper._previewBorderColor
+    property color previewIcon: cropper._previewIconColor
+    property color previewText: cropper._previewTextColor
+    property color dialogBackground: cropper._dialogBackground
+    property int dialogType: dialogCropper.type
+    property int dialogPreviewRadius: dialogCropper._previewRadius
+
+    ImageCropper {
+        id: cropper
+        type: Enums.imageCropper.type_overlay
+    }
+
+    ImageCropperDialog {
+        id: dialogCropper
+    }
+}
+"""))
+        cropper = keep[-1][1]
+        assert cropper.property("previewRadius") == 6
+        assert _rgb(cropper.property("previewBackground")) == (251, 252, 254)
+        assert _rgb(cropper.property("previewBorder")) == (231, 238, 245)
+        assert _rgb(cropper.property("previewIcon")) == (47, 111, 237)
+        assert _rgb(cropper.property("previewText")) == (95, 111, 128)
+        assert _rgb(cropper.property("dialogBackground")) == (244, 247, 250)
+        assert cropper.property("dialogType") == 0
+        assert cropper.property("dialogPreviewRadius") == 6
+
+        setTheme(Theme.DARK)
+        keep.append(_build(engine, b"""
+import QtQuick
+import PrismQML
+Item {
+    property int previewRadius: cropper._previewRadius
+    property color previewBackground: cropper._previewBackground
+    property color previewBorder: cropper._previewBorderColor
+    property color previewIcon: cropper._previewIconColor
+    property color previewText: cropper._previewTextColor
+    property color dialogBackground: cropper._dialogBackground
+    property int dialogType: dialogCropper.type
+    property int dialogPreviewRadius: dialogCropper._previewRadius
+
+    ImageCropper {
+        id: cropper
+        type: Enums.imageCropper.type_overlay
+    }
+
+    ImageCropperDialog {
+        id: dialogCropper
+    }
+}
+"""))
+        dark_cropper = keep[-1][1]
+        assert dark_cropper.property("previewRadius") == 6
+        assert _rgb(dark_cropper.property("previewBackground")) == (23, 28, 34)
+        assert _rgb(dark_cropper.property("previewBorder")) == (38, 48, 58)
+        assert _rgb(dark_cropper.property("previewIcon")) == (122, 167, 255)
+        assert _rgb(dark_cropper.property("previewText")) == (166, 177, 191)
+        assert _rgb(dark_cropper.property("dialogBackground")) == (17, 20, 24)
+        assert dark_cropper.property("dialogType") == 0
+        assert dark_cropper.property("dialogPreviewRadius") == 6
+    finally:
+        for component, item in reversed(keep):
+            item.deleteLater()
+            component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        qapp.processEvents()
+        setTheme(Theme.LIGHT)
+        setSkin(Skin.FLUENT)
