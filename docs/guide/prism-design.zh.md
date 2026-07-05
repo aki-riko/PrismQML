@@ -1,6 +1,6 @@
 # Prism Design 视觉规范
 
-Prism Design 是 PrismQML 的自有设计语言，也是 `Skin.PRISM_DESIGN` 的唯一视觉标准来源。后续所有 Prism Design 组件、Gallery、示例和截图验收，都应以本文为准。
+Prism Design 是 PrismQML 的自有设计语言，也是 `Skin.PRISM_DESIGN` 的唯一视觉标准来源。当前方向定义为 **Prism Glass**：参考 Liquid Glass 的层级、材质和动态原则，但不复刻 Apple 控件、图标、平台布局或系统行为。后续所有 Prism Design 组件、Gallery、示例和截图验收，都应以本文为准。
 
 本文定义设计标准，不替代皮肤系统说明。皮肤切换 API、`Enums.skin`、`Enums.prismDesign` 等用法见 [皮肤系统](skins.zh.md)，组件矩阵、Gallery 验收和评审门禁见 [Prism Design 落地标准](prism-design-implementation.zh.md)。
 
@@ -13,6 +13,7 @@ Prism Design 是 PrismQML 的自有设计语言，也是 `Skin.PRISM_DESIGN` 的
 | QML 字符串 | `prism_design` |
 | QML 判断 | `Enums.isPrismDesign` |
 | Token 入口 | `Enums.prismDesign.*` |
+| 当前方向 | `Prism Glass` |
 | 规范等级 | 第三皮肤视觉口径的最高标准 |
 | 实现进度 | 以 [Prism Design 落地标准](prism-design-implementation.zh.md)、Gallery 与测试记录为准 |
 
@@ -33,9 +34,9 @@ Prism Design 的标准范围覆盖：颜色、字体、图标、圆角、边框�
 
 ## 设计人格
 
-Prism Design 的人格是“棱面工作台”：干净、稳定、边界清楚、信息优先。它应该让开发者工具、桌面应用、AI 工作流、数据看板和设置型界面看起来可靠且有辨识度。
+Prism Design 的人格是“棱镜玻璃工作台”：清透、有厚度、边缘带光，但仍然服务长期工作流。它应该让开发者工具、桌面应用、AI 工作流、数据看板和设置型界面看起来精致、轻盈、可靠，并且一眼能看出不是 Fluent 的换色版本。
 
-它不是“玻璃拟态”，也不是“青绿色 Fluent”。Prism 的识别度来自被切割过的界面层级：冷静的 surface、清楚的边框、低阴影、局部冷光和准确的状态层。界面可以精致，但不能浮夸。
+它不是“玻璃拟态”，也不是“青绿色 Fluent”。Prism 的识别度来自三件事：功能层像玻璃一样浮在内容之上，边缘像棱镜一样折出细窄光谱，内容层始终保持清楚、稳定、可读。界面可以有光感，但不能让光感抢走信息。
 
 ## 与其它皮肤的边界
 
@@ -43,7 +44,7 @@ Prism Design 的人格是“棱面工作台”：干净、稳定、边界清楚�
 |------|----------|--------------------------------|
 | Fluent | 平台原生、Mica、柔和圆角、系统主色 | 不复刻 WinUI 控件比例，不依赖平台材质作为身份 |
 | Neobrutalism | 粗黑边、硬阴影、高撞色、按压位移 | 不使用硬阴影，不让控件有纸片式压平位移 |
-| Prism Design | 自有 token、青绿主色、冷灰 surface、切面边框、克制层级 | 不退化成单纯换色，也不转向全屏玻璃效果 |
+| Prism Design | Prism Glass、浮动功能层、棱镜光谱边、内容层稳定可读 | 不退化成单纯换色，也不把整页做成玻璃拟态 |
 
 Prism Design 的独立性要靠整套规则体现：同一页面切到 Fluent、Neobrutalism、Prism Design 时，用户应能一眼看出第三套皮肤不是前两者的浅改。
 
@@ -53,17 +54,35 @@ Prism Design 面向桌面生产力应用、开发者工具、AI 工具、数据�
 
 核心目标：
 
-- 让 PrismQML 拥有不依赖外部平台的自有审美。
-- 在 Fluent 的工程稳态和 Neobrutalism 的强辨识度之外，提供第三条长期可用路线。
+- 让 PrismQML 拥有不依赖外部平台的自有审美，建立 Prism Glass 作为第三皮肤的身份。
+- 在 Fluent 的工程稳态和 Neobrutalism 的强辨识度之外，提供一条轻盈、通透、但仍适合桌面工具的路线。
 - 让控件库适合真实应用，而不只是适合截图展示。
 - 保持 token 驱动，使后续皮肤扩展不会把分支散落到每个控件里。
 
 非目标：
 
 - 不复刻 Apple Liquid Glass、Material、Fluent、Carbon 或其它外部设计语言。
-- 不以全局毛玻璃、渐变背景、光晕堆叠作为主要风格。
+- 不以全局毛玻璃、渐变背景、光晕堆叠作为主要风格；玻璃只属于功能层、弹层和少量激活控件。
 - 不牺牲表格、输入、导航、弹层等高频控件的清晰度。
 - 不为了“高级感”降低对比度、缩小点击区域或隐藏状态反馈。
+
+## Liquid Glass 参考边界
+
+Prism Glass 参考 Apple Liquid Glass 的方法论，而不是复制视觉结果。参考点只保留以下几类：
+
+| 参考点 | Prism Glass 转译 | 禁止转译 |
+|--------|------------------|----------|
+| 功能层浮在内容层之上 | 导航、工具栏、菜单、弹层可使用 glass surface | 把正文、表格、卡片全部做成透明玻璃 |
+| 材质会表达厚度 | 小控件薄、菜单和对话框更厚，阴影随层级增加 | 每个控件都套 blur 和 glow |
+| 边缘光帮助识别形体 | 使用 `spectral edge` 表达 Prism 身份 | 大面积彩虹渐变、背景光球 |
+| 内容保持主角 | 数据、文本、表单优先实心 surface | 为了通透降低文字可读性 |
+| 适配可访问性 | Reduced Transparency / Increased Contrast 有等价策略 | 只做透明效果，不做降级样式 |
+
+参考资料：
+
+- [Apple Human Interface Guidelines: Materials](https://developer.apple.com/design/human-interface-guidelines/materials)
+- [Apple Developer: Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/liquid-glass)
+- [WWDC25: Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/)
 
 ## 设计原则
 
@@ -75,9 +94,13 @@ Prism Design 面向桌面生产力应用、开发者工具、AI 工具、数据�
 
 界面必须能被解释为稳定层级：背景、内容面、卡片、浮层、模态层。层级差异来自 token，而不是每个组件临时调色。
 
-### 克制表达
+### 功能层玻璃
 
-Prism Design 可以有边缘高光，但不能把光感做成装饰噪声。表达应集中在切面边界、状态层、低阴影、局部强调色。
+玻璃不是背景装饰，而是交互功能层。导航、工具栏、菜单、Toast、Flyout、Dialog、Slider thumb、Toggle thumb 这类“控制界面行为”的元素可以有 glass surface；正文、表格、列表、输入正文区默认保持实心或近似实心。
+
+### 棱镜边缘
+
+Prism 的自有元素来自边缘，而不是大色块。主色和光谱色优先出现在焦点环、当前项边、弹层高光、进度端点、hover 内发光上。任何光感都必须短、细、贴边。
 
 ### 桌面密度
 
@@ -104,9 +127,10 @@ Prism Design 默认服务长期工作流。列表、表格、菜单、命令栏�
 | 关键词 | 含义 | 落地方式 |
 |--------|------|----------|
 | Clarity 清晰 | 信息优先 | 高可读文字、明确边界、可见焦点 |
-| Faceted 棱面 | 界面像被切分的工作面 | 较小圆角、清楚边框、surface 分级 |
-| Layered 层次 | 界面有深度 | surface 分级、阴影克制、边框强弱 |
-| Luminous 光感 | 有轻微冷光 | 青绿主色、边缘高光、局部 glow |
+| Liquid 液态 | 控制层轻盈、可响应 | hover / pressed 使用内发光和轻微厚度变化 |
+| Glass 玻璃 | 功能层漂浮但可读 | overlay、toolbar、menu 使用 glass surface |
+| Prism 棱镜 | 自有识别 | 光谱边、斜向高光、少量冷暖色分离 |
+| Layered 层次 | 界面有深度 | 内容层稳定、功能层浮起、模态层压住 |
 | Calm 冷静 | 不抢业务内容 | 低噪声背景、克制动效、中性色为主 |
 | Precise 精确 | 工具感明确 | 稳定尺寸、对齐、状态不跳动 |
 
@@ -116,13 +140,14 @@ Prism Design 的页面应由以下元素组合，而不是依赖单一装饰手�
 
 | 元素 | 建议占比 | 作用 |
 |------|----------|------|
-| 中性 surface | 70% 以上 | 承载信息，保证长期阅读舒适 |
-| 状态层 | 10% - 20% | 表达 hover、pressed、selected、focus |
-| 主色强调 | 5% - 10% | 标记主操作、当前项、焦点和关键数据 |
+| 内容实心 surface | 65% 以上 | 承载信息，保证长期阅读舒适 |
+| 玻璃功能层 | 10% - 20% | 承载导航、工具、浮层和激活控件 |
+| 状态层 | 10% - 15% | 表达 hover、pressed、selected、focus |
+| 光谱强调 | 3% - 8% | 标记主操作、当前项、焦点和关键数据 |
 | 语义色 | 按需 | 表达成功、警告、错误、处理中 |
-| 光感与阴影 | 少量 | 辅助层级，不成为主要内容 |
+| 阴影与折射 | 少量 | 辅助层级，不成为主要内容 |
 
-如果一个界面看起来主要由渐变、glow 或高饱和色块构成，它就偏离了 Prism Design。
+如果一个界面看起来主要由渐变、glow 或高饱和色块构成，它就偏离了 Prism Design。Prism Glass 的第一眼应该是“清透的工具界面”，不是“效果图背景”。
 
 ## 层级系统
 
@@ -130,32 +155,34 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 
 | 层级 | 用途 | 视觉要求 | 当前 token |
 |------|------|----------|------------|
-| Base | 应用外层背景、窗口底色 | 最低对比，承载导航和留白 | `background` |
-| Surface | 主内容区、页面主体 | 低噪声、可长时间阅读 | `surface` |
-| Raised | 卡片、按钮、输入框、面板 | 比 Surface 更近，边界清楚 | `raised` |
-| Overlay | Menu、Flyout、Tooltip、Toast | 临时浮层，和内容明显分离 | `overlay` |
-| Modal | Dialog、MessageBox、遮罩层 | 最高注意层，必须压住背景 | `overlay` + shadow + scrim |
+| Base | 应用外层背景、窗口底色 | 最低对比，承载留白和内容画布 | `background` |
+| Content Surface | 主内容区、页面主体、表格、表单 | 低噪声、近实心、可长时间阅读 | `surface` |
+| Crystal Surface | 卡片、按钮、输入框、设置项 | 轻微通透感，边界清楚 | `raised` |
+| Glass Rail | 导航、工具栏、命令面、激活控件 | 浮在内容之上，可见厚度和边缘光 | `overlay` + spectral edge |
+| Floating Glass | Menu、Flyout、Tooltip、Toast | 临时浮层，和内容明显分离 | `overlay` |
+| Modal Glass | Dialog、MessageBox、遮罩层 | 最高注意层，必须压住背景 | `overlay` + shadow + scrim |
 
 层级判定规则：
 
-- Base 只承载全局背景、窗口外层、导航外层，不能放置主要文本段落。
-- Surface 是工作区，长文本、表格和编辑器应优先落在 Surface 上。
-- Raised 是可操作或可聚焦对象，必须有清楚边界。
-- Overlay 是临时内容，关闭后不改变页面结构。
-- Modal 会阻断当前流程，必须提供遮罩、焦点闭环和明确操作区。
+- Base 只承载全局背景和窗口外层，不能放置主要文本段落。
+- Content Surface 是工作区，长文本、表格和编辑器应优先落在这里。
+- Crystal Surface 是可操作或可聚焦对象，必须有清楚边界。
+- Glass Rail 是功能层，主要用于导航、工具栏、命令面和激活控件。
+- Floating Glass 是临时内容，关闭后不改变页面结构。
+- Modal Glass 会阻断当前流程，必须提供遮罩、焦点闭环和明确操作区。
 
 禁止事项：
 
 - 禁止把整页大 section 都做成浮卡，除非它本身是一个独立工具面板。
 - 禁止卡片套卡片制造层级。
-- 禁止用大面积渐变代替 surface 层级。
+- 禁止用大面积渐变、全局玻璃或背景光晕代替 surface 层级。
 - 禁止弹层透明到看不清后方与前景边界。
 
 ## 颜色系统
 
 ### 基础色
 
-当前 `Constants.prismDesign` 的基础色如下，后续调整必须同步更新本文。
+当前 `Constants.prismDesign` 的基础色如下，后续调整必须同步更新本文。现有色板是 Prism Glass 的过渡基线：它保证 light / dark 可读，但下一阶段应让 `overlay`、`raised`、`hover`、`selected` 更接近玻璃厚度，而不是继续像普通实心面板。
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
@@ -195,7 +222,8 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 - 主操作按钮、当前导航项、输入焦点优先使用 `primary`。
 - `secondary` 只用于辅助强调，不能和成功色混用。
 - `warm` 用于注意和提示，不替代 warning 语义色。
-- `glow` 只能做边缘光和视觉辅助，禁止把文本放在 glow 背景上。
+- `glow` 只能做棱镜边、焦点 halo 和视觉辅助，禁止把文本放在 glow 背景上。
+- 主色禁止变成大面积 tint；Prism Glass 的身份优先来自边缘光谱，而不是整块青绿色背景。
 
 ### 边框与分隔
 
@@ -206,7 +234,15 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 | `borderStrong` | `#8EA4A3` | `#496063` | 焦点、强调边界 |
 | `divider` | `#D5DFDD` | `#253437` | 列表、表格、分组分隔 |
 
-边框不是装饰，而是层级和可点击区域的提示。浅色模式不能让边框消失，深色模式不能只靠阴影分层。
+边框不是装饰，而是玻璃厚度、层级和可点击区域的提示。浅色模式不能让边框消失，深色模式不能只靠阴影分层。
+
+Prism Glass 的边框分为三类：
+
+| 类型 | 用途 | 视觉要求 |
+|------|------|----------|
+| Hairline | 内容分隔、表格网格、菜单分隔 | 低对比，不能像控件描边 |
+| Glass Rim | 按钮、输入、卡片、导航项 | 1px 边缘，有轻微内外明暗差 |
+| Spectral Edge | 当前项、焦点、主操作、弹层高光 | 只出现在一条边或局部角，不包围整块大面积发光 |
 
 ### 状态层
 
@@ -221,7 +257,7 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 | `navSelectedHover` | `#EDF4F2` | `#192629` | 导航选中悬停 |
 | `tableHover` | `#E9F0EF` | `#1A2729` | 表格/列表悬停 |
 
-状态层必须有可见差异，但不能让组件尺寸变化。hover、pressed、selected 禁止通过改变文字大小、边距、布局来表达。
+状态层必须有可见差异，但不能让组件尺寸变化。hover、pressed、selected 禁止通过改变文字大小、边距、布局来表达。Prism Glass 的 hover 应像玻璃被点亮，pressed 应像厚度收紧，selected 应有位置或边缘指示。
 
 ### 滚动条与透明状态
 
@@ -233,7 +269,7 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 | `transparentHover` | `#E7EFEE` | `#1B2729` | 透明按钮、图标按钮 hover |
 | `transparentPressed` | `#D9E5E3` | `#172225` | 透明按钮、图标按钮 pressed |
 
-透明状态只用于 TextButton、IconButton、工具栏按钮、菜单触发器等本身不应有实心底的控件。输入框、表格行、卡片和弹层默认不使用透明状态作为正常背景。
+透明状态只用于 TextButton、IconButton、工具栏按钮、菜单触发器等本身不应有实心底的控件。输入框、表格行、卡片和弹层默认不使用透明状态作为正常背景。Glass Rail 可以使用透明状态，但必须有边界和可读前景。
 
 ### 语义色
 
@@ -286,6 +322,8 @@ Prism Design 已提供独立图表色板，数据系列颜色必须通过 `Enums
 
 ## 几何系统
 
+下表记录当前运行时 token，必须与 `Constants.prismDesign` 保持同步。它仍保留上一版硬边基线，后续实现 Prism Glass 时应同步调整代码、测试、Gallery 和本文。
+
 | Token | 值 | 用途 |
 |-------|----|------|
 | `radiusControl` | 2 | Button、Input、ComboBox、菜单项 |
@@ -297,10 +335,12 @@ Prism Design 已提供独立图表色板，数据系列颜色必须通过 `Enums
 
 几何规则：
 
-- 默认控件不能做大药丸，除非现有 API 明确选择 `shape_pill`。
-- 页面主卡片不超过 `radiusCard`，弹层不超过 `radiusPopup`，对话框不超过 `radiusDialog`；Prism Design 默认不追求圆润亲和，而是保留清楚的切面轮廓。
+- 默认控件不能无条件做大药丸，除非现有 API 明确选择 `shape_pill`。
+- Prism Glass 的目标形态应比当前硬边基线更圆润：基础控件约 8px - 12px，卡片约 12px - 16px，弹层约 16px - 20px，对话框约 20px - 28px。真正改实现时必须同步更新 token 表和运行时测试。
 - 圆角必须稳定，不因 hover / pressed 改变。
 - 点击区域至少保持现有 PrismQML 控件尺寸，不因视觉变薄而缩小。
+- 圆角应遵守同心关系：内部控件圆角小于承载它的容器，边距和圆角看起来来自同一几何中心。
+- 当前项、弹层、工具栏这类 Glass Rail 可以更圆；表格、列表、代码块、数据面板仍保持更克制的半径。
 
 ### 尺寸基线
 
@@ -318,7 +358,7 @@ Prism Design 不单独建立尺寸系统，默认继承 `Enums.controlSize`。�
 
 ## 阴影与材质
 
-Prism Design 使用低阴影和边界高光，不使用 Neobrutalism 的硬阴影，也不依赖 Fluent 式柔软浮起作为主要层级。
+Prism Design 使用“玻璃厚度 + 边缘高光 + 克制阴影”表达层级，不使用 Neobrutalism 的硬阴影，也不依赖 Fluent 式柔软浮起作为主要身份。阴影负责空间，边缘负责材质，透明度负责轻盈；三者不能互相替代。
 
 | 层级 | 用途 | 阴影策略 |
 |------|------|----------|
@@ -335,23 +375,38 @@ Prism Design 使用低阴影和边界高光，不使用 Neobrutalism 的硬阴�
 
 材质规则：
 
-- 默认 surface 必须是实心色。
-- 透明和 blur 只能用于 Overlay / Modal / Window 材质层。
-- 表格、输入框、正文卡片禁止依赖透明背景。
+- Content Surface 必须近似实心，保证正文、表格、代码和输入内容可读。
+- 透明和 blur 只能用于 Glass Rail / Floating Glass / Modal Glass / Window 材质层。
+- 表格、输入框正文区、代码块、长列表禁止依赖透明背景。
 - 阴影不能替代边框，特别是深色主题。
+- 玻璃效果必须有降级路径：关闭透明或弱化动态时，组件仍能通过实心 surface、边框和状态层表达层级。
 
 ### 材质策略
 
 | 材质 | 使用范围 | 禁止范围 |
 |------|----------|----------|
-| Solid Surface | 页面、卡片、输入、表格、列表 | 无 |
-| Tinted Surface | 选中项、状态提示、局部强调 | 大面积正文背景 |
-| Soft Shadow | 卡片 hover、弹层、对话框 | 表格每行、列表每项 |
-| Border Highlight | 输入 focus、当前项、浮层边界 | 装饰性重复描边 |
-| Acrylic / Blur | 少量窗口或浮层材质 | 默认控件、数据密集组件、滚动列表 |
-| Glow | 主色边缘、Gallery 展示、少量重点反馈 | 正文承载、按钮常态、大面积背景 |
+| Solid Surface | 正文、表格、代码、长列表、表单内容 | 无 |
+| Crystal Surface | 卡片、按钮、输入框、设置项 | 数据密集行项目 |
+| Glass Rail | 导航、工具栏、命令栏、激活控件 | 正文和表格主体 |
+| Floating Glass | Menu、Flyout、Tooltip、Toast | 长文本阅读区 |
+| Modal Glass | Dialog、MessageBox、遮罩层 | 非阻断普通卡片 |
+| Spectral Edge | 当前项、焦点、主操作、进度端点 | 装饰性重复描边 |
+| Soft Shadow | 弹层、对话框、少量浮动工具条 | 表格每行、列表每项 |
 
 Prism Design 的“光感”应被控制在边缘、状态和少量高层组件里。默认页面看起来应该清楚、安静、可工作，而不是像一张效果图。
+
+### Glass Token 目标
+
+后续实现时应把下列语义收敛为 token，而不是散落到组件里：
+
+| 语义 | 作用 | 典型用途 |
+|------|------|----------|
+| `glassOpacity` | 玻璃层不透明度 | Glass Rail、Floating Glass |
+| `glassTint` | 玻璃底色 | overlay 派生、toolbar |
+| `glassRimLight` | 上/左侧高光边 | Button、Card、Menu |
+| `glassRimShadow` | 下/右侧暗边 | Button pressed、Dialog |
+| `spectralEdge` | 棱镜光谱边 | Focus、selected、primary action |
+| `refractionHighlight` | 折射高光 | Slider thumb、Toggle thumb、Gallery 展示 |
 
 ## 字体与排版
 
@@ -482,7 +537,7 @@ disabled > error > pressed > focused > selected > hover > normal
 
 ## 动效
 
-Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
+Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。Prism Glass 的动效重点是“材质响应”，不是舞台动画：hover 像玻璃被照亮，pressed 像厚度被压低，弹层像轻玻璃片进入视野。
 
 | 场景 | 时长 | 规则 |
 |------|------|------|
@@ -501,7 +556,7 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 
 动效偏好：
 
-- 状态变化以颜色、透明度、边框和阴影为主。
+- 状态变化以颜色、透明度、边框、阴影和局部 rim light 为主。
 - 弹层进入可以使用 opacity + 4px 以内位移。
 - 对话框进入可以有轻微 scale，但不能超过可感知的“弹窗感”。
 - 列表批量出现可用轻微 stagger，但数据密集页面默认不做华丽入场。
@@ -512,17 +567,17 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 ### Window / App Shell
 
 - 窗口外层使用 `background`，主工作区使用 `surface`。
-- 标题栏、导航栏、状态栏必须和内容面有可见边界。
-- NavigationWindow 的侧栏可以更接近 Base，内容区必须更接近 Surface。
-- 透明窗口、Mica、Acrylic 只能作为窗口材质增强，不是 Prism Design 的必要身份。
+- 标题栏、导航栏、状态栏可以作为 Glass Rail，但必须和内容面有可见边界。
+- NavigationWindow 的侧栏应像浮在内容旁的玻璃轨道，内容区必须更接近 Content Surface。
+- 透明窗口、Mica、Acrylic 只能作为平台增强；Prism Design 的必要身份来自 Prism Glass token，不来自系统材质。
 - StatusBar 使用次级文本和 divider，不抢主内容注意力。
 
 ### Button
 
 | 类型 | 背景 | 边框 | 文本 | 状态要求 |
 |------|------|------|------|----------|
-| Default | `raised` | `border` | `textColor.primary` | hover / pressed 可见 |
-| Primary | `primary` | `primaryDark` 或透明 | `primaryForeground` | 主操作唯一或少量 |
+| Default | `raised` / Crystal Surface | `border` + rim | `textColor.primary` | hover / pressed 可见 |
+| Primary | `primary` 或 spectral surface | `primaryDark` / spectral edge | `primaryForeground` | 主操作唯一或少量 |
 | Text | 透明 | 透明 | `textColor.primary` | hover / pressed 用透明状态层 |
 | Hyperlink | 透明 | 透明 | `accentColor` | hover 可下划线或状态层 |
 | Semantic | 语义色 | 语义深色 | on semantic | 危险、成功等业务行为 |
@@ -533,14 +588,16 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 - Loading 状态保持宽高不变。
 - 图标和文字间距稳定，不能因状态变化跳动。
 - 同一区域只能有一个默认主按钮；多个主要动作必须用层级区分。
+- Default 按钮应有轻微玻璃厚度，不能像 Fluent 的灰色圆角按钮。
+- Primary 按钮可以更明亮，但不能把一整组按钮都染成青绿色。
 
 ### Input / ComboBox / SpinBox / Picker
 
-- 默认背景使用 `raised`，默认半径使用 `radiusControl`。
+- 默认背景使用 `raised` 或 Crystal Surface，默认半径使用 `radiusControl`。
 - Placeholder 使用 `textColor.tertiary` 或 `textColor.secondary`。
 - Focused 使用 `primary` 或 `borderStrong`，边框宽度可升到 `focusBorderWidth`。
 - Error 必须显示错误边框，并配合辅助文本或图标。
-- ComboBox / DateTimePicker / ColorPicker 的弹层使用 `overlay` 与 `radiusPopup`。
+- ComboBox / DateTimePicker / ColorPicker 的弹层使用 Floating Glass、`overlay` 与 `radiusPopup`。
 - SpinBox 的加减按钮、Picker 的导航按钮必须和输入框共享 hover / pressed 逻辑。
 - 禁止透明输入框作为默认样式；透明输入只允许在明确的搜索栏或工具栏变体中使用。
 
@@ -555,8 +612,8 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 
 ### Card / SettingCard / Panel
 
-- 默认背景使用 `raised`，半径使用 `radiusCard`。
-- 静态卡片使用弱边框，可交互卡片 hover 使用 `hover` 或 level2 阴影。
+- 默认背景使用 `raised` 或 Crystal Surface，半径使用 `radiusCard`。
+- 静态卡片使用弱边框和轻 rim，可交互卡片 hover 使用 `hover`、rim light 或 level2 阴影。
 - SettingCard 必须保留标题、说明、控件区的阅读层级。
 - HeaderCard / GroupBox / Expander 使用 `divider` 分隔头部和内容。
 - 禁止卡片套卡片制造层级；需要嵌套时内层改用 section、列表项或弱分隔。
@@ -564,7 +621,7 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 ### Navigation / Tabs / Pagination
 
 - 当前项必须有位置指示，不只靠文字变色。
-- 侧边栏/顶栏导航选中使用 `navSelected` + 主色边界，避免大面积主色 tint。
+- 侧边栏/顶栏导航选中使用 `navSelected` + spectral edge，避免大面积主色 tint。
 - 列表、表格、分段控件等内容选择仍使用 `selected` / `selectedHover`。
 - Tab、Pivot、SegmentedControl 必须有明确当前项边界。
 - Paginator / PipsPager 的当前页使用 `primary` 或强边界，disabled 页码可识别。
@@ -573,16 +630,16 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 
 ### Menu / Flyout / Tooltip / Command Surface
 
-- 背景使用 `overlay`，半径使用 `radiusPopup`。
-- 必须有边框或阴影与页面分离；复杂背景上优先边框 + 阴影同时存在。
+- 背景使用 Floating Glass、`overlay`，半径使用 `radiusPopup`。
+- 必须有 glass rim、边框或阴影与页面分离；复杂背景上优先边框 + 阴影同时存在。
 - 菜单项 hover / pressed / focused 必须可见，快捷键文字使用次级前景。
 - Tooltip 以文字可读性优先，不能使用低透明背景导致不清楚。
 - FlyoutSheet、TeachingTip 必须有明确锚点或关闭方式。
-- CommandBar 的图标按钮使用透明状态层，不使用实心卡片堆叠。
+- CommandBar 是 Prism Glass 的重点组件：图标按钮使用透明状态层和 rim light，不使用实心卡片堆叠。
 
 ### Dialog / MessageBox / Masked Surface
 
-- 对话框背景使用 `overlay`，半径使用 `radiusDialog`。
+- 对话框背景使用 Modal Glass、`overlay`，半径使用 `radiusDialog`。
 - Modal 必须有遮罩，并建立焦点闭环。
 - 标题区、内容区、操作区必须层级清楚。
 - 主操作按钮使用 Primary，取消按钮使用 Default 或 Text。
@@ -610,7 +667,7 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 
 ### Toast / InfoBar / Notification
 
-- Toast 使用 Overlay 层级，背景 `overlay`，半径 `radiusPopup`。
+- Toast 使用 Floating Glass 层级，背景 `overlay`，半径 `radiusPopup`。
 - InfoBar 保留语义色主导，不被 Prism 主色覆盖。
 - DesktopNotification 必须在深色和浅色下保持边界、标题、正文、操作按钮清楚。
 - 关闭按钮 hover 不应破坏语义色区域。
@@ -623,14 +680,14 @@ Prism Design 不建立新的动效体系，复用 `Enums.duration.*`。
 - Skeleton 使用低噪声 shimmer，深色下 shimmer 不应刺眼。
 - EmptyState、ResultState、OfflineState 使用语义图标 + 标题 + 说明 + 操作按钮的层级。
 - Loading 不得阻塞主线程动画，不得造成布局跳动。
-- SplashScreen 使用 `background`、`primary` 和 `Enums.splashScreenMetrics`，启动层应安静、居中、短促，不使用大面积 glow 或复杂材质。
+- SplashScreen 使用 `background`、`primary` 和 `Enums.splashScreenMetrics`，启动层应安静、居中、短促，可以有细微棱镜边，但不使用大面积 glow 或复杂材质。
 - Confetti 默认以 `accentColor` 与 `confettiColors.palette` 组合，作为完成/庆祝反馈使用，不得变成持续高噪声背景特效。
 
 ### Chart / Gauge / Indicator
 
 - 数据系列使用 `Enums.chartColors.palette`。
 - 轴标签使用 `Enums.chartColors.axisLabel`，网格线使用 `Enums.chartColors.gridLine`。
-- Tooltip / MultiTooltip 使用 `overlay`、`border`、`radiusPopup`。
+- Tooltip / MultiTooltip 使用 Floating Glass、`overlay`、`border`、`radiusPopup`。
 - Legend、DataZoom、IndicatorBar 必须使用同一套 hover / selected / disabled 逻辑。
 - IndicatorBar 非激活渐变端点透明度使用 `Enums.stateColor.indicatorInactiveGradientAlpha`，组件内不得散写 alpha。
 - CircularGauge 的 track、value、label 在 light/dark 下必须可读。

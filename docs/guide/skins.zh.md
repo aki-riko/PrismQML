@@ -2,7 +2,7 @@
 
 皮肤系统是 PrismQML 的招牌能力：**同一套控件，多种设计语言**。
 
-Prism Design 的完整口径见 [Prism Design 视觉规范](prism-design.md) 和 [Prism Design 落地标准](prism-design-implementation.md)。新增或调整第三套皮肤时，必须先对齐这两份规范。
+Prism Design 的完整口径见 [Prism Design 视觉规范](prism-design.zh.md) 和 [Prism Design 落地标准](prism-design-implementation.zh.md)。新增或调整第三套皮肤时，必须先对齐这两份规范。
 
 ## 皮肤与主题正交
 
@@ -22,7 +22,7 @@ from prismqml import setSkin, Skin
 
 setSkin(Skin.FLUENT)          # Fluent Design：圆角、模糊阴影、蓝主色
 setSkin(Skin.NEOBRUTALISM)    # 新粗野：粗黑边、硬阴影、橙撞色
-setSkin(Skin.PRISM_DESIGN)    # Prism Design：硬边切面、低阴影、自有设计语言
+setSkin(Skin.PRISM_DESIGN)    # Prism Design：Prism Glass、棱镜光谱边、自有设计语言
 ```
 
 ```python
@@ -50,9 +50,10 @@ print(getSkin())   # Skin.PRISM_DESIGN
 === "Prism Design"
 
     - PrismQML 自有设计语言，不复刻外部平台
-    - 青绿主色、冷灰 surface 层次、硬边切面边界
-    - 细边框 + 低阴影，控件靠轮廓和窄指示表达状态
-    - 按钮、输入框、卡片先使用专属 token 半径
+    - 当前方向为 Prism Glass：内容层稳定可读，功能层轻盈浮起
+    - 导航、工具栏、菜单、弹层使用 glass surface 和棱镜光谱边
+    - 数据、表格、输入正文区保持实心或近实心，不牺牲长期可读性
+    - 按钮、输入框、卡片、弹层使用专属 token 约束半径、边框和材质
     - light / dark 都有独立调色板
 
 同一界面在三种皮肤下必须能看出明确差异。下面的截图由 `scripts/render_prism_skin_compare.py` 生成，并由 `tests/qml/test_prism_design_gallery_assets.py` 验证本地 PNG、qrc 注册和文档引用均可用。
@@ -98,4 +99,4 @@ neo 皮肤的深色模式参照 [neobrutalism.dev](https://neobrutalism.dev) 的
 
 ## 深色 Prism Design
 
-Prism Design 的深色模式使用深石墨背景、提亮青绿主色、低噪声 surface 和更强的硬边切面。它不依赖自动反色；`Constants.prismDesign` 中的 light/dark token 会随 `Enums.isDark` 自动切换。
+Prism Design 的深色模式使用深石墨背景、提亮的棱镜主色、低噪声内容 surface 和更清楚的玻璃边缘。它不依赖自动反色；`Constants.prismDesign` 中的 light/dark token 会随 `Enums.isDark` 自动切换。

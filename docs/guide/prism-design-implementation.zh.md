@@ -2,7 +2,7 @@
 
 本文是 [Prism Design 视觉规范](prism-design.zh.md) 的执行口径。视觉规范回答“Prism Design 应该长什么样”，本文回答“组件、Gallery、测试和评审如何证明它已经按标准落地”。
 
-Prism Design 的落地不以“看起来像蓝色 Fluent”作为验收标准，而以 token 接入、状态完整、组件族覆盖、light/dark 对照、Gallery 截图和无硬编码为准。
+Prism Design 的落地不以“看起来像蓝色 Fluent”或“像 Apple 玻璃控件”作为验收标准，而以 Prism Glass 口径、token 接入、状态完整、组件族覆盖、light/dark 对照、Gallery 截图和无硬编码为准。
 
 ## 完成定义
 
@@ -39,8 +39,8 @@ Prism Design 的落地不以“看起来像蓝色 Fluent”作为验收标准，
 | 阶段 | 范围 | 验收结果 |
 |------|------|----------|
 | P0 Token | `Skin.PRISM_DESIGN`、`Enums.isPrismDesign`、`Enums.prismDesign`、主题转发 | 能切换皮肤，基础颜色和半径可读 |
-| P1 核心控件 | Button、Input、ComboBox、Card、基础文本和图标 | 高频界面可以形成 Prism Design 气质 |
-| P2 结构控件 | Navigation、Menu、Flyout、Dialog、Toast、InfoBar、SettingsCard | 应用主框架和弹层一致 |
+| P1 核心控件 | Button、Input、ComboBox、Card、基础文本和图标 | 高频界面可以形成 Prism Glass 气质 |
+| P2 结构控件 | Navigation、Menu、Flyout、Dialog、Toast、InfoBar、SettingsCard | Glass Rail、Floating Glass 和 Modal Glass 一致 |
 | P3 数据控件 | List、Table、Tree、Badge、Tag、Progress、Chart | 数据密集界面可长期使用 |
 | P4 完整体验 | Gallery 对照、截图验收、状态墙、真实页面样例 | 能向用户展示第三套 skin 的完整能力 |
 
@@ -77,14 +77,14 @@ Prism Design 的落地不以“看起来像蓝色 Fluent”作为验收标准，
 
 | Token | 允许场景 |
 |-------|----------|
-| `radiusControl` | Button、Input、ComboBox、MenuItem、Tab 等基础控件半径 |
-| `radiusCard` | Card、Panel、SettingsCard、Group 容器 |
-| `radiusPopup` | Menu、Flyout、Tooltip、Toast、Drawer |
-| `radiusDialog` | Dialog、MessageBox、ProgressDialog |
+| `radiusControl` | Button、Input、ComboBox、MenuItem、Tab 等基础控件半径；当前为运行时基线，Glass 目标应更圆润 |
+| `radiusCard` | Card、Panel、SettingsCard、Group 容器；当前为运行时基线，Glass 目标应更圆润 |
+| `radiusPopup` | Menu、Flyout、Tooltip、Toast、Drawer；对应 Floating Glass |
+| `radiusDialog` | Dialog、MessageBox、ProgressDialog；对应 Modal Glass |
 | `borderWidth` | 需要固定 Prism 默认描边宽度的控件 |
 | `focusBorderWidth` | 键盘焦点、输入焦点 |
 | `primary` / `primaryLight` / `primaryDark` | 需要明确区分 normal/hover/pressed 的主色组件 |
-| `secondary` / `warm` / `glow` | 局部辅助强调，不承载语义状态 |
+| `secondary` / `warm` / `glow` | 局部辅助强调、棱镜边和 rim light，不承载语义状态 |
 
 除 token 定义文件、视觉测试和文档外，组件内禁止写 Prism Design 专属 hex 色值。
 
@@ -114,7 +114,7 @@ Prism Design 的落地不以“看起来像蓝色 Fluent”作为验收标准，
 | 范围 | 组件 | 必须统一的内容 |
 |------|------|----------------|
 | 窗口底层 | `Windows`、`NavigationWindowCore`、`WindowsCore` | `background`、`surface`、标题栏文字、窗口阴影 |
-| 导航窗口 | `NavigationView`、`NavigationBar`、`NavigationBarItem` | 当前项指示、侧栏 surface、内容区 surface |
+| 导航窗口 | `NavigationView`、`NavigationBar`、`NavigationBarItem` | 当前项指示、Glass Rail、内容区 surface |
 | 状态区域 | `StatusBar`、`NavigationProfileCard` | 分隔线、次级文本、hover |
 
 验收时必须包含窗口背景、侧边栏、内容面、当前导航项和状态栏。
@@ -167,7 +167,7 @@ Prism Design 的落地不以“看起来像蓝色 Fluent”作为验收标准，
 
 | 范围 | 组件 | 必须统一的内容 |
 |------|------|----------------|
-| 菜单 | `ContextMenu`、`MenuCore`、`MenuDelegate`、`TreeMenuDelegate` | `overlay`、`radiusPopup`、菜单项状态 |
+| 菜单 | `ContextMenu`、`MenuCore`、`MenuDelegate`、`TreeMenuDelegate` | Floating Glass、`overlay`、`radiusPopup`、菜单项状态 |
 | 动作 | `Action`、`MenuSeparator`、`SystemTrayMenu` | 图标、文字、快捷键、分隔线 |
 | 提示与浮层 | `Flyout`、`TeachingTip`、`ToolTip`、`TipPopup`、`HintIcon` | 可读性、阴影、箭头或锚点 |
 | 底部/侧向浮层 | `FlyoutSheet` | overlay 层级、遮罩、关闭状态 |
@@ -178,7 +178,7 @@ Prism Design 的落地不以“看起来像蓝色 Fluent”作为验收标准，
 
 | 范围 | 组件 | 必须统一的内容 |
 |------|------|----------------|
-| 基础对话 | `MessageBox`、`DialogBoxCore`、`MaskedDialog` | `overlay`、`radiusDialog`、遮罩、阴影 |
+| 基础对话 | `MessageBox`、`DialogBoxCore`、`MaskedDialog` | Modal Glass、`overlay`、`radiusDialog`、遮罩、阴影 |
 | 操作对话 | `ConfirmDialog`、`UpdateDialog`、`ProgressDialog` | 主操作、危险操作、进度态 |
 | 图片对话 | `ImageCropperDialog`、`ColorPickerDialog` | 工具区、预览区、操作区分层 |
 
@@ -266,10 +266,11 @@ Gallery 是 Prism Design 的最终视觉证据。新增或调整 Prism Design �
 ## 禁止清单
 
 - 禁止把 Prism Design 写成 Fluent 的换色版本。
+- 禁止把 Prism Design 写成 Apple Liquid Glass 的复刻版本。
 - 禁止用外部闭源设计语言作为直接标准。
 - 禁止为 Prism Design 复制一套组件目录。
 - 禁止在组件内部直接写 Prism Design 专属 hex。
-- 禁止用全局毛玻璃、全屏渐变或大面积 glow 替代层级。
+- 禁止用全局毛玻璃、全屏渐变或大面积 glow 替代 Prism Glass 的层级。
 - 禁止 hover、pressed、selected 改变组件尺寸。
 - 禁止只做浅色，不做深色。
 - 禁止只做截图，不做真实控件状态。
