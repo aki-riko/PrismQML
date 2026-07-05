@@ -707,6 +707,14 @@ LoginWindow {
             "success",
             "loading",
         ]
+        assert page.property("darkAuditEvidenceKeys").split("|") == [
+            "input",
+            "table",
+            "overlay",
+            "semantic",
+            "focus",
+            "selection",
+        ]
 
         resource_dir = Path(__file__).resolve().parents[2] / "examples" / "resources"
         qrc_text = (resource_dir / "gallery.qrc").read_text(encoding="utf-8")
