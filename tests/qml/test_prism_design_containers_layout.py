@@ -33,7 +33,7 @@ def _alpha(qcolor):
 
 
 def _assert_drawer(item, background, border):
-    assert item.property("radius") == 10
+    assert item.property("radius") == 8
     assert item.property("_drawerBorderWidth") == 1
     assert _rgb(item.property("_drawerBackground")) == background
     assert _rgb(item.property("_drawerBorderColor")) == border
@@ -76,7 +76,7 @@ Drawer {
 }
 """))
         drawer = keep[-1][1]
-        _assert_drawer(drawer, (248, 251, 255), (217, 227, 236))
+        _assert_drawer(drawer, (244, 248, 247), (199, 212, 211))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -86,10 +86,10 @@ ScrollBar {
         scroll_bar = keep[-1][1]
         _assert_scroll_bar(
             scroll_bar,
-            (234, 241, 247),
-            (170, 184, 199),
-            (143, 160, 178),
-            (47, 111, 237),
+            (225, 233, 231),
+            (142, 164, 163),
+            (117, 141, 139),
+            (22, 124, 128),
         )
 
         keep.append(_build(engine, b"""
@@ -100,10 +100,10 @@ ScrollBarEntry {
         scroll_bar_entry = keep[-1][1]
         _assert_scroll_bar_entry(
             scroll_bar_entry,
-            (234, 241, 247),
-            (170, 184, 199),
-            (143, 160, 178),
-            (47, 111, 237),
+            (225, 233, 231),
+            (142, 164, 163),
+            (117, 141, 139),
+            (22, 124, 128),
         )
 
         keep.append(_build(engine, b"""
@@ -114,7 +114,7 @@ SplitPane {
 }
 """))
         split_pane = keep[-1][1]
-        _assert_split_pane(split_pane, (170, 184, 199))
+        _assert_split_pane(split_pane, (142, 164, 163))
 
         setTheme(Theme.DARK)
         keep.append(_build(engine, b"""
@@ -124,7 +124,7 @@ Drawer {
 }
 """))
         dark_drawer = keep[-1][1]
-        _assert_drawer(dark_drawer, (36, 43, 52), (48, 58, 70))
+        _assert_drawer(dark_drawer, (31, 42, 45), (42, 57, 59))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -134,10 +134,10 @@ ScrollBar {
         dark_scroll_bar = keep[-1][1]
         _assert_scroll_bar(
             dark_scroll_bar,
-            (21, 26, 32),
-            (70, 84, 100),
-            (91, 107, 127),
-            (122, 167, 255),
+            (16, 23, 25),
+            (67, 90, 93),
+            (88, 113, 116),
+            (85, 214, 210),
         )
 
         keep.append(_build(engine, b"""
@@ -148,10 +148,10 @@ ScrollBarEntry {
         dark_scroll_bar_entry = keep[-1][1]
         _assert_scroll_bar_entry(
             dark_scroll_bar_entry,
-            (21, 26, 32),
-            (70, 84, 100),
-            (91, 107, 127),
-            (122, 167, 255),
+            (16, 23, 25),
+            (67, 90, 93),
+            (88, 113, 116),
+            (85, 214, 210),
         )
 
         keep.append(_build(engine, b"""
@@ -162,7 +162,7 @@ SplitPane {
 }
 """))
         dark_split_pane = keep[-1][1]
-        _assert_split_pane(dark_split_pane, (70, 84, 100))
+        _assert_split_pane(dark_split_pane, (67, 90, 93))
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

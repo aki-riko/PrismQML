@@ -33,9 +33,9 @@ Prism Design 的标准范围覆盖：颜色、字体、图标、圆角、边框�
 
 ## 设计人格
 
-Prism Design 的人格是“精确的工作台”：干净、稳定、轻微发光、信息优先。它应该让开发者工具、桌面应用、AI 工作流、数据看板和设置型界面看起来可靠且有辨识度。
+Prism Design 的人格是“棱面工作台”：干净、稳定、边界清楚、信息优先。它应该让开发者工具、桌面应用、AI 工作流、数据看板和设置型界面看起来可靠且有辨识度。
 
-它不是“玻璃拟态”，也不是“蓝色 Fluent”。Prism 的光感来自被切割过的界面层级：清楚的 surface、细边框、柔和阴影、局部高光和准确的状态层。界面可以精致，但不能浮夸。
+它不是“玻璃拟态”，也不是“青绿色 Fluent”。Prism 的识别度来自被切割过的界面层级：冷静的 surface、清楚的边框、克制阴影、局部冷光和准确的状态层。界面可以精致，但不能浮夸。
 
 ## 与其它皮肤的边界
 
@@ -43,7 +43,7 @@ Prism Design 的人格是“精确的工作台”：干净、稳定、轻微发�
 |------|----------|--------------------------------|
 | Fluent | 平台原生、Mica、柔和圆角、系统主色 | 不复刻 WinUI 控件比例，不依赖平台材质作为身份 |
 | Neobrutalism | 粗黑边、硬阴影、高撞色、按压位移 | 不使用硬阴影，不让控件有纸片式压平位移 |
-| Prism Design | 自有 token、蓝青主色、冷静 surface、细边框、软层级 | 不退化成单纯换色，也不转向全屏玻璃效果 |
+| Prism Design | 自有 token、青绿主色、冷灰 surface、切面边框、克制层级 | 不退化成单纯换色，也不转向全屏玻璃效果 |
 
 Prism Design 的独立性要靠整套规则体现：同一页面切到 Fluent、Neobrutalism、Prism Design 时，用户应能一眼看出第三套皮肤不是前两者的浅改。
 
@@ -104,8 +104,9 @@ Prism Design 默认服务长期工作流。列表、表格、菜单、命令栏�
 | 关键词 | 含义 | 落地方式 |
 |--------|------|----------|
 | Clarity 清晰 | 信息优先 | 高可读文字、明确边界、可见焦点 |
-| Layered 层次 | 界面有深度 | surface 分级、阴影层级、边框强弱 |
-| Luminous 光感 | 有轻微光泽 | 主色 tint、边缘高光、局部 glow |
+| Faceted 棱面 | 界面像被切分的工作面 | 较小圆角、清楚边框、surface 分级 |
+| Layered 层次 | 界面有深度 | surface 分级、阴影克制、边框强弱 |
+| Luminous 光感 | 有轻微冷光 | 青绿主色、边缘高光、局部 glow |
 | Calm 冷静 | 不抢业务内容 | 低噪声背景、克制动效、中性色为主 |
 | Precise 精确 | 工具感明确 | 稳定尺寸、对齐、状态不跳动 |
 
@@ -158,22 +159,22 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `background` | `#F4F7FA` | `#111418` | 应用外层背景 |
-| `surface` | `#FBFCFE` | `#171C22` | 主内容面 |
-| `raised` | `#FFFFFF` | `#20262E` | 控件、卡片、面板 |
-| `overlay` | `#F8FBFF` | `#242B34` | 弹层、菜单、对话框 |
-| `header` | `#EEF4F9` | `#151A20` | 顶栏、分组头 |
-| `tableBg` | `#F7FAFD` | `#141920` | 表格背景 |
-| `alternateRow` | `#F8FBFE` | `#1A2028` | 交替行 |
+| `background` | `#EEF3F2` | `#0D1213` | 应用外层背景 |
+| `surface` | `#F8FAF9` | `#12191B` | 主内容面 |
+| `raised` | `#FCFEFD` | `#192224` | 控件、卡片、面板 |
+| `overlay` | `#F4F8F7` | `#1F2A2D` | 弹层、菜单、对话框 |
+| `header` | `#E6ECEB` | `#101719` | 顶栏、分组头 |
+| `tableBg` | `#F5F8F7` | `#0F1517` | 表格背景 |
+| `alternateRow` | `#F1F5F4` | `#151D1F` | 交替行 |
 
 ### 前景色
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `foreground` | `#17202A` | `#EEF3F8` | 主文本、主图标 |
-| `secondaryForeground` | `#5F6F80` | `#A6B1BF` | 次级文本、说明 |
-| `tertiaryForeground` | `#8392A4` | `#768394` | 弱说明、辅助信息 |
-| `disabledForeground` | `#A5B0BC` | `#5D6876` | 禁用文本 |
+| `foreground` | `#152326` | `#EEF5F3` | 主文本、主图标 |
+| `secondaryForeground` | `#566A6D` | `#A4B5B6` | 次级文本、说明 |
+| `tertiaryForeground` | `#7A8D90` | `#718687` | 弱说明、辅助信息 |
+| `disabledForeground` | `#A4B0B1` | `#53676A` | 禁用文本 |
 
 文字必须优先使用 `Enums.textColor.*`，不要直接读取颜色 token。只有设计 token 调试、视觉测试和文档示例可以直接提及色值。
 
@@ -181,13 +182,13 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `primary` | `#2F6FED` | `#7AA7FF` | 主操作、选中态、焦点 |
-| `primaryLight` | `#427EFA` | `#93B8FF` | hover 派生 |
-| `primaryDark` | `#245AC7` | `#5D8FE8` | pressed 派生 |
-| `primaryForeground` | `#FFFFFF` | `#0F172A` | 主色块上的文字 |
-| `secondary` | `#18A999` | `#59D6C7` | 次强调、辅助成功倾向 |
-| `warm` | `#D97706` | `#F6B44B` | 提醒、局部暖色 |
-| `glow` | `#8EC5FF` | `#4EA0FF` | 局部光感，不承载文字 |
+| `primary` | `#167C80` | `#55D6D2` | 主操作、选中态、焦点 |
+| `primaryLight` | `#1C8D90` | `#74E6E1` | hover 派生 |
+| `primaryDark` | `#0E5F64` | `#38BDBA` | pressed 派生 |
+| `primaryForeground` | `#FFFFFF` | `#061718` | 主色块上的文字 |
+| `secondary` | `#516B9A` | `#92A7FF` | 次强调、辅助信息倾向 |
+| `warm` | `#C47A25` | `#F0B35D` | 提醒、局部暖色 |
+| `glow` | `#88DCD8` | `#3BDCD6` | 局部冷光，不承载文字 |
 
 使用规则：
 
@@ -200,10 +201,10 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `border` | `#D9E3EC` | `#303A46` | 默认控件边框 |
-| `borderLight` | `#E7EEF5` | `#26303A` | 弱边界、内部分隔 |
-| `borderStrong` | `#AAB8C7` | `#4B5A6B` | 焦点、强调边界 |
-| `divider` | `#E2EAF2` | `#2A333D` | 列表、表格、分组分隔 |
+| `border` | `#C7D4D3` | `#2A393B` | 默认控件边框 |
+| `borderLight` | `#DDE6E4` | `#223033` | 弱边界、内部分隔 |
+| `borderStrong` | `#8EA4A3` | `#496063` | 焦点、强调边界 |
+| `divider` | `#D5DFDD` | `#253437` | 列表、表格、分组分隔 |
 
 边框不是装饰，而是层级和可点击区域的提示。浅色模式不能让边框消失，深色模式不能只靠阴影分层。
 
@@ -211,12 +212,12 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `hover` | `#EEF5FF` | `#26303A` | 悬停 |
-| `pressed` | `#E3EDF8` | `#202833` | 按下 |
-| `disabled` | `#E9EEF4` | `#20242B` | 禁用背景 |
-| `selected` | `#DBEAFF` | `#1D3A63` | 选中 |
-| `selectedHover` | `#C9DFFF` | `#254A78` | 选中悬停 |
-| `tableHover` | `#EEF5FF` | `#232C36` | 表格/列表悬停 |
+| `hover` | `#E6EEED` | `#1D292B` | 悬停 |
+| `pressed` | `#DCE7E5` | `#182426` | 按下 |
+| `disabled` | `#E3E9E8` | `#1A2224` | 禁用背景 |
+| `selected` | `#D4EDEA` | `#163F43` | 选中 |
+| `selectedHover` | `#C3E4E0` | `#1B5055` | 选中悬停 |
+| `tableHover` | `#E9F0EF` | `#1A2729` | 表格/列表悬停 |
 
 状态层必须有可见差异，但不能让组件尺寸变化。hover、pressed、selected 禁止通过改变文字大小、边距、布局来表达。
 
@@ -224,11 +225,11 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `scrollTrack` | `#EAF1F7` | `#151A20` | 滚动条轨道 |
-| `scrollHandle` | `#AAB8C7` | `#465464` | 滚动条手柄 |
-| `scrollHandleHover` | `#8FA0B2` | `#5B6B7F` | 手柄悬停 |
-| `transparentHover` | `#EAF2FB` | `#26303A` | 透明按钮、图标按钮 hover |
-| `transparentPressed` | `#DDE8F4` | `#202833` | 透明按钮、图标按钮 pressed |
+| `scrollTrack` | `#E1E9E7` | `#101719` | 滚动条轨道 |
+| `scrollHandle` | `#8EA4A3` | `#435A5D` | 滚动条手柄 |
+| `scrollHandleHover` | `#758D8B` | `#587174` | 手柄悬停 |
+| `transparentHover` | `#E7EFEE` | `#1B2729` | 透明按钮、图标按钮 hover |
+| `transparentPressed` | `#D9E5E3` | `#172225` | 透明按钮、图标按钮 pressed |
 
 透明状态只用于 TextButton、IconButton、工具栏按钮、菜单触发器等本身不应有实心底的控件。输入框、表格行、卡片和弹层默认不使用透明状态作为正常背景。
 
@@ -252,16 +253,16 @@ Prism Design 已提供独立图表色板，数据系列颜色必须通过 `Enums
 
 | 序号 | Light | Dark |
 |------|-------|------|
-| 1 | `#2F6FED` | `#7AA7FF` |
-| 2 | `#18A999` | `#59D6C7` |
-| 3 | `#D97706` | `#F6B44B` |
-| 4 | `#D64550` | `#FF8A94` |
-| 5 | `#7C5CFF` | `#A99BFF` |
-| 6 | `#00A6D6` | `#6EDBFF` |
-| 7 | `#6E9F2E` | `#A8D46E` |
-| 8 | `#C45D9B` | `#F09BD1` |
-| 9 | `#5B7CFA` | `#9BB0FF` |
-| 10 | `#8A6FDF` | `#BDAEFF` |
+| 1 | `#167C80` | `#55D6D2` |
+| 2 | `#516B9A` | `#92A7FF` |
+| 3 | `#C47A25` | `#F0B35D` |
+| 4 | `#C64754` | `#FF8F9A` |
+| 5 | `#7B5CB8` | `#BBA4FF` |
+| 6 | `#0099A8` | `#5CD7E6` |
+| 7 | `#6F8F2E` | `#A6C96B` |
+| 8 | `#A65A82` | `#E99BC1` |
+| 9 | `#2F7A5C` | `#77C79D` |
+| 10 | `#8A6E4E` | `#D2B486` |
 
 图表规则：
 
@@ -285,17 +286,17 @@ Prism Design 已提供独立图表色板，数据系列颜色必须通过 `Enums
 
 | Token | 值 | 用途 |
 |-------|----|------|
-| `radiusControl` | 6 | Button、Input、ComboBox、菜单项 |
-| `radiusCard` | 8 | Card、Panel、SettingCard |
-| `radiusPopup` | 10 | Menu、Flyout、Tooltip、Toast |
-| `radiusDialog` | 12 | Dialog、MessageBox |
+| `radiusControl` | 4 | Button、Input、ComboBox、菜单项 |
+| `radiusCard` | 6 | Card、Panel、SettingCard |
+| `radiusPopup` | 8 | Menu、Flyout、Tooltip、Toast |
+| `radiusDialog` | 10 | Dialog、MessageBox |
 | `borderWidth` | 1 | 默认边框 |
 | `focusBorderWidth` | 2 | 键盘焦点、输入焦点 |
 
 几何规则：
 
 - 默认控件不能做大药丸，除非现有 API 明确选择 `shape_pill`。
-- 页面主卡片不超过 `radiusCard`，弹层不超过 `radiusPopup`，对话框不超过 `radiusDialog`。
+- 页面主卡片不超过 `radiusCard`，弹层不超过 `radiusPopup`，对话框不超过 `radiusDialog`；Prism Design 默认不追求圆润亲和，而是保留清楚的切面轮廓。
 - 圆角必须稳定，不因 hover / pressed 改变。
 - 点击区域至少保持现有 PrismQML 控件尺寸，不因视觉变薄而缩小。
 
@@ -315,20 +316,20 @@ Prism Design 不单独建立尺寸系统，默认继承 `Enums.controlSize`。�
 
 ## 阴影与材质
 
-Prism Design 使用软阴影和边界高光，不使用 Neobrutalism 的硬阴影。
+Prism Design 使用克制阴影和边界高光，不使用 Neobrutalism 的硬阴影，也不依赖 Fluent 式柔软浮起作为主要层级。
 
 | 层级 | 用途 | 阴影策略 |
 |------|------|----------|
-| Level 2 | 普通卡片、按钮 hover | 很轻，只提示可交互 |
-| Level 4 | Toast、Dropdown、浮动工具条 | 可见浮起，边框仍清楚 |
-| Level 8 | Menu、Flyout、Tooltip | 与内容明显分离 |
-| Level 16 | Dialog、Modal | 强阴影 + 遮罩 |
+| Level 2 | 普通卡片、按钮 hover | 很轻，只提示可交互，边框仍是主边界 |
+| Level 4 | Toast、Dropdown、浮动工具条 | 可见浮起，不能盖过边框 |
+| Level 8 | Menu、Flyout、Tooltip | 与内容明显分离，优先靠边界和 surface |
+| Level 16 | Dialog、Modal | 强阴影 + 遮罩，仅用于阻断流程 |
 
 边缘阴影 token：
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `edgeShadow` | `#140A1A2A` | `#44000000` | 粘性表头、滚动边缘、浮动分隔的短距离渐隐阴影 |
+| `edgeShadow` | `#10102326` | `#33000000` | 粘性表头、滚动边缘、浮动分隔的短距离渐隐阴影 |
 
 材质规则：
 

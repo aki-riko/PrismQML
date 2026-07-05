@@ -63,17 +63,17 @@ Item {
         assert tokens.property("skinValue") == "prism_design"
         assert tokens.property("prismDesign") is True
         assert tokens.property("neobrutalism") is False
-        assert _rgb(tokens.property("accent")) == (47, 111, 237)
-        assert _rgb(tokens.property("background")) == (244, 247, 250)
-        assert _rgb(tokens.property("surface")) == (251, 252, 254)
-        assert _rgb(tokens.property("controlBg")) == (255, 255, 255)
-        assert _rgb(tokens.property("segmentedSelected")) == (219, 234, 255)
-        assert _rgb(tokens.property("treeItemHover")) == (238, 245, 255)
-        assert _rgb(tokens.property("chartFirst")) == (47, 111, 237)
-        assert _rgb(tokens.property("chartGrid")) == (226, 234, 242)
-        assert tokens.property("radiusControl") == 6
-        assert tokens.property("radiusCard") == 8
-        assert tokens.property("radiusPopup") == 10
+        assert _rgb(tokens.property("accent")) == (22, 124, 128)
+        assert _rgb(tokens.property("background")) == (238, 243, 242)
+        assert _rgb(tokens.property("surface")) == (248, 250, 249)
+        assert _rgb(tokens.property("controlBg")) == (252, 254, 253)
+        assert _rgb(tokens.property("segmentedSelected")) == (212, 237, 234)
+        assert _rgb(tokens.property("treeItemHover")) == (233, 240, 239)
+        assert _rgb(tokens.property("chartFirst")) == (22, 124, 128)
+        assert _rgb(tokens.property("chartGrid")) == (213, 223, 221)
+        assert tokens.property("radiusControl") == 4
+        assert tokens.property("radiusCard") == 6
+        assert tokens.property("radiusPopup") == 8
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -85,9 +85,9 @@ Button {
 }
 """))
         button = keep[-1][1]
-        assert button.property("radius") == 6
+        assert button.property("radius") == 4
         assert button.property("_neoPressShift") == 0
-        assert _rgb(button.property("color")) == (47, 111, 237)
+        assert _rgb(button.property("color")) == (22, 124, 128)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -97,8 +97,8 @@ Card {
 }
 """))
         card = keep[-1][1]
-        assert card.property("borderRadius") == 8
-        assert _rgb(card.property("color")) == (255, 255, 255)
+        assert card.property("borderRadius") == 6
+        assert _rgb(card.property("color")) == (252, 254, 253)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -108,9 +108,9 @@ InputCore {
 }
 """))
         input_core = keep[-1][1]
-        assert input_core.property("radius") == 6
-        assert _rgb(input_core.property("color")) == (255, 255, 255)
-        assert _rgb(input_core.property("inputTextColor")) == (23, 32, 42)
+        assert input_core.property("radius") == 4
+        assert _rgb(input_core.property("color")) == (252, 254, 253)
+        assert _rgb(input_core.property("inputTextColor")) == (21, 35, 38)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -120,8 +120,8 @@ SegmentedControl {
 }
 """))
         segmented = keep[-1][1]
-        assert segmented.property("radius") == 6
-        assert _rgb(segmented.property("color")) == (251, 252, 254)
+        assert segmented.property("radius") == 4
+        assert _rgb(segmented.property("color")) == (248, 250, 249)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -132,8 +132,8 @@ InfoBar {
 }
 """))
         info_bar = keep[-1][1]
-        assert info_bar.property("radius") == 10
-        assert _rgb(info_bar.property("borderColor")) == (217, 227, 236)
+        assert info_bar.property("radius") == 8
+        assert _rgb(info_bar.property("borderColor")) == (199, 212, 211)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -142,7 +142,7 @@ Action {
 }
 """))
         action = keep[-1][1]
-        assert action.property("radius") == 6
+        assert action.property("radius") == 4
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -152,8 +152,8 @@ ListWidget {
 }
 """))
         list_widget = keep[-1][1]
-        assert list_widget.property("radius") == 8
-        assert list_widget.property("borderRadius") == 8
+        assert list_widget.property("radius") == 6
+        assert list_widget.property("borderRadius") == 6
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -163,7 +163,7 @@ DataWidgetCore {
 }
 """))
         data_widget = keep[-1][1]
-        assert data_widget.property("borderRadius") == 8
+        assert data_widget.property("borderRadius") == 6
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -175,7 +175,7 @@ TableWidget {
 }
 """))
         table_widget = keep[-1][1]
-        assert table_widget.property("borderRadius") == 8
+        assert table_widget.property("borderRadius") == 6
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -186,7 +186,7 @@ TreeWidget {
 }
 """))
         tree_widget = keep[-1][1]
-        assert tree_widget.property("borderRadius") == 8
+        assert tree_widget.property("borderRadius") == 6
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -197,7 +197,7 @@ ChartView {
 }
 """))
         chart_view = keep[-1][1]
-        assert chart_view.property("radius") == 8
+        assert chart_view.property("radius") == 6
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -206,7 +206,7 @@ Tag {
 }
 """))
         tag = keep[-1][1]
-        assert tag.property("radius") == 6
+        assert tag.property("radius") == 4
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -278,7 +278,7 @@ DateTimePicker {
 }
 """))
         picker = keep[-1][1]
-        assert picker.property("radius") == 6
+        assert picker.property("radius") == 4
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -288,7 +288,7 @@ FilterBarCore {
 }
 """))
         filter_bar = keep[-1][1]
-        assert filter_bar.property("radius") == 6
+        assert filter_bar.property("radius") == 4
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -299,7 +299,7 @@ SpinBoxCore {
 }
 """))
         spin_box = keep[-1][1]
-        assert spin_box.property("radius") == 6
+        assert spin_box.property("radius") == 4
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -307,7 +307,7 @@ CalendarPicker {
 }
 """))
         calendar_picker = keep[-1][1]
-        assert calendar_picker.property("radius") == 6
+        assert calendar_picker.property("radius") == 4
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -316,7 +316,7 @@ TextEdit {
 }
 """))
         text_edit = keep[-1][1]
-        assert text_edit.property("radius") == 6
+        assert text_edit.property("radius") == 4
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -340,10 +340,10 @@ CheckIndicator {
 }
 """))
         check_indicator = keep[-1][1]
-        assert check_indicator.property("_indicatorRadius") == 6
+        assert check_indicator.property("_indicatorRadius") == 4
         assert check_indicator.property("_indicatorBorderWidth") == 1
-        assert _rgb(check_indicator.property("_indicatorColor")) == (255, 255, 255)
-        assert _rgb(check_indicator.property("_indicatorBorderColor")) == (170, 184, 199)
+        assert _rgb(check_indicator.property("_indicatorColor")) == (252, 254, 253)
+        assert _rgb(check_indicator.property("_indicatorBorderColor")) == (142, 164, 163)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -353,8 +353,8 @@ CheckIndicator {
 """))
         checked_indicator = keep[-1][1]
         assert checked_indicator.property("_indicatorBorderWidth") == 1
-        assert _rgb(checked_indicator.property("_indicatorColor")) == (47, 111, 237)
-        assert _rgb(checked_indicator.property("_indicatorBorderColor")) == (36, 90, 199)
+        assert _rgb(checked_indicator.property("_indicatorColor")) == (22, 124, 128)
+        assert _rgb(checked_indicator.property("_indicatorBorderColor")) == (14, 95, 100)
         assert _rgb(checked_indicator.property("_checkIconColor")) == (255, 255, 255)
 
         toggle_internal_dir = (
@@ -379,8 +379,8 @@ CheckIndicator {
         keep.append((radio_indicator_component, radio_indicator))
         radio_indicator.setProperty("checked", True)
         assert radio_indicator.property("_indicatorBorderWidth") == 1
-        assert _rgb(radio_indicator.property("_indicatorColor")) == (47, 111, 237)
-        assert _rgb(radio_indicator.property("_borderColor")) == (36, 90, 199)
+        assert _rgb(radio_indicator.property("_indicatorColor")) == (22, 124, 128)
+        assert _rgb(radio_indicator.property("_borderColor")) == (14, 95, 100)
         assert _rgb(radio_indicator.property("_innerDotColor")) == (255, 255, 255)
 
         switch_indicator_component = QQmlComponent(
@@ -396,12 +396,12 @@ CheckIndicator {
         ]
         keep.append((switch_indicator_component, switch_indicator))
         assert switch_indicator.property("_trackBorderWidth") == 1
-        assert _rgb(switch_indicator.property("_trackColor")) == (255, 255, 255)
-        assert _rgb(switch_indicator.property("_trackBorderColor")) == (170, 184, 199)
-        assert _rgb(switch_indicator.property("_handleColor")) == (255, 255, 255)
+        assert _rgb(switch_indicator.property("_trackColor")) == (252, 254, 253)
+        assert _rgb(switch_indicator.property("_trackBorderColor")) == (142, 164, 163)
+        assert _rgb(switch_indicator.property("_handleColor")) == (252, 254, 253)
         switch_indicator.setProperty("checked", True)
-        assert _rgb(switch_indicator.property("_trackColor")) == (47, 111, 237)
-        assert _rgb(switch_indicator.property("_trackBorderColor")) == (36, 90, 199)
+        assert _rgb(switch_indicator.property("_trackColor")) == (22, 124, 128)
+        assert _rgb(switch_indicator.property("_trackBorderColor")) == (14, 95, 100)
         assert _rgb(switch_indicator.property("_handleColor")) == (255, 255, 255)
 
         keep.append(_build(engine, b"""
@@ -412,11 +412,11 @@ Slider {
 }
 """))
         slider = keep[-1][1]
-        assert _rgb(slider.property("handleColor")) == (255, 255, 255)
-        assert _rgb(slider.property("_trackColor")) == (234, 241, 247)
-        assert _rgb(slider.property("_progressColor")) == (47, 111, 237)
+        assert _rgb(slider.property("handleColor")) == (252, 254, 253)
+        assert _rgb(slider.property("_trackColor")) == (225, 233, 231)
+        assert _rgb(slider.property("_progressColor")) == (22, 124, 128)
         assert slider.property("_handleBorderWidth") == 1
-        assert _rgb(slider.property("_handleBorderColor")) == (170, 184, 199)
+        assert _rgb(slider.property("_handleBorderColor")) == (142, 164, 163)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -426,7 +426,7 @@ Rating {
 """))
         rating = keep[-1][1]
         assert _rgb(rating.property("_effectiveFillColor")) == (255, 220, 6)
-        assert _rgb(rating.property("_effectiveOutlineColor")) == (131, 146, 164)
+        assert _rgb(rating.property("_effectiveOutlineColor")) == (122, 141, 144)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -436,7 +436,7 @@ DropZone {
 }
 """))
         drop_zone = keep[-1][1]
-        assert drop_zone.property("radius") == 8
+        assert drop_zone.property("radius") == 6
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -548,7 +548,7 @@ Skeleton {
 }
 """))
         skeleton = keep[-1][1]
-        assert skeleton.property("_radius") == 6
+        assert skeleton.property("_radius") == 4
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -558,8 +558,8 @@ CodeBlock {
 }
 """))
         code_block = keep[-1][1]
-        assert code_block.property("_radius") == 8
-        assert _rgb(code_block.property("_blockBackground")) == (248, 251, 255)
+        assert code_block.property("_radius") == 6
+        assert _rgb(code_block.property("_blockBackground")) == (244, 248, 247)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -570,8 +570,8 @@ ChatBubble {
 }
 """))
         chat_bubble = keep[-1][1]
-        assert chat_bubble.property("_bubbleRadius") == 10
-        assert chat_bubble.property("_bubbleTailRadius") == 6
+        assert chat_bubble.property("_bubbleRadius") == 8
+        assert chat_bubble.property("_bubbleTailRadius") == 4
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -604,8 +604,8 @@ LoginWindow {
 }
 """))
         login_window = keep[-1][1]
-        assert login_window.property("_cardRadius") == 12
-        assert login_window.property("_errorRadius") == 6
+        assert login_window.property("_cardRadius") == 10
+        assert login_window.property("_errorRadius") == 4
 
         chart_tooltip_path = (
             Path(__file__).resolve().parents[2]
@@ -626,9 +626,9 @@ LoginWindow {
             error.toString() for error in chart_tooltip_component.errors()
         ]
         keep.append((chart_tooltip_component, chart_tooltip))
-        assert _rgb(chart_tooltip.property("_tooltipBackground")) == (248, 251, 255)
-        assert chart_tooltip.property("_tooltipRadius") == 10
-        assert _rgb(chart_tooltip.property("_tooltipBorderColor")) == (217, 227, 236)
+        assert _rgb(chart_tooltip.property("_tooltipBackground")) == (244, 248, 247)
+        assert chart_tooltip.property("_tooltipRadius") == 8
+        assert _rgb(chart_tooltip.property("_tooltipBorderColor")) == (199, 212, 211)
 
         chart_internal_dir = chart_tooltip_path.parent
         chart_multi_tooltip_component = QQmlComponent(
@@ -643,9 +643,9 @@ LoginWindow {
             error.toString() for error in chart_multi_tooltip_component.errors()
         ]
         keep.append((chart_multi_tooltip_component, chart_multi_tooltip))
-        assert chart_multi_tooltip.property("_tooltipRadius") == 10
-        assert _rgb(chart_multi_tooltip.property("_tooltipBackground")) == (248, 251, 255)
-        assert _rgb(chart_multi_tooltip.property("_tooltipBorderColor")) == (217, 227, 236)
+        assert chart_multi_tooltip.property("_tooltipRadius") == 8
+        assert _rgb(chart_multi_tooltip.property("_tooltipBackground")) == (244, 248, 247)
+        assert _rgb(chart_multi_tooltip.property("_tooltipBorderColor")) == (199, 212, 211)
 
         chart_legend_component = QQmlComponent(
             engine,
@@ -659,9 +659,9 @@ LoginWindow {
             error.toString() for error in chart_legend_component.errors()
         ]
         keep.append((chart_legend_component, chart_legend))
-        assert chart_legend.property("_itemRadius") == 6
-        assert _rgb(chart_legend.property("_itemHoverColor")) == (238, 245, 255)
-        assert _rgb(chart_legend.property("_itemBorderColor")) == (231, 238, 245)
+        assert chart_legend.property("_itemRadius") == 4
+        assert _rgb(chart_legend.property("_itemHoverColor")) == (230, 238, 237)
+        assert _rgb(chart_legend.property("_itemBorderColor")) == (221, 230, 228)
 
         chart_data_zoom_path = chart_internal_dir.parent / "ChartDataZoom.qml"
         chart_data_zoom_component = QQmlComponent(
@@ -676,9 +676,9 @@ LoginWindow {
             error.toString() for error in chart_data_zoom_component.errors()
         ]
         keep.append((chart_data_zoom_component, chart_data_zoom))
-        assert chart_data_zoom.property("_panelRadius") == 8
-        assert _rgb(chart_data_zoom.property("_panelColor")) == (251, 252, 254)
-        assert _rgb(chart_data_zoom.property("_panelBorderColor")) == (231, 238, 245)
+        assert chart_data_zoom.property("_panelRadius") == 6
+        assert _rgb(chart_data_zoom.property("_panelColor")) == (248, 250, 249)
+        assert _rgb(chart_data_zoom.property("_panelBorderColor")) == (221, 230, 228)
         assert chart_data_zoom.property("_thumbnailFillAlpha") == 0.3
         assert chart_data_zoom.property("_thumbnailStrokeAlpha") == 0.6
 
@@ -747,10 +747,10 @@ Item {
         dark_tokens = keep[-1][1]
         assert dark_tokens.property("skinValue") == "prism_design"
         assert dark_tokens.property("prismDesign") is True
-        assert _rgb(dark_tokens.property("accent")) == (122, 167, 255)
-        assert _rgb(dark_tokens.property("background")) == (17, 20, 24)
-        assert _rgb(dark_tokens.property("surface")) == (23, 28, 34)
-        assert _rgb(dark_tokens.property("chartFirst")) == (122, 167, 255)
+        assert _rgb(dark_tokens.property("accent")) == (85, 214, 210)
+        assert _rgb(dark_tokens.property("background")) == (13, 18, 19)
+        assert _rgb(dark_tokens.property("surface")) == (18, 25, 27)
+        assert _rgb(dark_tokens.property("chartFirst")) == (85, 214, 210)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -759,8 +759,8 @@ CheckIndicator {
 }
 """))
         dark_check_indicator = keep[-1][1]
-        assert _rgb(dark_check_indicator.property("_indicatorColor")) == (32, 38, 46)
-        assert _rgb(dark_check_indicator.property("_indicatorBorderColor")) == (75, 90, 107)
+        assert _rgb(dark_check_indicator.property("_indicatorColor")) == (25, 34, 36)
+        assert _rgb(dark_check_indicator.property("_indicatorBorderColor")) == (73, 96, 99)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -770,10 +770,10 @@ Slider {
 }
 """))
         dark_slider = keep[-1][1]
-        assert _rgb(dark_slider.property("handleColor")) == (32, 38, 46)
-        assert _rgb(dark_slider.property("_trackColor")) == (21, 26, 32)
-        assert _rgb(dark_slider.property("_progressColor")) == (122, 167, 255)
-        assert _rgb(dark_slider.property("_handleBorderColor")) == (75, 90, 107)
+        assert _rgb(dark_slider.property("handleColor")) == (25, 34, 36)
+        assert _rgb(dark_slider.property("_trackColor")) == (16, 23, 25)
+        assert _rgb(dark_slider.property("_progressColor")) == (85, 214, 210)
+        assert _rgb(dark_slider.property("_handleBorderColor")) == (73, 96, 99)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -782,7 +782,7 @@ Rating {
 }
 """))
         dark_rating = keep[-1][1]
-        assert _rgb(dark_rating.property("_effectiveOutlineColor")) == (118, 131, 148)
+        assert _rgb(dark_rating.property("_effectiveOutlineColor")) == (113, 134, 135)
 
         dark_chart_tooltip_component = QQmlComponent(engine, QUrl.fromLocalFile(str(chart_tooltip_path)))
         assert not dark_chart_tooltip_component.isError(), [
@@ -793,8 +793,8 @@ Rating {
             error.toString() for error in dark_chart_tooltip_component.errors()
         ]
         keep.append((dark_chart_tooltip_component, dark_chart_tooltip))
-        assert _rgb(dark_chart_tooltip.property("_tooltipBackground")) == (36, 43, 52)
-        assert _rgb(dark_chart_tooltip.property("_tooltipBorderColor")) == (48, 58, 70)
+        assert _rgb(dark_chart_tooltip.property("_tooltipBackground")) == (31, 42, 45)
+        assert _rgb(dark_chart_tooltip.property("_tooltipBorderColor")) == (42, 57, 59)
 
         dark_chart_data_zoom_component = QQmlComponent(
             engine,
@@ -808,8 +808,8 @@ Rating {
             error.toString() for error in dark_chart_data_zoom_component.errors()
         ]
         keep.append((dark_chart_data_zoom_component, dark_chart_data_zoom))
-        assert _rgb(dark_chart_data_zoom.property("_panelColor")) == (23, 28, 34)
-        assert _rgb(dark_chart_data_zoom.property("_panelBorderColor")) == (38, 48, 58)
+        assert _rgb(dark_chart_data_zoom.property("_panelColor")) == (18, 25, 27)
+        assert _rgb(dark_chart_data_zoom.property("_panelBorderColor")) == (34, 48, 51)
         assert dark_chart_data_zoom.property("_thumbnailFillAlpha") == 0.3
         assert dark_chart_data_zoom.property("_thumbnailStrokeAlpha") == 0.6
 

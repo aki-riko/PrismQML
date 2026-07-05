@@ -61,12 +61,12 @@ def test_prism_design_datetime_picker_popup_selection_highlight(qapp):
     try:
         keep.append(_build_file(engine, popup_path))
         popup = keep[-1][1]
-        assert _rgb(popup.property("_selectionHighlightColor")) == (219, 234, 255)
+        assert _rgb(popup.property("_selectionHighlightColor")) == (212, 237, 234)
 
         setTheme(Theme.DARK)
         keep.append(_build_file(engine, popup_path))
         dark_popup = keep[-1][1]
-        assert _rgb(dark_popup.property("_selectionHighlightColor")) == (29, 58, 99)
+        assert _rgb(dark_popup.property("_selectionHighlightColor")) == (22, 63, 67)
     finally:
         for component, item in reversed(keep):
             item.deleteLater()
@@ -101,7 +101,7 @@ def test_prism_design_public_input_entries_light_and_dark(qapp):
         direct_combo = keep[-1][1]
         direct_combo.setProperty("model", ["One", "Two"])
         direct_combo.setProperty("currentIndex", 1)
-        assert direct_combo.property("radius") == 6
+        assert direct_combo.property("radius") == 4
         assert direct_combo.property("currentText") == "Two"
 
         keep.append(_build(engine, b"""
@@ -156,12 +156,12 @@ Item {
         qapp.processEvents()
         assert combo_family.property("entryHeight") == 32
         assert combo_family.property("entryText") == "Beta"
-        assert combo_family.property("multiRadius") == 6
-        assert combo_family.property("treeRadius") == 6
+        assert combo_family.property("multiRadius") == 4
+        assert combo_family.property("treeRadius") == 4
         assert combo_family.property("treeFlatCount") == 2
-        assert combo_family.property("multiTreeRadius") == 6
+        assert combo_family.property("multiTreeRadius") == 4
         assert combo_family.property("multiTreeFlatCount") == 2
-        assert combo_family.property("fontRadius") == 6
+        assert combo_family.property("fontRadius") == 4
         assert combo_family.property("fontName") == "Consolas"
 
         keep.append(_build(engine, b"""
@@ -214,18 +214,18 @@ Item {
 }
 """))
         choice_inputs = keep[-1][1]
-        assert choice_inputs.property("filterRadius") == 6
-        assert _rgb(choice_inputs.property("filterColor")) == (251, 252, 254)
-        assert choice_inputs.property("spinRadius") == 6
-        assert _rgb(choice_inputs.property("spinColor")) == (255, 255, 255)
-        assert _rgb(choice_inputs.property("spinTextColor")) == (23, 32, 42)
+        assert choice_inputs.property("filterRadius") == 4
+        assert _rgb(choice_inputs.property("filterColor")) == (248, 250, 249)
+        assert choice_inputs.property("spinRadius") == 4
+        assert _rgb(choice_inputs.property("spinColor")) == (252, 254, 253)
+        assert _rgb(choice_inputs.property("spinTextColor")) == (21, 35, 38)
         assert choice_inputs.property("spinValue") == 4
         assert choice_inputs.property("checkType") == 0
-        assert _rgb(choice_inputs.property("checkColor")) == (47, 111, 237)
+        assert _rgb(choice_inputs.property("checkColor")) == (22, 124, 128)
         assert choice_inputs.property("radioType") == 1
-        assert _rgb(choice_inputs.property("radioColor")) == (47, 111, 237)
+        assert _rgb(choice_inputs.property("radioColor")) == (22, 124, 128)
         assert choice_inputs.property("switchType") == 2
-        assert _rgb(choice_inputs.property("switchColor")) == (47, 111, 237)
+        assert _rgb(choice_inputs.property("switchColor")) == (22, 124, 128)
 
         keep.append(_build(engine, b"""
 import QtQuick
@@ -288,17 +288,17 @@ Item {
         assert utility_inputs.property("searchPlaceholder") == "Search"
         assert utility_inputs.property("passwordStrength") == 4
         assert _rgb(utility_inputs.property("passwordStrongColor")) == (15, 123, 15)
-        assert utility_inputs.property("shortcutRadius") == 6
-        assert _rgb(utility_inputs.property("shortcutColor")) == (255, 255, 255)
+        assert utility_inputs.property("shortcutRadius") == 4
+        assert _rgb(utility_inputs.property("shortcutColor")) == (252, 254, 253)
         assert utility_inputs.property("shortcutValue") == "Ctrl+K"
         assert utility_inputs.property("wheelIndex") == 1
         assert utility_inputs.property("wheelValue") == "Two"
         assert utility_inputs.property("sliderBorderWidth") == 1
-        assert _rgb(utility_inputs.property("sliderTrackColor")) == (234, 241, 247)
-        assert _rgb(utility_inputs.property("sliderHandleColor")) == (255, 255, 255)
-        assert _rgb(utility_inputs.property("mediaDividerColor")) == (47, 111, 237)
-        assert _rgb(utility_inputs.property("mediaHandleColor")) == (255, 255, 255)
-        assert _rgb(utility_inputs.property("mediaHandleIconColor")) == (95, 111, 128)
+        assert _rgb(utility_inputs.property("sliderTrackColor")) == (225, 233, 231)
+        assert _rgb(utility_inputs.property("sliderHandleColor")) == (252, 254, 253)
+        assert _rgb(utility_inputs.property("mediaDividerColor")) == (22, 124, 128)
+        assert _rgb(utility_inputs.property("mediaHandleColor")) == (252, 254, 253)
+        assert _rgb(utility_inputs.property("mediaHandleIconColor")) == (86, 106, 109)
 
         setTheme(Theme.DARK)
         keep.append(_build(engine, b"""
@@ -356,16 +356,16 @@ Item {
 }
 """))
         dark_inputs = keep[-1][1]
-        assert dark_inputs.property("comboRadius") == 6
-        assert _rgb(dark_inputs.property("filterColor")) == (23, 28, 34)
-        assert _rgb(dark_inputs.property("spinColor")) == (32, 38, 46)
-        assert _rgb(dark_inputs.property("spinTextColor")) == (238, 243, 248)
-        assert _rgb(dark_inputs.property("checkColor")) == (122, 167, 255)
-        assert _rgb(dark_inputs.property("sliderTrackColor")) == (21, 26, 32)
-        assert _rgb(dark_inputs.property("sliderHandleColor")) == (32, 38, 46)
-        assert _rgb(dark_inputs.property("mediaDividerColor")) == (122, 167, 255)
-        assert _rgb(dark_inputs.property("mediaHandleColor")) == (32, 38, 46)
-        assert _rgb(dark_inputs.property("mediaHandleIconColor")) == (166, 177, 191)
+        assert dark_inputs.property("comboRadius") == 4
+        assert _rgb(dark_inputs.property("filterColor")) == (18, 25, 27)
+        assert _rgb(dark_inputs.property("spinColor")) == (25, 34, 36)
+        assert _rgb(dark_inputs.property("spinTextColor")) == (238, 245, 243)
+        assert _rgb(dark_inputs.property("checkColor")) == (85, 214, 210)
+        assert _rgb(dark_inputs.property("sliderTrackColor")) == (16, 23, 25)
+        assert _rgb(dark_inputs.property("sliderHandleColor")) == (25, 34, 36)
+        assert _rgb(dark_inputs.property("mediaDividerColor")) == (85, 214, 210)
+        assert _rgb(dark_inputs.property("mediaHandleColor")) == (25, 34, 36)
+        assert _rgb(dark_inputs.property("mediaHandleIconColor")) == (164, 181, 182)
         assert _rgb(dark_inputs.property("passwordStrongColor")) == (108, 203, 95)
     finally:
         for component, item in reversed(keep):
@@ -412,14 +412,14 @@ Item {
 }
 """))
         cropper = keep[-1][1]
-        assert cropper.property("previewRadius") == 6
-        assert _rgb(cropper.property("previewBackground")) == (251, 252, 254)
-        assert _rgb(cropper.property("previewBorder")) == (231, 238, 245)
-        assert _rgb(cropper.property("previewIcon")) == (47, 111, 237)
-        assert _rgb(cropper.property("previewText")) == (95, 111, 128)
-        assert _rgb(cropper.property("dialogBackground")) == (244, 247, 250)
+        assert cropper.property("previewRadius") == 4
+        assert _rgb(cropper.property("previewBackground")) == (248, 250, 249)
+        assert _rgb(cropper.property("previewBorder")) == (221, 230, 228)
+        assert _rgb(cropper.property("previewIcon")) == (22, 124, 128)
+        assert _rgb(cropper.property("previewText")) == (86, 106, 109)
+        assert _rgb(cropper.property("dialogBackground")) == (238, 243, 242)
         assert cropper.property("dialogType") == 0
-        assert cropper.property("dialogPreviewRadius") == 6
+        assert cropper.property("dialogPreviewRadius") == 4
 
         setTheme(Theme.DARK)
         keep.append(_build(engine, b"""
@@ -446,14 +446,14 @@ Item {
 }
 """))
         dark_cropper = keep[-1][1]
-        assert dark_cropper.property("previewRadius") == 6
-        assert _rgb(dark_cropper.property("previewBackground")) == (23, 28, 34)
-        assert _rgb(dark_cropper.property("previewBorder")) == (38, 48, 58)
-        assert _rgb(dark_cropper.property("previewIcon")) == (122, 167, 255)
-        assert _rgb(dark_cropper.property("previewText")) == (166, 177, 191)
-        assert _rgb(dark_cropper.property("dialogBackground")) == (17, 20, 24)
+        assert dark_cropper.property("previewRadius") == 4
+        assert _rgb(dark_cropper.property("previewBackground")) == (18, 25, 27)
+        assert _rgb(dark_cropper.property("previewBorder")) == (34, 48, 51)
+        assert _rgb(dark_cropper.property("previewIcon")) == (85, 214, 210)
+        assert _rgb(dark_cropper.property("previewText")) == (164, 181, 182)
+        assert _rgb(dark_cropper.property("dialogBackground")) == (13, 18, 19)
         assert dark_cropper.property("dialogType") == 0
-        assert dark_cropper.property("dialogPreviewRadius") == 6
+        assert dark_cropper.property("dialogPreviewRadius") == 4
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

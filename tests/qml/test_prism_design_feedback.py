@@ -33,7 +33,7 @@ def _alpha(qcolor):
 
 
 def _assert_info_bar(item, background, border, shadow_alpha):
-    assert item.property("_infoBarRadius") == 10
+    assert item.property("_infoBarRadius") == 8
     assert item.property("_infoBarBorderWidth") == 1
     assert _rgb(item.property("_infoBarBackground")) == background
     assert _rgb(item.property("_infoBarBorderColor")) == border
@@ -43,8 +43,8 @@ def _assert_info_bar(item, background, border, shadow_alpha):
 
 
 def _assert_toast(item, background, border, shadow_alpha):
-    assert item.property("_toastRadius") == 10
-    assert item.property("_toastColorBarRadius") == 10
+    assert item.property("_toastRadius") == 8
+    assert item.property("_toastColorBarRadius") == 8
     assert item.property("_toastBorderWidth") == 1
     assert _rgb(item.property("_toastBackground")) == background
     assert _rgb(item.property("_toastBorderColor")) == border
@@ -54,8 +54,8 @@ def _assert_toast(item, background, border, shadow_alpha):
 
 
 def _assert_desktop_notification(item, background, border, message, shadow_alpha):
-    assert item.property("_notificationRadius") == 10
-    assert item.property("_notificationIconRadius") == 6
+    assert item.property("_notificationRadius") == 8
+    assert item.property("_notificationIconRadius") == 4
     assert item.property("_notificationBorderWidth") == 1
     assert _rgb(item.property("_notificationBackground")) == background
     assert _rgb(item.property("_notificationBorderColor")) == border
@@ -83,19 +83,19 @@ def _assert_direct_progress_ring(item, progress, track):
 
 
 def _assert_skeleton(item, base, shimmer):
-    assert item.property("_radius") == 6
+    assert item.property("_radius") == 4
     assert _rgb(item.property("baseColor")) == base
     assert _rgb(item.property("shimmerColor")) == shimmer
 
 
 def _assert_tag(item, background, text):
-    assert item.property("_tagRadius") == 6
+    assert item.property("_tagRadius") == 4
     assert _rgb(item.property("_tagBackground")) == background
     assert _rgb(item.property("currentColor")) == text
 
 
 def _assert_tip_popup(item, background, border):
-    assert item.property("_tipRadius") == 10
+    assert item.property("_tipRadius") == 8
     assert item.property("_tipBorderWidth") == 1
     assert _rgb(item.property("_tipBackground")) == background
     assert _rgb(item.property("_tipBorderColor")) == border
@@ -150,7 +150,7 @@ InfoBar {
 }
 """))
         info_bar = keep[-1][1]
-        _assert_info_bar(info_bar, (255, 244, 206), (217, 227, 236), 31)
+        _assert_info_bar(info_bar, (255, 244, 206), (199, 212, 211), 31)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -162,7 +162,7 @@ Toast {
 }
 """))
         toast = keep[-1][1]
-        _assert_toast(toast, (248, 251, 255), (231, 238, 245), 31)
+        _assert_toast(toast, (244, 248, 247), (221, 230, 228), 31)
         assert _rgb(toast.property("severityColor")) == (15, 123, 15)
 
         keep.append(_build(engine, b"""
@@ -177,9 +177,9 @@ DesktopNotification {
         notification = keep[-1][1]
         _assert_desktop_notification(
             notification,
-            (248, 251, 255),
-            (217, 227, 236),
-            (95, 111, 128),
+            (244, 248, 247),
+            (199, 212, 211),
+            (86, 106, 109),
             36,
         )
 
@@ -194,7 +194,7 @@ Progress {
 """))
         progress = keep[-1][1]
         qapp.processEvents()
-        _assert_progress(progress, (47, 111, 237), (234, 241, 247), (255, 255, 255))
+        _assert_progress(progress, (22, 124, 128), (225, 233, 231), (255, 255, 255))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -207,7 +207,7 @@ Progress {
 """))
         low_progress = keep[-1][1]
         qapp.processEvents()
-        _assert_progress(low_progress, (47, 111, 237), (234, 241, 247), (23, 32, 42))
+        _assert_progress(low_progress, (22, 124, 128), (225, 233, 231), (21, 35, 38))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -217,7 +217,7 @@ ProgressBar {
 }
 """))
         progress_bar = keep[-1][1]
-        _assert_direct_progress_bar(progress_bar, (47, 111, 237), (234, 241, 247))
+        _assert_direct_progress_bar(progress_bar, (22, 124, 128), (225, 233, 231))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -226,7 +226,7 @@ ProgressRing {
 }
 """))
         progress_ring = keep[-1][1]
-        _assert_direct_progress_ring(progress_ring, (47, 111, 237), (234, 241, 247))
+        _assert_direct_progress_ring(progress_ring, (22, 124, 128), (225, 233, 231))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -236,7 +236,7 @@ TipPopup {
 }
 """))
         tip_popup = keep[-1][1]
-        _assert_tip_popup(tip_popup, (248, 251, 255), (217, 227, 236))
+        _assert_tip_popup(tip_popup, (244, 248, 247), (199, 212, 211))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -245,7 +245,7 @@ HintIcon {
 }
 """))
         hint_icon = keep[-1][1]
-        _assert_hint_icon(hint_icon, (131, 146, 164))
+        _assert_hint_icon(hint_icon, (122, 141, 144))
 
         keep.append(_build(engine, b"""
 import QtQuick
@@ -288,7 +288,7 @@ Item {
 }
 """))
         effects = keep[-1][1]
-        _assert_feedback_effects(effects, (244, 247, 250), (47, 111, 237))
+        _assert_feedback_effects(effects, (238, 243, 242), (22, 124, 128))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -310,7 +310,7 @@ Skeleton {
 }
 """))
         skeleton = keep[-1][1]
-        _assert_skeleton(skeleton, (231, 238, 245), (238, 245, 255))
+        _assert_skeleton(skeleton, (221, 230, 228), (230, 238, 237))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -333,7 +333,7 @@ InfoBar {
 }
 """))
         dark_info_bar = keep[-1][1]
-        _assert_info_bar(dark_info_bar, (48, 36, 0), (48, 58, 70), 46)
+        _assert_info_bar(dark_info_bar, (48, 36, 0), (42, 57, 59), 46)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -345,7 +345,7 @@ Toast {
 }
 """))
         dark_toast = keep[-1][1]
-        _assert_toast(dark_toast, (36, 43, 52), (38, 48, 58), 46)
+        _assert_toast(dark_toast, (31, 42, 45), (34, 48, 51), 46)
         assert _rgb(dark_toast.property("severityColor")) == (108, 203, 95)
 
         keep.append(_build(engine, b"""
@@ -360,9 +360,9 @@ DesktopNotification {
         dark_notification = keep[-1][1]
         _assert_desktop_notification(
             dark_notification,
-            (36, 43, 52),
-            (48, 58, 70),
-            (166, 177, 191),
+            (31, 42, 45),
+            (42, 57, 59),
+            (164, 181, 182),
             54,
         )
 
@@ -377,7 +377,7 @@ Progress {
 """))
         dark_progress = keep[-1][1]
         qapp.processEvents()
-        _assert_progress(dark_progress, (122, 167, 255), (21, 26, 32), (15, 23, 42))
+        _assert_progress(dark_progress, (85, 214, 210), (16, 23, 25), (6, 23, 24))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -387,7 +387,7 @@ ProgressBar {
 }
 """))
         dark_progress_bar = keep[-1][1]
-        _assert_direct_progress_bar(dark_progress_bar, (122, 167, 255), (21, 26, 32))
+        _assert_direct_progress_bar(dark_progress_bar, (85, 214, 210), (16, 23, 25))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -396,7 +396,7 @@ ProgressRing {
 }
 """))
         dark_progress_ring = keep[-1][1]
-        _assert_direct_progress_ring(dark_progress_ring, (122, 167, 255), (21, 26, 32))
+        _assert_direct_progress_ring(dark_progress_ring, (85, 214, 210), (16, 23, 25))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -406,7 +406,7 @@ TipPopup {
 }
 """))
         dark_tip_popup = keep[-1][1]
-        _assert_tip_popup(dark_tip_popup, (36, 43, 52), (48, 58, 70))
+        _assert_tip_popup(dark_tip_popup, (31, 42, 45), (42, 57, 59))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -415,7 +415,7 @@ HintIcon {
 }
 """))
         dark_hint_icon = keep[-1][1]
-        _assert_hint_icon(dark_hint_icon, (118, 131, 148))
+        _assert_hint_icon(dark_hint_icon, (113, 134, 135))
 
         keep.append(_build(engine, b"""
 import QtQuick
@@ -458,7 +458,7 @@ Item {
 }
 """))
         dark_effects = keep[-1][1]
-        _assert_feedback_effects(dark_effects, (17, 20, 24), (122, 167, 255))
+        _assert_feedback_effects(dark_effects, (13, 18, 19), (85, 214, 210))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -480,7 +480,7 @@ Skeleton {
 }
 """))
         dark_skeleton = keep[-1][1]
-        _assert_skeleton(dark_skeleton, (38, 48, 58), (38, 48, 58))
+        _assert_skeleton(dark_skeleton, (34, 48, 51), (29, 41, 43))
 
         keep.append(_build(engine, b"""
 import PrismQML

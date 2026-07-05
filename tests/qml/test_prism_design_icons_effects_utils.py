@@ -40,7 +40,7 @@ def _assert_icons(icon, chevron, check, close, color, accent):
 
 
 def _assert_shadowed_rectangle(item, card, shadow_alpha):
-    assert item.property("_rectangleRadius") == 8
+    assert item.property("_rectangleRadius") == 6
     assert item.property("_defaultShadowBlur") == 8
     assert item.property("_defaultShadowOffset") == 2
     assert _rgb(item.property("_rectangleColor")) == card
@@ -49,7 +49,7 @@ def _assert_shadowed_rectangle(item, card, shadow_alpha):
 
 
 def _assert_popup(item, background, border, shadow_alpha):
-    assert item.property("popupRadius") == 10
+    assert item.property("popupRadius") == 8
     assert item.property("_popupBorderWidth") == 1
     assert item.property("_popupShadowBlur") == 16
     assert item.property("_popupShadowOffset") == 4
@@ -61,7 +61,7 @@ def _assert_popup(item, background, border, shadow_alpha):
 def _assert_remaining_effects_utils(item, background, shadow_alpha):
     assert item.property("skinValue") == "prism_design"
     assert item.property("isPrismDesign") is True
-    assert item.property("radiusControl") == 6
+    assert item.property("radiusControl") == 4
     assert _rgb(item.property("prismBackground")) == background
     assert item.property("dpiBase") == 96
     assert item.property("dpiSpacing8") >= 8
@@ -260,8 +260,8 @@ CloseIcon {}
             chevron,
             check,
             close,
-            color=(23, 32, 42),
-            accent=(47, 111, 237),
+            color=(21, 35, 38),
+            accent=(22, 124, 128),
         )
 
         keep.append(_build(engine, b"""
@@ -269,7 +269,7 @@ import PrismQML
 ColorOverlay {}
 """))
         overlay = keep[-1][1]
-        assert _rgb(overlay.property("color")) == (23, 32, 42)
+        assert _rgb(overlay.property("color")) == (21, 35, 38)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -278,7 +278,7 @@ ShadowedRectangle {
     height: 64
 }
 """))
-        _assert_shadowed_rectangle(keep[-1][1], card=(255, 255, 255), shadow_alpha=0.12)
+        _assert_shadowed_rectangle(keep[-1][1], card=(252, 254, 253), shadow_alpha=0.12)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -289,8 +289,8 @@ PopupWindowCore {
 """))
         _assert_popup(
             keep[-1][1],
-            background=(248, 251, 255),
-            border=(217, 227, 236),
+            background=(244, 248, 247),
+            border=(199, 212, 211),
             shadow_alpha=0.14,
         )
 
@@ -298,7 +298,7 @@ PopupWindowCore {
         utility_effects = keep[-1][1]
         _assert_remaining_effects_utils(
             utility_effects,
-            background=(244, 247, 250),
+            background=(238, 243, 242),
             shadow_alpha=0.12,
         )
 
@@ -334,8 +334,8 @@ CloseIcon {}
             dark_chevron,
             dark_check,
             dark_close,
-            color=(238, 243, 248),
-            accent=(122, 167, 255),
+            color=(238, 245, 243),
+            accent=(85, 214, 210),
         )
 
         keep.append(_build(engine, b"""
@@ -343,7 +343,7 @@ import PrismQML
 ColorOverlay {}
 """))
         dark_overlay = keep[-1][1]
-        assert _rgb(dark_overlay.property("color")) == (238, 243, 248)
+        assert _rgb(dark_overlay.property("color")) == (238, 245, 243)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -352,7 +352,7 @@ ShadowedRectangle {
     height: 64
 }
 """))
-        _assert_shadowed_rectangle(keep[-1][1], card=(32, 38, 46), shadow_alpha=0.18)
+        _assert_shadowed_rectangle(keep[-1][1], card=(25, 34, 36), shadow_alpha=0.18)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -363,8 +363,8 @@ PopupWindowCore {
 """))
         _assert_popup(
             keep[-1][1],
-            background=(36, 43, 52),
-            border=(48, 58, 70),
+            background=(31, 42, 45),
+            border=(42, 57, 59),
             shadow_alpha=0.21,
         )
 
@@ -372,7 +372,7 @@ PopupWindowCore {
         dark_utility_effects = keep[-1][1]
         _assert_remaining_effects_utils(
             dark_utility_effects,
-            background=(17, 20, 24),
+            background=(13, 18, 19),
             shadow_alpha=0.18,
         )
     finally:
