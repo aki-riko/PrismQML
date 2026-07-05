@@ -63,7 +63,7 @@ Widget {
  blur: _shadowBlur
  offset.x: 0
  offset.y: _shadowOffset
- visible: !Enums.isNeobrutalism && !Enums.isPrismDesign
+ visible: !Enums.isNeobrutalism && (!Enums.isPrismDesign || isElevated || hovered)
 
  // Shadow properties based on type and state 根据类型和状态计算阴影
  property color _shadowColor: isElevated && hovered
@@ -125,15 +125,34 @@ Widget {
  border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
  border.color: Enums.isPrismDesign ? Enums.prismDesign.border : Enums.stateColor.borderLight  // neo 黑边由 token 自动返回
 
- // Prism cut edge Prism切面边线
+ // Prism glass rim Prism玻璃边缘
  Rectangle {
- id: prismCutEdge
+ anchors.left: parent.left
+ anchors.right: parent.right
+ anchors.top: parent.top
+ height: Enums.prismDesign.borderWidth
+ color: Enums.prismDesign.glassRimLight
+ visible: Enums.isPrismDesign
+ }
+
+ Rectangle {
  anchors.left: parent.left
  anchors.right: parent.right
  anchors.bottom: parent.bottom
  height: Enums.prismDesign.borderWidth
- color: Enums.prismDesign.edgeShadow
+ color: Enums.prismDesign.glassRimShadow
  visible: Enums.isPrismDesign
+ }
+
+ Rectangle {
+ anchors.left: parent.left
+ anchors.right: parent.right
+ anchors.bottom: parent.bottom
+ height: Enums.prismDesign.focusBorderWidth
+ color: Enums.prismDesign.spectralEdge
+ opacity: hovered ? 0.45 : 0.0
+ visible: Enums.isPrismDesign && (isNormal || isElevated)
+ Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
  }
  
  // ==================== Header (for header type) 标题区域 ====================

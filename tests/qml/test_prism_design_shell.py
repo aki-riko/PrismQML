@@ -29,7 +29,7 @@ def _rgb(qcolor):
 
 
 def _assert_shell(window, content, background):
-    assert window.property("contentCornerRadius") == 4
+    assert window.property("contentCornerRadius") == 14
     assert _rgb(window.property("contentBgColor")) == content
     assert _rgb(window.property("windowColor")) == background
 
@@ -41,7 +41,7 @@ def _assert_status_bar(item, background, divider, text):
 
 
 def _assert_profile_card(item, hover, pressed, title, subtitle):
-    assert item.property("_profileRadius") == 2
+    assert item.property("_profileRadius") == 10
     assert _rgb(item.property("_profileHoverColor")) == hover
     assert _rgb(item.property("_profilePressedColor")) == pressed
     assert _rgb(item.property("_profileTitleColor")) == title
@@ -54,7 +54,7 @@ def _assert_windows(item, background):
 
 
 def _assert_compact_windows(item, content, background):
-    assert item.property("contentCornerRadius") == 4
+    assert item.property("contentCornerRadius") == 14
     assert _rgb(item.property("contentBgColor")) == content
     assert _rgb(item.property("windowColor")) == background
 
@@ -75,7 +75,7 @@ NavigationWindowCore {
 }
 """))
         window = keep[-1][1]
-        _assert_shell(window, (248, 250, 249), (238, 243, 242))
+        _assert_shell(window, (248, 251, 252), (238, 245, 247))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -86,7 +86,7 @@ StatusBar {
 }
 """))
         status_bar = keep[-1][1]
-        _assert_status_bar(status_bar, (248, 250, 249), (213, 223, 221), (86, 106, 109))
+        _assert_status_bar(status_bar, (248, 251, 252), (214, 227, 230), (82, 105, 112))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -99,10 +99,10 @@ NavigationProfileCard {
         profile_card = keep[-1][1]
         _assert_profile_card(
             profile_card,
-            (230, 238, 237),
-            (220, 231, 229),
-            (21, 35, 38),
-            (86, 106, 109),
+            (234, 244, 247),
+            (221, 236, 240),
+            (18, 34, 38),
+            (82, 105, 112),
         )
 
         setTheme(Theme.DARK)
@@ -113,7 +113,7 @@ NavigationWindowCore {
 }
 """))
         dark_window = keep[-1][1]
-        _assert_shell(dark_window, (18, 25, 27), (13, 18, 19))
+        _assert_shell(dark_window, (16, 24, 27), (9, 14, 16))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -124,7 +124,7 @@ StatusBar {
 }
 """))
         dark_status_bar = keep[-1][1]
-        _assert_status_bar(dark_status_bar, (18, 25, 27), (37, 52, 55), (164, 181, 182))
+        _assert_status_bar(dark_status_bar, (16, 24, 27), (34, 52, 58), (168, 186, 191))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -137,10 +137,10 @@ NavigationProfileCard {
         dark_profile_card = keep[-1][1]
         _assert_profile_card(
             dark_profile_card,
-            (29, 41, 43),
-            (24, 36, 38),
-            (238, 245, 243),
-            (164, 181, 182),
+            (33, 49, 54),
+            (26, 42, 47),
+            (238, 247, 248),
+            (168, 186, 191),
         )
     finally:
         for component, item in reversed(keep):
@@ -170,7 +170,7 @@ WindowsCore {
 }
 """))
         windows_core = keep[-1][1]
-        _assert_windows(windows_core, (238, 243, 242))
+        _assert_windows(windows_core, (238, 245, 247))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -179,7 +179,7 @@ Windows {
 }
 """))
         windows = keep[-1][1]
-        _assert_compact_windows(windows, (248, 250, 249), (238, 243, 242))
+        _assert_compact_windows(windows, (248, 251, 252), (238, 245, 247))
 
         setTheme(Theme.DARK)
         keep.append(_build(engine, b"""
@@ -189,7 +189,7 @@ WindowsCore {
 }
 """))
         dark_windows_core = keep[-1][1]
-        _assert_windows(dark_windows_core, (13, 18, 19))
+        _assert_windows(dark_windows_core, (9, 14, 16))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -198,7 +198,7 @@ Windows {
 }
 """))
         dark_windows = keep[-1][1]
-        _assert_compact_windows(dark_windows, (18, 25, 27), (13, 18, 19))
+        _assert_compact_windows(dark_windows, (16, 24, 27), (9, 14, 16))
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

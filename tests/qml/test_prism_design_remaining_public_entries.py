@@ -29,11 +29,11 @@ def _rgb(qcolor):
 
 
 def _assert_common(item, accent, divider, header, card, border):
-    expected_warning = (157, 93, 0) if accent == (22, 124, 128) else (192, 144, 0)
+    expected_warning = (157, 93, 0) if accent == (11, 127, 137) else (192, 144, 0)
 
-    assert item.property("focusRadius") == 2
+    assert item.property("focusRadius") == 10
     assert _rgb(item.property("focusColor")) == accent
-    assert item.property("spinButtonRadius") == 2
+    assert item.property("spinButtonRadius") == 10
     assert _rgb(item.property("separatorColor")) == divider
     assert _rgb(item.property("timelineInfoColor")) == accent
     assert _rgb(item.property("timelineCoreWarningColor")) == expected_warning
@@ -41,9 +41,9 @@ def _assert_common(item, accent, divider, header, card, border):
     assert item.property("waterfallSpacing") == 12
     assert item.property("settingsImplicitHeight") > 0
     assert item.property("settingsContentImplicitWidth") > 0
-    assert item.property("listRadius") == 4
-    assert item.property("tableRadius") == 4
-    assert item.property("treeRadius") == 4
+    assert item.property("listRadius") == 14
+    assert item.property("tableRadius") == 14
+    assert item.property("treeRadius") == 14
     assert _rgb(item.property("listCardColor")) == card
     assert _rgb(item.property("tableHeaderColor")) == header
     assert _rgb(item.property("treeBorderColor")) == border
@@ -198,11 +198,11 @@ Item {
         qapp.processEvents()
         _assert_common(
             light,
-            accent=(22, 124, 128),
-            divider=(213, 223, 221),
-            header=(230, 236, 235),
-            card=(252, 254, 253),
-            border=(221, 230, 228),
+            accent=(11, 127, 137),
+            divider=(214, 227, 230),
+            header=(232, 241, 244),
+            card=(252, 254, 255),
+            border=(220, 233, 237),
         )
 
         setTheme(Theme.DARK)
@@ -345,11 +345,11 @@ Item {
         qapp.processEvents()
         _assert_common(
             dark,
-            accent=(85, 214, 210),
-            divider=(37, 52, 55),
-            header=(16, 23, 25),
-            card=(25, 34, 36),
-            border=(34, 48, 51),
+            accent=(109, 235, 242),
+            divider=(34, 52, 58),
+            header=(13, 21, 24),
+            card=(26, 37, 41),
+            border=(38, 58, 65),
         )
     finally:
         for component, item in reversed(keep):

@@ -52,6 +52,29 @@ Item {
         border.width: control._navItemBorderWidth
         border.color: control._navItemBorderColor
         
+        // Prism glass rail rim Prism玻璃导航边缘
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: Enums.prismDesign.borderWidth
+            color: Enums.prismDesign.glassRimLight
+            visible: Enums.isPrismDesign && (control.selected || control.hovered)
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: Enums.prismDesign.focusBorderWidth
+            radius: width / 2
+            color: Enums.prismDesign.spectralEdge
+            opacity: control.selected ? 0.9 : 0.35
+            visible: Enums.isPrismDesign && (control.selected || control.hovered)
+
+            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+        }
+
         // No animation to avoid flicker 无动画避免闪烁
     }
     

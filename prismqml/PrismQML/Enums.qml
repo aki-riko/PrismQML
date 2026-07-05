@@ -67,7 +67,7 @@ Item {
     CommandBar { id: _commandBar }
     StateColor { id: _stateColor; isDark: root.isDark; isNeo: root.isNeobrutalism; isPrismDesign: root.isPrismDesign; accentColor: root.accentColor; constants: _constants }
     Constants { id: _constants; isDark: root.isDark; isNeo: root.isNeobrutalism; isPrismDesign: root.isPrismDesign }
-    Metrics { id: _metrics; isDark: root.isDark; constants: _constants }
+    Metrics { id: _metrics; isDark: root.isDark; isPrismDesign: root.isPrismDesign; constants: _constants }
     Orient { id: _orient }
     Flow { id: _flow }
     Chart { id: _chart }

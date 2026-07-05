@@ -30,9 +30,9 @@ def _rgb(qcolor):
 
 def _assert_pips(item, active, inactive):
     assert item.property("_normalRadius") == 6
-    assert item.property("_activeRadius") == 2
+    assert item.property("_activeRadius") == 10
     assert item.property("_normalDiameter") == 6
-    assert item.property("_activeDiameter") == 4
+    assert item.property("_activeDiameter") == 20
     assert _rgb(item.property("_pipActiveColor")) == active
     assert _rgb(item.property("_pipHoverColor")) == active
     assert _rgb(item.property("_pipInactiveColor")) == inactive
@@ -54,7 +54,7 @@ HorizontalPipsPager {
     currentIndex: 1
 }
 """))
-        _assert_pips(keep[-1][1], active=(22, 124, 128), inactive=(142, 164, 163))
+        _assert_pips(keep[-1][1], active=(11, 127, 137), inactive=(120, 173, 184))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -65,7 +65,7 @@ VerticalPipsPager {
 """))
         vertical_pips = keep[-1][1]
         assert vertical_pips.property("vertical") is True
-        _assert_pips(vertical_pips, active=(22, 124, 128), inactive=(142, 164, 163))
+        _assert_pips(vertical_pips, active=(11, 127, 137), inactive=(120, 173, 184))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -90,7 +90,7 @@ HorizontalPipsPager {
     currentIndex: 1
 }
 """))
-        _assert_pips(keep[-1][1], active=(85, 214, 210), inactive=(73, 96, 99))
+        _assert_pips(keep[-1][1], active=(109, 235, 242), inactive=(106, 169, 181))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -101,7 +101,7 @@ VerticalPipsPager {
 """))
         dark_vertical_pips = keep[-1][1]
         assert dark_vertical_pips.property("vertical") is True
-        _assert_pips(dark_vertical_pips, active=(85, 214, 210), inactive=(73, 96, 99))
+        _assert_pips(dark_vertical_pips, active=(109, 235, 242), inactive=(106, 169, 181))
 
         keep.append(_build(engine, b"""
 import PrismQML

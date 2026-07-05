@@ -77,8 +77,8 @@ Prism Design 的落地不以“看起来像蓝色 Fluent”或“像 Apple 玻�
 
 | Token | 允许场景 |
 |-------|----------|
-| `radiusControl` | Button、Input、ComboBox、MenuItem、Tab 等基础控件半径；当前为运行时基线，Glass 目标应更圆润 |
-| `radiusCard` | Card、Panel、SettingsCard、Group 容器；当前为运行时基线，Glass 目标应更圆润 |
+| `radiusControl` | Button、Input、ComboBox、MenuItem、Tab 等基础控件半径；当前 Glass 基线为 10 |
+| `radiusCard` | Card、Panel、SettingsCard、Group 容器；当前 Glass 基线为 14 |
 | `radiusPopup` | Menu、Flyout、Tooltip、Toast、Drawer；对应 Floating Glass |
 | `radiusDialog` | Dialog、MessageBox、ProgressDialog；对应 Modal Glass |
 | `borderWidth` | 需要固定 Prism 默认描边宽度的控件 |

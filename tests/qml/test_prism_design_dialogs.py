@@ -32,8 +32,8 @@ def _alpha(qcolor):
     return round(qcolor.alphaF() * 255)
 
 
-def _assert_dialog_surface(dialog, background, border, action_row=None, shadow_alpha=46):
-    assert dialog.property("_dialogRadius") == 8
+def _assert_dialog_surface(dialog, background, border, action_row=None, shadow_alpha=56):
+    assert dialog.property("_dialogRadius") == 24
     assert dialog.property("_dialogBorderWidth") == 1
     assert _rgb(dialog.property("_dialogBackground")) == background
     assert _rgb(dialog.property("_dialogBorderColor")) == border
@@ -61,10 +61,10 @@ MessageBox {
 }
 """))
         message_box = keep[-1][1]
-        _assert_dialog_surface(message_box, (244, 248, 247), (199, 212, 211), (248, 250, 249))
+        _assert_dialog_surface(message_box, (247, 252, 254), (185, 204, 209), (248, 251, 252))
         assert message_box.property("minWidth") == 288
-        assert _rgb(message_box.property("_titleColor")) == (21, 35, 38)
-        assert _rgb(message_box.property("_contentColor")) == (86, 106, 109)
+        assert _rgb(message_box.property("_titleColor")) == (18, 34, 38)
+        assert _rgb(message_box.property("_contentColor")) == (82, 105, 112)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -73,7 +73,7 @@ DialogBoxCore {
 }
 """))
         dialog_core = keep[-1][1]
-        _assert_dialog_surface(dialog_core, (244, 248, 247), (199, 212, 211), None)
+        _assert_dialog_surface(dialog_core, (247, 252, 254), (185, 204, 209), None)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -84,7 +84,7 @@ ConfirmDialog {
 }
 """))
         confirm_dialog = keep[-1][1]
-        _assert_dialog_surface(confirm_dialog, (244, 248, 247), (199, 212, 211), (248, 250, 249))
+        _assert_dialog_surface(confirm_dialog, (247, 252, 254), (185, 204, 209), (248, 251, 252))
         assert abs(confirm_dialog.property("_iconBackgroundOpacity") - 0.12) < 0.001
 
         keep.append(_build(engine, b"""
@@ -92,7 +92,7 @@ import PrismQML
 MaskedDialog {}
 """))
         masked_dialog = keep[-1][1]
-        _assert_dialog_surface(masked_dialog, (244, 248, 247), (199, 212, 211))
+        _assert_dialog_surface(masked_dialog, (247, 252, 254), (185, 204, 209))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -103,7 +103,7 @@ ProgressDialog {
 }
 """))
         progress_dialog = keep[-1][1]
-        _assert_dialog_surface(progress_dialog, (244, 248, 247), (199, 212, 211))
+        _assert_dialog_surface(progress_dialog, (247, 252, 254), (185, 204, 209))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -114,7 +114,7 @@ UpdateDialog {
 }
 """))
         update_dialog = keep[-1][1]
-        _assert_dialog_surface(update_dialog, (244, 248, 247), (199, 212, 211), (248, 250, 249))
+        _assert_dialog_surface(update_dialog, (247, 252, 254), (185, 204, 209), (248, 251, 252))
         assert abs(update_dialog.property("_iconBackgroundOpacity") - 0.12) < 0.001
 
         setTheme(Theme.DARK)
@@ -126,9 +126,9 @@ MessageBox {
 }
 """))
         message_box = keep[-1][1]
-        _assert_dialog_surface(message_box, (31, 42, 45), (42, 57, 59), (18, 25, 27), 69)
-        assert _rgb(message_box.property("_titleColor")) == (238, 245, 243)
-        assert _rgb(message_box.property("_contentColor")) == (164, 181, 182)
+        _assert_dialog_surface(message_box, (34, 48, 54), (50, 72, 79), (16, 24, 27), 179)
+        assert _rgb(message_box.property("_titleColor")) == (238, 247, 248)
+        assert _rgb(message_box.property("_contentColor")) == (168, 186, 191)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -137,14 +137,14 @@ DialogBoxCore {
 }
 """))
         dark_dialog_core = keep[-1][1]
-        _assert_dialog_surface(dark_dialog_core, (31, 42, 45), (42, 57, 59), None, 69)
+        _assert_dialog_surface(dark_dialog_core, (34, 48, 54), (50, 72, 79), None, 179)
 
         keep.append(_build(engine, b"""
 import PrismQML
 MaskedDialog {}
 """))
         masked_dialog = keep[-1][1]
-        _assert_dialog_surface(masked_dialog, (31, 42, 45), (42, 57, 59), None, 69)
+        _assert_dialog_surface(masked_dialog, (34, 48, 54), (50, 72, 79), None, 179)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -155,7 +155,7 @@ ProgressDialog {
 }
 """))
         progress_dialog = keep[-1][1]
-        _assert_dialog_surface(progress_dialog, (31, 42, 45), (42, 57, 59), None, 69)
+        _assert_dialog_surface(progress_dialog, (34, 48, 54), (50, 72, 79), None, 179)
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

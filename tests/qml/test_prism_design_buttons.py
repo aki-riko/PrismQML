@@ -129,10 +129,10 @@ CloseButton {}
         close_button = keep[-1][1]
         _assert_close_button(
             close_button,
-            normal_icon=(86, 106, 109),
-            hover_icon=(21, 35, 38),
-            hover_bg=(231, 239, 238),
-            pressed_bg=(217, 229, 227),
+            normal_icon=(82, 105, 112),
+            hover_icon=(18, 34, 38),
+            hover_bg=(233, 246, 250),
+            pressed_bg=(218, 235, 241),
         )
 
         setTheme(Theme.DARK)
@@ -143,10 +143,10 @@ CloseButton {}
         dark_close_button = keep[-1][1]
         _assert_close_button(
             dark_close_button,
-            normal_icon=(164, 181, 182),
-            hover_icon=(238, 245, 243),
-            hover_bg=(27, 39, 41),
-            pressed_bg=(23, 34, 37),
+            normal_icon=(168, 186, 191),
+            hover_icon=(238, 247, 248),
+            hover_bg=(34, 54, 61),
+            pressed_bg=(26, 43, 49),
         )
     finally:
         for component, item in reversed(keep):

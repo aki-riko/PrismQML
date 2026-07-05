@@ -440,6 +440,35 @@ Item {
                     yScale: control._scale
                 }
 
+                // Prism floating glass rim Prism浮层玻璃边缘
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: Enums.prismDesign.borderWidth
+                    color: Enums.prismDesign.glassRimLight
+                    visible: Enums.isPrismDesign
+                }
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: Enums.prismDesign.borderWidth
+                    color: Enums.prismDesign.glassRimShadow
+                    visible: Enums.isPrismDesign
+                }
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: Enums.prismDesign.focusBorderWidth
+                    color: Enums.prismDesign.spectralEdge
+                    opacity: 0.42
+                    visible: Enums.isPrismDesign
+                }
+
                 // Content container 内容容器
                 Item {
                     id: contentContainer

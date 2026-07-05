@@ -69,10 +69,10 @@ Paginator {
 }
 """))
         paginator = keep[-1][1]
-        assert paginator.property("_pageRadius") == 2
-        assert _rgb(paginator.property("_pageIndicatorColor")) == (22, 124, 128)
-        assert _rgb(paginator.property("_pageHoverColor")) == (230, 238, 237)
-        assert _rgb(paginator.property("_pageTextColor")) == (21, 35, 38)
+        assert paginator.property("_pageRadius") == 10
+        assert _rgb(paginator.property("_pageIndicatorColor")) == (11, 127, 137)
+        assert _rgb(paginator.property("_pageHoverColor")) == (234, 244, 247)
+        assert _rgb(paginator.property("_pageTextColor")) == (18, 34, 38)
         assert _rgb(paginator.property("_pageSelectedTextColor")) == (255, 255, 255)
 
         keep.append(_build(engine, b"""
@@ -83,17 +83,17 @@ PipsPager {
 }
 """))
         pips = keep[-1][1]
-        assert pips.property("_pipRadius") == 2
-        assert pips.property("_navButtonRadius") == 2
-        assert _rgb(pips.property("_pipActiveColor")) == (22, 124, 128)
-        assert _rgb(pips.property("_pipInactiveColor")) == (142, 164, 163)
-        assert _rgb(pips.property("_navButtonHoverColor")) == (230, 238, 237)
-        assert _rgb(pips.property("_navIconColor")) == (122, 141, 144)
+        assert pips.property("_pipRadius") == 10
+        assert pips.property("_navButtonRadius") == 10
+        assert _rgb(pips.property("_pipActiveColor")) == (11, 127, 137)
+        assert _rgb(pips.property("_pipInactiveColor")) == (120, 173, 184)
+        assert _rgb(pips.property("_navButtonHoverColor")) == (234, 244, 247)
+        assert _rgb(pips.property("_navIconColor")) == (118, 138, 145)
 
         keep.append(_build(engine, _bottom_tab_qml()))
         bottom_tab = keep[-1][1]
-        assert _rgb(bottom_tab.property("_bottomTabBackground")) == (238, 243, 242)
-        assert _rgb(bottom_tab.property("_bottomTabDividerColor")) == (213, 223, 221)
+        assert _rgb(bottom_tab.property("_bottomTabBackground")) == (238, 245, 247)
+        assert _rgb(bottom_tab.property("_bottomTabDividerColor")) == (214, 227, 230)
         assert bottom_tab.property("_bottomTabDividerHeight") == 1
 
         setTheme(Theme.DARK)
@@ -107,11 +107,11 @@ Paginator {
 }
 """))
         dark_paginator = keep[-1][1]
-        assert dark_paginator.property("_pageRadius") == 2
-        assert _rgb(dark_paginator.property("_pageIndicatorColor")) == (85, 214, 210)
-        assert _rgb(dark_paginator.property("_pageHoverColor")) == (29, 41, 43)
-        assert _rgb(dark_paginator.property("_pageTextColor")) == (238, 245, 243)
-        assert _rgb(dark_paginator.property("_pageSelectedTextColor")) == (6, 23, 24)
+        assert dark_paginator.property("_pageRadius") == 10
+        assert _rgb(dark_paginator.property("_pageIndicatorColor")) == (109, 235, 242)
+        assert _rgb(dark_paginator.property("_pageHoverColor")) == (33, 49, 54)
+        assert _rgb(dark_paginator.property("_pageTextColor")) == (238, 247, 248)
+        assert _rgb(dark_paginator.property("_pageSelectedTextColor")) == (4, 23, 25)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -121,17 +121,17 @@ PipsPager {
 }
 """))
         dark_pips = keep[-1][1]
-        assert dark_pips.property("_pipRadius") == 2
-        assert dark_pips.property("_navButtonRadius") == 2
-        assert _rgb(dark_pips.property("_pipActiveColor")) == (85, 214, 210)
-        assert _rgb(dark_pips.property("_pipInactiveColor")) == (73, 96, 99)
-        assert _rgb(dark_pips.property("_navButtonHoverColor")) == (29, 41, 43)
-        assert _rgb(dark_pips.property("_navIconColor")) == (113, 134, 135)
+        assert dark_pips.property("_pipRadius") == 10
+        assert dark_pips.property("_navButtonRadius") == 10
+        assert _rgb(dark_pips.property("_pipActiveColor")) == (109, 235, 242)
+        assert _rgb(dark_pips.property("_pipInactiveColor")) == (106, 169, 181)
+        assert _rgb(dark_pips.property("_navButtonHoverColor")) == (33, 49, 54)
+        assert _rgb(dark_pips.property("_navIconColor")) == (115, 138, 145)
 
         keep.append(_build(engine, _bottom_tab_qml()))
         dark_bottom_tab = keep[-1][1]
-        assert _rgb(dark_bottom_tab.property("_bottomTabBackground")) == (13, 18, 19)
-        assert _rgb(dark_bottom_tab.property("_bottomTabDividerColor")) == (37, 52, 55)
+        assert _rgb(dark_bottom_tab.property("_bottomTabBackground")) == (9, 14, 16)
+        assert _rgb(dark_bottom_tab.property("_bottomTabDividerColor")) == (34, 52, 58)
         assert dark_bottom_tab.property("_bottomTabDividerHeight") == 1
     finally:
         for component, item in reversed(keep):

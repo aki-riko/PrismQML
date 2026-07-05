@@ -182,26 +182,26 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 
 ### 基础色
 
-当前 `Constants.prismDesign` 的基础色如下，后续调整必须同步更新本文。现有色板是 Prism Glass 的过渡基线：它保证 light / dark 可读，但下一阶段应让 `overlay`、`raised`、`hover`、`selected` 更接近玻璃厚度，而不是继续像普通实心面板。
+当前 `Constants.prismDesign` 的基础色如下，后续调整必须同步更新本文。色板以冷白玻璃、深石墨玻璃和棱镜青为主；内容 surface 保持实心可读，功能层通过 glass token 表达通透感。
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `background` | `#EEF3F2` | `#0D1213` | 应用外层背景 |
-| `surface` | `#F8FAF9` | `#12191B` | 主内容面 |
-| `raised` | `#FCFEFD` | `#192224` | 控件、卡片、面板 |
-| `overlay` | `#F4F8F7` | `#1F2A2D` | 弹层、菜单、对话框 |
-| `header` | `#E6ECEB` | `#101719` | 顶栏、分组头 |
-| `tableBg` | `#F5F8F7` | `#0F1517` | 表格背景 |
-| `alternateRow` | `#F1F5F4` | `#151D1F` | 交替行 |
+| `background` | `#EEF5F7` | `#090E10` | 应用外层背景 |
+| `surface` | `#F8FBFC` | `#10181B` | 主内容面 |
+| `raised` | `#FCFEFF` | `#1A2529` | 控件、卡片、面板 |
+| `overlay` | `#F7FCFE` | `#223036` | 弹层、菜单、对话框 |
+| `header` | `#E8F1F4` | `#0D1518` | 顶栏、分组头 |
+| `tableBg` | `#F6FAFB` | `#0C1316` | 表格背景 |
+| `alternateRow` | `#F1F7F9` | `#141F23` | 交替行 |
 
 ### 前景色
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `foreground` | `#152326` | `#EEF5F3` | 主文本、主图标 |
-| `secondaryForeground` | `#566A6D` | `#A4B5B6` | 次级文本、说明 |
-| `tertiaryForeground` | `#7A8D90` | `#718687` | 弱说明、辅助信息 |
-| `disabledForeground` | `#A4B0B1` | `#53676A` | 禁用文本 |
+| `foreground` | `#122226` | `#EEF7F8` | 主文本、主图标 |
+| `secondaryForeground` | `#526970` | `#A8BABF` | 次级文本、说明 |
+| `tertiaryForeground` | `#768A91` | `#738A91` | 弱说明、辅助信息 |
+| `disabledForeground` | `#A4B2B7` | `#51656B` | 禁用文本 |
 
 文字必须优先使用 `Enums.textColor.*`，不要直接读取颜色 token。只有设计 token 调试、视觉测试和文档示例可以直接提及色值。
 
@@ -209,13 +209,13 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `primary` | `#167C80` | `#55D6D2` | 主操作、选中态、焦点 |
-| `primaryLight` | `#1C8D90` | `#74E6E1` | hover 派生 |
-| `primaryDark` | `#0E5F64` | `#38BDBA` | pressed 派生 |
-| `primaryForeground` | `#FFFFFF` | `#061718` | 主色块上的文字 |
-| `secondary` | `#516B9A` | `#92A7FF` | 次强调、辅助信息倾向 |
-| `warm` | `#C47A25` | `#F0B35D` | 提醒、局部暖色 |
-| `glow` | `#88DCD8` | `#3BDCD6` | 局部冷光，不承载文字 |
+| `primary` | `#0B7F89` | `#6DEBF2` | 主操作、选中态、焦点 |
+| `primaryLight` | `#12A0AA` | `#A6F7FF` | hover 派生 |
+| `primaryDark` | `#075F68` | `#3CCBD5` | pressed 派生 |
+| `primaryForeground` | `#FFFFFF` | `#041719` | 主色块上的文字 |
+| `secondary` | `#5C6FDB` | `#A8B4FF` | 次强调、辅助信息倾向 |
+| `warm` | `#C77B32` | `#F3B563` | 提醒、局部暖色 |
+| `glow` | `#70E7F2` | `#7AF2FF` | 局部冷光，不承载文字 |
 
 使用规则：
 
@@ -229,10 +229,10 @@ Prism Design 的层级是界面组织的第一规则。颜色、阴影、边框�
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `border` | `#C7D4D3` | `#2A393B` | 默认控件边框 |
-| `borderLight` | `#DDE6E4` | `#223033` | 弱边界、内部分隔 |
-| `borderStrong` | `#8EA4A3` | `#496063` | 焦点、强调边界 |
-| `divider` | `#D5DFDD` | `#253437` | 列表、表格、分组分隔 |
+| `border` | `#B9CCD1` | `#32484F` | 默认控件边框 |
+| `borderLight` | `#DCE9ED` | `#263A41` | 弱边界、内部分隔 |
+| `borderStrong` | `#78ADB8` | `#6AA9B5` | 焦点、强调边界 |
+| `divider` | `#D6E3E6` | `#22343A` | 列表、表格、分组分隔 |
 
 边框不是装饰，而是玻璃厚度、层级和可点击区域的提示。浅色模式不能让边框消失，深色模式不能只靠阴影分层。
 
@@ -248,14 +248,14 @@ Prism Glass 的边框分为三类：
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `hover` | `#E6EEED` | `#1D292B` | 悬停 |
-| `pressed` | `#DCE7E5` | `#182426` | 按下 |
-| `disabled` | `#E3E9E8` | `#1A2224` | 禁用背景 |
-| `selected` | `#D4EDEA` | `#163F43` | 选中 |
-| `selectedHover` | `#C3E4E0` | `#1B5055` | 选中悬停 |
-| `navSelected` | `#F6FAF9` | `#141D1F` | 导航选中中性面 |
-| `navSelectedHover` | `#EDF4F2` | `#192629` | 导航选中悬停 |
-| `tableHover` | `#E9F0EF` | `#1A2729` | 表格/列表悬停 |
+| `hover` | `#EAF4F7` | `#213136` | 悬停 |
+| `pressed` | `#DDECF0` | `#1A2A2F` | 按下 |
+| `disabled` | `#E5ECEF` | `#192226` | 禁用背景 |
+| `selected` | `#DDF4F7` | `#174A52` | 选中 |
+| `selectedHover` | `#CCEDF3` | `#1F5F68` | 选中悬停 |
+| `navSelected` | `#EEF9FB` | `#18272C` | 导航选中中性面 |
+| `navSelectedHover` | `#E1F3F7` | `#20343A` | 导航选中悬停 |
+| `tableHover` | `#EDF5F7` | `#1A292E` | 表格/列表悬停 |
 
 状态层必须有可见差异，但不能让组件尺寸变化。hover、pressed、selected 禁止通过改变文字大小、边距、布局来表达。Prism Glass 的 hover 应像玻璃被点亮，pressed 应像厚度收紧，selected 应有位置或边缘指示。
 
@@ -263,11 +263,11 @@ Prism Glass 的边框分为三类：
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `scrollTrack` | `#E1E9E7` | `#101719` | 滚动条轨道 |
-| `scrollHandle` | `#8EA4A3` | `#435A5D` | 滚动条手柄 |
-| `scrollHandleHover` | `#758D8B` | `#587174` | 手柄悬停 |
-| `transparentHover` | `#E7EFEE` | `#1B2729` | 透明按钮、图标按钮 hover |
-| `transparentPressed` | `#D9E5E3` | `#172225` | 透明按钮、图标按钮 pressed |
+| `scrollTrack` | `#DDE9ED` | `#0C1518` | 滚动条轨道 |
+| `scrollHandle` | `#91A9B0` | `#4A6770` | 滚动条手柄 |
+| `scrollHandleHover` | `#78969E` | `#63828C` | 手柄悬停 |
+| `transparentHover` | `#E9F6FA` | `#22363D` | 透明按钮、图标按钮 hover |
+| `transparentPressed` | `#DAEBF1` | `#1A2B31` | 透明按钮、图标按钮 pressed |
 
 透明状态只用于 TextButton、IconButton、工具栏按钮、菜单触发器等本身不应有实心底的控件。输入框、表格行、卡片和弹层默认不使用透明状态作为正常背景。Glass Rail 可以使用透明状态，但必须有边界和可读前景。
 
@@ -291,9 +291,9 @@ Prism Design 已提供独立图表色板，数据系列颜色必须通过 `Enums
 
 | 序号 | Light | Dark |
 |------|-------|------|
-| 1 | `#167C80` | `#55D6D2` |
-| 2 | `#516B9A` | `#92A7FF` |
-| 3 | `#C47A25` | `#F0B35D` |
+| 1 | `#0B7F89` | `#6DEBF2` |
+| 2 | `#5C6FDB` | `#A8B4FF` |
+| 3 | `#C77B32` | `#F3B563` |
 | 4 | `#C64754` | `#FF8F9A` |
 | 5 | `#7B5CB8` | `#BBA4FF` |
 | 6 | `#0099A8` | `#5CD7E6` |
@@ -322,21 +322,21 @@ Prism Design 已提供独立图表色板，数据系列颜色必须通过 `Enums
 
 ## 几何系统
 
-下表记录当前运行时 token，必须与 `Constants.prismDesign` 保持同步。它仍保留上一版硬边基线，后续实现 Prism Glass 时应同步调整代码、测试、Gallery 和本文。
+下表记录当前运行时 token，必须与 `Constants.prismDesign` 保持同步。Prism Glass 的圆角比上一版硬边基线更圆润，但仍保留桌面工具的清楚边界。
 
 | Token | 值 | 用途 |
 |-------|----|------|
-| `radiusControl` | 2 | Button、Input、ComboBox、菜单项 |
-| `radiusCard` | 4 | Card、Panel、SettingCard |
-| `radiusPopup` | 6 | Menu、Flyout、Tooltip、Toast |
-| `radiusDialog` | 8 | Dialog、MessageBox |
+| `radiusControl` | 10 | Button、Input、ComboBox、菜单项 |
+| `radiusCard` | 14 | Card、Panel、SettingCard |
+| `radiusPopup` | 18 | Menu、Flyout、Tooltip、Toast |
+| `radiusDialog` | 24 | Dialog、MessageBox |
 | `borderWidth` | 1 | 默认边框 |
 | `focusBorderWidth` | 2 | 键盘焦点、输入焦点 |
 
 几何规则：
 
 - 默认控件不能无条件做大药丸，除非现有 API 明确选择 `shape_pill`。
-- Prism Glass 的目标形态应比当前硬边基线更圆润：基础控件约 8px - 12px，卡片约 12px - 16px，弹层约 16px - 20px，对话框约 20px - 28px。真正改实现时必须同步更新 token 表和运行时测试。
+- Prism Glass 的当前形态：基础控件 10px，卡片 14px，弹层 18px，对话框 24px。后续调整必须同步更新 token 表和运行时测试。
 - 圆角必须稳定，不因 hover / pressed 改变。
 - 点击区域至少保持现有 PrismQML 控件尺寸，不因视觉变薄而缩小。
 - 圆角应遵守同心关系：内部控件圆角小于承载它的容器，边距和圆角看起来来自同一几何中心。
@@ -371,7 +371,9 @@ Prism Design 使用“玻璃厚度 + 边缘高光 + 克制阴影”表达层级�
 
 | Token | Light | Dark | 用途 |
 |-------|-------|------|------|
-| `edgeShadow` | `#10102326` | `#33000000` | 粘性表头、滚动边缘、浮动分隔的短距离渐隐阴影 |
+| `shadow` | `#2412232A` | `#99000000` | Level 2 / Level 4 轻阴影 |
+| `shadowStrong` | `#3812232A` | `#B3000000` | Level 8 及以上浮层阴影 |
+| `edgeShadow` | `#2270E7F2` | `#337AF2FF` | 粘性表头、滚动边缘、浮动分隔的短距离渐隐阴影 |
 
 材质规则：
 
@@ -395,18 +397,17 @@ Prism Design 使用“玻璃厚度 + 边缘高光 + 克制阴影”表达层级�
 
 Prism Design 的“光感”应被控制在边缘、状态和少量高层组件里。默认页面看起来应该清楚、安静、可工作，而不是像一张效果图。
 
-### Glass Token 目标
+### Glass Token
 
-后续实现时应把下列语义收敛为 token，而不是散落到组件里：
+下列玻璃材质语义必须来自 token，而不是散落到组件里：
 
-| 语义 | 作用 | 典型用途 |
-|------|------|----------|
-| `glassOpacity` | 玻璃层不透明度 | Glass Rail、Floating Glass |
-| `glassTint` | 玻璃底色 | overlay 派生、toolbar |
-| `glassRimLight` | 上/左侧高光边 | Button、Card、Menu |
-| `glassRimShadow` | 下/右侧暗边 | Button pressed、Dialog |
-| `spectralEdge` | 棱镜光谱边 | Focus、selected、primary action |
-| `refractionHighlight` | 折射高光 | Slider thumb、Toggle thumb、Gallery 展示 |
+| Token | Light | Dark | 作用 | 典型用途 |
+|-------|-------|------|------|----------|
+| `glassTint` | `#E6FCFEFF` | `#E6223036` | 玻璃底色 | Glass Rail、Floating Glass |
+| `glassRimLight` | `#CCFFFFFF` | `#33FFFFFF` | 上/左侧高光边 | Button、Card、Menu |
+| `glassRimShadow` | `#1A12232A` | `#66000000` | 下/右侧暗边 | Button pressed、Dialog |
+| `spectralEdge` | `#70E7F2` | `#7AF2FF` | 棱镜光谱边 | Focus、selected、primary action |
+| `refractionHighlight` | `#B89BE8FF` | `#66B9F7FF` | 折射高光 | Slider thumb、Toggle thumb、Gallery 展示 |
 
 ## 字体与排版
 

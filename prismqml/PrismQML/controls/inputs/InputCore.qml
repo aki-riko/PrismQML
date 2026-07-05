@@ -138,6 +138,37 @@ Widget {
             if (!control.enabled) return Enums.stateColor.borderLight
             return Enums.stateColor.border
         }
+
+        // Prism glass rim Prism玻璃边缘
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: Enums.prismDesign.borderWidth
+            color: Enums.prismDesign.glassRimLight
+            visible: Enums.isPrismDesign && !control.transparentBackground && control.enabled
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: Enums.prismDesign.borderWidth
+            color: Enums.prismDesign.glassRimShadow
+            visible: Enums.isPrismDesign && !control.transparentBackground && control.enabled
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: Enums.prismDesign.focusBorderWidth
+            color: Enums.prismDesign.spectralEdge
+            opacity: control.focused ? 0.75 : (control.hovered ? 0.35 : 0.0)
+            visible: Enums.isPrismDesign && !control.transparentBackground && control.enabled
+
+            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+        }
     }
 
     // ==================== Mouse Cursor 鼠标光标 ====================

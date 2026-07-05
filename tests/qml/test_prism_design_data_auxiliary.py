@@ -67,21 +67,21 @@ def _assert_indicator(item, active, inactive, inactive_gradient_alpha=64):
 
 
 def _assert_audio(item, border, overlay):
-    assert item.property("_waveformRadius") == 4
-    assert item.property("_waveformInnerRadius") == 2
+    assert item.property("_waveformRadius") == 14
+    assert item.property("_waveformInnerRadius") == 10
     assert _rgb(item.property("_waveformBorderColor")) == border
     assert _rgb(item.property("_progressOverlayColor")) == overlay
     assert _alpha(item.property("_progressOverlayColor")) == 26
 
 
 def _assert_image_widget(item, placeholder, icon):
-    assert item.property("radius") == 2
+    assert item.property("radius") == 10
     assert _rgb(item.property("_placeholderColor")) == placeholder
     assert _rgb(item.property("_placeholderIconColor")) == icon
 
 
 def _assert_qr_code(item, border, hint):
-    assert item.property("_qrPlaceholderRadius") == 2
+    assert item.property("_qrPlaceholderRadius") == 10
     assert _rgb(item.property("_qrBorderColor")) == border
     assert _rgb(item.property("_qrHintColor")) == hint
 
@@ -161,12 +161,12 @@ Stepper {
         stepper = keep[-1][1]
         _assert_stepper(
             stepper,
-            (22, 124, 128),
-            (252, 254, 253),
-            (199, 212, 211),
+            (11, 127, 137),
+            (252, 254, 255),
+            (185, 204, 209),
             (255, 255, 255),
-            (86, 106, 109),
-            (21, 35, 38),
+            (82, 105, 112),
+            (18, 34, 38),
         )
 
         keep.append(_build(engine, b"""
@@ -177,7 +177,7 @@ CircularGauge {
 }
 """))
         gauge = keep[-1][1]
-        _assert_gauge(gauge, (225, 233, 231), (22, 124, 128), (122, 141, 144))
+        _assert_gauge(gauge, (221, 233, 237), (11, 127, 137), (118, 138, 145))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -187,7 +187,7 @@ IndicatorBar {
 }
 """))
         indicator = keep[-1][1]
-        _assert_indicator(indicator, (22, 124, 128), (142, 164, 163))
+        _assert_indicator(indicator, (11, 127, 137), (120, 173, 184))
         assert indicator.property("animationDuration") == 200
 
         keep.append(_build(engine, b"""
@@ -200,7 +200,7 @@ AudioWaveform {
 }
 """))
         audio = keep[-1][1]
-        _assert_audio(audio, (221, 230, 228), (22, 124, 128))
+        _assert_audio(audio, (220, 233, 237), (11, 127, 137))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -210,7 +210,7 @@ ImageWidget {
 }
 """))
         image_widget = keep[-1][1]
-        _assert_image_widget(image_widget, (230, 238, 237), (22, 124, 128))
+        _assert_image_widget(image_widget, (234, 244, 247), (11, 127, 137))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -219,7 +219,7 @@ QRCode {
 }
 """))
         qr_code = keep[-1][1]
-        _assert_qr_code(qr_code, (199, 212, 211), (86, 106, 109))
+        _assert_qr_code(qr_code, (185, 204, 209), (82, 105, 112))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -228,7 +228,7 @@ Avatar {
 }
 """))
         avatar = keep[-1][1]
-        _assert_avatar(avatar, (142, 164, 163), (255, 255, 255))
+        _assert_avatar(avatar, (120, 173, 184), (255, 255, 255))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -239,7 +239,7 @@ AvatarSelector {
 }
 """))
         avatar_selector = keep[-1][1]
-        _assert_avatar(avatar_selector, (142, 164, 163), (255, 255, 255))
+        _assert_avatar(avatar_selector, (120, 173, 184), (255, 255, 255))
         assert avatar_selector.property("enableCrop") is False
         assert avatar_selector.property("changeText") == "Change"
 
@@ -263,7 +263,7 @@ Watermark {
 }
 """))
         watermark = keep[-1][1]
-        _assert_watermark(watermark, (122, 141, 144))
+        _assert_watermark(watermark, (118, 138, 145))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -271,14 +271,14 @@ DataWidgetCore {
     width: 240
     height: 140
     showHeader: true
-}
+        }
 """))
         data_widget = keep[-1][1]
-        assert _rgba(data_widget.property("_headerEdgeShadowColor")) == (16, 35, 38, 16)
+        assert _rgba(data_widget.property("_headerEdgeShadowColor")) == (112, 231, 242, 34)
 
         keep.append(_build(engine, _list_item_qml()))
         list_item = keep[-1][1]
-        assert _rgba(list_item.property("revealGlowColor")) == (136, 220, 216, 31)
+        assert _rgba(list_item.property("revealGlowColor")) == (112, 231, 242, 31)
 
         setTheme(Theme.DARK)
         keep.append(_build(engine, b"""
@@ -289,7 +289,7 @@ Badge {
 }
 """))
         dark_badge = keep[-1][1]
-        assert _rgb(dark_badge.property("_contentColor")) == (6, 23, 24)
+        assert _rgb(dark_badge.property("_contentColor")) == (4, 23, 25)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -302,12 +302,12 @@ Stepper {
         dark_stepper = keep[-1][1]
         _assert_stepper(
             dark_stepper,
-            (85, 214, 210),
-            (25, 34, 36),
-            (42, 57, 59),
-            (6, 23, 24),
-            (164, 181, 182),
-            (238, 245, 243),
+            (109, 235, 242),
+            (26, 37, 41),
+            (50, 72, 79),
+            (4, 23, 25),
+            (168, 186, 191),
+            (238, 247, 248),
         )
 
         keep.append(_build(engine, b"""
@@ -318,7 +318,7 @@ CircularGauge {
 }
 """))
         dark_gauge = keep[-1][1]
-        _assert_gauge(dark_gauge, (16, 23, 25), (85, 214, 210), (113, 134, 135))
+        _assert_gauge(dark_gauge, (12, 21, 24), (109, 235, 242), (115, 138, 145))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -328,7 +328,7 @@ IndicatorBar {
 }
 """))
         dark_indicator = keep[-1][1]
-        _assert_indicator(dark_indicator, (85, 214, 210), (73, 96, 99))
+        _assert_indicator(dark_indicator, (109, 235, 242), (106, 169, 181))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -340,7 +340,7 @@ AudioWaveform {
 }
 """))
         dark_audio = keep[-1][1]
-        _assert_audio(dark_audio, (34, 48, 51), (85, 214, 210))
+        _assert_audio(dark_audio, (38, 58, 65), (109, 235, 242))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -350,7 +350,7 @@ ImageWidget {
 }
 """))
         dark_image_widget = keep[-1][1]
-        _assert_image_widget(dark_image_widget, (29, 41, 43), (85, 214, 210))
+        _assert_image_widget(dark_image_widget, (33, 49, 54), (109, 235, 242))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -359,7 +359,7 @@ QRCode {
 }
 """))
         dark_qr_code = keep[-1][1]
-        _assert_qr_code(dark_qr_code, (42, 57, 59), (164, 181, 182))
+        _assert_qr_code(dark_qr_code, (50, 72, 79), (168, 186, 191))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -368,7 +368,7 @@ Avatar {
 }
 """))
         dark_avatar = keep[-1][1]
-        _assert_avatar(dark_avatar, (73, 96, 99), (6, 23, 24))
+        _assert_avatar(dark_avatar, (106, 169, 181), (4, 23, 25))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -379,7 +379,7 @@ AvatarSelector {
 }
 """))
         dark_avatar_selector = keep[-1][1]
-        _assert_avatar(dark_avatar_selector, (73, 96, 99), (6, 23, 24))
+        _assert_avatar(dark_avatar_selector, (106, 169, 181), (4, 23, 25))
         assert dark_avatar_selector.property("enableCrop") is False
         assert dark_avatar_selector.property("changeText") == "Change"
 
@@ -403,7 +403,7 @@ Watermark {
 }
 """))
         dark_watermark = keep[-1][1]
-        _assert_watermark(dark_watermark, (113, 134, 135))
+        _assert_watermark(dark_watermark, (115, 138, 145))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -411,14 +411,14 @@ DataWidgetCore {
     width: 240
     height: 140
     showHeader: true
-}
+        }
 """))
         dark_data_widget = keep[-1][1]
-        assert _rgba(dark_data_widget.property("_headerEdgeShadowColor")) == (0, 0, 0, 51)
+        assert _rgba(dark_data_widget.property("_headerEdgeShadowColor")) == (122, 242, 255, 51)
 
         keep.append(_build(engine, _list_item_qml()))
         dark_list_item = keep[-1][1]
-        assert _rgba(dark_list_item.property("revealGlowColor")) == (59, 220, 214, 41)
+        assert _rgba(dark_list_item.property("revealGlowColor")) == (122, 242, 255, 41)
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

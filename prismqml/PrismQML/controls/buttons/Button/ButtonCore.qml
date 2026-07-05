@@ -275,14 +275,40 @@ Widget {
             Behavior on y { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
         }
 
-        // Prism cut edge Prism切面边线
+        // Prism glass rim Prism玻璃边缘
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: Enums.prismDesign.borderWidth
+            color: Enums.prismDesign.glassRimLight
+            visible: Enums.isPrismDesign && !control.flat && control.enabled
+        }
+
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: Enums.prismDesign.borderWidth
-            color: Enums.prismDesign.edgeShadow
+            color: Enums.prismDesign.glassRimShadow
             visible: Enums.isPrismDesign && !control.flat && control.enabled
+        }
+
+        // Spectral edge for active glass 光谱边用于激活玻璃态
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: Enums.prismDesign.focusBorderWidth
+            color: Enums.prismDesign.spectralEdge
+            opacity: control.pressed ? 0.85 : (control.hovered ? 0.55 : 0.35)
+            visible: Enums.isPrismDesign && !control.flat && control.enabled
+                     && (control.hovered || control.pressed || control.checked
+                         || control.style === Enums.button.style_primary
+                         || control.style === Enums.button.style_gradient
+                         || control.style === Enums.button.style_filled)
+
+            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
         }
     }
 

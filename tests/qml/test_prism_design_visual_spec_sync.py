@@ -52,7 +52,14 @@ PRISM_COLOR_TOKENS = (
     "scrollHandleHover",
     "transparentHover",
     "transparentPressed",
+    "shadow",
+    "shadowStrong",
     "edgeShadow",
+    "glassTint",
+    "glassRimLight",
+    "glassRimShadow",
+    "spectralEdge",
+    "refractionHighlight",
 )
 
 PRISM_GEOMETRY_TOKENS = (

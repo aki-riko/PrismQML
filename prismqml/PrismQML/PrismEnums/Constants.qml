@@ -124,62 +124,69 @@ QtObject {
     // Single source of truth for the third skin 第三皮肤的单一真相源。
     readonly property QtObject prismDesign: QtObject {
         // ---- Geometry 几何 ----
-        readonly property int radiusControl: 2
-        readonly property int radiusCard: 4
-        readonly property int radiusPopup: 6
-        readonly property int radiusDialog: 8
+        readonly property int radiusControl: 10
+        readonly property int radiusCard: 14
+        readonly property int radiusPopup: 18
+        readonly property int radiusDialog: 24
         readonly property int borderWidth: 1
         readonly property int focusBorderWidth: 2
 
         // ---- Surfaces 背景层 ----
-        readonly property color background: root.isDark ? "#0D1213" : "#EEF3F2"
-        readonly property color surface: root.isDark ? "#12191B" : "#F8FAF9"
-        readonly property color raised: root.isDark ? "#192224" : "#FCFEFD"
-        readonly property color overlay: root.isDark ? "#1F2A2D" : "#F4F8F7"
-        readonly property color header: root.isDark ? "#101719" : "#E6ECEB"
-        readonly property color tableBg: root.isDark ? "#0F1517" : "#F5F8F7"
-        readonly property color alternateRow: root.isDark ? "#151D1F" : "#F1F5F4"
+        readonly property color background: root.isDark ? "#090E10" : "#EEF5F7"
+        readonly property color surface: root.isDark ? "#10181B" : "#F8FBFC"
+        readonly property color raised: root.isDark ? "#1A2529" : "#FCFEFF"
+        readonly property color overlay: root.isDark ? "#223036" : "#F7FCFE"
+        readonly property color header: root.isDark ? "#0D1518" : "#E8F1F4"
+        readonly property color tableBg: root.isDark ? "#0C1316" : "#F6FAFB"
+        readonly property color alternateRow: root.isDark ? "#141F23" : "#F1F7F9"
 
         // ---- Foregrounds 前景 ----
-        readonly property color foreground: root.isDark ? "#EEF5F3" : "#152326"
-        readonly property color secondaryForeground: root.isDark ? "#A4B5B6" : "#566A6D"
-        readonly property color tertiaryForeground: root.isDark ? "#718687" : "#7A8D90"
-        readonly property color disabledForeground: root.isDark ? "#53676A" : "#A4B0B1"
+        readonly property color foreground: root.isDark ? "#EEF7F8" : "#122226"
+        readonly property color secondaryForeground: root.isDark ? "#A8BABF" : "#526970"
+        readonly property color tertiaryForeground: root.isDark ? "#738A91" : "#768A91"
+        readonly property color disabledForeground: root.isDark ? "#51656B" : "#A4B2B7"
 
         // ---- Accents 强调色 ----
-        readonly property color primary: root.isDark ? "#55D6D2" : "#167C80"
-        readonly property color primaryLight: root.isDark ? "#74E6E1" : "#1C8D90"
-        readonly property color primaryDark: root.isDark ? "#38BDBA" : "#0E5F64"
-        readonly property color primaryForeground: root.isDark ? "#061718" : "#FFFFFF"
-        readonly property color secondary: root.isDark ? "#92A7FF" : "#516B9A"
-        readonly property color warm: root.isDark ? "#F0B35D" : "#C47A25"
-        readonly property color glow: root.isDark ? "#3BDCD6" : "#88DCD8"
+        readonly property color primary: root.isDark ? "#6DEBF2" : "#0B7F89"
+        readonly property color primaryLight: root.isDark ? "#A6F7FF" : "#12A0AA"
+        readonly property color primaryDark: root.isDark ? "#3CCBD5" : "#075F68"
+        readonly property color primaryForeground: root.isDark ? "#041719" : "#FFFFFF"
+        readonly property color secondary: root.isDark ? "#A8B4FF" : "#5C6FDB"
+        readonly property color warm: root.isDark ? "#F3B563" : "#C77B32"
+        readonly property color glow: root.isDark ? "#7AF2FF" : "#70E7F2"
 
         // ---- Borders 边框 ----
-        readonly property color border: root.isDark ? "#2A393B" : "#C7D4D3"
-        readonly property color borderLight: root.isDark ? "#223033" : "#DDE6E4"
-        readonly property color borderStrong: root.isDark ? "#496063" : "#8EA4A3"
-        readonly property color divider: root.isDark ? "#253437" : "#D5DFDD"
+        readonly property color border: root.isDark ? "#32484F" : "#B9CCD1"
+        readonly property color borderLight: root.isDark ? "#263A41" : "#DCE9ED"
+        readonly property color borderStrong: root.isDark ? "#6AA9B5" : "#78ADB8"
+        readonly property color divider: root.isDark ? "#22343A" : "#D6E3E6"
 
         // ---- State layers 状态层 ----
-        readonly property color hover: root.isDark ? "#1D292B" : "#E6EEED"
-        readonly property color pressed: root.isDark ? "#182426" : "#DCE7E5"
-        readonly property color disabled: root.isDark ? "#1A2224" : "#E3E9E8"
-        readonly property color selected: root.isDark ? "#163F43" : "#D4EDEA"
-        readonly property color selectedHover: root.isDark ? "#1B5055" : "#C3E4E0"
-        readonly property color navSelected: root.isDark ? "#141D1F" : "#F6FAF9"
-        readonly property color navSelectedHover: root.isDark ? "#192629" : "#EDF4F2"
-        readonly property color tableHover: root.isDark ? "#1A2729" : "#E9F0EF"
-        readonly property color scrollTrack: root.isDark ? "#101719" : "#E1E9E7"
-        readonly property color scrollHandle: root.isDark ? "#435A5D" : "#8EA4A3"
-        readonly property color scrollHandleHover: root.isDark ? "#587174" : "#758D8B"
-        readonly property color transparentHover: root.isDark ? "#1B2729" : "#E7EFEE"
-        readonly property color transparentPressed: root.isDark ? "#172225" : "#D9E5E3"
+        readonly property color hover: root.isDark ? "#213136" : "#EAF4F7"
+        readonly property color pressed: root.isDark ? "#1A2A2F" : "#DDECF0"
+        readonly property color disabled: root.isDark ? "#192226" : "#E5ECEF"
+        readonly property color selected: root.isDark ? "#174A52" : "#DDF4F7"
+        readonly property color selectedHover: root.isDark ? "#1F5F68" : "#CCEDF3"
+        readonly property color navSelected: root.isDark ? "#18272C" : "#EEF9FB"
+        readonly property color navSelectedHover: root.isDark ? "#20343A" : "#E1F3F7"
+        readonly property color tableHover: root.isDark ? "#1A292E" : "#EDF5F7"
+        readonly property color scrollTrack: root.isDark ? "#0C1518" : "#DDE9ED"
+        readonly property color scrollHandle: root.isDark ? "#4A6770" : "#91A9B0"
+        readonly property color scrollHandleHover: root.isDark ? "#63828C" : "#78969E"
+        readonly property color transparentHover: root.isDark ? "#22363D" : "#E9F6FA"
+        readonly property color transparentPressed: root.isDark ? "#1A2B31" : "#DAEBF1"
 
         // ---- Shadows 阴影 ----
-        readonly property color shadow: root.isDark ? "#66000000" : "#1A102326"
-        readonly property color shadowStrong: root.isDark ? "#80000000" : "#2A102326"
-        readonly property color edgeShadow: root.isDark ? "#33000000" : "#10102326"
+        readonly property color shadow: root.isDark ? "#99000000" : "#2412232A"
+        readonly property color shadowStrong: root.isDark ? "#B3000000" : "#3812232A"
+        readonly property color edgeShadow: root.isDark ? "#337AF2FF" : "#2270E7F2"
+
+        // ---- Glass material 玻璃材质 ----
+        readonly property color glassTint: root.isDark ? "#E6223036" : "#E6FCFEFF"
+        readonly property color glassRimLight: root.isDark ? "#33FFFFFF" : "#CCFFFFFF"
+        readonly property color glassRimShadow: root.isDark ? "#66000000" : "#1A12232A"
+        readonly property color spectralEdge: root.isDark ? "#7AF2FF" : "#70E7F2"
+        readonly property color refractionHighlight: root.isDark ? "#66B9F7FF" : "#B89BE8FF"
     }
 
     // ==================== SemanticColors 语义色 ====================
@@ -365,11 +372,11 @@ QtObject {
             "#00B7C3", "#498205", "#FF8C00", "#E81123", "#881798"
         ]
         readonly property var _prismPalette: [
-            "#167C80", "#516B9A", "#C47A25", "#C64754", "#7B5CB8",
+            "#0B7F89", "#5C6FDB", "#C77B32", "#C64754", "#7B5CB8",
             "#0099A8", "#6F8F2E", "#A65A82", "#2F7A5C", "#8A6E4E"
         ]
         readonly property var _prismDarkPalette: [
-            "#55D6D2", "#92A7FF", "#F0B35D", "#FF8F9A", "#BBA4FF",
+            "#6DEBF2", "#A8B4FF", "#F3B563", "#FF8F9A", "#BBA4FF",
             "#5CD7E6", "#A6C96B", "#E99BC1", "#77C79D", "#D2B486"
         ]
         // Fluent/Prism chart palette Fluent/Prism图表调色板

@@ -33,9 +33,9 @@ def _alpha(qcolor):
 
 
 def _assert_code_block(item, background, border, muted, code, hover):
-    assert item.property("_radius") == 4
+    assert item.property("_radius") == 14
     assert item.property("_blockBorderWidth") == 1
-    assert item.property("_copyRadius") == 2
+    assert item.property("_copyRadius") == 10
     assert item.property("_labelFontSize") == 12
     assert item.property("_codeFontSize") == 12
     assert _rgb(item.property("_blockBackground")) == background
@@ -46,8 +46,8 @@ def _assert_code_block(item, background, border, muted, code, hover):
 
 
 def _assert_assistant_bubble(item, background, border, text, link, timestamp):
-    assert item.property("_bubbleRadius") == 6
-    assert item.property("_bubbleTailRadius") == 2
+    assert item.property("_bubbleRadius") == 18
+    assert item.property("_bubbleTailRadius") == 10
     assert item.property("_bubbleBorderWidth") == 1
     assert item.property("_assistantShadowBlur") == 4
     assert item.property("_assistantShadowOffset") == 1
@@ -59,8 +59,8 @@ def _assert_assistant_bubble(item, background, border, text, link, timestamp):
 
 
 def _assert_user_bubble(item, background, foreground):
-    assert item.property("_bubbleRadius") == 6
-    assert item.property("_bubbleTailRadius") == 2
+    assert item.property("_bubbleRadius") == 18
+    assert item.property("_bubbleTailRadius") == 10
     assert item.property("_bubbleBorderWidth") == 0
     assert _rgb(item.property("_bubbleBackground")) == background
     assert _rgb(item.property("_contentTextColor")) == foreground
@@ -82,8 +82,8 @@ def _assert_chat_message_list(item):
 
 
 def _assert_login_window(item, card, border, error_bg, error):
-    assert item.property("_cardRadius") == 8
-    assert item.property("_errorRadius") == 2
+    assert item.property("_cardRadius") == 24
+    assert item.property("_errorRadius") == 10
     assert item.property("_cardBorderWidth") == 1
     assert item.property("_errorBorderWidth") == 1
     assert _rgb(item.property("_cardColor")) == card
@@ -112,11 +112,11 @@ CodeBlock {
 """))
         _assert_code_block(
             keep[-1][1],
-            background=(244, 248, 247),
-            border=(199, 212, 211),
-            muted=(86, 106, 109),
-            code=(21, 35, 38),
-            hover=(230, 238, 237),
+            background=(247, 252, 254),
+            border=(185, 204, 209),
+            muted=(82, 105, 112),
+            code=(18, 34, 38),
+            hover=(234, 244, 247),
         )
 
         keep.append(_build(engine, b"""
@@ -130,11 +130,11 @@ ChatBubble {
 """))
         _assert_assistant_bubble(
             keep[-1][1],
-            background=(244, 248, 247),
-            border=(199, 212, 211),
-            text=(21, 35, 38),
-            link=(22, 124, 128),
-            timestamp=(122, 141, 144),
+            background=(247, 252, 254),
+            border=(185, 204, 209),
+            text=(18, 34, 38),
+            link=(11, 127, 137),
+            timestamp=(118, 138, 145),
         )
 
         keep.append(_build(engine, b"""
@@ -146,7 +146,7 @@ ChatBubble {
     timestamp: "10:25"
 }
 """))
-        _assert_user_bubble(keep[-1][1], background=(22, 124, 128), foreground=(255, 255, 255))
+        _assert_user_bubble(keep[-1][1], background=(11, 127, 137), foreground=(255, 255, 255))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -158,8 +158,8 @@ MarkdownView {
 """))
         _assert_markdown_view(
             keep[-1][1],
-            text=(21, 35, 38),
-            link=(22, 124, 128),
+            text=(18, 34, 38),
+            link=(11, 127, 137),
         )
 
         keep.append(_build(engine, b"""
@@ -191,8 +191,8 @@ LoginWindow {
 """))
         _assert_login_window(
             keep[-1][1],
-            card=(244, 248, 247),
-            border=(199, 212, 211),
+            card=(247, 252, 254),
+            border=(185, 204, 209),
             error_bg=(253, 231, 233),
             error=(196, 43, 28),
         )
@@ -208,11 +208,11 @@ CodeBlock {
 """))
         _assert_code_block(
             keep[-1][1],
-            background=(31, 42, 45),
-            border=(42, 57, 59),
-            muted=(164, 181, 182),
-            code=(238, 245, 243),
-            hover=(29, 41, 43),
+            background=(34, 48, 54),
+            border=(50, 72, 79),
+            muted=(168, 186, 191),
+            code=(238, 247, 248),
+            hover=(33, 49, 54),
         )
 
         keep.append(_build(engine, b"""
@@ -226,11 +226,11 @@ ChatBubble {
 """))
         _assert_assistant_bubble(
             keep[-1][1],
-            background=(31, 42, 45),
-            border=(42, 57, 59),
-            text=(238, 245, 243),
-            link=(85, 214, 210),
-            timestamp=(113, 134, 135),
+            background=(34, 48, 54),
+            border=(50, 72, 79),
+            text=(238, 247, 248),
+            link=(109, 235, 242),
+            timestamp=(115, 138, 145),
         )
 
         keep.append(_build(engine, b"""
@@ -242,7 +242,7 @@ ChatBubble {
     timestamp: "10:25"
 }
 """))
-        _assert_user_bubble(keep[-1][1], background=(85, 214, 210), foreground=(6, 23, 24))
+        _assert_user_bubble(keep[-1][1], background=(109, 235, 242), foreground=(4, 23, 25))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -254,8 +254,8 @@ MarkdownView {
 """))
         _assert_markdown_view(
             keep[-1][1],
-            text=(238, 245, 243),
-            link=(85, 214, 210),
+            text=(238, 247, 248),
+            link=(109, 235, 242),
         )
 
         keep.append(_build(engine, b"""
@@ -287,8 +287,8 @@ LoginWindow {
 """))
         _assert_login_window(
             keep[-1][1],
-            card=(31, 42, 45),
-            border=(42, 57, 59),
+            card=(34, 48, 54),
+            border=(50, 72, 79),
             error_bg=(64, 38, 41),
             error=(255, 153, 164),
         )

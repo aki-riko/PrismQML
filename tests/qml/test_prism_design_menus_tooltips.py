@@ -44,7 +44,7 @@ def _alpha(qcolor):
 
 
 def _assert_overlay_surface(item, background, border, shadow_alpha=None):
-    assert item.property("popupRadius") == 6
+    assert item.property("popupRadius") == 18
     assert item.property("_popupBorderWidth") == 1
     assert _rgb(item.property("_popupBackground")) == background
     assert _rgb(item.property("_popupBorderColor")) == border
@@ -55,7 +55,7 @@ def _assert_overlay_surface(item, background, border, shadow_alpha=None):
 
 
 def _assert_menu_item(item, hover, pressed, text):
-    assert item.property("_itemRadius") == 2
+    assert item.property("_itemRadius") == 10
     assert _rgb(item.property("_itemHoverColor")) == hover
     assert _rgb(item.property("_itemPressedColor")) == pressed
     assert _rgb(item.property("_itemTextColor")) == text
@@ -66,14 +66,14 @@ def _assert_menu_separator(item):
 
 
 def _assert_tip(item, background, border):
-    assert item.property("_tipRadius") == 6
+    assert item.property("_tipRadius") == 18
     assert item.property("_tipBorderWidth") == 1
     assert _rgb(item.property("_tipBackground")) == background
     assert _rgb(item.property("_tipBorderColor")) == border
 
 
 def _assert_tooltip(item, background, border):
-    assert item.property("_tooltipRadius") == 6
+    assert item.property("_tooltipRadius") == 18
     assert item.property("_tooltipBorderWidth") == 1
     assert _rgb(item.property("_tooltipBackground")) == background
     assert _rgb(item.property("_tooltipBorderColor")) == border
@@ -82,7 +82,7 @@ def _assert_tooltip(item, background, border):
 
 
 def _assert_sheet(item, background, border, divider):
-    assert item.property("_sheetRadius") == 6
+    assert item.property("_sheetRadius") == 18
     assert item.property("_sheetBorderWidth") == 1
     assert _rgb(item.property("_sheetBackground")) == background
     assert _rgb(item.property("_sheetBorderColor")) == border
@@ -107,7 +107,7 @@ MenuCore {
 }
 """))
         menu = keep[-1][1]
-        _assert_overlay_surface(menu, (244, 248, 247), (199, 212, 211), 36)
+        _assert_overlay_surface(menu, (247, 252, 254), (185, 204, 209), 56)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -118,7 +118,7 @@ ContextMenu {
 }
 """))
         context_menu = keep[-1][1]
-        _assert_overlay_surface(context_menu, (244, 248, 247), (199, 212, 211), 36)
+        _assert_overlay_surface(context_menu, (247, 252, 254), (185, 204, 209), 56)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -128,7 +128,7 @@ SystemTrayMenu {
 }
 """))
         system_tray_menu = keep[-1][1]
-        _assert_overlay_surface(system_tray_menu, (244, 248, 247), (199, 212, 211), 36)
+        _assert_overlay_surface(system_tray_menu, (247, 252, 254), (185, 204, 209), 56)
         assert system_tray_menu.property("showAtCursor") is True
 
         keep.append(_build(engine, b"""
@@ -150,7 +150,7 @@ Action {
 }
 """))
         action = keep[-1][1]
-        _assert_menu_item(action, (230, 238, 237), (220, 231, 229), (21, 35, 38))
+        _assert_menu_item(action, (234, 244, 247), (221, 236, 240), (18, 34, 38))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -161,7 +161,7 @@ MenuDelegate {
 }
 """))
         menu_delegate = keep[-1][1]
-        _assert_menu_item(menu_delegate, (230, 238, 237), (220, 231, 229), (21, 35, 38))
+        _assert_menu_item(menu_delegate, (234, 244, 247), (221, 236, 240), (18, 34, 38))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -172,9 +172,9 @@ TreeMenuDelegate {
 }
 """))
         tree_delegate = keep[-1][1]
-        assert tree_delegate.property("_itemRadius") == 2
-        assert _rgb(tree_delegate.property("_itemHoverColor")) == (230, 238, 237)
-        assert _rgb(tree_delegate.property("_itemPressedColor")) == (220, 231, 229)
+        assert tree_delegate.property("_itemRadius") == 10
+        assert _rgb(tree_delegate.property("_itemHoverColor")) == (234, 244, 247)
+        assert _rgb(tree_delegate.property("_itemPressedColor")) == (221, 236, 240)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -183,7 +183,7 @@ TooltipCore {
 }
 """))
         tooltip = keep[-1][1]
-        _assert_tooltip(tooltip, (244, 248, 247), (199, 212, 211))
+        _assert_tooltip(tooltip, (247, 252, 254), (185, 204, 209))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -193,7 +193,7 @@ Flyout {
 }
 """))
         flyout = keep[-1][1]
-        _assert_tip(flyout, (244, 248, 247), (199, 212, 211))
+        _assert_tip(flyout, (247, 252, 254), (185, 204, 209))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -203,7 +203,7 @@ TeachingTip {
 }
 """))
         teaching_tip = keep[-1][1]
-        _assert_tip(teaching_tip, (244, 248, 247), (199, 212, 211))
+        _assert_tip(teaching_tip, (247, 252, 254), (185, 204, 209))
 
         keep.append(_build(engine, b"""
 import QtQuick
@@ -218,7 +218,7 @@ FlyoutSheet {
 }
 """))
         sheet = keep[-1][1]
-        _assert_sheet(sheet, (244, 248, 247), (199, 212, 211), (221, 230, 228))
+        _assert_sheet(sheet, (247, 252, 254), (185, 204, 209), (220, 233, 237))
 
         matrix_path = (
             Path(__file__).resolve().parents[2]
@@ -237,7 +237,7 @@ MenuCore {
 }
 """))
         dark_menu = keep[-1][1]
-        _assert_overlay_surface(dark_menu, (31, 42, 45), (42, 57, 59), 54)
+        _assert_overlay_surface(dark_menu, (34, 48, 54), (50, 72, 79), 179)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -248,7 +248,7 @@ ContextMenu {
 }
 """))
         dark_context_menu = keep[-1][1]
-        _assert_overlay_surface(dark_context_menu, (31, 42, 45), (42, 57, 59), 54)
+        _assert_overlay_surface(dark_context_menu, (34, 48, 54), (50, 72, 79), 179)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -258,7 +258,7 @@ SystemTrayMenu {
 }
 """))
         dark_system_tray_menu = keep[-1][1]
-        _assert_overlay_surface(dark_system_tray_menu, (31, 42, 45), (42, 57, 59), 54)
+        _assert_overlay_surface(dark_system_tray_menu, (34, 48, 54), (50, 72, 79), 179)
         assert dark_system_tray_menu.property("showAtCursor") is True
 
         keep.append(_build(engine, b"""
@@ -279,7 +279,7 @@ Action {
 }
 """))
         dark_action = keep[-1][1]
-        _assert_menu_item(dark_action, (29, 41, 43), (24, 36, 38), (238, 245, 243))
+        _assert_menu_item(dark_action, (33, 49, 54), (26, 42, 47), (238, 247, 248))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -288,7 +288,7 @@ TooltipCore {
 }
 """))
         dark_tooltip = keep[-1][1]
-        _assert_tooltip(dark_tooltip, (31, 42, 45), (42, 57, 59))
+        _assert_tooltip(dark_tooltip, (34, 48, 54), (50, 72, 79))
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -298,7 +298,7 @@ Flyout {
 }
 """))
         dark_flyout = keep[-1][1]
-        _assert_tip(dark_flyout, (31, 42, 45), (42, 57, 59))
+        _assert_tip(dark_flyout, (34, 48, 54), (50, 72, 79))
 
         keep.append(_build(engine, b"""
 import QtQuick
@@ -313,7 +313,7 @@ FlyoutSheet {
 }
 """))
         dark_sheet = keep[-1][1]
-        _assert_sheet(dark_sheet, (31, 42, 45), (42, 57, 59), (34, 48, 51))
+        _assert_sheet(dark_sheet, (34, 48, 54), (50, 72, 79), (38, 58, 65))
     finally:
         for component, item in reversed(keep):
             item.deleteLater()
