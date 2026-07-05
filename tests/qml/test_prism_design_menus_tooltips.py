@@ -61,6 +61,10 @@ def _assert_menu_item(item, hover, pressed, text):
     assert _rgb(item.property("_itemTextColor")) == text
 
 
+def _assert_menu_separator(item):
+    assert item.property("height") == item.property("expectedHeight")
+
+
 def _assert_tip(item, background, border):
     assert item.property("_tipRadius") == 10
     assert item.property("_tipBorderWidth") == 1
@@ -104,6 +108,37 @@ MenuCore {
 """))
         menu = keep[-1][1]
         _assert_overlay_surface(menu, (248, 251, 255), (217, 227, 236), 36)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ContextMenu {
+    autoBindRightClick: false
+    minWidth: 180
+    Action { text: "Inspect"; icon: "Search" }
+}
+"""))
+        context_menu = keep[-1][1]
+        _assert_overlay_surface(context_menu, (248, 251, 255), (217, 227, 236), 36)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+SystemTrayMenu {
+    minWidth: 180
+    Action { text: "Open"; icon: "FolderOpen" }
+}
+"""))
+        system_tray_menu = keep[-1][1]
+        _assert_overlay_surface(system_tray_menu, (248, 251, 255), (217, 227, 236), 36)
+        assert system_tray_menu.property("showAtCursor") is True
+
+        keep.append(_build(engine, b"""
+import PrismQML
+MenuSeparator {
+    property int expectedHeight: Enums.controlSize.menuSeparatorHeight
+}
+"""))
+        menu_separator = keep[-1][1]
+        _assert_menu_separator(menu_separator)
 
         keep.append(_build(engine, b"""
 import PrismQML
@@ -203,6 +238,37 @@ MenuCore {
 """))
         dark_menu = keep[-1][1]
         _assert_overlay_surface(dark_menu, (36, 43, 52), (48, 58, 70), 54)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ContextMenu {
+    autoBindRightClick: false
+    minWidth: 180
+    Action { text: "Inspect"; icon: "Search" }
+}
+"""))
+        dark_context_menu = keep[-1][1]
+        _assert_overlay_surface(dark_context_menu, (36, 43, 52), (48, 58, 70), 54)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+SystemTrayMenu {
+    minWidth: 180
+    Action { text: "Open"; icon: "FolderOpen" }
+}
+"""))
+        dark_system_tray_menu = keep[-1][1]
+        _assert_overlay_surface(dark_system_tray_menu, (36, 43, 52), (48, 58, 70), 54)
+        assert dark_system_tray_menu.property("showAtCursor") is True
+
+        keep.append(_build(engine, b"""
+import PrismQML
+MenuSeparator {
+    property int expectedHeight: Enums.controlSize.menuSeparatorHeight
+}
+"""))
+        dark_menu_separator = keep[-1][1]
+        _assert_menu_separator(dark_menu_separator)
 
         keep.append(_build(engine, b"""
 import PrismQML

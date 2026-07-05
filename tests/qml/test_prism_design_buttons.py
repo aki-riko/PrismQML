@@ -31,6 +31,21 @@ def _rgba(qcolor):
     )
 
 
+def _rgb(qcolor):
+    return (
+        round(qcolor.redF() * 255),
+        round(qcolor.greenF() * 255),
+        round(qcolor.blueF() * 255),
+    )
+
+
+def _assert_close_button(item, normal_icon, hover_icon, hover_bg, pressed_bg):
+    assert _rgb(item.property("normalIconColor")) == normal_icon
+    assert _rgb(item.property("hoverIconColor")) == hover_icon
+    assert _rgb(item.property("hoverBgColor")) == hover_bg
+    assert _rgb(item.property("pressedBgColor")) == pressed_bg
+
+
 def _split_button_qml():
     button_dir = (
         Path(__file__).resolve().parents[2]
@@ -86,6 +101,53 @@ def test_prism_design_split_button_on_accent_overlays(qapp):
         dark_split_button = keep[-1][1]
         assert _rgba(dark_split_button.property("hoverColor")) == (255, 255, 255, 77)
         assert _rgba(dark_split_button.property("pressedColor")) == (255, 255, 255, 51)
+    finally:
+        for component, item in reversed(keep):
+            item.deleteLater()
+            component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        qapp.processEvents()
+        setTheme(Theme.LIGHT)
+        setSkin(Skin.FLUENT)
+
+
+def test_prism_design_close_button_light_and_dark(qapp):
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.PRISM_DESIGN)
+
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    keep = []
+
+    try:
+        keep.append(_build(engine, b"""
+import PrismQML
+CloseButton {}
+"""))
+        close_button = keep[-1][1]
+        _assert_close_button(
+            close_button,
+            normal_icon=(95, 111, 128),
+            hover_icon=(23, 32, 42),
+            hover_bg=(234, 242, 251),
+            pressed_bg=(221, 232, 244),
+        )
+
+        setTheme(Theme.DARK)
+        keep.append(_build(engine, b"""
+import PrismQML
+CloseButton {}
+"""))
+        dark_close_button = keep[-1][1]
+        _assert_close_button(
+            dark_close_button,
+            normal_icon=(166, 177, 191),
+            hover_icon=(238, 243, 248),
+            hover_bg=(38, 48, 58),
+            pressed_bg=(32, 40, 51),
+        )
     finally:
         for component, item in reversed(keep):
             item.deleteLater()

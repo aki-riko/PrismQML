@@ -68,6 +68,15 @@ MessageBox {
 
         keep.append(_build(engine, b"""
 import PrismQML
+DialogBoxCore {
+    actionsVisible: false
+}
+"""))
+        dialog_core = keep[-1][1]
+        _assert_dialog_surface(dialog_core, (248, 251, 255), (217, 227, 236), None)
+
+        keep.append(_build(engine, b"""
+import PrismQML
 ConfirmDialog {
     title: "Delete"
     message: "This cannot be undone."
@@ -120,6 +129,15 @@ MessageBox {
         _assert_dialog_surface(message_box, (36, 43, 52), (48, 58, 70), (23, 28, 34), 69)
         assert _rgb(message_box.property("_titleColor")) == (238, 243, 248)
         assert _rgb(message_box.property("_contentColor")) == (166, 177, 191)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+DialogBoxCore {
+    actionsVisible: false
+}
+"""))
+        dark_dialog_core = keep[-1][1]
+        _assert_dialog_surface(dark_dialog_core, (36, 43, 52), (48, 58, 70), None, 69)
 
         keep.append(_build(engine, b"""
 import PrismQML
