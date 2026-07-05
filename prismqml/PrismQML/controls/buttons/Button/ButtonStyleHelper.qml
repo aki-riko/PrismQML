@@ -63,7 +63,7 @@ QtObject {
                     // 禁用态保留 level 色相 (淡化版), 不退回中性灰背景 — 否则 destructive
                     // 按钮 (error filled) 灰化后失去"危险"提示, 跟旁边 default 按钮分不开。
                     var fc = Enums.statusLevel.getColorByLevel(level)
-                    return Qt.rgba(fc.r, fc.g, fc.b, 0.45)
+                    return Qt.rgba(fc.r, fc.g, fc.b, Enums.stateColor.filledDisabledAlpha)
                 }
                 if (pressed) return Enums.stateColor.filledPressed
                 if (hovered) return Enums.stateColor.filledHover

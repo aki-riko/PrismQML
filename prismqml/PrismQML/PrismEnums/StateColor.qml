@@ -249,6 +249,7 @@ QtObject {
     
     // ==================== Filled Button Colors 填充按钮颜色 ====================
     // Fluent Design FilledButton hover/pressed fallback colors 填充按钮悬停/按下回退色
+    readonly property real filledDisabledAlpha: 0.45
     readonly property color filledHover: "#c9cacb"
     readonly property color filledPressed: "#979798"
     

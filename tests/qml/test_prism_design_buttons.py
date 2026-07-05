@@ -96,3 +96,48 @@ def test_prism_design_split_button_on_accent_overlays(qapp):
         qapp.processEvents()
         setTheme(Theme.LIGHT)
         setSkin(Skin.FLUENT)
+
+
+def test_prism_design_filled_button_disabled_keeps_semantic_tint(qapp):
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.PRISM_DESIGN)
+
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    keep = []
+
+    try:
+        keep.append(_build(engine, b"""
+import PrismQML
+Button {
+    text: "Delete"
+    style: Enums.button.style_filled
+    level: Enums.statusLevel.error
+    enabled: false
+}
+"""))
+        button = keep[-1][1]
+        assert _rgba(button.property("color")) == (196, 43, 28, 115)
+
+        setTheme(Theme.DARK)
+        keep.append(_build(engine, b"""
+import PrismQML
+Button {
+    text: "Delete"
+    style: Enums.button.style_filled
+    level: Enums.statusLevel.error
+    enabled: false
+}
+"""))
+        dark_button = keep[-1][1]
+        assert _rgba(dark_button.property("color")) == (255, 153, 164, 115)
+    finally:
+        for component, item in reversed(keep):
+            item.deleteLater()
+            component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        qapp.processEvents()
+        setTheme(Theme.LIGHT)
+        setSkin(Skin.FLUENT)
