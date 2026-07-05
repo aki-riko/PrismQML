@@ -461,6 +461,10 @@ Item {
             target: virtualList
             orientation: Qt.Vertical
             handleWheel: true
+            // 关回弹:virtualList 是 StopAtBounds,Flickable 会逐帧把越界 contentY 夹回边界。
+            // 若开回弹(默认),helper 会把 _smoothY 设为越界负值做回弹动画,与 StopAtBounds 的
+            // 夹取逐帧对抗 → 顶部/底部超滑时 contentY 在 0↔负值间抖动 → 时间线闪烁。
+            bounceEnabled: false
         }
 
         // Fluent 风格滚动条
