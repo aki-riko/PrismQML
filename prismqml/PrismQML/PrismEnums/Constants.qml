@@ -405,7 +405,9 @@ QtObject {
     
     // ==================== PasswordStrengthColors 密码强度颜色 ====================
     readonly property QtObject passwordStrengthColors: QtObject {
-        readonly property var palette: ["#c42b1c", "#e87a18", "#e8b318", "#54a814", "#0f7b0f"]
+        readonly property var lightPalette: ["#c42b1c", "#e87a18", "#e8b318", "#54a814", semanticColors.successLight]
+        readonly property var darkPalette: [semanticColors.errorDark, "#f6b44b", semanticColors.warningDark, "#59d6c7", semanticColors.successDark]
+        readonly property var palette: root.isDark ? darkPalette : lightPalette
     }
     
     // ==================== CalendarColors 日历颜色 ====================

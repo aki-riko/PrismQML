@@ -19,6 +19,9 @@ Item {
     property url rightImage: ""
     property real position: 0.5  // 0-1
     property int radius: Enums.radius.large  // Corner radius 圆角
+    readonly property color _dividerColor: Enums.isPrismDesign ? Enums.accentColor : Enums.themeColors.accentForeground
+    readonly property color _handleColor: Enums.isPrismDesign ? Enums.cardColor : Enums.themeColors.accentForeground
+    readonly property color _handleIconColor: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.gray.text
     
     signal positionModified(real newPosition)
     
@@ -151,7 +154,7 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: Enums.border.normal
-        color: "white"
+        color: control._dividerColor
         
         // Line shadow 线条阴影
         Rectangle {
@@ -170,7 +173,7 @@ Item {
         width: Enums.spacing.xxl
         height: Enums.spacing.xxl
         radius: width / 2
-        color: "white"
+        color: control._handleColor
         
         // Handle shadow 手柄阴影
         Rectangle {
@@ -187,7 +190,7 @@ Item {
             anchors.centerIn: parent
             text: "⇌"
             font.bold: true
-            color: Enums.gray.text
+            color: control._handleIconColor
             rotation: 90
         }
         
