@@ -301,12 +301,9 @@ Widget {
             anchors.bottom: parent.bottom
             height: Enums.prismDesign.focusBorderWidth
             color: Enums.prismDesign.spectralEdge
-            opacity: control.pressed ? 0.85 : (control.hovered ? 0.55 : 0.35)
+            opacity: control.pressed ? 0.65 : (control.hovered || control.checked ? 0.42 : 0.0)
             visible: Enums.isPrismDesign && !control.flat && control.enabled
-                     && (control.hovered || control.pressed || control.checked
-                         || control.style === Enums.button.style_primary
-                         || control.style === Enums.button.style_gradient
-                         || control.style === Enums.button.style_filled)
+                     && (control.hovered || control.pressed || control.checked || control.activeFocus)
 
             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
         }

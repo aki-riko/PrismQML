@@ -12,28 +12,42 @@ Column {
     id: control
     
     property string label: ""  // Label text (e.g. enum name) 标签文本
-    default property alias content: contentItem.children
+    default property alias content: contentHost.children
+    readonly property int _contentWidth: contentHost.childrenRect.width > 0 ? contentHost.childrenRect.width : Enums.controlSize.buttonMinWidth
+    readonly property int _contentHeight: contentHost.childrenRect.height > 0 ? contentHost.childrenRect.height : Enums.controlSize.buttonHeight
+    readonly property int _labelWidth: labelItem.visible ? labelItem.implicitWidth : 0
+    readonly property int _prismWidth: Math.max(_contentWidth, Enums.controlSize.buttonMinWidth)
+    readonly property int _effectiveWidth: Enums.isPrismDesign ? _prismWidth : Math.max(_contentWidth, _labelWidth)
     
+    width: _effectiveWidth
     spacing: Enums.spacing.xs
     
     // Content container 内容容器
     Item {
         id: contentItem
         objectName: "contentItem"
-        // Use childrenRect for auto-sizing 使用childrenRect自动计算尺寸
-        implicitWidth: childrenRect.width > 0 ? childrenRect.width : 80
-        implicitHeight: childrenRect.height > 0 ? childrenRect.height : 32
-        width: implicitWidth
-        height: implicitHeight
+        width: control._effectiveWidth
+        height: control._contentHeight
+
+        Item {
+            id: contentHost
+            objectName: "contentHost"
+            width: control._contentWidth
+            height: control._contentHeight
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
     }
     
     // Label 标签
     Label {
+        id: labelItem
         type: Enums.label.type_caption
-        width: Math.max(contentItem.width, implicitWidth)
+        width: control._effectiveWidth
         text: control.label
-        color: Enums.accentColor
+        color: Enums.isPrismDesign ? Enums.textColor.tertiary : Enums.accentColor
         visible: control.label !== ""
+        maximumLineCount: 1
+        elide: Enums.isPrismDesign ? Text.ElideRight : Text.ElideNone
         horizontalAlignment: Text.AlignHCenter  // Center text 文本居中
     }
 }

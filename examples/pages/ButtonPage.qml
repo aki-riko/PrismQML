@@ -12,6 +12,7 @@ import PrismQML as Fluent
 // 按钮展示页面
 Item {
     id: root
+    readonly property int _flowSpacing: Fluent.Enums.isPrismDesign ? Fluent.Enums.spacing.s : Fluent.Enums.spacing.l
 
     // 图标路径解析函数 (用模块内 Enums.iconPath, 可移植: 不依赖源码树位置)
     function iconPath(name) {
@@ -39,7 +40,7 @@ Item {
                 description: "仅图标→ToolButton样式，文本/图标+文本→PushButton样式"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "仅文本 (Push)"; Button { text: "Push" } }
                     ComponentCard { label: "仅图标 (Tool)"; Button { icon: Fluent.Enums.icon.settings } }
                     ComponentCard { label: "图标+文本 (Push)"; Button { icon: Fluent.Enums.icon.settings; text: "Settings" } }
@@ -52,7 +53,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "style_default"; Button { style: Fluent.Enums.button.style_default; text: "Default" } }
                     ComponentCard { label: "style_primary"; Button { style: Fluent.Enums.button.style_primary; text: "Primary" } }
                     ComponentCard { label: "style_transparent"; Button { style: Fluent.Enums.button.style_transparent; text: "Transparent" } }
@@ -68,7 +69,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "shape_default"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_default; text: "Default" } }
                     ComponentCard { label: "shape_pill"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; text: "Pill" } }
                 }
@@ -80,7 +81,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "feature_progress_bar"; Button { feature: Fluent.Enums.button.feature_progress_bar; text: "Progress"; progress: 0.6; showProgress: true } }
                     ComponentCard { label: "feature_progress_ring"; Button { feature: Fluent.Enums.button.feature_progress_ring; text: "Ring"; progress: 0.6 } }
                     ComponentCard { label: "feature_indeterminate_bar"; Button { feature: Fluent.Enums.button.feature_indeterminate_bar; text: "Indeterminate" } }
@@ -142,7 +143,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "level: 0"; Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info" } }
                     ComponentCard { label: "level: 1"; Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success" } }
                     ComponentCard { label: "level: 2"; Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning" } }
@@ -158,7 +159,7 @@ Item {
                 description: "Button - Filled变体：无背景，文字为状态色"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "level: 0"; Button { style: Fluent.Enums.button.style_text; level: 0; text: "Info" } }
                     ComponentCard { label: "level: 1"; Button { style: Fluent.Enums.button.style_text; level: 1; text: "Success" } }
                     ComponentCard { label: "level: 2"; Button { style: Fluent.Enums.button.style_text; level: 2; text: "Warning" } }
@@ -174,7 +175,7 @@ Item {
                 description: "仅图标时自动识别为ToolButton"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "style_default"; Button { style: Fluent.Enums.button.style_default; icon: Fluent.Enums.icon.settings } }
                     ComponentCard { label: "style_primary"; Button { style: Fluent.Enums.button.style_primary; icon: Fluent.Enums.icon.sparkle } }
                     ComponentCard { label: "style_transparent"; Button { style: Fluent.Enums.button.style_transparent; icon: Fluent.Enums.icon.eye } }
@@ -190,7 +191,7 @@ Item {
                 description: "仅图标 + feature"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "tool+toggle"; Button { feature: Fluent.Enums.button.feature_toggle; icon: Fluent.Enums.icon.pin } }
                     ComponentCard { label: "tool+toggle+primary"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_toggle; icon: Fluent.Enums.icon.star } }
                     ComponentCard { label: "tool+toggle+transparent"; Button { style: Fluent.Enums.button.style_transparent; feature: Fluent.Enums.button.feature_toggle; icon: Fluent.Enums.icon.heart } }
@@ -221,7 +222,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     // default + pill
                     ComponentCard { label: "default+pill"; Button { style: Fluent.Enums.button.style_default; shape: Fluent.Enums.button.shape_pill; text: "Default" } }
                     ComponentCard { label: "primary+pill"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; text: "Primary" } }
@@ -238,7 +239,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+progress_bar"; Button { style: Fluent.Enums.button.style_default; feature: Fluent.Enums.button.feature_progress_bar; text: "Default"; progress: 0.6; showProgress: true } }
                     ComponentCard { label: "primary+progress_bar"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_progress_bar; text: "Primary"; progress: 0.6; showProgress: true } }
                     ComponentCard { label: "transparent+progress_bar"; Button { style: Fluent.Enums.button.style_transparent; feature: Fluent.Enums.button.feature_progress_bar; text: "Transparent"; progress: 0.6; showProgress: true } }
@@ -253,7 +254,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+indeterminate_bar"; Button { style: Fluent.Enums.button.style_default; feature: Fluent.Enums.button.feature_indeterminate_bar; text: "Default" } }
                     ComponentCard { label: "primary+indeterminate_bar"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_indeterminate_bar; text: "Primary" } }
                     ComponentCard { label: "transparent+indeterminate_bar"; Button { style: Fluent.Enums.button.style_transparent; feature: Fluent.Enums.button.feature_indeterminate_bar; text: "Transparent" } }
@@ -268,7 +269,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+progress_ring"; Button { style: Fluent.Enums.button.style_default; feature: Fluent.Enums.button.feature_progress_ring; text: "Default"; progress: 0.6 } }
                     ComponentCard { label: "primary+progress_ring"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_progress_ring; text: "Primary"; progress: 0.6 } }
                     ComponentCard { label: "transparent+progress_ring"; Button { style: Fluent.Enums.button.style_transparent; feature: Fluent.Enums.button.feature_progress_ring; text: "Transparent"; progress: 0.6 } }
@@ -283,7 +284,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+indeterminate_ring"; Button { style: Fluent.Enums.button.style_default; feature: Fluent.Enums.button.feature_indeterminate_ring; text: "Default" } }
                     ComponentCard { label: "primary+indeterminate_ring"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_indeterminate_ring; text: "Primary" } }
                     ComponentCard { label: "transparent+indeterminate_ring"; Button { style: Fluent.Enums.button.style_transparent; feature: Fluent.Enums.button.feature_indeterminate_ring; text: "Transparent" } }
@@ -298,7 +299,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+toggle"; Button { style: Fluent.Enums.button.style_default; feature: Fluent.Enums.button.feature_toggle; text: "Default" } }
                     ComponentCard { label: "primary+toggle"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_toggle; text: "Primary" } }
                     ComponentCard { label: "transparent+toggle"; Button { style: Fluent.Enums.button.style_transparent; feature: Fluent.Enums.button.feature_toggle; text: "Transparent" } }
@@ -313,7 +314,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+dropdown"; Button { style: Fluent.Enums.button.style_default; feature: Fluent.Enums.button.feature_dropdown; text: "Default"; menuItems: ["A", "B", "C"] } }
                     ComponentCard { label: "primary+dropdown"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_dropdown; text: "Primary"; menuItems: ["A", "B", "C"] } }
                     ComponentCard { label: "transparent+dropdown"; Button { style: Fluent.Enums.button.style_transparent; feature: Fluent.Enums.button.feature_dropdown; text: "Transparent"; menuItems: ["A", "B", "C"] } }
@@ -328,7 +329,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+split"; Button { style: Fluent.Enums.button.style_default; feature: Fluent.Enums.button.feature_split; text: "Default"; menuItems: ["A", "B"] } }
                     ComponentCard { label: "primary+split"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_split; text: "Primary"; menuItems: ["A", "B"] } }
                     ComponentCard { label: "transparent+split"; Button { style: Fluent.Enums.button.style_transparent; feature: Fluent.Enums.button.feature_split; text: "Transparent"; menuItems: ["A", "B"] } }
@@ -343,7 +344,7 @@ Item {
                 description: "Button - 倒计时按钮与各样式组合"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+countdown"; Button { style: Fluent.Enums.button.style_default; feature: Fluent.Enums.button.feature_countdown; text: "Default"; countdown: 5 } }
                     ComponentCard { label: "primary+countdown"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_countdown; text: "Primary"; countdown: 5 } }
                     ComponentCard { label: "transparent+countdown"; Button { style: Fluent.Enums.button.style_transparent; feature: Fluent.Enums.button.feature_countdown; text: "Transparent"; countdown: 5 } }
@@ -359,7 +360,7 @@ Item {
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "pill+progress_bar"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_progress_bar; text: "Progress"; progress: 0.6; showProgress: true } }
                     ComponentCard { label: "pill+progress_ring"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_progress_ring; text: "Ring"; progress: 0.6 } }
                     ComponentCard { label: "pill+indeterminate_bar"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_indeterminate_bar; text: "Indet Bar" } }
@@ -377,7 +378,7 @@ Item {
                 description: "Button - 7种样式 × pill形状 × toggle功能"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+pill+toggle"; Button { style: Fluent.Enums.button.style_default; shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_toggle; text: "Default" } }
                     ComponentCard { label: "primary+pill+toggle"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_toggle; text: "Primary" } }
                     ComponentCard { label: "transparent+pill+toggle"; Button { style: Fluent.Enums.button.style_transparent; shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_toggle; text: "Transparent" } }
@@ -392,7 +393,7 @@ Item {
                 description: "Button - 样式 × pill形状 × 进度功能"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+pill+progress_bar"; Button { style: Fluent.Enums.button.style_default; shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_progress_bar; text: "Default"; progress: 0.6; showProgress: true } }
                     ComponentCard { label: "primary+pill+progress_bar"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_progress_bar; text: "Primary"; progress: 0.6; showProgress: true } }
                     ComponentCard { label: "default+pill+progress_ring"; Button { style: Fluent.Enums.button.style_default; shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_progress_ring; text: "Ring"; progress: 0.6 } }
@@ -405,7 +406,7 @@ Item {
                 description: "Button - 样式 × pill形状 × 下拉/分割功能"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { label: "default+pill+dropdown"; Button { style: Fluent.Enums.button.style_default; shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_dropdown; text: "Default"; menuItems: ["A", "B", "C"] } }
                     ComponentCard { label: "primary+pill+dropdown"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_dropdown; text: "Primary"; menuItems: ["A", "B", "C"] } }
                     ComponentCard { label: "default+pill+split"; Button { style: Fluent.Enums.button.style_default; shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_split; text: "Default"; menuItems: ["A", "B"] } }
@@ -419,7 +420,7 @@ Item {
                 description: "Button + Badge"
                 Flow {
                     width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+                    spacing: root._flowSpacing
                     ComponentCard { 
                         label: "default+badge"
                         Item {
