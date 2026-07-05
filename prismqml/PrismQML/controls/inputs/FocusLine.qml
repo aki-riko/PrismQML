@@ -14,7 +14,7 @@ Item {
     // ==================== Props 属性 ====================
     property bool showLine: false  // Control visibility 控制显示
     property color lineColor: Enums.accentColor
-    property real parentRadius: Enums.radius.small  // Parent corner radius 父组件圆角
+    property real parentRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small  // Parent corner radius 父组件圆角
     
     // ==================== Layout 布局 ====================
     anchors.left: parent.left
