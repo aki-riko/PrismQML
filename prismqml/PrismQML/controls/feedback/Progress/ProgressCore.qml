@@ -24,7 +24,7 @@ Widget {
     property color fillColorLight: Enums.accentColor
     property color fillColorDark: Enums.accentColor
     property color trackColorLight: Enums.stateColor.track
-    property color trackColorDark: Enums.stateColor.whiteOverlay
+    property color trackColorDark: Enums.isPrismDesign ? Enums.stateColor.track : Enums.stateColor.whiteOverlay
     readonly property real position: (value - from) / (to - from)
     property color progressColor: {
         if (error) return Enums.isDark ? Enums.statusLevel.errorColorDark : Enums.statusLevel.errorColor

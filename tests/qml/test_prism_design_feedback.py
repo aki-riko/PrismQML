@@ -71,6 +71,17 @@ def _assert_progress(item, progress, track, text):
     assert _rgb(item.property("_filledTextColor")) == text
 
 
+def _assert_direct_progress_bar(item, progress, track):
+    assert _rgb(item.property("progressColor")) == progress
+    assert _rgb(item.property("trackColor")) == track
+
+
+def _assert_direct_progress_ring(item, progress, track):
+    assert item.property("strokeWidth") == 5
+    assert _rgb(item.property("progressColor")) == progress
+    assert _rgb(item.property("backgroundColor")) == track
+
+
 def _assert_skeleton(item, base, shimmer):
     assert item.property("_radius") == 6
     assert _rgb(item.property("baseColor")) == base
@@ -81,6 +92,19 @@ def _assert_tag(item, background, text):
     assert item.property("_tagRadius") == 6
     assert _rgb(item.property("_tagBackground")) == background
     assert _rgb(item.property("currentColor")) == text
+
+
+def _assert_tip_popup(item, background, border):
+    assert item.property("_tipRadius") == 10
+    assert item.property("_tipBorderWidth") == 1
+    assert _rgb(item.property("_tipBackground")) == background
+    assert _rgb(item.property("_tipBorderColor")) == border
+
+
+def _assert_hint_icon(item, color):
+    assert item.property("iconSize") == 14
+    assert item.property("toolTipShowDelay") == 100
+    assert _rgb(item.property("color")) == color
 
 
 def test_prism_design_feedback_light_and_dark(qapp):
@@ -163,6 +187,56 @@ Progress {
 
         keep.append(_build(engine, b"""
 import PrismQML
+ProgressBar {
+    width: 200
+    value: 48
+}
+"""))
+        progress_bar = keep[-1][1]
+        _assert_direct_progress_bar(progress_bar, (47, 111, 237), (234, 241, 247))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ProgressRing {
+    value: 48
+}
+"""))
+        progress_ring = keep[-1][1]
+        _assert_direct_progress_ring(progress_ring, (47, 111, 237), (234, 241, 247))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+TipPopup {
+    title: "Layer"
+    content: "Overlay feedback"
+}
+"""))
+        tip_popup = keep[-1][1]
+        _assert_tip_popup(tip_popup, (248, 251, 255), (217, 227, 236))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+HintIcon {
+    toolTipText: "Why this matters"
+}
+"""))
+        hint_icon = keep[-1][1]
+        _assert_hint_icon(hint_icon, (131, 146, 164))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+EmptyDataState {
+    title: "No records"
+    image: "MailInboxDismiss"
+}
+"""))
+        empty_data = keep[-1][1]
+        assert empty_data.property("title") == "No records"
+        assert empty_data.property("imageWidth") == 128
+        assert empty_data.property("imageHeight") == 128
+
+        keep.append(_build(engine, b"""
+import PrismQML
 Skeleton {
     width: 120
     height: 24
@@ -237,6 +311,56 @@ Progress {
         dark_progress = keep[-1][1]
         qapp.processEvents()
         _assert_progress(dark_progress, (122, 167, 255), (21, 26, 32), (15, 23, 42))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ProgressBar {
+    width: 200
+    value: 48
+}
+"""))
+        dark_progress_bar = keep[-1][1]
+        _assert_direct_progress_bar(dark_progress_bar, (122, 167, 255), (21, 26, 32))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+ProgressRing {
+    value: 48
+}
+"""))
+        dark_progress_ring = keep[-1][1]
+        _assert_direct_progress_ring(dark_progress_ring, (122, 167, 255), (21, 26, 32))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+TipPopup {
+    title: "Layer"
+    content: "Overlay feedback"
+}
+"""))
+        dark_tip_popup = keep[-1][1]
+        _assert_tip_popup(dark_tip_popup, (36, 43, 52), (48, 58, 70))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+HintIcon {
+    toolTipText: "Why this matters"
+}
+"""))
+        dark_hint_icon = keep[-1][1]
+        _assert_hint_icon(dark_hint_icon, (118, 131, 148))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+EmptyDataState {
+    title: "No records"
+    image: "MailInboxDismiss"
+}
+"""))
+        dark_empty_data = keep[-1][1]
+        assert dark_empty_data.property("title") == "No records"
+        assert dark_empty_data.property("imageWidth") == 128
+        assert dark_empty_data.property("imageHeight") == 128
 
         keep.append(_build(engine, b"""
 import PrismQML

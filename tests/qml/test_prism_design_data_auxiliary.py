@@ -92,6 +92,18 @@ def _assert_avatar(item, border, content):
     assert _rgb(item.property("_avatarContentColor")) == content
 
 
+def _assert_marquee(item):
+    assert item.property("forceScroll") is True
+    assert item.property("_needsScroll") is True
+    assert item.property("pauseDuration") == 1000
+
+
+def _assert_watermark(item, text_color):
+    assert item.property("fontSize") == 14
+    assert round(item.property("opacity_"), 2) == 0.3
+    assert _rgb(item.property("textColor")) == text_color
+
+
 def _list_item_qml():
     list_dir = (
         Path(__file__).resolve().parents[2]
@@ -220,6 +232,41 @@ Avatar {
 
         keep.append(_build(engine, b"""
 import PrismQML
+AvatarSelector {
+    text: "Prism"
+    enableCrop: false
+    changeText: "Change"
+}
+"""))
+        avatar_selector = keep[-1][1]
+        _assert_avatar(avatar_selector, (170, 184, 199), (255, 255, 255))
+        assert avatar_selector.property("enableCrop") is False
+        assert avatar_selector.property("changeText") == "Change"
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Marquee {
+    width: 120
+    text: "Prism Design skin evidence"
+    forceScroll: true
+}
+"""))
+        marquee = keep[-1][1]
+        _assert_marquee(marquee)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Watermark {
+    width: 240
+    height: 120
+    text: "PRISM"
+}
+"""))
+        watermark = keep[-1][1]
+        _assert_watermark(watermark, (131, 146, 164))
+
+        keep.append(_build(engine, b"""
+import PrismQML
 DataWidgetCore {
     width: 240
     height: 140
@@ -322,6 +369,41 @@ Avatar {
 """))
         dark_avatar = keep[-1][1]
         _assert_avatar(dark_avatar, (75, 90, 107), (15, 23, 42))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+AvatarSelector {
+    text: "Prism"
+    enableCrop: false
+    changeText: "Change"
+}
+"""))
+        dark_avatar_selector = keep[-1][1]
+        _assert_avatar(dark_avatar_selector, (75, 90, 107), (15, 23, 42))
+        assert dark_avatar_selector.property("enableCrop") is False
+        assert dark_avatar_selector.property("changeText") == "Change"
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Marquee {
+    width: 120
+    text: "Prism Design skin evidence"
+    forceScroll: true
+}
+"""))
+        dark_marquee = keep[-1][1]
+        _assert_marquee(dark_marquee)
+
+        keep.append(_build(engine, b"""
+import PrismQML
+Watermark {
+    width: 240
+    height: 120
+    text: "PRISM"
+}
+"""))
+        dark_watermark = keep[-1][1]
+        _assert_watermark(dark_watermark, (118, 131, 148))
 
         keep.append(_build(engine, b"""
 import PrismQML

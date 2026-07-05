@@ -68,6 +68,19 @@ def _assert_user_bubble(item, background, foreground):
     assert _rgb(item.property("_timestampColor")) == foreground
 
 
+def _assert_markdown_view(item, text, link):
+    assert item.property("blockCount") == 2
+    assert _rgb(item.property("textColor")) == text
+    assert _rgb(item.property("linkColor")) == link
+
+
+def _assert_chat_message_list(item):
+    assert item.property("messageCount") == 2
+    assert item.property("maxBubbleWidth") == 360
+    assert item.property("assistantAvatarText") == "P"
+    assert item.property("showAssistantAvatar") is True
+
+
 def _assert_login_window(item, card, border, error_bg, error):
     assert item.property("_cardRadius") == 12
     assert item.property("_errorRadius") == 6
@@ -137,6 +150,38 @@ ChatBubble {
 
         keep.append(_build(engine, b"""
 import PrismQML
+MarkdownView {
+    width: 420
+    markdown: "Hello **Prism**\\n```qml\\nButton {}\\n```"
+    property int blockCount: _blocks.length
+}
+"""))
+        _assert_markdown_view(
+            keep[-1][1],
+            text=(23, 32, 42),
+            link=(47, 111, 237),
+        )
+
+        keep.append(_build(engine, b"""
+import QtQuick
+import PrismQML
+ChatMessageList {
+    width: 420
+    height: 240
+    maxBubbleWidth: 360
+    assistantAvatarText: "P"
+    Component.onCompleted: {
+        appendMessage("assistant", "Hello Prism", "10:24")
+        appendMessage("user", "Ship it", "10:25")
+        appendToLast(" now")
+    }
+}
+"""))
+        qapp.processEvents()
+        _assert_chat_message_list(keep[-1][1])
+
+        keep.append(_build(engine, b"""
+import PrismQML
 LoginWindow {
     width: 640
     height: 520
@@ -198,6 +243,38 @@ ChatBubble {
 }
 """))
         _assert_user_bubble(keep[-1][1], background=(122, 167, 255), foreground=(15, 23, 42))
+
+        keep.append(_build(engine, b"""
+import PrismQML
+MarkdownView {
+    width: 420
+    markdown: "Hello **Prism**\\n```qml\\nButton {}\\n```"
+    property int blockCount: _blocks.length
+}
+"""))
+        _assert_markdown_view(
+            keep[-1][1],
+            text=(238, 243, 248),
+            link=(122, 167, 255),
+        )
+
+        keep.append(_build(engine, b"""
+import QtQuick
+import PrismQML
+ChatMessageList {
+    width: 420
+    height: 240
+    maxBubbleWidth: 360
+    assistantAvatarText: "P"
+    Component.onCompleted: {
+        appendMessage("assistant", "Hello Prism", "10:24")
+        appendMessage("user", "Ship it", "10:25")
+        appendToLast(" now")
+    }
+}
+"""))
+        qapp.processEvents()
+        _assert_chat_message_list(keep[-1][1])
 
         keep.append(_build(engine, b"""
 import PrismQML
