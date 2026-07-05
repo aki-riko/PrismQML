@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QFile, QResource, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import Skin, Theme, register_types, setSkin, setTheme
@@ -688,6 +688,29 @@ LoginWindow {
         page = page_component.create(engine.rootContext())
         assert page is not None, [error.toString() for error in page_component.errors()]
         keep.append((page_component, page))
+        assert page.property("galleryEvidenceViewKeys").split("|") == [
+            "Token Board",
+            "State Wall",
+            "Component Matrix",
+            "Three Skin Compare",
+            "Real App Surface",
+            "Dark Audit",
+        ]
+
+        resource_dir = Path(__file__).resolve().parents[2] / "examples" / "resources"
+        qrc_text = (resource_dir / "gallery.qrc").read_text(encoding="utf-8")
+        rcc_path = resource_dir / "gallery.rcc"
+        registered_gallery_resources = QResource.registerResource(str(rcc_path))
+        assert registered_gallery_resources
+        try:
+            for theme_name in ("light", "dark"):
+                for skin_name in ("fluent", "neobrutalism", "prism-design"):
+                    asset_name = f"image/prism-design/skin-compare-{skin_name}-{theme_name}.png"
+                    assert (resource_dir / asset_name).is_file()
+                    assert f"<file>{asset_name}</file>" in qrc_text
+                    assert QFile.exists(f":/{asset_name}")
+        finally:
+            QResource.unregisterResource(str(rcc_path))
 
         setTheme(Theme.DARK)
         keep.append(_build(engine, b"""

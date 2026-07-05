@@ -117,7 +117,7 @@ Window {
                     InfoBar {
                         width: parent.width
                         title: "Build ready"
-                        content: "Token-driven UI"
+                        content: "Tokens synced"
                         severity: "success"
                         duration: 0
                     }

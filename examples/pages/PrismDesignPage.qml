@@ -27,6 +27,7 @@ Item {
         { "name": "accent", "value": Enums.accentColor }
     ]
     readonly property var chartTokens: Enums.chartColors.palette
+    readonly property string galleryEvidenceViewKeys: "Token Board|State Wall|Component Matrix|Three Skin Compare|Real App Surface|Dark Audit"
 
     // ==================== Internal Methods 内部方法 ====================
     function setSkin(value) { if (ThemeManager) ThemeManager.setSkinFromQml(value) }
@@ -62,7 +63,7 @@ Item {
 
             // ==================== Skin Switch 皮肤切换 ====================
             ExampleCard {
-                title: "Skin Compare"
+                title: "Three Skin Compare"
                 description: "同一场景由脚本真实渲染为三套 skin 的 light/dark 截图，运行时切换用于继续审计当前页面。"
                 orientation: Qt.Vertical
 

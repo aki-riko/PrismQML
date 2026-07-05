@@ -17,15 +17,15 @@ Item {
     readonly property var _snapshots: [
         {
             "label": "Fluent",
-            "source": Qt.resolvedUrl("../resources/image/prism-design/skin-compare-fluent-" + _themeSuffix + ".png")
+            "source": "qrc:/image/prism-design/skin-compare-fluent-" + _themeSuffix + ".png"
         },
         {
             "label": "Neobrutalism",
-            "source": Qt.resolvedUrl("../resources/image/prism-design/skin-compare-neobrutalism-" + _themeSuffix + ".png")
+            "source": "qrc:/image/prism-design/skin-compare-neobrutalism-" + _themeSuffix + ".png"
         },
         {
             "label": "Prism Design",
-            "source": Qt.resolvedUrl("../resources/image/prism-design/skin-compare-prism-design-" + _themeSuffix + ".png")
+            "source": "qrc:/image/prism-design/skin-compare-prism-design-" + _themeSuffix + ".png"
         }
     ]
 
