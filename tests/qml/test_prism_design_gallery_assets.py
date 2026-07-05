@@ -13,6 +13,9 @@ from PySide6.QtGui import QImage
 ROOT = Path(__file__).resolve().parents[2]
 RESOURCE_DIR = ROOT / "examples" / "resources"
 PRISM_IMAGE_DIR = RESOURCE_DIR / "image" / "prism-design"
+DOCS_PRISM_IMAGE_DIR = ROOT / "docs" / "assets" / "images" / "prism-design"
+DOCS_INDEX_PAGE = ROOT / "docs" / "index.zh.md"
+DOCS_SKINS_PAGE = ROOT / "docs" / "guide" / "skins.zh.md"
 EXPECTED_SIZE = (520, 360)
 
 
@@ -27,8 +30,7 @@ def _sample_color_count(image: QImage) -> int:
     return len(colors)
 
 
-def _assert_compare_image(asset_name: str) -> None:
-    image_path = RESOURCE_DIR / asset_name
+def _assert_png_image_file(image_path: Path) -> None:
     assert image_path.is_file()
     assert image_path.stat().st_size > 10_000
 
@@ -37,14 +39,28 @@ def _assert_compare_image(asset_name: str) -> None:
     assert (image.width(), image.height()) == EXPECTED_SIZE
     assert _sample_color_count(image) >= 8
 
+
+def _assert_compare_image(asset_name: str) -> None:
+    _assert_png_image_file(RESOURCE_DIR / asset_name)
+
     qrc_image = QImage(f":/{asset_name}")
     assert not qrc_image.isNull()
     assert (qrc_image.width(), qrc_image.height()) == EXPECTED_SIZE
     assert _sample_color_count(qrc_image) >= 8
 
 
+def _assert_docs_compare_image(asset_name: str, skins_doc: str, index_doc: str) -> None:
+    file_name = Path(asset_name).name
+    assert f"../assets/images/prism-design/{file_name}" in skins_doc
+    if file_name.endswith("-light.png"):
+        assert f"assets/images/prism-design/{file_name}" in index_doc
+    _assert_png_image_file(DOCS_PRISM_IMAGE_DIR / file_name)
+
+
 def test_prism_design_gallery_compare_assets_are_valid(qapp):
     qrc_text = (RESOURCE_DIR / "gallery.qrc").read_text(encoding="utf-8")
+    index_doc = DOCS_INDEX_PAGE.read_text(encoding="utf-8")
+    skins_doc = DOCS_SKINS_PAGE.read_text(encoding="utf-8")
     rcc_path = RESOURCE_DIR / "gallery.rcc"
     assert QResource.registerResource(str(rcc_path))
 
@@ -55,5 +71,6 @@ def test_prism_design_gallery_compare_assets_are_valid(qapp):
                 assert f"<file>{asset_name}</file>" in qrc_text
                 assert QFile.exists(f":/{asset_name}")
                 _assert_compare_image(asset_name)
+                _assert_docs_compare_image(asset_name, skins_doc, index_doc)
     finally:
         QResource.unregisterResource(str(rcc_path))

@@ -55,7 +55,12 @@ print(getSkin())   # Skin.PRISM_DESIGN
     - 按钮、输入框、卡片先使用专属 token 半径
     - light / dark 都有独立调色板
 
-<!-- TODO: Fluent vs Neobrutalism vs Prism Design 同界面对比图 -->
+同一界面在三种皮肤下必须能看出明确差异。下面的截图由 `scripts/render_prism_skin_compare.py` 生成，并由 `tests/qml/test_prism_design_gallery_assets.py` 验证本地 PNG、qrc 注册和文档引用均可用。
+
+| 主题 | Fluent | Neobrutalism | Prism Design |
+|------|--------|--------------|--------------|
+| Light | ![Fluent light](../assets/images/prism-design/skin-compare-fluent-light.png) | ![Neobrutalism light](../assets/images/prism-design/skin-compare-neobrutalism-light.png) | ![Prism Design light](../assets/images/prism-design/skin-compare-prism-design-light.png) |
+| Dark | ![Fluent dark](../assets/images/prism-design/skin-compare-fluent-dark.png) | ![Neobrutalism dark](../assets/images/prism-design/skin-compare-neobrutalism-dark.png) | ![Prism Design dark](../assets/images/prism-design/skin-compare-prism-design-dark.png) |
 
 ## 在 QML 中读取皮肤
 

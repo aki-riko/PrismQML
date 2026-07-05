@@ -4,7 +4,9 @@
 
 PrismQML 是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件，运行时在 **Fluent**、**新粗野（Neobrutalism）** 与 **Prism Design** 之间自由切换，120fps+ 流畅动画。
 
-<!-- TODO: 此处放 Fluent vs Neobrutalism 同界面并排对比图 -->
+| Fluent | Neobrutalism | Prism Design |
+|--------|--------------|--------------|
+| ![Fluent light](assets/images/prism-design/skin-compare-fluent-light.png) | ![Neobrutalism light](assets/images/prism-design/skin-compare-neobrutalism-light.png) | ![Prism Design light](assets/images/prism-design/skin-compare-prism-design-light.png) |
 
 ```python
 from prismqml import setSkin, Skin
