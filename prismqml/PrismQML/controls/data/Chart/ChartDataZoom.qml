@@ -45,7 +45,7 @@ Item {
     readonly property int _thumbnailMargin: Enums.isPrismDesign ? Enums.spacing.xs : Enums.spacing.none
     readonly property int _sliderSpace: Enums.spacing.m
     readonly property real _thumbnailFillAlpha: Enums.isPrismDesign ? Enums.stateColor.chartFillMedium : Enums.opacityLevel.light - Enums.opacityLevel.faint
-    readonly property real _thumbnailStrokeAlpha: Enums.opacityLevel.strong
+    readonly property real _thumbnailStrokeAlpha: Enums.isPrismDesign ? Enums.stateColor.chartStrokeAlpha : Enums.opacityLevel.strong
 
     // ==================== Signals 信号 ====================
     signal viewportChanged(real start, real end)

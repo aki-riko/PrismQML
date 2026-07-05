@@ -679,6 +679,8 @@ LoginWindow {
         assert chart_data_zoom.property("_panelRadius") == 8
         assert _rgb(chart_data_zoom.property("_panelColor")) == (251, 252, 254)
         assert _rgb(chart_data_zoom.property("_panelBorderColor")) == (231, 238, 245)
+        assert chart_data_zoom.property("_thumbnailFillAlpha") == 0.3
+        assert chart_data_zoom.property("_thumbnailStrokeAlpha") == 0.6
 
         page_path = Path(__file__).resolve().parents[2] / "examples" / "pages" / "PrismDesignPage.qml"
         page_component = QQmlComponent(engine, QUrl.fromLocalFile(str(page_path)))
@@ -766,6 +768,8 @@ Rating {
         keep.append((dark_chart_data_zoom_component, dark_chart_data_zoom))
         assert _rgb(dark_chart_data_zoom.property("_panelColor")) == (23, 28, 34)
         assert _rgb(dark_chart_data_zoom.property("_panelBorderColor")) == (38, 48, 58)
+        assert dark_chart_data_zoom.property("_thumbnailFillAlpha") == 0.3
+        assert dark_chart_data_zoom.property("_thumbnailStrokeAlpha") == 0.6
 
         dark_page_component = QQmlComponent(engine, QUrl.fromLocalFile(str(page_path)))
         assert not dark_page_component.isError(), [
