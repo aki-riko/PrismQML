@@ -5,7 +5,10 @@
 > **One QML component set, multiple design languages — switchable at runtime.**
 > PrismQML is a **multi-skin UI engine** built on PySide6 + QML: the same components render as **Fluent** or **Neobrutalism**, switched live, with 120fps+ smooth animations.
 
-<!-- TODO: side-by-side Fluent vs Neobrutalism screenshot of the same UI (same code, one setSkin() call) -->
+![PrismQML Fluent and Neobrutalism skin comparison](docs/images/prismqml-skins.png)
+
+- **Install**: `pip install prismqml`
+- **Use it for**: modern Python + QML desktop apps that need reusable controls, theme tokens, runtime skin switching, and cross-platform window utilities.
 
 ```python
 from prismqml import setSkin, Skin
@@ -30,7 +33,7 @@ setSkin(Skin.NEOBRUTALISM)   # switch the whole app's design language in one lin
 pip install prismqml
 ```
 
-> Note: the PyPI package is named `prismqml` (`prismqml` is taken), but the import name is still `prismqml` (`from prismqml import ...`).
+> Note: the PyPI package name and import name are both `prismqml`.
 
 Development install:
 

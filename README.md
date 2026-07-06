@@ -5,7 +5,10 @@
 > **一套 QML 控件，多种设计语言一键切换。**
 > PrismQML 是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件，运行时在 **Fluent** 与 **新粗野（Neobrutalism）** 之间自由切换，120fps+ 流畅动画。
 
-<!-- TODO: 此处放 Fluent vs Neobrutalism 同界面并排对比图 (same code, one setSkin() call) -->
+![PrismQML Fluent 与 Neobrutalism 皮肤对比](docs/images/prismqml-skins.png)
+
+- **安装**：`pip install prismqml`
+- **适合**：想用 Python + QML 做现代桌面应用，同时需要统一控件、主题 token、运行时换肤和跨平台窗口能力的项目。
 
 ```python
 from prismqml import setSkin, Skin
