@@ -78,9 +78,13 @@ Item {
     
     // ==================== Smooth Value Animation 平滑值动画 ====================
     property real _targetValue: value
-    
+    // 拖动中标记:拖动时禁用平滑动画,避免动画回写 value 与拖动形成反馈振荡
+    // (旧实现 drag.target 破坏 handle.x 绑定 + Behavior 回写 → 手柄乱飞)
+    property bool _dragging: false
+
     Behavior on value {
-        NumberAnimation { 
+        enabled: !control._dragging
+        NumberAnimation {
             duration: Enums.duration.fast
             easing.type: Easing.OutCubic
         }
@@ -201,6 +205,9 @@ Item {
                     followAnchor: hovered || pressed
                 }
                 
+                // 不用 drag.target(会破坏 handle.x 与 value 的绑定,导致程序改
+                // value 时手柄不动 + Behavior 回写振荡)。改为按鼠标落点映射到
+                // value,handle.x 始终绑定 value,程序化更新与用户拖动都稳。
                 MouseArea {
                     id: handleArea
                     anchors.fill: parent
@@ -208,22 +215,36 @@ Item {
                     enabled: control.enabled
                     hoverEnabled: true
                     preventStealing: true
-                    drag.target: parent
-                    drag.axis: isHorizontal ? Drag.XAxis : Drag.YAxis
-                    drag.minimumX: track.x
-                    drag.maximumX: track.x + track.width - parent.width
-                    drag.minimumY: track.y
-                    drag.maximumY: track.y + track.height - parent.height
-                    
-                    onPositionChanged: {
-                        if (pressed) {
-                            var pos = isHorizontal 
-                                ? (handle.x - track.x) / (track.width - handle.width)
-                                : 1 - (handle.y - track.y) / (track.height - handle.height)
-                            var newValue = control.from + pos * (control.to - control.from)
-                            newValue = Math.round(newValue / control.stepSize) * control.stepSize
-                            control.value = Math.max(control.from, Math.min(control.to, newValue))
+
+                    function _applyFromGlobal(gx, gy) {
+                        var p = track.mapFromGlobal(gx, gy)
+                        var pos = isHorizontal
+                            ? p.x / track.width
+                            : 1 - p.y / track.height
+                        pos = Math.max(0, Math.min(1, pos))
+                        var newValue = control.from + pos * (control.to - control.from)
+                        newValue = control._maybeSnap(newValue, true)
+                        newValue = Math.max(control.from, Math.min(control.to, newValue))
+                        if (newValue !== control.value) {
+                            control.value = newValue
                             control.valueModified(control.value)
+                        }
+                    }
+
+                    onPressed: control._dragging = true
+                    onReleased: {
+                        control._dragging = false
+                        // 松手吸附(SnapOnRelease/SnapAlways)
+                        var snapped = control._maybeSnap(control.value, false)
+                        if (snapped !== control.value) {
+                            control.value = Math.max(control.from, Math.min(control.to, snapped))
+                            control.valueModified(control.value)
+                        }
+                    }
+                    onPositionChanged: (mouse) => {
+                        if (pressed) {
+                            var g = mapToGlobal(mouse.x, mouse.y)
+                            _applyFromGlobal(g.x, g.y)
                         }
                     }
                 }
