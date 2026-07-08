@@ -83,6 +83,14 @@
 - `.\.venv\Scripts\python.exe -m compileall prismqml\python tests`
 - `.\.venv\Scripts\python.exe -m pytest`
 
+### Step 3 执行记录
+
+- 状态：已完成。
+- 变更：清理包内只含 `pass` 的异常处理块；正常降级路径改为 `debug`，资源清理失败改为 `warning`；`SqlListModel` 的 LRU touch 改为显式成员判断。
+- 静态扫描：AST 检查 `silent_except_pass=0`；`except ...: pass` 单行扫描无命中。
+- Compileall：`.\.venv\Scripts\python.exe -m compileall prismqml\python tests` 通过。
+- Pytest：`116 passed`。
+
 ## Step 4 - Window Builder 模块化
 
 范围：

@@ -254,7 +254,8 @@ class SingleInstance(QObject):
         def _handle():
             try:
                 data = bytes(conn.readAll()).decode("utf-8", "ignore")
-            except Exception:  # noqa: BLE001
+            except (OSError, RuntimeError) as exc:
+                logger.debug(f"[SingleInstance] 读取 IPC 消息失败: {exc}")
                 data = ""
             if data.startswith("activate"):
                 self.activateRequested.emit()
@@ -271,8 +272,8 @@ class SingleInstance(QObject):
                     logger.warning(f"[SingleInstance] 回 ack 失败: {exc}")
             try:
                 conn.disconnectFromServer()
-            except Exception:  # noqa: BLE001
-                pass
+            except (OSError, RuntimeError) as exc:
+                logger.debug(f"[SingleInstance] 断开 IPC 连接失败: {exc}")
             if conn in self._conns:
                 self._conns.remove(conn)
 
@@ -329,8 +330,8 @@ class SingleInstance(QObject):
         if self._server is not None:
             try:
                 self._server.close()
-            except Exception:  # noqa: BLE001
-                pass
+            except (OSError, RuntimeError) as exc:
+                logger.debug(f"[SingleInstance] 关闭 IPC server 失败: {exc}")
             self._server = None
 
         if IS_WINDOWS:

@@ -67,9 +67,9 @@ def _enable_windows_ansi():
             if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
                 new_mode = mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING
                 kernel32.SetConsoleMode(handle, new_mode)
-        except (OSError, AttributeError):
+        except (OSError, AttributeError) as exc:
             # Console mode not available, ignore 控制台模式不可用
-            pass
+            logging.getLogger(__name__).debug("Windows ANSI console mode unavailable: %s", exc)
 
 
 # Enable on import 导入时启用
@@ -376,9 +376,9 @@ def install_qt_message_handler():
 
         qInstallMessageHandler(qt_message_handler)
         # info("Qt message handler installed", tag="Logger")
-    except ImportError:
+    except ImportError as exc:
         # If PySide6 is not available, just ignore (this satisfies rules about safety)
-        pass
+        logging.getLogger(__name__).debug("PySide6 unavailable, skip Qt message handler: %s", exc)
     except Exception as e:
         # Use existing logger to report error
         getLogger().error(f"Failed to install Qt message handler: {e}", tag="Logger")

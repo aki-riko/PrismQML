@@ -277,8 +277,8 @@ class Updater(QObject):
                 logger.warning(f"[Updater] 写入下载文件失败: {e}")
             try:
                 self._download_file.close()
-            except OSError:
-                pass
+            except OSError as e:
+                logger.warning(f"[Updater] 关闭下载文件失败: {e}")
             self._download_file = None
 
         if reply is None:
@@ -308,8 +308,8 @@ class Updater(QObject):
         try:
             if self._download_path and os.path.exists(self._download_path):
                 os.remove(self._download_path)
-        except OSError:
-            pass
+        except OSError as e:
+            logger.warning(f"[Updater] 清理下载残留失败: {e}")
 
     # ==================== 安装 ====================
     @Slot(str, str, result=bool)

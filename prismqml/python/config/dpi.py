@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 
 from .app_config import DEFAULT_APP_CONFIG
-from ..core import info, warning, error
+from ..core import debug, info, warning, error
 
 # ==================== DPI Constants DPI常量 ====================
 
@@ -43,9 +43,9 @@ def getSystemDpiScale() -> int:
             if dpi > 0:
                 scale = round(dpi / DPI_BASE * DPI_SCALE_DEFAULT)
                 return scale
-        except (OSError, AttributeError):
+        except (OSError, AttributeError) as exc:
             # API not available on this Windows version 此Windows版本不支持此API
-            pass
+            debug(f"GetDpiForSystem 不可用,回退到注册表: {exc}")
 
         # 方法2: 从注册表读取 (兼容旧系统)
         # Method 2: Read from registry (compatible with older systems)
@@ -61,9 +61,9 @@ def getSystemDpiScale() -> int:
             if dpi > 0:
                 scale = round(dpi / DPI_BASE * DPI_SCALE_DEFAULT)
                 return scale
-        except (OSError, FileNotFoundError):
+        except (OSError, FileNotFoundError) as exc:
             # Registry key not found 注册表键不存在
-            pass
+            debug(f"AppliedDPI 注册表读取失败,继续尝试 LogPixels: {exc}")
 
         # 方法3: 从LogPixels注册表读取
         # Method 3: Read from LogPixels registry
@@ -76,9 +76,9 @@ def getSystemDpiScale() -> int:
             if dpi > 0:
                 scale = round(dpi / DPI_BASE * DPI_SCALE_DEFAULT)
                 return scale
-        except (OSError, FileNotFoundError):
+        except (OSError, FileNotFoundError) as exc:
             # Registry key not found 注册表键不存在
-            pass
+            debug(f"LogPixels 注册表读取失败,使用默认 DPI: {exc}")
 
         return DPI_SCALE_DEFAULT
     except Exception as e:

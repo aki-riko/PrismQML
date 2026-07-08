@@ -65,8 +65,8 @@ class WindowBuilderMixin:
             try:
                 if qml_file.read_bytes() == source_bytes:
                     return qml_file
-            except OSError:
-                pass
+            except OSError as exc:
+                debug(f"[WindowBuilder] 读取生成窗口 QML 缓存失败: {exc}")
 
         qml_file.write_bytes(source_bytes)
         return qml_file
@@ -83,8 +83,8 @@ class WindowBuilderMixin:
             try:
                 if qml_file.read_bytes() == source_bytes:
                     return qml_file
-            except OSError:
-                pass
+            except OSError as exc:
+                debug(f"[Splash] 读取生成 Splash QML 缓存失败: {exc}")
 
         qml_file.write_bytes(source_bytes)
         return qml_file

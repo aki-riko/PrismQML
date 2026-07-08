@@ -196,13 +196,13 @@ class SettingsCore(QObject):
             if tmp_fd is not None:
                 try:
                     os.close(tmp_fd)
-                except OSError:
-                    pass
+                except OSError as exc:
+                    debug(f"关闭配置临时文件句柄失败: {exc}")
             if tmp_path is not None:
                 try:
                     os.unlink(tmp_path)
-                except OSError:
-                    pass
+                except OSError as exc:
+                    warning(f"清理配置临时文件失败: {tmp_path}: {exc}")
 
     def load(self, file=None):
         """从磁盘装入 JSON,逐条灌进对应 SettingEntry。"""

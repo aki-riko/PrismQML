@@ -27,7 +27,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QWindow
 from PySide6.QtWidgets import QApplication
 
-from .logger import info, warning, error, exception
+from .logger import debug, info, warning, error, exception
 
 
 # Windows MARGINS 结构体（DWM阴影 API 需要）
@@ -363,9 +363,9 @@ class DwmSyncFilter(QAbstractNativeEventFilter):
         if sys.platform == "win32":
             try:
                 self._dwmapi = ctypes.windll.dwmapi
-            except OSError:
+            except OSError as exc:
                 # DWM API not available 无法加载DWM API
-                pass
+                debug(f"DWM API 不可用,跳过同步过滤器: {exc}")
 
     def nativeEventFilter(self, eventType: QByteArray, message: int) -> tuple:
         """
@@ -388,9 +388,9 @@ class DwmSyncFilter(QAbstractNativeEventFilter):
             elif msg.message == self.WM_EXITSIZEMOVE:
                 self._in_resize = False
 
-        except (OSError, ctypes.ArgumentError):
+        except (OSError, ctypes.ArgumentError) as exc:
             # Invalid message structure 无效消息结构
-            pass
+            debug(f"DwmSyncFilter 收到无效消息结构: {exc}")
         except BaseException as e:
             # Catch KeyboardInterrupt or any other fatal exceptions to prevent crashing C++ event loop 拦截诸如 KeyboardInterrupt 的异常防止闪退
             warning(f"DwmSyncFilter nativeEventFilter error intercepted: {type(e).__name__}: {e}")

@@ -38,6 +38,7 @@ QML ListView/TableView 对接 1M+ 行 SQLite 数据,内存恒定 + 滚动 120fps
 """
 from __future__ import annotations
 
+import logging
 import sqlite3
 from collections import OrderedDict
 from contextlib import closing
@@ -592,8 +593,12 @@ class SqlListModel(QAbstractListModel):
                     for i, fn in col_indices_to_format:
                         try:
                             row[i] = fn(row[i])
-                        except Exception:
-                            pass  # formatter 出错不致命,保留原值
+                        except Exception as exc:
+                            logging.getLogger(__name__).debug(
+                                "SqlListModel formatter failed for column %s: %s",
+                                self._columns[i],
+                                exc,
+                            )
         return {"rows": rows, "end_cursor": end_cursor}
 
     def _resolve_columns(self) -> None:
@@ -917,10 +922,8 @@ class SqlListModel(QAbstractListModel):
         return rows, end_cursor
 
     def _touch_page(self, page_idx: int) -> None:
-        try:
+        if page_idx in self._cache:
             self._cache.move_to_end(page_idx)
-        except KeyError:
-            pass
 
 
 # 是否启用了 Rust 加速 (供调试/状态显示)

@@ -16,6 +16,8 @@ from enum import Enum
 from PySide6.QtCore import QObject, Signal, Property, Slot
 from PySide6.QtGui import QColor
 
+from .logger import debug
+
 
 class Theme(Enum):
     """主题枚举"""
@@ -110,9 +112,9 @@ class ThemeManager(QObject):
                 if app:
                     palette = app.palette()
                     return palette.window().color().lightness() < 128
-            except (ImportError, AttributeError, RuntimeError):
+            except (ImportError, AttributeError, RuntimeError) as exc:
                 # System theme detection failed, default to light 系统主题检测失败
-                pass
+                debug(f"系统主题检测失败,默认使用浅色: {exc}")
             return False
         return self._theme == Theme.DARK
 

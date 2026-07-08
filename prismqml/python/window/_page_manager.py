@@ -15,7 +15,7 @@ import time
 from PySide6.QtCore import QObject, QTimer, QMetaObject, Q_ARG
 from PySide6.QtQuick import QQuickItem
 
-from ..core.logger import warning, info, error
+from ..core.logger import debug, warning, info, error
 
 
 class PageManagerMixin:
@@ -197,9 +197,9 @@ class PageManagerMixin:
                 QMetaObject.invokeMethod(
                     self._window, "_startPythonLoading", Q_ARG("QVariant", index)
                 )
-            except RuntimeError:
+            except RuntimeError as exc:
                 # Method may not exist, ignore 方法可能不存在
-                pass
+                debug(f"页面 loading 启动方法不可用: {exc}")
 
         # 获取导航项
         all_items = self._nav_items + self._bottom_nav_items
@@ -317,6 +317,6 @@ class PageManagerMixin:
         if self._window:
             try:
                 QMetaObject.invokeMethod(self._window, "_finishPythonLoading")
-            except RuntimeError:
+            except RuntimeError as exc:
                 # Method may not exist, ignore 方法可能不存在
-                pass
+                debug(f"页面 loading 结束方法不可用: {exc}")

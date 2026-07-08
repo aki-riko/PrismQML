@@ -21,6 +21,8 @@ from PySide6.QtCore import QObject, QEvent
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
+from .logger import debug
+
 
 def _is_input_item(obj: QObject) -> bool:
     """判断 obj 是否是 QML 输入控件 (TextInput / TextEdit)"""
@@ -28,7 +30,8 @@ def _is_input_item(obj: QObject) -> bool:
         return False
     try:
         return obj.inherits("QQuickTextInput") or obj.inherits("QQuickTextEdit")
-    except Exception:
+    except (AttributeError, RuntimeError, TypeError) as exc:
+        debug(f"[InputFocusFilter] 判断输入控件失败: {exc}")
         return False
 
 
@@ -39,7 +42,8 @@ def _is_inside(item: QQuickItem, global_pos) -> bool:
     try:
         local = item.mapFromGlobal(global_pos)
         return 0 <= local.x() <= item.width() and 0 <= local.y() <= item.height()
-    except Exception:
+    except (AttributeError, RuntimeError, TypeError) as exc:
+        debug(f"[InputFocusFilter] 坐标命中检测失败: {exc}")
         return False
 
 
@@ -61,10 +65,12 @@ class _InputFocusFilter(QObject):
         # 拿全局坐标. PySide6 中 QMouseEvent.globalPosition 返回 QPointF
         try:
             gp = event.globalPosition().toPoint()
-        except Exception:
+        except (AttributeError, RuntimeError) as exc:
+            debug(f"[InputFocusFilter] globalPosition 不可用,尝试 globalPos: {exc}")
             try:
                 gp = event.globalPos()
-            except Exception:
+            except (AttributeError, RuntimeError) as fallback_exc:
+                debug(f"[InputFocusFilter] 获取鼠标全局坐标失败: {fallback_exc}")
                 return False
 
         # 点击位置在当前 focus 输入控件内 — 不清, 让 TextInput 自己处理 (光标移动等)
@@ -74,8 +80,8 @@ class _InputFocusFilter(QObject):
         # 点击位置在外部 — 清焦点
         try:
             focus_obj.setFocus(False)
-        except Exception:
-            pass
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            debug(f"[InputFocusFilter] 清除输入焦点失败: {exc}")
 
         return False  # 不消费事件, QML 继续处理
 

@@ -110,7 +110,8 @@ class ScreenEyedropperWindow(QWidget):
             mouse_grabbed = True
             self.grabKeyboard()
             keyboard_grabbed = True
-        except Exception:
+        except (RuntimeError, OSError) as exc:
+            logger.warning(f"ScreenEyedropper grab failed 屏幕取色抓取失败: {exc}")
             # 仅释放已成功抓取的资源，避免二次异常
             if keyboard_grabbed:
                 self.releaseKeyboard()
@@ -134,8 +135,8 @@ class ScreenEyedropperWindow(QWidget):
         try:
             self.releaseMouse()
             self.releaseKeyboard()
-        except Exception:
-            pass
+        except (RuntimeError, OSError) as exc:
+            logger.debug(f"ScreenEyedropper release ignored 屏幕取色释放失败: {exc}")
         self.hide()
         
     def _update_position_and_color(self):
