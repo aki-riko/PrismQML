@@ -25,7 +25,7 @@ Item {
 
     // ==================== Public Props ====================
     property Item anchorTarget: null    // 锚控件 (AnchoredBelow 模式贴它下方)
-    property int popupMode: 0           // 0=AnchoredBelow / 1=CenteredOverlay
+    property int popupMode: Enums.input.search_popup_anchored_below
     property var rootContent: null      // SearchResultList 实例,父级注入
 
     // isOpen 直接绑底层 PopupWindowCore 的状态,避免两份独立状态不同步
@@ -33,7 +33,7 @@ Item {
 
     // ==================== Computed Sizing ====================
     readonly property int _resolvedWidth: {
-        if (popupMode === 0 && anchorTarget) {
+        if (popupMode === Enums.input.search_popup_anchored_below && anchorTarget) {
             return Math.max(240, anchorTarget.width)
         }
         return 600  // CenteredOverlay
@@ -70,7 +70,7 @@ Item {
         popupBase.popupWidth = popupRoot._resolvedWidth
         popupBase.popupHeight = popupRoot._resolvedHeight
 
-        if (popupMode === 0 && anchorTarget) {
+        if (popupMode === Enums.input.search_popup_anchored_below && anchorTarget) {
             // AnchoredBelow: 让底层 openAtControl 自动处理 panelOffset
             // (8) + controlGap (2) + centerOffset 偏移,等宽锚定
             popupBase.openAtControl(anchorTarget)

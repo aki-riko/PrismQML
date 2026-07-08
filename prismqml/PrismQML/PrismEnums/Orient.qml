@@ -15,4 +15,8 @@ QtObject {
     readonly property int vertical: 1    // Vertical layout (VBoxLayout) 垂直布局
     readonly property int horizontal: 2  // Horizontal layout (HBoxLayout) 水平布局
     readonly property int grid: 3        // Grid layout 网格布局
+    // ==================== Alignment Types 对齐类型 ====================
+    readonly property int align_left: 0
+    readonly property int align_center: 1
+    readonly property int align_right: 2
 }

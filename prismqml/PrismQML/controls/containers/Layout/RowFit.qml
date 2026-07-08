@@ -14,7 +14,7 @@
 //   RowFit {
 //       autoFit: true              // ← 一个属性开启
 //       anchors.fill: parent       // 必须有外部尺寸 (anchors.fill / 显式 width)
-//       horizontalAlign: RowFit.Center  // 默认 Center
+//       horizontalAlign: Enums.orient.align_center  // 默认 Center
 //       Label{}; Image{}; Label{}
 //   }
 //
@@ -26,18 +26,17 @@
 // autoFit 模式必须有外层 Item 提供 width 锚点。
 //
 import QtQuick
+import "../../.."
 
 Item {
     id: root
 
     // ==================== Public Props ====================
-    enum Align { Left, Center, Right }
-
     // 关闭自动缩放时,行为 = 原生 Row (root 透传 implicit 尺寸)
     property bool autoFit: false
     property real minScale: 0.6
     property real padding: 8
-    property int horizontalAlign: RowFit.Center
+    property int horizontalAlign: Enums.orient.align_center
     property alias spacing: row.spacing
     // 让用户直接 RowFit { Label{}; ... } 把子项写在里面
     default property alias content: row.data
@@ -55,18 +54,18 @@ Item {
         anchors.verticalCenter: root.autoFit ? parent.verticalCenter : undefined
 
         anchors.horizontalCenter:
-            root.autoFit && root.horizontalAlign === RowFit.Center
+            root.autoFit && root.horizontalAlign === Enums.orient.align_center
             ? parent.horizontalCenter : undefined
         anchors.left:
-            root.autoFit && root.horizontalAlign === RowFit.Left
+            root.autoFit && root.horizontalAlign === Enums.orient.align_left
             ? parent.left : undefined
         anchors.leftMargin:
-            root.autoFit && root.horizontalAlign === RowFit.Left ? root.padding : 0
+            root.autoFit && root.horizontalAlign === Enums.orient.align_left ? root.padding : 0
         anchors.right:
-            root.autoFit && root.horizontalAlign === RowFit.Right
+            root.autoFit && root.horizontalAlign === Enums.orient.align_right
             ? parent.right : undefined
         anchors.rightMargin:
-            root.autoFit && root.horizontalAlign === RowFit.Right ? root.padding : 0
+            root.autoFit && root.horizontalAlign === Enums.orient.align_right ? root.padding : 0
 
         // autoFit 时按比例缩
         scale: {
@@ -79,8 +78,8 @@ Item {
         transformOrigin: {
             if (!root.autoFit) return Item.TopLeft
             switch (root.horizontalAlign) {
-            case RowFit.Left:   return Item.Left
-            case RowFit.Right:  return Item.Right
+            case Enums.orient.align_left:   return Item.Left
+            case Enums.orient.align_right:  return Item.Right
             default:               return Item.Center
             }
         }

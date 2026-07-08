@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
 
-import QtQuick.Controls
 import QtQuick.Dialogs
 import "../.."
 import "../icons"

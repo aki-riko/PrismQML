@@ -36,16 +36,10 @@ import "_internal" as SearchInternal
 Item {
     id: control
 
-    // ==================== popupMode 枚举 ====================
-    enum PopupMode {
-        AnchoredBelow = 0,
-        CenteredOverlay = 1
-    }
-
     // ==================== Public Props ====================
     property var entries: []
     property string placeholderText: ''
-    property int popupMode: LocalSearchBar.PopupMode.AnchoredBelow
+    property int popupMode: Enums.input.search_popup_anchored_below
     property var matchKeys: ['title', 'subtitle', 'keywords']
     property bool fuzzyMatch: true
     property int maxSuggestions: 5
@@ -72,7 +66,7 @@ Item {
 
     // ==================== Public methods ====================
     function open() {
-        if (popupMode === LocalSearchBar.PopupMode.CenteredOverlay) {
+        if (popupMode === Enums.input.search_popup_centered_overlay) {
             searchPopup.open()
             lineEdit.forceActiveFocus()
         }
@@ -84,7 +78,7 @@ Item {
         lineEdit.text = text || ''
         // 命令式 API 直接调 popup 操作; 底层 PopupWindowCore 自带
         // isOpen/isClosing 守卫,重复调用幂等
-        if (control.popupMode === LocalSearchBar.PopupMode.AnchoredBelow) {
+        if (control.popupMode === Enums.input.search_popup_anchored_below) {
             if (lineEdit.text.length > 0) {
                 searchPopup.open()
             } else {
@@ -108,7 +102,7 @@ Item {
             control.queryEdited(text)
             // AnchoredBelow: 输入立即唤起 popup, 清空时关闭
             // 重复调用幂等(底层 PopupWindowCore 自带守卫)
-            if (control.popupMode === LocalSearchBar.PopupMode.AnchoredBelow) {
+            if (control.popupMode === Enums.input.search_popup_anchored_below) {
                 if (text.length > 0) searchPopup.open()
                 else searchPopup.dismiss()
             }

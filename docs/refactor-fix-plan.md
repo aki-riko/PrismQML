@@ -33,6 +33,15 @@
 - `$env:QT_QPA_PLATFORM='offscreen'; .\.venv\Scripts\python.exe tests\qml\probe_all_components.py`
 - `.\.venv\Scripts\python.exe -m pytest`
 
+### Step 1 执行记录
+
+- 状态：已完成。
+- 变更：`RowFit` 对齐模式迁移到 `Enums.orient.align_*`；`LocalSearchBar` 搜索弹窗模式迁移到 `Enums.input.search_popup_*`；`ImageCropper` 移除未使用的 `QtQuick.Controls` import。
+- 静态扫描：组件内部 `enum`、旧 `RowFit.*` 和 `LocalSearchBar.PopupMode.*` 引用已清零。
+- 已知例外：`controls/containers/Widget.qml` 仍使用 `QtQuick.Controls.Popup` / `Popup.Window` 承载内部 tooltip，属于 PrismQML 内部基础设施级 Popup，后续单独评估，不并入本快修步骤。
+- QML probe：`169 OK / 7 失败 / 5 跳过`，7 个失败均为 required property 单独实例化的既有基线。
+- Pytest：`116 passed`。
+
 ## Step 2 - Python 文件头合规
 
 范围：

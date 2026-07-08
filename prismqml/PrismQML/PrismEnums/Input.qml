@@ -22,6 +22,9 @@ QtObject {
     // Multiline 多行
     readonly property int multiline_plain: 0     // Plain text editable 纯文本可编辑
     readonly property int multiline_browser: 1   // Read-only rich text browser 只读富文本浏览器
+    // Search popup mode 搜索弹窗模式
+    readonly property int search_popup_anchored_below: 0
+    readonly property int search_popup_centered_overlay: 1
     // SpinBox types SpinBox类型
     readonly property int spinbox_normal: 10
     readonly property int spinbox_double: 11
