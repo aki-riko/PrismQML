@@ -47,8 +47,15 @@ PopupWindowCore {
  property int _cachedWidth: minWidth // Cached width to break binding loop 缓存宽度打破绑定循环
  property int _cachedHeight: Enums.controlSize.emptyStateButtonHeight // Cached height 缓存高度
  property bool _isDestroyed: false // Destruction flag 销毁标记
+ property var _openSubmenu: null
+ property var _openSubmenuAction: null
+ property var _pendingSubmenuAction: null
+ property var _pendingSubmenuComponent: null
  
- Component.onDestruction: _isDestroyed = true
+ Component.onDestruction: {
+ _isDestroyed = true
+ _closeOpenSubmenu()
+ }
  
  // ==================== Size Calculation 尺寸计算 ====================
  // Use cached values to avoid binding loop 使用缓存值避免绑定循环
@@ -94,6 +101,55 @@ PopupWindowCore {
  var calcH = _calcHeight()
  _cachedHeight = Math.min(Math.max(Enums.controlSize.emptyStateButtonHeight, calcH), maxHeight)
  _needsScroll = calcH > maxHeight
+ }
+
+ function _closeOpenSubmenu() {
+ submenuOpenTimer.stop()
+ _pendingSubmenuAction = null
+ _pendingSubmenuComponent = null
+ _openSubmenuAction = null
+ if (!_openSubmenu) return
+
+ var submenu = _openSubmenu
+ _openSubmenu = null
+ if (submenu.close) submenu.close()
+ submenu.destroy(Enums.popupMetrics.closingDelayMs)
+ }
+
+ function _openSubmenuForAction(action, submenuComponent) {
+ if (!action || !submenuComponent) return
+ if (_openSubmenu && _openSubmenuAction === action) return
+
+ _closeOpenSubmenu()
+ var submenu = submenuComponent.createObject(null)
+ if (!submenu) return
+
+ submenu.stealFocus = false
+ if (submenu.actionTriggered) {
+ submenu.actionTriggered.connect(function() {
+ Qt.callLater(function() {
+ if (!control._isDestroyed) control.close()
+ })
+ })
+ }
+ if (submenu.dismissed) {
+ submenu.dismissed.connect(function() {
+ if (control._openSubmenu === submenu) {
+ control._openSubmenu = null
+ control._openSubmenuAction = null
+ submenu.destroy(Enums.popupMetrics.closingDelayMs)
+ }
+ })
+ }
+
+ _openSubmenu = submenu
+ _openSubmenuAction = action
+ var globalPos = action.mapToGlobal(action.width - Enums.popupMetrics.controlGap, 0)
+ if (submenu.showAtPosition) {
+ submenu.showAtPosition(globalPos.x, globalPos.y)
+ } else if (submenu.open) {
+ submenu.open(globalPos.x, globalPos.y)
+ }
  }
  
  // ==================== Public Methods 公开方法 ====================
@@ -206,16 +262,14 @@ PopupWindowCore {
  function addSubmenu(text, icon, submenuComponent) {
  var action = addAction(text, icon, "", { hasSubmenu: true })
  if (action && submenuComponent) {
+ action.hoveredChanged.connect(function() {
+ if (!action.hovered) return
+ _pendingSubmenuAction = action
+ _pendingSubmenuComponent = submenuComponent
+ submenuOpenTimer.restart()
+ })
  action.submenuRequested.connect(function() {
- // Position submenu to the right of this action
- var globalPos = action.mapToGlobal(action.width, 0)
- var submenu = submenuComponent.createObject(null)
- if (submenu && submenu.showAtPosition) {
- submenu.showAtPosition(globalPos.x, globalPos.y)
- } else if (submenu && submenu.open) {
- submenu.open(globalPos.x, globalPos.y)
- }
- control.close()
+ _openSubmenuForAction(action, submenuComponent)
  })
  }
  return action
@@ -223,6 +277,7 @@ PopupWindowCore {
  
  // Clear all items 清空所有项
  function clear() {
+ _closeOpenSubmenu()
  for (var i = itemsColumn.children.length - 1; i >= 0; i--) {
  var child = itemsColumn.children[i]
  // destroy() 是延迟执行的，先设 visible=false 防止 _calcHeight 计入
@@ -251,10 +306,24 @@ PopupWindowCore {
  cursorShape: Qt.ArrowCursor
  }
  }
+
+ Timer {
+ id: submenuOpenTimer
+ interval: Enums.duration.fast
+ repeat: false
+ onTriggered: {
+ if (_pendingSubmenuAction && _pendingSubmenuAction.hovered) {
+ _openSubmenuForAction(_pendingSubmenuAction, _pendingSubmenuComponent)
+ }
+ }
+ }
  
  // ==================== Lifecycle 生命周期 ====================
  Component.onCompleted: Qt.callLater(_updateSize)
- onClosed: dismissed()
+ onClosed: {
+ _closeOpenSubmenu()
+ dismissed()
+ }
  onAboutToShow: _updateSize() // Recalculate before showing 显示前重新计算
  
  // ==================== Menu Content 菜单内容 ====================
@@ -285,6 +354,13 @@ PopupWindowCore {
  var c = itemsColumn.children[i]
  if (c && c.triggered && _autoBoundActions.indexOf(c) === -1) {
  _autoBoundActions.push(c)
+ if (c.hoveredChanged) {
+ c.hoveredChanged.connect((function(child) {
+ return function() {
+ if (child.hovered && !child.hasSubmenu) control._closeOpenSubmenu()
+ }
+ })(c))
+ }
  c.triggered.connect((function(child) {
  return function() {
  control.actionTriggered(child.actionId || child.text || "")
