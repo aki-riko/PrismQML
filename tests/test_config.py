@@ -42,7 +42,7 @@ def temp_config_env():
             ConfigManager._instance = original_instance
 
 
-class TestSettingsBase:
+class TestSettingsCore:
     def test_save_atomic_write(self, temp_config_env):
         """测试 save 方法的原子写入机制"""
         manager, path = temp_config_env

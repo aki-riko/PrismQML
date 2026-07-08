@@ -133,7 +133,7 @@ void Window::setWindowIcon(const QString &iconUrl, bool colored) {
         m_root->setProperty("windowIcon", iconUrl);
         m_root->setProperty("windowIconColored", colored);
     }
-    // 双保险(镜像 Python window_base.py): 宿主侧直接设 QGuiApplication 任务栏/Alt-Tab
+    // 双保险(镜像 Python window_core.py): 宿主侧直接设 QGuiApplication 任务栏/Alt-Tab
     // 图标, 不只依赖 QML onWindowIconChanged 回调那一条路。
     if (!iconUrl.isEmpty())
         WindowHelper::instance()->setAppIcon(iconUrl);

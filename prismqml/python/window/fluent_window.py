@@ -9,7 +9,7 @@
 from typing import Optional
 from PySide6.QtCore import QObject
 
-from .window_base import WindowCloseEvent, WindowCore, WindowType, NavigationItem
+from .window_core import WindowCloseEvent, WindowCore, WindowType, NavigationItem
 
 # ==================== 统一窗口类 ====================
 

@@ -18,7 +18,7 @@ import pytest
 
 from prismqml.python.config.validators import Validator, ValidationKind
 from prismqml.python.config.config_item import SettingEntry, RangedEntry, EnumEntry
-from prismqml.python.config.settings_base import SettingsCore
+from prismqml.python.config.settings_core import SettingsCore
 from prismqml.python.config.config_manager import ConfigManager
 
 
@@ -237,7 +237,7 @@ class MockConfig(SettingsCore):
     test_int = SettingEntry("TestGroup", "TestInt", 42)
 
 
-class TestSettingsBaseLoadSignal:
+class TestSettingsCoreLoadSignal:
     """SettingsCore.load 完成后应发射 configChanged 信号"""
 
     def test_load_emits_config_changed(self):

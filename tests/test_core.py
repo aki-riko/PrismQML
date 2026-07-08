@@ -270,13 +270,13 @@ class TestWindowType:
     def test_qml_names_mapping(self):
         """QML 名称映射应覆盖所有类型"""
         from prismqml.python.window.fluent_window import WindowType
-        from prismqml.python.window.window_base import _WINDOW_TYPE_QML_NAMES
+        from prismqml.python.window.window_core import _WINDOW_TYPE_QML_NAMES
 
         for wt in WindowType:
             assert wt in _WINDOW_TYPE_QML_NAMES
 
 
-class TestIconBase:
+class TestIconCore:
     def test_get_icon_color_normal(self):
         """resolveIconColor 在普通模式下应返回 black/white 字符串契约。"""
         from prismqml.python.core import resolveIconColor, Theme
@@ -293,7 +293,7 @@ class TestIconBase:
 
     def test_svg_engine_clone_preserves_source(self):
         """SvgRenderEngine.clone() 应保留 SVG 源串。"""
-        from prismqml.python.core.icon_base import SvgRenderEngine
+        from prismqml.python.core.icon_core import SvgRenderEngine
 
         engine = SvgRenderEngine("<svg/>")
         cloned = engine.clone()
@@ -303,7 +303,7 @@ class TestIconBase:
         """ThemedIconProxy 按渲染模式给出弱化态不透明度。"""
         from PySide6.QtGui import QIcon
 
-        from prismqml.python.core.icon_base import ThemedIconProxy
+        from prismqml.python.core.icon_core import ThemedIconProxy
 
         assert ThemedIconProxy._state_alpha(QIcon.Disabled) == 0.5
         assert ThemedIconProxy._state_alpha(QIcon.Selected) == 0.7
@@ -311,7 +311,7 @@ class TestIconBase:
 
     def test_fluent_engine_field_names(self):
         """ThemedIconProxy 内部字段名为 _iconSource/_invertTheme。"""
-        from prismqml.python.core.icon_base import ThemedIconProxy
+        from prismqml.python.core.icon_core import ThemedIconProxy
 
         engine = ThemedIconProxy("foo.svg", reverse=True)
         assert engine._iconSource == "foo.svg"
@@ -323,7 +323,7 @@ class TestIconBase:
     def test_rewrite_svg_preserves_xmlns_and_xlink(self, tmp_path):
         """_rewrite_svg_attrs 必须保留 xmlns / xmlns:xlink 命名空间声明,
         以及 xlink:href 这种带前缀属性, 否则复杂 SVG (渐变 / use 引用) 渲染会废。"""
-        from prismqml.python.core.icon_base import _rewrite_svg_attrs
+        from prismqml.python.core.icon_core import _rewrite_svg_attrs
 
         svg = (
             '<?xml version="1.0" encoding="UTF-8"?>'
@@ -353,7 +353,7 @@ class TestIconBase:
 
     def test_rewrite_svg_indexes_empty_list(self, tmp_path):
         """indexes=[] 应等价于"一个都不改", 与 indexes=None"全改"区分。"""
-        from prismqml.python.core.icon_base import _rewrite_svg_attrs
+        from prismqml.python.core.icon_core import _rewrite_svg_attrs
 
         svg = (
             '<?xml version="1.0"?>'
@@ -381,7 +381,7 @@ class TestIconBase:
         from PySide6.QtCore import QSize
         from PySide6.QtGui import QIcon
 
-        from prismqml.python.core.icon_base import (
+        from prismqml.python.core.icon_core import (
             ThemedIconProxy,
             _bake_pixmap,
         )
@@ -402,7 +402,7 @@ class TestIconBase:
         from PySide6.QtCore import QSize
         from PySide6.QtGui import QIcon
 
-        from prismqml.python.core.icon_base import (
+        from prismqml.python.core.icon_core import (
             SvgRenderEngine,
             _bake_pixmap,
         )

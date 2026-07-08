@@ -2,7 +2,7 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
-// PrismQML C++ 宿主 - Icon (镜像 Python core/icon_base.py 的图标 API)
+// PrismQML C++ 宿主 - Icon (镜像 Python core/icon_core.py 的图标 API)
 //
 // 说明: Python 的 2592 个图标名常量是 QML 自带 FluentEnums/Icons.qml 的数据,
 // C++ 重复存储无意义且易过时。C++ 侧用图标名字符串(与 addPage 一致), 本模块

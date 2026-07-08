@@ -176,10 +176,10 @@ __all__ = [
 _LAZY_EXPORTS = {
     "App": (".app", "App"),
     "Window": (".fluent_window", "Window"),
-    "WindowCloseEvent": (".window_base", "WindowCloseEvent"),
-    "WindowCore": (".window_base", "WindowCore"),
-    "WindowType": (".window_base", "WindowType"),
-    "NavigationItem": (".window_base", "NavigationItem"),
+    "WindowCloseEvent": (".window_core", "WindowCloseEvent"),
+    "WindowCore": (".window_core", "WindowCore"),
+    "WindowType": (".window_core", "WindowType"),
+    "NavigationItem": (".window_core", "NavigationItem"),
     # Mica/Acrylic
     "MicaManager": (".mica_window", "MicaManager"),
     "get_mica_manager": (".mica_window", "get_mica_manager"),

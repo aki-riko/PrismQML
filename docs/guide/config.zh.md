@@ -1,6 +1,6 @@
 # 配置系统
 
-配置系统采用五层架构：`Validator` → `SettingEntry` → `SettingsBase` → `AppConfig` → `ConfigManager`。
+配置系统采用五层架构：`Validator` → `SettingEntry` → `SettingsCore` → `AppConfig` → `ConfigManager`。
 
 - **JSON 持久化** — 默认存储于 `~/.prismqml/app.json`
 - **原子写入** — 先写临时文件再替换，防止断电数据丢失
@@ -24,11 +24,11 @@ config.setDpiScale(150)
 ```python
 from typing import ClassVar
 from prismqml.python.config import (
-    SettingsBase, SettingEntry, EnumEntry, Validator,
+    SettingsCore, SettingEntry, EnumEntry, Validator,
 )
 
 
-class MyAppConfig(SettingsBase):
+class MyAppConfig(SettingsCore):
     auto_save: ClassVar[SettingEntry] = SettingEntry(
         group="Editor", name="AutoSave",
         default=True, validator=Validator.boolean(),
@@ -40,4 +40,4 @@ class MyAppConfig(SettingsBase):
     )
 ```
 
-每个 `SettingEntry` 声明分组、名称、默认值和验证器；`SettingsBase` 子类自动落盘到 JSON，并可桥接到 QML。
+每个 `SettingEntry` 声明分组、名称、默认值和验证器；`SettingsCore` 子类自动落盘到 JSON，并可桥接到 QML。

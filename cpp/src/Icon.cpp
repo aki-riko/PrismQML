@@ -2,7 +2,7 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
-// PrismQML C++ 宿主 - Icon 实现 (镜像 Python core/icon_base.py)
+// PrismQML C++ 宿主 - Icon 实现 (镜像 Python core/icon_core.py)
 #include "prism/Icon.h"
 #include "prism/Registry.h"
 #include "prism/ThemeManager.h"

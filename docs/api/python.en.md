@@ -33,7 +33,7 @@ window = app.create_window(WindowType.BAR)
 | Name | Description |
 |------|-------------|
 | `Store` | Reactive state store |
-| `prismqml.python.config` | Config system (AppConfig / getConfigManager / SettingsBase / SettingEntry / Validator) |
+| `prismqml.python.config` | Config system (AppConfig / getConfigManager / SettingsCore / SettingEntry / Validator) |
 
 ## Engine components
 

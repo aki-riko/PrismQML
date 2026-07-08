@@ -18,7 +18,7 @@ from ..core.engine import EngineManager
 
 if TYPE_CHECKING:
     from .fluent_window import Window
-    from .window_base import WindowCore
+    from .window_core import WindowCore
 
 _DEFAULT_WINDOW_TYPE = 1
 
@@ -288,4 +288,3 @@ class App:
                 f"App not fully initialized; cannot forward {name!r} to QApplication"
             ) from None
         return getattr(app, name)
-

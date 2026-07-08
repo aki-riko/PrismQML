@@ -124,7 +124,7 @@ MODULE_TAGS = {
     "window.py": "Window",
     "qrcode_generator.py": "QRCode",
     "dpi.py": "DPI",
-    "settings_base.py": "Config",
+    "settings_core.py": "Config",
     "config_manager.py": "Config",
     "app_config.py": "Config",
     "config_item.py": "Config",

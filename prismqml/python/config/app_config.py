@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import ClassVar
 
 from .config_item import EnumEntry, SettingEntry
-from .settings_base import SettingsCore
+from .settings_core import SettingsCore
 from .validators import Validator
 
 

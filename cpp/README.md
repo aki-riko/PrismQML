@@ -91,7 +91,7 @@ window.show(); app.exec()
 | 类别 | C++ API | 镜像的 Python 源 |
 |------|---------|------------------|
 | 应用入口 | `App`（createWindow / exec / engine / qapp） | window/app.py |
-| 窗口 | `Window`（addPage / setWindowTitle / resize / show / navigateTo），三布局 `WindowType` | window_base.py + _window_builder.py + _page_manager.py |
+| 窗口 | `Window`（addPage / setWindowTitle / resize / show / navigateTo），三布局 `WindowType` | window_core.py + _window_builder.py + _page_manager.py |
 | 主题 | `setTheme/getTheme` `isDark` `ThemeManager` | core/theme.py |
 | 皮肤 | `setSkin/getSkin`（Fluent / Neobrutalism） | core/theme.py |
 | 主题色 | `setAccentColor/getAccentColor/accentQColor` | core/theme.py |
@@ -188,4 +188,3 @@ int main(int argc, char **argv) {
 - QML 加载真实 PrismQML 组件零 `ReferenceError`。
 
 详见 [`docs/cpp-host-plan.md`](../docs/cpp-host-plan.md)。
-

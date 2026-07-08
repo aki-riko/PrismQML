@@ -33,7 +33,7 @@ window = app.create_window(WindowType.BAR)
 | 名称 | 说明 |
 |------|------|
 | `Store` | 响应式状态存储 |
-| `prismqml.python.config` | 配置系统（AppConfig / getConfigManager / SettingsBase / SettingEntry / Validator） |
+| `prismqml.python.config` | 配置系统（AppConfig / getConfigManager / SettingsCore / SettingEntry / Validator） |
 
 ## 引擎组件
 

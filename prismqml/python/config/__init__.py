@@ -7,7 +7,7 @@
 模块结构 Module Structure:
 - validators.py     : Validator + ValidationKind
 - config_item.py    : SettingEntry / RangedEntry / EnumEntry
-- settings_base.py  : SettingsCore (持久化容器基类)
+- settings_core.py  : SettingsCore (持久化容器基类)
 - app_config.py     : AppConfig (PrismQML 自带的应用级条目)
 - config_manager.py : ConfigManager (QML 友好接口 + 单例)
 - dpi.py            : DPI 缩放工具
@@ -46,7 +46,7 @@ _LAZY_EXPORTS = {
     "RangedEntry": (".config_item", "RangedEntry"),
     "EnumEntry": (".config_item", "EnumEntry"),
     # Container base
-    "SettingsCore": (".settings_base", "SettingsCore"),
+    "SettingsCore": (".settings_core", "SettingsCore"),
     # App-level config
     "AppConfig": (".app_config", "AppConfig"),
     "DEFAULT_CONFIG_DIR": (".app_config", "DEFAULT_CONFIG_DIR"),

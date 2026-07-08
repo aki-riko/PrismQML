@@ -19,7 +19,7 @@ from ..core.engine import EngineManager
 from ..providers import get_svg_provider
 
 if TYPE_CHECKING:
-    from .window_base import NavigationItem
+    from .window_core import NavigationItem
 
 class WindowBuilderMixin:
     """窗口构建器 Mixin，提供 _create_window 等方法"""
@@ -223,7 +223,7 @@ class WindowBuilderMixin:
         profile("生成导航/页面 QML 数据")
 
         # 根据window_type选择QML组件
-        from .window_base import _WINDOW_TYPE_QML_NAMES
+        from .window_core import _WINDOW_TYPE_QML_NAMES
         qml_component = _WINDOW_TYPE_QML_NAMES.get(self._window_type, "WindowsBar")
         window_icon_qml = icon_path(self._icon) if self._icon else f"file:///{icon_dir.as_posix()}/Apps.svg"
         mica_enabled = bool(self._pending_props.get("micaEnabled", getConfigManager().micaEnabled))

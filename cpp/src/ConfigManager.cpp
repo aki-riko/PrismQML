@@ -2,7 +2,7 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
-// PrismQML C++ 宿主 - ConfigManager 实现 (镜像 config_manager.py + settings_base.py)
+// PrismQML C++ 宿主 - ConfigManager 实现 (镜像 config_manager.py + settings_core.py)
 #include "prism/ConfigManager.h"
 
 #include <QStandardPaths>
