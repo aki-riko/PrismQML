@@ -1,11 +1,11 @@
-# PrismQML
+# PrismQML（棱镜映界）
 
 **简体中文** | [English](./README.en.md)
 
 > **一套 QML 控件，多种设计语言一键切换。**
-> PrismQML 是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件，运行时在 **Fluent** 与 **新粗野（Neobrutalism）** 之间自由切换，120fps+ 流畅动画。
+> PrismQML（棱镜映界）是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件，运行时在 **Fluent** 与 **新粗野（Neobrutalism）** 之间自由切换，120fps+ 流畅动画。
 
-![PrismQML Fluent 与 Neobrutalism 皮肤对比](docs/images/prismqml-skins.png)
+![PrismQML（棱镜映界）Fluent 与 Neobrutalism 皮肤对比](docs/images/prismqml-skins.png)
 
 - **安装**：`pip install prismqml`
 - **适合**：想用 Python + QML 做现代桌面应用，同时需要统一控件、主题 token、运行时换肤和跨平台窗口能力的项目。
@@ -100,7 +100,7 @@ window = app.create_window(WindowType.SPLIT)
 
 ## 🎨 皮肤系统（核心）
 
-PrismQML 的招牌能力：**皮肤与明暗正交**。`skin` 控制设计语言，`theme` 控制明暗，两者独立组合。
+棱镜映界的招牌能力：**皮肤与明暗正交**。`skin` 控制设计语言，`theme` 控制明暗，两者独立组合。
 
 ```python
 from prismqml import setSkin, Skin
