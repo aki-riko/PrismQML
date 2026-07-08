@@ -106,6 +106,15 @@
 - `.\.venv\Scripts\python.exe -m pytest tests\test_core.py tests\qml\test_splash_default_mount.py tests\qml\test_splash_timing.py`
 - 若 QML probe 数量变化，必须跑基线 worktree 对比。
 
+### Step 4 执行记录
+
+- 状态：已完成。
+- 变更：新增 `_generated_qml_cache.py` 承载生成 QML 缓存写入；新增 `_splash_builder.py` 承载启动画面创建/挂载；`_window_builder.py` 保留原方法名并改为薄代理。
+- 行数：`_window_builder.py` 从 `620` 行降到 `395` 行。
+- Compileall：`.\.venv\Scripts\python.exe -m compileall prismqml\python tests` 通过。
+- 回归：`tests\test_core.py` 36 passed；`tests\qml\test_splash_default_mount.py` 通过；`tests\qml\test_splash_timing.py` 通过。
+- Pytest：全量 `116 passed`。
+
 ## Step 5 - TableWidget 模块化
 
 范围：

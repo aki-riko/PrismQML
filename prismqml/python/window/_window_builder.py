@@ -8,17 +8,22 @@
 负责 QML 窗口的动态构建与字符串拼接。
 """
 
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 from pathlib import Path
 import hashlib
 import os
 import time
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
-from PySide6.QtQuick import QQuickItem
-from PySide6.QtCore import QTimer, QMetaObject, Q_ARG, QUrl, QStandardPaths
-from ..core.logger import warning, info, error, debug
+from PySide6.QtCore import QUrl, QStandardPaths
+from ..core.logger import warning, info
 from ..core.engine import EngineManager
 from ..providers import get_svg_provider
+from ._generated_qml_cache import (
+    GENERATED_SPLASH_QML_CACHE_DIR,
+    GENERATED_WINDOW_QML_CACHE_DIR,
+    write_generated_qml,
+)
+from ._splash_builder import create_splash
 
 if TYPE_CHECKING:
     from .window_core import NavigationItem
@@ -26,8 +31,8 @@ if TYPE_CHECKING:
 class WindowBuilderMixin:
     """窗口构建器 Mixin，提供 _create_window 等方法"""
 
-    _GENERATED_QML_CACHE_DIR = Path.home() / ".prismqml" / "qml_cache" / "generated_windows"
-    _GENERATED_SPLASH_QML_CACHE_DIR = Path.home() / ".prismqml" / "qml_cache" / "generated_splash"
+    _GENERATED_QML_CACHE_DIR = GENERATED_WINDOW_QML_CACHE_DIR
+    _GENERATED_SPLASH_QML_CACHE_DIR = GENERATED_SPLASH_QML_CACHE_DIR
 
     @staticmethod
     def _escape_qml(text: str) -> str:
@@ -56,38 +61,22 @@ class WindowBuilderMixin:
     @classmethod
     def _write_generated_window_qml(cls, source: str) -> Path:
         """Write generated root-window QML to a stable file for Qt's file cache path."""
-        source_bytes = source.encode("utf-8")
-        digest = hashlib.sha256(source_bytes).hexdigest()[:20]
-        qml_file = cls._GENERATED_QML_CACHE_DIR / f"window_{digest}.qml"
-
-        cls._GENERATED_QML_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        if qml_file.exists():
-            try:
-                if qml_file.read_bytes() == source_bytes:
-                    return qml_file
-            except OSError as exc:
-                debug(f"[WindowBuilder] 读取生成窗口 QML 缓存失败: {exc}")
-
-        qml_file.write_bytes(source_bytes)
-        return qml_file
+        return write_generated_qml(
+            source,
+            cls._GENERATED_QML_CACHE_DIR,
+            "window",
+            "[WindowBuilder]",
+        )
 
     @classmethod
     def _write_generated_splash_qml(cls, source: str) -> Path:
         """Write generated splash QML to a stable file so Qt can disk-cache it."""
-        source_bytes = source.encode("utf-8")
-        digest = hashlib.sha256(source_bytes).hexdigest()[:20]
-        qml_file = cls._GENERATED_SPLASH_QML_CACHE_DIR / f"splash_{digest}.qml"
-
-        cls._GENERATED_SPLASH_QML_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        if qml_file.exists():
-            try:
-                if qml_file.read_bytes() == source_bytes:
-                    return qml_file
-            except OSError as exc:
-                debug(f"[Splash] 读取生成 Splash QML 缓存失败: {exc}")
-
-        qml_file.write_bytes(source_bytes)
-        return qml_file
+        return write_generated_qml(
+            source,
+            cls._GENERATED_SPLASH_QML_CACHE_DIR,
+            "splash",
+            "[Splash]",
+        )
 
     def _create_window(self):
         """创建QML窗口"""
@@ -396,221 +385,7 @@ import "file:///{qml_dir.as_posix()}/_internal"
 
         失败不致命: splash 仅是视觉增强,任何异常只 warning 并继续启动。
         """
-        if not self._splash_enabled or self._window is None:
-            return
-
-        try:
-            profile_start = time.perf_counter()
-            profile_last = profile_start
-
-            def profile(label: str):
-                nonlocal profile_last
-                now = time.perf_counter()
-                info(
-                    f"[启动剖析] PrismQML._create_splash {label}: "
-                    f"+{int((now - profile_last) * 1000)}ms / "
-                    f"total {int((now - profile_start) * 1000)}ms"
-                )
-                profile_last = now
-
-            from ..core.utils import qml_path
-            esc = self._escape_qml
-            profile("导入/准备")
-
-            # 图标/标题默认回退到窗口自身配置
-            icon = self._splash_icon or self._icon
-            icon_url = self._resolve_icon_path(icon) if icon else ""
-            title = self._splash_title or self._title or ""
-            subtitle = self._splash_subtitle or ""
-
-            qml_dir = qml_path()
-            splash_qml = f"""import QtQuick
-import "file:///{qml_dir.as_posix()}"
-
-Rectangle {{
-    id: splash
-
-    property string iconSource: "{esc(icon_url)}"
-    property string title: "{esc(title)}"
-    property string subtitle: "{esc(subtitle)}"
-    property string activeIconSource: ""
-    property bool startupProfilingVerbose: PrismQmlStartupProfileVerbose
-
-    signal finished()
-
-    anchors.fill: parent
-    z: Enums.zIndex.tooltip
-    color: Enums.backgroundColor
-    opacity: 1
-    visible: true
-
-    function finish() {{
-        fadeOutAnim.start()
-    }}
-
-    NumberAnimation {{
-        id: fadeOutAnim
-        target: splash
-        property: "opacity"
-        to: 0
-        duration: Enums.duration.medium
-        easing.type: Easing.InCubic
-        onFinished: {{
-            splash.visible = false
-            splash.finished()
-        }}
-    }}
-
-    Timer {{
-        id: splashContentTimer
-        interval: 0
-        running: true
-        repeat: false
-        onTriggered: {{
-            contentLoader.active = true
-            if (splash.startupProfilingVerbose) {{
-                console.info("[启动剖析] Splash content Loader activated")
-            }}
-        }}
-    }}
-
-    Timer {{
-        id: splashIconTimer
-        interval: 0
-        running: false
-        repeat: false
-        onTriggered: {{
-            splash.activeIconSource = splash.iconSource
-            if (splash.startupProfilingVerbose) {{
-                console.info("[启动剖析] Splash icon source activated")
-            }}
-        }}
-    }}
-
-    Loader {{
-        id: contentLoader
-        anchors.fill: parent
-        active: false
-        sourceComponent: splashContentComponent
-
-        onLoaded: {{
-            if (splash.iconSource !== "") {{
-                splashIconTimer.start()
-            }}
-            if (splash.startupProfilingVerbose) {{
-                console.info("[启动剖析] Splash content Loader loaded")
-            }}
-        }}
-    }}
-
-    Component {{
-        id: splashContentComponent
-
-        Item {{
-            width: contentLoader.width
-            height: contentLoader.height
-
-            Column {{
-                anchors.centerIn: parent
-                spacing: Enums.spacing.xl
-
-                Image {{
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 102
-                    height: 102
-                    source: splash.activeIconSource
-                    sourceSize: Qt.size(102, 102)
-                    asynchronous: true
-                    cache: true
-                    smooth: true
-                    mipmap: true
-                    fillMode: Image.PreserveAspectFit
-                    visible: splash.activeIconSource !== ""
-                }}
-
-                Text {{
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: splash.title
-                    visible: text !== ""
-                    color: Enums.textColor.primary
-                    font.family: Enums.fontFamily
-                    font.pixelSize: 20
-                    font.bold: true
-                }}
-
-                Text {{
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: splash.subtitle
-                    visible: text !== ""
-                    color: Enums.textColor.secondary
-                    font.family: Enums.fontFamily
-                    font.pixelSize: 13
-                }}
-            }}
-        }}
-    }}
-}}
-"""
-            profile("拼接 Splash QML")
-            startup_profile_verbose = os.environ.get("PRISMQML_STARTUP_PROFILE_VERBOSE", "").lower() in {
-                "1",
-                "true",
-                "yes",
-                "on",
-            }
-            component = None
-            component_source = "file"
-            try:
-                splash_qml_file = self._write_generated_splash_qml(splash_qml)
-                profile("写入/确认 Splash QML 缓存")
-                if startup_profile_verbose:
-                    try:
-                        qml_bytes = splash_qml_file.read_bytes()
-                        qml_digest = hashlib.sha256(qml_bytes).hexdigest()[:20]
-                        info(
-                            "[启动剖析] PrismQML._create_splash generated qml: "
-                            f"path={splash_qml_file}, bytes={len(qml_bytes)}, sha={qml_digest}, "
-                            f"iconSet={bool(icon_url)}, titleSet={bool(title)}, subtitleSet={bool(subtitle)}"
-                        )
-                    except OSError as exc:
-                        warning(f"[启动剖析] 读取生成 Splash QML 失败: {exc}")
-                    info("[启动剖析] PrismQML._create_splash QQmlComponent(file) begin")
-                component = QQmlComponent(self._engine, QUrl.fromLocalFile(str(splash_qml_file)))
-                profile("QQmlComponent(file)")
-                if component.isError():
-                    warning(f"[Splash] 文件化组件加载失败: {[e.toString() for e in component.errors()]}")
-                    component = None
-            except Exception as e:
-                warning(f"[Splash] 文件化加载失败，回退到 inline: {e}")
-
-            if component is None:
-                component_source = "inline"
-                component = QQmlComponent(self._engine)
-                component.setData(splash_qml.encode("utf-8"), QUrl("inline-splash"))
-                profile("component.setData fallback")
-            if component.isError():
-                warning(f"[Splash] 组件加载失败: {[e.toString() for e in component.errors()]}")
-                return
-
-            splash = component.create()
-            profile(f"component.create({component_source})")
-            if splash is None:
-                warning("[Splash] create() 返回 None,跳过启动画面")
-                return
-
-            # 挂到窗口 contentItem 作为顶层覆盖层(SplashScreen 内部 anchors.fill)
-            splash.setParentItem(self._window.contentItem())
-            splash.setProperty("width", self._window.width())
-            splash.setProperty("height", self._window.height())
-            # QML 端 _dismissSplashWhenReady 读这个引用,首屏就绪时自动 finish()
-            self._window.setProperty("_splashInstance", splash)
-            profile("挂载到窗口")
-            # 持引用防 GC(QQmlComponent.create 的所有权在调用方)
-            self._splash_instance = splash
-            self._splash_component = component
-            debug("[Splash] 启动画面已挂载,等待首屏就绪后自动淡出")
-        except Exception as e:
-            warning(f"[Splash] 创建启动画面失败(不影响启动): {e}")
+        create_splash(self)
 
     def _build_nav_items_json(self, items: List['NavigationItem']) -> str:
         """构建导航项JSON"""
