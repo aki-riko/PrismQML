@@ -377,15 +377,15 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 
 ### 发布流程（main → tag → GitHub Release）
 
-远程：`github` = `git@github.com:aki-riko/PrismQML.git`（SSH 公钥用于 push）。
+远程：`prism` = `git@github.com:aki-riko/PrismQML.git`（SSH 公钥用于 push）。
 
 > 🔴 **双 remote 必须分清**：本仓有两个远程——
-> - `github` → `git@github.com:aki-riko/PrismQML.git`（**真 GitHub，CI/PyPI 发布在这里跑**）
+> - `prism` → `git@github.com:aki-riko/PrismQML.git`（**真 GitHub，CI/PyPI 发布在这里跑**）
 > - `origin` → `git@git.9li.life:Aquila/PrismQML.git`（自建 gitea，**无 CI**）
 >
 > 默认 `git push`（无 remote 名）走 `origin`（gitea），**不会触发 GitHub Actions**。
-> 发版相关的 commit 和 tag **必须显式 `git push github ...`** 才能触发 CI。
-> 两边都要推时：`git push github main && git push origin main`，tag 同理。
+> 发版相关的 commit 和 tag **必须显式 `git push prism ...`** 才能触发 CI。
+> 两边都要推时：`git push prism main && git push origin main`，tag 同理。
 
 1. **改版本号（两处必须同步）**：
    - **默认升构建号**：每次发版除非用户/维护者明确指定完整版本号或前三位升级策略，否则只递增最后一位构建号（`x.y.z.n` 中的 `n`）。例如 `0.2.24.1` 下一版默认 `0.2.24.2`，而不是 `0.2.25.0`。
@@ -400,8 +400,8 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 4. **打 tag + 推送**：
    ```bash
    git tag vx.y.z.n
-   git push github main
-   git push github vx.y.z.n
+   git push prism main
+   git push prism vx.y.z.n
    ```
 5. **建 GitHub Release**：`gh release create vx.y.z.n --repo aki-riko/PrismQML --title "vx.y.z.n" --notes "..."`
 6. **下游消费者生效（🔴 发版 ≠ 下游自动更新）**：下游应用（Gitora / quicksketch / Kaleidos 等）各自带**独立 `.venv`**，且 `.venv` 被 gitignore——它们装的是 PyPI 包 `prismqml`，**不随引擎源码推送而更新**。引擎发版后，每个下游需：
