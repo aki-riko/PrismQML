@@ -177,3 +177,13 @@
 - `sql_list_model.py` 降到 700 行以下，最好降到 500 行以下。
 - `.\.venv\Scripts\python.exe -m pytest tests\test_core.py tests\test_providers.py`
 - 可用时补跑 C++/Rust 相关 SQL model 测试。
+
+### Step 7 执行记录
+
+- 状态：已完成。
+- 变更：新增 `_sql_query_tools.py` 承载 SQL 参数归一化、ORDER BY 方向解析和 keyset 谓词注入；新增 `_page_cache.py` 承载 LRU 页缓存；`SqlListModel` 保留 QObject/QAbstractListModel API、查询编排和数据格式化逻辑。
+- 行数：`sql_list_model.py` 从 `931` 行降到 `565` 行。
+- 新增测试：`tests/test_sql_list_model.py` 使用真实临时 SQLite 数据库覆盖 dict 参数归一化、count 参数顺序、formatter、roleNames 和 keyset 翻页。
+- Compileall：`.\.venv\Scripts\python.exe -m compileall prismqml\python tests` 通过。
+- 定向 Pytest：`tests\test_core.py tests\test_providers.py tests\test_sql_list_model.py` 共 `40 passed`。
+- Pytest：全量 `118 passed`。

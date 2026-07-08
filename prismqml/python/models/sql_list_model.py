@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from collections import OrderedDict
 from contextlib import closing
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -52,6 +51,14 @@ from PySide6.QtCore import (
     Qt,
     Signal,
     Slot,
+)
+
+from ._page_cache import PageCache
+from ._sql_query_tools import (
+    inject_keyset_predicate,
+    normalize_one,
+    normalize_sql,
+    parse_cursor_directions,
 )
 
 # 优先 Rust 实现
@@ -150,10 +157,8 @@ class SqlListModel(QAbstractListModel):
         # role name → role id (供 QML)
         self._role_names: dict[int, QByteArray] = {}
 
-        # LRU: page_idx → (rows, end_cursor)
-        # rows: list[list[Any]]
-        # end_cursor: list[Any] | None — 末行 cursor_columns 的值,供下页 keyset 用
-        self._cache: "OrderedDict[int, tuple[list, Optional[list]]]" = OrderedDict()
+        # LRU page cache: page_idx → (rows, end_cursor)
+        self._cache = PageCache(self._lru_capacity)
 
     # ============================================================
     # 公开 API
@@ -196,7 +201,7 @@ class SqlListModel(QAbstractListModel):
                 self._count_sql,
                 self._params,
                 _count_ordered_from_params,
-            ) = self._normalize_sql(sql, count_sql, params)
+            ) = normalize_sql(sql, count_sql, params)
             # B1 修复: count_params=None 时使用 count 自己的 ordered (从 params 解析),
             # 而非主查询的 self._params。dict params 主/count 占位符顺序不同时不再错位。
             if count_params is None:
@@ -205,8 +210,8 @@ class SqlListModel(QAbstractListModel):
                 if isinstance(count_params, (list, tuple)):
                     self._count_params = list(count_params)
                 elif isinstance(count_params, dict):
-                    # ⚠️ S1 修复: 用 _normalize_one 单段处理,各自 SQL 各自参数,绝不串扰。
-                    self._count_sql, self._count_params = self._normalize_one(
+                    # ⚠️ S1 修复: 用 normalize_one 单段处理,各自 SQL 各自参数,绝不串扰。
+                    self._count_sql, self._count_params = normalize_one(
                         self._count_sql, count_params
                     )
                 else:
@@ -238,8 +243,7 @@ class SqlListModel(QAbstractListModel):
             # 触发首次 fetch 来填充 page 0 (此时 cursor_col_indices 已有)
             if self._row_count > 0:
                 first_page = self._fetch_page(0)
-                self._cache[0] = (first_page["rows"], first_page.get("end_cursor"))
-                self._touch_page(0)
+                self._cache.put(0, first_page["rows"], first_page.get("end_cursor"))
         finally:
             self.endResetModel()
         self.queryChanged.emit()
@@ -272,8 +276,7 @@ class SqlListModel(QAbstractListModel):
                 # 重新解析 columns + cursor 方向 + 拉首页
                 self._resolve_columns()
                 first = self._fetch_page(0)
-                self._cache[0] = (first["rows"], first.get("end_cursor"))
-                self._touch_page(0)
+                self._cache.put(0, first["rows"], first.get("end_cursor"))
         finally:
             self.endResetModel()
         self.countChanged.emit()
@@ -337,110 +340,6 @@ class SqlListModel(QAbstractListModel):
     # ============================================================
     # 内部
     # ============================================================
-    def _normalize_one(
-        self,
-        sql: str,
-        params: Optional[Union[list, tuple, dict]],
-    ) -> tuple[str, list]:
-        """单段 SQL 参数归一化: dict :name → 顺序 ?, list/tuple 原样
-
-        H1 修复: 扫描 :name 时跳过字符串字面量 (单/双引号) 和注释 (-- / /* */),
-        否则 SELECT 'foo:bar' / -- :note / /* :x */ 里的 :name 会被误替换。
-        """
-        if params is None:
-            return sql, []
-        if isinstance(params, (list, tuple)):
-            return sql, list(params)
-        if isinstance(params, dict):
-            ordered: list = []
-            out: list[str] = []
-            i = 0
-            n = len(sql)
-            while i < n:
-                ch = sql[i]
-                # 单引号字符串: 内含 '' 是单引号转义
-                if ch == "'":
-                    out.append(ch)
-                    i += 1
-                    while i < n:
-                        if sql[i] == "'":
-                            if i + 1 < n and sql[i + 1] == "'":
-                                out.append("''")
-                                i += 2
-                                continue
-                            out.append("'")
-                            i += 1
-                            break
-                        out.append(sql[i])
-                        i += 1
-                    continue
-                # 双引号标识符 (SQLite 也兼容,但用作字符串字面量罕见)
-                if ch == '"':
-                    out.append(ch)
-                    i += 1
-                    while i < n and sql[i] != '"':
-                        out.append(sql[i])
-                        i += 1
-                    if i < n:
-                        out.append('"')
-                        i += 1
-                    continue
-                # 行注释 -- ... \n
-                if ch == '-' and i + 1 < n and sql[i + 1] == '-':
-                    while i < n and sql[i] != '\n':
-                        out.append(sql[i])
-                        i += 1
-                    continue
-                # 块注释 /* ... */
-                if ch == '/' and i + 1 < n and sql[i + 1] == '*':
-                    out.append('/')
-                    out.append('*')
-                    i += 2
-                    while i < n - 1 and not (sql[i] == '*' and sql[i + 1] == '/'):
-                        out.append(sql[i])
-                        i += 1
-                    if i < n - 1:
-                        out.append('*')
-                        out.append('/')
-                        i += 2
-                    continue
-                # :name placeholder
-                if ch == ":" and i + 1 < n and (
-                    sql[i + 1].isalpha() or sql[i + 1] == "_"
-                ):
-                    j = i + 1
-                    while j < n and (sql[j].isalnum() or sql[j] == "_"):
-                        j += 1
-                    name = sql[i + 1 : j]
-                    if name in params:
-                        out.append("?")
-                        ordered.append(params[name])
-                        i = j
-                        continue
-                out.append(ch)
-                i += 1
-            return "".join(out), ordered
-        raise TypeError(f"params must be list/tuple/dict/None, got {type(params)}")
-
-    def _normalize_sql(
-        self,
-        sql: str,
-        count_sql: str,
-        params: Optional[Union[list, tuple, dict]],
-    ) -> tuple[str, str, list, list]:
-        """主查询 + count 查询都解析,各自得到自己的 ordered list
-
-        B1 修复: 之前返回 (new_sql, new_count_sql, main_ordered) 丢弃了 count 的 ordered,
-        导致 setQuery 在 count_params=None 分支用 main_ordered 给 count 绑参数。
-        现在返回 (new_sql, new_count_sql, main_ordered, count_ordered)。
-
-        list/tuple/None 时 main 与 count 共享同一份(直接 list/tuple),所以两侧 ordered 相同。
-        dict 时 main_ordered 按主 sql 占位符顺序、count_ordered 按 count_sql 占位符顺序。
-        """
-        new_sql, main_ordered = self._normalize_one(sql, params)
-        new_count_sql, count_ordered = self._normalize_one(count_sql, params)
-        return new_sql, new_count_sql, main_ordered, count_ordered
-
     def _compute_count(self) -> int:
         if not self._count_sql:
             return 0
@@ -500,8 +399,12 @@ class SqlListModel(QAbstractListModel):
 
         # 拼 keyset SQL: 在 ORDER BY 前插入 (cursor) < (?,?,...) 谓词
         if use_keyset and end_cursor_of_prev is not None:
-            sql_to_run, params_to_run = self._inject_keyset_predicate(
-                self._sql, list(self._params), end_cursor_of_prev
+            sql_to_run, params_to_run = inject_keyset_predicate(
+                self._sql,
+                list(self._params),
+                end_cursor_of_prev,
+                self._cursor_columns,
+                self._cursor_directions,
             )
             offset_to_use = 0
         else:
@@ -635,295 +538,26 @@ class SqlListModel(QAbstractListModel):
                     f"cursor_columns {missing} not found in SELECT column list {self._columns}"
                 )
             # S3: 解析 ORDER BY 抽出每个 cursor 列的方向 (默认 ASC,显式 DESC)
-            self._cursor_directions = self._parse_cursor_directions()
+            self._cursor_directions = parse_cursor_directions(self._sql, self._cursor_columns)
         else:
             self._cursor_directions = []
-
-    def _parse_cursor_directions(self) -> list:
-        """从 self._sql 的 ORDER BY 子句解析 self._cursor_columns 各列的 ASC/DESC
-
-        返回与 cursor_columns 等长的列表,每元素 'ASC' 或 'DESC'。
-        SQL 子句形如 'ORDER BY date DESC, time DESC, id DESC',
-        匹配每个 cursor 列名后看下一个 token。找不到时默认 'ASC' (SQL 标准)。
-
-        B2 修复:
-        - 列名匹配大小写不敏感 (SQL 标识符不敏感)
-        - 跳括号内的逗号 (substr(date,1,7) 不会被拆错)
-        - 容忍 COLLATE / NULLS FIRST/LAST 修饰: 找最后一个 ASC/DESC token
-        - 启发式无法识别时业务可通过 setQuery(cursor_directions=[...]) 显式指定
-        """
-        import re
-        upper = self._sql.upper()
-        order_idx = upper.rfind(" ORDER BY ")
-        if order_idx < 0:
-            return ["ASC"] * len(self._cursor_columns)
-        order_clause = self._sql[order_idx + len(" ORDER BY "):]
-        # 取 ORDER BY 到下一个 LIMIT/OFFSET/末尾的截断
-        for kw in (" LIMIT ", " OFFSET "):
-            cut = order_clause.upper().find(kw)
-            if cut >= 0:
-                order_clause = order_clause[:cut]
-        # 按逗号拆但跳过括号内 (substr(date,1,7) 之类)
-        depth = 0
-        seg_start = 0
-        segments: list[str] = []
-        for i, ch in enumerate(order_clause):
-            if ch == '(':
-                depth += 1
-            elif ch == ')':
-                depth -= 1
-            elif ch == ',' and depth == 0:
-                segments.append(order_clause[seg_start:i])
-                seg_start = i + 1
-        segments.append(order_clause[seg_start:])
-
-        # 大小写不敏感的 col → direction 映射
-        seg_to_dir: dict[str, str] = {}
-        for seg in segments:
-            seg = seg.strip()
-            if not seg:
-                continue
-            tokens = re.split(r"\s+", seg)
-            if not tokens:
-                continue
-            col_name = tokens[0].strip('"`[]')
-            # 容忍修饰: 找任一 ASC/DESC token (例如 "date COLLATE NOCASE DESC")
-            direction = "ASC"
-            for t in tokens[1:]:
-                t_upper = t.upper()
-                if t_upper in ("ASC", "DESC"):
-                    direction = t_upper
-                    break  # 第一个 ASC/DESC 就用 (从左到右扫)
-            seg_to_dir[col_name.lower()] = direction
-
-        return [seg_to_dir.get(col.lower(), "ASC") for col in self._cursor_columns]
-
-    @staticmethod
-    def _strip_strings_and_comments(sql: str) -> str:
-        """生成一个与原 sql 等长的 mask 串,字符串字面量/注释内的字符替换为空格。
-
-        H1+H3 共用: SQL 结构扫描时用 mask 找括号/关键字,避免被字符串里的 ()/keyword 干扰;
-        最终返回原 sql,但内部扫描时用 mask 判断"位置 i 是否在字符串/注释里"。
-
-        实现简化: 返回一个"字符串/注释字符替换为空格"的同长 SQL,调用方在 mask 上做关键字扫描,
-        然后用同一个索引 i 取原 sql 的 char。
-        """
-        n = len(sql)
-        result = list(sql)
-        i = 0
-        while i < n:
-            ch = sql[i]
-            if ch == "'":
-                result[i] = ' '
-                i += 1
-                while i < n:
-                    if sql[i] == "'":
-                        if i + 1 < n and sql[i + 1] == "'":
-                            result[i] = ' '
-                            result[i + 1] = ' '
-                            i += 2
-                            continue
-                        result[i] = ' '
-                        i += 1
-                        break
-                    result[i] = ' '
-                    i += 1
-                continue
-            if ch == '"':
-                result[i] = ' '
-                i += 1
-                while i < n and sql[i] != '"':
-                    result[i] = ' '
-                    i += 1
-                if i < n:
-                    result[i] = ' '
-                    i += 1
-                continue
-            if ch == '-' and i + 1 < n and sql[i + 1] == '-':
-                while i < n and sql[i] != '\n':
-                    result[i] = ' '
-                    i += 1
-                continue
-            if ch == '/' and i + 1 < n and sql[i + 1] == '*':
-                result[i] = ' '
-                result[i + 1] = ' '
-                i += 2
-                while i < n - 1 and not (sql[i] == '*' and sql[i + 1] == '/'):
-                    result[i] = ' '
-                    i += 1
-                if i < n - 1:
-                    result[i] = ' '
-                    result[i + 1] = ' '
-                    i += 2
-                continue
-            i += 1
-        return "".join(result)
-
-    def _find_top_level_order_by(self, sql: str) -> int:
-        """B4+H3 修复: 用括号平衡扫描定位最外层 ORDER BY 子句的起点
-
-        rfind 抓子查询 ORDER BY 的 case:
-            SELECT ... WHERE x IN (SELECT y FROM u ORDER BY z) ORDER BY id DESC
-        rfind 会取最后一个 ORDER BY (外层正确),但反过来:
-            SELECT ... ORDER BY id DESC (子查询里有 ORDER BY z 但靠前)
-            FROM (SELECT ... ORDER BY z) ...
-        如果外层 ORDER BY 在子查询前面,rfind 会取子查询里的 ORDER BY。
-
-        正确做法: 从右往左扫描,跳过括号包裹区域 + 字符串字面量,找到第一个 depth==0 的 ORDER BY。
-        """
-        masked = self._strip_strings_and_comments(sql)
-        upper = masked.upper()
-        # 从末尾向左找,深度 0 的 " ORDER BY "
-        i = len(masked) - 1
-        depth = 0
-        while i >= 0:
-            ch = masked[i]
-            if ch == ')':
-                depth += 1
-            elif ch == '(':
-                depth -= 1
-            elif depth == 0 and i + 10 <= len(masked) and upper[i:i+10] == " ORDER BY ":
-                return i
-            i -= 1
-        return -1
-
-    def _has_top_level_where(self, sql: str) -> bool:
-        """H2: 大小写不敏感地检测顶层(深度 0)的 WHERE 子句,跳字符串字面量"""
-        masked = self._strip_strings_and_comments(sql)
-        upper = masked.upper()
-        i = 0
-        depth = 0
-        while i < len(masked):
-            ch = masked[i]
-            if ch == '(':
-                depth += 1
-            elif ch == ')':
-                depth -= 1
-            elif depth == 0 and upper[i:i+7] == " WHERE ":
-                return True
-            i += 1
-        return False
-
-    def _inject_keyset_predicate(
-        self,
-        sql: str,
-        params: list,
-        cursor_values: list,
-    ) -> tuple[str, list]:
-        """在 sql 的 ORDER BY 前插入 keyset 谓词
-
-        S3 修复: 支持 ASC/DESC/混向。
-        - 全 DESC: (col1, col2, ...) < (?, ?, ...)
-        - 全 ASC:  (col1, col2, ...) > (?, ?, ...)
-        - 混向: 展开成 OR 链,例如 (date DESC, id ASC):
-              date < ? OR (date = ? AND id > ?)
-          每个前缀级用对应方向的比较符。
-        B4 修复: 用括号平衡扫描定位最外层 ORDER BY,避免抓子查询。
-        """
-        order_idx = self._find_top_level_order_by(sql)
-        if order_idx < 0:
-            raise ValueError("setQuery 的 sql 必须包含 ORDER BY 子句以使用 keyset 分页")
-        head = sql[:order_idx]
-        tail = sql[order_idx:]
-
-        directions = self._cursor_directions or ["ASC"] * len(self._cursor_columns)
-        if len(directions) != len(self._cursor_columns):
-            directions = ["ASC"] * len(self._cursor_columns)
-
-        # B5: cursor_values 含 None 时,row-value 比较和简单 OR 链都会因为 NULL 三值逻辑丢页
-        # 强制走"含 NULL 守卫的 OR 链"
-        has_null_cursor = any(v is None for v in cursor_values)
-
-        # 全部同向 + 无 NULL → 用 row-value 比较 (SQLite 高效)
-        all_desc = all(d == "DESC" for d in directions)
-        all_asc = all(d == "ASC" for d in directions)
-        if (all_desc or all_asc) and not has_null_cursor:
-            cursor_cols_str = ", ".join(self._cursor_columns)
-            placeholders = ", ".join(["?"] * len(self._cursor_columns))
-            op = "<" if all_desc else ">"
-            predicate = f"({cursor_cols_str}) {op} ({placeholders})"
-            new_params = list(params) + list(cursor_values)
-        else:
-            # 混向 / 含 NULL: 展开 OR 链
-            # 每级前缀: prev 列全等 (NULL 用 IS NULL 等价比较),当前列按方向 + NULL 守卫
-            #   DESC + NULLS LAST: cursor=val 时 col<val OR col IS NULL
-            #                      cursor=NULL 时 false (已末尾)
-            #   ASC  + NULLS FIRST: cursor=val 时 col>val
-            #                      cursor=NULL 时 col IS NOT NULL
-            clauses = []
-            new_params = list(params)
-
-            def col_eq(col_idx: int) -> tuple[str, list]:
-                """生成 col = cursor[col_idx] 的等价比较 (NULL-safe)"""
-                col_name = self._cursor_columns[col_idx]
-                v = cursor_values[col_idx]
-                if v is None:
-                    return f"{col_name} IS NULL", []
-                return f"{col_name} = ?", [v]
-
-            def col_gt(col_idx: int, direction: str) -> tuple[str, list]:
-                """生成 col 在 cursor[col_idx] 的"下一行"方向的谓词 (NULL-safe)"""
-                col_name = self._cursor_columns[col_idx]
-                v = cursor_values[col_idx]
-                if direction == "DESC":
-                    # NULLS LAST: cursor=val → col<val OR col IS NULL
-                    #             cursor=NULL → false
-                    if v is None:
-                        return "0", []  # 永远 false
-                    return f"({col_name} < ? OR {col_name} IS NULL)", [v]
-                else:
-                    # ASC NULLS FIRST: cursor=val → col>val
-                    #                  cursor=NULL → col IS NOT NULL
-                    if v is None:
-                        return f"{col_name} IS NOT NULL", []
-                    return f"{col_name} > ?", [v]
-
-            for i in range(len(self._cursor_columns)):
-                level_parts = []
-                level_params: list = []
-                for k in range(i):
-                    eq_sql, eq_params = col_eq(k)
-                    level_parts.append(eq_sql)
-                    level_params.extend(eq_params)
-                gt_sql, gt_params = col_gt(i, directions[i])
-                level_parts.append(gt_sql)
-                level_params.extend(gt_params)
-                clauses.append("(" + " AND ".join(level_parts) + ")")
-                new_params.extend(level_params)
-            predicate = "(" + " OR ".join(clauses) + ")"
-
-        if self._has_top_level_where(head):
-            head_new = f"{head} AND {predicate}"
-        else:
-            head_new = f"{head} WHERE {predicate}"
-        new_sql = head_new + tail
-        return new_sql, new_params
 
     def _get_page(self, page_idx: int) -> tuple[list, Optional[list]]:
         """返回 (rows, end_cursor)"""
         cached = self._cache.get(page_idx)
         if cached is not None:
-            self._touch_page(page_idx)
             return cached
         # 翻页时优先用上一页的 end_cursor (keyset 快路径)
-        prev_cursor = None
-        if self._cursor_columns and page_idx > 0:
-            prev_entry = self._cache.get(page_idx - 1)
-            if prev_entry is not None:
-                _prev_rows, prev_cursor = prev_entry
+        prev_cursor = (
+            self._cache.previous_cursor(page_idx)
+            if self._cursor_columns and page_idx > 0
+            else None
+        )
         result = self._fetch_page(page_idx, end_cursor_of_prev=prev_cursor)
         rows = result["rows"]
         end_cursor = result.get("end_cursor")
-        self._cache[page_idx] = (rows, end_cursor)
-        self._touch_page(page_idx)
-        # 淘汰 LRU 末尾
-        while len(self._cache) > self._lru_capacity:
-            self._cache.popitem(last=False)
+        self._cache.put(page_idx, rows, end_cursor)
         return rows, end_cursor
-
-    def _touch_page(self, page_idx: int) -> None:
-        if page_idx in self._cache:
-            self._cache.move_to_end(page_idx)
 
 
 # 是否启用了 Rust 加速 (供调试/状态显示)
