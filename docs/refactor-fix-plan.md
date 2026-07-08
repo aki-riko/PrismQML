@@ -130,6 +130,15 @@
 - `.\.venv\Scripts\python.exe -m pytest tests\qml\test_list_widget.py tests\test_carousel_item_delegate.py`
 - QML probe 基线对比。
 
+### Step 5 执行记录
+
+- 状态：已完成。
+- 变更：新增 `Table/_internal/TableHeader.qml` 和 `Table/_internal/TableRowDelegate.qml`；`TableWidget.qml` 保留数据、选择、编辑、分页 API，渲染块改为内部组件。
+- 行数：`TableWidget.qml` 从 `961` 行降到 `580` 行。
+- QML probe：`169 OK / 7 失败 / 5 跳过`，与既有 required property 基线一致。
+- Table smoke：独立 offscreen QML 进程验证创建、两行数据、`selectRow()`、`setItem()`、列宽计算通过。
+- Pytest：全量 `116 passed`。
+
 ## Step 6 - ChartView 模块化
 
 范围：
