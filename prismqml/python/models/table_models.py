@@ -1,6 +1,8 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
 """PrismQML Models - 高性能数据模型"""
 
 from typing import List, Dict, Any, Optional

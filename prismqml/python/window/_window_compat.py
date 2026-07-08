@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
 """Window compatibility API mixin 窗口兼容 API Mixin"""
 
 from typing import Any, Optional

@@ -1,6 +1,8 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
 """PrismQML State Management - 响应式状态管理
 
 提供现代化的状态管理方案，替代传统的 EventBus：

@@ -1,7 +1,8 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
 """设置条目 — Setting Entry types
 
 每个 SettingEntry 对应一条可持久化的设置:

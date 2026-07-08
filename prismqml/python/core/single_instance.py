@@ -1,6 +1,8 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
 """单实例检查组件 - Windows使用Named Mutex，其他平台使用QSharedMemory
 
 使用方式:

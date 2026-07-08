@@ -56,6 +56,14 @@
 - `.\.venv\Scripts\python.exe -m compileall prismqml\python tests`
 - `.\.venv\Scripts\python.exe -m pytest`
 
+### Step 2 执行记录
+
+- 状态：已完成。
+- 变更：统一 `prismqml/python/**` 包内 Python 文件头为项目规定的四行 MIT 模板。
+- Header 扫描：缺失数为 `0`。
+- Compileall：`.\.venv\Scripts\python.exe -m compileall prismqml\python tests` 通过。
+- Pytest：`116 passed`。
+
 ## Step 3 - 静默异常清理
 
 范围：

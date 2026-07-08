@@ -1,6 +1,8 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
 """通用应用更新组件 - 基于 GitHub Releases 的检测 / 下载 / 静默安装。
 
 设计为引擎级通用组件(与 SingleInstance 平级),任何基于 PrismQML 的应用都可复用:

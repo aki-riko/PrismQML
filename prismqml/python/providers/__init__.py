@@ -1,8 +1,8 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
-# 本文件是PrismQML的一部分，采用MIT许可证授权。
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
 """PrismQML Providers - 功能提供者模块 Provider module"""
 
 from importlib import import_module as _import_module

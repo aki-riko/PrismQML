@@ -1,7 +1,8 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
 """PrismQML 应用级设置 — 落盘到 ~/.prismqml/app.json
 
 这是 PrismQML 自带的 SettingsCore 子类,承载窗口外观、DPI、窗口类型等
