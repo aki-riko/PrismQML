@@ -154,6 +154,15 @@
 - QML probe 基线对比。
 - Gallery 图表示例加载无新增 QML 警告。
 
+### Step 6 执行记录
+
+- 状态：已完成。
+- 变更：新增 `Chart/_internal/ChartViewport.js` 承载 viewport 切片与 LTTB 降采样；`ChartView.qml` 保留公开 API 和渲染树，只调用 helper。
+- 行数：`ChartView.qml` 从 `725` 行降到 `641` 行。
+- QML probe：`169 OK / 7 失败 / 5 跳过`，与既有 required property 基线一致。
+- Chart smoke：独立 offscreen QML 进程验证 viewport 切片和 LTTB 降采样通过。
+- Pytest：全量 `116 passed`。
+
 ## Step 7 - SqlListModel 模块化
 
 范围：

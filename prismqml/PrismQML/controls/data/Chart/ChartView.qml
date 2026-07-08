@@ -7,7 +7,7 @@ import QtQuick.Effects
 import "../../.."
 import "../../../effects"
 import "_internal"
-import "_internal/lttb.js" as Lttb
+import "_internal/ChartViewport.js" as ChartViewport
 import "../Label"
 
 // ChartView - Fluent Design chart component 综合图表组件
@@ -132,75 +132,12 @@ ShadowedRectangle {
     // 2) 切片后点数 > _lttbThreshold 时走 LTTB 抽稀, 保留趋势/峰谷
     // 默认 [0, 1] + 点数小时 == 全量, 行为和原 ChartView 完全一致.
     property int lttbThreshold: 600
-    readonly property var _viewChartData: {
-        if (!chartData || chartData.length === 0) return []
-        var src = chartData
-        if (_renderStart > 0 || _renderEnd < 1) {
-            var n = chartData.length
-            var lo = Math.max(0, Math.floor(n * _renderStart))
-            var hi = Math.min(n, Math.ceil(n * _renderEnd))
-            if (hi <= lo) hi = Math.min(n, lo + 1)
-            src = chartData.slice(lo, hi)
-        }
-        if (src.length <= lttbThreshold) return src
-        // LTTB 降采样: value 字段当主导, 索引同步
-        var indices = Lttb.lttbIndices(_indexArray(src.length), _valuesOf(src), lttbThreshold)
-        var out = new Array(indices.length)
-        for (var i = 0; i < indices.length; i++) out[i] = src[indices[i]]
-        return out
-    }
-    readonly property var _viewSeries: {
-        if (!series || series.length === 0) return []
-        var srcAll = series
-        var hadViewport = _renderStart > 0 || _renderEnd < 1
-        if (hadViewport) {
-            var sliced = []
-            for (var s = 0; s < series.length; s++) {
-                var src = series[s] || {}
-                var copy = {}
-                for (var k in src) copy[k] = src[k]
-                if (Array.isArray(src.values)) {
-                    var n = src.values.length
-                    var lo = Math.max(0, Math.floor(n * _renderStart))
-                    var hi = Math.min(n, Math.ceil(n * _renderEnd))
-                    if (hi <= lo) hi = Math.min(n, lo + 1)
-                    copy.values = src.values.slice(lo, hi)
-                }
-                if (Array.isArray(src.data)) {
-                    var n2 = src.data.length
-                    var lo2 = Math.max(0, Math.floor(n2 * _renderStart))
-                    var hi2 = Math.min(n2, Math.ceil(n2 * _renderEnd))
-                    if (hi2 <= lo2) hi2 = Math.min(n2, lo2 + 1)
-                    copy.data = src.data.slice(lo2, hi2)
-                }
-                sliced.push(copy)
-            }
-            srcAll = sliced
-        }
-        var maxLen = 0
-        for (var s2 = 0; s2 < srcAll.length; s2++) {
-            var v2 = srcAll[s2].values || srcAll[s2].data || []
-            if (v2.length > maxLen) maxLen = v2.length
-        }
-        if (maxLen <= lttbThreshold) return srcAll
-        // 多 series 用第一条 values 作主导算 indices, 其它 series 同 indices 切
-        var primary = srcAll[0].values || srcAll[0].data || []
-        if (primary.length <= lttbThreshold) return srcAll
-        var primIdx = Lttb.lttbIndices(_indexArray(primary.length), _numbersOf(primary), lttbThreshold)
-        var out2 = []
-        for (var s3 = 0; s3 < srcAll.length; s3++) {
-            var c = {}
-            for (var k2 in srcAll[s3]) c[k2] = srcAll[s3][k2]
-            if (Array.isArray(srcAll[s3].values)) {
-                c.values = primIdx.map(function(i) { return srcAll[s3].values[i] })
-            }
-            if (Array.isArray(srcAll[s3].data)) {
-                c.data = primIdx.map(function(i) { return srcAll[s3].data[i] })
-            }
-            out2.push(c)
-        }
-        return out2
-    }
+    readonly property var _viewChartData: ChartViewport.viewChartData(
+        chartData, _renderStart, _renderEnd, lttbThreshold
+    )
+    readonly property var _viewSeries: ChartViewport.viewSeries(
+        series, _renderStart, _renderEnd, lttbThreshold
+    )
 
     // ==================== Signals 信号 ====================
     signal barClicked(int index, var data)
@@ -234,27 +171,6 @@ ShadowedRectangle {
 
     function isSeriesVisible(seriesIndex) {
         return _hiddenSeriesIndices.indexOf(seriesIndex) < 0
-    }
-
-    function _indexArray(n) {
-        var a = new Array(n)
-        for (var i = 0; i < n; i++) a[i] = i
-        return a
-    }
-    function _valuesOf(arr) {
-        var a = new Array(arr.length)
-        for (var i = 0; i < arr.length; i++) {
-            var it = arr[i]
-            a[i] = (it && it.value !== undefined) ? it.value : 0
-        }
-        return a
-    }
-    function _numbersOf(vals) {
-        var a = new Array(vals.length)
-        for (var i = 0; i < vals.length; i++) {
-            a[i] = (typeof vals[i] === 'number') ? vals[i] : 0
-        }
-        return a
     }
 
     implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
