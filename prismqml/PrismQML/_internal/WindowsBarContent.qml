@@ -3,130 +3,23 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "../navigation"
+import "../controls/navigation"
 import ".."
 
-// WindowsBarContent - Deferred compact navigation window content
+// WindowsBarContent - Compact navigation window content 紧凑导航窗口内容
 Item {
     id: root
 
-    // ==================== Host Props ====================
+    // ==================== Public Props 公开属性 ====================
     property var hostWindow: null
     property int contentTopMargin: 0
+    property alias navAlias: navigationBar
     property alias stackAlias: stack
-    property var navAlias: navigationLoader.item || bottomTabLoader.item
 
-    // ==================== Internal Props 内部属性 ====================
-    property bool _navigationActive: false
-    property bool _navigationLoadScheduled: false
-
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool _compactNav:
         typeof PlatformInfo !== "undefined" && PlatformInfo.isCompact
-
-    // ==================== Signals 信号 ====================
-    signal navigationReady(var navigationView)
-
-    // ==================== Internal Methods 内部方法 ====================
-    function _scheduleNavigationLoad() {
-        if (_navigationLoadScheduled) return
-        _navigationLoadScheduled = true
-
-        var splash = root.hostWindow ? root.hostWindow._splashInstance : null
-        if (splash && splash.visible && splash.finished) {
-            if (root.hostWindow) {
-                root.hostWindow.profileTime("WindowsBarContent navigation waits for splash.finished")
-            }
-            splash.finished.connect(root._startNavigationDelay)
-            return
-        }
-        _startNavigationDelay()
-    }
-
-    function _startNavigationDelay() {
-        if (_navigationActive) return
-        navigationDelayTimer.restart()
-    }
-
-    function _activateNavigation() {
-        if (_navigationActive) return
-        _navigationActive = true
-        if (root.hostWindow) {
-            root.hostWindow.profileTime("WindowsBarContent deferred navigation activated compactNav=" + _compactNav)
-        }
-    }
-
-    function _publishNavigationReady(item, label) {
-        if (!item) return
-        if (root.hostWindow) {
-            root.hostWindow.profileTime("WindowsBarContent " + label + " ready")
-        }
-        navigationReady(item)
-    }
-
-    function _configureNavigationBar(item) {
-        if (!item) return
-
-        item.objectName = "navigationBar"
-        item.model = Qt.binding(function() { return root.hostWindow ? root.hostWindow.navigationItems : [] })
-        item.bottomItems = Qt.binding(function() { return root.hostWindow ? root.hostWindow.bottomNavigationItems : [] })
-        item.backgroundColor = Qt.binding(function() {
-            return root.hostWindow && root.hostWindow._micaActive
-                ? Enums.transparent
-                : Enums.backgroundColor
-        })
-        item.currentIndex = Qt.binding(function() { return root.hostWindow ? root.hostWindow.currentIndex : 0 })
-        item.itemClicked.connect(root._handleNavigationItemClicked)
-        item.bottomItemClicked.connect(root._handleNavigationBottomItemClicked)
-
-        if (root.hostWindow) {
-            root.hostWindow.profileDetail("NavigationBar completed deferred visible=" + item.visible + " width=" + item.width)
-        }
-        _publishNavigationReady(item, "NavigationBar")
-    }
-
-    function _configureBottomTabBar(item) {
-        if (!item) return
-
-        item.objectName = "bottomTabBar"
-        item.model = Qt.binding(function() { return root.hostWindow ? root.hostWindow.navigationItems : [] })
-        item.currentIndex = Qt.binding(function() { return root.hostWindow ? root.hostWindow.currentIndex : 0 })
-        item.window_micaActiveFallback = Qt.binding(function() {
-            return root.hostWindow ? root.hostWindow._micaActive : false
-        })
-        item.itemClicked.connect(root._handleNavigationItemClicked)
-
-        if (root.hostWindow) {
-            root.hostWindow.profileDetail("BottomTabBar completed deferred visible=" + item.visible)
-        }
-        _publishNavigationReady(item, "BottomTabBar")
-    }
-
-    function _configureLoadingOverlay(item) {
-        if (!item) return
-
-        item.loading = Qt.binding(function() {
-            return root.hostWindow ? root.hostWindow._pythonLoading : false
-        })
-        item.backgroundColor = Qt.binding(function() {
-            return root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
-        })
-        item.text = Qt.binding(function() {
-            return root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
-        })
-        if (root.hostWindow) {
-            root.hostWindow.profileDetail("LoadingOverlay completed deferred loading=" + item.loading)
-        }
-    }
-
-    function _handleNavigationItemClicked(index) {
-        if (!root.hostWindow) return
-        root.hostWindow.currentIndex = index
-        root.hostWindow.currentPageChanged(index)
-    }
-
-    function _handleNavigationBottomItemClicked(index) {
-        if (!root.hostWindow || !navigationLoader.item) return
-        root.hostWindow._handleBottomItemClicked(index, navigationLoader.item, stack, root.hostWindow.pageSources)
-    }
 
     anchors.fill: parent
 
@@ -140,71 +33,80 @@ Item {
             )
             hostWindow.profileTime("WindowsBar contentComponent completed compactNav=" + _compactNav)
         }
-        _scheduleNavigationLoad()
     }
 
     MouseArea {
         anchors.fill: parent
-        z: -999
+        z: Enums.zIndex.background
         onClicked: parent.forceActiveFocus()
         Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("WindowsBarContent focus MouseArea completed")
     }
 
-    Item {
-        id: navigationSlot
+    NavigationBar {
+        id: navigationBar
+        objectName: "navigationBar"
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.topMargin: root.contentTopMargin
         anchors.bottom: parent.bottom
         visible: !root._compactNav
-        width: root._compactNav ? 0 : Enums.controlSize.navBarWidth
+        width: root._compactNav ? 0 : implicitWidth
+        model: root.hostWindow ? root.hostWindow.navigationItems : []
+        bottomItems: root.hostWindow ? root.hostWindow.bottomNavigationItems : []
+        backgroundColor: root.hostWindow && root.hostWindow._micaActive
+            ? Enums.transparent
+            : Enums.backgroundColor
+        currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
+        Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("NavigationBar completed visible=" + visible + " width=" + width)
 
-        Loader {
-            id: navigationLoader
-            anchors.fill: parent
-            active: root._navigationActive && !root._compactNav
-            asynchronous: true
-            source: Qt.resolvedUrl("../navigation/NavigationBar.qml")
-            onLoaded: root._configureNavigationBar(item)
+        onItemClicked: (index) => {
+            if (!root.hostWindow) return
+            root.hostWindow.currentIndex = index
+            root.hostWindow.currentPageChanged(index)
+        }
+
+        onBottomItemClicked: (index) => {
+            if (!root.hostWindow) return
+            root.hostWindow._handleBottomItemClicked(index, navigationBar, stack, root.hostWindow.pageSources)
         }
     }
 
-    Item {
-        id: bottomTabSlot
+    BottomTabBar {
+        id: bottomTabBar
+        objectName: "bottomTabBar"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         visible: root._compactNav
-        height: root._compactNav
-            ? (bottomTabLoader.item ? bottomTabLoader.item.implicitHeight : Enums.controlSize.bottomTabBarHeight)
-            : 0
+        model: root.hostWindow ? root.hostWindow.navigationItems : []
+        currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
+        window_micaActiveFallback: root.hostWindow ? root.hostWindow._micaActive : false
+        Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("BottomTabBar completed visible=" + visible)
 
-        Loader {
-            id: bottomTabLoader
-            anchors.fill: parent
-            active: root._navigationActive && root._compactNav
-            asynchronous: true
-            source: Qt.resolvedUrl("../navigation/BottomTabBar.qml")
-            onLoaded: root._configureBottomTabBar(item)
+        onItemClicked: (index) => {
+            if (!root.hostWindow) return
+            root.hostWindow.currentIndex = index
+            root.hostWindow.currentPageChanged(index)
         }
     }
 
     ContentFrame {
         id: contentFrame
-        anchors.left: root._compactNav ? parent.left : navigationSlot.right
+        anchors.left: root._compactNav ? parent.left : navigationBar.right
         anchors.top: parent.top
         anchors.topMargin: root.contentTopMargin
         anchors.right: parent.right
-        anchors.bottom: root._compactNav ? bottomTabSlot.top : parent.bottom
+        anchors.bottom: root._compactNav ? bottomTabBar.top : parent.bottom
         backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
         cornerRadius: root.hostWindow ? root.hostWindow.contentCornerRadius : Enums.radius.large
         Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("ContentFrame completed")
 
         StackedWidget {
             id: stack
+            property alias contentContainerAlias: stack.content
+
             anchors.fill: parent
             animationType: Enums.animation.popup
-            property alias contentContainerAlias: stack.content
             pageComponents: root.hostWindow ? root.hostWindow.pageComponents : []
             pageSources: root.hostWindow ? root.hostWindow.pageSources : []
             lazyLoading: root.hostWindow ? root.hostWindow.lazyLoading : false
@@ -218,19 +120,12 @@ Item {
             }
         }
 
-        Loader {
-            id: loadingOverlayLoader
+        LoadingOverlay {
             anchors.fill: parent
-            active: true
-            asynchronous: true
-            source: Qt.resolvedUrl("LoadingOverlay.qml")
-            onLoaded: root._configureLoadingOverlay(item)
+            loading: root.hostWindow ? root.hostWindow._pythonLoading : false
+            backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
+            text: root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
+            Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("LoadingOverlay completed loading=" + loading)
         }
-    }
-
-    Timer {
-        id: navigationDelayTimer
-        interval: Enums.duration.instant
-        onTriggered: root._activateNavigation()
     }
 }

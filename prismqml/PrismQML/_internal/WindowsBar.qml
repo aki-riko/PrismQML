@@ -70,10 +70,6 @@ NavigationWindowCore {
                 window.profileDetail("WindowsBar mainLoader loaded item=" + item)
                 window.navigationView = item.navAlias
                 window.stackedWidget = item.stackAlias
-                item.navigationReady.connect(function(navItem) {
-                    window.navigationView = navItem
-                    window.profileTime("WindowsBar navigationView ready")
-                })
                 window.profileTime("WindowsBar bind navigation/stack navReady=" + (window.navigationView !== null))
 
                 if (_hiddenStack.data.length > 0) {
