@@ -221,9 +221,9 @@ Item {
         Loader {
             id: loadingOverlayLoader
             anchors.fill: parent
-            active: root.hostWindow ? root.hostWindow._pythonLoading : false
+            active: true
             asynchronous: true
-            source: active ? Qt.resolvedUrl("LoadingOverlay.qml") : ""
+            source: Qt.resolvedUrl("LoadingOverlay.qml")
             onLoaded: root._configureLoadingOverlay(item)
         }
     }

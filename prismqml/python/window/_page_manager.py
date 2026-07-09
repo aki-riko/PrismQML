@@ -18,6 +18,9 @@ from PySide6.QtQuick import QQuickItem
 from ..core.logger import debug, warning, info, error
 
 
+_PAGE_LOAD_RENDER_DELAY_MS = 16
+
+
 class PageManagerMixin:
     """页面管理器 Mixin，提供懒加载和页面生命周期管理"""
 
@@ -189,8 +192,6 @@ class PageManagerMixin:
         4. 如果页面有_deferred_queue，启动分批创建
         5. 完成后隐藏loading覆盖层
         """
-        from PySide6.QtWidgets import QApplication
-
         # 显示loading
         if self._window:
             try:
@@ -303,9 +304,9 @@ class PageManagerMixin:
                 error(f"页面创建失败: {e}")
                 on_page_ready(None)
 
-        # 延迟到下一事件循环让 loading 动画先显示
-        # singleShot(0) 跟随事件循环节拍, 不依赖 60fps 帧时长
-        QTimer.singleShot(0, do_create)
+        # Wait one frame so loading can instantiate and draw before page creation.
+        # 等待一帧，确保 loading 先完成创建和首帧绘制，再创建页面。
+        QTimer.singleShot(_PAGE_LOAD_RENDER_DELAY_MS, do_create)
 
     def _finish_loading_and_switch(self, index: int):
         """完成加载并切换到目标页面"""

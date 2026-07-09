@@ -101,14 +101,23 @@ Item {
         }
     }
 
+    function _ensureLazyHelperLoaded(reason) {
+        if (!control.lazyLoading || lazyHelperLoader.item || lazyHelperLoader.status !== Loader.Null) return
+
+        lazyHelperLoader.active = true
+        lazyHelperLoader.setSource(Qt.resolvedUrl("_internal/LazyLoadingHelper.qml"), _lazyHelperInitialProperties())
+        profileTime("lazyHelper preload requested reason=" + reason)
+    }
+
+    function _preloadLazyHelperWhenReady(reason) {
+        if (!control.lazyLoading || !_isPageLoaded(_displayIndex)) return
+        _ensureLazyHelperLoaded(reason)
+    }
+
     function _showLazyLoadingAndSwitch(index) {
         _pendingLazySwitchIndex = index
-        if (!lazyHelperLoader.item && lazyHelperLoader.status === Loader.Null) {
-            lazyHelperLoader.active = true
-            lazyHelperLoader.setSource(Qt.resolvedUrl("_internal/LazyLoadingHelper.qml"), _lazyHelperInitialProperties())
-            profileTime("lazyHelper deferred load requested target=" + index)
-            return
-        }
+        _ensureLazyHelperLoaded("switch target=" + index)
+        if (!lazyHelperLoader.item) return
         if (!lazyHelperLoader.active) {
             lazyHelperLoader.active = true
             profileTime("lazyHelper deferred load reactivated target=" + index)
@@ -356,6 +365,7 @@ Item {
                     ", lazyLoading=" + lazyLoading +
                     ", sourceMode=" + _useSourceMode +
                     ", pageComponents=" + pageComponents.length)
+        _preloadLazyHelperWhenReady("completed")
     }
 
     // ==================== Animation Helper 动画助手 ====================
@@ -508,6 +518,11 @@ Item {
             control._flushPendingLazySwitch()
         }
     }
+    onLazyLoadingChanged: if (lazyLoading) _preloadLazyHelperWhenReady("lazyLoadingChanged")
+    onPageLoaded: (index) => {
+        if (index === _displayIndex) _preloadLazyHelperWhenReady("pageLoaded index=" + index)
+    }
+
     // ==================== Index Change Handler 索引变化处理 ====================
     onCurrentIndexChanged: {
         profileTime("currentIndex changed to " + currentIndex)
