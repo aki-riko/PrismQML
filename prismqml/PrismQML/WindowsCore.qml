@@ -67,7 +67,7 @@ Window {
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint
     property bool closeRequestAccepted: true
     property bool _closeInProgress: false
-    property bool _titleChromeReady: false
+    property bool _titleChromeReady: true
     property bool _resizeHandlesReady: false
     
     // ==================== Theme 主题 ====================
@@ -205,8 +205,6 @@ Window {
         // _dwmDelayTimer 中的 finalizeAttach() 会在窗口显示后完成完整 attach。
         _dwmDelayTimer.start()
         profileTime("_dwmDelayTimer.start")
-        _titleChromeTimer.start()
-        profileTime("_titleChromeTimer.start")
         _resizeHandlesTimer.start()
         profileTime("_resizeHandlesTimer.start")
     }
@@ -308,16 +306,6 @@ Window {
         id: _animationStartTimer
         interval: 100
         onTriggered: animHelper.startShow()
-    }
-
-    Timer {
-        id: _titleChromeTimer
-        interval: 1
-        repeat: false
-        onTriggered: {
-            _titleChromeReady = true
-            profileDetail("title chrome ready")
-        }
     }
 
     Timer {

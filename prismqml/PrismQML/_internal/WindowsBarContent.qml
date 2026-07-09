@@ -19,7 +19,9 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _compactNav:
-        typeof PlatformInfo !== "undefined" && PlatformInfo.isCompact
+        typeof PlatformInfo !== "undefined" && PlatformInfo && PlatformInfo.isCompact
+    readonly property bool _loadingOverlayActive:
+        !!(hostWindow && hostWindow._pythonLoading)
 
     anchors.fill: parent
 
@@ -71,23 +73,29 @@ Item {
         }
     }
 
-    BottomTabBar {
-        id: bottomTabBar
+    Loader {
+        id: bottomTabBarLoader
         objectName: "bottomTabBar"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        visible: root._compactNav
-        model: root.hostWindow ? root.hostWindow.navigationItems : []
-        currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
-        window_micaActiveFallback: root.hostWindow ? root.hostWindow._micaActive : false
-        Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("BottomTabBar completed visible=" + visible)
+        active: root._compactNav
+        visible: active
+        asynchronous: false
+        sourceComponent: BottomTabBar {
+            objectName: "bottomTabBarContent"
+            model: root.hostWindow ? root.hostWindow.navigationItems : []
+            currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
+            window_micaActiveFallback: root.hostWindow ? root.hostWindow._micaActive : false
+            Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("BottomTabBar completed visible=" + visible)
 
-        onItemClicked: (index) => {
-            if (!root.hostWindow) return
-            root.hostWindow.currentIndex = index
-            root.hostWindow.currentPageChanged(index)
+            onItemClicked: (index) => {
+                if (!root.hostWindow) return
+                root.hostWindow.currentIndex = index
+                root.hostWindow.currentPageChanged(index)
+            }
         }
+        Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("BottomTabBar Loader completed active=" + active)
     }
 
     ContentFrame {
@@ -96,7 +104,7 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: root.contentTopMargin
         anchors.right: parent.right
-        anchors.bottom: root._compactNav ? bottomTabBar.top : parent.bottom
+        anchors.bottom: root._compactNav ? bottomTabBarLoader.top : parent.bottom
         backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
         cornerRadius: root.hostWindow ? root.hostWindow.contentCornerRadius : Enums.radius.large
         Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("ContentFrame completed")
@@ -120,12 +128,19 @@ Item {
             }
         }
 
-        LoadingOverlay {
+        Loader {
+            id: loadingOverlayLoader
             anchors.fill: parent
-            loading: root.hostWindow ? root.hostWindow._pythonLoading : false
-            backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
-            text: root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
-            Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("LoadingOverlay completed loading=" + loading)
+            active: root._loadingOverlayActive
+            visible: active
+            asynchronous: false
+            sourceComponent: LoadingOverlay {
+                loading: root._loadingOverlayActive
+                backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
+                text: root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
+                Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("LoadingOverlay completed loading=" + loading)
+            }
+            Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("LoadingOverlay Loader completed active=" + active)
         }
     }
 }

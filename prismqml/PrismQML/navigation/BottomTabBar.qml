@@ -18,7 +18,7 @@ Rectangle {
 
     // Touch target height: defensive PlatformInfo read, default uses metrics 触摸目标高度：防御式读 PlatformInfo，默认使用度量常量
     readonly property int barHeight:
-        (typeof PlatformInfo !== "undefined" && PlatformInfo.touchTargetSize > 0)
+        (typeof PlatformInfo !== "undefined" && PlatformInfo && PlatformInfo.touchTargetSize > 0)
             ? Math.max(Enums.controlSize.bottomTabBarHeight, PlatformInfo.touchTargetSize + Enums.spacing.m)
             : Enums.controlSize.bottomTabBarHeight
 
