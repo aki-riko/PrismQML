@@ -382,14 +382,15 @@ Item {
             // ---------- 卡片行 ----------
             Item {
                 id: cardPart
-                visible: rowDelegate.model.kind === "card"
-                width: parent.width
-                height: visible ? cardBox.height + Enums.spacing.m : 0
+                readonly property int shadowPadding: Enums.spacing.cardShadow
                 // 当前选中高亮判定
                 readonly property bool isSelected: control.selectedKey !== undefined
                     && !!rowDelegate.model.cardData
                     && (typeof rowDelegate.model.cardData === "object")
                     && rowDelegate.model.cardData[control.selectedRole] === control.selectedKey
+                visible: rowDelegate.model.kind === "card"
+                width: parent.width
+                height: visible ? cardBox.y + cardBox.height + Enums.spacing.m : 0
                 // 左侧连接线
                 Rectangle {
                     x: 7; y: 0
@@ -400,6 +401,7 @@ Item {
                 Card {
                     id: cardBox
                     x: Enums.spacing.timelineIndent
+                    y: cardPart.shadowPadding
                     // 右侧留出滚动条宽度 + 间距,避免卡片边缘与滚动条重叠
                     width: parent.width - Enums.spacing.timelineIndent - Enums.spacing.xl
                     height: cardCol.implicitHeight + Enums.spacing.l * 2
