@@ -14,13 +14,13 @@
 ## 一、Qt for Android
 
 Qt for Android **依赖同版本 desktop Qt**（提供 moc/qmlcachegen 等主机工具）。
-本仓库已装 desktop `D:\Qt\6.11.1\msvc2022_64`，需补 android_arm64_v8a。
+构建机必须同时安装同版本的 desktop Qt 与目标 Android kit。
 
 ### aqt 安装（注意 6.11.x 的坑）
 
 ```bash
 # host 是 all_os (Qt 6.8+ 移动/wasm 用 all_os, 非 windows)
-python -m aqt install-qt all_os android 6.11.1 android_arm64_v8a --outputdir D:\Qt
+python -m aqt install-qt all_os android 6.11.1 android_arm64_v8a --outputdir <qt-install-root>
 ```
 
 ⚠️ **aqt 3.3.0 装不了 6.11.x**（qt.io 改了目录结构，aqt 拼出双重路径
@@ -39,20 +39,37 @@ python -m aqt install-qt all_os android 6.11.1 android_arm64_v8a --outputdir D:\
   (API 34) + build-tools。
 - **NDK**：SDK Manager 装 NDK（Qt 6.11 推荐 r26b，以 Qt 文档为准）。
 
-设环境变量：
+构建脚本不保存个人机器路径，运行前在当前终端设置以下环境变量：
+
+```bat
+set "JAVA_HOME=<JDK 17 directory>"
+set "ANDROID_SDK_ROOT=<Android SDK directory>"
+set "ANDROID_NDK_ROOT=<Android NDK directory>"
+set "QT_HOST_PATH=<desktop Qt directory>"
+set "QT_ANDROID_CMAKE=<Qt Android kit>\bin\qt-cmake.bat"
+set "NINJA=<ninja executable>"
 ```
-ANDROID_SDK_ROOT=C:\Users\<you>\AppData\Local\Android\Sdk
-ANDROID_NDK_ROOT=%ANDROID_SDK_ROOT%\ndk\<version>
-JAVA_HOME=<jdk path>
-```
+
+`build_android.bat`、`build_android_apk.bat` 使用 arm64 Qt kit；
+`build_android_x64.bat` 使用 x86_64 Qt kit。需要自定义构建目录时设置
+`PRISM_ANDROID_BUILD_DIR`，否则脚本使用自身目录下对应的 `build-android*`。
 
 ## 三、构建 prism for Android
 
-Qt for Android 用 `qt-cmake`（封装了 Android 工具链链）：
+Qt for Android 用 `qt-cmake`（封装了 Android 工具链链）。设置上述环境变量后，
+在仓库根目录直接运行对应脚本：
+
+```bat
+cpp\build_android.bat
+cpp\build_android_apk.bat
+cpp\build_android_x64.bat
+```
+
+也可手工执行等价命令：
 
 ```bash
 # qt-cmake 在 Qt android 目录的 bin 下
-D:\Qt\6.11.1\android_arm64_v8a\bin\qt-cmake ^
+"%QT_ANDROID_CMAKE%" ^
   -S cpp -B cpp/build-android ^
   -G Ninja ^
   -DCMAKE_BUILD_TYPE=Release ^

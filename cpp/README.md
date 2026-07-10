@@ -16,7 +16,7 @@ QML 层（`prismqml/PrismQML/` 下 322 个组件）对宿主的耦合极窄：�
 
 ## 依赖
 
-- **Qt 6.11.1**（C++，msvc2022_64；与项目 PySide6 的 Qt 版本对齐）
+- **Qt 6.9+**（C++，与项目 PySide6 最低版本契约对齐）
   - 模块：Core / Gui / Qml / Quick / Svg / Widgets / Network
 - **MSVC**（VS 2022 BuildTools，C++17）
 - **CMake** 3.16+
@@ -25,17 +25,22 @@ QML 层（`prismqml/PrismQML/` 下 322 个组件）对宿主的耦合极窄：�
 ## 构建
 
 ```bat
-:: 激活 MSVC 环境 + 指向 Qt
-call "...\VC\Auxiliary\Build\vcvars64.bat"
-set "QTDIR=D:\Qt\6.11.1\msvc2022_64"
-set "PATH=%QTDIR%\bin;%PATH%"
-
-cmake -S cpp -B cpp/build -G "NMake Makefiles" ^
-  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=%QTDIR%
-cmake --build cpp/build
+set "PRISM_VCVARS64=<Visual Studio vcvars64.bat>"
+set "QT_HOST_PATH=<desktop Qt directory>"
+cpp\build.bat
 ```
 
-或直接运行 `cpp/build.bat`（已封装上述步骤）。
+脚本从自身位置定位 `cpp` 源码目录，不保存个人机器路径。需要自定义 CMake
+命令或构建目录时，可设置 `PRISM_CMAKE_COMMAND`、`PRISM_DESKTOP_BUILD_DIR`。
+手工执行的等价命令如下：
+
+```bat
+call "%PRISM_VCVARS64%"
+set "PATH=%QT_HOST_PATH%\bin;%PATH%"
+cmake -S cpp -B cpp/build -G "NMake Makefiles" ^
+  -DCMAKE_BUILD_TYPE=Release "-DCMAKE_PREFIX_PATH=%QT_HOST_PATH%"
+cmake --build cpp/build
+```
 
 ## 运行测试
 

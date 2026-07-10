@@ -1,4 +1,5 @@
 # 自动生成文件标记
+.gitattributes text eol=lf
 prismqml/python/core/icons.py linguist-generated=true
 
 # 统一行尾为 LF,防止跨平台/批量编辑导致 CRLF↔LF diff 噪声
@@ -8,6 +9,7 @@ prismqml/python/core/icons.py linguist-generated=true
 *.json text eol=lf
 *.md  text eol=lf
 *.toml text eol=lf
+*.bat text eol=crlf
 qmldir text eol=lf
 
 # 二进制资源(防止行尾规范化破坏 + GitHub 语言统计排除)
