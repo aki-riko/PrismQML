@@ -7,11 +7,12 @@
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from scripts import copy_all_icons, extract_icons, extract_translations
+from scripts import copy_all_icons, extract_icons, extract_translations, verify_coverage
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -181,6 +182,45 @@ def test_current_translator_external_json_layout_is_valid():
     )
 
     assert count == 20
+
+
+def test_coverage_registry_rejects_empty_malformed_and_duplicate_entries(tmp_path):
+    qmldir = tmp_path / "qmldir"
+    qmldir.write_text("module PrismQML\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="no public QML types"):
+        verify_coverage.registered_types(qmldir)
+
+    qmldir.write_text("module PrismQML\ninvalid entry\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="unsupported qmldir entry"):
+        verify_coverage.registered_types(qmldir)
+
+    qmldir.write_text("Widget Widget.qml\nWidget Other.qml\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate QML type"):
+        verify_coverage.registered_types(qmldir)
+
+
+def test_coverage_runner_forces_utf8_offscreen_and_propagates_failure(tmp_path):
+    qmldir = tmp_path / "prismqml" / "PrismQML" / "qmldir"
+    qmldir.parent.mkdir(parents=True)
+    qmldir.write_text("module PrismQML\nWidget Widget.qml\n", encoding="utf-8")
+    probe = tmp_path / "tests" / "qml" / "probe_all_components.py"
+    probe.parent.mkdir(parents=True)
+    probe.write_text("raise SystemExit(0)\n", encoding="utf-8")
+    captured = {}
+
+    def failed_probe(command, **kwargs):
+        captured["command"] = command
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(command, 7)
+
+    total, return_code = verify_coverage.run_probe(tmp_path, failed_probe)
+
+    assert total == 1
+    assert return_code == 7
+    assert captured["command"] == [sys.executable, "-X", "utf8", str(probe)]
+    assert captured["cwd"] == tmp_path
+    assert captured["env"]["QT_QPA_PLATFORM"] == "offscreen"
+    assert captured["check"] is False
 
 
 def test_legacy_translation_extraction_is_atomic(tmp_path):

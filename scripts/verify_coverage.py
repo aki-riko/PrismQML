@@ -1,138 +1,88 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
-"""验证Python-QML桥接层的实际覆盖率
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+"""Verify runtime coverage of every public QML type. 验证公开 QML 类型运行时覆盖。"""
 
-系统性地检查所有接口是否真的已实现
-"""
+from __future__ import annotations
 
+import logging
 import os
 import re
+import subprocess
+import sys
+from collections.abc import Callable
 from pathlib import Path
 
-# 需要验证的接口
-INTERFACES_TO_CHECK = {
-    'QSlider': [
-        'singleStep', 'setSingleStep', 'pageStep', 'setPageStep',
-        'tickPosition', 'setTickPosition', 'tickInterval', 'setTickInterval',
-        'setRange'
-    ],
-    'QLineEdit': [
-        'selectedText', 'setMaxLength', 'maxLength', 'setValidator', 'validator'
-    ],
-    'QTextEdit': [
-        'toHtml', 'setHtml', 'append'
-    ],
-    'QScrollArea': [
-        'setHorizontalScrollBarPolicy', 'setVerticalScrollBarPolicy',
-        'ensureVisible', 'ensureWidgetVisible'
-    ],
-    'QLayout': [
-        'setContentsMargins', 'contentsMargins', 'insertWidget',
-        'removeWidget', 'count', 'itemAt'
-    ],
-    'QListWidget': [
-        'insertItem', 'insertItems', 'takeItem', 'clear', 'count',
-        'currentItem', 'setCurrentItem', 'currentRow', 'setCurrentRow',
-        'findItems', 'item'
-    ],
-    'QStackedWidget': [
-        'insertWidget', 'removeWidget', 'count', 'widget', 'setCurrentWidget'
-    ],
-    'QTableWidget': [
-        'item', 'setItem', 'takeItem', 'setHorizontalHeaderLabels',
-        'setVerticalHeaderLabels', 'setColumnWidth', 'setRowHeight',
-        'setSortingEnabled', 'sortByColumn'
-    ],
-    'QTreeWidget': [
-        'addTopLevelItem', 'addTopLevelItems', 'insertTopLevelItem',
-        'topLevelItemCount', 'topLevelItem', 'currentItem', 'setCurrentItem',
-        'expandItem', 'collapseItem', 'expandAll', 'collapseAll',
-        'setHeaderLabels', 'header', 'findItems'
-    ],
-    'QSplitter': [
-        'addWidget', 'insertWidget', 'count', 'widget', 'sizes', 'setSizes',
-        'setCollapsible', 'isCollapsible', 'handleWidth', 'setHandleWidth'
-    ],
-    'QSpinBox': [
-        'wrapping', 'setWrapping', 'specialValueText', 'setSpecialValueText',
-        'setRange'
-    ],
-    'QWidget': [
-        'minimumSize', 'setMinimumSize', 'setMinimumWidth', 'setMinimumHeight',
-        'maximumSize', 'setMaximumSize', 'setMaximumWidth', 'setMaximumHeight',
-        'sizePolicy', 'setSizePolicy', 'toolTip', 'setToolTip',
-        'font', 'setFont', 'hasFocus', 'setFocus', 'clearFocus',
-        'objectName', 'setObjectName', 'setProperty', 'property',
-        'setCursor', 'geometry', 'rect', 'pos', 'size', 'update', 'repaint'
-    ],
-}
 
-def check_method_exists(file_path: Path, method_name: str) -> bool:
-    """检查方法是否存在于文件中"""
-    if not file_path.exists():
-        return False
-    
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-        # 匹配 def method_name(
-        pattern = rf'def {re.escape(method_name)}\s*\('
-        return bool(re.search(pattern, content))
+LOGGER = logging.getLogger(__name__)
+QMLDIR_ENTRY = re.compile(r"^(?:singleton\s+)?([A-Z]\w*)\s+(\S+\.qml)$")
 
-def verify_coverage():
-    """验证覆盖率"""
-    python_dir = Path(__file__).parent.parent / 'prismqml' / 'python'
-    
-    results = {}
-    
-    for qt_class, methods in INTERFACES_TO_CHECK.items():
-        results[qt_class] = {'total': len(methods), 'implemented': 0, 'missing': []}
-        
-        # 确定要检查的文件
-        files_to_check = list(python_dir.glob('*.py'))
-        
-        for method in methods:
-            found = False
-            for file_path in files_to_check:
-                if check_method_exists(file_path, method):
-                    found = True
-                    break
-            
-            if found:
-                results[qt_class]['implemented'] += 1
-            else:
-                results[qt_class]['missing'].append(method)
-    
-    # 打印结果
-    print("=" * 80)
-    print("Python-QML桥接层接口覆盖率验证")
-    print("=" * 80)
-    print()
-    
-    total_methods = 0
-    total_implemented = 0
-    
-    for qt_class, data in results.items():
-        total = data['total']
-        implemented = data['implemented']
-        coverage = (implemented / total * 100) if total > 0 else 0
-        
-        total_methods += total
-        total_implemented += implemented
-        
-        status = "✅" if coverage == 100 else "⚠️"
-        print(f"{qt_class:20s} {implemented:3d}/{total:3d} ({coverage:5.1f}%) {status}")
-        
-        if data['missing']:
-            print(f"  缺失: {', '.join(data['missing'][:5])}")
-            if len(data['missing']) > 5:
-                print(f"        ... 还有 {len(data['missing']) - 5} 个")
-        print()
-    
-    overall_coverage = (total_implemented / total_methods * 100) if total_methods > 0 else 0
-    print("=" * 80)
-    print(f"总体覆盖率: {total_implemented}/{total_methods} ({overall_coverage:.1f}%)")
-    print("=" * 80)
 
-if __name__ == '__main__':
-    verify_coverage()
+def repository_root() -> Path:
+    """Return the source checkout root. 返回源码仓库根目录。"""
+    return Path(__file__).resolve().parents[1]
+
+
+def registered_types(qmldir: Path) -> tuple[str, ...]:
+    """Parse and validate public type names. 解析并验证公开类型名。"""
+    types: list[str] = []
+    seen: set[str] = set()
+    for line_number, raw_line in enumerate(
+        qmldir.read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        line = raw_line.strip()
+        if not line or line.startswith("#") or line.startswith("module "):
+            continue
+        match = QMLDIR_ENTRY.fullmatch(line)
+        if match is None:
+            raise ValueError(f"unsupported qmldir entry at line {line_number}: {line}")
+        type_name = match.group(1)
+        if type_name in seen:
+            raise ValueError(f"duplicate QML type registration: {type_name}")
+        seen.add(type_name)
+        types.append(type_name)
+    if not types:
+        raise ValueError(f"no public QML types registered in {qmldir}")
+    return tuple(types)
+
+
+def run_probe(
+    root: Path,
+    runner: Callable[..., subprocess.CompletedProcess] | None = None,
+) -> tuple[int, int]:
+    """Run the authoritative headless component probe. 运行权威无头组件探测。"""
+    qmldir = root / "prismqml" / "PrismQML" / "qmldir"
+    total = len(registered_types(qmldir))
+    probe = root / "tests" / "qml" / "probe_all_components.py"
+    if not probe.is_file():
+        raise FileNotFoundError(f"QML component probe not found: {probe}")
+    environment = os.environ.copy()
+    environment["QT_QPA_PLATFORM"] = "offscreen"
+    command = [sys.executable, "-X", "utf8", str(probe)]
+    completed = (runner or subprocess.run)(
+        command,
+        cwd=root,
+        env=environment,
+        check=False,
+    )
+    return total, completed.returncode
+
+
+def main() -> int:
+    """Verify that all registered public types are accounted for. 验证全部公开类型。"""
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    try:
+        total, return_code = run_probe(repository_root())
+    except (OSError, ValueError) as error:
+        LOGGER.error("QML runtime coverage setup failed: %s", error)
+        return 2
+    if return_code:
+        LOGGER.error("QML runtime coverage failed for %d registered types", total)
+    else:
+        LOGGER.info("QML runtime coverage passed for %d registered types", total)
+    return return_code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
