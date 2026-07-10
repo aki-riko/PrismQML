@@ -24,7 +24,6 @@ Row {
     required property real progress
     required property color textColor
     required property bool controlEnabled
-    required property string fontFamily
     required property int fontSize
     // Optional font flags 可选字体修饰
     property bool fontBold: false

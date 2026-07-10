@@ -495,8 +495,8 @@ Item {
         onHeightChanged: _scheduleBorderRepaint()
         
         Connections {
-            target: ThemeManager
-            function onThemeChanged() { rightBorderCanvas.requestPaint() }
+            function onNavDividerChanged() { rightBorderCanvas.requestPaint() }
+            target: Enums.stateColor
         }
     }
     

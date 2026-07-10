@@ -149,7 +149,7 @@ InputCore {
         anchors.rightMargin: Enums.spacing.xs
         
         text: control.displayValue
-        font.family: control.fontFamily
+        font.family: Enums.fontFamily
         font.pixelSize: control.fontSize
         color: control.inputTextColor
         selectionColor: control.selectionColor

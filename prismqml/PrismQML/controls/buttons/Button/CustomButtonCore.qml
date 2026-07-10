@@ -48,7 +48,6 @@ Widget {
     contentHeight: Enums.controlSize.inputHeight
     
     // ==================== Text Style 文本样式 ====================
-    readonly property string fontFamily: Enums.fontFamily
     readonly property int fontSize: Enums.typography.body
     
     // ==================== Color Functions (subclass override) 颜色函数 ====================

@@ -103,7 +103,7 @@ InputCore {
         opacity: (!control.collapsible || control.expanded) ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Enums.duration.medium } }
         
-        font.family: control.fontFamily
+        font.family: Enums.fontFamily
         font.pixelSize: control.fontSize
         color: control.inputTextColor
         selectionColor: control.selectionColor

@@ -50,7 +50,6 @@ Widget {
     
     // ==================== Text Style 文本样式 ====================
     // Unified text properties for TextInput/TextEdit 统一文本属性
-    readonly property string fontFamily: Enums.fontFamily
     readonly property int fontSize: Enums.typography.body
     readonly property color selectionColor: Enums.accentColor
     readonly property color selectedTextColor: Enums.accentForeground

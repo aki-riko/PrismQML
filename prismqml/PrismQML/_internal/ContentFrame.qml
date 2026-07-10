@@ -80,9 +80,9 @@ Item {
     
     // ==================== Theme Connection 主题连接 ====================
     Connections {
-        target: ThemeManager
-        function onThemeChanged() { borderCanvas.requestPaint() }
-        function onSkinChanged() { borderCanvas.requestPaint() }
+        function onIsDarkChanged() { borderCanvas.requestPaint() }
+        function onIsNeobrutalismChanged() { borderCanvas.requestPaint() }
+        target: Enums
     }
     
     // ==================== Content Container 内容容器 ====================

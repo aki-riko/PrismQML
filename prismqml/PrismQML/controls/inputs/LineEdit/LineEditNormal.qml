@@ -36,7 +36,6 @@ Item {
     required property int paddingRight
     
     // Text style from InputCore 从基类继承的文本样式
-    required property string fontFamily
     required property int fontSize
     required property color inputTextColor
     required property color selectionColor
@@ -119,7 +118,7 @@ Item {
             NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic }
         }
         
-        font.family: normalInput.fontFamily
+        font.family: Enums.fontFamily
         font.pixelSize: normalInput.fontSize
         color: normalInput.inputTextColor
         selectionColor: normalInput.selectionColor

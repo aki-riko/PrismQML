@@ -204,7 +204,6 @@ InputCore {
             controlEnabled: control.enabled
             paddingLeft: control.paddingLeft
             paddingRight: control.paddingRight
-            fontFamily: control.fontFamily
             fontSize: control.fontSize
             inputTextColor: control.inputTextColor
             selectionColor: control.selectionColor
@@ -228,7 +227,6 @@ InputCore {
             controlEnabled: control.enabled
             paddingLeft: control.paddingLeft
             paddingRight: control.paddingRight
-            fontFamily: control.fontFamily
             fontSize: control.fontSize
             
             onTextModified: (text) => control.textModified(text)

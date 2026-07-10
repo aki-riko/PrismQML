@@ -22,7 +22,7 @@
 // - 单 cell hover/click 失效;只能整行选中。需要 cell 级交互的场景用普通 delegate
 // - 富文本/SVG 无法在 ctx 直接画;extraDraw 可填补
 import QtQuick
-import "../.."
+import "../../.."
 
 Item {
     id: root
@@ -36,7 +36,6 @@ Item {
     // function(ctx: CanvasRenderingContext2D, columns, rowData, width, height): void
     property var extraDraw: null
     // 字体/颜色配置 (默认与 Enums 对齐)
-    property string fontFamily: "Microsoft YaHei UI"
     property int fontPointSize: 12
     property color textColor: Enums.foregroundColor
     property color textColorSubtle: Enums.foregroundColorSubtle
@@ -52,15 +51,17 @@ Item {
 
     Canvas {
         id: canvas
+        readonly property string fontSpec: root.fontPointSize + "pt " + Enums.canvasFontFamily
         anchors.fill: parent
         renderStrategy: Canvas.Cooperative
         renderTarget: Canvas.FramebufferObject  // GL 加速 (Qt 选择性支持,不支持时退到 Image)
+        onFontSpecChanged: requestPaint()
 
         onPaint: {
             var ctx = getContext("2d")
             ctx.reset()
             ctx.textBaseline = "middle"
-            ctx.font = root.fontPointSize + "pt '" + root.fontFamily + "'"
+            ctx.font = canvas.fontSpec
             ctx.fillStyle = root.textColor
             var x = 0
             var y = root.height / 2
@@ -109,7 +110,6 @@ Item {
     // 自检 review 修复: 主题切换 / 业务运行时换 extraDraw / 字体改 都要触发重绘
     onTextColorChanged: canvas.requestPaint()
     onTextColorSubtleChanged: canvas.requestPaint()
-    onFontFamilyChanged: canvas.requestPaint()
     onFontPointSizeChanged: canvas.requestPaint()
     onExtraDrawChanged: canvas.requestPaint()
 

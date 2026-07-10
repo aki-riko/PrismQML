@@ -22,7 +22,6 @@ Item {
     required property int paddingRight
     
     // Text style from InputCore 从基类继承的文本样式
-    required property string fontFamily
     required property int fontSize
     
     // ==================== Output Props 输出属性 ====================
@@ -69,7 +68,7 @@ Item {
         anchors.rightMargin: labelInput.paddingRight
         anchors.bottomMargin: Enums.spacing.m
         height: 24
-        font.family: labelInput.fontFamily
+        font.family: Enums.fontFamily
         font.pixelSize: labelInput.fontSize
         color: Enums.textColor.primary
         enabled: labelInput.controlEnabled

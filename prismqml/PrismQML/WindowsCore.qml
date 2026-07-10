@@ -20,6 +20,10 @@ Window {
     readonly property bool _startupProfilingVerboseActive:
         startupProfilingVerbose ||
         (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
+
+    // ==================== Theme 主题 ====================
+    readonly property color accentColor: Enums.accentColor
+
     function logTime(msg) { console.log("[" + Math.round(Date.now() - _appStartTime) + "ms]", msg) }
     function profileTime(msg) {
         var now = Date.now()
@@ -69,9 +73,6 @@ Window {
     property bool _closeInProgress: false
     property bool _titleChromeReady: true
     property bool _resizeHandlesReady: false
-    
-    // ==================== Theme 主题 ====================
-    readonly property color accentColor: ThemeManager ? ThemeManager.accentColor : Enums.accentColor
     
     // ==================== Layout Mode 布局模式 ====================
     property int titleBarPosition: Enums.windowType.title_bar_top

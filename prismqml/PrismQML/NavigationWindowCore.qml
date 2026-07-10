@@ -68,8 +68,8 @@ WindowsCore {
             return false
         }
         profileTime("NavigationWindowCore apply Mica " + reason + " start")
-        var success = MicaManager.setMicaEffect(window, micaEnabled, Enums.isDark)
-        _micaBackdropReady = micaEnabled && success
+        var success = MicaManager.setMicaEffect(window, _micaActive, Enums.isDark)
+        _micaBackdropReady = _micaActive && success
         profileTime("NavigationWindowCore apply Mica " + reason + " done success=" + success)
         return success
     }
@@ -349,11 +349,14 @@ WindowsCore {
     }
     
     Connections {
-        target: ThemeManager
-        enabled: window._micaActive
-        function onThemeChanged() {
+        function onIsDarkChanged() {
             if (window._micaActive && MicaManager) window._scheduleMicaReapply("themeChanged")
         }
+        function onIsNeobrutalismChanged() {
+            if (MicaManager) window._applyMicaEffect("skinChanged")
+        }
+        target: Enums
+        enabled: window._micaAvailable && window._nativeHookReady
     }
     
     // Initialize Mica effect on startup 启动时初始化云母效果

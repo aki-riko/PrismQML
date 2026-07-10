@@ -22,7 +22,6 @@ Item {
     required property bool controlEnabled
     required property bool loading
     required property real parentRadius
-    required property string fontFamily
     required property int fontSize
     required property color textColor  // Parent button text color 父按钮文字颜色
     
@@ -192,7 +191,7 @@ Item {
     // TextMetrics to measure menu item text width 用TextMetrics测量菜单项文本宽度
     TextMetrics {
         id: textMeasure
-        font.family: fontFamily || Enums.fontFamily
+        font.family: Enums.fontFamily
         font.pixelSize: fontSize > 0 ? fontSize : Enums.typography.body
     }
 

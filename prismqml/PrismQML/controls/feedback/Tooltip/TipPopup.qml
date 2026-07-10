@@ -317,7 +317,7 @@ Item {
     }
 
     Connections {
-        target: ThemeManager
-        function onThemeChanged() { arrowCanvas.requestPaint() }
+        function onIsDarkChanged() { arrowCanvas.requestPaint() }
+        target: Enums
     }
 }

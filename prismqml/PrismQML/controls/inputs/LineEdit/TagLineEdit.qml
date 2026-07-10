@@ -174,7 +174,7 @@ InputCore {
             // 仅在 Flow 内为可能的同行 tag 预留一段窄槽位；右侧计数/搜索按钮空间已由 tagsFlow 锚定避开。
             width: Math.max(120, tagsFlow.width - Enums.spacing.xxxl)
             height: Enums.spacing.xxxl
-            font.family: control.fontFamily
+            font.family: Enums.fontFamily
             font.pixelSize: control.fontSize
             color: Enums.textColor.primary
             selectionColor: control.selectionColor

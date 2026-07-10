@@ -12,7 +12,7 @@ Text {
     id: control
     
     // ==================== Type Props 类型属性 ====================
-    property int type: 0  // Default: type_body 默认正文类型
+    property int type: Enums.label.type_body  // Default body type 默认正文类型
     
     // ==================== Hyperlink Props 超链接属性 ====================
     property url url: ""
@@ -20,45 +20,34 @@ Text {
     signal clicked()
     readonly property bool hovered: _mouseArea.containsMouse
     
-    // ==================== Internal Type Constants 内部类型常量 ====================
-    readonly property int _type_body: 0
-    readonly property int _type_body_strong: 1
-    readonly property int _type_body_small: 2
-    readonly property int _type_caption: 3
-    readonly property int _type_subtitle: 4
-    readonly property int _type_title: 5
-    readonly property int _type_title_large: 6
-    readonly property int _type_display: 7
-    readonly property int _type_hyperlink: 8
-    
     // ==================== Style Binding 样式绑定 ====================
     font.family: Enums.fontFamily
     font.pixelSize: _fontSize
     font.weight: _fontWeight
-    font.underline: type === _type_hyperlink && hovered && underlineOnHover
+    font.underline: type === Enums.label.type_hyperlink && hovered && underlineOnHover
     color: _textColor
-    wrapMode: (type === _type_body || type === _type_body_strong || type === _type_body_small) 
+    wrapMode: (type === Enums.label.type_body || type === Enums.label.type_body_strong || type === Enums.label.type_body_small)
               ? Text.WordWrap : Text.NoWrap
-    elide: type === _type_display ? Text.ElideRight : Text.ElideNone
+    elide: type === Enums.label.type_display ? Text.ElideRight : Text.ElideNone
     
     // ==================== Internal Style Calc 内部样式计算 ====================
     readonly property int _fontSize: {
         switch (type) {
-            case _type_body:
-            case _type_body_strong:
-            case _type_hyperlink:
+            case Enums.label.type_body:
+            case Enums.label.type_body_strong:
+            case Enums.label.type_hyperlink:
                 return Enums.typography.body
-            case _type_body_small:
+            case Enums.label.type_body_small:
                 return Enums.typography.bodySmall
-            case _type_caption:
+            case Enums.label.type_caption:
                 return Enums.typography.caption
-            case _type_subtitle:
+            case Enums.label.type_subtitle:
                 return Enums.typography.titleLarge
-            case _type_title:
+            case Enums.label.type_title:
                 return Enums.typography.displayLarge
-            case _type_title_large:
+            case Enums.label.type_title_large:
                 return Enums.typography.giant
-            case _type_display:
+            case Enums.label.type_display:
                 return Enums.typography.mega
             default:
                 return Enums.typography.body
@@ -67,12 +56,12 @@ Text {
     
     readonly property int _fontWeight: {
         switch (type) {
-            case _type_body_strong:
-            case _type_subtitle:
-            case _type_title:
-            case _type_title_large:
+            case Enums.label.type_body_strong:
+            case Enums.label.type_subtitle:
+            case Enums.label.type_title:
+            case Enums.label.type_title_large:
                 return Font.DemiBold
-            case _type_display:
+            case Enums.label.type_display:
                 return Font.Bold
             default:
                 return Font.Normal
@@ -82,13 +71,13 @@ Text {
     readonly property color _textColor: {
         if (_useCustomColor) return customTextColor
         switch (type) {
-            case _type_hyperlink:
+            case Enums.label.type_hyperlink:
                 return Enums.accentColor
-            case _type_caption:
+            case Enums.label.type_caption:
                 return Enums.textColor.secondary
-            case _type_body:
-            case _type_body_strong:
-            case _type_body_small:
+            case Enums.label.type_body:
+            case Enums.label.type_body_strong:
+            case Enums.label.type_body_small:
                 return Enums.stateColor.textStrong
             default:
                 return Enums.textColor.primary
@@ -117,10 +106,10 @@ Text {
     MouseArea {
         id: _mouseArea
         anchors.fill: parent
-        hoverEnabled: type === _type_hyperlink
-        enabled: type === _type_hyperlink
-        visible: type === _type_hyperlink
-        cursorShape: type === _type_hyperlink ? Qt.PointingHandCursor : Qt.ArrowCursor
+        hoverEnabled: type === Enums.label.type_hyperlink
+        enabled: type === Enums.label.type_hyperlink
+        visible: type === Enums.label.type_hyperlink
+        cursorShape: type === Enums.label.type_hyperlink ? Qt.PointingHandCursor : Qt.ArrowCursor
         
         onClicked: {
             control.clicked()

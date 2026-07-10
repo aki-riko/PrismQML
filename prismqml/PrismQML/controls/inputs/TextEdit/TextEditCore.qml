@@ -107,7 +107,7 @@ InputCore {
             id: textEdit
             width: flickable.width
             
-            font.family: control.fontFamily
+            font.family: Enums.fontFamily
             font.pixelSize: control.fontSize
             color: control._isBrowser ? Enums.textColor.primary : control.inputTextColor
             selectionColor: control._isBrowser ? Enums.transparent : control.selectionColor

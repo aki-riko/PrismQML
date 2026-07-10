@@ -10,6 +10,7 @@ import subprocess
 from scripts import check_qml_conventions as scanner
 
 
+ROOT = Path(__file__).resolve().parents[1]
 LIBRARY_PATH = PurePosixPath("prismqml/PrismQML/Test.qml")
 HIGH_CONFIDENCE_SOURCE = """
 import QtQuick 2.15
@@ -191,3 +192,12 @@ def test_all_mode_is_enforcing_unless_report_only(tmp_path):
     assert scanner.main(
         ["--all", "--root", str(tmp_path), "--report-only", "--max-details", "0"]
     ) == 0
+
+
+def test_repository_theme_entrypoints_are_unified():
+    violations = scanner.scan_repository(ROOT)
+    theme_violations = [
+        violation for violation in violations if violation.rule in {"QML004", "QML007"}
+    ]
+
+    assert theme_violations == []

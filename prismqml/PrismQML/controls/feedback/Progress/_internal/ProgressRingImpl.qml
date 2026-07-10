@@ -92,7 +92,7 @@ Item {
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
         Component.onCompleted: requestPaint()
-        Connections { target: ThemeManager; function onThemeChanged() { trackCanvas.requestPaint() } }
+        Connections { target: control; function onTrackColorChanged() { trackCanvas.requestPaint() } }
     }
     
     // Progress ring 进度环
@@ -111,7 +111,7 @@ Item {
         onHeightChanged: requestPaint()
         Connections { target: control; function onValueChanged() { progressCanvas.requestPaint() } }
         Connections { target: control; function onPositionChanged() { progressCanvas.requestPaint() } }
-        Connections { target: ThemeManager; function onThemeChanged() { progressCanvas.requestPaint() } }
+        Connections { target: control; function onProgressColorChanged() { progressCanvas.requestPaint() } }
         Component.onCompleted: requestPaint()
     }
     

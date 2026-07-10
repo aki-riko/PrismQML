@@ -86,7 +86,8 @@ Item {
     Component.onCompleted: canvas.requestPaint()
     
     Connections {
-        target: ThemeManager
-        function onThemeChanged() { canvas.requestPaint() }
+        function onTrackColorChanged() { canvas.requestPaint() }
+        function onProgressColorChanged() { canvas.requestPaint() }
+        target: control
     }
 }

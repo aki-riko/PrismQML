@@ -56,7 +56,6 @@ Widget {
                         style === Enums.button.style_hyperlink
 
     // ==================== Text Style 文本样式 ====================
-    readonly property string fontFamily: Enums.fontFamily
     readonly property int fontSize: Enums.typography.body
     // Optional font flags 可选字体修饰 (e.g. 富文本工具栏 B/I/U/S 按钮)
     property bool fontBold: false
@@ -378,7 +377,6 @@ Widget {
             progress: control.progress
             textColor: control.getTextColor()
             controlEnabled: control.enabled
-            fontFamily: control.fontFamily
             fontSize: control.fontSize
             fontBold: control.fontBold
             fontItalic: control.fontItalic
@@ -500,7 +498,6 @@ Widget {
             controlEnabled: control.enabled
             loading: control.loading
             parentRadius: control.radius
-            fontFamily: control.fontFamily
             fontSize: control.fontSize
             parentStyle: control.style
             textColor: styleHelper.textColor
