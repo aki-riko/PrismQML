@@ -9,9 +9,33 @@ on:
     paths:
       - "cpp/**"
       - "prismqml/PrismQML/**"
+      - "scripts/check_qml_conventions.py"
+      - "scripts/qml_conventions.py"
+      - "tests/test_qml_conventions.py"
       - ".github/workflows/build-all.yml"
 
 jobs:
+  qml_conventions:
+    name: QML conventions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Reject newly introduced QML violations
+        shell: bash
+        run: |
+          BASE="${{ github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="HEAD^"
+          fi
+          python scripts/check_qml_conventions.py --changed --base "$BASE"
+      - name: Report remaining full-library QML debt
+        run: python scripts/check_qml_conventions.py --all --report-only
+
   # ==================== 桌面三平台 ====================
   desktop:
     name: Desktop ${{ matrix.os }}
