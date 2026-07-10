@@ -109,7 +109,6 @@ P1、P2、P3 可以在不同提交中并行设计，但 P6/P7 的大规模整理
 git status --short
 git rev-parse HEAD
 .\.venv\Scripts\python.exe -m pytest
-$env:QT_QPA_PLATFORM='offscreen'
 .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
 ctest --test-dir cpp\build -N
 cargo test --manifest-path rust\Cargo.toml
@@ -136,6 +135,7 @@ cargo test --manifest-path rust\Cargo.toml
    - `prism_test_mica`
    - `prism_test_qrcode_gen`
    - `prism_test_sqlmodel`
+   - `prism_test_provider_lifecycle`
 3. 需要 offscreen 的测试通过 `set_tests_properties(... ENVIRONMENT ...)` 或 workflow 环境统一设置。
 4. 平台不支持的行为在测试内部做明确平台断言或由 CMake 条件注册；任何桌面矩阵都不允许注册数为 0。
 5. 删除 `.github/workflows/build-all.yml` 中的 stderr 丢弃、手工 fallback 和 `|| true`。
@@ -146,17 +146,19 @@ cargo test --manifest-path rust\Cargo.toml
 ```powershell
 cmake --build cpp\build
 ctest --test-dir cpp\build -N
-ctest --test-dir cpp\build --output-on-failure
+ctest --test-dir cpp\build --output-on-failure --no-tests=error
 ```
 
 验收判据：
 
 - `ctest -N` 显示预期测试集合且绝不为 0。
-- 本地 5 个测试全部通过。
+- 本地 6 个 C++ 测试程序与 1 个 QR 独立解码测试共 7 项全部通过。
 - GitHub 的 Windows、Linux、macOS 日志均能看到实际测试名称和结果。
 - 人为让一个临时断言失败时，workflow 必须非零退出；验证后撤销临时改动。
 
 建议提交：`test: register and enforce C++ test execution`
+
+P1 后续回归已完成：pytest 与全组件 probe 在导入 PySide6 前自行以 `setdefault` 启用 `offscreen`，裸命令不再依赖调用者环境，显式平台覆盖仍会保留；新增 2 项隔离子进程回归。Windows 11 Mica 测试继续使用真实 `windows` 平台插件，但改为通过 `winId()` 创建隐藏 HWND、全程不调用 `show()`，并在 DWM 调用前后同时断言 Qt `isVisible()` 与 Win32 `IsWindowVisible()` 均为 false。无 Qt/QML 环境的裸 pytest `167/167`、QML `169/0/12`、无 Qt PATH 的 CTest `7/7` 通过，Mica 结果文件确认隐藏 HWND、Mica 与原生阴影全部成功。提交：`a75540f`。
 
 ### P2：修复 sdist 并建立发布制品门禁
 
@@ -358,7 +360,6 @@ P6C1 已完成：36 个 QML 文件中的 27 处透明色表达式和 28 处样�
 每批验收：
 
 ```powershell
-$env:QT_QPA_PLATFORM='offscreen'
 .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
 .\.venv\Scripts\python.exe -m pytest
 git diff --check
@@ -440,10 +441,9 @@ git diff --check
 ```powershell
 .\.venv\Scripts\python.exe -m compileall prismqml tests scripts
 .\.venv\Scripts\python.exe -m pytest
-$env:QT_QPA_PLATFORM='offscreen'
 .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
 cmake --build cpp\build
-ctest --test-dir cpp\build --output-on-failure
+ctest --test-dir cpp\build --output-on-failure --no-tests=error
 cargo fmt --manifest-path rust\Cargo.toml -- --check
 cargo clippy --manifest-path rust\Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path rust\Cargo.toml
@@ -497,7 +497,7 @@ git diff --check
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
 | P0 基线固化 | 已完成 | 固化审计输入与 12 个合法 QML skip；当前回归基线为 Python 122、QML 169/0/12、CTest 7/7 | `1dd7e9a2` |
-| P1 CTest 与 C++ CI | 已完成 | 本地 CTest 7/7；Windows 裸 `ctest` 不依赖调用者 Qt PATH，真实弹窗输入修后 7/7；Build All [29123637721](https://github.com/aki-riko/PrismQML/actions/runs/29123637721) 五平台通过 | `1dd7e9a2`、`2db05888`、`6d96a2a` |
+| P1 CTest 与 C++ CI | 已完成 | 本地 CTest 7/7；Windows 裸 `ctest` 不依赖调用者 Qt PATH；pytest/probe 默认 offscreen，Mica 使用真实 windows 插件与全程隐藏 HWND，Qt/Win32 可见性断言及真实 DWM 调用通过；裸 Python 167、QML 169/0/12、CTest 7/7；Build All [29123637721](https://github.com/aki-riko/PrismQML/actions/runs/29123637721) 五平台通过 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f` |
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |

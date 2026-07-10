@@ -392,8 +392,8 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
    - `pyproject.toml` 的 `version = "x.y.z.n"`
    - `prismqml/__init__.py` 的 `__version__ = "x.y.z.n"`（回退值）
 2. **验证**：发布前 headless 跑一遍确认无新增 QML 警告/错误
-   （`QT_QPA_PLATFORM=offscreen` + 加载关键组件，零 `unavailable`/`Duplicate`/属性覆盖警告）。
-   - 工具 = `QT_QPA_PLATFORM=offscreen python tests/qml/probe_all_components.py`（遍历 qmldir 全组件 createComponent）。
+   （默认 `offscreen` + 加载关键组件，零 `unavailable`/`Duplicate`/属性覆盖警告）。
+   - 工具 = `.\.venv\Scripts\python.exe -X utf8 tests\qml\probe_all_components.py`（遍历 qmldir 全组件 createComponent）。probe 在导入 PySide6 前通过 `setdefault` 启用 `offscreen`，调用者显式平台覆盖仍会保留。
    - 🔴 **当前优化基线：probe 应退出码 0，且约 `169 OK / 0 错误 / 12 跳过 = 181`**。12 个跳过包含 5 个 singleton（由 QML 引擎托管）+ 7 个 required-property 内部子模块（ButtonContent / ButtonDropdown / ButtonProgress / ListWidgetItem / SettingsCardContent / HorizontalScrollMixin / ViewportMixin，由父组件注入 required property，单独 createComponent 不成立）。
    - 🔴 **判是否新增回归的权威法**：`git worktree add /tmp/baseline <改动前 commit>`，从主 venv 把编译好的 `prismqml_rs*.pyd` cp 进去 + `PYTHONPATH=/tmp/baseline` 跑同一 probe，对比 OK/错误/跳过三个数字是否一致；一致即零新增。看到非 0 退出码必须先分析具体错误，不可把它当成既有 required-property 基线。
 3. **提交**：`git add -A && git commit`（commit message 写清修复内容 + 版本号）。

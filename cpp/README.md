@@ -53,8 +53,11 @@ ctest --test-dir cpp\build -N
 ctest --test-dir cpp\build --output-on-failure --no-tests=error
 ```
 
-CTest 当前注册 6 个 C++ 测试程序和 1 个 QR 独立解码测试。Mica/DWM 在非
-Windows 11 平台以 CTest `Skipped` 明确报告，其余失败均返回非零退出码。
+CTest 当前注册 6 个 C++ 测试程序和 1 个 QR 独立解码测试。普通 Qt 用例通过
+CTest 属性使用 `offscreen`。Windows 11 的 Mica 用例必须使用真实 `windows`
+平台插件，但只创建隐藏 HWND，不调用 `show()`；测试会同时断言 Qt 与 Win32
+原生窗口状态始终不可见，再执行真实 DWM/Mica/阴影调用。非 Windows 11 平台
+以 CTest `Skipped` 明确报告，其余失败均返回非零退出码。
 
 ## 运行 demo / gallery
 

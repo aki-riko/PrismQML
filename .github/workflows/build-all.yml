@@ -73,7 +73,7 @@ jobs:
           fi
           "$QTCMAKE" -S cpp -B cpp/build -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build cpp/build
-      - name: Run unit tests (offscreen)
+      - name: Run unit tests (offscreen except native Mica)
         shell: bash
         env:
           QT_QPA_PLATFORM: offscreen

@@ -244,7 +244,10 @@ Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur
 
 ```bash
 python -m pytest tests/ -v
+python -X utf8 tests/qml/probe_all_components.py
 ```
+
+When no Qt platform is explicitly selected, pytest and the QML probe default to `offscreen` and do not create visible test windows; explicit platform overrides are preserved. Individually executed manual window-test scripts may still show UI. See [`cpp/README.md`](cpp/README.md#运行测试) for the native Windows Mica/CTest behavior.
 
 ## 📄 License
 
