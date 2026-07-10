@@ -19,23 +19,31 @@ jobs:
           python-version: "3.12"
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      - name: Install source test dependencies
-        run: python -m pip install --disable-pip-version-check -e ".[dev]" -r cpp/tests/requirements.txt
-      - name: Run Python tests
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: python -m pytest
-      - name: Probe source QML components
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: python tests/qml/probe_all_components.py
-      - name: Run Rust tests
-        run: cargo test --manifest-path rust/Cargo.toml
       - name: Install Qt (desktop)
         uses: jurplel/install-qt-action@v4
         with:
           version: "6.10.3"
           modules: qtshadertools
+      - name: Install source test dependencies
+        run: python -m pip install --disable-pip-version-check -e ".[dev]" -r cpp/tests/requirements.txt
+      - name: Run Python tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+          LD_LIBRARY_PATH: ${{ env.pythonLocation }}/lib
+          QT_PLUGIN_PATH: ""
+          QML2_IMPORT_PATH: ""
+          QML_IMPORT_PATH: ""
+        run: python -m pytest
+      - name: Probe source QML components
+        env:
+          QT_QPA_PLATFORM: offscreen
+          LD_LIBRARY_PATH: ${{ env.pythonLocation }}/lib
+          QT_PLUGIN_PATH: ""
+          QML2_IMPORT_PATH: ""
+          QML_IMPORT_PATH: ""
+        run: python tests/qml/probe_all_components.py
+      - name: Run Rust tests
+        run: cargo test --manifest-path rust/Cargo.toml
       - name: Configure and build C++ tests
         shell: bash
         run: |
