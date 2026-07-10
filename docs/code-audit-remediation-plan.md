@@ -314,6 +314,8 @@ cargo test --manifest-path rust\Cargo.toml
 
 预期效果：先阻止新增违规，再按组件域消化现有问题；每批都能独立回滚。
 
+状态：进行中。已完成 P6 门禁基础设施：新增只读扫描器 `scripts/check_qml_conventions.py`，`--changed` 对 Git base 与当前完整文件的违规指纹做多重集合差分，只阻断新增违规，因此可识别“新增子元素导致未改动 property 变成乱序”等上下文回归，同时不强迫 P6A 混入 P6C/P6D 的存量清理；rename 会映射到旧路径基线。`--all` 默认对存量违规返回非零，CI 使用 `--report-only` 仅报告剩余数。扫描器已覆盖 import、Qt5Compat、QtQuick.Controls 评审例外、ThemeManager、局部 enum/主题代理、成员顺序、alias 就近、readonly 前向 id、Behavior、分节术语和保守样式字面量。当前全库基线为 3,335 项：ThemeManager 8、局部主题代理 8、成员顺序 1,968、分节术语 1,205、硬编码颜色 63、样式数值 76、字体 7；版本化 import、Qt5Compat、未评审 QtQuick.Controls、局部 enum 与旧 `*Enums.qml` 均为 0。扫描器回归 9/9、全量 Python 157、QML `169/0/12`、changed 模式 0 新增违规通过。提交：`d5b5852`。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -321,7 +323,7 @@ cargo test --manifest-path rust\Cargo.toml
 先建立检查器：
 
 - 新增只读 QML 规范扫描脚本，支持 `--changed` 与 `--all`。
-- 初期 CI 对改动文件强制零违规，同时输出全库剩余数。
+- 初期 CI 对改动文件相对 Git base 的新增违规强制为零，同时输出全库剩余数。
 - 全库归零后再把 `--all` 升为强制门禁。
 - 扫描器必须识别 alias 就近声明、引用后续 id 的 readonly property 等规范例外。
 
@@ -495,7 +497,7 @@ git diff --check
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
-| P6 QML 规范债务 | 待执行 |  |  |
+| P6 QML 规范债务 | 进行中 | 只读扫描器与 CI 新增违规门禁已建立；全库基线 3,335（ThemeManager 8、局部主题代理 8、成员顺序 1,968、分节术语 1,205、颜色 63、数值 76、字体 7），Python 157、QML 169/0/12 | `d5b5852` |
 | P7 Python 规范债务 | 待执行 |  |  |
 | P8 资源注册 | 待执行 |  |  |
 | P9 最终验收 | 待执行 |  |  |
