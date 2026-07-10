@@ -6,7 +6,7 @@
 pip install prismqml
 ```
 
-PrismQML 依赖 PySide6（自动安装）。分发名与导入名一致：装好后 `from prismqml import ...`。
+PrismQML 要求 Python 3.9+ 与 PySide6 6.9+（Qt 6.9+）；PySide6 会自动安装。分发名与导入名一致：装好后 `from prismqml import ...`。
 
 ## 第一个窗口
 

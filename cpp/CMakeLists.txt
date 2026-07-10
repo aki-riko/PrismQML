@@ -1,6 +1,6 @@
 # PrismQML C++ 宿主层 (prism)
 # 与 PySide6 宿主平行: 让 C++ 应用以对称 API 调用同一套 QML 引擎。
-# 目标 Qt: 6.11.1 (D:\Qt\6.11.1\msvc2022_64, 与 PySide6 对齐)
+# Minimum Qt 6.9 for RectangularShadow 最低 Qt 6.9，满足 RectangularShadow 要求
 cmake_minimum_required(VERSION 3.16)
 project(prism LANGUAGES CXX)
 
@@ -8,7 +8,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network Sql
+set(PRISM_MIN_QT_VERSION 6.9)
+find_package(Qt6 ${PRISM_MIN_QT_VERSION} REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network Sql
     QuickControls2 QuickLayouts QuickEffects)
 
 qt_standard_project_setup()

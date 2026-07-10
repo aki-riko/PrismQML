@@ -34,6 +34,7 @@ pip install prismqml
 ```
 
 > 分发名与导入名一致：`pip install prismqml` 后 `from prismqml import ...`。
+> 运行环境要求 Python 3.9+ 与 PySide6 6.9+（Qt 6.9+）。
 
 开发模式安装：
 

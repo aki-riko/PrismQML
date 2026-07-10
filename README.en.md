@@ -34,6 +34,7 @@ pip install prismqml
 ```
 
 > Note: the PyPI package name and import name are both `prismqml`.
+> Runtime requirements: Python 3.9+ and PySide6 6.9+ (Qt 6.9+).
 
 Development install:
 
