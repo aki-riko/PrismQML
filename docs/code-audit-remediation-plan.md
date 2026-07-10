@@ -252,7 +252,7 @@ tar -tf $sdist.FullName
 
 #### P4.2 图标与生成脚本
 
-状态：已完成。修前用脚本副本与临时资源树复现了来源缺失、损坏 SVG、复制中断三种失败，三者都会改变既有目标；修后同类输入、`--check` 不一致和事务提交中断均保持 SVG、Python 枚举、QML 枚举原样。仓库当前真实上游目录缺失输入返回 1，正式 2,497 个 SVG 与两套枚举前后 SHA-256 快照一致。维护脚本定向回归 `15 passed`，全量 Python `140 passed`、QML `169/0/12`、CTest `7/7`、`cargo test` 退出 0；真实 MSVC 桌面、Android arm64 库、arm64 APK、x86_64 APK 和既有构建树 APK 路径均成功。提交：`6d3395f`。
+状态：已完成。修前用脚本副本与临时资源树复现了来源缺失、损坏 SVG、复制中断三种失败，三者都会改变既有目标；修后同类输入、`--check` 不一致和事务提交中断均保持 SVG、Python 枚举、QML 枚举原样。仓库当前真实上游目录缺失输入返回 1，正式 2,497 个 SVG 与两套枚举前后 SHA-256 快照一致。维护脚本定向回归 `15 passed`，全量 Python `140 passed`、QML `169/0/12`、CTest `7/7`、`cargo test` 退出 0；真实 MSVC 桌面、Android arm64 库、arm64 APK、x86_64 APK 和既有构建树 APK 路径均成功。Build All [29119519828](https://github.com/aki-riko/PrismQML/actions/runs/29119519828) 五平台全绿，Deploy Docs [29119519426](https://github.com/aki-riko/PrismQML/actions/runs/29119519426) 全绿。提交：`6d3395f`。
 
 重写 `scripts/copy_all_icons.py` 的执行顺序：
 
@@ -491,7 +491,7 @@ git diff --check
 | P1 CTest 与 C++ CI | 已完成 | 本地 CTest 7/7；Build All [29112536408](https://github.com/aki-riko/PrismQML/actions/runs/29112536408) 全平台通过 | `1dd7e9a2`、`2db05888` |
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
-| P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7，桌面与三条 Android/APK 真实构建路径通过 | `818deec1`、`6d3395f` |
+| P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 待执行 |  |  |
 | P6 QML 规范债务 | 待执行 |  |  |
 | P7 Python 规范债务 | 待执行 |  |  |
