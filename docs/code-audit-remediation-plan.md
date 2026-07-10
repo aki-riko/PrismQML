@@ -279,7 +279,7 @@ tar -tf $sdist.FullName
 
 预期效果：Rust 质量门禁可执行，维护脚本结果可信，通用 UI 库不夹带未使用的业务数据库逻辑。
 
-状态：进行中。P5A 已完成：rustfmt 与 `cargo clippy --all-targets -- -D warnings` 零告警通过；移除无仓内引用及无公开承诺的 `verify_agg_monthly`；分页、count、shard 合并、异常边界及 SQLite 大整数/REAL、原始 TEXT 字节排序共 6 个 Rust 单元测试通过。PyO3 宏误报仅在两个薄 `python_api` wrapper 模块内局部豁免，核心实现无豁免；三个 Python 导出签名与旧版一致，docstring 3/3 保留，fetch/count/fan-out 动态契约通过。全量 Python 140、QML `169/0/12`、CTest 7/7 通过。另以真实裸 `ctest` 输入复现 Windows 缺 Qt DLL 导致 6 个 `0xc0000135` 和连续弹窗，修后调用者 PATH 不含 Qt 时同一命令 7/7、3.31 秒完成。Build All [29123637721](https://github.com/aki-riko/PrismQML/actions/runs/29123637721) 五平台全绿且 Windows 单元测试通过，Deploy Docs [29123637759](https://github.com/aki-riko/PrismQML/actions/runs/29123637759) 全绿。提交：`b44c2dc5`、`6d96a2a`。P5B 覆盖率工具和 P5C 库级副作用尚未开始。
+状态：进行中。P5A 已完成：rustfmt 与 `cargo clippy --all-targets -- -D warnings` 零告警通过；移除无仓内引用及无公开承诺的 `verify_agg_monthly`；分页、count、shard 合并、异常边界及 SQLite 大整数/REAL、原始 TEXT 字节排序共 6 个 Rust 单元测试通过。PyO3 宏误报仅在两个薄 `python_api` wrapper 模块内局部豁免，核心实现无豁免；三个 Python 导出签名与旧版一致，docstring 3/3 保留，fetch/count/fan-out 动态契约通过。全量 Python 140、QML `169/0/12`、CTest 7/7 通过。另以真实裸 `ctest` 输入复现 Windows 缺 Qt DLL 导致 6 个 `0xc0000135` 和连续弹窗，修后调用者 PATH 不含 Qt 时同一命令 7/7、3.31 秒完成。Build All [29123637721](https://github.com/aki-riko/PrismQML/actions/runs/29123637721) 五平台全绿且 Windows 单元测试通过，Deploy Docs [29123637759](https://github.com/aki-riko/PrismQML/actions/runs/29123637759) 全绿。提交：`b44c2dc5`、`6d96a2a`。P5B 已完成：修前普通 Windows 命令因 Unicode 警告符号崩溃退出 1，UTF-8 命令输出虚假 `0/109` 却退出 0；修后两种模式都以 offscreen + UTF-8 运行权威组件 probe，得到 `169 OK / 0 错误 / 12 跳过 = 181` 并退出 0，空/畸形/重复注册及 probe 非零退出均会失败。维护脚本测试 17/17、全量 Python 142 通过。提交：`9bb5271`。P5C 库级副作用尚未开始。
 
 - 难度：4–8 小时
 - 风险：中
@@ -494,7 +494,7 @@ git diff --check
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
-| P5 Rust 与维护工具 | 进行中 | P5A：rustfmt、Clippy 零告警、Rust 6/6、Python 140、QML 169/0/12、CTest 7/7；Python API 契约保持；Build All 29123637721 五平台全绿，P5B/P5C 未开始 | `b44c2dc5`、`6d96a2a` |
+| P5 Rust 与维护工具 | 进行中 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C 未开始 | `b44c2dc5`、`6d96a2a`、`9bb5271` |
 | P6 QML 规范债务 | 待执行 |  |  |
 | P7 Python 规范债务 | 待执行 |  |  |
 | P8 资源注册 | 待执行 |  |  |
