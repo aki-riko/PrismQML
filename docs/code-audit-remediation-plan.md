@@ -316,6 +316,8 @@ cargo test --manifest-path rust\Cargo.toml
 
 状态：进行中。已完成 P6 门禁基础设施：新增只读扫描器 `scripts/check_qml_conventions.py`，`--changed` 对 Git base 与当前完整文件的违规指纹做多重集合差分，只阻断新增违规，因此可识别“新增子元素导致未改动 property 变成乱序”等上下文回归，同时不强迫 P6A 混入 P6C/P6D 的存量清理；rename 会映射到旧路径基线。`--all` 默认对存量违规返回非零，CI 使用 `--report-only` 仅报告剩余数。扫描器已覆盖 import、Qt5Compat、QtQuick.Controls 评审例外、ThemeManager、局部 enum/主题代理、成员顺序、alias 就近、readonly 前向 id、Behavior、分节术语和保守样式字面量。初始全库基线为 3,335 项；扫描器回归 9/9、全量 Python 157、QML `169/0/12`、changed 模式 0 新增违规通过，Build All [29126501598](https://github.com/aki-riko/PrismQML/actions/runs/29126501598) 的 QML conventions 作业真实通过。提交：`d5b5852`。P6A 已完成：`page_builder`、`Action.clicked`、`shortcutModified`、`SystemTrayMenu.exec`、`CheckIcon.checked` 与 `StackedWidget.pageComponents` 的定义、发射、唯一内部消费者及三套窗口转发均归零；StackedWidget 收敛为 `pageSources` 懒加载或直接子项两条路径。`pageSources` 冷跳页第一拍、主页 latch、完整 WindowsBar 真窗口、直接子项误设 lazyLoading 四条真实输入均通过；全量 Python 161、QML `169/0/12`、changed 0 新增违规通过。全库基线降至 3,327 项：ThemeManager 8、局部主题代理 8、成员顺序 1,961、分节术语 1,204、硬编码颜色 63、样式数值 76、字体 7。提交：`8e3ba4b0`。
 
+P6B 已完成：`Enums.qml` 之外 8 处 `ThemeManager` 直接访问和 8 处局部 `fontFamily` 代理归零，`Label.qml` 的 9 个重复类型常量收敛到 `Enums.label`。Canvas 改为监听最终颜色属性，因此主题色和皮肤切换都会重绘；同一真实 QML 输入复现了 neo 下 `_micaActive=false` 但仍向 MicaManager 传 `enabled=true` 的错误，修正后运行时 fluent→neo→fluent 依次传 `true→false→true`。定向 13 项、全量 Python 165、QML `169/0/12`、无 Qt PATH 裸 CTest `7/7`、changed 0 新增违规均通过。全库基线降至 3,291 项：成员顺序 1,942、分节术语 1,203、硬编码颜色 63、样式数值 76、字体 7；QML004/QML007 均为 0。提交：`e98adebb`。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -343,6 +345,7 @@ cargo test --manifest-path rust\Cargo.toml
 3. P6C：硬编码样式。
    - 颜色、字体、字号、间距、圆角、动画、阴影全部转入现有 Enums 分类。
    - 特效预设色等确需局部数据的场景先补充规范例外，再保留数据；不得靠口头解释绕过。
+   - 核对 `PrismEnums/Label.qml` 注释中 `subtitle/title/title_large/display` 的 `16/18/20/24px` 与当前组件实际 `20/28/40/68px` 映射差异；未完成视觉语义决策前不固化任一组数值。
 4. P6D：成员顺序与分节术语。
    - 按 `buttons/inputs`、`feedback/dialogs`、`data/navigation`、`windows/effects` 四批处理。
    - 每批只做机械整理，不混合行为重构。
@@ -497,7 +500,7 @@ git diff --check
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
-| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零，四条真实切换输入、Python 161、QML 169/0/12 通过；全库基线 3,327（ThemeManager 8、局部主题代理 8、成员顺序 1,961、分节术语 1,204、颜色 63、数值 76、字体 7） | `d5b5852`、`8e3ba4b0` |
+| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；Python 165、QML 169/0/12、无 Qt PATH CTest 7/7、changed 0 通过；全库基线 3,291（成员顺序 1,942、分节术语 1,203、颜色 63、数值 76、字体 7） | `d5b5852`、`8e3ba4b0`、`e98adebb` |
 | P7 Python 规范债务 | 待执行 |  |  |
 | P8 资源注册 | 待执行 |  |  |
 | P9 最终验收 | 待执行 |  |  |
