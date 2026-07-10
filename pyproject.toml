@@ -37,6 +37,7 @@ macos = [
 ]
 dev = [
     "pytest>=7.0",
+    "build>=1.2",
     "black>=23.0",
     "isort>=5.0",
     "maturin>=1.0",  # 构建 prismqml-rs Rust 加速模块

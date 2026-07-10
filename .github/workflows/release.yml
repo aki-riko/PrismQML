@@ -8,8 +8,53 @@ on:
   workflow_dispatch:  # 允许手动触发(只构建不发布)
 
 jobs:
+  quality_gate:
+    name: Source quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install Qt (desktop)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          modules: qtshadertools
+      - name: Install source test dependencies
+        run: python -m pip install --disable-pip-version-check -e ".[dev]" -r cpp/tests/requirements.txt
+      - name: Run Python tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest
+      - name: Probe source QML components
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python tests/qml/probe_all_components.py
+      - name: Run Rust tests
+        run: cargo test --manifest-path rust/Cargo.toml
+      - name: Configure and build C++ tests
+        shell: bash
+        run: |
+          qt-cmake -S cpp -B cpp/build-quality -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPRISM_BUILD_DEMO=OFF \
+            -DPRISM_BUILD_GALLERY=OFF \
+            -DPRISM_VERIFY_MOBILE=OFF \
+            -DPRISM_BUILD_TESTS=ON \
+            -DPython3_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')"
+          cmake --build cpp/build-quality
+      - name: Run C++ tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir cpp/build-quality --output-on-failure --no-tests=error
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
+    needs: quality_gate
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -38,6 +83,14 @@ jobs:
           CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
           # 跳过 musllinux(rusqlite bundled 在 musl 上编译慢) + 32位i686(PySide6不支持,rustup装不上)
           CIBW_SKIP: "*-musllinux* *_i686 *-win32"
+          CIBW_TEST_COMMAND: >-
+            python -c "import prismqml, prismqml_rs;
+            assert prismqml.__version__;
+            assert prismqml_rs.__version__"
+          CIBW_TEST_ENVIRONMENT: "QT_QPA_PLATFORM=offscreen"
+
+      - name: Validate wheel structure
+        run: python scripts/validate_dist.py --expect-wheels 1 "wheelhouse/*.whl"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -46,6 +99,7 @@ jobs:
 
   build_sdist:
     name: Build source distribution
+    needs: quality_gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,10 +107,25 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
       - name: Build sdist
         run: |
           python -m pip install build
           python -m build --sdist
+      - name: Validate sdist contents
+        run: python scripts/validate_dist.py --expect-sdist "dist/*.tar.gz"
+      - name: Install and probe sdist
+        shell: bash
+        run: |
+          SDIST_PATH="$(find "$GITHUB_WORKSPACE/dist" -maxdepth 1 -name '*.tar.gz' -print -quit)"
+          TEST_VENV="$RUNNER_TEMP/prism-sdist-venv"
+          python -m venv "$TEST_VENV"
+          "$TEST_VENV/bin/python" -m pip install --disable-pip-version-check "$SDIST_PATH"
+          cd "$RUNNER_TEMP"
+          "$TEST_VENV/bin/python" -c "import prismqml, prismqml_rs; assert prismqml.__version__; assert prismqml_rs.__version__"
+          QT_QPA_PLATFORM=offscreen "$TEST_VENV/bin/python" \
+            "$GITHUB_WORKSPACE/tests/qml/probe_all_components.py" --installed
       - uses: actions/upload-artifact@v4
         with:
           name: sdist
@@ -64,7 +133,7 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    needs: [build_wheels, build_sdist]
+    needs: [quality_gate, build_wheels, build_sdist]
     runs-on: ubuntu-latest
     # 仅在 tag 推送时发布(手动触发不发)
     if: startsWith(github.ref, 'refs/tags/v')
@@ -72,10 +141,13 @@ jobs:
     permissions:
       id-token: write  # PyPI Trusted Publishing 需要
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+      - name: Revalidate merged release artifacts
+        run: python scripts/validate_dist.py --expect-sdist --expect-wheels 3 "dist/*"
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

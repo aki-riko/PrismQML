@@ -1,0 +1,3 @@
+include rust/Cargo.toml
+include rust/Cargo.lock
+recursive-include rust/src *.rs

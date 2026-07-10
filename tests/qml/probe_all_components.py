@@ -11,19 +11,15 @@
 用法: python tests/qml/probe_all_components.py
 退出码: 0=无非预期错误, 1=有非预期加载错误
 """
-import sys
+import argparse
+import importlib.util
 import re
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QUrl, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine
-
-# 定位 qml 包根
-PKG_ROOT = Path(__file__).resolve().parents[2] / "prismqml"
-QML_DIR = PKG_ROOT / "PrismQML"
-QMLDIR = QML_DIR / "qmldir"
-
 
 EXPECTED_REQUIRED_PROPERTY_SKIPS = {
     "ButtonContent": "ButtonCore 内部内容区, required 属性由 ButtonCore 注入",
@@ -34,6 +30,29 @@ EXPECTED_REQUIRED_PROPERTY_SKIPS = {
     "HorizontalScrollMixin": "Mixin 附着组件, target 由宿主组件注入",
     "ViewportMixin": "Mixin 附着组件, target 由宿主组件注入",
 }
+
+
+def parse_args():
+    """解析 probe 运行来源。"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--installed",
+        action="store_true",
+        help="从当前解释器已安装的 prismqml 包探测 QML 组件",
+    )
+    return parser.parse_args()
+
+
+def resolve_package_root(installed: bool) -> Path:
+    """返回包含 PrismQML 模块目录的 Python 包根。"""
+    if not installed:
+        return Path(__file__).resolve().parents[2] / "prismqml"
+
+    spec = importlib.util.find_spec("prismqml")
+    locations = spec.submodule_search_locations if spec else None
+    if not locations:
+        raise ModuleNotFoundError("当前解释器未安装 prismqml 包")
+    return Path(next(iter(locations))).resolve()
 
 
 def parse_qmldir(path: Path):
@@ -70,51 +89,50 @@ def is_expected_required_property_skip(type_name: str, errors: list[str]) -> boo
     return True
 
 
-def main():
-    app = QApplication(sys.argv)
-    engine = QQmlEngine()
-    # 注册 import 路径:包根的父目录,使 `import PrismQML` 生效
-    engine.addImportPath(str(PKG_ROOT))
+def probe_component(engine: QQmlEngine, type_name: str):
+    """创建单个组件并返回成功状态与错误。"""
+    qml = f"import PrismQML\n{type_name} {{}}\n"
+    comp = QQmlComponent(engine)
+    comp.setData(qml.encode("utf-8"), QUrl("inline"))
+    if comp.isError():
+        return False, [error.toString() for error in comp.errors()]
 
-    types = parse_qmldir(QMLDIR)
+    obj = comp.create()
+    if obj is None:
+        details = "; ".join(error.toString() for error in comp.errors())
+        return False, [f"create() 返回 None: {details}"]
+    obj.deleteLater()
+    return True, []
+
+
+def collect_results(engine: QQmlEngine, types):
+    """收集组件创建、预期跳过和真实错误。"""
     errors = {}
     expected_required_skips = {}
     ok = 0
     singleton_skips = []
-
     for type_name, is_singleton in types:
         if is_singleton:
-            # 单例(Enums/Translator/DpiManager)由引擎托管,不单独 createComponent
             singleton_skips.append(type_name)
             continue
-        qml = f"import PrismQML\n{type_name} {{}}\n"
-        comp = QQmlComponent(engine)
-        comp.setData(qml.encode("utf-8"), QUrl("inline"))
-        if comp.isError():
-            type_errors = [e.toString() for e in comp.errors()]
-            if is_expected_required_property_skip(type_name, type_errors):
-                expected_required_skips[type_name] = type_errors
-            else:
-                errors[type_name] = type_errors
-            continue
-        obj = comp.create()
-        if obj is None:
-            type_errors = ["create() 返回 None: " +
-                           "; ".join(e.toString() for e in comp.errors())]
-            if is_expected_required_property_skip(type_name, type_errors):
-                expected_required_skips[type_name] = type_errors
-            else:
-                errors[type_name] = type_errors
-            continue
-        ok += 1
-        obj.deleteLater()
+        passed, type_errors = probe_component(engine, type_name)
+        if passed:
+            ok += 1
+        elif is_expected_required_property_skip(type_name, type_errors):
+            expected_required_skips[type_name] = type_errors
+        else:
+            errors[type_name] = type_errors
+    return ok, errors, expected_required_skips, singleton_skips
 
+
+def report_results(ok, errors, expected_required_skips, singleton_skips, total):
+    """输出 probe 汇总与错误详情。"""
     total_skips = len(singleton_skips) + len(expected_required_skips)
     print(f"\n{'='*60}")
     print(f"组件加载 probe 结果: {ok} OK / {len(errors)} 错误 / "
           f"{total_skips} 跳过 "
           f"(单例 {len(singleton_skips)} / required {len(expected_required_skips)}) "
-          f"(共 {len(types)})")
+          f"(共 {total})")
     print(f"{'='*60}")
     if singleton_skips:
         print("\n[单例跳过]")
@@ -130,10 +148,25 @@ def main():
             for e in errs:
                 print(f"    {e}")
 
+
+def main():
+    """运行源码树或安装包的全组件 probe。"""
+    args = parse_args()
+    package_root = resolve_package_root(args.installed)
+    qmldir = package_root / "PrismQML" / "qmldir"
+    if not qmldir.is_file():
+        raise FileNotFoundError(f"找不到 QML 模块注册文件: {qmldir}")
+
+    app = QApplication([sys.argv[0]])
+    engine = QQmlEngine()
+    engine.addImportPath(str(package_root))
+    types = parse_qmldir(qmldir)
+    results = collect_results(engine, types)
+    report_results(*results, len(types))
     QTimer.singleShot(0, app.quit)
     app.exec()
-    sys.exit(1 if errors else 0)
+    return 1 if results[1] else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
