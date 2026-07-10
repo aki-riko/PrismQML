@@ -16,6 +16,10 @@
 #include <QDebug>
 #include <QtGlobal>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 static int g_failed = 0;
 static QStringList g_log;
 static constexpr int kSkipReturnCode = 77;
@@ -42,17 +46,24 @@ int main(int argc, char *argv[]) {
     }
     CHECK(mica->isWin11(), "isWin11=true");
 
-    // 创建真实窗口才有 HWND
+    // 创建真实但保持隐藏的 HWND，避免自动化测试闪现窗口。
     QQuickWindow win;
     win.setWidth(400);
     win.setHeight(300);
-    win.show();
+    const auto nativeId = win.winId();
+    CHECK(nativeId != 0, "隐藏测试窗口已创建 HWND");
+    CHECK(!win.isVisible(), "测试窗口保持隐藏");
+#ifdef Q_OS_WIN
+    CHECK(IsWindowVisible(reinterpret_cast<HWND>(nativeId)) == FALSE,
+          "原生 HWND 保持隐藏");
+#endif
 
     ShadowManager *shadow = ShadowManager::instance();
     CHECK(shadow->useNative(), "ShadowManager.useNative=true (Windows)");
 
-    // 延迟到窗口有 HWND 后调 DWM
-    QTimer::singleShot(500, [&]() {
+    // 进入一次事件循环后调用 DWM，但窗口始终不 show。
+    QTimer::singleShot(0, [&]() {
+        CHECK(!win.isVisible(), "DWM 调用前测试窗口仍隐藏");
         QVariant wv = QVariant::fromValue(static_cast<QObject *>(&win));
         bool micaOk = mica->setMicaEffect(wv, true, false);
         qInfo() << "  setMicaEffect ->" << micaOk;
@@ -61,6 +72,11 @@ int main(int argc, char *argv[]) {
         bool shadowOk = shadow->enableShadowForWindow(wv);
         qInfo() << "  enableShadowForWindow ->" << shadowOk;
         CHECK(shadowOk, "enableShadowForWindow 返回 true (DWM 阴影成功)");
+        CHECK(!win.isVisible(), "DWM 调用后测试窗口仍隐藏");
+#ifdef Q_OS_WIN
+        CHECK(IsWindowVisible(reinterpret_cast<HWND>(nativeId)) == FALSE,
+              "DWM 调用后原生 HWND 仍隐藏");
+#endif
 
         qInfo() << "";
         if (g_failed == 0) qInfo() << "ALL_TESTS_PASSED";

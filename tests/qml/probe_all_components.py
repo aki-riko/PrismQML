@@ -13,9 +13,14 @@
 """
 import argparse
 import importlib.util
+import os
 import re
 import sys
 from pathlib import Path
+
+# Keep the probe headless by default while allowing explicit platform overrides.
+# 默认无界面运行，同时允许调用者显式覆盖平台。
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QUrl, QTimer
 from PySide6.QtWidgets import QApplication
