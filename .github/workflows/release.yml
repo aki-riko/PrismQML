@@ -89,6 +89,8 @@ jobs:
           # 每个 Linux 容器内安装 Rust
           CIBW_BEFORE_ALL_LINUX: "curl -sSf https://sh.rustup.rs | sh -s -- -y"
           CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
+          # PySide6 6.5+ 的 Linux wheel 以 manylinux_2_28 为最低平台基线
+          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           # 跳过 musllinux(rusqlite bundled 在 musl 上编译慢) + 32位i686(PySide6不支持,rustup装不上)
           CIBW_SKIP: "*-musllinux* *_i686 *-win32"
           CIBW_TEST_COMMAND: >-
@@ -124,6 +126,10 @@ jobs:
           python -m build --sdist
       - name: Validate sdist contents
         run: python scripts/validate_dist.py --expect-sdist "dist/*.tar.gz"
+      - name: Install sdist probe runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libegl1
       - name: Install and probe sdist
         shell: bash
         run: |
