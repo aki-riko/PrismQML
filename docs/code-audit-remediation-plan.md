@@ -239,6 +239,8 @@ tar -tf $sdist.FullName
 
 #### P4.1 Qt 最低版本决策
 
+状态：已完成。官方 Qt 源码确认 `RectangularShadow` 为 `QML_ADDED_IN_VERSION(6, 9)`；仓库直接使用该类型且不维护双渲染路径，因此采用提升最低版本方案。Python、CMake、用户文档与 CI 已统一为 Qt/PySide6 6.9+。本地最低版本容器验证 QML `169/0/12`，Build All [29116141665](https://github.com/aki-riko/PrismQML/actions/runs/29116141665) 全平台通过，Build and Release [29116151370](https://github.com/aki-riko/PrismQML/actions/runs/29116151370) 的源码、sdist 和三平台 wheel 均通过；Linux wheel 实际安装 PySide6 6.9.3，三平台 wheel 均完成 QML `169/0/12` 与 Provider 30 次生命周期操作。提交：`818deec1`。
+
 先用官方文档确认 `RectangularShadow` 的最低 Qt 版本，再二选一：
 
 - 推荐方案：将 PySide6 与 CMake 最低版本统一提升到 Qt 6.9。
@@ -487,7 +489,7 @@ git diff --check
 | P1 CTest 与 C++ CI | 已完成 | 本地 CTest 7/7；Build All [29112536408](https://github.com/aki-riko/PrismQML/actions/runs/29112536408) 全平台通过 | `1dd7e9a2`、`2db05888` |
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
-| P4 Qt 与危险脚本 | 待执行 |  |  |
+| P4 Qt 与危险脚本 | 进行中 | P4.1 已统一 Qt/PySide6 6.9+；本地最低版本 QML 169/0/12，Build All 29116141665 与 Release 29116151370 全绿。P4.2 危险维护脚本待执行 | `818deec1` |
 | P5 Rust 与维护工具 | 待执行 |  |  |
 | P6 QML 规范债务 | 待执行 |  |  |
 | P7 Python 规范债务 | 待执行 |  |  |
