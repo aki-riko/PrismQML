@@ -185,29 +185,39 @@ if(PRISM_BUILD_TESTS)
     enable_testing()
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+    function(prism_add_cpp_test test_name target_name)
+        if(WIN32)
+            add_test(NAME "${test_name}"
+                COMMAND "${CMAKE_COMMAND}" -E env
+                    "PATH=$<TARGET_FILE_DIR:Qt6::Core>$<SEMICOLON>$ENV{PATH}"
+                    "$<TARGET_FILE:${target_name}>" ${ARGN})
+        else()
+            add_test(NAME "${test_name}"
+                COMMAND "$<TARGET_FILE:${target_name}>" ${ARGN})
+        endif()
+    endfunction()
+
     qt_add_executable(prism_test_store tests/test_store.cpp)
     target_link_libraries(prism_test_store PRIVATE prism)
     target_compile_definitions(prism_test_store PRIVATE
         PRISM_TEST_ICON_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML/controls/icons/fluent")
-    add_test(NAME prism_test_store COMMAND prism_test_store)
+    prism_add_cpp_test(prism_test_store prism_test_store)
 
     qt_add_executable(prism_test_system tests/test_system.cpp)
     target_link_libraries(prism_test_system PRIVATE prism)
-    add_test(NAME prism_test_system COMMAND prism_test_system)
+    prism_add_cpp_test(prism_test_system prism_test_system)
 
     qt_add_executable(prism_test_mica tests/test_mica.cpp)
     target_link_libraries(prism_test_mica PRIVATE prism)
-    add_test(NAME prism_test_mica COMMAND prism_test_mica)
+    prism_add_cpp_test(prism_test_mica prism_test_mica)
 
     # QR 端到端验证: 生成 QR PNG 供 tests/qr/verify_qr.py 用 opencv 解码比对
     qt_add_executable(prism_test_qrcode_gen tests/test_qrcode_gen.cpp)
     target_link_libraries(prism_test_qrcode_gen PRIVATE prism)
     set(PRISM_QR_TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/test-output/qrcode")
     file(MAKE_DIRECTORY "${PRISM_QR_TEST_OUTPUT_DIR}")
-    add_test(
-        NAME prism_test_qrcode_gen
-        COMMAND prism_test_qrcode_gen "${PRISM_QR_TEST_OUTPUT_DIR}"
-    )
+    prism_add_cpp_test(
+        prism_test_qrcode_gen prism_test_qrcode_gen "${PRISM_QR_TEST_OUTPUT_DIR}")
     set_tests_properties(prism_test_qrcode_gen PROPERTIES
         FIXTURES_SETUP prism_qrcode_generated)
     add_test(
@@ -222,11 +232,11 @@ if(PRISM_BUILD_TESTS)
     # SqlListModel 多 shard fan-out + keyset 游标验证
     qt_add_executable(prism_test_sqlmodel tests/test_sqlmodel.cpp)
     target_link_libraries(prism_test_sqlmodel PRIVATE prism)
-    add_test(NAME prism_test_sqlmodel COMMAND prism_test_sqlmodel)
+    prism_add_cpp_test(prism_test_sqlmodel prism_test_sqlmodel)
 
     qt_add_executable(prism_test_provider_lifecycle tests/test_provider_lifecycle.cpp)
     target_link_libraries(prism_test_provider_lifecycle PRIVATE prism)
-    add_test(NAME prism_test_provider_lifecycle COMMAND prism_test_provider_lifecycle)
+    prism_add_cpp_test(prism_test_provider_lifecycle prism_test_provider_lifecycle)
 
     set_tests_properties(
         prism_test_store
