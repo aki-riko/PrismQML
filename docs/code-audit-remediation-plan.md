@@ -1,6 +1,6 @@
 # PrismQML 全库审计整改落盘计划
 
-> 状态：待执行
+> 状态：进行中
 > 创建日期：2026-07-11
 > 审计基线：`299e984ee85e0020560bd3d5de9bbe72fc13ed25`（`0.2.24.9`）
 > 适用范围：Python、QML、C++、Rust、构建脚本、CI、发布物与文档工具
@@ -483,10 +483,10 @@ git diff --check
 
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
-| P0 基线固化 | 待执行 |  |  |
-| P1 CTest 与 C++ CI | 待执行 |  |  |
-| P2 sdist 与发布门禁 | 待执行 |  |  |
-| P3 Provider 生命周期 | 待执行 |  |  |
+| P0 基线固化 | 已完成 | 固化审计输入与 12 个合法 QML skip；当前回归基线为 Python 122、QML 169/0/12、CTest 7/7 | `1dd7e9a2` |
+| P1 CTest 与 C++ CI | 已完成 | 本地 CTest 7/7；Build All [29112536408](https://github.com/aki-riko/PrismQML/actions/runs/29112536408) 全平台通过 | `1dd7e9a2`、`2db05888` |
+| P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
+| P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 待执行 |  |  |
 | P5 Rust 与维护工具 | 待执行 |  |  |
 | P6 QML 规范债务 | 待执行 |  |  |
