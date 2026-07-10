@@ -18,7 +18,6 @@ NavigationWindowCore {
     property int contentTopMargin: Enums.spacing.none
 
     // ==================== Lazy Loading Aliases ====================
-    property list<Component> pageComponents
     property var pageSources: []
 
     Component.onCompleted: window.profileDetail(

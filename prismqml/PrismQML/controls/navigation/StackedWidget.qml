@@ -24,16 +24,14 @@ Item {
     
     // ==================== QML Lazy Loading Props (for pure QML usage) QML懒加载属性（纯QML使用） ====================
     property bool lazyLoading: false
-    property list<Component> pageComponents: []  // Legacy: Component list 旧版：组件列表
-    property var pageSources: []                 // New: QML file paths 新版：QML文件路径列表
+    property var pageSources: []  // QML file paths QML文件路径列表
     property string loadingText: Translator.tr("loading")
     property var _loaders: []
     readonly property real _startupProfileStart: Date.now()
     property real _startupProfileLast: _startupProfileStart
     
-    // Use pageSources if provided, otherwise fall back to pageComponents 优先使用 pageSources，否则回退到 pageComponents
-
     readonly property bool _useSourceMode: pageSources.length > 0
+    property int count: _useSourceMode ? pageSources.length : stackLayout.children.length
     
     // ==================== Signals 信号 ====================
     signal currentChanged(int index)
@@ -44,7 +42,6 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     default property alias content: stackLayout.children
     property alias containerItem: stackLayout
-    property int count: _useSourceMode ? pageSources.length : (pageComponents.length > 0 ? pageComponents.length : stackLayout.children.length)
     property Item currentWidget: _getCurrentWidget()
     property int previousIndex: 0
     // 实际显示页(唯一真相源, 驱动可见性/动画/当前 widget)。
@@ -57,7 +54,7 @@ Item {
 
     function _getCurrentWidget() {
         if (_displayIndex < 0 || _displayIndex >= count) return null
-        if ((_useSourceMode || pageComponents.length > 0) && _loaders[_displayIndex]) {
+        if (_useSourceMode && _loaders[_displayIndex]) {
             return _loaders[_displayIndex]
         }
         return stackLayout.children[_displayIndex]
@@ -72,7 +69,7 @@ Item {
 
     // ==================== Lazy Loading Functions 懒加载函数 ====================
     function _isPageLoaded(index) {
-        if (!lazyLoading) return true
+        if (!lazyLoading || !_useSourceMode) return true
         return _loaders[index] && _loaders[index].status === Loader.Ready
     }
 
@@ -102,7 +99,8 @@ Item {
     }
 
     function _ensureLazyHelperLoaded(reason) {
-        if (!control.lazyLoading || lazyHelperLoader.item || lazyHelperLoader.status !== Loader.Null) return
+        if (!control.lazyLoading || !control._useSourceMode ||
+                lazyHelperLoader.item || lazyHelperLoader.status !== Loader.Null) return
 
         lazyHelperLoader.active = true
         lazyHelperLoader.setSource(Qt.resolvedUrl("_internal/LazyLoadingHelper.qml"), _lazyHelperInitialProperties())
@@ -231,7 +229,7 @@ Item {
         animationStarted()
     }
     function _hideAllExcept(exceptIndices) {
-        if (_useSourceMode || pageComponents.length > 0) {
+        if (_useSourceMode) {
             for (var i = 0; i < _loaders.length; i++) {
                 if (_loaders[i] && exceptIndices.indexOf(i) === -1) {
                     _loaders[i].visible = false
@@ -288,7 +286,7 @@ Item {
     }
 
     function _updateVisibility(newIndex) {
-        if (_useSourceMode || pageComponents.length > 0) {
+        if (_useSourceMode) {
             for (var i = 0; i < _loaders.length; i++) {
                 if (_loaders[i]) {
                     var isCurrent = (i === newIndex)
@@ -329,7 +327,7 @@ Item {
 
     function widget(index) {
         if (index < 0 || index >= count) return null
-        if (_useSourceMode || pageComponents.length > 0) {
+        if (_useSourceMode) {
             return _loaders[index] || null
         }
         return stackLayout.children[index]
@@ -344,7 +342,7 @@ Item {
     }
 
     function indexOf(item) {
-        if (_useSourceMode || pageComponents.length > 0) {
+        if (_useSourceMode) {
             for (var i = 0; i < _loaders.length; i++) {
                 if (_loaders[i] && _loaders[i].item === item) return i
             }
@@ -363,8 +361,7 @@ Item {
     Component.onCompleted: {
         profileTime("Component.onCompleted count=" + count +
                     ", lazyLoading=" + lazyLoading +
-                    ", sourceMode=" + _useSourceMode +
-                    ", pageComponents=" + pageComponents.length)
+                    ", sourceMode=" + _useSourceMode)
         _preloadLazyHelperWhenReady("completed")
     }
 
@@ -386,7 +383,7 @@ Item {
         id: stackLayout
         objectName: "stackLayout"
         anchors.fill: parent
-        visible: !control._useSourceMode && control.pageComponents.length === 0
+        visible: !control._useSourceMode
         
         Component.onCompleted: {
             control.profileTime("stackLayout Component.onCompleted start children=" + children.length)
@@ -404,56 +401,6 @@ Item {
             control.profileTime("stackLayout Component.onCompleted done")
         }
     }
-    
-    // ==================== pageComponents Mode 组件列表模式 ====================
-    Item {
-        id: componentContainer
-        anchors.fill: parent
-        visible: !control._useSourceMode && control.pageComponents.length > 0
-        
-        Repeater {
-            id: componentRepeater
-            model: (!control._useSourceMode && control.pageComponents.length > 0) ? control.pageComponents.length : 0
-            
-            Loader {
-                id: componentLoader
-                width: componentContainer.width
-                height: componentContainer.height
-                sourceComponent: control.pageComponents[index]
-                // latch 用独立布尔 _loadOnce(同 sourceLoader 做法): 不命令式写 active
-                // (Loader 已是绑定, 命令式写会破绑定), 也不自引用 _loaders[index].active
-                // (slice 重建会连锁触发全页一启动就 active, 懒加载失效)。
-                // _loadOnce 初始 false → 初始 active 仅跟 index===currentIndex(只当前页);
-                // 页面一旦被激活/加载完成即锁 _loadOnce=true, 切走再切回仍 active。
-                property bool _loadOnce: false
-                onActiveChanged: if (active) _loadOnce = true
-                active: !control.lazyLoading || index === control.currentIndex || _loadOnce
-                visible: index === control._displayIndex
-                opacity: index === control._displayIndex ? 1 : 0
-                scale: 1
-                transformOrigin: Item.Center
-                asynchronous: control.lazyLoading
-
-                property int pageIndex: index
-
-                Component.onCompleted: {
-                    var loaders = control._loaders.slice()
-                    loaders[index] = componentLoader
-                    control._loaders = loaders
-                    control.profileTime("componentLoader registered index=" + index)
-                }
-
-                // onLoaded 是"已加载"权威信号, 补锁兜底(同 sourceLoader):
-                // 初始当前页 active 默认即 true、值未变 → onActiveChanged 不触发 → 漏锁。
-                onLoaded: {
-                    _loadOnce = true
-                    control.pageLoaded(index)
-                    control.profileTime("componentLoader onLoaded index=" + index)
-                }
-            }
-        }
-    }
-    
     // ==================== pageSources Mode 文件路径模式 ====================
     Item {
         id: sourceContainer
@@ -531,12 +478,8 @@ Item {
         if (currentIndex === _displayIndex) return
         if (currentIndex < 0 || currentIndex >= count) return
 
-        // QML lazy loading mode: use LazyLoadingHelper
-        // QML懒加载模式：使用LazyLoadingHelper
-        // ✅ 两种 lazy 模式统一走 helper(去掉 _useSourceMode 限定): pageComponents
-        // 模式 Loader 同为 asynchronous 异步孵化, 不等加载完成就 _doAnimation 会把
-        // 还没孵化好的新页推上来、旧页移走(表现为"懒加载未完成就被移除")。helper
-        // 经 isPageLoadedFunc/activateLoaderFunc 回调操作 Loader, 不依赖 source, 两模式通用。
+        // QML pageSources lazy loading mode: use LazyLoadingHelper
+        // QML pageSources 懒加载模式：使用 LazyLoadingHelper。
         if (lazyLoading && !_isPageLoaded(currentIndex)) {
             // 不回退 currentIndex: 旧页靠 _displayIndex(仍为旧值)保持可见,
             // loading 完成后由 LazyLoadingHelper.onLoadingComplete 更新 _displayIndex。

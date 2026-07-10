@@ -23,7 +23,6 @@ InputCore {
     
     // ==================== Signals 信号 ====================
     signal shortcutRecorded(string newShortcut)
-    signal shortcutModified(string newShortcut)  // Alias for compatibility 兼容别名
     
     // ==================== Readonly State 只读状态 ====================
     readonly property var keyList: shortcut ? shortcut.split("+") : []
@@ -262,7 +261,6 @@ InputCore {
                     keys.push(keyName)
                     control.shortcut = keys.join("+")
                     control.shortcutRecorded(control.shortcut)
-                    control.shortcutModified(control.shortcut)
                     control.recording = false
                 }
             }

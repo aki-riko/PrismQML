@@ -40,13 +40,4 @@ MenuCore {
         
         open(posX, posY)
     }
-    
-    // Alias for compatibility 兼容别名
-    function exec(pos) {
-        if (pos) {
-            showAtPosition(pos.x, pos.y)
-        } else {
-            openAtMouse()
-        }
-    }
 }

@@ -26,7 +26,6 @@ NavigationWindowCore {
     stackedWidget: stack
 
     // ==================== Lazy Loading Aliases 懒加载别名 ====================
-    property list<Component> pageComponents
     property var pageSources: []
 
     // ==================== Toggle Style Props ====================
@@ -119,7 +118,6 @@ NavigationWindowCore {
             anchors.fill: parent
             animationType: Enums.animation.popup
             property alias contentContainerAlias: stack.content
-            pageComponents: window.pageComponents
             pageSources: window.pageSources
             lazyLoading: window.lazyLoading
             // 单向绑定 window.currentIndex → stack.currentIndex

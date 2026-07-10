@@ -25,7 +25,6 @@ Rectangle {
     property bool hasSubmenu: false       // Show submenu arrow 显示子菜单箭头
     
     signal triggered()
-    signal clicked()  // Alias for triggered 兼容别名
     signal submenuRequested()  // Submenu open request 子菜单打开请求
     readonly property bool hovered: itemArea.containsMouse
     
@@ -176,7 +175,6 @@ Rectangle {
             }
             if (control.checkable) control.checked = !control.checked
             control.triggered()
-            control.clicked()
         }
     }
 }

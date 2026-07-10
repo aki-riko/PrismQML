@@ -35,7 +35,7 @@
 """
 
 from enum import IntEnum
-from typing import Optional, List, Dict, Any, Callable, Type, Union
+from typing import Optional, List, Dict, Any, Type, Union
 from PySide6.QtCore import QObject, Signal, Slot, Property, QUrl, Qt
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -84,19 +84,16 @@ class NavigationItem:
         text: str,
         icon: str = "",
         page_class: Optional[Type] = None,
-        page_builder: Optional[Callable] = None,
     ):
         """
         Args:
             text: 导航项文本
             icon: 图标名称（Icon）
             page_class: 页面类（需要接受parent参数）
-            page_builder: 页面构建函数（接受parent参数，返回页面实例）
         """
         self.text = text
         self.icon = icon
         self.page_class = page_class
-        self.page_builder = page_builder
         self.page_getter = None
         self._page_instance = None
 

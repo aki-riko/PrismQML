@@ -26,7 +26,6 @@ NavigationWindowCore {
  readonly property int navExpandWidth: Enums.controlSize.navPanelExpandWidth
  
  // ==================== Lazy Loading Properties 懒加载属性 ====================
- property list<Component> pageComponents
  property var pageSources: []
  
  Component.onCompleted: {
@@ -118,7 +117,6 @@ NavigationWindowCore {
  animationType: Enums.animation.popup
 
  // 绑定外部保存的页面数据
- pageComponents: window.pageComponents
  pageSources: window.pageSources
  lazyLoading: window.lazyLoading
  // 单向绑定 window.currentIndex → stack.currentIndex

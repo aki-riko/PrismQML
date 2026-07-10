@@ -2,22 +2,17 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
-"""Headless 懒加载回归测试 — pageComponents(组件列表)模式。
+"""Headless 懒加载回归测试 — pageSources 冷跳页时序。
 
-复现 bug: pageComponents + lazyLoading 模式下, 切到未加载页时
-onCurrentIndexChanged 因 `_useSourceMode==false` 短路, 不走 LazyLoadingHelper,
-直接 _doAnimation 并立刻把 _displayIndex 设为目标页 —— 而该页 Loader 是
-asynchronous 异步孵化, 还没 Ready 就被推上来、旧页被移走(表现为"设置页
-懒加载未完成就被移除/切走")。
-
-修复: onCurrentIndexChanged 去掉 _useSourceMode 限定, 两种 lazy 模式统一走
-helper; component Loader 加 _loadOnce latch(同 sourceLoader)。
+覆盖从主页直接跳到尚未加载的页 2：目标 Loader Ready 前，实际显示索引
+``_displayIndex`` 必须保持旧页；加载完成后才切换。该脚本保留原历史场景的
+第一拍判据，但只使用当前公开的 ``pageSources`` API。
 
 判据:
   1. 启动后主页(0)Ready
-  2. 切到未加载的页1: _displayIndex 必须等 page1 Ready 后才变为 1
-     (修复前会立刻变 1, 此时 page1 尚未 Ready)
-  3. 切走主页后主页仍 Ready(_loadOnce latch 在 component 模式生效, 未被卸载)
+  2. 切到未加载的页2: _displayIndex 必须等 page2 Ready 后才变为 2
+     (修复前会立刻变 2, 此时 page2 尚未 Ready)
+  3. 切走主页后主页仍 Ready（_loadOnce latch 生效，未被卸载）
 
 用法: python tests/qml/test_lazy_reload_components.py
 退出码: 0=通过, 1=失败
@@ -25,7 +20,7 @@ helper; component Loader 加 _loadOnce latch(同 sourceLoader)。
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QUrl, QTimer, QEventLoop
+from PySide6.QtCore import QUrl, QTimer, QEventLoop, QTemporaryDir
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression
 
@@ -57,14 +52,24 @@ def display_index(stack):
     return int(eval_expr(stack, "_displayIndex"))
 
 
-# PLACEHOLDER_MAIN
-def main():
-    app = QApplication(sys.argv)
-    engine = QQmlEngine()
-    engine.addImportPath(str(PKG_ROOT))
+def create_page_urls():
+    temporary = QTemporaryDir()
+    if not temporary.isValid():
+        raise RuntimeError("无法创建临时页面目录")
+    page_urls = []
+    for index, color in enumerate(("#ffaaaa", "#aaffaa", "#aaaaff")):
+        page_path = Path(temporary.path()) / f"Page{index}.qml"
+        page_path.write_text(
+            "import QtQuick\n"
+            f'Rectangle {{ color: "{color}"; Text {{ text: "page{index}" }} }}\n',
+            encoding="utf-8",
+        )
+        page_urls.append(QUrl.fromLocalFile(str(page_path)).toString())
+    return temporary, page_urls
 
-    # pageComponents 模式: 内联 3 个 Component(Rectangle 内含子项, 走异步孵化路径)。
-    # 不用 examples 页面是为了让测试自包含、不依赖外部资源。
+
+def create_stack(engine, page_urls):
+    page_source_lines = ",\n        ".join(f'"{url}"' for url in page_urls)
     qml = f'''
 import QtQuick
 import PrismQML
@@ -74,14 +79,11 @@ StackedWidget {{
     width: 800; height: 600
     lazyLoading: true
     currentIndex: 0
-    pageComponents: [
-        Component {{ Rectangle {{ color: "#ffaaaa"; Text {{ text: "page0" }} }} }},
-        Component {{ Rectangle {{ color: "#aaffaa"; Text {{ text: "page1" }} }} }},
-        Component {{ Rectangle {{ color: "#aaaaff"; Text {{ text: "page2" }} }} }}
+    pageSources: [
+        {page_source_lines}
     ]
 }}
 '''
-
     comp = QQmlComponent(engine)
     comp.setData(qml.encode("utf-8"), QUrl("inline"))
     for _ in range(50):
@@ -89,50 +91,39 @@ StackedWidget {{
             break
         pump(50)
     if comp.isError():
-        print("[FAIL] 组件加载错误:")
-        for e in comp.errors():
-            print("   ", e.toString())
-        sys.exit(1)
-
+        errors = "\n".join(error.toString() for error in comp.errors())
+        raise RuntimeError(f"组件加载错误:\n{errors}")
     stack = comp.create()
     if stack is None:
-        print("[FAIL] create() 返回 None:")
-        for e in comp.errors():
-            print("   ", e.toString())
-        sys.exit(1)
+        errors = "\n".join(error.toString() for error in comp.errors())
+        raise RuntimeError(f"create() 返回 None:\n{errors}")
+    return comp, stack
 
-    failures = []
 
-    # 阶段0: 启动后等主页(index 0)异步孵化完成
+def validate_start(stack, failures):
     pump(500)
     if not is_loaded(stack, 0):
         failures.append("启动后主页(0)未加载完成, 测试前提不成立")
     if display_index(stack) != 0:
         failures.append(f"启动后 _displayIndex 应为 0, 实际 {display_index(stack)}")
 
-    # 阶段1: 切到未加载的页2(跳过页1, 确保是冷加载)。
-    # 核心判据(时序无关): 切换发起的"第一拍", _displayIndex 必须仍是旧值 0。
-    #   修复后: onCurrentIndexChanged 走 helper, _displayIndex 不立即改, 等 page2
-    #           Ready 后由 onLoadingComplete 才更新 → 第一拍仍为 0。
-    #   修复前(bug): 不走 helper, 立刻 _displayIndex=2(无论 page2 是否 Ready)
-    #           → 第一拍即为 2。这正是"未加载完就把新页推上来、旧页移走"的根因。
-    # 用 currentIndex(目标)=2 但 _displayIndex(实际显示)应延迟到加载完成区分两者。
+
+def validate_cold_jump(stack, failures):
+    # 第一拍必须保持旧页，Ready 后才切到目标页。
     stack.setProperty("currentIndex", 2)
-    pump(1)  # 仅驱动一拍事件循环, 不足以等异步孵化完成
-    first_tick_display = display_index(stack)
-    if first_tick_display == 2:
+    pump(1)
+    if display_index(stack) == 2:
         failures.append(
             "切到未加载页2的第一拍 _displayIndex 立即变 2(未经 helper 等待) "
             "→ 未加载完就被推上来、旧页被移走 (bug 未修复)")
-
-    # 等 helper 完成异步孵化 + 切换
     pump(1500)
     if not is_loaded(stack, 2):
         failures.append("切到页2后页2未加载完成")
     if display_index(stack) != 2:
         failures.append(f"page2 加载完成后 _displayIndex 应为 2, 实际 {display_index(stack)}")
 
-    # 阶段2: 切回主页0, 确认全程正常往返
+
+def validate_return_home(stack, failures):
     stack.setProperty("currentIndex", 0)
     pump(800)
     if display_index(stack) != 0:
@@ -140,21 +131,42 @@ StackedWidget {{
     if not is_loaded(stack, 0):
         failures.append("切回主页结束后主页仍未 Ready")
 
+
+def report(failures):
     print(f"\n{'='*60}")
     if failures:
-        print("RESULT: FAIL - pageComponents 懒加载回归测试失败")
+        print("RESULT: FAIL - pageSources 冷跳页懒加载回归测试失败")
         for f in failures:
             print("  [FAIL]", f)
         result = 1
     else:
-        print("RESULT: PASS - pageComponents 模式切换等待加载完成, latch 生效")
+        print("RESULT: PASS - pageSources 冷跳页等待加载完成, latch 生效")
         result = 0
     print(f"{'='*60}")
+    return result
+
+
+def main():
+    app = QApplication(sys.argv)
+    engine = QQmlEngine()
+    engine.addImportPath(str(PKG_ROOT))
+    try:
+        temporary, page_urls = create_page_urls()
+        component, stack = create_stack(engine, page_urls)
+    except RuntimeError as error:
+        print(f"[FAIL] {error}")
+        return 1
+
+    failures = []
+    validate_start(stack, failures)
+    validate_cold_jump(stack, failures)
+    validate_return_home(stack, failures)
+    result = report(failures)
 
     QTimer.singleShot(0, app.quit)
     app.exec()
-    sys.exit(result)
+    return result
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

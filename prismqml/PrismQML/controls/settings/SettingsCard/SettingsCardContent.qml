@@ -176,7 +176,7 @@ Item {
         ShortcutEditor {
             shortcut: root.shortcut
             placeholderText: root.shortcutPlaceholder
-            onShortcutModified: function(newShortcut) {
+            onShortcutRecorded: function(newShortcut) {
                 root.shortcut = newShortcut
                 root.shortcutUpdated(newShortcut)
             }

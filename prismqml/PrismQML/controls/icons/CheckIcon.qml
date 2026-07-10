@@ -13,7 +13,6 @@ Canvas {
     property color color: Enums.accentColor
     property real strokeWidth: Enums.border.normal
     property int state: 2  // 0=无, 1=部分选中, 2=完全选中
-    property bool checked: state === 2  // Legacy compat 兼容旧接口
     
     width: Enums.controlSize.checkIconSize
     height: Enums.controlSize.checkIconSize

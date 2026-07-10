@@ -115,7 +115,6 @@ Item {
 
             anchors.fill: parent
             animationType: Enums.animation.popup
-            pageComponents: root.hostWindow ? root.hostWindow.pageComponents : []
             pageSources: root.hostWindow ? root.hostWindow.pageSources : []
             lazyLoading: root.hostWindow ? root.hostWindow.lazyLoading : false
             currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0

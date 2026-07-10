@@ -12,7 +12,7 @@
 from typing import Any, Dict, Optional, Type
 import time
 
-from PySide6.QtCore import QObject, QTimer, QMetaObject, Q_ARG
+from PySide6.QtCore import QTimer, QMetaObject, Q_ARG
 from PySide6.QtQuick import QQuickItem
 
 from ..core.logger import debug, warning, info, error
@@ -85,21 +85,6 @@ class PageManagerMixin:
             page_instance = item.page_class()
             item._page_instance = page_instance
             page_source = "page_class"
-        elif item.page_builder:
-            # 兼容旧的page_builder模式，直接返回普通对象并在后续直接赋值
-            class Wrapper(QObject):
-                pass
-            wrapper = Wrapper()
-            wrapper._qml_item = page_container
-            wrapper._parent = None
-            wrapper._children = []
-            wrapper._pending_properties = {}
-            item._page_instance = item.page_builder(wrapper)
-            profile("page_builder 创建页面")
-            self._pages[index] = wrapper
-            info(f"创建页面: {item.text}")
-            profile("完成")
-            return
         else:
             profile("无页面构建器")
             return
