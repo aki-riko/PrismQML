@@ -368,7 +368,7 @@ Item {
         Column {
             anchors.left: parent.left
             anchors.right: parent.right
-            spacing: 0
+            spacing: Enums.spacing.none
             
             Repeater {
                 model: control.folders
@@ -425,7 +425,7 @@ Item {
         Column {
             anchors.left: parent.left
             anchors.right: parent.right
-            spacing: 0
+            spacing: Enums.spacing.none
 
             Item {
                 width: parent.width

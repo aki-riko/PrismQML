@@ -304,7 +304,7 @@ Widget {
                 anchors.leftMargin: Enums.spacing.l
                 anchors.rightMargin: Enums.spacing.l
                 anchors.topMargin: control.contentPadding
-                spacing: 0
+                spacing: Enums.spacing.none
             }
         }
         

@@ -149,7 +149,7 @@ Item {
         
         Rectangle {
             anchors.fill: parent
-            color: "transparent"  // Transparent to let parent bg show through 透明以显示父级背景
+            color: Enums.transparent  // Transparent to let parent bg show through 透明以显示父级背景
         }
         
         Column {

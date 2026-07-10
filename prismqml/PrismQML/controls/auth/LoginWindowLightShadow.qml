@@ -17,7 +17,7 @@ import "../inputs"
 
 Rectangle {
     id: root
-    color: "transparent"
+    color: Enums.transparent
     
     // ==================== Public Props 公开属性 ====================
     property string title: qsTr("Login")

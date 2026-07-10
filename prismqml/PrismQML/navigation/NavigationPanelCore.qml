@@ -387,7 +387,7 @@ Item {
         z: -1  // Below all content 在所有内容下方
         radius: control._cornerRadius
         clip: true
-        color: "transparent"
+        color: Enums.transparent
         
         // Acrylic tint color: pure white/dark gray; keeps Mica tint 亚克力着色：纯白/深灰，保留云母色调
         readonly property color acrylicTintColor: Enums.stateColor.acrylicTintColor
@@ -413,7 +413,7 @@ Item {
             anchors.top: parent.top
             width: parent.radius
             height: control.titleBarHeight + parent.radius
-            color: "transparent"
+            color: Enums.transparent
             clip: true
             
             Image {
@@ -437,7 +437,7 @@ Item {
             anchors.bottom: parent.bottom
             width: parent.radius
             height: parent.radius
-            color: "transparent"
+            color: Enums.transparent
             clip: true
             
             Image {

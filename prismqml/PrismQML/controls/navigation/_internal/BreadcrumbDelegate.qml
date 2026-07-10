@@ -313,7 +313,7 @@ Item {
             
             Row {
                 id: elideRow
-                spacing: 0
+                spacing: Enums.spacing.none
                 anchors.verticalCenter: parent.verticalCenter
                 opacity: elideContainer.elideOpacity
                 transform: [

@@ -11,6 +11,12 @@ import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被�
 // Widget - Base component for all PrismQML widgets 所有PrismQML组件的基类
 Item {
     id: widget
+
+    // ==================== Background 背景 ====================
+    property color backgroundColor: Enums.transparent
+    property real backgroundRadius: 0
+    property bool centerContent: false  // Center children 子组件居中
+
     clip: false  // Allow tooltip to overflow 允许tooltip溢出显示
 
     // ==================== Size Priority System 尺寸优先级系统 ====================
@@ -34,11 +40,6 @@ Item {
     property bool layoutFillHeight: false
     Layout.fillWidth: layoutFillWidth
     Layout.fillHeight: layoutFillHeight
-
-    // ==================== Background 背景 ====================
-    property color backgroundColor: "transparent"
-    property real backgroundRadius: 0
-    property bool centerContent: false  // Center children 子组件居中
 
     // ==================== ToolTip Support 工具提示支持 ====================
     property string toolTipText: ""
@@ -118,7 +119,7 @@ Item {
 
         // 允许超出窗口边界
         margins: -1
-        padding: 0
+        padding: Enums.spacing.none
         closePolicy: Popup.NoAutoClose
         clip: false
         

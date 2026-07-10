@@ -59,7 +59,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         width: 3
         height: parent.height * 0.5
-        radius: 1.5
+        radius: Enums.radius.micro
         color: Enums.accentColor
         visible: root.selected
         Behavior on height { NumberAnimation { duration: Enums.duration.fast } }
@@ -87,7 +87,7 @@ Rectangle {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
-            spacing: 2
+            spacing: Enums.spacing.xxs
 
             Label {
                 Layout.fillWidth: true

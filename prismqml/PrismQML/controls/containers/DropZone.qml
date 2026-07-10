@@ -52,7 +52,7 @@ Rectangle {
     // ==================== Appearance 外观 ====================
     radius: Enums.radius.small
     color: Enums.transparent
-    border.width: 0
+    border.width: Enums.border.none
     
     // ==================== Dashed Border 虚线边框 ====================
     Canvas {

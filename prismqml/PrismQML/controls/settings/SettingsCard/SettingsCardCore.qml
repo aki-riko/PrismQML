@@ -55,7 +55,7 @@ Card {
     // ==================== Main Layout 主布局 ====================
     Column {
         anchors.fill: parent
-        spacing: 0
+        spacing: Enums.spacing.none
         
         // Main row 主行
         Row {
@@ -140,7 +140,7 @@ Card {
                     
                     MouseArea {
                         anchors.fill: parent
-                        anchors.margins: -8
+                        anchors.margins: -Enums.spacing.m
                         cursorShape: Qt.PointingHandCursor
                         onClicked: control.expanded = !control.expanded
                     }

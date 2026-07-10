@@ -119,11 +119,11 @@ Rectangle {
     readonly property color secondaryColor: Enums.textColor.secondary
     readonly property color hoverColor: Enums.tableHoverColor
     readonly property color alternateColor: Enums.alternateRowColor
+    color: "transparent"  // Transparent background avoids square corners 透明背景避免直角露出圆角卡片外
     
     // ==================== Size 尺寸 ====================
     implicitWidth: 200
     implicitHeight: 150
-    color: "transparent"  // 透明背景，避免直角露出圆角卡片外
     
     // ==================== Wheel Handler 滚轮处理 ====================
     MouseArea {
@@ -158,7 +158,7 @@ Rectangle {
         property var _activeLevel: _resolvedLevel
                                  || (Enums.shadow ? Enums.shadow.level2 : null)
                                  || _staticFallbackShadow
-        color: _activeLevel ? _activeLevel.color : "transparent"
+        color: _activeLevel ? _activeLevel.color : Enums.transparent
         blur: _activeLevel ? _activeLevel.blur : 0
         offset.x: 0
         offset.y: _activeLevel ? _activeLevel.offset : 0
@@ -189,7 +189,7 @@ Rectangle {
         radius: borderRadius
         // neo: 粗黑边(neo 下始终显边, 靠边+硬阴影区分)
         border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (borderVisible ? Enums.border.thin : 0)
-        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : (borderVisible ? Enums.stateColor.borderLight : "transparent")
+        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : (borderVisible ? Enums.stateColor.borderLight : Enums.transparent)
 
         ColumnLayout {
             anchors.fill: parent
@@ -243,7 +243,7 @@ Rectangle {
                 opacity: Math.min(1, listView.contentY / 20)
                 gradient: Gradient {
                     GradientStop { position: 0; color: Qt.rgba(0, 0, 0, 0.06) }
-                    GradientStop { position: 1; color: "transparent" }
+                    GradientStop { position: 1; color: Enums.transparent }
                 }
                 Behavior on opacity {
                     enabled: root.animated

@@ -17,8 +17,13 @@ Text {
     // ==================== Hyperlink Props 超链接属性 ====================
     property url url: ""
     property bool underlineOnHover: true
-    signal clicked()
     readonly property bool hovered: _mouseArea.containsMouse
+
+    // Custom text color 自定义文本颜色
+    property color customTextColor: Enums.transparent
+    property bool _useCustomColor: customTextColor != Qt.rgba(0, 0, 0, 0)
+
+    signal clicked()
     
     // ==================== Style Binding 样式绑定 ====================
     font.family: Enums.fontFamily
@@ -87,10 +92,6 @@ Text {
     // ==================== Public Methods 公开方法 ====================
     // Clear text content 清空文本内容
     function clear() { text = "" }
-
-    // Custom text color 自定义文本颜色
-    property color customTextColor: "transparent"
-    property bool _useCustomColor: customTextColor != Qt.rgba(0, 0, 0, 0)
 
     // ==================== Public Methods 公共方法 ====================
     function getText() { return text }

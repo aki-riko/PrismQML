@@ -418,7 +418,7 @@ Item {
                         anchors.leftMargin: Enums.spacing.xs
                         anchors.verticalCenter: parent.verticalCenter
                         width: 3
-                        radius: 1.5
+                        radius: Enums.radius.micro
                         color: Enums.accentColor
                         height: cardPart.isSelected ? parent.height * 0.5 : 0
                         opacity: cardPart.isSelected ? 1 : 0

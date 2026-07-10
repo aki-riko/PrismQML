@@ -93,7 +93,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.leftMargin: Enums.spacing.xl + delegateRoot.branchOffset
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 0
+        spacing: Enums.spacing.none
         
         // Expand button 展开按钮
         Item {

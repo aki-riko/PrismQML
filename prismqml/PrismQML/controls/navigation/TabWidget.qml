@@ -373,7 +373,7 @@ Widget {
         Row {
             id: tabRow
             height: control._tabHeight
-            spacing: 0
+            spacing: Enums.spacing.none
             
             Repeater {
                 id: tabRepeater

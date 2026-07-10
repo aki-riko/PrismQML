@@ -35,8 +35,8 @@ Widget {
     property bool hasCustomContent: customContentLoader.sourceComponent !== null && customContentLoader.item !== null
     
     // ==================== Custom Background 自定义背景色 ====================
-    property color backgroundColorLight: "transparent"  // Custom light theme bg 自定义浅色背景
-    property color backgroundColorDark: "transparent"   // Custom dark theme bg 自定义深色背景
+    property color backgroundColorLight: Enums.transparent  // Custom light theme bg 自定义浅色背景
+    property color backgroundColorDark: Enums.transparent   // Custom dark theme bg 自定义深色背景
     readonly property bool _hasCustomBg: backgroundColorLight.a > 0 || backgroundColorDark.a > 0
     readonly property color _cardColor: _hasCustomBg ? (Enums.isDark ? backgroundColorDark : backgroundColorLight) : Enums.toastCardColor
     

@@ -129,7 +129,7 @@ Rectangle {
     Row {
         id: segmentRow
         anchors.centerIn: parent
-        spacing: 0
+        spacing: Enums.spacing.none
         
         Repeater {
             id: repeater

@@ -16,8 +16,8 @@ Rectangle {
     property string text: ""
     property bool showDot: true
     property bool showBorder: false  // Border visibility 边框可见性
-    property color borderColorLight: "transparent"  // Light border color 浅色边框颜色
-    property color borderColorDark: "transparent"  // Dark border color 深色边框颜色
+    property color borderColorLight: Enums.transparent  // Light border color 浅色边框颜色
+    property color borderColorDark: Enums.transparent  // Dark border color 深色边框颜色
     property int iconSize: Enums.iconSize.s  // Icon size 图标尺寸
     
     

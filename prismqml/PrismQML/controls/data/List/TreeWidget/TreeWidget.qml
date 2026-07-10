@@ -169,7 +169,7 @@ Rectangle {
         
         ColumnLayout {
             anchors.fill: parent
-            spacing: 0
+            spacing: Enums.spacing.none
             
             // Header 表头
             Rectangle {

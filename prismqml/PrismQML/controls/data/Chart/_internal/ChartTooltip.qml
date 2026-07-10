@@ -22,7 +22,7 @@ Item {
     // function(value) -> string;若提供则覆盖 toString(),用于多级单位等场景
     property var valueFormatter: null
     property bool showColorDot: false    // Show color indicator dot 显示颜色指示点
-    property color dotColor: "transparent"
+    property color dotColor: Enums.transparent
     property bool showPointer: false     // Show triangle pointer 显示三角形指针
     property int pointerDirection: 0     // 0=down, 1=up, 2=left, 3=right 指针方向
     

@@ -82,8 +82,8 @@ DataWidgetCore {
         Item {
             Row {
                 anchors.fill: parent
-                anchors.leftMargin: 8
-                anchors.rightMargin: 8
+                anchors.leftMargin: Enums.spacing.m
+                anchors.rightMargin: Enums.spacing.m
 
                 Repeater {
                     model: root.columns

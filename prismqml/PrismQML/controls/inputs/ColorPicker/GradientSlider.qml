@@ -118,7 +118,7 @@ Item {
         
         MouseArea {
             anchors.fill: parent
-            anchors.margins: -4
+            anchors.margins: -Enums.spacing.xs
             enabled: control.enabled
             drag.target: parent
             drag.axis: Drag.XAxis

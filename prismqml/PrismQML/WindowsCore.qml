@@ -67,7 +67,7 @@ Window {
     // visible: false into its generated root QML before calling Window.show().
     visible: true
     opacity: Enums.opacityLevel.invisible
-    color: "transparent"
+    color: Enums.transparent
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint
     property bool closeRequestAccepted: true
     property bool _closeInProgress: false
@@ -370,7 +370,7 @@ Window {
             id: titleBar
             width: parent.width
             height: _isLeftLayout ? 0 : titleBarHeight
-            color: "transparent"
+            color: Enums.transparent
             z: Enums.zIndex.controls
             visible: !_isLeftLayout
             Component.onCompleted: window.profileDetail("titleBar completed visible=" + visible + " height=" + height)
@@ -471,7 +471,7 @@ Window {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: _isLeftLayout ? Math.max(leftPanelWidth, Enums.window.navPanelMinWidth) : 0
-            color: "transparent"
+            color: Enums.transparent
             visible: _isLeftLayout
             z: Enums.zIndex.controls
             Component.onCompleted: window.profileDetail("leftPanel completed visible=" + visible + " width=" + width)
@@ -483,7 +483,7 @@ Window {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 height: titleBarHeight
-                color: "transparent"
+                color: Enums.transparent
                 Component.onCompleted: window.profileDetail("leftTitleBar completed")
 
                 Loader {
@@ -651,7 +651,7 @@ Window {
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            color: "transparent"
+            color: Enums.transparent
             border.width: Enums.border.thin
             border.color: Enums.borderColor
             z: Enums.zIndex.controls

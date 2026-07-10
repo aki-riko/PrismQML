@@ -104,7 +104,7 @@ Item {
         id: listView
         anchors.fill: parent
         model: ListModel { id: chatModel }
-        spacing: 4
+        spacing: Enums.spacing.xs
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         // 关键: 滚动驱动权交给 SmoothScrollHelper 独占 (handleWheel)。

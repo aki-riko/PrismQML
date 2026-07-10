@@ -53,7 +53,7 @@ Item {
     Canvas {
         id: thumbCanvas
         anchors.fill: parent
-        anchors.bottomMargin: 8  // 给底部 slider 留空间
+        anchors.bottomMargin: Enums.spacing.m  // 给底部 slider 留空间
 
         property var _drawValues: {
             if (control.series && control.series.length > 0) {

@@ -142,7 +142,7 @@ DialogBoxCore {
             Layout.fillHeight: true
             visible: control.notes !== ""
             radius: Enums.radius.medium
-            color: "transparent"
+            color: Enums.transparent
             border.width: Enums.border.thin
             border.color: Enums.stateColor.cardBorder
 
@@ -161,7 +161,7 @@ DialogBoxCore {
                     color: Enums.textColor.primary
                     linkColor: Enums.accentColor
                     font.family: Enums.fontFamily
-                    font.pixelSize: 14
+                    font.pixelSize: Enums.typography.body
                     onLinkActivated: (url) => Qt.openUrlExternally(url)
                 }
             }

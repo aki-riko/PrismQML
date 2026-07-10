@@ -244,7 +244,7 @@ Item {
     // ==================== UI 界面 ====================
     Row {
         id: contentRow
-        spacing: 0
+        spacing: Enums.spacing.none
         anchors.verticalCenter: parent.verticalCenter
         
         Repeater {

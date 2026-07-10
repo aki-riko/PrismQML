@@ -35,7 +35,7 @@ Item {
     // 关闭自动缩放时,行为 = 原生 Row (root 透传 implicit 尺寸)
     property bool autoFit: false
     property real minScale: 0.6
-    property real padding: 8
+    property real padding: Enums.spacing.m
     property int horizontalAlign: Enums.orient.align_center
     property alias spacing: row.spacing
     // 让用户直接 RowFit { Label{}; ... } 把子项写在里面
@@ -47,7 +47,7 @@ Item {
 
     Row {
         id: row
-        spacing: 6
+        spacing: Enums.spacing.s
 
         // 不 autoFit: 直接靠左排,不管尺寸 (= 原生 Row 行为)
         // autoFit: 跟 horizontalAlign 切锚点

@@ -85,7 +85,7 @@ Item {
         id: _tipWindow
         
         flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
-        color: "transparent"
+        color: Enums.transparent
         
         width: control.tooltipWidth
         height: control.tooltipHeight

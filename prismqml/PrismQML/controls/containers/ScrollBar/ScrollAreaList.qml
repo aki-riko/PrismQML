@@ -15,7 +15,7 @@ Item {
     property var model: []
     property Component delegate: null
     property int itemHeight: 40
-    property int spacing: 0  // 列表项间距 (用于卡片化场景需要间隙时)
+    property int spacing: Enums.spacing.none  // 列表项间距 (用于卡片化场景需要间隙时)
     property bool reuseItems: false  // delegate 复用 (Qt 5.15+, 避免大列表频繁 create/destroy)
     property int cacheBuffer: -1  // -1 = 用引擎默认值 itemHeight*10; 长 delegate 场景可调小
     // 重 delegate (含 ComboBox/SpinBox/复杂布局) 场景: 用 Loader.asynchronous 包一层,

@@ -26,7 +26,7 @@ Rectangle {
  implicitWidth: horizontal ? 200 : 8
  implicitHeight: horizontal ? 8 : 200
  radius: width / 2
- color: "transparent"
+ color: Enums.transparent
  visible: active // Only visible when needed 仅需要时可见
  opacity: (hovered || thumbArea.pressed) ? 1 : 0.6
  

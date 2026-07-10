@@ -156,7 +156,7 @@ Item {
         // Line shadow 线条阴影
         Rectangle {
             anchors.fill: parent
-            anchors.margins: -1
+            anchors.margins: -Enums.spacing.micro
             color: Enums.stateColor.maskLight
             z: Enums.zIndex.background
         }
@@ -175,7 +175,7 @@ Item {
         // Handle shadow 手柄阴影
         Rectangle {
             anchors.fill: parent
-            anchors.margins: -2
+            anchors.margins: -Enums.spacing.xxs
             radius: width / 2
             color: Enums.stateColor.maskSubtle
             z: Enums.zIndex.background

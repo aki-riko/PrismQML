@@ -161,7 +161,7 @@ Item {
  id: borderRect
  anchors.fill: card
  radius: card.radius
- color: "transparent"
+ color: Enums.transparent
  border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 1
  border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
  : (Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle)

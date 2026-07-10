@@ -109,7 +109,7 @@ DataWidgetCore {
                 anchors.left: parent.left
                 anchors.leftMargin: Enums.spacing.xl + delegateRoot.branchOffset
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 0
+                spacing: Enums.spacing.none
 
                 Item {
                     width: Enums.controlSize.treeIndentSize
