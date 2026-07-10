@@ -180,7 +180,6 @@ class QRCodeGenerator(QObject):
 
 # 全局实例
 _qrcode_generator: Optional[QRCodeGenerator] = None
-_qrcode_provider: Optional[QRCodeImageProvider] = None
 
 
 def get_qrcode_generator() -> QRCodeGenerator:
@@ -192,8 +191,5 @@ def get_qrcode_generator() -> QRCodeGenerator:
 
 
 def get_qrcode_provider() -> QRCodeImageProvider:
-    """获取二维码图片提供器单例"""
-    global _qrcode_provider
-    if _qrcode_provider is None:
-        _qrcode_provider = QRCodeImageProvider()
-    return _qrcode_provider
+    """创建由 QML 引擎持有的二维码图片提供器"""
+    return QRCodeImageProvider()

@@ -30,7 +30,7 @@ class LazyQRCodeGenerator(QObject):
 
     def __init__(self, engine: QQmlApplicationEngine, parent: Optional[QObject] = None):
         super().__init__(parent)
-        self._engine = engine
+        self._engine: Optional[QQmlApplicationEngine] = engine
         self._generator = None
         self._provider_registered = False
 
@@ -44,10 +44,17 @@ class LazyQRCodeGenerator(QObject):
     def _ensure_provider(self) -> None:
         if self._provider_registered:
             return
+        if self._engine is None:
+            raise RuntimeError("QML engine is no longer available")
         from .qrcode_generator import get_qrcode_provider
 
         self._engine.addImageProvider("qrcode", get_qrcode_provider())
         self._provider_registered = True
+
+    def release_engine(self) -> None:
+        """Release the engine wrapper during reset. 重置时释放引擎绑定。"""
+        self._engine = None
+        self._provider_registered = False
 
     @Property(bool, notify=availableChanged)
     def available(self) -> bool:

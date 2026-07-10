@@ -46,11 +46,9 @@ void registerTypes(QQmlEngine *engine, const QString &importPath) {
     // 引擎接管 provider 所有权(析构时 delete); svg/qrcode 用独立 new 实例。
     engine->addImageProvider(QStringLiteral("svg"), new SvgImageProvider());
     engine->addImageProvider(QStringLiteral("qrcode"), new QRCodeImageProvider());
-    // acrylic: AcrylicHelper 单例与 engine 共享同一 provider(grabAndBlur 写/QML 读)。
-    // 所有权契约: engine 拥有并在析构时 delete; AcrylicHelper 单例【永不析构】
-    // (Meyers 单例)故不会二次释放; 引擎销毁后不再调 grabAndBlur(app 退出阶段)。
+    // acrylic: helper 只持有共享图像状态; 每个 engine 独占并销毁自己的 adapter。
     engine->addImageProvider(QStringLiteral("acrylic"),
-                             AcrylicHelper::instance()->imageProvider());
+                             AcrylicHelper::instance()->createImageProvider());
 
     // IconProvider: register_icon_provider(engine) 可注入 "Icon" context, 但
     // 默认【不】注入 — QML 控件用自带 FluentEnums/Icons.qml 不依赖它, 且注入名为

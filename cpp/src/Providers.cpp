@@ -12,6 +12,7 @@
 #include <QClipboard>
 #include <QIcon>
 #include <QImage>
+#include <QMutexLocker>
 #include <QPixmap>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -19,6 +20,7 @@
 #include <QWindow>
 #include <QFileInfo>
 #include <QDebug>
+#include <utility>
 
 namespace prism {
 
@@ -92,15 +94,42 @@ void WindowHelper::setAppIcon(const QString &icon) {
 }
 
 // ==================== AcrylicImageProvider + AcrylicHelper ====================
-QImage AcrylicImageProvider::requestImage(const QString & /*id*/, QSize *size,
-                                          const QSize & /*requestedSize*/) {
-    if (size)
-        *size = m_image.size();
+QImage AcrylicImageState::image() const {
+    QMutexLocker locker(&m_mutex);
     return m_image;
 }
-void AcrylicImageProvider::setImage(const QImage &image) {
+
+void AcrylicImageState::setImage(const QImage &image) {
+    QMutexLocker locker(&m_mutex);
     m_image = image;
     ++m_imageId;
+}
+
+int AcrylicImageState::imageId() const {
+    QMutexLocker locker(&m_mutex);
+    return m_imageId;
+}
+
+AcrylicImageProvider::AcrylicImageProvider()
+    : AcrylicImageProvider(std::make_shared<AcrylicImageState>()) {}
+
+AcrylicImageProvider::AcrylicImageProvider(std::shared_ptr<AcrylicImageState> state)
+    : QQuickImageProvider(QQuickImageProvider::Image), m_state(std::move(state)) {}
+
+QImage AcrylicImageProvider::requestImage(const QString & /*id*/, QSize *size,
+                                          const QSize & /*requestedSize*/) {
+    const QImage image = m_state->image();
+    if (size)
+        *size = image.size();
+    return image;
+}
+
+void AcrylicImageProvider::setImage(const QImage &image) {
+    m_state->setImage(image);
+}
+
+int AcrylicImageProvider::currentImageId() const {
+    return m_state->imageId();
 }
 
 AcrylicHelper *AcrylicHelper::instance() {
@@ -108,7 +137,11 @@ AcrylicHelper *AcrylicHelper::instance() {
     return s;
 }
 AcrylicHelper::AcrylicHelper(QObject *parent)
-    : QObject(parent), m_provider(new AcrylicImageProvider()) {}
+    : QObject(parent), m_state(std::make_shared<AcrylicImageState>()) {}
+
+AcrylicImageProvider *AcrylicHelper::createImageProvider() const {
+    return new AcrylicImageProvider(m_state);
+}
 
 void AcrylicHelper::setBlurRadius(int value) {
     m_blurRadius = qMax(1, qMin(100, value));
@@ -146,14 +179,14 @@ QString AcrylicHelper::grabAndBlur(const QVariant &window, int x, int y, int wid
         return QString();
 
     QImage blurred = scaleBlur(pix.toImage(), m_blurRadius);
-    m_provider->setImage(blurred);
-    const QString url = QStringLiteral("image://acrylic/%1").arg(m_provider->currentImageId());
+    m_state->setImage(blurred);
+    const QString url = QStringLiteral("image://acrylic/%1").arg(m_state->imageId());
     emit imageReady(url);
     return url;
 }
 
 QString AcrylicHelper::getImageUrl() const {
-    return QStringLiteral("image://acrylic/%1").arg(m_provider->currentImageId());
+    return QStringLiteral("image://acrylic/%1").arg(m_state->imageId());
 }
 
 }  // namespace prism

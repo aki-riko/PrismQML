@@ -105,6 +105,7 @@ class App:
     def _reset(cls) -> None:
         """重置单例状态（仅供测试使用） Reset singleton state (for testing only)"""
         reset_input_focus_filter()
+        EngineManager.reset()
         cls._instance = None
 
     @classmethod

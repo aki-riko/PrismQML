@@ -16,7 +16,6 @@ namespace prism {
 // image://svg/<path> - 用 QSvgRenderer 高质量渲染 SVG
 class SvgImageProvider : public QQuickImageProvider {
 public:
-    static SvgImageProvider *instance();
     SvgImageProvider();
     ~SvgImageProvider() override;
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;

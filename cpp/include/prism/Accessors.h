@@ -39,11 +39,10 @@ inline QRCodeGenerator *get_qrcode_generator() { return QRCodeGenerator::instanc
 inline ScreenEyedropperManager *get_screen_eyedropper_manager() {
     return ScreenEyedropperManager::instance();
 }
-inline SvgImageProvider *get_svg_provider() { return SvgImageProvider::instance(); }
+// Image provider getter 每次返回新实例; 调用方须交给 QQmlEngine 或自行 delete。
+inline SvgImageProvider *get_svg_provider() { return new SvgImageProvider(); }
 inline QRCodeImageProvider *get_qrcode_provider() {
-    // provider 由引擎在 registerTypes 中 new; 此处提供一个独立实例供按需使用
-    static QRCodeImageProvider *p = new QRCodeImageProvider();
-    return p;
+    return new QRCodeImageProvider();
 }
 
 // createSystemTrayIcon (镜像 Python 工厂函数)

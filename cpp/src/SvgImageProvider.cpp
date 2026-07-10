@@ -11,11 +11,6 @@
 
 namespace prism {
 
-SvgImageProvider *SvgImageProvider::instance() {
-    static SvgImageProvider *s = new SvgImageProvider();
-    return s;
-}
-
 SvgImageProvider::SvgImageProvider()
     : QQuickImageProvider(QQuickImageProvider::Image) {}
 

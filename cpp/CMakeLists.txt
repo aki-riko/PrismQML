@@ -223,10 +223,15 @@ if(PRISM_BUILD_TESTS)
     target_link_libraries(prism_test_sqlmodel PRIVATE prism)
     add_test(NAME prism_test_sqlmodel COMMAND prism_test_sqlmodel)
 
+    qt_add_executable(prism_test_provider_lifecycle tests/test_provider_lifecycle.cpp)
+    target_link_libraries(prism_test_provider_lifecycle PRIVATE prism)
+    add_test(NAME prism_test_provider_lifecycle COMMAND prism_test_provider_lifecycle)
+
     set_tests_properties(
         prism_test_store
         prism_test_system
         prism_test_qrcode_gen
+        prism_test_provider_lifecycle
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     )
     set_tests_properties(prism_test_mica PROPERTIES

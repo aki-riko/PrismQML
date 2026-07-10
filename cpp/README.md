@@ -48,7 +48,7 @@ ctest --test-dir cpp\build -N
 ctest --test-dir cpp\build --output-on-failure --no-tests=error
 ```
 
-CTest 当前注册 5 个 C++ 测试程序和 1 个 QR 独立解码测试。Mica/DWM 在非
+CTest 当前注册 6 个 C++ 测试程序和 1 个 QR 独立解码测试。Mica/DWM 在非
 Windows 11 平台以 CTest `Skipped` 明确报告，其余失败均返回非零退出码。
 
 ## 运行 demo / gallery
@@ -200,6 +200,8 @@ int main(int argc, char **argv) {
   OFFSET 路径）+ 单库回归共 11 项断言通过；破坏谓词方向可复现 FAIL（区分力坐实）。
 - `prism_test_qrcode_gen` + `tests/qr/verify_qr.py`：C++ 生成的 QR PNG 由 opencv
   独立解码还原 == 原文，5 组（URL / 中文 / 特殊符号 / 长文本）全部通过。
+- `prism_test_provider_lifecycle`：Acrylic provider 顺序注册到两个真实 QML engine，
+  销毁前一引擎后后一引擎仍能读取共享图像状态，连续 10 轮无悬空指针或双重释放。
 - QML 加载真实 PrismQML 组件零 `ReferenceError`。
 
 详见 [`docs/cpp-host-plan.md`](../docs/cpp-host-plan.md)。

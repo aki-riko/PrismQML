@@ -10,8 +10,20 @@ Provides Windows 11 Mica backdrop effect and Acrylic blur for PrismQML windows.
 为 PrismQML 窗口提供 Windows 11 云母背景效果和亚克力模糊。
 """
 import sys
+from threading import Lock
 from typing import Optional
-from PySide6.QtCore import QObject, Signal, Slot, Property, QRect, QSize, QBuffer, QByteArray, QIODevice
+from PySide6.QtCore import (
+    QByteArray,
+    QBuffer,
+    QIODevice,
+    QObject,
+    Property,
+    QRect,
+    QSize,
+    Signal,
+    Slot,
+    Qt,
+)
 from PySide6.QtGui import QWindow, QImage, QColor, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQuick import QQuickImageProvider
@@ -293,6 +305,32 @@ def _gaussian_blur_image(image: QImage, radius: int) -> QImage:
     return result_pixmap.toImage()
 
 
+class _AcrylicImageState:
+    """Shared acrylic image data without QML-engine ownership. 亚克力共享图像状态。"""
+
+    def __init__(self):
+        self._lock = Lock()
+        self._current_image: Optional[QImage] = None
+        self._image_id = 0
+
+    def image(self) -> Optional[QImage]:
+        """Return a detached image snapshot. 返回图像快照。"""
+        with self._lock:
+            return QImage(self._current_image) if self._current_image is not None else None
+
+    def set_image(self, image: QImage) -> None:
+        """Store an image and advance its cache id. 保存图像并递增缓存标识。"""
+        with self._lock:
+            self._current_image = QImage(image)
+            self._image_id += 1
+
+    @property
+    def image_id(self) -> int:
+        """Return the current cache id. 返回当前缓存标识。"""
+        with self._lock:
+            return self._image_id
+
+
 class AcrylicImageProvider(QQuickImageProvider):
     """
     Image provider for acrylic blurred background
@@ -302,34 +340,36 @@ class AcrylicImageProvider(QQuickImageProvider):
     为 QML 亚克力效果提供模糊截图。
     """
     
-    def __init__(self):
+    def __init__(self, state: Optional[_AcrylicImageState] = None):
         super().__init__(QQuickImageProvider.ImageType.Image)
-        self._current_image: Optional[QImage] = None
-        self._image_id = 0
+        self._state = state or _AcrylicImageState()
     
     def requestImage(self, id: str, size: QSize, requestedSize: QSize) -> QImage:
         """Provide the blurred image to QML 向 QML 提供模糊图片"""
-        if self._current_image is None or self._current_image.isNull():
+        img = self._state.image()
+        if img is None or img.isNull():
             # Return transparent placeholder 返回透明占位图
             placeholder = QImage(1, 1, QImage.Format.Format_ARGB32)
             placeholder.fill(QColor(0, 0, 0, 0))
             return placeholder
-        
-        img = self._current_image
+
         if requestedSize.isValid() and requestedSize.width() > 0 and requestedSize.height() > 0:
-            img = img.scaled(requestedSize, mode=1)  # SmoothTransformation
+            img = img.scaled(
+                requestedSize,
+                Qt.AspectRatioMode.IgnoreAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
         
         return img
     
     def setImage(self, image: QImage):
         """Set the current blurred image 设置当前模糊图片"""
-        self._current_image = image
-        self._image_id += 1
+        self._state.set_image(image)
     
     @property
     def currentImageId(self) -> int:
         """Get current image ID for cache busting 获取当前图片ID用于缓存刷新"""
-        return self._image_id
+        return self._state.image_id
 
 
 class AcrylicHelper(QObject):
@@ -347,7 +387,7 @@ class AcrylicHelper(QObject):
     
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
-        self._image_provider = AcrylicImageProvider()
+        self._image_state = _AcrylicImageState()
         self._blur_radius = ACRYLIC_BLUR_RADIUS
         self._is_available = True
     
@@ -368,8 +408,8 @@ class AcrylicHelper(QObject):
     
     @property
     def imageProvider(self) -> AcrylicImageProvider:
-        """Get the image provider for QML engine registration 获取图片提供器用于 QML 引擎注册"""
-        return self._image_provider
+        """Create an engine-owned provider adapter. 创建由引擎持有的 provider 适配器。"""
+        return AcrylicImageProvider(self._image_state)
     
     @Slot(QWindow, int, int, int, int, result=str)
     def grabAndBlur(self, window: QWindow, x: int, y: int, width: int, height: int) -> str:
@@ -428,10 +468,10 @@ class AcrylicHelper(QObject):
             blurred = _gaussian_blur_image(image, self._blur_radius)
             
             # Store in provider 存储到提供器
-            self._image_provider.setImage(blurred)
+            self._image_state.set_image(blurred)
             
             # Return image URL with cache-busting ID 返回带缓存刷新ID的图片URL
-            image_url = f"image://acrylic/{self._image_provider.currentImageId}"
+            image_url = f"image://acrylic/{self._image_state.image_id}"
             self.imageReady.emit(image_url)
             
             debug(f"Acrylic image ready: {width}x{height}")
@@ -444,7 +484,7 @@ class AcrylicHelper(QObject):
     @Slot(result=str)
     def getImageUrl(self) -> str:
         """Get current image URL 获取当前图片URL"""
-        return f"image://acrylic/{self._image_provider.currentImageId}"
+        return f"image://acrylic/{self._image_state.image_id}"
 
 
 # Singleton instances 单例实例

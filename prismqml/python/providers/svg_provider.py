@@ -122,20 +122,13 @@ class SvgImageProvider(QQuickImageProvider):
         self._cache.clear()
 
 
-# Singleton instance 单例实例
-_svg_provider: Optional[SvgImageProvider] = None
-
-
 def get_svg_provider() -> SvgImageProvider:
-    """Get the singleton SVG image provider 获取单例SVG图片提供器
+    """Create an engine-owned SVG image provider 创建由引擎持有的SVG图片提供器
 
     Returns:
-        SvgImageProvider: The singleton instance 单例实例
+        SvgImageProvider: A new provider instance 新的 provider 实例
     """
-    global _svg_provider
-    if _svg_provider is None:
-        _svg_provider = SvgImageProvider()
-    return _svg_provider
+    return SvgImageProvider()
 
 
 __all__ = ["SvgImageProvider", "get_svg_provider"]

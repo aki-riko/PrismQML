@@ -12,6 +12,7 @@
 from typing import Optional
 from PySide6.QtQml import QQmlApplicationEngine
 
+
 class EngineManager:
     """QML引擎管理器，管理全局唯一的QQmlApplicationEngine实例"""
     
@@ -28,7 +29,20 @@ class EngineManager:
             raise RuntimeError("Engine not initialized.")
         return cls._engine
 
+    @staticmethod
+    def _release_engine_bindings(engine: QQmlApplicationEngine) -> None:
+        """Release Python objects that hold this engine. 释放持有该引擎的绑定对象。"""
+        bindings = tuple(getattr(engine, "_prismqml_lazy_context_objects", ()))
+        for binding in bindings:
+            release_engine = getattr(binding, "release_engine", None)
+            if release_engine is not None:
+                release_engine()
+        setattr(engine, "_prismqml_lazy_context_objects", [])
+
     @classmethod
     def reset(cls):
         """重置引擎引用（用于测试和热重载场景）Reset engine reference (for testing and hot-reload)"""
+        engine = cls._engine
         cls._engine = None
+        if engine is not None:
+            cls._release_engine_bindings(engine)

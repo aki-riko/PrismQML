@@ -86,7 +86,8 @@ jobs:
           CIBW_TEST_COMMAND: >-
             python -c "import prismqml, prismqml_rs;
             assert prismqml.__version__;
-            assert prismqml_rs.__version__"
+            assert prismqml_rs.__version__" &&
+            python "{project}/tests/test_provider_lifecycle.py"
           CIBW_TEST_ENVIRONMENT: "QT_QPA_PLATFORM=offscreen"
 
       - name: Validate wheel structure
@@ -126,6 +127,8 @@ jobs:
           "$TEST_VENV/bin/python" -c "import prismqml, prismqml_rs; assert prismqml.__version__; assert prismqml_rs.__version__"
           QT_QPA_PLATFORM=offscreen "$TEST_VENV/bin/python" \
             "$GITHUB_WORKSPACE/tests/qml/probe_all_components.py" --installed
+          QT_QPA_PLATFORM=offscreen "$TEST_VENV/bin/python" \
+            "$GITHUB_WORKSPACE/tests/test_provider_lifecycle.py"
       - uses: actions/upload-artifact@v4
         with:
           name: sdist
