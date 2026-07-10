@@ -1,0 +1,2 @@
+# C++ QR end-to-end decode dependency C++ 二维码端到端解码依赖
+opencv-python-headless>=4.8,<5

@@ -14,9 +14,11 @@
 #include <QTextStream>
 #include <QProcessEnvironment>
 #include <QDebug>
+#include <QtGlobal>
 
 static int g_failed = 0;
 static QStringList g_log;
+static constexpr int kSkipReturnCode = 77;
 #define CHECK(cond, name) do { \
     if (cond) { qInfo() << "  PASS:" << name; g_log << QStringLiteral("PASS: ") + name; } \
     else { qCritical() << "  FAIL:" << name; g_log << QStringLiteral("FAIL: ") + name; ++g_failed; } \
@@ -26,10 +28,19 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
     using namespace prism;
 
-    qInfo() << "=== MicaManager DWM 验证 (真实平台) ===";
+    qInfo() << "=== MicaManager DWM 验证 (真实 Windows 11 平台) ===";
+#if !defined(Q_OS_WIN)
+    qInfo() << "SKIP: Mica/DWM 仅支持 Windows";
+    return kSkipReturnCode;
+#endif
+
     MicaManager *mica = MicaManager::instance();
     qInfo() << "  isWin11 =" << mica->isWin11();
-    CHECK(mica->isWin11(), "isWin11=true (本机 Build 26100)");
+    if (!mica->isWin11()) {
+        qInfo() << "SKIP: 当前 Windows 版本不支持 Mica";
+        return kSkipReturnCode;
+    }
+    CHECK(mica->isWin11(), "isWin11=true");
 
     // 创建真实窗口才有 HWND
     QQuickWindow win;

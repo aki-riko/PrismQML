@@ -20,6 +20,7 @@ QML 层（`prismqml/PrismQML/` 下 322 个组件）对宿主的耦合极窄：�
   - 模块：Core / Gui / Qml / Quick / Svg / Widgets / Network
 - **MSVC**（VS 2022 BuildTools，C++17）
 - **CMake** 3.16+
+- **Python 3.9+**（仅测试工具；QR 端到端解码依赖见 `tests/requirements.txt`）
 
 ## 构建
 
@@ -35,6 +36,20 @@ cmake --build cpp/build
 ```
 
 或直接运行 `cpp/build.bat`（已封装上述步骤）。
+
+## 运行测试
+
+测试默认随 `PRISM_BUILD_TESTS=ON` 构建。先把 QR 解码依赖安装到当前项目测试环境，
+再确认 CMake 配置日志中的 `Found Python3` 指向同一个解释器：
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r cpp\tests\requirements.txt
+ctest --test-dir cpp\build -N
+ctest --test-dir cpp\build --output-on-failure --no-tests=error
+```
+
+CTest 当前注册 5 个 C++ 测试程序和 1 个 QR 独立解码测试。Mica/DWM 在非
+Windows 11 平台以 CTest `Skipped` 明确报告，其余失败均返回非零退出码。
 
 ## 运行 demo / gallery
 

@@ -22,6 +22,7 @@
 #include <QFile>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QtGlobal>
 #include <vector>
 #include <type_traits>
 
@@ -202,11 +203,20 @@ int main(int argc, char *argv[]) {
         else { QFile::remove(path); }
     }
 
-    qInfo() << "=== PlatformInfo 测试(本机 Windows 桌面) ===";
+    qInfo() << "=== PlatformInfo 测试(本机桌面) ===";
     {
         PlatformInfo *pf = PlatformInfo::instance();
         CHECK(!pf->isMobile(), "桌面 isMobile=false");
-        CHECK(pf->platformName() == QStringLiteral("windows"), "platformName=windows");
+        QString expectedPlatform = QStringLiteral("unknown");
+#if defined(Q_OS_WIN)
+        expectedPlatform = QStringLiteral("windows");
+#elif defined(Q_OS_MACOS)
+        expectedPlatform = QStringLiteral("macos");
+#elif defined(Q_OS_LINUX)
+        expectedPlatform = QStringLiteral("linux");
+#endif
+        CHECK(pf->platformName() == expectedPlatform,
+              QStringLiteral("platformName=%1").arg(expectedPlatform));
         CHECK(!pf->isTouch(), "桌面默认 isTouch=false");
         CHECK(pf->touchTargetSize() == 32, "桌面 touchTargetSize=32");
         CHECK(pf->screenWidth() >= 0, "screenWidth 可读");

@@ -22,6 +22,12 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-14]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python for C++ test tools
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install C++ test dependencies
+        run: python -m pip install --disable-pip-version-check -r cpp/tests/requirements.txt
       - name: Install Qt (desktop)
         uses: jurplel/install-qt-action@v4
         with:
@@ -47,9 +53,7 @@ jobs:
         shell: bash
         env:
           QT_QPA_PLATFORM: offscreen
-        run: |
-          ctest --test-dir cpp/build --output-on-failure 2>/dev/null || \
-          ( cpp/build/prism_test_store* ; cpp/build/prism_test_system* ) || true
+        run: ctest --test-dir cpp/build --output-on-failure --no-tests=error
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}

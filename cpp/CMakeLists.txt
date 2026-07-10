@@ -181,24 +181,65 @@ endif()
 # ==================== 单元测试 ====================
 option(PRISM_BUILD_TESTS "Build the C++ tests" ON)
 if(PRISM_BUILD_TESTS)
+    enable_testing()
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
     qt_add_executable(prism_test_store tests/test_store.cpp)
     target_link_libraries(prism_test_store PRIVATE prism)
     target_compile_definitions(prism_test_store PRIVATE
         PRISM_TEST_ICON_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML/controls/icons/fluent")
+    add_test(NAME prism_test_store COMMAND prism_test_store)
 
     qt_add_executable(prism_test_system tests/test_system.cpp)
     target_link_libraries(prism_test_system PRIVATE prism)
+    add_test(NAME prism_test_system COMMAND prism_test_system)
 
     qt_add_executable(prism_test_mica tests/test_mica.cpp)
     target_link_libraries(prism_test_mica PRIVATE prism)
+    add_test(NAME prism_test_mica COMMAND prism_test_mica)
 
     # QR 端到端验证: 生成 QR PNG 供 tests/qr/verify_qr.py 用 opencv 解码比对
     qt_add_executable(prism_test_qrcode_gen tests/test_qrcode_gen.cpp)
     target_link_libraries(prism_test_qrcode_gen PRIVATE prism)
+    set(PRISM_QR_TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/test-output/qrcode")
+    file(MAKE_DIRECTORY "${PRISM_QR_TEST_OUTPUT_DIR}")
+    add_test(
+        NAME prism_test_qrcode_gen
+        COMMAND prism_test_qrcode_gen "${PRISM_QR_TEST_OUTPUT_DIR}"
+    )
+    set_tests_properties(prism_test_qrcode_gen PROPERTIES
+        FIXTURES_SETUP prism_qrcode_generated)
+    add_test(
+        NAME prism_test_qrcode_decode
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/qr/verify_qr.py"
+                "${PRISM_QR_TEST_OUTPUT_DIR}"
+    )
+    set_tests_properties(prism_test_qrcode_decode PROPERTIES
+        FIXTURES_REQUIRED prism_qrcode_generated)
 
     # SqlListModel 多 shard fan-out + keyset 游标验证
     qt_add_executable(prism_test_sqlmodel tests/test_sqlmodel.cpp)
     target_link_libraries(prism_test_sqlmodel PRIVATE prism)
+    add_test(NAME prism_test_sqlmodel COMMAND prism_test_sqlmodel)
+
+    set_tests_properties(
+        prism_test_store
+        prism_test_system
+        prism_test_qrcode_gen
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    )
+    set_tests_properties(prism_test_mica PROPERTIES
+        SKIP_RETURN_CODE 77
+        TIMEOUT 30
+    )
+    if(WIN32)
+        set_tests_properties(prism_test_mica PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=windows")
+    else()
+        set_tests_properties(prism_test_mica PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    endif()
 endif()
 
 # ==================== 移动端条件编译分支验证 ====================
