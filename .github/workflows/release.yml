@@ -88,7 +88,7 @@ jobs:
           CIBW_CONFIG_SETTINGS: "--build-option=--py-limited-api=cp39"
           # 每个 Linux 容器内安装 Rust
           CIBW_BEFORE_ALL_LINUX: "curl -sSf https://sh.rustup.rs | sh -s -- -y"
-          CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
+          CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH QT_QPA_PLATFORM=offscreen"
           # PySide6 6.5+ 的 Linux wheel 以 manylinux_2_28 为最低平台基线
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           # 跳过 musllinux(rusqlite bundled 在 musl 上编译慢) + 32位i686(PySide6不支持,rustup装不上)
@@ -98,7 +98,6 @@ jobs:
             assert prismqml.__version__;
             assert prismqml_rs.__version__" &&
             python "{project}/tests/test_provider_lifecycle.py"
-          CIBW_TEST_ENVIRONMENT: "QT_QPA_PLATFORM=offscreen"
 
       - name: Validate wheel structure
         run: python scripts/validate_dist.py --expect-wheels 1 "wheelhouse/*.whl"
