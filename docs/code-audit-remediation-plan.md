@@ -279,6 +279,8 @@ tar -tf $sdist.FullName
 
 预期效果：Rust 质量门禁可执行，维护脚本结果可信，通用 UI 库不夹带未使用的业务数据库逻辑。
 
+状态：进行中。P5A 已完成 rustfmt、移除无仓内引用及无公开承诺的 `verify_agg_monthly`，并为分页、count、shard 合并与异常边界补充 5 个 Rust 单元测试；当前 `cargo fmt --check` 与 `cargo test`（5 passed）通过。`cargo clippy -D warnings` 尚有 3 个来自 PyO3 wrapper 宏展开的 `clippy::useless_conversion`，需以薄 wrapper 模块做最窄范围豁免后再验收；P5B 覆盖率工具和 P5C 库级副作用尚未开始。
+
 - 难度：4–8 小时
 - 风险：中
 - 前置依赖：P1、P2、P4
@@ -492,7 +494,7 @@ git diff --check
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
-| P5 Rust 与维护工具 | 待执行 |  |  |
+| P5 Rust 与维护工具 | 进行中 | P5A：rustfmt 与 Rust 单测 5/5 通过；Clippy 尚余 3 个 PyO3 wrapper 宏展开告警，P5B/P5C 未开始 |  |
 | P6 QML 规范债务 | 待执行 |  |  |
 | P7 Python 规范债务 | 待执行 |  |  |
 | P8 资源注册 | 待执行 |  |  |
