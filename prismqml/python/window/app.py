@@ -17,6 +17,10 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
 
 from ..core.engine import EngineManager
+from ..core.input_focus_filter import (
+    install_input_focus_filter,
+    reset_input_focus_filter,
+)
 
 if TYPE_CHECKING:
     from .fluent_window import Window
@@ -70,6 +74,7 @@ class App:
 
         # 创建应用
         self._app = QApplication(argv or [])
+        install_input_focus_filter(self._app)
         installDwmSyncFilter()
 
         # 创建引擎
@@ -99,6 +104,7 @@ class App:
     @classmethod
     def _reset(cls) -> None:
         """重置单例状态（仅供测试使用） Reset singleton state (for testing only)"""
+        reset_input_focus_filter()
         cls._instance = None
 
     @classmethod

@@ -9,7 +9,7 @@
 QApplication.installEventFilter 是唯一可靠的全局事件拦截方式 (QML 端各种
 PointerHandler/MouseArea 都因 grab 机制不可靠).
 
-使用:
+PrismQML App 会自动安装该过滤器。自建 QApplication 时可手动安装:
     from prismqml.python.core.input_focus_filter import install_input_focus_filter
     app = QApplication(...)
     install_input_focus_filter(app)
@@ -89,17 +89,50 @@ class _InputFocusFilter(QObject):
 _filter: Optional[_InputFocusFilter] = None
 
 
+def reset_input_focus_filter() -> None:
+    """卸载全局输入焦点过滤器，供 App 测试生命周期安全重置。"""
+    global _filter
+    filter_object = _filter
+    _filter = None
+    if filter_object is None:
+        return
+
+    try:
+        owner = filter_object.parent()
+    except (RuntimeError, TypeError) as exc:
+        debug(f"[InputFocusFilter] 获取过滤器所属应用失败: {exc}")
+        return
+
+    if owner is not None:
+        try:
+            owner.removeEventFilter(filter_object)
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            debug(f"[InputFocusFilter] 卸载事件过滤器失败: {exc}")
+
+    try:
+        filter_object.setParent(None)
+        filter_object.deleteLater()
+    except (RuntimeError, TypeError) as exc:
+        debug(f"[InputFocusFilter] 释放事件过滤器失败: {exc}")
+
+
 def install_input_focus_filter(app: Optional[QObject] = None) -> _InputFocusFilter:
     """在 QApplication 上安装全局输入焦点过滤器. 多次调用幂等."""
     global _filter
-    if _filter is not None:
-        return _filter
     if app is None:
         app = QGuiApplication.instance()
     if app is None:
         raise RuntimeError("No QGuiApplication instance — call after QApplication() created.")
-    _filter = _InputFocusFilter()
-    # 必须保留模块级强引用 (PySide6 的 installEventFilter 不持有引用,
-    # 否则 _filter 被 GC 后事件过滤静默失效)
+
+    if _filter is not None:
+        try:
+            if _filter.parent() == app:
+                return _filter
+        except (RuntimeError, TypeError) as exc:
+            debug(f"[InputFocusFilter] 现有过滤器已失效，将重新安装: {exc}")
+        reset_input_focus_filter()
+
+    # 同时使用 QObject parent 和模块级强引用保证过滤器生命周期与应用一致。
+    _filter = _InputFocusFilter(app)
     app.installEventFilter(_filter)
     return _filter
