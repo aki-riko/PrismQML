@@ -1,18 +1,11 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
-# 本文件是PrismQML的一部分，采用MIT许可证授权。
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
 """PrismQML - A QML-based Fluent Design component library"""
 
-# Allow QML XHR to read local files (needed by Translator to load i18n JSON).
-# Must be set before QQmlEngine construction. Downstream code can opt out by setting
-# the env var to "0" before importing prismqml.
 from importlib import import_module as _import_module
-import os as _os
-
-_os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
 
 try:
     from importlib.metadata import version as _get_version
@@ -69,6 +62,7 @@ __all__ = [
     "exception",
     # Utils
     "qml_path",
+    "configure_qml_environment",
     "register_types",
     "init_style",
     # State
@@ -152,6 +146,10 @@ _LAZY_EXPORTS = {
     "exception": (".python.core.logger", "exception"),
     # Utils
     "qml_path": (".python.core.utils", "qml_path"),
+    "configure_qml_environment": (
+        ".python.core.utils",
+        "configure_qml_environment",
+    ),
     "register_types": (".python.core.utils", "register_types"),
     "init_style": (".python.core.utils", "init_style"),
     # State

@@ -1,8 +1,7 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
-# 本文件是PrismQML的一部分，采用MIT许可证授权。
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """
 PrismQML Gallery - 组件展示应用
 
@@ -17,16 +16,16 @@ import time
 # Disable Qt font database warnings
 os.environ["QT_LOGGING_RULES"] = "qt.text.font.db=false"
 
-# 允许 QML XMLHttpRequest 读取本地文件（Translator 加载 i18n JSON 所需）
-# Allow QML XMLHttpRequest to read local files (needed by Translator for i18n JSON)
-os.environ["QML_XHR_ALLOW_FILE_READ"] = "1"
-
 # 启动计时由 core/logger.py 加载时自动开始
 
 # 添加项目根目录到路径(main.py 在 examples/,上 2 层到项目根)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from prismqml import configure_qml_environment
 from prismqml.python.core import log_time
+
+# Enable local QML XHR before creating the engine. 在创建引擎前启用本地 QML XHR。
+configure_qml_environment()
 log_time("Python启动与核心库导入完成")
 
 # 添加项目根目录到路径

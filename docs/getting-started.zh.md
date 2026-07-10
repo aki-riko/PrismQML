@@ -26,7 +26,7 @@ window.show()
 app.exec()
 ```
 
-`App` 自动完成 DPI 适配、消息处理器安装、`register_types`（注册 QML 类型）、异步孵化控制器等初始化——你无需手动配置。
+`App` 自动完成 DPI 适配、消息处理器安装、`register_types`（注册 QML 类型）、异步孵化控制器等初始化，并在创建引擎前显式启用 Translator 读取本地 i18n JSON 所需的 QML XHR。普通 `import prismqml` 不会修改进程环境；若自行创建 `QQmlApplicationEngine`，必须先调用 `configure_qml_environment()`。不需要本地翻译读取时可使用 `App(allow_qml_file_read=False)`。
 
 ## 在 QML 中使用控件
 

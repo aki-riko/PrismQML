@@ -109,7 +109,8 @@ QtObject {
                 return {}
             }
         } catch (e) {
-            console.warn("Translator: Cannot load", langCode + ".json:", e, "— ensure QML_XHR_ALLOW_FILE_READ=1")
+            console.warn("Translator: Cannot load", langCode + ".json:", e,
+                         "— call configure_qml_environment() (Python) or prism::configureQmlEnvironment() (C++) before creating the QML engine")
             return {}
         }
     }

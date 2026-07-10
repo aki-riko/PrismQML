@@ -26,7 +26,7 @@ window.show()
 app.exec()
 ```
 
-`App` handles DPI scaling, message handler installation, `register_types` (registering QML types), the async incubation controller, and more — no manual setup needed.
+`App` handles DPI scaling, message handler installation, `register_types` (registering QML types), the async incubation controller, and explicitly enables the local QML XHR access required by Translator before engine creation. A plain `import prismqml` does not modify the process environment. If you create `QQmlApplicationEngine` yourself, call `configure_qml_environment()` first. Use `App(allow_qml_file_read=False)` when local translation loading is not needed.
 
 ## Using controls in QML
 

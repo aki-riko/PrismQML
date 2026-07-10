@@ -46,7 +46,32 @@ logger = getLogger()
 
 # GitHub API 要求带 User-Agent,否则返回 403。
 _USER_AGENT = b"PrismQML-Updater"
-_GITHUB_API_TMPL = "https://api.github.com/repos/{repo}/releases/latest"
+_UPDATER_API_BASE_ENV = "PRISMQML_UPDATER_API_BASE_URL"
+_DEFAULT_API_BASE_URL = "https://api.github.com"
+
+
+def _normalize_api_base_url(value: Optional[str]) -> str:
+    """Normalize one API base candidate. 归一化单个 API 根地址候选值。"""
+    return str(value or "").strip().rstrip("/")
+
+
+def _resolve_api_base_url(api_base_url: Optional[str]) -> str:
+    """Resolve explicit, environment, then default API base. 解析更新 API 根地址。"""
+    for candidate in (
+        api_base_url,
+        os.environ.get(_UPDATER_API_BASE_ENV),
+        _DEFAULT_API_BASE_URL,
+    ):
+        normalized = _normalize_api_base_url(candidate)
+        if normalized:
+            return normalized
+    return _DEFAULT_API_BASE_URL
+
+
+def _latest_release_url(repo: str, api_base_url: Optional[str] = None) -> str:
+    """Build the latest-release endpoint. 构造 latest release 端点。"""
+    normalized_repo = repo.strip().strip("/")
+    return f"{_resolve_api_base_url(api_base_url)}/repos/{normalized_repo}/releases/latest"
 
 
 def _parse_version(tag: str) -> Tuple:
@@ -123,6 +148,7 @@ class Updater(QObject):
         repo: GitHub 仓库 "owner/repo"。
         current_version: 当前应用版本(如 "v1.0.3")。
         asset_keyword: 从 release assets 中挑安装包的关键词(默认 "Setup")。
+        api_base_url: GitHub/GitHub Enterprise API 根地址；显式值优先于环境变量。
     """
 
     # 检测结果
@@ -134,17 +160,30 @@ class Updater(QObject):
     downloadFinished = Signal(str)                  # (localPath)
     downloadFailed = Signal(str)                    # (errorMessage)
 
-    def __init__(self, repo: str, current_version: str,
-                 asset_keyword: str = "Setup", parent: Optional[QObject] = None):
+    def __init__(
+        self,
+        repo: str,
+        current_version: str,
+        asset_keyword: str = "Setup",
+        parent: Optional[QObject] = None,
+        *,
+        api_base_url: Optional[str] = None,
+    ):
         super().__init__(parent)
         self._repo = repo
         self._current_version = current_version
         self._asset_keyword = asset_keyword
+        self._api_base_url = _resolve_api_base_url(api_base_url)
         self._nam = QNetworkAccessManager(self)
         self._check_reply: Optional[QNetworkReply] = None
         self._download_reply: Optional[QNetworkReply] = None
         self._download_file = None  # 打开的目标文件句柄
         self._download_path = ""
+
+    @property
+    def api_base_url(self) -> str:
+        """Resolved API base URL. 已解析的更新 API 根地址。"""
+        return self._api_base_url
 
     # ==================== 检测 ====================
     @Slot()
@@ -153,7 +192,7 @@ class Updater(QObject):
         if self._check_reply is not None:
             logger.debug("[Updater] 已有检测请求在进行,忽略重复调用")
             return
-        url = _GITHUB_API_TMPL.format(repo=self._repo)
+        url = _latest_release_url(self._repo, self._api_base_url)
         req = QNetworkRequest(QUrl(url))
         req.setRawHeader(b"User-Agent", _USER_AGENT)
         req.setRawHeader(b"Accept", b"application/vnd.github+json")

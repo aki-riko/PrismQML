@@ -15,16 +15,30 @@ class QFile;
 
 namespace prism {
 
+inline constexpr char kUpdaterApiBaseUrlEnvironment[] =
+    "PRISMQML_UPDATER_API_BASE_URL";
+inline constexpr char kDefaultUpdaterApiBaseUrl[] = "https://api.github.com";
+
 // 版本比较 (镜像 _parse_version/_is_newer): latest 是否比 current 新
 bool versionIsNewer(const QString &latest, const QString &current);
+QString resolveUpdaterApiBaseUrl(const QString &configured = QString());
+QString latestReleaseApiUrl(const QString &repo,
+                            const QString &apiBaseUrl = QString());
 
 class Updater : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString apiBaseUrl READ apiBaseUrl WRITE setApiBaseUrl)
 public:
     explicit Updater(const QString &repo, const QString &currentVersion,
                      const QString &assetKeyword = QStringLiteral("Setup"),
                      QObject *parent = nullptr);
+    Updater(const QString &repo, const QString &currentVersion,
+            const QString &assetKeyword, const QString &apiBaseUrl,
+            QObject *parent = nullptr);
     ~Updater() override;
+
+    QString apiBaseUrl() const { return m_apiBaseUrl; }
+    void setApiBaseUrl(const QString &apiBaseUrl);
 
 public slots:
     void checkForUpdate();
@@ -55,6 +69,7 @@ private:
     QString m_repo;
     QString m_currentVersion;
     QString m_assetKeyword;
+    QString m_apiBaseUrl;
     QNetworkAccessManager *m_nam;
     QNetworkReply *m_checkReply = nullptr;
     QNetworkReply *m_downloadReply = nullptr;

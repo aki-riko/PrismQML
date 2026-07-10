@@ -6,7 +6,7 @@ Top-level API importable via `from prismqml import ...`.
 
 | Name | Description |
 |------|-------------|
-| `App` | Application entry; auto-handles DPI / register_types / incubation controller |
+| `App` | Application entry; auto-handles DPI / register_types / incubation controller / Translator environment |
 | `Window` / `WindowCore` | Main window |
 | `WindowType` | Window type enum (BAR / SPLIT / FILLED) |
 | `NavigationItem` | Navigation item |
@@ -16,6 +16,8 @@ from prismqml import App, WindowType
 app = App()
 window = app.create_window(WindowType.BAR)
 ```
+
+`App(allow_qml_file_read=True)` enables local i18n JSON access for Translator before creating the QML engine; pass `False` to disable it explicitly. A plain `import prismqml` does not change this environment setting.
 
 ## Skin & Theme
 
@@ -39,12 +41,14 @@ window = app.create_window(WindowType.BAR)
 
 | Name | Description |
 |------|-------------|
-| `Updater` | Auto-update via GitHub Releases |
+| `Updater` | Auto-update via GitHub Releases with a configurable API base URL |
 | `SingleInstance` | Single instance (Named Mutex + IPC) |
 | `SystemTrayIcon` | System tray |
 | `Icon` / `make_icon` / `make_theme_icon` | Icons |
 | `IconProvider` / `register_icon_provider` | Icon provider |
 | `ShadowManager` / `getShadowManager` / `installDwmSyncFilter` | Window shadow |
+
+For `Updater(..., api_base_url="https://github.example/api/v3")`, the explicit value wins, followed by `PRISMQML_UPDATER_API_BASE_URL`, then the public GitHub API. Whitespace and trailing `/` characters are normalized.
 
 ## Logging
 
@@ -58,6 +62,15 @@ window = app.create_window(WindowType.BAR)
 | Name | Description |
 |------|-------------|
 | `qml_path` | QML module path |
+| `configure_qml_environment` | Explicitly configure local QML XHR for Translator before creating a bare `QQmlApplicationEngine` |
 | `register_types` | Register QML types (called internally by App) |
+
+```python
+from PySide6.QtQml import QQmlApplicationEngine
+from prismqml import configure_qml_environment
+
+configure_qml_environment()
+engine = QQmlApplicationEngine()
+```
 
 > Full exports in `prismqml/__init__.py`'s `__all__`.

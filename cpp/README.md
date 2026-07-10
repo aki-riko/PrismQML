@@ -93,6 +93,12 @@ int main(int argc, char **argv) {
 }
 ```
 
+`App` 构造时默认调用 `configureQmlEnvironment(true)`，在创建 QML 引擎前启用
+Translator 读取本地 i18n JSON 所需的 QML XHR。若直接创建裸
+`QQmlApplicationEngine`，必须先显式调用 `configureQmlEnvironment()`；普通链接或
+包含头文件不会修改进程环境。不需要本地翻译读取时可使用
+`App app(argc, argv, QString(), false)`。
+
 与 Python 端逐行对照：
 
 ```python
@@ -105,6 +111,17 @@ window.show(); app.exec()
 ```
 
 <!-- PLACEHOLDER_README2 -->
+
+### Updater API 根地址
+
+`Updater` 的 API 根地址优先级为：构造函数或 `setApiBaseUrl()` 的显式值、环境变量
+`PRISMQML_UPDATER_API_BASE_URL`、默认 `https://api.github.com`。各候选值会去除首尾
+空白和尾部 `/`；空值会继续回退到下一优先级。
+
+```cpp
+Updater updater("owner/repo", "v1.0.0", "Setup",
+                "https://github.example/api/v3");
+```
 
 ## 已实现能力
 

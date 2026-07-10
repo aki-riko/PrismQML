@@ -44,6 +44,10 @@ private:
 
 App *App::s_instance = nullptr;
 
+void configureQmlEnvironment(bool allowFileRead) {
+    qputenv(kQmlXhrAllowFileReadEnvironment, allowFileRead ? "1" : "0");
+}
+
 // 在 QApplication 创建前应用 DPI 缩放配置 (镜像 Python config/dpi.py applyDpiScale)。
 // 直接读 ~/.prismqml/app.json 的 Window/DpiScale, 不经 ConfigManager(后者依赖 QApplication)。
 // DpiScale>0 时设固定缩放(关 Qt 自动 DPI); 0 则跟随系统。
@@ -62,15 +66,14 @@ static void applyDpiScaleBeforeApp() {
     }
 }
 
-App::App(int &argc, char **argv, const QString &importPath) {
+App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRead) {
     if (s_instance != nullptr) {
         qFatal("prism::App already exists. Only one instance allowed.");
     }
     s_instance = this;
 
-    // 允许 QML 从本地文件读取 (Translator 用 XMLHttpRequest 加载 i18n/*.json)
-    // 镜像 Python prismqml/__init__.py: os.environ.setdefault("QML_XHR_ALLOW_FILE_READ","1")
-    qputenv("QML_XHR_ALLOW_FILE_READ", "1");
+    // Translator 用 XMLHttpRequest 加载 i18n/*.json；App 构造是显式初始化边界。
+    configureQmlEnvironment(allowQmlFileRead);
 
     // 高 DPI 透传 (镜像 Python: PassThrough); 静态方法继承自 QGuiApplication
     QApplication::setHighDpiScaleFactorRoundingPolicy(

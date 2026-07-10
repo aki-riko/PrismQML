@@ -9,6 +9,18 @@ from pathlib import Path
 from PySide6.QtQml import QQmlApplicationEngine
 
 
+QML_XHR_ALLOW_FILE_READ_ENV = "QML_XHR_ALLOW_FILE_READ"
+
+
+def configure_qml_environment(allow_file_read: bool = True) -> None:
+    """Configure local QML XHR before engine creation. 配置 QML 本地文件读取。
+
+    普通 ``import prismqml`` 不修改该进程环境。使用裸 ``QQmlEngine`` 且需要
+    Translator 加载本地 i18n JSON 时，必须在创建引擎前显式调用本函数。
+    """
+    os.environ[QML_XHR_ALLOW_FILE_READ_ENV] = "1" if allow_file_read else "0"
+
+
 def qml_path(relative_path: str = "") -> Path:
     """获取QML文件路径
 

@@ -44,13 +44,22 @@ class App:
         window.show()
         app.exec()
         ```
+
+    ``allow_qml_file_read`` 默认启用 Translator 读取本地 i18n JSON 所需的
+    QML XHR；传入 ``False`` 可在创建引擎前显式关闭。
     """
 
     _instance: "App" = None
 
-    def __init__(self, argv: List[str] = None):
+    def __init__(
+        self,
+        argv: List[str] = None,
+        *,
+        allow_qml_file_read: bool = True,
+    ):
         from ..config import applyDpiScale
         from ..core import (
+            configure_qml_environment,
             installDwmSyncFilter,
             register_types,
             install_qt_message_handler,
@@ -62,6 +71,10 @@ class App:
                 "App already exists. Use App.instance() to get the existing instance."
             )
         App._instance = self
+
+        # Translator loads local i18n JSON through QML XHR. App construction is
+        # the explicit initialization boundary; plain `import prismqml` is inert.
+        configure_qml_environment(allow_qml_file_read)
 
         # 设置DPI
         QGuiApplication.setHighDpiScaleFactorRoundingPolicy(

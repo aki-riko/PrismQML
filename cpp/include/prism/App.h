@@ -18,6 +18,11 @@ namespace prism {
 
 class AppLifecycleBridge;  // 内部: 中转 Qt applicationStateChanged 信号
 
+inline constexpr char kQmlXhrAllowFileReadEnvironment[] = "QML_XHR_ALLOW_FILE_READ";
+
+// Must run before QQmlEngine creation. 必须在创建 QQmlEngine 前调用。
+void configureQmlEnvironment(bool allowFileRead = true);
+
 // App - 应用入口门面 (镜像 Python App)
 // 内部持有 QApplication + QQmlApplicationEngine, 构造时完成注入装配。
 // 用 QApplication(QtWidgets) 而非 QGuiApplication: 与 Python App 对齐, 且
@@ -27,7 +32,8 @@ class App {
 public:
     // argv 透传给 QApplication。importPath 指向 PrismQML 模块的父目录;
     // 为空时用 resolveImportPath() 解析(环境变量 PRISMQML_QML_DIR)。
-    App(int &argc, char **argv, const QString &importPath = QString());
+    App(int &argc, char **argv, const QString &importPath = QString(),
+        bool allowQmlFileRead = true);
     ~App();
 
     App(const App &) = delete;

@@ -1,6 +1,7 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Updater 组件单元测试。
 
 覆盖纯逻辑(版本比对 / asset 选择)与信号发射(注入假 JSON,不真连网)。
@@ -10,12 +11,45 @@ import json
 import os
 import pytest
 
+import prismqml.python.core.updater as updater_module
 from prismqml.python.core.updater import (
     Updater,
     _parse_version,
     _is_newer,
     _pick_asset,
 )
+
+
+class TestApiBaseUrl:
+    def test_explicit_environment_and_default_precedence(self, monkeypatch):
+        monkeypatch.delenv("PRISMQML_UPDATER_API_BASE_URL", raising=False)
+        assert updater_module._resolve_api_base_url(None) == "https://api.github.com"
+
+        monkeypatch.setenv(
+            "PRISMQML_UPDATER_API_BASE_URL", "https://updates.example/api/v3/"
+        )
+        assert updater_module._resolve_api_base_url(None) == "https://updates.example/api/v3"
+        assert updater_module._resolve_api_base_url("") == "https://updates.example/api/v3"
+        assert updater_module._resolve_api_base_url(" / ") == "https://updates.example/api/v3"
+        assert updater_module._resolve_api_base_url(" https://explicit.example/ ") == (
+            "https://explicit.example"
+        )
+
+        monkeypatch.setenv("PRISMQML_UPDATER_API_BASE_URL", " / ")
+        assert updater_module._resolve_api_base_url(None) == "https://api.github.com"
+
+    def test_latest_release_url_and_updater_property(self, qapp, monkeypatch):
+        monkeypatch.setenv("PRISMQML_UPDATER_API_BASE_URL", "https://env.example/api/")
+        updater = Updater(
+            "owner/repo",
+            "v1.0.3",
+            api_base_url="https://explicit.example/api/v3/",
+        )
+
+        assert updater.api_base_url == "https://explicit.example/api/v3"
+        assert updater_module._latest_release_url(
+            "owner/repo", updater.api_base_url
+        ) == "https://explicit.example/api/v3/repos/owner/repo/releases/latest"
 
 
 # ==================== 版本比对 ====================

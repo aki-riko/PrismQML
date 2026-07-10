@@ -4,6 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - Store/Logger 单元测试 (验证阶段4 纯逻辑能力)
 #include "prism/Store.h"
+#include "prism/App.h"
 #include "prism/Logger.h"
 #include "prism/Updater.h"
 #include "prism/SqlListModel.h"
@@ -115,6 +116,47 @@ int main(int argc, char *argv[]) {
     CHECK(versionIsNewer("v2.0.0", "v1.9.9"), "主版本号优先");
     CHECK(versionIsNewer("v0.2.24.1", "v0.2.24"), "四段版本: 0.2.24.1 > 0.2.24");
     CHECK(!versionIsNewer("v0.2.24", "v0.2.24.1"), "四段版本: 0.2.24 不新于 0.2.24.1");
+
+    const bool hadUpdaterApiBase = qEnvironmentVariableIsSet(kUpdaterApiBaseUrlEnvironment);
+    const QByteArray originalUpdaterApiBase = qgetenv(kUpdaterApiBaseUrlEnvironment);
+    qunsetenv(kUpdaterApiBaseUrlEnvironment);
+    CHECK(resolveUpdaterApiBaseUrl() == QString::fromLatin1(kDefaultUpdaterApiBaseUrl),
+          "Updater 默认 API 根地址");
+    qputenv(kUpdaterApiBaseUrlEnvironment, "https://env.example/api/");
+    CHECK(resolveUpdaterApiBaseUrl() == QStringLiteral("https://env.example/api"),
+          "Updater 环境 API 根地址去尾斜杠");
+    CHECK(resolveUpdaterApiBaseUrl(QStringLiteral(" / ")) ==
+              QStringLiteral("https://env.example/api"),
+          "Updater 空显式地址回退环境配置");
+    qputenv(kUpdaterApiBaseUrlEnvironment, " / ");
+    CHECK(resolveUpdaterApiBaseUrl() == QString::fromLatin1(kDefaultUpdaterApiBaseUrl),
+          "Updater 无效环境地址回退默认值");
+    qputenv(kUpdaterApiBaseUrlEnvironment, "https://env.example/api/");
+    Updater customUpdater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"),
+                          QStringLiteral("Setup"),
+                          QStringLiteral("https://explicit.example/api/v3/"));
+    CHECK(customUpdater.apiBaseUrl() == QStringLiteral("https://explicit.example/api/v3"),
+          "Updater 显式 API 根地址优先");
+    CHECK(latestReleaseApiUrl(QStringLiteral("owner/repo"), customUpdater.apiBaseUrl()) ==
+              QStringLiteral("https://explicit.example/api/v3/repos/owner/repo/releases/latest"),
+          "Updater latest release URL 与 Python 语义一致");
+    if (hadUpdaterApiBase)
+        qputenv(kUpdaterApiBaseUrlEnvironment, originalUpdaterApiBase);
+    else
+        qunsetenv(kUpdaterApiBaseUrlEnvironment);
+
+    const bool hadQmlFileRead = qEnvironmentVariableIsSet(kQmlXhrAllowFileReadEnvironment);
+    const QByteArray originalQmlFileRead = qgetenv(kQmlXhrAllowFileReadEnvironment);
+    configureQmlEnvironment(false);
+    CHECK(qgetenv(kQmlXhrAllowFileReadEnvironment) == QByteArrayLiteral("0"),
+          "QML 本地文件读取可显式关闭");
+    configureQmlEnvironment();
+    CHECK(qgetenv(kQmlXhrAllowFileReadEnvironment) == QByteArrayLiteral("1"),
+          "QML 本地文件读取可显式启用");
+    if (hadQmlFileRead)
+        qputenv(kQmlXhrAllowFileReadEnvironment, originalQmlFileRead);
+    else
+        qunsetenv(kQmlXhrAllowFileReadEnvironment);
 
     // runInstallerAndQuit 失败路径 (文件不存在应返回 false 且不退出应用)。
     // 成功路径会调 QCoreApplication::quit() 退出进程, 无法在单测内断言, 属合理验证边界。

@@ -109,11 +109,43 @@ bool versionIsNewer(const QString &latest, const QString &current) {
     return cmpVersion(parseVersion(latest), parseVersion(current)) > 0;
 }
 
+QString resolveUpdaterApiBaseUrl(const QString &configured) {
+    const auto normalize = [](QString value) {
+        value = value.trimmed();
+        while (value.endsWith(QLatin1Char('/')))
+            value.chop(1);
+        return value;
+    };
+
+    QString apiBaseUrl = normalize(configured);
+    if (apiBaseUrl.isEmpty())
+        apiBaseUrl = normalize(qEnvironmentVariable(kUpdaterApiBaseUrlEnvironment));
+    if (apiBaseUrl.isEmpty())
+        apiBaseUrl = QString::fromLatin1(kDefaultUpdaterApiBaseUrl);
+    return apiBaseUrl;
+}
+
+QString latestReleaseApiUrl(const QString &repo, const QString &apiBaseUrl) {
+    QString normalizedRepo = repo.trimmed();
+    while (normalizedRepo.startsWith(QLatin1Char('/')))
+        normalizedRepo.remove(0, 1);
+    while (normalizedRepo.endsWith(QLatin1Char('/')))
+        normalizedRepo.chop(1);
+    return QStringLiteral("%1/repos/%2/releases/latest")
+        .arg(resolveUpdaterApiBaseUrl(apiBaseUrl), normalizedRepo);
+}
+
 // PLACEHOLDER_UPDATER_IMPL
 Updater::Updater(const QString &repo, const QString &currentVersion,
                  const QString &assetKeyword, QObject *parent)
+    : Updater(repo, currentVersion, assetKeyword, QString(), parent) {}
+
+Updater::Updater(const QString &repo, const QString &currentVersion,
+                 const QString &assetKeyword, const QString &apiBaseUrl,
+                 QObject *parent)
     : QObject(parent), m_repo(repo), m_currentVersion(currentVersion),
-      m_assetKeyword(assetKeyword), m_nam(new QNetworkAccessManager(this)) {}
+      m_assetKeyword(assetKeyword), m_apiBaseUrl(resolveUpdaterApiBaseUrl(apiBaseUrl)),
+      m_nam(new QNetworkAccessManager(this)) {}
 
 Updater::~Updater() {
     if (m_downloadFile) {
@@ -122,9 +154,13 @@ Updater::~Updater() {
     }
 }
 
+void Updater::setApiBaseUrl(const QString &apiBaseUrl) {
+    m_apiBaseUrl = resolveUpdaterApiBaseUrl(apiBaseUrl);
+}
+
 // 检查更新: GET GitHub releases/latest (镜像 checkForUpdate)
 void Updater::checkForUpdate() {
-    const QString url = QStringLiteral("https://api.github.com/repos/%1/releases/latest").arg(m_repo);
+    const QString url = latestReleaseApiUrl(m_repo, m_apiBaseUrl);
     QNetworkRequest req((QUrl(url)));
     req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("PrismQML-Updater"));
     req.setRawHeader("Accept", "application/vnd.github+json");
