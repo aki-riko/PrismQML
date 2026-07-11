@@ -340,6 +340,10 @@ P6C3a 已完成：`SearchResultList.qml` 的列表边距与项间距分别等值
 
 P6C3b 已完成：Button、InfoBar、Toast 三个进度遮罩删除与 Qt `Rectangle` 默认值重复的 `color: "white"`；同一 offscreen 引擎中未显式设色的 Rectangle 与三个真实遮罩迁移前后均为 `#ffffffff`，遮罩仍保持隐藏且启用 layer。两批均通过扫描器回归 `11/11`、changed 0、全量 Python `184 passed / 1 skipped`、QML `169/0/12` 与 `git diff --check`；全库基线降至 3,231 项：QML008 成员顺序 1,942、QML009 分节术语 1,203、QML010 颜色 36、QML011 样式数值 50。提交：`6fc6e645`。
 
+P6C3c 已完成：CodeBlock 与 Markdown 的固定色板、尺寸、间距和动画时长迁移到现有 `Enums` token，三个聊天内容默认宽度统一复用 `chatContentMaxWidth=600`；新增 `captionCompact=11` 覆盖 CodeBlock、MenuPage、Action、NavigationBarItem、DataWidgetCore 与 Badge，并同步更新规范。真实运行时输入先复现 Markdown `spacing=5` 及 MarkdownView、ChatBubble、ChatMessageList 多处 `ReferenceError: Enums is not defined`，修正错误相对导入后同一输入通过；新增 `test_chat_style_tokens.py` 固化颜色、间距、字体与宽度契约。定向 `3/3`、全量 Python `187 passed / 1 skipped`、QML `169/0/12`、MenuPage 显式加载 `Ready`、changed 0 与 `git diff --check` 均通过；全库基线为 3,216 项：QML008 1,942、QML009 1,203、QML010 33、QML011 38。提交：`2a22c115`。
+
+P6C4 已完成：MatrixRain 的 17 套、51 个固定视觉预设色集中到唯一 `_internal/MatrixRainPresets.js`，默认色、`setTheme()` 与 `getAvailableThemes()` 由同一受验证数据契约驱动；17 套完整 palette、顺序、有效主题信号及未知主题不变更行为均有运行时回归。扫描器的 all/changed 范围扩展到 `.qml/.js`，普通 JavaScript 十六进制颜色继续报 QML010；唯一精确路径只豁免颜色本身，并以 QML013 严格拒绝额外函数、getter、计算属性、尺寸/动画/状态字段、重复主题及 `themes/themeNames` 顺序漂移。Review 还发现并修正新增/未跟踪文件被空基线同指纹抵消的问题；根对象成员重排同步消除 54 项 QML008、1 项 QML009 与 3 项 QML010。扫描器与运行时定向 `18/18`、全量 Python `194 passed / 1 skipped`、QML `169/0/12`、headless CTest `6/6`、changed 0、`git diff --check` 及 Windows Event 26 零新增均通过；`pyproject.toml` 的 `PrismQML/**/*.js` package-data 已核对，本地 venv 因缺少 setuptools 且未获准安装依赖而未重复构建制品。全库基线降至 3,158 项：QML008 1,888、QML009 1,202、QML010 30、QML011 38，QML013 为 0。提交：`06eb4af9`。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -522,7 +526,7 @@ git diff --check
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
-| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移；P6C2a 统一全局等宽字体入口；P6C2b 将最后 5 处字体图标迁到 SVG；P6C3a 统一 SearchResultList 的间距属性与派生高度公式；P6C3b 删除三个进度遮罩的冗余默认白色。scanner 11/11、changed 0、Python 184/1、QML 169/0/12；全库真实基线 3,231（成员顺序 1,942、分节术语 1,203、颜色 36、数值 50） | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645` |
+| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移；P6C2a 统一全局等宽字体入口；P6C2b 将最后 5 处字体图标迁到 SVG；P6C3a/b/c 完成搜索结果间距、冗余遮罩默认色与聊天样式 token 收敛；P6C4 集中 MatrixRain 17 套固定色板，并将 JavaScript 纳入 QML010/QML013 严格门禁。scanner+Matrix 定向 18/18、changed 0、Python 194/1、QML 169/0/12、CTest 6/6，Event 26 零新增；全库真实基线 3,158（成员顺序 1,888、分节术语 1,202、颜色 30、数值 38，QML013 0） | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645`、`2a22c115`、`06eb4af9` |
 | P7 Python 规范债务 | 待执行 |  |  |
 | P8 资源注册 | 待执行 |  |  |
 | P9 最终验收 | 待执行 |  |  |
