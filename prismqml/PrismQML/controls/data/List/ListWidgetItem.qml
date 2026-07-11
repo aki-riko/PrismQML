@@ -67,10 +67,11 @@ Rectangle {
 
         Rectangle {
             id: revealGlow
-            width: 120; height: 120
-            radius: 60
-            x: itemArea.mouseX - 60
-            y: itemArea.mouseY - 60
+            width: Enums.controlSize.listRevealDiameter
+            height: width
+            radius: width / 2
+            x: itemArea.mouseX - width / 2
+            y: itemArea.mouseY - height / 2
             color: Enums.isDark ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.03)
 
             opacity: hovered ? 1 : 0

@@ -347,6 +347,7 @@ QtObject {
  readonly property int listDefaultWidth: 200 // List default width 列表默认宽度
  readonly property int listDefaultHeight: 300 // List default height 列表默认高度
  readonly property int listItemHeight: 36 // List item height 列表项高度(与 Tree/Table 统一)
+ readonly property int listRevealDiameter: 120 // List item reveal highlight diameter 列表项悬浮光晕直径
  readonly property int tableDefaultWidth: 400 // Table default width 表格默认宽度
  readonly property int tableDefaultHeight: 300 // Table default height 表格默认高度
  readonly property int treeDefaultWidth: 300 // Tree default width 树形默认宽度
