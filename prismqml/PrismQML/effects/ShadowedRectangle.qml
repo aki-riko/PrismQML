@@ -34,11 +34,11 @@ Item {
     
     // Or set individual props 或单独设置属性
     // blur 现在直接是像素值，无需转换
-    property real shadowBlur: shadowLevel ? shadowLevel.blur : (Enums.shadow && Enums.shadow.level4 ? Enums.shadow.level4.blur : 16)
-    property color shadowColor: shadowLevel ? shadowLevel.color : (Enums.shadow && Enums.shadow.level4 ? Enums.shadow.level4.color : "#1A000000")
-    property real shadowOffsetX: 0
-    property real shadowOffsetY: shadowLevel ? shadowLevel.offset : (Enums.shadow && Enums.shadow.level4 ? Enums.shadow.level4.offset : 4)
-    property real shadowSpread: 0
+    property real shadowBlur: shadowLevel ? shadowLevel.blur : Enums.shadow.level4.blur
+    property color shadowColor: shadowLevel ? shadowLevel.color : Enums.shadow.level4.color
+    property real shadowOffsetX
+    property real shadowOffsetY: shadowLevel ? shadowLevel.offset : Enums.shadow.level4.offset
+    property real shadowSpread
     
     // ==================== Content Access 内容访问 ====================
     default property alias contentData: content.data

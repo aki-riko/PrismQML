@@ -77,8 +77,9 @@ METRIC_LITERAL_RE = re.compile(
     r"(?:radius|spacing|padding|leftPadding|rightPadding|topPadding|"
     r"bottomPadding|anchors\.margins|anchors\.[A-Za-z]+Margin|"
     r"Layout\.[A-Za-z]+Margin|font\.pixelSize|duration|border\.width|"
-    r"shadowLevel|shadowBlur|shadowOffsetX|shadowOffsetY|"
-    r"shadowHorizontalOffset|shadowVerticalOffset)\s*:\s*"
+    r"shadowLevel|shadowBlur|shadowOffsetX|shadowOffsetY|shadowSpread|"
+    r"shadowHorizontalOffset|shadowVerticalOffset|horizontalOffset|"
+    r"verticalOffset|spread|shadowScale)\s*:\s*"
     r"-?\d+(?:\.\d+)?\b"
 )
 FONT_LITERAL_RE = re.compile(r"^\s*font\.family\s*:\s*['\"]")

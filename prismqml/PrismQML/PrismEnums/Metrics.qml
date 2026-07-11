@@ -639,6 +639,7 @@ QtObject {
 
  readonly property QtObject shadow: QtObject {
  readonly property real _alphaMultiplier: root.isDark ? 1.5 : 1.0
+ readonly property real baseScale: 1.0 // MultiEffect neutral shadow scale MultiEffect 中性阴影缩放
  
  // Level 2: Slight elevation 轻微悬浮
  // Usage: Card, SimpleCard, HeaderCard, button hover state

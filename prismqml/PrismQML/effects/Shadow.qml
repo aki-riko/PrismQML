@@ -22,9 +22,9 @@ MultiEffect {
     property color color: Enums.shadow.level4.color
     property real radius: Enums.radius.large
     property int samples: Enums.shadow.level4.samples
-    property real horizontalOffset: 0
+    property real horizontalOffset
     property real verticalOffset: Enums.shadow.level4.offset
-    property real spread: 0.0
+    property real spread
     
     // ==================== MultiEffect映射 ====================
     shadowEnabled: true
@@ -32,5 +32,5 @@ MultiEffect {
     shadowBlur: root.blur
     shadowHorizontalOffset: root.horizontalOffset
     shadowVerticalOffset: root.verticalOffset
-    shadowScale: 1.0 + root.spread
+    shadowScale: Enums.shadow.baseScale + root.spread
 }
