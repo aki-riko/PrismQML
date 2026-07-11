@@ -54,7 +54,7 @@ Avatar {
             Icon {
                 anchors.horizontalCenter: parent.horizontalCenter
                 iconSize: control.size * 0.35
-                color: "white"
+                color: Enums.themeColors.accentForeground
                 icon: Enums.icon.camera
             }
             
@@ -62,7 +62,7 @@ Avatar {
                 type: Enums.label.type_caption
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: control.changeText || "Change"
-                color: "white"
+                color: Enums.themeColors.accentForeground
             }
         }
     }

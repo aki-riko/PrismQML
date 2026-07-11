@@ -99,7 +99,6 @@ Item {
         x: control.value * (track.width - width)
         anchors.verticalCenter: parent.verticalCenter
         
-        color: "white"
         border.width: Enums.border.normal
         border.color: Enums.stateColor.colorSliderThumbBorder
         
