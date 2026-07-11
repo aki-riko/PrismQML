@@ -33,10 +33,13 @@ inline bool configureNonInteractiveProcess() {
         return false;
     }
 
-    UINT errorMode = GetErrorMode();
-    errorMode |= SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX;
-    errorMode &= ~SEM_NOGPFAULTERRORBOX;
-    SetErrorMode(errorMode);
+    constexpr UINT requiredErrorMode =
+        SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX;
+    SetErrorMode(GetErrorMode() | requiredErrorMode);
+    if ((GetErrorMode() & requiredErrorMode) != requiredErrorMode) {
+        std::fprintf(stderr, "Windows test error mode was not applied\n");
+        return false;
+    }
 #endif
     return true;
 }

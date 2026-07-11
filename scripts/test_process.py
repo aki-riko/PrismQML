@@ -25,9 +25,10 @@ WER_FAULT_REPORTING_FLAG_QUEUE = 0x0002
 WER_FAULT_REPORTING_ALWAYS_SHOW_UI = 0x0010
 WER_FAULT_REPORTING_NO_UI = 0x0020
 HRESULT_ERROR_NOT_FOUND = 0x80070490
-WINDOWS_ERROR_MODE_FLAGS = SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX
-WINDOWS_LAUNCHER_ERROR_MODE_FLAGS = (
-    WINDOWS_ERROR_MODE_FLAGS | SEM_NOGPFAULTERRORBOX
+WINDOWS_ERROR_MODE_FLAGS = (
+    SEM_FAILCRITICALERRORS
+    | SEM_NOGPFAULTERRORBOX
+    | SEM_NOOPENFILEERRORBOX
 )
 TEST_TIMEOUT_EXIT_CODE = 124
 TEST_CLEANUP_FAILURE_EXIT_CODE = 125
@@ -42,7 +43,7 @@ def _hresult_failed(result: int) -> bool:
     return bool(result & 0x80000000)
 
 
-def _windows_library():
+def _windows_error_library():
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.GetCurrentProcess.argtypes = []
     kernel32.GetCurrentProcess.restype = ctypes.c_void_p
@@ -61,7 +62,7 @@ def _windows_library():
 
 
 def _windows_error_policy() -> tuple[int, int]:
-    kernel32 = _windows_library()
+    kernel32 = _windows_error_library()
     error_mode = int(kernel32.GetErrorMode())
     wer_flags = ctypes.c_uint32()
     result = int(
@@ -74,14 +75,12 @@ def _windows_error_policy() -> tuple[int, int]:
     return error_mode, int(wer_flags.value)
 
 
-def _configure_windows_error_ui(*, protect_early_startup: bool) -> None:
-    kernel32 = _windows_library()
+def _configure_windows_error_ui() -> None:
+    kernel32 = _windows_error_library()
     error_mode, wer_flags = _windows_error_policy()
+    # SetErrorMode is inherited; WerSetFlags applies only to the current process.
+    # ErrorMode 可由后代继承；WerSetFlags 只作用于当前进程。
     target_error_mode = error_mode | WINDOWS_ERROR_MODE_FLAGS
-    if protect_early_startup:
-        target_error_mode |= SEM_NOGPFAULTERRORBOX
-    else:
-        target_error_mode &= ~SEM_NOGPFAULTERRORBOX
     target_wer_flags = (
         wer_flags & ~WER_FAULT_REPORTING_ALWAYS_SHOW_UI
     ) | WER_FAULT_REPORTING_FLAG_QUEUE | WER_FAULT_REPORTING_NO_UI
@@ -91,15 +90,11 @@ def _configure_windows_error_ui(*, protect_early_startup: bool) -> None:
     kernel32.SetErrorMode(target_error_mode)
 
     current_error_mode, current_wer_flags = _windows_error_policy()
-    required_error_mode = (
-        WINDOWS_LAUNCHER_ERROR_MODE_FLAGS
-        if protect_early_startup
-        else WINDOWS_ERROR_MODE_FLAGS
-    )
-    if current_error_mode & required_error_mode != required_error_mode:
+    if (
+        current_error_mode & WINDOWS_ERROR_MODE_FLAGS
+        != WINDOWS_ERROR_MODE_FLAGS
+    ):
         raise RuntimeError("Windows test error mode was not applied")
-    if not protect_early_startup and current_error_mode & SEM_NOGPFAULTERRORBOX:
-        raise RuntimeError("Windows Error Reporting remains disabled")
     if current_wer_flags & WER_FAULT_REPORTING_NO_UI == 0:
         raise RuntimeError("Windows Error Reporting no-UI flag was not applied")
     if current_wer_flags & WER_FAULT_REPORTING_FLAG_QUEUE == 0:
@@ -116,7 +111,7 @@ def configure_automated_test_process(qt_platform: str | None = "offscreen") -> N
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
     if sys.platform == "win32":
-        _configure_windows_error_ui(protect_early_startup=False)
+        _configure_windows_error_ui()
 
 
 def configure_test_launcher(qt_platform: str | None = "offscreen") -> None:
@@ -127,7 +122,7 @@ def configure_test_launcher(qt_platform: str | None = "offscreen") -> None:
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
     if sys.platform == "win32":
-        _configure_windows_error_ui(protect_early_startup=True)
+        _configure_windows_error_ui()
 
 
 def automated_test_process_is_noninteractive() -> bool:
@@ -137,7 +132,6 @@ def automated_test_process_is_noninteractive() -> bool:
     error_mode, wer_flags = _windows_error_policy()
     return (
         error_mode & WINDOWS_ERROR_MODE_FLAGS == WINDOWS_ERROR_MODE_FLAGS
-        and error_mode & SEM_NOGPFAULTERRORBOX == 0
         and wer_flags & WER_FAULT_REPORTING_FLAG_QUEUE != 0
         and wer_flags & WER_FAULT_REPORTING_NO_UI != 0
         and wer_flags & WER_FAULT_REPORTING_ALWAYS_SHOW_UI == 0
