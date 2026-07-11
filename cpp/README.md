@@ -50,14 +50,27 @@ cmake --build cpp/build
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r cpp\tests\requirements.txt
 ctest --test-dir cpp\build -N
-ctest --test-dir cpp\build --output-on-failure --no-tests=error
+ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
 ```
 
-CTest 当前注册 6 个 C++ 测试程序和 1 个 QR 独立解码测试。普通 Qt 用例通过
-CTest 属性使用 `offscreen`。Windows 11 的 Mica 用例必须使用真实 `windows`
-平台插件，但只创建隐藏 HWND，不调用 `show()`；测试会同时断言 Qt 与 Win32
-原生窗口状态始终不可见，再执行真实 DWM/Mica/阴影调用。非 Windows 11 平台
-以 CTest `Skipped` 明确报告，其余失败均返回非零退出码。
+默认 headless 集合为 5 个 C++ 测试程序加 1 个 QR 独立解码测试，共 6 项。
+CTest 会给每个目标注入 Qt DLL 路径，并统一通过 `scripts/test_process.py` 启动：
+测试主体 timeout 为 60 秒，CTest 外层为 110 秒；Qt 平台固定为 `offscreen`，
+Windows DLL/崩溃错误框与 WER UI 被禁止。正常 timeout 清理完整进程树并返回
+124；若系统清树失败则终止根进程并以 125 失败关闭，不会谎报清理成功。不要
+绕过 CTest 直接运行 `prism_test_*.exe`。
+
+Windows 11 的 Mica 用例属于显式原生集合，默认不注册。需要验证时重新配置：
+
+```powershell
+cmake -S cpp -B cpp\build -DPRISM_BUILD_NATIVE_TESTS=ON
+cmake --build cpp\build
+ctest --test-dir cpp\build -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error
+```
+
+Mica 使用真实 `windows` 平台插件，但只创建隐藏 HWND，不调用 `show()`；测试会
+同时断言 Qt 与 Win32 原生窗口状态始终不可见，再执行真实 DWM/Mica/阴影调用。
+不支持的 Windows 版本以 CTest `Skipped` 明确报告，其余失败均返回非零退出码。
 
 ## 运行 demo / gallery
 
@@ -216,6 +229,9 @@ int main(int argc, char **argv) {
 ## 验证状态
 
 - Qt 6.11.1 + MSVC 全量编译链接通过（含 nayuki qrcodegen 第三方源）。
+- 零交互门禁：headless CTest `6/6`、Windows native Mica `1/1`；调用者 PATH
+  去除 Qt/PySide 后 `prism_test_provider_lifecycle` 仍为 `1/1`。对应运行新增
+  `Application Popup 26`、`Application Error 1000`、`WER 1001` 与 crash dump 均为 0。
 - demo 真实平台渲染：1823×1256，96 种颜色，accent 色 `#F97316` 像素级命中
   （C++ ThemeManager 注入值流到渲染）。
 - `prism_test_store`：Store / Logger / Updater 版本比较 + 对称类型（`Logger` /

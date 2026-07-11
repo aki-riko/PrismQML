@@ -136,8 +136,8 @@ cargo test --manifest-path rust\Cargo.toml
    - `prism_test_qrcode_gen`
    - `prism_test_sqlmodel`
    - `prism_test_provider_lifecycle`
-3. 需要 offscreen 的测试通过 `set_tests_properties(... ENVIRONMENT ...)` 或 workflow 环境统一设置。
-4. 平台不支持的行为在测试内部做明确平台断言或由 CMake 条件注册；任何桌面矩阵都不允许注册数为 0。
+3. 自动化测试统一经 `scripts/test_process.py` 启动，由入口在导入 Qt 前固定 headless 与原生错误处理策略；不得只依赖调用者环境变量。
+4. 平台原生测试必须显式启用并单独标记；默认 headless 集合在任何桌面矩阵都不允许注册数为 0。
 5. 删除 `.github/workflows/build-all.yml` 中的 stderr 丢弃、手工 fallback 和 `|| true`。
 6. 把 QR 解码依赖加入经过验证的测试依赖集合，优先使用 `opencv-python-headless`，不得依赖开发机全局 Python。
 
@@ -146,19 +146,27 @@ cargo test --manifest-path rust\Cargo.toml
 ```powershell
 cmake --build cpp\build
 ctest --test-dir cpp\build -N
-ctest --test-dir cpp\build --output-on-failure --no-tests=error
+ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
+# 仅 Windows：先显式配置 -DPRISM_BUILD_NATIVE_TESTS=ON
+ctest --test-dir cpp\build -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error
 ```
 
 验收判据：
 
 - `ctest -N` 显示预期测试集合且绝不为 0。
-- 本地 6 个 C++ 测试程序与 1 个 QR 独立解码测试共 7 项全部通过。
+- 默认 headless 集合 6 项全部通过；Windows 显式启用的原生 Mica 集合 1 项通过。
 - GitHub 的 Windows、Linux、macOS 日志均能看到实际测试名称和结果。
 - 人为让一个临时断言失败时，workflow 必须非零退出；验证后撤销临时改动。
 
 建议提交：`test: register and enforce C++ test execution`
 
-P1 后续回归已完成：pytest 与全组件 probe 在导入 PySide6 前自行以 `setdefault` 启用 `offscreen`，裸命令不再依赖调用者环境，显式平台覆盖仍会保留；新增 2 项隔离子进程回归。Windows 11 Mica 测试继续使用真实 `windows` 平台插件，但改为通过 `winId()` 创建隐藏 HWND、全程不调用 `show()`，并在 DWM 调用前后同时断言 Qt `isVisible()` 与 Win32 `IsWindowVisible()` 均为 false。无 Qt/QML 环境的裸 pytest `167/167`、QML `169/0/12`、无 Qt PATH 的 CTest `7/7` 通过，Mica 结果文件确认隐藏 HWND、Mica 与原生阴影全部成功。提交：`a75540f`。
+P1 早期后续回归已完成：pytest 与全组件 probe 在导入 PySide6 前自行启用 `offscreen`；Windows 11 Mica 测试继续使用真实 `windows` 平台插件，但改为通过 `winId()` 创建隐藏 HWND、全程不调用 `show()`，并在 DWM 调用前后同时断言 Qt `isVisible()` 与 Win32 `IsWindowVisible()` 均为 false。无 Qt/QML 环境的裸 pytest `167/167`、QML `169/0/12`、无 Qt PATH 的 CTest `7/7` 通过，Mica 结果文件确认隐藏 HWND、Mica 与原生阴影全部成功。提交：`a75540f`。
+
+P1 零交互门禁加固已完成：用户反馈测试会连续弹窗后，Windows 事件日志确认共有 68 条 `Application Popup / Event 26`，来自 6 个 `prism_test_*.exe`，缺失项为 `Qt6Quick.dll`、`Qt6Sql.dll`、`Qt6Svg.dll`、`Qt6Widgets.dll`；另确认 3 次本仓 Python 原生崩溃（`Qt6Core.dll / 0xc0000409` 一次、`ntdll.dll / 0xc0000374` 两次）。后者来自诊断临时脚本先创建 `QQmlEngine`、后创建 `QApplication`，并向短命引擎注入完整 `register_types()` 的错误生命周期，不能当作产品代码已修复的证据。
+
+统一启动器现在采用 Windows 两阶段策略：launcher 以可继承的 `ErrorMode=0x8003` 覆盖进入测试 bootstrap 前的 DLL/崩溃框，实际自动化进程随后切换到 `ErrorMode=0x8001` 与 WER flags `0x22`，禁止 UI 但保留排队报告；Windows `taskkill /T /F` 清树失败时返回 125 而不谎报普通 timeout 124，POSIX 则持续检查完整 pgid 并在宽限后发送 `SIGKILL`。pytest、QML probe、覆盖率入口、Qt 子进程、CTest、wheel/sdist 首次原生导入均接入保护；Build All 三平台运行 launcher 回归，并新增 Windows 全量源码 Python/QML job。旧的可视窗口/FPS 独立脚本仍属于人工入口，不计入自动门禁。
+
+同一实现的最终验证为：launcher `13 passed / 1 POSIX-only skipped`，全量 Python `184 passed / 1 POSIX-only skipped`，QML `169/0/12`，headless CTest `6/6`，Windows native Mica `1/1`，调用者 PATH 去除 Qt/PySide 后历史失败目标 `1/1`。每轮对比 Windows `Event 26`、`Application Error 1000`、`Windows Error Reporting 1001` 与 `%LOCALAPPDATA%\CrashDumps`，新增均为 0。提交：`ce9e0a0`。
 
 ### P2：修复 sdist 并建立发布制品门禁
 
@@ -326,6 +334,8 @@ P6C2a 已完成：`Enums.fontMonospace` 统一转发 Python/C++ `ThemeManager.fo
 
 P6C2b 已完成：Timeline 的两套非虚拟 info 字体 `i` 与既有虚拟路径统一为 `Info.svg`，三处状态图标尺寸等值迁到 `controlSize.timelineIconText/timelineCardIconText`；CycleWheelPicker 的上下 PUA 字形迁到 `ChevronUp/ChevronDown.svg`，保留 normal/pressed `14/12px`；Rating 的 filled/outline PUA 字形迁到 `StarFilled/StarOutline.svg`，默认尺寸保持 24px，并保留颜色、悬停缩放、两条 Behavior 与点击改值语义。新增运行时回归递归遍历 Repeater/ListView 视觉树，核验 SVG 路径、尺寸、QML Image 实际非透明像素、滚轮按压与 Rating 悬停/点击；Qt headless 的 `grabToImage()` 不包含 `layer.effect` 合成，因此不把父 Icon 抓图误当成资源失败，另以真实 10/8px 光栅预览确认 `Info.svg` 双圆仍清晰并接受该视觉变化。定向 `2/2`、全量 Python 170、QML `169/0/12`、CTest `7/7`、changed 0 与 `git diff --check` 均通过；全库降至 3,226 项：成员顺序 1,936、分节术语 1,203、颜色 39、数值 48，QML012 与 `\uE` PUA 转义均归零。提交：`49d6d6d0`。
 
+P6 扫描器回归加固已完成：字符串/注释清洗提取为独立 lexer，并补充 JavaScript 正则字面量后的 QML 继续扫描覆盖，避免 `/.../` 误吞后续属性。扫描器回归 `11/11`、changed 0 新增违规通过；修正后的全库真实基线为 3,236 项，其中 QML008 成员顺序 1,942、QML009 分节术语 1,203、QML010 颜色 39、QML011 样式数值 52。提交：`09c696df`。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -444,10 +454,12 @@ git diff --check
 
 ```powershell
 .\.venv\Scripts\python.exe -m compileall prismqml tests scripts
-.\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe tests\qml\probe_all_components.py
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
 cmake --build cpp\build
-ctest --test-dir cpp\build --output-on-failure --no-tests=error
+ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
+# 仅 Windows：先显式配置 -DPRISM_BUILD_NATIVE_TESTS=ON
+ctest --test-dir cpp\build -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error
 cargo fmt --manifest-path rust\Cargo.toml -- --check
 cargo clippy --manifest-path rust\Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path rust\Cargo.toml
@@ -501,12 +513,12 @@ git diff --check
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
 | P0 基线固化 | 已完成 | 固化审计输入与 12 个合法 QML skip；当前回归基线为 Python 122、QML 169/0/12、CTest 7/7 | `1dd7e9a2` |
-| P1 CTest 与 C++ CI | 已完成 | 本地 CTest 7/7；Windows 裸 `ctest` 不依赖调用者 Qt PATH；pytest/probe 默认 offscreen，Mica 使用真实 windows 插件与全程隐藏 HWND，Qt/Win32 可见性断言及真实 DWM 调用通过；裸 Python 167、QML 169/0/12、CTest 7/7；Build All [29123637721](https://github.com/aki-riko/PrismQML/actions/runs/29123637721) 五平台通过 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f` |
+| P1 CTest 与 C++ CI | 已完成 | 历史 68 条 DLL 弹窗与 3 次错误生命周期原生崩溃已追溯；统一 runner 覆盖 Python/QML/C++/制品入口。当前 Python 184/1、QML 169/0/12、headless CTest 6/6、Windows native 1/1、无 Qt/PySide PATH 历史目标 1/1；各轮 Event 26/1000/1001 与 dump 增量均为 0；Build All [29123637721](https://github.com/aki-riko/PrismQML/actions/runs/29123637721) 的既有五平台基线通过，新增 CI 待本次推送复验 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f`、`ce9e0a0` |
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
-| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移；P6C2a 统一全局等宽字体入口、删除两个旧字体 token 并修复 CodeBlock 错误相对 import；P6C2b 将 Timeline/CycleWheelPicker/Rating 的最后 5 处字体图标迁到 SVG，QML012 与 PUA 转义归零，运行时 SVG/交互回归 2/2 通过；Python 170、QML 169/0/12、CTest 7/7、changed 0 通过；全库基线 3,226（成员顺序 1,936、分节术语 1,203、颜色 39、数值 48） | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0` |
+| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移；P6C2a 统一全局等宽字体入口；P6C2b 将最后 5 处字体图标迁到 SVG。正则 lexer 回归加固后 scanner 11/11、changed 0；全库真实基线 3,236（成员顺序 1,942、分节术语 1,203、颜色 39、数值 52） | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df` |
 | P7 Python 规范债务 | 待执行 |  |  |
 | P8 资源注册 | 待执行 |  |  |
 | P9 最终验收 | 待执行 |  |  |

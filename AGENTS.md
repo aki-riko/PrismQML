@@ -391,11 +391,18 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
    - **默认升构建号**：每次发版除非用户/维护者明确指定完整版本号或前三位升级策略，否则只递增最后一位构建号（`x.y.z.n` 中的 `n`）。例如 `0.2.24.1` 下一版默认 `0.2.24.2`，而不是 `0.2.25.0`。
    - `pyproject.toml` 的 `version = "x.y.z.n"`
    - `prismqml/__init__.py` 的 `__version__ = "x.y.z.n"`（回退值）
-2. **验证**：发布前 headless 跑一遍确认无新增 QML 警告/错误
-   （默认 `offscreen` + 加载关键组件，零 `unavailable`/`Duplicate`/属性覆盖警告）。
-   - 工具 = `.\.venv\Scripts\python.exe -X utf8 tests\qml\probe_all_components.py`（遍历 qmldir 全组件 createComponent）。probe 在导入 PySide6 前通过 `setdefault` 启用 `offscreen`，调用者显式平台覆盖仍会保留。
+2. **验证**：发布前必须通过统一零交互门禁；自动测试禁止直接启动 `prism_test_*.exe`，也禁止依赖调用者恰好设置了 Qt PATH / `QT_QPA_PLATFORM`。
+   ```powershell
+   .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest
+   .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
+   ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
+   ```
+   - `scripts/test_process.py` 在 Qt 导入前固定 headless、UTF-8、faulthandler 与原生无 UI 策略；Windows launcher 先用可继承的错误模式保护 bootstrap，实际测试再启用 WER `NO_UI + QUEUE`。新增自动化子进程必须复用 runner，或在导入 Qt 前调用同一 bootstrap，不得无保护地直接启动。
+   - QML probe 遍历 qmldir 全组件 `createComponent`，自身也会强制 `offscreen`；调用者显式传入 `windows/minimal` 不再覆盖自动门禁。
    - 🔴 **当前优化基线：probe 应退出码 0，且约 `169 OK / 0 错误 / 12 跳过 = 181`**。12 个跳过包含 5 个 singleton（由 QML 引擎托管）+ 7 个 required-property 内部子模块（ButtonContent / ButtonDropdown / ButtonProgress / ListWidgetItem / SettingsCardContent / HorizontalScrollMixin / ViewportMixin，由父组件注入 required property，单独 createComponent 不成立）。
    - 🔴 **判是否新增回归的权威法**：`git worktree add /tmp/baseline <改动前 commit>`，从主 venv 把编译好的 `prismqml_rs*.pyd` cp 进去 + `PYTHONPATH=/tmp/baseline` 跑同一 probe，对比 OK/错误/跳过三个数字是否一致；一致即零新增。看到非 0 退出码必须先分析具体错误，不可把它当成既有 required-property 基线。
+   - Windows 原生 Mica 不是默认 headless 集合：仅在显式配置 `-DPRISM_BUILD_NATIVE_TESTS=ON` 后运行 `ctest --test-dir cpp\build -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error`。
+   - `tests/test_window_buttons.py`、`tests/qml/bench_skin_frames.py`、`scripts/fps_probe.py`、`scripts/run_with_fps.py` 等可视/性能入口属于人工测试，不得混入自动门禁；需要运行时必须明确说明会打开窗口。
 3. **提交**：`git add -A && git commit`（commit message 写清修复内容 + 版本号）。
 4. **打 tag + 推送**：
    ```bash
