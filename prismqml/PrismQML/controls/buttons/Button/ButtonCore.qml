@@ -415,11 +415,11 @@ Widget {
         visible: feature === Enums.button.feature_progress_bar ||
                  feature === Enums.button.feature_indeterminate_bar
 
+        // Rectangle defaults to opaque white, the intended mask source Rectangle 默认不透明白色，正是所需的遮罩源
         Rectangle {
             id: progressMask
             anchors.fill: parent
             radius: control.radius
-            color: "white"
             layer.enabled: true
             visible: false
         }

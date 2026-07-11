@@ -315,12 +315,11 @@ Widget {
                 anchors.fill: parent
                 visible: control._isBarMode
                 
-                // Mask shape (layer must be enabled) 遮罩形状（必须启用layer）
+                // Mask uses Rectangle's opaque white default and requires a layer 遮罩使用 Rectangle 默认不透明白色，且必须启用 layer
                 Rectangle {
                     id: toastProgressMask
                     anchors.fill: parent
                     radius: card.radius
-                    color: "white"
                     layer.enabled: true
                     visible: false
                 }
