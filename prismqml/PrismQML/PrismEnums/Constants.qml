@@ -305,6 +305,8 @@ QtObject {
     
     // ==================== ChartColors 图表颜色 (Fluent Design) ====================
     readonly property QtObject chartColors: QtObject {
+        // Fixed strong text on colored markers and dark tooltips 彩色标记与深色提示框上的固定强文字
+        readonly property color strongText: themeColors.accentForeground
         // Fluent Design chart palette 柔和的Fluent图表调色板
         readonly property var palette: [
             "#0078D4", "#107C10", "#FFB900", "#D13438", "#8764B8",

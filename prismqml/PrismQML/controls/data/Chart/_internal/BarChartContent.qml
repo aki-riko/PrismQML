@@ -288,7 +288,7 @@ Item {
                     anchors.centerIn: parent
                     text: markerItem.minMax.maxVal !== undefined ? markerItem.minMax.maxVal.toString() : ""
                     font.weight: Font.DemiBold
-                    color: "white"
+                    color: Enums.chartColors.strongText
                 }
             }
             
@@ -333,7 +333,7 @@ Item {
                     anchors.centerIn: parent
                     text: markerItem.minMax.minVal !== undefined ? markerItem.minMax.minVal.toString() : ""
                     font.weight: Font.DemiBold
-                    color: "white"
+                    color: Enums.chartColors.strongText
                 }
             }
         }

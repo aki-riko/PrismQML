@@ -93,7 +93,7 @@ Item {
                     }
                     return root.value
                 }
-                color: "white"
+                color: Enums.chartColors.strongText
                 visible: root.value !== "" && root.value !== undefined
             }
         }
