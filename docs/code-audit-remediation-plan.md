@@ -336,6 +336,10 @@ P6C2b 已完成：Timeline 的两套非虚拟 info 字体 `i` 与既有虚拟路
 
 P6 扫描器回归加固已完成：字符串/注释清洗提取为独立 lexer，并补充 JavaScript 正则字面量后的 QML 继续扫描覆盖，避免 `/.../` 误吞后续属性。扫描器回归 `11/11`、changed 0 新增违规通过；修正后的全库真实基线为 3,236 项，其中 QML008 成员顺序 1,942、QML009 分节术语 1,203、QML010 颜色 39、QML011 样式数值 52。提交：`09c696df`。
 
+P6C3a 已完成：`SearchResultList.qml` 的列表边距与项间距分别等值迁移到现有 `Enums.spacing.xs/xxs`，派生高度公式同步复用同一 token，避免属性与公式形成两个事实源。同一真实 3 条结果输入迁移前后均为 `hitCount=3 / implicitHeight=156 / margins=4 / spacing=2`。提交：`a877c2c7`。
+
+P6C3b 已完成：Button、InfoBar、Toast 三个进度遮罩删除与 Qt `Rectangle` 默认值重复的 `color: "white"`；同一 offscreen 引擎中未显式设色的 Rectangle 与三个真实遮罩迁移前后均为 `#ffffffff`，遮罩仍保持隐藏且启用 layer。两批均通过扫描器回归 `11/11`、changed 0、全量 Python `184 passed / 1 skipped`、QML `169/0/12` 与 `git diff --check`；全库基线降至 3,231 项：QML008 成员顺序 1,942、QML009 分节术语 1,203、QML010 颜色 36、QML011 样式数值 50。提交：`6fc6e645`。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -513,12 +517,12 @@ git diff --check
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
 | P0 基线固化 | 已完成 | 固化审计输入与 12 个合法 QML skip；当前回归基线为 Python 122、QML 169/0/12、CTest 7/7 | `1dd7e9a2` |
-| P1 CTest 与 C++ CI | 已完成 | 历史 68 条 DLL 弹窗与 3 次错误生命周期原生崩溃已追溯；统一 runner 覆盖 Python/QML/C++/制品入口。当前 Python 184/1、QML 169/0/12、headless CTest 6/6、Windows native 1/1、无 Qt/PySide PATH 历史目标 1/1；各轮 Event 26/1000/1001 与 dump 增量均为 0；Build All [29123637721](https://github.com/aki-riko/PrismQML/actions/runs/29123637721) 的既有五平台基线通过，新增 CI 待本次推送复验 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f`、`ce9e0a0` |
+| P1 CTest 与 C++ CI | 已完成 | 历史 68 条 DLL 弹窗与 3 次错误生命周期原生崩溃已追溯；统一 runner 覆盖 Python/QML/C++/制品入口。当前 Python 184/1、QML 169/0/12、headless CTest 6/6、Windows native 1/1、无 Qt/PySide PATH 历史目标 1/1；各轮 Event 26/1000/1001 与 dump 增量均为 0；Build All [29151143046](https://github.com/aki-riko/PrismQML/actions/runs/29151143046) 的 QML conventions、Windows 零交互门禁、三平台桌面、Android 与 iOS 共 7 个作业全绿，Deploy Docs [29151142967](https://github.com/aki-riko/PrismQML/actions/runs/29151142967) 成功 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f`、`ce9e0a0`、`5c290a93` |
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
-| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移；P6C2a 统一全局等宽字体入口；P6C2b 将最后 5 处字体图标迁到 SVG。正则 lexer 回归加固后 scanner 11/11、changed 0；全库真实基线 3,236（成员顺序 1,942、分节术语 1,203、颜色 39、数值 52） | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df` |
+| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移；P6C2a 统一全局等宽字体入口；P6C2b 将最后 5 处字体图标迁到 SVG；P6C3a 统一 SearchResultList 的间距属性与派生高度公式；P6C3b 删除三个进度遮罩的冗余默认白色。scanner 11/11、changed 0、Python 184/1、QML 169/0/12；全库真实基线 3,231（成员顺序 1,942、分节术语 1,203、颜色 36、数值 50） | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645` |
 | P7 Python 规范债务 | 待执行 |  |  |
 | P8 资源注册 | 待执行 |  |  |
 | P9 最终验收 | 待执行 |  |  |
