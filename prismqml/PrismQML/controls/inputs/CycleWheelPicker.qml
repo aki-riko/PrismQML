@@ -244,12 +244,10 @@ Item {
         visible: control.showScrollButtons && control._hovered
         z: Enums.zIndex.popup
         
-        Label {
+        Icon {
             anchors.centerIn: parent
-            type: Enums.label.type_caption
-            text: "\uE70E"
-            font.family: "Segoe Fluent Icons"
-            font.pixelSize: upArea.pressed ? Enums.typography.caption : Enums.typography.body
+            icon: Enums.icon.chevron_up
+            iconSize: upArea.pressed ? Enums.iconSize.xs : Enums.iconSize.s
             color: Enums.textColor.secondary
         }
         
@@ -287,12 +285,10 @@ Item {
         visible: control.showScrollButtons && control._hovered
         z: Enums.zIndex.popup
         
-        Label {
+        Icon {
             anchors.centerIn: parent
-            type: Enums.label.type_caption
-            text: "\uE70D"
-            font.family: "Segoe Fluent Icons"
-            font.pixelSize: downArea.pressed ? Enums.typography.caption : Enums.typography.body
+            icon: Enums.icon.chevron_down
+            iconSize: downArea.pressed ? Enums.iconSize.xs : Enums.iconSize.s
             color: Enums.textColor.secondary
         }
         

@@ -169,31 +169,11 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 color: control._getStatusColor(groupItem.modelData.status || "info")
                                 
-                                // Info用文字i，其他用图标
-                                Loader {
+                                Icon {
                                     anchors.centerIn: parent
-                                    sourceComponent: (groupItem.modelData.status || "info") === "info" ? infoTextComponent : iconComponent
-                                    
-                                    Component {
-                                        id: infoTextComponent
-                                        Text {
-                                            text: "i"
-                                            font.family: "Times New Roman"
-                                            font.pixelSize: Enums.typography.micro
-                                            font.italic: true
-                                            font.weight: Font.DemiBold
-                                            color: Enums.accentForeground
-                                        }
-                                    }
-                                    
-                                    Component {
-                                        id: iconComponent
-                                        Icon {
-                                            icon: control._getStatusIcon(groupItem.modelData.status || "info")
-                                            iconSize: Enums.typography.micro
-                                            color: Enums.accentForeground
-                                        }
-                                    }
+                                    icon: control._getStatusIcon(groupItem.modelData.status || "info")
+                                    iconSize: Enums.controlSize.timelineIconText
+                                    color: Enums.accentForeground
                                 }
                             }
                             
@@ -264,31 +244,11 @@ Item {
                                             anchors.verticalCenter: parent.verticalCenter
                                             color: control._getStatusColor(cardItem.cardStatus)
                                             
-                                            // Info用文字i，其他用图标
-                                            Loader {
+                                            Icon {
                                                 anchors.centerIn: parent
-                                                sourceComponent: cardItem.cardStatus === "info" ? cardInfoTextComponent : cardIconComponent
-                                                
-                                                Component {
-                                                    id: cardInfoTextComponent
-                                                    Text {
-                                                        text: "i"
-                                                        font.family: "Times New Roman"
-                                                        font.pixelSize: Enums.typography.tiny
-                                                        font.italic: true
-                                                        font.weight: Font.DemiBold
-                                                        color: Enums.accentForeground
-                                                    }
-                                                }
-                                                
-                                                Component {
-                                                    id: cardIconComponent
-                                                    Icon {
-                                                        icon: control._getStatusIcon(cardItem.cardStatus)
-                                                        iconSize: Enums.typography.tiny
-                                                        color: Enums.accentForeground
-                                                    }
-                                                }
+                                                icon: control._getStatusIcon(cardItem.cardStatus)
+                                                iconSize: Enums.controlSize.timelineCardIconText
+                                                color: Enums.accentForeground
                                             }
                                         }
                                         
@@ -367,7 +327,7 @@ Item {
                         Icon {
                             anchors.centerIn: parent
                             icon: control._getStatusIcon(rowDelegate.model.status || "info")
-                            iconSize: Enums.typography.micro
+                            iconSize: Enums.controlSize.timelineIconText
                             color: Enums.accentForeground
                         }
                     }

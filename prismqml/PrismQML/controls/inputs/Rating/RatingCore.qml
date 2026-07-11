@@ -5,7 +5,7 @@
 import QtQuick
 import "../../.."
 import ".."
-import "../../data/Label"
+import "../../icons"
 
 // RatingCore - Star rating component base class 星级评分组件基类（Fluent Design风格）
 Item {
@@ -14,7 +14,7 @@ Item {
     property int value: 0
     property int maxValue: 5
     property bool editable: true
-    property int starSize: Enums.typography.display
+    property int starSize: Enums.iconSize.xxl
     property color fillColor: Enums.starColor  // Star fill color 填充星星的颜色
     property color outlineColor: Enums.gray.text  // Outline star color 未填充星星的边框颜色
     property int spacing: Enums.spacing.xxs  // Star spacing 星星间距
@@ -46,12 +46,11 @@ Item {
                 property bool filled: index < control.value
                 property bool hovered: starArea.containsMouse
                 
-                // Star text (using Segoe Fluent Icons font) 星星文字
-                Text {
+                // Star icon 星星图标
+                Icon {
                     anchors.centerIn: parent
-                    text: parent.filled ? "\uE735" : "\uE734"  // FavoriteStar filled/outline
-                    font.family: "Segoe Fluent Icons"
-                    font.pixelSize: starSize
+                    icon: parent.filled ? Enums.icon.star_filled : Enums.icon.star_outline
+                    iconSize: starSize
                     color: parent.filled ? control.fillColor : 
                            (parent.hovered ? control.fillColor : control.outlineColor)
                     
