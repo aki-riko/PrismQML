@@ -390,6 +390,8 @@ P6C12 已完成：为 SplashScreen 新增 `Enums.duration.splashBreathe=1200`、
 
 P6C13 已完成：为 `PopupWindowCore` 的 Anim C 新增五个角色明确的 `Enums.popupMetrics` 时长 token，等值迁移显示透明度 `120ms`、显示缩放 `240ms`、裁剪展开 `1ms`、隐藏透明度 `100ms` 与隐藏缩放 `110ms`；同时删除已被新 token 取代且全库零消费者的 `fadeInDuration=100`、`settleDuration=200`、`hideDuration=150`，避免保留两套事实源。改前真实隐藏实例直接读取五个 `QQuickNumberAnimation`，确认 `opacity 0→1 / 120`、`_scale 0.7→1 / 240`、`_clipHeight 0→180 / 1`、`opacity →0 / 100`、`_scale →0.85 / 110`；改后专项在 `visible=false` 下实例化唯一嵌套 `QWindow`，不调用 `open()`、`show()` 或 `prewarm()`，运行值与源码契约 `2/2` 通过。最终全量 Python `228 passed / 1 skipped`、QML `169/0/12`、headless CTest `6/6`、Windows native Mica `1/1`、changed 0 与 `git diff --check` 均通过；同一 105 秒真实测试窗口内新增顶层窗口计数为 0，匹配本仓进程的 Event 26/1000/1001 与 CrashDump 无新增。全库基线降至 3,131 项：QML008 1,888、QML009 1,202、QML010 17、QML011 24。提交：`b1050f84`。
 
+P6C14 已完成：`ShadowedRectangle` 的 `shadowOffsetX/shadowSpread` 与 `Shadow` 的 `horizontalOffset/spread` 删除和 QML `real` 类型默认值重复的显式零初始化，保留公开属性、可写性和底层绑定；`ShadowedRectangle` 同时删除 `Enums.shadow &&` 以及 `blur=16 / color=#1A000000 / offset=4` 三组不可达硬编码 fallback，`shadowLevel=null` 统一回落到 `Enums.shadow.level4`。`Shadow.shadowScale` 的中性基准 `1.0` 收敛为 `Enums.shadow.baseScale`。扫描器补齐 `shadowSpread/horizontalOffset/verticalOffset/spread/shadowScale`，正向覆盖直接赋值、property 声明、正负数与小数，负向确认相似长名称不误报。改前无 Window 实例确认四个公开默认值与底层效果均为 0、level4 垂直偏移为 2；改后真实设置 `shadowLevel=null` 验证 blur/color/offsetY fallback，并以 `3.5/2.25/-4.5/0.75` 非零输入确认 RectangularShadow/MultiEffect 绑定继续生效。专项 `20/20`、全量 Python `230 passed / 1 skipped`、QML `169/0/12`、headless CTest `6/6`、Windows native Mica `1/1`、changed 0 与 `git diff --check` 均通过；桌面监测出现 3 个与测试无关的 OBS/Explorer 窗口，按进程归属的测试相关新增窗口为 0，匹配 Event 26/1000/1001 与 CrashDump 无新增。全库基线降至 3,130 项：QML008 1,888、QML009 1,202、QML010 17、QML011 23；剩余 QML011 中 22 项来自未注册、零消费者但仍随包分发的 `LoginWindowLightShadow.qml`，另 1 项为必须与 P6D 成员重排同批处理的 `TipPopup.duration=-1`。提交：`d4e2e11e`。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -475,18 +477,20 @@ git diff --check
 
 - 难度：2–4 小时
 - 风险：中
-- 前置依赖：P4、P6、P7
+- 前置依赖：P4；P8A 孤立文件决策必须在 P6C 收尾前完成，P8B 图标与资源注册在 P6、P7 后完成
 
 执行项：
 
-- 通过修复后的生成器补齐 13 个未暴露 SVG：`BulletedList`、`FitPage`、`Hide`、`Message`、`NavigateForward`、`OpenFile`、`OpenFolderHorizontal`、`PowerButton`、`StickyNotes`、`Update`、`View`、`Volume`、`Zoom`。
-- 确保 Python/QML 两套枚举数量和值完全一致。
-- 对以下文件做下游引用审计：
+1. P8A 先对以下文件做下游引用审计：
   - `controls/auth/LoginWindowLightShadow.qml`
   - `controls/containers/Layout/Layout.qml`
   - `controls/inputs/LineEdit/TextInputCore.qml`
   - `controls/inputs/TextEdit/PlainTextEdit.qml`
-- 有公共价值的文件补 qmldir 与测试；确认废弃的文件在用户批准后删除。
+2. `LoginWindowLightShadow.qml` 当前仓库零消费者、从未注册到根/auth qmldir，但仍被 Python package-data、移动端 qrc glob 与 C++ install 目录分发；历史唯一消费者已删除。其 22 项 QML011 之外仍有大量未扫描的 Canvas/动画/阴影常量与 QML008/QML009/QML010，且 `#000000cc`、`#ffffff26` 按 Qt `#AARRGGBB` 语义并非注释预期的透明黑/白。
+3. 推荐路线是审计 Gitora、quicksketch、Kaleidos 等下游直接 URL 引用后，请求用户批准删除该孤儿文件；删除预计 2–4 小时，风险低到中，probe 注册数不变，QML011 可减少 22 项。删除属于敏感操作，未获批准不得执行。
+4. 若确认保留公共价值，则先决定正确颜色与固定视觉预设政策，再完整处理 token、成员顺序、API、性能、可访问性、双 qmldir 注册和运行时回归；预计 8–16 小时、风险高，禁止只机械迁移 22 项。
+5. P8B 通过修复后的生成器补齐 13 个未暴露 SVG：`BulletedList`、`FitPage`、`Hide`、`Message`、`NavigateForward`、`OpenFile`、`OpenFolderHorizontal`、`PowerButton`、`StickyNotes`、`Update`、`View`、`Volume`、`Zoom`。
+6. 确保 Python/QML 两套枚举数量和值完全一致；其他有公共价值的孤立文件补 qmldir 与测试，确认废弃的文件在用户批准后删除。
 
 验收判据：
 
@@ -573,9 +577,9 @@ git diff --check
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
-| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移；P6C2a 统一全局等宽字体入口；P6C2b 将最后 5 处字体图标迁到 SVG；P6C3a/b/c 完成搜索结果间距、冗余遮罩默认色与聊天样式 token 收敛；P6C4 集中 MatrixRain 17 套固定色板并扩展 JavaScript 门禁；P6C5 删除 Carousel/BeforeAfterSlider 三处冗余默认白色；P6C6 将 Toast/Splash 四项布局字面量迁到共享 token；P6C7 收敛 Avatar 固定白色并删除 GradientSlider 冗余默认白色；P6C8 统一图表五处固定强文字颜色；P6C9 让 Stepper/OfflineState 主色块前景跟随动态 accentForeground；P6C10 将 ListWidget reveal 光晕收敛到单一直径 token；P6C11 收敛 Breadcrumb 的无延迟与交错步长；P6C12 收敛 Splash 动画/阴影并补齐 MultiEffect 偏移扫描；P6C13 收敛 PopupWindowCore 五段 Anim C 时长并删除三个零消费者旧 token。最新 Python 228/1、QML 169/0/12、headless CTest 6/6、Windows native 1/1、changed 0；同一 105 秒真实测试入口未观察到新增顶层窗口，匹配 Event 26/1000/1001 与 CrashDump 零新增；全库真实基线 3,131（成员顺序 1,888、分节术语 1,202、颜色 17、数值 24，QML013 0） | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645`、`2a22c115`、`06eb4af9`、`685d063e`、`bcf0c737`、`4c22e7bc`、`bad57911`、`b281b7b`、`85a75ff3`、`0e438e60`、`1f9d1038`、`b1050f84` |
+| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移；P6C2a 统一全局等宽字体入口；P6C2b 将最后 5 处字体图标迁到 SVG；P6C3a/b/c 完成搜索结果间距、冗余遮罩默认色与聊天样式 token 收敛；P6C4 集中 MatrixRain 17 套固定色板并扩展 JavaScript 门禁；P6C5 删除 Carousel/BeforeAfterSlider 三处冗余默认白色；P6C6 将 Toast/Splash 四项布局字面量迁到共享 token；P6C7 收敛 Avatar 固定白色并删除 GradientSlider 冗余默认白色；P6C8 统一图表五处固定强文字颜色；P6C9 让 Stepper/OfflineState 主色块前景跟随动态 accentForeground；P6C10 将 ListWidget reveal 光晕收敛到单一直径 token；P6C11 收敛 Breadcrumb 的无延迟与交错步长；P6C12 收敛 Splash 动画/阴影并补齐 MultiEffect 偏移扫描；P6C13 收敛 PopupWindowCore 五段 Anim C 时长并删除三个零消费者旧 token；P6C14 清理两个正式阴影组件的重复零默认、硬编码 fallback 与扫描盲点。最新 Python 230/1、QML 169/0/12、headless CTest 6/6、Windows native 1/1、changed 0；按进程归属未观察到测试相关新增窗口，匹配 Event 26/1000/1001 与 CrashDump 零新增；全库真实基线 3,130（成员顺序 1,888、分节术语 1,202、颜色 17、数值 23，QML013 0），其中 22 项等待 P8A 的 LoginWindowLightShadow 删/公开决策，1 项留 P6D TipPopup 整文件重排 | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645`、`2a22c115`、`06eb4af9`、`685d063e`、`bcf0c737`、`4c22e7bc`、`bad57911`、`b281b7b`、`85a75ff3`、`0e438e60`、`1f9d1038`、`b1050f84`、`d4e2e11e` |
 | P7 Python 规范债务 | 待执行 |  |  |
-| P8 资源注册 | 待执行 |  |  |
+| P8 资源注册 | 待执行 | P8A 提前处理孤立文件决策；LoginWindowLightShadow 已确认仓内零消费者、未注册但仍随包分发，推荐完成下游审计后请求用户批准删除 |  |
 | P9 最终验收 | 待执行 |  |  |
 
 状态只能填写“待执行 / 进行中 / 已完成 / 阻塞”。“已完成”必须同时记录真实测试结果和提交哈希。
