@@ -172,29 +172,31 @@ P1 独立入口补强已完成：AST 门禁以 16 个带主入口且实际导入
 
 P1 后代错误框止血已完成：用户再次反馈同一全量测试在桌面连续出现错误弹窗后，真实继承探针确认旧策略下 pytest bootstrap 的直接子进程实际得到 `ErrorMode=0x8001`，`WerGetFlags=0x80070490 / ERROR_NOT_FOUND` 且 flags 为 0；即 `WerSetFlags` 只保护当前进程，而自动化进程主动清除了唯一会由后代继承的 `SEM_NOGPFAULTERRORBOX`。Python launcher/bootstrap 与 C++ `TestProcess.h` 现统一在全生命周期保留 `SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX`（`ErrorMode=0x8003`），C++ 入口额外用 `GetErrorMode()` 自检；当前进程仍设置 WER flags `0x22`，但在 NOGP 优先止血后不再承诺 WER 排队报告一定生成。真实 descendant 回归直接读取并确认继承值；Windows timeout 仍保持 fail-closed，`taskkill` 未确认时返回 125，测试同时确认直接子进程与孙进程 PID 均已消失。最终专项 `13 passed / 1 skipped`、全量 Python `228 passed / 1 skipped`、QML `169/0/12`、MSVC 重编译、headless CTest `6/6`、Windows native Mica `1/1`、changed scanner 0 与 `git diff --check` 全部通过；同一 105 秒真实测试窗口内新增顶层窗口计数为 0，匹配本仓进程的 Event 26/1000/1001 与 CrashDump 均无新增。本结论仅表示该真实入口未再观察到弹窗，不等同于机制级零窗口保证。提交：`1d76047`。
 
-#### P1 后续：Windows 机制级零窗口门禁（待执行）
+#### P1 后续：Windows 机制级零窗口门禁（已完成）
 
-预期效果：offscreen 自动测试在用户交互桌面出现的窗口数恒为 0；测试 Job 内出现任意未允许的可见顶层 HWND 时在 25–50ms 内记录证据并以独立退出码 126 失败；正常结束或超时后 Job 活跃进程数均归零。
+状态：已完成。提交：`728b65a`（`test: isolate Windows test UI and process trees`）。Windows 自动测试现以私有 Desktop 隔离普通测试 UI，以 Job Object 约束完整进程树；持续可见窗口被轮询取证并以 126 失败，timeout 为 124，隔离或清理失败为 125。
 
-- 难度：8–16 小时
-- 风险：中
-- 前置依赖：当前 P1 止血提交；原生 Mica 必须先验证私有 Desktop 不改变 DWM 语义
+实际落地：
 
-执行项：
+1. `CreateDesktopW` 创建私有 Desktop；隐藏枚举 sentinel 在专用 worker thread 中执行 `SetThreadDesktop → CreateWindowExW → 消息泵 → DestroyWindow → 恢复原 Desktop`。全量测试曾真实复现 pytest 主线程已有 Qt/USER 对象时 `SetThreadDesktop` 返回 `ERROR_BUSY(170)`，专用线程方案与 caller-thread 隐藏 HWND 回归现已固化。
+2. 隐藏 sentinel 保证私有 Desktop 不为空：真实对照确认空 Desktop 的 `EnumDesktopWindows` 会返回 `False + GetLastError=0`，而 sentinel 存在时枚举成功。现在任何枚举返回 0 都 fail closed，不再把 API 失败误判成“无窗口”。
+3. 根进程通过 `STARTUPINFOEXW + PROC_THREAD_ATTRIBUTE_HANDLE_LIST` 只继承 stdin/stdout/stderr 三个复制句柄；额外 inheritable Event 哨兵确认不会泄入测试树。
+4. 子进程按 `CREATE_SUSPENDED → AssignProcessToJobObject → ResumeThread` 启动；Job 启用 `KILL_ON_JOB_CLOSE` 与 `DIE_ON_UNHANDLED_EXCEPTION`。正常 root 退出后仍等待全部后代归零，timeout、可见窗口、启动失败和异常传播路径均执行 finally 清理。
+5. 可见 HWND 先按 `IsWindowVisible` 与 DWM cloaked 过滤，再对 HWND owner 实时执行 `OpenProcess + IsProcessInJob`，避免 Job PID 快照/PID 复用竞态；证据记录 HWND、PID、进程创建时间、镜像路径、Desktop、title、class、style。
+6. `CloseHandle`、Job、进程、sentinel 与 Desktop 清理均检查返回值并收集全部错误；主操作与清理同时失败时保留主异常类型，清理聚合作为 cause。`KeyboardInterrupt/SystemExit` 会完成清理后继续传播，不会误转成 125。
+7. Python 与 C++ bootstrap 均补齐 UCRT `_set_error_mode(_OUT_TO_STDERR)`；Debug CRT warn/error/assert 定向 stderr。未修改注册表、全局 WER、AeDebug 或系统配置。
+8. pytest、QML probe、coverage、CTest 与 CI Windows launcher 专项统一接入 runner；安全哨兵覆盖 root、grandchild、hidden、unrelated、busy caller、额外继承句柄、枚举 error0、CloseHandle 双故障及 unexpected exception cleanup。
 
-1. 将 Windows/offscreen 测试放入通过 `CreateDesktopW` 创建的私有 Desktop，绝不调用 `SwitchDesktop`；未知 MessageBox 即使出现也不得进入用户桌面。
-2. 子进程以 `CREATE_SUSPENDED` 启动，先加入 Job Object 再恢复；Job 设置 `KILL_ON_JOB_CLOSE` 与 `DIE_ON_UNHANDLED_EXCEPTION`，创建、分配或恢复失败必须 fail closed。
-3. 通过 `EnumDesktopWindows` 与 Job PID 列表求交，检测 `IsWindowVisible` 且非 DWM cloaked 的顶层 HWND；标题与类名只用于诊断，不作为本地化相关的主过滤条件。
-4. 违规证据至少记录 HWND、PID、进程创建时间、镜像路径、Desktop、title、class、style；发现违规后终止整个 Job 并返回 126。
-5. 正常 root 退出后仍等待 Job active process 数归零，禁止仅在 timeout 路径清理 Qt helper 或孙进程。
-6. Python/C++ bootstrap 补齐 UCRT `_set_error_mode(_OUT_TO_STDERR)`；Debug CRT 的 warn/error/assert 同样定向 stderr，不修改全局 WER、AeDebug 或注册表。
-7. Event 26 按 Caption/Message，Event 1000 按 PID、ProcessCreationTime 与 AppPath，Event 1001 通过 ReportId 联结，CrashDump 按 PID 与时间窗精确归因，禁止只按 `python.exe` basename 判断。
-8. 增加私有 Desktop 安全哨兵：可见 root、隐藏 HWND、grandchild 可见窗口及非 Job unrelated window，分别验证失败、通过、捕获与忽略；全程不得切换到用户桌面或实际制造崩溃。
-9. 原生 Mica 先以 monitor-only 验证私有 Desktop 下的隐藏 HWND、DWM 属性与现有结果一致，再决定是否切换到严格隔离模式。
+最终验收（2026-07-12）：
 
-验收判据：全量 pytest、QML probe、headless CTest 输出 `visible_windows=0 / job_active_processes=0`；安全哨兵覆盖 root/grandchild/hidden/unrelated 四类路径；Windows native Mica 保持 `1/1`；匹配本次 Job 身份的 Event 26/1000/1001 与 CrashDump 增量均为 0。
+- 全量 pytest：`249 passed / 1 skipped`，外层输出 `visible_windows=0 / job_active_processes=0`。
+- QML probe：`169 OK / 0 错误 / 12 跳过 = 181`，外层 Job 归零。
+- CTest：headless `6/6`，Windows native Mica `1/1`；私有 Desktop 未破坏隐藏 HWND、DWM/Mica 与原生阴影语义。
+- `scripts/verify_coverage.py` 与 `python -X utf8 scripts/verify_coverage.py` 均通过，覆盖 181 个注册类型。
+- 最终真实时间窗 `2026-07-12T07:45:48.0788352+08:00` 至 `2026-07-12T07:47:01.9751123+08:00`：System Event 26、Application Event 1000、Application Event 1001、`%LOCALAPPDATA%\CrashDumps` 新增均为 0。
+- 三轮独立 Review 最终均无发现；生产文件全部低于 500 行，本批新增或增长函数全部不超过 30 行，`git diff --check` 通过。
 
-建议提交：`test: isolate Windows test UI and process trees`
+边界说明：私有 Desktop 是自动测试可靠性隔离，不是对恶意同用户代码的安全沙箱。真实实验确认 Job `UILIMIT_DESKTOP/HANDLES` 无法阻止进程显式 `OpenDesktopW("Default") + SetThreadDesktop`，且 `UILIMIT_DESKTOP` 会破坏嵌套 runner；因此未加入无效限制，也不再宣称 25ms 轮询能捕获所有短命窗口。当前硬保证是正常自动化入口的 UI 位于私有 Desktop、不会出现在当前用户桌面；轮询负责检测并取证持续可见窗口。
 
 ### P2：修复 sdist 并建立发布制品门禁
 
