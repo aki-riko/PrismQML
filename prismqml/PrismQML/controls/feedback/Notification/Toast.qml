@@ -155,7 +155,7 @@ Widget {
         id: container
         anchors.fill: parent
         anchors.margins: Enums.spacing.m
-        anchors.topMargin: Enums.spacing.m + 3  // Extra space for color bar
+        anchors.topMargin: Enums.spacing.m + Enums.spacing.cardElevate  // Extra space for color bar 为颜色条预留额外空间
 
         // Shadow Layer 阴影层
         // Fluent: 模糊阴影; Neobrutalism: 硬阴影(NeoShadow)。
@@ -181,7 +181,7 @@ Widget {
             anchors.left: card.left
             anchors.right: card.right
             anchors.top: card.top
-            anchors.topMargin: -3  // Extend 3px up 向上延伸
+            anchors.topMargin: -Enums.spacing.cardElevate  // Shared elevation offset 共享抬升间距
             height: Enums.spacing.l
             radius: Enums.radius.large
             color: control.severityColor

@@ -238,7 +238,7 @@ Rectangle {
                     anchors.fill: parent
                     radius: width / 2
                     color: Enums.transparent
-                    border.width: 2
+                    border.width: Enums.border.normal
                     border.color: Enums.accentColor
                     opacity: 0.3  // Enums.opacity.medium
                 }
@@ -257,7 +257,7 @@ Rectangle {
                         color: Enums.accentColor
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.top: parent.top
-                        anchors.topMargin: -1
+                        anchors.topMargin: -Enums.spacing.micro
                     }
                     
                     RotationAnimation on rotation {
