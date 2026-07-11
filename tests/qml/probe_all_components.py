@@ -13,14 +13,18 @@
 """
 import argparse
 import importlib.util
-import os
 import re
+import runpy
 import sys
 from pathlib import Path
 
-# Keep the probe headless by default while allowing explicit platform overrides.
-# 默认无界面运行，同时允许调用者显式覆盖平台。
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+REPO_ROOT = Path(__file__).resolve().parents[2]
+TEST_PROCESS = runpy.run_path(str(REPO_ROOT / "scripts" / "test_process.py"))
+configure_automated_test_process = TEST_PROCESS["configure_automated_test_process"]
+
+# Force the automated probe headless and suppress native crash dialogs.
+# 强制自动化探测无界面运行，并禁止原生崩溃弹窗。
+configure_automated_test_process()
 
 from PySide6.QtCore import QUrl, QTimer
 from PySide6.QtWidgets import QApplication
@@ -57,7 +61,11 @@ def resolve_package_root(installed: bool) -> Path:
     locations = spec.submodule_search_locations if spec else None
     if not locations:
         raise ModuleNotFoundError("当前解释器未安装 prismqml 包")
-    return Path(next(iter(locations))).resolve()
+    package_root = Path(next(iter(locations))).resolve()
+    source_root = (REPO_ROOT / "prismqml").resolve()
+    if package_root == source_root:
+        raise RuntimeError("--installed 被源码树遮蔽，未验证已安装 prismqml 包")
+    return package_root
 
 
 def parse_qmldir(path: Path):

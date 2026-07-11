@@ -6,6 +6,7 @@
 #include "prism/AcrylicHelper.h"
 #include "prism/Accessors.h"
 #include "prism/Registry.h"
+#include "TestProcess.h"
 
 #include <QColor>
 #include <QDebug>
@@ -66,6 +67,7 @@ static bool runLifecycleCycle(int cycle) {
 }
 
 int main(int argc, char *argv[]) {
+    if (!prism::test::configureNonInteractiveProcess()) return 2;
     QGuiApplication app(argc, argv);
     if (!providerFactoriesAreEngineScoped()) {
         qCritical() << "FAIL: SVG/QRCode provider factory returned a singleton";

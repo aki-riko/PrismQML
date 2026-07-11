@@ -181,35 +181,58 @@ endif()
 
 # ==================== 单元测试 ====================
 option(PRISM_BUILD_TESTS "Build the C++ tests" ON)
+option(PRISM_BUILD_NATIVE_TESTS "Register native platform tests" OFF)
 if(PRISM_BUILD_TESTS)
     enable_testing()
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    set(PRISM_TEST_TIMEOUT_SECONDS "60" CACHE STRING
+        "Timeout in seconds for each PrismQML automated test")
+    set(PRISM_TEST_CLEANUP_GRACE_SECONDS "50" CACHE STRING
+        "Cleanup grace after a PrismQML automated test timeout")
+    math(EXPR PRISM_CTEST_TIMEOUT_SECONDS
+        "${PRISM_TEST_TIMEOUT_SECONDS} + ${PRISM_TEST_CLEANUP_GRACE_SECONDS}")
+    set(PRISM_TEST_PROCESS_RUNNER
+        "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/test_process.py")
 
-    function(prism_add_cpp_test test_name target_name)
+    function(prism_add_cpp_test test_name target_name qt_platform)
         if(WIN32)
             add_test(NAME "${test_name}"
                 COMMAND "${CMAKE_COMMAND}" -E env
                     "PATH=$<TARGET_FILE_DIR:Qt6::Core>$<SEMICOLON>$ENV{PATH}"
+                    "${Python3_EXECUTABLE}" "${PRISM_TEST_PROCESS_RUNNER}"
+                    --qt-platform "${qt_platform}"
+                    --timeout "${PRISM_TEST_TIMEOUT_SECONDS}" --
                     "$<TARGET_FILE:${target_name}>" ${ARGN})
         else()
             add_test(NAME "${test_name}"
-                COMMAND "$<TARGET_FILE:${target_name}>" ${ARGN})
+                COMMAND "${Python3_EXECUTABLE}" "${PRISM_TEST_PROCESS_RUNNER}"
+                    --qt-platform "${qt_platform}"
+                    --timeout "${PRISM_TEST_TIMEOUT_SECONDS}" --
+                    "$<TARGET_FILE:${target_name}>" ${ARGN})
         endif()
+        set_tests_properties("${test_name}" PROPERTIES
+            TIMEOUT "${PRISM_CTEST_TIMEOUT_SECONDS}")
     endfunction()
 
     qt_add_executable(prism_test_store tests/test_store.cpp)
     target_link_libraries(prism_test_store PRIVATE prism)
     target_compile_definitions(prism_test_store PRIVATE
         PRISM_TEST_ICON_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML/controls/icons/fluent")
-    prism_add_cpp_test(prism_test_store prism_test_store)
+    prism_add_cpp_test(prism_test_store prism_test_store offscreen)
 
     qt_add_executable(prism_test_system tests/test_system.cpp)
     target_link_libraries(prism_test_system PRIVATE prism)
-    prism_add_cpp_test(prism_test_system prism_test_system)
+    prism_add_cpp_test(prism_test_system prism_test_system offscreen)
 
-    qt_add_executable(prism_test_mica tests/test_mica.cpp)
-    target_link_libraries(prism_test_mica PRIVATE prism)
-    prism_add_cpp_test(prism_test_mica prism_test_mica)
+    if(PRISM_BUILD_NATIVE_TESTS AND WIN32)
+        qt_add_executable(prism_test_mica tests/test_mica.cpp)
+        target_link_libraries(prism_test_mica PRIVATE prism)
+        prism_add_cpp_test(prism_test_mica prism_test_mica windows)
+        set_tests_properties(prism_test_mica PROPERTIES
+            LABELS "native;windows;mica"
+            SKIP_RETURN_CODE 77
+        )
+    endif()
 
     # QR 端到端验证: 生成 QR PNG 供 tests/qr/verify_qr.py 用 opencv 解码比对
     qt_add_executable(prism_test_qrcode_gen tests/test_qrcode_gen.cpp)
@@ -217,45 +240,42 @@ if(PRISM_BUILD_TESTS)
     set(PRISM_QR_TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/test-output/qrcode")
     file(MAKE_DIRECTORY "${PRISM_QR_TEST_OUTPUT_DIR}")
     prism_add_cpp_test(
-        prism_test_qrcode_gen prism_test_qrcode_gen "${PRISM_QR_TEST_OUTPUT_DIR}")
+        prism_test_qrcode_gen prism_test_qrcode_gen offscreen
+        "${PRISM_QR_TEST_OUTPUT_DIR}")
     set_tests_properties(prism_test_qrcode_gen PROPERTIES
         FIXTURES_SETUP prism_qrcode_generated)
     add_test(
         NAME prism_test_qrcode_decode
-        COMMAND "${Python3_EXECUTABLE}"
+        COMMAND "${Python3_EXECUTABLE}" "${PRISM_TEST_PROCESS_RUNNER}"
+                --qt-platform offscreen
+                --timeout "${PRISM_TEST_TIMEOUT_SECONDS}" --
+                "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/qr/verify_qr.py"
                 "${PRISM_QR_TEST_OUTPUT_DIR}"
     )
     set_tests_properties(prism_test_qrcode_decode PROPERTIES
-        FIXTURES_REQUIRED prism_qrcode_generated)
+        FIXTURES_REQUIRED prism_qrcode_generated
+        TIMEOUT "${PRISM_CTEST_TIMEOUT_SECONDS}")
 
     # SqlListModel 多 shard fan-out + keyset 游标验证
     qt_add_executable(prism_test_sqlmodel tests/test_sqlmodel.cpp)
     target_link_libraries(prism_test_sqlmodel PRIVATE prism)
-    prism_add_cpp_test(prism_test_sqlmodel prism_test_sqlmodel)
+    prism_add_cpp_test(prism_test_sqlmodel prism_test_sqlmodel offscreen)
 
     qt_add_executable(prism_test_provider_lifecycle tests/test_provider_lifecycle.cpp)
     target_link_libraries(prism_test_provider_lifecycle PRIVATE prism)
-    prism_add_cpp_test(prism_test_provider_lifecycle prism_test_provider_lifecycle)
+    prism_add_cpp_test(
+        prism_test_provider_lifecycle prism_test_provider_lifecycle offscreen)
 
     set_tests_properties(
         prism_test_store
         prism_test_system
         prism_test_qrcode_gen
+        prism_test_qrcode_decode
+        prism_test_sqlmodel
         prism_test_provider_lifecycle
-        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        PROPERTIES LABELS headless
     )
-    set_tests_properties(prism_test_mica PROPERTIES
-        SKIP_RETURN_CODE 77
-        TIMEOUT 30
-    )
-    if(WIN32)
-        set_tests_properties(prism_test_mica PROPERTIES
-            ENVIRONMENT "QT_QPA_PLATFORM=windows")
-    else()
-        set_tests_properties(prism_test_mica PROPERTIES
-            ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
-    endif()
 endif()
 
 # ==================== 移动端条件编译分支验证 ====================

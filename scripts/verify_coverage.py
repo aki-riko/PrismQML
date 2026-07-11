@@ -14,9 +14,18 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+if __package__:
+    from .test_process import configure_automated_test_process
+else:
+    from test_process import configure_automated_test_process
+
 
 LOGGER = logging.getLogger(__name__)
 QMLDIR_ENTRY = re.compile(r"^(?:singleton\s+)?([A-Z]\w*)\s+(\S+\.qml)$")
+
+# The coverage entry point owns a QML child process and must never show crash UI.
+# 覆盖率入口会启动 QML 子进程，严禁显示原生崩溃界面。
+configure_automated_test_process()
 
 
 def repository_root() -> Path:

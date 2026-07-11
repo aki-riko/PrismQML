@@ -16,6 +16,7 @@
 #include "prism/SystemTray.h"
 #include "prism/Registry.h"
 #include "prism/Window.h"
+#include "TestProcess.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -34,6 +35,7 @@ static int g_failed = 0;
 } while (0)
 
 int main(int argc, char *argv[]) {
+    if (!prism::test::configureNonInteractiveProcess()) return 2;
     QCoreApplication app(argc, argv);
     using namespace prism;
 

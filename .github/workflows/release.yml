@@ -33,7 +33,9 @@ jobs:
           QT_PLUGIN_PATH: ""
           QML2_IMPORT_PATH: ""
           QML_IMPORT_PATH: ""
-        run: python -m pytest
+        run: >-
+          python scripts/test_process.py --qt-platform offscreen --timeout 300 --
+          python -m pytest
       - name: Probe source QML components
         env:
           QT_QPA_PLATFORM: offscreen
@@ -41,7 +43,9 @@ jobs:
           QT_PLUGIN_PATH: ""
           QML2_IMPORT_PATH: ""
           QML_IMPORT_PATH: ""
-        run: python tests/qml/probe_all_components.py
+        run: >-
+          python scripts/test_process.py --qt-platform offscreen --timeout 180 --
+          python tests/qml/probe_all_components.py
       - name: Run Rust tests
         run: cargo test --manifest-path rust/Cargo.toml
       - name: Configure and build C++ tests
@@ -55,11 +59,12 @@ jobs:
             -DPRISM_BUILD_TESTS=ON \
             -DPython3_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')"
           cmake --build cpp/build-quality
-      - name: Run C++ tests
+      - name: Run headless C++ tests
         env:
           QT_QPA_PLATFORM: offscreen
-        run: ctest --test-dir cpp/build-quality --output-on-failure --no-tests=error
-
+        run: >-
+          ctest --test-dir cpp/build-quality -L headless --interactive-debug-mode 0
+          --output-on-failure --no-tests=error
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     needs: quality_gate
@@ -95,11 +100,15 @@ jobs:
           # 跳过 musllinux(rusqlite bundled 在 musl 上编译慢) + 32位i686(PySide6不支持,rustup装不上)
           CIBW_SKIP: "*-musllinux* *_i686 *-win32"
           CIBW_TEST_COMMAND: >-
-            python -c "import prismqml, prismqml_rs;
+            python "{project}/scripts/test_process.py" --qt-platform offscreen
+            --timeout 60 -- python -c "import prismqml, prismqml_rs;
             assert prismqml.__version__;
             assert prismqml_rs.__version__" &&
-            python "{project}/tests/qml/probe_all_components.py" --installed &&
-            python "{project}/tests/test_provider_lifecycle.py"
+            python "{project}/scripts/test_process.py" --qt-platform offscreen
+            --timeout 180 -- python "{project}/tests/qml/probe_all_components.py"
+            --installed &&
+            python "{project}/scripts/test_process.py" --qt-platform offscreen
+            --timeout 180 -- python "{project}/tests/test_provider_lifecycle.py"
 
       - name: Validate wheel structure
         run: python scripts/validate_dist.py --expect-wheels 1 "wheelhouse/*.whl"
@@ -139,10 +148,14 @@ jobs:
           python -m venv "$TEST_VENV"
           "$TEST_VENV/bin/python" -m pip install --disable-pip-version-check "$SDIST_PATH"
           cd "$RUNNER_TEMP"
-          "$TEST_VENV/bin/python" -c "import prismqml, prismqml_rs; assert prismqml.__version__; assert prismqml_rs.__version__"
-          QT_QPA_PLATFORM=offscreen "$TEST_VENV/bin/python" \
+          "$TEST_VENV/bin/python" "$GITHUB_WORKSPACE/scripts/test_process.py" \
+            --qt-platform offscreen --timeout 60 -- "$TEST_VENV/bin/python" \
+            -c "import prismqml, prismqml_rs; assert prismqml.__version__; assert prismqml_rs.__version__"
+          "$TEST_VENV/bin/python" "$GITHUB_WORKSPACE/scripts/test_process.py" \
+            --qt-platform offscreen --timeout 180 -- "$TEST_VENV/bin/python" \
             "$GITHUB_WORKSPACE/tests/qml/probe_all_components.py" --installed
-          QT_QPA_PLATFORM=offscreen "$TEST_VENV/bin/python" \
+          "$TEST_VENV/bin/python" "$GITHUB_WORKSPACE/scripts/test_process.py" \
+            --qt-platform offscreen --timeout 180 -- "$TEST_VENV/bin/python" \
             "$GITHUB_WORKSPACE/tests/test_provider_lifecycle.py"
       - uses: actions/upload-artifact@v4
         with:

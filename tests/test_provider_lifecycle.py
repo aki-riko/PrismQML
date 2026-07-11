@@ -5,8 +5,15 @@
 """Image provider lifecycle regression tests. 图片提供器生命周期回归测试。"""
 
 import logging
+import runpy
 import tempfile
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+TEST_PROCESS = runpy.run_path(str(REPO_ROOT / "scripts" / "test_process.py"))
+configure_automated_test_process = TEST_PROCESS["configure_automated_test_process"]
+
+configure_automated_test_process()
 
 import shiboken6
 from PySide6.QtCore import QSize, qInstallMessageHandler

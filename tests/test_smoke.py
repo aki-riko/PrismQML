@@ -9,6 +9,8 @@ import sys
 
 import prismqml
 
+SUBPROCESS_TIMEOUT_SECONDS = 30
+
 
 def test_import_prismqml():
     assert hasattr(prismqml, "__version__")
@@ -28,7 +30,8 @@ def test_import_prismqml_does_not_enable_local_qml_xhr():
         [
             sys.executable,
             "-c",
-            "import os; import prismqml; "
+            "from scripts.test_process import configure_automated_test_process; "
+            "configure_automated_test_process(); import os; import prismqml; "
             "print(repr(os.environ.get('QML_XHR_ALLOW_FILE_READ')))",
         ],
         cwd=os.fspath(os.path.dirname(os.path.dirname(__file__))),
@@ -37,6 +40,7 @@ def test_import_prismqml_does_not_enable_local_qml_xhr():
         encoding="utf-8",
         errors="replace",
         capture_output=True,
+        timeout=SUBPROCESS_TIMEOUT_SECONDS,
         check=False,
     )
 
@@ -63,7 +67,9 @@ def test_app_initialization_enables_local_qml_xhr():
         [
             sys.executable,
             "-c",
-            "import os; from prismqml import App; app = App([]); "
+            "from scripts.test_process import configure_automated_test_process; "
+            "configure_automated_test_process(); import os; "
+            "from prismqml import App; app = App([]); "
             "enabled = os.environ.get('QML_XHR_ALLOW_FILE_READ') == '1'; "
             "App._reset(); raise SystemExit(0 if enabled else 2)",
         ],
@@ -73,6 +79,7 @@ def test_app_initialization_enables_local_qml_xhr():
         encoding="utf-8",
         errors="replace",
         capture_output=True,
+        timeout=SUBPROCESS_TIMEOUT_SECONDS,
         check=False,
     )
 
@@ -84,6 +91,10 @@ def test_app_initialization_loads_translator():
     environment.pop("QML_XHR_ALLOW_FILE_READ", None)
     environment["QT_QPA_PLATFORM"] = "offscreen"
     script = """
+from scripts.test_process import configure_automated_test_process
+
+configure_automated_test_process()
+
 from PySide6.QtCore import QEventLoop, QTimer
 from prismqml import App
 
@@ -114,6 +125,7 @@ raise SystemExit(0 if translated == "OK" else 3)
         encoding="utf-8",
         errors="replace",
         capture_output=True,
+        timeout=SUBPROCESS_TIMEOUT_SECONDS,
         check=False,
     )
 

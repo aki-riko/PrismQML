@@ -5,6 +5,7 @@
 // PrismQML C++ 宿主 - MicaManager DWM 调用验证 (需真实 Windows 平台, Build>=22621)
 #include "prism/MicaManager.h"
 #include "prism/ShadowManager.h"
+#include "TestProcess.h"
 
 #include <QGuiApplication>
 #include <QQuickWindow>
@@ -29,6 +30,7 @@ static constexpr int kSkipReturnCode = 77;
 } while (0)
 
 int main(int argc, char *argv[]) {
+    if (!prism::test::configureNonInteractiveProcess()) return 2;
     QGuiApplication app(argc, argv);
     using namespace prism;
 

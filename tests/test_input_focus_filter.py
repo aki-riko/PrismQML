@@ -128,6 +128,9 @@ def _verify_click_flow(window, card, text_input) -> None:
 def _run_child() -> int:
     """Run the regression in a fresh QApplication process. 在全新进程中验证。"""
     sys.path.insert(0, str(REPO_ROOT))
+    from scripts.test_process import configure_automated_test_process
+
+    configure_automated_test_process()
     from prismqml import App
     import prismqml.python.core.input_focus_filter as focus_filter_module
 

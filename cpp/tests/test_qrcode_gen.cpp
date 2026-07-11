@@ -7,6 +7,7 @@
 // 由 tests/qr/verify_qr.py 用 opencv 解码, 断言解出内容 == 原文。
 #include "prism/QRCodeGenerator.h"
 #include "prism/Accessors.h"
+#include "TestProcess.h"
 
 #include <QGuiApplication>
 #include <QDebug>
@@ -19,6 +20,7 @@
 using namespace prism;
 
 int main(int argc, char *argv[]) {
+    if (!prism::test::configureNonInteractiveProcess()) return 2;
     QGuiApplication app(argc, argv);
 
     // 输出目录: 命令行参数 argv[1], 否则临时目录

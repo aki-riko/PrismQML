@@ -15,11 +15,11 @@ QPixmap。pytest-qt 插件本身会提供同名 ``qapp`` fixture，但当运行�
 QApplication，从而让测试套件自包含、运行命令无关。
 """
 
-import os
+from scripts.test_process import configure_automated_test_process
 
-# Keep automated tests headless by default while preserving explicit overrides.
-# 自动化测试默认无界面运行，同时保留调用者显式覆盖。
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+# Force automated tests to stay headless and suppress native crash dialogs.
+# 强制自动化测试无界面运行，并禁止原生崩溃弹窗。
+configure_automated_test_process()
 
 import pytest
 

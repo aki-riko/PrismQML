@@ -43,8 +43,8 @@ def test_probe_defaults_to_headless_without_caller_environment():
     assert int(summary.group(1)) == 0
 
 
-def test_pytest_conftest_sets_headless_default_without_overwriting_explicit_value():
-    """conftest 提供默认平台且不覆盖调用者显式配置。"""
+def test_pytest_conftest_forces_headless_even_with_explicit_platform_value():
+    """conftest 必须覆盖可能弹窗的调用者平台配置。"""
     code = """
 import os
 import runpy
@@ -55,7 +55,7 @@ assert os.environ["QT_QPA_PLATFORM"] == "offscreen"
 
 os.environ["QT_QPA_PLATFORM"] = "minimal"
 runpy.run_path("tests/conftest.py")
-assert os.environ["QT_QPA_PLATFORM"] == "minimal"
+assert os.environ["QT_QPA_PLATFORM"] == "offscreen"
 """
     result = subprocess.run(
         [sys.executable, "-c", code],

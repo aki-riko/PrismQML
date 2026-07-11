@@ -7,6 +7,7 @@
 // ③单库路径回归不变。
 #include "prism/SqlListModel.h"
 #include "prism/DataModels.h"
+#include "TestProcess.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -51,6 +52,7 @@ private:
 };
 
 int main(int argc, char *argv[]) {
+    if (!prism::test::configureNonInteractiveProcess()) return 2;
     QCoreApplication app(argc, argv);
     const QString dir = QDir::tempPath();
     const QString dbA = dir + QStringLiteral("/prism_shard_a.db");

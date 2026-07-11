@@ -5,6 +5,7 @@
 // PrismQML C++ 宿主 - SystemTray/SingleInstance 运行时烟测 (需 QApplication)
 #include "prism/SystemTray.h"
 #include "prism/SingleInstance.h"
+#include "TestProcess.h"
 
 #include <QApplication>
 #include <QTimer>
@@ -17,6 +18,7 @@ static int g_failed = 0;
 } while (0)
 
 int main(int argc, char *argv[]) {
+    if (!prism::test::configureNonInteractiveProcess()) return 2;
     QApplication app(argc, argv);
     using namespace prism;
 
