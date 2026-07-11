@@ -14,24 +14,21 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 // Integrates Flyout and TeachingTip, distinguished by tipType 整合 Flyout 和 TeachingTip 功能，通过 tipType 区分
 Item {
     id: control
-    visible: false
-    
-    // ==================== Public Properties 公共属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property var target: null  // ✅ 2026-05-15: Item → var (鸭子类型,支持 QQuickWindow)
     property string title: ""
     property string content: ""
     property string icon: ""
     property bool closable: true
-    property int duration: -1
+    property int duration: Enums.duration.persistent
     property bool deleteOnClose: false
     property bool modal: true
     property int tipType: Enums.tip.type_flyout
     property int animationType: Enums.flyout.pullUp
     property int anchorPosition: Enums.teachingTip.anchor_bottom
     
-    signal closed()
-
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Internal Props 内部属性 ====================
     property real _animX: 0
     property real _animY: 0
     property bool _isOpen: false
@@ -39,7 +36,10 @@ Item {
     // Follow target control position (sync move on scroll) 跟随目标控件位置变化
     property point _lastTargetGlobalPos: Qt.point(-1, -1)
 
-    // ==================== Methods 方法 ====================
+    // ==================== Signals 信号 ====================
+    signal closed()
+
+    // ==================== Public Methods 公开方法 ====================
     function show() {
         if (!target) return
 
@@ -83,6 +83,7 @@ Item {
         hideAnim.start()
     }
 
+    // ==================== Internal Methods 内部方法 ====================
     function _doClose() {
         _isOpen = false
         popupWindow.hide(); arrowWindow.hide()
@@ -90,7 +91,9 @@ Item {
         if (deleteOnClose) control.destroy()
     }
 
-    // ==================== Position Helper 位置助手 ====================
+    visible: false
+
+    // ==================== Content 内容 ====================
     TipPositionHelper {
         id: posHelper
         target: control.target
@@ -101,7 +104,7 @@ Item {
         viewHeight: 90
     }
 
-    // ==================== Main Window 主窗口 ====================
+    // Main window 主窗口
     Window {
         id: popupWindow
         flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint
@@ -110,6 +113,7 @@ Item {
         height: posHelper.viewHeight
         x: _animX
         y: _animY
+        opacity: 0
         
         // Focus detection for click outside close 焦点检测实现点击外部关闭
         onActiveFocusItemChanged: {
@@ -161,10 +165,9 @@ Item {
                 onClicked: control.close()
             }
         }
-        opacity: 0
     }
     
-    // ==================== Arrow Window 箭头窗口 ====================
+    // Arrow window 箭头窗口
     Window {
         id: arrowWindow
         flags: Qt.Tool | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint | Qt.WindowStaysOnTopHint
@@ -172,6 +175,7 @@ Item {
         width: (posHelper.isLeft || posHelper.isRight) ? (posHelper.tailSize + 28) : 44
         height: (posHelper.isTop || posHelper.isBottom) ? (posHelper.tailSize + 28) : 44
         visible: false
+        opacity: 0
         
         Component.onCompleted: {
             if (posHelper.isTeachingTip) {
@@ -246,10 +250,9 @@ Item {
                 }
             }
         }
-        opacity: 0
     }
 
-    // ==================== Animations 动画 ====================
+    // Animations 动画
     ParallelAnimation {
         id: showAnim
         NumberAnimation { id: opacityAnim; target: popupWindow; property: "opacity"; from: 0; to: 1; duration: Enums.duration.tipShow; easing.type: Easing.OutQuad }
@@ -271,7 +274,7 @@ Item {
         onTriggered: control.close()
     }
     
-    // ==================== Position Tracker 位置跟踪 ====================
+    // Position tracker 位置跟踪
     Timer {
         id: positionTracker
         interval: Enums.popupMetrics.trackerIntervalMs

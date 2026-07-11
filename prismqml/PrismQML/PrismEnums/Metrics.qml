@@ -24,6 +24,7 @@ QtObject {
  // 如需逐帧驱动 (如拖拽、惯性滚动), 请使用 FrameAnimation 跟随屏幕刷新率,
  // 不要用 Timer { interval: 16 } 这种 60fps 硬编码。
  readonly property int none: 0 // No animation or delay 无动画或延迟
+ readonly property int persistent: -1 // Disable automatic timeout 禁用自动关闭
  readonly property int tick: 1 // High-refresh timer tick 高刷定时器间隔(1ms)
  readonly property int ultraFast: 50
  readonly property int instant: 50
