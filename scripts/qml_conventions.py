@@ -20,8 +20,15 @@ else:
 
 
 QML_ROOT = PurePosixPath("prismqml/PrismQML")
+SUPPORTED_SOURCE_SUFFIXES = frozenset({".js", ".qml"})
 QTQUICK_CONTROLS_EXCEPTIONS = {
     PurePosixPath("prismqml/PrismQML/controls/containers/Widget.qml"),
+}
+MATRIX_RAIN_PRESETS_PATH = PurePosixPath(
+    "prismqml/PrismQML/effects/_internal/MatrixRainPresets.js"
+)
+LOCAL_STYLE_DATA_EXCEPTIONS = {
+    MATRIX_RAIN_PRESETS_PATH: frozenset({"QML010"}),
 }
 VALID_SECTION_LABELS = {
     "Public Props 公开属性",
@@ -74,6 +81,37 @@ METRIC_LITERAL_RE = re.compile(
     r"-?\d+(?:\.\d+)?\b"
 )
 FONT_LITERAL_RE = re.compile(r"^\s*font\.family\s*:\s*['\"]")
+QUOTED_HEX_COLOR_RE = re.compile(
+    r"(?P<quote>['\"`])#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})(?P=quote)"
+)
+LOCAL_STYLE_THEME_NAME_PATTERN = r"[A-Za-z][A-Za-z0-9_-]*"
+LOCAL_STYLE_HEX_COLOR_PATTERN = (
+    r"#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})"
+)
+LOCAL_STYLE_THEME_ENTRY_PATTERN = (
+    rf'"{LOCAL_STYLE_THEME_NAME_PATTERN}"\s*:\s*\{{\s*'
+    rf'main\s*:\s*"{LOCAL_STYLE_HEX_COLOR_PATTERN}"\s*,\s*'
+    rf'head\s*:\s*"{LOCAL_STYLE_HEX_COLOR_PATTERN}"\s*,\s*'
+    rf'bg\s*:\s*"{LOCAL_STYLE_HEX_COLOR_PATTERN}"\s*\}}'
+)
+LOCAL_STYLE_DATA_STRUCTURE_RE = re.compile(
+    rf"^\s*\.pragma\s+library\s+"
+    rf"var\s+themes\s*=\s*\{{\s*"
+    rf"(?P<themes>{LOCAL_STYLE_THEME_ENTRY_PATTERN}"
+    rf"(?:\s*,\s*{LOCAL_STYLE_THEME_ENTRY_PATTERN})*\s*,?)"
+    rf"\s*\}}\s*"
+    rf"var\s+themeNames\s*=\s*\[\s*"
+    rf'(?P<names>"{LOCAL_STYLE_THEME_NAME_PATTERN}"'
+    rf'(?:\s*,\s*"{LOCAL_STYLE_THEME_NAME_PATTERN}")*\s*,?)'
+    rf"\s*\]\s*$",
+    re.DOTALL,
+)
+LOCAL_STYLE_THEME_ENTRY_NAME_RE = re.compile(
+    rf'"(?P<name>{LOCAL_STYLE_THEME_NAME_PATTERN})"\s*:'
+)
+LOCAL_STYLE_THEME_NAME_RE = re.compile(
+    rf'"(?P<name>{LOCAL_STYLE_THEME_NAME_PATTERN})"'
+)
 
 
 @dataclass(frozen=True)
@@ -203,6 +241,54 @@ def _scan_style_literals(
             violations.append(_violation(path, number, "QML011", "hardcoded style metric", source))
         if FONT_LITERAL_RE.search(source):
             violations.append(_violation(path, number, "QML012", "hardcoded font family", source))
+    return violations
+
+
+def _local_style_contract_violation(
+    path: PurePosixPath, message: str
+) -> list[Violation]:
+    return [_violation(path, 1, "QML013", message, path.name)]
+
+
+def _local_style_names(pattern: re.Pattern[str], text: str) -> list[str]:
+    return [
+        item.group("name")
+        for item in pattern.finditer(text)
+    ]
+
+
+def _scan_local_style_data_contract(text: str, path: PurePosixPath) -> list[Violation]:
+    sanitized = _sanitize_qml(text, mask_strings=False)
+    match = LOCAL_STYLE_DATA_STRUCTURE_RE.fullmatch(sanitized)
+    if match is None:
+        return _local_style_contract_violation(
+            path, "local style data contains unsupported structure"
+        )
+    theme_names = _local_style_names(
+        LOCAL_STYLE_THEME_ENTRY_NAME_RE, match.group("themes")
+    )
+    listed_names = _local_style_names(
+        LOCAL_STYLE_THEME_NAME_RE, match.group("names")
+    )
+    if theme_names == listed_names and len(theme_names) == len(set(theme_names)):
+        return []
+    return _local_style_contract_violation(
+        path, "local style themeNames must match themes order"
+    )
+
+
+def _scan_javascript_style_literals(text: str, path: PurePosixPath) -> list[Violation]:
+    allowed_rules = LOCAL_STYLE_DATA_EXCEPTIONS.get(path, frozenset())
+    violations = (
+        _scan_local_style_data_contract(text, path)
+        if path == MATRIX_RAIN_PRESETS_PATH
+        else []
+    )
+    code_lines = _sanitize_qml(text, mask_strings=False).splitlines()
+    source_lines = text.splitlines()
+    for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
+        if QUOTED_HEX_COLOR_RE.search(code) and "QML010" not in allowed_rules:
+            violations.append(_violation(path, number, "QML010", "hardcoded color", source))
     return violations
 
 
@@ -354,14 +440,39 @@ def scan_text(text: str, path: PurePosixPath) -> list[Violation]:
     return sorted(violations, key=lambda item: (item.path.as_posix(), item.line, item.rule))
 
 
+def scan_source_text(
+    text: str,
+    source_path: PurePosixPath,
+    violation_path: PurePosixPath | None = None,
+) -> list[Violation]:
+    if source_path.suffix == ".qml":
+        violations = scan_text(text, source_path)
+    elif source_path.suffix == ".js":
+        violations = _scan_javascript_style_literals(text, source_path)
+    else:
+        return []
+    target_path = violation_path or source_path
+    if target_path == source_path:
+        return violations
+    return [
+        Violation(target_path, item.line, item.rule, item.message, item.source)
+        for item in violations
+    ]
+
+
 def scan_repository(root: Path) -> list[Violation]:
     qml_root = root / QML_ROOT
     if not qml_root.is_dir():
         raise FileNotFoundError(f"QML root not found: {qml_root}")
     violations: list[Violation] = []
-    for path in sorted(qml_root.rglob("*.qml")):
+    source_paths = (
+        path
+        for path in qml_root.rglob("*")
+        if path.is_file() and path.suffix in SUPPORTED_SOURCE_SUFFIXES
+    )
+    for path in sorted(source_paths):
         relative = PurePosixPath(path.relative_to(root).as_posix())
-        violations.extend(scan_text(path.read_text(encoding="utf-8"), relative))
+        violations.extend(scan_source_text(path.read_text(encoding="utf-8"), relative))
     return violations
 
 
@@ -408,6 +519,7 @@ def _changed_qml_files(root: Path, base: str) -> list[ChangedQmlFile]:
         item
         for line in completed.stdout.splitlines()
         if (item := _parse_changed_line(line))
+        and item.current_path.suffix in SUPPORTED_SOURCE_SUFFIXES
     ]
     untracked = _run_git(
         root, ["ls-files", "--others", "--exclude-standard", "--", QML_ROOT.as_posix()]
@@ -417,7 +529,7 @@ def _changed_qml_files(root: Path, base: str) -> list[ChangedQmlFile]:
     known = {item.current_path for item in changed}
     for line in untracked.stdout.splitlines():
         path = PurePosixPath(line)
-        if path.suffix == ".qml" and path not in known:
+        if path.suffix in SUPPORTED_SOURCE_SUFFIXES and path not in known:
             changed.append(ChangedQmlFile(path, None))
     return sorted(changed, key=lambda item: item.current_path.as_posix())
 
@@ -453,8 +565,18 @@ def scan_changed(root: Path, base: str) -> ChangedScanResult:
     changed = _changed_qml_files(root, base)
     for item in changed:
         current_file = root / item.current_path
-        current = scan_text(current_file.read_text(encoding="utf-8"), item.current_path)
-        baseline = scan_text(_base_text(root, base, item.base_path), item.current_path)
+        current = scan_source_text(
+            current_file.read_text(encoding="utf-8"), item.current_path
+        )
+        baseline = (
+            scan_source_text(
+                _base_text(root, base, item.base_path),
+                item.base_path,
+                violation_path=item.current_path,
+            )
+            if item.base_path is not None
+            else []
+        )
         current_total += len(current)
         base_total += len(baseline)
         added.extend(new_violations(current, baseline))

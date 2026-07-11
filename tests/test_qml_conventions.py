@@ -12,6 +12,10 @@ from scripts import check_qml_conventions as scanner
 
 ROOT = Path(__file__).resolve().parents[1]
 LIBRARY_PATH = PurePosixPath("prismqml/PrismQML/Test.qml")
+JAVASCRIPT_PATH = PurePosixPath("prismqml/PrismQML/effects/_internal/Test.js")
+MATRIX_PRESETS_PATH = PurePosixPath(
+    "prismqml/PrismQML/effects/_internal/MatrixRainPresets.js"
+)
 HIGH_CONFIDENCE_SOURCE = """
 import QtQuick 2.15
 import Qt5Compat.GraphicalEffects
@@ -25,10 +29,16 @@ Item {
     target: ThemeManager
 }
 """
+VALID_MATRIX_PRESETS_SOURCE = """.pragma library
+var themes = {
+    "classic": { main: "#00ff00", head: "#aaffaa", bg: "#000000" }
+}
+var themeNames = ["classic"]
+"""
 
 
 def _rules(text: str, path: PurePosixPath = LIBRARY_PATH) -> set[str]:
-    return {item.rule for item in scanner.scan_text(text, path)}
+    return {item.rule for item in scanner.scan_source_text(text, path)}
 
 
 def test_high_confidence_rules_and_explicit_exceptions():
@@ -59,6 +69,38 @@ def test_style_rules_ignore_log_message_contents():
 
     assert "QML010" not in _rules(source)
     assert "QML011" not in _rules(source)
+
+
+def test_javascript_colors_require_the_exact_local_data_exception():
+    source = 'var preset = { main: "#00ff00" }\n'
+
+    assert "QML010" in _rules(source, JAVASCRIPT_PATH)
+    assert _rules(VALID_MATRIX_PRESETS_SOURCE, MATRIX_PRESETS_PATH) == set()
+
+    similar_path = MATRIX_PRESETS_PATH.with_name("MatrixRainPreset.js")
+    assert "QML010" in _rules(VALID_MATRIX_PRESETS_SOURCE, similar_path)
+
+    comments_only = '// "#00ff00"\n/* "#aaffaa" */\nvar name = "classic"\n'
+    assert "QML010" not in _rules(comments_only, JAVASCRIPT_PATH)
+
+
+def test_local_style_data_exception_rejects_logic_metrics_and_name_drift():
+    logic = VALID_MATRIX_PRESETS_SOURCE + (
+        "var duration = 250\nfunction mutate() { return duration }\n"
+    )
+    name_drift = VALID_MATRIX_PRESETS_SOURCE.replace('["classic"]', '["cyan"]')
+    extra_metric = VALID_MATRIX_PRESETS_SOURCE.replace(
+        'bg: "#000000"', 'bg: "#000000", duration: 250'
+    )
+
+    for source in (logic, name_drift, extra_metric):
+        assert "QML013" in _rules(source, MATRIX_PRESETS_PATH)
+
+
+def test_repository_local_style_data_contract_is_valid():
+    source = (ROOT / MATRIX_PRESETS_PATH).read_text(encoding="utf-8")
+
+    assert scanner.scan_source_text(source, MATRIX_PRESETS_PATH) == []
 
 
 def test_javascript_regex_literals_do_not_mask_following_qml():
@@ -199,6 +241,64 @@ Item {
 
     assert result.changed_files == 1
     assert result.violations == ()
+
+
+def test_changed_mode_uses_old_suffix_to_scan_rename_baseline(tmp_path):
+    _initialize_repo(tmp_path, "import QtQuick\nItem {}\n")
+    javascript = tmp_path / JAVASCRIPT_PATH
+    javascript.parent.mkdir(parents=True, exist_ok=True)
+    javascript.write_text(
+        'import QtQuick 2.15\nvar color = "#fff"\n', encoding="utf-8"
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "javascript baseline")
+
+    renamed = javascript.with_suffix(".qml")
+    _git(
+        tmp_path,
+        "mv",
+        str(javascript.relative_to(tmp_path)),
+        str(renamed.relative_to(tmp_path)),
+    )
+
+    result = scanner.scan_changed(tmp_path, "HEAD")
+
+    assert result.changed_files == 1
+    assert [item.rule for item in result.violations] == ["QML001"]
+    assert result.violations[0].path == PurePosixPath(
+        renamed.relative_to(tmp_path).as_posix()
+    )
+
+
+def test_changed_mode_scans_untracked_javascript_and_ignores_assets(tmp_path):
+    _initialize_repo(tmp_path, "import QtQuick\nItem {}\n")
+    javascript = tmp_path / JAVASCRIPT_PATH
+    javascript.parent.mkdir(parents=True, exist_ok=True)
+    javascript.write_text('var color = "#fff"\n', encoding="utf-8")
+    javascript.with_suffix(".svg").write_text('<svg fill="#fff"/>\n', encoding="utf-8")
+    javascript.with_suffix(".json").write_text('{"color":"#fff"}\n', encoding="utf-8")
+
+    result = scanner.scan_changed(tmp_path, "HEAD")
+
+    assert result.changed_files == 1
+    assert [item.rule for item in result.violations] == ["QML010"]
+    assert result.violations[0].path == JAVASCRIPT_PATH
+
+
+def test_changed_mode_reports_invalid_untracked_local_style_data(tmp_path):
+    _initialize_repo(tmp_path, "import QtQuick\nItem {}\n")
+    presets = tmp_path / MATRIX_PRESETS_PATH
+    presets.parent.mkdir(parents=True, exist_ok=True)
+    presets.write_text(
+        VALID_MATRIX_PRESETS_SOURCE + "var duration = 250\n",
+        encoding="utf-8",
+    )
+
+    result = scanner.scan_changed(tmp_path, "HEAD")
+
+    assert result.base_total == 0
+    assert [item.rule for item in result.violations] == ["QML013"]
+    assert result.violations[0].path == MATRIX_PRESETS_PATH
 
 
 def test_all_mode_is_enforcing_unless_report_only(tmp_path):

@@ -4,6 +4,7 @@
 
 import QtQuick
 import ".."
+import "_internal/MatrixRainPresets.js" as MatrixRainPresets
 
 // MatrixRain - The Matrix digital rain effect 黑客帝国数字雨效果
 // Usage 使用方式:
@@ -12,8 +13,6 @@ import ".."
 
 Rectangle {
     id: root
-    color: backgroundColor
-    clip: true
     
     // ==================== Public Props 公开属性 ====================
     // Basic 基础属性
@@ -25,9 +24,9 @@ Rectangle {
     property real fadeSpeed: 0.05                       // Trail fade (0.01-0.2) 拖尾消隐
     
     // Colors 颜色属性
-    property color mainColor: "#00ff00"                 // Main color 主颜色
-    property color headColor: "#aaffaa"                 // Head character color 头部字符颜色
-    property color backgroundColor: "#000000"           // Background color 背景颜色
+    property color mainColor: MatrixRainPresets.themes.classic.main       // Main color 主颜色
+    property color headColor: MatrixRainPresets.themes.classic.head       // Head character color 头部字符颜色
+    property color backgroundColor: MatrixRainPresets.themes.classic.bg   // Background color 背景颜色
     
     // Direction 方向控制
     property string direction: "down"                   // Direction: down/up/left/right 方向
@@ -51,10 +50,7 @@ Rectangle {
     property int trailLength: 20                        // Trail length 拖尾长度
     property bool rainbowMode: false                    // Rainbow color mode 彩虹模式
     
-    // ==================== Signals 信号 ====================
-    signal themeApplied(string themeName)
-    
-    // ==================== Internal 内部 ====================
+    // ==================== Internal Props 内部属性 ====================
     property var drops: []
     property int cols: 0
     property int rows: 0
@@ -83,6 +79,9 @@ Rectangle {
     // Rainbow hue offset 彩虹色相偏移
     property real _rainbowOffset: 0
 
+    // ==================== Signals 信号 ====================
+    signal themeApplied(string themeName)
+
     // ==================== Public Methods 公开方法 ====================
 
     // Control methods 控制方法
@@ -101,30 +100,11 @@ Rectangle {
     }
     // Theme presets 主题预设
     function setTheme(name) {
-        var themes = {
-            "classic":  { main: "#00ff00", head: "#aaffaa", bg: "#000000" },
-            "cyan":     { main: "#00ffff", head: "#aaffff", bg: "#000011" },
-            "amber":    { main: "#ffaa00", head: "#ffff00", bg: "#0a0500" },
-            "red":      { main: "#ff0040", head: "#ff8888", bg: "#0a0000" },
-            "purple":   { main: "#aa00ff", head: "#ffaaff", bg: "#050005" },
-            "blue":     { main: "#0088ff", head: "#88ccff", bg: "#000510" },
-            "white":    { main: "#ffffff", head: "#ffffff", bg: "#111111" },
-            "pink":     { main: "#ff69b4", head: "#ffb6c1", bg: "#0a0008" },
-            "gold":     { main: "#ffd700", head: "#ffec8b", bg: "#0a0800" },
-            "lime":     { main: "#32cd32", head: "#90ee90", bg: "#000a00" },
-            "orange":   { main: "#ff6600", head: "#ffaa66", bg: "#0a0300" },
-            "teal":     { main: "#008080", head: "#40e0d0", bg: "#000505" },
-            "neon":     { main: "#39ff14", head: "#7fff00", bg: "#000000" },
-            "sunset":   { main: "#ff4500", head: "#ff8c00", bg: "#1a0a00" },
-            "ocean":    { main: "#006994", head: "#00ced1", bg: "#001015" },
-            "forest":   { main: "#228b22", head: "#98fb98", bg: "#000800" },
-            "midnight": { main: "#191970", head: "#6495ed", bg: "#000008" }
-        }
-
-        if (themes[name]) {
-            mainColor = themes[name].main
-            headColor = themes[name].head
-            backgroundColor = themes[name].bg
+        var theme = MatrixRainPresets.themes[name]
+        if (theme) {
+            mainColor = theme.main
+            headColor = theme.head
+            backgroundColor = theme.bg
             themeApplied(name)
         }
     }
@@ -204,9 +184,7 @@ Rectangle {
 
     // Get available presets 获取可用预设
     function getAvailableThemes() {
-        return ["classic", "cyan", "amber", "red", "purple", "blue", "white",
-                "pink", "gold", "lime", "orange", "teal", "neon", "sunset",
-                "ocean", "forest", "midnight"]
+        return MatrixRainPresets.themeNames.slice()
     }
 
     function getAvailableCharsets() {
@@ -216,6 +194,9 @@ Rectangle {
     function getAvailableDirections() {
         return ["down", "up", "left", "right"]
     }
+
+    color: backgroundColor
+    clip: true
 
     onDirectionChanged: canvas.initDrops()
     
