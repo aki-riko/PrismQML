@@ -131,14 +131,14 @@ Rectangle {
             target: iconContainer
             property: "scale"
             from: 1.0; to: 1.03
-            duration: 1200  // Enums.duration.xslow
+            duration: Enums.duration.splashBreathe
             easing.type: Easing.InOutSine
         }
         NumberAnimation {
             target: iconContainer
             property: "scale"
             from: 1.03; to: 1.0
-            duration: 1200  // Enums.duration.xslow
+            duration: Enums.duration.splashBreathe
             easing.type: Easing.InOutSine
         }
     }
@@ -206,8 +206,8 @@ Rectangle {
             layer.effect: MultiEffect {
                 shadowEnabled: true
                 shadowColor: Enums.shadowStrongColor
-                shadowBlur: 0.8
-                shadowVerticalOffset: 6
+                shadowBlur: Enums.shadow.splashIcon.blurNormalized
+                shadowVerticalOffset: Enums.shadow.splashIcon.offset
             }
         }
         
@@ -263,7 +263,7 @@ Rectangle {
                     RotationAnimation on rotation {
                         from: 0
                         to: 360
-                        duration: 1000  // Enums.duration.verySlow
+                        duration: Enums.duration.splashProgressSpin
                         loops: Animation.Infinite
                     }
                 }

@@ -71,6 +71,17 @@ def test_style_rules_ignore_log_message_contents():
     assert "QML011" not in _rules(source)
 
 
+def test_multieffect_shadow_offsets_are_style_metrics():
+    source = """MultiEffect {
+    shadowHorizontalOffset: 4
+    shadowVerticalOffset: -6
+}
+"""
+
+    violations = scanner.scan_source_text(source, LIBRARY_PATH)
+    assert [item.line for item in violations if item.rule == "QML011"] == [2, 3]
+
+
 def test_javascript_colors_require_the_exact_local_data_exception():
     source = 'var preset = { main: "#00ff00" }\n'
 

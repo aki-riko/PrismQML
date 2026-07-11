@@ -55,6 +55,8 @@ QtObject {
  readonly property int pulse: 2000 // Pulse animation 脉冲动画
  readonly property int countUp: 1000 // CountUp animation 计数动画
  readonly property int marquee: 1000 // Marquee pause 跑马灯暂停
+ readonly property int splashBreathe: 1200 // Splash icon breathe cycle half-duration 启动画面图标单程呼吸时长
+ readonly property int splashProgressSpin: 1000 // Splash progress rotation cycle 启动画面进度旋转周期
  readonly property int chart: 500 // Chart animation 图表动画
  readonly property int progressComplete: 1500 // Progress complete display 进度完成后显示时长
  readonly property int copyFeedback: 1500 // Clipboard copy feedback display 复制反馈显示时长
@@ -689,6 +691,12 @@ QtObject {
  readonly property int samples: 29
  readonly property color color: Qt.rgba(0, 0, 0, 0.22 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.5
+ }
+
+ // Splash icon MultiEffect shadow 启动画面图标 MultiEffect 阴影
+ readonly property QtObject splashIcon: QtObject {
+ readonly property real blurNormalized: 0.8
+ readonly property real offset: 6
  }
  
  // ==================== Helper Functions 辅助函数 ====================

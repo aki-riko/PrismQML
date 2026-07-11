@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 
@@ -49,6 +49,11 @@ Item {
     readonly property int borderNormal: Enums.border.normal
     readonly property int spacingMicro: Enums.spacing.micro
     readonly property int iconXl: Enums.iconSize.xl
+    readonly property int splashBreatheDuration: Enums.duration.splashBreathe
+    readonly property int splashProgressSpinDuration: Enums.duration.splashProgressSpin
+    readonly property real splashShadowBlur: Enums.shadow.splashIcon.blurNormalized
+    readonly property real splashShadowOffset: Enums.shadow.splashIcon.offset
+    readonly property int splashIconSize: splash.iconSize
 
     width: 640
     height: 480
@@ -62,6 +67,7 @@ Item {
     }
 
     SplashScreen {
+        id: splash
         objectName: "splash"
         enableShadow: false
         showTitleBar: false
@@ -169,6 +175,33 @@ def _splash_targets(
     return progress_ring, indicator
 
 
+def _splash_effect_component(splash: QQuickItem, icon_size: int) -> QQmlComponent:
+    matches = []
+    for item in _walk_visual_tree(splash):
+        effect_prop = QQmlProperty(item, "layer.effect")
+        enabled_prop = QQmlProperty(item, "layer.enabled")
+        if not effect_prop.isValid() or not enabled_prop.isValid():
+            continue
+        effect_component = effect_prop.read()
+        if (
+            isinstance(effect_component, QQmlComponent)
+            and item.width() == pytest.approx(icon_size)
+            and item.height() == pytest.approx(icon_size)
+            and enabled_prop.read() is False
+        ):
+            matches.append(effect_component)
+    assert len(matches) == 1, [str(component.status()) for component in matches]
+    return matches[0]
+
+
+def _animation_objects(splash: QQuickItem) -> list[QObject]:
+    return [
+        obj
+        for obj in splash.findChildren(QObject)
+        if obj.metaObject().indexOfProperty("duration") >= 0
+    ]
+
+
 def _style_metrics(root: QQuickItem) -> dict[str, float]:
     metrics = {
         "spacing_m": root.property("spacingM"),
@@ -222,6 +255,72 @@ def test_feedback_metrics_preserve_runtime_geometry(qapp):
         _pump(1)
 
 
+def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
+    engine, component, root = _create_scene()
+    effect = None
+    try:
+        splash = root.findChild(QQuickItem, "splash")
+        assert splash is not None
+        breathe_duration = root.property("splashBreatheDuration")
+        spin_duration = root.property("splashProgressSpinDuration")
+        shadow_blur = root.property("splashShadowBlur")
+        shadow_offset = root.property("splashShadowOffset")
+        assert (breathe_duration, spin_duration, shadow_blur, shadow_offset) == (
+            1200,
+            1000,
+            0.8,
+            6,
+        )
+
+        animations = _animation_objects(splash)
+        breathe_animations = [
+            animation
+            for animation in animations
+            if animation.property("property") == "scale"
+            and {
+                (animation.property("from"), animation.property("to"))
+            }
+            <= {(1.0, 1.03), (1.03, 1.0)}
+        ]
+        assert len(breathe_animations) == 2
+        assert {
+            (animation.property("from"), animation.property("to"))
+            for animation in breathe_animations
+        } == {(1.0, 1.03), (1.03, 1.0)}
+        assert {
+            animation.property("duration") for animation in breathe_animations
+        } == {breathe_duration}
+
+        spin_animations = [
+            animation
+            for animation in animations
+            if animation.metaObject().className() == "QQuickRotationAnimation"
+            and animation.property("from") == pytest.approx(0)
+            and animation.property("to") == pytest.approx(360)
+            and animation.property("loops") == -1
+        ]
+        assert len(spin_animations) == 1
+        assert spin_animations[0].property("duration") == spin_duration
+
+        effect_component = _splash_effect_component(
+            splash, root.property("splashIconSize")
+        )
+        effect = effect_component.create(effect_component.creationContext())
+        assert isinstance(effect, QQuickItem), [
+            error.toString() for error in effect_component.errors()
+        ]
+        assert effect.property("shadowEnabled") is True
+        assert effect.property("shadowBlur") == pytest.approx(shadow_blur)
+        assert effect.property("shadowVerticalOffset") == pytest.approx(shadow_offset)
+    finally:
+        if effect is not None:
+            effect.deleteLater()
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_feedback_sources_use_shared_style_tokens():
     toast_source = TOAST_SOURCE.read_text(encoding="utf-8")
     splash_source = SPLASH_SOURCE.read_text(encoding="utf-8")
@@ -236,5 +335,13 @@ def test_feedback_sources_use_shared_style_tokens():
 
     assert "border.width: Enums.border.normal" in splash_source
     assert "anchors.topMargin: -Enums.spacing.micro" in splash_source
+    assert "duration: Enums.duration.splashBreathe" in splash_source
+    assert "duration: Enums.duration.splashProgressSpin" in splash_source
+    assert "shadowBlur: Enums.shadow.splashIcon.blurNormalized" in splash_source
+    assert "shadowVerticalOffset: Enums.shadow.splashIcon.offset" in splash_source
     assert "border.width: 2" not in splash_source
     assert "anchors.topMargin: -1" not in splash_source
+    assert "duration: 1200" not in splash_source
+    assert "duration: 1000" not in splash_source
+    assert "shadowBlur: 0.8" not in splash_source
+    assert "shadowVerticalOffset: 6" not in splash_source
