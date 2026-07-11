@@ -13,6 +13,11 @@ import re
 import subprocess
 from typing import Iterable, Sequence
 
+if __package__:
+    from .qml_lexer import sanitize_qml as _sanitize_qml
+else:
+    from qml_lexer import sanitize_qml as _sanitize_qml
+
 
 QML_ROOT = PurePosixPath("prismqml/PrismQML")
 QTQUICK_CONTROLS_EXCEPTIONS = {
@@ -119,47 +124,6 @@ class ChangedScanResult:
     changed_files: int
     current_total: int
     base_total: int
-
-
-def _blank(segment: str) -> str:
-    return "".join("\n" if char == "\n" else " " for char in segment)
-
-
-def _quoted_end(text: str, start: int, quote: str) -> int:
-    index = start + 1
-    while index < len(text):
-        if text[index] == "\\":
-            index += 2
-            continue
-        if text[index] == quote:
-            return index + 1
-        index += 1
-    return len(text)
-
-
-def _sanitize_qml(text: str, *, mask_strings: bool) -> str:
-    result: list[str] = []
-    index = 0
-    while index < len(text):
-        if text.startswith("//", index):
-            end = text.find("\n", index)
-            end = len(text) if end < 0 else end
-            result.append(_blank(text[index:end]))
-            index = end
-        elif text.startswith("/*", index):
-            end = text.find("*/", index + 2)
-            end = len(text) if end < 0 else end + 2
-            result.append(_blank(text[index:end]))
-            index = end
-        elif text[index] in {'"', "'", "`"}:
-            end = _quoted_end(text, index, text[index])
-            segment = text[index:end]
-            result.append(_blank(segment) if mask_strings else segment)
-            index = end
-        else:
-            result.append(text[index])
-            index += 1
-    return "".join(result)
 
 
 def _is_data_resource(path: PurePosixPath) -> bool:

@@ -11,6 +11,7 @@ on:
       - "prismqml/PrismQML/**"
       - "scripts/check_qml_conventions.py"
       - "scripts/qml_conventions.py"
+      - "scripts/qml_lexer.py"
       - "tests/test_qml_conventions.py"
       - ".github/workflows/build-all.yml"
 
@@ -25,6 +26,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install scanner test dependency
+        run: python -m pip install --disable-pip-version-check "pytest>=7.0"
+      - name: Run scanner regression tests
+        run: python -m pytest tests/test_qml_conventions.py -q
       - name: Reject newly introduced QML violations
         shell: bash
         run: |

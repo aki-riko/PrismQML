@@ -51,10 +51,28 @@ def test_high_confidence_rules_and_explicit_exceptions():
 
 
 def test_style_rules_ignore_log_message_contents():
-    source = 'Item { Component.onCompleted: console.log("radius: 4 color: \\\"#fff\\\"") }\n'
+    source = """Item {
+    Component.onCompleted: console.log("radius: 4 color: \\\"#fff\\\"")
+    Component.onDestruction: console.log(`radius: 8 color: "#000"`)
+}
+"""
 
     assert "QML010" not in _rules(source)
     assert "QML011" not in _rules(source)
+
+
+def test_javascript_regex_literals_do_not_mask_following_qml():
+    regexes = [
+        r"line.match(/^```(\w*)\s*$/)",
+        r'content.replace(/[#*`>\-]/g, "")',
+        r"/[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]/.test(password)",
+        r"text.replace(/\"/g, '&quot;').replace(/'/g, '&#39;')",
+    ]
+    for expression in regexes:
+        source = f"Item {{\n    property var result: {expression}\n    spacing: 8\n}}\n"
+        violations = scanner.scan_text(source, LIBRARY_PATH)
+        metric_lines = [item.line for item in violations if item.rule == "QML011"]
+        assert metric_lines == [3], expression
 
 
 def test_member_order_accepts_forward_readonly_alias_and_behavior_exceptions():
