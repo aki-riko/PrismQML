@@ -3,7 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import "../../.."
+import "../.."
 
 /**
  * CodeBlock — 代码块组件
@@ -108,7 +108,7 @@ Rectangle {
 
         text: control.code
         color: "#E5E7EB"
-        font.family: "Consolas, 'Courier New', monospace"
+        font.family: Enums.fontMonospace
         font.pixelSize: 12
         wrapMode: Text.Wrap
         textFormat: Text.PlainText

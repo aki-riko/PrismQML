@@ -14,8 +14,20 @@ from prismqml import Skin, Theme, register_types, setSkin, setTheme
 
 ROOT = Path(__file__).resolve().parents[2]
 LABEL_SOURCE = ROOT / "prismqml" / "PrismQML" / "controls" / "data" / "Label" / "Label.qml"
+ENUMS_SOURCE = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
+METRICS_SOURCE = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 DATA_CONTROLS = ROOT / "prismqml" / "PrismQML" / "controls" / "data"
 DATA_CONTROLS_URL = QUrl.fromLocalFile(str(DATA_CONTROLS)).toString()
+COLOR_PICKER_INTERNAL = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ColorPicker"
+    / "_internal"
+)
+COLOR_PICKER_INTERNAL_URL = QUrl.fromLocalFile(str(COLOR_PICKER_INTERNAL)).toString()
 
 
 class _FakeMicaManager(QObject):
@@ -178,6 +190,48 @@ Item {{
         assert (
             "12pt " + instance.property("expectedCanvasFontFamily")
         ) in font_specs
+    finally:
+        if instance is not None:
+            instance.deleteLater()
+        del component
+        engine.deleteLater()
+        setSkin(Skin.FLUENT)
+        setTheme(Theme.LIGHT)
+
+
+def test_monospace_consumers_use_global_theme_font(qapp):
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.FLUENT)
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = instance = None
+    try:
+        source = f"""import QtQuick
+import PrismQML
+import "{COLOR_PICKER_INTERNAL_URL}" as ColorPickerInternal
+Item {{
+    CodeBlock {{ code: "monospace-probe" }}
+    ColorPickerInternal.ColorPickerInputs {{}}
+    ColorPickerInternal.ColorPickerDropdown {{}}
+    property string expectedFontMonospace: Enums.fontMonospace
+    property bool fontMatchesManager:
+        Enums.fontMonospace === ThemeManager.fontMonospace
+}}
+"""
+        component, instance = _create(engine, source.encode("utf-8"))
+        _pump(10)
+        assert instance.property("fontMatchesManager") is True
+
+        expected = instance.property("expectedFontMonospace")
+        font_families = [
+            child.property("font").family()
+            for child in instance.findChildren(QObject)
+            if child.metaObject().indexOfProperty("font") >= 0
+        ]
+        assert font_families.count(expected) >= 4, font_families
+
+        assert "iconFontFamily" not in ENUMS_SOURCE.read_text(encoding="utf-8")
+        assert "monospaceFontFamily" not in METRICS_SOURCE.read_text(encoding="utf-8")
     finally:
         if instance is not None:
             instance.deleteLater()

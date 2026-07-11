@@ -590,7 +590,6 @@ QtObject {
  readonly property int inputsModeWidth: 72
  readonly property int inputsHexWidth: 80
  readonly property int inputsModeArrowFontOffset: 4
- readonly property string monospaceFontFamily: "Consolas"
 
  // Hex formatting/parse helpers
  readonly property int hexByteLen: 2

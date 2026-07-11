@@ -230,7 +230,7 @@ Rectangle {
             Text {
                 Layout.fillWidth: true
                 text: root.title
-                font.family: "Consolas, monospace"
+                font.family: Enums.fontMonospace
                 font.pixelSize: 43
                 font.bold: true
                 color: "#49beff"

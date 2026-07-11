@@ -159,7 +159,7 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: control._formatHex()
-                    font.family: Enums.colorPickerMetrics.monospaceFontFamily
+                    font.family: Enums.fontMonospace
                     font.pixelSize: Enums.typography.body
                     color: Enums.textColor.primary
                     selectByMouse: true

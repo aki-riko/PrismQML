@@ -40,6 +40,7 @@ Item {
     readonly property string skin: ThemeManager ? ThemeManager.skin : "fluent"
     readonly property bool isNeobrutalism: skin === "neobrutalism"
     readonly property string fontFamily: ThemeManager ? ThemeManager.fontFamily : "Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, Microsoft YaHei UI, sans-serif"
+    readonly property string fontMonospace: ThemeManager ? ThemeManager.fontMonospace : "Cascadia Code, Consolas, SF Mono, Menlo, Roboto Mono, monospace"
     readonly property string canvasFontFamily: "'" + fontFamily.split(",")[0].trim() + "', sans-serif"
     // accentColor 在 neo 皮肤下解析成 neo 主色(橙) —— 这是换皮杠杆点:
     // 凡引用 accentColor 的 Fluent 逻辑(primary 按钮/toggle 选中/输入聚焦)在 neo 下自动变橙, 控件零改动。
@@ -178,9 +179,6 @@ Item {
     readonly property alias infoAccentColor: _theme.infoAccentColor
     readonly property alias shadowColor: _theme.shadowColor
     readonly property alias shadowStrongColor: _theme.shadowStrongColor
-    // Icon font family 图标字体
-    readonly property string iconFontFamily: fontFamily
-    
     // Forward constants 转发常量（仅保留颜色/配置常量）
     readonly property alias accentDefaults: _constants.accentDefaults
     readonly property alias windowButtonColors: _constants.windowButtonColors

@@ -88,7 +88,7 @@ Item {
                 Label {
                     type: Enums.label.type_caption
                     text: Enums.colorPickerMetrics.dialogHexPrefix
-                    font.family: Enums.colorPickerMetrics.monospaceFontFamily
+                    font.family: Enums.fontMonospace
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 
@@ -106,7 +106,7 @@ Item {
                         anchors.margins: Enums.spacing.s
                         verticalAlignment: Text.AlignVCenter
                         text: control._hex
-                        font.family: Enums.colorPickerMetrics.monospaceFontFamily
+                        font.family: Enums.fontMonospace
                         font.pixelSize: Enums.typography.bodySmall
                         color: Enums.textColor.primary
                         maximumLength: Enums.colorPickerMetrics.dialogHexMaxLength
