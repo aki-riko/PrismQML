@@ -119,7 +119,7 @@ Item {
                                 anchors.centerIn: parent
                                 icon: isCompleted ? Enums.icon.checkmark : stepIcon
                                 iconSize: Enums.iconSize.s
-                                color: "white"
+                                color: Enums.accentForeground
                                 visible: isCompleted || (isActive && stepIcon !== "")
                                 opacity: 0
                                 scale: 0.5
@@ -146,7 +146,7 @@ Item {
                                 anchors.centerIn: parent
                                 type: Enums.label.type_body
                                 text: String(index + 1)
-                                color: isActive ? "white" : Enums.secondaryForeground
+                                color: isActive ? Enums.accentForeground : Enums.secondaryForeground
                                 visible: !isCompleted && (stepIcon === "" || !isActive)
                                 
                                 Behavior on color { ColorAnimation { duration: Enums.duration.fast } }

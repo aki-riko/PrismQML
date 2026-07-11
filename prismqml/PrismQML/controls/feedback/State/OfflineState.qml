@@ -63,7 +63,7 @@ Item {
                 type: Enums.label.type_body
                 anchors.centerIn: parent
                 text: control.retryText || "Retry"
-                color: "white"
+                color: Enums.accentForeground
             }
             
             MouseArea {
