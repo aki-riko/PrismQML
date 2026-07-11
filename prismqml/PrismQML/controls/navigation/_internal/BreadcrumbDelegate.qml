@@ -76,7 +76,7 @@ Item {
             animX = 40
             animScale = 0.85
             animY = -8
-            var delay = index * 50
+            var delay = index * Enums.duration.instant
             enterAnimDelay.duration = delay
             enterAnim.restart()
         }
@@ -86,7 +86,7 @@ Item {
         id: enterAnim
         PauseAnimation {
             id: enterAnimDelay
-            duration: 0
+            duration: Enums.duration.none
         }
         ParallelAnimation {
             NumberAnimation {
