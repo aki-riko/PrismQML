@@ -51,7 +51,6 @@ Item {
                 width: control.width
                 height: control.height
                 radius: control.borderRadius
-                color: "white"
             }
         }
     }

@@ -151,7 +151,6 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: Enums.border.normal
-        color: "white"
         
         // Line shadow 线条阴影
         Rectangle {
@@ -170,7 +169,6 @@ Item {
         width: Enums.spacing.xxl
         height: Enums.spacing.xxl
         radius: width / 2
-        color: "white"
         
         // Handle shadow 手柄阴影
         Rectangle {
