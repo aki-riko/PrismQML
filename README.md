@@ -270,7 +270,7 @@ python scripts/test_process.py --qt-platform offscreen --timeout 300 -- python -
 python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python -X utf8 tests/qml/probe_all_components.py
 ```
 
-自动化 pytest 与 QML probe 始终强制使用 `offscreen`，调用者已有的 `windows` / `minimal` 等平台值也会被覆盖。`test_process.py` 还会禁止原生错误 UI，并在超时后清理完整进程树；请勿绕过该 runner 裸跑自动化测试。单独运行标注为手工窗口测试的脚本仍可能显示 UI。C++/CTest 的真实 Windows Mica 验证说明见 [`cpp/README.md`](cpp/README.md#运行测试)。
+自动化 pytest 与 QML probe 始终强制使用 `offscreen`，调用者已有的 `windows` / `minimal` 等平台值也会被覆盖。Windows 下 `test_process.py` 会把完整测试进程树放入私有 Desktop 与关闭即终止的 Job Object，因此测试 UI（包括短暂窗口）不会出现在当前用户桌面；runner 会轮询检测 Job 内持续可见窗口，检测到时记录证据并以 126 失败，正常退出或超时时确认全部后代进程归零。请勿绕过该 runner 裸跑自动化测试。单独运行标注为手工窗口测试的脚本仍可能显示 UI。C++/CTest 的真实 Windows Mica 验证说明见 [`cpp/README.md`](cpp/README.md#运行测试)。
 
 ## 📄 License
 

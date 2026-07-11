@@ -5,15 +5,40 @@
 #pragma once
 
 #ifdef _WIN32
+#include <cstdlib>
 #include <cstdio>
+#ifdef _DEBUG
+#include <crtdbg.h>
+#endif
 #include <windows.h>
 #include <werapi.h>
 #endif
 
 namespace prism::test {
 
-inline bool configureNonInteractiveProcess() {
 #ifdef _WIN32
+inline bool configureCrtReporting() {
+    _set_error_mode(_OUT_TO_STDERR);
+    if (_set_error_mode(_REPORT_ERRMODE) != _OUT_TO_STDERR) {
+        std::fprintf(stderr, "Windows CRT stderr mode was not applied\n");
+        return false;
+    }
+#ifdef _DEBUG
+    constexpr int reportTypes[] = {_CRT_WARN, _CRT_ERROR, _CRT_ASSERT};
+    for (const int reportType : reportTypes) {
+        _CrtSetReportFile(reportType, _CRTDBG_FILE_STDERR);
+        _CrtSetReportMode(reportType, _CRTDBG_MODE_FILE);
+        if (_CrtSetReportMode(reportType, _CRTDBG_REPORT_MODE) !=
+            _CRTDBG_MODE_FILE) {
+            std::fprintf(stderr, "Windows Debug CRT report mode failed\n");
+            return false;
+        }
+    }
+#endif
+    return true;
+}
+
+inline bool configureWindowsErrorPolicy() {
     DWORD werFlags = 0;
     HRESULT result = WerGetFlags(GetCurrentProcess(), &werFlags);
     if (result == HRESULT_FROM_WIN32(ERROR_NOT_FOUND)) {
@@ -40,8 +65,16 @@ inline bool configureNonInteractiveProcess() {
         std::fprintf(stderr, "Windows test error mode was not applied\n");
         return false;
     }
-#endif
     return true;
+}
+#endif
+
+inline bool configureNonInteractiveProcess() {
+#ifdef _WIN32
+    return configureCrtReporting() && configureWindowsErrorPolicy();
+#else
+    return true;
+#endif
 }
 
 }  // namespace prism::test

@@ -56,9 +56,11 @@ ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-fa
 默认 headless 集合为 5 个 C++ 测试程序加 1 个 QR 独立解码测试，共 6 项。
 CTest 会给每个目标注入 Qt DLL 路径，并统一通过 `scripts/test_process.py` 启动：
 测试主体 timeout 为 60 秒，CTest 外层为 110 秒；Qt 平台固定为 `offscreen`，
-Windows DLL/崩溃错误框与 WER UI 被禁止。正常 timeout 清理完整进程树并返回
-124；若系统清树失败则终止根进程并以 125 失败关闭，不会谎报清理成功。不要
-绕过 CTest 直接运行 `prism_test_*.exe`。
+Windows 下完整进程树在私有 Desktop 与 Job Object 中运行；标准 DLL/崩溃错误框、
+WER UI 被配置为无 UI，UCRT 报告重定向到 stderr。即使测试显式创建窗口，也不会
+出现在当前用户桌面；runner 会轮询 Job 内持续可见窗口，检测到时记录 HWND/PID/
+镜像并返回 126。timeout 返回 124，隔离或清理失败返回 125；正常退出与超时均确认
+Job 中后代进程归零。不要绕过 CTest 直接运行 `prism_test_*.exe`。
 
 Windows 11 的 Mica 用例属于显式原生集合，默认不注册。需要验证时重新配置：
 
@@ -68,8 +70,9 @@ cmake --build cpp\build
 ctest --test-dir cpp\build -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error
 ```
 
-Mica 使用真实 `windows` 平台插件，但只创建隐藏 HWND，不调用 `show()`；测试会
-同时断言 Qt 与 Win32 原生窗口状态始终不可见，再执行真实 DWM/Mica/阴影调用。
+Mica 使用真实 `windows` 平台插件并在私有 Desktop 中运行，但只创建隐藏 HWND，
+不调用 `show()`；测试会同时断言 Qt 与 Win32 原生窗口状态始终不可见，再执行
+真实 DWM/Mica/阴影调用。
 不支持的 Windows 版本以 CTest `Skipped` 明确报告，其余失败均返回非零退出码。
 
 ## 运行 demo / gallery

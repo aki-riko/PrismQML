@@ -22,6 +22,7 @@ else:
 
 LOGGER = logging.getLogger(__name__)
 QMLDIR_ENTRY = re.compile(r"^(?:singleton\s+)?([A-Z]\w*)\s+(\S+\.qml)$")
+PROBE_TIMEOUT_SECONDS = 180
 
 # The coverage entry point owns a QML child process and must never show crash UI.
 # 覆盖率入口会启动 QML 子进程，严禁显示原生崩溃界面。
@@ -56,6 +57,25 @@ def registered_types(qmldir: Path) -> tuple[str, ...]:
     return tuple(types)
 
 
+def _probe_command(root: Path, probe: Path) -> list[str]:
+    test_process = root / "scripts" / "test_process.py"
+    if not test_process.is_file():
+        raise FileNotFoundError(f"test process runner not found: {test_process}")
+    return [
+        sys.executable,
+        str(test_process),
+        "--qt-platform",
+        "offscreen",
+        "--timeout",
+        str(PROBE_TIMEOUT_SECONDS),
+        "--",
+        sys.executable,
+        "-X",
+        "utf8",
+        str(probe),
+    ]
+
+
 def run_probe(
     root: Path,
     runner: Callable[..., subprocess.CompletedProcess] | None = None,
@@ -68,9 +88,8 @@ def run_probe(
         raise FileNotFoundError(f"QML component probe not found: {probe}")
     environment = os.environ.copy()
     environment["QT_QPA_PLATFORM"] = "offscreen"
-    command = [sys.executable, "-X", "utf8", str(probe)]
     completed = (runner or subprocess.run)(
-        command,
+        _probe_command(root, probe),
         cwd=root,
         env=environment,
         check=False,

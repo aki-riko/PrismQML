@@ -16,6 +16,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Sequence
+from pathlib import Path
 
 
 SEM_FAILCRITICALERRORS = 0x0001
@@ -25,6 +26,8 @@ WER_FAULT_REPORTING_FLAG_QUEUE = 0x0002
 WER_FAULT_REPORTING_ALWAYS_SHOW_UI = 0x0010
 WER_FAULT_REPORTING_NO_UI = 0x0020
 HRESULT_ERROR_NOT_FOUND = 0x80070490
+UCRT_OUT_TO_STDERR = 1
+UCRT_REPORT_ERRMODE = 3
 WINDOWS_ERROR_MODE_FLAGS = (
     SEM_FAILCRITICALERRORS
     | SEM_NOGPFAULTERRORBOX
@@ -32,11 +35,36 @@ WINDOWS_ERROR_MODE_FLAGS = (
 )
 TEST_TIMEOUT_EXIT_CODE = 124
 TEST_CLEANUP_FAILURE_EXIT_CODE = 125
+TEST_VISIBLE_WINDOW_EXIT_CODE = 126
 PROCESS_GRACEFUL_WAIT_SECONDS = 2
 PROCESS_FORCE_KILL_WAIT_SECONDS = 5
 PROCESS_GROUP_POLL_INTERVAL_SECONDS = 0.05
-WINDOWS_TASKKILL_TIMEOUT_SECONDS = 30
 LOGGER = logging.getLogger(__name__)
+
+if sys.platform == "win32":
+    if __package__:
+        from ._windows_test_process import (
+            WINDOWS_DESCENDANT_EXIT_GRACE_SECONDS,
+            WINDOWS_JOB_CLEANUP_WAIT_SECONDS,
+            run_isolated_windows_child,
+        )
+    else:
+        script_directory = str(Path(__file__).resolve().parent)
+        inserted_script_directory = script_directory not in sys.path
+        if inserted_script_directory:
+            sys.path.insert(0, script_directory)
+        try:
+            from _windows_test_process import (
+                WINDOWS_DESCENDANT_EXIT_GRACE_SECONDS,
+                WINDOWS_JOB_CLEANUP_WAIT_SECONDS,
+                run_isolated_windows_child,
+            )
+        finally:
+            if inserted_script_directory:
+                sys.path.remove(script_directory)
+else:
+    WINDOWS_DESCENDANT_EXIT_GRACE_SECONDS = 0
+    WINDOWS_JOB_CLEANUP_WAIT_SECONDS = 0
 
 
 def _hresult_failed(result: int) -> bool:
@@ -73,6 +101,22 @@ def _windows_error_policy() -> tuple[int, int]:
     if _hresult_failed(result):
         raise OSError(f"WerGetFlags failed with HRESULT 0x{result & 0xFFFFFFFF:08X}")
     return error_mode, int(wer_flags.value)
+
+
+def _windows_ucrt_error_mode() -> int:
+    ucrt = ctypes.CDLL("ucrtbase", use_errno=True)
+    ucrt._set_error_mode.argtypes = [ctypes.c_int]
+    ucrt._set_error_mode.restype = ctypes.c_int
+    return int(ucrt._set_error_mode(UCRT_REPORT_ERRMODE))
+
+
+def _configure_windows_crt_error_ui() -> None:
+    ucrt = ctypes.CDLL("ucrtbase", use_errno=True)
+    ucrt._set_error_mode.argtypes = [ctypes.c_int]
+    ucrt._set_error_mode.restype = ctypes.c_int
+    ucrt._set_error_mode(UCRT_OUT_TO_STDERR)
+    if _windows_ucrt_error_mode() != UCRT_OUT_TO_STDERR:
+        raise RuntimeError("Windows UCRT stderr error mode was not applied")
 
 
 def _configure_windows_error_ui() -> None:
@@ -112,6 +156,7 @@ def configure_automated_test_process(qt_platform: str | None = "offscreen") -> N
     os.environ["PYTHONUTF8"] = "1"
     if sys.platform == "win32":
         _configure_windows_error_ui()
+        _configure_windows_crt_error_ui()
 
 
 def configure_test_launcher(qt_platform: str | None = "offscreen") -> None:
@@ -123,6 +168,7 @@ def configure_test_launcher(qt_platform: str | None = "offscreen") -> None:
     os.environ["PYTHONUTF8"] = "1"
     if sys.platform == "win32":
         _configure_windows_error_ui()
+        _configure_windows_crt_error_ui()
 
 
 def automated_test_process_is_noninteractive() -> bool:
@@ -135,6 +181,7 @@ def automated_test_process_is_noninteractive() -> bool:
         and wer_flags & WER_FAULT_REPORTING_FLAG_QUEUE != 0
         and wer_flags & WER_FAULT_REPORTING_NO_UI != 0
         and wer_flags & WER_FAULT_REPORTING_ALWAYS_SHOW_UI == 0
+        and _windows_ucrt_error_mode() == UCRT_OUT_TO_STDERR
     )
 
 
@@ -164,48 +211,6 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     return args
 
 
-def _wait_for_windows_process_exit(process: subprocess.Popen) -> bool:
-    try:
-        process.wait(timeout=PROCESS_GRACEFUL_WAIT_SECONDS)
-        return True
-    except subprocess.TimeoutExpired:
-        pass
-    try:
-        process.kill()
-        process.wait(timeout=PROCESS_FORCE_KILL_WAIT_SECONDS)
-    except (OSError, subprocess.TimeoutExpired) as error:
-        LOGGER.error("[test-process] root process cleanup failed: %s", error)
-        return False
-    return True
-
-
-def _terminate_windows_process_tree(process: subprocess.Popen) -> bool:
-    taskkill_succeeded = False
-    try:
-        completed = subprocess.run(
-            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
-            capture_output=True,
-            text=True,
-            errors="replace",
-            timeout=WINDOWS_TASKKILL_TIMEOUT_SECONDS,
-            check=False,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-    except (OSError, subprocess.TimeoutExpired) as error:
-        LOGGER.error("[test-process] taskkill failed: %s", error)
-    else:
-        taskkill_succeeded = completed.returncode == 0
-        if not taskkill_succeeded:
-            detail = (completed.stderr or completed.stdout or "").strip()
-            LOGGER.error(
-                "[test-process] taskkill exit code %s: %s",
-                completed.returncode,
-                detail or "no diagnostic output",
-            )
-    root_stopped = _wait_for_windows_process_exit(process)
-    return taskkill_succeeded and root_stopped
-
-
 def _posix_process_group_exists(process_group_id: int) -> bool:
     try:
         os.killpg(process_group_id, 0)
@@ -231,9 +236,6 @@ def _wait_for_posix_process_group_exit(
 
 
 def _terminate_process_tree(process: subprocess.Popen) -> bool:
-    if sys.platform == "win32":
-        return _terminate_windows_process_tree(process)
-
     try:
         os.killpg(process.pid, signal.SIGTERM)
     except ProcessLookupError:
@@ -268,8 +270,21 @@ def _format_return_code(return_code: int) -> str:
 
 def run_child(command: Sequence[str], timeout: float | None = None) -> int:
     """Run one child command and preserve its raw exit status."""
-    popen_options = {"start_new_session": True} if sys.platform != "win32" else {}
-    process = subprocess.Popen(command, **popen_options)
+    if sys.platform == "win32":
+        return_code = run_isolated_windows_child(
+            command,
+            timeout,
+            LOGGER,
+            timeout_exit_code=TEST_TIMEOUT_EXIT_CODE,
+            cleanup_failure_exit_code=TEST_CLEANUP_FAILURE_EXIT_CODE,
+            visible_window_exit_code=TEST_VISIBLE_WINDOW_EXIT_CODE,
+        )
+        if return_code != 0:
+            detail = _format_return_code(return_code)
+            LOGGER.error("[test-process] child exit code: %s", detail)
+        return return_code
+
+    process = subprocess.Popen(command, start_new_session=True)
     try:
         return_code = process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:

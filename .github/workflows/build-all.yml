@@ -92,7 +92,8 @@ jobs:
       - name: Verify non-interactive test launcher
         run: >-
           python scripts/test_process.py --qt-platform offscreen --timeout 120 --
-          python -m pytest tests/test_test_process.py -q
+          python -m pytest tests/test_test_process.py
+          tests/test_windows_test_process.py -q
       - name: Install Qt (desktop)
         uses: jurplel/install-qt-action@v4
         with:

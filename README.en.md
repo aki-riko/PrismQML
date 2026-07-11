@@ -243,11 +243,11 @@ Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur
 ## 🧪 Testing
 
 ```bash
-python -m pytest tests/ -v
-python -X utf8 tests/qml/probe_all_components.py
+python scripts/test_process.py --qt-platform offscreen --timeout 300 -- python -m pytest tests/ -v
+python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python -X utf8 tests/qml/probe_all_components.py
 ```
 
-When no Qt platform is explicitly selected, pytest and the QML probe default to `offscreen` and do not create visible test windows; explicit platform overrides are preserved. Individually executed manual window-test scripts may still show UI. See [`cpp/README.md`](cpp/README.md#运行测试) for the native Windows Mica/CTest behavior.
+The pytest and QML-probe commands above force `offscreen`. On Windows, the runner places the complete test process tree in a private desktop and a kill-on-close Job Object, so test UI cannot appear on the interactive desktop; it polls for persistent visible Job windows, fails with 126 when one is detected, and waits for all descendants to exit. Native Mica CTest deliberately uses the `windows` platform. Do not bypass the runner for automated tests. Individually executed manual window-test scripts may still show UI. See [`cpp/README.md`](cpp/README.md#运行测试) for the native Windows Mica/CTest behavior.
 
 ## 📄 License
 

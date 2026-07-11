@@ -199,13 +199,37 @@ def test_coverage_registry_rejects_empty_malformed_and_duplicate_entries(tmp_pat
         verify_coverage.registered_types(qmldir)
 
 
-def test_coverage_runner_forces_utf8_offscreen_and_propagates_failure(tmp_path):
+def _write_coverage_probe_fixture(tmp_path):
     qmldir = tmp_path / "prismqml" / "PrismQML" / "qmldir"
     qmldir.parent.mkdir(parents=True)
     qmldir.write_text("module PrismQML\nWidget Widget.qml\n", encoding="utf-8")
     probe = tmp_path / "tests" / "qml" / "probe_all_components.py"
     probe.parent.mkdir(parents=True)
     probe.write_text("raise SystemExit(0)\n", encoding="utf-8")
+    test_process = tmp_path / "scripts" / "test_process.py"
+    test_process.parent.mkdir(parents=True)
+    test_process.write_text("raise SystemExit(0)\n", encoding="utf-8")
+    return probe, test_process
+
+
+def _expected_coverage_command(probe, test_process) -> list[str]:
+    return [
+        sys.executable,
+        str(test_process),
+        "--qt-platform",
+        "offscreen",
+        "--timeout",
+        str(verify_coverage.PROBE_TIMEOUT_SECONDS),
+        "--",
+        sys.executable,
+        "-X",
+        "utf8",
+        str(probe),
+    ]
+
+
+def test_coverage_runner_forces_utf8_offscreen_and_propagates_failure(tmp_path):
+    probe, test_process = _write_coverage_probe_fixture(tmp_path)
     captured = {}
 
     def failed_probe(command, **kwargs):
@@ -217,7 +241,7 @@ def test_coverage_runner_forces_utf8_offscreen_and_propagates_failure(tmp_path):
 
     assert total == 1
     assert return_code == 7
-    assert captured["command"] == [sys.executable, "-X", "utf8", str(probe)]
+    assert captured["command"] == _expected_coverage_command(probe, test_process)
     assert captured["cwd"] == tmp_path
     assert captured["env"]["QT_QPA_PLATFORM"] == "offscreen"
     assert captured["check"] is False
