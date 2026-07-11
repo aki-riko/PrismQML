@@ -241,14 +241,14 @@ Item {
             target: popupPanel
             property: "opacity"
             from: 0; to: 1
-            duration: 120
+            duration: Enums.popupMetrics.showOpacityDuration
             easing.type: Easing.OutQuad
         }
         NumberAnimation {
             target: control
             property: "_scale"
             from: 0.7; to: 1.0
-            duration: 240
+            duration: Enums.popupMetrics.showScaleDuration
             easing.type: Easing.OutBack
             easing.overshoot: 1.4
         }
@@ -257,7 +257,7 @@ Item {
             property: "_clipHeight"
             from: 0
             to: control.popupHeight
-            duration: 1
+            duration: Enums.popupMetrics.clipRevealDuration
             easing.type: Easing.Linear
         }
     }
@@ -274,14 +274,14 @@ Item {
                 target: popupPanel
                 property: "opacity"
                 to: 0
-                duration: 100
+                duration: Enums.popupMetrics.hideOpacityDuration
                 easing.type: Easing.InQuad
             }
             NumberAnimation {
                 target: control
                 property: "_scale"
                 to: 0.85
-                duration: 110
+                duration: Enums.popupMetrics.hideScaleDuration
                 easing.type: Easing.InBack
                 easing.overshoot: 1.2
             }
