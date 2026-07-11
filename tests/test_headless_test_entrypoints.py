@@ -23,6 +23,7 @@ from scripts.test_process import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_PROCESS_RUNNER = REPO_ROOT / "scripts" / "test_process.py"
+QT_PLATFORM_MUST_BE_OVERRIDDEN = "prismqml_must_be_overridden"
 RUNNER_SUPERVISOR_GRACE_SECONDS = (
     WINDOWS_TASKKILL_TIMEOUT_SECONDS
     + PROCESS_GRACEFUL_WAIT_SECONDS
@@ -391,9 +392,9 @@ def test_runtime_matrix_covers_every_automated_qt_entrypoint():
     ids=[path.stem for path, _timeout in STANDALONE_QML_RUNTIME_CASES],
 )
 def test_standalone_qml_entrypoint_runtime(relative: Path, timeout: int):
-    """入口必须自行把可视平台覆盖为 offscreen，并在时限内通过。"""
+    """入口必须覆盖无效平台哨兵，并在 offscreen 下按时通过。"""
     env = os.environ.copy()
-    env["QT_QPA_PLATFORM"] = "windows"
+    env["QT_QPA_PLATFORM"] = QT_PLATFORM_MUST_BE_OVERRIDDEN
     try:
         result = subprocess.run(
             [
