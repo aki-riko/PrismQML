@@ -1,11 +1,20 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Neobrutalism Button + Card 几何探针。
 
 用 register_types 注册 ThemeManager, 切 skin 后实例化控件读真实几何。
 退出码 0=全过, 1=失败。
 """
 import sys
+from pathlib import Path
+
+from _test_process_bootstrap import configure_qml_test_process
+
+configure_qml_test_process()
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from PySide6.QtCore import QUrl, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlApplicationEngine

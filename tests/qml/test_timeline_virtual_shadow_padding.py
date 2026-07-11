@@ -8,11 +8,12 @@ The virtualized Timeline keeps delegate rows clipped to avoid stale reused
 content. Card shadows must therefore be drawn inside the row bounds; otherwise
 the first visible card is clipped when a row aligns with the viewport top.
 """
-import os
 import sys
 from pathlib import Path
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+from _test_process_bootstrap import configure_qml_test_process
+
+configure_qml_test_process()
 
 from PySide6.QtCore import QEventLoop, QTimer, QUrl  # noqa: E402
 from PySide6.QtGui import QGuiApplication  # noqa: E402

@@ -1,10 +1,15 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Regression: pure QML Fluent.Windows must show after create()."""
 
 import sys
 from pathlib import Path
+
+from _test_process_bootstrap import configure_qml_test_process
+
+configure_qml_test_process()
 
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent

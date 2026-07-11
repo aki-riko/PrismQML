@@ -14,21 +14,21 @@
 import argparse
 import importlib.util
 import re
-import runpy
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-TEST_PROCESS = runpy.run_path(str(REPO_ROOT / "scripts" / "test_process.py"))
-configure_automated_test_process = TEST_PROCESS["configure_automated_test_process"]
+from _test_process_bootstrap import configure_qml_test_process
 
 # Force the automated probe headless and suppress native crash dialogs.
 # 强制自动化探测无界面运行，并禁止原生崩溃弹窗。
-configure_automated_test_process()
+configure_qml_test_process()
 
 from PySide6.QtCore import QUrl, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 EXPECTED_REQUIRED_PROPERTY_SKIPS = {
     "ButtonContent": "ButtonCore 内部内容区, required 属性由 ButtonCore 注入",

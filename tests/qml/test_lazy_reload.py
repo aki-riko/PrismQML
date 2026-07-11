@@ -20,6 +20,10 @@ onCurrentIndexChanged 再次走 showLoadingAndSwitch(主页又懒加载一次)�
 import sys
 from pathlib import Path
 
+from _test_process_bootstrap import configure_qml_test_process
+
+configure_qml_test_process()
+
 from PySide6.QtCore import QUrl, QTimer, QEventLoop
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression

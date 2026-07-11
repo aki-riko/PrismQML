@@ -1,6 +1,7 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """真机路径懒加载复现 — 经完整 WindowsBar 链路, 而非顶层 StackedWidget。
 
 为什么需要这个: test_lazy_reload.py 直接实例化顶层 StackedWidget, 但真机
@@ -17,6 +18,10 @@
 """
 import sys
 from pathlib import Path
+
+from _test_process_bootstrap import configure_qml_test_process
+
+configure_qml_test_process()
 
 from PySide6.QtCore import QUrl, QTimer, QEventLoop
 from PySide6.QtWidgets import QApplication

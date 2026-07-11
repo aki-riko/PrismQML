@@ -5,12 +5,18 @@
 """App input focus regression tests. App 输入焦点回归测试。"""
 
 import os
+import runpy
 import subprocess
 import sys
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+TEST_PROCESS = runpy.run_path(str(REPO_ROOT / "scripts" / "test_process.py"))
+configure_automated_test_process = TEST_PROCESS["configure_automated_test_process"]
+
+configure_automated_test_process()
+
 CHILD_ARGUMENT = "--input-focus-child"
 QML = b"""
 import QtQuick
@@ -128,9 +134,6 @@ def _verify_click_flow(window, card, text_input) -> None:
 def _run_child() -> int:
     """Run the regression in a fresh QApplication process. 在全新进程中验证。"""
     sys.path.insert(0, str(REPO_ROOT))
-    from scripts.test_process import configure_automated_test_process
-
-    configure_automated_test_process()
     from prismqml import App
     import prismqml.python.core.input_focus_filter as focus_filter_module
 

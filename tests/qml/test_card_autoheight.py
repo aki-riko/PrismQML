@@ -1,6 +1,7 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Card autoHeight 回归测试 — 普通卡片可选地跟随内容自撑。
 
 背景: Card 默认高度固定(Enums.controlSize.cardHeight=64), 内容超出会溢出/重叠。
@@ -22,6 +23,10 @@
 import sys
 import tempfile
 from pathlib import Path
+
+from _test_process_bootstrap import configure_qml_test_process
+
+configure_qml_test_process()
 
 from PySide6.QtCore import QUrl, QTimer, QEventLoop
 from PySide6.QtGui import QGuiApplication

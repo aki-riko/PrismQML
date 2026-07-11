@@ -1,6 +1,7 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Splash 默认挂载回归 — 验证 Window 默认创建启动画面并可关闭。
 
 背景: PrismQML 框架(NavigationWindowCore)早有 _splashInstance + 首屏就绪
@@ -19,8 +20,9 @@ import os
 import sys
 from pathlib import Path
 
-# headless 离屏渲染,无需真实显示器
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+from _test_process_bootstrap import configure_qml_test_process
+
+configure_qml_test_process()
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
