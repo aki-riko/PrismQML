@@ -10,7 +10,7 @@ import "../icons"
 Item {
     id: control
 
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int size: Enums.controlSize.closeButtonSize
     property int iconSizeValue: Enums.iconSize.s
     property color normalIconColor: Enums.textColor.secondary
@@ -18,16 +18,16 @@ Item {
     property color hoverBgColor: Enums.stateColor.transparentHover  // Hover background 悬浮背景色
     property color pressedBgColor: Enums.stateColor.transparentPressed  // Pressed background 按下背景色
     
-    // Button compatibility compatibility 按钮兼容性属性
+    // Button compatibility properties 按钮兼容属性
     property alias icon: iconItem.icon
     
-    // ==================== State 状态 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
 
     // ==================== Signals 信号 ====================
     signal clicked()
-    // 不能命名为 pressed, 会与上方 `property bool pressed` 同名被遮蔽; 外部用 onButtonPressed
+    // "pressed" would collide with the readonly property; consumers use onButtonPressed “pressed” 会与只读属性冲突，外部使用 onButtonPressed
     signal buttonPressed()
     signal released()
 
@@ -35,7 +35,8 @@ Item {
     width: size
     height: size
 
-    // ==================== Background 背景 ====================
+    // ==================== Content 内容 ====================
+    // Background 背景
     Rectangle {
         anchors.fill: parent
         radius: control.width / 2
@@ -43,7 +44,7 @@ Item {
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
 
-    // ==================== Icon 图标 ====================
+    // Icon 图标
     Icon {
         id: iconItem
         anchors.centerIn: parent
@@ -53,7 +54,7 @@ Item {
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
 
-    // ==================== Interaction 交互 ====================
+    // Interaction 交互
     MouseArea {
         id: mouseArea
         anchors.fill: parent

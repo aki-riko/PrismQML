@@ -18,7 +18,8 @@ Item {
     required property bool showProgress
     required property real parentRadius
     
-    // ==================== Color Helper (same as ButtonContent ring) 颜色辅助 ====================
+    // ==================== Readonly State 只读状态 ====================
+    // Color helpers shared with the ButtonContent ring 与 ButtonContent 圆环一致的颜色辅助
     // Primary/Filled/Gradient uses foreground color (white) Primary/Filled/Gradient使用前景色（白色）
     readonly property bool _useForegroundColor: style === Enums.button.style_primary ||
                                                 style === Enums.button.style_filled ||
@@ -31,7 +32,8 @@ Item {
     anchors.bottom: parent.bottom
     height: Enums.border.thick
     
-    // ==================== Progress Bar 进度条 ====================
+    // ==================== Content 内容 ====================
+    // Progress bar 进度条
     Item {
         id: progressBar
         anchors.fill: parent
@@ -55,7 +57,7 @@ Item {
         }
     }
     
-    // ==================== Indeterminate Progress Bar 不确定进度条 ====================
+    // Indeterminate progress bar 不确定进度条
     Item {
         id: indeterminateBar
         anchors.fill: parent
