@@ -266,11 +266,11 @@ Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur
 ## 🧪 测试
 
 ```bash
-python -m pytest tests/ -v
-python -X utf8 tests/qml/probe_all_components.py
+python scripts/test_process.py --qt-platform offscreen --timeout 300 -- python -m pytest tests/ -v
+python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python -X utf8 tests/qml/probe_all_components.py
 ```
 
-pytest 与 QML probe 在调用者未显式指定 Qt 平台时默认使用 `offscreen`，不会创建可见测试窗口；显式平台覆盖仍会保留。单独运行标注为手工窗口测试的脚本仍可能显示 UI。C++/CTest 的真实 Windows Mica 验证说明见 [`cpp/README.md`](cpp/README.md#运行测试)。
+自动化 pytest 与 QML probe 始终强制使用 `offscreen`，调用者已有的 `windows` / `minimal` 等平台值也会被覆盖。`test_process.py` 还会禁止原生错误 UI，并在超时后清理完整进程树；请勿绕过该 runner 裸跑自动化测试。单独运行标注为手工窗口测试的脚本仍可能显示 UI。C++/CTest 的真实 Windows Mica 验证说明见 [`cpp/README.md`](cpp/README.md#运行测试)。
 
 ## 📄 License
 

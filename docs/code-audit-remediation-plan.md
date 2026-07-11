@@ -108,8 +108,8 @@ P1、P2、P3 可以在不同提交中并行设计，但 P6/P7 的大规模整理
 ```powershell
 git status --short
 git rev-parse HEAD
-.\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe tests\qml\probe_all_components.py
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
 ctest --test-dir cpp\build -N
 cargo test --manifest-path rust\Cargo.toml
 ```
@@ -167,6 +167,8 @@ P1 零交互门禁加固已完成：用户反馈测试会连续弹窗后，Windo
 统一启动器现在采用 Windows 两阶段策略：launcher 以可继承的 `ErrorMode=0x8003` 覆盖进入测试 bootstrap 前的 DLL/崩溃框，实际自动化进程随后切换到 `ErrorMode=0x8001` 与 WER flags `0x22`，禁止 UI 但保留排队报告；Windows `taskkill /T /F` 清树失败时返回 125 而不谎报普通 timeout 124，POSIX 则持续检查完整 pgid 并在宽限后发送 `SIGKILL`。pytest、QML probe、覆盖率入口、Qt 子进程、CTest、wheel/sdist 首次原生导入均接入保护；Build All 三平台运行 launcher 回归，并新增 Windows 全量源码 Python/QML job。旧的可视窗口/FPS 独立脚本仍属于人工入口，不计入自动门禁。
 
 同一实现的最终验证为：launcher `13 passed / 1 POSIX-only skipped`，全量 Python `184 passed / 1 POSIX-only skipped`，QML `169/0/12`，headless CTest `6/6`，Windows native Mica `1/1`，调用者 PATH 去除 Qt/PySide 后历史失败目标 `1/1`。每轮对比 Windows `Event 26`、`Application Error 1000`、`Windows Error Reporting 1001` 与 `%LOCALAPPDATA%\CrashDumps`，新增均为 0。提交：`ce9e0a0`。
+
+P1 独立入口补强已完成：AST 门禁以 16 个带主入口且实际导入 PySide6 的自动 Qt 脚本为权威集合，要求可信 bootstrap 在最早 PySide6 import 前顶层执行且不得被重绑定；13 个独立 QML 回归入口进入逐进程运行矩阵，`probe_all_components.py`、input focus 与 provider lifecycle 继续由各自专项运行门禁覆盖。运行矩阵向子进程传入无效平台哨兵并让 runner 使用 `--qt-platform inherit`，正常入口必须自行覆盖为 `offscreen`，bootstrap 回退时也不会启动真实可视平台；`probe_neo_skin.py` 的源码树直接运行路径同时补齐。定向入口 `19/19`、全量 Python `210 passed / 1 skipped`、QML `169/0/12`、headless CTest `6/6`、changed scanner 0 以及 Event 26/1000/1001 与 CrashDump 零新增均通过。提交：`75ef786`、`383dbeb`。
 
 ### P2：修复 sdist 并建立发布制品门禁
 
@@ -382,8 +384,8 @@ P6C4 已完成：MatrixRain 的 17 套、51 个固定视觉预设色集中到唯
 每批验收：
 
 ```powershell
-.\.venv\Scripts\python.exe tests\qml\probe_all_components.py
-.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest
 git diff --check
 ```
 
@@ -521,7 +523,7 @@ git diff --check
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
 | P0 基线固化 | 已完成 | 固化审计输入与 12 个合法 QML skip；当前回归基线为 Python 122、QML 169/0/12、CTest 7/7 | `1dd7e9a2` |
-| P1 CTest 与 C++ CI | 已完成 | 历史 68 条 DLL 弹窗与 3 次错误生命周期原生崩溃已追溯；统一 runner 覆盖 Python/QML/C++/制品入口。当前 Python 184/1、QML 169/0/12、headless CTest 6/6、Windows native 1/1、无 Qt/PySide PATH 历史目标 1/1；各轮 Event 26/1000/1001 与 dump 增量均为 0；Build All [29151143046](https://github.com/aki-riko/PrismQML/actions/runs/29151143046) 的 QML conventions、Windows 零交互门禁、三平台桌面、Android 与 iOS 共 7 个作业全绿，Deploy Docs [29151142967](https://github.com/aki-riko/PrismQML/actions/runs/29151142967) 成功 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f`、`ce9e0a0`、`5c290a93` |
+| P1 CTest 与 C++ CI | 已完成 | 历史 68 条 DLL 弹窗与 3 次错误生命周期原生崩溃已追溯；统一 runner 覆盖 Python/QML/C++/制品入口。最新补强扫描 16 个自动 Qt 主入口，13 个独立 QML 入口持续运行；Python 210/1、QML 169/0/12、headless CTest 6/6、Windows native 1/1、无 Qt/PySide PATH 历史目标 1/1，各轮 Event 26/1000/1001 与 dump 增量均为 0；Build All [29151143046](https://github.com/aki-riko/PrismQML/actions/runs/29151143046) 的 QML conventions、Windows 零交互门禁、三平台桌面、Android 与 iOS 共 7 个作业全绿，Deploy Docs [29151142967](https://github.com/aki-riko/PrismQML/actions/runs/29151142967) 成功 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f`、`ce9e0a0`、`5c290a93`、`75ef786`、`383dbeb` |
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
