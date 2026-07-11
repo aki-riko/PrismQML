@@ -21,28 +21,28 @@ Rectangle {
     property string code: ""
     property string language: ""
 
-    color: "#1E1E1E"
+    color: Enums.codeBlockColors.background
     radius: Enums.radius.small
-    border.color: Qt.rgba(1, 1, 1, 0.08)
-    border.width: 1
+    border.color: Enums.codeBlockColors.border
+    border.width: Enums.border.thin
 
-    implicitWidth: 400
-    implicitHeight: codeText.implicitHeight + headerRow.height + 16
+    implicitWidth: Enums.controlSize.codeBlockDefaultWidth
+    implicitHeight: codeText.implicitHeight + headerRow.height + Enums.spacing.xl
 
     Item {
         id: headerRow
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 8
-        height: 24
+        anchors.margins: Enums.spacing.m
+        height: Enums.controlSize.codeBlockHeaderHeight
 
         Text {
             id: langLabel
             text: control.language
-            color: "#9CA3AF"
+            color: Enums.codeBlockColors.secondaryText
             font.family: Enums.fontFamily
-            font.pixelSize: 11
+            font.pixelSize: Enums.typography.captionCompact
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             visible: control.language !== ""
@@ -50,8 +50,8 @@ Rectangle {
 
         MouseArea {
             id: copyBtn
-            width: 50
-            height: 22
+            width: Enums.controlSize.codeBlockCopyButtonWidth
+            height: Enums.controlSize.codeBlockCopyButtonHeight
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             cursorShape: Qt.PointingHandCursor
@@ -59,22 +59,22 @@ Rectangle {
 
             Rectangle {
                 anchors.fill: parent
-                radius: 4
-                color: copyBtn.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                radius: Enums.radius.small
+                color: copyBtn.containsMouse ? Enums.codeBlockColors.hover : Enums.transparent
 
                 Text {
                     anchors.centerIn: parent
                     text: copyBtn._copied ? "已复制" : "复制"
-                    color: copyBtn._copied ? "#10B981" : "#9CA3AF"
+                    color: copyBtn._copied ? Enums.codeBlockColors.copySuccess : Enums.codeBlockColors.secondaryText
                     font.family: Enums.fontFamily
-                    font.pixelSize: 11
+                    font.pixelSize: Enums.typography.captionCompact
                 }
             }
 
             property bool _copied: false
             Timer {
                 id: copiedTimer
-                interval: 1500
+                interval: Enums.duration.copyFeedback
                 onTriggered: copyBtn._copied = false
             }
 
@@ -101,15 +101,15 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        anchors.bottomMargin: 8
-        anchors.topMargin: 4
+        anchors.leftMargin: Enums.spacing.l
+        anchors.rightMargin: Enums.spacing.l
+        anchors.bottomMargin: Enums.spacing.m
+        anchors.topMargin: Enums.spacing.xs
 
         text: control.code
-        color: "#E5E7EB"
+        color: Enums.codeBlockColors.foreground
         font.family: Enums.fontMonospace
-        font.pixelSize: 12
+        font.pixelSize: Enums.typography.caption
         wrapMode: Text.Wrap
         textFormat: Text.PlainText
     }

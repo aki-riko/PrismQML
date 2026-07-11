@@ -120,7 +120,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         type: Enums.label.type_caption
         text: control.shortcut
-        font.pixelSize: Enums.typography.caption - 1
+        font.pixelSize: Enums.typography.captionCompact
         color: Enums.stateColor.textMedium
         visible: control.shortcut !== "" && !control._isBottomText && !control.hasSubmenu
     }

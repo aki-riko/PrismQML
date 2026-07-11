@@ -176,7 +176,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         y: Enums.controlSize.topNavItemHeight - Enums.spacing.xxs
         text: control.text
-        font.pixelSize: Enums.typography.caption - 1
+        font.pixelSize: Enums.typography.captionCompact
         horizontalAlignment: Text.AlignHCenter
         
         color: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary

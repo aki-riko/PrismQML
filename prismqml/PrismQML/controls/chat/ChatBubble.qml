@@ -4,7 +4,7 @@
 
 import QtQuick
 import QtQuick.Effects
-import "../../.."
+import "../.."
 import "../../effects"
 import "../icons"
 import "../data/Avatar"
@@ -34,7 +34,7 @@ Item {
     property string content: ""
     property string reasoning: ""             // 思考链文本 (推理模型,仅助手消息)
     property string timestamp: ""
-    property int maxBubbleWidth: 600
+    property int maxBubbleWidth: Enums.controlSize.chatContentMaxWidth
     property string avatarText: ""
     property url avatarSource: ""
     property bool showAvatar: true

@@ -298,7 +298,7 @@ Item {
                                                 text: _tvDelegate.modelData.status
                                                 color: _tvDelegate.modelData.status === "启用"
                                                        ? "#1fa84d" : "#c93c3c"
-                                                font.pixelSize: 11
+                                                font.pixelSize: Fluent.Enums.typography.captionCompact
                                             }
                                         }
                                     }

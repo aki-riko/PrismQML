@@ -131,7 +131,7 @@ readonly property QtObject button: QtObject {
 
 ### 3.5 字体等级（Fluent Design Typography）
 
-`Enums.typography.{level}`：caption(12) / bodySmall(13) / body(14) / bodyLarge(15) / subtitle(16) / title(18) / titleLarge(20) / display(24) / displayLarge(28) / metric(32) / hero(36) / giant(40) / mega(68)
+`Enums.typography.{level}`：captionCompact(11，项目紧凑扩展) / caption(12) / bodySmall(13) / body(14) / bodyLarge(15) / subtitle(16) / title(18) / titleLarge(20) / display(24) / displayLarge(28) / metric(32) / hero(36) / giant(40) / mega(68)
 
 ```qml
 Text {

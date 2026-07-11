@@ -292,6 +292,16 @@ QtObject {
         readonly property color strong: root.isNeo ? neoColors.foreground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.strong))
         readonly property color pressed: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.pressedLight)
     }
+
+    // Fixed code-block palette 固定代码块色板
+    readonly property QtObject codeBlockColors: QtObject {
+        readonly property color background: "#1E1E1E"
+        readonly property color border: Qt.rgba(1, 1, 1, 0.08)
+        readonly property color secondaryText: "#9CA3AF"
+        readonly property color hover: Qt.rgba(1, 1, 1, 0.1)
+        readonly property color copySuccess: "#10B981"
+        readonly property color foreground: "#E5E7EB"
+    }
     
     // ==================== ChartColors 图表颜色 (Fluent Design) ====================
     readonly property QtObject chartColors: QtObject {

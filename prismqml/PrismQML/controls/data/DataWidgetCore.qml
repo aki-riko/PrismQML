@@ -452,7 +452,7 @@ Rectangle {
                     anchors.centerIn: parent
                     type: Enums.label.type_caption
                     text: footerText ? footerText.replace("{count}", itemCount) : Enums.trCount("total_items", itemCount)
-                    font.pixelSize: Enums.typography.caption - 1
+                    font.pixelSize: Enums.typography.captionCompact
                     color: secondaryColor
                 }
             }

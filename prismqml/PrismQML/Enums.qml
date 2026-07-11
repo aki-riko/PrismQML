@@ -189,6 +189,7 @@ Item {
     readonly property alias demoPalette: _constants.demoPalette
     readonly property alias themeColors: _constants.themeColors
     readonly property alias textColor: _constants.textColor
+    readonly property alias codeBlockColors: _constants.codeBlockColors
     readonly property alias chartColors: _constants.chartColors
     readonly property alias confettiColors: _constants.confettiColors
     readonly property alias colorPickerDefaults: _constants.colorPickerDefaults

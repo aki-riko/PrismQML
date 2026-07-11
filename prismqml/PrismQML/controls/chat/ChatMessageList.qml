@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
 
-import "../../.."
+import "../.."
 import "."
 import "../containers/ScrollBar"
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
@@ -32,7 +32,7 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 Item {
     id: control
 
-    property int maxBubbleWidth: 600
+    property int maxBubbleWidth: Enums.controlSize.chatContentMaxWidth
     property string assistantAvatarText: ""
     property url assistantAvatarSource: ""
     property bool showAssistantAvatar: true

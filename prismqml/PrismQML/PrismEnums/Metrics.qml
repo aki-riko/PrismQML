@@ -56,6 +56,7 @@ QtObject {
  readonly property int marquee: 1000 // Marquee pause 跑马灯暂停
  readonly property int chart: 500 // Chart animation 图表动画
  readonly property int progressComplete: 1500 // Progress complete display 进度完成后显示时长
+ readonly property int copyFeedback: 1500 // Clipboard copy feedback display 复制反馈显示时长
  // Indeterminate progress timings 不确定进度时长
  readonly property int progressLoop: 2000 // Single bar loop cycle 单条循环周期
  readonly property int emptyFloat: 1500 // Empty state float animation 空状态浮动动画
@@ -230,6 +231,12 @@ QtObject {
  readonly property int tooltipHeight: 28 // Tooltip height
  readonly property int toastWidth: 360 // Toast width
  readonly property int toastHeight: 80 // Toast height
+ // Chat controls 聊天控件
+ readonly property int chatContentMaxWidth: 600 // Shared chat content width 聊天内容共享最大宽度
+ readonly property int codeBlockDefaultWidth: 400 // Code block default width 代码块默认宽度
+ readonly property int codeBlockHeaderHeight: 24 // Code block header height 代码块标题栏高度
+ readonly property int codeBlockCopyButtonWidth: 50 // Code block copy button width 代码块复制按钮宽度
+ readonly property int codeBlockCopyButtonHeight: 22 // Code block copy button height 代码块复制按钮高度
  // Container controls 容器控件
  readonly property int cardWidth: 400 // Card default width
  readonly property int cardContentWidth: 300 // Card content area width (cardWidth - icon/padding area) 卡片内容区域宽度
@@ -602,6 +609,7 @@ QtObject {
  readonly property QtObject typography: QtObject {
  readonly property int tiny: 8 // Timeline card icon text 时间线卡片图标文字
  readonly property int micro: 10 // Timeline icon text 时间线图标文字
+ readonly property int captionCompact: 11 // Compact caption text 紧凑说明文字
  readonly property int caption: 12
  readonly property int bodySmall: 13
  readonly property int body: 14

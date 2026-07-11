@@ -4,7 +4,7 @@
 
 import QtQuick
 import QtQuick.Layouts
-import "../../.."
+import "../.."
 import "."
 
 /**
@@ -28,7 +28,7 @@ Item {
     property color linkColor: Enums.accentColor
 
     implicitHeight: contentColumn.implicitHeight
-    implicitWidth: parent ? parent.width : 600
+    implicitWidth: parent ? parent.width : Enums.controlSize.chatContentMaxWidth
 
     // ==================== Block 解析 ====================
     // 把 markdown 按 ``` 分段:奇数段是代码块,偶数段是普通文本
@@ -83,7 +83,7 @@ Item {
     ColumnLayout {
         id: contentColumn
         width: parent.width
-        spacing: 8
+        spacing: Enums.spacing.m
 
         Repeater {
             model: control._blocks
@@ -104,7 +104,7 @@ Item {
                         textFormat: Text.MarkdownText
                         wrapMode: Text.WordWrap
                         font.family: Enums.fontFamily
-                        font.pixelSize: 14
+                        font.pixelSize: Enums.typography.body
                         onLinkActivated: (url) => Qt.openUrlExternally(url)
                     }
                 }

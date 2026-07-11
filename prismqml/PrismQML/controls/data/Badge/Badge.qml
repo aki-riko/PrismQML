@@ -85,7 +85,7 @@ Rectangle {
                 return ""
             }
             font.family: Enums.fontFamily
-            font.pixelSize: Enums.typography.caption - 1
+            font.pixelSize: Enums.typography.captionCompact
             font.weight: Font.Medium
             color: control._contentColor
             visible: control._showText || control._showCount
