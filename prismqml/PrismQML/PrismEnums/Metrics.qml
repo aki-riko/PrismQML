@@ -45,6 +45,7 @@ QtObject {
  readonly property int elevation: 250 // Shadow elevation transition 阴影升降
  readonly property int spring: 350 // Spring/elastic animation 弹性动画
  // Tip/Popup animation durations Tip/弹出动画时长
+ readonly property int tooltipShowDelay: 500 // Default Widget tooltip delay Widget 工具提示默认延迟
  readonly property int tipShow: 200 // TipPopup show animation 提示显示动画
  readonly property int tipArrow: 180 // TipPopup arrow animation 提示箭头动画
  readonly property int tipHide: 125 // TipPopup hide animation 提示隐藏动画

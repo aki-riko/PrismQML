@@ -5,54 +5,41 @@
 import QtQuick.Layouts
 import QtQuick.Controls
 import "../.."
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
-import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
+import QtQuick  // Keep native types unprefixed after library imports 库导入后保留无前缀原生类型
+import QtQuick.Window  // Keep native Window unprefixed after library imports 库导入后保留无前缀原生 Window
 
 // Widget - Base component for all PrismQML widgets 所有PrismQML组件的基类
 Item {
     id: widget
 
-    // ==================== Background 背景 ====================
+    // ==================== Public Props 公开属性 ====================
+    // Background 背景
     property color backgroundColor: Enums.transparent
     property real backgroundRadius: 0
     property bool centerContent: false  // Center children 子组件居中
 
-    clip: false  // Allow tooltip to overflow 允许tooltip溢出显示
-
-    // ==================== Size Priority System 尺寸优先级系统 ====================
+    // Size priority system 尺寸优先级系统
     property real preferredWidth: 0
     property real preferredHeight: 0
     property real contentWidth: 0
     property real contentHeight: 0
 
-    implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
-    implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
-    
-    // When preferredWidth/Height is set, also set width/height for child components 当设置preferredWidth/Height时，同时设置width/height供子组件使用
-
-    // If no explicit size and parent exists, fill parent width 如果没有显式尺寸且有父容器，填充父容器宽度
-    width: preferredWidth > 0 ? preferredWidth : (contentWidth > 0 ? contentWidth : (parent ? parent.width : 0))
-    height: preferredHeight > 0 ? preferredHeight : (contentHeight > 0 ? contentHeight : implicitHeight)
-    
-    // ==================== Layout attached properties 布局附加属性 ====================
+    // Layout attached properties 布局附加属性
     // Allow parent layout to control fill behavior 允许父布局控制填充行为
     property bool layoutFillWidth: true
     property bool layoutFillHeight: false
-    Layout.fillWidth: layoutFillWidth
-    Layout.fillHeight: layoutFillHeight
 
-    // ==================== ToolTip Support 工具提示支持 ====================
+    // Tooltip support 工具提示支持
     property string toolTipText: ""
-    property int toolTipDuration: -1
-    property int toolTipShowDelay: 500
-    property int toolTipHideDelay: 0
+    property int toolTipDuration: Enums.duration.persistent
+    property int toolTipShowDelay: Enums.duration.tooltipShowDelay
+    property int toolTipHideDelay: Enums.duration.none
 
     // ==================== Public Methods 公开方法 ====================
     // Public methods for tooltip control 公开的tooltip控制方法
     function showToolTip() { if (toolTipText !== "") _toolTip.show() }
     function hideToolTip() { _toolTip.hide() }
 
-    // ==================== Widget Methods 组件方法 ====================
     // setParent - Reparent this widget to a new parent 重新设置父组件
     function setParent(newParent) {
         if (newParent && newParent !== widget.parent) {
@@ -74,6 +61,25 @@ Item {
         }
     }
 
+    clip: false  // Allow tooltip to overflow 允许tooltip溢出显示
+
+    // ==================== Size 尺寸 ====================
+    implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
+    implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
+
+    // If no explicit size and parent exists, fill parent width 如果没有显式尺寸且有父容器，填充父容器宽度
+    width: preferredWidth > 0 ? preferredWidth : (contentWidth > 0 ? contentWidth : (parent ? parent.width : 0))
+    height: preferredHeight > 0 ? preferredHeight : (contentHeight > 0 ? contentHeight : implicitHeight)
+
+    Layout.fillWidth: layoutFillWidth
+    Layout.fillHeight: layoutFillHeight
+
+    // Center first child when centerContent is true 当centerContent为true时居中第一个子组件
+    onChildrenChanged: if (centerContent) _centerChildrenDelayed.start()
+    onCenterContentChanged: if (centerContent) _centerChildrenDelayed.start()
+
+    // ==================== Content 内容 ====================
+
     Rectangle {
         id: _background
         objectName: "_background"
@@ -82,11 +88,7 @@ Item {
         radius: widget.backgroundRadius
         visible: widget.backgroundColor.a > 0
     }
-    
-    // Center first child when centerContent is true 当centerContent为true时居中第一个子组件
-    onChildrenChanged: if (centerContent) _centerChildrenDelayed.start()
-    onCenterContentChanged: if (centerContent) _centerChildrenDelayed.start()
-    
+
     Timer {
         id: _centerChildrenDelayed
         interval: Enums.duration.tick
@@ -94,8 +96,7 @@ Item {
             for (var i = 0; i < widget.children.length; i++) {
                 var child = widget.children[i]
                 if (child && child.objectName !== "_background" && child.objectName !== "_toolTip" && child.objectName !== "_hoverArea" && child.objectName !== "_centerChildrenDelayed") {
-                    // Use x/y positioning instead of anchors for compatibility 使用x/y定位替代anchors以兼容各种组件
-
+                    // Center through anchors for broad child compatibility 使用 anchors 居中以兼容不同子组件
                     child.anchors.centerIn = widget
                     break
                 }
@@ -103,71 +104,14 @@ Item {
         }
     }
 
-    // ==================== ToolTip Support 工具提示支持 ====================
-
-    // Inline ToolTip 内联ToolTip
-
-    // Reparent to Window.contentItem for proper z-order (like PopupWindowCore) 挂载到Window.contentItem以正确显示层级（类似PopupWindowCore）
-
+    // Window-backed tooltip avoids parent clipping and preserves popup z-order 独立窗口工具提示避免父级裁剪并保持弹出层级
     Popup {
         id: _toolTip
-        objectName: "_toolTip"
 
-        // 落到独立 OS 窗口,跨 Window 边界显示,不被父 Window 裁剪
-        // (Qt 6.7+ 支持;便签等浮窗顶部空间小,tooltip 越界会被裁)
-        popupType: Popup.Window
-
-        // 允许超出窗口边界
-        margins: -1
-        padding: Enums.spacing.none
-        closePolicy: Popup.NoAutoClose
-        clip: false
-        
-        // TextMetrics 不在 contentItem 中，不受懒加载影响
-        TextMetrics {
-            id: _tooltipMetrics
-            text: widget.toolTipText
-            font.pixelSize: Enums.typography.caption
-            font.family: Enums.fontFamily
-        }
-        
-        width: _tooltipMetrics.width + Enums.spacing.xxxl
-        height: Enums.controlSize.tooltipHeight
-        
-        background: Rectangle {
-            radius: Enums.radius.small
-            color: Enums.cardColor
-            // 描边: 用 borderStrong (而非 borderLight),避免在浅色背景上几乎不可见
-            border.width: Enums.border.thin
-            border.color: Enums.stateColor.borderStrong
-        }
-        
-        contentItem: Item {
-            Text {
-                id: _tooltipText
-                anchors.centerIn: parent
-                text: widget.toolTipText
-                font.pixelSize: Enums.typography.caption
-                color: Enums.foregroundColor
-            }
-        }
-
-        enter: Transition {
-            ParallelAnimation {
-                NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: Enums.duration.normal }
-                NumberAnimation { property: "scale"; from: 0.8; to: 1.0; duration: Enums.duration.normal; easing.type: Easing.OutBack }
-            }
-        }
-        
-        exit: Transition {
-            ParallelAnimation {
-                NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: Enums.duration.normal }
-                NumberAnimation { property: "scale"; from: 1.0; to: 0.8; duration: Enums.duration.normal }
-            }
-        }
-        
+        // ==================== Internal Props 内部属性 ====================
         property bool _pendingShow: false
-        
+
+        // ==================== Internal Methods 内部方法 ====================
         function show() {
             _pendingShow = true
             x = (widget.width - _toolTip.width) / 2
@@ -182,19 +126,74 @@ Item {
             if (!_pendingShow) return
             _toolTip.open()
         }
+
+        objectName: "_toolTip"
+
+        // Use a separate OS window to cross Window bounds without clipping 使用独立 OS 窗口跨越 Window 边界且不被裁剪
+        // Qt 6.7+ supports this path for compact floating windows Qt 6.7+ 支持紧凑浮窗使用此路径
+        popupType: Popup.Window
+
+        // Allow the popup to exceed window bounds 允许弹窗超出窗口边界
+        margins: -1
+        padding: Enums.spacing.none
+        closePolicy: Popup.NoAutoClose
+        clip: false
+
+        width: _tooltipMetrics.width + Enums.spacing.xxxl
+        height: Enums.controlSize.tooltipHeight
+
+        background: Rectangle {
+            radius: Enums.radius.small
+            color: Enums.cardColor
+            // Use borderStrong so the outline stays visible on light backgrounds 使用 borderStrong 保持浅色背景上的描边可见
+            border.width: Enums.border.thin
+            border.color: Enums.stateColor.borderStrong
+        }
+
+        contentItem: Item {
+            Text {
+                id: _tooltipText
+                anchors.centerIn: parent
+                text: widget.toolTipText
+                font.pixelSize: Enums.typography.caption
+                color: Enums.foregroundColor
+            }
+        }
+        enter: Transition {
+            ParallelAnimation {
+                NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: Enums.duration.normal }
+                NumberAnimation { property: "scale"; from: 0.8; to: 1.0; duration: Enums.duration.normal; easing.type: Easing.OutBack }
+            }
+        }
+        exit: Transition {
+            ParallelAnimation {
+                NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: Enums.duration.normal }
+                NumberAnimation { property: "scale"; from: 1.0; to: 0.8; duration: Enums.duration.normal }
+            }
+        }
+
+        // Keep metrics outside contentItem so lazy content does not affect them 将度量对象置于 contentItem 外避免受懒加载影响
+        TextMetrics {
+            id: _tooltipMetrics
+            text: widget.toolTipText
+            font.pixelSize: Enums.typography.caption
+            font.family: Enums.fontFamily
+        }
     }
 
     // Hover detection 悬停检测
     MouseArea {
         id: _hoverArea
+
+        // ==================== Internal Props 内部属性 ====================
+        property bool _showScheduled: false
+
         objectName: "_hoverArea"
         anchors.fill: parent
         hoverEnabled: widget.toolTipText !== ""
         acceptedButtons: Qt.NoButton
         propagateComposedEvents: true
-        
-        property bool _showScheduled: false
-        
+
         onEntered: {
             if (widget.toolTipText !== "") {
                 _showScheduled = true
