@@ -164,11 +164,37 @@ P1 早期后续回归已完成：pytest 与全组件 probe 在导入 PySide6 前
 
 P1 零交互门禁加固已完成：用户反馈测试会连续弹窗后，Windows 事件日志确认共有 68 条 `Application Popup / Event 26`，来自 6 个 `prism_test_*.exe`，缺失项为 `Qt6Quick.dll`、`Qt6Sql.dll`、`Qt6Svg.dll`、`Qt6Widgets.dll`；另确认 3 次本仓 Python 原生崩溃（`Qt6Core.dll / 0xc0000409` 一次、`ntdll.dll / 0xc0000374` 两次）。后者来自诊断临时脚本先创建 `QQmlEngine`、后创建 `QApplication`，并向短命引擎注入完整 `register_types()` 的错误生命周期，不能当作产品代码已修复的证据。
 
-统一启动器现在采用 Windows 两阶段策略：launcher 以可继承的 `ErrorMode=0x8003` 覆盖进入测试 bootstrap 前的 DLL/崩溃框，实际自动化进程随后切换到 `ErrorMode=0x8001` 与 WER flags `0x22`，禁止 UI 但保留排队报告；Windows `taskkill /T /F` 清树失败时返回 125 而不谎报普通 timeout 124，POSIX 则持续检查完整 pgid 并在宽限后发送 `SIGKILL`。pytest、QML probe、覆盖率入口、Qt 子进程、CTest、wheel/sdist 首次原生导入均接入保护；Build All 三平台运行 launcher 回归，并新增 Windows 全量源码 Python/QML job。旧的可视窗口/FPS 独立脚本仍属于人工入口，不计入自动门禁。
+`ce9e0a0` 当时采用 Windows 两阶段策略：launcher 以可继承的 `ErrorMode=0x8003` 覆盖进入测试 bootstrap 前的 DLL/崩溃框，实际自动化进程随后切换到 `ErrorMode=0x8001` 与 WER flags `0x22`；Windows `taskkill /T /F` 清树失败时返回 125 而不谎报普通 timeout 124，POSIX 则持续检查完整 pgid 并在宽限后发送 `SIGKILL`。pytest、QML probe、覆盖率入口、Qt 子进程、CTest、wheel/sdist 首次原生导入均接入保护；Build All 三平台运行 launcher 回归，并新增 Windows 全量源码 Python/QML job。旧的可视窗口/FPS 独立脚本仍属于人工入口，不计入自动门禁。
 
 同一实现的最终验证为：launcher `13 passed / 1 POSIX-only skipped`，全量 Python `184 passed / 1 POSIX-only skipped`，QML `169/0/12`，headless CTest `6/6`，Windows native Mica `1/1`，调用者 PATH 去除 Qt/PySide 后历史失败目标 `1/1`。每轮对比 Windows `Event 26`、`Application Error 1000`、`Windows Error Reporting 1001` 与 `%LOCALAPPDATA%\CrashDumps`，新增均为 0。提交：`ce9e0a0`。
 
 P1 独立入口补强已完成：AST 门禁以 16 个带主入口且实际导入 PySide6 的自动 Qt 脚本为权威集合，要求可信 bootstrap 在最早 PySide6 import 前顶层执行且不得被重绑定；13 个独立 QML 回归入口进入逐进程运行矩阵，`probe_all_components.py`、input focus 与 provider lifecycle 继续由各自专项运行门禁覆盖。运行矩阵向子进程传入无效平台哨兵并让 runner 使用 `--qt-platform inherit`，正常入口必须自行覆盖为 `offscreen`，bootstrap 回退时也不会启动真实可视平台；`probe_neo_skin.py` 的源码树直接运行路径同时补齐。定向入口 `19/19`、全量 Python `210 passed / 1 skipped`、QML `169/0/12`、headless CTest `6/6`、changed scanner 0 以及 Event 26/1000/1001 与 CrashDump 零新增均通过；Build All [29158555858](https://github.com/aki-riko/PrismQML/actions/runs/29158555858) 的 7 个作业全绿，Deploy Docs [29158555852](https://github.com/aki-riko/PrismQML/actions/runs/29158555852) 成功。提交：`75ef786`、`383dbeb`。
+
+P1 后代错误框止血已完成：用户再次反馈同一全量测试在桌面连续出现错误弹窗后，真实继承探针确认旧策略下 pytest bootstrap 的直接子进程实际得到 `ErrorMode=0x8001`，`WerGetFlags=0x80070490 / ERROR_NOT_FOUND` 且 flags 为 0；即 `WerSetFlags` 只保护当前进程，而自动化进程主动清除了唯一会由后代继承的 `SEM_NOGPFAULTERRORBOX`。Python launcher/bootstrap 与 C++ `TestProcess.h` 现统一在全生命周期保留 `SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX`（`ErrorMode=0x8003`），C++ 入口额外用 `GetErrorMode()` 自检；当前进程仍设置 WER flags `0x22`，但在 NOGP 优先止血后不再承诺 WER 排队报告一定生成。真实 descendant 回归直接读取并确认继承值；Windows timeout 仍保持 fail-closed，`taskkill` 未确认时返回 125，测试同时确认直接子进程与孙进程 PID 均已消失。最终专项 `13 passed / 1 skipped`、全量 Python `228 passed / 1 skipped`、QML `169/0/12`、MSVC 重编译、headless CTest `6/6`、Windows native Mica `1/1`、changed scanner 0 与 `git diff --check` 全部通过；同一 105 秒真实测试窗口内新增顶层窗口计数为 0，匹配本仓进程的 Event 26/1000/1001 与 CrashDump 均无新增。本结论仅表示该真实入口未再观察到弹窗，不等同于机制级零窗口保证。提交：`1d76047`。
+
+#### P1 后续：Windows 机制级零窗口门禁（待执行）
+
+预期效果：offscreen 自动测试在用户交互桌面出现的窗口数恒为 0；测试 Job 内出现任意未允许的可见顶层 HWND 时在 25–50ms 内记录证据并以独立退出码 126 失败；正常结束或超时后 Job 活跃进程数均归零。
+
+- 难度：8–16 小时
+- 风险：中
+- 前置依赖：当前 P1 止血提交；原生 Mica 必须先验证私有 Desktop 不改变 DWM 语义
+
+执行项：
+
+1. 将 Windows/offscreen 测试放入通过 `CreateDesktopW` 创建的私有 Desktop，绝不调用 `SwitchDesktop`；未知 MessageBox 即使出现也不得进入用户桌面。
+2. 子进程以 `CREATE_SUSPENDED` 启动，先加入 Job Object 再恢复；Job 设置 `KILL_ON_JOB_CLOSE` 与 `DIE_ON_UNHANDLED_EXCEPTION`，创建、分配或恢复失败必须 fail closed。
+3. 通过 `EnumDesktopWindows` 与 Job PID 列表求交，检测 `IsWindowVisible` 且非 DWM cloaked 的顶层 HWND；标题与类名只用于诊断，不作为本地化相关的主过滤条件。
+4. 违规证据至少记录 HWND、PID、进程创建时间、镜像路径、Desktop、title、class、style；发现违规后终止整个 Job 并返回 126。
+5. 正常 root 退出后仍等待 Job active process 数归零，禁止仅在 timeout 路径清理 Qt helper 或孙进程。
+6. Python/C++ bootstrap 补齐 UCRT `_set_error_mode(_OUT_TO_STDERR)`；Debug CRT 的 warn/error/assert 同样定向 stderr，不修改全局 WER、AeDebug 或注册表。
+7. Event 26 按 Caption/Message，Event 1000 按 PID、ProcessCreationTime 与 AppPath，Event 1001 通过 ReportId 联结，CrashDump 按 PID 与时间窗精确归因，禁止只按 `python.exe` basename 判断。
+8. 增加私有 Desktop 安全哨兵：可见 root、隐藏 HWND、grandchild 可见窗口及非 Job unrelated window，分别验证失败、通过、捕获与忽略；全程不得切换到用户桌面或实际制造崩溃。
+9. 原生 Mica 先以 monitor-only 验证私有 Desktop 下的隐藏 HWND、DWM 属性与现有结果一致，再决定是否切换到严格隔离模式。
+
+验收判据：全量 pytest、QML probe、headless CTest 输出 `visible_windows=0 / job_active_processes=0`；安全哨兵覆盖 root/grandchild/hidden/unrelated 四类路径；Windows native Mica 保持 `1/1`；匹配本次 Job 身份的 Event 26/1000/1001 与 CrashDump 增量均为 0。
+
+建议提交：`test: isolate Windows test UI and process trees`
 
 ### P2：修复 sdist 并建立发布制品门禁
 
@@ -539,7 +565,8 @@ git diff --check
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
 | P0 基线固化 | 已完成 | 固化审计输入与 12 个合法 QML skip；当前回归基线为 Python 122、QML 169/0/12、CTest 7/7 | `1dd7e9a2` |
-| P1 CTest 与 C++ CI | 已完成 | 历史 68 条 DLL 弹窗与 3 次错误生命周期原生崩溃已追溯；统一 runner 覆盖 Python/QML/C++/制品入口。最新补强扫描 16 个自动 Qt 主入口，13 个独立 QML 入口持续运行；Python 210/1、QML 169/0/12、headless CTest 6/6、Windows native 1/1、无 Qt/PySide PATH 历史目标 1/1，各轮 Event 26/1000/1001 与 dump 增量均为 0；Build All [29158555858](https://github.com/aki-riko/PrismQML/actions/runs/29158555858) 的 QML conventions、Windows 零交互门禁、三平台桌面、Android 与 iOS 共 7 个作业全绿，Deploy Docs [29158555852](https://github.com/aki-riko/PrismQML/actions/runs/29158555852) 成功 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f`、`ce9e0a0`、`5c290a93`、`75ef786`、`383dbeb` |
+| P1 CTest 与 C++ CI | 已完成 | 历史 68 条 DLL 弹窗与 3 次错误生命周期原生崩溃已追溯；统一 runner 覆盖 Python/QML/C++/制品入口。最新止血让 Python/C++ 自动测试及普通后代持续继承 `ErrorMode=0x8003`；专项 13/1、Python 228/1、QML 169/0/12、MSVC 构建、headless CTest 6/6、Windows native 1/1、changed 0 全绿，同一 105 秒真实测试入口未观察到新增顶层窗口，匹配 Event 26/1000/1001 与 dump 增量为 0；Build All [29158555858](https://github.com/aki-riko/PrismQML/actions/runs/29158555858) 的 QML conventions、Windows 零交互门禁、三平台桌面、Android 与 iOS 共 7 个作业全绿，Deploy Docs [29158555852](https://github.com/aki-riko/PrismQML/actions/runs/29158555852) 成功 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f`、`ce9e0a0`、`5c290a93`、`75ef786`、`383dbeb`、`1d76047` |
+| P1+ Windows 机制级零窗口门禁 | 待执行 | 私有 Desktop、Job Object、HWND 守卫、正常退出清树、UCRT stderr 与精确事件归因尚未实现；当前只完成已知 loader/WER 弹窗止血 |  |
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
