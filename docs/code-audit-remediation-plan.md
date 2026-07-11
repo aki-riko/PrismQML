@@ -322,6 +322,8 @@ P6B 已完成：`Enums.qml` 之外 8 处 `ThemeManager` 直接访问和 8 处局
 
 P6C1 已完成：36 个 QML 文件中的 27 处透明色表达式和 28 处样式数值已等值迁移到现有 `Enums` token；`Widget.qml` 与 `Label.qml` 为保持 changed 门禁同步消除 6 项既有成员顺序违规。Review 发现 `DataWidgetCore.qml` 根对象透明色若单独迁移会在完整成员重排前形成新的顺序违规，因此恢复原值并明确留待 P6D；扫描器漏报的透明表达式、字体、动画、阴影和语义色仍归 P6C2，未宣称 P6C 完成。全量 Python 165、QML `169/0/12`、`LoginWindowLightShadow.qml` 显式 URL 加载、无 Qt/QML 环境与无 Qt PATH 的裸 CTest `7/7`、changed 0 新增违规及 `git diff --check` 均通过。全库基线降至 3,233 项：成员顺序 1,936、分节术语 1,203、硬编码颜色 39、样式数值 48、字体 7。提交：`557930af`。
 
+P6C2a 已完成：`Enums.fontMonospace` 统一转发 Python/C++ `ThemeManager.fontMonospace`，CodeBlock、孤立登录组件和 ColorPicker 的 5 个真实消费者已迁移；删除 Windows-only `colorPickerMetrics.monospaceFontFamily` 与零消费者 `iconFontFamily`。运行时测试复现并修正了 `CodeBlock.qml` 从 `controls/chat` 错误导入 `../../..` 导致四处 `Enums is not defined` 的存量缺陷，同一输入修后 4 个等宽字体对象均使用全局 token。canonical 首选字体在本机从 Consolas 变为 Cascadia Code，明确作为视觉决策接受：仓内真实 `CodeBlock.qml` 文本在 376px 宽下高度 `1815→1722` 且组件随内容自适应，6 位 Hex `46≤68`、ARGB `74≤192`、默认 Login 标题 `126≤400` 均无裁切。Label 仅把注释同步到当前真实 `20/28/40/68` 映射，display 字重仍留待独立视觉决策。全量 Python 168、QML `169/0/12`、孤立登录组件正式注册引擎显式加载、无 Qt PATH CTest `7/7`、changed 0 与 `git diff --check` 通过；一次未带 traceback 的瞬态 `.F` 由同一完整套件 168 项和相关用例 5 个独立新进程复验均未再现。全库基线降至 3,231 项，QML012 `7→5`，剩余为 Timeline 2、CycleWheelPicker 2、Rating 1。提交：`b0d23808`。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -502,7 +504,7 @@ git diff --check
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
-| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移，Review 后将 DataWidgetCore 根对象透明色留待 P6D；Python 165、QML 169/0/12、孤立登录组件显式加载、无 Qt PATH CTest 7/7、changed 0 通过；全库基线 3,233（成员顺序 1,936、分节术语 1,203、颜色 39、数值 48、字体 7） | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af` |
+| P6 QML 规范债务 | 进行中 | 扫描器与 CI 新增违规门禁已建立；P6A 六组 v1.0 前兼容 API 已归零；P6B 的 ThemeManager 直接访问、局部主题代理及 Label 重复常量已归零，neo Mica 开关真实输入通过；P6C1 完成 27 处透明表达式与 28 处样式数值等值迁移；P6C2a 统一全局等宽字体入口、删除两个旧字体 token 并修复 CodeBlock 错误相对 import，QML012 降至 5；Python 168、QML 169/0/12、孤立登录组件显式加载、无 Qt PATH CTest 7/7、changed 0 通过；全库基线 3,231（成员顺序 1,936、分节术语 1,203、颜色 39、数值 48、字体 5） | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808` |
 | P7 Python 规范债务 | 待执行 |  |  |
 | P8 资源注册 | 待执行 |  |  |
 | P9 最终验收 | 待执行 |  |  |
