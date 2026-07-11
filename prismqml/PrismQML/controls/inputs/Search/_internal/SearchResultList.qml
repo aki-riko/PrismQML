@@ -84,8 +84,10 @@ Item {
     implicitHeight: {
         if (isEmpty) return 60
         var displayCount = Math.min(maxSuggestions, hitCount)
-        // ListView spacing=2, padding 上下各 4 (anchors.margins:4)
-        return displayCount * itemHeight + (displayCount - 1) * 2 + 8
+        // Reuse the ListView spacing and margins tokens 复用列表项间距与边距 token
+        return displayCount * itemHeight
+            + (displayCount - 1) * Enums.spacing.xxs
+            + 2 * Enums.spacing.xs
     }
 
     // ==================== HTML 高亮渲染 ====================
@@ -143,7 +145,7 @@ Item {
         ListView {
             id: listView
             anchors.fill: parent
-            anchors.margins: 4
+            anchors.margins: Enums.spacing.xs
             visible: !control.isEmpty
             clip: true
             boundsBehavior: Flickable.StopAtBounds
@@ -153,7 +155,7 @@ Item {
             highlightMoveDuration: Enums.duration.fast
 
             model: control._hits
-            spacing: 2
+            spacing: Enums.spacing.xxs
 
             // 滚动条由父 popup 容器决定 (TipPopup / PopupWindowCore 内部已带)
 
