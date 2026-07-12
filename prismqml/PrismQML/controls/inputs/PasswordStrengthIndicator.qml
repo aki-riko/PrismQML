@@ -16,10 +16,7 @@ Item {
     
     readonly property var strengthColors: Enums.passwordStrengthColors.palette
     readonly property var strengthTexts: ["Very Weak", "Weak", "Fair", "Strong", "Very Strong"]  // Strength texts 强度文本
-    
-    implicitWidth: 200
-    implicitHeight: Enums.controlSize.statusBarHeight
-    
+
     function calculateStrength(pwd) {
         if (!pwd || pwd.length === 0) return 0
         
@@ -40,6 +37,9 @@ Item {
         
         return Math.min(4, Math.max(0, score - 1))
     }
+
+    implicitWidth: 200
+    implicitHeight: Enums.controlSize.statusBarHeight
     
     Row {
         anchors.left: parent.left
