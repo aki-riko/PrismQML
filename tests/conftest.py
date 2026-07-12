@@ -11,15 +11,15 @@ QPixmap。pytest-qt 插件本身会提供同名 ``qapp`` fixture，但当运行�
 ``-p no:pytest-qt`` 禁用插件时，该 fixture 会消失，导致这些测试在 setup
 阶段报 ``fixture 'qapp' not found``（ERROR at setup，而非断言失败）。
 
-这里在 conftest 自定义同名 fixture 后，无论 pytest-qt 是否启用都能拿到
-QApplication，从而让测试套件自包含、运行命令无关。
+pyproject.toml 在加载第三方插件前执行边界引导；这里自定义同名 fixture，
+让统一 runner 入口下的测试套件不依赖 pytest-qt 也能拿到 QApplication。
 """
 
-from scripts.test_process import configure_automated_test_process
+from scripts.test_process import prepare_automated_test_process
 
 # Force automated tests to stay headless and suppress native crash dialogs.
 # 强制自动化测试无界面运行，并禁止原生崩溃弹窗。
-configure_automated_test_process()
+prepare_automated_test_process()
 
 import pytest
 

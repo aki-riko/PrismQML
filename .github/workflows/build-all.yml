@@ -13,7 +13,7 @@ on:
       - "scripts/**"
       - "tests/**"
       - "pyproject.toml"
-      - ".github/workflows/build-all.yml"
+      - ".github/workflows/**"
 
 jobs:
   qml_conventions:
@@ -27,9 +27,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install scanner test dependency
-        run: python -m pip install --disable-pip-version-check "pytest>=7.0"
+        run: python -m pip install --disable-pip-version-check "pytest>=8.4"
       - name: Run scanner regression tests
-        run: python -m pytest tests/test_qml_conventions.py -q
+        run: >-
+          python scripts/test_process.py --qt-platform offscreen --timeout 120 --
+          python -m pytest tests/test_qml_conventions.py -q
       - name: Reject newly introduced QML violations
         shell: bash
         run: |
@@ -88,7 +90,7 @@ jobs:
       - name: Install C++ test dependencies
         run: >-
           python -m pip install --disable-pip-version-check
-          -r cpp/tests/requirements.txt "pytest>=7.0"
+          -r cpp/tests/requirements.txt "pytest>=8.4"
       - name: Verify non-interactive test launcher
         run: >-
           python scripts/test_process.py --qt-platform offscreen --timeout 120 --

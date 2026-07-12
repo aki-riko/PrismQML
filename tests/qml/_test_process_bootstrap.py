@@ -12,8 +12,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEST_PROCESS = runpy.run_path(str(REPO_ROOT / "scripts" / "test_process.py"))
-configure_qml_test_process = TEST_PROCESS[
-    "configure_automated_test_process"
-]
+configure_qml_test_process = TEST_PROCESS["prepare_automated_test_process"]
 if not callable(configure_qml_test_process):
-    raise TypeError("configure_automated_test_process must be callable")
+    raise TypeError("prepare_automated_test_process must be callable")

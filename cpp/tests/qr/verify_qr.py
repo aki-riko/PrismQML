@@ -4,16 +4,19 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """QR 端到端验证: 用 opencv 解码 C++ (prism_test_qrcode_gen) 生成的 QR PNG,
-断言解出内容 == 原文。用法: python verify_qr.py <生成目录>"""
+断言解出内容 == 原文。
+
+用法: python scripts/test_process.py --qt-platform offscreen --timeout 60 -- python cpp/tests/qr/verify_qr.py <生成目录>
+"""
 import runpy
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 TEST_PROCESS = runpy.run_path(str(REPO_ROOT / "scripts" / "test_process.py"))
-configure_automated_test_process = TEST_PROCESS["configure_automated_test_process"]
+prepare_automated_test_process = TEST_PROCESS["prepare_automated_test_process"]
 
-configure_automated_test_process()
+prepare_automated_test_process()
 
 import cv2  # opencv-python(-headless): 自带 QRCodeDetector
 

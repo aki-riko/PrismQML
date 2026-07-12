@@ -40,7 +40,7 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"
-AUTOMATED_BOOTSTRAP_NAME = "configure_automated_test_process"
+AUTOMATED_BOOTSTRAP_NAME = "prepare_automated_test_process"
 TEST_PROCESS_BINDING = "TEST_PROCESS"
 STANDALONE_QML_RUNTIME_CASES = (
     (Path("tests/qml/probe_neo_skin.py"), 15),
@@ -305,16 +305,20 @@ def _clean_qt_platform_environment() -> dict[str, str]:
     return env
 
 
-def test_probe_defaults_to_headless_without_caller_environment():
-    """裸跑全组件 probe 时由入口自身启用 headless。"""
+def test_probe_defaults_to_headless_through_process_runner():
+    """runner 启动全组件 probe 时由入口自身启用 headless。"""
     result = subprocess.run(
-        [sys.executable, "-X", "utf8", "tests/qml/probe_all_components.py"],
+        [
+            sys.executable, str(TEST_PROCESS_RUNNER),
+            "--qt-platform", "inherit", "--timeout", "60", "--",
+            sys.executable, "-X", "utf8", "tests/qml/probe_all_components.py",
+        ],
         cwd=REPO_ROOT,
         env=_clean_qt_platform_environment(),
         capture_output=True,
         text=True,
         encoding="utf-8",
-        timeout=60,
+        timeout=60 + RUNNER_SUPERVISOR_GRACE_SECONDS,
         check=False,
     )
 

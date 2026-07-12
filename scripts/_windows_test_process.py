@@ -54,7 +54,9 @@ WINDOW_CLASS_NAME_CAPACITY = 256
 class _WindowsTestBoundary:
     def __init__(self, command: Sequence[str]):
         self.command = tuple(command)
-        self.desktop_name = f"PrismQMLTest-{os.getpid()}-{uuid.uuid4().hex}"
+        self.desktop_name = (
+            f"{_api.WINDOWS_TEST_DESKTOP_PREFIX}{os.getpid()}-{uuid.uuid4().hex}"
+        )
         self.kernel32, self.user32, self.dwmapi, self.get_window_long = (
             _api._windows_libraries()
         )

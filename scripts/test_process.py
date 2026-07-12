@@ -39,6 +39,8 @@ TEST_VISIBLE_WINDOW_EXIT_CODE = 126
 PROCESS_GRACEFUL_WAIT_SECONDS = 2
 PROCESS_FORCE_KILL_WAIT_SECONDS = 5
 PROCESS_GROUP_POLL_INTERVAL_SECONDS = 0.05
+AUTOMATED_TEST_BOUNDARY_ENV = "PRISMQML_AUTOMATED_TEST_BOUNDARY"
+AUTOMATED_TEST_BOUNDARY_VERSION = "v1"
 LOGGER = logging.getLogger(__name__)
 
 if sys.platform == "win32":
@@ -48,6 +50,7 @@ if sys.platform == "win32":
             WINDOWS_JOB_CLEANUP_WAIT_SECONDS,
             run_isolated_windows_child,
         )
+        from ._windows_test_api import current_process_test_boundary_status
     else:
         script_directory = str(Path(__file__).resolve().parent)
         inserted_script_directory = script_directory not in sys.path
@@ -59,6 +62,7 @@ if sys.platform == "win32":
                 WINDOWS_JOB_CLEANUP_WAIT_SECONDS,
                 run_isolated_windows_child,
             )
+            from _windows_test_api import current_process_test_boundary_status
         finally:
             if inserted_script_directory:
                 sys.path.remove(script_directory)
@@ -169,6 +173,50 @@ def configure_test_launcher(qt_platform: str | None = "offscreen") -> None:
     if sys.platform == "win32":
         _configure_windows_error_ui()
         _configure_windows_crt_error_ui()
+
+
+def _automated_test_boundary_status() -> tuple[bool, str]:
+    actual = os.environ.get(AUTOMATED_TEST_BOUNDARY_ENV)
+    if actual != AUTOMATED_TEST_BOUNDARY_VERSION:
+        return False, (
+            f"expected marker {AUTOMATED_TEST_BOUNDARY_VERSION!r}, got {actual!r}"
+        )
+    if sys.platform != "win32":
+        return True, "workflow marker accepted on this platform"
+    try:
+        return current_process_test_boundary_status()
+    except (OSError, RuntimeError) as error:
+        return False, f"Windows boundary inspection failed: {error}"
+
+
+def automated_test_boundary_is_active() -> bool:
+    """Return whether the marker and platform boundary checks both pass."""
+    active, _detail = _automated_test_boundary_status()
+    return active
+
+
+def mark_automated_test_boundary() -> None:
+    """Mark descendants only after the launcher policy has been configured."""
+    os.environ[AUTOMATED_TEST_BOUNDARY_ENV] = AUTOMATED_TEST_BOUNDARY_VERSION
+
+
+def require_automated_test_boundary() -> None:
+    """Reject automated entrypoints that bypass the process runner."""
+    active, detail = _automated_test_boundary_status()
+    if active:
+        return
+    raise RuntimeError(
+        "Automated test boundary is missing or invalid; run through "
+        f"scripts/test_process.py ({detail})"
+    )
+
+
+def prepare_automated_test_process(
+    qt_platform: str | None = "offscreen",
+) -> None:
+    """Require the runner boundary, then apply in-process test policy."""
+    require_automated_test_boundary()
+    configure_automated_test_process(qt_platform)
 
 
 def automated_test_process_is_noninteractive() -> bool:
@@ -303,6 +351,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv)
     qt_platform = None if args.qt_platform == "inherit" else args.qt_platform
     configure_test_launcher(qt_platform)
+    mark_automated_test_boundary()
     return run_child(args.command, args.timeout)
 
 

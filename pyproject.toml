@@ -36,7 +36,7 @@ macos = [
     "pyobjc-framework-Cocoa>=9.0",
 ]
 dev = [
-    "pytest>=7.0",
+    "pytest>=8.4",
     "build>=1.2",
     "black>=23.0",
     "isort>=5.0",
@@ -74,3 +74,11 @@ py-limited-api = "auto"
 # setuptools-rust 的 py-limited-api="auto" 会读取此处; 不配则退化成 cp3XX 绑死单版本。
 [tool.distutils.bdist_wheel]
 py-limited-api = "cp39"
+
+[tool.pytest.ini_options]
+minversion = "8.4"
+addopts = [
+    "-p", "scripts.pytest_boundary",
+    "--disable-plugin-autoload",
+]
+pythonpath = ["."]

@@ -207,6 +207,12 @@ P1 后代错误框止血已完成：用户再次反馈同一全量测试在桌�
 5. P6D 暂停，先完成入口收口：自动测试文档不得再给裸跑命令；Windows 自动测试入口必须在加载 Qt 或测试 EXE 前确认处于 runner 边界，否则 fail closed 并给出唯一正确命令；明确的人工可视测试继续单独标记，不得混入自动门禁。同步增加静态契约，确保 CTest 注册持续包含 Qt PATH 与 runner。
 6. 完成判据：用同一条真实失败命令先复现至少 1 次并记录弹窗证据；修复后用同一输入验证通过；随后标准 pytest、QML probe、headless CTest 连续 3 轮全部通过，每轮交互桌面本仓相关新窗口、Event 26/1000/1001 与 CrashDump 增量均为 0，且用户确认桌面未再出现错误弹窗。全部满足后才允许把 P1+ 改回“已完成”并恢复 P6D。
 
+2026-07-12 入口 fail-closed 进展（不关闭 P1+）：Windows 自动入口除版本 marker 外，现同时验证当前线程位于 `PrismQMLTest-` 私有 Desktop 且当前进程位于 Job Object，手工伪造公开 marker 不再能从默认桌面放行。pytest 通过 `pyproject.toml` 的早期边界插件在第三方插件与显式 Qt canary 之前执行，并关闭未声明的插件自动发现；仓库根目录、`tests` 子目录、marker 缺失与 marker 伪造四类默认桌面输入均在 canary 导入 PySide6 前拒绝。回归不再把外层仍处于 runner 的子进程称为“真实裸桌面证明”，probe 契约也只要求存在汇总且错误数为 0，不再硬编码组件总数。
+
+本批当前证据：边界与命令契约 `33 passed`；全量 Python `282 passed / 1 skipped`；QML `169 OK / 0 错误 / 12 跳过`；headless CTest `6/6`；Windows native CTest `1/1`；覆盖率普通与 UTF-8 两种入口均覆盖 181 个注册类型。默认交互桌面监控时间窗 `2026-07-12T09:14:08.4438534+08:00` 至 `2026-07-12T09:14:56.9735359+08:00` 内，本仓相关新顶层窗口、Event 26、Event 1000/1001 与 CrashDump 增量均为 0。测试/CI 独立 Review 最终无 P0–P3；实现 Review 指出的“任意 Job 不等于 runner 身份”和“主动覆盖 pytest 配置”均按下述非安全沙箱边界保留，不计入标准仓库入口保证。
+
+边界仍未改变：尚未取得用户实际弹窗的标题、PID、进程路径、时间与原始触发命令，也尚未完成缺 companion DLL、abort、qFatal、访问违规和 fail-fast 的 root/grandchild 原生 helper。因此以上只证明新增入口门禁与本轮精确输入通过，不能写“用户弹窗已修复”；`-c`/覆盖 addopts 等主动绕过项目 pytest 配置、直接启动原生测试 EXE、外部 broker、刻意逃逸 Desktop/Job，或同用户代码自行创建同前缀 Desktop 并加入任意 Job，均不属于该入口契约。
+
 ### P2：修复 sdist 并建立发布制品门禁
 
 预期效果：sdist 可独立构建 Rust 扩展；不完整制品无法进入 PyPI 发布 job。

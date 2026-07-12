@@ -45,6 +45,8 @@ WAIT_TIMEOUT = 258
 WINDOW_POLL_INTERVAL_SECONDS = 0.025
 WINDOWS_DESCENDANT_EXIT_GRACE_SECONDS = 5
 WINDOWS_JOB_CLEANUP_WAIT_SECONDS = 5
+WINDOWS_TEST_DESKTOP_PREFIX = "PrismQMLTest-"
+UOI_NAME = 2
 
 
 class _StartupInfoW(ctypes.Structure):
@@ -282,6 +284,14 @@ def _bind_user32_desktop_api(user32) -> None:
     user32.EnumDesktopWindows.restype = wintypes.BOOL
     user32.GetThreadDesktop.argtypes = [wintypes.DWORD]
     user32.GetThreadDesktop.restype = wintypes.HANDLE
+    user32.GetUserObjectInformationW.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+    ]
+    user32.GetUserObjectInformationW.restype = wintypes.BOOL
     user32.SetThreadDesktop.argtypes = [wintypes.HANDLE]
     user32.SetThreadDesktop.restype = wintypes.BOOL
 
@@ -370,3 +380,43 @@ def _windows_libraries():
     _bind_user32_window_creation_api(user32)
     _bind_dwmapi(dwmapi)
     return kernel32, user32, dwmapi, get_window_long
+
+
+def _current_thread_desktop_name(kernel32, user32) -> str:
+    desktop = user32.GetThreadDesktop(kernel32.GetCurrentThreadId())
+    if not desktop:
+        raise ctypes.WinError(ctypes.get_last_error())
+    required_bytes = wintypes.DWORD()
+    ctypes.set_last_error(0)
+    user32.GetUserObjectInformationW(
+        desktop, UOI_NAME, None, 0, ctypes.byref(required_bytes)
+    )
+    if required_bytes.value == 0:
+        error_code = ctypes.get_last_error()
+        if error_code:
+            raise ctypes.WinError(error_code)
+        raise RuntimeError("GetUserObjectInformationW returned no required length")
+    wchar_size = ctypes.sizeof(ctypes.c_wchar)
+    capacity = max(1, (required_bytes.value + wchar_size - 1) // wchar_size)
+    name = ctypes.create_unicode_buffer(capacity)
+    if not user32.GetUserObjectInformationW(
+        desktop, UOI_NAME, name, required_bytes.value, ctypes.byref(required_bytes)
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return name.value
+
+
+def current_process_test_boundary_status() -> tuple[bool, str]:
+    """Verify the current Windows process is in the runner Desktop and a Job."""
+    kernel32, user32, _dwmapi, _get_window_long = _windows_libraries()
+    desktop_name = _current_thread_desktop_name(kernel32, user32)
+    in_job = wintypes.BOOL()
+    if not kernel32.IsProcessInJob(
+        kernel32.GetCurrentProcess(), None, ctypes.byref(in_job)
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+    if not desktop_name.startswith(WINDOWS_TEST_DESKTOP_PREFIX):
+        return False, f"desktop {desktop_name!r} is not a PrismQML test desktop"
+    if not in_job.value:
+        return False, "current process is not assigned to a Job Object"
+    return True, f"desktop={desktop_name!r}, in_job=True"
