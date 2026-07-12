@@ -26,6 +26,7 @@ DESKTOP_REQUIRED_ACCESS = (
 )
 DUPLICATE_SAME_ACCESS = 0x00000002
 DWMWA_CLOAKED = 14
+ERROR_ALREADY_EXISTS = 183
 ERROR_INSUFFICIENT_BUFFER = 122
 EXTENDED_STARTUPINFO_PRESENT = 0x00080000
 GWL_EXSTYLE = -20
@@ -33,6 +34,7 @@ GWL_STYLE = -16
 INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
 JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION = 0x00000400
 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+JOB_OBJECT_QUERY = 0x0004
 JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION = 1
 JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
@@ -46,6 +48,7 @@ WINDOW_POLL_INTERVAL_SECONDS = 0.025
 WINDOWS_DESCENDANT_EXIT_GRACE_SECONDS = 5
 WINDOWS_JOB_CLEANUP_WAIT_SECONDS = 5
 WINDOWS_TEST_DESKTOP_PREFIX = "PrismQMLTest-"
+WINDOWS_TEST_JOB_PREFIX = "PrismQMLTestJob-"
 UOI_NAME = 2
 
 
@@ -149,6 +152,12 @@ def _bind_kernel32_job_api(kernel32) -> None:
     kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
     kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
     kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+    kernel32.OpenJobObjectW.argtypes = [
+        wintypes.DWORD,
+        wintypes.BOOL,
+        wintypes.LPCWSTR,
+    ]
+    kernel32.OpenJobObjectW.restype = wintypes.HANDLE
     kernel32.QueryInformationJobObject.argtypes = [
         wintypes.HANDLE,
         ctypes.c_int,
@@ -407,16 +416,27 @@ def _current_thread_desktop_name(kernel32, user32) -> str:
 
 
 def current_process_test_boundary_status() -> tuple[bool, str]:
-    """Verify the current Windows process is in the runner Desktop and a Job."""
+    """Verify this process is in the runner's exact Desktop and named Job."""
     kernel32, user32, _dwmapi, _get_window_long = _windows_libraries()
     desktop_name = _current_thread_desktop_name(kernel32, user32)
-    in_job = wintypes.BOOL()
-    if not kernel32.IsProcessInJob(
-        kernel32.GetCurrentProcess(), None, ctypes.byref(in_job)
-    ):
-        raise ctypes.WinError(ctypes.get_last_error())
     if not desktop_name.startswith(WINDOWS_TEST_DESKTOP_PREFIX):
         return False, f"desktop {desktop_name!r} is not a PrismQML test desktop"
+    job_name = (
+        WINDOWS_TEST_JOB_PREFIX
+        + desktop_name.removeprefix(WINDOWS_TEST_DESKTOP_PREFIX)
+    )
+    job = kernel32.OpenJobObjectW(JOB_OBJECT_QUERY, False, job_name)
+    if not job:
+        return False, f"named test Job {job_name!r} is unavailable"
+    in_job = wintypes.BOOL()
+    try:
+        if not kernel32.IsProcessInJob(
+            kernel32.GetCurrentProcess(), job, ctypes.byref(in_job)
+        ):
+            raise ctypes.WinError(ctypes.get_last_error())
+    finally:
+        if not kernel32.CloseHandle(job):
+            raise ctypes.WinError(ctypes.get_last_error())
     if not in_job.value:
-        return False, "current process is not assigned to a Job Object"
-    return True, f"desktop={desktop_name!r}, in_job=True"
+        return False, f"current process is not assigned to {job_name!r}"
+    return True, f"desktop={desktop_name!r}, job={job_name!r}, in_job=True"

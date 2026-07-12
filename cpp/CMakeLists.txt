@@ -225,6 +225,13 @@ if(PRISM_BUILD_TESTS)
     prism_add_cpp_test(prism_test_system prism_test_system offscreen)
 
     if(PRISM_BUILD_NATIVE_TESTS AND WIN32)
+        set(PRISM_NATIVE_FAILURE_CASE_TIMEOUT_SECONDS "15" CACHE STRING
+            "Timeout in seconds for one native failure-injection case")
+        set(PRISM_NATIVE_FAILURE_MATRIX_TIMEOUT_SECONDS "360" CACHE STRING
+            "Timeout in seconds for the complete native failure matrix")
+        math(EXPR PRISM_NATIVE_FAILURE_CTEST_TIMEOUT_SECONDS
+            "${PRISM_NATIVE_FAILURE_MATRIX_TIMEOUT_SECONDS} + ${PRISM_TEST_CLEANUP_GRACE_SECONDS}")
+
         qt_add_executable(prism_test_mica tests/test_mica.cpp)
         target_link_libraries(prism_test_mica PRIVATE prism)
         prism_add_cpp_test(prism_test_mica prism_test_mica windows)
@@ -232,6 +239,52 @@ if(PRISM_BUILD_TESTS)
             LABELS "native;windows;mica"
             SKIP_RETURN_CODE 77
         )
+
+        add_library(prism_native_failure_companion SHARED
+            tests/native_failure_companion.cpp)
+        add_executable(prism_native_failure_loader
+            tests/native_failure_loader.cpp)
+        target_link_libraries(prism_native_failure_loader PRIVATE
+            prism_native_failure_companion)
+        set_target_properties(prism_native_failure_companion PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY
+                "${CMAKE_CURRENT_BINARY_DIR}/native-failure-companion")
+        set_target_properties(prism_native_failure_loader PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY
+                "${CMAKE_CURRENT_BINARY_DIR}/native-failure-loader")
+        add_executable(prism_native_failure_helper
+            tests/native_failure_helper.cpp)
+        target_link_libraries(prism_native_failure_helper PRIVATE Qt6::Core)
+        set_target_properties(prism_native_failure_helper PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY
+                "${CMAKE_CURRENT_BINARY_DIR}/native-failure-helper")
+        if(MSVC)
+            foreach(_native_failure_target IN ITEMS
+                prism_native_failure_companion
+                prism_native_failure_loader
+                prism_native_failure_helper)
+                target_compile_options(${_native_failure_target} PRIVATE /utf-8)
+            endforeach()
+        endif()
+
+        # Fatal fixtures must only run through verifier -> process runner.
+        # 致命夹具只能经 verifier -> process runner 启动。
+        add_test(NAME prism_native_failure_matrix
+            COMMAND "${Python3_EXECUTABLE}" "${PRISM_TEST_PROCESS_RUNNER}"
+                --qt-platform offscreen
+                --timeout "${PRISM_NATIVE_FAILURE_MATRIX_TIMEOUT_SECONDS}" --
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_native_failures.py"
+                --runner "${PRISM_TEST_PROCESS_RUNNER}"
+                --helper "$<TARGET_FILE:prism_native_failure_helper>"
+                --loader "$<TARGET_FILE:prism_native_failure_loader>"
+                --companion "$<TARGET_FILE:prism_native_failure_companion>"
+                --qt-bin "$<TARGET_FILE_DIR:Qt6::Core>"
+                --case-timeout "${PRISM_NATIVE_FAILURE_CASE_TIMEOUT_SECONDS}")
+        set_tests_properties(prism_native_failure_matrix PROPERTIES
+            LABELS "native;windows;failure-injection"
+            RUN_SERIAL TRUE
+            TIMEOUT "${PRISM_NATIVE_FAILURE_CTEST_TIMEOUT_SECONDS}")
     endif()
 
     # QR 端到端验证: 生成 QR PNG 供 tests/qr/verify_qr.py 用 opencv 解码比对

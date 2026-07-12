@@ -399,7 +399,10 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
    - **默认升构建号**：每次发版除非用户/维护者明确指定完整版本号或前三位升级策略，否则只递增最后一位构建号（`x.y.z.n` 中的 `n`）。例如 `0.2.24.1` 下一版默认 `0.2.24.2`，而不是 `0.2.25.0`。
    - `pyproject.toml` 的 `version = "x.y.z.n"`
    - `prismqml/__init__.py` 的 `__version__ = "x.y.z.n"`（回退值）
-2. **验证**：发布前必须通过统一零交互门禁；自动测试禁止直接启动 `prism_test_*.exe`，也禁止依赖调用者恰好设置了 Qt PATH / `QT_QPA_PLATFORM`。
+2. **验证**：发布前必须通过统一零交互门禁；自动测试禁止直接启动
+   `prism_test_*.exe`、`prism_native_failure_helper.exe` 或
+   `prism_native_failure_loader.exe`，也禁止依赖调用者恰好设置了 Qt PATH /
+   `QT_QPA_PLATFORM`。原生失败夹具只能由 `ctest -L native` 间接启动。
    ```powershell
    .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest
    .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py

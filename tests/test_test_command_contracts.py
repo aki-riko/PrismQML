@@ -4,6 +4,8 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Automated test command boundary contracts. 自动测试命令边界契约。"""
 
+from __future__ import annotations
+
 import ast
 import re
 from pathlib import Path

@@ -60,7 +60,10 @@ Windows 下完整进程树在私有 Desktop 与 Job Object 中运行；标准 DL
 WER UI 被配置为无 UI，UCRT 报告重定向到 stderr。即使测试显式创建窗口，也不会
 出现在当前用户桌面；runner 会轮询 Job 内持续可见窗口，检测到时记录 HWND/PID/
 镜像并返回 126。timeout 返回 124，隔离或清理失败返回 125；正常退出与超时均确认
-Job 中后代进程归零。不要绕过 CTest 直接运行 `prism_test_*.exe`。
+Job 中后代进程归零。不要绕过 CTest 直接运行 `prism_test_*.exe`、
+`prism_native_failure_helper.exe` 或 `prism_native_failure_loader.exe`；后两者会
+主动触发 main 前 DLL 缺失、abort、qFatal、访问违规和 fail-fast，只能由
+`ctest -L native` 在隔离边界内间接启动。
 
 Windows 11 的 Mica 用例属于显式原生集合，默认不注册。需要验证时重新配置：
 

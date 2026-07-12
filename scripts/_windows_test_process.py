@@ -28,6 +28,7 @@ if __package__:
     )
     from ._windows_test_desktop import _PrivateDesktop
     from ._windows_test_monitor import _RunOptions, _monitor_windows_child
+    from ._windows_test_result import capture_boundary_result, log_boundary_result
     from ._windows_test_startup import create_suspended_process
 else:
     import _windows_test_api as _api
@@ -40,6 +41,7 @@ else:
     )
     from _windows_test_desktop import _PrivateDesktop
     from _windows_test_monitor import _RunOptions, _monitor_windows_child
+    from _windows_test_result import capture_boundary_result, log_boundary_result
     from _windows_test_startup import create_suspended_process
 
 
@@ -56,6 +58,10 @@ class _WindowsTestBoundary:
         self.command = tuple(command)
         self.desktop_name = (
             f"{_api.WINDOWS_TEST_DESKTOP_PREFIX}{os.getpid()}-{uuid.uuid4().hex}"
+        )
+        self.job_name = (
+            f"{_api.WINDOWS_TEST_JOB_PREFIX}"
+            f"{self.desktop_name.removeprefix(_api.WINDOWS_TEST_DESKTOP_PREFIX)}"
         )
         self.kernel32, self.user32, self.dwmapi, self.get_window_long = (
             _api._windows_libraries()
@@ -100,9 +106,15 @@ class _WindowsTestBoundary:
         self.private_desktop.create()
 
     def _create_job(self) -> None:
-        self.job = self.kernel32.CreateJobObjectW(None, None)
+        ctypes.set_last_error(0)
+        self.job = self.kernel32.CreateJobObjectW(None, self.job_name)
         if not self.job:
             raise ctypes.WinError(ctypes.get_last_error())
+        if ctypes.get_last_error() == _api.ERROR_ALREADY_EXISTS:
+            existing_job = self.job
+            self.job = None
+            close_handle(self.kernel32, existing_job)
+            raise RuntimeError(f"Windows test Job already exists: {self.job_name}")
         limits = _api._JobExtendedLimitInformation()
         limits.BasicLimitInformation.LimitFlags = (
             _api.JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION
@@ -472,8 +484,10 @@ def run_isolated_windows_child(
     )
     try:
         result = _run_boundary(boundary, options)
+        snapshot = capture_boundary_result(boundary)
     finally:
         cleanup_succeeded = _close_boundary(boundary, logger)
     if not cleanup_succeeded:
         result = cleanup_failure_exit_code
+    log_boundary_result(snapshot, result, cleanup_succeeded, logger)
     return result

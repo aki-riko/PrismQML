@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts._windows_test_result import BOUNDARY_RESULT_PREFIX
 from scripts.test_process import (
     PROCESS_GRACEFUL_WAIT_SECONDS,
     PROCESS_GROUP_POLL_INTERVAL_SECONDS,
@@ -160,6 +161,14 @@ def _run_windows_code(code: str):
     )
 
 
+def _boundary_records(stderr: str) -> list[dict]:
+    return [
+        json.loads(line[len(BOUNDARY_RESULT_PREFIX) :])
+        for line in stderr.splitlines()
+        if line.startswith(BOUNDARY_RESULT_PREFIX)
+    ]
+
+
 def _spawn_and_sleep_code(child_code: str) -> str:
     return f"""
 import subprocess
@@ -280,6 +289,35 @@ def test_runner_reports_child_failure_without_masking_it():
 
     assert result.returncode == 7
     assert "child exit code: 7" in result.stderr
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows boundary only")
+def test_runner_emits_structured_boundary_result():
+    result = _run_runner("--", sys.executable, "-c", "pass")
+    records = _boundary_records(result.stderr)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert len(records) == 1
+    assert records[0]["desktop"].startswith("PrismQMLTest-")
+    assert records[0]["job"] == "PrismQMLTestJob-" + records[0][
+        "desktop"
+    ].removeprefix("PrismQMLTest-")
+    assert records[0]["root_process_id"] > 0
+    assert records[0]["final_active_processes"] == 0
+    assert records[0]["exit_code"] == 0
+    assert records[0]["cleanup_succeeded"] is True
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows boundary only")
+def test_runner_structured_result_preserves_nonzero_child_exit():
+    result = _run_runner("--", sys.executable, "-c", "raise SystemExit(7)")
+    records = _boundary_records(result.stderr)
+
+    assert result.returncode == 7
+    assert len(records) == 1
+    assert records[0]["exit_code"] == 7
+    assert records[0]["cleanup_succeeded"] is True
+    assert records[0]["final_active_processes"] == 0
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows NTSTATUS only")
