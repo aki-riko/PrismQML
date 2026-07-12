@@ -10,11 +10,11 @@ import ".."
 ComboBoxCore {
     id: control
     
-    // ==================== Style/Feature Props 样式/功能属性 ====================
+    // Style and feature defaults 样式与功能默认值
     // Use 0 as default to avoid Enums init timing issue 使用0避免初始化时序问题
     style: 0  // 0 = style_default
     feature: 0  // 0 = feature_none
     
-    // ==================== Editable 可编辑 ====================
+    // Editable state 可编辑状态
     editable: feature === 1
 }
