@@ -215,8 +215,33 @@ Widget {
     }
     contentHeight: Enums.controlSize.buttonHeight
 
-    // border alias references child _bg, kept in body per ordering rule
-    property alias border: _bg.border
+    Component.onCompleted: {
+        // Initialize with current values (break binding) 用当前值初始化（打破绑定）
+        _animatedBgColor = styleHelper.bgColor
+        _animatedBorderColor = styleHelper.borderColor
+        _targetBgColor = styleHelper.bgColor
+        _targetBorderColor = styleHelper.borderColor
+    }
+
+    onPressedChanged: {
+        if (pressed) {
+            // Instant press: stop any running animation and set directly 按下瞬间：停止动画直接设置
+            bgColorAnim.stop()
+            borderColorAnim.stop()
+            _animatedBgColor = styleHelper.bgColor
+            _animatedBorderColor = styleHelper.borderColor
+        }
+    }
+
+    // Watch hover changes directly for reliable updates 直接监听悬浮变化以确保可靠更新
+    onHoveredChanged: {
+        _updateTargetColors()
+        // ToolTip trigger 触发ToolTip
+        if (toolTipText !== "") {
+            if (hovered) _btnToolTipTimer.start()
+            else { _btnToolTipTimer.stop(); hideToolTip() }
+        }
+    }
 
     // ==================== Content 内容 ====================
     HoverHandler {
@@ -252,6 +277,8 @@ Widget {
     }
 
     // Background 背景
+    // Keep border alias next to child _bg per ordering rule 按排序规则将 border 别名紧邻子项 _bg
+    property alias border: _bg.border
     Rectangle {
         id: _bg
         anchors.fill: parent
@@ -273,39 +300,12 @@ Widget {
         }
     }
 
-    Component.onCompleted: {
-        // Initialize with current values (break binding) 用当前值初始化（打破绑定）
-        _animatedBgColor = styleHelper.bgColor
-        _animatedBorderColor = styleHelper.borderColor
-        _targetBgColor = styleHelper.bgColor
-        _targetBorderColor = styleHelper.borderColor
-    }
-
-    onPressedChanged: {
-        if (pressed) {
-            // Instant press: stop any running animation and set directly 按下瞬间：停止动画直接设置
-            bgColorAnim.stop()
-            borderColorAnim.stop()
-            _animatedBgColor = styleHelper.bgColor
-            _animatedBorderColor = styleHelper.borderColor
-        }
-    }
-
     // Watch for target color changes (from styleHelper) 监听目标颜色变化
     Connections {
-        target: styleHelper
         function onBgColorChanged() { control._updateTargetColors() }
         function onBorderColorChanged() { control._updateTargetColors() }
-    }
 
-    // Direct hover state monitoring for reliable updates 直接监听hover确保可靠更新
-    onHoveredChanged: {
-        _updateTargetColors()
-        // ToolTip trigger 触发ToolTip
-        if (toolTipText !== "") {
-            if (hovered) _btnToolTipTimer.start()
-            else { _btnToolTipTimer.stop(); hideToolTip() }
-        }
+        target: styleHelper
     }
 
     ColorAnimation {
@@ -392,14 +392,14 @@ Widget {
 
     // Dropdown arrow 下拉箭头
     Loader {
+        readonly property bool _useAccentForeground: control.style === Enums.button.style_primary ||
+                                                      control.style === Enums.button.style_filled ||
+                                                      control.style === Enums.button.style_gradient
+
         anchors.right: parent.right
         anchors.rightMargin: Enums.spacing.m
         anchors.verticalCenter: parent.verticalCenter
         active: feature === Enums.button.feature_dropdown
-
-        readonly property bool _useAccentForeground: control.style === Enums.button.style_primary ||
-                                                      control.style === Enums.button.style_filled ||
-                                                      control.style === Enums.button.style_gradient
 
         sourceComponent: ChevronIcon {
             animated: true
