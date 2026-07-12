@@ -32,7 +32,10 @@ jobs:
         run: >-
           python scripts/test_process.py --qt-platform offscreen --timeout 120 --
           python -m pytest tests/test_qml_conventions.py
-          tests/test_qml_color_constructors.py -q
+          tests/test_qml_color_arrays.py
+          tests/test_qml_color_array_returns.py
+          tests/test_qml_color_constructors.py
+          tests/test_qml_lexer.py -q
       - name: Reject newly introduced QML violations
         shell: bash
         run: |

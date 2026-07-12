@@ -14,10 +14,12 @@ import subprocess
 from typing import Iterable, Sequence
 
 if __package__:
+    from .qml_color_arrays import color_array_literal_lines
     from .qml_color_constructors import numeric_color_constructor_lines
     from .qml_color_contexts import color_literal_lines as _color_literal_lines
     from .qml_lexer import sanitize_qml as _sanitize_qml
 else:
+    from qml_color_arrays import color_array_literal_lines
     from qml_color_constructors import numeric_color_constructor_lines
     from qml_color_contexts import color_literal_lines as _color_literal_lines
     from qml_lexer import sanitize_qml as _sanitize_qml
@@ -230,17 +232,20 @@ def _scan_sections(raw_lines: Sequence[str], path: PurePosixPath) -> list[Violat
 
 
 def _scan_style_literals(
-    code_lines: Sequence[str], source_lines: Sequence[str], path: PurePosixPath
+    code_lines: Sequence[str],
+    source_lines: Sequence[str],
+    array_code_lines: Sequence[str],
+    path: PurePosixPath,
 ) -> list[Violation]:
     if _is_data_resource(path):
         return []
     violations: list[Violation] = []
     color_lines = _color_literal_lines(code_lines, source_lines)
-    color_lines.update(
-        numeric_color_constructor_lines(
-            "\n".join(code_lines), "\n".join(source_lines)
-        )
-    )
+    masked_text = "\n".join(code_lines)
+    array_masked_text = "\n".join(array_code_lines)
+    quoted_text = "\n".join(source_lines)
+    color_lines.update(numeric_color_constructor_lines(masked_text, quoted_text))
+    color_lines.update(color_array_literal_lines(array_masked_text, quoted_text))
     for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
         if number in color_lines:
             violations.append(_violation(path, number, "QML010", "hardcoded color", source))
@@ -294,12 +299,20 @@ def _scan_javascript_style_literals(text: str, path: PurePosixPath) -> list[Viol
         else []
     )
     masked_text = _sanitize_qml(text, mask_strings=True)
+    array_masked_text = _sanitize_qml(
+        text, mask_strings=True, mark_values=True
+    )
     quoted_text = _sanitize_qml(text, mask_strings=False)
     constructor_lines = numeric_color_constructor_lines(masked_text, quoted_text)
+    array_lines = color_array_literal_lines(array_masked_text, quoted_text)
     code_lines = quoted_text.splitlines()
     source_lines = text.splitlines()
     for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
-        hardcoded = QUOTED_HEX_COLOR_RE.search(code) or number in constructor_lines
+        hardcoded = (
+            QUOTED_HEX_COLOR_RE.search(code)
+            or number in constructor_lines
+            or number in array_lines
+        )
         if hardcoded and "QML010" not in allowed_rules:
             violations.append(_violation(path, number, "QML010", "hardcoded color", source))
     return violations
@@ -444,11 +457,16 @@ def _scan_member_order(
 def scan_text(text: str, path: PurePosixPath) -> list[Violation]:
     raw_lines = text.splitlines()
     code_lines = _sanitize_qml(text, mask_strings=True).splitlines()
+    array_code_lines = _sanitize_qml(
+        text, mask_strings=True, mark_values=True
+    ).splitlines()
     source_lines = _sanitize_qml(text, mask_strings=False).splitlines()
     violations = _scan_imports_and_theme(code_lines, source_lines, path)
     violations.extend(_scan_declarations(code_lines, source_lines, path))
     violations.extend(_scan_sections(raw_lines, path))
-    violations.extend(_scan_style_literals(code_lines, source_lines, path))
+    violations.extend(
+        _scan_style_literals(code_lines, source_lines, array_code_lines, path)
+    )
     violations.extend(_scan_member_order(code_lines, source_lines, path))
     return sorted(violations, key=lambda item: (item.path.as_posix(), item.line, item.rule))
 

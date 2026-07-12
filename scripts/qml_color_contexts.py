@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable, Sequence
+from typing import Iterable, Iterator, Sequence
 
 
 # Qt 6.9 QColor.colorNames() snapshot; kept stdlib-only for the lint CI job.
@@ -50,16 +50,18 @@ ASSIGNMENT_BINDING_RE = re.compile(
 INLINE_BINDING_RE = re.compile(
     r"(?=(?:^|[({;,])\s*"
     r"(?P<name>(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)\s*:"
-    r"(?P<expression>[^,;}]+))"
+    r"(?P<expression>.*))"
+)
+INLINE_PROPERTY_BINDING_RE = re.compile(
+    r"(?=(?:^|[({;,])\s*(?:(?:default|required|readonly)\s+)*property\s+"
+    r"(?P<type>alias|[A-Za-z_]\w*(?:<[^>]+>)?)\s+"
+    r"(?P<name>[A-Za-z_]\w*)\s*:(?P<expression>.*))"
 )
 CANVAS_ASSIGNMENT_RE = re.compile(
     r"\b(?:[A-Za-z_]\w*\.)*(?:fillStyle|strokeStyle|shadowColor)\s*="
     r"(?P<expression>[^;]+)"
 )
-COLOR_STOP_RE = re.compile(
-    r"\b(?:[A-Za-z_]\w*\.)*addColorStop\s*\(\s*[^,]+,"
-    r"(?P<expression>[^)]+)"
-)
+COLOR_STOP_CALL_RE = re.compile(r"\b(?:[A-Za-z_]\w*\.)*addColorStop\s*\(")
 COLOR_FUNCTION_RE = re.compile(
     r"^\s*function\s+(?P<name>[A-Za-z_]\w*)\s*\([^)]*\)\s*\{"
     r"(?P<body>.*)$"
@@ -68,10 +70,10 @@ RETURN_RE = re.compile(r"\breturn\b(?P<expression>[^;}]*)(?:[;}])?")
 QUOTED_COLOR_RE = re.compile(
     r"(?P<quote>['\"`])(?P<value>#[0-9A-Fa-f]{3,8}|[A-Za-z]+)(?P=quote)"
 )
-NON_VALUE_BEFORE_RE = re.compile(r"(?:===|!==|==|!=|\[|\bcase)\s*$")
-NON_VALUE_AFTER_RE = re.compile(r"^\s*(?:===|!==|==|!=)")
+NON_VALUE_OPERATORS = ("===", "!==", "==", "!=")
 BLOCK_EXPRESSION_RE = re.compile(r"^\s*(?:\{|function\b)")
 CONTINUATION_PREFIXES = ("?", ":", "&&", "||", ".")
+CLOSING_OPENERS = {"}": "{", "]": "[", ")": "("}
 
 
 def _is_color_name(name: str) -> bool:
@@ -88,33 +90,162 @@ def _binding_match(code: str) -> re.Match[str] | None:
     return None
 
 
-def _is_literal_value(expression: str, match: re.Match[str]) -> bool:
+def _previous_nonspace_index(text: str, index: int) -> int:
+    current = index - 1
+    while current >= 0 and text[current].isspace():
+        current -= 1
+    return current
+
+
+def _next_nonspace_index(text: str, index: int) -> int:
+    while index < len(text) and text[index].isspace():
+        index += 1
+    return index
+
+
+def _previous_word(text: str, end: int) -> str:
+    start = end
+    while start >= 0 and (text[start].isalnum() or text[start] in "_$"):
+        start -= 1
+    return text[start + 1:end + 1]
+
+
+def _has_non_value_operator_before(text: str, start: int) -> bool:
+    previous = _previous_nonspace_index(text, start)
+    if previous < 0:
+        return False
+    if _previous_word(text, previous) == "case":
+        return True
+    return any(
+        text[max(0, previous - len(operator) + 1):previous + 1] == operator
+        for operator in NON_VALUE_OPERATORS
+    )
+
+
+def _has_non_value_operator_after(text: str, end: int) -> bool:
+    following = _next_nonspace_index(text, end)
+    return any(text.startswith(operator, following) for operator in NON_VALUE_OPERATORS)
+
+
+def _is_literal_value(
+    expression: str, match: re.Match[str], allow_array_items: bool
+) -> bool:
     value = match.group("value")
     if not value.startswith("#") and value.casefold() not in QML_NAMED_COLORS:
         return False
-    prefix = expression[: match.start()].rstrip()
-    suffix = expression[match.end() :]
-    if NON_VALUE_BEFORE_RE.search(prefix) or NON_VALUE_AFTER_RE.match(suffix):
+    previous = _previous_nonspace_index(expression, match.start())
+    following = _next_nonspace_index(expression, match.end())
+    if _has_non_value_operator_before(
+        expression, match.start()
+    ) or _has_non_value_operator_after(expression, match.end()):
         return False
-    if suffix.lstrip().startswith(":") and re.search(r"(?:^|[{,])\s*$", prefix):
+    if not allow_array_items and previous >= 0 and expression[previous] == "[":
+        return False
+    if (
+        following < len(expression)
+        and expression[following] == ":"
+        and (previous < 0 or expression[previous] in "{,")
+    ):
         return False
     return True
 
 
-def _has_color_literal(expression: str) -> bool:
-    return any(
-        _is_literal_value(expression, match)
+def iter_color_literals(
+    expression: str, *, allow_array_items: bool = False
+) -> Iterator[re.Match[str]]:
+    """Yield direct QML color literals. 迭代直接 QML 颜色字面量。"""
+    return (
+        match
         for match in QUOTED_COLOR_RE.finditer(expression)
+        if _is_literal_value(expression, match, allow_array_items)
     )
+
+
+def _outside_array_starts(code: str, starts: Iterable[int]) -> set[int]:
+    targets = set(starts)
+    result: set[int] = set()
+    depth = 0
+    for index, char in enumerate(code):
+        if index in targets and depth == 0:
+            result.add(index)
+        if char == "[":
+            depth += 1
+        elif char == "]":
+            depth = max(depth - 1, 0)
+    return result
+
+
+def _has_color_literal(code: str, source: str) -> bool:
+    if len(code) != len(source):
+        return False
+    matches = list(iter_color_literals(source))
+    return bool(_outside_array_starts(code, (match.start() for match in matches)))
 
 
 def _source_group(source: str, match: re.Match[str], name: str) -> str:
     return source[match.start(name) : match.end(name)]
 
 
+def _expression_pair(
+    code: str, source: str, match: re.Match[str], name: str
+) -> tuple[str, str]:
+    return _source_group(code, match, name), _source_group(source, match, name)
+
+
+def _inline_expression_end(code: str, start: int) -> int:
+    stack: list[str] = []
+    for index in range(start, len(code)):
+        char = code[index]
+        if char in "{[(":
+            stack.append(char)
+        elif char in CLOSING_OPENERS:
+            if not stack or stack[-1] != CLOSING_OPENERS[char]:
+                return index
+            stack.pop()
+        elif char == ";" and not stack:
+            return index
+    return len(code)
+
+
+def _inline_expression_pair(
+    code: str, source: str, match: re.Match[str]
+) -> tuple[str, str]:
+    start = match.start("expression")
+    end = _inline_expression_end(code, start)
+    return code[start:end], source[start:end]
+
+
+def _color_stop_argument_span(code: str, opening: int) -> tuple[int, int] | None:
+    stack = ["("]
+    argument_start: int | None = None
+    for index in range(opening + 1, len(code)):
+        char = code[index]
+        if char in "{[(":
+            stack.append(char)
+        elif char in CLOSING_OPENERS:
+            if not stack or stack[-1] != CLOSING_OPENERS[char]:
+                return None
+            stack.pop()
+            if not stack:
+                return (argument_start, index) if argument_start is not None else None
+        elif char == "," and len(stack) == 1 and argument_start is None:
+            argument_start = index + 1
+    return None
+
+
+def _color_stop_expression_pairs(
+    code: str, source: str
+) -> Iterable[tuple[str, str]]:
+    for match in COLOR_STOP_CALL_RE.finditer(code):
+        span = _color_stop_argument_span(code, match.end() - 1)
+        if span is not None:
+            start, end = span
+            yield code[start:end], source[start:end]
+
+
 def _return_literals(code: str, source: str) -> bool:
     return any(
-        _has_color_literal(_source_group(source, match, "expression"))
+        _has_color_literal(*_expression_pair(code, source, match, "expression"))
         for match in RETURN_RE.finditer(code)
     )
 
@@ -166,23 +297,28 @@ def _continuation_lines(
         if not pending or not stripped:
             continue
         if stripped.startswith(CONTINUATION_PREFIXES):
-            if _has_color_literal(source):
+            if _has_color_literal(code, source):
                 result.add(number)
             continue
         pending = False
     return result
 
 
-def _direct_context_expressions(code: str, source: str) -> Iterable[str]:
+def _direct_context_expressions(
+    code: str, source: str
+) -> Iterable[tuple[str, str]]:
     binding = _binding_match(code)
     if binding is not None and not BLOCK_EXPRESSION_RE.match(binding.group("expression")):
-        yield _source_group(source, binding, "expression")
+        yield _expression_pair(code, source, binding, "expression")
     for match in INLINE_BINDING_RE.finditer(code):
         if _is_color_name(match.group("name")):
-            yield _source_group(source, match, "expression")
-    for pattern in (CANVAS_ASSIGNMENT_RE, COLOR_STOP_RE):
-        for match in pattern.finditer(code):
-            yield _source_group(source, match, "expression")
+            yield _inline_expression_pair(code, source, match)
+    for match in INLINE_PROPERTY_BINDING_RE.finditer(code):
+        if match.group("type") == "color" or _is_color_name(match.group("name")):
+            yield _inline_expression_pair(code, source, match)
+    for match in CANVAS_ASSIGNMENT_RE.finditer(code):
+        yield _expression_pair(code, source, match, "expression")
+    yield from _color_stop_expression_pairs(code, source)
 
 
 def color_literal_lines(
@@ -192,6 +328,9 @@ def color_literal_lines(
     result = _return_context_lines(code_lines, source_lines)
     result.update(_continuation_lines(code_lines, source_lines))
     for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
-        if any(_has_color_literal(item) for item in _direct_context_expressions(code, source)):
+        if any(
+            _has_color_literal(*item)
+            for item in _direct_context_expressions(code, source)
+        ):
             result.add(number)
     return result
