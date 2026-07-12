@@ -44,6 +44,16 @@ DATE_TIME_PICKER_SOURCE = (
     / "Picker"
     / "DateTimePicker.qml"
 )
+DATE_TIME_PICKER_POPUP_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "Picker"
+    / "_internal"
+    / "DateTimePickerPopup.qml"
+)
 FOCUS_LINE_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "FocusLine.qml"
 )
@@ -194,6 +204,86 @@ def _date_time_popup(picker):
     return matches[0]
 
 
+def _date_time_popup_content(picker):
+    alias_names = (
+        "col2Loader", "col3Loader", "hourWheelLoader",
+        "minuteWheelLoader", "secondWheelLoader", "ampmWheelLoader",
+    )
+    matches = [
+        child
+        for child in _descendants(picker)
+        if all(child.metaObject().indexOfProperty(name) >= 0 for name in alias_names)
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0], alias_names
+
+
+def _picker_wheel_area(popup_content):
+    matches = [
+        child
+        for child in _descendants(popup_content)
+        if child.metaObject().indexOfProperty("_wheelWidth") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
+def _picker_loaders(wheel_area):
+    rows = [
+        child
+        for child in wheel_area.childItems()
+        if child.metaObject().className().startswith("QQuickRow")
+    ]
+    assert len(rows) == 1, [item.metaObject().className() for item in rows]
+    loaders = [
+        child
+        for child in rows[0].childItems()
+        if child.metaObject().className().startswith("QQuickLoader")
+    ]
+    assert len(loaders) == 7, [item.metaObject().className() for item in loaders]
+    return loaders
+
+
+def _assert_loader_alias_metadata(popup_content, alias_names):
+    meta_object = popup_content.metaObject()
+    for name in alias_names:
+        meta_property = meta_object.property(meta_object.indexOfProperty(name))
+        assert meta_property.isAlias()
+        assert meta_property.isReadable()
+        assert not meta_property.isWritable()
+        assert meta_property.typeName() == "QQuickLoader*"
+
+
+def _assert_picker_popup_runtime(picker):
+    popup_content, alias_names = _date_time_popup_content(picker)
+    assert popup_content.property("control") == picker
+    _assert_loader_alias_metadata(popup_content, alias_names)
+    wheel_area = _picker_wheel_area(popup_content)
+    loaders = _picker_loaders(wheel_area)
+    assert [loader.property("active") for loader in loaders] == [
+        True, True, True, True, True, True, False,
+    ]
+    assert wheel_area.property("_wheelWidth") == (
+        wheel_area.property("width") / picker.property("_totalColCount")
+    )
+    expected_width = wheel_area.property("_wheelWidth")
+    assert [loader.property("width") for loader in loaders] == [
+        expected_width, expected_width, expected_width,
+        expected_width, expected_width, expected_width, 0.0,
+    ]
+    picker.setProperty("width", 360.0)
+    _pump()
+    resized_width = wheel_area.property("_wheelWidth")
+    assert resized_width != expected_width
+    assert resized_width == (
+        wheel_area.property("width") / picker.property("_totalColCount")
+    )
+    assert [loader.property("width") for loader in loaders] == [
+        resized_width, resized_width, resized_width,
+        resized_width, resized_width, resized_width, 0.0,
+    ]
+
+
 def _assert_date_time_runtime(root, picker):
     area, row, buttons = _date_time_parts(picker)
     popup = _date_time_popup(picker)
@@ -311,6 +401,27 @@ def test_focus_line_parent_chain(qapp):
         _pump(1)
 
 
+def test_date_time_picker_popup_parent_chain(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene()
+    try:
+        picker = root.findChild(QObject, "dateTimePicker")
+        assert picker is not None
+        assert not picker.property("isOpen")
+        _assert_picker_popup_runtime(picker)
+        popup = _date_time_popup(picker)
+        assert not popup.property("isOpen")
+        assert not popup.property("_prewarmed")
+        assert not popup.property("_prewarmScheduled")
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_calendar_nav_button_source_conventions():
     source = CALENDAR_NAV_SOURCE.read_text(encoding="utf-8")
     path = PurePosixPath(CALENDAR_NAV_SOURCE.relative_to(ROOT).as_posix())
@@ -341,6 +452,23 @@ def test_date_time_picker_source_uses_standard_sections():
         violation
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_date_time_picker_popup_source_uses_standard_sections():
+    source = DATE_TIME_PICKER_POPUP_SOURCE.read_text(encoding="utf-8")
+    path = PurePosixPath(DATE_TIME_PICKER_POPUP_SOURCE.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    for name in (
+        "col2Loader", "col3Loader", "hourWheelLoader",
+        "minuteWheelLoader", "secondWheelLoader", "ampmWheelLoader",
+    ):
+        assert source.count(f"property alias {name}: {name}") == 1
+        assert source.count(f"id: {name}") == 1
+    assert [
+        item
+        for item in violations
+        if item.rule in {"QML008", "QML009"}
     ] == []
 
 

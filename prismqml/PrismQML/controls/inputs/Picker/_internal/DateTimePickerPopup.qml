@@ -11,24 +11,33 @@ import "../.."
 Column {
     id: popupContent
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var control  // Parent DateTimePicker 父日期时间选择器
+
+    // Loader aliases for parent control 给父控件使用的 Loader 别名
+    property alias col2Loader: col2Loader
+    property alias col3Loader: col3Loader
+    property alias hourWheelLoader: hourWheelLoader
+    property alias minuteWheelLoader: minuteWheelLoader
+    property alias secondWheelLoader: secondWheelLoader
+    property alias ampmWheelLoader: ampmWheelLoader
     
     spacing: Enums.spacing.none
     
+    // ==================== Content 内容 ====================
     // Wheel area 滚轮区域
     Item {
+        readonly property real _wheelWidth: control ? width / control._totalColCount : 70
+
         width: parent.width
         height: Enums.controlSize.wheelPickerAreaHeight
-        
-        readonly property real _wheelWidth: control ? width / control._totalColCount : 70
         
         Row {
             anchors.fill: parent
             spacing: Enums.spacing.none
             
             // Date wheels (order depends on _yearFirst) 日期滚轮（顺序取决于_yearFirst）
-            // Column 1: Year (if yearFirst) or Month
+            // Column 1: year when year-first, otherwise month 第1列：年优先时为年，否则为月
             Loader {
                 active: control ? (control._hasDate && (control._yearFirst ? control._showYear : control._showMonth)) : false
                 width: active ? parent.parent._wheelWidth : 0
@@ -44,7 +53,7 @@ Column {
                 }
             }
             
-            // Column 2: Month (if yearFirst) or Day
+            // Column 2: month when year-first, otherwise day 第2列：年优先时为月，否则为日
             Loader {
                 id: col2Loader
                 active: control ? (control._hasDate && (control._yearFirst ? control._showMonth : control._showDay)) : false
@@ -61,7 +70,7 @@ Column {
                 }
             }
             
-            // Column 3: Day (if yearFirst) or Year
+            // Column 3: day when year-first, otherwise year 第3列：年优先时为日，否则为年
             Loader {
                 id: col3Loader
                 active: control ? (control._hasDate && (control._yearFirst ? control._showDay : control._showYear)) : false
@@ -175,10 +184,9 @@ Column {
         }
         
         // Selection highlight 选中高亮
-        // 改成顶层渲染 (z=popup),用半透明 controlBgHover 不会盖文字。
-        // 之前 z=background (=-1) 想做底层填充,但被 CycleWheelPicker 内部
-        // PathView delegate / scrollButtons / clip 等任何渲染层盖住,
-        // 表现为 hover 哪一列高亮就丢失,极其脆弱。
+        // Render at popup z with translucent accent color so text stays visible 顶层使用半透明强调色，不遮挡文字
+        // The old background z was covered by CycleWheelPicker delegates and clipping 旧背景层会被内部代理与裁剪覆盖
+        // That made the highlight disappear on hover and was fragile 悬停时高亮会消失，行为脆弱
         Rectangle {
             anchors.centerIn: parent
             width: parent.width - Enums.spacing.m
@@ -203,12 +211,4 @@ Column {
     DateTimeButtons {
         control: popupContent.control
     }
-    
-    // Expose loaders for parent control 暴露Loader供父控件访问
-    property alias col2Loader: col2Loader
-    property alias col3Loader: col3Loader
-    property alias hourWheelLoader: hourWheelLoader
-    property alias minuteWheelLoader: minuteWheelLoader
-    property alias secondWheelLoader: secondWheelLoader
-    property alias ampmWheelLoader: ampmWheelLoader
 }
