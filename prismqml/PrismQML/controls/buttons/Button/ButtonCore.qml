@@ -16,25 +16,25 @@ import "../../containers"
 Widget {
     id: control
 
-    // ==================== Auto Type Detection 自动类型识别 ====================
+    // ==================== Public Props 公开属性 ====================
     // icon only → ToolButton style, icon+text or text only → PushButton style 仅图标 → 工具按钮样式，图标+文本或仅文本 → 普通按钮样式
 
     readonly property bool isToolButton: icon !== "" && text === ""
 
-    // ==================== Style Props 样式属性 ====================
+    // Button style 按钮样式
     property int style: Enums.button.style_default
     property int shape: Enums.button.shape_default
     property int feature: Enums.button.feature_none
     property int contentAlignment: Enums.button.align_center  // Content alignment 内容对齐
 
-    // ==================== Content Props 内容属性 ====================
+    // Button content 按钮内容
     property string text: ""
     property string icon: ""           // Icon name / image path 图标名或图片路径
     property int iconSize: Enums.iconSize.m
     default property alias contentData: customContentContainer.data  // Custom content 自定义内容
     property bool hasCustomContent: customContentContainer.children.length > 0
 
-    // ==================== Feature Props 功能属性 ====================
+    // Button features 按钮功能
     property bool checked: false
     property bool loading: false
     property string loadingText: ""
@@ -50,12 +50,12 @@ Widget {
     property real _countdownInitialWidth: 0
     property bool dropdownOpen: false  // External dropdown open state 外部下拉打开状态
 
-    // ==================== Base Props 基础属性 ====================
+    // Base appearance 基础外观
     property bool flat: style === Enums.button.style_transparent ||
                         style === Enums.button.style_text ||
                         style === Enums.button.style_hyperlink
 
-    // ==================== Text Style 文本样式 ====================
+    // Text style 文本样式
     readonly property int fontSize: Enums.typography.body
     // Optional font flags 可选字体修饰 (e.g. 富文本工具栏 B/I/U/S 按钮)
     property bool fontBold: false
@@ -63,13 +63,13 @@ Widget {
     property bool fontUnderline: false
     property bool fontStrikeout: false
 
-    // ==================== State 状态 ====================
+    // Interaction state 交互状态
     property bool pseudoHovered: false
     property bool pseudoPressed: false
     property bool hovered: feature === Enums.button.feature_split ? false : (hoverHandler.hovered || pseudoHovered)
     property bool pressed: feature === Enums.button.feature_split ? false : ((mouseArea && mouseArea.pressed) || pseudoPressed)
 
-    // ==================== Style Helper 样式助手 ====================
+    // Style helper 样式辅助
     // 用具名 property 持有(而非匿名子项), 避免被 default property alias
     // contentData(→customContentContainer.data) 的归属探测卷入。
     // ButtonStyleHelper 是 QtObject(无 data 成员), 作为匿名子项时
@@ -86,7 +86,7 @@ Widget {
         isToggleChecked: feature === Enums.button.feature_toggle && control.checked
     }
 
-    // ==================== Appearance Props 外观属性 ====================
+    // Appearance and animated colors 外观与动画颜色
     property int radius: shape === Enums.button.shape_pill ? height / 2
                          : (Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small)
     property color color: styleHelper.bgColor
@@ -197,7 +197,7 @@ Widget {
         _countdownActive = true
     }
 
-    // ==================== Layout Override 布局覆盖 ====================
+    // Layout override 布局覆盖
     // 按钮默认不应填充父布局宽度（覆盖Widget基类的layoutFillWidth: true）
     layoutFillWidth: false
 
@@ -218,6 +218,7 @@ Widget {
     // border alias references child _bg, kept in body per ordering rule
     property alias border: _bg.border
 
+    // ==================== Content 内容 ====================
     HoverHandler {
         id: hoverHandler
         enabled: control.enabled && !control.loading && !control._countdownActive && feature !== Enums.button.feature_split
@@ -231,7 +232,7 @@ Widget {
         onTriggered: if (control.hovered) control.showToolTip()
     }
 
-    // ==================== Shadow 阴影 ====================
+    // Shadow layer 阴影层
     // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯色矩形, 无模糊)。
     RectangularShadow {
         anchors.fill: _bg
@@ -250,7 +251,7 @@ Widget {
         z: _bg.z - 1
     }
 
-    // ==================== Background 背景 ====================
+    // Background 背景
     Rectangle {
         id: _bg
         anchors.fill: parent
@@ -324,7 +325,7 @@ Widget {
         duration: Enums.duration.medium
     }
 
-    // ==================== Content (modular) 内容模块 ====================
+    // Modular content 模块化内容
     // Custom content container 自定义内容容器
     Item {
         id: customContentContainer
@@ -389,7 +390,7 @@ Widget {
         }
     }
 
-    // ==================== Dropdown Arrow 下拉箭头 ====================
+    // Dropdown arrow 下拉箭头
     Loader {
         anchors.right: parent.right
         anchors.rightMargin: Enums.spacing.m
@@ -408,7 +409,7 @@ Widget {
         }
     }
 
-    // ==================== Progress Feature 进度条模块 ====================
+    // Progress feature 进度条模块
     Item {
         id: progressClipRect
         anchors.fill: parent
@@ -452,7 +453,7 @@ Widget {
         }
     }
 
-    // ==================== Main Interaction 主交互 ====================
+    // Main interaction 主交互
     MouseArea {
         id: mouseArea
         anchors.fill: parent
@@ -485,7 +486,7 @@ Widget {
         onDoubleClicked: control.doubleClicked()
     }
 
-    // ==================== Dropdown Feature 下拉模块 ====================
+    // Dropdown feature 下拉模块
     Loader {
         id: dropdownFeature
         anchors.fill: parent
@@ -506,14 +507,14 @@ Widget {
         }
     }
 
-    // ==================== Toggle Animation 切换动画 ====================
+    // Toggle animation 切换动画
     ToggleAnimation {
         id: toggleAnim
         target: _bg
         running: control.checked
     }
 
-    // ==================== Countdown Timer 倒计时定时器 ====================
+    // Countdown timer 倒计时定时器
     Timer {
         id: countdownTimer
         interval: Enums.duration.countUp
