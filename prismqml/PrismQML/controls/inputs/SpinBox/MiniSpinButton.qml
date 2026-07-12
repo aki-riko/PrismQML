@@ -11,15 +11,16 @@ import "../../buttons/Button"
 ButtonCore {
     id: control
     
-    // ==================== Transparent Tool Button Style 透明工具按钮样式 ====================
+    // Transparent tool button style 透明工具按钮样式
     style: Enums.button.style_transparent
     iconSize: Enums.iconSize.micro  // 8
     
-    // ==================== Size Override 尺寸覆盖 ====================
-    // compact 按钮固定在父类通过明确的 width/height 锚定分半赋值
+    // ==================== Size 尺寸 ====================
+    // The parent assigns explicit half-height width/height values to compact buttons 父级通过明确的 width/height 为紧凑按钮分配半高尺寸
     radius: Enums.radius.tiny
 
-    // 双击当作两次单击处理: 否则 MouseArea 在 doubleClickInterval (≈400ms) 内的
-    // 第二次点击只会触发 doubleClicked,不会触发 clicked,导致快速连点 +/- 吞点击
+    // Treat double-click as two clicks 将双击按两次单击处理
+    // MouseArea suppresses the second clicked signal within doubleClickInterval (about 400ms) MouseArea 会在 doubleClickInterval（约 400ms）内抑制第二次 clicked 信号
+    // Forward doubleClicked to clicked so rapid +/- clicks are not lost 将 doubleClicked 转发到 clicked，避免快速连点 +/- 时丢失点击
     onDoubleClicked: clicked()
 }
