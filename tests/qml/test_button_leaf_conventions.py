@@ -45,6 +45,13 @@ BUTTON_SOURCES = (
     / "buttons"
     / "Button"
     / "ButtonDropdown.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "buttons"
+    / "Button"
+    / "CustomButtonCore.qml",
 )
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "button-leaf-conventions.qml")
@@ -87,6 +94,9 @@ Item {
     readonly property int expectedPopupMaxHeight: Enums.comboBoxMetrics.popupMaxHeight
     readonly property int expectedSmallRadius: Enums.radius.small
     readonly property color expectedDropdownTextColor: dropdownButton.getTextColor()
+    readonly property int expectedScreenPickerType: Enums.colorPicker.type_screen
+    readonly property int expectedButtonMinWidth: Enums.controlSize.buttonMinWidth
+    readonly property int expectedInputHeight: Enums.controlSize.inputHeight
 
     width: 400
     height: 200
@@ -149,6 +159,15 @@ Item {
         icon: Enums.icon.checkmark
         radius: Enums.radius.large
         menuItems: ["Alpha", "-", { text: "Beta", icon: Enums.icon.checkmark }]
+    }
+
+    ColorPicker {
+        id: screenPicker
+        objectName: "screenPicker"
+        y: 140
+        width: 200
+        height: 40
+        type: Enums.colorPicker.type_screen
     }
 }
 """
@@ -233,6 +252,19 @@ def _dropdown_popup(dropdown):
         for child in _descendants(dropdown)
         if child.metaObject().indexOfProperty("_contentHeight") >= 0
         and child.metaObject().indexOfProperty("_needsScroll") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
+def _custom_button_core(picker):
+    matches = [
+        child
+        for child in _descendants(picker)
+        if child.metaObject().indexOfProperty("buttonState") >= 0
+        and child.metaObject().indexOfProperty("contentOffsetX") >= 0
+        and child.metaObject().indexOfProperty("radius_") >= 0
+        and child.metaObject().indexOfProperty("getBackgroundColor") >= 0
     ]
     assert len(matches) == 1, [item.metaObject().className() for item in matches]
     return matches[0]
@@ -361,6 +393,33 @@ def test_button_dropdown_parent_bindings_remain_stable(button_leaf_scene):
     assert popup.property("popupHeight") == root.property("expectedPopupMaxHeight")
     assert popup.property("_needsScroll")
     assert not popup.property("isOpen")
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_custom_button_core_color_picker_parent_chain_remains_stable(
+    button_leaf_scene,
+):
+    root, windows_before = button_leaf_scene
+    picker = root.findChild(QObject, "screenPicker")
+    assert picker is not None
+    button = _custom_button_core(picker)
+    assert picker.property("type") == root.property("expectedScreenPickerType")
+    assert (button.property("width"), button.property("height")) == (
+        picker.property("width"), picker.property("height"))
+    assert (button.property("contentWidth"), button.property("contentHeight")) == (
+        root.property("expectedButtonMinWidth"), root.property("expectedInputHeight"))
+    assert button.property("buttonState") == "normal"
+    assert not button.property("hovered")
+    assert not button.property("pressed")
+    assert not button.property("hasIcon")
+    assert button.property("contentOffsetX") == 0
+    assert button.property("opacity") == pytest.approx(1.0)
+
+    picker.setProperty("enabled", False)
+    _pump(20)
+    assert not button.property("enabled")
+    assert button.property("buttonState") == "disabled"
+    assert button.property("opacity") == pytest.approx(0.6)
     assert _new_visible_windows(windows_before) == []
 
 

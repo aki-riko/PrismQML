@@ -10,12 +10,11 @@ import "../../../effects"
 import "../../data"
 import "../../containers"
 
-// ButtonCore - Button base class 按钮基类
-// All button components should extend this 所有按钮组件应继承此基类
-// Subclass only needs to override color functions 子类只需覆盖颜色函数
+// CustomButtonCore - Button core with overridable colors and custom content 可覆盖颜色和自定义内容的按钮核心
+// Provides overridable color callbacks and custom content for specialized buttons 为专用按钮提供可覆盖颜色回调和自定义内容
 Widget {
     id: control
-    
+
     // ==================== Public Props 公开属性 ====================
     property string text: ""
     property string icon: ""           // Icon name / image path 图标名或图片路径
@@ -23,35 +22,11 @@ Widget {
     property bool flat: false          // No border 是否无边框
     property int radius_: Enums.radius.small + 1  // Use radius_ to avoid Rectangle.radius conflict 避免冲突
     property bool iconThemeAware: true // Icon follows theme color 图标跟随主题色
-    
-    // ==================== Signals 信号 ====================
-    signal clicked()
-    // 不能命名为 pressed, 会与下方 `property bool pressed` 同名被遮蔽; 外部用 onButtonPressed
-    signal buttonPressed()
-    signal released()
 
-    // ==================== Readonly State 只读状态 ====================
-    readonly property bool hovered: mouseArea.containsMouse
-    readonly property bool pressed: mouseArea.pressed
-    
-    // State string (for debug) 状态字符串
-    readonly property string buttonState: {
-        if (!enabled) return "disabled"
-        if (pressed) return "pressed"
-        if (hovered) return "hovered"
-        return "normal"
-    }
-    
-    // ==================== Size 尺寸 ====================
-    // Content size (inherited from Widget) 内容尺寸（继承自Widget）
-    contentWidth: Math.max(contentRow.implicitWidth + Enums.spacing.xl, Enums.controlSize.buttonMinWidth)
-    contentHeight: Enums.controlSize.inputHeight
-    
-    // ==================== Text Style 文本样式 ====================
+    // Text style 文本样式
     readonly property int fontSize: Enums.typography.body
-    
-    // ==================== Color Functions (subclass override) 颜色函数 ====================
-    
+
+    // Overridable color callbacks 可覆盖颜色回调
     // Default button colors 默认按钮颜色
     property var getBackgroundColor: function() {
         if (!enabled) return Enums.stateColor.controlBgDisabled
@@ -59,28 +34,51 @@ Widget {
         if (hovered) return Enums.stateColor.controlBgHover
         return Enums.stateColor.controlBg
     }
-    
+
     property var getBorderColor: function() {
         if (!enabled) return Enums.stateColor.borderLight
         if (hovered) return Enums.stateColor.borderStrong
         return Enums.stateColor.border
     }
-    
+
     property var getTextColor: function() {
         if (!enabled) return Enums.stateColor.pickerTextDisabled
         if (pressed) return Enums.textColor.pressed
         return Enums.textColor.primary
     }
-    
-    // ==================== Content Offset (subclass can set) 内容偏移 ====================
+
+    // Custom content offset 自定义内容偏移
     property int contentOffsetX: 0  // Horizontal offset, positive = left 水平偏移
-    
-    // ==================== Content 内容 ====================
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool hovered: mouseArea.containsMouse
+    readonly property bool pressed: mouseArea.pressed
+    // State string (for debug) 状态字符串
+    readonly property string buttonState: {
+        if (!enabled) return "disabled"
+        if (pressed) return "pressed"
+        if (hovered) return "hovered"
+        return "normal"
+    }
     // Check if has icon 判断是否有图标
     readonly property bool hasIcon: icon !== ""
-    
-    // ==================== Shadow Layer 阴影层 ====================
-    // Fluent: 模糊阴影; neo: 硬阴影
+
+    // ==================== Signals 信号 ====================
+    signal clicked()
+    // The name pressed would be shadowed by the property; use onButtonPressed externally. pressed 名称会被同名属性遮蔽；外部请使用 onButtonPressed。
+    signal buttonPressed()
+    signal released()
+
+    // ==================== Size 尺寸 ====================
+    // Content size (inherited from Widget) 内容尺寸（继承自Widget）
+    contentWidth: Math.max(contentRow.implicitWidth + Enums.spacing.xl, Enums.controlSize.buttonMinWidth)
+    contentHeight: Enums.controlSize.inputHeight
+    // Disabled opacity 禁用透明度
+    opacity: enabled ? 1.0 : 0.6
+
+    // ==================== Content 内容 ====================
+    // Shadow layer 阴影层
+    // Fluent uses a blurred shadow; Neobrutalism uses a hard shadow. Fluent 使用模糊阴影；Neobrutalism 使用硬阴影。
     RectangularShadow {
         anchors.fill: background
         radius: background.radius
@@ -97,7 +95,7 @@ Widget {
         z: background.z - 1
     }
 
-    // ==================== Background 背景 ====================
+    // Background 背景
     Rectangle {
         id: background
         anchors.fill: parent
@@ -108,8 +106,8 @@ Widget {
         
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
-    
-    // ==================== Content Row 内容行 ====================
+
+    // Content row 内容行
     Row {
         id: contentRow
         anchors.centerIn: parent
@@ -136,8 +134,8 @@ Widget {
             anchors.verticalCenter: parent.verticalCenter
         }
     }
-    
-    // ==================== Interaction 交互 ====================
+
+    // Interaction 交互
     MouseArea {
         id: mouseArea
         anchors.fill: parent
@@ -147,7 +145,4 @@ Widget {
         onPressed: control.buttonPressed()
         onReleased: control.released()
     }
-    
-    // ==================== Disabled State 禁用状态 ====================
-    opacity: enabled ? 1.0 : 0.6
 }
