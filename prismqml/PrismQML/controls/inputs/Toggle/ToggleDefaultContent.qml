@@ -12,14 +12,14 @@ import "../../data/Label"
 Row {
     id: content
 
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string text: ""
     property string icon: ""
     property int iconSize: Enums.iconSize.m
     property color textColor: Enums.foregroundColor
     property bool showIcon: true
 
-    // ==================== Layout 布局 ====================
+    // ==================== Content 内容 ====================
     spacing: icon !== "" && showIcon ? Enums.spacing.s : 0
 
     // Icon 图标

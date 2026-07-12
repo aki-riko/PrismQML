@@ -11,12 +11,12 @@ import "../../data/Label"
 Column {
     id: content
 
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string text: ""
     property string subtitle: ""
     property color textColor: Enums.foregroundColor
 
-    // ==================== Layout 布局 ====================
+    // ==================== Content 内容 ====================
     spacing: Enums.spacing.xxs
 
     // Title 标题
