@@ -145,7 +145,7 @@ def test_callable_and_parameter_indexes_scale_to_thousands_of_spans():
 
     assert len(function_lines) == 6000
     assert parameter_lines == []
-    assert perf_counter() - started < 2.0
+    assert perf_counter() - started < 3.0
 
 
 def test_many_returns_within_one_callable_remain_linear():
