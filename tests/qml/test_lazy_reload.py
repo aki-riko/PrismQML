@@ -14,7 +14,7 @@ onCurrentIndexChanged 再次走 showLoadingAndSwitch(主页又懒加载一次)�
 判据: 模拟 启动→切到页1→切回页0, 全程主页(0)必须始终保持 Ready
 (即未被卸载), 才说明切回不会重新懒加载。
 
-用法: python tests/qml/test_lazy_reload.py
+用法: python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python tests/qml/test_lazy_reload.py
 退出码: 0=通过, 1=失败
 """
 import sys

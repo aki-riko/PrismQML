@@ -14,7 +14,7 @@ QQmlIncubationController, 这棵树在单帧内同步建完, 与导航指示器�
   2. controller 真的在推进孵化: 加载一个含 asynchronous Loader 的场景,
      controller 的 incubateFor 被驱动后, 异步对象最终完成孵化(对象出现)。
 
-用法: <venv>/python tests/qml/test_incubation_controller.py
+用法: <venv>/python scripts/test_process.py --qt-platform offscreen --timeout 180 -- <venv>/python tests/qml/test_incubation_controller.py
 退出码: 0=通过, 1=失败
 """
 import sys

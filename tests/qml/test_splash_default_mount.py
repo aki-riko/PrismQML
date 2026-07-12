@@ -13,7 +13,7 @@
     Python 侧 self._splash_instance 持有引用(防 GC)。
   - setSplashEnabled(False) 后,根对象 _splashInstance 为 null。
 
-用法: <venv>/python tests/qml/test_splash_default_mount.py
+用法: <venv>/python scripts/test_process.py --qt-platform offscreen --timeout 180 -- <venv>/python tests/qml/test_splash_default_mount.py
 退出码: 0=通过, 1=失败
 """
 import os

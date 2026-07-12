@@ -30,8 +30,8 @@
 
 验证：
 - `rg -n "^\\s*import\\s+QtQuick\\.Controls\\b|^\\s*enum\\s+[A-Za-z_]" prismqml/PrismQML -g "*.qml"`
-- `$env:QT_QPA_PLATFORM='offscreen'; .\.venv\Scripts\python.exe tests\qml\probe_all_components.py`
-- `.\.venv\Scripts\python.exe -m pytest`
+- `.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py`
+- `.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest`
 
 ### Step 1 执行记录
 
@@ -54,7 +54,7 @@
 验证：
 - header 扫描中包内文件遗漏数为 0。
 - `.\.venv\Scripts\python.exe -m compileall prismqml\python tests`
-- `.\.venv\Scripts\python.exe -m pytest`
+- `.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest`
 
 ### Step 2 执行记录
 
@@ -81,7 +81,7 @@
 验证：
 - 静态扫描不再出现包内 `except Exception: pass` 或裸 `except`。
 - `.\.venv\Scripts\python.exe -m compileall prismqml\python tests`
-- `.\.venv\Scripts\python.exe -m pytest`
+- `.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest`
 
 ### Step 3 执行记录
 
@@ -103,7 +103,7 @@
 
 验证：
 - `_window_builder.py` 尽量降到 500 行以下，超长函数明显缩短。
-- `.\.venv\Scripts\python.exe -m pytest tests\test_core.py tests\qml\test_splash_default_mount.py tests\qml\test_splash_timing.py`
+- `.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest tests\test_core.py tests\qml\test_splash_default_mount.py tests\qml\test_splash_timing.py`
 - 若 QML probe 数量变化，必须跑基线 worktree 对比。
 
 ### Step 4 执行记录
@@ -127,7 +127,7 @@
 
 验证：
 - `TableWidget.qml` 降到 700 行以下，最好降到 500 行以下。
-- `.\.venv\Scripts\python.exe -m pytest tests\qml\test_list_widget.py tests\test_carousel_item_delegate.py`
+- `.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest tests\qml\test_list_widget_reveal_metrics.py tests\test_carousel_item_delegate.py`
 - QML probe 基线对比。
 
 ### Step 5 执行记录
@@ -175,7 +175,7 @@
 
 验证：
 - `sql_list_model.py` 降到 700 行以下，最好降到 500 行以下。
-- `.\.venv\Scripts\python.exe -m pytest tests\test_core.py tests\test_providers.py`
+- `.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest tests\test_core.py tests\test_providers.py`
 - 可用时补跑 C++/Rust 相关 SQL model 测试。
 
 ### Step 7 执行记录

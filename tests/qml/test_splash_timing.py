@@ -19,7 +19,7 @@
   - 调用瞬间主页(异步)未就绪 → 不得 finish (finishAtCall===0)
   - 主页 pageLoaded 后 → 必须 finish 且仅一次, 且彼时主页确已就绪
 
-用法: python tests/qml/test_splash_timing.py
+用法: python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python tests/qml/test_splash_timing.py
 退出码: 0=通过, 1=失败
 """
 import sys

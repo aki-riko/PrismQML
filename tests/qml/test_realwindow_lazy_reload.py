@@ -13,7 +13,7 @@
 判据: 启动→切到页1→切回页0, 全程主页(0)的 Loader 必须始终保持 Ready
 (未被卸载)。主页被卸载正是"切回重新懒加载/再次显示 loading"的根因。
 
-用法: <venv>/python tests/qml/test_realwindow_lazy_reload.py
+用法: <venv>/python scripts/test_process.py --qt-platform offscreen --timeout 180 -- <venv>/python tests/qml/test_realwindow_lazy_reload.py
 退出码: 0=通过(主页未被卸载), 1=失败(主页被卸载=会重新懒加载)
 """
 import sys

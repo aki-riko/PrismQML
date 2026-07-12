@@ -14,7 +14,7 @@
      (修复前会立刻变 2, 此时 page2 尚未 Ready)
   3. 切走主页后主页仍 Ready（_loadOnce latch 生效，未被卸载）
 
-用法: python tests/qml/test_lazy_reload_components.py
+用法: python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python tests/qml/test_lazy_reload_components.py
 退出码: 0=通过, 1=失败
 """
 import sys

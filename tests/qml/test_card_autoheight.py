@@ -17,7 +17,7 @@
   3. 默认(autoHeight=false)显式 height 的卡保持该值不变(原行为不破坏)
   4. 全程无 binding loop 警告
 
-用法: <venv>/python tests/qml/test_card_autoheight.py
+用法: <venv>/python scripts/test_process.py --qt-platform offscreen --timeout 180 -- <venv>/python tests/qml/test_card_autoheight.py
 退出码: 0=通过, 1=失败
 """
 import sys

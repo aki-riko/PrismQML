@@ -8,7 +8,7 @@
 捕获加载/绑定错误。已知必须由父组件注入 required property 的内部子模块
 会被归类为预期跳过,真正新增的加载错误仍会失败。
 
-用法: python tests/qml/probe_all_components.py
+用法: python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python tests/qml/probe_all_components.py
 退出码: 0=无非预期错误, 1=有非预期加载错误
 """
 import argparse
