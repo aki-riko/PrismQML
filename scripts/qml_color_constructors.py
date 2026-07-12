@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import ast
+from dataclasses import dataclass
 from decimal import Decimal, DecimalException, InvalidOperation
 import re
 from typing import Iterator
@@ -48,6 +49,38 @@ MAX_NUMERIC_EXPRESSION_LENGTH = 256
 MAX_NUMERIC_AST_NODES = 128
 MAX_NUMERIC_AST_DEPTH = 64
 MAX_TERNARY_DEPTH = 16
+
+
+@dataclass(frozen=True)
+class NumericColorFinding:
+    """Constructor span plus legacy Qt-token report line. 构色区间及旧版 Qt 标记报告行。"""
+
+    line: int
+    start: int
+    end: int
+
+
+@dataclass(frozen=True)
+class _ConstructorCall:
+    kind: str
+    arguments: tuple[str, ...]
+    line: int
+    start: int
+    end: int
+
+
+def _normalize_views(
+    code: str, quoted_code: str | None
+) -> tuple[str, str | None]:
+    normalized_code = "\n".join(code.splitlines())
+    if quoted_code is None:
+        return normalized_code, None
+    if len(code) != len(quoted_code):
+        return normalized_code, None
+    normalized_quoted = "\n".join(quoted_code.splitlines())
+    if len(normalized_code) != len(normalized_quoted):
+        return normalized_code, None
+    return normalized_code, normalized_quoted
 
 
 def _compact(expression: str) -> str:
@@ -267,7 +300,7 @@ def _constructor_matches(
 
 def _constructor_calls(
     code: str, quoted_code: str | None = None
-) -> Iterator[tuple[str, list[str], int]]:
+) -> Iterator[_ConstructorCall]:
     ends = _parenthesis_ends(code)
     line = 1
     cursor = 0
@@ -282,7 +315,9 @@ def _constructor_calls(
         if end is None or end - open_index > MAX_CONSTRUCTOR_BODY_LENGTH:
             continue
         body = code[match.end() : end - 1]
-        yield match.group("kind"), _split_top_level(body, ","), line
+        yield _ConstructorCall(
+            match.group("kind"), tuple(_split_top_level(body, ",")), line, start, end
+        )
 
 
 def _channel_base(expression: str, channel: str) -> str | None:
@@ -342,7 +377,7 @@ def _fixed_alpha(expression: str, base: str | None = None) -> bool:
     return False
 
 
-def _is_hardcoded_constructor(kind: str, arguments: list[str]) -> bool:
+def _is_hardcoded_constructor(kind: str, arguments: list[str] | tuple[str, ...]) -> bool:
     if len(arguments) != 4:
         return False
     if all(_number_value(argument) is not None for argument in arguments[:3]):
@@ -361,7 +396,18 @@ def numeric_color_constructor_lines(
 ) -> set[int]:
     """Return start lines for hardcoded Qt color calls. 返回 Qt 硬编码构色起始行。"""
     return {
-        line
-        for kind, arguments, line in _constructor_calls(code, quoted_code)
-        if _is_hardcoded_constructor(kind, arguments)
+        finding.line
+        for finding in numeric_color_constructor_findings(code, quoted_code)
     }
+
+
+def numeric_color_constructor_findings(
+    code: str, quoted_code: str | None = None
+) -> tuple[NumericColorFinding, ...]:
+    """Return hardcoded Qt color call locations. 返回 Qt 硬编码构色调用位置。"""
+    normalized_code, normalized_quoted = _normalize_views(code, quoted_code)
+    return tuple(
+        NumericColorFinding(call.line, call.start, call.end)
+        for call in _constructor_calls(normalized_code, normalized_quoted)
+        if _is_hardcoded_constructor(call.kind, call.arguments)
+    )

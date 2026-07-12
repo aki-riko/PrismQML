@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from bisect import bisect_left, bisect_right
+from dataclasses import dataclass
 
 if __package__:
     from .qml_color_array_owners import ColorArrayOwnerIndex
@@ -18,6 +19,15 @@ else:
 
 CLOSING_OPENERS = {"}": "{", "]": "[", ")": "("}
 ARRAY_PREFIX_WORDS = frozenset({"await", "return"})
+
+
+@dataclass(frozen=True)
+class ColorArrayFinding:
+    """Direct color literal location in a semantic array. 语义数组直接颜色位置。"""
+
+    line: int
+    start: int
+    end: int
 
 
 def _normalize_views(masked: str, quoted: str) -> tuple[str, str] | None:
@@ -128,16 +138,16 @@ def _context_depths_at(
     return result
 
 
-def _literal_positions_by_depth(
+def _literal_findings_by_depth(
     masked: str, quoted: str
-) -> dict[int, list[int]]:
+) -> dict[int, list[tuple[int, int]]]:
     matches = list(iter_color_literals(quoted, allow_array_items=True))
     starts = [match.start() for match in matches]
     contexts = _context_depths_at(masked, quoted, starts)
-    result: dict[int, list[int]] = {}
-    for start in starts:
-        depth = contexts.get(start, (0, 0))[0]
-        result.setdefault(depth, []).append(start)
+    result: dict[int, list[tuple[int, int]]] = {}
+    for match in matches:
+        depth = contexts.get(match.start(), (0, 0))[0]
+        result.setdefault(depth, []).append((match.start(), match.end()))
     return result
 
 
@@ -145,20 +155,20 @@ def _line_starts(text: str) -> list[int]:
     return [0, *(index + 1 for index, char in enumerate(text) if char == "\n")]
 
 
-def _array_literal_lines(
+def _array_literal_findings(
     start: int,
     end: int,
     depth: int,
-    positions_by_depth: dict[int, list[int]],
+    findings_by_depth: dict[int, list[tuple[int, int]]],
     line_starts: list[int],
-) -> set[int]:
-    positions = positions_by_depth.get(depth, [])
-    first = bisect_left(positions, start + 1)
-    last = bisect_left(positions, end - 1)
-    return {
-        bisect_right(line_starts, position)
-        for position in positions[first:last]
-    }
+) -> list[ColorArrayFinding]:
+    findings = findings_by_depth.get(depth, [])
+    first = bisect_left(findings, (start + 1,))
+    last = bisect_left(findings, (end - 1,))
+    return [
+        ColorArrayFinding(bisect_right(line_starts, item_start), item_start, item_end)
+        for item_start, item_end in findings[first:last]
+    ]
 
 
 def _is_covered_array(
@@ -200,19 +210,19 @@ def _is_reportable_array(
     )
 
 
-def _scan_array_lines(
+def _scan_array_findings(
     masked: str,
     quoted: str,
     bracket_ends: dict[int, int],
     owners: ColorArrayOwnerIndex,
-) -> set[int]:
+) -> tuple[ColorArrayFinding, ...]:
     line_starts = _line_starts(quoted)
     array_contexts = _context_depths_at(masked, quoted, list(bracket_ends))
     array_depths = {
         position: depths[0] for position, depths in array_contexts.items()
     }
-    literal_positions = _literal_positions_by_depth(masked, quoted)
-    result: set[int] = set()
+    literal_findings = _literal_findings_by_depth(masked, quoted)
+    result: list[ColorArrayFinding] = []
     active_arrays: list[tuple[int, int, int]] = []
     for start, end in sorted(bracket_ends.items()):
         while active_arrays and start >= active_arrays[-1][1]:
@@ -222,20 +232,30 @@ def _scan_array_lines(
             array_depths, array_contexts, owners,
         ):
             depth = array_depths.get(start, 0)
-            result.update(
-                _array_literal_lines(
-                    start, end, depth, literal_positions, line_starts
+            result.extend(
+                _array_literal_findings(
+                    start, end, depth, literal_findings, line_starts
                 )
             )
             active_arrays.append((start, end, depth))
-    return result
+    return tuple(result)
 
 
 def color_array_literal_lines(masked_text: str, quoted_text: str) -> set[int]:
     """Return lines with direct literals in color arrays. 返回颜色数组直接字面量行。"""
+    return {
+        finding.line
+        for finding in color_array_literal_findings(masked_text, quoted_text)
+    }
+
+
+def color_array_literal_findings(
+    masked_text: str, quoted_text: str
+) -> tuple[ColorArrayFinding, ...]:
+    """Return direct literal locations in color arrays. 返回颜色数组直接字面量位置。"""
     views = _normalize_views(masked_text, quoted_text)
     if views is None:
-        return set()
+        return ()
     masked, quoted = views
     bracket_ends = _matching_ends(masked, "[", "]")
     paren_ends = _matching_ends(masked, "(", ")")
@@ -243,4 +263,4 @@ def color_array_literal_lines(masked_text: str, quoted_text: str) -> set[int]:
     owners = ColorArrayOwnerIndex.build(
         masked, bracket_ends, paren_ends, brace_ends
     )
-    return _scan_array_lines(masked, quoted, bracket_ends, owners)
+    return _scan_array_findings(masked, quoted, bracket_ends, owners)

@@ -176,10 +176,19 @@ def _outside_array_starts(code: str, starts: Iterable[int]) -> set[int]:
 
 
 def _has_color_literal(code: str, source: str) -> bool:
+    return bool(_color_literal_spans(code, source))
+
+
+def _color_literal_spans(code: str, source: str) -> list[tuple[int, int]]:
     if len(code) != len(source):
-        return False
+        return []
     matches = list(iter_color_literals(source))
-    return bool(_outside_array_starts(code, (match.start() for match in matches)))
+    allowed = _outside_array_starts(code, (match.start() for match in matches))
+    return [
+        (match.start(), match.end())
+        for match in matches
+        if match.start() in allowed
+    ]
 
 
 def _source_group(source: str, match: re.Match[str], name: str) -> str:
