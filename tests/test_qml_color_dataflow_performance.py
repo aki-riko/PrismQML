@@ -6,6 +6,7 @@
 
 from time import perf_counter
 
+import scripts.qml_color_dataflow as color_dataflow
 from scripts.qml_color_dataflow import propagated_color_findings
 
 
@@ -13,6 +14,17 @@ def _timed_flow(source: str) -> tuple[int, float]:
     start = perf_counter()
     findings = propagated_color_findings(source, is_qml=False)
     return len(findings), perf_counter() - start
+
+
+def test_non_candidate_source_skips_symbol_index(monkeypatch):
+    def unexpected_symbol_index(*args, **kwargs):
+        raise AssertionError("non-candidate source reached the symbol index")
+
+    monkeypatch.setattr(color_dataflow, "build_symbol_index", unexpected_symbol_index)
+
+    assert propagated_color_findings(
+        'function fallbackColors() { return ["red"] }', is_qml=False
+    ) == ()
 
 
 def test_large_color_flow_stays_within_linear_budgets():

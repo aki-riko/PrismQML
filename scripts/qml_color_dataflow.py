@@ -91,6 +91,7 @@ class SourceMap:
 QUOTED_HEX_RE = re.compile(
     r"(?P<quote>['\"`])#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})(?P=quote)"
 )
+DATAFLOW_TRIGGER_RE = re.compile(r"(?<![\w$])(?:const|readonly|Qt)\b")
 
 
 def _replacement_text(kind: ValueKind, index: int) -> str:
@@ -295,20 +296,11 @@ def _numeric_use_findings(
     return result
 
 
-def analyze_color_dataflow(text: str, *, is_qml: bool) -> ColorDataflowAnalysis:
-    """Analyze direct and propagated color constructors. 分析直接及传播构色。"""
-    source = "\n".join(text.splitlines())
-    masked = sanitize_qml(source, mask_strings=True)
-    expression_view = sanitize_qml(source, mask_strings=True, mark_values=True)
-    pairs = pair_ends(expression_view)
-    starts = line_starts(source)
-    scopes = build_scopes(masked, is_qml)
-    index = build_symbol_index(
-        source, masked, expression_view, scopes, pairs, starts, is_qml=is_qml
-    )
-    numeric_lines = _direct_numeric_lines(source, index)
+def _propagated_findings(
+    source: str, index: SymbolIndex, *, is_qml: bool
+) -> tuple[DataflowFinding, ...]:
     if not index.references:
-        return ColorDataflowAnalysis(numeric_lines, ())
+        return ()
     synthetic, replacements = _synthesize(source, index)
     mapping = _source_map(replacements)
     excluded_origins = _direct_origin_spans(source, is_qml=is_qml)
@@ -319,11 +311,28 @@ def analyze_color_dataflow(text: str, *, is_qml: bool) -> ColorDataflowAnalysis:
         synthetic, replacements, index, excluded_origins
     ))
     findings.extend(_numeric_use_findings(source, synthetic, mapping, index))
-    ordered = tuple(sorted(
+    return tuple(sorted(
         findings,
         key=lambda item: (item.report_line, item.use_start, item.use_end),
     ))
-    return ColorDataflowAnalysis(numeric_lines, ordered)
+
+
+def analyze_color_dataflow(text: str, *, is_qml: bool) -> ColorDataflowAnalysis:
+    """Analyze direct and propagated color constructors. 分析直接及传播构色。"""
+    if DATAFLOW_TRIGGER_RE.search(text) is None:
+        return ColorDataflowAnalysis(frozenset(), ())
+    source = "\n".join(text.splitlines())
+    masked = sanitize_qml(source, mask_strings=True)
+    expression_view = sanitize_qml(source, mask_strings=True, mark_values=True)
+    pairs = pair_ends(expression_view)
+    starts = line_starts(source)
+    scopes = build_scopes(masked, is_qml)
+    index = build_symbol_index(
+        source, masked, expression_view, scopes, pairs, starts, is_qml=is_qml
+    )
+    numeric_lines = _direct_numeric_lines(source, index)
+    findings = _propagated_findings(source, index, is_qml=is_qml)
+    return ColorDataflowAnalysis(numeric_lines, findings)
 
 
 def propagated_color_findings(
