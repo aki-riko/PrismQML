@@ -14,8 +14,10 @@ import subprocess
 from typing import Iterable, Sequence
 
 if __package__:
+    from .qml_color_contexts import color_literal_lines as _color_literal_lines
     from .qml_lexer import sanitize_qml as _sanitize_qml
 else:
+    from qml_color_contexts import color_literal_lines as _color_literal_lines
     from qml_lexer import sanitize_qml as _sanitize_qml
 
 
@@ -65,13 +67,6 @@ GROUPED_PROPERTY_RE = re.compile(r"^[a-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\{")
 LOCAL_THEME_PROXY_RE = re.compile(
     r"^(?:(?:default|required|readonly)\s+)*property\s+"
     r"(?:alias|[A-Za-z_]\w*(?:<[^>]+>)?)\s+(?:isDark|fontFamily)\b"
-)
-COLOR_BINDING_RE = re.compile(
-    r"^\s*(?:(?:(?:default|required|readonly)\s+)*property\s+color\s+\w+|"
-    r"(?:color|border\.color))\s*:\s*(?P<expression>.*)$"
-)
-QUOTED_QML_COLOR_RE = re.compile(
-    r"(?P<quote>['\"`])(?:#[0-9A-Fa-f]{3,8}|transparent|white|black)(?P=quote)"
 )
 METRIC_LITERAL_RE = re.compile(
     r"^\s*(?:(?:(?:default|required|readonly)\s+)*property\s+"
@@ -238,11 +233,9 @@ def _scan_style_literals(
     if _is_data_resource(path):
         return []
     violations: list[Violation] = []
+    color_lines = _color_literal_lines(code_lines, source_lines)
     for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
-        color_binding = COLOR_BINDING_RE.search(source)
-        if color_binding and QUOTED_QML_COLOR_RE.search(
-            color_binding.group("expression")
-        ):
+        if number in color_lines:
             violations.append(_violation(path, number, "QML010", "hardcoded color", source))
         if METRIC_LITERAL_RE.search(code):
             violations.append(_violation(path, number, "QML011", "hardcoded style metric", source))

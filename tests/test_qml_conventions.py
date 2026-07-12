@@ -85,11 +85,60 @@ def test_color_bindings_report_literals_inside_expressions():
     assert color_lines == [2, 3, 4]
 
 
+def test_multiline_and_custom_color_bindings_report_literals():
+    source = """Item {
+    readonly property color hoverColor: active
+        ? "#4dffffff"
+        : "transparent"
+    dotColor: active ? "magenta" : Enums.transparent
+    property string bgColorOverride: "#708090"
+}
+"""
+
+    violations = scanner.scan_source_text(source, LIBRARY_PATH)
+    color_lines = [item.line for item in violations if item.rule == "QML010"]
+
+    assert color_lines == [3, 4, 5, 6]
+
+
+def test_color_blocks_inline_objects_and_canvas_report_literals():
+    source = """Item {
+    readonly property color calculated: {
+        if (active) return "red"
+        return "#112233"
+    }
+    property var fallback: ({ color: "transparent", label: "white", blur: 0 })
+    layer.effect: Shadow { color: "#00ccff" }
+    function getAccentColor() { return "aliceblue" }
+    function paint(ctx) {
+        ctx.fillStyle = "white"
+        ctx.strokeStyle = "#445566"
+        gradient.addColorStop(0, "#abcdef")
+    }
+}
+"""
+
+    violations = scanner.scan_source_text(source, LIBRARY_PATH)
+    color_lines = [item.line for item in violations if item.rule == "QML010"]
+
+    assert color_lines == [3, 4, 6, 7, 8, 10, 11, 12]
+
+
 def test_color_bindings_ignore_non_color_strings_and_comparisons():
     source = """Item {
     property string sample: "#ffffff"
     property bool tinted: sample !== "transparent"
     text: "#000000"
+    color: state === "red" ? Enums.accentColor : Enums.cardColor
+    readonly property color reverseComparison: "black" === sample ? Enums.accentColor : Enums.cardColor
+    readonly property color indexedColor: palette["red"]
+    property bool matchesColor: backgroundColor === "#000000"
+    function stateName() { return "magenta" }
+    readonly property color loggedColor: {
+        console.log("white")
+        if (sample === "transparent") return Enums.accentColor
+        return Enums.cardColor
+    }
     Component.onCompleted: console.log(`color: "#fff"`)
 }
 """
@@ -99,7 +148,14 @@ def test_color_bindings_ignore_non_color_strings_and_comparisons():
 
 def test_color_binding_expressions_keep_data_resource_exceptions():
     source = """QtObject {
-    readonly property color contrast: tinted ? "#000000" : "#ffffff"
+    readonly property color contrast: {
+        if (tinted) return "red"
+        return "#ffffff"
+    }
+    property string bgColorOverride: "#708090"
+    dotColor: tinted ? "magenta" : Enums.accentColor
+    property var fallback: ({ color: "transparent", blur: 0 })
+    function paint(ctx) { ctx.fillStyle = "white" }
 }
 """
     paths = [
