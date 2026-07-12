@@ -24,8 +24,11 @@ Item {
     required property real parentRadius
     required property int fontSize
     required property color textColor  // Parent button text color 父按钮文字颜色
-    
+
     // ==================== Public Props 公开属性 ====================
+    property int parentStyle: 0
+
+    // ==================== Readonly State 只读状态 ====================
     // Expose menu open state for arrow animation 暴露菜单打开状态供箭头动画使用
     readonly property bool isMenuOpen: dropDownMenu.isOpen
     // Expose hover states for parent button color calculation 暴露悬浮状态供父按钮颜色计算
@@ -33,43 +36,40 @@ Item {
     readonly property bool mainPressed: splitMainMouse.pressed
     readonly property bool dropHovered: splitDropMouse.containsMouse
     readonly property bool dropPressed: splitDropMouse.pressed
-    
-    // ==================== Signals 信号 ====================
-    signal menuItemClicked(int index, string text)
-    signal mainButtonClicked()
-    
-    // ==================== Style Helper 样式辅助 ====================
-    property int parentStyle: 0
-    
+
     // Check if style uses accent foreground (white text/icon) 检查是否使用强调前景色（白色文字/图标）
     readonly property bool _useAccentForeground: parentStyle === Enums.button.style_primary ||
                                                   parentStyle === Enums.button.style_filled ||
                                                   parentStyle === Enums.button.style_gradient
-    
+
     // Split button hover/pressed colors based on parent style Split按钮悬浮/按下颜色
     // For accent styles (primary/filled/gradient): use semi-transparent white 强调样式用半透明白
     // For other styles: use transparent button colors 其他样式用透明按钮颜色
-    readonly property color _splitHoverColor: _useAccentForeground 
+    readonly property color _splitHoverColor: _useAccentForeground
         ? (Enums.isDark ? "#4dffffff" : "#33ffffff")
         : Enums.stateColor.transparentHover
-    readonly property color _splitPressedColor: _useAccentForeground 
+    readonly property color _splitPressedColor: _useAccentForeground
         ? (Enums.isDark ? "#33ffffff" : "#26ffffff")
         : Enums.stateColor.transparentPressed
     readonly property color _splitTransparent: _useAccentForeground
         ? Enums.stateColor.whiteTransparent
         : Enums.stateColor.controlBgTransparent
-    
+
     // Arrow color based on parent style 箭头颜色
     readonly property color _arrowColor: {
         if (!dropdownFeature.controlEnabled) return Enums.stateColor.indicatorActive
         if (_useAccentForeground) return Enums.accentForeground
         return Enums.textColor.secondary
     }
-    
+
     // Separator line color 分隔线颜色
     readonly property color _separatorColor: _useAccentForeground
         ? Enums.stateColor.onAccentOverlay
         : Enums.stateColor.separator
+
+    // ==================== Signals 信号 ====================
+    signal menuItemClicked(int index, string text)
+    signal mainButtonClicked()
 
     // ==================== Public Methods 公开方法 ====================
     // Calculate max content width from menu items (imperative, avoid binding loop)
@@ -114,7 +114,8 @@ Item {
         }
     }
 
-    // ==================== Split Main Button Hover Area 主按钮悬浮区域 ====================
+    // ==================== Content 内容 ====================
+    // Split main button hover area 主按钮悬浮区域
     Rectangle {
         id: splitMainArea
         anchors.left: parent.left
@@ -132,7 +133,7 @@ Item {
         }
     }
     
-    // ==================== Split Separator Line 分离线 ====================
+    // Split separator line 分离线
     Separator {
         id: splitLine
         type: Enums.separator.vertical
@@ -143,7 +144,7 @@ Item {
         visible: feature === Enums.button.feature_split
     }
     
-    // ==================== Split Dropdown Area 下拉区域 ====================
+    // Split dropdown area 下拉区域
     Rectangle {
         id: splitDropArea
         anchors.right: parent.right
@@ -177,7 +178,7 @@ Item {
         }
     }
     
-    // ==================== Split Main Button Interaction 主按钮交互 ====================
+    // Split main button interaction 主按钮交互
     MouseArea {
         id: splitMainMouse
         anchors.fill: splitMainArea
@@ -187,7 +188,7 @@ Item {
         onClicked: dropdownFeature.mainButtonClicked()
     }
     
-    // ==================== Content Width Measurement 内容宽度测量 ====================
+    // Content width measurement 内容宽度测量
     // TextMetrics to measure menu item text width 用TextMetrics测量菜单项文本宽度
     TextMetrics {
         id: textMeasure
@@ -195,12 +196,10 @@ Item {
         font.pixelSize: fontSize > 0 ? fontSize : Enums.typography.body
     }
 
-    // ==================== Dropdown Menu 下拉菜单 ====================
+    // Dropdown menu 下拉菜单
     PopupWindowCore {
         id: dropDownMenu
-        // Set reference width for center alignment 设置参考宽度用于居中对齐
-        referenceControlWidth: parent.width
-        
+
         // Calculate content height 计算内容高度
         readonly property int _contentHeight: {
             var h = Enums.comboBoxMetrics.popupPadding
@@ -212,7 +211,9 @@ Item {
             return h
         }
         readonly property bool _needsScroll: _contentHeight > Enums.comboBoxMetrics.popupMaxHeight
-        
+
+        // Set reference width for center alignment 设置参考宽度用于居中对齐
+        referenceControlWidth: parent.width
         popupHeight: Math.min(_contentHeight, Enums.comboBoxMetrics.popupMaxHeight)
         closeOnClickOutside: true
         

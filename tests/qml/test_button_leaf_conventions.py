@@ -38,6 +38,13 @@ BUTTON_SOURCES = (
     / "buttons"
     / "Button"
     / "ButtonContent.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "buttons"
+    / "Button"
+    / "ButtonDropdown.qml",
 )
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "button-leaf-conventions.qml")
@@ -49,6 +56,11 @@ import "../../prismqml/PrismQML/controls/buttons" as Buttons
 import "../../prismqml/PrismQML/controls/buttons/Button" as ButtonParts
 
 Item {
+    property var dropdownLongMenuItems: [
+        "One", "Two", "Three", "Four", "Five",
+        "Six", "Seven", "Eight", "Nine", "Ten"
+    ]
+
     readonly property real closeWidth: closeButton.width
     readonly property real closeHeight: closeButton.height
     readonly property bool closeHovered: closeButton.hovered
@@ -66,6 +78,15 @@ Item {
     readonly property bool progressVisible: progressFeature.showProgress
     readonly property int expectedProgressFeature: Enums.button.feature_progress_bar
     readonly property color expectedButtonTextColor: contentButton.getTextColor()
+    readonly property int expectedDropdownFeature: Enums.button.feature_dropdown
+    readonly property int expectedSplitFeature: Enums.button.feature_split
+    readonly property int expectedDefaultStyle: Enums.button.style_default
+    readonly property int expectedSmallPopupHeight: Enums.comboBoxMetrics.popupPadding
+                                                    + Enums.comboBoxMetrics.itemHeight * 2
+                                                    + Enums.controlSize.menuSeparatorHeight
+    readonly property int expectedPopupMaxHeight: Enums.comboBoxMetrics.popupMaxHeight
+    readonly property int expectedSmallRadius: Enums.radius.small
+    readonly property color expectedDropdownTextColor: dropdownButton.getTextColor()
 
     width: 400
     height: 200
@@ -114,6 +135,20 @@ Item {
         fontUnderline: true
         fontStrikeout: true
         countdownText: " sec"
+    }
+
+    Button {
+        id: dropdownButton
+        objectName: "dropdownButton"
+        y: 80
+        width: 180
+        height: 40
+        feature: Enums.button.feature_dropdown
+        style: Enums.button.style_primary
+        text: "Menu"
+        icon: Enums.icon.checkmark
+        radius: Enums.radius.large
+        menuItems: ["Alpha", "-", { text: "Beta", icon: Enums.icon.checkmark }]
     }
 }
 """
@@ -179,6 +214,66 @@ def _button_content(button):
     return matches[0]
 
 
+def _button_dropdown(button):
+    matches = [
+        child
+        for child in _descendants(button)
+        if child.metaObject().indexOfProperty("isMenuOpen") >= 0
+        and child.metaObject().indexOfProperty("mainHovered") >= 0
+        and child.metaObject().indexOfProperty("dropHovered") >= 0
+        and child.metaObject().indexOfProperty("parentStyle") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
+def _dropdown_popup(dropdown):
+    matches = [
+        child
+        for child in _descendants(dropdown)
+        if child.metaObject().indexOfProperty("_contentHeight") >= 0
+        and child.metaObject().indexOfProperty("_needsScroll") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
+def _assert_dropdown_parent_bindings(button, dropdown):
+    property_pairs = (
+        ("isToolButton", "isToolButton"),
+        ("feature", "feature"),
+        ("menuItems", "menuItems"),
+        ("enabled", "controlEnabled"),
+        ("loading", "loading"),
+        ("radius", "parentRadius"),
+        ("fontSize", "fontSize"),
+        ("style", "parentStyle"),
+    )
+    for parent_name, child_name in property_pairs:
+        parent_value = button.property(parent_name)
+        child_value = dropdown.property(child_name)
+        if parent_name == "menuItems":
+            parent_value = parent_value.toVariant()
+            child_value = child_value.toVariant()
+        assert child_value == parent_value
+
+
+def _assert_dropdown_idle(dropdown):
+    for name in ("isMenuOpen", "mainHovered", "mainPressed",
+                 "dropHovered", "dropPressed"):
+        assert not dropdown.property(name)
+
+
+def _set_long_split_state(root, button):
+    button.setProperty("feature", root.property("expectedSplitFeature"))
+    button.setProperty("text", "")
+    button.setProperty("enabled", False)
+    button.setProperty("loading", True)
+    button.setProperty("style", root.property("expectedDefaultStyle"))
+    button.setProperty("radius", root.property("expectedSmallRadius"))
+    button.setProperty("menuItems", root.property("dropdownLongMenuItems"))
+
+
 @pytest.fixture
 def button_leaf_scene(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
@@ -240,6 +335,32 @@ def test_button_content_parent_bindings_remain_stable(button_leaf_scene):
     assert content.property("pressed")
     assert not content.property("controlEnabled")
     assert content.property("textColor") == root.property("expectedButtonTextColor")
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_dropdown_parent_bindings_remain_stable(button_leaf_scene):
+    root, windows_before = button_leaf_scene
+    button = root.findChild(QObject, "dropdownButton")
+    assert button is not None
+    dropdown = _button_dropdown(button)
+    popup = _dropdown_popup(dropdown)
+    _assert_dropdown_parent_bindings(button, dropdown)
+    _assert_dropdown_idle(dropdown)
+    assert dropdown.property("textColor") == root.property("expectedDropdownTextColor")
+    assert popup.property("_contentHeight") == root.property("expectedSmallPopupHeight")
+    assert popup.property("popupHeight") == root.property("expectedSmallPopupHeight")
+    assert not popup.property("_needsScroll")
+    assert not popup.property("isOpen")
+
+    _set_long_split_state(root, button)
+    _pump(20)
+    _assert_dropdown_parent_bindings(button, dropdown)
+    _assert_dropdown_idle(dropdown)
+    assert dropdown.property("textColor") == root.property("expectedDropdownTextColor")
+    assert popup.property("_contentHeight") > root.property("expectedPopupMaxHeight")
+    assert popup.property("popupHeight") == root.property("expectedPopupMaxHeight")
+    assert popup.property("_needsScroll")
+    assert not popup.property("isOpen")
     assert _new_visible_windows(windows_before) == []
 
 
