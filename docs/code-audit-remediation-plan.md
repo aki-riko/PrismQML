@@ -417,6 +417,8 @@ P6D Widget 小批已完成：公开基类 `Widget.qml` 的根 `Item`、内部 `P
 
 P6D buttons 叶子子批已完成：`CloseButton.qml`、`InputActionButton.qml` 与内部 `ButtonProgress.qml` 的 10 个非规范分节改为标准标签或普通双语说明，并同步修正重复、单语或失真的触达注释；三个产品文件的非注释行与改前提交逐行精确一致（分别 `52/52`、`18/18`、`66/66`），没有移动成员、修改绑定或改变子元素顺序。真实隐藏实例直接创建三个组件，确认 CloseButton `28×28 / hovered=false / pressed=false`、InputActionButton 在 `100×40` 父项内为 `30×30 / transparent / default shape`、ButtonProgress 为 `200×3 / feature_progress_bar / progress=0.4 / showProgress=true`，QML warning 与新增可见窗口均为空。专项 `2/2`、全量 Python `237 passed / 1 skipped`、QML `169/0/12`、headless CTest `6/6`、Windows native Mica `1/1`、changed `current=0 / baseline=10` 与 `git diff --check` 均通过；约 148 秒正式审计窗口内 5 个新 HWND 全部归属于测试前已启动的 Thorium 应用进程，测试相关新增可见顶层窗口为 0，Event 26/1000/1001 与 CrashDump 增量均为 0。全库基线降至 3,056 项：QML008 1,839、QML009 1,178、QML010 17、QML011 22。提交：`6810e12c`。
 
+P6D ButtonStyleHelper 小批已完成：`ButtonStyleHelper.qml` 的 `effectiveEnabled/bgColor/borderColor/textColor` 四个只读属性统一置于内部方法之前，`_getDefaultBgColor/_neoIsAccentStyle/_neoBorderColor/_neoTextColor` 四个函数保持函数体与相对顺序不变并整体移到属性区之后；5 个非规范分节改为标准标签或普通双语说明，触达的单语注释同步改为英文在前、中文在后。改前与改后均为 148 行非注释代码，排序归一后的 SHA-256 同为 `33D0A1D91BF9BB569F68A1B578EFC427DFDAA648BECD1D076F78FBA42B2AE236`，证明本批只重排成员和修改注释。目标文件 QML008/QML009 `7→0`，changed scanner `current=0 / baseline=7`；Fluent/Neobrutalism Button 真实探针全部通过并保持 neo primary 背景色 `#F97316`，全量 Python `297 passed / 1 skipped`、QML `169/0/12`、headless CTest `6/6` 与 `git diff --check` 均通过，所有 Python/QML runner 均报告 `visible_windows=0 / job_active_processes=0`。全库基线降至 3,049 项：QML008 1,837、QML009 1,173、QML010 17、QML011 22。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
