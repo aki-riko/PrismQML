@@ -23,6 +23,18 @@ class ColorLiteralFinding:
     line: int
     start: int
     end: int
+    expression_start: int
+    expression_end: int
+
+
+def _trimmed_bounds(text: str) -> tuple[int, int]:
+    start = 0
+    end = len(text)
+    while start < end and text[start].isspace():
+        start += 1
+    while end > start and text[end - 1].isspace():
+        end -= 1
+    return start, end
 
 
 def _expression_segment(
@@ -50,14 +62,22 @@ def _color_stop_expression_segments(
             yield code[start:end], source[start:end], start
 
 
-def _return_literal_spans(code: str, source: str) -> list[tuple[int, int]]:
-    result: list[tuple[int, int]] = []
+def _return_literal_spans(
+    code: str, source: str
+) -> list[tuple[int, int, int, int]]:
+    result: list[tuple[int, int, int, int]] = []
     for match in _contexts.RETURN_RE.finditer(code):
         code_segment, source_segment, offset = _expression_segment(
             code, source, match, "expression"
         )
+        expression_start, expression_end = _trimmed_bounds(source_segment)
         result.extend(
-            (offset + start, offset + end)
+            (
+                offset + start,
+                offset + end,
+                offset + expression_start,
+                offset + expression_end,
+            )
             for start, end in _contexts._color_literal_spans(
                 code_segment, source_segment
             )
@@ -84,11 +104,17 @@ def _return_context_segment(
 
 
 def _line_findings(
-    number: int, line_start: int, spans: Iterable[tuple[int, int]]
+    number: int, line_start: int, spans: Iterable[tuple[int, int, int, int]]
 ) -> list[ColorLiteralFinding]:
     return [
-        ColorLiteralFinding(number, line_start + start, line_start + end)
-        for start, end in spans
+        ColorLiteralFinding(
+            number,
+            line_start + start,
+            line_start + end,
+            line_start + expression_start,
+            line_start + expression_end,
+        )
+        for start, end, expression_start, expression_end in spans
     ]
 
 
@@ -108,8 +134,14 @@ def _return_context_findings(
             continue
         context_code, code_segment, source_segment, offset = context
         spans = (
-            (offset + start, offset + end)
-            for start, end in _return_literal_spans(code_segment, source_segment)
+            (
+                offset + start,
+                offset + end,
+                offset + expression_start,
+                offset + expression_end,
+            )
+            for start, end, expression_start, expression_end
+            in _return_literal_spans(code_segment, source_segment)
         )
         result.extend(_line_findings(number, offsets[number - 1], spans))
         depth = max(context_code.count("{") - context_code.count("}"), 0)
@@ -132,7 +164,11 @@ def _continuation_findings(
         if not pending or not stripped:
             continue
         if stripped.startswith(_contexts.CONTINUATION_PREFIXES):
-            spans = _contexts._color_literal_spans(code, source)
+            expression_start, expression_end = _trimmed_bounds(source)
+            spans = (
+                (start, end, expression_start, expression_end)
+                for start, end in _contexts._color_literal_spans(code, source)
+            )
             result.extend(_line_findings(number, offsets[number - 1], spans))
             continue
         pending = False
@@ -169,6 +205,23 @@ def _line_offsets(lines: Sequence[str]) -> list[int]:
     return offsets
 
 
+def _deduplicated_findings(
+    findings: Iterable[ColorLiteralFinding],
+) -> tuple[ColorLiteralFinding, ...]:
+    by_literal: dict[tuple[int, int, int], ColorLiteralFinding] = {}
+    for finding in findings:
+        key = (finding.line, finding.start, finding.end)
+        previous = by_literal.get(key)
+        current_width = finding.expression_end - finding.expression_start
+        previous_width = (
+            previous.expression_end - previous.expression_start
+            if previous is not None else None
+        )
+        if previous_width is None or current_width < previous_width:
+            by_literal[key] = finding
+    return tuple(sorted(by_literal.values(), key=lambda item: (item.start, item.end)))
+
+
 def color_literal_findings(
     code_lines: Sequence[str], source_lines: Sequence[str]
 ) -> tuple[ColorLiteralFinding, ...]:
@@ -178,11 +231,17 @@ def color_literal_findings(
     result.extend(_continuation_findings(code_lines, source_lines, offsets))
     for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
         for code_segment, source_segment, offset in _direct_context_segments(code, source):
+            expression_start, expression_end = _trimmed_bounds(source_segment)
             spans = (
-                (offset + start, offset + end)
+                (
+                    offset + start,
+                    offset + end,
+                    offset + expression_start,
+                    offset + expression_end,
+                )
                 for start, end in _contexts._color_literal_spans(
                     code_segment, source_segment
                 )
             )
             result.extend(_line_findings(number, offsets[number - 1], spans))
-    return tuple(sorted(set(result), key=lambda item: (item.start, item.end)))
+    return _deduplicated_findings(result)

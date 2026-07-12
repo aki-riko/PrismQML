@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from decimal import Decimal, DecimalException, InvalidOperation
 import re
 from typing import Iterator
+import warnings
 
 
 QT_RECEIVER_PATTERN = r"(?<![\w$])Qt(?P<closing>(?:\s*\))*)"
@@ -58,6 +59,7 @@ class NumericColorFinding:
     line: int
     start: int
     end: int
+    qt_start: int
 
 
 @dataclass(frozen=True)
@@ -67,6 +69,7 @@ class _ConstructorCall:
     line: int
     start: int
     end: int
+    qt_start: int
 
 
 def _normalize_views(
@@ -153,7 +156,9 @@ def _number_value(expression: str) -> Decimal | None:
         candidate = _strip_outer_parentheses(_compact(expression))
         if not candidate or len(candidate) > MAX_NUMERIC_EXPRESSION_LENGTH:
             return None
-        node = ast.parse(candidate, mode="eval").body
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", SyntaxWarning)
+            node = ast.parse(candidate, mode="eval").body
         if sum(1 for _ in ast.walk(node)) > MAX_NUMERIC_AST_NODES:
             return None
         return _numeric_node_value(node)
@@ -220,6 +225,11 @@ def _fixed_numeric_choice(expression: str, depth: int = 0) -> bool:
     return branches is not None and all(
         _fixed_numeric_choice(item, depth + 1) for item in branches
     )
+
+
+def is_fixed_numeric_expression(expression: str) -> bool:
+    """Return whether an expression is a fixed numeric choice. 返回表达式是否为固定数值选择。"""
+    return _fixed_numeric_choice(expression)
 
 
 def _parenthesis_ends(code: str) -> dict[int, int]:
@@ -316,7 +326,12 @@ def _constructor_calls(
             continue
         body = code[match.end() : end - 1]
         yield _ConstructorCall(
-            match.group("kind"), tuple(_split_top_level(body, ",")), line, start, end
+            match.group("kind"),
+            tuple(_split_top_level(body, ",")),
+            line,
+            start,
+            end,
+            match.start(),
         )
 
 
@@ -407,7 +422,7 @@ def numeric_color_constructor_findings(
     """Return hardcoded Qt color call locations. 返回 Qt 硬编码构色调用位置。"""
     normalized_code, normalized_quoted = _normalize_views(code, quoted_code)
     return tuple(
-        NumericColorFinding(call.line, call.start, call.end)
+        NumericColorFinding(call.line, call.start, call.end, call.qt_start)
         for call in _constructor_calls(normalized_code, normalized_quoted)
         if _is_hardcoded_constructor(call.kind, call.arguments)
     )

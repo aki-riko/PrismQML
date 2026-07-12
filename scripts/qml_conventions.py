@@ -14,15 +14,17 @@ from typing import Sequence
 if __package__:
     from . import qml_scan_scope as _scan_scope
     from .qml_color_arrays import color_array_literal_lines
-    from .qml_color_constructors import numeric_color_constructor_lines
     from .qml_color_contexts import color_literal_lines as _color_literal_lines
+    from .qml_color_dataflow import analyze_color_dataflow
     from .qml_lexer import sanitize_qml as _sanitize_qml
+    from .qml_local_style_contract import local_style_contract_error
 else:
     import qml_scan_scope as _scan_scope
     from qml_color_arrays import color_array_literal_lines
-    from qml_color_constructors import numeric_color_constructor_lines
     from qml_color_contexts import color_literal_lines as _color_literal_lines
+    from qml_color_dataflow import analyze_color_dataflow
     from qml_lexer import sanitize_qml as _sanitize_qml
+    from qml_local_style_contract import local_style_contract_error
 
 
 ChangedQmlFile = _scan_scope.ChangedQmlFile
@@ -97,36 +99,6 @@ FONT_LITERAL_RE = re.compile(r"^\s*font\.family\s*:\s*['\"]")
 QUOTED_HEX_COLOR_RE = re.compile(
     r"(?P<quote>['\"`])#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})(?P=quote)"
 )
-LOCAL_STYLE_THEME_NAME_PATTERN = r"[A-Za-z][A-Za-z0-9_-]*"
-LOCAL_STYLE_HEX_COLOR_PATTERN = (
-    r"#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})"
-)
-LOCAL_STYLE_THEME_ENTRY_PATTERN = (
-    rf'"{LOCAL_STYLE_THEME_NAME_PATTERN}"\s*:\s*\{{\s*'
-    rf'main\s*:\s*"{LOCAL_STYLE_HEX_COLOR_PATTERN}"\s*,\s*'
-    rf'head\s*:\s*"{LOCAL_STYLE_HEX_COLOR_PATTERN}"\s*,\s*'
-    rf'bg\s*:\s*"{LOCAL_STYLE_HEX_COLOR_PATTERN}"\s*\}}'
-)
-LOCAL_STYLE_DATA_STRUCTURE_RE = re.compile(
-    rf"^\s*\.pragma\s+library\s+"
-    rf"var\s+themes\s*=\s*\{{\s*"
-    rf"(?P<themes>{LOCAL_STYLE_THEME_ENTRY_PATTERN}"
-    rf"(?:\s*,\s*{LOCAL_STYLE_THEME_ENTRY_PATTERN})*\s*,?)"
-    rf"\s*\}}\s*"
-    rf"var\s+themeNames\s*=\s*\[\s*"
-    rf'(?P<names>"{LOCAL_STYLE_THEME_NAME_PATTERN}"'
-    rf'(?:\s*,\s*"{LOCAL_STYLE_THEME_NAME_PATTERN}")*\s*,?)'
-    rf"\s*\]\s*$",
-    re.DOTALL,
-)
-LOCAL_STYLE_THEME_ENTRY_NAME_RE = re.compile(
-    rf'"(?P<name>{LOCAL_STYLE_THEME_NAME_PATTERN})"\s*:'
-)
-LOCAL_STYLE_THEME_NAME_RE = re.compile(
-    rf'"(?P<name>{LOCAL_STYLE_THEME_NAME_PATTERN})"'
-)
-
-
 @dataclass(frozen=True)
 class Violation:
     path: PurePosixPath
@@ -231,16 +203,16 @@ def _scan_style_literals(
     code_lines: Sequence[str],
     source_lines: Sequence[str],
     array_code_lines: Sequence[str],
+    numeric_lines: set[int] | frozenset[int],
     path: PurePosixPath,
 ) -> list[Violation]:
     if _is_data_resource(path):
         return []
     violations: list[Violation] = []
     color_lines = _color_literal_lines(code_lines, source_lines)
-    masked_text = "\n".join(code_lines)
     array_masked_text = "\n".join(array_code_lines)
     quoted_text = "\n".join(source_lines)
-    color_lines.update(numeric_color_constructor_lines(masked_text, quoted_text))
+    color_lines.update(numeric_lines)
     color_lines.update(color_array_literal_lines(array_masked_text, quoted_text))
     for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
         if number in color_lines:
@@ -252,37 +224,26 @@ def _scan_style_literals(
     return violations
 
 
-def _local_style_contract_violation(
-    path: PurePosixPath, message: str
+def _scan_color_dataflow(
+    text: str, path: PurePosixPath, findings
 ) -> list[Violation]:
-    return [_violation(path, 1, "QML013", message, path.name)]
-
-
-def _local_style_names(pattern: re.Pattern[str], text: str) -> list[str]:
+    if _is_data_resource(path) or "QML010" in LOCAL_STYLE_DATA_EXCEPTIONS.get(
+        path, frozenset()
+    ):
+        return []
+    lines = text.splitlines()
     return [
-        item.group("name")
-        for item in pattern.finditer(text)
+        _violation(
+            path, finding.report_line, "QML010", "hardcoded color",
+            lines[finding.report_line - 1],
+        )
+        for finding in findings
     ]
 
 
 def _scan_local_style_data_contract(text: str, path: PurePosixPath) -> list[Violation]:
-    sanitized = _sanitize_qml(text, mask_strings=False)
-    match = LOCAL_STYLE_DATA_STRUCTURE_RE.fullmatch(sanitized)
-    if match is None:
-        return _local_style_contract_violation(
-            path, "local style data contains unsupported structure"
-        )
-    theme_names = _local_style_names(
-        LOCAL_STYLE_THEME_ENTRY_NAME_RE, match.group("themes")
-    )
-    listed_names = _local_style_names(
-        LOCAL_STYLE_THEME_NAME_RE, match.group("names")
-    )
-    if theme_names == listed_names and len(theme_names) == len(set(theme_names)):
-        return []
-    return _local_style_contract_violation(
-        path, "local style themeNames must match themes order"
-    )
+    message = local_style_contract_error(text)
+    return [] if message is None else [_violation(path, 1, "QML013", message, path.name)]
 
 
 def _scan_javascript_style_literals(text: str, path: PurePosixPath) -> list[Violation]:
@@ -294,12 +255,12 @@ def _scan_javascript_style_literals(text: str, path: PurePosixPath) -> list[Viol
         if path == MATRIX_RAIN_PRESETS_PATH
         else []
     )
-    masked_text = _sanitize_qml(text, mask_strings=True)
     array_masked_text = _sanitize_qml(
         text, mask_strings=True, mark_values=True
     )
     quoted_text = _sanitize_qml(text, mask_strings=False)
-    constructor_lines = numeric_color_constructor_lines(masked_text, quoted_text)
+    analysis = analyze_color_dataflow(text, is_qml=False)
+    constructor_lines = analysis.numeric_lines
     array_lines = color_array_literal_lines(array_masked_text, quoted_text)
     code_lines = quoted_text.splitlines()
     source_lines = text.splitlines()
@@ -311,6 +272,7 @@ def _scan_javascript_style_literals(text: str, path: PurePosixPath) -> list[Viol
         )
         if hardcoded and "QML010" not in allowed_rules:
             violations.append(_violation(path, number, "QML010", "hardcoded color", source))
+    violations.extend(_scan_color_dataflow(text, path, analysis.findings))
     return violations
 
 
@@ -457,12 +419,16 @@ def scan_text(text: str, path: PurePosixPath) -> list[Violation]:
         text, mask_strings=True, mark_values=True
     ).splitlines()
     source_lines = _sanitize_qml(text, mask_strings=False).splitlines()
+    analysis = analyze_color_dataflow(text, is_qml=True)
     violations = _scan_imports_and_theme(code_lines, source_lines, path)
     violations.extend(_scan_declarations(code_lines, source_lines, path))
     violations.extend(_scan_sections(raw_lines, path))
     violations.extend(
-        _scan_style_literals(code_lines, source_lines, array_code_lines, path)
+        _scan_style_literals(
+            code_lines, source_lines, array_code_lines, analysis.numeric_lines, path
+        )
     )
+    violations.extend(_scan_color_dataflow(text, path, analysis.findings))
     violations.extend(_scan_member_order(code_lines, source_lines, path))
     return sorted(violations, key=lambda item: (item.path.as_posix(), item.line, item.rule))
 

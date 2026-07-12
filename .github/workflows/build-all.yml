@@ -36,6 +36,9 @@ jobs:
           tests/test_qml_color_arrays.py
           tests/test_qml_color_array_returns.py
           tests/test_qml_color_constructors.py
+          tests/test_qml_color_dataflow.py
+          tests/test_qml_color_dataflow_performance.py
+          tests/test_qml_color_dataflow_scopes.py
           tests/test_qml_color_findings.py
           tests/test_qml_example_scope.py
           tests/test_qml_lexer.py -q

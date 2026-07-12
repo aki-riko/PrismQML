@@ -128,6 +128,24 @@ def test_mismatched_views_do_not_enable_static_bracket_receivers():
     assert numeric_color_constructor_lines(code, quoted) == set()
 
 
+def test_overlapping_color_contexts_keep_one_narrowest_finding():
+    source = """Item {
+    property var fallbackColors: ({ color: "red" })
+    property color tint: Shadow { color: "blue" }
+}
+"""
+    code_lines, source_lines, _, _, _ = _views(source)
+
+    findings = color_literal_findings(code_lines, source_lines)
+
+    assert [item.line for item in findings] == [2, 3]
+    assert _finding_values(source, findings) == ['"red"', '"blue"']
+    assert all(
+        item.expression_end - item.expression_start == item.end - item.start
+        for item in findings
+    )
+
+
 def test_repository_line_wrappers_match_position_findings():
     for root in SOURCE_ROOTS:
         for path in sorted(item for item in root.rglob("*") if item.suffix in {".qml", ".js"}):
