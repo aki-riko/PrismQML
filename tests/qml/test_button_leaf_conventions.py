@@ -7,7 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -31,6 +31,13 @@ BUTTON_SOURCES = (
     / "buttons"
     / "Button"
     / "ButtonProgress.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "buttons"
+    / "Button"
+    / "ButtonContent.qml",
 )
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "button-leaf-conventions.qml")
@@ -58,6 +65,7 @@ Item {
     readonly property real progressValue: progressFeature.progress
     readonly property bool progressVisible: progressFeature.showProgress
     readonly property int expectedProgressFeature: Enums.button.feature_progress_bar
+    readonly property color expectedButtonTextColor: contentButton.getTextColor()
 
     width: 400
     height: 200
@@ -87,6 +95,25 @@ Item {
             showProgress: true
             parentRadius: Enums.radius.small
         }
+    }
+
+    Button {
+        id: contentButton
+        objectName: "contentButton"
+        width: 180
+        height: 40
+        feature: Enums.button.feature_progress_ring
+        style: Enums.button.style_primary
+        text: "Ready"
+        icon: Enums.icon.checkmark
+        iconSize: 18
+        loadingText: "Working"
+        progress: 0.25
+        fontBold: true
+        fontItalic: true
+        fontUnderline: true
+        fontStrikeout: true
+        countdownText: " sec"
     }
 }
 """
@@ -131,6 +158,27 @@ def _new_visible_windows(windows_before):
     ]
 
 
+def _descendants(root):
+    result = []
+    pending = list(root.children())
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(child.children())
+    return result
+
+
+def _button_content(button):
+    matches = [
+        child
+        for child in _descendants(button)
+        if child.metaObject().indexOfProperty("_ringBorderColor") >= 0
+        and child.metaObject().indexOfProperty("countdownRemaining") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
 @pytest.fixture
 def button_leaf_scene(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
@@ -161,6 +209,37 @@ def test_button_leaf_runtime_defaults_remain_stable(button_leaf_scene):
     )
     assert root.property("progressValue") == pytest.approx(0.4)
     assert root.property("progressVisible")
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_content_parent_bindings_remain_stable(button_leaf_scene):
+    root, windows_before = button_leaf_scene
+    button = root.findChild(QObject, "contentButton")
+    assert button is not None
+    content = _button_content(button)
+    for name in ("feature", "style", "text", "icon", "iconSize", "loading",
+                 "loadingText", "progress", "fontBold", "fontItalic",
+                 "fontUnderline", "fontStrikeout", "countdownText"):
+        assert content.property(name) == button.property(name)
+    assert content.property("textColor") == root.property("expectedButtonTextColor")
+    assert content.property("controlEnabled") == button.property("enabled")
+    assert content.property("fontSize") == button.property("fontSize")
+    assert content.property("pressed") == button.property("pressed")
+    assert not content.property("countdownActive")
+    assert content.property("countdownRemaining") == 0
+
+    button.setProperty("text", "Updated")
+    button.setProperty("progress", 0.75)
+    button.setProperty("loading", True)
+    button.setProperty("pseudoPressed", True)
+    button.setProperty("enabled", False)
+    _pump(20)
+    assert content.property("text") == "Updated"
+    assert content.property("progress") == pytest.approx(0.75)
+    assert content.property("loading")
+    assert content.property("pressed")
+    assert not content.property("controlEnabled")
+    assert content.property("textColor") == root.property("expectedButtonTextColor")
     assert _new_visible_windows(windows_before) == []
 
 

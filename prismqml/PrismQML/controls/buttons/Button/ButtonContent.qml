@@ -25,33 +25,35 @@ Row {
     required property color textColor
     required property bool controlEnabled
     required property int fontSize
+    required property bool pressed  // For animation timing 用于动画时长控制
+
+    // ==================== Public Props 公开属性 ====================
     // Optional font flags 可选字体修饰
     property bool fontBold: false
     property bool fontItalic: false
     property bool fontUnderline: false
     property bool fontStrikeout: false
-    required property bool pressed  // For animation timing 用于动画时长控制
     // Countdown props 倒计时属性
     property bool countdownActive: false
     property int countdownRemaining: 0
     property string countdownText: "s"
-    
-    // ==================== Layout 布局 ====================
-    spacing: hasIcon ? 6 : 0
-    
-    readonly property bool hasIcon: icon !== "" || 
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool hasIcon: icon !== "" ||
                                     loading ||
                                     feature === Enums.button.feature_progress_ring ||
                                     feature === Enums.button.feature_indeterminate_ring
-    
-    // ==================== Ring Color Helper 环颜色辅助 ====================
     readonly property bool _useForegroundColor: style === Enums.button.style_primary ||
                                                 style === Enums.button.style_filled ||
                                                 style === Enums.button.style_gradient
     readonly property color _ringColor: _useForegroundColor ? Enums.accentForeground : Enums.accentColor
     readonly property color _ringBorderColor: _useForegroundColor ? Enums.stateColor.onAccentOverlay : Enums.stateColor.loadingBorder
-    
-    // ==================== Loading Ring 加载环 ====================
+
+    // ==================== Size 尺寸 ====================
+    spacing: hasIcon ? 6 : 0
+
+    // ==================== Content 内容 ====================
+    // Loading ring 加载环
     ProgressRing {
         id: loadingRing
         width: content.iconSize
@@ -62,15 +64,15 @@ Row {
         visible: content.loading
         anchors.verticalCenter: parent.verticalCenter
     }
-    
-    // ==================== Progress Ring 进度环 ====================
+
+    // Progress ring 进度环
     Item {
         id: progressRing
         width: content.iconSize
         height: content.iconSize
         visible: feature === Enums.button.feature_progress_ring
         anchors.verticalCenter: parent.verticalCenter
-        
+
         Rectangle {
             anchors.fill: parent
             radius: width / 2
@@ -78,13 +80,15 @@ Row {
             border.width: Enums.border.normal
             border.color: content._ringBorderColor
         }
-        
+
         Canvas {
             id: progressCanvas
-            anchors.fill: parent
+
             property color ringColor: content._ringColor
+
+            anchors.fill: parent
             onRingColorChanged: requestPaint()
-            
+
             onPaint: {
                 var ctx = getContext("2d")
                 ctx.reset()
@@ -96,14 +100,15 @@ Row {
                 ctx.stroke()
             }
         }
-        
+
         Connections {
-            target: content
             function onProgressChanged() { progressCanvas.requestPaint() }
+
+            target: content
         }
     }
-    
-    // ==================== Indeterminate Ring 不确定环 ====================
+
+    // Indeterminate ring 不确定环
     ProgressRing {
         id: indeterminateRing
         width: content.iconSize
@@ -114,8 +119,8 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         color: content._ringColor
     }
-    
-    // ==================== Icon 图标 ====================
+
+    // Icon 图标
     Icon {
         id: iconItem
         icon: content.loading ? "" : content.icon
@@ -124,8 +129,8 @@ Row {
         visible: !content.loading && content.icon !== ""
         anchors.verticalCenter: parent.verticalCenter
     }
-    
-    // ==================== Text 文字 ====================
+
+    // Text 文字
     Label {
         id: contentText
         type: Enums.label.type_body
@@ -143,9 +148,9 @@ Row {
         font.italic: content.fontItalic
         font.underline: content.fontUnderline || style === Enums.button.style_hyperlink
         font.strikeout: content.fontStrikeout
-        // 直接绑定 textColor, 不加 Behavior 动画.
-        // toggle 类按钮 unchecked->checked 时背景色突变, 文字色若做 ColorAnimation
-        // 过渡 (300ms 中段 ≈ 灰色) 在浅色背景上几乎不可见, 表现为"切换后文字消失".
+        // Bind textColor directly without a Behavior animation. 直接绑定 textColor，不添加 Behavior 动画。
+        // A toggle button changes its background immediately when checked. toggle 类按钮从 unchecked 切换到 checked 时背景色会突变。
+        // A 300 ms ColorAnimation passes through gray and nearly disappears on a light background. 300ms 的 ColorAnimation 会经过灰色中间态，在浅色背景上几乎不可见，表现为“切换后文字消失”。
         color: content.textColor
         visible: text !== ""
         anchors.verticalCenter: parent.verticalCenter
