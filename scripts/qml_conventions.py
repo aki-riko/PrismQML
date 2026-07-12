@@ -6,30 +6,37 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 import re
-import subprocess
-from typing import Iterable, Sequence
+from typing import Sequence
 
 if __package__:
+    from . import qml_scan_scope as _scan_scope
     from .qml_color_arrays import color_array_literal_lines
     from .qml_color_constructors import numeric_color_constructor_lines
     from .qml_color_contexts import color_literal_lines as _color_literal_lines
     from .qml_lexer import sanitize_qml as _sanitize_qml
 else:
+    import qml_scan_scope as _scan_scope
     from qml_color_arrays import color_array_literal_lines
     from qml_color_constructors import numeric_color_constructor_lines
     from qml_color_contexts import color_literal_lines as _color_literal_lines
     from qml_lexer import sanitize_qml as _sanitize_qml
 
 
-QML_ROOT = PurePosixPath("prismqml/PrismQML")
-EXAMPLES_ROOT = PurePosixPath("examples")
-SCAN_ROOTS = (QML_ROOT, EXAMPLES_ROOT)
-SUPPORTED_SOURCE_SUFFIXES = frozenset({".js", ".qml"})
-EXAMPLES_ALLOWED_RULES = frozenset({"QML010"})
+ChangedQmlFile = _scan_scope.ChangedQmlFile
+ChangedScanResult = _scan_scope.ChangedScanResult
+QML_ROOT = _scan_scope.QML_ROOT
+EXAMPLES_ROOT = _scan_scope.EXAMPLES_ROOT
+SCAN_ROOTS = _scan_scope.SCAN_ROOTS
+SUPPORTED_SOURCE_SUFFIXES = _scan_scope.SUPPORTED_SOURCE_SUFFIXES
+EXAMPLES_ALLOWED_RULES = _scan_scope.EXAMPLES_ALLOWED_RULES
+new_violations = _scan_scope.new_violations
+_scan_changed = _scan_scope.scan_changed
+_scan_repository = _scan_scope.scan_repository
+
+
 QTQUICK_CONTROLS_EXCEPTIONS = {
     PurePosixPath("prismqml/PrismQML/controls/containers/Widget.qml"),
 }
@@ -133,12 +140,6 @@ class Violation:
         return (self.path.as_posix(), self.rule, self.message, normalized)
 
 
-@dataclass(frozen=True)
-class ChangedQmlFile:
-    current_path: PurePosixPath
-    base_path: PurePosixPath | None
-
-
 @dataclass
 class MemberEvent:
     line: int
@@ -160,14 +161,6 @@ class Frame:
     opener: str
     kind: str
     context: ObjectContext | None = None
-
-
-@dataclass(frozen=True)
-class ChangedScanResult:
-    violations: tuple[Violation, ...]
-    changed_files: int
-    current_total: int
-    base_total: int
 
 
 def _is_data_resource(path: PurePosixPath) -> bool:
@@ -494,149 +487,9 @@ def scan_source_text(
     ]
 
 
-def _is_under_root(path: PurePosixPath, root: PurePosixPath) -> bool:
-    return path == root or root in path.parents
-
-
-def _scan_scoped_source_text(
-    text: str,
-    source_path: PurePosixPath,
-    violation_path: PurePosixPath | None = None,
-) -> list[Violation]:
-    violations = scan_source_text(text, source_path, violation_path)
-    if not _is_under_root(source_path, EXAMPLES_ROOT):
-        return violations
-    return [item for item in violations if item.rule in EXAMPLES_ALLOWED_RULES]
-
-
-def _repository_source_paths(root: Path) -> Iterable[Path]:
-    qml_root = root / QML_ROOT
-    if not qml_root.is_dir():
-        raise FileNotFoundError(f"QML root not found: {qml_root}")
-    for source_root in SCAN_ROOTS:
-        absolute_root = root / source_root
-        if not absolute_root.is_dir():
-            continue
-        yield from (
-            path
-            for path in absolute_root.rglob("*")
-            if path.is_file() and path.suffix in SUPPORTED_SOURCE_SUFFIXES
-        )
-
-
 def scan_repository(root: Path) -> list[Violation]:
-    violations: list[Violation] = []
-    for path in sorted(_repository_source_paths(root)):
-        relative = PurePosixPath(path.relative_to(root).as_posix())
-        violations.extend(
-            _scan_scoped_source_text(path.read_text(encoding="utf-8"), relative)
-        )
-    return violations
+    return _scan_repository(root, scan_source_text)
 
 
-def _run_git(root: Path, arguments: Sequence[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *arguments],
-        cwd=root,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        check=False,
-    )
-
-
-def _verify_base(root: Path, base: str) -> None:
-    completed = _run_git(root, ["rev-parse", "--verify", f"{base}^{{commit}}"])
-    if completed.returncode != 0:
-        raise RuntimeError(f"invalid git base {base}: {completed.stderr.strip()}")
-
-
-def _parse_changed_line(line: str) -> ChangedQmlFile | None:
-    fields = line.split("\t")
-    status = fields[0]
-    if status.startswith("R") and len(fields) == 3:
-        return ChangedQmlFile(PurePosixPath(fields[2]), PurePosixPath(fields[1]))
-    if status.startswith("M") and len(fields) == 2:
-        path = PurePosixPath(fields[1])
-        return ChangedQmlFile(path, path)
-    if status.startswith("A") and len(fields) == 2:
-        return ChangedQmlFile(PurePosixPath(fields[1]), None)
-    if status.startswith("C") and len(fields) == 3:
-        return ChangedQmlFile(PurePosixPath(fields[2]), None)
-    return None
-
-
-def _changed_qml_files(root: Path, base: str) -> list[ChangedQmlFile]:
-    pathspecs = [path.as_posix() for path in SCAN_ROOTS]
-    completed = _run_git(
-        root, ["diff", "--name-status", "-M", base, "--", *pathspecs]
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(completed.stderr.strip() or "git diff failed")
-    changed = [
-        item
-        for line in completed.stdout.splitlines()
-        if (item := _parse_changed_line(line))
-        and item.current_path.suffix in SUPPORTED_SOURCE_SUFFIXES
-    ]
-    untracked = _run_git(
-        root, ["ls-files", "--others", "--exclude-standard", "--", *pathspecs]
-    )
-    if untracked.returncode != 0:
-        raise RuntimeError(untracked.stderr.strip() or "git ls-files failed")
-    known = {item.current_path for item in changed}
-    for line in untracked.stdout.splitlines():
-        path = PurePosixPath(line)
-        if path.suffix in SUPPORTED_SOURCE_SUFFIXES and path not in known:
-            changed.append(ChangedQmlFile(path, None))
-    return sorted(changed, key=lambda item: item.current_path.as_posix())
-
-
-def _base_text(root: Path, base: str, path: PurePosixPath | None) -> str:
-    if path is None:
-        return ""
-    completed = _run_git(root, ["show", f"{base}:{path.as_posix()}"])
-    if completed.returncode != 0:
-        raise RuntimeError(f"cannot read {path} from {base}: {completed.stderr.strip()}")
-    return completed.stdout
-
-
-def new_violations(
-    current: Iterable[Violation], baseline: Iterable[Violation]
-) -> list[Violation]:
-    remaining = Counter(item.fingerprint() for item in baseline)
-    result: list[Violation] = []
-    for violation in current:
-        fingerprint = violation.fingerprint()
-        if remaining[fingerprint] > 0:
-            remaining[fingerprint] -= 1
-        else:
-            result.append(violation)
-    return result
-
-
-def scan_changed(root: Path, base: str) -> ChangedScanResult:
-    _verify_base(root, base)
-    added: list[Violation] = []
-    current_total = 0
-    base_total = 0
-    changed = _changed_qml_files(root, base)
-    for item in changed:
-        current_file = root / item.current_path
-        current = _scan_scoped_source_text(
-            current_file.read_text(encoding="utf-8"), item.current_path
-        )
-        baseline = (
-            _scan_scoped_source_text(
-                _base_text(root, base, item.base_path),
-                item.base_path,
-                violation_path=item.current_path,
-            )
-            if item.base_path is not None
-            else []
-        )
-        current_total += len(current)
-        base_total += len(baseline)
-        added.extend(new_violations(current, baseline))
-    return ChangedScanResult(tuple(added), len(changed), current_total, base_total)
+def scan_changed(root: Path, base: str) -> ChangedScanResult[Violation]:
+    return _scan_changed(root, base, scan_source_text)
