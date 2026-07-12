@@ -23,8 +23,11 @@ Rectangle {
     property string bgColorOverride: ""
     readonly property bool _tinted: bgColorOverride !== "" && bgColorOverride !== "transparent"
     // Foreground picked for contrast against the tint 文字色按对比度选黑/白
-    readonly property color _tintFg: _tinted ? (Qt.color(bgColorOverride).hslLightness > 0.6 ? "#000000" : "#ffffff")
-                                              : Enums.accentColor
+    readonly property color _tintFg: _tinted
+        ? (Qt.color(bgColorOverride).hslLightness > 0.6
+            ? Enums.chipColors.textOnLight
+            : Enums.chipColors.textOnDark)
+        : Enums.accentColor
 
     // ==================== Signals 信号 ====================
     signal removeClicked(int tokenIndex)

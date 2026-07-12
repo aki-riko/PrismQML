@@ -375,6 +375,9 @@ QtObject {
     // ==================== ChipColors 标签颜色 ====================
     readonly property QtObject chipColors: QtObject {
         readonly property color checkedText: "#ffffff"
+        // Text on light/dark backgrounds 浅色/深色背景上的文字
+        readonly property color textOnLight: grayColors.textPrimaryLight
+        readonly property color textOnDark: themeColors.accentForeground
     }
     
     // ==================== TableCellColors 表格单元格颜色 ====================
