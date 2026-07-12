@@ -55,7 +55,8 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument(
-        "--all", action="store_true", help="scan all library QML/JavaScript sources"
+        "--all", action="store_true",
+        help="scan library rules plus examples QML010 sources",
     )
     mode.add_argument("--changed", action="store_true", help="report violations added since base")
     parser.add_argument("--base", help="git base for --changed; defaults to env or HEAD")

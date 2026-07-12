@@ -26,7 +26,10 @@ else:
 
 
 QML_ROOT = PurePosixPath("prismqml/PrismQML")
+EXAMPLES_ROOT = PurePosixPath("examples")
+SCAN_ROOTS = (QML_ROOT, EXAMPLES_ROOT)
 SUPPORTED_SOURCE_SUFFIXES = frozenset({".js", ".qml"})
+EXAMPLES_ALLOWED_RULES = frozenset({"QML010"})
 QTQUICK_CONTROLS_EXCEPTIONS = {
     PurePosixPath("prismqml/PrismQML/controls/containers/Widget.qml"),
 }
@@ -491,19 +494,43 @@ def scan_source_text(
     ]
 
 
-def scan_repository(root: Path) -> list[Violation]:
+def _is_under_root(path: PurePosixPath, root: PurePosixPath) -> bool:
+    return path == root or root in path.parents
+
+
+def _scan_scoped_source_text(
+    text: str,
+    source_path: PurePosixPath,
+    violation_path: PurePosixPath | None = None,
+) -> list[Violation]:
+    violations = scan_source_text(text, source_path, violation_path)
+    if not _is_under_root(source_path, EXAMPLES_ROOT):
+        return violations
+    return [item for item in violations if item.rule in EXAMPLES_ALLOWED_RULES]
+
+
+def _repository_source_paths(root: Path) -> Iterable[Path]:
     qml_root = root / QML_ROOT
     if not qml_root.is_dir():
         raise FileNotFoundError(f"QML root not found: {qml_root}")
+    for source_root in SCAN_ROOTS:
+        absolute_root = root / source_root
+        if not absolute_root.is_dir():
+            continue
+        yield from (
+            path
+            for path in absolute_root.rglob("*")
+            if path.is_file() and path.suffix in SUPPORTED_SOURCE_SUFFIXES
+        )
+
+
+def scan_repository(root: Path) -> list[Violation]:
     violations: list[Violation] = []
-    source_paths = (
-        path
-        for path in qml_root.rglob("*")
-        if path.is_file() and path.suffix in SUPPORTED_SOURCE_SUFFIXES
-    )
-    for path in sorted(source_paths):
+    for path in sorted(_repository_source_paths(root)):
         relative = PurePosixPath(path.relative_to(root).as_posix())
-        violations.extend(scan_source_text(path.read_text(encoding="utf-8"), relative))
+        violations.extend(
+            _scan_scoped_source_text(path.read_text(encoding="utf-8"), relative)
+        )
     return violations
 
 
@@ -541,8 +568,9 @@ def _parse_changed_line(line: str) -> ChangedQmlFile | None:
 
 
 def _changed_qml_files(root: Path, base: str) -> list[ChangedQmlFile]:
+    pathspecs = [path.as_posix() for path in SCAN_ROOTS]
     completed = _run_git(
-        root, ["diff", "--name-status", "-M", base, "--", QML_ROOT.as_posix()]
+        root, ["diff", "--name-status", "-M", base, "--", *pathspecs]
     )
     if completed.returncode != 0:
         raise RuntimeError(completed.stderr.strip() or "git diff failed")
@@ -553,7 +581,7 @@ def _changed_qml_files(root: Path, base: str) -> list[ChangedQmlFile]:
         and item.current_path.suffix in SUPPORTED_SOURCE_SUFFIXES
     ]
     untracked = _run_git(
-        root, ["ls-files", "--others", "--exclude-standard", "--", QML_ROOT.as_posix()]
+        root, ["ls-files", "--others", "--exclude-standard", "--", *pathspecs]
     )
     if untracked.returncode != 0:
         raise RuntimeError(untracked.stderr.strip() or "git ls-files failed")
@@ -596,11 +624,11 @@ def scan_changed(root: Path, base: str) -> ChangedScanResult:
     changed = _changed_qml_files(root, base)
     for item in changed:
         current_file = root / item.current_path
-        current = scan_source_text(
+        current = _scan_scoped_source_text(
             current_file.read_text(encoding="utf-8"), item.current_path
         )
         baseline = (
-            scan_source_text(
+            _scan_scoped_source_text(
                 _base_text(root, base, item.base_path),
                 item.base_path,
                 violation_path=item.current_path,
