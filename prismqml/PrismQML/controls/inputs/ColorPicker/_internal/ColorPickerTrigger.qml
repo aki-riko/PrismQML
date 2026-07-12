@@ -11,7 +11,7 @@ import "../../../buttons/Button"
 Item {
     id: control
     
-    // ==================== Properties 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property color selectedColor: Enums.colorPickerDefaults.defaultColor
     property bool isOpen: false
     
@@ -22,7 +22,7 @@ Item {
     implicitWidth: btn.implicitWidth
     implicitHeight: btn.implicitHeight
     
-    // ==================== Button with dropdown feature ====================
+    // ==================== Content 内容 ====================
     ButtonCore {
         id: btn
         anchors.fill: parent
