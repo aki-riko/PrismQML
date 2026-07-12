@@ -14,9 +14,11 @@ import subprocess
 from typing import Iterable, Sequence
 
 if __package__:
+    from .qml_color_constructors import numeric_color_constructor_lines
     from .qml_color_contexts import color_literal_lines as _color_literal_lines
     from .qml_lexer import sanitize_qml as _sanitize_qml
 else:
+    from qml_color_constructors import numeric_color_constructor_lines
     from qml_color_contexts import color_literal_lines as _color_literal_lines
     from qml_lexer import sanitize_qml as _sanitize_qml
 
@@ -234,6 +236,11 @@ def _scan_style_literals(
         return []
     violations: list[Violation] = []
     color_lines = _color_literal_lines(code_lines, source_lines)
+    color_lines.update(
+        numeric_color_constructor_lines(
+            "\n".join(code_lines), "\n".join(source_lines)
+        )
+    )
     for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
         if number in color_lines:
             violations.append(_violation(path, number, "QML010", "hardcoded color", source))
@@ -278,16 +285,22 @@ def _scan_local_style_data_contract(text: str, path: PurePosixPath) -> list[Viol
 
 
 def _scan_javascript_style_literals(text: str, path: PurePosixPath) -> list[Violation]:
+    if _is_data_resource(path):
+        return []
     allowed_rules = LOCAL_STYLE_DATA_EXCEPTIONS.get(path, frozenset())
     violations = (
         _scan_local_style_data_contract(text, path)
         if path == MATRIX_RAIN_PRESETS_PATH
         else []
     )
-    code_lines = _sanitize_qml(text, mask_strings=False).splitlines()
+    masked_text = _sanitize_qml(text, mask_strings=True)
+    quoted_text = _sanitize_qml(text, mask_strings=False)
+    constructor_lines = numeric_color_constructor_lines(masked_text, quoted_text)
+    code_lines = quoted_text.splitlines()
     source_lines = text.splitlines()
     for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
-        if QUOTED_HEX_COLOR_RE.search(code) and "QML010" not in allowed_rules:
+        hardcoded = QUOTED_HEX_COLOR_RE.search(code) or number in constructor_lines
+        if hardcoded and "QML010" not in allowed_rules:
             violations.append(_violation(path, number, "QML010", "hardcoded color", source))
     return violations
 

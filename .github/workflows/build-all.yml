@@ -31,7 +31,8 @@ jobs:
       - name: Run scanner regression tests
         run: >-
           python scripts/test_process.py --qt-platform offscreen --timeout 120 --
-          python -m pytest tests/test_qml_conventions.py -q
+          python -m pytest tests/test_qml_conventions.py
+          tests/test_qml_color_constructors.py -q
       - name: Reject newly introduced QML violations
         shell: bash
         run: |

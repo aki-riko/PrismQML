@@ -11,10 +11,14 @@ _REGEX_PREFIX_CHARS = frozenset("([{:;,=!?&|+-*%^~<>")
 _REGEX_PREFIX_WORDS = frozenset(
     {"await", "case", "delete", "instanceof", "return", "throw", "typeof", "void", "yield"}
 )
+_ECMASCRIPT_LINEBREAK_CHARS = frozenset("\r\n\u2028\u2029")
+_SOURCE_LINEBREAK_CHARS = frozenset("\r\n\v\f\x1c\x1d\x1e\x85\u2028\u2029")
 
 
 def _blank(segment: str) -> str:
-    return "".join("\n" if char == "\n" else " " for char in segment)
+    return "".join(
+        char if char in _SOURCE_LINEBREAK_CHARS else " " for char in segment
+    )
 
 
 def _quoted_end(text: str, start: int, quote: str) -> int:
@@ -31,7 +35,11 @@ def _quoted_end(text: str, start: int, quote: str) -> int:
 
 def _previous_nonspace(text: str, start: int) -> int:
     index = start - 1
-    while index >= 0 and text[index] in " \t\r":
+    while (
+        index >= 0
+        and text[index].isspace()
+        and text[index] not in _ECMASCRIPT_LINEBREAK_CHARS
+    ):
         index -= 1
     return index
 
@@ -45,7 +53,7 @@ def _previous_word(text: str, end: int) -> str:
 
 def _is_regex_start(text: str, start: int) -> bool:
     previous = _previous_nonspace(text, start)
-    if previous < 0 or text[previous] == "\n":
+    if previous < 0 or text[previous] in _ECMASCRIPT_LINEBREAK_CHARS:
         return True
     if text[previous] in _REGEX_PREFIX_CHARS:
         return True
@@ -62,7 +70,7 @@ def _regex_end(text: str, start: int) -> int | None:
         if char == "\\":
             index += 2
             continue
-        if char == "\n":
+        if char in _ECMASCRIPT_LINEBREAK_CHARS:
             return None
         if char == "[":
             in_character_class = True
@@ -77,10 +85,16 @@ def _regex_end(text: str, start: int) -> int | None:
     return None
 
 
+def _line_comment_end(text: str, start: int) -> int:
+    index = start + 2
+    while index < len(text) and text[index] not in _ECMASCRIPT_LINEBREAK_CHARS:
+        index += 1
+    return index
+
+
 def _lexeme(text: str, start: int) -> tuple[int, str] | None:
     if text.startswith("//", start):
-        end = text.find("\n", start)
-        return (len(text) if end < 0 else end, "comment")
+        return _line_comment_end(text, start), "comment"
     if text.startswith("/*", start):
         end = text.find("*/", start + 2)
         return (len(text) if end < 0 else end + 2, "comment")
