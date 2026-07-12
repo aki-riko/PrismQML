@@ -11,7 +11,7 @@ import "../../../icons"
 Rectangle {
     id: navBtn
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string icon: Enums.icon.chevron_up
     
     signal clicked()
