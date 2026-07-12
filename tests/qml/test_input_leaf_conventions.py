@@ -35,6 +35,9 @@ DATE_TIME_BUTTONS_SOURCE = (
     / "_internal"
     / "DateTimeButtons.qml"
 )
+FOCUS_LINE_SOURCE = (
+    ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "FocusLine.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "input-leaf-conventions.qml")
 )
@@ -51,6 +54,9 @@ Item {
     readonly property int expectedDefaultStyle: Enums.button.style_default
     readonly property real expectedSpacingL: Enums.spacing.l
     readonly property real expectedSpacingXl: Enums.spacing.xl
+    readonly property color expectedAccent: Enums.accentColor
+    readonly property real expectedBorderNormal: Enums.border.normal
+    readonly property real expectedFocusLineHeight: Enums.controlSize.focusLineHeight
 
     width: 256
     height: 300
@@ -203,6 +209,40 @@ def _assert_date_time_runtime(root, picker):
     assert not popup.property("_prewarmed")
 
 
+def _focus_line(picker):
+    matches = [
+        child
+        for child in _descendants(picker)
+        if child.metaObject().indexOfProperty("showLine") >= 0
+        and child.metaObject().indexOfProperty("lineColor") >= 0
+        and child.metaObject().indexOfProperty("parentRadius") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    child_items = matches[0].childItems()
+    rectangles = [
+        child
+        for child in child_items
+        if child.metaObject().className().startswith("QQuickRectangle")
+    ]
+    assert len(rectangles) == 1, [
+        item.metaObject().className() for item in child_items
+    ]
+    return matches[0], rectangles[0]
+
+
+def _assert_focus_line_runtime(root, picker):
+    focus_line, rectangle = _focus_line(picker)
+    assert not focus_line.property("showLine")
+    assert focus_line.property("lineColor") == root.property("expectedAccent")
+    assert focus_line.property("parentRadius") == picker.property("radius")
+    assert focus_line.property("height") == root.property("expectedBorderNormal")
+    assert focus_line.property("clip")
+    assert rectangle.property("width") == 0.0
+    assert rectangle.property("height") == root.property("expectedFocusLineHeight")
+    assert rectangle.property("radius") == focus_line.property("parentRadius")
+    assert rectangle.property("color") == focus_line.property("lineColor")
+
+
 def test_calendar_nav_button_parent_chain(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, root, warnings = _create_scene()
@@ -245,6 +285,23 @@ def test_date_time_buttons_parent_chain(qapp):
         _pump(1)
 
 
+def test_focus_line_parent_chain(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene()
+    try:
+        picker = root.findChild(QObject, "dateTimePicker")
+        assert picker is not None
+        assert not picker.property("isOpen")
+        _assert_focus_line_runtime(root, picker)
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_calendar_nav_button_source_conventions():
     source = CALENDAR_NAV_SOURCE.read_text(encoding="utf-8")
     path = PurePosixPath(CALENDAR_NAV_SOURCE.relative_to(ROOT).as_posix())
@@ -259,6 +316,17 @@ def test_calendar_nav_button_source_conventions():
 def test_date_time_buttons_source_conventions():
     source = DATE_TIME_BUTTONS_SOURCE.read_text(encoding="utf-8")
     path = PurePosixPath(DATE_TIME_BUTTONS_SOURCE.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_focus_line_source_conventions():
+    source = FOCUS_LINE_SOURCE.read_text(encoding="utf-8")
+    path = PurePosixPath(FOCUS_LINE_SOURCE.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [
         violation
