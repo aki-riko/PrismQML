@@ -172,9 +172,9 @@ P1 独立入口补强已完成：AST 门禁以 16 个带主入口且实际导入
 
 P1 后代错误框止血已完成：用户再次反馈同一全量测试在桌面连续出现错误弹窗后，真实继承探针确认旧策略下 pytest bootstrap 的直接子进程实际得到 `ErrorMode=0x8001`，`WerGetFlags=0x80070490 / ERROR_NOT_FOUND` 且 flags 为 0；即 `WerSetFlags` 只保护当前进程，而自动化进程主动清除了唯一会由后代继承的 `SEM_NOGPFAULTERRORBOX`。Python launcher/bootstrap 与 C++ `TestProcess.h` 现统一在全生命周期保留 `SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX`（`ErrorMode=0x8003`），C++ 入口额外用 `GetErrorMode()` 自检；当前进程仍设置 WER flags `0x22`，但在 NOGP 优先止血后不再承诺 WER 排队报告一定生成。真实 descendant 回归直接读取并确认继承值；Windows timeout 仍保持 fail-closed，`taskkill` 未确认时返回 125，测试同时确认直接子进程与孙进程 PID 均已消失。最终专项 `13 passed / 1 skipped`、全量 Python `228 passed / 1 skipped`、QML `169/0/12`、MSVC 重编译、headless CTest `6/6`、Windows native Mica `1/1`、changed scanner 0 与 `git diff --check` 全部通过；同一 105 秒真实测试窗口内新增顶层窗口计数为 0，匹配本仓进程的 Event 26/1000/1001 与 CrashDump 均无新增。本结论仅表示该真实入口未再观察到弹窗，不等同于机制级零窗口保证。提交：`1d76047`。
 
-#### P1 后续：Windows 机制级零窗口门禁（重新打开）
+#### P1 后续：Windows 机制级零窗口门禁
 
-状态：进行中。历史提交：`728b65a`（`test: isolate Windows test UI and process trees`）。该提交已经落地私有 Desktop、Job Object、可见窗口轮询与失败码，但用户于 2026-07-12 再次明确反馈“测试每次跑都会出现一批错误弹窗”，因此撤销“已完成”结论。下方历史实现与验证记录保留作追溯证据，不再作为当前完成依据。
+状态：已完成。用户于 2026-07-12 17:28（Asia/Shanghai）明确确认，17:07–17:12 的同一历史命令复验及随后三轮完整门禁期间均未出现错误弹窗。真实失败输入、同输入复验、连续三轮门禁、Windows 事件/CrashDump 与用户桌面观察已形成完整闭环；实现与证据提交包括 `728b65a`、`50714b38`、`af65069d`、`daec535`、`1a5b004`。
 
 实际落地：
 
@@ -205,15 +205,15 @@ P1 后代错误框止血已完成：用户再次反馈同一全量测试在桌�
 3. 2026-07-12 17:07:48–17:08:16 在当前 `18e925f` 上原样重跑上述真实命令链，Rust `6/6`、CTest `8/8`，退出码 0；交互桌面观察器未发现本仓进程窗口，Event 26、Event 1000/1001 与 CrashDump 增量均为 0。
 4. 随后于 17:09:24–17:12:23 连续三轮执行标准 pytest、QML probe 与 headless CTest。每轮均为 Python `297 passed / 1 skipped`、QML `169 OK / 0 错误 / 12 跳过`、headless CTest `6/6`；每轮 runner 报告 `visible_windows=0 / job_active_processes=0` 且清理成功，Event 26、Event 1000/1001 与 CrashDump 增量均为 0。外层交互桌面观察仅记录 Thorium、Explorer 与 QQ 的无关窗口，没有路径属于本仓的窗口。
 5. 全库入口复核未发现标准自动化链的新裸跑路径：CI pytest/probe、现有 CTest 注册和原生失败 verifier 均经过 runner。剩余可绕过面仅为主动直接启动原生测试 EXE、四个人工可视入口，或外部调用者主动覆盖 pytest 配置；这些路径均已明确排除在自动化可靠性契约之外。
-6. P1+ 当前只剩用户确认本轮 17:07–17:12 的同一历史命令复验及随后三轮完整门禁期间，桌面均未再出现错误弹窗。收到确认后才把 P1+ 改回“已完成”并恢复 P6D；在此之前继续保留“进行中”，不以自动日志替代用户桌面观察。
+6. 用户于 17:28 明确回复“没有出现”，确认 17:07–17:12 的同一历史命令复验及随后三轮完整门禁期间桌面均未再出现错误弹窗。P1+ 完成判据已全部满足，状态恢复为“已完成”，P6D 从 `buttons/inputs` 后续批次继续执行。
 
-2026-07-12 入口 fail-closed 进展（不关闭 P1+）：Windows 自动入口除版本 marker 外，现同时验证当前线程位于 `PrismQMLTest-<suffix>` 私有 Desktop，且当前进程位于同后缀的精确命名 Job `PrismQMLTestJob-<suffix>`；验证通过 `OpenJobObjectW + IsProcessInJob(具体 Job 句柄)` 完成，不再把“处于任意 Job”当作 runner 身份。pytest 通过 `pyproject.toml` 的早期边界插件在第三方插件与显式 Qt canary 之前执行，并关闭未声明的插件自动发现；仓库根目录、`tests` 子目录、marker 缺失与 marker 伪造四类默认桌面输入均在 canary 导入 PySide6 前拒绝。回归不再把外层仍处于 runner 的子进程称为“真实裸桌面证明”，probe 契约也只要求存在汇总且错误数为 0，不再硬编码组件总数。
+2026-07-12 入口 fail-closed 完成记录：Windows 自动入口除版本 marker 外，现同时验证当前线程位于 `PrismQMLTest-<suffix>` 私有 Desktop，且当前进程位于同后缀的精确命名 Job `PrismQMLTestJob-<suffix>`；验证通过 `OpenJobObjectW + IsProcessInJob(具体 Job 句柄)` 完成，不再把“处于任意 Job”当作 runner 身份。pytest 通过 `pyproject.toml` 的早期边界插件在第三方插件与显式 Qt canary 之前执行，并关闭未声明的插件自动发现；仓库根目录、`tests` 子目录、marker 缺失与 marker 伪造四类默认桌面输入均在 canary 导入 PySide6 前拒绝。回归不再把外层仍处于 runner 的子进程称为“真实裸桌面证明”，probe 契约也只要求存在汇总且错误数为 0，不再硬编码组件总数。
 
 原生失败矩阵已落地：companion DLL、pre-main loader 与 fatal helper 分目录构建，CTest 唯一链路为“外层 runner → verifier → 每 case 内层 runner → 原生夹具”，静态契约禁止 helper/loader 裸注册、ALIAS/变量间接绕过、`subprocess` 替代入口及 `shell/executable` 覆盖。11 个 case 包含 loader 成功对照，以及缺 DLL、访问违规、fail-fast、`abort`、`qFatal` 的 root/grandchild；本机退出码分别为 `0xC0000135`、`0xC0000005`、`0xC0000602`、`0xC0000409`、`0xC0000409`。每条记录均包含 UTC 起止时间、case、root/failure PID、完整 Desktop/Job、原始 NTSTATUS、私有 Desktop 可见窗口数、最终活动进程数与清理结果；grandchild 先以 `CREATE_SUSPENDED` 创建，在恢复前验证进入同一命名 Job。缺 DLL 用例使用白名单 PATH 与临时空 CWD，并验证 companion 未污染 loader、Qt、Python、系统或工作目录。
 
 本批当前证据：原生边界/命令/验证器专项 `31 passed`，Windows 结果专项 `29 passed / 1 skipped`；全量 Python `297 passed / 1 skipped`；QML `169 OK / 0 错误 / 12 跳过`；headless CTest `6/6`；Windows native CTest `2/2`；覆盖率普通与 UTF-8 两种入口均覆盖 181 个注册类型。默认交互桌面最终监控时间窗 `2026-07-12T16:43:59.5639473+08:00` 至 `2026-07-12T16:44:06.9796707+08:00` 覆盖完整 native 集合并在结束后继续观察 5 秒，新可见顶层窗口、Event 26、Event 1000/1001 与 CrashDump 增量均为 0。三路独立 Review 最终无 P0–P3；相关 Python 文件均低于 500 行，新增/增长函数均不超过 30 行，9 个改动 Python 文件通过 3.9 语法解析（本机仅安装 Python 3.12，未冒充 3.9 运行时验证）。实现提交：`af65069d`、`daec535`。
 
-当前边界：真实弹窗来源、命令、仓库内目标路径、时间、标题和失败码已由用户澄清、原始任务记录与 Windows 事件日志交叉坐实；同一命令复验及连续三轮完整门禁也已通过。由于用户尚未明确确认 17:07–17:12 的同一命令复验与完整门禁期间桌面均未弹窗，仍不能写“用户弹窗已修复”或关闭 P1+。项目文档已明确禁止直接启动 `prism_test_*.exe`、`prism_native_failure_helper.exe` 与 `prism_native_failure_loader.exe`；pre-main 失败无法由 EXE 内部代码拦截，必须由 CTest/runner 外层保护。`-c`/覆盖 addopts 等主动绕过项目 pytest 配置、直接启动原生测试 EXE、外部 broker、刻意逃逸 Desktop/Job，或同用户代码伪造同名 Desktop/Job，均不属于该可靠性入口契约。
+最终边界：真实弹窗来源、命令、仓库内目标路径、时间、标题和失败码已由用户澄清、原始任务记录与 Windows 事件日志交叉坐实；同一命令复验、连续三轮完整门禁及用户桌面确认均已通过，P1+ 可以关闭。项目文档已明确禁止直接启动 `prism_test_*.exe`、`prism_native_failure_helper.exe` 与 `prism_native_failure_loader.exe`；pre-main 失败无法由 EXE 内部代码拦截，必须由 CTest/runner 外层保护。`-c`/覆盖 addopts 等主动绕过项目 pytest 配置、直接启动原生测试 EXE、外部 broker、刻意逃逸 Desktop/Job，或同用户代码伪造同名 Desktop/Job，均不属于该可靠性入口契约。
 
 ### P2：修复 sdist 并建立发布制品门禁
 
@@ -597,12 +597,12 @@ git diff --check
 |---|---|---|---|
 | P0 基线固化 | 已完成 | 固化审计输入与 12 个合法 QML skip；当前回归基线为 Python 122、QML 169/0/12、CTest 7/7 | `1dd7e9a2` |
 | P1 CTest 与 C++ CI | 已完成 | 历史 68 条 DLL 弹窗与 3 次错误生命周期原生崩溃已追溯；统一 runner 覆盖 Python/QML/C++/制品入口。最新止血让 Python/C++ 自动测试及普通后代持续继承 `ErrorMode=0x8003`；专项 13/1、Python 228/1、QML 169/0/12、MSVC 构建、headless CTest 6/6、Windows native 1/1、changed 0 全绿，同一 105 秒真实测试入口未观察到新增顶层窗口，匹配 Event 26/1000/1001 与 dump 增量为 0；Build All [29158555858](https://github.com/aki-riko/PrismQML/actions/runs/29158555858) 的 QML conventions、Windows 零交互门禁、三平台桌面、Android 与 iOS 共 7 个作业全绿，Deploy Docs [29158555852](https://github.com/aki-riko/PrismQML/actions/runs/29158555852) 成功 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f`、`ce9e0a0`、`5c290a93`、`75ef786`、`383dbeb`、`1d76047` |
-| P1+ Windows 机制级零窗口门禁 | 进行中 | 用户已澄清弹窗来自 Codex 测试；原始任务记录恢复出 2026-07-11 04:55 的真实裸 CTest 命令，六个仓内 EXE 与历史 Event 26 均对应 `0xC0000135`/缺 Qt DLL。当前同一命令 Rust 6/6、CTest 8/8；随后连续三轮 Python 297/1、QML 169/0/12、headless 6/6，runner 窗口/Job 归零，交互桌面本仓窗口、Event 26/1000/1001 与 dump 增量均为 0。入口另有精确 Desktop/命名 Job 验真及 11-case 原生失败矩阵。现仅等待用户确认本轮 17:07–17:12 的同一命令复验与完整门禁均未弹窗，确认后关闭 P1+ 并恢复 P6D | `728b65a4`、`50714b38`、`af65069d`、`daec535` |
+| P1+ Windows 机制级零窗口门禁 | 已完成 | 用户已澄清弹窗来自 Codex 测试；原始任务记录恢复出 2026-07-11 04:55 的真实裸 CTest 命令，六个仓内 EXE 与历史 Event 26 均对应 `0xC0000135`/缺 Qt DLL。当前同一命令 Rust 6/6、CTest 8/8；随后连续三轮 Python 297/1、QML 169/0/12、headless 6/6，runner 窗口/Job 归零，交互桌面本仓窗口、Event 26/1000/1001 与 dump 增量均为 0；用户于 17:28 明确确认本轮没有出现错误弹窗。入口另有精确 Desktop/命名 Job 验真及 11-case 原生失败矩阵 | `728b65a4`、`50714b38`、`af65069d`、`daec535`、`1a5b004` |
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
-| P6 QML 规范债务 | 进行中 | P6A–P6C14 与 P6D 已完成小批记录保持不变；因 P1+ 被真实弹窗反馈重新打开，buttons/inputs 后续批暂停，避免在测试边界不可信时继续累计修改。全库真实基线 3,056（成员顺序 1,839、分节术语 1,178、颜色 17、数值 22，QML013 0），22 项 QML011 全部等待 P8A 的 LoginWindowLightShadow 删除/公开决策 | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645`、`2a22c115`、`06eb4af9`、`685d063e`、`bcf0c737`、`4c22e7bc`、`bad57911`、`b281b7b`、`85a75ff3`、`0e438e60`、`1f9d1038`、`b1050f84`、`d4e2e11e`、`10b25427`、`8c633f4f`、`6810e12c` |
+| P6 QML 规范债务 | 进行中 | P6A–P6C14 与 P6D 已完成小批记录保持不变；P1+ 已完成，`buttons/inputs` 后续批恢复执行。全库真实基线 3,056（成员顺序 1,839、分节术语 1,178、颜色 17、数值 22，QML013 0），22 项 QML011 全部等待 P8A 的 LoginWindowLightShadow 删除/公开决策 | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645`、`2a22c115`、`06eb4af9`、`685d063e`、`bcf0c737`、`4c22e7bc`、`bad57911`、`b281b7b`、`85a75ff3`、`0e438e60`、`1f9d1038`、`b1050f84`、`d4e2e11e`、`10b25427`、`8c633f4f`、`6810e12c` |
 | P7 Python 规范债务 | 待执行 |  |  |
 | P8 资源注册 | 待执行 | P8A 提前处理孤立文件决策；LoginWindowLightShadow 已确认仓内零消费者、未注册但仍随包分发，推荐完成下游审计后请求用户批准删除 |  |
 | P9 最终验收 | 待执行 |  |  |
