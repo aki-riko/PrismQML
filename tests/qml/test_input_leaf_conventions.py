@@ -35,6 +35,15 @@ DATE_TIME_BUTTONS_SOURCE = (
     / "_internal"
     / "DateTimeButtons.qml"
 )
+DATE_TIME_PICKER_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "Picker"
+    / "DateTimePicker.qml"
+)
 FOCUS_LINE_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "FocusLine.qml"
 )
@@ -316,6 +325,17 @@ def test_calendar_nav_button_source_conventions():
 def test_date_time_buttons_source_conventions():
     source = DATE_TIME_BUTTONS_SOURCE.read_text(encoding="utf-8")
     path = PurePosixPath(DATE_TIME_BUTTONS_SOURCE.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_date_time_picker_source_uses_standard_sections():
+    source = DATE_TIME_PICKER_SOURCE.read_text(encoding="utf-8")
+    path = PurePosixPath(DATE_TIME_PICKER_SOURCE.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [
         violation

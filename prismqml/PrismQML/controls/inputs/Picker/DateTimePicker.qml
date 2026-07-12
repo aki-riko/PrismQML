@@ -18,34 +18,31 @@ import "./_internal/DateTimeHelpers.js" as Helpers
 Rectangle {
     id: control
 
-    // ==================== Type Props 类型属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int type: Enums.picker.type_date
     property int datePrecision: Enums.picker.date_day
     property int timePrecision: Enums.picker.time_minute
     property int timeFormat: Enums.picker.format_24h
 
-    // ==================== Value Props 值属性 ====================
+    // Value properties 值属性
     property int year: new Date().getFullYear()
     property int month: new Date().getMonth() + 1
     property int day: new Date().getDate()
-    property int hour: -1  // -1 = not set
+    property int hour: -1  // -1 means unset -1 表示未设置
     property int minute: -1
     property int second: -1
     property bool isOpen: false
 
-    // ==================== Range Props 范围属性 ====================
+    // Range properties 范围属性
     property int minYear: new Date().getFullYear() - 100
     property int maxYear: new Date().getFullYear() + 100
 
-    // ==================== Optional Override 可选覆盖 ====================
-    // Removed: resetEnabled property 已删除：重置功能属性
-
-    // ==================== Localization (auto from Translator) 本地化 ====================
+    // ==================== Readonly State 只读状态 ====================
     // Bind to _v to trigger re-evaluation on language change 绑定_v实现语言切换时自动更新
     readonly property int _tv: Translator._v
     readonly property string _lang: Translator.language
     readonly property bool _isEastern: _lang === "zh_CN" || _lang === "zh_TW" || _lang === "ja" || _lang === "ko"
-    readonly property bool _yearFirst: _isEastern  // YMD for eastern, MDY/DMY for western
+    readonly property bool _yearFirst: _isEastern  // Eastern YMD, otherwise MDY 东亚年月日，其他月日年
     readonly property string _yearSuffix: { _tv; return _isEastern ? Translator.tr("year") : "" }
     readonly property string _monthSuffix: { _tv; return _isEastern ? Translator.tr("month") : "" }
     readonly property string _daySuffix: { _tv; return _isEastern ? Translator.tr("day") : "" }
@@ -59,7 +56,7 @@ Rectangle {
     readonly property string _cancelText: { _tv; return Translator.tr("cancel") }
     readonly property string _resetText: { _tv; return Translator.tr("reset") }
 
-    // ==================== Computed Props 计算属性 ====================
+    // Computed state 计算状态
     readonly property bool _hasDate: type === Enums.picker.type_date || type === Enums.picker.type_datetime
     readonly property bool _hasTime: type === Enums.picker.type_time || type === Enums.picker.type_datetime
     readonly property bool _showYear: _hasDate && datePrecision >= Enums.picker.date_year
@@ -75,7 +72,7 @@ Rectangle {
     readonly property int _timeColCount: (_showHour ? 1 : 0) + (_showMinute ? 1 : 0) + (_showSecond ? 1 : 0) + (_is12Hour ? 1 : 0)
     readonly property int _totalColCount: (_hasDate ? _dateColCount : 0) + (_hasTime ? _timeColCount : 0)
 
-    // ==================== Popup State 弹窗状态 ====================
+    // ==================== Internal Props 内部属性 ====================
     property int _tempYear: year
     property int _tempMonth: month
     property int _tempDay: day
@@ -91,7 +88,7 @@ Rectangle {
     signal dateChanged(int year, int month, int day)
     signal timeChanged(int hour, int minute, int second)
 
-    // ==================== Helper Functions 辅助函数 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function _buildDisplayModel() { return Helpers.buildDisplayModel(control, Translator) }
     function _getMonthName(m) { return Helpers.getMonthName(Translator, m) }
     function _pad(n) { return Helpers.pad(n) }
@@ -145,7 +142,7 @@ Rectangle {
 
     function _get24Hour(h12, isAm) { return Helpers.get24Hour(h12, isAm) }
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     // Set date 设置日期
     function setDate(y, m, d) {
         year = y
@@ -181,7 +178,7 @@ Rectangle {
         return { hour: hour >= 0 ? hour : 0, minute: minute >= 0 ? minute : 0, second: second >= 0 ? second : 0 }
     }
 
-    // ==================== Model Builders 模型构建 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function _buildYearModel() { return Helpers.buildYearModel(minYear, maxYear, _yearSuffix) }
     function _buildMonthModel() { return Helpers.buildMonthModel(_yearFirst, _monthSuffix, Translator) }
     function _buildDayModel() { return Helpers.buildDayModel(_tempYear, _tempMonth, _daySuffix) }
@@ -220,6 +217,7 @@ Rectangle {
     border.width: Enums.border.thin
     border.color: isOpen ? Enums.accentColor : Enums.stateColor.border
 
+    // ==================== Content 内容 ====================
     // Focus line 聚焦底线
     FocusLine {
         showLine: isOpen
@@ -227,7 +225,7 @@ Rectangle {
         parentRadius: control.radius
     }
 
-    // ==================== Display 显示 ====================
+    // Display content 显示内容
     Row {
         anchors.fill: parent
 
@@ -258,7 +256,7 @@ Rectangle {
         }
     }
 
-    // ==================== Interaction 交互 ====================
+    // Interaction and initialization 交互与初始化
     MouseArea {
         id: pickerMouseArea
         anchors.fill: parent
@@ -272,7 +270,7 @@ Rectangle {
         onTriggered: control._initWheelPositions()
     }
 
-    // ==================== Popup 弹窗 ====================
+    // Popup host 弹窗宿主
     PopupWindowCore {
         id: pickerPopup
         popupWidth: control.width
