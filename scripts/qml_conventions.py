@@ -66,10 +66,12 @@ LOCAL_THEME_PROXY_RE = re.compile(
     r"^(?:(?:default|required|readonly)\s+)*property\s+"
     r"(?:alias|[A-Za-z_]\w*(?:<[^>]+>)?)\s+(?:isDark|fontFamily)\b"
 )
-COLOR_LITERAL_RE = re.compile(
+COLOR_BINDING_RE = re.compile(
     r"^\s*(?:(?:(?:default|required|readonly)\s+)*property\s+color\s+\w+|"
-    r"(?:color|border\.color))\s*:\s*"
-    r"['\"](?:#[0-9A-Fa-f]{3,8}|transparent|white|black)['\"]"
+    r"(?:color|border\.color))\s*:\s*(?P<expression>.*)$"
+)
+QUOTED_QML_COLOR_RE = re.compile(
+    r"(?P<quote>['\"`])(?:#[0-9A-Fa-f]{3,8}|transparent|white|black)(?P=quote)"
 )
 METRIC_LITERAL_RE = re.compile(
     r"^\s*(?:(?:(?:default|required|readonly)\s+)*property\s+"
@@ -237,7 +239,10 @@ def _scan_style_literals(
         return []
     violations: list[Violation] = []
     for number, (code, source) in enumerate(zip(code_lines, source_lines), start=1):
-        if COLOR_LITERAL_RE.search(source):
+        color_binding = COLOR_BINDING_RE.search(source)
+        if color_binding and QUOTED_QML_COLOR_RE.search(
+            color_binding.group("expression")
+        ):
             violations.append(_violation(path, number, "QML010", "hardcoded color", source))
         if METRIC_LITERAL_RE.search(code):
             violations.append(_violation(path, number, "QML011", "hardcoded style metric", source))

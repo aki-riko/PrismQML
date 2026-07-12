@@ -71,6 +71,45 @@ def test_style_rules_ignore_log_message_contents():
     assert "QML011" not in _rules(source)
 
 
+def test_color_bindings_report_literals_inside_expressions():
+    source = """Item {
+    readonly property color contrast: tinted ? "#000000" : "#ffffff"
+    color: enabled ? Enums.accentColor : "transparent"
+    border.color: active ? "white" : "black"
+}
+"""
+
+    violations = scanner.scan_source_text(source, LIBRARY_PATH)
+    color_lines = [item.line for item in violations if item.rule == "QML010"]
+
+    assert color_lines == [2, 3, 4]
+
+
+def test_color_bindings_ignore_non_color_strings_and_comparisons():
+    source = """Item {
+    property string sample: "#ffffff"
+    property bool tinted: sample !== "transparent"
+    text: "#000000"
+    Component.onCompleted: console.log(`color: "#fff"`)
+}
+"""
+
+    assert "QML010" not in _rules(source)
+
+
+def test_color_binding_expressions_keep_data_resource_exceptions():
+    source = """QtObject {
+    readonly property color contrast: tinted ? "#000000" : "#ffffff"
+}
+"""
+    paths = [
+        PurePosixPath("prismqml/PrismQML/Enums.qml"),
+        PurePosixPath("prismqml/PrismQML/PrismEnums/Test.qml"),
+    ]
+
+    assert all("QML010" not in _rules(source, path) for path in paths)
+
+
 def test_shadow_offsets_spread_and_scale_are_style_metrics():
     source = """MultiEffect {
     shadowHorizontalOffset: 4
