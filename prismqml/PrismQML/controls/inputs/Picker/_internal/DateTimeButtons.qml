@@ -11,7 +11,7 @@ import "../../../buttons"
 Item {
     id: buttonArea
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var control  // Parent DateTimePicker 父日期时间选择器
     
     width: parent ? parent.width : 200
