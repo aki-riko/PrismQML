@@ -653,6 +653,7 @@ git diff --check
    - P7I-B 代码提交 `21211777`：`WindowCore._on_close_requested()` 的用户 `closeEvent` 边界保留 `Exception`，异常时记录完整 traceback 并 fail-closed 为拒绝关闭；`closeRequestAccepted` 写回只捕获真实已销毁 `QQuickWindow` wrapper 产生的 `RuntimeError`，同样保留 traceback。真实隐藏 QML 链验证窗口仍可见、拒绝状态写回正确，进程控制异常继续传播。
    - 两批测试均捕获项目 logger 的真实 `LogRecord`，断言唯一目标记录的 `exc_info`、异常类型和 `PlainFormatter` 输出中的真实源码调用点。P7I-B 关闭握手脚本 `PASS`，traceback 聚焦 `20 passed`，Python 全量 `849 passed / 1 skipped`，QML probe `169 OK / 0 错误 / 12 跳过`，headless CTest `8/8`，changed QML 扫描 0，Python 3.9 AST、compileall 与 `git diff --check` 均通过。
    - 全部 runner 继续为 `visible_windows=0 / job_active_processes=0`，用户明确确认测试期间没有出现弹窗。真实 `~/.prismqml/app.json` 与受保护 audit `LastTest.log` 的字节数和 SHA-256 均保持既有基线；独立 Review 为 P0/P1/P2 全零。下一批为 P7I-C `SqlListModel` 回调边界，暂不混入长函数、文件头、benchmark 路径或 QR stdout 政策。
+   - P7I-C 结构过渡评审例外（2026-07-14）：本批只把 formatter 用户回调和 `data/getRow` 公共页读取失败边界抽入 11/14/18 行的小 helper；既有 `_fetch_page` 从 145 行、嵌套深度 5 降为 129 行、深度 4，但仍不满足 30 行/3 层目标。Review 明确批准它仅作为 P7I-C 的过渡例外，剩余查询规划、后端读取、列初始化与分页编排必须在 P7I-F 单独拆分；本例外不得用于向该函数继续加入新逻辑，也不得据此宣称长函数债务完成。
 
 6. **P7J Updater 下载 I/O、并发与响应 schema**
    - Python 下载回调捕获文件写入/关闭 `OSError` 后只记 warning，不保存失败状态。真实只读文件句柄输入已复现：最后一块写入失败后仍发送 `downloadFinished(path)`，`downloadFailed` 为零，磁盘只保留非空的截断文件。

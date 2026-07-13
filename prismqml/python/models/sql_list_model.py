@@ -38,7 +38,6 @@ QML ListView/TableView 对接 1M+ 行 SQLite 数据,内存恒定 + 滚动 120fps
 """
 from __future__ import annotations
 
-import logging
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -53,6 +52,7 @@ from PySide6.QtCore import (
     Slot,
 )
 
+from ..core.logger import exception
 from ._page_cache import PageCache
 from ._sql_query_tools import (
     inject_keyset_predicate,
@@ -288,7 +288,10 @@ class SqlListModel(QAbstractListModel):
             return {}
         page_idx = row // self._page_size
         offset_in_page = row - page_idx * self._page_size
-        rows, _end_cursor = self._get_page(page_idx)
+        page = self._get_page_for_access(page_idx, row, "getRow")
+        if page is None:
+            return {}
+        rows, _end_cursor = page
         if not rows or offset_in_page >= len(rows):
             return {}
         cells = rows[offset_in_page]
@@ -316,14 +319,10 @@ class SqlListModel(QAbstractListModel):
         # M-1 修复: _fetch_page 在多 shard random access 时可能 raise,
         # Qt model.data() 的异常会让 ListView 渲染中断 + 控制台爆栈,严重时 UI 死。
         # 这里捕获 + log,降级返 None,业务侧表现为该 cell 显示空但 ListView 仍可滚。
-        try:
-            rows, _end_cursor = self._get_page(page_idx)
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(
-                f"SqlListModel.data 取 page {page_idx} 失败 (row={row}): {e}"
-            )
+        page = self._get_page_for_access(page_idx, row, "data")
+        if page is None:
             return None
+        rows, _end_cursor = page
         if not rows or offset_in_page >= len(rows):
             return None
         try:
@@ -340,6 +339,18 @@ class SqlListModel(QAbstractListModel):
     # ============================================================
     # 内部
     # ============================================================
+    def _get_page_for_access(
+        self, page_idx: int, row: int, consumer: str
+    ) -> Optional[tuple[list, Optional[list]]]:
+        try:
+            return self._get_page(page_idx)
+        except Exception as exc:
+            exception(
+                f"SqlListModel.{consumer} page fetch failed: "
+                f"page={page_idx} row={row} {type(exc).__name__}: {exc}"
+            )
+            return None
+
     def _compute_count(self) -> int:
         if not self._count_sql:
             return 0
@@ -357,6 +368,40 @@ class SqlListModel(QAbstractListModel):
                     row = cur.fetchone()
                     total += int(row[0]) if row else 0
         return total
+
+    def _apply_formatter(
+        self, row: list, column_index: int, formatter, log_failure: bool
+    ) -> bool:
+        try:
+            row[column_index] = formatter(row[column_index])
+        except Exception as exc:
+            if log_failure:
+                exception(
+                    "SqlListModel formatter failed for column "
+                    f"{self._columns[column_index]}; further failures in this page "
+                    f"are suppressed: {type(exc).__name__}: {exc}"
+                )
+            return False
+        return True
+
+    def _apply_formatters(self, rows: list) -> None:
+        if not self._formatters:
+            return
+        formatters = [
+            (index, self._formatters[column])
+            for index, column in enumerate(self._columns)
+            if column in self._formatters
+        ]
+        failed_columns = set()
+        for row in rows:
+            for column_index, formatter in formatters:
+                if not self._apply_formatter(
+                    row,
+                    column_index,
+                    formatter,
+                    column_index not in failed_columns,
+                ):
+                    failed_columns.add(column_index)
 
     def _fetch_page(self, page_idx: int, end_cursor_of_prev: Optional[list] = None) -> dict:
         """拉一页
@@ -484,24 +529,8 @@ class SqlListModel(QAbstractListModel):
                     raise ValueError(
                         f"cursor_columns {missing} not found in SELECT column list {self._columns}"
                     )
-        # 应用 formatters: 把指定列的原始值替换为格式化结果
-        if self._formatters:
-            col_indices_to_format = [
-                (i, self._formatters[self._columns[i]])
-                for i in range(len(self._columns))
-                if self._columns[i] in self._formatters
-            ]
-            if col_indices_to_format:
-                for row in rows:
-                    for i, fn in col_indices_to_format:
-                        try:
-                            row[i] = fn(row[i])
-                        except Exception as exc:
-                            logging.getLogger(__name__).debug(
-                                "SqlListModel formatter failed for column %s: %s",
-                                self._columns[i],
-                                exc,
-                            )
+        # Keep the callback boundary isolated from page orchestration. 将回调边界与分页编排隔离。
+        self._apply_formatters(rows)
         return {"rows": rows, "end_cursor": end_cursor}
 
     def _resolve_columns(self) -> None:
