@@ -34,3 +34,16 @@ def test_custom_formatters_render_exception_traceback(formatter):
     assert "Traceback (most recent call last):" in output
     assert "raise RuntimeError" in output
     assert "RuntimeError: DwmFlush failed" in output
+
+
+def test_exception_traceback_is_reused_once_across_handlers():
+    record = _runtime_failure_record()
+    colored = ColoredFormatter(datefmt="%H:%M:%S")
+    plain = PlainFormatter(datefmt="%H:%M:%S")
+
+    outputs = (colored.format(record), plain.format(record), colored.format(record))
+
+    assert record.exc_text is not None
+    for output in outputs:
+        assert output.count("Traceback (most recent call last):") == 1
+        assert output.count("RuntimeError: DwmFlush failed") == 1
