@@ -561,7 +561,7 @@ git diff --check
    - `_read_mapping()` 必须把真实畸形输入产生的 `ValueError`（超长 JSON 整数）与 `RecursionError`（极深嵌套）纳入已知文件输入边界；`_apply_mapping()` 中途失败不得留下部分加载状态。
    - `SettingEntry` 目前作为类属性被同一子类所有实例共享；不同配置文件实例会互相污染值与信号。`__init_subclass__()` 的近祖到远祖合并顺序会让远祖覆盖直接父类 override；重复 `entry.key` 以及同 group 的扁平/嵌套冲突会静默丢字段。必须改成实例隔离或明确收窄公开合同，并在类定义阶段拒绝无损往返不成立的 schema。
    - C++ `ConfigManager::save()` 仍返回 `void`，五个 setter 在保存失败后照样提交内存与成功信号；`load()` 也绕过 DPI/窗口类型合法值约束。Python 修复必须同步审计 C++ 镜像，不能让两端合同分叉。
-   - `cpp/tests/test_store.cpp` 当前直接备份、改写并恢复真实 `~/.prismqml/app.json`；进程崩溃或强制终止会污染用户配置。常规 headless CTest 必须使用独立测试 HOME/显式临时配置路径，且失败时无需依赖收尾恢复。`test_store.cpp` 与 `test_sqlmodel.cpp` 还使用固定的系统临时文件名，后者不清理三份 shard 数据库；应统一迁移到进程唯一的 `QTemporaryDir`，消除并行冲突与残留。
+   - `cpp/tests/test_store.cpp` 当前直接备份、改写并恢复真实 `~/.prismqml/app.json`；进程崩溃或强制终止会污染用户配置。实测在 Windows 修改 `HOME/USERPROFILE/HOMEDRIVE/HOMEPATH` 后 `QDir::homePath()` 仍返回真实用户目录，因此不能把环境重定向当成隔离方案；必须给配置路径提供显式测试 seam，并让失败无需依赖收尾恢复。`test_store.cpp` 与 `test_sqlmodel.cpp` 还使用固定的系统临时文件名，后者不清理三份 shard 数据库；应统一迁移到进程唯一的 `QTemporaryDir`，消除并行冲突与残留。
    - 预期效果：保存失败零未提交通知、内存/磁盘一致、加载全有或全无、配置实例与继承 schema 可预测、自动测试不触碰用户数据。
    - 难度：12-24 小时；风险：高。
    - 验收：同一真实失败输入验证修前失败、修后通过；Python/C++ 成败、信号、回滚、畸形 JSON、三层继承、重复 key、多实例隔离与中断后用户配置零变化均有回归。
@@ -677,6 +677,8 @@ git diff --check
 ```
 
 门禁补强前置：当前 probe 的 `169 OK / 0 错误 / 12 跳过` 中有 5 个 singleton 被无条件跳过，不能作为 singleton 无绑定错误的证据。P9 前必须用 wrapper 强制实例化并读取 `Enums`、`Translator`、`DpiManager`、`NotificationManager` 与 `PopupUtils`，同时捕获 Qt warning；完成后基线应只保留 7 个确需父组件注入的 required-property skip。上述改造必须先在改前 worktree 与当前分支上分别运行，区分存量 singleton 错误与新增回归。
+
+2026-07-13 当前工作树验证快照（只证明现有门禁状态，不代表 P9 完成）：SettingsCore/配置聚焦 `59 passed`；Python 全量 `632 passed / 1 skipped`；QML probe `169 OK / 0 错误 / 12 跳过`；headless CTest `6/6`；Rust `fmt --check`、`clippy --all-targets -D warnings` 与 `cargo test 6/6`；changed scanner `0`、`git diff --check` 通过。全部 Python/QML runner 均为 `visible_windows=0 / job_active_processes=0`，用户也确认未出现弹窗。限制必须同时记录：QML 数字仍跳过 5 个 singleton；CTest 运行时仍访问真实用户配置，虽然本次结束后配置 mtime 未变化且无 `.test_backup` 残留；工作树中的 SettingsCore 候选实现仍有 P7E 阻断项且未提交。因此这些绿色结果只能作为回归基线，不能升级为最终发布绿灯。
 
 制品验收：
 
