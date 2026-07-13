@@ -555,7 +555,7 @@ git diff --check
 
 #### P7E-P7K：2026-07-13 追加只读复核批次
 
-以下问题均已用真实隐藏运行链复现；P7E-P7G 已于 2026-07-13 完成，P7H 已于 2026-07-14 完成，P7I 正在按调用链拆批整改，其中 P7I-A/P7I-B/P7I-C 已完成，下一批为 P7I-D，P7J-P7K 仍按顺序待整改。所有 Python/QML 诊断均经统一 runner 执行并保持 `visible_windows=0 / job_active_processes=0`；用户同时确认本轮未出现错误弹窗。
+以下问题均已用真实隐藏运行链复现；P7E-P7G 已于 2026-07-13 完成，P7H 已于 2026-07-14 完成，P7I 正在按调用链拆批整改，其中 P7I-A/P7I-B/P7I-C 已完成，P7I-D 正在进行且 D1/D2 已完成，下一批为 D3 `_window_builder`，P7J-P7K 仍按顺序待整改。所有 Python/QML 诊断均经统一 runner 执行并保持 `visible_windows=0 / job_active_processes=0`；用户同时确认本轮未出现错误弹窗。
 
 1. **P7E 配置事务、schema 与 Python/C++ 对齐（已完成）**
 
@@ -638,7 +638,7 @@ git diff --check
    - 全部 runner 均为 `visible_windows=0 / job_active_processes=0` 且无测试残留，用户确认未出现错误弹窗。真实 `~/.prismqml/app.json` 始终为 `141` 字节、mtime `2026-07-03T15:38:04.7104529Z`、SHA-256 `FDA2606EDBFC6F79BDEE1E65F316CD25F4002518DBDA6FA3258976EF49D885B9`；受保护 audit 日志时间戳与哈希未变。多路最终 Review 清零 P0-P2 后确认可提交。
 
 5. **P7I 剩余规范库存（进行中）**
-   - 当前纯 `HEAD` AST 口径已纠正为：`prismqml/python` 仍有 27 个含 `Exception` 的 handler、51 个超过 30 行的函数；`scripts` 有 10/5，其中 2 个 handler 是事务回滚后重新抛出，普通口径仍为 8/5。普通错误路径仍有只记无 traceback 的 `error/warning/debug`，必须继续按真实调用链分类，不能机械收窄。
+   - 当前纯 `HEAD` AST 口径已纠正为：`prismqml/python` 仍有 27 个含 `Exception` 的 handler、50 个超过 30 行的函数；`scripts` 有 10/5，其中 2 个 handler 是事务回滚后重新抛出，普通口径仍为 8/5。普通错误路径仍有只记无 traceback 的 `error/warning/debug`，必须继续按真实调用链分类，不能机械收窄。
    - 178 个受跟踪 Python 文件中仍有 9 个不符合强制四行 MIT 头；仓库内没有 Python shebang，额外 Copyright 行应保留并移动到强制四行之后。
    - `tests/qml/bench_skin_frames.py` 把结果硬编码到 `C:/Users/Kotori/frame_bench.txt`，违反路径零硬编码；应改为显式参数、环境变量或测试临时目录。
    - `cpp/tests/qr/verify_qr.py` 的非性能测试诊断仍通过 `print_safe()` 直接调用 `print`；这是旧提交 `2db05888a` 引入的当前 HEAD 合规库存，P7G 仅改动相邻 docstring，后续应迁移到统一 logger 或经评审定义机器可读测试输出例外。
@@ -657,6 +657,9 @@ git diff --check
    - P7I-C 代码提交 `3b717770`：`data()` 与公开 QML Slot `getRow()` 共用页读取失败边界，真实删除 SQLite 文件后分别降级为 `None` / `{}` 并保留 traceback，已缓存页仍可读取；真实 Rust 返回 `RuntimeError`，强制 Python fallback 返回 `sqlite3.OperationalError`，两条后端均进入正式回归。formatter 失败保留原值并继续处理后续行，同页同列只记录首个 traceback，避免日志风暴；`data/getRow × KeyboardInterrupt/SystemExit` 与 formatter 进程控制异常均原样传播。
    - P7I-C 聚焦测试正常 logger 与预先初始化非默认 logger 均为 `11 passed`，C++ SqlModel CTest `1/1`；Python 全量 `858 passed / 1 skipped`，QML probe `169 OK / 0 错误 / 12 跳过`，headless CTest `8/8`，changed QML 扫描 0，全仓 178 个受跟踪 Python 文件的 3.9 AST、compileall 与 `git diff --check` 全部通过。全部 runner 为零可见窗口、零残留进程，真实用户配置和受保护 audit 指纹未变化；两路最终 Review 均为 P0/P1/P2 全零。
    - 非阻断既有债务：Python fallback 在数据库路径被删除后会由普通 `sqlite3.connect(path)` 重建空文件；该行为涉及只读 URI 与路径编解码，转入 P7K 合并处理。下一批 P7I-D 按 `logger.install_qt_message_handler`、`_window_compat`、`_window_builder`、`_splash_builder`、`_page_manager` 的真实启动降级调用链逐个整改，不与 P7I-F 长函数拆分混批。
+   - P7I-D1 代码提交 `f2b4af11`：`install_qt_message_handler()` 的普通安装失败继续按既有语义降级启动，但改为记录活动 traceback；真实 `qWarning` 锁定 WARNING 级别与 `QML` tag，`KeyboardInterrupt/SystemExit` 原样传播。原 51 行函数拆为 5/20/8/18 行 helper，因此生产超长函数库存 `51→50`。
+   - P7I-D2 代码提交 `cc4567b2`：真实 `QQuickWindow` 经 `deleteLater + DeferredDelete` 销毁后，`_restore_visible_state()` 的 `QMetaObject.invokeMethod` 与属性 fallback 两条边界均记录唯一 RuntimeError traceback；继续执行 fallback 的顺序不变，invoke/fallback 两阶段的 `KeyboardInterrupt/SystemExit` 均传播。
+   - P7I-D1/D2 最终门禁：logger 聚焦 `7 passed`、logger + App 启动 smoke `15 passed`、可见状态真实脚本 `PASS`、process-control `4 passed`、headless 入口联合 `22 passed`；Python 全量 `866 passed / 1 skipped`，QML probe `169 OK / 0 错误 / 12 跳过`，headless CTest `8/8`，changed QML 0，全仓 178 个 Python 3.9 AST、compileall 与 `git diff --check` 通过。全部 runner 零可见窗口、零残留进程，用户配置和受保护 audit 指纹未变化。下一批为 P7I-D3 `_window_builder` 文件化窗口 QML 失败回退边界。
 
 6. **P7J Updater 下载 I/O、并发与响应 schema**
    - Python 下载回调捕获文件写入/关闭 `OSError` 后只记 warning，不保存失败状态。真实只读文件句柄输入已复现：最后一块写入失败后仍发送 `downloadFinished(path)`，`downloadFailed` 为零，磁盘只保留非空的截断文件。
@@ -742,6 +745,8 @@ git diff --check
 
 2026-07-14 P7I-C 完成后的当前验证快照（仍不代表 P7、P9 或全库完成）：真实 Rust 与强制 Python fallback 的 SqlListModel 回调边界聚焦均为 `11 passed`，C++ SqlModel CTest `1/1`；Python 全量 `858 passed / 1 skipped`；changed QML 扫描 `0 violation(s)`；QML probe `169 OK / 0 错误 / 12 跳过`；headless CTest `8/8`；全仓 178 个 Python 文件的 3.9 AST、compileall 与 `git diff --check` 通过。全部 runner 均为 `visible_windows=0 / job_active_processes=0`，真实用户配置与受保护 audit 指纹未变化。P7/P7I 仍进行中，下一批为 P7I-D 窗口启动降级边界；P7I-F 长函数、P7J/P7K、Qt 6.9 最低版本运行时 lane 与 P9 singleton wrapper 门禁仍待执行。
 
+2026-07-14 P7I-D1/D2 完成后的当前验证快照（仍不代表 P7、P9 或全库完成）：logger/真实 App 启动、真实删除窗口恢复边界与进程控制聚焦均通过；Python 全量 `866 passed / 1 skipped`；changed QML 扫描 `0 violation(s)`；QML probe `169 OK / 0 错误 / 12 跳过`；headless CTest `8/8`；全仓 178 个 Python 文件的 3.9 AST、compileall 与 `git diff --check` 通过。全部 runner 均为 `visible_windows=0 / job_active_processes=0`，真实用户配置与受保护 audit 指纹未变化。P7/P7I/P7I-D 仍进行中，下一批为 D3 `_window_builder`；D4/D5、P7I-F、P7J/P7K、Qt 6.9 最低版本运行时 lane 与 P9 singleton wrapper 门禁仍待执行。
+
 制品验收：
 
 - 构建 wheel 与 sdist。
@@ -796,7 +801,7 @@ git diff --check
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
 | P6 QML 规范债务 | 进行中 | P6A–P6C14 与 P6D 已完成小批记录保持不变；P6C15a/b 已补上字符串颜色上下文，P6C15c1 已补上固定数值与固定视觉系数构色，P6C15c2 已补上高置信颜色数组、callable 直接结果扫描及 examples 仅 QML010 扫描根，P6C16 已迁移真实 `MultiSelectToken` 黑白前景，证明此前 `buttons` 归零仅成立于旧扫描口径，P6C 继续进行。全库真实基线 3,046（成员顺序 1,797、分节术语 1,102、颜色 125、数值 22，QML013 0）；examples 已锁定 43 行 QML010 且其他规则不进入门禁，P6C15c3 已补上作用域感知的高置信 primitive 跨变量传播并保持当前库存零新增，其无候选快路径已通过 Build All 七项全绿；22 项 QML011 全部等待 P8A 的 LoginWindowLightShadow 删除/公开决策；`CropToolButton` 已确认零消费者并转入 P8 去留审计 | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645`、`2a22c115`、`06eb4af9`、`685d063e`、`bcf0c737`、`4c22e7bc`、`bad57911`、`b281b7b`、`85a75ff3`、`0e438e60`、`1f9d1038`、`b1050f84`、`d4e2e11e`、`10b25427`、`8c633f4f`、`6810e12c`、`1758f484`、`49a899d5`、`0946eea5`、`2c1be8dd`、`cbf934d2`、`4e383715`、`bff2b32b`、`95c3db84`、`41565d4b`、`e17b06ca`、`c284433f`、`744eb6ec`、`ca6eb64b`、`af0b0cd4`、`28664920`、`a17f46a8`、`263851c1`、`165dbd4`、`8e29044c`、`86d7e0ee`、`dc5cf90`、`f329a3e`、`668cfda`、`89474354` |
-| P7 Python 规范债务 | 进行中 | 已完成框架签名/生成枚举例外定义、异常边界前四批、P7E 配置事务/schema/测试隔离、P7F DPI/WindowType 严格合同、P7G QRCode QML URL 传输协议、P7H NativeWindow 状态事务，以及 P7I-A ShadowManager、P7I-B WindowCore、P7I-C SqlListModel traceback 边界。P7I-C 当前门禁为双后端聚焦 `11 passed`、C++ SqlModel `1/1`、Python `858 passed / 1 skipped`、changed QML `0`、QML `169 OK / 0 错误 / 12 跳过`、C++ headless `8/8`，全部 runner 零可见窗口/零残留进程。P7I 仍进行中，下一批为 P7I-D 窗口启动降级边界；P7I-F 长函数、P7J-P7K 及剩余导入、文件头、benchmark 路径与测试 stdout 政策仍待处理 | `8272d2c0`、`354777fe`、`a8e80e86`、`c962014e`、`bb81d37b`、`e344c8a0`、`e48bb127`、`dafa2a34`、`1512f723`、`8e24b825`、`5fb9e7d8`、`620da260`、`77d045c5`、`cb19eb88`、`fe7a4f4e`、`21211777`、`3b717770` |
+| P7 Python 规范债务 | 进行中 | 已完成框架签名/生成枚举例外定义、异常边界前四批、P7E 配置事务/schema/测试隔离、P7F DPI/WindowType 严格合同、P7G QRCode QML URL 传输协议、P7H NativeWindow 状态事务，以及 P7I-A ShadowManager、P7I-B WindowCore、P7I-C SqlListModel、P7I-D1 logger、P7I-D2 WindowCompat traceback 边界。D1/D2 当前门禁为聚焦 `7/15/PASS/4/22`、Python `866 passed / 1 skipped`、changed QML `0`、QML `169 OK / 0 错误 / 12 跳过`、C++ headless `8/8`，全部 runner 零可见窗口/零残留进程。P7I-D 仍进行中，下一批为 D3 `_window_builder`；D4/D5、P7I-F、P7J-P7K 及剩余导入、文件头、benchmark 路径与测试 stdout 政策仍待处理 | `8272d2c0`、`354777fe`、`a8e80e86`、`c962014e`、`bb81d37b`、`e344c8a0`、`e48bb127`、`dafa2a34`、`1512f723`、`8e24b825`、`5fb9e7d8`、`620da260`、`77d045c5`、`cb19eb88`、`fe7a4f4e`、`21211777`、`3b717770`、`f2b4af11`、`cc4567b2` |
 | P8 资源注册 | 待执行 | P8A 提前处理孤立文件决策；LoginWindowLightShadow 已确认仓内零消费者、未注册但仍随包分发；CropToolButton 已确认仅 `_internal/qmldir` 注册、仓内零消费者且头部用途说明过时。两者均需先完成下游审计，再根据结果决定保留、公开或请求用户批准删除，不在 P6 机械整理中重接线或粉饰 |  |
 | P9 最终验收 | 待执行 |  |  |
 
