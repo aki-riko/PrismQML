@@ -19,7 +19,18 @@
 
 from typing import Any, Callable, Dict, List, Optional
 from PySide6.QtCore import QObject, Signal
-from ..core.logger import warning
+from ..core.logger import exception
+
+
+def _log_watcher_failure(
+    store_name: str, key: str, exc: Exception, *, global_watcher: bool
+) -> None:
+    """Log one isolated user watcher failure. 记录一次已隔离的用户回调失败。"""
+    label = "Global watcher" if global_watcher else "Watcher"
+    exception(
+        f"[Store:{store_name}] {label} error for '{key}': "
+        f"{type(exc).__name__}: {exc}"
+    )
 
 
 class StoreSignals(QObject):
@@ -143,20 +154,20 @@ class Store:
             new_value: 新值
             old_value: 旧值
         """
-        # 通知特定 key 的订阅者 Notify key-specific watchers
+        # Isolate user watcher failures so later observers and the Qt signal still run 隔离用户回调失败，保证后续观察者与 Qt 信号继续执行
         if key in self._watchers:
             for callback in self._watchers[key][:]:  # 复制列表防止迭代时修改
                 try:
                     callback(new_value, old_value)
-                except Exception as e:
-                    warning(f"[Store:{self._name}] Watcher error for '{key}': {e}")
+                except Exception as exc:
+                    _log_watcher_failure(self._name, key, exc, global_watcher=False)
 
         # 通知全局订阅者 Notify global watchers
         for callback in self._global_watchers[:]:
             try:
                 callback(key, new_value, old_value)
-            except Exception as e:
-                warning(f"[Store:{self._name}] Global watcher error: {e}")
+            except Exception as exc:
+                _log_watcher_failure(self._name, key, exc, global_watcher=True)
 
         # 发送 Qt 信号
         self._signals.changed.emit(key, new_value, old_value)
