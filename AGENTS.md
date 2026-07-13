@@ -250,6 +250,13 @@ Item {
 | Python 类 | PascalCase | `ThemeManager` |
 | Python 函数 | snake_case | `get_color()` |
 
+**框架签名例外（必须有来源依据）**：
+
+- Qt/PySide 虚方法 override 必须保留官方方法名与签名，例如 `rowCount`、`roleNames`、`nativeEventFilter`；例外必须由 Qt 文档或实际基类的同名虚方法证明，模仿 Qt 命名的普通适配器不算。
+- 通过 Qt `Signal` / `Property` / `Slot` 暴露给 QML 的公开 API，可遵循 Qt/QML 的 camelCase；必须同时存在注册/注入路径，以及真实 QML、`QMetaObject` 字符串调用、公开 QML 测试或文档消费者。单有装饰器或普通 Python 调用方不足以证明例外。
+- 上述 QML 公开名称在本阶段不得仅因 Python 风格规则改名；若经独立 API 设计评审决定在 v1.0.0 前做 breaking rename，必须同批迁移全部消费者，且不得保留 deprecated 别名。
+- 普通公开 Python API 不因“已公开”自动获得 camelCase 例外；不属于已证实的 override 或 QML 公开契约时，普通公开 API 与内部实现均须使用 snake_case，并按版本规范另批迁移。
+
 ### 4.5 Python 文件头（强制格式）
 
 每个 Python 文件必须以此开头：
@@ -298,7 +305,11 @@ error(f"错误: {e}")
 - **500 行**：软警告（新代码尽量遵守）
 - **700 行**：硬限制（必须模块化拆分）
 
-**数据资源文件例外**（纯静态数据，无逻辑）：`FluentEnums/Icons.qml`(~5000) / `FluentEnums/Metrics.qml`(~700) / `Translator.qml`(~1200)。`_internal/` 下逻辑内聚的文件可放宽至 600 行。
+**数据资源文件例外**（纯静态数据，无逻辑）：`PrismEnums/Icons.qml`(~5000) / `PrismEnums/Metrics.qml`(~700) / `Translator.qml`(~1200)。`_internal/` 下逻辑内聚的文件可放宽至 600 行。
+
+**生成型 Python 枚举数据例外（严格受限）**：只有能由仓内生成器在 `--check` 模式下确定性地复现相同文本内容、文件头明确标注生成来源、且内容仅含枚举/常量数据与必要的无副作用查询方法时，才可超过 700 行。渲染、文件 I/O、主题判断或业务逻辑必须移入普通模块；生成文件不得手改。
+
+当前 `prismqml/python/core/icons.py` **尚不满足该例外**：`scripts/extract_icons.py --check` 不能复现现有 Python/QML 注册表，且文件混有生成器未产出的图标路径与渲染逻辑。它在 P8B 完成生成器、双注册表和运行逻辑同步前属于待整改遗留文件；P7 不得盲拆、粉饰为合规或直接重生成覆盖。
 
 ### 5.2 模块化架构模式
 
