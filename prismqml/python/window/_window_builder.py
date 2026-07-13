@@ -10,6 +10,7 @@
 
 from typing import List, TYPE_CHECKING
 from pathlib import Path
+from string import Template
 import hashlib
 import os
 import time
@@ -27,6 +28,39 @@ from ._splash_builder import create_splash
 
 if TYPE_CHECKING:
     from .window_core import NavigationItem
+
+
+_WINDOW_QML_TEMPLATE = Template(
+    """import QtQuick
+import "file:///${qml_dir}"
+import "file:///${qml_dir}/_internal"
+
+${qml_component} {
+    id: window
+    objectName: "mainWindow"
+    width: ${width}
+    height: ${height}
+    // Python WindowCore calls show() after pending state and splash are mounted.
+    visible: false
+    windowTitle: "${window_title}"
+    windowIcon: "${window_icon}"
+    windowIconColored: ${window_icon_colored}
+    startupProfilingVerbose: ${startup_profiling_verbose}
+    lazyLoading: false
+    micaEnabled: ${mica_enabled}
+$indent
+    navigationItems: [${nav_items}]
+    bottomNavigationItems: [${bottom_items}]
+
+    // Python动态填充的页面容器（绑定到stack.currentIndex控制可见性）
+${pages}
+$indent
+    onCurrentPageChanged: (index) => {
+    }
+}
+"""
+)
+
 
 class WindowBuilderMixin:
     """窗口构建器 Mixin，提供 _create_window 等方法"""
@@ -151,6 +185,118 @@ class WindowBuilderMixin:
             )
         return loaded_window
 
+    def _render_navigation_items_qml(self) -> str:
+        """Render top navigation item data. 渲染顶部导航项数据。"""
+        esc = self._escape_qml
+        return ", ".join(
+            [
+                f'{{ "text": "{esc(item.text)}", "icon": "{esc(self._resolve_icon_path(item.icon))}" }}'
+                for item in self._nav_items
+            ]
+        )
+
+    def _render_bottom_items_qml(self) -> str:
+        """Render keyed bottom items with selectable routing. 渲染带 key 的底部项。"""
+        esc = self._escape_qml
+        nav_count = len(self._nav_items)
+        return ", ".join(
+            [
+                f'{{ "text": "{esc(item.text)}", "icon": "{esc(self._resolve_icon_path(item.icon))}", "key": "page_{nav_count + i}", "selectable": {"true" if getattr(item, "selectable", True) else "false"} }}'
+                for i, item in enumerate(self._bottom_nav_items)
+            ]
+        )
+
+    def _render_page_containers_qml(self) -> str:
+        """Render bound containers for every navigation item. 渲染全部绑定容器。"""
+        page_count = len(self._nav_items) + len(self._bottom_nav_items)
+        return "\n".join(
+            [
+                f"""
+        Item {{
+            id: page_{i}
+            objectName: "page_{i}"
+            width: parent ? parent.width : 0
+            height: parent ? parent.height : 0
+            Component.onCompleted: window.profileDetail("generated page container page_{i} completed parent=" + parent)
+            onParentChanged: window.profileDetail("generated page container page_{i} parentChanged parent=" + parent)
+        }}"""
+                for i in range(page_count)
+            ]
+        )
+
+    def _render_window_qml(
+        self,
+        qml_dir: Path,
+        qml_component: str,
+        window_icon_qml: str,
+        startup_profile_verbose: bool,
+        mica_enabled: bool,
+        nav_items_qml: str,
+        bottom_items_qml: str,
+        pages_qml: str,
+    ) -> str:
+        """Render the generated root-window QML. 渲染生成的根窗口 QML。"""
+        esc = self._escape_qml
+        return _WINDOW_QML_TEMPLATE.substitute(
+            qml_dir=qml_dir.as_posix(),
+            qml_component=qml_component,
+            width=self._width,
+            height=self._height,
+            window_title=esc(self._title),
+            window_icon=esc(window_icon_qml),
+            window_icon_colored="true" if self._icon_colored else "false",
+            startup_profiling_verbose="true" if startup_profile_verbose else "false",
+            mica_enabled="true" if mica_enabled else "false",
+            nav_items=nav_items_qml,
+            bottom_items=bottom_items_qml,
+            pages=pages_qml,
+            indent="    ",
+        )
+
+    def _resolve_window_qml_state(self, icon_dir: Path, get_config_manager):
+        """Resolve root component, icon, and Mica state. 解析根窗口状态。"""
+        from .window_core import _WINDOW_TYPE_QML_NAMES
+
+        qml_component = _WINDOW_TYPE_QML_NAMES.get(self._window_type, "WindowsBar")
+        window_icon_qml = (
+            self._resolve_icon_path(self._icon)
+            if self._icon
+            else f"file:///{icon_dir.as_posix()}/Apps.svg"
+        )
+        mica_enabled = bool(
+            self._pending_props.get("micaEnabled", get_config_manager().micaEnabled)
+        )
+        return qml_component, window_icon_qml, mica_enabled
+
+    def _compose_window_qml(
+        self,
+        qml_dir: Path,
+        icon_dir: Path,
+        startup_profile_verbose: bool,
+        get_config_manager,
+        profile,
+    ):
+        """Compose generated window QML in the original order. 按原顺序组合窗口 QML。"""
+        nav_items_qml = self._render_navigation_items_qml()
+        bottom_items_qml = self._render_bottom_items_qml()
+        pages_qml = self._render_page_containers_qml()
+        profile("生成导航/页面 QML 数据")
+        qml_component, window_icon_qml, mica_enabled = (
+            self._resolve_window_qml_state(icon_dir, get_config_manager)
+        )
+        window_qml = self._render_window_qml(
+            qml_dir,
+            qml_component,
+            window_icon_qml,
+            startup_profile_verbose,
+            mica_enabled,
+            nav_items_qml,
+            bottom_items_qml,
+            pages_qml,
+        )
+        profile("拼接窗口 QML")
+        return window_qml, qml_component, window_icon_qml, mica_enabled
+
     def _create_window(self):
         """创建QML窗口"""
         profile_start = time.perf_counter()
@@ -225,84 +371,15 @@ class WindowBuilderMixin:
         icon_dir = qml_dir / "controls" / "icons" / "fluent"
         profile("解析 QML 路径")
 
-        def icon_path(name: str) -> str:
-            return self._resolve_icon_path(name)
-
-        # 构建导航项
-        esc = self._escape_qml
-        nav_items_qml = ", ".join(
-            [
-                f'{{ "text": "{esc(item.text)}", "icon": "{esc(icon_path(item.icon))}" }}'
-                for item in self._nav_items
-            ]
+        window_qml, qml_component, window_icon_qml, mica_enabled = (
+            self._compose_window_qml(
+                qml_dir,
+                icon_dir,
+                startup_profile_verbose,
+                getConfigManager,
+                profile,
+            )
         )
-
-        # Bottom items: all items get key, selectable controls page switching
-        # 底部项：所有项都有key，selectable控制是否切换页面
-        bottom_items_qml = ", ".join(
-            [
-                f'{{ "text": "{esc(item.text)}", "icon": "{esc(icon_path(item.icon))}", "key": "page_{len(self._nav_items) + i}", "selectable": {"true" if getattr(item, "selectable", True) else "false"} }}'
-                for i, item in enumerate(self._bottom_nav_items)
-            ]
-        )
-
-        # 页面容器由Python动态创建，作为窗口默认子元素会自动放入StackedWidget
-        # StackedWidget会自动管理可见性和动画
-        # All items get page containers (function items just have empty containers)
-        # 所有项都创建页面容器（功能项的容器为空）
-        # 注意：必须显式绑定宽高到父容器，StackedWidget的Component.onCompleted
-        # 只在初始化时执行，无法处理后续动态添加的子项
-        page_items = []
-        for i in range(len(self._nav_items) + len(self._bottom_nav_items)):
-            page_items.append(f"""
-        Item {{
-            id: page_{i}
-            objectName: "page_{i}"
-            width: parent ? parent.width : 0
-            height: parent ? parent.height : 0
-            Component.onCompleted: window.profileDetail("generated page container page_{i} completed parent=" + parent)
-            onParentChanged: window.profileDetail("generated page container page_{i} parentChanged parent=" + parent)
-        }}""")
-
-        pages_qml = "\n".join(page_items) if page_items else ""
-        profile("生成导航/页面 QML 数据")
-
-        # 根据window_type选择QML组件
-        from .window_core import _WINDOW_TYPE_QML_NAMES
-        qml_component = _WINDOW_TYPE_QML_NAMES.get(self._window_type, "WindowsBar")
-        window_icon_qml = icon_path(self._icon) if self._icon else f"file:///{icon_dir.as_posix()}/Apps.svg"
-        mica_enabled = bool(self._pending_props.get("micaEnabled", getConfigManager().micaEnabled))
-
-        # 生成窗口QML
-        window_qml = f"""import QtQuick
-import "file:///{qml_dir.as_posix()}"
-import "file:///{qml_dir.as_posix()}/_internal"
-
-{qml_component} {{
-    id: window
-    objectName: "mainWindow"
-    width: {self._width}
-    height: {self._height}
-    // Python WindowCore calls show() after pending state and splash are mounted.
-    visible: false
-    windowTitle: "{esc(self._title)}"
-    windowIcon: "{esc(window_icon_qml)}"
-    windowIconColored: {'true' if self._icon_colored else 'false'}
-    startupProfilingVerbose: {'true' if startup_profile_verbose else 'false'}
-    lazyLoading: false
-    micaEnabled: {'true' if mica_enabled else 'false'}
-    
-    navigationItems: [{nav_items_qml}]
-    bottomNavigationItems: [{bottom_items_qml}]
-
-    // Python动态填充的页面容器（绑定到stack.currentIndex控制可见性）
-{pages_qml}
-    
-    onCurrentPageChanged: (index) => {{
-    }}
-}}
-"""
-        profile("拼接窗口 QML")
 
         # Isolate file fallback now; full window orchestration split remains P7I-F.
         # 先隔离文件回退边界；完整窗口编排拆分仍留在 P7I-F。
