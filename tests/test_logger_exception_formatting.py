@@ -12,6 +12,38 @@ import pytest
 from prismqml.python.core.logger import ColoredFormatter, PlainFormatter
 
 
+class _RecordCapture(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+@pytest.fixture
+def project_log_records():
+    from prismqml.python.core.logger import getLogger
+
+    capture = _RecordCapture()
+    logger = getLogger().logger
+    logger.addHandler(capture)
+    try:
+        yield capture.records
+    finally:
+        logger.removeHandler(capture)
+
+
+def _assert_traceback_record(records, marker, error_type, source_text):
+    matches = [record for record in records if marker in record.getMessage()]
+    assert len(matches) == 1
+    assert matches[0].exc_info
+    assert matches[0].exc_info[0] is error_type
+    rendered = PlainFormatter(datefmt="%H:%M:%S").format(matches[0])
+    assert "Traceback (most recent call last):" in rendered
+    assert source_text in rendered
+
+
 def _runtime_failure_record() -> logging.LogRecord:
     try:
         raise RuntimeError("DwmFlush failed")
@@ -47,3 +79,60 @@ def test_exception_traceback_is_reused_once_across_handlers():
     for output in outputs:
         assert output.count("Traceback (most recent call last):") == 1
         assert output.count("RuntimeError: DwmFlush failed") == 1
+
+
+def test_install_qt_message_handler_routes_real_warning(project_log_records):
+    from PySide6.QtCore import qInstallMessageHandler, qWarning
+    from prismqml.python.core.logger import install_qt_message_handler
+
+    previous_handler = qInstallMessageHandler(None)
+    qInstallMessageHandler(previous_handler)
+    try:
+        install_qt_message_handler()
+        qWarning("real Qt warning route marker")
+    finally:
+        qInstallMessageHandler(previous_handler)
+
+    matches = [
+        record
+        for record in project_log_records
+        if "real Qt warning route marker" in record.getMessage()
+    ]
+    assert len(matches) == 1
+    assert matches[0].levelno == logging.WARNING
+    assert matches[0].tag == "QML"
+
+
+def test_install_qt_message_handler_failure_logs_traceback(
+    monkeypatch, project_log_records
+):
+    import PySide6.QtCore as qt_core
+    from prismqml.python.core import logger as logger_module
+
+    def fail_install(_handler):
+        raise RuntimeError("Qt handler install exploded")
+
+    monkeypatch.setattr(qt_core, "qInstallMessageHandler", fail_install)
+    logger_module.install_qt_message_handler()
+
+    _assert_traceback_record(
+        project_log_records,
+        "Failed to install Qt message handler",
+        RuntimeError,
+        'raise RuntimeError("Qt handler install exploded")',
+    )
+
+
+@pytest.mark.parametrize("error_type", [KeyboardInterrupt, SystemExit])
+def test_install_qt_message_handler_process_control_propagates(
+    monkeypatch, error_type
+):
+    import PySide6.QtCore as qt_core
+    from prismqml.python.core import logger as logger_module
+
+    def stop_install(_handler):
+        raise error_type("stop")
+
+    monkeypatch.setattr(qt_core, "qInstallMessageHandler", stop_install)
+    with pytest.raises(error_type, match="stop"):
+        logger_module.install_qt_message_handler()

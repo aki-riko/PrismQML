@@ -344,54 +344,50 @@ def log_time(msg: str) -> None:
 # ==================== Qt Message Handler Qt消息处理器 ====================
 
 
+def _qt_message_tag(context) -> str:
+    """Resolve the project tag for a Qt message. 解析 Qt 消息项目标签。"""
+    category = context.category.lower() if context.category else "qml"
+    category_tags = {"js": "QML:JS", "qml": "QML", "default": "QML"}
+    return category_tags.get(category, f"QML:{category.upper()}")
+
+
+def _create_qt_message_handler(qt_msg_type):
+    """Create the Qt-to-project logger callback. 创建 Qt 到项目日志的回调。"""
+    level_map = {
+        qt_msg_type.QtDebugMsg: logging.DEBUG,
+        qt_msg_type.QtInfoMsg: logging.INFO,
+        qt_msg_type.QtWarningMsg: logging.WARNING,
+        qt_msg_type.QtCriticalMsg: logging.ERROR,
+        qt_msg_type.QtFatalMsg: logging.CRITICAL,
+    }
+
+    def qt_message_handler(mode, context, message):
+        if not message:
+            return
+        getLogger()._log(
+            level_map.get(mode, logging.INFO),
+            message.strip(),
+            tag=_qt_message_tag(context),
+        )
+
+    return qt_message_handler
+
+
 def install_qt_message_handler():
     """Install Qt message handler to redirect QML/Qt logs to project logger
     安装Qt消息处理程序，将QML/Qt日志重定向到项目日志
     """
     try:
-        from PySide6.QtCore import qInstallMessageHandler, QtMsgType
-
-        # Level mapping 级别映射
-        # Map Qt message types to Python logging levels
-        level_map = {
-            QtMsgType.QtDebugMsg: logging.DEBUG,
-            QtMsgType.QtInfoMsg: logging.INFO,
-            QtMsgType.QtWarningMsg: logging.WARNING,
-            QtMsgType.QtCriticalMsg: logging.ERROR,
-            QtMsgType.QtFatalMsg: logging.CRITICAL,
-        }
-
-        # Category mapping for better tags 类别映射，提供更好的标签
-        # Some common QML categories
-        category_tags = {
-            "js": "QML:JS",
-            "qml": "QML",
-            "default": "QML",
-        }
-
-        def qt_message_handler(mode, context, message):
-            # Skip empty messages 忽略空消息
-            if not message:
-                return
-
-            # Map level 获取映射级别
-            level = level_map.get(mode, logging.INFO)
-
-            # Determine tag 确定标签
-            category = context.category.lower() if context.category else "qml"
-            tag = category_tags.get(category, f"QML:{category.upper()}")
-
-            # Clean message (remove trailing newlines) 清理消息
-            clean_msg = message.strip()
-
-            # Log it 使用内部_log方法
-            getLogger()._log(level, clean_msg, tag=tag)
-
-        qInstallMessageHandler(qt_message_handler)
-        # info("Qt message handler installed", tag="Logger")
+        from PySide6.QtCore import QtMsgType, qInstallMessageHandler
     except ImportError as exc:
-        # If PySide6 is not available, just ignore (this satisfies rules about safety)
-        logging.getLogger(__name__).debug("PySide6 unavailable, skip Qt message handler: %s", exc)
-    except Exception as e:
-        # Use existing logger to report error
-        getLogger().error(f"Failed to install Qt message handler: {e}", tag="Logger")
+        debug(f"PySide6 unavailable, skip Qt message handler: {exc}", tag="Logger")
+        return
+
+    try:
+        qInstallMessageHandler(_create_qt_message_handler(QtMsgType))
+    except Exception as exc:
+        exception(
+            "Failed to install Qt message handler: "
+            f"{type(exc).__name__}: {exc}",
+            tag="Logger",
+        )
