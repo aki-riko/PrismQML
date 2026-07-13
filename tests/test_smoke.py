@@ -3,17 +3,47 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
+import importlib.metadata
 import os
+from pathlib import Path
+import runpy
 import subprocess
 import sys
+
+import pytest
 
 import prismqml
 
 SUBPROCESS_TIMEOUT_SECONDS = 30
+PACKAGE_INIT = Path(__file__).resolve().parents[1] / "prismqml" / "__init__.py"
+
+
+def _metadata_failure(error):
+    def fail(_distribution_name):
+        raise error
+
+    return fail
 
 
 def test_import_prismqml():
     assert hasattr(prismqml, "__version__")
+
+
+def test_missing_distribution_uses_source_version_fallback(monkeypatch):
+    missing = importlib.metadata.PackageNotFoundError("prismqml")
+    monkeypatch.setattr(importlib.metadata, "version", _metadata_failure(missing))
+
+    namespace = runpy.run_path(str(PACKAGE_INIT))
+
+    assert namespace["__version__"] == prismqml.__version__
+
+
+def test_metadata_backend_failure_is_not_hidden_as_missing_package(monkeypatch):
+    failure = RuntimeError("metadata backend failed")
+    monkeypatch.setattr(importlib.metadata, "version", _metadata_failure(failure))
+
+    with pytest.raises(RuntimeError, match="metadata backend failed"):
+        runpy.run_path(str(PACKAGE_INIT))
 
 
 def test_qml_path_exists():

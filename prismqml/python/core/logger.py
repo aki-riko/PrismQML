@@ -79,6 +79,17 @@ _enable_windows_ansi()
 # ==================== Color Formatter 彩色格式化器 ====================
 
 
+def _append_exception_text(
+    formatter: logging.Formatter, record: logging.LogRecord, rendered: str
+) -> str:
+    """Append a formatted exception traceback. 追加格式化异常堆栈。"""
+    if record.exc_info and not record.exc_text:
+        record.exc_text = formatter.formatException(record.exc_info)
+    if not record.exc_text:
+        return rendered
+    return f"{rendered}\n{record.exc_text}"
+
+
 class ColoredFormatter(logging.Formatter):
     """Colored log formatter 彩色日志格式化器"""
 
@@ -101,7 +112,8 @@ class ColoredFormatter(logging.Formatter):
         tag = getattr(record, "tag", "")
         tag_str = f"{Colors.TAG}[{tag}]{Colors.RESET} " if tag else ""
 
-        return f"{time_str} {level_str} {tag_str}{record.getMessage()}"
+        rendered = f"{time_str} {level_str} {tag_str}{record.getMessage()}"
+        return _append_exception_text(self, record, rendered)
 
 
 class PlainFormatter(logging.Formatter):
@@ -111,7 +123,8 @@ class PlainFormatter(logging.Formatter):
         time_str = f"{self.formatTime(record, self.datefmt)}.{int(record.msecs):03d}"
         tag = getattr(record, "tag", "")
         tag_str = f"[{tag}] " if tag else ""
-        return f"{time_str} [{record.levelname}] {tag_str}{record.getMessage()}"
+        rendered = f"{time_str} [{record.levelname}] {tag_str}{record.getMessage()}"
+        return _append_exception_text(self, record, rendered)
 
 
 # ==================== Module Tag Mapping 模块标签映射 ====================

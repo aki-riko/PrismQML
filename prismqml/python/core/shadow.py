@@ -391,9 +391,9 @@ class DwmSyncFilter(QAbstractNativeEventFilter):
         except (OSError, ctypes.ArgumentError) as exc:
             # Invalid message structure 无效消息结构
             debug(f"DwmSyncFilter 收到无效消息结构: {exc}")
-        except BaseException as e:
-            # Catch KeyboardInterrupt or any other fatal exceptions to prevent crashing C++ event loop 拦截诸如 KeyboardInterrupt 的异常防止闪退
-            warning(f"DwmSyncFilter nativeEventFilter error intercepted: {type(e).__name__}: {e}")
+        except Exception as exc:
+            # DWM sync is optional; log traceback and keep dispatching DWM 同步可选，记录堆栈后继续分发
+            exception(f"DwmSyncFilter nativeEventFilter error intercepted: {type(exc).__name__}: {exc}")
 
         return False, 0  # 不拦截消息，继续传递
 

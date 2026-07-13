@@ -8,10 +8,11 @@
 from importlib import import_module as _import_module
 
 try:
+    from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
     from importlib.metadata import version as _get_version
 
     __version__ = _get_version("prismqml")  # PyPI 分发名为 prismqml
-except Exception:
+except _PackageNotFoundError:
     __version__ = "0.2.24.9"  # 回退值：开发模式或未安装时
 __author__ = "aki-riko"
 
