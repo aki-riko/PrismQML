@@ -610,6 +610,15 @@ git diff --check
    - 难度：8-16 小时；风险：高。
    - 验收：真实只读/写满文件、尾块失败、close/commit 失败、网络失败、空文件、同名跨进程、重复调用、根数组、畸形 assets、非法 UTF-8 与 process-control 矩阵全部零窗口通过。
 
+7. **P7K URL/本地路径编解码与 Python 注入完整性**
+   - Python `WindowHelper._resolveIconPath()`、`WindowCore._setAppIcon()` 与 C++ `WindowHelper/SystemTrayIcon` 都通过删除 `file:///` 的前 8 个字符获取本地路径；POSIX `file:///home/user/a.svg` 因而变成错误的相对路径 `home/user/a.svg`，百分号编码与 UNC 也未按 URL 合同解析。三份重复逻辑应统一使用 `QUrl.toLocalFile()`/等价共享 helper。
+   - `SvgImageProvider` 直接把 image provider id 当文件路径。真实 QML URL 传输证明空格会解码，但 `%23` 与字面 `|` 会以 `%23/%7C` 留在 id 中；含 `#` 等合法保留字符的真实 SVG 文件因此无法打开。Python/C++ provider 和 `WindowIcon.qml` 必须共享明确的一次编解码合同。
+   - Python `register_types(engine)` 没有注入 `ConfigManager` 与 `ClipboardHelper`，而 C++ `registerTypes()` 会注入。真实 wrapper 读取 `DpiManager.userDpiScale` 时 component 创建成功且值回退为 0，但 Qt 日志出现 `ReferenceError: ConfigManager is not defined`；当前全组件 probe 因跳过 singleton 无法发现。
+   - 应消除 WindowCore/WindowHelper/SystemTray 的重复图标路径与多尺寸 SVG 渲染实现，并明确 `register_types()` 是完整公开装配还是仅内部子集；公开名称与 Python/C++ 行为必须一致。
+   - 预期效果：Windows/POSIX/UNC/百分号路径可逆，SVG 保留字符路径可加载，公开注册入口加载任意已注册组件时不缺 context 对象。
+   - 难度：8-16 小时；风险：中高。
+   - 验收：隐藏真实 QML Image/WindowIcon/TableWidget/DpiManager 链覆盖空格、`#`、`%`、非 ASCII、POSIX、Windows、UNC、qrc，以及 Python/C++ 装配后的 warning 零新增。
+
 ### P8：图标枚举与孤立 QML 文件
 
 预期效果：资源、Python 枚举、QML 枚举和 qmldir 注册保持单一事实源。
@@ -626,6 +635,7 @@ git diff --check
   - `controls/inputs/_internal/CropToolButton.qml`
   - `controls/inputs/LineEdit/TextInputCore.qml`
   - `controls/inputs/TextEdit/PlainTextEdit.qml`
+  - `DpiManager.qml`：仓内及本机已知下游均无消费者，重复维护 spacing/font/size token，并在 Qt 已使用设备无关坐标时再次乘 `devicePixelRatio`；应评审删除或收敛成只暴露真实且不重复缩放的 DPI 状态。
 2. `LoginWindowLightShadow.qml` 当前仓库零消费者、从未注册到根/auth qmldir，但仍被 Python package-data、移动端 qrc glob 与 C++ install 目录分发；历史唯一消费者已删除。其 22 项 QML011 之外仍有大量未扫描的 Canvas/动画/阴影常量与 QML008/QML009/QML010，且 `#000000cc`、`#ffffff26` 按 Qt `#AARRGGBB` 语义并非注释预期的透明黑/白。
 3. 推荐路线是审计 Gitora、quicksketch、Kaleidos 等下游直接 URL 引用后，请求用户批准删除该孤儿文件；删除预计 2–4 小时，风险低到中，probe 注册数不变，QML011 可减少 22 项。删除属于敏感操作，未获批准不得执行。
 4. 若确认保留公共价值，则先决定正确颜色与固定视觉预设政策，再完整处理 token、成员顺序、API、性能、可访问性、双 qmldir 注册和运行时回归；预计 8–16 小时、风险高，禁止只机械迁移 22 项。
@@ -665,6 +675,8 @@ cargo clippy --manifest-path rust\Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path rust\Cargo.toml
 git diff --check
 ```
+
+门禁补强前置：当前 probe 的 `169 OK / 0 错误 / 12 跳过` 中有 5 个 singleton 被无条件跳过，不能作为 singleton 无绑定错误的证据。P9 前必须用 wrapper 强制实例化并读取 `Enums`、`Translator`、`DpiManager`、`NotificationManager` 与 `PopupUtils`，同时捕获 Qt warning；完成后基线应只保留 7 个确需父组件注入的 required-property skip。上述改造必须先在改前 worktree 与当前分支上分别运行，区分存量 singleton 错误与新增回归。
 
 制品验收：
 
