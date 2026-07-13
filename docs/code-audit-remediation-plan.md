@@ -561,7 +561,7 @@ git diff --check
    - `_read_mapping()` 必须把真实畸形输入产生的 `ValueError`（超长 JSON 整数）与 `RecursionError`（极深嵌套）纳入已知文件输入边界；`_apply_mapping()` 中途失败不得留下部分加载状态。
    - `SettingEntry` 目前作为类属性被同一子类所有实例共享；不同配置文件实例会互相污染值与信号。`__init_subclass__()` 的近祖到远祖合并顺序会让远祖覆盖直接父类 override；重复 `entry.key` 以及同 group 的扁平/嵌套冲突会静默丢字段。必须改成实例隔离或明确收窄公开合同，并在类定义阶段拒绝无损往返不成立的 schema。
    - C++ `ConfigManager::save()` 仍返回 `void`，五个 setter 在保存失败后照样提交内存与成功信号；`load()` 也绕过 DPI/窗口类型合法值约束。Python 修复必须同步审计 C++ 镜像，不能让两端合同分叉。
-   - `cpp/tests/test_store.cpp` 当前直接备份、改写并恢复真实 `~/.prismqml/app.json`；进程崩溃或强制终止会污染用户配置。常规 headless CTest 必须使用独立测试 HOME/显式临时配置路径，且失败时无需依赖收尾恢复。
+   - `cpp/tests/test_store.cpp` 当前直接备份、改写并恢复真实 `~/.prismqml/app.json`；进程崩溃或强制终止会污染用户配置。常规 headless CTest 必须使用独立测试 HOME/显式临时配置路径，且失败时无需依赖收尾恢复。`test_store.cpp` 与 `test_sqlmodel.cpp` 还使用固定的系统临时文件名，后者不清理三份 shard 数据库；应统一迁移到进程唯一的 `QTemporaryDir`，消除并行冲突与残留。
    - 预期效果：保存失败零未提交通知、内存/磁盘一致、加载全有或全无、配置实例与继承 schema 可预测、自动测试不触碰用户数据。
    - 难度：12-24 小时；风险：高。
    - 验收：同一真实失败输入验证修前失败、修后通过；Python/C++ 成败、信号、回滚、畸形 JSON、三层继承、重复 key、多实例隔离与中断后用户配置零变化均有回归。
@@ -577,7 +577,8 @@ git diff --check
 
 3. **P7G QRCode QML URL 传输协议**
    - 当前 `getImageSource()` 用 `|` 拼接字段，provider 用 `id.split("|")` 解析；真实 `QQmlEngine + Image` 会把分隔符编码为 `%7C`。输入 `HELLO/120/#112233/#445566/H` 后，provider 实际缓存键为 `HELLO%7C120%7C#112233%7C#445566%7CH|150|#000000|#ffffff|M`，即二维码内容变成整段协议，尺寸、颜色与纠错级别全部退回默认且 QML 无报错。
-   - 现有 provider 与生命周期测试直接调用 Python provider，未经过 QML URL 层，因此无法发现该缺陷；`int(parts[1])` 还位于异常边界外，畸形 id 可直接抛出。
+   - 现有 Python provider 与生命周期测试直接调用 provider，未经过 QML URL 层，因此无法发现该缺陷；`int(parts[1])` 还位于异常边界外，畸形 id 可直接抛出。C++ 使用完全相同的 `|` 协议，`test_qrcode_gen.cpp` 直接截取 URL 文本后调用 provider，却错误标注为“与 QML 一致”，同样绕过真实 URL 编码。
+   - C++ `qrcodegen::QrCode::encodeText()` 对超长内容会抛 `data_too_long`，当前 `QRCodeImageProvider` 没有异常边界；Python/C++ 两端也都缺少尺寸上限，任意正整数可触发超大图像分配。
    - 应改用无歧义的单段编码（例如版本化 JSON + URL-safe Base64），验证尺寸上限、颜色与纠错级别后再生成；不得保留脆弱的分隔符兼容协议。
    - 预期效果：真实 QML 控件生成的内容、尺寸、颜色和纠错级别与公开属性完全一致，畸形/超大输入安全失败。
    - 难度：4-8 小时；风险：中。
@@ -598,6 +599,16 @@ git diff --check
    - 预期效果：宽捕获具备可解释边界与 traceback，长函数和文件头库存量化归零或仅剩评审例外。
    - 难度：1-3 天；风险：中。
    - 验收：重复 AST 库存、Python 3.9 语法、全量 Python、QML probe、headless CTest、changed scanner 与 `git diff --check` 全部通过。
+
+6. **P7J Updater 下载 I/O、并发与响应 schema**
+   - Python 下载回调捕获文件写入/关闭 `OSError` 后只记 warning，不保存失败状态。真实只读文件句柄输入已复现：最后一块写入失败后仍发送 `downloadFinished(path)`，`downloadFailed` 为零，磁盘只保留非空的截断文件。
+   - C++ `readyRead` 与 `onDownloadFinished()` 完全忽略 `QFile::write()` 返回值，网络无错即发送成功；Python/C++ 都用 URL 文件名覆盖系统临时目录中的固定目标，跨进程同名下载会互相删除或截断。
+   - Python 已阻止同一实例重复下载/检查，C++ 没有对应 guard；重复调用会覆盖 `m_checkReply/m_downloadReply/m_downloadFile`，旧 reply 的 finished 回调可能读取或删除新请求状态。
+   - Python release JSON 只验证语法：根数组会在 `.get()` 处抛 `AttributeError`，`assets` 含非对象元素也会穿透；UTF-8 使用 `errors="ignore"`，尾部非法字节可被静默丢弃并继续接受为新版本。C++ 解析行为与 Python 不一致。
+   - 应使用进程唯一的原子临时文件，任何 write/flush/close/commit 错误都必须中止、清理并只发失败信号；同一实例的并发请求需明确拒绝或取消旧请求，响应根对象、字段类型和 UTF-8 必须严格校验。
+   - 预期效果：截断文件绝不报成功、重复调用不串线、失败不残留安装包、Python/C++ 响应与信号合同一致。
+   - 难度：8-16 小时；风险：高。
+   - 验收：真实只读/写满文件、尾块失败、close/commit 失败、网络失败、空文件、同名跨进程、重复调用、根数组、畸形 assets、非法 UTF-8 与 process-control 矩阵全部零窗口通过。
 
 ### P8：图标枚举与孤立 QML 文件
 
@@ -621,7 +632,7 @@ git diff --check
 5. P8B 通过修复后的生成器补齐 13 个未暴露 SVG：`BulletedList`、`FitPage`、`Hide`、`Message`、`NavigateForward`、`OpenFile`、`OpenFolderHorizontal`、`PowerButton`、`StickyNotes`、`Update`、`View`、`Volume`、`Zoom`。
 6. 确保 Python/QML 两套枚举数量和值完全一致；其他有公共价值的孤立文件补 qmldir 与测试，确认废弃的文件在用户批准后删除。
 
-2026-07-13 追加只读证据：本机 `D:\PrismQML` 下的 AeroMount、ConfigPilot、Gitora、Kaleidos、Kaleidos-k8s-production-rehearsal 与 quicksketch 已排除 `.git/.venv/build/dist/node_modules` 做精确路径、文件名和 QML 类型实例化检索，未发现上述五个候选文件的 PrismQML 直接消费者；唯一 `PlainTextEdit` 命中来自 Kaleidos 归档文档中的 qfluentwidgets/QTextEdit 语境。该证据只证明本机已知下游零消费者，删除仍必须取得用户明确批准。`extract_icons.py --check` 当前真实退出 1；SVG 为 2497、Python Icon 为 2484，差集仍是前述 13 项且无反向多余项。
+2026-07-13 追加只读证据：本机 `D:\PrismQML` 下的 AeroMount、ConfigPilot、Gitora、Kaleidos、Kaleidos-k8s-production-rehearsal 与 quicksketch 已排除 `.git/.venv/build/dist/node_modules` 做精确路径、文件名和 QML 类型实例化检索，未发现上述五个候选文件的 PrismQML 直接消费者；唯一 `PlainTextEdit` 命中来自 Kaleidos 归档文档中的 qfluentwidgets/QTextEdit 语境。该证据只证明本机已知下游零消费者，删除仍必须取得用户明确批准。`extract_icons.py --check` 当前真实退出 1；SVG 为 2497、Python Icon 为 2484，差集仍是前述 13 项且无反向多余项。Python `IconProvider` 与 C++ 同名类型目前也不是镜像合同：Python `getPath()` 只返回自定义路径并另有 `get/getAll/getAllNames/count`，C++ `getPath()` 返回内置 SVG 路径且只另有 `isValid`；应在 P8B 决定删除未使用的对称门面或统一公开 API，不能继续以“同名/1:1”描述不同行为。
 
 验收判据：
 
