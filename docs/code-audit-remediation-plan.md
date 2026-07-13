@@ -553,11 +553,14 @@ git diff --check
 
 建议提交：按异常、窗口构建、数据模型、文件头/导入分别提交。
 
-#### P7E-P7I：2026-07-13 追加只读复核批次
+#### P7E-P7K：2026-07-13 追加只读复核批次
 
-以下问题均已用当前工作树与真实隐藏运行链复现，尚未修复，不计入前述 P7 已完成项。所有 Python/QML 诊断均经统一 runner 执行并保持 `visible_windows=0 / job_active_processes=0`；用户同时确认本轮未出现错误弹窗。
+以下问题均已用真实隐藏运行链复现；P7E 已于 2026-07-13 完成，P7F-P7K 仍按顺序待整改。所有 Python/QML 诊断均经统一 runner 执行并保持 `visible_windows=0 / job_active_processes=0`；用户同时确认本轮未出现错误弹窗。
 
-1. **P7E 配置事务、schema 与 Python/C++ 对齐**
+1. **P7E 配置事务、schema 与 Python/C++ 对齐（已完成）**
+
+   修复前问题：
+
    - `SettingsCore.set()` 当前候选实现会在持久化前发出 `valueUpdated`，失败时再发回滚值；`ConfigManager` 直接把该信号转发给 QML，未提交值会真实外泄。`os.replace()` 成功后的日志异常还可能造成磁盘新值、内存旧值。
    - `_read_mapping()` 必须把真实畸形输入产生的 `ValueError`（超长 JSON 整数）与 `RecursionError`（极深嵌套）纳入已知文件输入边界；`_apply_mapping()` 中途失败不得留下部分加载状态。
    - `SettingEntry` 目前作为类属性被同一子类所有实例共享；不同配置文件实例会互相污染值与信号。`__init_subclass__()` 的近祖到远祖合并顺序会让远祖覆盖直接父类 override；重复 `entry.key` 以及同 group 的扁平/嵌套冲突会静默丢字段。必须改成实例隔离或明确收窄公开合同，并在类定义阶段拒绝无损往返不成立的 schema。
@@ -566,6 +569,15 @@ git diff --check
    - 预期效果：保存失败零未提交通知、内存/磁盘一致、加载全有或全无、配置实例与继承 schema 可预测、自动测试不触碰用户数据。
    - 难度：12-24 小时；风险：高。
    - 验收：同一真实失败输入验证修前失败、修后通过；Python/C++ 成败、信号、回滚、畸形 JSON、三层继承、重复 key、多实例隔离与中断后用户配置零变化均有回归。
+
+   完成记录（2026-07-13）：
+
+   - Python 子批提交 `e48bb127`：类级 `SettingEntry` 收敛为 schema prototype，每个 `SettingsCore` 实例通过真实 QObject 构造/显式 `clone(parent)` 获得独立条目；schema 冲突、三层继承 tombstone、重复 key、扁平/嵌套冲突与带点键均在定义阶段或往返测试中确定性处理。
+   - `SettingsCore.set()/load()` 均先完成 prepare、encode/decode、校验与双副本，再提交磁盘/内存和信号；`os.replace()`、目录目标、父路径为文件、不可序列化值、孤立代理字符、超长整数、极深嵌套、复制失败与第二字段校验失败均用真实输入做红绿回归。
+   - C++ 子批提交 `dafa2a34`：`ConfigManager` 使用局部 `State` 严格加载，`QSaveFile` 检查目录创建、完整 write 与 commit，只有落盘成功后才替换内存并发送属性信号/`configChanged`；`App` 启动前读取与单例复用 `PRISMQML_CONFIG_FILE → ~/.prismqml/app.json` 路径解析。
+   - `test_store`、`test_provider_lifecycle`、`test_sqlmodel` 全部迁移到进程唯一 `QTemporaryDir`；`SqlListModel` 在失败、连接替换、router 重建与析构时关闭并注销 QSqlDatabase，Windows 临时目录删除作为真实锁回归。
+   - 最终本地门禁：Python `662 passed / 1 skipped`；QML probe `169 OK / 0 错误 / 12 跳过`；C++ headless `7/7`、Windows native `2/2`；全部 runner 为 `visible_windows=0 / job_active_processes=0`。真实 `~/.prismqml/app.json` 的长度、mtime、SHA-256 在红测、绿测及全量门禁前后完全一致。
+   - 两路独立最终 Review 均为“无阻断，可提交”；`prism/main` 与 `origin/main` 已同步到 `dafa2a34`。GitHub Build All Platforms 七路全绿（run `29248729920`），Deploy Docs 构建/部署全绿（run `29248729960`）。
 
 2. **P7F DPI 输入与系统 API 合同**
    - `applyDpiScale()` 直接信任 JSON：字符串和列表在 `> 0` 处抛 `TypeError`；`true` 会设置 `QT_SCALE_FACTOR=0.01`，`999` 会设置 `9.99`，负数会以非法返回值走系统模式。float、NaN 与 Infinity 同样未被权威候选集拒绝。
@@ -679,7 +691,7 @@ git diff --check
 
 门禁补强前置：当前 probe 的 `169 OK / 0 错误 / 12 跳过` 中有 5 个 singleton 被无条件跳过，不能作为 singleton 无绑定错误的证据。P9 前必须用 wrapper 强制实例化并读取 `Enums`、`Translator`、`DpiManager`、`NotificationManager` 与 `PopupUtils`，同时捕获 Qt warning；完成后基线应只保留 7 个确需父组件注入的 required-property skip。上述改造必须先在改前 worktree 与当前分支上分别运行，区分存量 singleton 错误与新增回归。
 
-2026-07-13 当前工作树验证快照（只证明现有门禁状态，不代表 P9 完成）：SettingsCore/配置聚焦 `59 passed`；Python 全量 `632 passed / 1 skipped`；QML probe `169 OK / 0 错误 / 12 跳过`；Rust `fmt --check`、`clippy --all-targets -D warnings` 与 `cargo test 6/6`；changed scanner `0`、`git diff --check` 通过。C++ 已通过仓库标准 `cpp\build.bat` 动态加载 MSVC/Qt 环境并输出 `PRISM_BUILD_DONE`，随后 headless CTest `6/6`、Windows native CTest `2/2`；原生失败矩阵各 case 均为 `private_desktop_visible_windows=0 / final_active_processes=0`，runner 汇总为 `visible_windows=0 / job_active_processes=0`。真实 `~/.prismqml/app.json` 的长度、mtime 与 SHA-256 在 CTest 前后完全一致且无 `.test_backup` 残留；用户也再次确认本轮未出现弹窗。限制必须同时记录：QML 数字仍跳过 5 个 singleton；CTest 仍不应依赖“备份后改写真实用户配置再恢复”的设计，必须按 P7E 增加显式配置路径 seam；工作树中的 SettingsCore 候选实现仍有 P7E 阻断项且未提交。因此这些绿色结果只能作为回归基线，不能升级为最终发布绿灯。
+2026-07-13 P7E 完成后的当前验证快照（仍不代表 P9 完成）：SettingsCore/配置聚焦 `89 passed`；Python 全量 `662 passed / 1 skipped`；QML probe `169 OK / 0 错误 / 12 跳过`；Rust 最近门禁为 `fmt --check`、`clippy --all-targets -D warnings` 与 `cargo test 6/6`；`git diff --check` 通过。C++ 经仓库标准 `cpp\build.bat` 输出 `PRISM_BUILD_DONE`，headless CTest `7/7`、Windows native CTest `2/2`；原生失败矩阵和所有 runner 均为零可见窗口、零残留进程。真实用户配置快照完全未变，测试已不再备份/改写真实配置。GitHub Build All Platforms 七路与 Deploy Docs 均全绿。剩余限制转入后续阶段：P7F 处理 DPI/WindowType 共同事实源与启动前严格输入，P9 前仍须把 5 个 singleton 从无条件跳过改为真实 wrapper 实例化验证。
 
 制品验收：
 
@@ -735,7 +747,7 @@ git diff --check
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
 | P6 QML 规范债务 | 进行中 | P6A–P6C14 与 P6D 已完成小批记录保持不变；P6C15a/b 已补上字符串颜色上下文，P6C15c1 已补上固定数值与固定视觉系数构色，P6C15c2 已补上高置信颜色数组、callable 直接结果扫描及 examples 仅 QML010 扫描根，P6C16 已迁移真实 `MultiSelectToken` 黑白前景，证明此前 `buttons` 归零仅成立于旧扫描口径，P6C 继续进行。全库真实基线 3,046（成员顺序 1,797、分节术语 1,102、颜色 125、数值 22，QML013 0）；examples 已锁定 43 行 QML010 且其他规则不进入门禁，P6C15c3 已补上作用域感知的高置信 primitive 跨变量传播并保持当前库存零新增，其无候选快路径已通过 Build All 七项全绿；22 项 QML011 全部等待 P8A 的 LoginWindowLightShadow 删除/公开决策；`CropToolButton` 已确认零消费者并转入 P8 去留审计 | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645`、`2a22c115`、`06eb4af9`、`685d063e`、`bcf0c737`、`4c22e7bc`、`bad57911`、`b281b7b`、`85a75ff3`、`0e438e60`、`1f9d1038`、`b1050f84`、`d4e2e11e`、`10b25427`、`8c633f4f`、`6810e12c`、`1758f484`、`49a899d5`、`0946eea5`、`2c1be8dd`、`cbf934d2`、`4e383715`、`bff2b32b`、`95c3db84`、`41565d4b`、`e17b06ca`、`c284433f`、`744eb6ec`、`ca6eb64b`、`af0b0cd4`、`28664920`、`a17f46a8`、`263851c1`、`165dbd4`、`8e29044c`、`86d7e0ee`、`dc5cf90`、`f329a3e`、`668cfda`、`89474354` |
-| P7 Python 规范债务 | 进行中 | 已完成框架签名/生成枚举例外定义与异常边界前四批：元数据缺包回退收窄，DWM native callback 不吞 process-control 异常，logger.exception 真实输出 traceback，同一 LogRecord 跨 handler 仅输出一次堆栈；Store watcher 失败保留 traceback 并继续通知链；DWM filter 安装失败可重试；Updater 正确处理 QProcess tuple 与 pointer-size ShellExecuteW 返回，启动失败绝不退出应用。Python 618/1、QML 169/0/12、CTest 6/6、Build All 七项全绿。剩余宽捕获、长函数、导入与文件头继续处理 | `8272d2c0`、`354777fe`、`a8e80e86`、`c962014e`、`bb81d37b`、`e344c8a0` |
+| P7 Python 规范债务 | 进行中 | 已完成框架签名/生成枚举例外定义、异常边界前四批及 P7E 配置事务/schema/测试隔离。当前门禁为 Python `662 passed / 1 skipped`、QML `169 OK / 0 错误 / 12 跳过`、C++ headless `7/7`、Windows native `2/2`，全部 runner 零可见窗口/零残留进程；Build All Platforms 七路与 Deploy Docs 全绿。P7F-P7K（含剩余 P7I 宽捕获、长函数、导入与文件头库存）仍按顺序待处理 | `8272d2c0`、`354777fe`、`a8e80e86`、`c962014e`、`bb81d37b`、`e344c8a0`、`e48bb127`、`dafa2a34` |
 | P8 资源注册 | 待执行 | P8A 提前处理孤立文件决策；LoginWindowLightShadow 已确认仓内零消费者、未注册但仍随包分发；CropToolButton 已确认仅 `_internal/qmldir` 注册、仓内零消费者且头部用途说明过时。两者均需先完成下游审计，再根据结果决定保留、公开或请求用户批准删除，不在 P6 机械整理中重接线或粉饰 |  |
 | P9 最终验收 | 待执行 |  |  |
 
