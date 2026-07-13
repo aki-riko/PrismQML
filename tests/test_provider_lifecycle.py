@@ -22,6 +22,7 @@ from PySide6.QtQml import QQmlEngine
 from PySide6.QtWidgets import QApplication
 
 from prismqml.python.providers.qrcode_generator import get_qrcode_provider
+from prismqml.python.providers._qrcode_protocol import create_request, encode_provider_id
 from prismqml.python.providers.lazy_context import LazyQRCodeGenerator
 from prismqml.python.providers.svg_provider import get_svg_provider
 from prismqml.python.core.engine import EngineManager
@@ -74,7 +75,15 @@ def _exercise_svg(provider, svg_path: Path) -> None:
 
 def _exercise_qrcode(provider, iteration: int) -> None:
     """Render a real QR code through the provider. 通过 provider 渲染真实二维码。"""
-    request_id = f"PrismQML lifecycle {iteration}|96|#000000|#ffffff|M"
+    request_id = encode_provider_id(
+        create_request(
+            f"PrismQML lifecycle {iteration}",
+            96,
+            "#000000",
+            "#ffffff",
+            "M",
+        )
+    )
     result = provider.requestImage(request_id, QSize(), QSize(96, 96))
     assert not result.isNull()
     assert result.size() == QSize(96, 96)

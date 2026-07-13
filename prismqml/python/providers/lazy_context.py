@@ -17,6 +17,8 @@ from PySide6.QtCore import QObject, Property, Signal, Slot
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine
 
+from ._qrcode_protocol import DEFAULT_SIZE
+
 
 class LazyQRCodeGenerator(QObject):
     """QML-compatible QRCodeGenerator proxy.
@@ -64,7 +66,7 @@ class LazyQRCodeGenerator(QObject):
     def getImageSource(
         self,
         content: str,
-        size: int = 150,
+        size: int = DEFAULT_SIZE,
         fgColor: str = "#000000",
         bgColor: str = "#ffffff",
         errorLevel: str = "M",
