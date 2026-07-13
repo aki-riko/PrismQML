@@ -10,7 +10,7 @@ from typing import Any, Optional
 from PySide6.QtCore import Qt
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
-from ..core.logger import debug
+from ..core.logger import exception
 
 
 class WindowCompatMixin:
@@ -24,8 +24,11 @@ class WindowCompatMixin:
             from PySide6.QtCore import QMetaObject
 
             QMetaObject.invokeMethod(self._window, "restoreVisibleState")
-        except Exception as e:
-            debug(f"restoreVisibleState invoke failed: {e}")
+        except Exception as exc:
+            exception(
+                "restoreVisibleState invoke failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
 
         try:
             self._window.setOpacity(1.0)
@@ -33,8 +36,11 @@ class WindowCompatMixin:
             self._window.setProperty("_animOpacity", 1.0)
             self._window.setProperty("_animScale", 1.0)
             self._window.update()
-        except Exception as e:
-            debug(f"visible state fallback failed: {e}")
+        except Exception as exc:
+            exception(
+                "visible state fallback failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
 
     def hide(self):
         if self._window:

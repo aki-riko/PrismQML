@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Regression probe for restoring a window after close/hide transparency."""
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -14,8 +15,18 @@ configure_qml_test_process()
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from PySide6.QtCore import QEventLoop, QTimer
+import shiboken6
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
+
+
+class _RecordCapture(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
 
 
 def pump(ms):
@@ -39,6 +50,60 @@ def assert_opaque(win, label, failures, wait_ms=120):
         failures.append(f"{label} left frame opacity at {win._window.property('_animOpacity')}")
     if abs(float(win._window.property("_animScale")) - 1.0) > 0.01:
         failures.append(f"{label} left frame scale at {win._window.property('_animScale')}")
+
+
+def _prepare_window():
+    from prismqml import Window, WindowType
+
+    win = Window(window_type=WindowType.BAR)
+    win.setSplashEnabled(False)
+    win.addPage(None, "Home", "Home")
+    win.show()
+    pump(120)
+    return win
+
+
+def _assert_traceback_record(records, marker, source_text):
+    from prismqml.python.core.logger import PlainFormatter
+
+    matches = [record for record in records if marker in record.getMessage()]
+    assert len(matches) == 1
+    assert matches[0].exc_info
+    assert matches[0].exc_info[0] is RuntimeError
+    rendered = PlainFormatter(datefmt="%H:%M:%S").format(matches[0])
+    assert "Traceback (most recent call last):" in rendered
+    assert source_text in rendered
+
+
+def run_error_boundary_regressions():
+    from prismqml.python.core.logger import getLogger
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    win = _prepare_window()
+    capture = _RecordCapture()
+    logger = getLogger().logger
+    logger.addHandler(capture)
+    try:
+        qml_window = win._window
+        qml_window.deleteLater()
+        QCoreApplication.sendPostedEvents(qml_window, QEvent.DeferredDelete)
+        QApplication.processEvents()
+        assert not shiboken6.isValid(qml_window)
+        win._restore_visible_state()
+    finally:
+        logger.removeHandler(capture)
+        win._window = None
+    _assert_traceback_record(
+        capture.records,
+        "restoreVisibleState invoke failed",
+        "QMetaObject.invokeMethod",
+    )
+    _assert_traceback_record(
+        capture.records,
+        "visible state fallback failed",
+        "self._window.setOpacity",
+    )
+    assert app is QApplication.instance()
 
 
 def main():
@@ -89,4 +154,5 @@ def main():
 
 
 if __name__ == "__main__":
+    run_error_boundary_regressions()
     main()
