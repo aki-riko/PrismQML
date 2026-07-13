@@ -13,7 +13,63 @@ from typing import Any
 from PySide6.QtCore import QUrl
 from PySide6.QtQml import QQmlComponent
 
-from ..core.logger import debug, info, warning
+from ..core.logger import debug, exception, info, warning
+
+
+def _profile_generated_splash_qml(
+    splash_qml_file,
+    profile_values,
+) -> None:
+    icon_url, title, subtitle = profile_values
+    try:
+        qml_bytes = splash_qml_file.read_bytes()
+        qml_digest = hashlib.sha256(qml_bytes).hexdigest()[:20]
+        info(
+            "[启动剖析] PrismQML._create_splash generated qml: "
+            f"path={splash_qml_file}, bytes={len(qml_bytes)}, sha={qml_digest}, "
+            f"iconSet={bool(icon_url)}, titleSet={bool(title)}, "
+            f"subtitleSet={bool(subtitle)}"
+        )
+    except OSError as exc:
+        warning(f"[启动剖析] 读取生成 Splash QML 失败: {exc}")
+    info("[启动剖析] PrismQML._create_splash QQmlComponent(file) begin")
+
+
+def _log_splash_file_failure(component, exc: Exception) -> None:
+    outcome = (
+        "文件化加载失败，回退到 inline"
+        if component is None
+        else "文件化组件已创建，后续诊断失败，保留文件组件"
+    )
+    exception(f"[Splash] {outcome}: {type(exc).__name__}: {exc}")
+
+
+def _load_splash_file_component(
+    builder: Any,
+    splash_qml: str,
+    profile,
+    verbose: bool,
+    profile_values,
+):
+    component = None
+    try:
+        splash_qml_file = builder._write_generated_splash_qml(splash_qml)
+        profile("写入/确认 Splash QML 缓存")
+        if verbose:
+            _profile_generated_splash_qml(splash_qml_file, profile_values)
+        component = QQmlComponent(
+            builder._engine, QUrl.fromLocalFile(str(splash_qml_file))
+        )
+        profile("QQmlComponent(file)")
+        if component.isError():
+            warning(
+                "[Splash] 文件化组件加载失败: "
+                f"{[error.toString() for error in component.errors()]}"
+            )
+            component = None
+    except Exception as exc:
+        _log_splash_file_failure(component, exc)
+    return component
 
 
 def create_splash(builder: Any) -> None:
@@ -183,30 +239,14 @@ Rectangle {{
             "yes",
             "on",
         }
-        component = None
         component_source = "file"
-        try:
-            splash_qml_file = builder._write_generated_splash_qml(splash_qml)
-            profile("写入/确认 Splash QML 缓存")
-            if startup_profile_verbose:
-                try:
-                    qml_bytes = splash_qml_file.read_bytes()
-                    qml_digest = hashlib.sha256(qml_bytes).hexdigest()[:20]
-                    info(
-                        "[启动剖析] PrismQML._create_splash generated qml: "
-                        f"path={splash_qml_file}, bytes={len(qml_bytes)}, sha={qml_digest}, "
-                        f"iconSet={bool(icon_url)}, titleSet={bool(title)}, subtitleSet={bool(subtitle)}"
-                    )
-                except OSError as exc:
-                    warning(f"[启动剖析] 读取生成 Splash QML 失败: {exc}")
-                info("[启动剖析] PrismQML._create_splash QQmlComponent(file) begin")
-            component = QQmlComponent(builder._engine, QUrl.fromLocalFile(str(splash_qml_file)))
-            profile("QQmlComponent(file)")
-            if component.isError():
-                warning(f"[Splash] 文件化组件加载失败: {[e.toString() for e in component.errors()]}")
-                component = None
-        except Exception as e:
-            warning(f"[Splash] 文件化加载失败，回退到 inline: {e}")
+        component = _load_splash_file_component(
+            builder,
+            splash_qml,
+            profile,
+            startup_profile_verbose,
+            (icon_url, title, subtitle),
+        )
 
         if component is None:
             component_source = "inline"
@@ -234,5 +274,8 @@ Rectangle {{
         builder._splash_instance = splash
         builder._splash_component = component
         debug("[Splash] 启动画面已挂载,等待首屏就绪后自动淡出")
-    except Exception as e:
-        warning(f"[Splash] 创建启动画面失败(不影响启动): {e}")
+    except Exception as exc:
+        exception(
+            "[Splash] 创建启动画面失败(不影响启动): "
+            f"{type(exc).__name__}: {exc}"
+        )
