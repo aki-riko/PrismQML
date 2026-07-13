@@ -246,25 +246,6 @@ class WindowBuilderMixin:
             ]
         )
 
-        # 生成用户卡片QML
-        user_card_qml = ""
-        if self._user_card:
-            avatar = self._user_card.get("avatar", "")
-            title = self._user_card.get("title", "")
-            subtitle = self._user_card.get("subtitle", "")
-            position = self._user_card.get("position", "bottom")
-            # 如果avatar是图标名，转换为路径
-            if avatar and not (
-                "/" in avatar or "\\" in avatar or avatar.startswith("image://")
-            ):
-                avatar = icon_path(avatar)
-            # Windows路径转换为QML格式（正斜杠 + file:///前缀）
-            if avatar and ("\\" in avatar or (len(avatar) > 1 and avatar[1] == ":")):
-                avatar = "file:///" + avatar.replace("\\", "/")
-            user_card_qml = f'''
-    userCard: {{ "avatar": "{esc(avatar)}", "title": "{esc(title)}", "subtitle": "{esc(subtitle)}" }}
-    userCardPosition: "{esc(position)}"'''
-
         # 页面容器由Python动态创建，作为窗口默认子元素会自动放入StackedWidget
         # StackedWidget会自动管理可见性和动画
         # All items get page containers (function items just have empty containers)
@@ -313,7 +294,7 @@ import "file:///{qml_dir.as_posix()}/_internal"
     
     navigationItems: [{nav_items_qml}]
     bottomNavigationItems: [{bottom_items_qml}]
-{user_card_qml}
+
     // Python动态填充的页面容器（绑定到stack.currentIndex控制可见性）
 {pages_qml}
     

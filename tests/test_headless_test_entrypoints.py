@@ -52,6 +52,7 @@ STANDALONE_QML_RUNTIME_CASES = (
     (Path("tests/qml/test_realwindow_lazy_reload.py"), 30),
     (Path("tests/qml/test_splash_timing.py"), 20),
     (Path("tests/qml/test_splash_builder_fallback.py"), 20),
+    (Path("tests/qml/test_window_builder_composition.py"), 20),
     (Path("tests/qml/test_page_manager_boundaries.py"), 20),
     (Path("tests/qml/test_window_default_visible.py"), 15),
     (Path("tests/qml/test_window_builder_file_fallback.py"), 15),

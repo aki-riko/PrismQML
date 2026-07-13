@@ -184,7 +184,6 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         from ..config import getConfigManager
 
         self._lazy_loading = getConfigManager().lazyLoading
-        self._user_card: Optional[Dict[str, str]] = None
 
         # ==================== Splash 启动画面 ====================
         # 默认开启: _create_window 末尾会自动实例化 SplashScreen.qml 并挂到 QML
@@ -488,31 +487,6 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
             if item.page_class == interface:
                 self.setCurrentIndex(i)
                 return
-
-    def setUserCard(
-        self,
-        avatar: str = "",
-        title: str = "",
-        subtitle: str = "",
-        position: str = "bottom",
-    ):
-        """设置用户卡片/头像
-
-        Args:
-            avatar: 头像图片路径或图标名称
-            title: 用户名/标题
-            subtitle: 副标题（如邮箱）
-            position: 位置 "top" 或 "bottom"
-
-        Example:
-            window.setUserCard(avatar="Person", title="用户名", subtitle="user@example.com")
-        """
-        self._user_card = {
-            "avatar": avatar,
-            "title": title,
-            "subtitle": subtitle,
-            "position": position,
-        }
 
     def setCurrentIndex(self, index: int):
         """切换到指定页面

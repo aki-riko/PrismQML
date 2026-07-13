@@ -10,7 +10,7 @@ from pathlib import Path
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression
 
-from prismqml import NavigationItem, getThemeManager
+from prismqml import NavigationItem, Window, getThemeManager
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +54,16 @@ def test_navigation_item_page_builder_api_is_removed():
     assert "page_builder" not in inspect.signature(NavigationItem).parameters
     assert not hasattr(NavigationItem("Home"), "page_builder")
     assert "page_builder" not in _read("prismqml/python/window/_page_manager.py")
+
+
+def test_broken_window_user_card_api_is_removed():
+    builder = _read("prismqml/python/window/_window_builder.py")
+    core = _read("prismqml/python/window/window_core.py")
+
+    assert not hasattr(Window, "setUserCard")
+    assert "_user_card" not in core
+    assert "userCard:" not in builder
+    assert "userCardPosition" not in builder
 
 
 def test_qml_signal_method_and_property_aliases_are_removed():
