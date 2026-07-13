@@ -678,7 +678,7 @@ git diff --check
 
 门禁补强前置：当前 probe 的 `169 OK / 0 错误 / 12 跳过` 中有 5 个 singleton 被无条件跳过，不能作为 singleton 无绑定错误的证据。P9 前必须用 wrapper 强制实例化并读取 `Enums`、`Translator`、`DpiManager`、`NotificationManager` 与 `PopupUtils`，同时捕获 Qt warning；完成后基线应只保留 7 个确需父组件注入的 required-property skip。上述改造必须先在改前 worktree 与当前分支上分别运行，区分存量 singleton 错误与新增回归。
 
-2026-07-13 当前工作树验证快照（只证明现有门禁状态，不代表 P9 完成）：SettingsCore/配置聚焦 `59 passed`；Python 全量 `632 passed / 1 skipped`；QML probe `169 OK / 0 错误 / 12 跳过`；headless CTest `6/6`；Rust `fmt --check`、`clippy --all-targets -D warnings` 与 `cargo test 6/6`；changed scanner `0`、`git diff --check` 通过。全部 Python/QML runner 均为 `visible_windows=0 / job_active_processes=0`，用户也确认未出现弹窗。限制必须同时记录：QML 数字仍跳过 5 个 singleton；CTest 运行时仍访问真实用户配置，虽然本次结束后配置 mtime 未变化且无 `.test_backup` 残留；工作树中的 SettingsCore 候选实现仍有 P7E 阻断项且未提交。因此这些绿色结果只能作为回归基线，不能升级为最终发布绿灯。
+2026-07-13 当前工作树验证快照（只证明现有门禁状态，不代表 P9 完成）：SettingsCore/配置聚焦 `59 passed`；Python 全量 `632 passed / 1 skipped`；QML probe `169 OK / 0 错误 / 12 跳过`；Rust `fmt --check`、`clippy --all-targets -D warnings` 与 `cargo test 6/6`；changed scanner `0`、`git diff --check` 通过。C++ 已通过仓库标准 `cpp\build.bat` 动态加载 MSVC/Qt 环境并输出 `PRISM_BUILD_DONE`，随后 headless CTest `6/6`、Windows native CTest `2/2`；原生失败矩阵各 case 均为 `private_desktop_visible_windows=0 / final_active_processes=0`，runner 汇总为 `visible_windows=0 / job_active_processes=0`。真实 `~/.prismqml/app.json` 的长度、mtime 与 SHA-256 在 CTest 前后完全一致且无 `.test_backup` 残留；用户也再次确认本轮未出现弹窗。限制必须同时记录：QML 数字仍跳过 5 个 singleton；CTest 仍不应依赖“备份后改写真实用户配置再恢复”的设计，必须按 P7E 增加显式配置路径 seam；工作树中的 SettingsCore 候选实现仍有 P7E 阻断项且未提交。因此这些绿色结果只能作为回归基线，不能升级为最终发布绿灯。
 
 制品验收：
 
