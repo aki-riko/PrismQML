@@ -45,19 +45,22 @@ class ConfigManager(QObject):
                     )
             return
         super().__init__()
-        self._initialized = True
-        
-        # 创建AppConfig实例 Create AppConfig instance
-        self._cfg = AppConfig()
-        self._cfg.load(config_path or DEFAULT_APP_CONFIG)
-        
-        # 连接信号 Connect signals
-        AppConfig.lazy_loading.valueUpdated.connect(self.lazyLoadingChanged)
-        AppConfig.dwm_shadow.valueUpdated.connect(self.dwmShadowChanged)
-        AppConfig.dpi_scale.valueUpdated.connect(self.dpiScaleChanged)
-        AppConfig.mica_enabled.valueUpdated.connect(self.micaEnabledChanged)
-        AppConfig.window_type.valueUpdated.connect(self.windowTypeChanged)
-        self._cfg.configChanged.connect(self.configChanged)
+        ready = False
+        try:
+            self._cfg = AppConfig()
+            self._cfg.load(config_path or DEFAULT_APP_CONFIG)
+            self._cfg.lazy_loading.valueUpdated.connect(self.lazyLoadingChanged)
+            self._cfg.dwm_shadow.valueUpdated.connect(self.dwmShadowChanged)
+            self._cfg.dpi_scale.valueUpdated.connect(self.dpiScaleChanged)
+            self._cfg.mica_enabled.valueUpdated.connect(self.micaEnabledChanged)
+            self._cfg.window_type.valueUpdated.connect(self.windowTypeChanged)
+            self._cfg.configChanged.connect(self.configChanged)
+            self._initialized = True
+            ready = True
+        finally:
+            if not ready:
+                self._initialized = False
+                type(self)._instance = None
     
     @property
     def cfg(self) -> AppConfig:
@@ -68,46 +71,46 @@ class ConfigManager(QObject):
     
     @Property(bool, notify=lazyLoadingChanged)
     def lazyLoading(self) -> bool:
-        return self._cfg.get(AppConfig.lazy_loading)
+        return self._cfg.get(self._cfg.lazy_loading)
 
     @Slot(bool)
     def setLazyLoading(self, value: bool):
-        self._cfg.set(AppConfig.lazy_loading, value)
+        self._cfg.set(self._cfg.lazy_loading, value)
 
     @Property(bool, notify=dwmShadowChanged)
     def dwmShadow(self) -> bool:
-        return self._cfg.get(AppConfig.dwm_shadow)
+        return self._cfg.get(self._cfg.dwm_shadow)
 
     @Slot(bool)
     def setDwmShadow(self, value: bool):
-        self._cfg.set(AppConfig.dwm_shadow, value)
+        self._cfg.set(self._cfg.dwm_shadow, value)
 
     @Property(int, notify=dpiScaleChanged)
     def dpiScale(self) -> int:
-        return self._cfg.get(AppConfig.dpi_scale)
+        return self._cfg.get(self._cfg.dpi_scale)
 
     @Slot(int)
     def setDpiScale(self, value: int):
         debug(f"setDpiScale: {value}")
-        self._cfg.set(AppConfig.dpi_scale, value)
+        self._cfg.set(self._cfg.dpi_scale, value)
 
     @Property(bool, notify=micaEnabledChanged)
     def micaEnabled(self) -> bool:
-        return self._cfg.get(AppConfig.mica_enabled)
+        return self._cfg.get(self._cfg.mica_enabled)
 
     @Slot(bool)
     def setMicaEnabled(self, value: bool):
         debug(f"setMicaEnabled: {value}")
-        self._cfg.set(AppConfig.mica_enabled, value)
+        self._cfg.set(self._cfg.mica_enabled, value)
 
     @Property(int, notify=windowTypeChanged)
     def windowType(self) -> int:
-        return self._cfg.get(AppConfig.window_type)
+        return self._cfg.get(self._cfg.window_type)
 
     @Slot(int)
     def setWindowType(self, value: int):
         debug(f"setWindowType: {value}")
-        self._cfg.set(AppConfig.window_type, value)
+        self._cfg.set(self._cfg.window_type, value)
     
     @Slot(result=str)
     def getConfigPath(self) -> str:

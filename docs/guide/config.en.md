@@ -41,3 +41,17 @@ class MyAppConfig(SettingsCore):
 ```
 
 Each `SettingEntry` declares group, name, default and validator; a `SettingsCore` subclass auto-persists to JSON and can bridge to QML.
+
+## Custom entry extensions
+
+Override `encode(value)` / `decode(raw)` to customize the persisted form. Both
+methods must be pure and must not mutate the entry itself. `SettingsCore`
+finishes all conversion and copying before committing disk or memory state, so
+a failed save emits no uncommitted signal and a failed load leaves no partial
+state.
+
+`SettingEntry` is a `QObject`. A subclass that changes the constructor signature
+must also override `clone(parent)` and create the clone through its real
+constructor, preserving child objects, signal connections, and Qt ownership.
+`dump()` / `load()` are convenience wrappers for direct use outside
+`SettingsCore`; they are not transactional persistence hooks.

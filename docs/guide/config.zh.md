@@ -41,3 +41,14 @@ class MyAppConfig(SettingsCore):
 ```
 
 每个 `SettingEntry` 声明分组、名称、默认值和验证器；`SettingsCore` 子类自动落盘到 JSON，并可桥接到 QML。
+
+## 自定义条目扩展
+
+自定义持久化格式时覆写 `encode(value)` / `decode(raw)`；两者必须是纯函数，
+不得修改条目自身状态。`SettingsCore` 会在磁盘或内存提交前完成全部转换与复制，
+因此保存失败不会发出未提交信号，加载失败也不会留下部分状态。
+
+`SettingEntry` 是 `QObject`。若子类改变了构造器签名，必须同时覆写
+`clone(parent)`，并通过真实构造器创建新实例，以保留子对象、信号连接和 Qt
+所有权。`dump()` / `load()` 仅是脱离 `SettingsCore` 时操作当前值的便利包装，
+不再作为事务持久化 hook。

@@ -25,8 +25,7 @@ DEFAULT_APP_CONFIG: Path = DEFAULT_CONFIG_DIR / "app.json"
 
 
 # ---------- AppConfig ----------
-# 注意:SettingEntry 作为类属性,所有 AppConfig 实例共享同一组条目。
-# 当前由 ConfigManager 单例保证安全;若未来需要多实例,改成 instance 属性。
+# SettingEntry 类属性仅定义 schema prototype；SettingsCore 为每个实例克隆绑定条目。
 class AppConfig(SettingsCore):
     """PrismQML app-level settings persisted under ~/.prismqml/app.json."""
 

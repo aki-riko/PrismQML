@@ -14,13 +14,17 @@
 
 构造完毕后,SettingEntry 暴露:
   entry.value   读 / 写当前值 (写入会先 coerce 再发 valueUpdated)
-  entry.dump()  返回当前值 (留作后续 hook 自定义序列化)
-  entry.load(v) 把外部值灌进 entry (走 setter,自动 coerce + 信号)
+  entry.encode(v) / decode(v) 纯序列化 hook,不得修改 entry 自身状态
+  entry.dump() / load(v)       当前值的便利包装
+  entry.clone(parent)          为 SettingsCore 构造独立 QObject 实例
   entry.key     "Group.Name" 或单独 "Group" 的扁平键
 
 RangedEntry / EnumEntry 在 SettingEntry 之上各自暴露 .range / .options,
 让 UI 层 (滑块、下拉) 能直接拿到约束元数据。
 """
+
+from copy import deepcopy
+from typing import NamedTuple
 
 from PySide6.QtCore import QObject, Signal
 
@@ -30,6 +34,19 @@ from .validators import Validator
 def _compose_key(group: str, name: str) -> str:
     """把 (group, name) 拼成 SettingsCore 持久化使用的扁平键。"""
     return f"{group}.{name}" if name else group
+
+
+def _copy_value(value):
+    """复制普通配置值;不可复制的 Qt 对象保留原引用。"""
+    try:
+        return deepcopy(value)
+    except (TypeError, AttributeError):
+        return value
+
+
+class _PreparedValue(NamedTuple):
+    stored: object
+    signal: object
 
 
 class SettingEntry(QObject):
@@ -45,6 +62,7 @@ class SettingEntry(QObject):
         validator: Validator = None,
         *,
         restart: bool = False,
+        parent=None,
         **kwargs,
     ):
         # 显式拒绝任何未知关键字, 比静默落入 **kwargs 错位好得多。
@@ -53,13 +71,37 @@ class SettingEntry(QObject):
                 f"SettingEntry 收到未知关键字参数 unexpected kwargs: {sorted(kwargs)}"
             )
 
-        super().__init__()
+        super().__init__(parent)
         self.group = group
         self.name = name
         self.validator = validator or Validator.passthrough()
         self.restart = restart
-        self.default_value = self.validator.coerce(default)
-        self._value = self.default_value
+        self.default_value = _copy_value(self.validator.coerce(default))
+        self._value = _copy_value(self.default_value)
+
+    def __get__(self, instance, owner):
+        """类访问返回 schema prototype,实例访问返回绑定条目。"""
+        if instance is None:
+            return self
+        return instance.entry(self)
+
+    def clone(self, parent=None):
+        """调用真实构造器克隆 QObject;自定义构造签名必须覆写本方法。"""
+        try:
+            cloned = type(self)(
+                group=self.group,
+                name=self.name,
+                default=_copy_value(self.default_value),
+                validator=self.validator,
+                restart=self.restart,
+                parent=parent,
+            )
+        except TypeError as exc:
+            raise TypeError(
+                f"{type(self).__name__} 使用自定义构造器时必须覆写 clone(parent)"
+            ) from exc
+        cloned._replace_value(self._value, False)
+        return cloned
 
     # ---------- 取值/赋值 ----------
 
@@ -69,24 +111,52 @@ class SettingEntry(QObject):
 
     @value.setter
     def value(self, incoming):
-        coerced = self.validator.coerce(incoming)
-        if self._value == coerced:
-            return
-        self._value = coerced
-        self.valueUpdated.emit(coerced)
+        coerced = self.prepare(incoming)
+        self._set_prepared(coerced)
+
+    def prepare(self, incoming):
+        """把 Python/QML 输入收敛为合法内存值。"""
+        return self.validator.coerce(incoming)
+
+    def _prepare_commit(self, prepared) -> _PreparedValue:
+        """在提交点前完成存储值与信号值的全部复制。"""
+        stored = _copy_value(prepared)
+        return _PreparedValue(stored, _copy_value(stored))
+
+    def _apply_prepared(self, prepared: _PreparedValue, notify: bool = True):
+        """仅赋值已准备快照;本方法不得调用 hook 或 deepcopy。"""
+        self._value = prepared.stored
+        if notify:
+            self.valueUpdated.emit(prepared.signal)
+
+    def _replace_value(self, prepared, notify: bool = True):
+        """提交已校验值,供 SettingsCore 事务最终提交使用。"""
+        self._apply_prepared(self._prepare_commit(prepared), notify)
+
+    def _set_prepared(self, prepared, notify: bool = True) -> bool:
+        """去重后提交已校验值并按需通知。"""
+        if self._value == prepared:
+            return False
+        self._replace_value(prepared, notify)
+        return True
 
     # ---------- 持久化 hook ----------
 
-    def dump(self):
-        """返回应当写入配置文件的值,默认即当前 value。
+    def encode(self, value):
+        """把候选内存值编码为 JSON 值;实现必须是纯函数。"""
+        return value
 
-        子类或下游可重写以自定义序列化形式 (例如把 Enum 转为成员名)。
-        """
-        return self.value
+    def decode(self, raw):
+        """把 JSON 值解码为合法内存值;实现必须是纯函数。"""
+        return self.prepare(raw)
+
+    def dump(self):
+        """返回当前值的 JSON 表示。"""
+        return self.encode(self.value)
 
     def load(self, raw):
-        """把外部 raw 灌入 entry,等价于走一次 setter (会 coerce + emit)。"""
-        self.value = raw
+        """解码并提交外部值,适合脱离 SettingsCore 的直接使用。"""
+        self._set_prepared(self.decode(raw))
 
     # ---------- 元信息 ----------
 

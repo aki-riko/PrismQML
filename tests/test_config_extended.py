@@ -1,6 +1,7 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """
 PrismQML 配置系统扩展单元测试
 
@@ -354,16 +355,16 @@ class TestToMappingModes:
 
     def test_persist_true_calls_dump(self):
         cfg = _SnapshotConfig()
-        _SnapshotConfig.nested._value = "live"
-        _SnapshotConfig.flat._value = 100
+        cfg.set(cfg.nested, "live", save=False)
+        cfg.set(cfg.flat, 100, save=False)
 
         out = cfg._to_mapping(persist=True)
         assert out == {"Group": {"Inner": "live"}, "FlatGroup": 100}
 
     def test_persist_false_reads_value_directly(self):
         cfg = _SnapshotConfig()
-        _SnapshotConfig.nested._value = "live2"
-        _SnapshotConfig.flat._value = 200
+        cfg.set(cfg.nested, "live2", save=False)
+        cfg.set(cfg.flat, 200, save=False)
 
         out = cfg._to_mapping(persist=False)
         assert out == {"Group": {"Inner": "live2"}, "FlatGroup": 200}
@@ -399,19 +400,12 @@ class TestIterEntriesOrder:
         assert first == second
 
 
-class _MixedGroupConfig(SettingsCore):
-    """同一 group 下挂 1 个嵌套 + 1 个扁平条目,触发 _to_mapping 防御。"""
-
-    nested_in_x = SettingEntry("X", "Sub", "nested_value")
-    flat_in_x = SettingEntry("X", "", "flat_value")
-
-
 class TestToMappingMixedGroupConflict:
-    """同 group 内同时存在嵌套子项 + 扁平条目时,_to_mapping 不应崩,跳后者并 warn"""
+    """同 group 混用嵌套与扁平条目时应在类定义阶段拒绝。"""
 
-    def test_no_typeerror_on_mixed_group(self):
-        cfg = _MixedGroupConfig()
-        # 不应抛 TypeError
-        out = cfg._to_mapping(persist=True)
-        # 不论字母序如何,group "X" 总会出现 (一种形态)
-        assert "X" in out
+    def test_mixed_group_is_rejected(self):
+        with pytest.raises(TypeError, match="group 'X'"):
+
+            class _MixedGroupConfig(SettingsCore):
+                nested_in_x = SettingEntry("X", "Sub", "nested_value")
+                flat_in_x = SettingEntry("X", "", "flat_value")
