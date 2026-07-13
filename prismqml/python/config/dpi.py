@@ -7,18 +7,52 @@
 DPI缩放工具 DPI Scale Utilities
 """
 
+import json
 import os
 import sys
-import json
 from pathlib import Path
 
-from .app_config import DEFAULT_APP_CONFIG
-from ..core import debug, info, warning, error
+from .app_config import AppConfig, DEFAULT_APP_CONFIG, validate_app_window_mapping
+from ..core import debug, info, warning
 
 # ==================== DPI Constants DPI常量 ====================
 
 DPI_BASE = 96  # Windows base DPI Windows基准DPI
 DPI_SCALE_DEFAULT = 100  # Default scale percentage 默认缩放百分比
+_AUTO_DPI_ENVIRONMENT = (
+    "QT_AUTO_SCREEN_SCALE_FACTOR",
+    "QT_SCREEN_SCALE_FACTORS",
+)
+
+
+def _dpi_to_scale(dpi):
+    """把正整数 DPI 换算为百分比；异常 API 值返回 None。"""
+    if type(dpi) is not int or dpi <= 0:
+        return None
+    return round(dpi / DPI_BASE * DPI_SCALE_DEFAULT)
+
+
+def _read_registry_dpi_scale(winreg, key_path, value_name):
+    """读取一个注册表 DPI 值，并保证查询失败时句柄也会关闭。"""
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+            dpi, _ = winreg.QueryValueEx(key, value_name)
+    except (OSError, AttributeError, TypeError, ValueError) as exc:
+        debug(f"{value_name} 注册表读取失败 Registry read failed: {exc}")
+        return None
+    return _dpi_to_scale(dpi)
+
+
+def _get_dpi_for_system_scale():
+    """调用 awareness-dependent GetDpiForSystem 作为注册表后的兜底。"""
+    try:
+        import ctypes
+
+        dpi = ctypes.windll.user32.GetDpiForSystem()
+    except (OSError, AttributeError, TypeError) as exc:
+        debug(f"GetDpiForSystem 不可用 API unavailable: {exc}")
+        return None
+    return _dpi_to_scale(dpi)
 
 
 def getSystemDpiScale() -> int:
@@ -34,56 +68,52 @@ def getSystemDpiScale() -> int:
         return DPI_SCALE_DEFAULT
 
     try:
-        import ctypes
-
-        # 方法1: GetDpiForSystem (Windows 10 1607+) - 不受DPI感知影响
-        # Method 1: GetDpiForSystem (Windows 10 1607+) - not affected by DPI awareness
-        try:
-            dpi = ctypes.windll.user32.GetDpiForSystem()
-            if dpi > 0:
-                scale = round(dpi / DPI_BASE * DPI_SCALE_DEFAULT)
+        import winreg
+    except ImportError as exc:
+        debug(f"winreg 不可用 Registry API unavailable: {exc}")
+    else:
+        registry_values = (
+            (r"Control Panel\Desktop\WindowMetrics", "AppliedDPI"),
+            (r"Control Panel\Desktop", "LogPixels"),
+        )
+        for key_path, value_name in registry_values:
+            scale = _read_registry_dpi_scale(winreg, key_path, value_name)
+            if scale is not None:
                 return scale
-        except (OSError, AttributeError) as exc:
-            # API not available on this Windows version 此Windows版本不支持此API
-            debug(f"GetDpiForSystem 不可用,回退到注册表: {exc}")
 
-        # 方法2: 从注册表读取 (兼容旧系统)
-        # Method 2: Read from registry (compatible with older systems)
-        try:
-            import winreg
+    # GetDpiForSystem returns 96 on DPI-unaware threads, so it is fallback only.
+    # DPI-unaware 线程会固定得到 96，因此该 API 只能作为注册表后的兜底。
+    scale = _get_dpi_for_system_scale()
+    return scale if scale is not None else DPI_SCALE_DEFAULT
 
-            key = winreg.OpenKey(
-                winreg.HKEY_CURRENT_USER, r"Control Panel\Desktop\WindowMetrics"
-            )
-            # AppliedDPI 存储实际DPI值 AppliedDPI stores actual DPI value
-            dpi, _ = winreg.QueryValueEx(key, "AppliedDPI")
-            winreg.CloseKey(key)
-            if dpi > 0:
-                scale = round(dpi / DPI_BASE * DPI_SCALE_DEFAULT)
-                return scale
-        except (OSError, FileNotFoundError) as exc:
-            # Registry key not found 注册表键不存在
-            debug(f"AppliedDPI 注册表读取失败,继续尝试 LogPixels: {exc}")
 
-        # 方法3: 从LogPixels注册表读取
-        # Method 3: Read from LogPixels registry
-        try:
-            import winreg
+def _read_configured_dpi_scale(config_file: Path) -> int:
+    """从真实 JSON 严格读取 AppConfig 声明的离散 DPI 值。"""
+    if not config_file.exists():
+        return 0
+    try:
+        with open(config_file, encoding="utf-8") as stream:
+            payload = json.load(stream)
+    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
+        warning(f"读取 DPI 配置失败 Failed to read DPI config: {exc}")
+        return 0
+    if not isinstance(payload, dict):
+        warning("DPI 配置根节点必须是对象 DPI config root must be an object")
+        return 0
+    window = payload.get("Window", {})
+    if not validate_app_window_mapping(window):
+        warning("DPI 启动配置含无效 Window 字段 Invalid Window startup config")
+        return 0
+    value = window.get("DpiScale", 0)
+    if not AppConfig.dpi_scale.validator.accepts(value):
+        warning(f"拒绝无效 DPI 配置 Invalid DPI config rejected: {value!r}")
+        return 0
+    return value
 
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Control Panel\Desktop")
-            dpi, _ = winreg.QueryValueEx(key, "LogPixels")
-            winreg.CloseKey(key)
-            if dpi > 0:
-                scale = round(dpi / DPI_BASE * DPI_SCALE_DEFAULT)
-                return scale
-        except (OSError, FileNotFoundError) as exc:
-            # Registry key not found 注册表键不存在
-            debug(f"LogPixels 注册表读取失败,使用默认 DPI: {exc}")
 
-        return DPI_SCALE_DEFAULT
-    except Exception as e:
-        error(f"获取系统DPI失败 Failed to get system DPI: {e}")
-        return DPI_SCALE_DEFAULT
+def _clear_environment(names):
+    for name in names:
+        os.environ.pop(name, None)
 
 
 def applyDpiScale(config_path: str = None) -> int:
@@ -96,18 +126,7 @@ def applyDpiScale(config_path: str = None) -> int:
              Applied DPI scale value (0=follow system)
     """
     config_file = Path(config_path) if config_path else DEFAULT_APP_CONFIG
-    dpi_scale = 0  # 默认跟随系统 Default follow system
-
-    if config_file.exists():
-        try:
-            with open(config_file, encoding="utf-8") as f:
-                cfg = json.load(f)
-            dpi_scale = cfg.get("Window", {}).get("DpiScale", 0)
-        except Exception as e:
-            error(f"读取配置失败 Failed to read config: {e}")
-
-    # 需要清除的环境变量 Environment variables to clear
-    env_vars_to_clear = ["QT_AUTO_SCREEN_SCALE_FACTOR", "QT_SCREEN_SCALE_FACTORS"]
+    dpi_scale = _read_configured_dpi_scale(config_file)
 
     if dpi_scale > 0:
         # 用户指定固定缩放：禁用Qt自动DPI检测，使用固定值
@@ -115,19 +134,14 @@ def applyDpiScale(config_path: str = None) -> int:
         os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
         os.environ["QT_SCALE_FACTOR"] = str(dpi_scale / DPI_SCALE_DEFAULT)
         # 清除可能干扰的变量 Clear potentially interfering variables
-        for var in env_vars_to_clear:
-            if var in os.environ:
-                del os.environ[var]
+        _clear_environment(_AUTO_DPI_ENVIRONMENT)
         info(f"固定缩放 Fixed scale: {dpi_scale}%")
     else:
         # 跟随系统：让Qt自动检测和应用系统DPI
         # Follow system: let Qt auto-detect system DPI
         os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
         # 清除可能干扰的变量 Clear potentially interfering variables
-        all_vars_to_clear = env_vars_to_clear + ["QT_SCALE_FACTOR"]
-        for var in all_vars_to_clear:
-            if var in os.environ:
-                del os.environ[var]
+        _clear_environment(_AUTO_DPI_ENVIRONMENT + ("QT_SCALE_FACTOR",))
         system_dpi = getSystemDpiScale()
         info(f"跟随系统 Follow system: {system_dpi}%")
 

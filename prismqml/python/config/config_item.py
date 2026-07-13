@@ -148,6 +148,9 @@ class SettingEntry(QObject):
 
     def decode(self, raw):
         """把 JSON 值解码为合法内存值;实现必须是纯函数。"""
+        accepts = getattr(self.validator, "accepts", None)
+        if callable(accepts) and not accepts(raw):
+            raise ValueError(f"配置值不符合约束 Invalid setting value: {self.key}")
         return self.prepare(raw)
 
     def dump(self):

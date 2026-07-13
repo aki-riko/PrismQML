@@ -10,7 +10,7 @@
 from PySide6.QtCore import QObject, Signal, Property, Slot
 
 from .app_config import AppConfig, DEFAULT_APP_CONFIG
-from ..core import debug
+from ..core import debug, warning
 
 
 class ConfigManager(QObject):
@@ -38,7 +38,6 @@ class ConfigManager(QObject):
                 from pathlib import Path
                 requested = Path(config_path)
                 if requested != self._cfg.file:
-                    from ..core import warning
                     warning(
                         f"ConfigManager 已初始化（路径: {self._cfg.file}），"
                         f"忽略新路径: {requested}"
@@ -89,9 +88,16 @@ class ConfigManager(QObject):
     def dpiScale(self) -> int:
         return self._cfg.get(self._cfg.dpi_scale)
 
-    @Slot(int)
-    def setDpiScale(self, value: int):
+    @Property("QVariantList", constant=True)
+    def dpiScaleOptions(self):
+        return self._cfg.dpi_scale.options
+
+    @Slot("QVariant")
+    def setDpiScale(self, value):
         debug(f"setDpiScale: {value}")
+        if not self._cfg.dpi_scale.validator.accepts(value):
+            warning(f"拒绝无效 dpiScale Invalid dpiScale rejected: {value!r}")
+            return
         self._cfg.set(self._cfg.dpi_scale, value)
 
     @Property(bool, notify=micaEnabledChanged)
@@ -107,9 +113,16 @@ class ConfigManager(QObject):
     def windowType(self) -> int:
         return self._cfg.get(self._cfg.window_type)
 
-    @Slot(int)
-    def setWindowType(self, value: int):
+    @Property("QVariantList", constant=True)
+    def windowTypeOptions(self):
+        return self._cfg.window_type.options
+
+    @Slot("QVariant")
+    def setWindowType(self, value):
         debug(f"setWindowType: {value}")
+        if not self._cfg.window_type.validator.accepts(value):
+            warning(f"拒绝无效 windowType Invalid windowType rejected: {value!r}")
+            return
         self._cfg.set(self._cfg.window_type, value)
     
     @Slot(result=str)

@@ -12,6 +12,7 @@ PrismQML 配置系统扩展单元测试
 """
 
 import json
+from enum import IntEnum
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -91,6 +92,14 @@ class TestValidatorBetween:
         v = Validator.between(10, 50)
         assert v.coerce(25) == 25
 
+    @pytest.mark.parametrize("value", [float("nan"), "25", None])
+    def test_coerce_always_returns_an_accepted_value(self, value):
+        """无法比较或不满足区间的不规则值必须收敛到合法边界。"""
+        v = Validator.between(10, 50)
+        coerced = v.coerce(value)
+        assert v.accepts(coerced) is True
+        assert coerced == 10
+
     def test_range_property(self):
         """range 属性应返回 (lo, hi) 元组"""
         v = Validator.between(0, 200)
@@ -129,6 +138,52 @@ class TestValidatorChoice:
         """合法值应原样返回"""
         v = Validator.choice(["a", "b", "c"])
         assert v.coerce("b") == "b"
+
+    @pytest.mark.parametrize("value", [False, True, 1.0, "1", [1]])
+    def test_integer_choices_reject_equal_non_integer_types(self, value):
+        """bool/float/string/container 不得借 Python 相等语义冒充整数候选。"""
+        v = Validator.choice([0, 1, 2])
+        assert v.accepts(value) is False
+        coerced = v.coerce(value)
+        assert coerced == 0
+        assert type(coerced) is int
+
+    def test_integer_choices_normalize_int_enum_values(self):
+        """公开 IntEnum 可传入 plain-int 候选，并规范化为整数。"""
+
+        class Choice(IntEnum):
+            SECOND = 2
+
+        v = Validator.choice([0, 1, 2])
+        assert v.accepts(Choice.SECOND) is True
+        assert v.coerce(Choice.SECOND) == 2
+        assert type(v.coerce(Choice.SECOND)) is int
+
+    def test_int_enum_choices_restore_json_integer_on_round_trip(self, tmp_path):
+        """IntEnum 候选写成 JSON 整数后必须恢复为同一枚举类型。"""
+
+        class Mode(IntEnum):
+            FIRST = 1
+            SECOND = 2
+
+        class EnumConfig(SettingsCore):
+            mode = EnumEntry(
+                "General",
+                "Mode",
+                Mode.FIRST,
+                Validator.choice([Mode.FIRST, Mode.SECOND]),
+            )
+
+        path = tmp_path / "enum.json"
+        first = EnumConfig()
+        first.file = path
+        assert first.set(first.mode, Mode.SECOND) is True
+        assert json.loads(path.read_text(encoding="utf-8"))["General"]["Mode"] == 2
+
+        second = EnumConfig()
+        second.file = path
+        assert second.load() is True
+        assert second.mode.value is Mode.SECOND
 
     def test_empty_options_raises(self):
         """空候选集合应抛 ValueError"""

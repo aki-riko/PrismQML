@@ -20,8 +20,17 @@ PrismQML 配置项验证器
     Validator.boolean()             # True / False
 """
 
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Any, Iterable, List, Tuple
+
+
+def _choice_matches(value: Any, option: Any) -> bool:
+    """严格匹配候选类型，并支持 IntEnum 与其 JSON 整数双向映射。"""
+    if isinstance(value, IntEnum) and type(option) is int:
+        return int(value) == option
+    if type(value) is int and isinstance(option, IntEnum):
+        return value == int(option)
+    return type(value) is type(option) and value == option
 
 
 class ValidationKind(Enum):
@@ -126,7 +135,7 @@ class Validator:
             # 严格匹配 True/False(过滤掉 0/1/None/"true" 等假阳性)
             return isinstance(value, bool)
         if kind is ValidationKind.CHOICE:
-            return value in self._options
+            return any(_choice_matches(value, option) for option in self._options)
         return False
 
     def coerce(self, value: Any) -> Any:
@@ -140,14 +149,17 @@ class Validator:
                     return self._lo
                 if value > self._hi:
                     return self._hi
-                return value
+                return value if self.accepts(value) else self._lo
             except TypeError:
                 return self._lo
         if kind is ValidationKind.BOOLEAN:
             # 非 bool 一律收敛到 True(候选列表第一个)
             return value if isinstance(value, bool) else self._options[0]
         if kind is ValidationKind.CHOICE:
-            return value if value in self._options else self._options[0]
+            for option in self._options:
+                if _choice_matches(value, option):
+                    return option
+            return self._options[0]
         return value
 
     # ---------- 调试友好 ----------

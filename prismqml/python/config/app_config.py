@@ -66,9 +66,26 @@ class AppConfig(SettingsCore):
         group="Window",
         name="WindowType",
         default=1,
-        validator=Validator.choice([0, 1, 2, 3]),
+        validator=Validator.choice([0, 1, 2]),
         restart=True,
     )
 
 
-__all__ = ["AppConfig", "DEFAULT_CONFIG_DIR", "DEFAULT_APP_CONFIG"]
+def validate_app_window_mapping(window) -> bool:
+    """严格校验 AppConfig 已声明的 Window 字段；未知字段保持可扩展。"""
+    if not isinstance(window, dict):
+        return False
+    for entry in AppConfig._setting_entries.values():
+        if entry.group != "Window" or not entry.name or entry.name not in window:
+            continue
+        if not entry.validator.accepts(window[entry.name]):
+            return False
+    return True
+
+
+__all__ = [
+    "AppConfig",
+    "DEFAULT_CONFIG_DIR",
+    "DEFAULT_APP_CONFIG",
+    "validate_app_window_mapping",
+]

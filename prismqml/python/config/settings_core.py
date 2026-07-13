@@ -300,7 +300,9 @@ class SettingsCore(QObject):
             group_payload = payload[current.group]
             if current.name:
                 if not isinstance(group_payload, dict):
-                    continue
+                    raise ValueError(
+                        f"配置 group {current.group!r} 必须是对象"
+                    )
                 if current.name not in group_payload:
                     continue
                 raw = group_payload[current.name]
@@ -334,7 +336,11 @@ class SettingsCore(QObject):
         payload = self._read_mapping()
         if payload is None:
             return False
-        staged = self._stage_mapping(payload)
+        try:
+            staged = self._stage_mapping(payload)
+        except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+            error(f"配置字段无效 Invalid configuration field: {exc}")
+            return False
         self._commit_staged(staged)
 
         self.configChanged.emit()
