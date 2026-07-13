@@ -4,10 +4,13 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """DWM native event filter exception boundaries. DWM 原生事件过滤器异常边界。"""
 
+import logging
 from types import SimpleNamespace
 
 import pytest
-from PySide6.QtCore import QByteArray
+import shiboken6
+from PySide6.QtCore import QByteArray, QCoreApplication, QEvent
+from PySide6.QtGui import QWindow
 
 import prismqml.python.core.shadow as shadow
 
@@ -27,6 +30,30 @@ def _filter_with_flush(flush):
     event_filter._get_msg_class = lambda: message_class
     event_filter._dwmapi = SimpleNamespace(DwmFlush=flush)
     return event_filter
+
+
+def _native_shadow_manager(monkeypatch):
+    monkeypatch.setattr(shadow.ShadowManager, "_instance", None)
+    manager = shadow.ShadowManager()
+    manager._mode = shadow.ShadowMode.NATIVE
+    return manager
+
+
+def _deleted_window(qapp):
+    window = QWindow()
+    window.deleteLater()
+    QCoreApplication.sendPostedEvents(window, QEvent.DeferredDelete)
+    qapp.processEvents()
+    assert not shiboken6.isValid(window)
+    return window
+
+
+class _ProcessControlWindow:
+    def __init__(self, error):
+        self._error = error
+
+    def winId(self):
+        raise self._error
 
 
 class _InstallApp:
@@ -175,3 +202,43 @@ def test_constructor_does_not_swallow_or_cache_process_control(
 
     assert shadow._dwm_sync_filter is None
     assert app.filters == []
+
+
+@pytest.mark.parametrize(
+    "method_name",
+    ("enableShadowForWindow", "disableShadowForWindow"),
+)
+def test_window_shadow_boundary_logs_deleted_qwindow_traceback(
+    monkeypatch, qapp, caplog, method_name
+):
+    manager = _native_shadow_manager(monkeypatch)
+    window = _deleted_window(qapp)
+
+    with caplog.at_level(logging.ERROR, logger="PrismQML"):
+        assert getattr(manager, method_name)(window) is False
+
+    records = [
+        record for record in caplog.records
+        if f"ShadowManager.{method_name} failed" in record.getMessage()
+    ]
+    assert len(records) == 1
+    assert records[0].exc_info is not None
+    assert records[0].exc_info[0] is RuntimeError
+    assert "Traceback (most recent call last):" in caplog.text
+    assert "window.winId()" in caplog.text
+    assert "already deleted" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "method_name",
+    ("enableShadowForWindow", "disableShadowForWindow"),
+)
+@pytest.mark.parametrize("error_type", (KeyboardInterrupt, SystemExit))
+def test_window_shadow_boundary_propagates_process_control(
+    monkeypatch, method_name, error_type
+):
+    manager = _native_shadow_manager(monkeypatch)
+    window = _ProcessControlWindow(error_type("stop"))
+
+    with pytest.raises(error_type, match="stop"):
+        getattr(manager, method_name)(window)

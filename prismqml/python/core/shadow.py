@@ -142,8 +142,11 @@ class ShadowManager(QObject):
             hwnd = int(window.winId())
             info(f"获取窗口句柄: {hwnd}")
             return self.enableShadow(hwnd)
-        except Exception as e:
-            error(f"获取窗口句柄失败: {e}")
+        except Exception as exc:
+            exception(
+                "ShadowManager.enableShadowForWindow failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
             return False
 
     @Slot(int, result=bool)
@@ -171,8 +174,11 @@ class ShadowManager(QObject):
             hwnd = int(window.winId())
             info(f"禁用窗口阴影: {hwnd}")
             return self.disableShadow(hwnd)
-        except Exception as e:
-            error(f"禁用窗口阴影失败: {e}")
+        except Exception as exc:
+            exception(
+                "ShadowManager.disableShadowForWindow failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
             return False
 
     # ==================== Windows DWM ====================
