@@ -49,6 +49,21 @@ def test_qrcode_protocol_golden_vector_and_color_normalization():
     )
 
 
+def test_qrcode_protocol_unicode_and_reserved_golden_vectors():
+    unicode_request = create_request(
+        "你好，PrismQML 🌈 / QR", 120, "#112233", "#445566", "H"
+    )
+    assert encode_provider_id(unicode_request) == (
+        "v1.WzEsIuS9oOWlve-8jFByaXNtUU1MIPCfjIggLyBRUiIsMTIwLCIjMTEyMjMzIiwiIzQ0NTU2NiIsIkgiXQ"
+    )
+    reserved_request = create_request(
+        'A|#%?/&=+"\\\nB', 120, "#112233", "#445566", "H"
+    )
+    assert encode_provider_id(reserved_request) == (
+        "v1.WzEsIkF8IyU_LyY9K1wiXFxcbkIiLDEyMCwiIzExMjIzMyIsIiM0NDU1NjYiLCJIIl0"
+    )
+
+
 @pytest.mark.parametrize(
     "content",
     [

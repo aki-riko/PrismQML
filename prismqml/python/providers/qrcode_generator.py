@@ -110,7 +110,9 @@ class QRCodeImageProvider(QQuickImageProvider):
             box_size=1,
             border=QUIET_ZONE_MODULES,
         )
-        qr.add_data(request.content)
+        # Match Nayuki C++ makeSegments(): choose one mode for the complete text.
+        # 与 C++ Nayuki 保持一致：整串只选择一种编码模式，不自动拆段。
+        qr.add_data(request.content, optimize=0)
         qr.make(fit=True)
         return self._render_matrix(qr.get_matrix(), request)
 

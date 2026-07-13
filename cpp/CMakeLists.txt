@@ -31,6 +31,7 @@ add_library(prism STATIC
     src/Updater.cpp
     src/ScreenEyedropper.cpp
     src/QRCodeGenerator.cpp
+    src/QRCodeProtocol_p.cpp
     src/SqlListModel.cpp
     src/PlatformInfo.cpp
     src/Icon.cpp
@@ -69,6 +70,7 @@ add_library(prism STATIC
     include/prism/App.h
     include/prism/Window.h
     src/ConfigContracts_p.h
+    src/QRCodeProtocol_p.h
 )
 
 target_include_directories(prism PUBLIC
@@ -301,13 +303,19 @@ if(PRISM_BUILD_TESTS)
     endif()
 
     # QR 端到端验证: 生成 QR PNG 供 tests/qr/verify_qr.py 用 opencv 解码比对
-    qt_add_executable(prism_test_qrcode_gen tests/test_qrcode_gen.cpp)
+    qt_add_executable(prism_test_qrcode_gen
+        tests/test_qrcode_gen.cpp
+        tests/test_qrcode_protocol.cpp
+        tests/QRCodeTestSupport.h)
     target_link_libraries(prism_test_qrcode_gen PRIVATE prism)
+    target_include_directories(prism_test_qrcode_gen PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
     set(PRISM_QR_TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/test-output/qrcode")
     file(MAKE_DIRECTORY "${PRISM_QR_TEST_OUTPUT_DIR}")
     prism_add_cpp_test(
         prism_test_qrcode_gen prism_test_qrcode_gen offscreen
-        "${PRISM_QR_TEST_OUTPUT_DIR}")
+        "${PRISM_QR_TEST_OUTPUT_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml")
     set_tests_properties(prism_test_qrcode_gen PROPERTIES
         FIXTURES_SETUP prism_qrcode_generated)
     add_test(

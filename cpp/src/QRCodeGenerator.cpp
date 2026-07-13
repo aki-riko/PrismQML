@@ -2,139 +2,196 @@
 // Copyright 2026 aki-riko
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
-// PrismQML C++ 宿主 - QRCodeGenerator 实现 (真实编码, 镜像 Python _generate_qrcode)
-// 编码后端: nayuki QR-Code-generator (third_party/qrcodegen, MIT)。
+// PrismQML C++ host - strict QR protocol, rendering, and bounded cache.
 #include "prism/QRCodeGenerator.h"
 
-#include <QImage>
-#include <QColor>
-#include <QSize>
-#include <QRect>
-#include <QPainter>
-#include <QStringList>
-
+#include "QRCodeProtocol_p.h"
 #include "qrcodegen/qrcodegen.hpp"
 
+#include <QColor>
+#include <QDebug>
+#include <QMutexLocker>
+#include <QPainter>
+#include <QRect>
+
+#include <new>
+#include <optional>
+#include <vector>
+
 namespace prism {
+namespace {
 
-QRCodeGenerator *QRCodeGenerator::instance() {
-    static QRCodeGenerator *s = new QRCodeGenerator();
-    return s;
+std::optional<qrcodegen::QrCode::Ecc> mapEcc(const QString &level) {
+    if (level == QStringLiteral("L")) return qrcodegen::QrCode::Ecc::LOW;
+    if (level == QStringLiteral("M")) return qrcodegen::QrCode::Ecc::MEDIUM;
+    if (level == QStringLiteral("Q")) return qrcodegen::QrCode::Ecc::QUARTILE;
+    if (level == QStringLiteral("H")) return qrcodegen::QrCode::Ecc::HIGH;
+    return std::nullopt;
 }
 
-QString QRCodeGenerator::getImageSource(const QString &content, int size,
-                                        const QString &fgColor, const QString &bgColor,
-                                        const QString &errorLevel) {
-    // URL 编码 content 中的 | (镜像 Python: replace("|","%7C"))
-    QString safe = content;
-    safe.replace(QLatin1Char('|'), QStringLiteral("%7C"));
-    return QStringLiteral("image://qrcode/%1|%2|%3|%4|%5")
-        .arg(safe).arg(size).arg(fgColor, bgColor, errorLevel);
+QImage reportSize(const QImage &image, QSize *reportedSize) {
+    if (reportedSize) *reportedSize = image.size();
+    return image;
 }
 
-// 错误纠正级别映射 (镜像 Python error_map: L/M/Q/H)
-static qrcodegen::QrCode::Ecc mapEcc(const QString &level) {
-    const QString l = level.toUpper();
-    if (l == QStringLiteral("L")) return qrcodegen::QrCode::Ecc::LOW;
-    if (l == QStringLiteral("Q")) return qrcodegen::QrCode::Ecc::QUARTILE;
-    if (l == QStringLiteral("H")) return qrcodegen::QrCode::Ecc::HIGH;
-    return qrcodegen::QrCode::Ecc::MEDIUM;  // 默认 M (与 Python 一致)
-}
+QImage renderCode(const qrcodegen::QrCode &code, int size,
+                  const QColor &foreground, const QColor &background) {
+    const int modules = code.getSize() + kQrCodeQuietZoneModules * 2;
+    const int moduleSize = size / modules;
+    if (moduleSize < 1) return QImage();
 
-// 真实生成二维码 QImage (镜像 Python _generate_qrcode: border=2, 模块整数缩放)
-QImage QRCodeImageProvider::generateQrCode(const QString &content, int size,
-                                           const QString &fgColor, const QString &bgColor,
-                                           const QString &errorLevel) const {
-    if (content.isEmpty())
-        return createPlaceholder(size);
-
-    qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(
-        content.toUtf8().constData(), mapEcc(errorLevel));
-    const int border = 2;                              // 边框 2 个模块 (镜像 Python)
-    const int modules = qr.getSize() + border * 2;     // 含边框的模块数
-
-    // 计算模块像素大小以适应目标尺寸 (镜像 Python module_size)
-    const int moduleSize = qMax(1, size / modules);
-    const int actualSize = modules * moduleSize;
-
-    QImage image(actualSize, actualSize, QImage::Format_RGB32);
-    const QColor fg(fgColor);
-    const QColor bg(bgColor);
-    image.fill(bg.isValid() ? bg : QColor(QStringLiteral("#ffffff")));
+    const int offset = (size - modules * moduleSize) / 2;
+    QImage image(size, size, QImage::Format_RGB32);
+    if (image.isNull()) return image;
+    image.fill(background);
 
     QPainter painter(&image);
-    const QColor dark = fg.isValid() ? fg : QColor(QStringLiteral("#000000"));
-    for (int y = 0; y < qr.getSize(); ++y) {
-        for (int x = 0; x < qr.getSize(); ++x) {
-            if (qr.getModule(x, y)) {
-                painter.fillRect(QRect((x + border) * moduleSize,
-                                       (y + border) * moduleSize,
-                                       moduleSize, moduleSize),
-                                 dark);
-            }
+    for (int y = 0; y < code.getSize(); ++y) {
+        for (int x = 0; x < code.getSize(); ++x) {
+            if (!code.getModule(x, y)) continue;
+            painter.fillRect(
+                QRect(offset + (x + kQrCodeQuietZoneModules) * moduleSize,
+                      offset + (y + kQrCodeQuietZoneModules) * moduleSize,
+                      moduleSize, moduleSize),
+                foreground);
         }
     }
     painter.end();
-
-    // 缩放到目标尺寸 (镜像 Python image.scaled)
-    if (actualSize != size && size > 0)
-        image = image.scaled(size, size);
     return image;
+}
+
+QImage encodeAndRender(const QString &content, int size, const QColor &foreground,
+                       const QColor &background, qrcodegen::QrCode::Ecc ecc) {
+    const QByteArray utf8 = content.toUtf8();
+    const std::vector<qrcodegen::QrSegment> segments =
+        qrcodegen::QrSegment::makeSegments(utf8.constData());
+    const qrcodegen::QrCode code = qrcodegen::QrCode::encodeSegments(
+        segments, ecc, qrcodegen::QrCode::MIN_VERSION,
+        qrcodegen::QrCode::MAX_VERSION, -1, false);
+    return renderCode(code, size, foreground, background);
+}
+
+}  // namespace
+
+QRCodeGenerator *QRCodeGenerator::instance() {
+    static QRCodeGenerator *instance = new QRCodeGenerator();
+    return instance;
+}
+
+QString QRCodeGenerator::getImageSource(const QString &content, int size,
+                                        const QString &fgColor,
+                                        const QString &bgColor,
+                                        const QString &errorLevel) {
+    return qrcode_protocol::buildImageSource(content, size, fgColor, bgColor,
+                                             errorLevel);
+}
+
+QImage QRCodeImageProvider::generateQrCode(const QString &content, int size,
+                                           const QString &fgColor,
+                                           const QString &bgColor,
+                                           const QString &errorLevel) const noexcept {
+    try {
+        const auto ecc = mapEcc(errorLevel);
+        const QColor foreground(fgColor);
+        const QColor background(bgColor);
+        if (!ecc || size < kQrCodeMinimumSize || size > kQrCodeMaximumSize ||
+            !foreground.isValid() || foreground.alpha() != 255 ||
+            !background.isValid() || background.alpha() != 255) {
+            return QImage();
+        }
+
+        return encodeAndRender(content, size, foreground, background, *ecc);
+    } catch (const qrcodegen::data_too_long &) {
+        qWarning() << "QRCode data exceeds encoder capacity";
+    } catch (const std::bad_alloc &) {
+        qWarning() << "QRCode allocation failed within bounded request";
+    } catch (const std::exception &error) {
+        qWarning() << "QRCode generation failed:" << error.what();
+    } catch (...) {
+        qWarning() << "QRCode generation failed with a non-standard exception";
+    }
+    return QImage();
+}
+
+QImage QRCodeImageProvider::cachedImage(const QString &key, bool *found) {
+    QMutexLocker locker(&m_cacheMutex);
+    const auto iterator = m_cache.constFind(key);
+    if (iterator == m_cache.cend()) {
+        *found = false;
+        return QImage();
+    }
+    const QImage image = iterator.value();
+    m_lruOrder.removeAll(key);
+    m_lruOrder.append(key);
+    *found = true;
+    return image;
+}
+
+QImage QRCodeImageProvider::storeCachedImage(const QString &key,
+                                             const QImage &image) {
+    const qsizetype cost = image.sizeInBytes();
+    if (image.isNull() || cost <= 0 || cost > kQrCodeMaxCacheBytes) return image;
+
+    QMutexLocker locker(&m_cacheMutex);
+    const auto existing = m_cache.constFind(key);
+    if (existing != m_cache.cend()) {
+        const QImage cached = existing.value();
+        m_lruOrder.removeAll(key);
+        m_lruOrder.append(key);
+        return cached;
+    }
+    while (!m_lruOrder.isEmpty() &&
+           (m_cache.size() + 1 > kQrCodeMaxCacheEntries ||
+            m_cacheBytes + cost > kQrCodeMaxCacheBytes)) {
+        const QString evictedKey = m_lruOrder.takeFirst();
+        const QImage evicted = m_cache.take(evictedKey);
+        m_cacheBytes -= evicted.sizeInBytes();
+    }
+    m_cache.insert(key, image);
+    m_lruOrder.append(key);
+    m_cacheBytes += cost;
+    return image;
+}
+
+int QRCodeImageProvider::boundedPlaceholderSize(const QSize &requestedSize) {
+    if (requestedSize.width() == requestedSize.height() &&
+        requestedSize.width() >= kQrCodeMinimumSize &&
+        requestedSize.width() <= kQrCodeMaximumSize) {
+        return requestedSize.width();
+    }
+    return kQrCodeDefaultSize;
 }
 
 QImage QRCodeImageProvider::createPlaceholder(int size) {
-    const int s = size > 0 ? size : 150;
-    QImage image(s, s, QImage::Format_RGB32);
-    image.fill(QColor(QStringLiteral("#f0f0f0")));
+    const int bounded =
+        size >= kQrCodeMinimumSize && size <= kQrCodeMaximumSize
+            ? size
+            : kQrCodeDefaultSize;
+    QImage image(bounded, bounded, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
     return image;
 }
 
-// 请求二维码图片 (镜像 Python requestImage: 解析 content|size|fg|bg|level + LRU 缓存)
 QImage QRCodeImageProvider::requestImage(const QString &id, QSize *size,
                                          const QSize &requestedSize) {
-    // 解析参数 content|size|fg|bg|level
-    const QStringList parts = id.split(QLatin1Char('|'));
-    const QString content = parts.value(0);
-    int targetSize = 150;
-    if (parts.size() > 1) {
-        bool ok = false;
-        const int sz = parts[1].toInt(&ok);
-        if (ok && sz > 0) targetSize = sz;
-    }
-    const QString fg = parts.size() > 2 ? parts[2] : QStringLiteral("#000000");
-    const QString bg = parts.size() > 3 ? parts[3] : QStringLiteral("#ffffff");
-    const QString level = parts.size() > 4 ? parts[4] : QStringLiteral("M");
-
-    if (content.isEmpty()) {
-        QImage img = createPlaceholder(requestedSize.width() > 0 ? requestedSize.width() : targetSize);
-        if (size) *size = img.size();
-        return img;
+    const auto request = qrcode_protocol::decodeProviderId(id);
+    if (!request) {
+        return reportSize(createPlaceholder(boundedPlaceholderSize(requestedSize)),
+                          size);
     }
 
-    // 缓存 key (镜像 Python cache_key)
-    const QString cacheKey = QStringLiteral("%1|%2|%3|%4|%5")
-        .arg(content).arg(targetSize).arg(fg, bg, level);
-    if (m_cache.contains(cacheKey)) {
-        m_lruOrder.removeAll(cacheKey);
-        m_lruOrder.append(cacheKey);
-        const QImage &img = m_cache[cacheKey];
-        if (size) *size = img.size();
-        return img;
+    bool found = false;
+    const QImage cached = cachedImage(id, &found);
+    if (found) return reportSize(cached, size);
+
+    const QImage generated =
+        generateQrCode(request->content, request->size, request->foreground,
+                       request->background, request->errorLevel);
+    if (generated.isNull()) {
+        return reportSize(createPlaceholder(boundedPlaceholderSize(requestedSize)),
+                          size);
     }
-
-    QImage img = generateQrCode(content, targetSize, fg, bg, level);
-
-    // 缓存限制: 超出时清除最早的一半 (镜像 Python evict oldest half)
-    if (m_cache.size() >= kMaxCacheSize) {
-        const int removeCount = kMaxCacheSize / 2;
-        for (int i = 0; i < removeCount && !m_lruOrder.isEmpty(); ++i)
-            m_cache.remove(m_lruOrder.takeFirst());
-    }
-    m_cache.insert(cacheKey, img);
-    m_lruOrder.append(cacheKey);
-
-    if (size) *size = img.size();
-    return img;
+    return reportSize(storeCachedImage(id, generated), size);
 }
 
 }  // namespace prism

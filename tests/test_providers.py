@@ -10,17 +10,50 @@ import pytest
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QImage
 from qrcode.exceptions import DataOverflowError
+from qrcode.constants import (
+    ERROR_CORRECT_H,
+    ERROR_CORRECT_L,
+    ERROR_CORRECT_M,
+    ERROR_CORRECT_Q,
+)
 
 from prismqml.python.providers._qrcode_protocol import (
     MAX_CACHE_BYTES,
     create_request,
     encode_provider_id,
 )
+from prismqml.python.providers import qrcode_generator
 from prismqml.python.providers.qrcode_generator import QRCodeImageProvider
 from prismqml.python.providers.svg_provider import SvgImageProvider
 
 
 class TestImageProviders:
+    @pytest.mark.parametrize(
+        ("level", "expected"),
+        [
+            ("L", ERROR_CORRECT_L),
+            ("M", ERROR_CORRECT_M),
+            ("Q", ERROR_CORRECT_Q),
+            ("H", ERROR_CORRECT_H),
+        ],
+    )
+    def test_qrcode_error_levels_are_exact(self, monkeypatch, level, expected):
+        """Keep all four public ECC levels exact. 精确保持四档纠错级别。"""
+        captured = {}
+        real_qrcode = qrcode_generator.qrcode.QRCode
+
+        def create_qrcode(*args, **kwargs):
+            captured["error_correction"] = kwargs["error_correction"]
+            return real_qrcode(*args, **kwargs)
+
+        monkeypatch.setattr(qrcode_generator.qrcode, "QRCode", create_qrcode)
+        provider = QRCodeImageProvider()
+        provider_id = encode_provider_id(
+            create_request(f"ecc-{level}", 96, "#000000", "#ffffff", level)
+        )
+        assert provider.requestImage(provider_id, QSize(), QSize()).size() == QSize(96, 96)
+        assert captured["error_correction"] == expected
+
     def test_qrcode_cache_eviction(self):
         """Verify entry-count LRU eviction. 验证条目数 LRU 驱逐。"""
         provider = QRCodeImageProvider()
@@ -105,6 +138,18 @@ class TestImageProviders:
             images = list(executor.map(request, provider_ids))
         assert all(isinstance(image, QImage) and image.size() == QSize(96, 96) for image in images)
         assert len(provider._cache) == 4
+
+    def test_qrcode_mixed_mode_content_matches_cpp_capacity(self):
+        """Keep Python/C++ whole-text segmentation aligned. 对齐整串分段策略。"""
+        provider = QRCodeImageProvider()
+        provider_id = encode_provider_id(
+            create_request("1" * 20 + "a", 32, "#000000", "#ffffff", "L")
+        )
+        image = provider.requestImage(provider_id, QSize(), QSize(32, 32))
+
+        assert image.size() == QSize(32, 32)
+        assert image.pixelColor(0, 0).alpha() == 0
+        assert not provider._cache
 
 
     def test_svg_cache_eviction(self, tmp_path):
