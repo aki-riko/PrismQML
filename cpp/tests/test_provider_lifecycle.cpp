@@ -5,14 +5,18 @@
 // PrismQML C++ 宿主 - ImageProvider 双引擎生命周期回归。
 #include "prism/AcrylicHelper.h"
 #include "prism/Accessors.h"
+#include "prism/ConfigManager.h"
 #include "prism/Registry.h"
 #include "TestProcess.h"
 
 #include <QColor>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
 #include <QGuiApplication>
 #include <QImage>
 #include <QQmlEngine>
+#include <QTemporaryDir>
 #include <memory>
 
 using namespace prism;
@@ -66,18 +70,41 @@ static bool runLifecycleCycle(int cycle) {
     return readAcrylicState(engineB, imageId);
 }
 
-int main(int argc, char *argv[]) {
-    if (!prism::test::configureNonInteractiveProcess()) return 2;
-    QGuiApplication app(argc, argv);
+static bool runLifecycleSuite(const QString &configPath) {
     if (!providerFactoriesAreEngineScoped()) {
         qCritical() << "FAIL: SVG/QRCode provider factory returned a singleton";
-        return 1;
+        return false;
     }
     for (int cycle = 0; cycle < kLifecycleCycles; ++cycle) {
         if (!runLifecycleCycle(cycle)) {
             qCritical() << "FAIL: provider lifecycle cycle" << cycle;
-            return 1;
+            return false;
         }
+    }
+    if (ConfigManager::instance()->getConfigPath() != configPath) {
+        qCritical() << "FAIL: ConfigManager did not use isolated path";
+        return false;
+    }
+    return true;
+}
+
+int main(int argc, char *argv[]) {
+    if (!prism::test::configureNonInteractiveProcess()) return 2;
+    QTemporaryDir testDirectory(
+        QDir::tempPath() + QStringLiteral("/prism-provider-lifecycle-XXXXXX"));
+    if (!testDirectory.isValid()) {
+        qCritical() << "FAIL: provider lifecycle temporary directory";
+        return 2;
+    }
+    const QString configPath =
+        testDirectory.filePath(QStringLiteral("config/app.json"));
+    qputenv(kConfigFilePathEnvironment, QFile::encodeName(configPath));
+    QGuiApplication app(argc, argv);
+    if (!runLifecycleSuite(configPath))
+        return 1;
+    if (!testDirectory.remove()) {
+        qCritical() << "FAIL: provider lifecycle temporary directory cleanup";
+        return 1;
     }
     qInfo() << "PROVIDER_LIFECYCLE_PASSED" << kLifecycleCycles;
     return 0;

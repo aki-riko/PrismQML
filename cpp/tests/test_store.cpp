@@ -24,6 +24,7 @@
 #include <QFile>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QTemporaryDir>
 #include <QtGlobal>
 #include <vector>
 #include <type_traits>
@@ -38,6 +39,19 @@ int main(int argc, char *argv[]) {
     if (!prism::test::configureNonInteractiveProcess()) return 2;
     QCoreApplication app(argc, argv);
     using namespace prism;
+
+    QTemporaryDir testDirectory(
+        QDir::tempPath() + QStringLiteral("/prism-test-store-XXXXXX"));
+    CHECK(testDirectory.isValid(), "test_store 进程唯一临时目录创建成功");
+    if (!testDirectory.isValid())
+        return 2;
+    const bool hadConfigEnvironment =
+        qEnvironmentVariableIsSet(kConfigFilePathEnvironment);
+    const QByteArray originalConfigEnvironment =
+        qgetenv(kConfigFilePathEnvironment);
+    const QString isolatedConfigPath =
+        testDirectory.filePath(QStringLiteral("config/app.json"));
+    qputenv(kConfigFilePathEnvironment, QFile::encodeName(isolatedConfigPath));
 
     qInfo() << "=== Store 测试 ===";
 
@@ -172,8 +186,7 @@ int main(int argc, char *argv[]) {
     qInfo() << "=== SqlListModel 测试 ===";
     {
         // 建临时 SQLite + 插数据 + setQuery 验证
-        QString dbPath = QDir::tempPath() + "/prism_test.db";
-        QFile::remove(dbPath);
+        const QString dbPath = testDirectory.filePath(QStringLiteral("store.db"));
         {
             QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "seed");
             db.setDatabaseName(dbPath);
@@ -187,39 +200,37 @@ int main(int argc, char *argv[]) {
         }
         QSqlDatabase::removeDatabase("seed");
 
-        SqlListModel model;
-        CHECK(model.openDatabase(dbPath), "打开 SQLite");
-        model.setQuery("SELECT id, name, val FROM items ORDER BY id",
-                       "SELECT COUNT(*) FROM items");
-        CHECK(model.count() == 250, "count == 250");
-        CHECK(model.rowCount() == 250, "rowCount == 250");
+        {
+            SqlListModel model;
+            CHECK(model.openDatabase(dbPath), "打开 SQLite");
+            model.setQuery("SELECT id, name, val FROM items ORDER BY id",
+                           "SELECT COUNT(*) FROM items");
+            CHECK(model.count() == 250, "count == 250");
+            CHECK(model.rowCount() == 250, "rowCount == 250");
 
-        // getRow(0) 第一行
-        QVariantMap r0 = model.getRow(0);
-        CHECK(r0.value("id").toInt() == 1 && r0.value("name").toString() == "item1",
-              "getRow(0) 正确");
-        // getRow(199) 跨页(pageSize=100, 第2页)
-        QVariantMap r199 = model.getRow(199);
-        CHECK(r199.value("id").toInt() == 200 && r199.value("val").toInt() == 2000,
-              "getRow(199) 跨页正确");
-        // data() 经 role 读取
-        auto roles = model.roleNames();
-        int nameRole = roles.key("name", -1);
-        CHECK(nameRole != -1, "roleNames 含 name 列");
-        QVariant nameVal = model.data(model.index(5, 0), nameRole);
-        CHECK(nameVal.toString() == "item6", "data(row5, name) == item6");
-
-        QFile::remove(dbPath);
+            // getRow(0) 第一行
+            QVariantMap r0 = model.getRow(0);
+            CHECK(r0.value("id").toInt() == 1 && r0.value("name").toString() == "item1",
+                  "getRow(0) 正确");
+            // getRow(199) 跨页(pageSize=100, 第2页)
+            QVariantMap r199 = model.getRow(199);
+            CHECK(r199.value("id").toInt() == 200 && r199.value("val").toInt() == 2000,
+                  "getRow(199) 跨页正确");
+            // data() 经 role 读取
+            auto roles = model.roleNames();
+            int nameRole = roles.key("name", -1);
+            CHECK(nameRole != -1, "roleNames 含 name 列");
+            QVariant nameVal = model.data(model.index(5, 0), nameRole);
+            CHECK(nameVal.toString() == "item6", "data(row5, name) == item6");
+        }
+        CHECK(QFile::remove(dbPath), "SqlListModel 析构后 SQLite 文件可删除");
     }
 
-    qInfo() << "=== ConfigManager 测试(备份/恢复真实配置, 不污染) ===";
+    qInfo() << "=== ConfigManager 测试(显式临时路径隔离) ===";
     {
         ConfigManager *cfg = ConfigManager::instance();
         const QString path = cfg->getConfigPath();
-        // 备份真实配置
-        const QString backup = path + ".test_backup";
-        const bool hadFile = QFile::exists(path);
-        if (hadFile) { QFile::remove(backup); QFile::copy(path, backup); }
+        CHECK(path == isolatedConfigPath, "ConfigManager 单例使用测试隔离路径");
 
         // 默认值 (镜像 Python app_config 默认)
         CHECK(cfg->dwmShadow() == true || cfg->dwmShadow() == false, "dwmShadow 可读");
@@ -237,14 +248,8 @@ int main(int argc, char *argv[]) {
         // windowType 校验 (0-3)
         cfg->setWindowType(99);
         CHECK(cfg->windowType() != 99, "非法 windowType 被拒绝");
-        // 恢复 mica
-        cfg->setMicaEnabled(origMica);
-        cfg->setDpiScale(origDpi >= 0 && (origDpi==0||origDpi==100||origDpi==125||
-                          origDpi==150||origDpi==175||origDpi==200) ? origDpi : 0);
-
-        // 恢复真实配置文件
-        if (hadFile) { QFile::remove(path); QFile::copy(backup, path); QFile::remove(backup); }
-        else { QFile::remove(path); }
+        CHECK(!origMica && origDpi == 0,
+              "隔离配置从默认值启动，不读取真实用户数据");
     }
 
     qInfo() << "=== PlatformInfo 测试(本机桌面) ===";
@@ -361,6 +366,12 @@ int main(int argc, char *argv[]) {
         CHECK(!dwm1, "installDwmSyncFilter 非 Windows 诚实降级 false");
 #endif
     }
+
+    if (hadConfigEnvironment)
+        qputenv(kConfigFilePathEnvironment, originalConfigEnvironment);
+    else
+        qunsetenv(kConfigFilePathEnvironment);
+    CHECK(testDirectory.remove(), "test_store 临时目录可完整删除");
 
     qInfo() << "";
     if (g_failed == 0)

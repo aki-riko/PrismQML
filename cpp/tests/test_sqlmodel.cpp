@@ -12,9 +12,10 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
-#include <QFile>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QTemporaryDir>
+#include <QUuid>
 
 static int g_failed = 0;
 #define CHECK(cond, name) do { \
@@ -26,8 +27,8 @@ using namespace prism;
 
 // 建一个 SQLite 库并插入指定 (id,val) 行
 static void seedDb(const QString &path, const QList<QPair<int, int>> &rows) {
-    QFile::remove(path);
-    const QString conn = QStringLiteral("seed_%1").arg(path);
+    const QString conn = QStringLiteral("seed_%1").arg(
+        QUuid::createUuid().toString(QUuid::Id128));
     {
         QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), conn);
         db.setDatabaseName(path);
@@ -51,13 +52,38 @@ private:
     QString m_a, m_b;
 };
 
+static void testFailedOpenCleanup(const QString &path) {
+    const int connectionsBefore = QSqlDatabase::connectionNames().size();
+    SqlListModel model;
+    CHECK(!model.openDatabase(path), "不存在父目录的 SQLite 打开失败");
+    CHECK(QSqlDatabase::connectionNames().size() == connectionsBefore,
+          "失败的 SQLite 连接立即从 Qt 注册表移除");
+}
+
+static void testConnectionReplacement(const QString &first, const QString &second) {
+    const int connectionsBefore = QSqlDatabase::connectionNames().size();
+    {
+        SqlListModel model;
+        CHECK(model.openDatabase(first), "首次数据库连接成功");
+        CHECK(model.openDatabase(second), "替换数据库连接成功");
+        CHECK(QSqlDatabase::connectionNames().size() == connectionsBefore + 1,
+              "替换连接后只保留一个模型连接");
+    }
+    CHECK(QSqlDatabase::connectionNames().size() == connectionsBefore,
+          "模型析构后数据库连接全部注销");
+}
+
 int main(int argc, char *argv[]) {
     if (!prism::test::configureNonInteractiveProcess()) return 2;
     QCoreApplication app(argc, argv);
-    const QString dir = QDir::tempPath();
-    const QString dbA = dir + QStringLiteral("/prism_shard_a.db");
-    const QString dbB = dir + QStringLiteral("/prism_shard_b.db");
-    const QString dbSingle = dir + QStringLiteral("/prism_single.db");
+    QTemporaryDir temporaryDir(
+        QDir::tempPath() + QStringLiteral("/prism-sqlmodel-XXXXXX"));
+    CHECK(temporaryDir.isValid(), "进程唯一 SQLite 临时目录创建成功");
+    if (!temporaryDir.isValid())
+        return 2;
+    const QString dbA = temporaryDir.filePath(QStringLiteral("shard-a.db"));
+    const QString dbB = temporaryDir.filePath(QStringLiteral("shard-b.db"));
+    const QString dbSingle = temporaryDir.filePath(QStringLiteral("single.db"));
 
     // shard A: id 1,3,5,7,9 (val=id*10); shard B: id 2,4,6,8,10
     QList<QPair<int, int>> rowsA, rowsB, rowsAll;
@@ -69,6 +95,9 @@ int main(int argc, char *argv[]) {
     seedDb(dbA, rowsA);
     seedDb(dbB, rowsB);
     seedDb(dbSingle, rowsAll);
+    testFailedOpenCleanup(
+        temporaryDir.filePath(QStringLiteral("missing-parent/failed.db")));
+    testConnectionReplacement(dbA, dbB);
 
     const QByteArray idRole = "id";
 
@@ -90,6 +119,9 @@ int main(int argc, char *argv[]) {
         CHECK(ordered, "多 shard 全局排序 id=1..10 (跨 shard 交错归并正确)");
         CHECK(model.getRow(0).value("id").toInt() == 1, "首行 id=1(来自 shard A)");
         CHECK(model.getRow(1).value("id").toInt() == 2, "次行 id=2(来自 shard B)");
+        model.setQuery(QStringLiteral("SELECT id, val FROM items ORDER BY id"),
+                       QStringLiteral("SELECT COUNT(*) FROM items"));
+        CHECK(model.count() == 10, "重复 fan-out 查询替换旧 shard 连接");
     }
 
     // PLACEHOLDER_MORE_TESTS
@@ -148,6 +180,8 @@ int main(int argc, char *argv[]) {
         CHECK(model.getRow(9).value("val").toInt() == 100, "单库末行 val=100");
     }
 
+
+    CHECK(temporaryDir.remove(), "所有 SqlListModel 析构后临时目录可删除");
 
     qInfo() << "";
     if (g_failed == 0)

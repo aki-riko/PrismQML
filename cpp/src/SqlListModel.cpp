@@ -18,23 +18,48 @@ namespace prism {
 
 SqlListModel::SqlListModel(QObject *parent) : QAbstractListModel(parent) {}
 
+SqlListModel::~SqlListModel() {
+    closeConnections();
+}
+
 // 打开单个 SQLite 库, 返回连接名 (空=失败)
 static QString openShardConn(const QString &dbPath) {
     const QString conn = QStringLiteral("prism_sql_%1")
                              .arg(QUuid::createUuid().toString(QUuid::Id128));
-    QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), conn);
-    db.setDatabaseName(dbPath);
-    if (!db.open()) {
-        qWarning() << "prism::SqlListModel 打开数据库失败:" << db.lastError().text();
-        return QString();
+    QString error;
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), conn);
+        db.setDatabaseName(dbPath);
+        if (db.open())
+            return conn;
+        error = db.lastError().text();
     }
-    return conn;
+    QSqlDatabase::removeDatabase(conn);
+    qWarning() << "prism::SqlListModel 打开数据库失败:" << error;
+    return QString();
+}
+
+void SqlListModel::closeConnections() {
+    QStringList connections = m_shardConns;
+    if (!m_connName.isEmpty() && !connections.contains(m_connName))
+        connections.append(m_connName);
+    m_connName.clear();
+    m_shardConns.clear();
+    for (const QString &connection : connections) {
+        {
+            QSqlDatabase database = QSqlDatabase::database(connection, false);
+            if (database.isValid())
+                database.close();
+        }
+        QSqlDatabase::removeDatabase(connection);
+    }
 }
 
 bool SqlListModel::openDatabase(const QString &dbPath) {
     const QString conn = openShardConn(dbPath);
     if (conn.isEmpty())
         return false;
+    closeConnections();
     m_connName = conn;
     m_shardConns = QStringList{conn};   // 单库=单 shard
     return true;
@@ -48,6 +73,19 @@ void SqlListModel::setCursorColumns(const QStringList &columns) {
     m_cursorColumns = columns;
 }
 
+void SqlListModel::replaceRoutedConnections(const QVariantList &params) {
+    QStringList connections;
+    for (const QString &path : m_router->route(params)) {
+        const QString connection = openShardConn(path);
+        if (!connection.isEmpty())
+            connections.append(connection);
+    }
+    closeConnections();
+    m_shardConns = connections;
+    if (!m_shardConns.isEmpty())
+        m_connName = m_shardConns.first();
+}
+
 void SqlListModel::setQuery(const QString &sql, const QString &countSql,
                             const QVariantList &params) {
     beginResetModel();
@@ -59,17 +97,8 @@ void SqlListModel::setQuery(const QString &sql, const QString &countSql,
     m_endCursors.clear();
 
     // 多 shard 路由: 若设置了 router, 用 route(params) 决定命中的 shard 集合
-    if (m_router) {
-        const QStringList shards = m_router->route(params);
-        m_shardConns.clear();
-        for (const QString &path : shards) {
-            const QString conn = openShardConn(path);
-            if (!conn.isEmpty())
-                m_shardConns << conn;
-        }
-        if (!m_shardConns.isEmpty())
-            m_connName = m_shardConns.first();  // 列解析/count 用第一个 shard
-    }
+    if (m_router)
+        replaceRoutedConnections(params);
 
     m_rowCount = computeCount();
     resolveColumns();

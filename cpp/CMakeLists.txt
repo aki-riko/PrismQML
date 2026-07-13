@@ -220,6 +220,11 @@ if(PRISM_BUILD_TESTS)
         PRISM_TEST_ICON_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML/controls/icons/fluent")
     prism_add_cpp_test(prism_test_store prism_test_store offscreen)
 
+    qt_add_executable(prism_test_config_manager tests/test_config_manager.cpp)
+    target_link_libraries(prism_test_config_manager PRIVATE prism)
+    prism_add_cpp_test(
+        prism_test_config_manager prism_test_config_manager offscreen)
+
     qt_add_executable(prism_test_system tests/test_system.cpp)
     target_link_libraries(prism_test_system PRIVATE prism)
     prism_add_cpp_test(prism_test_system prism_test_system offscreen)
@@ -322,6 +327,7 @@ if(PRISM_BUILD_TESTS)
 
     set_tests_properties(
         prism_test_store
+        prism_test_config_manager
         prism_test_system
         prism_test_qrcode_gen
         prism_test_qrcode_decode

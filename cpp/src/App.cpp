@@ -4,6 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - App 实现 (镜像 Python window/app.py)
 #include "prism/App.h"
+#include "prism/ConfigManager.h"
 #include "prism/Registry.h"
 #include "prism/ShadowManager.h"
 
@@ -13,7 +14,6 @@
 #include <QSGRendererInterface>
 #include <QObject>
 #include <QDebug>
-#include <QDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -49,10 +49,10 @@ void configureQmlEnvironment(bool allowFileRead) {
 }
 
 // 在 QApplication 创建前应用 DPI 缩放配置 (镜像 Python config/dpi.py applyDpiScale)。
-// 直接读 ~/.prismqml/app.json 的 Window/DpiScale, 不经 ConfigManager(后者依赖 QApplication)。
+// 经共享路径解析器读取 Window/DpiScale，不构造 ConfigManager（后者依赖 QApplication）。
 // DpiScale>0 时设固定缩放(关 Qt 自动 DPI); 0 则跟随系统。
 static void applyDpiScaleBeforeApp() {
-    const QString path = QDir(QDir::homePath()).filePath(QStringLiteral(".prismqml/app.json"));
+    const QString path = resolveConfigFilePath();
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly)) return;
     const QJsonObject root = QJsonDocument::fromJson(f.readAll()).object();

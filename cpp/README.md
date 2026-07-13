@@ -53,7 +53,7 @@ ctest --test-dir cpp\build -N
 ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
 ```
 
-默认 headless 集合为 5 个 C++ 测试程序加 1 个 QR 独立解码测试，共 6 项。
+默认 headless 集合为 6 个 C++ 测试程序加 1 个 QR 独立解码测试，共 7 项。
 CTest 会给每个目标注入 Qt DLL 路径，并统一通过 `scripts/test_process.py` 启动：
 测试主体 timeout 为 60 秒，CTest 外层为 110 秒；Qt 平台固定为 `offscreen`，
 Windows 下完整进程树在私有 Desktop 与 Job Object 中运行；标准 DLL/崩溃错误框、
@@ -154,7 +154,7 @@ Updater updater("owner/repo", "v1.0.0", "Setup",
 | 主题 | `setTheme/getTheme` `isDark` `ThemeManager` | core/theme.py |
 | 皮肤 | `setSkin/getSkin`（Fluent / Neobrutalism） | core/theme.py |
 | 主题色 | `setAccentColor/getAccentColor/accentQColor` | core/theme.py |
-| 配置 | `ConfigManager`（JSON 持久化 ~/.prismqml/app.json） | config/config_manager.py |
+| 配置 | `ConfigManager`（JSON 默认持久化 `~/.prismqml/app.json`；`PRISMQML_CONFIG_FILE` 可在首次使用前覆盖） | config/config_manager.py |
 | 窗口阴影 | `ShadowManager`（Win32 DWM） | core/shadow.py |
 | 云母 | `MicaManager`（Win11 DWM backdrop） | window/mica_window.py |
 | 无边框 | `NativeWindow`（WS_CAPTION + WM_NCCALCSIZE 拦截） | window/native_window.py |
@@ -235,16 +235,20 @@ int main(int argc, char **argv) {
 ## 验证状态
 
 - Qt 6.11.1 + MSVC 全量编译链接通过（含 nayuki qrcodegen 第三方源）。
-- 零交互门禁：headless CTest `6/6`、Windows native Mica `1/1`；调用者 PATH
+- 零交互门禁：headless CTest `7/7`、Windows native CTest `2/2`（Mica +
+  原生失败注入矩阵）；调用者 PATH
   去除 Qt/PySide 后 `prism_test_provider_lifecycle` 仍为 `1/1`。对应运行新增
   `Application Popup 26`、`Application Error 1000`、`WER 1001` 与 crash dump 均为 0。
 - demo 真实平台渲染：1823×1256，96 种颜色，accent 色 `#F97316` 像素级命中
   （C++ ThemeManager 注入值流到渲染）。
 - `prism_test_store`：Store / Logger / Updater 版本比较 + 对称类型（`Logger` /
   `ActivationReason` / `qml_path` / `WindowCore` / `installDwmSyncFilter` /
-  `runInstallerAndQuit` 失败路径）共 68 项断言全部通过。
+  `runInstallerAndQuit` 失败路径）及隔离配置/SQLite 生命周期回归全部通过。
+- `prism_test_config_manager`：真实目录阻断、目标为目录、空路径、畸形 JSON、
+  类型/候选值错误、成功提交信号时序与内存/磁盘一致性全部通过。
 - `prism_test_sqlmodel`：多 shard fan-out 归并 + keyset 升/降序翻页（逐行 ==
-  OFFSET 路径）+ 单库回归共 11 项断言通过；破坏谓词方向可复现 FAIL（区分力坐实）。
+  OFFSET 路径）+ 单库、失败连接注销、连接替换与临时目录清理回归通过；破坏谓词
+  方向可复现 FAIL（区分力坐实）。
 - `prism_test_qrcode_gen` + `tests/qr/verify_qr.py`：C++ 生成的 QR PNG 由 opencv
   独立解码还原 == 原文，5 组（URL / 中文 / 特殊符号 / 长文本）全部通过。
 - `prism_test_provider_lifecycle`：Acrylic provider 顺序注册到两个真实 QML engine，

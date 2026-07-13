@@ -28,6 +28,7 @@ class SqlListModel : public QAbstractListModel {
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
 public:
     explicit SqlListModel(QObject *parent = nullptr);
+    ~SqlListModel() override;
 
     // 打开数据库 (SQLite 文件路径, 单库路径)
     Q_INVOKABLE bool openDatabase(const QString &dbPath);
@@ -63,6 +64,8 @@ signals:
     void countChanged();
 
 private:
+    void closeConnections();
+    void replaceRoutedConnections(const QVariantList &params);
     int computeCount();
     void resolveColumns();
     QVariantList fetchPage(int pageIdx) const;
