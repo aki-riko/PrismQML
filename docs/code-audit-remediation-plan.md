@@ -552,6 +552,53 @@ git diff --check
 
 建议提交：按异常、窗口构建、数据模型、文件头/导入分别提交。
 
+#### P7E-P7I：2026-07-13 追加只读复核批次
+
+以下问题均已用当前工作树与真实隐藏运行链复现，尚未修复，不计入前述 P7 已完成项。所有 Python/QML 诊断均经统一 runner 执行并保持 `visible_windows=0 / job_active_processes=0`；用户同时确认本轮未出现错误弹窗。
+
+1. **P7E 配置事务、schema 与 Python/C++ 对齐**
+   - `SettingsCore.set()` 当前候选实现会在持久化前发出 `valueUpdated`，失败时再发回滚值；`ConfigManager` 直接把该信号转发给 QML，未提交值会真实外泄。`os.replace()` 成功后的日志异常还可能造成磁盘新值、内存旧值。
+   - `_read_mapping()` 必须把真实畸形输入产生的 `ValueError`（超长 JSON 整数）与 `RecursionError`（极深嵌套）纳入已知文件输入边界；`_apply_mapping()` 中途失败不得留下部分加载状态。
+   - `SettingEntry` 目前作为类属性被同一子类所有实例共享；不同配置文件实例会互相污染值与信号。`__init_subclass__()` 的近祖到远祖合并顺序会让远祖覆盖直接父类 override；重复 `entry.key` 以及同 group 的扁平/嵌套冲突会静默丢字段。必须改成实例隔离或明确收窄公开合同，并在类定义阶段拒绝无损往返不成立的 schema。
+   - C++ `ConfigManager::save()` 仍返回 `void`，五个 setter 在保存失败后照样提交内存与成功信号；`load()` 也绕过 DPI/窗口类型合法值约束。Python 修复必须同步审计 C++ 镜像，不能让两端合同分叉。
+   - `cpp/tests/test_store.cpp` 当前直接备份、改写并恢复真实 `~/.prismqml/app.json`；进程崩溃或强制终止会污染用户配置。常规 headless CTest 必须使用独立测试 HOME/显式临时配置路径，且失败时无需依赖收尾恢复。
+   - 预期效果：保存失败零未提交通知、内存/磁盘一致、加载全有或全无、配置实例与继承 schema 可预测、自动测试不触碰用户数据。
+   - 难度：12-24 小时；风险：高。
+   - 验收：同一真实失败输入验证修前失败、修后通过；Python/C++ 成败、信号、回滚、畸形 JSON、三层继承、重复 key、多实例隔离与中断后用户配置零变化均有回归。
+
+2. **P7F DPI 输入与系统 API 合同**
+   - `applyDpiScale()` 直接信任 JSON：字符串和列表在 `> 0` 处抛 `TypeError`；`true` 会设置 `QT_SCALE_FACTOR=0.01`，`999` 会设置 `9.99`，负数会以非法返回值走系统模式。float、NaN 与 Infinity 同样未被权威候选集拒绝。
+   - `Validator.choice()` 目前因 Python `bool == int` 接受 DPI 的 `False` 与窗口类型的 `True`；`Validator.between()` 对 NaN 出现 `accepts=False` 但 `coerce()` 仍返回 NaN 的不变量破坏。
+   - Python `AppConfig.dpi_scale.options` 的 `{0,100,125,150,175,200}` 必须成为 Python 启动前读取、SettingsCore、QML setter、C++ 启动前读取与 C++ ConfigManager 的共同事实源或严格镜像。
+   - 微软 `GetDpiForSystem()` 合同明确：调用线程为 DPI-unaware 时固定返回 96；当前“不受 DPI 感知影响”的注释错误，QApplication 创建前调用不能证明拿到真实系统缩放。注册表句柄同时应改为确定性关闭。
+   - 预期效果：任意配置文件输入只产生合法离散 DPI，Python/C++ 行为一致，非法值安全回退且不污染 Qt 环境。
+   - 难度：4-8 小时；风险：中。
+   - 验收：字符串、容器、bool、float、超范围、负数、NaN/Infinity、缺失键、损坏 JSON 与 Windows API/注册表失败矩阵全部零窗口通过。
+
+3. **P7G QRCode QML URL 传输协议**
+   - 当前 `getImageSource()` 用 `|` 拼接字段，provider 用 `id.split("|")` 解析；真实 `QQmlEngine + Image` 会把分隔符编码为 `%7C`。输入 `HELLO/120/#112233/#445566/H` 后，provider 实际缓存键为 `HELLO%7C120%7C#112233%7C#445566%7CH|150|#000000|#ffffff|M`，即二维码内容变成整段协议，尺寸、颜色与纠错级别全部退回默认且 QML 无报错。
+   - 现有 provider 与生命周期测试直接调用 Python provider，未经过 QML URL 层，因此无法发现该缺陷；`int(parts[1])` 还位于异常边界外，畸形 id 可直接抛出。
+   - 应改用无歧义的单段编码（例如版本化 JSON + URL-safe Base64），验证尺寸上限、颜色与纠错级别后再生成；不得保留脆弱的分隔符兼容协议。
+   - 预期效果：真实 QML 控件生成的内容、尺寸、颜色和纠错级别与公开属性完全一致，畸形/超大输入安全失败。
+   - 难度：4-8 小时；风险：中。
+   - 验收：必须由隐藏 `QQmlEngine + QRCode.qml + QQuickImageProvider` 真实链抓取并解码二维码内容，不能只直接调用 provider。
+
+4. **P7H NativeWindowHook WinAPI 结果与状态提交**
+   - `_attach()`、`_apply_framechanged()` 与 `detach()` 忽略 `Get/SetWindowLongPtrW`、`SetWindowPos` 的失败结果，却提交 `_hwnds/_framechanged_hwnds/_original_styles` 状态，可能形成不可重试的假 attached/finalized 或“内部已 detach、原生样式未恢复”。
+   - 按微软合同，`SetWindowLongPtrW` 返回 0 既可能失败也可能旧值为 0 的成功，必须 `SetLastError(0)` 后结合 `GetLastError()` 判断；`SetWindowPos` 成功非零、失败为 0。普通异常必须保留 traceback，进程控制异常继续传播。
+   - 预期效果：只有全部必要原生调用成功才提交状态，部分失败可安全回滚或重试，detach 不谎报恢复。
+   - 难度：4-8 小时；风险：高。
+   - 验收：无窗口 mock 合同测试覆盖零返回成功/失败、SetWindowPos 失败、部分提交回滚、重试幂等与 `KeyboardInterrupt/SystemExit`；Windows native 集合仍只能经 CTest 间接运行。
+
+5. **P7I 剩余规范库存**
+   - 当前工作树 AST 口径：`prismqml/python` 仍有 31 个 `except Exception` handler、57 个超过 30 行的函数；`scripts` 另有 8/5。普通错误路径大量只记无 traceback 的 `error/warning/debug`。
+   - 166 个受跟踪 Python 文件中仍有 12 个不符合强制四行 MIT 头；需先区分 shebang、人工性能入口与普通源码，再逐批修正。
+   - `tests/qml/bench_skin_frames.py` 把结果硬编码到 `C:/Users/Kotori/frame_bench.txt`，违反路径零硬编码；应改为显式参数、环境变量或测试临时目录。
+   - 未使用导入需按 AST 候选逐个核对公开 re-export、`TYPE_CHECKING` 与导入副作用后再删除，禁止机械清理。
+   - 预期效果：宽捕获具备可解释边界与 traceback，长函数和文件头库存量化归零或仅剩评审例外。
+   - 难度：1-3 天；风险：中。
+   - 验收：重复 AST 库存、Python 3.9 语法、全量 Python、QML probe、headless CTest、changed scanner 与 `git diff --check` 全部通过。
+
 ### P8：图标枚举与孤立 QML 文件
 
 预期效果：资源、Python 枚举、QML 枚举和 qmldir 注册保持单一事实源。
@@ -573,6 +620,8 @@ git diff --check
 4. 若确认保留公共价值，则先决定正确颜色与固定视觉预设政策，再完整处理 token、成员顺序、API、性能、可访问性、双 qmldir 注册和运行时回归；预计 8–16 小时、风险高，禁止只机械迁移 22 项。
 5. P8B 通过修复后的生成器补齐 13 个未暴露 SVG：`BulletedList`、`FitPage`、`Hide`、`Message`、`NavigateForward`、`OpenFile`、`OpenFolderHorizontal`、`PowerButton`、`StickyNotes`、`Update`、`View`、`Volume`、`Zoom`。
 6. 确保 Python/QML 两套枚举数量和值完全一致；其他有公共价值的孤立文件补 qmldir 与测试，确认废弃的文件在用户批准后删除。
+
+2026-07-13 追加只读证据：本机 `D:\PrismQML` 下的 AeroMount、ConfigPilot、Gitora、Kaleidos、Kaleidos-k8s-production-rehearsal 与 quicksketch 已排除 `.git/.venv/build/dist/node_modules` 做精确路径、文件名和 QML 类型实例化检索，未发现上述五个候选文件的 PrismQML 直接消费者；唯一 `PlainTextEdit` 命中来自 Kaleidos 归档文档中的 qfluentwidgets/QTextEdit 语境。该证据只证明本机已知下游零消费者，删除仍必须取得用户明确批准。`extract_icons.py --check` 当前真实退出 1；SVG 为 2497、Python Icon 为 2484，差集仍是前述 13 项且无反向多余项。
 
 验收判据：
 
