@@ -20,10 +20,16 @@
 所有网络操作均异步,通过信号回传结果;不阻塞 GUI 线程。
 """
 
+import ctypes
 import os
 import sys
 import tempfile
 from typing import List, Optional, Tuple
+
+if sys.platform == "win32":
+    from ctypes import wintypes
+else:
+    wintypes = None
 
 from PySide6.QtCore import (
     QObject,
@@ -48,6 +54,13 @@ logger = getLogger()
 _USER_AGENT = b"PrismQML-Updater"
 _UPDATER_API_BASE_ENV = "PRISMQML_UPDATER_API_BASE_URL"
 _DEFAULT_API_BASE_URL = "https://api.github.com"
+_SHELL_EXECUTE_ERRORS = (
+    OSError,
+    AttributeError,
+    ctypes.ArgumentError,
+    TypeError,
+    ValueError,
+)
 
 
 def _normalize_api_base_url(value: Optional[str]) -> str:
@@ -136,6 +149,50 @@ def _pick_asset(assets: list, keyword: str) -> Optional[dict]:
     if exe_assets:
         return exe_assets[0]
     return assets[0]
+
+
+def _configure_shell_execute():
+    """Configure ShellExecuteW's pointer-safe ctypes contract. 配置指针安全签名。"""
+    shell_execute = ctypes.windll.shell32.ShellExecuteW
+    shell_execute.argtypes = [
+        wintypes.HWND,
+        wintypes.LPCWSTR,
+        wintypes.LPCWSTR,
+        wintypes.LPCWSTR,
+        wintypes.LPCWSTR,
+        ctypes.c_int,
+    ]
+    shell_execute.restype = wintypes.HINSTANCE
+    return shell_execute
+
+
+def _launch_windows_installer(installer_path: str, args: list[str]) -> bool:
+    """Launch through the manifest-aware Windows shell. 通过 Windows shell 启动。"""
+    try:
+        shell_execute = _configure_shell_execute()
+        result = int(shell_execute(
+            None, "open", installer_path, " ".join(args) or None, None, 1
+        ) or 0)
+    except _SHELL_EXECUTE_ERRORS as exc:
+        logger.exception(
+            "[Updater] 启动安装包异常: "
+            f"{type(exc).__name__}: {exc}"
+        )
+        return False
+    if result <= 32:
+        logger.warning(
+            f"[Updater] 启动安装包失败(ShellExecute 返回 {result}): {installer_path}"
+        )
+        return False
+    return True
+
+
+def _launch_detached_installer(installer_path: str, args: list[str]) -> bool:
+    """Launch through QProcess without blocking. 通过 QProcess 分离启动。"""
+    ok, _pid = QProcess.startDetached(installer_path, args)
+    if not ok:
+        logger.warning(f"[Updater] 启动安装包失败: {installer_path}")
+    return ok
 
 
 class Updater(QObject):
@@ -353,52 +410,21 @@ class Updater(QObject):
     # ==================== 安装 ====================
     @Slot(str, str, result=bool)
     def runInstallerAndQuit(self, installer_path: str, silent_args: str = "") -> bool:
-        """启动安装包,随后退出当前应用,让安装包覆盖文件。
+        """启动安装包并在成功后请求退出。Launch installer, then request quit.
 
-        Windows 用 ShellExecuteW 的 open 动词启动:若安装包 manifest 标记需管理员权限,
-        Windows 自动弹标准 UAC 提权(无需主动 runas,主动 runas 在部分 UAC 配置下会卡住)。
-        非 Windows 用 QProcess detached 启动。
-
-        Args:
-            installer_path: 安装包路径(通常是 downloadFinished 给出的 localPath)。
-            silent_args: 传给安装包的参数(空格分隔);留空则走可见安装向导。
-
-        Returns:
-            是否成功发起安装。成功时本应用会在返回前发起退出;失败(文件不存在/
-            启动异常)返回 False 且应用不退出,由调用方提示。
+        Windows 遵循安装包 manifest 处理 UAC；其他平台使用 QProcess detached。
+        文件缺失或启动失败时返回 False，且绝不退出当前应用。
         """
         if not installer_path or not os.path.isfile(installer_path):
             logger.warning(f"[Updater] 安装包不存在: {installer_path}")
             return False
         args = [a for a in silent_args.split(" ") if a] if silent_args else []
-
-        # 启动安装包并退出本应用。安装包(InnoSetup)若 manifest 标记需要管理员权限,
-        # Windows 会在启动时自动弹标准 UAC 提权——无需我们主动 runas(主动 runas 在
-        # 某些 UAC 配置下会卡住)。Windows 用 ShellExecuteW open 动词(自动处理 manifest
-        # 提权,且全 Python 版本可带参数;os.startfile 的 arguments 仅 3.10+);
-        # 非 Windows 用 QProcess detached。
-        if sys.platform == "win32":
-            try:
-                import ctypes
-                # ShellExecuteW(hwnd, lpVerb=open, lpFile, lpParameters, lpDirectory, nShowCmd)
-                # open 动词:遵循目标 manifest,admin 程序由系统自动提权(标准 UAC,不卡死)
-                ret = ctypes.windll.shell32.ShellExecuteW(
-                    None, "open", installer_path, " ".join(args) or None, None, 1
-                )
-                if int(ret) <= 32:
-                    logger.warning(f"[Updater] 启动安装包失败(ShellExecute 返回 {ret}): {installer_path}")
-                    return False
-            except Exception as e:  # noqa: BLE001
-                logger.warning(f"[Updater] 启动安装包异常: {e}")
-                return False
-            logger.info(f"[Updater] 已启动安装包,应用即将退出: {installer_path} {args}")
-            QCoreApplication.quit()
-            return True
-
-        # 非 Windows:直接 detached 启动
-        ok = QProcess.startDetached(installer_path, args)
-        if not ok:
-            logger.warning(f"[Updater] 启动安装包失败: {installer_path}")
+        launcher = (
+            _launch_windows_installer
+            if sys.platform == "win32"
+            else _launch_detached_installer
+        )
+        if not launcher(installer_path, args):
             return False
         logger.info(f"[Updater] 已启动安装包,应用即将退出: {installer_path} {args}")
         QCoreApplication.quit()

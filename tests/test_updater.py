@@ -9,6 +9,8 @@
 
 import json
 import os
+from types import SimpleNamespace
+
 import pytest
 
 import prismqml.python.core.updater as updater_module
@@ -180,6 +182,59 @@ class TestSignals:
 
 
 # ==================== 安装(不真启动进程) ====================
+class _FakeShellExecute:
+    def __init__(self, result=42, error=None):
+        self._result = result
+        self._error = error
+        self.calls = []
+
+    def __call__(self, *args):
+        self.calls.append(args)
+        if self._error is not None:
+            raise self._error
+        return self._result
+
+
+def _patch_windows_shell(monkeypatch, shell_execute):
+    wintypes = SimpleNamespace(
+        HWND=object(),
+        LPCWSTR=object(),
+        HINSTANCE=object(),
+    )
+    fake_ctypes = SimpleNamespace(
+        windll=SimpleNamespace(
+            shell32=SimpleNamespace(ShellExecuteW=shell_execute),
+        ),
+        wintypes=wintypes,
+        c_int=object(),
+        ArgumentError=type("ArgumentError", (Exception,), {}),
+    )
+    monkeypatch.setattr(updater_module.sys, "platform", "win32")
+    monkeypatch.setattr(updater_module, "ctypes", fake_ctypes, raising=False)
+    monkeypatch.setattr(updater_module, "wintypes", wintypes, raising=False)
+    return fake_ctypes, wintypes
+
+
+def _assert_shell_execute_contract(
+    shell_execute,
+    fake_ctypes,
+    wintypes,
+    installer,
+):
+    assert shell_execute.argtypes == [
+        wintypes.HWND,
+        wintypes.LPCWSTR,
+        wintypes.LPCWSTR,
+        wintypes.LPCWSTR,
+        wintypes.LPCWSTR,
+        fake_ctypes.c_int,
+    ]
+    assert shell_execute.restype is wintypes.HINSTANCE
+    assert shell_execute.calls == [(
+        None, "open", str(installer), "/NORESTART", None, 1,
+    )]
+
+
 class TestInstaller:
     def test_run_installer_missing_file(self, qapp):
         up = Updater("owner/repo", "v1.0.3")
@@ -189,31 +244,171 @@ class TestInstaller:
         up = Updater("owner/repo", "v1.0.3")
         assert up.openInBrowser("") is False
 
-    def test_run_installer_existing_file_no_crash(self, qapp, tmp_path, monkeypatch):
-        """存在的安装包应走到平台启动分支且不崩(回归:曾因未 import sys 报 NameError)。
-
-        mock 掉真实启动(win32 的 ShellExecuteW / 其它平台的 QProcess)与 app.quit,
-        只验证分支可达、返回 True、不抛异常。
-        """
-        import sys as _sys
-        import prismqml.python.core.updater as mod
-
+    def test_detached_failure_tuple_does_not_quit(self, qapp, tmp_path, monkeypatch):
         installer = tmp_path / "Setup.exe"
         installer.write_bytes(b"dummy")
+        quits = []
+        monkeypatch.setattr(updater_module.sys, "platform", "linux")
+        monkeypatch.setattr(
+            updater_module.QProcess,
+            "startDetached",
+            staticmethod(lambda *_args: (False, 0)),
+        )
+        monkeypatch.setattr(
+            updater_module.QCoreApplication,
+            "quit",
+            staticmethod(lambda: quits.append(True)),
+        )
+        up = Updater("owner/repo", "v1.0.3")
+        assert up.runInstallerAndQuit(str(installer)) is False
+        assert quits == []
 
-        called = {}
-        if _sys.platform == "win32":
-            import ctypes
-            # mock ShellExecuteW 返回 42(>32 视为成功),避免真启动安装包
-            monkeypatch.setattr(ctypes.windll.shell32, "ShellExecuteW",
-                                lambda *a, **k: called.update(shellexec=True) or 42)
-        else:
-            monkeypatch.setattr(mod.QProcess, "startDetached",
-                                staticmethod(lambda *a, **k: called.update(qprocess=True) or True))
-        # 避免真退出应用
-        monkeypatch.setattr(mod.QCoreApplication, "quit", staticmethod(lambda: None))
+    def test_detached_success_tuple_quits_once(self, qapp, tmp_path, monkeypatch):
+        installer = tmp_path / "Setup.pkg"
+        installer.write_bytes(b"dummy")
+        calls = []
+        quits = []
+        monkeypatch.setattr(updater_module.sys, "platform", "darwin")
+        monkeypatch.setattr(
+            updater_module.QProcess,
+            "startDetached",
+            staticmethod(lambda path, args: calls.append((path, args)) or (True, 1234)),
+        )
+        monkeypatch.setattr(
+            updater_module.QCoreApplication,
+            "quit",
+            staticmethod(lambda: quits.append(True)),
+        )
 
         up = Updater("owner/repo", "v1.0.3")
-        result = up.runInstallerAndQuit(str(installer), "/NORESTART")
-        assert result is True
-        assert called.get("shellexec") or called.get("qprocess")
+        assert up.runInstallerAndQuit(str(installer), "--silent") is True
+        assert calls == [(str(installer), ["--silent"])]
+        assert quits == [True]
+
+    @pytest.mark.parametrize("error_type", (KeyboardInterrupt, SystemExit))
+    def test_detached_process_control_propagates_without_quit(
+        self,
+        qapp,
+        tmp_path,
+        monkeypatch,
+        error_type,
+    ):
+        installer = tmp_path / "Setup.pkg"
+        installer.write_bytes(b"dummy")
+        quits = []
+
+        def fail_start(*_args):
+            raise error_type("stop")
+
+        monkeypatch.setattr(updater_module.sys, "platform", "darwin")
+        monkeypatch.setattr(
+            updater_module.QProcess,
+            "startDetached",
+            staticmethod(fail_start),
+        )
+        monkeypatch.setattr(
+            updater_module.QCoreApplication,
+            "quit",
+            staticmethod(lambda: quits.append(True)),
+        )
+
+        up = Updater("owner/repo", "v1.0.3")
+        with pytest.raises(error_type, match="stop"):
+            up.runInstallerAndQuit(str(installer))
+        assert quits == []
+
+    def test_windows_shell_execute_signature_and_success(
+        self,
+        qapp,
+        tmp_path,
+        monkeypatch,
+    ):
+        installer = tmp_path / "Setup.exe"
+        installer.write_bytes(b"dummy")
+        shell_execute = _FakeShellExecute()
+        fake_ctypes, wintypes = _patch_windows_shell(monkeypatch, shell_execute)
+        quits = []
+        monkeypatch.setattr(
+            updater_module.QCoreApplication,
+            "quit",
+            staticmethod(lambda: quits.append(True)),
+        )
+
+        up = Updater("owner/repo", "v1.0.3")
+        assert up.runInstallerAndQuit(str(installer), "/NORESTART") is True
+        _assert_shell_execute_contract(
+            shell_execute, fake_ctypes, wintypes, installer
+        )
+        assert quits == [True]
+
+    @pytest.mark.parametrize("result", (None, 32))
+    def test_windows_shell_execute_failure_does_not_quit(
+        self,
+        qapp,
+        tmp_path,
+        monkeypatch,
+        result,
+    ):
+        installer = tmp_path / "Setup.exe"
+        installer.write_bytes(b"dummy")
+        _patch_windows_shell(monkeypatch, _FakeShellExecute(result=result))
+        quits = []
+        monkeypatch.setattr(
+            updater_module.QCoreApplication,
+            "quit",
+            staticmethod(lambda: quits.append(True)),
+        )
+
+        up = Updater("owner/repo", "v1.0.3")
+        assert up.runInstallerAndQuit(str(installer)) is False
+        assert quits == []
+
+    @pytest.mark.parametrize("error_type", (KeyboardInterrupt, SystemExit))
+    def test_windows_process_control_propagates_without_quit(
+        self,
+        qapp,
+        tmp_path,
+        monkeypatch,
+        error_type,
+    ):
+        installer = tmp_path / "Setup.exe"
+        installer.write_bytes(b"dummy")
+        shell_execute = _FakeShellExecute(error=error_type("stop"))
+        _patch_windows_shell(monkeypatch, shell_execute)
+        quits = []
+        monkeypatch.setattr(
+            updater_module.QCoreApplication,
+            "quit",
+            staticmethod(lambda: quits.append(True)),
+        )
+
+        up = Updater("owner/repo", "v1.0.3")
+        with pytest.raises(error_type, match="stop"):
+            up.runInstallerAndQuit(str(installer))
+        assert quits == []
+
+    def test_windows_shell_execute_exception_keeps_traceback_route(
+        self,
+        qapp,
+        tmp_path,
+        monkeypatch,
+    ):
+        installer = tmp_path / "Setup.exe"
+        installer.write_bytes(b"dummy")
+        shell_execute = _FakeShellExecute(error=OSError("shell unavailable"))
+        _patch_windows_shell(monkeypatch, shell_execute)
+        messages = []
+        quits = []
+        monkeypatch.setattr(updater_module.logger, "exception", messages.append)
+        monkeypatch.setattr(
+            updater_module.QCoreApplication,
+            "quit",
+            staticmethod(lambda: quits.append(True)),
+        )
+
+        up = Updater("owner/repo", "v1.0.3")
+        assert up.runInstallerAndQuit(str(installer)) is False
+        assert messages == [
+            "[Updater] 启动安装包异常: OSError: shell unavailable"
+        ]
+        assert quits == []
