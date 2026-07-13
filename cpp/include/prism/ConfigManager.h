@@ -8,14 +8,12 @@
 // ~/.prismqml/app.json，首次使用前可用 PRISMQML_CONFIG_FILE 覆盖。
 #pragma once
 
+#include "prism/ConfigContracts.h"
+
 #include <QObject>
 #include <QString>
 
 namespace prism {
-
-inline constexpr char kConfigFilePathEnvironment[] = "PRISMQML_CONFIG_FILE";
-
-QString resolveConfigFilePath(const QString &configured = QString());
 
 class ConfigManager : public QObject {
     Q_OBJECT
@@ -23,8 +21,10 @@ class ConfigManager : public QObject {
     Q_PROPERTY(bool lazyLoading READ lazyLoading NOTIFY lazyLoadingChanged)
     Q_PROPERTY(bool dwmShadow READ dwmShadow NOTIFY dwmShadowChanged)
     Q_PROPERTY(int dpiScale READ dpiScale NOTIFY dpiScaleChanged)
+    Q_PROPERTY(QVariantList dpiScaleOptions READ dpiScaleOptions CONSTANT)
     Q_PROPERTY(bool micaEnabled READ micaEnabled NOTIFY micaEnabledChanged)
     Q_PROPERTY(int windowType READ windowType NOTIFY windowTypeChanged)
+    Q_PROPERTY(QVariantList windowTypeOptions READ windowTypeOptions CONSTANT)
 
 public:
     static ConfigManager *instance();
@@ -35,16 +35,18 @@ public:
     bool lazyLoading() const { return m_state.lazyLoading; }
     bool dwmShadow() const { return m_state.dwmShadow; }
     int dpiScale() const { return m_state.dpiScale; }
+    QVariantList dpiScaleOptions() const;
     bool micaEnabled() const { return m_state.micaEnabled; }
     int windowType() const { return m_state.windowType; }
+    QVariantList windowTypeOptions() const;
 
 public slots:
     // ---- QML 可调用 setter (镜像 Python @Slot) ----
     void setLazyLoading(bool value);
     void setDwmShadow(bool value);
-    void setDpiScale(int value);
+    void setDpiScale(const QVariant &value);
     void setMicaEnabled(bool value);
-    void setWindowType(int value);
+    void setWindowType(const QVariant &value);
     QString getConfigPath() const;
 
 signals:

@@ -18,6 +18,7 @@ qt_standard_project_setup()
 add_library(prism STATIC
     src/Theme.cpp
     src/ThemeManager.cpp
+    src/ConfigContracts.cpp
     src/ConfigManager.cpp
     src/ShadowManager.cpp
     src/MicaManager.cpp
@@ -42,6 +43,7 @@ add_library(prism STATIC
     # 头文件显式列入: 确保 AUTOMOC 扫描到含 Q_OBJECT 的头
     include/prism/Theme.h
     include/prism/ThemeManager.h
+    include/prism/ConfigContracts.h
     include/prism/ConfigManager.h
     include/prism/ShadowManager.h
     include/prism/MicaManager.h
@@ -66,12 +68,14 @@ add_library(prism STATIC
     include/prism/Registry.h
     include/prism/App.h
     include/prism/Window.h
+    src/ConfigContracts_p.h
 )
 
 target_include_directories(prism PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+target_compile_features(prism PUBLIC cxx_std_17)
 
 # 第三方 QR 编码器头 (nayuki qrcodegen): 仅 prism 内部实现使用, 不对外暴露
 target_include_directories(prism PRIVATE
@@ -220,7 +224,11 @@ if(PRISM_BUILD_TESTS)
         PRISM_TEST_ICON_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML/controls/icons/fluent")
     prism_add_cpp_test(prism_test_store prism_test_store offscreen)
 
-    qt_add_executable(prism_test_config_manager tests/test_config_manager.cpp)
+    qt_add_executable(prism_test_config_manager
+        tests/test_config_manager.cpp
+        tests/test_config_contracts.cpp
+        tests/test_config_qml_contracts.cpp
+        tests/ConfigContractTests.h)
     target_link_libraries(prism_test_config_manager PRIVATE prism)
     prism_add_cpp_test(
         prism_test_config_manager prism_test_config_manager offscreen)
@@ -343,8 +351,9 @@ endif()
 option(PRISM_VERIFY_MOBILE "Compile a mobile-branch variant to verify conditional code" ON)
 if(PRISM_VERIFY_MOBILE)
     add_library(prism_mobile_verify STATIC
-        src/Window.cpp src/PlatformInfo.cpp src/App.cpp
+        src/Window.cpp src/PlatformInfo.cpp src/App.cpp src/ConfigContracts.cpp
         include/prism/Window.h include/prism/PlatformInfo.h include/prism/App.h
+        include/prism/ConfigContracts.h src/ConfigContracts_p.h
         # Window.cpp 依赖的其余符号由桩满足? 不, 它依赖全库; 改为编译全部源
     )
     target_compile_definitions(prism_mobile_verify PRIVATE PRISM_FORCE_MOBILE_TEST)

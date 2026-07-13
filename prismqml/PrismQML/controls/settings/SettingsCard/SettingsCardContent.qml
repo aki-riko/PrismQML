@@ -129,6 +129,8 @@ Item {
     Component {
         id: comboBoxComponent
         ComboBox {
+            id: comboBox
+
             model: root.model
             currentIndex: root.currentIndex
             placeholderText: root.placeholderText
@@ -137,6 +139,10 @@ Item {
                 // Only user selection writes back; programmatic sync stays source to view.
                 // 只有用户选择才回写数据源；程序同步保持从数据源到视图。
                 root.indexSelected(index)
+                // ComboBoxEntry mirrors the user index imperatively, which removes
+                // this controlled binding. Restore it after the owner updates.
+                // ComboBoxEntry 会命令式同步用户索引并移除受控绑定；调用方更新后恢复。
+                comboBox.currentIndex = Qt.binding(function() { return root.currentIndex })
             }
         }
     }

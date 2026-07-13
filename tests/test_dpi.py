@@ -7,7 +7,9 @@
 
 import json
 import os
+import re
 import sys
+from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
@@ -119,6 +121,55 @@ def test_apply_dpi_scale_rejects_valid_dpi_when_peer_window_field_is_invalid(
 def test_app_config_options_are_the_python_runtime_contract():
     assert AppConfig.dpi_scale.options == [0, 100, 125, 150, 175, 200]
     assert AppConfig.window_type.options == [0, 1, 2]
+
+
+def _read_cpp_int_array(symbol):
+    header = (
+        Path(__file__).resolve().parents[1]
+        / "cpp"
+        / "include"
+        / "prism"
+        / "ConfigContracts.h"
+    ).read_text(encoding="utf-8")
+    pattern = re.compile(
+        rf"inline\s+constexpr\s+std::array<int,\s*(\d+)>\s+"
+        rf"{re.escape(symbol)}\s*=\s*\{{(.*?)\}}\s*;",
+        re.DOTALL,
+    )
+    matches = list(pattern.finditer(header))
+    assert len(matches) == 1, f"expected one C++ array named {symbol}"
+    declared_count = int(matches[0].group(1))
+    body = re.sub(r"/\*.*?\*/", "", matches[0].group(2), flags=re.DOTALL)
+    body = re.sub(r"//[^\r\n]*", "", body)
+    tokens = [token.strip() for token in body.split(",")]
+    if tokens and not tokens[-1]:
+        tokens.pop()
+    assert tokens and all(re.fullmatch(r"-?\d+", token) for token in tokens)
+    assert len(tokens) == declared_count
+    return [int(token) for token in tokens]
+
+
+def test_cpp_config_options_strictly_mirror_python_runtime_contract():
+    assert _read_cpp_int_array("kValidDpiScales") == AppConfig.dpi_scale.options
+    assert _read_cpp_int_array("kValidWindowTypes") == AppConfig.window_type.options
+
+
+def test_settings_page_maps_runtime_options_by_value_not_raw_index():
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "examples"
+        / "pages"
+        / "SettingsPage.qml"
+    ).read_text(encoding="utf-8")
+    normalized = " ".join(source.split())
+
+    assert "ConfigManager.windowTypeOptions" in normalized
+    assert "windowTypeValues.indexOf(ConfigManager.windowType)" in normalized
+    assert "ConfigManager.setWindowType(windowTypeValues[idx])" in normalized
+    assert "ConfigManager.dpiScaleOptions" in normalized
+    assert "dpiValues.indexOf(ConfigManager.dpiScale)" in normalized
+    assert "ConfigManager.setDpiScale(dpiValues[idx])" in normalized
+    assert "property var dpiValues: [0, 100, 125, 150, 175, 200]" not in source
 
 
 def test_app_config_invalid_choice_load_is_atomic(tmp_path):

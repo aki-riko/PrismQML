@@ -4,7 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - App 实现 (镜像 Python window/app.py)
 #include "prism/App.h"
-#include "prism/ConfigManager.h"
+#include "prism/ConfigContracts.h"
 #include "prism/Registry.h"
 #include "prism/ShadowManager.h"
 
@@ -14,9 +14,6 @@
 #include <QSGRendererInterface>
 #include <QObject>
 #include <QDebug>
-#include <QFile>
-#include <QJsonDocument>
-#include <QJsonObject>
 
 namespace prism {
 
@@ -48,24 +45,6 @@ void configureQmlEnvironment(bool allowFileRead) {
     qputenv(kQmlXhrAllowFileReadEnvironment, allowFileRead ? "1" : "0");
 }
 
-// 在 QApplication 创建前应用 DPI 缩放配置 (镜像 Python config/dpi.py applyDpiScale)。
-// 经共享路径解析器读取 Window/DpiScale，不构造 ConfigManager（后者依赖 QApplication）。
-// DpiScale>0 时设固定缩放(关 Qt 自动 DPI); 0 则跟随系统。
-static void applyDpiScaleBeforeApp() {
-    const QString path = resolveConfigFilePath();
-    QFile f(path);
-    if (!f.open(QIODevice::ReadOnly)) return;
-    const QJsonObject root = QJsonDocument::fromJson(f.readAll()).object();
-    const int dpiScale = root.value(QStringLiteral("Window")).toObject()
-                             .value(QStringLiteral("DpiScale")).toInt(0);
-    if (dpiScale > 0) {
-        constexpr double kDpiDefault = 100.0;  // 镜像 Python DPI_SCALE_DEFAULT
-        qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
-        qputenv("QT_SCALE_FACTOR", QByteArray::number(dpiScale / kDpiDefault));
-        qInfo() << "prism::App 应用固定 DPI 缩放:" << dpiScale << "%";
-    }
-}
-
 App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRead) {
     if (s_instance != nullptr) {
         qFatal("prism::App already exists. Only one instance allowed.");
@@ -80,7 +59,7 @@ App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRea
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
     // 固定 DPI 缩放配置 (必须在 QApplication 创建前; 镜像 Python applyDpiScale)
-    applyDpiScaleBeforeApp();
+    applyDpiScaleBeforeApplication();
 
     // 强制 OpenGL 后端, 规避部分 Windows 驱动 D3D11 device-lost 崩溃
     // (镜像 Python main.py: QQuickWindow.setGraphicsApi(OpenGL))

@@ -4,6 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // ConfigManager transactional persistence regression tests. ConfigManager 事务持久化回归测试。
 #include "prism/ConfigManager.h"
+#include "ConfigContractTests.h"
 #include "TestProcess.h"
 
 #include <QCoreApplication>
@@ -11,6 +12,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTemporaryDir>
@@ -191,6 +193,28 @@ static void testInvalidFieldLoads(const QTemporaryDir &directory) {
                      invalidWindow(QStringLiteral("WindowType"), 99),
                      "写入非法窗口类型真实 JSON",
                      "非法窗口类型使整份加载回退默认状态");
+    testRejectedLoad(directory.filePath(QStringLiteral("missing-window-type/app.json")),
+                     invalidWindow(QStringLiteral("WindowType"), 3),
+                     "写入不存在的窗口类型 3",
+                     "WindowType=3 使整份加载回退默认状态");
+    testRejectedLoad(directory.filePath(QStringLiteral("bool-dpi/app.json")),
+                     invalidWindow(QStringLiteral("DpiScale"), true),
+                     "写入 bool DPI 真实 JSON",
+                     "bool DPI 使整份加载回退默认状态");
+    testRejectedLoad(directory.filePath(QStringLiteral("array-dpi/app.json")),
+                     invalidWindow(QStringLiteral("DpiScale"), QJsonArray{150}),
+                     "写入容器 DPI 真实 JSON",
+                     "容器 DPI 使整份加载回退默认状态");
+    testRejectedLoad(directory.filePath(QStringLiteral("fractional-dpi/app.json")),
+                     invalidWindow(QStringLiteral("DpiScale"), 150.5),
+                     "写入小数 DPI 真实 JSON",
+                     "小数 DPI 使整份加载回退默认状态");
+    testRawRejectedLoad(
+        directory.filePath(QStringLiteral("integral-float-dpi/app.json")),
+        QByteArrayLiteral(
+            "{\"Window\":{\"LazyLoading\":false,\"DwmShadow\":false,"
+            "\"MicaEnabled\":true,\"DpiScale\":150.0,\"WindowType\":2}}"),
+        "积分浮点词法 DPI 仍被严格拒绝");
 }
 
 static void testLoads(const QTemporaryDir &directory) {
@@ -222,6 +246,7 @@ static void testSuccessfulCommit(const QTemporaryDir &directory) {
           "每个成功 setter 只发对应属性信号和 configChanged");
     CHECK(counts.committedBeforeNotify, "属性信号观察到的内存和磁盘均已提交");
     config.setDpiScale(999);
+    config.setWindowType(3);
     config.setWindowType(99);
     config.setMicaEnabled(true);
     CHECK(counts.config == 5 && counts.properties() == 5,
@@ -279,18 +304,21 @@ static void testFileSystemFailures(const QTemporaryDir &directory) {
 
 int main(int argc, char *argv[]) {
     if (!prism::test::configureNonInteractiveProcess()) return 2;
-    QCoreApplication app(argc, argv);
     QTemporaryDir directory(
         QDir::tempPath() + QStringLiteral("/prism-config-manager-XXXXXX"));
     CHECK(directory.isValid(), "进程唯一临时目录创建成功");
     if (!directory.isValid()) return 2;
+    g_failed += prism::test::runConfigStartupContractTests(directory.path());
+    QCoreApplication app(argc, argv);
     const QString environmentPath =
         directory.filePath(QStringLiteral("environment/app.json"));
     EnvironmentOverride environment(
         kConfigFilePathEnvironment, QFile::encodeName(environmentPath));
     testPathResolution(directory, environmentPath);
     testLoads(directory);
+    g_failed += prism::test::runConfigParserContractTests(directory.path());
     testSuccessfulCommit(directory);
+    g_failed += prism::test::runConfigQmlContractTests(directory.path());
     testFileSystemFailures(directory);
     CHECK(directory.remove(), "所有配置句柄关闭后临时目录可删除");
     qInfo() << "";

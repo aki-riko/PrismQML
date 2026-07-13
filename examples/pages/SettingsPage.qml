@@ -43,16 +43,25 @@ Item {
                 
                 // 窗口类型
                 SettingsCard {
+                    readonly property var windowTypeValues:
+                        ConfigManager ? ConfigManager.windowTypeOptions : []
+
+                    objectName: "windowTypeSettingsCard"
                     width: parent ? parent.width : 0
                     title: "窗口类型"
                     content: "重启生效"
                     icon: iconPath("Window")
                     type: Fluent.Enums.settingCard.type_combobox
-                    model: Fluent.Enums.windowType.typeNames
-                    currentIndex: ConfigManager ? ConfigManager.windowType : 0
+                    model: windowTypeValues.map(function(value) {
+                        return Fluent.Enums.windowType.typeNames[value]
+                    })
+                    currentIndex: ConfigManager
+                        ? windowTypeValues.indexOf(ConfigManager.windowType)
+                        : -1
                     onIndexSelected: function(idx) {
-                        if (ConfigManager && idx >= 0) {
-                            ConfigManager.setWindowType(idx)
+                        if (ConfigManager && idx >= 0 &&
+                                idx < windowTypeValues.length) {
+                            ConfigManager.setWindowType(windowTypeValues[idx])
                         }
                     }
                 }
@@ -168,31 +177,25 @@ Item {
                 // DPI缩放
                 SettingsCard {
                     id: dpiCard
+
+                    readonly property var dpiValues:
+                        ConfigManager ? ConfigManager.dpiScaleOptions : []
+
+                    objectName: "dpiScaleSettingsCard"
                     width: parent ? parent.width : 0
                     title: "DPI 缩放"
                     content: "重启生效"
                     icon: iconPath("ResizeImage")
                     type: Fluent.Enums.settingCard.type_combobox
-                    model: ["跟随系统", "100%", "125%", "150%", "175%", "200%"]
-                    
-                    property var dpiValues: [0, 100, 125, 150, 175, 200]
-                    property int lastSavedIndex: -1
-                    
-                    Component.onCompleted: {
-                        if (ConfigManager) {
-                            var scale = ConfigManager.dpiScale
-                            var idx = dpiValues.indexOf(scale)
-                            idx = idx >= 0 ? idx : 0
-                            lastSavedIndex = idx
-                            currentIndex = idx
-                        }
-                    }
-                    
+                    model: dpiValues.map(function(value) {
+                        return value === 0 ? "跟随系统" : value + "%"
+                    })
+                    currentIndex: ConfigManager
+                        ? dpiValues.indexOf(ConfigManager.dpiScale)
+                        : -1
                     onIndexSelected: function(idx) {
-                        if (idx !== lastSavedIndex && ConfigManager) {
-                            var value = dpiValues[idx]
-                            ConfigManager.setDpiScale(value)
-                            lastSavedIndex = idx
+                        if (ConfigManager && idx >= 0 && idx < dpiValues.length) {
+                            ConfigManager.setDpiScale(dpiValues[idx])
                         }
                     }
                 }
