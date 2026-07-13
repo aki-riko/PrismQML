@@ -555,7 +555,7 @@ git diff --check
 
 #### P7E-P7K：2026-07-13 追加只读复核批次
 
-以下问题均已用真实隐藏运行链复现；P7E、P7F 已于 2026-07-13 完成，P7G-P7K 仍按顺序待整改。所有 Python/QML 诊断均经统一 runner 执行并保持 `visible_windows=0 / job_active_processes=0`；用户同时确认本轮未出现错误弹窗。
+以下问题均已用真实隐藏运行链复现；P7E-P7G 已于 2026-07-13 完成，P7H-P7K 仍按顺序待整改。所有 Python/QML 诊断均经统一 runner 执行并保持 `visible_windows=0 / job_active_processes=0`；用户同时确认本轮未出现错误弹窗。
 
 1. **P7E 配置事务、schema 与 Python/C++ 对齐（已完成）**
 
@@ -599,14 +599,27 @@ git diff --check
    - 所有 runner 均为 `visible_windows=0 / job_active_processes=0` 且清理成功，用户确认本轮没有出现错误弹窗。真实 `~/.prismqml/app.json` 始终保持 `141` 字节、mtime `2026-07-03T15:38:04.7104529Z`、SHA-256 `FDA2606EDBFC6F79BDEE1E65F316CD25F4002518DBDA6FA3258976EF49D885B9`；三路独立最终 Review 均为“无阻断，可提交”。
    - 证据边界：新代码所用 Qt API 已静态确认兼容 6.9，本机实际运行验证为 Qt 6.11.1，现有 CI 固定 Qt 6.10.3；最低 Qt 6.9 运行时仍待独立 lane 实跑，未冒充已验证。
 
-3. **P7G QRCode QML URL 传输协议**
-   - 当前 `getImageSource()` 用 `|` 拼接字段，provider 用 `id.split("|")` 解析；真实 `QQmlEngine + Image` 会把分隔符编码为 `%7C`。输入 `HELLO/120/#112233/#445566/H` 后，provider 实际缓存键为 `HELLO%7C120%7C#112233%7C#445566%7CH|150|#000000|#ffffff|M`，即二维码内容变成整段协议，尺寸、颜色与纠错级别全部退回默认且 QML 无报错。
-   - 现有 Python provider 与生命周期测试直接调用 provider，未经过 QML URL 层，因此无法发现该缺陷；`int(parts[1])` 还位于异常边界外，畸形 id 可直接抛出。C++ 使用完全相同的 `|` 协议，`test_qrcode_gen.cpp` 直接截取 URL 文本后调用 provider，却错误标注为“与 QML 一致”，同样绕过真实 URL 编码。
-   - C++ `qrcodegen::QrCode::encodeText()` 对超长内容会抛 `data_too_long`，当前 `QRCodeImageProvider` 没有异常边界；Python/C++ 两端也都缺少尺寸上限，任意正整数可触发超大图像分配。
+3. **P7G QRCode QML URL 传输协议（已完成）**
+
+   修复前问题：
+
+   - `getImageSource()` 用 `|` 拼接字段，provider 用 `id.split("|")` 解析；真实 `QQmlEngine + Image` 会把分隔符编码为 `%7C`。输入 `HELLO/120/#112233/#445566/H` 后，provider 实际缓存键为 `HELLO%7C120%7C#112233%7C#445566%7CH|150|#000000|#ffffff|M`，即二维码内容变成整段协议，尺寸、颜色与纠错级别全部退回默认且 QML 无报错。
+   - Python provider 与生命周期测试直接调用 provider，未经过 QML URL 层，因此无法发现该缺陷；`int(parts[1])` 还位于异常边界外，畸形 id 可直接抛出。C++ 使用完全相同的 `|` 协议，`test_qrcode_gen.cpp` 直接截取 URL 文本后调用 provider，却错误标注为“与 QML 一致”，同样绕过真实 URL 编码。
+   - C++ `qrcodegen::QrCode::encodeText()` 对超长内容会抛 `data_too_long`，`QRCodeImageProvider` 没有异常边界；Python/C++ 两端也都缺少尺寸上限，任意正整数可触发超大图像分配。
    - 应改用无歧义的单段编码（例如版本化 JSON + URL-safe Base64），验证尺寸上限、颜色与纠错级别后再生成；不得保留脆弱的分隔符兼容协议。
    - 预期效果：真实 QML 控件生成的内容、尺寸、颜色和纠错级别与公开属性完全一致，畸形/超大输入安全失败。
    - 难度：4-8 小时；风险：中。
    - 验收：必须由隐藏 `QQmlEngine + QRCode.qml + QQuickImageProvider` 真实链抓取并解码二维码内容，不能只直接调用 provider。
+
+   完成记录（2026-07-13）：
+
+   - Python/QML 子批提交 `620da260`：协议统一为 `image://qrcode/v1.<无填充 Base64URL>`，载荷为规范紧凑 JSON 数组 `[1,content,size,foreground,background,errorLevel]`；解码后必须规范重编码完全一致，不保留旧 `|` 分隔协议。
+   - 输入合同统一为尺寸 `32..1024`、内容不超过 `1024` UTF-8 字节、颜色有效且不透明并规范化为小写 `#rrggbb`、前后景不同、纠错级别限定并规范化为 `L/M/Q/H`；畸形 Base64URL、非法 UTF-8、深层 JSON、错误字段类型及超限输入均安全返回透明占位图。
+   - Python 渲染固定 4 模块 quiet zone、整数模块像素并居中，不做最终缩放；`qrcode` 使用 `optimize=0` 保持整串单模式。缓存改为受 `RLock` 保护的真实 LRU，限制为 64 项、32 MiB。
+   - C++ 子批提交 `77d045c5`：实现同构协议、验证、透明失败边界及受 `QMutex` 保护的同额度 LRU；编码改用 `encodeSegments(..., boostEcl=false)`，避免纠错级别自动提升，并补齐 `data_too_long`、分配失败和未知异常边界。
+   - 同一真实失败输入 `HELLO / 120 / #112233 / #445566 / H` 已通过隐藏 `QQmlEngine + QRCode.qml + QQuickImageProvider` 完整链验证：provider id、六个字段、请求尺寸、成图尺寸及前后景颜色均保持一致；保留字符与 Unicode 内容由 OpenCV 严格按 `decoded == expected` 验证，不再接受 Latin-1 容错假绿。
+   - 最终聚焦 Python `71 passed`；Python 全量 `802 passed / 1 skipped`；QRCode CTest `2/2`、headless CTest `7/7`、Windows native CTest `2/2`；QML probe `169 OK / 0 错误 / 12 跳过`，changed QML 扫描 `0 violation(s)`；Rust `fmt --check`、`clippy --all-targets -D warnings` 与 `cargo test 6/6`、`git diff --check` 全部通过。
+   - 仓库标准 MSVC + Qt 6.11.1 构建输出 `PRISM_BUILD_DONE`。全部 runner 为 `visible_windows=0 / job_active_processes=0`，最终 native 夹具退出后无残留测试进程，用户确认未出现错误弹窗；真实用户配置仍为 `141` 字节、mtime `2026-07-03T15:38:04.7104529Z`、SHA-256 `FDA2606EDBFC6F79BDEE1E65F316CD25F4002518DBDA6FA3258976EF49D885B9`。Qt 6.9 仅完成源码/API 静态兼容审查，未冒充最低版本已实跑。
 
 4. **P7H NativeWindowHook WinAPI 结果与状态提交**
    - `_attach()`、`_apply_framechanged()` 与 `detach()` 忽略 `Get/SetWindowLongPtrW`、`SetWindowPos` 的失败结果，却提交 `_hwnds/_framechanged_hwnds/_original_styles` 状态，可能形成不可重试的假 attached/finalized 或“内部已 detach、原生样式未恢复”。
@@ -619,6 +632,7 @@ git diff --check
    - 当前工作树 AST 口径：`prismqml/python` 仍有 31 个 `except Exception` handler、57 个超过 30 行的函数；`scripts` 另有 8/5。普通错误路径大量只记无 traceback 的 `error/warning/debug`。
    - 166 个受跟踪 Python 文件中仍有 12 个不符合强制四行 MIT 头；需先区分 shebang、人工性能入口与普通源码，再逐批修正。
    - `tests/qml/bench_skin_frames.py` 把结果硬编码到 `C:/Users/Kotori/frame_bench.txt`，违反路径零硬编码；应改为显式参数、环境变量或测试临时目录。
+   - `cpp/tests/qr/verify_qr.py` 的非性能测试诊断仍通过 `print_safe()` 直接调用 `print`；这是旧提交 `2db05888a` 引入的当前 HEAD 合规库存，P7G 仅改动相邻 docstring，后续应迁移到统一 logger 或经评审定义机器可读测试输出例外。
    - 未使用导入需按 AST 候选逐个核对公开 re-export、`TYPE_CHECKING` 与导入副作用后再删除，禁止机械清理。
    - 预期效果：宽捕获具备可解释边界与 traceback，长函数和文件头库存量化归零或仅剩评审例外。
    - 难度：1-3 天；风险：中。
@@ -702,7 +716,7 @@ git diff --check
 
 门禁补强前置：当前 probe 的 `169 OK / 0 错误 / 12 跳过` 中有 5 个 singleton 被无条件跳过，不能作为 singleton 无绑定错误的证据。P9 前必须用 wrapper 强制实例化并读取 `Enums`、`Translator`、`DpiManager`、`NotificationManager` 与 `PopupUtils`，同时捕获 Qt warning；完成后基线应只保留 7 个确需父组件注入的 required-property skip。上述改造必须先在改前 worktree 与当前分支上分别运行，区分存量 singleton 错误与新增回归。
 
-2026-07-13 P7F 完成后的当前验证快照（仍不代表 P9 完成）：P7F 聚焦 `122 passed`；Python 全量 `736 passed / 1 skipped`；changed QML 扫描 `0 violation(s)`；QML probe `169 OK / 0 错误 / 12 跳过`；Rust 最近门禁为 `fmt --check`、`clippy --all-targets -D warnings` 与 `cargo test 6/6`；`git diff --check` 通过。C++ 经仓库标准 `cpp\build.bat` 输出 `PRISM_BUILD_DONE`，headless CTest `7/7`、Windows native CTest `2/2`，另有全新 `PRISM_VERIFY_MOBILE=ON` 临时构建树实编译移动分支验证库；全部 runner 均为零可见窗口、零残留进程，用户确认无错误弹窗。真实用户配置快照完全未变。剩余限制转入后续阶段：P7G 处理 QRCode QML URL 传输协议；Qt 6.9 仅完成静态兼容审查，最低版本运行时待独立 lane；P9 前仍须把 5 个 singleton 从无条件跳过改为真实 wrapper 实例化验证。
+2026-07-13 P7G 完成后的当前验证快照（仍不代表 P7、P9 或全库完成）：P7G 聚焦 `71 passed`；Python 全量 `802 passed / 1 skipped`；changed QML 扫描 `0 violation(s)`；QML probe `169 OK / 0 错误 / 12 跳过`；C++ 经仓库标准 `cpp\build.bat` 输出 `PRISM_BUILD_DONE`，QRCode CTest `2/2`、headless CTest `7/7`、Windows native CTest `2/2`；Rust `fmt --check`、`clippy --all-targets -D warnings` 与 `cargo test 6/6`、`git diff --check` 通过。全部 runner 均为 `visible_windows=0 / job_active_processes=0`，最终 native 夹具退出后无残留测试进程，用户确认未出现错误弹窗，真实用户配置快照完全未变。下一阶段为 P7H NativeWindowHook WinAPI 结果与状态提交，P7I-P7K 仍待处理；Qt 6.9 仅完成静态兼容审查，本机实际运行版本为 Qt 6.11.1，最低版本运行时仍待独立 lane；P9 前仍须把 5 个 singleton 从无条件跳过改为真实 wrapper 实例化验证。
 
 制品验收：
 
@@ -758,7 +772,7 @@ git diff --check
 | P4 Qt 与危险脚本 | 已完成 | P4.1 统一 Qt/PySide6 6.9+；P4.2 三种破坏性失败与事务中断均保持原产物不变，Python 140、QML 169/0/12、CTest 7/7；Build All 29119519828 五平台全绿 | `818deec1`、`6d3395f` |
 | P5 Rust 与维护工具 | 已完成 | P5A：Rust 6/6、Python 140、QML 169/0/12、CTest 7/7、Build All 五平台全绿；P5B：两种控制台模式均真实 probe 181 类型且错误非零退出；P5C：普通 import 无环境副作用，真实 App/Translator 输入返回 `OK`，Updater 两端配置语义一致，全量 Python 148、QML 169/0/12、Rust 6/6、无 Qt PATH 裸 CTest 7/7 | `b44c2dc5`、`6d96a2a`、`9bb5271`、`9f497d8a` |
 | P6 QML 规范债务 | 进行中 | P6A–P6C14 与 P6D 已完成小批记录保持不变；P6C15a/b 已补上字符串颜色上下文，P6C15c1 已补上固定数值与固定视觉系数构色，P6C15c2 已补上高置信颜色数组、callable 直接结果扫描及 examples 仅 QML010 扫描根，P6C16 已迁移真实 `MultiSelectToken` 黑白前景，证明此前 `buttons` 归零仅成立于旧扫描口径，P6C 继续进行。全库真实基线 3,046（成员顺序 1,797、分节术语 1,102、颜色 125、数值 22，QML013 0）；examples 已锁定 43 行 QML010 且其他规则不进入门禁，P6C15c3 已补上作用域感知的高置信 primitive 跨变量传播并保持当前库存零新增，其无候选快路径已通过 Build All 七项全绿；22 项 QML011 全部等待 P8A 的 LoginWindowLightShadow 删除/公开决策；`CropToolButton` 已确认零消费者并转入 P8 去留审计 | `d5b5852`、`8e3ba4b0`、`e98adebb`、`557930af`、`b0d23808`、`49d6d6d0`、`09c696df`、`a877c2c7`、`6fc6e645`、`2a22c115`、`06eb4af9`、`685d063e`、`bcf0c737`、`4c22e7bc`、`bad57911`、`b281b7b`、`85a75ff3`、`0e438e60`、`1f9d1038`、`b1050f84`、`d4e2e11e`、`10b25427`、`8c633f4f`、`6810e12c`、`1758f484`、`49a899d5`、`0946eea5`、`2c1be8dd`、`cbf934d2`、`4e383715`、`bff2b32b`、`95c3db84`、`41565d4b`、`e17b06ca`、`c284433f`、`744eb6ec`、`ca6eb64b`、`af0b0cd4`、`28664920`、`a17f46a8`、`263851c1`、`165dbd4`、`8e29044c`、`86d7e0ee`、`dc5cf90`、`f329a3e`、`668cfda`、`89474354` |
-| P7 Python 规范债务 | 进行中 | 已完成框架签名/生成枚举例外定义、异常边界前四批、P7E 配置事务/schema/测试隔离及 P7F DPI/WindowType 严格合同。当前门禁为 P7F 聚焦 `122 passed`、Python `736 passed / 1 skipped`、changed QML `0`、QML `169 OK / 0 错误 / 12 跳过`、C++ headless `7/7`、Windows native `2/2`，全部 runner 零可见窗口/零残留进程；全新 `PRISM_VERIFY_MOBILE=ON` 临时构建树已实编译移动验证库。P7G-P7K（含剩余 P7I 宽捕获、长函数、导入与文件头库存）仍按顺序待处理 | `8272d2c0`、`354777fe`、`a8e80e86`、`c962014e`、`bb81d37b`、`e344c8a0`、`e48bb127`、`dafa2a34`、`1512f723`、`8e24b825`、`5fb9e7d8` |
+| P7 Python 规范债务 | 进行中 | 已完成框架签名/生成枚举例外定义、异常边界前四批、P7E 配置事务/schema/测试隔离、P7F DPI/WindowType 严格合同及 P7G QRCode QML URL 传输协议。P7G 当前门禁为聚焦 `71 passed`、Python `802 passed / 1 skipped`、changed QML `0`、QML `169 OK / 0 错误 / 12 跳过`、QRCode CTest `2/2`、C++ headless `7/7`、Windows native `2/2`、Rust `6/6`，全部 runner 零可见窗口/零残留进程，用户确认未出现错误弹窗。P7H-P7K（含 P7I 剩余宽捕获、长函数、导入、文件头与测试 `print` 库存）仍按顺序待处理，下一阶段为 P7H | `8272d2c0`、`354777fe`、`a8e80e86`、`c962014e`、`bb81d37b`、`e344c8a0`、`e48bb127`、`dafa2a34`、`1512f723`、`8e24b825`、`5fb9e7d8`、`620da260`、`77d045c5` |
 | P8 资源注册 | 待执行 | P8A 提前处理孤立文件决策；LoginWindowLightShadow 已确认仓内零消费者、未注册但仍随包分发；CropToolButton 已确认仅 `_internal/qmldir` 注册、仓内零消费者且头部用途说明过时。两者均需先完成下游审计，再根据结果决定保留、公开或请求用户批准删除，不在 P6 机械整理中重接线或粉饰 |  |
 | P9 最终验收 | 待执行 |  |  |
 
