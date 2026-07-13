@@ -29,6 +29,31 @@ def _filter_with_flush(flush):
     return event_filter
 
 
+class _InstallApp:
+    def __init__(self, outcomes):
+        self._outcomes = iter(outcomes)
+        self.filters = []
+
+    def installNativeEventFilter(self, event_filter):
+        self.filters.append(event_filter)
+        outcome = next(self._outcomes)
+        if outcome is not None:
+            raise outcome
+
+
+def _prepare_install(monkeypatch, outcomes):
+    app = _InstallApp(outcomes)
+    monkeypatch.setattr(shadow.sys, "platform", "win32")
+    monkeypatch.setattr(
+        shadow,
+        "QApplication",
+        SimpleNamespace(instance=lambda: app),
+    )
+    monkeypatch.setattr(shadow, "DwmSyncFilter", type("FakeFilter", (), {}))
+    monkeypatch.setattr(shadow, "_dwm_sync_filter", None)
+    return app
+
+
 def test_native_event_filter_logs_runtime_error_and_keeps_dispatching(monkeypatch):
     messages = []
     monkeypatch.setattr(shadow, "exception", messages.append)
@@ -51,3 +76,102 @@ def test_native_event_filter_does_not_swallow_process_control(error_type):
 
     with pytest.raises(error_type, match="stop"):
         event_filter.nativeEventFilter(QByteArray(), 1)
+
+
+def test_install_failure_logs_traceback_state_and_allows_retry(monkeypatch):
+    messages = []
+    app = _prepare_install(
+        monkeypatch,
+        (RuntimeError("native filter rejected"), None),
+    )
+    monkeypatch.setattr(shadow, "exception", messages.append)
+
+    assert shadow.installDwmSyncFilter() is False
+    assert shadow._dwm_sync_filter is None
+    assert shadow.installDwmSyncFilter() is True
+
+    assert len(app.filters) == 2
+    assert shadow._dwm_sync_filter is app.filters[-1]
+    assert messages == [
+        "DWM sync filter installation failed: "
+        "RuntimeError: native filter rejected"
+    ]
+
+
+def test_install_requires_application_before_constructing_filter(monkeypatch):
+    constructed = []
+    warnings = []
+    monkeypatch.setattr(shadow.sys, "platform", "win32")
+    monkeypatch.setattr(
+        shadow,
+        "QApplication",
+        SimpleNamespace(instance=lambda: None),
+    )
+    monkeypatch.setattr(shadow, "DwmSyncFilter", lambda: constructed.append(True))
+    monkeypatch.setattr(shadow, "warning", warnings.append)
+    monkeypatch.setattr(shadow, "_dwm_sync_filter", None)
+
+    assert shadow.installDwmSyncFilter() is False
+    assert constructed == []
+    assert warnings == ["QApplication未创建"]
+
+
+def test_install_success_is_idempotent(monkeypatch):
+    app = _prepare_install(monkeypatch, (None,))
+
+    assert shadow.installDwmSyncFilter() is True
+    installed_filter = shadow._dwm_sync_filter
+    assert shadow.installDwmSyncFilter() is True
+
+    assert app.filters == [installed_filter]
+
+
+def test_constructor_failure_logs_traceback_without_caching(monkeypatch):
+    messages = []
+    app = _prepare_install(monkeypatch, ())
+
+    def fail_construction():
+        raise RuntimeError("filter construction failed")
+
+    monkeypatch.setattr(shadow, "DwmSyncFilter", fail_construction)
+    monkeypatch.setattr(shadow, "exception", messages.append)
+
+    assert shadow.installDwmSyncFilter() is False
+    assert shadow._dwm_sync_filter is None
+    assert app.filters == []
+    assert messages == [
+        "DWM sync filter installation failed: "
+        "RuntimeError: filter construction failed"
+    ]
+
+
+@pytest.mark.parametrize("error_type", (KeyboardInterrupt, SystemExit))
+def test_install_failure_does_not_swallow_or_cache_process_control(
+    monkeypatch,
+    error_type,
+):
+    _prepare_install(monkeypatch, (error_type("stop"),))
+
+    with pytest.raises(error_type, match="stop"):
+        shadow.installDwmSyncFilter()
+
+    assert shadow._dwm_sync_filter is None
+
+
+@pytest.mark.parametrize("error_type", (KeyboardInterrupt, SystemExit))
+def test_constructor_does_not_swallow_or_cache_process_control(
+    monkeypatch,
+    error_type,
+):
+    app = _prepare_install(monkeypatch, ())
+
+    def fail_construction():
+        raise error_type("stop")
+
+    monkeypatch.setattr(shadow, "DwmSyncFilter", fail_construction)
+
+    with pytest.raises(error_type, match="stop"):
+        shadow.installDwmSyncFilter()
+
+    assert shadow._dwm_sync_filter is None
+    assert app.filters == []

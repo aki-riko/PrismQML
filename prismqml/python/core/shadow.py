@@ -421,13 +421,19 @@ def installDwmSyncFilter():
         return False
 
     try:
-        _dwm_sync_filter = DwmSyncFilter()
-        app.installNativeEventFilter(_dwm_sync_filter)
-        info("DWM同步过滤器已安装")
-        return True
-    except Exception as e:
-        error(f"安装失败: {e}")
+        candidate = DwmSyncFilter()
+        app.installNativeEventFilter(candidate)
+    except Exception as exc:
+        # Optional Qt boundary; keep global state retryable. 可选 Qt 边界；保持全局状态可重试。
+        exception(
+            "DWM sync filter installation failed: "
+            f"{type(exc).__name__}: {exc}"
+        )
         return False
+
+    _dwm_sync_filter = candidate
+    info("DWM同步过滤器已安装")
+    return True
 
 
 # Global singleton 全局单例
