@@ -15,10 +15,36 @@ import time
 from PySide6.QtCore import QTimer, QMetaObject, Q_ARG
 from PySide6.QtQuick import QQuickItem
 
-from ..core.logger import debug, warning, info, error
+from ..core.logger import exception, warning, info
 
 
 _PAGE_LOAD_RENDER_DELAY_MS = 16
+
+
+def _emit_page_size_signals(page_item: Any) -> None:
+    try:
+        page_item.widthChanged.emit()
+        page_item.heightChanged.emit()
+    except Exception as exc:
+        exception(f"页面尺寸信号触发失败: {type(exc).__name__}: {exc}")
+
+
+def _resolve_async_page_instance(item: Any):
+    if getattr(item, "page_getter", None):
+        return item.page_getter()
+    if item.page_class:
+        return item.page_class()
+    if item._page_instance:
+        return item._page_instance
+    return None
+
+
+def _create_async_page_boundary(item: Any, on_page_ready) -> None:
+    try:
+        on_page_ready(_resolve_async_page_instance(item))
+    except Exception as exc:
+        exception(f"页面创建失败: {type(exc).__name__}: {exc}")
+        on_page_ready(None)
 
 
 class PageManagerMixin:
@@ -165,7 +191,7 @@ class PageManagerMixin:
                     self._window, "navigateTo", Q_ARG("QVariant", index)
                 )
             except RuntimeError as exc:
-                warning(f"页面切换失败: {exc}")
+                exception(f"页面切换失败: {type(exc).__name__}: {exc}")
 
     def _start_async_page_load(self, index: int):
         """异步加载页面（显示loading动画）
@@ -185,7 +211,10 @@ class PageManagerMixin:
                 )
             except RuntimeError as exc:
                 # Method may not exist, ignore 方法可能不存在
-                debug(f"页面 loading 启动方法不可用: {exc}")
+                exception(
+                    "页面 loading 启动方法不可用: "
+                    f"{type(exc).__name__}: {exc}"
+                )
 
         # 获取导航项
         all_items = self._nav_items + self._bottom_nav_items
@@ -229,11 +258,7 @@ class PageManagerMixin:
                             # 确保页面内部子组件（如 IconPage 的 _main Layout）能够正确更新
                             # Force emit widthChanged/heightChanged to ensure internal
                             # child components receive the size update
-                            try:
-                                page_instance._qml_item.widthChanged.emit()
-                                page_instance._qml_item.heightChanged.emit()
-                            except Exception as e:
-                                warning(f"页面尺寸信号触发失败: {e}")
+                            _emit_page_size_signals(page_instance._qml_item)
 
                 page_container.widthChanged.connect(bind_size_async)
                 page_container.heightChanged.connect(bind_size_async)
@@ -275,19 +300,7 @@ class PageManagerMixin:
 
         def do_create():
             """延迟创建页面（让loading动画先显示）"""
-            try:
-                if getattr(item, 'page_getter', None):
-                    page_instance = item.page_getter()
-                elif item.page_class:
-                    page_instance = item.page_class()
-                elif item._page_instance:
-                    page_instance = item._page_instance
-                else:
-                    page_instance = None
-                on_page_ready(page_instance)
-            except Exception as e:
-                error(f"页面创建失败: {e}")
-                on_page_ready(None)
+            _create_async_page_boundary(item, on_page_ready)
 
         # Wait one frame so loading can instantiate and draw before page creation.
         # 等待一帧，确保 loading 先完成创建和首帧绘制，再创建页面。
@@ -305,4 +318,7 @@ class PageManagerMixin:
                 QMetaObject.invokeMethod(self._window, "_finishPythonLoading")
             except RuntimeError as exc:
                 # Method may not exist, ignore 方法可能不存在
-                debug(f"页面 loading 结束方法不可用: {exc}")
+                exception(
+                    "页面 loading 结束方法不可用: "
+                    f"{type(exc).__name__}: {exc}"
+                )
