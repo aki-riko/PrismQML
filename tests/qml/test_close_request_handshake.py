@@ -5,6 +5,7 @@
 """Regression probe for cancellable PrismQML window close requests."""
 
 import os
+import logging
 import sys
 from pathlib import Path
 
@@ -14,7 +15,14 @@ configure_qml_test_process()
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from PySide6.QtCore import QEventLoop, QMetaObject, QTimer
+import shiboken6
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QMetaObject,
+    QTimer,
+)
 from PySide6.QtWidgets import QApplication
 
 
@@ -22,6 +30,125 @@ def pump(ms):
     loop = QEventLoop()
     QTimer.singleShot(ms, loop.quit)
     loop.exec()
+
+
+class _RecordCapture(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.ERROR)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def _prepare_window(window):
+    window.setSplashEnabled(False)
+    window.addPage(None, "Home", "Home")
+    window.show()
+    pump(120)
+    return window
+
+
+def _dispose_window(window):
+    qml_window = window._window
+    if qml_window is not None and shiboken6.isValid(qml_window):
+        qml_window.setProperty("visible", False)
+        qml_window.deleteLater()
+        QCoreApplication.sendPostedEvents(qml_window, QEvent.DeferredDelete)
+    window._window = None
+    QApplication.processEvents()
+
+
+def _assert_traceback_record(records, marker, error_type, source_text):
+    from prismqml.python.core.logger import PlainFormatter
+
+    matches = [record for record in records if marker in record.getMessage()]
+    assert len(matches) == 1
+    assert matches[0].exc_info is not None
+    assert matches[0].exc_info[0] is error_type
+    rendered = PlainFormatter(datefmt="%H:%M:%S").format(matches[0])
+    assert "Traceback (most recent call last):" in rendered
+    assert source_text in rendered
+
+
+def _exercise_close_event_failure(capture):
+    from prismqml import Window, WindowType
+
+    class RaisingWindow(Window):
+        def closeEvent(self, _event):
+            raise RuntimeError("close hook exploded")
+
+    window = _prepare_window(RaisingWindow(window_type=WindowType.BAR))
+    try:
+        assert QMetaObject.invokeMethod(window._window, "requestClose")
+        pump(80)
+        assert window._window.property("closeRequestAccepted") is False
+        assert window.isVisible()
+        _assert_traceback_record(
+            capture.records,
+            "WindowCore.closeEvent failed",
+            RuntimeError,
+            "raise RuntimeError(\"close hook exploded\")",
+        )
+    finally:
+        _dispose_window(window)
+
+
+def _exercise_writeback_failure(capture):
+    from prismqml import Window, WindowType
+
+    window = _prepare_window(Window(window_type=WindowType.BAR))
+    qml_window = window._window
+    qml_window.deleteLater()
+    QCoreApplication.sendPostedEvents(qml_window, QEvent.DeferredDelete)
+    QApplication.processEvents()
+    assert not shiboken6.isValid(qml_window)
+
+    window._on_close_requested()
+
+    _assert_traceback_record(
+        capture.records,
+        "WindowCore.closeRequestAccepted write failed",
+        RuntimeError,
+        "self._window.setProperty",
+    )
+    window._window = None
+
+
+def _exercise_process_control(error_type):
+    from prismqml import Window, WindowType
+
+    class RaisingWindow(Window):
+        def closeEvent(self, _event):
+            raise error_type("stop")
+
+    window = _prepare_window(RaisingWindow(window_type=WindowType.BAR))
+    try:
+        try:
+            window._on_close_requested()
+        except error_type as exc:
+            assert str(exc) == "stop"
+        else:
+            raise AssertionError(f"{error_type.__name__} was swallowed")
+    finally:
+        _dispose_window(window)
+
+
+def run_error_boundary_regressions():
+    from prismqml.python.core.logger import getLogger
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    capture = _RecordCapture()
+    logger = getLogger().logger
+    logger.addHandler(capture)
+    try:
+        _exercise_close_event_failure(capture)
+        _exercise_writeback_failure(capture)
+        _exercise_process_control(KeyboardInterrupt)
+        _exercise_process_control(SystemExit)
+    finally:
+        logger.removeHandler(capture)
+    assert app is QApplication.instance()
 
 
 def main():
@@ -142,4 +269,5 @@ def main():
 
 
 if __name__ == "__main__":
+    run_error_boundary_regressions()
     main()

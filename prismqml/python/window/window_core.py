@@ -46,7 +46,7 @@ import time
 
 from ..core.engine import EngineManager
 from ..providers import get_svg_provider
-from ..core.logger import warning, info, error, debug
+from ..core.logger import warning, info, exception, debug
 
 # ==================== 窗口类型枚举 ====================
 
@@ -630,11 +630,17 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         event = WindowCloseEvent()
         try:
             self.closeEvent(event)
-        except Exception as e:
-            error(f"closeEvent 处理失败: {e}")
+        except Exception as exc:
+            exception(
+                "WindowCore.closeEvent failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
             event.ignore()
 
         try:
             self._window.setProperty("closeRequestAccepted", event.isAccepted())
-        except Exception as e:
-            warning(f"关闭请求状态写回失败: {e}")
+        except RuntimeError as exc:
+            exception(
+                "WindowCore.closeRequestAccepted write failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
