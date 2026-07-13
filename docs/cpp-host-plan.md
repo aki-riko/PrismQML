@@ -14,6 +14,9 @@
 - ✅ **阶段 2**：8 个注入对象补齐（ConfigManager / ShadowManager / MicaManager /
   NativeWindow / Clipboard / WindowHelper / Acrylic / SvgImageProvider），
   QML `ReferenceError` 清零，DWM 阴影 / NativeWindow.attach 真实生效。
+  - P7H 已把 NativeWindow Python/C++ 镜像统一为严格 `bool` 状态事务：WinAPI
+    clear-call-read、真实旧 style、三阶段重试、owner generation/retired 与
+    tracked-only detach 均由专项 CTest 和真实 `WindowsCore` 消费链锁定。
 - ✅ **阶段 3**：Window.addPage 导航 + 页面懒加载管理；真实平台渲染验证
   （1823×1256，accent 色像素级命中）。
 - ✅ **阶段 4**：Store / Logger / SystemTrayIcon / SingleInstance 应用框架能力；
@@ -223,6 +226,7 @@ C++ 宿主一旦做出，**本身即覆盖所有 Qt 支持的平台**。"全平�
 | `ShadowManager` / `getShadowManager()` / `installDwmSyncFilter()` | 同名；C++ 调 DWM 比 Python ctypes 干净 | Win/Mac |
 | `MicaManager` / `get_mica_manager()` | 同名 | Win 11 |
 | `AcrylicHelper` / `AcrylicImageProvider` | 同名 | Win |
+| `NativeWindowHook` | `NativeWindow`；`attach/finalizeAttach/detach -> bool`，失败可重试且 detach 只使用已跟踪 HWND | Win |
 
 ### 8.5 系统集成（桌面专属）
 
@@ -263,6 +267,5 @@ int main(int argc, char** argv) {
     return app.exec();
 }
 ```
-
 
 
