@@ -239,6 +239,14 @@ if(PRISM_BUILD_TESTS)
     target_link_libraries(prism_test_system PRIVATE prism)
     prism_add_cpp_test(prism_test_system prism_test_system offscreen)
 
+    qt_add_executable(prism_test_native_window tests/test_native_window.cpp)
+    target_link_libraries(prism_test_native_window PRIVATE prism)
+    target_include_directories(prism_test_native_window PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    prism_add_cpp_test(
+        prism_test_native_window prism_test_native_window offscreen
+        "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml")
+
     if(PRISM_BUILD_NATIVE_TESTS AND WIN32)
         set(PRISM_NATIVE_FAILURE_CASE_TIMEOUT_SECONDS "15" CACHE STRING
             "Timeout in seconds for one native failure-injection case")
@@ -345,6 +353,7 @@ if(PRISM_BUILD_TESTS)
         prism_test_store
         prism_test_config_manager
         prism_test_system
+        prism_test_native_window
         prism_test_qrcode_gen
         prism_test_qrcode_decode
         prism_test_sqlmodel

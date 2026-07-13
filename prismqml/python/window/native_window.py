@@ -3,20 +3,9 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
-"""
-NativeWindowHook v4 — 用 Qt 标准 QAbstractNativeEventFilter 拦消息
+"""Qt-native Win32 hook for frameless-window DWM animations.
 
-之前 v1/v2/v3 都失败的根本原因: 用 ctypes SetWindowLongPtr 替换 WndProc
-跟 Qt 的内部消息处理打架。Qt 自己有 nativeEvent / installNativeEventFilter
-机制,跟 PySide6 完全集成。改用这个,避免与 Qt 状态冲突。
-
-实现策略基于 Win32 DWM API 与 Qt 原生事件过滤的组合,常见 frameless 窗口
-方案均围绕这套接口展开。
-
-策略:
-1. attach 时 SetWindowLong 加回 WS_CAPTION (DWM 看到才会做动画)
-2. 装 QAbstractNativeEventFilter 拦 WM_NCCALCSIZE (掩盖 caption 视觉)
-3. 不动 WndProc
+Qt 原生 Win32 钩子，用于无边框窗口的 DWM 动画。
 """
 
 import sys
@@ -24,10 +13,11 @@ import ctypes
 from ctypes import wintypes
 from typing import Dict, Optional
 
+import shiboken6
 from PySide6.QtCore import QObject, Slot, QAbstractNativeEventFilter, QCoreApplication
 from PySide6.QtGui import QWindow
 
-from ..core.logger import info, warning, error, debug
+from ..core.logger import exception, info
 
 
 # ============================================================================
@@ -49,10 +39,30 @@ SWP_NOSIZE = 0x0001
 SWP_NOZORDER = 0x0004
 SWP_NOACTIVATE = 0x0010
 SWP_FRAMECHANGED = 0x0020
+FRAME_CHANGED_FLAGS = (
+    SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED
+)
 
+
+user32 = None
+
+
+def _ignore_last_error(_value: int) -> None:
+    """No-op LastError setter outside Windows. 非 Windows 的 LastError 空操作。"""
+
+
+def _zero_last_error() -> int:
+    """Return a neutral LastError outside Windows. 非 Windows 返回中性错误码。"""
+    return 0
+
+
+_set_last_error = _ignore_last_error
+_get_last_error = _zero_last_error
 
 if sys.platform == "win32":
-    user32 = ctypes.windll.user32
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    _set_last_error = ctypes.set_last_error
+    _get_last_error = ctypes.get_last_error
 
     user32.SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t]
     user32.SetWindowLongPtrW.restype = ctypes.c_ssize_t
@@ -69,6 +79,42 @@ if sys.platform == "win32":
 
     user32.IsZoomed.argtypes = [wintypes.HWND]
     user32.IsZoomed.restype = wintypes.BOOL
+
+
+def _raise_winapi_failure(operation: str, error_code: int) -> None:
+    """Raise one deterministic WinAPI failure. 抛出确定性的 WinAPI 失败。"""
+    if error_code:
+        raise OSError(error_code, f"{operation} failed")
+    raise OSError(f"{operation} failed without a LastError code")
+
+
+def _get_window_style(hwnd: int) -> int:
+    """Read GWL_STYLE with the documented zero-result rule. 按零返回合同读取样式。"""
+    _set_last_error(0)
+    style = user32.GetWindowLongPtrW(hwnd, GWL_STYLE)
+    error_code = _get_last_error()
+    if style == 0 and error_code != 0:
+        _raise_winapi_failure("GetWindowLongPtrW", error_code)
+    return int(style)
+
+
+def _set_window_style(hwnd: int, style: int) -> int:
+    """Write GWL_STYLE and return the actual previous value. 写入并返回真实旧样式。"""
+    _set_last_error(0)
+    previous_style = user32.SetWindowLongPtrW(hwnd, GWL_STYLE, style)
+    error_code = _get_last_error()
+    if previous_style == 0 and error_code != 0:
+        _raise_winapi_failure("SetWindowLongPtrW", error_code)
+    return int(previous_style)
+
+
+def _request_frame_changed(hwnd: int) -> None:
+    """Apply SWP_FRAMECHANGED or raise. 应用 SWP_FRAMECHANGED，失败即抛出。"""
+    _set_last_error(0)
+    succeeded = user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, FRAME_CHANGED_FLAGS)
+    error_code = _get_last_error()
+    if not succeeded:
+        _raise_winapi_failure("SetWindowPos", error_code)
 
 
 # ============================================================================
@@ -105,8 +151,11 @@ class _MsgFilter(QAbstractNativeEventFilter):
                 rect_ptr.contents.right -= 8
                 rect_ptr.contents.bottom -= 8
             return True, 0
-        except Exception as e:
-            error(f"_MsgFilter 异常: {e}")
+        except Exception as exc:
+            exception(
+                "NativeWindow message filter failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
             return False, 0
 
 
@@ -132,114 +181,303 @@ class NativeWindowHook(QObject):
 
     _instance: Optional["NativeWindowHook"] = None
 
-    def __new__(cls, parent=None):
+    def __new__(
+        cls,
+        parent=None,
+        *,
+        _isolated: bool = False,
+        _install_filter: bool = True,
+    ):
+        if _isolated:
+            instance = super().__new__(cls)
+            instance._initialized = False
+            return instance
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, parent=None):
+    def __init__(
+        self,
+        parent=None,
+        *,
+        _isolated: bool = False,
+        _install_filter: bool = True,
+    ):
         if getattr(self, "_initialized", False):
             return
         super().__init__(parent)
         self._initialized = True
         self._hwnds = set()  # 已 attach 的 hwnd 集合
         self._framechanged_hwnds = set()
+        self._restore_pending_hwnds = set()
         self._original_styles: Dict[int, int] = {}
+        self._owner_generations: Dict[int, object] = {}
+        self._owner_keys: Dict[object, int] = {}
+        self._owner_hwnds: Dict[object, int] = {}
+        self._hwnd_owners: Dict[int, object] = {}
+        self._retired_owner_hwnds: Dict[object, int] = {}
+        self._wrapper_owner_keys: Dict[int, int] = {}
+        self._owner_wrapper_ids: Dict[int, set] = {}
         self._filter = None
 
-        if sys.platform == "win32":
+        if sys.platform == "win32" and _install_filter:
             self._filter = _MsgFilter(self._hwnds)
             app = QCoreApplication.instance()
             if app:
                 app.installNativeEventFilter(self._filter)
 
-    @Slot(QWindow)
-    def attach(self, window: QWindow):
+    @Slot(QWindow, result=bool)
+    def attach(self, window: QWindow) -> bool:
         """加 WS_CAPTION + 注册 hwnd 到 filter 集合。"""
-        self._attach(window, apply_framechanged=True)
+        return self._attach_boundary(window, "attach")
 
-    @Slot(QWindow)
-    def finalizeAttach(self, window: QWindow):
+    @Slot(QWindow, result=bool)
+    def finalizeAttach(self, window: QWindow) -> bool:
         """补执行 SWP_FRAMECHANGED。未 attach 时退化为完整 attach。"""
-        if sys.platform != "win32" or not window:
-            return
+        return self._attach_boundary(window, "finalizeAttach")
+
+    def _attach_boundary(self, window: QWindow, operation: str) -> bool:
+        """Run one public attach boundary. 执行公开 attach 异常边界。"""
+        if sys.platform != "win32":
+            return True
         try:
-            hwnd = int(window.winId())
-            if not hwnd:
-                return
-            if hwnd not in self._hwnds:
-                self._attach(window, apply_framechanged=True)
-                return
-            self._apply_framechanged(hwnd)
-        except Exception as e:
-            error(f"NativeWindowHook.finalizeAttach 失败: {e}")
-
-    def _attach(self, window: QWindow, apply_framechanged: bool):
-        """加 WS_CAPTION + 注册 hwnd 到 filter 集合。"""
-        if sys.platform != "win32" or not window:
-            return
-        try:
-            hwnd = int(window.winId())
-            if not hwnd:
-                return
-
-            if hwnd in self._hwnds:
-                if apply_framechanged:
-                    self._apply_framechanged(hwnd)
-                return
-
-            original_style = user32.GetWindowLongPtrW(hwnd, GWL_STYLE)
-            new_style = (
-                original_style
-                | WS_CAPTION
-                | WS_THICKFRAME
-                | WS_MINIMIZEBOX
-                | WS_MAXIMIZEBOX
-                | WS_SYSMENU
+            return self._attach(window, apply_framechanged=True)
+        except Exception as exc:
+            exception(
+                f"NativeWindowHook.{operation} failed: {type(exc).__name__}: {exc}"
             )
-            user32.SetWindowLongPtrW(hwnd, GWL_STYLE, new_style)
+            return False
 
-            self._hwnds.add(hwnd)
-            self._original_styles[hwnd] = original_style
+    @staticmethod
+    def _window_handle(window: QWindow) -> int:
+        """Return a validated native handle. 返回校验后的原生句柄。"""
+        if not window:
+            return 0
+        return int(window.winId())
 
-            if apply_framechanged:
-                self._apply_framechanged(hwnd)
+    def _owner_identity(self, window: QWindow) -> int:
+        """Return stable C++ QObject identity across wrappers. 返回稳定底层对象标识。"""
+        wrapper_id = id(window)
+        try:
+            pointers = shiboken6.getCppPointer(window)
+        except TypeError:
+            owner_key = wrapper_id
+        except RuntimeError:
+            owner_key = self._wrapper_owner_keys.get(wrapper_id, wrapper_id)
+        else:
+            if not pointers or not pointers[0]:
+                raise RuntimeError("missing C++ QObject pointer")
+            owner_key = int(pointers[0])
+        return owner_key
 
-            info(f"NativeWindowHook v4: attached hwnd={hwnd}, "
-                 f"style 0x{original_style:08x} → 0x{new_style:08x}, "
-                 f"framechanged={apply_framechanged}")
-        except Exception as e:
-            error(f"NativeWindowHook.attach 失败: {e}")
+    def _register_owner_wrapper(self, window: QWindow, owner_key: int) -> None:
+        """Cache a wrapper only after a tracked generation exists. 仅登记已跟踪包装器。"""
+        wrapper_id = id(window)
+        self._wrapper_owner_keys[wrapper_id] = owner_key
+        self._owner_wrapper_ids.setdefault(owner_key, set()).add(wrapper_id)
 
-    def _apply_framechanged(self, hwnd: int):
-        if hwnd in self._framechanged_hwnds:
-            return
-        user32.SetWindowPos(
-            hwnd, 0, 0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+    def _connect_owner_generation(self, window: QWindow, owner_key: int) -> object:
+        """Connect destroyed before committing generation state. 提交前连接析构。"""
+        token = object()
+        destroyed = getattr(window, "destroyed", None)
+        if destroyed is None:
+            raise RuntimeError("native owner has no destroyed signal")
+        destroyed.connect(
+            lambda *_args, key=owner_key, generation=token: self._release_owner(
+                key, generation
+            )
         )
-        self._framechanged_hwnds.add(hwnd)
+        return token
 
-    @Slot(QWindow)
-    def detach(self, window: QWindow):
-        if sys.platform != "win32" or not window:
+    def _new_owner_generation(self, window: QWindow, owner_key: int) -> object:
+        """Create one destroyed-guarded native generation. 创建析构保护代际。"""
+        token = self._connect_owner_generation(window, owner_key)
+        self._owner_generations[owner_key] = token
+        self._owner_keys[token] = owner_key
+        self._register_owner_wrapper(window, owner_key)
+        return token
+
+    def _discard_owner_identity(self, owner_key: int) -> None:
+        """Clear wrapper caches after owner completion or rollback. 清理包装器标识缓存。"""
+        for wrapper_id in self._owner_wrapper_ids.pop(owner_key, set()):
+            if self._wrapper_owner_keys.get(wrapper_id) == owner_key:
+                self._wrapper_owner_keys.pop(wrapper_id, None)
+
+    def _owner_token(self, window: QWindow) -> object:
+        """Return one generation token for a live owner. 返回活窗口代际令牌。"""
+        owner_key = self._owner_identity(window)
+        token = self._owner_generations.get(owner_key)
+        if token is not None:
+            self._register_owner_wrapper(window, owner_key)
+            return token
+        return self._new_owner_generation(window, owner_key)
+
+    def _rotate_owner_generation(self, window: QWindow, owner_key: int) -> object:
+        """Replace one native-handle generation. 切换原生句柄代际。"""
+        previous = self._owner_generations.get(owner_key)
+        token = self._connect_owner_generation(window, owner_key)
+        if previous is not None:
+            self._owner_keys.pop(previous, None)
+            self._owner_hwnds.pop(previous, None)
+            self._retired_owner_hwnds.pop(previous, None)
+        self._owner_generations[owner_key] = token
+        self._owner_keys[token] = owner_key
+        self._register_owner_wrapper(window, owner_key)
+        return token
+
+    def _tracked_owner_token(self, window: QWindow) -> Optional[object]:
+        """Return the current token only for the same live owner. 返回当前活对象令牌。"""
+        owner_key = self._owner_identity(window)
+        token = self._owner_generations.get(owner_key)
+        if token is not None:
+            self._register_owner_wrapper(window, owner_key)
+        return token
+
+    def _prepare_owner(self, window: QWindow, hwnd: int) -> bool:
+        """Bind owner generation and invalidate stale HWND state. 绑定并清理旧代状态。"""
+        owner_key = self._owner_identity(window)
+        token = self._owner_token(window)
+        retired_hwnd = self._retired_owner_hwnds.get(token)
+        if retired_hwnd is not None:
+            if retired_hwnd == hwnd:
+                return False
+            self._retired_owner_hwnds.pop(token, None)
+
+        previous_hwnd = self._owner_hwnds.get(token)
+        if previous_hwnd is not None and previous_hwnd != hwnd:
+            self._forget_hwnd(previous_hwnd)
+            token = self._rotate_owner_generation(window, owner_key)
+
+        previous_owner = self._hwnd_owners.get(hwnd)
+        if previous_owner is not None and previous_owner is not token:
+            self._forget_hwnd(hwnd, retire_owner=True)
+
+        self._owner_hwnds[token] = hwnd
+        self._hwnd_owners[hwnd] = token
+        return True
+
+    def _release_owner(self, owner_key: int, token: object) -> None:
+        """Forget only the matching generation. 仅清理匹配代际。"""
+        if self._owner_generations.get(owner_key) is not token:
             return
+        hwnd = self._owner_hwnds.get(token)
+        if hwnd is not None and self._hwnd_owners.get(hwnd) is token:
+            self._forget_hwnd(hwnd)
+        self._retired_owner_hwnds.pop(token, None)
+        self._owner_generations.pop(owner_key, None)
+        self._owner_keys.pop(token, None)
+        self._owner_hwnds.pop(token, None)
+        self._discard_owner_identity(owner_key)
+
+    def _forget_hwnd(self, hwnd: int, *, retire_owner: bool = False) -> None:
+        """Drop stale native and owner state without calling WinAPI. 遗忘失效状态。"""
+        token = self._hwnd_owners.pop(hwnd, None)
+        if token is not None:
+            self._owner_hwnds.pop(token, None)
+            if retire_owner:
+                self._retired_owner_hwnds[token] = hwnd
+            elif self._retired_owner_hwnds.get(token) == hwnd:
+                self._retired_owner_hwnds.pop(token, None)
+        self._hwnds.discard(hwnd)
+        self._framechanged_hwnds.discard(hwnd)
+        self._restore_pending_hwnds.discard(hwnd)
+        self._original_styles.pop(hwnd, None)
+
+    def _attach(self, window: QWindow, apply_framechanged: bool) -> bool:
+        """加 WS_CAPTION + 注册 hwnd 到 filter 集合。"""
+        hwnd = self._window_handle(window)
+        if not hwnd:
+            return False
+        if not self._prepare_owner(window, hwnd):
+            return False
+        if hwnd in self._restore_pending_hwnds:
+            return self._reattach_restored(hwnd, apply_framechanged)
+        if hwnd in self._hwnds:
+            return not apply_framechanged or self._apply_framechanged(hwnd)
+        observed_style = _get_window_style(hwnd)
+        new_style = self._native_style(observed_style)
+        previous_style = _set_window_style(hwnd, new_style)
+        self._hwnds.add(hwnd)
+        self._original_styles[hwnd] = previous_style
+        if apply_framechanged and not self._apply_framechanged(hwnd):
+            return False
+        info(
+            f"NativeWindowHook v4: attached hwnd={hwnd}, "
+            f"style 0x{previous_style:08x} → 0x{new_style:08x}, "
+            f"framechanged={apply_framechanged}"
+        )
+        return True
+
+    def _reattach_restored(self, hwnd: int, apply_framechanged: bool) -> bool:
+        """Repair a detach frame failure or reused HWND. 修复恢复待刷新或复用句柄。"""
+        observed_style = _get_window_style(hwnd)
+        new_style = self._native_style(observed_style)
+        previous_style = _set_window_style(hwnd, new_style)
+        self._original_styles[hwnd] = previous_style
+        self._restore_pending_hwnds.discard(hwnd)
+        self._framechanged_hwnds.discard(hwnd)
+        return not apply_framechanged or self._apply_framechanged(hwnd)
+
+    @staticmethod
+    def _native_style(style: int) -> int:
+        """Add all styles required by DWM animations. 添加 DWM 动画所需样式。"""
+        return (
+            style
+            | WS_CAPTION
+            | WS_THICKFRAME
+            | WS_MINIMIZEBOX
+            | WS_MAXIMIZEBOX
+            | WS_SYSMENU
+        )
+
+    def _apply_framechanged(self, hwnd: int) -> bool:
+        if hwnd in self._framechanged_hwnds:
+            return True
+        _request_frame_changed(hwnd)
+        self._framechanged_hwnds.add(hwnd)
+        return True
+
+    @Slot(QWindow, result=bool)
+    def detach(self, window: QWindow) -> bool:
+        if sys.platform != "win32":
+            return True
         try:
-            hwnd = int(window.winId())
+            token = self._tracked_owner_token(window)
+            if token is None:
+                return True
+            hwnd = self._owner_hwnds.get(token)
+            if hwnd is None:
+                return True
             if hwnd not in self._hwnds:
-                return
-            user32.SetWindowLongPtrW(hwnd, GWL_STYLE, self._original_styles[hwnd])
-            user32.SetWindowPos(
-                hwnd, 0, 0, 0, 0, 0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+                return True
+            return self._detach(hwnd)
+        except Exception as exc:
+            exception(
+                "NativeWindowHook.detach failed: "
+                f"{type(exc).__name__}: {exc}"
             )
-            self._hwnds.discard(hwnd)
-            self._framechanged_hwnds.discard(hwnd)
-            del self._original_styles[hwnd]
-            info(f"NativeWindowHook: detached hwnd={hwnd}")
-        except Exception as e:
-            error(f"NativeWindowHook.detach 失败: {e}")
+            return False
+
+    def _detach(self, hwnd: int) -> bool:
+        """Restore one tracked HWND and commit cleanup last. 恢复句柄并最后提交清理。"""
+        if hwnd in self._restore_pending_hwnds:
+            _request_frame_changed(hwnd)
+            return self._commit_detach(hwnd)
+        original_style = self._original_styles.get(hwnd)
+        if original_style is None:
+            raise RuntimeError(f"missing original style for hwnd={hwnd}")
+        _set_window_style(hwnd, original_style)
+        self._framechanged_hwnds.discard(hwnd)
+        self._restore_pending_hwnds.add(hwnd)
+        _request_frame_changed(hwnd)
+        return self._commit_detach(hwnd)
+
+    def _commit_detach(self, hwnd: int) -> bool:
+        """Clear state only after native restoration completes. 原生恢复完成后才清状态。"""
+        self._forget_hwnd(hwnd)
+        info(f"NativeWindowHook: detached hwnd={hwnd}")
+        return True
 
 
 _native_window_hook_singleton: Optional[NativeWindowHook] = None

@@ -20,6 +20,8 @@ Window {
     readonly property bool _startupProfilingVerboseActive:
         startupProfilingVerbose ||
         (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
+    readonly property alias _showAnimationStarted: nativeWindowStartup.showAnimationStarted
+    readonly property alias _showAnimationStartCount: nativeWindowStartup.showAnimationStartCount
 
     // ==================== Theme 主题 ====================
     readonly property color accentColor: Enums.accentColor
@@ -177,6 +179,13 @@ Window {
     function animatedRestore() { animHelper.animatedRestore() }
 
     // ==================== Animation Helper 动画助手 ====================
+    NativeWindowStartupHelper {
+        id: nativeWindowStartup
+        targetWindow: window
+        animationHelper: animHelper
+        useNativeShadow: window._useNativeShadow
+    }
+
     WindowAnimationHelper {
         id: animHelper
         targetWindow: window
@@ -203,9 +212,10 @@ Window {
         animHelper.animOpacity = 0
         profileTime("初始化动画状态")
         // 延后 native hook: winId()/style 写入在冷启动可达 90ms+,不要阻塞 loadData。
-        // _dwmDelayTimer 中的 finalizeAttach() 会在窗口显示后完成完整 attach。
-        _dwmDelayTimer.start()
-        profileTime("_dwmDelayTimer.start")
+        // Native startup helper finalizes attach after winId becomes available.
+        // 原生启动助手会在 winId 可用后完成 attach。
+        nativeWindowStartup.start()
+        profileTime("nativeWindowStartup.start")
         _resizeHandlesTimer.start()
         profileTime("_resizeHandlesTimer.start")
     }
@@ -236,36 +246,14 @@ Window {
     // typeof 守卫会漏过 null 导致 "Cannot call method 'detach' of null")。
     Component.onDestruction: {
         if (typeof NativeWindow !== "undefined" && NativeWindow) {
-            NativeWindow.detach(window)
-        }
-    }
-    
-    Timer {
-        id: _dwmDelayTimer
-        interval: 50
-        onTriggered: {
-            profileTime("_dwmDelayTimer triggered")
-            if (_useNativeShadow && ShadowManager) {
-                profileTime("ShadowManager.enableShadowForWindow start")
-                ShadowManager.enableShadowForWindow(window)
-                profileTime("ShadowManager.enableShadowForWindow done")
+            try {
+                if (typeof NativeWindow.detach !== "function" ||
+                        NativeWindow.detach(window) !== true) {
+                    console.warn("NativeWindow.detach failed during window destruction")
+                }
+            } catch (error) {
+                console.warn("NativeWindow.detach raised during window destruction:", error)
             }
-            // NativeWindowHook 也在此时 attach,winId() 已可用
-            if (typeof NativeWindow !== "undefined") {
-                profileTime("NativeWindow.finalizeAttach start")
-                NativeWindow.finalizeAttach(window)
-                profileTime("NativeWindow.finalizeAttach done")
-            }
-            _dwmInitializationDone = true
-            profileTime("DWM initialization marked done")
-            // Notify subclasses that DWM-touching ops finished — Mica 等会反复被
-            // SWP_FRAMECHANGED 重置的 DWM 属性,必须在此之后才能稳定设置。
-            profileTime("nativeHookReady emit start")
-            window.nativeHookReady()
-            profileTime("nativeHookReady emit done")
-            profileTime("animHelper.startShow start")
-            animHelper.startShow()
-            profileTime("animHelper.startShow done")
         }
     }
     
