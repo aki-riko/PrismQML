@@ -15,7 +15,7 @@ import os
 import time
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtCore import QUrl, QStandardPaths
-from ..core.logger import warning, info
+from ..core.logger import warning, info, exception
 from ..core.engine import EngineManager
 from ..providers import get_svg_provider
 from ._generated_qml_cache import (
@@ -77,6 +77,79 @@ class WindowBuilderMixin:
             "splash",
             "[Splash]",
         )
+
+    def _profile_generated_window_qml(
+        self, window_qml_file: Path, qml_component: str
+    ) -> None:
+        try:
+            qml_bytes = window_qml_file.read_bytes()
+            qml_digest = hashlib.sha256(qml_bytes).hexdigest()[:20]
+            info(
+                "[启动剖析] PrismQML._create_window generated qml: "
+                f"path={window_qml_file}, bytes={len(qml_bytes)}, "
+                f"sha={qml_digest}, component={qml_component}, "
+                f"nav={len(self._nav_items)}, bottom={len(self._bottom_nav_items)}, "
+                f"pages={len(self._nav_items) + len(self._bottom_nav_items)}, "
+                "verbose=True"
+            )
+        except OSError as exc:
+            warning(f"[启动剖析] 读取生成窗口 QML 失败: {exc}")
+        info("[启动剖析] PrismQML._create_window QQmlComponent(file) begin")
+
+    @staticmethod
+    def _profile_window_component_result(component, loaded_window) -> None:
+        info(
+            "[启动剖析] PrismQML._create_window component.create(file) result: "
+            f"loaded={loaded_window is not None}, "
+            f"errors={[error.toString() for error in component.errors()]}"
+        )
+
+    def _load_generated_window_component(
+        self, window_qml: str, qml_component: str, profile, verbose: bool
+    ):
+        window_qml_file = self._write_generated_window_qml(window_qml)
+        profile("写入/确认窗口 QML 缓存")
+        if verbose:
+            self._profile_generated_window_qml(window_qml_file, qml_component)
+        component = QQmlComponent(
+            self._engine, QUrl.fromLocalFile(str(window_qml_file))
+        )
+        profile("QQmlComponent(file)")
+        if component.isError():
+            warning(
+                "[WindowBuilder] 文件化窗口 QML 加载失败: "
+                f"{[error.toString() for error in component.errors()]}"
+            )
+            return None
+        return component
+
+    def _load_generated_window_boundary(
+        self, window_qml: str, qml_component: str, profile, verbose: bool
+    ):
+        loaded_window = None
+        try:
+            component = self._load_generated_window_component(
+                window_qml, qml_component, profile, verbose
+            )
+            if component is None:
+                return None
+            if verbose:
+                info("[启动剖析] PrismQML._create_window component.create(file) begin")
+            loaded_window = component.create()
+            self._window_component = component
+            profile("component.create(file)")
+            if verbose:
+                self._profile_window_component_result(component, loaded_window)
+        except Exception as exc:
+            outcome = (
+                "文件化加载窗口 QML 失败，回退到 loadData"
+                if loaded_window is None
+                else "文件化窗口 QML 创建后诊断失败，保留已创建窗口"
+            )
+            exception(
+                f"[WindowBuilder] {outcome}: {type(exc).__name__}: {exc}"
+            )
+        return loaded_window
 
     def _create_window(self):
         """创建QML窗口"""
@@ -250,42 +323,14 @@ import "file:///{qml_dir.as_posix()}/_internal"
 """
         profile("拼接窗口 QML")
 
-        loaded_window = None
-        try:
-            window_qml_file = self._write_generated_window_qml(window_qml)
-            profile("写入/确认窗口 QML 缓存")
-            if startup_profile_verbose:
-                try:
-                    qml_bytes = window_qml_file.read_bytes()
-                    qml_digest = hashlib.sha256(qml_bytes).hexdigest()[:20]
-                    info(
-                        "[启动剖析] PrismQML._create_window generated qml: "
-                        f"path={window_qml_file}, bytes={len(qml_bytes)}, "
-                        f"sha={qml_digest}, component={qml_component}, "
-                        f"nav={len(self._nav_items)}, bottom={len(self._bottom_nav_items)}, "
-                        f"pages={len(self._nav_items) + len(self._bottom_nav_items)}, "
-                        f"verbose={startup_profile_verbose}"
-                    )
-                except OSError as exc:
-                    warning(f"[启动剖析] 读取生成窗口 QML 失败: {exc}")
-                info("[启动剖析] PrismQML._create_window QQmlComponent(file) begin")
-            component = QQmlComponent(self._engine, QUrl.fromLocalFile(str(window_qml_file)))
-            profile("QQmlComponent(file)")
-            if component.isError():
-                warning(f"[WindowBuilder] 文件化窗口 QML 加载失败: {[e.toString() for e in component.errors()]}")
-            else:
-                if startup_profile_verbose:
-                    info("[启动剖析] PrismQML._create_window component.create(file) begin")
-                loaded_window = component.create()
-                self._window_component = component
-                profile("component.create(file)")
-                if startup_profile_verbose:
-                    info(
-                        "[启动剖析] PrismQML._create_window component.create(file) result: "
-                        f"loaded={loaded_window is not None}, errors={[e.toString() for e in component.errors()]}"
-                    )
-        except Exception as e:
-            warning(f"[WindowBuilder] 文件化加载窗口 QML 失败，回退到 loadData: {e}")
+        # Isolate file fallback now; full window orchestration split remains P7I-F.
+        # 先隔离文件回退边界；完整窗口编排拆分仍留在 P7I-F。
+        loaded_window = self._load_generated_window_boundary(
+            window_qml,
+            qml_component,
+            profile,
+            startup_profile_verbose,
+        )
 
         if loaded_window is None:
             self._engine.loadData(window_qml.encode("utf-8"))
