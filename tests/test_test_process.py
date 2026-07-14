@@ -233,8 +233,12 @@ def _windows_ucrt_error_mode() -> int:
 
 def test_configure_automated_process_overrides_visible_qt_platform(monkeypatch):
     monkeypatch.setenv("QT_QPA_PLATFORM", "windows")
+    monkeypatch.setenv("QML_DISABLE_DISK_CACHE", "0")
+    monkeypatch.setenv("QML_FORCE_DISK_CACHE", "1")
     configure_automated_test_process()
     assert os.environ["QT_QPA_PLATFORM"] == "offscreen"
+    assert os.environ["QML_DISABLE_DISK_CACHE"] == "1"
+    assert "QML_FORCE_DISK_CACHE" not in os.environ
     assert automated_test_process_is_noninteractive()
     if sys.platform == "win32":
         assert _windows_ucrt_error_mode() == UCRT_OUT_TO_STDERR
@@ -243,7 +247,14 @@ def test_configure_automated_process_overrides_visible_qt_platform(monkeypatch):
 def test_runner_forces_headless_environment_in_child():
     environment = os.environ.copy()
     environment["QT_QPA_PLATFORM"] = "windows"
-    code = "import os, sys; sys.stdout.write(os.environ['QT_QPA_PLATFORM'])"
+    environment["QML_DISABLE_DISK_CACHE"] = "0"
+    environment["QML_FORCE_DISK_CACHE"] = "1"
+    code = (
+        "import json, os, sys; sys.stdout.write(json.dumps({"
+        "'platform': os.environ['QT_QPA_PLATFORM'], "
+        "'cache_disabled': os.environ['QML_DISABLE_DISK_CACHE'], "
+        "'cache_forced': os.environ.get('QML_FORCE_DISK_CACHE')}))"
+    )
     result = _run_runner(
         "--qt-platform",
         "offscreen",
@@ -255,7 +266,11 @@ def test_runner_forces_headless_environment_in_child():
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.strip() == "offscreen"
+    assert json.loads(result.stdout) == {
+        "platform": "offscreen",
+        "cache_disabled": "1",
+        "cache_forced": None,
+    }
 
 
 @pytest.mark.parametrize("timeout", ("0", "-1", "nan", "inf"))

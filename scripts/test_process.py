@@ -151,10 +151,17 @@ def _configure_windows_error_ui() -> None:
         raise RuntimeError("Windows Error Reporting always-show-UI flag remains enabled")
 
 
+def _configure_qml_disk_cache() -> None:
+    """Keep automated QML compilation out of the real user cache."""
+    os.environ["QML_DISABLE_DISK_CACHE"] = "1"
+    os.environ.pop("QML_FORCE_DISK_CACHE", None)
+
+
 def configure_automated_test_process(qt_platform: str | None = "offscreen") -> None:
     """Force non-interactive Qt and Windows crash handling before Qt is imported."""
     if qt_platform is not None:
         os.environ["QT_QPA_PLATFORM"] = qt_platform
+    _configure_qml_disk_cache()
     os.environ["PYTHONFAULTHANDLER"] = "1"
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
@@ -167,6 +174,7 @@ def configure_test_launcher(qt_platform: str | None = "offscreen") -> None:
     """Protect a child before its own test bootstrap can configure WER."""
     if qt_platform is not None:
         os.environ["QT_QPA_PLATFORM"] = qt_platform
+    _configure_qml_disk_cache()
     os.environ["PYTHONFAULTHANDLER"] = "1"
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
