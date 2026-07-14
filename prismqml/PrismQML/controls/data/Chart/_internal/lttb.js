@@ -74,6 +74,70 @@ function lttbIndices(xs, ys, threshold) {
     return out;
 }
 
+// Downsample a contiguous value range without allocating sliced X/Y arrays
+// 在原数组连续区间上降采样，避免分配切片后的 X/Y 数组
+function lttbRangeIndices(values, start, end, threshold, objectValues) {
+    var n = end - start;
+    if (threshold >= n || threshold < 3) {
+        var all = new Array(n);
+        for (var i = 0; i < n; i++) all[i] = i;
+        return all;
+    }
+
+    function valueAt(localIndex) {
+        var value = values[start + localIndex];
+        if (objectValues) {
+            return value && value.value !== undefined ? value.value : 0;
+        }
+        return typeof value === "number" ? value : 0;
+    }
+
+    var bucketSize = (n - 2) / (threshold - 2);
+    var out = [0];
+    var a = 0;
+    for (var bucket = 0; bucket < threshold - 2; bucket++) {
+        var bucketStart = Math.floor((bucket + 1) * bucketSize) + 1;
+        var bucketEnd = Math.floor((bucket + 2) * bucketSize) + 1;
+        if (bucketEnd > n - 1) bucketEnd = n - 1;
+        if (bucketStart >= bucketEnd) continue;
+
+        var nextStart = bucketEnd;
+        var nextEnd = Math.floor((bucket + 3) * bucketSize) + 1;
+        if (nextEnd > n) nextEnd = n;
+        var avgX, avgY;
+        if (nextStart >= nextEnd) {
+            avgX = nextStart - 1;
+            avgY = valueAt(nextStart - 1);
+        } else {
+            var sumY = 0;
+            for (var next = nextStart; next < nextEnd; next++) {
+                sumY += valueAt(next);
+            }
+            avgX = (nextStart + nextEnd - 1) / 2;
+            avgY = sumY / (nextEnd - nextStart);
+        }
+
+        var ax = a;
+        var ay = valueAt(a);
+        var maxArea = -1;
+        var maxIndex = bucketStart;
+        for (var candidate = bucketStart; candidate < bucketEnd; candidate++) {
+            var area = Math.abs(
+                (ax - avgX) * (valueAt(candidate) - ay) -
+                (ax - candidate) * (avgY - ay)
+            );
+            if (area > maxArea) {
+                maxArea = area;
+                maxIndex = candidate;
+            }
+        }
+        out.push(maxIndex);
+        a = maxIndex;
+    }
+    out.push(n - 1);
+    return out;
+}
+
 // 按一组 indices 切一条 series
 function applyIndices(indices, series) {
     var out = new Array(indices.length);

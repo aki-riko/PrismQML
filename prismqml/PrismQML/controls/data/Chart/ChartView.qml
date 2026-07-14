@@ -99,9 +99,14 @@ ShadowedRectangle {
     // ==================== Internal Props 内部属性 ====================
     // Disable viewport transitions during direct manipulation 直接拖动期间禁用视窗过渡
     property bool _viewportInteractive: false
-    // Render values drive slicing and animate toward the logical viewport 画面值驱动切片并向逻辑视窗平滑过渡
-    property real _renderStart: viewportStart
-    property real _renderEnd: viewportEnd
+    readonly property var _renderViewport: viewportAnimator.renderViewport
+    readonly property real _renderStart: _renderViewport.start
+    readonly property real _renderEnd: _renderViewport.end
+    readonly property real _viewportScale: viewportAnimator.scaleValue
+    readonly property real _viewportOffsetRatio: viewportAnimator.offsetRatio
+    readonly property real _visualStart: viewportAnimator.visualStart
+    readonly property real _visualEnd: viewportAnimator.visualEnd
+    readonly property bool _viewportTransitionActive: viewportAnimator.active
     property int _hoveredBarIndex: -1
     property int _hoveredBarSeriesIndex: -1
     property int _hoveredPointIndex: -1
@@ -126,10 +131,10 @@ ShadowedRectangle {
 
     // Slice the viewport before LTTB sampling to preserve trends and extrema 先按视窗切片，再用 LTTB 保留趋势与峰谷
     readonly property var _viewChartData: ChartViewport.viewChartData(
-        chartData, _renderStart, _renderEnd, lttbThreshold
+        chartData, _renderViewport.start, _renderViewport.end, lttbThreshold
     )
     readonly property var _viewSeries: ChartViewport.viewSeries(
-        series, _renderStart, _renderEnd, lttbThreshold
+        series, _renderViewport.start, _renderViewport.end, lttbThreshold
     )
 
     // ==================== Signals 信号 ====================
@@ -178,17 +183,6 @@ ShadowedRectangle {
     opacity: deferAnimation ? 1.0 : 0
     scale: 1.0
 
-    // Animate the actual render viewport for wheel and programmatic zoom 滚轮和程序缩放时动画实际画面视窗
-    // Direct manipulation stays immediate to preserve pointer tracking 直接拖动保持实时跟手
-    Behavior on _renderStart {
-        enabled: control.animated && !control._viewportInteractive
-        NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic }
-    }
-    Behavior on _renderEnd {
-        enabled: control.animated && !control._viewportInteractive
-        NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic }
-    }
-
     Component.onCompleted: {
         if (!deferAnimation) {
             entranceAnim.start()
@@ -197,7 +191,7 @@ ShadowedRectangle {
 
     // Apply pointer-anchored wheel zoom and retarget running transitions 应用鼠标锚定滚轮缩放并重定向进行中的过渡
     onWheelZoomed: function(delta, anchorRatio) {
-        var span = control.viewportEnd - control.viewportStart
+        var span = control._visualEnd - control._visualStart
         if (span <= 0) span = 1
         var zoomFactor = delta > 0 ? Enums.chart.zoom_in_factor : Enums.chart.zoom_out_factor
         var newSpan = span * zoomFactor
@@ -205,7 +199,7 @@ ShadowedRectangle {
             newSpan = Enums.chart.minimum_viewport_span
         }
         if (newSpan > 1) newSpan = 1
-        var anchor = control.viewportStart + span * anchorRatio
+        var anchor = control._visualStart + span * anchorRatio
         var nextStart = anchor - newSpan * anchorRatio
         var nextEnd = nextStart + newSpan
         if (nextStart < 0) {
@@ -219,6 +213,23 @@ ShadowedRectangle {
         control.viewportStart = nextStart
         control.viewportEnd = nextEnd
         control.viewportChanged(nextStart, nextEnd)
+    }
+
+    ChartViewportAnimator {
+        id: viewportAnimator
+        viewportStart: control.viewportStart
+        viewportEnd: control.viewportEnd
+        animated: control.animated
+        interactive: control._viewportInteractive
+        transitionEnabled: control._isXYChart
+        onTransitionStarted: {
+            control._hoveredBarIndex = -1
+            control._hoveredBarSeriesIndex = -1
+            control._hoveredPointIndex = -1
+            control._hoveredLineSeriesIndex = -1
+            control._hoveredScatterSeriesIndex = -1
+            control._hoveredScatterPointIndex = -1
+        }
     }
 
     SequentialAnimation {
@@ -256,102 +267,125 @@ ShadowedRectangle {
         yAxisLabelWidth: control.yAxisLabelWidth
         valueFormatter: control.valueFormatter
         hoveredIndex: control._isScatter ? -1 : (control._hoveredBarIndex >= 0 ? control._hoveredBarIndex : control._hoveredPointIndex)
+        viewportScale: control._viewportScale
+        viewportOffsetRatio: control._viewportOffsetRatio
+        viewportTransitionActive: control._viewportTransitionActive
 
         onXLabelHovered: (index) => {
             if (control.chartType === Enums.chart.type_bar) control._hoveredBarIndex = index
             else control._hoveredPointIndex = index
         }
 
-        BarChartContent {
-            id: barContent
+        Item {
+            id: chartViewportClip
             anchors.fill: xyChartBase.chartArea
-            visible: control.chartType === Enums.chart.type_bar && (control.chartData.length > 0 || control.series.length > 0)
-            chartData: control._viewChartData
-            series: control._viewSeries
-            maxValue: control.maxValue
-            animated: control.animated
-            showValues: control.showValues
-            showAverage: control.showAverage
-            showMinMax: control.showMinMax
-            showBarGradient: control.showBarGradient
-            getColor: control.getColor
-            hoveredIndex: control._hoveredBarIndex
-            hoveredSeriesIndex: control._hoveredBarSeriesIndex
-            isHorizontal: control._isHorizontalBar
-            valueRange: xyChartBase.valueRange
-            zeroLineRatio: xyChartBase.zeroLineRatio
-            onBarClicked: (index, data) => control.barClicked(index, data)
-            onBarHovered: (index) => control._hoveredBarIndex = index
-            onSeriesBarHovered: (si, bi) => { control._hoveredBarSeriesIndex = si; control._hoveredBarIndex = bi }
-        }
+            clip: true
 
-        LineChartContent {
-            id: lineContent
-            anchors.fill: xyChartBase.chartArea
-            visible: control.chartType === Enums.chart.type_line && (control.chartData.length > 0 || control.series.length > 0)
-            chartData: control._viewChartData
-            series: control._viewSeries
-            maxValue: control.maxValue
-            primaryColor: control.primaryColor
-            smoothLine: control.smoothLine
-            hoverDetectEnabled: control.showTooltip
-            showAverage: control.showAverage
-            showMinMax: control.showMinMax
-            isArea: false
-            hoveredIndex: control._hoveredPointIndex
-            hoveredSeriesIndex: control._hoveredLineSeriesIndex
-            boundaryGap: control.boundaryGap
-            showAreaGradient: control.showAreaGradient
-            stacked: control.stacked
-            onPointClicked: (index, data) => control.pointClicked(index, data)
-            onPointHovered: (index) => control._hoveredPointIndex = index
-            onSeriesPointHovered: (si, pi) => { control._hoveredLineSeriesIndex = si; control._hoveredPointIndex = pi }
-            onWheelZoomed: (delta, anchorRatio) => control.wheelZoomed(delta, anchorRatio)
-        }
+            Item {
+                id: chartViewportLayer
+                x: control._isHorizontalBar ? 0 : control._viewportOffsetRatio * parent.width
+                y: control._isHorizontalBar ? control._viewportOffsetRatio * parent.height : 0
+                width: parent.width
+                height: parent.height
+                transform: Scale {
+                    origin.x: 0
+                    origin.y: 0
+                    xScale: control._isHorizontalBar ? 1 : control._viewportScale
+                    yScale: control._isHorizontalBar ? control._viewportScale : 1
+                }
 
-        ScatterChartContent {
-            id: scatterContent
-            anchors.fill: xyChartBase.chartArea
-            visible: control._isScatter && control.series.length > 0
-            series: control._viewSeries
-            dataRange: xyChartBase.scatterDataRange
-            animated: control.animated
-            showGrid: control.showGrid
-            hoveredSeriesIndex: control._hoveredScatterSeriesIndex
-            hoveredPointIndex: control._hoveredScatterPointIndex
-            defaultSymbolSize: control.symbolSize
-            onPointClicked: (index, data) => control.pointClicked(index, data)
-            onPointHovered: (si, pi) => { control._hoveredScatterSeriesIndex = si; control._hoveredScatterPointIndex = pi }
+                BarChartContent {
+                    id: barContent
+                    anchors.fill: parent
+                    visible: control.chartType === Enums.chart.type_bar && (control.chartData.length > 0 || control.series.length > 0)
+                    chartData: control._viewChartData
+                    series: control._viewSeries
+                    maxValue: control.maxValue
+                    animated: control.animated
+                    showValues: control.showValues
+                    showAverage: control.showAverage
+                    showMinMax: control.showMinMax
+                    showBarGradient: control.showBarGradient
+                    getColor: control.getColor
+                    hoveredIndex: control._hoveredBarIndex
+                    hoveredSeriesIndex: control._hoveredBarSeriesIndex
+                    isHorizontal: control._isHorizontalBar
+                    valueRange: xyChartBase.valueRange
+                    zeroLineRatio: xyChartBase.zeroLineRatio
+                    onBarClicked: (index, data) => control.barClicked(index, data)
+                    onBarHovered: (index) => control._hoveredBarIndex = index
+                    onSeriesBarHovered: (si, bi) => { control._hoveredBarSeriesIndex = si; control._hoveredBarIndex = bi }
+                }
+
+                LineChartContent {
+                    id: lineContent
+                    anchors.fill: parent
+                    visible: control.chartType === Enums.chart.type_line && (control.chartData.length > 0 || control.series.length > 0)
+                    chartData: control._viewChartData
+                    series: control._viewSeries
+                    maxValue: control.maxValue
+                    primaryColor: control.primaryColor
+                    smoothLine: control.smoothLine
+                    hoverDetectEnabled: control.showTooltip && !control._viewportTransitionActive
+                    showAverage: control.showAverage
+                    showMinMax: control.showMinMax
+                    isArea: false
+                    hoveredIndex: control._hoveredPointIndex
+                    hoveredSeriesIndex: control._hoveredLineSeriesIndex
+                    boundaryGap: control.boundaryGap
+                    showAreaGradient: control.showAreaGradient
+                    stacked: control.stacked
+                    onPointClicked: (index, data) => control.pointClicked(index, data)
+                    onPointHovered: (index) => control._hoveredPointIndex = index
+                    onSeriesPointHovered: (si, pi) => { control._hoveredLineSeriesIndex = si; control._hoveredPointIndex = pi }
+                    onWheelZoomed: (delta, anchorRatio) => control.wheelZoomed(delta, anchorRatio)
+                }
+
+                ScatterChartContent {
+                    id: scatterContent
+                    anchors.fill: parent
+                    visible: control._isScatter && control.series.length > 0
+                    series: control._viewSeries
+                    dataRange: xyChartBase.scatterDataRange
+                    animated: control.animated
+                    showGrid: control.showGrid
+                    hoveredSeriesIndex: control._hoveredScatterSeriesIndex
+                    hoveredPointIndex: control._hoveredScatterPointIndex
+                    defaultSymbolSize: control.symbolSize
+                    onPointClicked: (index, data) => control.pointClicked(index, data)
+                    onPointHovered: (si, pi) => { control._hoveredScatterSeriesIndex = si; control._hoveredScatterPointIndex = pi }
+                }
+            }
         }
     }
 
     // ==================== XY Chart Tooltips ====================
     // Single series bar chart tooltip 单系列柱状图 Tooltip
     ChartTooltip {
-        visible: control._hoveredBarIndex >= 0 && barContent.visible && !barContent.isMultiSeries
+        visible: !control._viewportTransitionActive && control._hoveredBarIndex >= 0 && barContent.visible && !barContent.isMultiSeries
         x: {
-            if (control._hoveredBarIndex < 0 || control.chartData.length === 0) return 0
-            var barWidth = (xyChartBase.chartAreaWidth - control.chartData.length * Enums.spacing.s) / control.chartData.length
+            if (control._hoveredBarIndex < 0 || control._viewChartData.length === 0) return 0
+            var barWidth = (xyChartBase.chartAreaWidth - control._viewChartData.length * Enums.spacing.s) / control._viewChartData.length
             return xyChartBase.chartAreaX + control._hoveredBarIndex * (barWidth + Enums.spacing.s) + barWidth / 2 - width / 2
         }
         y: xyChartBase.chartAreaY + Enums.spacing.m
-        label: control._hoveredBarIndex >= 0 && control._hoveredBarIndex < control.chartData.length ? (control.chartData[control._hoveredBarIndex].label || "") : ""
-        value: control._hoveredBarIndex >= 0 && control._hoveredBarIndex < control.chartData.length ? (control.chartData[control._hoveredBarIndex].value || 0) : 0
+        label: control._hoveredBarIndex >= 0 && control._hoveredBarIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredBarIndex].label || "") : ""
+        value: control._hoveredBarIndex >= 0 && control._hoveredBarIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredBarIndex].value || 0) : 0
         valueFormatter: control.valueFormatter
     }
 
     // Single series line chart tooltip 单系列折线图 Tooltip
     ChartTooltip {
-        visible: control._hoveredPointIndex >= 0 && lineContent.visible && !lineContent.isMultiSeries
+        visible: !control._viewportTransitionActive && control._hoveredPointIndex >= 0 && lineContent.visible && !lineContent.isMultiSeries
         x: xyChartBase.chartAreaX + lineContent.getTooltipPosition(control._hoveredPointIndex).x - width / 2
         y: xyChartBase.chartAreaY + lineContent.getTooltipPosition(control._hoveredPointIndex).y - height - Enums.spacing.m
-        label: control._hoveredPointIndex >= 0 && control._hoveredPointIndex < control.chartData.length ? (control.chartData[control._hoveredPointIndex].label || "") : ""
-        value: control._hoveredPointIndex >= 0 && control._hoveredPointIndex < control.chartData.length ? (control.chartData[control._hoveredPointIndex].value || 0) : 0
+        label: control._hoveredPointIndex >= 0 && control._hoveredPointIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredPointIndex].label || "") : ""
+        value: control._hoveredPointIndex >= 0 && control._hoveredPointIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredPointIndex].value || 0) : 0
         valueFormatter: control.valueFormatter
     }
 
     ChartMultiTooltip {
-        visible: control.showTooltip && control._hoveredPointIndex >= 0 && lineContent.visible && lineContent.isMultiSeries
+        visible: !control._viewportTransitionActive && control.showTooltip && control._hoveredPointIndex >= 0 && lineContent.visible && lineContent.isMultiSeries
         // 默认放鼠标右下角; 触右/下边时反向到左/上 (单轴独立判断)
         x: {
             var mx = lineContent.mouseX || 0
@@ -370,11 +404,11 @@ ShadowedRectangle {
             }
             return xyChartBase.chartAreaY + Math.max(0, my - height - Enums.spacing.s)
         }
-        xLabel: control._hoveredPointIndex >= 0 && control.chartData.length > control._hoveredPointIndex ? (control.chartData[control._hoveredPointIndex].label || "") : ""
+        xLabel: control._hoveredPointIndex >= 0 && control._viewChartData.length > control._hoveredPointIndex ? (control._viewChartData[control._hoveredPointIndex].label || "") : ""
         seriesData: {
             var result = []
-            for (var i = 0; i < control.series.length; i++) {
-                var s = control.series[i]
+            for (var i = 0; i < control._viewSeries.length; i++) {
+                var s = control._viewSeries[i]
                 var vals = s.values || []
                 result.push({
                     name: s.name || "",
@@ -388,8 +422,8 @@ ShadowedRectangle {
         totalValue: {
             if (control._hoveredPointIndex < 0) return 0
             var sum = 0
-            for (var i = 0; i < control.series.length; i++) {
-                var vals = control.series[i].values || []
+            for (var i = 0; i < control._viewSeries.length; i++) {
+                var vals = control._viewSeries[i].values || []
                 if (control._hoveredPointIndex < vals.length) sum += vals[control._hoveredPointIndex] || 0
             }
             return sum
@@ -398,14 +432,14 @@ ShadowedRectangle {
     }
 
     ChartMultiTooltip {
-        visible: control._hoveredBarIndex >= 0 && barContent.visible && barContent.isMultiSeries
+        visible: !control._viewportTransitionActive && control._hoveredBarIndex >= 0 && barContent.visible && barContent.isMultiSeries
         x: xyChartBase.chartAreaX + Math.min(Math.max((control._hoveredBarIndex + 0.5) * (xyChartBase.chartAreaWidth / barContent.dataLength) - width / 2, 0), xyChartBase.chartAreaWidth - width)
         y: xyChartBase.chartAreaY + Enums.spacing.m
-        xLabel: control._hoveredBarIndex >= 0 && control.chartData.length > control._hoveredBarIndex ? (control.chartData[control._hoveredBarIndex].label || "") : ""
+        xLabel: control._hoveredBarIndex >= 0 && control._viewChartData.length > control._hoveredBarIndex ? (control._viewChartData[control._hoveredBarIndex].label || "") : ""
         seriesData: {
             var result = []
-            for (var i = 0; i < control.series.length; i++) {
-                var s = control.series[i]
+            for (var i = 0; i < control._viewSeries.length; i++) {
+                var s = control._viewSeries[i]
                 var vals = s.values || []
                 result.push({
                     name: s.name || "",
@@ -419,12 +453,12 @@ ShadowedRectangle {
     }
 
     ChartTooltip {
-        visible: control._hoveredScatterSeriesIndex >= 0 && scatterContent.visible
+        visible: !control._viewportTransitionActive && control._hoveredScatterSeriesIndex >= 0 && scatterContent.visible
         x: xyChartBase.chartAreaX + Math.min(Math.max(scatterContent.tooltipX - width / 2, 0), xyChartBase.chartAreaWidth - width)
         y: xyChartBase.chartAreaY + scatterContent.tooltipY - height - Enums.spacing.m
         showColorDot: true
-        dotColor: control._hoveredScatterSeriesIndex >= 0 ? (control.series[control._hoveredScatterSeriesIndex].color || Enums.chartColors.extendedPalette[control._hoveredScatterSeriesIndex % Enums.chartColors.extendedPalette.length]) : "transparent"
-        label: control._hoveredScatterSeriesIndex >= 0 ? (control.series[control._hoveredScatterSeriesIndex].name || "") : ""
+        dotColor: control._hoveredScatterSeriesIndex >= 0 ? (control._viewSeries[control._hoveredScatterSeriesIndex].color || Enums.chartColors.extendedPalette[control._hoveredScatterSeriesIndex % Enums.chartColors.extendedPalette.length]) : Enums.transparent
+        label: control._hoveredScatterSeriesIndex >= 0 ? (control._viewSeries[control._hoveredScatterSeriesIndex].name || "") : ""
         value: "(" + scatterContent.dataX.toFixed(2) + ", " + scatterContent.dataY.toFixed(2) + ")"
         isValueString: true
     }
@@ -541,8 +575,8 @@ ShadowedRectangle {
         chartData: control.chartData
         series: control.series
         primaryColor: control.primaryColor
-        viewportStart: control._renderStart
-        viewportEnd: control._renderEnd
+        viewportStart: control._visualStart
+        viewportEnd: control._visualEnd
         onViewportChanged: (s, e) => {
             control.viewportStart = s
             control.viewportEnd = e
@@ -567,8 +601,8 @@ ShadowedRectangle {
         property real _pressVE: 0
         onPressed: (mouse) => {
             _pressX = mouse.x
-            _pressVS = control.viewportStart
-            _pressVE = control.viewportEnd
+            _pressVS = control._visualStart
+            _pressVE = control._visualEnd
             control._viewportInteractive = true
         }
         onReleased: { control._viewportInteractive = false }

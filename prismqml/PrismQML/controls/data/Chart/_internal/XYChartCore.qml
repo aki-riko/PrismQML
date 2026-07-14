@@ -37,6 +37,9 @@ Item {
     // 多级货币等长字符串场景可覆盖更大值避免左截断
     property real yAxisLabelWidth: Enums.controlSize.chartYAxisWidth
     property bool showLegend: false      // Show legend (affects bottom margin) 显示图例（影响底部边距）
+    property real viewportScale: 1       // Viewport visual scale 视窗视觉缩放
+    property real viewportOffsetRatio: 0 // Viewport visual offset 视窗视觉偏移
+    property bool viewportTransitionActive: false // Viewport transition state 视窗过渡状态
     
     // ==================== Signals 信号 ====================
     signal xLabelHovered(int index)
@@ -218,10 +221,15 @@ Item {
     Column {
         id: horizontalYAxisLabels
         x: Enums.spacing.s
-        y: chartAreaItem.y
+        y: chartAreaItem.y + root.viewportOffsetRatio * chartAreaItem.height
         width: Enums.controlSize.chartYAxisWidth + Enums.spacing.l
         height: chartAreaItem.height
         visible: root.isHorizontal && root.chartData.length > 0
+        transform: Scale {
+            origin.x: 0
+            origin.y: 0
+            yScale: root.viewportScale
+        }
         
         Repeater {
             model: root.chartData
@@ -245,6 +253,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
+                    enabled: !root.viewportTransitionActive
                     onEntered: root.xLabelHovered(index)
                     onExited: root.xLabelHovered(-1)
                 }
@@ -254,6 +263,8 @@ Item {
     
     // ==================== X-Axis Labels for Horizontal Bar 水平柱状图X轴标签（数值） ====================
     Item {
+        id: horizontalXAxisLabels
+
         x: chartAreaItem.x
         y: chartAreaItem.y + chartAreaItem.height + Enums.spacing.xs
         width: chartAreaItem.width
@@ -278,10 +289,15 @@ Item {
     // ==================== X-Axis Labels (Category) X轴标签（分类） ====================
     Row {
         id: xAxisLabels
-        x: chartAreaItem.x
+        x: chartAreaItem.x + root.viewportOffsetRatio * chartAreaItem.width
         y: chartAreaItem.y + chartAreaItem.height + Enums.spacing.xs
         width: chartAreaItem.width
         visible: root.showLabels && root.chartData.length > 0 && !root.isScatter && !root.isHorizontal
+        transform: Scale {
+            origin.x: 0
+            origin.y: 0
+            xScale: root.viewportScale
+        }
         
         Repeater {
             model: root.chartData
@@ -309,6 +325,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
+                    enabled: !root.viewportTransitionActive
                     onEntered: root.xLabelHovered(index)
                     onExited: root.xLabelHovered(-1)
                 }
@@ -318,11 +335,18 @@ Item {
     
     // ==================== X-Axis Labels (Numeric for Scatter) X轴标签（散点图数值） ====================
     Item {
-        x: chartAreaItem.x
+        id: scatterXAxisLabels
+
+        x: chartAreaItem.x + root.viewportOffsetRatio * chartAreaItem.width
         y: chartAreaItem.y + chartAreaItem.height + Enums.spacing.xs
         width: chartAreaItem.width
         height: Enums.controlSize.chartXAxisHeight
         visible: root.isScatter && root.series.length > 0
+        transform: Scale {
+            origin.x: 0
+            origin.y: 0
+            xScale: root.viewportScale
+        }
         
         Repeater {
             model: 6

@@ -7,98 +7,72 @@
 .pragma library
 .import "lttb.js" as Lttb
 
-function indexArray(n) {
-    var a = new Array(n)
-    for (var i = 0; i < n; i++) a[i] = i
-    return a
-}
-
-function valuesOf(arr) {
-    var a = new Array(arr.length)
-    for (var i = 0; i < arr.length; i++) {
-        var it = arr[i]
-        a[i] = (it && it.value !== undefined) ? it.value : 0
+function bounds(length, renderStart, renderEnd) {
+    var lo = 0
+    var hi = length
+    if (renderStart > 0 || renderEnd < 1) {
+        lo = Math.max(0, Math.floor(length * renderStart))
+        hi = Math.min(length, Math.ceil(length * renderEnd))
+        if (hi <= lo) hi = Math.min(length, lo + 1)
     }
-    return a
-}
-
-function numbersOf(vals) {
-    var a = new Array(vals.length)
-    for (var i = 0; i < vals.length; i++) {
-        a[i] = (typeof vals[i] === "number") ? vals[i] : 0
-    }
-    return a
+    return { lo: lo, hi: hi, length: hi - lo }
 }
 
 function viewChartData(chartData, renderStart, renderEnd, threshold) {
     if (!chartData || chartData.length === 0) return []
 
-    var src = chartData
-    if (renderStart > 0 || renderEnd < 1) {
-        var n = chartData.length
-        var lo = Math.max(0, Math.floor(n * renderStart))
-        var hi = Math.min(n, Math.ceil(n * renderEnd))
-        if (hi <= lo) hi = Math.min(n, lo + 1)
-        src = chartData.slice(lo, hi)
+    var range = bounds(chartData.length, renderStart, renderEnd)
+    if (range.length <= threshold) {
+        return range.length === chartData.length
+            ? chartData
+            : chartData.slice(range.lo, range.hi)
     }
 
-    if (src.length <= threshold) return src
-
-    var indices = Lttb.lttbIndices(indexArray(src.length), valuesOf(src), threshold)
+    var indices = Lttb.lttbRangeIndices(
+        chartData, range.lo, range.hi, threshold, true
+    )
     var out = new Array(indices.length)
-    for (var i = 0; i < indices.length; i++) out[i] = src[indices[i]]
+    for (var i = 0; i < indices.length; i++) {
+        out[i] = chartData[range.lo + indices[i]]
+    }
     return out
 }
 
 function viewSeries(series, renderStart, renderEnd, threshold) {
     if (!series || series.length === 0) return []
 
-    var srcAll = series
-    if (renderStart > 0 || renderEnd < 1) {
-        var sliced = []
-        for (var s = 0; s < series.length; s++) {
-            var src = series[s] || {}
-            var copy = {}
-            for (var k in src) copy[k] = src[k]
-            if (Array.isArray(src.values)) {
-                var n = src.values.length
-                var lo = Math.max(0, Math.floor(n * renderStart))
-                var hi = Math.min(n, Math.ceil(n * renderEnd))
-                if (hi <= lo) hi = Math.min(n, lo + 1)
-                copy.values = src.values.slice(lo, hi)
-            }
-            if (Array.isArray(src.data)) {
-                var n2 = src.data.length
-                var lo2 = Math.max(0, Math.floor(n2 * renderStart))
-                var hi2 = Math.min(n2, Math.ceil(n2 * renderEnd))
-                if (hi2 <= lo2) hi2 = Math.min(n2, lo2 + 1)
-                copy.data = src.data.slice(lo2, hi2)
-            }
-            sliced.push(copy)
-        }
-        srcAll = sliced
-    }
-
     var maxLen = 0
-    for (var s2 = 0; s2 < srcAll.length; s2++) {
-        var v2 = srcAll[s2].values || srcAll[s2].data || []
-        if (v2.length > maxLen) maxLen = v2.length
+    for (var s = 0; s < series.length; s++) {
+        var values = series[s].values || series[s].data || []
+        var valueRange = bounds(values.length, renderStart, renderEnd)
+        if (valueRange.length > maxLen) maxLen = valueRange.length
     }
-    if (maxLen <= threshold) return srcAll
 
-    var primary = srcAll[0].values || srcAll[0].data || []
-    if (primary.length <= threshold) return srcAll
+    var primary = series[0].values || series[0].data || []
+    var primaryRange = bounds(primary.length, renderStart, renderEnd)
+    var indices = null
+    if (maxLen > threshold && primaryRange.length > threshold) {
+        indices = Lttb.lttbRangeIndices(
+            primary, primaryRange.lo, primaryRange.hi, threshold, false
+        )
+    }
 
-    var primIdx = Lttb.lttbIndices(indexArray(primary.length), numbersOf(primary), threshold)
     var out = []
-    for (var s3 = 0; s3 < srcAll.length; s3++) {
+    for (var s2 = 0; s2 < series.length; s2++) {
         var c = {}
-        for (var k2 in srcAll[s3]) c[k2] = srcAll[s3][k2]
-        if (Array.isArray(srcAll[s3].values)) {
-            c.values = primIdx.map(function(i) { return srcAll[s3].values[i] })
+        var source = series[s2] || {}
+        for (var key in source) c[key] = source[key]
+        if (Array.isArray(source.values)) {
+            var valueBounds = bounds(source.values.length, renderStart, renderEnd)
+            c.values = indices
+                ? indices.map(function(i) { return source.values[valueBounds.lo + i] })
+                : source.values.slice(valueBounds.lo, valueBounds.hi)
         }
-        if (Array.isArray(srcAll[s3].data)) {
-            c.data = primIdx.map(function(i) { return srcAll[s3].data[i] })
+        if (Array.isArray(source.data)) {
+            var dataBounds = bounds(source.data.length, renderStart, renderEnd)
+            c.data = indices
+                ? indices.map(function(i) { return source.data[dataBounds.lo + i] })
+                : source.data.slice(dataBounds.lo, dataBounds.hi)
         }
         out.push(c)
     }

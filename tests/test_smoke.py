@@ -16,6 +16,7 @@ import prismqml
 
 SUBPROCESS_TIMEOUT_SECONDS = 30
 PACKAGE_INIT = Path(__file__).resolve().parents[1] / "prismqml" / "__init__.py"
+PROJECT_CONFIG = Path(__file__).resolve().parents[1] / "pyproject.toml"
 
 
 def _metadata_failure(error):
@@ -23,6 +24,19 @@ def _metadata_failure(error):
         raise error
 
     return fail
+
+
+def _project_version():
+    section = ""
+    for line in PROJECT_CONFIG.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            section = stripped
+            continue
+        if section == "[project]" and stripped.startswith("version"):
+            _, value = stripped.split("=", 1)
+            return value.strip().strip('"')
+    raise AssertionError("pyproject.toml [project].version is missing")
 
 
 def test_import_prismqml():
@@ -35,7 +49,7 @@ def test_missing_distribution_uses_source_version_fallback(monkeypatch):
 
     namespace = runpy.run_path(str(PACKAGE_INIT))
 
-    assert namespace["__version__"] == prismqml.__version__
+    assert namespace["__version__"] == _project_version()
 
 
 def test_metadata_backend_failure_is_not_hidden_as_missing_package(monkeypatch):

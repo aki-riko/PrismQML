@@ -25,4 +25,5 @@ QtObject {
     readonly property real default_anchor_ratio: 0.5
     readonly property int viewport_slider_steps: 1000
     readonly property int lttb_threshold: 600
+    readonly property real viewport_epsilon: 0.000001
 }
