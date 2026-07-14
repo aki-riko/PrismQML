@@ -17,6 +17,17 @@ OverlayDialogCore {
     property bool actionsVisible: true      // Show action row 显示动作按钮区
     property Component footer: null             // Footer button component 按钮组件（由子类提供）
 
+    // Explicit content width 显式内容宽度
+    // When > 0, the dialog width is driven by this value instead of the content's
+    // childrenRect. Set it when the body's root item already has a fixed width, to
+    // avoid the implicitWidth<->childrenRect binding loop (childrenRect grows/oscillates
+    // when a child overflows the fixed-width root). Leave -1 to keep the legacy
+    // content-measured behavior (for bodies that must size to their content).
+    // 大于 0 时对话框宽度由它决定，而非内容 childrenRect；当主体根项已固定宽度时设置它，
+    // 以规避 implicitWidth<->childrenRect 绑定循环（子项溢出定宽根项会使 childrenRect
+    // 变大/抖动）。保持 -1 则维持按内容测量的旧行为（供需随内容自适应的主体）。
+    property int contentWidth: -1
+
     // Body content 主体内容
     default property alias bodyContent: bodyLayout.data
 
@@ -157,7 +168,10 @@ OverlayDialogCore {
                 anchors.bottom: actionsRow.top
                 anchors.margins: Enums.spacing.xxxl
                 
-                implicitWidth: childrenRect.width
+                // Prefer the explicit contentWidth to break the childrenRect binding loop;
+                // fall back to childrenRect when unset (contentWidth <= 0).
+                // 优先用显式 contentWidth 以打断 childrenRect 绑定循环；未设置(<=0)时回退 childrenRect。
+                implicitWidth: control.contentWidth > 0 ? control.contentWidth : childrenRect.width
                 implicitHeight: childrenRect.height
             }
             
