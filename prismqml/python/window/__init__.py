@@ -85,6 +85,27 @@ def _derive_script_app_user_model_id(argv0: str) -> Optional[str]:
     return _make_app_user_model_id(*parts, identity_path=script_path)
 
 
+def _derive_executable_app_user_model_id(
+    executable: Optional[str],
+) -> Optional[str]:
+    executable = sys.executable if executable is None else executable
+    exe = os.path.basename(executable or "")
+    stem = os.path.splitext(exe)[0]
+    # Packaged apps can usually be separated by their executable name.
+    # 打包应用通常可由可执行文件名区分。
+    if not stem or stem.lower() in _HOST_EXECUTABLE_STEMS:
+        return None
+    return _make_app_user_model_id(stem)
+
+
+def _derive_current_script_app_user_model_id(
+    argv0: Optional[str],
+) -> Optional[str]:
+    if argv0 is None:
+        argv0 = sys.argv[0] if sys.argv else ""
+    return _derive_script_app_user_model_id(argv0)
+
+
 def _derive_app_user_model_id(
     executable: Optional[str] = None,
     argv0: Optional[str] = None,
@@ -96,22 +117,16 @@ def _derive_app_user_model_id(
         return explicit
 
     try:
-        executable = sys.executable if executable is None else executable
-        exe = os.path.basename(executable or "")
-        stem = os.path.splitext(exe)[0]
-        # Packaged apps can usually be separated by their executable name.
-        # 打包应用通常可由可执行文件名区分。
-        if stem and stem.lower() not in _HOST_EXECUTABLE_STEMS:
-            return _make_app_user_model_id(stem)
+        executable_app_id = _derive_executable_app_user_model_id(executable)
+        if executable_app_id:
+            return executable_app_id
     except (OSError, TypeError, ValueError) as e:
         from ..core.logger import debug
 
         debug(f"Failed to derive AppUserModelID from executable: {e}")
 
     try:
-        if argv0 is None:
-            argv0 = sys.argv[0] if sys.argv else ""
-        script_app_id = _derive_script_app_user_model_id(argv0)
+        script_app_id = _derive_current_script_app_user_model_id(argv0)
         if script_app_id:
             return script_app_id
     except (OSError, TypeError, ValueError) as e:
