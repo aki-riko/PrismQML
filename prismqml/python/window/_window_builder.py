@@ -14,17 +14,16 @@ from string import Template
 import hashlib
 import os
 import time
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import QQmlComponent
 from PySide6.QtCore import QUrl, QStandardPaths
 from ..core.logger import warning, info, exception
-from ..core.engine import EngineManager
-from ..providers import get_svg_provider
 from ._generated_qml_cache import (
     GENERATED_SPLASH_QML_CACHE_DIR,
     GENERATED_WINDOW_QML_CACHE_DIR,
     write_generated_qml,
 )
 from ._splash_builder import create_splash
+from ._window_engine_setup import prepare_window_engine
 
 if TYPE_CHECKING:
     from .window_core import NavigationItem
@@ -328,43 +327,9 @@ class WindowBuilderMixin:
                 f"QtCacheLocation={cache_location!r}"
             )
 
-        from ..core import ThemeManager, getShadowManager
-        from ..config import getConfigManager
-        profile("导入核心管理器")
-
-        # 获取或创建引擎
-        try:
-            self._engine = EngineManager.get_engine()
-        except RuntimeError:
-            # 引擎未初始化，创建新引擎
-            self._engine = QQmlApplicationEngine()
-            EngineManager.set_engine(self._engine)
-        profile("获取/创建 QML Engine")
-
-        # 注入管理器
-        from .mica_window import get_mica_manager
-        from .native_window import get_native_window_hook
-        from ..providers.clipboard import get_clipboard_helper
-        from ..core.icon_provider import register_icon_provider
-        profile("导入窗口依赖")
-
-        ctx = self._engine.rootContext()
-        ctx.setContextProperty("ThemeManager", ThemeManager())
-        ctx.setContextProperty("ShadowManager", getShadowManager())
-        ctx.setContextProperty("ConfigManager", getConfigManager())
-        ctx.setContextProperty("MicaManager", get_mica_manager())
-        ctx.setContextProperty("ClipboardHelper", get_clipboard_helper())
-        ctx.setContextProperty("PrismQmlStartupProfileVerbose", startup_profile_verbose)
-        # WindowCore 延后调用 NativeWindow.attach/finalizeAttach，让 frameless 享受 DWM 动画
-        ctx.setContextProperty("NativeWindow", get_native_window_hook())
-        profile("注入 ContextProperty")
-
-        # 注册Icon到QML（Python作为单一来源）
-        register_icon_provider(self._engine)
-
-        # 注册SVG图片提供器（高质量SVG渲染）
-        self._engine.addImageProvider("svg", get_svg_provider())
-        profile("注册 ImageProvider")
+        getConfigManager = prepare_window_engine(
+            self, startup_profile_verbose, profile
+        )
 
         from ..core.utils import qml_path
         qml_dir = qml_path()

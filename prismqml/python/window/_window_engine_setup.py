@@ -1,0 +1,93 @@
+# coding: utf-8
+# SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
+"""Window engine and QML dependency setup. 窗口引擎与 QML 依赖装配。"""
+
+from PySide6.QtQml import QQmlApplicationEngine
+
+from ..core.engine import EngineManager
+from ..providers import get_svg_provider
+
+
+def _load_core_window_managers(profile):
+    """Load core managers at the original startup boundary. 在原启动边界加载核心管理器。"""
+    from ..core import ThemeManager, getShadowManager
+    from ..config import getConfigManager
+
+    profile("导入核心管理器")
+    return ThemeManager, getShadowManager, getConfigManager
+
+
+def _ensure_window_engine(builder, profile) -> None:
+    """Reuse or create the process QML engine. 复用或创建进程级 QML 引擎。"""
+    try:
+        builder._engine = EngineManager.get_engine()
+    except RuntimeError:
+        builder._engine = QQmlApplicationEngine()
+        EngineManager.set_engine(builder._engine)
+    profile("获取/创建 QML Engine")
+
+
+def _load_window_dependencies(profile):
+    """Load window-only dependencies at their original boundary. 在原边界加载窗口依赖。"""
+    from .mica_window import get_mica_manager
+    from .native_window import get_native_window_hook
+    from ..providers.clipboard import get_clipboard_helper
+    from ..core.icon_provider import register_icon_provider
+
+    profile("导入窗口依赖")
+    return (
+        get_mica_manager,
+        get_native_window_hook,
+        get_clipboard_helper,
+        register_icon_provider,
+    )
+
+
+def _inject_window_context(
+    builder, startup_profile_verbose, core_managers, window_dependencies, profile
+):
+    """Inject the ordered root context contract. 按既定顺序注入根上下文合同。"""
+    ThemeManager, getShadowManager, getConfigManager = core_managers
+    get_mica_manager, get_native_window_hook, get_clipboard_helper, icon_registrar = (
+        window_dependencies
+    )
+    context = builder._engine.rootContext()
+    context.setContextProperty("ThemeManager", ThemeManager())
+    context.setContextProperty("ShadowManager", getShadowManager())
+    context.setContextProperty("ConfigManager", getConfigManager())
+    context.setContextProperty("MicaManager", get_mica_manager())
+    context.setContextProperty("ClipboardHelper", get_clipboard_helper())
+    context.setContextProperty(
+        "PrismQmlStartupProfileVerbose", startup_profile_verbose
+    )
+    # WindowCore defers NativeWindow attach/finalizeAttach for DWM animations.
+    # WindowCore 延后 NativeWindow attach/finalizeAttach，以保留 DWM 动画。
+    context.setContextProperty("NativeWindow", get_native_window_hook())
+    profile("注入 ContextProperty")
+    return icon_registrar
+
+
+def _register_window_image_providers(builder, icon_registrar, profile) -> None:
+    """Register Icon and engine-owned SVG providers. 注册 Icon 与引擎持有的 SVG provider。"""
+    icon_registrar(builder._engine)
+    builder._engine.addImageProvider("svg", get_svg_provider())
+    profile("注册 ImageProvider")
+
+
+def prepare_window_engine(builder, startup_profile_verbose, profile):
+    """Prepare the engine, context, and providers in startup order. 按启动顺序装配引擎、上下文和 provider。"""
+    core_managers = _load_core_window_managers(profile)
+    _ensure_window_engine(builder, profile)
+    window_dependencies = _load_window_dependencies(profile)
+    icon_registrar = _inject_window_context(
+        builder,
+        startup_profile_verbose,
+        core_managers,
+        window_dependencies,
+        profile,
+    )
+    _register_window_image_providers(builder, icon_registrar, profile)
+    return core_managers[2]
