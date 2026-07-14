@@ -100,6 +100,7 @@ def _exercise_file_fallback(temp_dir):
         pump(120)
         assert win._window is not None
         assert win.isVisible()
+        assert "WindowsBar" in win._window.metaObject().className()
     finally:
         qml_window = getattr(win, "_window", None)
         if qml_window is not None:
@@ -108,6 +109,31 @@ def _exercise_file_fallback(temp_dir):
             QCoreApplication.sendPostedEvents(qml_window, QEvent.DeferredDelete)
         win._window = None
         QApplication.processEvents()
+
+
+def _exercise_missing_root_failure(temp_dir):
+    from PySide6.QtQml import QQmlApplicationEngine
+
+    from prismqml.python.window._window_builder import WindowBuilderMixin
+    from prismqml.python.window._window_root_setup import load_window_root
+
+    class MissingRootBuilder(WindowBuilderMixin):
+        _GENERATED_QML_CACHE_DIR = Path(temp_dir) / "missing-root-cache"
+
+    builder = MissingRootBuilder()
+    builder._engine = QQmlApplicationEngine()
+    source = "import QtQuick\nItem { missingProperty: true }"
+    try:
+        try:
+            load_window_root(builder, source, "Item", lambda _label: None, False)
+        except RuntimeError as exc:
+            assert str(exc) == "Failed to create window"
+        else:
+            raise AssertionError("invalid file and inline QML must not create a root")
+        assert builder._engine.rootObjects() == []
+    finally:
+        builder._engine.deleteLater()
+        QCoreApplication.sendPostedEvents(builder._engine, QEvent.DeferredDelete)
 
 
 def main():
@@ -120,6 +146,7 @@ def main():
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             _exercise_post_create_profile_failure(temp_dir)
+            _exercise_missing_root_failure(temp_dir)
             _exercise_file_fallback(temp_dir)
     finally:
         logger.removeHandler(capture)

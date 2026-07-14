@@ -12,10 +12,8 @@ from typing import List, TYPE_CHECKING
 from pathlib import Path
 from string import Template
 import hashlib
-import os
-import time
 from PySide6.QtQml import QQmlComponent
-from PySide6.QtCore import QUrl, QStandardPaths
+from PySide6.QtCore import QUrl
 from ..core.logger import warning, info, exception
 from ._generated_qml_cache import (
     GENERATED_SPLASH_QML_CACHE_DIR,
@@ -24,6 +22,11 @@ from ._generated_qml_cache import (
 )
 from ._splash_builder import create_splash
 from ._window_engine_setup import prepare_window_engine
+from ._window_root_setup import finish_window_startup
+from ._window_startup import (
+    prepare_window_startup_profile,
+    resolve_window_qml_paths,
+)
 
 if TYPE_CHECKING:
     from .window_core import NavigationItem
@@ -298,124 +301,24 @@ class WindowBuilderMixin:
 
     def _create_window(self):
         """创建QML窗口"""
-        profile_start = time.perf_counter()
-        profile_last = profile_start
-
-        def profile(label: str):
-            nonlocal profile_last
-            now = time.perf_counter()
-            info(
-                f"[启动剖析] PrismQML._create_window {label}: "
-                f"+{int((now - profile_last) * 1000)}ms / "
-                f"total {int((now - profile_start) * 1000)}ms"
-            )
-            profile_last = now
-
-        startup_profile_verbose = os.environ.get("PRISMQML_STARTUP_PROFILE_VERBOSE", "").lower() in {
-            "1",
-            "true",
-            "yes",
-            "on",
-        }
-        if startup_profile_verbose:
-            cache_location = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.CacheLocation)
-            info(
-                "[启动剖析] PrismQML QML cache env: "
-                f"QML_DISK_CACHE_PATH={os.environ.get('QML_DISK_CACHE_PATH', '')!r}, "
-                f"QML_DISABLE_DISK_CACHE={os.environ.get('QML_DISABLE_DISK_CACHE', '')!r}, "
-                f"QML_FORCE_DISK_CACHE={os.environ.get('QML_FORCE_DISK_CACHE', '')!r}, "
-                f"QtCacheLocation={cache_location!r}"
-            )
-
+        profile, startup_profile_verbose = prepare_window_startup_profile()
         getConfigManager = prepare_window_engine(
             self, startup_profile_verbose, profile
         )
-
-        from ..core.utils import qml_path
-        qml_dir = qml_path()
-        icon_dir = qml_dir / "controls" / "icons" / "fluent"
-        profile("解析 QML 路径")
-
-        window_qml, qml_component, window_icon_qml, mica_enabled = (
-            self._compose_window_qml(
-                qml_dir,
-                icon_dir,
-                startup_profile_verbose,
-                getConfigManager,
-                profile,
-            )
+        qml_dir, icon_dir = resolve_window_qml_paths(profile)
+        rendered_window = self._compose_window_qml(
+            qml_dir,
+            icon_dir,
+            startup_profile_verbose,
+            getConfigManager,
+            profile,
         )
-
-        # Isolate file fallback now; full window orchestration split remains P7I-F.
-        # 先隔离文件回退边界；完整窗口编排拆分仍留在 P7I-F。
-        loaded_window = self._load_generated_window_boundary(
-            window_qml,
-            qml_component,
+        finish_window_startup(
+            self,
+            rendered_window,
             profile,
             startup_profile_verbose,
         )
-
-        if loaded_window is None:
-            self._engine.loadData(window_qml.encode("utf-8"))
-            profile("engine.loadData fallback")
-            if self._engine.rootObjects():
-                loaded_window = self._engine.rootObjects()[-1]
-
-        if loaded_window is None:
-            raise RuntimeError("Failed to create window")
-
-        self._window = loaded_window
-        profile("获取 rootObject")
-
-        # 找到内容区域（StackedWidget）
-        self._find_content_area()
-        profile("查找 content area")
-
-        # 连接信号
-        self._connect_signals()
-        profile("连接 QML 信号")
-
-        # ⚠️ apply 子类 __init__ 期间缓存的 setProperty (Mica 等),
-        # 这一步必须在 nativeHookReady (50ms 后) 之前完成,否则 hookReady 读到默认值
-        def same_icon(left: str, right: str) -> bool:
-            def canonical(value: str) -> str:
-                if value.startswith("qrc:"):
-                    return ":/" + value[4:].lstrip("/")
-                return value
-
-            return canonical(str(left)) == canonical(str(right))
-
-        initial_props = {
-            "windowTitle": self._title,
-            "windowIcon": window_icon_qml,
-            "windowIconColored": self._icon_colored,
-            "micaEnabled": mica_enabled,
-        }
-        for key, initial_value in initial_props.items():
-            if key not in self._pending_props:
-                continue
-            pending_value = self._pending_props[key]
-            if key == "windowIcon":
-                is_same = same_icon(pending_value, initial_value)
-            else:
-                is_same = pending_value == initial_value
-            if is_same:
-                self._pending_props.pop(key, None)
-
-        if self._pending_props or self._pending_calls:
-            info(
-                "[启动剖析] PrismQML._create_window pending state: "
-                f"props={list(self._pending_props.keys())}, calls={len(self._pending_calls)}"
-            )
-        self._apply_pending_state()
-        profile("应用 pending state")
-
-        # 默认挂载启动画面: 在窗口树就绪后立即创建 SplashScreen 覆盖层,
-        # 框架首屏内容加载完成时会自动 finish() 淡出。必须在框架的异步
-        # mainLoader(startupTimer 50ms 后才 active)之前挂好 _splashInstance,
-        # 此处同步执行 → onLoaded 时 _splashInstance 必已就位。
-        self._create_splash()
-        profile("创建 Splash")
 
     def _resolve_icon_path(self, name: str) -> str:
         """把图标名/路径解析为 QML 可用的 url。
