@@ -98,6 +98,23 @@ class NavigationItem:
         self._page_instance = None
 
 
+def _make_navigation_item(
+    interface: Optional[Union[Type, Any]], icon: str, text: str
+) -> NavigationItem:
+    is_class = isinstance(interface, type)
+    is_callable = callable(interface) and not is_class
+    is_instance = interface is not None and not is_class and not is_callable
+    if is_instance:
+        item = NavigationItem(text, icon, page_class=None)
+        item._page_instance = interface
+        return item
+    if is_callable:
+        item = NavigationItem(text, icon, page_class=None)
+        item.page_getter = interface
+        return item
+    return NavigationItem(text, icon, page_class=interface)
+
+
 class WindowCloseEvent:
     """Cancellable close event passed to WindowCore.closeEvent."""
 
@@ -412,57 +429,25 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         selectedIcon: str = "",
         selectable: bool = True,
     ) -> int:
-        """添加子界面
+        """添加页面或功能项并返回所选导航列表中的局部索引。
 
         Args:
-            interface: 页面类或页面实例，None表示功能项
-                - 传入类：懒加载模式，在切换时创建实例
-                - 传入实例：立即使用该实例
-            icon: 图标名称（Icon）或图片路径
+            interface: 页面类、页面工厂、页面实例或 None 功能项
+            icon: 图标名称或图片路径
             text: 导航项文本
-            position: 位置 "top" 或 "bottom"
-            selectedIcon: 选中时的图标（可选）
-            selectable: 是否可选中（False表示功能项，只发送回调不切换页面）
+            position: "top" 或 "bottom"
+            selectedIcon: 选中态图标
+            selectable: 是否允许选中
 
         Returns:
-            导航项索引
-
-        Example:
-            # 传入类（懒加载）
-            window.addPage(ButtonPage, "CursorClick", "按钮")
-
-            # 传入实例
-            home_page = HomePage()
-            window.addPage(home_page, "Home", "主页")
-
-            # 功能项（点击只发送回调，不切换页面）
-            window.addPage(None, "Person", "用户", position="bottom", selectable=False)
+            top 或 bottom 列表内的局部索引
         """
-        # 判断是类还是实例还是函数
-        is_class = isinstance(interface, type)
-        is_callable = callable(interface) and not is_class
-        is_instance = interface is not None and not is_class and not is_callable
-
-        if is_instance:
-            # 传入的是实例，直接使用
-            item = NavigationItem(text, icon, page_class=None)
-            item._page_instance = interface  # 直接保存实例
-        elif is_callable:
-            # 传入的是getter工厂函数
-            item = NavigationItem(text, icon, page_class=None)
-            item.page_getter = interface
-        else:
-            # 传入的是类，懒加载
-            item = NavigationItem(text, icon, page_class=interface)
-
+        item = _make_navigation_item(interface, icon, text)
         item.selected_icon = selectedIcon
-        item.selectable = selectable  # 标记是否可选中
-        if position == "bottom":
-            self._bottom_nav_items.append(item)
-            return len(self._bottom_nav_items) - 1
-        else:
-            self._nav_items.append(item)
-            return len(self._nav_items) - 1
+        item.selectable = selectable
+        items = self._bottom_nav_items if position == "bottom" else self._nav_items
+        items.append(item)
+        return len(items) - 1
 
     def removePage(self, interface: Type):
         """移除子界面
