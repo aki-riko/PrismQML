@@ -50,6 +50,23 @@ StackedWidget {{
     return component, component.create()
 
 
+def test_readmes_use_current_core_module_names():
+    stale_names = (
+        "SettingsBase",
+        "IconBase",
+        "WindowBase",
+        "settings_base",
+        "icon_base",
+        "window_base",
+    )
+
+    for readme in ("README.md", "README.en.md"):
+        content = _read(readme)
+        assert "SettingsCore" in content, readme
+        for stale_name in stale_names:
+            assert stale_name not in content, f"{readme}: {stale_name}"
+
+
 def test_navigation_item_page_builder_api_is_removed():
     assert "page_builder" not in inspect.signature(NavigationItem).parameters
     assert not hasattr(NavigationItem("Home"), "page_builder")

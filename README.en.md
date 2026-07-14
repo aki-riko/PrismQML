@@ -143,7 +143,7 @@ Rectangle {
 
 ## ⚙️ Config System
 
-The config system uses a five-layer architecture: `Validator` → `SettingEntry` → `SettingsBase` → `AppConfig` → `ConfigManager`
+The config system uses a five-layer architecture: `Validator` → `SettingEntry` → `SettingsCore` → `AppConfig` → `ConfigManager`
 
 - **JSON persistence**: stored at `~/.prismqml/app.json` by default
 - **Atomic writes**: write to a temp file then replace, preventing data loss on power failure
@@ -166,12 +166,12 @@ config.setDpiScale(150)
 ```python
 from typing import ClassVar
 from prismqml.python.config import (
-    SettingsBase, SettingEntry, EnumEntry,
+    SettingsCore, SettingEntry, EnumEntry,
     Validator,
 )
 
 
-class MyAppConfig(SettingsBase):
+class MyAppConfig(SettingsCore):
     auto_save: ClassVar[SettingEntry] = SettingEntry(
         group="Editor", name="AutoSave",
         default=True, validator=Validator.boolean(),
