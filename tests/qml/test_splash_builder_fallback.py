@@ -11,6 +11,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+os.environ["QML_DISABLE_DISK_CACHE"] = "1"
+os.environ.pop("QML_FORCE_DISK_CACHE", None)
+
 from _test_process_bootstrap import configure_qml_test_process
 
 configure_qml_test_process()
@@ -37,12 +40,26 @@ def pump(ms):
     loop.exec()
 
 
+def _delete_qobject(obj):
+    if obj is None or not shiboken6.isValid(obj):
+        return
+    obj.deleteLater()
+    QCoreApplication.sendPostedEvents(obj, QEvent.DeferredDelete)
+    assert not shiboken6.isValid(obj)
+
+
 def _dispose_window(window):
     qml_window = getattr(window, "_window", None)
+    splash = getattr(window, "_splash_instance", None)
+    component = getattr(window, "_splash_component", None)
     if qml_window is not None and shiboken6.isValid(qml_window):
+        qml_window.setProperty("_splashInstance", None)
         qml_window.setProperty("visible", False)
-        qml_window.deleteLater()
-        QCoreApplication.sendPostedEvents(qml_window, QEvent.DeferredDelete)
+    if splash is not None and shiboken6.isValid(splash):
+        splash.setParentItem(None)
+    _delete_qobject(splash)
+    _delete_qobject(component)
+    _delete_qobject(qml_window)
     window._splash_instance = None
     window._splash_component = None
     window._window = None
@@ -153,6 +170,31 @@ def _exercise_deleted_window_mount_failure(temp_dir):
         _dispose_window(window)
 
 
+def _exercise_rich_splash_contract(temp_dir):
+    from prismqml import Window, WindowType
+
+    window_class = _isolated_window_class(Window, temp_dir, "rich")
+    window = _new_window(WindowType.BAR, window_class)
+    title = 'Title "quoted" {brace}\nline'
+    subtitle = "Sub $ value"
+    window.resize(1111, 777)
+    window.showSplash(":/icons/splash.svg", title, subtitle)
+    try:
+        window.show()
+        pump(120)
+        splash = window._window.property("_splashInstance")
+        assert splash is window._splash_instance
+        assert window._splash_component is not None
+        assert splash.property("iconSource") == "qrc:/icons/splash.svg"
+        assert splash.property("title") == title
+        assert splash.property("subtitle") == subtitle
+        assert splash.parentItem() == window._window.contentItem()
+        assert splash.property("width") == 1111
+        assert splash.property("height") == 777
+    finally:
+        _dispose_window(window)
+
+
 def _assert_boundary_records(records):
     _assert_traceback_record(
         records,
@@ -189,6 +231,7 @@ def main():
                 _exercise_post_component_profile_failure(temp_dir)
             _exercise_file_fallback(temp_dir)
             _exercise_deleted_window_mount_failure(temp_dir)
+            _exercise_rich_splash_contract(temp_dir)
     finally:
         logger.removeHandler(capture)
 
