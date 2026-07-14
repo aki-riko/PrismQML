@@ -32,15 +32,15 @@ Item {
     property bool showAreaGradient: false // Show gradient fill under line 渐变填充
     property bool stacked: false         // Stacked area chart 堆叠面积图
     property bool animated: false        // Line drawing animation 折线绘制动画
-    // 是否启用鼠标悬停检测; 数据点过密时关闭可消掉 onPositionChanged 重型计算导致的掉帧
+    // Enable pointer hover detection; disable it for dense data to reduce frame drops 启用鼠标悬停检测，密集数据可关闭以减少掉帧
     property bool hoverDetectEnabled: true
     
     // ==================== Signals 信号 ====================
     signal pointClicked(int index, var data)
     signal pointHovered(int index)
     signal seriesPointHovered(int seriesIndex, int pointIndex)
-    // delta > 0 = 放大 (缩小范围); delta < 0 = 缩小 (扩大范围)
-    // anchorRatio: 鼠标位于 chart 内 0..1 (用于以鼠标位置为锚缩放)
+    // Positive delta zooms in; negative delta zooms out 正增量放大，负增量缩小
+    // anchorRatio is the pointer position used as the zoom anchor anchorRatio 是鼠标缩放锚点的相对位置
     signal wheelZoomed(int delta, real anchorRatio)
     
     // ==================== Internal 内部属性 ====================
@@ -312,10 +312,12 @@ Item {
         acceptedButtons: Qt.LeftButton
         propagateComposedEvents: true
 
-        // 滚轮缩放: emit wheelZoomed 信号给应用层处理 (改 startDate/endDate)
+        // Emit pointer-anchored wheel zoom to the parent 向父级发送鼠标锚定滚轮缩放
         onWheel: (wheel) => {
-            var ratio = root.width > 0 ? Math.max(0, Math.min(1, wheel.x / root.width)) : 0.5
-            // wheel.angleDelta.y 通常 +120 / -120 (一格)
+            var ratio = root.width > 0
+                ? Math.max(0, Math.min(1, wheel.x / root.width))
+                : Enums.chart.default_anchor_ratio
+            // angleDelta.y is normally one wheel step angleDelta.y 通常表示一个滚轮刻度
             root.wheelZoomed(wheel.angleDelta.y, ratio)
             wheel.accepted = true
         }

@@ -7,11 +7,11 @@ import QtQuick.Layouts
 import "../../.."
 import "../../inputs/Slider"
 
-// ChartDataZoom — 双手柄区域缩放选择器
-// 上层缩略图: Canvas 自画全量轮廓 (避免引用 ChartView 触发循环依赖)
-// 下层叠 SliderCore type_range 双手柄做范围选择
+// ChartDataZoom - Dual-handle viewport selector 双手柄视窗范围选择器
+// The canvas renders a full-data thumbnail without depending on ChartView Canvas 绘制全量缩略图且不依赖 ChartView
+// SliderCore provides the range handles SliderCore 提供范围双手柄
 //
-// 用法:
+// Usage 用法:
 //   ChartDataZoom {
 //       chartData: chartWidget.chartData
 //       series: chartWidget.series
@@ -28,12 +28,12 @@ Item {
     id: control
 
     // ==================== Public Props 公开属性 ====================
-    // 全量数据 — 用来画缩略图轮廓
+    // Full data used by the thumbnail renderer 缩略图渲染使用的全量数据
     property var chartData: []
     property var series: []
     property color primaryColor: Enums.accentColor
 
-    // 当前选中范围 (0..1)
+    // Current selected range 当前选中范围
     property real viewportStart: 0
     property real viewportEnd: 1
 
@@ -51,11 +51,11 @@ Item {
 
     // ==================== Signals 信号 ====================
     signal viewportChanged(real start, real end)
-    // 用户开始/结束拖动手柄 — 父级监听后关闭 viewport 动画避免每帧卡
+    // Notify the parent about direct manipulation so transitions can pause 通知父级直接拖动状态以暂停过渡
     signal interactiveChanged(bool active)
 
-    implicitWidth: 400
-    implicitHeight: 60
+    implicitWidth: Enums.controlSize.chartDataZoomDefaultWidth
+    implicitHeight: Enums.controlSize.chartDataZoomDefaultHeight
 
     Rectangle {
         anchors.fill: parent
@@ -65,7 +65,7 @@ Item {
         border.color: control._panelBorderColor
     }
 
-    // 缩略图: Canvas 自画全量轮廓 (主导 series 取 chartData[i].value 或 series[0].values)
+    // Render the leading series as the full-data thumbnail 将主序列绘制为全量数据缩略图
     Canvas {
         id: thumbCanvas
 
@@ -86,14 +86,14 @@ Item {
 
         anchors.fill: parent
         anchors.margins: control._thumbnailMargin
-        anchors.bottomMargin: control._sliderSpace  // 给底部 slider 留空间
+        anchors.bottomMargin: control._sliderSpace  // Reserve space for the slider 为滑块预留空间
 
         onPaint: {
             var ctx = getContext('2d')
             ctx.clearRect(0, 0, width, height)
             var vals = _drawValues
             if (!vals || vals.length === 0) return
-            // Y 范围
+            // Resolve the vertical data range 计算纵向数据范围
             var minV = vals[0], maxV = vals[0]
             for (var i = 1; i < vals.length; i++) {
                 if (vals[i] < minV) minV = vals[i]
@@ -101,7 +101,7 @@ Item {
             }
             var range = maxV - minV || 1
             var n = vals.length
-            // 把点抽稀到画布宽度: 1 像素 1 个点 max
+            // Downsample to at most one point per pixel 每个像素最多保留一个点
             var maxPoints = Math.min(n, Math.max(1, Math.floor(width)))
             var step = n / maxPoints
             ctx.beginPath()
@@ -112,14 +112,14 @@ Item {
                 if (k === 0) ctx.moveTo(x, y)
                 else ctx.lineTo(x, y)
             }
-            // 填充半透明 area
+            // Fill the translucent area 填充半透明区域
             ctx.lineTo(width, height)
             ctx.lineTo(0, height)
             ctx.closePath()
             ctx.fillStyle = Qt.rgba(control.primaryColor.r, control.primaryColor.g,
                                      control.primaryColor.b, control._thumbnailFillAlpha)
             ctx.fill()
-            // 折线
+            // Draw the thumbnail line 绘制缩略折线
             ctx.beginPath()
             for (var k2 = 0; k2 < maxPoints; k2++) {
                 var idx2 = Math.floor(k2 * step)
@@ -134,7 +134,7 @@ Item {
             ctx.stroke()
         }
 
-        // 数据变化时重画
+        // Repaint when source data changes 数据源变化时重绘
         Connections {
             target: control
             function onChartDataChanged() { thumbCanvas.requestPaint() }
@@ -143,36 +143,39 @@ Item {
         Component.onCompleted: requestPaint()
     }
 
-    // 双手柄 RangeSlider 叠在缩略图上
+    // Overlay the dual-handle range slider on the thumbnail 将双手柄范围滑块叠加在缩略图上
     SliderCore {
         id: rangeSlider
         anchors.fill: parent
         type: Enums.slider.type_range
         from: 0
-        to: 1000  // 0..1000 整数刻度避免浮点抖动
-        firstValue: Math.round(control.viewportStart * 1000)
-        secondValue: Math.round(control.viewportEnd * 1000)
+        to: Enums.chart.viewport_slider_steps
+        firstValue: Math.round(control.viewportStart * Enums.chart.viewport_slider_steps)
+        secondValue: Math.round(control.viewportEnd * Enums.chart.viewport_slider_steps)
 
         onSliderMoved: (first, second) => {
             if (control._suppressSliderUpdate) return
-            // 标记用户在拖动中, 父 ChartView 关 viewport 动画
+            // Pause parent transitions while the user drags 用户拖动时暂停父级过渡
             if (!control._dragging) {
                 control._dragging = true
                 control.interactiveChanged(true)
-                // 250ms 内无新 sliderMoved 视为拖完
+                // Treat an idle interval as drag completion 一段时间无输入后视为拖动结束
                 _dragEndTimer.restart()
             } else {
                 _dragEndTimer.restart()
             }
-            var lo = Math.min(first, second) / 1000
-            var hi = Math.max(first, second) / 1000
-            if (hi - lo < 0.001) hi = lo + 0.001  // 防止两手柄重合
+            var lo = Math.min(first, second) / Enums.chart.viewport_slider_steps
+            var hi = Math.max(first, second) / Enums.chart.viewport_slider_steps
+            if (hi - lo < Enums.chart.minimum_viewport_span) {
+                hi = Math.min(1, lo + Enums.chart.minimum_viewport_span)
+                lo = Math.max(0, hi - Enums.chart.minimum_viewport_span)
+            }
             control.viewportChanged(lo, hi)
         }
     }
     Timer {
         id: _dragEndTimer
-        interval: 250
+        interval: Enums.duration.slow
         repeat: false
         onTriggered: {
             control._dragging = false
@@ -180,17 +183,17 @@ Item {
         }
     }
 
-    // 外部改 viewportStart/End 时反向同步 slider 手柄位置 (防 onSliderMoved 反弹)
+    // Synchronize external viewport changes without slider feedback 外部视窗变化反向同步且不触发滑块回弹
     Connections {
         target: control
         function onViewportStartChanged() {
             control._suppressSliderUpdate = true
-            rangeSlider.firstValue = Math.round(control.viewportStart * 1000)
+            rangeSlider.firstValue = Math.round(control.viewportStart * Enums.chart.viewport_slider_steps)
             control._suppressSliderUpdate = false
         }
         function onViewportEndChanged() {
             control._suppressSliderUpdate = true
-            rangeSlider.secondValue = Math.round(control.viewportEnd * 1000)
+            rangeSlider.secondValue = Math.round(control.viewportEnd * Enums.chart.viewport_slider_steps)
             control._suppressSliderUpdate = false
         }
     }

@@ -56,26 +56,18 @@ ShadowedRectangle {
     property bool stacked: false
     property int symbolSize: 10
 
-    // ==================== DataZoom Viewport 视窗 ====================
-    // 视窗范围 0..1 (相对于 chartData/series 的总长). 默认全量 [0, 1] 不影响老调用方.
-    // 三种交互入口 (滚轮 / 主图拖动 / dataZoom slider) 都通过 viewportChanged 同步.
+    // DataZoom viewport relative to the full data range 数据缩放视窗相对于全量数据的范围
+    // Wheel, chart panning, and the slider share viewportChanged 滚轮、主图平移和滑块统一通过 viewportChanged 同步
     property real viewportStart: 0
     property real viewportEnd: 1
-    // 是否在主图下方显示 dataZoom slider (双手柄 + 缩略图)
+    // Show the thumbnail range slider below the chart 是否在主图下方显示缩略图范围滑块
     property bool dataZoomEnabled: false
-    // 是否启用主图鼠标按住拖动平移 (dataZoom 启用时建议保持 true)
+    // Enable click-and-drag chart panning 是否启用按住主图拖动平移
     property bool panEnabled: true
-    // 拖动期间标志位 — 由 MouseArea/ChartDataZoom 设置, 用来关掉 viewport 动画
-    property bool _viewportInteractive: false
+    // Maximum point count after viewport slicing and LTTB sampling 视窗切片与 LTTB 抽样后的最大点数
+    property int lttbThreshold: Enums.chart.lttb_threshold
 
-    // ==================== Render Viewport 节流 (内部) ====================
-    // _renderStart/End 是实际驱动 _viewChartData/_viewSeries 重算的"画面值",
-    // 由 _renderTimer 50ms 节流跟上 viewportStart/End. 避免每帧切片+LTTB+重画卡顿.
-    // viewport 动画 120ms 内 timer 反复 restart, 最后只触发 1-2 次重画.
-    property real _renderStart: 0
-    property real _renderEnd: 1
-
-    // ==================== Readonly Props 只读属性 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property real maxValue: {
         var max = 0
         for (var i = 0; i < chartData.length; i++) {
@@ -105,6 +97,11 @@ ShadowedRectangle {
     property bool deferAnimation: false  // Set true for lazy-loaded charts 懒加载图表设为true
 
     // ==================== Internal Props 内部属性 ====================
+    // Disable viewport transitions during direct manipulation 直接拖动期间禁用视窗过渡
+    property bool _viewportInteractive: false
+    // Render values drive slicing and animate toward the logical viewport 画面值驱动切片并向逻辑视窗平滑过渡
+    property real _renderStart: viewportStart
+    property real _renderEnd: viewportEnd
     property int _hoveredBarIndex: -1
     property int _hoveredBarSeriesIndex: -1
     property int _hoveredPointIndex: -1
@@ -127,11 +124,7 @@ ShadowedRectangle {
     readonly property bool _isHorizontalBar: chartType === Enums.chart.type_bar &&
                                              barOrientation === Enums.chart.orientation_horizontal
 
-    // ==================== Viewport 切片 + LTTB 降采样 (内部) ====================
-    // 1) 把 chartData / series 按 [viewportStart, viewportEnd] 切片
-    // 2) 切片后点数 > _lttbThreshold 时走 LTTB 抽稀, 保留趋势/峰谷
-    // 默认 [0, 1] + 点数小时 == 全量, 行为和原 ChartView 完全一致.
-    property int lttbThreshold: 600
+    // Slice the viewport before LTTB sampling to preserve trends and extrema 先按视窗切片，再用 LTTB 保留趋势与峰谷
     readonly property var _viewChartData: ChartViewport.viewChartData(
         chartData, _renderStart, _renderEnd, lttbThreshold
     )
@@ -144,10 +137,10 @@ ShadowedRectangle {
     signal pointClicked(int index, var data)
     signal sliceClicked(int index, var data)
     signal boxClicked(int index, var data)
-    // 折线图鼠标滚轮缩放: delta > 0 放大 (zoom in), < 0 缩小;
-    // anchorRatio: 鼠标在 chart 内 0..1 (用于以鼠标位置为锚)
+    // Line-chart wheel zoom; positive delta zooms in 折线图滚轮缩放，正增量表示放大
+    // anchorRatio is the pointer position in the chart 鼠标锚点在图表中的相对位置
     signal wheelZoomed(int delta, real anchorRatio)
-    // 视窗变化 (滚轮/拖动/slider 三方任意一种) - 使用方监听后向 backend 重拉数据
+    // Emitted by wheel, panning, or slider changes 由滚轮、平移或滑块变化触发
     signal viewportChanged(real start, real end)
 
     function getColor(index) {
@@ -185,34 +178,47 @@ ShadowedRectangle {
     opacity: deferAnimation ? 1.0 : 0
     scale: 1.0
 
-    // viewport 平滑过渡 (滚轮缩放等"一次性"操作时启用):
-    // 100ms 内 slider 手柄 / dataZoom 缩略图 binding 跟着滑动, 视觉有动画.
-    // 拖动期间 _viewportInteractive=true 关掉, 跟随用户实时.
-    Behavior on viewportStart {
-        enabled: !_viewportInteractive
-        NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+    // Animate the actual render viewport for wheel and programmatic zoom 滚轮和程序缩放时动画实际画面视窗
+    // Direct manipulation stays immediate to preserve pointer tracking 直接拖动保持实时跟手
+    Behavior on _renderStart {
+        enabled: control.animated && !control._viewportInteractive
+        NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic }
     }
-    Behavior on viewportEnd {
-        enabled: !_viewportInteractive
-        NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+    Behavior on _renderEnd {
+        enabled: control.animated && !control._viewportInteractive
+        NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic }
     }
-
-    Timer {
-        id: _renderTimer
-        interval: 50
-        repeat: false
-        onTriggered: {
-            control._renderStart = control.viewportStart
-            control._renderEnd = control.viewportEnd
-        }
-    }
-    onViewportStartChanged: _renderTimer.restart()
-    onViewportEndChanged: _renderTimer.restart()
 
     Component.onCompleted: {
         if (!deferAnimation) {
             entranceAnim.start()
         }
+    }
+
+    // Apply pointer-anchored wheel zoom and retarget running transitions 应用鼠标锚定滚轮缩放并重定向进行中的过渡
+    onWheelZoomed: function(delta, anchorRatio) {
+        var span = control.viewportEnd - control.viewportStart
+        if (span <= 0) span = 1
+        var zoomFactor = delta > 0 ? Enums.chart.zoom_in_factor : Enums.chart.zoom_out_factor
+        var newSpan = span * zoomFactor
+        if (newSpan < Enums.chart.minimum_viewport_span) {
+            newSpan = Enums.chart.minimum_viewport_span
+        }
+        if (newSpan > 1) newSpan = 1
+        var anchor = control.viewportStart + span * anchorRatio
+        var nextStart = anchor - newSpan * anchorRatio
+        var nextEnd = nextStart + newSpan
+        if (nextStart < 0) {
+            nextStart = 0
+            nextEnd = newSpan
+        }
+        if (nextEnd > 1) {
+            nextEnd = 1
+            nextStart = 1 - newSpan
+        }
+        control.viewportStart = nextStart
+        control.viewportEnd = nextEnd
+        control.viewportChanged(nextStart, nextEnd)
     }
 
     SequentialAnimation {
@@ -224,31 +230,10 @@ ShadowedRectangle {
         }
     }
 
-    // ==================== 滚轮缩放 → viewport 内部处理 ====================
-    // ChartView 内部接 wheelZoomed signal, 自己改 viewportStart/End.
-    // 老调用方仍然能监听 wheelZoomed (兼容), 双重触发不影响.
-    onWheelZoomed: function(delta, anchorRatio) {
-        var span = control.viewportEnd - control.viewportStart
-        if (span <= 0) span = 1
-        var zoomFactor = delta > 0 ? 0.7 : 1.4
-        var newSpan = span * zoomFactor
-        if (newSpan < 0.001) newSpan = 0.001  // 最小 0.1% 范围
-        if (newSpan > 1) newSpan = 1
-        // 锚点对应数据位置 = viewportStart + span * anchorRatio
-        var anchor = control.viewportStart + span * anchorRatio
-        var ns = anchor - newSpan * anchorRatio
-        var ne = ns + newSpan
-        if (ns < 0) { ns = 0; ne = newSpan }
-        if (ne > 1) { ne = 1; ns = 1 - newSpan }
-        control.viewportStart = ns
-        control.viewportEnd = ne
-        control.viewportChanged(ns, ne)
-    }
-
-    // ==================== XY Chart (Bar/Line/Scatter) ====================
+    // ==================== Content 内容 ====================
     XYChartCore {
         id: xyChartBase
-        // dataZoomEnabled=true 时给底部 ChartDataZoom 留 60px 空间
+        // Reserve space for the data zoom bar 为底部数据缩放条预留空间
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -542,7 +527,7 @@ ShadowedRectangle {
         onBoxHovered: (index) => control._hoveredBoxplotIndex = index
     }
 
-    // ==================== DataZoom 底部 slider ====================
+    // Bottom data zoom slider 底部数据缩放滑块
     ChartDataZoom {
         id: dataZoomBar
         anchors.left: parent.left
@@ -551,13 +536,13 @@ ShadowedRectangle {
         anchors.leftMargin: Enums.spacing.m
         anchors.rightMargin: Enums.spacing.m
         anchors.bottomMargin: Enums.spacing.s
-        height: 50
+        height: Enums.controlSize.chartDataZoomBarHeight
         visible: control.dataZoomEnabled && control._isXYChart
         chartData: control.chartData
         series: control.series
         primaryColor: control.primaryColor
-        viewportStart: control.viewportStart
-        viewportEnd: control.viewportEnd
+        viewportStart: control._renderStart
+        viewportEnd: control._renderEnd
         onViewportChanged: (s, e) => {
             control.viewportStart = s
             control.viewportEnd = e
@@ -568,9 +553,8 @@ ShadowedRectangle {
         }
     }
 
-    // ==================== 主图拖动平移 MouseArea ====================
-    // 按住左键拖动 → viewport 平移. 走 z=-1 让 ChartView 内部 hover/tooltip
-    // 优先, 这里只接 press/release 不抢 hover.
+    // Chart panning interaction 主图拖动平移交互
+    // Keep chart hover and tooltips above this pointer area 图表悬停与提示层保持更高优先级
     MouseArea {
         anchors.fill: xyChartBase
         z: -1
@@ -592,7 +576,7 @@ ShadowedRectangle {
         onPositionChanged: (mouse) => {
             if (!pressed || width <= 0) return
             var dx = mouse.x - _pressX
-            // 拖动 dx 像素 → viewport 反向移动 dx/width * span
+            // Convert pointer movement to inverse viewport movement 将指针位移转换为反向视窗位移
             var span = _pressVE - _pressVS
             var deltaRatio = -dx / width * span
             var ns = _pressVS + deltaRatio

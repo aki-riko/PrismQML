@@ -315,6 +315,9 @@ QtObject {
  readonly property int chartLabelWidth: 90 // Chart label width 图表标签宽度
  readonly property int chartYAxisWidth: 40 // Chart Y-axis width 图表Y轴宽度
  readonly property int chartXAxisHeight: 25 // Chart X-axis height 图表X轴高度
+ readonly property int chartDataZoomDefaultWidth: 400 // Chart data zoom default width 图表数据缩放器默认宽度
+ readonly property int chartDataZoomDefaultHeight: 60 // Chart data zoom default height 图表数据缩放器默认高度
+ readonly property int chartDataZoomBarHeight: 50 // Embedded chart data zoom height 内嵌图表数据缩放器高度
  // Container controls 容器控件
  readonly property int commandBarMoreWidth: 40 // CommandBar more button width 命令栏更多按钮宽度
  readonly property int commandBarSeparatorWidth: 8 // CommandBar separator width 命令栏分隔线宽度
