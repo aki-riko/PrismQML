@@ -7,9 +7,9 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtQuick import QQuickItem
+from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
@@ -20,6 +20,15 @@ ROOT = Path(__file__).resolve().parents[2]
 METRICS_SOURCE = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 WIDGET_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "containers" / "Widget.qml"
+)
+HINT_ICON_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "feedback"
+    / "Tooltip"
+    / "HintIcon.qml"
 )
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "widget-conventions.qml")
@@ -49,6 +58,13 @@ Item {
     readonly property int hintDuration: hintIcon.toolTipDuration
     readonly property int hintShowDelay: hintIcon.toolTipShowDelay
     readonly property int hintHideDelay: hintIcon.toolTipHideDelay
+    readonly property int defaultTooltipPosition: defaultWidget.toolTipPosition
+    readonly property int hintTooltipPosition: hintIcon.toolTipPosition
+    readonly property int topPosition: Enums.position.top
+    readonly property int rightPosition: Enums.position.right
+    readonly property int tooltipHorizontalPadding: Enums.spacing.l
+    readonly property int tooltipVerticalPadding: Enums.spacing.xs
+    readonly property int tooltipGap: Enums.spacing.xs
 
     width: 320
     height: 240
@@ -92,6 +108,10 @@ Item {
 
     HintIcon {
         id: hintIcon
+        objectName: "hintIcon"
+        x: 40
+        y: 40
+        toolTipText: "Hint tooltip"
     }
 }
 """
@@ -189,12 +209,52 @@ def test_widget_tooltip_defaults_and_hidden_window_behavior(widget_scene):
         root.property("hintShowDelay"),
         root.property("hintHideDelay"),
     ) == (-1, 100, 0)
+    assert root.property("defaultTooltipPosition") == root.property("topPosition")
+    assert root.property("hintTooltipPosition") == root.property("rightPosition")
     assert _new_visible_windows(windows_before) == []
+
+
+def test_hint_tooltip_uses_real_padding_and_right_position(widget_scene):
+    root, _ = widget_scene
+    window = QQuickWindow()
+    window.setWidth(320)
+    window.setHeight(240)
+    root.setParentItem(window.contentItem())
+    window.show()
+    _pump(20)
+    try:
+        hint_icon = root.findChild(QQuickItem, "hintIcon")
+        assert hint_icon is not None
+        tooltip = hint_icon.findChild(QObject, "_toolTip")
+        assert tooltip is not None
+
+        assert QMetaObject.invokeMethod(hint_icon, "showToolTip")
+        _pump(20)
+        horizontal_padding = root.property("tooltipHorizontalPadding")
+        vertical_padding = root.property("tooltipVerticalPadding")
+        tooltip_gap = root.property("tooltipGap")
+        assert tooltip.property("leftPadding") == pytest.approx(horizontal_padding)
+        assert tooltip.property("rightPadding") == pytest.approx(horizontal_padding)
+        assert tooltip.property("topPadding") == pytest.approx(vertical_padding)
+        assert tooltip.property("bottomPadding") == pytest.approx(vertical_padding)
+        assert tooltip.property("x") == pytest.approx(
+            hint_icon.width() + tooltip_gap
+        )
+        assert tooltip.property("y") == pytest.approx(
+            (hint_icon.height() - tooltip.property("height")) / 2
+        )
+        assert QMetaObject.invokeMethod(hint_icon, "hideToolTip")
+    finally:
+        root.setParentItem(None)
+        window.close()
+        window.deleteLater()
+        _pump(1)
 
 
 def test_widget_source_follows_conventions_and_uses_tooltip_tokens():
     metrics_source = METRICS_SOURCE.read_text(encoding="utf-8")
     widget_source = WIDGET_SOURCE.read_text(encoding="utf-8")
+    hint_icon_source = HINT_ICON_SOURCE.read_text(encoding="utf-8")
     path = PurePosixPath(WIDGET_SOURCE.relative_to(ROOT).as_posix())
     violations = scan_source_text(widget_source, path)
 
@@ -210,6 +270,12 @@ def test_widget_source_follows_conventions_and_uses_tooltip_tokens():
         in widget_source
     )
     assert "property int toolTipHideDelay: Enums.duration.none" in widget_source
+    assert "property int toolTipPosition: Enums.position.top" in widget_source
+    assert "leftPadding: Enums.spacing.l" in widget_source
+    assert "rightPadding: Enums.spacing.l" in widget_source
+    assert "topPadding: Enums.spacing.xs" in widget_source
+    assert "bottomPadding: Enums.spacing.xs" in widget_source
+    assert "toolTipPosition: Enums.position.right" in hint_icon_source
     assert "property int toolTipDuration: -1" not in widget_source
     assert "property int toolTipShowDelay: 500" not in widget_source
     assert "property int toolTipHideDelay: 0" not in widget_source

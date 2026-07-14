@@ -35,7 +35,18 @@ Fluent.InfoBar {
 
 ## Tooltip
 
-Attach a tooltip to a control, shown on hover.
+All controls derived from `Widget` can attach hover text with `toolTipText` and
+select `Enums.position.top/right/bottom/left` through `toolTipPosition`. Regular
+controls default to the top; `HintIcon` defaults to the right of the icon and
+uses the shared horizontal and vertical padding.
+
+```qml
+Fluent.HintIcon {
+    toolTipText: "Additional context"
+    // Default; top / bottom / left are also supported
+    toolTipPosition: Fluent.Enums.position.right
+}
+```
 
 ## Skeleton
 

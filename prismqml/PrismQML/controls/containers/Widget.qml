@@ -34,6 +34,7 @@ Item {
     property int toolTipDuration: Enums.duration.persistent
     property int toolTipShowDelay: Enums.duration.tooltipShowDelay
     property int toolTipHideDelay: Enums.duration.none
+    property int toolTipPosition: Enums.position.top
 
     // ==================== Public Methods 公开方法 ====================
     // Public methods for tooltip control 公开的tooltip控制方法
@@ -112,10 +113,24 @@ Item {
         property bool _pendingShow: false
 
         // ==================== Internal Methods 内部方法 ====================
+        function _updatePosition() {
+            if (widget.toolTipPosition === Enums.position.right) {
+                x = widget.width + Enums.spacing.xs
+                y = (widget.height - _toolTip.height) / 2
+            } else if (widget.toolTipPosition === Enums.position.bottom) {
+                x = (widget.width - _toolTip.width) / 2
+                y = widget.height + Enums.spacing.xs
+            } else if (widget.toolTipPosition === Enums.position.left) {
+                x = -_toolTip.width - Enums.spacing.xs
+                y = (widget.height - _toolTip.height) / 2
+            } else {
+                x = (widget.width - _toolTip.width) / 2
+                y = -_toolTip.height - Enums.spacing.xs
+            }
+        }
         function show() {
             _pendingShow = true
-            x = (widget.width - _toolTip.width) / 2
-            y = -_toolTip.height - Enums.spacing.xs
+            _updatePosition()
             Qt.callLater(_doOpen)
         }
         function hide() {
@@ -135,11 +150,14 @@ Item {
 
         // Allow the popup to exceed window bounds 允许弹窗超出窗口边界
         margins: -1
-        padding: Enums.spacing.none
+        leftPadding: Enums.spacing.l
+        rightPadding: Enums.spacing.l
+        topPadding: Enums.spacing.xs
+        bottomPadding: Enums.spacing.xs
         closePolicy: Popup.NoAutoClose
         clip: false
 
-        width: _tooltipMetrics.width + Enums.spacing.xxxl
+        width: _tooltipMetrics.width + leftPadding + rightPadding
         height: Enums.controlSize.tooltipHeight
 
         background: Rectangle {
@@ -156,6 +174,7 @@ Item {
                 anchors.centerIn: parent
                 text: widget.toolTipText
                 font.pixelSize: Enums.typography.caption
+                font.family: Enums.fontFamily
                 color: Enums.foregroundColor
             }
         }

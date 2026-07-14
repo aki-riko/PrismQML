@@ -35,7 +35,17 @@ Fluent.InfoBar {
 
 ## Tooltip 悬停提示
 
-控件附加 tooltip，悬停显示。
+所有继承 `Widget` 的控件可通过 `toolTipText` 添加悬停提示，并用
+`toolTipPosition` 选择 `Enums.position.top/right/bottom/left`。普通控件默认显示在上方；
+标题或标签旁的 `HintIcon` 默认显示在右侧，使用统一的水平、垂直内边距。
+
+```qml
+Fluent.HintIcon {
+    toolTipText: "这里显示补充说明"
+    // 默认值；需要时也可改为 top / bottom / left
+    toolTipPosition: Fluent.Enums.position.right
+}
+```
 
 ## Skeleton 骨架屏
 

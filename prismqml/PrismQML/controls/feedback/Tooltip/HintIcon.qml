@@ -33,8 +33,10 @@ Widget {
     contentWidth: iconSize
     contentHeight: iconSize
 
-    // toolTipShowDelay 比按钮的 500ms 短一点 (说明性 hint 用户常想立刻看)
+    // Show explanatory hints faster than buttons 说明性提示比按钮更快显示
     toolTipShowDelay: 100
+    // Open beside the icon so the label remains unobstructed 默认在图标右侧展开，避免遮挡标签
+    toolTipPosition: Enums.position.right
 
     // ==================== Visual 视觉 ====================
     Icon {
