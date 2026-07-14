@@ -50,21 +50,71 @@ StackedWidget {{
     return component, component.create()
 
 
-def test_readmes_use_current_core_module_names():
+def _is_base_named_source(path: Path) -> bool:
+    stem = path.stem
+    snake_parts = stem.lower().split("_")
+    base_prefix = stem == "Base" or (
+        len(stem) > 4 and stem.startswith("Base") and stem[4].isupper()
+    )
+    return stem.endswith("Base") or base_prefix or "base" in snake_parts
+
+
+def _is_generated_or_local(path: Path, root: Path) -> bool:
+    directories = path.relative_to(root).parts[:-1]
+    return any(
+        part.startswith(".") or part == "build" or part.startswith("build-")
+        for part in directories
+    )
+
+
+def test_documentation_uses_current_core_module_names():
     stale_names = (
         "SettingsBase",
         "IconBase",
         "WindowBase",
+        "OverlayDialogBase",
+        "ButtonBase",
         "settings_base",
         "icon_base",
         "window_base",
     )
+    targets = [Path("AGENTS.md"), Path("README.md"), Path("README.en.md")]
+    targets.extend(
+        sorted(path.relative_to(ROOT) for path in (ROOT / "docs").rglob("*.md"))
+    )
 
-    for readme in ("README.md", "README.en.md"):
-        content = _read(readme)
-        assert "SettingsCore" in content, readme
+    for target in targets:
+        content = _read(target.as_posix())
         for stale_name in stale_names:
-            assert stale_name not in content, f"{readme}: {stale_name}"
+            assert stale_name not in content, f"{target}: {stale_name}"
+
+
+def test_product_sources_do_not_use_base_module_filenames():
+    source_suffixes = {".c", ".cpp", ".h", ".hpp", ".js", ".py", ".qml", ".rs"}
+    roots = (ROOT / "prismqml", ROOT / "cpp")
+    offenders = sorted(
+        path.relative_to(ROOT).as_posix()
+        for root in roots
+        for path in root.rglob("*")
+        if path.suffix.lower() in source_suffixes
+        and not _is_generated_or_local(path, root)
+        and _is_base_named_source(path)
+    )
+    assert not offenders, offenders
+
+
+def test_qmldir_does_not_register_base_types():
+    offenders = []
+    for qmldir in (ROOT / "prismqml").rglob("qmldir"):
+        lines = qmldir.read_text(encoding="utf-8").splitlines()
+        for line_number, line in enumerate(lines, 1):
+            fields = line.strip().split()
+            is_registration = fields and not fields[0].startswith("#")
+            if is_registration and fields[0].endswith("Base"):
+                offenders.append(
+                    f"{qmldir.relative_to(ROOT)}:{line_number}:{fields[0]}"
+                )
+    assert not offenders, offenders
 
 
 def test_navigation_item_page_builder_api_is_removed():

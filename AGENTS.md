@@ -183,7 +183,7 @@ import Qt5Compat.GraphicalEffects // ❌ 已弃用
 import QtQuick.Controls           // ❌ 见下方说明
 ```
 
-**禁止 `QtQuick.Controls`**：其控件样式由 Style 子系统决定，Enums 主题色/圆角/阴影无法可靠覆盖，会导致样式割裂。一律使用 PrismQML 自有控件（FluentButton / LineEdit / SpinBox / ComboBoxEntry / FluentScrollBar / Flyout / OverlayDialogBase / ContextMenu 等，qmldir 已注册）。例外：仅 Window/基础设施级 Popup（如 `popupType: Popup.Window`）经评审后可用，且必须封装在 PrismQML 内部。
+**禁止 `QtQuick.Controls`**：其控件样式由 Style 子系统决定，Enums 主题色/圆角/阴影无法可靠覆盖，会导致样式割裂。一律使用 PrismQML 自有控件（FluentButton / LineEdit / SpinBox / ComboBoxEntry / FluentScrollBar / Flyout / OverlayDialogCore / ContextMenu 等，qmldir 已注册）。例外：仅 Window/基础设施级 Popup（如 `popupType: Popup.Window`）经评审后可用，且必须封装在 PrismQML 内部。
 
 ### 4.2 QML 成员声明顺序（强制）
 
@@ -380,7 +380,7 @@ ShadowedRectangle {
 QML 注释使用**双语格式**（英文在前，中文在后）：
 
 ```qml
-// ButtonBase - Button base class 按钮基类
+// ButtonCore - Button core component 按钮核心组件
 // ==================== Public Props 公开属性 ====================
 property string icon: ""   // Icon text (emoji or char) 图标文本
 ```
