@@ -167,7 +167,11 @@ def _install_runtime_fakes(monkeypatch, events):
         _page_manager, "QTimer", SimpleNamespace(singleShot=timers.single_shot)
     )
     monkeypatch.setattr(_page_manager, "info", lambda *_args: None)
-    monkeypatch.setattr(_page_manager, "warning", lambda *_args: None)
+    monkeypatch.setattr(
+        _page_manager,
+        "warning",
+        lambda message: events.append(("warning", message)),
+    )
     monkeypatch.setattr(_page_manager, "exception", record_exception)
     monkeypatch.setattr(shiboken6, "isValid", lambda _item: True)
     return timers
@@ -217,11 +221,13 @@ def _assert_async_ready_events(events):
 def _exercise_async_size_retries(timers, container, events):
     size_callback = timers.calls[0][1]
     assert timers.calls[1][1] is size_callback
+    assert container.widthChanged.callbacks == [size_callback]
+    assert container.heightChanged.callbacks == [size_callback]
     for width, height in ((0, 480), (640, 0)):
         container.current_width = width
         container.current_height = height
         before_zero_size = list(events)
-        size_callback()
+        container.widthChanged.callbacks[0]()
         assert events == before_zero_size
     container.current_width, container.current_height = 640, 480
     timers.run(_ASYNC_SIZE_DELAYS_MS[0])
@@ -234,7 +240,10 @@ def _exercise_async_size_retries(timers, container, events):
     assert events[before_retry:] == events[before_retry - 4:before_retry]
 
 
-def _assert_sync_size_result(timers, events, size):
+def _assert_sync_size_result(timers, container, events, size):
+    size_callback = timers.calls[0][1]
+    assert container.widthChanged.callbacks == [size_callback]
+    assert container.heightChanged.callbacks == [size_callback]
     before_size = list(events)
     timers.run(_SYNC_SIZE_DELAY_MS)
     if all(dimension > 0 for dimension in size):
@@ -275,11 +284,59 @@ def test_sync_page_pipeline_preserves_source_priority_and_global_index(
         expected.append(("batch", False))
     assert events == expected
     assert manager._pages[1] is page and item._page_instance is page
-    _assert_sync_size_result(timers, events, size)
+    _assert_sync_size_result(timers, container, events, size)
     assert not any(
         event[0] == "emit" and event[1] in {"page_width", "page_height"}
         for event in events
     )
+
+
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_size_binding_reads_current_qml_item(monkeypatch, mode):
+    events = []
+    page = _Page(events)
+    item = _source_item("existing" if mode == "sync" else "getter", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    timers = _install_runtime_fakes(monkeypatch, events)
+
+    if mode == "sync":
+        manager._create_page(0)
+    else:
+        manager._start_async_page_load(0)
+        timers.run(_PAGE_RENDER_DELAY_MS)
+
+    replacement = _PageItem(events)
+    replacement.widthChanged = _Signal("replacement_page_width", events)
+    replacement.heightChanged = _Signal("replacement_page_height", events)
+    replacement.setWidth = lambda width: events.append(("replacement_width", width))
+    replacement.setHeight = lambda height: events.append(("replacement_height", height))
+    page._qml_item = replacement
+    timers.run(_SYNC_SIZE_DELAY_MS)
+    expected_tail = [
+        ("replacement_width", 640),
+        ("replacement_height", 480),
+    ] if mode == "sync" else [
+        ("emit", "replacement_page_width"),
+        ("emit", "replacement_page_height"),
+    ]
+    assert events[-2:] == expected_tail
+    assert ("replacement_width", 640) in events
+    assert ("replacement_height", 480) in events
+
+
+def test_sync_missing_qml_item_warning_keeps_page_index(monkeypatch):
+    events = []
+    page = _Page(events)
+    page._qml_item = None
+    item = _source_item("existing", page, events)
+    manager = _new_manager(events, item, _Container(events), bottom=True)
+    timers = _install_runtime_fakes(monkeypatch, events)
+
+    manager._create_page(1)
+
+    assert ("warning", "[_create_page] page_1 _qml_item 为 None!") in events
+    assert timers.delays == []
+    assert manager._pages[1] is page
 
 
 def test_async_page_source_priority_is_getter_then_class_then_existing():

@@ -9,8 +9,9 @@
 从 window_core.py 抽取，作为 Mixin 注入 WindowCore。
 """
 
-from typing import Any, Dict, Optional, Type
+from functools import partial
 import time
+from typing import Any, Dict, Optional, Type
 
 from PySide6.QtCore import QTimer, QMetaObject, Q_ARG
 from PySide6.QtQuick import QQuickItem
@@ -19,6 +20,9 @@ from ..core.logger import exception, warning, info
 
 
 _PAGE_LOAD_RENDER_DELAY_MS = 16
+_PAGE_SIZE_BIND_DELAY_MS = 50
+_PAGE_SIZE_RETRY_DELAY_MS = 200
+_NO_PAGE_TARGET = object()
 
 
 def _emit_page_size_signals(page_item: Any) -> None:
@@ -47,6 +51,70 @@ def _create_async_page_boundary(item: Any, on_page_ready) -> None:
         on_page_ready(None)
 
 
+def _make_page_profile(index: int):
+    profile_start = time.perf_counter()
+    profile_last = profile_start
+
+    def profile(label: str):
+        nonlocal profile_last
+        now = time.perf_counter()
+        info(
+            f"[启动剖析] PageManager._create_page[{index}] {label}: "
+            f"+{int((now - profile_last) * 1000)}ms / "
+            f"total {int((now - profile_start) * 1000)}ms"
+        )
+        profile_last = now
+
+    return profile
+
+
+def _resolve_sync_page_instance(item: Any):
+    if item._page_instance is not None:
+        return item._page_instance, "existing_instance"
+    if getattr(item, "page_getter", None):
+        page_instance = item.page_getter()
+        item._page_instance = page_instance
+        return page_instance, "page_getter"
+    if item.page_class:
+        page_instance = item.page_class()
+        item._page_instance = page_instance
+        return page_instance, "page_class"
+    return None, None
+
+
+def _make_page_size_binder(
+    page_instance: Any, page_container: Any, emit_signals: bool
+):
+    from shiboken6 import isValid
+
+    def bind_size():
+        if not isValid(page_instance._qml_item) or not isValid(page_container):
+            return
+        width = page_container.width()
+        height = page_container.height()
+        if width > 0 and height > 0:
+            page_instance._qml_item.setWidth(width)
+            page_instance._qml_item.setHeight(height)
+            if emit_signals:
+                _emit_page_size_signals(page_instance._qml_item)
+
+    return bind_size
+
+
+def _connect_page_size_binding(page_container: Any, bind_size, delays) -> None:
+    page_container.widthChanged.connect(bind_size)
+    page_container.heightChanged.connect(bind_size)
+    for delay in delays:
+        QTimer.singleShot(delay, bind_size)
+
+
+def _has_deferred_queue(page_instance: Any):
+    return (
+        hasattr(page_instance, "_deferred_queue")
+        and page_instance._deferred_queue
+    )
+
+
 class PageManagerMixin:
     """页面管理器 Mixin，提供懒加载和页面生命周期管理"""
 
@@ -62,92 +130,60 @@ class PageManagerMixin:
 
     def _create_page(self, index: int):
         """创建页面内容"""
-        profile_start = time.perf_counter()
-        profile_last = profile_start
+        profile = _make_page_profile(index)
+        item, page_container = self._resolve_sync_page_target(index, profile)
+        if item is _NO_PAGE_TARGET:
+            return
+        page_instance, page_source = _resolve_sync_page_instance(item)
+        if page_source is None:
+            profile("无页面构建器")
+            return
+        profile(f"创建页面实例 ({page_source})")
+        self._attach_sync_page_content(
+            index, page_instance, page_container, profile
+        )
+        self._finalize_sync_page(index, item, page_instance, profile)
 
-        def profile(label: str):
-            nonlocal profile_last
-            now = time.perf_counter()
-            info(
-                f"[启动剖析] PageManager._create_page[{index}] {label}: "
-                f"+{int((now - profile_last) * 1000)}ms / "
-                f"total {int((now - profile_start) * 1000)}ms"
-            )
-            profile_last = now
-
-        # 获取导航项（顶部+底部）
+    def _resolve_sync_page_target(self, index: int, profile):
         all_items = self._nav_items + self._bottom_nav_items
         if index >= len(all_items):
             profile("索引越界")
-            return
-
+            return _NO_PAGE_TARGET, None
         item = all_items[index]
-
         if self._window is None:
             profile("窗口未创建")
-            return
-
-        # 查找对应的页面占位容器
+            return _NO_PAGE_TARGET, None
         page_container = self._find_child_by_name(f"page_{index}")
         profile("查找页面容器")
-
         if page_container is None:
             warning(f"未找到页面容器: page_{index}")
-            return
-        
-        # 检查是否已有实例（传入实例模式）或需要创建
-        page_instance = None
-        page_source = "none"
-        if item._page_instance is not None:
-            page_instance = item._page_instance
-            page_source = "existing_instance"
-        elif getattr(item, 'page_getter', None):
-            # 使用page_getter获取页面实例（懒加载工厂模式）
-            page_instance = item.page_getter()
-            item._page_instance = page_instance
-            page_source = "page_getter"
-        elif item.page_class:
-            # 使用page_class创建页面实例（懒加载模式）
-            page_instance = item.page_class()
-            item._page_instance = page_instance
-            page_source = "page_class"
-        else:
-            profile("无页面构建器")
-            return
+            return _NO_PAGE_TARGET, None
+        return item, page_container
 
-        profile(f"创建页面实例 ({page_source})")
-
-        # 将页面的QML组件添加到占位容器中
-        if page_instance._qml_item:
-            page_instance._qml_item.setParentItem(page_container)
+    def _attach_sync_page_content(
+        self, index, page_instance, page_container, profile
+    ):
+        page_item = page_instance._qml_item
+        if page_item:
+            page_item.setParentItem(page_container)
             profile("setParentItem")
-
-            # 通过信号绑定尺寸到父容器
-            from shiboken6 import isValid
+            bind_size = _make_page_size_binder(
+                page_instance, page_container, False
+            )
             profile("导入 shiboken")
-
-            def bind_size():
-                if isValid(page_instance._qml_item) and isValid(page_container):
-                    w = page_container.width()
-                    h = page_container.height()
-                    if w > 0 and h > 0:
-                        page_instance._qml_item.setWidth(w)
-                        page_instance._qml_item.setHeight(h)
-
-            page_container.widthChanged.connect(bind_size)
-            page_container.heightChanged.connect(bind_size)
-            QTimer.singleShot(50, bind_size)
+            _connect_page_size_binding(
+                page_container, bind_size, (_PAGE_SIZE_BIND_DELAY_MS,)
+            )
             profile("绑定尺寸信号")
         else:
             warning(f"[_create_page] page_{index} _qml_item 为 None!")
             profile("_qml_item 为空")
 
+    def _finalize_sync_page(self, index, item, page_instance, profile):
         self._pages[index] = page_instance
         info(f"创建页面: {item.text}")
         profile("登记页面实例")
-
-        # 检查页面是否有延迟创建队列
-        if hasattr(page_instance, "_deferred_queue") and page_instance._deferred_queue:
+        if _has_deferred_queue(page_instance):
             profile("发现 deferred queue")
             page_instance.startBatchCreation()
             profile("启动 deferred queue")
@@ -203,7 +239,6 @@ class PageManagerMixin:
         4. 如果页面有_deferred_queue，启动分批创建
         5. 完成后隐藏loading覆盖层
         """
-        # 显示loading
         if self._window:
             try:
                 QMetaObject.invokeMethod(
@@ -215,96 +250,73 @@ class PageManagerMixin:
                     "页面 loading 启动方法不可用: "
                     f"{type(exc).__name__}: {exc}"
                 )
+        item, page_container = self._resolve_async_page_target(index)
+        if item is _NO_PAGE_TARGET:
+            self._finish_loading()
+            return
+        on_page_ready = partial(
+            self._on_async_page_ready, index, item, page_container
+        )
+        self._schedule_async_page_creation(item, on_page_ready)
 
-        # 获取导航项
+    def _resolve_async_page_target(self, index: int):
         all_items = self._nav_items + self._bottom_nav_items
         if index >= len(all_items):
-            self._finish_loading()
-            return
-
+            return _NO_PAGE_TARGET, None
         item = all_items[index]
         page_container = self._find_child_by_name(f"page_{index}")
-
-        has_loader = item.page_class is not None or getattr(item, 'page_getter', None) is not None or item._page_instance is not None
+        has_loader = (
+            item.page_class is not None
+            or getattr(item, "page_getter", None) is not None
+            or item._page_instance is not None
+        )
         if page_container is None or not has_loader:
+            return _NO_PAGE_TARGET, None
+        return item, page_container
+
+    def _on_async_page_ready(
+        self, index, item, page_container, page_instance
+    ):
+        if page_instance is None:
             self._finish_loading()
             return
+        item._page_instance = page_instance
+        self._attach_async_page_content(page_instance, page_container)
+        self._finalize_async_page(index, item, page_instance)
 
-        def on_page_ready(page_instance):
-            """页面创建完成回调"""
-            if page_instance is None:
-                self._finish_loading()
-                return
+    def _attach_async_page_content(self, page_instance, page_container):
+        page_item = page_instance._qml_item
+        if not page_item:
+            return
+        page_item.setParentItem(page_container)
+        bind_size = _make_page_size_binder(page_instance, page_container, True)
+        _connect_page_size_binding(
+            page_container,
+            bind_size,
+            (_PAGE_SIZE_BIND_DELAY_MS, _PAGE_SIZE_RETRY_DELAY_MS),
+        )
+        if _has_deferred_queue(page_instance):
+            page_instance._qml_item.setOpacity(0)
 
-            item._page_instance = page_instance
-
-            # 将页面的QML组件添加到占位容器中
-            if page_instance._qml_item:
-                page_instance._qml_item.setParentItem(page_container)
-
-                # 通过信号绑定尺寸到父容器
-                # Python 无法直接访问 QQuickAnchors，使用信号绑定代替
-                # Use signal binding since Python cannot access QQuickAnchors
-                from shiboken6 import isValid
-
-                def bind_size_async():
-                    if isValid(page_instance._qml_item) and isValid(page_container):
-                        w = page_container.width()
-                        h = page_container.height()
-                        if w > 0 and h > 0:
-                            page_instance._qml_item.setWidth(w)
-                            page_instance._qml_item.setHeight(h)
-                            # 强制触发 widthChanged/heightChanged 信号
-                            # 确保页面内部子组件（如 IconPage 的 _main Layout）能够正确更新
-                            # Force emit widthChanged/heightChanged to ensure internal
-                            # child components receive the size update
-                            _emit_page_size_signals(page_instance._qml_item)
-
-                page_container.widthChanged.connect(bind_size_async)
-                page_container.heightChanged.connect(bind_size_async)
-                # 延迟初始化，等待容器尺寸稳定
-                QTimer.singleShot(50, bind_size_async)
-                # 更长的延迟再试一次，确保布局完全稳定
-                QTimer.singleShot(200, bind_size_async)
-
-                # Hide page content during batch creation if has heavy widgets
-                # 如果有重型组件，分批创建期间隐藏页面内容
-                has_deferred = (
-                    hasattr(page_instance, "_deferred_queue")
-                    and page_instance._deferred_queue
-                )
-                if has_deferred:
-                    page_instance._qml_item.setOpacity(0)
-
-            self._pages[index] = page_instance
-            info(f"异步创建页面: {item.text}")
-
-            # Check if page has deferred widgets (heavy widgets auto-queued)
-            # 检查页面是否有延迟组件（重型组件自动入队）
-            has_deferred = (
-                hasattr(page_instance, "_deferred_queue")
-                and page_instance._deferred_queue
+    def _finalize_async_page(self, index, item, page_instance):
+        self._pages[index] = page_instance
+        info(f"异步创建页面: {item.text}")
+        if _has_deferred_queue(page_instance):
+            on_complete = partial(
+                self._on_async_batch_complete, index, page_instance
             )
-            if has_deferred:
-                # Start batch adding deferred widgets 开始分批添加延迟组件
-                def on_batch_complete():
-                    # Show page content after batch creation 分批创建完成后显示页面内容
-                    if page_instance._qml_item:
-                        page_instance._qml_item.setOpacity(1)
-                    self._finish_loading_and_switch(index)
+            page_instance.startBatchCreation(on_complete=on_complete)
+            return
+        self._finish_loading_and_switch(index)
 
-                page_instance.startBatchCreation(on_complete=on_batch_complete)
-            else:
-                # No deferred widgets, done immediately 无延迟组件，立即完成
-                self._finish_loading_and_switch(index)
+    def _on_async_batch_complete(self, index, page_instance):
+        if page_instance._qml_item:
+            page_instance._qml_item.setOpacity(1)
+        self._finish_loading_and_switch(index)
 
-        def do_create():
-            """延迟创建页面（让loading动画先显示）"""
-            _create_async_page_boundary(item, on_page_ready)
-
-        # Wait one frame so loading can instantiate and draw before page creation.
-        # 等待一帧，确保 loading 先完成创建和首帧绘制，再创建页面。
-        QTimer.singleShot(_PAGE_LOAD_RENDER_DELAY_MS, do_create)
+    def _schedule_async_page_creation(self, item, on_page_ready):
+        create_page = partial(_create_async_page_boundary, item, on_page_ready)
+        QTimer.singleShot(_PAGE_LOAD_RENDER_DELAY_MS, create_page)
 
     def _finish_loading_and_switch(self, index: int):
         """完成加载并切换到目标页面"""
