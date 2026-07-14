@@ -466,142 +466,140 @@ class SqlListModel(QAbstractListModel):
                 ):
                     failed_columns.add(column_index)
 
-    def _fetch_page(self, page_idx: int, end_cursor_of_prev: Optional[list] = None) -> dict:
-        """拉一页
-
-        返回 dict {"rows": [...], "end_cursor": [...] | None}
-
-        单 shard:
-        1. cursor_columns 已设 + 上页 end_cursor 已知 → keyset 路径,1B 行也飞快
-        2. cursor_columns 已设但 end_cursor 未知 (random access page_idx>0) → OFFSET 一次性,
-           回填本页 end_cursor 后续再续
-        3. cursor_columns 未设 → 老 OFFSET 路径
-
-        多 shard:
-        - 走 fan_out_fetch_page: 每 shard 各 fetch limit 行,Rust 端归并取 top-limit
-        - 不支持 OFFSET (跨片 OFFSET 无意义),要求 cursor_columns 必须设置
-        """
-        offset = page_idx * self._page_size
-        use_keyset = bool(self._cursor_columns) and (page_idx == 0 or end_cursor_of_prev is not None)
-
-        # 决定走单 shard 还是 fan-out
+    def _route_page(
+        self, page_idx: int, end_cursor_of_prev: Optional[list]
+    ) -> tuple[list[str], bool]:
         paths = self._router.route(self._params)
         if not paths:
-            return {"rows": [], "end_cursor": None}
+            return [], False
         is_multi_shard = len(paths) > 1
-
         if is_multi_shard and not self._cursor_columns:
             raise RuntimeError(
                 "多 shard 场景必须设置 cursor_columns,无法走 OFFSET。"
                 "调用方需要确保 setQuery(cursor_columns=[...]) 已传入。"
             )
-
-        # ⚠️ S2 修复: 多 shard 跳页时如果 prev_cursor 缺失(LRU 淘汰)就 raise,
-        # 不能静默 fall-through 到 OFFSET=0,否则每 shard 返回前 N 行,
-        # ListView 在第 5000 行渲染 page 0 内容,UI 看不出错但数据完全错位。
         if is_multi_shard and page_idx > 0 and end_cursor_of_prev is None:
             raise RuntimeError(
                 f"多 shard random access 不支持 (page_idx={page_idx} 无 prev_cursor)。"
                 f"用户应通过连续滚动到达,或扩大 LRU 容量 (lru_capacity={self._lru_capacity})。"
             )
+        return paths, is_multi_shard
 
-        # 拼 keyset SQL: 在 ORDER BY 前插入 (cursor) < (?,?,...) 谓词
+    def _plan_page(
+        self, page_idx: int, end_cursor_of_prev: Optional[list]
+    ) -> tuple[str, list, int, bool, Optional[list[int]]]:
+        offset_to_use = page_idx * self._page_size
+        use_keyset = bool(self._cursor_columns) and (
+            page_idx == 0 or end_cursor_of_prev is not None
+        )
         if use_keyset and end_cursor_of_prev is not None:
             sql_to_run, params_to_run = inject_keyset_predicate(
-                self._sql,
-                list(self._params),
-                end_cursor_of_prev,
-                self._cursor_columns,
-                self._cursor_directions,
+                self._sql, list(self._params), end_cursor_of_prev,
+                self._cursor_columns, self._cursor_directions,
                 self._cursor_nullable_index,
             )
             offset_to_use = 0
         else:
             sql_to_run = self._sql
             params_to_run = list(self._params)
-            offset_to_use = offset
-            use_keyset = False  # 即便 cursor 已设,首页也走 LIMIT (offset=0 等价)
+            use_keyset = False
+        cursor_indices = (
+            self._cursor_col_indices
+            if self._cursor_columns and self._cursor_col_indices
+            else None
+        )
+        return sql_to_run, params_to_run, offset_to_use, use_keyset, cursor_indices
 
-        cursor_indices = self._cursor_col_indices if (self._cursor_columns and self._cursor_col_indices) else None
+    def _fetch_fan_out_page(
+        self, paths: list[str], sql: str, params: list,
+        cursor_indices: Optional[list[int]],
+    ) -> tuple[list[str], list, Optional[list]]:
+        if not _HAS_RUST:
+            raise RuntimeError(
+                "多 shard fan-out 需要 prismqml_rs Rust 模块,Python fallback 不支持"
+            )
+        indices = cursor_indices if cursor_indices else []
+        directions = (
+            list(self._cursor_directions)
+            if self._cursor_directions
+            else ["DESC"] * len(self._cursor_columns)
+        )
+        result = _rs.fan_out_fetch_page(
+            paths, sql, params if params else None, self._page_size,
+            indices, directions,
+        )
+        return result["columns"], result["rows"], result.get("last_cursor")
 
-        # ====== 多 shard fan-out 路径 ======
+    def _fetch_rust_page(
+        self, path: str, sql: str, params: list, offset: int,
+        use_keyset: bool, cursor_indices: Optional[list[int]],
+    ) -> tuple[list[str], list, Optional[list]]:
+        result = _rs.fetch_page(
+            path, sql, params if params else None, offset,
+            self._page_size, use_keyset, cursor_indices,
+        )
+        return result["columns"], result["rows"], result.get("last_cursor")
+
+    def _fetch_sqlite_page(
+        self, path: str, sql: str, params: list, offset: int,
+        use_keyset: bool, cursor_indices: Optional[list[int]],
+    ) -> tuple[list[str], list, Optional[list]]:
+        paged_sql = f"{sql} LIMIT ?" if use_keyset else f"{sql} LIMIT ? OFFSET ?"
+        with closing(sqlite3.connect(path)) as conn:
+            bind = list(params) + [self._page_size]
+            if not use_keyset:
+                bind.append(offset)
+            cursor = conn.execute(paged_sql, bind)
+            columns = [description[0] for description in cursor.description]
+            rows = [list(row) for row in cursor.fetchall()]
+        if not rows or not cursor_indices:
+            return columns, rows, None
+        last = rows[-1]
+        end_cursor = [
+            last[index] if index < len(last) else None
+            for index in cursor_indices
+        ]
+        return columns, rows, end_cursor
+
+    def _dispatch_page(
+        self, paths: list[str], is_multi_shard: bool, sql: str,
+        params: list, offset: int, use_keyset: bool,
+        cursor_indices: Optional[list[int]],
+    ) -> tuple[list[str], list, Optional[list]]:
         if is_multi_shard:
-            if not _HAS_RUST:
-                raise RuntimeError("多 shard fan-out 需要 prismqml_rs Rust 模块,Python fallback 不支持")
-            if not cursor_indices:
-                # 还没建过 column 映射,临时按列名匹配 (假设 SELECT 顺序与下面 cursor_columns 一致)
-                # 但这种情况只发生在 setQuery 后第一页 fetch,我们用一个 hack: 跑一次 noop fetch 拿 columns
-                # 简化: 多 shard 下首次 fetch 必须保证 self._columns 已知,否则用空列表表 indices
-                cursor_indices = []
-            # S3: 用真实 cursor_directions (Phase _resolve_columns 已解析),不再写死 DESC
-            sort_dirs = list(self._cursor_directions) if self._cursor_directions else ["DESC"] * len(self._cursor_columns)
-            result = _rs.fan_out_fetch_page(
-                paths,
-                sql_to_run,
-                params_to_run if params_to_run else None,
-                self._page_size,
-                cursor_indices,
-                sort_dirs,
+            return self._fetch_fan_out_page(paths, sql, params, cursor_indices)
+        if _HAS_RUST:
+            return self._fetch_rust_page(
+                paths[0], sql, params, offset, use_keyset, cursor_indices
             )
-            columns = result["columns"]
-            rows = result["rows"]
-            end_cursor = result.get("last_cursor")
-        # ====== 单 shard 路径 ======
-        elif _HAS_RUST:
-            result = _rs.fetch_page(
-                paths[0],
-                sql_to_run,
-                params_to_run if params_to_run else None,
-                offset_to_use,
-                self._page_size,
-                use_keyset,
-                cursor_indices,
-            )
-            columns = result["columns"]
-            rows = result["rows"]
-            end_cursor = result.get("last_cursor")
-        else:
-            paged_sql = f"{sql_to_run} LIMIT ?" if use_keyset else f"{sql_to_run} LIMIT ? OFFSET ?"
-            with closing(sqlite3.connect(paths[0])) as conn:
-                bind = list(params_to_run) + [self._page_size]
-                if not use_keyset:
-                    bind.append(offset_to_use)
-                cur = conn.execute(paged_sql, bind)
-                columns = [d[0] for d in cur.description]
-                rows = [list(r) for r in cur.fetchall()]
-            if rows and cursor_indices:
-                last = rows[-1]
-                end_cursor = [last[i] if i < len(last) else None for i in cursor_indices]
-            else:
-                end_cursor = None
+        return self._fetch_sqlite_page(
+            paths[0], sql, params, offset, use_keyset, cursor_indices
+        )
 
-        # 首次拿到 columns: 建立 role 表 + cursor 列下标
+    def _fetch_page(
+        self, page_idx: int, end_cursor_of_prev: Optional[list] = None
+    ) -> dict:
+        """Fetch one page through the fixed route-to-return pipeline."""
+        paths, is_multi_shard = self._route_page(page_idx, end_cursor_of_prev)
+        if not paths:
+            return {"rows": [], "end_cursor": None}
+        plan = self._plan_page(page_idx, end_cursor_of_prev)
+        columns, rows, end_cursor = self._dispatch_page(
+            paths, is_multi_shard, *plan
+        )
         if not self._columns:
-            self._columns = list(columns)
-            base = Qt.UserRole + 1
-            self._role_to_col = {base + i: i for i in range(len(self._columns))}
-            self._role_names = {
-                base + i: QByteArray(self._columns[i].encode("utf-8"))
-                for i in range(len(self._columns))
-            }
-            # cursor 列名 → 下标 (用于后续 fetch 提取)
-            if self._cursor_columns:
-                col_to_idx = {name: i for i, name in enumerate(self._columns)}
-                self._cursor_col_indices = [col_to_idx[c] for c in self._cursor_columns if c in col_to_idx]
-                if len(self._cursor_col_indices) != len(self._cursor_columns):
-                    missing = [c for c in self._cursor_columns if c not in col_to_idx]
-                    raise ValueError(
-                        f"cursor_columns {missing} not found in SELECT column list {self._columns}"
-                    )
-        # Keep the callback boundary isolated from page orchestration. 将回调边界与分页编排隔离。
+            self._install_resolved_columns(columns, validate_unique=False)
         self._apply_formatters(rows)
         return {"rows": rows, "end_cursor": end_cursor}
 
-    def _install_resolved_columns(self, columns: list[str]) -> None:
+    def _install_resolved_columns(
+        self, columns: list[str], *, validate_unique: bool = True
+    ) -> None:
         self._columns = list(columns)
-        normalized = [column.casefold() for column in self._columns]
-        if len(set(normalized)) != len(normalized):
-            raise ValueError("SqlListModel SELECT 输出列名必须唯一")
+        if validate_unique:
+            normalized = [column.casefold() for column in self._columns]
+            if len(set(normalized)) != len(normalized):
+                raise ValueError("SqlListModel SELECT 输出列名必须唯一")
         base = Qt.UserRole + 1
         self._role_to_col = {base + i: i for i in range(len(self._columns))}
         self._role_names = {
