@@ -9,6 +9,31 @@ import re
 from typing import Optional, Union
 
 
+_SIMPLE_ORDER_TERM = re.compile(
+    r"^\s*([A-Za-z_][A-Za-z0-9_]*)"
+    r"(?:\s+COLLATE\s+BINARY)?"
+    r"(?:\s+(ASC|DESC))?\s*$",
+    re.IGNORECASE,
+)
+_FORBIDDEN_KEYSET_SOURCE = re.compile(
+    r"\b(?:UNION|INTERSECT|EXCEPT|HAVING)\b|\bGROUP\s+BY\b",
+    re.IGNORECASE,
+)
+_WINDOW_KEYWORD = re.compile(r"\b(?:WINDOW|OVER)\b", re.IGNORECASE)
+_NUMBERED_PLACEHOLDER = re.compile(r"\?\d+")
+_SELECT_KEYWORD = re.compile(r"\bSELECT\b", re.IGNORECASE)
+_SIMPLE_IN_SUBQUERY = re.compile(
+    r"^\s*SELECT\s+[A-Za-z_][A-Za-z0-9_]*\s+"
+    r"FROM\s+[A-Za-z_][A-Za-z0-9_]*\s+WHERE\s+\S[\s\S]*$",
+    re.IGNORECASE,
+)
+_FORBIDDEN_IN_SUBQUERY = re.compile(
+    r"\b(?:WITH|DISTINCT|UNION|INTERSECT|EXCEPT|HAVING|LIMIT|OFFSET|"
+    r"WINDOW|OVER)\b|\b(?:GROUP|ORDER)\s+BY\b",
+    re.IGNORECASE,
+)
+
+
 def normalize_one(
     sql: str,
     params: Optional[Union[list, tuple, dict]],
@@ -85,62 +110,6 @@ def normalize_one(
     raise TypeError(f"params must be list/tuple/dict/None, got {type(params)}")
 
 
-def normalize_sql(
-    sql: str,
-    count_sql: str,
-    params: Optional[Union[list, tuple, dict]],
-) -> tuple[str, str, list, list]:
-    """Normalize main and count SQL while preserving each placeholder order."""
-    new_sql, main_ordered = normalize_one(sql, params)
-    new_count_sql, count_ordered = normalize_one(count_sql, params)
-    return new_sql, new_count_sql, main_ordered, count_ordered
-
-
-def parse_cursor_directions(sql: str, cursor_columns: list[str]) -> list[str]:
-    """Parse ASC/DESC direction for each cursor column from ORDER BY."""
-    upper = sql.upper()
-    order_idx = upper.rfind(" ORDER BY ")
-    if order_idx < 0:
-        return ["ASC"] * len(cursor_columns)
-    order_clause = sql[order_idx + len(" ORDER BY "):]
-    for kw in (" LIMIT ", " OFFSET "):
-        cut = order_clause.upper().find(kw)
-        if cut >= 0:
-            order_clause = order_clause[:cut]
-
-    depth = 0
-    seg_start = 0
-    segments: list[str] = []
-    for i, ch in enumerate(order_clause):
-        if ch == "(":
-            depth += 1
-        elif ch == ")":
-            depth -= 1
-        elif ch == "," and depth == 0:
-            segments.append(order_clause[seg_start:i])
-            seg_start = i + 1
-    segments.append(order_clause[seg_start:])
-
-    seg_to_dir: dict[str, str] = {}
-    for seg in segments:
-        seg = seg.strip()
-        if not seg:
-            continue
-        tokens = re.split(r"\s+", seg)
-        if not tokens:
-            continue
-        col_name = tokens[0].strip('"`[]')
-        direction = "ASC"
-        for token in tokens[1:]:
-            token_upper = token.upper()
-            if token_upper in ("ASC", "DESC"):
-                direction = token_upper
-                break
-        seg_to_dir[col_name.lower()] = direction
-
-    return [seg_to_dir.get(col.lower(), "ASC") for col in cursor_columns]
-
-
 def strip_strings_and_comments(sql: str) -> str:
     """Mask SQL strings and comments with spaces for structural scanning."""
     n = len(sql)
@@ -213,22 +182,364 @@ def find_top_level_order_by(sql: str) -> int:
     return -1
 
 
-def has_top_level_where(sql: str) -> bool:
-    """Return whether SQL has a top-level WHERE clause."""
+def _top_level_sql(sql: str) -> str:
+    """Mask nested SQL while preserving top-level tokens."""
     masked = strip_strings_and_comments(sql)
-    upper = masked.upper()
-    i = 0
+    result = list(masked)
     depth = 0
-    while i < len(masked):
-        ch = masked[i]
-        if ch == "(":
+    for index, char in enumerate(masked):
+        if char == "(":
+            result[index] = " "
             depth += 1
-        elif ch == ")":
-            depth -= 1
-        elif depth == 0 and upper[i:i + 7] == " WHERE ":
-            return True
-        i += 1
-    return False
+        elif char == ")":
+            depth = max(0, depth - 1)
+            result[index] = " "
+        elif depth:
+            result[index] = " "
+    return "".join(result)
+
+
+def _parenthesized_ranges(masked_sql: str) -> list[tuple[int, int]]:
+    stack: list[int] = []
+    ranges: list[tuple[int, int]] = []
+    for index, char in enumerate(masked_sql):
+        if char == "(":
+            stack.append(index)
+        elif char == ")":
+            if not stack:
+                raise ValueError("keyset sql 括号不匹配")
+            ranges.append((stack.pop(), index))
+    if stack:
+        raise ValueError("keyset sql 括号不匹配")
+    return ranges
+
+
+def _validate_simple_in_subquery(masked: str, top_level: str) -> None:
+    candidates = []
+    for start, end in _parenthesized_ranges(masked):
+        inner = masked[start + 1:end]
+        if re.match(r"\s*SELECT\b", inner, re.IGNORECASE):
+            candidates.append((start, inner))
+    if len(candidates) != 1:
+        raise ValueError("keyset sql 最多支持一个简单 IN (SELECT ...) 子查询")
+    start, inner = candidates[0]
+    prefix = masked[:start].rstrip()
+    where_match = re.search(r"\bWHERE\b", top_level, re.IGNORECASE)
+    if where_match is None or start < where_match.end():
+        raise ValueError("keyset 子查询只能位于顶层 WHERE")
+    if re.search(r"\bNOT\s+IN\s*$", prefix, re.IGNORECASE):
+        raise ValueError("keyset sql 不支持 NOT IN 子查询")
+    if re.search(r"\bIN\s*$", prefix, re.IGNORECASE) is None:
+        raise ValueError("keyset sql 只支持简单 IN (SELECT ...) 子查询")
+    if "(" in inner or ")" in inner:
+        raise ValueError("keyset IN 子查询不支持继续嵌套")
+    if _FORBIDDEN_IN_SUBQUERY.search(inner) or not _SIMPLE_IN_SUBQUERY.fullmatch(inner):
+        raise ValueError("keyset IN 子查询仅支持 SELECT 单列 FROM 单表 WHERE 条件")
+
+
+def _validate_keyset_source(head: str) -> None:
+    masked = strip_strings_and_comments(head)
+    top_level = _top_level_sql(head)
+    if re.match(r"\s*SELECT\b", top_level, re.IGNORECASE) is None:
+        raise ValueError("keyset sql 必须是简单顶层 SELECT，不支持 WITH/CTE")
+    if _WINDOW_KEYWORD.search(masked):
+        raise ValueError("keyset sql 不支持 WINDOW/OVER；请改用 OFFSET")
+    if _FORBIDDEN_KEYSET_SOURCE.search(top_level):
+        raise ValueError(
+            "keyset sql 不支持 compound/GROUP BY/HAVING/WINDOW；请改用 OFFSET"
+        )
+    if _NUMBERED_PLACEHOLDER.search(masked):
+        raise ValueError("keyset sql 仅支持匿名 ? 占位符，不支持 ?NNN")
+    if _has_named_placeholder(masked):
+        raise ValueError("keyset sql 的命名占位符必须先通过 dict params 归一化")
+    select_count = len(_SELECT_KEYWORD.findall(masked))
+    if select_count == 2:
+        _validate_simple_in_subquery(masked, top_level)
+    elif select_count != 1:
+        raise ValueError("keyset sql 最多支持一个简单 IN (SELECT ...) 子查询")
+
+
+def _source_has_subquery(head: str) -> bool:
+    masked = strip_strings_and_comments(head)
+    return len(_SELECT_KEYWORD.findall(masked)) > 1
+
+
+def _has_named_placeholder(masked_sql: str) -> bool:
+    return any(char in ":@$" for char in masked_sql)
+
+
+def _parse_keyset_order(tail: str) -> list[tuple[str, str]]:
+    clause = tail[len(" ORDER BY "):]
+    terms: list[tuple[str, str]] = []
+    for segment in clause.split(","):
+        match = _SIMPLE_ORDER_TERM.fullmatch(segment)
+        if match is None:
+            raise ValueError(
+                "keyset ORDER BY 仅支持未限定输出列、可选 COLLATE BINARY "
+                "及 ASC/DESC，不支持函数、其他 COLLATE、NULLS、LIMIT/OFFSET"
+            )
+        terms.append((match.group(1), (match.group(2) or "ASC").upper()))
+    return terms
+
+
+def validate_keyset_query(
+    sql: str,
+    cursor_columns: list[str],
+    cursor_directions: Optional[list[str]] = None,
+) -> list[str]:
+    """Validate the deliberately strict high-performance keyset contract."""
+    head, tail = _split_ordered_sql(sql)
+    _validate_keyset_source(head)
+    terms = _parse_keyset_order(tail)
+    normalized_columns = [column.casefold() for column in cursor_columns]
+    if len(set(normalized_columns)) != len(normalized_columns):
+        raise ValueError("cursor_columns 必须互不重复")
+    if len(terms) != len(cursor_columns):
+        raise ValueError("keyset ORDER BY 必须与 cursor_columns 完全一致")
+    ordered_columns = [column.casefold() for column, _ in terms]
+    if ordered_columns != normalized_columns:
+        raise ValueError("keyset ORDER BY 必须按 cursor_columns 原顺序排列")
+    directions = [direction for _, direction in terms]
+    if cursor_directions is not None:
+        configured = [str(direction).upper() for direction in cursor_directions]
+        if len(configured) != len(directions) or any(
+            direction not in ("ASC", "DESC") for direction in configured
+        ):
+            raise ValueError("cursor_directions 只能包含匹配 ORDER BY 的 ASC/DESC")
+        if configured != directions:
+            raise ValueError("cursor_directions 必须与 SQL ORDER BY 完全一致")
+    return directions
+
+
+def normalize_keyset_order(
+    sql: str,
+    cursor_columns: list[str],
+    cursor_directions: Optional[list[str]] = None,
+) -> str:
+    """Rewrite the validated ORDER BY to explicit SQLite BINARY semantics."""
+    head, _tail = _split_ordered_sql(sql)
+    directions = validate_keyset_query(
+        sql, cursor_columns, cursor_directions
+    )
+    terms = [
+        f"{column} COLLATE BINARY {direction}"
+        for column, direction in zip(cursor_columns, directions)
+    ]
+    return f"{head} ORDER BY {', '.join(terms)}"
+
+
+def resolve_nullable_cursor_index(
+    cursor_columns: list[str],
+    nullable_cursor_column: Optional[str],
+) -> Optional[int]:
+    """Resolve the sole cursor column whose schema may allow NULL."""
+    if nullable_cursor_column is None:
+        return len(cursor_columns) - 2 if len(cursor_columns) > 1 else None
+    if nullable_cursor_column == "":
+        return None
+    normalized = [column.casefold() for column in cursor_columns]
+    try:
+        index = normalized.index(nullable_cursor_column.casefold())
+    except ValueError as exc:
+        raise ValueError("nullable_cursor_column 必须属于 cursor_columns") from exc
+    if index == len(cursor_columns) - 1:
+        raise ValueError("最终 cursor tie-breaker 必须声明为 UNIQUE NOT NULL")
+    return index
+
+
+def _split_ordered_sql(sql: str) -> tuple[str, str]:
+    order_idx = find_top_level_order_by(sql)
+    if order_idx < 0:
+        raise ValueError("setQuery 的 sql 必须包含 ORDER BY 子句以使用 keyset 分页")
+    return sql[:order_idx], sql[order_idx:]
+
+
+def _normalize_cursor_directions(
+    cursor_columns: list[str],
+    cursor_directions: list[str],
+) -> list[str]:
+    directions = cursor_directions or ["ASC"] * len(cursor_columns)
+    if len(directions) != len(cursor_columns):
+        raise ValueError("cursor_directions 长度必须与 cursor_columns 一致")
+    normalized = [str(direction).upper() for direction in directions]
+    if any(direction not in ("ASC", "DESC") for direction in normalized):
+        raise ValueError("cursor_directions 只能包含 ASC/DESC")
+    return normalized
+
+
+def _build_row_value_predicate(
+    params: list,
+    cursor_values: list,
+    cursor_columns: list[str],
+    operator: str,
+) -> tuple[str, list]:
+    columns = ", ".join(cursor_columns)
+    placeholders = ", ".join(["? COLLATE BINARY"] * len(cursor_columns))
+    predicate = f"({columns}) {operator} ({placeholders})"
+    return predicate, list(params) + list(cursor_values)
+
+
+def _build_null_branch_predicate(
+    cursor_values: list,
+    cursor_columns: list[str],
+    nullable_index: int,
+) -> tuple[str, list]:
+    parts = []
+    values = []
+    for prefix in range(nullable_index):
+        sql, params = _cursor_column_equal(
+            cursor_columns[prefix], cursor_values[prefix]
+        )
+        parts.append(sql)
+        values.extend(params)
+    parts.append(f"{cursor_columns[nullable_index]} IS NULL")
+    return "(" + " AND ".join(parts) + ")", values
+
+
+def _wrap_keyset_branch(head: str, predicate: str) -> str:
+    return (
+        f"SELECT * FROM ({head}) AS _prism_keyset_source "
+        f"WHERE {predicate}"
+    )
+
+
+def _build_desc_nullable_union(
+    head: str,
+    tail: str,
+    params: list,
+    cursor_values: list,
+    cursor_columns: list[str],
+    nullable_index: int,
+) -> tuple[str, list]:
+    tuple_sql, tuple_params = _build_row_value_predicate(
+        [], cursor_values, cursor_columns, "<"
+    )
+    null_sql, null_params = _build_null_branch_predicate(
+        cursor_values, cursor_columns, nullable_index
+    )
+    branches = [
+        _wrap_keyset_branch(head, tuple_sql),
+        _wrap_keyset_branch(head, null_sql),
+    ]
+    compound = " UNION ALL ".join(branches)
+    sql = f"SELECT * FROM ({compound}) AS _prism_keyset_page{tail}"
+    new_params = list(params) + tuple_params + list(params) + null_params
+    return sql, new_params
+
+
+def _cursor_column_equal(column: str, value) -> tuple[str, list]:
+    if value is None:
+        return f"{column} IS NULL", []
+    return f"{column} = ? COLLATE BINARY", [value]
+
+
+def _cursor_column_after(
+    column: str,
+    value,
+    direction: str,
+) -> tuple[str, list]:
+    if direction == "DESC":
+        if value is None:
+            return "0", []
+        return f"({column} < ? COLLATE BINARY OR {column} IS NULL)", [value]
+    if value is None:
+        return f"{column} IS NOT NULL", []
+    return f"{column} > ? COLLATE BINARY", [value]
+
+
+def _build_expanded_keyset_predicate(
+    params: list,
+    cursor_values: list,
+    cursor_columns: list[str],
+    directions: list[str],
+) -> tuple[str, list]:
+    clauses = []
+    new_params = list(params)
+    for index, column in enumerate(cursor_columns):
+        level_parts = []
+        level_params: list = []
+        for prefix in range(index):
+            sql, values = _cursor_column_equal(
+                cursor_columns[prefix], cursor_values[prefix]
+            )
+            level_parts.append(sql)
+            level_params.extend(values)
+        sql, values = _cursor_column_after(
+            column, cursor_values[index], directions[index]
+        )
+        level_parts.append(sql)
+        level_params.extend(values)
+        clauses.append("(" + " AND ".join(level_parts) + ")")
+        new_params.extend(level_params)
+    return "(" + " OR ".join(clauses) + ")", new_params
+
+
+def _build_guarded_expanded_query(
+    head: str,
+    tail: str,
+    params: list,
+    cursor_values: list,
+    cursor_columns: list[str],
+    directions: list[str],
+) -> tuple[str, list]:
+    operator = "<=" if directions[0] == "DESC" else ">="
+    guard = f"{cursor_columns[0]} {operator} ? COLLATE BINARY"
+    predicate, predicate_params = _build_expanded_keyset_predicate(
+        [], cursor_values, cursor_columns, directions
+    )
+    sql = _wrap_keyset_branch(head, f"({guard} AND {predicate})") + tail
+    new_params = list(params) + [cursor_values[0]] + predicate_params
+    return sql, new_params
+
+
+def _build_uniform_keyset_query(
+    head: str,
+    tail: str,
+    params: list,
+    cursor_values: list,
+    cursor_columns: list[str],
+    directions: list[str],
+    nullable_cursor_index: Optional[int],
+) -> tuple[str, list]:
+    all_desc = all(direction == "DESC" for direction in directions)
+    if all_desc and nullable_cursor_index is not None:
+        if not 0 <= nullable_cursor_index < len(cursor_columns) - 1:
+            raise ValueError("nullable cursor 必须是非末 cursor 列")
+        return _build_desc_nullable_union(
+            head,
+            tail,
+            params,
+            cursor_values,
+            cursor_columns,
+            nullable_cursor_index,
+        )
+    operator = "<" if all_desc else ">"
+    predicate, predicate_params = _build_row_value_predicate(
+        [], cursor_values, cursor_columns, operator
+    )
+    sql = _wrap_keyset_branch(head, predicate) + tail
+    return sql, list(params) + predicate_params
+
+
+def _try_build_guarded_subquery(
+    head: str,
+    tail: str,
+    params: list,
+    cursor_values: list,
+    cursor_columns: list[str],
+    directions: list[str],
+    nullable_cursor_index: Optional[int],
+) -> Optional[tuple[str, list]]:
+    if (
+        not _source_has_subquery(head)
+        or nullable_cursor_index == 0
+        or not cursor_values
+        or cursor_values[0] is None
+    ):
+        return None
+    return _build_guarded_expanded_query(
+        head, tail, params, cursor_values, cursor_columns, directions
+    )
 
 
 def inject_keyset_predicate(
@@ -237,66 +548,27 @@ def inject_keyset_predicate(
     cursor_values: list,
     cursor_columns: list[str],
     cursor_directions: list[str],
+    nullable_cursor_index: Optional[int] = None,
 ) -> tuple[str, list]:
-    """Insert a keyset predicate before ORDER BY."""
-    order_idx = find_top_level_order_by(sql)
-    if order_idx < 0:
-        raise ValueError("setQuery 的 sql 必须包含 ORDER BY 子句以使用 keyset 分页")
-    head = sql[:order_idx]
-    tail = sql[order_idx:]
-
-    directions = cursor_directions or ["ASC"] * len(cursor_columns)
-    if len(directions) != len(cursor_columns):
-        directions = ["ASC"] * len(cursor_columns)
-
-    has_null_cursor = any(v is None for v in cursor_values)
-    all_desc = all(d == "DESC" for d in directions)
-    all_asc = all(d == "ASC" for d in directions)
+    """Insert a null-aware keyset predicate before ORDER BY."""
+    head, tail = _split_ordered_sql(sql)
+    directions = _normalize_cursor_directions(cursor_columns, cursor_directions)
+    has_null_cursor = any(value is None for value in cursor_values)
+    all_desc = all(direction == "DESC" for direction in directions)
+    all_asc = all(direction == "ASC" for direction in directions)
+    guarded = _try_build_guarded_subquery(
+        head, tail, params, cursor_values, cursor_columns, directions,
+        nullable_cursor_index,
+    )
+    if guarded is not None:
+        return guarded
     if (all_desc or all_asc) and not has_null_cursor:
-        cursor_cols_str = ", ".join(cursor_columns)
-        placeholders = ", ".join(["?"] * len(cursor_columns))
-        op = "<" if all_desc else ">"
-        predicate = f"({cursor_cols_str}) {op} ({placeholders})"
-        new_params = list(params) + list(cursor_values)
-    else:
-        clauses = []
-        new_params = list(params)
-
-        def col_eq(col_idx: int) -> tuple[str, list]:
-            col_name = cursor_columns[col_idx]
-            value = cursor_values[col_idx]
-            if value is None:
-                return f"{col_name} IS NULL", []
-            return f"{col_name} = ?", [value]
-
-        def col_gt(col_idx: int, direction: str) -> tuple[str, list]:
-            col_name = cursor_columns[col_idx]
-            value = cursor_values[col_idx]
-            if direction == "DESC":
-                if value is None:
-                    return "0", []
-                return f"({col_name} < ? OR {col_name} IS NULL)", [value]
-            if value is None:
-                return f"{col_name} IS NOT NULL", []
-            return f"{col_name} > ?", [value]
-
-        for i in range(len(cursor_columns)):
-            level_parts = []
-            level_params: list = []
-            for k in range(i):
-                eq_sql, eq_params = col_eq(k)
-                level_parts.append(eq_sql)
-                level_params.extend(eq_params)
-            gt_sql, gt_params = col_gt(i, directions[i])
-            level_parts.append(gt_sql)
-            level_params.extend(gt_params)
-            clauses.append("(" + " AND ".join(level_parts) + ")")
-            new_params.extend(level_params)
-        predicate = "(" + " OR ".join(clauses) + ")"
-
-    if has_top_level_where(head):
-        head_new = f"{head} AND {predicate}"
-    else:
-        head_new = f"{head} WHERE {predicate}"
-    new_sql = head_new + tail
-    return new_sql, new_params
+        return _build_uniform_keyset_query(
+            head, tail, params, cursor_values, cursor_columns, directions,
+            nullable_cursor_index,
+        )
+    predicate, predicate_params = _build_expanded_keyset_predicate(
+        [], cursor_values, cursor_columns, directions
+    )
+    sql = _wrap_keyset_branch(head, predicate) + tail
+    return sql, list(params) + predicate_params

@@ -108,6 +108,20 @@ def _seed_records_db(tmp_path) -> str:
     return str(db_path)
 
 
+def _assert_keyset_record_rows(model) -> None:
+    assert model.count() == 4
+    assert model.rowCount() == 4
+    assert model.getRow(0) == {
+        "id": 2,
+        "category": "alpha",
+        "name": "BOB",
+        "score": 30,
+        "marker": ":category",
+    }
+    assert [model.getRow(index)["id"] for index in range(1, 4)] == [1, 4, 3]
+    assert model.getRow(4) == {}
+
+
 def test_sql_list_model_dict_params_keyset_and_formatters(tmp_path):
     from prismqml.python.models.sql_list_model import SqlListModel
 
@@ -120,7 +134,7 @@ def test_sql_list_model_dict_params_keyset_and_formatters(tmp_path):
           AND score >= :min_score
           AND name != ':category'
           -- :commented_placeholder
-        ORDER BY score DESC, id ASC
+        ORDER BY score COLLATE BINARY DESC, id COLLATE BINARY ASC
         """,
         """
         SELECT COUNT(*)
@@ -131,21 +145,21 @@ def test_sql_list_model_dict_params_keyset_and_formatters(tmp_path):
         formatters={"name": lambda value: value.upper()},
         cursor_columns=["score", "id"],
     )
+    _assert_keyset_record_rows(model)
 
-    assert model.count() == 4
-    assert model.rowCount() == 4
 
-    assert model.getRow(0) == {
-        "id": 2,
-        "category": "alpha",
-        "name": "BOB",
-        "score": 30,
-        "marker": ":category",
-    }
-    assert model.getRow(1)["id"] == 1
-    assert model.getRow(2)["id"] == 4
-    assert model.getRow(3)["id"] == 3
-    assert model.getRow(4) == {}
+def test_sql_list_model_count_params_dict_uses_own_values(tmp_path):
+    from prismqml.python.models.sql_list_model import SqlListModel
+
+    model = SqlListModel(_seed_records_db(tmp_path))
+    model.setQuery(
+        "SELECT id, name FROM records ORDER BY id",
+        "SELECT :expected_count",
+        params={"expected_count": 1},
+        count_params={"expected_count": 3},
+    )
+
+    assert model.count() == 3
 
 
 def test_sql_list_model_role_names_are_select_columns(tmp_path):

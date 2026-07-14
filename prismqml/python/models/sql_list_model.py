@@ -35,6 +35,13 @@ QML ListView/TableView 对接 1M+ 行 SQLite 数据,内存恒定 + 滚动 120fps
     # QML 端: ListView { model: backend.tableModel; delegate: Item { Label { text: model.income } } }
 
 ⚠️ Role 名直接来自 SQL SELECT 字段名,所以 SQL 里写 SELECT col AS xxx 时 QML 用 xxx 引用。
+
+Keyset 分页使用严格合同：ORDER BY 必须与 cursor_columns 完全一致；简单裸列排序
+会在库内规范化为 COLLATE BINARY。nullable_cursor_column 最多声明一个可空的
+非末列；未传时默认倒数第二列，传空字符串表示全部非空。其余 cursor 列必须有
+schema NOT NULL 约束，最终 tie-breaker 还必须跨 shard 全局唯一。
+查询主体只支持简单顶层 SELECT；唯一例外是顶层 WHERE 内一个简单的
+IN (SELECT 单列 FROM 单表 WHERE 条件) 子查询。
 """
 from __future__ import annotations
 
@@ -56,9 +63,10 @@ from ..core.logger import exception
 from ._page_cache import PageCache
 from ._sql_query_tools import (
     inject_keyset_predicate,
+    normalize_keyset_order,
     normalize_one,
-    normalize_sql,
-    parse_cursor_directions,
+    resolve_nullable_cursor_index,
+    validate_keyset_query,
 )
 
 # 优先 Rust 实现
@@ -73,6 +81,68 @@ except ImportError:
 
 PAGE_SIZE_DEFAULT = 1000
 LRU_CAPACITY_DEFAULT = 64  # 64 页 × 1000 行 = 6.4w 行内存常驻;1B+ 跨片 random access 也少触发淘汰
+_QUERY_STATE_FIELDS = (
+    "_sql", "_count_sql", "_params", "_count_params", "_formatters",
+    "_cursor_columns", "_cursor_nullable_index", "_cursor_col_indices",
+    "_cursor_directions", "_row_count", "_columns", "_role_to_col",
+    "_role_names", "_cache",
+)
+
+
+def _open_read_only(path: str):
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=5)
+    conn.execute("PRAGMA busy_timeout=5000")
+    return conn
+
+
+def _read_column_names(path: str, sql: str, params: list) -> list[str]:
+    with closing(_open_read_only(path)) as conn:
+        cursor = conn.execute(f"{sql} LIMIT 0", params)
+        return [description[0] for description in cursor.description]
+
+
+def _validate_keyset_request(
+    sql: str,
+    params: Optional[Union[list, tuple, dict]],
+    cursor_columns: Optional[list],
+    cursor_directions: Optional[list],
+    nullable_cursor_column: Optional[str],
+) -> tuple[str, list, Optional[int]]:
+    columns = list(cursor_columns) if cursor_columns else []
+    normalized_sql, normalized_params = normalize_one(sql, params)
+    if not columns:
+        if nullable_cursor_column not in (None, ""):
+            raise ValueError("nullable_cursor_column 需要同时设置 cursor_columns")
+        return normalized_sql, normalized_params, None
+    normalized_sql = normalize_keyset_order(
+        normalized_sql, columns, cursor_directions
+    )
+    nullable_index = resolve_nullable_cursor_index(
+        columns, nullable_cursor_column
+    )
+    return normalized_sql, normalized_params, nullable_index
+
+
+def _normalize_count_query(
+    count_sql: str,
+    params: Optional[Union[list, tuple, dict]],
+    count_params: Optional[Union[list, tuple, dict]],
+) -> tuple[str, list]:
+    effective_params = params if count_params is None else count_params
+    return normalize_one(count_sql, effective_params)
+
+
+def _prepare_query_inputs(
+    sql, count_sql, params, formatters, cursor_columns, count_params,
+    cursor_directions, nullable_cursor_column,
+) -> tuple:
+    prepared_sql, prepared_params, nullable_index = _validate_keyset_request(
+        sql, params, cursor_columns, cursor_directions, nullable_cursor_column
+    )
+    return (
+        prepared_sql, prepared_params, count_sql, params, count_params,
+        formatters, cursor_columns, nullable_index,
+    )
 
 
 class DbRouter:
@@ -111,7 +181,16 @@ class _SingleDbRouter(DbRouter):
 
 
 class SqlListModel(QAbstractListModel):
-    """SQLite 分页 list model,QML ListView/TableView 直接消费。"""
+    """SQLite 分页 list model,QML ListView/TableView 直接消费。
+
+    Keyset 查询必须用匿名 ``?`` 或 dict 参数；ORDER BY 必须与
+    ``cursor_columns`` 完全一致，简单裸列会被规范化为 ``COLLATE BINARY``。
+    ``nullable_cursor_column`` 最多声明一个非末列；未传时默认倒数第二列，传
+    空字符串表示全部非空。其余 cursor 输出必须由 schema ``NOT NULL`` 或等价
+    表达式构造保证，末列还必须跨 shard 全局唯一。
+    查询主体只允许简单顶层 ``SELECT``；唯一例外是顶层 ``WHERE`` 内一个简单
+    ``IN (SELECT 单列 FROM 单表 WHERE 条件)`` 子查询。
+    """
 
     queryChanged = Signal()
     countChanged = Signal()
@@ -145,6 +224,7 @@ class SqlListModel(QAbstractListModel):
         self._formatters: dict[str, callable] = {}  # column_name -> formatter callable
         # keyset 分页支持: cursor_columns 是 ORDER BY 前缀列名,例如 ['date', 'time', 'id']
         self._cursor_columns: list[str] = []
+        self._cursor_nullable_index: Optional[int] = None
         self._cursor_col_indices: list[int] = []  # cursor_columns 在 SELECT 中的下标
         self._cursor_directions: list[str] = []  # 每个 cursor 列的 ASC/DESC (S3, _resolve_columns 填充)
         # _cursor_keyset_clause 是 "(date, time, id) < (?, ?, ?)" 谓词模板,首次构建后缓存
@@ -173,81 +253,64 @@ class SqlListModel(QAbstractListModel):
         cursor_columns: Optional[list] = None,
         count_params: Optional[Union[list, tuple, dict]] = None,
         cursor_directions: Optional[list] = None,
+        nullable_cursor_column: Optional[str] = None,
     ) -> None:
-        """设置查询语句
-
-        Args:
-            sql: 主查询(不含 LIMIT/OFFSET,model 会自动追加)
-            count_sql: SELECT COUNT(*) 语句(用于 rowCount)
-            params: 顺序占位符 ? 的参数列表/元组,或 dict (会按 :name 替换为 ?)
-                   推荐 list/tuple,dict 仅作便捷
-            formatters: 可选 dict {column_name: callable(raw_value) -> formatted_value}
-                       新页加载时对每行该列原始值跑一遍 formatter,结果缓存,QML 拿到的就是格式化后的值。
-                       例如把 JSON 字符串 '{"a":1}' 转成显示用的 '+1' 这种业务格式化。
-            cursor_columns: 可选列名列表,例如 ['date', 'time', 'id']。
-                           设置后启用 keyset 分页:连续翻页用 (cursor) < (?,?,?) 谓词,
-                           1B 行末页 fetch 也是 <50ms。要求:
-                             - 这些列必须是 ORDER BY 的前缀列
-                             - 调用方 SQL **不要**包含 (cursor) 谓词,model 会自动追加
-                           不传则走 OFFSET 兼容路径(<100M 行场景仍正常)。
-            count_params: 可选,count_sql 的独立参数列表。不传时复用 params。
-                         适用于 count_sql 是单独优化路径(例如读 count 缓存表只要 book_id,
-                         而主 sql 含搜索 LIKE 占位符)的情况。
-        """
-        self.beginResetModel()
-        try:
-            (
-                self._sql,
-                self._count_sql,
-                self._params,
-                _count_ordered_from_params,
-            ) = normalize_sql(sql, count_sql, params)
-            # B1 修复: count_params=None 时使用 count 自己的 ordered (从 params 解析),
-            # 而非主查询的 self._params。dict params 主/count 占位符顺序不同时不再错位。
-            if count_params is None:
-                self._count_params = list(_count_ordered_from_params)
-            else:
-                if isinstance(count_params, (list, tuple)):
-                    self._count_params = list(count_params)
-                elif isinstance(count_params, dict):
-                    # ⚠️ S1 修复: 用 normalize_one 单段处理,各自 SQL 各自参数,绝不串扰。
-                    self._count_sql, self._count_params = normalize_one(
-                        self._count_sql, count_params
-                    )
-                else:
-                    raise TypeError(f"count_params 类型不支持: {type(count_params)}")
-            self._formatters = dict(formatters) if formatters else {}
-            self._cursor_columns = list(cursor_columns) if cursor_columns else []
-            self._cursor_col_indices: list[int] = []  # 下面 _resolve_columns 填充
-            self._cache.clear()
-            self._row_count = self._compute_count()
-            self._columns = []
-            self._role_to_col = {}
-            self._role_names = {}
-            # 提前解析 SELECT 的列名 (不读数据,只 prepare):
-            # 多 shard 场景下,首次 fetch 用 fan_out 必须已知 cursor_indices,
-            # 否则会在第二页 keyset 注入时丢失 cursor 参数。
-            self._resolve_columns()
-            # B2: 显式 cursor_directions 优先 (覆盖 _resolve_columns 启发式解析的结果)
-            # 业务侧明确知道 ORDER BY 方向时强烈建议传入,启发式解析对 COLLATE / 函数表达式 / 大小写不敏感
-            if cursor_directions is not None:
-                if len(cursor_directions) != len(self._cursor_columns):
-                    raise ValueError(
-                        f"cursor_directions 长度 {len(cursor_directions)} 与 cursor_columns "
-                        f"长度 {len(self._cursor_columns)} 不一致"
-                    )
-                self._cursor_directions = [
-                    d.upper() if d.upper() in ("ASC", "DESC") else "ASC"
-                    for d in cursor_directions
-                ]
-            # 触发首次 fetch 来填充 page 0 (此时 cursor_col_indices 已有)
-            if self._row_count > 0:
-                first_page = self._fetch_page(0)
-                self._cache.put(0, first_page["rows"], first_page.get("end_cursor"))
-        finally:
-            self.endResetModel()
+        """Set the paged query; see the class keyset contract. 设置分页查询。"""
+        query_inputs = _prepare_query_inputs(
+            sql, count_sql, params, formatters, cursor_columns, count_params,
+            cursor_directions, nullable_cursor_column,
+        )
+        self._replace_query(query_inputs)
         self.queryChanged.emit()
         self.countChanged.emit()
+
+    def _replace_query(self, query_inputs: tuple) -> None:
+        previous_state = self._capture_query_state()
+        succeeded = False
+        self.beginResetModel()
+        try:
+            self._set_query_inputs(*query_inputs)
+            self._prepare_query_results()
+            succeeded = True
+        finally:
+            if not succeeded:
+                self._restore_query_state(previous_state)
+            self.endResetModel()
+
+    def _capture_query_state(self) -> dict:
+        return {
+            name: getattr(self, name, None)
+            for name in _QUERY_STATE_FIELDS
+        }
+
+    def _restore_query_state(self, state: dict) -> None:
+        for name, value in state.items():
+            setattr(self, name, value)
+
+    def _set_query_inputs(
+        self, sql, sql_params, count_sql, params, count_params,
+        formatters, cursor_columns, nullable_cursor_index,
+    ) -> None:
+        self._sql = sql
+        self._params = list(sql_params)
+        self._count_sql, self._count_params = _normalize_count_query(
+            count_sql, params, count_params
+        )
+        self._formatters = dict(formatters) if formatters else {}
+        self._cursor_columns = list(cursor_columns) if cursor_columns else []
+        self._cursor_nullable_index = nullable_cursor_index
+        self._cursor_col_indices = []
+
+    def _prepare_query_results(self) -> None:
+        self._cache = PageCache(self._lru_capacity)
+        self._row_count = self._compute_count()
+        self._columns = []
+        self._role_to_col = {}
+        self._role_names = {}
+        self._resolve_columns()
+        if self._row_count > 0:
+            first_page = self._fetch_page(0)
+            self._cache.put(0, first_page["rows"], first_page.get("end_cursor"))
 
     @Slot(result=int)
     def count(self) -> int:
@@ -450,6 +513,7 @@ class SqlListModel(QAbstractListModel):
                 end_cursor_of_prev,
                 self._cursor_columns,
                 self._cursor_directions,
+                self._cursor_nullable_index,
             )
             offset_to_use = 0
         else:
@@ -533,25 +597,11 @@ class SqlListModel(QAbstractListModel):
         self._apply_formatters(rows)
         return {"rows": rows, "end_cursor": end_cursor}
 
-    def _resolve_columns(self) -> None:
-        """提前确定 SELECT 列名 + roleNames + cursor_col_indices + cursor 方向
-
-        通过 prepare + LIMIT 0 拿到 cursor.description,无需读数据。
-        多 shard 场景下,任意 shard 的 schema 一致,取第一个即可。
-        S3 修复: 同时解析 ORDER BY 抽出每个 cursor 列的 ASC/DESC 方向。
-        B8 修复: 用 file: URI ?mode=ro 只读连接,避免与写线程争锁;加 busy_timeout 防死等。
-        """
-        if self._columns:
-            return
-        paths = self._router.route(self._params)
-        if not paths:
-            return
-        # B8: 只读 URI + busy_timeout 5s
-        ro_uri = f"file:{paths[0]}?mode=ro"
-        with closing(sqlite3.connect(ro_uri, uri=True, timeout=5)) as conn:
-            conn.execute("PRAGMA busy_timeout=5000")
-            cur = conn.execute(f"{self._sql} LIMIT 0", self._params)
-            self._columns = [d[0] for d in cur.description]
+    def _install_resolved_columns(self, columns: list[str]) -> None:
+        self._columns = list(columns)
+        normalized = [column.casefold() for column in self._columns]
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("SqlListModel SELECT 输出列名必须唯一")
         base = Qt.UserRole + 1
         self._role_to_col = {base + i: i for i in range(len(self._columns))}
         self._role_names = {
@@ -566,10 +616,25 @@ class SqlListModel(QAbstractListModel):
                 raise ValueError(
                     f"cursor_columns {missing} not found in SELECT column list {self._columns}"
                 )
-            # S3: 解析 ORDER BY 抽出每个 cursor 列的方向 (默认 ASC,显式 DESC)
-            self._cursor_directions = parse_cursor_directions(self._sql, self._cursor_columns)
-        else:
+
+    def _resolve_columns(self) -> None:
+        """Resolve columns and validate the strict keyset contract."""
+        if self._columns:
+            return
+        paths = self._router.route(self._params)
+        if not paths:
+            return
+        directions = (
+            validate_keyset_query(self._sql, self._cursor_columns)
+            if self._cursor_columns
+            else []
+        )
+        columns = _read_column_names(paths[0], self._sql, self._params)
+        self._install_resolved_columns(columns)
+        if not self._cursor_columns:
             self._cursor_directions = []
+            return
+        self._cursor_directions = directions
 
     def _get_page(self, page_idx: int) -> tuple[list, Optional[list]]:
         """返回 (rows, end_cursor)"""
