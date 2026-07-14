@@ -4,6 +4,7 @@
 
 import QtQuick
 import QtQuick.Effects
+import ".."
 
 // ColorOverlay - Color overlay effect 颜色叠加效果
 // Replaces Qt5Compat.GraphicalEffects.ColorOverlay 替代
@@ -11,11 +12,14 @@ import QtQuick.Effects
 
 MultiEffect {
     id: root
-    property color color: "white"
+
+    // ==================== Public Props 公开属性 ====================
+    property color color: Enums.textColor.primary
     
     // First brighten to white, then colorize 先提亮到白色，再着色
     // This ensures dark source images (like #212121 SVGs) are properly colored 确保深色源图像（如 #212121 的 SVG）能正确着色
 
+    // ==================== Content 内容 ====================
     brightness: 1.0
     colorization: 1.0
     colorizationColor: root.color

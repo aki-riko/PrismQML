@@ -22,6 +22,7 @@ Widget {
     
     // ==================== Content 内容 ====================
     default property alias content: contentArea.data
+    readonly property real _borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
     
     // ==================== Signals 信号 ====================
     signal toggled(bool checked)        // Emitted when checkbox toggled 复选框切换时触发
@@ -40,7 +41,6 @@ Widget {
         return Enums.spacing.xl
     }
     readonly property bool _contentEnabled: !checkable || checked
-    readonly property real _borderRadius: Enums.radius.small
     readonly property real _titleY: _titleHeight / 2
 
     // Title 文字下方的"边框遮盖块"颜色 — 必须与父容器底色一致, 否则断口处显出

@@ -33,11 +33,11 @@ WindowsCore {
     // neo 皮肤强制关 Mica: neo 是实心米白底+硬阴影的扁平风, Mica 半透明模糊与之冲突
     readonly property bool _micaActive: micaEnabled && _micaAvailable && !Enums.isNeobrutalism
     readonly property bool _micaTransparent: _micaActive && _micaBackdropReady
-    windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
     
     // ==================== Content Area Props 内容区域属性 ====================
     readonly property color contentBgColor: _micaTransparent ? Enums.stateColor.contentBgTransparent : Enums.stateColor.contentBg
-    readonly property int contentCornerRadius: Enums.radius.large
+    readonly property int contentCornerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
+    windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
     
     // ==================== Lazy Loading 懒加载 ====================
     property bool lazyLoading: false

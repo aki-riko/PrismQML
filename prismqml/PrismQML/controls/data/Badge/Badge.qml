@@ -41,7 +41,7 @@ Rectangle {
     readonly property bool _showCount: !_showText && !_showIcon && !_effectiveDot && (count > 0 || (count === 0 && showZero))
     readonly property bool _visible: _effectiveDot || _showIcon || _showText || _showCount
     
-    // Text color: always white 文字颜色：统一白色
+    // Text color on semantic/accent fill 语义/强调填充上的文字色
     readonly property color _contentColor: Enums.accentForeground
 
     // ==================== Size 尺寸 ====================

@@ -17,7 +17,7 @@ Widget {
  
  // ==================== Public Props 公开属性 ====================
  property int cardType: Enums.card.type_default // Card type 卡片类型
- property int borderRadius: Enums.radius.card // Border radius 圆角
+ property int borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card // Border radius 圆角
  // autoHeight: 普通卡片高度跟随内容自撑(默认 false 保持固定 cardHeight)。
  // ⚠️ 开启时内容**不要用 anchors.fill: parent**(fill 的子项不计入 childrenRect→自撑失效退回兜底),
  //    用 width: parent.width 让内容自然堆叠撑高。header 卡不受此开关影响(本就按内容算高)。
@@ -63,7 +63,7 @@ Widget {
  blur: _shadowBlur
  offset.x: 0
  offset.y: _shadowOffset
- visible: !Enums.isNeobrutalism
+ visible: !Enums.isNeobrutalism && (!Enums.isPrismDesign || isElevated || hovered)
 
  // Shadow properties based on type and state 根据类型和状态计算阴影
  property color _shadowColor: isElevated && hovered
@@ -122,8 +122,38 @@ Widget {
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  
  // Border 边框
- border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
- border.color: Enums.stateColor.borderLight  // neo 黑边由 token 自动返回
+ border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+ border.color: Enums.isPrismDesign ? Enums.prismDesign.border : Enums.stateColor.borderLight  // neo 黑边由 token 自动返回
+
+ // Prism glass rim Prism玻璃边缘
+ Rectangle {
+ anchors.left: parent.left
+ anchors.right: parent.right
+ anchors.top: parent.top
+ height: Enums.prismDesign.borderWidth
+ color: Enums.prismDesign.glassRimLight
+ visible: Enums.isPrismDesign
+ }
+
+ Rectangle {
+ anchors.left: parent.left
+ anchors.right: parent.right
+ anchors.bottom: parent.bottom
+ height: Enums.prismDesign.borderWidth
+ color: Enums.prismDesign.glassRimShadow
+ visible: Enums.isPrismDesign
+ }
+
+ Rectangle {
+ anchors.left: parent.left
+ anchors.right: parent.right
+ anchors.bottom: parent.bottom
+ height: Enums.prismDesign.focusBorderWidth
+ color: Enums.prismDesign.spectralEdge
+ opacity: hovered ? 0.45 : 0.0
+ visible: Enums.isPrismDesign && (isNormal || isElevated)
+ Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+ }
  
  // ==================== Header (for header type) 标题区域 ====================
  Item {

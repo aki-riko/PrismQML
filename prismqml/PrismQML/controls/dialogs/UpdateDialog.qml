@@ -46,12 +46,13 @@ DialogBoxCore {
 
     readonly property bool isOpen: _isOpen
     readonly property color _accentColor: Enums.statusLevel.getColorByLevel(Enums.statusLevel.attention)
+    readonly property real _iconBackgroundOpacity: Enums.opacityLevel.pressed
 
     // ==================== Signals 信号 ====================
     signal confirmed()
     signal cancelled()
 
-    // ==================== Footer 按钮组 ====================
+    // Footer button group 底部按钮组
     footer: Component {
         Row {
             property var dialog
@@ -82,7 +83,7 @@ DialogBoxCore {
         }
     }
 
-    // ==================== Content 内容区 ====================
+    // ==================== Content 内容 ====================
     // 有更新说明时对话框取窗口 75%(control 为 overlay 根,anchors.fill 窗口 contentItem,
     // 故 control.width/height ≈ 窗口宽高),说明区 fillHeight 占剩余空间;
     // 无说明时不设固定高,按内容(图标+标题+版本)自适应,避免大片空白。
@@ -103,7 +104,7 @@ DialogBoxCore {
                 anchors.fill: parent
                 radius: width / 2
                 color: control._accentColor
-                opacity: 0.12
+                opacity: control._iconBackgroundOpacity
             }
             Icon {
                 anchors.centerIn: parent
@@ -141,7 +142,7 @@ DialogBoxCore {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: control.notes !== ""
-            radius: Enums.radius.medium
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.medium
             color: Enums.transparent
             border.width: Enums.border.thin
             border.color: Enums.stateColor.cardBorder

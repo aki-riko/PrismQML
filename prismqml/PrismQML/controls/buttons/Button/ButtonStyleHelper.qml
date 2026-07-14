@@ -28,6 +28,8 @@ QtObject {
     readonly property color bgColor: {
         if (!Enums || !Enums.stateColor) return Enums.stateColor.controlBg
 
+        if (Enums.isPrismDesign) return _prismBgColor()
+
         if (isToggleChecked) {
             if (style === Enums.button.style_primary) {
                 if (!effectiveEnabled) return Enums.stateColor.disabled
@@ -63,7 +65,7 @@ QtObject {
                     // Preserve the level hue while disabled instead of using neutral gray. 禁用态保留 level 色相（淡化版），不退回中性灰背景。
                     // Otherwise an error-filled destructive button becomes indistinguishable from a default button. 否则错误填充的危险按钮会与默认按钮无法区分。
                     var fc = Enums.statusLevel.getColorByLevel(level)
-                    return Qt.rgba(fc.r, fc.g, fc.b, 0.45)
+                    return Qt.rgba(fc.r, fc.g, fc.b, Enums.stateColor.filledDisabledAlpha)
                 }
                 if (pressed) return Enums.stateColor.filledPressed
                 if (hovered) return Enums.stateColor.filledHover
@@ -83,6 +85,7 @@ QtObject {
         if (!Enums.stateColor) return Enums.stateColor.border
 
         if (Enums.isNeobrutalism) return _neoBorderColor()
+        if (Enums.isPrismDesign) return _prismBorderColor()
 
         if (isToggleChecked && style === Enums.button.style_primary) {
             return Enums.accentColor
@@ -108,6 +111,7 @@ QtObject {
         if (!Enums.textColor) return Enums.textColor.primary
 
         if (Enums.isNeobrutalism) return _neoTextColor()
+        if (Enums.isPrismDesign) return _prismTextColor()
 
         if (isToggleChecked) {
             if (style === Enums.button.style_primary) {
@@ -151,6 +155,96 @@ QtObject {
         return Enums.stateColor.controlBg
     }
 
+    // Prism Design color helpers Prism Design配色辅助
+    function _prismIsAccentStyle() {
+        return style === Enums.button.style_primary ||
+               style === Enums.button.style_filled ||
+               style === Enums.button.style_gradient
+    }
+    function _prismBgColor() {
+        if (isToggleChecked) {
+            if (style === Enums.button.style_primary) {
+                if (!effectiveEnabled) return Enums.stateColor.disabled
+                if (pressed) return Enums.prismDesign.pressed
+                if (hovered) return Enums.prismDesign.hover
+                return Enums.prismDesign.raised
+            }
+            if (!effectiveEnabled) return Enums.stateColor.disabled
+            if (pressed) return Enums.prismDesign.primaryDark
+            if (hovered) return Enums.prismDesign.primaryLight
+            return Enums.prismDesign.primary
+        }
+
+        switch (style) {
+            case Enums.button.style_primary:
+            case Enums.button.style_gradient:
+                if (!effectiveEnabled) return Enums.stateColor.primaryDisabled
+                if (pressed) return Enums.prismDesign.primaryDark
+                if (hovered) return Enums.prismDesign.primaryLight
+                return Enums.prismDesign.primary
+            case Enums.button.style_transparent:
+            case Enums.button.style_text:
+            case Enums.button.style_hyperlink:
+                if (!effectiveEnabled) return Enums.stateColor.controlBgTransparent
+                if (pressed) return Enums.stateColor.transparentPressed
+                if (hovered) return Enums.stateColor.transparentHover
+                return Enums.stateColor.controlBgTransparent
+            case Enums.button.style_filled:
+                var fc = Enums.statusLevel.getColorByLevel(level)
+                if (!effectiveEnabled) return Qt.rgba(fc.r, fc.g, fc.b, Enums.stateColor.filledDisabledAlpha)
+                if (pressed) return Qt.darker(fc, 1.08)
+                if (hovered) return Qt.lighter(fc, 1.04)
+                return fc
+            default:
+                return _getDefaultBgColor()
+        }
+    }
+    function _prismBorderColor() {
+        if (style === Enums.button.style_transparent ||
+            style === Enums.button.style_text ||
+            style === Enums.button.style_hyperlink) {
+            return Enums.transparent
+        }
+        if (!effectiveEnabled) return Enums.prismDesign.borderLight
+        if (style === Enums.button.style_primary ||
+            style === Enums.button.style_gradient ||
+            (isToggleChecked && _prismIsAccentStyle())) {
+            return Enums.prismDesign.primaryDark
+        }
+        if (style === Enums.button.style_filled) {
+            return Enums.statusLevel.getColorByLevel(level)
+        }
+        if (pressed) return Enums.prismDesign.primaryDark
+        if (hovered) return Enums.prismDesign.borderStrong
+        return Enums.prismDesign.border
+    }
+    function _prismTextColor() {
+        if (isToggleChecked && style === Enums.button.style_primary) {
+            if (!effectiveEnabled) return Enums.textColor.disabled
+            return Enums.prismDesign.primary
+        }
+        if (_prismIsAccentStyle()) {
+            if (!effectiveEnabled) return Enums.textColor.tertiary
+            return Enums.prismDesign.primaryForeground
+        }
+        if (style === Enums.button.style_hyperlink) {
+            if (!effectiveEnabled) return Enums.textColor.disabled
+            if (pressed) return Enums.prismDesign.primaryDark
+            if (hovered) return Enums.prismDesign.primaryLight
+            return Enums.prismDesign.primary
+        }
+        if (style === Enums.button.style_text) {
+            var sc = Enums.statusLevel.getColorByLevel(level)
+            if (!effectiveEnabled) return Enums.textColor.disabled
+            if (pressed) return Qt.darker(sc, 1.2)
+            if (hovered) return Qt.lighter(sc, 1.1)
+            return sc
+        }
+        if (!effectiveEnabled) return Enums.textColor.disabled
+        if (pressed) return Enums.prismDesign.primaryDark
+        return Enums.textColor.primary
+    }
+
     // Neobrutalism color helpers 新粗野主义配色辅助
     // Color tokens already adapt under the neo skin. 颜色 token 已在 neo 皮肤下自动适配。
     // Only structural differences remain: primary and filled buttons use a black border in neo while Fluent uses transparent. 此处仅保留结构差异：neo 下 primary 和 filled 按钮使用黑色边框，而 Fluent 使用透明边框。
@@ -171,7 +265,14 @@ QtObject {
     }
     function _neoTextColor() {
         if (_neoIsAccentStyle()) {
-            if (!effectiveEnabled) return Qt.rgba(1, 1, 1, 0.7)
+            if (!effectiveEnabled) {
+                return Qt.rgba(
+                    Enums.neo.primaryForeground.r,
+                    Enums.neo.primaryForeground.g,
+                    Enums.neo.primaryForeground.b,
+                    Enums.opacityLevel.heavy
+                )
+            }
             return Enums.neo.primaryForeground
         }
         if (style === Enums.button.style_hyperlink) {

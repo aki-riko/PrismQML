@@ -119,7 +119,7 @@ Rectangle {
     // ==================== Size & Style 尺寸与样式 ====================
     implicitWidth: _isRange ? 220 : 180
     implicitHeight: Enums.controlSize.inputHeight
-    radius: Enums.radius.small
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     
     // Fluent Design CalendarPicker style 样式
     color: {
@@ -173,7 +173,7 @@ Rectangle {
         id: calPopup
         popupWidth: Enums.controlSize.calendarPopupWidth
         popupHeight: Enums.controlSize.calendarPopupHeight
-        popupRadius: Enums.radius.large
+        popupRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
         animationType: 1  // SlideDown animation (Fluent Design style)
         onClosed: control.isOpen = false
         

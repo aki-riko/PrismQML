@@ -39,6 +39,14 @@ Widget {
     property color backgroundColorDark: Enums.transparent   // Custom dark theme bg 自定义深色背景
     readonly property bool _hasCustomBg: backgroundColorLight.a > 0 || backgroundColorDark.a > 0
     readonly property color _cardColor: _hasCustomBg ? (Enums.isDark ? backgroundColorDark : backgroundColorLight) : Enums.toastCardColor
+    readonly property int _toastRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small
+    readonly property int _toastColorBarRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+    readonly property color _toastBackground: _cardColor
+    readonly property int _toastBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property color _toastBorderColor: Enums.stateColor.borderLight
+    readonly property color _toastShadowColor: Enums.shadow.level4.color
+    readonly property int _toastShadowBlur: Enums.shadow.level4.blur
+    readonly property int _toastShadowOffset: Enums.shadow.level4.offset
     
     // ==================== Progress Props 进度属性 ====================
     property int feature: Enums.notification.feature_normal  // 功能模式
@@ -162,10 +170,10 @@ Widget {
         RectangularShadow {
             anchors.fill: card
             radius: card.radius
-            color: Enums.shadow.level4.color
-            blur: Enums.shadow.level4.blur
+            color: control._toastShadowColor
+            blur: control._toastShadowBlur
             offset.x: 0
-            offset.y: Enums.shadow.level4.offset
+            offset.y: control._toastShadowOffset
             visible: !Enums.isNeobrutalism
         }
 
@@ -183,7 +191,7 @@ Widget {
             anchors.top: card.top
             anchors.topMargin: -Enums.spacing.cardElevate  // Shared elevation offset 共享抬升间距
             height: Enums.spacing.l
-            radius: Enums.radius.large
+            radius: control._toastColorBarRadius
             color: control.severityColor
         }
 
@@ -191,10 +199,10 @@ Widget {
         Rectangle {
             id: card
             anchors.fill: parent
-            radius: Enums.radius.small
-            color: control._cardColor  // 支持自定义背景色
-            border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-            border.color: Enums.stateColor.borderLight
+            radius: control._toastRadius
+            color: control._toastBackground  // 支持自定义背景色
+            border.width: control._toastBorderWidth
+            border.color: control._toastBorderColor
             
             // Icon container: ref InfoBar icon in progress bar mode, hidden in ring mode 图标容器：参考 InfoBar 进度条模式下的图标，环形模式下隐藏
 

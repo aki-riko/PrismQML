@@ -32,6 +32,9 @@ Item {
     property int strokeWidth: Enums.controlSize.progressRingStroke  // Ring stroke width 环形线宽
     property string text: ""     // Filled bar/ring text 文字
     property bool showText: true // Show text 显示文字
+    readonly property color _progressColor: contentLoader.item ? contentLoader.item.progressColor : Enums.accentColor
+    readonly property color _trackColor: contentLoader.item ? contentLoader.item.trackColor : Enums.stateColor.progressTrack
+    readonly property color _filledTextColor: contentLoader.item && contentLoader.item._filledTextColor !== undefined ? contentLoader.item._filledTextColor : Enums.textColor.primary
 
     // ==================== Compat Methods 兼容方法 ====================
     function setRange(min, max) { from = min; to = max }

@@ -18,31 +18,52 @@ import "../.."
 Rectangle {
     id: control
 
+    // ==================== Public Props 公开属性 ====================
     property string code: ""
     property string language: ""
 
-    color: Enums.codeBlockColors.background
-    radius: Enums.radius.small
-    border.color: Enums.codeBlockColors.border
-    border.width: Enums.border.thin
+    // ==================== Internal Props 内部属性 ====================
+    readonly property int _radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
+    readonly property color _blockBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.codeBlockColors.background
+    readonly property color _blockBorder: Enums.isPrismDesign ? Enums.borderColor : Enums.codeBlockColors.border
+    readonly property int _blockBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
+    readonly property color _mutedText: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.codeBlockColors.secondaryText
+    readonly property color _codeText: Enums.isPrismDesign ? Enums.textColor.primary : Enums.codeBlockColors.foreground
+    readonly property color _copyHover: Enums.isPrismDesign ? Enums.hoverColor : Enums.codeBlockColors.hover
+    readonly property int _copyRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _copyTextColor: _mutedText
+    readonly property color _copySuccessTextColor: Enums.isPrismDesign ? Enums.statusLevel.successColor : Enums.codeBlockColors.copySuccess
+    readonly property int _labelFontSize: Enums.isPrismDesign ? Enums.typography.caption : Enums.typography.captionCompact
+    readonly property int _codeFontSize: Enums.typography.caption
+    readonly property string _codeFontFamily: Enums.fontMonospace
+    readonly property int _headerHeight: Enums.isPrismDesign
+                                         ? Enums.controlSize.buttonHeight - Enums.spacing.l
+                                         : Enums.controlSize.codeBlockHeaderHeight
+
+    // ==================== Size 尺寸 ====================
+    color: _blockBackground
+    radius: _radius
+    border.color: _blockBorder
+    border.width: _blockBorderWidth
 
     implicitWidth: Enums.controlSize.codeBlockDefaultWidth
     implicitHeight: codeText.implicitHeight + headerRow.height + Enums.spacing.xl
 
+    // ==================== Content 内容 ====================
     Item {
         id: headerRow
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: Enums.spacing.m
-        height: Enums.controlSize.codeBlockHeaderHeight
+        height: control._headerHeight
 
         Text {
             id: langLabel
             text: control.language
-            color: Enums.codeBlockColors.secondaryText
+            color: control._mutedText
             font.family: Enums.fontFamily
-            font.pixelSize: Enums.typography.captionCompact
+            font.pixelSize: control._labelFontSize
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             visible: control.language !== ""
@@ -50,6 +71,9 @@ Rectangle {
 
         MouseArea {
             id: copyBtn
+
+            property bool _copied: false
+
             width: Enums.controlSize.codeBlockCopyButtonWidth
             height: Enums.controlSize.codeBlockCopyButtonHeight
             anchors.right: parent.right
@@ -59,19 +83,18 @@ Rectangle {
 
             Rectangle {
                 anchors.fill: parent
-                radius: Enums.radius.small
-                color: copyBtn.containsMouse ? Enums.codeBlockColors.hover : Enums.transparent
+                radius: control._copyRadius
+                color: copyBtn.containsMouse ? control._copyHover : Enums.transparent
 
                 Text {
                     anchors.centerIn: parent
                     text: copyBtn._copied ? "已复制" : "复制"
-                    color: copyBtn._copied ? Enums.codeBlockColors.copySuccess : Enums.codeBlockColors.secondaryText
+                    color: copyBtn._copied ? control._copySuccessTextColor : control._copyTextColor
                     font.family: Enums.fontFamily
-                    font.pixelSize: Enums.typography.captionCompact
+                    font.pixelSize: control._labelFontSize
                 }
             }
 
-            property bool _copied: false
             Timer {
                 id: copiedTimer
                 interval: Enums.duration.copyFeedback
@@ -88,7 +111,7 @@ Rectangle {
         }
     }
 
-    // 隐藏的 TextEdit 用于走 clipboard.copy()
+    // Hidden TextEdit used for clipboard.copy() 隐藏的 TextEdit 用于走 clipboard.copy()
     TextEdit {
         id: _clipboardHelper
         visible: false
@@ -107,9 +130,9 @@ Rectangle {
         anchors.topMargin: Enums.spacing.xs
 
         text: control.code
-        color: Enums.codeBlockColors.foreground
-        font.family: Enums.fontMonospace
-        font.pixelSize: Enums.typography.caption
+        color: control._codeText
+        font.family: control._codeFontFamily
+        font.pixelSize: control._codeFontSize
         wrapMode: Text.Wrap
         textFormat: Text.PlainText
     }

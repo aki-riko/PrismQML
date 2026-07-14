@@ -21,6 +21,9 @@ Column {
     property alias minuteWheelLoader: minuteWheelLoader
     property alias secondWheelLoader: secondWheelLoader
     property alias ampmWheelLoader: ampmWheelLoader
+
+    // ==================== Internal Props 内部属性 ====================
+    readonly property color _selectionHighlightColor: Enums.stateColor.selected
     
     spacing: Enums.spacing.none
     
@@ -192,12 +195,7 @@ Column {
             width: parent.width - Enums.spacing.m
             height: Enums.controlSize.inputHeight
             radius: Enums.radius.small
-            color: Qt.rgba(
-                Enums.accentColor.r,
-                Enums.accentColor.g,
-                Enums.accentColor.b,
-                Enums.isDark ? 0.20 : 0.14
-            )
+            color: popupContent._selectionHighlightColor
             z: Enums.zIndex.popup
         }
     }

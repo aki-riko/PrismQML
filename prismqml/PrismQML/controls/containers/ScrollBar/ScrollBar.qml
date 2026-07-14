@@ -20,18 +20,23 @@ Rectangle {
     property int barWidth: Enums.controlSize.scrollBarWidth
     property int minHandleSize: 30  // Minimum handle size 最小手柄尺寸
     
-    // ==================== Internal 内部 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool _isVertical: orientation === Qt.Vertical
     readonly property real _contentSize: target ? (_isVertical ? target.contentHeight : target.contentWidth) : 0
     readonly property real _viewSize: target ? (_isVertical ? target.height : target.width) : 0
     readonly property real _contentPos: target ? (_isVertical ? target.contentY : target.contentX) : 0
     readonly property bool _needsBar: target && _contentSize > _viewSize
+    readonly property color _scrollTrackColor: Enums.stateColor.scrollTrack
+    readonly property color _scrollHandleDefaultColor: Enums.stateColor.scrollHandleDefault
+    readonly property color _scrollHandleHoverColor: Enums.stateColor.scrollHandleHover
+    readonly property color _scrollHandlePressedColor: Enums.accentColor
+    readonly property color _scrollHandleColor: handleArea.pressed ? _scrollHandlePressedColor : (handleArea.containsMouse ? _scrollHandleHoverColor : _scrollHandleDefaultColor)
     
     // ==================== Size & Position 尺寸和位置 ====================
     width: _isVertical ? barWidth : undefined
     height: _isVertical ? undefined : barWidth
     radius: barWidth / 2
-    color: Enums.stateColor.scrollTrack
+    color: control._scrollTrackColor
     visible: _needsBar
     
     // ==================== Handle 手柄 ====================
@@ -52,7 +57,7 @@ Rectangle {
         y: control._isVertical ? Math.max(0, Math.min(maxPos, ratio * maxPos)) : (control.height - height) / 2
         
         // Color 颜色
-        color: handleArea.pressed ? Enums.accentColor : (handleArea.containsMouse ? Enums.stateColor.scrollHandleHover : Enums.stateColor.scrollHandleDefault)
+        color: control._scrollHandleColor
         
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
         

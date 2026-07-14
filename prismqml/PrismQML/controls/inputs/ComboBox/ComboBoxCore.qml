@@ -33,6 +33,8 @@ Widget {
     property int popupPlacement: 0  // Popup direction 弹出方向
     property int maxVisibleItems: -1  // Qt-style max visible items Qt风格最大可见项数
     property color accentColor: Enums.accentColor
+    property int radius: Enums.isNeobrutalism ? Enums.neo.radius
+                         : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
     
     // ==================== Focus State 焦点状态 ====================
     // Editable mode input focus state editable模式输入框聚焦状态
@@ -193,7 +195,6 @@ Widget {
     // Content size (inherited from Widget) 内容尺寸（继承自Widget）
     contentWidth: Enums.comboBoxMetrics.defaultWidth
     contentHeight: Enums.controlSize.inputHeight
-    property int radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
 
     // ==================== Style Helper 样式辅助 ====================
     ComboBoxStyleHelper {

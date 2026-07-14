@@ -64,6 +64,10 @@ Item {
     // Subclass must provide these repeaters 子类必须提供这些Repeater
     property var topRepeater: null
     property var bottomRepeater: null
+
+    // ==================== Background & Border 背景和边框 ====================
+    // Right-side rounded corner radius 右侧圆角半径
+    readonly property int _cornerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index)
@@ -101,10 +105,6 @@ Item {
     // Track if current page switch is loading a new page 跟踪当前页面切换是否正在加载新页面
     property bool _isPageLoading: false
     
-    // ==================== Background & Border 背景和边框 ====================
-    // Right-side rounded corner radius 右侧圆角半径
-    readonly property int _cornerRadius: Enums.radius.large
-
     // Update indicator position in real-time (no animation) 实时更新指示器位置（无动画）
     function _updateIndicatorPositionRealtime() {
         var item
@@ -524,8 +524,10 @@ Item {
             id: navIndicator
             x: control.indicatorX
             orientation: Qt.Vertical
+            mode: Enums.isPrismDesign ? "instant" : "stretch"
             indicatorWidth: control.indicatorWidth
             indicatorHeight: control.indicatorHeight
+            radius: Enums.isPrismDesign ? Enums.radius.none : Enums.radius.micro
             animationEnabled: control.indicatorAnimationEnabled
             // neo: 隐藏滑动指示条(选中态用橙实心块代替, 避免双重标记)
             visible: !Enums.isNeobrutalism

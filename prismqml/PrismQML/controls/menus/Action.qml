@@ -23,10 +23,21 @@ Rectangle {
     property string actionId: ""         // Unique ID for targeting 唯一标识符
     property string toolTip: ""          // Hover tooltip 悬停提示
     property bool hasSubmenu: false       // Show submenu arrow 显示子菜单箭头
-    
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool hovered: itemArea.containsMouse
+
+    // ==================== Internal Props 内部属性 ====================
+    readonly property bool _isBottomText: textPosition === Enums.position.bottom
+    readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _itemHoverColor: Enums.stateColor.menuItemHover
+    readonly property color _itemPressedColor: Enums.stateColor.menuItemPressed
+    readonly property color _itemTextColor: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled
+    readonly property color _shortcutTextColor: Enums.stateColor.textMedium
+
+    // ==================== Signals 信号 ====================
     signal triggered()
     signal submenuRequested()  // Submenu open request 子菜单打开请求
-    readonly property bool hovered: itemArea.containsMouse
     
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : implicitWidth
@@ -37,23 +48,21 @@ Rectangle {
         ? (Enums.iconSize.xxl + Enums.typography.bodySmall + Enums.spacing.m * 3)
         : Enums.controlSize.emptyStateButtonHeight
     height: implicitHeight
-    radius: Enums.radius.small
+    radius: control._itemRadius
     
-    // ==================== Internal 内部属性 ====================
-    readonly property bool _isBottomText: textPosition === Enums.position.bottom
-    
-    // ==================== Background 背景 ====================
+    // Background 背景
     // 使用 menuItem* token (与 MenuDelegate/ComboBox 一致), controlBgHover 在白底菜单
     // 上视觉过弱 (#fafafa vs 白底, 仅 2% 差) 几乎看不到 hover 反馈。
     color: {
         if (!enabled) return Enums.transparent
-        if (itemArea.pressed) return Enums.stateColor.menuItemPressed
-        if (checkable && checked) return Enums.stateColor.menuItemPressed
-        if (hovered) return Enums.stateColor.menuItemHover
+        if (itemArea.pressed) return _itemPressedColor
+        if (checkable && checked) return _itemPressedColor
+        if (hovered) return _itemHoverColor
         return Enums.transparent
     }
     
-    // ==================== Side Layout (Default) 侧边布局 ====================
+    // ==================== Content 内容 ====================
+    // Side layout (default) 默认侧边布局
     Row {
         id: sideContent
         anchors.left: parent.left
@@ -84,12 +93,12 @@ Rectangle {
         Label {
             type: Enums.label.type_caption
             text: control.text
-            color: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled
+            color: control._itemTextColor
             anchors.verticalCenter: parent.verticalCenter
         }
     }
     
-    // ==================== Bottom Layout 底部布局 ====================
+    // Bottom layout 底部布局
     Column {
         id: bottomContent
         anchors.centerIn: parent
@@ -108,12 +117,12 @@ Rectangle {
         Label {
             type: Enums.label.type_caption
             text: control.text
-            color: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled
+            color: control._itemTextColor
             anchors.horizontalCenter: parent.horizontalCenter
         }
     }
     
-    // ==================== Shortcut 快捷键 ====================
+    // Shortcut 快捷键
     Label {
         anchors.right: parent.right
         anchors.rightMargin: Enums.spacing.l
@@ -121,11 +130,11 @@ Rectangle {
         type: Enums.label.type_caption
         text: control.shortcut
         font.pixelSize: Enums.typography.captionCompact
-        color: Enums.stateColor.textMedium
+        color: control._shortcutTextColor
         visible: control.shortcut !== "" && !control._isBottomText && !control.hasSubmenu
     }
     
-    // ==================== Submenu Arrow 子菜单箭头 ====================
+    // Submenu arrow 子菜单箭头
     Icon {
         anchors.right: parent.right
         anchors.rightMargin: Enums.spacing.l
@@ -136,7 +145,7 @@ Rectangle {
         visible: control.hasSubmenu && !control._isBottomText
     }
     
-    // ==================== ToolTip 提示 ====================
+    // Tooltip 提示
     TooltipCore {
         id: tipPopup
         text: control.toolTip
@@ -152,16 +161,17 @@ Rectangle {
     }
     
     Connections {
-        target: itemArea
         function onContainsMouseChanged() {
             if (!itemArea.containsMouse) {
                 tipTimer.stop()
                 tipPopup.hide()
             }
         }
+
+        target: itemArea
     }
     
-    // ==================== Mouse Area 鼠标区域 ====================
+    // Mouse area 鼠标区域
     MouseArea {
         id: itemArea
         anchors.fill: parent

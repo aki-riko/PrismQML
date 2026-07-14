@@ -16,44 +16,29 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 Rectangle {
     id: root
     
-    // ==================== Layout Attached Properties 布局附加属性 ====================
-    // 用于父布局的附加属性，让数据组件能够填满可用空间
+    // ==================== Public Props 公开属性 ====================
+    // Layout attached properties for parent layouts 供父布局使用的附加属性
     property bool layoutFillWidth: true
     property bool layoutFillHeight: true
     property int layoutAlignment: 0
-    Layout.fillWidth: layoutFillWidth
-    Layout.fillHeight: layoutFillHeight
-    Layout.alignment: layoutAlignment
-    
-    // ==================== Public Props 公开属性 ====================
+
     property string emptyText: ""  // Empty state text 空状态文本
     property string footerText: ""  // Footer text template ({count} placeholder) 底部文本模板
     property bool showFooter: false  // Whether to show the count footer 是否显示底部计数栏
     property int rowHeight: Enums.controlSize.tableHeaderHeight  // Row height 行高
-    // itemCount: 列表项数量。默认自维护(跟踪内部 listView 的 model),
-    // 子类(如 TableWidget 用 rowCount)可覆盖。
-    // 注意: 不能写 `itemCount: listView.count` —— QAbstractListModel 延迟注入时
-    // ListView.count 的 countChanged 不触发绑定重算(getter 实时但绑定不更新),
-    // 故用 Connections 显式监听 model 信号刷新 _autoItemCount(见下方)。
+
+    // Item count defaults to the internally maintained ListView count 项目数默认由内部 ListView 自维护
     property int itemCount: _autoItemCount
-    property int _autoItemCount: 0
-    
+
     // Header 表头
     property bool showHeader: false  // Show header 显示表头
     property int headerHeight: Enums.controlSize.tableHeaderHeight
     property Component headerContent: null  // Header content component 表头内容组件
 
     // Horizontal scroll 横向滚动
-    // 子类 (TableWidget 等) 计算所有列总像素宽度赋给这个属性, 当大于 listView.width 时
-    // listView.contentWidth 撑开, HorizontalScrollMixin 自动启用横向滚动 (flick / scrollbar / shift+wheel).
-    // 默认 0 = 内容贴合 listView 宽度, 不启用横向滚动.
+    // 子类计算所有列总像素宽度赋给该属性；大于 listView.width 时启用横向滚动。
     property real contentTotalWidth: 0
 
-    // 横向滚动实际是否启用 (内部派生标志, 子类 delegate 据此切换 row width 算法)
-    readonly property bool _hasHorizontalScroll: contentTotalWidth > listView.width
-    // delegate 应用的有效内容宽度: 启用横向滚动时撑到 contentTotalWidth, 否则贴 listView.width
-    readonly property real _effectiveContentWidth: _hasHorizontalScroll ? contentTotalWidth : listView.width
-    
     // Smooth scroll 平滑滚动
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.scroll
@@ -65,66 +50,79 @@ Rectangle {
     property var shadowLevel: Enums.shadow.level8
     property real cardMargin: Enums.spacing.m
     property bool borderVisible: true
-    property int borderRadius: Enums.radius.large
+    property int borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
+    property color cardColor: Enums.cardColor
 
     // Animation 动画
     property bool animated: true
     property bool hoverElevation: false
     property bool loading: false
     property int staggerDelay: Enums.duration.stagger
-    
+
     // ListView access ListView访问
     property alias listView: listView
     property alias contentDelegate: listView.delegate
     property alias listModel: listView.model
-    property alias spacing: listView.spacing  // 透传内部ListView间距(此处listView为本地id,alias合法;子类勿用control.listView.spacing三级alias)
+    property alias spacing: listView.spacing  // Expose local ListView spacing 暴露本地 ListView 间距
 
-    // ==================== itemCount 自维护 ====================
-    // Qt.callLater 确保在 ListView 处理完 model 变化后再读 count(同帧直接读会差一拍)。
-    function _refreshItemCount() { Qt.callLater(function() { root._autoItemCount = listView.count }) }
-    onListModelChanged: _refreshItemCount()
-    Connections {
-        // 仅当 model 是 QAbstractItemModel(QObject, 有 rowCount/modelReset) 时挂信号;
-        // 排除 JS 数组/QVariantList(有 length, 非 QObject, 赋给 target 会报
-        // "Unable to assign QVariantList to QObject*")。判据同 TableWidget。
-        target: (listView.model && typeof listView.model === 'object'
-                 && typeof listView.model.length !== 'number'
-                 && (typeof listView.model.rowCount === 'function'
-                     || listView.model.modelReset !== undefined))
-                ? listView.model : null
-        ignoreUnknownSignals: true
-        function onRowsInserted() { root._refreshItemCount() }
-        function onRowsRemoved() { root._refreshItemCount() }
-        function onModelReset() { root._refreshItemCount() }
-        function onLayoutChanged() { root._refreshItemCount() }
-        function onCountChanged() { root._refreshItemCount() }
-    }
-    
-    // Expose scroll helper for external use 暴露滚动助手供外部使用
-    function smoothScrollBy(delta) { scrollHelper.scrollBy(delta) }
-    function smoothScrollTo(targetY) { scrollHelper.scrollTo(targetY) }
+    // ==================== Internal Props 内部属性 ====================
+    property int _autoItemCount: 0
 
-    // ==================== Helper Methods 辅助方法 ====================
-    function scrollToIndex(idx) {
-        listView.positionViewAtIndex(idx, QtQ.ListView.Center)
-    }
-
-    // ==================== Colors 颜色 ====================
-    // cardColor 可覆盖(默认取主题卡片色): 透明/无卡片场景设 cardColor:"transparent"。
-    // 配 showShadow:false + borderVisible:false 可得纯透明数据列表(如便签编辑器)。
-    property color cardColor: Enums.cardColor
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _hasHorizontalScroll: contentTotalWidth > listView.width
+    readonly property real _effectiveContentWidth: _hasHorizontalScroll ? contentTotalWidth : listView.width
     readonly property color headerColor: Enums.headerColor
     readonly property color borderColor: Enums.stateColor.borderLight
     readonly property color textColor: Enums.textColor.primary
     readonly property color secondaryColor: Enums.textColor.secondary
     readonly property color hoverColor: Enums.tableHoverColor
     readonly property color alternateColor: Enums.alternateRowColor
-    color: "transparent"  // Transparent background avoids square corners 透明背景避免直角露出圆角卡片外
-    
+    readonly property color _headerEdgeShadowColor: Enums.stateColor.edgeShadow
+
+    // ==================== Public Methods 公开方法 ====================
+    function smoothScrollBy(delta) { scrollHelper.scrollBy(delta) }
+    function smoothScrollTo(targetY) { scrollHelper.scrollTo(targetY) }
+
+    function scrollToIndex(idx) {
+        listView.positionViewAtIndex(idx, QtQ.ListView.Center)
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
+    // Qt.callLater reads ListView.count after the model update completes 模型更新完成后再读取 ListView.count
+    function _refreshItemCount() {
+        Qt.callLater(function() { root._autoItemCount = listView.count })
+    }
+
+    Layout.fillWidth: layoutFillWidth
+    Layout.fillHeight: layoutFillHeight
+    Layout.alignment: layoutAlignment
+
+    color: Enums.transparent  // Transparent background avoids square corners 透明背景避免直角露出圆角卡片外
+
     // ==================== Size 尺寸 ====================
     implicitWidth: 200
     implicitHeight: 150
-    
+
+    onListModelChanged: _refreshItemCount()
+
+    // ==================== Content 内容 ====================
+    Connections {
+        function onRowsInserted() { root._refreshItemCount() }
+        function onRowsRemoved() { root._refreshItemCount() }
+        function onModelReset() { root._refreshItemCount() }
+        function onLayoutChanged() { root._refreshItemCount() }
+        function onCountChanged() { root._refreshItemCount() }
+
+        // Subscribe only to QObject/QAbstractItemModel-style models 仅订阅 QObject/QAbstractItemModel 模型
+        target: (listView.model && typeof listView.model === 'object'
+                 && typeof listView.model.length !== 'number'
+                 && (typeof listView.model.rowCount === 'function'
+                     || listView.model.modelReset !== undefined))
+                ? listView.model : null
+        ignoreUnknownSignals: true
+    }
+
+
     // ==================== Wheel Handler 滚轮处理 ====================
     MouseArea {
         id: wheelArea
@@ -242,7 +240,7 @@ Rectangle {
                 visible: showHeader && listView.contentY > 0
                 opacity: Math.min(1, listView.contentY / 20)
                 gradient: Gradient {
-                    GradientStop { position: 0; color: Qt.rgba(0, 0, 0, 0.06) }
+                    GradientStop { position: 0; color: root._headerEdgeShadowColor }
                     GradientStop { position: 1; color: Enums.transparent }
                 }
                 Behavior on opacity {

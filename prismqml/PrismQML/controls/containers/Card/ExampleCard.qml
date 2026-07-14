@@ -15,6 +15,9 @@ Item {
  property string description: ""
  property string componentName: ""
  property int orientation: Qt.Horizontal // Qt.Horizontal=横向Flow / Qt.Vertical=纵向Column
+ readonly property bool _isPrismGallery: Enums.isPrismDesign
+ readonly property int _contentPadding: _isPrismGallery ? Enums.spacing.m : Enums.spacing.l
+ readonly property int _contentGap: _isPrismGallery ? Enums.spacing.s : Enums.spacing.m
  default property alias content: contentFlow.data
 
  // implicitWidth 不再绑 parent.width — 那让"自然尺寸"跟随父链抖动, N 个 ExampleCard
@@ -32,7 +35,7 @@ Item {
  id: mainColumn
  x: 0 // 确保列左对齐
  width: parent.width
- spacing: Enums.spacing.l // 12px
+ spacing: control._isPrismGallery ? Enums.spacing.xs : Enums.spacing.l
  visible: _vpc.inViewport
  
  // Title 标题
@@ -41,13 +44,23 @@ Item {
  text: control.title
  visible: text !== ""
  }
+
+ // Description for Prism Gallery Prism下的轻说明
+ Label {
+ type: Enums.label.type_caption
+ width: parent.width
+ text: control.description
+ color: Enums.textColor.tertiary
+ visible: control._isPrismGallery && text !== ""
+ wrapMode: Text.WordWrap
+ }
  
  // Card container - 用于圆角裁剪，留出阴影空间
  Item {
  id: cardContainer
  // Shadow needs space to extend outward - use level2 soft shadow 阴影需要向外扩展的空间 - 使用 level2 柔和阴影
 
- property int shadowMargin: Enums.shadow.level2.blur + Enums.shadow.level2.offset + 4
+ property int shadowMargin: control._isPrismGallery ? Enums.spacing.none : Enums.shadow.level2.blur + Enums.shadow.level2.offset + Enums.spacing.xs
  
  // Leave enough space for shadow 为阴影留出足够的空间
  width: parent.width
@@ -59,14 +72,14 @@ Item {
  id: card
  width: parent.width
  height: cardContent.implicitHeight
- radius: Enums.radius.dialog
+ radius: control._isPrismGallery ? Enums.prismDesign.radiusCard : Enums.radius.dialog
  // Opaque background: light gray for light, dark gray for dark theme 不透明背景：浅色用浅灰，深色用深灰
 
- color: Enums.isDark ? Enums.exampleCardColors.bgDark : Enums.exampleCardColors.bgLight
+ color: control._isPrismGallery ? Enums.prismDesign.glassTint : (Enums.isDark ? Enums.exampleCardColors.bgDark : Enums.exampleCardColors.bgLight)
  
  // Shadow: soft shadow, bottom-right direction 阴影：柔和阴影，右下角方向
  // neo: 关软阴影, 改用硬阴影 NeoShadow
- shadowVisible: !Enums.isNeobrutalism
+ shadowVisible: !Enums.isNeobrutalism && !control._isPrismGallery
 
  y: cardContainer.shadowMargin / 2
  shadowLevel: Enums.shadow.level2
@@ -87,17 +100,17 @@ Item {
  // Content area 内容区 - padding: 12px
  Item {
  width: parent.width
- height: contentFlow.height + (componentLabel.visible ? componentLabel.height + Enums.spacing.m : 0) + Enums.spacing.xxxl
+ height: contentFlow.height + (componentLabel.visible ? componentLabel.height + control._contentGap : 0) + control._contentPadding * 2
  
  // Content layout: select horizontal/vertical based on orientation 内容区布局：根据 orientation 选择横向/纵向
 
  Flow {
  id: contentFlow
  objectName: "contentFlow"
- x: 12
- y: 12
- width: parent.width - 24
- spacing: control.orientation === Qt.Vertical ? Enums.spacing.s : Enums.spacing.l
+ x: control._contentPadding
+ y: control._contentPadding
+ width: parent.width - control._contentPadding * 2
+ spacing: control.orientation === Qt.Vertical ? Enums.spacing.s : (control._isPrismGallery ? Enums.spacing.s : Enums.spacing.l)
  flow: control.orientation === Qt.Vertical ? Flow.TopToBottom : Flow.LeftToRight
  }
  
@@ -105,10 +118,10 @@ Item {
  Label {
  id: componentLabel
  type: Enums.label.type_caption
- x: 12
- y: contentFlow.y + contentFlow.height + Enums.spacing.m
+ x: control._contentPadding
+ y: contentFlow.y + contentFlow.height + control._contentGap
  text: control.componentName
- color: Enums.accentColor
+ color: control._isPrismGallery ? Enums.textColor.tertiary : Enums.accentColor
  visible: control.componentName !== ""
  }
  }
@@ -116,7 +129,7 @@ Item {
  // Source widget 底部区域 - 底部圆角
  // Only render when description exists 仅在有描述时渲染
  Loader {
- active: control.description !== ""
+ active: control.description !== "" && !control._isPrismGallery
  width: parent.width
  sourceComponent: Item {
  width: parent ? parent.width : 0
@@ -130,7 +143,7 @@ Item {
  height: parent.height + card.radius
  y: -card.radius
  radius: card.radius
- color: Enums.isDark ? Enums.exampleCardColors.descBgDark : Enums.exampleCardColors.descBgLight
+ color: control._isPrismGallery ? Enums.surfaceColor : (Enums.isDark ? Enums.exampleCardColors.descBgDark : Enums.exampleCardColors.descBgLight)
  }
  
  // Top separator line 顶部分隔线
@@ -162,9 +175,9 @@ Item {
  anchors.fill: card
  radius: card.radius
  color: Enums.transparent
- border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 1
+ border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
  border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
- : (Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle)
+ : (control._isPrismGallery ? Enums.prismDesign.borderLight : (Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle))
  }
  }
  }

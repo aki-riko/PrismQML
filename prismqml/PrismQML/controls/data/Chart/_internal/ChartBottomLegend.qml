@@ -12,13 +12,18 @@ import "../../../data"
 Item {
     id: root
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var legendData: []              // [{name: "", color: "", label: ""}, ...] name或label作为显示文本
     property int hoveredIndex: -1            // Currently hovered item 当前悬停项
     property var hiddenIndices: []           // Hidden item indices 隐藏项索引
     property string legendStyle: "dot"       // "bar" | "line" | "dot" 图例样式
     property bool clickable: true            // Enable click to toggle 启用点击切换
     property var getColor: null              // Custom color function 自定义颜色函数
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _itemHoverColor: Enums.isPrismDesign ? Enums.hoverColor : Enums.stateColor.hoverSubtle
+    readonly property color _itemBorderColor: Enums.isPrismDesign ? Enums.borderLightColor : Enums.transparent
     
     // ==================== Signals 信号 ====================
     signal itemHovered(int index)
@@ -61,6 +66,16 @@ Item {
                 
                 property bool hovered: root.hoveredIndex === index
                 property bool isItemHidden: root.isHidden(index)
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: root._itemRadius
+                    color: hovered && !isItemHidden ? root._itemHoverColor : Enums.transparent
+                    border.width: hovered && Enums.isPrismDesign ? Enums.border.thin : Enums.border.none
+                    border.color: root._itemBorderColor
+
+                    Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                }
                 
                 Row {
                     id: itemRow

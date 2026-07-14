@@ -24,7 +24,7 @@ Item {
     property color fillColorLight: color
     property color fillColorDark: color
     property color trackColorLight: Enums.stateColor.track
-    property color trackColorDark: Enums.stateColor.whiteOverlay
+    property color trackColorDark: Enums.isPrismDesign ? Enums.stateColor.track : Enums.stateColor.whiteOverlay
     readonly property color progressColor: Enums.isDark ? fillColorDark : fillColorLight
     readonly property color backgroundColor: Enums.isDark ? trackColorDark : trackColorLight
     

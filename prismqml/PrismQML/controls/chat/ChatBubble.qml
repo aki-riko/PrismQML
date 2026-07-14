@@ -46,6 +46,24 @@ Item {
     // 思考区展开状态: 流式思考中默认展开,正文开始(content 非空)后自动折叠
     property bool _reasoningExpanded: true
     property bool _userToggledReasoning: false   // 用户手动点过后不再自动折叠
+    readonly property int _bubbleRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+    readonly property int _bubbleTailRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _assistantBubbleBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property color _userBubbleBackground: Enums.accentColor
+    readonly property color _systemBubbleBackground: Enums.hoverColor
+    readonly property color _bubbleBackground: _isSystem ? _systemBubbleBackground : (_isUser ? _userBubbleBackground : _assistantBubbleBackground)
+    readonly property int _bubbleBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (_isUser ? 0 : Enums.border.thin)
+    readonly property color _bubbleBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (_isUser ? Enums.transparent : Enums.borderColor)
+    readonly property color _contentTextColor: _isUser ? Enums.accentForeground : Enums.textColor.primary
+    readonly property color _contentLinkColor: _isUser ? Enums.accentForeground : Enums.accentColor
+    readonly property color _reasoningTextColor: Enums.textColor.tertiary
+    readonly property color _reasoningLinkColor: Enums.textColor.secondary
+    readonly property color _timestampColor: _isUser
+        ? Enums.textColor.onAccentTimestamp
+        : Enums.textColor.tertiary
+    readonly property color _assistantShadowColor: Enums.shadow.level2.color
+    readonly property real _assistantShadowBlur: Enums.shadow.level2.blur
+    readonly property real _assistantShadowOffset: Enums.shadow.level2.offset
     onContentChanged: {
         if (content !== "" && !_userToggledReasoning) _reasoningExpanded = false
     }
@@ -53,7 +71,6 @@ Item {
     readonly property int _avatarGap: Enums.spacing.m   // 8
     readonly property int _sideMargin: Enums.spacing.xl // 16
     readonly property int _pad: Enums.spacing.l         // 12
-
     // 可用宽度 (扣掉左右边距 + 助手头像占位)
     readonly property real _availWidth: {
         var w = control.width - _sideMargin * 2
@@ -138,8 +155,8 @@ Item {
             anchors.right: parent.right
             visible: control._reasoningExpanded
             markdown: control.reasoning
-            textColor: Enums.textColor.tertiary
-            linkColor: Enums.textColor.secondary
+            textColor: control._reasoningTextColor
+            linkColor: control._reasoningLinkColor
         }
     }
 
@@ -162,17 +179,17 @@ Item {
     RectangularShadow {
         visible: !control._isUser && !control._isSystem && !Enums.isNeobrutalism
         anchors.fill: bubble
-        radius: Enums.radius.large
-        color: Enums.shadow.level2.color
-        blur: Enums.shadow.level2.blur
+        radius: control._bubbleRadius
+        color: control._assistantShadowColor
+        blur: control._assistantShadowBlur
         offset.x: 0
-        offset.y: Enums.shadow.level2.offset
+        offset.y: control._assistantShadowOffset
     }
 
     NeoShadow {
         target: bubble
         visible: !control._isUser && !control._isSystem && Enums.isNeobrutalism
-        radius: Enums.radius.large
+        radius: control._bubbleRadius
         z: bubble.z - 1
     }
 
@@ -197,20 +214,16 @@ Item {
         anchors.horizontalCenter: control._isSystem ? parent.horizontalCenter : undefined
 
         // 非对称圆角: 用户右下尖, 助手左上尖, system 全圆
-        radius: Enums.radius.large
-        topLeftRadius: control._isUser ? Enums.radius.large : Enums.radius.small
-        topRightRadius: Enums.radius.large
-        bottomLeftRadius: Enums.radius.large
-        bottomRightRadius: control._isUser ? Enums.radius.small : Enums.radius.large
+        radius: control._bubbleRadius
+        topLeftRadius: control._isUser ? control._bubbleRadius : control._bubbleTailRadius
+        topRightRadius: control._bubbleRadius
+        bottomLeftRadius: control._bubbleRadius
+        bottomRightRadius: control._isUser ? control._bubbleTailRadius : control._bubbleRadius
 
-        color: {
-            if (control._isSystem) return Enums.hoverColor
-            if (control._isUser) return Enums.accentColor
-            return Enums.cardColor
-        }
+        color: control._bubbleBackground
         // neo: 所有气泡黑粗边(含用户气泡); Fluent: 仅助手细边
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (control._isUser ? 0 : Enums.border.thin)
-        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : (control._isUser ? "transparent" : Enums.borderColor)
+        border.width: control._bubbleBorderWidth
+        border.color: control._bubbleBorderColor
 
         // ==================== Content ====================
         MarkdownView {
@@ -219,8 +232,8 @@ Item {
             anchors.margins: control._pad  // 12
 
             markdown: control.content
-            textColor: control._isUser ? Enums.accentForeground : Enums.textColor.primary
-            linkColor: control._isUser ? Enums.accentForeground : Enums.accentColor
+            textColor: control._contentTextColor
+            linkColor: control._contentLinkColor
         }
 
         // ==================== Timestamp (可选) ====================
@@ -232,7 +245,7 @@ Item {
             anchors.margins: Enums.spacing.s
             font.pixelSize: Enums.typography.tiny + 1
             font.family: Enums.fontFamily
-            color: control._isUser ? Qt.rgba(1, 1, 1, 0.6) : Enums.textColor.tertiary
+            color: control._timestampColor
         }
     }
 }

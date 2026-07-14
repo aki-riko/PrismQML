@@ -143,8 +143,8 @@ Item {
         height: Enums.controlSize.tooltipHeight
 
         background: Rectangle {
-            radius: Enums.radius.small
-            color: Enums.cardColor
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small
+            color: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
             // Use borderStrong so the outline stays visible on light backgrounds 使用 borderStrong 保持浅色背景上的描边可见
             border.width: Enums.border.thin
             border.color: Enums.stateColor.borderStrong

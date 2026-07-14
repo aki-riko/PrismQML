@@ -30,6 +30,8 @@ Item {
         return Enums.accentColor
     }
     readonly property color trackColor: Enums.stateColor.progressTrack
+    readonly property real _barRadius: filled ? (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small) : (height / 2)
+    readonly property color _filledTextColor: control.position > 0.5 ? Enums.accentForeground : Enums.textColor.primary
     
     // ==================== Viewport Detection 可视区域检测（内联实现）====================
     property Item _flickableAncestor: null
@@ -91,7 +93,7 @@ Item {
     // Track 轨道
     Rectangle {
         anchors.fill: parent
-        radius: filled ? Enums.radius.small : (height / 2)
+        radius: control._barRadius
         color: control.trackColor
         // neo: 轨道加黑边(白轨道靠黑边显形)
         border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
@@ -104,7 +106,7 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: parent.width * control.position
-        radius: filled ? Enums.radius.small : (height / 2)
+        radius: control._barRadius
         color: control.progressColor
         visible: !control.indeterminate
         Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
@@ -115,7 +117,7 @@ Item {
         anchors.centerIn: parent
         text: control.text !== "" ? control.text : Math.round(control.position * 100) + "%"
         type: Enums.label.type_caption
-        color: control.position > 0.5 ? "white" : (Enums.isDark ? "white" : "black")
+        color: control._filledTextColor
         visible: control.filled && control.showText && !control.indeterminate
     }
     
@@ -124,7 +126,7 @@ Item {
         anchors.fill: parent
         visible: control.indeterminate
         color: control.progressColor
-        radius: filled ? Enums.radius.small : (height / 2)
+        radius: control._barRadius
         running: control.indeterminate && control._isInViewport && control.visible
     }
 }

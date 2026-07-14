@@ -20,18 +20,32 @@ Item {
     property bool selected: false
     property bool selectable: true
     
-    signal clicked()
-    
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
     readonly property color accentColor: Enums.accentColor
+    readonly property int _navItemRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+    readonly property color _navItemBackground: {
+        if (control.selected) {
+            if (Enums.isNeobrutalism) return Enums.neo.primary
+            return Enums.stateColor.navSelected
+        }
+        if (control.pressed || control.hovered) {
+            return control.hovered ? Enums.stateColor.hover : Enums.stateColor.pressed
+        }
+        return Enums.transparent
+    }
+    readonly property int _navItemBorderWidth: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : (Enums.isPrismDesign && control.selected ? Enums.prismDesign.borderWidth : 0)
+    readonly property color _navItemBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (Enums.isPrismDesign ? Enums.prismDesign.primaryDark : Enums.transparent)
+    readonly property color _navItemContentColor: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
     
-    // Icon offset animation 图标偏移动画
+    // ==================== Internal Props 内部属性 ====================
     property real iconOffset: 0
     
+    // ==================== Signals 信号 ====================
+    signal clicked()
     
-    // ==================== Size (64x60) 尺寸 ====================
+    // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.navBarItemWidth
     implicitHeight: Enums.controlSize.navBarItemHeight
     
@@ -43,24 +57,36 @@ Item {
         anchors.rightMargin: Enums.spacing.xxs
         anchors.topMargin: Enums.spacing.xxs
         anchors.bottomMargin: Enums.spacing.xxs
-        radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
+        radius: control._navItemRadius
 
-        color: {
-            if (control.selected) {
-                // neo: 选中=橙实心块; Fluent: 淡色高亮
-                if (Enums.isNeobrutalism) return Enums.neo.primary
-                return Enums.stateColor.navSelected
-            }
-            if (control.pressed || control.hovered) {
-                // Use stateColor constants 使用stateColor常量
-                return control.hovered ? Enums.stateColor.hover : Enums.stateColor.pressed
-            }
-            return Enums.transparent
+        color: control._navItemBackground
+
+        // Neo selected border neo选中态边框
+        border.width: control._navItemBorderWidth
+        border.color: control._navItemBorderColor
+
+        // Prism glass rail rim Prism玻璃导航边缘
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: Enums.prismDesign.borderWidth
+            color: Enums.prismDesign.glassRimLight
+            visible: Enums.isPrismDesign && (control.selected || control.hovered)
         }
 
-        // neo: 选中态加黑边
-        border.width: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : 0
-        border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.transparent
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: Enums.prismDesign.focusBorderWidth
+            radius: height / 2
+            color: Enums.prismDesign.spectralEdge
+            opacity: control.selected ? 0.9 : 0.35
+            visible: Enums.isPrismDesign && (control.selected || control.hovered)
+
+            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+        }
 
         // No animation to avoid flicker 无动画避免闪烁
     }
@@ -111,7 +137,7 @@ Item {
             // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
             layer.enabled: true
             layer.effect: ColorOverlay {
-                color: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
+                color: control._navItemContentColor
             }
             
             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
@@ -161,7 +187,7 @@ Item {
             anchors.centerIn: parent
             text: control.selected && control.selectedIcon ? control.selectedIcon : control.icon
             visible: !iconContainer.isPathIcon && control.icon !== ""
-            color: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
+            color: control._navItemContentColor
             opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
             
             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
@@ -179,7 +205,7 @@ Item {
         font.pixelSize: Enums.typography.captionCompact
         horizontalAlignment: Text.AlignHCenter
         
-        color: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
+        color: control._navItemContentColor
 
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
@@ -190,7 +216,7 @@ Item {
         anchors.fill: parent
         enabled: control.enabled
         hoverEnabled: true
-                onClicked: control.clicked()
+        onClicked: control.clicked()
     }
     
 }

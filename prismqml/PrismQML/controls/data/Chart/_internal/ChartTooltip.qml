@@ -3,8 +3,8 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import QtQuick.Effects
 import "../../../.."
+import "../../../../effects"
 import "../../../data"
 
 // ChartTooltip - Tooltip component for chart widgets 图表提示框组件
@@ -14,7 +14,7 @@ import "../../../data"
 Item {
     id: root
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string label: ""
     property var value: 0
     property bool isValueString: false   // If true, value is displayed as string 如果为true，value作为字符串显示
@@ -25,6 +25,11 @@ Item {
     property color dotColor: Enums.transparent
     property bool showPointer: false     // Show triangle pointer 显示三角形指针
     property int pointerDirection: 0     // 0=down, 1=up, 2=left, 3=right 指针方向
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property color _tooltipBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.gray.tooltip
+    readonly property color _tooltipBorderColor: Enums.isPrismDesign ? Enums.borderColor : Enums.transparent
+    readonly property int _tooltipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small
     
     // ==================== Size 尺寸 ====================
     width: tooltipRect.width
@@ -37,22 +42,17 @@ Item {
     Behavior on opacity { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
     
     // ==================== Tooltip Body 提示框主体 ====================
-    Rectangle {
+    ShadowedRectangle {
         id: tooltipRect
         width: tooltipContent.width + Enums.spacing.l
         height: tooltipContent.height + Enums.spacing.m
         
-        radius: Enums.radius.small
-        color: Enums.gray.tooltip
-        
-        // Shadow 阴影
-        layer.enabled: root.visible
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowColor: Enums.shadow.level2.color
-            shadowBlur: Enums.shadow.level2.blurNormalized
-            shadowVerticalOffset: Enums.shadow.level2.offset
-        }
+        radius: root._tooltipRadius
+        color: root._tooltipBackground
+        border.width: Enums.isPrismDesign ? Enums.border.thin : Enums.border.none
+        border.color: root._tooltipBorderColor
+        shadowLevel: Enums.isPrismDesign ? Enums.shadow.level8 : Enums.shadow.level2
+        shadowVisible: root.visible
         
         // ==================== Content 内容 ====================
         Column {
@@ -77,7 +77,7 @@ Item {
                 Label {
                     type: Enums.label.type_caption
                     text: root.label
-                    color: Enums.stateColor.chartTooltipText
+                    color: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.stateColor.chartTooltipText
                     visible: root.label !== ""
                 }
             }
@@ -111,7 +111,7 @@ Item {
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
-            ctx.fillStyle = Enums.gray.tooltip
+            ctx.fillStyle = root._tooltipBackground
             ctx.beginPath()
             ctx.moveTo(0, 0)
             ctx.lineTo(width, 0)

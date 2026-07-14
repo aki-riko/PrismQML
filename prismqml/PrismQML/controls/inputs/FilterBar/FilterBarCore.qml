@@ -31,7 +31,7 @@ Rectangle {
     // ==================== Size 尺寸 ====================
     implicitWidth: filterRow.implicitWidth + Enums.spacing.m * 2
     implicitHeight: Enums.controlSize.inputHeightLarge  // 40
-    radius: Enums.radius.small
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     
     // ==================== Color Functions (subclass can override) 颜色函数 ====================
     
@@ -129,7 +129,7 @@ Rectangle {
             x: refreshTrigger >= 0 ? control.getItemX(targetIndex) : 0
             width: refreshTrigger >= 0 ? control.getItemWidth(targetIndex) : 0
             height: 30
-            radius: Enums.radius.small
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
             color: Enums.accentColor
             
             // Smooth sliding animation 平滑滑动动画
@@ -157,7 +157,7 @@ Rectangle {
                     id: filterItem
                     width: itemContentRow.implicitWidth + Enums.spacing.xl * 2
                     height: 30
-                    radius: Enums.radius.small
+                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                     
                     required property int index
                     required property var modelData

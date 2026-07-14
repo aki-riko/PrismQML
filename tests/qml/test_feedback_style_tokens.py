@@ -333,8 +333,18 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "Enums.spacing.m + 3" not in toast_source
     assert "anchors.topMargin: -3" not in toast_source
 
-    assert "border.width: Enums.border.normal" in splash_source
-    assert "anchors.topMargin: -Enums.spacing.micro" in splash_source
+    assert (
+        "readonly property int _progressRingBorderWidth: "
+        "Enums.splashScreenMetrics.progressRingBorderWidth"
+        in splash_source
+    )
+    assert "border.width: control._progressRingBorderWidth" in splash_source
+    assert (
+        "readonly property int _progressDotTopMargin: "
+        "Enums.splashScreenMetrics.progressDotTopMargin"
+        in splash_source
+    )
+    assert "anchors.topMargin: control._progressDotTopMargin" in splash_source
     assert "duration: Enums.duration.splashBreathe" in splash_source
     assert "duration: Enums.duration.splashProgressSpin" in splash_source
     assert "shadowBlur: Enums.shadow.splashIcon.blurNormalized" in splash_source

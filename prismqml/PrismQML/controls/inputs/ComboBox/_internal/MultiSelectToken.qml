@@ -37,7 +37,7 @@ Rectangle {
     width: tagText.implicitWidth + Enums.spacing.xxxl
 
     // ==================== Style 样式 ====================
-    radius: Enums.radius.small
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     color: token._tinted ? token.bgColorOverride : Enums.stateColor.accentLight
     border.width: Enums.border.thin
     border.color: token._tinted ? Qt.darker(token.bgColorOverride, 1.2) : Enums.stateColor.accentBorder

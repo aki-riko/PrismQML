@@ -12,6 +12,8 @@ QtObject {
     required property bool isDark
     // neo 皮肤标志: neo 仅 light 配色, 文字色等需无视 isDark 强制走 light(否则深色主题下白字落 neo 米白底=隐形)
     property bool isNeo: false
+    // Prism Design skin flag Prism Design皮肤标志: light/dark are provided by prismDesign tokens 明暗由prismDesign token提供。
+    property bool isPrismDesign: false
 
     // ==================== ThemeColors 主题基础色 ====================
     readonly property QtObject themeColors: QtObject {
@@ -117,6 +119,76 @@ QtObject {
         readonly property color info: root.isDark ? "#60A5FA" : "#3B82F6"         // 蓝
     }
 
+    // ==================== PrismDesign Prism Design皮肤Token ====================
+    // Prism Design is PrismQML's owned skin Prism Design是PrismQML自有皮肤。
+    // Single source of truth for the third skin 第三皮肤的单一真相源。
+    readonly property QtObject prismDesign: QtObject {
+        // ---- Geometry 几何 ----
+        readonly property int radiusControl: 10
+        readonly property int radiusCard: 14
+        readonly property int radiusPopup: 18
+        readonly property int radiusDialog: 24
+        readonly property int borderWidth: 1
+        readonly property int focusBorderWidth: 2
+
+        // ---- Surfaces 背景层 ----
+        readonly property color background: root.isDark ? "#090E10" : "#EEF5F7"
+        readonly property color surface: root.isDark ? "#10181B" : "#F8FBFC"
+        readonly property color raised: root.isDark ? "#1A2529" : "#FCFEFF"
+        readonly property color overlay: root.isDark ? "#223036" : "#F7FCFE"
+        readonly property color header: root.isDark ? "#0D1518" : "#E8F1F4"
+        readonly property color tableBg: root.isDark ? "#0C1316" : "#F6FAFB"
+        readonly property color alternateRow: root.isDark ? "#141F23" : "#F1F7F9"
+
+        // ---- Foregrounds 前景 ----
+        readonly property color foreground: root.isDark ? "#EEF7F8" : "#122226"
+        readonly property color secondaryForeground: root.isDark ? "#A8BABF" : "#526970"
+        readonly property color tertiaryForeground: root.isDark ? "#738A91" : "#768A91"
+        readonly property color disabledForeground: root.isDark ? "#51656B" : "#A4B2B7"
+
+        // ---- Accents 强调色 ----
+        readonly property color primary: root.isDark ? "#6DEBF2" : "#0B7F89"
+        readonly property color primaryLight: root.isDark ? "#A6F7FF" : "#12A0AA"
+        readonly property color primaryDark: root.isDark ? "#3CCBD5" : "#075F68"
+        readonly property color primaryForeground: root.isDark ? "#041719" : "#FFFFFF"
+        readonly property color secondary: root.isDark ? "#A8B4FF" : "#5C6FDB"
+        readonly property color warm: root.isDark ? "#F3B563" : "#C77B32"
+        readonly property color glow: root.isDark ? "#7AF2FF" : "#70E7F2"
+
+        // ---- Borders 边框 ----
+        readonly property color border: root.isDark ? "#32484F" : "#B9CCD1"
+        readonly property color borderLight: root.isDark ? "#263A41" : "#DCE9ED"
+        readonly property color borderStrong: root.isDark ? "#6AA9B5" : "#78ADB8"
+        readonly property color divider: root.isDark ? "#22343A" : "#D6E3E6"
+
+        // ---- State layers 状态层 ----
+        readonly property color hover: root.isDark ? "#213136" : "#EAF4F7"
+        readonly property color pressed: root.isDark ? "#1A2A2F" : "#DDECF0"
+        readonly property color disabled: root.isDark ? "#192226" : "#E5ECEF"
+        readonly property color selected: root.isDark ? "#174A52" : "#DDF4F7"
+        readonly property color selectedHover: root.isDark ? "#1F5F68" : "#CCEDF3"
+        readonly property color navSelected: root.isDark ? "#18272C" : "#EEF9FB"
+        readonly property color navSelectedHover: root.isDark ? "#20343A" : "#E1F3F7"
+        readonly property color tableHover: root.isDark ? "#1A292E" : "#EDF5F7"
+        readonly property color scrollTrack: root.isDark ? "#0C1518" : "#DDE9ED"
+        readonly property color scrollHandle: root.isDark ? "#4A6770" : "#91A9B0"
+        readonly property color scrollHandleHover: root.isDark ? "#63828C" : "#78969E"
+        readonly property color transparentHover: root.isDark ? "#22363D" : "#E9F6FA"
+        readonly property color transparentPressed: root.isDark ? "#1A2B31" : "#DAEBF1"
+
+        // ---- Shadows 阴影 ----
+        readonly property color shadow: root.isDark ? "#99000000" : "#2412232A"
+        readonly property color shadowStrong: root.isDark ? "#B3000000" : "#3812232A"
+        readonly property color edgeShadow: root.isDark ? "#337AF2FF" : "#2270E7F2"
+
+        // ---- Glass material 玻璃材质 ----
+        readonly property color glassTint: root.isDark ? "#E6223036" : "#E6FCFEFF"
+        readonly property color glassRimLight: root.isDark ? "#33FFFFFF" : "#CCFFFFFF"
+        readonly property color glassRimShadow: root.isDark ? "#66000000" : "#1A12232A"
+        readonly property color spectralEdge: root.isDark ? "#7AF2FF" : "#70E7F2"
+        readonly property color refractionHighlight: root.isDark ? "#66B9F7FF" : "#B89BE8FF"
+    }
+
     // ==================== SemanticColors 语义色 ====================
     // success/warning/error 及其背景色取自微软 WinUI 官方 SystemFillColor 资源
     // (Common_themeresources_any.xaml: SystemFillColorSuccess/Caution/Critical[Background])，
@@ -178,6 +250,7 @@ QtObject {
         readonly property real tertiary: 0.5
         readonly property real disabled: 0.4
         readonly property real strong: 0.8
+        readonly property real timestamp: 0.6
         readonly property real pressedLight: 0.7
     }
 
@@ -284,12 +357,23 @@ QtObject {
     
     // ==================== TextColor 文字颜色 ====================
     readonly property QtObject textColor: QtObject {
-        // neo: 文字色走 neoColors(已 dark-aware, light 近黑/dark 近白); 非 neo 走原 Fluent 明暗逻辑
-        readonly property color primary: root.isNeo ? neoColors.foreground : (root.isDark ? themeColors.foregroundDark : grayColors.textPrimaryLight)
-        readonly property color secondary: root.isNeo ? neoColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.secondary) : Qt.rgba(0, 0, 0, 0.6))
-        readonly property color tertiary: root.isNeo ? neoColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.tertiary) : Qt.rgba(0, 0, 0, textOpacity.tertiary))
-        readonly property color disabled: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.disabled) : Qt.rgba(0, 0, 0, textOpacity.disabled)
-        readonly property color strong: root.isNeo ? neoColors.foreground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.strong))
+        // neo/prismDesign: 文字色走各自 skin token; 非 skin 走原 Fluent 明暗逻辑。
+        readonly property color onAccent: root.isNeo
+            ? neoColors.primaryForeground
+            : (root.isPrismDesign
+                ? prismDesign.primaryForeground
+                : themeColors.accentForeground)
+        readonly property color onAccentTimestamp: Qt.rgba(
+            onAccent.r,
+            onAccent.g,
+            onAccent.b,
+            textOpacity.timestamp
+        )
+        readonly property color primary: root.isNeo ? neoColors.foreground : (root.isPrismDesign ? prismDesign.foreground : (root.isDark ? themeColors.foregroundDark : grayColors.textPrimaryLight))
+        readonly property color secondary: root.isNeo ? neoColors.secondaryForeground : (root.isPrismDesign ? prismDesign.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.secondary) : Qt.rgba(0, 0, 0, 0.6)))
+        readonly property color tertiary: root.isNeo ? neoColors.secondaryForeground : (root.isPrismDesign ? prismDesign.tertiaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.tertiary) : Qt.rgba(0, 0, 0, textOpacity.tertiary)))
+        readonly property color disabled: root.isPrismDesign ? prismDesign.disabledForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.disabled) : Qt.rgba(0, 0, 0, textOpacity.disabled))
+        readonly property color strong: root.isNeo ? neoColors.foreground : (root.isPrismDesign ? prismDesign.foreground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.strong)))
         readonly property color pressed: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.pressedLight)
     }
 
@@ -303,29 +387,34 @@ QtObject {
         readonly property color foreground: "#E5E7EB"
     }
     
-    // ==================== ChartColors 图表颜色 (Fluent Design) ====================
+    // ==================== ChartColors 图表颜色 ====================
     readonly property QtObject chartColors: QtObject {
         // Fixed strong text on colored markers and dark tooltips 彩色标记与深色提示框上的固定强文字
-        readonly property color strongText: themeColors.accentForeground
-        // Fluent Design chart palette 柔和的Fluent图表调色板
-        readonly property var palette: [
+        readonly property color strongText: root.isPrismDesign
+            ? root.textColor.primary
+            : themeColors.accentForeground
+        readonly property var _fluentPalette: [
             "#0078D4", "#107C10", "#FFB900", "#D13438", "#8764B8",
             "#00B7C3", "#498205", "#FF8C00", "#E81123", "#881798"
         ]
+        readonly property var _prismPalette: [
+            "#0B7F89", "#5C6FDB", "#C77B32", "#C64754", "#7B5CB8",
+            "#0099A8", "#6F8F2E", "#A65A82", "#2F7A5C", "#8A6E4E"
+        ]
+        readonly property var _prismDarkPalette: [
+            "#6DEBF2", "#A8B4FF", "#F3B563", "#FF8F9A", "#BBA4FF",
+            "#5CD7E6", "#A6C96B", "#E99BC1", "#77C79D", "#D2B486"
+        ]
+        // Fluent/Prism chart palette Fluent/Prism图表调色板
+        readonly property var palette: root.isPrismDesign ? (root.isDark ? _prismDarkPalette : _prismPalette) : _fluentPalette
         // Pie/Radar/Scatter chart palette 饼图/雷达图/散点图调色板
-        readonly property var pieRadarPalette: [
-            "#0078D4", "#107C10", "#FFB900", "#D13438", "#8764B8",
-            "#00B7C3", "#498205", "#FF8C00", "#E81123", "#881798"
-        ]
+        readonly property var pieRadarPalette: palette
         // Extended palette for more data series 扩展调色板
-        readonly property var extendedPalette: [
-            "#0078D4", "#107C10", "#FFB900", "#D13438", "#8764B8",
-            "#00B7C3", "#498205", "#FF8C00", "#E81123", "#881798"
-        ]
+        readonly property var extendedPalette: palette
         // Grid line color 网格线颜色
-        readonly property color gridLine: root.isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.08)
+        readonly property color gridLine: root.isPrismDesign ? prismDesign.divider : (root.isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.08))
         // Axis label color 坐标轴标签颜色
-        readonly property color axisLabel: root.isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
+        readonly property color axisLabel: root.isPrismDesign ? prismDesign.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6))
     }
     
     // ==================== ConfettiColors 彩纸颜色 ====================
@@ -351,7 +440,9 @@ QtObject {
     
     // ==================== PasswordStrengthColors 密码强度颜色 ====================
     readonly property QtObject passwordStrengthColors: QtObject {
-        readonly property var palette: ["#c42b1c", "#e87a18", "#e8b318", "#54a814", "#0f7b0f"]
+        readonly property var lightPalette: ["#c42b1c", "#e87a18", "#e8b318", "#54a814", semanticColors.successLight]
+        readonly property var darkPalette: [semanticColors.errorDark, "#f6b44b", semanticColors.warningDark, "#59d6c7", semanticColors.successDark]
+        readonly property var palette: root.isDark ? darkPalette : lightPalette
     }
     
     // ==================== CalendarColors 日历颜色 ====================

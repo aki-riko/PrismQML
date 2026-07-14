@@ -21,25 +21,30 @@ Rectangle {
         (typeof PlatformInfo !== "undefined" && PlatformInfo && PlatformInfo.touchTargetSize > 0)
             ? Math.max(Enums.controlSize.bottomTabBarHeight, PlatformInfo.touchTargetSize + Enums.spacing.m)
             : Enums.controlSize.bottomTabBarHeight
+    readonly property color _bottomTabBackground: window_micaActiveFallback ? Enums.transparent : Enums.backgroundColor
+    readonly property color _bottomTabDividerColor: Enums.dividerColor
+    readonly property int _bottomTabDividerHeight: Enums.border.thin
 
     // ==================== Signals 信号 ====================
     signal itemClicked(int index)
 
+    // ==================== Size 尺寸 ====================
     implicitHeight: barHeight
     height: implicitHeight
-    color: window_micaActiveFallback ? Enums.transparent : Enums.backgroundColor
+    color: _bottomTabBackground
 
+    // ==================== Content 内容 ====================
     Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: Enums.border.thin
-        color: Enums.dividerColor
+        height: control._bottomTabDividerHeight
+        color: control._bottomTabDividerColor
     }
 
     Row {
         anchors.fill: parent
-        anchors.topMargin: Enums.border.thin
+        anchors.topMargin: control._bottomTabDividerHeight
 
         Repeater {
             id: rep

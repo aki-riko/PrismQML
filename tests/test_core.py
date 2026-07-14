@@ -26,6 +26,8 @@ class TestThemeManager:
         from prismqml.python.core.theme import ThemeManager
 
         ThemeManager._instance = None
+        ThemeManager._resolved_font_family = None
+        ThemeManager._resolved_font_monospace = None
 
     def test_singleton(self):
         """单例模式应返回同一实例"""
@@ -83,6 +85,18 @@ class TestThemeManager:
 
         tm = ThemeManager()
         assert tm.getAccentColor() == ThemeManager.DEFAULT_ACCENT
+
+    def test_font_family_resolves_to_qt_family(self, qapp):
+        """QML font.family 应拿到单个 Qt 可用字体族，而不是 CSS fallback 串"""
+        from PySide6.QtGui import QFontDatabase
+
+        from prismqml.python.core.theme import ThemeManager
+
+        tm = ThemeManager()
+        assert "," not in tm.fontFamily
+        available_families = set(QFontDatabase.families())
+        if available_families:
+            assert tm.fontFamily in available_families
 
     def test_set_accent_color(self):
         """设置主题色应更新 accent 和派生色"""

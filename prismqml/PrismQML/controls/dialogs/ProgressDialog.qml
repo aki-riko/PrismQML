@@ -25,6 +25,15 @@ OverlayDialogCore {
     property int ringStrokeWidth: Enums.controlSize.progressStrokeWidth
     property int maxWaitingTime: -1  // -1 = infinite wait 无限等待
     property real progress: -1  // -1 = 不确定(转圈), 0~100 = 确定进度百分比
+
+    readonly property int _dialogRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
+    readonly property color _dialogBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
+                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+    readonly property color _dialogBorderColor: Enums.stateColor.dialogBorder
+    readonly property color _dialogShadowColor: Enums.shadow.level16.color
+    readonly property real _dialogShadowBlur: Enums.shadow.level16.blur
+    readonly property real _dialogShadowOffset: Enums.shadow.level16.offset
     
     // ==================== Signals 信号 ====================
     signal timeout()
@@ -34,10 +43,10 @@ OverlayDialogCore {
     RectangularShadow {
         anchors.fill: container
         radius: container.radius
-        color: Enums.shadow.level8.color
-        blur: Enums.shadow.level8.blur
+        color: control._dialogShadowColor
+        blur: control._dialogShadowBlur
         offset.x: 0
-        offset.y: Enums.shadow.level8.offset
+        offset.y: control._dialogShadowOffset
         visible: !Enums.isNeobrutalism
     }
 
@@ -53,10 +62,10 @@ OverlayDialogCore {
         anchors.centerIn: parent
         width: Math.max(288, contentRow.implicitWidth + 56)
         height: Math.max(110, contentRow.implicitHeight + 40)
-        radius: Enums.radius.large
-        color: Enums.cardColor
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-        border.color: Enums.stateColor.dialogBorder
+        radius: control._dialogRadius
+        color: control._dialogBackground
+        border.width: control._dialogBorderWidth
+        border.color: control._dialogBorderColor
         
         // Animation 动画
         scale: control._isOpen ? 1 : 0.9

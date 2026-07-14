@@ -42,7 +42,7 @@ Rectangle {
     property var headerLabels: []
     property int columnCount: 1
     property bool borderVisible: true
-    property int borderRadius: Enums.radius.large
+    property int borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
     property bool selectOnRightClick: false
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.scroll

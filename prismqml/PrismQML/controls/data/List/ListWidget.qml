@@ -15,8 +15,9 @@ Rectangle {
     // cardColor 可覆盖(默认主题 headerColor): 透明场景设 cardColor:"transparent",
     // 与 DataWidgetCore 系列(ListView/TableView 等)API 命名一致。
     property color cardColor: Enums.headerColor
+    property int borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card
     color: cardColor
-    radius: Enums.radius.card
+    radius: borderRadius
     
     // ==================== Selection Mode 选择模式 ====================
     // QAbstractItemView.SelectionMode-style values QAbstractItemView选择模式风格取值
@@ -38,7 +39,6 @@ Rectangle {
     property color checkedColor: Enums.accentColor
     property color checkedColorDark: Enums.accentColor
     property bool borderVisible: true
-    property int borderRadius: Enums.radius.card
     
     // Smooth scroll props 平滑滚动属性
     property bool smoothScroll: true

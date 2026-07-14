@@ -22,13 +22,18 @@ Window {
     property bool showCancelButton: true
     property bool deleteOnClose: true
     
-    // ==================== Signals 信号 ====================
-    signal accepted()
-    signal rejected()
-    
     // ==================== Internal State 内部状态 ====================
     property Item targetItem: null
     property bool isOpen: false
+    readonly property int _sheetRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+    readonly property color _sheetBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _sheetBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property color _sheetBorderColor: Enums.stateColor.dialogBorder
+    readonly property color _sheetDividerColor: Enums.stateColor.borderLight
+
+    // ==================== Signals 信号 ====================
+    signal accepted()
+    signal rejected()
     
     width: contentContainer.width + 32
     height: contentContainer.height + buttonRow.height + 48
@@ -85,10 +90,10 @@ Window {
         id: container
         anchors.fill: parent
         anchors.margins: Enums.spacing.m
-        radius: Enums.radius.large
-        color: Enums.cardColor
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-        border.color: Enums.stateColor.dialogBorder
+        radius: control._sheetRadius
+        color: control._sheetBackground
+        border.width: control._sheetBorderWidth
+        border.color: control._sheetBorderColor
         
         // Content area 内容区域
         Item {
@@ -116,7 +121,7 @@ Window {
             anchors.bottomMargin: Enums.spacing.l
             anchors.leftMargin: Enums.spacing.xl
             anchors.rightMargin: Enums.spacing.xl
-            lineColor: Enums.stateColor.borderLight
+            lineColor: control._sheetDividerColor
         }
         
         // Button area 按钮区域

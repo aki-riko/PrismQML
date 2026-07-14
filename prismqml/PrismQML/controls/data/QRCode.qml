@@ -32,6 +32,9 @@ Item {
             errorLevel
         )
     }
+    readonly property int _qrPlaceholderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _qrBorderColor: Enums.stateColor.border
+    readonly property color _qrHintColor: Enums.textColor.secondary
 
     // ==================== Public Methods 公共方法 ====================
     function getContent() { return content }
@@ -43,9 +46,9 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: control.backgroundColor
-        radius: Enums.radius.small
+        radius: control._qrPlaceholderRadius
         border.width: Enums.border.thin
-        border.color: Enums.stateColor.border
+        border.color: control._qrBorderColor
 
         Column {
             anchors.centerIn: parent
@@ -64,7 +67,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 type: Enums.label.type_caption
                 text: control.content === "" ? "无内容" : (control.imageSource === "" ? "参数无效" : "加载中...")
-                color: Enums.textColor.secondary
+                color: control._qrHintColor
                 horizontalAlignment: Text.AlignHCenter
             }
         }

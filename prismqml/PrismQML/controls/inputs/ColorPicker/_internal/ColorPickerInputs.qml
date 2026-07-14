@@ -46,7 +46,7 @@ Item {
                 visible: control.showModeSelector
                 width: Enums.colorPickerMetrics.inputsModeWidth
                 height: Enums.controlSize.inputHeightCompact
-                radius: Enums.radius.small
+                radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                 color: Enums.stateColor.controlBg
                 border.width: Enums.border.thin
                 border.color: Enums.stateColor.border
@@ -95,7 +95,7 @@ Item {
                 Rectangle {
                     width: Enums.colorPickerMetrics.inputsHexWidth
                     height: Enums.controlSize.inputHeightCompact
-                    radius: Enums.radius.small
+                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                     color: Enums.stateColor.controlBg
                     border.width: hexInput.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
                     border.color: hexInput.activeFocus ? Enums.accentColor : Enums.stateColor.border

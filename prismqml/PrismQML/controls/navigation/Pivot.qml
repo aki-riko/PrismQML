@@ -160,7 +160,7 @@ Item {
         orientation: Qt.Horizontal
         indicatorWidth: control.indicatorSize
         indicatorHeight: Enums.border.thick
-        radius: Enums.radius.micro
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.micro
         animationEnabled: control.indicatorAnimmationEnabled
         visible: control.items.length > 0 && control._initialized
     }

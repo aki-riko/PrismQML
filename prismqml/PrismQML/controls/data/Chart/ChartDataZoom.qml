@@ -27,7 +27,7 @@ import "../../inputs/Slider"
 Item {
     id: control
 
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     // 全量数据 — 用来画缩略图轮廓
     property var chartData: []
     property var series: []
@@ -37,23 +37,37 @@ Item {
     property real viewportStart: 0
     property real viewportEnd: 1
 
+    // ==================== Internal Props 内部属性 ====================
+    property bool _suppressSliderUpdate: false
+    property bool _dragging: false
+    readonly property int _panelRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
+    readonly property color _panelColor: Enums.isPrismDesign ? Enums.surfaceColor : Enums.transparent
+    readonly property color _panelBorderColor: Enums.isPrismDesign ? Enums.borderLightColor : Enums.transparent
+    readonly property int _thumbnailMargin: Enums.isPrismDesign ? Enums.spacing.xs : Enums.spacing.none
+    readonly property int _sliderSpace: Enums.spacing.m
+    readonly property int _thumbnailStrokeWidth: Enums.border.thin
+    readonly property real _thumbnailFillAlpha: Enums.isPrismDesign ? Enums.stateColor.chartFillMedium : Enums.opacityLevel.light - Enums.opacityLevel.faint
+    readonly property real _thumbnailStrokeAlpha: Enums.isPrismDesign ? Enums.stateColor.chartStrokeAlpha : Enums.opacityLevel.strong
+
     // ==================== Signals 信号 ====================
     signal viewportChanged(real start, real end)
     // 用户开始/结束拖动手柄 — 父级监听后关闭 viewport 动画避免每帧卡
     signal interactiveChanged(bool active)
 
-    // ==================== Internal 内部 ====================
-    property bool _suppressSliderUpdate: false
-    property bool _dragging: false
-
     implicitWidth: 400
     implicitHeight: 60
+
+    Rectangle {
+        anchors.fill: parent
+        radius: control._panelRadius
+        color: control._panelColor
+        border.width: Enums.isPrismDesign ? Enums.border.thin : Enums.border.none
+        border.color: control._panelBorderColor
+    }
 
     // 缩略图: Canvas 自画全量轮廓 (主导 series 取 chartData[i].value 或 series[0].values)
     Canvas {
         id: thumbCanvas
-        anchors.fill: parent
-        anchors.bottomMargin: Enums.spacing.m  // 给底部 slider 留空间
 
         property var _drawValues: {
             if (control.series && control.series.length > 0) {
@@ -69,6 +83,10 @@ Item {
             }
             return []
         }
+
+        anchors.fill: parent
+        anchors.margins: control._thumbnailMargin
+        anchors.bottomMargin: control._sliderSpace  // 给底部 slider 留空间
 
         onPaint: {
             var ctx = getContext('2d')
@@ -99,7 +117,7 @@ Item {
             ctx.lineTo(0, height)
             ctx.closePath()
             ctx.fillStyle = Qt.rgba(control.primaryColor.r, control.primaryColor.g,
-                                     control.primaryColor.b, 0.20)
+                                     control.primaryColor.b, control._thumbnailFillAlpha)
             ctx.fill()
             // 折线
             ctx.beginPath()
@@ -111,8 +129,8 @@ Item {
                 else ctx.lineTo(x2, y2)
             }
             ctx.strokeStyle = Qt.rgba(control.primaryColor.r, control.primaryColor.g,
-                                       control.primaryColor.b, 0.85)
-            ctx.lineWidth = 1
+                                       control.primaryColor.b, control._thumbnailStrokeAlpha)
+            ctx.lineWidth = control._thumbnailStrokeWidth
             ctx.stroke()
         }
 

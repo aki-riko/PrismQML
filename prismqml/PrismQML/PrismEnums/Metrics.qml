@@ -10,6 +10,7 @@ QtObject {
  id: root
  
  required property bool isDark
+ property bool isPrismDesign: false
  // neo 配色单一真相源(Constants.neoColors, dark-aware), 由 Enums 注入
  property var constants: null
  
@@ -38,6 +39,8 @@ QtObject {
  readonly property int splashTimeout: 5000 // Splash dismiss fallback when first page never signals loaded 首屏加载信号意外不来时关闭欢迎页的兜底超时
  readonly property int scroll: 750
  readonly property int bounce: 750 // Scroll bounce animation 滚动回弹动画
+ readonly property int verySlow: 1000 // Very slow ornamental animation 较慢装饰动画
+ readonly property int xslow: 1200 // Extra slow ornamental animation 超慢装饰动画
  // Data component animation durations 数据组件动画时长
  readonly property int stagger: 35 // Row stagger delay 行错开延迟
  readonly property int enter: 200 // Enter/appear animation 进场动画
@@ -519,6 +522,22 @@ QtObject {
  readonly property int dividerHeight: 28
  }
 
+ // ==================== SplashScreen 启动画面度量 ====================
+ readonly property QtObject splashScreen: QtObject {
+ readonly property int iconSize: root.controlSize.progressRingSize + root.spacing.s
+ readonly property real iconShadowBlur: 0.8
+ readonly property int iconShadowOffset: root.spacing.s
+ readonly property real contentEnterScale: 0.8
+ readonly property real contentExitScale: 1.1
+ readonly property real iconBreatheScale: 1.03
+ readonly property int progressRingSize: root.iconSize.xl
+ readonly property int progressRingBorderWidth: root.border.normal
+ readonly property real progressTrackOpacity: root.opacity.light
+ readonly property int progressDotSize: root.spacing.s
+ readonly property int progressDotRadius: root.isPrismDesign ? progressDotSize / 2 : root.radius.tiny
+ readonly property int progressDotTopMargin: -root.spacing.micro
+ }
+
  // ==================== ColorPicker 颜色选择器度量 ====================
  readonly property QtObject colorPicker: QtObject {
  // Trigger button 触发按钮
@@ -650,7 +669,7 @@ QtObject {
  readonly property real offset: 1
  readonly property real blur: 4
  readonly property int samples: 13
- readonly property color color: Qt.rgba(0, 0, 0, 0.08 * shadow._alphaMultiplier)
+ readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadow : Qt.rgba(0, 0, 0, 0.08 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.1
  }
  
@@ -661,7 +680,7 @@ QtObject {
  readonly property real offset: 2
  readonly property real blur: 8
  readonly property int samples: 17
- readonly property color color: Qt.rgba(0, 0, 0, 0.12 * shadow._alphaMultiplier)
+ readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadow : Qt.rgba(0, 0, 0, 0.12 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.15
  }
  
@@ -672,7 +691,7 @@ QtObject {
  readonly property real offset: 4
  readonly property real blur: 16
  readonly property int samples: 21
- readonly property color color: Qt.rgba(0, 0, 0, 0.14 * shadow._alphaMultiplier)
+ readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadowStrong : Qt.rgba(0, 0, 0, 0.14 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.25
  }
  
@@ -683,7 +702,7 @@ QtObject {
  readonly property real offset: 8
  readonly property real blur: 32
  readonly property int samples: 25
- readonly property color color: Qt.rgba(0, 0, 0, 0.18 * shadow._alphaMultiplier)
+ readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadowStrong : Qt.rgba(0, 0, 0, 0.18 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.4
  }
  
@@ -694,7 +713,7 @@ QtObject {
  readonly property real offset: 12
  readonly property real blur: 48
  readonly property int samples: 29
- readonly property color color: Qt.rgba(0, 0, 0, 0.22 * shadow._alphaMultiplier)
+ readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadowStrong : Qt.rgba(0, 0, 0, 0.22 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.5
  }
 

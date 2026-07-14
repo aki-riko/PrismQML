@@ -38,6 +38,7 @@ Item {
 
     readonly property color defaultWhite: defaultRectangle.color
     readonly property color chartStrongText: Enums.chartColors.strongText
+    readonly property color textPrimary: Enums.textColor.primary
 
     width: 1000
     height: 300
@@ -183,12 +184,36 @@ def test_chart_strong_text_remains_fixed_white(qapp):
         _pump(1)
 
 
+def test_chart_strong_text_follows_prism_theme_text(qapp):
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.PRISM_DESIGN)
+    engine, component, root = _create_scene()
+    try:
+        items = _strong_text_items(root)
+        for theme in (Theme.LIGHT, Theme.DARK):
+            setTheme(theme)
+            _pump(5)
+            expected = root.property("textPrimary")
+            _assert_color(root.property("chartStrongText"), expected)
+            for item in items:
+                _assert_color(item.property("color"), expected)
+    finally:
+        setSkin(Skin.FLUENT)
+        setTheme(Theme.LIGHT)
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_chart_sources_use_strong_text_token():
     constants_source = CONSTANTS_SOURCE.read_text(encoding="utf-8")
-    assert (
-        "readonly property color strongText: themeColors.accentForeground"
-        in constants_source
-    )
+    strong_text_source = constants_source.split(
+        "readonly property color strongText:", 1
+    )[1].split("readonly property var _fluentPalette:", 1)[0]
+    assert "root.isPrismDesign" in strong_text_source
+    assert "? root.textColor.primary" in strong_text_source
+    assert ": themeColors.accentForeground" in strong_text_source
 
     for source_path, expected_count in STRONG_TEXT_SOURCES.items():
         source = source_path.read_text(encoding="utf-8")

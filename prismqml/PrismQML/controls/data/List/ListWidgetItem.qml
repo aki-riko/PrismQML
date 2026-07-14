@@ -16,18 +16,32 @@ Rectangle {
     required property int itemIndex
     required property var itemData
 
-    // ==================== State Props 状态属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool selected: false
     property bool hovered: false
     property bool pressed: itemArea.pressed
 
-    // ==================== Recycling 回收重置 ====================
-    ListView.onPooled: root.hovered = false
-    ListView.onReused: root.hovered = false
+    // ==================== Readonly State 只读状态 ====================
+    // Compose every state into an opaque color so ColorAnimation does not flash dirty gray 将所有状态合成为不透明颜色，避免插值时闪过脏灰
+    readonly property color _bgColor: {
+        var base = Enums.cardColor
+        if (selected) {
+            return hovered ? Enums.stateColor.selectedHover
+                           : Enums.stateColor.selected
+        }
+        if (pressed) return Qt.tint(base, Enums.stateColor.listItemPressed)
+        if (hovered) return Qt.tint(base, Enums.stateColor.listItemHover)
+        return base
+    }
+    readonly property color _revealGlowColor: Enums.stateColor.listItemRevealGlow
 
     // ==================== Signals 信号 ====================
     signal clicked()
     signal doubleClicked()
+
+    // Reset transient state when ListView recycles the delegate ListView 回收委托时重置瞬态状态
+    ListView.onPooled: root.hovered = false
+    ListView.onReused: root.hovered = false
 
     // ==================== Size 尺寸 ====================
     height: Enums.controlSize.listItemHeight
@@ -41,21 +55,7 @@ Rectangle {
 
     // ==================== Background 背景 ====================
     color: _bgColor
-    radius: Enums.radius.card
-
-    // 状态色全部合成成不透明色, 在不透明色之间做 ColorAnimation 插值才平滑。
-    // 若默认态用透明黑 (transparent = #00000000), 插值到浅蓝/灰时中间帧 RGB 从黑
-    // 渐变且 alpha 低, 合成在白卡上会闪过一帧脏灰 -> 看起来像"灰块跳变"。
-    readonly property color _bgColor: {
-        var base = Enums.cardColor
-        if (selected) {
-            return hovered ? Enums.stateColor.selectedHover
-                           : Enums.stateColor.selected
-        }
-        if (pressed) return Qt.tint(base, Enums.stateColor.listItemPressed)
-        if (hovered) return Qt.tint(base, Enums.stateColor.listItemHover)
-        return base
-    }
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
 
     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
 
@@ -72,7 +72,7 @@ Rectangle {
             radius: width / 2
             x: itemArea.mouseX - width / 2
             y: itemArea.mouseY - height / 2
-            color: Enums.isDark ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.03)
+            color: root._revealGlowColor
 
             opacity: hovered ? 1 : 0
             Behavior on opacity {
@@ -115,11 +115,6 @@ Rectangle {
 
         Icon {
             id: iconItem
-            anchors.verticalCenter: parent.verticalCenter
-            icon: _iconValue
-            iconSize: Enums.iconSize.m
-            color: Enums.textColor.primary
-            visible: _iconValue !== ""
 
             property string _iconValue: {
                 if (typeof itemData === "object" && itemData !== null) {
@@ -127,21 +122,27 @@ Rectangle {
                 }
                 return ""
             }
+
+            anchors.verticalCenter: parent.verticalCenter
+            icon: _iconValue
+            iconSize: Enums.iconSize.m
+            color: Enums.textColor.primary
+            visible: _iconValue !== ""
         }
 
         Label {
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - (iconItem.visible ? iconItem.width + parent.spacing : 0)
-            type: Enums.label.type_caption
-            text: _displayText
-            elide: Text.ElideRight
-
             property string _displayText: {
                 if (typeof itemData === "object" && itemData !== null) {
                     return itemData.text || itemData.label || itemData.name || ""
                 }
                 return String(itemData || "")
             }
+
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width - (iconItem.visible ? iconItem.width + parent.spacing : 0)
+            type: Enums.label.type_caption
+            text: _displayText
+            elide: Text.ElideRight
         }
     }
 

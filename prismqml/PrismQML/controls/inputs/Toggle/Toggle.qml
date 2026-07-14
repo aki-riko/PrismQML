@@ -214,6 +214,8 @@ Item {
         ToggleSwitchIndicator {
             checked: control.checked
             enabled: control.enabled
+            hovered: control.hovered
+            pressed: control.pressed
             checkedColor: control._checkedColor
             onClicked: control._handleClick()
         }

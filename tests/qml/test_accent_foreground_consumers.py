@@ -193,9 +193,17 @@ def test_accent_foreground_sources_use_shared_token():
         "MouseArea {", 1
     )[0]
 
-    assert "color: Enums.accentForeground" in check_icon_props
     assert (
-        "color: isActive ? Enums.accentForeground : Enums.secondaryForeground"
+        "readonly property color _stepActiveContentColor: Enums.accentForeground"
+        in stepper_source
+    )
+    assert (
+        "readonly property color _stepInactiveContentColor: Enums.textColor.secondary"
+        in stepper_source
+    )
+    assert "color: control._stepActiveContentColor" in check_icon_props
+    assert (
+        "color: isActive ? control._stepActiveContentColor : control._stepInactiveContentColor"
         in number_text_props
     )
     assert "color: Enums.accentForeground" in retry_text_props

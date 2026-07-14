@@ -28,6 +28,17 @@ Window {
     // Inject custom widget (e.g. confirm button) below message 在消息下方注入自定义控件（如确认按钮）
     property alias customContent: customContentLoader.sourceComponent
     readonly property bool hasCustomContent: customContentLoader.sourceComponent !== null && customContentLoader.item !== null
+
+    // ==================== Internal Props 内部属性 ====================
+    readonly property int _notificationRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+    readonly property int _notificationIconRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.large
+    readonly property color _notificationBackground: Enums.isPrismDesign ? Enums.toastCardColor : Enums.cardColor
+    readonly property int _notificationBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property color _notificationBorderColor: Enums.stateColor.border
+    readonly property color _notificationMessageColor: Enums.stateColor.notificationText
+    readonly property color _notificationShadowColor: Enums.shadow.level8.color
+    readonly property int _notificationShadowBlur: Enums.shadow.level8.blur
+    readonly property int _notificationShadowOffset: Enums.shadow.level8.offset
     
     // ==================== Signals 信号 ====================
     signal closed()
@@ -163,10 +174,10 @@ Window {
     RectangularShadow {
         anchors.fill: card
         radius: card.radius
-        color: Enums.shadow.level8.color
-        blur: Enums.shadow.level8.blur
+        color: control._notificationShadowColor
+        blur: control._notificationShadowBlur
         offset.x: 0
-        offset.y: Enums.shadow.level8.offset
+        offset.y: control._notificationShadowOffset
         visible: !Enums.isNeobrutalism
     }
 
@@ -181,10 +192,10 @@ Window {
         id: card
         anchors.fill: parent
         anchors.margins: Enums.spacing.m
-        radius: Enums.radius.large
-        color: Enums.cardColor
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-        border.color: Enums.stateColor.border
+        radius: control._notificationRadius
+        color: control._notificationBackground
+        border.width: control._notificationBorderWidth
+        border.color: control._notificationBorderColor
         
         // Left color bar 左侧色条
         Rectangle {
@@ -211,7 +222,7 @@ Window {
             anchors.leftMargin: Enums.spacing.xl
             anchors.top: parent.top
             anchors.topMargin: Enums.spacing.xl
-            width: Enums.spacing.xxxl; height: Enums.spacing.xxxl; radius: Enums.radius.large
+            width: Enums.spacing.xxxl; height: Enums.spacing.xxxl; radius: control._notificationIconRadius
             color: severityColor
             
             Icon {
@@ -245,7 +256,7 @@ Window {
             Label {
                 text: control.message
                 type: Enums.label.type_caption
-                color: Enums.stateColor.notificationText
+                color: control._notificationMessageColor
                 visible: text !== ""
                 width: parent.width
                 wrapMode: Text.WordWrap

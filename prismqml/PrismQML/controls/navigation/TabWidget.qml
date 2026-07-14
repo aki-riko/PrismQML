@@ -311,12 +311,12 @@ Widget {
             Rectangle {
                 id: indicatorBg
                 anchors.fill: parent
-                radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.card
+                radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card)
                 color: Enums.isNeobrutalism ? Enums.neo.surface
-                       : (Enums.isDark ? Enums.themeColors.tabSelectedDark : Enums.themeColors.tabSelectedLight)
+                       : (Enums.isPrismDesign ? Enums.stateColor.segmentedSelected : (Enums.isDark ? Enums.themeColors.tabSelectedDark : Enums.themeColors.tabSelectedLight))
                 border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
                 border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
-                       : (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border)
+                       : (Enums.isPrismDesign ? Enums.stateColor.segmentedSelectedBorder : (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border))
             }
         }
     }
@@ -434,11 +434,12 @@ Widget {
                         anchors.fill: parent
                         anchors.margins: Enums.border.thin
                         anchors.bottomMargin: Enums.border.thin
-                        radius: Enums.radius.card
+                        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
                         color: {
                             // 拖拽中的源 tab (含选中态 source): 用稍深 hover 背景 + 边框,
                             // 视觉上像"被抓起来",但不与 selected 同色避免割裂感
                             if (tabItem.isDragSource) {
+                                if (Enums.isPrismDesign) return Enums.stateColor.hoverStrong
                                 return Enums.isDark
                                     ? Qt.rgba(1, 1, 1, 0.08)
                                     : Qt.rgba(0, 0, 0, 0.05)
@@ -446,12 +447,14 @@ Widget {
                             if (tabItem.selected) return Enums.transparent
                             // Fluent Design: pressed 深色 rgba(255,255,255,0.04) 浅色 rgba(0,0,0,0.03)
                             if (tabItem.pressed) {
+                                if (Enums.isPrismDesign) return Enums.stateColor.pressed
                                 return Enums.isDark
                                     ? Qt.rgba(1, 1, 1, 0.04)
                                     : Qt.rgba(0, 0, 0, 0.03)
                             }
                             // Fluent Design: hover 深色 rgba(255,255,255,0.06) 浅色 rgba(0,0,0,0.04)
                             if (tabItem.hovered) {
+                                if (Enums.isPrismDesign) return Enums.stateColor.hover
                                 return Enums.isDark
                                     ? Qt.rgba(1, 1, 1, 0.06)
                                     : Qt.rgba(0, 0, 0, 0.04)
@@ -460,7 +463,7 @@ Widget {
                         }
                         // 拖拽中的源 tab 加细边框,提示"被抓起来"的视觉
                         border.width: tabItem.isDragSource ? Enums.border.thin : 0
-                        border.color: Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border
+                        border.color: Enums.isPrismDesign ? Enums.stateColor.borderLight : (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border)
 
                         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
                     }

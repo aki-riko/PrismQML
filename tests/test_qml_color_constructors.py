@@ -20,15 +20,14 @@ DATA_PATHS = (
 )
 REAL_TARGETS = {
     PurePosixPath("prismqml/PrismQML/controls/navigation/TabWidget.qml"): {
-        443,
         444,
-        450,
-        451,
-        456,
-        457,
+        445,
+        452,
+        453,
+        459,
+        460,
     },
-    PurePosixPath("prismqml/PrismQML/controls/data/AudioWaveform.qml"): {87, 88},
-    PurePosixPath("prismqml/PrismQML/controls/data/DataWidgetCore.qml"): {245},
+    PurePosixPath("prismqml/PrismQML/controls/data/DataWidgetCore.qml"): {153},
     PurePosixPath("prismqml/PrismQML/controls/data/Label/Label.qml"): {24},
 }
 

@@ -18,7 +18,7 @@ Rectangle {
     
     width: 32
     height: 34
-    radius: Enums.radius.small
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     color: navArea.pressed 
         ? Enums.stateColor.calendarNavPressed
         : (navArea.containsMouse 

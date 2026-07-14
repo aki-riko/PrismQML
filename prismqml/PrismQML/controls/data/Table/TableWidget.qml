@@ -480,6 +480,7 @@ DataWidgetCore {
     // ==================== Delegate 委托 ====================
     contentDelegate: TableInternal.TableRowDelegate {
         table: root
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     }
 
     // ==================== Built-in Context Menu 默认内置上下文菜单 ====================

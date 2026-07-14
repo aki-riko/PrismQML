@@ -19,6 +19,10 @@ Item {
     property bool selected: false
     property bool isSeparator: false
     property bool itemEnabled: true
+    readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _itemHoverColor: Enums.stateColor.menuItemHover
+    readonly property color _itemPressedColor: Enums.stateColor.menuItemPressed
+    readonly property color _itemTextColor: delegateRoot.itemEnabled ? Enums.textColor.primary : Enums.textColor.disabled
     
     // ==================== Signals 信号 ====================
     signal clicked()
@@ -42,14 +46,14 @@ Item {
         anchors.rightMargin: Enums.spacing.xs
         anchors.topMargin: Enums.spacing.xxs
         anchors.bottomMargin: Enums.spacing.xxs
-        radius: Enums.radius.small
+        radius: delegateRoot._itemRadius
         visible: !delegateRoot.isSeparator
         
         color: {
             if (!delegateRoot.itemEnabled) return Enums.transparent
-            if (delegateMouseArea.pressed) return Enums.stateColor.menuItemPressed
-            if (delegateRoot.selected) return Enums.stateColor.menuItemPressed
-            if (delegateMouseArea.containsMouse) return Enums.stateColor.menuItemHover
+            if (delegateMouseArea.pressed) return delegateRoot._itemPressedColor
+            if (delegateRoot.selected) return delegateRoot._itemPressedColor
+            if (delegateMouseArea.containsMouse) return delegateRoot._itemHoverColor
             return Enums.transparent
         }
         
@@ -86,7 +90,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             type: Enums.label.type_body
             text: delegateRoot.text
-            color: delegateRoot.itemEnabled ? Enums.textColor.primary : Enums.textColor.disabled
+            color: delegateRoot._itemTextColor
             wrapMode: Text.NoWrap  // Override body default WordWrap 覆盖body默认的自动换行
             maximumLineCount: 1    // Single line only 仅单行
             elide: Text.ElideRight

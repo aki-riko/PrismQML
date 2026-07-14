@@ -30,10 +30,10 @@ ShadowedRectangle {
     implicitHeight: innerBar.implicitHeight + Enums.spacing.s * 2
     
     // ==================== Style 样式 ====================
-    radius: Enums.radius.large
-    color: Enums.cardColor
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+    color: Enums.isPrismDesign ? Enums.prismDesign.glassTint : Enums.cardColor
     border.width: Enums.border.thin
-    border.color: Enums.stateColor.border
+    border.color: Enums.isPrismDesign ? Enums.prismDesign.border : Enums.stateColor.border
     
     // ==================== Shadow 阴影 ====================
     shadowLevel: Enums.shadow.level8

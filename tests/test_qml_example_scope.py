@@ -21,7 +21,7 @@ EXAMPLE_QML010_LINES = {
     PurePosixPath("examples/pages/IconPage.qml"): {125},
     PurePosixPath("examples/pages/InputPage.qml"): {75},
     PurePosixPath("examples/pages/MenuPage.qml"): {244, 256, 292, 293, 300},
-    PurePosixPath("examples/pages/SettingsPage.qml"): {406},
+    PurePosixPath("examples/pages/SettingsPage.qml"): {404},
 }
 
 

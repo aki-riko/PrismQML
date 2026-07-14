@@ -14,6 +14,15 @@ Rectangle {
     property bool checked: false
     property bool hovered: false
     property bool pressed: false
+    readonly property int _indicatorBorderWidth: {
+        if (Enums.isNeobrutalism) return Enums.neo.borderWidth
+        if (Enums.isPrismDesign) return Enums.prismDesign.borderWidth
+        return checked ? Enums.border.none : Enums.border.medium
+    }
+    readonly property color _innerDotColor: {
+        if (!enabled) return Enums.textColor.disabled
+        return Enums.accentForeground
+    }
 
     // ==================== Size 尺寸 ====================
     width: Enums.controlSize.radioOuter
@@ -21,30 +30,35 @@ Rectangle {
     radius: width / 2
 
     // ==================== Color Calc 颜色计算 ====================
-    // 选中=accentColor(neo 下自动橙); 未选 neo 下要白面显形(Fluent 为透明, 此为结构差异)
+    // Checked uses accent; Prism/neo unchecked keeps fill for visibility 选中使用强调色，Prism/neo 未选保留填充。
     readonly property color _indicatorColor: {
         if (!enabled) return checked ? Enums.stateColor.disabledBorder
-                       : (Enums.isNeobrutalism ? Enums.stateColor.checkBoxFill : Enums.transparent)
+                       : (Enums.isNeobrutalism || Enums.isPrismDesign ? Enums.stateColor.checkBoxFill : Enums.transparent)
         if (checked) {
             if (pressed) return Qt.darker(Enums.accentColor, 1.15)
             if (hovered) return Qt.lighter(Enums.accentColor, 1.08)
             return Enums.accentColor
         }
-        return Enums.isNeobrutalism ? Enums.stateColor.checkBoxFill : Enums.transparent
+        if (Enums.isNeobrutalism || Enums.isPrismDesign) {
+            if (pressed) return Enums.stateColor.checkBoxFillPressed
+            if (hovered) return Enums.stateColor.checkBoxFillHover
+            return Enums.stateColor.checkBoxFill
+        }
+        return Enums.transparent
     }
 
-    // 边框: neo 黑边由 token(toggleBorder)自动返回; Fluent 暗色用 tertiary
+    // Border follows skin token 边框跟随皮肤 token。
     readonly property color _borderColor: {
         if (!enabled) return Enums.stateColor.disabledBorder
         if (Enums.isNeobrutalism) return Enums.stateColor.toggleBorder
+        if (Enums.isPrismDesign && checked) return Enums.accentColorDark
         if (pressed) return Enums.stateColor.togglePressed
         if (hovered) return Enums.stateColor.toggleBorderHover
         return Enums.isDark ? Enums.textColor.tertiary : Enums.stateColor.toggleBorder
     }
-
     color: _indicatorColor
-    // neo 结构差异: 选中态也有黑粗边; Fluent: 选中无边
-    border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (checked ? 0 : Enums.border.medium)
+    // Neo/Prism keep a visible outline even when checked Neo/Prism 选中也保留轮廓。
+    border.width: _indicatorBorderWidth
     border.color: _borderColor
 
     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
@@ -56,7 +70,7 @@ Rectangle {
         width: Enums.controlSize.radioInner
         height: Enums.controlSize.radioInner
         radius: width / 2
-        color: Enums.accentForeground  // neo 下 token 自动返回白
+        color: indicator._innerDotColor
         visible: indicator.checked
         scale: indicator.checked ? 1 : 0
         Behavior on scale {

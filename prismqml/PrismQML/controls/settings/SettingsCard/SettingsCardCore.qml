@@ -14,7 +14,7 @@ import "../../data"
 Card {
     id: control
     cardType: Enums.card.type_default
-    borderRadius: Enums.radius.card
+    borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card
     
     // ==================== Public Props 公开属性 ====================
     property string icon: ""           // Icon name or image path 图标

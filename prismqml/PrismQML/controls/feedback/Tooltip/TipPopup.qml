@@ -27,6 +27,10 @@ Item {
     property int tipType: Enums.tip.type_flyout
     property int animationType: Enums.flyout.pullUp
     property int anchorPosition: Enums.teachingTip.anchor_bottom
+    readonly property int _tipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+    readonly property color _tipBackground: Enums.isPrismDesign ? Enums.dialogColor : (Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight)
+    readonly property int _tipBorderWidth: Enums.border.thin
+    readonly property color _tipBorderColor: Enums.isPrismDesign ? Enums.stateColor.dialogBorder : Enums.stateColor.maskLight
     
     // ==================== Internal Props 内部属性 ====================
     property real _animX: 0
@@ -129,10 +133,10 @@ Item {
         Rectangle {
             id: contentRect
             anchors.fill: parent
-            radius: Enums.radius.large
-            color: Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight
-            border.width: Enums.border.thin
-            border.color: Enums.stateColor.maskLight
+            radius: control._tipRadius
+            color: control._tipBackground
+            border.width: control._tipBorderWidth
+            border.color: control._tipBorderColor
             
             Column {
                 anchors.fill: parent
@@ -197,8 +201,8 @@ Item {
                 onPaint: {
                     var ctx = getContext("2d")
                     ctx.reset()
-                    var bgColor = Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight
-                    var borderColor = Enums.stateColor.maskLight
+                    var bgColor = control._tipBackground
+                    var borderColor = control._tipBorderColor
                     var w = width, h = height, inset = 2
                     
                     // Draw filled triangle 绘制填充三角形

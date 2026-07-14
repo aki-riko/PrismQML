@@ -19,14 +19,18 @@ Item {
     property url rightImage: ""
     property real position: 0.5  // 0-1
     property int radius: Enums.radius.large  // Corner radius 圆角
+    readonly property color _dividerColor: Enums.isPrismDesign ? Enums.accentColor : Enums.themeColors.accentForeground
+    readonly property color _handleColor: Enums.isPrismDesign ? Enums.cardColor : Enums.themeColors.accentForeground
+    readonly property color _handleIconColor: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.gray.text
     
     signal positionModified(real newPosition)
     
     implicitWidth: 300
     implicitHeight: 200
     clip: true  // Clip handle overflow 裁剪手柄溢出
+    onPositionChanged: imageCanvas.requestPaint()
     
-    // ==================== Shadow Layer 阴影层 ====================
+    // Shadow layer 阴影层
     // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: parent
@@ -48,14 +52,29 @@ Item {
     // Canvas for rounded corner images 使用Canvas实现圆角图片
     Canvas {
         id: imageCanvas
+
+        property var leftImg: null
+        property var rightImg: null
+
+        function drawImageCrop(ctx, img, x, y, w, h) {
+            var imgW = img.sourceSize.width
+            var imgH = img.sourceSize.height
+            if (imgW <= 0 || imgH <= 0) return
+
+            var scale = Math.max(w / imgW, h / imgH)
+            var drawW = imgW * scale
+            var drawH = imgH * scale
+            var dx = x + (w - drawW) / 2
+            var dy = y + (h - drawH) / 2
+
+            ctx.drawImage(img, dx, dy, drawW, drawH)
+        }
+
         anchors.fill: parent
         antialiasing: true
         renderStrategy: Canvas.Threaded
         renderTarget: Canvas.FramebufferObject
-        
-        property var leftImg: null
-        property var rightImg: null
-        
+
         onPaint: {
             var ctx = getContext("2d")
             ctx.reset()
@@ -95,20 +114,6 @@ Item {
             }
         }
         
-        function drawImageCrop(ctx, img, x, y, w, h) {
-            var imgW = img.sourceSize.width
-            var imgH = img.sourceSize.height
-            if (imgW <= 0 || imgH <= 0) return
-            
-            var scale = Math.max(w / imgW, h / imgH)
-            var drawW = imgW * scale
-            var drawH = imgH * scale
-            var dx = x + (w - drawW) / 2
-            var dy = y + (h - drawH) / 2
-            
-            ctx.drawImage(img, dx, dy, drawW, drawH)
-        }
-        
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
     }
@@ -141,9 +146,6 @@ Item {
         }
     }
     
-    // Repaint when position changes 位置变化时重绘
-    onPositionChanged: imageCanvas.requestPaint()
-    
     // Divider line 分割线
     Rectangle {
         id: dividerLine
@@ -151,6 +153,13 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: Enums.border.normal
+
+        Binding {
+            target: dividerLine
+            property: "color"
+            value: control._dividerColor
+            when: Enums.isPrismDesign
+        }
         
         // Line shadow 线条阴影
         Rectangle {
@@ -169,6 +178,15 @@ Item {
         width: Enums.spacing.xxl
         height: Enums.spacing.xxl
         radius: width / 2
+        scale: dragArea.pressed ? 0.95 : (dragArea.containsMouse ? 1.08 : 1.0)
+        Behavior on scale { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutBack } }
+
+        Binding {
+            target: handle
+            property: "color"
+            value: control._handleColor
+            when: Enums.isPrismDesign
+        }
         
         // Handle shadow 手柄阴影
         Rectangle {
@@ -185,24 +203,15 @@ Item {
             anchors.centerIn: parent
             text: "⇌"
             font.bold: true
-            color: Enums.gray.text
+            color: control._handleIconColor
             rotation: 90
         }
         
-        scale: dragArea.pressed ? 0.95 : (dragArea.containsMouse ? 1.08 : 1.0)
-        Behavior on scale { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutBack } }
     }
     
     MouseArea {
         id: dragArea
-        anchors.fill: parent
-        enabled: control.enabled
-        hoverEnabled: true
-        cursorShape: Qt.SizeHorCursor
-        
-        onPositionChanged: if (pressed) updatePosition(mouseX)
-        onPressed: updatePosition(mouseX)
-        
+
         function updatePosition(mx) {
             // Clamp position with handle margin 限制位置范围，预留手柄边距
             var margin = handle.width / 2 / width  // Convert to 0-1 range 转换为0-1范围
@@ -210,5 +219,13 @@ Item {
             control.position = newPos
             control.positionModified(newPos)
         }
+
+        anchors.fill: parent
+        enabled: control.enabled
+        hoverEnabled: true
+        cursorShape: Qt.SizeHorCursor
+
+        onPositionChanged: if (pressed) updatePosition(mouseX)
+        onPressed: updatePosition(mouseX)
     }
 }

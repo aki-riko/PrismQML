@@ -83,6 +83,7 @@ DialogBoxCore {
         : _baseConfirmText
     readonly property string _effectiveConfirmIcon: confirmIcon !== "" ? confirmIcon : _autoIcon
     readonly property color _accentColor: Enums.statusLevel.getColorByLevel(level)
+    readonly property real _iconBackgroundOpacity: Enums.opacityLevel.pressed
     // 倒计时进行中主按钮禁用 (防误点危险操作)
     readonly property bool _confirmEnabled: _countdownRemaining === 0
 
@@ -171,7 +172,7 @@ DialogBoxCore {
                 anchors.fill: parent
                 radius: width / 2
                 color: control._accentColor
-                opacity: 0.12
+                opacity: control._iconBackgroundOpacity
             }
 
             Icon {

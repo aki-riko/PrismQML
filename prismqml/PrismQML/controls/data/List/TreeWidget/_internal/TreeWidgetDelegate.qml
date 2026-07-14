@@ -52,7 +52,7 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         anchors.margins: Enums.spacing.xxs
-        radius: Enums.radius.small
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
         // 状态色合成成不透明 (Qt.tint 到 cardColor), 在不透明色之间插值才平滑;
         // 否则透明黑 -> 半透明灰的 ColorAnimation 中间帧会闪过脏灰 (灰块跳变)
         color: {

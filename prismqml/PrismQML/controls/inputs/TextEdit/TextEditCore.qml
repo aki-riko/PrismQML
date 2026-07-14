@@ -87,7 +87,7 @@ InputCore {
     // Override InputCore content size 覆盖InputCore内容尺寸
     contentWidth: Enums.controlSize.inputDefaultWidth
     contentHeight: Enums.controlSize.inputDefaultWidth / 2  // 100 = 200/2
-    radius: Enums.radius.small
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     
     // ==================== Scrollable Area 可滚动区域 ====================
     Flickable {

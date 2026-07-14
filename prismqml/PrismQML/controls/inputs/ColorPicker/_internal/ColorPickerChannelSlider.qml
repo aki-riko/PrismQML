@@ -44,7 +44,7 @@ Item {
             visible: control.showInput
             width: Enums.colorPickerMetrics.channelInputWidth
             height: Enums.controlSize.inputHeightCompact
-            radius: Enums.radius.small
+            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
             color: Enums.stateColor.controlBg
             border.width: inputField.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
             border.color: inputField.activeFocus ? Enums.accentColor : Enums.stateColor.border

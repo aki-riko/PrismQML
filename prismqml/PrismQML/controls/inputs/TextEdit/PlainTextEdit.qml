@@ -21,5 +21,5 @@ TextEditCore {
     // Default size 默认尺寸
     implicitWidth: 300
     implicitHeight: 150
-    radius: Enums.radius.large
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.large
 }

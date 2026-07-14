@@ -33,10 +33,12 @@ class Skin(Enum):
     与 Theme（明暗）正交：theme 控制明暗，skin 控制设计语言。
     fluent       → 默认 Fluent Design（圆角、模糊阴影）
     neobrutalism → 新粗野（粗黑边、硬阴影、按下位移）
+    prism_design → Prism Design（光学玻璃层次、折射高光、自有设计语言）
     """
 
     FLUENT = "fluent"
     NEOBRUTALISM = "neobrutalism"
+    PRISM_DESIGN = "prism_design"
 
 
 class ThemeManager(QObject):
@@ -75,6 +77,8 @@ class ThemeManager(QObject):
     DARKEN_FACTOR = 0.85  # Pressed state darkening factor 按下状态变暗系数
 
     _instance = None
+    _resolved_font_family = None
+    _resolved_font_monospace = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -152,7 +156,7 @@ class ThemeManager(QObject):
 
     @Property(str, notify=skinChanged)
     def skin(self) -> str:
-        """当前皮肤（fluent/neobrutalism）"""
+        """当前皮肤（fluent/neobrutalism/prism_design）"""
         return self._skin.value
 
     def setSkin(self, skin: Skin):
@@ -170,9 +174,13 @@ class ThemeManager(QObject):
         """从QML设置皮肤（Slot方法）
 
         Args:
-            skin_str: 皮肤字符串 "fluent"/"neobrutalism"
+            skin_str: 皮肤字符串 "fluent"/"neobrutalism"/"prism_design"
         """
-        skin_map = {"fluent": Skin.FLUENT, "neobrutalism": Skin.NEOBRUTALISM}
+        skin_map = {
+            "fluent": Skin.FLUENT,
+            "neobrutalism": Skin.NEOBRUTALISM,
+            "prism_design": Skin.PRISM_DESIGN,
+        }
         skin = skin_map.get(skin_str.lower(), Skin.FLUENT)
         self.setSkin(skin)
 
@@ -194,15 +202,49 @@ class ThemeManager(QObject):
         "monospace"                             # 通用兜底
     )
 
+    @classmethod
+    def _font_candidates(cls, fallback_chain: str) -> list[str]:
+        return [
+            candidate.strip().strip("'\"")
+            for candidate in fallback_chain.split(",")
+            if candidate.strip()
+        ]
+
+    @classmethod
+    def _resolve_qt_font_family(cls, fallback_chain: str, cache_attr: str) -> str:
+        cached = getattr(cls, cache_attr)
+        if cached:
+            return cached
+
+        candidates = cls._font_candidates(fallback_chain)
+        if not candidates:
+            return ""
+
+        from PySide6.QtWidgets import QApplication
+
+        if QApplication.instance() is None:
+            return candidates[0]
+
+        from PySide6.QtGui import QFontDatabase
+
+        available_families = set(QFontDatabase.families())
+        for candidate in candidates:
+            if candidate in available_families:
+                setattr(cls, cache_attr, candidate)
+                return candidate
+
+        setattr(cls, cache_attr, candidates[0])
+        return candidates[0]
+
     @Property(str, constant=True)
     def fontFamily(self) -> str:
         """主字体"""
-        return self.FONT_FAMILY
+        return self._resolve_qt_font_family(self.FONT_FAMILY, "_resolved_font_family")
 
     @Property(str, constant=True)
     def fontMonospace(self) -> str:
         """等宽字体"""
-        return self.FONT_MONOSPACE
+        return self._resolve_qt_font_family(self.FONT_MONOSPACE, "_resolved_font_monospace")
 
     # ==================== 主题色属性 ====================
 
@@ -280,10 +322,11 @@ def setSkin(skin: Skin):
     """设置皮肤（设计语言）
 
     Args:
-        skin: Skin.FLUENT 或 Skin.NEOBRUTALISM
+        skin: Skin.FLUENT、Skin.NEOBRUTALISM 或 Skin.PRISM_DESIGN
 
     示例:
         setSkin(Skin.NEOBRUTALISM)  # 切到新粗野皮肤
+        setSkin(Skin.PRISM_DESIGN)  # 切到 Prism Design 皮肤
     """
     ThemeManager().setSkin(skin)
 

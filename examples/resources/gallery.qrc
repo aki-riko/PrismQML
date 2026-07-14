@@ -11,6 +11,12 @@
         <file>image/vertical/3.jpg</file>
         <file>image/vertical/4.jpg</file>
         <file>image/background.jpg</file>
+        <file>image/prism-design/skin-compare-fluent-light.png</file>
+        <file>image/prism-design/skin-compare-fluent-dark.png</file>
+        <file>image/prism-design/skin-compare-neobrutalism-light.png</file>
+        <file>image/prism-design/skin-compare-neobrutalism-dark.png</file>
+        <file>image/prism-design/skin-compare-prism-design-light.png</file>
+        <file>image/prism-design/skin-compare-prism-design-dark.png</file>
         <file>app_icon.svg</file>
     </qresource>
 </RCC>

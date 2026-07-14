@@ -30,6 +30,7 @@ Widget {
     
     // Header right content (between title and expand button) 头部右侧内容（标题和展开按钮之间）
     property alias headerContent: headerContentLoader.sourceComponent
+    readonly property int _radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card + 1
     
     // ==================== Signals 信号 ====================
     signal toggled(bool expanded)
@@ -81,7 +82,6 @@ Widget {
     // ==================== Internal 内部状态 ====================
     readonly property bool hovered: !control.disabled && headerArea.containsMouse
     readonly property bool pressed: !control.disabled && headerArea.pressed
-    readonly property int _radius: Enums.radius.card + 1
     
     // ==================== Size 尺寸 ====================
     // Content size (inherited from Widget, only width) 内容尺寸（继承自Widget，仅宽度）
@@ -215,7 +215,7 @@ Widget {
                     
                     Rectangle {
                         anchors.fill: parent
-                        radius: Enums.radius.small
+                        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                         color: {
                             if (control.pressed) return Enums.stateColor.expandBtnPressed
                             if (control.hovered) return Enums.stateColor.expandBtnHover

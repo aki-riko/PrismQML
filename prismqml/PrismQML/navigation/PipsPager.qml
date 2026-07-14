@@ -11,20 +11,27 @@ import "../controls/icons"
 Item {
     id: control
     
-    // Public props 公开属性
+    // ==================== Public Props 公开属性 ====================
     property int pageCount: 5
     property int currentIndex: 0
     property int visiblePipCount: 5  // Max visible pips 最多显示点数
     property int orientation: Qt.Horizontal
     property color accentColor: Enums.accentColor  // Active pip color 选中点颜色
-    
-    // Signals 信号
-    signal pageClicked(int index)
-    
-    // Internal state 内部状态
+
+    // ==================== Internal Props 内部属性 ====================
     readonly property bool isHorizontal: orientation === Qt.Horizontal
-    
-    // Size 尺寸
+    readonly property int _navButtonRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _navButtonHoverColor: Enums.stateColor.controlBgHover
+    readonly property color _navButtonIdleColor: Enums.transparent
+    readonly property color _navIconColor: Enums.textColor.tertiary
+    readonly property int _pipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _pipActiveColor: control.accentColor
+    readonly property color _pipInactiveColor: Enums.stateColor.pipNormal
+
+    // ==================== Signals 信号 ====================
+    signal pageClicked(int index)
+
+    // ==================== Size 尺寸 ====================
     implicitWidth: isHorizontal ? (pipsRow.implicitWidth + Enums.spacing.navBarHeight) : Enums.controlSize.emptyStateButtonHeight
     implicitHeight: isHorizontal ? Enums.controlSize.emptyStateButtonHeight : (pipsColumn.implicitHeight + Enums.spacing.navBarHeight)
     
@@ -37,14 +44,14 @@ Item {
         anchors.horizontalCenter: control.isHorizontal ? undefined : parent.horizontalCenter
         width: Enums.iconSize.xl
         height: Enums.iconSize.xl
-        radius: Enums.radius.small
-        color: prevArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
+        radius: control._navButtonRadius
+        color: prevArea.containsMouse ? control._navButtonHoverColor : control._navButtonIdleColor
         visible: control.currentIndex > 0
         
         Icon {
             anchors.centerIn: parent
             iconSize: Enums.iconSize.micro
-            color: Enums.textColor.tertiary
+            color: control._navIconColor
             icon: control.isHorizontal ? Enums.icon.chevron_left : Enums.icon.chevron_up
         }
         
@@ -74,10 +81,10 @@ Item {
             Rectangle {
                 width: index === control.currentIndex % control.visiblePipCount ? 16 : 8
                 height: 8
-                radius: Enums.radius.small
+                radius: control._pipRadius
                 color: index === control.currentIndex % control.visiblePipCount 
-                    ? control.accentColor 
-                    : (Enums.stateColor.dropBorderHover)
+                    ? control._pipActiveColor
+                    : control._pipInactiveColor
                 
                 Behavior on width { NumberAnimation { duration: Enums.duration.normal } }
                 
@@ -105,10 +112,10 @@ Item {
             Rectangle {
                 width: 8
                 height: index === control.currentIndex % control.visiblePipCount ? 16 : 8
-                radius: Enums.radius.small
+                radius: control._pipRadius
                 color: index === control.currentIndex % control.visiblePipCount 
-                    ? control.accentColor 
-                    : (Enums.stateColor.dropBorderHover)
+                    ? control._pipActiveColor
+                    : control._pipInactiveColor
                 
                 Behavior on height { NumberAnimation { duration: Enums.duration.normal } }
                 
@@ -132,14 +139,14 @@ Item {
         anchors.horizontalCenter: control.isHorizontal ? undefined : parent.horizontalCenter
         width: Enums.iconSize.xl
         height: Enums.iconSize.xl
-        radius: Enums.radius.small
-        color: nextArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
+        radius: control._navButtonRadius
+        color: nextArea.containsMouse ? control._navButtonHoverColor : control._navButtonIdleColor
         visible: control.currentIndex < control.pageCount - 1
         
         Icon {
             anchors.centerIn: parent
             iconSize: Enums.iconSize.micro
-            color: Enums.textColor.tertiary
+            color: control._navIconColor
             icon: control.isHorizontal ? Enums.icon.chevron_right : Enums.icon.chevron_down
         }
         

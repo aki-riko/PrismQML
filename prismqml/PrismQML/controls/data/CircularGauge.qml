@@ -18,6 +18,10 @@ Item {
     property int startAngle: -135
     property int endAngle: 135
     readonly property real progress: (value - minValue) / (maxValue - minValue)
+    readonly property color _gaugeTrackColor: Enums.stateColor.sliderTrack
+    readonly property color _gaugeValueColor: Enums.accentColor
+    readonly property color _gaugeLabelColor: Enums.textColor.tertiary
+    readonly property int _gaugeStrokeWidth: Enums.spacing.l
 
     // ==================== Public Methods 公共方法 ====================
     function getValue() { return value }
@@ -44,16 +48,16 @@ Item {
             // Background arc 背景弧
             ctx.beginPath()
             ctx.arc(cx, cy, r, startRad, endRad)
-            ctx.strokeStyle = Enums.stateColor.border
-            ctx.lineWidth = 12
+            ctx.strokeStyle = control._gaugeTrackColor
+            ctx.lineWidth = control._gaugeStrokeWidth
             ctx.lineCap = "round"
             ctx.stroke()
             
             // Progress arc 进度弧
             ctx.beginPath()
             ctx.arc(cx, cy, r, startRad, progressRad)
-            ctx.strokeStyle = Enums.accentColor
-            ctx.lineWidth = 12
+            ctx.strokeStyle = control._gaugeValueColor
+            ctx.lineWidth = control._gaugeStrokeWidth
             ctx.lineCap = "round"
             ctx.stroke()
         }
@@ -68,14 +72,14 @@ Item {
             type: Enums.label.type_body_strong
             text: Math.round(value)
             font.pixelSize: Enums.typography.metric
-            color: Enums.accentColor
+            color: control._gaugeValueColor
         }
         
         Label {
             anchors.horizontalCenter: parent.horizontalCenter
             type: Enums.label.type_caption
             text: unit
-            color: Enums.textColor.tertiary
+            color: control._gaugeLabelColor
             visible: text !== ""
         }
     }

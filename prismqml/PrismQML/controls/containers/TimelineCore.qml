@@ -104,9 +104,9 @@ Item {
     // ==================== Helper 辅助函数 ====================
     function _getStatusColor(status) {
         switch (status) {
-            case "success": return Enums.statusLevel.successColor
-            case "warning": return Enums.statusLevel.warningColor
-            case "error": return Enums.statusLevel.errorColor
+            case "success": return Enums.statusLevel.getColor("success")
+            case "warning": return Enums.statusLevel.getColor("warning")
+            case "error": return Enums.statusLevel.getColor("error")
             default: return Enums.accentColor  // info
         }
     }

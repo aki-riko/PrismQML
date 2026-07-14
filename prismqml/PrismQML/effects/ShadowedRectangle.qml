@@ -12,39 +12,46 @@ import ".."
 // Usage 用法:
 // ShadowedRectangle {
 //     width: 200; height: 100
-//     color: "white"
-//     radius: Enums.radius.large
+//     color: Enums.cardColor
+//     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
 //     shadowLevel: Enums.shadow.level4
 // }
 
 Item {
     id: root
     
-    // ==================== Rectangle Props 矩形属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property alias color: content.color
     property alias radius: content.radius
     property alias border: content.border
     
-    // ==================== Shadow Props 阴影属性 ====================
+    // Shadow properties 阴影属性
     // Use shadow level from Enums 使用PrismEnums的阴影等级
     property var shadowLevel: Enums.shadow.level4
-    
+
     // Shadow visibility control 阴影显隐控制
     property bool shadowVisible: true
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    readonly property color _rectangleColor: Enums.cardColor
+    readonly property int _rectangleRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
+    readonly property real _defaultShadowBlur: Enums.shadow.level4.blur
+    readonly property color _defaultShadowColor: Enums.shadow.level4.color
+    readonly property real _defaultShadowOffset: Enums.shadow.level4.offset
+
     // Or set individual props 或单独设置属性
     // blur 现在直接是像素值，无需转换
-    property real shadowBlur: shadowLevel ? shadowLevel.blur : Enums.shadow.level4.blur
-    property color shadowColor: shadowLevel ? shadowLevel.color : Enums.shadow.level4.color
+    property real shadowBlur: shadowLevel ? shadowLevel.blur : _defaultShadowBlur
+    property color shadowColor: shadowLevel ? shadowLevel.color : _defaultShadowColor
     property real shadowOffsetX
-    property real shadowOffsetY: shadowLevel ? shadowLevel.offset : Enums.shadow.level4.offset
+    property real shadowOffsetY: shadowLevel ? shadowLevel.offset : _defaultShadowOffset
     property real shadowSpread
     
-    // ==================== Content Access 内容访问 ====================
+    // Content access 内容访问
     default property alias contentData: content.data
     property alias contentItem: content
     
-    // ==================== Shadow Access 阴影访问 ====================
+    // Shadow access 阴影访问
     // Expose shadow for animation binding 暴露阴影供动画绑定
     property alias shadowItem: shadow
     
@@ -52,7 +59,8 @@ Item {
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
     
-    // ==================== Shadow Layer 阴影层 ====================
+    // ==================== Content 内容 ====================
+    // Shadow layer 阴影层
     RectangularShadow {
         id: shadow
         anchors.fill: content
@@ -65,11 +73,11 @@ Item {
         visible: root.shadowVisible
     }
     
-    // ==================== Content Layer 内容层 ====================
+    // Content layer 内容层
     Rectangle {
         id: content
         anchors.fill: parent
-        color: Enums.cardColor
-        radius: Enums.radius.large
+        color: root._rectangleColor
+        radius: root._rectangleRadius
     }
 }

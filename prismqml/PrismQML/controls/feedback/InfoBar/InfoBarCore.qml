@@ -47,7 +47,16 @@ Widget {
     property int completeDuration: Enums.duration.progressComplete  // 进度完成后持续显示时间(ms)
     
     // ==================== Style Props 样式属性 ====================
-    property real radius: Enums.radius.large  // 圆角半径
+    property real radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large  // 圆角半径
+    // Border color 边框色 (neo 用控件边框 token=黑; Fluent 用 divider 轻分隔)
+    readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.stateColor.border : Enums.stateColor.divider)
+    readonly property real _infoBarRadius: radius
+    readonly property color _infoBarBackground: backgroundColor
+    readonly property int _infoBarBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property color _infoBarBorderColor: borderColor
+    readonly property color _infoBarShadowColor: Enums.shadow.level4.color
+    readonly property int _infoBarShadowBlur: Enums.shadow.level4.blur
+    readonly property int _infoBarShadowOffset: Enums.shadow.level4.offset
     
     // ==================== Signals 信号 ====================
     signal closed()
@@ -76,21 +85,14 @@ Widget {
         // Progress bar/ring/indeterminate mode: white card (switch after complete) 进度条/进度环/不确定模式：白色卡片（进度完成后切换为语义色）
 
         if ((_isProgressMode || _isIndeterminateMode) && !_progressComplete) {
-            return Enums.isDark ? Enums.cardColor : "white"
+            return Enums.cardColor
         }
         // Normal mode or after complete: use semantic background color 普通模式或完成后：使用语义背景色
         // Neobrutalism: 白底(靠黑边+左侧色条+硬阴影区分), 不用语义淡背景
         if (Enums.isNeobrutalism) return Enums.neo.surface
 
-        if (Enums.isDark) {
-            var c = Enums.statusLevel.getColorByLevel(_severityLevel)
-            return Qt.rgba(c.r * 0.25, c.g * 0.25, c.b * 0.25, 1)
-        }
         return Enums.statusLevel.getBgColor(severity)
     }
-    
-    // Border color 边框色 (neo 用控件边框 token=黑; Fluent 用 divider 轻分隔)
-    readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.stateColor.divider
     
     // ==================== Size 尺寸 ====================
     // Content size (inherited from Widget) 内容尺寸：根据内部文字自适应
@@ -159,10 +161,10 @@ Widget {
     RectangularShadow {
         anchors.fill: card
         radius: card.radius
-        color: Enums.shadow.level4.color
-        blur: Enums.shadow.level4.blur
+        color: control._infoBarShadowColor
+        blur: control._infoBarShadowBlur
         offset.x: 0
-        offset.y: Enums.shadow.level4.offset
+        offset.y: control._infoBarShadowOffset
         visible: !Enums.isNeobrutalism
     }
 
@@ -176,10 +178,10 @@ Widget {
     Rectangle {
         id: card
         anchors.fill: parent
-        radius: Enums.radius.large  // 6px
-        color: backgroundColor
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin  // neo 粗黑边
-        border.color: borderColor
+        radius: control._infoBarRadius
+        color: control._infoBarBackground
+        border.width: control._infoBarBorderWidth  // neo 粗黑边
+        border.color: control._infoBarBorderColor
     }
     
     // ==================== Animation 动画 ====================

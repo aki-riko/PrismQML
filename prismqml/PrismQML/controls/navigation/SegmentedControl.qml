@@ -30,7 +30,7 @@ Rectangle {
     implicitHeight: Enums.controlSize.segmentedHeight
     
     // ==================== Background 背景 ====================
-    radius: Enums.radius.small
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     color: Enums.stateColor.segmentedBg
     border.width: Enums.border.thin
     border.color: Enums.stateColor.segmentedBorder
@@ -105,7 +105,7 @@ Rectangle {
         y: Enums.spacing.xxs
         width: control._selectedItemWidth
         height: control.height - Enums.spacing.xxs * 2
-        radius: Enums.radius.small
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
         visible: control.items.length > 0
         color: Enums.stateColor.segmentedSelected
         border.width: Enums.border.thin
@@ -152,7 +152,7 @@ Rectangle {
                 // Hover/Press background for non-selected items 非选中项的悬停/按下背景
                 Rectangle {
                     anchors.fill: parent
-                    radius: Enums.radius.small
+                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                     visible: !segmentItem.selected && (segmentItem.hovered || segmentItem.pressed)
                     color: {
                         if (segmentItem.pressed) return Enums.stateColor.segmentedPressed

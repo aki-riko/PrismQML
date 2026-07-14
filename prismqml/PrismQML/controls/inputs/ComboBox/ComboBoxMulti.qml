@@ -148,7 +148,7 @@ ComboBoxCore {
                         delegate: Rectangle {
                             width: multiColumn.width
                             height: Enums.comboBoxMetrics.itemHeight
-                            radius: Enums.radius.small
+                            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
                             
                             property bool selected: control.selectedIndices.indexOf(index) >= 0
                             

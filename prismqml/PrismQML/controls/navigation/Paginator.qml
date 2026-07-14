@@ -19,14 +19,21 @@ Item {
     property int visiblePages: 5
     property color accentColor: Enums.accentColor
     property bool showPrevNext: true
-    
-    signal pageChanged(int page)
-    
-    // ==================== Private Props 私有属性 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     readonly property real _buttonSize: Enums.controlSize.buttonHeight
     readonly property real _spacing: Enums.spacing.xxs
     readonly property real _itemWidth: _buttonSize + _spacing
-    
+    readonly property int _pageRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _pageIndicatorColor: root.accentColor
+    readonly property color _pageHoverColor: Enums.stateColor.hover
+    readonly property color _pageIdleColor: Enums.transparent
+    readonly property color _pageTextColor: Enums.foregroundColor
+    readonly property color _pageSelectedTextColor: Enums.accentForeground
+
+    // ==================== Signals 信号 ====================
+    signal pageChanged(int page)
+
     // ==================== Size 尺寸 ====================
     implicitWidth: pagerRow.implicitWidth
     implicitHeight: _buttonSize
@@ -88,8 +95,8 @@ Item {
                     id: indicator
                     width: root._buttonSize
                     height: root._buttonSize
-                    radius: Enums.radius.small
-                    color: root.accentColor
+                    radius: root._pageRadius
+                    color: root._pageIndicatorColor
                     
                     x: (root.currentPage - 1) * root._itemWidth
                     
@@ -123,9 +130,9 @@ Item {
                             // Hover background 悬停背景
                             Rectangle {
                                 anchors.fill: parent
-                                radius: Enums.radius.small
+                                radius: root._pageRadius
                                 color: pageMouseArea.containsMouse && !pageDelegate.isCurrentPage 
-                                       ? Enums.stateColor.hover : "transparent"
+                                       ? root._pageHoverColor : root._pageIdleColor
                                 Behavior on color {
                                     ColorAnimation { duration: Enums.duration.fast }
                                 }
@@ -137,8 +144,8 @@ Item {
                                 type: Enums.label.type_body
                                 text: pageDelegate.pageNum.toString()
                                 color: pageDelegate.isCurrentPage 
-                                       ? Enums.accentForeground 
-                                       : Enums.foregroundColor
+                                       ? root._pageSelectedTextColor
+                                       : root._pageTextColor
                                 Behavior on color {
                                     ColorAnimation { duration: Enums.duration.fast }
                                 }

@@ -50,7 +50,7 @@ Rectangle {
     function clear() { /* Already implemented via signal handlers 已通过信号处理实现 */ }
 
     // ==================== Appearance 外观 ====================
-    radius: Enums.radius.small
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
     color: Enums.transparent
     border.width: Enums.border.none
     
