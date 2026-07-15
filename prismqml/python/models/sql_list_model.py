@@ -153,6 +153,29 @@ def _prepare_query_inputs(
     )
 
 
+def _initialize_empty_query_state(owner: Any) -> None:
+    owner._sql: str = ""
+    owner._count_sql: str = ""
+    owner._params: list = []  # 顺序参数,绑定到 ? 占位符
+    owner._count_params: list = []  # count_sql 的独立参数(默认 = owner._params)
+    owner._formatters: dict[str, callable] = {}  # column_name -> formatter callable
+    # keyset 分页支持: cursor_columns 是 ORDER BY 前缀列名,例如 ['date', 'time', 'id']
+    owner._cursor_columns: list[str] = []
+    owner._cursor_nullable_index: Optional[int] = None
+    owner._cursor_col_indices: list[int] = []  # cursor_columns 在 SELECT 中的下标
+    owner._cursor_directions: list[str] = []  # 每个 cursor 列的 ASC/DESC (S3, _resolve_columns 填充)
+    # _cursor_keyset_clause 是 "(date, time, id) < (?, ?, ?)" 谓词模板,首次构建后缓存
+    owner._row_count: int = 0
+    # 列名(roleNames 用) — 首次 fetch 后填充
+    owner._columns: list[str] = []
+    # role id → column index 映射
+    owner._role_to_col: dict[int, int] = {}
+    # role name → role id (供 QML)
+    owner._role_names: dict[int, QByteArray] = {}
+    # LRU page cache: page_idx → (rows, end_cursor)
+    owner._cache = PageCache(owner._lru_capacity)
+
+
 class DbRouter:
     """数据库分片路由协议
 
@@ -224,29 +247,7 @@ class SqlListModel(QAbstractListModel):
             )
         self._page_size: int = max(1, int(page_size))
         self._lru_capacity: int = max(1, int(lru_capacity))
-
-        self._sql: str = ""
-        self._count_sql: str = ""
-        self._params: list = []  # 顺序参数,绑定到 ? 占位符
-        self._count_params: list = []  # count_sql 的独立参数(默认 = self._params)
-        self._formatters: dict[str, callable] = {}  # column_name -> formatter callable
-        # keyset 分页支持: cursor_columns 是 ORDER BY 前缀列名,例如 ['date', 'time', 'id']
-        self._cursor_columns: list[str] = []
-        self._cursor_nullable_index: Optional[int] = None
-        self._cursor_col_indices: list[int] = []  # cursor_columns 在 SELECT 中的下标
-        self._cursor_directions: list[str] = []  # 每个 cursor 列的 ASC/DESC (S3, _resolve_columns 填充)
-        # _cursor_keyset_clause 是 "(date, time, id) < (?, ?, ?)" 谓词模板,首次构建后缓存
-
-        self._row_count: int = 0
-        # 列名(roleNames 用) — 首次 fetch 后填充
-        self._columns: list[str] = []
-        # role id → column index 映射
-        self._role_to_col: dict[int, int] = {}
-        # role name → role id (供 QML)
-        self._role_names: dict[int, QByteArray] = {}
-
-        # LRU page cache: page_idx → (rows, end_cursor)
-        self._cache = PageCache(self._lru_capacity)
+        _initialize_empty_query_state(self)
 
     # ============================================================
     # 公开 API
