@@ -42,6 +42,39 @@ if sys.platform == "win32":
         ]
 
 
+def _get_dwm_set_window_attribute(dwmapi):
+    """Configure the pointer-width DWM attribute call. 配置指针宽度 DWM 属性调用。"""
+    from ctypes import wintypes
+
+    dwm_set_attr = dwmapi.DwmSetWindowAttribute
+    dwm_set_attr.argtypes = [
+        wintypes.HWND,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
+    dwm_set_attr.restype = ctypes.HRESULT
+    return dwm_set_attr
+
+
+def _get_set_window_pos(user32):
+    """Configure the pointer-width frame redraw call. 配置指针宽度边框重绘调用。"""
+    from ctypes import wintypes
+
+    set_window_pos = user32.SetWindowPos
+    set_window_pos.argtypes = [
+        wintypes.HWND,
+        wintypes.HWND,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+        wintypes.UINT,
+    ]
+    set_window_pos.restype = wintypes.BOOL
+    return set_window_pos
+
+
 class ShadowMode(Enum):
     """阴影模式"""
 
@@ -201,7 +234,8 @@ class ShadowManager(QObject):
 
             # Enable non-client area rendering 启用非客户区渲染
             policy = ctypes.c_int(DWMNCRP_ENABLED)
-            dwmapi.DwmSetWindowAttribute(
+            dwm_set_window_attribute = _get_dwm_set_window_attribute(dwmapi)
+            dwm_set_window_attribute(
                 hwnd,
                 DWMWA_NCRENDERING_POLICY,
                 ctypes.byref(policy),
@@ -227,7 +261,8 @@ class ShadowManager(QObject):
             SWP_NOMOVE = 0x0002
             SWP_NOSIZE = 0x0001
             SWP_NOZORDER = 0x0004
-            user32.SetWindowPos(
+            set_window_pos = _get_set_window_pos(user32)
+            set_window_pos(
                 hwnd,
                 0,
                 0,
@@ -238,7 +273,7 @@ class ShadowManager(QObject):
             )
 
             info(f"DWM阴影已启用 (hwnd={hwnd}, result={result})")
-            return result == 0
+            return result >= 0
         except Exception as e:
             error(f"DWM阴影启用失败: {e}")
             return False
@@ -254,7 +289,8 @@ class ShadowManager(QObject):
             DWMWA_NCRENDERING_POLICY = 2
             DWMNCRP_USEWINDOWSTYLE = 0  # 使用默认窗口样式
             policy = ctypes.c_int(DWMNCRP_USEWINDOWSTYLE)
-            dwmapi.DwmSetWindowAttribute(
+            dwm_set_window_attribute = _get_dwm_set_window_attribute(dwmapi)
+            dwm_set_window_attribute(
                 hwnd,
                 DWMWA_NCRENDERING_POLICY,
                 ctypes.byref(policy),

@@ -103,26 +103,34 @@ bool ShadowManager::enableDwmShadow(qulonglong hwnd) {
 
     // DWMWA_NCRENDERING_POLICY=2, DWMNCRP_ENABLED=2 启用非客户区渲染
     int policy = 2;  // DWMNCRP_ENABLED
-    DwmSetWindowAttribute(h, 2 /*DWMWA_NCRENDERING_POLICY*/, &policy, sizeof(policy));
+    const HRESULT policyResult = DwmSetWindowAttribute(
+        h, 2 /*DWMWA_NCRENDERING_POLICY*/, &policy, sizeof(policy));
+    if (FAILED(policyResult))
+        return false;
 
     // 1px MARGINS 触发阴影
     MARGINS margins = {1, 1, 1, 1};
     HRESULT r = DwmExtendFrameIntoClientArea(h, &margins);
+    if (FAILED(r))
+        return false;
 
     // 强制重绘
     SetWindowPos(h, nullptr, 0, 0, 0, 0,
                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
-    return SUCCEEDED(r);
+    return true;
 }
 
 // 禁用 DWM 阴影 (镜像 Python _disableDwmShadow)
 bool ShadowManager::disableDwmShadow(qulonglong hwnd) {
     HWND h = reinterpret_cast<HWND>(hwnd);
     int policy = 0;  // DWMNCRP_USEWINDOWSTYLE
-    DwmSetWindowAttribute(h, 2 /*DWMWA_NCRENDERING_POLICY*/, &policy, sizeof(policy));
+    const HRESULT policyResult = DwmSetWindowAttribute(
+        h, 2 /*DWMWA_NCRENDERING_POLICY*/, &policy, sizeof(policy));
+    if (FAILED(policyResult))
+        return false;
     MARGINS margins = {0, 0, 0, 0};
-    DwmExtendFrameIntoClientArea(h, &margins);
-    return true;
+    const HRESULT frameResult = DwmExtendFrameIntoClientArea(h, &margins);
+    return SUCCEEDED(frameResult);
 }
 #endif
 

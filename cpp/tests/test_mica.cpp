@@ -62,6 +62,8 @@ int main(int argc, char *argv[]) {
 
     ShadowManager *shadow = ShadowManager::instance();
     CHECK(shadow->useNative(), "ShadowManager.useNative=true (Windows)");
+    CHECK(!shadow->enableShadow(0), "enableShadow 拒绝空 HWND");
+    CHECK(!shadow->disableShadow(0), "disableShadow 拒绝空 HWND");
 
     // 进入一次事件循环后调用 DWM，但窗口始终不 show。
     QTimer::singleShot(0, [&]() {
@@ -74,6 +76,9 @@ int main(int argc, char *argv[]) {
         bool shadowOk = shadow->enableShadowForWindow(wv);
         qInfo() << "  enableShadowForWindow ->" << shadowOk;
         CHECK(shadowOk, "enableShadowForWindow 返回 true (DWM 阴影成功)");
+        bool disableOk = shadow->disableShadowForWindow(wv);
+        qInfo() << "  disableShadowForWindow ->" << disableOk;
+        CHECK(disableOk, "disableShadowForWindow 返回 true (DWM 阴影禁用成功)");
         CHECK(!win.isVisible(), "DWM 调用后测试窗口仍隐藏");
 #ifdef Q_OS_WIN
         CHECK(IsWindowVisible(reinterpret_cast<HWND>(nativeId)) == FALSE,
