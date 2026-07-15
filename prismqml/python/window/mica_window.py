@@ -267,43 +267,40 @@ ACRYLIC_BLUR_RADIUS = 100
 _NO_ACRYLIC_SCREEN = object()
 
 
+def _scale_acrylic_image(
+    image: QImage, width: int, height: int, radius: int, qt_namespace: Any
+) -> QImage:
+    """Scale an image down and back up. 缩小再放大图像。"""
+    scale_factor = max(2, radius // 4)
+    small_width = max(1, width // scale_factor)
+    small_height = max(1, height // scale_factor)
+    pixmap = QPixmap.fromImage(image)
+    small = pixmap.scaled(
+        small_width,
+        small_height,
+        qt_namespace.AspectRatioMode.IgnoreAspectRatio,
+        qt_namespace.TransformationMode.SmoothTransformation,
+    )
+    result_pixmap = small.scaled(
+        width,
+        height,
+        qt_namespace.AspectRatioMode.IgnoreAspectRatio,
+        qt_namespace.TransformationMode.SmoothTransformation,
+    )
+    return result_pixmap.toImage()
+
+
 def _gaussian_blur_image(image: QImage, radius: int) -> QImage:
-    """
-    Apply blur to QImage using Qt's built-in scaling (no external dependencies)
-    使用Qt内置缩放实现模糊（无外部依赖）
-    
-    Scale down then up approach provides good blur effect with zero dependencies.
-    缩小再放大的方法可以提供良好的模糊效果，且无需任何依赖。
-    """
+    """Apply dependency-free scale blur. 使用无依赖缩放实现模糊。"""
     from PySide6.QtCore import Qt
-    
+
     if image.isNull() or radius <= 0:
         return image
-    
-    # Convert to ARGB32 for processing 转换为 ARGB32 处理
-    img = image.convertToFormat(QImage.Format.Format_ARGB32)
-    width, height = img.width(), img.height()
-    
+    converted = image.convertToFormat(QImage.Format.Format_ARGB32)
+    width, height = converted.width(), converted.height()
     if width == 0 or height == 0:
         return image
-    
-    # Use scale down/up approach - fast and no dependencies
-    # 使用缩小/放大方法 - 快速且无依赖
-    # Scale factor based on blur radius 根据模糊半径计算缩放因子
-    scale_factor = max(2, radius // 4)
-    
-    # Scale down 缩小
-    small_w = max(1, width // scale_factor)
-    small_h = max(1, height // scale_factor)
-    
-    # Use QPixmap for better quality scaling 使用QPixmap获得更好的缩放质量
-    pixmap = QPixmap.fromImage(img)
-    small = pixmap.scaled(small_w, small_h, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)
-    
-    # Scale back up 放大回来
-    result_pixmap = small.scaled(width, height, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)
-    
-    return result_pixmap.toImage()
+    return _scale_acrylic_image(converted, width, height, radius, Qt)
 
 
 def _resolve_acrylic_screen(window: QWindow) -> Any:
