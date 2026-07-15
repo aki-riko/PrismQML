@@ -40,11 +40,11 @@ Window {
     property int itemClickedCount: 0
     property int lastClickedIndex: -1
 
-    function widenCurrentItem() {
+    function widenLeadingItem() {
         var next = segmented.items.slice()
-        next[segmented.currentIndex] = Object.assign(
-            {}, next[segmented.currentIndex],
-            { text: "A much wider selected segment used during animation" })
+        next[0] = Object.assign(
+            {}, next[0],
+            { text: "A much wider leading segment used during animation" })
         segmented.items = next
     }
     function clearItems() { segmented.items = [] }
@@ -247,20 +247,24 @@ def test_mouse_click_switch_has_real_intermediate_frames(segmented_scene):
     assert warnings == []
 
 
-def test_layout_change_retargets_running_animation(segmented_scene):
+def test_preceding_item_width_change_retargets_running_animation(segmented_scene):
     _engine, _component, window, warnings = segmented_scene
-    _control, _indicator, animation, _delegates = _parts(window)
     assert window.setProperty("requestedIndex", 3)
     _pump(80)
+    control, _indicator, animation, delegates = _parts(window)
     before_x = float(animation.property("indicatorX"))
+    old_target_x = _expected_x(control, delegates[3])
 
-    assert QMetaObject.invokeMethod(window, "widenCurrentItem")
+    assert QMetaObject.invokeMethod(window, "widenLeadingItem")
     _pump(20)
     control, _indicator, animation, delegates = _parts(window)
     target_x = _expected_x(control, delegates[3])
+    current_x = float(animation.property("indicatorX"))
 
+    assert abs(target_x - old_target_x) > 1
     assert animation.property("running")
-    assert animation.property("indicatorX") >= before_x - 1
+    assert _strictly_between(current_x, before_x, target_x)
+    assert current_x != pytest.approx(target_x, abs=0.5)
     assert _wait_for(lambda: not animation.property("running"))
     assert animation.property("indicatorX") == pytest.approx(target_x, abs=0.5)
     assert warnings == []
