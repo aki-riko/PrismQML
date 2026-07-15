@@ -139,6 +139,19 @@ def _install_native_callbacks(
     return events, dwmapi, user32
 
 
+def _inject_native_error(dwmapi, user32, stage, error):
+    functions = {
+        "set": dwmapi.DwmSetWindowAttribute,
+        "extend": dwmapi.DwmExtendFrameIntoClientArea,
+        "position": user32.SetWindowPos,
+    }
+
+    def raise_error(_result, _function, _arguments):
+        raise error
+
+    functions[stage].errcheck = raise_error
+
+
 def _assert_configured_signatures(dwmapi, user32, includes_position):
     assert dwmapi.DwmExtendFrameIntoClientArea.argtypes == [
         wintypes.HWND,
@@ -209,6 +222,53 @@ def test_dwm_shadow_uses_hresult_success_contract(
     manager = shadow.ShadowManager()
 
     assert getattr(manager, method_name)(0x1234) is expected
+    assert [event[0] for event in events] == event_names
+
+
+@pytest.mark.parametrize(
+    ("method_name", "stage", "event_names"),
+    (
+        ("enableShadow", "set", ["set"]),
+        ("enableShadow", "extend", ["set", "extend"]),
+        ("enableShadow", "position", ["set", "extend", "position"]),
+        ("disableShadow", "set", ["set"]),
+        ("disableShadow", "extend", ["set", "extend"]),
+    ),
+)
+def test_dwm_public_methods_return_false_on_native_exception(
+    monkeypatch, method_name, stage, event_names
+):
+    events, dwmapi, user32 = _install_native_callbacks(monkeypatch)
+    _inject_native_error(dwmapi, user32, stage, RuntimeError(f"{stage} failed"))
+    manager = shadow.ShadowManager()
+
+    assert getattr(manager, method_name)(0x1234) is False
+    assert [event[0] for event in events] == event_names
+
+
+@pytest.mark.parametrize("error_type", (KeyboardInterrupt, SystemExit))
+@pytest.mark.parametrize(
+    ("method_name", "stage", "event_names"),
+    (
+        ("enableShadow", "set", ["set"]),
+        ("enableShadow", "extend", ["set", "extend"]),
+        ("enableShadow", "position", ["set", "extend", "position"]),
+        ("disableShadow", "set", ["set"]),
+        ("disableShadow", "extend", ["set", "extend"]),
+    ),
+)
+def test_dwm_public_methods_preserve_process_control_exception(
+    monkeypatch, method_name, stage, event_names, error_type
+):
+    events, dwmapi, user32 = _install_native_callbacks(monkeypatch)
+    injected = error_type(f"{stage} interrupted")
+    _inject_native_error(dwmapi, user32, stage, injected)
+    manager = shadow.ShadowManager()
+
+    with pytest.raises(error_type) as caught:
+        getattr(manager, method_name)(0x1234)
+
+    assert caught.value is injected
     assert [event[0] for event in events] == event_names
 
 
