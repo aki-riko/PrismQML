@@ -22,6 +22,7 @@ _FORBIDDEN_KEYSET_SOURCE = re.compile(
 _WINDOW_KEYWORD = re.compile(r"\b(?:WINDOW|OVER)\b", re.IGNORECASE)
 _NUMBERED_PLACEHOLDER = re.compile(r"\?\d+")
 _SELECT_KEYWORD = re.compile(r"\bSELECT\b", re.IGNORECASE)
+_NAMED_SQL_SPECIALS = "'\"-/:"
 _SIMPLE_IN_SUBQUERY = re.compile(
     r"^\s*SELECT\s+[A-Za-z_][A-Za-z0-9_]*\s+"
     r"FROM\s+[A-Za-z_][A-Za-z0-9_]*\s+WHERE\s+\S[\s\S]*$",
@@ -34,6 +35,130 @@ _FORBIDDEN_IN_SUBQUERY = re.compile(
 )
 
 
+def _copy_single_quoted(
+    sql: str, index: int, length: int, out: list[str]
+) -> int:
+    out.append(sql[index])
+    index += 1
+    while index < length:
+        is_quote = sql[index] == "'"
+        is_escaped_quote = (
+            is_quote and index + 1 < length and sql[index + 1] == "'"
+        )
+        if is_escaped_quote:
+            out.append("''")
+            index += 2
+            continue
+        if is_quote:
+            out.append("'")
+            return index + 1
+        out.append(sql[index])
+        index += 1
+    return index
+
+
+def _copy_double_quoted(
+    sql: str, index: int, length: int, out: list[str]
+) -> int:
+    out.append(sql[index])
+    index += 1
+    while index < length and sql[index] != '"':
+        out.append(sql[index])
+        index += 1
+    if index < length:
+        out.append('"')
+        index += 1
+    return index
+
+
+def _copy_line_comment(
+    sql: str, index: int, length: int, out: list[str]
+) -> int:
+    while index < length and sql[index] != "\n":
+        out.append(sql[index])
+        index += 1
+    return index
+
+
+def _copy_block_comment(
+    sql: str, index: int, length: int, out: list[str]
+) -> int:
+    out.extend(("/", "*"))
+    index += 2
+    while index < length - 1 and not (
+        sql[index] == "*" and sql[index + 1] == "/"
+    ):
+        out.append(sql[index])
+        index += 1
+    if index < length - 1:
+        out.extend(("*", "/"))
+        index += 2
+    return index
+
+
+def _copy_plain_sql(
+    sql: str, index: int, length: int, out: list[str]
+) -> int:
+    start = index
+    while index < length and sql[index] not in _NAMED_SQL_SPECIALS:
+        index += 1
+    if index > start:
+        out.append(sql[start:index])
+    return index
+
+
+def _copy_protected_sql(
+    sql: str, index: int, length: int, out: list[str]
+) -> int:
+    char = sql[index]
+    if char == "'":
+        return _copy_single_quoted(sql, index, length, out)
+    if char == '"':
+        return _copy_double_quoted(sql, index, length, out)
+    if char == "-" and index + 1 < length and sql[index + 1] == "-":
+        return _copy_line_comment(sql, index, length, out)
+    if char == "/" and index + 1 < length and sql[index + 1] == "*":
+        return _copy_block_comment(sql, index, length, out)
+    out.append(char)
+    return index + 1
+
+
+def _copy_unresolved_parameter(index: int, out: list[str]) -> int:
+    out.append(":")
+    return index + 1
+
+
+def _normalize_dict_params(sql: str, params: dict) -> tuple[str, list]:
+    ordered, out = [], []
+    index, length = 0, len(sql)
+    while index < length:
+        if sql[index] not in _NAMED_SQL_SPECIALS:
+            index = _copy_plain_sql(sql, index, length, out)
+            continue
+        if sql[index] != ":":
+            index = _copy_protected_sql(sql, index, length, out)
+            continue
+        end = index + 1
+        if end >= length or not (sql[end].isalpha() or sql[end] == "_"):
+            index = _copy_unresolved_parameter(index, out)
+            continue
+        while end < length and (sql[end].isalnum() or sql[end] == "_"):
+            end += 1
+        name = sql[index + 1:end]
+        if name not in params:
+            index = _copy_unresolved_parameter(index, out)
+            continue
+        out.append("?")
+        ordered.append(params[name])
+        index = end
+        plain_start = index
+        while index < length and sql[index] not in _NAMED_SQL_SPECIALS:
+            index += 1
+        if index > plain_start:
+            out.append(sql[plain_start:index])
+    return "".join(out), ordered
+
+
 def normalize_one(
     sql: str,
     params: Optional[Union[list, tuple, dict]],
@@ -44,69 +169,7 @@ def normalize_one(
     if isinstance(params, (list, tuple)):
         return sql, list(params)
     if isinstance(params, dict):
-        ordered: list = []
-        out: list[str] = []
-        i = 0
-        n = len(sql)
-        while i < n:
-            ch = sql[i]
-            if ch == "'":
-                out.append(ch)
-                i += 1
-                while i < n:
-                    if sql[i] == "'":
-                        if i + 1 < n and sql[i + 1] == "'":
-                            out.append("''")
-                            i += 2
-                            continue
-                        out.append("'")
-                        i += 1
-                        break
-                    out.append(sql[i])
-                    i += 1
-                continue
-            if ch == '"':
-                out.append(ch)
-                i += 1
-                while i < n and sql[i] != '"':
-                    out.append(sql[i])
-                    i += 1
-                if i < n:
-                    out.append('"')
-                    i += 1
-                continue
-            if ch == "-" and i + 1 < n and sql[i + 1] == "-":
-                while i < n and sql[i] != "\n":
-                    out.append(sql[i])
-                    i += 1
-                continue
-            if ch == "/" and i + 1 < n and sql[i + 1] == "*":
-                out.append("/")
-                out.append("*")
-                i += 2
-                while i < n - 1 and not (sql[i] == "*" and sql[i + 1] == "/"):
-                    out.append(sql[i])
-                    i += 1
-                if i < n - 1:
-                    out.append("*")
-                    out.append("/")
-                    i += 2
-                continue
-            if ch == ":" and i + 1 < n and (
-                sql[i + 1].isalpha() or sql[i + 1] == "_"
-            ):
-                j = i + 1
-                while j < n and (sql[j].isalnum() or sql[j] == "_"):
-                    j += 1
-                name = sql[i + 1 : j]
-                if name in params:
-                    out.append("?")
-                    ordered.append(params[name])
-                    i = j
-                    continue
-            out.append(ch)
-            i += 1
-        return "".join(out), ordered
+        return _normalize_dict_params(sql, params)
     raise TypeError(f"params must be list/tuple/dict/None, got {type(params)}")
 
 
