@@ -62,17 +62,21 @@ Rectangle {
 
     function _updateSlidePosition(animate) {
         var item = repeater.itemAt(currentIndex)
-        if (item && typeof item.x === 'number') {
-            var startRect = _indicatorRect()
-            _slideX = segmentRow.x + item.x
-            _selectedItemWidth = item.width || 0
-            _selectedItemHeight = (item.height || 0) + Enums.spacing.xxs * 2
-            var endRect = _indicatorRect()
-            if (animate && navIndicator._initialized) {
-                navIndicator.startAnimation(startRect, endRect)
-            } else {
-                navIndicator.setGeometry(endRect)
-            }
+        if (!item || typeof item.x !== "number") {
+            navIndicator.stopAnimation()
+            return
+        }
+        var startRect = navIndicator.getIndicatorRect()
+        var nextSlideX = segmentRow.x + item.x
+        var nextItemWidth = item.width || 0
+        _slideX = nextSlideX
+        _selectedItemWidth = nextItemWidth
+        _selectedItemHeight = (item.height || 0) + Enums.spacing.xxs * 2
+        var endRect = _indicatorRect()
+        if ((animate || navIndicator.running) && navIndicator._initialized) {
+            navIndicator.startAnimation(startRect, endRect)
+        } else {
+            navIndicator.setGeometry(endRect)
         }
     }
 
@@ -97,6 +101,11 @@ Rectangle {
         var item = repeater.itemAt(currentIndex)
         return item ? item.key : ""
     }
+
+    Component.onCompleted: slideSyncTimer.schedule(false)
+    onItemsChanged: slideSyncTimer.schedule(false)
+    onWidthChanged: slideSyncTimer.schedule(false)
+    onCurrentIndexChanged: slideSyncTimer.schedule(true)
 
     // ==================== Selected Background 选中背景 ====================
     Rectangle {
@@ -124,12 +133,30 @@ Rectangle {
         radius: Enums.radius.micro
         visible: control.showIndicator && control.items.length > 0
     }
+
+    Timer {
+        id: slideSyncTimer
+        property bool animate: false
+
+        function schedule(shouldAnimate) {
+            animate = animate || shouldAnimate
+            restart()
+        }
+
+        interval: 0
+        onTriggered: {
+            var shouldAnimate = animate
+            animate = false
+            control._updateSlidePosition(shouldAnimate)
+        }
+    }
     
     // ==================== Items Row 项目行 ====================
     Row {
         id: segmentRow
         anchors.centerIn: parent
         spacing: Enums.spacing.none
+        onXChanged: slideSyncTimer.schedule(false)
         
         Repeater {
             id: repeater
@@ -137,9 +164,6 @@ Rectangle {
             
             Item {
                 id: segmentItem
-                width: Math.max(Enums.controlSize.segmentedMinWidth, itemContent.implicitWidth + Enums.spacing.l * 2)
-                height: control.height - Enums.spacing.xxs * 2
-                
                 property bool selected: index === control.currentIndex
                 property bool hovered: hoverHandler.hovered
                 property bool pressed: tapHandler.pressed
@@ -148,6 +172,13 @@ Rectangle {
                 property string key: modelData.key !== undefined ? modelData.key : (itemText !== "" ? itemText : itemIcon)
                 property bool hasIcon: itemIcon !== ""
                 property bool hasText: itemText !== ""
+
+                width: Math.max(Enums.controlSize.segmentedMinWidth, itemContent.implicitWidth + Enums.spacing.l * 2)
+                height: control.height - Enums.spacing.xxs * 2
+                onSelectedChanged: if (selected) slideSyncTimer.schedule(false)
+                onWidthChanged: if (selected) slideSyncTimer.schedule(false)
+                onXChanged: if (selected) slideSyncTimer.schedule(false)
+                Component.onCompleted: if (selected) slideSyncTimer.schedule(false)
                 
                 // Hover/Press background for non-selected items 非选中项的悬停/按下背景
                 Rectangle {
@@ -202,14 +233,7 @@ Rectangle {
                         }
                     }
                 }
-                
-                onSelectedChanged: if (selected) control._updateSlidePosition()
-                Component.onCompleted: if (selected) control._updateSlidePosition()
             }
         }
     }
-
-    Component.onCompleted: Qt.callLater(function() { _updateSlidePosition(false) })
-    onWidthChanged: Qt.callLater(function() { _updateSlidePosition(false) })
-    onCurrentIndexChanged: Qt.callLater(function() { _updateSlidePosition(true) })
 }
