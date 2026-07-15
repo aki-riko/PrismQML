@@ -89,6 +89,14 @@ _QUERY_STATE_FIELDS = (
 )
 
 
+def _copy_query_state_value(value):
+    if isinstance(value, list):
+        return list(value)
+    if isinstance(value, dict):
+        return dict(value)
+    return value
+
+
 def _open_read_only(path: str):
     conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=5)
     conn.execute("PRAGMA busy_timeout=5000")
@@ -279,7 +287,7 @@ class SqlListModel(QAbstractListModel):
 
     def _capture_query_state(self) -> dict:
         return {
-            name: getattr(self, name, None)
+            name: _copy_query_state_value(getattr(self, name, None))
             for name in _QUERY_STATE_FIELDS
         }
 
@@ -326,9 +334,11 @@ class SqlListModel(QAbstractListModel):
         """
         if not self._sql:
             return
+        previous_state = self._capture_query_state()
+        succeeded = False
         self.beginResetModel()
         try:
-            self._cache.clear()
+            self._cache = PageCache(self._lru_capacity)
             self._columns = []
             self._role_to_col = {}
             self._role_names = {}
@@ -340,7 +350,10 @@ class SqlListModel(QAbstractListModel):
                 self._resolve_columns()
                 first = self._fetch_page(0)
                 self._cache.put(0, first["rows"], first.get("end_cursor"))
+            succeeded = True
         finally:
+            if not succeeded:
+                self._restore_query_state(previous_state)
             self.endResetModel()
         self.countChanged.emit()
 
