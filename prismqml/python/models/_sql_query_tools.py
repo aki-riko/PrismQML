@@ -8,6 +8,12 @@ from __future__ import annotations
 import re
 from typing import Optional, Union
 
+from ._sql_lexing import (
+    _SIMPLE_NAMED_PARAMETER,
+    named_parameter_span,
+    protected_sql_span_end,
+)
+
 
 _SIMPLE_ORDER_TERM = re.compile(
     r"^\s*([A-Za-z_][A-Za-z0-9_]*)"
@@ -22,7 +28,7 @@ _FORBIDDEN_KEYSET_SOURCE = re.compile(
 _WINDOW_KEYWORD = re.compile(r"\b(?:WINDOW|OVER)\b", re.IGNORECASE)
 _NUMBERED_PLACEHOLDER = re.compile(r"\?\d+")
 _SELECT_KEYWORD = re.compile(r"\bSELECT\b", re.IGNORECASE)
-_NAMED_SQL_SPECIALS = "'\"-/:"
+_NAMED_SQL_SPECIALS = "'\"`[-/:@$"
 _SIMPLE_IN_SUBQUERY = re.compile(
     r"^\s*SELECT\s+[A-Za-z_][A-Za-z0-9_]*\s+"
     r"FROM\s+[A-Za-z_][A-Za-z0-9_]*\s+WHERE\s+\S[\s\S]*$",
@@ -35,65 +41,51 @@ _FORBIDDEN_IN_SUBQUERY = re.compile(
 )
 
 
+def _copy_protected_span(
+    sql: str, index: int, length: int, out: list[str]
+) -> int:
+    end = protected_sql_span_end(sql, index, length)
+    if end is None:
+        out.append(sql[index])
+        return index + 1
+    out.append(sql[index:end])
+    return end
+
+
 def _copy_single_quoted(
     sql: str, index: int, length: int, out: list[str]
 ) -> int:
-    out.append(sql[index])
-    index += 1
-    while index < length:
-        is_quote = sql[index] == "'"
-        is_escaped_quote = (
-            is_quote and index + 1 < length and sql[index + 1] == "'"
-        )
-        if is_escaped_quote:
-            out.append("''")
-            index += 2
-            continue
-        if is_quote:
-            out.append("'")
-            return index + 1
-        out.append(sql[index])
-        index += 1
-    return index
+    return _copy_protected_span(sql, index, length, out)
 
 
 def _copy_double_quoted(
     sql: str, index: int, length: int, out: list[str]
 ) -> int:
-    out.append(sql[index])
-    index += 1
-    while index < length and sql[index] != '"':
-        out.append(sql[index])
-        index += 1
-    if index < length:
-        out.append('"')
-        index += 1
-    return index
+    return _copy_protected_span(sql, index, length, out)
+
+
+def _copy_backtick_quoted(
+    sql: str, index: int, length: int, out: list[str]
+) -> int:
+    return _copy_protected_span(sql, index, length, out)
+
+
+def _copy_bracket_quoted(
+    sql: str, index: int, length: int, out: list[str]
+) -> int:
+    return _copy_protected_span(sql, index, length, out)
 
 
 def _copy_line_comment(
     sql: str, index: int, length: int, out: list[str]
 ) -> int:
-    while index < length and sql[index] != "\n":
-        out.append(sql[index])
-        index += 1
-    return index
+    return _copy_protected_span(sql, index, length, out)
 
 
 def _copy_block_comment(
     sql: str, index: int, length: int, out: list[str]
 ) -> int:
-    out.extend(("/", "*"))
-    index += 2
-    while index < length - 1 and not (
-        sql[index] == "*" and sql[index + 1] == "/"
-    ):
-        out.append(sql[index])
-        index += 1
-    if index < length - 1:
-        out.extend(("*", "/"))
-        index += 2
-    return index
+    return _copy_protected_span(sql, index, length, out)
 
 
 def _copy_plain_sql(
@@ -115,6 +107,10 @@ def _copy_protected_sql(
         return _copy_single_quoted(sql, index, length, out)
     if char == '"':
         return _copy_double_quoted(sql, index, length, out)
+    if char == "`":
+        return _copy_backtick_quoted(sql, index, length, out)
+    if char == "[":
+        return _copy_bracket_quoted(sql, index, length, out)
     if char == "-" and index + 1 < length and sql[index + 1] == "-":
         return _copy_line_comment(sql, index, length, out)
     if char == "/" and index + 1 < length and sql[index + 1] == "*":
@@ -123,34 +119,37 @@ def _copy_protected_sql(
     return index + 1
 
 
-def _copy_unresolved_parameter(index: int, out: list[str]) -> int:
-    out.append(":")
-    return index + 1
+def _copy_unresolved_parameter(
+    sql: str, index: int, end: int, out: list[str]
+) -> int:
+    out.append(sql[index:end])
+    return end
 
 
 def _normalize_dict_params(sql: str, params: dict) -> tuple[str, list]:
     ordered, out = [], []
-    index, length = 0, len(sql)
+    index, length, scan_start = 0, len(sql), 0
     while index < length:
         if sql[index] not in _NAMED_SQL_SPECIALS:
             index = _copy_plain_sql(sql, index, length, out)
             continue
-        if sql[index] != ":":
-            index = _copy_protected_sql(sql, index, length, out)
+        if sql[index] not in ":@$":
+            scan_start = index = _copy_protected_sql(sql, index, length, out)
             continue
-        end = index + 1
-        if end >= length or not (sql[end].isalpha() or sql[end] == "_"):
-            index = _copy_unresolved_parameter(index, out)
-            continue
-        while end < length and (sql[end].isalnum() or sql[end] == "_"):
-            end += 1
-        name = sql[index + 1:end]
-        if name not in params:
-            index = _copy_unresolved_parameter(index, out)
+        match = _SIMPLE_NAMED_PARAMETER.match(sql, index)
+        end, is_parameter = (
+            (match.end(), True) if match is not None
+            else named_parameter_span(sql, index, length, scan_start)
+        )
+        name = sql[index + 1:end] if is_parameter else None
+        if name is None or name not in params:
+            scan_start = index = _copy_unresolved_parameter(
+                sql, index, end, out
+            )
             continue
         out.append("?")
         ordered.append(params[name])
-        index = end
+        scan_start = index = end
         plain_start = index
         while index < length and sql[index] not in _NAMED_SQL_SPECIALS:
             index += 1
@@ -174,56 +173,16 @@ def normalize_one(
 
 
 def strip_strings_and_comments(sql: str) -> str:
-    """Mask SQL strings and comments with spaces for structural scanning."""
-    n = len(sql)
+    """Mask SQL protected spans with spaces for structural scanning."""
     result = list(sql)
-    i = 0
-    while i < n:
-        ch = sql[i]
-        if ch == "'":
-            result[i] = " "
-            i += 1
-            while i < n:
-                if sql[i] == "'":
-                    if i + 1 < n and sql[i + 1] == "'":
-                        result[i] = " "
-                        result[i + 1] = " "
-                        i += 2
-                        continue
-                    result[i] = " "
-                    i += 1
-                    break
-                result[i] = " "
-                i += 1
+    index, length = 0, len(sql)
+    while index < length:
+        end = protected_sql_span_end(sql, index, length)
+        if end is None:
+            index += 1
             continue
-        if ch == '"':
-            result[i] = " "
-            i += 1
-            while i < n and sql[i] != '"':
-                result[i] = " "
-                i += 1
-            if i < n:
-                result[i] = " "
-                i += 1
-            continue
-        if ch == "-" and i + 1 < n and sql[i + 1] == "-":
-            while i < n and sql[i] != "\n":
-                result[i] = " "
-                i += 1
-            continue
-        if ch == "/" and i + 1 < n and sql[i + 1] == "*":
-            result[i] = " "
-            result[i + 1] = " "
-            i += 2
-            while i < n - 1 and not (sql[i] == "*" and sql[i + 1] == "/"):
-                result[i] = " "
-                i += 1
-            if i < n - 1:
-                result[i] = " "
-                result[i + 1] = " "
-                i += 2
-            continue
-        i += 1
+        result[index:end] = [" "] * (end - index)
+        index = end
     return "".join(result)
 
 
@@ -313,7 +272,7 @@ def _validate_keyset_source(head: str) -> None:
         )
     if _NUMBERED_PLACEHOLDER.search(masked):
         raise ValueError("keyset sql 仅支持匿名 ? 占位符，不支持 ?NNN")
-    if _has_named_placeholder(masked):
+    if _has_named_placeholder(head):
         raise ValueError("keyset sql 的命名占位符必须先通过 dict params 归一化")
     select_count = len(_SELECT_KEYWORD.findall(masked))
     if select_count == 2:
@@ -327,8 +286,26 @@ def _source_has_subquery(head: str) -> bool:
     return len(_SELECT_KEYWORD.findall(masked)) > 1
 
 
-def _has_named_placeholder(masked_sql: str) -> bool:
-    return any(char in ":@$" for char in masked_sql)
+def _has_named_placeholder(sql: str) -> bool:
+    length = len(sql)
+    index, scan_start = 0, 0
+    while index < length:
+        is_prefix = sql[index] in ":@$"
+        end, is_parameter = (
+            named_parameter_span(sql, index, length, scan_start)
+            if is_prefix else (index, False)
+        )
+        if is_parameter:
+            return True
+        if is_prefix:
+            scan_start = index = end
+            continue
+        end = protected_sql_span_end(sql, index, length)
+        if end is not None:
+            scan_start = index = end
+            continue
+        index += 1
+    return False
 
 
 def _parse_keyset_order(tail: str) -> list[tuple[str, str]]:

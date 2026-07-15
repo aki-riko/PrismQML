@@ -181,15 +181,18 @@ def test_dict_params_preserve_value_identity():
 
 
 @pytest.mark.parametrize("stage", ("contains", "getitem"))
+@pytest.mark.parametrize("prefix", tuple(":@$"))
 @pytest.mark.parametrize(
     "error_type", (ValueError, RuntimeError, KeyboardInterrupt, SystemExit)
 )
-def test_dict_callback_exception_identity_is_preserved(stage, error_type):
+def test_dict_callback_exception_identity_is_preserved(
+    stage, prefix, error_type
+):
     failure = error_type(f"{stage} failed")
     source = _ExplodingParams(stage, failure)
 
     with pytest.raises(error_type) as caught:
-        normalize_one("SELECT :value", source)
+        normalize_one(f"SELECT {prefix}value", source)
 
     assert caught.value is failure
 

@@ -36,7 +36,7 @@ _CONTROL_FLOW_NODES = (
 _NESTED_FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
 _MAX_HELPER_LINES = 30
 _MAX_CONTROL_DEPTH = 2
-_MAX_MODEL_LONG_FUNCTIONS = 2
+_MAX_MODEL_LONG_FUNCTIONS = 1
 
 
 def _parse_source(path: Path) -> tuple[str, ast.Module]:

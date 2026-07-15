@@ -32,7 +32,7 @@ _MAX_CONTROL_DEPTH = 2
 _MAX_LONG_FUNCTIONS = 39
 _MAX_LONG_FUNCTIONS_BY_AREA = {
     "core": 17,
-    "models": 2,
+    "models": 1,
     "providers": 4,
     "state": 1,
     "window": 14,
