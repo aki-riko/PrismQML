@@ -15,7 +15,7 @@ configure_qml_test_process()
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import shiboken6
-from PySide6.QtCore import QCoreApplication, QEvent, QObject, Property
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, Property, QUrl
 from PySide6.QtWidgets import QApplication
 
 
@@ -63,7 +63,7 @@ def _configure_rich_window(window, temp_dir):
 
 
 def _assert_rich_source(source, temp_dir):
-    bottom_icon = (Path(temp_dir) / "tool.svg").as_posix()
+    bottom_icon = QUrl.fromLocalFile(str(Path(temp_dir) / "tool.svg")).toString()
     assert '\nWindowsBar {\n' in source
     assert 'width: 1111\n    height: 777' in source
     assert 'windowTitle: "Title \\"quoted\\" \\u007Bbrace\\u007D\\nline"' in source
@@ -72,7 +72,7 @@ def _assert_rich_source(source, temp_dir):
     assert 'micaEnabled: false' in source
     assert '"text": "Top \\"one\\""' in source
     assert '"key": "page_1", "selectable": false' in source
-    assert f'"icon": "file:///{bottom_icon}"' in source
+    assert f'"icon": "{bottom_icon}"' in source
     assert "userCard" not in source
     assert "userCardPosition" not in source
     assert source.count('objectName: "page_') == 2

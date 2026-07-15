@@ -29,7 +29,6 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression
 
 PKG_ROOT = Path(__file__).resolve().parents[2] / "prismqml"
-NAV_DIR = PKG_ROOT / "PrismQML" / "controls" / "navigation"
 
 
 def pump(ms):
@@ -77,7 +76,6 @@ def create_stack(engine, page_urls):
     qml = f'''
 import QtQuick
 import PrismQML
-import "{NAV_DIR.as_posix()}"
 
 StackedWidget {{
     width: 800; height: 600

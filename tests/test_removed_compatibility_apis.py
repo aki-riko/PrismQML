@@ -14,7 +14,6 @@ from prismqml import NavigationItem, Window, getThemeManager
 
 
 ROOT = Path(__file__).resolve().parents[1]
-QML_ROOT = ROOT / "prismqml" / "PrismQML"
 
 
 def _read(relative: str) -> str:
@@ -28,17 +27,15 @@ def _pump(milliseconds: int) -> None:
 
 
 def _create_direct_child_stack(engine: QQmlEngine):
-    navigation = (QML_ROOT / "controls" / "navigation").as_posix()
-    source = f'''import QtQuick
+    source = '''import QtQuick
 import PrismQML
-import "{navigation}"
-StackedWidget {{
+StackedWidget {
     width: 320
     height: 200
     lazyLoading: true
-    Rectangle {{ objectName: "page0" }}
-    Rectangle {{ objectName: "page1" }}
-}}
+    Rectangle { objectName: "page0" }
+    Rectangle { objectName: "page1" }
+}
 '''
     component = QQmlComponent(engine)
     component.setData(source.encode("utf-8"), QUrl("inline"))

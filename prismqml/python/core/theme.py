@@ -210,6 +210,24 @@ class ThemeManager(QObject):
             if candidate.strip()
         ]
 
+    @staticmethod
+    def _generic_qt_font_family(candidate: str) -> str:
+        from PySide6.QtGui import QFontDatabase
+
+        system_font_roles = {
+            "sans-serif": QFontDatabase.SystemFont.GeneralFont,
+            "monospace": QFontDatabase.SystemFont.FixedFont,
+        }
+        role = system_font_roles.get(candidate.casefold())
+        if role is None:
+            return ""
+        return QFontDatabase.systemFont(role).family()
+
+    @classmethod
+    def _cache_font_family(cls, cache_attr: str, family: str) -> str:
+        setattr(cls, cache_attr, family)
+        return family
+
     @classmethod
     def _resolve_qt_font_family(cls, fallback_chain: str, cache_attr: str) -> str:
         cached = getattr(cls, cache_attr)
@@ -230,11 +248,16 @@ class ThemeManager(QObject):
         available_families = set(QFontDatabase.families())
         for candidate in candidates:
             if candidate in available_families:
-                setattr(cls, cache_attr, candidate)
-                return candidate
+                return cls._cache_font_family(cache_attr, candidate)
 
-        setattr(cls, cache_attr, candidates[0])
-        return candidates[0]
+            generic_family = cls._generic_qt_font_family(candidate)
+            if generic_family:
+                return cls._cache_font_family(cache_attr, generic_family)
+
+        system_family = QFontDatabase.systemFont(
+            QFontDatabase.SystemFont.GeneralFont
+        ).family()
+        return cls._cache_font_family(cache_attr, system_family or candidates[0])
 
     @Property(str, constant=True)
     def fontFamily(self) -> str:

@@ -29,7 +29,6 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression
 
 PKG_ROOT = Path(__file__).resolve().parents[2] / "prismqml"
-NAV_DIR = PKG_ROOT / "PrismQML" / "controls" / "navigation"
 PAGES_DIR = Path(__file__).resolve().parents[2] / "examples" / "pages"
 
 
@@ -63,7 +62,6 @@ def main():
     qml = f'''
 import QtQuick
 import PrismQML
-import "{NAV_DIR.as_posix()}"
 
 StackedWidget {{
     width: 800; height: 600
