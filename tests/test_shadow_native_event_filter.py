@@ -4,7 +4,10 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """DWM native event filter exception boundaries. DWM 原生事件过滤器异常边界。"""
 
+import ast
+import inspect
 import logging
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -13,6 +16,23 @@ from PySide6.QtCore import QByteArray, QCoreApplication, QEvent
 from PySide6.QtGui import QWindow
 
 import prismqml.python.core.shadow as shadow
+
+
+def _shadow_function_nodes():
+    source_path = Path(shadow.__file__).resolve()
+    source = source_path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(source_path), feature_version=(3, 9))
+    return [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+
+def _direct_name_call_count(node, name):
+    return sum(
+        1
+        for current in ast.walk(node)
+        if isinstance(current, ast.Call)
+        and isinstance(current.func, ast.Name)
+        and current.func.id == name
+    )
 
 
 def _raising_flush(error):
@@ -182,6 +202,22 @@ def test_install_success_is_idempotent(monkeypatch):
     assert app.filters == [installed_filter]
 
 
+def test_install_structure_stays_small_and_delegated():
+    functions = _shadow_function_nodes()
+    targets = {
+        name: [node for node in functions if node.name == name]
+        for name in ("_try_install_dwm_sync_filter", "installDwmSyncFilter")
+    }
+
+    assert all(len(nodes) == 1 for nodes in targets.values()), targets
+    for name, nodes in targets.items():
+        assert nodes[0].end_lineno - nodes[0].lineno + 1 <= 30, name
+    assert str(inspect.signature(shadow.installDwmSyncFilter)) == "()"
+    assert _direct_name_call_count(
+        targets["installDwmSyncFilter"][0], "_try_install_dwm_sync_filter"
+    ) == 1
+
+
 def test_install_publishes_only_after_native_registration_succeeds(monkeypatch):
     candidate, events = _prepare_recording_install(monkeypatch)
 
@@ -193,6 +229,19 @@ def test_install_publishes_only_after_native_registration_succeeds(monkeypatch):
         ("install", candidate),
         ("info", "DWM同步过滤器已安装"),
     ]
+
+
+def test_none_candidate_preserves_successful_registration_contract(monkeypatch):
+    app = _prepare_install(monkeypatch, (None,))
+    messages = []
+    monkeypatch.setattr(shadow, "DwmSyncFilter", lambda: None)
+    monkeypatch.setattr(shadow, "info", messages.append)
+
+    assert shadow.installDwmSyncFilter() is True
+
+    assert app.filters == [None]
+    assert shadow._dwm_sync_filter is None
+    assert messages == ["DWM同步过滤器已安装"]
 
 
 def test_constructor_failure_logs_traceback_without_caching(monkeypatch):

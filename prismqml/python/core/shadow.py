@@ -408,6 +408,23 @@ class DwmSyncFilter(QAbstractNativeEventFilter):
 _dwm_sync_filter: Optional[DwmSyncFilter] = None
 
 
+def _try_install_dwm_sync_filter(
+    app,
+) -> tuple[bool, Optional[DwmSyncFilter]]:
+    """Construct and register one filter. 构造并注册一个过滤器。"""
+    try:
+        candidate = DwmSyncFilter()
+        app.installNativeEventFilter(candidate)
+    except Exception as exc:
+        # Optional Qt boundary; keep global state retryable. 可选 Qt 边界；保持全局状态可重试。
+        exception(
+            "DWM sync filter installation failed: "
+            f"{type(exc).__name__}: {exc}"
+        )
+        return False, None
+    return True, candidate
+
+
 def installDwmSyncFilter():
     """
     安装DWM同步过滤器（应在QApplication创建后调用）
@@ -426,15 +443,8 @@ def installDwmSyncFilter():
         warning("QApplication未创建")
         return False
 
-    try:
-        candidate = DwmSyncFilter()
-        app.installNativeEventFilter(candidate)
-    except Exception as exc:
-        # Optional Qt boundary; keep global state retryable. 可选 Qt 边界；保持全局状态可重试。
-        exception(
-            "DWM sync filter installation failed: "
-            f"{type(exc).__name__}: {exc}"
-        )
+    installed, candidate = _try_install_dwm_sync_filter(app)
+    if not installed:
         return False
 
     _dwm_sync_filter = candidate
