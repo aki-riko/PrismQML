@@ -236,14 +236,18 @@ def test_small_dataset_moves_continuously_without_mid_animation_reslicing(qapp):
     engine, component, chart = _create_chart(point_count=10)
     try:
         chart.setProperty("wheelZoomRequest", 1)
-        mapped_positions = []
+        active_positions = []
+        active_point_counts = []
         for _ in range(5):
             _pump(20)
-            mapped_positions.append(chart.property("mappedMidpoint"))
+            if chart.property("transitionActive"):
+                active_positions.append(chart.property("mappedMidpoint"))
+                active_point_counts.append(chart.property("renderedPointCount"))
 
-        assert chart.property("renderedPointCount") == 10
-        assert len({round(value, 4) for value in mapped_positions}) >= 3
-        assert mapped_positions == sorted(mapped_positions)
+        assert active_point_counts
+        assert active_point_counts == [10] * len(active_point_counts)
+        assert len({round(value, 4) for value in active_positions}) >= 3
+        assert active_positions == sorted(active_positions)
 
         _wait_for_transition(chart)
         assert chart.property("viewportScale") == pytest.approx(1)
