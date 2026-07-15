@@ -143,6 +143,7 @@ class WindowCloseEvent:
 
 
 from ._window_builder import WindowBuilderMixin
+from ._window_init import initialize_splash_state, initialize_window_state
 from ._page_manager import PageManagerMixin
 from ._window_compat import WindowCompatMixin
 from ._window_show import ensure_initial_pages, make_show_profile, show_window_root
@@ -176,44 +177,12 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
             parent: 父对象
         """
         super().__init__(parent)
-
-        self._window_type = window_type
-        self._engine: Optional[QQmlApplicationEngine] = None
-        self._window: Optional[QQuickWindow] = None
-        self._content_area: Optional[QQuickItem] = None
-        # ⚠️ 启动时序: 子类常在 __init__ 里调 setWindowTitle/setMicaEffectEnabled 等,
-        # 此时 _window 还没创建,直接 setProperty 会被静默吞掉。这两个字典缓存早期调用,
-        # _create_window 完成后由 _apply_pending_state 统一刷给 QML。
-        self._pending_props: Dict[str, Any] = {}
-        self._pending_calls: List[tuple] = []   # [(method_name, qvariant_arg), ...]
-
-        self._title = "PrismQML App"
-        self._width = 1200
-        self._height = 800
-        self._icon = ""
-        self._icon_colored = True
-
-        self._nav_items: List[NavigationItem] = []
-        self._bottom_nav_items: List[NavigationItem] = []
-        self._current_index = 0
-
-        self._pages: Dict[int, Any] = {}
+        initialize_window_state(self, window_type)
         # 从配置读取懒加载设置 Read lazy loading from config
         from ..config import getConfigManager
 
         self._lazy_loading = getConfigManager().lazyLoading
-
-        # ==================== Splash 启动画面 ====================
-        # 默认开启: _create_window 末尾会自动实例化 SplashScreen.qml 并挂到 QML
-        # 根对象的 _splashInstance,首屏内容真正加载完成时由框架
-        # (WindowsBar/Split/Filled -> NavigationWindowCore._dismissSplashWhenReady)
-        # 自动淡出。不想要的项目调 setSplashEnabled(False) 关掉即可。
-        self._splash_enabled = True
-        # 文本/图标默认留空,_create_splash 时回退到窗口自身的 icon/title。
-        self._splash_icon = ""        # 图标路径或图标名,空=用 windowIcon
-        self._splash_title = ""       # 标题,空=用 windowTitle
-        self._splash_subtitle = ""    # 副标题/加载文字,空=不显示
-        self._splash_instance: Optional[QQuickItem] = None
+        initialize_splash_state(self)
 
     # ==================== 窗口属性 ====================
 
