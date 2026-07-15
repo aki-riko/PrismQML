@@ -29,6 +29,8 @@ Window {
     width: 420
     height: 260
     property int commitCount: 0
+    property int secondCommitCount: 0
+    property int targetClickCount: 0
 
     Fluent.Card {
         id: card
@@ -44,6 +46,37 @@ Window {
             width: 260
             text: "gpt-5.6-sol"
             onEditingFinished: root.commitCount += 1
+        }
+
+        Fluent.LineEdit {
+            id: secondEdit
+            objectName: "focusSecondEdit"
+            x: 24
+            y: 80
+            width: 260
+            text: "second"
+            onEditingFinished: root.secondCommitCount += 1
+        }
+
+        TextEdit {
+            id: textEdit
+            objectName: "focusTextEdit"
+            x: 24
+            y: 136
+            width: 260
+            height: 40
+            text: "multiline"
+            activeFocusOnPress: true
+        }
+
+        MouseArea {
+            id: target
+            objectName: "focusTarget"
+            x: card.width - 80
+            y: 30
+            width: 50
+            height: 50
+            onClicked: root.targetClickCount += 1
         }
     }
 }
@@ -92,14 +125,20 @@ def _create_focus_window(app):
 
 
 def _find_focus_items(window):
-    """Return the Card and its internal TextInput. 返回卡片和内部输入项。"""
+    """Return the real focus targets. 返回真实焦点目标。"""
     items = list(_visual_items(window.contentItem()))
     card = next(item for item in items if item.objectName() == "focusCard")
     edit = next(item for item in items if item.objectName() == "focusEdit")
-    text_input = next(
+    second_edit = next(item for item in items if item.objectName() == "focusSecondEdit")
+    text_edit = next(item for item in items if item.objectName() == "focusTextEdit")
+    target = next(item for item in items if item.objectName() == "focusTarget")
+    first_input = next(
         item for item in _visual_items(edit) if item.inherits("QQuickTextInput")
     )
-    return card, text_input
+    second_input = next(
+        item for item in _visual_items(second_edit) if item.inherits("QQuickTextInput")
+    )
+    return card, first_input, second_input, text_edit, target
 
 
 def _verify_click_flow(window, card, text_input) -> None:
@@ -131,6 +170,39 @@ def _verify_click_flow(window, card, text_input) -> None:
     assert window.property("commitCount") == 1
 
 
+def _click_item(window, item) -> None:
+    """Click the center of one visual item. 点击视觉项中心。"""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    point = _scene_point(item, item.width() / 2, item.height() / 2)
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, point
+    )
+    QTest.qWait(50)
+
+
+def _verify_cross_input_and_delivery(window, second_input, text_edit, target) -> None:
+    """Verify input switching and downstream delivery. 验证切换与继续投递。"""
+    from PySide6.QtGui import QGuiApplication
+
+    _click_item(window, second_input)
+    assert QGuiApplication.focusObject() is second_input
+    _click_item(window, text_edit)
+    assert QGuiApplication.focusObject() is text_edit
+    assert window.property("secondCommitCount") == 1
+    _click_item(window, target)
+    focus_object = QGuiApplication.focusObject()
+    assert not (
+        focus_object
+        and (
+            focus_object.inherits("QQuickTextInput")
+            or focus_object.inherits("QQuickTextEdit")
+        )
+    )
+    assert window.property("targetClickCount") == 1
+
+
 def _run_child() -> int:
     """Run the regression in a fresh QApplication process. 在全新进程中验证。"""
     sys.path.insert(0, str(REPO_ROOT))
@@ -142,8 +214,9 @@ def _run_child() -> int:
     assert installed_filter is not None
     assert installed_filter.parent() == app.qapp
     component, window = _create_focus_window(app)
-    card, text_input = _find_focus_items(window)
-    _verify_click_flow(window, card, text_input)
+    card, first_input, second_input, text_edit, target = _find_focus_items(window)
+    _verify_click_flow(window, card, first_input)
+    _verify_cross_input_and_delivery(window, second_input, text_edit, target)
     window.close()
     del component
     App._reset()
