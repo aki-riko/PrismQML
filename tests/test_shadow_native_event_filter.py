@@ -81,6 +81,35 @@ def _prepare_install(monkeypatch, outcomes):
     return app
 
 
+def _prepare_recording_install(monkeypatch):
+    events = []
+    candidate = object()
+
+    class RecordingApp:
+        def installNativeEventFilter(self, event_filter):
+            events.append(("install", event_filter))
+            assert shadow._dwm_sync_filter is None
+
+    def construct_filter():
+        events.append("construct")
+        return candidate
+
+    def record_info(message):
+        assert shadow._dwm_sync_filter is candidate
+        events.append(("info", message))
+
+    monkeypatch.setattr(shadow.sys, "platform", "win32")
+    monkeypatch.setattr(
+        shadow,
+        "QApplication",
+        SimpleNamespace(instance=RecordingApp),
+    )
+    monkeypatch.setattr(shadow, "DwmSyncFilter", construct_filter)
+    monkeypatch.setattr(shadow, "info", record_info)
+    monkeypatch.setattr(shadow, "_dwm_sync_filter", None)
+    return candidate, events
+
+
 def test_native_event_filter_logs_runtime_error_and_keeps_dispatching(monkeypatch):
     messages = []
     monkeypatch.setattr(shadow, "exception", messages.append)
@@ -151,6 +180,19 @@ def test_install_success_is_idempotent(monkeypatch):
     assert shadow.installDwmSyncFilter() is True
 
     assert app.filters == [installed_filter]
+
+
+def test_install_publishes_only_after_native_registration_succeeds(monkeypatch):
+    candidate, events = _prepare_recording_install(monkeypatch)
+
+    assert shadow.installDwmSyncFilter() is True
+
+    assert shadow._dwm_sync_filter is candidate
+    assert events == [
+        "construct",
+        ("install", candidate),
+        ("info", "DWM同步过滤器已安装"),
+    ]
 
 
 def test_constructor_failure_logs_traceback_without_caching(monkeypatch):
