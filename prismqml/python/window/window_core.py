@@ -145,6 +145,7 @@ class WindowCloseEvent:
 from ._window_builder import WindowBuilderMixin
 from ._page_manager import PageManagerMixin
 from ._window_compat import WindowCompatMixin
+from ._window_show import ensure_initial_pages, make_show_profile, show_window_root
 
 
 class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixin):
@@ -501,54 +502,13 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
 
     def show(self):
         """显示窗口"""
-        profile_start = time.perf_counter()
-        profile_last = profile_start
-
-        def profile(label: str):
-            nonlocal profile_last
-            now = time.perf_counter()
-            info(
-                f"[启动剖析] WindowCore.show {label}: "
-                f"+{int((now - profile_last) * 1000)}ms / "
-                f"total {int((now - profile_start) * 1000)}ms"
-            )
-            profile_last = now
-
-        created_window = self._window is None
-        if self._window is None:
-            self._create_window()
-            profile("_create_window")
-        else:
-            profile("复用已有窗口")
-
-        if self._window:
-            if not created_window:
-                self._restore_visible_state()
-                profile("show 前恢复可见状态")
-            self._window.show()
-            profile("QQuickWindow.show")
-            if not created_window:
-                self._restore_visible_state()
-                profile("show 后恢复可见状态")
-            # 设置为当前活动窗口
-            WindowCore._current_window_instance = self
-
-            # Python侧懒加载：启动时只创建首页，其他页面在切换时创建
-            if self._lazy_loading:
-                if self._nav_items or self._bottom_nav_items:
-                    self._ensure_page_created(0)
-                    profile("创建/确认首页")
-            else:
-                # 非懒加载：预创建所有页面
-                total = len(self._nav_items) + len(self._bottom_nav_items)
-                for i in range(total):
-                    self._ensure_page_created(i)
-                profile("创建/确认全部页面")
-
-            # ✅ 2026-05-25: Mica 初始化交给 QML 端的 nativeHookReady 信号,
-            # 那里会等 _dwmDelayTimer 跑完(shadow + NativeWindow.attach 都会发
-            # SWP_FRAMECHANGED 重置 DWM backdrop)再设。Python 这里不再单独 timer,
-            # 避免抢早调用被 FRAMECHANGED 清掉,导致"启动看不到 Mica 必须开关一次"。
+        profile = make_show_profile(info)
+        if not show_window_root(self, profile):
+            return
+        WindowCore._current_window_instance = self
+        ensure_initial_pages(self, profile)
+        # Keep Mica initialization in QML nativeHookReady; no Python timer here.
+        # Mica 初始化继续由 QML nativeHookReady 负责；此处不新增 Python timer。
 
     def _find_content_area(self):
         """查找内容区域"""
