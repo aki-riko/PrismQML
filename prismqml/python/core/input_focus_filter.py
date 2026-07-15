@@ -47,6 +47,19 @@ def _is_inside(item: QQuickItem, global_pos) -> bool:
         return False
 
 
+def _mouse_global_position(event) -> tuple[bool, object]:
+    """Resolve one mouse position with the legacy fallback. 解析鼠标位置并保留旧回退。"""
+    try:
+        return True, event.globalPosition().toPoint()
+    except (AttributeError, RuntimeError) as exc:
+        debug(f"[InputFocusFilter] globalPosition 不可用,尝试 globalPos: {exc}")
+    try:
+        return True, event.globalPos()
+    except (AttributeError, RuntimeError) as fallback_exc:
+        debug(f"[InputFocusFilter] 获取鼠标全局坐标失败: {fallback_exc}")
+        return False, None
+
+
 class _InputFocusFilter(QObject):
     """全局事件过滤器 — 鼠标按下时若点击不在输入控件内, 主动清焦点."""
 
@@ -62,16 +75,9 @@ class _InputFocusFilter(QObject):
         if not _is_input_item(focus_obj):
             return False
 
-        # 拿全局坐标. PySide6 中 QMouseEvent.globalPosition 返回 QPointF
-        try:
-            gp = event.globalPosition().toPoint()
-        except (AttributeError, RuntimeError) as exc:
-            debug(f"[InputFocusFilter] globalPosition 不可用,尝试 globalPos: {exc}")
-            try:
-                gp = event.globalPos()
-            except (AttributeError, RuntimeError) as fallback_exc:
-                debug(f"[InputFocusFilter] 获取鼠标全局坐标失败: {fallback_exc}")
-                return False
+        resolved, gp = _mouse_global_position(event)
+        if not resolved:
+            return False
 
         # 点击位置在当前 focus 输入控件内 — 不清, 让 TextInput 自己处理 (光标移动等)
         if _is_inside(focus_obj, gp):

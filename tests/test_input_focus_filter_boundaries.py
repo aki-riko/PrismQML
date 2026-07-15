@@ -4,12 +4,30 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Input focus filter branch contracts. 输入焦点过滤器分支合同。"""
 
+import ast
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from PySide6.QtCore import QEvent
 
 import prismqml.python.core.input_focus_filter as focus_module
+
+
+def _input_focus_source_tree():
+    source_path = Path(focus_module.__file__).resolve()
+    source = source_path.read_text(encoding="utf-8")
+    return ast.parse(source, filename=str(source_path), feature_version=(3, 9))
+
+
+def _direct_name_call_count(node, name):
+    return sum(
+        1
+        for current in ast.walk(node)
+        if isinstance(current, ast.Call)
+        and isinstance(current.func, ast.Name)
+        and current.func.id == name
+    )
 
 
 def _resolve(outcome):
@@ -91,6 +109,29 @@ def _install_focus_context(monkeypatch, events, focus, *, is_input=True, inside=
 @pytest.fixture
 def focus_filter(qapp):
     return focus_module._InputFocusFilter()
+
+
+def test_event_filter_structure_stays_small_and_delegated():
+    tree = _input_focus_source_tree()
+    helpers = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_mouse_global_position"
+    ]
+    classes = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "_InputFocusFilter"
+    ]
+
+    assert len(helpers) == 1
+    assert len(classes) == 1
+    methods = [node for node in classes[0].body if getattr(node, "name", "") == "eventFilter"]
+    assert len(methods) == 1
+    assert [arg.arg for arg in methods[0].args.args] == ["self", "watched", "event"]
+    assert helpers[0].end_lineno - helpers[0].lineno + 1 <= 30
+    assert methods[0].end_lineno - methods[0].lineno + 1 <= 30
+    assert _direct_name_call_count(methods[0], "_mouse_global_position") == 1
 
 
 def test_non_mouse_event_stops_before_application_lookup(
