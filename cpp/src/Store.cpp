@@ -40,8 +40,8 @@ QVariant Store::get(const QString &key, const QVariant &defaultValue) const {
 
 void Store::set(const QString &key, const QVariant &value, bool force) {
     const QVariant old = m_state.value(key);
-    // 值相同跳过 (镜像 Python: not force and old == value)
-    if (!force && old == value)
+    // Skip equal values only for existing keys. 仅对已有键跳过相同值。
+    if (!force && m_state.contains(key) && old == value)
         return;
     m_state.insert(key, value);
 

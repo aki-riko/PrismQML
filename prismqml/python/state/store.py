@@ -128,8 +128,8 @@ class Store:
         """
         old = self._state.get(key)
 
-        # 值相同则跳过（除非 force=True）
-        if not force and old == value:
+        # Skip equal values only for existing keys. 仅对已有键跳过相同值（除非 force=True）。
+        if not force and key in self._state and old == value:
             return
 
         self._state[key] = value

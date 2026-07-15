@@ -114,6 +114,61 @@ int main(int argc, char *argv[]) {
     store.set(QStringLiteral("count"), 99);
     CHECK(sigCount == 1, "qtSignals.changed 发射");
 
+    // 10. 缺键 invalid QVariant 仍是一次结构变化
+    Store optionalStore(QStringLiteral("missing-null"));
+    const QString optionalKey = QStringLiteral("optional");
+    std::vector<QString> optionalEvents;
+    bool optionalPayloadsInvalid = true;
+    bool optionalEventKeysMatch = true;
+    bool optionalStateVisible = true;
+    optionalStore.watch(optionalKey, [&](const QVariant &n, const QVariant &o) {
+        optionalEvents.push_back(QStringLiteral("key"));
+        optionalPayloadsInvalid = optionalPayloadsInvalid && !n.isValid() && !o.isValid();
+        optionalStateVisible =
+            optionalStateVisible && optionalStore.values().contains(optionalKey);
+    });
+    optionalStore.watchAll(
+        [&](const QString &key, const QVariant &n, const QVariant &o) {
+            optionalEvents.push_back(QStringLiteral("global"));
+            optionalPayloadsInvalid = optionalPayloadsInvalid && !n.isValid() && !o.isValid();
+            optionalEventKeysMatch = optionalEventKeysMatch && key == optionalKey;
+            optionalStateVisible =
+                optionalStateVisible && optionalStore.values().contains(optionalKey);
+        });
+    QObject::connect(
+        optionalStore.qtSignals(), &StoreSignals::changed,
+        [&](const QString &key, const QVariant &n, const QVariant &o) {
+            optionalEvents.push_back(QStringLiteral("signal"));
+            optionalPayloadsInvalid = optionalPayloadsInvalid && !n.isValid() && !o.isValid();
+            optionalEventKeysMatch = optionalEventKeysMatch && key == optionalKey;
+            optionalStateVisible =
+                optionalStateVisible && optionalStore.values().contains(optionalKey);
+        });
+    optionalStore.set(optionalKey, QVariant());
+    CHECK(optionalStore.keys().contains(optionalKey), "缺键 invalid QVariant 被创建");
+    CHECK(optionalStore.values().contains(optionalKey), "values 保留 invalid QVariant 键");
+    CHECK(optionalEvents == std::vector<QString>({QStringLiteral("key"),
+                                                  QStringLiteral("global"),
+                                                  QStringLiteral("signal")}),
+          "缺键通知顺序为 key/global/signal");
+    CHECK(optionalPayloadsInvalid, "缺键通知保持 invalid new/old 载荷");
+    CHECK(optionalEventKeysMatch, "缺键通知保持目标 key");
+    CHECK(optionalStateVisible, "缺键通知前状态已写入");
+    optionalEvents.clear();
+    optionalStore.set(optionalKey, QVariant());
+    CHECK(optionalEvents.empty(), "已有 invalid QVariant 同值不重复通知");
+    optionalStore.set(optionalKey, QVariant(), true);
+    CHECK(optionalEvents.size() == 3, "已有 invalid QVariant force 仍通知");
+    Store definedOptionalStore(QStringLiteral("defined-null"));
+    int definedOptionalNotifications = 0;
+    definedOptionalStore.define(optionalKey, QVariant());
+    definedOptionalStore.watchAll(
+        [&](const QString &, const QVariant &, const QVariant &) {
+            ++definedOptionalNotifications;
+        });
+    definedOptionalStore.set(optionalKey, QVariant());
+    CHECK(definedOptionalNotifications == 0, "已定义 invalid QVariant 同值仍跳过");
+
     qInfo() << "=== Logger 测试 ===";
     log::info(QStringLiteral("Logger info 测试"), QStringLiteral("TEST"));
     log::warning(QStringLiteral("Logger warning 测试"));
