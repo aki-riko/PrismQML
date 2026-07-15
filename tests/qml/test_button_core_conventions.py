@@ -41,6 +41,8 @@ Item {
     readonly property int featureDropdown: Enums.button.feature_dropdown
     readonly property int featureSplit: Enums.button.feature_split
     readonly property int featureProgress: Enums.button.feature_progress_bar
+    readonly property int alignCenter: Enums.button.align_center
+    readonly property int alignLeft: Enums.button.align_left
     readonly property real aliasBorderWidth: aliasButton.border.width
     readonly property color aliasBorderColor: aliasButton.border.color
     readonly property real expectedBorderWidth: Enums.border.thick
@@ -94,6 +96,14 @@ Item {
         showProgress: true
         toolTipText: ""
     }
+
+    MenuBar {
+        id: menuBar
+        objectName: "menuBar"
+        x: 220
+        width: 200
+        items: ["File"]
+    }
 }
 """
 
@@ -144,6 +154,16 @@ def _descendants(root):
         child = pending.pop()
         result.append(child)
         pending.extend(child.children())
+    return result
+
+
+def _visual_descendants(root):
+    result = []
+    pending = list(root.childItems())
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(child.childItems())
     return result
 
 
@@ -276,24 +296,40 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
     root, warnings, windows_before = button_core_scene
     button = _button(root, "lifecycleButton")
     scenarios = (
-        ("featureNone", (1, 0, 0)),
-        ("featureDropdown", (1, 1, 0)),
-        ("featureSplit", (1, 1, 0)),
-        ("featureProgress", (1, 0, 1)),
-        ("featureNone", (1, 0, 0)),
+        ("featureNone", (1, 0, 0), "alignCenter"),
+        ("featureDropdown", (1, 1, 0), "alignLeft"),
+        ("featureSplit", (1, 1, 0), "alignLeft"),
+        ("featureProgress", (1, 0, 1), "alignCenter"),
+        ("featureNone", (1, 0, 0), "alignCenter"),
     )
-    for feature_name, expected in scenarios:
+    for feature_name, expected, alignment_name in scenarios:
         _set_feature(root, feature_name)
         content = _content_modules(button)
         dropdown = _dropdown_modules(button)
         progress = _progress_modules(button)
         assert (len(content), len(dropdown), len(progress)) == expected
+        assert button.property("contentAlignment") == root.property(alignment_name)
         if dropdown:
             _assert_dropdown_bindings(root, button, dropdown[0])
         if progress:
             _assert_progress_bindings(button, progress[0])
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
+
+
+def test_menu_bar_buttons_default_to_left_alignment(button_core_scene):
+    root, warnings, windows_before = button_core_scene
+    menu_bar = _button(root, "menuBar")
+    menu_buttons = [
+        child
+        for child in _visual_descendants(menu_bar)
+        if child.metaObject().indexOfProperty("contentAlignment") >= 0
+    ]
+    assert len(menu_buttons) == 1
+    assert menu_buttons[0].property("text") == "File"
+    assert menu_buttons[0].property("contentAlignment") == root.property("alignLeft")
+    assert warnings == []
+    assert _new_visible_windows(windows_before) == []
 
 
 def test_button_core_source_conventions():

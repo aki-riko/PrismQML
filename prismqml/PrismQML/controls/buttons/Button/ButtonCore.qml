@@ -25,7 +25,10 @@ Widget {
     property int style: Enums.button.style_default
     property int shape: Enums.button.shape_default
     property int feature: Enums.button.feature_none
-    property int contentAlignment: Enums.button.align_center  // Content alignment 内容对齐
+    property int contentAlignment: feature === Enums.button.feature_dropdown ||
+                                   feature === Enums.button.feature_split
+                                   ? Enums.button.align_left
+                                   : Enums.button.align_center  // Content alignment 内容对齐
 
     // Button content 按钮内容
     property string text: ""

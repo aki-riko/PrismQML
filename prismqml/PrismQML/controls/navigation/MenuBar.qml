@@ -66,6 +66,7 @@ Rectangle {
                     style: Enums.button.style_transparent
                     text: modelData.text || modelData
                     flat: true
+                    contentAlignment: Enums.button.align_left
                     
                     // Custom padding via implicitWidth 通过implicitWidth自定义padding
                     implicitWidth: menuBtnText.implicitWidth + control.itemPadding * 2
