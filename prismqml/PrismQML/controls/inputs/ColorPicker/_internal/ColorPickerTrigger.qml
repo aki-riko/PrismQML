@@ -27,6 +27,7 @@ Item {
         id: btn
         anchors.fill: parent
         feature: Enums.button.feature_dropdown
+        contentAlignment: Enums.button.align_center
         enabled: control.enabled
         dropdownOpen: control.isOpen  // Sync arrow animation with popup state 同步箭头动画与弹窗状态
         onClicked: control.clicked()

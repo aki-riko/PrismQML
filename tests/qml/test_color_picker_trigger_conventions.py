@@ -6,7 +6,8 @@
 
 from pathlib import Path, PurePosixPath
 
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+import pytest
+from PySide6.QtCore import QEventLoop, QObject, QPointF, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -40,6 +41,10 @@ Item {
     readonly property color updatedColor: Enums.statusLevel.warningColor
     readonly property real triggerWidth: Enums.colorPickerMetrics.triggerWidth
     readonly property real triggerHeight: Enums.controlSize.inputHeight
+    readonly property real swatchSize: Enums.spacing.xxl
+    readonly property real expectedSwatchX: (triggerWidth - swatchSize) / 2 - Enums.spacing.m
+    readonly property real expectedSwatchY: (triggerHeight - swatchSize) / 2
+    readonly property int centerAlignment: Enums.button.align_center
 
     width: 240
     height: 80
@@ -104,6 +109,16 @@ def _descendants(root):
     return result
 
 
+def _visual_descendants(root):
+    result = []
+    pending = list(root.childItems())
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(child.childItems())
+    return result
+
+
 def _trigger(picker):
     matches = [
         child
@@ -132,6 +147,21 @@ def _trigger_button(trigger):
     return matches[0]
 
 
+def _color_swatch(root, button):
+    matches = [
+        child
+        for child in _visual_descendants(button)
+        if child.metaObject().indexOfProperty("color") >= 0
+        and child.property("color") == root.property("initialColor")
+        and child.width() == pytest.approx(root.property("swatchSize"))
+        and child.height() == pytest.approx(root.property("swatchSize"))
+    ]
+    assert len(matches) == 1, [
+        child.metaObject().className() for child in matches
+    ]
+    return matches[0]
+
+
 def test_color_picker_trigger_parent_bindings(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, root, warnings = _create_scene()
@@ -145,7 +175,14 @@ def test_color_picker_trigger_parent_bindings(qapp):
         assert trigger.property("implicitWidth") == button.property("implicitWidth")
         assert trigger.property("implicitHeight") == button.property("implicitHeight")
         assert button.property("feature") == root.property("dropdownFeature")
+        assert button.property("contentAlignment") == root.property("centerAlignment")
         assert not button.property("dropdownOpen")
+        swatch = _color_swatch(root, button)
+        swatch_position = swatch.mapToItem(button, QPointF())
+        assert swatch_position.x() == pytest.approx(root.property("expectedSwatchX"))
+        assert swatch_position.y() == pytest.approx(root.property("expectedSwatchY"))
+        assert swatch_position.x() >= 0
+        assert swatch_position.x() + swatch.width() <= button.width()
         picker.setProperty("selectedColor", root.property("updatedColor"))
         picker.setProperty("enabled", False)
         picker.setProperty("_isOpen", True)

@@ -56,7 +56,7 @@ Rectangle {
                 Label {
                     id: menuBtnText
                     visible: false
-                    type: Enums.label.type_caption
+                    type: Enums.label.type_body
                     text: modelData.text || modelData
                 }
                 
@@ -68,8 +68,8 @@ Rectangle {
                     flat: true
                     contentAlignment: Enums.button.align_left
                     
-                    // Custom padding via implicitWidth 通过implicitWidth自定义padding
-                    implicitWidth: menuBtnText.implicitWidth + control.itemPadding * 2
+                    // Custom padding via preferredWidth 通过preferredWidth自定义padding
+                    preferredWidth: menuBtnText.implicitWidth + control.itemPadding * 2
                     implicitHeight: Enums.controlSize.inputHeight
                     
                     onClicked: {

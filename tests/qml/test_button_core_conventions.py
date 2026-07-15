@@ -7,7 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QObject, QPointF, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -43,6 +43,8 @@ Item {
     readonly property int featureProgress: Enums.button.feature_progress_bar
     readonly property int alignCenter: Enums.button.align_center
     readonly property int alignLeft: Enums.button.align_left
+    readonly property int contentLeftMargin: Enums.spacing.m
+    readonly property int wideMenuPadding: Enums.spacing.xxxl
     readonly property real aliasBorderWidth: aliasButton.border.width
     readonly property color aliasBorderColor: aliasButton.border.color
     readonly property real expectedBorderWidth: Enums.border.thick
@@ -102,6 +104,7 @@ Item {
         objectName: "menuBar"
         x: 220
         width: 200
+        itemPadding: root.wideMenuPadding
         items: ["File"]
     }
 }
@@ -165,6 +168,10 @@ def _visual_descendants(root):
         result.append(child)
         pending.extend(child.childItems())
     return result
+
+
+def _mapped_x(item, ancestor):
+    return item.mapToItem(ancestor, QPointF()).x()
 
 
 def _matching(root, *properties):
@@ -309,6 +316,10 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
         progress = _progress_modules(button)
         assert (len(content), len(dropdown), len(progress)) == expected
         assert button.property("contentAlignment") == root.property(alignment_name)
+        if alignment_name == "alignLeft":
+            assert _mapped_x(content[0], button) == pytest.approx(
+                root.property("contentLeftMargin")
+            )
         if dropdown:
             _assert_dropdown_bindings(root, button, dropdown[0])
         if progress:
@@ -326,8 +337,14 @@ def test_menu_bar_buttons_default_to_left_alignment(button_core_scene):
         if child.metaObject().indexOfProperty("contentAlignment") >= 0
     ]
     assert len(menu_buttons) == 1
-    assert menu_buttons[0].property("text") == "File"
-    assert menu_buttons[0].property("contentAlignment") == root.property("alignLeft")
+    menu_button = menu_buttons[0]
+    content = _content_modules(menu_button)
+    assert len(content) == 1
+    assert menu_button.property("text") == "File"
+    assert menu_button.property("contentAlignment") == root.property("alignLeft")
+    content_x = _mapped_x(content[0], menu_button)
+    assert content_x == pytest.approx(root.property("contentLeftMargin"))
+    assert menu_button.width() - content_x - content[0].width() > content_x
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 
