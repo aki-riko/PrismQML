@@ -135,16 +135,20 @@ class Store:
         self._state[key] = value
 
         if self._batch_mode:
-            # 批量模式：记录变化，稍后统一通知
-            if key not in self._batch_changes:
-                self._batch_changes[key] = (value, old)
-            else:
-                # 保留最早的 old 值
-                _, original_old = self._batch_changes[key]
-                self._batch_changes[key] = (value, original_old)
+            self._record_batch_change(key, value, old)
         else:
             # 立即通知
             self._notify(key, value, old)
+
+    def _record_batch_change(self, key: str, value: Any, old: Any) -> None:
+        """Record one delayed batch notification. 记录一项延迟批处理通知。"""
+        if key not in self._batch_changes:
+            self._batch_changes[key] = (value, old)
+            return
+
+        # Preserve the first old value. 保留最早的旧值。
+        _, original_old = self._batch_changes[key]
+        self._batch_changes[key] = (value, original_old)
 
     def _notify(self, key: str, new_value: Any, old_value: Any) -> None:
         """通知订阅者
