@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """QML SVG icon migration regressions. QML SVG 图标迁移回归测试。"""
 
+import time
 import pytest
 
 from PySide6.QtCore import QEventLoop, QObject, QPoint, QSize, Qt, QTimer, QUrl
@@ -67,12 +68,44 @@ Window {
     }
 }
 """
+_SCALE_STABILITY_MS = 30
 
 
 def _pump(milliseconds: int = 50) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _wait_for_scale(item: QQuickItem, target: float, timeout_ms: int = 500) -> None:
+    loop = QEventLoop()
+    poll = QTimer()
+    stable_since = None
+    last_value = item.scale()
+
+    def check_scale() -> None:
+        nonlocal stable_since, last_value
+        last_value = item.scale()
+        now = time.monotonic()
+        if last_value == pytest.approx(target):
+            stable_since = stable_since or now
+            if (now - stable_since) * 1000 >= _SCALE_STABILITY_MS:
+                loop.quit()
+        else:
+            stable_since = None
+
+    poll.setInterval(5)
+    poll.timeout.connect(check_scale)
+    poll.start()
+    check_scale()
+    QTimer.singleShot(timeout_ms, loop.quit)
+    loop.exec()
+    poll.stop()
+    stable_ms = 0 if stable_since is None else (time.monotonic() - stable_since) * 1000
+    assert stable_ms >= _SCALE_STABILITY_MS, (
+        f"scale did not stabilize at {target} within {timeout_ms} ms; "
+        f"last value was {last_value}"
+    )
 
 
 def _create_window(engine: QQmlApplicationEngine) -> tuple[QQmlComponent, QQuickWindow]:
@@ -259,8 +292,7 @@ def _assert_rating_interaction(window: QQuickWindow) -> None:
     assert rating is not None
     first_star = _icons_named(rating, "StarFilled")[0]
     QTest.mouseMove(window, QPoint(352, 192))
-    _pump(150)
-    assert first_star.scale() == pytest.approx(1.15)
+    _wait_for_scale(first_star, 1.15)
     _click(window, QPoint(404, 192))
     assert rating.property("value") == 3
     assert len(_icons_named(rating, "StarFilled")) == 3
