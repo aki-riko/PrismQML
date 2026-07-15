@@ -216,6 +216,8 @@ P1 后代错误框止血已完成：用户再次反馈同一全量测试在桌�
 
 最终边界：真实弹窗来源、命令、仓库内目标路径、时间、标题和失败码已由用户澄清、原始任务记录与 Windows 事件日志交叉坐实；同一命令复验、连续三轮完整门禁及用户桌面确认均已通过，P1+ 可以关闭。项目文档已明确禁止直接启动 `prism_test_*.exe`、`prism_native_failure_helper.exe` 与 `prism_native_failure_loader.exe`；pre-main 失败无法由 EXE 内部代码拦截，必须由 CTest/runner 外层保护。`-c`/覆盖 addopts 等主动绕过项目 pytest 配置、直接启动原生测试 EXE、外部 broker、刻意逃逸 Desktop/Job，或同用户代码伪造同名 Desktop/Job，均不属于该可靠性入口契约。
 
+2026-07-16 P1 CI 句柄对象身份判据后续已完成：Build All [29443774449](https://github.com/aki-riko/PrismQML/actions/runs/29443774449) 的 `Desktop windows-latest` 在 `test_only_standard_handles_are_inherited_by_test_process` 返回 91，专项汇总 `26 passed / 1 failed / 1 skipped`，其余六个作业成功。修前判据把“子进程中同一句柄数值可调用 `SetEvent()`”直接视为父 event 被继承；本机真实 Windows 诊断构造出子进程 `SetEvent()` 成功而父 event 仍为 `WAIT_TIMEOUT=258` 的输入，证明进程内句柄编号可被无关 event 复用。反向故意使用 `close_fds=False` 真继承时，父 event 变为 `WAIT_OBJECT_0=0`。测试现改为以父 event 状态验证对象身份，仍拒绝非 `ERROR_INVALID_HANDLE` 的异常失败；生产 launcher 未改。定向入口 `27 passed / 1 skipped`、全量 Python `1828 passed / 1 skipped`、QML `169 OK / 0 错误 / 12 跳过`、headless CTest `8/8`、changed QML 0、Python 3.9 AST、compileall 与 `git diff --check` 全绿，全部 runner 零可见窗口/零残留；独立 Review P0–P3 全零。修复提交：`72c24eda`；同一 `windows-2025-vs2026` 镜像系列的 Build All [29445180749](https://github.com/aki-riko/PrismQML/actions/runs/29445180749) 七个作业全绿。
+
 ### P2：修复 sdist 并建立发布制品门禁
 
 预期效果：sdist 可独立构建 Rust 扩展；不完整制品无法进入 PyPI 发布 job。
@@ -890,6 +892,7 @@ git diff --check
 |---|---|---|---|
 | P0 基线固化 | 已完成 | 固化审计输入与 12 个合法 QML skip；当前回归基线为 Python 122、QML 169/0/12、CTest 7/7 | `1dd7e9a2` |
 | P1 CTest 与 C++ CI | 已完成 | 历史 68 条 DLL 弹窗与 3 次错误生命周期原生崩溃已追溯；统一 runner 覆盖 Python/QML/C++/制品入口。最新止血让 Python/C++ 自动测试及普通后代持续继承 `ErrorMode=0x8003`；专项 13/1、Python 228/1、QML 169/0/12、MSVC 构建、headless CTest 6/6、Windows native 1/1、changed 0 全绿，同一 105 秒真实测试入口未观察到新增顶层窗口，匹配 Event 26/1000/1001 与 dump 增量为 0；Build All [29158555858](https://github.com/aki-riko/PrismQML/actions/runs/29158555858) 的 QML conventions、Windows 零交互门禁、三平台桌面、Android 与 iOS 共 7 个作业全绿，Deploy Docs [29158555852](https://github.com/aki-riko/PrismQML/actions/runs/29158555852) 成功 | `1dd7e9a2`、`2db05888`、`6d96a2a`、`a75540f`、`ce9e0a0`、`5c290a93`、`75ef786`、`383dbeb`、`1d76047` |
+| P1 CI 句柄对象身份判据 | 已完成 | 句柄数值复用误报已由“子同数值成功/父 event 仍 timeout”与 `close_fds=False` 真继承对照坐实；测试改用父 event 状态验证对象身份。全量 Python 1828/1、QML 169/0/12、CTest 8/8，Build All [29445180749](https://github.com/aki-riko/PrismQML/actions/runs/29445180749) 七项全绿 | `72c24eda` |
 | P1+ Windows 机制级零窗口门禁 | 已完成 | 用户已澄清弹窗来自 Codex 测试；原始任务记录恢复出 2026-07-11 04:55 的真实裸 CTest 命令，六个仓内 EXE 与历史 Event 26 均对应 `0xC0000135`/缺 Qt DLL。当前同一命令 Rust 6/6、CTest 8/8；随后连续三轮 Python 297/1、QML 169/0/12、headless 6/6，runner 窗口/Job 归零，交互桌面本仓窗口、Event 26/1000/1001 与 dump 增量均为 0；用户于 17:28 明确确认本轮没有出现错误弹窗。入口另有精确 Desktop/命名 Job 验真及 11-case 原生失败矩阵 | `728b65a4`、`50714b38`、`af65069d`、`daec535`、`1a5b004` |
 | P2 sdist 与发布门禁 | 已完成 | sdist 独立构建、内容校验、全新 venv 安装、QML 169/0/12 与 provider 30 次操作通过；Release [29114520829](https://github.com/aki-riko/PrismQML/actions/runs/29114520829) 全绿 | `a36ba3f5` |
 | P3 Provider 生命周期 | 已完成 | 旧 wheel/源码真实输入 3/3 复现已删除对象；修后本地 wheel 与 sdist 各 30/30，CI Linux wheel 与 sdist 各 30 次操作通过 | `4d067411`、`ca256f5b`、`1c344dd1`、`3c831aed`、`13a258fe` |
