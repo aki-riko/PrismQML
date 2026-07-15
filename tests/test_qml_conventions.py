@@ -71,6 +71,53 @@ def test_style_rules_ignore_log_message_contents():
     assert "QML011" not in _rules(source)
 
 
+def test_comment_swallowed_statements_report_high_confidence_cases():
+    source = """Item {
+    property bool _isInViewport: true
+    // Calculate viewport    function _updateViewport() {
+    // Recompute state    if (ready) {
+    // Fallback state    _isInViewport = true
+    // Hide now    visible = false
+    // Reset size    implicitWidth = 0
+    // Reparent now    parent = target
+    // Fill parent    anchors.fill = parent
+}
+"""
+
+    violations = scanner.scan_source_text(source, LIBRARY_PATH)
+    lines = [item.line for item in violations if item.rule == "QML014"]
+
+    assert lines == [3, 4, 5, 6, 7, 8, 9]
+
+
+def test_comment_swallowed_guard_ignores_commented_code_examples():
+    source = """Item {
+    property bool _isInViewport: true
+    // Usage:
+    //   function _updateViewport() {
+    //       if (ready) {
+    //           _isInViewport = true
+    // The function and if words are documentation.
+}
+"""
+
+    assert "QML014" not in _rules(source)
+
+
+def test_comment_swallowed_guard_ignores_block_comments_and_template_strings():
+    source = """Item {
+    /*
+    // Block example    function demo() {
+    */
+    property string template: `first
+    // Template example    visible = false
+    last`
+}
+"""
+
+    assert "QML014" not in _rules(source)
+
+
 def test_color_bindings_report_literals_inside_expressions():
     source = """Item {
     readonly property color contrast: tinted ? "#000000" : "#ffffff"

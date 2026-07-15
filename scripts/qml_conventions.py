@@ -14,6 +14,7 @@ from typing import Sequence
 if __package__:
     from . import qml_scan_scope as _scan_scope
     from .qml_color_arrays import color_array_literal_lines
+    from .qml_comment_guard import commented_executable_lines
     from .qml_color_contexts import color_literal_lines as _color_literal_lines
     from .qml_color_dataflow import analyze_color_dataflow
     from .qml_lexer import sanitize_qml as _sanitize_qml
@@ -21,6 +22,7 @@ if __package__:
 else:
     import qml_scan_scope as _scan_scope
     from qml_color_arrays import color_array_literal_lines
+    from qml_comment_guard import commented_executable_lines
     from qml_color_contexts import color_literal_lines as _color_literal_lines
     from qml_color_dataflow import analyze_color_dataflow
     from qml_lexer import sanitize_qml as _sanitize_qml
@@ -423,6 +425,12 @@ def scan_text(text: str, path: PurePosixPath) -> list[Violation]:
     violations = _scan_imports_and_theme(code_lines, source_lines, path)
     violations.extend(_scan_declarations(code_lines, source_lines, path))
     violations.extend(_scan_sections(raw_lines, path))
+    violations.extend(
+        _violation(
+            path, number, "QML014", "line comment swallows executable statement", source
+        )
+        for number, source in commented_executable_lines(text, code_lines)
+    )
     violations.extend(
         _scan_style_literals(
             code_lines, source_lines, array_code_lines, analysis.numeric_lines, path

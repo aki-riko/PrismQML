@@ -172,3 +172,28 @@ def sanitize_qml(
             result.append(_blank(segment) if kind != "string" or mask_strings else segment)
         index = end
     return "".join(result)
+
+
+def line_comment_lines(text: str) -> frozenset[int]:
+    """Return source lines where the lexer sees a real // comment. 返回真实行注释行。"""
+    result: set[int] = set()
+    context_result: list[str] = []
+    index = 0
+    line = 1
+    while index < len(text):
+        context_text = context_result if text[index] == "/" else None
+        lexeme = _lexeme(text, index, context_text)
+        if lexeme is None:
+            context_result.append(text[index])
+            if text[index] == "\n":
+                line += 1
+            index += 1
+            continue
+        end, kind = lexeme
+        segment = text[index:end]
+        if kind == "comment" and text.startswith("//", index):
+            result.add(line)
+        context_result.extend(_blank(segment))
+        line += segment.count("\n")
+        index = end
+    return frozenset(result)

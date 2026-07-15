@@ -183,10 +183,6 @@ Widget {
 
         Item {
             id: slidingIndicator
-            // 拖动期间隐藏 indicator,避免它的 shadow/border 留在原位置形成鬼影
-            // 源 tab 自身在 isDragSource 时已经渲染 selected 同款背景+边框,视觉等效
-            visible: tabRepeater.count > 0 && !control._dragging
-
             // currentTab: itemAt() 非响应式 — 首帧 delegate 未建时返回 null, 之后也不会
             // 触发绑定重算, 导致 currentTab 永远卡 null → indicator 取兜底宽 60。
             // 用 _currentTabKey 做显式刷新信号: count/currentIndex/item 增删时 bump,
@@ -197,16 +193,12 @@ Widget {
                 return (tabRepeater.count > 0 && control.currentIndex >= 0 && control.currentIndex < tabRepeater.count)
                        ? tabRepeater.itemAt(control.currentIndex) : null
             }
-
-            // 标签布局位置/宽度 (随选中项布局变化)
-            // 关键: 切换动画进行中 → 用橡皮筋引擎输出(_eng); 引擎空闲 → 直接活绑定到
-            // 选中 tab 的真实 x/width。这样首帧种子时序无论早晚, 只要 tab 宽度最终算对,
-            // indicator 立即跟到正确值, 从根上消除 seed-once 首帧竞态。
-            // (引擎仍负责切换时的橡皮筋粘滞动画; 空闲时让位给布局真值。)
-            property real tabLocalX: _eng.running ? _eng.indicatorX : (currentTab ? currentTab.x : _eng.indicatorX)
-            property real targetWidth: _eng.running ? _eng.indicatorWidth : (currentTab ? currentTab.width : _eng.indicatorWidth)
-
-
+            // Preserve engine geometry while selection or model sync is pending.
+            // 选择切换或模型同步待处理时保留引擎几何。
+            property real tabLocalX: (_eng.running || !currentTab || _syncedIndex !== control.currentIndex || _syncedTab !== currentTab)
+                                     ? _eng.indicatorX : currentTab.x
+            property real targetWidth: (_eng.running || !currentTab || _syncedIndex !== control.currentIndex || _syncedTab !== currentTab)
+                                       ? _eng.indicatorWidth : currentTab.width
             // 拖动期间叠加视觉位移,让 indicator 跟随被拖动/让位的 tab
             // 注意: 不能用 currentTab.visualOffsetX (var binding 不响应 _dragVisualIndex 变化),
             // 必须用 control 级状态自己推导
@@ -231,64 +223,82 @@ Widget {
             property real targetX: tabFlickable.x + tabLocalX + tabVisualOffsetX - scrollOffset + Enums.border.thin
             property real targetY: tabFlickable.y - tabBarBg.y + Enums.border.thin
             property real targetHeight: currentTab ? currentTab.height - Enums.spacing.xxs : Enums.controlSize.inputHeightLarge - Enums.spacing.s
-
+            property bool _engInit: false
+            property int _syncedIndex: -1
+            property Item _syncedTab: null
+            property real _layoutX: currentTab ? currentTab.x : 0
+            property real _layoutW: currentTab ? currentTab.width : Enums.controlSize.segmentedMinWidth
+            function _curRect() {
+                var t = currentTab
+                return t ? Qt.rect(t.x, 0, t.width, 1) : null
+            }
+            function _engineRect() {
+                return Qt.rect(_eng.indicatorX, 0, _eng.indicatorWidth, 1)
+            }
+            function _scheduleSync(animate) {
+                _syncTimer.animate = _syncTimer.animate || animate
+                _syncTimer.restart()
+            }
+            function _runScheduledSync() {
+                var animate = _syncTimer.animate
+                _syncTimer.animate = false
+                if (!currentTab || !_engInit) { syncIndicator(false); return }
+                if (animate && _syncedIndex !== control.currentIndex) { syncIndicator(true); return }
+                if (_syncedIndex === control.currentIndex && _syncedTab !== currentTab) _followLayout()
+            }
+            function syncIndicator(animate) {
+                var endRect = _curRect()
+                if (!endRect) {
+                    _eng.stopAnimation()
+                    _engInit = false
+                    _syncedIndex = -1
+                    _syncedTab = null
+                    return
+                }
+                if (animate && _engInit && _syncedIndex !== control.currentIndex) {
+                    _eng.animateTo(_engineRect(), endRect)
+                } else if (!_eng.running) {
+                    _eng.setGeometry(endRect)
+                }
+                _engInit = true
+                _syncedIndex = control.currentIndex
+                _syncedTab = currentTab
+            }
+            function _followLayout() {
+                if (!currentTab || !_engInit || _syncedIndex !== control.currentIndex) return
+                var rect = Qt.rect(_layoutX, 0, _layoutW, 1)
+                _syncedTab = currentTab
+                if (_eng.running) _eng.animateTo(_engineRect(), rect)
+                else _eng.setGeometry(rect)
+            }
+            // The dragged source already renders the selected background itself.
+            // 拖动源自身已渲染选中背景，拖动期间隐藏原指示器以避免鬼影。
+            visible: tabRepeater.count > 0 && currentTab && _engInit && !control._dragging
             // Direct binding, follows scroll in real-time 直接绑定，滚动时实时跟随
             x: targetX
             y: targetY
             width: targetWidth
             height: targetHeight
-
+            onCurrentTabChanged: _scheduleSync(false)
+            Component.onCompleted: _scheduleSync(false)
+            on_LayoutXChanged: _followLayout()
+            on_LayoutWChanged: _followLayout()
             // ==================== 橡皮筋引擎 (水平, 仅驱动 tabLocalX/targetWidth) ====================
             // 切换标签 → animateTo 橡皮筋; 布局变化/初始化 → setGeometry 瞬置
             SlidingIndicatorAnimation {
                 id: _eng
                 orientation: Qt.Horizontal
             }
-
-            // 选中项的布局矩形 (主轴 x/width, 副轴此处不用)
-            function _curRect() {
-                var t = currentTab
-                var w = t ? t.width : Enums.controlSize.segmentedMinWidth
-                var lx = t ? t.x : 0
-                return Qt.rect(lx, 0, w, 1)
-            }
-
-            property rect _prevRect: Qt.rect(0, 0, Enums.controlSize.segmentedMinWidth, 1)
-            property bool _engInit: false
-
-            function syncIndicator(animate) {
-                var endRect = _curRect()
-                if (animate && _engInit) {
-                    _eng.animateTo(_prevRect, endRect)
-                } else {
-                    _eng.setGeometry(endRect)
-                    _engInit = true
-                }
-                _prevRect = endRect
-            }
-
-            // currentIndex 变化 → 橡皮筋; currentTab 变化(布局/增删) → 已被 currentIndex 覆盖, 这里只兜布局尺寸
             Connections {
+                function onCurrentIndexChanged() { slidingIndicator._scheduleSync(true) }
                 target: control
-                function onCurrentIndexChanged() { Qt.callLater(function() { slidingIndicator.syncIndicator(true) }) }
             }
-            onCurrentTabChanged: Qt.callLater(function() { if (!_engInit) syncIndicator(false) })
-            Component.onCompleted: Qt.callLater(function() { syncIndicator(false) })
-
-            // 布局跟随: 引擎空闲时把 _prevRect/引擎几何同步到选中项真实 x/width,
-            // 保证下一次切换动画从正确起点出发 (indicator 显示侧已由 tabLocalX/targetWidth
-            // 的活绑定直接跟随选中项, 不依赖此处)。不打断正在进行的橡皮筋动画。
-            property real _layoutX: currentTab ? currentTab.x : 0
-            property real _layoutW: currentTab ? currentTab.width : Enums.controlSize.segmentedMinWidth
-            function _followLayout() {
-                if (_engInit && !_eng.running) {
-                    _eng.setGeometry(Qt.rect(_layoutX, 0, _layoutW, 1))
-                    _prevRect = Qt.rect(_layoutX, 0, _layoutW, 1)
-                }
+            Timer {
+                id: _syncTimer
+                property bool animate: false
+                interval: 0
+                onTriggered: slidingIndicator._runScheduledSync()
             }
-            on_LayoutXChanged: _followLayout()
-            on_LayoutWChanged: _followLayout()
-
             // Selected tab indicator shadow 选中标签指示器投影
             // Fluent: 模糊阴影; neo: 硬阴影(NeoShadow)
             RectangularShadow {
@@ -300,13 +310,11 @@ Widget {
                 offset.y: Enums.shadow.level2.offset
                 visible: control.shadowEnabled && !Enums.isNeobrutalism
             }
-
             NeoShadow {
                 target: indicatorBg
                 visible: control.shadowEnabled && Enums.isNeobrutalism
                 z: indicatorBg.z - 1
             }
-
             // Fluent Design selected tab background with border
             Rectangle {
                 id: indicatorBg
@@ -552,14 +560,15 @@ Widget {
                                 control._dragPointerRowX = pt.x
                                 control._dragSourceOffsetX = 0
                             } else if (control._dragSourceIndex >= 0) {
+                                var owner = control
                                 var from = control._dragSourceIndex
                                 var to = control._dragVisualIndex
                                 control._dragSourceIndex = -1
                                 control._dragVisualIndex = -1
                                 control._dragSourceOffsetX = 0
                                 if (from !== to && from >= 0 && to >= 0) {
-                                    control.tabsReordered(from, to)
-                                    control.currentIndex = to
+                                    owner.tabsReordered(from, to)
+                                    owner.currentIndex = to
                                 }
                             }
                         }

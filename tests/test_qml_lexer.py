@@ -10,6 +10,7 @@ from time import perf_counter
 import pytest
 
 from scripts.qml_conventions import scan_source_text
+from scripts.qml_lexer import line_comment_lines
 from scripts.qml_lexer import sanitize_qml
 
 
@@ -49,3 +50,17 @@ def test_regex_dense_sanitizing_remains_linear():
 
     assert len(sanitized) == len(source)
     assert perf_counter() - started < 1.5
+
+
+def test_line_comment_lines_ignore_block_comments_and_template_strings():
+    source = """// real one
+/*
+// block text
+*/
+`template
+// template text
+`
+// real two
+"""
+
+    assert line_comment_lines(source) == frozenset({1, 8})

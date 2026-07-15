@@ -30,45 +30,34 @@ Item {
     
     // Calculate if in viewport 计算是否在可视区域
     function _updateViewport() {
-        try {
-            if (!_flickableAncestor || !control.visible) {
-                _isInViewport = control.visible
-                return
-            }
-            // Check if contentItem exists 检查contentItem是否存在
-            if (!_flickableAncestor.contentItem) {
-                _isInViewport = true
-                return
-            }
-            // Check if height is valid 检查高度是否有效
-            if (_flickableAncestor.height <= 0) {
-                _isInViewport = true
-                return
-            }
-            var pos = control.mapToItem(_flickableAncestor.contentItem, 0, 0)
-            var viewTop = _flickableAncestor.contentY
-            var viewBottom = viewTop + _flickableAncestor.height
-            // Add buffer to avoid edge flicker 加一点缓冲区避免边缘闪烁
-            var buffer = control.height
-            _isInViewport = (pos.y + control.height + buffer > viewTop) && (pos.y - buffer < viewBottom)
-        } catch (e) {
-            // Fallback to visible if any error occurs 发生任何错误时回退到可见
-            _isInViewport = true
+        var ancestor = control._flickableAncestor
+        if (!ancestor || !control.visible) {
+            control._isInViewport = control.visible
+            return
         }
+        var contentItem = ancestor.contentItem
+        if (!contentItem || ancestor.height <= 0) {
+            control._isInViewport = true
+            return
+        }
+        var pos = control.mapToItem(contentItem, 0, 0)
+        var viewTop = ancestor.contentY
+        var viewBottom = viewTop + ancestor.height
+        // Add buffer to avoid edge flicker 加一点缓冲区避免边缘闪烁
+        var buffer = control.height
+        control._isInViewport = (pos.y + control.height + buffer > viewTop)
+                                && (pos.y - buffer < viewBottom)
     }
     
     Component.onCompleted: {
-        _flickableAncestor = _findFlickable()
-        if (_flickableAncestor) {
-            _flickableAncestor.contentYChanged.connect(_updateViewport)
-            _flickableAncestor.heightChanged.connect(_updateViewport)
-        }
-        _updateViewport()
+        control._flickableAncestor = control._findFlickable()
+        control._updateViewport()
     }
     
-    onVisibleChanged: _updateViewport()
-    onYChanged: if (_flickableAncestor) Qt.callLater(_updateViewport)
-    
+    onVisibleChanged: control._updateViewport()
+    onYChanged: if (_flickableAncestor) control._updateViewport()
+    onHeightChanged: if (_flickableAncestor) control._updateViewport()
+
     // ==================== Colors 颜色 ====================
     readonly property color baseColor: Enums.stateColor.skeletonBase
     readonly property color shimmerColor: Enums.stateColor.skeletonShimmer
@@ -100,6 +89,13 @@ Item {
 
     // Set animated (always true in this impl) 设置动画启用
     function setAnimated(a) { /* Always animated */ }
+
+    Connections {
+        function onContentYChanged() { control._updateViewport() }
+        function onHeightChanged() { control._updateViewport() }
+
+        target: control._flickableAncestor
+    }
 
     // ==================== Content Container 内容容器 ====================
     Item {
