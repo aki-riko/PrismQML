@@ -122,11 +122,25 @@ def _install_config_probe(
     monkeypatch.setattr(config, "getConfigManager", get_config_manager)
 
 
+@pytest.fixture(autouse=True)
+def _window_init_test_boundary(qapp):
+    previous = window_core.WindowCore._current_window_instance
+    _reset_recording_state()
+    try:
+        yield
+    finally:
+        window_core.WindowCore._current_window_instance = previous
+        _reset_recording_state()
+
+
 def _dispose(*objects):
     for obj in objects:
         if obj is not None and shiboken6.isValid(obj):
             obj.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    for obj in objects:
+        if obj is not None:
+            assert not shiboken6.isValid(obj)
 
 
 def _reset_recording_state():
@@ -277,8 +291,9 @@ def test_default_state_and_public_signature_are_preserved(monkeypatch):
     lazy_value = object()
     _install_config_value(monkeypatch, lazy_value)
 
-    instance = window_core.WindowCore()
+    instance = None
     try:
+        instance = window_core.WindowCore()
         _assert_public_signature()
         _assert_default_state(instance, lazy_value)
     finally:
@@ -292,21 +307,24 @@ def test_public_window_forwards_parent_and_raw_window_type(monkeypatch):
     previous = window_core.WindowCore._current_window_instance
     current_marker = object()
     window_core.WindowCore._current_window_instance = current_marker
-    instance = Window(window_type=token, parent=parent)
+    instance = None
     try:
+        instance = Window(window_type=token, parent=parent)
         assert instance.parent() is parent
         assert instance._window_type is token
         assert window_core.WindowCore._current_window_instance is current_marker
     finally:
         window_core.WindowCore._current_window_instance = previous
-        _dispose(parent)
+        _dispose(instance, parent)
 
 
 def test_mutable_state_is_fresh_within_and_across_instances(monkeypatch):
     _install_config_value(monkeypatch, True)
-    left = window_core.WindowCore()
-    right = window_core.WindowCore()
+    left = None
+    right = None
     try:
+        left = window_core.WindowCore()
+        right = window_core.WindowCore()
         values = [
             getattr(item, name)
             for item in (left, right)
@@ -331,29 +349,32 @@ def test_assignment_and_config_read_order_are_preserved(monkeypatch):
     _RecordingWindowCore.assignment_events = events
     _RecordingWindowCore.expected_parent = parent
     _install_config_probe(monkeypatch, events, parent, lazy_value)
-    instance = _RecordingWindowCore(window_type=token, parent=parent)
+    instance = None
     try:
+        instance = _RecordingWindowCore(window_type=token, parent=parent)
         assert events == _expected_success_events()
         assert instance._window_type is token
         assert instance._lazy_loading is lazy_value
     finally:
         _reset_recording_state()
-        _dispose(parent)
+        _dispose(instance, parent)
 
 
 def test_qobject_parent_owns_unopened_window_core(monkeypatch, qapp):
     _install_config_value(monkeypatch, True)
     parent = QObject()
-    instance = window_core.WindowCore(parent=parent)
-
-    assert instance.parent() is parent
-    assert instance in parent.children()
-    parent.deleteLater()
-    QCoreApplication.sendPostedEvents(parent, QEvent.DeferredDelete)
-    qapp.processEvents()
-
-    assert not shiboken6.isValid(parent)
-    assert not shiboken6.isValid(instance)
+    instance = None
+    try:
+        instance = window_core.WindowCore(parent=parent)
+        assert instance.parent() is parent
+        assert instance in parent.children()
+        parent.deleteLater()
+        QCoreApplication.sendPostedEvents(parent, QEvent.DeferredDelete)
+        qapp.processEvents()
+        assert not shiboken6.isValid(parent)
+        assert not shiboken6.isValid(instance)
+    finally:
+        _dispose(instance, parent)
 
 
 def test_invalid_parent_fails_before_any_tracked_assignment(monkeypatch):
@@ -364,16 +385,19 @@ def test_invalid_parent_fails_before_any_tracked_assignment(monkeypatch):
     window_core.WindowCore._current_window_instance = marker
     _RecordingWindowCore.assignment_events = events
     _RecordingWindowCore.expected_parent = None
+    instance = None
     try:
         with pytest.raises(TypeError):
             _RecordingWindowCore(parent=object())
         instance = _RecordingWindowCore.captured_instance
         assert events == []
         assert not hasattr(instance, "_window_type")
+        assert not shiboken6.isValid(instance)
         assert window_core.WindowCore._current_window_instance is marker
     finally:
         window_core.WindowCore._current_window_instance = previous
         _reset_recording_state()
+        _dispose(instance)
 
 
 @pytest.mark.parametrize("stage", ("factory", "property"))
