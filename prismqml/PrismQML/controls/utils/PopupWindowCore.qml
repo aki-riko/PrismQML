@@ -54,10 +54,13 @@ Item {
     function prewarm() {
         if (_prewarmed || _prewarmScheduled || isOpen) return
         _prewarmScheduled = true
-        Qt.callLater(_doPrewarm)
+        prewarmTimer.start()
     }
     function _doPrewarm() {
-        if (_prewarmed || isOpen) {
+        // A real open may win the race before this queued callback runs.
+        // 真正打开可能先于排队预热执行，此时绝不能再 show+hide 把菜单藏掉。
+        if (!_prewarmScheduled || _prewarmed || isOpen || popupWindow.visible) {
+            if (popupWindow.visible) _prewarmed = true
             _prewarmScheduled = false
             return
         }
@@ -99,6 +102,9 @@ Item {
 
         // Show window first, then trigger animation 先显示窗口，再触发动画
         popupWindow.show()
+        _prewarmed = true
+        _prewarmScheduled = false
+        prewarmTimer.stop()
         popupWindow.raise()
         if (control.stealFocus) {
             popupWindow.requestActivate()
@@ -137,6 +143,9 @@ Item {
         popupWindow.y = pos.y
         
         popupWindow.show()
+        _prewarmed = true
+        _prewarmScheduled = false
+        prewarmTimer.stop()
         popupWindow.raise()
         popupWindow.requestActivate()
         showAnimTimer.start()
@@ -217,6 +226,8 @@ Item {
         showAnim.stop()
         hideAnim.stop()
         showAnimTimer.stop()
+        _prewarmScheduled = false
+        prewarmTimer.stop()
         popupWindow.hide()
         isOpen = false
         isClosing = false
@@ -237,6 +248,12 @@ Item {
     property real _scale: 0.7
     // Follow parent control position (sync move on scroll) 跟随父控件位置变化
     property point _lastTargetGlobalPos: Qt.point(-1, -1)
+
+    Timer {
+        id: prewarmTimer
+        interval: 0
+        onTriggered: control._doPrewarm()
+    }
 
     // ==================== Show Animation 弹出动画 ====================
     // [Anim C] iOS spring: OutBack overshoot 1.4, scale 0.7→1.0, 240ms

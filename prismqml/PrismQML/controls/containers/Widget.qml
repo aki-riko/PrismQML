@@ -36,11 +36,16 @@ Item {
     property int toolTipHideDelay: Enums.duration.none
     property int toolTipPosition: Enums.position.top
 
+    // ==================== Signals 信号 ====================
+    signal _toolTipTimersCanceled()
+
     // ==================== Public Methods 公开方法 ====================
     // Public methods for tooltip control 公开的tooltip控制方法
     function showToolTip() { if (toolTipText !== "") _toolTip.show() }
-    function hideToolTip() { _toolTip.hide() }
-
+    function hideToolTip() {
+        _cancelToolTipTimers()
+        _toolTip.hide()
+    }
     // setParent - Reparent this widget to a new parent 重新设置父组件
     function setParent(newParent) {
         if (newParent && newParent !== widget.parent) {
@@ -60,6 +65,19 @@ Item {
         if (childWidget && childWidget.parent === widget) {
             childWidget.parent = null
         }
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _cancelToolTipTimers() {
+        _hoverArea._showScheduled = false
+        _showTimer.stop()
+        _hideTimer.stop()
+        _autoHideTimer.stop()
+        _toolTipTimersCanceled()
+    }
+    function _dismissToolTip() {
+        _cancelToolTipTimers()
+        _toolTip.dismiss()
     }
 
     clip: false  // Allow tooltip to overflow 允许tooltip溢出显示
@@ -136,6 +154,24 @@ Item {
         function hide() {
             _pendingShow = false
             _toolTip.close()
+        }
+        function dismiss() {
+            _pendingShow = false
+            // Explicit dismissal must not overlap a menu with the exit animation.
+            // 显式隐藏不能让退出动画继续与菜单重叠显示。
+            // Qt ignores a second close() while an exit transition is already running.
+            // Re-open without transitions to cancel that exit, then close synchronously.
+            // Qt 在退出动画运行时会忽略第二次 close()；先无动画重开以取消退出，再同步关闭。
+            var enterTransition = _toolTip.enter
+            var exitTransition = _toolTip.exit
+            _toolTip.enter = null
+            _toolTip.exit = null
+            if (_toolTip.visible) {
+                _toolTip.open()
+                _toolTip.close()
+            }
+            _toolTip.enter = enterTransition
+            _toolTip.exit = exitTransition
         }
         function _doOpen() {
             if (!_pendingShow) return

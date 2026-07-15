@@ -71,6 +71,10 @@ Widget {
     property bool pseudoPressed: false
     property bool hovered: feature === Enums.button.feature_split ? false : (hoverHandler.hovered || pseudoHovered)
     property bool pressed: feature === Enums.button.feature_split ? false : ((mouseArea && mouseArea.pressed) || pseudoPressed)
+    readonly property bool _toolTipHovered: feature === Enums.button.feature_split
+        ? (pseudoHovered || (dropdownFeature.item &&
+            (dropdownFeature.item.mainHovered || dropdownFeature.item.dropHovered)))
+        : hovered
 
     // Style helper 样式辅助
     // 用具名 property 持有(而非匿名子项), 避免被 default property alias
@@ -202,6 +206,32 @@ Widget {
         _countdownActive = true
     }
 
+    function _prewarmMenu() {
+        var hasMenuFeature = feature === Enums.button.feature_dropdown ||
+                             feature === Enums.button.feature_split
+        if (hasMenuFeature && enabled && !loading && menuItems.length > 0 &&
+                dropdownFeature.item) {
+            dropdownFeature.item.prewarmMenu()
+        }
+    }
+
+    function _retryMenuPrewarm() {
+        var splitArrowHovered = feature === Enums.button.feature_split &&
+            dropdownFeature.item && dropdownFeature.item.dropHovered
+        if (activeFocus || hoverHandler.hovered || splitArrowHovered) {
+            _prewarmMenu()
+        }
+    }
+
+    function _scheduleMenuPrewarmRetry() {
+        if (!_menuPrewarmRetryTimer.running) _menuPrewarmRetryTimer.start()
+    }
+
+    function _dismissToolTipForMenu() {
+        _btnToolTipTimer.stop()
+        _dismissToolTip()
+    }
+
     // Layout override 布局覆盖
     // 按钮默认不应填充父布局宽度（覆盖Widget基类的layoutFillWidth: true）
     layoutFillWidth: false
@@ -241,17 +271,36 @@ Widget {
     // Watch hover changes directly for reliable updates 直接监听悬浮变化以确保可靠更新
     onHoveredChanged: {
         _updateTargetColors()
+    }
+
+    on_ToolTipHoveredChanged: {
         // ToolTip trigger 触发ToolTip
         if (toolTipText !== "") {
-            if (hovered) _btnToolTipTimer.start()
+            if (_toolTipHovered) _btnToolTipTimer.start()
             else { _btnToolTipTimer.stop(); hideToolTip() }
         }
     }
 
+    onActiveFocusChanged: {
+        if (activeFocus) _prewarmMenu()
+    }
+    onMenuItemsChanged: _scheduleMenuPrewarmRetry()
+    onLoadingChanged: if (!loading) _scheduleMenuPrewarmRetry()
+    onEnabledChanged: if (enabled) _scheduleMenuPrewarmRetry()
+    on_ToolTipTimersCanceled: _btnToolTipTimer.stop()
+
     // ==================== Content 内容 ====================
     HoverHandler {
         id: hoverHandler
-        enabled: control.enabled && !control.loading && !control._countdownActive && feature !== Enums.button.feature_split
+        enabled: control.enabled && !control.loading && !control._countdownActive &&
+                 feature !== Enums.button.feature_split
+        onHoveredChanged: if (hovered) control._prewarmMenu()
+    }
+
+    Timer {
+        id: _menuPrewarmRetryTimer
+        interval: 0
+        onTriggered: control._retryMenuPrewarm()
     }
 
     // ToolTip timer for Button - override Widget's _hoverArea
@@ -259,7 +308,7 @@ Widget {
     Timer {
         id: _btnToolTipTimer
         interval: toolTipShowDelay
-        onTriggered: if (control.hovered) control.showToolTip()
+        onTriggered: if (control._toolTipHovered) control.showToolTip()
     }
 
     // Shadow layer 阴影层
@@ -534,6 +583,12 @@ Widget {
         anchors.fill: parent
         active: feature === Enums.button.feature_split ||
                 feature === Enums.button.feature_dropdown
+        onLoaded: {
+            if (control.activeFocus ||
+                    (feature === Enums.button.feature_dropdown && hoverHandler.hovered)) {
+                control._prewarmMenu()
+            }
+        }
         sourceComponent: ButtonDropdown {
             isToolButton: control.isToolButton
             feature: control.feature
@@ -546,6 +601,7 @@ Widget {
             textColor: styleHelper.textColor
             onMenuItemClicked: (index, text) => control.menuItemClicked(index, text)
             onMainButtonClicked: control.clicked()
+            onMenuAboutToOpen: control._dismissToolTipForMenu()
         }
     }
 

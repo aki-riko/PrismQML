@@ -28,6 +28,10 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property int parentStyle: 0
 
+    // ==================== Internal Props 内部属性 ====================
+    property bool _geometryPrewarmScheduled: false
+    property bool _geometryPrepared: false
+
     // ==================== Readonly State 只读状态 ====================
     // Expose menu open state for arrow animation 暴露菜单打开状态供箭头动画使用
     readonly property bool isMenuOpen: dropDownMenu.isOpen
@@ -70,8 +74,19 @@ Item {
     // ==================== Signals 信号 ====================
     signal menuItemClicked(int index, string text)
     signal mainButtonClicked()
+    signal menuAboutToOpen()
 
     // ==================== Public Methods 公开方法 ====================
+    function prewarmMenu() {
+        if (controlEnabled && !loading && menuItems.length > 0) {
+            if (!_geometryPrewarmScheduled) {
+                _geometryPrewarmScheduled = true
+                geometryPrewarmTimer.start()
+            }
+            dropDownMenu.prewarm()
+        }
+    }
+
     // Calculate max content width from menu items (imperative, avoid binding loop)
     // 根据菜单项计算最大内容宽度（命令式调用，避免绑定循环）
     function _calcContentWidth() {
@@ -100,21 +115,46 @@ Item {
         return Math.ceil(maxW)
     }
 
+    function _updatePopupWidth() {
+        var contentW = _calcContentWidth()
+        // Split mode: use content width only; Dropdown mode: max(content, button width)
+        // Split模式：仅用内容宽度；Dropdown模式：取内容宽度和按钮宽度的最大值
+        if (feature === Enums.button.feature_split) {
+            dropDownMenu.popupWidth = contentW
+        } else {
+            dropDownMenu.popupWidth = Math.max(contentW, parent.width)
+        }
+        _geometryPrepared = true
+    }
+
+    function _prewarmMenuGeometry() {
+        if (!_geometryPrewarmScheduled) return
+        _geometryPrewarmScheduled = false
+        if (controlEnabled && !loading && menuItems.length > 0) {
+            _updatePopupWidth()
+        }
+    }
+
     function openMenu() {
         if (menuItems.length > 0) {
-            var contentW = _calcContentWidth()
-            // Split mode: use content width only; Dropdown mode: max(content, button width)
-            // Split模式：仅用内容宽度；Dropdown模式：取内容宽度和按钮宽度的最大值
-            if (feature === Enums.button.feature_split) {
-                dropDownMenu.popupWidth = contentW
-            } else {
-                dropDownMenu.popupWidth = Math.max(contentW, parent.width)
-            }
+            menuAboutToOpen()
+            _geometryPrewarmScheduled = false
+            geometryPrewarmTimer.stop()
+            // Re-measure authoritatively so click geometry never relies on stale prewarm data.
+            // 点击时权威重测，避免继续使用已过期的预热几何数据。
+            _updatePopupWidth()
             dropDownMenu.openAtControl(parent)
+            _geometryPrepared = false
         }
     }
 
     // ==================== Content 内容 ====================
+    Timer {
+        id: geometryPrewarmTimer
+        interval: 0
+        onTriggered: dropdownFeature._prewarmMenuGeometry()
+    }
+
     // Split main button hover area 主按钮悬浮区域
     Rectangle {
         id: splitMainArea
@@ -174,6 +214,9 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             enabled: dropdownFeature.controlEnabled && !dropdownFeature.loading
+            onContainsMouseChanged: {
+                if (containsMouse) dropdownFeature.prewarmMenu()
+            }
             onClicked: dropdownFeature.openMenu()
         }
     }
