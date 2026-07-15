@@ -41,6 +41,7 @@ PROCESS_FORCE_KILL_WAIT_SECONDS = 5
 PROCESS_GROUP_POLL_INTERVAL_SECONDS = 0.05
 AUTOMATED_TEST_BOUNDARY_ENV = "PRISMQML_AUTOMATED_TEST_BOUNDARY"
 AUTOMATED_TEST_BOUNDARY_VERSION = "v1"
+_PYTHON_COMMAND_ALIASES = frozenset(("python", "python.exe"))
 LOGGER = logging.getLogger(__name__)
 
 if sys.platform == "win32":
@@ -324,11 +325,27 @@ def _format_return_code(return_code: int) -> str:
     return str(return_code)
 
 
+def _normalize_child_command(command: Sequence[str]) -> tuple[str, ...]:
+    """Keep a generic Python child in the runner's active environment.
+
+    让裸 Python 子命令保持在 runner 当前激活的解释器环境中。
+    """
+    normalized = tuple(command)
+    if not normalized:
+        raise ValueError("child command is empty")
+    if normalized[0] in _PYTHON_COMMAND_ALIASES:
+        if not sys.executable:
+            raise RuntimeError("current Python executable is unavailable")
+        return (sys.executable, *normalized[1:])
+    return normalized
+
+
 def run_child(command: Sequence[str], timeout: float | None = None) -> int:
     """Run one child command and preserve its raw exit status."""
+    normalized_command = _normalize_child_command(command)
     if sys.platform == "win32":
         return_code = run_isolated_windows_child(
-            command,
+            normalized_command,
             timeout,
             LOGGER,
             timeout_exit_code=TEST_TIMEOUT_EXIT_CODE,
@@ -340,7 +357,7 @@ def run_child(command: Sequence[str], timeout: float | None = None) -> int:
             LOGGER.error("[test-process] child exit code: %s", detail)
         return return_code
 
-    process = subprocess.Popen(command, start_new_session=True)
+    process = subprocess.Popen(normalized_command, start_new_session=True)
     try:
         return_code = process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
