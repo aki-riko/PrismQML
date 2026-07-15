@@ -291,9 +291,8 @@ import ctypes
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 kernel32.SetEvent.argtypes = [ctypes.c_void_p]
 kernel32.SetEvent.restype = ctypes.c_int
-if kernel32.SetEvent(ctypes.c_void_p({event})):
-    raise SystemExit(91)
-if ctypes.get_last_error() != {ERROR_INVALID_HANDLE}:
+result = kernel32.SetEvent(ctypes.c_void_p({event}))
+if not result and ctypes.get_last_error() != {ERROR_INVALID_HANDLE}:
     raise SystemExit(92)
 """
 
@@ -434,6 +433,8 @@ def test_only_standard_handles_are_inherited_by_test_process():
             [sys.executable, "-c", child_code]
         )
 
+        # Handle values can be reused for unrelated child objects; parent state proves identity.
+        # 句柄值可在子进程复用于无关对象；父 event 状态才证明对象身份。
         assert result == 0
         assert kernel32.WaitForSingleObject(event, 0) == WAIT_TIMEOUT
     finally:
