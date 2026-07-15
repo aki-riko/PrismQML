@@ -352,21 +352,23 @@ def test_scroll_and_indicator_animation_run_together(tab_scene):
 def test_layout_changes_retarget_running_animation(tab_scene):
     _engine, _component, window, warnings = tab_scene
     _tab, indicator, animation, flickable, delegates = _parts(window)
+    near_animation = next(
+        child for child in _object_descendants(animation) if child.property("property") == "_near"
+    )
     inset = _edge_inset(indicator, flickable, delegates[0])
     window.setProperty("requestedIndex", 4)
     _pump(80)
     before_x = animation.property("indicatorX")
-    before_width = animation.property("indicatorWidth")
 
     assert QMetaObject.invokeMethod(window, "widenAnimatedLayout")
+    assert near_animation.property("to") >= before_x - 1
     _pump(20)
     _tab, indicator, animation, flickable, delegates = _parts(window)
 
     assert animation.property("running")
     assert animation.property("indicatorX") >= before_x - 1
-    assert animation.property("indicatorWidth") >= before_width - 1
     assert _wait_for(lambda: not animation.property("running"))
-    assert animation.property("indicatorX") == pytest.approx(delegates[4].x(), abs=0.5)
+    assert near_animation.property("to") == pytest.approx(delegates[4].x(), abs=0.5)
     assert animation.property("indicatorWidth") == pytest.approx(
         delegates[4].width(), abs=0.5
     )

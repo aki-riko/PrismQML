@@ -244,7 +244,7 @@ Widget {
                 _syncTimer.animate = false
                 if (!currentTab || !_engInit) { syncIndicator(false); return }
                 if (animate && _syncedIndex !== control.currentIndex) { syncIndicator(true); return }
-                if (_syncedIndex === control.currentIndex && _syncedTab !== currentTab) _followLayout()
+                if (_syncedIndex === control.currentIndex) _followLayout()
             }
             function syncIndicator(animate) {
                 var endRect = _curRect()
@@ -266,7 +266,11 @@ Widget {
             }
             function _followLayout() {
                 if (!currentTab || !_engInit || _syncedIndex !== control.currentIndex) return
-                var rect = Qt.rect(_layoutX, 0, _layoutW, 1)
+                // Flush the Row after delegate replacement before reading geometry.
+                // 委托替换后先刷新 Row，再读取最终几何，避免瞬态 x=0 触发反向重定向。
+                tabRow.forceLayout()
+                var rect = _curRect()
+                if (!rect) return
                 _syncedTab = currentTab
                 if (_eng.running) _eng.animateTo(_engineRect(), rect)
                 else _eng.setGeometry(rect)
@@ -281,10 +285,10 @@ Widget {
             height: targetHeight
             onCurrentTabChanged: _scheduleSync(false)
             Component.onCompleted: _scheduleSync(false)
-            on_LayoutXChanged: _followLayout()
-            on_LayoutWChanged: _followLayout()
+            on_LayoutXChanged: _scheduleSync(false)
+            on_LayoutWChanged: _scheduleSync(false)
             // ==================== 橡皮筋引擎 (水平, 仅驱动 tabLocalX/targetWidth) ====================
-            // 切换标签 → animateTo 橡皮筋; 布局变化/初始化 → setGeometry 瞬置
+            // Selection animates; initialization snaps; layout changes retarget from the current frame. 选中切换使用橡皮筋；初始化瞬置；布局变化从当前帧重定向。
             SlidingIndicatorAnimation {
                 id: _eng
                 orientation: Qt.Horizontal
