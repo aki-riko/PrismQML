@@ -11,7 +11,7 @@ Provides Windows 11 Mica backdrop effect and Acrylic blur for PrismQML windows.
 """
 import sys
 from threading import Lock
-from typing import Optional
+from typing import Any, Optional
 from PySide6.QtCore import (
     QByteArray,
     QBuffer,
@@ -24,7 +24,7 @@ from PySide6.QtCore import (
     Slot,
     Qt,
 )
-from PySide6.QtGui import QWindow, QImage, QColor, QPainter, QPixmap
+from PySide6.QtGui import QWindow, QImage, QColor, QPainter, QPixmap, QScreen
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQuick import QQuickImageProvider
 
@@ -264,6 +264,7 @@ def get_mica_manager() -> MicaManager:
 
 # Acrylic constants 亚克力常量
 ACRYLIC_BLUR_RADIUS = 100
+_NO_ACRYLIC_SCREEN = object()
 
 
 def _gaussian_blur_image(image: QImage, radius: int) -> QImage:
@@ -303,6 +304,44 @@ def _gaussian_blur_image(image: QImage, radius: int) -> QImage:
     result_pixmap = small.scaled(width, height, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)
     
     return result_pixmap.toImage()
+
+
+def _resolve_acrylic_screen(window: QWindow) -> Any:
+    """Resolve the capture screen or a private sentinel. 解析截图屏幕或私有哨兵。"""
+    screen = window.screen()
+    if not screen:
+        screens = QApplication.screens()
+        if screens:
+            screen = screens[0]
+        else:
+            error("No screen available")
+            return _NO_ACRYLIC_SCREEN
+    return screen
+
+
+def _grab_acrylic_region(
+    window: QWindow, screen: QScreen, x: int, y: int, width: int, height: int
+) -> QPixmap:
+    """Capture a window-relative screen region. 截取窗口相对的屏幕区域。"""
+    win_x = window.x()
+    win_y = window.y()
+    global_x = win_x + x
+    global_y = win_y + y
+    screen_geo = screen.geometry()
+    grab_x = global_x - screen_geo.x()
+    grab_y = global_y - screen_geo.y()
+    return screen.grabWindow(0, grab_x, grab_y, width, height)
+
+
+def _publish_acrylic_capture(owner: Any, pixmap: QPixmap, width: int, height: int) -> str:
+    """Blur and publish one captured image. 模糊并发布一帧截图。"""
+    image = pixmap.toImage()
+    blurred = _gaussian_blur_image(image, owner._blur_radius)
+    owner._image_state.set_image(blurred)
+    image_url = f"image://acrylic/{owner._image_state.image_id}"
+    owner.imageReady.emit(image_url)
+    debug(f"Acrylic image ready: {width}x{height}")
+    return image_url
 
 
 class _AcrylicImageState:
@@ -431,52 +470,14 @@ class AcrylicHelper(QObject):
             return ""
         
         try:
-            # Get screen 获取屏幕
-            screen = window.screen()
-            if not screen:
-                screens = QApplication.screens()
-                if screens:
-                    screen = screens[0]
-                else:
-                    error("No screen available")
-                    return ""
-            
-            # Get window global position 获取窗口全局位置
-            # QWindow.position() returns position relative to screen
-            # QWindow.position() 返回相对于屏幕的位置
-            win_x = window.x()
-            win_y = window.y()
-            
-            # Calculate global coordinates 计算全局坐标
-            global_x = win_x + x
-            global_y = win_y + y
-            
-            # Adjust for screen offset (for multi-monitor) 调整屏幕偏移（多显示器）
-            screen_geo = screen.geometry()
-            grab_x = global_x - screen_geo.x()
-            grab_y = global_y - screen_geo.y()
-            
-            # Grab screen region (0 = entire desktop, includes Mica effect)
-            # 截取屏幕区域（0 = 整个桌面，包含云母效果）
-            pixmap = screen.grabWindow(0, grab_x, grab_y, width, height)
+            screen = _resolve_acrylic_screen(window)
+            if screen is _NO_ACRYLIC_SCREEN:
+                return ""
+            pixmap = _grab_acrylic_region(window, screen, x, y, width, height)
             if pixmap.isNull():
                 error("Failed to grab screen")
                 return ""
-            
-            # Convert to QImage and blur 转换为 QImage 并模糊
-            image = pixmap.toImage()
-            blurred = _gaussian_blur_image(image, self._blur_radius)
-            
-            # Store in provider 存储到提供器
-            self._image_state.set_image(blurred)
-            
-            # Return image URL with cache-busting ID 返回带缓存刷新ID的图片URL
-            image_url = f"image://acrylic/{self._image_state.image_id}"
-            self.imageReady.emit(image_url)
-            
-            debug(f"Acrylic image ready: {width}x{height}")
-            return image_url
-            
+            return _publish_acrylic_capture(self, pixmap, width, height)
         except (ValueError, OSError, RuntimeError) as e:
             error(f"Failed to grab and blur: {e}")
             return ""
