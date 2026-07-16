@@ -35,7 +35,7 @@ Rectangle {
     readonly property int _tagBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (showBorder ? Enums.border.thin : 0)
     readonly property color _tagBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isDark ? borderColorDark : borderColorLight)
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function getText() { return text }
     
     implicitWidth: contentRow.implicitWidth + 16
