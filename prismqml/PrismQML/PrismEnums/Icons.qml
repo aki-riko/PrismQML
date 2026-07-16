@@ -6,29 +6,18 @@ import QtQuick
 
 // Icons - Fluent UI icon enum 图标枚举
 // Auto-generated from SVG folder, do not edit manually! 自动生成，请勿手动编辑！
-// Total icons: 2484 图标总数
+// Total icons: 2497 图标总数
 // Usage: Enums.icon.chevron_up 使用方式
 pragma Singleton
 
 QtObject {
     id: root
+
     readonly property real _startupProfileStart: Date.now()
     readonly property bool _startupProfilingVerboseActive:
         (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
-    Component.onCompleted: {
-        if (_startupProfilingVerboseActive) {
-            console.info("[启动剖析] Icons singleton completed: total " +
-                         Math.round(Date.now() - _startupProfileStart) + "ms")
-        }
-    }
-    
     readonly property string basePath: "fluent/"
-    
-    // Get icon path 获取图标路径
-    function path(iconName) {
-        return basePath + iconName + ".svg"
-    }
-    
+
     // Icon list for iteration 图标列表（用于遍历）
     readonly property var iconList: {
         "ACCESSIBILITY": "Accessibility",
@@ -405,6 +394,7 @@ QtObject {
         "BUILDING_SWAP": "BuildingSwap",
         "BUILDING_TOWNHOUSE": "BuildingTownhouse",
         "BUILDING_YURT": "BuildingYurt",
+        "BULLETED_LIST": "BulletedList",
         "BUTTON": "Button",
         "CALCULATOR": "Calculator",
         "CALCULATOR_ARROW_CLOCKWISE": "CalculatorArrowClockwise",
@@ -1049,6 +1039,7 @@ QtObject {
         "FINGERPRINT": "Fingerprint",
         "FIRE": "Fire",
         "FIREPLACE": "Fireplace",
+        "FIT_PAGE": "FitPage",
         "FIXED_WIDTH": "FixedWidth",
         "FLAG": "Flag",
         "FLAG_CHECKERED": "FlagCheckered",
@@ -1218,6 +1209,7 @@ QtObject {
         "HEXAGON": "Hexagon",
         "HEXAGON_SPARKLE": "HexagonSparkle",
         "HEXAGON_THREE": "HexagonThree",
+        "HIDE": "Hide",
         "HIGHLIGHT": "Highlight",
         "HIGHLIGHT_LINK": "HighlightLink",
         "HIGHWAY": "Highway",
@@ -1464,6 +1456,7 @@ QtObject {
         "MENTION_ARROW_DOWN": "MentionArrowDown",
         "MENTION_BRACKETS": "MentionBrackets",
         "MERGE": "Merge",
+        "MESSAGE": "Message",
         "MIC": "Mic",
         "MIC_LINK": "MicLink",
         "MIC_OFF": "MicOff",
@@ -1507,6 +1500,7 @@ QtObject {
         "MUSIC_NOTE_OFF1": "MusicNoteOff1",
         "MUSIC_NOTE_OFF2": "MusicNoteOff2",
         "MY_LOCATION": "MyLocation",
+        "NAVIGATE_FORWARD": "NavigateForward",
         "NAVIGATION": "Navigation",
         "NAVIGATION_BRIEFCASE": "NavigationBriefcase",
         "NAVIGATION_LOCATION_TARGET": "NavigationLocationTarget",
@@ -1554,7 +1548,9 @@ QtObject {
         "NUMBER_SYMBOL_DISMISS": "NumberSymbolDismiss",
         "NUMBER_SYMBOL_SQUARE": "NumberSymbolSquare",
         "OPEN": "Open",
+        "OPEN_FILE": "OpenFile",
         "OPEN_FOLDER": "OpenFolder",
+        "OPEN_FOLDER_HORIZONTAL": "OpenFolderHorizontal",
         "OPEN_OFF": "OpenOff",
         "OPTIONS": "Options",
         "ORGANIZATION": "Organization",
@@ -1788,6 +1784,7 @@ QtObject {
         "POSITION_TO_BACK": "PositionToBack",
         "POSITION_TO_FRONT": "PositionToFront",
         "POWER": "Power",
+        "POWER_BUTTON": "PowerButton",
         "PREDICTIONS": "Predictions",
         "PREMIUM": "Premium",
         "PREMIUM_PERSON": "PremiumPerson",
@@ -2142,6 +2139,7 @@ QtObject {
         "STETHOSCOPE": "Stethoscope",
         "STICKER": "Sticker",
         "STICKER_ADD": "StickerAdd",
+        "STICKY_NOTES": "StickyNotes",
         "STOP": "Stop",
         "STORAGE": "Storage",
         "STORE_MICROSOFT": "StoreMicrosoft",
@@ -2360,6 +2358,7 @@ QtObject {
         "T_V_U_S_B": "TVUSB",
         "UMBRELLA": "Umbrella",
         "UNINSTALL_APP": "UninstallApp",
+        "UPDATE": "Update",
         "U_S_B_PLUG": "USBPlug",
         "USB_STICK": "UsbStick",
         "VAULT": "Vault",
@@ -2417,6 +2416,7 @@ QtObject {
         "VIDEO_SWITCH": "VideoSwitch",
         "VIDEO_SYNC": "VideoSync",
         "VIDEO_U_S_B": "VideoUSB",
+        "VIEW": "View",
         "VIEW_DESKTOP": "ViewDesktop",
         "VIEW_DESKTOP_MOBILE": "ViewDesktopMobile",
         "VIRTUAL_NETWORK": "VirtualNetwork",
@@ -2427,6 +2427,7 @@ QtObject {
         "VOICEMAIL_ARROW_SUBTRACT": "VoicemailArrowSubtract",
         "VOICEMAIL_SHIELD": "VoicemailShield",
         "VOICEMAIL_SUBTRACT": "VoicemailSubtract",
+        "VOLUME": "Volume",
         "VOTE": "Vote",
         "WALKIE_TALKIE": "WalkieTalkie",
         "WALLET": "Wallet",
@@ -2512,10 +2513,12 @@ QtObject {
         "XBOX_CONTROLLER": "XboxController",
         "XBOX_CONTROLLER_ERROR": "XboxControllerError",
         "XRAY": "Xray",
+        "ZOOM": "Zoom",
         "ZOOM_FIT": "ZoomFit",
         "ZOOM_IN": "ZoomIn",
-        "ZOOM_OUT": "ZoomOut"    }
-    
+        "ZOOM_OUT": "ZoomOut"
+    }
+
     // ==================== Icon Properties 图标属性 ====================
     readonly property string accessibility: "Accessibility"
     readonly property string accessibility_checkmark: "AccessibilityCheckmark"
@@ -2891,6 +2894,7 @@ QtObject {
     readonly property string building_swap: "BuildingSwap"
     readonly property string building_townhouse: "BuildingTownhouse"
     readonly property string building_yurt: "BuildingYurt"
+    readonly property string bulleted_list: "BulletedList"
     readonly property string button: "Button"
     readonly property string calculator: "Calculator"
     readonly property string calculator_arrow_clockwise: "CalculatorArrowClockwise"
@@ -3535,6 +3539,7 @@ QtObject {
     readonly property string fingerprint: "Fingerprint"
     readonly property string fire: "Fire"
     readonly property string fireplace: "Fireplace"
+    readonly property string fit_page: "FitPage"
     readonly property string fixed_width: "FixedWidth"
     readonly property string flag: "Flag"
     readonly property string flag_checkered: "FlagCheckered"
@@ -3704,6 +3709,7 @@ QtObject {
     readonly property string hexagon: "Hexagon"
     readonly property string hexagon_sparkle: "HexagonSparkle"
     readonly property string hexagon_three: "HexagonThree"
+    readonly property string hide: "Hide"
     readonly property string highlight: "Highlight"
     readonly property string highlight_link: "HighlightLink"
     readonly property string highway: "Highway"
@@ -3950,6 +3956,7 @@ QtObject {
     readonly property string mention_arrow_down: "MentionArrowDown"
     readonly property string mention_brackets: "MentionBrackets"
     readonly property string merge: "Merge"
+    readonly property string message: "Message"
     readonly property string mic: "Mic"
     readonly property string mic_link: "MicLink"
     readonly property string mic_off: "MicOff"
@@ -3993,6 +4000,7 @@ QtObject {
     readonly property string music_note_off1: "MusicNoteOff1"
     readonly property string music_note_off2: "MusicNoteOff2"
     readonly property string my_location: "MyLocation"
+    readonly property string navigate_forward: "NavigateForward"
     readonly property string navigation: "Navigation"
     readonly property string navigation_briefcase: "NavigationBriefcase"
     readonly property string navigation_location_target: "NavigationLocationTarget"
@@ -4040,7 +4048,9 @@ QtObject {
     readonly property string number_symbol_dismiss: "NumberSymbolDismiss"
     readonly property string number_symbol_square: "NumberSymbolSquare"
     readonly property string open: "Open"
+    readonly property string open_file: "OpenFile"
     readonly property string open_folder: "OpenFolder"
+    readonly property string open_folder_horizontal: "OpenFolderHorizontal"
     readonly property string open_off: "OpenOff"
     readonly property string options: "Options"
     readonly property string organization: "Organization"
@@ -4274,6 +4284,7 @@ QtObject {
     readonly property string position_to_back: "PositionToBack"
     readonly property string position_to_front: "PositionToFront"
     readonly property string power: "Power"
+    readonly property string power_button: "PowerButton"
     readonly property string predictions: "Predictions"
     readonly property string premium: "Premium"
     readonly property string premium_person: "PremiumPerson"
@@ -4628,6 +4639,7 @@ QtObject {
     readonly property string stethoscope: "Stethoscope"
     readonly property string sticker: "Sticker"
     readonly property string sticker_add: "StickerAdd"
+    readonly property string sticky_notes: "StickyNotes"
     readonly property string stop: "Stop"
     readonly property string storage: "Storage"
     readonly property string store_microsoft: "StoreMicrosoft"
@@ -4846,6 +4858,7 @@ QtObject {
     readonly property string t_v_u_s_b: "TVUSB"
     readonly property string umbrella: "Umbrella"
     readonly property string uninstall_app: "UninstallApp"
+    readonly property string update: "Update"
     readonly property string u_s_b_plug: "USBPlug"
     readonly property string usb_stick: "UsbStick"
     readonly property string vault: "Vault"
@@ -4903,6 +4916,7 @@ QtObject {
     readonly property string video_switch: "VideoSwitch"
     readonly property string video_sync: "VideoSync"
     readonly property string video_u_s_b: "VideoUSB"
+    readonly property string view: "View"
     readonly property string view_desktop: "ViewDesktop"
     readonly property string view_desktop_mobile: "ViewDesktopMobile"
     readonly property string virtual_network: "VirtualNetwork"
@@ -4913,6 +4927,7 @@ QtObject {
     readonly property string voicemail_arrow_subtract: "VoicemailArrowSubtract"
     readonly property string voicemail_shield: "VoicemailShield"
     readonly property string voicemail_subtract: "VoicemailSubtract"
+    readonly property string volume: "Volume"
     readonly property string vote: "Vote"
     readonly property string walkie_talkie: "WalkieTalkie"
     readonly property string wallet: "Wallet"
@@ -4998,7 +5013,19 @@ QtObject {
     readonly property string xbox_controller: "XboxController"
     readonly property string xbox_controller_error: "XboxControllerError"
     readonly property string xray: "Xray"
+    readonly property string zoom: "Zoom"
     readonly property string zoom_fit: "ZoomFit"
     readonly property string zoom_in: "ZoomIn"
     readonly property string zoom_out: "ZoomOut"
+
+    function path(iconName) {
+        return basePath + iconName + ".svg"
+    }
+
+    Component.onCompleted: {
+        if (_startupProfilingVerboseActive) {
+            console.info("[启动剖析] Icons singleton completed: total " +
+                         Math.round(Date.now() - _startupProfileStart) + "ms")
+        }
+    }
 }

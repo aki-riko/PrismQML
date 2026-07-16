@@ -122,8 +122,10 @@ Usage:
 from enum import Enum
 from typing import List
 
+from ._icon_enum_runtime import _IconRuntimeMixin
 
-class Icon(str, Enum):
+
+class Icon(_IconRuntimeMixin, str, Enum):
     """Fluent UI icon name enum. Fluent UI 图标名称枚举。"""
 
 '''
@@ -159,7 +161,7 @@ def _qml_header(count: int) -> str:
 import QtQuick
 
 // Icons - Fluent UI icon enum 图标枚举
-// Auto-generated from SVG assets, do not edit manually! 自动生成，请勿手动编辑！
+// Auto-generated from SVG folder, do not edit manually! 自动生成，请勿手动编辑！
 // Total icons: {count} 图标总数
 // Usage: Enums.icon.chevron_up 使用方式
 pragma Singleton
@@ -205,7 +207,7 @@ def generate_qml_icons(icons: Sequence[str]) -> str:
 
     Component.onCompleted: {
         if (_startupProfilingVerboseActive) {
-            console.info("[Startup profile 启动剖析] Icons completed: " +
+            console.info("[启动剖析] Icons singleton completed: total " +
                          Math.round(Date.now() - _startupProfileStart) + "ms")
         }
     }

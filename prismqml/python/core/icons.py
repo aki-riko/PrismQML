@@ -3,33 +3,25 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
-"""Icon - Fluent UI图标枚举
+"""Icon - Fluent UI icon enum 图标枚举
 
-自动生成，请勿手动编辑！
-Auto-generated, do not edit manually!
-
-Total icons: 2484
+Auto-generated from SVG assets, do not edit manually! 自动生成，请勿手动编辑！
+Total icons: 2497
 
 Usage:
-    # Python
     from prismqml.python.core.icons import Icon
     icon = Icon.CALENDAR
-    
-    # QML (通过PrismEnums.icon)
-    icon: PrismEnums.icon.calendar
 """
 
 from enum import Enum
 from typing import List
 
+from ._icon_enum_runtime import _IconRuntimeMixin
 
-class Icon(str, Enum):
-    """Fluent UI图标枚举
-    
-    继承str使得可以直接用于字符串场景：
-        Button(icon=Icon.SETTINGS)  # 自动转为 "Settings"
-    """
-    
+
+class Icon(_IconRuntimeMixin, str, Enum):
+    """Fluent UI icon name enum. Fluent UI 图标名称枚举。"""
+
     ACCESSIBILITY = "Accessibility"
     ACCESSIBILITY_CHECKMARK = "AccessibilityCheckmark"
     ACCESSIBILITY_ERROR = "AccessibilityError"
@@ -404,6 +396,7 @@ class Icon(str, Enum):
     BUILDING_SWAP = "BuildingSwap"
     BUILDING_TOWNHOUSE = "BuildingTownhouse"
     BUILDING_YURT = "BuildingYurt"
+    BULLETED_LIST = "BulletedList"
     BUTTON = "Button"
     CALCULATOR = "Calculator"
     CALCULATOR_ARROW_CLOCKWISE = "CalculatorArrowClockwise"
@@ -1048,6 +1041,7 @@ class Icon(str, Enum):
     FINGERPRINT = "Fingerprint"
     FIRE = "Fire"
     FIREPLACE = "Fireplace"
+    FIT_PAGE = "FitPage"
     FIXED_WIDTH = "FixedWidth"
     FLAG = "Flag"
     FLAG_CHECKERED = "FlagCheckered"
@@ -1217,6 +1211,7 @@ class Icon(str, Enum):
     HEXAGON = "Hexagon"
     HEXAGON_SPARKLE = "HexagonSparkle"
     HEXAGON_THREE = "HexagonThree"
+    HIDE = "Hide"
     HIGHLIGHT = "Highlight"
     HIGHLIGHT_LINK = "HighlightLink"
     HIGHWAY = "Highway"
@@ -1463,6 +1458,7 @@ class Icon(str, Enum):
     MENTION_ARROW_DOWN = "MentionArrowDown"
     MENTION_BRACKETS = "MentionBrackets"
     MERGE = "Merge"
+    MESSAGE = "Message"
     MIC = "Mic"
     MIC_LINK = "MicLink"
     MIC_OFF = "MicOff"
@@ -1506,6 +1502,7 @@ class Icon(str, Enum):
     MUSIC_NOTE_OFF1 = "MusicNoteOff1"
     MUSIC_NOTE_OFF2 = "MusicNoteOff2"
     MY_LOCATION = "MyLocation"
+    NAVIGATE_FORWARD = "NavigateForward"
     NAVIGATION = "Navigation"
     NAVIGATION_BRIEFCASE = "NavigationBriefcase"
     NAVIGATION_LOCATION_TARGET = "NavigationLocationTarget"
@@ -1553,7 +1550,9 @@ class Icon(str, Enum):
     NUMBER_SYMBOL_DISMISS = "NumberSymbolDismiss"
     NUMBER_SYMBOL_SQUARE = "NumberSymbolSquare"
     OPEN = "Open"
+    OPEN_FILE = "OpenFile"
     OPEN_FOLDER = "OpenFolder"
+    OPEN_FOLDER_HORIZONTAL = "OpenFolderHorizontal"
     OPEN_OFF = "OpenOff"
     OPTIONS = "Options"
     ORGANIZATION = "Organization"
@@ -1787,6 +1786,7 @@ class Icon(str, Enum):
     POSITION_TO_BACK = "PositionToBack"
     POSITION_TO_FRONT = "PositionToFront"
     POWER = "Power"
+    POWER_BUTTON = "PowerButton"
     PREDICTIONS = "Predictions"
     PREMIUM = "Premium"
     PREMIUM_PERSON = "PremiumPerson"
@@ -2141,6 +2141,7 @@ class Icon(str, Enum):
     STETHOSCOPE = "Stethoscope"
     STICKER = "Sticker"
     STICKER_ADD = "StickerAdd"
+    STICKY_NOTES = "StickyNotes"
     STOP = "Stop"
     STORAGE = "Storage"
     STORE_MICROSOFT = "StoreMicrosoft"
@@ -2359,6 +2360,7 @@ class Icon(str, Enum):
     T_V_U_S_B = "TVUSB"
     UMBRELLA = "Umbrella"
     UNINSTALL_APP = "UninstallApp"
+    UPDATE = "Update"
     U_S_B_PLUG = "USBPlug"
     USB_STICK = "UsbStick"
     VAULT = "Vault"
@@ -2416,6 +2418,7 @@ class Icon(str, Enum):
     VIDEO_SWITCH = "VideoSwitch"
     VIDEO_SYNC = "VideoSync"
     VIDEO_U_S_B = "VideoUSB"
+    VIEW = "View"
     VIEW_DESKTOP = "ViewDesktop"
     VIEW_DESKTOP_MOBILE = "ViewDesktopMobile"
     VIRTUAL_NETWORK = "VirtualNetwork"
@@ -2426,6 +2429,7 @@ class Icon(str, Enum):
     VOICEMAIL_ARROW_SUBTRACT = "VoicemailArrowSubtract"
     VOICEMAIL_SHIELD = "VoicemailShield"
     VOICEMAIL_SUBTRACT = "VoicemailSubtract"
+    VOLUME = "Volume"
     VOTE = "Vote"
     WALKIE_TALKIE = "WalkieTalkie"
     WALLET = "Wallet"
@@ -2511,81 +2515,20 @@ class Icon(str, Enum):
     XBOX_CONTROLLER = "XboxController"
     XBOX_CONTROLLER_ERROR = "XboxControllerError"
     XRAY = "Xray"
+    ZOOM = "Zoom"
     ZOOM_FIT = "ZoomFit"
     ZOOM_IN = "ZoomIn"
     ZOOM_OUT = "ZoomOut"
-    
+
     def __str__(self) -> str:
-        """返回图标值字符串"""
         return self.value
-    
-    def path(self) -> str:
-        """获取图标SVG文件路径 Get icon SVG file path"""
-        from .utils import qml_path
-        icon_dir = qml_path() / "controls" / "icons" / "fluent"
-        return str(icon_dir / f"{self.value}.svg")
-    
-    def to_qicon(self, color: str = None) -> "QIcon":
-        """
-        生成主题感知的QIcon Generate theme-aware QIcon
-        
-        Args:
-            color: 指定颜色（可选），默认根据主题自动选择
-                   Specified color (optional), defaults to theme-based color
-        
-        Returns:
-            QIcon: 着色后的图标 Colored icon
-        """
-        from pathlib import Path
-        from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
-        from PySide6.QtCore import Qt, QSize
-        from PySide6.QtSvg import QSvgRenderer
-        
-        svg_path = self.path()
-        if not Path(svg_path).exists():
-            return QIcon()
-        
-        # 确定颜色
-        if color is None:
-            from .theme import isDark
-            color = "#ffffff" if isDark() else "#1a1a1a"
-        
-        # 读取SVG并修改颜色
-        with open(svg_path, 'r', encoding='utf-8') as f:
-            svg_content = f.read()
-        
-        # 替换fill颜色（SVG通常使用currentColor或#212121等）
-        import re
-        # 替换 fill="..." 属性
-        svg_content = re.sub(r'fill="[^"]*"', f'fill="{color}"', svg_content)
-        # 如果没有fill属性，添加到svg标签
-        if 'fill=' not in svg_content:
-            svg_content = svg_content.replace('<svg', f'<svg fill="{color}"', 1)
-        
-        # 渲染SVG到QIcon
-        renderer = QSvgRenderer(svg_content.encode('utf-8'))
-        if not renderer.isValid():
-            return QIcon()
-        
-        # 生成多个尺寸
-        icon = QIcon()
-        for size in [16, 24, 32, 48]:
-            pixmap = QPixmap(QSize(size, size))
-            pixmap.fill(Qt.GlobalColor.transparent)
-            painter = QPainter(pixmap)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            renderer.render(painter)
-            painter.end()
-            icon.addPixmap(pixmap)
-        
-        return icon
-    
+
     @classmethod
     def get_all(cls) -> List[str]:
-        """获取所有图标名列表"""
+        """Return all icon values. 返回全部图标值。"""
         return [icon.value for icon in cls]
-    
+
     @classmethod
     def get_all_enum_names(cls) -> List[str]:
-        """获取所有枚举名列表"""
+        """Return all enum member names. 返回全部枚举成员名。"""
         return [icon.name for icon in cls]

@@ -174,6 +174,16 @@ def test_icon_generator_rejects_invalid_and_case_colliding_names():
         extract_icons.validate_icon_names(["Add", "add"])
 
 
+def test_real_icon_registries_are_generated_from_svg_assets():
+    icons = extract_icons.get_icons_from_svg_folder()
+
+    extract_icons.sync_generated_outputs(icons, check=True)
+    python_source = extract_icons.DEFAULT_PYTHON_OUTPUT.read_text(encoding="utf-8")
+    assert "class Icon(_IconRuntimeMixin, str, Enum):" in python_source
+    assert "def to_qicon" not in python_source
+    assert len(icons) >= copy_all_icons.MIN_EXPECTED_ICON_COUNT
+
+
 def test_current_translator_external_json_layout_is_valid():
     count = extract_translations.run(
         extract_translations.DEFAULT_QML_INPUT,

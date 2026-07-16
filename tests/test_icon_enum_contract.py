@@ -14,6 +14,45 @@ from prismqml.python.core.icons import Icon
 
 
 ROOT = Path(__file__).resolve().parents[1]
+RECOVERED_ICON_VALUES = (
+    "BulletedList",
+    "FitPage",
+    "Hide",
+    "Message",
+    "NavigateForward",
+    "OpenFile",
+    "OpenFolderHorizontal",
+    "PowerButton",
+    "StickyNotes",
+    "Update",
+    "View",
+    "Volume",
+    "Zoom",
+)
+ICON_PROBE_SOURCE = """import QtQuick
+import PrismQML
+QtObject {
+    property string addValue: Enums.icon.add
+    property string addPath: Enums.icon.path(Enums.icon.add)
+    property string addMapped: Enums.icon.iconList.ADD
+    property int iconCount: Object.keys(Enums.icon.iconList).length
+    property string recoveredIcons: [
+        Enums.icon.bulleted_list,
+        Enums.icon.fit_page,
+        Enums.icon.hide,
+        Enums.icon.message,
+        Enums.icon.navigate_forward,
+        Enums.icon.open_file,
+        Enums.icon.open_folder_horizontal,
+        Enums.icon.power_button,
+        Enums.icon.sticky_notes,
+        Enums.icon.update,
+        Enums.icon.view,
+        Enums.icon.volume,
+        Enums.icon.zoom
+    ].join("|")
+}
+"""
 
 
 def _pump(milliseconds: int) -> None:
@@ -22,21 +61,25 @@ def _pump(milliseconds: int) -> None:
     loop.exec()
 
 
+def _qml_icon_values() -> set[str]:
+    source = (ROOT / "prismqml/PrismQML/PrismEnums/Icons.qml").read_text(
+        encoding="utf-8"
+    )
+    return {
+        line.split('"')[3]
+        for line in source.splitlines()
+        if line.startswith('        "')
+    }
+
+
 def _create_icon_probe() -> tuple[QQmlEngine, QQmlComponent, object]:
-    source = """import QtQuick
-import PrismQML
-QtObject {
-    property string addValue: Enums.icon.add
-    property string addPath: Enums.icon.path(Enums.icon.add)
-    property string addMapped: Enums.icon.iconList.ADD
-    property int iconCount: Object.keys(Enums.icon.iconList).length
-}
-"""
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     engine.rootContext().setContextProperty("ThemeManager", getThemeManager())
     component = QQmlComponent(engine)
-    component.setData(source.encode("utf-8"), QUrl("inline:icon-contract.qml"))
+    component.setData(
+        ICON_PROBE_SOURCE.encode("utf-8"), QUrl("inline:icon-contract.qml")
+    )
     for _ in range(50):
         if component.status() != QQmlComponent.Status.Loading:
             break
@@ -52,6 +95,16 @@ def test_python_icon_enum_keeps_public_helpers(qapp):
     assert Path(Icon.ADD.path()).is_file()
     assert not Icon.ADD.to_qicon().isNull()
     assert not Icon.ADD.to_qicon("#123456").isNull()
+    assert tuple(icon.value for icon in Icon if icon.value in RECOVERED_ICON_VALUES) == (
+        RECOVERED_ICON_VALUES
+    )
+
+
+def test_svg_python_and_qml_registry_sets_match():
+    svg_dir = ROOT / "prismqml/PrismQML/controls/icons/fluent"
+    svg_values = {path.stem for path in svg_dir.glob("*.svg")}
+    assert svg_values == {icon.value for icon in Icon}
+    assert svg_values == _qml_icon_values()
 
 
 def test_qml_icon_singleton_matches_python_registry(qapp):
@@ -62,3 +115,4 @@ def test_qml_icon_singleton_matches_python_registry(qapp):
     assert probe.property("addPath") == "fluent/Add.svg"
     assert probe.property("addMapped") == "Add"
     assert probe.property("iconCount") == len(Icon)
+    assert probe.property("recoveredIcons") == "|".join(RECOVERED_ICON_VALUES)
