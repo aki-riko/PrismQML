@@ -9,12 +9,12 @@ import "../../../data"
 import "TreeWidgetCore.js" as Core
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
-// TreeView - 低阶树形视图 (QTreeView 等价物)
-// 继承 DataWidgetCore,轻量模式(无阴影/无margin)
+// TreeView - Low-level tree view (QTreeView equivalent) 低阶树形视图（QTreeView 等价物）
+// Inherits DataWidgetCore in lightweight mode without shadow or margin 继承 DataWidgetCore 的无阴影、无边距轻量模式
 //
-// 与 TreeWidget (高阶) 区别:
-//   TreeView = QTreeView 等价物,只渲染+展开折叠,无 addItem/selection 等 API
-//   TreeWidget     = QTreeWidget 等价物,自带 model + selection + 完整 API
+// Difference from high-level TreeWidget 与高阶 TreeWidget 的区别：
+//   TreeView = QTreeView equivalent with rendering and expansion only TreeView 仅提供渲染与展开折叠
+//   TreeWidget = QTreeWidget equivalent with model, selection, and full API TreeWidget 自带模型、选择与完整 API
 DataWidgetCore {
     id: control
 
@@ -24,33 +24,15 @@ DataWidgetCore {
     property int indentWidth: Enums.spacing.xl
     property int itemHeight: Enums.controlSize.treeItemHeight
 
+    // ==================== Internal Props 内部属性 ====================
+    property int _hoverIndex: -1
+
     // ==================== Signals 信号 ====================
     signal itemExpanded(var item)
     signal itemCollapsed(var item)
     signal itemClicked(var item, int index)
 
-    // ==================== Lightweight mode 轻量模式 ====================
-    showShadow: false
-    cardMargin: 0
-    borderVisible: true
-    showFooter: true
-    showHeader: false
-    // itemCount 由基类 DataWidgetCore 自维护(Connections 跟踪 model 信号)
-
-    // ==================== Size 尺寸 ====================
-    implicitWidth: Enums.controlSize.listDefaultWidth
-    implicitHeight: Enums.controlSize.listDefaultHeight
-
-    // ==================== Internal 内部 ====================
-    property int _hoverIndex: -1
-
-    onModelChanged: _rebuild()
-    contentDelegate: treeDelegate ? treeDelegate : defaultDelegate
-
     // ==================== Public Methods 公开方法 ====================
-    function _rebuild() { Core.rebuildModel(control, internalModel) }
-
-    // ==================== Public API 公共 API ====================
     function expandAll() {
         Core.setExpandedRecursive(model, true)
         _rebuild()
@@ -63,11 +45,29 @@ DataWidgetCore {
 
     function count() { return internalModel.count }
 
-    // ==================== Internal Model 内部模型 ====================
-    ListModel { id: internalModel }
+    // ==================== Internal Methods 内部方法 ====================
+    function _rebuild() { Core.rebuildModel(control, internalModel) }
+
+    // ==================== Size 尺寸 ====================
+    implicitWidth: Enums.controlSize.listDefaultWidth
+    implicitHeight: Enums.controlSize.listDefaultHeight
+
+    // Lightweight mode 轻量模式
+    showShadow: false
+    cardMargin: 0
+    borderVisible: true
+    showFooter: true
+    showHeader: false
+    // The base DataWidgetCore tracks model signals and maintains itemCount. 基类 DataWidgetCore 跟踪模型信号并维护 itemCount。
+    onModelChanged: _rebuild()
+    contentDelegate: treeDelegate ? treeDelegate : defaultDelegate
     listModel: internalModel
 
-    // ==================== Default Delegate 默认委托 ====================
+    // ==================== Content 内容 ====================
+    // Internal model 内部模型
+    ListModel { id: internalModel }
+
+    // Default delegate 默认委托
     Component {
         id: defaultDelegate
 
@@ -81,14 +81,13 @@ DataWidgetCore {
             property int depth: model.depth || 0
             property bool hasChildren: model.hasChildren || false
             property bool expanded: model.expanded || false
+            property bool hovered: control._hoverIndex === index
+            property bool pressed: _itemArea.pressed
+            property real branchOffset: Enums.spacing.m + depth * control.indentWidth
 
             width: ListView.view ? ListView.view.width : 0
             height: control.itemHeight
             color: Enums.transparent
-
-            property bool hovered: control._hoverIndex === index
-            property bool pressed: _itemArea.pressed
-            property real branchOffset: Enums.spacing.m + depth * control.indentWidth
 
             scale: pressed ? 0.98 : 1.0
             Behavior on scale {
@@ -152,9 +151,11 @@ DataWidgetCore {
 
             MouseArea {
                 id: _itemArea
+
+                property real expandEnd: Enums.spacing.xl + delegateRoot.branchOffset + Enums.controlSize.treeIndentSize + Enums.spacing.xs
+
                 anchors.fill: parent
                 hoverEnabled: true
-                property real expandEnd: Enums.spacing.xl + delegateRoot.branchOffset + Enums.controlSize.treeIndentSize + Enums.spacing.xs
 
                 onEntered: control._hoverIndex = delegateRoot.index
                 onExited: { if (control._hoverIndex === delegateRoot.index) control._hoverIndex = -1 }
