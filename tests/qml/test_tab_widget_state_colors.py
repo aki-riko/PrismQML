@@ -21,6 +21,9 @@ import QtQuick
 import PrismQML
 
 Item {
+    readonly property int stateColorPollInterval: Enums.duration.ultraFast
+    readonly property int stateColorTimeout: Enums.duration.fast + Enums.duration.normal
+
     width: 500
     height: 220
 
@@ -103,18 +106,29 @@ def _assert_color(color, expected):
     assert actual == pytest.approx(expected, abs=1 / 65535)
 
 
-def _assert_state_colors(tab, delegate, background, expected):
+def _wait_for_color(background, expected, poll_interval, timeout):
+    elapsed = 0
+    while elapsed < timeout:
+        _pump(poll_interval)
+        elapsed += poll_interval
+        color = background.property("color")
+        actual = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
+        if actual == pytest.approx(expected, abs=1 / 65535):
+            return
+    _assert_color(background.property("color"), expected)
+
+
+def _assert_state_colors(root, tab, delegate, background, expected):
+    poll_interval = root.property("stateColorPollInterval")
+    timeout = root.property("stateColorTimeout")
     delegate.setProperty("hovered", True)
-    _pump(120)
-    _assert_color(background.property("color"), expected["hover"])
+    _wait_for_color(background, expected["hover"], poll_interval, timeout)
     delegate.setProperty("hovered", False)
     delegate.setProperty("pressed", True)
-    _pump(120)
-    _assert_color(background.property("color"), expected["pressed"])
+    _wait_for_color(background, expected["pressed"], poll_interval, timeout)
     delegate.setProperty("pressed", False)
     tab.setProperty("_dragSourceIndex", 1)
-    _pump(120)
-    _assert_color(background.property("color"), expected["drag"])
+    _wait_for_color(background, expected["drag"], poll_interval, timeout)
     tab.setProperty("_dragSourceIndex", -1)
 
 
@@ -128,8 +142,8 @@ def test_tab_widget_preserves_fluent_state_colors(qapp):
             (Theme.DARK, {"hover": (1, 1, 1, 0.06), "pressed": (1, 1, 1, 0.04), "drag": (1, 1, 1, 0.08)}),
         ):
             setTheme(theme)
-            _pump(5)
-            _assert_state_colors(tab, delegate, background, expected)
+            _pump(root.property("stateColorPollInterval"))
+            _assert_state_colors(root, tab, delegate, background, expected)
     finally:
         setTheme(Theme.LIGHT)
         root.deleteLater()
