@@ -31,7 +31,7 @@ OverlayDialogCore {
     readonly property real _dialogShadowBlur: Enums.shadow.level16.blur
     readonly property real _dialogShadowOffset: Enums.shadow.level16.offset
 
-    // ==================== Override Methods 重写方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     // Override open to reset dialogBody position 重写open以重置 dialogBody 位置
     function open() {
         // Save original parent 保存原始父组件
@@ -50,7 +50,7 @@ OverlayDialogCore {
         _isOpen = true
     }
 
-    // ==================== Shadow Layer 阴影层 ====================
+    // ==================== Content 内容 ====================
     // Shadow: soft drop shadow under the dialog body 主体下方柔和投影
     // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
@@ -70,7 +70,7 @@ OverlayDialogCore {
         z: dialogBody.z - 1
     }
 
-    // ==================== Dialog Body 对话框主体 ====================
+    // Dialog body 对话框主体
     Rectangle {
         id: dialogBody
         objectName: "dialogBody"
@@ -116,11 +116,11 @@ OverlayDialogCore {
         
         // Drag handler 拖拽处理
         MouseArea {
+            property point dragStart
+
             anchors.fill: parent
             enabled: control.draggable
             drag.target: control.draggable ? dialogBody : null
-
-            property point dragStart
 
             onPressed: (mouse) => {
                 if (control.draggable) {
