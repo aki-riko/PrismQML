@@ -52,6 +52,8 @@ For `Updater(..., api_base_url="https://github.example/api/v3")`, the explicit v
 
 Version comparison strips an optional `v` / `V` prefix and supports the project's variable-length dotted numeric core plus dotted prerelease identifiers. A release outranks a prerelease with the same core, build metadata after `+` does not affect precedence, and blank or prefix-only tags are treated as the minimum version. This compares GitHub tags; it is not a strict validator that rejects every non-standard SemVer tag.
 
+Release responses must be strict UTF-8 JSON objects. `tag_name` must be a non-empty string, while `body`, `html_url`, `assets`, and asset fields are checked against the public schema. Invalid input emits only `checkFailed`; it is never silently truncated or reported as an update. Downloads use process-unique temporary files and are published atomically only after complete write, flush, fsync, and close steps. Network, write, close, commit, or empty-file failures emit `downloadFailed` once and remove partial artifacts. Repeated checks or downloads on the same active Updater instance are ignored without replacing the active reply.
+
 ## Logging
 
 | Name | Description |

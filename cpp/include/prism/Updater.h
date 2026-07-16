@@ -11,7 +11,7 @@
 
 class QNetworkAccessManager;
 class QNetworkReply;
-class QFile;
+class QSaveFile;
 
 namespace prism {
 
@@ -64,8 +64,14 @@ signals:
     void downloadFailed(const QString &errorMessage);
 
 private:
-    void onCheckFinished();
-    void onDownloadFinished();
+    void onCheckFinished(QNetworkReply *reply);
+    bool openDownloadFile(const QString &url);
+    void startDownloadRequest(const QString &url);
+    void onDownloadReadyRead(QNetworkReply *reply);
+    void onDownloadFinished(QNetworkReply *reply);
+    QString finalizeDownload(QNetworkReply *reply);
+    void failDownload(const QString &message);
+    void cleanupDownloadArtifacts();
 
     QString m_repo;
     QString m_currentVersion;
@@ -74,7 +80,9 @@ private:
     QNetworkAccessManager *m_nam;
     QNetworkReply *m_checkReply = nullptr;
     QNetworkReply *m_downloadReply = nullptr;
-    QFile *m_downloadFile = nullptr;
+    QSaveFile *m_downloadFile = nullptr;
+    QString m_downloadPath;
+    QString m_downloadError;
 };
 
 }  // namespace prism

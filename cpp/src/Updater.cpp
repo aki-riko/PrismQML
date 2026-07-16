@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QFile>
+#include <QSaveFile>
 #include <QDir>
 #include <QStandardPaths>
 #include <QUrl>
@@ -21,6 +22,7 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QStringList>
+#include <QUuid>
 #include <QDebug>
 
 #ifdef Q_OS_WIN
@@ -89,6 +91,14 @@ int cmpSegList(const QList<Seg> &a, const QList<Seg> &b) {
 // 解析版本为 (core, preMarker)
 struct Version { QList<Seg> core; QList<Seg> preMarker; bool empty = false; };
 
+struct ReleaseAsset { QString name; QString downloadUrl; };
+struct ReleaseData {
+    QString tag;
+    QString notes;
+    QString htmlUrl;
+    QList<ReleaseAsset> assets;
+};
+
 Version parseVersion(const QString &tag) {
     Version v;
     QString t = tag.trimmed();
@@ -123,6 +133,107 @@ int cmpVersion(const Version &a, const Version &b) {
     if (c != 0) return c;
     return cmpSegList(a.preMarker, b.preMarker);
 }
+
+bool readOptionalString(const QJsonObject &object, const QString &key,
+                        QString *output, QString *error) {
+    const QJsonValue value = object.value(key);
+    if (value.isUndefined() || value.isNull()) {
+        output->clear();
+        return true;
+    }
+    if (!value.isString()) {
+        *error = QStringLiteral("release field '%1' must be a string or null").arg(key);
+        return false;
+    }
+    *output = value.toString();
+    return true;
+}
+
+bool parseReleaseAssets(const QJsonValue &value, QList<ReleaseAsset> *assets,
+                        QString *error) {
+    if (value.isUndefined() || value.isNull())
+        return true;
+    if (!value.isArray()) {
+        *error = QStringLiteral("release field 'assets' must be an array or null");
+        return false;
+    }
+    for (const QJsonValue &item : value.toArray()) {
+        if (!item.isObject()) {
+            *error = QStringLiteral("each release asset must be an object");
+            return false;
+        }
+        ReleaseAsset asset;
+        const QJsonObject object = item.toObject();
+        if (!readOptionalString(object, QStringLiteral("name"), &asset.name, error)
+            || !readOptionalString(object, QStringLiteral("browser_download_url"),
+                                   &asset.downloadUrl, error))
+            return false;
+        assets->append(asset);
+    }
+    return true;
+}
+
+bool parseReleaseData(const QByteArray &raw, ReleaseData *release, QString *error) {
+    QJsonParseError parseError{};
+    const QJsonDocument document = QJsonDocument::fromJson(raw, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
+        *error = QStringLiteral("invalid release JSON: %1").arg(parseError.errorString());
+        return false;
+    }
+    const QJsonObject object = document.object();
+    const QJsonValue tag = object.value(QStringLiteral("tag_name"));
+    if (!tag.isString() || tag.toString().trimmed().isEmpty()) {
+        *error = QStringLiteral("release field 'tag_name' must be a non-empty string");
+        return false;
+    }
+    release->tag = tag.toString().trimmed();
+    return readOptionalString(object, QStringLiteral("body"), &release->notes, error)
+        && readOptionalString(object, QStringLiteral("html_url"), &release->htmlUrl, error)
+        && parseReleaseAssets(object.value(QStringLiteral("assets")),
+                              &release->assets, error);
+}
+
+QString pickDownloadUrl(const QList<ReleaseAsset> &assets, const QString &keyword) {
+    const QString normalizedKeyword = keyword.toLower();
+    QString firstExecutable;
+    bool hasExecutable = false;
+    for (const ReleaseAsset &asset : assets) {
+        if (!asset.name.toLower().endsWith(QStringLiteral(".exe")))
+            continue;
+        if (!hasExecutable) {
+            firstExecutable = asset.downloadUrl;
+            hasExecutable = true;
+        }
+        if (!normalizedKeyword.isEmpty()
+            && asset.name.toLower().contains(normalizedKeyword))
+            return asset.downloadUrl;
+    }
+    if (hasExecutable)
+        return firstExecutable;
+    return assets.isEmpty() ? QString() : assets.first().downloadUrl;
+}
+
+QString uniqueDownloadPath(const QString &url) {
+    QString tempDirectory = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    if (tempDirectory.isEmpty())
+        tempDirectory = QDir::tempPath();
+    const QString suffix = QFileInfo(QUrl(url).fileName()).suffix();
+    const QString extension = suffix.isEmpty() ? QStringLiteral(".bin")
+                                               : QStringLiteral(".%1").arg(suffix);
+    const QString token = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    return QDir(tempDirectory).filePath(
+        QStringLiteral("prismqml-update-%1%2").arg(token, extension));
+}
+
+QString writeDownloadBytes(QSaveFile *file, const QByteArray &payload) {
+    if (payload.isEmpty())
+        return QString();
+    const qint64 written = file ? file->write(payload) : -1;
+    if (written == payload.size())
+        return QString();
+    return QStringLiteral("写入下载文件失败: %1")
+        .arg(file ? file->errorString() : QStringLiteral("file unavailable"));
+}
 }  // namespace
 
 bool versionIsNewer(const QString &latest, const QString &current) {
@@ -155,7 +266,6 @@ QString latestReleaseApiUrl(const QString &repo, const QString &apiBaseUrl) {
         .arg(resolveUpdaterApiBaseUrl(apiBaseUrl), normalizedRepo);
 }
 
-// PLACEHOLDER_UPDATER_IMPL
 Updater::Updater(const QString &repo, const QString &currentVersion,
                  const QString &assetKeyword, QObject *parent)
     : Updater(repo, currentVersion, assetKeyword, QString(), parent) {}
@@ -169,7 +279,7 @@ Updater::Updater(const QString &repo, const QString &currentVersion,
 
 Updater::~Updater() {
     if (m_downloadFile) {
-        m_downloadFile->close();
+        m_downloadFile->cancelWriting();
         delete m_downloadFile;
     }
 }
@@ -180,16 +290,28 @@ void Updater::setApiBaseUrl(const QString &apiBaseUrl) {
 
 // 检查更新: GET GitHub releases/latest (镜像 checkForUpdate)
 void Updater::checkForUpdate() {
+    if (m_checkReply) {
+        qDebug() << "[Updater] 已有检测请求在进行, 忽略重复调用";
+        return;
+    }
     const QString url = latestReleaseApiUrl(m_repo, m_apiBaseUrl);
     QNetworkRequest req((QUrl(url)));
     req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("PrismQML-Updater"));
     req.setRawHeader("Accept", "application/vnd.github+json");
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                     QNetworkRequest::NoLessSafeRedirectPolicy);
     m_checkReply = m_nam->get(req);
-    connect(m_checkReply, &QNetworkReply::finished, this, &Updater::onCheckFinished);
+    QNetworkReply *reply = m_checkReply;
+    connect(reply, &QNetworkReply::finished, this,
+            [this, reply]() { onCheckFinished(reply); });
 }
 
-void Updater::onCheckFinished() {
-    QNetworkReply *reply = m_checkReply;
+void Updater::onCheckFinished(QNetworkReply *reply) {
+    if (reply != m_checkReply) {
+        if (reply)
+            reply->deleteLater();
+        return;
+    }
     m_checkReply = nullptr;
     if (!reply)
         return;
@@ -199,43 +321,19 @@ void Updater::onCheckFinished() {
         emit checkFailed(reply->errorString());
         return;
     }
-    const QByteArray data = reply->readAll();
-    QJsonParseError err{};
-    const QJsonDocument doc = QJsonDocument::fromJson(data, &err);
-    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
-        emit checkFailed(QStringLiteral("解析 release JSON 失败: %1").arg(err.errorString()));
+    ReleaseData release;
+    QString error;
+    if (!parseReleaseData(reply->readAll(), &release, &error)) {
+        emit checkFailed(QStringLiteral("解析更新信息失败: %1").arg(error));
         return;
     }
-    const QJsonObject obj = doc.object();
-    const QString tag = obj.value(QStringLiteral("tag_name")).toString();
-    const QString notes = obj.value(QStringLiteral("body")).toString();
-    const QString htmlUrl = obj.value(QStringLiteral("html_url")).toString();
-
-    if (!versionIsNewer(tag, m_currentVersion)) {
+    if (!versionIsNewer(release.tag, m_currentVersion)) {
         emit upToDate(m_currentVersion);
         return;
     }
-    // 挑选安装包 asset (镜像 _pick_asset: 含 keyword 的 .exe 优先)
-    QString downloadUrl;
-    const QJsonArray assets = obj.value(QStringLiteral("assets")).toArray();
-    QString firstExe, firstAny;
-    const QString kw = m_assetKeyword.toLower();
-    for (const QJsonValue &v : assets) {
-        const QJsonObject a = v.toObject();
-        const QString name = a.value(QStringLiteral("name")).toString();
-        const QString dl = a.value(QStringLiteral("browser_download_url")).toString();
-        if (firstAny.isEmpty()) firstAny = dl;
-        if (name.toLower().endsWith(QStringLiteral(".exe"))) {
-            if (firstExe.isEmpty()) firstExe = dl;
-            if (!kw.isEmpty() && name.toLower().contains(kw)) {
-                downloadUrl = dl;
-                break;
-            }
-        }
-    }
-    if (downloadUrl.isEmpty()) downloadUrl = !firstExe.isEmpty() ? firstExe : firstAny;
-
-    emit updateAvailable(tag, notes, downloadUrl, htmlUrl);
+    emit updateAvailable(release.tag, release.notes,
+                         pickDownloadUrl(release.assets, m_assetKeyword),
+                         release.htmlUrl);
 }
 
 // 下载更新包 (镜像 downloadUpdate)
@@ -244,50 +342,110 @@ void Updater::downloadUpdate(const QString &url) {
         emit downloadFailed(QStringLiteral("下载 URL 为空"));
         return;
     }
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-    const QString fileName = QUrl(url).fileName();
-    const QString localPath = QDir(dir).filePath(fileName.isEmpty()
-                                                     ? QStringLiteral("prismqml_update.bin")
-                                                     : fileName);
-    m_downloadFile = new QFile(localPath);
-    if (!m_downloadFile->open(QIODevice::WriteOnly)) {
-        emit downloadFailed(QStringLiteral("无法创建文件: %1").arg(localPath));
-        delete m_downloadFile;
-        m_downloadFile = nullptr;
+    if (m_downloadReply) {
+        qDebug() << "[Updater] 已有下载在进行, 忽略重复调用";
         return;
     }
+    if (!openDownloadFile(url))
+        return;
+    startDownloadRequest(url);
+}
+
+bool Updater::openDownloadFile(const QString &url) {
+    m_downloadPath = uniqueDownloadPath(url);
+    m_downloadError.clear();
+    m_downloadFile = new QSaveFile(m_downloadPath);
+    m_downloadFile->setDirectWriteFallback(false);
+    if (m_downloadFile->open(QIODevice::WriteOnly))
+        return true;
+    const QString message = QStringLiteral("无法创建文件: %1")
+        .arg(m_downloadFile->errorString());
+    failDownload(message);
+    return false;
+}
+
+void Updater::startDownloadRequest(const QString &url) {
     QNetworkRequest req((QUrl(url)));
     req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("PrismQML-Updater"));
     req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                      QNetworkRequest::NoLessSafeRedirectPolicy);
     m_downloadReply = m_nam->get(req);
-    connect(m_downloadReply, &QNetworkReply::downloadProgress, this, &Updater::downloadProgress);
-    connect(m_downloadReply, &QNetworkReply::readyRead, this, [this]() {
-        if (m_downloadFile && m_downloadReply)
-            m_downloadFile->write(m_downloadReply->readAll());
-    });
-    connect(m_downloadReply, &QNetworkReply::finished, this, &Updater::onDownloadFinished);
+    QNetworkReply *reply = m_downloadReply;
+    connect(reply, &QNetworkReply::downloadProgress, this, &Updater::downloadProgress);
+    connect(reply, &QNetworkReply::readyRead, this,
+            [this, reply]() { onDownloadReadyRead(reply); });
+    connect(reply, &QNetworkReply::finished, this,
+            [this, reply]() { onDownloadFinished(reply); });
 }
 
-void Updater::onDownloadFinished() {
-    QNetworkReply *reply = m_downloadReply;
+void Updater::onDownloadReadyRead(QNetworkReply *reply) {
+    if (reply != m_downloadReply || !m_downloadFile || !m_downloadError.isEmpty())
+        return;
+    m_downloadError = writeDownloadBytes(m_downloadFile, reply->readAll());
+    if (!m_downloadError.isEmpty()) {
+        qWarning() << "[Updater]" << m_downloadError;
+        reply->abort();
+    }
+}
+
+void Updater::onDownloadFinished(QNetworkReply *reply) {
+    if (reply != m_downloadReply) {
+        if (reply)
+            reply->deleteLater();
+        return;
+    }
     m_downloadReply = nullptr;
     if (!reply)
         return;
     reply->deleteLater();
+    const QString error = finalizeDownload(reply);
+    if (!error.isEmpty()) {
+        failDownload(error);
+        return;
+    }
+    const QString completedPath = m_downloadPath;
+    m_downloadPath.clear();
+    m_downloadError.clear();
+    emit downloadFinished(completedPath);
+}
 
-    const QString localPath = m_downloadFile ? m_downloadFile->fileName() : QString();
+QString Updater::finalizeDownload(QNetworkReply *reply) {
+    if (!m_downloadError.isEmpty())
+        return m_downloadError;
+    if (reply->error() != QNetworkReply::NoError)
+        return reply->errorString();
+    const QString writeError = writeDownloadBytes(m_downloadFile, reply->readAll());
+    if (!writeError.isEmpty())
+        return writeError;
+    if (!m_downloadFile || !m_downloadFile->commit())
+        return QStringLiteral("提交下载文件失败: %1")
+            .arg(m_downloadFile ? m_downloadFile->errorString()
+                                : QStringLiteral("file unavailable"));
+    delete m_downloadFile;
+    m_downloadFile = nullptr;
+    const QFileInfo fileInfo(m_downloadPath);
+    return fileInfo.isFile() && fileInfo.size() > 0
+        ? QString()
+        : QStringLiteral("下载文件无效");
+}
+
+void Updater::failDownload(const QString &message) {
+    qWarning() << "[Updater] 下载失败:" << message;
+    cleanupDownloadArtifacts();
+    emit downloadFailed(message);
+}
+
+void Updater::cleanupDownloadArtifacts() {
     if (m_downloadFile) {
-        m_downloadFile->write(reply->readAll());
-        m_downloadFile->close();
+        m_downloadFile->cancelWriting();
         delete m_downloadFile;
         m_downloadFile = nullptr;
     }
-    if (reply->error() != QNetworkReply::NoError) {
-        emit downloadFailed(reply->errorString());
-        return;
-    }
-    emit downloadFinished(localPath);
+    if (!m_downloadPath.isEmpty() && QFileInfo::exists(m_downloadPath)
+        && !QFile::remove(m_downloadPath))
+        qWarning() << "[Updater] 清理下载残留失败:" << m_downloadPath;
+    m_downloadPath.clear();
+    m_downloadError.clear();
 }
 
 // ==================== 安装并退出 (镜像 Python runInstallerAndQuit) ====================

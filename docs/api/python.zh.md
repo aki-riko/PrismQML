@@ -52,6 +52,8 @@ window = app.create_window(WindowType.BAR)
 
 版本比较会去除可选的 `v` / `V` 前缀，支持项目使用的可变长度点分数字主版本和点分预发布标识；正式版高于同主版本的预发布版，`+` 后的构建元数据不参与优先级，空白或仅前缀标签视为最小版本。该逻辑用于比较 GitHub tag，不是严格拒绝非标准 tag 的完整 SemVer 校验器。
 
+release 响应必须是严格 UTF-8 JSON 对象，`tag_name` 必须是非空字符串，`body`、`html_url`、`assets` 及 asset 字段会按公开 schema 校验；非法输入只发 `checkFailed`，不会被静默截断或误报为可更新。下载使用进程唯一临时文件，完整写入并 flush/fsync/close 后原子发布；网络、写入、关闭、提交或空文件失败只发一次 `downloadFailed` 并清理残留。同一 Updater 实例已有检查或下载进行时，重复调用会被忽略且不会替换活动 reply。
+
 ## 日志
 
 | 名称 | 说明 |
