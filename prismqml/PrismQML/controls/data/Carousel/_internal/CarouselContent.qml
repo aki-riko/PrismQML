@@ -20,7 +20,7 @@ Item {
     required property int orientation
     required property int currentIndex
 
-    // ==================== Optional Props 可选属性 ====================
+    // ==================== Public Props 公开属性 ====================
     // Custom item delegate. When non-null, used instead of the built-in
     // image/color/text content component. The delegate root receives the
     // per-page payload through the host Loader's contextual `itemData`.
@@ -31,11 +31,18 @@ Item {
     // 内容区域圆角半径；0 表示不启用圆角 mask。
     property real borderRadius: 0
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool isVertical: orientation === Qt.Vertical
+    readonly property bool isPeek: effect === Enums.carousel.effect_peek
+
     // ==================== Signals 信号 ====================
     signal indexChanged(int index)
 
-    // ==================== Internal 内部属性 ====================
-    readonly property bool isVertical: orientation === Qt.Vertical
+    // ==================== Public Methods 公开方法 ====================
+    function setIndex(index) {
+        // 两种 effect 的内容视图(PathView / ListView)都通过 currentIndex 绑定驱动，
+        // 无需手动设置。保留此方法仅为兼容 Carousel.qml 既有调用契约。
+    }
 
     clip: true
 
@@ -55,22 +62,15 @@ Item {
         }
     }
 
-    // ==================== Content Loader 内容加载器 ====================
-    readonly property bool isPeek: effect === Enums.carousel.effect_peek
-
-    // ==================== Public Methods 公开方法 ====================
-    function setIndex(index) {
-        // 两种 effect 的内容视图(PathView / ListView)都通过 currentIndex 绑定驱动，
-        // 无需手动设置。保留此方法仅为兼容 Carousel.qml 既有调用契约。
-    }
-
+    // ==================== Content 内容 ====================
+    // Content loader 内容加载器
     Loader {
         id: contentLoader
         anchors.fill: parent
         sourceComponent: control.isPeek ? peekComponent : defaultComponent
     }
 
-    // ==================== Default ListView (plain slide) 普通滑动 ====================
+    // Default ListView (plain slide) 普通滑动
     Component {
         id: defaultComponent
 
@@ -96,15 +96,16 @@ Item {
                 height: defaultListView.height
 
                 Loader {
+                    property var itemData: modelData
+
                     anchors.fill: parent
                     sourceComponent: control.itemDelegate ? control.itemDelegate : _contentComponent
-                    property var itemData: modelData
                 }
             }
         }
     }
 
-    // ==================== Peek (Fluent Store slide + peek) 露边：滑动+两侧窥视 ====================
+    // Peek (Fluent Store slide + peek) 露边：滑动+两侧窥视
     // 中心项满显(scale 1.0/opacity 1.0)，相邻项缩放(peekScale)+半透明(peekOpacity)
     // 在两侧露出边缘(peek)；翻页时整条带子沿 Path 平滑滑动归位，图片不变形。
     Component {
@@ -112,12 +113,6 @@ Item {
 
         PathView {
             id: pv
-            anchors.fill: parent
-            clip: true
-            model: control.model
-            interactive: false  // 翻页由 Carousel 的导航按钮/滚轮/自动播放驱动
-
-            // ----- 几何参数(可微调) 中心卡占视图比例 + 相邻槽位偏移 -----
             readonly property bool isVertical: control.isVertical
             readonly property real axisLen: isVertical ? height : width
             // 中心卡沿主轴占视图的比例(<1 才能让两侧相邻项 peek 出来)
@@ -127,6 +122,12 @@ Item {
                                                + axisLen * Enums.carousel.peekSpacing
             readonly property real cardLen: axisLen * centerRatio
 
+            anchors.fill: parent
+            clip: true
+            model: control.model
+            interactive: false  // 翻页由 Carousel 的导航按钮/滚轮/自动播放驱动
+
+            // ----- 几何参数(可微调) 中心卡占视图比例 + 相邻槽位偏移 -----
             pathItemCount: 3            // 同时实例化 prev/current/next
             preferredHighlightBegin: 0.5
             preferredHighlightEnd: 0.5
@@ -181,26 +182,27 @@ Item {
                 z: PathView.iZ === undefined ? 0 : PathView.iZ
 
                 Loader {
+                    property var itemData: modelData
+
                     anchors.fill: parent
                     sourceComponent: control.itemDelegate ? control.itemDelegate : _contentComponent
-                    property var itemData: modelData
                 }
             }
         }
     }
 
-    // ==================== Content Component 内容组件 ====================
+    // Content component 内容组件
     Component {
         id: _contentComponent
 
         Item {
-            anchors.fill: parent
-
             // Check if image source 检查是否为图片源图片识别逻辑
             readonly property bool isImage: {
                 var src = itemData.source || itemData
                 return typeof src === "string" && (src.indexOf("/") >= 0 || src.indexOf(".") >= 0 || src.indexOf(":") >= 0)
             }
+
+            anchors.fill: parent
 
             // Image content 图片内容渲染图片内容
             Image {
