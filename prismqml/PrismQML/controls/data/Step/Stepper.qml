@@ -8,12 +8,12 @@ import "../../icons"
 import "../../data"
 
 // Stepper - Fluent Design step progress bar 步骤进度条
-// Features 特性: icon support, animated progress line, clickable steps
+// Features: icon support, animated progress line, and clickable steps 特性：图标、进度线动画与可点击步骤
 Item {
     id: control
     
     // ==================== Public Props 公开属性 ====================
-    // Steps format: [{text, icon}, ...] or ["text1", "text2", ...]
+    // Steps format: [{text, icon}, ...] or ["text1", "text2", ...] 步骤格式支持对象或文本数组
     property var steps: []
     property int currentStep: 0
     property int indicatorSize: 36  // Circle size 圆形大小
@@ -43,12 +43,13 @@ Item {
     function _getStepText(step) { return typeof step === "string" ? step : (step.text || "") }
     function _getStepIcon(step) { return typeof step === "string" ? "" : (step.icon || "") }
     
+    // ==================== Size 尺寸 ====================
     onCurrentStepChanged: stepChanged(currentStep)
-    
     implicitWidth: Math.max(400, steps.length * 100)
     implicitHeight: indicatorSize + Enums.spacing.m + Enums.typography.caption + Enums.spacing.s
-    
-    // ==================== Background Line 背景连接线 ====================
+
+    // ==================== Content 内容 ====================
+    // Background line 背景连接线
     Rectangle {
         x: _lineStartX
         y: indicatorSize / 2 - Enums.border.normal / 2
@@ -58,7 +59,7 @@ Item {
         visible: steps.length > 1
     }
     
-    // ==================== Progress Line 进度连接线 ====================
+    // Progress line 进度连接线
     Rectangle {
         x: _lineStartX
         y: indicatorSize / 2 - Enums.border.normal / 2
@@ -70,7 +71,7 @@ Item {
         Behavior on width { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
     }
     
-    // ==================== Step Indicators 步骤指示器 ====================
+    // Step indicators 步骤指示器
     Row {
         anchors.fill: parent
         
