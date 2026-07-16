@@ -8,6 +8,7 @@
 """
 
 import json
+import inspect
 import os
 from types import SimpleNamespace
 
@@ -90,6 +91,36 @@ class TestVersionCompare:
     def test_four_part_version(self):
         assert _is_newer("v0.2.24.1", "v0.2.24")
         assert not _is_newer("v0.2.24", "v0.2.24.1")
+
+    @pytest.mark.parametrize(
+        ("left", "right"),
+        [
+            ("v1.0.0+build.2", "v1.0.0+build.1"),
+            ("v1.0.0-beta+build.2", "v1.0.0-beta+build.1"),
+        ],
+    )
+    def test_build_metadata_does_not_change_precedence(self, left, right):
+        assert _parse_version(left) == _parse_version(right)
+        assert not _is_newer(left, right)
+        assert not _is_newer(right, left)
+
+    @pytest.mark.parametrize("tag", ["   ", "\t", "v", " V "])
+    def test_blank_or_prefix_only_tag_is_empty(self, tag):
+        assert _parse_version(tag) == ()
+
+    def test_arbitrarily_large_numeric_prerelease_segments(self):
+        assert _is_newer(
+            "v1.0.0-alpha.1000000000000000000000000000000",
+            "v1.0.0-alpha.999999999999999999999999999999",
+        )
+
+    def test_version_parser_stays_small_and_delegates(self):
+        lines, _start_line = inspect.getsourcelines(_parse_version)
+        source = "".join(lines)
+
+        assert len(lines) <= 30
+        assert "_normalize_version_tag(tag)" in source
+        assert source.count("_parse_version_segments(") == 2
 
 
 # ==================== asset 选择 ====================

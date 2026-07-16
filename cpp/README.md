@@ -172,6 +172,8 @@ Updater updater("owner/repo", "v1.0.0", "Setup",
 | 二维码 | `QRCodeGenerator`（完整编码后端，nayuki qrcodegen / MIT，`available=true`） | providers/qrcode_generator.py |
 | DWM 同步 | `installDwmSyncFilter`（无边框窗口 resize 防撕裂，桌面 Windows） | core/shadow.py |
 
+`Updater::versionIsNewer()` 与 Python Updater 使用同一 tag 比较合同：去除可选 `v` / `V` 前缀，支持可变长度点分数字主版本和点分预发布标识，正式版高于同主版本预发布版，忽略 `+` 后的构建元数据，并把空白或仅前缀标签视为最小版本。该函数用于比较 GitHub tag，不是严格拒绝非标准 tag 的完整 SemVer 校验器。
+
 ### 平台相关的诚实降级（非 Windows 按 `#ifdef` no-op，无功能缺口）
 - `installDwmSyncFilter` / `Updater::runInstallerAndQuit` 的 Windows 专属路径
   （DwmFlush 同步、ShellExecuteW 提权安装）在非 Windows 平台按平台条件编译降级：

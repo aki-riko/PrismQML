@@ -19,7 +19,8 @@ inline constexpr char kUpdaterApiBaseUrlEnvironment[] =
     "PRISMQML_UPDATER_API_BASE_URL";
 inline constexpr char kDefaultUpdaterApiBaseUrl[] = "https://api.github.com";
 
-// 版本比较 (镜像 _parse_version/_is_newer): latest 是否比 current 新
+// GitHub tag 版本比较 (镜像 _parse_version/_is_newer): latest 是否比 current 新。
+// 可选 v/V、可变长度点分主版本、预发布与忽略构建元数据的合同见 cpp/README.md。
 bool versionIsNewer(const QString &latest, const QString &current);
 QString resolveUpdaterApiBaseUrl(const QString &configured = QString());
 QString latestReleaseApiUrl(const QString &repo,

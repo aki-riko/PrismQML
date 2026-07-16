@@ -50,6 +50,8 @@ window = app.create_window(WindowType.BAR)
 
 For `Updater(..., api_base_url="https://github.example/api/v3")`, the explicit value wins, followed by `PRISMQML_UPDATER_API_BASE_URL`, then the public GitHub API. Whitespace and trailing `/` characters are normalized.
 
+Version comparison strips an optional `v` / `V` prefix and supports the project's variable-length dotted numeric core plus dotted prerelease identifiers. A release outranks a prerelease with the same core, build metadata after `+` does not affect precedence, and blank or prefix-only tags are treated as the minimum version. This compares GitHub tags; it is not a strict validator that rejects every non-standard SemVer tag.
+
 ## Logging
 
 | Name | Description |

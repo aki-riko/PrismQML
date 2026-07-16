@@ -50,6 +50,8 @@ window = app.create_window(WindowType.BAR)
 
 `Updater(..., api_base_url="https://github.example/api/v3")` 的显式地址优先，其次读取 `PRISMQML_UPDATER_API_BASE_URL`，最后使用 GitHub 公共 API；空白和尾部 `/` 会被归一化。
 
+版本比较会去除可选的 `v` / `V` 前缀，支持项目使用的可变长度点分数字主版本和点分预发布标识；正式版高于同主版本的预发布版，`+` 后的构建元数据不参与优先级，空白或仅前缀标签视为最小版本。该逻辑用于比较 GitHub tag，不是严格拒绝非标准 tag 的完整 SemVer 校验器。
+
 ## 日志
 
 | 名称 | 说明 |

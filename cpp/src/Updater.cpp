@@ -33,7 +33,24 @@ namespace prism {
 // ==================== 版本解析 (镜像 _parse_version) ====================
 // 返回 core 段列表 + pre_marker, 用于逐段比较。
 namespace {
-struct Seg { int kind; long long num; QString str; };  // kind 0=数字, 1=非数字
+struct Seg { int kind; QString value; };  // kind 0=数字, 1=非数字
+
+bool isAsciiDigits(const QString &value) {
+    if (value.isEmpty())
+        return false;
+    for (const QChar character : value) {
+        if (character < QLatin1Char('0') || character > QLatin1Char('9'))
+            return false;
+    }
+    return true;
+}
+
+QString normalizeNumericSegment(const QString &value) {
+    qsizetype firstNonZero = 0;
+    while (firstNonZero < value.size() && value[firstNonZero] == QLatin1Char('0'))
+        ++firstNonZero;
+    return firstNonZero == value.size() ? QStringLiteral("0") : value.mid(firstNonZero);
+}
 
 QList<Seg> parseSegments(const QString &s) {
     QList<Seg> out;
@@ -41,12 +58,10 @@ QList<Seg> parseSegments(const QString &s) {
         const QString seg = raw.trimmed();
         if (seg.isEmpty())
             continue;
-        bool ok = false;
-        const long long n = seg.toLongLong(&ok);
-        if (ok)
-            out.append({0, n, QString()});
+        if (isAsciiDigits(seg))
+            out.append({0, normalizeNumericSegment(seg)});
         else
-            out.append({1, 0, seg});
+            out.append({1, seg});
     }
     return out;
 }
@@ -55,9 +70,9 @@ QList<Seg> parseSegments(const QString &s) {
 int cmpSeg(const Seg &a, const Seg &b) {
     if (a.kind != b.kind)
         return a.kind < b.kind ? -1 : 1;  // 数字段(0)排在非数字段(1)之前
-    if (a.kind == 0)
-        return a.num < b.num ? -1 : (a.num > b.num ? 1 : 0);
-    return a.str < b.str ? -1 : (a.str > b.str ? 1 : 0);
+    if (a.kind == 0 && a.value.size() != b.value.size())
+        return a.value.size() < b.value.size() ? -1 : 1;
+    return a.value < b.value ? -1 : (a.value > b.value ? 1 : 0);
 }
 
 int cmpSegList(const QList<Seg> &a, const QList<Seg> &b) {
@@ -80,17 +95,22 @@ Version parseVersion(const QString &tag) {
     if (t.isEmpty()) { v.empty = true; return v; }
     if (t[0] == QLatin1Char('v') || t[0] == QLatin1Char('V'))
         t = t.mid(1);
+    const int plus = t.indexOf(QLatin1Char('+'));
+    if (plus >= 0)
+        t.truncate(plus);
+    t = t.trimmed();
+    if (t.isEmpty()) { v.empty = true; return v; }
     const int dash = t.indexOf(QLatin1Char('-'));
     const QString coreStr = dash >= 0 ? t.left(dash) : t;
     const QString preStr = dash >= 0 ? t.mid(dash + 1) : QString();
     v.core = parseSegments(coreStr);
     if (dash >= 0) {
         // 预发布: pre_marker = (0,) + segs, 排在正式版之前
-        v.preMarker.append({0, 0, QString()});
+        v.preMarker.append({0, QStringLiteral("0")});
         v.preMarker.append(parseSegments(preStr));
     } else {
         // 正式版: (1,), 排在最后(更大)
-        v.preMarker.append({0, 1, QString()});
+        v.preMarker.append({0, QStringLiteral("1")});
     }
     return v;
 }

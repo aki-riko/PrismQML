@@ -24,7 +24,7 @@ import ctypes
 import os
 import sys
 import tempfile
-from typing import List, Optional, Tuple
+from typing import Optional
 
 if sys.platform == "win32":
     from ctypes import wintypes
@@ -87,7 +87,29 @@ def _latest_release_url(repo: str, api_base_url: Optional[str] = None) -> str:
     return f"{_resolve_api_base_url(api_base_url)}/repos/{normalized_repo}/releases/latest"
 
 
-def _parse_version(tag: str) -> Tuple:
+def _normalize_version_tag(tag: str) -> str:
+    """Normalize prefix and build metadata. 归一化前缀与构建元数据。"""
+    normalized = tag.strip()
+    if normalized[:1] in ("v", "V"):
+        normalized = normalized[1:]
+    return normalized.partition("+")[0].strip()
+
+
+def _parse_version_segments(value: str) -> tuple:
+    """Parse dot-separated precedence segments. 解析点分优先级片段。"""
+    segments = []
+    for raw_segment in value.split("."):
+        segment = raw_segment.strip()
+        if not segment:
+            continue
+        if segment.isascii() and segment.isdigit():
+            segments.append((0, int(segment)))
+        else:
+            segments.append((1, segment))
+    return tuple(segments)
+
+
+def _parse_version(tag: str) -> tuple:
     """把版本号(如 'v1.0.3' / '1.2.0-beta')解析成可比较的元组。
 
     返回 ``(core, pre_marker)`` 二元组:
@@ -96,32 +118,16 @@ def _parse_version(tag: str) -> Tuple:
     - pre_marker: 预发布标记。无预发布(无 '-')为 ``(1,)``,有预发布为
       ``(0,) + 预发布各段``。保证 core 相同时正式版 > 预发布版
       (如 '1.0.0' > '1.0.0-beta'),符合语义版本直觉。
-    空字符串返回 ``()``,视为最小版本。
+    构建元数据不参与优先级；空白或仅 v/V 前缀返回 ``()``,视为最小版本。
     """
-    if not tag:
+    normalized = _normalize_version_tag(tag)
+    if not normalized:
         return ()
-    t = tag.strip()
-    if t and t[0] in ("v", "V"):
-        t = t[1:]
 
-    # 按第一个 '-' 分离主版本与预发布部分。
-    core_str, sep, pre_str = t.partition("-")
-
-    def _segments(s: str) -> list:
-        out: List = []
-        for seg in s.split("."):
-            seg = seg.strip()
-            if not seg:
-                continue
-            if seg.isdigit():
-                out.append((0, int(seg)))
-            else:
-                out.append((1, seg))
-        return out
-
-    core = tuple(_segments(core_str))
-    if sep:  # 有 '-',是预发布版,排在同 core 正式版之前
-        pre_marker = (0,) + tuple(_segments(pre_str))
+    core_str, separator, prerelease_str = normalized.partition("-")
+    core = _parse_version_segments(core_str)
+    if separator:  # 有 '-',是预发布版,排在同 core 正式版之前
+        pre_marker = (0,) + _parse_version_segments(prerelease_str)
     else:    # 无预发布,正式版,排在最后(更大)
         pre_marker = (1,)
     return (core, pre_marker)

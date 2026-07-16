@@ -35,6 +35,28 @@ static int g_failed = 0;
     else { qCritical() << "  FAIL:" << name; ++g_failed; } \
 } while (0)
 
+static void testUpdaterVersionComparison() {
+    using prism::versionIsNewer;
+    qInfo() << "=== Updater 版本比较测试 ===";
+    CHECK(versionIsNewer("v1.0.1", "v1.0.0"), "1.0.1 > 1.0.0");
+    CHECK(versionIsNewer("v1.2.0", "v1.1.9"), "1.2.0 > 1.1.9");
+    CHECK(!versionIsNewer("v1.0.0", "v1.0.0"), "1.0.0 不新于自身");
+    CHECK(!versionIsNewer("v1.0.0", "v1.0.1"), "1.0.0 不新于 1.0.1");
+    CHECK(versionIsNewer("v1.0.0", "v1.0.0-beta"), "正式版 > 预发布");
+    CHECK(!versionIsNewer("v1.0.0-beta", "v1.0.0"), "预发布 < 正式版");
+    CHECK(versionIsNewer("v2.0.0", "v1.9.9"), "主版本号优先");
+    CHECK(versionIsNewer("v0.2.24.1", "v0.2.24"), "四段版本递增");
+    CHECK(!versionIsNewer("v0.2.24", "v0.2.24.1"), "四段版本递减");
+    CHECK(!versionIsNewer("v1.0.0+build.2", "v1.0.0+build.1"), "正式版元数据相等");
+    CHECK(!versionIsNewer("v1.0.0+build.1", "v1.0.0+build.2"), "正式版元数据反向相等");
+    CHECK(!versionIsNewer("v1.0.0-beta+build.2", "v1.0.0-beta+build.1"), "预发布元数据相等");
+    CHECK(!versionIsNewer("v1.0.0-beta+build.1", "v1.0.0-beta+build.2"), "预发布元数据反向相等");
+    CHECK(!versionIsNewer("v", QString()), "仅 v 前缀视为空版本");
+    CHECK(versionIsNewer("v1.0.0-alpha.1000000000000000000000000000000",
+                         "v1.0.0-alpha.999999999999999999999999999999"),
+          "任意长度数字预发布段按数值比较");
+}
+
 int main(int argc, char *argv[]) {
     if (!prism::test::configureNonInteractiveProcess()) return 2;
     QCoreApplication app(argc, argv);
@@ -177,16 +199,7 @@ int main(int argc, char *argv[]) {
     log::error(QStringLiteral("Logger error 测试(应出现)"));
     CHECK(true, "Logger 调用无崩溃");
 
-    qInfo() << "=== Updater 版本比较测试 ===";
-    CHECK(versionIsNewer("v1.0.1", "v1.0.0"), "1.0.1 > 1.0.0");
-    CHECK(versionIsNewer("v1.2.0", "v1.1.9"), "1.2.0 > 1.1.9");
-    CHECK(!versionIsNewer("v1.0.0", "v1.0.0"), "1.0.0 不新于自身");
-    CHECK(!versionIsNewer("v1.0.0", "v1.0.1"), "1.0.0 不新于 1.0.1");
-    CHECK(versionIsNewer("v1.0.0", "v1.0.0-beta"), "正式版 > 预发布");
-    CHECK(!versionIsNewer("v1.0.0-beta", "v1.0.0"), "预发布 < 正式版");
-    CHECK(versionIsNewer("v2.0.0", "v1.9.9"), "主版本号优先");
-    CHECK(versionIsNewer("v0.2.24.1", "v0.2.24"), "四段版本: 0.2.24.1 > 0.2.24");
-    CHECK(!versionIsNewer("v0.2.24", "v0.2.24.1"), "四段版本: 0.2.24 不新于 0.2.24.1");
+    testUpdaterVersionComparison();
 
     const bool hadUpdaterApiBase = qEnvironmentVariableIsSet(kUpdaterApiBaseUrlEnvironment);
     const QByteArray originalUpdaterApiBase = qgetenv(kUpdaterApiBaseUrlEnvironment);
