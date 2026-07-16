@@ -52,12 +52,14 @@ OverlayDialogCore {
 
     // Override accept to emit accepted 重写 accept 以发送 accepted
     function accept() {
+        if (!_isOpen) return
         accepted()
         close()
     }
 
     // Override reject to emit rejected 重写 reject 以发送 rejected
     function reject() {
+        if (!_isOpen) return
         rejected()
         close()
     }

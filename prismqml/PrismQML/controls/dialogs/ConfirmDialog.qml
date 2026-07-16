@@ -122,6 +122,7 @@ DialogBoxCore {
                 width: Enums.dialog.buttonWidth
                 height: Enums.dialog.buttonHeight
                 onClicked: {
+                    if (!control.isOpen) return
                     control.confirmed()
                     control.accept()
                 }
@@ -134,6 +135,7 @@ DialogBoxCore {
                 width: Enums.dialog.buttonWidth
                 height: Enums.dialog.buttonHeight
                 onClicked: {
+                    if (!control.isOpen) return
                     control.cancelled()
                     control.reject()
                 }
