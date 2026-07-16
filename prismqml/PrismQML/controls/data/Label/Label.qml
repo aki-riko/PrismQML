@@ -11,31 +11,18 @@ import "../../.."
 Text {
     id: control
     
-    // ==================== Type Props 类型属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int type: Enums.label.type_body  // Default body type 默认正文类型
-    
-    // ==================== Hyperlink Props 超链接属性 ====================
     property url url: ""
     property bool underlineOnHover: true
-    readonly property bool hovered: _mouseArea.containsMouse
-
     // Custom text color 自定义文本颜色
     property color customTextColor: Enums.transparent
+
+    // ==================== Internal Props 内部属性 ====================
     property bool _useCustomColor: customTextColor != Enums.transparent
 
-    signal clicked()
-    
-    // ==================== Style Binding 样式绑定 ====================
-    font.family: Enums.fontFamily
-    font.pixelSize: _fontSize
-    font.weight: _fontWeight
-    font.underline: type === Enums.label.type_hyperlink && hovered && underlineOnHover
-    color: _textColor
-    wrapMode: (type === Enums.label.type_body || type === Enums.label.type_body_strong || type === Enums.label.type_body_small)
-              ? Text.WordWrap : Text.NoWrap
-    elide: type === Enums.label.type_display ? Text.ElideRight : Text.ElideNone
-    
-    // ==================== Internal Style Calc 内部样式计算 ====================
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool hovered: _mouseArea.containsMouse
     readonly property int _fontSize: {
         switch (type) {
             case Enums.label.type_body:
@@ -88,22 +75,33 @@ Text {
                 return Enums.textColor.primary
         }
     }
-    
+
+    // ==================== Signals 信号 ====================
+    signal clicked()
+
     // ==================== Public Methods 公开方法 ====================
     // Clear text content 清空文本内容
     function clear() { text = "" }
 
-    // ==================== Public Methods 公共方法 ====================
     function getText() { return text }
-    
-    
+
     function getUrl() { return url }
-    
-    
+
     // Set word wrap 设置自动换行
     function setWordWrap(wrap) { wrapMode = wrap ? Text.WordWrap : Text.NoWrap }
-    
-    // ==================== Hyperlink Interaction 超链接交互 ====================
+
+    // Style bindings 样式绑定
+    font.family: Enums.fontFamily
+    font.pixelSize: _fontSize
+    font.weight: _fontWeight
+    font.underline: type === Enums.label.type_hyperlink && hovered && underlineOnHover
+    color: _textColor
+    wrapMode: (type === Enums.label.type_body || type === Enums.label.type_body_strong || type === Enums.label.type_body_small)
+              ? Text.WordWrap : Text.NoWrap
+    elide: type === Enums.label.type_display ? Text.ElideRight : Text.ElideNone
+
+    // ==================== Content 内容 ====================
+    // Hyperlink interaction 超链接交互
     MouseArea {
         id: _mouseArea
         anchors.fill: parent
