@@ -10,16 +10,17 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 // QListWidget-style migration API subset QListWidget风格迁移接口子集
 Rectangle {
     id: control
-    
-    // ==================== Background 背景 ====================
-    // cardColor 可覆盖(默认主题 headerColor): 透明场景设 cardColor:"transparent",
-    // 与 DataWidgetCore 系列(ListView/TableView 等)API 命名一致。
+
+    // ==================== Public Props 公开属性 ====================
+    // Background 背景
+    // cardColor overrides the default headerColor; use transparent for transparent scenes.
+    // cardColor 可覆盖默认 headerColor；透明场景使用 cardColor:"transparent"。
+    // Match the DataWidgetCore family API naming (ListView/TableView, etc.).
+    // 与 DataWidgetCore 系列（ListView/TableView 等）API 命名一致。
     property color cardColor: Enums.headerColor
     property int borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card
-    color: cardColor
-    radius: borderRadius
-    
-    // ==================== Selection Mode 选择模式 ====================
+
+    // Selection mode 选择模式
     // QAbstractItemView.SelectionMode-style values QAbstractItemView选择模式风格取值
     readonly property int noSelection: 0
     readonly property int singleSelection: 1
@@ -29,7 +30,6 @@ Rectangle {
     
     property int selectionMode: singleSelection
     
-    // ==================== Public Props 公开属性 ====================
     property var model: []  // External model 外部模型
     readonly property int count: model.length > 0 ? model.length : listModel.count
     property alias currentIndex: listView.currentIndex
@@ -48,7 +48,13 @@ Rectangle {
     
     // Item delegate properties 列表项委托属性
     property Component itemDelegate: null
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    property int _hoverRow: -1
+    property int _pressedRow: -1
+    property var _selectedRows: []  // Multi-selection support 多选支持
+    property var _previousItem: null
+
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, var item)
     signal itemDoubleClicked(int index, var item)
@@ -57,66 +63,9 @@ Rectangle {
     signal currentItemChanged(var current, var previous)
     signal currentRowChanged(int currentRow)
     signal itemSelectionChanged()
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: Enums.controlSize.listDefaultWidth
-    implicitHeight: Enums.controlSize.listDefaultHeight
-    
-    // ==================== Internal State 内部状态 ====================
-    property int _hoverRow: -1
-    property int _pressedRow: -1
-    property var _selectedRows: []  // Multi-selection support 多选支持
-    property var _previousItem: null
 
-    // ==================== Selection Helper 选择辅助 ====================
-    function _isRowSelected(row) {
-        if (selectionMode === noSelection) return false
-        if (selectionMode === singleSelection) return listView.currentIndex === row
-        return _selectedRows.indexOf(row) >= 0
-    }
-
-    function _handleItemClick(row, button, modifiers) {
-        if (selectionMode === noSelection) return
-
-        if (button === Qt.RightButton && !selectOnRightClick) return
-
-        if (selectionMode === singleSelection) {
-            listView.currentIndex = row
-            _selectedRows = [row]
-        } else if (selectionMode === multiSelection) {
-            var idx = _selectedRows.indexOf(row)
-            if (idx >= 0) {
-                _selectedRows.splice(idx, 1)
-            } else {
-                _selectedRows.push(row)
-            }
-            _selectedRows = _selectedRows.slice()  // Trigger binding update
-            listView.currentIndex = row
-        } else if (selectionMode === extendedSelection) {
-            if (modifiers & Qt.ControlModifier) {
-                var idx2 = _selectedRows.indexOf(row)
-                if (idx2 >= 0) _selectedRows.splice(idx2, 1)
-                else _selectedRows.push(row)
-                _selectedRows = _selectedRows.slice()
-            } else if (modifiers & Qt.ShiftModifier && listView.currentIndex >= 0) {
-                var start = Math.min(listView.currentIndex, row)
-                var end = Math.max(listView.currentIndex, row)
-                _selectedRows = []
-                for (var i = start; i <= end; i++) _selectedRows.push(i)
-            } else {
-                _selectedRows = [row]
-            }
-            listView.currentIndex = row
-        }
-        _pressedRow = -1
-        itemSelectionChanged()
-    }
-
-    function _updateSelectedRows() {
-        // Called when model changes 模型变化时调用
-        _selectedRows = _selectedRows.filter(function(r) { return r < listModel.count })
-    }
-    // ==================== QListWidget API - Item Management 项管理 ====================
+    // ==================== Public Methods 公开方法 ====================
+    // Item management 项管理
 
     // Add single item 添加单项
     function addItem(item) {
@@ -169,7 +118,7 @@ Rectangle {
         }
         return -1
     }
-    // ==================== QListWidget API - Current Item 当前项 ====================
+    // Current item 当前项
 
     function currentItem() {
         return item(listView.currentIndex)
@@ -194,7 +143,7 @@ Rectangle {
         }
     }
 
-    // ==================== QListWidget API - Selection 选择 ====================
+    // Selection 选择
 
     function selectedItems() {
         var result = []
@@ -226,10 +175,10 @@ Rectangle {
             _selectedRows = listView.currentIndex >= 0 ? [listView.currentIndex] : []
         }
     }
-    // ==================== QListWidget API - Search 搜索 ====================
+    // Search 搜索
 
     // Find items matching text 查找匹配文本的项
-    // flags: 0=ExactMatch, 1=Contains, 2=StartsWith, 3=EndsWith, 4=RegExp
+    // flags: 0=ExactMatch, 1=Contains, 2=StartsWith, 3=EndsWith, 4=RegExp 匹配模式
     function findItems(text, flags) {
         var result = []
         var pattern = text.toLowerCase()
@@ -246,9 +195,9 @@ Rectangle {
         return result
     }
 
-    // ==================== QListWidget API - Sorting 排序 ====================
+    // Sorting 排序
 
-    // Sort items (order: 0=Ascending, 1=Descending)
+    // Sort items (order: 0=Ascending, 1=Descending) 排序项目（0=升序，1=降序）
     function sortItems(order) {
         var sortedRows = []
         var currentOrder = []
@@ -280,7 +229,7 @@ Rectangle {
         })
     }
 
-    // ==================== QListWidget API - Clear 清空 ====================
+    // Clear 清空
 
     function clear() {
         listModel.clear()
@@ -288,7 +237,7 @@ Rectangle {
         listView.currentIndex = -1
     }
 
-    // ==================== QListWidget API - Scroll 滚动 ====================
+    // Scroll 滚动
 
     function scrollToItem(item, hint) {
         var r = row(item)
@@ -308,10 +257,7 @@ Rectangle {
     function smoothScrollBy(delta) {
         scrollHelper.scrollBy(delta)
     }
-    // ==================== QListWidget API - Border 边框 ====================
-
-
-    // ==================== QListWidget API - Item Properties 项属性 ====================
+    // Item properties 项属性
 
     function setItemText(row, text) {
         if (row >= 0 && row < listModel.count) {
@@ -366,7 +312,55 @@ Rectangle {
         return _isRowSelected(row)
     }
 
-    // ==================== Internal Helpers 内部辅助 ====================
+    // ==================== Internal Methods 内部方法 ====================
+
+    function _isRowSelected(row) {
+        if (selectionMode === noSelection) return false
+        if (selectionMode === singleSelection) return listView.currentIndex === row
+        return _selectedRows.indexOf(row) >= 0
+    }
+
+    function _handleItemClick(row, button, modifiers) {
+        if (selectionMode === noSelection) return
+
+        if (button === Qt.RightButton && !selectOnRightClick) return
+
+        if (selectionMode === singleSelection) {
+            listView.currentIndex = row
+            _selectedRows = [row]
+        } else if (selectionMode === multiSelection) {
+            var idx = _selectedRows.indexOf(row)
+            if (idx >= 0) {
+                _selectedRows.splice(idx, 1)
+            } else {
+                _selectedRows.push(row)
+            }
+            _selectedRows = _selectedRows.slice()  // Trigger binding update
+            listView.currentIndex = row
+        } else if (selectionMode === extendedSelection) {
+            if (modifiers & Qt.ControlModifier) {
+                var idx2 = _selectedRows.indexOf(row)
+                if (idx2 >= 0) _selectedRows.splice(idx2, 1)
+                else _selectedRows.push(row)
+                _selectedRows = _selectedRows.slice()
+            } else if (modifiers & Qt.ShiftModifier && listView.currentIndex >= 0) {
+                var start = Math.min(listView.currentIndex, row)
+                var end = Math.max(listView.currentIndex, row)
+                _selectedRows = []
+                for (var i = start; i <= end; i++) _selectedRows.push(i)
+            } else {
+                _selectedRows = [row]
+            }
+            listView.currentIndex = row
+        }
+        _pressedRow = -1
+        itemSelectionChanged()
+    }
+
+    function _updateSelectedRows() {
+        // Called when model changes 模型变化时调用
+        _selectedRows = _selectedRows.filter(function(r) { return r < listModel.count })
+    }
 
     function _normalizeItem(item) {
         if (typeof item === "string") {
@@ -398,10 +392,17 @@ Rectangle {
         }
     }
 
-    // ==================== Internal Model 内部模型 ====================
+    // ==================== Size 尺寸 ====================
+    implicitWidth: Enums.controlSize.listDefaultWidth
+    implicitHeight: Enums.controlSize.listDefaultHeight
+    color: cardColor
+    radius: borderRadius
+
+    // ==================== Content 内容 ====================
+    // Internal model 内部模型
     ListModel { id: listModel }
-    
-    // ==================== ListView 列表视图 ====================
+
+    // List view 列表视图
     ListView {
         id: listView
         anchors.fill: parent
@@ -409,7 +410,7 @@ Rectangle {
         clip: true
         boundsBehavior: Flickable.DragAndOvershootBounds
         interactive: false
-        // 性能: reuseItems 复用 delegate, cacheBuffer 屏外预渲染避免边界卡顿
+        // Performance: reuse delegates and prerender offscreen boundaries. 性能：复用委托并预渲染屏外边界。
         reuseItems: true
         cacheBuffer: 600
         model: control.model.length > 0 ? control.model : listModel
@@ -430,7 +431,7 @@ Rectangle {
         }
     }
     
-    // ==================== Smooth Scroll Helper 平滑滚动助手 ====================
+    // Smooth scroll helper 平滑滚动助手
     SmoothScrollHelper {
         id: scrollHelper
         target: listView
@@ -443,7 +444,7 @@ Rectangle {
         handleWheel: true
     }
     
-    // ==================== Scrollbar 滚动条 ====================
+    // Scrollbar 滚动条
     ScrollBar {
         id: scrollBar
         anchors.right: parent.right
@@ -458,7 +459,7 @@ Rectangle {
         visible: showScrollBar && listView.contentHeight > listView.height
     }
 
-    // ==================== Default Delegate 默认委托 ====================
+    // Default delegate 默认委托
     Component {
         id: defaultDelegate
         
@@ -500,7 +501,7 @@ Rectangle {
         }
     }
     
-    // ==================== Hover Tracking 悬停跟踪 ====================
+    // Hover tracking 悬停跟踪
     MouseArea {
         anchors.fill: listView
         acceptedButtons: Qt.NoButton
