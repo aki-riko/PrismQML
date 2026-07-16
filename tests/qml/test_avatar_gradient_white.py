@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QObject, QEventLoop, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
@@ -34,12 +34,23 @@ GRADIENT_SLIDER_SOURCE = (
     / "ColorPicker"
     / "GradientSlider.qml"
 )
+COLOR_PICKER_PANEL_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ColorPicker"
+    / "_internal"
+    / "ColorPickerPanel.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "avatar-gradient-white.qml")
 )
 SCENE_SOURCE = b"""
 import QtQuick
 import PrismQML
+import "../../prismqml/PrismQML/controls/inputs/ColorPicker/_internal"
 
 Item {
     id: root
@@ -48,6 +59,7 @@ Item {
     readonly property color fixedWhite: Enums.themeColors.accentForeground
     readonly property var cameraIcon: Enums.icon.camera
     readonly property int borderNormal: Enums.border.normal
+    readonly property int lightnessMode: Enums.gradientSlider.mode_lightness
 
     width: 320
     height: 180
@@ -68,6 +80,13 @@ Item {
         y: 100
         width: 200
         value: 0.25
+    }
+
+    ColorPickerPanel {
+        objectName: "colorPickerPanel"
+        x: 340
+        width: 260
+        height: 200
     }
 }
 """
@@ -170,6 +189,55 @@ def _gradient_handle(gradient: QQuickItem) -> QQuickItem:
     )
 
 
+def _gradient_stops(gradient: QQuickItem):
+    stops = [
+        item
+        for item in gradient.findChildren(QObject)
+        if item.metaObject().indexOfProperty("position") >= 0
+        and item.metaObject().indexOfProperty("color") >= 0
+        and "GradientStop" in item.metaObject().className()
+    ]
+    assert len(stops) == 7, [item.metaObject().className() for item in stops]
+    return sorted(stops, key=lambda item: item.property("position"))
+
+
+def _color_picker_selector(panel: QQuickItem) -> QQuickItem:
+    return _find_unique(
+        panel,
+        lambda item: item.metaObject().indexOfProperty("radius") >= 0
+        and item.width() == pytest.approx(16)
+        and item.height() == pytest.approx(16),
+        "color picker selector",
+    )
+
+
+def _assert_gradient_palette(root: QQuickItem) -> None:
+    gradient = root.findChild(QQuickItem, "gradientSlider")
+    expected_positions = (0.0, 0.166, 0.333, 0.5, 0.666, 0.833, 1.0)
+    expected_colors = ("red", "yellow", "lime", "cyan", "blue", "magenta", "red")
+    for stop, position, color in zip(
+        _gradient_stops(gradient), expected_positions, expected_colors
+    ):
+        assert stop.property("position") == pytest.approx(position)
+        _assert_color(stop.property("color"), QColor(color))
+
+    gradient.setProperty("mode", root.property("lightnessMode"))
+    lightness = _gradient_stops(gradient)
+    for index, color in ((0, "black"), (3, "gray"), (6, "white")):
+        _assert_color(lightness[index].property("color"), QColor(color))
+
+
+def _assert_selector_contrast(root: QQuickItem) -> None:
+    panel = root.findChild(QQuickItem, "colorPickerPanel")
+    selector = _color_picker_selector(panel)
+    panel.setProperty("brightness", 1.0)
+    panel.setProperty("saturation", 0.0)
+    _assert_color(_read(selector, "border.color"), QColor("black"))
+    panel.setProperty("brightness", 0.0)
+    panel.setProperty("saturation", 1.0)
+    _assert_color(_read(selector, "border.color"), QColor("white"))
+
+
 def _assert_fixed_white(root: QQuickItem) -> None:
     expected = root.property("fixedWhite")
     default_white = root.property("defaultWhite")
@@ -215,9 +283,24 @@ def test_avatar_and_gradient_preserve_fixed_white_runtime(qapp):
         _pump(1)
 
 
+def test_color_picker_preserves_fixed_gradient_palette(qapp):
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.FLUENT)
+    engine, component, root = _create_scene()
+    try:
+        _assert_gradient_palette(root)
+        _assert_selector_contrast(root)
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_avatar_and_gradient_sources_use_fixed_white_contracts():
     avatar_source = AVATAR_SELECTOR_SOURCE.read_text(encoding="utf-8")
     gradient_source = GRADIENT_SLIDER_SOURCE.read_text(encoding="utf-8")
+    panel_source = COLOR_PICKER_PANEL_SOURCE.read_text(encoding="utf-8")
 
     assert avatar_source.count("color: Enums.themeColors.accentForeground") == 2
     assert 'color: "white"' not in avatar_source
@@ -229,3 +312,6 @@ def test_avatar_and_gradient_sources_use_fixed_white_contracts():
         line.strip().startswith("color:") for line in handle_props.splitlines()
     )
     assert 'case Enums.gradientSlider.mode_lightness: return "white"' in gradient_source
+    for name in ("red", "yellow", "lime", "cyan", "blue", "magenta"):
+        assert f'"{name}"' in gradient_source
+    assert 'return lum > 0.5 ? "black" : "white"' in panel_source
