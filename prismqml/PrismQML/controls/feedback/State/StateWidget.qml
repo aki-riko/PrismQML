@@ -13,7 +13,7 @@ import "../../data/Label"
 Item {
     id: control
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int stateType: Enums.state.type_no_data  // State type 状态类型
     property string severity: "info"  // For type_result: success/error/warning/info/empty/loading 结果类型
     property string icon: ""  // Custom icon 自定义图标
@@ -23,10 +23,7 @@ Item {
     property int imageWidth: Enums.controlSize.stateImageSize  // Icon container width 图标容器宽度
     property int imageHeight: Enums.controlSize.stateImageSize  // Icon container height 图标容器高度
     
-    // ==================== Signals 信号 ====================
-    signal actionClicked()
-    
-    // ==================== Computed Props 计算属性 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property color _stateColor: Enums.statusLevel.getColor(severity)
     
     readonly property string _defaultIcon: {
@@ -76,12 +73,15 @@ Item {
     
     readonly property bool _isResultType: stateType === Enums.state.type_result
     readonly property bool _hasCircleIcon: _isResultType
+
+    // ==================== Signals 信号 ====================
+    signal actionClicked()
     
     // ==================== Size 尺寸 ====================
     implicitWidth: 300
     implicitHeight: contentCol.implicitHeight
     
-    // ==================== Layout 布局 ====================
+    // ==================== Content 内容 ====================
     Column {
         id: contentCol
         anchors.centerIn: parent
