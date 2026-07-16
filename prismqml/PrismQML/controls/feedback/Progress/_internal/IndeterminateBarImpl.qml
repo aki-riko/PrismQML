@@ -26,7 +26,8 @@ Item {
     implicitHeight: Enums.controlSize.progressBarHeight
     clip: true
 
-    // ==================== Track 底轨 (可选) ====================
+    // ==================== Content 内容 ====================
+    // Optional track 可选底轨
     Rectangle {
         anchors.fill: parent
         radius: control.radius
@@ -34,7 +35,7 @@ Item {
         visible: control.showTrack
     }
 
-    // ==================== Moving Indicator 穿梭亮块 ====================
+    // Moving indicator 穿梭亮块
     Rectangle {
         id: indicator
         width: parent.width * control.indicatorRatio

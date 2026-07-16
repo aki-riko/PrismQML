@@ -12,23 +12,23 @@ import "_internal"
 Item {
     id: control
     
-    // ==================== Type 类型 ====================
+    // ==================== Public Props 公开属性 ====================
     property int type: Enums.progress.type_bar
     
-    // ==================== Progress Props 进度属性 ====================
+    // Progress values 进度值
     property real value: 0
     property real from: 0
     property real to: 100
     property alias minimum: control.from
     property alias maximum: control.to
     
-    // ==================== State 状态 ====================
+    // Progress state 进度状态
     property bool indeterminate: false
     property bool paused: false
     property bool error: false
     property bool running: true  // For indeterminate ring 用于不确定环形
     
-    // ==================== Appearance 外观 ====================
+    // Appearance 外观
     property int strokeWidth: Enums.controlSize.progressRingStroke  // Ring stroke width 环形线宽
     property string text: ""     // Filled bar/ring text 文字
     property bool showText: true // Show text 显示文字
@@ -36,7 +36,7 @@ Item {
     readonly property color _trackColor: contentLoader.item ? contentLoader.item.trackColor : Enums.stateColor.progressTrack
     readonly property color _filledTextColor: contentLoader.item && contentLoader.item._filledTextColor !== undefined ? contentLoader.item._filledTextColor : Enums.textColor.primary
 
-    // ==================== Compat Methods 兼容方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function setRange(min, max) { from = min; to = max }
     function pause() { paused = true }
     function resume() { paused = false }
@@ -49,14 +49,14 @@ Item {
     implicitWidth: type === Enums.progress.type_ring ? Enums.controlSize.progressRingSize : 200
     implicitHeight: type === Enums.progress.type_ring ? Enums.controlSize.progressRingSize : (type === Enums.progress.type_bar_filled ? 24 : 4)
     
-    // ==================== Loader 动态加载子模块 ====================
+    // ==================== Content 内容 ====================
     Loader {
         id: contentLoader
         anchors.fill: parent
         sourceComponent: control.type === Enums.progress.type_ring ? ringComponent : barComponent
     }
     
-    // ==================== Bar Component 条形组件 ====================
+    // Bar component 条形组件
     Component {
         id: barComponent
         ProgressBarImpl {
@@ -72,7 +72,7 @@ Item {
         }
     }
     
-    // ==================== Ring Component 环形组件 ====================
+    // Ring component 环形组件
     Component {
         id: ringComponent
         ProgressRingImpl {

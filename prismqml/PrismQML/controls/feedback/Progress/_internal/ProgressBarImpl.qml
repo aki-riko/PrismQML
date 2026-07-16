@@ -22,7 +22,7 @@ Item {
     required property string text
     required property bool filled  // type_bar_filled 是否填充样式
     
-    // ==================== Computed 计算属性 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property real position: (to > from) ? (value - from) / (to - from) : 0
     readonly property color progressColor: {
         if (error) return Enums.isDark ? Enums.statusLevel.errorColorDark : Enums.statusLevel.errorColor
@@ -33,10 +33,12 @@ Item {
     readonly property real _barRadius: filled ? (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small) : (height / 2)
     readonly property color _filledTextColor: control.position > 0.5 ? Enums.accentForeground : Enums.textColor.primary
     
-    // ==================== Viewport Detection 可视区域检测（内联实现）====================
+    // ==================== Internal Props 内部属性 ====================
+    // Viewport detection 可视区域检测
     property Item _flickableAncestor: null
     property bool _isInViewport: true
     
+    // ==================== Internal Methods 内部方法 ====================
     function _findFlickable() {
         var p = control.parent
         while (p) {
@@ -121,7 +123,7 @@ Item {
         visible: control.filled && control.showText && !control.indeterminate
     }
     
-    // ==================== Indeterminate 不确定进度(单块加速穿梭) ====================
+    // Indeterminate moving block 不确定进度单块穿梭
     IndeterminateBarImpl {
         anchors.fill: parent
         visible: control.indeterminate

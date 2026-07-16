@@ -33,7 +33,7 @@ Widget {
     }
     readonly property color trackColor: Enums.isDark ? trackColorDark : trackColorLight
     
-    // ==================== Qt-Style Convenience Methods Qt风格便捷方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     
     
     function setRange(min, max) {
