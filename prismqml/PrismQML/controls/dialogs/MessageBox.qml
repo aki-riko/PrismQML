@@ -21,8 +21,8 @@ DialogBoxCore {
     property bool yesButtonVisible: true         // Show yes button 显示确定按钮
     property bool cancelButtonVisible: true      // Show cancel button 显示取消按钮
     
-    // ==================== Internal 内部属性 ====================
-    // ==================== Layout Metrics 布局度量 ====================
+    // ==================== Readonly State 只读状态 ====================
+    // Layout metrics 布局度量
     // content 固定换行宽度(多行文本高度按此宽度换行后计算,避免用单行 implicitWidth
     // 导致 _contentHeight 只算一行高度而裁切多行内容)
     readonly property int _contentTextWidth: 360
@@ -31,7 +31,7 @@ DialogBoxCore {
     readonly property color _titleColor: Enums.textColor.primary
     readonly property color _contentColor: Enums.textColor.secondary
     
-    // ==================== Footer 按钮组 ====================
+    // Footer content 底部内容
     footer: Component {
         Row {
             property var dialog  // 由 Loader 自动注入
@@ -65,7 +65,7 @@ DialogBoxCore {
         }
     }
     
-    // ==================== Content Area 内容区域 ====================
+    // ==================== Content 内容 ====================
     Column {
         id: textLayout
         objectName: "contentLayout"

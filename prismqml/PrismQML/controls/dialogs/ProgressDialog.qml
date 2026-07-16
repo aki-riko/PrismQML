@@ -38,7 +38,7 @@ OverlayDialogCore {
     // ==================== Signals 信号 ====================
     signal timeout()
     
-    // ==================== Shadow Layer 阴影层 ====================
+    // ==================== Content 内容 ====================
     // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: container
@@ -56,7 +56,7 @@ OverlayDialogCore {
         z: container.z - 1
     }
 
-    // ==================== Main Container 主容器 ====================
+    // Main container 主容器
     Rectangle {
         id: container
         anchors.centerIn: parent
@@ -134,7 +134,7 @@ OverlayDialogCore {
         }
     }
     
-    // ==================== Timeout Timer 超时定时器 ====================
+    // Timeout timer 超时定时器
 
     Timer {
         id: timeoutTimer
@@ -145,8 +145,5 @@ OverlayDialogCore {
             control.close()
         }
     }
-    
-    // ==================== Fluent Design兼容方法 ====================
-    
     
 }
