@@ -28,7 +28,7 @@ Item {
     readonly property color progressColor: Enums.isDark ? fillColorDark : fillColorLight
     readonly property color backgroundColor: Enums.isDark ? trackColorDark : trackColorLight
     
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function setRange(min, max) { from = min; to = max }
     function pause() { paused = true }
     function resume() { paused = false }
@@ -39,6 +39,10 @@ Item {
     
     implicitWidth: Enums.controlSize.progressRingSize   // Default ring size 默认环形尺寸
     implicitHeight: Enums.controlSize.progressRingSize  // Default ring size 默认环形尺寸
+
+    onValueChanged: canvas.requestPaint()
+    onPositionChanged: canvas.requestPaint()
+    Component.onCompleted: canvas.requestPaint()
     
     Canvas {
         id: canvas
@@ -80,10 +84,6 @@ Item {
         color: control.progressColor
         strokeWidth: control.strokeWidth
     }
-    
-    onValueChanged: canvas.requestPaint()
-    onPositionChanged: canvas.requestPaint()
-    Component.onCompleted: canvas.requestPaint()
     
     Connections {
         function onTrackColorChanged() { canvas.requestPaint() }
