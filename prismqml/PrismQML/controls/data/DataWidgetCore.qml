@@ -123,7 +123,7 @@ Rectangle {
     }
 
 
-    // ==================== Wheel Handler 滚轮处理 ====================
+    // Wheel handler 滚轮处理
     MouseArea {
         id: wheelArea
         anchors.fill: parent
@@ -140,7 +140,7 @@ Rectangle {
         }
     }
 
-    // ==================== Shadow 阴影 ====================
+    // Shadow 阴影
     RectangularShadow {
         id: shadowEffect
 
@@ -188,7 +188,7 @@ Rectangle {
         z: card.z - 1
     }
 
-    // ==================== Card 卡片容器 ====================
+    // Card container 卡片容器
     Rectangle {
         id: card
         anchors.fill: parent
@@ -204,7 +204,7 @@ Rectangle {
             anchors.margins: Enums.spacing.micro
             spacing: Enums.spacing.none
             
-            // ==================== Header 表头 ====================
+            // Header 表头
             Rectangle {
                 Layout.fillWidth: true
                 height: root.headerHeight
@@ -259,7 +259,7 @@ Rectangle {
                 }
             }
             
-            // ==================== Body 主体区(恒定伸缩容器) ====================
+            // Body (constant stretch container) 主体区（恒定伸缩容器）
             // contentArea / emptyArea / skeletonArea 三者互斥, 原先各自用
             // Layout.fillHeight 绑 itemCount/loading 在 ColumnLayout 里抢高度。
             // 但 QtQuick.Layouts 在 fillHeight 绑定值**异步变化**(QAbstractListModel
@@ -272,7 +272,7 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-            // ==================== Content 内容区域 ====================
+            // Content area 内容区域
             Item {
                 id: contentArea
                 anchors.fill: parent
@@ -293,7 +293,7 @@ Rectangle {
                     reuseItems: true
                     contentWidth: root.contentTotalWidth > width ? root.contentTotalWidth : width
 
-                    // ==================== Transitions 过渡动画 ====================
+                    // Transitions 过渡动画
                     add: Transition {
                         enabled: root.animated
                         ParallelAnimation {
@@ -336,7 +336,7 @@ Rectangle {
                     }
                 }
                 
-                // ==================== Smooth Scroll Helper 平滑滚动助手 ====================
+                // Smooth scroll helper 平滑滚动助手
                 SmoothScrollHelper {
                     id: scrollHelper
                     target: listView
@@ -348,7 +348,7 @@ Rectangle {
                     bounceEnabled: true
                 }
                 
-                // ==================== Custom Scrollbar 自定义滚动条 ====================
+                // Custom scrollbar 自定义滚动条
                 ScrollBar {
                     anchors.right: parent.right
                     anchors.top: parent.top
@@ -363,7 +363,7 @@ Rectangle {
                     z: Enums.zIndex.controlsAbove
                 }
 
-                // ==================== Horizontal scroll mixin 横向滚动 ====================
+                // Horizontal scroll mixin 横向滚动
                 // mixin 内部封装 hScrollHelper / 横向 ScrollBar / Shift+wheel 路由,
                 // 与 TableView 等其他可横向滚动组件共用同一套实现.
                 HorizontalScrollMixin {
@@ -379,7 +379,7 @@ Rectangle {
                 }
             }
 
-            // ==================== Empty State 空状态 ====================
+            // Empty state 空状态
             Item {
                 id: emptyArea
                 anchors.fill: parent
@@ -404,7 +404,7 @@ Rectangle {
                 }
             }
 
-            // ==================== Loading Skeleton 骨架屏 ====================
+            // Loading skeleton 骨架屏
             Item {
                 id: skeletonArea
                 anchors.fill: parent
@@ -433,7 +433,7 @@ Rectangle {
             }
             }  // bodyContainer (恒定 fillHeight 容器, 包 contentArea/emptyArea/skeletonArea)
 
-            // ==================== Footer 底栏 ====================
+            // Footer 底栏
             Rectangle {
                 id: footerBar
                 Layout.fillWidth: true
