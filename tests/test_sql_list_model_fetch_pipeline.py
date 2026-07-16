@@ -13,7 +13,7 @@ from typing import Optional
 import pytest
 from PySide6.QtCore import QByteArray
 
-from prismqml.python.models import sql_list_model
+from prismqml.python.models import _sqlite_connection, sql_list_model
 from prismqml.python.models._page_cache import PageCache
 
 
@@ -46,7 +46,7 @@ class _FakeConnection:
     def __init__(self, calls):
         self._calls = calls
 
-    def execute(self, sql, params):
+    def execute(self, sql, params=()):
         self._calls.append((sql, list(params)))
         return _FakeCursor()
 
@@ -144,6 +144,14 @@ def _install_planner(monkeypatch, calls):
         return _PLANNED_QUERY, list(params) + list(cursor)
 
     monkeypatch.setattr(sql_list_model, "inject_keyset_predicate", plan)
+
+
+def _install_fake_sqlite(monkeypatch, calls):
+    def connect(path, **kwargs):
+        calls.append(("connect", path, kwargs))
+        return _FakeConnection(calls)
+
+    monkeypatch.setattr(_sqlite_connection.sqlite3, "connect", connect)
 
 
 def _write_db(path) -> str:
@@ -349,17 +357,14 @@ def test_sharded_fetch_requires_rust_after_planning(monkeypatch):
 def test_python_offset_dispatch_preserves_sql_and_bind_order(monkeypatch):
     calls = []
     monkeypatch.setattr(sql_list_model, "_HAS_RUST", False)
-    monkeypatch.setattr(
-        sql_list_model.sqlite3,
-        "connect",
-        lambda path: calls.append(("connect", path)) or _FakeConnection(calls),
-    )
+    _install_fake_sqlite(monkeypatch, calls)
     model = _new_model(["single.sqlite"], cursor_enabled=False)
 
     result = model._fetch_page(2)
 
     assert calls == [
-        ("connect", "single.sqlite"),
+        ("connect", "file:single.sqlite?mode=ro", {"uri": True, "timeout": 5}),
+        ("PRAGMA busy_timeout=5000", []),
         (f"{_QUERY} LIMIT ? OFFSET ?", [4, 2, 4]),
         ("close", []),
     ]
@@ -371,17 +376,13 @@ def test_python_keyset_extracts_raw_cursor_before_formatting(monkeypatch):
     planner_calls = []
     _install_planner(monkeypatch, planner_calls)
     monkeypatch.setattr(sql_list_model, "_HAS_RUST", False)
-    monkeypatch.setattr(
-        sql_list_model.sqlite3,
-        "connect",
-        lambda path: calls.append(("connect", path)) or _FakeConnection(calls),
-    )
+    _install_fake_sqlite(monkeypatch, calls)
     model = _new_model(["single.sqlite"])
     model._formatters = {"rank": lambda value: value * 10}
 
     result = model._fetch_page(1, [9, 7])
 
-    assert calls[1] == (f"{_PLANNED_QUERY} LIMIT ?", [4, 9, 7, 2])
+    assert calls[2] == (f"{_PLANNED_QUERY} LIMIT ?", [4, 9, 7, 2])
     assert len(planner_calls) == 1
     assert result == {"rows": [[7, 90], [6, 80]], "end_cursor": [8, 6]}
 

@@ -13,7 +13,7 @@ import pytest
 import shiboken6
 from PySide6.QtCore import QCoreApplication, QEvent, QObject
 
-from prismqml.python.models import sql_list_model
+from prismqml.python.models import _sqlite_connection, sql_list_model
 
 
 _BASE_FIELDS = ("_router", "_db_path", "_page_size", "_lru_capacity")
@@ -227,7 +227,7 @@ def test_path_source_does_not_open_or_create_database(qapp, monkeypatch, tmp_pat
     def fail_connect(*_args, **_kwargs):
         raise AssertionError("constructor opened sqlite database")
 
-    monkeypatch.setattr(sql_list_model.sqlite3, "connect", fail_connect)
+    monkeypatch.setattr(_sqlite_connection.sqlite3, "connect", fail_connect)
     monkeypatch.setattr(sql_list_model, "_rs", _NoRustAccess())
     model = None
     try:

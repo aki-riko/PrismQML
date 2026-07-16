@@ -45,7 +45,6 @@ IN (SELECT 单列 FROM 单表 WHERE 条件) 子查询。
 """
 from __future__ import annotations
 
-import sqlite3
 from contextlib import closing
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -61,6 +60,7 @@ from PySide6.QtCore import (
 
 from ..core.logger import exception
 from ._page_cache import PageCache
+from ._sqlite_connection import open_read_only as _open_read_only
 from ._sql_query_tools import (
     inject_keyset_predicate,
     normalize_keyset_order,
@@ -95,12 +95,6 @@ def _copy_query_state_value(value):
     if isinstance(value, dict):
         return dict(value)
     return value
-
-
-def _open_read_only(path: str):
-    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=5)
-    conn.execute("PRAGMA busy_timeout=5000")
-    return conn
 
 
 def _read_column_names(path: str, sql: str, params: list) -> list[str]:
@@ -440,7 +434,7 @@ class SqlListModel(QAbstractListModel):
                 total += int(_rs.count_rows(p, self._count_sql, self._count_params or None))
             else:
                 # M2: 显式 close,避免 Python sqlite3 with 块只 commit 不 close 的坑
-                with closing(sqlite3.connect(p)) as conn:
+                with closing(_open_read_only(p)) as conn:
                     cur = conn.execute(self._count_sql, self._count_params)
                     row = cur.fetchone()
                     total += int(row[0]) if row else 0
@@ -559,7 +553,7 @@ class SqlListModel(QAbstractListModel):
         use_keyset: bool, cursor_indices: Optional[list[int]],
     ) -> tuple[list[str], list, Optional[list]]:
         paged_sql = f"{sql} LIMIT ?" if use_keyset else f"{sql} LIMIT ? OFFSET ?"
-        with closing(sqlite3.connect(path)) as conn:
+        with closing(_open_read_only(path)) as conn:
             bind = list(params) + [self._page_size]
             if not use_keyset:
                 bind.append(offset)

@@ -18,6 +18,7 @@ _COUNT_QUERY = "SELECT COUNT(*) FROM records"
 _FAILURE_STAGES = ("count", "resolve", "fetch")
 _ERROR_TYPES = (ValueError, OSError, RuntimeError, KeyboardInterrupt, SystemExit)
 _REFERENCE_STATE_FIELDS = ("_cache",)
+_BACKENDS = ("python", "rust")
 
 
 class _MutatingRouter(sql_list_model.DbRouter):
@@ -41,6 +42,12 @@ def _write_db(path, rows=((1, "alpha"), (2, "beta"))) -> str:
         connection.executemany("INSERT INTO records VALUES (?, ?)", rows)
         connection.commit()
     return str(path)
+
+
+def _select_backend(monkeypatch, backend):
+    if backend == "rust" and not sql_list_model._HAS_RUST:
+        pytest.skip("Rust backend is not available")
+    monkeypatch.setattr(sql_list_model, "_HAS_RUST", backend == "rust")
 
 
 def _new_model(path):
@@ -150,9 +157,11 @@ def _install_refresh_failure(monkeypatch, model, stage, failure):
     return calls
 
 
-def test_rust_deleted_database_refresh_restores_cached_state(tmp_path, qapp):
-    if not sql_list_model._HAS_RUST:
-        pytest.skip("real deleted-database contract requires prismqml_rs")
+@pytest.mark.parametrize("backend", _BACKENDS)
+def test_deleted_database_refresh_restores_cached_state(
+    tmp_path, qapp, monkeypatch, backend
+):
+    _select_backend(monkeypatch, backend)
     path = tmp_path / "records.sqlite"
     model = _new_model(_write_db(path))
     snapshot = _state_snapshot(model)
@@ -160,7 +169,10 @@ def test_rust_deleted_database_refresh_restores_cached_state(tmp_path, qapp):
     events, reset_snapshots = _refresh_events(model)
     path.unlink()
 
-    with pytest.raises(RuntimeError, match="unable to open database file"):
+    with pytest.raises(
+        (sqlite3.OperationalError, RuntimeError),
+        match="unable to open database file",
+    ):
         model.refresh()
 
     assert not path.exists()
