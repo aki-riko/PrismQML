@@ -4,14 +4,24 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """DWM shadow WinAPI contracts. DWM 阴影 WinAPI 合同。"""
 
+import ast
 import ctypes
 import sys
 from ctypes import wintypes
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 import prismqml.python.core.shadow as shadow
+
+
+_SOURCE_PATH = Path(shadow.__file__).resolve()
+_DWM_FUNCTIONS = {
+    "_apply_dwm_shadow_state",
+    "_enableDwmShadow",
+    "_disableDwmShadow",
+}
 
 
 pytestmark = pytest.mark.skipif(
@@ -172,6 +182,22 @@ def _assert_configured_signatures(dwmapi, user32, includes_position):
     assert user32.SetWindowPos.restype is wintypes.BOOL
 
 
+def _dwm_function_nodes():
+    tree = ast.parse(
+        _SOURCE_PATH.read_text(encoding="utf-8"),
+        filename=str(_SOURCE_PATH),
+        feature_version=(3, 9),
+    )
+    return {
+        name: [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == name
+        ]
+        for name in _DWM_FUNCTIONS
+    }
+
+
 @pytest.mark.parametrize(
     ("method_name", "policy", "margin", "event_names"),
     (
@@ -277,3 +303,20 @@ def test_dwm_shadow_rejects_null_native_handle():
 
     assert manager._enableDwmShadow(0) is False
     assert manager._disableDwmShadow(0) is False
+
+
+def test_dwm_shadow_state_transition_stays_small_and_delegated():
+    functions = _dwm_function_nodes()
+
+    assert all(len(nodes) == 1 for nodes in functions.values()), functions
+    for name, nodes in functions.items():
+        node = nodes[0]
+        assert node.end_lineno - node.lineno + 1 <= 30, name
+
+    for method_name in ("_enableDwmShadow", "_disableDwmShadow"):
+        calls = [
+            node.func.id
+            for node in ast.walk(functions[method_name][0])
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        ]
+        assert calls.count("_apply_dwm_shadow_state") == 1, calls

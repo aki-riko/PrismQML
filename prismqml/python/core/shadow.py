@@ -75,6 +75,33 @@ def _get_set_window_pos(user32):
     return set_window_pos
 
 
+def _apply_dwm_shadow_state(hwnd, policy_value, margin_value, redraw):
+    """Apply one DWM shadow state transition. 应用一次 DWM 阴影状态切换。"""
+    from ctypes import wintypes
+
+    dwmapi = ctypes.windll.dwmapi
+    user32 = ctypes.windll.user32 if redraw else None
+    policy = ctypes.c_int(policy_value)
+    dwm_set_window_attribute = _get_dwm_set_window_attribute(dwmapi)
+    # Apply the non-client rendering policy. 应用非客户区渲染策略。
+    dwm_set_window_attribute(
+        hwnd,
+        2,
+        ctypes.byref(policy),
+        ctypes.sizeof(policy),
+    )
+    extend_frame = dwmapi.DwmExtendFrameIntoClientArea
+    extend_frame.argtypes = [wintypes.HWND, ctypes.POINTER(MARGINS)]
+    extend_frame.restype = ctypes.HRESULT
+    margins = MARGINS(margin_value, margin_value, margin_value, margin_value)
+    result = extend_frame(hwnd, ctypes.byref(margins))
+    if redraw:
+        set_window_pos = _get_set_window_pos(user32)
+        # Force a non-client frame redraw. 强制重绘非客户区边框。
+        set_window_pos(hwnd, 0, 0, 0, 0, 0, 0x0020 | 0x0002 | 0x0001 | 0x0004)
+    return result
+
+
 class ShadowMode(Enum):
     """阴影模式"""
 
@@ -223,55 +250,7 @@ class ShadowManager(QObject):
         方案：使用DWMWA_NCRENDERING_POLICY启用非客户区渲染
         """
         try:
-            from ctypes import wintypes
-
-            dwmapi = ctypes.windll.dwmapi
-            user32 = ctypes.windll.user32
-
-            # DWMWINDOWATTRIBUTE枚举
-            DWMWA_NCRENDERING_POLICY = 2
-            DWMNCRP_ENABLED = 2
-
-            # Enable non-client area rendering 启用非客户区渲染
-            policy = ctypes.c_int(DWMNCRP_ENABLED)
-            dwm_set_window_attribute = _get_dwm_set_window_attribute(dwmapi)
-            dwm_set_window_attribute(
-                hwnd,
-                DWMWA_NCRENDERING_POLICY,
-                ctypes.byref(policy),
-                ctypes.sizeof(policy),
-            )
-
-            # 使用模块级 MARGINS 结构体
-
-            # Set function signature 设置函数签名
-            DwmExtendFrameIntoClientArea = dwmapi.DwmExtendFrameIntoClientArea
-            DwmExtendFrameIntoClientArea.argtypes = [
-                wintypes.HWND,
-                ctypes.POINTER(MARGINS),
-            ]
-            DwmExtendFrameIntoClientArea.restype = ctypes.HRESULT
-
-            # Extend frame - use 1px to trigger shadow 扩展边框触发阴影
-            margins = MARGINS(1, 1, 1, 1)
-            result = DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
-
-            # Force redraw 强制重绘
-            SWP_FRAMECHANGED = 0x0020
-            SWP_NOMOVE = 0x0002
-            SWP_NOSIZE = 0x0001
-            SWP_NOZORDER = 0x0004
-            set_window_pos = _get_set_window_pos(user32)
-            set_window_pos(
-                hwnd,
-                0,
-                0,
-                0,
-                0,
-                0,
-                SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER,
-            )
-
+            result = _apply_dwm_shadow_state(hwnd, 2, 1, True)
             info(f"DWM阴影已启用 (hwnd={hwnd}, result={result})")
             return result >= 0
         except Exception as e:
@@ -281,32 +260,7 @@ class ShadowManager(QObject):
     def _disableDwmShadow(self, hwnd: int) -> bool:
         """禁用Windows DWM阴影"""
         try:
-            from ctypes import wintypes
-
-            dwmapi = ctypes.windll.dwmapi
-
-            # 重置 NCRENDERING_POLICY 为默认值 Reset NCRENDERING_POLICY to default
-            DWMWA_NCRENDERING_POLICY = 2
-            DWMNCRP_USEWINDOWSTYLE = 0  # 使用默认窗口样式
-            policy = ctypes.c_int(DWMNCRP_USEWINDOWSTYLE)
-            dwm_set_window_attribute = _get_dwm_set_window_attribute(dwmapi)
-            dwm_set_window_attribute(
-                hwnd,
-                DWMWA_NCRENDERING_POLICY,
-                ctypes.byref(policy),
-                ctypes.sizeof(policy),
-            )
-
-            # Set function signature 设置函数签名
-            DwmExtendFrameIntoClientArea = dwmapi.DwmExtendFrameIntoClientArea
-            DwmExtendFrameIntoClientArea.argtypes = [
-                wintypes.HWND,
-                ctypes.POINTER(MARGINS),
-            ]
-            DwmExtendFrameIntoClientArea.restype = ctypes.HRESULT
-
-            margins = MARGINS(0, 0, 0, 0)
-            DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
+            _apply_dwm_shadow_state(hwnd, 0, 0, False)
             return True
         except Exception as e:
             error(f"DWM阴影禁用失败: {e}")
