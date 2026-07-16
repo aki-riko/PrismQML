@@ -28,25 +28,25 @@ Widget {
     property int position: Enums.notification.posBottomLeft  // Compat prop (handled by Manager) 兼容属性
     property bool desktopMode: false  // Desktop mode skips internal animation 桌面模式跳过内部动画
     
-    // ==================== Layout Props 布局属性 ====================
+    // Layout properties 布局属性
     property int orient: Qt.Horizontal  // Layout orientation 布局方向 (Qt.Horizontal/Qt.Vertical)
     readonly property bool _isVertical: orient === Qt.Vertical
-    
-    // ==================== Custom Widget 自定义组件 ====================
+
+    // Custom widget 自定义组件
     property alias customContent: customContentLoader.sourceComponent  // Custom widget slot 自定义组件插槽
     property bool hasCustomContent: customContentLoader.sourceComponent !== null && customContentLoader.item !== null
-    
-    // ==================== Custom Background 自定义背景色 ====================
+
+    // Custom background 自定义背景色
     property color backgroundColorLight: Enums.transparent  // Custom light theme bg 自定义浅色背景
     property color backgroundColorDark: Enums.transparent   // Custom dark theme bg 自定义深色背景
     readonly property bool _hasCustomBg: backgroundColorLight.a > 0 || backgroundColorDark.a > 0
-    
-    // ==================== Progress Props 进度属性 ====================
+
+    // Progress properties 进度属性
     property int feature: Enums.notification.feature_normal  // 功能模式
     property real progress: 0  // 0-1 进度值
     property int completeDuration: Enums.duration.progressComplete  // 进度完成后持续显示时间(ms)
-    
-    // ==================== Style Props 样式属性 ====================
+
+    // Style properties 样式属性
     property real radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large  // 圆角半径
     // Border color 边框色 (neo 用控件边框 token=黑; Fluent 用 divider 轻分隔)
     readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.stateColor.border : Enums.stateColor.divider)
@@ -57,10 +57,6 @@ Widget {
     readonly property color _infoBarShadowColor: Enums.shadow.level4.color
     readonly property int _infoBarShadowBlur: Enums.shadow.level4.blur
     readonly property int _infoBarShadowOffset: Enums.shadow.level4.offset
-    
-    // ==================== Signals 信号 ====================
-    signal closed()
-    
     // Use shared severity helpers 使用共享的语义辅助函数
     readonly property int _severityLevel: Enums.notification.getSeverityLevel(severity)
     readonly property color severityColor: Enums.statusLevel.getColorByLevel(_severityLevel)
@@ -93,7 +89,40 @@ Widget {
 
         return Enums.statusLevel.getBgColor(severity)
     }
-    
+    readonly property real _horizontalContentHeight: Math.max(Enums.spacing.xxxl, textRow.implicitHeight) + Enums.spacing.m * 2
+    readonly property real _verticalContentHeight: {
+        var h = Enums.spacing.m * 2  // Top/bottom padding 上下内边距
+        h += iconContainer.height + Enums.spacing.m  // Icon + gap 图标+间距
+        if (title !== "") h += titleLabelVertical.implicitHeight + Enums.spacing.xs
+        if (message !== "") h += contentLabelVertical.implicitHeight + Enums.spacing.xs
+        if (hasCustomContent) h += customContentLoader.height + Enums.spacing.m
+        return Math.max(Enums.infoBarMetrics.height, h)
+    }
+    property bool _showing: true
+
+    // ==================== Signals 信号 ====================
+    signal closed()
+
+    // ==================== Public Methods 公开方法 ====================
+    function show() {
+        if (desktopMode) {
+            visible = true
+            opacity = 1
+        } else {
+            animator.show()  // Animator handles visibility 动画器处理可见性
+        }
+    }
+    function hide() {
+        _showing = false
+        if (desktopMode) {
+            visible = false
+            closed()
+        } else {
+            animator.hide()
+        }
+    }
+    function close() { hide() }
+
     // ==================== Size 尺寸 ====================
     // Content size (inherited from Widget) 内容尺寸：根据内部文字自适应
     contentWidth: {
@@ -120,43 +149,18 @@ Widget {
         var targetWidth = baseWidth + textW;
         return Math.min(Math.max(targetWidth, Enums.controlSize.toastWidth), 800) // 最大限制到800，避免过宽破坏UI
     }
-    // Height auto-adapts based on layout orientation 高度自适应：根据布局方向计算
-    readonly property real _horizontalContentHeight: Math.max(Enums.spacing.xxxl, textRow.implicitHeight) + Enums.spacing.m * 2
-    readonly property real _verticalContentHeight: {
-        var h = Enums.spacing.m * 2  // Top/bottom padding 上下内边距
-        h += iconContainer.height + Enums.spacing.m  // Icon + gap 图标+间距
-        if (title !== "") h += titleLabelVertical.implicitHeight + Enums.spacing.xs
-        if (message !== "") h += contentLabelVertical.implicitHeight + Enums.spacing.xs
-        if (hasCustomContent) h += customContentLoader.height + Enums.spacing.m
-        return Math.max(Enums.infoBarMetrics.height, h)
-    }
     // Height is always auto-calculated 高度始终自动计算
     implicitHeight: _isVertical ? _verticalContentHeight : _horizontalContentHeight
 
-    // ==================== Animation 动画 ====================
-    property bool _showing: true
-
-    // ==================== Public Methods 公开方法 ====================
-    function show() {
+    // Desktop mode: set opacity directly 桌面模式直接设置透明度
+    Component.onCompleted: {
         if (desktopMode) {
-            visible = true
             opacity = 1
-        } else {
-            animator.show()  // Animator handles visibility 动画器处理可见性
         }
     }
-    function hide() {
-        _showing = false
-        if (desktopMode) {
-            visible = false
-            closed()
-        } else {
-            animator.hide()
-        }
-    }
-    function close() { hide() }
 
-    // ==================== Shadow Layer 阴影层 ====================
+    // ==================== Content 内容 ====================
+    // Shadow layer 阴影层
     // Fluent: 模糊阴影; Neobrutalism: 硬阴影(NeoShadow)。
     RectangularShadow {
         anchors.fill: card
@@ -174,7 +178,7 @@ Widget {
         z: card.z - 1
     }
 
-    // ==================== Card 卡片 ====================
+    // Card 卡片
     Rectangle {
         id: card
         anchors.fill: parent
@@ -184,7 +188,7 @@ Widget {
         border.color: control._infoBarBorderColor
     }
     
-    // ==================== Animation 动画 ====================
+    // Animation 动画
     property alias animator: animator  // Expose animator for stack management 暴露动画器供堆叠管理使用
 
     // Shared animator 共享动画器
@@ -197,14 +201,7 @@ Widget {
         onHideFinished: { control.visible = false; control.closed() }
     }
 
-    // Desktop mode: set opacity directly 桌面模式直接设置透明度
-    Component.onCompleted: {
-        if (desktopMode) {
-            opacity = 1
-        }
-    }
-
-    // ==================== Content Layout 内容布局 ====================
+    // Content layout 内容布局
     
     // Icon container - 自适应高度 图标容器
     // Hidden when ring mode is active 进度环模式时隐藏
@@ -227,7 +224,7 @@ Widget {
         }
     }
     
-    // ==================== Horizontal Layout 水平布局 ====================
+    // Horizontal layout 水平布局
     // Text container 文字容器（水平模式）
     Row {
         id: textRow
@@ -273,7 +270,7 @@ Widget {
         visible: !_isVertical && item !== null
     }
     
-    // ==================== Vertical Layout 垂直布局 ====================
+    // Vertical layout 垂直布局
     Column {
         id: verticalLayout
         anchors.left: iconContainer.right
@@ -330,7 +327,7 @@ Widget {
         onClicked: control.hide()
     }
     
-    // ==================== Auto Close 自动关闭 ====================
+    // Auto close 自动关闭
     Timer {
         running: duration > 0 && control.visible && control._showing && !_isProgressMode
         interval: duration
@@ -345,7 +342,7 @@ Widget {
         onTriggered: control.hide()
     }
     
-    // ==================== Progress Bar 进度条（使用现有ProgressBar组件） ====================
+    // Progress bar 进度条（使用现有ProgressBar组件）
     // Progress bar container: ref Button rounded clip solution 进度条容器：参考Button的圆角裁剪方案
 
     Item {
@@ -402,7 +399,7 @@ Widget {
         }
     }
     
-    // ==================== Progress Ring 进度环（使用现有组件） ====================
+    // Progress ring 进度环（使用现有组件）
     // Progress ring container: same size and margin as icon container 进度环容器：与图标容器相同的尺寸和间距
 
     Item {
