@@ -23,8 +23,7 @@
 import ctypes
 import os
 import sys
-import tempfile
-from typing import Optional
+from typing import BinaryIO, Optional
 
 if sys.platform == "win32":
     from ctypes import wintypes
@@ -38,7 +37,6 @@ from PySide6.QtCore import (
     QCoreApplication,
     QProcess,
     QUrl,
-    QStandardPaths,
 )
 from PySide6.QtNetwork import (
     QNetworkAccessManager,
@@ -46,6 +44,12 @@ from PySide6.QtNetwork import (
     QNetworkRequest,
 )
 
+from ._updater_download import (
+    commit_download_file,
+    open_unique_download_file,
+    write_download_bytes,
+)
+from ._updater_release import decode_release_payload, pick_asset as _pick_asset
 from .logger import getLogger
 
 logger = getLogger()
@@ -138,25 +142,6 @@ def _is_newer(latest: str, current: str) -> bool:
     return _parse_version(latest) > _parse_version(current)
 
 
-def _pick_asset(assets: list, keyword: str) -> Optional[dict]:
-    """从 release 的 assets 列表中挑选安装包。
-
-    优先返回:名字含 keyword(不区分大小写)且以 .exe 结尾的第一个;
-    其次:任意以 .exe 结尾的;再次:第一个 asset;空列表返回 None。
-    """
-    if not assets:
-        return None
-    kw = (keyword or "").lower()
-    exe_assets = [a for a in assets if str(a.get("name", "")).lower().endswith(".exe")]
-    if kw:
-        for a in exe_assets:
-            if kw in str(a.get("name", "")).lower():
-                return a
-    if exe_assets:
-        return exe_assets[0]
-    return assets[0]
-
-
 def _configure_shell_execute():
     """Configure ShellExecuteW's pointer-safe ctypes contract. 配置指针安全签名。"""
     shell_execute = ctypes.windll.shell32.ShellExecuteW
@@ -240,8 +225,10 @@ class Updater(QObject):
         self._nam = QNetworkAccessManager(self)
         self._check_reply: Optional[QNetworkReply] = None
         self._download_reply: Optional[QNetworkReply] = None
-        self._download_file = None  # 打开的目标文件句柄
+        self._download_file: Optional[BinaryIO] = None
+        self._download_partial_path = ""
         self._download_path = ""
+        self._download_error = ""
 
     @property
     def api_base_url(self) -> str:
@@ -287,24 +274,19 @@ class Updater(QObject):
 
         从网络回调中抽出,便于注入假数据做单元测试(见 _inject_release_for_test)。
         """
-        import json
         try:
-            data = json.loads(raw.decode("utf-8", "ignore"))
+            data = decode_release_payload(raw)
         except (ValueError, UnicodeDecodeError) as e:
             logger.warning(f"[Updater] 解析 release JSON 失败: {e}")
             self.checkFailed.emit("解析更新信息失败")
             return
 
-        tag = str(data.get("tag_name", ""))
-        if not tag:
-            self.checkFailed.emit("未找到发布版本")
-            return
-
+        tag = data["tag_name"]
         if _is_newer(tag, self._current_version):
-            notes = str(data.get("body", "") or "")
-            html_url = str(data.get("html_url", "") or "")
-            asset = _pick_asset(data.get("assets", []) or [], self._asset_keyword)
-            download_url = str(asset.get("browser_download_url", "")) if asset else ""
+            notes = data["body"]
+            html_url = data["html_url"]
+            asset = _pick_asset(data["assets"], self._asset_keyword)
+            download_url = asset["browser_download_url"] if asset else ""
             logger.info(f"[Updater] 发现新版本 {tag}(当前 {self._current_version})")
             self.updateAvailable.emit(tag, notes, download_url, html_url)
         else:
@@ -327,91 +309,150 @@ class Updater(QObject):
             logger.debug("[Updater] 已有下载在进行,忽略重复调用")
             return
 
-        # 目标文件名:取 URL 末段;放到临时目录,避免污染用户目录。
-        name = QUrl(url).fileName() or "update_installer.exe"
-        tmp_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.TempLocation) \
-            or tempfile.gettempdir()
-        self._download_path = os.path.join(tmp_dir, name)
-
         try:
-            # 已存在的旧文件先删,避免追加写脏数据。
-            if os.path.exists(self._download_path):
-                os.remove(self._download_path)
-            self._download_file = open(self._download_path, "wb")
+            (
+                self._download_file,
+                self._download_partial_path,
+                self._download_path,
+            ) = open_unique_download_file(url)
         except OSError as e:
-            logger.warning(f"[Updater] 创建下载文件失败: {e}")
+            logger.exception(f"[Updater] 创建下载文件失败: {e}")
             self.downloadFailed.emit(f"创建下载文件失败: {e}")
-            self._download_file = None
             return
 
-        req = QNetworkRequest(QUrl(url))
-        req.setRawHeader(b"User-Agent", _USER_AGENT)
-        req.setAttribute(QNetworkRequest.Attribute.RedirectPolicyAttribute,
-                         QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy)
-        self._download_reply = self._nam.get(req)
-        self._download_reply.downloadProgress.connect(self._on_download_progress)
-        self._download_reply.readyRead.connect(self._on_download_ready_read)
-        self._download_reply.finished.connect(self._on_download_finished)
+        self._download_error = ""
+        try:
+            self._download_reply = self._start_download_request(url)
+        except (KeyboardInterrupt, SystemExit):
+            self._cleanup_partial()
+            raise
+        except Exception as e:
+            logger.exception(f"[Updater] 创建下载请求失败: {e}")
+            self._fail_download(f"创建下载请求失败: {e}")
+
+    def _start_download_request(self, url: str):
+        """Create and wire one download reply. 创建并连接单个下载响应。"""
+        request = QNetworkRequest(QUrl(url))
+        request.setRawHeader(b"User-Agent", _USER_AGENT)
+        request.setAttribute(
+            QNetworkRequest.Attribute.RedirectPolicyAttribute,
+            QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy,
+        )
+        reply = self._nam.get(request)
+        reply.downloadProgress.connect(self._on_download_progress)
+        reply.readyRead.connect(lambda reply=reply: self._on_download_ready_read(reply))
+        reply.finished.connect(lambda reply=reply: self._on_download_finished(reply))
+        return reply
 
     def _on_download_progress(self, received: int, total: int):
         self.downloadProgress.emit(int(received), int(total))
 
-    def _on_download_ready_read(self):
+    def _on_download_ready_read(self, reply=None):
         # 边收边写,避免大文件全部驻留内存。
-        if self._download_reply is not None and self._download_file is not None:
-            try:
-                self._download_file.write(bytes(self._download_reply.readAll()))
-            except OSError as e:
-                logger.warning(f"[Updater] 写入下载文件失败: {e}")
-
-    def _on_download_finished(self):
-        reply = self._download_reply
-        self._download_reply = None
-        # 关闭文件句柄前,先把 reply 缓冲区里可能残留的最后一块数据读完写入,
-        # 防止 finished 触发时尾部字节还未经 readyRead 派发而丢失(成功路径才需要)。
-        if self._download_file is not None:
-            try:
-                if reply is not None and reply.error() == QNetworkReply.NetworkError.NoError:
-                    remaining = bytes(reply.readAll())
-                    if remaining:
-                        self._download_file.write(remaining)
-            except OSError as e:
-                logger.warning(f"[Updater] 写入下载文件失败: {e}")
-            try:
-                self._download_file.close()
-            except OSError as e:
-                logger.warning(f"[Updater] 关闭下载文件失败: {e}")
-            self._download_file = None
-
-        if reply is None:
+        if reply is not self._download_reply or self._download_file is None:
+            return
+        payload = bytes(reply.readAll())
+        if not payload or self._download_error:
             return
         try:
-            err = reply.error()
-            if err != QNetworkReply.NetworkError.NoError:
-                msg = reply.errorString()
-                logger.warning(f"[Updater] 下载失败: {msg}")
-                # 删除不完整文件
-                self._cleanup_partial()
-                self.downloadFailed.emit(msg)
-                return
+            write_download_bytes(self._download_file, payload)
+        except (KeyboardInterrupt, SystemExit):
+            self._abort_download_reply(reply)
+            raise
+        except OSError as e:
+            self._download_error = f"写入下载文件失败: {e}"
+            logger.exception(f"[Updater] {self._download_error}")
+            self._abort_failed_download(reply)
+
+    def _on_download_finished(self, reply=None):
+        if reply is not self._download_reply:
+            if reply is not None:
+                reply.deleteLater()
+            return
+        self._download_reply = None
+        if reply is None:
+            self._fail_download("下载响应无效")
+            return
+        try:
+            error_message = self._finalize_download(reply)
+        except (KeyboardInterrupt, SystemExit):
+            self._cleanup_partial()
+            raise
         finally:
             reply.deleteLater()
-
-        path = self._download_path
-        if not path or not os.path.isfile(path) or os.path.getsize(path) == 0:
-            self._cleanup_partial()
-            self.downloadFailed.emit("下载文件无效")
+        if error_message:
+            self._fail_download(error_message)
             return
+        path = self._download_path
         logger.info(f"[Updater] 下载完成: {path}")
         self.downloadFinished.emit(path)
 
-    def _cleanup_partial(self):
-        """删除下载到一半的残留文件。"""
+    def _finalize_download(self, reply) -> str:
+        """Write the tail and commit, returning an error message. 完成下载提交。"""
+        if self._download_error:
+            return self._download_error
+        if reply.error() != QNetworkReply.NetworkError.NoError:
+            return reply.errorString()
         try:
-            if self._download_path and os.path.exists(self._download_path):
-                os.remove(self._download_path)
+            remaining = bytes(reply.readAll())
+            if remaining:
+                write_download_bytes(self._download_file, remaining)
+            commit_download_file(
+                self._download_file,
+                self._download_partial_path,
+                self._download_path,
+            )
+            self._download_file = None
         except OSError as e:
-            logger.warning(f"[Updater] 清理下载残留失败: {e}")
+            logger.exception(f"[Updater] 提交下载文件失败: {e}")
+            return f"提交下载文件失败: {e}"
+        if not os.path.isfile(self._download_path) or os.path.getsize(self._download_path) == 0:
+            return "下载文件无效"
+        self._download_partial_path = ""
+        return ""
+
+    def _abort_download_reply(self, reply):
+        """Abort one reply while preserving an active exception. 中止下载响应。"""
+        self._download_reply = None
+        try:
+            reply.abort()
+        except Exception as e:
+            logger.exception(f"[Updater] 中止下载响应失败: {e}")
+        finally:
+            reply.deleteLater()
+            self._cleanup_partial()
+
+    def _abort_failed_download(self, reply):
+        """Abort after ordinary I/O failure. 在普通 I/O 失败后中止响应。"""
+        try:
+            reply.abort()
+        except Exception as e:
+            logger.exception(f"[Updater] 中止失败下载响应失败: {e}")
+            self._download_reply = None
+            reply.deleteLater()
+            self._fail_download(self._download_error)
+
+    def _fail_download(self, message: str):
+        """Abort the active file transaction and emit one failure. 中止下载事务。"""
+        self._cleanup_partial()
+        self._download_error = ""
+        self.downloadFailed.emit(message)
+
+    def _cleanup_partial(self):
+        """Close and remove partial/final transaction files. 清理下载事务文件。"""
+        handle, self._download_file = self._download_file, None
+        if handle is not None:
+            try:
+                handle.close()
+            except OSError as e:
+                logger.exception(f"[Updater] 关闭下载残留失败: {e}")
+        for path in (self._download_partial_path, self._download_path):
+            try:
+                if path and os.path.exists(path):
+                    os.remove(path)
+            except OSError as e:
+                logger.exception(f"[Updater] 清理下载残留失败: {e}")
+        self._download_partial_path = ""
 
     # ==================== 安装 ====================
     @Slot(str, str, result=bool)
