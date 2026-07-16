@@ -250,18 +250,34 @@ Rectangle {
 
     // Sort items (order: 0=Ascending, 1=Descending)
     function sortItems(order) {
-        var items = []
+        var sortedRows = []
+        var currentOrder = []
+        var currentOriginalIndex = listView.currentIndex
+        var selectedOriginalRows = _selectedRows.slice()
         for (var i = 0; i < listModel.count; i++) {
-            items.push(listModel.get(i))
+            sortedRows.push({
+                originalIndex: i,
+                text: String(listModel.get(i).text || "")
+            })
+            currentOrder.push(i)
         }
-        items.sort(function(a, b) {
-            var cmp = (a.text || "").localeCompare(b.text || "")
+        sortedRows.sort(function(a, b) {
+            var cmp = a.text.localeCompare(b.text)
             return order === 1 ? -cmp : cmp
         })
-        listModel.clear()
-        for (var j = 0; j < items.length; j++) {
-            listModel.append(items[j])
+        for (var target = 0; target < sortedRows.length; target++) {
+            var source = currentOrder.indexOf(sortedRows[target].originalIndex)
+            if (source === target) continue
+            listModel.move(source, target, 1)
+            var moved = currentOrder.splice(source, 1)[0]
+            currentOrder.splice(target, 0, moved)
         }
+        listView.currentIndex = currentOrder.indexOf(currentOriginalIndex)
+        _selectedRows = selectedOriginalRows.map(function(row) {
+            return currentOrder.indexOf(row)
+        }).filter(function(row) {
+            return row >= 0
+        })
     }
 
     // ==================== QListWidget API - Clear 清空 ====================
@@ -377,6 +393,7 @@ Rectangle {
             checkable: m.checkable,
             checkState: m.checkState,
             selected: _isRowSelected(row),
+            flags: m.flags,
             row: row
         }
     }
