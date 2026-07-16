@@ -16,11 +16,12 @@ Rectangle {
     id: delegateRoot
     required property int index
     required property var model
-    
+
+    // ==================== Public Props 公开属性 ====================
     // Access control via ListView.view.treeControl 通过 ListView.view.treeControl 访问控制器
     readonly property var control: ListView.view ? ListView.view.treeControl : null
     readonly property ListView listView: ListView.view
-    
+
     // Extract from model 从模型提取
     property string itemText: model.text || ""
     property string itemIcon: model.icon || ""
@@ -31,15 +32,15 @@ Rectangle {
     property int checkState: model.checkState || 0
     property string pathStr: model.pathStr || ""
     property var itemData: model.data || ({})
-    
-    width: listView ? listView.width : 0
-    height: control ? control.itemHeight : Enums.controlSize.treeItemHeight
-    color: Enums.transparent
-
     property bool selected: control && control.currentIndex >= 0 && control._isIndexSelected(index)
     property bool hovered: control && control._hoverIndex === index
     property bool pressed: itemArea.pressed
     property real branchOffset: Enums.spacing.m + depth * (control ? control.indentWidth : Enums.spacing.xl)
+
+    // ==================== Size 尺寸 ====================
+    width: listView ? listView.width : 0
+    height: control ? control.itemHeight : Enums.controlSize.treeItemHeight
+    color: Enums.transparent
 
     // Press scale 按压缩放
     scale: pressed ? 0.98 : 1.0
@@ -48,13 +49,16 @@ Rectangle {
     }
     transformOrigin: Item.Center
 
+    // ==================== Content 内容 ====================
     // Background 背景
     Rectangle {
         anchors.fill: parent
         anchors.margins: Enums.spacing.xxs
         radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-        // 状态色合成成不透明 (Qt.tint 到 cardColor), 在不透明色之间插值才平滑;
-        // 否则透明黑 -> 半透明灰的 ColorAnimation 中间帧会闪过脏灰 (灰块跳变)
+        // Compose state colors over cardColor so interpolation stays opaque and smooth.
+        // 将状态色合成到 cardColor 上，使插值保持不透明且平滑。
+        // Transparent black to translucent gray would otherwise flash dirty gray frames.
+        // 否则透明黑到半透明灰的中间帧会闪过脏灰。
         color: {
             if (delegateRoot.selected || delegateRoot.hovered)
                 return Qt.tint(Enums.cardColor, Enums.stateColor.treeItemHover)
@@ -66,6 +70,9 @@ Rectangle {
     // Selection indicator 选中指示条
     Rectangle {
         id: selectionIndicator
+
+        property bool _active: control && control.currentIndex >= 0 && control.currentIndex === delegateRoot.index
+
         anchors.left: parent.left
         anchors.leftMargin: Enums.spacing.xxs
         anchors.verticalCenter: parent.verticalCenter
@@ -74,7 +81,6 @@ Rectangle {
         radius: Enums.radius.small
         color: control ? control.indicatorColor : Enums.accentColor
 
-        property bool _active: control && control.currentIndex >= 0 && control.currentIndex === delegateRoot.index
         opacity: _active ? 1 : 0
         scale: _active ? 1 : 0
         transformOrigin: Item.Center
@@ -154,13 +160,14 @@ Rectangle {
     // Mouse area 鼠标区域
     MouseArea {
         id: itemArea
+
+        property real expandBtnStart: Enums.spacing.xl + delegateRoot.branchOffset - Enums.spacing.xxs
+        property real expandBtnEnd: expandBtnStart + Enums.controlSize.treeIndentSize + Enums.spacing.xs
+
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        
-        property real expandBtnStart: Enums.spacing.xl + delegateRoot.branchOffset - Enums.spacing.xxs
-        property real expandBtnEnd: expandBtnStart + Enums.controlSize.treeIndentSize + Enums.spacing.xs
-        
+
         onEntered: {
             if (!control) return
             control._hoverIndex = delegateRoot.index
