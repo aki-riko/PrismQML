@@ -243,7 +243,7 @@ C++ 宿主一旦做出，**本身即覆盖所有 Qt 支持的平台**。"全平�
 | Python | C++ 镜像 | 备注 |
 |---|---|---|
 | `Icon` `IconCore` `make_icon` `make_theme_icon` `paint_icon` `resolveIconColor` | 同名 | SVG 图标渲染 |
-| `IconProvider` / `register_icon_provider` / `get_icon_provider` | 同名 | image provider |
+| `IconProvider` / `register_icon_provider` / `get_icon_provider` | 同名 | 显式 `Icon` context 路径查询；默认不注入 |
 | `QRCodeGenerator` / `QRCodeImageProvider` / getters | 同名 | |
 | `SvgImageProvider` / `get_svg_provider` | 同名 | image://svg |
 | `ScreenEyedropperManager` | 同名 | 桌面专属 |
@@ -269,4 +269,3 @@ int main(int argc, char** argv) {
     return app.exec();
 }
 ```
-

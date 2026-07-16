@@ -52,8 +52,8 @@ void paint_icon(QPainter *painter, const QRectF &rect, const IconCore &icon,
 // 设置图标资源根 (importPath, 默认从环境/App 解析)
 void setIconResourceRoot(const QString &root);
 
-// IconProvider - 把图标 API 暴露给 QML context "Icon" (镜像 Python IconProvider)
-// 注: QML 控件实测用自带 FluentEnums/Icons.qml, 不依赖此 context; 仅对称提供。
+// IconProvider - 显式暴露最小图标路径 API 到 QML context "Icon"
+// 注: QML 控件用 Enums.icon, 默认不注入此 context; 仅供应用显式注册。
 class IconProvider : public QObject {
     Q_OBJECT
 public:

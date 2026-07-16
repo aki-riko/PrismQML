@@ -35,14 +35,12 @@ def _load_window_dependencies(profile):
     from .mica_window import get_mica_manager
     from .native_window import get_native_window_hook
     from ..providers.clipboard import get_clipboard_helper
-    from ..core.icon_provider import register_icon_provider
 
     profile("导入窗口依赖")
     return (
         get_mica_manager,
         get_native_window_hook,
         get_clipboard_helper,
-        register_icon_provider,
     )
 
 
@@ -51,9 +49,7 @@ def _inject_window_context(
 ):
     """Inject the ordered root context contract. 按既定顺序注入根上下文合同。"""
     ThemeManager, getShadowManager, getConfigManager = core_managers
-    get_mica_manager, get_native_window_hook, get_clipboard_helper, icon_registrar = (
-        window_dependencies
-    )
+    get_mica_manager, get_native_window_hook, get_clipboard_helper = window_dependencies
     context = builder._engine.rootContext()
     context.setContextProperty("ThemeManager", ThemeManager())
     context.setContextProperty("ShadowManager", getShadowManager())
@@ -67,12 +63,10 @@ def _inject_window_context(
     # WindowCore 延后 NativeWindow attach/finalizeAttach，以保留 DWM 动画。
     context.setContextProperty("NativeWindow", get_native_window_hook())
     profile("注入 ContextProperty")
-    return icon_registrar
 
 
-def _register_window_image_providers(builder, icon_registrar, profile) -> None:
-    """Register Icon and engine-owned SVG providers. 注册 Icon 与引擎持有的 SVG provider。"""
-    icon_registrar(builder._engine)
+def _register_window_image_providers(builder, profile) -> None:
+    """Register the engine-owned SVG provider. 注册引擎持有的 SVG provider。"""
     builder._engine.addImageProvider("svg", get_svg_provider())
     profile("注册 ImageProvider")
 
@@ -82,12 +76,12 @@ def prepare_window_engine(builder, startup_profile_verbose, profile):
     core_managers = _load_core_window_managers(profile)
     _ensure_window_engine(builder, profile)
     window_dependencies = _load_window_dependencies(profile)
-    icon_registrar = _inject_window_context(
+    _inject_window_context(
         builder,
         startup_profile_verbose,
         core_managers,
         window_dependencies,
         profile,
     )
-    _register_window_image_providers(builder, icon_registrar, profile)
+    _register_window_image_providers(builder, profile)
     return core_managers[2]

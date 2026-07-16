@@ -45,7 +45,7 @@ window = app.create_window(WindowType.BAR)
 | `SingleInstance` | 单实例（Named Mutex + IPC） |
 | `SystemTrayIcon` | 系统托盘 |
 | `Icon` / `make_icon` / `make_theme_icon` | 图标 |
-| `IconProvider` / `register_icon_provider` | 图标提供器 |
+| `IconProvider` / `register_icon_provider` | 显式图标路径提供器，仅公开 `getPath(name)` / `isValid(name)`；窗口默认不注入 `Icon` context |
 | `ShadowManager` / `getShadowManager` / `installDwmSyncFilter` | 窗口阴影 |
 
 `Updater(..., api_base_url="https://github.example/api/v3")` 的显式地址优先，其次读取 `PRISMQML_UPDATER_API_BASE_URL`，最后使用 GitHub 公共 API；空白和尾部 `/` 会被归一化。

@@ -75,9 +75,6 @@ class _EngineSetupScenario:
             self.config_factory,
         )
 
-    def register_icon(self, received_engine):
-        self.calls.append(("register_icon", received_engine))
-
     def load_window(self, profile):
         self.calls.append("load_window_imports")
         profile("导入窗口依赖")
@@ -85,7 +82,6 @@ class _EngineSetupScenario:
             self.factory("mica"),
             self.factory("native"),
             self.factory("clipboard"),
-            self.register_icon,
         )
 
     def patch_setup(self, monkeypatch, setup):
@@ -138,7 +134,6 @@ def _expected_engine_context_calls(scenario):
 
 def _expected_engine_provider_calls(scenario):
     return [
-        ("register_icon", scenario.engine),
         ("factory", "svg"),
         ("image_provider", "svg", scenario.svg_provider),
         ("profile", "注册 ImageProvider"),
@@ -167,7 +162,6 @@ def test_window_engine_setup_preserves_context_provider_and_profile_order(monkey
 def test_window_dependency_loaders_preserve_real_identity_and_profile_order():
     from prismqml.python.config import getConfigManager
     from prismqml.python.core import ThemeManager, getShadowManager
-    from prismqml.python.core.icon_provider import register_icon_provider
     from prismqml.python.providers.clipboard import get_clipboard_helper
     from prismqml.python.window import _window_engine_setup as setup
     from prismqml.python.window.mica_window import get_mica_manager
@@ -182,7 +176,6 @@ def test_window_dependency_loaders_preserve_real_identity_and_profile_order():
         get_mica_manager,
         get_native_window_hook,
         get_clipboard_helper,
-        register_icon_provider,
     )
     assert profiles == ["导入核心管理器", "导入窗口依赖"]
 
@@ -265,7 +258,6 @@ def _unused_window_dependencies():
         lambda: object(),
         lambda: object(),
         lambda: object(),
-        lambda _engine: None,
     )
 
 
@@ -304,27 +296,6 @@ def test_window_context_setup_fail_fast(error_type):
     assert calls == _expected_context_failure_calls()
 
 
-@pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
-def test_window_icon_provider_setup_fail_fast(monkeypatch, error_type):
-    from prismqml.python.window import _window_engine_setup as setup
-
-    monkeypatch.setattr(
-        setup,
-        "get_svg_provider",
-        lambda: pytest.fail("icon registration failure must stop SVG setup"),
-    )
-
-    def stop_icon_registration(_engine):
-        raise error_type("stop")
-
-    with pytest.raises(error_type, match="stop"):
-        setup._register_window_image_providers(
-            SimpleNamespace(_engine=object()),
-            stop_icon_registration,
-            lambda _label: pytest.fail("must fail fast"),
-        )
-
-
 class _FailingProviderEngine:
     def __init__(self, calls, error_type, failure_stage):
         self._calls = calls
@@ -358,11 +329,10 @@ def test_window_svg_provider_setup_fail_fast(
     with pytest.raises(error_type, match="stop"):
         setup._register_window_image_providers(
             SimpleNamespace(_engine=engine),
-            lambda _engine: calls.append("register_icon"),
             lambda _label: pytest.fail("must fail fast"),
         )
 
-    expected = ["register_icon", "get_svg"]
+    expected = ["get_svg"]
     if failure_stage == "add":
         expected.append(("add", "svg", provider))
     assert calls == expected

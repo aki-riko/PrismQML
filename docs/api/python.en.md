@@ -45,7 +45,7 @@ window = app.create_window(WindowType.BAR)
 | `SingleInstance` | Single instance (Named Mutex + IPC) |
 | `SystemTrayIcon` | System tray |
 | `Icon` / `make_icon` / `make_theme_icon` | Icons |
-| `IconProvider` / `register_icon_provider` | Icon provider |
+| `IconProvider` / `register_icon_provider` | Explicit icon path provider with only `getPath(name)` / `isValid(name)`; windows do not inject the `Icon` context by default |
 | `ShadowManager` / `getShadowManager` / `installDwmSyncFilter` | Window shadow |
 
 For `Updater(..., api_base_url="https://github.example/api/v3")`, the explicit value wins, followed by `PRISMQML_UPDATER_API_BASE_URL`, then the public GitHub API. Whitespace and trailing `/` characters are normalized.

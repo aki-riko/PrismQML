@@ -374,7 +374,13 @@ int main(int argc, char *argv[]) {
         const QString c2 = resolveIconColor(Theme::Light);
         CHECK(c2 == QStringLiteral("#1a1a1a"), "浅色主题图标色=深");
         // get_icon_provider 单例
-        CHECK(get_icon_provider() == IconProvider::instance(), "get_icon_provider==instance");
+        IconProvider *provider = get_icon_provider();
+        CHECK(provider == IconProvider::instance(), "get_icon_provider==instance");
+        CHECK(provider->getPath(QStringLiteral("Home")).endsWith(QStringLiteral("Home.svg")),
+              "IconProvider.getPath 解析到 svg");
+        CHECK(provider->isValid(QStringLiteral("Home")), "IconProvider.isValid 识别真实图标");
+        CHECK(!provider->isValid(QStringLiteral("MissingProviderContractIcon")),
+              "IconProvider.isValid 拒绝缺失图标");
     }
 
     qInfo() << "=== TableListModel + is_rust_accelerated 测试 ===";

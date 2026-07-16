@@ -13,19 +13,15 @@ from prismqml.python.core.icon_provider import (
     get_icon_provider,
     register_icon_provider,
 )
-from prismqml.python.core.icons import Icon
-
-
 ROOT = Path(__file__).resolve().parents[1]
-CUSTOM_NAME = "ContractCustom"
-CUSTOM_PATH = "qrc:/contract/custom.svg"
-PROBE_SOURCE = f"""import QtQuick
-QtObject {{
-    property string enumValue: Icon.get("ADD")
-    property string customPath: Icon.getPath("{CUSTOM_NAME}")
-    property bool customValid: Icon.isCustomIcon("{CUSTOM_NAME}")
-    property int iconCount: Icon.count()
-}}
+VALID_ICON = "Add"
+INVALID_ICON = "MissingProviderContractIcon"
+PROBE_SOURCE = """import QtQuick
+QtObject {
+    property string validPath: Icon.getPath("Add")
+    property bool validIcon: Icon.isValid("Add")
+    property bool invalidIcon: Icon.isValid("MissingProviderContractIcon")
+}
 """
 
 
@@ -48,29 +44,44 @@ def _create_probe() -> tuple[QQmlEngine, QQmlComponent, object]:
     return engine, component, component.create()
 
 
-def test_python_provider_exposes_enum_and_custom_icon_surfaces():
+def test_python_provider_matches_minimal_cpp_surface():
     provider = get_icon_provider()
-    provider._custom_paths.clear()
-    provider.register_custom_icon(CUSTOM_NAME, CUSTOM_PATH)
+    valid_path = Path(provider.getPath(VALID_ICON))
 
-    assert provider.get("ADD") == "Add"
-    assert provider.get("add") == "Add"
-    assert provider.getAll() == [icon.value for icon in Icon]
-    assert provider.getAllNames() == [icon.name for icon in Icon]
-    assert provider.count() == len(Icon)
-    assert provider.getPath(CUSTOM_NAME) == CUSTOM_PATH
-    assert provider.isCustomIcon(CUSTOM_NAME)
+    assert valid_path.name == "Add.svg"
+    assert valid_path.is_file()
+    assert provider.isValid(VALID_ICON)
+    assert not provider.isValid(INVALID_ICON)
+    removed_surface = (
+        "get",
+        "getAll",
+        "getAllNames",
+        "count",
+        "isCustomIcon",
+        "register_custom_icon",
+        "register_custom_icons",
+    )
+    for removed in removed_surface:
+        assert not hasattr(provider, removed)
+    assert not hasattr(provider, "ADD")
 
 
-def test_explicit_qml_provider_registration_exposes_current_surface(qapp):
-    provider = get_icon_provider()
-    provider._custom_paths.clear()
-    provider.register_custom_icon(CUSTOM_NAME, CUSTOM_PATH)
+def test_explicit_qml_provider_registration_exposes_minimal_surface(qapp):
     keep = _create_probe()
     probe = keep[-1]
 
     assert probe is not None
-    assert probe.property("enumValue") == "Add"
-    assert probe.property("customPath") == CUSTOM_PATH
-    assert probe.property("customValid") is True
-    assert probe.property("iconCount") == len(Icon)
+    assert Path(probe.property("validPath")).name == "Add.svg"
+    assert probe.property("validIcon") is True
+    assert probe.property("invalidIcon") is False
+
+
+def test_explicit_registration_reuses_process_singleton(qapp):
+    first = QQmlEngine()
+    second = QQmlEngine()
+    register_icon_provider(first)
+    register_icon_provider(second)
+    provider = get_icon_provider()
+
+    assert first.rootContext().contextProperty("Icon") is provider
+    assert second.rootContext().contextProperty("Icon") is provider
