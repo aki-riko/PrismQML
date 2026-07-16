@@ -27,7 +27,7 @@ Widget {
     property int iconSize: 14                             // 图标渲染大小
     property color color: Enums.textColor.tertiary // 图标颜色,默认次要文本色
 
-    // ==================== Sizing 尺寸 ====================
+    // ==================== Size 尺寸 ====================
     // contentWidth/Height = 图标尺寸,不占额外空间。Widget 基类会让最终
     // implicitWidth/Height = contentWidth/Height + padding (默认 0)。
     contentWidth: iconSize
@@ -38,7 +38,7 @@ Widget {
     // Open beside the icon so the label remains unobstructed 默认在图标右侧展开，避免遮挡标签
     toolTipPosition: Enums.position.right
 
-    // ==================== Visual 视觉 ====================
+    // ==================== Content 内容 ====================
     Icon {
         anchors.centerIn: parent
         icon: control.icon

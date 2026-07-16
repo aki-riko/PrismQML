@@ -19,16 +19,16 @@ QtObject {
     required property int viewWidth
     required property int viewHeight
     
-    // ==================== Constants 常量 ====================
+    // ==================== Internal Props 内部属性 ====================
     readonly property int slideOffset: 8
     readonly property int tailSize: 8
     readonly property int gap: 4
     
-    // ==================== Type Checks 类型检查 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool isFlyout: tipType === Enums.tip.type_flyout
     readonly property bool isTeachingTip: tipType === Enums.tip.type_teaching_tip
     
-    // ==================== Arrow Direction 箭头方向 ====================
+    // Arrow direction 箭头方向
     readonly property bool isTop: isTeachingTip && (
         anchorPosition === Enums.teachingTip.anchor_top || 
         anchorPosition === Enums.teachingTip.anchor_top_left ||
@@ -47,7 +47,7 @@ QtObject {
         anchorPosition === Enums.teachingTip.anchor_right_bottom)
     readonly property bool hasArrow: isTop || isBottom || isLeft || isRight
     
-    // ==================== Position Calculation 位置计算 ====================
+    // ==================== Public Methods 公开方法 ====================
     function calculatePosition() {
         if (!target) return { x: 0, y: 0 }
         
