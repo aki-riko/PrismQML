@@ -22,7 +22,7 @@ Item {
     required property bool smoothLine    // Use bezier curve 使用贝塞尔曲线
     required property bool isArea        // Is area chart 是否面积图
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var series: []              // [{name: "", values: [], color: "", stack: ""}, ...] - multi series 多系列
     property bool showAverage: false     // Show average line (markLine) 显示平均线
     property bool showMinMax: false      // Show min/max markers (markPoint) 显示最大最小值标记
@@ -34,7 +34,19 @@ Item {
     property bool animated: false        // Line drawing animation 折线绘制动画
     // Enable pointer hover detection; disable it for dense data to reduce frame drops 启用鼠标悬停检测，密集数据可关闭以减少掉帧
     property bool hoverDetectEnabled: true
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    property var pointPositions: []       // For single series 单系列点位置
+    property var seriesPointPositions: [] // For multi series 多系列点位置
+    property real tooltipX: 0
+    property real tooltipY: 0
+    property real mouseX: 0
+    property real mouseY: 0
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool isMultiSeries: series.length > 0
+    readonly property var valueRange: _calculateValueRange()
+
     // ==================== Signals 信号 ====================
     signal pointClicked(int index, var data)
     signal pointHovered(int index)
@@ -42,19 +54,8 @@ Item {
     // Positive delta zooms in; negative delta zooms out 正增量放大，负增量缩小
     // anchorRatio is the pointer position used as the zoom anchor anchorRatio 是鼠标缩放锚点的相对位置
     signal wheelZoomed(int delta, real anchorRatio)
-    
-    // ==================== Internal 内部属性 ====================
-    property var pointPositions: []       // For single series 单系列点位置
-    property var seriesPointPositions: [] // For multi series 多系列点位置
-    property real tooltipX: 0
-    property real tooltipY: 0
-    property real mouseX: 0
-    property real mouseY: 0
-    
-    // ==================== Computed Props 计算属性 ====================
-    readonly property bool isMultiSeries: series.length > 0
-    readonly property var valueRange: _calculateValueRange()
-    
+
+    // ==================== Internal Methods 内部方法 ====================
     function _calculateValueRange() {
         var min = Infinity, max = -Infinity
         if (isMultiSeries) {
@@ -93,7 +94,6 @@ Item {
         return { min: stacked ? 0 : min - padding, max: max + padding }
     }
 
-    // ==================== Helper Functions 辅助函数 ====================
     function valueToY(value) {
         var range = valueRange.max - valueRange.min
         if (range === 0) return height / 2
@@ -110,23 +110,27 @@ Item {
         return pointPositions[index]
     }
 
-    // ==================== Canvas 画布 ====================
+    onHoveredIndexChanged: canvas.requestPaint()
+    // hoveredSeriesIndex does not repaint because vertical movement between series is frequent
+    // hoveredSeriesIndex 不触发重绘，因为在多个系列之间垂直移动时会频繁切换
+    // It only anchors the tooltip and does not affect the painted line or points
+    // 视觉上只用于 tooltip 锚定，不影响线条或折点绘制
+    // onHoveredSeriesIndexChanged: canvas.requestPaint()
+    onChartDataChanged: canvas.requestPaint()
+    onSeriesChanged: canvas.requestPaint()
+    onShowAverageChanged: canvas.requestPaint()
+    onShowMinMaxChanged: canvas.requestPaint()
+    onBoundaryGapChanged: canvas.requestPaint()
+    onShowAreaGradientChanged: canvas.requestPaint()
+    onStackedChanged: canvas.requestPaint()
+
+    // ==================== Content 内容 ====================
+    // Canvas 画布
     Canvas {
         id: canvas
-        anchors.fill: parent
+
         property real animProgress: 1.0
-        
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            
-            if (root.isMultiSeries) {
-                paintMultiSeries(ctx)
-            } else {
-                paintSingleSeries(ctx)
-            }
-        }
-        
+
         function paintSingleSeries(ctx) {
             if (root.chartData.length < 2) return
             
@@ -247,7 +251,20 @@ Item {
             }
             root.seriesPointPositions = allSeriesPoints
         }
-        
+
+        anchors.fill: parent
+
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+
+            if (root.isMultiSeries) {
+                paintMultiSeries(ctx)
+            } else {
+                paintSingleSeries(ctx)
+            }
+        }
+
         Component.onCompleted: {
             if (root.animated) {
                 animProgress = 0
@@ -260,9 +277,12 @@ Item {
         
         Timer {
             id: lineAnimTimer
+
+            property real t: 0
+
             interval: Enums.duration.tick
             repeat: true
-            property real t: 0
+
             onTriggered: {
                 t += 0.04
                 if (t >= 1) {
@@ -276,21 +296,8 @@ Item {
             }
         }
     }
-    
-    // Repaint triggers 重绘触发
-    onHoveredIndexChanged: canvas.requestPaint()
-    // hoveredSeriesIndex 不触发重绘 — 鼠标在多 series 间垂直移动时频繁切换会卡帧
-    // 视觉上只用于 tooltip 锚定, 不影响线条/折点 paint
-    // onHoveredSeriesIndexChanged: canvas.requestPaint()
-    onChartDataChanged: canvas.requestPaint()
-    onSeriesChanged: canvas.requestPaint()
-    onShowAverageChanged: canvas.requestPaint()
-    onShowMinMaxChanged: canvas.requestPaint()
-    onBoundaryGapChanged: canvas.requestPaint()
-    onShowAreaGradientChanged: canvas.requestPaint()
-    onStackedChanged: canvas.requestPaint()
 
-    // ==================== Markers 标记组件 ====================
+    // Markers 标记组件
     LineChartMarkers {
         anchors.fill: parent
         series: root.series
@@ -304,7 +311,7 @@ Item {
         calculateAverage: Painter.calculateAverage
     }
 
-    // ==================== Mouse Area 鼠标区域 ====================
+    // Mouse area 鼠标区域
     MouseArea {
         anchors.fill: parent
         hoverEnabled: root.hoverDetectEnabled
