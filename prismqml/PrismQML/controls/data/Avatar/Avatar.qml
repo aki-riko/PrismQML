@@ -23,7 +23,7 @@ Rectangle {
     readonly property color _avatarBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.borderStrongColor : Enums.transparent)
     readonly property color _avatarContentColor: Enums.accentForeground
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     // Set avatar size 设置头像尺寸
     function setRadius(r) {
         size = r * 2
@@ -52,14 +52,14 @@ Rectangle {
     // Image avatar with Canvas clipping Canvas裁剪图片头像
     Canvas {
         id: avatarCanvas
+        property var img: null
+
         anchors.fill: parent
         visible: control.source !== ""
         antialiasing: true
         renderStrategy: Canvas.Threaded
         renderTarget: Canvas.FramebufferObject
-        
-        property var img: null
-        
+
         onPaint: {
             var ctx = getContext("2d")
             ctx.reset()
