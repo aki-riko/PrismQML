@@ -16,7 +16,8 @@ import "../../containers"
 // Structure: bottom color bar + top white card 底层颜色条+上层卡片
 Widget {
     id: control
-    
+
+    // ==================== Public Props 公开属性 ====================
     property string title: ""
     property string message: ""
     property alias text: control.message
@@ -26,15 +27,15 @@ Widget {
     property int position: Enums.notification.posBottomRight  // Position from NotificationManager 位置(0-5)
     property bool desktopMode: false  // Desktop mode skips internal animation 桌面模式跳过内部动画
     
-    // ==================== Layout Props 布局属性 ====================
+    // Layout properties 布局属性
     property int orient: Qt.Horizontal  // Layout orientation 布局方向 (Qt.Horizontal/Qt.Vertical)
     readonly property bool _isVertical: orient === Qt.Vertical
     
-    // ==================== Custom Widget 自定义组件 ====================
+    // Custom content 自定义内容
     property alias customContent: customContentLoader.sourceComponent  // Custom widget slot 自定义组件插槽
     property bool hasCustomContent: customContentLoader.sourceComponent !== null && customContentLoader.item !== null
     
-    // ==================== Custom Background 自定义背景色 ====================
+    // Custom background 自定义背景色
     property color backgroundColorLight: Enums.transparent  // Custom light theme bg 自定义浅色背景
     property color backgroundColorDark: Enums.transparent   // Custom dark theme bg 自定义深色背景
     readonly property bool _hasCustomBg: backgroundColorLight.a > 0 || backgroundColorDark.a > 0
@@ -48,7 +49,7 @@ Widget {
     readonly property int _toastShadowBlur: Enums.shadow.level4.blur
     readonly property int _toastShadowOffset: Enums.shadow.level4.offset
     
-    // ==================== Progress Props 进度属性 ====================
+    // Progress properties 进度属性
     property int feature: Enums.notification.feature_normal  // 功能模式
     property real progress: 0  // 0-1 进度值
     property int completeDuration: Enums.duration.progressComplete  // 进度完成后持续显示时间(ms)
@@ -61,41 +62,12 @@ Widget {
     readonly property bool _isBarMode: feature === Enums.notification.feature_progress_bar ||
                                        feature === Enums.notification.feature_indeterminate_bar
     readonly property bool _progressComplete: _isProgressMode && progress >= 1.0
-    
-    signal closed()
 
     // Use shared severity helpers 使用共享的语义辅助函数
     readonly property int _severityLevel: Enums.notification.getSeverityLevel(severity)
     readonly property color severityColor: Enums.statusLevel.getColorByLevel(_severityLevel)
     readonly property string severityIconName: Enums.notification.getSeverityIcon(severity)
-    
-    // ==================== Size 尺寸 ====================
-    // Content size (inherited from Widget) 内容尺寸：根据内部文字自适应
-    contentWidth: {
-        var baseWidth = Enums.spacing.m * 2; // margins
-        if (_isRingMode || _isBarMode) {
-            baseWidth += Enums.infoBarMetrics.iconContainerSize + Enums.infoBarMetrics.textLeftGap;
-        } else {
-            baseWidth += Enums.spacing.xl; // text left margin
-        }
-        
-        baseWidth += Enums.spacing.m; // text right margin
-        if (closable) {
-            baseWidth += Enums.controlSize.inputHeightCompact + Enums.spacing.l; // closeBtn width + right margin
-        }
-        
-        var textW = 0;
-        if (!_isVertical) {
-            if (title !== "") textW += titleText.implicitWidth;
-            if (message !== "") textW += (title !== "" ? Enums.spacing.xs : 0) + messageText.implicitWidth;
-        } else {
-            if (title !== "") textW = Math.max(textW, titleTextVertical.implicitWidth);
-            if (message !== "") textW = Math.max(textW, messageTextVertical.implicitWidth);
-        }
-        
-        var targetWidth = baseWidth + textW;
-        return Math.min(Math.max(targetWidth, Enums.controlSize.toastWidth), 800)
-    }
+
     // Height auto-adapts based on layout orientation 高度自适应：根据布局方向计算
     // 水平模式也按内容动态:title + message 实际高度堆叠,长文本/多行不被固定高裁切
     readonly property real _horizontalHeight: {
@@ -112,13 +84,11 @@ Widget {
         if (hasCustomContent) h += customContentLoader.height + Enums.spacing.m
         return Math.max(Enums.controlSize.toastHeight, h)
     }
-    // Height is always auto-calculated 高度始终自动计算
-    implicitHeight: _isVertical ? _verticalHeight : _horizontalHeight
-    width: implicitWidth
-    height: implicitHeight
-    visible: false  // Initially hidden 初始隐藏
-    
-    // ==================== Show/Hide 显示/隐藏 ====================
+
+    // ==================== Signals 信号 ====================
+    signal closed()
+
+    // ==================== Public Methods 公开方法 ====================
     function show(msg, type) {
         if (msg) message = msg
         if (type) severity = type
@@ -130,7 +100,7 @@ Widget {
         }
         if (duration > 0) hideTimer.restart()
     }
-    
+
     function hide() {
         if (desktopMode) {
             visible = false
@@ -139,8 +109,49 @@ Widget {
             animator.hide()
         }
     }
-    
-    // ==================== Shared Animator 共享动画器 ====================
+
+    // ==================== Size 尺寸 ====================
+    // Content size (inherited from Widget) 内容尺寸：根据内部文字自适应
+    contentWidth: {
+        var baseWidth = Enums.spacing.m * 2; // margins
+        if (_isRingMode || _isBarMode) {
+            baseWidth += Enums.infoBarMetrics.iconContainerSize + Enums.infoBarMetrics.textLeftGap;
+        } else {
+            baseWidth += Enums.spacing.xl; // text left margin
+        }
+
+        baseWidth += Enums.spacing.m; // text right margin
+        if (closable) {
+            baseWidth += Enums.controlSize.inputHeightCompact + Enums.spacing.l; // closeBtn width + right margin
+        }
+
+        var textW = 0;
+        if (!_isVertical) {
+            if (title !== "") textW += titleText.implicitWidth;
+            if (message !== "") textW += (title !== "" ? Enums.spacing.xs : 0) + messageText.implicitWidth;
+        } else {
+            if (title !== "") textW = Math.max(textW, titleTextVertical.implicitWidth);
+            if (message !== "") textW = Math.max(textW, messageTextVertical.implicitWidth);
+        }
+
+        var targetWidth = baseWidth + textW;
+        return Math.min(Math.max(targetWidth, Enums.controlSize.toastWidth), 800)
+    }
+    // Height is always auto-calculated 高度始终自动计算
+    implicitHeight: _isVertical ? _verticalHeight : _horizontalHeight
+    width: implicitWidth
+    height: implicitHeight
+    visible: false  // Initially hidden 初始隐藏
+
+    // Desktop mode: set opacity directly 桌面模式直接设置透明度
+    Component.onCompleted: {
+        if (desktopMode) {
+            opacity = 1
+        }
+    }
+
+    // ==================== Content 内容 ====================
+    // Shared animator 共享动画器
     property alias animator: animator  // Expose animator for stack management 暴露动画器供堆叠管理使用
     
     NotificationAnimator {
@@ -150,15 +161,8 @@ Widget {
         parentItem: control.parent
         onHideFinished: { control.visible = false; control.closed() }
     }
-    
-    // Desktop mode: set opacity directly 桌面模式直接设置透明度
-    Component.onCompleted: {
-        if (desktopMode) {
-            opacity = 1
-        }
-    }
-    
-    // ==================== Container 容器 ====================
+
+    // Container 容器
     Item {
         id: container
         anchors.fill: parent
@@ -225,7 +229,7 @@ Widget {
                 }
             }
             
-            // ==================== Horizontal Layout 水平布局 ====================
+            // Horizontal layout 水平布局
             // Title 标题（水平模式）
             Label {
                 id: titleText
@@ -261,7 +265,7 @@ Widget {
                 verticalAlignment: Text.AlignTop
             }
             
-            // ==================== Vertical Layout 垂直布局 ====================
+            // Vertical layout 垂直布局
             Column {
                 id: verticalLayout
                 anchors.left: _isRingMode ? toastRingContainer.right : (_isBarMode ? toastIconContainer.right : parent.left)
@@ -317,7 +321,7 @@ Widget {
                 onClicked: control.hide()
             }
             
-            // ==================== Progress Bar 进度条（参考Button圆角裁剪方案） ====================
+            // Progress bar 进度条（参考 Button 圆角裁剪方案）
             Item {
                 id: toastProgressClipRect
                 anchors.fill: parent
@@ -370,7 +374,7 @@ Widget {
                 }
             }
             
-            // ==================== Progress Ring 进度环（使用现有组件） ====================
+            // Progress ring 进度环（使用现有组件）
             // Progress ring container: ref InfoBar margins and size 进度环容器：参考 InfoBar 的边距和尺寸
             Item {
                 id: toastRingContainer
