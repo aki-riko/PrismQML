@@ -24,7 +24,7 @@ Window {
     property bool closable: true
     property int position: Enums.notification.posBottomRight  // 0=TOP_LEFT, 1=TOP, 2=TOP_RIGHT, 3=BOTTOM_LEFT, 4=BOTTOM, 5=BOTTOM_RIGHT
 
-    // ==================== Custom Content 自定义内容插槽 ====================
+    // Custom content slot 自定义内容插槽
     // Inject custom widget (e.g. confirm button) below message 在消息下方注入自定义控件（如确认按钮）
     property alias customContent: customContentLoader.sourceComponent
     readonly property bool hasCustomContent: customContentLoader.sourceComponent !== null && customContentLoader.item !== null
@@ -39,30 +39,9 @@ Window {
     readonly property color _notificationShadowColor: Enums.shadow.level8.color
     readonly property int _notificationShadowBlur: Enums.shadow.level8.blur
     readonly property int _notificationShadowOffset: Enums.shadow.level8.offset
-    
-    // ==================== Signals 信号 ====================
-    signal closed()
-    signal clicked()
-    
-    // ==================== Window Settings 窗口设置 ====================
-    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-    visible: false  // Default hidden, call show() to display 默认隐藏，调用show()显示
-    color: Enums.transparent
-    width: Enums.controlSize.desktopNotificationWidth
-    height: Math.max(
-        Enums.controlSize.toastHeight,
-        contentCol.implicitHeight
-            + (hasCustomContent ? customContentLoader.height + Enums.spacing.m : 0)
-            + Enums.controlSize.dialogButtonHeight
-    )
-    
-    // ==================== Severity Colors 语义色 ====================
     // Use shared severity helper 使用共享的语义辅助函数
     readonly property int _severityLevel: Enums.notification.getSeverityLevel(severity)
     readonly property color severityColor: Enums.statusLevel.getColorByLevel(_severityLevel)
-    
-    // Desktop notification uses simple icons (displayed on colored background) 桌面通知使用简单图标（显示在彩色背景上）
-
     readonly property string severityIconName: {
         switch (severity) {
             case "success": return "Checkmark"
@@ -71,29 +50,25 @@ Window {
             default: return "Info"
         }
     }
-    
-    // ==================== Animation Props 动画属性 ====================
     // Use shared animation config 使用共享动画配置
     readonly property real _slideOffset: width + Enums.notification.layout.edgeMargin
     // Vertical slide needs larger offset for better bounce effect 垂直滑动需要更大偏移以获得更好的回弹效果
     readonly property real _slideOffsetY: height + Enums.notification.layout.verticalSlideExtra
-    
-    // Position helpers 位置辅助
     readonly property bool _isTop: Enums.notification.isTop(position)
     readonly property bool _isLeft: Enums.notification.isLeft(position)
     readonly property bool _isRight: Enums.notification.isRight(position)
     readonly property bool _isCenter: Enums.notification.isCenter(position)
-    
-    // Base position for animation 动画基准位置
-    property real _baseX: 0
-    property real _baseY: 0
-
-    // Animation easing config 动画缓动配置
     readonly property int _showEasing: Enums.notification.animation.showEasing
     readonly property real _showOvershoot: Enums.notification.animation.showOvershoot
     readonly property int _hideEasing: Enums.notification.animation.hideEasing
+    property real _baseX: 0
+    property real _baseY: 0
 
-    // ==================== Show/Hide 显示/隐藏 ====================
+    // ==================== Signals 信号 ====================
+    signal closed()
+    signal clicked()
+
+    // ==================== Public Methods 公开方法 ====================
     function show() {
         _calculateBasePosition()
         // Set initial position (from outside edge) 设置初始位置（从边缘外）
@@ -116,7 +91,7 @@ Window {
         hideAnim.start()
     }
 
-    // ==================== Position Calculation 位置计算 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function _calculateBasePosition() {
         var screen = Screen
         var margin = Enums.notification.layout.screenMargin
@@ -134,9 +109,22 @@ Window {
         }
     }
 
+    // Window settings 窗口设置
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+    visible: false  // Default hidden, call show() to display 默认隐藏，调用show()显示
+    color: Enums.transparent
+    width: Enums.controlSize.desktopNotificationWidth
+    height: Math.max(
+        Enums.controlSize.toastHeight,
+        contentCol.implicitHeight
+            + (hasCustomContent ? customContentLoader.height + Enums.spacing.m : 0)
+            + Enums.controlSize.dialogButtonHeight
+    )
+
+    // ==================== Content 内容 ====================
     Timer { id: autoCloseTimer; interval: duration; onTriggered: control.hide() }
 
-    // ==================== Animations 动画 ====================
+    // Animations 动画
     ParallelAnimation {
         id: showAnim
         NumberAnimation { 
@@ -153,6 +141,8 @@ Window {
     
     ParallelAnimation {
         id: hideAnim
+        onFinished: { control.visible = false; control.closed() }
+
         NumberAnimation { 
             target: control; property: "x"
             to: control._isLeft ? control._baseX - control._slideOffset : 
@@ -166,10 +156,9 @@ Window {
             duration: Enums.notification.animation.hideDuration
             easing.type: control._hideEasing
         }
-        onFinished: { control.visible = false; control.closed() }
     }
 
-    // ==================== Shadow Layer 阴影层 ====================
+    // Shadow layer 阴影层
     // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: card
@@ -187,7 +176,7 @@ Window {
         z: card.z - 1
     }
 
-    // ==================== Content 内容 ====================
+    // Notification card 通知卡片
     Rectangle {
         id: card
         anchors.fill: parent
