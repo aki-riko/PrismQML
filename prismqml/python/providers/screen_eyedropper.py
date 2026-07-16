@@ -15,7 +15,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import (
     QColor, QScreen, QGuiApplication, QPainter, QPixmap, QImage,
-    QPen, QBrush, QFont, QCursor
+    QPen, QBrush, QCursor
 )
 from PySide6.QtWidgets import QWidget, QApplication
 
@@ -238,7 +238,6 @@ class ScreenEyedropperWindow(QWidget):
             # Draw crosshair at center 在中心绘制十字准星
             center_x = preview_rect.x() + c.PREVIEW_SIZE // 2
             center_y = preview_rect.y() + c.PREVIEW_SIZE // 2
-            pixel_size = c.PREVIEW_SIZE // c.CAPTURE_SIZE
             
             painter.setPen(QPen(QColor(c.CROSSHAIR_COLOR), c.CROSSHAIR_SIZE))
             # Horizontal line 水平线
@@ -263,9 +262,8 @@ class ScreenEyedropperWindow(QWidget):
         
         # Draw hex color text 绘制HEX颜色文字
         hex_text = self._current_color.name().upper()
-        font = QFont()
+        font = self.font()
         font.setPixelSize(c.FONT_SIZE)
-        font.setFamily("Segoe UI")
         painter.setFont(font)
         painter.setPen(text_color)
         

@@ -9,7 +9,7 @@ from __future__ import annotations
 import shiboken6
 import pytest
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QColor, QBrush, QImage, QPen
+from PySide6.QtGui import QColor, QBrush, QFont, QImage, QPen
 
 from prismqml.python.providers import screen_eyedropper as eyedropper
 
@@ -95,6 +95,18 @@ class _CapturedImage:
         return self.scaled_token
 
 
+class _FontFailureWindow(eyedropper.ScreenEyedropperWindow):
+    def __init__(self, error):
+        self._font_error = None
+        super().__init__()
+        self._font_error = error
+
+    def font(self):
+        if self._font_error is not None:
+            raise self._font_error
+        return super().font()
+
+
 def _paint_with_recorder(monkeypatch, window, failure=None):
     _RecordingPainter.instance = None
     _RecordingPainter.failure = failure
@@ -107,6 +119,21 @@ def _dispose_window(qapp, window):
     window.close()
     shiboken6.delete(window)
     qapp.processEvents()
+
+
+def _cleanup_font_probe(qapp, window, original_app_font):
+    try:
+        if window is not None:
+            _dispose_window(qapp, window)
+    finally:
+        qapp.setFont(original_app_font)
+
+
+def _assert_font_values(actual, expected):
+    assert actual.family() == expected.family()
+    assert actual.pointSize() == expected.pointSize()
+    assert actual.weight() == expected.weight()
+    assert actual.italic() == expected.italic()
 
 
 def _text_contrast_pixels(image, background):
@@ -155,6 +182,55 @@ def _render_hidden_case(qapp, is_dark, captured):
     return result
 
 
+def _assert_fallback_events(events, background, border, text):
+    assert [event[0] for event in events] == [
+        "construct", "render_hint", "set_pen", "set_brush",
+        "draw_rounded_rect", "set_brush", "draw_rounded_rect",
+        "set_pen", "set_brush_style", "draw_rounded_rect",
+        "set_font", "set_pen_color", "draw_text",
+    ]
+    assert events[1] == (
+        "render_hint", eyedropper.QPainter.RenderHint.Antialiasing
+    )
+    assert events[2] == ("set_pen", border, 1.0)
+    assert events[3] == ("set_brush", background)
+    assert events[4][1:] == ((0, 0, 121, 65), 6, 6)
+    assert events[5] == ("set_brush", "#12abef")
+    assert events[6][1:] == ((8, 12, 42, 42), 3, 3)
+    assert events[7] == ("set_pen", border, 1.0)
+    assert events[8] == ("set_brush_style", Qt.BrushStyle.NoBrush)
+    assert events[9][1:] == ((8, 12, 42, 42), 3, 3)
+    assert events[10][2] == _CONSTANTS.FONT_SIZE
+    assert events[11] == ("set_pen_color", text)
+    assert events[12] == ("draw_text", 57, 37, "#12ABEF")
+
+
+def _assert_captured_events(events, image):
+    assert image.events == [
+        ("image.is_null",),
+        (
+            "image.scaled", 42, 42,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.FastTransformation,
+        ),
+    ]
+    assert [event[0] for event in events[5:11]] == [
+        "draw_image", "set_pen", "draw_line", "draw_line",
+        "set_pen", "set_brush_style",
+    ]
+    assert events[1] == (
+        "render_hint", eyedropper.QPainter.RenderHint.Antialiasing
+    )
+    assert events[5] == ("draw_image", (8, 12), image.scaled_token)
+    assert events[6] == ("set_pen", "#ff0000", 1.0)
+    assert events[7] == ("draw_line", 8, 33, 49, 33)
+    assert events[8] == ("draw_line", 29, 12, 29, 53)
+    assert events[9] == ("set_pen", "#e0e0e0", 1.0)
+    assert events[10] == ("set_brush_style", Qt.BrushStyle.NoBrush)
+    assert events[11][1:] == ((8, 12, 42, 42), 3, 3)
+    assert events[-1] == ("draw_text", 57, 37, "#FFFFFF")
+
+
 @pytest.mark.parametrize(
     ("is_dark", "background", "border", "text"),
     [
@@ -172,26 +248,7 @@ def test_fallback_paint_preserves_palette_geometry_and_order(
 
     try:
         events = _paint_with_recorder(monkeypatch, window)
-        assert [event[0] for event in events] == [
-            "construct", "render_hint", "set_pen", "set_brush",
-            "draw_rounded_rect", "set_brush", "draw_rounded_rect",
-            "set_pen", "set_brush_style", "draw_rounded_rect",
-            "set_font", "set_pen_color", "draw_text",
-        ]
-        assert events[1] == (
-            "render_hint", eyedropper.QPainter.RenderHint.Antialiasing
-        )
-        assert events[2] == ("set_pen", border, 1.0)
-        assert events[3] == ("set_brush", background)
-        assert events[4][1:] == ((0, 0, 121, 65), 6, 6)
-        assert events[5] == ("set_brush", "#12abef")
-        assert events[6][1:] == ((8, 12, 42, 42), 3, 3)
-        assert events[7] == ("set_pen", border, 1.0)
-        assert events[8] == ("set_brush_style", Qt.BrushStyle.NoBrush)
-        assert events[9][1:] == ((8, 12, 42, 42), 3, 3)
-        assert events[10][2] == _CONSTANTS.FONT_SIZE
-        assert events[11] == ("set_pen_color", text)
-        assert events[12] == ("draw_text", 57, 37, "#12ABEF")
+        _assert_fallback_events(events, background, border, text)
     finally:
         _dispose_window(qapp, window)
 
@@ -203,29 +260,7 @@ def test_captured_paint_preserves_scaling_crosshair_and_border_order(qapp, monke
 
     try:
         events = _paint_with_recorder(monkeypatch, window)
-        assert image.events == [
-            ("image.is_null",),
-            (
-                "image.scaled", 42, 42,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.FastTransformation,
-            ),
-        ]
-        assert [event[0] for event in events[5:11]] == [
-            "draw_image", "set_pen", "draw_line", "draw_line",
-            "set_pen", "set_brush_style",
-        ]
-        assert events[1] == (
-            "render_hint", eyedropper.QPainter.RenderHint.Antialiasing
-        )
-        assert events[5] == ("draw_image", (8, 12), image.scaled_token)
-        assert events[6] == ("set_pen", "#ff0000", 1.0)
-        assert events[7] == ("draw_line", 8, 33, 49, 33)
-        assert events[8] == ("draw_line", 29, 12, 29, 53)
-        assert events[9] == ("set_pen", "#e0e0e0", 1.0)
-        assert events[10] == ("set_brush_style", Qt.BrushStyle.NoBrush)
-        assert events[11][1:] == ((8, 12, 42, 42), 3, 3)
-        assert events[-1] == ("draw_text", 57, 37, "#FFFFFF")
+        _assert_captured_events(events, image)
     finally:
         _dispose_window(qapp, window)
 
@@ -289,6 +324,57 @@ def test_image_scaling_failure_propagates_before_preview_draw(qapp, monkeypatch)
         assert _RecordingPainter.instance.events[-1][0] == "draw_rounded_rect"
     finally:
         _dispose_window(qapp, window)
+
+
+@pytest.mark.parametrize("error", [RuntimeError("font"), KeyboardInterrupt()])
+def test_font_failure_propagates_after_preview_border(qapp, monkeypatch, error):
+    window = _FontFailureWindow(error)
+    try:
+        with pytest.raises(type(error)) as caught:
+            _paint_with_recorder(monkeypatch, window)
+        events = _RecordingPainter.instance.events
+        assert caught.value is error
+        assert events[-3:] == [
+            ("set_pen", "#e0e0e0", 1.0),
+            ("set_brush_style", Qt.BrushStyle.NoBrush),
+            ("draw_rounded_rect", (8, 12, 42, 42), 3, 3),
+        ]
+        assert "set_font" not in [event[0] for event in events]
+        assert "draw_text" not in [event[0] for event in events]
+    finally:
+        _dispose_window(qapp, window)
+
+
+@pytest.mark.parametrize("widget_override", [False, True])
+def test_paint_honors_application_and_widget_font(qapp, monkeypatch, widget_override):
+    original_app_font = QFont(qapp.font())
+    app_font = QFont(original_app_font)
+    app_font.setFamily("PrismQMLAppFontProbe")
+    app_font.setPointSize(17)
+    app_font.setWeight(QFont.Weight.DemiBold)
+    app_font.setItalic(True)
+    window = None
+    try:
+        qapp.setFont(app_font)
+        window = eyedropper.ScreenEyedropperWindow()
+        expected_font = QFont(app_font)
+        if widget_override:
+            expected_font.setFamily("PrismQMLWidgetFontProbe")
+            expected_font.setPointSize(19)
+            expected_font.setWeight(QFont.Weight.Bold)
+            window.setFont(expected_font)
+        _assert_font_values(window.font(), expected_font)
+        events = _paint_with_recorder(monkeypatch, window)
+        font_event = next(event for event in events if event[0] == "set_font")
+        assert font_event == (
+            "set_font", expected_font.family(), _CONSTANTS.FONT_SIZE,
+            expected_font.weight(), expected_font.italic(),
+        )
+        assert window.font().pointSize() == expected_font.pointSize()
+        assert window.font().pixelSize() == expected_font.pixelSize()
+    finally:
+        _cleanup_font_probe(qapp, window, original_app_font)
+    assert qapp.font() == original_app_font
 
 
 @pytest.mark.parametrize("is_dark", [False, True])
