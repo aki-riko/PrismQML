@@ -50,12 +50,15 @@ def register_types(engine: QQmlApplicationEngine):
     """
     # 延迟导入以避免循环依赖 Lazy imports to avoid circular dependencies
     from .theme import getThemeManager
+    from ..config import getConfigManager
+    from ..providers.clipboard import get_clipboard_helper
     from ..providers.lazy_context import LazyQRCodeGenerator, LazyScreenEyedropperManager
     from ..window import get_mica_manager, get_acrylic_helper, get_native_window_hook
 
     # Register theme manager 注册主题管理器
     context = engine.rootContext()
     context.setContextProperty("ThemeManager", getThemeManager())
+    context.setContextProperty("ConfigManager", getConfigManager())
 
     # Register optional providers as lazy QML-compatible proxies. This avoids
     # importing qrcode / screen eyedropper backends during App cold start.
@@ -80,6 +83,7 @@ def register_types(engine: QQmlApplicationEngine):
     # WindowCore 在 DWM 初始化定时点调用 NativeWindow.attach/finalizeAttach(window)
     # 让 frameless 窗口享受 DWM 原生 minimize/maximize/restore 动画
     context.setContextProperty("NativeWindow", get_native_window_hook())
+    context.setContextProperty("ClipboardHelper", get_clipboard_helper())
     engine.addImageProvider("acrylic", acrylic_helper.imageProvider)
     
     # Register Screen Eyedropper manager 注册屏幕取色管理器
