@@ -66,12 +66,14 @@
 ### 1.2 耦合面（决定 C++ 适配成本的核心）
 PrismQML 的 QML 层对后端的耦合**极窄且干净**：
 
-- **注入项共 11 个**（来自 `prismqml/python/core/utils.py` 的 `register_types`）：
-  - 9 个 `setContextProperty`：ThemeManager / QRCodeGenerator / MicaManager /
-    AcrylicHelper / NativeWindow / ScreenEyedropperManager / ShadowManager /
-    WindowHelper（+ register_types 外的 ConfigManager / ShadowManager 等窗口层注入）
-  - 2 个 `addImageProvider`：qrcode、acrylic
-  - 1 个 `addImportPath`
+- **Python 公开装配**（`prismqml/python/core/utils.py::register_types`）：
+  - 10 个 `setContextProperty`：ThemeManager / ConfigManager / QRCodeGenerator /
+    MicaManager / AcrylicHelper / NativeWindow / ClipboardHelper /
+    ScreenEyedropperManager / ShadowManager / WindowHelper；
+  - 1 个 `addImageProvider`：acrylic；qrcode provider 在首次生成时延迟注册；
+  - 1 个 `addImportPath`。窗口构建层另注册 Icon 与 svg provider。
+- C++ `registerTypes()` 保持上述共享 context 名称，并额外提供移动端
+  `PlatformInfo`；svg/qrcode/acrylic provider 由 C++ 宿主直接注册。
 - **没有任何 `qmlRegisterType`**：所有 QML 类型都是纯 .qml 文件（靠 qmldir），
   C++ 宿主**无需注册任何类型**，只需提供同名 context 对象。
 - **322 个 QML 控件没有一个直接引用 `ThemeManager.`**：全部经 `Enums` 单例
@@ -267,5 +269,4 @@ int main(int argc, char** argv) {
     return app.exec();
 }
 ```
-
 
