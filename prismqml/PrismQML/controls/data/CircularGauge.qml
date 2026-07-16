@@ -23,8 +23,12 @@ Item {
     readonly property color _gaugeLabelColor: Enums.textColor.tertiary
     readonly property int _gaugeStrokeWidth: Enums.spacing.l
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function getValue() { return value }
+
+    onValueChanged: gauge.requestPaint()
+    onProgressChanged: gauge.requestPaint()
+    Component.onCompleted: gauge.requestPaint()
 
     implicitWidth: 150
     implicitHeight: 150
@@ -83,8 +87,4 @@ Item {
             visible: text !== ""
         }
     }
-    
-    onValueChanged: gauge.requestPaint()
-    onProgressChanged: gauge.requestPaint()
-    Component.onCompleted: gauge.requestPaint()
 }
