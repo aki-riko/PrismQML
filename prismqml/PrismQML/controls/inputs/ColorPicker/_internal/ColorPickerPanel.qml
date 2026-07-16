@@ -60,7 +60,9 @@ Item {
         border.color: {
             // Use contrasting border color 使用对比边框色
             var lum = control.brightness * (1 - control.saturation * 0.5)
-            return lum > 0.5 ? "black" : "white"
+            return lum > 0.5
+                ? Enums.colorPickerGradient.lightnessDark
+                : Enums.colorPickerGradient.lightnessLight
         }
         
         x: Math.max(0, Math.min(parent.width - width, control.hue * parent.width - width / 2))

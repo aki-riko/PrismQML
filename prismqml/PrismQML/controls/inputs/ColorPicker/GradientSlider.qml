@@ -35,50 +35,50 @@ Item {
             orientation: Gradient.Horizontal
             
             GradientStop { 
-                position: 0.0
+                position: Enums.colorPickerGradient.huePos0
                 color: {
                     switch (control.mode) {
-                        case Enums.gradientSlider.mode_hue: return "red"
+                        case Enums.gradientSlider.mode_hue: return Enums.colorPickerGradient.hueColor0
                         case Enums.gradientSlider.mode_saturation: return Qt.hsla(Qt.hsla(control.baseColor).h, 0, 0.5, 1)
-                        case Enums.gradientSlider.mode_lightness: return "black"
+                        case Enums.gradientSlider.mode_lightness: return Enums.colorPickerGradient.lightnessDark
                         case Enums.gradientSlider.mode_alpha: return Enums.transparent
                         default: return control.baseColor
                     }
                 }
             }
             GradientStop { 
-                position: 0.166
-                color: control.mode === Enums.gradientSlider.mode_hue ? "yellow" : undefined
+                position: Enums.colorPickerGradient.huePos1
+                color: control.mode === Enums.gradientSlider.mode_hue ? Enums.colorPickerGradient.hueColor1 : undefined
             }
             GradientStop { 
-                position: 0.333
-                color: control.mode === Enums.gradientSlider.mode_hue ? "lime" : undefined
+                position: Enums.colorPickerGradient.huePos2
+                color: control.mode === Enums.gradientSlider.mode_hue ? Enums.colorPickerGradient.hueColor2 : undefined
             }
             GradientStop { 
-                position: 0.5
+                position: Enums.colorPickerGradient.huePos3
                 color: {
                     switch (control.mode) {
-                        case Enums.gradientSlider.mode_hue: return "cyan"
-                        case Enums.gradientSlider.mode_lightness: return "gray"
+                        case Enums.gradientSlider.mode_hue: return Enums.colorPickerGradient.hueColor3
+                        case Enums.gradientSlider.mode_lightness: return Enums.colorPickerGradient.lightnessMid
                         default: return undefined
                     }
                 }
             }
             GradientStop { 
-                position: 0.666
-                color: control.mode === Enums.gradientSlider.mode_hue ? "blue" : undefined
+                position: Enums.colorPickerGradient.huePos4
+                color: control.mode === Enums.gradientSlider.mode_hue ? Enums.colorPickerGradient.hueColor4 : undefined
             }
             GradientStop { 
-                position: 0.833
-                color: control.mode === Enums.gradientSlider.mode_hue ? "magenta" : undefined
+                position: Enums.colorPickerGradient.huePos5
+                color: control.mode === Enums.gradientSlider.mode_hue ? Enums.colorPickerGradient.hueColor5 : undefined
             }
             GradientStop { 
-                position: 1.0
+                position: Enums.colorPickerGradient.huePos6
                 color: {
                     switch (control.mode) {
-                        case Enums.gradientSlider.mode_hue: return "red"
+                        case Enums.gradientSlider.mode_hue: return Enums.colorPickerGradient.hueColor6
                         case Enums.gradientSlider.mode_saturation: return Qt.hsla(Qt.hsla(control.baseColor).h, 1, 0.5, 1)
-                        case Enums.gradientSlider.mode_lightness: return "white"
+                        case Enums.gradientSlider.mode_lightness: return Enums.colorPickerGradient.lightnessLight
                         case Enums.gradientSlider.mode_alpha: return control.baseColor
                         default: return control.baseColor
                     }

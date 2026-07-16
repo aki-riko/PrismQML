@@ -311,7 +311,12 @@ def test_avatar_and_gradient_sources_use_fixed_white_contracts():
     assert not any(
         line.strip().startswith("color:") for line in handle_props.splitlines()
     )
-    assert 'case Enums.gradientSlider.mode_lightness: return "white"' in gradient_source
-    for name in ("red", "yellow", "lime", "cyan", "blue", "magenta"):
-        assert f'"{name}"' in gradient_source
-    assert 'return lum > 0.5 ? "black" : "white"' in panel_source
+    for index in range(7):
+        assert f"Enums.colorPickerGradient.huePos{index}" in gradient_source
+        assert f"Enums.colorPickerGradient.hueColor{index}" in gradient_source
+    for token in ("lightnessDark", "lightnessMid", "lightnessLight"):
+        assert f"Enums.colorPickerGradient.{token}" in gradient_source
+    assert "Enums.colorPickerGradient.lightnessDark" in panel_source
+    assert "Enums.colorPickerGradient.lightnessLight" in panel_source
+    for name in ("red", "yellow", "lime", "cyan", "blue", "magenta", "black", "gray", "white"):
+        assert f'"{name}"' not in gradient_source

@@ -343,6 +343,11 @@ QtObject {
         readonly property color hueColor4: "#0000ff"
         readonly property color hueColor5: "#ff00ff"
         readonly property color hueColor6: "#ff0000"
+
+        // Fixed lightness palette 固定明度色板
+        readonly property color lightnessDark: "#000000"
+        readonly property color lightnessMid: "#808080"
+        readonly property color lightnessLight: "#ffffff"
     }
     
     // ==================== Gray 灰色系 ====================
