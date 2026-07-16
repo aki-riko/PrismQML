@@ -77,6 +77,62 @@ def _move_eyedropper_near_cursor(window, cursor_pos: QPoint, screen_geo: QRect) 
     window.move(win_x, win_y)
 
 
+def _paint_eyedropper_background(
+    painter, window, background_color, border_color, constants
+) -> None:
+    """Paint the picker background. 绘制取色器背景。"""
+    painter.setPen(QPen(border_color, constants.PREVIEW_BORDER))
+    painter.setBrush(QBrush(background_color))
+    painter.drawRoundedRect(
+        window.rect().adjusted(0, 0, -1, -1),
+        constants.PREVIEW_RADIUS,
+        constants.PREVIEW_RADIUS,
+    )
+
+
+def _paint_eyedropper_crosshair(painter, preview_rect: QRect, constants) -> None:
+    """Paint the center crosshair. 绘制中心十字准星。"""
+    center_x = preview_rect.x() + constants.PREVIEW_SIZE // 2
+    center_y = preview_rect.y() + constants.PREVIEW_SIZE // 2
+    painter.setPen(QPen(QColor(constants.CROSSHAIR_COLOR), constants.CROSSHAIR_SIZE))
+    painter.drawLine(preview_rect.left(), center_y, preview_rect.right(), center_y)
+    painter.drawLine(center_x, preview_rect.top(), center_x, preview_rect.bottom())
+
+
+def _paint_eyedropper_preview(painter, window, preview_rect: QRect, constants) -> None:
+    """Paint the captured image or color fallback. 绘制截图或纯色回退。"""
+    if window._captured_image and not window._captured_image.isNull():
+        scaled = window._captured_image.scaled(
+            constants.PREVIEW_SIZE,
+            constants.PREVIEW_SIZE,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.FastTransformation,
+        )
+        painter.drawImage(preview_rect.topLeft(), scaled)
+        _paint_eyedropper_crosshair(painter, preview_rect, constants)
+    else:
+        painter.setBrush(QBrush(window._current_color))
+        painter.drawRoundedRect(
+            preview_rect,
+            constants.PREVIEW_RADIUS // 2,
+            constants.PREVIEW_RADIUS // 2,
+        )
+
+
+def _paint_eyedropper_label(
+    painter, window, preview_rect: QRect, text_color, constants
+) -> None:
+    """Paint the selected color label. 绘制所选颜色文本。"""
+    hex_text = window._current_color.name().upper()
+    font = window.font()
+    font.setPixelSize(constants.FONT_SIZE)
+    painter.setFont(font)
+    painter.setPen(text_color)
+    text_x = preview_rect.right() + constants.TEXT_MARGIN
+    text_y = window.height() // 2 + constants.FONT_SIZE // 3
+    painter.drawText(text_x, text_y, hex_text)
+
+
 class ScreenEyedropperWindow(QWidget):
     """Magnifier window that follows cursor 跟随鼠标的放大镜窗口"""
     
@@ -201,75 +257,22 @@ class ScreenEyedropperWindow(QWidget):
         """Paint the magnifier window 绘制放大镜窗口"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
         c = self._constants
-        
-        # Background colors 背景颜色
         bg_color = QColor(c.BG_COLOR_DARK if self._is_dark else c.BG_COLOR_LIGHT)
         border_color = QColor(c.BORDER_COLOR_DARK if self._is_dark else c.BORDER_COLOR_LIGHT)
         text_color = QColor(c.TEXT_COLOR_DARK if self._is_dark else c.TEXT_COLOR_LIGHT)
-        
-        # Draw background 绘制背景
-        painter.setPen(QPen(border_color, c.PREVIEW_BORDER))
-        painter.setBrush(QBrush(bg_color))
-        painter.drawRoundedRect(
-            self.rect().adjusted(0, 0, -1, -1),
-            c.PREVIEW_RADIUS, c.PREVIEW_RADIUS
-        )
-        
-        # Draw color preview square 绘制颜色预览方块
+        _paint_eyedropper_background(painter, self, bg_color, border_color, c)
         preview_rect = QRect(
             c.PREVIEW_MARGIN,
             (self.height() - c.PREVIEW_SIZE) // 2,
             c.PREVIEW_SIZE,
-            c.PREVIEW_SIZE
+            c.PREVIEW_SIZE,
         )
-        
-        # Draw magnified pixels if available 绘制放大的像素
-        if self._captured_image and not self._captured_image.isNull():
-            # Scale up the captured image 放大捕获的图像
-            scaled = self._captured_image.scaled(
-                c.PREVIEW_SIZE, c.PREVIEW_SIZE,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.FastTransformation
-            )
-            painter.drawImage(preview_rect.topLeft(), scaled)
-            
-            # Draw crosshair at center 在中心绘制十字准星
-            center_x = preview_rect.x() + c.PREVIEW_SIZE // 2
-            center_y = preview_rect.y() + c.PREVIEW_SIZE // 2
-            
-            painter.setPen(QPen(QColor(c.CROSSHAIR_COLOR), c.CROSSHAIR_SIZE))
-            # Horizontal line 水平线
-            painter.drawLine(
-                preview_rect.left(), center_y,
-                preview_rect.right(), center_y
-            )
-            # Vertical line 垂直线
-            painter.drawLine(
-                center_x, preview_rect.top(),
-                center_x, preview_rect.bottom()
-            )
-        else:
-            # Fallback: draw solid color 回退：绘制纯色
-            painter.setBrush(QBrush(self._current_color))
-            painter.drawRoundedRect(preview_rect, c.PREVIEW_RADIUS // 2, c.PREVIEW_RADIUS // 2)
-        
-        # Draw preview border 绘制预览边框
+        _paint_eyedropper_preview(painter, self, preview_rect, c)
         painter.setPen(QPen(border_color, c.PREVIEW_BORDER))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRoundedRect(preview_rect, c.PREVIEW_RADIUS // 2, c.PREVIEW_RADIUS // 2)
-        
-        # Draw hex color text 绘制HEX颜色文字
-        hex_text = self._current_color.name().upper()
-        font = self.font()
-        font.setPixelSize(c.FONT_SIZE)
-        painter.setFont(font)
-        painter.setPen(text_color)
-        
-        text_x = preview_rect.right() + c.TEXT_MARGIN
-        text_y = self.height() // 2 + c.FONT_SIZE // 3
-        painter.drawText(text_x, text_y, hex_text)
+        _paint_eyedropper_label(painter, self, preview_rect, text_color, c)
         
     def mousePressEvent(self, event):
         """Handle mouse press - pick color 处理鼠标按下 - 取色"""
