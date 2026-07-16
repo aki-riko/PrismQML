@@ -35,14 +35,8 @@ DataWidgetCore {
         if (control.listView && control.listView.currentIndex !== currentIndex)
             control.listView.currentIndex = currentIndex
     }
-    Binding {
-        target: control
-        property: "currentIndex"
-        value: control.listView.currentIndex
-        when: control.listView
-    }
 
-    // ==================== Lightweight mode 轻量模式 ====================
+    // Lightweight mode 轻量模式
     showShadow: false
     cardMargin: 0
     borderVisible: framed
@@ -53,4 +47,12 @@ DataWidgetCore {
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.listDefaultWidth
     implicitHeight: Enums.controlSize.listDefaultHeight
+
+    // ==================== Content 内容 ====================
+    Binding {
+        target: control
+        property: "currentIndex"
+        value: control.listView.currentIndex
+        when: control.listView
+    }
 }
