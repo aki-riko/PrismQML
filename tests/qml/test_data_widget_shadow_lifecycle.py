@@ -11,6 +11,8 @@ from PySide6.QtCore import (
     QObject,
     QCoreApplication,
     QEvent,
+    QEventLoop,
+    QTimer,
     QtMsgType,
     QUrl,
     qInstallMessageHandler,
@@ -18,7 +20,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
-from prismqml import configure_qml_environment, register_types
+from prismqml import register_types
 
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -41,7 +43,6 @@ _QT_FAILURE_TYPES = {
     QtMsgType.QtCriticalMsg,
     QtMsgType.QtFatalMsg,
 }
-_OFFSCREEN_FONT_WARNING = "QFontDatabase: Cannot find font directory"
 
 
 def _find_metrics(enums):
@@ -76,9 +77,15 @@ def _release(qapp, *objects):
     qapp.processEvents()
 
 
+def _settle_startup_events():
+    """Let asynchronous singleton startup diagnostics finish. 等待 singleton 异步启动诊断落定。"""
+    loop = QEventLoop()
+    QTimer.singleShot(20, loop.quit)
+    loop.exec()
+
+
 def test_data_widget_shadow_survives_metrics_teardown_without_qml_warnings(qapp):
     """Metrics may die first while the live shadow still needs a safe fallback. Metrics 可先销毁，存活阴影仍须安全兜底。"""
-    configure_qml_environment()
     messages = []
     previous_handler = qInstallMessageHandler(
         lambda mode, _context, message: messages.append((mode, str(message)))
@@ -105,6 +112,8 @@ def test_data_widget_shadow_survives_metrics_teardown_without_qml_warnings(qapp)
         metrics = _find_metrics(enums)
 
         assert QColor(shadow.property("color")).alpha() > 0
+        _settle_startup_events()
+        messages.clear()
         metrics.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
         qapp.processEvents()
@@ -119,6 +128,6 @@ def test_data_widget_shadow_survives_metrics_teardown_without_qml_warnings(qapp)
     failures = [
         message
         for mode, message in messages
-        if mode in _QT_FAILURE_TYPES and _OFFSCREEN_FONT_WARNING not in message
+        if mode in _QT_FAILURE_TYPES
     ]
     assert failures == []

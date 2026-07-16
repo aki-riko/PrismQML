@@ -143,19 +143,29 @@ Rectangle {
     // ==================== Shadow 阴影 ====================
     RectangularShadow {
         id: shadowEffect
-        anchors.fill: card
-        radius: card.radius
-        visible: showShadow && !Enums.isNeobrutalism
 
-        // Active shadow level — 销毁时序里 Enums singleton 的 _metrics 可能先被拆,
-        // 导致 Enums.shadow 整个 undefined,旧的 `|| Enums.shadow.level2` 兜底本身也会炸。
-        // 故 fallback 用不依赖任何 singleton 的纯字面量静态对象,且取值全程三元守卫。
-        readonly property var _staticFallbackShadow: ({ color: "transparent", blur: 0, offset: 0 })
+        // Active shadow fallback lifecycle 主动阴影兜底生命周期
+        // Enums._metrics may be destroyed before this shadow during engine teardown.
+        // 引擎销毁期间，Enums._metrics 可能先于当前阴影对象销毁。
+        // Cache the public token after construction so teardown no longer reads the singleton.
+        // 构造完成后缓存公开 token，销毁期不再读取 singleton。
+        property var _staticFallbackShadow: null
         property var _resolvedLevel: hoverElevation && wheelArea.containsMouse
                                    ? (Enums.shadow ? Enums.shadow.level4 : null) : shadowLevel
         property var _activeLevel: _resolvedLevel
                                  || (Enums.shadow ? Enums.shadow.level2 : null)
                                  || _staticFallbackShadow
+
+        anchors.fill: card
+        radius: card.radius
+        visible: showShadow && !Enums.isNeobrutalism
+
+        Component.onCompleted: _staticFallbackShadow = ({
+            color: Enums.transparent,
+            blur: 0,
+            offset: 0
+        })
+
         color: _activeLevel ? _activeLevel.color : Enums.transparent
         blur: _activeLevel ? _activeLevel.blur : 0
         offset.x: 0

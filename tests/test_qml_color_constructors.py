@@ -18,9 +18,9 @@ DATA_PATHS = (
     PurePosixPath("prismqml/PrismQML/PrismEnums/Test.qml"),
     PurePosixPath("prismqml/PrismQML/PrismEnums/Test.js"),
 )
-REAL_TARGETS = {
-    PurePosixPath("prismqml/PrismQML/controls/data/DataWidgetCore.qml"): {153},
-}
+REMEDIATED_TARGETS = (
+    PurePosixPath("prismqml/PrismQML/controls/data/DataWidgetCore.qml"),
+)
 
 
 def _qml010_lines(source: str, path: PurePosixPath = LIBRARY_PATH) -> list[int]:
@@ -249,8 +249,7 @@ def test_javascript_numeric_constructors_share_the_same_rules():
     assert _qml010_lines(source, JAVASCRIPT_PATH) == [2, 3]
 
 
-def test_repository_numeric_constructor_blind_spots_are_reported():
-    for path, expected in REAL_TARGETS.items():
+def test_repository_remediated_color_targets_stay_clean():
+    for path in REMEDIATED_TARGETS:
         source = (ROOT / path).read_text(encoding="utf-8")
-        actual = set(_qml010_lines(source, path))
-        assert expected <= actual, (path, expected - actual)
+        assert _qml010_lines(source, path) == [], path
