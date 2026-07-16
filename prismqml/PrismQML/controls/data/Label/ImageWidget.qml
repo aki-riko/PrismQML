@@ -34,7 +34,7 @@ Item {
     
     signal clicked()
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     // Set scaled contents (for compatibility) 设置缩放内容
     function setScaledContents(scaled) {
         fillMode = scaled ? Image.Stretch : Image.PreserveAspectFit
@@ -43,7 +43,8 @@ Item {
     implicitWidth: 100
     implicitHeight: 100
     
-    // ==================== Placeholder 占位符 ====================
+    // ==================== Content 内容 ====================
+    // Placeholder 占位符
     Rectangle {
         anchors.fill: parent
         radius: control.radius
@@ -58,23 +59,11 @@ Item {
         }
     }
     
-    // ==================== Rounded Image Container 圆角图片容器 ====================
+    // Rounded image container 圆角图片容器
     Item {
         id: imageContainer
         anchors.fill: parent
         visible: sourceImage.status === Image.Ready
-        
-        Image {
-            id: sourceImage
-            anchors.fill: parent
-            source: control.source
-            asynchronous: true
-            cache: true
-            mipmap: true
-            smooth: true
-            fillMode: control.fillMode
-        }
-        
         layer.enabled: control.radius > 0
         layer.smooth: true
         layer.samples: 8
@@ -92,9 +81,20 @@ Item {
                 smooth: true
             }
         }
+
+        Image {
+            id: sourceImage
+            anchors.fill: parent
+            source: control.source
+            asynchronous: true
+            cache: true
+            mipmap: true
+            smooth: true
+            fillMode: control.fillMode
+        }
     }
     
-    // ==================== Interaction 交互 ====================
+    // Interaction 交互
     MouseArea {
         anchors.fill: parent
         onClicked: control.clicked()
