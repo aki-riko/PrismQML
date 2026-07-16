@@ -39,6 +39,10 @@ Rectangle {
     // Animation duration 动画时长
     property int animationDuration: Enums.duration.medium
 
+    // ==================== Internal Props 内部属性 ====================
+    property color _animatedTop: _topColor
+    property color _animatedBottom: _bottomColor
+
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isVertical: orientation === Enums.indicatorBar.orientation_vertical
     readonly property real _length: active ? activeLength : inactiveLength
@@ -58,7 +62,7 @@ Rectangle {
         return Qt.rgba(_indicatorInactiveColor.r, _indicatorInactiveColor.g, _indicatorInactiveColor.b, _indicatorInactiveColor.a * _inactiveGradientAlpha)
     }
 
-    // ==================== Geometry 几何 ====================
+    // ==================== Size 尺寸 ====================
     width: _isVertical ? thickness : _length
     height: _isVertical ? _length : thickness
     radius: thickness / 2
@@ -74,16 +78,13 @@ Rectangle {
         NumberAnimation { duration: control.animationDuration; easing.type: control._easingType }
     }
 
-    // ==================== Color Animations 颜色动画 ====================
-    // Two helper props with Behavior on color, fed into GradientStops below
-    // 两个带 Behavior 的辅助属性，用作 GradientStop 的 color 输入
-    property color _animatedTop: _topColor
-    property color _animatedBottom: _bottomColor
+    // Color animations 颜色动画
+    // Two helper props with color behaviors feed the gradient stops 两个带颜色 Behavior 的辅助属性用于 GradientStop 输入
     Behavior on _animatedTop { ColorAnimation { duration: control.animationDuration } }
     Behavior on _animatedBottom { ColorAnimation { duration: control.animationDuration } }
 
-    // ==================== Gradient (always used; solid = same color top/bottom) ====================
-    // 始终用 gradient（纯色模式两端同色），避免动态切换 gradient/color 出现视觉跳变
+    // Gradient (always used; solid uses matching endpoint colors) 渐变（始终使用；纯色模式两端同色）
+    // Avoid visual jumps from dynamically switching gradient/color 避免动态切换 gradient/color 出现视觉跳变
     gradient: Gradient {
         orientation: control._isVertical ? Gradient.Vertical : Gradient.Horizontal
         GradientStop { position: 0.0; color: control._animatedTop }
