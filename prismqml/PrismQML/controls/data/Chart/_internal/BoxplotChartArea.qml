@@ -20,7 +20,7 @@ Item {
     required property bool showGrid
     required property bool isHorizontal
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string title: ""
     property string subtitle: ""
     property int hoveredIndex: -1
@@ -29,7 +29,8 @@ Item {
     signal boxClicked(int index, var data)
     signal boxHovered(int index)
     
-    // ==================== Title 标题 ====================
+    // ==================== Content 内容 ====================
+    // Title 标题
     ChartTitle {
         anchors.horizontalCenter: chartArea.horizontalCenter
         y: Enums.spacing.m
@@ -37,7 +38,7 @@ Item {
         subtitle: root.subtitle
     }
     
-    // ==================== Chart Area 图表区域 ====================
+    // Chart area 图表区域
     Item {
         id: chartArea
         anchors.fill: parent
@@ -127,7 +128,7 @@ Item {
         }
     }
     
-    // ==================== Tooltip 提示框 ====================
+    // Tooltip 提示框
     Rectangle {
         id: tooltip
         visible: root.hoveredIndex >= 0 && root.boxplotData.length > 0
