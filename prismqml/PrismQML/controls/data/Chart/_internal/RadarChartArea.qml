@@ -20,7 +20,7 @@ Item {
     required property bool showLegend
     required property int rings
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string title: ""
     property string subtitle: ""
     property int hoveredSeriesIndex: -1
@@ -32,7 +32,7 @@ Item {
     signal pointHovered(int seriesIndex, int pointIndex)
     signal legendClicked(int seriesIndex)
     
-    // ==================== Helper Functions 辅助函数 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function getSeriesColor(index) {
         if (series[index] && series[index].color) return series[index].color
         return Enums.chartColors.extendedPalette[index % Enums.chartColors.extendedPalette.length]
@@ -42,7 +42,8 @@ Item {
         return hiddenSeriesIndices.indexOf(index) < 0
     }
     
-    // ==================== Title 标题 ====================
+    // ==================== Content 内容 ====================
+    // Title 标题
     ChartTitle {
         anchors.horizontalCenter: parent.horizontalCenter
         y: Enums.spacing.m
@@ -50,7 +51,7 @@ Item {
         subtitle: root.subtitle
     }
     
-    // ==================== Chart Area 图表区域 ====================
+    // Chart area 图表区域
     Item {
         id: chartArea
         anchors.fill: parent
@@ -76,7 +77,7 @@ Item {
         }
     }
     
-    // ==================== Tooltip 提示框 ====================
+    // Tooltip 提示框
     // Tooltip follows mouse position 提示框跟随鼠标位置
     ChartTooltip {
         visible: root.hoveredSeriesIndex >= 0 && root.hoveredPointIndex >= 0 && root.indicators.length > 2
@@ -98,7 +99,7 @@ Item {
         Behavior on y { NumberAnimation { duration: Enums.duration.ultraFast; easing.type: Easing.OutQuad } }
     }
     
-    // ==================== Legend 图例 ====================
+    // Legend 图例
     ChartBottomLegend {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
