@@ -22,7 +22,7 @@ Window {
     property bool showCancelButton: true
     property bool deleteOnClose: true
     
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Internal Props 内部属性 ====================
     property Item targetItem: null
     property bool isOpen: false
     readonly property int _sheetRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
@@ -34,18 +34,8 @@ Window {
     // ==================== Signals 信号 ====================
     signal accepted()
     signal rejected()
-    
-    width: contentContainer.width + 32
-    height: contentContainer.height + buttonRow.height + 48
-    visible: false
-    flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
-    color: Enums.transparent
-    
-    onActiveFocusItemChanged: {
-        if (!activeFocusItem && isOpen) close()
-    }
 
-    // ==================== 方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function open(target) {
         if (target) {
             targetItem = target
@@ -67,7 +57,17 @@ Window {
         }
     }
 
-    // ==================== Shadow Layer 阴影层 ====================
+    width: contentContainer.width + 32
+    height: contentContainer.height + buttonRow.height + 48
+    visible: false
+    flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
+    color: Enums.transparent
+
+    onActiveFocusItemChanged: {
+        if (!activeFocusItem && isOpen) close()
+    }
+
+    // ==================== Content 内容 ====================
     // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: container
@@ -85,7 +85,7 @@ Window {
         z: container.z - 1
     }
 
-    // ==================== Main Container 主容器 ====================
+    // Main container 主容器
     Rectangle {
         id: container
         anchors.fill: parent
@@ -155,6 +155,4 @@ Window {
         }
     }
 
-    // ==================== 静态工厂方法 (Fluent Design兼容) ====================
-    // Usage: FlyoutSheet.make(view, targetItem, parent) 使用方式
 }
