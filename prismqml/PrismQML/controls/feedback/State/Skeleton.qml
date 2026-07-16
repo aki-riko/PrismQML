@@ -10,13 +10,25 @@ import "../../.."
 Item {
     id: control
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool loading: true
     property int shape: Enums.skeleton.shape_rounded  // shape_rect / shape_circle / shape_rounded
     
-    // ==================== Viewport Detection 可视区域检测 ====================
+    // ==================== Internal Props 内部属性 ====================
     property Item _flickableAncestor: null
     property bool _isInViewport: true  // 默认可见，找不到 Flickable 时保持动画
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property color baseColor: Enums.stateColor.skeletonBase
+    readonly property color shimmerColor: Enums.stateColor.skeletonShimmer
+
+    readonly property real _radius: {
+        switch (control.shape) {
+            case Enums.skeleton.shape_rect: return Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small  // 方形也需要圆角
+            case Enums.skeleton.shape_circle: return Math.min(width, height) / 2
+            default: return Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+        }
+    }
     
     // Find Flickable ancestor upwards 向上查找 Flickable 祖先
     function _findFlickable() {
@@ -48,35 +60,8 @@ Item {
         control._isInViewport = (pos.y + control.height + buffer > viewTop)
                                 && (pos.y - buffer < viewBottom)
     }
-    
-    Component.onCompleted: {
-        control._flickableAncestor = control._findFlickable()
-        control._updateViewport()
-    }
-    
-    onVisibleChanged: control._updateViewport()
-    onYChanged: if (_flickableAncestor) control._updateViewport()
-    onHeightChanged: if (_flickableAncestor) control._updateViewport()
 
-    // ==================== Colors 颜色 ====================
-    readonly property color baseColor: Enums.stateColor.skeletonBase
-    readonly property color shimmerColor: Enums.stateColor.skeletonShimmer
-    
-    // ==================== Computed radius 计算圆角 ====================
-    readonly property real _radius: {
-        switch (control.shape) {
-            case Enums.skeleton.shape_rect: return Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small  // 方形也需要圆角
-            case Enums.skeleton.shape_circle: return Math.min(width, height) / 2
-            default: return Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-        }
-    }
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: shape === Enums.skeleton.shape_circle ? Enums.skeletonMetrics.circleSize : Enums.skeletonMetrics.rectWidth
-    implicitHeight: shape === Enums.skeleton.shape_circle ? Enums.skeletonMetrics.circleSize : Enums.skeletonMetrics.rectHeight
-    visible: loading
-
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     // Start loading 开始加载
     function start() {
         loading = true
@@ -89,7 +74,22 @@ Item {
 
     // Set animated (always true in this impl) 设置动画启用
     function setAnimated(a) { /* Always animated */ }
+    
+    Component.onCompleted: {
+        control._flickableAncestor = control._findFlickable()
+        control._updateViewport()
+    }
+    
+    onVisibleChanged: control._updateViewport()
+    onYChanged: if (_flickableAncestor) control._updateViewport()
+    onHeightChanged: if (_flickableAncestor) control._updateViewport()
+    
+    // ==================== Size 尺寸 ====================
+    implicitWidth: shape === Enums.skeleton.shape_circle ? Enums.skeletonMetrics.circleSize : Enums.skeletonMetrics.rectWidth
+    implicitHeight: shape === Enums.skeleton.shape_circle ? Enums.skeletonMetrics.circleSize : Enums.skeletonMetrics.rectHeight
+    visible: loading
 
+    // ==================== Content 内容 ====================
     Connections {
         function onContentYChanged() { control._updateViewport() }
         function onHeightChanged() { control._updateViewport() }
@@ -97,10 +97,21 @@ Item {
         target: control._flickableAncestor
     }
 
-    // ==================== Content Container 内容容器 ====================
+    // Content container 内容容器
     Item {
         id: contentContainer
         anchors.fill: parent
+
+        // Apply mask 应用遮罩 (只在可视时启用 layer 减少 GPU 开销)
+        layer.enabled: control._isInViewport
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: maskShape
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 0.0
+        }
+
+        // ==================== Content 内容 ====================
         
         // Background 背景
         Rectangle {
@@ -137,18 +148,9 @@ Item {
                 PauseAnimation { duration: Enums.skeletonMetrics.shimmerPauseMs }
             }
         }
-        
-        // Apply mask 应用遮罩 (只在可视时启用 layer 减少 GPU 开销)
-        layer.enabled: control._isInViewport
-        layer.effect: MultiEffect {
-            maskEnabled: true
-            maskSource: maskShape
-            maskThresholdMin: 0.5
-            maskSpreadAtMin: 0.0
-        }
     }
     
-    // ==================== Mask Shape 遮罩形状 ====================
+    // Mask shape 遮罩形状
     Rectangle {
         id: maskShape
         anchors.fill: parent
