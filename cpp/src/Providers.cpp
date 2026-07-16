@@ -7,6 +7,7 @@
 #include "prism/ClipboardHelper.h"
 #include "prism/WindowHelper.h"
 #include "prism/AcrylicHelper.h"
+#include "IconPath_p.h"
 
 #include <QGuiApplication>
 #include <QClipboard>
@@ -47,15 +48,7 @@ WindowHelper *WindowHelper::instance() {
 
 // 解析路径为本地文件路径 (镜像 _resolveIconPath)
 QString WindowHelper::resolveIconPath(const QString &icon) {
-    if (icon.isEmpty())
-        return QString();
-    if (icon.startsWith(QLatin1String("file:///")))
-        return QString(icon).remove(0, 8);  // file:/// -> 本地路径
-    if (icon.startsWith(QLatin1String("qrc:/")))
-        return QLatin1Char(':') + icon.mid(4);
-    if (icon.startsWith(QLatin1String(":/")))
-        return icon;
-    return icon;  // 本地绝对路径直接用
+    return detail::resolveIconPath(icon);
 }
 
 void WindowHelper::setAppIcon(const QString &icon) {

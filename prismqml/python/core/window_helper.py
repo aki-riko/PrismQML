@@ -9,15 +9,14 @@ WindowHelper - 窗口辅助工具（QML可调用）
 提供 setAppIcon 等需要 Python 原生能力的窗口操作。
 Provides native window operations callable from QML, such as taskbar icon setting.
 """
-import sys
-from pathlib import Path
 import time
 from typing import Optional
 
-from PySide6.QtCore import QObject, Slot, QUrl
+from PySide6.QtCore import QObject, Slot
 from PySide6.QtGui import QGuiApplication, QIcon, QPixmap, QPainter, Qt
 from PySide6.QtCore import QSize
 
+from ._icon_path import resolve_icon_path
 from .logger import info, warning, error, debug
 
 
@@ -115,19 +114,7 @@ class WindowHelper(QObject):
         Returns:
             解析后的文件路径
         """
-        if icon.startswith("qrc:"):
-            # 处理 "qrc:/xxx", "qrc:///xxx" 等变体 → ":/xxx"
-            path = icon[4:]  # 去掉 "qrc:"
-            # 去掉多余的前导斜杠，只保留一个
-            path = path.lstrip("/")
-            return ":/" + path
-        elif icon.startswith("file:///"):
-            return icon[8:]  # "file:///d:/..." -> "d:/..."
-        elif icon.startswith(":/"):
-            return icon  # 资源路径保持不变
-        else:
-            # 本地文件路径
-            return str(Path(icon).resolve())
+        return resolve_icon_path(icon)
 
     @staticmethod
     def _renderSvgIcon(svg_path: str) -> Optional[QIcon]:

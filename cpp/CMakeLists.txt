@@ -69,6 +69,7 @@ add_library(prism STATIC
     include/prism/Registry.h
     include/prism/App.h
     include/prism/Window.h
+    src/IconPath_p.h
     src/ConfigContracts_p.h
     src/QRCodeProtocol_p.h
 )

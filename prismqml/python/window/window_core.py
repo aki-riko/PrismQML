@@ -41,10 +41,10 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication, QIcon
-from pathlib import Path
 import time
 
 from ..core.engine import EngineManager
+from ..core._icon_path import resolve_icon_path
 from ..providers import get_svg_provider
 from ..core.logger import warning, info, exception, debug
 
@@ -277,14 +277,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         profile_start = time.perf_counter()
 
         # Resolve icon path 解析图标路径
-        icon_path = icon
-        if icon.startswith("qrc:/"):
-            icon_path = icon[4:]  # Remove "qrc:" prefix, keep ":/xxx"
-        elif icon.startswith("file:///"):
-            icon_path = icon[8:]  # Remove "file:///" prefix
-        elif not icon.startswith(":/"):
-            # Local file path 本地文件路径
-            icon_path = str(Path(icon).resolve())
+        icon_path = resolve_icon_path(icon)
 
         # Create and set QIcon 创建并设置QIcon
         app = QGuiApplication.instance()

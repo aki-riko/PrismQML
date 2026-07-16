@@ -5,11 +5,21 @@
 // PrismQML C++ 宿主 - SystemTray/SingleInstance 运行时烟测 (需 QApplication)
 #include "prism/SystemTray.h"
 #include "prism/SingleInstance.h"
+#include "prism/WindowHelper.h"
+#include "../src/IconPath_p.h"
 #include "TestProcess.h"
 
 #include <QApplication>
-#include <QTimer>
+#include <QColor>
 #include <QDebug>
+#include <QDir>
+#include <QGuiApplication>
+#include <QImage>
+#include <QIcon>
+#include <QSystemTrayIcon>
+#include <QTemporaryDir>
+#include <QUrl>
+#include <QStringList>
 
 static int g_failed = 0;
 #define CHECK(cond, name) do { \
@@ -17,10 +27,56 @@ static int g_failed = 0;
     else { qCritical() << "  FAIL:" << name; ++g_failed; } \
 } while (0)
 
+static void testIconPathUrlMatrix() {
+    using prism::detail::resolveIconPath;
+    const QStringList fileUrls = {
+        QStringLiteral("file:///C:/Icons/A%20B/%23mark%25.png"),
+        QStringLiteral("file://server/share/A%20B/%23mark.png"),
+        QStringLiteral("file:///home/user/A%20B/%23mark%25%3F.svg"),
+    };
+    bool fileUrlsMatchQt = true;
+    for (const QString &source : fileUrls)
+        fileUrlsMatchQt &= resolveIconPath(source) == QUrl(source).toLocalFile();
+    CHECK(fileUrlsMatchQt, "file URLs follow QUrl::toLocalFile");
+    CHECK(resolveIconPath(QStringLiteral("qrc:///icons/A%20B.svg"))
+              == QStringLiteral(":/icons/A B.svg"),
+          "qrc variants normalize");
+}
+
+static void testRealEncodedIcon() {
+    using prism::detail::resolveIconPath;
+    QTemporaryDir directory(
+        QDir::tempPath() + QStringLiteral("/prismqml-p7k-XXXXXX"));
+    const QString path = directory.filePath(QStringLiteral("图 标#百分%.png"));
+    QImage image(8, 8, QImage::Format_ARGB32);
+    image.fill(QColor(QStringLiteral("#d02040")));
+    CHECK(directory.isValid() && image.save(path), "real encoded icon fixture saved");
+    const QString source = QUrl::fromLocalFile(path).toString(QUrl::FullyEncoded);
+    CHECK(resolveIconPath(source) == QUrl(source).toLocalFile(),
+          "real encoded icon follows QUrl contract");
+    CHECK(!QIcon(resolveIconPath(source)).isNull(),
+          "real encoded icon loads after resolution");
+
+    QGuiApplication::setWindowIcon(QIcon());
+    prism::WindowHelper::instance()->setAppIcon(source);
+    CHECK(!QGuiApplication::windowIcon().isNull(),
+          "WindowHelper loads real encoded icon");
+
+    prism::SystemTrayIcon tray;
+    tray.setIcon(source);
+    QSystemTrayIcon *nativeTray = tray.findChild<QSystemTrayIcon *>();
+    CHECK(nativeTray && !nativeTray->icon().isNull(),
+          "SystemTrayIcon loads real encoded icon");
+}
+
 int main(int argc, char *argv[]) {
     if (!prism::test::configureNonInteractiveProcess()) return 2;
     QApplication app(argc, argv);
     using namespace prism;
+
+    qInfo() << "=== Icon path URL contract ===";
+    testIconPathUrlMatrix();
+    testRealEncodedIcon();
 
     qInfo() << "=== SystemTray 烟测 ===";
     // 构造 + addAction + addSeparator 不崩 (QApplication 下 QMenu 正常)

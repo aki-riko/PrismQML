@@ -25,6 +25,7 @@ from PySide6.QtQml import QQmlComponent
 
 from ..core.logger import info, warning, error
 from ..core.icons import Icon
+from ..core._icon_path import resolve_icon_path
 from ..core.engine import EngineManager
 from ..core.utils import qml_path
 
@@ -115,7 +116,7 @@ class SystemTrayIcon(QObject):
         if isinstance(icon, Icon):
             self._tray.setIcon(icon.to_qicon())
         elif isinstance(icon, str):
-            self._tray.setIcon(QIcon(icon))
+            self._tray.setIcon(QIcon(resolve_icon_path(icon)))
         else:
             self._tray.setIcon(icon)
 

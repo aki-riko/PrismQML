@@ -6,6 +6,7 @@
 // 镜像 Python window/system_tray.py + core/single_instance.py
 #include "prism/SystemTray.h"
 #include "prism/SingleInstance.h"
+#include "IconPath_p.h"
 
 #include <QSystemTrayIcon>
 #include <QMenu>
@@ -40,12 +41,7 @@ SystemTrayIcon::~SystemTrayIcon() {
 }
 
 void SystemTrayIcon::setIcon(const QString &icon) {
-    QString path = icon;
-    if (path.startsWith(QLatin1String("file:///")))
-        path.remove(0, 8);
-    else if (path.startsWith(QLatin1String("qrc:/")))
-        path = QLatin1Char(':') + path.mid(4);
-    m_tray->setIcon(QIcon(path));
+    m_tray->setIcon(QIcon(detail::resolveIconPath(icon)));
 }
 
 void SystemTrayIcon::setToolTip(const QString &tip) { m_tray->setToolTip(tip); }
