@@ -19,7 +19,7 @@ Item {
     required property bool showAverage        // Show average labels 显示平均值标签
     required property real chartWidth         // Chart width 图表宽度
     
-    // ==================== Functions 函数 ====================
+    // ==================== Public Props 公开属性 ====================
     property var getSeriesColor: function(index) { return Enums.accentColor }
     property var valueToY: function(value) { return 0 }
     property var findMinMaxIndices: function(values) {
@@ -40,19 +40,21 @@ Item {
         return sum / values.length
     }
     
-    // ==================== Min/Max Bubble Markers 最大最小值气泡标记 ====================
+    // ==================== Content 内容 ====================
+    // Min/max bubble markers 最大最小值气泡标记
     Repeater {
         model: root.series.length > 0 && root.showMinMax ? root.series : []
         
         Item {
             id: markerItem
-            anchors.fill: parent
-            
+
             property int seriesIdx: index
             property var values: modelData.values || []
             property var minMax: root.findMinMaxIndices(values)
             property color seriesColor: root.getSeriesColor(index)
-            
+
+            anchors.fill: parent
+
             // Max marker (above point) 最大值标记（点上方）
             Rectangle {
                 id: maxMarker
@@ -145,7 +147,7 @@ Item {
         }
     }
     
-    // ==================== Average Value Labels 平均值标签 ====================
+    // Average value labels 平均值标签
     Repeater {
         model: root.series.length > 0 && root.showAverage ? root.series : []
         
