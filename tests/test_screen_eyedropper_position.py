@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -16,6 +18,11 @@ from prismqml.python.providers import screen_eyedropper as eyedropper
 
 _UPDATE_POSITION = eyedropper.ScreenEyedropperWindow._update_position_and_color
 _CONSTANTS = eyedropper.ScreenEyedropperConstants
+_SOURCE_PATH = Path(eyedropper.__file__).resolve()
+_POSITION_FUNCTIONS = {
+    "_move_eyedropper_near_cursor",
+    "_update_position_and_color",
+}
 
 
 class _FakeScreen:
@@ -135,6 +142,20 @@ class _FakeQtApis:
         monkeypatch.setattr(eyedropper, "QColor", self.color)
 
 
+class _HiddenEyedropper(eyedropper.ScreenEyedropperWindow):
+    def __init__(self):
+        super().__init__()
+        self.capture_calls = []
+        self.repaint_count = 0
+
+    def _capture_screen(self, cursor_pos, screen):
+        self.capture_calls.append((cursor_pos, screen))
+        self._captured_image = None
+
+    def update(self):
+        self.repaint_count += 1
+
+
 def _make_case(
     monkeypatch,
     *,
@@ -156,6 +177,22 @@ def _make_case(
 
 def _event_names(events):
     return [event[0] for event in events]
+
+
+def _position_function_nodes():
+    tree = ast.parse(
+        _SOURCE_PATH.read_text(encoding="utf-8"),
+        filename=str(_SOURCE_PATH),
+        feature_version=(3, 9),
+    )
+    return {
+        name: [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == name
+        ]
+        for name in _POSITION_FUNCTIONS
+    }
 
 
 @pytest.mark.parametrize("use_primary", [False, True])
@@ -198,6 +235,7 @@ def test_update_position_keeps_window_near_cursor_in_all_overflow_quadrants(
 
     names = _event_names(case.events)
     assert case.window.last_move == expected
+    assert names.count("window.move") == 1
     assert [name for name in names if name in {"window.width", "window.height"}] == dimension_calls
     assert names.index("window.move") < names.index("window.capture")
 
@@ -240,6 +278,28 @@ def test_update_position_preserves_color_for_missing_or_null_capture(
     assert names[-1] == "window.update"
 
 
+def test_update_position_moves_real_hidden_widget_without_showing(qapp, monkeypatch):
+    events = []
+    cursor = QPoint(50, 50)
+    screen = _FakeScreen(events, QRect(0, 0, 200, 200))
+    api = _FakeQtApis(events, cursor, screen, screen)
+    window = _HiddenEyedropper()
+    api.install(monkeypatch)
+
+    try:
+        assert window.isVisible() is False
+        window._update_position_and_color()
+
+        assert window.pos() == QPoint(66, 66)
+        assert window.capture_calls == [(cursor, screen)]
+        assert window.repaint_count == 1
+        assert window.isVisible() is False
+    finally:
+        window.close()
+        window.deleteLater()
+        qapp.processEvents()
+
+
 @pytest.mark.parametrize(
     ("stage", "error", "expected_prefix", "moved", "captured", "color_changed"),
     [
@@ -256,6 +316,14 @@ def test_update_position_preserves_color_for_missing_or_null_capture(
             OSError("capture"),
             ["window.move", "window.capture"],
             True,
+            False,
+            False,
+        ),
+        (
+            "window.width",
+            RuntimeError("width"),
+            ["screen.geometry", "window.width"],
+            False,
             False,
             False,
         ),
@@ -291,3 +359,20 @@ def test_update_position_propagates_failures_with_ordered_partial_state(
     assert (case.window._captured_image is image) is captured
     assert (case.window._current_color is not old_color) is color_changed
     assert "window.update" not in names[:-1]
+
+
+def test_update_position_stays_small_and_delegates_geometry():
+    functions = _position_function_nodes()
+
+    assert all(len(nodes) == 1 for nodes in functions.values()), functions
+    for name, nodes in functions.items():
+        node = nodes[0]
+        assert node.end_lineno - node.lineno + 1 <= 30, name
+
+    update_node = functions["_update_position_and_color"][0]
+    calls = [
+        node.func.id
+        for node in ast.walk(update_node)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    ]
+    assert calls.count("_move_eyedropper_near_cursor") == 1, calls

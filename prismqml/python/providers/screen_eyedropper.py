@@ -66,6 +66,17 @@ class ScreenEyedropperConstants:
     CURSOR_OFFSET_Y = 16
 
 
+def _move_eyedropper_near_cursor(window, cursor_pos: QPoint, screen_geo: QRect) -> None:
+    """Move the picker beside the cursor. 将取色器移动到鼠标旁。"""
+    win_x = cursor_pos.x() + window._constants.CURSOR_OFFSET_X
+    win_y = cursor_pos.y() + window._constants.CURSOR_OFFSET_Y
+    if win_x + window.width() > screen_geo.right():
+        win_x = cursor_pos.x() - window.width() - window._constants.CURSOR_OFFSET_X
+    if win_y + window.height() > screen_geo.bottom():
+        win_y = cursor_pos.y() - window.height() - window._constants.CURSOR_OFFSET_Y
+    window.move(win_x, win_y)
+
+
 class ScreenEyedropperWindow(QWidget):
     """Magnifier window that follows cursor 跟随鼠标的放大镜窗口"""
     
@@ -150,17 +161,7 @@ class ScreenEyedropperWindow(QWidget):
             
         screen_geo = screen.geometry()
         
-        # Calculate window position 计算窗口位置
-        win_x = cursor_pos.x() + self._constants.CURSOR_OFFSET_X
-        win_y = cursor_pos.y() + self._constants.CURSOR_OFFSET_Y
-        
-        # Keep window on screen 保持窗口在屏幕内
-        if win_x + self.width() > screen_geo.right():
-            win_x = cursor_pos.x() - self.width() - self._constants.CURSOR_OFFSET_X
-        if win_y + self.height() > screen_geo.bottom():
-            win_y = cursor_pos.y() - self.height() - self._constants.CURSOR_OFFSET_Y
-            
-        self.move(win_x, win_y)
+        _move_eyedropper_near_cursor(self, cursor_pos, screen_geo)
         
         # Capture screen area around cursor 捕获鼠标周围的屏幕区域
         self._capture_screen(cursor_pos, screen)
