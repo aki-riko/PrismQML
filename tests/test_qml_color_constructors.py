@@ -19,14 +19,6 @@ DATA_PATHS = (
     PurePosixPath("prismqml/PrismQML/PrismEnums/Test.js"),
 )
 REAL_TARGETS = {
-    PurePosixPath("prismqml/PrismQML/controls/navigation/TabWidget.qml"): {
-        456,
-        457,
-        464,
-        465,
-        471,
-        472,
-    },
     PurePosixPath("prismqml/PrismQML/controls/data/DataWidgetCore.qml"): {153},
 }
 

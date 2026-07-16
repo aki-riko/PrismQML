@@ -20,10 +20,12 @@ QtObject {
     // Hover state bg 悬停状态背景
     readonly property color hover: isPrismDesign ? _prismDesign.hover : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.04))
     readonly property color hoverStrong: isPrismDesign ? _prismDesign.selectedHover : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06))
+    readonly property color tabDragSource: isPrismDesign ? _prismDesign.selectedHover : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05))
     readonly property color bgMedium: isPrismDesign ? _prismDesign.tableHover : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.03))
     // Pressed state bg 按下状态背景
     readonly property color pressed: isPrismDesign ? _prismDesign.pressed : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04))
     readonly property color pressedStrong: isPrismDesign ? _prismDesign.selected : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
+    readonly property color tabPressed: isPrismDesign ? _prismDesign.pressed : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03))
     // Border color 边框颜色
     readonly property color border: isNeo ? _neo.border : (isPrismDesign ? _prismDesign.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08)))
     readonly property color borderLight: isNeo ? _neo.border : (isPrismDesign ? _prismDesign.borderLight : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)))

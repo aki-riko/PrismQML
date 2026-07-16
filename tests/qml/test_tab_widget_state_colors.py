@@ -140,12 +140,7 @@ def test_tab_widget_preserves_fluent_state_colors(qapp):
 
 def test_tab_widget_state_color_sources_are_characterized():
     source = _SOURCE_PATH.read_text(encoding="utf-8")
-    for expression in (
-        "Qt.rgba(1, 1, 1, 0.08)",
-        "Qt.rgba(0, 0, 0, 0.05)",
-        "Qt.rgba(1, 1, 1, 0.04)",
-        "Qt.rgba(0, 0, 0, 0.03)",
-        "Qt.rgba(1, 1, 1, 0.06)",
-        "Qt.rgba(0, 0, 0, 0.04)",
-    ):
-        assert expression in source
+    assert "Enums.stateColor.tabDragSource" in source
+    assert "Enums.stateColor.tabPressed" in source
+    assert "Enums.stateColor.hover" in source
+    assert "Qt.rgba(" not in source

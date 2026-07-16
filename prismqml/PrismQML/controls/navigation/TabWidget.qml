@@ -451,25 +451,16 @@ Widget {
                             // 拖拽中的源 tab (含选中态 source): 用稍深 hover 背景 + 边框,
                             // 视觉上像"被抓起来",但不与 selected 同色避免割裂感
                             if (tabItem.isDragSource) {
-                                if (Enums.isPrismDesign) return Enums.stateColor.hoverStrong
-                                return Enums.isDark
-                                    ? Qt.rgba(1, 1, 1, 0.08)
-                                    : Qt.rgba(0, 0, 0, 0.05)
+                                return Enums.stateColor.tabDragSource
                             }
                             if (tabItem.selected) return Enums.transparent
-                            // Fluent Design: pressed 深色 rgba(255,255,255,0.04) 浅色 rgba(0,0,0,0.03)
+                            // Fluent Design pressed state Fluent Design 按下状态
                             if (tabItem.pressed) {
-                                if (Enums.isPrismDesign) return Enums.stateColor.pressed
-                                return Enums.isDark
-                                    ? Qt.rgba(1, 1, 1, 0.04)
-                                    : Qt.rgba(0, 0, 0, 0.03)
+                                return Enums.stateColor.tabPressed
                             }
-                            // Fluent Design: hover 深色 rgba(255,255,255,0.06) 浅色 rgba(0,0,0,0.04)
+                            // Fluent Design hover state Fluent Design 悬浮状态
                             if (tabItem.hovered) {
-                                if (Enums.isPrismDesign) return Enums.stateColor.hover
-                                return Enums.isDark
-                                    ? Qt.rgba(1, 1, 1, 0.06)
-                                    : Qt.rgba(0, 0, 0, 0.04)
+                                return Enums.stateColor.hover
                             }
                             return Enums.transparent
                         }
