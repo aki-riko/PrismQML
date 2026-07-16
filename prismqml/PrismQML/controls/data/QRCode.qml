@@ -36,12 +36,14 @@ Item {
     readonly property color _qrBorderColor: Enums.stateColor.border
     readonly property color _qrHintColor: Enums.textColor.secondary
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function getContent() { return content }
 
+    // ==================== Size 尺寸 ====================
     implicitWidth: size
     implicitHeight: size
 
+    // ==================== Content 内容 ====================
     // Placeholder/error state 占位/错误状态
     Rectangle {
         anchors.fill: parent
