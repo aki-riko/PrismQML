@@ -37,12 +37,16 @@ Item {
 
     // ==================== Signals 信号 ====================
     signal indexClicked(int index)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: vertical ? _cellSize : _visibleCount * _cellSize + (_hasPrevButton ? _buttonSize : 0) + (_hasNextButton ? _buttonSize : 0)
-    implicitHeight: vertical ? _visibleCount * _cellSize + (_hasPrevButton ? _buttonSize : 0) + (_hasNextButton ? _buttonSize : 0) : _cellSize
 
-    // ==================== Button Visibility Logic 按钮可见性逻辑 ====================
+    // ==================== Public Methods 公开方法 ====================
+    function next() { if (currentIndex < count - 1) currentIndex++ }
+    function previous() { if (currentIndex > 0) currentIndex-- }
+    function setCurrentIndex(index) { if (index >= 0 && index < count) currentIndex = index }
+
+    // Get current index 获取当前索引
+    function getCurrentIndex() { return currentIndex }
+
+    // ==================== Internal Methods 内部方法 ====================
     // 翻页按钮仅在"模式非 never"且"当前页留有余量"时显示。
     // 正向布尔表达: mode 先行短路, 再看 index 是否还有可翻空间。
     function _isPrevButtonVisible() {
@@ -53,15 +57,12 @@ Item {
         return nextButtonMode !== Enums.pipsPager.button_never && currentIndex < (count - 1)
     }
 
-    // ==================== Public Methods 公开方法 ====================
-    function next() { if (currentIndex < count - 1) currentIndex++ }
-    function previous() { if (currentIndex > 0) currentIndex-- }
-    function setCurrentIndex(index) { if (index >= 0 && index < count) currentIndex = index }
+    // ==================== Size 尺寸 ====================
+    implicitWidth: vertical ? _cellSize : _visibleCount * _cellSize + (_hasPrevButton ? _buttonSize : 0) + (_hasNextButton ? _buttonSize : 0)
+    implicitHeight: vertical ? _visibleCount * _cellSize + (_hasPrevButton ? _buttonSize : 0) + (_hasNextButton ? _buttonSize : 0) : _cellSize
 
-    // Get current index 获取当前索引
-    function getCurrentIndex() { return currentIndex }
-
-    // ==================== Wheel Support 滚轮支持 ====================
+    // ==================== Content 内容 ====================
+    // Wheel support 滚轮支持
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
@@ -77,7 +78,7 @@ Item {
         }
     }
     
-    // ==================== Previous Button 上一页按钮 ====================
+    // Previous button 上一页按钮
     ButtonCore {
         id: prevButton
         visible: _isPrevButtonVisible()
@@ -98,7 +99,7 @@ Item {
         onClicked: control.previous()
     }
     
-    // ==================== Pips Container 点容器 ====================
+    // Pips container 点容器
     Item {
         id: pipsContainer
         clip: true
@@ -113,16 +114,17 @@ Item {
         // Horizontal pips 水平点
         Row {
             id: hRow
-            visible: !control.vertical
-            y: (parent.height - height) / 2
-            x: -_scrollOffset
-            
+
             property real _scrollOffset: {
                 if (count <= maxVisible) return 0
                 var centerOffset = currentIndex - Math.floor(maxVisible / 2)
                 var maxOffset = count - maxVisible
                 return Math.max(0, Math.min(centerOffset, maxOffset)) * _cellSize
             }
+
+            visible: !control.vertical
+            y: (parent.height - height) / 2
+            x: -_scrollOffset
             
             Behavior on x { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
             
@@ -162,16 +164,17 @@ Item {
         // Vertical pips 垂直点
         Column {
             id: vCol
-            visible: control.vertical
-            x: (parent.width - width) / 2
-            y: -_scrollOffset
-            
+
             property real _scrollOffset: {
                 if (count <= maxVisible) return 0
                 var centerOffset = currentIndex - Math.floor(maxVisible / 2)
                 var maxOffset = count - maxVisible
                 return Math.max(0, Math.min(centerOffset, maxOffset)) * _cellSize
             }
+
+            visible: control.vertical
+            x: (parent.width - width) / 2
+            y: -_scrollOffset
             
             Behavior on y { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
             
@@ -209,7 +212,7 @@ Item {
         }
     }
     
-    // ==================== Next Button 下一页按钮 ====================
+    // Next button 下一页按钮
     ButtonCore {
         id: nextButton
         visible: _isNextButtonVisible()
