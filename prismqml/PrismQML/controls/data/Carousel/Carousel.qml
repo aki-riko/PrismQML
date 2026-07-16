@@ -52,9 +52,6 @@ Item {
     // 鼠标悬停轮播（或导航按钮）时暂停自动播放，避免读图时被强行翻页。
     property bool pauseOnHover: true
     
-    // Signals 信号
-    signal indexChanged(int index)
-    
     // Internal 内部属性
     readonly property bool isVertical: orientation === Qt.Vertical
     readonly property int _modelCount: model ? model.length : 0
@@ -63,6 +60,9 @@ Item {
     //   「偷走」（停在 delegate 里的按钮上时变 false），导致悬停子元素时自动播放又恢复。
     readonly property bool _isHovered: rootHover.hovered
     readonly property bool _navVisible: showNavButtons && _modelCount > 1 && _isHovered
+
+    // Signals 信号
+    signal indexChanged(int index)
 
     // ==================== Public Methods 公开方法 ====================
     function next() {
@@ -100,7 +100,8 @@ Item {
     implicitWidth: Enums.controlSize.carouselDefaultWidth
     implicitHeight: Enums.controlSize.carouselDefaultHeight
 
-    // ==================== Hover & Wheel Area 悬停和滚轮区域 ====================
+    // ==================== Content 内容 ====================
+    // Hover and wheel area 悬停和滚轮区域
     // HoverHandler：passive 检测指针是否在 Carousel 内（含子元素），不消费事件 →
     //   delegate 里的按钮、指示器、导航按钮仍可正常点击；悬停任意子元素都计入 _isHovered。
     HoverHandler {
@@ -124,7 +125,7 @@ Item {
         }
     }
     
-    // ==================== Shadow Layer 阴影层（在内容后面，不影响布局） ====================
+    // Shadow layer 阴影层（在内容后面，不影响布局）
     // Fluent: 模糊阴影; neo: 硬阴影(同样 opt-in, 仅 shadowLevel 设置时显示)
     RectangularShadow {
         anchors.fill: contentArea
@@ -143,7 +144,7 @@ Item {
         z: contentArea.z - 1
     }
 
-    // ==================== Content Area 内容区域 ====================
+    // Content area 内容区域
     CarouselContent {
         id: contentArea
         anchors.fill: parent
@@ -160,7 +161,7 @@ Item {
         }
     }
     
-    // ==================== Indicator (PipsPager) 指示器 ====================
+    // Indicator (PipsPager) 指示器
     HorizontalPipsPager {
         id: hIndicator
         visible: control.showIndicator && control._modelCount > 1 && !control.isVertical
@@ -187,7 +188,7 @@ Item {
         onIndexClicked: (index) => control.goTo(index)
     }
 
-    // ==================== Navigation Buttons 导航按钮 ====================
+    // Navigation buttons 导航按钮
     // Prev button (horizontal left, vertical top) 上一个按钮（水平左侧，垂直顶部）
 
     CarouselNavButton {
@@ -224,7 +225,7 @@ Item {
         onClicked: control.next()
     }
     
-    // ==================== Auto Play Timer 自动播放定时器 ====================
+    // Auto play timer 自动播放定时器
     // pauseOnHover=true 时，指针悬停轮播会暂停自动翻页（移开后自动恢复）。
     Timer {
         running: control.autoPlay && control._modelCount > 1 &&
