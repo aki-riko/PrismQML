@@ -376,9 +376,9 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     assert "xScale: control._isHorizontalBar ? 1 : control._viewportScale" in chart_view_source
     assert "yScale: control._isHorizontalBar ? control._viewportScale : 1" in chart_view_source
     assert "viewportScale: control._viewportScale" in chart_view_source
-    tooltip_source = chart_view_source.split(
-        "// ==================== XY Chart Tooltips", 1
-    )[1].split("// ==================== XY Chart Legends", 1)[0]
+    tooltip_source = chart_view_source.split("    ChartTooltip {", 1)[1].split(
+        "    ChartBottomLegend {", 1
+    )[0]
     assert "control._viewChartData" in tooltip_source
     assert "control._viewSeries" in tooltip_source
     assert "control.chartData[control._hovered" not in tooltip_source

@@ -86,7 +86,7 @@ ShadowedRectangle {
 
     readonly property var defaultColors: Enums.chartColors.palette
 
-    // ==================== Size & Style 尺寸和样式 ====================
+    // Size and style 尺寸与样式
     // Size priority (manual, ShadowedRectangle can't extend Widget) 尺寸优先级（手动实现，ShadowedRectangle 无法继承 Widget）
     property real preferredWidth: 0
     property real preferredHeight: 0
@@ -359,7 +359,7 @@ ShadowedRectangle {
         }
     }
 
-    // ==================== XY Chart Tooltips ====================
+    // XY chart tooltips XY 图表提示框
     // Single series bar chart tooltip 单系列柱状图 Tooltip
     ChartTooltip {
         visible: !control._viewportTransitionActive && control._hoveredBarIndex >= 0 && barContent.visible && !barContent.isMultiSeries
@@ -463,7 +463,7 @@ ShadowedRectangle {
         isValueString: true
     }
 
-    // ==================== XY Chart Legends ====================
+    // XY chart legends XY 图表图例
     ChartBottomLegend {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
@@ -502,7 +502,7 @@ ShadowedRectangle {
         onItemHovered: (index) => control._hoveredScatterSeriesIndex = index
     }
 
-    // ==================== Pie Chart ====================
+    // Pie chart 饼图
     PieChartArea {
         anchors.fill: parent
         visible: control._isPie
@@ -525,7 +525,7 @@ ShadowedRectangle {
         onSliceHovered: (index) => control._hoveredSliceIndex = index
     }
 
-    // ==================== Radar Chart ====================
+    // Radar chart 雷达图
     RadarChartArea {
         anchors.fill: parent
         visible: control._isRadar
@@ -545,7 +545,7 @@ ShadowedRectangle {
         onLegendClicked: (index) => control.toggleSeriesVisibility(index)
     }
 
-    // ==================== Boxplot Chart ====================
+    // Boxplot chart 箱线图
     BoxplotChartArea {
         anchors.fill: parent
         visible: control._isBoxplot
@@ -590,15 +590,16 @@ ShadowedRectangle {
     // Chart panning interaction 主图拖动平移交互
     // Keep chart hover and tooltips above this pointer area 图表悬停与提示层保持更高优先级
     MouseArea {
+        property real _pressX: 0
+        property real _pressVS: 0
+        property real _pressVE: 0
+
         anchors.fill: xyChartBase
         z: -1
         enabled: control.panEnabled && control._isXYChart
         acceptedButtons: Qt.LeftButton
         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
         propagateComposedEvents: true
-        property real _pressX: 0
-        property real _pressVS: 0
-        property real _pressVE: 0
         onPressed: (mouse) => {
             _pressX = mouse.x
             _pressVS = control._visualStart
@@ -623,7 +624,7 @@ ShadowedRectangle {
         }
     }
 
-    // ==================== Empty State 空状态 ====================
+    // Empty state 空状态
     Column {
         anchors.centerIn: parent
         spacing: Enums.spacing.m
