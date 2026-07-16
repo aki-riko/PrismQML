@@ -28,15 +28,11 @@ Item {
     required property bool showValues
     required property bool isHorizontal    // Horizontal or vertical 水平或垂直
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int hoveredIndex: -1
     property color boxColor: Enums.accentColor
-    
-    // ==================== Signals 信号 ====================
-    signal boxClicked(int index, var data)
-    signal boxHovered(int index)
-    
-    // ==================== Computed Props 计算属性 ====================
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property int dataLength: boxplotData.length
     readonly property var valueRange: {
         var min = Infinity, max = -Infinity
@@ -55,7 +51,11 @@ Item {
         return { min: min - padding, max: max + padding }
     }
 
-    // ==================== Helper Functions 辅助函数 ====================
+    // ==================== Signals 信号 ====================
+    signal boxClicked(int index, var data)
+    signal boxHovered(int index)
+
+    // ==================== Internal Methods 内部方法 ====================
     function valueToPosition(value) {
         var range = valueRange.max - valueRange.min
         if (range === 0) return isHorizontal ? width / 2 : height / 2
@@ -68,28 +68,17 @@ Item {
         return Enums.chartColors.extendedPalette[index % Enums.chartColors.extendedPalette.length]
     }
 
-    // ==================== Canvas 画布 ====================
+    onHoveredIndexChanged: canvas.requestPaint()
+    onBoxplotDataChanged: canvas.requestPaint()
+    onIsHorizontalChanged: canvas.requestPaint()
+
+    // ==================== Content 内容 ====================
+    // Canvas 画布
     Canvas {
         id: canvas
-        anchors.fill: parent
-        
+
         property real animProgress: root.animated ? 0 : 1
-        
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            
-            if (root.boxplotData.length === 0) return
-            
-            var dataLen = root.dataLength
-            
-            if (root.isHorizontal) {
-                paintHorizontal(ctx, dataLen)
-            } else {
-                paintVertical(ctx, dataLen)
-            }
-        }
-        
+
         function paintVertical(ctx, dataLen) {
             var groupWidth = width / dataLen
             var boxWidth = Math.min(groupWidth * 0.6, Enums.spacing.xxxl * 2)
@@ -302,7 +291,24 @@ Item {
                 }
             }
         }
-        
+
+        anchors.fill: parent
+
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+
+            if (root.boxplotData.length === 0) return
+
+            var dataLen = root.dataLength
+
+            if (root.isHorizontal) {
+                paintHorizontal(ctx, dataLen)
+            } else {
+                paintVertical(ctx, dataLen)
+            }
+        }
+
         Component.onCompleted: {
             if (root.animated) {
                 animProgress = 0
@@ -314,9 +320,12 @@ Item {
         
         Timer {
             id: animTimer
+
+            property real t: 0  // Normalized time 归一化时间
+
             interval: Enums.duration.tick  // High-refresh tick 高刷定时器
             repeat: true
-            property real t: 0  // Normalized time 归一化时间
+
             onTriggered: {
                 t += 0.04  // ~400ms total duration 总时长约400ms
                 if (t >= 1) {
@@ -331,13 +340,8 @@ Item {
             }
         }
     }
-    
-    // Repaint triggers 重绘触发
-    onHoveredIndexChanged: canvas.requestPaint()
-    onBoxplotDataChanged: canvas.requestPaint()
-    onIsHorizontalChanged: canvas.requestPaint()
 
-    // ==================== Mouse Area 鼠标区域 ====================
+    // Mouse area 鼠标区域
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
