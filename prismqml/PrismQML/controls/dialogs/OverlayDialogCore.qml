@@ -32,7 +32,7 @@ Item {
     // Mask color 遮罩颜色
     property color maskColor: Enums.stateColor.maskHeavy
     
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Internal Props 内部属性 ====================
     property bool _isOpen: false
     property bool _isClosing: false
     property point _dragPos: Qt.point(0, 0)
@@ -42,25 +42,6 @@ Item {
     signal accepted()
     signal rejected()
     signal closed()
-    
-    // ==================== Layout 布局 ====================
-    anchors.fill: parent
-    z: Enums.zIndex.modal
-    visible: _isOpen || _isClosing
-    
-    // Ensure anchors update when parent changes (e.g. via Python setParentItem) 确保 parent 变化时 anchors 正确更新（如通过 Python setParentItem）
-
-    onParentChanged: {
-        if (parent) {
-            // Force anchors reset to ensure size updates 强制重置 anchors 确保尺寸更新
-
-            anchors.fill = undefined
-            anchors.fill = parent
-            // Force immediate size update from parent 强制立即从parent更新尺寸
-            if (parent.width > 0) control.width = parent.width
-            if (parent.height > 0) control.height = parent.height
-        }
-    }
 
     // ==================== Public Methods 公开方法 ====================
 
@@ -78,22 +59,6 @@ Item {
         }
 
         _isOpen = true
-    }
-
-    // Resolve overlay target 解析覆盖目标
-    function _resolveOverlayTarget() {
-        // If overlayTarget is specified, use it 如果指定了overlayTarget则使用它
-        if (overlayTarget) {
-            return overlayTarget
-        }
-
-        // ✅ 2026-05-15: 默认升到 Window 级覆盖,避免对话框被父组件 (ScrollArea / 局部布局) 限制位置
-        // 调用方若需组件级覆盖,显式设 overlayTarget 即可
-        if (Window.window && Window.window.contentItem) {
-            return Window.window.contentItem
-        }
-
-        return null
     }
 
     // Accept and close 接受并关闭
@@ -123,6 +88,23 @@ Item {
         _restoreParentTimer.start()
     }
 
+    // ==================== Internal Methods 内部方法 ====================
+    // Resolve overlay target 解析覆盖目标
+    function _resolveOverlayTarget() {
+        // If overlayTarget is specified, use it 如果指定了overlayTarget则使用它
+        if (overlayTarget) {
+            return overlayTarget
+        }
+
+        // ✅ 2026-05-15: 默认升到 Window 级覆盖,避免对话框被父组件 (ScrollArea / 局部布局) 限制位置
+        // 调用方若需组件级覆盖,显式设 overlayTarget 即可
+        if (Window.window && Window.window.contentItem) {
+            return Window.window.contentItem
+        }
+
+        return null
+    }
+
     // Restore state after close 关闭后恢复状态
     // 不再 reparent 回 _originalParent — nested OverlayDialog 场景下,外层 dialog 自身
     // 已 reparent 到 contentItem, 内层 reject 后若 reparent 回 bodyLayout (外层 dialog 的子 Item),
@@ -133,14 +115,33 @@ Item {
         _isClosing = false
     }
 
+    // Layout 布局
+    anchors.fill: parent
+    z: Enums.zIndex.modal
+    visible: _isOpen || _isClosing
+
+    // Ensure anchors update when parent changes (e.g. via Python setParentItem) 确保 parent 变化时 anchors 正确更新（如通过 Python setParentItem）
+    onParentChanged: {
+        if (parent) {
+            // Force anchors reset to ensure size updates 强制重置 anchors 确保尺寸更新
+            anchors.fill = undefined
+            anchors.fill = parent
+            // Force immediate size update from parent 强制立即从parent更新尺寸
+            if (parent.width > 0) control.width = parent.width
+            if (parent.height > 0) control.height = parent.height
+        }
+    }
+
+    // ==================== Content 内容 ====================
     // Also update size when parent size changes 当parent尺寸变化时也更新
     Connections {
-        target: control.parent
         function onWidthChanged() { if (control.parent) control.width = control.parent.width }
         function onHeightChanged() { if (control.parent) control.height = control.parent.height }
+
+        target: control.parent
     }
     
-    // ==================== Mask Layer 遮罩层 ====================
+    // Mask layer 遮罩层
     Rectangle {
         id: windowMask
         anchors.fill: parent
@@ -176,6 +177,4 @@ Item {
         interval: Enums.duration.medium + Enums.spacing.xl
         onTriggered: control._restoreParent()
     }
-    
-    // ==================== Utility Methods 工具方法 ====================
 }
