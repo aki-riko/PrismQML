@@ -775,6 +775,8 @@ git diff --check
 
 2026-07-16 P8A 刷新只读审计：再次扫描 AeroMount、configpilot、Gitora、Kaleidos、quicksketch 与 Kaleidos-worktrees，排除 `.git/.venv/venv/site-packages/build/dist/node_modules/site` 后，六个候选均无真实下游源码消费者；Kaleidos 唯一原始命中仍是归档文档里的 qfluentwidgets/QTextEdit 语境。两个独立 `site-packages`/RECORD 命中只证明旧 wheel 确实分发这些文件，不是调用方。仓内 `LoginWindowLightShadow`、`Layout.qml`、`TextInputCore`、`PlainTextEdit` 未注册且零生产实例化，`CropToolButton` 仅 `_internal/qmldir` 注册且零消费者；五者共 884 行，当前扫描分别为 76/30/32/0/1 项、合计 139 项违规。`DpiManager` 是根 singleton，当前生产零消费者、仅两份测试 wrapper 读取，共 68 行/17 项 QML008；推荐保留 `baseDpi/screenDpi/scale/devicePixelRatio/userDpiScale` 等真实状态，删除重复 spacing/font/size 与再次缩放的 `dp/sp/effectiveScale` API。P8A 建议方案为“删除五个孤儿 + 收窄 DpiManager”，可同时清除 156 项存量；文件删除与公开 API 收窄均等待用户明确授权，当前未修改生产 QML/qmldir。
 
+2026-07-16 P8A 删除批次完成：用户明确批准删除五个零消费者孤儿文件；提交 `154cd4e4` 删除 `LoginWindowLightShadow.qml`、`Layout.qml`、`CropToolButton.qml`、`TextInputCore.qml` 与 `PlainTextEdit.qml` 共 884 行，同步移除 `_internal/qmldir` 的 `CropToolButton` 注册，并清理两处仍把 `TextInputCore` 描述为现行继承链的陈旧注释。新增静态回归锁定五文件及五个类型名不得复活、替代链 `ImageCropper`、`LineEditCore`、`TextEditCore` 与四种公开 Layout 文件必须存在；`DpiManager.qml` 及其公开 API 未获同等授权，本批保持不变。当前扫描器复算父提交五文件贡献为 139 项（QML008 75、QML009 21、QML010 21、QML011 22），删除后全库为 2,621 项（QML008 1,538、QML009 1,014、QML010 69、QML011 0），changed 扫描零新增。聚焦输入/裁剪/布局与删除护栏 `23 passed`；全量 Python `2225 passed / 1 skipped`、QML probe/coverage `169 OK / 0 错误 / 12 跳过（181）`、headless CTest `9/9`、Windows native CTest `2/2`、Python 3.9 AST 280、compileall、mkdocs strict 与 `git diff --check` 全绿，全部统一 runner 为零可见窗口、零残留进程，最终 Review P0–P3 全零。P8A 的孤儿删除已完成；后续另批评审 `DpiManager` 收窄，并继续 P8B 图标/资源注册同步。
+
 验收判据：
 
 - Fluent SVG 集合减去枚举值的差集为 0。
@@ -931,7 +933,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 
 ## 九、状态追踪
 
-截至 2026-07-16，按剩余工作量粗估整体计划约完成 **77%**：P0–P5、P7J 与 P7K 已完成，P6/P7/P8 进行中，P9 待执行；该百分比不是按阶段数量简单平均，新增插单会改变剩余时间估算。
+截至 2026-07-16，按剩余工作量粗估整体计划约完成 **78%**：P0–P5、P7J、P7K 与 P8A 孤儿删除已完成，P6/P7/P8 继续进行，P9 待执行；该百分比不是按阶段数量简单平均，新增插单会改变剩余时间估算。
 
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
@@ -951,7 +953,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 | P7K-B SVG provider 编解码 | 已完成 | WindowIcon 保留 URL、整体编码裸路径，Python/C++ provider 只解码一次；真实 `#/%23/%/|` 与非 ASCII 路径通过；Python 2216/1、QML 169/0/12、CTest 9/9 + native 2/2 | `74c095ef` |
 | P7K-C SqlListModel 只读 URI | 已完成 | Windows/POSIX/UNC URI 一次编码，Python 列解析/count/页读取统一只读；真实特殊路径和删除文件在 Python/Rust 下结果一致且不建库；Python 2223/1、QML 169/0/12、CTest 9/9 + native 2/2 | `68c9e60a` |
 | P7K-D Python 注册注入 | 已完成 | `register_types()` 补齐 ConfigManager/ClipboardHelper；双引擎同一单例、DpiManager wrapper 125、warning/critical 归零；Python 2224/1、QML 169/0/12、CTest 9/9 + native 2/2 | `47ebdb30` |
-| P8 资源注册 | 进行中 | P8A 复扫六个本机下游源码根仍为零消费者；五个孤儿共 884 行/139 项违规，DpiManager 仅测试消费且有 17 项重复缩放/预设债务。推荐删除五个孤儿并收窄 DpiManager，等待用户明确授权；P8B 仍待执行 |  |
+| P8 资源注册 | 进行中 | P8A 五个零消费者孤儿已获批准并删除，内部 qmldir 与静态护栏同步；全量 Python 2225/1、QML 169/0/12、CTest 9/9 + native 2/2，全库扫描 2,621 且 QML011 归零。DpiManager 未获收窄授权而保持不变；P8B 仍待执行 | `154cd4e4` |
 | P9 最终验收 | 待执行 |  |  |
 
 状态只能填写“待执行 / 进行中 / 已完成 / 阻塞”。“已完成”必须同时记录真实测试结果和提交哈希。
