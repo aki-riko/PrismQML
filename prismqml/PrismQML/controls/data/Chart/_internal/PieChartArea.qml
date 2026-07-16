@@ -21,7 +21,7 @@ Item {
     required property bool showLegend        // Show legend 显示图例
     required property var getColor           // Function to get color 获取颜色函数
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string title: ""
     property string subtitle: ""
     property bool isDonut: false
@@ -36,7 +36,8 @@ Item {
     signal sliceClicked(int index, var data)
     signal sliceHovered(int index)
     
-    // ==================== Title 标题 ====================
+    // ==================== Content 内容 ====================
+    // Title 标题
     ChartTitle {
         anchors.horizontalCenter: chartArea.horizontalCenter
         y: Enums.spacing.m
@@ -44,7 +45,7 @@ Item {
         subtitle: root.subtitle
     }
     
-    // ==================== Chart Area 图表区域 ====================
+    // Chart area 图表区域
     Item {
         id: chartArea
         x: Enums.spacing.l
@@ -134,7 +135,7 @@ Item {
         }
     }
     
-    // ==================== Tooltip 提示框 ====================
+    // Tooltip 提示框
     ChartTooltip {
         visible: root.hoveredIndex >= 0 && root.chartData.length > 0
         x: Math.min(chartArea.x + chartArea.width / 2 - width / 2, root.width - width - Enums.spacing.m)
@@ -153,7 +154,7 @@ Item {
         isValueString: true
     }
     
-    // ==================== Legend 图例 ====================
+    // Legend 图例
     ChartBottomLegend {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
