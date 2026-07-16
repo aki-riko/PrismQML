@@ -9,21 +9,28 @@ import "../data"
 // Marquee - Scrolling text component 滚动文字组件
 Item {
     id: control
-    
+
+    // ==================== Public Props 公开属性 ====================
     property string text: ""
     property int speed: 50  // Pixels per second 像素/秒
     property bool running: true
     property bool forceScroll: false  // Force scroll even if text fits 强制滚动即使文字不超出
     property int pauseDuration: Enums.duration.marquee
-    
-    implicitWidth: 200
-    implicitHeight: Enums.controlSize.statusBarHeight
-    clip: true
-    
+
+    // ==================== Readonly State 只读状态 ====================
     // Internal: track if text needs scrolling 内部：跟踪文本是否需要滚动
     readonly property bool _needsScroll: forceScroll || marqueeText.implicitWidth > control.width
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
+    function getText() { return text }
+
+    // Start 开始滚动
+    function start() { running = true }
+
+    // Stop 停止滚动
+    function stop() { running = false }
+
+    // ==================== Internal Methods 内部方法 ====================
     // Internal function to check and start animation 内部函数检查并启动动画
     function _tryStartAnimation() {
         if (running && _needsScroll && width > 0 && !scrollAnim.running) {
@@ -35,14 +42,17 @@ Item {
         }
     }
 
-    function getText() { return text }
+    // ==================== Size 尺寸 ====================
+    implicitWidth: 200
+    implicitHeight: Enums.controlSize.statusBarHeight
+    clip: true
+    onWidthChanged: startTimer.restart()
+    on_NeedsScrollChanged: startTimer.restart()
+    onRunningChanged: _tryStartAnimation()
+    onForceScrollChanged: startTimer.restart()
+    Component.onCompleted: startTimer.start()
 
-    // Start 开始滚动
-    function start() { running = true }
-
-    // Stop 停止滚动
-    function stop() { running = false }
-
+    // ==================== Content 内容 ====================
     Label {
         id: marqueeText
         type: Enums.label.type_body
@@ -84,11 +94,4 @@ Item {
         repeat: false
         onTriggered: control._tryStartAnimation()
     }
-    
-    onWidthChanged: startTimer.restart()
-    on_NeedsScrollChanged: startTimer.restart()
-    onRunningChanged: _tryStartAnimation()
-    onForceScrollChanged: startTimer.restart()
-    
-    Component.onCompleted: startTimer.start()
 }
