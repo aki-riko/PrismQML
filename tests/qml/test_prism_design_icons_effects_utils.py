@@ -64,7 +64,7 @@ def _assert_remaining_effects_utils(item, background, shadow_alpha):
     assert item.property("radiusControl") == 10
     assert _rgb(item.property("prismBackground")) == background
     assert item.property("dpiBase") == 96
-    assert item.property("dpiSpacing8") >= 8
+    assert item.property("dpiScale") >= 1
     assert item.property("translatorHasAuto") is True
     assert item.property("translatorMissing") == "__prism_missing__"
     assert item.property("notificationPositionMatch") is True
@@ -106,7 +106,7 @@ Item {
     property int radiusControl: Enums.prismDesign.radiusControl
     property color prismBackground: Enums.backgroundColor
     property int dpiBase: DpiManager.baseDpi
-    property int dpiSpacing8: DpiManager.spacing8
+    property real dpiScale: DpiManager.scale
     property bool translatorHasAuto: Translator.supportedLanguages[0].code === "auto"
     property string translatorMissing: Translator.tr("__prism_missing__")
     property bool notificationPositionMatch: NotificationManager.posTopRight === Enums.notification.posTopRight
