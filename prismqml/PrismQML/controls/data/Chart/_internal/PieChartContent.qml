@@ -151,7 +151,7 @@ Item {
                             var labelX = centerX + offsetX + Math.cos(labelAngle) * labelRadius
                             var labelY = centerY + offsetY + Math.sin(labelAngle) * labelRadius
                             
-                            ctx.fillStyle = "white"
+                            ctx.fillStyle = Enums.themeColors.accentForeground
                             ctx.font = "bold " + Enums.typography.caption + "px " + Enums.canvasFontFamily
                             ctx.textAlign = "center"
                             ctx.textBaseline = "middle"

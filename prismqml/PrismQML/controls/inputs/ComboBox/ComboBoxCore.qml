@@ -260,7 +260,7 @@ Widget {
         border.width: style !== 0 ? 0
             : (Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin)
         border.color: Enums.isNeobrutalism && style === 0
-            ? (!control.enabled ? Qt.rgba(0, 0, 0, 0.4)
+            ? (!control.enabled ? Enums.stateColor.comboBoxDisabledBorder
                : (control.popupVisible ? Enums.neo.primary : Enums.neo.borderColor))
             : styleHelper.getBorderColor()
     }

@@ -44,7 +44,7 @@ Item {
     // ==================== Custom Colors 自定义颜色 ====================
     property color checkedColorLight: Enums.accentColor
     property color checkedColorDark: Enums.accentColor
-    property color textColorLight: Enums.isDark ? Enums.accentForeground : "black"
+    property color textColorLight: Enums.isDark ? Enums.accentForeground : Enums.grayColors.textPrimaryLight
     property color textColorDark: Enums.accentForeground
 
     // ==================== Signals 信号 ====================

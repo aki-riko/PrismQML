@@ -79,7 +79,7 @@ Item {
             ctx.fillRect(0, 0, width, height)
             
             ctx.globalCompositeOperation = "destination-out"
-            ctx.fillStyle = "white"
+            ctx.fillStyle = Enums.themeColors.accentForeground
             ctx.beginPath()
             // Convert cropArea position to canvas local coordinates 转换裁剪区域位置到画布本地坐标
             var cx = cropArea.x - content._imgX + cropArea.width / 2

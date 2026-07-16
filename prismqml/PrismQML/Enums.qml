@@ -194,6 +194,7 @@ Item {
     readonly property alias colorPalette: _constants.colorPalette
     readonly property alias colorPickerGradient: _constants.colorPickerGradient
     readonly property alias gray: _constants.gray
+    readonly property alias grayColors: _constants.grayColors
     readonly property alias prismDesign: _constants.prismDesign
     readonly property alias demoPalette: _constants.demoPalette
     readonly property alias themeColors: _constants.themeColors

@@ -131,7 +131,7 @@ def test_toggle_and_combo_preserve_fixed_runtime_colors(qapp):
 
 
 def test_remaining_component_color_sources_are_characterized():
-    assert 'ctx.fillStyle = "white"' in _PIE_SOURCE.read_text(encoding="utf-8")
-    assert 'ctx.fillStyle = "white"' in _CROPPER_SOURCE.read_text(encoding="utf-8")
-    assert "Qt.rgba(0, 0, 0, 0.4)" in _COMBO_SOURCE.read_text(encoding="utf-8")
-    assert 'Enums.accentForeground : "black"' in _TOGGLE_SOURCE.read_text(encoding="utf-8")
+    assert "ctx.fillStyle = Enums.themeColors.accentForeground" in _PIE_SOURCE.read_text(encoding="utf-8")
+    assert "ctx.fillStyle = Enums.themeColors.accentForeground" in _CROPPER_SOURCE.read_text(encoding="utf-8")
+    assert "Enums.stateColor.comboBoxDisabledBorder" in _COMBO_SOURCE.read_text(encoding="utf-8")
+    assert "Enums.grayColors.textPrimaryLight" in _TOGGLE_SOURCE.read_text(encoding="utf-8")

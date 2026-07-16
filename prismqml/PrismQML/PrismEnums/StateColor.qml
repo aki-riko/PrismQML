@@ -66,6 +66,12 @@ QtObject {
     readonly property color inputBorderStrong: isPrismDesign ? _prismDesign.borderStrong : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15))
     readonly property color inputBorderNormal: isPrismDesign ? _prismDesign.borderLight : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05))
     readonly property color inputBorderDisabled: isPrismDesign ? _prismDesign.borderLight : (root.isDark ? Qt.rgba(1,1,1,0.07) : Qt.rgba(0,0,0,0.05))
+    readonly property color comboBoxDisabledBorder: Qt.rgba(
+        constants.grayColors.textPrimaryLight.r,
+        constants.grayColors.textPrimaryLight.g,
+        constants.grayColors.textPrimaryLight.b,
+        0.4
+    )
     // Card border 卡片边框
     readonly property color cardBorder: isPrismDesign ? _prismDesign.borderLight : (root.isDark ? indicator : Qt.rgba(0,0,0,0.08))
     // Background variants 背景色变体
