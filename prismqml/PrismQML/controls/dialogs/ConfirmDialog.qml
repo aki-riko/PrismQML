@@ -53,7 +53,9 @@ DialogBoxCore {
     // 的 handler 名 (on_IsOpenChanged) 在 Qt 6 行为不稳定, 用 readonly 中转更可靠。
     readonly property bool isOpen: _isOpen
 
-    // ==================== Internal 内部 ====================
+    // ==================== Internal Props 内部属性 ====================
+    property int _countdownRemaining: 0
+
     // level → icon name 映射 (Fluent UI 系统图标)
     readonly property string _autoIcon: {
         switch (level) {
@@ -91,23 +93,6 @@ DialogBoxCore {
     signal confirmed()
     signal cancelled()
 
-    // ==================== Internal 倒计时 ====================
-    property int _countdownRemaining: 0
-    Timer {
-        id: countdownTimer
-        interval: 1000
-        repeat: true
-        onTriggered: {
-            if (control._countdownRemaining > 0) {
-                control._countdownRemaining--
-                if (control._countdownRemaining === 0) running = false
-            }
-        }
-    }
-
-    // 暴露公开 isOpen 标志: _isOpen 是基类内部下划线属性, QML Connections 对下划线属性
-    // 的 handler 名 (on_IsOpenChanged) 在 Qt 6 行为不稳定, 用 readonly 中转更可靠。
-
     // 打开时启动倒计时, 关闭时复位
     onIsOpenChanged: {
         if (isOpen && countdown > 0) {
@@ -119,7 +104,7 @@ DialogBoxCore {
         }
     }
 
-    // ==================== Footer 按钮组 ====================
+    // Footer buttons 底部按钮组
     footer: Component {
         Row {
             property var dialog
@@ -156,7 +141,19 @@ DialogBoxCore {
         }
     }
 
-    // ==================== Content 内容区域 ====================
+    // ==================== Content 内容 ====================
+    Timer {
+        id: countdownTimer
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            if (control._countdownRemaining > 0) {
+                control._countdownRemaining--
+                if (control._countdownRemaining === 0) running = false
+            }
+        }
+    }
+
     ColumnLayout {
         width: 360
         spacing: Enums.spacing.l
