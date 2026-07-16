@@ -92,16 +92,6 @@ QtObject {
 def _get_helper() -> Optional[QObject]:
     """lazy 创建 helper QML 对象, 单例缓存"""
     global _helper
-    if _helper is not None:
-        # 防御 _helper 的 C++ 端被 GC 销毁 (Python 持引用 ≠ C++ 存活)
-        try:
-            _ = _helper.objectName()
-        except RuntimeError:
-            _logger.warning("helper QML 对象 C++ 端已销毁, 重新创建")
-            _helper = None
-        else:
-            return _helper
-
     try:
         engine = EngineManager.get_engine()
     except RuntimeError:
@@ -109,6 +99,20 @@ def _get_helper() -> Optional[QObject]:
         return None
     if engine is None:
         return None
+
+    if _helper is not None:
+        # 防御 _helper 的 C++ 端被 GC 销毁 (Python 持引用 ≠ C++ 存活)
+        try:
+            _ = _helper.objectName()
+            helper_parent = _helper.parent()
+        except RuntimeError:
+            _logger.warning("helper QML 对象 C++ 端已销毁, 重新创建")
+            _helper = None
+        else:
+            if helper_parent is engine:
+                return _helper
+            _helper = None
+            _logger.warning("通知 helper 所属 Engine 已变化, 重新创建")
 
     component = QQmlComponent(engine)
     component.setData(_HELPER_QML.encode("utf-8"), QUrl())
