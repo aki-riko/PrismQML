@@ -22,15 +22,16 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 // Modular architecture: delegate + JS modules 模块化架构：委托 + JS 模块
 Rectangle {
     id: control
-    
-    // ==================== Selection Mode 选择模式 ====================
+
+    // ==================== Public Props 公开属性 ====================
+    // Selection mode 选择模式
     readonly property int noSelection: 0
     readonly property int singleSelection: 1
     readonly property int multiSelection: 2
     readonly property int extendedSelection: 3
     property int selectionMode: singleSelection
 
-    // ==================== Public Props 公开属性 ====================
+    // Tree data and appearance 树数据与外观
     property var model: []
     property int itemHeight: Enums.controlSize.treeItemHeight
     property int indentWidth: Enums.spacing.xl
@@ -48,6 +49,20 @@ Rectangle {
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3
 
+    // ==================== Internal Props 内部属性 ====================
+    property var _selectedIndices: []
+    property var _previousItem: null
+    property int _hoverIndex: -1
+    // cardColor overrides the default card color; use transparent for transparent scenes.
+    // cardColor 可覆盖默认卡片色；透明场景使用 cardColor:"transparent"。
+    // Match the DataWidgetCore family API naming (ListView/TableView, etc.).
+    // 与 DataWidgetCore 系列（ListView/TableView 等）API 命名一致。
+    property color cardColor: Enums.cardColor
+    readonly property color headerColor: Enums.headerColor
+    readonly property color borderColor: Enums.stateColor.borderLight
+    readonly property color textColor: Enums.textColor.primary
+    readonly property color secondaryColor: Enums.textColor.secondary
+
     // ==================== Signals 信号 ====================
     signal itemClicked(var item, int index)
     signal itemDoubleClicked(var item, int index)
@@ -58,25 +73,8 @@ Rectangle {
     signal itemChecked(var item, int checkState)
     signal currentItemChanged(var current, var previous)
     signal itemSelectionChanged()
-    
-    // ==================== Size & Style 尺寸和样式 ====================
-    implicitWidth: Enums.controlSize.treeDefaultWidth
-    implicitHeight: Enums.controlSize.treeDefaultHeight
-    color: Enums.transparent
-    
-    // ==================== Internal State 内部状态 ====================
-    property var _selectedIndices: []
-    property var _previousItem: null
-    property int _hoverIndex: -1
-    // cardColor 可覆盖(默认主题卡片色): 透明场景设 cardColor:"transparent",与
-    // DataWidgetCore 系列(ListView/TableView 等)API 一致。
-    property color cardColor: Enums.cardColor
-    readonly property color headerColor: Enums.headerColor
-    readonly property color borderColor: Enums.stateColor.borderLight
-    readonly property color textColor: Enums.textColor.primary
-    readonly property color secondaryColor: Enums.textColor.secondary
 
-    // ==================== Internal API (for delegate) 内部API ====================
+    // ==================== Internal Methods 内部方法 ====================
     function _rebuildModel() { Core.rebuildModel(control, internalModel) }
     function _isIndexSelected(idx) { return Core.isIndexSelected(control, idx) }
     function _handleItemClick(idx, button, modifiers) { Core.handleItemClick(control, internalModel, idx, button, modifiers) }
@@ -89,7 +87,7 @@ Rectangle {
     function _normalizeItem(item) { return Core.normalizeItem(item) }
     function _setExpandedRecursive(items, expanded) { Core.setExpandedRecursive(items, expanded) }
     function _sortRecursive(items, order) { Core.sortRecursive(items, order) }
-    // ==================== QTreeWidget API ====================
+    // ==================== Public Methods 公开方法 ====================
     function topLevelItemCount() { return Api.topLevelItemCount(control) }
     function topLevelItem(index) { return Api.topLevelItem(control, index) }
     function addTopLevelItem(item) { Api.addTopLevelItem(control, item) }
@@ -134,13 +132,19 @@ Rectangle {
     function toggleExpandAt(idx) { _toggleExpandAt(idx) }
     function toggleCheckAt(idx) { _toggleCheckAt(idx) }
 
-    ListModel { id: internalModel }
-    
+    // ==================== Size 尺寸 ====================
+    implicitWidth: Enums.controlSize.treeDefaultWidth
+    implicitHeight: Enums.controlSize.treeDefaultHeight
+    color: Enums.transparent
     Component.onCompleted: Core.rebuildModel(control, internalModel)
     onModelChanged: Core.rebuildModel(control, internalModel)
 
-    // ==================== Shadow 阴影 ====================
-    // Fluent: 模糊阴影; neo: 硬阴影
+    // ==================== Content 内容 ====================
+    // Internal model 内部模型
+    ListModel { id: internalModel }
+
+    // Shadow 阴影
+    // Fluent uses blur; neo uses a hard shadow. Fluent 使用模糊阴影；neo 使用硬阴影。
     RectangularShadow {
         anchors.fill: card
         radius: card.radius
@@ -157,7 +161,7 @@ Rectangle {
         z: card.z - 1
     }
 
-    // ==================== Card 卡片容器 ====================
+    // Card container 卡片容器
     Rectangle {
         id: card
         anchors.fill: parent
@@ -205,13 +209,15 @@ Rectangle {
                 
                 ListView {
                     id: listView
+
+                    property var treeControl: control
+
                     anchors.fill: parent
                     anchors.rightMargin: contentHeight > height ? Enums.spacing.xl : 0
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
                     interactive: false
                     model: internalModel
-                    property var treeControl: control
                     delegate: TreeWidgetDelegate {}
 
                     add: Transition {
