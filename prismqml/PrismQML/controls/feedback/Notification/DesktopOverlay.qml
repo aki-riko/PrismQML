@@ -22,18 +22,8 @@ Window {
     
     // ==================== Signals 信号 ====================
     signal closed()
-    
-    // ==================== Window Settings 窗口设置 ====================
-    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-    visible: false
-    color: Enums.transparent
-    width: Enums.controlSize.toastWidth + Enums.spacing.xs
-    height: contentHeight + Enums.spacing.xs  // Use actual content height 使用实际内容高度
-    
-    // ==================== Shared Animator 共享动画器 ====================
-    property alias animator: animator
 
-    // ==================== Show/Hide 显示/隐藏 ====================
+    // ==================== Public Methods 公开方法 ====================
     function show() {
         animator.show()
     }
@@ -47,6 +37,19 @@ Window {
         animator.updatePosition()
     }
 
+    // Window settings 窗口设置
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+    visible: false
+    color: Enums.transparent
+    width: Enums.controlSize.toastWidth + Enums.spacing.xs
+    height: contentHeight + Enums.spacing.xs  // Use actual content height 使用实际内容高度
+
+    // Sync stackOffset to animator 同步stackOffset到动画器
+    onStackOffsetChanged: animator.stackOffset = stackOffset
+
+    // ==================== Content 内容 ====================
+    // Shared animator 共享动画器
+    property alias animator: animator
     NotificationAnimator {
         id: animator
         target: control
@@ -55,9 +58,6 @@ Window {
         stackOffset: control.stackOffset
         onHideFinished: { control.visible = false; control.closed() }
     }
-    
-    // Sync stackOffset to animator 同步stackOffset到动画器
-    onStackOffsetChanged: animator.stackOffset = stackOffset
 
     // Content area: Toast/InfoBar will be created here 内容区域：Toast/InfoBar 将被创建在这里
     property alias content: container
