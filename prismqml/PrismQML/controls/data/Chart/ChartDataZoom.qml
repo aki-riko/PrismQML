@@ -134,13 +134,15 @@ Item {
             ctx.stroke()
         }
 
+        Component.onCompleted: requestPaint()
+
         // Repaint when source data changes 数据源变化时重绘
         Connections {
-            target: control
             function onChartDataChanged() { thumbCanvas.requestPaint() }
             function onSeriesChanged()    { thumbCanvas.requestPaint() }
+
+            target: control
         }
-        Component.onCompleted: requestPaint()
     }
 
     // Overlay the dual-handle range slider on the thumbnail 将双手柄范围滑块叠加在缩略图上
@@ -185,7 +187,6 @@ Item {
 
     // Synchronize external viewport changes without slider feedback 外部视窗变化反向同步且不触发滑块回弹
     Connections {
-        target: control
         function onViewportStartChanged() {
             control._suppressSliderUpdate = true
             rangeSlider.firstValue = Math.round(control.viewportStart * Enums.chart.viewport_slider_steps)
@@ -196,5 +197,7 @@ Item {
             rangeSlider.secondValue = Math.round(control.viewportEnd * Enums.chart.viewport_slider_steps)
             control._suppressSliderUpdate = false
         }
+
+        target: control
     }
 }
