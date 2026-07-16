@@ -20,32 +20,39 @@ Item {
     required property bool showLabels    // Show indicator labels 显示指标标签
     required property int rings          // Number of rings 环数
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int hoveredSeriesIndex: -1
     property int hoveredPointIndex: -1
-    
-    // ==================== Signals 信号 ====================
-    signal pointClicked(int pointIndex, var data)
-    signal pointHovered(int seriesIndex, int pointIndex)
-    
-    // ==================== Internal 内部属性 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     property var pointPositions: []
     property real tooltipX: 0
     property real tooltipY: 0
-    
-    // ==================== Helper Functions 辅助函数 ====================
+
+    // ==================== Signals 信号 ====================
+    signal pointClicked(int pointIndex, var data)
+    signal pointHovered(int seriesIndex, int pointIndex)
+
+    // ==================== Internal Methods 内部方法 ====================
     function getSeriesColor(index) {
         if (series[index] && series[index].color) return series[index].color
         return Enums.chartColors.extendedPalette[index % Enums.chartColors.extendedPalette.length]
     }
-    
-    // ==================== Canvas 画布 ====================
+
+    // Repaint on hover change 悬浮变化时重绘
+    onHoveredSeriesIndexChanged: canvas.requestPaint()
+    onHoveredPointIndexChanged: canvas.requestPaint()
+    onSeriesChanged: canvas.requestPaint()
+
+    // ==================== Content 内容 ====================
+    // Canvas 画布
     Canvas {
         id: canvas
-        anchors.fill: parent
-        
+
         property real animProgress: 0
-        
+
+        anchors.fill: parent
+
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
@@ -204,9 +211,12 @@ Item {
         
         Timer {
             id: animTimer
+
+            property real t: 0  // Normalized time 归一化时间
+
             interval: Enums.duration.tick  // High-refresh tick 高刷定时器
             repeat: true
-            property real t: 0  // Normalized time 归一化时间
+
             onTriggered: {
                 t += 0.04  // ~400ms total duration 总时长约400ms
                 if (t >= 1) {
@@ -221,13 +231,8 @@ Item {
             }
         }
     }
-    
-    // Repaint on hover change 悬浮变化时重绘
-    onHoveredSeriesIndexChanged: canvas.requestPaint()
-    onHoveredPointIndexChanged: canvas.requestPaint()
-    onSeriesChanged: canvas.requestPaint()
-    
-    // ==================== Mouse Area 鼠标区域 ====================
+
+    // Mouse area 鼠标区域
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
