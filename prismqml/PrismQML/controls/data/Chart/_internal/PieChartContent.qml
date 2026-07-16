@@ -22,7 +22,7 @@ Item {
     required property real donutRatio    // Inner radius ratio 内径比例
     required property var getColor       // Function to get color 获取颜色函数
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int hoveredIndex: -1
     property int previousHoveredIndex: -1  // Track previous hover for transition 追踪上一个悬停索引用于过渡
     property bool labelOutside: false    // Label position: "outside" 标签在外部
@@ -30,16 +30,45 @@ Item {
     // ==================== Signals 信号 ====================
     signal sliceClicked(int index, var data)
     signal sliceHovered(int index)
-    
-    // ==================== Canvas 画布 ====================
+
+    // Hover animation trigger with slice transition 悬浮动画触发（带扇区过渡）
+    onHoveredIndexChanged: {
+        // Start transition animation when switching between slices 扇区切换时启动过渡动画
+        if (hoveredIndex >= 0 && previousHoveredIndex >= 0 && hoveredIndex !== previousHoveredIndex) {
+            canvas.transitionProgress = 0
+            transitionTimer.start()
+        } else if (hoveredIndex >= 0 && previousHoveredIndex < 0) {
+            // First hover, no transition needed 首次悬停，无需过渡
+            canvas.transitionProgress = 1
+            canvas.hoverOffset = Enums.spacing.s
+        } else if (hoveredIndex < 0) {
+            // Mouse left, animate out 鼠标离开，向内动画
+            canvas.hoverOffset = 0
+            canvas.transitionProgress = 1
+        }
+
+        // Update previous index for next transition 更新上一个索引用于下次过渡
+        if (hoveredIndex >= 0) {
+            previousHoveredIndex = hoveredIndex
+            canvas.hoverOffset = Enums.spacing.s
+        }
+
+        canvas.requestPaint()
+    }
+
+    onChartDataChanged: canvas.requestPaint()
+
+    // ==================== Content 内容 ====================
+    // Canvas 画布
     Canvas {
         id: canvas
-        anchors.fill: parent
-        
+
         property real animProgress: 0
         property real hoverOffset: 0
         property real transitionProgress: 1.0  // Slice transition animation progress 扇区切换动画进度
-        
+
+        anchors.fill: parent
+
         Behavior on hoverOffset {
             NumberAnimation { 
                 duration: Enums.duration.fast
@@ -173,12 +202,17 @@ Item {
                 requestPaint()
             }
         }
-        
+
+        onHoverOffsetChanged: requestPaint()
+
         Timer {
             id: animTimer
+
+            property real t: 0  // Normalized time 归一化时间
+
             interval: Enums.duration.tick  // High-refresh tick 高刷定时器
             repeat: true
-            property real t: 0  // Normalized time 归一化时间
+
             onTriggered: {
                 t += 0.04  // ~400ms total duration 总时长约400ms
                 if (t >= 1) {
@@ -192,9 +226,7 @@ Item {
                 canvas.requestPaint()
             }
         }
-        
-        onHoverOffsetChanged: requestPaint()
-        
+
         // Slice transition animation timer 扇区切换动画计时器
         Timer {
             id: transitionTimer
@@ -211,35 +243,8 @@ Item {
             }
         }
     }
-    
-    // Hover animation trigger with slice transition 悬浮动画触发（带扇区过渡）
-    onHoveredIndexChanged: {
-        // Start transition animation when switching between slices 扇区切换时启动过渡动画
-        if (hoveredIndex >= 0 && previousHoveredIndex >= 0 && hoveredIndex !== previousHoveredIndex) {
-            canvas.transitionProgress = 0
-            transitionTimer.start()
-        } else if (hoveredIndex >= 0 && previousHoveredIndex < 0) {
-            // First hover, no transition needed 首次悬停，无需过渡
-            canvas.transitionProgress = 1
-            canvas.hoverOffset = Enums.spacing.s
-        } else if (hoveredIndex < 0) {
-            // Mouse left, animate out 鼠标离开，向内动画
-            canvas.hoverOffset = 0
-            canvas.transitionProgress = 1
-        }
-        
-        // Update previous index for next transition 更新上一个索引用于下次过渡
-        if (hoveredIndex >= 0) {
-            previousHoveredIndex = hoveredIndex
-            canvas.hoverOffset = Enums.spacing.s
-        }
-        
-        canvas.requestPaint()
-    }
-    
-    onChartDataChanged: canvas.requestPaint()
-    
-    // ==================== Mouse Area 鼠标区域 ====================
+
+    // Mouse area 鼠标区域
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
