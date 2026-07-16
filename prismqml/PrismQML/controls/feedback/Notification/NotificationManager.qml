@@ -15,10 +15,10 @@ import "_internal"
 QtObject {
     id: manager
     
-    // ==================== Stack Manager 堆叠管理器 ====================
+    // ==================== Internal Props 内部属性 ====================
     property NotificationStackManager _stackManager: NotificationStackManager {}
     
-    // ==================== Position Enum (delegate) 位置枚举 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property int posTopLeft: _stackManager.posTopLeft
     readonly property int posTop: _stackManager.posTop
     readonly property int posTopRight: _stackManager.posTopRight
@@ -26,33 +26,13 @@ QtObject {
     readonly property int posBottom: _stackManager.posBottom
     readonly property int posBottomRight: _stackManager.posBottomRight
     
-    // ==================== Components (lazy load) 组件（懒加载） ====================
+    // Lazy components 延迟组件
     property var _infoBarComponent: null
     property var _toastComponent: null
     property var _desktopComponent: null
     
-    function _getInfoBarComponent() {
-        if (!_infoBarComponent) {
-            _infoBarComponent = Qt.createComponent("../InfoBar/InfoBarEntry.qml")
-        }
-        return _infoBarComponent
-    }
-    
-    function _getToastComponent() {
-        if (!_toastComponent) {
-            _toastComponent = Qt.createComponent("Toast.qml")
-        }
-        return _toastComponent
-    }
-    
-    function _getDesktopComponent() {
-        if (!_desktopComponent) {
-            _desktopComponent = Qt.createComponent("DesktopOverlay.qml")
-        }
-        return _desktopComponent
-    }
-    
-    // ==================== InfoBar Namespace InfoBar命名空间 ====================
+    // ==================== Public Props 公开属性 ====================
+    // InfoBar namespace InfoBar 命名空间
     readonly property QtObject infoBar: QtObject {
         function info(parent, title, content, duration, position) {
             return manager._createInfoBar(parent, "info", title, content, 
@@ -107,7 +87,7 @@ QtObject {
         function randomPosition() { return manager._stackManager.randomPosition() }
     }
     
-    // ==================== Toast Namespace Toast命名空间 ====================
+    // Toast namespace Toast 命名空间
     readonly property QtObject toast: QtObject {
         function info(parent, title, message, duration, position) {
             return manager._createToast(parent, "info", title, message, 
@@ -162,7 +142,7 @@ QtObject {
         function randomPosition() { return manager._stackManager.randomPosition() }
     }
     
-    // ==================== Desktop Namespace 桌面通知命名空间 ====================
+    // Desktop namespace 桌面通知命名空间
     readonly property QtObject desktop: QtObject {
         function info(title, message, duration, position) {
             return manager._createDesktop("info", title, message, 
@@ -198,6 +178,27 @@ QtObject {
     }
     
     // ==================== Internal Methods 内部方法 ====================
+    function _getInfoBarComponent() {
+        if (!_infoBarComponent) {
+            _infoBarComponent = Qt.createComponent("../InfoBar/InfoBarEntry.qml")
+        }
+        return _infoBarComponent
+    }
+
+    function _getToastComponent() {
+        if (!_toastComponent) {
+            _toastComponent = Qt.createComponent("Toast.qml")
+        }
+        return _toastComponent
+    }
+
+    function _getDesktopComponent() {
+        if (!_desktopComponent) {
+            _desktopComponent = Qt.createComponent("DesktopOverlay.qml")
+        }
+        return _desktopComponent
+    }
+
     function _getWindowParent(item) {
         if (item && item.Window && item.Window.window) {
             return item.Window.window.contentItem
