@@ -16,8 +16,6 @@ Item {
     property string description: ""
     property string actionText: ""
     
-    signal actionClicked()
-    
     readonly property color stateColor: Enums.statusLevel.getColor(state)
     
     readonly property string stateIconName: {
@@ -30,6 +28,8 @@ Item {
             default: return "Info"
         }
     }
+
+    signal actionClicked()
     
     implicitWidth: Enums.controlSize.resultStateWidth  // Fixed result width 固定结果宽度
     implicitHeight: contentCol.implicitHeight
