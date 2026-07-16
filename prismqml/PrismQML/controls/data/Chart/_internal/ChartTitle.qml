@@ -12,14 +12,15 @@ import "../../../data"
 Column {
     id: root
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string title: ""
     property string subtitle: ""
-    
-    // ==================== Layout 布局 ====================
+
+    // Layout 布局
     spacing: Enums.spacing.xxs
     visible: root.title !== ""
-    
+
+    // ==================== Content 内容 ====================
     Label {
         anchors.horizontalCenter: parent.horizontalCenter
         type: Enums.label.type_subtitle
