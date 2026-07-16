@@ -22,7 +22,8 @@ Item {
 
     default property alias content: contentItem.data
 
-    // ==================== Internal 内部常量 ====================
+    // ==================== Content 内容 ====================
+    // Internal constants 内部常量
     QtObject {
         id: _internal
         // Watermark layout constants 水印布局常量
@@ -33,13 +34,13 @@ Item {
         readonly property int extraRows: 2           // Extra rows for coverage 额外行数确保覆盖
     }
 
-    // ==================== Content 内容区域 ====================
+    // Content item 内容项
     Item {
         id: contentItem
         anchors.fill: parent
     }
 
-    // ==================== Watermark Layer 水印层 ====================
+    // Watermark layer 水印层
     Item {
         anchors.fill: parent
         clip: true
