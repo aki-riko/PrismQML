@@ -1,7 +1,7 @@
 # PrismQML 全库审计整改落盘计划
 
 > 审计交付状态：已完成（2026-07-13）
-> 整改执行状态：进行中；P6、P7、P8、P9 剩余项不得视为已完成
+> 整改执行状态：进行中；P6、P7、P9 剩余项不得视为已完成
 > 创建日期：2026-07-11
 > 审计基线：`299e984ee85e0020560bd3d5de9bbe72fc13ed25`（`0.2.24.9`）
 > 适用范围：Python、QML、C++、Rust、构建脚本、CI、发布物与文档工具
@@ -781,6 +781,8 @@ git diff --check
 
 2026-07-16 P8B-B provider 门面统一完成：六个本机下游源码根精确检索零消费者，GitHub 公开搜索仅命中无关项目；仓内 QML 也不使用 context `Icon`。修前 Python 窗口默认注入 `IconProvider`，而 C++ 明确因可能遮蔽 QML `Icon` 类型而默认不注入；Python `getPath()` 只返回自定义路径并额外暴露 `get/getAll/getAllNames/count/isCustomIcon/register_custom_icon(s)`，C++ 则只提供内置 SVG 的 `getPath/isValid`。before 提交 `4bc9fd0` 用真实 Python/QML 锁定旧自定义路径、枚举查询与显式注册表面；实现提交 `fa4a20d6` 保留 `IconProvider/get_icon_provider/register_icon_provider` 三个显式入口，把 Python/C++ 统一为仅 `getPath(name)`、`isValid(name)` 的最小合同，并从 Python 默认窗口装配删除 `Icon` 注入，不保留 deprecated 别名。真实双引擎显式注册共享同一进程单例，Python `Add` 路径存在、缺失名为 false；MSVC 正确环境重建后 C++ 同一真实输入通过。首次聚焦失败 `12 failed / 55 passed` 已定位为旧测试仍传四元依赖和三参数 provider helper，完整迁移后 Python `64 passed`、C++ `prism_test_store 1/1`，旧表面残留检索为 0。最终全量 Python `2229 passed / 1 skipped`、QML probe/coverage `169 OK / 0 错误 / 12 跳过（181）`、headless CTest `9/9`、Windows native CTest `2/2`、生成器 check 0、全库扫描 2,621、changed 0、Python 3.9 AST 283、compileall、mkdocs strict 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留进程，最终 Review P0–P3 全零。P8B 至此完成；P8 仅剩未获授权的 `DpiManager` 公开 API 收窄决策。
 
+2026-07-16 P8 DpiManager 收窄完成：用户明确批准删除重复公开 API；再次精确扫描 AeroMount、configpilot、Gitora、Kaleidos、quicksketch 与 Kaleidos-worktrees，排除依赖、构建和站点目录后仍为零真实源码消费者。提交 `79932827` 保留 `baseDpi/screenDpi/scale/devicePixelRatio/userDpiScale` 五个只读状态，删除会对 Qt 设备无关坐标再次缩放的 `effectiveScale/dp/sp`，以及 17 个重复 spacing/font/component-size 预设，不保留兼容别名。新增真实 QML 元对象回归锁定公开属性精确集合、删除方法不可调用和状态值有效；旧 Prism Design wrapper 改读保留的 `scale`。修前运行时为 23 个自定义属性加 `dp/sp`，修后仅五个状态；目标文件 QML 违规 `17→0`，全库库存 `2,621→2,604` 且 changed 为 0。最终定向 `3 passed`、全量 Python `2230 passed / 1 skipped`、QML probe `169 OK / 0 错误 / 12 跳过`、headless CTest `9/9`、Windows native CTest `2/2`、图标生成器 2,497、Python 3.9 AST 283、compileall、mkdocs strict 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留进程。P8 至此完成。
+
 验收判据：
 
 - Fluent SVG 集合减去枚举值的差集为 0。
@@ -937,7 +939,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 
 ## 九、状态追踪
 
-截至 2026-07-16，按剩余工作量粗估整体计划约完成 **80%**：P0–P5、P7J、P7K、P8A 与 P8B 已完成，P6/P7/P8 继续进行，P9 待执行；该百分比不是按阶段数量简单平均，新增插单会改变剩余时间估算。
+截至 2026-07-16，按剩余工作量粗估整体计划约完成 **82%**：P0–P5、P7J、P7K 与 P8 已完成，P6/P7 继续进行，P9 待执行；该百分比不是按阶段数量简单平均，新增插单会改变剩余时间估算。
 
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
@@ -957,7 +959,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 | P7K-B SVG provider 编解码 | 已完成 | WindowIcon 保留 URL、整体编码裸路径，Python/C++ provider 只解码一次；真实 `#/%23/%/|` 与非 ASCII 路径通过；Python 2216/1、QML 169/0/12、CTest 9/9 + native 2/2 | `74c095ef` |
 | P7K-C SqlListModel 只读 URI | 已完成 | Windows/POSIX/UNC URI 一次编码，Python 列解析/count/页读取统一只读；真实特殊路径和删除文件在 Python/Rust 下结果一致且不建库；Python 2223/1、QML 169/0/12、CTest 9/9 + native 2/2 | `68c9e60a` |
 | P7K-D Python 注册注入 | 已完成 | `register_types()` 补齐 ConfigManager/ClipboardHelper；双引擎同一单例、DpiManager wrapper 125、warning/critical 归零；Python 2224/1、QML 169/0/12、CTest 9/9 + native 2/2 | `47ebdb30` |
-| P8 资源注册 | 进行中 | P8A 五个孤儿已删除；P8B 生成器与 2,497 项双注册表已同步，Python/C++ IconProvider 已统一为显式 `getPath/isValid` 最小合同且默认不注入。全量 Python 2229/1、QML 169/0/12、CTest 9/9 + native 2/2。仅 DpiManager 收窄仍待授权 | `154cd4e4`、`11882986`、`39efe2e8`、`4bc9fd0`、`fa4a20d6` |
+| P8 资源注册 | 已完成 | 五个孤儿已删除；2,497 项双注册表已同步；Python/C++ IconProvider 已统一；DpiManager 已收窄为五个真实状态。全量 Python 2230/1、QML 169/0/12、CTest 9/9 + native 2/2，全库 QML 库存 2,604、changed 0 | `154cd4e4`、`11882986`、`39efe2e8`、`4bc9fd0`、`fa4a20d6`、`79932827` |
 | P9 最终验收 | 待执行 |  |  |
 
 状态只能填写“待执行 / 进行中 / 已完成 / 阻塞”。“已完成”必须同时记录真实测试结果和提交哈希。
