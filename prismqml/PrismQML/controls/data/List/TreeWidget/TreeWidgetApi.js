@@ -164,9 +164,25 @@ function findItems(ctrl, internalModel, text, flags, column) {
 
 function sortItems(ctrl, column, order) {
     if (!ctrl.model) return
+    var currentOriginal = null
+    if (ctrl.currentIndex >= 0 && ctrl.currentIndex < ctrl.count()) {
+        currentOriginal = ctrl._findOriginalItem(ctrl._getItemObject(ctrl.currentIndex).pathStr)
+    }
+    var selectedOriginals = []
+    for (var selectedIndex = 0; selectedIndex < ctrl._selectedIndices.length; selectedIndex++) {
+        var selectedItem = ctrl._getItemObject(ctrl._selectedIndices[selectedIndex])
+        var selectedOriginal = selectedItem ? ctrl._findOriginalItem(selectedItem.pathStr) : null
+        if (selectedOriginal) selectedOriginals.push(selectedOriginal)
+    }
     ctrl._sortRecursive(ctrl.model, order)
     ctrl.model = ctrl.model.slice()
     ctrl._rebuildModel()
+    ctrl.currentIndex = currentOriginal ? ctrl._findItemIndex(currentOriginal) : -1
+    ctrl._selectedIndices = selectedOriginals.map(function(item) {
+        return ctrl._findItemIndex(item)
+    }).filter(function(index) {
+        return index >= 0
+    })
 }
 
 // ==================== Headers API 表头 API ====================
@@ -200,12 +216,20 @@ function count(internalModel) {
 
 // ==================== Item Properties API 项属性 API ====================
 
+function resolveItem(ctrl, internalModel, item) {
+    var idx = ctrl._findItemIndex(item)
+    if (idx < 0) return { index: -1, original: null }
+    return {
+        index: idx,
+        original: ctrl._findOriginalItem(internalModel.get(idx).pathStr)
+    }
+}
+
 function setItemText(ctrl, internalModel, item, column, text) {
-    var original = typeof item === "object" ? ctrl._findOriginalItem(item.pathStr) : null
-    if (original) {
-        original.text = text
-        var idx = ctrl._findItemIndex(item)
-        if (idx >= 0) internalModel.setProperty(idx, "text", text)
+    var resolved = resolveItem(ctrl, internalModel, item)
+    if (resolved.original) {
+        resolved.original.text = text
+        internalModel.setProperty(resolved.index, "text", text)
     }
 }
 
@@ -214,21 +238,19 @@ function itemText(item, column) {
 }
 
 function setItemIcon(ctrl, internalModel, item, column, icon) {
-    var original = typeof item === "object" ? ctrl._findOriginalItem(item.pathStr) : null
-    if (original) {
-        original.icon = icon
-        var idx = ctrl._findItemIndex(item)
-        if (idx >= 0) internalModel.setProperty(idx, "icon", icon)
+    var resolved = resolveItem(ctrl, internalModel, item)
+    if (resolved.original) {
+        resolved.original.icon = icon
+        internalModel.setProperty(resolved.index, "icon", icon)
     }
 }
 
 function setItemCheckState(ctrl, internalModel, item, column, state) {
-    var original = typeof item === "object" ? ctrl._findOriginalItem(item.pathStr) : null
-    if (original) {
-        original.checkState = state
-        original.checked = state
-        var idx = ctrl._findItemIndex(item)
-        if (idx >= 0) internalModel.setProperty(idx, "checkState", state)
+    var resolved = resolveItem(ctrl, internalModel, item)
+    if (resolved.original) {
+        resolved.original.checkState = state
+        resolved.original.checked = state
+        internalModel.setProperty(resolved.index, "checkState", state)
     }
 }
 
@@ -237,10 +259,13 @@ function itemCheckState(item, column) {
 }
 
 function setItemData(ctrl, item, column, role, value) {
-    var original = typeof item === "object" ? ctrl._findOriginalItem(item.pathStr) : null
+    var idx = ctrl._findItemIndex(item)
+    var flatItem = idx >= 0 ? ctrl._getItemObject(idx) : null
+    var original = flatItem ? ctrl._findOriginalItem(flatItem.pathStr) : null
     if (original) {
         if (!original.data) original.data = {}
         original.data[role] = value
+        ctrl._rebuildModel()
     }
 }
 

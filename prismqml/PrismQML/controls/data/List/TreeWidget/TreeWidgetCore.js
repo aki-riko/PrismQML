@@ -1,7 +1,17 @@
 // TreeWidgetCore.js - Core internal functions 核心内部函数
 // Usage: import "TreeWidgetCore.js" as Core
 
+var nextTreeItemId = 1
+
 // ==================== Model Functions 模型函数 ====================
+
+function ensureItemIdentity(item) {
+    if (item._treeItemId === undefined || item._treeItemId === null) {
+        item._treeItemId = nextTreeItemId
+        nextTreeItemId += 1
+    }
+    return item._treeItemId
+}
 
 function rebuildModel(ctrl, internalModel) {
     internalModel.clear()
@@ -18,7 +28,8 @@ function rebuildModel(ctrl, internalModel) {
             checkable: item.checkable === true,
             checkState: item.checkState || item.checked || 0,
             pathStr: item.path ? item.path.join(",") : "",
-            data: item.data || {}
+            data: item.data || {},
+            _treeItemId: ensureItemIdentity(item)
         })
     }
 }
@@ -28,6 +39,7 @@ function flattenModel(items, depth, path) {
     if (!items) return result
     for (var i = 0; i < items.length; i++) {
         var item = items[i]
+        ensureItemIdentity(item)
         item.depth = depth
         item.path = path.concat([i])
         result.push(item)
@@ -64,8 +76,30 @@ function normalizeItem(item) {
     }
 }
 
+function itemPathString(item) {
+    if (!item || typeof item !== "object") return ""
+    if (item.pathStr !== undefined && item.pathStr !== null && String(item.pathStr) !== "") {
+        return String(item.pathStr)
+    }
+    if (item.path && typeof item.path.join === "function") return item.path.join(",")
+    return ""
+}
+
 function findItemIndex(internalModel, item) {
     if (!item) return -1
+    if (typeof item === "object" && item._treeItemId !== undefined && item._treeItemId !== null) {
+        for (var identityIndex = 0; identityIndex < internalModel.count; identityIndex++) {
+            if (internalModel.get(identityIndex)._treeItemId === item._treeItemId) return identityIndex
+        }
+        return -1
+    }
+    var searchPath = itemPathString(item)
+    if (searchPath !== "") {
+        for (var pathIndex = 0; pathIndex < internalModel.count; pathIndex++) {
+            if (internalModel.get(pathIndex).pathStr === searchPath) return pathIndex
+        }
+        return -1
+    }
     var searchText = typeof item === "string" ? item : (item.text || "")
     for (var i = 0; i < internalModel.count; i++) {
         if (internalModel.get(i).text === searchText) return i
@@ -152,6 +186,7 @@ function getItemObject(ctrl, internalModel, idx) {
         checkState: m.checkState,
         data: m.data,
         pathStr: m.pathStr,
+        _treeItemId: m._treeItemId,
         index: idx
     }
 }
@@ -198,7 +233,8 @@ function toggleExpandAt(ctrl, internalModel, idx) {
                 checkable: c.checkable === true,
                 checkState: c.checkState || c.checked || 0,
                 pathStr: c.path ? c.path.join(",") : "",
-                data: c.data || {}
+                data: c.data || {},
+                _treeItemId: ensureItemIdentity(c)
             })
         }
         ctrl.itemExpanded(original)
