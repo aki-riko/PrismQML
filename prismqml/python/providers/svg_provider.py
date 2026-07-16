@@ -16,6 +16,8 @@ from PySide6.QtGui import QImage, QPainter
 from PySide6.QtQuick import QQuickImageProvider
 from PySide6.QtSvg import QSvgRenderer
 
+from ..core._icon_path import resolve_provider_path
+
 
 class SvgImageProvider(QQuickImageProvider):
     """SVG图片提供器 - 使用QSvgRenderer实现高质量渲染
@@ -26,8 +28,11 @@ class SvgImageProvider(QQuickImageProvider):
             sourceSize: Qt.size(128, 128)  // Optional: specify render size 可选：指定渲染尺寸
         }
 
-    The path after "image://svg/" is the actual file path.
-    "image://svg/" 后面的路径是实际的文件路径。
+    The path after `image://svg/` is one QML URL component: reserved
+    characters are percent-decoded exactly once, then file/qrc sources are
+    resolved with Qt URL semantics.
+    `image://svg/` 后是一个 QML URL 组件：保留字符只解码一次，再按 Qt
+    URL 语义解析 file/qrc 来源。
     """
 
     # Default render size when not specified 未指定时的默认渲染尺寸
@@ -43,8 +48,8 @@ class SvgImageProvider(QQuickImageProvider):
         """Request an image from the provider 从提供器请求图片
 
         Args:
-            id: The path to the SVG file (after "image://svg/")
-                SVG文件路径（"image://svg/"之后的部分）
+            id: The QML provider id after "image://svg/" (one encoded layer)
+                "image://svg/" 后的 QML provider id（一层编码）
             size: Output parameter for the actual image size (not used in Python)
                   输出参数，实际图片尺寸（Python中不使用）
             requestedSize: The requested size from QML (from sourceSize property)
@@ -53,13 +58,7 @@ class SvgImageProvider(QQuickImageProvider):
         Returns:
             QImage: The rendered SVG image SVG渲染后的图片
         """
-        # Handle qrc paths QRC路径处理
-        if id.startswith("qrc:/"):
-            path = ":" + id[4:]  # Convert "qrc:/xxx" to ":/xxx"
-        elif id.startswith(":/"):
-            path = id
-        else:
-            path = id
+        path = resolve_provider_path(id)
 
         # Get or create renderer 获取或创建渲染器
         renderer = self._get_renderer(path)

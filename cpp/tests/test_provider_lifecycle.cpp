@@ -13,10 +13,12 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QImage>
 #include <QQmlEngine>
 #include <QTemporaryDir>
+#include <QUrl>
 #include <memory>
 
 using namespace prism;
@@ -29,6 +31,27 @@ static bool providerFactoriesAreEngineScoped() {
     std::unique_ptr<QRCodeImageProvider> qrA(get_qrcode_provider());
     std::unique_ptr<QRCodeImageProvider> qrB(get_qrcode_provider());
     return svgA != svgB && qrA != qrB;
+}
+
+static bool encodedSvgPathRenders(const QString &directory) {
+    if (!QDir().mkpath(directory))
+        return false;
+    const QString path =
+        QDir(directory).filePath(QStringLiteral("图 标#百分%.svg"));
+    const QByteArray payload =
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"8\" height=\"8\">"
+        "<rect width=\"8\" height=\"8\"/></svg>";
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly)
+        || file.write(payload) != payload.size())
+        return false;
+    file.close();
+    const QString providerId =
+        QUrl::fromLocalFile(path).toString(QUrl::FullyEncoded);
+    SvgImageProvider provider;
+    const QImage image = provider.requestImage(
+        providerId, nullptr, QSize(16, 16));
+    return !image.isNull() && image.size() == QSize(16, 16);
 }
 
 static AcrylicImageProvider *acrylicProvider(QQmlEngine &engine) {
@@ -73,6 +96,10 @@ static bool runLifecycleCycle(int cycle) {
 static bool runLifecycleSuite(const QString &configPath) {
     if (!providerFactoriesAreEngineScoped()) {
         qCritical() << "FAIL: SVG/QRCode provider factory returned a singleton";
+        return false;
+    }
+    if (!encodedSvgPathRenders(QFileInfo(configPath).absolutePath())) {
+        qCritical() << "FAIL: encoded SVG provider path";
         return false;
     }
     for (int cycle = 0; cycle < kLifecycleCycles; ++cycle) {

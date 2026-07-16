@@ -13,7 +13,7 @@ class QSvgRenderer;
 
 namespace prism {
 
-// image://svg/<path> - 用 QSvgRenderer 高质量渲染 SVG
+// image://svg/<provider-id> - URL 组件只解码一次，再按 file/qrc 路径渲染 SVG
 class SvgImageProvider : public QQuickImageProvider {
 public:
     SvgImageProvider();

@@ -24,3 +24,12 @@ def resolve_icon_path(icon: str) -> str:
     if url.scheme().lower() == "qrc":
         return ":/" + url.path().lstrip("/")
     return str(Path(icon).resolve())
+
+
+def resolve_provider_path(provider_id: str) -> str:
+    """Decode one QML provider-id layer, then resolve its path. 解码一层 provider id。"""
+    url = QUrl(provider_id)
+    if url.isLocalFile() or url.scheme().lower() == "qrc":
+        return resolve_icon_path(provider_id)
+    decoded = QUrl.fromPercentEncoding(provider_id.encode("utf-8"))
+    return resolve_icon_path(decoded)

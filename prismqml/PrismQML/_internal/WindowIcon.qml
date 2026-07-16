@@ -26,13 +26,11 @@ Item {
         if (_activeSource === "") return ""
         let normalizedSource = _activeSource.replace(/\\/g, "/")
         if (!normalizedSource.toLowerCase().endsWith(".svg")) return ""
-        if (normalizedSource.startsWith("qrc:/") || normalizedSource.startsWith(":/")) {
+        let lowerSource = normalizedSource.toLowerCase()
+        if (lowerSource.startsWith("file:") || lowerSource.startsWith("qrc:")) {
             return "image://svg/" + normalizedSource
         }
-        if (normalizedSource.startsWith("file:///")) {
-            return "image://svg/" + normalizedSource.substring(8)
-        }
-        return "image://svg/" + normalizedSource
+        return "image://svg/" + encodeURIComponent(normalizedSource)
     }
     readonly property string _directSource: {
         if (_activeSource === "") return ""

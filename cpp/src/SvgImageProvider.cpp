@@ -4,6 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - SvgImageProvider 实现 (镜像 Python svg_provider.py)
 #include "prism/SvgImageProvider.h"
+#include "IconPath_p.h"
 
 #include <QImage>
 #include <QPainter>
@@ -21,10 +22,7 @@ SvgImageProvider::~SvgImageProvider() {
 
 QImage SvgImageProvider::requestImage(const QString &id, QSize *size,
                                       const QSize &requestedSize) {
-    // 路径处理 (镜像 Python: qrc:/ -> :/)
-    QString path = id;
-    if (id.startsWith(QLatin1String("qrc:/")))
-        path = QLatin1Char(':') + id.mid(4);
+    const QString path = detail::resolveProviderPath(id);
 
     QSvgRenderer *renderer = getRenderer(path);
     if (!renderer || !renderer->isValid())

@@ -172,6 +172,8 @@ Updater updater("owner/repo", "v1.0.0", "Setup",
 | 二维码 | `QRCodeGenerator`（完整编码后端，nayuki qrcodegen / MIT，`available=true`） | providers/qrcode_generator.py |
 | DWM 同步 | `installDwmSyncFilter`（无边框窗口 resize 防撕裂，桌面 Windows） | core/shadow.py |
 
+`image://svg/<provider-id>` 的 id 是一个 QML URL 路径组件，不是可二次猜测的裸文件名。Python/C++ provider 只做一次百分号解码；`file:` 与 `qrc:` 则保留编码交给 `QUrl` 解析，避免 `%23` 提前变成 fragment。`WindowIcon` 会保留完整 URL 来源，裸本地/`:/` 路径则整体编码为一个组件；因此空格、`#`、字面 `%23`、`|`、非 ASCII、Windows/POSIX/UNC 与 qrc 路径使用同一合同。
+
 `Updater::versionIsNewer()` 与 Python Updater 使用同一 tag 比较合同：去除可选 `v` / `V` 前缀，支持可变长度点分数字主版本和点分预发布标识，正式版高于同主版本预发布版，忽略 `+` 后的构建元数据，并把空白或仅前缀标签视为最小版本。该函数用于比较 GitHub tag，不是严格拒绝非标准 tag 的完整 SemVer 校验器。
 
 C++ `Updater` 与 Python 使用同一响应和下载事务合同：release 必须是严格 UTF-8 JSON 对象且字段类型有效；下载写入进程唯一的 `QSaveFile`，禁用 direct-write fallback，只有完整写入并成功 `commit()` 后才发 `downloadFinished`。网络、写入、commit 或空文件失败只发一次 `downloadFailed` 并清理残留；同一实例的重复检查/下载不会覆盖活动 reply。

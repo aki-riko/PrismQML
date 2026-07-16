@@ -26,4 +26,12 @@ inline QString resolveIconPath(const QString &icon) {
     return icon;
 }
 
+inline QString resolveProviderPath(const QString &providerId) {
+    const QUrl url(providerId);
+    if (url.isLocalFile()
+        || url.scheme().compare(QLatin1String("qrc"), Qt::CaseInsensitive) == 0)
+        return resolveIconPath(providerId);
+    return resolveIconPath(QUrl::fromPercentEncoding(providerId.toUtf8()));
+}
+
 }  // namespace prism::detail
