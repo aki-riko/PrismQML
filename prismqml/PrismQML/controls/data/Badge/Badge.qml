@@ -16,7 +16,7 @@ Rectangle {
     // Level: Enums.statusLevel.info/success/warning/error/attention
     property int level: Enums.statusLevel.error
     
-    // ==================== Content Props 内容属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int count: 0              // Count mode 计数模式
     property int maxCount: 99          // Max count before showing "99+" 最大计数
     property string text: ""           // Text mode 文本模式
@@ -24,7 +24,7 @@ Rectangle {
     property bool dot: false           // Dot mode 点模式
     property bool showZero: false      // Show badge when count is 0 计数为0时是否显示
     
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Readonly State 只读状态 ====================
     // Check if has explicit content 检查是否有显式内容
     readonly property bool _hasContent: icon !== "" || text !== "" || count > 0 || showZero
     
@@ -50,7 +50,7 @@ Rectangle {
     radius: height / 2
     visible: _visible
 
-    // ==================== Color 颜色 ====================
+    // Color 颜色
     // 语义色由 getColorByLevel 在 neo 下自动返回高饱和值; 黑边为 neo 结构差异
     color: Enums.statusLevel.getColorByLevel(level)
     // neo: 黑细粗边(徽章小, 用 medium 不用 thick)
