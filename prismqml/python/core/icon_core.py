@@ -74,128 +74,127 @@ def resolveIconColor(theme: Theme = Theme.AUTO, reverse: bool = False) -> str:
 _SVG_NAMESPACE_URI = "http://www.w3.org/2000/svg"
 
 
-def _rewrite_svg_attrs(
-    svg_path: str,
-    overrides: dict,
-    *,
-    only_paths: Optional[Iterable[int]] = None,
-) -> str:
-    """读 SVG 文件并在 ``<path>`` 元素上覆盖属性, 返回新的 SVG 字符串。
+def _qfile_svg_path(svg_path: str) -> str:
+    return ":" + svg_path[4:] if svg_path.startswith("qrc:/") else svg_path
 
-    采用 :class:`QXmlStreamReader` / :class:`QXmlStreamWriter` 流式拷贝原始
-    token, 只在命中目标 ``<path>`` 时替换属性, 其余节点(注释、命名空间、文本)
-    按原样写出, 不做整树重排。
 
-    Args:
-        svg_path: SVG 本地文件或 ``qrc:/`` 资源路径; 非 ``.svg`` 直接返回空串。
-        overrides: 要写到命中 ``<path>`` 上的属性映射, 例如 ``{"fill": "#ff0000"}``。
-            空 dict 表示不改任何属性 (只做一遍流式拷贝)。
-        only_paths: 仅作用于这些 ``<path>`` 序号 (强制关键字传入); ``None`` 表示
-            对所有 ``<path>`` 生效; 空集合 ``[]`` 表示一个都不改 (语义比
-            "None=全部、[]=全部"更精确)。
-
-    Raises:
-        ValueError: SVG 内容不是合法 XML, 不返回不可渲染的部分输出。
-    """
-    if not svg_path.lower().endswith(".svg"):
-        return ""
-
-    qfile_path = ":" + svg_path[4:] if svg_path.startswith("qrc:/") else svg_path
-    handle = QFile(qfile_path)
+def _read_svg_text(svg_path: str) -> Optional[str]:
+    handle = QFile(_qfile_svg_path(svg_path))
     if not handle.open(QFile.ReadOnly):
-        return ""
+        return None
     try:
-        raw_text = bytes(handle.readAll()).decode("utf-8")
+        return bytes(handle.readAll()).decode("utf-8")
     finally:
         handle.close()
 
-    selected = set(only_paths) if only_paths is not None else None
-    overrides = {str(k): str(v) for k, v in (overrides or {}).items()}
 
+def _prepare_svg_rewrite(overrides, only_paths):
+    selected = set(only_paths) if only_paths is not None else None
+    normalized = {str(k): str(v) for k, v in (overrides or {}).items()}
+    return selected, normalized
+
+
+def _create_svg_stream(raw_text: str):
     reader = QXmlStreamReader(raw_text)
     sink = QBuffer()
     sink.open(QIODevice.WriteOnly)
     writer = QXmlStreamWriter(sink)
     writer.setAutoFormatting(False)
+    return reader, sink, writer
 
-    path_seq = -1
-    root_is_legacy_svg = None
 
-    while not reader.atEnd():
-        token = reader.readNext()
-        if reader.hasError():
-            break
+def _write_namespace_declarations(writer, declarations) -> None:
+    for declaration in declarations:
+        prefix = declaration.prefix()
+        name = ("xmlns:" + prefix) if prefix else "xmlns"
+        writer.writeAttribute(name, declaration.namespaceUri())
 
-        if token == QXmlStreamReader.StartDocument:
-            # documentVersion() 在没有 XML 声明时返回空, 这时退化到默认版本
-            # 避免输出 version="" 这种不合规 XML 头。
-            version = reader.documentVersion()
-            if version:
-                writer.writeStartDocument(version, reader.isStandaloneDocument())
-            else:
-                writer.writeStartDocument()
-        elif token == QXmlStreamReader.EndDocument:
-            writer.writeEndDocument()
-        elif token == QXmlStreamReader.StartElement:
-            name = reader.name()
-            qualified_name = reader.qualifiedName()
-            namespace_uri = reader.namespaceUri()
-            attrs_iter = reader.attributes()
-            if root_is_legacy_svg is None:
-                root_is_legacy_svg = name == "svg" and namespace_uri == ""
-            # 命名空间声明 (xmlns / xmlns:xlink 等) 通过 namespaceDeclarations()
-            # 单独取, 不出现在 attributes() 里。直接当普通 xmlns* 属性写出去,
-            # 避开 writer 自身的命名空间状态机自动加 n1 前缀的副作用。
-            ns_decls = reader.namespaceDeclarations()
-            is_svg_path = name == "path" and namespace_uri == _SVG_NAMESPACE_URI
-            is_svg_path = is_svg_path or (
-                name == "path"
-                and namespace_uri == ""
-                and root_is_legacy_svg
-            )
-            if is_svg_path:
-                path_seq += 1
-                hit = selected is None or path_seq in selected
-                writer.writeStartElement(qualified_name)
-                for nd in ns_decls:
-                    pref = nd.prefix()
-                    writer.writeAttribute(
-                        ("xmlns:" + pref) if pref else "xmlns", nd.namespaceUri()
-                    )
-                # 用 qualifiedName 保留 xlink:href 这类带前缀属性。
-                merged = {a.qualifiedName(): a.value() for a in attrs_iter}
-                if hit:
-                    merged.update(overrides)
-                for ak, av in merged.items():
-                    writer.writeAttribute(ak, av)
-            else:
-                writer.writeStartElement(qualified_name)
-                for nd in ns_decls:
-                    pref = nd.prefix()
-                    writer.writeAttribute(
-                        ("xmlns:" + pref) if pref else "xmlns", nd.namespaceUri()
-                    )
-                for a in attrs_iter:
-                    writer.writeAttribute(a.qualifiedName(), a.value())
-        elif token == QXmlStreamReader.EndElement:
-            writer.writeEndElement()
-        elif token == QXmlStreamReader.Characters:
-            if reader.isCDATA():
-                writer.writeCDATA(reader.text())
-            else:
-                writer.writeCharacters(reader.text())
-        elif token == QXmlStreamReader.Comment:
-            writer.writeComment(reader.text())
-        elif token == QXmlStreamReader.ProcessingInstruction:
-            writer.writeProcessingInstruction(
-                reader.processingInstructionTarget(),
-                reader.processingInstructionData(),
-            )
-        elif token == QXmlStreamReader.DTD:
-            writer.writeDTD(reader.text())
-        elif token == QXmlStreamReader.EntityReference:
-            writer.writeEntityReference(reader.name())
 
+def _write_start_element(writer, qualified_name, declarations, attributes) -> None:
+    writer.writeStartElement(qualified_name)
+    _write_namespace_declarations(writer, declarations)
+    for name, value in attributes:
+        writer.writeAttribute(name, value)
+
+
+def _is_svg_path(name, namespace_uri, root_is_legacy_svg) -> bool:
+    if name != "path":
+        return False
+    return namespace_uri == _SVG_NAMESPACE_URI or (
+        namespace_uri == "" and root_is_legacy_svg
+    )
+
+
+def _merged_path_attributes(attributes, overrides, hit):
+    merged = {attribute.qualifiedName(): attribute.value() for attribute in attributes}
+    if hit:
+        merged.update(overrides)
+    return merged.items()
+
+
+def _write_svg_start_element(
+    reader, writer, selected, overrides, path_seq, root_is_legacy_svg
+):
+    name = reader.name()
+    qualified_name = reader.qualifiedName()
+    namespace_uri = reader.namespaceUri()
+    attributes = reader.attributes()
+    if root_is_legacy_svg is None:
+        root_is_legacy_svg = name == "svg" and namespace_uri == ""
+    declarations = reader.namespaceDeclarations()
+    if _is_svg_path(name, namespace_uri, root_is_legacy_svg):
+        path_seq += 1
+        hit = selected is None or path_seq in selected
+        output_attributes = _merged_path_attributes(attributes, overrides, hit)
+    else:
+        output_attributes = (
+            (attribute.qualifiedName(), attribute.value())
+            for attribute in attributes
+        )
+    _write_start_element(
+        writer, qualified_name, declarations, output_attributes
+    )
+    return path_seq, root_is_legacy_svg
+
+
+def _write_start_document(reader, writer) -> None:
+    version = reader.documentVersion()
+    if version:
+        writer.writeStartDocument(version, reader.isStandaloneDocument())
+    else:
+        writer.writeStartDocument()
+
+
+def _write_characters(reader, writer) -> None:
+    if reader.isCDATA():
+        writer.writeCDATA(reader.text())
+    else:
+        writer.writeCharacters(reader.text())
+
+
+def _copy_svg_token(reader, writer, token) -> None:
+    if token == QXmlStreamReader.StartDocument:
+        _write_start_document(reader, writer)
+    elif token == QXmlStreamReader.EndDocument:
+        writer.writeEndDocument()
+    elif token == QXmlStreamReader.EndElement:
+        writer.writeEndElement()
+    elif token == QXmlStreamReader.Characters:
+        _write_characters(reader, writer)
+    elif token == QXmlStreamReader.Comment:
+        writer.writeComment(reader.text())
+    elif token == QXmlStreamReader.ProcessingInstruction:
+        writer.writeProcessingInstruction(
+            reader.processingInstructionTarget(),
+            reader.processingInstructionData(),
+        )
+    elif token == QXmlStreamReader.DTD:
+        writer.writeDTD(reader.text())
+    elif token == QXmlStreamReader.EntityReference:
+        writer.writeEntityReference(reader.name())
+
+
+def _finish_svg_rewrite(reader, sink, svg_path: str) -> str:
     if reader.hasError():
         error_message = reader.errorString()
         line_number = reader.lineNumber()
@@ -205,9 +204,53 @@ def _rewrite_svg_attrs(
             f"SVG XML 解析失败: {svg_path} "
             f"(line={line_number}, column={column_number}): {error_message}"
         )
-
     sink.close()
     return bytes(sink.data()).decode("utf-8")
+
+
+def _rewrite_svg_stream(raw_text, selected, overrides, svg_path: str) -> str:
+    reader, sink, writer = _create_svg_stream(raw_text)
+    path_seq = -1
+    root_is_legacy_svg = None
+    while not reader.atEnd():
+        token = reader.readNext()
+        if reader.hasError():
+            break
+        if token == QXmlStreamReader.StartElement:
+            path_seq, root_is_legacy_svg = _write_svg_start_element(
+                reader, writer, selected, overrides,
+                path_seq, root_is_legacy_svg,
+            )
+        else:
+            _copy_svg_token(reader, writer, token)
+    return _finish_svg_rewrite(reader, sink, svg_path)
+
+
+def _rewrite_svg_attrs(
+    svg_path: str,
+    overrides: dict,
+    *,
+    only_paths: Optional[Iterable[int]] = None,
+) -> str:
+    """流式覆盖 SVG ``<path>`` 属性并返回新的 XML 字符串。
+
+    Args:
+        svg_path: SVG 本地文件或 ``qrc:/`` 资源路径; 非 ``.svg`` 直接返回空串。
+        overrides: 要写到命中 ``<path>`` 上的属性映射, 例如 ``{"fill": "#ff0000"}``。
+            空映射只做流式复制。
+        only_paths: 仅作用于这些零基 ``<path>`` 序号; ``None`` 表示全部,
+            空集合表示一个都不改。
+
+    Raises:
+        ValueError: SVG 内容不是合法 XML, 不返回不可渲染的部分输出。
+    """
+    if not svg_path.lower().endswith(".svg"):
+        return ""
+    raw_text = _read_svg_text(svg_path)
+    if raw_text is None:
+        return ""
+    selected, normalized = _prepare_svg_rewrite(overrides, only_paths)
+    return _rewrite_svg_stream(raw_text, selected, normalized, svg_path)
 
 
 # ---------------------------------------------------------------------------
