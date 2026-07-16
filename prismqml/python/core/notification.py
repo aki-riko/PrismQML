@@ -33,7 +33,7 @@ from enum import IntEnum
 from typing import Optional
 
 from PySide6.QtCore import QObject, QUrl, Qt, QMetaObject, Q_ARG, Slot
-from PySide6.QtQml import QQmlComponent
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from .engine import EngineManager
 from .logger import getLogger
@@ -89,9 +89,49 @@ QtObject {
 """
 
 
-def _get_helper() -> Optional[QObject]:
-    """lazy 创建 helper QML 对象, 单例缓存"""
+def _cached_helper_for(engine: QQmlApplicationEngine) -> Optional[QObject]:
+    """Return a live helper owned by this engine. 返回当前引擎持有的存活 helper。"""
     global _helper
+    if _helper is None:
+        return None
+
+    try:
+        _ = _helper.objectName()
+        helper_parent = _helper.parent()
+    except RuntimeError:
+        _logger.warning("helper QML 对象 C++ 端已销毁, 重新创建")
+        _helper = None
+        return None
+    if helper_parent is engine:
+        return _helper
+    _helper = None
+    _logger.warning("通知 helper 所属 Engine 已变化, 重新创建")
+    return None
+
+
+def _create_helper(engine: QQmlApplicationEngine) -> Optional[QObject]:
+    """Create and publish one engine-owned helper. 创建并发布引擎持有的 helper。"""
+    global _helper
+    component = QQmlComponent(engine)
+    component.setData(_HELPER_QML.encode("utf-8"), QUrl())
+    if component.isError():
+        _logger.error(f"Notification helper QML 编译失败: {component.errorString()}")
+        return None
+
+    # Attach the helper to the engine root context. 将 helper 挂到引擎根上下文。
+    obj = component.create(engine.rootContext())
+    if obj is None:
+        _logger.error("Notification helper QML 实例化失败")
+        return None
+    # Keep both Python and C++ ownership. 同时保留 Python 与 C++ 所有权。
+    obj.setParent(engine)
+
+    _helper = obj
+    return _helper
+
+
+def _get_helper() -> Optional[QObject]:
+    """Lazy-create the cached helper. 懒创建并缓存通知 helper。"""
     try:
         engine = EngineManager.get_engine()
     except RuntimeError:
@@ -100,37 +140,10 @@ def _get_helper() -> Optional[QObject]:
     if engine is None:
         return None
 
-    if _helper is not None:
-        # 防御 _helper 的 C++ 端被 GC 销毁 (Python 持引用 ≠ C++ 存活)
-        try:
-            _ = _helper.objectName()
-            helper_parent = _helper.parent()
-        except RuntimeError:
-            _logger.warning("helper QML 对象 C++ 端已销毁, 重新创建")
-            _helper = None
-        else:
-            if helper_parent is engine:
-                return _helper
-            _helper = None
-            _logger.warning("通知 helper 所属 Engine 已变化, 重新创建")
-
-    component = QQmlComponent(engine)
-    component.setData(_HELPER_QML.encode("utf-8"), QUrl())
-    if component.isError():
-        _logger.error(f"Notification helper QML 编译失败: {component.errorString()}")
-        return None
-
-    # 关键: create(context) 让 helper 挂在 engine 的 root context 上,
-    # 避免 component.create() 不持有 ownership 导致 QObject 立刻被 GC
-    # Python 端 _helper 变量保 Python ref, parent=engine 保 C++ ref, 双保险。
-    obj = component.create(engine.rootContext())
-    if obj is None:
-        _logger.error("Notification helper QML 实例化失败")
-        return None
-    obj.setParent(engine)  # 显式 parent → engine 生命周期内不会被销毁
-
-    _helper = obj
-    return _helper
+    helper = _cached_helper_for(engine)
+    if helper is not None:
+        return helper
+    return _create_helper(engine)
 
 
 def _invoke(method_name: str, *args) -> bool:

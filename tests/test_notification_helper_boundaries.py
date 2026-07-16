@@ -85,6 +85,13 @@ class _FakeEngine:
         return self._scenario.context
 
 
+class _EqualButDistinctEngine(_FakeEngine):
+    """Engine that compares equal without identity. 相等但非同一对象的引擎。"""
+
+    def __eq__(self, _other):
+        return True
+
+
 class _FakeComponent:
     """QQmlComponent substitute with injectable outcomes. 可注入结果的组件替身。"""
 
@@ -287,6 +294,21 @@ def test_same_engine_returns_cached_helper_before_component_work(scenario):
     assert notification._helper is cached
     assert scenario.events == ["get_engine", "objectName", "parent"]
     assert scenario.log_messages == []
+
+
+def test_equal_but_distinct_engine_rebuilds_cached_helper(scenario):
+    """Cache ownership requires identity, not equality. 缓存所有权必须使用对象身份。"""
+    cached = scenario.cached_helper
+    cached.parent_value = _EqualButDistinctEngine(scenario)
+    notification._helper = cached
+
+    result = notification._get_helper()
+
+    assert result is scenario.created_helper
+    assert notification._helper is scenario.created_helper
+    assert scenario.events == [
+        "get_engine", "objectName", "parent", "warning", *_SUCCESS_EVENTS[1:]
+    ]
 
 
 @pytest.mark.parametrize("stage", ("objectName", "parent"))

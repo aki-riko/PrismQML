@@ -33,9 +33,9 @@ _NESTED_FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
 _MAX_FILE_LINES = 699
 _MAX_FUNCTION_LINES = 30
 _MAX_CONTROL_DEPTH = 2
-_MAX_LONG_FUNCTIONS = 25
+_MAX_LONG_FUNCTIONS = 24
 _MAX_LONG_FUNCTIONS_BY_AREA = {
-    "core": 13,
+    "core": 12,
     "models": 0,
     "providers": 3,
     "state": 0,
