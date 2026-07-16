@@ -23,13 +23,12 @@ Item {
     readonly property color progressColor: Enums.accentColor
     readonly property color trackColor: Enums.stateColor.border
     
-    implicitWidth: Enums.controlSize.progressRingSize
-    implicitHeight: Enums.controlSize.progressRingSize
-    
-    // ==================== Viewport Detection 可视区域检测（内联实现）====================
+    // ==================== Internal Props 内部属性 ====================
+    // Viewport detection 可视区域检测
     property Item _flickableAncestor: null
     property bool _isInViewport: true
     
+    // ==================== Internal Methods 内部方法 ====================
     function _findFlickable() {
         var p = control.parent
         while (p) {
@@ -65,6 +64,9 @@ Item {
             _isInViewport = true
         }
     }
+
+    implicitWidth: Enums.controlSize.progressRingSize
+    implicitHeight: Enums.controlSize.progressRingSize
     
     Component.onCompleted: {
         _flickableAncestor = _findFlickable()
@@ -109,10 +111,10 @@ Item {
         }
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
+        Component.onCompleted: requestPaint()
         Connections { target: control; function onValueChanged() { progressCanvas.requestPaint() } }
         Connections { target: control; function onPositionChanged() { progressCanvas.requestPaint() } }
         Connections { target: control; function onProgressColorChanged() { progressCanvas.requestPaint() } }
-        Component.onCompleted: requestPaint()
     }
     
     // Indeterminate ring 不确定进度环(伸缩弧脉动)
