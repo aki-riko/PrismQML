@@ -12,7 +12,7 @@ import "../_internal"
 
 // LineEditNormal - Normal/Password/Search input 普通/密码/搜索输入
 // Internal module for LineEdit LineEdit内部模块
-// Reuses TextInputCore logic 复用TextInputCore逻辑
+// Implements normal single-line input behavior 实现普通单行输入行为
 Item {
     id: normalInput
     

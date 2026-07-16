@@ -9,7 +9,7 @@ import QtQuick.Effects
 import "../containers"
 
 // InputCore - Input control base class 输入控件基类
-// TextInputCore/SpinBoxCore etc. extend this 继承此基类
+// LineEditCore/SpinBoxCore/TextEditCore etc. extend this 这些控件继承此基类
 // Provides: theme, focus line, background, clip, shadow 提供主题/聚焦底线/背景/圆角裁剪/阴影
 // Note: Click outside to blur is handled by container MouseArea 点击空白失焦由容器背景MouseArea处理
 Widget {

@@ -1,7 +1,6 @@
 module _internal
 
 # Internal components 内部组件
-CropToolButton CropToolButton.qml
 ImageCropperContent ImageCropperContent.qml
 KeyTag KeyTag.qml
 InputPlaceholderLabel InputPlaceholderLabel.qml

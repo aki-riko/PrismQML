@@ -14,10 +14,43 @@ from prismqml import NavigationItem, Window, getThemeManager
 
 
 ROOT = Path(__file__).resolve().parents[1]
+_REMOVED_ORPHAN_QML = (
+    "prismqml/PrismQML/controls/auth/LoginWindowLightShadow.qml",
+    "prismqml/PrismQML/controls/containers/Layout/Layout.qml",
+    "prismqml/PrismQML/controls/inputs/_internal/CropToolButton.qml",
+    "prismqml/PrismQML/controls/inputs/LineEdit/TextInputCore.qml",
+    "prismqml/PrismQML/controls/inputs/TextEdit/PlainTextEdit.qml",
+)
+_REMOVED_ORPHAN_TYPES = {
+    "CropToolButton",
+    "Layout",
+    "LoginWindowLightShadow",
+    "PlainTextEdit",
+    "TextInputCore",
+}
+_ORPHAN_REPLACEMENT_QML = (
+    "prismqml/PrismQML/controls/inputs/ImageCropper.qml",
+    "prismqml/PrismQML/controls/inputs/LineEdit/LineEditCore.qml",
+    "prismqml/PrismQML/controls/inputs/TextEdit/TextEditCore.qml",
+    "prismqml/PrismQML/controls/containers/Layout/FlowLayout.qml",
+    "prismqml/PrismQML/controls/containers/Layout/GridLayout.qml",
+    "prismqml/PrismQML/controls/containers/Layout/HBoxLayout.qml",
+    "prismqml/PrismQML/controls/containers/Layout/VBoxLayout.qml",
+)
 
 
 def _read(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
+
+
+def _registered_qml_types() -> set[str]:
+    registrations = set()
+    for qmldir in (ROOT / "prismqml").rglob("qmldir"):
+        for line in qmldir.read_text(encoding="utf-8").splitlines():
+            fields = line.strip().split()
+            if fields and not fields[0].startswith("#"):
+                registrations.add(fields[0])
+    return registrations
 
 
 def _pump(milliseconds: int) -> None:
@@ -112,6 +145,12 @@ def test_qmldir_does_not_register_base_types():
                     f"{qmldir.relative_to(ROOT)}:{line_number}:{fields[0]}"
                 )
     assert not offenders, offenders
+
+
+def test_orphaned_qml_components_stay_removed():
+    assert not [path for path in _REMOVED_ORPHAN_QML if (ROOT / path).exists()]
+    assert not [path for path in _ORPHAN_REPLACEMENT_QML if not (ROOT / path).is_file()]
+    assert _REMOVED_ORPHAN_TYPES.isdisjoint(_registered_qml_types())
 
 
 def test_navigation_item_page_builder_api_is_removed():
