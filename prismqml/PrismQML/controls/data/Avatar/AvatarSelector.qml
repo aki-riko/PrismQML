@@ -14,19 +14,19 @@ import "../Label"
 Avatar {
     id: control
     
-    // ==================== Picker Props 选择器属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool enableCrop: true  // Enable crop dialog 启用裁剪对话框
     property rect cropRect: Qt.rect(0.1, 0.1, 0.8, 0.8)  // Crop rect (normalized) 裁剪区域
     property string changeText: ""  // Change button text 更换按钮文本
     property string placeholderIcon: ""  // Placeholder icon 占位图标
-    
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool hovered: mouseArea.containsMouse
+
     // ==================== Signals 信号 ====================
     signal clicked()
     signal avatarChanged(url newSource)
     signal cropConfirmed(url source, rect cropRect)
-    
-    // ==================== State 状态 ====================
-    readonly property bool hovered: mouseArea.containsMouse
 
     // ==================== Public Methods 公开方法 ====================
     function setAvatar(url) {
@@ -37,7 +37,8 @@ Avatar {
     // Open file dialog 打开文件对话框
     function openFilePicker() { fileDialog.open() }
 
-    // ==================== Hover Overlay 悬停遮罩 ====================
+    // ==================== Content 内容 ====================
+    // Hover overlay 悬停遮罩
     Rectangle {
         anchors.fill: parent
         radius: parent.radius
@@ -67,7 +68,7 @@ Avatar {
         }
     }
     
-    // ==================== Interaction 交互 ====================
+    // Interaction 交互
     MouseArea {
         id: mouseArea
         anchors.fill: parent
@@ -79,7 +80,7 @@ Avatar {
         }
     }
     
-    // ==================== File Dialog 文件对话框 ====================
+    // File dialog 文件对话框
     FileDialog {
         id: fileDialog
         title: Translator.tr("select_avatar")
@@ -94,7 +95,7 @@ Avatar {
         }
     }
     
-    // ==================== Crop Dialog 裁剪对话框 ====================
+    // Crop dialog 裁剪对话框
     ImageCropperDialog {
         id: cropperDialog
         visible: false
