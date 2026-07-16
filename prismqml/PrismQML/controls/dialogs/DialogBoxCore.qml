@@ -43,7 +43,7 @@ OverlayDialogCore {
     readonly property real _dialogShadowBlur: Enums.shadow.level16.blur
     readonly property real _dialogShadowOffset: Enums.shadow.level16.offset
 
-    // ==================== Override Methods 重写方法 ====================
+    // ==================== Public Methods 公开方法 ====================
 
     // Validate form data before close 关闭前验证表单数据
     function validate() {
@@ -86,7 +86,7 @@ OverlayDialogCore {
     // ==================== Content 内容 ====================
     maskColor: control._dialogMaskColor
 
-    // ==================== Dialog Body 对话框主体 ====================
+    // Dialog body 对话框主体
     Item {
         id: dialogBodyContainer
         anchors.horizontalCenter: parent.horizontalCenter
@@ -152,7 +152,7 @@ OverlayDialogCore {
                 } 
             }
             
-            // ==================== Event Blocker 事件阻止层 ====================
+            // ==================== Content 内容 ====================
             // Prevent click events from propagating to mask layer 阻止点击事件传播到遮罩层
             // Also clear input focus when clicking blank area 同时在点击空白处清除输入焦点
             MouseArea {
@@ -161,7 +161,7 @@ OverlayDialogCore {
                 onClicked: parent.forceActiveFocus()
             }
             
-            // ==================== View Layout 视图布局 ====================
+            // View layout 视图布局
             Item {
                 id: bodyLayout
                 anchors.top: parent.top
@@ -177,7 +177,7 @@ OverlayDialogCore {
                 implicitHeight: childrenRect.height
             }
             
-            // ==================== Button Group 按钮组 ====================
+            // Button group 按钮组
             Rectangle {
                 id: actionsRow
                 anchors.left: parent.left
@@ -213,11 +213,11 @@ OverlayDialogCore {
             
             // Drag handler 拖拽处理
             MouseArea {
+                property point dragStart
+
                 anchors.fill: bodyLayout
                 enabled: control.draggable
                 propagateComposedEvents: true
-                
-                property point dragStart
                 
                 onPressed: (mouse) => {
                     dragStart = Qt.point(mouse.x, mouse.y)
