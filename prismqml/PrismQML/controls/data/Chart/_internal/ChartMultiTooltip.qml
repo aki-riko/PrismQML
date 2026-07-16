@@ -30,7 +30,7 @@ ShadowedRectangle {
     width: Math.max(contentColumn.width + Enums.spacing.l, 80)
     height: Math.max(contentColumn.height + Enums.spacing.m, 30)
     
-    // ==================== Style 样式 ====================
+    // Style 样式
     radius: _tooltipRadius
     color: _tooltipBackground
     border.width: Enums.border.thin
