@@ -22,7 +22,7 @@ Item {
     required property bool showGrid      // Show grid lines 显示网格线
     required property string title       // Chart title 图表标题
     
-    // ==================== Optional Props 可选属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var series: []              // For scatter chart 散点图系列数据
     property bool isScatter: false       // Is scatter chart 是否散点图
     property int hoveredIndex: -1        // Hovered data index 悬浮数据索引
@@ -40,11 +40,8 @@ Item {
     property real viewportScale: 1       // Viewport visual scale 视窗视觉缩放
     property real viewportOffsetRatio: 0 // Viewport visual offset 视窗视觉偏移
     property bool viewportTransitionActive: false // Viewport transition state 视窗过渡状态
-    
-    // ==================== Signals 信号 ====================
-    signal xLabelHovered(int index)
-    
-    // ==================== Readonly Props 只读属性 ====================
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property Item chartArea: chartAreaItem
     readonly property real chartAreaX: chartAreaItem ? chartAreaItem.x : 0
     readonly property real chartAreaY: chartAreaItem ? chartAreaItem.y : 0
@@ -115,7 +112,11 @@ Item {
         }
     }
 
-    // ==================== Title 标题 ====================
+    // ==================== Signals 信号 ====================
+    signal xLabelHovered(int index)
+
+    // ==================== Content 内容 ====================
+    // Title 标题
     ChartTitle {
         anchors.horizontalCenter: parent.horizontalCenter
         y: Enums.spacing.m
@@ -123,7 +124,7 @@ Item {
         subtitle: root.subtitle
     }
     
-    // ==================== Chart Area 图表区域 ====================
+    // Chart area 图表区域
     Item {
         id: chartAreaItem
         x: root.isHorizontal ? root.yAxisLabelWidth + Enums.spacing.xl
@@ -138,7 +139,7 @@ Item {
                 - (root.showLegend && root.series.length > 0 ? Enums.spacing.xxxl : 0)
     }
     
-    // ==================== Grid Lines 网格线 (Fluent Design) ====================
+    // Grid lines (Fluent Design) 网格线
     Item {
         id: gridLines
         anchors.fill: chartAreaItem
@@ -179,7 +180,7 @@ Item {
         }
     }
     
-    // ==================== Y-Axis Labels Y轴标签 ====================
+    // Y-axis labels Y轴标签
     Item {
         id: yAxisLabels
         x: 0
@@ -217,7 +218,7 @@ Item {
         }
     }
     
-    // ==================== Y-Axis Labels for Horizontal Bar 水平柱状图Y轴标签（分类） ====================
+    // Y-axis labels for horizontal bar 水平柱状图Y轴标签（分类）
     Column {
         id: horizontalYAxisLabels
         x: Enums.spacing.s
@@ -261,7 +262,7 @@ Item {
         }
     }
     
-    // ==================== X-Axis Labels for Horizontal Bar 水平柱状图X轴标签（数值） ====================
+    // X-axis labels for horizontal bar 水平柱状图X轴标签（数值）
     Item {
         id: horizontalXAxisLabels
 
@@ -286,7 +287,7 @@ Item {
         }
     }
     
-    // ==================== X-Axis Labels (Category) X轴标签（分类） ====================
+    // X-axis labels (category) X轴标签（分类）
     Row {
         id: xAxisLabels
         x: chartAreaItem.x + root.viewportOffsetRatio * chartAreaItem.width
@@ -333,7 +334,7 @@ Item {
         }
     }
     
-    // ==================== X-Axis Labels (Numeric for Scatter) X轴标签（散点图数值） ====================
+    // X-axis labels (numeric for scatter) X轴标签（散点图数值）
     Item {
         id: scatterXAxisLabels
 
