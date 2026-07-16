@@ -10,7 +10,7 @@ import "../../../.."
 QtObject {
     id: stackManager
     
-    // ==================== Position Enum 位置枚举 ====================
+    // ==================== Readonly State 只读状态 ====================
     // Use shared position constants 使用共享位置常量
     readonly property int posTopLeft: Enums.notification.posTopLeft
     readonly property int posTop: Enums.notification.posTop
@@ -18,28 +18,21 @@ QtObject {
     readonly property int posBottomLeft: Enums.notification.posBottomLeft
     readonly property int posBottom: Enums.notification.posBottom
     readonly property int posBottomRight: Enums.notification.posBottomRight
-    
-    // ==================== Stacking 堆叠管理 ====================
-    property var _stacks: null
-    property var _desktopStacks: null
-    
 
-    // Initialize stacks on component completion 组件完成时初始化堆栈
-    Component.onCompleted: {
-        _stacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] }
-        _desktopStacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] }
-    }
-
+    // ==================== Internal Props 内部属性 ====================
     // Notification stack gap Use shared layout config 通知堆叠间距，使用共享布局配置
     readonly property int _infoBarStackGap: Enums.notification.layout.stackGapLarge
     readonly property int _stackGap: Enums.notification.layout.stackGapSmall
+    property var _stacks: null
+    property var _desktopStacks: null
 
+    // ==================== Internal Methods 内部方法 ====================
     // Validate position 验证位置有效性
     function _isValidPosition(position) {
         return position !== undefined && position !== null && position >= 0 && position <= 5
     }
 
-    // ==================== Window Stack Methods 窗口内堆叠方法 ====================
+    // Window stack methods 窗口内堆叠方法
     function addToStack(item, position) {
         if (!_stacks || !_isValidPosition(position)) {
             console.warn("NotificationStackManager: Invalid position or stacks not initialized:", position)
@@ -85,7 +78,7 @@ QtObject {
         return offset
     }
 
-    // ==================== Desktop Stack Methods 桌面堆叠方法 ====================
+    // Desktop stack methods 桌面堆叠方法
     function addToDesktopStack(overlay, position) {
         if (!_desktopStacks || !_isValidPosition(position)) {
             console.warn("NotificationStackManager: Invalid position for desktop stack:", position)
@@ -150,7 +143,7 @@ QtObject {
         }
     }
 
-    // ==================== Position Helper 位置辅助 ====================
+    // Position helper 位置辅助
     // Now only calculates and passes stackOffset to animator 现在只计算并传递stackOffset给动画器
     function setPosition(item, parent, position, extraMargin) {
         if (!_stacks || !_isValidPosition(position)) return
@@ -163,9 +156,15 @@ QtObject {
         }
     }
 
-    // ==================== Utility 工具方法 ====================
+    // Utility method 工具方法
     function randomPosition() {
         var positions = [posTopLeft, posTop, posTopRight, posBottomLeft, posBottom, posBottomRight]
         return positions[Math.floor(Math.random() * positions.length)]
+    }
+
+    // Initialize stacks on component completion 组件完成时初始化堆栈
+    Component.onCompleted: {
+        _stacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] }
+        _desktopStacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] }
     }
 }
