@@ -25,34 +25,74 @@ QtObject {
     required property var target         // Target item/window to animate 动画目标（Item或Window）
     required property int position       // Position enum (0-5) 位置枚举
     
-    // ==================== Optional Props 可选属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var parentItem: null        // Parent for position calculation (window mode) 用于位置计算的父容器（窗口模式）
     property bool desktopMode: false     // Use screen coordinates instead of parent 使用屏幕坐标而非父容器
     property int showDuration: Enums.notification.animation.showDuration
     property int hideDuration: Enums.notification.animation.hideDuration
     property real stackOffset: 0  // Stack offset for multiple notifications 堆叠偏移
-    
-    // ==================== Signals 信号 ====================
-    signal showFinished()
-    signal hideFinished()
-    
-    // ==================== Position Helpers 位置辅助 ====================
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool _isTop: Enums.notification.isTop(position)
     readonly property bool _isLeft: Enums.notification.isLeft(position)
     readonly property bool _isRight: Enums.notification.isRight(position)
     readonly property bool _isCenter: Enums.notification.isCenter(position)
-    
-    // ==================== Slide Offsets 滑动偏移 ====================
     readonly property real _targetWidth: target ? target.width : 0
     readonly property real _targetHeight: target ? target.height : 0
     readonly property real _slideOffset: _targetWidth + Enums.notification.layout.edgeMargin
     // Vertical slide needs larger offset for better bounce effect 垂直滑动需要更大偏移以获得更好的回弹效果
     readonly property real _slideOffsetY: _targetHeight + Enums.notification.layout.verticalSlideExtra
-    
-    // ==================== Base Position 基准位置 ====================
+    readonly property int _showEasing: Enums.notification.animation.showEasing
+    readonly property real _showOvershoot: Enums.notification.animation.showOvershoot
+    readonly property int _hideEasing: Enums.notification.animation.hideEasing
+
+    // ==================== Internal Props 内部属性 ====================
     property real _baseX: 0
     property real _baseY: 0
-    
+    property ParallelAnimation _showAnim: ParallelAnimation {
+        onFinished: animator.showFinished()
+
+        NumberAnimation {
+            target: animator.target; property: "x"; to: animator._baseX
+            duration: animator.showDuration
+            easing.type: animator._showEasing; easing.overshoot: animator._showOvershoot
+        }
+        NumberAnimation {
+            target: animator.target; property: "y"; to: animator._baseY
+            duration: animator.showDuration
+            easing.type: animator._showEasing; easing.overshoot: animator._showOvershoot
+        }
+    }
+    property ParallelAnimation _hideAnim: ParallelAnimation {
+        onFinished: animator.hideFinished()
+
+        NumberAnimation {
+            target: animator.target; property: "x"
+            to: animator._isLeft ? animator._baseX - animator._slideOffset :
+                (animator._isRight ? animator._baseX + animator._slideOffset : animator._baseX)
+            duration: animator.hideDuration
+            easing.type: animator._hideEasing
+        }
+        NumberAnimation {
+            target: animator.target; property: "y"
+            to: animator._isCenter ? (animator._isTop ? animator._baseY - animator._slideOffsetY : animator._baseY + animator._slideOffsetY) : animator._baseY
+            duration: animator.hideDuration
+            easing.type: animator._hideEasing
+        }
+    }
+    property NumberAnimation _repositionAnim: NumberAnimation {
+        target: animator.target
+        property: "y"
+        to: animator._baseY
+        duration: Enums.notification.animation.repositionDuration
+        easing.type: Enums.notification.animation.repositionEasing
+    }
+
+    // ==================== Signals 信号 ====================
+    signal showFinished()
+    signal hideFinished()
+
+    // ==================== Internal Methods 内部方法 ====================
     function _calculateBasePosition() {
         if (!target) return
         
@@ -94,43 +134,6 @@ QtObject {
         }
     }
     
-    // ==================== Animation Config 动画配置 ====================
-    readonly property int _showEasing: Enums.notification.animation.showEasing
-    readonly property real _showOvershoot: Enums.notification.animation.showOvershoot
-    readonly property int _hideEasing: Enums.notification.animation.hideEasing
-    
-    // ==================== Animations 动画 ====================
-    property ParallelAnimation _showAnim: ParallelAnimation {
-        NumberAnimation {
-            target: animator.target; property: "x"; to: animator._baseX
-            duration: animator.showDuration
-            easing.type: animator._showEasing; easing.overshoot: animator._showOvershoot
-        }
-        NumberAnimation {
-            target: animator.target; property: "y"; to: animator._baseY
-            duration: animator.showDuration
-            easing.type: animator._showEasing; easing.overshoot: animator._showOvershoot
-        }
-        onFinished: animator.showFinished()
-    }
-    
-    property ParallelAnimation _hideAnim: ParallelAnimation {
-        NumberAnimation {
-            target: animator.target; property: "x"
-            to: animator._isLeft ? animator._baseX - animator._slideOffset :
-                (animator._isRight ? animator._baseX + animator._slideOffset : animator._baseX)
-            duration: animator.hideDuration
-            easing.type: animator._hideEasing
-        }
-        NumberAnimation {
-            target: animator.target; property: "y"
-            to: animator._isCenter ? (animator._isTop ? animator._baseY - animator._slideOffsetY : animator._baseY + animator._slideOffsetY) : animator._baseY
-            duration: animator.hideDuration
-            easing.type: animator._hideEasing
-        }
-        onFinished: animator.hideFinished()
-    }
-    
     // ==================== Public Methods 公开方法 ====================
     function show() {
         if (!target) return
@@ -166,14 +169,5 @@ QtObject {
         _calculateBasePosition()
         // Animate to new position 动画到新位置
         _repositionAnim.start()
-    }
-    
-    // Reposition animation for stack changes 堆叠变化时的重定位动画
-    property NumberAnimation _repositionAnim: NumberAnimation {
-        target: animator.target
-        property: "y"
-        to: animator._baseY
-        duration: Enums.notification.animation.repositionDuration
-        easing.type: Enums.notification.animation.repositionEasing
     }
 }
