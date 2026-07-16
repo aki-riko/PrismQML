@@ -20,10 +20,7 @@ Item {
     property color trackColor: Enums.transparent
     property bool showTrack: trackColor.a > 0
 
-    implicitWidth: Enums.controlSize.indeterminateRingSize
-    implicitHeight: Enums.controlSize.indeterminateRingSize
-
-    // ==================== Animation State 动画状态 ====================
+    // Animation state 动画状态
     // baseRotation: 整体旋转角 (0->360 匀速循环) overall spin
     // sweepLen: 当前弧长 (角度) current arc length, 呼吸伸缩
     // spinDuration: 旋转/伸缩周期, 越小越快 (可被上层覆盖) spin & pulse period, smaller = faster
@@ -37,11 +34,15 @@ Item {
     readonly property real _cy: height / 2
     readonly property real _radius: Math.min(_cx, _cy) - strokeWidth / 2
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function start() { control.running = true }
     function stop() { control.running = false }
 
-    // ==================== Track Ring 底环 (可选) ====================
+    implicitWidth: Enums.controlSize.indeterminateRingSize
+    implicitHeight: Enums.controlSize.indeterminateRingSize
+
+    // ==================== Content 内容 ====================
+    // Optional track ring 可选底环
     Shape {
         anchors.fill: parent
         visible: control.showTrack
@@ -59,7 +60,7 @@ Item {
         }
     }
 
-    // ==================== Spinning Arc 旋转伸缩弧 ====================
+    // Spinning arc 旋转伸缩弧
     Shape {
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
@@ -79,7 +80,7 @@ Item {
         }
     }
 
-    // ==================== Spin Animation 匀速旋转 ====================
+    // Spin animation 匀速旋转
     NumberAnimation on baseRotation {
         running: control.running
         from: 0; to: 360
@@ -87,7 +88,7 @@ Item {
         loops: Animation.Infinite
     }
 
-    // ==================== Pulse Animation 呼吸伸缩 ====================
+    // Pulse animation 呼吸伸缩
     SequentialAnimation on sweepLen {
         running: control.running
         loops: Animation.Infinite
