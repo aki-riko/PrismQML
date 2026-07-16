@@ -39,7 +39,7 @@ Item {
     // Set source (alias for setWaveformData) 设置音频源
     function setSource(src) { /* Use setWaveformData instead */ }
 
-    // ==================== Demo Data Generator 示例数据生成 ====================
+    // Demo data generator 示例数据生成
     function generateRandomWaveform(count) {
         var data = []
         var seed = Math.random() * 100
@@ -57,7 +57,14 @@ Item {
     implicitWidth: 300
     implicitHeight: 80
 
-    // ==================== Background Card 背景卡片 ====================
+    Component.onCompleted: {
+        if (waveformData.length === 0) {
+            generateRandomWaveform(50)
+        }
+    }
+
+    // ==================== Content 内容 ====================
+    // Background card 背景卡片
     ShadowedRectangle {
         id: background
         anchors.fill: parent
@@ -73,7 +80,7 @@ Item {
         }
     }
     
-    // ==================== Waveform Container 波形容器 ====================
+    // Waveform container 波形容器
     Item {
         id: waveformContainer
         anchors.fill: parent
@@ -207,7 +214,7 @@ Item {
         }
     }
     
-    // ==================== Interaction 交互 ====================
+    // Interaction 交互
     MouseArea {
         id: mouseArea
         anchors.fill: parent
@@ -233,9 +240,4 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        if (waveformData.length === 0) {
-            generateRandomWaveform(50)
-        }
-    }
 }
