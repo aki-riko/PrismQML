@@ -41,7 +41,8 @@ Item {
     opacity: visible ? 1.0 : 0.0
     Behavior on opacity { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
     
-    // ==================== Tooltip Body 提示框主体 ====================
+    // ==================== Content 内容 ====================
+    // Tooltip body 提示框主体
     ShadowedRectangle {
         id: tooltipRect
         width: tooltipContent.width + Enums.spacing.l
@@ -99,7 +100,7 @@ Item {
         }
     }
     
-    // ==================== Triangle Pointer 三角形指针 ====================
+    // Triangle pointer 三角形指针
     Canvas {
         id: pointer
         visible: root.showPointer
