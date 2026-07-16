@@ -29,7 +29,7 @@ Item {
     signal itemHovered(int index)
     signal itemClicked(int index)
     
-    // ==================== Helper Functions 辅助函数 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function getItemColor(index) {
         if (getColor && typeof getColor === "function") return getColor(index)
         var item = legendData[index]
@@ -51,7 +51,7 @@ Item {
     implicitWidth: legendRow.width
     implicitHeight: legendRow.height
     
-    // ==================== Layout 布局 ====================
+    // ==================== Content 内容 ====================
     Row {
         id: legendRow
         anchors.centerIn: parent
@@ -61,11 +61,11 @@ Item {
             model: root.legendData
             
             Item {
-                width: itemRow.width + Enums.spacing.s
-                height: itemRow.height + Enums.spacing.xs
-                
                 property bool hovered: root.hoveredIndex === index
                 property bool isItemHidden: root.isHidden(index)
+
+                width: itemRow.width + Enums.spacing.s
+                height: itemRow.height + Enums.spacing.xs
 
                 Rectangle {
                     anchors.fill: parent
