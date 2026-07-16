@@ -8,7 +8,7 @@ import "../../data"
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ListWidgetItem - Single item in ListWidget 列表控件单项
-// Fluent Design style with indicator, reveal highlight, and press feedback
+// Fluent Design style with indicator, reveal highlight, and press feedback 带指示条、悬浮光晕与按压反馈的 Fluent Design 样式
 Rectangle {
     id: root
 
@@ -46,20 +46,21 @@ Rectangle {
     // ==================== Size 尺寸 ====================
     height: Enums.controlSize.listItemHeight
 
-    // ==================== Press Scale 按压缩放 ====================
+    // Press scale 按压缩放
     scale: pressed ? 0.98 : 1.0
     Behavior on scale {
         NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic }
     }
     transformOrigin: Item.Center
 
-    // ==================== Background 背景 ====================
+    // Background 背景
     color: _bgColor
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
 
     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
 
-    // ==================== Reveal Highlight 悬浮光晕 ====================
+    // ==================== Content 内容 ====================
+    // Reveal highlight 悬浮光晕
     Item {
         anchors.fill: parent
         clip: true
@@ -81,7 +82,7 @@ Rectangle {
         }
     }
 
-    // ==================== Selection Indicator 选中指示条 ====================
+    // Selection indicator 选中指示条
     Rectangle {
         id: indicator
         anchors.left: parent.left
@@ -104,7 +105,7 @@ Rectangle {
         }
     }
 
-    // ==================== Content Row 内容行 ====================
+    // Content row 内容行
     Row {
         anchors.left: parent.left
         anchors.leftMargin: Enums.spacing.listItemPadding
@@ -146,7 +147,7 @@ Rectangle {
         }
     }
 
-    // ==================== Mouse Area 鼠标区域 ====================
+    // Mouse area 鼠标区域
     MouseArea {
         id: itemArea
         anchors.fill: parent
