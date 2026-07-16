@@ -84,7 +84,7 @@ Item {
         y: chartArea.y + Math.max(radarContent.mouseY - height - Enums.spacing.m, Enums.spacing.m)
         
         showColorDot: true
-        dotColor: root.hoveredSeriesIndex >= 0 ? root.getSeriesColor(root.hoveredSeriesIndex) : "transparent"
+        dotColor: root.hoveredSeriesIndex >= 0 ? root.getSeriesColor(root.hoveredSeriesIndex) : Enums.transparent
         label: root.hoveredSeriesIndex >= 0 ? (root.series[root.hoveredSeriesIndex].name || "") : ""
         value: {
             if (root.hoveredSeriesIndex < 0 || root.hoveredPointIndex < 0) return ""

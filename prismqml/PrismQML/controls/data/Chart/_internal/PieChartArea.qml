@@ -141,7 +141,7 @@ Item {
         y: chartArea.y + Enums.spacing.m
         
         showColorDot: true
-        dotColor: root.hoveredIndex >= 0 ? root.getColor(root.hoveredIndex) : "transparent"
+        dotColor: root.hoveredIndex >= 0 ? root.getColor(root.hoveredIndex) : Enums.transparent
         label: root.hoveredIndex >= 0 && root.hoveredIndex < root.chartData.length
                ? (root.chartData[root.hoveredIndex].label || "") : ""
         value: {

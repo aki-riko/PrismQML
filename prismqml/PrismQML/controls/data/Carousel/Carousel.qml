@@ -130,7 +130,7 @@ Item {
         anchors.fill: contentArea
         visible: control.shadowLevel !== null && control.shadowLevel !== undefined && !Enums.isNeobrutalism
         radius: control.borderRadius
-        color: control.shadowLevel ? control.shadowLevel.color : "transparent"
+        color: control.shadowLevel ? control.shadowLevel.color : Enums.transparent
         blur: control.shadowLevel ? control.shadowLevel.blur : 0
         offset.x: 0
         offset.y: control.shadowLevel ? control.shadowLevel.offset : 0

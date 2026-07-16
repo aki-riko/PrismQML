@@ -28,7 +28,6 @@ REAL_TARGETS = {
         472,
     },
     PurePosixPath("prismqml/PrismQML/controls/data/DataWidgetCore.qml"): {153},
-    PurePosixPath("prismqml/PrismQML/controls/data/Label/Label.qml"): {24},
 }
 
 

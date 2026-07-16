@@ -21,7 +21,7 @@ Text {
 
     // Custom text color 自定义文本颜色
     property color customTextColor: Enums.transparent
-    property bool _useCustomColor: customTextColor != Qt.rgba(0, 0, 0, 0)
+    property bool _useCustomColor: customTextColor != Enums.transparent
 
     signal clicked()
     
