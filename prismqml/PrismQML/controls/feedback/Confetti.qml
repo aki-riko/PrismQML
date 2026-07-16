@@ -10,8 +10,7 @@ import "../.."
 Item {
     id: control
     
-    // Public properties 公开属性
-
+    // ==================== Public Props 公开属性 ====================
     property bool running: false
     property int particleCount: 150
     property int duration: Enums.duration.confetti
@@ -22,14 +21,11 @@ Item {
         Qt.lighter(Enums.accentColor, 1.3),
         Qt.darker(Enums.accentColor, 1.2)
     ].concat(Enums.confettiColors.palette)
-    
-    anchors.fill: parent
-    z: Enums.zIndex.overlay
-    
-    // Internal state 内部状态
 
+    // ==================== Internal Props 内部属性 ====================
     property int _spawnIndex: 0
-    
+
+    // ==================== Internal Methods 内部方法 ====================
     // Spawn initial batch immediately 立即生成首批粒子
     function _spawnBatch(count) {
         for (var i = 0; i < count && _spawnIndex < particleCount; i++) {
@@ -38,27 +34,31 @@ Item {
         }
     }
 
-    // ==================== Public Methods 公共方法 ====================
-
-
+    // ==================== Public Methods 公开方法 ====================
     // Start confetti effect 启动彩纸效果
-
     function start() {
         running = false
         _spawnIndex = 0
         running = true
         _spawnBatch(20)  // Spawn initial batch immediately 立即生成首批粒子
-
     }
 
     // Stop confetti effect 停止彩纸效果
-
     function stop() {
         running = false
     }
 
-    // Particle spawn timer 粒子生成定时器
+    anchors.fill: parent
+    z: Enums.zIndex.overlay
 
+    onRunningChanged: {
+        if (running) {
+            _spawnIndex = 0
+        }
+    }
+
+    // ==================== Content 内容 ====================
+    // Particle spawn timer 粒子生成定时器
     Timer {
         id: spawnTimer
         interval: 5
@@ -68,7 +68,6 @@ Item {
     }
     
     // Auto-stop timer 自动停止定时器
-
     Timer {
         id: stopTimer
         interval: control.duration + Enums.duration.dialog
@@ -76,27 +75,14 @@ Item {
         onTriggered: control.running = false
     }
     
-    onRunningChanged: {
-        if (running) {
-            _spawnIndex = 0
-        }
-    }
-    
     // Particle component 粒子组件
-
     Component {
         id: particleComponent
         
         Item {
             id: particle
-            
-            // Random initial position (full width coverage) 随机初始位置（覆盖整个宽度）
 
-            x: Math.random() * control.width
-            y: -30
-            
             // Random properties 随机属性
-
             property real targetX: x + (Math.random() - 0.5) * control.width * 0.3
             property real targetY: control.height + 50
             property real fallDuration: control.duration * (0.7 + Math.random() * 0.6)
@@ -107,6 +93,9 @@ Item {
             property real rotationSpeed: (Math.random() - 0.5) * 720
             property real swayAmount: Enums.spacing.xl + Math.random() * Enums.spacing.xl  // Sway amount 轻微摆动幅度
 
+            // Random initial position (full width coverage) 随机初始位置（覆盖整个宽度）
+            x: Math.random() * control.width
+            y: -30
             
             // Shape rendering 形状渲染
 
@@ -181,6 +170,8 @@ Item {
             ParallelAnimation {
                 id: fallAnimation
                 running: true
+
+                onStopped: particle.destroy()
                 
                 // Vertical fall with gravity feel 垂直下落（带重力感）
 
@@ -231,8 +222,6 @@ Item {
                         easing.type: Easing.OutQuad
                     }
                 }
-                
-                onStopped: particle.destroy()
             }
         }
     }
