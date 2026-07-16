@@ -10,11 +10,11 @@ import "../../../buttons"
 Button {
     id: control
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool isNext: true  // true=next, false=prev 是否为下一个按钮
     property bool isVertical: false  // Vertical mode 垂直模式
     
-    // ==================== Button Config 按钮配置 ====================
+    // Button configuration 按钮配置
     style: Enums.button.style_default
     shape: Enums.button.shape_default
     
