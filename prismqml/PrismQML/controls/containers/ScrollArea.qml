@@ -16,10 +16,10 @@ import "ScrollBar"
 Item {
     id: control
     
-    // ==================== Type 类型 ====================
+    // ==================== Public Props 公开属性 ====================
     property int type: Enums.scroll.type_default
-    
-    // ==================== Common Props 通用属性 ====================
+
+    // Common properties 通用属性
     property bool showScrollBar: true
     property int scrollBarWidth: 8
     property bool smoothScroll: true
@@ -29,10 +29,10 @@ Item {
     property int orientation: Qt.Horizontal | Qt.Vertical  // Scroll direction 滚动方向
     property int padding: Enums.spacing.xl  // Content padding 内容内边距
     
-    // ==================== Default Mode Props 默认模式属性 ====================
+    // Default mode properties 默认模式属性
     default property alias content: defaultLoader.content
-    
-    // ==================== Virtualized Mode Props 虚拟化模式属性 ====================
+
+    // Virtualized mode properties 虚拟化模式属性
     property var model: []
     property Component delegate: null
     property int itemHeight: 40          // For list mode 列表模式
@@ -48,8 +48,11 @@ Item {
     property bool delegateAsync: false   // 重 delegate 用 Loader.asynchronous 包一层防卡顿
     property bool alwaysShowScrollBar: false  // 滚动条常显
     property bool bounceEnabled: true    // 边界 bounce 回弹 (List 模式), false 防止顶/底空白闪烁
-    
-    // ==================== Expose Props 暴露属性 ====================
+    // Preferred size (external override) 首选尺寸（外部覆盖）
+    property real preferredWidth: 0
+    property real preferredHeight: 0
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property real contentY: loader.item ? loader.item.contentY : 0
     readonly property real contentHeight: loader.item ? loader.item.contentHeight : 0
     readonly property int count: loader.item && loader.item.count !== undefined ? loader.item.count : 0
@@ -58,21 +61,6 @@ Item {
     signal itemClicked(int index, var item)
     signal indexChanged(int index)
     
-    // ==================== Size 尺寸 ====================
-    // Preferred size (external override) 首选尺寸（外部覆盖）
-    property real preferredWidth: 0
-    property real preferredHeight: 0
-    
-    // Use implicit size for layout, actual size from parent binding 使用隐式尺寸用于布局，实际尺寸来自父容器绑定
-    implicitWidth: preferredWidth > 0 ? preferredWidth : 200
-    implicitHeight: preferredHeight > 0 ? preferredHeight : 200
-    
-    // Layout attached properties: allow filling parent layout 布局附加属性：允许填充父布局
-    Layout.fillWidth: true
-    Layout.fillHeight: true
-    Layout.preferredWidth: preferredWidth > 0 ? preferredWidth : -1
-    Layout.preferredHeight: preferredHeight > 0 ? preferredHeight : -1
-    
     // ==================== Public Methods 公开方法 ====================
     function smoothScrollTo(targetY) { if (loader.item && loader.item.smoothScrollTo) loader.item.smoothScrollTo(targetY) }
     function smoothScrollBy(delta) { if (loader.item && loader.item.smoothScrollBy) loader.item.smoothScrollBy(delta) }
@@ -80,23 +68,31 @@ Item {
     function scrollToTop() { if (loader.item && loader.item.scrollToTop) loader.item.scrollToTop(); else smoothScrollTo(0) }
     function scrollToBottom() { if (loader.item && loader.item.scrollToBottom) loader.item.scrollToBottom() }
     
-    // ==================== Public Methods 公共方法 ====================
-    
-    
     // Set cell size (for grid mode) 设置单元格尺寸（网格模式）
     function setCellSize(w, h) {
         cellWidth = w
         cellHeight = h
     }
-    
-    
-    // ==================== Internal: Default content holder 内部：默认内容容器 ====================
+
+    // ==================== Size 尺寸 ====================
+    // Use implicit size for layout, actual size from parent binding 使用隐式尺寸用于布局，实际尺寸来自父容器绑定
+    implicitWidth: preferredWidth > 0 ? preferredWidth : 200
+    implicitHeight: preferredHeight > 0 ? preferredHeight : 200
+
+    // Layout attached properties: allow filling parent layout 布局附加属性：允许填充父布局
+    Layout.fillWidth: true
+    Layout.fillHeight: true
+    Layout.preferredWidth: preferredWidth > 0 ? preferredWidth : -1
+    Layout.preferredHeight: preferredHeight > 0 ? preferredHeight : -1
+
+    // ==================== Content 内容 ====================
+    // Internal default content holder 内部默认内容容器
     QtObject {
         id: defaultLoader
         default property list<QtObject> content
     }
     
-    // ==================== Loader 动态加载器 ====================
+    // Dynamic loader 动态加载器
     Loader {
         id: loader
         anchors.fill: parent
@@ -105,7 +101,7 @@ Item {
                          defaultComponent
     }
     
-    // ==================== Default Component 默认组件 ====================
+    // Default component 默认组件
     Component {
         id: defaultComponent
         ScrollAreaDefault {
@@ -121,7 +117,7 @@ Item {
         }
     }
     
-    // ==================== List Component 列表组件 ====================
+    // List component 列表组件
     Component {
         id: listComponent
         ScrollAreaList {
@@ -147,7 +143,7 @@ Item {
         }
     }
     
-    // ==================== Grid Component 网格组件 ====================
+    // Grid component 网格组件
     Component {
         id: gridComponent
         ScrollAreaGrid {

@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Public ScrollArea runtime contracts. 公开 ScrollArea 运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -20,9 +20,13 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "controls" / "containers" / "ScrollArea.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "scroll-area-conventions.qml")
 )
@@ -206,3 +210,13 @@ def test_scroll_area_switches_list_grid_and_back(scroll_area_scene):
     assert _wait_for(lambda: window.property("areaContentHeight") == pytest.approx(452))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_scroll_area_source_follows_conventions():
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(SOURCE_PATH.read_text(encoding="utf-8"), path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
