@@ -11,24 +11,37 @@ import "../../feedback"
 // Distinguish by type: type_default/type_range 通过type区分
 Item {
     id: control
-    
-    // ==================== Type 类型 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property int type: Enums.slider.type_default
-    
-    // ==================== Common Props 通用属性 ====================
     property real value: 50
     property real from: 0
     property real to: 100
     property real stepSize: 1
     property int orientation: Qt.Horizontal
-    // snapMode: 0=NoSnap (自由拖,可停在任意位置)
-    //          1=SnapOnRelease (拖动时自由,松手吸附到 step)
-    //          2=SnapAlways (默认,实时吸附到 step,与 stepSize 配合用)
-    // 兼容 Qt Slider 同名 enum 行为
+    // snapMode: 0=NoSnap (free drag) 自由拖动
+    //          1=SnapOnRelease (snap after release) 松手后吸附
+    //          2=SnapAlways (default, snap while dragging) 默认实时吸附
+    // Match the Qt Slider enum behavior 与 Qt Slider 同名枚举行为一致
     property int snapMode: 2
     property color handleColor: Enums.isPrismDesign ? Enums.stateColor.controlBg : Enums.gray.handle  // Custom handle color 自定义手柄颜色
+    property string suffix: ""
+    property int decimals: 0
+    // Optional tooltip formatter: (value)->string 可选的 tooltip 格式化函数
+    // Overrides value.toFixed(decimals)+suffix when non-null 非 null 时覆盖默认格式
+    // Supports timeline values such as 00:33 支持时间轴等自定义文本
+    property var displayValueFn: null
+    property real firstValue: 25
+    property real secondValue: 75
+    property color accentColor: Enums.accentColor
 
     // ==================== Internal Props 内部属性 ====================
+    property real _targetValue: value
+    // Disable smooth animation while dragging to avoid feedback loops 拖动时禁用平滑动画以避免反馈振荡
+    // The old drag.target implementation broke handle.x bindings 旧 drag.target 实现会破坏 handle.x 绑定
+    property bool _dragging: false
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property color _trackColor: control.enabled ? Enums.stateColor.sliderTrack : Enums.stateColor.sliderTrackDisabled
     readonly property color _progressColor: control.enabled ? control.accentColor : Enums.stateColor.disabledBorder
     readonly property int _handleBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
@@ -37,69 +50,36 @@ Item {
                                                 ? (Enums.isPrismDesign ? Enums.stateColor.borderStrong : Enums.stateColor.border)
                                                 : Enums.stateColor.disabledBorder
     readonly property color _handleInnerColor: control.enabled ? control.accentColor : Enums.textColor.disabled
+    readonly property bool isHorizontal: orientation === Qt.Horizontal
+    readonly property bool _isDefault: type === Enums.slider.type_default
+    readonly property bool _isRange: type === Enums.slider.type_range
 
-    // 内部辅助:按 snapMode 决定是否吸附 (松手时永远吸附,拖动时看 mode)
+    // ==================== Signals 信号 ====================
+    signal valueModified(real newValue)
+    signal sliderMoved(real first, real second)  // Range type Range类型
+
+    // ==================== Internal Methods 内部方法 ====================
+    // Apply snapMode for dragging and release 根据拖动或松手阶段应用 snapMode
     function _maybeSnap(v, dragging) {
         if (stepSize <= 0) return v
         if (snapMode === 0) return v
         if (snapMode === 1 && dragging) return v
         return Math.round(v / stepSize) * stepSize
     }
-    
-    // ==================== ToolTip Props ToolTip属性 ====================
-    property string suffix: ""
-    property int decimals: 0
-    // 可选:自定义 tooltip 文本格式化函数 (value)->string。
-    // 非 null 时覆盖默认的 value.toFixed(decimals)+suffix,
-    // 用于时间轴等需要把数值渲染成 00:33 之类格式的场景。
-    property var displayValueFn: null
 
-    // 内部:按当前值算 tooltip 文本(供 default/range 复用)
+    // Format tooltip text for default/range implementations 格式化默认及范围滑块的提示文本
     function _tipText(v) {
         return displayValueFn ? displayValueFn(v) : (v.toFixed(decimals) + suffix)
     }
-    
-    // ==================== Range Type Props Range类型属性 ====================
-    property real firstValue: 25
-    property real secondValue: 75
-    
-    // ==================== Signals 信号 ====================
-    signal valueModified(real newValue)
-    signal sliderMoved(real first, real second)  // Range type Range类型
-    
-    // ==================== Theme 主题 ====================
-    property color accentColor: Enums.accentColor
-    readonly property bool isHorizontal: orientation === Qt.Horizontal
 
+    // ==================== Public Methods 公开方法 ====================
     // Set range 设置范围
     function setRange(minimum, maximum) {
         from = minimum
         to = maximum
         value = Math.max(from, Math.min(to, value))
     }
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: isHorizontal ? 200 : Enums.spacing.xxxl
-    implicitHeight: isHorizontal ? Enums.spacing.xxxl : 200
-    
-    // ==================== Internal State 内部状态 ====================
-    readonly property bool _isDefault: type === Enums.slider.type_default
-    readonly property bool _isRange: type === Enums.slider.type_range
-    
-    // ==================== Smooth Value Animation 平滑值动画 ====================
-    property real _targetValue: value
-    // 拖动中标记:拖动时禁用平滑动画,避免动画回写 value 与拖动形成反馈振荡
-    // (旧实现 drag.target 破坏 handle.x 绑定 + Behavior 回写 → 手柄乱飞)
-    property bool _dragging: false
 
-    Behavior on value {
-        enabled: !control._dragging
-        NumberAnimation {
-            duration: Enums.duration.fast
-            easing.type: Easing.OutCubic
-        }
-    }
-    
     function smoothSetValue(newValue) {
         var clampedValue = Math.max(from, Math.min(to, newValue))
         _targetValue = clampedValue
@@ -107,7 +87,6 @@ Item {
         valueModified(clampedValue)
     }
 
-    // ==================== Public Methods 公共方法 ====================
     // Set value 设置值
     function setValue(v) { value = Math.max(from, Math.min(to, v)) }
     function getValue() { return value }
@@ -118,7 +97,20 @@ Item {
 
     function isEnabled() { return enabled }
 
-    // ==================== Default Slider Impl 默认滑块(带tooltip) ====================
+    // ==================== Size 尺寸 ====================
+    implicitWidth: isHorizontal ? 200 : Enums.spacing.xxxl
+    implicitHeight: isHorizontal ? Enums.spacing.xxxl : 200
+
+    // ==================== Content 内容 ====================
+    Behavior on value {
+        enabled: !control._dragging
+        NumberAnimation {
+            duration: Enums.duration.fast
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    // Default slider implementation with tooltip 默认带提示的滑块实现
     Loader {
         anchors.fill: parent
         active: _isDefault
@@ -128,11 +120,11 @@ Item {
     Component {
         id: defaultSliderComponent
         Item {
-            anchors.fill: parent
-            
             readonly property bool hovered: handleArea.containsMouse || trackArea.containsMouse || wheelArea.containsMouse
             readonly property bool pressed: handleArea.pressed
-            
+
+            anchors.fill: parent
+
             // Mouse wheel support 鼠标滚轮支持
             MouseArea {
                 id: wheelArea
@@ -188,12 +180,13 @@ Item {
             // Handle 手柄
             Rectangle {
                 id: handle
-                width: Enums.controlSize.switchHeight; height: Enums.controlSize.switchHeight; radius: width / 2
-                // 位置比例钳制到 [0,1]:value 与 to/from 瞬时错位(量程动态变化、
-                // 程序化改值早于 to 更新)时,防止手柄飞出轨道两端。
+                // Clamp ratio during transient range changes 在量程瞬时变化时将比例钳制到 [0,1]
+                // Prevent the handle from escaping before to/from settle 防止程序改值早于量程更新时手柄越界
                 readonly property real _ratio: (control.to - control.from) !== 0
                     ? Math.max(0, Math.min(1, (control.value - control.from) / (control.to - control.from)))
                     : 0
+
+                width: Enums.controlSize.switchHeight; height: Enums.controlSize.switchHeight; radius: width / 2
                 x: isHorizontal ? _ratio * (track.width - width) + track.x : (parent.width - width) / 2
                 y: isHorizontal ? (parent.height - height) / 2 : (1 - _ratio) * (track.height - height) + track.y
                 color: control.handleColor
@@ -215,20 +208,15 @@ Item {
                     y: -height - Enums.spacing.m
                     text: control._tipText(control.value)
                     visible: hovered || pressed
-                    // 手柄拖动/程序化改值时,handle.x 变化 → 让 tooltip 窗口跟随重定位
+                    // Reposition with handle.x during drag or programmatic changes 拖动或程序改值时跟随手柄重定位
                     followAnchor: hovered || pressed
                 }
-                
-                // 不用 drag.target(会破坏 handle.x 与 value 的绑定,导致程序改
-                // value 时手柄不动 + Behavior 回写振荡)。改为按鼠标落点映射到
-                // value,handle.x 始终绑定 value,程序化更新与用户拖动都稳。
+
+                // Avoid drag.target because it breaks the handle.x binding 避免使用会破坏 handle.x 绑定的 drag.target
+                // Map the pointer to value while handle.x stays bound to value 按指针位置映射 value 并保持 handle.x 绑定
+                // This keeps programmatic updates and user dragging stable 保证程序更新与用户拖动稳定
                 MouseArea {
                     id: handleArea
-                    anchors.fill: parent
-                    anchors.margins: -Enums.spacing.xs
-                    enabled: control.enabled
-                    hoverEnabled: true
-                    preventStealing: true
 
                     function _applyFromGlobal(gx, gy) {
                         var p = track.mapFromGlobal(gx, gy)
@@ -245,10 +233,16 @@ Item {
                         }
                     }
 
+                    anchors.fill: parent
+                    anchors.margins: -Enums.spacing.xs
+                    enabled: control.enabled
+                    hoverEnabled: true
+                    preventStealing: true
+
                     onPressed: control._dragging = true
                     onReleased: {
                         control._dragging = false
-                        // 松手吸附(SnapOnRelease/SnapAlways)
+                        // Snap after release for SnapOnRelease/SnapAlways 松手后执行吸附
                         var snapped = control._maybeSnap(control.value, false)
                         snapped = Math.max(control.from, Math.min(control.to, snapped))
                         if (snapped !== control.value) {
@@ -267,7 +261,7 @@ Item {
         }
     }
     
-    // ==================== Range Slider Impl 范围滑块 ====================
+    // Range slider implementation 范围滑块实现
     Loader {
         anchors.fill: parent
         active: _isRange
@@ -277,11 +271,11 @@ Item {
     Component {
         id: rangeSliderComponent
         Item {
-            anchors.fill: parent
-            
             readonly property real firstPos: (control.firstValue - control.from) / (control.to - control.from)
             readonly property real secondPos: (control.secondValue - control.from) / (control.to - control.from)
-            
+
+            anchors.fill: parent
+
             Rectangle {
                 id: groove
                 anchors.centerIn: parent
