@@ -29,6 +29,18 @@ Item {
     property var _loaders: []
     readonly property real _startupProfileStart: Date.now()
     property real _startupProfileLast: _startupProfileStart
+    property var _isPageLoadFailedFunc: function(index) {
+        if (!lazyLoading || !_useSourceMode) return false
+        return _loaders[index] && _loaders[index].status === Loader.Error
+    }
+    property var _pageLoadErrorFunc: function(index) {
+        var loader = _loaders[index]
+        if (!loader || loader.status !== Loader.Error) return ""
+        if (loader.sourceComponent) {
+            return String(loader.sourceComponent.errorString())
+        }
+        return String(loader.source)
+    }
     
     readonly property bool _useSourceMode: pageSources.length > 0
     property int count: _useSourceMode ? pageSources.length : stackLayout.children.length
@@ -38,6 +50,7 @@ Item {
     signal animationFinished()
     signal animationStarted()
     signal pageLoaded(int index)
+    signal pageLoadFailed(int index, string errorString)
     
     // ==================== Internal Props 内部属性 ====================
     default property alias content: stackLayout.children
@@ -94,6 +107,8 @@ Item {
             "animationDuration": control.animationDuration,
             "popUpOffset": control.popUpOffset,
             "isPageLoadedFunc": control._isPageLoaded,
+            "isPageLoadFailedFunc": control._isPageLoadFailedFunc,
+            "pageLoadErrorFunc": control._pageLoadErrorFunc,
             "activateLoaderFunc": control._activateLoader
         }
     }
@@ -146,8 +161,15 @@ Item {
         item.animationDuration = Qt.binding(function() { return control.animationDuration })
         item.popUpOffset = Qt.binding(function() { return control.popUpOffset })
         item.isPageLoadedFunc = control._isPageLoaded
+        item.isPageLoadFailedFunc = control._isPageLoadFailedFunc
+        item.pageLoadErrorFunc = control._pageLoadErrorFunc
         item.activateLoaderFunc = control._activateLoader
         item.loadingComplete.connect(control._handleLazyLoadingComplete)
+        item.loadingFailed.connect(function(targetIdx, errorString) {
+            control.profileTime(
+                "lazyHelper loadingFailed target=" + targetIdx + ", error=" + errorString)
+            control.pageLoadFailed(targetIdx, errorString)
+        })
     }
 
     function _handleLazyLoadingComplete(targetIdx, prevIdx) {

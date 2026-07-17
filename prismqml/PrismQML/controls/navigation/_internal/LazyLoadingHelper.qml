@@ -16,6 +16,8 @@ Item {
     required property int targetIndex       // Current target index
     required property int currentVisibleIndex // Currently visible page index 当前可见页面索引
     required property var isPageLoadedFunc  // Function to check if page loaded
+    required property var isPageLoadFailedFunc // Function to check if page loading failed 检查页面加载是否失败的函数
+    required property var pageLoadErrorFunc // Function to obtain the Loader error 获取Loader错误的函数
     required property var activateLoaderFunc // Function to activate loader
     
     // ==================== Props 属性 ====================
@@ -29,6 +31,7 @@ Item {
     
     // ==================== Signals 信号 ====================
     signal loadingComplete(int targetIndex, int previousIndex)
+    signal loadingFailed(int targetIndex, string errorString)
     signal animationStart()
 
     property int _exitTargetIndex: -1  // Store target index for exit animation callback 存储退出动画回调的目标索引
@@ -134,10 +137,50 @@ Item {
         _exitTargetIndex = -1
     }
 
+    function _restoreVisiblePage() {
+        var currentLoader = loaders[helper.currentVisibleIndex]
+        if (!currentLoader) return
+
+        currentLoader.visible = true
+        currentLoader.opacity = 1
+        currentLoader.y = 0
+        currentLoader.x = 0
+        currentLoader.scale = 1
+    }
+
+    function _handleLoadFailure(targetIdx, errorString) {
+        if (targetIdx !== pendingTargetIndex) return
+
+        loaderActivateTimer.stop()
+        lazyLoadTimer.stop()
+        pageRenderTimer.stop()
+        hideLoadingTimer.stop()
+
+        var failedLoader = loaders[targetIdx]
+        if (failedLoader) {
+            failedLoader.visible = false
+            failedLoader.opacity = 0
+            failedLoader.y = 0
+            failedLoader.x = 0
+            failedLoader.scale = 1
+        }
+        _restoreVisiblePage()
+
+        loadingOverlay.visible = false
+        loadingOverlay.opacity = 0
+        loadingOverlay.y = 0
+        pendingTargetIndex = -1
+        isLoadingSwitching = false
+        _exitTargetIndex = -1
+
+        loadingFailed(targetIdx, errorString)
+    }
+
     // ==================== Loading Overlay 加载覆盖层 ====================
     // Custom loading overlay with render thread animation, using RotationAnimator to avoid freeze during Loader instantiation. 自定义加载覆盖层（渲染线程动画），使用 RotationAnimator 避免 Loader 实例化时卡顿。
     Item {
         id: loadingOverlay
+        objectName: "lazyLoadingOverlay"
         anchors.fill: parent
         visible: false
         opacity: 0
@@ -305,6 +348,13 @@ Item {
                 stop()
                 pageRenderTimer.targetIndex = targetIndex
                 pageRenderTimer.start()
+                return
+            }
+
+            if (helper.isPageLoadFailedFunc(targetIndex)) {
+                stop()
+                helper._handleLoadFailure(
+                    targetIndex, helper.pageLoadErrorFunc(targetIndex))
             }
         }
     }
