@@ -389,17 +389,10 @@ Widget {
 
                 Item {
                     id: tabItem
-                    // Width adapts to content 宽度根据内容自适应
-                    // Left and right padding spacing.xl (16) each 左右内边距各 spacing.xl (16)
-                    width: Math.max(Enums.controlSize.segmentedMinWidth,
-                                    tabContent.implicitWidth + Enums.spacing.xl * 2 + (control.closable ? Enums.spacing.xxl : 0))
-                    height: control._tabHeight
 
                     property bool selected: index === control.currentIndex
                     property bool hovered: tabHoverHandler.hovered
                     property bool pressed: tabTapHandler.pressed
-
-                    // 拖拽相关 ============================================================
                     readonly property bool isDragSource: control._dragging && index === control._dragSourceIndex
                     readonly property int visualIndex: {
                         if (!control._dragging) return index
@@ -419,6 +412,12 @@ Widget {
                         return (visualIndex - index) * width
                     }
 
+                    // Width adapts to content 宽度根据内容自适应
+                    // Left and right padding spacing.xl (16) each 左右内边距各 spacing.xl (16)
+                    width: Math.max(Enums.controlSize.segmentedMinWidth,
+                                    tabContent.implicitWidth + Enums.spacing.xl * 2 + (control.closable ? Enums.spacing.xxl : 0))
+                    height: control._tabHeight
+
                     transform: Translate {
                         x: tabItem.visualOffsetX
                         Behavior on x {
@@ -429,7 +428,7 @@ Widget {
                     z: isDragSource ? Enums.zIndex.controlsAbove : Enums.zIndex.base
                     // 实色显示,避免半透明造成"鬼影"观感
                     opacity: 1.0
-                    // ====================================================================
+                    // Tab visuals 标签视觉内容
 
                     // Background (non-selected state) 背景（非选中状态）
                     // Fluent Design: hover/pressed 有微妙的背景变化
@@ -525,17 +524,17 @@ Widget {
                         }
                     }
 
-                    // ==================== DragHandler 拖拽重排 ====================
+                    // Drag handler 拖拽重排
                     DragHandler {
                         id: tabDragHandler
+
+                        property real _pressRowX: 0
+
                         enabled: control.movable
                         target: null
                         xAxis.enabled: true
                         yAxis.enabled: false
                         dragThreshold: 6
-
-                        // gesture 开始时记录指针在 tabRow 内的 x (不受 tabItem transform 影响)
-                        property real _pressRowX: 0
 
                         onActiveChanged: {
                             if (active) {
@@ -578,7 +577,7 @@ Widget {
                             }
                         }
                     }
-                    // ==============================================================
+                    // Right edge 右侧边界
 
                     // Right separator 右侧分隔线
                     Separator {
@@ -652,14 +651,16 @@ Widget {
 
             Loader {
                 id: pageLoader
+
+                readonly property bool isCurrent: index === control.currentIndex
+                property bool _animatingOut: false
+
                 width: contentArea.width
                 height: contentArea.height
                 y: 0
                 sourceComponent: (modelData.content && typeof modelData.content === 'object') ? modelData.content : null
 
-                readonly property bool isCurrent: index === control.currentIndex
                 // 动画期间(自身正在滑出)保持 active+visible, 否则卸载省资源
-                property bool _animatingOut: false
                 active: isCurrent || _animatingOut
                 visible: active
 
