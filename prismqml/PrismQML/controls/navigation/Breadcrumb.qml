@@ -6,7 +6,7 @@ import QtQuick
 import "../.."
 import "_internal"
 
-// BreadcrumbBar - Fluent Design breadcrumb navigation 面包屑导航栏
+// Breadcrumb - Fluent Design breadcrumb navigation Fluent Design面包屑导航
 Item {
     id: control
     
@@ -23,7 +23,7 @@ Item {
     property bool showIcons: true
     property bool animated: true
     
-    // ==================== Private Props 私有属性 ====================
+    // ==================== Internal Props 内部属性 ====================
     property var _items: []
     property var _itemMap: ({})
     property int _navDirection: 0
@@ -38,22 +38,16 @@ Item {
     property real _shiftRightOffset: 0
     property real _shiftRightTarget: 0
     property bool _ellipsisWillHide: false
-    
-    // ==================== Signals 信号 ====================
-    signal currentItemChanged(string key)
-    
-    // ==================== Size 尺寸 ====================
-    // Ensure minimum width when empty for visibility 空状态时保证最小宽度以确保可见
-    implicitWidth: Math.max(contentRow.implicitWidth, Enums.spacing.xxxl)
-    implicitHeight: Enums.controlSize.inputHeightCompact
-    clip: true
-    
-    // ==================== Computed Props 计算属性 ====================
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool _hasOverflow: _items.length > maxVisibleItems
     readonly property var _collapsedItems: {
         if (!_hasOverflow) return []
         return _items.slice(1, _items.length - (maxVisibleItems - 2))
     }
+
+    // ==================== Signals 信号 ====================
+    signal currentItemChanged(string key)
 
     // ==================== Public Methods 公开方法 ====================
     function addItem(key, text, icon) {
@@ -186,15 +180,19 @@ Item {
         else clear()
     }
     
-    // ==================== Public Methods 公共方法 ====================
-    
-    
     // Get count 获取项数
     function getCount() {
         return count
     }
 
-    // ==================== Timers 定时器 ====================
+    // ==================== Size 尺寸 ====================
+    // Ensure minimum width when empty for visibility 空状态时保证最小宽度以确保可见
+    implicitWidth: Math.max(contentRow.implicitWidth, Enums.spacing.xxxl)
+    implicitHeight: Enums.controlSize.inputHeightCompact
+    clip: true
+
+    // ==================== Content 内容 ====================
+    // Timers 定时器
     Timer {
         id: removeTimer
         interval: Enums.duration.crossFade
@@ -222,7 +220,7 @@ Item {
         }
     }
     
-    // ==================== Animations 动画 ====================
+    // Animations 动画
     NumberAnimation {
         id: shiftLeftAnim
         target: control
@@ -241,7 +239,7 @@ Item {
         easing.type: Easing.OutCubic
     }
     
-    // ==================== UI 界面 ====================
+    // Breadcrumb row 面包屑行
     Row {
         id: contentRow
         spacing: Enums.spacing.none
