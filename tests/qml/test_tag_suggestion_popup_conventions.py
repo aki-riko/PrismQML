@@ -94,6 +94,23 @@ def _popup_core(tag_input: QQuickItem) -> QQuickItem:
     return matches[0]
 
 
+def _tag_line_edit(tag_input: QQuickItem) -> QQuickItem:
+    matches = [
+        child
+        for child in _descendants(tag_input)
+        if isinstance(child, QQuickItem)
+        and child.metaObject().indexOfMethod("addTag(QVariant,QVariant)") >= 0
+        and child.metaObject().indexOfMethod("clearTags()") >= 0
+        and child.metaObject().indexOfProperty("_countText") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
+def _variant(value):
+    return value.toVariant() if hasattr(value, "toVariant") else value
+
+
 def _new_visible_windows(windows_before, *allowed):
     return [
         window
@@ -174,6 +191,46 @@ def test_tag_suggestion_popup_open_resize_and_close_lifecycle(qapp):
         assert _wait_for(lambda: not popup.property("isClosing"))
         assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
         assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_tag_line_edit_command_and_signal_parent_chain(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, tag_input, warnings = _create_scene()
+    try:
+        tag_edit = _tag_line_edit(tag_input)
+        added = []
+        modified = []
+        tag_input.tagAdded.connect(added.append)
+        tag_input.tagsModified.connect(lambda value: modified.append(_variant(value)))
+
+        tag_edit.addTag(" Alpha ", None)
+        _pump()
+        assert _variant(tag_input.property("tags")) == ["Alpha"]
+        assert added == ["Alpha"]
+        assert modified == [["Alpha"]]
+
+        tag_edit.addTag("Alpha", None)
+        tag_input.setProperty("maxTags", 2)
+        tag_input.setProperty("extraSeparators", [","])
+        assert tag_edit._addSplit("Beta,Gamma")
+        _pump()
+        assert _variant(tag_input.property("tags")) == ["Alpha", "Beta"]
+        assert added == ["Alpha", "Beta"]
+        assert tag_edit.property("_countText") == "2/2"
+
+        tag_edit.clearTags()
+        tag_input.setProperty("allowCustomTags", False)
+        tag_edit.addTag("Delta", None)
+        tag_edit.addTag("Gamma", None)
+        _pump()
+        assert _variant(tag_input.property("tags")) == ["Gamma"]
+        assert added == ["Alpha", "Beta", "Gamma"]
+        assert tag_edit.property("_countText") == "1/2"
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
