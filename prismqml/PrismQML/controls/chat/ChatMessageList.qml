@@ -41,7 +41,7 @@ Item {
     // 用户是否在底部 (容差 24px)
     readonly property bool _isAtBottom: listView.contentY + listView.height >= listView.contentHeight - 24
 
-    // ==================== Public API ====================
+    // ==================== Internal Methods 内部方法 ====================
     // 滚到底: positionViewAtEnd 同步改 contentY,再 callLater 把 SmoothScrollHelper
     // 内部 _smoothY/_targetY 同步到新位置,否则下次滚轮从旧位置跳变 → 滚动条手柄错位。
     function _scrollToBottom() {
@@ -51,6 +51,8 @@ Item {
             scrollHelper.syncPosition()
         })
     }
+
+    // ==================== Public Methods 公开方法 ====================
 
     function appendMessage(role, content, timestamp) {
         chatModel.append({
