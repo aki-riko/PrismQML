@@ -5,13 +5,12 @@
 import QtQuick
 import "../../.."
 
-// SlidingIndicatorAnimation - 滑动指示器动画引擎 (统一基类内核)
-// 独立"橡皮筋"粘滞算法 (非 Pivot 两段式 SequentialAnimation):
-//   指示器拆为前缘(lead)/后缘(trail)两条边, 各跑一个 NumberAnimation。
-//   朝运动方向的前缘用短时长先到位, 背向的后缘用长时长慢追。
-//   中间 长度=|lead-trail| 被自然拉大再收回 → 橡皮筋粘滞, 方向自适应。
-// 主轴 (orientation 决定) 走橡皮筋; 副轴 (固定边) 用快速跟随。
-// 用于: NavigationBar / NavigationView / Pivot / SegmentedControl / ToggleNavigationBar
+// SlidingIndicatorAnimation - Shared sliding-indicator animation engine 统一滑动指示器动画引擎
+// Uses independent lead and trail edges for sticky stretch 使用独立前缘和后缘实现粘滞拉伸
+// The leading edge arrives quickly while the trailing edge follows slowly 前缘快速到位，后缘缓慢跟随
+// Their distance stretches and contracts with direction-aware motion 两边距离随方向自适应地拉伸和收回
+// The main axis stretches while the cross axis follows quickly 主轴执行拉伸，副轴快速跟随
+// Used by navigation and segmented controls 用于导航控件与分段控件
 Item {
     id: root
 
@@ -31,10 +30,7 @@ Item {
                                     || crossPosAnim.running || crossLenAnim.running
                                     || springPosAnim.running || springLenAnim.running
 
-    // ==================== Signals 信号 ====================
-    signal finished()
-
-    // ==================== Internal Geometry 内部几何 ====================
+    // ==================== Internal Props 内部属性 ====================
     readonly property bool _isH: orientation === Qt.Horizontal
 
     // 立即定位守卫: 为真时所有 Behavior 禁用 (setGeometry 真正无动画)
@@ -50,7 +46,7 @@ Item {
     property real _springPos: 0
     property real _springLen: 0
 
-    // ==================== Output Geometry 输出几何 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property real _mainPos: mode === "spring" ? _springPos : Math.min(_near, _far)
     readonly property real _mainLen: mode === "spring" ? _springLen : Math.abs(_far - _near)
 
@@ -59,7 +55,10 @@ Item {
     readonly property real indicatorWidth: _isH ? _mainLen : _crossLen
     readonly property real indicatorHeight: _isH ? _crossLen : _mainLen
 
-    // ==================== Helpers 几何拆分 ====================
+    // ==================== Signals 信号 ====================
+    signal finished()
+
+    // ==================== Internal Methods 内部方法 ====================
     // 把 rect 拆成 主轴(pos,len) + 副轴(pos,len)
     function _mainOf(rect) { return _isH ? { p: rect.x, l: rect.width } : { p: rect.y, l: rect.height } }
     function _crossOf(rect) { return _isH ? { p: rect.y, l: rect.height } : { p: rect.x, l: rect.width } }
@@ -107,7 +106,7 @@ Item {
             return
         }
 
-        // ===== stretch 橡皮筋 =====
+        // Stretch mode 橡皮筋模式
         nearAnim.stop(); farAnim.stop()
 
         var startNear = ms.p, startFar = ms.p + ms.l
@@ -143,7 +142,8 @@ Item {
         nearAnim.stop(); farAnim.stop()
     }
 
-    // ==================== stretch: 两条边独立动画 ====================
+    // ==================== Content 内容 ====================
+    // Independent stretch-edge animations 橡皮筋两条边独立动画
     NumberAnimation {
         id: nearAnim
         target: root; property: "_near"
@@ -157,7 +157,7 @@ Item {
         onStopped: if (!nearAnim.running) root.finished()
     }
 
-    // ==================== 副轴: 快速跟随 ====================
+    // Fast cross-axis following 副轴快速跟随
     Behavior on _crossPos {
         enabled: root.mode !== "instant" && !root._immediate
         NumberAnimation { id: crossPosAnim; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
@@ -167,7 +167,7 @@ Item {
         NumberAnimation { id: crossLenAnim; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
     }
 
-    // ==================== spring: 弹簧物理 ====================
+    // Spring physics 弹簧物理
     Behavior on _springPos {
         enabled: root.mode === "spring" && !root._immediate
         SpringAnimation { id: springPosAnim; spring: 3; damping: 0.35; mass: 1; epsilon: 0.5 }
