@@ -649,6 +649,8 @@ QtObject {
  readonly property int hexRgbLen: 6
  readonly property int hexRgbaLen: 8
  readonly property int hexAlphaOffset: 2
+ readonly property int hexRadix: 16
+ readonly property string hexPadCharacter: "0"
  }
  
  // ==================== Typography 字体 ====================

@@ -9,62 +9,64 @@ import "../../../buttons/Button"
 import "../../../data"
 
 // ColorPickerDropdown - Full dropdown picker content 完整下拉选择器内容
-// Layout: HSV Panel + Brightness slider + Mode selector + Hex + RGBA sliders + Buttons
+// Layout: HSV panel, brightness, mode, Hex, RGBA, and actions 布局：HSV 面板、亮度、模式、Hex、RGBA 与操作按钮
 Item {
     id: control
-    
-    // ==================== Properties 属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property color selectedColor: Enums.accentColor
     property int colorMode: Enums.colorPicker.mode_rgb
     property bool enableAlpha: true
-    
-    // ==================== Internal HSV 内部HSV ====================
+
+    // ==================== Internal Props 内部属性 ====================
     property real _hue: Enums.colorPickerMetrics.dialogHueDefault
     property real _saturation: Enums.colorPickerMetrics.dialogSaturationDefault
     property real _brightness: Enums.colorPickerMetrics.dialogBrightnessDefault
     property int _alpha: Enums.colorPickerMetrics.dialogAlphaDefault
-    
+
     // ==================== Signals 信号 ====================
     signal accepted(color value)
     signal rejected()
     signal colorChanged(color value)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: Enums.colorPickerMetrics.dropdownWidth
-    implicitHeight: contentColumn.implicitHeight + Enums.spacing.xl * 2
 
-    // ==================== Functions 函数 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function updateColor() {
         selectedColor = Qt.hsva(_hue, _saturation, _brightness, _alpha / Enums.colorPickerMetrics.dialogAlphaMaxValue)
         colorChanged(selectedColor)
     }
 
     function updateHsvFromColor() {
-        _hue = selectedColor.hsvHue >= 0 ? selectedColor.hsvHue : 0
+        _hue = selectedColor.hsvHue >= Enums.opacityLevel.invisible ? selectedColor.hsvHue : Enums.opacityLevel.invisible
         _saturation = selectedColor.hsvSaturation
         _brightness = selectedColor.hsvValue
     }
 
     function _formatHex() {
-        var r = Math.round(selectedColor.r * Enums.colorPickerMetrics.channelMaxValue).toString(16).padStart(Enums.colorPickerMetrics.hexByteLen, '0')
-        var g = Math.round(selectedColor.g * Enums.colorPickerMetrics.channelMaxValue).toString(16).padStart(Enums.colorPickerMetrics.hexByteLen, '0')
-        var b = Math.round(selectedColor.b * Enums.colorPickerMetrics.channelMaxValue).toString(16).padStart(Enums.colorPickerMetrics.hexByteLen, '0')
-        var a = _alpha.toString(16).padStart(Enums.colorPickerMetrics.hexByteLen, '0')
+        var r = Math.round(selectedColor.r * Enums.colorPickerMetrics.channelMaxValue).toString(Enums.colorPickerMetrics.hexRadix).padStart(Enums.colorPickerMetrics.hexByteLen, Enums.colorPickerMetrics.hexPadCharacter)
+        var g = Math.round(selectedColor.g * Enums.colorPickerMetrics.channelMaxValue).toString(Enums.colorPickerMetrics.hexRadix).padStart(Enums.colorPickerMetrics.hexByteLen, Enums.colorPickerMetrics.hexPadCharacter)
+        var b = Math.round(selectedColor.b * Enums.colorPickerMetrics.channelMaxValue).toString(Enums.colorPickerMetrics.hexRadix).padStart(Enums.colorPickerMetrics.hexByteLen, Enums.colorPickerMetrics.hexPadCharacter)
+        var a = _alpha.toString(Enums.colorPickerMetrics.hexRadix).padStart(Enums.colorPickerMetrics.hexByteLen, Enums.colorPickerMetrics.hexPadCharacter)
         return Enums.colorPickerMetrics.dialogHexPrefix + (enableAlpha ? a : "") + r + g + b
     }
 
     function _parseHex(text) {
         var hex = text.replace(Enums.colorPickerMetrics.dialogHexPrefix, "").toLowerCase()
-        // Support formats: RGB, RRGGBB, AARRGGBB
+        // Support RGB, RRGGBB, and AARRGGBB formats 支持 RGB、RRGGBB 与 AARRGGBB 格式
         if (new RegExp("^[0-9a-f]{" + Enums.colorPickerMetrics.hexRgbLen + "}$").test(hex)) {
             selectedColor = Enums.colorPickerMetrics.dialogHexPrefix + hex
             updateHsvFromColor()
         } else if (new RegExp("^[0-9a-f]{" + Enums.colorPickerMetrics.hexRgbaLen + "}$").test(hex)) {
-            _alpha = parseInt(hex.slice(0, Enums.colorPickerMetrics.hexByteLen), 16)
+            _alpha = parseInt(hex.slice(0, Enums.colorPickerMetrics.hexByteLen), Enums.colorPickerMetrics.hexRadix)
             selectedColor = Enums.colorPickerMetrics.dialogHexPrefix + hex.slice(Enums.colorPickerMetrics.hexAlphaOffset, Enums.colorPickerMetrics.hexAlphaOffset + Enums.colorPickerMetrics.hexRgbLen)
             updateHsvFromColor()
         }
     }
+
+    // ==================== Size 尺寸 ====================
+    implicitWidth: Enums.colorPickerMetrics.dropdownWidth
+    implicitHeight: contentColumn.implicitHeight + Enums.spacing.xl * 2
+
+    Component.onCompleted: updateHsvFromColor()
 
     // ==================== Content 内容 ====================
     Column {
@@ -138,7 +140,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     enabled: control.enabled
-                    onClicked: control.colorMode = (control.colorMode + 1) % Enums.colorPickerMetrics.dropdownModeCycleCount
+                    onClicked: control.colorMode = (control.colorMode + Enums.colorPickerMetrics.dropdownModeCycleStep) % Enums.colorPickerMetrics.dropdownModeCycleCount
                 }
             }
             
@@ -263,6 +265,4 @@ Item {
             }
         }
     }
-
-    Component.onCompleted: updateHsvFromColor()
 }
