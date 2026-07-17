@@ -9,7 +9,7 @@ import "../data"
 import "_internal"
 
 // SegmentedControl - Segmented control with icon+text support 分段控件
-// Refactored to use HoverHandler for stable hover 重构使用HoverHandler实现稳定hover
+// Uses HoverHandler to provide stable hover behavior 使用HoverHandler提供稳定的悬停行为
 Rectangle {
     id: control
     
@@ -20,39 +20,30 @@ Rectangle {
     property int itemFontSize: Enums.typography.body
     property int iconSize: Enums.iconSize.m
     property bool showIndicator: true
+
+    // ==================== Internal Props 内部属性 ====================
+    property real _slideX: 0
+    property int _selectedItemWidth: Enums.controlSize.segmentedMinWidth
+    property int _selectedItemHeight: height - Enums.spacing.xxs * 2
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, bool byUser)
     signal currentItemChanged(string key)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: segmentRow.implicitWidth + Enums.spacing.xs * 2
-    implicitHeight: Enums.controlSize.segmentedHeight
-    
-    // ==================== Background 背景 ====================
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    color: Enums.stateColor.segmentedBg
-    border.width: Enums.border.thin
-    border.color: Enums.stateColor.segmentedBorder
-    
-    // ==================== Internal 内部属性 ====================
-    property real _slideX: 0
-    property int _selectedItemWidth: Enums.controlSize.segmentedMinWidth
-    property int _selectedItemHeight: height - Enums.spacing.xxs * 2
 
-    // ==================== Methods 方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function setCurrentIndex(idx) {
         if (idx < 0 || idx >= items.length) return
         if (idx === currentIndex) return
 
-        // 仅改 index, 位置更新统一由 onCurrentIndexChanged 驱动 (避免双发打断动画)
+        // Only update the index; one handler drives geometry to avoid duplicate interruption 只修改索引，由统一handler驱动几何以免双发打断动画
         currentIndex = idx
 
         var item = repeater.itemAt(idx)
         if (item) currentItemChanged(item.key)
     }
 
-    // 底部指示器矩形 (居中于选中项)
+    // ==================== Internal Methods 内部方法 ====================
+    // Center the bottom indicator in the selected item 底部指示器居中于选中项
     function _indicatorRect() {
         return Qt.rect(_slideX + (_selectedItemWidth - indicatorSize) / 2,
                        control.height - 3.5,
@@ -80,6 +71,7 @@ Rectangle {
         }
     }
 
+    // ==================== Public Methods 公开方法 ====================
     function setCurrentItem(key) {
         for (var i = 0; i < items.length; i++) {
             var item = repeater.itemAt(i)
@@ -102,12 +94,22 @@ Rectangle {
         return item ? item.key : ""
     }
 
+    // ==================== Size 尺寸 ====================
+    implicitWidth: segmentRow.implicitWidth + Enums.spacing.xs * 2
+    implicitHeight: Enums.controlSize.segmentedHeight
+
+    // Background 背景
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    color: Enums.stateColor.segmentedBg
+    border.width: Enums.border.thin
+    border.color: Enums.stateColor.segmentedBorder
+
     Component.onCompleted: slideSyncTimer.schedule(false)
     onItemsChanged: slideSyncTimer.schedule(false)
     onWidthChanged: slideSyncTimer.schedule(false)
     onCurrentIndexChanged: slideSyncTimer.schedule(true)
 
-    // ==================== Selected Background 选中背景 ====================
+    // ==================== Content 内容 ====================
     Rectangle {
         id: selectedBg
         x: control._slideX
@@ -124,7 +126,7 @@ Rectangle {
         Behavior on width { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
     }
     
-    // ==================== Indicator 底部指示器 (统一基类, 水平橡皮筋粘滞) ====================
+    // Bottom indicator with shared horizontal stretch behavior 统一基类的水平橡皮筋粘滞底部指示器
     SlidingIndicator {
         id: navIndicator
         orientation: Qt.Horizontal
@@ -185,7 +187,7 @@ Rectangle {
         }
     }
     
-    // ==================== Items Row 项目行 ====================
+    // Items row 项目行
     Row {
         id: segmentRow
         anchors.centerIn: parent
