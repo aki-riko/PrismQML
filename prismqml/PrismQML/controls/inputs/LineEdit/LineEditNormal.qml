@@ -22,9 +22,6 @@ Item {
     required property bool readOnly
     required property int maximumLength
     required property bool clearButtonEnabled
-    // 可选输入过滤(由外层 LineEditCore 透传,默认 null/None 表示不限制)
-    property var validator: null
-    property int inputMethodHints: Qt.ImhNone
     required property bool showPassword
     required property bool collapsible
     required property int collapsedWidth
@@ -40,13 +37,28 @@ Item {
     required property color inputTextColor
     required property color selectionColor
     required property color selectedTextColor
-    
-    // ==================== Output Props 输出属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
+    // Optional input filtering; null/None means unrestricted.
+    // 可选输入过滤；null/None 表示不限制。
+    property var validator: null
+    property int inputMethodHints: Qt.ImhNone
     property alias text: textInput.text
+    property alias textInput: textInput
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _textInputVisible: !collapsible || expanded
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool focused: textInput.activeFocus
     readonly property bool hovered: hoverHandler.hovered
-    property alias textInput: textInput
-    
+    readonly property bool _isPassword: inputType === Enums.input.type_password
+    readonly property bool _isSearch: inputType === Enums.input.type_search
+    readonly property int _actualEchoMode: _isPassword ? (showPassword ? TextInput.Normal : TextInput.Password) : TextInput.Normal
+    readonly property bool expanded: !collapsible || textInput.activeFocus || textInput.text.length > 0
+    // Collapsible: cover entire area when collapsed 收起时覆盖整个区域
+    readonly property bool _isCollapsedSearch: normalInput._isSearch && normalInput.collapsible && !normalInput.expanded
+
     // ==================== Signals 信号 ====================
     signal textEdited(string text)
     signal accepted()
@@ -54,19 +66,8 @@ Item {
     signal searched(string text)
     signal cleared()
     signal selectionChanged()  // Selection changed 选择变化
-    
-    // ==================== Internal State 内部状态 ====================
-    readonly property bool _isPassword: inputType === Enums.input.type_password
-    readonly property bool _isSearch: inputType === Enums.input.type_search
-    readonly property int _actualEchoMode: _isPassword ? (showPassword ? TextInput.Normal : TextInput.Password) : TextInput.Normal
-    readonly property bool expanded: !collapsible || textInput.activeFocus || textInput.text.length > 0
-    
-    // ==================== Collapsible Animation State 折叠动画状态 ====================
-    property bool _textInputVisible: !collapsible || expanded
-    // Collapsible: cover entire area when collapsed 收起时覆盖整个区域
-    readonly property bool _isCollapsedSearch: normalInput._isSearch && normalInput.collapsible && !normalInput.expanded
 
-    // ==================== Methods 方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function clear() { textInput.text = "" }
     function selectAll() { textInput.selectAll() }
     function forceActiveFocus() { textInput.forceActiveFocus() }
@@ -95,13 +96,15 @@ Item {
             _hideTimer.restart()
         }
     }
+
+    // ==================== Content 内容 ====================
     Timer {
         id: _hideTimer
         interval: Enums.duration.medium
         onTriggered: if (!normalInput.expanded) normalInput._textInputVisible = false
     }
-    
-    // ==================== Input Field 输入框 ====================
+
+    // Input field 输入框
     TextInput {
         id: textInput
         anchors.left: parent.left
@@ -130,8 +133,8 @@ Item {
         echoMode: normalInput._actualEchoMode
         readOnly: normalInput.readOnly
         maximumLength: normalInput.maximumLength
-        // validator 接受 IntValidator / DoubleValidator / RegularExpressionValidator
-        // 等任何 QValidator 子类。null 表示无过滤。
+        // Accept any QValidator subclass; null means unrestricted.
+        // 接受任意 QValidator 子类；null 表示无过滤。
         validator: normalInput.validator
         inputMethodHints: normalInput.inputMethodHints
         enabled: normalInput.controlEnabled
@@ -143,22 +146,22 @@ Item {
         }
         onEditingFinished: normalInput.editingFinished()
         onSelectedTextChanged: normalInput.selectionChanged()
-        
-        // Placeholder占位符
+
+        // Placeholder 占位符
         InputPlaceholderLabel {
             anchors.fill: parent
             text: normalInput.placeholderText
             visible: !parent.text && !parent.activeFocus
         }
     }
-    
-    // ==================== Clear Button 清除按钮 ====================
+
+    // Clear button 清除按钮
     CloseButton {
         id: clearBtn
         anchors.right: actionBtn.visible ? actionBtn.left : parent.right
         anchors.rightMargin: Enums.spacing.m
         anchors.verticalCenter: parent.verticalCenter
-        size: 20  // 缩小背板，原为 24
+        size: Enums.controlSize.lineEditClearButtonSize
         iconSizeValue: Enums.controlSize.checkboxInner
         visible: normalInput.clearButtonEnabled && textInput.text.length > 0 && !normalInput._isSearch
         onClicked: {
@@ -166,8 +169,8 @@ Item {
             normalInput.cleared()
         }
     }
-    
-    // ==================== Action Button (Password/Search) 操作按钮 ====================
+
+    // Action button for password and search 密码与搜索操作按钮
     InputActionButton {
         id: actionBtn
         anchors.centerIn: _isCollapsedSearch ? parent : undefined
@@ -192,8 +195,8 @@ Item {
             }
         }
     }
-    
-    // ==================== Hover Detection 悬浮检测 ====================
+
+    // Hover detection 悬浮检测
     HoverHandler {
         id: hoverHandler
     }

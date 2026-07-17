@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Normal line-edit parent-chain regressions. 普通输入框父链回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
@@ -12,9 +12,20 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "LineEdit"
+    / "LineEditNormal.qml"
+)
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "line-edit-normal-conventions.qml")
 )
@@ -26,6 +37,7 @@ import PrismQML
 Window {
     readonly property int normalEcho: TextInput.Normal
     readonly property int passwordEcho: TextInput.Password
+    readonly property int expectedClearButtonSize: Enums.controlSize.lineEditClearButtonSize
 
     width: 560
     height: 260
@@ -185,7 +197,7 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
         clear_button = _clear_button(normal)
         cleared = []
         inputs["normalInput"].cleared.connect(lambda: cleared.append(True))
-        assert clear_button.property("size") == 20
+        assert clear_button.property("size") == window.property("expectedClearButtonSize")
         assert clear_button.property("visible")
         clear_button.clicked.emit()
         _pump()
@@ -221,3 +233,18 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_line_edit_normal_source_conventions_and_clear_button_token():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "size: Enums.controlSize.lineEditClearButtonSize" in source
+    assert "size: 20" not in source
+    metrics = METRICS_PATH.read_text(encoding="utf-8")
+    assert "readonly property int lineEditClearButtonSize: 20" in metrics
