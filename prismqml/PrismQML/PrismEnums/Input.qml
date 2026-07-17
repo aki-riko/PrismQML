@@ -30,4 +30,9 @@ QtObject {
     readonly property int spinbox_double: 11
     readonly property int spinbox_compact: 12
     readonly property int spinbox_compact_double: 13
+    // SpinBox numeric configuration SpinBox 数值配置
+    readonly property int spinBoxIntegerDecimals: 0
+    readonly property int spinBoxDoubleDecimals: 2
+    readonly property real spinBoxIntegerStep: 1
+    readonly property real spinBoxDoubleStep: 0.1
 }

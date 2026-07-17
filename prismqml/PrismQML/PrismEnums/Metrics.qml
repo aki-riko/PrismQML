@@ -375,6 +375,7 @@ QtObject {
  readonly property int timePickerCompactWidth: 200 // TimePicker compact width 紧凑时间选择器宽度
  readonly property int spinBoxWidth: 130 // SpinBox width 数字输入框宽度
  readonly property int spinBoxCompactWidth: 80 // SpinBox compact width 紧凑数字输入框宽度
+ readonly property int spinBoxCompactDoubleExtraWidth: 10 // Extra width for compact decimals 紧凑小数微调框额外宽度
  // Menu controls 菜单控件
  readonly property int menuMinWidth: 160 // Menu minimum width 菜单最小宽度
  readonly property int menuSeparatorHeight: 8 // Menu separator height 菜单分隔线高度 (8px 网格对齐)

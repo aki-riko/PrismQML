@@ -11,22 +11,26 @@ import ".."
 // Types 类型: spinbox_normal, spinbox_double, spinbox_compact, spinbox_compact_double
 SpinBoxCore {
     id: control
-    
-    // ==================== Type Prop 类型属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property int type: Enums.input.spinbox_normal
-    
-    // ==================== Type-based Configuration 基于类型的配置 ====================
-    readonly property bool _isDouble: type === Enums.input.spinbox_double || 
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _isDouble: type === Enums.input.spinbox_double ||
                                       type === Enums.input.spinbox_compact_double
-    readonly property bool _isCompact: type === Enums.input.spinbox_compact || 
+    readonly property bool _isCompact: type === Enums.input.spinbox_compact ||
                                        type === Enums.input.spinbox_compact_double
-    
-    // ==================== Apply Type Settings 应用类型设置 ====================
-    decimals: _isDouble ? 2 : 0
-    stepSize: _isDouble ? 0.1 : 1
+
+    // Apply type configuration 应用类型配置
+    decimals: _isDouble ? Enums.input.spinBoxDoubleDecimals : Enums.input.spinBoxIntegerDecimals
+    stepSize: _isDouble ? Enums.input.spinBoxDoubleStep : Enums.input.spinBoxIntegerStep
     compactMode: _isCompact  // Compact mode with inline up/down buttons 紧凑模式带内联上下按钮
-    
-    // ==================== Size Override 尺寸覆盖 ====================
-    implicitWidth: _isCompact ? (_isDouble ? Enums.controlSize.spinBoxCompactWidth + 10 : Enums.controlSize.spinBoxCompactWidth) : Enums.controlSize.spinBoxWidth
-    implicitHeight: _isCompact ? 28 : Enums.controlSize.inputHeight
+
+    // ==================== Size 尺寸 ====================
+    implicitWidth: _isCompact
+        ? (_isDouble
+            ? Enums.controlSize.spinBoxCompactWidth + Enums.controlSize.spinBoxCompactDoubleExtraWidth
+            : Enums.controlSize.spinBoxCompactWidth)
+        : Enums.controlSize.spinBoxWidth
+    implicitHeight: _isCompact ? Enums.controlSize.inputHeightCompact : Enums.controlSize.inputHeight
 }

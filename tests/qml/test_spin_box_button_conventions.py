@@ -16,7 +16,17 @@ from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SPIN_BOX_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "SpinBox"
+    / "SpinBox.qml"
+)
 SOURCE_PATHS = (
+    SPIN_BOX_PATH,
     ROOT
     / "prismqml"
     / "PrismQML"
@@ -236,6 +246,16 @@ def test_spin_box_type_runtime_contract(spin_box_scene):
             spin_box.property("displayValue"),
         )
         assert actual == contract
+
+
+def test_spin_box_uses_enum_tokens():
+    source = SPIN_BOX_PATH.read_text(encoding="utf-8")
+    assert "Enums.input.spinBoxIntegerDecimals" in source
+    assert "Enums.input.spinBoxDoubleDecimals" in source
+    assert "Enums.input.spinBoxIntegerStep" in source
+    assert "Enums.input.spinBoxDoubleStep" in source
+    assert "Enums.controlSize.spinBoxCompactDoubleExtraWidth" in source
+    assert "Enums.controlSize.inputHeightCompact" in source
 
 
 @pytest.mark.parametrize("source_path", SOURCE_PATHS, ids=lambda path: path.stem)
