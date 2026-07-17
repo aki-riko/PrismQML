@@ -17,35 +17,18 @@ MessageBox {
     property string title: qsTr("Choose Background Color")
     property string editColorText: qsTr("Custom Color")
     property bool enableAlpha: false
-    
-    // ==================== Internal HSV State 内部HSV状态 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     property real _hue: Enums.colorPickerMetrics.dialogHueDefault
     property real _saturation: Enums.colorPickerMetrics.dialogSaturationDefault
     property real _brightness: Enums.colorPickerMetrics.dialogBrightnessDefault
     property int _alpha: Enums.colorPickerMetrics.dialogAlphaDefault
-    
+
     // ==================== Signals 信号 ====================
     signal colorAccepted(color value)
     signal colorUpdated(color value)
-    
-    // ==================== Override DialogBoxCore 重写基类 ====================
-    dismissOnScrimClick: true
-    
-    onAccepted: colorAccepted(selectedColor)
 
-    // ==================== Functions 函数 ====================
-    function updateColor() {
-        selectedColor = Qt.hsva(_hue, _saturation, _brightness, _alpha / Enums.colorPickerMetrics.dialogAlphaMaxValue)
-        colorUpdated(selectedColor)
-    }
-
-    function updateHsvFromColor() {
-        _hue = selectedColor.hsvHue >= 0 ? selectedColor.hsvHue : 0
-        _saturation = selectedColor.hsvSaturation
-        _brightness = selectedColor.hsvValue
-        _alpha = Math.round(selectedColor.a * Enums.colorPickerMetrics.dialogAlphaMaxValue)
-    }
-
+    // ==================== Public Methods 公开方法 ====================
     function setColor(color) {
         selectedColor = color
         initialColor = color
@@ -70,6 +53,23 @@ MessageBox {
 
         _isOpen = true
     }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function updateColor() {
+        selectedColor = Qt.hsva(_hue, _saturation, _brightness, _alpha / Enums.colorPickerMetrics.dialogAlphaMaxValue)
+        colorUpdated(selectedColor)
+    }
+
+    function updateHsvFromColor() {
+        _hue = selectedColor.hsvHue >= Enums.opacityLevel.invisible ? selectedColor.hsvHue : Enums.opacityLevel.invisible
+        _saturation = selectedColor.hsvSaturation
+        _brightness = selectedColor.hsvValue
+        _alpha = Math.round(selectedColor.a * Enums.colorPickerMetrics.dialogAlphaMaxValue)
+    }
+
+    // Base dialog overrides 基础对话框重写
+    dismissOnScrimClick: true
+    onAccepted: colorAccepted(selectedColor)
 
     // ==================== Content 内容 ====================
     Column {
@@ -119,8 +119,8 @@ MessageBox {
                         
                         gradient: Gradient {
                             orientation: Gradient.Horizontal
-                            GradientStop { position: 0; color: Qt.hsva(control._hue, control._saturation, 0, 1) }
-                            GradientStop { position: 1; color: Qt.hsva(control._hue, control._saturation, 1, 1) }
+                            GradientStop { position: Enums.opacityLevel.invisible; color: Qt.hsva(control._hue, control._saturation, Enums.opacityLevel.invisible, Enums.opacityLevel.visible) }
+                            GradientStop { position: Enums.opacityLevel.visible; color: Qt.hsva(control._hue, control._saturation, Enums.opacityLevel.visible, Enums.opacityLevel.visible) }
                         }
                         
                         border.width: Enums.border.thin
@@ -142,14 +142,14 @@ MessageBox {
                     }
                     
                     MouseArea {
-                        anchors.fill: parent
-                        enabled: control.enabled
-                        
                         function updateBrightness(mouse) {
-                            control._brightness = Math.max(0, Math.min(1, mouse.x / width))
+                            control._brightness = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, mouse.x / width))
                             control.updateColor()
                         }
-                        
+
+                        anchors.fill: parent
+                        enabled: control.enabled
+
                         onPressed: (mouse) => updateBrightness(mouse)
                         onPositionChanged: (mouse) => { if (pressed) updateBrightness(mouse) }
                     }
@@ -188,7 +188,7 @@ MessageBox {
             
             // Custom Color + Hex 编辑颜色 + HEX
             Row {
-                spacing: Enums.spacing.xxxl * 2 + Enums.spacing.l  // 60px
+                spacing: Enums.colorPickerMetrics.dialogCustomRowSpacing
                 
                 Label {
                     type: Enums.label.type_body
@@ -260,6 +260,8 @@ MessageBox {
                         
                         TextInput {
                             id: rgbInput
+                            property int ch: modelData.channel
+
                             anchors.fill: parent
                             anchors.margins: Enums.spacing.m
                             verticalAlignment: Text.AlignVCenter
@@ -268,10 +270,9 @@ MessageBox {
                             font.pixelSize: Enums.typography.body
                             color: Enums.textColor.primary
                             selectByMouse: true
-                            validator: IntValidator { bottom: 0; top: Enums.colorPickerMetrics.channelMaxValue }
+                            validator: IntValidator { bottom: Enums.colorPickerMetrics.channelMinValue; top: Enums.colorPickerMetrics.channelMaxValue }
                             enabled: control.enabled
-                            
-                            property int ch: modelData.channel
+
                             onEditingFinished: {
                                 var val = parseInt(text) / Enums.colorPickerMetrics.channelMaxValue
                                 var c = control.selectedColor

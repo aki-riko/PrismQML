@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Color picker dialog parent-chain regressions. 颜色选择对话框父链回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -24,9 +24,20 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ColorPicker"
+    / "_internal"
+    / "ColorPickerDialog.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "color-picker-dialog-runtime.qml")
 )
@@ -344,3 +355,30 @@ def test_color_picker_dialog_accepts_rejects_and_closes_parent(qapp):
         assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window, picker)
+
+
+def test_color_picker_dialog_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_color_picker_dialog_uses_range_and_spacing_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    for token in (
+        "Enums.colorPickerMetrics.dialogCustomRowSpacing",
+        "Enums.colorPickerMetrics.channelMinValue",
+        "Enums.opacityLevel.invisible",
+        "Enums.opacityLevel.visible",
+    ):
+        assert token in source
+    for literal in (
+        "Math.max(0, Math.min(1",
+        "GradientStop { position: 0",
+        "validator: IntValidator { bottom: 0",
+        "Enums.spacing.xxxl * 2 + Enums.spacing.l",
+    ):
+        assert literal not in source

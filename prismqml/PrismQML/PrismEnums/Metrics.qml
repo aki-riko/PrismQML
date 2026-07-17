@@ -612,6 +612,7 @@ QtObject {
  readonly property int dialogHexPrefixX: 8
  readonly property int dialogHexInputLeftMargin: 20
  readonly property int dialogHexMaxLength: 6
+ readonly property int dialogCustomRowSpacing: 60
 
  // Dialog defaults and constants
  readonly property real dialogHueDefault: 0.5
