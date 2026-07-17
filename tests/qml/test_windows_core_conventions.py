@@ -28,6 +28,9 @@ from scripts.qml_conventions import scan_source_text
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "WindowsCore.qml"
+ANIMATION_HELPER_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
+)
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "windows-core-conventions.qml")
@@ -244,3 +247,19 @@ def test_windows_core_source_conventions_and_timing_tokens():
     assert "interval: 1200" not in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int resizeHandlesDelayMs: 1200" in metrics
+
+
+def test_window_animation_helper_source_conventions_and_dead_paths():
+    source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(ANIMATION_HELPER_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "animatedMinimizeWithForward" not in source
+    assert "handleVisibilityChange" not in source
+    assert "animHelper.handleVisibilityChange" not in SOURCE_PATH.read_text(
+        encoding="utf-8"
+    )

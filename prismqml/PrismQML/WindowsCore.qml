@@ -238,7 +238,6 @@ Window {
         }
     }
     onVisibilityChanged: {
-        animHelper.handleVisibilityChange(window.visibility)
         if (window.visibility !== Window.Hidden && window.visibility !== Window.Minimized) {
             ensureVisiblePaintState("visibilityChanged")
         }
