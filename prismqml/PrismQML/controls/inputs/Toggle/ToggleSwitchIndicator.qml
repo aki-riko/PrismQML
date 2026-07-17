@@ -10,11 +10,13 @@ import "../../.."
 Rectangle {
     id: track
 
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool checked: false
     property bool hovered: false
     property bool pressed: false
     property color checkedColor: Enums.accentColor
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool _effectiveHovered: hovered || switchArea.containsMouse
     readonly property bool _effectivePressed: pressed || switchArea.pressed
     readonly property color _trackColor: {
@@ -73,7 +75,7 @@ Rectangle {
     height: Enums.controlSize.switchHeight
     radius: height / 2
 
-    // ==================== Color 颜色 ====================
+    // Calculated track style 计算后的轨道样式
     color: _trackColor
     opacity: _trackOpacity
     border.width: _trackBorderWidth
@@ -82,7 +84,7 @@ Rectangle {
     Behavior on color { ColorAnimation { duration: Enums.duration.normal } }
     Behavior on opacity { NumberAnimation { duration: Enums.duration.normal } }
 
-    // ==================== Handle 滑块 ====================
+    // ==================== Content 内容 ====================
     Rectangle {
         id: handle
         width: Enums.controlSize.switchThumb
@@ -102,7 +104,7 @@ Rectangle {
         }
     }
 
-    // ==================== Interaction 交互 ====================
+    // Pointer interaction 指针交互
     MouseArea {
         id: switchArea
         anchors.fill: parent
