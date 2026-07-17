@@ -16,7 +16,7 @@ from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_PATH = (
+POPUP_SOURCE_PATH = (
     ROOT
     / "prismqml"
     / "PrismQML"
@@ -26,6 +26,7 @@ SOURCE_PATH = (
     / "_internal"
     / "TagSuggestionPopup.qml"
 )
+TAG_LINE_EDIT_SOURCE_PATH = POPUP_SOURCE_PATH.parent.parent / "TagLineEdit.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "tag-suggestion-popup-runtime.qml")
 )
@@ -237,8 +238,19 @@ def test_tag_line_edit_command_and_signal_parent_chain(qapp):
 
 
 def test_tag_suggestion_popup_source_conventions():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(POPUP_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_tag_line_edit_source_conventions():
+    source = TAG_LINE_EDIT_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(TAG_LINE_EDIT_SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [
         violation

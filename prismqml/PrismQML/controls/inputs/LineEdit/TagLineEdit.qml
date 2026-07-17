@@ -28,9 +28,13 @@ InputCore {
     property var extraSeparators: []  // Extra separator chars, e.g. [",",";"] 额外分隔符,粘贴/输入时一并拆分
     property var validateTag: null  // Optional function(text)->bool, reject when returns false 可选校验回调,返回false拒绝
     property var tagColors: ({})  // Optional {tagText: colorString} per-tag tint 可选按标签着色映射
+    property alias textInput: inputField
 
-    // Filtered suggestions 过滤后的建议列表
+    // ==================== Internal Props 内部属性 ====================
     property bool _forceShowAll: false  // Force show all items 强制显示全部
+
+    // ==================== Readonly State 只读状态 ====================
+    // Filtered suggestions 过滤后的建议列表
     readonly property var _filteredItems: {
         // Show all when forced, filter when typing 强制时显示全部，输入时过滤
         if (_forceShowAll) {
@@ -47,6 +51,7 @@ InputCore {
         }).slice(0, 8)  // Max 8 items 最多8个
     }
     readonly property bool _showSuggestions: _filteredItems.length > 0 && inputField.activeFocus
+    readonly property string _countText: maxTags > 0 ? tags.length + "/" + maxTags : ""
 
     // ==================== Signals 信号 ====================
     signal tagAdded(string tag)
@@ -54,7 +59,24 @@ InputCore {
     signal tagsModified(var newTags)
     signal searched(string text)  // Search signal 搜索信号
 
-    // ==================== Methods 方法 ====================
+    // ==================== Public Methods 公开方法 ====================
+    function addTag(text, icon) {
+        var trimmed = (text || "").trim()
+        if (!_canAcceptTag(trimmed)) return
+        // QML array needs reassign to trigger update QML数组重新赋值触发更新
+        var newTags = tags.slice()
+        newTags.push(trimmed)
+        tags = newTags
+        tagsModified(tags)
+        tagAdded(trimmed)
+    }
+
+    function clearTags() {
+        tags = []
+        tagsModified(tags)
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
     // All separator chars (primary + extras) 全部分隔符集合
     function _allSeparators() {
         var list = (separator && separator.length) ? [separator] : []
@@ -88,17 +110,6 @@ InputCore {
         return true
     }
 
-    function addTag(text, icon) {
-        var trimmed = (text || "").trim()
-        if (!_canAcceptTag(trimmed)) return
-        // QML array needs reassign to trigger update QML数组重新赋值触发更新
-        var newTags = tags.slice()
-        newTags.push(trimmed)
-        tags = newTags
-        tagsModified(tags)
-        tagAdded(trimmed)
-    }
-
     // Split raw text by all separators and add each accepted segment 按分隔符拆分并批量添加
     // 用于粘贴 "a,b,c" 场景; 返回是否消费了输入 (含分隔符即消费)
     function _addSplit(raw) {
@@ -122,26 +133,14 @@ InputCore {
         return true
     }
 
-    function clearTags() {
-        tags = []
-        tagsModified(tags)
-    }
-
-    // Calculate current/max tag count display 计算标签数显示
-    readonly property string _countText: maxTags > 0 ? tags.length + "/" + maxTags : ""
-    
-    
-    // ==================== Bind InputCore State 绑定InputCore状态 ====================
+    // Bind InputCore interaction state 绑定 InputCore 交互状态
     focused: inputField.activeFocus
-    property alias textInput: inputField
-    
+    hovered: hoverHandler.hovered
+
     // ==================== Size 尺寸 ====================
     implicitWidth: 300
     implicitHeight: Math.max(Enums.controlSize.inputHeight, tagsFlow.height + Enums.spacing.l)
     radius: Enums.radius.small
-
-    // ==================== Bind Hovered State 绑定hovered状态 ====================
-    hovered: hoverHandler.hovered
 
     // ==================== Content 内容 ====================
     Flow {
@@ -183,12 +182,6 @@ InputCore {
             clip: true
             verticalAlignment: Text.AlignVCenter
 
-            InputsInternal.InputPlaceholderLabel {
-                anchors.fill: parent
-                text: control.placeholderText
-                visible: !parent.text && !parent.activeFocus && control.tags.length === 0
-            }
-
             onTextEdited: {
                 control._forceShowAll = false  // Reset when typing 输入时重置
                 // Paste/typed separators → split into multiple tags 粘贴或输入分隔符时拆分成多个标签
@@ -213,10 +206,16 @@ InputCore {
                 }
                 // Backspace should NOT remove tags, only X button can 退格键不应删除tag，只能通过X按钮删除
             }
+
+            InputsInternal.InputPlaceholderLabel {
+                anchors.fill: parent
+                text: control.placeholderText
+                visible: !parent.text && !parent.activeFocus && control.tags.length === 0
+            }
         }
     }
-    
-    // ==================== Right Area (count + search button) 右侧区域 ====================
+
+    // Right area with count and search button 右侧计数与搜索按钮区域
     Row {
         id: rightArea
         anchors.right: parent.right
@@ -246,14 +245,14 @@ InputCore {
         }
     }
 
-    // ==================== Autocomplete Dropdown 自动完成下拉列表 ====================
+    // Autocomplete dropdown 自动完成下拉列表
     TagSuggestionPopup {
         control: control
         filteredItems: control._filteredItems
         showSuggestions: control._showSuggestions
     }
-    
-    // ==================== Hover Detection 悬浮检测 ====================
+
+    // Hover and tap detection 悬浮与点击检测
     HoverHandler {
         id: hoverHandler
     }
