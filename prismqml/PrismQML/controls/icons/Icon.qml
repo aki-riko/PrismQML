@@ -56,7 +56,7 @@ Item {
     property color color: Enums.textColor.primary
     property color iconColor: color
     
-    // ==================== Computed Props 计算属性 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool isTextIcon: icon !== "" && !_isIconName && !_isImagePath
     readonly property bool isImageIcon: _resolvedSource !== ""
     readonly property bool isSvgIcon: _resolvedSource.toLowerCase().endsWith(".svg")
@@ -91,7 +91,8 @@ Item {
     width: iconSize
     height: iconSize
     
-    // ==================== Text Icon 文本图标 ====================
+    // ==================== Content 内容 ====================
+    // Text icon 文本图标
     Text {
         anchors.centerIn: parent
         text: control.icon
@@ -103,7 +104,7 @@ Item {
         verticalAlignment: Text.AlignVCenter
     }
     
-    // ==================== Image Icon 图片图标（非SVG非头像，应用颜色叠加）====================
+    // Image icon with color overlay 非SVG非头像的颜色叠加图片图标
     Image {
         anchors.centerIn: parent
         width: control.iconSize
@@ -119,7 +120,7 @@ Item {
         layer.effect: ColorOverlay { color: control.color }
     }
     
-    // ==================== Avatar Icon 头像图标（圆形裁剪，不应用颜色叠加）====================
+    // Circular avatar icon without color overlay 圆形裁剪且不应用颜色叠加的头像图标
     Item {
         id: avatarContainer
         anchors.centerIn: parent
@@ -153,7 +154,7 @@ Item {
         }
     }
     
-    // ==================== SVG Icon SVG图标 ====================
+    // SVG icon SVG图标
     Image {
         anchors.centerIn: parent
         width: control.iconSize
