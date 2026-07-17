@@ -7,7 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
@@ -53,6 +53,39 @@ Item {
         anchors.fill: parent
         control: fakeControl
     }
+}
+"""
+STYLE_HELPER_SCENE = b"""
+import QtQuick
+import "."
+import "../../../.."
+Item {
+    readonly property int defaultStyle: Enums.comboBox.style_default
+    readonly property int primaryStyle: Enums.comboBox.style_primary
+    readonly property int transparentStyle: Enums.comboBox.style_transparent
+    readonly property color defaultBg: Enums.stateColor.controlBg
+    readonly property color transparentBg: Enums.stateColor.controlBgTransparent
+    readonly property color transparentHover: Enums.stateColor.transparentHover
+    readonly property color transparentPressed: Enums.stateColor.transparentPressed
+    readonly property color accentForeground: Enums.accentForeground
+    readonly property color primaryText: Enums.textColor.primary
+    readonly property color disabledText: Enums.textColor.disabled
+    readonly property color borderStrong: Enums.stateColor.borderStrong
+    property color backgroundColor: helper.getBackgroundColor()
+    property color textColor: helper.getTextColor()
+    property color borderColor: helper.getBorderColor()
+    QtObject {
+        id: fakeControl
+        objectName: "control"
+        property bool enabled: true
+        property bool popupVisible: false
+        property bool pressed: false
+        property bool hovered: false
+        property color accentColor: "#336699"
+        property int style: 0
+        property string currentText: "Selected"
+    }
+    ComboBoxStyleHelper { id: helper; control: fakeControl }
 }
 """
 
@@ -106,6 +139,12 @@ def _destroy_scene(engine, component, root) -> None:
     del component
     engine.deleteLater()
     _pump(1)
+
+
+def _set_control(control, **properties) -> None:
+    for name, value in properties.items():
+        assert control.setProperty(name, value)
+    _pump()
 
 
 def test_popup_search_box_runtime_contract(qapp):
@@ -181,3 +220,55 @@ def test_combo_box_popup_content_source_conventions():
     assert [
         item for item in violations if item.rule in {"QML008", "QML009"}
     ] == []
+
+
+def test_combo_box_style_helper_background_contract(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene(
+        STYLE_HELPER_SCENE, "combo-box-style-helper-runtime.qml"
+    )
+    try:
+        control = root.findChild(QObject, "control")
+        accent = QColor("#336699")
+        assert root.property("backgroundColor") == root.property("defaultBg")
+        _set_control(control, style=root.property("primaryStyle"))
+        assert root.property("backgroundColor") == accent
+        _set_control(control, hovered=True)
+        assert root.property("backgroundColor") == accent.lighter(108)
+        _set_control(control, hovered=False, pressed=True)
+        assert root.property("backgroundColor") == accent.darker(115)
+        _set_control(control, pressed=False, popupVisible=True)
+        assert root.property("backgroundColor") == accent.darker(110)
+        _set_control(control, popupVisible=False, style=root.property("transparentStyle"))
+        assert root.property("backgroundColor") == root.property("transparentBg")
+        _set_control(control, hovered=True)
+        assert root.property("backgroundColor") == root.property("transparentHover")
+        _set_control(control, hovered=False, pressed=True)
+        assert root.property("backgroundColor") == root.property("transparentPressed")
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        _destroy_scene(engine, component, root)
+
+
+def test_combo_box_style_helper_text_and_border_contract(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene(
+        STYLE_HELPER_SCENE, "combo-box-style-helper-text-runtime.qml"
+    )
+    try:
+        control = root.findChild(QObject, "control")
+        assert root.property("textColor") == root.property("primaryText")
+        assert root.property("borderColor") == root.property("borderStrong")
+        _set_control(control, currentText="")
+        assert root.property("textColor") == root.property("disabledText")
+        _set_control(
+            control, currentText="Selected", style=root.property("primaryStyle")
+        )
+        assert root.property("textColor") == root.property("accentForeground")
+        _set_control(control, enabled=False)
+        assert root.property("textColor") == root.property("disabledText")
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        _destroy_scene(engine, component, root)
