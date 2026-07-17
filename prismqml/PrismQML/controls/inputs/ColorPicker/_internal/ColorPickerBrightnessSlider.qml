@@ -10,7 +10,7 @@ import "../../../.."
 Item {
     id: control
     
-    // ==================== Properties 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property real hue: Enums.colorPickerMetrics.dialogHueDefault           // Current hue 当前色相
     property real saturation: Enums.colorPickerMetrics.dialogSaturationDefault    // Current saturation 当前饱和度
     property real value: Enums.colorPickerMetrics.brightnessValueDefault         // 0-1, brightness value 亮度值
@@ -22,7 +22,8 @@ Item {
     implicitWidth: Enums.colorPickerMetrics.brightnessSliderWidth
     implicitHeight: Enums.spacing.xxl
     
-    // ==================== Brightness Track 亮度轨道 ====================
+    // ==================== Content 内容 ====================
+    // Brightness track 亮度轨道
     Rectangle {
         id: track
         anchors.left: parent.left
@@ -49,7 +50,7 @@ Item {
         border.color: Enums.stateColor.border
     }
     
-    // ==================== Handle 手柄 ====================
+    // Slider handle 滑块手柄
     Rectangle {
         id: handle
         width: Enums.colorPickerMetrics.brightnessHandleSize
@@ -74,12 +75,8 @@ Item {
         Behavior on x { NumberAnimation { duration: Enums.duration.fast } }
     }
     
-    // ==================== Interaction 交互 ====================
+    // Pointer interaction 指针交互
     MouseArea {
-        anchors.fill: parent
-        enabled: control.enabled
-        preventStealing: true
-        
         function updateValue(mouse) {
             var newValue = Math.max(0, Math.min(1, mouse.x / width))
             if (Math.abs(newValue - control.value) > Enums.colorPickerMetrics.brightnessUpdateEpsilon) {
@@ -87,6 +84,10 @@ Item {
                 control.valueModified(newValue)
             }
         }
+
+        anchors.fill: parent
+        enabled: control.enabled
+        preventStealing: true
         
         onPressed: (mouse) => updateValue(mouse)
         onPositionChanged: (mouse) => { if (pressed) updateValue(mouse) }
