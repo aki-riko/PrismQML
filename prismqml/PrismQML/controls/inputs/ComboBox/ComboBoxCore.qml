@@ -35,97 +35,41 @@ Widget {
     property color accentColor: Enums.accentColor
     property int radius: Enums.isNeobrutalism ? Enums.neo.radius
                          : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
-    
-    // ==================== Focus State 焦点状态 ====================
-    // Editable mode input focus state editable模式输入框聚焦状态
-    readonly property bool _inputFocused: editable && editableInput.activeFocus
     property bool focused: _inputFocused
-    
-    // Internal data storage 内部数据存储
-    property var _itemDataMap: ({})  // {index: data}
-    property var _itemIconMap: ({})  // {index: icon}
-    property var _itemEnabledMap: ({})  // {index: enabled}
-    
-    // ==================== Import Methods Module 导入方法模块 ====================
-    property var _methods: ComboBoxMethods
-    
-    // ==================== Qt-Style Migration Methods Qt风格迁移方法 ====================
-    function count() { return _methods.count(model) }
-    function addItem(text, userData) { _methods.addItem(control, text, userData) }
-    function addItems(texts) { _methods.addItems(control, texts) }
-    function removeItem(index) { _methods.removeItem(control, index) }
-    function insertItem(index, text, userData) { _methods.insertItem(control, index, text, userData) }
-    function insertItems(index, texts) { _methods.insertItems(control, index, texts) }  // Batch insert 批量插入
-    function clear() { _methods.clear(control) }
-    
-    // Show popup 显示下拉列表
-    function showPopup() { openPopup() }
-
-    // Hide popup 隐藏下拉列表
-    function hidePopup() { closePopup() }
-    function itemText(index) { return _methods.itemText(model, index) }
-    function findText(text) { return _methods.findText(model, text) }
-    function setCurrentText(text) { _methods.setCurrentText(control, text) }
-    function setItemText(index, text) { _methods.setItemText(control, index, text) }
-    
-    // ==================== Data Methods 数据方法 ====================
-    function currentData() { return _methods.currentData(control) }
-    function itemData(index) { return _methods.itemData(control, index) }
-    function setItemData(index, value) { _methods.setItemData(control, index, value) }
-    function findData(data) { return _methods.findData(control, data) }
-    
-    // ==================== Icon Methods 图标方法 ====================
-    function itemIcon(index) { return _methods.itemIcon(control, index) }
-    function setItemIcon(index, icon) { _methods.setItemIcon(control, index, icon) }
-    
-    // ==================== Enabled State Methods 启用状态方法 ====================
-    function setItemEnabled(index, isEnabled) { _methods.setItemEnabled(control, index, isEnabled) }
-    function isItemEnabled(index) { return _methods.isItemEnabled(control, index) }
-    
-    // ==================== Internal Helper Methods 内部辅助方法 ====================
-    function _getItemText(index) { return _methods.getItemText(model, index) }
-    function _hasMatchingItems(searchText) { return _methods.hasMatchingItems(model, searchText) }
-    function _syncCurrentTextFromSelection() {
-        if (editable && currentIndex === -1) return
-        var nextText = currentIndex >= 0 && currentIndex < model.length
-            ? _getItemText(currentIndex) : ""
-        if (currentText !== nextText) currentText = nextText
-    }
-    
-    // ==================== Signals 信号 ====================
-    signal activated(int index)
-    signal textActivated(string text)  // Qt-style signal Qt风格信号
-    signal indexChanged(int index)  // Migration signal - avoid currentIndex conflict 迁移信号-避免冲突
-    signal textChanged(string text)  // Migration signal - avoid currentText conflict 迁移信号-避免冲突
-    signal indexUpdated()  // Internal alias 内部别名
-    signal wheelScrolled(real delta)  // Wheel event for subclass 滚轮事件供子类使用
-    signal textEdited(string text)  // Editable mode signal editable模式信号
-    
-    // ==================== Readonly State 只读状态 ====================
-    // MouseArea disabled during close, read state directly 关闭期间直接读取状态
-    // Editable mode needs to check both input and arrow area hover editable模式检测两个区域
-    readonly property bool hovered: mouseArea.containsMouse || (editable && editableClickArea.containsMouse)
-    readonly property bool pressed: mouseArea.pressed
-    readonly property bool popupVisible: isOpen || comboPopup.isClosing
     property bool isOpen: false
-    
-    // ==================== Focus Border Control 聚焦底线控制 ====================
     property bool showFocusedBorder: style === 0
     property color focusedBorderColorLight: Enums.accentColor
     property color focusedBorderColorDark: Enums.accentColor
     property bool acceptWheel: false  // Whether to intercept wheel events 是否拦截滚轮事件
-    readonly property color focusedBorderColor: Enums.isDark ? focusedBorderColorDark : focusedBorderColorLight
-
-    // ==================== Popup Config (subclass override) 弹出窗口配置 ====================
     property bool popupCloseOnClickOutside: true  // Close on click outside 点击外部关闭
     property Component popupContent: defaultPopupContent  // Popup content component 弹出内容组件
     property Component popupDelegate: defaultDelegate  // Delegate for items (subclass override) 项目委托
     property int popupItemHeight: Enums.controlSize.inputHeight  // Item height 项目高度
 
+    // ==================== Internal Props 内部属性 ====================
+    // Internal data storage 内部数据存储
+    property var _itemDataMap: ({})  // {index: data}
+    property var _itemIconMap: ({})  // {index: icon}
+    property var _itemEnabledMap: ({})  // {index: enabled}
+    property var _methods: ComboBoxMethods
+
+    // ==================== Readonly State 只读状态 ====================
+    // Editable mode input focus state editable模式输入框聚焦状态
+    readonly property bool _inputFocused: editable && editableInput.activeFocus
+    // MouseArea disabled during close, read state directly 关闭期间直接读取状态
+    // Editable mode needs to check both input and arrow area hover editable模式检测两个区域
+    readonly property bool hovered: mouseArea.containsMouse || (editable && editableClickArea.containsMouse)
+    readonly property bool pressed: mouseArea.pressed
+    readonly property bool popupVisible: isOpen || comboPopup.isClosing
+    readonly property color focusedBorderColor: Enums.isDark ? focusedBorderColorDark : focusedBorderColorLight
+
     // Default delegate 默认委托
     property Component defaultDelegate: Component {
         MenuDelegate {
             id: menuDelegateItem
+
+            property var _comboControl: ListView.view ? ListView.view.parentControl : null
+
             text: {
                 if (modelData === undefined || modelData === null) return ""
                 if (typeof modelData === "object") return modelData.text || modelData.toString()
@@ -135,7 +79,6 @@ Widget {
             selected: _comboControl && index === _comboControl.currentIndex
             itemEnabled: _comboControl ? _comboControl.isItemEnabled(index) : true
             height: _comboControl ? _comboControl.popupItemHeight : Enums.comboBoxMetrics.itemHeight
-            property var _comboControl: ListView.view ? ListView.view.parentControl : null
             onClicked: {
                 if (!_comboControl) return
                 var oldIndex = _comboControl.currentIndex
@@ -159,21 +102,37 @@ Widget {
         }
     }
 
-    // ==================== Public Methods 公共方法 ====================
-    // Calculate max content width from model items 根据model项计算最大内容宽度
-    function _calcContentWidth() {
-        var maxW = 0
-        // Total horizontal padding: contentContainer margins(xs*2) + itemBg margins(xs*2) + text margins(l*2)
-        // 总水平内边距：内容容器边距(xs*2) + 项背景边距(xs*2) + 文本边距(l*2)
-        var itemPadding = Enums.spacing.l * 2 + Enums.spacing.xs * 4
-        for (var i = 0; i < model.length; i++) {
-            var text = _getItemText(i)
-            if (!text) continue
-            comboTextMeasure.text = text
-            maxW = Math.max(maxW, comboTextMeasure.advanceWidth + itemPadding)
-        }
-        return Math.ceil(maxW)
-    }
+    // ==================== Signals 信号 ====================
+    signal activated(int index)
+    signal textActivated(string text)  // Qt-style signal Qt风格信号
+    signal indexChanged(int index)  // Migration signal - avoid currentIndex conflict 迁移信号-避免冲突
+    signal textChanged(string text)  // Migration signal - avoid currentText conflict 迁移信号-避免冲突
+    signal indexUpdated()  // Internal alias 内部别名
+    signal wheelScrolled(real delta)  // Wheel event for subclass 滚轮事件供子类使用
+    signal textEdited(string text)  // Editable mode signal editable模式信号
+
+    // ==================== Public Methods 公开方法 ====================
+    function count() { return _methods.count(model) }
+    function addItem(text, userData) { _methods.addItem(control, text, userData) }
+    function addItems(texts) { _methods.addItems(control, texts) }
+    function removeItem(index) { _methods.removeItem(control, index) }
+    function insertItem(index, text, userData) { _methods.insertItem(control, index, text, userData) }
+    function insertItems(index, texts) { _methods.insertItems(control, index, texts) }  // Batch insert 批量插入
+    function clear() { _methods.clear(control) }
+    function showPopup() { openPopup() }
+    function hidePopup() { closePopup() }
+    function itemText(index) { return _methods.itemText(model, index) }
+    function findText(text) { return _methods.findText(model, text) }
+    function setCurrentText(text) { _methods.setCurrentText(control, text) }
+    function setItemText(index, text) { _methods.setItemText(control, index, text) }
+    function currentData() { return _methods.currentData(control) }
+    function itemData(index) { return _methods.itemData(control, index) }
+    function setItemData(index, value) { _methods.setItemData(control, index, value) }
+    function findData(data) { return _methods.findData(control, data) }
+    function itemIcon(index) { return _methods.itemIcon(control, index) }
+    function setItemIcon(index, icon) { _methods.setItemIcon(control, index, icon) }
+    function setItemEnabled(index, isEnabled) { _methods.setItemEnabled(control, index, isEnabled) }
+    function isItemEnabled(index) { return _methods.isItemEnabled(control, index) }
 
     function openPopup() {
         // Prevent duplicate open 防止重复打开
@@ -201,6 +160,31 @@ Widget {
     function getCurrentIndex() { return currentIndex }
     function isEnabled() { return enabled }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _getItemText(index) { return _methods.getItemText(model, index) }
+    function _hasMatchingItems(searchText) { return _methods.hasMatchingItems(model, searchText) }
+    function _syncCurrentTextFromSelection() {
+        if (editable && currentIndex === -1) return
+        var nextText = currentIndex >= 0 && currentIndex < model.length
+            ? _getItemText(currentIndex) : ""
+        if (currentText !== nextText) currentText = nextText
+    }
+
+    // Calculate max content width from model items 根据model项计算最大内容宽度
+    function _calcContentWidth() {
+        var maxW = 0
+        // Total horizontal padding: contentContainer margins(xs*2) + itemBg margins(xs*2) + text margins(l*2)
+        // 总水平内边距：内容容器边距(xs*2) + 项背景边距(xs*2) + 文本边距(l*2)
+        var itemPadding = Enums.spacing.l * 2 + Enums.spacing.xs * 4
+        for (var i = 0; i < model.length; i++) {
+            var text = _getItemText(i)
+            if (!text) continue
+            comboTextMeasure.text = text
+            maxW = Math.max(maxW, comboTextMeasure.advanceWidth + itemPadding)
+        }
+        return Math.ceil(maxW)
+    }
+
     // ==================== Size 尺寸 ====================
     // Content size (inherited from Widget) 内容尺寸（继承自Widget）
     contentWidth: Enums.comboBoxMetrics.defaultWidth
@@ -210,13 +194,14 @@ Widget {
     onModelChanged: _syncCurrentTextFromSelection()
     Component.onCompleted: _syncCurrentTextFromSelection()
 
-    // ==================== Style Helper 样式辅助 ====================
+    // ==================== Content 内容 ====================
+    // Style helper 样式辅助
     ComboBoxStyleHelper {
         id: styleHelper
         control: control
     }
 
-    // ==================== Shadow Layer 阴影层 (在背景下方) ====================
+    // Shadow layer below background 背景下方阴影层
     // Fluent: 模糊阴影。Neobrutalism: 硬阴影(纯黑, 展开时转橙强调)。
     RectangularShadow {
         anchors.fill: background
@@ -236,7 +221,7 @@ Widget {
         z: background.z - 1
     }
 
-    // ==================== Background 背景 ====================
+    // Background 背景
     Rectangle {
         id: background
         anchors.fill: parent
@@ -252,7 +237,7 @@ Widget {
             }
         }
 
-        // ==================== Fluent Design Style Fluent Design样式 ====================
+        // Fluent Design style Fluent Design样式
         // Unified with Button/LineEdit controlBg series 与Button/LineEdit统一使用controlBg系列
         // 颜色由 token 层在 neo 下自动返回白面/灰, 无需控件分支。
         color: {
@@ -350,7 +335,7 @@ Widget {
             : Enums.stateColor.indicatorActive
     }
     
-    // ==================== Interaction 交互 ====================
+    // Interaction 交互
     // Editable mode: only respond to arrow area clicks, let TextInput work editable模式
     // Non-editable mode: whole area responds 非editable模式
     MouseArea {
@@ -394,7 +379,7 @@ Widget {
         onClicked: editableInput.forceActiveFocus()
     }
 
-    // ==================== Content Width Measurement 内容宽度测量 ====================
+    // Content width measurement 内容宽度测量
     // TextMetrics to measure popup item text width 用TextMetrics测量弹出菜单项文本宽度
     TextMetrics {
         id: comboTextMeasure
@@ -402,7 +387,7 @@ Widget {
         font.pixelSize: Enums.typography.body
     }
 
-    // ==================== Popup Window (use unified base) 弹出窗口 ====================
+    // Popup window using unified base 使用统一基类的弹出窗口
     // Expose popup for subclass access 暴露popup供子类访问
     property alias _popup: comboPopup
 
