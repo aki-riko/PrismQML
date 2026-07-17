@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath
 import pytest
 from PySide6.QtCore import (
     QCoreApplication,
+    Q_ARG,
     QEvent,
     QEventLoop,
     QMetaObject,
@@ -51,6 +52,8 @@ import QtQuick.Window
 import PrismQML
 
 Window {
+    readonly property int centeredMode: Enums.input.search_popup_centered_overlay
+
     width: 640
     height: 480
     visible: true
@@ -384,6 +387,35 @@ def test_search_result_list_preserves_navigation_wrap_and_dynamic_reset(qapp):
         assert _wait_for(lambda: search.property("query") == "")
         assert _wait_for(lambda: not search.property("isOpen"))
         assert _wait_for(lambda: not popup_window.isVisible())
+        assert warnings == []
+        assert _visible_popup_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window, search)
+
+
+def test_local_search_bar_preserves_command_and_centered_open_contract(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, search, warnings = _create_scene()
+    try:
+        popup_core = _popup_core(_search_popup(search))
+        assert QMetaObject.invokeMethod(
+            search, "setQuery", Q_ARG("QVariant", "programmatic")
+        )
+        assert _wait_for(lambda: search.property("query") == "programmatic")
+        assert _wait_for(lambda: search.property("isOpen"))
+        assert QMetaObject.invokeMethod(search, "setQuery", Q_ARG("QVariant", ""))
+        assert _wait_for(lambda: search.property("query") == "")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert _wait_for(lambda: not popup_core.property("isClosing"))
+
+        assert search.setProperty("popupMode", window.property("centeredMode"))
+        assert QMetaObject.invokeMethod(search, "open")
+        assert _wait_for(lambda: search.property("isOpen"))
+        assert popup_core.property("popupWidth") == 600
+        assert _wait_for(lambda: len(_visible_popup_windows(windows_before, window)) == 1)
+        assert QMetaObject.invokeMethod(search, "dismiss")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert _wait_for(lambda: not popup_core.property("isClosing"))
         assert warnings == []
         assert _visible_popup_windows(windows_before, window) == []
     finally:
