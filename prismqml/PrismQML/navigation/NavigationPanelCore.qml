@@ -36,7 +36,7 @@ Item {
     // Page key mapping 页面键映射
     property var _keyMap: ({})
     
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Internal Props 内部属性 ====================
     property int _prevIndex: -1
     
     // Scroll offset for indicator real-time tracking 指示器实时跟踪的滚动偏移
@@ -65,50 +65,27 @@ Item {
     property var topRepeater: null
     property var bottomRepeater: null
 
-    // ==================== Background & Border 背景和边框 ====================
+    // Track if current page switch is loading a new page 跟踪当前页面切换是否正在加载新页面
+    property bool _isPageLoading: false
+
+    // ==================== Readonly State 只读状态 ====================
     // Right-side rounded corner radius 右侧圆角半径
     readonly property int _cornerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
-    
-    // ==================== Signals 信号 ====================
-    signal itemClicked(int index)
-    signal bottomItemClicked(int index)
-    signal currentItemChanged(string key)
-    
-    // ==================== Current Page Key 当前页面键 ====================
+
+    // Current selected page key 当前选中的页面键
     readonly property string currentKey: {
         if (currentIndex >= 0 && currentIndex < model.length) {
             return model[currentIndex].key || model[currentIndex].text || ""
         }
         return ""
     }
-    
-    onCurrentIndexChanged: {
-        var changedKey = ""
-        if (currentIndex >= 0 && currentIndex < model.length) {
-            changedKey = model[currentIndex].key || model[currentIndex].text || ""
-        }
-        if (changedKey) currentItemChanged(changedKey)
 
-        // 跳过本次动画(底部 item 点击时由 NavigationWindowCore 设标志,
-        // 避免用页面索引算错指示器位置;真正的动画交给 updateIndicatorForBottomItem 跑)
-        if (_skipIndicatorAnimation) return
-
-        // 指示器动画: currentIndex 在 _onItemClicked 删掉直接赋值后, 通过 Qt Binding
-        // 从 window.currentIndex 异步同步过来. 由这里统一驱动动画, 既支持点击 (走 _onItemClicked)
-        // 也支持外部直接改 window.currentIndex (Python 侧 setCurrentIndex / 程序化切换).
-        if (delayIndicatorAnimation && _isPageLoading) {
-            _pendingIndicatorAnimation = true
-            _pendingTargetIndex = currentIndex
-        } else {
-            _pendingIndicatorAnimation = false
-            _pendingTargetIndex = -1
-            _updateIndicatorWithAnimation()
-        }
-    }
+    // ==================== Signals 信号 ====================
+    signal itemClicked(int index)
+    signal bottomItemClicked(int index)
+    signal currentItemChanged(string key)
     
-    // Track if current page switch is loading a new page 跟踪当前页面切换是否正在加载新页面
-    property bool _isPageLoading: false
-    
+    // ==================== Internal Methods 内部方法 ====================
     // Update indicator position in real-time (no animation) 实时更新指示器位置（无动画）
     function _updateIndicatorPositionRealtime() {
         var item
@@ -341,9 +318,60 @@ Item {
         navIndicator.setGeometry(rect)
     }
 
+    onCurrentIndexChanged: {
+        var changedKey = ""
+        if (currentIndex >= 0 && currentIndex < model.length) {
+            changedKey = model[currentIndex].key || model[currentIndex].text || ""
+        }
+        if (changedKey) currentItemChanged(changedKey)
+
+        // 跳过本次动画(底部 item 点击时由 NavigationWindowCore 设标志,
+        // 避免用页面索引算错指示器位置;真正的动画交给 updateIndicatorForBottomItem 跑)
+        if (_skipIndicatorAnimation) return
+
+        // 指示器动画: currentIndex 在 _onItemClicked 删掉直接赋值后, 通过 Qt Binding
+        // 从 window.currentIndex 异步同步过来. 由这里统一驱动动画, 既支持点击 (走 _onItemClicked)
+        // 也支持外部直接改 window.currentIndex (Python 侧 setCurrentIndex / 程序化切换).
+        if (delayIndicatorAnimation && _isPageLoading) {
+            _pendingIndicatorAnimation = true
+            _pendingTargetIndex = currentIndex
+        } else {
+            _pendingIndicatorAnimation = false
+            _pendingTargetIndex = -1
+            _updateIndicatorWithAnimation()
+        }
+    }
+
+    // Track scroll state changes 跟踪滚动状态变化
+    onScrollOffsetChanged: {
+        indicatorTracker._scrolling = true
+        _scrollStopTimer.restart()
+        if (!navIndicator.running) {
+            _updateIndicatorPositionRealtime()
+        }
+    }
+
+    // Initialize indicator after component loaded 组件加载后初始化指示器
+    Component.onCompleted: {
+        // Delay init to ensure layout is complete 延迟初始化以确保布局完成
+        _initTimer.start()
+    }
+
+    // Re-init when model changes 模型变化时重新初始化
+    onModelChanged: {
+        _initTimer.restart()
+    }
+
+    // ==================== Content 内容 ====================
+
     // Layer A: opaque background with right-side rounded corners 层A：右侧圆角不透明背景
     Canvas {
         id: bgCanvas
+
+        function _scheduleBgRepaint() {
+            Qt.callLater(bgCanvas.requestPaint)
+        }
+
         anchors.fill: parent
         z: -2  // Lowest layer 最底层
         
@@ -371,30 +399,28 @@ Item {
         // Repaint when size or color changes (debounced via Qt.callLater)
         // 尺寸或颜色变化时防抖重绘 — Qt.callLater 自动合并同一事件循环中的多次调用,
         // 不绑死 60fps 帧时长, 跟随事件循环节拍刷新一次
-        function _scheduleBgRepaint() {
-            Qt.callLater(bgCanvas.requestPaint)
-        }
         onWidthChanged: _scheduleBgRepaint()
         onHeightChanged: _scheduleBgRepaint()
         
         Connections {
-            target: control
             function onBackgroundColorChanged() { bgCanvas.requestPaint() }
+            target: control
         }
     }
     
     // Layer B: Acrylic blurred background 层B：亚克力模糊背景
     Rectangle {
         id: acrylicLayer
+
+        // Acrylic tint color: pure white/dark gray; keeps Mica tint 亚克力着色：纯白/深灰，保留云母色调
+        readonly property color acrylicTintColor: Enums.stateColor.acrylicTintColor
+
         anchors.fill: parent
         visible: control.acrylicEnabled && control.acrylicImageSource !== ""
         z: -1  // Below all content 在所有内容下方
         radius: control._cornerRadius
         clip: true
         color: Enums.transparent
-        
-        // Acrylic tint color: pure white/dark gray; keeps Mica tint 亚克力着色：纯白/深灰，保留云母色调
-        readonly property color acrylicTintColor: Enums.stateColor.acrylicTintColor
         
         // Blurred background image 模糊背景图片
         Image {
@@ -463,6 +489,11 @@ Item {
     // Right border with rounded corners 带圆角的右侧边框
     Canvas {
         id: rightBorderCanvas
+
+        function _scheduleBorderRepaint() {
+            Qt.callLater(rightBorderCanvas.requestPaint)
+        }
+
         anchors.fill: parent
         visible: control.borderEnabled && (control.backgroundColor.a > 0 || control.acrylicEnabled)  // Show when border enabled and bg visible 边框启用且背景可见时显示
         z: 0  // Above acrylic layer 在亚克力层之上
@@ -492,9 +523,6 @@ Item {
         
         // Repaint right border on size change (debounced via Qt.callLater)
         // 尺寸变化时防抖重绘右边框 — 跟随事件循环节拍, 不绑 60fps
-        function _scheduleBorderRepaint() {
-            Qt.callLater(rightBorderCanvas.requestPaint)
-        }
         onWidthChanged: _scheduleBorderRepaint()
         onHeightChanged: _scheduleBorderRepaint()
         
@@ -541,25 +569,17 @@ Item {
     // Real-time indicator position tracking timer 实时指示器位置跟踪定时器
     Timer {
         id: indicatorTracker
+
+        property bool _scrolling: false
+
         interval: Enums.duration.tick
         repeat: true
         running: _scrolling
-        
-        property bool _scrolling: false
         
         onTriggered: {
             if (!navIndicator.running) {
                 _updateIndicatorPositionRealtime()
             }
-        }
-    }
-    
-    // Track scroll state changes 跟踪滚动状态变化
-    onScrollOffsetChanged: {
-        indicatorTracker._scrolling = true
-        _scrollStopTimer.restart()
-        if (!navIndicator.running) {
-            _updateIndicatorPositionRealtime()
         }
     }
     
@@ -569,17 +589,6 @@ Item {
         interval: Enums.duration.fast
         onTriggered: indicatorTracker._scrolling = false
     }
-    // Initialize indicator after component loaded 组件加载后初始化指示器
-    Component.onCompleted: {
-        // Delay init to ensure layout is complete 延迟初始化以确保布局完成
-        _initTimer.start()
-    }
-    
-    // Re-init when model changes 模型变化时重新初始化
-    onModelChanged: {
-        _initTimer.restart()
-    }
-    
     // Delayed init timer 延迟初始化定时器
     Timer {
         id: _initTimer

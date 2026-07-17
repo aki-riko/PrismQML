@@ -10,25 +10,25 @@ import ".."
 // Extends NavigationPanelCore for common indicator/routing logic 继承NavigationPanelCore
 NavigationPanelCore {
     id: control
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    // Maps key to page index for bottom page items 将 key 映射到页面索引，用于底部页面项
+    property var _bottomPageIndexMap: ({})
+
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.navBarWidth
     implicitHeight: parent ? parent.height : 400
     
-    // ==================== Indicator Config 指示器配置 ====================
+    // Indicator config 指示器配置
     indicatorX: Enums.spacing.xxs  // Edge position with minimal margin 边缘位置带最小间距
     indicatorWidth: Enums.controlSize.topNavIndicatorHeight
     indicatorHeight: Enums.controlSize.navIndicatorHeight
     backgroundColor: Enums.transparent
     borderEnabled: false  // compact-nav window style has no right border compact-nav window风格无右侧边框
     
-    // ==================== Connect Repeaters 连接Repeater ====================
+    // Connect repeaters 连接 Repeater
     topRepeater: topRep
     bottomRepeater: bottomRep
-    
-    // ==================== Bottom Page Index Map 底部页面索引映射 ====================
-    // Maps key to page index for bottom page items 将 key 映射到页面索引，用于底部页面项
-    property var _bottomPageIndexMap: ({})
     
     // Bind scroll offset for real-time indicator tracking 绑定滚动偏移以实时跟踪指示器
     scrollOffset: topFlickable.contentY
@@ -36,7 +36,8 @@ NavigationPanelCore {
     // 不再露进底部固定项区(替代 Mica 下失效的 bottomCover 遮盖)。
     indicatorClipBottom: topFlickable.y + topFlickable.height
     
-    // ==================== Top Nav Items (Scrollable) 顶部导航项 ====================
+    // ==================== Content 内容 ====================
+    // Top navigation items (scrollable) 顶部导航项（可滚动）
     Flickable {
         id: topFlickable
         anchors.top: parent.top
@@ -72,7 +73,7 @@ NavigationPanelCore {
         }
     }
     
-    // ==================== Bottom Fixed Items 底部固定项 ====================
+    // Bottom fixed items 底部固定项
     // 注: 原 bottomCover 遮盖矩形已移除 — 指示器现由 NavigationPanelCore 的
     // indicatorClip 裁剪容器按 indicatorClipBottom 裁掉溢出部分, 不再依赖颜色遮盖
     // (Mica 模式下遮盖矩形透明遮不住指示器)。

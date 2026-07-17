@@ -12,40 +12,24 @@ import "../controls/icons"
 NavigationPanelCore {
     id: control
     
-    // ==================== Additional Props 额外属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool showReturnButton: true
     property bool isExpanded: false
-    
-    // Override base class titleBarHeight 覆盖基类的标题栏高度
-    titleBarHeight: Enums.window.titleBarHeight
-    
-    readonly property bool isCompact: !isExpanded
-    
-    // ==================== Bottom Page Index Map 底部页面索引映射 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items
     property var _bottomPageIndexMap: ({})
-    
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool isCompact: !isExpanded
+    readonly property int compactButtonWidth: Enums.controlSize.navPanelCompactWidth - Enums.controlSize.navPanelPaddingH * 2
+
     // ==================== Signals 信号 ====================
     signal returnButtonClicked()
     signal currentItemUpdated(string key)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: Enums.controlSize.navPanelExpandWidth
-    implicitHeight: parent ? parent.height : 400
-    
-    // ==================== Indicator Config 指示器配置 ====================
-    indicatorX: Enums.controlSize.navPanelPaddingH
-    indicatorWidth: Enums.controlSize.navIndicatorWidth
-    indicatorHeight: Enums.controlSize.navIndicatorHeight
-    // backgroundColor inherited from NavigationPanelCore, can be overridden by parent 背景色继承自 NavigationPanelCore，可被父组件覆盖
-    
-    // ==================== Connect Repeaters 连接Repeater ====================
-    topRepeater: topRep
-    bottomRepeater: bottomRep
-    
-    // ==================== Expand/Collapse Methods 展开/折叠方法 ====================
     signal aboutToExpand()  // Emitted before expanding, for acrylic grab 展开前发射，用于截图
-    
+
+    // ==================== Public Methods 公开方法 ====================
     function expand() {
         if (!isExpanded) {
             aboutToExpand()
@@ -59,16 +43,31 @@ NavigationPanelCore {
         }
         isExpanded = !isExpanded
     }
-    
+
+    // ==================== Size 尺寸 ====================
+    implicitWidth: Enums.controlSize.navPanelExpandWidth
+    implicitHeight: parent ? parent.height : 400
+
+    // Override base class titleBarHeight 覆盖基类的标题栏高度
+    titleBarHeight: Enums.window.titleBarHeight
+    // Indicator config 指示器配置
+    indicatorX: Enums.controlSize.navPanelPaddingH
+    indicatorWidth: Enums.controlSize.navIndicatorWidth
+    indicatorHeight: Enums.controlSize.navIndicatorHeight
+    // Connect repeaters 连接 Repeater
+    topRepeater: topRep
+    bottomRepeater: bottomRep
+
     // Forward signal 转发信号
     onCurrentItemChanged: (key) => currentItemUpdated(key)
 
-    // ==================== Compact button width 紧凑按钮宽度 ====================
-    readonly property int compactButtonWidth: Enums.controlSize.navPanelCompactWidth - Enums.controlSize.navPanelPaddingH * 2
-    
-    // ==================== 返回按钮 ====================
+    // ==================== Content 内容 ====================
+    // Return button 返回按钮
     Rectangle {
         id: returnBtn
+
+        readonly property int iconCenterMargin: (control.compactButtonWidth - Enums.iconSize.s) / 2
+
         visible: control.showReturnButton
         anchors.top: parent.top
         anchors.left: parent.left
@@ -79,8 +78,6 @@ NavigationPanelCore {
         height: Enums.controlSize.navItemHeight
         radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
         color: returnArea.containsMouse ? Enums.stateColor.hover : Enums.transparent
-        
-        readonly property int iconCenterMargin: (control.compactButtonWidth - Enums.iconSize.s) / 2
         
         Row {
             anchors.left: parent.left
@@ -102,9 +99,12 @@ NavigationPanelCore {
         }
     }
     
-    // ==================== 菜单按钮（折叠/展开）====================
+    // Menu button (collapse/expand) 菜单按钮（折叠/展开）
     Rectangle {
         id: menuBtn
+
+        readonly property int iconCenterMargin: (control.compactButtonWidth - Enums.iconSize.m) / 2
+
         anchors.top: returnBtn.visible ? returnBtn.bottom : parent.top
         anchors.topMargin: returnBtn.visible ? Enums.controlSize.navItemSpacing : (control.titleBarHeight + Enums.controlSize.navPanelPaddingV)
         anchors.left: parent.left
@@ -113,8 +113,6 @@ NavigationPanelCore {
         height: Enums.controlSize.navItemHeight
         radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
         color: menuArea.containsMouse ? Enums.stateColor.hover : Enums.transparent
-        
-        readonly property int iconCenterMargin: (control.compactButtonWidth - Enums.iconSize.m) / 2
         
         Icon {
             anchors.left: parent.left
@@ -132,7 +130,7 @@ NavigationPanelCore {
         }
     }
     
-    // ==================== 顶部导航项 ====================
+    // Top navigation items 顶部导航项
     Column {
         id: topLayout
         anchors.top: menuBtn.bottom
@@ -158,7 +156,7 @@ NavigationPanelCore {
         }
     }
     
-    // ==================== 底部固定项 ====================
+    // Bottom fixed items 底部固定项
     Column {
         id: bottomLayout
         anchors.bottom: parent.bottom
