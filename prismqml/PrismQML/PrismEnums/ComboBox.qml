@@ -16,6 +16,10 @@ QtObject {
     readonly property int style_default: 0
     readonly property int style_primary: 1
     readonly property int style_transparent: 2
+    // Primary style color factors 主样式颜色系数
+    readonly property real primaryPopupDarken: 1.1
+    readonly property real primaryPressedDarken: 1.15
+    readonly property real primaryHoverLighten: 1.08
     // Feature 功能
     readonly property int feature_none: 0
     readonly property int feature_editable: 1

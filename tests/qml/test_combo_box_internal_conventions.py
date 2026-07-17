@@ -26,6 +26,7 @@ INTERNAL_DIR = (
 )
 SEARCH_SOURCE_PATH = INTERNAL_DIR / "PopupSearchBox.qml"
 POPUP_CONTENT_SOURCE_PATH = INTERNAL_DIR / "ComboBoxPopupContent.qml"
+STYLE_HELPER_SOURCE_PATH = INTERNAL_DIR / "ComboBoxStyleHelper.qml"
 SEARCH_SCENE = b"""
 import QtQuick
 import "."
@@ -63,6 +64,9 @@ Item {
     readonly property int defaultStyle: Enums.comboBox.style_default
     readonly property int primaryStyle: Enums.comboBox.style_primary
     readonly property int transparentStyle: Enums.comboBox.style_transparent
+    readonly property real popupDarken: Enums.comboBox.primaryPopupDarken
+    readonly property real pressedDarken: Enums.comboBox.primaryPressedDarken
+    readonly property real hoverLighten: Enums.comboBox.primaryHoverLighten
     readonly property color defaultBg: Enums.stateColor.controlBg
     readonly property color transparentBg: Enums.stateColor.controlBgTransparent
     readonly property color transparentHover: Enums.stateColor.transparentHover
@@ -230,6 +234,9 @@ def test_combo_box_style_helper_background_contract(qapp):
     try:
         control = root.findChild(QObject, "control")
         accent = QColor("#336699")
+        assert root.property("popupDarken") == 1.1
+        assert root.property("pressedDarken") == 1.15
+        assert root.property("hoverLighten") == 1.08
         assert root.property("backgroundColor") == root.property("defaultBg")
         _set_control(control, style=root.property("primaryStyle"))
         assert root.property("backgroundColor") == accent
@@ -272,3 +279,22 @@ def test_combo_box_style_helper_text_and_border_contract(qapp):
         assert _new_visible_windows(windows_before) == []
     finally:
         _destroy_scene(engine, component, root)
+
+
+def test_combo_box_style_helper_source_conventions():
+    source = STYLE_HELPER_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(STYLE_HELPER_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_combo_box_style_helper_uses_enum_tokens():
+    source = STYLE_HELPER_SOURCE_PATH.read_text(encoding="utf-8")
+    assert "c.style === 1" not in source
+    assert "c.style === 2" not in source
+    assert "control.style === 1" not in source
+    assert "Enums.comboBox.primaryPopupDarken" in source
+    assert "Enums.comboBox.primaryPressedDarken" in source
+    assert "Enums.comboBox.primaryHoverLighten" in source
