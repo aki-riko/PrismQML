@@ -48,24 +48,16 @@ Widget {
                 : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + Enums.border.thin * 2)
                               : Enums.controlSize.cardHeight)
  
- // ==================== Elevation Animation 上浮动画 (only for elevated) ====================
+ // Elevation animation for elevated cards 悬浮卡片上浮动画
  transform: Translate { 
  y: isElevated && hovered && !pressed ? -Enums.spacing.cardElevate : 0
  Behavior on y { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  }
  
- // ==================== Shadow Layer 阴影层 ====================
+ // ==================== Content 内容 ====================
+ // Shadow layer 阴影层
  // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯黑矩形, 无模糊)。
  RectangularShadow {
- anchors.fill: card
- radius: card.radius
- color: _shadowColor
- blur: _shadowBlur
- offset.x: 0
- offset.y: _shadowOffset
- visible: !Enums.isNeobrutalism && (!Enums.isPrismDesign || isElevated || hovered)
-
- // Shadow properties based on type and state 根据类型和状态计算阴影
  property color _shadowColor: isElevated && hovered
  ? Enums.shadow.level4.color
  : Enums.shadow.level2.color
@@ -76,6 +68,15 @@ Widget {
  ? Enums.shadow.level4.offset
  : Enums.shadow.level2.offset
 
+ anchors.fill: card
+ radius: card.radius
+ color: _shadowColor
+ blur: _shadowBlur
+ offset.x: 0
+ offset.y: _shadowOffset
+ visible: !Enums.isNeobrutalism && (!Enums.isPrismDesign || isElevated || hovered)
+
+ // Shadow properties based on type and state 根据类型和状态计算阴影
  Behavior on _shadowBlur { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  Behavior on _shadowColor { ColorAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  }
@@ -89,9 +90,23 @@ Widget {
  Behavior on offset { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  }
  
- // ==================== Card 卡片 ====================
+ // Card surface 卡片表面
  Rectangle {
  id: card
+
+ property color _bgColor: {
+ // 颜色由 token 层(stateColor.controlBg/Hover/Pressed)在 neo 下自动返回白面/灰, 无需控件分支。
+ // Default/Header card: no hover effect 默认卡片/标题卡片无悬停效果
+ // HeaderCard inherits DefaultCard behavior 标题卡继承默认卡行为
+ if (cardType === Enums.card.type_default || cardType === Enums.card.type_header) {
+ return Enums.stateColor.controlBg
+ }
+ // Hover/Elevated: hover effect 悬停/悬浮卡片有悬停效果
+ if (pressed) return Enums.stateColor.controlBgPressed
+ if (hovered) return Enums.stateColor.controlBgHover
+ return Enums.stateColor.controlBg
+ }
+
  anchors.left: parent.left
  anchors.right: parent.right
  anchors.top: parent.top
@@ -105,19 +120,6 @@ Widget {
  
  // Background Color 背景色
  color: _bgColor
- 
- property color _bgColor: {
- // 颜色由 token 层(stateColor.controlBg/Hover/Pressed)在 neo 下自动返回白面/灰, 无需控件分支。
- // Default/Header card: no hover effect 默认卡片/标题卡片无悬停效果
- // HeaderCard inherits DefaultCard behavior 标题卡继承默认卡行为
- if (cardType === Enums.card.type_default || cardType === Enums.card.type_header) {
- return Enums.stateColor.controlBg
- }
- // Hover/Elevated: hover effect 悬停/悬浮卡片有悬停效果
- if (pressed) return Enums.stateColor.controlBgPressed
- if (hovered) return Enums.stateColor.controlBgHover
- return Enums.stateColor.controlBg
- }
  
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  
@@ -155,7 +157,7 @@ Widget {
  Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
  }
  
- // ==================== Header (for header type) 标题区域 ====================
+ // Header for header cards 标题卡标题区域
  Item {
  id: headerView
  width: parent.width
@@ -180,11 +182,11 @@ Widget {
  visible: isHeader
  }
  
- // ==================== Content Area 内容区域 ====================
+ // Content area 内容区域
  Item {
  id: contentLoader
- objectName: "contentLoader"
  readonly property bool _fitContent: !isHeader && control.autoHeight
+ objectName: "contentLoader"
  anchors.top: isHeader ? separator.bottom : parent.top
  // _fitContent 时不绑 bottom, 高度由内容(childrenRect)决定 → 反向撑 card.height;
  // 绑 bottom 会与 card.height←childrenRect 形成 binding loop。
@@ -196,7 +198,7 @@ Widget {
  anchors.margins: isHeader ? Enums.spacing.xxxl : Enums.border.thin
  }
  
- // ==================== Interaction 交互 ====================
+ // Interaction 交互
  MouseArea {
  id: mouseArea
  anchors.fill: parent
