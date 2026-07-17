@@ -284,9 +284,6 @@ Rectangle {
                 Item {
                     id: widgetContainer
 
-                    anchors.fill: parent
-                    visible: !!cellItem.cellWidgetItem
-
                     function _reparentWidget() {
                         if (cellItem.cellWidgetItem && visible) {
                             cellItem.cellWidgetItem.parent = widgetContainer
@@ -304,6 +301,9 @@ Rectangle {
                             })
                         }
                     }
+
+                    anchors.fill: parent
+                    visible: !!cellItem.cellWidgetItem
 
                     onVisibleChanged: _reparentWidget()
                     Component.onCompleted: _reparentWidget()
