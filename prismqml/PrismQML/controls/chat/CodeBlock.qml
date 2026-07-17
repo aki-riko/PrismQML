@@ -81,6 +81,14 @@ Rectangle {
             cursorShape: Qt.PointingHandCursor
             hoverEnabled: true
 
+            onClicked: {
+                _clipboardHelper.text = control.code
+                _clipboardHelper.selectAll()
+                _clipboardHelper.copy()
+                _copied = true
+                copiedTimer.restart()
+            }
+
             Rectangle {
                 anchors.fill: parent
                 radius: control._copyRadius
@@ -99,14 +107,6 @@ Rectangle {
                 id: copiedTimer
                 interval: Enums.duration.copyFeedback
                 onTriggered: copyBtn._copied = false
-            }
-
-            onClicked: {
-                _clipboardHelper.text = control.code
-                _clipboardHelper.selectAll()
-                _clipboardHelper.copy()
-                _copied = true
-                copiedTimer.restart()
             }
         }
     }
