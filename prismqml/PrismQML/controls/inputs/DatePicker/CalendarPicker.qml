@@ -15,47 +15,50 @@ import "../../utils"
 // Uses CalendarPickerCore for calendar grid layout 使用CalendarPickerCore作为日历网格布局
 Rectangle {
     id: control
-    
+
     // ==================== Public Props 公开属性 ====================
-    // Type枚举: Enums.calendarPicker.type_single / type_range
+    // Type enum 类型枚举: Enums.calendarPicker.type_single / type_range
     property int type: Enums.calendarPicker.type_single
-    readonly property bool _isRange: type === Enums.calendarPicker.type_range
-    
+
     // Single mode props 单选模式属性
     property int year: new Date().getFullYear()
-    property int month: new Date().getMonth() + 1
+    property int month: new Date().getMonth() + Enums.calendarPicker.monthMinimum
     property int day: new Date().getDate()
     property bool hasDate: true
-    
+
     // Range mode props 范围模式属性
     property date startDate: new Date()
     property date endDate: new Date()
     property bool hasRange: false
-    property bool _selectingStart: true  // Internal: selecting start or end 内部：选择开始还是结束
-    
     property bool isOpen: false
     property color accentColor: Enums.accentColor
-    
+
     // Localization 本地化
     property var weekDays: ["日", "一", "二", "三", "四", "五", "六"]
     property string monthFormat: "{month}月 {year}"
     property string placeholderText: _isRange ? "选择日期范围" : "选择日期"
     property string startHint: "选择开始日期"
     property string endHint: "选择结束日期"
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _selectingStart: true  // Selecting start or end 选择开始或结束
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _isRange: type === Enums.calendarPicker.type_range
+    readonly property string displayDate: {
+        if (_isRange) {
+            return hasRange ? _formatDate(startDate) + Enums.calendarPicker.rangeSeparator + _formatDate(endDate) : placeholderText
+        }
+        return hasDate ? (year + Enums.calendarPicker.dateSeparator + (month < Enums.calendarPicker.twoDigitThreshold ? Enums.calendarPicker.datePadCharacter : "") + month + Enums.calendarPicker.dateSeparator + (day < Enums.calendarPicker.twoDigitThreshold ? Enums.calendarPicker.datePadCharacter : "") + day) : placeholderText
+    }
+
     // ==================== Signals 信号 ====================
     signal dateChanged(int year, int month, int day)
     signal rangeChanged(date startDate, date endDate)
-    
-    // ==================== Computed Properties 计算属性 ====================
+
+    // ==================== Internal Methods 内部方法 ====================
     function _formatDate(d) {
-        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0')
-    }
-    readonly property string displayDate: {
-        if (_isRange) {
-            return hasRange ? _formatDate(startDate) + " ~ " + _formatDate(endDate) : placeholderText
-        }
-        return hasDate ? (year + "-" + (month < 10 ? "0" : "") + month + "-" + (day < 10 ? "0" : "") + day) : placeholderText
+        return d.getFullYear() + Enums.calendarPicker.dateSeparator + String(d.getMonth() + Enums.calendarPicker.monthMinimum).padStart(Enums.calendarPicker.dateFieldWidth, Enums.calendarPicker.datePadCharacter) + Enums.calendarPicker.dateSeparator + String(d.getDate()).padStart(Enums.calendarPicker.dateFieldWidth, Enums.calendarPicker.datePadCharacter)
     }
 
     // ==================== Public Methods 公开方法 ====================
@@ -63,8 +66,8 @@ Rectangle {
         // Sync CalendarView with current date 同步日历视图到当前日期
         if (_isRange) {
             calendarView.year = startDate.getFullYear()
-            calendarView.month = startDate.getMonth() + 1
-            calendarView.day = 0
+            calendarView.month = startDate.getMonth() + Enums.calendarPicker.monthMinimum
+            calendarView.day = Enums.calendarPicker.noSelectionDay
             calendarView.rangeMode = true
             calendarView.rangeStart = hasRange ? startDate : null
             calendarView.rangeEnd = hasRange ? endDate : null
@@ -72,7 +75,7 @@ Rectangle {
         } else {
             calendarView.year = control.year
             calendarView.month = control.month
-            calendarView.day = control.hasDate ? control.day : 0
+            calendarView.day = control.hasDate ? control.day : Enums.calendarPicker.noSelectionDay
             calendarView.rangeMode = false
         }
 
@@ -86,8 +89,8 @@ Rectangle {
 
     function setDate(y, m, d) {
         year = y
-        month = Math.max(1, Math.min(12, m))
-        day = Math.max(1, Math.min(31, d))
+        month = Math.max(Enums.calendarPicker.monthMinimum, Math.min(Enums.calendarPicker.monthMaximum, m))
+        day = Math.max(Enums.calendarPicker.dayMinimum, Math.min(Enums.calendarPicker.dayMaximum, d))
         hasDate = true
     }
 
@@ -97,14 +100,11 @@ Rectangle {
         hasRange = true
     }
 
-    function getDate() { return new Date(year, month - 1, day) }
+    function getDate() { return new Date(year, month - Enums.calendarPicker.monthMinimum, day) }
     function reset() {
         if (_isRange) { hasRange = false; _selectingStart = true }
         else hasDate = false
     }
-
-    // ==================== Public Methods 公共方法 ====================
-
 
     // Open popup (alias) 打开弹窗（别名）
     function open() {
@@ -116,11 +116,11 @@ Rectangle {
         closePopup()
     }
 
-    // ==================== Size & Style 尺寸与样式 ====================
-    implicitWidth: _isRange ? 220 : 180
+    // ==================== Size 尺寸 ====================
+    implicitWidth: _isRange ? Enums.controlSize.calendarPickerRangeWidth : Enums.controlSize.calendarPickerWidth
     implicitHeight: Enums.controlSize.inputHeight
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    
+
     // Fluent Design CalendarPicker style 样式
     color: {
         if (!enabled) return Enums.stateColor.controlBgDisabled
@@ -128,10 +128,10 @@ Rectangle {
         if (mouseArea.containsMouse) return Enums.stateColor.controlBgHover
         return Enums.stateColor.controlBg
     }
-    
+
     border.width: Enums.border.thin
     border.color: Enums.stateColor.pickerBorder
-    
+
     // ==================== Content 内容 ====================
     Label {
         anchors.left: parent.left
@@ -148,7 +148,7 @@ Rectangle {
         }
         elide: Text.ElideRight
     }
-    
+
     Icon {
         id: calIcon
         anchors.right: parent.right
@@ -156,10 +156,10 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         iconSize: Enums.controlSize.checkIconSize
         icon: Enums.icon.calendar
-        opacity: (_isRange ? hasRange : hasDate) ? 1.0 : 0.6
+        opacity: (_isRange ? hasRange : hasDate) ? Enums.opacityLevel.visible : Enums.opacityLevel.secondary
     }
-    
-    // ==================== Interaction 交互 ====================
+
+    // Interaction 交互
     MouseArea {
         id: mouseArea
         anchors.fill: parent
@@ -168,13 +168,13 @@ Rectangle {
         onClicked: isOpen ? closePopup() : openPopup()
     }
 
-    // ==================== Popup 弹出窗口 ====================
+    // Popup window 弹出窗口
     PopupWindowCore {
         id: calPopup
         popupWidth: Enums.controlSize.calendarPopupWidth
         popupHeight: Enums.controlSize.calendarPopupHeight
         popupRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
-        animationType: 1  // SlideDown animation (Fluent Design style)
+        animationType: Enums.calendarPicker.popupAnimationSlideDown
         onClosed: control.isOpen = false
         
         // Wheel area for month navigation 滚轮切换月份

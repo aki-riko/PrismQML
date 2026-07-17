@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Calendar picker convention regressions. 日历选择器规范回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
@@ -12,9 +12,19 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "DatePicker"
+    / "CalendarPicker.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "calendar-picker-conventions.qml")
 )
@@ -26,6 +36,12 @@ Item {
     readonly property string calendarIcon: Enums.icon.calendar
     readonly property int inputHeight: Enums.controlSize.inputHeight
     readonly property int popupWidth: Enums.controlSize.calendarPopupWidth
+    readonly property int singleWidth: Enums.controlSize.calendarPickerWidth
+    readonly property int rangeWidth: Enums.controlSize.calendarPickerRangeWidth
+    readonly property real visibleOpacity: Enums.opacityLevel.visible
+    readonly property real secondaryOpacity: Enums.opacityLevel.secondary
+    readonly property int slideDownAnimation:
+        Enums.calendarPicker.popupAnimationSlideDown
 
     width: 520
     height: 100
@@ -133,31 +149,56 @@ def test_calendar_picker_single_runtime_contract(calendar_scene):
     picker = calendar_scene.findChild(QObject, "single")
     icon = _calendar_icon(calendar_scene, picker)
     popup = _calendar_popup(picker)
-    assert picker.property("implicitWidth") == 180
+    assert picker.property("implicitWidth") == calendar_scene.property("singleWidth")
     assert picker.property("implicitHeight") == calendar_scene.property("inputHeight")
     assert picker.property("displayDate") == "2026-03-04"
-    assert icon.property("opacity") == pytest.approx(1.0)
-    assert popup.property("animationType") == 1
+    assert icon.property("opacity") == calendar_scene.property("visibleOpacity")
+    assert popup.property("animationType") == calendar_scene.property("slideDownAnimation")
     assert popup.property("popupWidth") == calendar_scene.property("popupWidth")
     assert QMetaObject.invokeMethod(picker, "reset")
     _pump()
     assert not picker.property("hasDate")
     assert picker.property("displayDate") == "选择日期"
-    assert icon.property("opacity") == pytest.approx(0.6)
+    assert icon.property("opacity") == calendar_scene.property("secondaryOpacity")
 
 
 def test_calendar_picker_range_runtime_contract(calendar_scene):
     picker = calendar_scene.findChild(QObject, "range")
     icon = _calendar_icon(calendar_scene, picker)
-    assert picker.property("implicitWidth") == 220
+    assert picker.property("implicitWidth") == calendar_scene.property("rangeWidth")
     assert picker.property("displayDate") == "2026-01-02 ~ 2026-03-04"
     assert picker.property("weekDays").toVariant() == [
         "日", "一", "二", "三", "四", "五", "六"
     ]
     assert picker.property("monthFormat") == "{month}月 {year}"
-    assert icon.property("opacity") == pytest.approx(1.0)
+    assert icon.property("opacity") == calendar_scene.property("visibleOpacity")
     assert QMetaObject.invokeMethod(picker, "reset")
     _pump()
     assert not picker.property("hasRange")
     assert picker.property("displayDate") == "选择日期范围"
-    assert icon.property("opacity") == pytest.approx(0.6)
+    assert icon.property("opacity") == calendar_scene.property("secondaryOpacity")
+
+
+def test_calendar_picker_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_calendar_picker_uses_enum_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "Enums.controlSize.calendarPickerWidth" in source
+    assert "Enums.controlSize.calendarPickerRangeWidth" in source
+    assert "Enums.calendarPicker.popupAnimationSlideDown" in source
+    assert "Enums.calendarPicker.monthMinimum" in source
+    assert "Enums.calendarPicker.monthMaximum" in source
+    assert "Enums.calendarPicker.dayMinimum" in source
+    assert "Enums.calendarPicker.dayMaximum" in source
+    assert "Enums.calendarPicker.dateFieldWidth" in source
+    assert "Enums.calendarPicker.dateSeparator" in source
+    assert "Enums.calendarPicker.rangeSeparator" in source
+    assert "Enums.opacityLevel.visible" in source
+    assert "Enums.opacityLevel.secondary" in source

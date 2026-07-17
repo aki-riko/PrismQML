@@ -339,6 +339,8 @@ QtObject {
  readonly property int calendarNavButtonSize: 32 // Calendar nav button size 日历导航按钮尺寸
  readonly property int calendarPopupWidth: 280 // Calendar popup width 日历弹出宽度
  readonly property int calendarGridHeight: 216 // Calendar grid height (36*6) 日历网格高度
+ readonly property int calendarPickerWidth: 180 // Single calendar picker width 单日期选择器宽度
+ readonly property int calendarPickerRangeWidth: 220 // Range calendar picker width 日期范围选择器宽度
  // Step controls 步骤控件
  readonly property int stepConnectorWidth: 60 // Step connector width 步骤连接线宽度
  // Edit button controls 编辑按钮控件
