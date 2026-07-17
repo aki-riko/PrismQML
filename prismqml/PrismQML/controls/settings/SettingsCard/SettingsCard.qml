@@ -18,71 +18,71 @@ import "../../containers"
 Item {
     id: control
     
-    // ==================== Translation Trigger 翻译触发器 ====================
-    readonly property int _tv: Translator._v
-    
-    // ==================== Type 类型 ====================
+    // ==================== Public Props 公开属性 ====================
     property int type: Enums.settingCard.type_push
-    
-    // ==================== Common Props 通用属性 ====================
+
+    // Common properties 通用属性
     property string icon: ""
     property string title: ""
     property string content: ""
     property bool disabled: false
     
-    // ==================== Expand Props 展开属性 ====================
+    // Expand properties 展开属性
     property bool expanded: false
-    readonly property bool isExpandType: type === Enums.settingCard.type_options ||
-                                         type === Enums.settingCard.type_folder_list ||
-                                         type === Enums.settingCard.type_color
-    
-    // ==================== Push Button Props 按钮属性 ====================
+
+    // Push button properties 按钮属性
     property string buttonText: ""
     property bool isPrimary: type === Enums.settingCard.type_primary_push
     
-    // ==================== Hyperlink Props 超链接属性 ====================
+    // Hyperlink properties 超链接属性
     property string url: ""
     property string linkText: ""
     
-    // ==================== Switch Props 开关属性 ====================
+    // Switch properties 开关属性
     property bool checked: false
     property string onText: { _tv; return Translator.tr("on") }
     property string offText: { _tv; return Translator.tr("off") }
     
-    // ==================== ComboBox Props 下拉框属性 ====================
+    // ComboBox properties 下拉框属性
     property var model: []
     property int currentIndex: -1
     property string currentText: currentIndex >= 0 && currentIndex < model.length ? model[currentIndex] : ""
     property string placeholderText: Translator.tr("placeholder_select")
     
-    // ==================== Range Props 滑块属性 ====================
+    // Range properties 滑块属性
     property real value: 0
     property real from: 0
     property real to: 100
     property real stepSize: 1
     
-    // ==================== Shortcut Props 快捷键属性 ====================
+    // Shortcut properties 快捷键属性
     property string shortcut: ""
     property string shortcutPlaceholder: { _tv; return Translator.tr("click_to_record") }
     
-    // ==================== Options Props 选项属性 ====================
+    // Options properties 选项属性
     property var options: []
     property int selectedIndex: 0
     property string selectedText: options.length > 0 && selectedIndex >= 0 && selectedIndex < options.length ? 
                                   options[selectedIndex] : ""
     
-    // ==================== Folder List Props 文件夹列表属性 ====================
+    // Folder list properties 文件夹列表属性
     property var folders: []
     property string directory: ""
     property string addButtonText: Translator.tr("add_folder")
     
-    // ==================== Custom Color Props 自定义颜色属性 ====================
+    // Custom color properties 自定义颜色属性
     property color defaultColor: Enums.accentColor
     property color customColor: Enums.accentColor
     property bool useCustomColor: false
     property string defaultColorText: { _tv; return Translator.tr("default_color_text") }
     property string customColorText: { _tv; return Translator.tr("custom_color_text") }
     property string chooseColorText: { _tv; return Translator.tr("choose_color_text") }
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int _tv: Translator._v
+    readonly property bool isExpandType: type === Enums.settingCard.type_options ||
+                                         type === Enums.settingCard.type_folder_list ||
+                                         type === Enums.settingCard.type_color
     readonly property color currentColor: useCustomColor ? customColor : defaultColor
     
     // ==================== Signals 信号 ====================
@@ -191,14 +191,15 @@ Item {
     implicitWidth: Enums.controlSize.cardWidth
     implicitHeight: cardLoader.item ? cardLoader.item.implicitHeight : Enums.settingCard.height_no_content
     
-    // ==================== Card Loader 卡片加载器 ====================
+    // ==================== Content 内容 ====================
+    // Card loader 卡片加载器
     Loader {
         id: cardLoader
         anchors.fill: parent
         sourceComponent: control.isExpandType ? expandCardComponent : normalCardComponent
     }
     
-    // ==================== Normal Card Component 普通卡片组件 ====================
+    // Normal card component 普通卡片组件
     Component {
         id: normalCardComponent
         SettingsCardCore {
@@ -258,7 +259,7 @@ Item {
         }
     }
     
-    // ==================== Expand Card Component 展开卡片组件（复用Expander）====================
+    // Expand card component reusing Expander 展开卡片组件复用 Expander
     Component {
         id: expandCardComponent
         Expander {
@@ -317,7 +318,7 @@ Item {
         }
     }
     
-    // ==================== Options Header Component 选项头部组件 ====================
+    // Options header component 选项头部组件
     Component {
         id: optionsHeaderComponent
         Label {
@@ -326,7 +327,7 @@ Item {
         }
     }
     
-    // ==================== Options Expand Component 选项展开组件 ====================
+    // Options expand component 选项展开组件
     Component {
         id: optionsExpandComponent
         Column {
@@ -352,7 +353,7 @@ Item {
         }
     }
     
-    // ==================== Folder List Header Component 文件夹列表头部组件 ====================
+    // Folder list header component 文件夹列表头部组件
     Component {
         id: folderListHeaderComponent
         Button {
@@ -362,7 +363,7 @@ Item {
         }
     }
     
-    // ==================== Folder List Expand Component 文件夹列表展开组件 ====================
+    // Folder list expand component 文件夹列表展开组件
     Component {
         id: folderListExpandComponent
         Column {
@@ -410,7 +411,7 @@ Item {
         }
     }
     
-    // ==================== Color Header Component 颜色头部组件 ====================
+    // Color header component 颜色头部组件
     Component {
         id: colorHeaderComponent
         Label {
@@ -419,7 +420,7 @@ Item {
         }
     }
     
-    // ==================== Color Expand Component 颜色展开组件 ====================
+    // Color expand component 颜色展开组件
     Component {
         id: colorExpandComponent
         Column {
@@ -524,7 +525,7 @@ Item {
         }
     }
     
-    // ==================== Folder Dialog 文件夹对话框 ====================
+    // Folder dialog 文件夹对话框
     FolderDialog {
         id: folderDialog
         title: Translator.tr("choose_folder")
@@ -535,7 +536,7 @@ Item {
         }
     }
     
-    // ==================== Color Picker 颜色选择器 ====================
+    // Color picker 颜色选择器
     // Only load when type is color 仅在类型为颜色时加载
     Loader {
         id: colorPickerLoader

@@ -14,12 +14,8 @@ Item {
     property string title: ""
     property int spacing: Enums.spacing.xxs  // Card spacing 卡片间距
     
-    // ==================== Content 内容 ====================
+    // Content alias 内容别名
     default property alias cards: cardColumn.data
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: Enums.controlSize.cardWidth
-    implicitHeight: titleLabel.height + Enums.spacing.l + cardColumn.height
 
     // ==================== Public Methods 公开方法 ====================
     function addCard(card) {
@@ -38,7 +34,12 @@ Item {
         }
     }
 
-    // ==================== Title 标题 ====================
+    // ==================== Size 尺寸 ====================
+    implicitWidth: Enums.controlSize.cardWidth
+    implicitHeight: titleLabel.height + Enums.spacing.l + cardColumn.height
+
+    // ==================== Content 内容 ====================
+    // Title 标题
     Label {
         id: titleLabel
         type: Enums.label.type_body_strong
@@ -47,7 +48,7 @@ Item {
         visible: control.title !== ""
     }
     
-    // ==================== Card Container 卡片容器 ====================
+    // Card container 卡片容器
     Column {
         id: cardColumn
         anchors.top: titleLabel.visible ? titleLabel.bottom : parent.top

@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """SettingsCard component group runtime contracts. SettingsCard 组件组运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QTimer, QUrl
@@ -13,9 +13,18 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_DIR = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "settings"
+    / "SettingsCard"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "settings-card-conventions.qml")
 )
@@ -304,3 +313,17 @@ def test_settings_card_core_and_group_composition(settings_scene):
     )
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_settings_card_sources_follow_conventions():
+    violations = []
+    for source_path in sorted(SOURCE_DIR.glob("*.qml")):
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source_path.read_text(encoding="utf-8"), path
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []

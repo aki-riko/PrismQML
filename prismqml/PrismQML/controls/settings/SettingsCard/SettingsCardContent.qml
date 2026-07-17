@@ -14,39 +14,40 @@ import "../../data/Label"
 Item {
     id: root
     
-    // ==================== Translation Trigger 翻译触发器 ====================
-    readonly property int _tv: Translator._v
-    
     // ==================== Required Props 必需属性 ====================
     required property int type
-    
-    // ==================== Push Button Props 按钮属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
+    // Push button properties 按钮属性
     property string buttonText: ""
     property bool isPrimary: false
     
-    // ==================== Switch Props 开关属性 ====================
+    // Switch properties 开关属性
     property bool checked: false
     property string onText: { _tv; return Translator.tr("on") }
     property string offText: { _tv; return Translator.tr("off") }
     
-    // ==================== ComboBox Props 下拉框属性 ====================
+    // ComboBox properties 下拉框属性
     property var model: []
     property int currentIndex: -1
     property string placeholderText: Translator.tr("placeholder_select")
     
-    // ==================== Range Props 滑块属性 ====================
+    // Range properties 滑块属性
     property real value: 0
     property real from: 0
     property real to: 100
     property real stepSize: 1
     
-    // ==================== Shortcut Props 快捷键属性 ====================
+    // Shortcut properties 快捷键属性
     property string shortcut: ""
     property string shortcutPlaceholder: Translator.tr("click_to_record")
     
-    // ==================== Hyperlink Props 超链接属性 ====================
+    // Hyperlink properties 超链接属性
     property string url: ""
     property string linkText: ""
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int _tv: Translator._v
     
     // ==================== Signals 信号 ====================
     signal buttonClicked()
@@ -60,7 +61,8 @@ Item {
     implicitWidth: contentLoader.item ? contentLoader.item.implicitWidth : 0
     implicitHeight: contentLoader.item ? contentLoader.item.implicitHeight : 0
     
-    // ==================== Content Loader 内容加载器 ====================
+    // ==================== Content 内容 ====================
+    // Content loader 内容加载器
     Loader {
         id: contentLoader
         anchors.fill: parent
@@ -86,7 +88,7 @@ Item {
         }
     }
     
-    // ==================== Push Button Component 按钮组件 ====================
+    // Push button component 按钮组件
     Component {
         id: pushButtonComponent
         Button {
@@ -97,7 +99,7 @@ Item {
         }
     }
     
-    // ==================== Hyperlink Component 超链接组件 ====================
+    // Hyperlink component 超链接组件
     Component {
         id: hyperlinkComponent
         Button {
@@ -112,7 +114,7 @@ Item {
         }
     }
     
-    // ==================== Switch Component 开关组件 ====================
+    // Switch component 开关组件
     Component {
         id: switchComponent
         ToggleSwitch {
@@ -125,7 +127,7 @@ Item {
         }
     }
     
-    // ==================== ComboBox Component 下拉框组件 ====================
+    // ComboBox component 下拉框组件
     Component {
         id: comboBoxComponent
         ComboBox {
@@ -147,7 +149,7 @@ Item {
         }
     }
     
-    // ==================== Range Component 滑块组件 ====================
+    // Range component 滑块组件
     Component {
         id: rangeComponent
         Row {
@@ -176,7 +178,7 @@ Item {
         }
     }
     
-    // ==================== Shortcut Component 快捷键组件 ====================
+    // Shortcut component 快捷键组件
     Component {
         id: shortcutComponent
         ShortcutEditor {
