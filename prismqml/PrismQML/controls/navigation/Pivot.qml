@@ -19,7 +19,7 @@ Item {
     property int indicatorSize: Enums.controlSize.navIndicatorHeight
     property int itemFontSize: Enums.typography.subtitle
     property int iconSize: Enums.iconSize.m
-    property bool indicatorAnimmationEnabled: true
+    property bool indicatorAnimationEnabled: true
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, bool byUser)
@@ -71,7 +71,7 @@ Item {
             return
         }
 
-        if (!indicatorAnimmationEnabled || _prevIndex === currentIndex) {
+        if (!indicatorAnimationEnabled || _prevIndex === currentIndex) {
             navIndicator.setGeometry(endRect)
             _prevIndex = currentIndex
             return
@@ -161,7 +161,7 @@ Item {
         indicatorWidth: control.indicatorSize
         indicatorHeight: Enums.border.thick
         radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.micro
-        animationEnabled: control.indicatorAnimmationEnabled
+        animationEnabled: control.indicatorAnimationEnabled
         visible: control.items.length > 0 && control._initialized
     }
 

@@ -236,6 +236,7 @@ import PrismQML
 Pivot {
     items: [{ "key": "overview", "text": "Overview" }, { "key": "details", "text": "Details" }]
     currentIndex: 1
+    indicatorAnimationEnabled: false
 }
 """)
     context.build(b"""
