@@ -562,6 +562,8 @@ P6D inputs 第二个叶组件组已完成：`bfcdd484` 将 `Tag` 的可选公开
 
 P6D inputs Toggle 指示器组三提交已完成：`dd4566c2` 将 `ToggleSwitchIndicator` 的公开属性、只读状态、轨道样式、内容与交互说明恢复为规范分节，清理 4 条 QML009；`f887deb0` 将 `ToggleRadioIndicator` 的全部只读颜色状态前移到尺寸之前，并统一公开属性、尺寸、视觉样式与内容分节，清理 2 条 QML008、3 条 QML009。两批非注释代码多重集合分别保持 `92=92` 与 `63=63`；Toggle 真实回归均为 `5 passed`，两次全组件 probe 均为 `169/0/12`，全部 runner 零可见窗口、零残留。最终完整门禁为 Python `2244 passed / 1 skipped`、QML probe `169 OK / 0 错误 / 12 跳过`、headless CTest `9/9`、Windows native CTest `2/2`、MkDocs strict、Python 3.9 AST 287、compileall、changed `9→0` 与 `git diff --check` 全绿。P6D 累计清理 1045 条；全库总库存 `1,539→1,530`，QML008 `898→896`、QML009 `598→591`，QML010 43 保持全部位于 examples。
 
+P6D inputs ColorPicker 双滑块组三提交已完成：`cada4e32` 将 `ColorPickerBrightnessSlider` 的公开属性、内容/手柄/交互说明恢复为规范术语，并把 MouseArea 更新函数前移到自身赋值之前，清理 1 条 QML008、4 条 QML009；`43a01a01` 对 `ColorPickerHueSlider` 做同构整理并补齐文件头触达说明的双语格式，同样清理 1 条 QML008、4 条 QML009。两批非注释代码多重集合分别保持 `65=65` 与 `62=62`，clamp、渐变、拖动算法和全部数值逐字不变；picker 相关真实回归均为 `5 passed`，两次全组件 probe 均为 `169/0/12`，全部 runner 零可见窗口、零残留。最终完整门禁为 Python `2244 passed / 1 skipped`、QML probe `169 OK / 0 错误 / 12 跳过`、headless CTest `9/9`、Windows native CTest `2/2`、MkDocs strict、Python 3.9 AST 287、compileall、changed `10→0` 与 `git diff --check` 全绿。P6D 累计清理 1055 条；全库总库存 `1,530→1,520`，QML008 `896→894`、QML009 `591→583`，QML010 43 保持全部位于 examples。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -1054,7 +1056,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 | P8 资源注册 | 已完成 | 五个孤儿已删除；2,497 项双注册表已同步；Python/C++ IconProvider 已统一；DpiManager 已收窄为五个真实状态。全量 Python 2230/1、QML 169/0/12、CTest 9/9 + native 2/2，全库 QML 库存 2,604、changed 0 | `154cd4e4`、`11882986`、`39efe2e8`、`4bc9fd0`、`fa4a20d6`、`79932827` |
 | P6D navigation（2026-07-17 完成） | 已完成 | LazyLoadingHelper 失败握手与 Pivot 属性更名已闭环，navigation 累计清理 202 条且 QML008/QML009 归零；全库库存 1,582，最新全量 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 | `d22135e9`、`cf85ead5`、`38508f43`、`8c6a0bf9`、`a11db155`、`02d7c64d`、`560aa166`、`ecb6b46c`、`ba482466`、`f29d5c59`、`7545dcba`、`55b8a3b7`、`818781f9`、`1bd4b049`、`a63252d6`、`b9245eed` |
 | P6D icons/chat（2026-07-17 完成） | 已完成 | icons 与 chat 均已归零；P6D 累计清理 1024 条。全库库存 1,551（QML008 898 / QML009 610 / QML010 43），最新完整门禁 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 | `3d7ed9cf`、`5f2a89e2`、`dfc9ec57`、`27ac892a`、`5a82d62c`、`8a2a135e` |
-| P6D inputs（2026-07-17） | 进行中 | 前三组七个叶组件清理 21 条（QML008 2 / QML009 19）；P6D 累计清理 1045 条。全库库存 1,530（QML008 896 / QML009 591 / QML010 43），最新完整门禁 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0；ColorCircles token、ColorPicker circle 空 item 分支与 Toggle 三态枚举化已记录为独立后续批 | `504eafaf`、`1b30d4f1`、`aadb6334`、`bfcdd484`、`082808ad`、`dd4566c2`、`f887deb0` |
+| P6D inputs（2026-07-17） | 进行中 | 前四组九个叶组件清理 31 条（QML008 4 / QML009 27）；P6D 累计清理 1055 条。全库库存 1,520（QML008 894 / QML009 583 / QML010 43），最新完整门禁 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0；ColorCircles token、ColorPicker circle 空 item 分支与 Toggle 三态枚举化已记录为独立后续批 | `504eafaf`、`1b30d4f1`、`aadb6334`、`bfcdd484`、`082808ad`、`dd4566c2`、`f887deb0`、`cada4e32`、`43a01a01` |
 | P9 最终验收 | 待执行 |  |  |
 
 状态只能填写“待执行 / 进行中 / 已完成 / 阻塞”。“已完成”必须同时记录真实测试结果和提交哈希。
