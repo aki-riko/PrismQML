@@ -83,7 +83,11 @@ Item {
     }
     
     onCurrentIndexChanged: {
-        if (currentKey) currentItemChanged(currentKey)
+        var changedKey = ""
+        if (currentIndex >= 0 && currentIndex < model.length) {
+            changedKey = model[currentIndex].key || model[currentIndex].text || ""
+        }
+        if (changedKey) currentItemChanged(changedKey)
 
         // 跳过本次动画(底部 item 点击时由 NavigationWindowCore 设标志,
         // 避免用页面索引算错指示器位置;真正的动画交给 updateIndicatorForBottomItem 跑)

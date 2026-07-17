@@ -1,0 +1,302 @@
+# coding: utf-8
+# SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+"""Root navigation runtime contracts. 顶层导航组件运行时合同。"""
+
+from pathlib import Path
+
+import pytest
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QPointF, QTimer, QUrl, Qt
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
+
+from prismqml import register_types
+
+
+ROOT = Path(__file__).resolve().parents[2]
+SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "root-navigation-conventions.qml"))
+SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+    objectName: "window"
+
+    readonly property int viewModelCount: navigationView.model.length
+    readonly property string viewCurrentKey: navigationView.currentKey
+    readonly property bool viewExpanded: navigationView.isExpanded
+    readonly property bool viewCompact: navigationView.isCompact
+
+    function expandView() { navigationView.expand() }
+    function collapseView() { navigationView.collapse() }
+    function toggleView() { navigationView.toggle() }
+    function selectViewProfile() { navigationView.setCurrentItem("profile") }
+    function addViewDynamic() {
+        navigationView.addItem("dynamic", "", "Dynamic", null, true, "", "top")
+    }
+    function removeViewDynamic() { navigationView.removeWidget("dynamic") }
+
+    width: 900
+    height: 420
+    visible: true
+
+    NavigationView {
+        id: navigationView
+        objectName: "navigationView"
+        width: isExpanded ? implicitWidth : Enums.controlSize.navPanelCompactWidth
+        height: parent.height
+        showReturnButton: false
+        indicatorAnimationEnabled: false
+        model: [
+            { "key": "home", "text": "Home" },
+            { "key": "profile", "text": "Profile" },
+            { "key": "reports", "text": "Reports" }
+        ]
+        bottomItems: [
+            { "key": "settings", "text": "Settings", "selectable": true },
+            { "text": "Help", "selectable": false }
+        ]
+        _bottomPageIndexMap: ({ "settings": 3 })
+    }
+
+    NavigationBar {
+        id: navigationBar
+        objectName: "navigationBar"
+        x: 300
+        width: implicitWidth
+        height: parent.height
+        indicatorAnimationEnabled: false
+        model: [
+            { "key": "one", "text": "One" },
+            { "key": "two", "text": "Two" },
+            { "key": "three", "text": "Three" },
+            { "key": "four", "text": "Four" },
+            { "key": "five", "text": "Five" },
+            { "key": "six", "text": "Six" }
+        ]
+        bottomItems: [{ "key": "bar-settings", "text": "Settings", "selectable": true }]
+        _bottomPageIndexMap: ({ "bar-settings": 6 })
+    }
+
+    ToggleNavigationBar {
+        id: toggleBar
+        objectName: "toggleNavigationBar"
+        x: 430
+        y: 20
+        width: 260
+        height: 300
+        model: [
+            { "key": "alpha", "text": "Alpha" },
+            { "key": "beta", "text": "Beta" },
+            { "key": "gamma", "text": "Gamma" }
+        ]
+        bottomItems: [{ "key": "toggle-settings", "text": "Settings", "selectable": true }]
+        _bottomPageIndexMap: ({ "toggle-settings": 3 })
+    }
+}
+"""
+
+
+def _pump(milliseconds: int = 30) -> None:
+    loop = QEventLoop()
+    QTimer.singleShot(milliseconds, loop.quit)
+    loop.exec()
+
+
+def _wait_for(predicate, timeout_ms: int = 1500) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 30
+    return predicate()
+
+
+def _descendants(item: QQuickItem):
+    for child in item.childItems():
+        yield child
+        yield from _descendants(child)
+
+
+def _component_items(root: QQuickItem, component_name: str):
+    return [
+        item
+        for item in _descendants(root)
+        if component_name in item.metaObject().className()
+    ]
+
+
+def _indicator_visual(indicator: QQuickItem):
+    return next(
+        item
+        for item in indicator.childItems()
+        if item.isVisible() and item.width() > 0 and item.height() > 0
+    )
+
+
+def _item_with_text(root: QQuickItem, component_name: str, text: str):
+    return next(
+        item
+        for item in _component_items(root, component_name)
+        if item.property("text") == text
+    )
+
+
+def _toggle_item(root: QQuickItem, text: str):
+    return next(
+        item
+        for item in _descendants(root)
+        if item.metaObject().indexOfProperty("itemText") >= 0
+        and item.property("itemText") == text
+    )
+
+
+def _click_item(window: QQuickWindow, item: QQuickItem) -> None:
+    point = item.mapToScene(QPointF(item.width() / 2, item.height() / 2)).toPoint()
+    QTest.mouseClick(window, Qt.MouseButton.LeftButton, pos=point)
+
+
+def _new_visible_windows(windows_before, *allowed):
+    return [
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if window.isVisible()
+        and not any(window is existing for existing in windows_before)
+        and not any(window is accepted for accepted in allowed)
+    ]
+
+
+def _create_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(lambda errors: warnings.extend(error.toString() for error in errors))
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(SCENE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [error.toString() for error in component.errors()]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow)
+    items = {
+        name: window.findChild(QQuickItem, name)
+        for name in ("navigationView", "navigationBar", "toggleNavigationBar")
+    }
+    assert all(items.values())
+    _pump(100)
+    return engine, component, window, items, warnings
+
+
+def _dispose_scene(engine, component, window) -> None:
+    window.close()
+    window.deleteLater()
+    component.deleteLater()
+    engine.collectGarbage()
+    engine.clearComponentCache()
+    engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+
+
+@pytest.fixture
+def navigation_scene(qapp):
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    try:
+        yield (*scene[2:], windows_before)
+    finally:
+        _dispose_scene(scene[0], scene[1], scene[2])
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_navigation_view_routes_expand_and_real_click(navigation_scene):
+    window, items, warnings, windows_before = navigation_scene
+    view = items["navigationView"]
+    clicked = []
+    bottom_clicked = []
+    expanded = []
+    current_keys = []
+    view.itemClicked.connect(lambda index: (clicked.append(index), view.setProperty("currentIndex", index)))
+    view.bottomItemClicked.connect(bottom_clicked.append)
+    view.aboutToExpand.connect(lambda: expanded.append(True))
+    view.currentItemUpdated.connect(current_keys.append)
+
+    assert window.property("viewCompact")
+    assert not window.property("viewExpanded")
+    assert QMetaObject.invokeMethod(window, "expandView")
+    assert window.property("viewExpanded")
+    assert expanded == [True]
+    assert QMetaObject.invokeMethod(window, "expandView")
+    assert expanded == [True]
+    assert QMetaObject.invokeMethod(window, "collapseView")
+    assert not window.property("viewExpanded")
+    assert QMetaObject.invokeMethod(window, "toggleView")
+    assert window.property("viewExpanded")
+    assert expanded == [True, True]
+
+    profile = _item_with_text(view, "NavigationViewItem", "Profile")
+    _click_item(window, profile)
+    assert _wait_for(lambda: clicked == [1])
+    assert view.property("currentIndex") == 1
+    assert window.property("viewCurrentKey") == "profile"
+    assert current_keys[-1] == "profile"
+
+    settings = _item_with_text(view, "NavigationViewItem", "Settings")
+    _click_item(window, settings)
+    assert _wait_for(lambda: bottom_clicked == [0])
+
+    assert QMetaObject.invokeMethod(window, "addViewDynamic")
+    assert window.property("viewModelCount") == 4
+    assert view.widget("dynamic") is not None
+    assert QMetaObject.invokeMethod(window, "selectViewProfile")
+    assert view.property("currentIndex") == 1
+    assert QMetaObject.invokeMethod(window, "removeViewDynamic")
+    assert window.property("viewModelCount") == 3
+    assert view.widget("dynamic") is None
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_navigation_bar_and_toggle_indicator_geometry(navigation_scene):
+    window, items, warnings, windows_before = navigation_scene
+    bar = items["navigationBar"]
+    toggle = items["toggleNavigationBar"]
+    bar_clicked = []
+    toggle_clicked = []
+    bar.itemClicked.connect(lambda index: (bar_clicked.append(index), bar.setProperty("currentIndex", index)))
+    toggle.itemClicked.connect(toggle_clicked.append)
+
+    bar_indicator = _component_items(bar, "SlidingIndicator")[0]
+    bar_visual = _indicator_visual(bar_indicator)
+    initial_y = bar_visual.y()
+    three = _item_with_text(bar, "NavigationBarItem", "Three")
+    _click_item(window, three)
+    assert _wait_for(lambda: bar_clicked == [2])
+    assert _wait_for(lambda: bar_visual.y() != pytest.approx(initial_y))
+
+    flickable = next(
+        item
+        for item in _descendants(bar)
+        if "QQuickFlickable" in item.metaObject().className()
+    )
+    before_scroll_y = bar_visual.y()
+    flickable.setProperty("contentY", 30.0)
+    assert _wait_for(lambda: bar_visual.y() < before_scroll_y)
+
+    beta = _toggle_item(toggle, "Beta")
+    _click_item(window, beta)
+    assert _wait_for(lambda: toggle_clicked == [1])
+    assert toggle.property("currentIndex") == 1
+    toggle_indicator = _component_items(toggle, "SlidingIndicator")[0]
+    toggle_visual = _indicator_visual(toggle_indicator)
+    assert toggle_visual.width() > 0
+    assert toggle_visual.height() > 0
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
