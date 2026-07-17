@@ -39,7 +39,7 @@ Item {
  width: isCompacted ? Enums.controlSize.navItemHeight : Enums.controlSize.navFilledItemWidth + Enums.spacing.xxxl
  height: isCompacted ? Enums.controlSize.topNavItemHeight : Enums.controlSize.cardHeight
  
- // ==================== Background 背景 ====================
+ // ==================== Content 内容 ====================
  Rectangle {
  id: background
  anchors.fill: parent
@@ -49,7 +49,7 @@ Item {
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  }
  
- // ==================== Avatar 头像 ====================
+ // Avatar 头像
  Avatar {
  id: avatarWidget
  size: _currentAvatarSize
@@ -65,7 +65,7 @@ Item {
  Behavior on x { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  }
  
- // ==================== Text Area 文本区域 ====================
+ // Text area 文本区域
  Column {
  id: textColumn
  anchors.left: avatarWidget.right
@@ -99,7 +99,7 @@ Item {
  }
  }
  
- // ==================== Interaction 交互 ====================
+ // Interaction 交互
  MouseArea {
  id: mouseArea
  anchors.fill: parent
