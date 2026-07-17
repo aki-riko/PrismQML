@@ -29,6 +29,7 @@ QtObject {
  readonly property int tick: 1 // High-refresh timer tick 高刷定时器间隔(1ms)
  readonly property int ultraFast: 50
  readonly property int instant: 50
+ readonly property int wheelPickerRepeatInterval: 50 // Wheel picker held-button repeat interval 滚轮选择器长按重复间隔
  readonly property int fast: 100
  readonly property int normal: 150
  readonly property int medium: 200
@@ -36,6 +37,7 @@ QtObject {
  readonly property int slower: 300
  readonly property int page: 320 // Page transition 页面切换
  readonly property int dialog: 400
+ readonly property int wheelPickerRepeatDelay: 500 // Wheel picker held-button initial delay 滚轮选择器长按初始延迟
  readonly property int splashTimeout: 5000 // Splash dismiss fallback when first page never signals loaded 首屏加载信号意外不来时关闭欢迎页的兜底超时
  readonly property int scroll: 750
  readonly property int bounce: 750 // Scroll bounce animation 滚动回弹动画
@@ -311,6 +313,8 @@ QtObject {
  readonly property int wheelPickerItemHeight: 34 // CycleWheelPicker item height 滚轮选择器项高度
  readonly property int wheelPickerRowHeight: 36 // CycleWheelPicker row height 滚轮选择器行高（与 calendarGridHeight 36×6=216 对齐）
  readonly property int wheelPickerAreaHeight: 216 // CycleWheelPicker wheel area height 滚轮区域高度（6 行 × 36px）
+ readonly property int wheelPickerMaxFlickVelocity: 800 // Wheel picker maximum flick velocity 滚轮选择器最大甩动速度
+ readonly property int wheelPickerFlickDeceleration: 1500 // Wheel picker flick deceleration 滚轮选择器甩动减速度
  readonly property int datePickerWidth: 280 // DatePicker width 日期选择器宽度
  // Chart controls 图表控件
  readonly property int chartLegendWidth: 110 // Chart legend width 图表图例宽度

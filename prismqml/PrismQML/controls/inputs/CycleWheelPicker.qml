@@ -21,16 +21,12 @@ Item {
     property bool showScrollButtons: true  // Show scroll buttons on hover 悬停时显示滚动按钮
     property int textAlignment: Text.AlignHCenter  // Text alignment 文本对齐
     property bool cycle: true  // Enable infinite scroll 启用无限滚动
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _hovered: false
+
     // ==================== Signals 信号 ====================
     signal currentItemChanged(int index, string value)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: 80
-    implicitHeight: itemHeight * visibleItems
-    
-    // ==================== Internal State 内部状态 ====================
-    property bool _hovered: false
 
     // ==================== Public Methods 公开方法 ====================
     function scrollUp() {
@@ -77,7 +73,26 @@ Item {
     // Get current item 获取当前选项
     function currentItem() { return currentValue }
 
-    // ==================== PathView for Cycle Scrolling 循环滚动PathView ====================
+    // ==================== Size 尺寸 ====================
+    implicitWidth: 80
+    implicitHeight: itemHeight * visibleItems
+
+    // Sync view index when items change 当items变化时同步视图索引
+    onItemsChanged: {
+        if (items.length > 0 && currentIndex >= items.length) {
+            currentIndex = 0
+        }
+        Qt.callLater(function() {
+            if (cycle) {
+                pathView.currentIndex = currentIndex
+            } else {
+                listView.currentIndex = currentIndex
+            }
+        })
+    }
+
+    // ==================== Content 内容 ====================
+    // Cyclic scrolling path view 循环滚动 PathView
     PathView {
         id: pathView
         anchors.fill: parent
@@ -109,19 +124,18 @@ Item {
         }
         
         delegate: Item {
-            width: control.width
-            height: control.itemHeight
-            x: -width / 2  // PathView centers on path, offset to fill width 沿路径居中,左偏使内容填满列
-            // 注: 不要用 Rectangle 即使 color 透明 — Rectangle 子树会触发不透明合并,
-            // 盖住父级 Popup 中 z=-1 的选中高亮 (DateTimePickerPopup 中那条横向蓝条),
-            // 表现为右侧列的高亮看不见 (左列 hour 高亮可见,右列 minute 不可见)。
-
             property real distanceFromCenter: {
                 var center = control.height / 2
                 var itemCenter = y + height / 2
                 return Math.abs(center - itemCenter) / (control.height / 2)
             }
-            
+
+            width: control.width
+            height: control.itemHeight
+            x: -width / 2  // PathView centers on path, offset to fill width 沿路径居中,左偏使内容填满列
+            // Keep Item instead of Rectangle so transparent delegates do not occlude the popup highlight.
+            // 保持 Item，避免透明 Rectangle 委托遮挡弹窗选中高亮。
+
             Label {
                 anchors.centerIn: parent
                 type: Enums.label.type_body
@@ -141,7 +155,7 @@ Item {
         }
     }
     
-    // ==================== ListView for Non-Cycle Scrolling 非循环滚动ListView ====================
+    // Non-cyclic scrolling list view 非循环滚动 ListView
     ListView {
         id: listView
         anchors.fill: parent
@@ -154,8 +168,8 @@ Item {
         preferredHighlightBegin: (control.height - control.itemHeight) / 2
         preferredHighlightEnd: (control.height + control.itemHeight) / 2
         highlightMoveDuration: Enums.duration.medium  // Smooth scroll animation 平滑滚动动画
-        maximumFlickVelocity: 800  // Match PathView feel 匹配PathView手感
-        flickDeceleration: 1500
+        maximumFlickVelocity: Enums.controlSize.wheelPickerMaxFlickVelocity
+        flickDeceleration: Enums.controlSize.wheelPickerFlickDeceleration
         
         // Add padding so items can scroll to center 添加边距以便项目可以滚动到中心
         header: Item { width: 1; height: (control.height - control.itemHeight) / 2 }
@@ -170,18 +184,18 @@ Item {
         }
         
         delegate: Item {
-            width: listView.width
-            height: control.itemHeight
-            // 注: 不用 Rectangle (即使透明色) — Rectangle 子树会触发不透明合并,
-            // 盖住父级 Popup 中 z=-1 的选中高亮。同 PathView delegate 修复。
-
             property bool isCurrent: index === listView.currentIndex
             property real distanceFromCenter: {
                 var center = control.height / 2
                 var itemCenter = y - listView.contentY + height / 2
                 return Math.abs(center - itemCenter) / (control.height / 2)
             }
-            
+
+            width: listView.width
+            height: control.itemHeight
+            // Keep Item instead of Rectangle so transparent delegates do not occlude the popup highlight.
+            // 保持 Item，避免透明 Rectangle 委托遮挡弹窗选中高亮。
+
             Label {
                 anchors.centerIn: parent
                 type: Enums.label.type_body
@@ -201,7 +215,7 @@ Item {
         }
     }
     
-    // ==================== Mouse/Wheel Interaction 鼠标/滚轮交互 ====================
+    // Mouse and wheel interaction 鼠标与滚轮交互
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
@@ -233,7 +247,7 @@ Item {
         }
     }
     
-    // ==================== Scroll Buttons 滚动按钮 ====================
+    // Scroll buttons 滚动按钮
     Rectangle {
         id: upButton
         anchors.top: parent.top
@@ -253,11 +267,12 @@ Item {
         
         MouseArea {
             id: upArea
+
+            property bool _repeating: false
+
             anchors.fill: parent
             hoverEnabled: true
-            
-            property bool _repeating: false
-            
+
             onClicked: control.scrollUp()
             onPressed: repeatTimer.start()
             onReleased: { repeatTimer.stop(); _repeating = false }
@@ -265,7 +280,7 @@ Item {
             
             Timer {
                 id: repeatTimer
-                interval: upArea._repeating ? 50 : 500  // Initial delay then fast repeat
+                interval: upArea._repeating ? Enums.duration.wheelPickerRepeatInterval : Enums.duration.wheelPickerRepeatDelay
                 repeat: true
                 onTriggered: {
                     control.scrollUp()
@@ -294,11 +309,12 @@ Item {
         
         MouseArea {
             id: downArea
+
+            property bool _repeating: false
+
             anchors.fill: parent
             hoverEnabled: true
-            
-            property bool _repeating: false
-            
+
             onClicked: control.scrollDown()
             onPressed: downRepeatTimer.start()
             onReleased: { downRepeatTimer.stop(); _repeating = false }
@@ -306,7 +322,7 @@ Item {
             
             Timer {
                 id: downRepeatTimer
-                interval: downArea._repeating ? 50 : 500
+                interval: downArea._repeating ? Enums.duration.wheelPickerRepeatInterval : Enums.duration.wheelPickerRepeatDelay
                 repeat: true
                 onTriggered: {
                     control.scrollDown()
@@ -316,17 +332,4 @@ Item {
         }
     }
 
-    // Sync view index when items change 当items变化时同步视图索引
-    onItemsChanged: {
-        if (items.length > 0 && currentIndex >= items.length) {
-            currentIndex = 0
-        }
-        Qt.callLater(function() {
-            if (cycle) {
-                pathView.currentIndex = currentIndex
-            } else {
-                listView.currentIndex = currentIndex
-            }
-        })
-    }
 }

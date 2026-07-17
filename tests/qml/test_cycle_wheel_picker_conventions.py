@@ -4,16 +4,27 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Cycle wheel picker parent-chain regressions. 循环滚轮选择器父链回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "CycleWheelPicker.qml"
+)
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "cycle-wheel-picker-conventions.qml")
 )
@@ -22,6 +33,11 @@ import QtQuick
 import PrismQML
 
 Item {
+    readonly property int expectedRepeatDelay: Enums.duration.wheelPickerRepeatDelay
+    readonly property int expectedRepeatInterval: Enums.duration.wheelPickerRepeatInterval
+    readonly property int expectedMaxFlickVelocity: Enums.controlSize.wheelPickerMaxFlickVelocity
+    readonly property int expectedFlickDeceleration: Enums.controlSize.wheelPickerFlickDeceleration
+
     width: 420
     height: 360
 
@@ -71,6 +87,16 @@ def _new_visible_windows(windows_before):
         if window.isVisible()
         and not any(window is existing for existing in windows_before)
     ]
+
+
+def _descendants(root: QObject) -> list[QObject]:
+    result = []
+    pending = list(root.children())
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(child.children())
+    return result
 
 
 def _create_scene():
@@ -140,6 +166,39 @@ def test_cycle_wheel_picker_public_methods_wrap_and_clamp(qapp):
         linear_picker.setProperty("items", ["Only"])
         assert _wait_for(lambda: linear_picker.property("currentIndex") == 0)
         assert _wait_for(lambda: linear_picker.property("currentValue") == "Only")
+
+        list_views = [
+            child
+            for child in _descendants(linear_picker)
+            if isinstance(child, QQuickItem)
+            and "QQuickListView" in child.metaObject().className()
+        ]
+        assert len(list_views) == 1
+        assert list_views[0].property("maximumFlickVelocity") == root.property(
+            "expectedMaxFlickVelocity"
+        )
+        assert list_views[0].property("flickDeceleration") == root.property(
+            "expectedFlickDeceleration"
+        )
+
+        repeat_timers = [
+            child
+            for child in _descendants(linear_picker)
+            if child.metaObject().indexOfProperty("interval") >= 0
+            and child.metaObject().indexOfProperty("repeat") >= 0
+            and child.property("repeat")
+            and child.property("interval") == root.property("expectedRepeatDelay")
+        ]
+        assert len(repeat_timers) == 2
+        for timer in repeat_timers:
+            owner = timer.parent()
+            assert owner.metaObject().indexOfProperty("_repeating") >= 0
+            owner.setProperty("_repeating", True)
+        _pump()
+        assert all(
+            timer.property("interval") == root.property("expectedRepeatInterval")
+            for timer in repeat_timers
+        )
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
@@ -150,3 +209,26 @@ def test_cycle_wheel_picker_public_methods_wrap_and_clamp(qapp):
         engine.deleteLater()
         _pump()
         assert _new_visible_windows(windows_before) == []
+
+
+def test_cycle_wheel_picker_source_conventions_and_motion_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    for token in (
+        "Enums.duration.wheelPickerRepeatInterval",
+        "Enums.duration.wheelPickerRepeatDelay",
+        "Enums.controlSize.wheelPickerMaxFlickVelocity",
+        "Enums.controlSize.wheelPickerFlickDeceleration",
+    ):
+        assert token in source
+    metrics = METRICS_PATH.read_text(encoding="utf-8")
+    assert "readonly property int wheelPickerRepeatInterval: 50" in metrics
+    assert "readonly property int wheelPickerRepeatDelay: 500" in metrics
+    assert "readonly property int wheelPickerMaxFlickVelocity: 800" in metrics
+    assert "readonly property int wheelPickerFlickDeceleration: 1500" in metrics
