@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """ImageCropper runtime regressions. ImageCropper 运行时回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -21,9 +21,13 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "ImageCropper.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "image-cropper-runtime.qml")
 )
@@ -206,3 +210,12 @@ def test_image_cropper_overlay_open_close_has_no_native_window_leak(qapp):
         assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window)
+
+
+def test_image_cropper_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []

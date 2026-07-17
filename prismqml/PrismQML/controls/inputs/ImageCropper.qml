@@ -16,10 +16,7 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 // type_overlay: overlay on parent (like MessageBox) 遮罩覆盖
 Item {
     id: control
-    
-    // ==================== Translation Trigger 翻译触发器 ====================
-    readonly property int _tv: Translator._v
-    
+
     // ==================== Public Props 公开属性 ====================
     property int type: Enums.imageCropper.type_dialog
     property url source: ""
@@ -32,7 +29,8 @@ Item {
         Enums.imageCropperDialogMetrics.cropRectDefaultH
     )
 
-    // ==================== Internal Props 内部属性 ====================
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int _tv: Translator._v
     readonly property int _previewRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     readonly property color _previewBackground: Enums.isPrismDesign ? Enums.surfaceColor : Enums.gray.background
     readonly property color _previewBorderColor: Enums.isPrismDesign ? Enums.borderLightColor : Enums.gray.border
@@ -44,10 +42,6 @@ Item {
     signal accepted(rect cropRect)
     signal rejected()
     signal imageSelected(url source)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: Enums.imageCropperDialogMetrics.previewWidth
-    implicitHeight: Enums.imageCropperDialogMetrics.previewHeight
 
     // ==================== Public Methods 公开方法 ====================
     function open() {
@@ -72,7 +66,12 @@ Item {
         control.open()
     }
 
-    // ==================== Preview Thumbnail 预览缩略图 ====================
+    // ==================== Size 尺寸 ====================
+    implicitWidth: Enums.imageCropperDialogMetrics.previewWidth
+    implicitHeight: Enums.imageCropperDialogMetrics.previewHeight
+
+    // ==================== Content 内容 ====================
+    // Preview thumbnail 预览缩略图
     Rectangle {
         anchors.fill: parent
         radius: control._previewRadius
@@ -114,7 +113,7 @@ Item {
         }
     }
     
-    // ==================== File Dialog 文件对话框 ====================
+    // File dialog 文件对话框
     FileDialog {
         id: fileDialog
         title: { control._tv; return Translator.tr("select_image") }
@@ -126,7 +125,7 @@ Item {
         }
     }
 
-    // ==================== Dialog Mode 窗口模式 ====================
+    // Dialog mode 窗口模式
     Window {
         id: cropWindow
         title: { control._tv; return Translator.tr("crop_image") }
@@ -136,7 +135,11 @@ Item {
         modality: Qt.ApplicationModal
         flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
         visible: false
-        
+
+        onVisibleChanged: {
+            if (visible) dialogPanel.initDefaultCropRect()
+        }
+
         ImageCropperPanel {
             id: dialogPanel
             anchors.fill: parent
@@ -148,13 +151,9 @@ Item {
             onConfirmClicked: { cropWindow.close(); control.accepted(control.cropRect) }
             onCancelClicked: { cropWindow.close(); control.rejected() }
         }
-        
-        onVisibleChanged: {
-            if (visible) dialogPanel.initDefaultCropRect()
-        }
     }
 
-    // ==================== Overlay Mode 遮罩模式 ====================
+    // Overlay mode 遮罩模式
     // 不声明式挂 Overlay.overlay: 那样组件一创建就把自己塞进全局 QQuickOverlay,
     // 即便从未 open(_isOpen=false / visible=false), QQuickOverlay 仍会因有子项而
     // visible=true + enabled, 全屏 1200x800 吃掉所有鼠标点击(导致页面切过来后导航/
