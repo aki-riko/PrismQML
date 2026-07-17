@@ -166,6 +166,25 @@ def _text_input(search: QQuickItem) -> QQuickItem:
     return matches[0]
 
 
+def _result_list(popup_window: QQuickWindow) -> QQuickItem:
+    matches = [
+        item
+        for item in _visual_descendants(popup_window.contentItem())
+        if item.metaObject().className().startswith("SearchResultList")
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
+def _selected_result_indices(popup_window: QQuickWindow) -> list[int]:
+    return [
+        item.property("itemIndex")
+        for item in _visual_descendants(popup_window.contentItem())
+        if item.metaObject().className().startswith("SearchResultItem")
+        and item.property("selected")
+    ]
+
+
 def _visible_popup_windows(windows_before, root_window):
     return [
         window
@@ -189,6 +208,10 @@ def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
         window.contentItem(), QPointF(item.width() / 2, item.height() / 2)
     )
     return QPoint(round(point.x()), round(point.y()))
+
+
+def _entry_mapping(value):
+    return value.toVariant() if hasattr(value, "toVariant") else value
 
 
 def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
@@ -308,7 +331,56 @@ def test_search_result_item_preserves_selection_hover_and_click(qapp):
             point,
         )
         assert _wait_for(lambda: len(selected_entries) == 1)
-        assert selected_entries[0].toVariant()["title"] == "Build"
+        assert _entry_mapping(selected_entries[0])["title"] == "Build"
+        assert _wait_for(lambda: search.property("query") == "")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert _wait_for(lambda: not popup_window.isVisible())
+        assert warnings == []
+        assert _visible_popup_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window, search)
+
+
+def test_search_result_list_preserves_navigation_wrap_and_dynamic_reset(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, search, warnings = _create_scene()
+    try:
+        text_input = _text_input(search)
+        selected_entries = []
+        search.entrySelected.connect(selected_entries.append)
+
+        text_input.forceActiveFocus()
+        assert _wait_for(text_input.hasActiveFocus)
+        _type_text(text_input, "project")
+        assert _wait_for(lambda: search.property("isOpen"))
+        assert _wait_for(lambda: len(_visible_popup_windows(windows_before, window)) == 1)
+        popup_window = _visible_popup_windows(windows_before, window)[0]
+        result_list = _result_list(popup_window)
+        assert _wait_for(lambda: result_list.property("hitCount") == 2)
+        assert _wait_for(lambda: _selected_result_indices(popup_window) == [0])
+
+        assert QMetaObject.invokeMethod(result_list, "moveDown")
+        assert _wait_for(lambda: _selected_result_indices(popup_window) == [1])
+        assert QMetaObject.invokeMethod(result_list, "moveDown")
+        assert _wait_for(lambda: _selected_result_indices(popup_window) == [0])
+        assert QMetaObject.invokeMethod(result_list, "moveUp")
+        assert _wait_for(lambda: _selected_result_indices(popup_window) == [1])
+
+        assert search.setProperty(
+            "entries",
+            [
+                {
+                    "title": "Project Docs",
+                    "subtitle": "Open project documentation",
+                }
+            ],
+        )
+        assert _wait_for(lambda: result_list.property("hitCount") == 1)
+        assert _wait_for(lambda: _selected_result_indices(popup_window) == [0])
+
+        assert QMetaObject.invokeMethod(result_list, "selectCurrent")
+        assert _wait_for(lambda: len(selected_entries) == 1)
+        assert _entry_mapping(selected_entries[0])["title"] == "Project Docs"
         assert _wait_for(lambda: search.property("query") == "")
         assert _wait_for(lambda: not search.property("isOpen"))
         assert _wait_for(lambda: not popup_window.isVisible())
