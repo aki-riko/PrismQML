@@ -8,30 +8,27 @@ import "../controls/navigation"
 import "../controls/data"
 import ".."
 
-// Window - Expandable side navigation window 展开式侧边导航窗口
-// nav panel is 320px wide, compact mode just clips to 48px
-// 导航栏本身320px宽，紧凑模式只是裁剪显示到48px
+// WindowsSplit - Expandable side navigation window 展开式侧边导航窗口
+// The navigation panel keeps its expanded width and clips in compact mode.
+// 导航面板保持展开宽度，紧凑模式通过裁剪显示。
 NavigationWindowCore {
  id: window
- 
- windowTitle: "Window"
- titleBarHeight: Enums.window.titleBarHeight
- 
- // 兼容原有的 default property 语法，将初始元素缓存到一个不显示的节点
- Item { id: _hiddenStack; visible: false }
+
+ // ==================== Public Props 公开属性 ====================
  default property alias pages: _hiddenStack.data
- 
- // Navigation panel width constants 导航栏宽度常量
+ property var pageSources: []
+
+ // ==================== Readonly State 只读状态 ====================
  readonly property int navCompactWidth: Enums.controlSize.navPanelCompactWidth
  readonly property int navExpandWidth: Enums.controlSize.navPanelExpandWidth
- 
- // ==================== Lazy Loading Properties 懒加载属性 ====================
- property var pageSources: []
- 
+
+ windowTitle: "Window"
+ titleBarHeight: Enums.window.titleBarHeight
+
  Component.onCompleted: {
  logTime("Window ready, lazyLoading: " + lazyLoading)
- // 无论 micaEnabled 是 true 或 false 都 apply,确保持久化关闭状态生效
- // (NavigationWindowCore 已有同样逻辑,这里是子类的额外初始化点)
+ // Apply both true and false so a persisted disabled state takes effect.
+ // true 和 false 都执行，以确保持久化的关闭状态生效。
  if (_micaAvailable && MicaManager) {
  MicaManager.setMicaEffect(window, micaEnabled, Enums.isDark)
  }
@@ -41,18 +38,18 @@ NavigationWindowCore {
  anchors.fill: parent
  anchors.topMargin: -window.titleBarHeight
 
- // 点击空白区域清除输入焦点
+ // Clear input focus from blank space. 点击空白区域清除输入焦点。
  MouseArea {
  anchors.fill: parent
  z: -999
  onClicked: parent.forceActiveFocus()
  }
  
- // ==================== 异步加载核心UI ====================
- // Delay activate Loader to ensure Window and Splash rendering first 延迟激活以便首先渲染并展示窗口及SplashScreen
+ // Load the core UI asynchronously after the first window and splash frame.
+ // 首个窗口与欢迎页帧渲染后再异步加载核心界面。
  Timer {
  id: startupTimer
- interval: 50
+ interval: Enums.window.splitStartupDelayMs
  running: true
  onTriggered: coreLoader.active = true
  }
@@ -86,7 +83,7 @@ NavigationWindowCore {
  }
  }
  
- // 等主页(首屏)真正加载完成再关欢迎页, 而非框架壳加载完就关
+ // Dismiss the splash after the home page is ready, not after the shell alone. 首页就绪后再关闭欢迎页，而不是仅等待框架壳。
  window._dismissSplashWhenReady(window.stackedWidget)
  }
  }
@@ -95,11 +92,12 @@ NavigationWindowCore {
  id: coreComponent
  Item {
  id: componentRoot
- anchors.fill: parent
  property alias navAlias: navInterface
  property alias stackAlias: stack
- 
- // ==================== Content Area 内容区域 ====================
+
+ anchors.fill: parent
+
+ // Content area. 内容区域。
  ContentFrame {
  id: contentFrame
  anchors.left: parent.left
@@ -113,21 +111,20 @@ NavigationWindowCore {
  
  StackedWidget {
  id: stack
+ property alias contentContainerAlias: stack.content
+
  anchors.fill: parent
  animationType: Enums.animation.popup
 
- // 绑定外部保存的页面数据
+ // Bind externally stored page data. 绑定外部保存的页面数据。
  pageSources: window.pageSources
  lazyLoading: window.lazyLoading
- // 单向绑定 window.currentIndex → stack.currentIndex
- // currentIndex 为纯输入, StackedWidget 内部不再命令式写它
- // (改用 _displayIndex 驱动显示), 故声明式绑定不会被打破。
+ // Bind window.currentIndex to stack.currentIndex in one direction.
+ // 单向绑定 window.currentIndex 到 stack.currentIndex；内部显示由 _displayIndex 驱动。
  currentIndex: window.currentIndex
 
- // Alias to access its layout component quickly 快捷方式绑定访问其内部容器
- property alias contentContainerAlias: stack.content
  onCurrentChanged: (index) => {
- // 反向同步 (动画结束后), 通常 window.currentIndex 已被设
+ // Synchronize back after animation when needed. 动画结束后按需反向同步。
  if (window.currentIndex !== index) window.currentIndex = index
  }
  }
@@ -140,9 +137,11 @@ NavigationWindowCore {
  }
  }
  
- // ==================== Navigation Panel Container 导航面板容器 ====================
+ // Navigation panel container. 导航面板容器。
  Item {
  id: navContainer
+ property bool isAnimating: false
+
  anchors.left: parent.left
  anchors.top: parent.top
  anchors.topMargin: -window.titleBarHeight
@@ -150,8 +149,6 @@ NavigationWindowCore {
  width: navInterface.isExpanded ? window.navExpandWidth : window.navCompactWidth
  clip: true
  z: Enums.zIndex.popup
- 
- property bool isAnimating: false
  
  Behavior on width {
  NumberAnimation {
@@ -169,6 +166,9 @@ NavigationWindowCore {
  
  NavigationView {
  id: navInterface
+ property bool _acrylicImageReady: false
+ property string _acrylicSource: ""
+
  anchors.left: parent.left
  anchors.top: parent.top
  anchors.bottom: parent.bottom
@@ -182,9 +182,6 @@ NavigationWindowCore {
  backgroundColor: window._micaActive ? Enums.transparent : Enums.backgroundColor
  acrylicEnabled: (isExpanded || navContainer.isAnimating) && window._micaActive && _acrylicImageReady
  acrylicImageSource: _acrylicSource
-
- property bool _acrylicImageReady: false
- property string _acrylicSource: ""
 
  onAboutToExpand: {
  if (window._micaActive && AcrylicHelper && AcrylicHelper.isAvailable) {
@@ -212,7 +209,7 @@ NavigationWindowCore {
  }
  }
  
- // Click Outside to Collapse
+ // Click outside to collapse. 点击外部区域时收起。
  MouseArea {
  anchors.left: navContainer.right
  anchors.top: parent.top
@@ -228,4 +225,7 @@ NavigationWindowCore {
  }
  
  titleBarLeftMargin: navCompactWidth
+
+ // Preserve default-property pages in a hidden staging item. 在隐藏暂存项中保留 default property 页面。
+ Item { id: _hiddenStack; visible: false }
 }

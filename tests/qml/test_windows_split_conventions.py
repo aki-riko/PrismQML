@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """WindowsSplit loading and page-transfer contracts. 分栏窗口加载与页面转移合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -21,10 +21,13 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 import prismqml.python.window as window_module
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
 INTERNAL_PATH = ROOT / "prismqml" / "PrismQML" / "_internal"
+SOURCE_PATH = INTERNAL_PATH / "WindowsSplit.qml"
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(INTERNAL_PATH / "windows-split-conventions.qml")
 )
@@ -153,3 +156,18 @@ def test_windows_split_loads_core_and_transfers_default_pages(monkeypatch, qapp)
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_split_source_conventions_and_startup_delay_token():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "interval: Enums.window.splitStartupDelayMs" in source
+    assert "interval: 50" not in source
+    metrics = METRICS_PATH.read_text(encoding="utf-8")
+    assert "readonly property int splitStartupDelayMs: 50" in metrics
