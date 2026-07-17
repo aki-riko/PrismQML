@@ -11,19 +11,22 @@ import "../../../data"
 Rectangle {
     id: delegateRoot
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string itemText: ""
     
     // ==================== Signals 信号 ====================
     signal itemClicked(string text)
     
-    // ==================== Style 样式 ====================
+    // ==================== Size 尺寸 ====================
     height: Enums.controlSize.inputHeight
+
+    // Visual style 视觉样式
     radius: Enums.radius.small
     color: mouseArea.pressed ? Enums.stateColor.menuItemPressed 
          : mouseArea.containsMouse ? Enums.stateColor.menuItemHover 
          : Enums.transparent
     
+    // ==================== Content 内容 ====================
     Label {
         anchors.left: parent.left
         anchors.leftMargin: Enums.spacing.m
