@@ -21,7 +21,7 @@ Item {
     // ==================== Signals 信号 ====================
     signal animationFinished(int currentIndex)
     
-    // ==================== Helper 辅助方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function widget(index) { return control.widget(index) }
     
     // Stop all running animations and reset states 停止所有动画并重置状态
@@ -86,7 +86,7 @@ Item {
         }
     }
     
-    // ==================== 1. Fade Animation 淡入淡出 ====================
+    // Fade transition 淡入淡出过渡
     function fadeTransition(oldIndex, newIndex) {
         stopAllAnimations()
         
@@ -104,7 +104,6 @@ Item {
         fadeInAnim.target = newWidget
         fadeGroup.start()
     }
-// __MOVED_FUNCS_PLACEHOLDER__
     // Fade enter only 仅淡入
     function enterFadeOnly(newIndex) {
         stopAllAnimations()
@@ -149,7 +148,6 @@ Item {
         enterSlideAnim.target = newWidget
         enterSlideAnim.start()
     }
-// __MOVED_FUNCS_PLACEHOLDER2__
     // 2. Slide Animation 滑动
     function slideTransition(oldIndex, newIndex, isBack) {
         stopAllAnimations()
@@ -197,7 +195,6 @@ Item {
         popUpGroup._oldWidget = oldWidget
         popUpGroup.start()
     }
-// __MOVED_FUNCS_PLACEHOLDER3__
     // 3.5 PopDown Animation 下落
     function popDownTransition(oldIndex, newIndex) {
         stopAllAnimations()
@@ -244,7 +241,6 @@ Item {
 
         zoomOutAnim.start()
     }
-// __MOVED_FUNCS_PLACEHOLDER4__
     // 5. Card Animation 卡片层叠
     function cardTransition(oldIndex, newIndex, isBack) {
         stopAllAnimations()
@@ -296,18 +292,20 @@ Item {
         cardGroup.start()
     }
 
+    // ==================== Content 内容 ====================
     ParallelAnimation {
         id: fadeGroup
-        NumberAnimation { id: fadeOutAnim; property: "opacity"; from: 1.0; to: 0.0; duration: animationDuration; easing.type: Easing.OutCubic }
-        NumberAnimation { id: fadeInAnim; property: "opacity"; from: 0.0; to: 1.0; duration: animationDuration; easing.type: Easing.InCubic }
         onFinished: {
             fadeOutAnim.target.visible = false
             fadeOutAnim.target.opacity = 1.0
             animations.animationFinished(control.currentIndex)
         }
+
+        NumberAnimation { id: fadeOutAnim; property: "opacity"; from: 1.0; to: 0.0; duration: animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: fadeInAnim; property: "opacity"; from: 0.0; to: 1.0; duration: animationDuration; easing.type: Easing.InCubic }
     }
     
-    // ==================== Enter Only Animations 仅入场动画（懒加载第二阶段） ====================
+    // Enter-only animations for lazy-loading phase two 懒加载第二阶段的仅入场动画
 
     NumberAnimation {
         id: enterFadeAnim
@@ -322,18 +320,20 @@ Item {
     ParallelAnimation {
         id: enterPopUpGroup
         property Item target
+        onFinished: animations.animationFinished(control.currentIndex)
+
         NumberAnimation { target: enterPopUpGroup.target; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutQuad }
         NumberAnimation { target: enterPopUpGroup.target; property: "opacity"; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
-        onFinished: animations.animationFinished(control.currentIndex)
     }
 
     // PopDown enter only 仅PopDown入场
     ParallelAnimation {
         id: enterPopDownGroup
         property Item target
+        onFinished: animations.animationFinished(control.currentIndex)
+
         NumberAnimation { target: enterPopDownGroup.target; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutBounce }
         NumberAnimation { target: enterPopDownGroup.target; property: "opacity"; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
-        onFinished: animations.animationFinished(control.currentIndex)
     }
 
     // Zoom enter only 仅缩放入场
@@ -356,39 +356,42 @@ Item {
         onFinished: animations.animationFinished(control.currentIndex)
     }
     
-    // ==================== 2. Slide Animation 滑动 ====================
+    // Slide animation 滑动动画
     ParallelAnimation {
         id: slideGroup
-        NumberAnimation { id: slideOutAnim; property: "x"; from: 0; duration: animationDuration; easing.type: Easing.OutCubic }
-        NumberAnimation { id: slideInAnim; property: "x"; to: 0; duration: animationDuration; easing.type: Easing.OutCubic }
         onFinished: {
             slideOutAnim.target.visible = false
             slideOutAnim.target.x = 0
             animations.animationFinished(control.currentIndex)
         }
+
+        NumberAnimation { id: slideOutAnim; property: "x"; from: 0; duration: animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: slideInAnim; property: "x"; to: 0; duration: animationDuration; easing.type: Easing.OutCubic }
     }
     
-    // ==================== 3. PopUp Animation 弹出 ====================
+    // PopUp animation 弹出动画
     ParallelAnimation {
         id: popUpGroup
         property Item _oldWidget: null
-        NumberAnimation { id: popUpYAnim; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutQuad }
-        NumberAnimation { id: popUpOpacityAnim; property: "opacity"; from: 0.0; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
         onStarted: { if (_oldWidget) _oldWidget.visible = false }
         onFinished: animations.animationFinished(control.currentIndex)
+
+        NumberAnimation { id: popUpYAnim; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutQuad }
+        NumberAnimation { id: popUpOpacityAnim; property: "opacity"; from: 0.0; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
     }
     
-    // ==================== 3.5 PopDown Animation 下落 ====================
+    // PopDown animation 下落动画
     ParallelAnimation {
         id: popDownGroup
         property Item _oldWidget: null
-        NumberAnimation { id: popDownYAnim; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutBounce }
-        NumberAnimation { id: popDownOpacityAnim; property: "opacity"; from: 0.0; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
         onStarted: { if (_oldWidget) _oldWidget.visible = false }
         onFinished: animations.animationFinished(control.currentIndex)
+
+        NumberAnimation { id: popDownYAnim; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutBounce }
+        NumberAnimation { id: popDownOpacityAnim; property: "opacity"; from: 0.0; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
     }
     
-    // ==================== 4. Zoom Animation 缩放 ====================
+    // Zoom animation 缩放动画
     // Old page scale down (scale: 1 -> 0) 旧页面缩小
     SequentialAnimation {
         id: zoomOutAnim
@@ -421,16 +424,11 @@ Item {
         onFinished: animations.animationFinished(control.currentIndex)
     }
     
-    // ==================== 5. Card Animation 卡片层叠 ====================
+    // Card animation 卡片层叠动画
     ParallelAnimation {
         id: cardGroup
         property bool _isBack: false
         property Item _oldWidget: null
-        
-        NumberAnimation { id: cardSlideAnim; property: "x"; duration: animationDuration; easing.type: Easing.OutCubic }
-        NumberAnimation { id: cardScaleAnim; property: "scale"; duration: animationDuration; easing.type: Easing.OutCubic }
-        NumberAnimation { id: cardOpacityAnim; property: "opacity"; duration: animationDuration; easing.type: Easing.OutCubic }
-        
         onFinished: {
             if (_oldWidget) {
                 _oldWidget.visible = false
@@ -440,5 +438,9 @@ Item {
             }
             animations.animationFinished(control.currentIndex)
         }
+
+        NumberAnimation { id: cardSlideAnim; property: "x"; duration: animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: cardScaleAnim; property: "scale"; duration: animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: cardOpacityAnim; property: "opacity"; duration: animationDuration; easing.type: Easing.OutCubic }
     }
 }
