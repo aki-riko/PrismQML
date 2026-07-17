@@ -26,26 +26,22 @@ Item {
     property var rangeStart: null  // Date or null
     property var rangeEnd: null    // Date or null
     
-    // Range bar color (opaque to avoid overlap issues) 范围条颜色（不透明避免重叠问题）
-    readonly property color _rangeBarColor: Enums.isDark ? Enums.calendarColors.rangeBarDark : Enums.calendarColors.rangeBarLight
-    
+    // ==================== Internal Props 内部属性 ====================
     // Animation props 动画属性
     property bool _animating: false
     property int _slideDirection: 0  // -1: up (prev), 1: down (next)
-    
+
     // Next month data for seamless scroll 下月数据用于无缝滚动
     property int _nextYear: year
     property int _nextMonth: month
+    property var _pendingUpdateFunc: null
+
+    // ==================== Readonly State 只读状态 ====================
+    // Range bar color (opaque to avoid overlap issues) 范围条颜色（不透明避免重叠问题）
+    readonly property color _rangeBarColor: Enums.isDark ? Enums.calendarColors.rangeBarDark : Enums.calendarColors.rangeBarLight
     readonly property int _nextFirstDay: new Date(_nextYear, _nextMonth - 1, 1).getDay()
     readonly property int _nextDaysInMonth: new Date(_nextYear, _nextMonth, 0).getDate()
     readonly property int _nextDaysInPrev: new Date(_nextYear, _nextMonth - 1, 0).getDate()
-    
-    // ==================== Signals 信号 ====================
-    signal dayClicked(int day)
-    signal dateChanged(int year, int month, int day)
-    signal rangeDateClicked(date clickedDate)
-    
-    // ==================== Computed Props 计算属性 ====================
     readonly property int _todayYear: new Date().getFullYear()
     readonly property int _todayMonth: new Date().getMonth() + 1
     readonly property int _todayDay: new Date().getDate()
@@ -53,7 +49,10 @@ Item {
     readonly property int _daysInMonth: new Date(year, month, 0).getDate()
     readonly property int _daysInPrev: new Date(year, month - 1, 0).getDate()
 
-    property var _pendingUpdateFunc: null
+    // ==================== Signals 信号 ====================
+    signal dayClicked(int day)
+    signal dateChanged(int year, int month, int day)
+    signal rangeDateClicked(date clickedDate)
 
     // ==================== Public Methods 公开方法 ====================
     function prevMonth() {
@@ -72,7 +71,23 @@ Item {
         })
     }
 
-    // Internal animation helper 内部动画辅助函数
+    function setDate(y, m, d) {
+        year = y
+        month = Math.max(1, Math.min(12, m))
+        day = d
+    }
+
+    function goToToday() {
+        year = _todayYear
+        month = _todayMonth
+        day = _todayDay
+    }
+
+    function getDate() {
+        return new Date(year, month - 1, day)
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
     function _animateSwitch(direction, updateFunc) {
         _animating = true
         _slideDirection = direction
@@ -109,22 +124,6 @@ Item {
         animationTimer.start()
     }
 
-    function setDate(y, m, d) {
-        year = y
-        month = Math.max(1, Math.min(12, m))
-        day = d
-    }
-
-    function goToToday() {
-        year = _todayYear
-        month = _todayMonth
-        day = _todayDay
-    }
-
-    function getDate() {
-        return new Date(year, month - 1, day)
-    }
-
     // ==================== Size 尺寸 ====================
     implicitWidth: 256
     implicitHeight: mainColumn.implicitHeight
@@ -134,7 +133,7 @@ Item {
         anchors.fill: parent
         spacing: Enums.spacing.none
         
-        // ========== Title Row 标题行 ==========
+        // Title row 标题行
         Item {
             width: parent.width
             height: 34
@@ -183,7 +182,7 @@ Item {
             }
         }
         
-        // ========== Week Header 星期标题 ==========
+        // Week header 星期标题
         Item {
             width: parent.width
             height: 32
@@ -206,7 +205,7 @@ Item {
             }
         }
         
-        // ========== Day Grid Container 日期网格容器 ==========
+        // Day grid container 日期网格容器
         Item {
             id: gridContainer
             width: parent.width
@@ -238,10 +237,7 @@ Item {
                         
                         Rectangle {
                             id: dayCell
-                            width: dayGrid.width / 7
-                            height: Enums.controlSize.calendarCellHeight
-                            color: Enums.transparent
-                            
+
                             property int offset: index - control._firstDay + 1
                             property bool isPrevMonth: offset <= 0
                             property bool isNextMonth: offset > control._daysInMonth
@@ -271,7 +267,11 @@ Item {
                                 var e = control.rangeEnd.getTime()
                                 return t > Math.min(s, e) && t < Math.max(s, e)
                             }
-                            
+
+                            width: dayGrid.width / 7
+                            height: Enums.controlSize.calendarCellHeight
+                            color: Enums.transparent
+
                             Item {
                                 id: rangeBarContainer
                                 readonly property bool showBar: control.rangeMode && dayCell.isCurrent && 
@@ -359,10 +359,6 @@ Item {
                         model: 42
                         
                         Rectangle {
-                            width: nextGrid.width / 7
-                            height: Enums.controlSize.calendarCellHeight
-                            color: Enums.transparent
-                            
                             property int offset: index - control._nextFirstDay + 1
                             property bool isPrevMonth: offset <= 0
                             property bool isNextMonth: offset > control._nextDaysInMonth
@@ -377,7 +373,11 @@ Item {
                                 control._nextYear === control._todayYear && 
                                 control._nextMonth === control._todayMonth && 
                                 displayDay === control._todayDay
-                            
+
+                            width: nextGrid.width / 7
+                            height: Enums.controlSize.calendarCellHeight
+                            color: Enums.transparent
+
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: Enums.controlSize.calendarCell
@@ -403,7 +403,7 @@ Item {
         }
     }
     
-    // ==================== Animation Timer 动画定时器 ====================
+    // Animation timer 动画定时器
     Timer {
         id: animationTimer
         interval: Enums.duration.slower + 10
