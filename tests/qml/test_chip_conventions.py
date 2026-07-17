@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Chip geometry and interaction regressions. Chip 几何与交互回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -23,9 +23,11 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "Chip.qml"
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "chip-runtime.qml"))
 SCENE_SOURCE = b"""
 import QtQuick
@@ -265,3 +267,20 @@ def test_chip_close_routes_without_toggling_and_updates_width(qapp):
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
+
+
+def test_chip_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_chip_uses_height_and_border_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "Enums.controlSize.inputHeight" in source
+    assert "Enums.border.none" in source
+    assert "implicitHeight: 32" not in source
+    assert "checked ? 0 : Enums.border.thin" not in source
