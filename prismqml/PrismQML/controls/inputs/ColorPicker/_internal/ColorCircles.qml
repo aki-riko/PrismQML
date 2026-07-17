@@ -10,17 +10,17 @@ import "../../../.."
 Item {
     id: control
     
-    // ==================== Properties 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property color selectedColor: Enums.colorPickerDefaults.defaultColor
     property var colors: Enums.colorPickerDefaults.quickPalette
-    property int circleSize: 20
+    property int circleSize: Enums.spacing.xxl
     
     // ==================== Signals 信号 ====================
     signal colorSelected(color value)
     
     // ==================== Size 尺寸 ====================
     implicitWidth: row.implicitWidth
-    implicitHeight: circleSize + 8  // Extra space for selection ring 选中环额外空间
+    implicitHeight: circleSize + Enums.spacing.m  // Extra space for selection ring 选中环额外空间
     
     // ==================== Content 内容 ====================
     Row {
@@ -33,22 +33,22 @@ Item {
             
             // Container for circle and selection ring 圆形和选中环容器
             Item {
-                width: control.circleSize + 8
-                height: control.circleSize + 8
-                
                 property bool selected: control.selectedColor.toString().toUpperCase() === modelData.toString().toUpperCase()
                 property bool hovered: circleArea.containsMouse
+
+                width: control.circleSize + Enums.spacing.m
+                height: control.circleSize + Enums.spacing.m
                 
                 // Outer selection ring 外部选中环
                 Rectangle {
                     anchors.centerIn: parent
-                    width: control.circleSize + 6
-                    height: control.circleSize + 6
+                    width: control.circleSize + Enums.spacing.s
+                    height: control.circleSize + Enums.spacing.s
                     radius: width / 2
                     color: Enums.transparent
-                    border.width: parent.selected ? 2 : 0
+                    border.width: parent.selected ? Enums.border.normal : Enums.border.none
                     border.color: modelData
-                    opacity: parent.selected ? 0.6 : 0
+                    opacity: parent.selected ? Enums.opacityLevel.secondary : Enums.opacityLevel.invisible
                     
                     Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
                 }
@@ -63,7 +63,7 @@ Item {
                     color: modelData
                     
                     // Hover effect 悬停效果
-                    opacity: circleArea.containsMouse ? 0.8 : 1.0
+                    opacity: circleArea.containsMouse ? Enums.colorPickerMetrics.circleHoverOpacity : Enums.opacityLevel.visible
                     Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
                 }
                 

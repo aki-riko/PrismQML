@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Color circle geometry and convention regressions. 圆形颜色选择器几何与规范回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QObject, QUrl
@@ -13,9 +13,20 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ColorPicker"
+    / "_internal"
+    / "ColorCircles.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "color-circles.qml"))
 SCENE_SOURCE = b"""
 import QtQuick
@@ -134,3 +145,26 @@ def test_public_color_circles_preserve_runtime_geometry(qapp):
         component.deleteLater()
         engine.deleteLater()
         qapp.processEvents()
+
+
+def test_color_circles_use_tokens_and_convention_order():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+    for token in (
+        "Enums.spacing.xxl",
+        "Enums.spacing.m",
+        "Enums.spacing.s",
+        "Enums.border.normal",
+        "Enums.border.none",
+        "Enums.opacityLevel.secondary",
+        "Enums.opacityLevel.invisible",
+        "Enums.colorPickerMetrics.circleHoverOpacity",
+        "Enums.opacityLevel.visible",
+    ):
+        assert token in source
+    for literal in ("+ 8", "+ 6", "? 2 : 0", "? 0.6 : 0", "? 0.8 : 1.0"):
+        assert literal not in source

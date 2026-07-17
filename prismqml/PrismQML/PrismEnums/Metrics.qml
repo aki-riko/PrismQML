@@ -553,6 +553,9 @@ QtObject {
  readonly property int palettePreviewSize: 28
  readonly property int paletteSelectedBorderWidth: 2
 
+ // Circle swatches 圆形色块
+ readonly property real circleHoverOpacity: 0.8
+
  // Channel slider
  readonly property int channelSliderWidth: 260
  readonly property int channelSliderHeight: 24
