@@ -55,7 +55,7 @@ DataWidgetCore {
     property int totalPages: 1
     property int visiblePages: 5
 
-    // ==================== Computed Props 计算属性 ====================
+    // Computed values 计算值
     // 必须用普通 property + Connections 显式跟踪 model.modelReset/rowsInserted/rowsRemoved,
     // 因为 QAbstractListModel.rowCount() 是函数调用,QML binding 不会自动 invalidate
     property int rowCount: _calcRowCount()
@@ -68,7 +68,7 @@ DataWidgetCore {
     // Cell widgets 单元格控件存储 {"row_col": QQuickItem}
     property var cellWidgets: ({})
 
-    // ==================== 列宽计算 (单一真相源) ====================
+    // Column-width single source of truth 列宽单一真相源
     // 每列实际像素宽度数组, 跟 columns 索引对齐。
     // 计算规则 (按优先级):
     //   1) column.autoWidth === true 且提供 measureWidth(rowData) → 扫前 N 行取 max,
@@ -89,6 +89,7 @@ DataWidgetCore {
     signal itemSelectionChanged()
     signal customContextMenuRequested(point pos)  // 右键菜单信号 Context menu signal
 
+    // ==================== Internal Methods 内部方法 ====================
     function _calcRowCount() {
         if (!tableData) return 0
         // PySide6 把 list[dict] 转 QVariantList 给 QML, QVariantList 不是 JS Array
@@ -217,7 +218,7 @@ DataWidgetCore {
         return null
     }
 
-    // ==================== Internal Helpers 内部辅助 ====================
+    // Selection and row identity helpers 选择与行身份辅助方法
     function _isRowSelected(row) {
         return selectedRows.indexOf(row) >= 0
     }
@@ -272,7 +273,8 @@ DataWidgetCore {
         return indices
     }
 
-    // ==================== QTableWidget API - Data 数据 ====================
+    // ==================== Public Methods 公开方法 ====================
+    // Data API 数据 API
     // Note: To use these JS modifying methods, tableData MUST be a pure Javascript Array. 注意：若使用这些 JS 操作方法，tableData 必须保证是纯 JavaScript 数组。
     // If a QAbstractListModel is bound, you should perform modifications at Python side! 如果绑定了 C++ ListModel，应该在 Python 后端进行这些修改！
     function _isPureJsArray() { return Array.isArray(tableData) }
@@ -367,7 +369,7 @@ DataWidgetCore {
         return null
     }
 
-    // ==================== QTableWidget API - Selection 选择 ====================
+    // Selection API 选择 API
     function selectedItems() {
         var result = []
         for (var i = 0; i < selectedRows.length; i++) {
@@ -401,7 +403,7 @@ DataWidgetCore {
 
     function currentItem() { return item(currentRow, currentColumn >= 0 ? currentColumn : 0) }
 
-    // ==================== QTableWidget API - Sorting 排序 ====================
+    // Sorting API 排序 API
     function sortItems(column, order) {
         if (column < 0 || column >= columns.length) return
         if (!_isPureJsArray()) { console.warn("TableWidget: Cannot sortItems via JS when a QAbstractListModel is bound."); return }
@@ -425,12 +427,12 @@ DataWidgetCore {
         _restoreCellWidgets(widgetEntries, arr)
     }
 
-    // ==================== QTableWidget API - Scroll 滚动 ====================
+    // Scroll API 滚动 API
     function scrollToTop() { listView.positionViewAtBeginning() }
     function scrollToBottom() { listView.positionViewAtEnd() }
     function scrollToRow(row) { if (row >= 0 && row < rowCount) listView.positionViewAtIndex(row, ListView.Center) }
 
-    // ==================== Convenience - setData 便捷方法 ====================
+    // setData convenience API setData 便捷 API
     // Set data from 2D array with optional headers 从二维数组设置数据
     function setData(data, headers) {
         if (headers) setHorizontalHeaderLabels(headers)
@@ -460,7 +462,7 @@ DataWidgetCore {
         tableData = result
     }
 
-    // ==================== Cell Widget Support 单元格控件支持 ====================
+    // Cell widget support 单元格控件支持
     // Set widget in cell 在单元格中放置控件
     function setCellWidget(row, column, widget) {
         if (!widget) return
@@ -487,7 +489,8 @@ DataWidgetCore {
         defaultTableContextMenu.showMenu(rowIndex, x, y)
     }
 
-    // ==================== Base Config 基类配置 ====================
+    // ==================== Size 尺寸 ====================
+    // Base configuration 基类配置
     itemCount: rowCount
     listModel: tableData
     showHeader: columns.length > 0
@@ -507,7 +510,7 @@ DataWidgetCore {
     onTableDataChanged: { rowCount = _calcRowCount(); _recomputeColumnWidths() }
     onListModelChanged: _recomputeColumnWidths()
 
-    // ==================== Layout Override 覆盖内置布局 ====================
+    // Layout override 覆盖内置布局
     // Adjust flickable bottom margin when pagination is shown 当显示分页时，调整滚动区域的底部边距以免被遮挡
     Component.onCompleted: {
         _recomputeColumnWidths()
@@ -523,6 +526,12 @@ DataWidgetCore {
         }
     }
 
+    contentDelegate: TableInternal.TableRowDelegate {
+        table: root
+        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    }
+
+    // ==================== Content 内容 ====================
     headerContent: Component {
         TableInternal.TableHeader {
             table: root
@@ -533,6 +542,12 @@ DataWidgetCore {
     // QVariantList 没这些 signal, 直接绑 target 会被识别成 QObject 报警告
     // "Unable to assign QVariantList to QObject*"
     Connections {
+        function onModelReset() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
+        function onRowsInserted() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
+        function onRowsRemoved() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
+        function onLayoutChanged() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
+        function onCountChanged() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
+
         target: (root.tableData && typeof root.tableData.length !== 'number'
                  && typeof root.tableData === 'object'
                  && (typeof root.tableData.rowCount === 'function'
@@ -541,23 +556,11 @@ DataWidgetCore {
         ignoreUnknownSignals: true
         // model 数据变化时既要刷新 rowCount 也要重算 autoWidth 列宽
         // (列宽算法采样真实数据, 空 model 时算的宽度毫无意义)
-        function onModelReset() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
-        function onRowsInserted() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
-        function onRowsRemoved() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
-        function onLayoutChanged() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
-        function onCountChanged() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
     }
 
-    // ==================== Delegate 委托 ====================
-    contentDelegate: TableInternal.TableRowDelegate {
-        table: root
-        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    }
-
-    // ==================== Built-in Context Menu 默认内置上下文菜单 ====================
+    // Built-in context menu 默认内置上下文菜单
     ContextMenu {
         id: defaultTableContextMenu
-        autoBindRightClick: false
 
         property int activeRowIndex: -1
 
@@ -565,6 +568,8 @@ DataWidgetCore {
             activeRowIndex = rowIndex
             popup(x, y, root)
         }
+
+        autoBindRightClick: false
 
         Action {
             text: "复制所选行 (Copy Row)"
