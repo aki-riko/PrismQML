@@ -315,6 +315,8 @@ QtObject {
  readonly property int shortcutPickerMinWidth: 180 // ShortcutEditor min width 快捷键选择器最小宽度
  readonly property int closeButtonSize: 28 // CloseButton default size 关闭按钮默认尺寸
  readonly property int lineEditClearButtonSize: 20 // LineEdit clear button size 单行输入清除按钮尺寸
+ readonly property int lineEditLabelWidth: 250 // Floating-label LineEdit default width 浮动标签输入框默认宽度
+ readonly property int lineEditTagWidth: 300 // Tag LineEdit default width 标签输入框默认宽度
  readonly property int focusLineHeight: 10 // FocusLine height 焦点线高度
  readonly property int wheelPickerItemHeight: 34 // CycleWheelPicker item height 滚轮选择器项高度
  readonly property int wheelPickerRowHeight: 36 // CycleWheelPicker row height 滚轮选择器行高（与 calendarGridHeight 36×6=216 对齐）
