@@ -1,0 +1,168 @@
+# coding: utf-8
+# SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+"""Tag suggestion popup regressions. 标签建议弹窗回归。"""
+
+from pathlib import Path
+
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem, QQuickWindow
+
+from prismqml import register_types
+
+
+ROOT = Path(__file__).resolve().parents[2]
+SCENE_URL = QUrl.fromLocalFile(
+    str(ROOT / "tests" / "qml" / "tag-suggestion-popup-runtime.qml")
+)
+SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    readonly property real expectedInputHeight: Enums.controlSize.inputHeight
+    readonly property real expectedSpacingM: Enums.spacing.m
+
+    width: 480
+    height: 240
+    visible: true
+
+    LineEdit {
+        id: tagInput
+        objectName: "tagInput"
+        x: 60
+        y: 60
+        width: 320
+        inputType: Enums.input.type_tag
+        suggestions: ["Alpha", "Beta", "Gamma"]
+    }
+}
+"""
+
+
+def _pump(milliseconds: int = 20) -> None:
+    loop = QEventLoop()
+    QTimer.singleShot(milliseconds, loop.quit)
+    loop.exec()
+
+
+def _wait_for(predicate, timeout_ms: int = 1600) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 20
+    return predicate()
+
+
+def _descendants(root: QObject) -> list[QObject]:
+    result = []
+    pending = list(root.children())
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(child.children())
+    return result
+
+
+def _popup_core(tag_input: QQuickItem) -> QQuickItem:
+    matches = [
+        child
+        for child in _descendants(tag_input)
+        if isinstance(child, QQuickItem)
+        and child.metaObject().className().startswith("PopupWindowCore")
+        and child.metaObject().indexOfProperty("listModel") >= 0
+        and child.metaObject().indexOfProperty("isOpen") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
+def _new_visible_windows(windows_before, *allowed):
+    return [
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if window.isVisible()
+        and not any(window is existing for existing in windows_before)
+        and not any(window is expected for expected in allowed)
+    ]
+
+
+def _create_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(SCENE_SOURCE, SCENE_URL)
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    window.requestActivate()
+    assert _wait_for(window.isActive)
+    tag_input = window.findChild(QQuickItem, "tagInput")
+    assert tag_input is not None
+    assert _wait_for(lambda: tag_input.property("textInput") is not None)
+    return engine, component, window, tag_input, warnings
+
+
+def _dispose_scene(engine, component, window) -> None:
+    window.close()
+    window.deleteLater()
+    component.deleteLater()
+    engine.collectGarbage()
+    engine.clearComponentCache()
+    engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    _pump()
+
+
+def test_tag_suggestion_popup_open_resize_and_close_lifecycle(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, tag_input, warnings = _create_scene()
+    try:
+        popup = _popup_core(tag_input)
+        text_input = tag_input.property("textInput")
+        assert isinstance(text_input, QQuickItem)
+        text_input.forceActiveFocus()
+        assert _wait_for(lambda: text_input.property("activeFocus"))
+
+        text_input.setProperty("text", "a")
+        assert _wait_for(lambda: popup.property("isOpen"))
+        assert popup.property("popupWidth") == tag_input.property("width")
+        assert popup.property("popupHeight") == (
+            3 * window.property("expectedInputHeight")
+            + window.property("expectedSpacingM")
+        )
+        assert _wait_for(lambda: len(_new_visible_windows(windows_before, window)) == 1)
+
+        text_input.setProperty("text", "Al")
+        assert _wait_for(
+            lambda: popup.property("popupHeight")
+            == window.property("expectedInputHeight") + window.property("expectedSpacingM")
+        )
+
+        text_input.setProperty("text", "")
+        assert _wait_for(lambda: not popup.property("isOpen"))
+        assert _wait_for(lambda: not popup.property("isClosing"))
+        assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
