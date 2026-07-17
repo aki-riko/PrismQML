@@ -22,7 +22,7 @@ Item {
     property real cardOpacity: Enums.opacityLevel.heavy
     property int popUpOffset: Enums.controlSize.popUpOffset
     
-    // ==================== QML Lazy Loading Props (for pure QML usage) QML懒加载属性（纯QML使用） ====================
+    // QML lazy-loading props for pure QML usage 纯QML使用的懒加载属性
     property bool lazyLoading: false
     property var pageSources: []  // QML file paths QML文件路径列表
     property string loadingText: Translator.tr("loading")
@@ -44,26 +44,21 @@ Item {
     
     readonly property bool _useSourceMode: pageSources.length > 0
     property int count: _useSourceMode ? pageSources.length : stackLayout.children.length
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    default property alias content: stackLayout.children
+    property alias containerItem: stackLayout
+    property Item currentWidget: _getCurrentWidget()
+    property int previousIndex: 0
+    property int _displayIndex: 0
+    property int _pendingLazySwitchIndex: -1
+
     // ==================== Signals 信号 ====================
     signal currentChanged(int index)
     signal animationFinished()
     signal animationStarted()
     signal pageLoaded(int index)
     signal pageLoadFailed(int index, string errorString)
-    
-    // ==================== Internal Props 内部属性 ====================
-    default property alias content: stackLayout.children
-    property alias containerItem: stackLayout
-    property Item currentWidget: _getCurrentWidget()
-    property int previousIndex: 0
-    // 实际显示页(唯一真相源, 驱动可见性/动画/当前 widget)。
-    // currentIndex 是外部输入(目标页), 内部永不命令式写它(避免打破外部
-    // 'currentIndex: window.currentIndex' 绑定); 真正"显示哪页"由 _displayIndex
-    // 决定, 懒加载完成或动画切换时才更新, 实现"目标页先加载、加载完再显示"。
-    property int _displayIndex: 0
-
-    clip: true
 
     function _getCurrentWidget() {
         if (_displayIndex < 0 || _displayIndex >= count) return null
@@ -80,7 +75,7 @@ Item {
         _startupProfileLast = now
     }
 
-    // ==================== Lazy Loading Functions 懒加载函数 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function _isPageLoaded(index) {
         if (!lazyLoading || !_useSourceMode) return true
         return _loaders[index] && _loaders[index].status === Loader.Ready
@@ -94,8 +89,6 @@ Item {
             _loaders[index].active = true
         }
     }
-
-    property int _pendingLazySwitchIndex: -1
 
     function _lazyHelperInitialProperties() {
         return {
@@ -211,7 +204,7 @@ Item {
         control.profileTime("lazyHelper loadingComplete done")
     }
 
-    // ==================== Animation Execution 动画执行 ====================
+    // Animation execution 动画执行
     function _doAnimation(oldIndex, newIndex) {
         var oldW = widget(oldIndex)
         var newW = widget(newIndex)
@@ -324,8 +317,6 @@ Item {
             }
         }
     }
-    // ==================== Public Methods 公共方法 ====================
-
     // Get current index 获取当前索引
     function getCurrentIndex() {
         return currentIndex
@@ -380,6 +371,8 @@ Item {
         return widget(index)
     }
 
+    clip: true
+
     Component.onCompleted: {
         profileTime("Component.onCompleted count=" + count +
                     ", lazyLoading=" + lazyLoading +
@@ -387,7 +380,32 @@ Item {
         _preloadLazyHelperWhenReady("completed")
     }
 
-    // ==================== Animation Helper 动画助手 ====================
+    onLazyLoadingChanged: if (lazyLoading) _preloadLazyHelperWhenReady("lazyLoadingChanged")
+    onPageLoaded: (index) => {
+        if (index === _displayIndex) _preloadLazyHelperWhenReady("pageLoaded index=" + index)
+    }
+    onCurrentIndexChanged: {
+        profileTime("currentIndex changed to " + currentIndex)
+        // currentIndex 是目标页(外部输入)。用 _displayIndex(实际显示页)判重,
+        // 内部绝不回写 currentIndex(否则打破外部声明式绑定)。
+        if (currentIndex === _displayIndex) return
+        if (currentIndex < 0 || currentIndex >= count) return
+
+        // QML pageSources 懒加载模式：使用 LazyLoadingHelper。
+        if (lazyLoading && !_isPageLoaded(currentIndex)) {
+            // 不回退 currentIndex: 旧页靠 _displayIndex(仍为旧值)保持可见,
+            // loading 完成后由 LazyLoadingHelper.onLoadingComplete 更新 _displayIndex。
+            _showLazyLoadingAndSwitch(currentIndex)
+        } else {
+            // Normal switch or Python mode 正常切换或Python模式
+            previousIndex = _displayIndex
+            _doAnimation(_displayIndex, currentIndex)
+            _displayIndex = currentIndex
+        }
+    }
+
+    // ==================== Content 内容 ====================
+    // Animation helper 动画助手
     StackedAnimations {
         id: animations
         control: control
@@ -400,7 +418,7 @@ Item {
         }
     }
 
-    // ==================== Direct Children Container 直接子组件容器 ====================
+    // Direct children container 直接子组件容器
     Item {
         id: stackLayout
         objectName: "stackLayout"
@@ -423,7 +441,7 @@ Item {
             control.profileTime("stackLayout Component.onCompleted done")
         }
     }
-    // ==================== pageSources Mode 文件路径模式 ====================
+    // pageSources mode 文件路径模式
     Item {
         id: sourceContainer
         anchors.fill: parent
@@ -475,7 +493,7 @@ Item {
         }
     }
     
-    // ==================== QML Lazy Loading Helper (for pure QML) QML懒加载辅助（纯QML使用） ====================
+    // QML lazy-loading helper for pure QML usage 纯QML使用的懒加载辅助器
     Loader {
         id: lazyHelperLoader
         anchors.fill: parent
@@ -485,32 +503,6 @@ Item {
             control._configureLazyHelper(item)
             control.profileTime("lazyHelper loaded")
             control._flushPendingLazySwitch()
-        }
-    }
-    onLazyLoadingChanged: if (lazyLoading) _preloadLazyHelperWhenReady("lazyLoadingChanged")
-    onPageLoaded: (index) => {
-        if (index === _displayIndex) _preloadLazyHelperWhenReady("pageLoaded index=" + index)
-    }
-
-    // ==================== Index Change Handler 索引变化处理 ====================
-    onCurrentIndexChanged: {
-        profileTime("currentIndex changed to " + currentIndex)
-        // currentIndex 是目标页(外部输入)。用 _displayIndex(实际显示页)判重,
-        // 内部绝不回写 currentIndex(否则打破外部声明式绑定)。
-        if (currentIndex === _displayIndex) return
-        if (currentIndex < 0 || currentIndex >= count) return
-
-        // QML pageSources lazy loading mode: use LazyLoadingHelper
-        // QML pageSources 懒加载模式：使用 LazyLoadingHelper。
-        if (lazyLoading && !_isPageLoaded(currentIndex)) {
-            // 不回退 currentIndex: 旧页靠 _displayIndex(仍为旧值)保持可见,
-            // loading 完成后由 LazyLoadingHelper.onLoadingComplete 更新 _displayIndex。
-            _showLazyLoadingAndSwitch(currentIndex)
-        } else {
-            // Normal switch or Python mode 正常切换或Python模式
-            previousIndex = _displayIndex
-            _doAnimation(_displayIndex, currentIndex)
-            _displayIndex = currentIndex
         }
     }
 }
