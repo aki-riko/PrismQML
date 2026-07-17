@@ -50,6 +50,11 @@ DWM_BACKDROP_NONE = 1   # DWMSBT_NONE
 DWM_BACKDROP_MICA = 2   # DWMSBT_MAINWINDOW (Mica)
 
 
+def _dwm_hresult_succeeded(result: int) -> bool:
+    """Apply Windows SUCCEEDED semantics. 使用 Windows SUCCEEDED 语义。"""
+    return int(result) >= 0
+
+
 def _is_win11() -> bool:
     """Check if running on Windows 11 检查是否运行在 Windows 11"""
     if sys.platform != "win32":
@@ -123,69 +128,56 @@ class MicaManager(QObject):
         """Get mica effect enabled state 获取云母效果启用状态"""
         return self._mica_enabled
     
+    def _set_dwm_int_attribute(self, hwnd: int, attribute: int, value: int) -> int:
+        """Set one integer DWM attribute. 设置单个整数 DWM 属性。"""
+        import ctypes
+
+        native_value = ctypes.c_int(value)
+        return self._dwm_set_attr(
+            hwnd,
+            attribute,
+            ctypes.byref(native_value),
+            ctypes.sizeof(native_value),
+        )
+
+    def _apply_mica_to_hwnd(self, hwnd: int, enabled: bool) -> bool:
+        """Apply rounded Mica backdrop to a validated HWND. 向已验证 HWND 应用云母。"""
+        if self._windows_build < WIN11_BACKDROP_BUILD_THRESHOLD:
+            warning(
+                "DWMWA_SYSTEMBACKDROP_TYPE requires Build >= "
+                f"{WIN11_BACKDROP_BUILD_THRESHOLD}, current: {self._windows_build}"
+            )
+            return False
+        self._set_dwm_int_attribute(
+            hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND
+        )
+        backdrop = DWM_BACKDROP_MICA if enabled else DWM_BACKDROP_NONE
+        result = self._set_dwm_int_attribute(
+            hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop
+        )
+        if _dwm_hresult_succeeded(result):
+            info(f"Mica effect {'enabled' if enabled else 'disabled'}")
+            return True
+        warning(f"DwmSetWindowAttribute failed: {result}")
+        return False
+
     def _applyMica(self, window: QWindow, enabled: bool) -> bool:
         """Internal: Apply mica effect 内部方法：应用云母效果"""
-        if not self._is_win11 or not self._dwm_set_attr:
+        if not self._is_mica_supported:
             return False
-        
         try:
-            import ctypes
-            
             hwnd = int(window.winId())
             if not hwnd:
                 return False
-            
-            self._current_hwnd = hwnd
-            
-            # Set window corner to round 设置窗口圆角
-            corner_pref = ctypes.c_int(DWMWCP_ROUND)
-            self._dwm_set_attr(
-                hwnd,
-                DWMWA_WINDOW_CORNER_PREFERENCE,
-                ctypes.byref(corner_pref),
-                ctypes.sizeof(corner_pref)
-            )
-            
-            # Set backdrop type 设置背景类型
-            # DWMWA_SYSTEMBACKDROP_TYPE (38) 需要 Win11 22H2 (Build 22621+)
-            build = sys.getwindowsversion().build
-            if build < WIN11_BACKDROP_BUILD_THRESHOLD:
-                warning(f"DWMWA_SYSTEMBACKDROP_TYPE requires Build >= {WIN11_BACKDROP_BUILD_THRESHOLD}, current: {build}")
-                return False
-            
-            backdrop_value = ctypes.c_int(DWM_BACKDROP_MICA if enabled else DWM_BACKDROP_NONE)
-            result = self._dwm_set_attr(
-                hwnd,
-                DWMWA_SYSTEMBACKDROP_TYPE,
-                ctypes.byref(backdrop_value),
-                ctypes.sizeof(backdrop_value)
-            )
-            
-            if result == 0:
-                info(f"Mica effect {'enabled' if enabled else 'disabled'}")
-                return True
-            else:
-                warning(f"DwmSetWindowAttribute failed: {result}")
-                return False
-                
+            return self._apply_mica_to_hwnd(hwnd, enabled)
         except (ValueError, OSError, TypeError) as e:
             error(f"Failed to apply mica: {e}")
             return False
     
     @Slot(QWindow, bool, bool, result=bool)
     def setMicaEffect(self, window: QWindow, enabled: bool, dark: bool = False) -> bool:
-        """
-        Set mica effect for a window 为窗口设置云母效果
-        
-        Args:
-            window: Target QWindow 目标窗口
-            enabled: Enable mica effect 启用云母效果
-            dark: Use dark mode 使用深色模式
-            
-        Returns:
-            True if successful 成功返回 True
-        """
-        if not self._is_win11 or not self._dwm_set_attr:
+        """Set Mica and commit state after success. 设置云母并在成功后提交状态。"""
+        if not self._is_mica_supported:
             debug("Mica effect not available (not Win11 or DWM unavailable)")
             return False
         
@@ -194,29 +186,20 @@ class MicaManager(QObject):
             return False
         
         try:
-            import ctypes
-            
-            self._current_window = window
-            self._current_hwnd = int(window.winId())
-            
-            # Set dark mode 设置深色模式
-            dark_value = ctypes.c_int(1 if dark else 0)
-            self._dwm_set_attr(
-                self._current_hwnd,
-                DWMWA_USE_IMMERSIVE_DARK_MODE,
-                ctypes.byref(dark_value),
-                ctypes.sizeof(dark_value)
+            hwnd = int(window.winId())
+            if not hwnd:
+                warning("Cannot set mica effect: window HWND is empty")
+                return False
+            self._set_dwm_int_attribute(
+                hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, 1 if dark else 0
             )
-            
-            # Apply mica 应用云母效果
-            success = self._applyMica(window, enabled)
-            
-            if success:
-                self._mica_enabled = enabled
-                self.micaEnabledChanged.emit(enabled)
-            
-            return success
-                
+            if not self._apply_mica_to_hwnd(hwnd, enabled):
+                return False
+            self._current_window = window
+            self._current_hwnd = hwnd
+            self._mica_enabled = enabled
+            self.micaEnabledChanged.emit(enabled)
+            return True
         except (ValueError, OSError, TypeError) as e:
             error(f"Failed to set mica effect: {e}")
             return False
