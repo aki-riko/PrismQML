@@ -5,21 +5,21 @@
 import QtQuick
 import "../../.."
 
-// SlidingIndicator - 统一滑动指示器 (公开基类)
-// 内核为 SlidingIndicatorAnimation, 默认 stretch 橡皮筋粘滞。
-// 对外保留历史 NavigationIndicator 调用: setGeometry / startAnimation / moveToItem。
-// 用于: NavigationBar / NavigationView / Pivot / SegmentedControl / ToggleNavigationBar
+// SlidingIndicator - Shared sliding indicator public base 统一滑动指示器公开基类
+// Uses SlidingIndicatorAnimation with sticky stretch by default 默认使用带粘滞拉伸的SlidingIndicatorAnimation
+// Exposes setGeometry, startAnimation, and moveToItem 对外提供setGeometry、startAnimation和moveToItem
+// Used by navigation controls and segmented selectors 用于导航控件和分段选择器
 Item {
     id: root
 
     // ==================== Public Props 公开属性 ====================
-    // 主轴方向
+    // Main-axis orientation 主轴方向
     property int orientation: Qt.Vertical
 
-    // 动画模式: "stretch"(橡皮筋粘滞) / "spring"(弹簧) / "instant"
+    // Animation mode: stretch, spring, or instant 动画模式：拉伸、弹簧或立即切换
     property string mode: "stretch"
 
-    // 指示器尺寸 (固定边由调用方约束, 这里给默认)
+    // Default indicator size; callers constrain the fixed edge 默认指示器尺寸，固定边由调用方约束
     property int indicatorWidth: orientation === Qt.Horizontal
         ? Enums.controlSize.navIndicatorHeight
         : Enums.controlSize.topNavIndicatorHeight
@@ -27,29 +27,29 @@ Item {
         ? Enums.controlSize.topNavIndicatorHeight
         : Enums.controlSize.navIndicatorHeight
 
-    // 圆角
+    // Corner radius 圆角
     property real radius: Enums.radius.micro
 
-    // 颜色 (随主题)
+    // Theme-aware colors 主题感知颜色
     property color indicatorColor: Enums.accentColor
     property color lightColor: Enums.accentColor
     property color darkColor: Enums.accentColor
 
-    // 是否启用动画 (false → mode 退化为 instant)
+    // Disable animation to force instant mode 禁用动画时强制使用立即切换模式
     property bool animationEnabled: true
 
-    // 当前动画状态
+    // Current animation state 当前动画状态
     readonly property bool running: animation.running
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _initialized: false
+    readonly property string _effectiveMode: animationEnabled ? mode : "instant"
 
     // ==================== Signals 信号 ====================
     signal animationFinished()
 
-    // ==================== Internal 内部 ====================
-    property bool _initialized: false
-    readonly property string _effectiveMode: animationEnabled ? mode : "instant"
-
     // ==================== Public Methods 公开方法 ====================
-    // 从 startRect 动画到 endRect (第三参 useCrossFade 保留占位, 当前不使用)
+    // Animate from startRect to endRect; useCrossFade is reserved 从startRect动画到endRect，useCrossFade为保留参数
     function startAnimation(startRect, endRect, useCrossFade) {
         if (!animationEnabled) {
             setGeometry(endRect)
@@ -63,28 +63,28 @@ Item {
         animation.stopAnimation()
     }
 
-    // 直接设几何, 无动画
+    // Set geometry directly without animation 直接设置几何且不播放动画
     function setGeometry(rect) {
         _initialized = true
         animation.setGeometry(rect)
     }
 
-    // 获取当前矩形
+    // Return the current indicator rectangle 获取当前指示器矩形
     function getIndicatorRect() {
         return Qt.rect(indicator.x, indicator.y, indicator.width, indicator.height)
     }
 
-    // ==================== Convenience 便捷: 移动到目标项 ====================
-    // targetItem / prevItem: 带 x,y,width,height 的 Item
+    // Move to a target item 便捷移动到目标项
+    // targetItem and prevItem provide x, y, width, and height 目标项和前项提供几何属性
     function _rectForItem(item) {
         if (orientation === Qt.Horizontal) {
-            // 水平: 指示器在底部居中
+            // Center the horizontal indicator at the bottom 水平指示器在底部居中
             return Qt.rect(
                 item.x + (item.width - indicatorWidth) / 2,
                 item.y + item.height - indicatorHeight,
                 indicatorWidth, indicatorHeight)
         }
-        // 垂直: 指示器在左侧居中
+        // Center the vertical indicator on the left 垂直指示器在左侧居中
         return Qt.rect(
             item.x,
             item.y + (item.height - indicatorHeight) / 2,
@@ -101,7 +101,7 @@ Item {
         }
     }
 
-    // ==================== Indicator Rectangle 指示器矩形 ====================
+    // ==================== Content 内容 ====================
     Rectangle {
         id: indicator
         x: animation.indicatorX
@@ -121,7 +121,7 @@ Item {
         }
     }
 
-    // ==================== Animation Engine 动画引擎 ====================
+    // Animation engine 动画引擎
     SlidingIndicatorAnimation {
         id: animation
         orientation: root.orientation
