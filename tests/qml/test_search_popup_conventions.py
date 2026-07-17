@@ -12,12 +12,16 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QMetaObject,
+    QPoint,
+    QPointF,
     QTimer,
+    Qt,
     QUrl,
 )
 from PySide6.QtGui import QGuiApplication, QInputMethodEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -176,6 +180,13 @@ def _type_text(text_input: QQuickItem, text: str) -> None:
     _pump(20)
 
 
+def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
+    point = item.mapToItem(
+        window.contentItem(), QPointF(item.width() / 2, item.height() / 2)
+    )
+    return QPoint(round(point.x()), round(point.y()))
+
+
 def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, search, warnings = _create_scene()
@@ -236,6 +247,67 @@ def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
         assert QMetaObject.invokeMethod(search, "dismiss")
         _pump(40)
         assert dismissed == [True]
+        assert warnings == []
+        assert _visible_popup_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window, search)
+
+
+def test_search_result_item_preserves_selection_hover_and_click(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, search, warnings = _create_scene()
+    try:
+        text_input = _text_input(search)
+        selected_entries = []
+        search.entrySelected.connect(selected_entries.append)
+
+        text_input.forceActiveFocus()
+        assert _wait_for(text_input.hasActiveFocus)
+        _type_text(text_input, "build")
+        assert _wait_for(lambda: search.property("isOpen"))
+        assert _wait_for(lambda: len(_visible_popup_windows(windows_before, window)) == 1)
+        popup_window = _visible_popup_windows(windows_before, window)[0]
+        popup_window.requestActivate()
+        assert _wait_for(popup_window.isActive)
+
+        result_items = [
+            item
+            for item in _visual_descendants(popup_window.contentItem())
+            if item.metaObject().className().startswith("SearchResultItem")
+        ]
+        assert len(result_items) == 1
+        result_item = result_items[0]
+        assert result_item.property("itemIndex") == 0
+        assert result_item.property("entryData")["title"] == "Build"
+        assert "Build" in result_item.property("highlightedTitle")
+        assert result_item.height() == pytest.approx(48)
+        assert result_item.property("selected")
+        assert not result_item.property("hovered")
+        assert not result_item.property("pressed")
+
+        indicators = [
+            item
+            for item in result_item.childItems()
+            if item.metaObject().className().startswith("QQuickRectangle")
+            and item.width() == pytest.approx(3)
+        ]
+        assert len(indicators) == 1
+        assert indicators[0].isVisible()
+
+        point = _point_for(popup_window, result_item)
+        QTest.mouseMove(popup_window, point)
+        assert _wait_for(lambda: result_item.property("hovered"))
+        QTest.mouseClick(
+            popup_window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            point,
+        )
+        assert _wait_for(lambda: len(selected_entries) == 1)
+        assert selected_entries[0].toVariant()["title"] == "Build"
+        assert _wait_for(lambda: search.property("query") == "")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert _wait_for(lambda: not popup_window.isVisible())
         assert warnings == []
         assert _visible_popup_windows(windows_before, window) == []
     finally:
