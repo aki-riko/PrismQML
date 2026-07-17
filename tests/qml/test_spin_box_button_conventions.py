@@ -71,6 +71,23 @@ Item {
         type: Enums.input.spinbox_compact
         value: 5
     }
+
+    SpinBox { objectName: "typeNormal"; value: 1.25 }
+    SpinBox {
+        objectName: "typeDouble"
+        type: Enums.input.spinbox_double
+        value: 1.25
+    }
+    SpinBox {
+        objectName: "typeCompact"
+        type: Enums.input.spinbox_compact
+        value: 1.25
+    }
+    SpinBox {
+        objectName: "typeCompactDouble"
+        type: Enums.input.spinbox_compact_double
+        value: 1.25
+    }
 }
 """
 
@@ -198,6 +215,27 @@ def test_spin_box_button_parent_bindings(spin_box_scene):
     _pump()
     _assert_normal_buttons(root, normal)
     _assert_compact_buttons(root, compact)
+
+
+def test_spin_box_type_runtime_contract(spin_box_scene):
+    expected = {
+        "typeNormal": (0, 1.0, False, 130, 32, "1"),
+        "typeDouble": (2, 0.1, False, 130, 32, "1.25"),
+        "typeCompact": (0, 1.0, True, 80, 28, "1"),
+        "typeCompactDouble": (2, 0.1, True, 90, 28, "1.25"),
+    }
+    for name, contract in expected.items():
+        spin_box = spin_box_scene.findChild(QObject, name)
+        assert spin_box is not None
+        actual = (
+            spin_box.property("decimals"),
+            spin_box.property("stepSize"),
+            spin_box.property("compactMode"),
+            spin_box.property("implicitWidth"),
+            spin_box.property("implicitHeight"),
+            spin_box.property("displayValue"),
+        )
+        assert actual == contract
 
 
 @pytest.mark.parametrize("source_path", SOURCE_PATHS, ids=lambda path: path.stem)
