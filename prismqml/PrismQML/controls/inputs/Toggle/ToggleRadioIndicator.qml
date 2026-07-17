@@ -10,10 +10,12 @@ import "../../.."
 Rectangle {
     id: indicator
 
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool checked: false
     property bool hovered: false
     property bool pressed: false
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property int _indicatorBorderWidth: {
         if (Enums.isNeobrutalism) return Enums.neo.borderWidth
         if (Enums.isPrismDesign) return Enums.prismDesign.borderWidth
@@ -23,13 +25,6 @@ Rectangle {
         if (!enabled) return Enums.textColor.disabled
         return Enums.accentForeground
     }
-
-    // ==================== Size 尺寸 ====================
-    width: Enums.controlSize.radioOuter
-    height: Enums.controlSize.radioOuter
-    radius: width / 2
-
-    // ==================== Color Calc 颜色计算 ====================
     // Checked uses accent; Prism/neo unchecked keeps fill for visibility 选中使用强调色，Prism/neo 未选保留填充。
     readonly property color _indicatorColor: {
         if (!enabled) return checked ? Enums.stateColor.disabledBorder
@@ -56,6 +51,13 @@ Rectangle {
         if (hovered) return Enums.stateColor.toggleBorderHover
         return Enums.isDark ? Enums.textColor.tertiary : Enums.stateColor.toggleBorder
     }
+
+    // ==================== Size 尺寸 ====================
+    width: Enums.controlSize.radioOuter
+    height: Enums.controlSize.radioOuter
+    radius: width / 2
+
+    // Calculated visual style 计算后的视觉样式
     color: _indicatorColor
     // Neo/Prism keep a visible outline even when checked Neo/Prism 选中也保留轮廓。
     border.width: _indicatorBorderWidth
@@ -64,7 +66,7 @@ Rectangle {
     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     Behavior on border.color { ColorAnimation { duration: Enums.duration.fast } }
 
-    // ==================== Inner Dot 内部圆点 ====================
+    // ==================== Content 内容 ====================
     Rectangle {
         anchors.centerIn: parent
         width: Enums.controlSize.radioInner
