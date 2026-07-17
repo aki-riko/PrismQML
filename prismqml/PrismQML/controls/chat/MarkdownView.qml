@@ -8,32 +8,30 @@ import "../.."
 import "."
 
 /**
- * MarkdownView — 简易 Markdown 渲染
+ * MarkdownView - Lightweight Markdown renderer 简易 Markdown 渲染器
  *
- * 把 Markdown 文本拆分为 段落 / 代码块,对每段:
- *   - 围栏代码块 ```lang\n...\n``` → CodeBlock
- *   - 其他文本 → Text(RichText) 显示,markdown 子集映射成 HTML:
- *     **bold** / *italic* / `inline code` / [text](url) / ## 标题 / - 列表
+ * Splits Markdown into paragraphs and fenced code blocks: 将 Markdown 拆分为段落和围栏代码块：
+ *   - Fenced block ```lang\n...\n``` -> CodeBlock 围栏代码块映射到 CodeBlock
+ *   - Other text -> Text.MarkdownText 其他文本交由 Text.MarkdownText 渲染
  *
- * Props:
- *   markdown: string  原始 markdown 文本
- *   textColor: color  正文颜色
- *   linkColor: color  链接颜色
+ * Props 公开属性:
+ *   markdown: string  Raw Markdown text 原始 Markdown 文本
+ *   textColor: color  Body text color 正文颜色
+ *   linkColor: color  Link color 链接颜色
  */
 Item {
     id: control
 
+    // ==================== Public Props 公开属性 ====================
     property string markdown: ""
     property color textColor: Enums.textColor.primary
     property color linkColor: Enums.accentColor
 
-    implicitHeight: contentColumn.implicitHeight
-    implicitWidth: parent ? parent.width : Enums.controlSize.chatContentMaxWidth
-
-    // ==================== Block 解析 ====================
-    // 把 markdown 按 ``` 分段:奇数段是代码块,偶数段是普通文本
+    // ==================== Readonly State 只读状态 ====================
+    // Parse Markdown into text and fenced-code blocks 将 Markdown 解析为文本块和围栏代码块
     readonly property var _blocks: _parseBlocks(markdown)
 
+    // ==================== Internal Methods 内部方法 ====================
     function _parseBlocks(md) {
         if (!md) return []
         var blocks = []
@@ -68,7 +66,7 @@ Item {
             }
         }
 
-        // flush
+        // Flush buffered content 刷新缓冲内容
         if (inCode && codeBuf.length > 0) {
             blocks.push({ kind: "code", language: codeLang, content: codeBuf.join('\n') })
         }
@@ -79,7 +77,10 @@ Item {
         return blocks
     }
 
-    // ==================== Render ====================
+    implicitHeight: contentColumn.implicitHeight
+    implicitWidth: parent ? parent.width : Enums.controlSize.chatContentMaxWidth
+
+    // ==================== Content 内容 ====================
     ColumnLayout {
         id: contentColumn
         width: parent.width
@@ -89,15 +90,17 @@ Item {
             model: control._blocks
 
             delegate: Loader {
-                Layout.fillWidth: true
                 required property var modelData
+
+                Layout.fillWidth: true
                 sourceComponent: modelData.kind === "code" ? codeCmp : textCmp
 
                 Component {
                     id: textCmp
                     Text {
-                        // Qt 原生 CommonMark 解析: 有序/无序列表、加粗斜体、标题、
-                        // 行内码、链接、段落换行全部正确 (替代旧手写正则,后者只支持子集)
+                        // Qt CommonMark handles lists, emphasis, headings, inline code, links,
+                        // and paragraph breaks, replacing the old subset regex parser
+                        // Qt CommonMark 处理列表、强调、标题、行内码、链接和段落换行，替代旧子集正则解析器
                         text: modelData.content
                         color: control.textColor
                         linkColor: control.linkColor
