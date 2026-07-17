@@ -28,7 +28,7 @@ Item {
         content.initDefaultCropRect()
     }
 
-    // ==================== Content 内容区 ====================
+    // ==================== Content 内容 ====================
     ImageCropperContent {
         id: content
         anchors.fill: parent
@@ -39,7 +39,7 @@ Item {
         onCropRectUpdated: (newRect) => panel.cropRectUpdated(newRect)
     }
     
-    // ==================== Toolbar 工具栏 ====================
+    // Crop action toolbar 裁剪操作工具栏
     ShadowedRectangle {
         id: toolbar
         anchors.bottom: parent.bottom
