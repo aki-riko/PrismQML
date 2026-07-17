@@ -408,6 +408,15 @@ def test_search_result_item_source_conventions():
     ] == []
 
 
+def test_search_result_list_source_conventions():
+    source = RESULT_LIST_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(RESULT_LIST_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
 def test_search_popup_and_result_items_use_shared_metrics():
     popup_source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
     list_source = RESULT_LIST_SOURCE_PATH.read_text(encoding="utf-8")
