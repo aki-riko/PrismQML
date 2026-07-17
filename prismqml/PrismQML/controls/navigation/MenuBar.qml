@@ -9,14 +9,14 @@ import "../buttons"
 import "../data"
 
 // MenuBar - Fluent Design menu bar 菜单栏
-// Features: hover expand, smooth animation, custom Menu popup
-// Refactored to use Button for stable hover 重构使用Button实现稳定hover
+// Supports hover switching, smooth animation, and custom popups 支持悬停切换、平滑动画和自定义弹出菜单
+// Uses Button to provide stable hover behavior 使用Button提供稳定的悬停行为
 Rectangle {
     id: control
     
     // ==================== Public Props 公开属性 ====================
     // Menu items data 菜单项数据
-    // Format: [{text, children: [{text, icon, shortcut, action}, ...]}, ...]
+    // Format: [{text, children: [{text, icon, shortcut, action}, ...]}, ...] 格式见此对象数组
     property var items: []
     
     // Active menu index (-1 = none) 当前激活菜单索引
@@ -35,7 +35,7 @@ Rectangle {
     implicitHeight: Enums.controlSize.inputHeight
     color: backgroundColor
     
-    // ==================== Menu Items Row 菜单项行 ====================
+    // ==================== Content 内容 ====================
     Row {
         id: menuRow
         anchors.verticalCenter: parent.verticalCenter
@@ -47,10 +47,37 @@ Rectangle {
             // Menu item button 菜单项按钮
             Item {
                 id: menuItemContainer
+
+                property bool isActive: index === control.activeIndex
+
+                // Open menu at this item 在此项打开菜单
+                function _openMenuAt(idx) {
+                    if (!modelData.children || modelData.children.length === 0) return
+
+                    // Close all other menus first 先关闭所有其他菜单
+                    control._closeAllMenus()
+
+                    // Build menu dynamically 动态构建菜单
+                    dropdownMenu.clear()
+                    for (var i = 0; i < modelData.children.length; i++) {
+                        var child = modelData.children[i]
+                        if (child.separator) {
+                            dropdownMenu.addSeparator()
+                        } else {
+                            var action = dropdownMenu.addAction(
+                                child.text || child,
+                                child.icon || "",
+                                child.shortcut || ""
+                            )
+                        }
+                    }
+
+                    // Open below this button 在按钮下方打开
+                    dropdownMenu.openAtControl(menuBtn)
+                }
+
                 width: menuBtn.implicitWidth
                 height: Enums.controlSize.inputHeight
-                
-                property bool isActive: index === control.activeIndex
                 
                 // Hidden text for measuring 用于测量的隐藏文本
                 Label {
@@ -90,53 +117,28 @@ Rectangle {
                     }
                 }
                 
-                // Open menu at this item 在此项打开菜单
-                function _openMenuAt(idx) {
-                    if (!modelData.children || modelData.children.length === 0) return
-                    
-                    // Close all other menus first 先关闭所有其他菜单
-                    control._closeAllMenus()
-                    
-                    // Build menu dynamically 动态构建菜单
-                    dropdownMenu.clear()
-                    for (var i = 0; i < modelData.children.length; i++) {
-                        var child = modelData.children[i]
-                        if (child.separator) {
-                            dropdownMenu.addSeparator()
-                        } else {
-                            var action = dropdownMenu.addAction(
-                                child.text || child,
-                                child.icon || "",
-                                child.shortcut || ""
-                            )
-                        }
-                    }
-                    
-                    // Open below this button 在按钮下方打开
-                    dropdownMenu.openAtControl(menuBtn)
-                }
-                
                 // Dropdown menu instance 下拉菜单实例
                 Menu {
                     id: dropdownMenu
-                    
-                    // Listen for close all signal 监听关闭所有信号
-                    Connections {
-                        target: control
-                        function on_CloseAllMenus() {
-                            dropdownMenu.close()
-                        }
-                    }
-                    
+
                     onActionTriggered: function(text) {
                         control.menuItemClicked(modelData.text, text)
                         control.activeIndex = -1
                     }
-                    
+
                     onClosed: {
                         if (control.activeIndex === index) {
                             closeTimer.start()
                         }
+                    }
+
+                    // Listen for close all signal 监听关闭所有信号
+                    Connections {
+                        function on_CloseAllMenus() {
+                            dropdownMenu.close()
+                        }
+
+                        target: control
                     }
                     
                     Timer {
