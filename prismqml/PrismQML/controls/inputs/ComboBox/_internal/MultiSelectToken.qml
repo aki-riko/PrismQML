@@ -17,10 +17,12 @@ Rectangle {
     required property string text
     required property int tokenIndex
 
-    // ==================== Optional Props 可选属性 ====================
+    // ==================== Public Props 公开属性 ====================
     // Per-token tint override. Empty/transparent → keep default accent look. 着色覆盖,空则走默认强调色
     // Only TagLineEdit passes this; ComboBoxMulti/Tree leave it unset (zero impact). 仅TagLineEdit传入,ComboBox不传零影响
     property string bgColorOverride: ""
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool _tinted: bgColorOverride !== "" && bgColorOverride !== "transparent"
     // Foreground picked for contrast against the tint 文字色按对比度选黑/白
     readonly property color _tintFg: _tinted
@@ -36,7 +38,7 @@ Rectangle {
     height: Enums.spacing.xxxl
     width: tagText.implicitWidth + Enums.spacing.xxxl
 
-    // ==================== Style 样式 ====================
+    // Visual style 视觉样式
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     color: token._tinted ? token.bgColorOverride : Enums.stateColor.accentLight
     border.width: Enums.border.thin
