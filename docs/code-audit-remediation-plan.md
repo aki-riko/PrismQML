@@ -544,6 +544,8 @@ P6D TableWidget 正确性、入口整理与 BreadcrumbDelegate 三提交已完�
 
 P6D navigation 懒加载正确性与滑动指示器组三提交已完成：机械整理前，真实无效 QML 页面让目标 Loader 进入 `Loader.Error` 后，旧页已被退出动画隐藏，`pendingTargetIndex`、`isLoadingSwitching` 与加载遮罩永久不复位。`d22135e9` 增加 Loader 失败查询与 `StackedWidget.pageLoadFailed(index, errorString)` 公开失败握手，失败时停止全部相关 Timer、恢复旧页、隐藏目标页与遮罩并复位切换状态；同一真实解析错误修前红测、修后单次发信且保留 Qt `QQmlComponent.errorString()`。`cf85ead5` 将 `LazyLoadingHelper` 的属性、回调与标准分节恢复到规范顺序，清理 5 条 QML008、4 条 QML009；`38508f43` 将 `SlidingIndicator` 的内部属性前移、统一内容分节与双语说明，清理 2 条 QML008、4 条 QML009。两批机械整理的非注释代码多重集合均与各自正确性父提交完全一致；SlidingIndicator 修前修后同一 SegmentedControl/TabWidget 逐帧动画输入均 `14 passed`。最终完整门禁为 Python `2244 passed / 1 skipped`、QML probe `169 OK / 0 错误 / 12 跳过`、headless CTest `9/9`、Windows native CTest `2/2`、MkDocs strict、Python 3.9 AST 287、compileall、changed `15→0` 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留。P6D 累计清理 806 条；全库总库存 `1,784→1,769`，QML008 `1,051→1,044`、QML009 `690→682`，QML010 43 保持全部位于 examples。
 
+P6D navigation 资料卡、分页器与菜单栏组三提交已完成：`8c6a0bf9` 将 `NavigationProfileCard` 的背景、头像、文本区与交互分组收敛到唯一标准内容分节，清理 4 条 QML009；`a11db155` 将 `Paginator` 的内部 `_targetX` 前移到尺寸赋值之前，补标准内容分节并把上页、页码视口和下页说明降为普通双语注释，清理 1 条 QML008、3 条 QML009；`02d7c64d` 将 `MenuBar` delegate 状态与 `_openMenuAt()` 前移到子元素之前，恢复 `Connections` 函数及 `Menu` handler 的规范顺序并统一内容分节，清理 5 条 QML008、1 条 QML009。三批非注释代码多重集合均与各自父提交完全一致；修前修后真实 QML 回归分别为 `2 passed`、`1 passed`、`6 passed`。Paginator 提交前检查曾捕获一处新空白行尾空格，已在未推送阶段修正并 amend，最终提交 `git show --check` 无输出。最终完整门禁为 Python `2244 passed / 1 skipped`、QML probe `169 OK / 0 错误 / 12 跳过`、headless CTest `9/9`、Windows native CTest `2/2`、MkDocs strict、Python 3.9 AST 287、compileall、changed `14→0` 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留。P6D 累计清理 820 条；全库总库存 `1,769→1,755`，QML008 `1,044→1,038`、QML009 `682→674`，QML010 43 保持全部位于 examples。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -1013,7 +1015,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 
 ## 九、状态追踪
 
-截至 2026-07-17，按剩余工作量粗估整体计划约完成 **86%**：P0–P5、P7J、P7K 与 P8 已完成，P6/P7 继续进行，P9 待执行；该百分比不是按阶段数量简单平均，新增插单会改变剩余时间估算。
+截至 2026-07-17，按剩余工作量粗估整体计划约完成 **87%**：P0–P5、P7J、P7K 与 P8 已完成，P6/P7 继续进行，P9 待执行；该百分比不是按阶段数量简单平均，新增插单会改变剩余时间估算。
 
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
@@ -1034,7 +1036,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 | P7K-C SqlListModel 只读 URI | 已完成 | Windows/POSIX/UNC URI 一次编码，Python 列解析/count/页读取统一只读；真实特殊路径和删除文件在 Python/Rust 下结果一致且不建库；Python 2223/1、QML 169/0/12、CTest 9/9 + native 2/2 | `68c9e60a` |
 | P7K-D Python 注册注入 | 已完成 | `register_types()` 补齐 ConfigManager/ClipboardHelper；双引擎同一单例、DpiManager wrapper 125、warning/critical 归零；Python 2224/1、QML 169/0/12、CTest 9/9 + native 2/2 | `47ebdb30` |
 | P8 资源注册 | 已完成 | 五个孤儿已删除；2,497 项双注册表已同步；Python/C++ IconProvider 已统一；DpiManager 已收窄为五个真实状态。全量 Python 2230/1、QML 169/0/12、CTest 9/9 + native 2/2，全库 QML 库存 2,604、changed 0 | `154cd4e4`、`11882986`、`39efe2e8`、`4bc9fd0`、`fa4a20d6`、`79932827` |
-| P6D navigation（2026-07-17 最新） | 进行中 | LazyLoadingHelper 失败握手已闭环，LazyLoadingHelper/SlidingIndicator 共清理 15 条；当前库存 1,769，最新全量 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 | `d22135e9`、`cf85ead5`、`38508f43` |
+| P6D navigation（2026-07-17 最新） | 进行中 | LazyLoadingHelper 失败握手已闭环，当前 navigation 两组累计清理 29 条；全库库存 1,755，最新全量 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 | `d22135e9`、`cf85ead5`、`38508f43`、`8c6a0bf9`、`a11db155`、`02d7c64d` |
 | P9 最终验收 | 待执行 |  |  |
 
 状态只能填写“待执行 / 进行中 / 已完成 / 阻塞”。“已完成”必须同时记录真实测试结果和提交哈希。
