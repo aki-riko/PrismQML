@@ -18,30 +18,35 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 ComboBoxCore {
     id: control
     
-    // ==================== Tree Specific Props 树特有属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool searchEnabled: true
     property string searchPlaceholder: "请输入关键字"
     property string delimiter: " → "
     property bool showPathFromRoot: true
-    
-    // ==================== Override Base Props 覆盖基类属性 ====================
-    showFocusedBorder: false  // No focus line for tree 树不显示聚焦下划线
-    
-    // ==================== Signals 信号 ====================
-    signal itemSelected(string text, var path)
-    
-    // ==================== Internal State 内部状态 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     property var _expandedNodes: ({})
     property string _searchText: ""
     property var _flatModel: []
     property bool _initialized: false
-    
-    // ==================== Flatten Tree Model 扁平化树模型 ====================
-    Component.onCompleted: _initTree()
-    onModelChanged: _initTree()
-    on_ExpandedNodesChanged: _rebuildFlatModel()
-    on_SearchTextChanged: _rebuildFlatModel()
-    
+
+    // ==================== Signals 信号 ====================
+    signal itemSelected(string text, var path)
+
+    // ==================== Public Methods 公开方法 ====================
+    function openPopup() {
+        _rebuildFlatModel()
+        _popup.popupWidth = Math.max(control.width, 200)
+        // Set reference width for center alignment 设置参考宽度用于居中对齐
+        _popup.referenceControlWidth = control.width
+        var itemCount = _flatModel.length
+        var searchHeight = searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0
+        _popup.popupHeight = Math.min(itemCount * Enums.comboBoxMetrics.itemHeight + searchHeight + Enums.spacing.m, Enums.comboBoxMetrics.treePopupHeight)
+        _popup.openAtControl(control)
+        isOpen = true
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
     function _initTree() {
         if (model && model.length > 0) {
             _expandAllNodes()
@@ -122,10 +127,15 @@ ComboBoxCore {
         closePopup()
     }
     
-    // ==================== Override Size 覆盖尺寸 ====================
+    // ==================== Size 尺寸 ====================
     implicitWidth: 200
-    
-    // ==================== Override Popup Content 覆盖弹出内容 ====================
+    showFocusedBorder: false  // No focus line for tree 树不显示聚焦下划线
+    Component.onCompleted: _initTree()
+    onModelChanged: _initTree()
+    on_ExpandedNodesChanged: _rebuildFlatModel()
+    on_SearchTextChanged: _rebuildFlatModel()
+
+    // ==================== Content 内容 ====================
     popupContent: Component {
         Column {
             anchors.fill: parent
@@ -143,11 +153,12 @@ ComboBoxCore {
             // Tree content 树内容
             Item {
                 id: treeContainer
+
+                readonly property bool needsScroll: treeListView.contentHeight > treeListView.height
+
                 width: parent.width
                 height: parent.height - (control.searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0)
-                
-                readonly property bool needsScroll: treeListView.contentHeight > treeListView.height
-                
+
                 ListView {
                     id: treeListView
                     anchors.fill: parent
@@ -183,18 +194,5 @@ ComboBoxCore {
                 }
             }
         }
-    }
-    
-    // ==================== Override Popup Open 覆盖弹出打开 ====================
-    function openPopup() {
-        _rebuildFlatModel()
-        _popup.popupWidth = Math.max(control.width, 200)
-        // Set reference width for center alignment 设置参考宽度用于居中对齐
-        _popup.referenceControlWidth = control.width
-        var itemCount = _flatModel.length
-        var searchHeight = searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0
-        _popup.popupHeight = Math.min(itemCount * Enums.comboBoxMetrics.itemHeight + searchHeight + Enums.spacing.m, Enums.comboBoxMetrics.treePopupHeight)
-        _popup.openAtControl(control)
-        isOpen = true
     }
 }
