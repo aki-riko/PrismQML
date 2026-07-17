@@ -20,41 +20,31 @@ InputCore {
     property string placeholderText: Translator.tr("click_to_record")
     property bool recording: false
     property bool allowSingleKey: false  // Allow single key without modifier 允许单键录制（无需修饰键）
-    
-    // ==================== Signals 信号 ====================
-    signal shortcutRecorded(string newShortcut)
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    property real _targetX: 0
+    property real _smoothContentX: 0
+    property Item _focusOverlay: null
+
     // ==================== Readonly State 只读状态 ====================
     readonly property var keyList: shortcut ? shortcut.split("+") : []
-    
-    // ==================== Override InputCore State 覆盖基类状态 ====================
-    focused: recording || keyCapture.activeFocus
-    hovered: mouseArea.containsMouse
-    
-    // ==================== Fluent Design Compat Methods 兼容方法 ====================
+    readonly property bool _needsScroll: tagsFlickable.contentWidth > tagsFlickable.width
+
+    // ==================== Signals 信号 ====================
+    signal shortcutRecorded(string newShortcut)
+
+    // ==================== Public Methods 公开方法 ====================
     function getShortcut() { return shortcut }
     function getDefaultShortcut() { return defaultShortcut }
     function reset() { shortcut = defaultShortcut; shortcutRecorded(shortcut) }
     function clear() { shortcut = ""; shortcutRecorded("") }
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: Math.max(Enums.controlSize.shortcutPickerMinWidth, contentRow.implicitWidth + Enums.spacing.xl * 2)
-    implicitHeight: Enums.controlSize.inputHeightLarge
-    
-    // ==================== Smooth Scroll 平滑滚动 ====================
+
+    // ==================== Internal Methods 内部方法 ====================
     // Only intercept wheel when content overflows 仅当内容溢出时拦截滚轮
-    readonly property bool _needsScroll: tagsFlickable.contentWidth > tagsFlickable.width
-    property real _targetX: 0
-    property real _smoothContentX: 0
-    Behavior on _smoothContentX { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
-    on_SmoothContentXChanged: tagsFlickable.contentX = _smoothContentX
     function _smoothScrollTo(x) {
         _targetX = Math.max(0, Math.min(x, tagsFlickable.contentWidth - tagsFlickable.width))
         _smoothContentX = _targetX
     }
-
-    // ==================== Focus Overlay 失焦遮罩 ====================
-    property Item _focusOverlay: null
 
     function _createFocusOverlay() {
         if (_focusOverlay) return
@@ -70,7 +60,29 @@ InputCore {
         }
     }
 
+    // ==================== Size 尺寸 ====================
+    implicitWidth: Math.max(Enums.controlSize.shortcutPickerMinWidth, contentRow.implicitWidth + Enums.spacing.xl * 2)
+    implicitHeight: Enums.controlSize.inputHeightLarge
+    focused: recording || keyCapture.activeFocus
+    hovered: mouseArea.containsMouse
+    on_SmoothContentXChanged: tagsFlickable.contentX = _smoothContentX
+    onRecordingChanged: {
+        if (recording) {
+            keyCapture.forceActiveFocus(Qt.MouseFocusReason)
+            _createFocusOverlay()
+        } else {
+            _destroyFocusOverlay()
+        }
+    }
+
     // ==================== Content 内容 ====================
+    Behavior on _smoothContentX {
+        NumberAnimation {
+            duration: Enums.duration.medium;
+            easing.type: Easing.OutCubic
+        }
+    }
+
     // Scrollable key tags area 可滚动的按键标签区域
     Flickable {
         id: tagsFlickable
@@ -167,21 +179,22 @@ InputCore {
         }
     }
     
-    // ==================== Focus Overlay 失焦遮罩 ====================
+    // Focus overlay 失焦遮罩
     Component {
         id: focusOverlayComponent
         Item {
             property var targetControl: null
-            anchors.fill: parent
-            z: Enums.zIndex.overlay
-            
+
             function _isInsideTarget(mx, my) {
                 if (!targetControl) return false
                 var pos = targetControl.mapToItem(this, 0, 0)
                 return mx >= pos.x && mx <= pos.x + targetControl.width &&
                        my >= pos.y && my <= pos.y + targetControl.height
             }
-            
+
+            anchors.fill: parent
+            z: Enums.zIndex.overlay
+
             MouseArea {
                 anchors.fill: parent
                 propagateComposedEvents: true
@@ -194,8 +207,8 @@ InputCore {
             }
         }
     }
-    
-    // ==================== Keyboard Capture 键盘捕获 ====================
+
+    // Keyboard capture 键盘捕获
     Item {
         id: keyCapture
         anchors.fill: parent
@@ -268,8 +281,8 @@ InputCore {
             event.accepted = true
         }
     }
-    
-    // ==================== Click to Record 点击录制 ====================
+
+    // Click to record 点击录制
     MouseArea {
         id: mouseArea
         anchors.fill: parent
@@ -279,8 +292,8 @@ InputCore {
             control.recording = true
         }
     }
-    
-    // ==================== Cancel Button 取消按钮 ====================
+
+    // Cancel button 取消按钮
     CloseButton {
         id: cancelBtn
         anchors.right: parent.right
@@ -289,14 +302,5 @@ InputCore {
         visible: control.recording
         z: Enums.zIndex.controlsAbove
         onClicked: control.recording = false
-    }
-    
-    onRecordingChanged: {
-        if (recording) {
-            keyCapture.forceActiveFocus(Qt.MouseFocusReason)
-            _createFocusOverlay()
-        } else {
-            _destroyFocusOverlay()
-        }
     }
 }

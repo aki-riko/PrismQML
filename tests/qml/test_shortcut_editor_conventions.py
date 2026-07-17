@@ -4,16 +4,25 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Shortcut editor runtime contracts. 快捷键编辑器运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ShortcutEditor.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "shortcut-editor-conventions.qml")
 )
@@ -150,3 +159,14 @@ def test_shortcut_editor_public_methods_and_recording_lifecycle(qapp):
         engine.deleteLater()
         _pump()
         assert _new_visible_windows(windows_before) == []
+
+
+def test_shortcut_editor_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
