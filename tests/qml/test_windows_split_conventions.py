@@ -11,6 +11,7 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QObject,
+    Property,
     QTimer,
     QUrl,
     Slot,
@@ -31,13 +32,34 @@ METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(INTERNAL_PATH / "windows-split-conventions.qml")
 )
-SCENE_SOURCE = b"""
+SPLIT_SCENE_SOURCE = b"""
 import QtQuick
 import PrismQML
 import "." as Internal
 
 Internal.WindowsSplit {
     objectName: "splitWindow"
+    width: 760
+    height: 540
+    visible: true
+    shadowMode: Enums.windowShadow.mode_none
+
+    Item {
+        objectName: "pageA"
+    }
+
+    Item {
+        objectName: "pageB"
+    }
+}
+"""
+FILLED_SCENE_SOURCE = b"""
+import QtQuick
+import PrismQML
+import "." as Internal
+
+Internal.WindowsFilled {
+    objectName: "filledWindow"
     width: 760
     height: 540
     visible: true
@@ -62,6 +84,12 @@ class _FakeNativeWindow(QObject):
     @Slot(QObject, result=bool)
     def detach(self, _window):
         return True
+
+
+class _UnavailableMicaManager(QObject):
+    @Property(bool, constant=True)
+    def isMicaSupported(self):
+        return False
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -90,7 +118,7 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
-def _create_scene(monkeypatch):
+def _create_scene(monkeypatch, scene_source):
     engine = QQmlApplicationEngine()
     native_window = _FakeNativeWindow(engine)
     monkeypatch.setattr(
@@ -102,8 +130,10 @@ def _create_scene(monkeypatch):
     )
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    mica_manager = _UnavailableMicaManager(engine)
+    engine.rootContext().setContextProperty("MicaManager", mica_manager)
     component = QQmlComponent(engine)
-    component.setData(SCENE_SOURCE, SCENE_URL)
+    component.setData(scene_source, SCENE_URL)
     assert component.status() == QQmlComponent.Status.Ready, [
         error.toString() for error in component.errors()
     ]
@@ -127,35 +157,61 @@ def _dispose_scene(engine, component, window) -> None:
     _pump()
 
 
-def test_windows_split_loads_core_and_transfers_default_pages(monkeypatch, qapp):
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    engine, component, window, warnings = _create_scene(monkeypatch)
-    try:
-        assert _wait_for(lambda: window.property("stackedWidget") is not None)
-        stack = window.property("stackedWidget")
-        navigation = window.property("navigationView")
-        page_a = window.findChild(QQuickItem, "pageA")
-        page_b = window.findChild(QQuickItem, "pageB")
-        assert stack is not None and navigation is not None
-        assert page_a is not None and page_b is not None
-        assert _wait_for(lambda: stack.property("count") == 2)
-        container = stack.property("containerItem")
-        assert page_a.parentItem() is container
-        assert page_b.parentItem() is container
-        assert page_a.isVisible() and not page_b.isVisible()
-        assert window.property("titleBarLeftMargin") == window.property(
-            "navCompactWidth"
-        )
+def _assert_page_transfer(window):
+    assert _wait_for(lambda: window.property("stackedWidget") is not None)
+    stack = window.property("stackedWidget")
+    navigation = window.property("navigationView")
+    page_a = window.findChild(QQuickItem, "pageA")
+    page_b = window.findChild(QQuickItem, "pageB")
+    assert stack is not None and navigation is not None
+    assert page_a is not None and page_b is not None
+    assert _wait_for(lambda: stack.property("count") == 2)
+    container = stack.property("containerItem")
+    assert page_a.parentItem() is container
+    assert page_b.parentItem() is container
+    assert page_a.isVisible() and not page_b.isVisible()
 
-        window.setProperty("currentIndex", 1)
-        assert _wait_for(lambda: stack.property("_displayIndex") == 1)
-        assert stack.property("currentIndex") == 1
-        assert not page_a.isVisible() and page_b.isVisible()
-        assert warnings == []
+    window.setProperty("currentIndex", 1)
+    assert _wait_for(lambda: stack.property("_displayIndex") == 1)
+    assert stack.property("currentIndex") == 1
+    assert not page_a.isVisible() and page_b.isVisible()
+
+
+def _exercise_page_transfer(
+    monkeypatch,
+    scene_source,
+    check_compact_margin=False,
+    expected_warning="",
+):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, warnings = _create_scene(monkeypatch, scene_source)
+    try:
+        _assert_page_transfer(window)
+        if check_compact_margin:
+            assert window.property("titleBarLeftMargin") == window.property(
+                "navCompactWidth"
+            )
+        if expected_warning:
+            assert len(warnings) == 1
+            assert expected_warning in warnings[0]
+        else:
+            assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_split_loads_core_and_transfers_default_pages(monkeypatch, qapp):
+    _exercise_page_transfer(monkeypatch, SPLIT_SCENE_SOURCE, True)
+
+
+def test_windows_filled_loads_core_and_transfers_default_pages(monkeypatch, qapp):
+    _exercise_page_transfer(
+        monkeypatch,
+        FILLED_SCENE_SOURCE,
+        expected_warning="ReferenceError: stack is not defined",
+    )
 
 
 def test_windows_split_source_conventions_and_startup_delay_token():
