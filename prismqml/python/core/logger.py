@@ -166,6 +166,32 @@ def _get_module_tag(filename: str) -> str:
     return "".join(part.capitalize() for part in parts)
 
 
+def _create_console_handler(level: int, colored: bool) -> logging.StreamHandler:
+    """Create the configured console handler. 创建已配置的控制台处理器。"""
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(level)
+    formatter_type = ColoredFormatter if colored else PlainFormatter
+    handler.setFormatter(formatter_type(datefmt="%H:%M:%S"))
+    return handler
+
+
+def _create_rotating_file_handler(
+    log_file: str, level: int, max_bytes: int, backup_count: int
+) -> RotatingFileHandler:
+    """Create the configured rotating file handler. 创建已配置的轮转文件处理器。"""
+    log_path = Path(log_file)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    handler = RotatingFileHandler(
+        log_file,
+        maxBytes=max_bytes,
+        backupCount=backup_count,
+        encoding="utf-8",
+    )
+    handler.setLevel(level)
+    handler.setFormatter(PlainFormatter(datefmt="%Y-%m-%d %H:%M:%S"))
+    return handler
+
+
 # ==================== Logger Class ====================
 
 
@@ -209,25 +235,15 @@ class Logger:
         self.logger.handlers.clear()
         self._colored = colored
 
-        # Console handler 控制台处理器
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(level)
-        if colored:
-            console_handler.setFormatter(ColoredFormatter(datefmt="%H:%M:%S"))
-        else:
-            console_handler.setFormatter(PlainFormatter(datefmt="%H:%M:%S"))
-        self.logger.addHandler(console_handler)
+        self.logger.addHandler(_create_console_handler(level, colored))
 
         # File handler with rotation 带轮转的文件处理器
         if log_file:
-            log_path = Path(log_file)
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-            file_handler = RotatingFileHandler(
-                log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
+            self.logger.addHandler(
+                _create_rotating_file_handler(
+                    log_file, level, max_bytes, backup_count
+                )
             )
-            file_handler.setLevel(level)
-            file_handler.setFormatter(PlainFormatter(datefmt="%Y-%m-%d %H:%M:%S"))
-            self.logger.addHandler(file_handler)
 
         self._initialized = True
 

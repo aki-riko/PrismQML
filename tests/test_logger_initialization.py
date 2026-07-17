@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import logging
 from logging.handlers import RotatingFileHandler
@@ -104,3 +105,25 @@ def test_logger_failed_file_setup_keeps_retryable_singleton_state(tmp_path):
         assert type(retry.logger.handlers[0]) is logging.StreamHandler
     finally:
         _cleanup_logger(retry.logger)
+
+
+def test_logger_initialization_delegates_to_small_handler_factories():
+    tree = ast.parse(
+        SOURCE_PATH.read_text(encoding="utf-8"),
+        filename=str(SOURCE_PATH),
+        feature_version=(3, 9),
+    )
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    logger_class = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "Logger"
+    )
+    initializer = next(
+        node for node in logger_class.body if isinstance(node, ast.FunctionDef) and node.name == "__init__"
+    )
+    assert initializer.end_lineno - initializer.lineno + 1 <= 30
+    for name in ("_create_console_handler", "_create_rotating_file_handler"):
+        assert functions[name].end_lineno - functions[name].lineno + 1 <= 30
