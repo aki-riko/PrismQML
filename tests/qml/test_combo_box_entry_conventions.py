@@ -4,16 +4,26 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Combo-box entry parent-chain regressions. 下拉框统一入口父链回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ComboBox"
+    / "ComboBoxEntry.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "combo-box-entry-conventions.qml")
 )
@@ -138,6 +148,7 @@ def test_combo_box_entry_late_model_and_two_way_index_sync(qapp):
         sync_entry.setProperty("currentIndex", 1)
         assert _wait_for(lambda: sync_combo.property("currentIndex") == 1)
         assert _wait_for(lambda: sync_combo.property("currentText") == "Beta")
+        assert _wait_for(lambda: sync_entry.property("currentText") == "Beta")
 
         sync_combo.setProperty("currentIndex", 0)
         assert _wait_for(lambda: sync_entry.property("currentIndex") == 0)
@@ -160,3 +171,14 @@ def test_combo_box_entry_late_model_and_two_way_index_sync(qapp):
         engine.deleteLater()
         _pump()
         assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_entry_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []

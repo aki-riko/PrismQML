@@ -16,46 +16,48 @@ import ".."
 //   ComboBox { feature: Enums.comboBox.feature_editable }  // Editable
 Item {
     id: control
-    implicitWidth: loader.item ? loader.item.implicitWidth : 200
-    implicitHeight: loader.item ? loader.item.implicitHeight : 32
-    
-    // ==================== Type/Style/Feature Props 类型/样式/功能 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property int type: Enums.comboBox.type_default
     property int style: Enums.comboBox.style_default
     property int feature: Enums.comboBox.feature_none
-    
-    // ==================== Common Props 通用属性 ====================
     property var model: []
-    // 注意：currentIndex/currentText 使用双向同步，防止外部赋值打破绑定
+    // Keep currentIndex/currentText synchronized in both directions.
+    // 保持 currentIndex/currentText 双向同步。
     property int currentIndex: 0
     property string currentText: ""
     property string placeholderText: ""
-    property bool _syncing: false  // 防止同步循环
-    // 异步加载内部 ComboBox*.qml — 大列表 delegate 场景 (一屏 30+ ComboBox) 打开,
-    // 让首次滚动不被同步实例化阻塞; 单个独立 ComboBox 用法默认同步 (避免首帧空)
     property bool asyncLoad: false
-    
-    // 外部 → 内部同步
+    property bool showPathFromRoot: true  // Show full path or only leaf name 显示完整路径或仅叶子名称
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _syncing: false  // Prevent synchronization loops 防止同步循环
+
+    // ==================== Signals 信号 ====================
+    signal activated(int index)
+    signal indexChanged(int index)
+    signal selectionChanged(var indices, var items)
+
+    // ==================== Size 尺寸 ====================
+    implicitWidth: loader.item ? loader.item.implicitWidth : 200
+    implicitHeight: loader.item ? loader.item.implicitHeight : 32
+
+    // External to internal synchronization 外部到内部同步
     onCurrentIndexChanged: {
         if (!_syncing && loader.item && loader.item.currentIndex !== undefined
                 && loader.item.currentIndex !== currentIndex) {
             _syncing = true
             loader.item.currentIndex = currentIndex
+            if (loader.item.currentText !== undefined) {
+                currentText = loader.item.currentText || ""
+            }
             _syncing = false
         }
     }
-    
-    // ==================== Tree Props 树形属性 ====================
-    property bool showPathFromRoot: true  // Show full path or only leaf name 显示完整路径或仅叶子名称
-    
-    // ==================== Signals 信号 ====================
-    signal activated(int index)
-    signal indexChanged(int index)
-    signal selectionChanged(var indices, var items)
-    
-    // ==================== 内部 → 外部同步 ====================
+
+    // ==================== Content 内容 ====================
+    // Internal to external synchronization 内部到外部同步
     Connections {
-        target: loader.item
         function onCurrentIndexChanged() {
             if (!control._syncing && loader.item
                     && loader.item.currentIndex !== undefined
@@ -65,6 +67,7 @@ Item {
                 control._syncing = false
             }
         }
+
         function onCurrentTextChanged() {
             if (!control._syncing && loader.item
                     && loader.item.currentText !== undefined) {
@@ -73,9 +76,11 @@ Item {
                 control._syncing = false
             }
         }
+
+        target: loader.item
     }
-    
-    // ==================== Loader 动态加载 ====================
+
+    // Dynamic loader 动态加载器
     Loader {
         id: loader
         anchors.fill: parent
@@ -134,4 +139,3 @@ Item {
         }
     }
 }
-
