@@ -14,25 +14,21 @@ import "../../data"
 // multiline_browser: read-only rich text browser 只读富文本浏览器
 InputCore {
     id: control
-    focusTarget: _isBrowser ? null : textEdit
-    
-    // ==================== Type 类型 ====================
-    property int multilineType: Enums.input.multiline_plain
-    
-    // ==================== Internal State 内部状态 ====================
-    readonly property bool _isBrowser: multilineType === Enums.input.multiline_browser
-    
+
     // ==================== Public Props 公开属性 ====================
+    property int multilineType: Enums.input.multiline_plain
     property alias text: textEdit.text
     property string placeholderText: ""
     property bool readOnly: _isBrowser  // Browser mode is always read-only 浏览器模式始终只读
     property int wrapMode: TextEdit.Wrap
     // RichText for browser (read-only), PlainText for editable 富文本仅用于浏览器模式（只读），可编辑模式使用纯文本
-
     property int textFormat: _isBrowser ? TextEdit.RichText : TextEdit.PlainText
     property bool showScrollIndicator: false     // Scroll indicator 滚动条指示器
     property bool openExternalLinks: true        // For browser mode 浏览器模式用
-    
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _isBrowser: multilineType === Enums.input.multiline_browser
+
     // ==================== Signals 信号 ====================
     signal textEdited()
     signal editingFinished()
@@ -64,20 +60,15 @@ InputCore {
     // Append text 追加文本
     function append(text) { textEdit.text += text }
 
-    // ==================== Public Methods 公共方法 ====================
     function getText() { return textEdit.text }
-
-
     // Get plain text 获取纯文本
     function toPlainText() { return textEdit.getText(0, textEdit.length) }
-
-
     function isEnabled() { return enabled }
-
     // Has focus 是否有焦点
     function hasFocus() { return textEdit.activeFocus }
 
-    // ==================== Bind InputCore State 绑定InputCore状态 ====================
+    // Bind inherited InputCore state 绑定继承的 InputCore 状态
+    focusTarget: _isBrowser ? null : textEdit
     focused: _isBrowser ? false : textEdit.activeFocus  // Browser never focused 浏览器不聚焦
     hovered: _isBrowser ? false : hoverHandler.hovered  // Browser no hover state 浏览器无悬浮状态
     showFocusedBorder: !_isBrowser  // Browser has no focus line 浏览器无聚焦线
@@ -89,7 +80,8 @@ InputCore {
     contentHeight: Enums.controlSize.inputDefaultWidth / 2  // 100 = 200/2
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     
-    // ==================== Scrollable Area 可滚动区域 ====================
+    // ==================== Content 内容 ====================
+    // Scrollable text area 可滚动文本区域
     Flickable {
         id: flickable
         anchors.fill: parent
@@ -131,10 +123,9 @@ InputCore {
         }
     }
     
-    // ==================== Click to Focus 点击聚焦 ====================
-    // 点击聚焦已在 InputCore 中通过 MouseArea 统一处理
-    
-    // ==================== Scroll Indicator 滚动条指示器 ====================
+    // InputCore handles click-to-focus centrally 点击聚焦由 InputCore 统一处理
+
+    // Scroll indicator 滚动指示器
     Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: Enums.spacing.xxs
@@ -152,12 +143,12 @@ InputCore {
             width: parent.width
             radius: parent.radius
             color: Enums.stateColor.dropBorderHover
-            height: Math.max(20, parent.height * flickable.height / flickable.contentHeight)
+            height: Math.max(Enums.controlSize.textEditScrollThumbMinHeight, parent.height * flickable.height / flickable.contentHeight)
             y: flickable.contentHeight > flickable.height ? (parent.height - height) * (flickable.contentY / (flickable.contentHeight - flickable.height)) : 0
         }
     }
     
-    // ==================== Placeholder 占位符 ====================
+    // Placeholder 占位符
     Label {
         anchors.left: parent.left
         anchors.top: parent.top
@@ -169,7 +160,7 @@ InputCore {
         visible: textEdit.text === "" && !textEdit.activeFocus
     }
     
-    // ==================== Hover Detection 悬浮检测 ====================
+    // Hover detection 悬浮检测
     HoverHandler {
         id: hoverHandler
     }

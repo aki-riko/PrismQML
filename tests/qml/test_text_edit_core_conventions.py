@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """TextEditCore runtime contracts. TextEditCore 运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -24,6 +24,7 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +38,7 @@ SOURCE_PATH = (
     / "TextEdit"
     / "TextEditCore.qml"
 )
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "text-edit-core-conventions.qml")
 )
@@ -51,6 +53,7 @@ Window {
     readonly property int arrowCursor: Qt.ArrowCursor
     readonly property int iBeamCursor: Qt.IBeamCursor
     readonly property int indicatorWidth: Enums.controlSize.progressBarHeight
+    readonly property int thumbMinHeight: Enums.controlSize.textEditScrollThumbMinHeight
 
     width: 620
     height: 320
@@ -303,7 +306,7 @@ def _assert_scroll_geometry(window, scroll) -> None:
     ]
     assert len(thumbs) == 1
     thumb = thumbs[0]
-    assert thumb.height() >= 20
+    assert thumb.height() >= window.property("thumbMinHeight")
     maximum = flickable.property("contentHeight") - flickable.height()
     flickable.setProperty("contentY", maximum / 2)
     _pump()
@@ -352,3 +355,19 @@ def test_text_edit_external_link_uses_public_gate():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     assert "property bool openExternalLinks: true" in source
     assert "if (control.openExternalLinks) Qt.openUrlExternally(link)" in source
+
+
+def test_text_edit_core_source_conventions_and_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    metrics = METRICS_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "focusTarget: _isBrowser ? null : textEdit" in source
+    assert "onTextEdited: control.textEdited()" in source
+    assert "Enums.controlSize.textEditScrollThumbMinHeight" in source
+    assert "readonly property int textEditScrollThumbMinHeight: 20" in metrics

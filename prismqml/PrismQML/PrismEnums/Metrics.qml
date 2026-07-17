@@ -229,6 +229,7 @@ QtObject {
  readonly property int inputHeightLarge: 40
  readonly property int inputHeightCompact: 28
  readonly property int inputHeightLabel: 56 // Label input height (with floating label) 带浮动标签输入框高度
+ readonly property int textEditScrollThumbMinHeight: 20 // TextEdit scroll thumb minimum height 多行文本滚动拇指最小高度
  readonly property int inputLabelTextHeight: 24 // Floating label text field height 浮动标签文本框高度
  readonly property int pickerRow: 36
  // Navigation controls 导航控件
