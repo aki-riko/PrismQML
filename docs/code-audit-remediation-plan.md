@@ -554,6 +554,8 @@ P6D navigation TabWidget 与 StackedWidget 四提交已完成：`818781f9` 将 T
 
 P6D icons 收口与 chat 启动四提交已完成：`3d7ed9cf` 将 `ChevronIcon` 生命周期 handler 恢复到子元素之前；`5f2a89e2` 将 `Icon` 的派生状态和内容分节统一为标准术语，至此 `controls/icons` QML008/QML009 完全归零；`dfc9ec57` 将 `ChatMessageList` 的内部滚动方法与公开追加方法拆入对应标准分节；`27ac892a` 将 `CodeBlock` 复制按钮的 `onClicked` 前移到子元素之前。后三批分别保持非注释代码不变或仅重排同一 handler，icons/chat 聚焦回归分别为 `3 passed` 与 `4 passed`；四提交 changed 基线 `11→0`。最终完整门禁为 Python `2244 passed / 1 skipped`、QML probe `169 OK / 0 错误 / 12 跳过`、headless CTest `9/9`、Windows native CTest `2/2`、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留。P6D 累计清理 1004 条；全库总库存 `1,582→1,571`，QML008 `913→909`、QML009 `626→619`，QML010 43 保持全部位于 examples；chat 尚余 `ChatBubble` 15 条与 `MarkdownView` 5 条。
 
+P6D chat 收口两提交已完成：`5a82d62c` 将 `MarkdownView` 的派生块状态、解析方法、尺寸与内容恢复到规范顺序，并前移 delegate 的 required 属性，清理 3 条 QML008、2 条 QML009；`8a2a135e` 将 `ChatBubble` 的内部展开状态、全部只读几何、尺寸、内容变化 handler 与子元素恢复到规范顺序，清理 8 条 QML008、7 条 QML009。两批同步把触达注释统一为英文在前的双语格式，非注释代码多重集合分别保持 `86=86` 与 `190=190`；修前基线到修后 changed `20→0`，chat 联合真实 QML 回归均为 `4 passed`，零 warning、零可见窗口、零残留。至此 `controls/chat` QML008/QML009 完全归零。最终完整门禁为 Python `2244 passed / 1 skipped`、QML probe `169 OK / 0 错误 / 12 跳过`、headless CTest `9/9`、Windows native CTest `2/2`、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 与 `git diff --check` 全绿。P6D 累计清理 1024 条；全库总库存 `1,571→1,551`，QML008 `909→898`、QML009 `619→610`，QML010 43 保持全部位于 examples。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -1045,7 +1047,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 | P7K-D Python 注册注入 | 已完成 | `register_types()` 补齐 ConfigManager/ClipboardHelper；双引擎同一单例、DpiManager wrapper 125、warning/critical 归零；Python 2224/1、QML 169/0/12、CTest 9/9 + native 2/2 | `47ebdb30` |
 | P8 资源注册 | 已完成 | 五个孤儿已删除；2,497 项双注册表已同步；Python/C++ IconProvider 已统一；DpiManager 已收窄为五个真实状态。全量 Python 2230/1、QML 169/0/12、CTest 9/9 + native 2/2，全库 QML 库存 2,604、changed 0 | `154cd4e4`、`11882986`、`39efe2e8`、`4bc9fd0`、`fa4a20d6`、`79932827` |
 | P6D navigation（2026-07-17 完成） | 已完成 | LazyLoadingHelper 失败握手与 Pivot 属性更名已闭环，navigation 累计清理 202 条且 QML008/QML009 归零；全库库存 1,582，最新全量 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 | `d22135e9`、`cf85ead5`、`38508f43`、`8c6a0bf9`、`a11db155`、`02d7c64d`、`560aa166`、`ecb6b46c`、`ba482466`、`f29d5c59`、`7545dcba`、`55b8a3b7`、`818781f9`、`1bd4b049`、`a63252d6`、`b9245eed` |
-| P6D icons/chat（2026-07-17） | 进行中 | icons 已归零；chat 已清理 ChatMessageList/CodeBlock，剩余 ChatBubble 15 条、MarkdownView 5 条。P6D 累计清理 1004 条；全库库存 1,571（QML008 909 / QML009 619 / QML010 43），最新完整门禁 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 | `3d7ed9cf`、`5f2a89e2`、`dfc9ec57`、`27ac892a` |
+| P6D icons/chat（2026-07-17 完成） | 已完成 | icons 与 chat 均已归零；P6D 累计清理 1024 条。全库库存 1,551（QML008 898 / QML009 610 / QML010 43），最新完整门禁 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 | `3d7ed9cf`、`5f2a89e2`、`dfc9ec57`、`27ac892a`、`5a82d62c`、`8a2a135e` |
 | P9 最终验收 | 待执行 |  |  |
 
 状态只能填写“待执行 / 进行中 / 已完成 / 阻塞”。“已完成”必须同时记录真实测试结果和提交哈希。
