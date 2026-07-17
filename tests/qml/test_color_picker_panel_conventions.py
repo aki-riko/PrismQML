@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Color picker panel runtime regressions. 颜色选择面板运行时回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -22,9 +22,20 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ColorPicker"
+    / "_internal"
+    / "ColorPickerPanel.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "color-picker-panel-runtime.qml")
 )
@@ -250,3 +261,38 @@ def test_color_picker_panel_repaints_rendered_canvas_on_brightness(qapp):
         assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window)
+
+
+def test_color_picker_panel_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_color_picker_panel_uses_metrics_and_range_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    for token in (
+        "Enums.colorPickerMetrics.dialogHueDefault",
+        "Enums.colorPickerMetrics.dialogSaturationDefault",
+        "Enums.colorPickerMetrics.dialogBrightnessDefault",
+        "Enums.colorPickerMetrics.dialogPanelSize",
+        "Enums.colorPickerMetrics.panelDefaultHeight",
+        "Enums.colorPickerMetrics.panelCanvasColumnWidth",
+        "Enums.colorPickerMetrics.panelSelectorLuminanceFactor",
+        "Enums.colorPickerMetrics.panelSelectorLuminanceThreshold",
+        "Enums.opacityLevel.invisible",
+        "Enums.opacityLevel.visible",
+    ):
+        assert token in source
+    for literal in (
+        "property real hue: 0.5",
+        "property real saturation: 1.0",
+        "property real brightness: 1.0",
+        "implicitWidth: 260",
+        "implicitHeight: 200",
+        "Math.max(0, Math.min(1",
+    ):
+        assert literal not in source

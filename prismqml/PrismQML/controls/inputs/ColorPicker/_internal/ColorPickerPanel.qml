@@ -6,50 +6,51 @@ import QtQuick
 import "../../../.."
 
 // ColorPickerPanel - Hue/Saturation selection panel 色相/饱和度选择面板
-// Layout: Horizontal=Hue(0-360), Vertical=Saturation(top=full, bottom=white)
+// Layout: Horizontal hue (0-360), vertical saturation (full to white) 布局：水平色相（0-360），垂直饱和度（全色到白色）
 Item {
     id: control
-    
-    // ==================== Properties 属性 ====================
-    property real hue: 0.5           // 0-1, maps to 0-360°
-    property real saturation: 1.0    // 0-1, top=1, bottom=0
-    property real brightness: 1.0    // For brightness adjustment 亮度调整
-    
+
+    // ==================== Public Props 公开属性 ====================
+    property real hue: Enums.colorPickerMetrics.dialogHueDefault  // Normalized hue mapped to 0-360 degrees 映射到 0-360 度的归一化色相
+    property real saturation: Enums.colorPickerMetrics.dialogSaturationDefault  // Full at top, white at bottom 顶部全色，底部白色
+    property real brightness: Enums.colorPickerMetrics.dialogBrightnessDefault  // Brightness adjustment 亮度调整
+
     // ==================== Signals 信号 ====================
     signal colorChanged(real h, real s)
-    
+
     // ==================== Size 尺寸 ====================
-    implicitWidth: 260
-    implicitHeight: 200
-    
-    // ==================== Hue/Saturation Canvas 色相/饱和度画布 ====================
+    implicitWidth: Enums.colorPickerMetrics.dialogPanelSize
+    implicitHeight: Enums.colorPickerMetrics.panelDefaultHeight
+
+    // Repaint when brightness changes 亮度变化时重绘
+    onBrightnessChanged: canvas.requestPaint()
+
+    // ==================== Content 内容 ====================
+    // Hue/saturation canvas 色相/饱和度画布
     Canvas {
         id: canvas
         anchors.fill: parent
-        
+
         onPaint: {
             var ctx = getContext("2d")
             var w = width, h = height
-            
+
             // Draw hue gradient horizontally 水平绘制色相渐变
-            for (var x = 0; x < w; x++) {
+            for (var x = Enums.opacityLevel.invisible; x < w; x++) {
                 var hueValue = x / w
-                // Vertical gradient: top=saturated color, bottom=white
-                var gradient = ctx.createLinearGradient(x, 0, x, h)
-                gradient.addColorStop(0, Qt.hsva(hueValue, 1, control.brightness, 1).toString())
-                gradient.addColorStop(1, Qt.hsva(hueValue, 0, control.brightness, 1).toString())
+                // Vertical gradient from saturated color to white 垂直渐变由饱和色过渡到白色
+                var gradient = ctx.createLinearGradient(x, Enums.opacityLevel.invisible, x, h)
+                gradient.addColorStop(Enums.opacityLevel.invisible, Qt.hsva(hueValue, Enums.opacityLevel.visible, control.brightness, Enums.opacityLevel.visible).toString())
+                gradient.addColorStop(Enums.opacityLevel.visible, Qt.hsva(hueValue, Enums.opacityLevel.invisible, control.brightness, Enums.opacityLevel.visible).toString())
                 ctx.fillStyle = gradient
-                ctx.fillRect(x, 0, 1, h)
+                ctx.fillRect(x, Enums.opacityLevel.invisible, Enums.colorPickerMetrics.panelCanvasColumnWidth, h)
             }
         }
-        
+
         Component.onCompleted: requestPaint()
     }
-    
-    // Repaint when brightness changes 亮度变化时重绘
-    onBrightnessChanged: canvas.requestPaint()
-    
-    // ==================== Selection Circle 选择圆圈 ====================
+
+    // Selection circle 选择圆圈
     Rectangle {
         id: selector
         width: Enums.spacing.xl
@@ -59,36 +60,36 @@ Item {
         border.width: Enums.border.normal
         border.color: {
             // Use contrasting border color 使用对比边框色
-            var lum = control.brightness * (1 - control.saturation * 0.5)
-            return lum > 0.5
+            var lum = control.brightness * (Enums.opacityLevel.visible - control.saturation * Enums.colorPickerMetrics.panelSelectorLuminanceFactor)
+            return lum > Enums.colorPickerMetrics.panelSelectorLuminanceThreshold
                 ? Enums.colorPickerGradient.lightnessDark
                 : Enums.colorPickerGradient.lightnessLight
         }
-        
-        x: Math.max(0, Math.min(parent.width - width, control.hue * parent.width - width / 2))
-        y: Math.max(0, Math.min(parent.height - height, (1 - control.saturation) * parent.height - height / 2))
-        
+
+        x: Math.max(Enums.opacityLevel.invisible, Math.min(parent.width - width, control.hue * parent.width - width / 2))
+        y: Math.max(Enums.opacityLevel.invisible, Math.min(parent.height - height, (Enums.opacityLevel.visible - control.saturation) * parent.height - height / 2))
+
         Behavior on x { NumberAnimation { duration: Enums.duration.fast } }
         Behavior on y { NumberAnimation { duration: Enums.duration.fast } }
     }
-    
-    // ==================== Interaction 交互 ====================
+
+    // Interaction 交互
     MouseArea {
+        function updateColor(mouse) {
+            control.hue = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, mouse.x / width))
+            control.saturation = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, Enums.opacityLevel.visible - mouse.y / height))
+            control.colorChanged(control.hue, control.saturation)
+        }
+
         anchors.fill: parent
         enabled: control.enabled
         preventStealing: true
-        
-        function updateColor(mouse) {
-            control.hue = Math.max(0, Math.min(1, mouse.x / width))
-            control.saturation = Math.max(0, Math.min(1, 1 - mouse.y / height))
-            control.colorChanged(control.hue, control.saturation)
-        }
-        
+
         onPressed: (mouse) => updateColor(mouse)
         onPositionChanged: (mouse) => { if (pressed) updateColor(mouse) }
     }
-    
-    // ==================== Border 边框 ====================
+
+    // Border 边框
     Rectangle {
         anchors.fill: parent
         color: Enums.transparent

@@ -593,7 +593,13 @@ QtObject {
  readonly property real brightnessValueDefault: 1.0
  readonly property real brightnessUpdateEpsilon: 0.001
 
- // Dialog layout
+ // Panel rendering 面板渲染
+ readonly property int panelDefaultHeight: 200
+ readonly property int panelCanvasColumnWidth: 1
+ readonly property real panelSelectorLuminanceFactor: 0.5
+ readonly property real panelSelectorLuminanceThreshold: 0.5
+
+ // Dialog layout 对话框布局
  readonly property int dialogContentWidth: 392
  readonly property int dialogPanelSize: 260
  readonly property int dialogBrightnessHeight: 22
