@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """WindowsCore geometry and lifecycle contracts. 窗口核心几何与生命周期合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -23,9 +23,12 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 import prismqml.python.window as window_module
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "WindowsCore.qml"
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "windows-core-conventions.qml")
 )
@@ -41,7 +44,7 @@ WindowsCore {
     readonly property int qmlShadow: Enums.windowShadow.mode_qml
     readonly property int navPanelMinWidth: Enums.window.navPanelMinWidth
     readonly property int dividerWidth: Enums.border.thin
-    readonly property int resizeDelay: 1200
+    readonly property int resizeDelay: Enums.window.resizeHandlesDelayMs
 
     width: 720
     height: 520
@@ -100,6 +103,15 @@ def _visual_descendants(root: QQuickItem) -> list[QQuickItem]:
         result.append(item)
         pending.extend(item.childItems())
     return result
+
+
+def _resize_areas(window: QQuickWindow) -> list[QQuickItem]:
+    return [
+        item
+        for item in _visual_descendants(window.contentItem())
+        if item.metaObject().className().startswith("ResizeArea")
+        and item.metaObject().indexOfProperty("edge") >= 0
+    ]
 
 
 def _new_visible_windows(windows_before, *allowed):
@@ -205,24 +217,30 @@ def test_windows_core_deferred_resize_handles_load_once(monkeypatch, qapp):
     try:
         assert not window.property("_resizeHandlesReady")
         assert _wait_for(lambda: bool(window.property("_resizeHandlesReady")))
-        resize_areas = [
-            item
-            for item in _visual_descendants(window.contentItem())
-            if item.metaObject().className().startswith("ResizeArea")
-            and item.metaObject().indexOfProperty("edge") >= 0
-        ]
+        assert _wait_for(lambda: len(_resize_areas(window)) == 4)
+        resize_areas = _resize_areas(window)
         assert len(resize_areas) == 4
         _pump(window.property("resizeDelay") // 4)
-        assert len(
-            [
-                item
-                for item in _visual_descendants(window.contentItem())
-                if item.metaObject().className().startswith("ResizeArea")
-                and item.metaObject().indexOfProperty("edge") >= 0
-            ]
-        ) == 4
+        assert len(_resize_areas(window)) == 4
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_source_conventions_and_timing_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "interval: Enums.window.resizeHandlesDelayMs" in source
+    assert "_animationStartTimer" not in source
+    assert "interval: 100" not in source
+    assert "interval: 1200" not in source
+    metrics = METRICS_PATH.read_text(encoding="utf-8")
+    assert "readonly property int resizeHandlesDelayMs: 1200" in metrics
