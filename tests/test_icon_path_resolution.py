@@ -9,10 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QSize, QUrl
 from PySide6.QtGui import QColor, QIcon, QImage
 
-from prismqml.python.core.window_helper import WindowHelper
+from prismqml.python.core.window_helper import WindowHelper, _ICON_SIZES
 from prismqml.python.window.system_tray import SystemTrayIcon
 from prismqml.python.window.window_core import WindowCore
 
@@ -32,6 +32,15 @@ def _write_real_icon(path: Path) -> None:
     image = QImage(8, 8, QImage.Format.Format_ARGB32)
     image.fill(QColor("#d02040"))
     assert image.save(str(path))
+
+
+def _write_real_svg(path: Path) -> None:
+    """Write a real scalable icon. 写入真实可缩放图标。"""
+    path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" '
+        'viewBox="0 0 32 32"><rect width="32" height="32" fill="#d02040"/></svg>',
+        encoding="utf-8",
+    )
 
 
 def _load_icon(entrypoint: str, qapp, source: str) -> QIcon:
@@ -100,5 +109,47 @@ def test_encoded_real_icon_loads_through_python_entrypoint(
         qapp.setWindowIcon(QIcon())
         assert not _load_icon(entrypoint, qapp, source).isNull()
         assert set(qapp.topLevelWidgets()) == before_widgets
+    finally:
+        qapp.setWindowIcon(original_icon)
+
+
+def test_window_helper_renders_and_sets_real_svg(qapp, tmp_path: Path) -> None:
+    """Render every taskbar size and publish the real SVG. 渲染全部任务栏尺寸并发布。"""
+    icon_path = tmp_path / "app.svg"
+    _write_real_svg(icon_path)
+
+    rendered = WindowHelper._renderSvgIcon(str(icon_path))
+    assert rendered is not None
+    assert not rendered.isNull()
+    assert rendered.availableSizes() == [QSize(size, size) for size in _ICON_SIZES]
+
+    original_icon = qapp.windowIcon()
+    try:
+        qapp.setWindowIcon(QIcon())
+        WindowHelper().setAppIcon(str(icon_path))
+        published = qapp.windowIcon()
+        assert not published.isNull()
+        assert published.pixmap(QSize(64, 64)).toImage().pixelColor(32, 32) == QColor(
+            "#d02040"
+        )
+    finally:
+        qapp.setWindowIcon(original_icon)
+
+
+def test_window_helper_keeps_icon_for_empty_and_missing_sources(
+    qapp,
+    tmp_path: Path,
+) -> None:
+    """Invalid inputs must not replace the current icon. 无效输入不得覆盖当前图标。"""
+    icon_path = tmp_path / "current.png"
+    _write_real_icon(icon_path)
+    original_icon = qapp.windowIcon()
+    try:
+        current = QIcon(str(icon_path))
+        qapp.setWindowIcon(current)
+        WindowHelper().setAppIcon("")
+        assert qapp.windowIcon().cacheKey() == current.cacheKey()
+        WindowHelper().setAppIcon(str(tmp_path / "missing.png"))
+        assert qapp.windowIcon().cacheKey() == current.cacheKey()
     finally:
         qapp.setWindowIcon(original_icon)
