@@ -23,21 +23,17 @@ Item {
     property bool tight: false
     property int spacing: Enums.spacing.xs
     property bool disableOverflow: false
-    
-    // ==================== Signals 信号 ====================
-    signal actionTriggered(int index, var action)
-    signal secondaryActionTriggered(int index, var action)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: contentRow.implicitWidth
-    implicitHeight: Enums.controlSize.commandBarButtonSize
-    
-    // ==================== Private Props 私有属性 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     property var _visibleCommands: primaryCommands
     property var _hiddenCommands: []
     property bool _hasOverflow: false
 
-    // ==================== Methods 方法 ====================
+    // ==================== Signals 信号 ====================
+    signal actionTriggered(int index, var action)
+    signal secondaryActionTriggered(int index, var action)
+
+    // ==================== Internal Methods 内部方法 ====================
     function _updateOverflow() {
         if (disableOverflow || width <= 0) {
             _visibleCommands = primaryCommands
@@ -93,7 +89,15 @@ Item {
         }
     }
 
-    // ==================== Layout 布局 ====================
+    // ==================== Size 尺寸 ====================
+    implicitWidth: contentRow.implicitWidth
+    implicitHeight: Enums.controlSize.commandBarButtonSize
+
+    onWidthChanged: _updateOverflow()
+    onPrimaryCommandsChanged: _updateOverflow()
+    Component.onCompleted: _updateOverflow()
+
+    // ==================== Content 内容 ====================
     Row {
         id: contentRow
         anchors.verticalCenter: parent.verticalCenter
@@ -104,14 +108,15 @@ Item {
             model: _visibleCommands
             
             Loader {
+                property var commandData: modelData
+                property int commandIndex: index
+
                 // ✅ 2026-02-02: 支持三种类型：separator、widget、button
                 sourceComponent: {
                     if (modelData.separator) return separatorComponent
                     if (modelData.widget && modelData.qmlItem) return widgetComponent
                     return buttonComponent
                 }
-                property var commandData: modelData
-                property int commandIndex: index
             }
         }
         
@@ -167,7 +172,7 @@ Item {
         }
     }
     
-    // ==================== Components 组件 ====================
+    // Delegate components 委托组件
     
     // Command button 命令按钮
     Component {
@@ -186,6 +191,13 @@ Item {
             
             Button {
                 id: cmdBtn
+
+                function _calcButtonWidth() {
+                    if (buttonStyle === Enums.commandBar.style_icon_only) return Enums.controlSize.commandBarButtonSize
+                    if (buttonStyle === Enums.commandBar.style_text_beside) return btnTextMeasure.implicitWidth + iconSize + Enums.controlSize.buttonHeight
+                    return Math.max(Enums.controlSize.commandBarButtonSize, btnTextMeasure.implicitWidth + Enums.spacing.xl)
+                }
+
                 style: Enums.button.style_transparent
                 flat: true
                 enabled: commandData.enabled !== false
@@ -194,12 +206,6 @@ Item {
                 iconSize: control.iconSize
                 implicitWidth: _calcButtonWidth()
                 implicitHeight: Enums.controlSize.commandBarButtonSize
-                
-                function _calcButtonWidth() {
-                    if (buttonStyle === Enums.commandBar.style_icon_only) return Enums.controlSize.commandBarButtonSize
-                    if (buttonStyle === Enums.commandBar.style_text_beside) return btnTextMeasure.implicitWidth + iconSize + Enums.controlSize.buttonHeight
-                    return Math.max(Enums.controlSize.commandBarButtonSize, btnTextMeasure.implicitWidth + Enums.spacing.xl)
-                }
                 
                 onClicked: control.actionTriggered(commandIndex, commandData)
             }
@@ -245,9 +251,4 @@ Item {
         }
     }
     
-    // ==================== Overflow Logic 溢出逻辑 ====================
-    onWidthChanged: _updateOverflow()
-    onPrimaryCommandsChanged: _updateOverflow()
-
-    Component.onCompleted: _updateOverflow()
 }

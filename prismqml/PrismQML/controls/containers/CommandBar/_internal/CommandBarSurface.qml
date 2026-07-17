@@ -29,16 +29,17 @@ ShadowedRectangle {
     implicitWidth: innerBar.implicitWidth + Enums.spacing.s * 2
     implicitHeight: innerBar.implicitHeight + Enums.spacing.s * 2
     
-    // ==================== Style 样式 ====================
+    // Style 样式
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
     color: Enums.isPrismDesign ? Enums.prismDesign.glassTint : Enums.cardColor
     border.width: Enums.border.thin
     border.color: Enums.isPrismDesign ? Enums.prismDesign.border : Enums.stateColor.border
     
-    // ==================== Shadow 阴影 ====================
+    // Shadow 阴影
     shadowLevel: Enums.shadow.level8
     
-    // ==================== Inner CommandBar 内部命令栏 ====================
+    // ==================== Content 内容 ====================
+    // Inner command bar 内部命令栏
     CommandBarCore {
         id: innerBar
         anchors.centerIn: parent

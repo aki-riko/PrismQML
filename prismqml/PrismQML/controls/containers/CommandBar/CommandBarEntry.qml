@@ -13,16 +13,13 @@ import "_internal"
 Item {
     id: control
     
-    // ==================== Layout Attached Properties 布局附加属性 ====================
+    // ==================== Public Props 公开属性 ====================
     // 用于父布局的附加属性，让 CommandBar 能够填满可用宽度
     property bool layoutFillWidth: true
     property bool layoutFillHeight: false
     property int layoutAlignment: 0
-    Layout.fillWidth: layoutFillWidth
-    Layout.fillHeight: layoutFillHeight
-    Layout.alignment: layoutAlignment
-    
-    // ==================== Public Props 公开属性 ====================
+
+    // Command bar properties 命令栏属性
     property int type: Enums.commandBar.type_default
     
     // Command data 命令数据
@@ -49,6 +46,9 @@ Item {
     // Width: fill parent width when in layout 在布局中填充父容器宽度
     implicitWidth: loader.implicitWidth
     implicitHeight: loader.implicitHeight
+    Layout.fillWidth: layoutFillWidth
+    Layout.fillHeight: layoutFillHeight
+    Layout.alignment: layoutAlignment
     
     // Key: width follows parent.width when available (like Widget.qml)
     // 关键：当有父容器时 width 跟随 parent.width（类似 Widget.qml）
@@ -60,14 +60,15 @@ Item {
     
     height: implicitHeight
     
-    // ==================== Loader 加载器 ====================
+    // ==================== Content 内容 ====================
+    // Style loader 样式加载器
     Loader {
         id: loader
         anchors.fill: parent
         sourceComponent: control.type === Enums.commandBar.type_view ? viewComponent : defaultComponent
     }
     
-    // ==================== Default Style Component 默认样式组件 ====================
+    // Default style component 默认样式组件
     Component {
         id: defaultComponent
         CommandBarCore {
@@ -88,7 +89,7 @@ Item {
         }
     }
     
-    // ==================== View Style Component 视图样式组件 ====================
+    // View style component 视图样式组件
     Component {
         id: viewComponent
         CommandBarSurface {

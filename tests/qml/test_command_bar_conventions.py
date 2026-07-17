@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """CommandBar overflow and signal contracts. CommandBar 溢出与信号合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -20,9 +20,18 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+COMMAND_BAR_DIR = (
+    ROOT / "prismqml" / "PrismQML" / "controls" / "containers" / "CommandBar"
+)
+SOURCE_PATHS = [
+    COMMAND_BAR_DIR / "CommandBarEntry.qml",
+    COMMAND_BAR_DIR / "_internal" / "CommandBarCore.qml",
+    COMMAND_BAR_DIR / "_internal" / "CommandBarSurface.qml",
+]
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "command-bar-conventions.qml")
 )
@@ -246,3 +255,15 @@ def test_command_bar_entry_styles_and_signal_forwarding(qapp):
     finally:
         _dispose_scene(engine, component, root)
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_command_bar_sources_follow_conventions():
+    for source_path in SOURCE_PATHS:
+        source = source_path.read_text(encoding="utf-8")
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations = scan_source_text(source, path)
+        assert [
+            violation
+            for violation in violations
+            if violation.rule in {"QML008", "QML009"}
+        ] == []
