@@ -17,15 +17,15 @@ MultiSelectToken {
     required property var modelData    // Tag text 标签文本
     required property var tagControl   // Parent TagLineEdit 父控件
 
-    // ==================== Optional Props 可选属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string tagColor: ""       // Per-tag tint color, empty = default accent 按标签着色,空=默认强调色
 
-    // ==================== Bind to MultiSelectToken 绑定到MultiSelectToken ====================
+    // Bind to MultiSelectToken 绑定到 MultiSelectToken
     text: modelData
     tokenIndex: index
     bgColorOverride: tagColor          // Forward tint to token 透传着色
 
-    // ==================== Handle Remove 处理删除 ====================
+    // Handle token removal 处理标签删除
     onRemoveClicked: (idx) => {
         var ctrl = tag.tagControl
         if (!ctrl || !ctrl.tags) return
