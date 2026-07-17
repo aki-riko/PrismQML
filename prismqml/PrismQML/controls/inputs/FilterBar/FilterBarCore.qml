@@ -22,19 +22,8 @@ Rectangle {
     property bool exclusive: true  // true=单选, false=多选
     property var selectedIndices: [0]  // Selected indexes (multi-select mode) 选中索引（多选模式）
     property int iconSize: Enums.iconSize.s  // Icon size for filter items 过滤项图标尺寸
-    
-    // ==================== Signals 信号 ====================
-    signal itemClicked(int index)
-    signal selectionChanged(var indices)
-    signal indexChanged(int index)  // Renamed to avoid conflict with currentIndex property 重命名避免与属性冲突
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: filterRow.implicitWidth + Enums.spacing.m * 2
-    implicitHeight: Enums.controlSize.inputHeightLarge  // 40
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    
-    // ==================== Color Functions (subclass can override) 颜色函数 ====================
-    
+
+    // Color callables can be overridden by subclasses 颜色回调可由子类覆盖
     // Container background 容器背景色
     property var getContainerColor: function() {
         return Enums.stateColor.filterContainer
@@ -58,13 +47,13 @@ Rectangle {
         }
         return Enums.textColor.primary
     }
-    
-    // ==================== Appearance 外观 ====================
-    color: getContainerColor()
-    opacity: enabled ? 1.0 : 0.5
-    
-    // ==================== Helper Function 辅助函数 ====================
-    
+
+    // ==================== Signals 信号 ====================
+    signal itemClicked(int index)
+    signal selectionChanged(var indices)
+    signal indexChanged(int index)  // Renamed to avoid conflict with currentIndex property 重命名避免与属性冲突
+
+    // ==================== Public Methods 公开方法 ====================
     // Parse item data - auto detect icon/text 解析选项数据 - 自动识别图标/文本
     // Returns: { icon: string, text: string }
     function parseItem(data) {
@@ -104,11 +93,18 @@ Rectangle {
         return item ? item.width : 0
     }
 
-    // ==================== Public Methods 公共方法 ====================
-
     function getCurrentIndex() { return currentIndex }
 
     function isEnabled() { return enabled }
+
+    // ==================== Size 尺寸 ====================
+    implicitWidth: filterRow.implicitWidth + Enums.spacing.m * 2
+    implicitHeight: Enums.controlSize.inputHeightLarge  // 40
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+
+    // Appearance 外观
+    color: getContainerColor()
+    opacity: enabled ? 1.0 : 0.5
 
     // ==================== Content 内容 ====================
     Item {
@@ -120,12 +116,12 @@ Rectangle {
         // Sliding indicator for exclusive mode 互斥模式滑动指示器
         Rectangle {
             id: slidingIndicator
-            visible: control.exclusive && itemRepeater.count > 0
-            
+
             // Use properties to allow forced refresh 使用属性以允许强制刷新
             property int targetIndex: control.currentIndex
             property int refreshTrigger: 0  // Trigger recalculation 触发重新计算
-            
+
+            visible: control.exclusive && itemRepeater.count > 0
             x: refreshTrigger >= 0 ? control.getItemX(targetIndex) : 0
             width: refreshTrigger >= 0 ? control.getItemWidth(targetIndex) : 0
             height: 30
@@ -155,26 +151,30 @@ Rectangle {
                 
                 Rectangle {
                     id: filterItem
-                    width: itemContentRow.implicitWidth + Enums.spacing.xl * 2
-                    height: 30
-                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-                    
+
+                    // ==================== Required Props 必需属性 ====================
                     required property int index
                     required property var modelData
-                    
+
+                    // ==================== Internal Props 内部属性 ====================
+                    property bool selected: control.exclusive ?
+                        (index === control.currentIndex) :
+                        (control.selectedIndices.indexOf(index) >= 0)
+                    property bool hovered: itemArea.containsMouse && control.enabled
+                    property bool pressed: itemArea.pressed
+
+                    // ==================== Readonly State 只读状态 ====================
                     // Parsed item data 解析后的选项数据
                     readonly property var parsedData: control.parseItem(modelData)
                     readonly property string itemIcon: parsedData.icon
                     readonly property string itemText: parsedData.text
                     readonly property bool hasIcon: itemIcon !== ""
                     readonly property bool hasText: itemText !== ""
-                    
-                    property bool selected: control.exclusive ? 
-                        (index === control.currentIndex) : 
-                        (control.selectedIndices.indexOf(index) >= 0)
-                    property bool hovered: itemArea.containsMouse && control.enabled
-                    property bool pressed: itemArea.pressed
-                    
+
+                    width: itemContentRow.implicitWidth + Enums.spacing.xl * 2
+                    height: 30
+                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+
                     // Background: transparent for exclusive (indicator handles it), colored for multi 背景：互斥模式透明（指示器处理），多选模式着色
                     color: control.exclusive ? 
                         (hovered && !selected ? Enums.stateColor.filterItemHover : Enums.transparent) :
