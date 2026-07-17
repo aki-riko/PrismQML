@@ -5,20 +5,20 @@
 import QtQuick
 import ".."
 
-// WindowsBar - Top navigation window bar
-// Extends NavigationWindowCore with NavigationBar (icon+text vertical)
+// WindowsBar - Top navigation window bar 顶部导航窗口栏
+// Extends NavigationWindowCore with a vertical icon-and-text NavigationBar.
+// 使用纵向图标与文字 NavigationBar 扩展 NavigationWindowCore。
 NavigationWindowCore {
     id: window
+
+    // ==================== Public Props 公开属性 ====================
+    default property alias pages: _hiddenStack.data
+    property int contentTopMargin: Enums.spacing.none
+    property var pageSources: []
 
     windowTitle: ""
     titleBarHeight: Enums.spacing.xxxl * 2
     titleBarLeftMargin: Enums.spacing.xxl
-
-    // ==================== Compact Navigation Props ====================
-    property int contentTopMargin: Enums.spacing.none
-
-    // ==================== Lazy Loading Aliases ====================
-    property var pageSources: []
 
     Component.onCompleted: window.profileDetail(
         "WindowsBar root completed nav=" + navigationItems.length +
@@ -26,21 +26,14 @@ NavigationWindowCore {
         " hidden=" + _hiddenStack.data.length
     )
 
-    Item {
-        id: _hiddenStack
-        visible: false
-        Component.onCompleted: window.profileDetail("WindowsBar hiddenStack completed count=" + data.length)
-    }
-    default property alias pages: _hiddenStack.data
-
-    // ==================== Content Layout ====================
+    // Content layout. 内容布局。
     content: Item {
         anchors.fill: parent
         Component.onCompleted: window.profileDetail("WindowsBar content shell completed")
 
         Timer {
             id: startupTimer
-            interval: 0
+            interval: Enums.duration.none
             running: true
             Component.onCompleted: window.profileDetail("WindowsBar startupTimer completed running=" + running + " interval=" + interval)
             onRunningChanged: window.profileDetail("WindowsBar startupTimer running=" + running)
@@ -97,5 +90,12 @@ NavigationWindowCore {
                 window.profileTime("WindowsBar dismissSplashWhenReady done")
             }
         }
+    }
+
+    // Preserve default-property pages in a hidden staging item. 在隐藏暂存项中保留 default property 页面。
+    Item {
+        id: _hiddenStack
+        visible: false
+        Component.onCompleted: window.profileDetail("WindowsBar hiddenStack completed count=" + data.length)
     }
 }

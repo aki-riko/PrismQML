@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[2]
 INTERNAL_PATH = ROOT / "prismqml" / "PrismQML" / "_internal"
 SOURCE_PATH = INTERNAL_PATH / "WindowsSplit.qml"
 FILLED_SOURCE_PATH = INTERNAL_PATH / "WindowsFilled.qml"
+BAR_SOURCE_PATH = INTERNAL_PATH / "WindowsBar.qml"
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(INTERNAL_PATH / "windows-split-conventions.qml")
@@ -263,3 +264,16 @@ def test_windows_filled_source_conventions_and_stack_binding():
     assert "stackedWidget: stack" not in source
     assert "window.stackedWidget = item.stackAlias" in source
     assert "interval: Enums.window.splitStartupDelayMs" in source
+
+
+def test_windows_bar_source_conventions_and_zero_delay_token():
+    source = BAR_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(BAR_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "interval: Enums.duration.none" in source
+    assert "interval: 0" not in source
