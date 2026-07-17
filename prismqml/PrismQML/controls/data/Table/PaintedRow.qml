@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
 
-// PaintedRow - Centralized rendering row control (Phase 4 / 100B optimization)
+// PaintedRow - Centralized rendering row control (Phase 4 / 100B optimization) 集中绘制行控件
 //
-// 用途: ListView delegate 子树过大时(10+ QObject/行)快速滚动卡,本控件
-//   把整行收敛到 1 个 Canvas + 1 次 paint,极大减少 QObject 创建销毁开销。
+// Purpose: collapse a large ListView delegate subtree into one Canvas and one paint call.
+// 用途：将庞大的 ListView 委托子树收敛为一个 Canvas 和一次绘制。
 //
-// 接入示例:
+// Usage example 接入示例：
 //   PaintedRow {
 //       columns: [{key:"date", text:"时间", width: 120, align:"left"},
 //                 {key:"income", text:"收入", width: 0.2, align:"right"}]
@@ -17,10 +17,10 @@
 //       extraDraw: function(ctx, columns, data, w, h) { /* 画自定义图标 */ }
 //   }
 //
-// 限制:
-// - Canvas 软件渲染,1080p 下可流畅 60fps;4k 屏会感受到糊化,需要升级到 QQuickPaintedItem
-// - 单 cell hover/click 失效;只能整行选中。需要 cell 级交互的场景用普通 delegate
-// - 富文本/SVG 无法在 ctx 直接画;extraDraw 可填补
+// Limits 限制：
+// - Canvas software rendering targets smooth 1080p; 4K may need QQuickPaintedItem. Canvas 软件渲染适合 1080p，4K 可升级到 QQuickPaintedItem。
+// - Cell-level hover/click is unavailable; use a normal delegate when needed. 不提供单元格级 hover/click，需要时使用普通委托。
+// - Rich text/SVG needs extraDraw because the context cannot draw it directly. 富文本/SVG 需通过 extraDraw 补充。
 import QtQuick
 import "../../.."
 
@@ -32,10 +32,10 @@ Item {
     property var rowData: ({})    // model row 数据 (含每个 column.key 的 value)
     property int rowIndex: 0
     property int rowHeight: 36
-    // 自定义补充绘制 (icon / 进度条 / 等), 在标准 cell text 后调用
+    // Custom drawing runs after standard cell text. 自定义绘制在标准单元格文本之后调用。
     // function(ctx: CanvasRenderingContext2D, columns, rowData, width, height): void
     property var extraDraw: null
-    // 字体/颜色配置 (默认与 Enums 对齐)
+    // Font and color configuration aligned with Enums 字体与颜色配置默认对齐 Enums
     property int fontPointSize: 12
     property color textColor: Enums.foregroundColor
     property color textColorSubtle: Enums.foregroundColorSubtle
@@ -43,18 +43,29 @@ Item {
     // ==================== Signals 信号 ====================
     signal cellHovered(int colIdx, int rowIdx)
 
-    // ==================== Public Methods 公共方法 ====================
-    // 主动重绘
+    // ==================== Public Methods 公开方法 ====================
+    // Request an immediate repaint 主动请求重绘
     function refreshNow() { canvas.requestPaint() }
 
+    // ==================== Size 尺寸 ====================
     implicitHeight: rowHeight
+    // Repaint on data, geometry, theme, callback, or font changes. 数据、几何、主题、回调或字体变化时重绘。
+    onRowDataChanged: canvas.requestPaint()
+    onColumnsChanged: canvas.requestPaint()
+    onWidthChanged: canvas.requestPaint()
+    onHeightChanged: canvas.requestPaint()
+    onTextColorChanged: canvas.requestPaint()
+    onTextColorSubtleChanged: canvas.requestPaint()
+    onFontPointSizeChanged: canvas.requestPaint()
+    onExtraDrawChanged: canvas.requestPaint()
 
+    // ==================== Content 内容 ====================
     Canvas {
         id: canvas
         readonly property string fontSpec: root.fontPointSize + "pt " + Enums.canvasFontFamily
         anchors.fill: parent
         renderStrategy: Canvas.Cooperative
-        renderTarget: Canvas.FramebufferObject  // GL 加速 (Qt 选择性支持,不支持时退到 Image)
+        renderTarget: Canvas.FramebufferObject  // GL acceleration with Image fallback GL 加速，不支持时回退到 Image
         onFontSpecChanged: requestPaint()
 
         onPaint: {
@@ -74,7 +85,7 @@ Item {
                 var text = (val === null || val === undefined) ? "" : String(val)
                 var align = col.align || "left"
                 ctx.save()
-                // clip cell rect 防止文本溢出
+                // Clip the cell rectangle to prevent text overflow 裁剪单元格以防文本溢出
                 ctx.beginPath()
                 ctx.rect(x + 8, 0, w - 16, root.height)
                 ctx.clip()
@@ -91,7 +102,7 @@ Item {
                 ctx.restore()
                 x += w
             }
-            // 业务自定义补充绘制
+            // Draw business-specific additions 绘制业务自定义内容
             if (root.extraDraw) {
                 try {
                     root.extraDraw(ctx, root.columns, root.rowData, root.width, root.height)
@@ -102,22 +113,11 @@ Item {
         }
     }
 
-    // 数据变更触发重绘
-    onRowDataChanged: canvas.requestPaint()
-    onColumnsChanged: canvas.requestPaint()
-    onWidthChanged: canvas.requestPaint()
-    onHeightChanged: canvas.requestPaint()
-    // 自检 review 修复: 主题切换 / 业务运行时换 extraDraw / 字体改 都要触发重绘
-    onTextColorChanged: canvas.requestPaint()
-    onTextColorSubtleChanged: canvas.requestPaint()
-    onFontPointSizeChanged: canvas.requestPaint()
-    onExtraDrawChanged: canvas.requestPaint()
-
-    // hover 命中检测 (轻量,只 emit 信号,不画背景)
+    // Lightweight hover hit testing emits only; it does not draw a background. 轻量 hover 命中检测只发信号，不绘制背景。
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.NoButton  // 让上层 ListView delegate 处理点击
+        acceptedButtons: Qt.NoButton  // Let the parent ListView delegate handle clicks 由上层 ListView 委托处理点击
         onPositionChanged: function(mouse) {
             var x = 0
             for (var i = 0; i < root.columns.length; i++) {
