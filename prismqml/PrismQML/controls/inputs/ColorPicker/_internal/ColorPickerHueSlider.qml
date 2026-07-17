@@ -6,11 +6,11 @@ import QtQuick
 import "../../../.."
 
 // ColorPickerHueSlider - Horizontal hue slider 水平色相滑块
-// Shows full spectrum: red→yellow→green→cyan→blue→magenta→red
+// Shows the full red→yellow→green→cyan→blue→magenta→red spectrum 显示完整色相光谱
 Item {
     id: control
     
-    // ==================== Properties 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property real value: Enums.colorPickerMetrics.hueValueDefault         // 0-1, maps to hue 0-360°
     
     // ==================== Signals 信号 ====================
@@ -20,7 +20,8 @@ Item {
     implicitWidth: Enums.colorPickerMetrics.hueSliderWidth
     implicitHeight: Enums.spacing.xxl
     
-    // ==================== Hue Track 色相轨道 ====================
+    // ==================== Content 内容 ====================
+    // Hue track 色相轨道
     Rectangle {
         id: track
         anchors.left: parent.left
@@ -44,7 +45,7 @@ Item {
         border.color: Enums.stateColor.border
     }
     
-    // ==================== Handle 手柄 ====================
+    // Slider handle 滑块手柄
     Rectangle {
         id: handle
         width: Enums.colorPickerMetrics.hueHandleSize
@@ -69,12 +70,8 @@ Item {
         Behavior on x { NumberAnimation { duration: Enums.duration.fast } }
     }
     
-    // ==================== Interaction 交互 ====================
+    // Pointer interaction 指针交互
     MouseArea {
-        anchors.fill: parent
-        enabled: control.enabled
-        preventStealing: true
-        
         function updateValue(mouse) {
             var newValue = Math.max(0, Math.min(1, mouse.x / width))
             if (Math.abs(newValue - control.value) > Enums.colorPickerMetrics.hueUpdateEpsilon) {
@@ -82,6 +79,10 @@ Item {
                 control.valueModified(newValue)
             }
         }
+
+        anchors.fill: parent
+        enabled: control.enabled
+        preventStealing: true
         
         onPressed: (mouse) => updateValue(mouse)
         onPositionChanged: (mouse) => { if (pressed) updateValue(mouse) }
