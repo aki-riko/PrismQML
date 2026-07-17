@@ -232,6 +232,46 @@ DataWidgetCore {
         itemSelectionChanged()
     }
 
+    function _captureCellWidgetEntries(data) {
+        var entries = []
+        var keys = Object.keys(cellWidgets)
+        for (var i = 0; i < keys.length; i++) {
+            var separator = keys[i].indexOf("_")
+            var row = parseInt(keys[i].slice(0, separator))
+            var column = parseInt(keys[i].slice(separator + 1))
+            if (row >= 0 && row < data.length) {
+                entries.push({ rowData: data[row], column: column, widget: cellWidgets[keys[i]] })
+            }
+        }
+        return entries
+    }
+
+    function _restoreCellWidgets(entries, data) {
+        var nextWidgets = {}
+        for (var i = 0; i < entries.length; i++) {
+            var row = data.indexOf(entries[i].rowData)
+            if (row >= 0) nextWidgets[row + "_" + entries[i].column] = entries[i].widget
+        }
+        cellWidgets = nextWidgets
+    }
+
+    function _rowRefs(indices, data) {
+        var refs = []
+        for (var i = 0; i < indices.length; i++) {
+            if (indices[i] >= 0 && indices[i] < data.length) refs.push(data[indices[i]])
+        }
+        return refs
+    }
+
+    function _rowIndices(refs, data) {
+        var indices = []
+        for (var i = 0; i < refs.length; i++) {
+            var row = data.indexOf(refs[i])
+            if (row >= 0) indices.push(row)
+        }
+        return indices
+    }
+
     // ==================== QTableWidget API - Data 数据 ====================
     // Note: To use these JS modifying methods, tableData MUST be a pure Javascript Array. 注意：若使用这些 JS 操作方法，tableData 必须保证是纯 JavaScript 数组。
     // If a QAbstractListModel is bound, you should perform modifications at Python side! 如果绑定了 C++ ListModel，应该在 Python 后端进行这些修改！
@@ -244,17 +284,27 @@ DataWidgetCore {
 
     function clearData() {
         if (!_isPureJsArray()) { console.warn("TableWidget: Cannot clearData via JS when a QAbstractListModel is bound."); return }
-        tableData = []; selectedRows = []; currentRow = -1
+        tableData = []
+        selectedRows = []
+        currentRow = -1
+        currentColumn = -1
+        cellWidgets = ({})
     }
 
     function removeRow(idx) {
         if (!_isPureJsArray()) { console.warn("TableWidget: Cannot removeRow via JS when a QAbstractListModel is bound."); return }
         if (idx >= 0 && idx < tableData.length) {
             var arr = tableData.slice()
+            var currentValid = currentRow >= 0 && currentRow < arr.length
+            var currentRef = currentValid ? arr[currentRow] : null
+            var selectedRefs = _rowRefs(selectedRows, arr)
+            var widgetEntries = _captureCellWidgetEntries(arr)
             arr.splice(idx, 1)
             tableData = arr
-            if (currentRow === idx) currentRow = -1
-            selectedRows = selectedRows.filter(r => r !== idx).map(r => r > idx ? r - 1 : r)
+            currentRow = currentValid ? arr.indexOf(currentRef) : -1
+            if (currentRow < 0) currentColumn = -1
+            selectedRows = _rowIndices(selectedRefs, arr)
+            _restoreCellWidgets(widgetEntries, arr)
         }
     }
 
@@ -265,10 +315,21 @@ DataWidgetCore {
 
     function setRowCount(count) {
         if (!_isPureJsArray()) { console.warn("TableWidget: Cannot setRowCount via JS when a QAbstractListModel is bound."); return }
+        var targetCount = Number(count)
+        if (!isFinite(targetCount) || targetCount < 0) targetCount = 0
+        targetCount = Math.floor(targetCount)
         var arr = tableData.slice()
-        while (arr.length < count) arr.push({})
-        while (arr.length > count) arr.pop()
+        var currentValid = currentRow >= 0 && currentRow < arr.length
+        var currentRef = currentValid ? arr[currentRow] : null
+        var selectedRefs = _rowRefs(selectedRows, arr)
+        var widgetEntries = _captureCellWidgetEntries(arr)
+        while (arr.length < targetCount) arr.push({})
+        while (arr.length > targetCount) arr.pop()
         tableData = arr
+        currentRow = currentValid ? arr.indexOf(currentRef) : -1
+        if (currentRow < 0) currentColumn = -1
+        selectedRows = _rowIndices(selectedRefs, arr)
+        _restoreCellWidgets(widgetEntries, arr)
     }
 
     function setColumnCount(count) {
@@ -301,7 +362,7 @@ DataWidgetCore {
     function item(row, column) {
         if (row >= 0 && row < tableData.length && column >= 0 && column < columns.length) {
             var val = tableData[row][columns[column].role]
-            return { text: val || "", row: row, column: column }
+            return { text: (val === null || val === undefined) ? "" : val, row: row, column: column }
         }
         return null
     }
@@ -343,15 +404,25 @@ DataWidgetCore {
     // ==================== QTableWidget API - Sorting 排序 ====================
     function sortItems(column, order) {
         if (column < 0 || column >= columns.length) return
+        if (!_isPureJsArray()) { console.warn("TableWidget: Cannot sortItems via JS when a QAbstractListModel is bound."); return }
         var role = columns[column].role
         var arr = tableData.slice()
+        var currentValid = currentRow >= 0 && currentRow < arr.length
+        var currentRef = currentValid ? arr[currentRow] : null
+        var selectedRefs = _rowRefs(selectedRows, arr)
+        var widgetEntries = _captureCellWidgetEntries(arr)
         arr.sort(function(a, b) {
-            var textA = String(a[role] || "")
-            var textB = String(b[role] || "")
+            var valueA = a[role]
+            var valueB = b[role]
+            var textA = String((valueA === null || valueA === undefined) ? "" : valueA)
+            var textB = String((valueB === null || valueB === undefined) ? "" : valueB)
             var cmp = textA.localeCompare(textB)
             return order === 1 ? -cmp : cmp
         })
         tableData = arr
+        currentRow = currentValid ? arr.indexOf(currentRef) : -1
+        selectedRows = _rowIndices(selectedRefs, arr)
+        _restoreCellWidgets(widgetEntries, arr)
     }
 
     // ==================== QTableWidget API - Scroll 滚动 ====================

@@ -293,11 +293,12 @@ Rectangle {
 
                     function _centerWidget() {
                         if (cellItem.cellWidgetItem && cellItem.cellWidgetItem.parent === widgetContainer) {
-                            cellItem.cellWidgetItem.x = Qt.binding(function() {
-                                return (widgetContainer.width - cellItem.cellWidgetItem.width) / 2
+                            var widget = cellItem.cellWidgetItem
+                            widget.x = Qt.binding(function() {
+                                return (widgetContainer.width - widget.width) / 2
                             })
-                            cellItem.cellWidgetItem.y = Qt.binding(function() {
-                                return (widgetContainer.height - cellItem.cellWidgetItem.height) / 2
+                            widget.y = Qt.binding(function() {
+                                return (widgetContainer.height - widget.height) / 2
                             })
                         }
                     }
