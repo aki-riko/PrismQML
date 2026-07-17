@@ -14,16 +14,14 @@ import "../data/Label"
 Rectangle {
     id: control
     
-    // ==================== Size Priority (manual, Rectangle can't extend Widget) ====================
+    // ==================== Public Props 公开属性 ====================
     // Size Priority (manual, Rectangle can't extend Widget) 尺寸优先级（手动实现，Rectangle无法继承Widget）
     property real preferredWidth: 0
     property real preferredHeight: 0
     property real contentWidth: Enums.controlSize.toastWidth - 10  // 350
     property real contentHeight: Enums.controlSize.dropFileHeight  // 140
-    implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
-    implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
-    
-    // ==================== Public Props 公开属性 ====================
+
+    // Drop options 拖放选项
     property bool multiple: false  // Allow multiple files 允许多文件
     property bool folderMode: false  // Folder only mode 仅文件夹模式
     property var allowedExtensions: []  // Allowed suffixes like ["jpg", "png"] 允许的后缀（如 ["jpg", "png"]）
@@ -36,25 +34,30 @@ Rectangle {
     property string browseFileText: Translator.tr("browse_file")
     property string browseFolderText: Translator.tr("browse_folder")
     
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool hovered: mouseArea.containsMouse || browseFileBtn.hovered || browseFolderBtn.hovered
+    readonly property bool dragActive: dropArea.containsDrag
+
     // ==================== Signals 信号 ====================
     signal fileSelected(string file)
     signal filesSelected(var files)
     signal folderSelected(string folder)
-    
-    // ==================== Readonly Props 只读属性 ====================
-    readonly property bool hovered: mouseArea.containsMouse || browseFileBtn.hovered || browseFolderBtn.hovered
-    readonly property bool dragActive: dropArea.containsDrag
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     // Clear 清除
     function clear() { /* Already implemented via signal handlers 已通过信号处理实现 */ }
 
-    // ==================== Appearance 外观 ====================
+    // ==================== Size 尺寸 ====================
+    implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
+    implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
+
+    // Appearance 外观
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
     color: Enums.transparent
     border.width: Enums.border.none
     
-    // ==================== Dashed Border 虚线边框 ====================
+    // ==================== Content 内容 ====================
+    // Dashed border 虚线边框
     Canvas {
         id: dashedBorder
         anchors.fill: parent
@@ -74,13 +77,13 @@ Rectangle {
         Component.onCompleted: requestPaint()
         
         Connections {
-            target: control
             function onHoveredChanged() { dashedBorder.requestPaint() }
             function onDragActiveChanged() { dashedBorder.requestPaint() }
+
+            target: control
         }
     }
-    
-    // ==================== Content 内容 ====================
+
     Column {
         anchors.centerIn: parent
         spacing: Enums.spacing.xs
@@ -133,7 +136,7 @@ Rectangle {
         }
     }
     
-    // ==================== Drop Area 拖放区域 ====================
+    // Drop area 拖放区域
     DropArea {
         id: dropArea
         anchors.fill: parent
@@ -165,7 +168,7 @@ Rectangle {
         z: Enums.zIndex.background
     }
     
-    // ==================== Dialogs 对话框 ====================
+    // Dialogs 对话框
     FileDialog {
         id: fileDialog
         title: Translator.tr("select_file")
