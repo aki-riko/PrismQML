@@ -70,11 +70,40 @@ def _move_eyedropper_near_cursor(window, cursor_pos: QPoint, screen_geo: QRect) 
     """Move the picker beside the cursor. 将取色器移动到鼠标旁。"""
     win_x = cursor_pos.x() + window._constants.CURSOR_OFFSET_X
     win_y = cursor_pos.y() + window._constants.CURSOR_OFFSET_Y
-    if win_x + window.width() > screen_geo.right():
+    if win_x + window.width() - 1 > screen_geo.right():
         win_x = cursor_pos.x() - window.width() - window._constants.CURSOR_OFFSET_X
-    if win_y + window.height() > screen_geo.bottom():
+    if win_y + window.height() - 1 > screen_geo.bottom():
         win_y = cursor_pos.y() - window.height() - window._constants.CURSOR_OFFSET_Y
     window.move(win_x, win_y)
+
+
+def _run_eyedropper_cleanup(action, label: str) -> None:
+    """Run one rollback action without masking failure. 执行单项回滚且不遮蔽原异常。"""
+    try:
+        action()
+    except (RuntimeError, OSError) as exc:
+        logger.debug(f"ScreenEyedropper {label} cleanup failed 清理失败: {exc}")
+
+
+def _rollback_eyedropper_start(
+    window, mouse_grabbed: bool, keyboard_grabbed: bool
+) -> None:
+    """Rollback an incomplete picker start. 回滚未完成的取色启动。"""
+    _run_eyedropper_cleanup(window._timer.stop, "timer")
+    if keyboard_grabbed:
+        _run_eyedropper_cleanup(window.releaseKeyboard, "keyboard")
+    if mouse_grabbed:
+        _run_eyedropper_cleanup(window.releaseMouse, "mouse")
+    _run_eyedropper_cleanup(window.hide, "window")
+
+
+def _eyedropper_refresh_interval(window) -> int:
+    """Resolve the active screen refresh interval. 解析活动屏幕刷新间隔。"""
+    screen = window.screen() if hasattr(window, "screen") else None
+    refresh_rate = screen.refreshRate() if screen else 0
+    if refresh_rate and refresh_rate > 0:
+        return max(1, int(round(1000.0 / refresh_rate)))
+    return window._constants.UPDATE_INTERVAL_FALLBACK_MS
 
 
 def _paint_eyedropper_background(
@@ -164,37 +193,34 @@ class ScreenEyedropperWindow(QWidget):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._update_position_and_color)
         
-    def start_picking(self, is_dark: bool = False):
+    def start_picking(self, is_dark: bool = False) -> bool:
         """Start color picking 开始取色"""
         self._is_dark = is_dark
-        self.show()
-        self.raise_()
-        self.activateWindow()
         mouse_grabbed = False
         keyboard_grabbed = False
+        committed = False
         try:
+            self.show()
+            self.raise_()
+            self.activateWindow()
             self.grabMouse()
             mouse_grabbed = True
             self.grabKeyboard()
             keyboard_grabbed = True
-        except (RuntimeError, OSError) as exc:
-            logger.warning(f"ScreenEyedropper grab failed 屏幕取色抓取失败: {exc}")
-            # 仅释放已成功抓取的资源，避免二次异常
-            if keyboard_grabbed:
-                self.releaseKeyboard()
-            if mouse_grabbed:
-                self.releaseMouse()
-            self.hide()
-            return
-        # 跟随当前屏幕刷新率: 120Hz/144Hz/240Hz 高刷屏自动获得更平滑的取色追踪
-        screen = self.screen() if hasattr(self, 'screen') else None
-        refresh_rate = screen.refreshRate() if screen else 0
-        if refresh_rate and refresh_rate > 0:
-            interval_ms = max(1, int(round(1000.0 / refresh_rate)))
-        else:
-            interval_ms = self._constants.UPDATE_INTERVAL_FALLBACK_MS
-        self._timer.start(interval_ms)
-        self._update_position_and_color()
+            self._timer.start(_eyedropper_refresh_interval(self))
+            if self._update_position_and_color() is False:
+                return False
+            committed = True
+            return True
+        except Exception as exc:
+            logger.exception(
+                f"ScreenEyedropper start failed 屏幕取色启动失败: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            return False
+        finally:
+            if not committed:
+                _rollback_eyedropper_start(self, mouse_grabbed, keyboard_grabbed)
         
     def stop_picking(self):
         """Stop color picking 停止取色"""
@@ -206,7 +232,7 @@ class ScreenEyedropperWindow(QWidget):
             logger.debug(f"ScreenEyedropper release ignored 屏幕取色释放失败: {exc}")
         self.hide()
         
-    def _update_position_and_color(self):
+    def _update_position_and_color(self) -> bool:
         """Update window position and capture color 更新窗口位置并捕获颜色"""
         cursor_pos = QCursor.pos()
         
@@ -214,7 +240,9 @@ class ScreenEyedropperWindow(QWidget):
         screen = QGuiApplication.screenAt(cursor_pos)
         if not screen:
             screen = QGuiApplication.primaryScreen()
-            
+        if not screen:
+            logger.warning("ScreenEyedropper has no available screen 屏幕取色无可用屏幕")
+            return False
         screen_geo = screen.geometry()
         
         _move_eyedropper_near_cursor(self, cursor_pos, screen_geo)
@@ -226,8 +254,8 @@ class ScreenEyedropperWindow(QWidget):
         if self._captured_image and not self._captured_image.isNull():
             center = self._constants.CAPTURE_SIZE // 2
             self._current_color = QColor(self._captured_image.pixel(center, center))
-            
         self.update()
+        return True
         
     def _capture_screen(self, cursor_pos: QPoint, screen: QScreen):
         """Capture screen area around cursor 捕获鼠标周围的屏幕区域"""
@@ -356,7 +384,9 @@ class ScreenEyedropperManager(QObject):
         """
         self._ensure_window()
         self._is_dark = is_dark
-        self._picker_window.start_picking(is_dark)
+        if not self._picker_window.start_picking(is_dark):
+            logger.warning("Screen color picking failed to start 屏幕取色启动失败")
+            return
         self.pickingStarted.emit()
         logger.debug("Screen color picking started 屏幕取色已开始")
         

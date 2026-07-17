@@ -217,6 +217,7 @@ def test_update_position_selects_cursor_screen_then_primary_fallback(
     ("cursor", "expected", "dimension_calls"),
     [
         (QPoint(50, 50), (66, 66), ["window.width", "window.height"]),
+        (QPoint(164, 50), (180, 66), ["window.width", "window.height"]),
         (QPoint(180, 50), (144, 66), ["window.width", "window.width", "window.height"]),
         (QPoint(50, 190), (66, 164), ["window.width", "window.height", "window.height"]),
         (
@@ -276,6 +277,22 @@ def test_update_position_preserves_color_for_missing_or_null_capture(
     assert "image.pixel" not in names
     assert "color.create" not in names
     assert names[-1] == "window.update"
+
+
+def test_update_position_returns_false_when_no_screen_exists(monkeypatch):
+    events = []
+    api = _FakeQtApis(events, QPoint(50, 50), None, None)
+    window = _FakeWindow(events)
+    api.install(monkeypatch)
+
+    result = _UPDATE_POSITION(window)
+
+    assert result is False
+    assert _event_names(events) == [
+        "cursor.pos",
+        "application.screen_at",
+        "application.primary_screen",
+    ]
 
 
 def test_update_position_moves_real_hidden_widget_without_showing(qapp, monkeypatch):
