@@ -53,23 +53,27 @@ InputCore {
 
     // ==================== Public Methods 公开方法 ====================
     function increase() {
+        var previousValue = value
         var newVal = value + stepSize
         if (newVal > maximum) {
             value = wrap ? minimum : maximum
         } else {
             value = newVal
         }
+        if (value === previousValue) return
         valueUpdated(value)
         valueModified(value)
     }
 
     function decrease() {
+        var previousValue = value
         var newVal = value - stepSize
         if (newVal < minimum) {
             value = wrap ? maximum : minimum
         } else {
             value = newVal
         }
+        if (value === previousValue) return
         valueUpdated(value)
         valueModified(value)
     }

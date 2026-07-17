@@ -260,11 +260,13 @@ def _assert_public_methods(normal, wrapped) -> None:
     normal.increase()
     assert (normal.getValue(), updates, modified) == (6, [6], [6])
     normal.increase()
-    assert (updates, modified) == ([6, 6], [6, 6])
+    assert (updates, modified) == ([6], [6])
     normal.decrease()
     assert normal.getValue() == 4
     normal.setValue(-99)
     assert normal.getValue() == 0
+    normal.decrease()
+    assert (updates, modified) == ([6, 4], [6, 4])
     normal.stepUp()
     assert normal.getValue() == 2
 
@@ -299,7 +301,7 @@ def _assert_wheel_focus_gate(window, controls) -> None:
     assert normal.property("value") == 7
 
 
-def _assert_button_layer_and_repeat_duplicates(window, bounded) -> None:
+def _assert_button_layer_and_repeat_stops_at_bound(window, bounded) -> None:
     values = []
     bounded.valueModified.connect(values.append)
     button = _button_with_icon(window, bounded, "addIcon")
@@ -313,7 +315,7 @@ def _assert_button_layer_and_repeat_duplicates(window, bounded) -> None:
     _pump(130)
     QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=point)
     assert _wait_for(lambda: bounded.property("value") == 6)
-    assert values.count(6) > 1
+    assert values == [6]
     count_after_release = len(values)
     _pump(80)
     assert len(values) == count_after_release
@@ -345,11 +347,11 @@ def test_spin_box_text_edit_and_wheel_focus_contracts(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_spin_box_button_layer_and_repeat_signal_characterization(qapp):
+def test_spin_box_button_layer_and_repeat_signal_contract(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, controls, warnings = _create_scene()
     try:
-        _assert_button_layer_and_repeat_duplicates(window, controls["bounded"])
+        _assert_button_layer_and_repeat_stops_at_bound(window, controls["bounded"])
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
