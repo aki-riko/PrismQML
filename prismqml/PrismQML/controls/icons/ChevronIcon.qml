@@ -23,8 +23,13 @@ Item {
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.checkIconSize
     implicitHeight: Enums.controlSize.checkIconSize
-    
-    // ==================== Arrow Canvas 箭头画布 ====================
+
+    onColorChanged: canvas.requestPaint()
+    onDirectionChanged: canvas.requestPaint()
+    Component.onCompleted: canvas.requestPaint()
+
+    // ==================== Content 内容 ====================
+    // Arrow canvas 箭头画布
     Canvas {
         id: canvas
         anchors.centerIn: parent
@@ -71,8 +76,4 @@ Item {
             ctx.stroke()
         }
     }
-    
-    onColorChanged: canvas.requestPaint()
-    onDirectionChanged: canvas.requestPaint()
-    Component.onCompleted: canvas.requestPaint()
 }
