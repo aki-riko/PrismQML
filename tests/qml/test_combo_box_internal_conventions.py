@@ -25,6 +25,7 @@ INTERNAL_DIR = (
     / "_internal"
 )
 SEARCH_SOURCE_PATH = INTERNAL_DIR / "PopupSearchBox.qml"
+POPUP_CONTENT_SOURCE_PATH = INTERNAL_DIR / "ComboBoxPopupContent.qml"
 SEARCH_SCENE = b"""
 import QtQuick
 import "."
@@ -171,3 +172,12 @@ def test_combo_box_popup_content_runtime_contract(qapp):
         assert _new_visible_windows(windows_before) == []
     finally:
         _destroy_scene(engine, component, root)
+
+
+def test_combo_box_popup_content_source_conventions():
+    source = POPUP_CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(POPUP_CONTENT_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
