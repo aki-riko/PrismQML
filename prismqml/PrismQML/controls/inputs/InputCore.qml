@@ -14,60 +14,24 @@ import "../containers"
 // Note: Click outside to blur is handled by container MouseArea 点击空白失焦由容器背景MouseArea处理
 Widget {
     id: control
-    
+
+    // ==================== Public Props 公开属性 ====================
     // 焦点代理属性，子类覆盖指向内部能实际接受输入的组件
     property Item focusTarget: null
     // FocusScope 语义: 容器本身不持有焦点(不设 activeFocusOnTab 自聚焦), 焦点直接
     // 落在 focusTarget 上, 消除"容器接焦点再 onActiveFocusChanged 转发"的竞态
     // (旧设计在边缘点击时容器/child 焦点反复横跳导致进焦→立刻失焦)。
     // Tab 键导航由 focusTarget 自身的 activeFocusOnTab 承担。
-    
-    // ==================== Base Props 基础属性 ====================
-    
-    // ==================== Focus Line 聚焦底线 ====================
+
     property bool showFocusedBorder: true
     property color focusedBorderColorLight: Enums.accentColor
     property color focusedBorderColorDark: Enums.accentColor
-
-    readonly property color focusedBorderColor: Enums.isDark ? focusedBorderColorDark : focusedBorderColorLight
-    
-    // ==================== State (subclass override) 状态(子类覆盖) ====================
     property bool focused: false  // Bind to input's activeFocus 绑定到activeFocus
     property bool hovered: false  // Bind to HoverHandler's hovered 绑定到hovered
     property int radius: Enums.isNeobrutalism ? Enums.neo.radius
                          : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
-    
-    // ==================== Size 尺寸 ====================
-    // Content size (inherited from Widget) 内容尺寸（继承自Widget）
-    contentWidth: Enums.controlSize.inputDefaultWidth
-    contentHeight: Enums.controlSize.inputHeight
-    
-    // ==================== Content Padding 内容边距 ====================
-    // Unified padding for all input controls 所有输入控件统一边距
-    readonly property int paddingLeft: Enums.spacing.l      // 12
-    readonly property int paddingRight: Enums.spacing.m     // 8
-    readonly property int paddingTop: Enums.spacing.s       // 6
-    readonly property int paddingBottom: Enums.spacing.s    // 6
-    
-    // ==================== Text Style 文本样式 ====================
-    // Unified text properties for TextInput/TextEdit 统一文本属性
-    readonly property int fontSize: Enums.typography.body
-    readonly property color selectionColor: Enums.accentColor
-    readonly property color selectedTextColor: Enums.accentForeground
-    
-    // Input text color (enabled/disabled aware) 输入文本颜色(感知启用状态)
-    readonly property color inputTextColor: !enabled ? Enums.textColor.disabled 
-        : Enums.textColor.primary
-    
-    // ==================== Inner Button Colors 内部按钮颜色 ====================
-    // Unified colors for clear/action/spin buttons 清除/操作/加减按钮统一颜色
-    readonly property color innerButtonHover: Enums.stateColor.controlBgHover
-    readonly property color innerButtonPressed: Enums.stateColor.controlBgPressed
-    
-    // ==================== Transparent Background 背景透明控制 ====================
     property bool transparentBackground: false
-    
-    // ==================== Background Color (for subclass binding) 背景色 ====================
+
     // Use unified control colors 使用统一的控件颜色
     // Note: transparentBackground takes highest priority 透明背景优先级最高
     property color color: {
@@ -77,14 +41,39 @@ Widget {
         if (focused) return Enums.cardColor  // InputgHover
         return Enums.stateColor.controlBg
     }
-    
-    // ==================== Border (for subclass binding) 边框 ====================
-    property alias border: _bg.border
 
-    // ==================== Mouse Cursor 鼠标光标 ====================
+    property alias border: _bg.border
     property int cursorShape: Qt.IBeamCursor  // Subclass can override 子类可覆盖
 
-    // ==================== Shadow Layer 阴影层 ====================
+    // ==================== Readonly State 只读状态 ====================
+    readonly property color focusedBorderColor: Enums.isDark ? focusedBorderColorDark : focusedBorderColorLight
+
+    // Unified padding for all input controls 所有输入控件统一边距
+    readonly property int paddingLeft: Enums.spacing.l      // 12
+    readonly property int paddingRight: Enums.spacing.m     // 8
+    readonly property int paddingTop: Enums.spacing.s       // 6
+    readonly property int paddingBottom: Enums.spacing.s    // 6
+
+    // Unified text properties for TextInput/TextEdit 统一文本属性
+    readonly property int fontSize: Enums.typography.body
+    readonly property color selectionColor: Enums.accentColor
+    readonly property color selectedTextColor: Enums.accentForeground
+    
+    // Input text color (enabled/disabled aware) 输入文本颜色(感知启用状态)
+    readonly property color inputTextColor: !enabled ? Enums.textColor.disabled 
+        : Enums.textColor.primary
+
+    // Unified colors for clear/action/spin buttons 清除/操作/加减按钮统一颜色
+    readonly property color innerButtonHover: Enums.stateColor.controlBgHover
+    readonly property color innerButtonPressed: Enums.stateColor.controlBgPressed
+
+    // ==================== Size 尺寸 ====================
+    // Content size (inherited from Widget) 内容尺寸（继承自Widget）
+    contentWidth: Enums.controlSize.inputDefaultWidth
+    contentHeight: Enums.controlSize.inputHeight
+
+    // ==================== Content 内容 ====================
+    // Shadow layer 阴影层
     // Fluent: 模糊阴影。Neobrutalism: 硬阴影。Prism Design: 纯边界层级。
     RectangularShadow {
         anchors.fill: _bg
@@ -104,14 +93,14 @@ Widget {
         z: _bg.z - 1
     }
 
-    // ==================== Background Rectangle 背景矩形 ====================
+    // Background rectangle 背景矩形
     Rectangle {
         id: _bg
         anchors.fill: parent
         radius: control.radius
         color: control.color
         
-        // ==================== Rounded Clip 圆角裁剪 ====================
+        // Rounded clip 圆角裁剪
         clip: true
         layer.enabled: radius > 0 && !control.transparentBackground
         layer.effect: OpacityMask {
@@ -122,7 +111,7 @@ Widget {
             }
         }
         
-        // ==================== Border 边框 ====================
+        // Border 边框
         // Use unified border colors 使用统一边框颜色
         border.width: control.transparentBackground ? 0
             : (Enums.isNeobrutalism ? Enums.neo.borderWidth
@@ -170,7 +159,7 @@ Widget {
         }
     }
 
-    // ==================== Mouse Cursor 鼠标光标 ====================
+    // Mouse cursor 鼠标光标
     MouseArea {
         // z 必须高于子 Loader/TextInput 内部 MouseArea, 否则鼠标 hover 进 padding 区域时
         // 子 MouseArea (无 hoverEnabled / cursorShape) 拦截掉, IBeam 光标只在 TextInput
@@ -208,7 +197,7 @@ Widget {
         onClicked: function(mouse) { mouse.accepted = true }
     }
     
-    // ==================== Focus Line 聚焦底线 ====================
+    // Focus line 聚焦底线
     // z 值确保在子类 Loader 等内容之上渲染（子类子项在基类子项之后添加，z 默认更高）
     // Neobrutalism/Prism: 关闭底线，改由整圈边界表达聚焦。
     FocusLine {
