@@ -21,18 +21,20 @@ import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被�
 ComboBoxCore {
     id: control
 
-    // ==================== Multi-Tree Specific Props 多选树特有属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var selectedPaths: []  // Selected node paths 已选节点路径 [["root", "child"], ...]
     property string delimiter: ", "
     property int maxDisplay: 3  // Max items to display 最多显示数量
     property bool searchEnabled: true
     property string searchPlaceholder: "请输入关键字"
 
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Internal Props 内部属性 ====================
     property var _expandedNodes: ({})
     property string _searchText: ""
+    property real _targetX: 0
+    property real _smoothContentX: 0
 
-    // ==================== Computed Props 计算属性 ====================
+    // ==================== Readonly State 只读状态 ====================
     // Filter out parent nodes, only show leaf nodes in token 过滤父节点，token只显示叶子节点
     readonly property var _leafSelectedPaths: {
         var leaves = []
@@ -55,13 +57,10 @@ ComboBoxCore {
         return result
     }
 
-    // ==================== Smooth Scroll 平滑滚动 ====================
-    property real _targetX: 0
-    property real _smoothContentX: 0
-
     // ==================== Signals 信号 ====================
     signal selectionChanged(var paths)
 
+    // ==================== Internal Methods 内部方法 ====================
     function _initTree() {
         if (model && model.length > 0) {
             _expandAllNodes()
@@ -161,7 +160,6 @@ ComboBoxCore {
         return false
     }
 
-    // ==================== Helper Functions 辅助函数 ====================
     function _toggleExpand(nodeId) {
         var newExpanded = Object.assign({}, _expandedNodes)
         newExpanded[nodeId] = !newExpanded[nodeId]
@@ -294,12 +292,12 @@ ComboBoxCore {
         }
     }
 
+    // ==================== Public Methods 公开方法 ====================
     function smoothScrollTo(x) {
         _targetX = Math.max(0, Math.min(x, tokenFlickable.contentWidth - tokenFlickable.width))
         _smoothContentX = _targetX
     }
 
-    // ==================== Override Popup Open 覆盖弹出打开 ====================
     function openPopup() {
         _rebuildFlatModel()
         _popup.popupWidth = Math.max(control.width, Enums.comboBoxMetrics.treePopupMinWidth)
@@ -311,35 +309,97 @@ ComboBoxCore {
         _searchText = ""
     }
 
-    // ==================== Override Base Props 覆盖基类属性 ====================
+    // Base property overrides 基类属性覆盖
     showFocusedBorder: false  // No focus line for multi-tree 多选树不显示聚焦下划线
     useDefaultContent: false
     // Only intercept wheel when content overflows 仅当内容溢出时拦截滚轮
     acceptWheel: tokenFlickable.contentWidth > tokenFlickable.width
 
-    // ==================== Override Size 覆盖尺寸 ====================
+    // ==================== Size 尺寸 ====================
     implicitWidth: 280
+
+    // Popup content override 弹窗内容覆盖
+    popupContent: Component {
+        Column {
+            anchors.fill: parent
+            spacing: Enums.spacing.none
+
+            // Search box 搜索框
+            PopupSearchBox {
+                id: searchBox
+                width: parent.width
+                searchEnabled: control.searchEnabled
+                placeholderText: control.searchPlaceholder
+                onSearchTextChanged: (text) => control._searchText = text
+            }
+
+            // Tree content 树内容
+            Item {
+                id: treeContainer
+
+                readonly property bool needsScroll: treeListView.contentHeight > treeListView.height
+
+                width: parent.width
+                height: parent.height - (control.searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0)
+
+                ListView {
+                    id: treeListView
+                    anchors.fill: parent
+                    anchors.rightMargin: treeContainer.needsScroll ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    model: control._flatListModel
+
+                    delegate: TreeMenuDelegate {
+                        width: treeListView.width
+                        text: model.text
+                        depth: model.depth
+                        hasChildren: model.hasChildren
+                        expanded: model.expanded
+                        checkable: true
+                        checkState: model.selected ? 2 : (model.isPartialSelected ? 1 : 0)
+
+                        onToggleExpand: control._toggleExpand(model.nodeId)
+                        onCheckToggled: control._toggleSelection(JSON.parse(model.path))
+                    }
+                }
+
+                Loader {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.margins: Enums.spacing.xxs
+                    width: Enums.comboBoxMetrics.scrollBarWidth
+                    active: treeContainer.needsScroll
+                    sourceComponent: ScrollBarEntry {
+                        flickable: treeListView
+                        width: Enums.comboBoxMetrics.scrollBarWidth
+                    }
+                }
+            }
+        }
+    }
 
     Behavior on _smoothContentX { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
 
-    // ==================== Flatten Tree Model 扁平化树模型 ====================
+    // Keep the flattened model synchronized with source and filters.
+    // 保持扁平模型与源数据及筛选条件同步。
     Component.onCompleted: _initTree()
     onModelChanged: _initTree()
     on_ExpandedNodesChanged: _rebuildFlatModel()
     on_SearchTextChanged: _rebuildFlatModel()
     on_SmoothContentXChanged: tokenFlickable.contentX = _smoothContentX
 
-    // ==================== Wheel Scroll Handler 滚轮滚动处理 ====================
     // Use base class wheel signal 使用基类滚轮信号
     onWheelScrolled: (delta) => smoothScrollTo(_targetX - delta * 0.8)
 
+    // ==================== Content 内容 ====================
     // Use ListModel for animation support 使用ListModel以支持动画
     property alias _flatListModel: _internalFlatListModel
     ListModel {
         id: _internalFlatListModel
     }
 
-    // ==================== Display Content 显示内容 ====================
     // Token Display Area 标签显示区域 (use base class arrow) 使用基类箭头
     Flickable {
         id: tokenFlickable
@@ -400,64 +460,4 @@ ComboBoxCore {
         }
     }
 
-    // ==================== Override Popup Content 覆盖弹出内容 ====================
-    popupContent: Component {
-        Column {
-            anchors.fill: parent
-            spacing: Enums.spacing.none
-
-            // Search box 搜索框
-            PopupSearchBox {
-                id: searchBox
-                width: parent.width
-                searchEnabled: control.searchEnabled
-                placeholderText: control.searchPlaceholder
-                onSearchTextChanged: (text) => control._searchText = text
-            }
-
-            // Tree content 树内容
-            Item {
-                id: treeContainer
-                width: parent.width
-                height: parent.height - (control.searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0)
-
-                readonly property bool needsScroll: treeListView.contentHeight > treeListView.height
-
-                ListView {
-                    id: treeListView
-                    anchors.fill: parent
-                    anchors.rightMargin: treeContainer.needsScroll ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-                    model: control._flatListModel
-
-                    delegate: TreeMenuDelegate {
-                        width: treeListView.width
-                        text: model.text
-                        depth: model.depth
-                        hasChildren: model.hasChildren
-                        expanded: model.expanded
-                        checkable: true
-                        checkState: model.selected ? 2 : (model.isPartialSelected ? 1 : 0)
-
-                        onToggleExpand: control._toggleExpand(model.nodeId)
-                        onCheckToggled: control._toggleSelection(JSON.parse(model.path))
-                    }
-                }
-
-                Loader {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    anchors.margins: Enums.spacing.xxs
-                    width: Enums.comboBoxMetrics.scrollBarWidth
-                    active: treeContainer.needsScroll
-                    sourceComponent: ScrollBarEntry {
-                        flickable: treeListView
-                        width: Enums.comboBoxMetrics.scrollBarWidth
-                    }
-                }
-            }
-        }
-    }
 }

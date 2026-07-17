@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Multi-tree combo parent-chain regressions. 多选树下拉框父链回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -23,9 +23,19 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ComboBox"
+    / "ComboBoxMultiTree.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "combo-box-multi-tree-conventions.qml")
 )
@@ -228,3 +238,39 @@ def test_combo_box_multi_tree_selection_search_and_popup_lifecycle(qapp):
     finally:
         _dispose_scene(engine, component, window, combo)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_multi_tree_fast_close_during_popup_startup(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, combo, _flat_model, warnings = _create_scene()
+    try:
+        popup = _popup_core(combo)
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            _point_for(window, combo),
+        )
+        assert combo.property("isOpen")
+        assert not popup.property("isOpen")
+        assert len(_new_visible_windows(windows_before, window)) == 1
+
+        combo.closePopup()
+        assert not combo.property("isOpen")
+        assert _wait_for(lambda: not popup.property("isClosing"))
+        assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window, combo)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_multi_tree_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []

@@ -212,8 +212,10 @@ Item {
     }
     
     function close() {
-        if (!isOpen || isClosing) return
+        if (isClosing || (!isOpen && !showAnimTimer.running && !popupWindow.visible)) return
         aboutToHide()
+        showAnimTimer.stop()
+        showAnim.stop()
         isClosing = true
         isOpen = false
         _isPickerMode = false  // Reset picker mode 重置Picker模式
