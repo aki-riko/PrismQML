@@ -28,6 +28,11 @@ Item {
     // Virtual scrolling: off by default (keeps original full render, backward compatible).
     property bool virtualized: false
 
+    // 选中项的 key 值(配合 selectedRole 高亮当前选中卡片);为空不高亮
+    property string selectedRole: "commit"   // card 对象里用作唯一标识的字段名
+    property var selectedKey: undefined        // 当前选中值(与 card[selectedRole] 比对)
+
+    // ==================== Readonly State 只读状态 ====================
     // 拍平 items 为线性行: [{kind:"header",groupIndex,title,status}, {kind:"card",groupIndex,cardIndex,...}, ...]
     readonly property var _flatRows: {
         if (!virtualized) return []
@@ -53,13 +58,16 @@ Item {
         return rows
     }
 
-    // 虚拟模式实际驱动 ListView 的 ListModel(增量同步,避免整体替换导致滚动跳顶)
-    QtQ.ListModel { id: _flatModel }
+    // ==================== Signals 信号 ====================
+    signal itemClicked(int groupIndex, string title)
+    signal cardClicked(int groupIndex, int cardIndex, string text)
+    // cardClickedData: 回传完整 card 对象(含调用方自定义字段,如业务 id/hash)
+    // cardClickedData: emits the full card object (carrying caller's custom fields, e.g. business id/hash)
+    signal cardClickedData(int groupIndex, int cardIndex, var cardData)
+    // 虚拟滚动模式下滚动到接近底部时触发(用于分页加载更多)
+    signal reachedEnd()
 
-    // 选中项的 key 值(配合 selectedRole 高亮当前选中卡片);为空不高亮
-    property string selectedRole: "commit"   // card 对象里用作唯一标识的字段名
-    property var selectedKey: undefined        // 当前选中值(与 card[selectedRole] 比对)
-
+    // ==================== Internal Methods 内部方法 ====================
     // 把 _flatRows 增量同步到 _flatModel:
     // - 纯尾部追加(分页常态):只 append 新增行,现有行不动→contentY 不重置
     // - 其他变化(reset/搜索/切仓库):清空重填
@@ -85,23 +93,6 @@ Item {
         }
     }
 
-    onVirtualizedChanged: _syncFlat()
-    on_FlatRowsChanged: _syncFlat()
-    Component.onCompleted: _syncFlat()
-    
-    // ==================== Signals 信号 ====================
-    signal itemClicked(int groupIndex, string title)
-    signal cardClicked(int groupIndex, int cardIndex, string text)
-    // cardClickedData: 回传完整 card 对象(含调用方自定义字段,如业务 id/hash)
-    // cardClickedData: emits the full card object (carrying caller's custom fields, e.g. business id/hash)
-    signal cardClickedData(int groupIndex, int cardIndex, var cardData)
-    // 虚拟滚动模式下滚动到接近底部时触发(用于分页加载更多)
-    signal reachedEnd()
-    
-    implicitWidth: 400
-    implicitHeight: virtualized ? 400 : contentColumn.implicitHeight
-    
-    // ==================== Helper 辅助函数 ====================
     function _getStatusColor(status) {
         switch (status) {
             case "success": return Enums.statusLevel.getColor("success")
@@ -110,7 +101,7 @@ Item {
             default: return Enums.accentColor  // info
         }
     }
-    
+
     function _getStatusIcon(status) {
         switch (status) {
             case "success": return "Checkmark"      // 简单勾号，不带圆圈
@@ -119,8 +110,19 @@ Item {
             default: return "Info"                  // info - i图标
         }
     }
+
+    onVirtualizedChanged: _syncFlat()
+    on_FlatRowsChanged: _syncFlat()
+    Component.onCompleted: _syncFlat()
     
-    // ==================== Content 内容(非虚拟:全量 Column+Repeater) ====================
+    implicitWidth: 400
+    implicitHeight: virtualized ? 400 : contentColumn.implicitHeight
+
+    // ==================== Content 内容 ====================
+    // 虚拟模式实际驱动 ListView 的 ListModel(增量同步,避免整体替换导致滚动跳顶)
+    QtQ.ListModel { id: _flatModel }
+
+    // Non-virtual content: full Column and Repeater 非虚拟内容：全量 Column 与 Repeater
     Column {
         id: contentColumn
         width: parent.width
@@ -132,11 +134,12 @@ Item {
             
             delegate: Item {
                 id: groupItem
-                width: contentColumn.width
-                height: groupContent.height
-                
+
                 required property var modelData
                 required property int index
+
+                width: contentColumn.width
+                height: groupContent.height
                 
                 // Connector line 连接线（在图标下方）
                 Rectangle {
@@ -204,18 +207,19 @@ Item {
                             
                             delegate: Item {
                                 id: cardItem
-                                width: groupContent.width - 56
-                                height: simpleCard.height
-                                
+
                                 required property var modelData
                                 required property int index
-                                
+
                                 // Card status 卡片状态
                                 property string cardStatus: typeof modelData === "object" ? (modelData.status || groupItem.modelData.status || "info") : (groupItem.modelData.status || "info")
                                 property bool hasStrikeOut: typeof modelData === "object" ? (modelData.strikeOut || false) : false
                                 property string cardText: typeof modelData === "string" ? modelData : (modelData.text || "")
                                 // 可选副标题行(如提交的 hash·作者·日期);为空则不显示
                                 property string cardDescription: typeof modelData === "object" ? (modelData.description || "") : ""
+
+                                width: groupContent.width - 56
+                                height: simpleCard.height
                                 
                                 Card {
                                     id: simpleCard
@@ -285,7 +289,7 @@ Item {
         }
     }
 
-    // ==================== Content 内容(虚拟:ListView 拍平行,只渲染可见项) ====================
+    // Virtual content: flattened ListView renders visible rows 虚拟内容：拍平 ListView 仅渲染可见行
     QtQ.ListView {
         id: virtualList
         anchors.fill: parent
@@ -372,6 +376,11 @@ Item {
                     border.width: Enums.border.normal
                     border.color: Enums.stateColor.border
 
+                    onClicked: {
+                        control.cardClicked(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.text)
+                        control.cardClickedData(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.cardData)
+                    }
+
                     // Fluent 左侧选中指示条(圆角 pill,accent 色,短竖条居中)
                     Rectangle {
                         anchors.left: parent.left
@@ -384,10 +393,6 @@ Item {
                         opacity: cardPart.isSelected ? 1 : 0
                         Behavior on height { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
                         Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-                    }
-                    onClicked: {
-                        control.cardClicked(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.text)
-                        control.cardClickedData(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.cardData)
                     }
                     Column {
                         id: cardCol

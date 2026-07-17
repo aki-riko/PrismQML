@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """TimelineCore runtime contracts. TimelineCore 运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -23,9 +23,18 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "containers"
+    / "TimelineCore.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "timeline-conventions.qml")
 )
@@ -232,3 +241,13 @@ def test_timeline_virtual_append_preserves_scroll_and_reaches_end(timeline_scene
     assert list_view.property("contentY") == pytest.approx(before_y)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_core_source_follows_conventions():
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(SOURCE_PATH.read_text(encoding="utf-8"), path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
