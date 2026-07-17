@@ -8,8 +8,8 @@ import "../../.."
 import ".."
 import "../../containers/Separator"
 
-// TableView - 通用 TableView (QTableView 等价物) 低阶 View 级组件
-// 继承 DataWidgetCore,轻量模式(shadow level2 + 卡片边框)
+// TableView - General low-level QTableView equivalent 通用低阶 QTableView 等价组件
+// Inherits DataWidgetCore in lightweight card mode 继承 DataWidgetCore 的轻量卡片模式
 //
 // Usage 用法:
 //   Fluent.TableView {
@@ -22,9 +22,9 @@ import "../../containers/Separator"
 //       delegate: Rectangle { ... }
 //   }
 //
-// 与 TableWidget (高阶) 区别 vs TableWidget:
-//   TableView = QTableView 等价物,只渲染,适合 QAbstractListModel + 自定义行 delegate
-//   TableWidget     = QTableWidget 等价物,自带 tableData (JS array) + addRow/setItem 等便利 API
+// Difference from high-level TableWidget 与高阶 TableWidget 的区别：
+//   TableView renders QAbstractListModel with a custom row delegate TableView 渲染 QAbstractListModel 与自定义行委托
+//   TableWidget owns tableData and convenience APIs TableWidget 自带 tableData 与便捷 API
 DataWidgetCore {
     id: root
 
@@ -33,33 +33,7 @@ DataWidgetCore {
     property alias model: root.listModel
     property alias delegate: root.contentDelegate
 
-    // ==================== DataWidgetCore overrides ====================
-    showShadow: true
-    shadowLevel: Enums.shadow.level2
-    showHeader: true
-    showFooter: true
-    // itemCount 由基类 DataWidgetCore 自维护(Connections 跟踪 model 信号)
-
-    implicitWidth: 400
-    implicitHeight: 300
-
-    // Row spacing for visual breathing room 行间距
-    Component.onCompleted: {
-        listView.spacing = 1
-        listView.leftMargin = Enums.spacing.xs
-        listView.rightMargin = Enums.spacing.xs
-    }
-
-    // ==================== Helper 计算列宽 ====================
-    function _columnWidth(col, totalWidth) {
-        if (col.fillWidth) return -1
-        var w = col.width
-        if (w === undefined || w === null) return Math.max(60, totalWidth * 0.15)
-        if (w < 1) return totalWidth * w
-        return w
-    }
-
-    // ==================== Public API 公共 API ====================
+    // ==================== Public Methods 公开方法 ====================
     function scrollToTop() { listView.positionViewAtBeginning() }
     function scrollToBottom() { listView.positionViewAtEnd() }
 
@@ -77,7 +51,32 @@ DataWidgetCore {
         return _columnWidth(col, listView.width)
     }
 
-    // ==================== Header content 表头内容 ====================
+    // ==================== Internal Methods 内部方法 ====================
+    function _columnWidth(col, totalWidth) {
+        if (col.fillWidth) return -1
+        var w = col.width
+        if (w === undefined || w === null) return Math.max(60, totalWidth * 0.15)
+        if (w < 1) return totalWidth * w
+        return w
+    }
+
+    // ==================== Size 尺寸 ====================
+    // DataWidgetCore overrides DataWidgetCore 覆盖项
+    showShadow: true
+    shadowLevel: Enums.shadow.level2
+    showHeader: true
+    showFooter: true
+    // The base DataWidgetCore tracks model signals and maintains itemCount. 基类 DataWidgetCore 跟踪模型信号并维护 itemCount。
+    implicitWidth: 400
+    implicitHeight: 300
+    // Apply row spacing after the inherited ListView exists. 继承的 ListView 就绪后应用行间距。
+    Component.onCompleted: {
+        listView.spacing = 1
+        listView.leftMargin = Enums.spacing.xs
+        listView.rightMargin = Enums.spacing.xs
+    }
+
+    // Header content 表头内容
     headerContent: Component {
         Item {
             Row {
@@ -88,6 +87,8 @@ DataWidgetCore {
                 Repeater {
                     model: root.columns
                     delegate: Item {
+                        property bool _hovered: _headerCellHover.containsMouse
+
                         width: {
                             if (modelData.fillWidth) {
                                 var used = 0
@@ -102,8 +103,6 @@ DataWidgetCore {
                             return root._columnWidth(modelData, parent.width)
                         }
                         height: parent.height
-
-                        property bool _hovered: _headerCellHover.containsMouse
 
                         MouseArea {
                             id: _headerCellHover
@@ -136,7 +135,8 @@ DataWidgetCore {
         }
     }
 
-    // ==================== ListView rightMargin for scrollbar ====================
+    // ==================== Content 内容 ====================
+    // Reserve ListView right margin for the scrollbar 为滚动条预留 ListView 右边距
     Binding {
         target: listView
         property: "rightMargin"
