@@ -92,6 +92,15 @@ Item {
     ComboBoxStyleHelper { id: helper; control: fakeControl }
 }
 """
+FONT_SCENE = b"""
+import QtQuick
+import PrismQML
+Item {
+    width: 320
+    height: 80
+    ComboBoxFont { objectName: "font"; width: 220 }
+}
+"""
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -149,6 +158,10 @@ def _set_control(control, **properties) -> None:
     for name, value in properties.items():
         assert control.setProperty(name, value)
     _pump()
+
+
+def _variant(value):
+    return value.toVariant() if hasattr(value, "toVariant") else value
 
 
 def test_popup_search_box_runtime_contract(qapp):
@@ -298,3 +311,30 @@ def test_combo_box_style_helper_uses_enum_tokens():
     assert "Enums.comboBox.primaryPopupDarken" in source
     assert "Enums.comboBox.primaryPressedDarken" in source
     assert "Enums.comboBox.primaryHoverLighten" in source
+
+
+def test_combo_box_font_runtime_contract(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene(
+        FONT_SCENE, "combo-box-font-runtime.qml"
+    )
+    try:
+        font = root.findChild(QObject, "font")
+        expected = [
+            "Arial", "Segoe UI", "Microsoft YaHei", "SimSun", "SimHei",
+            "KaiTi", "FangSong", "Consolas", "Courier New", "Times New Roman",
+        ]
+        assert _variant(font.property("fonts")) == expected
+        assert _variant(font.property("model")) == expected
+        assert font.property("currentFont") == "Segoe UI"
+        assert font.property("width") == 220
+        assert font.property("popupItemHeight") > 0
+        font.setProperty("fonts", ["Prism Sans", "Prism Mono"])
+        font.setProperty("currentFont", "Prism Mono")
+        _pump()
+        assert _variant(font.property("model")) == ["Prism Sans", "Prism Mono"]
+        assert font.property("currentFont") == "Prism Mono"
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        _destroy_scene(engine, component, root)
