@@ -9,7 +9,7 @@ import "../buttons"
 import "_internal"
 
 // Pivot - Pivot navigation component 透视导航组件
-// Refactored to use Button for stable hover 重构使用Button实现稳定hover
+// Uses Button to provide stable hover behavior 使用Button提供稳定的悬停行为
 Item {
     id: control
     
@@ -20,20 +20,16 @@ Item {
     property int itemFontSize: Enums.typography.subtitle
     property int iconSize: Enums.iconSize.m
     property bool indicatorAnimationEnabled: true
+
+    // ==================== Internal Props 内部属性 ====================
+    property int _prevIndex: -1
+    property bool _initialized: false
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, bool byUser)
     signal currentItemChanged(string key)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: pivotRow.implicitWidth
-    implicitHeight: Enums.controlSize.inputHeight
-    
-    // ==================== Internal 内部属性 ====================
-    property int _prevIndex: -1
-    property bool _initialized: false
 
-    // ==================== Methods 方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function setCurrentIndex(idx) {
         if (idx < 0 || idx >= items.length) return
         if (idx === currentIndex && _initialized) return
@@ -45,12 +41,13 @@ Item {
         if (item) currentItemChanged(item.key)
     }
 
+    // ==================== Internal Methods 内部方法 ====================
     function _getIndicatorX(item) {
         if (!item) return 0
         return item.x + (item.width - indicatorSize) / 2
     }
 
-    // 构造指示器矩形 (底部细条)
+    // Build the bottom indicator rectangle 构造底部细条指示器矩形
     function _rectAt(item) {
         return Qt.rect(_getIndicatorX(item),
                        control.height - Enums.border.thick,
@@ -87,6 +84,7 @@ Item {
         _prevIndex = currentIndex
     }
 
+    // ==================== Public Methods 公开方法 ====================
     function setCurrentItem(key) {
         for (var i = 0; i < items.length; i++) {
             var item = repeater.itemAt(i)
@@ -96,9 +94,6 @@ Item {
             }
         }
     }
-
-    // ==================== Public Methods 公共方法 ====================
-
 
     // Add item 添加项目
     function addItem(key, text, icon) {
@@ -112,7 +107,20 @@ Item {
         return item ? item.key : ""
     }
 
-    // ==================== Items Row 项目行 ====================
+    // ==================== Size 尺寸 ====================
+    implicitWidth: pivotRow.implicitWidth
+    implicitHeight: Enums.controlSize.inputHeight
+
+    Component.onCompleted: Qt.callLater(_updateIndicatorWithAnimation)
+    onWidthChanged: {
+        if (_initialized && !navIndicator.running) {
+            var item = repeater.itemAt(currentIndex)
+            if (item) navIndicator.setGeometry(_rectAt(item))
+        }
+    }
+
+    // ==================== Content 内容 ====================
+    // Items row 项目行
     Row {
         id: pivotRow
         anchors.fill: parent
@@ -124,16 +132,17 @@ Item {
             
             Item {
                 id: pivotItem
-                width: pivotBtn.implicitWidth
-                height: control.height
-                
+
                 property bool selected: index === control.currentIndex
                 property string itemText: modelData.text !== undefined ? modelData.text : (typeof modelData === "string" ? modelData : "")
                 property string itemIcon: modelData.icon !== undefined ? modelData.icon : ""
                 property string key: modelData.key !== undefined ? modelData.key : (itemText !== "" ? itemText : itemIcon)
                 property bool hasIcon: itemIcon !== ""
                 property bool hasText: itemText !== ""
-                
+
+                width: pivotBtn.implicitWidth
+                height: control.height
+
                 Button {
                     id: pivotBtn
                     anchors.fill: parent
@@ -154,7 +163,7 @@ Item {
         }
     }
     
-    // ==================== Indicator 指示器 (统一基类, 水平橡皮筋粘滞) ====================
+    // Shared horizontal sticky-stretch indicator 统一基类的水平橡皮筋粘滞指示器
     SlidingIndicator {
         id: navIndicator
         orientation: Qt.Horizontal
@@ -165,12 +174,4 @@ Item {
         visible: control.items.length > 0 && control._initialized
     }
 
-    Component.onCompleted: Qt.callLater(_updateIndicatorWithAnimation)
-    
-    onWidthChanged: {
-        if (_initialized && !navIndicator.running) {
-            var item = repeater.itemAt(currentIndex)
-            if (item) navIndicator.setGeometry(_rectAt(item))
-        }
-    }
 }
