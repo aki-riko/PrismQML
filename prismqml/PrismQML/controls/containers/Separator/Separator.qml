@@ -18,7 +18,7 @@ Widget {
     property real lineLength: 0  // 0=auto fill, >0=fixed length  0=自动填充，>0=固定长度
     property color lineColor: Enums.stateColor.divider  // 线条颜色,默认 divider, 可覆盖
 
-    // ==================== Internal 内部状态 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool isHorizontal: type === 0
     readonly property bool autoFill: lineLength <= 0
 
@@ -34,7 +34,7 @@ Widget {
     Layout.preferredHeight: isHorizontal ? lineWidth : (autoFill ? -1 : lineLength)
     Layout.preferredWidth: isHorizontal ? (autoFill ? -1 : lineLength) : lineWidth
 
-    // ==================== Visual 视觉 ====================
+    // ==================== Content 内容 ====================
     Rectangle {
         anchors.fill: parent
         color: control.lineColor

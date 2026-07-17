@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Waterfall and Separator runtime contracts. Waterfall 与 Separator 运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
@@ -13,9 +13,20 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATHS = (
+    ROOT / "prismqml" / "PrismQML" / "controls" / "containers" / "Waterfall.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "containers"
+    / "Separator"
+    / "Separator.qml",
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "container-leaf-conventions.qml")
 )
@@ -224,3 +235,17 @@ def test_separator_fixed_and_auto_geometry(leaf_scene):
     assert auto_horizontal.height() == pytest.approx(1)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_container_leaf_sources_follow_conventions():
+    violations = []
+    for source_path in SOURCE_PATHS:
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source_path.read_text(encoding="utf-8"), path
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
