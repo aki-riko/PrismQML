@@ -34,27 +34,92 @@ Item {
     // Content container 内容容器
     default property alias content: contentItem.data
 
-    // ==================== Read-only Props 只读属性 ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property int rowCount: _rowCount         // Total rows 总行数
     readonly property var rowHeights: _rowHeights     // Height of each row 每行高度
     readonly property int itemCount: contentItem.children.length  // Child count 子项数量
 
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Internal Props 内部属性 ====================
     property int _rowCount: 0
     property var _rowHeights: []
     property var _originalSizes: []   // [{width, height}, ...] 原始尺寸缓存
     property bool _layoutPending: false
     property bool _initialized: false
 
-    // ==================== Size 尺寸 ====================
-    implicitWidth: 300
-    implicitHeight: 0
-    
-    // ==================== Layout attached properties 布局附加属性 ====================
-    // Fill parent width by default 默认填充父容器宽度
-    Layouts.Layout.fillWidth: true
+    // ==================== Public Methods 公开方法 ====================
+    // addWidget - Add a child widget to layout 添加子组件到布局
+    function addWidget(widget) {
+        if (widget) {
+            widget.parent = contentItem
+        }
+    }
 
-    // ==================== Layout Functions 布局函数 ====================
+    // removeWidget - Remove a widget from layout 从布局中移除组件
+    function removeWidget(widget) {
+        if (widget && widget.parent === contentItem) {
+            widget.parent = null
+        }
+    }
+
+    // setSpacing - Set layout spacing 设置布局间距
+    function setSpacing(value) {
+        spacing = value
+        rowSpacing = value
+    }
+
+    // count - Get children count 获取子组件数量
+    function count() {
+        return itemCount
+    }
+
+    // setContentsMargins - Set layout margins 设置布局边距
+    function setContentsMargins(left, top, right, bottom) {
+        leftMargin = left
+        topMargin = top
+        rightMargin = right
+        bottomMargin = bottom
+    }
+
+    // itemAt - Get child at index 获取指定索引的子组件
+    function itemAt(index) {
+        var children = _getVisibleChildren()
+        if (index >= 0 && index < children.length) {
+            return children[index]
+        }
+        return null
+    }
+
+    // indexOf - Get index of widget 获取组件索引
+    function indexOf(widget) {
+        var children = _getVisibleChildren()
+        for (var i = 0; i < children.length; i++) {
+            if (children[i] === widget) {
+                return i
+            }
+        }
+        return -1
+    }
+
+    // isEmpty - Check if layout is empty 检查布局是否为空
+    function isEmpty() {
+        return itemCount === 0
+    }
+
+    // clear - Remove all children 清空所有子组件
+    function clear() {
+        for (var i = contentItem.children.length - 1; i >= 0; i--) {
+            contentItem.children[i].parent = null
+        }
+    }
+
+    // insertWidget - Insert widget 插入组件
+    function insertWidget(index, widget) {
+        if (widget) {
+            widget.parent = contentItem
+        }
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
 
     // Get layout children (exclude Repeater and non-visual items) 获取布局子项（排除Repeater和非可视元素）
     function _getVisibleChildren() {
@@ -130,7 +195,7 @@ Item {
                 implicitHeight = _layoutDefault(children)
         }
     }
-    // ==================== Default Mode Layout 默认模式布局 ====================
+    // Default mode layout 默认模式布局
     // Compact packing: items float up to fill gaps 紧凑填充：子项上浮填补空隙
     // Uses heightmap algorithm to find lowest available position 使用高度图算法找到最低可用位置
     function _layoutDefault(children) {
@@ -205,7 +270,7 @@ Item {
 
         return { x: bestX, y: bestY }
     }
-    // ==================== Horizontal Mode Layout 水平模式布局 ====================
+    // Horizontal mode layout 水平模式布局
     // Equal height per row 同行等高
     function _layoutHorizontal(children) {
         // Phase 1: Calculate rows with original sizes 第一阶段：用原始尺寸计算行
@@ -287,7 +352,7 @@ Item {
 
         return rows
     }
-    // ==================== Vertical Mode Layout 垂直模式布局 ====================
+    // Vertical mode layout 垂直模式布局
     // Equal width, variable height (waterfall flow) 等宽不等高（瀑布流）
     // Items are placed in the shortest column 子项放入最短的列
     function _layoutVertical(children) {
@@ -367,99 +432,16 @@ Item {
         if (maxWidth <= 0) maxWidth = 100
         return Math.max(1, Math.floor((control.width + spacing) / (maxWidth + spacing)))
     }
-    // ==================== Qt-Style Layout Methods Qt风格布局方法 ====================
-    // addWidget - Add a child widget to layout 添加子组件到布局
-    function addWidget(widget) {
-        if (widget) {
-            widget.parent = contentItem
-        }
-    }
 
-    // removeWidget - Remove a widget from layout 从布局中移除组件
-    function removeWidget(widget) {
-        if (widget && widget.parent === contentItem) {
-            widget.parent = null
-        }
-    }
+    // ==================== Size 尺寸 ====================
+    implicitWidth: 300
+    implicitHeight: 0
 
-    // setSpacing - Set layout spacing 设置布局间距
-    function setSpacing(value) {
-        spacing = value
-        rowSpacing = value
-    }
+    // Layout attached properties 布局附加属性
+    // Fill parent width by default 默认填充父容器宽度
+    Layouts.Layout.fillWidth: true
 
-
-    // count - Get children count 获取子组件数量
-    function count() {
-        return itemCount
-    }
-
-    // setContentsMargins - Set layout margins 设置布局边距
-    function setContentsMargins(left, top, right, bottom) {
-        leftMargin = left
-        topMargin = top
-        rightMargin = right
-        bottomMargin = bottom
-    }
-
-    // itemAt - Get child at index 获取指定索引的子组件
-    function itemAt(index) {
-        var children = _getVisibleChildren()
-        if (index >= 0 && index < children.length) {
-            return children[index]
-        }
-        return null
-    }
-
-    // indexOf - Get index of widget 获取组件索引
-    function indexOf(widget) {
-        var children = _getVisibleChildren()
-        for (var i = 0; i < children.length; i++) {
-            if (children[i] === widget) {
-                return i
-            }
-        }
-        return -1
-    }
-
-    // isEmpty - Check if layout is empty 检查布局是否为空
-    function isEmpty() {
-        return itemCount === 0
-    }
-
-    // clear - Remove all children 清空所有子组件
-    function clear() {
-        for (var i = contentItem.children.length - 1; i >= 0; i--) {
-            contentItem.children[i].parent = null
-        }
-    }
-
-    // insertWidget - Insert widget 插入组件
-    function insertWidget(index, widget) {
-        if (widget) {
-            widget.parent = contentItem
-        }
-    }
-
-    // ==================== Content Item 内容容器 ====================
-    Item {
-        id: contentItem
-        objectName: "contentItem"
-        anchors.fill: parent
-        anchors.leftMargin: control.leftMargin
-        anchors.topMargin: control.topMargin
-        anchors.rightMargin: control.rightMargin
-        anchors.bottomMargin: control.bottomMargin
-
-        onChildrenChanged: {
-            if (control._initialized) {
-                control._cacheAllOriginalSizes()
-                control._scheduleLayout()
-            }
-        }
-    }
-
-    // ==================== Property Change Handlers 属性变化处理 ====================
+    // Property change handlers 属性变化处理
     onWidthChanged: {
         // Re-layout when width changes 宽度变化时重新布局
         if (width > 0) {
@@ -475,11 +457,29 @@ Item {
     onColumnCountChanged: _scheduleLayout()
     onPreserveAspectRatioChanged: _scheduleLayout()
 
-    // ==================== Component Initialization 组件初始化 ====================
+    // Component initialization 组件初始化
     Component.onCompleted: {
         // Cache original sizes and perform initial layout 缓存原始尺寸并执行初始布局
         _cacheAllOriginalSizes()
         _initialized = true
         _scheduleLayout()
+    }
+
+    // ==================== Content 内容 ====================
+    Item {
+        id: contentItem
+        objectName: "contentItem"
+        anchors.fill: parent
+        anchors.leftMargin: control.leftMargin
+        anchors.topMargin: control.topMargin
+        anchors.rightMargin: control.rightMargin
+        anchors.bottomMargin: control.bottomMargin
+
+        onChildrenChanged: {
+            if (control._initialized) {
+                control._cacheAllOriginalSizes()
+                control._scheduleLayout()
+            }
+        }
     }
 }
