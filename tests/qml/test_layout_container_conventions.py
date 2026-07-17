@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Container layout runtime contracts. 容器布局运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -23,9 +23,23 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+LAYOUT_DIR = (
+    ROOT / "prismqml" / "PrismQML" / "controls" / "containers" / "Layout"
+)
+SOURCE_PATHS = [
+    LAYOUT_DIR / name
+    for name in (
+        "GridLayout.qml",
+        "HBoxLayout.qml",
+        "RowFit.qml",
+        "SplitPane.qml",
+        "VBoxLayout.qml",
+    )
+]
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "layout-container-conventions.qml")
 )
@@ -283,3 +297,15 @@ def test_split_pane_real_drag_clamps_minimum(layout_scene):
     _pump()
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_container_layout_sources_follow_conventions():
+    for source_path in SOURCE_PATHS:
+        source = source_path.read_text(encoding="utf-8")
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations = scan_source_text(source, path)
+        assert [
+            violation
+            for violation in violations
+            if violation.rule in {"QML008", "QML009"}
+        ] == []

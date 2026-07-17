@@ -12,7 +12,7 @@ import "../../.."
 Widget {
     id: control
     
-    // ==================== Properties 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int margins: 0
     property int leftMargin: margins
     property int topMargin: margins
@@ -40,7 +40,7 @@ Widget {
     // Layout attached properties for parent layout 用于父布局的附加属性
     property int layoutAlignment: 0
 
-    // ==================== Qt-Style Layout Methods Qt风格布局方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function addWidget(widget, row, column, rowSpan, columnSpan) {
         if (widget) {
             widget.parent = grid
@@ -125,6 +125,16 @@ Widget {
     
     // 覆盖 Widget 默认 width：Layout 必须填充父容器宽度（保持原 Item 行为）
     width: preferredWidth > 0 ? preferredWidth : (parent ? parent.width : implicitWidth)
+
+    // 让 Layout 系统处理尺寸
+    Layout.preferredWidth: preferredWidth > 0 ? preferredWidth : -1
+    Layout.preferredHeight: preferredHeight > 0 ? preferredHeight : -1
+
+    // 覆盖 Widget 默认值：GridLayout 默认填充宽度和高度
+    layoutFillWidth: true
+    layoutFillHeight: true
+
+    Layout.alignment: layoutAlignment
     
     // 条件性高度绑定：仅在不使用 Layout.fillHeight 时绑定高度
     Binding {
@@ -133,10 +143,6 @@ Widget {
         value: control.preferredHeight > 0 ? control.preferredHeight : control.implicitHeight
         when: !control.layoutFillHeight
     }
-    
-    // 让 Layout 系统处理尺寸
-    Layout.preferredWidth: preferredWidth > 0 ? preferredWidth : -1
-    Layout.preferredHeight: preferredHeight > 0 ? preferredHeight : -1
     
     // Layout 核心职责：向父 Widget 传播尺寸 (使用 Binding 更稳健)
     Binding {
@@ -151,12 +157,6 @@ Widget {
         value: contentHeight
         when: parent && parent.contentHeight !== undefined
     }
-    
-    // 覆盖 Widget 默认值：GridLayout 默认填充宽度和高度
-    layoutFillWidth: true
-    layoutFillHeight: true
-    
-    Layout.alignment: layoutAlignment
     
     // Internal GridLayout
     GridLayout {

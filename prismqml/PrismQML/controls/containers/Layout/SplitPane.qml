@@ -10,7 +10,7 @@ import "../../.."
 Item {
     id: control
     
-    // ==================== Size Priority System 尺寸优先级系统 ====================
+    // Size priority system 尺寸优先级系统
     // Compatible with Widget.qml size system 与Widget.qml尺寸系统兼容
     property real preferredWidth: 0
     property real preferredHeight: 0
@@ -36,7 +36,7 @@ Item {
         : (handleArea.containsMouse ? Enums.stateColor.indicatorHover
                                     : Enums.stateColor.indicator)
 
-    // ==================== Public Methods 公共方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     // Get child count 获取子组件数量
     function count() { return 2 }
 
@@ -72,12 +72,14 @@ Item {
         // Grip pill — draggable cue 药丸抓手，提示可拖拽
         Rectangle {
             id: grip
+
+            readonly property int gripThickness: Enums.border.thick
+            readonly property int gripLength: (handleArea.containsMouse || handleArea.pressed) ? 36 : 24
+
             anchors.centerIn: parent
             radius: Enums.radius.pill
 
             // Lengthens slightly on interaction 交互时略微变长 (px)
-            readonly property int gripThickness: Enums.border.thick
-            readonly property int gripLength: (handleArea.containsMouse || handleArea.pressed) ? 36 : 24
             width: control.isHorizontal ? gripThickness : gripLength
             height: control.isHorizontal ? gripLength : gripThickness
             Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
@@ -91,12 +93,13 @@ Item {
         // Mouse area inside handle 鼠标区域放在handle内部
         MouseArea {
             id: handleArea
+
+            property real startPos
+            property real startSplit
+
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: control.isHorizontal ? Qt.SplitHCursor : Qt.SplitVCursor
-            
-            property real startPos
-            property real startSplit
             
             onPressed: (mouse) => {
                 startPos = control.isHorizontal ? mapToItem(control, mouse.x, 0).x : mapToItem(control, 0, mouse.y).y

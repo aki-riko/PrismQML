@@ -31,7 +31,7 @@ import "../../.."
 Item {
     id: root
 
-    // ==================== Public Props ====================
+    // ==================== Public Props 公开属性 ====================
     // 关闭自动缩放时,行为 = 原生 Row (root 透传 implicit 尺寸)
     property bool autoFit: false
     property real minScale: 0.6
