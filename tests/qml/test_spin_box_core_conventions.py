@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """SpinBoxCore runtime contracts. SpinBoxCore 运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -22,9 +22,21 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "SpinBox"
+    / "SpinBoxCore.qml"
+)
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+INPUT_ENUM_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Input.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "spin-box-core-conventions.qml")
 )
@@ -38,6 +50,12 @@ Window {
     readonly property string addIcon: Enums.icon.add
     readonly property int inputInteractionZ: Enums.zIndex.inputInteraction
     readonly property int inputControlsZ: Enums.zIndex.inputControls
+    readonly property int repeatDelay: Enums.duration.spinBoxRepeatDelay
+    readonly property int repeatInterval: Enums.duration.spinBoxRepeatInterval
+    readonly property int repeatMinInterval: Enums.duration.spinBoxRepeatMinInterval
+    readonly property real repeatAcceleration: Enums.input.spinBoxRepeatAcceleration
+    readonly property int feedbackDuration: Enums.duration.fast
+    readonly property int spinBoxWidth: Enums.controlSize.spinBoxWidth
 
     width: 620
     height: 300
@@ -277,6 +295,29 @@ def _assert_public_methods(normal, wrapped) -> None:
     assert (wrapped.getValue(), wrapped_updates) == (2, [0, 2])
 
 
+def _assert_default_tokens(window, normal) -> None:
+    assert normal.property("autoRepeatDelay") == window.property("repeatDelay")
+    assert normal.property("autoRepeatInterval") == window.property("repeatInterval")
+    assert normal.property("autoRepeatMinInterval") == window.property(
+        "repeatMinInterval"
+    )
+    assert normal.property("_repeatCurrentInterval") == window.property(
+        "repeatInterval"
+    )
+    assert window.property("repeatAcceleration") == 0.85
+    assert normal.property("implicitWidth") == window.property("spinBoxWidth")
+    timers = [
+        child
+        for child in normal.children()
+        if child.metaObject().indexOfProperty("interval") >= 0
+        and child.metaObject().indexOfProperty("repeat") >= 0
+    ]
+    intervals = [timer.property("interval") for timer in timers]
+    assert intervals.count(window.property("repeatDelay")) >= 1
+    assert intervals.count(window.property("repeatInterval")) >= 1
+    assert intervals.count(window.property("feedbackDuration")) >= 2
+
+
 def _assert_text_edit(window, normal) -> None:
     editor = _text_input(normal)
     _click(window, editor)
@@ -325,12 +366,39 @@ def test_spin_box_public_methods_wrap_and_signal_characterization(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, controls, warnings = _create_scene()
     try:
+        _assert_default_tokens(window, controls["normal"])
         _assert_public_methods(controls["normal"], controls["wrapped"])
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_spin_box_core_source_conventions_and_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    metrics = METRICS_PATH.read_text(encoding="utf-8")
+    input_enum = INPUT_ENUM_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    for token in (
+        "Enums.duration.spinBoxRepeatDelay",
+        "Enums.duration.spinBoxRepeatInterval",
+        "Enums.duration.spinBoxRepeatMinInterval",
+        "Enums.input.spinBoxRepeatAcceleration",
+        "Enums.controlSize.spinBoxWidth",
+    ):
+        assert token in source
+    assert source.count("interval: Enums.duration.fast") == 2
+    assert "readonly property int spinBoxRepeatDelay: 500" in metrics
+    assert "readonly property int spinBoxRepeatInterval: 60" in metrics
+    assert "readonly property int spinBoxRepeatMinInterval: 20" in metrics
+    assert "readonly property real spinBoxRepeatAcceleration: 0.85" in input_enum
 
 
 def test_spin_box_text_edit_and_wheel_focus_contracts(qapp):

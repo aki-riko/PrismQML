@@ -35,6 +35,7 @@ QtObject {
     readonly property int spinBoxDoubleDecimals: 2
     readonly property real spinBoxIntegerStep: 1
     readonly property real spinBoxDoubleStep: 0.1
+    readonly property real spinBoxRepeatAcceleration: 0.85  // Held-repeat interval multiplier 长按重复间隔倍率
     // Floating label input configuration 浮动标签输入配置
     readonly property real labelRestingScale: 1.0
     // PIN input configuration PIN 输入配置

@@ -12,9 +12,8 @@ import "../../icons"
 // Supports inline mode (left/right buttons) and compact mode 支持内联模式和紧凑模式
 InputCore {
     id: control
-    focusTarget: textInput
-    
-    // ==================== SpinBox Specific Props SpinBox特有属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property real value: 0
     property real minimum: -Infinity
     property real maximum: Infinity
@@ -23,33 +22,32 @@ InputCore {
     property string prefix: ""
     property string suffix: ""
     property bool editable: true
-    // wrap: 越界时是否回绕 (max+1 → min, min-1 → max)
-    // 适合循环域场景如时间(0-23,0-59) / 角度(0-360)。默认 false 表示不回绕。
+    // Wrap values beyond the range (max+1 -> min, min-1 -> max) 越界时回绕数值
+    // Useful for cyclic domains such as time or angles; disabled by default 适用于时间或角度等循环域，默认关闭
     property bool wrap: false
     property bool spinButtonsVisible: true
     property bool compactMode: false  // Compact mode 紧凑模式
     property bool wheelOnlyWhenFocused: true  // Only allow wheel when focused 仅聚焦时允许滚轮
 
-    // 长按自动重复 (mimic Windows 原生 SpinBox)
-    // autoRepeat: 是否启用长按自动重复
-    // autoRepeatDelay: 按住后多久开始重复 (ms)
-    // autoRepeatInterval: 重复初始间隔 (ms),数值越小越快
-    // autoRepeatMinInterval: 加速后允许达到的最短间隔 (ms),0 表示不加速
+    // Held-button repeat matching native Windows SpinBox 模拟 Windows 原生微调框的长按重复
+    // autoRepeat enables held-button repetition autoRepeat 控制是否启用长按重复
+    // Delay and intervals use milliseconds 延迟与重复间隔单位均为毫秒
     property bool autoRepeat: true
-    property int autoRepeatDelay: 500
-    property int autoRepeatInterval: 60
-    property int autoRepeatMinInterval: 20
+    property int autoRepeatDelay: Enums.duration.spinBoxRepeatDelay
+    property int autoRepeatInterval: Enums.duration.spinBoxRepeatInterval
+    property int autoRepeatMinInterval: Enums.duration.spinBoxRepeatMinInterval
 
-    // 长按重复运行时状态
+    // ==================== Internal Props 内部属性 ====================
+    // Held-button repeat runtime state 长按重复运行状态
     property bool _repeatIsUp: true
-    property int _repeatCurrentInterval: 60
+    property int _repeatCurrentInterval: Enums.duration.spinBoxRepeatInterval
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property string displayValue: prefix + value.toFixed(decimals) + suffix
 
     // ==================== Signals 信号 ====================
     signal valueUpdated(real value)  // Internal alias 内部别名
     signal valueModified(real value)  // Qt-style edit signal Qt风格编辑信号
-    
-    // ==================== Readonly State 只读状态 ====================
-    readonly property string displayValue: prefix + value.toFixed(decimals) + suffix
 
     // ==================== Public Methods 公开方法 ====================
     function increase() {
@@ -91,6 +89,12 @@ InputCore {
     // Step down 步退
     function stepDown() { decrease() }
 
+    // Set value 设置值
+    function setValue(v) { value = Math.max(minimum, Math.min(maximum, v)) }
+    function getValue() { return value }
+    function isEnabled() { return enabled }
+
+    // ==================== Internal Methods 内部方法 ====================
     function _startAutoRepeat(isUp) {
         if (!autoRepeat || !enabled) return
         _repeatIsUp = isUp
@@ -114,21 +118,18 @@ InputCore {
         }
     }
 
-    // Set value 设置值
-    function setValue(v) { value = Math.max(minimum, Math.min(maximum, v)) }
-    function getValue() { return value }
-    function isEnabled() { return enabled }
-
-    // ==================== Bind InputCore State 绑定InputCore状态 ====================
+    // Bind inherited InputCore state 绑定继承的 InputCore 状态
+    focusTarget: textInput
     focused: textInput.activeFocus
     hovered: hoverHandler.hovered
-    
+
     // ==================== Size 尺寸 ====================
-    implicitWidth: 130
+    implicitWidth: Enums.controlSize.spinBoxWidth
     implicitHeight: Enums.controlSize.inputHeight
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    
-    // ==================== Decrease Button (left, inline mode) 减号按钮（内联模式） ====================
+
+    // ==================== Content 内容 ====================
+    // Decrease button for inline mode 内联模式减号按钮
     SpinBoxButton {
         id: decreaseBtn
         anchors.left: parent.left
@@ -143,7 +144,7 @@ InputCore {
         onReleased: control._stopAutoRepeat()
     }
 
-    // ==================== Input Area (center) 输入区域 ====================
+    // Center input area 中央输入区域
     TextInput {
         id: textInput
         anchors.left: (spinButtonsVisible && !compactMode) ? decreaseBtn.right : parent.left
@@ -165,8 +166,8 @@ InputCore {
         
         validator: DoubleValidator { bottom: control.minimum; top: control.maximum; decimals: control.decimals }
 
-        // 实时 clamp: 用户输入超过 maximum 立即截断到 maximum (而不是等失焦才生效).
-        // 防止显示 99999999999 这种远超进位上限的中间值.
+        // Clamp values above maximum while editing instead of waiting for blur 编辑时立即钳制超过 maximum 的值
+        // Prevent extreme intermediate text such as 99999999999 防止显示远超上限的中间值
         onTextChanged: {
             if (activeFocus) {
                 var raw = text.replace(control.prefix, "").replace(control.suffix, "")
@@ -190,7 +191,7 @@ InputCore {
         }
     }
     
-    // ==================== Increase Button (right, inline mode) 加号按钮（内联模式） ====================
+    // Increase button for inline mode 内联模式加号按钮
     SpinBoxButton {
         id: increaseBtn
         anchors.right: parent.right
@@ -205,7 +206,7 @@ InputCore {
         onReleased: control._stopAutoRepeat()
     }
     
-    // ==================== Compact Buttons (right, compact mode) 紧凑按钮（紧凑模式） ====================
+    // Compact buttons on the right 右侧紧凑按钮
     // Inline mode: two separate clickable buttons 内联模式：两个独立可点击按钮
     Item {
         id: compactBtnContainer
@@ -246,12 +247,12 @@ InputCore {
         }
     }
     
-    // ==================== Hover Detection 悬浮检测 ====================
+    // Hover detection 悬浮检测
     HoverHandler {
         id: hoverHandler
     }
     
-    // TapHandler 点击聚焦已在 InputCore 统一处理
+    // InputCore handles tap-to-focus centrally 点击聚焦由 InputCore 统一处理
     
     // Mouse wheel support 鼠标滚轮支持
     MouseArea {
@@ -262,9 +263,8 @@ InputCore {
         acceptedButtons: Qt.NoButton
         
         onWheel: function(wheel) {
-            // 用 hoverHandler.hovered 判断而不是自身 containsMouse,
-            // 因为 InputCore 顶层 z=10 的光标 MouseArea 会拦走 hover 事件,
-            // 导致本 MouseArea 的 containsMouse 永远是 false
+            // Use the shared HoverHandler instead of this MouseArea's containsMouse 使用共享 HoverHandler 而非自身 containsMouse
+            // InputCore's upper cursor MouseArea receives hover events first InputCore 上层光标区域会优先接收悬浮事件
             var canWheel = control.enabled && hoverHandler.hovered
             if (control.wheelOnlyWhenFocused && !textInput.activeFocus) {
                 canWheel = false
@@ -287,9 +287,8 @@ InputCore {
         }
     }
     
-    // ==================== Auto Repeat (long press) 长按自动重复 ====================
-    // 按住按钮时,先等 autoRepeatDelay,再以 autoRepeatInterval 重复触发,
-    // 持续触发后逐步加速到 autoRepeatMinInterval
+    // Held-button auto repeat 长按自动重复
+    // Wait autoRepeatDelay, then repeat and accelerate toward the minimum interval 先等待延迟，再重复并逐步加速到最短间隔
     Timer {
         id: autoRepeatDelayTimer
         interval: control.autoRepeatDelay
@@ -308,11 +307,11 @@ InputCore {
         onTriggered: {
             if (control._repeatIsUp) control.increase()
             else control.decrease()
-            // 加速: 每次重复后把间隔向 minInterval 收敛 15%,直到达到下限
+            // Accelerate each repeat toward the minimum interval 每次重复后向最短间隔收敛
             if (control.autoRepeatMinInterval > 0 &&
                 control._repeatCurrentInterval > control.autoRepeatMinInterval) {
                 var next = Math.max(control.autoRepeatMinInterval,
-                                    Math.floor(control._repeatCurrentInterval * 0.85))
+                                    Math.floor(control._repeatCurrentInterval * Enums.input.spinBoxRepeatAcceleration))
                 if (next !== control._repeatCurrentInterval) {
                     control._repeatCurrentInterval = next
                     autoRepeatTimer.interval = next
@@ -321,10 +320,10 @@ InputCore {
         }
     }
 
-    // ==================== Wheel Feedback 滚轮反馈动画 ====================
+    // Wheel feedback timers 滚轮反馈计时器
     Timer {
         id: upFeedbackTimer
-        interval: 100
+        interval: Enums.duration.fast
         onTriggered: {
             if (compactMode) { compactUpBtn.pseudoHovered = false; compactUpBtn.pseudoPressed = false }
             else { increaseBtn.pseudoHovered = false; increaseBtn.pseudoPressed = false }
@@ -333,7 +332,7 @@ InputCore {
     
     Timer {
         id: downFeedbackTimer
-        interval: 100
+        interval: Enums.duration.fast
         onTriggered: {
             if (compactMode) { compactDownBtn.pseudoHovered = false; compactDownBtn.pseudoPressed = false }
             else { decreaseBtn.pseudoHovered = false; decreaseBtn.pseudoPressed = false }

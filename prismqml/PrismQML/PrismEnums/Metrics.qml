@@ -30,6 +30,8 @@ QtObject {
  readonly property int ultraFast: 50
  readonly property int instant: 50
  readonly property int wheelPickerRepeatInterval: 50 // Wheel picker held-button repeat interval 滚轮选择器长按重复间隔
+ readonly property int spinBoxRepeatInterval: 60 // SpinBox held-button repeat interval 微调框长按重复间隔
+ readonly property int spinBoxRepeatMinInterval: 20 // SpinBox accelerated repeat lower bound 微调框加速重复最短间隔
  readonly property int fast: 100
  readonly property int normal: 150
  readonly property int medium: 200
@@ -38,6 +40,7 @@ QtObject {
  readonly property int page: 320 // Page transition 页面切换
  readonly property int dialog: 400
  readonly property int wheelPickerRepeatDelay: 500 // Wheel picker held-button initial delay 滚轮选择器长按初始延迟
+ readonly property int spinBoxRepeatDelay: 500 // SpinBox held-button initial delay 微调框长按初始延迟
  readonly property int splashTimeout: 5000 // Splash dismiss fallback when first page never signals loaded 首屏加载信号意外不来时关闭欢迎页的兜底超时
  readonly property int scroll: 750
  readonly property int bounce: 750 // Scroll bounce animation 滚动回弹动画
