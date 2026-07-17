@@ -1,7 +1,7 @@
 # PrismQML 全库审计整改落盘计划
 
 > 审计交付状态：已完成（2026-07-13）
-> 整改执行状态：进行中；P6、P7、P9 剩余项不得视为已完成
+> 整改执行状态：进行中；P7、P9 剩余项不得视为已完成
 > 创建日期：2026-07-11
 > 审计基线：`299e984ee85e0020560bd3d5de9bbe72fc13ed25`（`0.2.24.9`）
 > 适用范围：Python、QML、C++、Rust、构建脚本、CI、发布物与文档工具
@@ -373,6 +373,8 @@ cargo test --manifest-path rust\Cargo.toml
 ### P6：QML 规范债务分批归零
 
 预期效果：先阻止新增违规，再按组件域消化现有问题；每批都能独立回滚。
+
+最终状态：已完成（2026-07-18）。下方以“状态：进行中”开头的长段保留为阶段执行历史，不代表当前状态。最终批 `917bc44c` 把 examples 的 43 条 QML010 全部迁到既有图表/状态令牌或集中式 `Enums.examplePageColors`，未新增扫描豁免；聚焦 45 passed，最终全量 Python 2443 passed / 1 skipped、QML probe 169 OK / 0 错误 / 12 跳过、CTest headless 9/9 + native 2/2、MkDocs strict、Python 3.9 grammar AST 345、compileall、changed 43→0、all scanner 0 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留。生产与 examples 的 QML008/QML009/QML010/QML011/QML013 至此全部归零。
 
 状态：进行中。已完成 P6 门禁基础设施：新增只读扫描器 `scripts/check_qml_conventions.py`，`--changed` 对 Git base 与当前完整文件的违规指纹做多重集合差分，只阻断新增违规，因此可识别“新增子元素导致未改动 property 变成乱序”等上下文回归，同时不强迫 P6A 混入 P6C/P6D 的存量清理；rename 会映射到旧路径基线。`--all` 默认对存量违规返回非零，CI 使用 `--report-only` 仅报告剩余数。扫描器已覆盖 import、Qt5Compat、QtQuick.Controls 评审例外、ThemeManager、局部 enum/主题代理、成员顺序、alias 就近、readonly 前向 id、Behavior、分节术语和保守样式字面量。初始全库基线为 3,335 项；扫描器回归 9/9、全量 Python 157、QML `169/0/12`、changed 模式 0 新增违规通过，Build All [29126501598](https://github.com/aki-riko/PrismQML/actions/runs/29126501598) 的 QML conventions 作业真实通过。提交：`d5b5852`。P6A 已完成：`page_builder`、`Action.clicked`、`shortcutModified`、`SystemTrayMenu.exec`、`CheckIcon.checked` 与 `StackedWidget.pageComponents` 的定义、发射、唯一内部消费者及三套窗口转发均归零；StackedWidget 收敛为 `pageSources` 懒加载或直接子项两条路径。`pageSources` 冷跳页第一拍、主页 latch、完整 WindowsBar 真窗口、直接子项误设 lazyLoading 四条真实输入均通过；全量 Python 161、QML `169/0/12`、changed 0 新增违规通过。全库基线降至 3,327 项：ThemeManager 8、局部主题代理 8、成员顺序 1,961、分节术语 1,204、硬编码颜色 63、样式数值 76、字体 7。提交：`8e3ba4b0`。
 
@@ -1137,6 +1139,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 | P6E BarChartContent（2026-07-18） | 已完成 | `6b6a4bc` 新增真实可见私有桌面柱状图场景，分别实例化竖向/横向单系列和多系列内容，覆盖正负值几何、真实 hover/click 载荷、多系列 Canvas 命中、min/max marker 与 average label；首次横向探针按 `barValue` 误取同实例内隐藏的 `verticalBarItem`，通过实际 `visible=false` 证据修正为只选择可见 delegate，未把测试取错对象误报成框架缺陷，修前生产基线与既有强文字/viewport 联合 12 passed。`f6c81bb4` 将根 required/public/internal/readonly 属性、信号、方法与重绘 handler 恢复到子元素之前，前移多系列 Canvas 的动画状态/绘制 helper、Timer 状态、marker/average delegate 属性及竖横两套 bar delegate/Canvas 状态，统一内容分节并增加静态护栏；生产文件非注释字符及 token 多重集合与基线提交完全一致，不改数值范围、正负零轴、动画、Canvas 绘制、渐变、marker、hover/click 或公开 API。目标 QML008 34 条、QML009 10 条共 44 条归零，P6D/P6E 累计清理 2490 条；全库库存 129→85（QML008 17 / QML009 25 / QML010 43）。文件当前 657 行，低于 700 硬限制但高于 `_internal` 600 行建议线，后续模块化建议保留，未混入本机械批。最终图表联合 13 passed、全量 Python 2438 passed / 1 skipped、QML probe 169 OK / 0 错误 / 12 跳过、CTest headless 9/9 + native 2/2、MkDocs strict、Python 3.9 grammar AST 344、compileall、changed 44→0 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留 | `6b6a4bc`、`f6c81bb4` |
 | P6D controls/utils（2026-07-18） | 已完成 | 以 PopupWindowCore 首次预热/开关动画、ButtonDropdown 生命周期、ScrollBar、Skeleton viewport 与 Prism Design utils 真实输入建立基线，修前联合 38 passed。`d73932b8` 将 PopupWindowCore 的预热/动画/位置状态前移到完整属性区，HorizontalScrollMixin 的 setup 方法恢复到 assignments/子元素之前，WindowDragHandle 内部拖拽状态前移到信号之前，ViewportCulling 统一公开/只读/内部/方法分节，ViewportMixin 将 `initTimer` 属性恢复到函数/完成 handler 之前，并给五文件增加静态护栏；五个生产文件非注释字符及 token 多重集合逐文件与父提交完全一致，不改 native window 预热、弹层动画、横向滚动/overshoot、拖窗、视口计算、Timer 或公开 API。原 Popup 动画静态测试曾硬编码旧 `Show Animation` 注释标题，机械整理后按证据迁到真实 `showAnim/showAnimTimer` id 代码边界，最终聚焦 39 passed。目标 QML008 9 条、QML009 20 条共 29 条归零，P6D/P6E 累计清理 2519 条，目标 utils 五文件当前 QML008/QML009 全部归零；全库库存 85→56（QML008 8 / QML009 5 / QML010 43）。最终全量 Python 2439 passed / 1 skipped、QML probe 169 OK / 0 错误 / 12 跳过、CTest headless 9/9 + native 2/2、MkDocs strict、Python 3.9 grammar AST 344、compileall、changed 29→0 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留 | `d73932b8` |
 | P6D effects + Translator（2026-07-18） | 已完成 | `1d0a5484` 将 MatrixRain、NeoShadow、Shadow、ToggleAnimation 与 Translator 的属性、信号、方法、handler、Behavior 和子元素恢复到规范顺序，统一公开/内部/只读/内容分节术语，并扩展静态护栏覆盖五个生产文件；非注释字符及 token 多重集合逐文件与父提交完全一致，不改效果预设、阴影、动画、翻译加载或公开 API。目标 QML008 8 条、QML009 5 条共 13 条归零，P6D/P6E 累计清理 2532 条；全库库存 56→43，仅剩 examples 的 QML010 43 条，生产 QML008/QML009/QML010 全部归零。最终聚焦 12 passed、全量 Python 2440 passed / 1 skipped、QML probe 169 OK / 0 错误 / 12 跳过、CTest headless 9/9 + native 2/2、MkDocs strict、Python 3.9 grammar AST 344、compileall、changed 13→0 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留 | `1d0a5484` |
+| P6 examples QML010 最终归零（2026-07-18） | 已完成 | 43 条示例颜色字面量迁到既有 `chartColors/stateColor/transparent` 或集中式 `examplePageColors`，不新增任何扫描豁免；6 个迁移页真实创建、Settings 页既有真实配置链及颜色令牌明暗值均有回归。聚焦 45 passed、全量 Python 2443 passed / 1 skipped、QML probe 169 OK / 0 错误 / 12 跳过、CTest headless 9/9 + native 2/2、MkDocs strict、Python 3.9 grammar AST 345、compileall、changed 43→0、all scanner 0 与 `git diff --check` 全绿，P6 全库最终归零 | `917bc44c` |
 | P9 最终验收 | 待执行 |  |  |
 
 状态只能填写“待执行 / 进行中 / 已完成 / 阻塞”。“已完成”必须同时记录真实测试结果和提交哈希。
