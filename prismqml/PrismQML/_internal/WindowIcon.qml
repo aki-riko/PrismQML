@@ -7,7 +7,7 @@ import QtQuick.Window
 import ".."
 import "../effects"
 
-// WindowIcon - Reusable window icon component
+// WindowIcon - Reusable window icon component 可复用的窗口图标组件
 Item {
     id: root
 
@@ -45,10 +45,6 @@ Item {
         return "file:///" + normalizedSource
     }
 
-    width: Enums.window.titleIconSize
-    height: Enums.window.titleIconSize
-    visible: source !== ""
-
     function _scheduleDeferredLoad() {
         if (!deferLoad) {
             _deferredLoadReady = true
@@ -59,6 +55,10 @@ Item {
             deferredLoadTimer.restart()
         }
     }
+
+    width: Enums.window.titleIconSize
+    height: Enums.window.titleIconSize
+    visible: source !== ""
 
     onSourceChanged: _scheduleDeferredLoad()
     onDeferLoadChanged: _scheduleDeferredLoad()
@@ -75,7 +75,7 @@ Item {
 
     Timer {
         id: deferredLoadTimer
-        interval: 1
+        interval: Enums.window.iconDeferredLoadDelayMs
         repeat: false
         onTriggered: {
             root._deferredLoadReady = true

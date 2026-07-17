@@ -6,11 +6,11 @@ import QtQuick
 import QtQuick.Effects
 import ".."
 
-// QmlShadowHost - Deferred QML shadow implementation
+// QmlShadowHost - Deferred QML shadow implementation 延迟加载的 QML 阴影实现
 Item {
     id: root
 
-    // ==================== Host Props ====================
+    // ==================== Internal Props 内部属性 ====================
     readonly property var hostWindow: parent ? parent.hostWindow : null
 
     anchors.fill: parent

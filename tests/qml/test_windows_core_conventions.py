@@ -31,6 +31,16 @@ SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "WindowsCore.qml"
 ANIMATION_HELPER_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
 )
+WINDOW_LEAF_PATHS = [
+    ROOT / "prismqml" / "PrismQML" / "_internal" / name
+    for name in (
+        "QmlShadowHost.qml",
+        "ResizeArea.qml",
+        "WindowIcon.qml",
+        "CaptionButton.qml",
+        "ContentFrame.qml",
+    )
+]
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "windows-core-conventions.qml")
@@ -263,3 +273,20 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
     assert "animHelper.handleVisibilityChange" not in SOURCE_PATH.read_text(
         encoding="utf-8"
     )
+
+
+def test_window_leaf_source_conventions_and_icon_delay_token():
+    for source_path in WINDOW_LEAF_PATHS:
+        source = source_path.read_text(encoding="utf-8")
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations = scan_source_text(source, path)
+        assert [
+            violation
+            for violation in violations
+            if violation.rule in {"QML008", "QML009"}
+        ] == []
+    window_icon = WINDOW_LEAF_PATHS[2].read_text(encoding="utf-8")
+    assert "interval: Enums.window.iconDeferredLoadDelayMs" in window_icon
+    assert "interval: 1" not in window_icon
+    metrics = METRICS_PATH.read_text(encoding="utf-8")
+    assert "readonly property int iconDeferredLoadDelayMs: 1" in metrics

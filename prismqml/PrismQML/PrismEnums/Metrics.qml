@@ -419,6 +419,7 @@ QtObject {
  readonly property int titleIconGap: 8
  readonly property int resizeEdge: 8
  readonly property int resizeCorner: 16
+ readonly property int iconDeferredLoadDelayMs: 1 // Deferred window-icon source activation delay 窗口图标源延迟激活时间
  readonly property int resizeHandlesDelayMs: 1200 // Deferred resize-handle load delay 调整大小手柄延迟加载时间
  readonly property int navPanelMinWidth: 200 // Split-window left panel min width 左侧面板最小宽度
  readonly property int iconRenderSize: 256 // Icon render size for crisp SVG (fixed high-res) 图标渲染尺寸（固定高分辨率）

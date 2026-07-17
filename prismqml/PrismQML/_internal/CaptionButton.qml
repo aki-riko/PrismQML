@@ -6,14 +6,14 @@ import QtQuick
 import ".."
 
 // CaptionButton - Windows 11 style caption button 标题栏按钮
-// Extracted from WindowsCore for modularity 从WindowsCore提取以模块化
+// Extracted from WindowsCore for modularity 从 WindowsCore 提取以便模块化
 Rectangle {
     id: captionBtn
     
     // ==================== Required Props 必需属性 ====================
     required property var targetWindow  // Parent window 父窗口
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string iconType: "minimize"  // minimize, maximize, restore, close
     property bool isClose: iconType === "close"
     property int buttonWidth: Enums.window.captionButtonWidth
@@ -66,12 +66,13 @@ Rectangle {
         visible: parent.radius > 0
     }
 
-    // Draw icon with Canvas 用Canvas绘制图标
+    // Draw the icon with Canvas. 使用 Canvas 绘制图标。
     Canvas {
+        readonly property color iconColor: captionBtn.iconColor
+
         anchors.centerIn: parent
         width: Enums.window.captionIconSize
         height: Enums.window.captionIconSize
-        readonly property color iconColor: captionBtn.iconColor
 
         onPaint: {
             var ctx = getContext("2d")
