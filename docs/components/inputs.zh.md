@@ -43,6 +43,16 @@ Fluent.RadioButton { text: "选项 A" }
 Fluent.ToggleSwitch { text: "启用"; checked: true }
 ```
 
+三态值统一通过 `Enums.toggle` 访问：`state_unchecked`、`state_partially_checked`、`state_checked`。`checked` 与 `checkState` 双向同步；部分勾选态对应 `checked: false`。
+
+```qml
+Fluent.CheckBox {
+    text: "部分选择"
+    tristate: true
+    checkState: Fluent.Enums.toggle.state_partially_checked
+}
+```
+
 ## 其他
 
 - `SpinBox` — 数字步进

@@ -43,6 +43,16 @@ Fluent.RadioButton { text: "Option A" }
 Fluent.ToggleSwitch { text: "Enabled"; checked: true }
 ```
 
+Tristate values are exposed through `Enums.toggle`: `state_unchecked`, `state_partially_checked`, and `state_checked`. `checked` and `checkState` stay synchronized; the partially checked state maps to `checked: false`.
+
+```qml
+Fluent.CheckBox {
+    text: "Partially selected"
+    tristate: true
+    checkState: Fluent.Enums.toggle.state_partially_checked
+}
+```
+
 ## Others
 
 - `SpinBox` — numeric stepper
