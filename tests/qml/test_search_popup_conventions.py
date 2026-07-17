@@ -41,6 +41,7 @@ POPUP_SOURCE_PATH = (
 )
 RESULT_LIST_SOURCE_PATH = POPUP_SOURCE_PATH.with_name("SearchResultList.qml")
 RESULT_ITEM_SOURCE_PATH = POPUP_SOURCE_PATH.with_name("SearchResultItem.qml")
+LOCAL_SEARCH_SOURCE_PATH = POPUP_SOURCE_PATH.parent.parent / "LocalSearchBar.qml"
 METRICS_SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 ENUMS_SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
 SCENE_URL = QUrl.fromLocalFile(
@@ -443,6 +444,15 @@ def test_search_result_item_source_conventions():
 def test_search_result_list_source_conventions():
     source = RESULT_LIST_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(RESULT_LIST_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_local_search_bar_source_conventions():
+    source = LOCAL_SEARCH_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(LOCAL_SEARCH_SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [
         item for item in violations if item.rule in {"QML008", "QML009"}

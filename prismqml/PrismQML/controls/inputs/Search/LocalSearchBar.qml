@@ -36,7 +36,7 @@ import "_internal" as SearchInternal
 Item {
     id: control
 
-    // ==================== Public Props ====================
+    // ==================== Public Props 公开属性 ====================
     property var entries: []
     property string placeholderText: ''
     property int popupMode: Enums.input.search_popup_anchored_below
@@ -47,11 +47,11 @@ Item {
     property bool highlightMatches: true
     property string emptyText: ''  // 默认走 i18n no_results
 
-    // ==================== Read-only ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property string query: lineEdit.text
     readonly property bool isOpen: searchPopup.isOpen
 
-    // ==================== Signals ====================
+    // ==================== Signals 信号 ====================
     signal entrySelected(var entry)
     // 注意: 不暴露 queryChanged — 它会跟 readonly property `query`
     // 自带的 *Changed signal 冲突. 应用层要监听用 onQueryChanged.
@@ -60,11 +60,7 @@ Item {
     signal opened()
     signal dismissed()
 
-    // ==================== Sizing ====================
-    implicitWidth: lineEdit.implicitWidth
-    implicitHeight: lineEdit.implicitHeight
-
-    // ==================== Public methods ====================
+    // ==================== Public Methods 公开方法 ====================
     function open() {
         if (popupMode === Enums.input.search_popup_centered_overlay) {
             searchPopup.open()
@@ -90,7 +86,12 @@ Item {
         return lineEdit.text
     }
 
-    // ==================== LineEdit (输入框) ====================
+    // ==================== Size 尺寸 ====================
+    implicitWidth: lineEdit.implicitWidth
+    implicitHeight: lineEdit.implicitHeight
+
+    // ==================== Content 内容 ====================
+    // Search input 搜索输入框
     LineEdit {
         id: lineEdit
         anchors.fill: parent
@@ -143,7 +144,7 @@ Item {
         }
     }
 
-    // ==================== Popup + ResultList (打包) ====================
+    // Popup and result list 弹窗与结果列表
     SearchInternal.SearchResultList {
         id: resultList
         query: control.query
