@@ -10,10 +10,40 @@ function count(model) {
     return model ? model.length : 0
 }
 
+function _copyMapWithShift(source, startIndex, delta, removedIndex) {
+    var result = ({})
+    for (var key in source) {
+        var index = Number(key)
+        if (index === removedIndex) continue
+        var targetIndex = index >= startIndex ? index + delta : index
+        result[targetIndex] = source[key]
+    }
+    return result
+}
+
+function _shiftMetadata(control, startIndex, delta, removedIndex) {
+    control._itemDataMap = _copyMapWithShift(control._itemDataMap, startIndex, delta, removedIndex)
+    control._itemIconMap = _copyMapWithShift(control._itemIconMap, startIndex, delta, removedIndex)
+    control._itemEnabledMap = _copyMapWithShift(control._itemEnabledMap, startIndex, delta, removedIndex)
+}
+
+function _setMapValue(source, index, value) {
+    var result = ({})
+    for (var key in source) result[key] = source[key]
+    result[index] = value
+    return result
+}
+
+function _hasMapValue(source, index) {
+    return source && source.hasOwnProperty(index)
+}
+
 function addItem(control, text, userData) {
     var newModel = control.model.slice()
+    var newIndex = newModel.length
     newModel.push(text)
     control.model = newModel
+    if (userData !== undefined) setItemData(control, newIndex, userData)
     if (control.model.length === 1) control.currentIndex = 0
 }
 
@@ -31,6 +61,7 @@ function removeItem(control, index) {
     var newModel = control.model.slice()
     newModel.splice(index, 1)
     control.model = newModel
+    _shiftMetadata(control, index + 1, -1, index)
     if (index < control.currentIndex) control.currentIndex--
     else if (index === control.currentIndex) {
         if (control.currentIndex >= control.model.length) control.currentIndex = control.model.length - 1
@@ -42,7 +73,9 @@ function insertItem(control, index, text, userData) {
     if (index > control.model.length) index = control.model.length
     var newModel = control.model.slice()
     newModel.splice(index, 0, text)
+    _shiftMetadata(control, index, 1, -1)
     control.model = newModel
+    if (userData !== undefined) setItemData(control, index, userData)
     if (index <= control.currentIndex) control.currentIndex++
 }
 
@@ -54,25 +87,28 @@ function insertItems(control, index, texts) {
     for (var i = 0; i < texts.length; i++) {
         newModel.splice(index + i, 0, texts[i])
     }
+    _shiftMetadata(control, index, texts.length, -1)
     control.model = newModel
     if (index <= control.currentIndex) control.currentIndex += texts.length
 }
 
 function clear(control) {
     control.model = []
+    control._itemDataMap = ({})
+    control._itemIconMap = ({})
+    control._itemEnabledMap = ({})
     control.currentIndex = -1
 }
 
 // ==================== Text Methods 文本方法 ====================
 
 function itemText(model, index) {
-    if (index < 0 || index >= model.length) return ""
-    return model[index]
+    return getItemText(model, index)
 }
 
 function findText(model, text) {
     for (var i = 0; i < model.length; i++) {
-        if (model[i] === text) return i
+        if (getItemText(model, i) === text) return i
     }
     return -1
 }
@@ -101,15 +137,16 @@ function currentData(control) {
 
 function itemData(control, index) {
     if (index < 0 || index >= control.model.length) return undefined
+    if (_hasMapValue(control._itemDataMap, index)) return control._itemDataMap[index]
     if (typeof control.model[index] === 'object' && control.model[index].data !== undefined) {
         return control.model[index].data
     }
-    return control._itemDataMap[index]
+    return undefined
 }
 
 function setItemData(control, index, value) {
     if (index < 0 || index >= control.model.length) return
-    control._itemDataMap[index] = value
+    control._itemDataMap = _setMapValue(control._itemDataMap, index, value)
 }
 
 function findData(control, data) {
@@ -123,30 +160,32 @@ function findData(control, data) {
 
 function itemIcon(control, index) {
     if (index < 0 || index >= control.model.length) return ""
+    if (_hasMapValue(control._itemIconMap, index)) return control._itemIconMap[index]
     if (typeof control.model[index] === 'object' && control.model[index].icon !== undefined) {
         return control.model[index].icon
     }
-    return control._itemIconMap[index] || ""
+    return ""
 }
 
 function setItemIcon(control, index, icon) {
     if (index < 0 || index >= control.model.length) return
-    control._itemIconMap[index] = icon
+    control._itemIconMap = _setMapValue(control._itemIconMap, index, icon)
 }
 
 // ==================== Enabled State Methods 启用状态方法 ====================
 
 function setItemEnabled(control, index, isEnabled) {
     if (index < 0 || index >= control.model.length) return
-    control._itemEnabledMap[index] = isEnabled
+    control._itemEnabledMap = _setMapValue(control._itemEnabledMap, index, isEnabled)
 }
 
 function isItemEnabled(control, index) {
     if (index < 0 || index >= control.model.length) return true
+    if (_hasMapValue(control._itemEnabledMap, index)) return control._itemEnabledMap[index]
     if (typeof control.model[index] === 'object' && control.model[index].enabled !== undefined) {
         return control.model[index].enabled
     }
-    return control._itemEnabledMap[index] !== false
+    return true
 }
 
 // ==================== Helper Methods 辅助方法 ====================

@@ -24,7 +24,7 @@ Widget {
     // ==================== Public Props 公开属性 ====================
     property var model: []  // Text array or object array 文本数组或对象数组
     property int currentIndex: -1
-    property string currentText: currentIndex >= 0 && currentIndex < model.length ? _getItemText(currentIndex) : ""
+    property string currentText: ""
     property string placeholderText: "Select"
     property bool editable: false
     property bool useDefaultContent: true
@@ -85,6 +85,12 @@ Widget {
     // ==================== Internal Helper Methods 内部辅助方法 ====================
     function _getItemText(index) { return _methods.getItemText(model, index) }
     function _hasMatchingItems(searchText) { return _methods.hasMatchingItems(model, searchText) }
+    function _syncCurrentTextFromSelection() {
+        if (editable && currentIndex === -1) return
+        var nextText = currentIndex >= 0 && currentIndex < model.length
+            ? _getItemText(currentIndex) : ""
+        if (currentText !== nextText) currentText = nextText
+    }
     
     // ==================== Signals 信号 ====================
     signal activated(int index)
@@ -125,13 +131,17 @@ Widget {
                 if (typeof modelData === "object") return modelData.text || modelData.toString()
                 return modelData.toString()
             }
+            icon: _comboControl ? _comboControl.itemIcon(index) : ""
             selected: _comboControl && index === _comboControl.currentIndex
+            itemEnabled: _comboControl ? _comboControl.isItemEnabled(index) : true
+            height: _comboControl ? _comboControl.popupItemHeight : Enums.comboBoxMetrics.itemHeight
             property var _comboControl: ListView.view ? ListView.view.parentControl : null
             onClicked: {
                 if (!_comboControl) return
                 var oldIndex = _comboControl.currentIndex
                 var oldText = _comboControl.currentText
                 _comboControl.currentIndex = index
+                _comboControl.currentText = _comboControl._getItemText(index)
                 _comboControl.activated(index)
                 _comboControl.textActivated(_comboControl.currentText)
                 if (oldIndex !== index) _comboControl.indexChanged(index)
@@ -176,8 +186,8 @@ Widget {
         comboPopup.referenceControlWidth = control.width
         // Calculate height from model length 直接用model长度计算高度
         var itemCount = model.length
-        var calcHeight = itemCount * Enums.comboBoxMetrics.itemHeight + Enums.comboBoxMetrics.popupPadding
-        comboPopup.popupHeight = Math.min(calcHeight, maxVisibleItems > 0 ? (maxVisibleItems * Enums.comboBoxMetrics.itemHeight + Enums.comboBoxMetrics.popupPadding) : Enums.comboBoxMetrics.popupMaxHeight)
+        var calcHeight = itemCount * popupItemHeight + Enums.comboBoxMetrics.popupPadding
+        comboPopup.popupHeight = Math.min(calcHeight, maxVisibleItems > 0 ? (maxVisibleItems * popupItemHeight + Enums.comboBoxMetrics.popupPadding) : Enums.comboBoxMetrics.popupMaxHeight)
         comboPopup.openAtControl(control)
         isOpen = true
     }
@@ -195,6 +205,10 @@ Widget {
     // Content size (inherited from Widget) 内容尺寸（继承自Widget）
     contentWidth: Enums.comboBoxMetrics.defaultWidth
     contentHeight: Enums.controlSize.inputHeight
+
+    onCurrentIndexChanged: _syncCurrentTextFromSelection()
+    onModelChanged: _syncCurrentTextFromSelection()
+    Component.onCompleted: _syncCurrentTextFromSelection()
 
     // ==================== Style Helper 样式辅助 ====================
     ComboBoxStyleHelper {
@@ -308,16 +322,18 @@ Widget {
         selectByMouse: true
         visible: control.editable && control.useDefaultContent
         enabled: control.enabled
-        
+
+        onTextEdited: {
+            var editedText = text
+            if (control.currentIndex !== -1) control.currentIndex = -1
+            control.currentText = editedText
+            if (control.textEdited) control.textEdited(editedText)
+        }
+
         InputsInternal.InputPlaceholderLabel {
             anchors.fill: parent
             text: control.placeholderText
             visible: !parent.text && !parent.activeFocus
-        }
-        
-        onTextEdited: {
-            control.currentText = text
-            if (control.textEdited) control.textEdited(text)
         }
     }
 
