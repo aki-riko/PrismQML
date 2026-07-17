@@ -36,6 +36,8 @@ import PrismQML
 Window {
     readonly property string subtractIcon: Enums.icon.subtract
     readonly property string addIcon: Enums.icon.add
+    readonly property int inputInteractionZ: Enums.zIndex.inputInteraction
+    readonly property int inputControlsZ: Enums.zIndex.inputControls
 
     width: 620
     height: 300
@@ -209,6 +211,18 @@ def _text_input(spin_box):
     return matches[0]
 
 
+def _input_interaction_layer(spin_box):
+    matches = [
+        child
+        for child in spin_box.childItems()
+        if child.metaObject().indexOfProperty("propagateComposedEvents") >= 0
+        and child.property("propagateComposedEvents")
+        and child.property("acceptedButtons") == Qt.MouseButton.LeftButton
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 def _click(window, item) -> None:
     QTest.mouseClick(
         window,
@@ -285,17 +299,24 @@ def _assert_wheel_focus_gate(window, controls) -> None:
     assert normal.property("value") == 7
 
 
-def _assert_button_input_is_currently_blocked(window, bounded) -> None:
+def _assert_button_layer_and_repeat_duplicates(window, bounded) -> None:
     values = []
     bounded.valueModified.connect(values.append)
     button = _button_with_icon(window, bounded, "addIcon")
+    assert button.property("z") == window.property("inputControlsZ")
+    assert _input_interaction_layer(bounded).property("z") == window.property(
+        "inputInteractionZ"
+    )
     point = _point_for(window, button)
     QTest.mouseMove(window, point)
     QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=point)
     _pump(130)
     QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=point)
-    assert bounded.property("value") == 5
-    assert values == []
+    assert _wait_for(lambda: bounded.property("value") == 6)
+    assert values.count(6) > 1
+    count_after_release = len(values)
+    _pump(80)
+    assert len(values) == count_after_release
 
 
 def test_spin_box_public_methods_wrap_and_signal_characterization(qapp):
@@ -324,11 +345,11 @@ def test_spin_box_text_edit_and_wheel_focus_contracts(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_spin_box_button_hit_currently_blocked_characterization(qapp):
+def test_spin_box_button_layer_and_repeat_signal_characterization(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, controls, warnings = _create_scene()
     try:
-        _assert_button_input_is_currently_blocked(window, controls["bounded"])
+        _assert_button_layer_and_repeat_duplicates(window, controls["bounded"])
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

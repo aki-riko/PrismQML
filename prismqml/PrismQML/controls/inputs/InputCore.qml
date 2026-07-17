@@ -164,7 +164,7 @@ Widget {
         // z 必须高于子 Loader/TextInput 内部 MouseArea, 否则鼠标 hover 进 padding 区域时
         // 子 MouseArea (无 hoverEnabled / cursorShape) 拦截掉, IBeam 光标只在 TextInput
         // 文字像素上有, padding 周围光标变默认箭头, 用户视觉感受为"没有光标"
-        z: 10
+        z: Enums.zIndex.inputInteraction
         anchors.fill: parent
         cursorShape: control.enabled ? control.cursorShape : Qt.ArrowCursor
         acceptedButtons: Qt.LeftButton
@@ -201,7 +201,7 @@ Widget {
     // z 值确保在子类 Loader 等内容之上渲染（子类子项在基类子项之后添加，z 默认更高）
     // Neobrutalism/Prism: 关闭底线，改由整圈边界表达聚焦。
     FocusLine {
-        z: 10
+        z: Enums.zIndex.inputInteraction
         showLine: !Enums.isNeobrutalism && !Enums.isPrismDesign && control.focused && control.showFocusedBorder
         lineColor: control.focusedBorderColor
         parentRadius: control.radius

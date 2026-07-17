@@ -133,7 +133,7 @@ InputCore {
         icon: Enums.icon.subtract
         visible: spinButtonsVisible && !compactMode
         enabled: control.enabled
-        z: Enums.zIndex.controlsAbove
+        z: Enums.zIndex.inputControls
         onClicked: decrease()
         onButtonPressed: control._startAutoRepeat(false)
         onReleased: control._stopAutoRepeat()
@@ -195,7 +195,7 @@ InputCore {
         icon: Enums.icon.add
         visible: spinButtonsVisible && !compactMode
         enabled: control.enabled
-        z: Enums.zIndex.controlsAbove
+        z: Enums.zIndex.inputControls
         onClicked: increase()
         onButtonPressed: control._startAutoRepeat(true)
         onReleased: control._stopAutoRepeat()
@@ -211,7 +211,7 @@ InputCore {
         width: Enums.spacing.xl + Enums.spacing.xs  // 20
         height: control.height - Enums.spacing.xs
         visible: compactMode
-        z: Enums.zIndex.controlsAbove
+        z: Enums.zIndex.inputControls
         
         // Up button (extends ButtonCore) 增加按钮(继承ButtonCore)
         MiniSpinButton {
