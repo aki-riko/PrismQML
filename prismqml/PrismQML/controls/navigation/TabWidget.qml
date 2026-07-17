@@ -25,6 +25,16 @@ Widget {
     property bool movable: false  // Whether tabs can be reordered 是否可拖拽排序
     property bool scrollable: false  // Whether tab bar is scrollable 是否可滚动
     property bool showAddButton: false  // Show add button 显示添加按钮
+
+    // ==================== Internal Props 内部属性 ====================
+    readonly property int _tabHeight: Enums.controlSize.inputHeightLarge - Enums.spacing.xs
+    readonly property int _tabBarHeight: Enums.controlSize.tableHeaderHeight
+    readonly property real _availableWidth: control.width - Enums.spacing.xs * 2 - (control.showAddButton ? Enums.controlSize.segmentedHeight : 0)
+    property int _dragSourceIndex: -1
+    property int _dragVisualIndex: -1
+    property real _dragSourceOffsetX: 0
+    property real _dragPointerRowX: 0
+    readonly property bool _dragging: _dragSourceIndex >= 0
     
     // ==================== Signals 信号 ====================
     signal currentChanged(int index)  // Current tab changed 当前标签改变
@@ -33,11 +43,6 @@ Widget {
     signal tabAddClicked()  // Add button clicked 添加按钮点击
     signal tabDoubleClicked(int index)  // Tab double clicked 标签双击
     signal tabsReordered(int from, int to)  // Tabs reordered via drag 拖拽重排
-    
-    // ==================== Size 尺寸 ====================
-    // Content size (inherited from Widget) 内容尺寸（继承自Widget）
-    contentWidth: Enums.controlSize.chartDefaultWidth
-    contentHeight: Enums.controlSize.chartDefaultHeight
     
     // ==================== Public Methods 公开方法 ====================
     
@@ -120,23 +125,19 @@ Widget {
     function tabsClosable() {
         return closable
     }
-    
-    
-    // ==================== Internal Props 内部属性 ====================
-    readonly property int _tabHeight: Enums.controlSize.inputHeightLarge - Enums.spacing.xs
-    readonly property int _tabBarHeight: Enums.controlSize.tableHeaderHeight
-    // Calculate available width 计算可用宽度
-    readonly property real _availableWidth: control.width - Enums.spacing.xs * 2 - (control.showAddButton ? Enums.controlSize.segmentedHeight : 0)
 
-    // ==================== Drag State 拖拽重排状态 ====================
-    // movable=true 时启用。拖拽期间不修改 control.tabs(避免动画 reset),
-    // 用 _dragSourceIndex / _dragVisualIndex 推导 delegate 视觉位置,松手后 emit tabsReordered.
-    property int _dragSourceIndex: -1     // 当前正在被拖动的 tab 的原始 index, -1 表示无拖动
-    property int _dragVisualIndex: -1     // 拖动到的目标视觉 index (会随鼠标实时更新)
-    property real _dragSourceOffsetX: 0   // 源 tab 当前视觉位移 (来自 DragHandler.activeTranslation.x)
-    property real _dragPointerRowX: 0     // 当前指针在 tabRow 内的 x (用于边缘滚动 + visualIndex 推导)
-    readonly property bool _dragging: _dragSourceIndex >= 0
+    // ==================== Size 尺寸 ====================
+    // Content size (inherited from Widget) 内容尺寸（继承自Widget）
+    contentWidth: Enums.controlSize.chartDefaultWidth
+    contentHeight: Enums.controlSize.chartDefaultHeight
 
+    // Emit currentChanged and reveal the selected tab 当前索引变化时发信号并显示选中标签
+    onCurrentIndexChanged: {
+        currentChanged(currentIndex)
+        if (tabFlickable) tabFlickable.scrollToCurrentTab()
+    }
+
+    // ==================== Content 内容 ====================
     // 拖到边缘时自动滚动 Flickable
     // FrameAnimation 跟随屏幕刷新率(120Hz/144Hz/240Hz 均逐帧驱动), 不绑 60fps
     FrameAnimation {
@@ -158,13 +159,6 @@ Widget {
                 tabFlickable.contentX = Math.min(maxX, tabFlickable.contentX + step)
             }
         }
-    }
-    
-    // Emit currentChanged when currentIndex changes 当currentIndex改变时发出信号
-    onCurrentIndexChanged: {
-        currentChanged(currentIndex)
-        // Scroll to current selected tab 滚动到当前选中标签
-        if (tabFlickable) tabFlickable.scrollToCurrentTab()
     }
     
     // Tab bar background with clip 标签栏背景（带裁剪）
@@ -287,7 +281,7 @@ Widget {
             Component.onCompleted: _scheduleSync(false)
             on_LayoutXChanged: _scheduleSync(false)
             on_LayoutWChanged: _scheduleSync(false)
-            // ==================== 橡皮筋引擎 (水平, 仅驱动 tabLocalX/targetWidth) ====================
+            // Horizontal stretch engine driving tabLocalX and targetWidth 水平橡皮筋引擎
             // Selection animates; initialization snaps; layout changes retarget from the current frame. 选中切换使用橡皮筋；初始化瞬置；布局变化从当前帧重定向。
             SlidingIndicatorAnimation {
                 id: _eng
@@ -333,10 +327,31 @@ Widget {
         }
     }
     
-    // ==================== Internal Computed Props 内部计算属性 ====================
     // Tab items container 标签项容器（可滚动）
     Flickable {
         id: tabFlickable
+
+        // Smooth scroll methods delegated to the helper 平滑滚动方法委托给helper
+        function smoothScrollTo(targetX) { tabScrollHelper.scrollTo(targetX) }
+        function smoothScrollBy(delta) { tabScrollHelper.scrollBy(delta) }
+
+        // Scroll to current selected tab 滚动到当前选中标签
+        function scrollToCurrentTab() {
+            if (control.currentIndex < 0 || control.currentIndex >= tabRepeater.count) return
+            var item = tabRepeater.itemAt(control.currentIndex)
+            if (!item) return
+
+            var itemLeft = item.x
+            var itemRight = item.x + item.width
+
+            if (itemLeft < tabScrollHelper.targetPos) {
+                smoothScrollTo(itemLeft)
+            }
+            else if (itemRight > tabScrollHelper.targetPos + width) {
+                smoothScrollTo(itemRight - width)
+            }
+        }
+
         anchors.left: parent.left
         anchors.leftMargin: Enums.spacing.xs
         anchors.bottom: tabBarBg.bottom
@@ -349,7 +364,7 @@ Widget {
         boundsBehavior: Flickable.StopAtBounds
         z: Enums.zIndex.header
         
-        // ==================== Smooth Scroll Helper 平滑滚动助手 ====================
+        // Smooth scroll helper 平滑滚动助手
         SmoothScrollHelper {
             id: tabScrollHelper
             target: tabFlickable
@@ -359,29 +374,6 @@ Widget {
             handleWheel: true
         }
         
-        // Smooth scroll methods 平滑滚动方法（委托给Helper）
-        function smoothScrollTo(targetX) { tabScrollHelper.scrollTo(targetX) }
-        function smoothScrollBy(delta) { tabScrollHelper.scrollBy(delta) }
-        
-        // Scroll to current selected tab 滚动到当前选中标签
-        function scrollToCurrentTab() {
-            if (control.currentIndex < 0 || control.currentIndex >= tabRepeater.count) return
-            var item = tabRepeater.itemAt(control.currentIndex)
-            if (!item) return
-            
-            var itemLeft = item.x
-            var itemRight = item.x + item.width
-            
-            // If tab is to the left of visible area 如果标签在可视区域左侧
-            if (itemLeft < tabScrollHelper.targetPos) {
-                smoothScrollTo(itemLeft)
-            }
-            // If tab is to the right of visible area 如果标签在可视区域右侧
-            else if (itemRight > tabScrollHelper.targetPos + width) {
-                smoothScrollTo(itemRight - width)
-            }
-        }
-
         Row {
             id: tabRow
             height: control._tabHeight
