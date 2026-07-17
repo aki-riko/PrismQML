@@ -5,39 +5,40 @@
 import "../../.."
 import ".."
 import "../../data/Label"
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // Keep after library imports so native types win 去前缀后保原生类型不被库覆盖
 
 // ComboBoxFont - Font picker extending ComboBoxCore 字体选择框
 ComboBoxCore {
     id: control
-    
-    // ==================== 字体特有属性 ====================
-    property var fonts: ["Arial", "Segoe UI", "Microsoft YaHei", "SimSun", "SimHei", "KaiTi", "FangSong", "Consolas", "Courier New", "Times New Roman"]
-    property string currentFont: "Segoe UI"
-    
+
+    // ==================== Public Props 公开属性 ====================
+    property var fonts: Enums.comboBox.fontFamilies.slice()
+    property string currentFont: Enums.comboBox.fontDefaultFamily
+
+    // ==================== Signals 信号 ====================
     signal fontSelected(string fontName)
-    
+
     // Use fonts as model 使用fonts作为model
     model: fonts
     popupItemHeight: Enums.controlSize.calendarCellHeight
-    
-    // ==================== 覆盖delegate(复用基类滚动条) ====================
+
+    // ==================== Content 内容 ====================
     popupDelegate: Component {
         Rectangle {
             id: fontItemBg
-            width: ListView.view ? ListView.view.width : 100
+            property bool selected: modelData === control.currentFont
+
+            width: ListView.view ? ListView.view.width : Enums.comboBox.fontDelegateFallbackWidth
             height: control.popupItemHeight
             radius: Enums.radius.small
-            
-            property bool selected: modelData === control.currentFont
-            
+
             color: {
                 if (fontItemArea.pressed) return Enums.stateColor.menuItemPressed
                 if (selected) return Enums.stateColor.menuItemPressed
                 if (fontItemArea.containsMouse) return Enums.stateColor.menuItemHover
                 return Enums.transparent
             }
-            
+
             // Selection indicator 选中指示器
             Rectangle {
                 anchors.left: parent.left
@@ -49,7 +50,7 @@ ComboBoxCore {
                 color: Enums.accentColor
                 visible: fontItemBg.selected
             }
-            
+
             Label {
                 type: Enums.label.type_body
                 anchors.left: parent.left
@@ -58,7 +59,7 @@ ComboBoxCore {
                 text: modelData
                 font.family: modelData
             }
-            
+
             MouseArea {
                 id: fontItemArea
                 anchors.fill: parent

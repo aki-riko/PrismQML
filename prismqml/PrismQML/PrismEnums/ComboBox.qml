@@ -20,6 +20,13 @@ QtObject {
     readonly property real primaryPopupDarken: 1.1
     readonly property real primaryPressedDarken: 1.15
     readonly property real primaryHoverLighten: 1.08
+    // Font picker defaults 字体选择器默认值
+    readonly property var fontFamilies: [
+        "Arial", "Segoe UI", "Microsoft YaHei", "SimSun", "SimHei",
+        "KaiTi", "FangSong", "Consolas", "Courier New", "Times New Roman"
+    ]
+    readonly property string fontDefaultFamily: "Segoe UI"
+    readonly property int fontDelegateFallbackWidth: 100
     // Feature 功能
     readonly property int feature_none: 0
     readonly property int feature_editable: 1

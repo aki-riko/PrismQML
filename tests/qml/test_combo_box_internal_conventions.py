@@ -27,6 +27,7 @@ INTERNAL_DIR = (
 SEARCH_SOURCE_PATH = INTERNAL_DIR / "PopupSearchBox.qml"
 POPUP_CONTENT_SOURCE_PATH = INTERNAL_DIR / "ComboBoxPopupContent.qml"
 STYLE_HELPER_SOURCE_PATH = INTERNAL_DIR / "ComboBoxStyleHelper.qml"
+FONT_SOURCE_PATH = INTERNAL_DIR.parent / "ComboBoxFont.qml"
 SEARCH_SCENE = b"""
 import QtQuick
 import "."
@@ -338,3 +339,19 @@ def test_combo_box_font_runtime_contract(qapp):
         assert _new_visible_windows(windows_before) == []
     finally:
         _destroy_scene(engine, component, root)
+
+
+def test_combo_box_font_source_conventions():
+    source = FONT_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(FONT_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_combo_box_font_uses_enum_defaults():
+    source = FONT_SOURCE_PATH.read_text(encoding="utf-8")
+    assert "Enums.comboBox.fontFamilies.slice()" in source
+    assert "Enums.comboBox.fontDefaultFamily" in source
+    assert "Enums.comboBox.fontDelegateFallbackWidth" in source
