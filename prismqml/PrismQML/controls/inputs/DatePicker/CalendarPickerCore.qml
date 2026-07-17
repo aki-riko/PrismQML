@@ -339,7 +339,7 @@ Item {
                                         else if (dayCell.isNextMonth) control.nextMonth()
                                         control.day = targetDay
                                         control.dayClicked(control.day)
-                                        control.dateChanged(control.year, control.month, control.day)
+                                        control.dateChanged(targetYear, targetMonth, targetDay)
                                     }
                                 }
                             }

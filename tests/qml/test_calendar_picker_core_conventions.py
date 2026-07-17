@@ -97,6 +97,12 @@ def _current_cell(calendar: QQuickItem, day: int) -> QQuickItem:
     return matches[0]
 
 
+def _previous_month_cell(calendar: QQuickItem) -> QQuickItem:
+    matches = [cell for cell in _day_cells(calendar) if cell.property("isPrevMonth")]
+    assert matches
+    return matches[0]
+
+
 def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
     point = item.mapToItem(
         window.contentItem(), QPointF(item.width() / 2, item.height() / 2)
@@ -193,6 +199,31 @@ def test_calendar_core_current_day_and_cross_year_navigation(qapp):
         _assert_cross_year_navigation(calendar)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_calendar_core_adjacent_day_emits_target_month(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, calendar, warnings = _create_scene()
+    try:
+        dates = []
+        calendar.dateChanged.connect(
+            lambda year, month, day: dates.append((year, month, day))
+        )
+        previous_cell = _previous_month_cell(calendar)
+        target_day = previous_cell.property("displayDay")
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            _point_for(window, previous_cell),
+        )
+        assert dates == [(2026, 3, target_day)]
+        assert _wait_for(lambda: not calendar.property("_animating"))
+        assert (calendar.property("year"), calendar.property("month")) == (2026, 3)
+        assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
