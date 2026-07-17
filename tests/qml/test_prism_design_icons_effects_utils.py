@@ -24,6 +24,18 @@ UTILS_SOURCE_PATHS = tuple(
         "WindowDragHandle.qml",
     )
 )
+EFFECT_TRANSLATOR_SOURCE_PATHS = (
+    ROOT / "prismqml" / "PrismQML" / "Translator.qml",
+    *(
+        ROOT / "prismqml" / "PrismQML" / "effects" / name
+        for name in (
+            "MatrixRain.qml",
+            "NeoShadow.qml",
+            "Shadow.qml",
+            "ToggleAnimation.qml",
+        )
+    ),
+)
 
 
 def _build(engine, qml: bytes):
@@ -406,6 +418,20 @@ PopupWindowCore {
 def test_utility_sources_follow_conventions():
     violations = []
     for source_path in UTILS_SOURCE_PATHS:
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source_path.read_text(encoding="utf-8"), path
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
+
+
+def test_effect_and_translator_sources_follow_conventions():
+    violations = []
+    for source_path in EFFECT_TRANSLATOR_SOURCE_PATHS:
         path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
         violations.extend(
             violation

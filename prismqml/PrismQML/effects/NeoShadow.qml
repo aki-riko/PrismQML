@@ -14,15 +14,17 @@ import "../"
 Rectangle {
     id: shadow
 
-    // ==================== Props 属性 ====================
+    // ==================== Required Props 必需属性 ====================
     // 阴影跟随的目标矩形(取其 width/height/radius)。必填。
     required property Item target
+
+    // ==================== Public Props 公开属性 ====================
     // accent=true 时阴影转 neo 主色(橙), 用于聚焦/展开等激活态强调。
     property bool accent: false
     // 偏移量(X=Y), 默认取 neo.shadowOffset。
     property real offset: Enums.neo.shadowOffset
 
-    // ==================== Geometry 几何 ====================
+    // ==================== Size 尺寸 ====================
     // 放在 target 之下一层 (z = target.z - 1), 由父级负责把本组件声明在 target 之前
     // 或显式设置 z。这里默认 z 比常规背景低。
     x: offset

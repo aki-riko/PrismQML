@@ -33,7 +33,32 @@ QtObject {
     
     // i18n directory path i18n目录路径
     readonly property string _i18nPath: Qt.resolvedUrl("i18n/")
-    
+
+    // Supported languages list (sorted by user count) 支持的语言列表
+    readonly property var supportedLanguages: [
+        { code: "auto", name: "Auto (Follow System)", nativeName: "跟随系统" },
+        { code: "en", name: "English", nativeName: "English" },
+        { code: "zh_CN", name: "Chinese (Simplified)", nativeName: "简体中文" },
+        { code: "zh_TW", name: "Chinese (Traditional)", nativeName: "繁體中文" },
+        { code: "hi", name: "Hindi", nativeName: "हिन्दी" },
+        { code: "es", name: "Spanish", nativeName: "Español" },
+        { code: "ar", name: "Arabic", nativeName: "العربية" },
+        { code: "pt", name: "Portuguese", nativeName: "Português" },
+        { code: "ru", name: "Russian", nativeName: "Русский" },
+        { code: "ja", name: "Japanese", nativeName: "日本語" },
+        { code: "de", name: "German", nativeName: "Deutsch" },
+        { code: "fr", name: "French", nativeName: "Français" },
+        { code: "ko", name: "Korean", nativeName: "한국어" },
+        { code: "it", name: "Italian", nativeName: "Italiano" },
+        { code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt" },
+        { code: "th", name: "Thai", nativeName: "ไทย" },
+        { code: "id", name: "Indonesian", nativeName: "Bahasa Indonesia" },
+        { code: "tr", name: "Turkish", nativeName: "Türkçe" },
+        { code: "pl", name: "Polish", nativeName: "Polski" },
+        { code: "nl", name: "Dutch", nativeName: "Nederlands" },
+        { code: "uk", name: "Ukrainian", nativeName: "Українська" }
+    ]
+
     // Language change signal 语言变化信号
     signal languageUpdated(string lang)
     
@@ -163,29 +188,4 @@ QtObject {
             }
         })
     }
-    
-    // Supported languages list (sorted by user count) 支持的语言列表
-    readonly property var supportedLanguages: [
-        { code: "auto", name: "Auto (Follow System)", nativeName: "跟随系统" },
-        { code: "en", name: "English", nativeName: "English" },
-        { code: "zh_CN", name: "Chinese (Simplified)", nativeName: "简体中文" },
-        { code: "zh_TW", name: "Chinese (Traditional)", nativeName: "繁體中文" },
-        { code: "hi", name: "Hindi", nativeName: "हिन्दी" },
-        { code: "es", name: "Spanish", nativeName: "Español" },
-        { code: "ar", name: "Arabic", nativeName: "العربية" },
-        { code: "pt", name: "Portuguese", nativeName: "Português" },
-        { code: "ru", name: "Russian", nativeName: "Русский" },
-        { code: "ja", name: "Japanese", nativeName: "日本語" },
-        { code: "de", name: "German", nativeName: "Deutsch" },
-        { code: "fr", name: "French", nativeName: "Français" },
-        { code: "ko", name: "Korean", nativeName: "한국어" },
-        { code: "it", name: "Italian", nativeName: "Italiano" },
-        { code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt" },
-        { code: "th", name: "Thai", nativeName: "ไทย" },
-        { code: "id", name: "Indonesian", nativeName: "Bahasa Indonesia" },
-        { code: "tr", name: "Turkish", nativeName: "Türkçe" },
-        { code: "pl", name: "Polish", nativeName: "Polski" },
-        { code: "nl", name: "Dutch", nativeName: "Nederlands" },
-        { code: "uk", name: "Ukrainian", nativeName: "Українська" }
-    ]
 }

@@ -16,7 +16,7 @@ import ".."
 MultiEffect {
     id: root
     
-    // ==================== 公开属性 ====================
+    // ==================== Public Props 公开属性 ====================
     // blur 使用 0-1 的归一化值（MultiEffect 要求）
     property real blur: Enums.shadow.level4.blurNormalized
     property color color: Enums.shadow.level4.color
@@ -26,7 +26,7 @@ MultiEffect {
     property real verticalOffset: Enums.shadow.level4.offset
     property real spread
     
-    // ==================== MultiEffect映射 ====================
+    // MultiEffect mapping MultiEffect 映射
     shadowEnabled: true
     shadowColor: root.color
     shadowBlur: root.blur

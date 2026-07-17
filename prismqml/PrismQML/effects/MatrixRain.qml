@@ -204,21 +204,7 @@ Rectangle {
     
     Canvas {
         id: canvas
-        anchors.fill: parent
-        
-        onWidthChanged: if (available) initDrops()
-        onHeightChanged: if (available) initDrops()
-        onAvailableChanged: if (available) initDrops()
-        
-        // Respond to property changes 响应属性变化
-        Connections {
-            target: root
-            function onMainColorChanged() { canvas.clearCanvas() }
-            function onHeadColorChanged() { canvas.clearCanvas() }
-            function onBackgroundColorChanged() { canvas.clearCanvas() }
-            function onDensityChanged() { canvas.initDrops() }
-        }
-        
+
         function clearCanvas() {
             if (!available) return
             var ctx = getContext("2d")
@@ -227,10 +213,10 @@ Rectangle {
                 ctx.fillRect(0, 0, width, height)
             }
         }
-        
+
         function initDrops() {
             if (width <= 0 || height <= 0 || !available) return
-            
+
             var arr = []
             if (root.isHorizontal) {
                 root.rows = Math.ceil(height / root.cellSize / root.density)
@@ -246,7 +232,13 @@ Rectangle {
             root.drops = arr
             clearCanvas()
         }
-        
+
+        anchors.fill: parent
+
+        onWidthChanged: if (available) initDrops()
+        onHeightChanged: if (available) initDrops()
+        onAvailableChanged: if (available) initDrops()
+
         onPaint: {
             var ctx = getContext("2d")
             if (!ctx || root.drops.length === 0) return
@@ -378,6 +370,15 @@ Rectangle {
             if (root.rainbowMode) {
                 root._rainbowOffset = (root._rainbowOffset + 2) % 360
             }
+        }
+
+        // Respond to property changes 响应属性变化
+        Connections {
+            function onMainColorChanged() { canvas.clearCanvas() }
+            function onHeadColorChanged() { canvas.clearCanvas() }
+            function onBackgroundColorChanged() { canvas.clearCanvas() }
+            function onDensityChanged() { canvas.initDrops() }
+            target: root
         }
     }
     

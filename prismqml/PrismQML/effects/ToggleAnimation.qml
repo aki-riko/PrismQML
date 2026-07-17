@@ -19,7 +19,7 @@ Item {
     property bool running: false           // Trigger animation 触发动画
     property int duration: Enums.duration.medium  // Animation duration 动画时长
     
-    // ==================== Internal 内部 ====================
+    // ==================== Internal Props 内部属性 ====================
     property bool _lastState: false
     
     onRunningChanged: {
