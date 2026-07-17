@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """LoginWindow form and signal contracts. 登录窗口表单与信号合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -19,9 +19,13 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "controls" / "auth" / "LoginWindow.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "login-window-conventions.qml")
 )
@@ -166,3 +170,14 @@ def test_login_window_clear_form_and_error(qapp):
     finally:
         _dispose_scene(engine, component, root)
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_login_window_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []

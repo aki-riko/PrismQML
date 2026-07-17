@@ -23,26 +23,6 @@ import "../icons"
 Rectangle {
     id: root
 
-    // ==================== Internal Props 内部属性 ====================
-    readonly property bool _isLogin: mode === Enums.auth.mode_login
-    readonly property int _cardRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
-    readonly property int _errorRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    readonly property color _cardColor: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
-    readonly property color _cardBackgroundColor: Qt.rgba(
-        root._cardColor.r,
-        root._cardColor.g,
-        root._cardColor.b,
-        root.cardOpacity
-    )
-    readonly property int _cardBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
-    readonly property color _cardBorderColor: Enums.stateColor.border
-    readonly property color _errorBackgroundColor: Enums.statusLevel.getBgColor(Enums.statusLevel.errorStr)
-    readonly property int _errorBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
-    readonly property color _errorBorderColor: Enums.statusLevel.getColor(Enums.statusLevel.errorStr)
-    readonly property color _errorTextColor: _errorBorderColor
-
-    color: Enums.transparent
-    
     // ==================== Public Props 公开属性 ====================
     // Mode 模式
     property int mode: Enums.auth.mode_login
@@ -83,6 +63,24 @@ Rectangle {
     // Card style 卡片样式
     property int cardWidth: 400
     property real cardOpacity: 0.92
+
+    // ==================== Internal Props 内部属性 ====================
+    readonly property bool _isLogin: mode === Enums.auth.mode_login
+    readonly property int _cardRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
+    readonly property int _errorRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property color _cardColor: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property color _cardBackgroundColor: Qt.rgba(
+        root._cardColor.r,
+        root._cardColor.g,
+        root._cardColor.b,
+        root.cardOpacity
+    )
+    readonly property int _cardBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
+    readonly property color _cardBorderColor: Enums.stateColor.border
+    readonly property color _errorBackgroundColor: Enums.statusLevel.getBgColor(Enums.statusLevel.errorStr)
+    readonly property int _errorBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
+    readonly property color _errorBorderColor: Enums.statusLevel.getColor(Enums.statusLevel.errorStr)
+    readonly property color _errorTextColor: _errorBorderColor
     
     // ==================== Signals 信号 ====================
     signal loginRequested(string username, string password, bool rememberMe)
@@ -170,7 +168,10 @@ Rectangle {
         }
     }
 
-    // ==================== Matrix Rain Background 矩阵雨背景 ====================
+    color: Enums.transparent
+
+    // ==================== Content 内容 ====================
+    // Matrix rain background. 矩阵雨背景。
     MatrixRain {
         id: matrixRain
         anchors.fill: parent
@@ -183,7 +184,7 @@ Rectangle {
         Component.onCompleted: setTheme(root.matrixTheme)
     }
     
-    // ==================== Center Card 中心卡片 ====================
+    // Center card. 中心卡片。
     ShadowedRectangle {
         id: card
         width: root.cardWidth
@@ -197,7 +198,7 @@ Rectangle {
         // Card shadow 卡片阴影
         shadowLevel: Enums.shadow.level8
         
-        // ==================== Card Content 卡片内容 ====================
+        // Card content. 卡片内容。
         ColumnLayout {
             id: cardContent
             anchors.left: parent.left
@@ -206,7 +207,7 @@ Rectangle {
             anchors.margins: Enums.spacing.xxl
             spacing: Enums.spacing.l
             
-            // ==================== Logo Area 标志区域 ====================
+            // Logo area. 标志区域。
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 60
@@ -234,7 +235,7 @@ Rectangle {
                 }
             }
             
-            // ==================== Title Area 标题区域 ====================
+            // Title area. 标题区域。
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Enums.spacing.xs
@@ -259,7 +260,7 @@ Rectangle {
                 }
             }
             
-            // ==================== Error Message 错误消息 ====================
+            // Error message. 错误消息。
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: errorText.height + Enums.spacing.m
@@ -282,7 +283,7 @@ Rectangle {
                 }
             }
             
-            // ==================== Form Fields 表单字段 ====================
+            // Form fields. 表单字段。
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Enums.spacing.m
@@ -347,7 +348,7 @@ Rectangle {
                 }
             }
             
-            // ==================== Remember Me & Forgot Password 记住我和忘记密码 ====================
+            // Remember-me and forgot-password actions. 记住我与忘记密码操作。
             RowLayout {
                 Layout.fillWidth: true
                 visible: root._isLogin
@@ -379,7 +380,7 @@ Rectangle {
                 }
             }
             
-            // ==================== Submit Button 提交按钮 ====================
+            // Submit button. 提交按钮。
             ButtonCore {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Enums.controlSize.buttonHeight
@@ -391,7 +392,7 @@ Rectangle {
                 onClicked: root._submitForm()
             }
             
-            // ==================== OAuth Divider OAuth分隔线 ====================
+            // OAuth divider. OAuth 分隔线。
             RowLayout {
                 Layout.fillWidth: true
                 visible: root.oauthProviders.length > 0
@@ -413,7 +414,7 @@ Rectangle {
                 }
             }
             
-            // ==================== OAuth Buttons OAuth按钮 ====================
+            // OAuth buttons. OAuth 按钮。
             RowLayout {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
@@ -438,7 +439,7 @@ Rectangle {
                 }
             }
             
-            // ==================== Mode Switch 模式切换 ====================
+            // Mode switch. 模式切换。
             RowLayout {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
@@ -469,7 +470,7 @@ Rectangle {
         }
     }
     
-    // ==================== Mode Switch Animation 模式切换动画 ====================
+    // Mode-switch animation. 模式切换动画。
     Behavior on mode {
         NumberAnimation { duration: Enums.duration.fast }
     }
