@@ -14,7 +14,7 @@ import "../../data"
 // multiline_browser: read-only rich text browser 只读富文本浏览器
 InputCore {
     id: control
-    focusTarget: textEdit
+    focusTarget: _isBrowser ? null : textEdit
     
     // ==================== Type 类型 ====================
     property int multilineType: Enums.input.multiline_plain
@@ -120,9 +120,12 @@ InputCore {
             activeFocusOnPress: !control._isBrowser  // Browser cannot focus 浏览器不可聚焦
             cursorVisible: activeFocus && !control._isBrowser  // Only show cursor when focused 仅聚焦时显示光标
             
-            onTextChanged: control.textEdited()
+            onTextEdited: control.textEdited()
             onEditingFinished: control.editingFinished()
-            onLinkActivated: (link) => control.linkActivated(link)
+            onLinkActivated: (link) => {
+                control.linkActivated(link)
+                if (control.openExternalLinks) Qt.openUrlExternally(link)
+            }
             onCursorPositionChanged: control.cursorPositionChanged()
             onSelectedTextChanged: control.selectionChanged()
         }

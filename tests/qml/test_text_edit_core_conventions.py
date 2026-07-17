@@ -256,7 +256,7 @@ def _assert_plain_methods_and_signals(window, plain, background) -> None:
     assert (plain.getText(), plain.toPlainText()) == ("alpha", "alpha")
     plain.append(" beta")
     assert plain.getText() == "alpha beta"
-    assert edited == ["alpha beta"]
+    assert edited == []
     plain.selectAll()
     assert editor.property("selectedText") == "alpha beta"
     assert QMetaObject.invokeMethod(plain, "setFocus")
@@ -264,7 +264,7 @@ def _assert_plain_methods_and_signals(window, plain, background) -> None:
     QTest.keyClick(window, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
     _type_beta(window)
     assert plain.getText() == "beta"
-    assert len(edited) > 1
+    assert edited == ["b", "be", "bet", "beta"]
     _click(window, background)
     assert _wait_for(lambda: finished == ["beta"])
     assert selections
@@ -282,14 +282,13 @@ def _assert_browser_characterization(window, browser) -> None:
     assert browser.property("cursorShape") == window.property("arrowCursor")
     click_point = _local_point(window, browser, browser.width() - 8, browser.height() - 8)
     _click(window, browser, click_point)
-    assert editor.property("activeFocus")
+    assert not editor.property("activeFocus")
 
     browser.setProperty("openExternalLinks", False)
     editor.linkActivated.emit(TEST_URL + "/off")
     browser.setProperty("openExternalLinks", True)
-    editor.linkActivated.emit(TEST_URL + "/on")
     _pump()
-    assert links == [TEST_URL + "/off", TEST_URL + "/on"]
+    assert links == [TEST_URL + "/off"]
 
 
 def _assert_scroll_geometry(window, scroll) -> None:
@@ -349,7 +348,7 @@ def test_text_edit_scroll_indicator_geometry(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_text_edit_external_link_currently_has_no_open_path():
+def test_text_edit_external_link_uses_public_gate():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     assert "property bool openExternalLinks: true" in source
-    assert "Qt.openUrlExternally" not in source
+    assert "if (control.openExternalLinks) Qt.openUrlExternally(link)" in source
