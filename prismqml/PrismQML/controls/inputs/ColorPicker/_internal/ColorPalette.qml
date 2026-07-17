@@ -12,7 +12,7 @@ import "../../../data"
 Item {
     id: control
     
-    // ==================== Properties 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property color selectedColor: Enums.accentColor
     property bool showAutomatic: true
     property bool showMoreColors: true
@@ -26,16 +26,16 @@ Item {
     
     // Standard colors (10 colors) 标准色
     property var standardColors: Enums.colorPalette.standardColors
+
+    property int cellSize: Enums.colorPickerMetrics.paletteCellSize
+    property int cellSpacing: Enums.colorPickerMetrics.paletteCellSpacing
+    property int columns: Enums.colorPickerMetrics.paletteColumns
     
     // ==================== Signals 信号 ====================
     signal colorSelected(color value)
     signal moreColorsClicked()
     
     // ==================== Size 尺寸 ====================
-    property int cellSize: Enums.colorPickerMetrics.paletteCellSize
-    property int cellSpacing: Enums.colorPickerMetrics.paletteCellSpacing
-    property int columns: Enums.colorPickerMetrics.paletteColumns
-    
     implicitWidth: columns * (cellSize + cellSpacing) + Enums.spacing.xl * 2
     implicitHeight: contentColumn.implicitHeight + Enums.spacing.l * 2
     
