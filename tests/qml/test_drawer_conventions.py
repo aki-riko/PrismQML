@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Drawer geometry and scrim interaction contracts. Drawer 几何与遮罩交互合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -23,9 +23,19 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "containers"
+    / "Drawer"
+    / "Drawer.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "drawer-conventions.qml")
 )
@@ -185,3 +195,14 @@ def test_drawer_modal_scrim_click_rejects(drawer_scene):
     assert not drawer.property("opened")
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_drawer_source_follows_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []

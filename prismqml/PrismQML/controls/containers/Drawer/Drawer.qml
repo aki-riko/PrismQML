@@ -64,11 +64,12 @@ OverlayDialogCore {
         return _isOpen
     }
 
-    // ==================== Override Props 覆盖属性 ====================
+    // Overlay overrides 覆盖层配置
     dismissOnScrimClick: modal  // Close when scrim is clicked in modal mode 模态时点击遮罩关闭
     maskColor: modal ? Enums.stateColor.dialogOverlay : Enums.transparent
 
-    // ==================== Shadow 阴影 ====================
+    // ==================== Content 内容 ====================
+    // Drawer shadow 抽屉阴影
     // Shadow for drawer 抽屉阴影
     RectangularShadow {
         anchors.fill: drawer
@@ -83,6 +84,10 @@ OverlayDialogCore {
     // Drawer panel 抽屉面板
     Rectangle {
         id: drawer
+
+        readonly property real effectiveWidth: control.width > 0 ? control.width : (control.parent ? control.parent.width : 0)
+        readonly property real effectiveHeight: control.height > 0 ? control.height : (control.parent ? control.parent.height : 0)
+
         color: control._drawerBackground
         radius: control.radius
         // Drawer boundary for non-Fluent skins 非 Fluent 皮肤抽屉边界
@@ -91,12 +96,30 @@ OverlayDialogCore {
         
         // Use parent size directly when control size is 0 (Python setParentItem timing issue) 当 control 尺寸为 0 时直接使用 parent 尺寸（Python setParentItem 时序问题）
 
-        readonly property real effectiveWidth: control.width > 0 ? control.width : (control.parent ? control.parent.width : 0)
-        readonly property real effectiveHeight: control.height > 0 ? control.height : (control.parent ? control.parent.height : 0)
-        
         width: isHorizontal ? control.drawerWidth : effectiveWidth
         height: isHorizontal ? effectiveHeight : control.drawerHeight
+
+        // Block clicks from reaching the overlay mask 阻止点击穿透到遮罩层
+        MouseArea {
+            anchors.fill: parent
+            // Consume all clicks so they don't propagate to the mask 消费点击防止穿透
+        }
         
+        // Content container 内容容器
+        Item {
+            id: contentItem
+            objectName: "contentItem"  // For Python findChild 供Python查找
+            anchors.fill: parent
+            anchors.margins: Enums.spacing.xl
+
+            // 点击内容区域空白处清除输入焦点
+            MouseArea {
+                anchors.fill: parent
+                z: Enums.zIndex.background
+                onClicked: contentItem.forceActiveFocus()
+            }
+        }
+
         // Use states to manage position 使用states管理位置
         states: [
             State {
@@ -122,30 +145,9 @@ OverlayDialogCore {
                 }
             }
         ]
-        
+
         transitions: Transition {
             NumberAnimation { properties: "x,y"; duration: control.animationDuration; easing.type: Easing.OutCubic }
-        }
-        
-        // Block clicks from reaching the overlay mask 阻止点击穿透到遮罩层
-        MouseArea {
-            anchors.fill: parent
-            // Consume all clicks so they don't propagate to the mask 消费点击防止穿透
-        }
-        
-        // Content container 内容容器
-        Item {
-            id: contentItem
-            objectName: "contentItem"  // For Python findChild 供Python查找
-            anchors.fill: parent
-            anchors.margins: Enums.spacing.xl
-
-            // 点击内容区域空白处清除输入焦点
-            MouseArea {
-                anchors.fill: parent
-                z: Enums.zIndex.background
-                onClicked: contentItem.forceActiveFocus()
-            }
         }
     }
 }
