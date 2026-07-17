@@ -4,13 +4,14 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Combo box internal component regressions. 下拉框内部组件回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,6 +24,7 @@ INTERNAL_DIR = (
     / "ComboBox"
     / "_internal"
 )
+SEARCH_SOURCE_PATH = INTERNAL_DIR / "PopupSearchBox.qml"
 SEARCH_SCENE = b"""
 import QtQuick
 import "."
@@ -132,6 +134,15 @@ def test_popup_search_box_runtime_contract(qapp):
         assert _new_visible_windows(windows_before) == []
     finally:
         _destroy_scene(engine, component, root)
+
+
+def test_popup_search_box_source_conventions():
+    source = SEARCH_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SEARCH_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
 
 
 def test_combo_box_popup_content_runtime_contract(qapp):

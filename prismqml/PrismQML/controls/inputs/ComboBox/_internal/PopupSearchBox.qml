@@ -10,8 +10,8 @@ import "../.."
 // Internal component for ComboBox popups ComboBox弹出框内部组件
 Item {
     id: searchBox
-    
-    // ==================== Props 属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property bool searchEnabled: true
     property string placeholderText: Translator.tr("placeholder_keyword")
     property alias text: lineEdit.text
@@ -19,11 +19,6 @@ Item {
     // ==================== Signals 信号 ====================
     signal searchTextChanged(string text)
     signal searchTriggered(string text)
-    
-    // ==================== Size 尺寸 ====================
-    width: parent ? parent.width : 0
-    height: searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0
-    visible: searchEnabled
 
     // ==================== Public Methods 公开方法 ====================
     function clear() {
@@ -34,7 +29,12 @@ Item {
         lineEdit.forceActiveFocus()
     }
 
-    // ==================== Search LineEdit 搜索输入框 ====================
+    // ==================== Size 尺寸 ====================
+    width: parent ? parent.width : 0
+    height: searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0
+    visible: searchEnabled
+
+    // ==================== Content 内容 ====================
     LineEdit {
         id: lineEdit
         anchors.fill: parent
