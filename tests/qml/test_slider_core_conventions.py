@@ -255,6 +255,11 @@ def _assert_public_methods(window, slider) -> None:
     assert slider.minimum() == -20
     assert slider.maximum() == 20
     assert slider.isEnabled()
+    modified = []
+    slider.valueModified.connect(modified.append)
+    slider.smoothSetValue(99)
+    assert _wait_for(lambda: slider.getValue() == 20)
+    assert modified == [20]
 
     window.setProperty("methodInput", 16)
     slider.setProperty("snapMode", 0)
@@ -274,6 +279,23 @@ def _assert_tooltip_format(window, slider) -> None:
     window.setProperty("customFormat", False)
     slider.setProperty("decimals", 2)
     assert window.property("tipText") == "12.34%"
+
+
+def _assert_default_drag(window, slider, modified, windows_before) -> None:
+    slider.setProperty("snapMode", 1)
+    handle = _default_handle(slider)
+    target = _local_point(window, slider, slider.width() * 0.53, 20)
+    QTest.mouseMove(window, _point_for(window, handle))
+    QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=_point_for(window, handle))
+    QTest.mouseMove(window, target, 20)
+    assert slider.property("_dragging")
+    assert slider.property("value") == pytest.approx(0.53 * 100, abs=1.0)
+    QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=target)
+    assert not slider.property("_dragging")
+    assert _wait_for(lambda: slider.property("value") == 50)
+    assert modified[-1] == 50
+    QTest.mouseMove(window, QPoint(520, 310))
+    assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
 
 
 def test_slider_public_methods_snap_and_format_contracts(qapp):
@@ -298,23 +320,11 @@ def test_slider_horizontal_click_wheel_and_drag_contracts(qapp):
     try:
         _click_at(window, slider, slider.width() * 0.75, slider.height() / 2)
         assert _wait_for(lambda: slider.property("value") == 80)
-        assert modified == [40]
+        assert modified == [80]
         _send_wheel(window, _point_for(window, slider), -120)
         assert _wait_for(lambda: slider.property("value") == 70)
-        assert modified[-1] == 80
-        slider.setProperty("snapMode", 1)
-        handle = _default_handle(slider)
-        target = _local_point(window, slider, slider.width() * 0.53, 20)
-        QTest.mouseMove(window, _point_for(window, handle))
-        QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=_point_for(window, handle))
-        QTest.mouseMove(window, target, 20)
-        assert slider.property("_dragging")
-        assert slider.property("value") == pytest.approx(0.53 * 100, abs=1.0)
-        QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=target)
-        assert not slider.property("_dragging")
-        assert _wait_for(lambda: slider.property("value") == 50)
-        QTest.mouseMove(window, QPoint(520, 310))
-        assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+        assert modified[-1] == 70
+        _assert_default_drag(window, slider, modified, windows_before)
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
@@ -330,7 +340,7 @@ def test_slider_vertical_and_range_drag_contracts(qapp):
     range_slider.sliderMoved.connect(lambda first, second: moved.append((first, second)))
     try:
         _click_at(window, vertical, vertical.width() / 2, vertical.height() * 0.25)
-        assert _wait_for(lambda: vertical.property("value") == 20)
+        assert _wait_for(lambda: vertical.property("value") == 30)
 
         first_handle, second_handle = _range_handles(range_slider)
         first_target = _local_point(window, range_slider, 150, 20)

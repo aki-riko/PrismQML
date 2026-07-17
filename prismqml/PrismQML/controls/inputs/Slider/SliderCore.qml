@@ -101,9 +101,10 @@ Item {
     }
     
     function smoothSetValue(newValue) {
-        _targetValue = Math.max(from, Math.min(to, newValue))
+        var clampedValue = Math.max(from, Math.min(to, newValue))
+        _targetValue = clampedValue
         value = _targetValue
-        valueModified(value)
+        valueModified(clampedValue)
     }
 
     // ==================== Public Methods 公共方法 ====================
@@ -172,11 +173,14 @@ Item {
                     enabled: control.enabled
                     hoverEnabled: true
                     onClicked: (mouse) => {
-                        var pos = isHorizontal ? mouse.x / parent.width : 1 - mouse.y / parent.height
+                        var trackPoint = trackArea.mapToItem(track, mouse.x, mouse.y)
+                        var pos = isHorizontal ? trackPoint.x / track.width : 1 - trackPoint.y / track.height
+                        pos = Math.max(0, Math.min(1, pos))
                         var newValue = control.from + pos * (control.to - control.from)
                         newValue = Math.round(newValue / control.stepSize) * control.stepSize
-                        control.value = Math.max(control.from, Math.min(control.to, newValue))
-                        control.valueModified(control.value)
+                        newValue = Math.max(control.from, Math.min(control.to, newValue))
+                        control.value = newValue
+                        control.valueModified(newValue)
                     }
                 }
             }
@@ -237,7 +241,7 @@ Item {
                         newValue = Math.max(control.from, Math.min(control.to, newValue))
                         if (newValue !== control.value) {
                             control.value = newValue
-                            control.valueModified(control.value)
+                            control.valueModified(newValue)
                         }
                     }
 
@@ -246,9 +250,10 @@ Item {
                         control._dragging = false
                         // 松手吸附(SnapOnRelease/SnapAlways)
                         var snapped = control._maybeSnap(control.value, false)
+                        snapped = Math.max(control.from, Math.min(control.to, snapped))
                         if (snapped !== control.value) {
-                            control.value = Math.max(control.from, Math.min(control.to, snapped))
-                            control.valueModified(control.value)
+                            control.value = snapped
+                            control.valueModified(snapped)
                         }
                     }
                     onPositionChanged: (mouse) => {
