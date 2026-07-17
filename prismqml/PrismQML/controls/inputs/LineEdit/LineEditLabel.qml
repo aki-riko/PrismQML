@@ -11,7 +11,7 @@ import "../../data"
 // Internal module for LineEdit LineEdit内部模块
 Item {
     id: labelInput
-    
+
     // ==================== Required Props 必需属性 ====================
     required property string label
     required property string placeholderText
@@ -23,23 +23,26 @@ Item {
     
     // Text style from InputCore 从基类继承的文本样式
     required property int fontSize
-    
-    // ==================== Output Props 输出属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property alias text: inputField.text
+    property alias textInput: inputField
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool focused: inputField.activeFocus
     readonly property bool hovered: hoverHandler.hovered
-    property alias textInput: inputField
     readonly property bool hasContent: inputField.text.length > 0 || focused
-    
+
     // ==================== Signals 信号 ====================
     signal textModified(string newText)
     signal editingFinished()
 
-    // ==================== Methods 方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function clear() { inputField.text = "" }
     function forceActiveFocus() { inputField.forceActiveFocus() }
 
-    // ==================== Floating Label 浮动标签 ====================
+    // ==================== Content 内容 ====================
+    // Floating label 浮动标签
     Label {
         id: floatingLabel
         type: Enums.label.type_caption
@@ -50,15 +53,17 @@ Item {
         color: labelInput.focused ? Enums.accentColor : Enums.stateColor.textMedium
         // Use scale instead of font.pixelSize animation to avoid re-rasterization 使用 scale 代替 font.pixelSize 动画以避免重新光栅化
 
-        scale: labelInput.hasContent ? (Enums.typography.caption / Enums.typography.body) : 1.0
+        scale: labelInput.hasContent
+            ? (Enums.typography.caption / Enums.typography.body)
+            : Enums.input.labelRestingScale
         transformOrigin: Item.Left
-        
+
         Behavior on y { NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic } }
         Behavior on scale { NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic } }
         Behavior on color { ColorAnimation { duration: Enums.duration.normal } }
     }
-    
-    // ==================== Input Field 输入框 ====================
+
+    // Input field 输入框
     TextInput {
         id: inputField
         anchors.left: parent.left
@@ -67,7 +72,7 @@ Item {
         anchors.leftMargin: labelInput.paddingLeft
         anchors.rightMargin: labelInput.paddingRight
         anchors.bottomMargin: Enums.spacing.m
-        height: 24
+        height: Enums.controlSize.inputLabelTextHeight
         font.family: Enums.fontFamily
         font.pixelSize: labelInput.fontSize
         color: Enums.textColor.primary
@@ -75,12 +80,12 @@ Item {
         clip: true
         verticalAlignment: Text.AlignVCenter
         selectByMouse: true
-        
+
         onTextChanged: labelInput.textModified(text)
         onEditingFinished: labelInput.editingFinished()
     }
-    
-    // ==================== Hover Detection 悬浮检测 ====================
+
+    // Hover detection 悬浮检测
     HoverHandler {
         id: hoverHandler
     }

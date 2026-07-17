@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Floating label line edit regressions. 浮动标签输入框回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
@@ -12,9 +12,19 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "LineEdit"
+    / "LineEditLabel.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "line-edit-label-conventions.qml")
 )
@@ -24,10 +34,11 @@ import PrismQML
 
 Item {
     readonly property real topY: Enums.spacing.s
-    readonly property real restingScale: 1.0
+    readonly property real restingScale: Enums.input.labelRestingScale
     readonly property real floatingScale:
         Enums.typography.caption / Enums.typography.body
     readonly property int labelInputHeight: Enums.controlSize.inputHeightLabel
+    readonly property int textInputHeight: Enums.controlSize.inputLabelTextHeight
     readonly property string globalFont: Enums.fontFamily
 
     width: 320
@@ -152,7 +163,7 @@ def test_line_edit_label_initial_geometry(label_scene):
     assert floating.property("scale") == label_scene.property("restingScale")
     expected_y = (module.property("height") - floating.property("height")) / 2
     assert floating.property("y") == pytest.approx(expected_y)
-    assert text_input.property("height") == 24
+    assert text_input.property("height") == label_scene.property("textInputHeight")
     assert text_input.property("font").family() == label_scene.property("globalFont")
 
 
@@ -184,3 +195,18 @@ def test_line_edit_label_enabled_binding(label_scene):
     control.setProperty("enabled", False)
     _pump()
     assert not text_input.property("enabled")
+
+
+def test_line_edit_label_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_line_edit_label_uses_enum_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "Enums.input.labelRestingScale" in source
+    assert "Enums.controlSize.inputLabelTextHeight" in source

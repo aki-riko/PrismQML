@@ -35,4 +35,6 @@ QtObject {
     readonly property int spinBoxDoubleDecimals: 2
     readonly property real spinBoxIntegerStep: 1
     readonly property real spinBoxDoubleStep: 0.1
+    // Floating label input configuration 浮动标签输入配置
+    readonly property real labelRestingScale: 1.0
 }
