@@ -14,16 +14,9 @@ import "../../data/Label"
 Item {
     id: control
 
-    // ==================== Translation Trigger 翻译触发器 ====================
-    readonly property int _tv: Translator._v
-
-    // ==================== Control Type 控件类型 ====================
+    // ==================== Public Props 公开属性 ====================
     property int controlType: Enums.toggle.control_checkbox
-
-    // ==================== Display Type 显示类型 ====================
     property int type: Enums.toggle.type_default
-
-    // ==================== Content Props 内容属性 ====================
     property string text: ""
     property string subtitle: ""
     property string icon: ""
@@ -33,7 +26,6 @@ Item {
     // CheckBox specific CheckBox专用
     property bool tristate: false
     property int checkState: checked ? Enums.toggle.state_checked : Enums.toggle.state_unchecked
-    property bool _syncingCheckState: false
 
     // ToggleSwitch specific ToggleSwitch专用
     property string textOn: { _tv; return Translator.tr("on") }
@@ -42,22 +34,19 @@ Item {
     // RadioButton specific RadioButton专用
     property bool autoExclusive: true
 
-    // ==================== Custom Colors 自定义颜色 ====================
+    // Custom colors 自定义颜色
     property color checkedColorLight: Enums.accentColor
     property color checkedColorDark: Enums.accentColor
     property color textColorLight: Enums.isDark ? Enums.accentForeground : Enums.grayColors.textPrimaryLight
     property color textColorDark: Enums.accentForeground
 
-    // ==================== Signals 信号 ====================
-    signal toggled(bool checked)
-    signal stateModified(int newState)
-    signal checkedStateChanged(bool checked)
+    // ==================== Internal Props 内部属性 ====================
+    property bool _syncingCheckState: false
 
-    // ==================== State 状态 ====================
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int _tv: Translator._v
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
-
-    // ==================== Internal 内部属性 ====================
     readonly property bool _isCheckBox: controlType === Enums.toggle.control_checkbox
     readonly property bool _isRadio: controlType === Enums.toggle.control_radio
     readonly property bool _isSwitch: controlType === Enums.toggle.control_switch
@@ -70,22 +59,24 @@ Item {
         return Enums.isDark ? textColorDark : textColorLight
     }
 
-    // ==================== Size 尺寸 ====================
-    implicitWidth: mainRow.implicitWidth
-    implicitHeight: {
-        if (_isSubtitle)
-            return Math.max(Enums.controlSize.emptyStateButtonHeight, contentLoader.item ? contentLoader.item.implicitHeight + Enums.spacing.m : Enums.controlSize.emptyStateButtonHeight)
-        if (_isSwitch) return Enums.controlSize.switchHeight
-        if (_isRadio) return Enums.controlSize.radioOuter
-        return Enums.controlSize.checkboxOuter
-    }
+    // ==================== Signals 信号 ====================
+    signal toggled(bool checked)
+    signal stateModified(int newState)
+    signal checkedStateChanged(bool checked)
 
+    // ==================== Public Methods 公开方法 ====================
     // Toggle checked state 切换选中状态
     function toggleChecked() {
         _handleClick()
     }
 
-    // ==================== RadioButton Auto Exclusive 单选按钮自动互斥 ====================
+    function getText() { return text }
+
+    function isChecked() { return checked }
+
+    function isEnabled() { return enabled }
+
+    // ==================== Internal Methods 内部方法 ====================
     function _findRadioButtons(item, result) {
         if (!item) return
         for (var i = 0; i < item.children.length; i++) {
@@ -124,7 +115,7 @@ Item {
         }
     }
 
-    // ==================== Click Handler 点击处理 ====================
+    // Click handler 点击处理
     function _handleClick() {
         if (_isRadio) {
             if (!checked) {
@@ -153,14 +144,15 @@ Item {
         }
     }
 
-    // ==================== Public Methods 公共方法 ====================
-    function getText() { return text }
-
-
-    function isChecked() { return checked }
-
-
-    function isEnabled() { return enabled }
+    // ==================== Size 尺寸 ====================
+    implicitWidth: mainRow.implicitWidth
+    implicitHeight: {
+        if (_isSubtitle)
+            return Math.max(Enums.controlSize.emptyStateButtonHeight, contentLoader.item ? contentLoader.item.implicitHeight + Enums.spacing.m : Enums.controlSize.emptyStateButtonHeight)
+        if (_isSwitch) return Enums.controlSize.switchHeight
+        if (_isRadio) return Enums.controlSize.radioOuter
+        return Enums.controlSize.checkboxOuter
+    }
 
     onCheckedChanged: {
         if (_syncingCheckState) return
@@ -176,7 +168,7 @@ Item {
         _syncingCheckState = false
     }
 
-    // ==================== Layout 布局 ====================
+    // ==================== Content 内容 ====================
     Row {
         id: mainRow
         anchors.verticalCenter: parent.verticalCenter
@@ -204,7 +196,7 @@ Item {
         }
     }
 
-    // ==================== CheckBox Indicator 复选框指示器 ====================
+    // CheckBox indicator 复选框指示器
     Component {
         id: checkboxIndicator
         ToggleCheckIndicator {
@@ -216,7 +208,7 @@ Item {
         }
     }
 
-    // ==================== Radio Indicator 单选按钮指示器 ====================
+    // Radio indicator 单选按钮指示器
     Component {
         id: radioIndicator
         ToggleRadioIndicator {
@@ -227,7 +219,7 @@ Item {
         }
     }
 
-    // ==================== Switch Indicator 开关指示器 ====================
+    // Switch indicator 开关指示器
     Component {
         id: switchIndicator
         ToggleSwitchIndicator {
@@ -240,7 +232,7 @@ Item {
         }
     }
 
-    // ==================== Default Content 默认内容 ====================
+    // Default content 默认内容
     Component {
         id: defaultContent
         ToggleDefaultContent {
@@ -252,7 +244,7 @@ Item {
         }
     }
 
-    // ==================== Subtitle Content 副标题内容 ====================
+    // Subtitle content 副标题内容
     Component {
         id: subtitleContent
         ToggleSubtitleContent {
@@ -263,7 +255,7 @@ Item {
     }
 
 
-    // ==================== Interaction 交互 ====================
+    // Interaction 交互
     MouseArea {
         id: mouseArea
         anchors.fill: parent

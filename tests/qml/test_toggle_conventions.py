@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Toggle interaction contracts. Toggle 交互合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -22,6 +22,7 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -301,6 +302,18 @@ def test_toggle_check_states_use_public_enum_tokens():
     assert "% 3" not in toggle_source
     assert "checkState === 2" not in toggle_source
     assert "checkState > 0" not in indicator_source
+
+
+def test_toggle_source_conventions():
+    source_path = TOKEN_SOURCES[1]
+    source = source_path.read_text(encoding="utf-8")
+    path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
 
 
 def test_toggle_external_checked_and_check_state_resynchronize(qapp):
