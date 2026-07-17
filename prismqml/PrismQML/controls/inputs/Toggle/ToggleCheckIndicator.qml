@@ -11,11 +11,13 @@ import "../../icons"
 Rectangle {
     id: indicator
 
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int checkState: 0  // 0=Unchecked, 1=Partial, 2=Checked
     property bool hovered: false
     property bool pressed: false
     property color checkedColor: Enums.accentColor
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property int _indicatorRadius: Enums.isNeobrutalism ? Enums.neo.radius
                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
     readonly property int _indicatorBorderWidth: {
@@ -59,7 +61,7 @@ Rectangle {
     height: Enums.controlSize.checkboxOuter
     radius: _indicatorRadius
 
-    // ==================== Color Calc 颜色计算 ====================
+    // Calculated colors 计算颜色
     // Checked uses accent; unchecked uses skin fill 选中使用强调色，未选使用皮肤填充。
     color: _indicatorColor
 
@@ -70,7 +72,7 @@ Rectangle {
     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     Behavior on border.color { ColorAnimation { duration: Enums.duration.fast } }
 
-    // ==================== Check Icon 勾选图标 ====================
+    // ==================== Content 内容 ====================
     CheckIcon {
         anchors.centerIn: parent
         width: Enums.controlSize.checkboxInner
