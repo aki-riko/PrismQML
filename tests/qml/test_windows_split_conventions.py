@@ -75,6 +75,27 @@ Internal.WindowsFilled {
     }
 }
 """
+BAR_SCENE_SOURCE = b"""
+import QtQuick
+import PrismQML
+import "." as Internal
+
+Internal.WindowsBar {
+    objectName: "barWindow"
+    width: 760
+    height: 540
+    visible: true
+    shadowMode: Enums.windowShadow.mode_none
+
+    Item {
+        objectName: "pageA"
+    }
+
+    Item {
+        objectName: "pageB"
+    }
+}
+"""
 
 
 class _FakeNativeWindow(QObject):
@@ -209,6 +230,10 @@ def test_windows_split_loads_core_and_transfers_default_pages(monkeypatch, qapp)
 
 def test_windows_filled_loads_core_and_transfers_default_pages(monkeypatch, qapp):
     _exercise_page_transfer(monkeypatch, FILLED_SCENE_SOURCE)
+
+
+def test_windows_bar_loads_core_and_transfers_default_pages(monkeypatch, qapp):
+    _exercise_page_transfer(monkeypatch, BAR_SCENE_SOURCE)
 
 
 def test_windows_split_source_conventions_and_startup_delay_token():
