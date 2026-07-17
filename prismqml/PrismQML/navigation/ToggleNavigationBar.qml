@@ -14,27 +14,17 @@ import "../controls/navigation/_internal"
 Item {
     id: control
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var model: []
     property var bottomItems: []
     property int currentIndex: 0
     property color backgroundColor: Enums.transparent
     property bool fillWidth: true
     
-    // ==================== Bottom Page Index Map 底部页面索引映射 ====================
+    // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items 将 key 映射到页面索引，用于底部页面项
     property var _bottomPageIndexMap: ({})
     property bool _skipIndicatorAnimation: false
-    
-    // ==================== Signals 信号 ====================
-    signal itemClicked(int index)
-    signal bottomItemClicked(int index)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: fillWidth ? (parent ? parent.width : Enums.window.navPanelMinWidth) : (topLayout.width + Enums.spacing.m * 2)
-    implicitHeight: parent ? parent.height : Enums.window.defaultHeight
-    
-    // ==================== Internal 内部属性 ====================
     property int _refreshTrigger: 0
     
     // Track if indicator is controlled by bottom page item
@@ -42,8 +32,12 @@ Item {
     
     // Scroll offset for real-time indicator tracking 指示器实时跟踪的滚动偏移
     property real _scrollOffset: topFlickable.contentY
-    
-    // ==================== Helper Functions 辅助函数 ====================
+
+    // ==================== Signals 信号 ====================
+    signal itemClicked(int index)
+    signal bottomItemClicked(int index)
+
+    // ==================== Internal Methods 内部方法 ====================
     function _getItemAt(globalIndex) {
         if (globalIndex < 0) return null
         if (globalIndex < model.length) {
@@ -101,6 +95,10 @@ Item {
         })
     }
 
+    // ==================== Size 尺寸 ====================
+    implicitWidth: fillWidth ? (parent ? parent.width : Enums.window.navPanelMinWidth) : (topLayout.width + Enums.spacing.m * 2)
+    implicitHeight: parent ? parent.height : Enums.window.defaultHeight
+
     onCurrentIndexChanged: Qt.callLater(function() { if (!_skipIndicatorAnimation) _updateIndicator(true) })
     Component.onCompleted: Qt.callLater(function() { _updateIndicator(false) })
 
@@ -113,10 +111,12 @@ Item {
 
     Timer {
         id: _indicatorTracker
+
+        property bool _scrolling: false
+
         interval: Enums.duration.tick
         repeat: true
         running: _scrolling
-        property bool _scrolling: false
         onTriggered: control._updateIndicator(false)
     }
     
@@ -126,13 +126,14 @@ Item {
         onTriggered: _indicatorTracker._scrolling = false
     }
     
-    // ==================== Background 背景 ====================
+    // ==================== Content 内容 ====================
+    // Background 背景
     Rectangle {
         anchors.fill: parent
         color: control.backgroundColor
     }
     
-    // ==================== Sliding Indicator 滑动指示器 (统一基类, 垂直橡皮筋粘滞) ====================
+    // Sliding indicator (shared vertical sticky base) 滑动指示器（统一垂直粘滞基类）
     SlidingIndicator {
         id: slidingIndicator
         orientation: Qt.Vertical
@@ -141,7 +142,7 @@ Item {
         visible: (control.model.length + control.bottomItems.length) > 0
     }
     
-    // ==================== Top Nav Items 顶部导航项 ====================
+    // Top navigation items 顶部导航项
     Flickable {
         id: topFlickable
         z: 1  // Content layer 内容层
@@ -172,18 +173,19 @@ Item {
                 
                 delegate: Item {
                     id: topNavItem
-                    width: control.fillWidth ? topLayout.width : topNavContent.implicitWidth
-                    height: Enums.controlSize.buttonHeight
-                    
+
                     required property int index
                     required property var modelData
-                    
+
                     readonly property string itemText: modelData.text || ""
                     readonly property string itemIcon: modelData.icon || ""
                     readonly property bool selected: index === control.currentIndex
                     readonly property bool hovered: topHoverHandler.hovered
                     readonly property bool pressed: topTapHandler.pressed
-                    
+
+                    width: control.fillWidth ? topLayout.width : topNavContent.implicitWidth
+                    height: Enums.controlSize.buttonHeight
+
                     Rectangle {
                         anchors.fill: parent
                         radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
@@ -231,7 +233,7 @@ Item {
         }
     }
     
-    // ==================== Bottom Fixed Items 底部固定项 ====================
+    // Bottom fixed items 底部固定项
     // Background to cover indicator when scrolling 滚动时遮盖指示器的背景
     Rectangle {
         id: bottomCover
@@ -262,12 +264,10 @@ Item {
             
             delegate: Item {
                 id: bottomNavItem
-                width: control.fillWidth ? bottomLayout.width : bottomNavContent.implicitWidth
-                height: Enums.controlSize.buttonHeight
-                
+
                 required property int index
                 required property var modelData
-                
+
                 readonly property int globalIndex: control.model.length + index
                 readonly property string itemText: modelData.text || ""
                 readonly property string itemIcon: modelData.icon || ""
@@ -285,7 +285,10 @@ Item {
                 }
                 readonly property bool hovered: bottomHoverHandler.hovered
                 readonly property bool pressed: bottomTapHandler.pressed
-                
+
+                width: control.fillWidth ? bottomLayout.width : bottomNavContent.implicitWidth
+                height: Enums.controlSize.buttonHeight
+
                 // Opaque background to cover sliding indicator 不透明背景覆盖滑动指示器
                 Rectangle {
                     anchors.fill: parent

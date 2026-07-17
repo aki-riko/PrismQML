@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Root navigation runtime contracts. 顶层导航组件运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QPointF, QTimer, QUrl, Qt
@@ -14,9 +14,21 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+ROOT_NAV_SOURCE_PATHS = tuple(
+    ROOT / "prismqml" / "PrismQML" / "navigation" / name
+    for name in (
+        "NavigationBar.qml",
+        "NavigationBarItem.qml",
+        "NavigationPanelCore.qml",
+        "NavigationView.qml",
+        "NavigationViewItem.qml",
+        "ToggleNavigationBar.qml",
+    )
+)
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "root-navigation-conventions.qml"))
 SCENE_SOURCE = b"""
 import QtQuick
@@ -300,3 +312,17 @@ def test_navigation_bar_and_toggle_indicator_geometry(navigation_scene):
     assert toggle_visual.height() > 0
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_root_navigation_sources_follow_conventions():
+    violations = []
+    for source_path in ROOT_NAV_SOURCE_PATHS:
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source_path.read_text(encoding="utf-8"), path
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []

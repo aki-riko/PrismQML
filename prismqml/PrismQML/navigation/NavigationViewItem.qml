@@ -42,7 +42,8 @@ Item {
     implicitHeight: Enums.controlSize.navItemHeight
     clip: true  // Clip overflow content, hide text in compact mode 裁剪超出内容，紧凑模式下隐藏文本
     
-    // ==================== Background 背景 ====================
+    // ==================== Content 内容 ====================
+    // Background 背景
     Rectangle {
         id: bg
         anchors.fill: parent
@@ -78,27 +79,27 @@ Item {
         // No animation to avoid flicker 无动画避免闪烁
     }
     
-    // ==================== Selection Indicator (managed by NavigationView) 选中指示条（由NavigationView统一管理）====================
+    // Selection indicator managed by NavigationView 选中指示条由 NavigationView 管理
     // Removed: indicator is now managed by NavigationView with slide animation 已移除：指示条现在由NavigationView统一管理，支持滑动动画
     
-    // ==================== Content (horizontal layout) 内容（水平布局）====================
+    // Content (horizontal layout) 内容（水平布局）
     // Icon position: center in visible area in compact mode 图标位置：紧凑模式下需要在可见区域内居中
     // Visible area width = navPanelCompactWidth - navPanelPaddingH * 2 = 48 - 4*2 = 40px
     // Icon center = (40 - 20) / 2 = 10px
     Row {
-        anchors.left: parent.left
-        anchors.leftMargin: (Enums.controlSize.navPanelCompactWidth - Enums.controlSize.navPanelPaddingH * 2 - Enums.iconSize.xl) / 2
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: Enums.spacing.l
-        
         // Icon type check 图标判断
         readonly property bool isPathIcon: control.icon.length > 0 && 
             (control.icon.startsWith("file:") || control.icon.startsWith("qrc:") || 
              control.icon.endsWith(".svg") || control.icon.endsWith(".png") ||
              control.icon.endsWith(".jpg") || control.icon.endsWith(".jpeg"))
-        
+
         // Check if avatar image (non-svg images need circular clipping) 是否为头像图片（非svg的图片需要圆形裁剪）
         readonly property bool isAvatarIcon: isPathIcon && !control.icon.endsWith(".svg")
+
+        anchors.left: parent.left
+        anchors.leftMargin: (Enums.controlSize.navPanelCompactWidth - Enums.controlSize.navPanelPaddingH * 2 - Enums.iconSize.xl) / 2
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Enums.spacing.l
         
         // SVG icon (apply color overlay) SVG图标（应用颜色叠加）
         Image {
@@ -176,7 +177,7 @@ Item {
         }
     }
     
-    // ==================== Mouse Interaction 鼠标交互 ====================
+    // Mouse interaction 鼠标交互
     MouseArea {
         id: mouseArea
         anchors.fill: parent

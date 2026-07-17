@@ -49,7 +49,8 @@ Item {
     implicitWidth: Enums.controlSize.navBarItemWidth
     implicitHeight: Enums.controlSize.navBarItemHeight
     
-    // ==================== Background 背景 ====================
+    // ==================== Content 内容 ====================
+    // Background 背景
     Rectangle {
         id: bg
         anchors.fill: parent
@@ -93,14 +94,10 @@ Item {
     
     // Indicator managed by NavigationBar 指示条由NavigationBar管理
     
-    // ==================== Icon Area 图标区域 ====================
+    // Icon area 图标区域
     Item {
         id: iconContainer
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: Enums.spacing.l + Enums.spacing.micro + control.iconOffset
-        width: Enums.iconSize.xl
-        height: Enums.iconSize.xl
-        
+
         // Check icon type 判断图标类型
         // 图标名(PascalCase 裸名, 如 "CursorClick") 解析为 fluent svg; C++ 宿主 addPage
         // 传图标名而非完整路径, 需在此解析(否则裸名走文字 fallback)。
@@ -111,13 +108,18 @@ Item {
              control.icon.endsWith(".svg") || control.icon.endsWith(".png") ||
              control.icon.endsWith(".jpg") || control.icon.endsWith(".jpeg"))
         readonly property bool isPathIcon: isFilePathIcon || isIconName
+        // Check if avatar image (non-svg images need circular clipping) 是否为头像图片（非svg的图片需要圆形裁剪）
+        readonly property bool isAvatarIcon: isFilePathIcon && !control.icon.endsWith(".svg")
+
         // 解析后的图标源: 图标名→fluent/名字.svg(模块内可移植), 否则原值
         function _resolveIcon(ic) {
             return isIconName && !isFilePathIcon ? (Enums.iconPath + ic + ".svg") : ic
         }
 
-        // Check if avatar image (non-svg images need circular clipping) 是否为头像图片（非svg的图片需要圆形裁剪）
-        readonly property bool isAvatarIcon: isFilePathIcon && !control.icon.endsWith(".svg")
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Enums.spacing.l + Enums.spacing.micro + control.iconOffset
+        width: Enums.iconSize.xl
+        height: Enums.iconSize.xl
         
         // SVG icon (apply color overlay) SVG图标（应用颜色叠加）
         Image {
@@ -195,7 +197,7 @@ Item {
         }
     }
     
-    // ==================== Text 文字 ====================
+    // Text 文字
     Label {
         id: label
         type: Enums.label.type_caption
@@ -210,7 +212,7 @@ Item {
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
     
-    // ==================== Mouse Interaction 鼠标交互 ====================
+    // Mouse interaction 鼠标交互
     MouseArea {
         id: mouseArea
         anchors.fill: parent
