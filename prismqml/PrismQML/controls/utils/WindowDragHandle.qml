@@ -47,16 +47,16 @@ MouseArea {
     // 鼠标移动多少像素后判定为拖动(用于区分 click vs drag)
     property int dragThreshold: 4
 
-    // ==================== Public Signals 公开信号 ====================
+    // ==================== Internal Props 内部属性 ====================
+    property point _pressPoint: Qt.point(0, 0)
+    property bool _dragging: false
+
+    // ==================== Signals 信号 ====================
     // 拖动正式开始(超过 dragThreshold)时发射一次
     // 注意:不重声明 clicked,沿用 MouseArea 内置信号(它在 release 且未拖动时触发)
     signal dragStarted()
 
-    // ==================== Internal State 内部状态 ====================
-    property point _pressPoint: Qt.point(0, 0)
-    property bool _dragging: false
-
-    // ==================== Behavior 行为 ====================
+    // Behavior 行为
     // 默认接受左键;使用方可用 acceptedButtons 覆盖(如 Qt.LeftButton | Qt.RightButton)
     acceptedButtons: Qt.LeftButton
     cursorShape: Qt.ArrowCursor

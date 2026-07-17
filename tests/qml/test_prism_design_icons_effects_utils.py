@@ -4,10 +4,26 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Prism Design icons, effects, and utility skin tests."""
 
+from pathlib import Path, PurePosixPath
+
 from PySide6.QtCore import QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import Skin, Theme, register_types, setSkin, setTheme
+from scripts.qml_conventions import scan_source_text
+
+
+ROOT = Path(__file__).resolve().parents[2]
+UTILS_SOURCE_PATHS = tuple(
+    ROOT / "prismqml" / "PrismQML" / "controls" / "utils" / name
+    for name in (
+        "HorizontalScrollMixin.qml",
+        "PopupWindowCore.qml",
+        "ViewportCulling.qml",
+        "ViewportMixin.qml",
+        "WindowDragHandle.qml",
+    )
+)
 
 
 def _build(engine, qml: bytes):
@@ -385,3 +401,17 @@ PopupWindowCore {
         qapp.processEvents()
         setTheme(Theme.LIGHT)
         setSkin(Skin.FLUENT)
+
+
+def test_utility_sources_follow_conventions():
+    violations = []
+    for source_path in UTILS_SOURCE_PATHS:
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source_path.read_text(encoding="utf-8"), path
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []

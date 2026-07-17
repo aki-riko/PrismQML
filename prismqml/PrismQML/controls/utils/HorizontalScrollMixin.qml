@@ -27,10 +27,10 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 Item {
     id: mixin
 
-    // ==================== 必需 Required ====================
+    // ==================== Required Props 必需属性 ====================
     required property Flickable target
 
-    // ==================== 可选 Optional ====================
+    // ==================== Public Props 公开属性 ====================
     // header 容器: 用于让 header 子内容跟随 target.contentX 横向偏移保持对齐.
     // mixin 会把 headerContainer.x 绑定为 -target.contentX (仅当横向滚动激活时).
     // 不设则 mixin 不管 header.
@@ -44,17 +44,10 @@ Item {
     property bool bounceEnabled: true
     property int barWidth: Enums.spacing.s
 
-    // ==================== 输出 Output ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool active: target && target.contentWidth > target.width
 
-    // mixin 自身不占空间, 子项 (ScrollBar / wheelArea) anchors 到 target 父级
-    parent: target ? target.parent : null
-    anchors.fill: parent ? parent : undefined
-    z: Enums.zIndex.controlsAbove
-
-    onTargetChanged: _applyTargetSetup()
-    Component.onCompleted: _applyTargetSetup()
-
+    // ==================== Internal Methods 内部方法 ====================
     function _applyTargetSetup() {
         if (!target) return
         // 启用 horizontal flick (target 仅作 vertical 时也保留 vertical)
@@ -68,7 +61,16 @@ Item {
         }
     }
 
-    // ==================== Helper ====================
+    // mixin 自身不占空间, 子项 (ScrollBar / wheelArea) anchors 到 target 父级
+    parent: target ? target.parent : null
+    anchors.fill: parent ? parent : undefined
+    z: Enums.zIndex.controlsAbove
+
+    onTargetChanged: _applyTargetSetup()
+    Component.onCompleted: _applyTargetSetup()
+
+    // ==================== Content 内容 ====================
+    // Smooth-scroll helper 平滑滚动 helper
     SmoothScrollHelper {
         id: hHelper
         target: mixin.target
@@ -80,7 +82,7 @@ Item {
         bounceEnabled: mixin.bounceEnabled
     }
 
-    // ==================== Wheel: Shift + 滚轮 → 横向 ====================
+    // Wheel: Shift + wheel to horizontal 滚轮：Shift + 滚轮转横向
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
@@ -105,7 +107,7 @@ Item {
         }
     }
 
-    // ==================== Header 偏移同步 ====================
+    // Header offset synchronization 表头偏移同步
     Binding {
         target: mixin.headerContainer
         property: "x"
@@ -113,7 +115,7 @@ Item {
         when: mixin.headerContainer !== null
     }
 
-    // ==================== Scrollbar ====================
+    // Scrollbar 滚动条
     ScrollBar {
         anchors.left: parent ? parent.left : undefined
         anchors.right: parent ? parent.right : undefined

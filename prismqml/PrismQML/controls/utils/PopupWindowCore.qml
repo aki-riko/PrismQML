@@ -34,7 +34,17 @@ Item {
     property int referenceControlWidth: -1  // Reference control width for center alignment 参考控件宽度，用于居中对齐（-1=不居中，与控件左对齐）
     property bool _isPickerMode: false  // Internal: picker mode for center alignment 内部：Picker模式居中对齐
     property int _pickerRowHeight: 37  // Internal: row height for picker mode 内部：Picker模式行高
-    
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _prewarmed: false
+    property bool _prewarmScheduled: false
+    // Internal: animated clip height for drop-down effect 内部：下拉展开动画的裁剪高度
+    property real _clipHeight: 0
+    // [Anim C] Spring scale for iOS-style bounce 弹簧缩放
+    property real _scale: 0.7
+    // Follow parent control position (sync move on scroll) 跟随父控件位置变化
+    property point _lastTargetGlobalPos: Qt.point(-1, -1)
+
     // Popup content 弹出内容
     default property alias popupContent: contentContainer.data
     
@@ -49,8 +59,6 @@ Item {
     // ~170ms 等 native surface 创建。在 hover/focus 等"用户即将点开"时机调用,
     // 让真正点击时走暖路径 (<5ms)。已预热则 no-op。
     // 真正的预热推到 Qt.callLater, 避免 hover 进入瞬间卡顿主线程。
-    property bool _prewarmed: false
-    property bool _prewarmScheduled: false
     function prewarm() {
         if (_prewarmed || _prewarmScheduled || isOpen) return
         _prewarmScheduled = true
@@ -243,21 +251,14 @@ Item {
         else if (targetControl) openAtControl(targetControl)
     }
     
-    // ==================== Internal Implementation 内部实现 ====================
-    // Internal: animated clip height for drop-down effect 内部：下拉展开动画的裁剪高度
-    property real _clipHeight: 0
-    // [Anim C] Spring scale for iOS-style bounce 弹簧缩放
-    property real _scale: 0.7
-    // Follow parent control position (sync move on scroll) 跟随父控件位置变化
-    property point _lastTargetGlobalPos: Qt.point(-1, -1)
-
+    // ==================== Content 内容 ====================
     Timer {
         id: prewarmTimer
         interval: 0
         onTriggered: control._doPrewarm()
     }
 
-    // ==================== Show Animation 弹出动画 ====================
+    // Show animation 弹出动画
     // [Anim C] iOS spring: OutBack overshoot 1.4, scale 0.7→1.0, 240ms
     ParallelAnimation {
         id: showAnim
@@ -287,7 +288,7 @@ Item {
         }
     }
 
-    // ==================== Hide Animation 收起动画 ====================
+    // Hide animation 收起动画
     // [Anim C] Quick collapse with subtle InBack
     // ⚠️ Don't shrink _clipHeight here — clipContainer.height binds to it,
     // would clip out the panel before scale animation can play

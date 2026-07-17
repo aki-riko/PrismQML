@@ -12,16 +12,23 @@ import QtQuick
 QtObject {
     id: mixin
     
-    // ==================== Required 必需属性 ====================
+    // ==================== Required Props 必需属性 ====================
     required property Item target  // 要检测的目标组件
-    
-    // ==================== Output 输出属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property bool isInViewport: true  // 默认可见
     property bool ready: false  // 初始化完成标志
-    
-    // ==================== Internal 内部属性 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     property var _flickableAncestor: null
-    
+
+    property Timer initTimer: Timer {
+        interval: 50  // 50ms 足够布局完成
+        repeat: false
+        onTriggered: _init()
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
     // Find Flickable ancestor by checking contentY property 向上查找 Flickable 祖先
     function _findFlickable() {
         if (!target) return null
@@ -82,13 +89,6 @@ QtObject {
         _updateViewport()
         ready = true  // 标记初始化完成
     }
-    
     // Delayed initialization to ensure component tree is built 延迟初始化，确保组件树构建完成 // Timer delay is more reliable than Qt.callLater, ensures layout completion 使用 Timer 延迟比 Qt.callLater 更可靠
     Component.onCompleted: initTimer.start()
-    
-    property Timer initTimer: Timer {
-        interval: 50  // 50ms 足够布局完成
-        repeat: false
-        onTriggered: _init()
-    }
 }

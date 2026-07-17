@@ -22,18 +22,19 @@ import QtQuick
 Item {
     id: root
 
-    // ==================== Public ====================
-    // 当前宿主 Item 是否在视口内 (含 buffer 区)
-    readonly property bool inViewport: _flickable === null || _visible
-
+    // ==================== Public Props 公开属性 ====================
     // 视口外扩缓冲 (像素). 越大越早"预加载", 越小越省. 默认 1 个视口高度.
     property real buffer: _flickable ? _flickable.height : 200
 
-    // ==================== Internal ====================
+    // ==================== Readonly State 只读状态 ====================
+    // 当前宿主 Item 是否在视口内 (含 buffer 区)
+    readonly property bool inViewport: _flickable === null || _visible
+
+    // ==================== Internal Props 内部属性 ====================
     property Flickable _flickable: null
     property bool _visible: true
 
-    // ==================== Methods 方法 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function _updateVisibility() {
         if (!_flickable || !root.parent) { _visible = true; return }
 
@@ -65,7 +66,8 @@ Item {
         }
     }
 
-    // ==================== 视口判定 ====================
+    // ==================== Content 内容 ====================
+    // Viewport evaluation 视口判定
     // 仅用 Timer 低频判定 (每 150ms), 避免 contentY binding 每帧触发 mapToItem 开销.
     // 150ms 在快速滚动时 ≈ 2 帧延迟切换, 人眼不可察觉, 但不增加每帧 GUI 线程负担.
     Timer {

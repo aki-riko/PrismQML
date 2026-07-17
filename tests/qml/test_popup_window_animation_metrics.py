@@ -153,9 +153,9 @@ def test_popup_window_animation_source_uses_role_tokens():
     metrics_block = metrics_source.split(
         "readonly property QtObject popup: QtObject {", 1
     )[1].split("// ==================== InfoBar", 1)[0]
-    animation_block = popup_source.split(
-        "// ==================== Show Animation", 1
-    )[1].split("Timer {", 1)[0]
+    animation_block = popup_source.split("id: showAnim", 1)[1].split(
+        "id: showAnimTimer", 1
+    )[0]
 
     for declaration in (
         "readonly property int showOpacityDuration: 120",
