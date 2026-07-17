@@ -548,6 +548,8 @@ P6D navigation 资料卡、分页器与菜单栏组三提交已完成：`8c6a0bf
 
 P6D navigation 分段控件、面包屑与堆叠动画组三提交已完成：`560aa166` 将 `SegmentedControl` 的内部状态前移到信号之前、函数恢复到尺寸/背景之前，并统一内容分节，清理 9 条 QML008、6 条 QML009；修前修后同一逐帧动画与主题输入均 `5 passed`。`ecb6b46c` 将 `Breadcrumb` 的内部/只读状态前移，方法恢复到尺寸和内容之前，并统一 Timer、动画与行内容分节，清理 10 条 QML008、6 条 QML009；修前修后相关持续时间和公开别名输入均 `4 passed`。`ba482466` 删除 `StackedAnimations` 中四个遗留移动占位注释，将九个动画组 handler 前移到子动画之前，并统一方法/内容分节，清理 9 条 QML008、8 条 QML009；修前修后懒加载失败、冷跳页与公开别名输入均通过。三批非注释代码多重集合均与各自父提交完全一致。最终完整门禁为 Python `2244 passed / 1 skipped`、QML probe `169 OK / 0 错误 / 12 跳过`、headless CTest `9/9`、Windows native CTest `2/2`、MkDocs strict、Python 3.9 AST 287、compileall、changed `48→0` 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留。P6D 累计清理 868 条；全库总库存 `1,755→1,707`，QML008 `1,038→1,010`、QML009 `674→654`，QML010 43 保持全部位于 examples。
 
+P6D navigation 滑动动画内核与 Pivot 三提交已完成：`f29d5c59` 将 `SlidingIndicatorAnimation` 的内部/只读几何前移到信号之前，统一方法与内容分节，清理 14 条 QML008、7 条 QML009；修前修后 SegmentedControl/TabWidget 逐帧动画均 `14 passed`。Pivot 整理前发现公开属性误拼为 `indicatorAnimmationEnabled`；仓内标准同类名为 `indicatorAnimationEnabled` 且错误名零消费者。真实 QML 使用正确名称修前明确报 `Cannot assign to non-existent property`，`7545dcba` 按 pre-1 规则直接更名且不保留错误别名，修后主题真实入口 `1 passed`。`55b8a3b7` 再将 Pivot 内部状态、公开/内部方法、尺寸、生命周期 handler 与 delegate 属性恢复到规范顺序，清理 17 条 QML008、5 条 QML009；非注释代码多重集合与正确性父提交完全一致。最终完整门禁为 Python `2244 passed / 1 skipped`、QML probe `169 OK / 0 错误 / 12 跳过`、headless CTest `9/9`、Windows native CTest `2/2`、MkDocs strict、Python 3.9 AST 287、compileall、changed `43→0` 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留。P6D 累计清理 911 条；全库总库存 `1,707→1,664`，QML008 `1,010→979`、QML009 `654→642`，QML010 43 保持全部位于 examples。
+
 - 难度：3–7 天
 - 风险：中高
 - 前置依赖：P1–P5
@@ -1017,7 +1019,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 
 ## 九、状态追踪
 
-截至 2026-07-17，按剩余工作量粗估整体计划约完成 **88%**：P0–P5、P7J、P7K 与 P8 已完成，P6/P7 继续进行，P9 待执行；该百分比不是按阶段数量简单平均，新增插单会改变剩余时间估算。
+截至 2026-07-17，按剩余工作量粗估整体计划约完成 **89%**：P0–P5、P7J、P7K 与 P8 已完成，P6/P7 继续进行，P9 待执行；该百分比不是按阶段数量简单平均，新增插单会改变剩余时间估算。
 
 | 阶段 | 状态 | 验证记录 | 提交 |
 |---|---|---|---|
@@ -1038,7 +1040,7 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 | P7K-C SqlListModel 只读 URI | 已完成 | Windows/POSIX/UNC URI 一次编码，Python 列解析/count/页读取统一只读；真实特殊路径和删除文件在 Python/Rust 下结果一致且不建库；Python 2223/1、QML 169/0/12、CTest 9/9 + native 2/2 | `68c9e60a` |
 | P7K-D Python 注册注入 | 已完成 | `register_types()` 补齐 ConfigManager/ClipboardHelper；双引擎同一单例、DpiManager wrapper 125、warning/critical 归零；Python 2224/1、QML 169/0/12、CTest 9/9 + native 2/2 | `47ebdb30` |
 | P8 资源注册 | 已完成 | 五个孤儿已删除；2,497 项双注册表已同步；Python/C++ IconProvider 已统一；DpiManager 已收窄为五个真实状态。全量 Python 2230/1、QML 169/0/12、CTest 9/9 + native 2/2，全库 QML 库存 2,604、changed 0 | `154cd4e4`、`11882986`、`39efe2e8`、`4bc9fd0`、`fa4a20d6`、`79932827` |
-| P6D navigation（2026-07-17 最新） | 进行中 | LazyLoadingHelper 失败握手已闭环，当前 navigation 三组累计清理 77 条；全库库存 1,707，最新全量 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 | `d22135e9`、`cf85ead5`、`38508f43`、`8c6a0bf9`、`a11db155`、`02d7c64d`、`560aa166`、`ecb6b46c`、`ba482466` |
+| P6D navigation（2026-07-17 最新） | 进行中 | LazyLoadingHelper 失败握手与 Pivot 属性更名已闭环，当前 navigation 累计清理 120 条；全库库存 1,664，最新全量 Python 2244/1、QML 169/0/12、CTest 9/9 + native 2/2、MkDocs strict、Python 3.9 AST 287、compileall、changed 0 | `d22135e9`、`cf85ead5`、`38508f43`、`8c6a0bf9`、`a11db155`、`02d7c64d`、`560aa166`、`ecb6b46c`、`ba482466`、`f29d5c59`、`7545dcba`、`55b8a3b7` |
 | P9 最终验收 | 待执行 |  |  |
 
 状态只能填写“待执行 / 进行中 / 已完成 / 阻塞”。“已完成”必须同时记录真实测试结果和提交哈希。
