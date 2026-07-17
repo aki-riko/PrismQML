@@ -9,7 +9,7 @@ import "../buttons"
 import "../data"
 
 // Paginator - Fluent Design style pagination 分页器
-// Features: sliding animation when page changes, hover effects, accent color highlight
+// Features sliding page changes, hover effects, and accent highlights 支持滑动翻页、悬停效果和强调色高亮
 Item {
     id: root
     
@@ -38,12 +38,13 @@ Item {
     implicitWidth: pagerRow.implicitWidth
     implicitHeight: _buttonSize
 
+    // ==================== Content 内容 ====================
     Row {
         id: pagerRow
         anchors.centerIn: parent
         spacing: _spacing
         
-        // ==================== Previous Button 上一页按钮 ====================
+        // Previous button 上一页按钮
         Button {
             visible: root.showPrevNext
             style: Enums.button.style_transparent
@@ -59,7 +60,7 @@ Item {
             }
         }
         
-        // ==================== Page Numbers Viewport 页码视口 ====================
+        // Page-number viewport 页码视口
         Item {
             id: viewport
             width: root.visiblePages * root._buttonSize + (root.visiblePages - 1) * root._spacing
@@ -69,12 +70,7 @@ Item {
             // Inner container with all pages 包含所有页码的内部容器
             Item {
                 id: innerContainer
-                width: root.totalPages * root._itemWidth
-                height: root._buttonSize
-                
-                // Slide to show current page centered 滑动使当前页居中
-                x: -_targetX
-                
+
                 property real _targetX: {
                     var centerIndex = Math.floor(root.visiblePages / 2)
                     var pageIndex = root.currentPage - 1
@@ -82,6 +78,12 @@ Item {
                     var offset = Math.max(0, Math.min(maxOffset, pageIndex - centerIndex))
                     return offset * root._itemWidth
                 }
+
+                width: root.totalPages * root._itemWidth
+                height: root._buttonSize
+
+                // Slide to show current page centered 滑动使当前页居中
+                x: -_targetX
                 
                 Behavior on x {
                     NumberAnimation {
@@ -167,7 +169,7 @@ Item {
             }
         }
 
-        // ==================== Next Button 下一页按钮 ====================
+        // Next button 下一页按钮
         Button {
             visible: root.showPrevNext
             style: Enums.button.style_transparent
