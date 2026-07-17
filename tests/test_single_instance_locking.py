@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import platform
+import ast
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
@@ -288,3 +289,37 @@ def test_notify_primary_ack_matrix(
             ("connect", instance._server_name()),
             ("wait_connected", 500),
         ]
+
+
+def test_lock_and_ack_methods_stay_small_and_delegated():
+    tree = ast.parse(
+        SOURCE_PATH.read_text(encoding="utf-8"),
+        filename=str(SOURCE_PATH),
+        feature_version=(3, 9),
+    )
+    target_names = {
+        "_claim_primary",
+        "_notify_second_instance",
+        "_handle_existing_windows_mutex",
+        "_try_lock_windows",
+        "_handle_existing_shared_memory",
+        "_handle_shared_memory_race",
+        "_try_lock_shared_memory",
+        "try_lock",
+        "_notify_primary",
+        "_read_primary_ack",
+        "_disconnect_primary_socket",
+    }
+    single_instance = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "SingleInstance"
+    )
+    methods = {
+        node.name: node for node in single_instance.body if isinstance(node, ast.FunctionDef)
+    }
+    assert target_names <= set(methods)
+    assert all(
+        methods[name].end_lineno - methods[name].lineno + 1 <= 30
+        for name in target_names
+    )

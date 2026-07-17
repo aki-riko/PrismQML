@@ -127,6 +127,69 @@ class SingleInstance(QObject):
         finally:
             self._semaphore.release()
 
+    def _claim_primary(self) -> bool:
+        """Commit primary ownership and start IPC. 提交主实例所有权并启动 IPC。"""
+        self._is_locked = True
+        self._start_server()
+        return True
+
+    def _notify_second_instance(self):
+        """Invoke the optional second-instance callback. 调用可选的第二实例回调。"""
+        if self._on_second_instance:
+            self._on_second_instance()
+
+    def _handle_existing_windows_mutex(self) -> bool:
+        """Distinguish a live Windows primary from a stale mutex. 区分存活主实例与陈旧互斥体。"""
+        if self._notify_primary():
+            if self._mutex_handle:
+                kernel32.CloseHandle(self._mutex_handle)
+                self._mutex_handle = None
+            self._notify_second_instance()
+            return False
+        logger.warning("[SingleInstance] 检测到陈旧锁(主实例无响应),接管启动")
+        return self._claim_primary()
+
+    def _try_lock_windows(self) -> bool:
+        """Try the Windows named-mutex path. 尝试 Windows 命名互斥体路径。"""
+        mutex_name = f"Local\\{self._app_id}"
+        self._mutex_handle = kernel32.CreateMutexW(None, True, mutex_name)
+        last_error = kernel32.GetLastError()
+        if last_error == ERROR_ALREADY_EXISTS:
+            return self._handle_existing_windows_mutex()
+        if self._mutex_handle:
+            return self._claim_primary()
+        return False
+
+    def _handle_existing_shared_memory(self) -> bool:
+        """Distinguish a live primary from stale shared memory. 区分存活主实例与陈旧共享内存。"""
+        if self._notify_primary():
+            self._shared_memory.detach()
+            self._notify_second_instance()
+            return False
+        logger.warning("[SingleInstance] 检测到陈旧锁(主实例无响应),接管启动")
+        return self._claim_primary()
+
+    def _handle_shared_memory_race(self) -> bool:
+        """Preserve the existing shared-memory race fallback. 保留既有共享内存竞态回退。"""
+        if not self._shared_memory.attach():
+            return False
+        self._shared_memory.detach()
+        self._notify_primary()
+        self._notify_second_instance()
+        return False
+
+    def _try_lock_shared_memory(self) -> bool:
+        """Try the non-Windows shared-memory path. 尝试非 Windows 共享内存路径。"""
+        self._semaphore.acquire()
+        try:
+            if self._shared_memory.attach():
+                return self._handle_existing_shared_memory()
+            if self._shared_memory.create(1):
+                return self._claim_primary()
+            return self._handle_shared_memory_race()
+        finally:
+            self._semaphore.release()
+
     @property
     def app_id(self) -> str:
         """应用唯一标识符"""
@@ -141,86 +204,9 @@ class SingleInstance(QObject):
         """
         if self._is_locked:
             return True
-
         if IS_WINDOWS:
-            # Windows Implementation: Named Mutex
-            # 命名约定: Local\ 前缀确保在当前会话中唯一
-            mutex_name = f"Local\\{self._app_id}"
-
-            self._mutex_handle = kernel32.CreateMutexW(None, True, mutex_name)
-            last_error = kernel32.GetLastError()
-
-            if last_error == ERROR_ALREADY_EXISTS:
-                # Mutex 已存在:可能是活着的主实例,也可能是卡死/残留的僵尸主实例。
-                # 通过 ack 往返探测主实例是否真的还在运行(仅凭 mutex 存在无法区分)。
-                alive = self._notify_primary()
-                if alive:
-                    # 主实例活着并已收到激活请求,当前进程作为第二实例退出。
-                    if self._mutex_handle:
-                        kernel32.CloseHandle(self._mutex_handle)
-                        self._mutex_handle = None
-                    if self._on_second_instance:
-                        self._on_second_instance()
-                    return False
-
-                # 陈旧锁:持锁进程已死或卡死成僵尸(事件循环停转,不回 ack)。
-                # 接管启动 —— 保留刚拿到的 mutex 句柄(指向同一命名对象,使 mutex
-                # 在僵尸被清理后依然存在),重建 IPC server 以接收后续实例的激活请求。
-                # 按设计不主动终止僵尸进程(通常也无法终止),它不影响本实例运行。
-                logger.warning(
-                    "[SingleInstance] 检测到陈旧锁(主实例无响应),接管启动"
-                )
-                self._is_locked = True
-                self._start_server()
-                return True
-
-            # 成功创建Mutex并持有所有权
-            if self._mutex_handle:
-                self._is_locked = True
-                self._start_server()  # 启动 IPC 监听,接收后续实例的激活请求
-                return True
-
-            return False
-
-        else:
-            # Non-Windows Implementation: QSharedMemory
-            self._semaphore.acquire()
-            try:
-                # 尝试attach到已存在的共享内存
-                if self._shared_memory.attach():
-                    # 探测主实例是否真的还活着(ack 往返),而非仅凭共享内存段存在判定。
-                    alive = self._notify_primary()
-                    if alive:
-                        self._shared_memory.detach()
-                        if self._on_second_instance:
-                            self._on_second_instance()
-                        return False
-                    # 陈旧锁:持锁进程已死或卡死成僵尸。保持 attach 以持有该段,
-                    # 接管启动并重建 IPC server。
-                    logger.warning(
-                        "[SingleInstance] 检测到陈旧锁(主实例无响应),接管启动"
-                    )
-                    self._is_locked = True
-                    self._start_server()
-                    return True
-
-                # 创建共享内存
-                if self._shared_memory.create(1):
-                    self._is_locked = True
-                    self._start_server()
-                    return True
-
-                # 竞态条件
-                if self._shared_memory.attach():
-                    self._shared_memory.detach()
-                    self._notify_primary()
-                    if self._on_second_instance:
-                        self._on_second_instance()
-                    return False
-
-                return False
-            finally:
-                self._semaphore.release()
+            return self._try_lock_windows()
+        return self._try_lock_shared_memory()
 
     # ==================== IPC(激活已有窗口) ====================
     def _server_name(self) -> str:
@@ -341,19 +327,26 @@ class SingleInstance(QObject):
         sock.write(_ACTIVATE_MESSAGE)
         sock.flush()
         sock.waitForBytesWritten(_IPC_TIMEOUT_MS)
-        # 等主实例回 ack。活实例事件循环在转,会及时回复;僵尸主实例事件循环
-        # 停转,这里必然超时——据此判定陈旧锁。
         got_ack = sock.waitForReadyRead(_ACK_TIMEOUT_MS)
         if got_ack:
-            try:
-                reply = bytes(sock.readAll())
-            except (OSError, RuntimeError):
-                reply = b""
-            got_ack = reply.startswith(_ACK_MESSAGE)
-        sock.disconnectFromServer()
-        if sock.state() != QLocalSocket.LocalSocketState.UnconnectedState:
-            sock.waitForDisconnected(_IPC_TIMEOUT_MS)
+            got_ack = self._read_primary_ack(sock).startswith(_ACK_MESSAGE)
+        self._disconnect_primary_socket(sock, QLocalSocket)
         return got_ack
+
+    @staticmethod
+    def _read_primary_ack(sock) -> bytes:
+        """Read the primary acknowledgement with the existing fallback. 读取主实例确认并保留既有回退。"""
+        try:
+            return bytes(sock.readAll())
+        except (OSError, RuntimeError):
+            return b""
+
+    @staticmethod
+    def _disconnect_primary_socket(sock, socket_type):
+        """Disconnect the second-instance probe socket. 断开第二实例探测套接字。"""
+        sock.disconnectFromServer()
+        if sock.state() != socket_type.LocalSocketState.UnconnectedState:
+            sock.waitForDisconnected(_IPC_TIMEOUT_MS)
 
     def unlock(self):
         """释放单实例锁"""
