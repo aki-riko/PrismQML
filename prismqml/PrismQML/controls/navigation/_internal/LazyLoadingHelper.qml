@@ -20,21 +20,22 @@ Item {
     required property var pageLoadErrorFunc // Function to obtain the Loader error 获取Loader错误的函数
     required property var activateLoaderFunc // Function to activate loader
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string loadingText: Translator.tr("loading")
     property int animationType: Enums.animation.opacity  // Animation type from parent 父级动画类型
     property int animationDuration: Enums.duration.slow  // Animation duration 动画时长
     property int popUpOffset: Enums.controlSize.popUpOffset  // PopUp offset PopUp偏移量
+
+    // ==================== Internal Props 内部属性 ====================
     property int pendingTargetIndex: -1
     property bool isLoadingSwitching: false
     property int internalLastIndex: 0
+    property int _exitTargetIndex: -1  // Store target index for exit animation callback 存储退出动画回调的目标索引
     
     // ==================== Signals 信号 ====================
     signal loadingComplete(int targetIndex, int previousIndex)
     signal loadingFailed(int targetIndex, string errorString)
     signal animationStart()
-
-    property int _exitTargetIndex: -1  // Store target index for exit animation callback 存储退出动画回调的目标索引
 
     // ==================== Public Methods 公开方法 ====================
     function cancelPendingLoad() {
@@ -176,19 +177,20 @@ Item {
         loadingFailed(targetIdx, errorString)
     }
 
-    // ==================== Loading Overlay 加载覆盖层 ====================
+    // ==================== Content 内容 ====================
     // Custom loading overlay with render thread animation, using RotationAnimator to avoid freeze during Loader instantiation. 自定义加载覆盖层（渲染线程动画），使用 RotationAnimator 避免 Loader 实例化时卡顿。
     Item {
         id: loadingOverlay
+
+        property alias text: loadingText.text
+        property bool running: visible && opacity > 0
+
         objectName: "lazyLoadingOverlay"
         anchors.fill: parent
         visible: false
         opacity: 0
         y: 0
         z: Enums.zIndex.controls
-        
-        property alias text: loadingText.text
-        property bool running: visible && opacity > 0
         
         Rectangle {
             anchors.fill: parent
@@ -269,7 +271,7 @@ Item {
         }
     }
 
-    // ==================== Exit Animations 退出动画 ====================
+    // Exit animations 退出动画
     // Fade exit 淡出
 
     NumberAnimation {
@@ -285,18 +287,20 @@ Item {
     ParallelAnimation {
         id: exitPopUpAnim
         property Item target
+        onFinished: helper._onExitAnimationFinished(target)
+
         NumberAnimation { target: exitPopUpAnim.target; property: "opacity"; from: 1; to: 0; duration: helper.animationDuration; easing.type: Easing.OutCubic }
         NumberAnimation { target: exitPopUpAnim.target; property: "y"; from: 0; to: helper.popUpOffset; duration: helper.animationDuration; easing.type: Easing.OutCubic }
-        onFinished: helper._onExitAnimationFinished(target)
     }
     
     // PopDown exit (fade + move up) PopDown退出（淡出+上移）
     ParallelAnimation {
         id: exitPopDownAnim
         property Item target
+        onFinished: helper._onExitAnimationFinished(target)
+
         NumberAnimation { target: exitPopDownAnim.target; property: "opacity"; from: 1; to: 0; duration: helper.animationDuration; easing.type: Easing.OutCubic }
         NumberAnimation { target: exitPopDownAnim.target; property: "y"; from: 0; to: -helper.popUpOffset; duration: helper.animationDuration; easing.type: Easing.OutCubic }
-        onFinished: helper._onExitAnimationFinished(target)
     }
     
     // Zoom exit 缩放退出
@@ -319,7 +323,7 @@ Item {
         onFinished: helper._onExitAnimationFinished(target)
     }
     
-    // ==================== Timers 定时器 ====================
+    // Timers 定时器
     Timer {
         id: loaderActivateTimer
         property int targetIndex: 0
