@@ -46,7 +46,7 @@ Item {
                         width: parent.width
                         height: 300
                         radius: Enums.radius.large
-                        color: "transparent"
+                        color: Enums.transparent
                         clip: true
                         
                         MatrixRain {
@@ -62,9 +62,9 @@ Item {
                         // 边框 Border
                         Rectangle {
                             anchors.fill: parent
-                            color: "transparent"
+                            color: Enums.transparent
                             radius: Enums.radius.large
-                            border.color: Enums.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
+                            border.color: Enums.stateColor.dialogBorder
                             border.width: 1
                         }
                     }

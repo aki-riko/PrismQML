@@ -72,7 +72,11 @@ Item {
                                 placeholderText: "彩色标签"
                                 width: 280
                                 tags: ["紧急", "普通", "完成"]
-                                tagColors: ({ "紧急": "#D13438", "普通": "#0078D4", "完成": "#107C10" })
+                                tagColors: ({
+                                    "紧急": Enums.chartColors.palette[3],
+                                    "普通": Enums.chartColors.palette[0],
+                                    "完成": Enums.chartColors.palette[1]
+                                })
                             }
                         }
                     }

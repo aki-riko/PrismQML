@@ -15,10 +15,10 @@ Item {
     
     // Test data 测试数据
     property var testModel: [
-        { color: "#e74c3c", text: "Banner 1" },
-        { color: "#3498db", text: "Banner 2" },
-        { color: "#2ecc71", text: "Banner 3" },
-        { color: "#9b59b6", text: "Banner 4" }
+        { color: Fluent.Enums.examplePageColors.carouselRed, text: "Banner 1" },
+        { color: Fluent.Enums.examplePageColors.carouselBlue, text: "Banner 2" },
+        { color: Fluent.Enums.examplePageColors.carouselGreen, text: "Banner 3" },
+        { color: Fluent.Enums.examplePageColors.carouselPurple, text: "Banner 4" }
     ]
     
     ScrollArea {

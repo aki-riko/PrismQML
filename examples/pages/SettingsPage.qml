@@ -401,7 +401,7 @@ Item {
                     icon: iconPath("Color")
                     type: Fluent.Enums.settingCard.type_color
                     defaultColor: Fluent.Enums.accentColor
-                    customColor: "#ff6b6b"
+                    customColor: Fluent.Enums.examplePageColors.settingsCustomAccent
                     defaultColorText: "默认颜色"
                     customColorText: "自定义颜色"
                     chooseColorText: "选择颜色"

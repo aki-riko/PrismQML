@@ -11,18 +11,6 @@ from scripts import qml_conventions as scanner
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLE_QML010_LINES = {
-    PurePosixPath("examples/pages/CarouselPage.qml"): {18, 19, 20, 21},
-    PurePosixPath("examples/pages/ChartPage.qml"): {
-        55, 56, 104, 105, 128, 129, 130, 131, 132, 150, 151, 152, 153, 154,
-        175, 176, 177, 178, 179, 199, 200, 201, 202, 203, 221, 231, 256, 257,
-    },
-    PurePosixPath("examples/pages/EffectsPage.qml"): {49, 65, 67},
-    PurePosixPath("examples/pages/IconPage.qml"): {125},
-    PurePosixPath("examples/pages/InputPage.qml"): {75},
-    PurePosixPath("examples/pages/MenuPage.qml"): {244, 256, 292, 293, 300},
-    PurePosixPath("examples/pages/SettingsPage.qml"): {404},
-}
 
 
 def _git(root: Path, *arguments: str) -> None:
@@ -140,17 +128,11 @@ def test_changed_mode_maps_renamed_example_baselines(tmp_path):
     ]
 
 
-def test_repository_example_qml010_inventory_is_stable():
+def test_repository_examples_have_no_qml010_inventory():
     violations = [
         item
         for item in scanner.scan_repository(ROOT)
         if item.path.parts and item.path.parts[0] == "examples"
     ]
-    actual = {
-        path: {item.line for item in violations if item.path == path}
-        for path in {item.path for item in violations}
-    }
 
-    assert actual == EXAMPLE_QML010_LINES
-    assert all(item.rule == "QML010" for item in violations)
-    assert len(violations) == 43
+    assert violations == []

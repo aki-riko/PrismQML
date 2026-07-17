@@ -52,8 +52,8 @@ Item {
                             {label: "Sep"}, {label: "Oct"}, {label: "Nov"}, {label: "Dec"}
                         ]
                         series: [
-                            {name: "Rainfall", values: [2, 4.9, 7, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20, 6.4, 3.3], color: "#0078d4"},
-                            {name: "Evaporation", values: [2.6, 5.9, 9, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6, 2.3], color: "#107c10"}
+                            {name: "Rainfall", values: [2, 4.9, 7, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20, 6.4, 3.3], color: Fluent.Enums.chartColors.palette[0]},
+                            {name: "Evaporation", values: [2.6, 5.9, 9, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6, 2.3], color: Fluent.Enums.chartColors.palette[1]}
                         ]
                     }
                 }
@@ -101,8 +101,8 @@ Item {
                             {label: "Thu"}, {label: "Fri"}, {label: "Sat"}, {label: "Sun"}
                         ]
                         series: [
-                            {name: "Highest", values: [10, 11, 13, 11, 12, 12, 9], color: "#0078d4"},
-                            {name: "Lowest", values: [1, -2, 2, 5, 3, 2, 0], color: "#107c10"}
+                            {name: "Highest", values: [10, 11, 13, 11, 12, 12, 9], color: Fluent.Enums.chartColors.palette[0]},
+                            {name: "Lowest", values: [1, -2, 2, 5, 3, 2, 0], color: Fluent.Enums.chartColors.palette[1]}
                         ]
                     }
                 }
@@ -125,11 +125,11 @@ Item {
                             {label: "Thu"}, {label: "Fri"}, {label: "Sat"}, {label: "Sun"}
                         ]
                         series: [
-                            {name: "Email", values: [120, 132, 101, 134, 90, 230, 210], color: "#0078d4"},
-                            {name: "Union Ads", values: [220, 182, 191, 234, 290, 330, 310], color: "#107c10"},
-                            {name: "Video Ads", values: [150, 232, 201, 154, 190, 330, 410], color: "#ffb900"},
-                            {name: "Direct", values: [320, 332, 301, 334, 390, 330, 320], color: "#d13438"},
-                            {name: "Search Engine", values: [820, 932, 901, 934, 1290, 1330, 1320], color: "#00b7c3"}
+                            {name: "Email", values: [120, 132, 101, 134, 90, 230, 210], color: Fluent.Enums.chartColors.palette[0]},
+                            {name: "Union Ads", values: [220, 182, 191, 234, 290, 330, 310], color: Fluent.Enums.chartColors.palette[1]},
+                            {name: "Video Ads", values: [150, 232, 201, 154, 190, 330, 410], color: Fluent.Enums.chartColors.palette[2]},
+                            {name: "Direct", values: [320, 332, 301, 334, 390, 330, 320], color: Fluent.Enums.chartColors.palette[3]},
+                            {name: "Search Engine", values: [820, 932, 901, 934, 1290, 1330, 1320], color: Fluent.Enums.chartColors.palette[5]}
                         ]
                     }
                 }
@@ -147,11 +147,11 @@ Item {
                         title: "Referer of a Website"
                         subtitle: "Fake Data"
                         chartData: [
-                            {label: "Search Engine", value: 1048, color: "#0078d4"},
-                            {label: "Direct", value: 735, color: "#107c10"},
-                            {label: "Email", value: 580, color: "#ffb900"},
-                            {label: "Union Ads", value: 484, color: "#d13438"},
-                            {label: "Video Ads", value: 300, color: "#00b7c3"}
+                            {label: "Search Engine", value: 1048, color: Fluent.Enums.chartColors.palette[0]},
+                            {label: "Direct", value: 735, color: Fluent.Enums.chartColors.palette[1]},
+                            {label: "Email", value: 580, color: Fluent.Enums.chartColors.palette[2]},
+                            {label: "Union Ads", value: 484, color: Fluent.Enums.chartColors.palette[3]},
+                            {label: "Video Ads", value: 300, color: Fluent.Enums.chartColors.palette[5]}
                         ]
                     }
                 }
@@ -172,11 +172,11 @@ Item {
                         donutCenterText: "3147"
                         donutCenterSubtext: "Total"
                         chartData: [
-                            {label: "Search Engine", value: 1048, color: "#0078d4"},
-                            {label: "Direct", value: 735, color: "#107c10"},
-                            {label: "Email", value: 580, color: "#ffb900"},
-                            {label: "Union Ads", value: 484, color: "#d13438"},
-                            {label: "Video Ads", value: 300, color: "#00b7c3"}
+                            {label: "Search Engine", value: 1048, color: Fluent.Enums.chartColors.palette[0]},
+                            {label: "Direct", value: 735, color: Fluent.Enums.chartColors.palette[1]},
+                            {label: "Email", value: 580, color: Fluent.Enums.chartColors.palette[2]},
+                            {label: "Union Ads", value: 484, color: Fluent.Enums.chartColors.palette[3]},
+                            {label: "Video Ads", value: 300, color: Fluent.Enums.chartColors.palette[5]}
                         ]
                     }
                 }
@@ -196,11 +196,11 @@ Item {
                         donutRatio: 0.5
                         emphasisCenter: true
                         chartData: [
-                            {label: "Search Engine", value: 1048, color: "#0078d4"},
-                            {label: "Direct", value: 735, color: "#107c10"},
-                            {label: "Email", value: 580, color: "#ffb900"},
-                            {label: "Union Ads", value: 484, color: "#d13438"},
-                            {label: "Video Ads", value: 300, color: "#00b7c3"}
+                            {label: "Search Engine", value: 1048, color: Fluent.Enums.chartColors.palette[0]},
+                            {label: "Direct", value: 735, color: Fluent.Enums.chartColors.palette[1]},
+                            {label: "Email", value: 580, color: Fluent.Enums.chartColors.palette[2]},
+                            {label: "Union Ads", value: 484, color: Fluent.Enums.chartColors.palette[3]},
+                            {label: "Video Ads", value: 300, color: Fluent.Enums.chartColors.palette[5]}
                         ]
                     }
                 }
@@ -218,7 +218,7 @@ Item {
                         title: "Outlier Detection"
                         series: [
                             // effectScatter: highlighted outliers with ripple 高亮异常点带涟漪
-                            {name: "Outliers", type: "effectScatter", symbolSize: 20, data: [[172.7, 105.2], [153.4, 42]], color: "#d13438"},
+                            {name: "Outliers", type: "effectScatter", symbolSize: 20, data: [[172.7, 105.2], [153.4, 42]], color: Fluent.Enums.chartColors.palette[3]},
                             // scatter: normal data points 普通数据点
                             {name: "Normal", type: "scatter", symbolSize: 8, data: [
                                 [161.2, 51.6], [167.5, 59], [159.5, 49.2], [157, 63], [155.8, 53.6],
@@ -228,7 +228,7 @@ Item {
                                 [175, 82.5], [166.8, 57.2], [176.5, 87.8], [170.2, 72.8], [174, 54.5],
                                 [173, 59.8], [179.9, 67.3], [170.5, 67.8], [160, 47], [154.4, 46.2],
                                 [162, 55], [176.5, 83], [160, 54.4], [152, 45.8], [162.1, 53.6]
-                            ], color: "#0078d4"}
+                            ], color: Fluent.Enums.chartColors.palette[0]}
                         ]
                     }
                 }
@@ -253,8 +253,8 @@ Item {
                             {name: "Marketing", max: 25000}
                         ]
                         series: [
-                            {name: "Allocated Budget", values: [4200, 3000, 20000, 35000, 50000, 18000], color: "#0078d4"},
-                            {name: "Actual Spending", values: [5000, 14000, 28000, 26000, 42000, 21000], color: "#107c10"}
+                            {name: "Allocated Budget", values: [4200, 3000, 20000, 35000, 50000, 18000], color: Fluent.Enums.chartColors.palette[0]},
+                            {name: "Actual Spending", values: [5000, 14000, 28000, 26000, 42000, 21000], color: Fluent.Enums.chartColors.palette[1]}
                         ]
                     }
                 }

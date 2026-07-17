@@ -23,13 +23,10 @@ EXEMPT_PATHS = (
     ),
     PurePosixPath("prismqml/PrismQML/controls/feedback/Confetti.qml"),
 )
-EXAMPLE_ARRAY_LINES = {
-    PurePosixPath("examples/pages/CarouselPage.qml"): {18, 19, 20, 21},
-    PurePosixPath("examples/pages/ChartPage.qml"): {
-        55, 56, 104, 105, 128, 129, 130, 131, 132, 150, 151, 152, 153, 154,
-        175, 176, 177, 178, 179, 199, 200, 201, 202, 203, 221, 231, 256, 257,
-    },
-}
+MIGRATED_EXAMPLE_ARRAY_PATHS = (
+    PurePosixPath("examples/pages/CarouselPage.qml"),
+    PurePosixPath("examples/pages/ChartPage.qml"),
+)
 GLOBAL_PALETTE_VALUE_LINES = {
     308, 310, 312, 314, 316, 318, 323, 324, 402, 403, 406, 407, 410, 411,
     428, 429, 430, 431, 432, 433, 442, 448, 449,
@@ -127,7 +124,7 @@ def test_long_comparison_and_object_key_gaps_remain_non_values():
     assert _qml010_lines(source, JAVASCRIPT_PATH) == []
 
 
-def test_real_color_maps_with_text_keys_remain_reported():
+def test_real_color_maps_use_tokens_but_literal_maps_remain_reported():
     path = PurePosixPath("examples/pages/InputPage.qml")
     source = (ROOT / path).read_text(encoding="utf-8")
     compressed = (
@@ -135,8 +132,8 @@ def test_real_color_maps_with_text_keys_remain_reported():
         'second: "#D13438" }) }\n'
     )
 
-    assert 'tagColors: ({ "紧急": "#D13438"' in source.splitlines()[74]
-    assert 75 in _qml010_lines(source, path)
+    assert '"紧急": Enums.chartColors.palette[3]' in source
+    assert _qml010_lines(source, path) == []
     assert _qml010_lines(compressed) == [1]
 
 
@@ -459,7 +456,7 @@ def test_large_closed_color_arrays_are_not_silently_skipped():
     assert perf_counter() - started < 0.75
 
 
-def test_real_example_object_arrays_remain_covered_without_duplicates():
-    for path, expected in EXAMPLE_ARRAY_LINES.items():
+def test_real_example_object_arrays_use_global_color_tokens():
+    for path in MIGRATED_EXAMPLE_ARRAY_PATHS:
         source = (ROOT / path).read_text(encoding="utf-8")
-        assert set(_qml010_lines(source, path)) == expected
+        assert _qml010_lines(source, path) == []

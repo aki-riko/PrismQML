@@ -122,7 +122,7 @@ Item {
             id: detailPanel
             width: 240
             height: parent.height
-            color: "transparent"
+            color: Fluent.Enums.transparent
 
             Column {
                 anchors.fill: parent

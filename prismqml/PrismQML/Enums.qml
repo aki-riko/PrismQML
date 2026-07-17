@@ -206,6 +206,7 @@ Item {
     readonly property alias passwordStrengthColors: _constants.passwordStrengthColors
     readonly property alias calendarColors: _constants.calendarColors
     readonly property alias exampleCardColors: _constants.exampleCardColors
+    readonly property alias examplePageColors: _constants.examplePageColors
     readonly property alias chipColors: _constants.chipColors
     readonly property alias tableCellColors: _constants.tableCellColors
     

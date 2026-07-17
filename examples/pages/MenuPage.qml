@@ -241,7 +241,7 @@ Item {
                                 Rectangle {
                                     anchors.fill: parent
                                     radius: parent.radius
-                                    color: Fluent.Enums.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.035)
+                                    color: Fluent.Enums.stateColor.treeItemHover
                                     visible: _tvMa.containsMouse
                                 }
 
@@ -253,7 +253,7 @@ Item {
                                     anchors.leftMargin: 8
                                     anchors.rightMargin: 8
                                     height: 1
-                                    color: Fluent.Enums.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.05)
+                                    color: Fluent.Enums.examplePageColors.tableDivider
                                 }
 
                                 Row {
@@ -289,15 +289,16 @@ Item {
                                             height: 22
                                             radius: 11
                                             color: _tvDelegate.modelData.status === "启用"
-                                                   ? Qt.rgba(0.18, 0.75, 0.45, 0.12)
-                                                   : Qt.rgba(0.85, 0.25, 0.25, 0.10)
+                                                   ? Fluent.Enums.examplePageColors.statusEnabledBg
+                                                   : Fluent.Enums.examplePageColors.statusDisabledBg
                                             Fluent.Label {
                                                 id: _statusLabel
                                                 anchors.centerIn: parent
                                                 type: Fluent.Enums.label.type_caption
                                                 text: _tvDelegate.modelData.status
                                                 color: _tvDelegate.modelData.status === "启用"
-                                                       ? "#1fa84d" : "#c93c3c"
+                                                       ? Fluent.Enums.examplePageColors.statusEnabledText
+                                                       : Fluent.Enums.examplePageColors.statusDisabledText
                                                 font.pixelSize: Fluent.Enums.typography.captionCompact
                                             }
                                         }

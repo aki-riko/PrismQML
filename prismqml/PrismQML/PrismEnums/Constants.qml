@@ -467,6 +467,22 @@ QtObject {
         readonly property color descBgLight: "#fcfcfc"  // Light mode bottom background 浅色模式下部背景
     }
 
+    // ==================== ExamplePageColors 示例页面颜色 ====================
+    readonly property QtObject examplePageColors: QtObject {
+        readonly property color carouselRed: "#e74c3c"
+        readonly property color carouselBlue: "#3498db"
+        readonly property color carouselGreen: "#2ecc71"
+        readonly property color carouselPurple: "#9b59b6"
+        readonly property color tableDivider: root.isDark
+            ? Qt.rgba(1, 1, 1, 0.06)
+            : Qt.rgba(0, 0, 0, 0.05)
+        readonly property color statusEnabledBg: Qt.rgba(0.18, 0.75, 0.45, 0.12)
+        readonly property color statusDisabledBg: Qt.rgba(0.85, 0.25, 0.25, 0.10)
+        readonly property color statusEnabledText: "#1fa84d"
+        readonly property color statusDisabledText: "#c93c3c"
+        readonly property color settingsCustomAccent: "#ff6b6b"
+    }
+
 
     // ==================== ChipColors 标签颜色 ====================
     readonly property QtObject chipColors: QtObject {
