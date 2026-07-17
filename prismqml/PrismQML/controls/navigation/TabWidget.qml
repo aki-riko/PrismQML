@@ -230,6 +230,11 @@ Widget {
                 return Qt.rect(_eng.indicatorX, 0, _eng.indicatorWidth, 1)
             }
             function _scheduleSync(animate) {
+                // Freeze the current interpolated frame before the zero-delay layout sync.
+                // 在零延迟布局同步前冻结当前插值帧，避免旧目标再提交一帧。
+                if (animate && _eng.running && _syncedIndex !== control.currentIndex) {
+                    _eng.stopAnimation()
+                }
                 _syncTimer.animate = _syncTimer.animate || animate
                 _syncTimer.restart()
             }
