@@ -239,53 +239,87 @@ class SingleInstance(QObject):
             # 监听失败不致命:单实例锁仍有效,只是少了激活能力
             self._server = None
 
+    def _retain_connection(self, connection):
+        """Retain a pending IPC connection until completion. 保持待处理 IPC 连接。"""
+        if not hasattr(self, "_conns"):
+            self._conns = []
+        self._conns.append(connection)
+        connection.disconnected.connect(
+            lambda current=connection: self._release_connection(current)
+        )
+
+    def _release_connection(self, connection):
+        """Release and schedule deletion of one IPC connection. 释放并延迟删除 IPC 连接。"""
+        connections = getattr(self, "_conns", [])
+        if connection not in connections:
+            return
+        connections.remove(connection)
+        connection.deleteLater()
+
+    def _read_connection_message(self, connection) -> str:
+        """Read one IPC message with the existing fallback. 读取一条 IPC 消息并保留既有回退。"""
+        try:
+            return bytes(connection.readAll()).decode("utf-8", "ignore")
+        except (OSError, RuntimeError) as exc:
+            logger.debug(f"[SingleInstance] 读取 IPC 消息失败: {exc}")
+            return ""
+
+    def _send_ack(self, connection):
+        """Send the primary-instance liveness acknowledgement. 发送主实例存活确认。"""
+        try:
+            connection.write(_ACK_MESSAGE)
+            connection.flush()
+            connection.waitForBytesWritten(_IPC_TIMEOUT_MS)
+        except (OSError, RuntimeError) as exc:
+            logger.warning(f"[SingleInstance] 回 ack 失败: {exc}")
+
+    def _disconnect_connection(self, connection):
+        """Disconnect and release one IPC connection. 断开并释放一条 IPC 连接。"""
+        try:
+            connection.disconnectFromServer()
+        except (OSError, RuntimeError) as exc:
+            logger.debug(f"[SingleInstance] 断开 IPC 连接失败: {exc}")
+        finally:
+            self._release_connection(connection)
+
+    def _consume_connection(self, connection):
+        """Consume an available IPC payload exactly once. 仅处理一次可用 IPC 载荷。"""
+        if connection not in getattr(self, "_conns", []):
+            return
+        try:
+            data = self._read_connection_message(connection)
+            if data.startswith("activate"):
+                self.activateRequested.emit()
+                self._send_ack(connection)
+        finally:
+            self._disconnect_connection(connection)
+
     def _on_new_connection(self):
         """主实例:收到第二实例连接,读取消息后发 activateRequested。"""
         if not self._server:
             return
-        conn = self._server.nextPendingConnection()
-        if not conn:
+        connection = self._server.nextPendingConnection()
+        if not connection:
             return
-        # 保存引用防止被 GC(否则 readyRead 回调前对象就被回收)
-        if not hasattr(self, "_conns"):
-            self._conns = []
-        self._conns.append(conn)
-
-        def _handle():
-            try:
-                data = bytes(conn.readAll()).decode("utf-8", "ignore")
-            except (OSError, RuntimeError) as exc:
-                logger.debug(f"[SingleInstance] 读取 IPC 消息失败: {exc}")
-                data = ""
-            if data.startswith("activate"):
-                self.activateRequested.emit()
-                # 回 ack 让第二实例确认主实例事件循环仍在运行(存活探测)。
-                # 卡死的僵尸主实例事件循环停转,不会执行到这里,第二实例等 ack 超时
-                # 即可判定为陈旧锁并接管启动。Reply ack so the second instance can
-                # confirm this primary's event loop is alive; a hung primary never
-                # reaches here, so the peer's ack-wait times out and it takes over.
-                try:
-                    conn.write(_ACK_MESSAGE)
-                    conn.flush()
-                    conn.waitForBytesWritten(_IPC_TIMEOUT_MS)
-                except (OSError, RuntimeError) as exc:
-                    logger.warning(f"[SingleInstance] 回 ack 失败: {exc}")
-            try:
-                conn.disconnectFromServer()
-            except (OSError, RuntimeError) as exc:
-                logger.debug(f"[SingleInstance] 断开 IPC 连接失败: {exc}")
-            if conn in self._conns:
-                self._conns.remove(conn)
-
-        def _ready():
-            # 数据到齐再处理(activate 很短,一次 readyRead 即可)
-            if conn.bytesAvailable() > 0:
-                _handle()
-
-        conn.readyRead.connect(_ready)
+        self._retain_connection(connection)
+        connection.readyRead.connect(
+            lambda current=connection: self._consume_connection(current)
+        )
         # 兜底:连接建立时数据可能已就绪(错过 readyRead 信号)
-        if conn.bytesAvailable() > 0:
-            _handle()
+        if connection.bytesAvailable() > 0:
+            self._consume_connection(connection)
+        elif not connection.isOpen():
+            self._release_connection(connection)
+
+    def _close_connections(self):
+        """Abort and release every retained IPC connection. 中止并释放全部 IPC 连接。"""
+        for connection in list(getattr(self, "_conns", [])):
+            try:
+                connection.abort()
+            except (OSError, RuntimeError) as exc:
+                logger.debug(f"[SingleInstance] 中止 IPC 连接失败: {exc}")
+            finally:
+                self._release_connection(connection)
 
     def _notify_primary(self) -> bool:
         """第二实例:连接主实例、发激活请求并等待 ack。
@@ -333,6 +367,7 @@ class SingleInstance(QObject):
             except (OSError, RuntimeError) as exc:
                 logger.debug(f"[SingleInstance] 关闭 IPC server 失败: {exc}")
             self._server = None
+        self._close_connections()
 
         if IS_WINDOWS:
             if self._mutex_handle:

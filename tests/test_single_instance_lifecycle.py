@@ -4,6 +4,8 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """SingleInstance IPC lifecycle regressions. 单实例 IPC 生命周期回归。"""
 
+import ast
+from pathlib import Path
 from uuid import uuid4
 
 from PySide6.QtCore import QEventLoop, QTimer
@@ -11,6 +13,15 @@ from PySide6.QtNetwork import QLocalSocket
 from PySide6.QtTest import QSignalSpy
 
 from prismqml.python.core.single_instance import SingleInstance
+
+
+SOURCE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "prismqml"
+    / "python"
+    / "core"
+    / "single_instance.py"
+)
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -60,7 +71,7 @@ def test_activate_payload_emits_once_returns_ack_and_releases_connection(qapp):
         _cleanup(instance, client)
 
 
-def test_no_payload_disconnect_reproduces_retained_connection(qapp):
+def test_no_payload_disconnect_releases_server_connection(qapp):
     instance = _new_instance()
     client = _connect(instance)
     try:
@@ -68,9 +79,51 @@ def test_no_payload_disconnect_reproduces_retained_connection(qapp):
         if client.state() != QLocalSocket.LocalSocketState.UnconnectedState:
             client.waitForDisconnected(1000)
         _pump(50)
-        retained = getattr(instance, "_conns", [])
-        assert len(retained) == 1
-        assert retained[0].state() == QLocalSocket.LocalSocketState.UnconnectedState
-        assert retained[0].bytesAvailable() == 0
+        assert getattr(instance, "_conns", []) == []
     finally:
         _cleanup(instance, client)
+
+
+def test_unlock_aborts_and_releases_active_connections(qapp):
+    instance = _new_instance()
+    client = _connect(instance)
+    try:
+        _pump(20)
+        assert len(getattr(instance, "_conns", [])) == 1
+        instance.unlock()
+        _pump(20)
+        assert getattr(instance, "_conns", []) == []
+        assert client.state() == QLocalSocket.LocalSocketState.UnconnectedState
+    finally:
+        _cleanup(instance, client)
+
+
+def test_connection_lifecycle_methods_stay_small_and_delegated():
+    tree = ast.parse(
+        SOURCE_PATH.read_text(encoding="utf-8"),
+        filename=str(SOURCE_PATH),
+        feature_version=(3, 9),
+    )
+    target_names = {
+        "_retain_connection",
+        "_release_connection",
+        "_read_connection_message",
+        "_send_ack",
+        "_disconnect_connection",
+        "_consume_connection",
+        "_on_new_connection",
+        "_close_connections",
+    }
+    single_instance = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "SingleInstance"
+    )
+    methods = {
+        node.name: node for node in single_instance.body if isinstance(node, ast.FunctionDef)
+    }
+    assert target_names <= set(methods)
+    assert all(
+        methods[name].end_lineno - methods[name].lineno + 1 <= 30
+        for name in target_names
+    )
