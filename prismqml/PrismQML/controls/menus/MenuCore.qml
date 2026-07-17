@@ -31,18 +31,12 @@ import "." // For MenuSeparator, Action 引入同目录组件
 PopupWindowCore {
  id: control
  
- // ==================== Menu Props 菜单属性 ====================
+ // ==================== Public Props 公开属性 ====================
  property int minWidth: Enums.controlSize.menuMinWidth
  property int maxHeight: Enums.comboBoxMetrics.popupMaxHeight // Max menu height 菜单最大高度
- 
- // ==================== Child Items 子元素 ====================
  default property alias actions: itemsColumn.data
- 
- // ==================== Signals 信号 ====================
- signal dismissed()
- signal actionTriggered(string text) // Action triggered signal 动作触发信号
- 
- // ==================== Internal State 内部状态 ====================
+
+ // ==================== Internal Props 内部属性 ====================
  property bool _needsScroll: false
  property int _cachedWidth: minWidth // Cached width to break binding loop 缓存宽度打破绑定循环
  property int _cachedHeight: Enums.controlSize.emptyStateButtonHeight // Cached height 缓存高度
@@ -51,17 +45,12 @@ PopupWindowCore {
  property var _openSubmenuAction: null
  property var _pendingSubmenuAction: null
  property var _pendingSubmenuComponent: null
+
+ // ==================== Signals 信号 ====================
+ signal dismissed()
+ signal actionTriggered(string text) // Action triggered signal 动作触发信号
  
- Component.onDestruction: {
- _isDestroyed = true
- _closeOpenSubmenu()
- }
- 
- // ==================== Size Calculation 尺寸计算 ====================
- // Use cached values to avoid binding loop 使用缓存值避免绑定循环
- popupWidth: _cachedWidth
- popupHeight: _cachedHeight
- 
+ // ==================== Internal Methods 内部方法 ====================
  function _calcWidth() {
  // Guard against destroyed object or invalid context 防止对象已销毁或上下文无效
  if (_isDestroyed || typeof Math === 'undefined') return minWidth
@@ -287,8 +276,25 @@ PopupWindowCore {
  }
  Qt.callLater(_updateSize)
  }
- 
- // ==================== Internal Components 内部组件 ====================
+
+ // ==================== Size 尺寸 ====================
+ // Use cached values to avoid binding loop 使用缓存值避免绑定循环
+ popupWidth: _cachedWidth
+ popupHeight: _cachedHeight
+
+ Component.onDestruction: {
+ _isDestroyed = true
+ _closeOpenSubmenu()
+ }
+
+ Component.onCompleted: Qt.callLater(_updateSize)
+ onClosed: {
+ _closeOpenSubmenu()
+ dismissed()
+ }
+ onAboutToShow: _updateSize() // Recalculate before showing 显示前重新计算
+
+ // ==================== Content 内容 ====================
  Component {
  id: separatorComponent
  MenuSeparator {}
@@ -318,15 +324,7 @@ PopupWindowCore {
  }
  }
  
- // ==================== Lifecycle 生命周期 ====================
- Component.onCompleted: Qt.callLater(_updateSize)
- onClosed: {
- _closeOpenSubmenu()
- dismissed()
- }
- onAboutToShow: _updateSize() // Recalculate before showing 显示前重新计算
- 
- // ==================== Menu Content 菜单内容 ====================
+ // Menu content 菜单内容
  Flickable {
  id: menuFlickable
  anchors.fill: parent
@@ -342,10 +340,11 @@ PopupWindowCore {
  
  Column {
  id: itemsColumn
- width: parent.width
 
- // 已自动绑定的 Action 列表 (用 objectName 做去重 key 不可靠, 直接缓存对象引用)
+ // Cache auto-bound Action object references for deduplication 缓存已自动绑定的 Action 对象引用用于去重
  property var _autoBoundActions: []
+
+ width: parent.width
 
  onChildrenChanged: {
  // 声明式子项 Action 不走 addAction(那条路径会显式 connect),所以 triggered

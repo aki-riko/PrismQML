@@ -13,7 +13,7 @@ import "../containers"
 Item {
     id: delegateRoot
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string text: ""
     property string icon: ""
     property bool selected: false
@@ -31,14 +31,15 @@ Item {
     width: parent ? parent.width : Enums.comboBoxMetrics.defaultWidth
     height: isSeparator ? Enums.controlSize.menuSeparatorHeight : Enums.comboBoxMetrics.itemHeight
     
-    // ==================== Separator 分隔线 ====================
+    // ==================== Content 内容 ====================
+    // Separator 分隔线
     Separator {
         anchors.centerIn: parent
         width: parent.width - Enums.spacing.m * 2
         visible: delegateRoot.isSeparator
     }
     
-    // ==================== Item Background 项目背景 ====================
+    // Item background 项目背景
     Rectangle {
         id: itemBg
         anchors.fill: parent
@@ -57,7 +58,7 @@ Item {
             return Enums.transparent
         }
         
-        // ==================== Selection Indicator 选中指示器 ====================
+        // Selection indicator 选中指示器
         Rectangle {
             anchors.left: parent.left
             anchors.leftMargin: Enums.spacing.xxs
@@ -69,7 +70,7 @@ Item {
             visible: delegateRoot.selected
         }
         
-        // ==================== Item Icon 项目图标 ====================
+        // Item icon 项目图标
         Icon {
             id: itemIcon
             anchors.left: parent.left
@@ -80,7 +81,7 @@ Item {
             visible: delegateRoot.icon !== ""
         }
         
-        // ==================== Item Text 项目文本 ====================
+        // Item text 项目文本
         Label {
             anchors.left: parent.left
             // Shift text right when icon is present 有图标时文本右移
@@ -97,7 +98,7 @@ Item {
         }
     }
     
-    // ==================== Interaction 交互 ====================
+    // Interaction 交互
     MouseArea {
         id: delegateMouseArea
         anchors.fill: parent

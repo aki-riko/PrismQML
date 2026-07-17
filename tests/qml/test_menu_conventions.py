@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Menu component group runtime contracts. Menu 组件组运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QPoint, QPointF, QTimer, QUrl, Qt
@@ -14,9 +14,20 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+MENU_SOURCE_PATHS = tuple(
+    ROOT / "prismqml" / "PrismQML" / "controls" / "menus" / name
+    for name in (
+        "ContextMenu.qml",
+        "MenuCore.qml",
+        "MenuDelegate.qml",
+        "SystemTrayMenu.qml",
+        "TreeMenuDelegate.qml",
+    )
+)
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "menu-conventions.qml"))
 SCENE_SOURCE = b"""
 import QtQuick
@@ -267,3 +278,17 @@ def test_menu_delegates_and_context_binding(menu_scene):
     assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_menu_sources_follow_conventions():
+    violations = []
+    for source_path in MENU_SOURCE_PATHS:
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source_path.read_text(encoding="utf-8"), path
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []

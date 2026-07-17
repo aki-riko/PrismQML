@@ -18,27 +18,8 @@ MenuCore {
     property bool autoBindRightClick: true  // Auto-bind right-click to parent 自动绑定右键
     property Item target: null              // Optional target control 可选目标控件
     
-    // ==================== Internal 内部 ====================
+    // ==================== Internal Props 内部属性 ====================
     property Item _mouseArea: null
-    
-    Component.onCompleted: {
-        if (parent && autoBindRightClick) {
-            _mouseArea = mouseAreaComponent.createObject(parent)
-        }
-    }
-    
-    Component.onDestruction: {
-        if (_mouseArea) {
-            _mouseArea.destroy()
-        }
-    }
-    
-    // Watch for parent change 监听父组件变化
-    onParentChanged: {
-        if (parent && autoBindRightClick && !_mouseArea) {
-            _mouseArea = mouseAreaComponent.createObject(parent)
-        }
-    }
     
     // ==================== Public Methods 公开方法 ====================
     // Bind right-click to parent (call after setParent) 绑定右键到父组件
@@ -60,9 +41,6 @@ MenuCore {
         }
     }
     
-    // ==================== Public Methods 公共方法 ====================
-    
-    
     // Hide menu (alias for close) 隐藏菜单（close别名）
     function hide() {
         close()
@@ -77,7 +55,27 @@ MenuCore {
     function exec(x, y, parentItem) {
         popup(x, y, parentItem || parent)
     }
+
+    Component.onCompleted: {
+        if (parent && autoBindRightClick) {
+            _mouseArea = mouseAreaComponent.createObject(parent)
+        }
+    }
+
+    Component.onDestruction: {
+        if (_mouseArea) {
+            _mouseArea.destroy()
+        }
+    }
+
+    // Watch for parent change 监听父组件变化
+    onParentChanged: {
+        if (parent && autoBindRightClick && !_mouseArea) {
+            _mouseArea = mouseAreaComponent.createObject(parent)
+        }
+    }
     
+    // ==================== Content 内容 ====================
     // MouseArea component for right-click 右键MouseArea组件
     Component {
         id: mouseAreaComponent

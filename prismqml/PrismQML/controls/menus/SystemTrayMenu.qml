@@ -11,9 +11,8 @@ import "."
 MenuCore {
     id: control
     
-    // ==================== System Tray Specific Props 系统托盘特定属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool showAtCursor: true
-    closeOnClickOutside: true
     
     // ==================== Public Methods 公开方法 ====================
     function showAtPosition(x, y) {
@@ -40,4 +39,6 @@ MenuCore {
         
         open(posX, posY)
     }
+
+    closeOnClickOutside: true
 }

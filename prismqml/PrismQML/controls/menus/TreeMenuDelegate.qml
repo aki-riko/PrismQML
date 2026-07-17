@@ -13,7 +13,7 @@ import "../data"
 Item {
     id: delegateRoot
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string text: ""
     property int depth: 0                    // Indentation level 缩进层级
     property bool hasChildren: false         // Has child nodes 是否有子节点
@@ -24,21 +24,22 @@ Item {
     readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     readonly property color _itemHoverColor: Enums.stateColor.menuItemHover
     readonly property color _itemPressedColor: Enums.stateColor.menuItemPressed
-    
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool hovered: delegateMouseArea.containsMouse || expandMouseArea.containsMouse
+    readonly property bool pressed: delegateMouseArea.pressed
+
     // ==================== Signals 信号 ====================
     signal clicked()
     signal toggleExpand()
     signal checkToggled()
     
-    // ==================== State 状态 ====================
-    readonly property bool hovered: delegateMouseArea.containsMouse || expandMouseArea.containsMouse
-    readonly property bool pressed: delegateMouseArea.pressed
-    
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : Enums.comboBoxMetrics.defaultWidth
     height: Enums.comboBoxMetrics.itemHeight
     
-    // ==================== Item Background 项目背景 ====================
+    // ==================== Content 内容 ====================
+    // Item background 项目背景
     Rectangle {
         id: itemBg
         anchors.fill: parent
@@ -51,7 +52,7 @@ Item {
         }
     }
     
-    // ==================== Content Row 内容行 ====================
+    // Content row 内容行
     Row {
         id: contentRow
         anchors.left: parent.left
@@ -108,7 +109,7 @@ Item {
         }
     }
     
-    // ==================== Main Interaction 主交互 ====================
+    // Main interaction 主交互
     // NOTE: Must be declared BEFORE expandMouseArea so it has lower z-order 注意：必须在 expandMouseArea 之前声明，使得 z 轴更低
 
     MouseArea {
@@ -133,7 +134,7 @@ Item {
         }
     }
     
-    // ==================== Expand Click Area (absolute positioned, higher z-order) 展开点击区域（绝对定位，z 轴更高） ====================
+    // Expand click area (absolute positioned, higher z-order) 展开点击区域（绝对定位，z 轴更高）
 
     // NOTE: Declared AFTER delegateMouseArea so it has higher z-order 注意：在 delegateMouseArea 之后声明，z 轴更高，优先接收点击
 
