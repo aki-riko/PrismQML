@@ -11,10 +11,10 @@ import "../../../data"
 Item {
     id: control
     
-    // ==================== Properties 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string label: "R"       // R/G/B/A (default, will be overridden)
-    property int channel: 0          // 0=R, 1=G, 2=B, 3=A
-    property int value: 0            // 0-255
+    property int channel: Enums.colorPickerMetrics.dialogRgbChannelR
+    property int value: Enums.colorPickerMetrics.channelMinValue
     property color baseColor: Enums.colorPalette.automaticColor  // Current color (for gradient calculation)
     property bool showInput: true    // Show input field 显示输入框
     
@@ -25,7 +25,7 @@ Item {
     implicitWidth: Enums.colorPickerMetrics.channelSliderWidth
     implicitHeight: Enums.spacing.xxxl
     
-    // ==================== Layout 布局 ====================
+    // ==================== Content 内容 ====================
     Row {
         anchors.fill: parent
         spacing: Enums.spacing.m
@@ -61,11 +61,11 @@ Item {
                 font.pixelSize: Enums.typography.bodySmall
                 color: Enums.textColor.primary
                 selectByMouse: true
-                validator: IntValidator { bottom: 0; top: Enums.colorPickerMetrics.channelMaxValue }
+                validator: IntValidator { bottom: Enums.colorPickerMetrics.channelMinValue; top: Enums.colorPickerMetrics.channelMaxValue }
                 
                 onEditingFinished: {
                     var val = parseInt(text)
-                    if (!isNaN(val) && val >= 0 && val <= Enums.colorPickerMetrics.channelMaxValue && val !== control.value) {
+                    if (!isNaN(val) && val >= Enums.colorPickerMetrics.channelMinValue && val <= Enums.colorPickerMetrics.channelMaxValue && val !== control.value) {
                         control.value = val
                         control.valueModified(val)
                     }
@@ -90,7 +90,7 @@ Item {
                     var size = Enums.colorPickerMetrics.checkerboardCellSize
                     for (var y = 0; y < height; y += size) {
                         for (var x = 0; x < width; x += size) {
-                            ctx.fillStyle = ((x / size + y / size) % 2 === 0) ? Enums.gray.border : Enums.textColor.primary
+                            ctx.fillStyle = ((x / size + y / size) % Enums.colorPickerMetrics.checkerboardParity === Enums.colorPickerMetrics.channelMinValue) ? Enums.gray.border : Enums.textColor.primary
                             ctx.fillRect(x, y, size, size)
                         }
                     }
@@ -106,26 +106,26 @@ Item {
                 gradient: Gradient {
                     orientation: Gradient.Horizontal
                     GradientStop { 
-                        position: 0
+                        position: Enums.opacityLevel.invisible
                         color: {
                             var c = control.baseColor
                             switch (control.channel) {
-                                case 0: return Qt.rgba(Enums.opacityLevel.invisible, c.g, c.b, Enums.opacityLevel.visible)
-                                case 1: return Qt.rgba(c.r, Enums.opacityLevel.invisible, c.b, Enums.opacityLevel.visible)
-                                case 2: return Qt.rgba(c.r, c.g, Enums.opacityLevel.invisible, Enums.opacityLevel.visible)
-                                case 3: return Qt.rgba(c.r, c.g, c.b, Enums.opacityLevel.invisible)
+                                case Enums.colorPickerMetrics.dialogRgbChannelR: return Qt.rgba(Enums.opacityLevel.invisible, c.g, c.b, Enums.opacityLevel.visible)
+                                case Enums.colorPickerMetrics.dialogRgbChannelG: return Qt.rgba(c.r, Enums.opacityLevel.invisible, c.b, Enums.opacityLevel.visible)
+                                case Enums.colorPickerMetrics.dialogRgbChannelB: return Qt.rgba(c.r, c.g, Enums.opacityLevel.invisible, Enums.opacityLevel.visible)
+                                case Enums.colorPickerMetrics.channelAlphaIndex: return Qt.rgba(c.r, c.g, c.b, Enums.opacityLevel.invisible)
                             }
                         }
                     }
                     GradientStop { 
-                        position: 1
+                        position: Enums.opacityLevel.visible
                         color: {
                             var c = control.baseColor
                             switch (control.channel) {
-                                case 0: return Qt.rgba(Enums.opacityLevel.visible, c.g, c.b, Enums.opacityLevel.visible)
-                                case 1: return Qt.rgba(c.r, Enums.opacityLevel.visible, c.b, Enums.opacityLevel.visible)
-                                case 2: return Qt.rgba(c.r, c.g, Enums.opacityLevel.visible, Enums.opacityLevel.visible)
-                                case 3: return Qt.rgba(c.r, c.g, c.b, Enums.opacityLevel.visible)
+                                case Enums.colorPickerMetrics.dialogRgbChannelR: return Qt.rgba(Enums.opacityLevel.visible, c.g, c.b, Enums.opacityLevel.visible)
+                                case Enums.colorPickerMetrics.dialogRgbChannelG: return Qt.rgba(c.r, Enums.opacityLevel.visible, c.b, Enums.opacityLevel.visible)
+                                case Enums.colorPickerMetrics.dialogRgbChannelB: return Qt.rgba(c.r, c.g, Enums.opacityLevel.visible, Enums.opacityLevel.visible)
+                                case Enums.colorPickerMetrics.channelAlphaIndex: return Qt.rgba(c.r, c.g, c.b, Enums.opacityLevel.visible)
                             }
                         }
                     }
@@ -153,18 +153,18 @@ Item {
             
             // Interaction 交互
             MouseArea {
-                anchors.fill: parent
-                enabled: control.enabled
-                preventStealing: true
-                
                 function updateValue(mouse) {
-                    var ratio = Math.max(0, Math.min(1, mouse.x / width))
+                    var ratio = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, mouse.x / width))
                     var newValue = Math.round(ratio * Enums.colorPickerMetrics.channelMaxValue)
                     if (newValue !== control.value) {
                         control.value = newValue
                         control.valueModified(newValue)
                     }
                 }
+
+                anchors.fill: parent
+                enabled: control.enabled
+                preventStealing: true
                 
                 onPressed: (mouse) => updateValue(mouse)
                 onPositionChanged: (mouse) => { if (pressed) updateValue(mouse) }

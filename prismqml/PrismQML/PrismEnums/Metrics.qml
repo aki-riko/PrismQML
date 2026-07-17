@@ -563,11 +563,13 @@ QtObject {
  readonly property int channelInputWidth: 48
  readonly property int channelInputFocusedBorderWidth: 2
  readonly property int channelInputBorderWidth: 1
+ readonly property int channelMinValue: 0
  readonly property int channelMaxValue: 255
  readonly property int channelAlphaIndex: 3
  readonly property int channelShowInputWidth: 90
  readonly property int channelHideInputWidth: 40
  readonly property int checkerboardCellSize: 6
+ readonly property int checkerboardParity: 2
  readonly property int handleBorderWidth: 2
 
  // Hue slider

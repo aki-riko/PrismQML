@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Color picker channel slider regressions. 颜色通道滑块回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
@@ -13,6 +13,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -146,3 +147,35 @@ def test_channel_slider_preserves_four_channel_gradients(qapp):
         component.deleteLater()
         engine.deleteLater()
         qapp.processEvents()
+
+
+def test_channel_slider_uses_tokens_and_convention_order():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+    for token in (
+        "Enums.colorPickerMetrics.channelMinValue",
+        "Enums.colorPickerMetrics.channelMaxValue",
+        "Enums.colorPickerMetrics.dialogRgbChannelR",
+        "Enums.colorPickerMetrics.dialogRgbChannelG",
+        "Enums.colorPickerMetrics.dialogRgbChannelB",
+        "Enums.colorPickerMetrics.channelAlphaIndex",
+        "Enums.colorPickerMetrics.checkerboardParity",
+        "Enums.opacityLevel.invisible",
+        "Enums.opacityLevel.visible",
+    ):
+        assert token in source
+    for literal in (
+        "property int channel: 0",
+        "property int value: 0",
+        "bottom: 0",
+        "case 0:",
+        "case 1:",
+        "case 2:",
+        "case 3:",
+        "% 2 === 0",
+    ):
+        assert literal not in source
