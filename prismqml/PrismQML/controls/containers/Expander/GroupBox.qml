@@ -13,26 +13,20 @@ import ".."
 Widget {
     id: control
     
-    // ==================== QGroupBox Compatible Props QGroupBox兼容属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property string title: ""
     property bool checkable: false      // Show checkbox in title 标题显示复选框
     property bool checked: true         // Checkbox state (only when checkable) 复选框状态
     property bool flat: false           // Flat style (no border) 扁平样式
     property int alignment: Qt.AlignLeft // Title alignment 标题对齐
-    
-    // ==================== Content 内容 ====================
     default property alias content: contentArea.data
+    // Title 文字下方的"边框遮盖块"颜色 — 必须与父容器底色一致, 否则断口处显出
+    // 不同色块. 默认 backgroundColor 适合主页面 (浅蓝灰), dialog 内应显式设
+    // Enums.dialogColor (白) 才不会突兀.
+    property color titleBgColor: Enums.backgroundColor
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property real _borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
-    
-    // ==================== Signals 信号 ====================
-    signal toggled(bool checked)        // Emitted when checkbox toggled 复选框切换时触发
-    signal clicked(bool checked)        // Emitted when checkbox clicked 复选框点击时触发
-    
-    // ==================== Size 尺寸 ====================
-    contentWidth: Enums.controlSize.cardContentWidth
-    contentHeight: contentArea.childrenRect.height + _titleHeight + Enums.spacing.l * 2
-    
-    // ==================== Internal 内部属性 ====================
     // Title height - fixed value based on typography 标题高度 - 基于字体的固定值
     readonly property real _titleHeight: title !== "" ? Enums.typography.body + Enums.spacing.s : 0
     readonly property real _titleLeftMargin: {
@@ -43,12 +37,11 @@ Widget {
     readonly property bool _contentEnabled: !checkable || checked
     readonly property real _titleY: _titleHeight / 2
 
-    // Title 文字下方的"边框遮盖块"颜色 — 必须与父容器底色一致, 否则断口处显出
-    // 不同色块. 默认 backgroundColor 适合主页面 (浅蓝灰), dialog 内应显式设
-    // Enums.dialogColor (白) 才不会突兀.
-    property color titleBgColor: Enums.backgroundColor
+    // ==================== Signals 信号 ====================
+    signal toggled(bool checked)        // Emitted when checkbox toggled 复选框切换时触发
+    signal clicked(bool checked)        // Emitted when checkbox clicked 复选框点击时触发
 
-    // ==================== Methods 方法 ====================
+    // ==================== Public Methods 公开方法 ====================
     function setChecked(value) {
         if (checkable) {
             checked = value
@@ -60,10 +53,14 @@ Widget {
         return checkable ? checked : true
     }
 
-    // ==================== Public Methods 公共方法 ====================
     function getTitle() { return title }
 
-    // ==================== Border 边框 ====================
+    // ==================== Size 尺寸 ====================
+    contentWidth: Enums.controlSize.cardContentWidth
+    contentHeight: contentArea.childrenRect.height + _titleHeight + Enums.spacing.l * 2
+
+    // ==================== Content 内容 ====================
+    // Border 边框
     Rectangle {
         id: borderRect
         anchors.fill: parent
@@ -87,7 +84,7 @@ Widget {
         color: control.titleBgColor
     }
     
-    // ==================== Title Loader 标题加载器 ====================
+    // Title loader 标题加载器
     Loader {
         id: titleLoader
         x: control._titleLeftMargin
@@ -121,7 +118,7 @@ Widget {
         }
     }
     
-    // ==================== Content Area 内容区域 ====================
+    // Content area 内容区域
     Item {
         id: contentArea
         objectName: "contentArea"

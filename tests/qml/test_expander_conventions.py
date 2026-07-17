@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Expander and GroupBox runtime contracts. Expander 与 GroupBox 运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -23,9 +23,26 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATHS = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "containers"
+    / "Expander"
+    / "ExpanderCore.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "containers"
+    / "Expander"
+    / "GroupBox.qml",
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "expander-conventions.qml")
 )
@@ -213,3 +230,17 @@ def test_group_box_checkbox_controls_content(expander_scene):
     assert content_area.isEnabled()
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_expander_sources_follow_conventions():
+    violations = []
+    for source_path in SOURCE_PATHS:
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source_path.read_text(encoding="utf-8"), path
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
