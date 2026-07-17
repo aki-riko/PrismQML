@@ -12,9 +12,8 @@ Provides native window operations callable from QML, such as taskbar icon settin
 import time
 from typing import Optional
 
-from PySide6.QtCore import QObject, Slot
-from PySide6.QtGui import QGuiApplication, QIcon, QPixmap, QPainter, Qt
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QObject, QSize, Slot
+from PySide6.QtGui import QGuiApplication, QIcon, QPainter, QPixmap, Qt
 
 from ._icon_path import resolve_icon_path
 from .logger import info, warning, error, debug
@@ -47,62 +46,67 @@ class WindowHelper(QObject):
         self._initialized = True
 
     @Slot(str)
-    def setAppIcon(self, icon: str):
-        """设置应用程序图标（任务栏 + Alt-Tab）
-
-        支持的路径格式：
-        - 本地文件路径: "d:/path/to/icon.svg"
-        - file:/// URL: "file:///d:/path/to/icon.svg"
-        - qrc:/ 资源: "qrc:/app_icon.svg"
-        - :/ 资源: ":/app_icon.svg"
-
-        Args:
-            icon: 图标路径字符串
-        """
+    def setAppIcon(self, icon: str) -> None:
+        """Set taskbar icon from local/file/qrc paths. 从本地或资源路径设置图标。"""
         if not icon:
             return
-
         profile_start = time.perf_counter()
-
-        # 解析图标路径 Resolve icon path
         icon_path = self._resolveIconPath(icon)
         resolve_ms = int((time.perf_counter() - profile_start) * 1000)
         if not icon_path:
             warning(f"无法解析图标路径: {icon}")
             return
-
         app = QGuiApplication.instance()
         if not app:
             warning("QGuiApplication 未创建，无法设置图标")
             return
+        if self._try_set_svg_icon(app, icon_path, profile_start, resolve_ms):
+            return
+        self._set_bitmap_icon(app, icon_path, profile_start, resolve_ms)
 
-        # SVG 需要特殊处理（渲染为多尺寸位图）
-        if icon_path.lower().endswith(".svg"):
-            render_start = time.perf_counter()
-            qicon = self._renderSvgIcon(icon_path)
-            if qicon and not qicon.isNull():
-                app.setWindowIcon(qicon)
-                info(
-                    "[启动剖析] WindowHelper.setAppIcon SVG: "
-                    f"resolve={resolve_ms}ms / "
-                    f"render={int((time.perf_counter() - render_start) * 1000)}ms / "
-                    f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
-                )
-                debug(f"任务栏图标已设置 (SVG): {icon_path}")
-                return
+    def _try_set_svg_icon(
+        self,
+        app: QGuiApplication,
+        icon_path: str,
+        profile_start: float,
+        resolve_ms: int,
+    ) -> bool:
+        """Render and publish an SVG when applicable. 按需渲染并发布 SVG。"""
+        if not icon_path.lower().endswith(".svg"):
+            return False
+        render_start = time.perf_counter()
+        qicon = self._renderSvgIcon(icon_path)
+        if not qicon or qicon.isNull():
+            return False
+        app.setWindowIcon(qicon)
+        info(
+            "[启动剖析] WindowHelper.setAppIcon SVG: "
+            f"resolve={resolve_ms}ms / "
+            f"render={int((time.perf_counter() - render_start) * 1000)}ms / "
+            f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
+        )
+        debug(f"任务栏图标已设置 (SVG): {icon_path}")
+        return True
 
-        # 非 SVG 直接加载
+    @staticmethod
+    def _set_bitmap_icon(
+        app: QGuiApplication,
+        icon_path: str,
+        profile_start: float,
+        resolve_ms: int,
+    ) -> None:
+        """Load and publish a bitmap icon. 加载并发布位图图标。"""
         qicon = QIcon(icon_path)
-        if not qicon.isNull():
-            app.setWindowIcon(qicon)
-            info(
-                "[启动剖析] WindowHelper.setAppIcon bitmap: "
-                f"resolve={resolve_ms}ms / "
-                f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
-            )
-            debug(f"任务栏图标已设置: {icon_path}")
-        else:
+        if qicon.isNull():
             warning(f"图标加载失败: {icon_path}")
+            return
+        app.setWindowIcon(qicon)
+        info(
+            "[启动剖析] WindowHelper.setAppIcon bitmap: "
+            f"resolve={resolve_ms}ms / "
+            f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
+        )
+        debug(f"任务栏图标已设置: {icon_path}")
 
     @staticmethod
     def _resolveIconPath(icon: str) -> str:
@@ -118,14 +122,7 @@ class WindowHelper(QObject):
 
     @staticmethod
     def _renderSvgIcon(svg_path: str) -> Optional[QIcon]:
-        """将 SVG 渲染为多尺寸 QIcon
-
-        Args:
-            svg_path: SVG 文件路径
-
-        Returns:
-            QIcon 或 None
-        """
+        """Render one SVG into a multi-size icon. 将 SVG 渲染为多尺寸图标。"""
         try:
             from PySide6.QtSvg import QSvgRenderer
 
@@ -133,23 +130,26 @@ class WindowHelper(QObject):
             if not renderer.isValid():
                 warning(f"SVG 渲染器无效: {svg_path}")
                 return None
-
-            qicon = QIcon()
-            for size in _ICON_SIZES:
-                pixmap = QPixmap(QSize(size, size))
-                pixmap.fill(Qt.GlobalColor.transparent)
-                painter = QPainter(pixmap)
-                renderer.render(painter)
-                painter.end()
-                qicon.addPixmap(pixmap)
-
-            return qicon
+            return WindowHelper._render_svg_sizes(renderer)
         except ImportError:
             warning("PySide6.QtSvg 未安装，SVG 图标无法渲染")
             return None
         except Exception as e:
             error(f"SVG 图标渲染失败: {e}")
             return None
+
+    @staticmethod
+    def _render_svg_sizes(renderer) -> QIcon:
+        """Render all taskbar sizes. 渲染全部任务栏尺寸。"""
+        qicon = QIcon()
+        for size in _ICON_SIZES:
+            pixmap = QPixmap(QSize(size, size))
+            pixmap.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(pixmap)
+            renderer.render(painter)
+            painter.end()
+            qicon.addPixmap(pixmap)
+        return qicon
 
 
 def get_window_helper() -> WindowHelper:
