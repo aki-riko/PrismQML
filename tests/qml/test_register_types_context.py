@@ -4,8 +4,10 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Public register_types context contracts. 公开注册入口上下文合同。"""
 
-import shiboken6
+from pathlib import Path
+
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QEventLoop,
     QTimer,
@@ -16,8 +18,20 @@ from PySide6.QtCore import (
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml.python.config.config_manager import ConfigManager
-from prismqml.python.core.utils import register_types
+from prismqml.python.core.shadow import getShadowManager
+from prismqml.python.core.theme import getThemeManager
+from prismqml.python.core.utils import qml_path, register_types
+from prismqml.python.core.window_helper import get_window_helper
 from prismqml.python.providers import clipboard as clipboard_module
+from prismqml.python.providers.lazy_context import (
+    LazyQRCodeGenerator,
+    LazyScreenEyedropperManager,
+)
+from prismqml.python.window import (
+    get_acrylic_helper,
+    get_mica_manager,
+    get_native_window_hook,
+)
 
 
 _PROBE_QML = b"""
@@ -76,6 +90,19 @@ def _prepare_context_dependencies(tmp_path):
     manager.setDpiScale(125)
     clipboard = clipboard_module.get_clipboard_helper()
     return original_config, original_clipboard, manager, clipboard
+
+
+def _expected_singletons(manager, clipboard):
+    return {
+        "ThemeManager": getThemeManager(),
+        "ConfigManager": manager,
+        "MicaManager": get_mica_manager(),
+        "AcrylicHelper": get_acrylic_helper(),
+        "NativeWindow": get_native_window_hook(),
+        "ClipboardHelper": clipboard,
+        "ShadowManager": getShadowManager(),
+        "WindowHelper": get_window_helper(),
+    }
 
 
 def _dispose_registration(qapp, engines, components, probes):
@@ -138,3 +165,26 @@ def test_register_types_injects_public_context_without_qml_warnings(
         not any(marker in message for marker in _MISSING_CONTEXT_MARKERS)
         for _mode, message in messages
     )
+
+
+def test_register_types_preserves_complete_engine_registration(registered_context):
+    """Keep every public binding and lazy engine reference. 保留全部公开绑定与延迟引用。"""
+    manager, clipboard, engines, _probe, _messages = registered_context
+    expected_singletons = _expected_singletons(manager, clipboard)
+    expected_import_path = qml_path().parent.resolve()
+
+    for engine in engines:
+        context = engine.rootContext()
+        for name, expected in expected_singletons.items():
+            assert context.contextProperty(name) is expected
+
+        lazy_objects = engine._prismqml_lazy_context_objects
+        assert len(lazy_objects) == 2
+        qrcode_generator, eyedropper_manager = lazy_objects
+        assert isinstance(qrcode_generator, LazyQRCodeGenerator)
+        assert isinstance(eyedropper_manager, LazyScreenEyedropperManager)
+        assert qrcode_generator._engine is engine
+        assert context.contextProperty("QRCodeGenerator") is qrcode_generator
+        assert context.contextProperty("ScreenEyedropperManager") is eyedropper_manager
+        assert engine.imageProvider("acrylic") is not None
+        assert expected_import_path in map(Path, engine.importPathList())
