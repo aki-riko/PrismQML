@@ -11,57 +11,59 @@ import "controls/navigation"
 // Provides common navigation logic for all navigation windows 为所有导航窗口提供公共导航逻辑
 WindowsCore {
     id: window
-    
-    // ==================== Navigation Props 导航属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property var navigationItems: []
     property var bottomNavigationItems: []
     property int currentIndex: 0
-    
-    // Navigation bar reference (subclass must override) 导航栏引用（子类必须覆盖）
+    // Navigation bar reference; subclasses must override it. 导航栏引用，由子类覆盖。
     property var navigationView: null
-    
-    // Page container reference (subclass must set) 页面容器引用（子类必须设置）
+    // Page container reference; subclasses set it when ready. 页面容器引用，由子类在就绪后设置。
     property var stackedWidget: null
-    
-    // Splash screen instance reference (set by caller, dismissed on content ready) 启动屏幕实例引用
-    property var _splashInstance: null
-    
-    // ==================== Mica Effect 云母效果 ====================
     property bool micaEnabled: false
-    property bool _micaBackdropReady: false
-    readonly property bool _micaAvailable: MicaManager ? MicaManager.isMicaSupported : false
-    // neo 皮肤强制关 Mica: neo 是实心米白底+硬阴影的扁平风, Mica 半透明模糊与之冲突
-    readonly property bool _micaActive: micaEnabled && _micaAvailable && !Enums.isNeobrutalism
-    readonly property bool _micaTransparent: _micaActive && _micaBackdropReady
-    
-    // ==================== Content Area Props 内容区域属性 ====================
-    readonly property color contentBgColor: _micaTransparent ? Enums.stateColor.contentBgTransparent : Enums.stateColor.contentBg
-    readonly property int contentCornerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
-    windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
-    
-    // ==================== Lazy Loading 懒加载 ====================
     property bool lazyLoading: false
     property string loadingText: Translator.tr("loading")
-    
-    // ==================== Python Lazy Loading Support Python懒加载支持 ====================
+
+    // ==================== Internal Props 内部属性 ====================
+    // Splash instance supplied by the caller. 调用方提供的欢迎页实例。
+    property var _splashInstance: null
+    property bool _micaBackdropReady: false
     property bool _pythonLoading: false
     property int _pythonPendingIndex: -1
-    
+    property bool _nativeHookReady: false
+    property string _micaReapplyReason: ""
+    property bool _splashDismissed: false
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _micaAvailable: MicaManager ? MicaManager.isMicaSupported : false
+    // Neo uses an opaque surface and hard shadow, so Mica must stay disabled. Neo 使用实色表面与硬阴影，因此必须关闭 Mica。
+    readonly property bool _micaActive: micaEnabled && _micaAvailable && !Enums.isNeobrutalism
+    readonly property bool _micaTransparent: _micaActive && _micaBackdropReady
+    readonly property color contentBgColor: _micaTransparent
+        ? Enums.stateColor.contentBgTransparent
+        : Enums.stateColor.contentBg
+    readonly property int contentCornerRadius: Enums.isPrismDesign
+        ? Enums.prismDesign.radiusCard
+        : Enums.radius.large
+
+    // ==================== Signals 信号 ====================
     signal pythonPageReady(int index)
-    
+    signal bottomItemClicked(int index)
+    signal currentPageChanged(int index)
+
+    // ==================== Internal Methods 内部方法 ====================
     function _startPythonLoading(index) {
         _pythonPendingIndex = index
         _pythonLoading = true
     }
-    
+
     function _finishPythonLoading() {
         _pythonLoading = false
         var idx = _pythonPendingIndex
         _pythonPendingIndex = -1
         pythonPageReady(idx)
     }
-    
-    // ==================== Mica Methods 云母方法 ====================
+
     function _applyMicaEffect(reason) {
         if (!MicaManager || !_micaAvailable || !_nativeHookReady) {
             _micaBackdropReady = false
@@ -76,54 +78,13 @@ WindowsCore {
 
     function _scheduleMicaReapply(reason) {
         if (!_micaActive || !_nativeHookReady) return
-        // Hide the transparent QML fallback until DWM confirms the backdrop again.
-        // 在 DWM 重新确认云母背板前，先关闭 QML 透明兜底，避免只剩透明壳。
+        // Hide the transparent fallback until DWM confirms the backdrop again.
+        // 在 DWM 重新确认背板前关闭透明兜底，避免只剩透明外壳。
         _micaBackdropReady = false
         _micaReapplyReason = reason
         _micaReapplyTimer.restart()
         _micaLateReapplyTimer.restart()
     }
-
-    function setMicaEffectEnabled(enabled) {
-        micaEnabled = enabled
-        if (!_micaAvailable) {
-            _micaBackdropReady = false
-            console.log("[NavigationWindowCore] Mica not available")
-            return false
-        }
-        return _applyMicaEffect("setMicaEffectEnabled")
-    }
-    function isMicaEffectEnabled() { return _micaTransparent }
-    
-    // ==================== Language Methods 语言方法 ====================
-    function setLanguage(lang) {
-        Translator.setLanguage(lang)
-    }
-    function getLanguage() {
-        return Translator.language
-    }
-    
-    // 在 nativeHookReady 触发前的 setMicaEffect 都会被 SWP_FRAMECHANGED 清,徒劳。
-    // 这个守卫让早期调用直接跳过,等 hook 完成后由 nativeHookReady 一次性 apply 当前状态。
-    property bool _nativeHookReady: false
-    property string _micaReapplyReason: ""
-
-    // ==================== Signals 信号 ====================
-    signal bottomItemClicked(int index)
-    signal currentPageChanged(int index)
-
-    Component.onCompleted: profileDetail(
-        "NavigationWindowCore completed micaAvailable=" + _micaAvailable +
-        " micaEnabled=" + micaEnabled +
-        " nav=" + navigationItems.length +
-        " bottom=" + bottomNavigationItems.length
-    )
-
-    // ==================== Splash 关闭时机 ====================
-    // 关闭欢迎页必须等"主页(首屏 currentIndex 那一页)真正加载完成",
-    // 而非外层框架壳 onLoaded 就关 —— 懒加载/异步模式下框架 ready 时
-    // 主页内容仍在异步加载, 过早关 splash 会露出空白再浮现主页。
-    property bool _splashDismissed: false
 
     function _dismissSplashWhenReady(stack) {
         profileTime("NavigationWindowCore _dismissSplashWhenReady start")
@@ -137,14 +98,14 @@ WindowsCore {
             return
         }
 
-        // 主页此刻已就绪(同步/直接 children 模式, 或加载够快) → 立即关
+        // Dismiss immediately when the current page is already loaded. 当前页已加载时立即关闭欢迎页。
         if (!stack || stack._isPageLoaded(stack.currentIndex)) {
             profileTime("NavigationWindowCore splash ready immediate")
             _doDismissSplash()
             return
         }
 
-        // 否则等主页那一页的 pageLoaded 信号; 超时兜底防信号意外不来卡死
+        // Otherwise wait for the current page, with a timeout fallback. 否则等待当前页，并保留超时兜底。
         var target = stack.currentIndex
         function onPageLoaded(idx) {
             if (idx !== target) return
@@ -174,26 +135,75 @@ WindowsCore {
         profileTime("NavigationWindowCore splash finish done")
     }
 
-    Timer {
-        id: _splashTimeoutTimer
-        interval: Enums.duration.splashTimeout
-        property var _onTimeout: null
-        onTriggered: if (_onTimeout) _onTimeout()
-    }
+    function _handleBottomItemClicked(index, navPanel, stack, pageSources) {
+        var item = bottomNavigationItems[index]
+        var isPageItem = item && item.key !== undefined
+        var isSelectable = item && item.selectable !== false
 
-    Timer {
-        id: _micaReapplyTimer
-        interval: 16
-        onTriggered: window._applyMicaEffect("restore:" + window._micaReapplyReason)
-    }
+        if (!isPageItem || !isSelectable) {
+            // Function items only emit the public signal. 功能项只发送公开信号。
+            bottomItemClicked(index)
+            return -1
+        }
 
-    Timer {
-        id: _micaLateReapplyTimer
-        interval: 180
-        onTriggered: window._applyMicaEffect("late-restore:" + window._micaReapplyReason)
+        var pageIndex = -1
+        // Prefer the Python window key format page_N. 优先解析 Python 窗口的 page_N 键格式。
+        var match = item.key.match(/^page_(\d+)$/)
+        if (match) {
+            pageIndex = parseInt(match[1])
+        } else if (pageSources) {
+            // Otherwise search QML lazy-loading sources. 否则搜索 QML 懒加载源。
+            for (var i = 0; i < pageSources.length; i++) {
+                var source = pageSources[i].toString()
+                if (source.indexOf(item.key) !== -1) {
+                    pageIndex = i
+                    break
+                }
+            }
+        }
+
+        if (pageIndex >= 0) {
+            var oldMap = navPanel._bottomPageIndexMap || {}
+            var map = ({})
+            for (var k in oldMap) { map[k] = oldMap[k] }
+            map[item.key] = pageIndex
+            navPanel._bottomPageIndexMap = map
+
+            // Change the window source index only; direct stack writes would break its binding.
+            // 只修改窗口源索引；直接写 stack 会破坏其声明式绑定。
+            // Suppress the top-item indicator path so the bottom item owns this animation.
+            // 暂停顶部项指示器路径，让底部项独占本次动画。
+            navPanel._skipIndicatorAnimation = true
+            currentIndex = pageIndex
+            navPanel._skipIndicatorAnimation = false
+            currentPageChanged(pageIndex)
+            navPanel.updateIndicatorForBottomItem(item.key)
+        }
+        bottomItemClicked(index)
+        return pageIndex
     }
 
     // ==================== Public Methods 公开方法 ====================
+    function setMicaEffectEnabled(enabled) {
+        micaEnabled = enabled
+        if (!_micaAvailable) {
+            _micaBackdropReady = false
+            console.log("[NavigationWindowCore] Mica not available")
+            return false
+        }
+        return _applyMicaEffect("setMicaEffectEnabled")
+    }
+
+    function isMicaEffectEnabled() { return _micaTransparent }
+
+    function setLanguage(lang) {
+        Translator.setLanguage(lang)
+    }
+
+    function getLanguage() {
+        return Translator.language
+    }
+
     function addPage(page, icon, text, selectedIcon, position, parent, isTransparent) {
         var pos = position || "top"
         var navItem = {
@@ -230,8 +240,8 @@ WindowsCore {
     function navigateTo(indexOrKey) {
         var idx = typeof indexOrKey === "number" ? indexOrKey : findKeyIndex(indexOrKey)
         if (idx >= 0) {
-            // 只改 currentIndex 一处, 子内部 (navigationBar / stackedWidget)
-            // 通过 Qt Binding 自动跟随,避免之前手动三处赋值任一处失败导致失同步
+            // Update the source index once; child bindings follow it automatically.
+            // 只更新一次源索引，子组件通过绑定自动跟随。
             currentIndex = idx
         }
     }
@@ -245,69 +255,14 @@ WindowsCore {
         return -1
     }
 
-    // ==================== 公共 bottomItemClicked 处理 Common Bottom Item Handler ====================
-    // 提取自 WindowsBar/Split/Filled 中重复的 onBottomItemClicked 逻辑
-    function _handleBottomItemClicked(index, navPanel, stack, pageSources) {
-        var item = bottomNavigationItems[index]
-        var isPageItem = item && item.key !== undefined
-        var isSelectable = item && item.selectable !== false
+    windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
 
-        if (!isPageItem || !isSelectable) {
-            // Function item, only emit signal 功能项，仅发送信号
-            bottomItemClicked(index)
-            return -1  // 表示无需切换页面
-        }
-
-        // Page item: find page index by key 页面项：通过key查找页面索引
-        var pageIndex = -1
-
-        // Method 1: Extract index from key format "page_N" (Python window style)
-        var match = item.key.match(/^page_(\d+)$/)
-        if (match) {
-            pageIndex = parseInt(match[1])
-        } else if (pageSources) {
-            // Method 2: Search in pageSources (QML lazy loading style)
-            for (var i = 0; i < pageSources.length; i++) {
-                var source = pageSources[i].toString()
-                if (source.indexOf(item.key) !== -1) {
-                    pageIndex = i
-                    break
-                }
-            }
-        }
-
-        if (pageIndex >= 0) {
-            // Update bottom page index map for correct selection state
-            var oldMap = navPanel._bottomPageIndexMap || {}
-            var map = ({})
-            for (var k in oldMap) { map[k] = oldMap[k] }
-            map[item.key] = pageIndex
-            navPanel._bottomPageIndexMap = map
-
-            // ⚠️ 不再 stack.currentIndex = pageIndex — 三种 Window 都是
-            //    'currentIndex: window.currentIndex' 单向 Qt Binding,直接赋值会永久打破.
-            //    打破后, 后续 currentIndex(window) 变化无法同步到 stack,
-            //    症状: 点底部页面后再点顶部, 导航栏跟过去但内容区还卡在底部页.
-            //    现在只改 source (window.currentIndex), stack 自动跟随.
-            //
-            // ⚠️ 双动画 bug 修复: currentIndex = pageIndex 会触发
-            //    NavigationPanelCore.onCurrentIndexChanged → _updateIndicatorWithAnimation,
-            //    而 pageIndex 是页面索引(可能 8),不是导航 item 索引,_getItemAt(8) 取错位置 →
-            //    indicator 闪一下到错位置; 然后 updateIndicatorForBottomItem 才跑正确动画。
-            //    用 _skipIndicatorAnimation 标志临时屏蔽这次 onCurrentIndexChanged 的动画路径,
-            //    让 updateIndicatorForBottomItem 独占动画。Backward(从底部回顶部)走的是
-            //    _onItemClicked → 顶部 itemClicked signal,跟这里无关,所以 backward 动画完整。
-            navPanel._skipIndicatorAnimation = true
-            currentIndex = pageIndex
-            navPanel._skipIndicatorAnimation = false
-            currentPageChanged(pageIndex)
-
-            // Update indicator for bottom page item
-            navPanel.updateIndicatorForBottomItem(item.key)
-        }
-        bottomItemClicked(index)
-        return pageIndex
-    }
+    Component.onCompleted: profileDetail(
+        "NavigationWindowCore completed micaAvailable=" + _micaAvailable +
+        " micaEnabled=" + micaEnabled +
+        " nav=" + navigationItems.length +
+        " bottom=" + bottomNavigationItems.length
+    )
 
     onMicaEnabledChanged: {
         if (_micaAvailable && MicaManager && _nativeHookReady) {
@@ -332,12 +287,32 @@ WindowsCore {
         if (active) _scheduleMicaReapply("activeChanged")
     }
 
-    // 直接监听 ConfigManager 的 micaEnabledChanged signal,作为 binding 链路
-    // 失效时的兜底 (例如外部代码 .connect() 而不通过 property binding 改值,
-    // 或 QML binding 求值次序问题导致 onMicaEnabledChanged 没触发)。
-    // 这里读 ConfigManager 当前值并 apply,确保 DWM 状态与配置一致。
+    // ==================== Content 内容 ====================
+    Timer {
+        id: _splashTimeoutTimer
+        property var _onTimeout: null
+
+        interval: Enums.duration.splashTimeout
+        onTriggered: if (_onTimeout) _onTimeout()
+    }
+
+    Timer {
+        id: _micaReapplyTimer
+
+        interval: Enums.window.micaReapplyDelayMs
+        onTriggered: window._applyMicaEffect("restore:" + window._micaReapplyReason)
+    }
+
+    Timer {
+        id: _micaLateReapplyTimer
+
+        interval: Enums.window.micaLateReapplyDelayMs
+        onTriggered: window._applyMicaEffect("late-restore:" + window._micaReapplyReason)
+    }
+
+    // Keep ConfigManager changes as a fallback when a property binding is bypassed.
+    // 当外部绕过属性绑定时，使用 ConfigManager 信号作为兜底。
     Connections {
-        target: typeof ConfigManager !== "undefined" ? ConfigManager : null
         function onMicaEnabledChanged() {
             if (window._micaAvailable && MicaManager && window._nativeHookReady) {
                 window.micaEnabled = ConfigManager.micaEnabled
@@ -346,8 +321,10 @@ WindowsCore {
                 window._micaBackdropReady = false
             }
         }
+
+        target: typeof ConfigManager !== "undefined" ? ConfigManager : null
     }
-    
+
     Connections {
         function onIsDarkChanged() {
             if (window._micaActive && MicaManager) window._scheduleMicaReapply("themeChanged")
@@ -355,28 +332,22 @@ WindowsCore {
         function onIsNeobrutalismChanged() {
             if (MicaManager) window._applyMicaEffect("skinChanged")
         }
+
         target: Enums
         enabled: window._micaAvailable && window._nativeHookReady
     }
-    
-    // Initialize Mica effect on startup 启动时初始化云母效果
-    // 无论 micaEnabled 是 true 或 false 都 apply,确保从持久化的"关闭"状态
-    // 启动时 DWM backdrop 被显式设为 NONE,避免某些 Win11 默认 backdrop 行为
-    // 导致"持久化关闭后重启仍看到 Mica"。
-    //
-    // ⚠️ 关键时序: 必须等 WindowsCore 的 _dwmDelayTimer 跑完才能设 Mica。
-    //    shadow.enableShadowForWindow / NativeWindow.attach 都会发 SWP_FRAMECHANGED,
-    //    会重置 DWM 的 DWMWA_SYSTEMBACKDROP_TYPE 为 NONE。
-    //    在它们之前调 setMicaEffect 表面上 S_OK,实际被 FRAMECHANGED 清空。
-    //    等 WindowsCore 发 nativeHookReady 信号后再设,才稳定。
+
+    // Apply Mica only after the native hook completes its frame changes.
+    // 仅在原生钩子完成窗口框架变更后应用 Mica，避免 DWM 背板被重置。
     Connections {
-        target: window
-        enabled: window._micaAvailable
         function onNativeHookReady() {
             window.profileTime("NavigationWindowCore nativeHookReady handler start")
             window._nativeHookReady = true
             window._applyMicaEffect("nativeHookReady")
             window.profileTime("NavigationWindowCore nativeHookReady handler done")
         }
+
+        target: window
+        enabled: window._micaAvailable
     }
 }

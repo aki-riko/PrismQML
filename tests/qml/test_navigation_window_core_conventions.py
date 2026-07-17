@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """NavigationWindowCore API and state contracts. 导航窗口核心 API 与状态合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -21,9 +21,12 @@ from PySide6.QtQuick import QQuickWindow
 
 import prismqml.python.window as window_module
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "NavigationWindowCore.qml"
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "navigation-window-core-conventions.qml")
 )
@@ -187,3 +190,21 @@ def test_navigation_window_core_public_and_internal_contracts(monkeypatch, qapp)
     finally:
         _dispose_scene(engine, component, window)
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_navigation_window_core_source_conventions_and_mica_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "interval: Enums.window.micaReapplyDelayMs" in source
+    assert "interval: Enums.window.micaLateReapplyDelayMs" in source
+    assert "interval: 16" not in source
+    assert "interval: 180" not in source
+    metrics = METRICS_PATH.read_text(encoding="utf-8")
+    assert "readonly property int micaReapplyDelayMs: 16" in metrics
+    assert "readonly property int micaLateReapplyDelayMs: 180" in metrics
