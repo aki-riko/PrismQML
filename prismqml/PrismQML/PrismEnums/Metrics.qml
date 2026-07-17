@@ -478,6 +478,18 @@ QtObject {
  readonly property int treePopupHeight: 350
  }
 
+ // ==================== Search 搜索度量 ====================
+ readonly property QtObject search: QtObject {
+ readonly property int popupAnchoredMinWidth: 240
+ readonly property int popupCenteredWidth: 600
+ readonly property int popupFallbackHeight: 56
+ readonly property int resultListWidth: 360
+ readonly property int resultEmptyHeight: 60
+ readonly property int resultItemHeight: 48
+ readonly property int resultIconSize: 18
+ readonly property int resultIndicatorWidth: 3
+ }
+
  // ==================== Skeleton 骨架屏度量 ====================
  readonly property QtObject skeletonMetrics: QtObject {
  readonly property int rectWidth: 200

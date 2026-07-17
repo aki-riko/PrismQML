@@ -34,7 +34,7 @@ Item {
     property bool highlightMatches: true
     property string emptyText: ''  // 空时显示文案,父级注入(走 i18n)
     property color highlightColor: Enums.accentColor
-    property int itemHeight: 48
+    property int itemHeight: Enums.searchMetrics.resultItemHeight
 
     // ==================== Read-only computed ====================
     // _hits: [{entry, score, fieldRanges}, ...]
@@ -80,9 +80,9 @@ Item {
     //   非 isEmpty 1 项   → 1*itemHeight + padding
     //   非 isEmpty N 项   → min(maxSuggestions, N) 项 (含 spacing) + padding
     // 超过 maxSuggestions 才滚动
-    implicitWidth: 360
+    implicitWidth: Enums.searchMetrics.resultListWidth
     implicitHeight: {
-        if (isEmpty) return 60
+        if (isEmpty) return Enums.searchMetrics.resultEmptyHeight
         var displayCount = Math.min(maxSuggestions, hitCount)
         // Reuse the ListView spacing and margins tokens 复用列表项间距与边距 token
         return displayCount * itemHeight

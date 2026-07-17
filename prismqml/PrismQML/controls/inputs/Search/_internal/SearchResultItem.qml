@@ -18,29 +18,18 @@ import "../../../data/Label"
 Rectangle {
     id: root
 
-    // ==================== Required Props ====================
+    // ==================== Required Props 必需属性 ====================
     required property int itemIndex
     required property var entryData      // 完整 entry: {title, subtitle, icon, section, ...}
     required property string highlightedTitle    // 已渲染好高亮的 HTML 字符串
     required property string highlightedSubtitle // 同上,subtitle 高亮
 
-    // ==================== State ====================
+    // ==================== Internal Props 内部属性 ====================
     property bool hovered: false
     property bool selected: false
     property bool pressed: false
 
-    // ==================== Signals ====================
-    signal clicked()
-    signal hoveredChanged_()  // 跟 hover 状态防撞
-
-    // ==================== Size ====================
-    height: 48
-    width: parent ? parent.width : 0
-
-    // ==================== Background (跟 ListWidgetItem 一致的状态层) ====================
-    color: _bgColor
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
-
+    // ==================== Readonly State 只读状态 ====================
     readonly property color _bgColor: {
         if (selected) {
             return hovered ? Enums.stateColor.selectedHover
@@ -51,13 +40,26 @@ Rectangle {
         return Enums.transparent
     }
 
+    // ==================== Signals 信号 ====================
+    signal clicked()
+    signal hoveredChanged_()  // 跟 hover 状态防撞
+
+    // ==================== Size 尺寸 ====================
+    height: Enums.searchMetrics.resultItemHeight
+    width: parent ? parent.width : 0
+
+    // Background state layer, aligned with ListWidgetItem 背景状态层，与 ListWidgetItem 一致
+    color: _bgColor
+    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
+
     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
 
-    // ==================== Selection indicator (左侧竖条) ====================
+    // ==================== Content 内容 ====================
+    // Selection indicator 左侧选中竖条
     Rectangle {
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
-        width: 3
+        width: Enums.searchMetrics.resultIndicatorWidth
         height: parent.height * 0.5
         radius: Enums.radius.micro
         color: Enums.accentColor
@@ -65,7 +67,7 @@ Rectangle {
         Behavior on height { NumberAnimation { duration: Enums.duration.fast } }
     }
 
-    // ==================== Content ====================
+    // Result content 搜索结果内容
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: Enums.spacing.l
@@ -74,11 +76,11 @@ Rectangle {
 
         // 图标 (可选)
         Icon {
-            Layout.preferredWidth: 18
-            Layout.preferredHeight: 18
+            Layout.preferredWidth: Enums.searchMetrics.resultIconSize
+            Layout.preferredHeight: Enums.searchMetrics.resultIconSize
             Layout.alignment: Qt.AlignVCenter
             icon: root.entryData && root.entryData.icon ? root.entryData.icon : ''
-            iconSize: 18
+            iconSize: Enums.searchMetrics.resultIconSize
             color: Enums.textColor.secondary
             visible: !!icon
         }
@@ -112,7 +114,7 @@ Rectangle {
         }
     }
 
-    // ==================== Mouse area ====================
+    // Mouse area 鼠标交互区
     MouseArea {
         id: mouseArea
         anchors.fill: parent

@@ -34,15 +34,15 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property int _resolvedWidth: {
         if (popupMode === Enums.input.search_popup_anchored_below && anchorTarget) {
-            return Math.max(240, anchorTarget.width)
+            return Math.max(Enums.searchMetrics.popupAnchoredMinWidth, anchorTarget.width)
         }
-        return 600  // CenteredOverlay
+        return Enums.searchMetrics.popupCenteredWidth
     }
     readonly property int _resolvedHeight: {
         if (rootContent && rootContent.implicitHeight > 0) {
             return rootContent.implicitHeight
         }
-        return 56  // 兜底: 一行高度,避免 0/极小值
+        return Enums.searchMetrics.popupFallbackHeight
     }
 
     // ==================== Signals 信号 ====================

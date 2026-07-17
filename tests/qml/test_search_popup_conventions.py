@@ -28,7 +28,7 @@ from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_PATH = (
+POPUP_SOURCE_PATH = (
     ROOT
     / "prismqml"
     / "PrismQML"
@@ -38,6 +38,10 @@ SOURCE_PATH = (
     / "_internal"
     / "SearchPopup.qml"
 )
+RESULT_LIST_SOURCE_PATH = POPUP_SOURCE_PATH.with_name("SearchResultList.qml")
+RESULT_ITEM_SOURCE_PATH = POPUP_SOURCE_PATH.with_name("SearchResultItem.qml")
+METRICS_SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+ENUMS_SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "search-popup-runtime.qml")
 )
@@ -315,9 +319,48 @@ def test_search_result_item_preserves_selection_hover_and_click(qapp):
 
 
 def test_search_popup_source_conventions():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(POPUP_SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [
         item for item in violations if item.rule in {"QML008", "QML009"}
     ] == []
+
+
+def test_search_result_item_source_conventions():
+    source = RESULT_ITEM_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(RESULT_ITEM_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_search_popup_and_result_items_use_shared_metrics():
+    popup_source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
+    list_source = RESULT_LIST_SOURCE_PATH.read_text(encoding="utf-8")
+    item_source = RESULT_ITEM_SOURCE_PATH.read_text(encoding="utf-8")
+    metrics_source = METRICS_SOURCE_PATH.read_text(encoding="utf-8")
+    enums_source = ENUMS_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "readonly property alias searchMetrics: _metrics.search" in enums_source
+    for token in (
+        "popupAnchoredMinWidth",
+        "popupCenteredWidth",
+        "popupFallbackHeight",
+        "resultListWidth",
+        "resultEmptyHeight",
+        "resultItemHeight",
+        "resultIconSize",
+        "resultIndicatorWidth",
+    ):
+        assert f"readonly property int {token}:" in metrics_source
+    assert "Enums.searchMetrics.popupAnchoredMinWidth" in popup_source
+    assert "Enums.searchMetrics.popupCenteredWidth" in popup_source
+    assert "Enums.searchMetrics.popupFallbackHeight" in popup_source
+    assert "Enums.searchMetrics.resultListWidth" in list_source
+    assert "Enums.searchMetrics.resultEmptyHeight" in list_source
+    assert "Enums.searchMetrics.resultItemHeight" in list_source
+    assert "Enums.searchMetrics.resultItemHeight" in item_source
+    assert item_source.count("Enums.searchMetrics.resultIconSize") == 3
+    assert "Enums.searchMetrics.resultIndicatorWidth" in item_source
