@@ -44,54 +44,41 @@ class SvgImageProvider(QQuickImageProvider):
         super().__init__(QQuickImageProvider.ImageType.Image)
         self._cache: dict[str, QSvgRenderer] = {}
 
-    def requestImage(self, id, size, requestedSize):
-        """Request an image from the provider 从提供器请求图片
-
-        Args:
-            id: The QML provider id after "image://svg/" (one encoded layer)
-                "image://svg/" 后的 QML provider id（一层编码）
-            size: Output parameter for the actual image size (not used in Python)
-                  输出参数，实际图片尺寸（Python中不使用）
-            requestedSize: The requested size from QML (from sourceSize property)
-                          QML请求的尺寸（来自sourceSize属性）
-
-        Returns:
-            QImage: The rendered SVG image SVG渲染后的图片
-        """
+    def requestImage(self, id: str, size: QSize, requestedSize: QSize) -> QImage:
+        """Render one provider request. 渲染单个 provider 请求。"""
+        del size
         path = resolve_provider_path(id)
-
-        # Get or create renderer 获取或创建渲染器
         renderer = self._get_renderer(path)
         if not renderer or not renderer.isValid():
-            # Return empty image if SVG is invalid 如果SVG无效则返回空图片
             return QImage()
+        render_size = self._resolve_render_size(renderer, requestedSize)
+        return self._render_image(renderer, render_size)
 
-        # Determine render size 确定渲染尺寸
+    def _resolve_render_size(
+        self, renderer: QSvgRenderer, requested_size: QSize
+    ) -> QSize:
+        """Resolve requested, intrinsic, or fallback size. 解析请求、原生或兜底尺寸。"""
         if (
-            requestedSize.isValid()
-            and requestedSize.width() > 0
-            and requestedSize.height() > 0
+            requested_size.isValid()
+            and requested_size.width() > 0
+            and requested_size.height() > 0
         ):
-            render_size = requestedSize
-        else:
-            # Use default size or SVG's default size 使用默认尺寸或SVG的默认尺寸
-            default_size = renderer.defaultSize()
-            if default_size.isValid():
-                render_size = default_size
-            else:
-                render_size = QSize(self.DEFAULT_SIZE, self.DEFAULT_SIZE)
+            return requested_size
+        default_size = renderer.defaultSize()
+        if default_size.isValid():
+            return default_size
+        return QSize(self.DEFAULT_SIZE, self.DEFAULT_SIZE)
 
-        # Create image with transparency 创建带透明度的图片
+    @staticmethod
+    def _render_image(renderer: QSvgRenderer, render_size: QSize) -> QImage:
+        """Render a transparent antialiased image. 渲染透明抗锯齿图像。"""
         image = QImage(render_size, QImage.Format.Format_ARGB32_Premultiplied)
         image.fill(Qt.GlobalColor.transparent)
-
-        # Render SVG 渲染SVG
         painter = QPainter(image)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         renderer.render(painter)
         painter.end()
-
         return image
 
     def _get_renderer(self, path: str) -> Optional[QSvgRenderer]:
