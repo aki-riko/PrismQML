@@ -12,7 +12,7 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 Item {
     id: control
     
-    // ==================== Props from parent 继承自父组件的属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property bool showScrollBar: true
     property int scrollBarWidth: Enums.controlSize.scrollBarWidth
     property bool smoothScroll: true
@@ -22,29 +22,23 @@ Item {
     property int orientation: Qt.Horizontal | Qt.Vertical  // Scroll direction 滚动方向
     property int padding: Enums.spacing.xl  // Content padding 内容内边距
     
-    // ==================== Content 内容 ====================
     default property alias content: contentHolder.data
-    
-    // ==================== Expose props 暴露属性 ====================
+
+    // Exposed aliases 暴露别名
     property alias contentY: flickable.contentY
     property alias contentX: flickable.contentX
     property alias contentHeight: flickable.contentHeight
     property alias contentWidth: flickable.contentWidth
     property alias flickableItem: flickable
     
-    // ==================== Internal 内部 ====================
-    readonly property bool _canScrollV: orientation & Qt.Vertical
-    readonly property bool _canScrollH: orientation & Qt.Horizontal
-
+    // ==================== Internal Props 内部属性 ====================
     // Track if scrollbar should show (breaks binding loop) 跟踪滚动条是否显示
     property bool _needsVScrollBar: false
     property bool _needsHScrollBar: false
-    onHeightChanged: Qt.callLater(_updateScrollBar)
-    onWidthChanged: Qt.callLater(_updateScrollBar)
-    function _updateScrollBar() {
-        _needsVScrollBar = _canScrollV && flickable.contentHeight > flickable.height
-        _needsHScrollBar = _canScrollH && flickable.contentWidth > flickable.width
-    }
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _canScrollV: orientation & Qt.Vertical
+    readonly property bool _canScrollH: orientation & Qt.Horizontal
 
     // ==================== Public Methods 公开方法 ====================
     function smoothScrollTo(targetY) {
@@ -63,7 +57,13 @@ Item {
         if (_canScrollH) hScrollHelper.scrollBy(delta)
     }
 
-    // ==================== Nested Scroll Dispatcher 嵌套滚动调度 ====================
+    // ==================== Internal Methods 内部方法 ====================
+    function _updateScrollBar() {
+        _needsVScrollBar = _canScrollV && flickable.contentHeight > flickable.height
+        _needsHScrollBar = _canScrollH && flickable.contentWidth > flickable.width
+    }
+
+    // Nested scroll dispatcher 嵌套滚动调度
     // 嵌套 ScrollArea(及兼容 ListWidget/TableWidget)的滚轮事件由外层统一调度：
     //   1. 命中点向下递归找可滚子组件（识别 smoothScrollBy 函数 / listView 鸭子类型）
     //   2. 子组件未到边界 → 调它的 smoothScrollBy(delta)
@@ -103,7 +103,11 @@ Item {
         return null
     }
 
-    // ==================== Flickable 可滚动区域 ====================
+    onHeightChanged: Qt.callLater(_updateScrollBar)
+    onWidthChanged: Qt.callLater(_updateScrollBar)
+
+    // ==================== Content 内容 ====================
+    // Flickable scroll area 可滚动区域
     Flickable {
         id: flickable
         anchors.left: parent.left
@@ -142,7 +146,7 @@ Item {
         }
     }
     
-    // ==================== Smooth Scroll Helpers 平滑滚动助手 ====================
+    // Smooth scroll helpers 平滑滚动助手
     SmoothScrollHelper {
         id: vScrollHelper
         target: flickable
@@ -165,7 +169,7 @@ Item {
         bounceEnabled: true
     }
 
-    // ==================== Vertical Scrollbar 垂直滚动条 ====================
+    // Vertical scrollbar 垂直滚动条
     ScrollBar {
         id: vBar
         anchors.right: parent.right
@@ -181,7 +185,7 @@ Item {
         visible: showScrollBar && control._needsVScrollBar
     }
     
-    // ==================== Horizontal Scrollbar 水平滚动条 ====================
+    // Horizontal scrollbar 水平滚动条
     ScrollBar {
         id: hBar
         anchors.left: parent.left
@@ -198,7 +202,7 @@ Item {
         visible: showScrollBar && control._needsHScrollBar
     }
 
-    // ==================== Mouse Wheel 鼠标滚轮 ====================
+    // Mouse wheel 鼠标滚轮
     MouseArea {
         anchors.fill: flickable
         propagateComposedEvents: true

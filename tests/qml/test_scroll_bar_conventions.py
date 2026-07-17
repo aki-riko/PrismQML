@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """ScrollBar component group runtime contracts. ScrollBar 组件组运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
@@ -24,9 +24,18 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_DIR = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "containers"
+    / "ScrollBar"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "scroll-bar-conventions.qml")
 )
@@ -307,6 +316,8 @@ def _dispose_scene(engine, component, window) -> None:
 
 @pytest.fixture
 def scroll_scene(qapp):
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
     windows_before = tuple(QGuiApplication.topLevelWindows())
     scene = _create_scene()
     try:
@@ -435,3 +446,17 @@ def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
     assert _wait_for(lambda: window.property("gridY") == pytest.approx(grid_max))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_scroll_bar_sources_follow_conventions():
+    violations = []
+    for source_path in sorted(SOURCE_DIR.glob("*.qml")):
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source_path.read_text(encoding="utf-8"), path
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []

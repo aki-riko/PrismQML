@@ -8,10 +8,17 @@ import "../../.."
 // ScrollBar - Pure QtQuick implementation 滚动条
 Rectangle {
  id: control
- 
+
+ // ==================== Public Props 公开属性 ====================
  property Flickable flickable: null
  property bool horizontal: false
  property int minThumbSize: 30
+
+ // ==================== Internal Props 内部属性 ====================
+ // Prevent flash: disable animation until ready 防止闪现：初始化完成前禁用动画
+ property bool _animEnabled: false
+
+ // ==================== Readonly State 只读状态 ====================
  readonly property bool hovered: mouseArea.containsMouse
  readonly property bool active: flickable && (horizontal ? flickable.contentWidth > flickable.width : flickable.contentHeight > flickable.height)
  readonly property color _scrollTrackColor: Enums.stateColor.scrollTrack
@@ -19,17 +26,16 @@ Rectangle {
  readonly property color _scrollThumbHoverColor: Enums.stateColor.scrollHandleHover
  readonly property color _scrollThumbPressedColor: Enums.accentColor
  readonly property color _scrollThumbColor: thumbArea.pressed ? _scrollThumbPressedColor : (hovered ? _scrollThumbHoverColor : _scrollThumbDefaultColor)
- 
- // Prevent flash: disable animation until ready 防止闪现：初始化完成前禁用动画
- property bool _animEnabled: false
 
+ // ==================== Signals 信号 ====================
  signal valueChanged(int value)
  signal sliderPressed()
  signal sliderReleased()
  signal sliderMoved()
 
  Component.onCompleted: Qt.callLater(() => { _animEnabled = true })
- 
+
+ // ==================== Size 尺寸 ====================
  implicitWidth: horizontal ? 200 : 8
  implicitHeight: horizontal ? 8 : 200
  radius: width / 2
@@ -41,7 +47,8 @@ Rectangle {
  enabled: control._animEnabled
  NumberAnimation { duration: Enums.duration.normal }
  }
- 
+
+ // ==================== Content 内容 ====================
  // Track 轨道
  Rectangle {
  anchors.fill: parent
@@ -73,11 +80,12 @@ Rectangle {
  
  MouseArea {
  id: thumbArea
- anchors.fill: parent
- hoverEnabled: true
- 
+
  property real startPos: 0
  property real startScroll: 0
+
+ anchors.fill: parent
+ hoverEnabled: true
  
  onPressed: {
  startPos = horizontal ? mouseX : mouseY

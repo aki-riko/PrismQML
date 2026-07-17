@@ -11,7 +11,7 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 Item {
     id: control
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var model: []
     property Component delegate: null
     property int cellWidth: 100
@@ -31,9 +31,11 @@ Item {
     property int currentIndex: -1
     property bool selectable: true
     
-    // ==================== Expose props 暴露属性 ====================
+    // Exposed aliases 暴露别名
     property alias contentY: gridView.contentY
     property alias contentHeight: gridView.contentHeight
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property alias gridView: gridView
     readonly property int count: gridView.count
     
@@ -47,7 +49,8 @@ Item {
     function smoothScrollTo(targetY) { scrollHelper.scrollTo(targetY) }
     function smoothScrollBy(delta) { scrollHelper.scrollBy(delta) }
 
-    // ==================== GridView 网格视图 ====================
+    // ==================== Content 内容 ====================
+    // Grid view 网格视图
     GridView {
         id: gridView
         anchors.fill: parent
@@ -77,7 +80,7 @@ Item {
         }
     }
     
-    // ==================== Smooth Scroll Helper 平滑滚动助手 ====================
+    // Smooth scroll helper 平滑滚动助手
     SmoothScrollHelper {
         id: scrollHelper
         target: gridView
@@ -90,7 +93,7 @@ Item {
         handleWheel: true
     }
     
-    // ==================== Scrollbar 滚动条 ====================
+    // Scrollbar 滚动条
     ScrollBar {
         id: vBar
         anchors.right: parent.right

@@ -11,11 +11,9 @@ import "../../.."
 Rectangle {
     id: control
     
-    // ==================== Required Props 必需属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property Flickable target: null  // Target view 目标视图（改为可选，避免创建时报错）
     property SmoothScrollHelper scrollHelper: null  // Optional: for sync 可选：用于同步
-    
-    // ==================== Config Props 配置属性 ====================
     property int orientation: Qt.Vertical  // Qt.Vertical or Qt.Horizontal 方向
     property int barWidth: Enums.controlSize.scrollBarWidth
     property int minHandleSize: 30  // Minimum handle size 最小手柄尺寸
@@ -32,16 +30,21 @@ Rectangle {
     readonly property color _scrollHandlePressedColor: Enums.accentColor
     readonly property color _scrollHandleColor: handleArea.pressed ? _scrollHandlePressedColor : (handleArea.containsMouse ? _scrollHandleHoverColor : _scrollHandleDefaultColor)
     
-    // ==================== Size & Position 尺寸和位置 ====================
+    // ==================== Size 尺寸 ====================
     width: _isVertical ? barWidth : undefined
     height: _isVertical ? undefined : barWidth
     radius: barWidth / 2
     color: control._scrollTrackColor
     visible: _needsBar
     
-    // ==================== Handle 手柄 ====================
+    // ==================== Content 内容 ====================
+    // Handle 手柄
     Rectangle {
         id: handle
+
+        property real maxPos: control._isVertical ? Math.max(0, control.height - height) : Math.max(0, control.width - width)
+        property real maxContent: Math.max(0, control._contentSize - control._viewSize)
+        property real ratio: maxContent > 0 ? control._contentPos / maxContent : 0
         
         // Size 尺寸
         width: control._isVertical ? control.barWidth - Enums.spacing.xxs : Math.max(control.minHandleSize, control._viewSize / control._contentSize * control.width)
@@ -49,10 +52,6 @@ Rectangle {
         radius: (control._isVertical ? width : height) / 2
         
         // Position 位置
-        property real maxPos: control._isVertical ? Math.max(0, control.height - height) : Math.max(0, control.width - width)
-        property real maxContent: Math.max(0, control._contentSize - control._viewSize)
-        property real ratio: maxContent > 0 ? control._contentPos / maxContent : 0
-        
         x: control._isVertical ? (control.width - width) / 2 : Math.max(0, Math.min(maxPos, ratio * maxPos))
         y: control._isVertical ? Math.max(0, Math.min(maxPos, ratio * maxPos)) : (control.height - height) / 2
         
@@ -61,7 +60,7 @@ Rectangle {
         
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
         
-        // ==================== Drag Interaction 拖拽交互 ====================
+        // Drag interaction 拖拽交互
         MouseArea {
             id: handleArea
             anchors.fill: parent

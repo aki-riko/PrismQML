@@ -15,7 +15,7 @@ Item {
     // ==================== Required Props 必需属性 ====================
     required property Flickable target  // Target view (ListView/GridView/Flickable) 目标视图
     
-    // ==================== Config Props 配置属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int orientation: Qt.Vertical  // Qt.Vertical or Qt.Horizontal 滚动方向
     property int duration: Enums.duration.scroll
     property real step: Enums.spacing.xxxl * 3  // Scroll step per wheel tick 每次滚轮滚动距离
@@ -23,18 +23,7 @@ Item {
     property bool bounceEnabled: true  // Enable overshoot bounce 启用边界回弹
     property bool handleWheel: false  // Auto handle mouse wheel 自动处理鼠标滚轮
     
-    // ==================== Read-only State 只读状态 ====================
-    readonly property real targetPos: _isVertical ? _targetY : _targetX
-    readonly property real smoothPos: _isVertical ? _smoothY : _smoothX
-    readonly property real maxScroll: _isVertical ? _maxY : _maxX
-    readonly property bool isOvershot: _isVertical ? _isOvershotV : _isOvershotH
-    
-    // ==================== Internal State 内部状态 ====================
-    readonly property bool _isVertical: orientation === Qt.Vertical
-    readonly property real _maxY: Math.max(0, target.contentHeight - target.height)
-    readonly property real _maxX: Math.max(0, target.contentWidth - target.width)
-    readonly property real _maxOvershoot: Enums.spacing.scrollOvershoot
-    
+    // ==================== Internal Props 内部属性 ====================
     // Vertical state 垂直状态
     property real _targetY: 0
     property real _smoothY: 0
@@ -44,15 +33,19 @@ Item {
     property real _targetX: 0
     property real _smoothX: 0
     property bool _isOvershotH: false
-    
-    // ==================== Bindings 绑定 ====================
-    on_SmoothYChanged: if (_isVertical && target) target.contentY = _smoothY
-    on_SmoothXChanged: if (!_isVertical && target) target.contentX = _smoothX
-    
-    // ==================== Animations 动画 ====================
     // _syncing = true 时禁用动画, 让 ScrollBar 拖拽场景下 contentX/Y 立即跟随 handle,
     // 不被 Behavior 平滑过渡反向拖拽.
     property bool _syncing: false
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real targetPos: _isVertical ? _targetY : _targetX
+    readonly property real smoothPos: _isVertical ? _smoothY : _smoothX
+    readonly property real maxScroll: _isVertical ? _maxY : _maxX
+    readonly property bool isOvershot: _isVertical ? _isOvershotV : _isOvershotH
+    readonly property bool _isVertical: orientation === Qt.Vertical
+    readonly property real _maxY: Math.max(0, target.contentHeight - target.height)
+    readonly property real _maxX: Math.max(0, target.contentWidth - target.width)
+    readonly property real _maxOvershoot: Enums.spacing.scrollOvershoot
 
     // ==================== Public Methods 公开方法 ====================
 
@@ -87,7 +80,8 @@ Item {
         _syncing = false
     }
 
-    // ==================== Vertical Implementation 垂直实现 ====================
+    // ==================== Internal Methods 内部方法 ====================
+    // Vertical implementation 垂直实现
     function _scrollToY(targetY) {
         _targetY = Math.max(0, Math.min(_maxY, targetY))
         _isOvershotV = false
@@ -135,7 +129,7 @@ Item {
         _smoothY = _targetY
     }
 
-    // ==================== Horizontal Implementation 水平实现 ====================
+    // Horizontal implementation 水平实现
     function _scrollToX(targetX) {
         _targetX = Math.max(0, Math.min(_maxX, targetX))
         _isOvershotH = false
@@ -183,6 +177,21 @@ Item {
         _smoothX = _targetX
     }
 
+    // Bindings 绑定
+    on_SmoothYChanged: if (_isVertical && target) target.contentY = _smoothY
+    on_SmoothXChanged: if (!_isVertical && target) target.contentX = _smoothX
+
+    // Sync initial position 同步初始位置
+    Component.onCompleted: {
+        if (target) {
+            _targetY = target.contentY
+            _smoothY = target.contentY
+            _targetX = target.contentX
+            _smoothX = target.contentX
+        }
+    }
+
+    // Animations 动画
     Behavior on _smoothY {
         enabled: helper.enabled && helper._isVertical && !helper._syncing
         NumberAnimation {
@@ -199,7 +208,8 @@ Item {
         }
     }
     
-    // ==================== Bounce Timers 回弹定时器 ====================
+    // ==================== Content 内容 ====================
+    // Bounce timers 回弹定时器
     Timer {
         id: bounceTimerV
         interval: Enums.duration.fast
@@ -212,17 +222,7 @@ Item {
         onTriggered: helper._bounceBackH()
     }
 
-    // ==================== Init 初始化 ====================
-    Component.onCompleted: {
-        if (target) {
-            _targetY = target.contentY
-            _smoothY = target.contentY
-            _targetX = target.contentX
-            _smoothX = target.contentX
-        }
-    }
-    
-    // ==================== Auto Wheel Handler 自动滚轮处理 ====================
+    // Auto wheel handler 自动滚轮处理
     // Use parent binding instead of anchors to avoid "not a parent or sibling" warning 使用 parent 绑定而非 anchors 避免锚点警告
 
     MouseArea {

@@ -11,7 +11,7 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 Item {
     id: control
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var model: []
     property Component delegate: null
     property int itemHeight: 40
@@ -33,9 +33,11 @@ Item {
     property int currentIndex: -1
     property bool selectable: true
     
-    // ==================== Expose props 暴露属性 ====================
+    // Exposed aliases 暴露别名
     property alias contentY: listView.contentY
     property alias contentHeight: listView.contentHeight
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property alias listView: listView
     readonly property int count: listView.count
     
@@ -50,7 +52,8 @@ Item {
     function smoothScrollTo(targetY) { scrollHelper.scrollTo(targetY) }
     function smoothScrollBy(delta) { scrollHelper.scrollBy(delta) }
 
-    // ==================== ListView 列表视图 ====================
+    // ==================== Content 内容 ====================
+    // List view 列表视图
     ListView {
         id: listView
         anchors.fill: parent
@@ -81,14 +84,15 @@ Item {
     Component {
         id: asyncDelegate
         Loader {
-            width: ListView.view ? ListView.view.width : 0
-            height: control.itemHeight
-            asynchronous: true
-            sourceComponent: control.delegate
             // 关键: ListView 注入的 index/model 在 Loader scope 可见, binding 成 properties
             // 让 Loader.item 通过 parent 访问
             property int delegateIndex: index
             property var delegateModel: model
+
+            width: ListView.view ? ListView.view.width : 0
+            height: control.itemHeight
+            asynchronous: true
+            sourceComponent: control.delegate
         }
     }
     
@@ -108,7 +112,7 @@ Item {
         }
     }
     
-    // ==================== Smooth Scroll Helper 平滑滚动助手 ====================
+    // Smooth scroll helper 平滑滚动助手
     SmoothScrollHelper {
         id: scrollHelper
         target: listView
@@ -121,7 +125,7 @@ Item {
         handleWheel: true
     }
     
-    // ==================== Scrollbar 滚动条 ====================
+    // Scrollbar 滚动条
     ScrollBar {
         id: vBar
         anchors.right: parent.right

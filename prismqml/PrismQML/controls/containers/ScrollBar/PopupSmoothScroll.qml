@@ -18,25 +18,14 @@ Item {
     // ==================== Required Props 必需属性 ====================
     required property Flickable flickable  // Parent flickable/listview 父级Flickable
     
-    // ==================== Config Props 配置属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property int duration: Enums.duration.scroll
     property real step: Enums.spacing.xxxl * 2  // Smaller step for popup 弹窗较小步长
     property int easing: Easing.OutCubic
     
-    // ==================== Internal State 内部状态 ====================
+    // ==================== Internal Props 内部属性 ====================
     property real _targetY: 0
     property real _smoothY: flickable ? flickable.contentY : 0
-    
-    // Fill parent to receive wheel events 填充父级以接收滚轮事件
-    anchors.fill: parent
-    
-    // Sync contentY with animated value 同步contentY与动画值
-    on_SmoothYChanged: if (flickable) flickable.contentY = _smoothY
-    
-    Behavior on _smoothY {
-        enabled: control.enabled && control.flickable && control.flickable.contentHeight > control.flickable.height
-        NumberAnimation { duration: control.duration; easing.type: control.easing }
-    }
     
     // ==================== Public Methods 公开方法 ====================
     function scrollTo(targetY) {
@@ -52,8 +41,28 @@ Item {
         _targetY = Math.max(0, Math.min(maxY, _targetY + delta))
         _smoothY = _targetY
     }
-    
-    // ==================== Wheel Handler 滚轮处理 ====================
+
+    // Fill parent to receive wheel events 填充父级以接收滚轮事件
+    anchors.fill: parent
+
+    // Sync contentY with animated value 同步contentY与动画值
+    on_SmoothYChanged: if (flickable) flickable.contentY = _smoothY
+
+    // Sync initial position 同步初始位置
+    Component.onCompleted: {
+        if (flickable) {
+            _targetY = flickable.contentY
+            _smoothY = flickable.contentY
+        }
+    }
+
+    Behavior on _smoothY {
+        enabled: control.enabled && control.flickable && control.flickable.contentHeight > control.flickable.height
+        NumberAnimation { duration: control.duration; easing.type: control.easing }
+    }
+
+    // ==================== Content 内容 ====================
+    // Wheel handler 滚轮处理
     // WheelHandler receives events in parent's area WheelHandler在父级区域接收事件
     WheelHandler {
         onWheel: (event) => {
@@ -71,14 +80,6 @@ Item {
             var delta = -event.angleDelta.y / 120 * control.step
             control.scrollBy(delta)
             event.accepted = true
-        }
-    }
-    
-    // Sync initial position 同步初始位置
-    Component.onCompleted: {
-        if (flickable) {
-            _targetY = flickable.contentY
-            _smoothY = flickable.contentY
         }
     }
 }
