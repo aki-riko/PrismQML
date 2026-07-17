@@ -9,6 +9,7 @@ PrismQML 应用入口类 PrismQML Application Entry
 提供统一的应用管理API，封装 QApplication 常用操作。
 """
 
+import os
 from typing import TYPE_CHECKING, List
 
 from PySide6.QtCore import Qt
@@ -21,12 +22,95 @@ from ..core.input_focus_filter import (
     install_input_focus_filter,
     reset_input_focus_filter,
 )
+from ..core.utils import QML_XHR_ALLOW_FILE_READ_ENV
 
 if TYPE_CHECKING:
     from .fluent_window import Window
     from .window_core import WindowCore
 
 _DEFAULT_WINDOW_TYPE = 1
+_MISSING_ENVIRONMENT = object()
+
+
+def _prepare_app_environment(allow_qml_file_read: bool) -> None:
+    """Prepare process-wide Qt settings. 准备进程级 Qt 设置。"""
+    from ..config import applyDpiScale
+    from ..core import configure_qml_environment, install_qt_message_handler
+
+    configure_qml_environment(allow_qml_file_read)
+    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+    )
+    applyDpiScale()
+    install_qt_message_handler()
+
+
+def _create_qt_application(owner, argv: List[str]) -> None:
+    """Create QApplication and install global filters. 创建应用并安装全局过滤器。"""
+    from ..core import installDwmSyncFilter
+
+    owner._owns_app = QApplication.instance() is None
+    owner._app = QApplication(argv or [])
+    owner._input_filter_started = True
+    install_input_focus_filter(owner._app)
+    owner._dwm_filter_started = True
+    installDwmSyncFilter()
+
+
+def _create_qml_engine(owner) -> None:
+    """Create and fully register the QML engine. 创建并完整注册 QML 引擎。"""
+    from ..core import register_types
+    from ..core.incubation import install_incubation_controller
+
+    owner._engine = QQmlApplicationEngine()
+    owner._engine_publish_started = True
+    EngineManager.set_engine(owner._engine)
+    install_incubation_controller(owner._engine)
+    register_types(owner._engine)
+
+
+def _run_app_cleanup(label: str, action) -> None:
+    """Run one rollback action without masking startup failure. 执行回滚且不遮蔽启动异常。"""
+    try:
+        action()
+    except Exception as exc:
+        from ..core.logger import exception
+
+        exception(f"App {label} cleanup failed 清理失败: {type(exc).__name__}: {exc}")
+
+
+def _delete_qt_object(value) -> None:
+    """Delete one live Shiboken-owned Qt object. 删除存活的 Qt 对象。"""
+    import shiboken6
+
+    if value is not None and shiboken6.isValid(value):
+        shiboken6.delete(value)
+
+
+def _restore_qml_environment(previous_value) -> None:
+    """Restore the caller's QML XHR setting. 恢复调用方 QML XHR 设置。"""
+    if previous_value is _MISSING_ENVIRONMENT:
+        os.environ.pop(QML_XHR_ALLOW_FILE_READ_ENV, None)
+    else:
+        os.environ[QML_XHR_ALLOW_FILE_READ_ENV] = previous_value
+
+
+def _rollback_app_initialization(owner, previous_qml_environment) -> None:
+    """Rollback a partially initialized App. 回滚部分初始化的 App。"""
+    from ..core.shadow import reset_dwm_sync_filter
+
+    if owner._input_filter_started:
+        _run_app_cleanup("input filter", reset_input_focus_filter)
+    if owner._engine_publish_started and EngineManager._engine is owner._engine:
+        _run_app_cleanup("engine bindings", EngineManager.reset)
+    if owner._dwm_filter_started:
+        _run_app_cleanup("DWM filter", reset_dwm_sync_filter)
+    _run_app_cleanup("QML engine", lambda: _delete_qt_object(owner._engine))
+    if owner._owns_app:
+        _run_app_cleanup("QApplication", lambda: _delete_qt_object(owner._app))
+    owner._engine = None
+    owner._app = None
+    _restore_qml_environment(previous_qml_environment)
 
 
 class App:
@@ -57,53 +141,30 @@ class App:
         *,
         allow_qml_file_read: bool = True,
     ):
-        from ..config import applyDpiScale
-        from ..core import (
-            configure_qml_environment,
-            installDwmSyncFilter,
-            register_types,
-            install_qt_message_handler,
-        )
-
-        # 单例检查
         if App._instance is not None:
             raise RuntimeError(
                 "App already exists. Use App.instance() to get the existing instance."
             )
-        App._instance = self
-
-        # Translator loads local i18n JSON through QML XHR. App construction is
-        # the explicit initialization boundary; plain `import prismqml` is inert.
-        configure_qml_environment(allow_qml_file_read)
-
-        # 设置DPI
-        QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
-            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-        )
-        applyDpiScale()
-
-        # 安装Qt消息处理器（将QML日志重定向到logger）
-        install_qt_message_handler()
-
-        # 创建应用
-        self._app = QApplication(argv or [])
-        install_input_focus_filter(self._app)
-        installDwmSyncFilter()
-
-        # 创建引擎
-        self._engine = QQmlApplicationEngine()
-        EngineManager.set_engine(self._engine)
-
-        # 安装异步孵化控制器: 让 asynchronous Loader(StackedWidget 懒加载)分帧
-        # 切片实例化, 避免切到未加载页时单帧建整棵页面树阻塞 GUI 线程(与导航
-        # 指示器动画抢帧)造成掉帧。
-        from ..core.incubation import install_incubation_controller
-        install_incubation_controller(self._engine)
-
-        # 注册所有provider（包括ScreenEyedropperManager等）
-        register_types(self._engine)
-
+        self._app = None
+        self._engine = None
+        self._owns_app = False
+        self._input_filter_started = False
+        self._dwm_filter_started = False
+        self._engine_publish_started = False
         self._windows: List["WindowCore"] = []
+        previous_qml_environment = os.environ.get(
+            QML_XHR_ALLOW_FILE_READ_ENV, _MISSING_ENVIRONMENT
+        )
+        committed = False
+        try:
+            _prepare_app_environment(allow_qml_file_read)
+            _create_qt_application(self, argv or [])
+            _create_qml_engine(self)
+            App._instance = self
+            committed = True
+        finally:
+            if not committed:
+                _rollback_app_initialization(self, previous_qml_environment)
 
     # ==================== 类方法 Class Methods ====================
 
@@ -117,7 +178,10 @@ class App:
     @classmethod
     def _reset(cls) -> None:
         """重置单例状态（仅供测试使用） Reset singleton state (for testing only)"""
+        from ..core.shadow import reset_dwm_sync_filter
+
         reset_input_focus_filter()
+        reset_dwm_sync_filter()
         EngineManager.reset()
         cls._instance = None
 

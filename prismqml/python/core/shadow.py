@@ -442,6 +442,22 @@ def installDwmSyncFilter():
     return True
 
 
+def reset_dwm_sync_filter() -> None:
+    """Remove the process-wide DWM filter. 移除进程级 DWM 过滤器。"""
+    global _dwm_sync_filter
+    current = _dwm_sync_filter
+    _dwm_sync_filter = None
+    if current is None:
+        return
+    app = QApplication.instance()
+    if app is None:
+        return
+    try:
+        app.removeNativeEventFilter(current)
+    except (RuntimeError, TypeError) as exc:
+        debug(f"DWM同步过滤器卸载失败: {exc}")
+
+
 # Global singleton 全局单例
 def getShadowManager() -> ShadowManager:
     """获取阴影管理器实例"""
