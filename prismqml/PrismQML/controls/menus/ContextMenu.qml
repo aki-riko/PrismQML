@@ -70,7 +70,7 @@ MenuCore {
     
     // Check if visible 检查是否可见
     function isVisible() {
-        return popupVisible
+        return isOpen || isClosing
     }
     
     // Execute action 执行菜单
