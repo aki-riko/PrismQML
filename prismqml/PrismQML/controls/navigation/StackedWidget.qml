@@ -453,6 +453,10 @@ Item {
             
             Loader {
                 id: sourceLoader
+
+                property bool _loadOnce: false
+                property int pageIndex: index
+
                 width: sourceContainer.width
                 height: sourceContainer.height
                 // latch 用独立布尔 _loadOnce, 不自引用 active(自引用——含绕 _loaders[index]
@@ -461,7 +465,6 @@ Item {
                 // _loadOnce 初始 false → 初始 active 仅跟 index===currentIndex(只当前页);
                 // 页面一旦被激活 onActiveChanged 锁 _loadOnce=true, 切走再切回仍 active,
                 // source 不清空(避免 status===Ready latch 的切走退出 Ready→source 清空→永久轮询死锁)。
-                property bool _loadOnce: false
                 onActiveChanged: if (active) _loadOnce = true
                 source: control.lazyLoading ? (index === control.currentIndex || _loadOnce ? control.pageSources[index] : "") : control.pageSources[index]
                 active: !control.lazyLoading || index === control.currentIndex || _loadOnce
@@ -471,8 +474,6 @@ Item {
                 transformOrigin: Item.Center
                 asynchronous: control.lazyLoading
                 
-                property int pageIndex: index
-
                 Component.onCompleted: {
                     var loaders = control._loaders.slice()
                     loaders[index] = sourceLoader
