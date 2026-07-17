@@ -10,26 +10,27 @@ import "../../icons"
 // Extracted from ImageCropperDialog 从ImageCropperDialog提取
 Item {
     id: content
-    
+
+    // ==================== Public Props 公开属性 ====================
+    // Image rotation/mirror for toolbar control 图片旋转/镜像供工具栏控制
+    property alias imageRotation: cropImage.rotation
+    property alias imageMirror: cropImage.mirror
+
     // ==================== Required Props 必需属性 ====================
     required property url source
     required property int cropShape
     required property rect cropRect
-    
-    // ==================== Signals 信号 ====================
-    signal cropRectUpdated(rect newRect)
-    
-    // ==================== Internal Props 内部属性 ====================
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property real _imgX: cropImage.displayX
     readonly property real _imgY: cropImage.displayY
     readonly property real _imgW: cropImage.displayWidth
     readonly property real _imgH: cropImage.displayHeight
     readonly property real _maxSize: Math.min(_imgW, _imgH)
     readonly property bool _isCircle: cropShape === Enums.imageCropper.shape_circle
-    
-    // Image rotation/mirror for toolbar control 图片旋转/镜像供工具栏控制
-    property alias imageRotation: cropImage.rotation
-    property alias imageMirror: cropImage.mirror
+
+    // ==================== Signals 信号 ====================
+    signal cropRectUpdated(rect newRect)
 
     // ==================== Public Methods 公开方法 ====================
     function initDefaultCropRect() {
@@ -41,13 +42,11 @@ Item {
         ))
     }
 
-    // ==================== Image 图片 ====================
+    // ==================== Content 内容 ====================
+    // Image 图片
     Image {
         id: cropImage
-        anchors.fill: parent
-        source: content.source
-        fillMode: Image.PreserveAspectFit
-        
+
         // Calculate actual image display rect 计算实际图片显示区域
         readonly property real imgRatio: sourceSize.width > 0 ? sourceSize.width / sourceSize.height : 1
         readonly property real containerRatio: width > 0 ? width / height : 1
@@ -55,29 +54,35 @@ Item {
         readonly property real displayHeight: imgRatio > containerRatio ? width / imgRatio : height
         readonly property real displayX: (width - displayWidth) / 2
         readonly property real displayY: (height - displayHeight) / 2
+
+        anchors.fill: parent
+        source: content.source
+        fillMode: Image.PreserveAspectFit
     }
-    
-    // ==================== Circle Mask 圆形遮罩 ====================
+
+    // Circle mask 圆形遮罩
     Canvas {
         id: circleMaskCanvas
+
+        readonly property color maskColor: Enums.stateColor.cropperMask
+
         x: content._imgX
         y: content._imgY
         width: content._imgW
         height: content._imgH
         visible: content._isCircle
-        
-        readonly property color maskColor: Enums.stateColor.cropperMask
+
         onMaskColorChanged: requestPaint()
-        
+
         onPaint: {
             var ctx = getContext("2d")
             ctx.reset()
             ctx.clearRect(0, 0, width, height)
-            
+
             ctx.save()
             ctx.fillStyle = maskColor
             ctx.fillRect(0, 0, width, height)
-            
+
             ctx.globalCompositeOperation = "destination-out"
             ctx.fillStyle = Enums.themeColors.accentForeground
             ctx.beginPath()
@@ -89,48 +94,52 @@ Item {
             ctx.fill()
             ctx.restore()
         }
-        
+
+        Component.onCompleted: requestPaint()
+
         Connections {
-            target: cropArea
             function onXChanged() { circleMaskCanvas.requestPaint() }
             function onYChanged() { circleMaskCanvas.requestPaint() }
             function onWidthChanged() { circleMaskCanvas.requestPaint() }
             function onHeightChanged() { circleMaskCanvas.requestPaint() }
+
+            target: cropArea
         }
-        
-        Component.onCompleted: requestPaint()
     }
 
-    // ==================== Rectangle Mask 矩形遮罩 ====================
+    // Rectangle mask 矩形遮罩
     Item {
-        x: content._imgX
-        y: content._imgY
-        width: content._imgW
-        height: content._imgH
-        visible: !content._isCircle
-        
         // Convert cropArea to local coordinates 转换裁剪区域到本地坐标
         readonly property real localCropX: cropArea.x - content._imgX
         readonly property real localCropY: cropArea.y - content._imgY
         readonly property real localCropW: cropArea.width
         readonly property real localCropH: cropArea.height
-        
+
+        x: content._imgX
+        y: content._imgY
+        width: content._imgW
+        height: content._imgH
+        visible: !content._isCircle
+
         Rectangle {
             anchors { top: parent.top; left: parent.left; right: parent.right }
             height: parent.localCropY
             color: Enums.stateColor.cropperMask
         }
+
         Rectangle {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
             height: parent.height - parent.localCropY - parent.localCropH
             color: Enums.stateColor.cropperMask
         }
+
         Rectangle {
             y: parent.localCropY
             width: parent.localCropX
             height: parent.localCropH
             color: Enums.stateColor.cropperMask
         }
+
         Rectangle {
             x: parent.localCropX + parent.localCropW
             y: parent.localCropY
@@ -139,16 +148,16 @@ Item {
             color: Enums.stateColor.cropperMask
         }
     }
-    
-    // ==================== Crop Area 裁剪区域 ====================
+
+    // Crop area 裁剪区域
     Item {
         id: cropArea
-        
+
         x: content._imgX + content.cropRect.x * content._imgW
         y: content._imgY + content.cropRect.y * content._imgH
         width: content._isCircle ? (content.cropRect.width * content._maxSize) : (content.cropRect.width * content._imgW)
         height: content._isCircle ? (content.cropRect.width * content._maxSize) : (content.cropRect.height * content._imgH)
-        
+
         // Border 边框
         Rectangle {
             anchors.fill: parent
@@ -157,18 +166,18 @@ Item {
             border.color: Enums.stateColor.cropperLine
             radius: content._isCircle ? width / 2 : 0
         }
-        
+
         // Drag to move 拖拽移动
         MouseArea {
-            anchors.fill: parent
-            anchors.margins: Enums.imageCropperDialogMetrics.cropMoveMargin
-            cursorShape: Qt.SizeAllCursor
-            
             property real startRectX
             property real startRectY
             property real pressGlobalX
             property real pressGlobalY
-            
+
+            anchors.fill: parent
+            anchors.margins: Enums.imageCropperDialogMetrics.cropMoveMargin
+            cursorShape: Qt.SizeAllCursor
+
             onPressed: (mouse) => {
                 var globalPos = mapToItem(content, mouse.x, mouse.y)
                 pressGlobalX = globalPos.x
@@ -176,22 +185,22 @@ Item {
                 startRectX = content.cropRect.x
                 startRectY = content.cropRect.y
             }
-            
+
             onPositionChanged: (mouse) => {
                 if (pressed) {
                     var globalPos = mapToItem(content, mouse.x, mouse.y)
                     var imgW = content._imgW, imgH = content._imgH
                     var dx = (globalPos.x - pressGlobalX) / imgW
                     var dy = (globalPos.y - pressGlobalY) / imgH
-                    
+
                     var w = content.cropRect.width
                     var h = content.cropRect.height
                     var pixelW = content._isCircle ? (w * content._maxSize) : (w * imgW)
                     var pixelH = content._isCircle ? (w * content._maxSize) : (h * imgH)
-                    
+
                     var newX = Math.max(0, Math.min(1 - pixelW / imgW, startRectX + dx))
                     var newY = Math.max(0, Math.min(1 - pixelH / imgH, startRectY + dy))
-                    
+
                     content.cropRectUpdated(Qt.rect(newX, newY, w, h))
                 }
             }
@@ -202,11 +211,11 @@ Item {
                 var imgX = content._imgX, imgY = content._imgY
                 var imgW = content._imgW, imgH = content._imgH
                 var maxSize = content._maxSize
-                
+
                 var cx = cropArea.x + cropArea.width / 2
                 var cy = cropArea.y + cropArea.height / 2
                 var newW, newH, newRectW, newRectH
-                
+
                 if (content._isCircle) {
                     var newS = cropArea.width * scaleFactor
                     newS = Math.max(minSize, Math.min(newS, maxSize))
@@ -218,30 +227,31 @@ Item {
                     newRectW = newW / imgW
                     newRectH = newH / imgH
                 }
-                
+
                 var newX = cx - newW / 2
                 var newY = cy - newH / 2
                 newX = Math.max(imgX, Math.min(imgX + imgW - newW, newX))
                 newY = Math.max(imgY, Math.min(imgY + imgH - newH, newY))
-                
+
                 content.cropRectUpdated(Qt.rect((newX - imgX) / imgW, (newY - imgY) / imgH, newRectW, newRectH))
             }
         }
-        
-        // ==================== Corner Handles 四角手柄 ====================
+
+        // Corner handles 四角手柄
         Repeater {
             model: Enums.imageCropperDialogMetrics.handleCount
-            
+
             Rectangle {
                 id: handle
+
                 width: Enums.imageCropperDialogMetrics.handleSize
                 height: Enums.imageCropperDialogMetrics.handleSize
                 radius: Enums.imageCropperDialogMetrics.handleRadius
                 color: Enums.stateColor.cropperLine
-                
+
                 x: (index % 2 === 0) ? -Enums.imageCropperDialogMetrics.handleOffset : cropArea.width - Enums.imageCropperDialogMetrics.handleOffset
                 y: (index < 2) ? -Enums.imageCropperDialogMetrics.handleOffset : cropArea.height - Enums.imageCropperDialogMetrics.handleOffset
-                
+
                 Rectangle {
                     anchors.fill: parent
                     anchors.margins: Enums.imageCropperDialogMetrics.handleOuterMargin
@@ -249,18 +259,18 @@ Item {
                     color: Enums.stateColor.cropperMask
                     z: Enums.zIndex.background
                 }
-                
+
                 MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: Enums.imageCropperDialogMetrics.handleHitMargin
-                    cursorShape: (index === 0 || index === 3) ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor
-                    
                     property point pp
                     property real sx
                     property real sy
                     property real sw
                     property real sh
-                    
+
+                    anchors.fill: parent
+                    anchors.margins: Enums.imageCropperDialogMetrics.handleHitMargin
+                    cursorShape: (index === 0 || index === 3) ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor
+
                     onPressed: {
                         pp = mapToItem(content, mouseX, mouseY)
                         sx = cropArea.x; sy = cropArea.y
@@ -269,7 +279,7 @@ Item {
 
                     onPositionChanged: {
                         if (!pressed) return
-                        
+
                         var c = mapToItem(content, mouseX, mouseY)
                         var dx = c.x - pp.x, dy = c.y - pp.y
                         var m = Enums.imageCropperDialogMetrics.minCropSize
@@ -277,9 +287,9 @@ Item {
                         var imgW = content._imgW, imgH = content._imgH
                         var maxSize = content._maxSize
                         var boundRight = imgX + imgW, boundBottom = imgY + imgH
-                        
+
                         var newX = sx, newY = sy, newW = sw, newH = sh
-                        
+
                         if (content._isCircle) {
                             var delta = Math.max(Math.abs(dx), Math.abs(dy)) * ((dx + dy) > 0 ? 1 : -1)
                             if (index === 0) {
