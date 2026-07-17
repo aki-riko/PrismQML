@@ -12,45 +12,37 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ColorPicker - Unified color picker component 统一颜色选择器组件
 // Control via type property 通过type属性控制类型
-// Types: dialog/palette/picker/circle/screen
+// Types: dialog, palette, picker, circle, and screen 类型：对话框、调色板、选择器、圆形与屏幕取色
 Item {
     id: control
-    
-    // ==================== Type Props 类型属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property int type: Enums.colorPicker.type_picker
     property int colorMode: Enums.colorPicker.mode_rgb
-    
-    // ==================== Content Props 内容属性 ====================
     property color selectedColor: Enums.colorPickerDefaults.defaultColor
     property color defaultColor: Enums.colorPickerDefaults.defaultColor
     property bool enableAlpha: true
-    
-    // ==================== Circle Type Props 圆形类型属性 ====================
     property var circleColors: Enums.colorPickerDefaults.quickPalette
-    property int circleSize: 28
-    
-    // ==================== Dialog Type Props 对话框类型属性 ====================
+    property int circleSize: Enums.colorPickerMetrics.circleDefaultSize
     property string dialogTitle: qsTr("选择背景颜色")
     property string editColorText: qsTr("编辑颜色")
     property string confirmText: qsTr("确定")
     property string cancelText: qsTr("取消")
-    
-    // ==================== Palette Type Props 调色板类型属性 ====================
     property bool showAutomatic: true
     property bool showMoreColors: true
     property string automaticText: qsTr("默认")
     property string themeColorsText: qsTr("主题色")
     property string standardColorsText: qsTr("标准色")
     property string moreColorsText: qsTr("自定义颜色")
-    
-    // ==================== Screen Type Props 屏幕取色类型属性 ====================
     property bool picking: false
-    
-    // ==================== State 状态 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     property bool _isOpen: false
-    readonly property bool popupVisible: _isOpen
     property var _mainWindow: Window.window  // Main window reference for ColorDialog 主窗口引用
-    
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool popupVisible: _isOpen
+
     // ==================== Signals 信号 ====================
     signal colorSelected(color value)
     signal colorChanged(color value)
@@ -121,7 +113,7 @@ Item {
             case Enums.colorPicker.type_dialog: return Enums.colorPickerMetrics.triggerWidth
             case Enums.colorPicker.type_palette: return Enums.colorPickerMetrics.triggerWidth
             case Enums.colorPicker.type_picker: return Enums.colorPickerMetrics.triggerWidth
-            case Enums.colorPicker.type_circle: return circleLoader.item ? circleLoader.item.implicitWidth : circleLoader.item.implicitWidth
+            case Enums.colorPicker.type_circle: return circleLoader.item ? circleLoader.item.implicitWidth : Enums.colorPickerMetrics.circleLoaderFallbackWidth
             case Enums.colorPicker.type_screen: return Enums.colorPickerMetrics.triggerWidth
             default: return Enums.colorPickerMetrics.triggerWidth
         }
@@ -133,8 +125,9 @@ Item {
             default: return Enums.controlSize.inputHeight
         }
     }
-    
-    // ==================== Trigger Button (for dropdown types) 触发按钮 ====================
+
+    // ==================== Content 内容 ====================
+    // Trigger button for dropdown types 下拉类型触发按钮
     Loader {
         id: triggerLoader
         anchors.fill: parent
@@ -156,8 +149,8 @@ Item {
             }
         }
     }
-    
-    // ==================== Circle Colors (for circle type) 圆形颜色 ====================
+
+    // Circle colors 圆形颜色
     Loader {
         id: circleLoader
         anchors.fill: parent
@@ -174,8 +167,8 @@ Item {
             }
         }
     }
-    
-    // ==================== Screen Picker (for screen type) 屏幕取色器 ====================
+
+    // Screen picker 屏幕取色器
     Loader {
         id: screenLoader
         anchors.fill: parent
@@ -236,12 +229,9 @@ Item {
             }
         }
     }
-    
-    // ==================== Screen Picker Connections 屏幕取色器连接 ====================
+
+    // Screen picker connections 屏幕取色器连接
     Connections {
-        target: typeof ScreenEyedropperManager !== "undefined" ? ScreenEyedropperManager : null
-        enabled: control.type === Enums.colorPicker.type_screen
-        
         function onColorPicked(color) {
             control.selectedColor = color
             control.colorSelected(color)
@@ -256,23 +246,26 @@ Item {
         function onPickingCancelled() {
             control.picking = false
         }
+
+        target: typeof ScreenEyedropperManager !== "undefined" ? ScreenEyedropperManager : null
+        enabled: control.type === Enums.colorPicker.type_screen
     }
-    
-    // ==================== Popup for palette/picker 调色板/选择器弹出层 ====================
+
+    // Palette and picker popup 调色板与选择器弹层
     PopupWindowCore {
         id: popup
         popupWidth: {
             switch (control.type) {
-                case Enums.colorPicker.type_palette: return 360
-                case Enums.colorPicker.type_picker: return 320
-                default: return 300
+                case Enums.colorPicker.type_palette: return Enums.colorPickerMetrics.palettePopupWidth
+                case Enums.colorPicker.type_picker: return Enums.colorPickerMetrics.pickerPopupWidth
+                default: return Enums.colorPickerMetrics.fallbackPopupWidth
             }
         }
         popupHeight: {
             switch (control.type) {
-                case Enums.colorPicker.type_palette: return 370
-                case Enums.colorPicker.type_picker: return 480
-                default: return 400
+                case Enums.colorPicker.type_palette: return Enums.colorPickerMetrics.palettePopupHeight
+                case Enums.colorPicker.type_picker: return Enums.colorPickerMetrics.pickerPopupHeight
+                default: return Enums.colorPickerMetrics.fallbackPopupHeight
             }
         }
         
@@ -333,7 +326,7 @@ Item {
         }
     }
 
-    // ==================== Palette ColorDialog Loader 调色板颜色对话框加载器 ====================
+    // Palette color-dialog loader 调色板颜色对话框加载器
     Loader {
         id: paletteDialogLoader
         active: control.type === Enums.colorPicker.type_palette
@@ -346,8 +339,8 @@ Item {
             }
         }
     }
-    
-    // ==================== Modal Dialog Loader 模态对话框加载器 ====================
+
+    // Modal dialog loader 模态对话框加载器
     Loader {
         id: dialogLoader
         active: control.type === Enums.colorPicker.type_dialog

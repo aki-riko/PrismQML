@@ -558,7 +558,17 @@ QtObject {
  readonly property int paletteSelectedBorderWidth: 2
 
  // Circle swatches 圆形色块
+ readonly property int circleDefaultSize: 28
  readonly property real circleHoverOpacity: 0.8
+ readonly property int circleLoaderFallbackWidth: 0
+
+ // Public popup sizing 公开弹层尺寸
+ readonly property int palettePopupWidth: 360
+ readonly property int pickerPopupWidth: 320
+ readonly property int fallbackPopupWidth: 300
+ readonly property int palettePopupHeight: 370
+ readonly property int pickerPopupHeight: 480
+ readonly property int fallbackPopupHeight: 400
 
  // Channel slider
  readonly property int channelSliderWidth: 260

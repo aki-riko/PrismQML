@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Color picker circle async-width regression. 圆形颜色选择器异步宽度回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
@@ -13,17 +13,28 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
 from prismqml.python.core.incubation import install_incubation_controller
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ColorPicker"
+    / "ColorPicker.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "color-picker-circle-async-width.qml")
 )
 SCENE_SOURCE = b"""
 import QtQuick
+import QtQuick.Window
 import PrismQML
 
-Item {
+Window {
     readonly property bool asyncReady: asyncLoader.item !== null
     readonly property real asyncWidth: asyncLoader.item
         ? asyncLoader.item.implicitWidth
@@ -32,6 +43,7 @@ Item {
 
     width: 400
     height: 100
+    visible: true
 
     ColorPicker {
         id: syncPicker
@@ -55,16 +67,17 @@ def _pump(milliseconds: int = 5) -> None:
     loop.exec()
 
 
-def _new_visible_windows(windows_before):
+def _new_visible_windows(windows_before, root_window):
     return [
         window
         for window in QGuiApplication.topLevelWindows()
         if window.isVisible()
+        and window is not root_window
         and not any(window is existing for existing in windows_before)
     ]
 
 
-def test_public_circle_async_loader_currently_collapses_width(qapp):
+def test_public_circle_async_loader_preserves_runtime_width(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine = QQmlApplicationEngine()
     warnings = []
@@ -82,18 +95,53 @@ def test_public_circle_async_loader_currently_collapses_width(qapp):
     root = component.create(engine.rootContext())
     assert root is not None, [error.toString() for error in component.errors()]
     try:
-        for _ in range(40):
+        root.requestActivate()
+        for _ in range(80):
             controller.incubateFor(5)
             _pump()
-            if root.property("asyncReady"):
+            if (
+                root.property("asyncReady")
+                and root.property("asyncWidth") == pytest.approx(
+                    root.property("syncWidth")
+                )
+            ):
                 break
         assert root.property("asyncReady")
         assert root.property("syncWidth") == pytest.approx(276)
-        assert root.property("asyncWidth") == pytest.approx(0)
+        assert root.property("asyncWidth") == pytest.approx(276)
         assert warnings == []
-        assert _new_visible_windows(windows_before) == []
+        assert _new_visible_windows(windows_before, root) == []
     finally:
+        root.close()
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
         qapp.processEvents()
+
+
+def test_public_color_picker_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_public_color_picker_uses_circle_and_popup_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    for token in (
+        "Enums.colorPickerMetrics.circleLoaderFallbackWidth",
+        "Enums.colorPickerMetrics.circleDefaultSize",
+        "Enums.colorPickerMetrics.palettePopupWidth",
+        "Enums.colorPickerMetrics.pickerPopupWidth",
+        "Enums.colorPickerMetrics.fallbackPopupWidth",
+        "Enums.colorPickerMetrics.palettePopupHeight",
+        "Enums.colorPickerMetrics.pickerPopupHeight",
+        "Enums.colorPickerMetrics.fallbackPopupHeight",
+    ):
+        assert token in source
+    assert (
+        "circleLoader.item ? circleLoader.item.implicitWidth "
+        ": circleLoader.item.implicitWidth"
+    ) not in source
