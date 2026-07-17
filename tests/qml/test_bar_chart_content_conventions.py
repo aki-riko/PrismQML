@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """BarChartContent runtime contracts. 柱状图内容运行时合同。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QPointF, QTimer, QUrl, Qt
@@ -14,6 +14,7 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -281,3 +282,13 @@ def test_multi_series_real_hover_click_and_markers(bar_chart_scene):
     assert "30" in texts and "10" in texts
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_bar_chart_content_source_follows_conventions():
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(SOURCE_PATH.read_text(encoding="utf-8"), path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []

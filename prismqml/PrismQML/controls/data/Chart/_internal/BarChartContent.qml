@@ -20,7 +20,7 @@ Item {
     required property bool showValues    // Show value labels 显示数值标签
     required property var getColor       // Function to get color 获取颜色函数
     
-    // ==================== Props 属性 ====================
+    // ==================== Public Props 公开属性 ====================
     property var series: []              // [{name: "", values: [], color: ""}, ...] - multi series 多系列
     property int hoveredIndex: -1
     property int hoveredSeriesIndex: -1
@@ -30,16 +30,11 @@ Item {
     property bool showAverage: false     // Show average line (markLine) 显示平均线
     property bool showMinMax: false      // Show min/max markers (markPoint) 显示最大最小值标记
     property bool showBarGradient: false // Show gradient fill on bars 柱子渐变填充
-    
-    // ==================== Signals 信号 ====================
-    signal barClicked(int index, var data)
-    signal barHovered(int index)
-    signal seriesBarHovered(int seriesIndex, int barIndex)
-    
-    // ==================== Internal 内部属性 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     property var barPositions: []        // For markPoint positioning 用于markPoint定位
-    
-    // ==================== Computed Props 计算属性 ====================
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
     readonly property int dataLength: isMultiSeries ? (series[0].values ? series[0].values.length : 0) : chartData.length
     readonly property var computedValueRange: {
@@ -62,8 +57,13 @@ Item {
         var padding = (max - min) * 0.1 || 1
         return { min: Math.min(min, 0), max: max + padding }
     }
-    
-    // ==================== Helper Functions 辅助函数 ====================
+
+    // ==================== Signals 信号 ====================
+    signal barClicked(int index, var data)
+    signal barHovered(int index)
+    signal seriesBarHovered(int seriesIndex, int barIndex)
+
+    // ==================== Internal Methods 内部方法 ====================
     function getSeriesColor(index) {
         if (series[index] && series[index].color) return series[index].color
         return Enums.chartColors.extendedPalette[index % Enums.chartColors.extendedPalette.length]
@@ -102,14 +102,41 @@ Item {
         return value >= 0
     }
 
-    // ==================== Canvas for Multi-Series 多系列画布 (Fluent Design) ====================
+    // Repaint triggers 重绘触发
+    onHoveredIndexChanged: {
+        canvas.requestPaint()
+        if (!isMultiSeries && !isHorizontal) singleBarIndicator.requestPaint()
+    }
+    onHoveredSeriesIndexChanged: canvas.requestPaint()
+    onSeriesChanged: canvas.requestPaint()
+    onShowAverageChanged: canvas.requestPaint()
+    onShowBarGradientChanged: canvas.requestPaint()
+
+    // ==================== Content 内容 ====================
+    // Canvas for multi-series (Fluent Design) 多系列画布（Fluent Design）
     Canvas {
         id: canvas
+
+        property real animProgress: root.animated ? 0 : 1
+
+        // Draw rounded rectangle with only top corners rounded 只有顶部圆角的矩形
+        function drawRoundedRect(ctx, x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2
+            if (h < 2 * r) r = h / 2
+            ctx.beginPath()
+            ctx.moveTo(x + r, y)
+            ctx.lineTo(x + w - r, y)
+            ctx.arcTo(x + w, y, x + w, y + r, r)
+            ctx.lineTo(x + w, y + h)
+            ctx.lineTo(x, y + h)
+            ctx.lineTo(x, y + r)
+            ctx.arcTo(x, y, x + r, y, r)
+            ctx.closePath()
+        }
+
         anchors.fill: parent
         visible: root.isMultiSeries && !root.isHorizontal
-        
-        property real animProgress: root.animated ? 0 : 1
-        
+
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
@@ -180,21 +207,6 @@ Item {
             root.barPositions = allBarPositions
         }
         
-        // Draw rounded rectangle with only top corners rounded 只有顶部圆角的矩形
-        function drawRoundedRect(ctx, x, y, w, h, r) {
-            if (w < 2 * r) r = w / 2
-            if (h < 2 * r) r = h / 2
-            ctx.beginPath()
-            ctx.moveTo(x + r, y)
-            ctx.lineTo(x + w - r, y)
-            ctx.arcTo(x + w, y, x + w, y + r, r)
-            ctx.lineTo(x + w, y + h)
-            ctx.lineTo(x, y + h)
-            ctx.lineTo(x, y + r)
-            ctx.arcTo(x, y, x + r, y, r)
-            ctx.closePath()
-        }
-        
         Component.onCompleted: {
             if (root.animated) {
                 animProgress = 0
@@ -206,9 +218,11 @@ Item {
         
         Timer {
             id: animTimer
+
+            property real t: 0  // Normalized time 归一化时间
+
             interval: Enums.duration.tick  // High-refresh tick 高刷定时器
             repeat: true
-            property real t: 0  // Normalized time 归一化时间
             onTriggered: {
                 t += 0.04  // ~400ms total duration 总时长约400ms
                 if (t >= 1) {
@@ -224,29 +238,20 @@ Item {
         }
     }
     
-    // Repaint triggers 重绘触发
-    onHoveredIndexChanged: {
-        canvas.requestPaint()
-        if (!isMultiSeries && !isHorizontal) singleBarIndicator.requestPaint()
-    }
-    onHoveredSeriesIndexChanged: canvas.requestPaint()
-    onSeriesChanged: canvas.requestPaint()
-    onShowAverageChanged: canvas.requestPaint()
-    onShowBarGradientChanged: canvas.requestPaint()
-
-    // ==================== Min/Max Bubble Markers 最大最小值气泡标记 ====================
+    // Min/max bubble markers 最大最小值气泡标记
     Repeater {
         model: root.isMultiSeries && root.showMinMax ? root.series : []
         
         Item {
             id: markerItem
-            anchors.fill: parent
-            
+
             property int seriesIdx: index
             property var values: modelData.values || []
             property var minMax: root.findMinMaxIndices(values)
             property color seriesColor: root.getSeriesColor(index)
-            
+
+            anchors.fill: parent
+
             // Max marker (above bar) 最大值标记（柱子上方）
             Rectangle {
                 id: maxMarker
@@ -339,16 +344,16 @@ Item {
         }
     }
     
-    // ==================== Average Value Labels (right side) 平均值标签（右侧） ====================
+    // Average value labels (right side) 平均值标签（右侧）
     Repeater {
         model: root.isMultiSeries && root.showAverage ? root.series : []
         
         Label {
-            type: Enums.label.type_caption
             property var values: modelData.values || []
             property real avg: root.calculateAverage(values)
             property color seriesColor: root.getSeriesColor(index)
-            
+
+            type: Enums.label.type_caption
             x: root.width + 4
             y: root.valueToY(avg) - height / 2
             text: avg.toFixed(1)
@@ -357,7 +362,7 @@ Item {
         }
     }
 
-    // ==================== Single Series Vertical Bar Chart 单系列垂直柱状图 ====================
+    // Single-series vertical bar chart 单系列垂直柱状图
     // Axis trigger indicator line for single series 单系列悬停指示线
     Canvas {
         id: singleBarIndicator
@@ -395,25 +400,27 @@ Item {
             
             Item {
                 id: verticalBarItem
-                width: (verticalBarRow.width - verticalBarRow.spacing * (root.chartData.length - 1)) / Math.max(root.chartData.length, 1)
-                height: verticalBarRow.height
-                
+
                 property bool hovered: root.hoveredIndex === index
                 property real barValue: modelData && modelData.value !== undefined ? modelData.value : 0
                 property bool isPositiveValue: root.isPositive(barValue)
                 property real barRatio: root.getBarRatio(barValue)
                 property real zeroY: root.zeroLineRatio * height
-                
+
+                width: (verticalBarRow.width - verticalBarRow.spacing * (root.chartData.length - 1)) / Math.max(root.chartData.length, 1)
+                height: verticalBarRow.height
+
                 // Fluent Design: simple bar with rounded top corners 简洁柱子+顶部圆角
                 Canvas {
                     id: verticalBarRect
+
+                    property color barColor: root.getColor(index)
+                    property bool barHovered: verticalBarItem.hovered
+
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: Math.min(parent.width * 0.7, Enums.spacing.xxxl)
                     y: verticalBarItem.isPositiveValue ? verticalBarItem.zeroY - height : verticalBarItem.zeroY
                     height: root.animated ? 0 : verticalBarItem.barRatio * parent.height
-                    
-                    property color barColor: root.getColor(index)
-                    property bool barHovered: verticalBarItem.hovered
                     
                     onPaint: {
                         var ctx = getContext("2d")
@@ -474,7 +481,7 @@ Item {
         }
     }
 
-    // ==================== Single Series Horizontal Bar Chart 单系列水平柱状图 ====================
+    // Single-series horizontal bar chart 单系列水平柱状图
     Column {
         id: horizontalBarColumn
         anchors.fill: parent
@@ -486,9 +493,7 @@ Item {
             
             Item {
                 id: horizontalBarItem
-                width: horizontalBarColumn.width
-                height: (horizontalBarColumn.height - horizontalBarColumn.spacing * (root.chartData.length - 1)) / Math.max(root.chartData.length, 1)
-                
+
                 property bool hovered: root.hoveredIndex === index
                 property real barValue: modelData && modelData.value !== undefined ? modelData.value : 0
                 property bool isPositiveValue: root.isPositive(barValue)
@@ -499,18 +504,22 @@ Item {
                     if (!range.hasPositive) return width
                     return Math.abs(range.min) / (range.max - range.min) * width
                 }
-                
+
+                width: horizontalBarColumn.width
+                height: (horizontalBarColumn.height - horizontalBarColumn.spacing * (root.chartData.length - 1)) / Math.max(root.chartData.length, 1)
+
                 // Fluent Design: simple horizontal bar 简洁水平柱子
                 Canvas {
                     id: horizontalBarRect
+
+                    property color barColor: root.getColor(index)
+                    property bool barHovered: horizontalBarItem.hovered
+                    property bool isPositive: horizontalBarItem.isPositiveValue
+
                     anchors.verticalCenter: parent.verticalCenter
                     height: Math.min(parent.height * 0.7, Enums.spacing.xxl)
                     x: horizontalBarItem.isPositiveValue ? horizontalBarItem.zeroX : horizontalBarItem.zeroX - width
                     width: root.animated ? 0 : horizontalBarItem.barRatio * parent.width
-                    
-                    property color barColor: root.getColor(index)
-                    property bool barHovered: horizontalBarItem.hovered
-                    property bool isPositive: horizontalBarItem.isPositiveValue
                     
                     onPaint: {
                         var ctx = getContext("2d")
@@ -606,7 +615,7 @@ Item {
         }
     }
 
-    // ==================== Multi-Series Mouse Area 多系列鼠标区域 ====================
+    // Multi-series mouse area 多系列鼠标区域
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
