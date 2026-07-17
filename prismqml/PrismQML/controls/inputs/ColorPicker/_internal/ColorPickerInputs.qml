@@ -10,26 +10,34 @@ import "../../../data"
 // Layout: Mode selector + Hex input + RGB inputs
 Item {
     id: control
-    
-    // ==================== Properties 属性 ====================
+
+    // ==================== Public Props 公开属性 ====================
     property color selectedColor: Enums.accentColor
     property int colorMode: Enums.colorPicker.mode_rgb  // RGB/HSV/HSL
     property bool showModeSelector: true
-    
-    // ==================== Signals 信号 ====================
-    signal colorChanged(color newColor)
-    signal modeChanged(int newMode)
-    
-    // ==================== Size 尺寸 ====================
-    implicitWidth: Enums.colorPickerMetrics.inputsWidth
-    implicitHeight: contentColumn.implicitHeight
-    
-    // ==================== Internal 内部属性 ====================
+
+    // ==================== Internal Props 内部属性 ====================
     property int _r: Math.round(selectedColor.r * Enums.colorPickerMetrics.channelMaxValue)
     property int _g: Math.round(selectedColor.g * Enums.colorPickerMetrics.channelMaxValue)
     property int _b: Math.round(selectedColor.b * Enums.colorPickerMetrics.channelMaxValue)
     property string _hex: selectedColor.toString().slice(Enums.colorPickerMetrics.dialogHexStartIndex, Enums.colorPickerMetrics.dialogHexStartIndex + Enums.colorPickerMetrics.dialogHexSubstringLength).toUpperCase()
-    
+
+    // ==================== Signals 信号 ====================
+    signal colorChanged(color newColor)
+    signal modeChanged(int newMode)
+
+    // ==================== Size 尺寸 ====================
+    implicitWidth: Enums.colorPickerMetrics.inputsWidth
+    implicitHeight: contentColumn.implicitHeight
+
+    // Update internal values when color changes 颜色变化时更新内部值
+    onSelectedColorChanged: {
+        _r = Math.round(selectedColor.r * Enums.colorPickerMetrics.channelMaxValue)
+        _g = Math.round(selectedColor.g * Enums.colorPickerMetrics.channelMaxValue)
+        _b = Math.round(selectedColor.b * Enums.colorPickerMetrics.channelMaxValue)
+        _hex = selectedColor.toString().slice(Enums.colorPickerMetrics.dialogHexStartIndex, Enums.colorPickerMetrics.dialogHexStartIndex + Enums.colorPickerMetrics.dialogHexSubstringLength).toUpperCase()
+    }
+
     // ==================== Content 内容 ====================
     Column {
         id: contentColumn
@@ -74,7 +82,7 @@ Item {
                     enabled: control.enabled
                     onClicked: {
                         // Cycle through modes 循环切换模式
-                        var nextMode = (control.colorMode + 1) % Enums.colorPickerMetrics.dropdownModeCycleCount
+                        var nextMode = (control.colorMode + Enums.colorPickerMetrics.dropdownModeCycleStep) % Enums.colorPickerMetrics.dropdownModeCycleCount
                         control.colorMode = nextMode
                         control.modeChanged(nextMode)
                     }
@@ -171,13 +179,5 @@ Item {
                 }
             }
         }
-    }
-    
-    // Update internal values when color changes 颜色变化时更新内部值
-    onSelectedColorChanged: {
-        _r = Math.round(selectedColor.r * Enums.colorPickerMetrics.channelMaxValue)
-        _g = Math.round(selectedColor.g * Enums.colorPickerMetrics.channelMaxValue)
-        _b = Math.round(selectedColor.b * Enums.colorPickerMetrics.channelMaxValue)
-        _hex = selectedColor.toString().slice(Enums.colorPickerMetrics.dialogHexStartIndex, Enums.colorPickerMetrics.dialogHexStartIndex + Enums.colorPickerMetrics.dialogHexSubstringLength).toUpperCase()
     }
 }

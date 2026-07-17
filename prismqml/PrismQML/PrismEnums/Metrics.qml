@@ -629,6 +629,7 @@ QtObject {
  readonly property int dropdownHexGap: 92
  readonly property int dropdownSeparatorHeight: 1
  readonly property int dropdownModeCycleCount: 3
+ readonly property int dropdownModeCycleStep: 1
  readonly property string dropdownArrowText: "∨"
 
  // Inputs component

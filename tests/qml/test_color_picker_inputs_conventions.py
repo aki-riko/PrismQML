@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Color picker input regressions. 颜色选择器输入区回归。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtGui import QColor, QGuiApplication
@@ -12,6 +12,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
 
 from prismqml import register_types
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -162,3 +163,18 @@ def test_color_picker_inputs_channel_and_hex_updates(qapp):
         assert warnings == []
     finally:
         _destroy(engine, component, root)
+
+
+def test_color_picker_inputs_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_color_picker_inputs_uses_enum_mode_step():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "Enums.colorPickerMetrics.dropdownModeCycleStep" in source
+    assert "colorMode + 1" not in source
