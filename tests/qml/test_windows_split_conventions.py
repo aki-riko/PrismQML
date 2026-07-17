@@ -28,6 +28,7 @@ from scripts.qml_conventions import scan_source_text
 ROOT = Path(__file__).resolve().parents[2]
 INTERNAL_PATH = ROOT / "prismqml" / "PrismQML" / "_internal"
 SOURCE_PATH = INTERNAL_PATH / "WindowsSplit.qml"
+FILLED_SOURCE_PATH = INTERNAL_PATH / "WindowsFilled.qml"
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(INTERNAL_PATH / "windows-split-conventions.qml")
@@ -207,11 +208,7 @@ def test_windows_split_loads_core_and_transfers_default_pages(monkeypatch, qapp)
 
 
 def test_windows_filled_loads_core_and_transfers_default_pages(monkeypatch, qapp):
-    _exercise_page_transfer(
-        monkeypatch,
-        FILLED_SCENE_SOURCE,
-        expected_warning="ReferenceError: stack is not defined",
-    )
+    _exercise_page_transfer(monkeypatch, FILLED_SCENE_SOURCE)
 
 
 def test_windows_split_source_conventions_and_startup_delay_token():
@@ -227,3 +224,17 @@ def test_windows_split_source_conventions_and_startup_delay_token():
     assert "interval: 50" not in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int splitStartupDelayMs: 50" in metrics
+
+
+def test_windows_filled_source_conventions_and_stack_binding():
+    source = FILLED_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(FILLED_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "stackedWidget: stack" not in source
+    assert "window.stackedWidget = item.stackAlias" in source
+    assert "interval: Enums.window.splitStartupDelayMs" in source
