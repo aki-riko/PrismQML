@@ -128,7 +128,7 @@ def test_duration_sentinels_use_semantic_tokens():
         "readonly property QtObject duration: QtObject {", 1
     )[1].split("// ==================== Z-Index", 1)[0]
     breadcrumb_enter_block = breadcrumb_source.split(
-        "// ==================== Animation State", 1
+        "Component.onCompleted:", 1
     )[1].split("ParallelAnimation {", 1)[0]
 
     assert "readonly property int none: 0" in duration_block

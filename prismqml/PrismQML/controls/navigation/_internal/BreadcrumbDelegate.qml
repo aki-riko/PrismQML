@@ -19,7 +19,7 @@ Item {
     // Get control via parent chain (Repeater -> Row -> Breadcrumb) 通过父级链获取control
     readonly property var control: parent ? parent.parent : null
     
-    // ==================== Helper Props 辅助属性 ====================
+    // ==================== Readonly State 只读状态 ====================
     // Null-safe accessors to prevent undefined errors during initialization 空值安全访问器，防止初始化时的undefined错误
     readonly property var _safeItems: control ? control._items : []
     readonly property bool _safeAnimated: control ? control.animated : false
@@ -35,7 +35,7 @@ Item {
     readonly property var _safeCollapsedItems: control ? control._collapsedItems : []
     readonly property bool _safeShowIcons: control ? control.showIcons : true
     
-    // ==================== Computed Props 计算属性 ====================
+    // Computed state 计算状态
     readonly property bool isLast: index === _safeItems.length - 1
     readonly property bool isFirst: index === 0
     readonly property bool showElide: isFirst && _safeHasOverflow
@@ -56,18 +56,29 @@ Item {
     // Item needs to shift right (visible items after shown one) 需要向右位移的项（显示项之后的可见项）
     readonly property bool needsShiftRight: _safeShiftRightActive && !isCollapsedMiddle && !isFirst && index > 0 && !isShowingFromEllipsis
 
+    // ==================== Internal Props 内部属性 ====================
+    property real animOpacity: 1.0
+    property real animX: 0
+    property real animScale: 1.0
+    property real animY: 0
+
     // ==================== Size 尺寸 ====================
     width: rowContent.width
     height: control ? control.implicitHeight : Enums.controlSize.inputHeightCompact
 
     // Collapse middle items (after animation completes) 折叠中间项（动画完成后）
     visible: !isCollapsedMiddle || isCollapsingToEllipsis || isShowingFromEllipsis
-    
-    // ==================== Animation State 动画状态 ====================
-    property real animOpacity: 1.0
-    property real animX: 0
-    property real animScale: 1.0
-    property real animY: 0
+
+    // Visual transform 视觉变换
+    opacity: animOpacity
+    transform: [
+        Translate {
+            x: animX + (itemRow.needsShiftLeft || itemRow.isCollapsingToEllipsis ? (control ? control._shiftLeftOffset : 0) : 0)
+                   + (itemRow.needsShiftRight ? (control ? control._shiftRightOffset : 0) : 0)
+            y: animY
+        },
+        Scale { origin.x: 0.5; origin.y: 0.5; xScale: animScale; yScale: animScale }
+    ]
 
     // Forward animation - slide in from right with scale and bounce 前进动画 - 从右侧滑入+缩放+弹性
     Component.onCompleted: {
@@ -123,108 +134,6 @@ Item {
         }
     }
 
-    // ==================== States 状态 ====================
-    states: [
-        State {
-            name: "removing"
-            when: itemRow.isRemoving
-            PropertyChanges {
-                target: itemRow
-                animOpacity: 0
-                animX: 30
-                animScale: 0.9
-                animY: -5
-            }
-        },
-        State {
-            name: "collapsingToEllipsis"
-            when: itemRow.isCollapsingToEllipsis
-            PropertyChanges {
-                target: itemRow
-                animOpacity: 0
-            }
-        },
-        State {
-            name: "showingFromEllipsis"
-            when: itemRow.isShowingFromEllipsis
-        }
-    ]
-
-    transitions: [
-        Transition {
-            to: "removing"
-            enabled: _safeAnimated
-            SequentialAnimation {
-                PauseAnimation {
-                    id: removeAnimDelay
-                    duration: {
-                        // Reverse order delay - last item animates first 反向延迟 - 最后一项先动画
-                        var totalRemoving = _safeItems.length - _safeRemoveFromIndex
-                        var reverseIndex = totalRemoving - 1 - (index - _safeRemoveFromIndex)
-                        var delay = reverseIndex * 50
-                        if (delay < 0) delay = 0
-                        return delay
-                    }
-                }
-                ParallelAnimation {
-                    NumberAnimation {
-                        property: "animOpacity"
-                        duration: Enums.duration.dialog
-                        easing.type: Easing.OutCubic
-                    }
-                    NumberAnimation {
-                        property: "animX"
-                        duration: Enums.duration.dialog + Enums.duration.fast
-                        easing.type: Easing.OutBack
-                        easing.overshoot: 1.7
-                    }
-                    NumberAnimation {
-                        property: "animScale"
-                        duration: Enums.duration.dialog + Enums.duration.instant
-                        easing.type: Easing.OutBack
-                        easing.overshoot: 1.3
-                    }
-                    NumberAnimation {
-                        property: "animY"
-                        duration: Enums.duration.dialog + Enums.duration.fast
-                        easing.type: Easing.OutBack
-                        easing.overshoot: 1.5
-                    }
-                }
-            }
-        },
-        Transition {
-            to: "collapsingToEllipsis"
-            enabled: _safeAnimated
-            NumberAnimation {
-                property: "animOpacity"
-                duration: Enums.duration.slow
-                easing.type: Easing.OutCubic
-            }
-        },
-        Transition {
-            to: "showingFromEllipsis"
-            enabled: _safeAnimated
-            NumberAnimation {
-                property: "animOpacity"
-                from: 0; to: 1
-                duration: Enums.duration.slow
-                easing.type: Easing.OutCubic
-            }
-        }
-    ]
-
-    // ==================== Visual Transform 视觉变换 ====================
-    opacity: animOpacity
-    transform: [
-        Translate { 
-            x: animX + (itemRow.needsShiftLeft || itemRow.isCollapsingToEllipsis ? (control ? control._shiftLeftOffset : 0) : 0)
-                   + (itemRow.needsShiftRight ? (control ? control._shiftRightOffset : 0) : 0)
-            y: animY 
-        },
-        Scale { origin.x: 0.5; origin.y: 0.5; xScale: animScale; yScale: animScale }
-    ]
-    
     // ==================== Content 内容 ====================
     Row {
         id: rowContent
@@ -248,13 +157,13 @@ Item {
         // Chevron 箭头
         Item {
             id: chevronItem
+
+            property real chevronOpacity: 1.0
+            property real chevronX: 0
+
             visible: !itemRow.isLast || itemRow.isRemoving
             width: visible ? Enums.iconSize.xs + Enums.spacing.xs : 0
             height: control ? control.implicitHeight : Enums.controlSize.inputHeightCompact
-            
-            // Chevron animation state 箭头动画状态
-            property real chevronOpacity: 1.0
-            property real chevronX: 0
             
             Icon {
                 anchors.centerIn: parent
@@ -297,19 +206,19 @@ Item {
         // Elide button and chevron container 省略按钮和箭头容器
         Item {
             id: elideContainer
+
+            property real elideOpacity: 1.0
+            property real elideX: 0
+            property real elideScale: 1.0
+            property real elideY: 0
+            property real elideWidth: elideRow.width
+
             // Stay visible during fade-out animation 在淡出动画期间保持可见
             visible: itemRow.showElide || itemRow.ellipsisWillHide
             width: elideWidth
             height: control ? control.implicitHeight : Enums.controlSize.inputHeightCompact
             anchors.verticalCenter: parent.verticalCenter
             clip: true
-            
-            // Animation state 动画状态
-            property real elideOpacity: 1.0
-            property real elideX: 0
-            property real elideScale: 1.0
-            property real elideY: 0
-            property real elideWidth: elideRow.width
             
             Row {
                 id: elideRow
@@ -404,4 +313,95 @@ Item {
             }
         }
     }
+
+    // States 状态
+    states: [
+        State {
+            name: "removing"
+            when: itemRow.isRemoving
+            PropertyChanges {
+                target: itemRow
+                animOpacity: 0
+                animX: 30
+                animScale: 0.9
+                animY: -5
+            }
+        },
+        State {
+            name: "collapsingToEllipsis"
+            when: itemRow.isCollapsingToEllipsis
+            PropertyChanges {
+                target: itemRow
+                animOpacity: 0
+            }
+        },
+        State {
+            name: "showingFromEllipsis"
+            when: itemRow.isShowingFromEllipsis
+        }
+    ]
+
+    transitions: [
+        Transition {
+            to: "removing"
+            enabled: _safeAnimated
+            SequentialAnimation {
+                PauseAnimation {
+                    id: removeAnimDelay
+                    duration: {
+                        // Reverse order delay - last item animates first 反向延迟 - 最后一项先动画
+                        var totalRemoving = _safeItems.length - _safeRemoveFromIndex
+                        var reverseIndex = totalRemoving - 1 - (index - _safeRemoveFromIndex)
+                        var delay = reverseIndex * 50
+                        if (delay < 0) delay = 0
+                        return delay
+                    }
+                }
+                ParallelAnimation {
+                    NumberAnimation {
+                        property: "animOpacity"
+                        duration: Enums.duration.dialog
+                        easing.type: Easing.OutCubic
+                    }
+                    NumberAnimation {
+                        property: "animX"
+                        duration: Enums.duration.dialog + Enums.duration.fast
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 1.7
+                    }
+                    NumberAnimation {
+                        property: "animScale"
+                        duration: Enums.duration.dialog + Enums.duration.instant
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 1.3
+                    }
+                    NumberAnimation {
+                        property: "animY"
+                        duration: Enums.duration.dialog + Enums.duration.fast
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 1.5
+                    }
+                }
+            }
+        },
+        Transition {
+            to: "collapsingToEllipsis"
+            enabled: _safeAnimated
+            NumberAnimation {
+                property: "animOpacity"
+                duration: Enums.duration.slow
+                easing.type: Easing.OutCubic
+            }
+        },
+        Transition {
+            to: "showingFromEllipsis"
+            enabled: _safeAnimated
+            NumberAnimation {
+                property: "animOpacity"
+                from: 0; to: 1
+                duration: Enums.duration.slow
+                easing.type: Easing.OutCubic
+            }
+        }
+    ]
 }
