@@ -23,7 +23,7 @@ import "../../../data/Label"
 Item {
     id: popupRoot
 
-    // ==================== Public Props ====================
+    // ==================== Public Props 公开属性 ====================
     property Item anchorTarget: null    // 锚控件 (AnchoredBelow 模式贴它下方)
     property int popupMode: Enums.input.search_popup_anchored_below
     property var rootContent: null      // SearchResultList 实例,父级注入
@@ -31,7 +31,7 @@ Item {
     // isOpen 直接绑底层 PopupWindowCore 的状态,避免两份独立状态不同步
     readonly property bool isOpen: popupBase.isOpen
 
-    // ==================== Computed Sizing ====================
+    // ==================== Readonly State 只读状态 ====================
     readonly property int _resolvedWidth: {
         if (popupMode === Enums.input.search_popup_anchored_below && anchorTarget) {
             return Math.max(240, anchorTarget.width)
@@ -45,14 +45,11 @@ Item {
         return 56  // 兜底: 一行高度,避免 0/极小值
     }
 
-    // ==================== Signals ====================
+    // ==================== Signals 信号 ====================
     signal opened()
     signal dismissed()
 
-    // 当 rootContent 高度变化时(空态/有结果切换),同步 popupBase
-    onRootContentChanged: _bindContentHeight()
-    Component.onCompleted: _bindContentHeight()
-
+    // ==================== Internal Methods 内部方法 ====================
     function _bindContentHeight() {
         if (!rootContent) return
         // 用 callLater 确保 rootContent 已经布局完成
@@ -62,7 +59,7 @@ Item {
         })
     }
 
-    // ==================== Public API ====================
+    // ==================== Public Methods 公开方法 ====================
     function open() {
         if (popupBase.isOpen) return
 
@@ -88,17 +85,23 @@ Item {
         popupBase.close()
     }
 
+    // 当 rootContent 高度变化时(空态/有结果切换),同步 popupBase
+    onRootContentChanged: _bindContentHeight()
+    Component.onCompleted: _bindContentHeight()
+
+    // ==================== Content 内容 ====================
     // 高度变化时实时同步
     Connections {
-        target: popupRoot.rootContent
-        ignoreUnknownSignals: true
         function onImplicitHeightChanged() {
             popupBase.popupWidth = popupRoot._resolvedWidth
             popupBase.popupHeight = popupRoot._resolvedHeight
         }
+
+        target: popupRoot.rootContent
+        ignoreUnknownSignals: true
     }
 
-    // ==================== Internal popup base ====================
+    // Internal popup base 内部弹窗基座
     PopupWindowCore {
         id: popupBase
         targetControl: popupRoot.anchorTarget
