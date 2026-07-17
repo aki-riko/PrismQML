@@ -12,18 +12,18 @@ import "../data"
 // Features: hover state, focus line, current cell highlight 悬浮状态/聚焦线/当前格高亮
 Item {
     id: control
-    
+
     // ==================== Public Props 公开属性 ====================
-    property int length: 6
+    property int length: Enums.input.pinDefaultLength
     property string value: ""
     property bool password: true
-    
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool focused: pinInput.activeFocus
+
     // ==================== Signals 信号 ====================
     signal completed(string pin)
     signal valueModified(string pin)
-    
-    // ==================== Focus State 焦点状态 ====================
-    property bool focused: pinInput.activeFocus
 
     // ==================== Public Methods 公开方法 ====================
     function clear() {
@@ -38,32 +38,32 @@ Item {
     function text() { return value }
 
     // Set echo mode (password) 设置回显模式
-    function setEchoMode(mode) { password = (mode !== 0) }
+    function setEchoMode(mode) { password = (mode !== Enums.input.pinEchoModeNormal) }
 
     function isEnabled() { return enabled }
 
     // ==================== Size 尺寸 ====================
     implicitWidth: length * Enums.controlSize.pinBoxCellSize + (length - 1) * Enums.spacing.m
     implicitHeight: Enums.controlSize.pinBoxCellSize
-    
+
     // ==================== Content 内容 ====================
     Row {
         anchors.centerIn: parent
         spacing: Enums.spacing.m
-        
+
         Repeater {
             model: control.length
-            
+
             Item {
                 id: cellItem
-                width: Enums.controlSize.pinBoxCellSize
-                height: Enums.controlSize.pinBoxCellSize
-                
                 // Cell state 单元格状态
                 property bool hasValue: index < control.value.length
                 property bool isCurrentCell: control.focused && index === control.value.length
                 property bool hovered: cellMouseArea.containsMouse
-                
+
+                width: Enums.controlSize.pinBoxCellSize
+                height: Enums.controlSize.pinBoxCellSize
+
                 // Shadow 阴影
                 // Fluent: 模糊阴影; neo: 硬阴影
                 RectangularShadow {
@@ -71,7 +71,7 @@ Item {
                     radius: pinCell.radius
                     color: Enums.shadow.level2.color
                     blur: Enums.shadow.level2.blur
-                    offset.x: 0
+                    offset.x: Enums.spacing.none
                     offset.y: Enums.shadow.level2.offset
                     visible: !Enums.isNeobrutalism
                 }
@@ -102,18 +102,18 @@ Item {
                         if (cellItem.hovered) return Enums.stateColor.borderStrong
                         return Enums.stateColor.inputBorderNormal
                     }
-                    
+
                     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
                     Behavior on border.color { ColorAnimation { duration: Enums.duration.fast } }
-                    
+
                     // Display content 显示内容
                     Label {
                         anchors.centerIn: parent
                         type: control.password ? Enums.label.type_title : Enums.label.type_subtitle
-                        text: cellItem.hasValue ? (control.password ? "●" : control.value.charAt(index)) : ""
+                        text: cellItem.hasValue ? (control.password ? Enums.input.pinMaskCharacter : control.value.charAt(index)) : ""
                         color: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled
                     }
-                    
+
                     // Cursor (only in current cell) 光标（仅当前格）
                     Rectangle {
                         id: cursor
@@ -122,23 +122,23 @@ Item {
                         height: Enums.spacing.xxl
                         color: Enums.accentColor
                         visible: cellItem.isCurrentCell
-                        opacity: 1
-                        
+                        opacity: Enums.opacityLevel.visible
+
                         SequentialAnimation on opacity {
                             running: cellItem.isCurrentCell
                             loops: Animation.Infinite
-                            NumberAnimation { to: 0; duration: Enums.duration.slower }
-                            NumberAnimation { to: 1; duration: Enums.duration.slower }
+                            NumberAnimation { to: Enums.opacityLevel.invisible; duration: Enums.duration.slower }
+                            NumberAnimation { to: Enums.opacityLevel.visible; duration: Enums.duration.slower }
                         }
                     }
-                    
+
                     // Focus line (Fluent Design) 聚焦底线
                     FocusLine {
                         showLine: cellItem.isCurrentCell
                         parentRadius: pinCell.radius
                     }
                 }
-                
+
                 // Per-cell hover detection 单元格悬浮检测
                 MouseArea {
                     id: cellMouseArea
@@ -149,17 +149,17 @@ Item {
             }
         }
     }
-    
-    // ==================== Hidden Input 隐藏输入框 ====================
+
+    // Hidden input 隐藏输入框
     TextInput {
         id: pinInput
         width: Enums.border.thin
         height: Enums.border.thin
-        opacity: 0
+        opacity: Enums.opacityLevel.invisible
         maximumLength: control.length
         inputMethodHints: Qt.ImhDigitsOnly
         enabled: control.enabled
-        
+
         onTextChanged: {
             control.value = text
             control.valueModified(text)

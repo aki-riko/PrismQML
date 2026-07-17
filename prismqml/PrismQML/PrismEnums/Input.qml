@@ -37,4 +37,8 @@ QtObject {
     readonly property real spinBoxDoubleStep: 0.1
     // Floating label input configuration 浮动标签输入配置
     readonly property real labelRestingScale: 1.0
+    // PIN input configuration PIN 输入配置
+    readonly property int pinDefaultLength: 6
+    readonly property int pinEchoModeNormal: 0
+    readonly property string pinMaskCharacter: "●"
 }
