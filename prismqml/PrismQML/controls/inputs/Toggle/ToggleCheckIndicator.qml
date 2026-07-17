@@ -12,7 +12,7 @@ Rectangle {
     id: indicator
 
     // ==================== Public Props 公开属性 ====================
-    property int checkState: 0  // 0=Unchecked, 1=Partial, 2=Checked
+    property int checkState: Enums.toggle.state_unchecked
     property bool hovered: false
     property bool pressed: false
     property color checkedColor: Enums.accentColor
@@ -20,19 +20,20 @@ Rectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property int _indicatorRadius: Enums.isNeobrutalism ? Enums.neo.radius
                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+    readonly property bool _hasCheckState: checkState !== Enums.toggle.state_unchecked
     readonly property int _indicatorBorderWidth: {
         if (Enums.isNeobrutalism) return Enums.neo.borderWidth
         if (Enums.isPrismDesign) return Enums.prismDesign.borderWidth
-        return checkState > 0 ? Enums.border.none : Enums.border.medium
+        return _hasCheckState ? Enums.border.none : Enums.border.medium
     }
     readonly property color _indicatorColor: {
         if (!enabled) {
-            if (checkState > 0) return Enums.isPrismDesign ? Enums.stateColor.primaryDisabled : Enums.stateColor.disabledBorder
+            if (_hasCheckState) return Enums.isPrismDesign ? Enums.stateColor.primaryDisabled : Enums.stateColor.disabledBorder
             if (Enums.isNeobrutalism) return Enums.stateColor.checkBoxFill
             if (Enums.isPrismDesign) return Enums.stateColor.controlBgDisabled
             return Enums.transparent
         }
-        if (checkState > 0) {
+        if (_hasCheckState) {
             if (pressed) return Qt.darker(checkedColor, 1.15)
             if (hovered) return Qt.lighter(checkedColor, 1.08)
             return checkedColor
@@ -42,9 +43,9 @@ Rectangle {
         return Enums.stateColor.checkBoxFill
     }
     readonly property color _indicatorBorderColor: {
-        if (Enums.isNeobrutalism && checkState > 0) return enabled ? Enums.stateColor.toggleBorder : Enums.stateColor.disabledBorder
-        if (Enums.isPrismDesign && checkState > 0) return enabled ? Enums.accentColorDark : Enums.stateColor.disabledBorder
-        if (checkState > 0) return Enums.transparent
+        if (Enums.isNeobrutalism && _hasCheckState) return enabled ? Enums.stateColor.toggleBorder : Enums.stateColor.disabledBorder
+        if (Enums.isPrismDesign && _hasCheckState) return enabled ? Enums.accentColorDark : Enums.stateColor.disabledBorder
+        if (_hasCheckState) return Enums.transparent
         if (!enabled) return Enums.stateColor.disabledBorder
         if (pressed) return Enums.stateColor.togglePressed
         if (hovered) return Enums.stateColor.toggleBorderHover
@@ -79,8 +80,8 @@ Rectangle {
         height: Enums.controlSize.checkboxInner
         state: indicator.checkState
         color: indicator._checkIconColor
-        visible: indicator.checkState > 0
-        scale: indicator.checkState > 0 ? 1 : 0
+        visible: indicator._hasCheckState
+        scale: indicator._hasCheckState ? 1 : 0
         Behavior on scale {
             NumberAnimation {
                 duration: Enums.duration.fast

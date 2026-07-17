@@ -16,4 +16,9 @@ QtObject {
     readonly property int type_default: 0       // Default with text 默认带文字
     readonly property int type_indicator: 1     // Indicator only 仅指示器
     readonly property int type_subtitle: 2      // With subtitle 带副标题
+
+    // ==================== Check State 勾选状态 ====================
+    readonly property int state_unchecked: 0          // Unchecked 未勾选
+    readonly property int state_partially_checked: 1  // Partially checked 部分勾选
+    readonly property int state_checked: 2            // Checked 已勾选
 }

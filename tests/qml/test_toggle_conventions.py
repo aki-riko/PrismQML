@@ -28,6 +28,18 @@ ROOT = Path(__file__).resolve().parents[2]
 UNCHECKED = 0
 PARTIAL = 1
 CHECKED = 2
+TOKEN_SOURCES = (
+    ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Toggle.qml",
+    ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "Toggle" / "Toggle.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "Toggle"
+    / "ToggleCheckIndicator.qml",
+    ROOT / "prismqml" / "PrismQML" / "controls" / "icons" / "CheckIcon.qml",
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "toggle-conventions.qml")
 )
@@ -37,6 +49,10 @@ import QtQuick.Window
 import PrismQML
 
 Window {
+    readonly property int stateUnchecked: Enums.toggle.state_unchecked
+    readonly property int statePartiallyChecked: Enums.toggle.state_partially_checked
+    readonly property int stateChecked: Enums.toggle.state_checked
+
     width: 620
     height: 300
     visible: true
@@ -221,6 +237,12 @@ def _assert_tristate_cycle(window, tri) -> None:
     assert tri.property("checkState") == UNCHECKED
 
 
+def _assert_public_state_values(window) -> None:
+    assert window.property("stateUnchecked") == UNCHECKED
+    assert window.property("statePartiallyChecked") == PARTIAL
+    assert window.property("stateChecked") == CHECKED
+
+
 def _assert_normal_and_radio(window, controls) -> None:
     normal = controls["normal"]
     normal.toggleChecked()
@@ -253,11 +275,52 @@ def test_toggle_interaction_and_tristate_contracts(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, controls, warnings = _create_scene()
     try:
+        _assert_public_state_values(window)
         _assert_tristate_cycle(window, controls["tri"])
         _assert_normal_and_radio(window, controls)
         _assert_switch_click(window, controls["switchControl"])
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_toggle_check_states_use_public_enum_tokens():
+    sources = [path.read_text(encoding="utf-8") for path in TOKEN_SOURCES]
+    enum_source, toggle_source, indicator_source, icon_source = sources
+    assert "state_unchecked: 0" in enum_source
+    assert "state_partially_checked: 1" in enum_source
+    assert "state_checked: 2" in enum_source
+    for source in (toggle_source, indicator_source, icon_source):
+        assert "Enums.toggle.state_unchecked" in source
+    assert "Enums.toggle.state_checked" in toggle_source
+    assert "Enums.toggle.state_checked" in icon_source
+    assert "Enums.toggle.state_partially_checked" in toggle_source
+    assert "Enums.toggle.state_partially_checked" in icon_source
+    assert "% 3" not in toggle_source
+    assert "checkState === 2" not in toggle_source
+    assert "checkState > 0" not in indicator_source
+
+
+def test_toggle_external_checked_and_check_state_resynchronize(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_scene()
+    try:
+        normal = controls["normal"]
+        normal.toggleChecked()
+        assert normal.property("checkState") == CHECKED
+        normal.setProperty("checked", False)
+        assert normal.property("checkState") == UNCHECKED
+
+        tri = controls["tri"]
+        _click(window, tri)
+        assert tri.property("checkState") == PARTIAL
+        tri.setProperty("checked", True)
+        assert tri.property("checkState") == CHECKED
+        tri.setProperty("checkState", PARTIAL)
+        assert not tri.property("checked")
+        assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []

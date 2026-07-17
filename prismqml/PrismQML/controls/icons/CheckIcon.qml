@@ -5,14 +5,13 @@
 import QtQuick
 import "../.."  // PrismEnums
 
-// CheckIcon - 可复用的勾选标记图标
-// state: 0=无, 1=部分选中(横线), 2=完全选中(勾)
+// CheckIcon - Reusable check-state icon 可复用的勾选状态图标
 Canvas {
     id: control
     
     property color color: Enums.accentColor
     property real strokeWidth: Enums.border.normal
-    property int state: 2  // 0=无, 1=部分选中, 2=完全选中
+    property int state: Enums.toggle.state_checked
     
     width: Enums.controlSize.checkIconSize
     height: Enums.controlSize.checkIconSize
@@ -20,7 +19,7 @@ Canvas {
     onPaint: {
         var ctx = getContext("2d")
         ctx.clearRect(0, 0, width, height)
-        if (state === 0) return
+        if (state === Enums.toggle.state_unchecked) return
         
         ctx.strokeStyle = color
         ctx.lineWidth = strokeWidth
@@ -28,12 +27,12 @@ Canvas {
         ctx.lineJoin = "round"
         ctx.beginPath()
         
-        if (state === 2) {
+        if (state === Enums.toggle.state_checked) {
             // Fully checked: draw checkmark 完全选中绘制勾
             ctx.moveTo(width * 0.15, height * 0.5)
             ctx.lineTo(width * 0.4, height * 0.75)
             ctx.lineTo(width * 0.85, height * 0.25)
-        } else if (state === 1) {
+        } else if (state === Enums.toggle.state_partially_checked) {
             // Partial: draw horizontal line 部分选中绘制横线
             ctx.moveTo(width * 0.15, height * 0.5)
             ctx.lineTo(width * 0.85, height * 0.5)

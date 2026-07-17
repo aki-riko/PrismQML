@@ -32,7 +32,8 @@ Item {
 
     // CheckBox specific CheckBox专用
     property bool tristate: false
-    property int checkState: checked ? 2 : 0  // 0=Unchecked, 1=Partial, 2=Checked
+    property int checkState: checked ? Enums.toggle.state_checked : Enums.toggle.state_unchecked
+    property bool _syncingCheckState: false
 
     // ToggleSwitch specific ToggleSwitch专用
     property string textOn: { _tv; return Translator.tr("on") }
@@ -133,11 +134,15 @@ Item {
             }
         } else if (_isCheckBox) {
             if (tristate) {
-                checkState = (checkState + 1) % 3
-                checked = checkState === 2
+                checkState = checkState === Enums.toggle.state_unchecked
+                    ? Enums.toggle.state_partially_checked
+                    : (checkState === Enums.toggle.state_partially_checked
+                       ? Enums.toggle.state_checked
+                       : Enums.toggle.state_unchecked)
             } else {
-                checked = !checked
-                checkState = checked ? 2 : 0
+                checkState = checked
+                    ? Enums.toggle.state_unchecked
+                    : Enums.toggle.state_checked
             }
             toggled(checked)
             stateModified(checkState)
@@ -156,6 +161,20 @@ Item {
 
 
     function isEnabled() { return enabled }
+
+    onCheckedChanged: {
+        if (_syncingCheckState) return
+        _syncingCheckState = true
+        checkState = checked ? Enums.toggle.state_checked : Enums.toggle.state_unchecked
+        _syncingCheckState = false
+    }
+
+    onCheckStateChanged: {
+        if (_syncingCheckState) return
+        _syncingCheckState = true
+        checked = checkState === Enums.toggle.state_checked
+        _syncingCheckState = false
+    }
 
     // ==================== Layout 布局 ====================
     Row {
