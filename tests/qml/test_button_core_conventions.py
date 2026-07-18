@@ -44,6 +44,8 @@ Item {
     readonly property int alignCenter: Enums.button.align_center
     readonly property int alignLeft: Enums.button.align_left
     readonly property int contentLeftMargin: Enums.spacing.m
+    readonly property int menuContentPadding: Enums.spacing.l
+    readonly property int menuPaddingTolerance: Enums.spacing.xxs
     readonly property int wideMenuPadding: Enums.spacing.xxxl
     readonly property real aliasBorderWidth: aliasButton.border.width
     readonly property color aliasBorderColor: aliasButton.border.color
@@ -54,7 +56,7 @@ Item {
     readonly property color expectedLifecycleText: lifecycleButton.getTextColor()
 
     width: 500
-    height: 180
+    height: 220
 
     Button {
         id: aliasButton
@@ -106,6 +108,32 @@ Item {
         width: 200
         itemPadding: root.wideMenuPadding
         items: ["File"]
+    }
+
+    Button {
+        id: pillDropdownButton
+        objectName: "pillDropdownButton"
+        x: 220
+        y: 50
+        width: contentWidth
+        height: contentHeight
+        shape: Enums.button.shape_pill
+        feature: Enums.button.feature_dropdown
+        text: "DropDown"
+        menuItems: ["Alpha", "Beta"]
+    }
+
+    Button {
+        id: pillSplitButton
+        objectName: "pillSplitButton"
+        x: 220
+        y: 100
+        width: contentWidth
+        height: contentHeight
+        shape: Enums.button.shape_pill
+        feature: Enums.button.feature_split
+        text: "Split"
+        menuItems: ["Alpha", "Beta"]
     }
 }
 """
@@ -172,6 +200,12 @@ def _visual_descendants(root):
 
 def _mapped_x(item, ancestor):
     return item.mapToItem(ancestor, QPointF()).x()
+
+
+def _right_gap(left_item, right_item, ancestor):
+    return _mapped_x(right_item, ancestor) - (
+        _mapped_x(left_item, ancestor) + left_item.width()
+    )
 
 
 def _matching(root, *properties):
@@ -318,7 +352,7 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
         assert button.property("contentAlignment") == root.property(alignment_name)
         if alignment_name == "alignLeft":
             assert _mapped_x(content[0], button) == pytest.approx(
-                root.property("contentLeftMargin")
+                root.property("menuContentPadding")
             )
         if dropdown:
             _assert_dropdown_bindings(root, button, dropdown[0])
@@ -345,6 +379,42 @@ def test_menu_bar_buttons_default_to_left_alignment(button_core_scene):
     content_x = _mapped_x(content[0], menu_button)
     assert content_x == pytest.approx(root.property("contentLeftMargin"))
     assert menu_button.width() - content_x - content[0].width() > content_x
+    assert warnings == []
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_dropdown_and_split_main_content_use_balanced_padding(button_core_scene):
+    root, warnings, windows_before = button_core_scene
+    expected_padding = root.property("menuContentPadding")
+
+    for object_name in ("pillDropdownButton", "pillSplitButton"):
+        button = _button(root, object_name)
+        content = _content_modules(button)
+        dropdown = _dropdown_modules(button)
+        chevrons = [
+            child
+            for child in _visual_descendants(button)
+            if child.metaObject().indexOfProperty("animated") >= 0
+            and child.metaObject().indexOfProperty("isOpen") >= 0
+            and child.isVisible()
+        ]
+        assert len(content) == 1
+        assert len(dropdown) == 1
+        assert len(chevrons) == 1
+        assert _mapped_x(content[0], button) == pytest.approx(expected_padding)
+
+        if object_name == "pillDropdownButton":
+            assert _right_gap(content[0], chevrons[0], button) == pytest.approx(
+                expected_padding
+            )
+        else:
+            separators = _matching(dropdown[0], "lineLength", "lineColor", "isHorizontal")
+            assert len(separators) == 1
+            split_gap = _right_gap(content[0], separators[0], button)
+            assert expected_padding <= split_gap <= (
+                expected_padding + root.property("menuPaddingTolerance")
+            )
+
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 
