@@ -257,6 +257,38 @@ def test_hint_tooltip_uses_real_padding_and_right_position(widget_scene):
         _pump(1)
 
 
+def test_hint_tooltip_flips_left_at_screen_right_edge(widget_scene):
+    root, _ = widget_scene
+    screen_geometry = QGuiApplication.primaryScreen().availableGeometry()
+    window = QQuickWindow()
+    window.setWidth(320)
+    window.setHeight(240)
+    window.setX(screen_geometry.x() + screen_geometry.width() - window.width())
+    root.setParentItem(window.contentItem())
+    window.show()
+    _pump(20)
+    try:
+        hint_icon = root.findChild(QQuickItem, "hintIcon")
+        assert hint_icon is not None
+        hint_icon.setX(window.width() - hint_icon.width())
+        tooltip = hint_icon.findChild(QObject, "_toolTip")
+        assert tooltip is not None
+
+        assert QMetaObject.invokeMethod(hint_icon, "showToolTip")
+        _pump(20)
+        tooltip_gap = root.property("tooltipGap")
+        assert tooltip.property("x") == pytest.approx(
+            -tooltip.property("width") - tooltip_gap
+        )
+        assert tooltip.property("x") + tooltip.property("width") <= -tooltip_gap
+        assert QMetaObject.invokeMethod(hint_icon, "hideToolTip")
+    finally:
+        root.setParentItem(None)
+        window.close()
+        window.deleteLater()
+        _pump(1)
+
+
 def test_widget_source_follows_conventions_and_uses_tooltip_tokens():
     metrics_source = METRICS_SOURCE.read_text(encoding="utf-8")
     widget_source = WIDGET_SOURCE.read_text(encoding="utf-8")
@@ -281,6 +313,8 @@ def test_widget_source_follows_conventions_and_uses_tooltip_tokens():
     assert "rightPadding: Enums.spacing.l" in widget_source
     assert "topPadding: Enums.spacing.xs" in widget_source
     assert "bottomPadding: Enums.spacing.xs" in widget_source
+    assert "function _resolvedDirection(sourcePos, bounds)" in widget_source
+    assert "easing.type: Easing.OutCubic" in widget_source
     assert "toolTipPosition: Enums.position.right" in hint_icon_source
     assert "property int toolTipDuration: -1" not in widget_source
     assert "property int toolTipShowDelay: 500" not in widget_source

@@ -162,20 +162,72 @@ Item {
             property bool _pendingShow: false
 
             // ==================== Internal Methods 内部方法 ====================
-            function _updatePosition() {
-                if (widget.toolTipPosition === Enums.position.right) {
-                    x = widget.width + Enums.spacing.xs
-                    y = (widget.height - _toolTip.height) / 2
-                } else if (widget.toolTipPosition === Enums.position.bottom) {
-                    x = (widget.width - _toolTip.width) / 2
-                    y = widget.height + Enums.spacing.xs
-                } else if (widget.toolTipPosition === Enums.position.left) {
-                    x = -_toolTip.width - Enums.spacing.xs
-                    y = (widget.height - _toolTip.height) / 2
-                } else {
-                    x = (widget.width - _toolTip.width) / 2
-                    y = -_toolTip.height - Enums.spacing.xs
+            function _screenBounds() {
+                var screenWidth = widget.Screen.desktopAvailableWidth > 0
+                    ? widget.Screen.desktopAvailableWidth : widget.Screen.width
+                var screenHeight = widget.Screen.desktopAvailableHeight > 0
+                    ? widget.Screen.desktopAvailableHeight : widget.Screen.height
+                return {
+                    left: widget.Screen.virtualX,
+                    top: widget.Screen.virtualY,
+                    right: widget.Screen.virtualX + screenWidth,
+                    bottom: widget.Screen.virtualY + screenHeight
                 }
+            }
+            function _directionOrder() {
+                if (widget.toolTipPosition === Enums.position.right)
+                    return [Enums.position.right, Enums.position.left,
+                            Enums.position.top, Enums.position.bottom]
+                if (widget.toolTipPosition === Enums.position.left)
+                    return [Enums.position.left, Enums.position.right,
+                            Enums.position.top, Enums.position.bottom]
+                if (widget.toolTipPosition === Enums.position.bottom)
+                    return [Enums.position.bottom, Enums.position.top,
+                            Enums.position.right, Enums.position.left]
+                return [Enums.position.top, Enums.position.bottom,
+                        Enums.position.right, Enums.position.left]
+            }
+            function _directionFits(direction, sourcePos, bounds) {
+                var gap = Enums.spacing.xs
+                if (direction === Enums.position.right)
+                    return sourcePos.x + widget.width + gap + _toolTip.width <= bounds.right
+                if (direction === Enums.position.left)
+                    return sourcePos.x - gap - _toolTip.width >= bounds.left
+                if (direction === Enums.position.bottom)
+                    return sourcePos.y + widget.height + gap + _toolTip.height <= bounds.bottom
+                return sourcePos.y - gap - _toolTip.height >= bounds.top
+            }
+            function _resolvedDirection(sourcePos, bounds) {
+                var order = _directionOrder()
+                for (var i = 0; i < order.length; i++) {
+                    if (_directionFits(order[i], sourcePos, bounds))
+                        return order[i]
+                }
+                return order[0]
+            }
+            function _clamp(value, minimum, maximum) {
+                return Math.max(minimum, Math.min(value, maximum))
+            }
+            function _applyPosition(direction, sourcePos, bounds) {
+                var gap = Enums.spacing.xs
+                if (direction === Enums.position.right || direction === Enums.position.left) {
+                    x = direction === Enums.position.right
+                        ? widget.width + gap : -_toolTip.width - gap
+                    var globalY = sourcePos.y + (widget.height - _toolTip.height) / 2
+                    y = _clamp(globalY, bounds.top,
+                               Math.max(bounds.top, bounds.bottom - _toolTip.height)) - sourcePos.y
+                    return
+                }
+                y = direction === Enums.position.bottom
+                    ? widget.height + gap : -_toolTip.height - gap
+                var globalX = sourcePos.x + (widget.width - _toolTip.width) / 2
+                x = _clamp(globalX, bounds.left,
+                           Math.max(bounds.left, bounds.right - _toolTip.width)) - sourcePos.x
+            }
+            function _updatePosition() {
+                var sourcePos = widget.mapToGlobal(0, 0)
+                var bounds = _screenBounds()
+                _applyPosition(_resolvedDirection(sourcePos, bounds), sourcePos, bounds)
             }
             function show() {
                 widget._toolTipShowPending = false
@@ -251,7 +303,7 @@ Item {
             enter: Transition {
                 ParallelAnimation {
                     NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: Enums.duration.normal }
-                    NumberAnimation { property: "scale"; from: 0.8; to: 1.0; duration: Enums.duration.normal; easing.type: Easing.OutBack }
+                    NumberAnimation { property: "scale"; from: 0.8; to: 1.0; duration: Enums.duration.normal; easing.type: Easing.OutCubic }
                 }
             }
             exit: Transition {
