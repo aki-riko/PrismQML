@@ -213,6 +213,7 @@ Item {
     
     // Forward metrics 转发度量
     readonly property alias duration: _metrics.duration
+    readonly property alias motion: _metrics.motion
     readonly property alias demoMetrics: _metrics.demoMetrics
     readonly property alias zIndex: _metrics.zIndex
     readonly property alias opacityLevel: _metrics.opacity

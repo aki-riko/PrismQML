@@ -137,6 +137,7 @@ import PrismQML
 Window {
     readonly property int captionCompact: Enums.typography.captionCompact
     readonly property int noDelay: Enums.duration.none
+    readonly property int navTitleMarqueeSpeed: Enums.motion.navigationTitleMarqueeSpeed
     readonly property int marqueeGap: Enums.spacing.l
     readonly property int safeTextInset: Enums.spacing.l
 
@@ -477,6 +478,7 @@ def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
     try:
         source = (ROOT / "prismqml" / "PrismQML" / "navigation" / "NavigationBarItem.qml").read_text(encoding="utf-8")
         assert "elide: Text.ElideRight" in source
+        assert "speed: Enums.motion.navigationTitleMarqueeSpeed" in source
 
         QTest.mouseMove(window, QPoint(window.width() - 1, window.height() - 1))
         assert _wait_for(lambda: nav_item.property("hovered") is False)
@@ -498,6 +500,7 @@ def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
         assert not marquee.isVisible()
         assert marquee.property("running") is False
         assert marquee.property("pauseDuration") == window.property("noDelay")
+        assert marquee.property("speed") == window.property("navTitleMarqueeSpeed")
         assert marquee.property("fontPixelSize") == window.property("captionCompact")
         assert marquee.property("scrollGap") == window.property("marqueeGap")
         assert marquee.property("_scrollDistance") == pytest.approx(

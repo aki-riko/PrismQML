@@ -230,6 +230,7 @@ Item {
         text: control.text
         running: control._showMarqueeLabel
         pauseDuration: Enums.duration.none
+        speed: Enums.motion.navigationTitleMarqueeSpeed
         labelType: Enums.label.type_caption
         fontPixelSize: Enums.typography.captionCompact
         customTextColor: control._navItemContentColor

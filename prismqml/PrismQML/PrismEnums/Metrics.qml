@@ -77,6 +77,11 @@ QtObject {
  // Indicator animation durations 指示器动画时长
  readonly property int crossFade: 600 // CrossFade animation 交叉淡入动画
  }
+
+ // ==================== Motion 运动参数 ====================
+ readonly property QtObject motion: QtObject {
+ readonly property int navigationTitleMarqueeSpeed: 25 // Navigation title hover marquee speed in pixels per second 导航标题悬浮跑马灯速度（像素/秒）
+ }
  
  // ==================== Z-Index 层级 ====================
  readonly property QtObject zIndex: QtObject {
