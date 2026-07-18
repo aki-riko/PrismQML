@@ -45,6 +45,7 @@ PopupWindowCore {
  property var _openSubmenuAction: null
  property var _pendingSubmenuAction: null
  property var _pendingSubmenuComponent: null
+ property var _pendingSubmenuProperties: null
 
  // ==================== Signals 信号 ====================
  signal dismissed()
@@ -96,6 +97,7 @@ PopupWindowCore {
  submenuOpenTimer.stop()
  _pendingSubmenuAction = null
  _pendingSubmenuComponent = null
+ _pendingSubmenuProperties = null
  _openSubmenuAction = null
  if (!_openSubmenu) return
 
@@ -105,21 +107,37 @@ PopupWindowCore {
  submenu.destroy(Enums.popupMetrics.closingDelayMs)
  }
 
- function _openSubmenuForAction(action, submenuComponent) {
+ function _openSubmenuForAction(action, submenuComponent, initialProperties) {
  if (!action || !submenuComponent) return
  if (_openSubmenu && _openSubmenuAction === action) return
 
  _closeOpenSubmenu()
- var submenu = submenuComponent.createObject(null)
+ var submenu = submenuComponent.createObject(null, initialProperties || {})
  if (!submenu) return
 
  submenu.stealFocus = false
  if (submenu.actionTriggered) {
- submenu.actionTriggered.connect(function() {
+ submenu.actionTriggered.connect(function(actionId) {
+ control.actionTriggered(actionId)
  Qt.callLater(function() {
  if (!control._isDestroyed) control.close()
  })
  })
+ }
+
+ function _bindSubmenuAction(action, submenuComponent, initialProperties) {
+ if (!action || !submenuComponent) return action
+ action.hoveredChanged.connect(function() {
+ if (!action.hovered) return
+ _pendingSubmenuAction = action
+ _pendingSubmenuComponent = submenuComponent
+ _pendingSubmenuProperties = initialProperties
+ submenuOpenTimer.restart()
+ })
+ action.submenuRequested.connect(function() {
+ _openSubmenuForAction(action, submenuComponent, initialProperties)
+ })
+ return action
  }
  if (submenu.dismissed) {
  submenu.dismissed.connect(function() {
@@ -250,18 +268,19 @@ PopupWindowCore {
  // @returns Action item
  function addSubmenu(text, icon, submenuComponent) {
  var action = addAction(text, icon, "", { hasSubmenu: true })
- if (action && submenuComponent) {
- action.hoveredChanged.connect(function() {
- if (!action.hovered) return
- _pendingSubmenuAction = action
- _pendingSubmenuComponent = submenuComponent
- submenuOpenTimer.restart()
- })
- action.submenuRequested.connect(function() {
- _openSubmenuForAction(action, submenuComponent)
- })
+ return _bindSubmenuAction(action, submenuComponent, {})
  }
- return action
+
+ // Add data-backed submenu 添加数据驱动子菜单
+ function addSubmenuActions(text, icon, actionsArray) {
+ var action = addAction(text, icon, "", {
+ "actionId": "_submenu_" + text,
+ "hasSubmenu": true
+ })
+ var submenuComponent = Qt.createComponent(Qt.resolvedUrl("SystemTrayMenu.qml"))
+ return _bindSubmenuAction(action, submenuComponent, {
+ "initialActions": actionsArray || []
+ })
  }
  
  // Clear all items 清空所有项
@@ -304,7 +323,7 @@ PopupWindowCore {
  id: actionComponent
  Action {}
  }
- 
+
  Component {
  id: mouseAreaComponent
  MouseArea {
@@ -319,7 +338,11 @@ PopupWindowCore {
  repeat: false
  onTriggered: {
  if (_pendingSubmenuAction && _pendingSubmenuAction.hovered) {
- _openSubmenuForAction(_pendingSubmenuAction, _pendingSubmenuComponent)
+ _openSubmenuForAction(
+ _pendingSubmenuAction,
+ _pendingSubmenuComponent,
+ _pendingSubmenuProperties
+ )
  }
  }
  }

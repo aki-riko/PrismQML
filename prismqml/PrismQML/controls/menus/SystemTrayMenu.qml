@@ -13,6 +13,7 @@ MenuCore {
     
     // ==================== Public Props 公开属性 ====================
     property bool showAtCursor: true
+    property var initialActions: []
     
     // ==================== Public Methods 公开方法 ====================
     function showAtPosition(x, y) {
@@ -41,4 +42,7 @@ MenuCore {
     }
 
     closeOnClickOutside: true
+    Component.onCompleted: {
+        if (initialActions.length > 0) addActions(initialActions)
+    }
 }

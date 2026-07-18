@@ -168,79 +168,83 @@ class SystemTrayIcon(QObject):
         """确保QML菜单已创建 Ensure QML menu is created"""
         if self._qml_menu is not None:
             return
-
         try:
-            engine = EngineManager.get_engine()
-            qml_dir = qml_path()
-            menu_path = qml_dir / "controls" / "menus" / "SystemTrayMenu.qml"
-
-            # 保持component引用防止被GC
-            self._component = QQmlComponent(engine, QUrl.fromLocalFile(str(menu_path)))
-            if self._component.isError():
-                errors = "\n".join([e.toString() for e in self._component.errors()])
-                error(f"Failed to load SystemTrayMenu: {errors}")
-                return
-
-            self._qml_menu = self._component.create()
-            if self._qml_menu is None:
-                error("Failed to create SystemTrayMenu instance")
-                return
-
-            # 设置parent防止被GC
-            self._qml_menu.setParent(self)
-
-            # 连接菜单的actionTriggered信号
-            self._qml_menu.actionTriggered.connect(self._onMenuActionTriggered)
-
-            # 添加已存储的actions
-            for action in self._actions:
-                self._addActionToQml(action)
-
+            self._create_qml_menu(EngineManager.get_engine())
         except RuntimeError as e:
             warning(f"QML engine not ready: {e}")
+
+    def _create_qml_menu(self, engine) -> None:
+        """Create and populate the QML menu. 创建并填充 QML 菜单。"""
+        menu_path = qml_path() / "controls" / "menus" / "SystemTrayMenu.qml"
+        self._component = QQmlComponent(engine, QUrl.fromLocalFile(str(menu_path)))
+        if self._component.isError():
+            errors = "\n".join(error.toString() for error in self._component.errors())
+            error(f"Failed to load SystemTrayMenu: {errors}")
+            return
+        self._qml_menu = self._component.create()
+        if self._qml_menu is None:
+            error("Failed to create SystemTrayMenu instance")
+            return
+        self._qml_menu.setParent(self)
+        self._qml_menu.actionTriggered.connect(self._onMenuActionTriggered)
+        for action in self._actions:
+            self._addActionToQml(action)
+
+    @staticmethod
+    def _qml_icon_value(icon):
+        """Convert one Python icon into QML data. 转换 Python 图标为 QML 数据。"""
+        if isinstance(icon, Icon):
+            return icon.value
+        if isinstance(icon, QIcon):
+            return ""
+        return icon or ""
+
+    @staticmethod
+    def _action_options(action: dict) -> dict:
+        """Build public QML action options. 构造公开 QML 动作选项。"""
+        keys = ("actionId", "checkable", "checked", "enabled", "toolTip", "hasSubmenu")
+        return {
+            key: action[key]
+            for key in keys
+            if action.get(key) is not None and action.get(key) != ""
+        }
+
+    def _submenu_payload(self, action: dict) -> List[dict]:
+        """Serialize submenu actions without Python callbacks. 序列化子菜单动作。"""
+        payload = []
+        for sub_action in action.get("submenuActions", []):
+            item = {key: value for key, value in sub_action.items() if key != "triggered"}
+            item["actionId"] = item.get("actionId") or item.get("text", "")
+            item["icon"] = self._qml_icon_value(item.get("icon"))
+            payload.append(item)
+        return payload
 
     def _addActionToQml(self, action: dict):
         """添加action到QML菜单"""
         if self._qml_menu is None:
             return
-
         if action.get("separator"):
             QMetaObject.invokeMethod(self._qml_menu, "addSeparator")
             return
-
         text = action.get("text", "")
-        icon = action.get("icon", "")
-        shortcut = action.get("shortcut", "")
-
-        # 转换Icon枚举为字符串
-        if isinstance(icon, Icon):
-            icon = icon.value
-        elif isinstance(icon, QIcon):
-            icon = ""  # QML菜单暂不支持QIcon
-
-        # 构建 options 对象
-        options = {}
-        if action.get("actionId"):
-            options["actionId"] = action["actionId"]
-        if action.get("checkable") is not None:
-            options["checkable"] = action["checkable"]
-        if action.get("checked") is not None:
-            options["checked"] = action["checked"]
-        if action.get("enabled") is not None:
-            options["enabled"] = action["enabled"]
-        if action.get("toolTip"):
-            options["toolTip"] = action["toolTip"]
+        icon = self._qml_icon_value(action.get("icon"))
         if action.get("hasSubmenu"):
-            options["hasSubmenu"] = action["hasSubmenu"]
-
-        # 调用 QML addAction(text, icon, shortcut, options)
+            QMetaObject.invokeMethod(
+                self._qml_menu,
+                "addSubmenuActions",
+                Q_ARG("QVariant", text),
+                Q_ARG("QVariant", icon),
+                Q_ARG("QVariant", self._submenu_payload(action)),
+            )
+            return
+        shortcut = action.get("shortcut", "")
         QMetaObject.invokeMethod(
             self._qml_menu,
             "addAction",
             Q_ARG("QVariant", text),
             Q_ARG("QVariant", icon),
             Q_ARG("QVariant", shortcut),
-            Q_ARG("QVariant", options),
+            Q_ARG("QVariant", self._action_options(action)),
         )
 
     @Slot(str)
@@ -263,52 +267,43 @@ class SystemTrayIcon(QObject):
         enabled: bool = True,
         toolTip: str = "",
     ):
-        """
-        添加菜单动作 Add menu action
+        """Add one menu action and callback. 添加单个菜单动作与回调。"""
+        action = self._build_action(
+            text, icon, shortcut, actionId, checkable, checked, enabled, toolTip
+        )
+        self._warn_duplicate_action_id(action["actionId"])
+        self._actions.append(action)
+        if triggered:
+            self._callbacks[action["actionId"]] = triggered
+        if self._qml_menu:
+            self._addActionToQml(action)
 
-        Args:
-            text: 动作文本
-            icon: 图标（Icon枚举或图标名称字符串）
-            shortcut: 快捷键
-            triggered: 触发回调
-            actionId: 唯一标识符（用于后续更新/删除）
-            checkable: 是否可勾选
-            checked: 是否已勾选（仅 checkable=True 时有效）
-            enabled: 是否启用（False 则灰显不可点击）
-            toolTip: 悬停提示文本
-
-        Example:
-            tray.addAction("显示主窗口", Icon.HOME, triggered=window.show)
-            tray.addAction("退出", Icon.POWER, triggered=app.quit)
-            tray.addAction("静音", checkable=True, checked=False, actionId="mute")
-        """
-        action = {
+    @staticmethod
+    def _build_action(
+        text, icon, shortcut, action_id, checkable, checked, enabled, tool_tip
+    ) -> dict:
+        """Build normalized action storage. 构造规范化动作存储。"""
+        return {
             "text": text,
             "icon": icon,
             "shortcut": shortcut,
-            "actionId": actionId or text,
+            "actionId": action_id or text,
             "checkable": checkable,
             "checked": checked,
             "enabled": enabled,
-            "toolTip": toolTip,
+            "toolTip": tool_tip,
         }
-        # 检查 actionId 重复（不包括分隔线）
-        final_id = action["actionId"]
+
+    def _warn_duplicate_action_id(self, action_id: str) -> None:
+        """Warn when item mutation would be ambiguous. 警告会导致单项操作歧义的重复 ID。"""
         for existing in self._actions:
-            if existing.get("actionId") == final_id:
-                warning(f"SystemTrayIcon: duplicate actionId '{final_id}', "
-                        "updateAction/removeAction 可能操作错误项")
-                break
-        self._actions.append(action)
-
-        # 注册回调（用 actionId 优先，fallback 到 text）
-        callback_key = actionId or text
-        if triggered:
-            self._callbacks[callback_key] = triggered
-
-        # 如果QML菜单已创建，直接添加
-        if self._qml_menu:
-            self._addActionToQml(action)
+            if existing.get("actionId") != action_id:
+                continue
+            warning(
+                f"SystemTrayIcon: duplicate actionId '{action_id}', "
+                "updateAction/removeAction 可能操作错误项"
+            )
+            return
 
     def addActions(self, actions: List[dict]):
         """
@@ -432,41 +427,28 @@ class SystemTrayIcon(QObject):
         icon: Union[Icon, str, None] = None,
         actions: Optional[List[dict]] = None,
     ):
-        """
-        添加子菜单 Add submenu
-
-        Args:
-            text: 子菜单父项文本
-            icon: 图标
-            actions: 子菜单的动作列表
-
-        Note:
-            子菜单中的动作 triggered 回调通过 actionId 注册。
-
-        Example:
-            tray.addMenu("盘符", icon=Icon.FOLDER, actions=[
-                {"text": "NAS (Z:)", "actionId": "drive_Z", "triggered": lambda: open_drive("Z")},
-                {"text": "OneDrive (Y:)", "actionId": "drive_Y", "triggered": lambda: open_drive("Y")},
-            ])
-        """
+        """Add a data-backed submenu. 添加数据驱动子菜单。"""
+        submenu_actions = actions or []
         action = {
             "text": text,
             "icon": icon,
             "hasSubmenu": True,
             "actionId": f"_submenu_{text}",
-            "submenuActions": actions or [],
+            "submenuActions": submenu_actions,
         }
         self._actions.append(action)
-
-        # 注册子菜单中每个动作的回调
-        if actions:
-            for sub_action in actions:
-                sub_id = sub_action.get("actionId", sub_action.get("text", ""))
-                if sub_action.get("triggered"):
-                    self._callbacks[sub_id] = sub_action["triggered"]
-
+        self._register_submenu_callbacks(submenu_actions)
         if self._qml_menu:
             self._addActionToQml(action)
+
+    def _register_submenu_callbacks(self, actions: List[dict]) -> None:
+        """Register callbacks for submenu action IDs. 注册子菜单动作回调。"""
+        for action in actions:
+            callback = action.get("triggered")
+            if not callback:
+                continue
+            action_id = action.get("actionId") or action.get("text", "")
+            self._callbacks[action_id] = callback
 
     # ==================== Message Methods 消息方法 ====================
 
@@ -587,35 +569,7 @@ def createSystemTrayIcon(
     actions: Optional[List[dict]] = None,
     menuOnLeftClick: bool = True,
 ) -> SystemTrayIcon:
-    """
-    创建系统托盘图标 Create system tray icon
-
-    便捷函数，一步创建并配置系统托盘图标。
-
-    Args:
-        icon: 托盘图标
-        parent: 父对象
-        toolTip: 鼠标悬停提示
-        actions: 菜单动作列表
-        menuOnLeftClick: 左键是否弹菜单
-
-    Returns:
-        SystemTrayIcon实例
-
-    Example:
-        ```python
-        tray = createSystemTrayIcon(
-            icon=Icon.HOME,
-            parent=window,
-            toolTip="My App",
-            actions=[
-                {"text": "显示", "icon": Icon.HOME, "triggered": window.show},
-                {"text": "退出", "icon": Icon.POWER, "triggered": app.quit},
-            ]
-        )
-        tray.show()
-        ```
-    """
+    """Create and configure one tray icon. 创建并配置单个托盘图标。"""
     tray = SystemTrayIcon(
         icon=icon, parent=parent, toolTip=toolTip, menuOnLeftClick=menuOnLeftClick
     )
