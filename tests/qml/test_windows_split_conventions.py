@@ -304,3 +304,8 @@ def test_windows_bar_source_conventions_and_zero_delay_token():
         "root.hostWindow.navigationScrollDuration : Enums.duration.navigationScroll"
         in content_source
     )
+    assert (
+        "scrollStep: root.hostWindow ? "
+        "root.hostWindow.navigationScrollStep : Enums.spacing.navigationScrollStep"
+        in content_source
+    )

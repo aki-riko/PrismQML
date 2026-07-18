@@ -22,7 +22,7 @@ WindowsCore {
     property var stackedWidget: null
     property bool navigationSmoothScroll: true
     property int navigationScrollDuration: Enums.duration.navigationScroll
-    property real navigationScrollStep: Enums.spacing.xxxl * 3
+    property real navigationScrollStep: Enums.spacing.navigationScrollStep
     property bool micaEnabled: false
     property bool lazyLoading: false
     property string loadingText: Translator.tr("loading")

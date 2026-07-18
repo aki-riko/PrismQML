@@ -52,7 +52,7 @@ NavigationWindowCore {
     property int scrollDurationDefault: navigationScrollDuration
     property real scrollStepDefault: navigationScrollStep
     property int expectedNavigationScrollDuration: Enums.duration.navigationScroll
-    property real defaultScrollStep: Enums.spacing.xxxl * 3
+    property real defaultScrollStep: Enums.spacing.navigationScrollStep
 
     width: 640
     height: 480
@@ -216,7 +216,9 @@ def test_navigation_window_core_source_conventions_and_mica_tokens():
     assert "interval: Enums.window.micaLateReapplyDelayMs" in source
     assert "property bool navigationSmoothScroll: true" in source
     assert "property int navigationScrollDuration: Enums.duration.navigationScroll" in source
+    assert "property real navigationScrollStep: Enums.spacing.navigationScrollStep" in source
     assert "readonly property int navigationScroll: 500" in metrics
+    assert "readonly property int navigationScrollStep: 24" in metrics
     assert "interval: 16" not in source
     assert "interval: 180" not in source
     assert "readonly property int micaReapplyDelayMs: 16" in metrics

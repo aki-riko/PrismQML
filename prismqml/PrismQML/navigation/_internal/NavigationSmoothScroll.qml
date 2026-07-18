@@ -18,7 +18,7 @@ Item {
     property string helperName: "navigationSmoothScrollHelper"
     property bool smoothScroll: true
     property int duration: Enums.duration.navigationScroll
-    property real step: Enums.spacing.xxxl * 3
+    property real step: Enums.spacing.navigationScrollStep
     property int easing: Easing.OutQuart
 
     // ==================== Readonly State 只读状态 ====================

@@ -45,7 +45,7 @@ Window {
     readonly property bool viewExpanded: navigationView.isExpanded
     readonly property bool viewCompact: navigationView.isCompact
     readonly property int navigationScrollDuration: Enums.duration.navigationScroll
-    readonly property real defaultScrollStep: Enums.spacing.xxxl * 3
+    readonly property real defaultScrollStep: Enums.spacing.navigationScrollStep
     readonly property bool barSmoothScroll: navigationBar.smoothScroll
     readonly property bool toggleSmoothScroll: toggleBar.smoothScroll
     readonly property int barScrollDuration: navigationBar.scrollDuration
@@ -60,7 +60,7 @@ Window {
     }
     function removeViewDynamic() { navigationView.removeWidget("dynamic") }
     function smoothScrollNavigationBar() { navigationBar.smoothScrollBy(120) }
-    function smoothScrollToggleBar() { toggleBar.smoothScrollBy(120) }
+    function smoothScrollToggleBar() { toggleBar.smoothScrollBy(toggleBar.scrollStep) }
 
     width: 900
     height: 420
@@ -456,11 +456,15 @@ def test_navigation_bars_use_smooth_scroll_helper(navigation_scene):
 
     wheel_point = _item_with_text(bar, "NavigationBarItem", "Four").mapToScene(QPointF(20, 20)).toPoint()
     _send_wheel(window, wheel_point, -120)
-    assert bar_helper.property("targetPos") > 0
+    assert bar_helper.property("targetPos") == pytest.approx(
+        window.property("defaultScrollStep")
+    )
     assert _wait_for(lambda: bar_flickable.property("contentY") > 0)
 
     assert QMetaObject.invokeMethod(window, "smoothScrollToggleBar")
-    assert toggle_helper.property("targetPos") > 0
+    assert toggle_helper.property("targetPos") == pytest.approx(
+        window.property("defaultScrollStep")
+    )
     assert _wait_for(lambda: toggle_flickable.property("contentY") > 0)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []

@@ -15,7 +15,7 @@ NavigationPanelCore {
     // ==================== Public Props 公开属性 ====================
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.navigationScroll
-    property real scrollStep: Enums.spacing.xxxl * 3
+    property real scrollStep: Enums.spacing.navigationScrollStep
 
     // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items 将 key 映射到页面索引，用于底部页面项
