@@ -102,11 +102,12 @@ Widget {
     // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
     readonly property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat) ? Enums.neo.pressOffset : 0
     readonly property int _spectralEdgeInset: Math.min(radius, Math.max(Enums.spacing.none, width / 2 - Enums.spacing.xs))
-    readonly property int _contentHorizontalPadding:
+    readonly property int _contentLeadingPadding:
         feature === Enums.button.feature_dropdown ||
         feature === Enums.button.feature_split
         ? Enums.spacing.l
         : Enums.spacing.m
+    readonly property int _contentTrailingPadding: Enums.spacing.m
 
     // Animated colors with instant press, smooth release 动画颜色：按下瞬间，释放平滑
     property color _animatedBgColor
@@ -248,7 +249,7 @@ Widget {
         if (isToolButton) return Enums.controlSize.buttonHeight
         // Transparent/text/hyperlink styles have no minimum width 透明/文本/超链接样式无最小宽度
         var cw = contentLoader.item ?
-            contentLoader.item.width + _contentHorizontalPadding * 2 : 0
+            contentLoader.item.width + _contentLeadingPadding + _contentTrailingPadding : 0
         var extraWidth = feature === Enums.button.feature_split ? Enums.controlSize.splitButtonArrowWidth :
                         (feature === Enums.button.feature_dropdown ? Enums.controlSize.dropdownArrowWidth : 0)
         if (flat) return Math.max(cw + extraWidth, Enums.controlSize.buttonHeight)
@@ -430,8 +431,8 @@ Widget {
         anchors.left: contentAlignment === Enums.button.align_left ? parent.left : undefined
         anchors.right: contentAlignment === Enums.button.align_right ? parent.right : undefined
         anchors.horizontalCenter: contentAlignment === Enums.button.align_center ? parent.horizontalCenter : undefined
-        anchors.leftMargin: contentAlignment === Enums.button.align_left ? control._contentHorizontalPadding : 0
-        anchors.rightMargin: contentAlignment === Enums.button.align_right ? control._contentHorizontalPadding : 0
+        anchors.leftMargin: contentAlignment === Enums.button.align_left ? control._contentLeadingPadding : 0
+        anchors.rightMargin: contentAlignment === Enums.button.align_right ? control._contentTrailingPadding : 0
         anchors.horizontalCenterOffset: contentAlignment === Enums.button.align_center ?
                                         (feature === Enums.button.feature_split ? -Enums.controlSize.splitButtonContentOffset :
                                         (feature === Enums.button.feature_dropdown ? -Enums.spacing.m : 0)) : 0
@@ -451,8 +452,8 @@ Widget {
         anchors.left: contentAlignment === Enums.button.align_left ? parent.left : undefined
         anchors.right: contentAlignment === Enums.button.align_right ? parent.right : undefined
         anchors.horizontalCenter: contentAlignment === Enums.button.align_center ? parent.horizontalCenter : undefined
-        anchors.leftMargin: contentAlignment === Enums.button.align_left ? control._contentHorizontalPadding : 0
-        anchors.rightMargin: contentAlignment === Enums.button.align_right ? control._contentHorizontalPadding : 0
+        anchors.leftMargin: contentAlignment === Enums.button.align_left ? control._contentLeadingPadding : 0
+        anchors.rightMargin: contentAlignment === Enums.button.align_right ? control._contentTrailingPadding : 0
         anchors.horizontalCenterOffset: contentAlignment === Enums.button.align_center ?
                                         (feature === Enums.button.feature_split ? -Enums.controlSize.splitButtonContentOffset :
                                         (feature === Enums.button.feature_dropdown ? -Enums.spacing.m : 0)) : 0

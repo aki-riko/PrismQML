@@ -44,7 +44,8 @@ Item {
     readonly property int alignCenter: Enums.button.align_center
     readonly property int alignLeft: Enums.button.align_left
     readonly property int contentLeftMargin: Enums.spacing.m
-    readonly property int menuContentPadding: Enums.spacing.l
+    readonly property int menuContentLeadingPadding: Enums.spacing.l
+    readonly property int menuContentTrailingPadding: Enums.spacing.m
     readonly property int menuPaddingTolerance: Enums.spacing.xxs
     readonly property int wideMenuPadding: Enums.spacing.xxxl
     readonly property real aliasBorderWidth: aliasButton.border.width
@@ -352,7 +353,7 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
         assert button.property("contentAlignment") == root.property(alignment_name)
         if alignment_name == "alignLeft":
             assert _mapped_x(content[0], button) == pytest.approx(
-                root.property("menuContentPadding")
+                root.property("menuContentLeadingPadding")
             )
         if dropdown:
             _assert_dropdown_bindings(root, button, dropdown[0])
@@ -383,9 +384,10 @@ def test_menu_bar_buttons_default_to_left_alignment(button_core_scene):
     assert _new_visible_windows(windows_before) == []
 
 
-def test_dropdown_and_split_main_content_use_balanced_padding(button_core_scene):
+def test_dropdown_and_split_main_content_use_asymmetric_padding(button_core_scene):
     root, warnings, windows_before = button_core_scene
-    expected_padding = root.property("menuContentPadding")
+    expected_leading = root.property("menuContentLeadingPadding")
+    expected_trailing = root.property("menuContentTrailingPadding")
 
     for object_name in ("pillDropdownButton", "pillSplitButton"):
         button = _button(root, object_name)
@@ -401,18 +403,18 @@ def test_dropdown_and_split_main_content_use_balanced_padding(button_core_scene)
         assert len(content) == 1
         assert len(dropdown) == 1
         assert len(chevrons) == 1
-        assert _mapped_x(content[0], button) == pytest.approx(expected_padding)
+        assert _mapped_x(content[0], button) == pytest.approx(expected_leading)
 
         if object_name == "pillDropdownButton":
             assert _right_gap(content[0], chevrons[0], button) == pytest.approx(
-                expected_padding
+                expected_trailing
             )
         else:
             separators = _matching(dropdown[0], "lineLength", "lineColor", "isHorizontal")
             assert len(separators) == 1
             split_gap = _right_gap(content[0], separators[0], button)
-            assert expected_padding <= split_gap <= (
-                expected_padding + root.property("menuPaddingTolerance")
+            assert expected_trailing <= split_gap <= (
+                expected_trailing + root.property("menuPaddingTolerance")
             )
 
     assert warnings == []
