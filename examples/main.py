@@ -37,15 +37,13 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtCore import Qt, QUrl, QResource
 
-from prismqml.python.core import ThemeManager, getShadowManager, installDwmSyncFilter, install_qt_message_handler
-from prismqml.python.config import getConfigManager, applyDpiScale
-from prismqml.python.providers import (
-    get_qrcode_generator, get_qrcode_provider,
-    get_screen_eyedropper_manager,
-    get_clipboard_helper,
-    get_svg_provider,
+from prismqml.python.core import (
+    installDwmSyncFilter,
+    install_qt_message_handler,
+    register_types,
 )
-from prismqml.python.window import get_mica_manager, get_acrylic_helper
+from prismqml.python.config import applyDpiScale
+from prismqml.python.providers import get_svg_provider
 
 # 注册二进制资源文件(QML 通过 qrc:/ 访问图片等)
 # 用 .rcc 二进制资源代替编译成 .py 的资源(体积更小,不污染代码仓库)
@@ -85,15 +83,6 @@ def main():
     install_qt_message_handler()
     log_time("Qt消息处理器安装完成")
     
-    # 初始化主题管理器、阴影管理器和配置管理器
-    theme_manager = ThemeManager()
-    shadow_manager = getShadowManager()
-    config_manager = getConfigManager()
-    mica_manager = get_mica_manager()
-    acrylic_helper = get_acrylic_helper()
-    screen_eyedropper_manager = get_screen_eyedropper_manager()
-    log_time("管理器初始化完成")
-    
     engine = QQmlApplicationEngine()
     log_time("QML引擎创建完成")
 
@@ -105,24 +94,9 @@ def main():
     
     # 资源已通过 QResource.registerResource(gallery.rcc) 在模块加载时注册
     
-    # 注册管理器到QML
-    engine.rootContext().setContextProperty("ThemeManager", theme_manager)
-    engine.rootContext().setContextProperty("ShadowManager", shadow_manager)
-    engine.rootContext().setContextProperty("ConfigManager", config_manager)
-    engine.rootContext().setContextProperty("MicaManager", mica_manager)
-    engine.rootContext().setContextProperty("AcrylicHelper", acrylic_helper)
-    engine.rootContext().setContextProperty("QRCodeGenerator", get_qrcode_generator())
-    engine.rootContext().setContextProperty("ScreenEyedropperManager", screen_eyedropper_manager)
-    engine.rootContext().setContextProperty("ClipboardHelper", get_clipboard_helper())
-    
-    # 注册窗口辅助工具（任务栏图标同步等）
-    from prismqml.python.core.window_helper import get_window_helper
-    engine.rootContext().setContextProperty("WindowHelper", get_window_helper())
-    
-    # 注册二维码图片提供器
-    engine.addImageProvider("qrcode", get_qrcode_provider())
-    # 注册亚克力图片提供器
-    engine.addImageProvider("acrylic", acrylic_helper.imageProvider)
+    # Register the complete public QML runtime, including NativeWindow.
+    # 注册完整公共 QML 运行时，包括 NativeWindow。
+    register_types(engine)
     # 注册SVG图片提供器（高质量SVG渲染）
     engine.addImageProvider("svg", get_svg_provider())
     log_time("上下文属性注册完成")
