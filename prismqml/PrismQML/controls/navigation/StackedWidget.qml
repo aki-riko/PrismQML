@@ -29,6 +29,8 @@ Item {
     property var _loaders: []
     readonly property real _startupProfileStart: Date.now()
     property real _startupProfileLast: _startupProfileStart
+    readonly property bool _startupProfilingVerboseActive:
+        (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
     property var _isPageLoadFailedFunc: function(index) {
         if (!lazyLoading || !_useSourceMode) return false
         return _loaders[index] && _loaders[index].status === Loader.Error
@@ -69,6 +71,7 @@ Item {
         return stackLayout.children[_displayIndex]
     }
     function profileTime(msg) {
+        if (!_startupProfilingVerboseActive) return
         var now = Date.now()
         console.info("[启动剖析] StackedWidget " + msg + ": +" +
                     Math.round(now - _startupProfileLast) + "ms / total " +
@@ -86,6 +89,7 @@ Item {
     }
 
     function _traceLazyStage(stage, index, details, loaderOverride) {
+        if (!_startupProfilingVerboseActive) return
         _lazyDiagnosticSequence += 1
         var detailText = details ? " " + details : ""
         console.info("[懒加载诊断] StackedWidget #" + _lazyDiagnosticSequence +

@@ -32,6 +32,7 @@ class _ScriptedController(incubation.PrismIncubationController):
 
 def test_active_tick_logs_matching_begin_and_done_boundaries(monkeypatch, qapp):
     messages = []
+    monkeypatch.setenv("PRISMQML_STARTUP_PROFILE_VERBOSE", "1")
     monkeypatch.setattr(
         incubation,
         "debug",
@@ -56,6 +57,7 @@ def test_active_tick_logs_matching_begin_and_done_boundaries(monkeypatch, qapp):
 
 def test_idle_tick_does_not_emit_active_diagnostics(monkeypatch, qapp):
     messages = []
+    monkeypatch.setenv("PRISMQML_STARTUP_PROFILE_VERBOSE", "1")
     monkeypatch.setattr(
         incubation,
         "debug",
@@ -84,6 +86,7 @@ def test_new_incubation_work_promotes_idle_timer_immediately(qapp):
 
 def test_tick_failure_logs_boundary_and_reraises(monkeypatch, qapp):
     messages = []
+    monkeypatch.setenv("PRISMQML_STARTUP_PROFILE_VERBOSE", "1")
     monkeypatch.setattr(
         incubation,
         "debug",
@@ -112,6 +115,7 @@ def test_tick_failure_logs_boundary_and_reraises(monkeypatch, qapp):
 
 def test_installation_and_reuse_are_logged(monkeypatch, qapp):
     messages = []
+    monkeypatch.setenv("PRISMQML_STARTUP_PROFILE_VERBOSE", "1")
     monkeypatch.setattr(
         incubation,
         "info",
@@ -129,3 +133,27 @@ def test_installation_and_reuse_are_logged(monkeypatch, qapp):
     assert "engine_type=QQmlApplicationEngine" in messages[0][1]
     assert messages[1][0] == "Incubation"
     assert "controller reused" in messages[1][1]
+
+
+def test_detailed_logs_are_disabled_by_default(monkeypatch, qapp):
+    messages = []
+    monkeypatch.delenv("PRISMQML_STARTUP_PROFILE_VERBOSE", raising=False)
+    monkeypatch.setattr(
+        incubation,
+        "debug",
+        lambda message, tag=None: messages.append(("debug", tag, message)),
+    )
+    monkeypatch.setattr(
+        incubation,
+        "info",
+        lambda message, tag=None: messages.append(("info", tag, message)),
+    )
+    owner = QObject()
+    scripted = _ScriptedController(owner, counts=[1, 0])
+    engine = QQmlApplicationEngine()
+
+    scripted._on_tick()
+    installed = incubation.install_incubation_controller(engine)
+    installed._timer.stop()
+
+    assert messages == []

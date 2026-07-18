@@ -23,6 +23,7 @@ QML 的 `Loader { asynchronous: true }`(StackedWidget 懒加载就用它)只有�
 有待孵化对象时用 `_active_interval`(贴近一帧, 16ms)持续推进; 空闲时切到
 `_idle_interval`(250ms)低频轮询, 几乎不占 CPU, 一旦有新异步对象立即升频。
 """
+import os
 from time import perf_counter
 
 from PySide6.QtCore import QTimer, Qt
@@ -32,6 +33,13 @@ from prismqml.python.core.logger import debug, exception, info
 
 
 _DIAGNOSTIC_TAG = "Incubation"
+_DIAGNOSTIC_ENV = "PRISMQML_STARTUP_PROFILE_VERBOSE"
+_DIAGNOSTIC_TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
+
+
+def _diagnostics_enabled() -> bool:
+    """Read the shared verbose startup switch. 读取共享启动详细开关。"""
+    return os.environ.get(_DIAGNOSTIC_ENV, "").lower() in _DIAGNOSTIC_TRUE_VALUES
 
 
 class PrismIncubationController(QQmlIncubationController):
@@ -52,6 +60,7 @@ class PrismIncubationController(QQmlIncubationController):
         self._budget_ms = max(1, int(budget_ms))
         self._active_interval = max(1, int(active_interval))
         self._idle_interval = max(self._active_interval, int(idle_interval))
+        self._diagnostics_enabled = _diagnostics_enabled()
         self._diagnostic_sequence = 0
 
         # owner(QObject)作 parent: controller 非 QObject 不能当 parent。
@@ -89,7 +98,7 @@ class PrismIncubationController(QQmlIncubationController):
         )
 
     def _trace_tick_begin(self, object_count, timer_interval):
-        if object_count <= 0:
+        if object_count <= 0 or not self._diagnostics_enabled:
             return None
         self._diagnostic_sequence += 1
         sequence = self._diagnostic_sequence
@@ -110,9 +119,12 @@ class PrismIncubationController(QQmlIncubationController):
             object_count_after = self.incubatingObjectCount()
         except (RuntimeError, TypeError) as exc:
             elapsed_ms = (perf_counter() - started_at) * 1000
+            trace_sequence = sequence if sequence is not None else (
+                "idle" if object_count <= 0 else "untraced"
+            )
             exception(
                 "tick failed "
-                f"sequence={sequence if sequence is not None else 'idle'} "
+                f"sequence={trace_sequence} "
                 f"object_count_before={object_count} "
                 f"budget_ms={self._budget_ms} "
                 f"timer_interval_ms={timer_interval} "
@@ -167,6 +179,8 @@ def install_incubation_controller(engine, budget_ms: int = 5):
 
 
 def _log_controller_reused(controller):
+    if not controller._diagnostics_enabled:
+        return
     info(
         "controller reused "
         f"controller_id={id(controller)} "
@@ -177,6 +191,8 @@ def _log_controller_reused(controller):
 
 
 def _log_controller_installed(engine, controller):
+    if not controller._diagnostics_enabled:
+        return
     info(
         "controller installed "
         f"controller_id={id(controller)} "

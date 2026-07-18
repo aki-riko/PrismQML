@@ -84,6 +84,10 @@ StackedWidget {{
 }}
 """
 
+    messages = []
+    previous_handler = qInstallMessageHandler(
+        lambda _mode, _context, message: messages.append(str(message))
+    )
     engine = QQmlApplicationEngine()
     component = None
     stack = None
@@ -131,7 +135,13 @@ StackedWidget {{
         assert failures[0][0] == 1
         assert "InvalidPage.qml" in failures[0][1]
         assert "Expected" in failures[0][1]
+        assert not any(
+            "[启动剖析] StackedWidget" in message
+            or "[懒加载诊断] StackedWidget #" in message
+            for message in messages
+        )
     finally:
+        qInstallMessageHandler(previous_handler)
         _release(qapp, stack, component, engine)
 
 
@@ -172,6 +182,9 @@ StackedWidget {{
     stack = None
     try:
         register_types(engine)
+        engine.rootContext().setContextProperty(
+            "PrismQmlStartupProfileVerbose", True
+        )
         component = QQmlComponent(engine)
         component.setData(
             scene.encode("utf-8"),
