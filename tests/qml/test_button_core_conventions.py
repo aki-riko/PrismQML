@@ -324,6 +324,7 @@ def test_button_core_border_alias_and_custom_content(button_core_scene):
     payload = _button(root, "customPayload")
     assert root.property("aliasBorderWidth") == root.property("expectedBorderWidth")
     assert root.property("aliasBorderColor") == root.property("expectedBorderColor")
+    assert not alias_button.property("hasCustomContent")
     assert custom_button.property("hasCustomContent")
     assert payload in _descendants(custom_button)
     assert payload.parentItem() is not custom_button
@@ -331,6 +332,16 @@ def test_button_core_border_alias_and_custom_content(button_core_scene):
     assert _content_modules(custom_button) == []
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
+
+
+def test_button_core_custom_content_state_is_not_a_live_children_binding():
+    source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    assert "property bool hasCustomContent: false" in source
+    assert "function _syncCustomContentState()" in source
+    assert "onChildrenChanged: control._syncCustomContentState()" in source
+    assert (
+        "hasCustomContent: customContentContainer.children.length" not in source
+    )
 
 
 def test_button_core_initial_colors_and_handlers(button_core_scene):

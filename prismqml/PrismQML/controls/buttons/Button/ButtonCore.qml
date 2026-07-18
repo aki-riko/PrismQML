@@ -35,7 +35,7 @@ Widget {
     property string icon: ""           // Icon name / image path 图标名或图片路径
     property int iconSize: Enums.iconSize.m
     default property alias contentData: customContentContainer.data  // Custom content 自定义内容
-    property bool hasCustomContent: customContentContainer.children.length > 0
+    property bool hasCustomContent: false
 
     // Button features 按钮功能
     property bool checked: false
@@ -180,6 +180,13 @@ Widget {
             bgColorAnim.restart()
             borderColorAnim.restart()
         }
+    }
+
+    function _syncCustomContentState() {
+        // Snapshot only when children actually change; avoid a long-lived
+        // QQuickItem.children list binding across page transitions.
+        // 仅在子项真实变化时取快照，避免跨页面切换长期持有 QQuickItem.children 列表绑定。
+        hasCustomContent = customContentContainer.children.length > 0
     }
 
     function getText() { return text }
@@ -457,6 +464,8 @@ Widget {
                                         (feature === Enums.button.feature_dropdown ? -Enums.spacing.m : 0)) : 0
         z: Enums.zIndex.content
         visible: control.hasCustomContent
+        onChildrenChanged: control._syncCustomContentState()
+        Component.onCompleted: control._syncCustomContentState()
         // Neobrutalism 按下位移: 内容随 face 一起滑动
         transform: Translate {
             x: control._neoPressShift; y: control._neoPressShift
