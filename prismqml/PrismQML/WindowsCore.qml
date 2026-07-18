@@ -123,6 +123,12 @@ Window {
         closer.closeAll()
         closer.destroy()
     }
+    function _syncTaskbarIcon(reason) {
+        if (!windowIcon || typeof WindowHelper === "undefined" || !WindowHelper) return
+        profileTime("WindowHelper.setAppIcon " + reason + " start")
+        WindowHelper.setAppIcon(windowIcon)
+        profileTime("WindowHelper.setAppIcon " + reason + " done")
+    }
 
     // ==================== Public Methods 公开方法 ====================
     function requestClose() {
@@ -162,14 +168,13 @@ Window {
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint
     title: windowTitle  // Sync to native Window.title for taskbar 同步到原生标题用于任务栏显示
 
-    onWindowIconChanged: {
-        // Sync window icon to taskbar. 同步窗口图标到任务栏。
-        if (windowIcon && typeof WindowHelper !== "undefined") {
-            profileTime("WindowHelper.setAppIcon start")
-            WindowHelper.setAppIcon(windowIcon)
-            profileTime("WindowHelper.setAppIcon done")
-        }
-    }
+    onWindowIconChanged: _syncTaskbarIcon("windowIconChanged")
+    // Reapply after the native HWND/taskbar button exists so Windows Shell does
+    // not keep the generic icon cached from first show. 原生窗口与任务栏按钮
+    // 就绪后再次同步，避免 Windows Shell 保留首次显示时的通用图标缓存。
+    onNativeHookReady: Qt.callLater(function() {
+        window._syncTaskbarIcon("nativeHookReady")
+    })
     Component.onCompleted: {
         profileDetailState("Window root Component.onCompleted pre-init")
         profileTime("Component.onCompleted start; NativeWindow defined=" +

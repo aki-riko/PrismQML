@@ -21,6 +21,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
+import prismqml.python.core.window_helper as window_helper_module
 import prismqml.python.window as window_module
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -64,6 +65,7 @@ WindowsCore {
     visible: true
     shadowMode: Enums.windowShadow.mode_none
     windowTitle: "WindowsCore Contract"
+    windowIcon: Qt.resolvedUrl("../../examples/resources/image/avatar/avatar.png")
 
     Item {
         objectName: "contentProbe"
@@ -83,13 +85,29 @@ WindowsCore {
 
 
 class _FakeNativeWindow(QObject):
+    def __init__(self, events, parent=None):
+        super().__init__(parent)
+        self._events = events
+
     @Slot(QObject, result=bool)
     def finalizeAttach(self, _window):
+        self._events.append("native-finalized")
         return True
 
     @Slot(QObject, result=bool)
     def detach(self, _window):
         return True
+
+
+class _FakeWindowHelper(QObject):
+    def __init__(self, events, parent=None):
+        super().__init__(parent)
+        self._events = events
+
+    @Slot(str)
+    def setAppIcon(self, icon):
+        assert icon
+        self._events.append("icon")
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -139,9 +157,14 @@ def _new_visible_windows(windows_before, *allowed):
 
 def _create_scene(monkeypatch):
     engine = QQmlApplicationEngine()
-    native_window = _FakeNativeWindow(engine)
+    startup_events = []
+    native_window = _FakeNativeWindow(startup_events, engine)
+    window_helper = _FakeWindowHelper(startup_events, engine)
     monkeypatch.setattr(
         window_module, "get_native_window_hook", lambda: native_window
+    )
+    monkeypatch.setattr(
+        window_helper_module, "get_window_helper", lambda: window_helper
     )
     warnings = []
     engine.warnings.connect(
@@ -169,7 +192,15 @@ def _create_scene(monkeypatch):
         and left_probe is not None
     )
     assert content_probe.parentItem() is content
-    return engine, component, window, content, left_probe, warnings
+    return (
+        engine,
+        component,
+        window,
+        content,
+        left_probe,
+        warnings,
+        startup_events,
+    )
 
 
 def _dispose_scene(engine, component, window) -> None:
@@ -185,10 +216,24 @@ def _dispose_scene(engine, component, window) -> None:
 
 def test_windows_core_top_left_and_qml_shadow_geometry(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
-    engine, component, window, content, left_probe, warnings = _create_scene(
-        monkeypatch
-    )
+    (
+        engine,
+        component,
+        window,
+        content,
+        left_probe,
+        warnings,
+        startup_events,
+    ) = _create_scene(monkeypatch)
     try:
+        icon_event = "icon"
+        assert _wait_for(lambda: startup_events.count(icon_event) == 2)
+        first_icon_index = startup_events.index(icon_event)
+        native_index = startup_events.index("native-finalized")
+        second_icon_index = len(startup_events) - 1 - startup_events[::-1].index(
+            icon_event
+        )
+        assert first_icon_index < native_index < second_icon_index
         assert window.title() == "WindowsCore Contract"
         assert window.property("titleBarPosition") == window.property("topLayout")
         assert window.property("margin") == 0
@@ -224,9 +269,15 @@ def test_windows_core_top_left_and_qml_shadow_geometry(monkeypatch, qapp):
 
 def test_windows_core_deferred_resize_handles_load_once(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
-    engine, component, window, content, left_probe, warnings = _create_scene(
-        monkeypatch
-    )
+    (
+        engine,
+        component,
+        window,
+        content,
+        left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch)
     try:
         assert not window.property("_resizeHandlesReady")
         assert _wait_for(lambda: bool(window.property("_resizeHandlesReady")))
