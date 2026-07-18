@@ -7,10 +7,11 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QPoint, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -65,6 +66,7 @@ Item {
     readonly property int tooltipHorizontalPadding: Enums.spacing.l
     readonly property int tooltipVerticalPadding: Enums.spacing.xs
     readonly property int tooltipGap: Enums.spacing.xs
+    readonly property int tooltipAnimationDuration: Enums.duration.normal
 
     width: 320
     height: 240
@@ -272,16 +274,29 @@ def test_hint_tooltip_flips_left_at_screen_right_edge(widget_scene):
         assert hint_icon is not None
         hint_icon.setX(window.width() - hint_icon.width())
         tooltip = hint_icon.findChild(QObject, "_toolTip")
+        hover_area = hint_icon.findChild(QObject, "_hoverArea")
         assert tooltip is not None
+        assert hover_area is not None
+        assert hover_area.property("containsMouse") is False
+        hint_icon.setProperty("toolTipShowDelay", 0)
 
-        assert QMetaObject.invokeMethod(hint_icon, "showToolTip")
-        _pump(20)
+        hover_point = QPoint(
+            round(hint_icon.x() + hint_icon.width() / 2),
+            round(hint_icon.y() + hint_icon.height() / 2),
+        )
+        QTest.mouseMove(window, hover_point)
+        _pump(root.property("tooltipAnimationDuration") + 50)
         tooltip_gap = root.property("tooltipGap")
+        assert hover_area.property("containsMouse") is True
+        assert tooltip.property("visible") is True
         assert tooltip.property("x") == pytest.approx(
             -tooltip.property("width") - tooltip_gap
         )
         assert tooltip.property("x") + tooltip.property("width") <= -tooltip_gap
-        assert QMetaObject.invokeMethod(hint_icon, "hideToolTip")
+
+        _pump(root.property("tooltipAnimationDuration") + 50)
+        assert hover_area.property("containsMouse") is True
+        assert tooltip.property("visible") is True
     finally:
         root.setParentItem(None)
         window.close()
@@ -314,6 +329,9 @@ def test_widget_source_follows_conventions_and_uses_tooltip_tokens():
     assert "topPadding: Enums.spacing.xs" in widget_source
     assert "bottomPadding: Enums.spacing.xs" in widget_source
     assert "function _resolvedDirection(sourcePos, bounds)" in widget_source
+    assert "WindowHelper.availableScreenGeometryAt(" in widget_source
+    assert "desktopAvailableWidth" not in widget_source
+    assert "desktopAvailableHeight" not in widget_source
     assert "easing.type: Easing.OutCubic" in widget_source
     assert "toolTipPosition: Enums.position.right" in hint_icon_source
     assert "property int toolTipDuration: -1" not in widget_source

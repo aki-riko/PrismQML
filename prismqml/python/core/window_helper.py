@@ -12,7 +12,7 @@ Provides native window operations callable from QML, such as taskbar icon settin
 import time
 from typing import Optional
 
-from PySide6.QtCore import QObject, QSize, Slot
+from PySide6.QtCore import QObject, QPoint, QSize, Slot
 from PySide6.QtGui import QGuiApplication, QIcon, QPainter, QPixmap, Qt
 
 from ._icon_path import resolve_icon_path
@@ -63,6 +63,25 @@ class WindowHelper(QObject):
         if self._try_set_svg_icon(app, icon_path, profile_start, resolve_ms):
             return
         self._set_bitmap_icon(app, icon_path, profile_start, resolve_ms)
+
+    @Slot(int, int, result="QVariantMap")
+    def availableScreenGeometryAt(self, x: int, y: int) -> dict[str, int]:
+        """Return the available geometry for the screen containing a global point."""
+        app = QGuiApplication.instance()
+        if app is None:
+            return {}
+        screen = app.screenAt(QPoint(x, y))
+        if screen is None:
+            screen = app.primaryScreen()
+        if screen is None:
+            return {}
+        geometry = screen.availableGeometry()
+        return {
+            "x": geometry.x(),
+            "y": geometry.y(),
+            "width": geometry.width(),
+            "height": geometry.height(),
+        }
 
     def _try_set_svg_icon(
         self,

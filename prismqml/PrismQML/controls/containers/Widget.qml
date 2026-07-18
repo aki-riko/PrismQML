@@ -162,16 +162,23 @@ Item {
             property bool _pendingShow: false
 
             // ==================== Internal Methods 内部方法 ====================
-            function _screenBounds() {
-                var screenWidth = widget.Screen.desktopAvailableWidth > 0
-                    ? widget.Screen.desktopAvailableWidth : widget.Screen.width
-                var screenHeight = widget.Screen.desktopAvailableHeight > 0
-                    ? widget.Screen.desktopAvailableHeight : widget.Screen.height
+            function _screenBounds(sourcePos) {
+                var screenGeometry = WindowHelper.availableScreenGeometryAt(
+                    Math.round(sourcePos.x + widget.width / 2),
+                    Math.round(sourcePos.y + widget.height / 2))
+                if (screenGeometry && screenGeometry.width > 0 && screenGeometry.height > 0) {
+                    return {
+                        left: screenGeometry.x,
+                        top: screenGeometry.y,
+                        right: screenGeometry.x + screenGeometry.width,
+                        bottom: screenGeometry.y + screenGeometry.height
+                    }
+                }
                 return {
                     left: widget.Screen.virtualX,
                     top: widget.Screen.virtualY,
-                    right: widget.Screen.virtualX + screenWidth,
-                    bottom: widget.Screen.virtualY + screenHeight
+                    right: widget.Screen.virtualX + widget.Screen.width,
+                    bottom: widget.Screen.virtualY + widget.Screen.height
                 }
             }
             function _directionOrder() {
@@ -226,7 +233,7 @@ Item {
             }
             function _updatePosition() {
                 var sourcePos = widget.mapToGlobal(0, 0)
-                var bounds = _screenBounds()
+                var bounds = _screenBounds(sourcePos)
                 _applyPosition(_resolvedDirection(sourcePos, bounds), sourcePos, bounds)
             }
             function show() {
