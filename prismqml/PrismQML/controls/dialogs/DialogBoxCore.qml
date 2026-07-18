@@ -83,6 +83,16 @@ OverlayDialogCore {
         _isOpen = true
     }
 
+    // ==================== Internal Methods 内部方法 ====================
+
+    // Keep the complete dialog body inside the overlay bounds 保持对话框完整位于遮罩范围内
+    function _setBoundedDialogPosition(candidateX, candidateY) {
+        var maximumX = Math.max(0, control.width - dialogBodyContainer.width)
+        var maximumY = Math.max(0, control.height - dialogBodyContainer.height)
+        dialogBodyContainer.x = Math.max(0, Math.min(candidateX, maximumX))
+        dialogBodyContainer.y = Math.max(0, Math.min(candidateY, maximumY))
+    }
+
     // ==================== Content 内容 ====================
     maskColor: control._dialogMaskColor
 
@@ -228,8 +238,9 @@ OverlayDialogCore {
                     if (pressed && control.draggable) {
                         dialogBodyContainer.anchors.horizontalCenter = undefined
                         dialogBodyContainer.anchors.verticalCenter = undefined
-                        dialogBodyContainer.x += mouse.x - dragStart.x
-                        dialogBodyContainer.y += mouse.y - dragStart.y
+                        var candidateX = dialogBodyContainer.x + mouse.x - dragStart.x
+                        var candidateY = dialogBodyContainer.y + mouse.y - dragStart.y
+                        control._setBoundedDialogPosition(candidateX, candidateY)
                     }
                 }
             }
