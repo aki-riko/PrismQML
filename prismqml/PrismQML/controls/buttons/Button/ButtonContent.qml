@@ -54,80 +54,98 @@ Row {
 
     // ==================== Content 内容 ====================
     // Loading ring 加载环
-    ProgressRing {
-        id: loadingRing
-        width: content.iconSize
-        height: content.iconSize
-        strokeWidth: Enums.border.normal
-        color: content.textColor
-        indeterminate: content.loading
-        visible: content.loading
+    Loader {
+        id: loadingRingLoader
+        width: active ? content.iconSize : 0
+        height: active ? content.iconSize : 0
+        active: content.loading
         anchors.verticalCenter: parent.verticalCenter
+
+        sourceComponent: ProgressRing {
+            anchors.fill: parent
+            strokeWidth: Enums.border.normal
+            color: content.textColor
+            indeterminate: true
+        }
     }
 
     // Progress ring 进度环
-    Item {
-        id: progressRing
-        width: content.iconSize
-        height: content.iconSize
-        visible: feature === Enums.button.feature_progress_ring
+    Loader {
+        id: progressRingLoader
+        width: active ? content.iconSize : 0
+        height: active ? content.iconSize : 0
+        active: feature === Enums.button.feature_progress_ring
         anchors.verticalCenter: parent.verticalCenter
 
-        Rectangle {
+        sourceComponent: Item {
             anchors.fill: parent
-            radius: width / 2
-            color: Enums.transparent
-            border.width: Enums.border.normal
-            border.color: content._ringBorderColor
-        }
 
-        Canvas {
-            id: progressCanvas
-
-            property color ringColor: content._ringColor
-
-            anchors.fill: parent
-            onRingColorChanged: requestPaint()
-
-            onPaint: {
-                var ctx = getContext("2d")
-                ctx.reset()
-                ctx.strokeStyle = ringColor
-                ctx.lineWidth = 2
-                ctx.lineCap = "round"
-                ctx.beginPath()
-                ctx.arc(width/2, height/2, width/2 - 2, -Math.PI/2, -Math.PI/2 + content.progress * 2 * Math.PI, false)
-                ctx.stroke()
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: Enums.transparent
+                border.width: Enums.border.normal
+                border.color: content._ringBorderColor
             }
-        }
 
-        Connections {
-            function onProgressChanged() { progressCanvas.requestPaint() }
+            Canvas {
+                id: progressCanvas
 
-            target: content
+                property color ringColor: content._ringColor
+
+                anchors.fill: parent
+                onRingColorChanged: requestPaint()
+
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.reset()
+                    ctx.strokeStyle = ringColor
+                    ctx.lineWidth = 2
+                    ctx.lineCap = "round"
+                    ctx.beginPath()
+                    ctx.arc(width/2, height/2, width/2 - 2, -Math.PI/2, -Math.PI/2 + content.progress * 2 * Math.PI, false)
+                    ctx.stroke()
+                }
+            }
+
+            Connections {
+                function onProgressChanged() { progressCanvas.requestPaint() }
+
+                target: content
+            }
         }
     }
 
     // Indeterminate ring 不确定环
-    ProgressRing {
-        id: indeterminateRing
-        width: content.iconSize
-        height: content.iconSize
-        strokeWidth: Enums.border.normal
-        indeterminate: true
-        visible: feature === Enums.button.feature_indeterminate_ring
+    Loader {
+        id: indeterminateRingLoader
+        width: active ? content.iconSize : 0
+        height: active ? content.iconSize : 0
+        active: feature === Enums.button.feature_indeterminate_ring
         anchors.verticalCenter: parent.verticalCenter
-        color: content._ringColor
+
+        sourceComponent: ProgressRing {
+            anchors.fill: parent
+            strokeWidth: Enums.border.normal
+            indeterminate: true
+            color: content._ringColor
+        }
     }
 
     // Icon 图标
-    Icon {
-        id: iconItem
-        icon: content.loading ? "" : content.icon
-        iconSize: content.iconSize
-        color: content.textColor
-        visible: !content.loading && content.icon !== ""
+    Loader {
+        id: iconLoader
+        width: active ? content.iconSize : 0
+        height: active ? content.iconSize : 0
+        active: !content.loading && content.icon !== ""
         anchors.verticalCenter: parent.verticalCenter
+
+        sourceComponent: Icon {
+            anchors.centerIn: parent
+            icon: content.icon
+            iconSize: content.iconSize
+            color: content.textColor
+        }
     }
 
     // Text 文字

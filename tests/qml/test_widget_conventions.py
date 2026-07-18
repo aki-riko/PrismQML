@@ -189,6 +189,12 @@ def test_widget_center_content_remains_stable(widget_scene):
 
 def test_widget_tooltip_defaults_and_hidden_window_behavior(widget_scene):
     root, windows_before = widget_scene
+    default_widget = root.findChild(QObject, "defaultWidget")
+    hint_icon = root.findChild(QObject, "hintIcon")
+    assert default_widget is not None
+    assert hint_icon is not None
+    assert default_widget.findChild(QObject, "_toolTip") is None
+    assert hint_icon.findChild(QObject, "_toolTip") is not None
     assert (
         root.property("persistentDuration"),
         root.property("tooltipShowDelay"),

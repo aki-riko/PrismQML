@@ -228,11 +228,20 @@ Widget {
     }
 
     function _scheduleMenuPrewarmRetry() {
-        if (!_menuPrewarmRetryTimer.running) _menuPrewarmRetryTimer.start()
+        if (!_hasMenuFeature || !_menuPrewarmRetryTimer.item) return
+        if (!_menuPrewarmRetryTimer.item.running) _menuPrewarmRetryTimer.item.start()
+    }
+
+    function _startButtonToolTipTimer() {
+        if (_btnToolTipTimer.item) _btnToolTipTimer.item.start()
+    }
+
+    function _stopButtonToolTipTimer() {
+        if (_btnToolTipTimer.item) _btnToolTipTimer.item.stop()
     }
 
     function _dismissToolTipForMenu() {
-        _btnToolTipTimer.stop()
+        _stopButtonToolTipTimer()
         _dismissToolTip()
     }
 
@@ -281,8 +290,8 @@ Widget {
     on_ToolTipHoveredChanged: {
         // ToolTip trigger 触发ToolTip
         if (toolTipText !== "") {
-            if (_toolTipHovered) _btnToolTipTimer.start()
-            else { _btnToolTipTimer.stop(); hideToolTip() }
+            if (_toolTipHovered) _startButtonToolTipTimer()
+            else { _stopButtonToolTipTimer(); hideToolTip() }
         }
     }
 
@@ -292,7 +301,7 @@ Widget {
     onMenuItemsChanged: _scheduleMenuPrewarmRetry()
     onLoadingChanged: if (!loading) _scheduleMenuPrewarmRetry()
     onEnabledChanged: if (enabled) _scheduleMenuPrewarmRetry()
-    on_ToolTipTimersCanceled: _btnToolTipTimer.stop()
+    on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
     HoverHandler {
@@ -302,18 +311,26 @@ Widget {
         onHoveredChanged: if (hovered) control._prewarmMenu()
     }
 
-    Timer {
+    Loader {
         id: _menuPrewarmRetryTimer
-        interval: 0
-        onTriggered: control._retryMenuPrewarm()
+        active: control._hasMenuFeature
+
+        sourceComponent: Timer {
+            interval: Enums.duration.none
+            onTriggered: control._retryMenuPrewarm()
+        }
     }
 
     // ToolTip timer for Button - override Widget's _hoverArea
     // Button专用ToolTip定时器 - 覆盖Widget的_hoverArea
-    Timer {
+    Loader {
         id: _btnToolTipTimer
-        interval: toolTipShowDelay
-        onTriggered: if (control._toolTipHovered) control.showToolTip()
+        active: control.toolTipText !== ""
+
+        sourceComponent: Timer {
+            interval: control.toolTipShowDelay
+            onTriggered: if (control._toolTipHovered) control.showToolTip()
+        }
     }
 
     // Shadow layer 阴影层
@@ -329,10 +346,14 @@ Widget {
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件(纯黑零模糊, 偏移)。按下位移由下方 Translate 压平。
-    NeoShadow {
-        target: _bg
-        visible: Enums.isNeobrutalism && !control.flat
+    Loader {
+        id: neoShadowLoader
+        active: Enums.isNeobrutalism && !control.flat
         z: _bg.z - 1
+
+        sourceComponent: NeoShadow {
+            target: _bg
+        }
     }
 
     // Background 背景
@@ -506,44 +527,48 @@ Widget {
     }
 
     // Progress feature 进度条模块
-    Item {
-        id: progressClipRect
+    Loader {
+        id: progressFeatureLoader
         anchors.fill: parent
-        visible: feature === Enums.button.feature_progress_bar ||
-                 feature === Enums.button.feature_indeterminate_bar
+        active: feature === Enums.button.feature_progress_bar ||
+                feature === Enums.button.feature_indeterminate_bar
 
-        // Rectangle defaults to opaque white, the intended mask source Rectangle 默认不透明白色，正是所需的遮罩源
-        Rectangle {
-            id: progressMask
+        sourceComponent: Item {
             anchors.fill: parent
-            radius: control.radius
-            layer.enabled: true
-            visible: false
-        }
 
-        Item {
-            id: progressContent
-            anchors.fill: parent
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                maskEnabled: true
-                maskSource: progressMask
-                maskThresholdMin: Enums.mask.thresholdMin
-                maskSpreadAtMin: Enums.mask.spreadAtMin
+            // Rectangle defaults to opaque white, the intended mask source Rectangle 默认不透明白色，正是所需的遮罩源
+            Rectangle {
+                id: progressMask
+                anchors.fill: parent
+                radius: control.radius
+                layer.enabled: true
+                visible: false
             }
 
-            Loader {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: Enums.border.thick
-                active: progressClipRect.visible
-                sourceComponent: ButtonProgress {
-                    feature: control.feature
-                    style: control.style
-                    progress: control.progress
-                    showProgress: control.showProgress
-                    parentRadius: control.radius
+            Item {
+                id: progressContent
+                anchors.fill: parent
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: progressMask
+                    maskThresholdMin: Enums.mask.thresholdMin
+                    maskSpreadAtMin: Enums.mask.spreadAtMin
+                }
+
+                Loader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: Enums.border.thick
+                    active: true
+                    sourceComponent: ButtonProgress {
+                        feature: control.feature
+                        style: control.style
+                        progress: control.progress
+                        showProgress: control.showProgress
+                        parentRadius: control.radius
+                    }
                 }
             }
         }
@@ -611,23 +636,32 @@ Widget {
     }
 
     // Toggle animation 切换动画
-    ToggleAnimation {
-        id: toggleAnim
-        target: _bg
-        running: control.checked
+    Loader {
+        id: toggleAnimLoader
+        active: feature === Enums.button.feature_toggle
+
+        sourceComponent: ToggleAnimation {
+            target: _bg
+            running: control.checked
+        }
     }
 
     // Countdown timer 倒计时定时器
-    Timer {
+    Loader {
         id: countdownTimer
-        interval: Enums.duration.countUp
-        repeat: true
-        running: control._countdownActive
-        onTriggered: {
-            control._countdownRemaining--
-            if (control._countdownRemaining <= 0) {
-                control._countdownActive = false
-                control.countdownFinished()
+        active: feature === Enums.button.feature_countdown ||
+                control._countdownActive
+
+        sourceComponent: Timer {
+            interval: Enums.duration.countUp
+            repeat: true
+            running: control._countdownActive
+            onTriggered: {
+                control._countdownRemaining--
+                if (control._countdownRemaining <= 0) {
+                    control._countdownActive = false
+                    control.countdownFinished()
+                }
             }
         }
     }
