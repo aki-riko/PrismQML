@@ -22,7 +22,7 @@ Item {
     property color backgroundColor: Enums.transparent
     property bool fillWidth: true
     property bool smoothScroll: true
-    property int scrollDuration: Enums.duration.slow
+    property int scrollDuration: Enums.duration.navigationScroll
     property real scrollStep: Enums.spacing.xxxl * 3
     
     // ==================== Internal Props 内部属性 ====================

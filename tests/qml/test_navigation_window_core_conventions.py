@@ -51,7 +51,7 @@ NavigationWindowCore {
     property bool smoothScrollDefault: navigationSmoothScroll
     property int scrollDurationDefault: navigationScrollDuration
     property real scrollStepDefault: navigationScrollStep
-    property int slowDuration: Enums.duration.slow
+    property int expectedNavigationScrollDuration: Enums.duration.navigationScroll
     property real defaultScrollStep: Enums.spacing.xxxl * 3
 
     width: 640
@@ -191,7 +191,9 @@ def test_navigation_window_core_public_and_internal_contracts(monkeypatch, qapp)
         assert _variant(window.property("bottomEvents")) == [0, 1]
         assert _variant(window.property("pageEvents")) == [1]
         assert window.property("smoothScrollDefault") is True
-        assert window.property("scrollDurationDefault") == window.property("slowDuration")
+        assert window.property("scrollDurationDefault") == window.property(
+            "expectedNavigationScrollDuration"
+        )
         assert window.property("scrollStepDefault") == window.property("defaultScrollStep")
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
@@ -202,6 +204,7 @@ def test_navigation_window_core_public_and_internal_contracts(monkeypatch, qapp)
 
 def test_navigation_window_core_source_conventions_and_mica_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    metrics = METRICS_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [
@@ -212,9 +215,9 @@ def test_navigation_window_core_source_conventions_and_mica_tokens():
     assert "interval: Enums.window.micaReapplyDelayMs" in source
     assert "interval: Enums.window.micaLateReapplyDelayMs" in source
     assert "property bool navigationSmoothScroll: true" in source
-    assert "property int navigationScrollDuration: Enums.duration.slow" in source
+    assert "property int navigationScrollDuration: Enums.duration.navigationScroll" in source
+    assert "readonly property int navigationScroll: 500" in metrics
     assert "interval: 16" not in source
     assert "interval: 180" not in source
-    metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int micaReapplyDelayMs: 16" in metrics
     assert "readonly property int micaLateReapplyDelayMs: 180" in metrics

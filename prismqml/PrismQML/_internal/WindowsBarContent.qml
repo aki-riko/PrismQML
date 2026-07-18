@@ -56,7 +56,7 @@ Item {
         model: root.hostWindow ? root.hostWindow.navigationItems : []
         bottomItems: root.hostWindow ? root.hostWindow.bottomNavigationItems : []
         smoothScroll: root.hostWindow ? root.hostWindow.navigationSmoothScroll : true
-        scrollDuration: root.hostWindow ? root.hostWindow.navigationScrollDuration : Enums.duration.slow
+        scrollDuration: root.hostWindow ? root.hostWindow.navigationScrollDuration : Enums.duration.navigationScroll
         scrollStep: root.hostWindow ? root.hostWindow.navigationScrollStep : Enums.spacing.xxxl * 3
         backgroundColor: root.hostWindow && root.hostWindow._micaActive
             ? Enums.transparent

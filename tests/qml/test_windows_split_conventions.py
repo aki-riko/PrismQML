@@ -301,6 +301,6 @@ def test_windows_bar_source_conventions_and_zero_delay_token():
     )
     assert (
         "scrollDuration: root.hostWindow ? "
-        "root.hostWindow.navigationScrollDuration : Enums.duration.slow"
+        "root.hostWindow.navigationScrollDuration : Enums.duration.navigationScroll"
         in content_source
     )

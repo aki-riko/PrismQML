@@ -44,7 +44,7 @@ Window {
     readonly property string viewCurrentKey: navigationView.currentKey
     readonly property bool viewExpanded: navigationView.isExpanded
     readonly property bool viewCompact: navigationView.isCompact
-    readonly property int slowDuration: Enums.duration.slow
+    readonly property int navigationScrollDuration: Enums.duration.navigationScroll
     readonly property real defaultScrollStep: Enums.spacing.xxxl * 3
     readonly property bool barSmoothScroll: navigationBar.smoothScroll
     readonly property bool toggleSmoothScroll: toggleBar.smoothScroll
@@ -436,14 +436,22 @@ def test_navigation_bars_use_smooth_scroll_helper(navigation_scene):
     assert not toggle_flickable.property("interactive")
     assert window.property("barSmoothScroll") is True
     assert window.property("toggleSmoothScroll") is True
-    assert window.property("barScrollDuration") == window.property("slowDuration")
-    assert window.property("toggleScrollDuration") == window.property("slowDuration")
+    assert window.property("barScrollDuration") == window.property(
+        "navigationScrollDuration"
+    )
+    assert window.property("toggleScrollDuration") == window.property(
+        "navigationScrollDuration"
+    )
     assert bar.property("scrollStep") == pytest.approx(window.property("defaultScrollStep"))
     assert toggle.property("scrollStep") == pytest.approx(window.property("defaultScrollStep"))
     assert bar_helper.property("handleWheel") is False
     assert toggle_helper.property("handleWheel") is False
-    assert bar_helper.property("duration") == window.property("slowDuration")
-    assert toggle_helper.property("duration") == window.property("slowDuration")
+    assert bar_helper.property("duration") == window.property(
+        "navigationScrollDuration"
+    )
+    assert toggle_helper.property("duration") == window.property(
+        "navigationScrollDuration"
+    )
     assert bar_helper.property("targetPos") == pytest.approx(0)
 
     wheel_point = _item_with_text(bar, "NavigationBarItem", "Four").mapToScene(QPointF(20, 20)).toPoint()

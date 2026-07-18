@@ -17,7 +17,7 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property string helperName: "navigationSmoothScrollHelper"
     property bool smoothScroll: true
-    property int duration: Enums.duration.slow
+    property int duration: Enums.duration.navigationScroll
     property real step: Enums.spacing.xxxl * 3
     property int easing: Easing.OutQuart
 

@@ -21,7 +21,7 @@ WindowsCore {
     // Page container reference; subclasses set it when ready. 页面容器引用，由子类在就绪后设置。
     property var stackedWidget: null
     property bool navigationSmoothScroll: true
-    property int navigationScrollDuration: Enums.duration.slow
+    property int navigationScrollDuration: Enums.duration.navigationScroll
     property real navigationScrollStep: Enums.spacing.xxxl * 3
     property bool micaEnabled: false
     property bool lazyLoading: false
