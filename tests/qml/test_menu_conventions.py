@@ -44,6 +44,7 @@ Window {
     readonly property bool contextBound: contextMenu._mouseArea !== null
     readonly property bool contextVisible: contextMenu.isVisible()
     readonly property bool trayAtCursor: trayMenu.showAtCursor
+    readonly property int popupPanelOffset: Enums.popupMetrics.panelOffset
 
     function buildMenu() {
         openAction = menu.addAction("Open", "", "Ctrl+O", {
@@ -89,6 +90,19 @@ Window {
     MenuCore {
         id: menu
         objectName: "menuCore"
+    }
+
+    MenuBar {
+        id: menuBar
+        objectName: "menuBar"
+        x: 80
+        y: 220
+        items: [
+            {
+                "text": "File",
+                "children": [{ "text": "New" }]
+            }
+        ]
     }
 
     SystemTrayMenu {
@@ -155,6 +169,16 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
+def _visual_descendants(root):
+    result = []
+    pending = list(root.childItems())
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(child.childItems())
+    return result
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -170,6 +194,7 @@ def _create_scene():
         name: window.findChild(QQuickItem, name)
         for name in (
             "menuCore",
+            "menuBar",
             "contextMenu",
             "systemTrayMenu",
             "menuDelegate",
@@ -278,6 +303,45 @@ def test_menu_delegates_and_context_binding(menu_scene):
     assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_menu_bar_popup_panel_left_aligns_with_trigger(menu_scene):
+    window, items, warnings, windows_before = menu_scene
+    menu_bar = items["menuBar"]
+    menu_buttons = [
+        item
+        for item in _visual_descendants(menu_bar)
+        if item.metaObject().indexOfProperty("contentAlignment") >= 0
+        and item.property("text") == "File"
+    ]
+    assert len(menu_buttons) == 1
+    menu_button = menu_buttons[0]
+    click_position = menu_button.mapToScene(
+        QPointF(menu_button.width() / 2, menu_button.height() / 2)
+    ).toPoint()
+    target_global = window.mapToGlobal(
+        menu_button.mapToScene(QPointF()).toPoint()
+    )
+
+    QTest.mouseClick(
+        window,
+        Qt.MouseButton.LeftButton,
+        pos=click_position,
+    )
+    assert _wait_for(lambda: len(_new_visible_windows(windows_before, window)) == 1)
+    popup_window = _new_visible_windows(windows_before, window)[0]
+    assert popup_window.x() + window.property("popupPanelOffset") == target_global.x()
+
+    popup_cores = [
+        child
+        for child in _visual_descendants(menu_bar)
+        if child.metaObject().indexOfProperty("_cachedWidth") >= 0
+        and child.metaObject().indexOfProperty("isOpen") >= 0
+    ]
+    assert len(popup_cores) == 1
+    assert QMetaObject.invokeMethod(popup_cores[0], "close")
+    assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+    assert warnings == []
 
 
 def test_menu_sources_follow_conventions():

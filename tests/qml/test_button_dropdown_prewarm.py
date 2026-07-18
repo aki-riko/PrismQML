@@ -5,7 +5,7 @@
 """Button dropdown prewarm and tooltip lifecycle regressions. 按钮菜单预热回归。"""
 
 import pytest
-from PySide6.QtCore import QPoint
+from PySide6.QtCore import QPoint, QPointF
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtTest import QTest
@@ -231,7 +231,7 @@ def test_destroying_loader_cancels_queued_prewarm_work(dropdown_scene):
 
 
 def test_open_remeasures_reassigned_menu_items(dropdown_scene):
-    root, _window, warnings, _windows_before = dropdown_scene
+    root, window, warnings, _windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     dropdown = _button_dropdown(button)
     popup = _dropdown_popup(dropdown)
@@ -257,6 +257,18 @@ def test_open_remeasures_reassigned_menu_items(dropdown_scene):
     ]
 
     assert popup.property("popupWidth") > prepared_width
+    assert popup.property("referenceControlWidth") == pytest.approx(button.width())
+    target_global = window.mapToGlobal(
+        button.mapToScene(QPointF()).toPoint()
+    )
+    popup_panel_center = (
+        _popup_window(popup).x()
+        + root.property("popupPanelOffset")
+        + popup.property("popupWidth") / 2
+    )
+    assert popup_panel_center == pytest.approx(
+        target_global.x() + button.width() / 2
+    )
     assert not dropdown.property("_geometryPrepared")
     assert warnings == []
 

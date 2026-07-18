@@ -37,6 +37,7 @@ Item {
     readonly property int featureDropdown: Enums.button.feature_dropdown
     readonly property int featureSplit: Enums.button.feature_split
     readonly property int featureNone: Enums.button.feature_none
+    readonly property int popupPanelOffset: Enums.popupMetrics.panelOffset
 
     function replaceDropdownMenuItems() {
         dropdownButton.menuItems = [

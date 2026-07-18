@@ -48,6 +48,6 @@ Column {
         visible: control.label !== ""
         maximumLineCount: 1
         elide: Enums.isPrismDesign ? Text.ElideRight : Text.ElideNone
-        horizontalAlignment: Text.AlignLeft  // Left-align text 文本左对齐
+        horizontalAlignment: Text.AlignHCenter  // Center text 文本居中
     }
 }

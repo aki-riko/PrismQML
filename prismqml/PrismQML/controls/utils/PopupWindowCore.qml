@@ -126,9 +126,9 @@ Item {
         if (!targetCtrl) return
         targetControl = targetCtrl
         var pos = targetCtrl.mapToGlobal(0, targetCtrl.height + Enums.popupMetrics.controlGap)
-        // Calculate center offset when popup is wider than reference control 当弹出宽度大于参考控件宽度时计算居中偏移
-        var refW = referenceControlWidth > 0 ? referenceControlWidth : targetCtrl.width
-        var centerOffset = popupWidth > refW ? (popupWidth - refW) / 2 : 0
+        // Center only when a reference width is explicitly configured. 仅显式配置参考宽度时居中
+        var centerOffset = referenceControlWidth > 0 && popupWidth > referenceControlWidth
+            ? (popupWidth - referenceControlWidth) / 2 : 0
         open(pos.x - Enums.popupMetrics.panelOffset - centerOffset, pos.y - Enums.popupMetrics.panelOffset)
     }
     
@@ -370,9 +370,9 @@ Item {
                 newY = pos.y
             } else {
                 // Normal mode: below control (reuse currentGlobalPos) 控件下方（复用当前全局坐标）
-                // Calculate center offset when popup is wider than reference control 居中偏移
-                var refW = control.referenceControlWidth > 0 ? control.referenceControlWidth : control.targetControl.width
-                var centerOffset = control.popupWidth > refW ? (control.popupWidth - refW) / 2 : 0
+                // Center only when a reference width is explicitly configured. 仅显式配置参考宽度时居中
+                var centerOffset = control.referenceControlWidth > 0 && control.popupWidth > control.referenceControlWidth
+                    ? (control.popupWidth - control.referenceControlWidth) / 2 : 0
                 newX = currentGlobalPos.x - Enums.popupMetrics.panelOffset - centerOffset
                 newY = currentGlobalPos.y + control.targetControl.height + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset
             }
