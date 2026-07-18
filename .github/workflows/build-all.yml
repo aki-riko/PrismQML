@@ -16,6 +16,9 @@ on:
       - "pyproject.toml"
       - ".github/workflows/**"
 
+env:
+  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "480"
+
 jobs:
   qml_conventions:
     name: QML conventions
@@ -72,7 +75,8 @@ jobs:
           QML2_IMPORT_PATH: ""
           QML_IMPORT_PATH: ""
         run: >-
-          python scripts/test_process.py --qt-platform offscreen --timeout 300 --
+          python scripts/test_process.py --qt-platform offscreen
+          --timeout $env:PRISM_FULL_PYTEST_TIMEOUT_SECONDS --
           python -m pytest
       - name: Probe source QML components
         env:

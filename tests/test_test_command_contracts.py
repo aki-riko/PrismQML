@@ -244,6 +244,24 @@ def test_ci_automated_test_commands_use_process_runner():
 
 
 @pytest.mark.parametrize(
+    ("relative", "timeout_reference"),
+    (
+        (Path(".github/workflows/build-all.yml"), "$env:PRISM_FULL_PYTEST_TIMEOUT_SECONDS"),
+        (Path(".github/workflows/release.yml"), "$PRISM_FULL_PYTEST_TIMEOUT_SECONDS"),
+    ),
+)
+def test_ci_full_python_gates_have_current_timeout_budget(
+    relative: Path,
+    timeout_reference: str,
+):
+    """全量 Python CI 必须保留当前慢速 Windows runner 的时间余量。"""
+    source = (PROJECT_ROOT / relative).read_text(encoding="utf-8")
+
+    assert 'PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "480"' in source
+    assert f"--timeout {timeout_reference} --" in source
+
+
+@pytest.mark.parametrize(
     "source",
     (
         "steps:\n  - run: python -m pytest -q\n",

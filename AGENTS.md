@@ -415,7 +415,7 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
    `prism_native_failure_loader.exe`，也禁止依赖调用者恰好设置了 Qt PATH /
    `QT_QPA_PLATFORM`。原生失败夹具只能由 `ctest -L native` 间接启动。
    ```powershell
-   .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest
+   .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 480 -- .\.venv\Scripts\python.exe -m pytest
    .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
    ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
    ```

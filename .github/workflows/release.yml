@@ -7,6 +7,9 @@ on:
       - "v*"
   workflow_dispatch:  # 允许手动触发(只构建不发布)
 
+env:
+  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "480"
+
 jobs:
   quality_gate:
     name: Source quality gate
@@ -34,7 +37,8 @@ jobs:
           QML2_IMPORT_PATH: ""
           QML_IMPORT_PATH: ""
         run: >-
-          python scripts/test_process.py --qt-platform offscreen --timeout 300 --
+          python scripts/test_process.py --qt-platform offscreen
+          --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS --
           python -m pytest
       - name: Probe source QML components
         env:
