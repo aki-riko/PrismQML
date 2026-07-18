@@ -15,6 +15,7 @@ from PySide6.QtCore import (
     QObject,
     QTimer,
     QUrl,
+    qInstallMessageHandler,
 )
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlExpression
 
@@ -131,4 +132,96 @@ StackedWidget {{
         assert "InvalidPage.qml" in failures[0][1]
         assert "Expected" in failures[0][1]
     finally:
+        _release(qapp, stack, component, engine)
+
+
+def test_lazy_load_diagnostics_cover_transition_boundaries(qapp, tmp_path):
+    """A successful switch must expose every boundary. 成功切页必须暴露各阶段边界。"""
+    configure_qml_environment()
+    first_page = tmp_path / "FirstPage.qml"
+    second_page = tmp_path / "SecondPage.qml"
+    first_page.write_text(
+        'import QtQuick\nRectangle { objectName: "firstPage" }\n',
+        encoding="utf-8",
+    )
+    second_page.write_text(
+        'import QtQuick\nRectangle { objectName: "secondPage" }\n',
+        encoding="utf-8",
+    )
+    first_url = QUrl.fromLocalFile(str(first_page)).toString()
+    second_url = QUrl.fromLocalFile(str(second_page)).toString()
+    scene = f"""
+import QtQuick
+import PrismQML
+
+StackedWidget {{
+    width: 320
+    height: 180
+    animationEnabled: false
+    lazyLoading: true
+    currentIndex: 0
+    pageSources: ["{first_url}", "{second_url}"]
+}}
+"""
+    messages = []
+    previous_handler = qInstallMessageHandler(
+        lambda _mode, _context, message: messages.append(str(message))
+    )
+    engine = QQmlApplicationEngine()
+    component = None
+    stack = None
+    try:
+        register_types(engine)
+        component = QQmlComponent(engine)
+        component.setData(
+            scene.encode("utf-8"),
+            QUrl.fromLocalFile(str(_ROOT / "tests/qml/lazy-load-diagnostics.qml")),
+        )
+        assert _wait_until(
+            lambda: component.status() != QQmlComponent.Status.Loading
+        )
+        assert component.status() == QQmlComponent.Status.Ready, [
+            error.toString() for error in component.errors()
+        ]
+        stack = component.create(engine.rootContext())
+        assert stack is not None, [error.toString() for error in component.errors()]
+        assert _wait_until(lambda: bool(_evaluate(stack, "_isPageLoaded(0)")))
+
+        stack.setProperty("currentIndex", 1)
+        assert _wait_until(lambda: int(_evaluate(stack, "_displayIndex")) == 1)
+
+        diagnostic_messages = [
+            message for message in messages if "[懒加载诊断] StackedWidget #" in message
+        ]
+        expected_stages = (
+            "stage=stacked.current_index_changed",
+            "stage=stacked.switch_request",
+            "stage=stacked.helper_dispatch.begin",
+            "stage=helper.show.begin",
+            "stage=helper.loader_activate.begin",
+            "stage=stacked.loader_activate.begin",
+            "stage=stacked.source_loader.status_changed",
+            "stage=helper.loading_complete.emit_begin",
+            "stage=stacked.loading_complete.begin",
+            "stage=stacked.loading_complete.done",
+            "stage=helper.loading_complete.emit_done",
+        )
+        for stage in expected_stages:
+            assert any(stage in message for message in diagnostic_messages), stage
+
+        sequences = [
+            int(message.split("StackedWidget #", 1)[1].split(" ", 1)[0])
+            for message in diagnostic_messages
+        ]
+        assert sequences == sorted(sequences)
+        assert len(sequences) == len(set(sequences))
+        assert all(
+            " current=" in message
+            and " display=" in message
+            and " pending=" in message
+            and (" loader." in message or " loader=" in message)
+            for message in diagnostic_messages
+        )
+    finally:
+        qInstallMessageHandler(previous_handler)
         _release(qapp, stack, component, engine)

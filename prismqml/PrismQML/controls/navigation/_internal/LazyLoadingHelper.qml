@@ -19,6 +19,7 @@ Item {
     required property var isPageLoadFailedFunc // Function to check if page loading failed 检查页面加载是否失败的函数
     required property var pageLoadErrorFunc // Function to obtain the Loader error 获取Loader错误的函数
     required property var activateLoaderFunc // Function to activate loader
+    required property var diagnosticFunc // Diagnostic stage callback 诊断阶段回调
     
     // ==================== Public Props 公开属性 ====================
     property string loadingText: Translator.tr("loading")
@@ -31,19 +32,44 @@ Item {
     property bool isLoadingSwitching: false
     property int internalLastIndex: 0
     property int _exitTargetIndex: -1  // Store target index for exit animation callback 存储退出动画回调的目标索引
+    property int _observedLoaderIndex: -1
+    property int _observedLoaderStatus: Loader.Null
     
     // ==================== Signals 信号 ====================
     signal loadingComplete(int targetIndex, int previousIndex)
     signal loadingFailed(int targetIndex, string errorString)
     signal animationStart()
 
+    function _trace(stage, targetIdx) {
+        diagnosticFunc(
+            stage,
+            targetIdx,
+            "helperPending=" + pendingTargetIndex +
+            " helperSwitching=" + isLoadingSwitching +
+            " observedStatus=" + _observedLoaderStatus)
+    }
+
+    function _observeLoaderStatus(targetIdx) {
+        var targetLoader = targetIdx >= 0 && targetIdx < loaders.length ?
+                    loaders[targetIdx] : null
+        var status = targetLoader ? targetLoader.status : Loader.Null
+        if (_observedLoaderIndex === targetIdx && _observedLoaderStatus === status) return
+
+        _observedLoaderIndex = targetIdx
+        _observedLoaderStatus = status
+        _trace("helper.loader_status.changed", targetIdx)
+    }
+
     // ==================== Public Methods 公开方法 ====================
     function cancelPendingLoad() {
+        if (pendingTargetIndex >= 0) _trace("helper.cancel_pending.begin", pendingTargetIndex)
         loaderActivateTimer.stop()
         lazyLoadTimer.stop()
         pageRenderTimer.stop()
         hideLoadingTimer.stop()
         pendingTargetIndex = -1
+        _observedLoaderIndex = -1
+        _observedLoaderStatus = Loader.Null
     }
 
     function showLoadingAndSwitch(targetIdx) {
@@ -51,6 +77,8 @@ Item {
 
         pendingTargetIndex = targetIdx
         isLoadingSwitching = true
+        _trace("helper.show.begin", targetIdx)
+        _observeLoaderStatus(targetIdx)
 
         // Hide other pages immediately (except current visible) 立即隐藏其他页面（当前可见页面除外）
         for (var i = 0; i < loaders.length; i++) {
@@ -78,9 +106,11 @@ Item {
             loaderActivateTimer.targetIndex = targetIdx
             loaderActivateTimer.start()
         }
+        _trace("helper.show.done", targetIdx)
     }
 
     function _playExitAnimation(target, targetIdx) {
+        _trace("helper.exit_animation.start", targetIdx)
         // Store target index for callback 存储目标索引用于回调
         _exitTargetIndex = targetIdx
 
@@ -121,6 +151,8 @@ Item {
     }
 
     function _onExitAnimationFinished(target) {
+        var completedTargetIndex = _exitTargetIndex
+        _trace("helper.exit_animation.finish", completedTargetIndex)
         if (target) {
             target.visible = false
             target.opacity = 1
@@ -151,6 +183,7 @@ Item {
 
     function _handleLoadFailure(targetIdx, errorString) {
         if (targetIdx !== pendingTargetIndex) return
+        _trace("helper.loading_failed.begin", targetIdx)
 
         loaderActivateTimer.stop()
         lazyLoadTimer.stop()
@@ -175,6 +208,7 @@ Item {
         _exitTargetIndex = -1
 
         loadingFailed(targetIdx, errorString)
+        _trace("helper.loading_failed.done", targetIdx)
     }
 
     // ==================== Content 内容 ====================
@@ -330,8 +364,11 @@ Item {
         interval: Enums.duration.tick  // High-refresh tick 高刷定时器
         onTriggered: {
             if (targetIndex !== helper.pendingTargetIndex) return
-            
+
+            helper._trace("helper.loader_activate.begin", targetIndex)
             helper.activateLoaderFunc(targetIndex)
+            helper._observeLoaderStatus(targetIndex)
+            helper._trace("helper.loader_activate.done", targetIndex)
             lazyLoadTimer.targetIndex = targetIndex
             lazyLoadTimer.start()
         }
@@ -347,9 +384,11 @@ Item {
                 stop()
                 return
             }
-            
+
+            helper._observeLoaderStatus(targetIndex)
             if (helper.isPageLoadedFunc(targetIndex)) {
                 stop()
+                helper._trace("helper.page_ready", targetIndex)
                 pageRenderTimer.targetIndex = targetIndex
                 pageRenderTimer.start()
                 return
@@ -369,11 +408,13 @@ Item {
         interval: Enums.duration.ultraFast  // Wait for render stable 等待渲染稳定
         onTriggered: {
             if (targetIndex !== helper.pendingTargetIndex) return
-            
+
+            helper._trace("helper.page_render.begin", targetIndex)
             loadingOverlay.y = Enums.controlSize.popUpOffset
             loadingOverlay.opacity = 0
             hideLoadingTimer.targetIndex = targetIndex
             hideLoadingTimer.start()
+            helper._trace("helper.page_render.done", targetIndex)
         }
     }
     
@@ -383,17 +424,21 @@ Item {
         interval: Enums.duration.ultraFast  // Hide loading overlay 隐藏加载动画
         onTriggered: {
             if (targetIndex !== helper.pendingTargetIndex) return
-            
+
+            helper._trace("helper.hide_loading.begin", targetIndex)
             loadingOverlay.visible = false
             loadingOverlay.y = 0
-            
+
             var prevIdx = helper.internalLastIndex
             helper.internalLastIndex = targetIndex
             helper.pendingTargetIndex = -1
             helper.isLoadingSwitching = false
-            
+
+            helper._trace("helper.loading_complete.emit_begin", targetIndex)
             helper.loadingComplete(targetIndex, prevIdx)
+            helper._trace("helper.loading_complete.emit_done", targetIndex)
             helper.animationStart()
+            helper._trace("helper.hide_loading.done", targetIndex)
         }
     }
 }

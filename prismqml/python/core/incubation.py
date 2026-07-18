@@ -23,8 +23,15 @@ QML 的 `Loader { asynchronous: true }`(StackedWidget 懒加载就用它)只有�
 有待孵化对象时用 `_active_interval`(贴近一帧, 16ms)持续推进; 空闲时切到
 `_idle_interval`(250ms)低频轮询, 几乎不占 CPU, 一旦有新异步对象立即升频。
 """
+from time import perf_counter
+
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtQml import QQmlIncubationController
+
+from prismqml.python.core.logger import debug, exception, info
+
+
+_DIAGNOSTIC_TAG = "Incubation"
 
 
 class PrismIncubationController(QQmlIncubationController):
@@ -45,6 +52,7 @@ class PrismIncubationController(QQmlIncubationController):
         self._budget_ms = max(1, int(budget_ms))
         self._active_interval = max(1, int(active_interval))
         self._idle_interval = max(self._active_interval, int(idle_interval))
+        self._diagnostic_sequence = 0
 
         # owner(QObject)作 parent: controller 非 QObject 不能当 parent。
         self._timer = QTimer(owner)
@@ -55,12 +63,80 @@ class PrismIncubationController(QQmlIncubationController):
     def _on_tick(self) -> None:
         # incubatingObjectCount(): 当前仍在孵化中的对象数; >0 说明有异步实例化
         # 正在进行, 需要持续推进。incubateFor 在预算时间内尽可能多地推进孵化。
-        self.incubateFor(self._budget_ms)
+        object_count_before = self.incubatingObjectCount()
+        timer_interval_before = self._timer.interval()
+        sequence = self._trace_tick_begin(
+            object_count_before, timer_interval_before
+        )
+        object_count_after, elapsed_ms = self._advance_incubation(
+            object_count_before, timer_interval_before, sequence
+        )
+        timer_interval_after = self._update_timer(object_count_after > 0)
+        self._trace_tick_done(
+            sequence,
+            object_count_before,
+            object_count_after,
+            timer_interval_after,
+            elapsed_ms,
+        )
 
-        active = self.incubatingObjectCount() > 0
+    def _trace_tick_begin(self, object_count, timer_interval):
+        if object_count <= 0:
+            return None
+        self._diagnostic_sequence += 1
+        sequence = self._diagnostic_sequence
+        debug(
+            "tick begin "
+            f"sequence={sequence} "
+            f"object_count_before={object_count} "
+            f"budget_ms={self._budget_ms} "
+            f"timer_interval_ms={timer_interval}",
+            tag=_DIAGNOSTIC_TAG,
+        )
+        return sequence
+
+    def _advance_incubation(self, object_count, timer_interval, sequence):
+        started_at = perf_counter()
+        try:
+            self.incubateFor(self._budget_ms)
+            object_count_after = self.incubatingObjectCount()
+        except (RuntimeError, TypeError) as exc:
+            elapsed_ms = (perf_counter() - started_at) * 1000
+            exception(
+                "tick failed "
+                f"sequence={sequence if sequence is not None else 'idle'} "
+                f"object_count_before={object_count} "
+                f"budget_ms={self._budget_ms} "
+                f"timer_interval_ms={timer_interval} "
+                f"elapsed_ms={elapsed_ms:.3f} "
+                f"error={type(exc).__name__}: {exc}",
+                tag=_DIAGNOSTIC_TAG,
+            )
+            raise
+        return object_count_after, (perf_counter() - started_at) * 1000
+
+    def _update_timer(self, active):
         want = self._active_interval if active else self._idle_interval
         if self._timer.interval() != want:
             self._timer.start(want)
+        return self._timer.interval()
+
+    def _trace_tick_done(
+        self, sequence, object_count_before, object_count_after,
+        timer_interval, elapsed_ms,
+    ):
+        if sequence is None:
+            return
+        debug(
+            "tick done "
+            f"sequence={sequence} "
+            f"object_count_before={object_count_before} "
+            f"object_count_after={object_count_after} "
+            f"budget_ms={self._budget_ms} "
+            f"timer_interval_ms={timer_interval} "
+            f"elapsed_ms={elapsed_ms:.3f}",
+            tag=_DIAGNOSTIC_TAG,
+        )
 
 
 def install_incubation_controller(engine, budget_ms: int = 5):
@@ -72,9 +148,33 @@ def install_incubation_controller(engine, budget_ms: int = 5):
     """
     existing = engine.incubationController()
     if isinstance(existing, PrismIncubationController):
+        _log_controller_reused(existing)
         return existing
     controller = PrismIncubationController(engine, budget_ms=budget_ms)
     engine.setIncubationController(controller)
     # 防 GC: setIncubationController 不取 Python 引用所有权, 必须自己留引用。
     engine._fluent_incubation_ctrl = controller
+    _log_controller_installed(engine, controller)
     return controller
+
+
+def _log_controller_reused(controller):
+    info(
+        "controller reused "
+        f"controller_id={id(controller)} "
+        f"budget_ms={controller._budget_ms} "
+        f"timer_interval_ms={controller._timer.interval()}",
+        tag=_DIAGNOSTIC_TAG,
+    )
+
+
+def _log_controller_installed(engine, controller):
+    info(
+        "controller installed "
+        f"controller_id={id(controller)} "
+        f"engine_type={type(engine).__name__} "
+        f"budget_ms={controller._budget_ms} "
+        f"active_interval_ms={controller._active_interval} "
+        f"idle_interval_ms={controller._idle_interval}",
+        tag=_DIAGNOSTIC_TAG,
+    )

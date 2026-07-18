@@ -52,6 +52,7 @@ Item {
     property int previousIndex: 0
     property int _displayIndex: 0
     property int _pendingLazySwitchIndex: -1
+    property int _lazyDiagnosticSequence: 0
 
     // ==================== Signals 信号 ====================
     signal currentChanged(int index)
@@ -75,6 +76,27 @@ Item {
         _startupProfileLast = now
     }
 
+    function _loaderDiagnosticSnapshot(index, loaderOverride) {
+        var loader = loaderOverride ||
+                (index >= 0 && index < _loaders.length ? _loaders[index] : null)
+        if (!loader) return "loader=missing"
+        return "loader.active=" + loader.active +
+                " loader.status=" + loader.status +
+                " loader.item=" + (loader.item !== null)
+    }
+
+    function _traceLazyStage(stage, index, details, loaderOverride) {
+        _lazyDiagnosticSequence += 1
+        var detailText = details ? " " + details : ""
+        console.info("[懒加载诊断] StackedWidget #" + _lazyDiagnosticSequence +
+                    " stage=" + stage +
+                    " target=" + index +
+                    " current=" + currentIndex +
+                    " display=" + _displayIndex +
+                    " pending=" + _pendingLazySwitchIndex + " " +
+                    _loaderDiagnosticSnapshot(index, loaderOverride) + detailText)
+    }
+
     // ==================== Internal Methods 内部方法 ====================
     function _isPageLoaded(index) {
         if (!lazyLoading || !_useSourceMode) return true
@@ -82,12 +104,14 @@ Item {
     }
 
     function _activateLoader(index) {
+        _traceLazyStage("stacked.loader_activate.begin", index)
         if (_loaders[index] && !_loaders[index].active) {
             if (_useSourceMode) {
                 _loaders[index].source = pageSources[index] || ""
             }
             _loaders[index].active = true
         }
+        _traceLazyStage("stacked.loader_activate.done", index)
     }
 
     function _lazyHelperInitialProperties() {
@@ -102,7 +126,8 @@ Item {
             "isPageLoadedFunc": control._isPageLoaded,
             "isPageLoadFailedFunc": control._isPageLoadFailedFunc,
             "pageLoadErrorFunc": control._pageLoadErrorFunc,
-            "activateLoaderFunc": control._activateLoader
+            "activateLoaderFunc": control._activateLoader,
+            "diagnosticFunc": control._traceLazyStage
         }
     }
 
@@ -110,9 +135,13 @@ Item {
         if (!control.lazyLoading || !control._useSourceMode ||
                 lazyHelperLoader.item || lazyHelperLoader.status !== Loader.Null) return
 
+        _traceLazyStage("stacked.helper_load.begin", currentIndex,
+                        "reason=" + reason, lazyHelperLoader)
         lazyHelperLoader.active = true
         lazyHelperLoader.setSource(Qt.resolvedUrl("_internal/LazyLoadingHelper.qml"), _lazyHelperInitialProperties())
         profileTime("lazyHelper preload requested reason=" + reason)
+        _traceLazyStage("stacked.helper_load.done", currentIndex,
+                        "reason=" + reason, lazyHelperLoader)
     }
 
     function _preloadLazyHelperWhenReady(reason) {
@@ -121,6 +150,7 @@ Item {
     }
 
     function _showLazyLoadingAndSwitch(index) {
+        _traceLazyStage("stacked.switch_request", index)
         _pendingLazySwitchIndex = index
         _ensureLazyHelperLoaded("switch target=" + index)
         if (!lazyHelperLoader.item) return
@@ -138,7 +168,9 @@ Item {
 
         var target = _pendingLazySwitchIndex
         _pendingLazySwitchIndex = -1
+        _traceLazyStage("stacked.helper_dispatch.begin", target)
         lazyHelperLoader.item.showLoadingAndSwitch(target)
+        _traceLazyStage("stacked.helper_dispatch.done", target)
     }
 
     function _configureLazyHelper(item) {
@@ -157,8 +189,10 @@ Item {
         item.isPageLoadFailedFunc = control._isPageLoadFailedFunc
         item.pageLoadErrorFunc = control._pageLoadErrorFunc
         item.activateLoaderFunc = control._activateLoader
+        item.diagnosticFunc = control._traceLazyStage
         item.loadingComplete.connect(control._handleLazyLoadingComplete)
         item.loadingFailed.connect(function(targetIdx, errorString) {
+            control._traceLazyStage("stacked.loading_failed", targetIdx)
             control.profileTime(
                 "lazyHelper loadingFailed target=" + targetIdx + ", error=" + errorString)
             control.pageLoadFailed(targetIdx, errorString)
@@ -166,6 +200,8 @@ Item {
     }
 
     function _handleLazyLoadingComplete(targetIdx, prevIdx) {
+        control._traceLazyStage("stacked.loading_complete.begin", targetIdx,
+                                "previous=" + prevIdx)
         control.profileTime("lazyHelper loadingComplete start target=" + targetIdx + ", prev=" + prevIdx)
         // 更新实际显示页(不写 currentIndex: 它已是 targetIdx 且不能命令式写,
         // 否则打破外部 'currentIndex: window.currentIndex' 绑定)。
@@ -202,6 +238,8 @@ Item {
         }
         control._doEnterAnimation(targetIdx)
         control.profileTime("lazyHelper loadingComplete done")
+        control._traceLazyStage("stacked.loading_complete.done", targetIdx,
+                                "previous=" + prevIdx)
     }
 
     // Animation execution 动画执行
@@ -385,6 +423,7 @@ Item {
         if (index === _displayIndex) _preloadLazyHelperWhenReady("pageLoaded index=" + index)
     }
     onCurrentIndexChanged: {
+        _traceLazyStage("stacked.current_index_changed", currentIndex)
         profileTime("currentIndex changed to " + currentIndex)
         // currentIndex 是目标页(外部输入)。用 _displayIndex(实际显示页)判重,
         // 内部绝不回写 currentIndex(否则打破外部声明式绑定)。
@@ -465,7 +504,13 @@ Item {
                 // _loadOnce 初始 false → 初始 active 仅跟 index===currentIndex(只当前页);
                 // 页面一旦被激活 onActiveChanged 锁 _loadOnce=true, 切走再切回仍 active,
                 // source 不清空(避免 status===Ready latch 的切走退出 Ready→source 清空→永久轮询死锁)。
-                onActiveChanged: if (active) _loadOnce = true
+                onActiveChanged: {
+                    if (active) _loadOnce = true
+                    control._traceLazyStage(
+                        "stacked.source_loader.active_changed", index, "", sourceLoader)
+                }
+                onStatusChanged: control._traceLazyStage(
+                    "stacked.source_loader.status_changed", index, "", sourceLoader)
                 source: control.lazyLoading ? (index === control.currentIndex || _loadOnce ? control.pageSources[index] : "") : control.pageSources[index]
                 active: !control.lazyLoading || index === control.currentIndex || _loadOnce
                 visible: index === control._displayIndex
@@ -486,9 +531,13 @@ Item {
                 // 变化 → onActiveChanged 不触发 → _loadOnce 漏锁 → 切走被卸载、切回重新
                 // 懒加载。onLoaded 是"已加载"的权威信号, 主页启动会触发, 在此补锁兜底。
                 onLoaded: {
+                    control._traceLazyStage(
+                        "stacked.source_loader.loaded.begin", index, "", sourceLoader)
                     _loadOnce = true
                     control.pageLoaded(index)
                     control.profileTime("sourceLoader onLoaded index=" + index)
+                    control._traceLazyStage(
+                        "stacked.source_loader.loaded.done", index, "", sourceLoader)
                 }
             }
         }
@@ -500,10 +549,22 @@ Item {
         anchors.fill: parent
         active: false
         asynchronous: true
+        onActiveChanged: control._traceLazyStage(
+            "stacked.helper_loader.active_changed", control.currentIndex,
+            "", lazyHelperLoader)
+        onStatusChanged: control._traceLazyStage(
+            "stacked.helper_loader.status_changed", control.currentIndex,
+            "", lazyHelperLoader)
         onLoaded: {
+            control._traceLazyStage(
+                "stacked.helper_loader.loaded.begin", control.currentIndex,
+                "", lazyHelperLoader)
             control._configureLazyHelper(item)
             control.profileTime("lazyHelper loaded")
             control._flushPendingLazySwitch()
+            control._traceLazyStage(
+                "stacked.helper_loader.loaded.done", control.currentIndex,
+                "", lazyHelperLoader)
         }
     }
 }
