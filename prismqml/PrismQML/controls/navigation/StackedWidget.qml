@@ -82,10 +82,24 @@ Item {
     function _loaderDiagnosticSnapshot(index, loaderOverride) {
         var loader = loaderOverride ||
                 (index >= 0 && index < _loaders.length ? _loaders[index] : null)
-        if (!loader) return "loader=missing"
+        var targetSource = index >= 0 && index < pageSources.length ?
+                    String(pageSources[index]) : ""
+        var currentSource = _displayIndex >= 0 && _displayIndex < pageSources.length ?
+                    String(pageSources[_displayIndex]) : ""
+        if (!loader) {
+            return "loader=missing" +
+                    " targetSource=\"" + targetSource + "\"" +
+                    " currentSource=\"" + currentSource + "\""
+        }
+        var itemObjectName = loader.item && loader.item.objectName ?
+                    loader.item.objectName : ""
         return "loader.active=" + loader.active +
                 " loader.status=" + loader.status +
-                " loader.item=" + (loader.item !== null)
+                " loader.item=" + (loader.item !== null) +
+                " loader.source=\"" + String(loader.source) + "\"" +
+                " loader.itemObjectName=\"" + itemObjectName + "\"" +
+                " targetSource=\"" + targetSource + "\"" +
+                " currentSource=\"" + currentSource + "\""
     }
 
     function _traceLazyStage(stage, index, details, loaderOverride) {

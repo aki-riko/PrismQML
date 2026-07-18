@@ -232,7 +232,16 @@ StackedWidget {{
             " current=" in message
             and " display=" in message
             and " pending=" in message
+            and " targetSource=\"" in message
+            and " currentSource=\"" in message
             and (" loader." in message or " loader=" in message)
+            for message in diagnostic_messages
+        )
+        assert any(
+            f'targetSource="{second_url}"' in message
+            and f'currentSource="{first_url}"' in message
+            and 'loader.source="' in message
+            and 'loader.itemObjectName="' in message
             for message in diagnostic_messages
         )
     finally:

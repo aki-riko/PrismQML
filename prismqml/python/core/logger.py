@@ -20,6 +20,7 @@ import sys
 import logging
 import traceback
 import time
+from collections import deque
 
 # 模块加载时记录初始时间（供性能测试用）
 _start_time = time.perf_counter()
@@ -359,6 +360,30 @@ def log_time(msg: str) -> None:
 
 # ==================== Qt Message Handler Qt消息处理器 ====================
 
+_QT_CONTEXT_TEXT_LIMIT = 240
+_QT_BREADCRUMB_CAPACITY = 32
+_QT_BREADCRUMB_REPLAY_LIMIT = 12
+_QT_BREADCRUMB_PREFIXES = ("[懒加载诊断]", "[启动剖析]")
+
+
+def _shorten_qt_context_value(value) -> str:
+    """Bound and escape Qt context text. 限制并转义 Qt 上下文文本。"""
+    text = str(value or "<unknown>").replace("\x00", "\\0")
+    if len(text) <= _QT_CONTEXT_TEXT_LIMIT:
+        return text
+    return f"{text[:_QT_CONTEXT_TEXT_LIMIT]}..."
+
+
+def _qt_message_context(context) -> str:
+    """Format source metadata carried by QMessageLogContext. 格式化 Qt 源信息。"""
+    return (
+        "[QtContext] "
+        f"category={_shorten_qt_context_value(getattr(context, 'category', None))} "
+        f"file={_shorten_qt_context_value(getattr(context, 'file', None))} "
+        f"line={getattr(context, 'line', 0) or 0} "
+        f"function={_shorten_qt_context_value(getattr(context, 'function', None))}"
+    )
+
 
 def _qt_message_tag(context) -> str:
     """Resolve the project tag for a Qt message. 解析 Qt 消息项目标签。"""
@@ -376,15 +401,44 @@ def _create_qt_message_handler(qt_msg_type):
         qt_msg_type.QtCriticalMsg: logging.ERROR,
         qt_msg_type.QtFatalMsg: logging.CRITICAL,
     }
+    breadcrumbs = deque(maxlen=_QT_BREADCRUMB_CAPACITY)
+    breadcrumb_version = 0
+    replayed_version = -1
 
     def qt_message_handler(mode, context, message):
+        nonlocal breadcrumb_version, replayed_version
         if not message:
             return
-        getLogger()._log(
-            level_map.get(mode, logging.INFO),
-            message.strip(),
+        stripped_message = message.strip()
+        level = level_map.get(mode, logging.INFO)
+        if stripped_message.startswith(_QT_BREADCRUMB_PREFIXES):
+            breadcrumbs.append(stripped_message)
+            breadcrumb_version += 1
+
+        rendered_message = stripped_message
+        if level >= logging.WARNING:
+            rendered_message = f"{rendered_message} {_qt_message_context(context)}"
+
+        logger = getLogger()
+        logger._log(
+            level,
+            rendered_message,
             tag=_qt_message_tag(context),
         )
+
+        if (
+            level >= logging.WARNING
+            and breadcrumbs
+            and replayed_version != breadcrumb_version
+        ):
+            recent = list(breadcrumbs)[-_QT_BREADCRUMB_REPLAY_LIMIT:]
+            for position, breadcrumb in enumerate(recent, start=1):
+                logger._log(
+                    logging.INFO,
+                    f"[QML诊断回放 {position}/{len(recent)}] {breadcrumb}",
+                    tag="QML:BREADCRUMB",
+                )
+            replayed_version = breadcrumb_version
 
     return qt_message_handler
 

@@ -119,8 +119,14 @@ def test_tree_view_async_loader_tracks_internal_list_model(qapp):
                 break
             _pump()
         assert set(delegates_by_text) == {"Root", "Leaf"}
-        root_y = delegates_by_text["Root"].mapToItem(tree, QPointF()).y()
-        leaf_y = delegates_by_text["Leaf"].mapToItem(tree, QPointF()).y()
+        root_y = 0.0
+        leaf_y = 0.0
+        for _ in range(100):
+            root_y = delegates_by_text["Root"].mapToItem(tree, QPointF()).y()
+            leaf_y = delegates_by_text["Leaf"].mapToItem(tree, QPointF()).y()
+            if root_y < leaf_y:
+                break
+            _pump()
         assert root_y < leaf_y
 
         root_delegate = delegates_by_text["Root"]

@@ -6,6 +6,7 @@
 
 import logging
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -101,6 +102,48 @@ def test_install_qt_message_handler_routes_real_warning(project_log_records):
     assert len(matches) == 1
     assert matches[0].levelno == logging.WARNING
     assert matches[0].tag == "QML"
+
+
+def test_qt_warning_includes_source_context_and_replays_breadcrumbs_once(
+    project_log_records,
+):
+    from PySide6.QtCore import QtMsgType
+    from prismqml.python.core.logger import _create_qt_message_handler
+
+    handler = _create_qt_message_handler(QtMsgType)
+    context = SimpleNamespace(
+        category="qml",
+        file="qrc:/diagnostics/Page.qml",
+        line=77,
+        function="onCurrentIndexChanged",
+    )
+    breadcrumb = (
+        "[懒加载诊断] StackedWidget #9 stage=stacked.current_index_changed "
+        "target=2 current=2 display=1"
+    )
+
+    handler(QtMsgType.QtInfoMsg, context, breadcrumb)
+    handler(QtMsgType.QtWarningMsg, context, "Unable to assign [undefined] to QColor")
+    handler(QtMsgType.QtWarningMsg, context, "second warning")
+
+    warning_records = [
+        record for record in project_log_records if record.levelno == logging.WARNING
+    ]
+    assert len(warning_records) == 2
+    rendered_warning = warning_records[0].getMessage()
+    assert "[QtContext]" in rendered_warning
+    assert "category=qml" in rendered_warning
+    assert "file=qrc:/diagnostics/Page.qml" in rendered_warning
+    assert "line=77" in rendered_warning
+    assert "function=onCurrentIndexChanged" in rendered_warning
+
+    replay_records = [
+        record
+        for record in project_log_records
+        if getattr(record, "tag", "") == "QML:BREADCRUMB"
+    ]
+    assert len(replay_records) == 1
+    assert breadcrumb in replay_records[0].getMessage()
 
 
 def test_install_qt_message_handler_failure_logs_traceback(
