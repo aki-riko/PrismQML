@@ -117,13 +117,9 @@ Item {
 
     function _updatePopupWidth() {
         var contentW = _calcContentWidth()
-        // Split mode: use content width only; Dropdown mode: max(content, button width)
-        // Split模式：仅用内容宽度；Dropdown模式：取内容宽度和按钮宽度的最大值
-        if (feature === Enums.button.feature_split) {
-            dropDownMenu.popupWidth = contentW
-        } else {
-            dropDownMenu.popupWidth = Math.max(contentW, parent.width)
-        }
+        // Keep dropdown and split menus at least as wide as their parent button.
+        // 下拉与分离按钮菜单最小宽度均与父按钮一致。
+        dropDownMenu.popupWidth = Math.max(contentW, parent.width)
         _geometryPrepared = true
     }
 

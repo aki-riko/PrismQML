@@ -189,9 +189,10 @@ def test_unavailable_dropdown_does_not_prewarm(dropdown_scene, blocked_state):
     assert warnings == []
 
 
-def test_dropdown_prewarm_delegate_is_idempotent(dropdown_scene):
+@pytest.mark.parametrize("object_name", ["dropdownButton", "splitButton"])
+def test_dropdown_prewarm_delegate_is_idempotent(dropdown_scene, object_name):
     root, _window, warnings, _windows_before = dropdown_scene
-    button = _button(root, "dropdownButton")
+    button = _button(root, object_name)
     dropdown = _button_dropdown(button)
     popup = _dropdown_popup(dropdown)
 
