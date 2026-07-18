@@ -36,16 +36,12 @@
 
 from enum import IntEnum
 from typing import Optional, List, Dict, Any, Type, Union
-from PySide6.QtCore import QObject, Signal, Slot, Property, QUrl, Qt
+from PySide6.QtCore import QObject, Signal, Slot, Property, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
-from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication, QIcon
-import time
 
 from ..core.engine import EngineManager
-from ..core._icon_path import resolve_icon_path
-from ..providers import get_svg_provider
 from ..core.logger import warning, info, exception, debug
 
 # ==================== 窗口类型枚举 ====================
@@ -265,53 +261,11 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
             return app.windowIcon()
         return QIcon()
 
-    def _setAppIcon(self, icon: str):
-        """Set application icon for taskbar 设置任务栏图标
+    def _setAppIcon(self, icon: str) -> None:
+        """Set the shared application icon. 设置共享应用图标。"""
+        from ..core.window_helper import get_window_helper
 
-        Args:
-            icon: Icon path (supports file path, qrc:/, :/ formats) 图标路径
-        """
-        if not icon:
-            return
-
-        profile_start = time.perf_counter()
-
-        # Resolve icon path 解析图标路径
-        icon_path = resolve_icon_path(icon)
-
-        # Create and set QIcon 创建并设置QIcon
-        app = QGuiApplication.instance()
-        if app:
-            # SVG needs special handling SVG需要特殊处理
-            if icon_path.lower().endswith(".svg"):
-                render_start = time.perf_counter()
-                from PySide6.QtSvg import QSvgRenderer
-                from PySide6.QtGui import QPixmap, QPainter
-                from PySide6.QtCore import QSize
-
-                renderer = QSvgRenderer(icon_path)
-                if renderer.isValid():
-                    # Render at multiple sizes for taskbar 为任务栏渲染多种尺寸
-                    qicon = QIcon()
-                    for size in [16, 24, 32, 48, 64, 128, 256]:
-                        pixmap = QPixmap(QSize(size, size))
-                        pixmap.fill(Qt.GlobalColor.transparent)
-                        painter = QPainter(pixmap)
-                        renderer.render(painter)
-                        painter.end()
-                        qicon.addPixmap(pixmap)
-                    app.setWindowIcon(qicon)
-                    info(
-                        "[启动剖析] WindowCore._setAppIcon SVG: "
-                        f"render={int((time.perf_counter() - render_start) * 1000)}ms / "
-                        f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
-                    )
-            else:
-                app.setWindowIcon(QIcon(icon_path))
-                info(
-                    "[启动剖析] WindowCore._setAppIcon bitmap: "
-                    f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
-                )
+        get_window_helper().setAppIcon(icon)
 
     def setMicaEffectEnabled(self, enabled: bool):
         """设置云母效果
