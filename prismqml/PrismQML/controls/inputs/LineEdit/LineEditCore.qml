@@ -139,8 +139,9 @@ InputCore {
         }
     }
 
-    // Collapsible animation 折叠动画
-    Behavior on implicitWidth {
+    // Animate the content width that drives both visible and implicit width
+    // 对同时驱动可见宽度与隐式宽度的内容宽度执行动画
+    Behavior on contentWidth {
         enabled: _isSearch && collapsible
         NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic }
     }

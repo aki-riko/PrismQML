@@ -6,6 +6,7 @@
 
 from pathlib import Path, PurePosixPath
 
+import pytest
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -255,6 +256,32 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
         _click(window, search_action)
         _pump()
         assert searched == ["needle"]
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_collapsible_search_animates_width_and_keeps_action_height(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, inputs, warnings = _create_scene()
+    search_control = inputs["searchInput"]
+    search_module = _normal_module(search_control)
+    search_action = _action_button(search_module)
+    try:
+        collapsed_width = search_control.width()
+        expanded_width = search_control.property("expandedWidth")
+        assert collapsed_width < expanded_width
+        assert search_action.height() == pytest.approx(search_control.height())
+
+        _click(window, search_action)
+        _pump(50)
+
+        animated_width = search_control.width()
+        assert collapsed_width < animated_width < expanded_width
+        assert _wait_for(lambda: search_control.width() == pytest.approx(expanded_width))
+        assert search_action.height() == pytest.approx(search_control.height())
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

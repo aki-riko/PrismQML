@@ -180,6 +180,7 @@ Item {
         visible: normalInput._isPassword || normalInput._isSearch
         collapsed: _isCollapsedSearch
         collapsedSize: normalInput.collapsedWidth
+        fillParentHeight: normalInput._isSearch
         icon: normalInput._isPassword 
             ? (normalInput.showPassword ? Enums.icon.eye_off : Enums.icon.eye)
             : Enums.icon.search
