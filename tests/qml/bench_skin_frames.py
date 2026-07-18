@@ -1,19 +1,25 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """帧时间基准: 对比 Fluent vs neobrutalism 皮肤下控件密集页的渲染帧间隔。
 
 做法: 实例化一批控件(模拟密集页), 连续触发重绘(改 hovered/滚动), 用 frameSwapped
 记录帧间隔, 统计 >20ms 卡帧数与平均帧时间。两皮肤各跑一轮对比。
-退出码 0。结果落盘 C:/Users/Kotori/frame_bench.txt。
+退出码 0。结果路径由 --output、PRISMQML_FRAME_BENCH_OUTPUT 或系统临时目录决定。
 """
+import argparse
+import os
+from pathlib import Path
 import sys
+import tempfile
 import time
-from PySide6.QtCore import QUrl, QTimer, QObject
+from typing import Optional
+from PySide6.QtCore import QUrl, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 
-import prismqml
 from prismqml import Skin, setSkin, register_types
 
 # 控件密集场景: 一列 N 个卡片, 每个含按钮/输入/开关/徽章 — 触发滚动重绘
@@ -67,6 +73,26 @@ Window {
 """
 
 _KEEP = []
+OUTPUT_ENV = "PRISMQML_FRAME_BENCH_OUTPUT"
+
+
+def resolve_output_path(output: Optional[Path]) -> Path:
+    if output is not None:
+        return output.expanduser().resolve()
+    configured = os.environ.get(OUTPUT_ENV)
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return Path(tempfile.gettempdir()) / "prismqml" / "frame_bench.txt"
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help=f"结果文件路径；默认读取 {OUTPUT_ENV}，否则写入系统临时目录",
+    )
+    return parser.parse_args(argv)
 
 
 def bench_skin(engine, skin, label, out):
@@ -120,7 +146,9 @@ def bench_skin(engine, skin, label, out):
     win.setProperty("visible", False)
 
 
-def main():
+def main(argv=None):
+    args = parse_args(argv)
+    output_path = resolve_output_path(args.output)
     QQuickWindow.setGraphicsApi(QSGRendererInterface.OpenGL)
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
@@ -132,7 +160,9 @@ def main():
 
     text = "\n".join(out)
     print(text)
-    open(r"C:/Users/Kotori/frame_bench.txt", "w", encoding="utf-8").write(text)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(text, encoding="utf-8")
+    print(f"结果文件: {output_path}")
     QTimer.singleShot(100, app.quit)
     app.exec()
 
