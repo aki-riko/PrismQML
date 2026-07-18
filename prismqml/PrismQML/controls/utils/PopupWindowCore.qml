@@ -4,6 +4,7 @@
 
 import "../.."
 import "../../effects"
+import "_internal"
 import QtQuick.Effects
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
@@ -43,7 +44,7 @@ Item {
     // [Anim C] Spring scale for iOS-style bounce 弹簧缩放
     property real _scale: 0.7
     // Follow parent control position (sync move on scroll) 跟随父控件位置变化
-    property point _lastTargetGlobalPos: Qt.point(-1, -1)
+    readonly property var _targetWindow: targetControl ? targetControl.Window.window : null
 
     // Popup content 弹出内容
     default property alias popupContent: contentContainer.data
@@ -250,6 +251,23 @@ Item {
         if (isOpen) close()
         else if (targetControl) openAtControl(targetControl)
     }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _applyTrackedPosition(currentGlobalPos) {
+        var newX, newY
+        if (_isPickerMode) {
+            var pickerPos = _calcPickerPosition(targetControl, _pickerRowHeight)
+            newX = pickerPos.x
+            newY = pickerPos.y
+        } else {
+            var centerOffset = referenceControlWidth > 0 && popupWidth > referenceControlWidth
+                ? (popupWidth - referenceControlWidth) / 2 : 0
+            newX = currentGlobalPos.x - Enums.popupMetrics.panelOffset - centerOffset
+            newY = currentGlobalPos.y + targetControl.height + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset
+        }
+        popupWindow.x = newX
+        popupWindow.y = newY
+    }
     
     // ==================== Content 内容 ====================
     Timer {
@@ -332,54 +350,13 @@ Item {
         }
     }
     
-    // Follow parent control position (sync move on scroll) 跟随父控件位置变化
-    Timer {
-        id: positionTracker
-        interval: Enums.popupMetrics.trackerIntervalMs  // 1000fps, update only on position change 仅位置变化时更新
-        repeat: true
-        running: control.isOpen && control.targetControl !== null
-        onTriggered: {
-            if (!control.targetControl) return
-            
-            // Get current global position of target control 获取目标控件当前全局位置
-            var currentGlobalPos = control.targetControl.mapToGlobal(0, 0)
-            
-            // Skip if position unchanged (most common case) 位置未变则跳过（最常见情况）
-            if (Math.abs(currentGlobalPos.x - control._lastTargetGlobalPos.x) < Enums.popupMetrics.positionEpsilon &&
-                Math.abs(currentGlobalPos.y - control._lastTargetGlobalPos.y) < Enums.popupMetrics.positionEpsilon) {
-                return
-            }
-            control._lastTargetGlobalPos = currentGlobalPos
-            
-            // Check if targetControl is in main window visible area 检查是否在可视区域
-            var mainWindow = control.targetControl.Window.window
-            if (mainWindow) {
-                var localPos = control.targetControl.mapToItem(mainWindow.contentItem, 0, 0)
-                // Close popup if targetControl scrolled out of view 滚动出视区则关闭
-                if (localPos.y < -control.targetControl.height || localPos.y > mainWindow.height ||
-                    localPos.x < -control.targetControl.width || localPos.x > mainWindow.width) {
-                    control.close()
-                    return
-                }
-            }
-            
-            var newX, newY
-            if (control._isPickerMode) {
-                var pos = control._calcPickerPosition(control.targetControl, control._pickerRowHeight)
-                newX = pos.x
-                newY = pos.y
-            } else {
-                // Normal mode: below control (reuse currentGlobalPos) 控件下方（复用当前全局坐标）
-                // Center only when a reference width is explicitly configured. 仅显式配置参考宽度时居中
-                var centerOffset = control.referenceControlWidth > 0 && control.popupWidth > control.referenceControlWidth
-                    ? (control.popupWidth - control.referenceControlWidth) / 2 : 0
-                newX = currentGlobalPos.x - Enums.popupMetrics.panelOffset - centerOffset
-                newY = currentGlobalPos.y + control.targetControl.height + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset
-            }
-            
-            popupWindow.x = newX
-            popupWindow.y = newY
-        }
+    PopupPositionTracker {
+        target: control.targetControl
+        targetWindow: control._targetWindow
+        trackingEnabled: control.isOpen
+        positionEpsilon: Enums.popupMetrics.positionEpsilon
+        onTargetMoved: (globalPosition) => control._applyTrackedPosition(globalPosition)
+        onTargetOutOfView: control.close()
     }
     
     Window {

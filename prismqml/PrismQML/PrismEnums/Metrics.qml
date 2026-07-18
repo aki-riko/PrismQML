@@ -448,7 +448,6 @@ QtObject {
  readonly property int showAnimDelayMs: 16
  readonly property int hideDelayMs: 150
  readonly property int closingDelayMs: 150
- readonly property int trackerIntervalMs: 1
  readonly property int pickerRowCount: 4
  // Animation params - Show 显示动画参数
  readonly property real showScaleFrom: 0.88 // Initial scale 初始缩放

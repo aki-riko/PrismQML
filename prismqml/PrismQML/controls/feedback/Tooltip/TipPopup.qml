@@ -6,6 +6,7 @@ import QtQuick.Effects
 import "../../.."
 import "../../buttons"
 import "../../data/Label"
+import "../../utils/_internal"
 import "_internal"
 import QtQuick.Window  // 置于库import后:原生Window名归库后不被覆盖
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
@@ -38,7 +39,8 @@ Item {
     property bool _isOpen: false
 
     // Follow target control position (sync move on scroll) 跟随目标控件位置变化
-    property point _lastTargetGlobalPos: Qt.point(-1, -1)
+    readonly property var _targetWindow: target && target.contentItem !== undefined
+                                         ? target : (target ? target.Window.window : null)
 
     // ==================== Signals 信号 ====================
     signal closed()
@@ -93,6 +95,18 @@ Item {
         popupWindow.hide(); arrowWindow.hide()
         closed()
         if (deleteOnClose) control.destroy()
+    }
+
+    function _applyTrackedPosition() {
+        var pos = posHelper.calculatePosition()
+        _animX = pos.x
+        _animY = pos.y
+
+        if (posHelper.hasArrow) {
+            var arrowPos = posHelper.calculateArrowPosition(pos)
+            arrowWindow.x = arrowPos.x
+            arrowWindow.y = arrowPos.y
+        }
     }
 
     visible: false
@@ -278,49 +292,13 @@ Item {
         onTriggered: control.close()
     }
     
-    // Position tracker 位置跟踪
-    Timer {
-        id: positionTracker
-        interval: Enums.popupMetrics.trackerIntervalMs
-        repeat: true
-        running: control._isOpen && control.target !== null
-        onTriggered: {
-            if (!control.target) return
-            
-            // Get current global position of target control 获取目标控件当前全局位置
-            var currentGlobalPos = control.target.mapToGlobal(0, 0)
-            
-            // Skip if position unchanged (most common case) 位置未变则跳过
-            if (Math.abs(currentGlobalPos.x - control._lastTargetGlobalPos.x) < Enums.popupMetrics.positionEpsilon &&
-                Math.abs(currentGlobalPos.y - control._lastTargetGlobalPos.y) < Enums.popupMetrics.positionEpsilon) {
-                return
-            }
-            control._lastTargetGlobalPos = currentGlobalPos
-            
-            // Check if target is in main window visible area 检查是否在可视区域
-            var mainWindow = control.target.Window.window
-            if (mainWindow) {
-                var localPos = control.target.mapToItem(mainWindow.contentItem, 0, 0)
-                // Close popup if target scrolled out of view 滚动出视区则关闭
-                if (localPos.y < -control.target.height || localPos.y > mainWindow.height ||
-                    localPos.x < -control.target.width || localPos.x > mainWindow.width) {
-                    control.close()
-                    return
-                }
-            }
-            
-            // Update position 更新位置
-            var pos = posHelper.calculatePosition()
-            control._animX = pos.x
-            control._animY = pos.y
-            
-            // Update arrow position if TeachingTip 更新箭头位置
-            if (posHelper.hasArrow) {
-                var arrowPos = posHelper.calculateArrowPosition(pos)
-                arrowWindow.x = arrowPos.x
-                arrowWindow.y = arrowPos.y
-            }
-        }
+    PopupPositionTracker {
+        target: control.target
+        targetWindow: control._targetWindow
+        trackingEnabled: control._isOpen && !hideAnim.running
+        positionEpsilon: Enums.popupMetrics.positionEpsilon
+        onTargetMoved: control._applyTrackedPosition()
+        onTargetOutOfView: control.close()
     }
 
     Connections {
