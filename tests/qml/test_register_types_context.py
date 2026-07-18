@@ -42,6 +42,7 @@ QtObject {
     property int dpiFromSingleton: DpiManager.userDpiScale
     property int dpiDirect: ConfigManager.dpiScale
     property string clipboardName: ClipboardHelper.objectName
+    property bool verboseProfile: PrismQmlStartupProfileVerbose
 }
 """
 _MISSING_CONTEXT_MARKERS = (
@@ -118,7 +119,8 @@ def _dispose_registration(qapp, engines, components, probes):
 
 
 @pytest.fixture
-def registered_context(qapp, tmp_path):
+def registered_context(qapp, tmp_path, monkeypatch):
+    monkeypatch.delenv("PRISMQML_STARTUP_PROFILE_VERBOSE", raising=False)
     state = _prepare_context_dependencies(tmp_path)
     original_config, original_clipboard, manager, clipboard = state
     engines = [QQmlApplicationEngine(), QQmlApplicationEngine()]
@@ -152,9 +154,11 @@ def test_register_types_injects_public_context_without_qml_warnings(
         context = engine.rootContext()
         assert context.contextProperty("ConfigManager") is manager
         assert context.contextProperty("ClipboardHelper") is clipboard
+        assert context.contextProperty("PrismQmlStartupProfileVerbose") is False
     assert probe.property("dpiFromSingleton") == 125
     assert probe.property("dpiDirect") == 125
     assert probe.property("clipboardName") == ""
+    assert probe.property("verboseProfile") is False
     failures = [
         message
         for mode, message in messages
@@ -165,6 +169,30 @@ def test_register_types_injects_public_context_without_qml_warnings(
         not any(marker in message for marker in _MISSING_CONTEXT_MARKERS)
         for _mode, message in messages
     )
+
+
+def test_register_types_injects_enabled_verbose_diagnostic_switch(
+    registered_context, monkeypatch, qapp
+):
+    monkeypatch.setenv("PRISMQML_STARTUP_PROFILE_VERBOSE", "1")
+    engine = QQmlApplicationEngine()
+    component = probe = None
+    try:
+        register_types(engine)
+        component, probe = _create_probe(engine)
+
+        assert (
+            engine.rootContext().contextProperty("PrismQmlStartupProfileVerbose")
+            is True
+        )
+        assert probe.property("verboseProfile") is True
+    finally:
+        _dispose_registration(
+            qapp,
+            [engine],
+            [component] if component is not None else [],
+            [probe] if probe is not None else [],
+        )
 
 
 def test_register_types_preserves_complete_engine_registration(registered_context):

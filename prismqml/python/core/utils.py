@@ -8,6 +8,8 @@ import os
 from pathlib import Path
 from PySide6.QtQml import QQmlApplicationEngine, QQmlContext
 
+from .diagnostics import startup_profile_verbose_enabled
+
 
 QML_XHR_ALLOW_FILE_READ_ENV = "QML_XHR_ALLOW_FILE_READ"
 
@@ -48,6 +50,9 @@ def _register_primary_context(context: QQmlContext) -> None:
 
     context.setContextProperty("ThemeManager", getThemeManager())
     context.setContextProperty("ConfigManager", getConfigManager())
+    context.setContextProperty(
+        "PrismQmlStartupProfileVerbose", startup_profile_verbose_enabled()
+    )
 
 
 def _register_lazy_context(

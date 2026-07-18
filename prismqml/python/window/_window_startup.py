@@ -10,10 +10,10 @@ import time
 
 from PySide6.QtCore import QStandardPaths
 
+from ..core.diagnostics import startup_profile_verbose_enabled
 from ..core.logger import info
 
 
-_STARTUP_PROFILE_TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 _WINDOW_BUILDER_LOG_TAG = "WindowBuilder"
 
 
@@ -38,10 +38,7 @@ def _make_window_profile():
 
 def _startup_profile_verbose() -> bool:
     """Read the existing verbose startup switch. 读取既有启动详细剖析开关。"""
-    return (
-        os.environ.get("PRISMQML_STARTUP_PROFILE_VERBOSE", "").lower()
-        in _STARTUP_PROFILE_TRUE_VALUES
-    )
+    return startup_profile_verbose_enabled()
 
 
 def _log_window_cache_environment() -> None:
