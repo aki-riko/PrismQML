@@ -16,6 +16,9 @@ Item {
     property bool running: true
     property bool forceScroll: false  // Force scroll even if text fits 强制滚动即使文字不超出
     property int pauseDuration: Enums.duration.marquee
+    property int labelType: Enums.label.type_body
+    property int fontPixelSize: Enums.typography.body
+    property color customTextColor: Enums.transparent
 
     // ==================== Readonly State 只读状态 ====================
     // Internal: track if text needs scrolling 内部：跟踪文本是否需要滚动
@@ -55,10 +58,12 @@ Item {
     // ==================== Content 内容 ====================
     Label {
         id: marqueeText
-        type: Enums.label.type_body
+        type: control.labelType
         text: control.text
         y: (parent.height - height) / 2
         x: 0
+        font.pixelSize: control.fontPixelSize
+        customTextColor: control.customTextColor
     }
     
     // Scroll animation 滚动动画

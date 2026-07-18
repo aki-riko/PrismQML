@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Effects
 import ".."
 import "../effects"
+import "../controls/data" as DataControls
 import "../controls/data/Label"
 
 // NavigationBarItem - Fluent Design navigation bar item 导航栏项
@@ -38,6 +39,9 @@ Item {
     readonly property int _navItemBorderWidth: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : (Enums.isPrismDesign && control.selected ? Enums.prismDesign.borderWidth : 0)
     readonly property color _navItemBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (Enums.isPrismDesign ? Enums.prismDesign.primaryDark : Enums.transparent)
     readonly property color _navItemContentColor: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
+    readonly property real _labelWidth: Math.max(0, width - Enums.spacing.xxs * 2)
+    readonly property bool _labelOverflowing: label.implicitWidth > label.width
+    readonly property bool _showMarqueeLabel: hovered && _labelOverflowing
     
     // ==================== Internal Props 内部属性 ====================
     property real iconOffset: 0
@@ -203,13 +207,32 @@ Item {
         type: Enums.label.type_caption
         anchors.horizontalCenter: parent.horizontalCenter
         y: Enums.controlSize.topNavItemHeight - Enums.spacing.xxs
+        width: control._labelWidth
         text: control.text
         font.pixelSize: Enums.typography.captionCompact
         horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.NoWrap
+        elide: Text.ElideRight
+        clip: true
+        visible: !control._showMarqueeLabel
         
         color: control._navItemContentColor
 
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+    }
+
+    DataControls.Marquee {
+        id: marqueeLabel
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: label.y
+        width: label.width
+        height: label.height
+        text: control.text
+        running: control._showMarqueeLabel
+        labelType: Enums.label.type_caption
+        fontPixelSize: Enums.typography.captionCompact
+        customTextColor: control._navItemContentColor
+        visible: control._showMarqueeLabel
     }
     
     // Mouse interaction 鼠标交互

@@ -122,6 +122,28 @@ Window {
     }
 }
 """
+LONG_TITLE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    readonly property int captionCompact: Enums.typography.captionCompact
+
+    width: 120
+    height: 100
+    visible: true
+
+    NavigationBarItem {
+        id: navItem
+        objectName: "navItem"
+        width: implicitWidth
+        height: implicitHeight
+        text: "Prism Design"
+        icon: "Home"
+    }
+}
+"""
 
 
 def _pump(milliseconds: int = 30) -> None:
@@ -179,6 +201,24 @@ def _toggle_item(root: QQuickItem, text: str):
     )
 
 
+def _direct_text_item(root: QQuickItem, text: str):
+    return next(
+        item
+        for item in root.childItems()
+        if item.metaObject().indexOfProperty("paintedWidth") >= 0
+        and item.property("text") == text
+    )
+
+
+def _marquee_item(root: QQuickItem, text: str):
+    return next(
+        item
+        for item in _descendants(root)
+        if item.metaObject().indexOfProperty("forceScroll") >= 0
+        and item.property("text") == text
+    )
+
+
 def _click_item(window: QQuickWindow, item: QQuickItem) -> None:
     point = item.mapToScene(QPointF(item.width() / 2, item.height() / 2)).toPoint()
     QTest.mouseClick(window, Qt.MouseButton.LeftButton, pos=point)
@@ -227,6 +267,23 @@ def _create_scene():
     assert all(items.values())
     _pump(100)
     return engine, component, window, items, warnings
+
+
+def _create_long_title_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(lambda errors: warnings.extend(error.toString() for error in errors))
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(LONG_TITLE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [error.toString() for error in component.errors()]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow)
+    nav_item = window.findChild(QQuickItem, "navItem")
+    assert nav_item is not None
+    _pump(100)
+    return engine, component, window, nav_item, warnings
 
 
 def _dispose_scene(engine, component, window) -> None:
@@ -371,6 +428,46 @@ def test_navigation_bars_use_smooth_scroll_helper(navigation_scene):
     assert _wait_for(lambda: toggle_flickable.property("contentY") > 0)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_long_title_scene()
+    engine, component, window, nav_item, warnings = scene
+    try:
+        source = (ROOT / "prismqml" / "PrismQML" / "navigation" / "NavigationBarItem.qml").read_text(encoding="utf-8")
+        assert "elide: Text.ElideRight" in source
+
+        QTest.mouseMove(window, QPoint(window.width() - 1, window.height() - 1))
+        assert _wait_for(lambda: nav_item.property("hovered") is False)
+
+        label = _direct_text_item(nav_item, "Prism Design")
+        marquee = _marquee_item(nav_item, "Prism Design")
+        label_left = label.mapToItem(nav_item, 0, 0).x()
+        label_right = label_left + label.width()
+
+        assert label_left >= 0
+        assert label_right <= nav_item.width()
+        assert label.implicitWidth() > label.width()
+        assert nav_item.property("_labelOverflowing") is True
+        assert label.property("clip") is True
+        assert label.isVisible()
+        assert not marquee.isVisible()
+        assert marquee.property("running") is False
+        assert marquee.property("fontPixelSize") == window.property("captionCompact")
+
+        point = nav_item.mapToScene(QPointF(nav_item.width() / 2, nav_item.height() / 2)).toPoint()
+        QTest.mouseMove(window, point)
+        assert _wait_for(lambda: nav_item.property("hovered") is True)
+        assert _wait_for(lambda: marquee.isVisible() and marquee.property("running") is True)
+        assert not label.isVisible()
+        assert marquee.width() == pytest.approx(label.width())
+        assert marquee.width() <= nav_item.width()
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
 def test_root_navigation_sources_follow_conventions():
