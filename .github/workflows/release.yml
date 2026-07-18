@@ -95,9 +95,15 @@ jobs:
           CIBW_BUILD: "cp39-*"
           # 通过 config-settings 把 --py-limited-api 传给 setuptools bdist_wheel(产出 abi3 wheel)
           CIBW_CONFIG_SETTINGS: "--build-option=--py-limited-api=cp39"
-          # 每个 Linux 容器内安装 Rust
-          CIBW_BEFORE_ALL_LINUX: "curl -sSf https://sh.rustup.rs | sh -s -- -y"
-          CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH QT_QPA_PLATFORM=offscreen"
+          # Install the OpenSSL 3 runtime and Rust in each Linux container 每个 Linux 容器内安装 OpenSSL 3 运行库与 Rust
+          CIBW_BEFORE_ALL_LINUX: >-
+            dnf install -y "$PRISM_EPEL_RELEASE_RPM" &&
+            dnf install -y openssl3-libs &&
+            curl -sSf https://sh.rustup.rs | sh -s -- -y
+          CIBW_ENVIRONMENT_LINUX: >-
+            PATH=$HOME/.cargo/bin:$PATH
+            QT_QPA_PLATFORM=offscreen
+            PRISM_EPEL_RELEASE_RPM=https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
           CIBW_ENVIRONMENT_WINDOWS: "PYTHONIOENCODING=utf-8"
           # PySide6 6.9+ 的 Linux wheel 以 manylinux_2_28 为最低平台基线
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"

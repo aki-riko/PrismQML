@@ -261,6 +261,20 @@ def test_ci_full_python_gates_have_current_timeout_budget(
     assert f"--timeout {timeout_reference} --" in source
 
 
+def test_release_linux_wheel_probe_provisions_openssl3_runtime():
+    """Linux wheel probe must match Qt's OpenSSL runtime.
+
+    Linux wheel 探测必须匹配 Qt 所需的 OpenSSL 运行时。
+    """
+    source = (PROJECT_ROOT / ".github/workflows/release.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'dnf install -y "$PRISM_EPEL_RELEASE_RPM"' in source
+    assert "dnf install -y openssl3-libs" in source
+    assert "PRISM_EPEL_RELEASE_RPM=https://" in source
+
+
 @pytest.mark.parametrize(
     "source",
     (
