@@ -329,11 +329,12 @@ def test_probe_defaults_to_headless_through_process_runner():
 
     assert result.returncode == 0, result.stdout + result.stderr
     summary = re.search(
-        r"组件加载 probe 结果:\s+\d+ OK / (\d+) 错误 / \d+ 跳过",
+        r"组件加载 probe 结果:\s+(\d+) OK / (\d+) 错误 / (\d+) 跳过",
         result.stdout,
     )
     assert summary is not None, result.stdout
-    assert int(summary.group(1)) == 0
+    assert tuple(map(int, summary.groups())) == (174, 0, 7)
+    assert "单例跳过" not in result.stdout
 
 
 def test_pytest_conftest_forces_headless_even_with_explicit_platform_value():

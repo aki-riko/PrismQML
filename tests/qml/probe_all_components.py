@@ -4,9 +4,9 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Headless 全组件加载 probe — 重排验证工具
 
-遍历根 qmldir 注册的全部公开组件,逐个 createComponent 实例化,
-捕获加载/绑定错误。已知必须由父组件注入 required property 的内部子模块
-会被归类为预期跳过,真正新增的加载错误仍会失败。
+遍历根 qmldir 注册的全部公开组件,逐个 createComponent 实例化；singleton
+通过 QtObject wrapper 强制引擎创建并读取。已知必须由父组件注入 required
+property 的内部子模块会被归类为预期跳过,真正新增的加载错误仍会失败。
 
 用法: python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python tests/qml/probe_all_components.py
 退出码: 0=无非预期错误, 1=有非预期加载错误
@@ -23,12 +23,13 @@ from _test_process_bootstrap import configure_qml_test_process
 # 强制自动化探测无界面运行，并禁止原生崩溃弹窗。
 configure_qml_test_process()
 
-from PySide6.QtCore import QUrl, QTimer
+from PySide6.QtCore import QEventLoop, QUrl, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+COMPONENT_LOAD_TIMEOUT_MS = 10_000
 
 EXPECTED_REQUIRED_PROPERTY_SKIPS = {
     "ButtonContent": "ButtonCore 内部内容区, required 属性由 ButtonCore 注入",
@@ -102,19 +103,64 @@ def is_expected_required_property_skip(type_name: str, errors: list[str]) -> boo
     return True
 
 
-def probe_component(engine: QQmlEngine, type_name: str):
-    """创建单个组件并返回成功状态与错误。"""
-    qml = f"import PrismQML\n{type_name} {{}}\n"
+def wait_for_component(component: QQmlComponent) -> bool:
+    """等待异步 QML 类型依赖加载完成。"""
+    if component.status() != QQmlComponent.Status.Loading:
+        return True
+
+    loop = QEventLoop()
+    timer = QTimer()
+    timer.setSingleShot(True)
+    timer.timeout.connect(loop.quit)
+    component.statusChanged.connect(loop.quit)
+    timer.start(COMPONENT_LOAD_TIMEOUT_MS)
+    while component.status() == QQmlComponent.Status.Loading and timer.isActive():
+        loop.exec()
+    return component.status() != QQmlComponent.Status.Loading
+
+
+def create_probe_object(engine: QQmlEngine, type_name: str, qml: str):
+    """编译并创建一个探测 wrapper。"""
     comp = QQmlComponent(engine)
-    comp.setData(qml.encode("utf-8"), QUrl("inline"))
+    comp.setData(qml.encode("utf-8"), QUrl(f"inline:{type_name}"))
+    if not wait_for_component(comp):
+        return comp, None, [f"QML component 加载超时: {COMPONENT_LOAD_TIMEOUT_MS}ms"]
     if comp.isError():
-        return False, [error.toString() for error in comp.errors()]
+        return comp, None, [error.toString() for error in comp.errors()]
 
     obj = comp.create()
     if obj is None:
         details = "; ".join(error.toString() for error in comp.errors())
-        return False, [f"create() 返回 None: {details}"]
+        return comp, None, [f"create() 返回 None: {details}"]
+    return comp, obj, []
+
+
+def probe_component(engine: QQmlEngine, type_name: str):
+    """创建单个普通组件并返回成功状态与错误。"""
+    qml = f"import PrismQML\n{type_name} {{}}\n"
+    component, obj, errors = create_probe_object(engine, type_name, qml)
+    if obj is None:
+        return False, errors
     obj.deleteLater()
+    del component
+    return True, []
+
+
+def probe_singleton(engine: QQmlEngine, type_name: str):
+    """通过 wrapper 强制创建并读取单例对象。"""
+    qml = (
+        "import QtQml\n"
+        "import PrismQML\n"
+        f"QtObject {{ readonly property bool singletonReady: !!{type_name} }}\n"
+    )
+    component, obj, errors = create_probe_object(engine, type_name, qml)
+    if obj is None:
+        return False, errors
+    ready = bool(obj.property("singletonReady"))
+    obj.deleteLater()
+    del component
+    if not ready:
+        return False, ["singleton wrapper 未取得真实对象"]
     return True, []
 
 
@@ -123,34 +169,27 @@ def collect_results(engine: QQmlEngine, types):
     errors = {}
     expected_required_skips = {}
     ok = 0
-    singleton_skips = []
     for type_name, is_singleton in types:
-        if is_singleton:
-            singleton_skips.append(type_name)
-            continue
-        passed, type_errors = probe_component(engine, type_name)
+        probe = probe_singleton if is_singleton else probe_component
+        passed, type_errors = probe(engine, type_name)
         if passed:
             ok += 1
         elif is_expected_required_property_skip(type_name, type_errors):
             expected_required_skips[type_name] = type_errors
         else:
             errors[type_name] = type_errors
-    return ok, errors, expected_required_skips, singleton_skips
+    return ok, errors, expected_required_skips
 
 
-def report_results(ok, errors, expected_required_skips, singleton_skips, total):
+def report_results(ok, errors, expected_required_skips, total):
     """输出 probe 汇总与错误详情。"""
-    total_skips = len(singleton_skips) + len(expected_required_skips)
+    total_skips = len(expected_required_skips)
     print(f"\n{'='*60}")
     print(f"组件加载 probe 结果: {ok} OK / {len(errors)} 错误 / "
           f"{total_skips} 跳过 "
-          f"(单例 {len(singleton_skips)} / required {len(expected_required_skips)}) "
+          f"(required {len(expected_required_skips)}) "
           f"(共 {total})")
     print(f"{'='*60}")
-    if singleton_skips:
-        print("\n[单例跳过]")
-        for name in singleton_skips:
-            print(f"    {name}: singleton 由 QML 引擎托管")
     if expected_required_skips:
         print("\n[预期 required property 跳过]")
         for name in sorted(expected_required_skips):
