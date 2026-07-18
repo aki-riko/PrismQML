@@ -58,7 +58,9 @@ DataWidgetCore {
     borderVisible: true
     showFooter: true
     showHeader: false
-    // The base DataWidgetCore tracks model signals and maintains itemCount. 基类 DataWidgetCore 跟踪模型信号并维护 itemCount。
+    // Bind directly because asynchronous incubation can finish the initial rebuild before the base tracker is ready.
+    // 直接绑定内部模型计数，避免异步孵化时初次重建早于基类计数跟踪器就绪。
+    itemCount: internalModel.count
     onModelChanged: _rebuild()
     contentDelegate: treeDelegate ? treeDelegate : defaultDelegate
     listModel: internalModel
