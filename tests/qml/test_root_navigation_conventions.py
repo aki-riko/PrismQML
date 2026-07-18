@@ -463,8 +463,12 @@ def test_navigation_bars_use_smooth_scroll_helper(navigation_scene):
     assert _wait_for(lambda: bar_flickable.property("contentY") > 0)
 
     assert QMetaObject.invokeMethod(window, "smoothScrollToggleBar")
+    expected_toggle_target = min(
+        window.property("defaultScrollStep"),
+        toggle_helper.property("maxScroll"),
+    )
     assert toggle_helper.property("targetPos") == pytest.approx(
-        window.property("defaultScrollStep")
+        expected_toggle_target
     )
     assert _wait_for(lambda: toggle_flickable.property("contentY") > 0)
     assert warnings == []
