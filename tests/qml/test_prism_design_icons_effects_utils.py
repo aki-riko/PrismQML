@@ -415,6 +415,52 @@ PopupWindowCore {
         setSkin(Skin.FLUENT)
 
 
+def test_icon_renderer_type_flags_for_text_svg_and_avatar(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    avatar_url = QUrl.fromLocalFile(
+        str(ROOT / "examples" / "resources" / "image" / "avatar" / "avatar.png")
+    ).toString()
+    component, item = _build(
+        engine,
+        f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    property bool svgIsImage: svgIcon.isImageIcon
+    property bool svgIsSvg: svgIcon.isSvgIcon
+    property bool svgIsAvatar: svgIcon.isAvatarIcon
+    property bool textIsText: textIcon.isTextIcon
+    property bool textIsImage: textIcon.isImageIcon
+    property bool avatarIsImage: avatarIcon.isImageIcon
+    property bool avatarIsSvg: avatarIcon.isSvgIcon
+    property bool avatarIsAvatar: avatarIcon.isAvatarIcon
+
+    Icon {{ id: svgIcon; icon: "Settings" }}
+    Icon {{ id: textIcon; icon: "?" }}
+    Icon {{ id: avatarIcon; icon: "{avatar_url}" }}
+}}
+""".encode("utf-8"),
+    )
+    try:
+        assert item.property("svgIsImage") is True
+        assert item.property("svgIsSvg") is True
+        assert item.property("svgIsAvatar") is False
+        assert item.property("textIsText") is True
+        assert item.property("textIsImage") is False
+        assert item.property("avatarIsImage") is True
+        assert item.property("avatarIsSvg") is False
+        assert item.property("avatarIsAvatar") is True
+    finally:
+        item.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        qapp.processEvents()
+
+
 def test_utility_sources_follow_conventions():
     violations = []
     for source_path in UTILS_SOURCE_PATHS:

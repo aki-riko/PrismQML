@@ -162,7 +162,7 @@ def _visible_icons_named(parent: QObject, name: str) -> list[QQuickItem]:
 
 def _svg_image(icon: QQuickItem) -> QQuickItem:
     resolved_source = str(icon.property("_resolvedSource"))
-    for child in icon.childItems():
+    for child in _walk_visual_tree(icon):
         source = child.property("source")
         if isinstance(source, QUrl) and source.toString() == resolved_source:
             assert child.isVisible()

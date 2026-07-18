@@ -92,80 +92,88 @@ Item {
     height: iconSize
     
     // ==================== Content 内容 ====================
-    // Text icon 文本图标
-    Text {
-        anchors.centerIn: parent
-        text: control.icon
-        font.pixelSize: control.iconSize
-        font.family: Enums.fontFamily
-        color: control.color
-        visible: control.isTextIcon
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
+    // Load only the active icon renderer 仅加载当前图标渲染器
+    Loader {
+        anchors.fill: parent
+        active: control.icon !== ""
+        sourceComponent: control.isTextIcon
+            ? textIconComponent
+            : control.isAvatarIcon
+                ? avatarIconComponent
+                : control.isImageIcon
+                    ? imageIconComponent
+                    : null
     }
-    
-    // Image icon with color overlay 非SVG非头像的颜色叠加图片图标
-    Image {
-        anchors.centerIn: parent
-        width: control.iconSize
-        height: control.iconSize
-        source: control.isImageIcon && !control.isSvgIcon && !control.isAvatarIcon ? control._resolvedSource : ""
-        visible: control.isImageIcon && !control.isSvgIcon && !control.isAvatarIcon
-        fillMode: Image.PreserveAspectFit
-        smooth: true
-        mipmap: true
-        asynchronous: true
-        
-        layer.enabled: true
-        layer.effect: ColorOverlay { color: control.color }
+
+    Component {
+        id: textIconComponent
+
+        Text {
+            anchors.centerIn: parent
+            text: control.icon
+            font.pixelSize: control.iconSize
+            font.family: Enums.fontFamily
+            color: control.color
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
     }
-    
-    // Circular avatar icon without color overlay 圆形裁剪且不应用颜色叠加的头像图标
-    Item {
-        id: avatarContainer
-        anchors.centerIn: parent
-        width: control.iconSize
-        height: control.iconSize
-        visible: control.isAvatarIcon
-        
+
+    Component {
+        id: imageIconComponent
+
         Image {
-            anchors.fill: parent
-            source: control.isAvatarIcon ? control._resolvedSource : ""
-            fillMode: Image.PreserveAspectCrop
+            anchors.centerIn: parent
+            width: control.iconSize
+            height: control.iconSize
+            source: control._resolvedSource
+            fillMode: Image.PreserveAspectFit
             smooth: true
-            mipmap: true
-            asynchronous: true
-            
+            mipmap: !control.isSvgIcon
+            asynchronous: !control.isSvgIcon
+            sourceSize: control.isSvgIcon
+                ? Qt.size(control.iconSize * 2, control.iconSize * 2)
+                : Qt.size(0, 0)
+
             layer.enabled: true
-            layer.smooth: true
-            layer.effect: MultiEffect {
-                maskEnabled: true
-                maskThresholdMin: 0.5
-                maskSpreadAtMin: 1.0
-                maskSource: ShaderEffectSource {
-                    sourceItem: Rectangle {
-                        width: avatarContainer.width
-                        height: avatarContainer.height
-                        radius: width / 2
-                        antialiasing: true
+            layer.effect: ColorOverlay { color: control.color }
+        }
+    }
+
+    Component {
+        id: avatarIconComponent
+
+        Item {
+            id: avatarContainer
+
+            width: control.iconSize
+            height: control.iconSize
+            anchors.centerIn: parent
+
+            Image {
+                anchors.fill: parent
+                source: control._resolvedSource
+                fillMode: Image.PreserveAspectCrop
+                smooth: true
+                mipmap: true
+                asynchronous: true
+
+                layer.enabled: true
+                layer.smooth: true
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 1.0
+                    maskSource: ShaderEffectSource {
+                        sourceItem: Rectangle {
+                            width: avatarContainer.width
+                            height: avatarContainer.height
+                            radius: width / 2
+                            antialiasing: true
+                        }
                     }
                 }
             }
         }
-    }
-    
-    // SVG icon SVG图标
-    Image {
-        anchors.centerIn: parent
-        width: control.iconSize
-        height: control.iconSize
-        source: control.isSvgIcon ? control._resolvedSource : ""
-        visible: control.isSvgIcon
-        fillMode: Image.PreserveAspectFit
-        smooth: true
-        sourceSize: Qt.size(control.iconSize * 2, control.iconSize * 2)
-        
-        layer.enabled: true
-        layer.effect: ColorOverlay { color: control.color }
     }
 }
