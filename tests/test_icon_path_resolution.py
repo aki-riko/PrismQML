@@ -113,8 +113,8 @@ def test_encoded_real_icon_loads_through_python_entrypoint(
         qapp.setWindowIcon(original_icon)
 
 
-def test_window_helper_renders_and_sets_real_svg(qapp, tmp_path: Path) -> None:
-    """Render every taskbar size and publish the real SVG. 渲染全部任务栏尺寸并发布。"""
+def test_window_helper_renders_every_svg_size(tmp_path: Path) -> None:
+    """Render every taskbar size from one real SVG. 从真实 SVG 渲染全部任务栏尺寸。"""
     icon_path = tmp_path / "app.svg"
     _write_real_svg(icon_path)
 
@@ -123,11 +123,20 @@ def test_window_helper_renders_and_sets_real_svg(qapp, tmp_path: Path) -> None:
     assert not rendered.isNull()
     assert rendered.availableSizes() == [QSize(size, size) for size in _ICON_SIZES]
 
+
+@pytest.mark.parametrize("entrypoint", ["WindowHelper", "WindowCore"])
+def test_window_entrypoints_publish_real_svg(
+    entrypoint: str,
+    qapp,
+    tmp_path: Path,
+) -> None:
+    """Both window APIs must publish the same SVG pixels. 两个窗口入口发布相同像素。"""
+    icon_path = tmp_path / f"{entrypoint}.svg"
+    _write_real_svg(icon_path)
     original_icon = qapp.windowIcon()
     try:
         qapp.setWindowIcon(QIcon())
-        WindowHelper().setAppIcon(str(icon_path))
-        published = qapp.windowIcon()
+        published = _load_icon(entrypoint, qapp, str(icon_path))
         assert not published.isNull()
         assert published.pixmap(QSize(64, 64)).toImage().pixelColor(32, 32) == QColor(
             "#d02040"
