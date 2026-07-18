@@ -107,28 +107,22 @@ Item {
                 // 应用主题 Application theme
                 SettingsCard {
                     id: themeCard
+
+                    readonly property var themeValues: ["auto", "light", "dark"]
+                    readonly property int themeIndex: themeValues.indexOf(Fluent.Enums.theme)
+
+                    objectName: "themeSettingsCard"
                     width: parent ? parent.width : 0
                     title: "应用主题"
                     content: "调整应用外观"
                     icon: iconPath("DarkTheme")
                     type: Fluent.Enums.settingCard.type_combobox
                     model: ["跟随系统", "浅色", "深色"]
-                    
-                    property var themeValues: ["auto", "light", "dark"]
-                    
-                    Component.onCompleted: {
-                        // 根据当前主题设置初始索引
-                        // Set initial index based on current theme
-                        if (ThemeManager) {
-                            var currentTheme = ThemeManager.theme
-                            var idx = themeValues.indexOf(currentTheme)
-                            currentIndex = idx >= 0 ? idx : 0
-                        }
-                    }
+                    currentIndex: themeIndex >= 0 ? themeIndex : 0
                     
                     onIndexSelected: function(idx) {
-                        if (ThemeManager && idx >= 0 && idx < themeValues.length) {
-                            ThemeManager.setThemeFromQml(themeValues[idx])
+                        if (idx >= 0 && idx < themeValues.length) {
+                            Fluent.Enums.setTheme(themeValues[idx])
                         }
                     }
                 }
@@ -136,19 +130,18 @@ Item {
                 // Design skin 设计皮肤 (Fluent / Neobrutalism / Prism Design)
                 SettingsCard {
                     id: skinCard
-                    property var skinValues: ["fluent", "neobrutalism", "prism_design"]
 
+                    readonly property var skinValues: ["fluent", "neobrutalism", "prism_design"]
+                    readonly property int skinIndex: skinValues.indexOf(Fluent.Enums.skin)
+
+                    objectName: "skinSettingsCard"
                     width: parent ? parent.width : 0
                     title: "设计皮肤"
                     content: "切换设计语言：Fluent / 新粗野 / Prism Design"
                     icon: iconPath("Color")
                     type: Fluent.Enums.settingCard.type_combobox
                     model: ["Fluent", "新粗野 Neobrutalism", "Prism Design"]
-
-                    Component.onCompleted: {
-                        var idx = skinValues.indexOf(Fluent.Enums.skin)
-                        currentIndex = idx >= 0 ? idx : 0
-                    }
+                    currentIndex: skinIndex >= 0 ? skinIndex : 0
 
                     onIndexSelected: function(idx) {
                         if (idx >= 0 && idx < skinValues.length) {

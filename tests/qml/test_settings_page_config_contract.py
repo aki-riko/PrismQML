@@ -174,6 +174,14 @@ def _settings_cards(root):
     return window_card, dpi_card
 
 
+def _appearance_cards(root):
+    theme_card = root.findChild(QObject, "themeSettingsCard")
+    skin_card = root.findChild(QObject, "skinSettingsCard")
+    assert theme_card is not None
+    assert skin_card is not None
+    return theme_card, skin_card
+
+
 def _activate_cards(window_card, dpi_card, qapp):
     window_nodes = _activate_combo_index(window_card, 0)
     dpi_nodes = _activate_combo_index(dpi_card, 2)
@@ -243,3 +251,33 @@ def test_settings_page_reverts_selection_when_backend_rejects_update(qapp):
         assert manager.property("dpiScale") == 0
         _assert_combo_index(window_card, *window_nodes, 1)
         _assert_combo_index(dpi_card, *dpi_nodes, 1)
+
+
+def test_appearance_cards_follow_selected_and_external_runtime_state(qapp):
+    theme_manager = ThemeManager()
+    previous_theme = theme_manager.theme
+    previous_skin = theme_manager.skin
+    theme_manager.setThemeFromQml("light")
+    theme_manager.setSkinFromQml("fluent")
+    manager = _ConfigManagerFixture()
+
+    try:
+        with _settings_page(manager, qapp) as root:
+            theme_card, skin_card = _appearance_cards(root)
+            theme_nodes = _activate_combo_index(theme_card, 2)
+            skin_nodes = _activate_combo_index(skin_card, 2)
+            qapp.processEvents()
+
+            assert theme_manager.theme == "dark"
+            assert theme_manager.skin == "prism_design"
+            _assert_combo_index(theme_card, *theme_nodes, 2)
+            _assert_combo_index(skin_card, *skin_nodes, 2)
+
+            theme_manager.setThemeFromQml("auto")
+            theme_manager.setSkinFromQml("neobrutalism")
+            qapp.processEvents()
+            _assert_combo_index(theme_card, *theme_nodes, 0)
+            _assert_combo_index(skin_card, *skin_nodes, 1)
+    finally:
+        theme_manager.setThemeFromQml(previous_theme)
+        theme_manager.setSkinFromQml(previous_skin)

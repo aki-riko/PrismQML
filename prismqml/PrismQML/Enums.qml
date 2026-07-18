@@ -36,6 +36,7 @@ Item {
     function setSkin(value) { if (ThemeManager) ThemeManager.setSkinFromQml(value) }
     
     // ==================== Global Theme Props 全局主题属性 ====================
+    readonly property string theme: ThemeManager ? ThemeManager.theme : "auto"
     readonly property bool isDark: ThemeManager ? ThemeManager.isDark : false
     // Skin (design language) 皮肤（设计语言）: "fluent" | "neobrutalism" | "prism_design"
     // 与 isDark 正交: isDark 控明暗, skin 控设计语言。控件按 skin 切换几何/阴影范式。
