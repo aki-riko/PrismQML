@@ -209,6 +209,31 @@ def test_detach_restore_failure_preserves_state(monkeypatch, hook_env):
     assert [call[0] for call in fake.calls] == ["get", "set", "position", "set"]
 
 
+def test_detach_destroyed_hwnd_clears_state_without_error(monkeypatch, hook_env):
+    hook, last_error, messages = hook_env
+    fake = _install(
+        monkeypatch,
+        last_error,
+        gets=[_Outcome(OBSERVED_STYLE)],
+        sets=[
+            _Outcome(ACTUAL_PREVIOUS_STYLE),
+            _Outcome(0, ERROR_INVALID_WINDOW_HANDLE),
+        ],
+        positions=[_Outcome(1)],
+    )
+    window = _FakeWindow()
+    assert hook.attach(window) is True
+
+    assert hook.detach(window) is True
+
+    _assert_state(hook)
+    _assert_owner_counts(hook)
+    assert messages == []
+    assert [call[0] for call in fake.calls] == ["get", "set", "position", "set"]
+    window.destroyed.emit_one(0)
+    _assert_owner_state_empty(hook)
+
+
 def test_detach_frame_failure_retries_before_clearing_state(
     monkeypatch, hook_env
 ):

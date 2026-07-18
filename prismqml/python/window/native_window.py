@@ -31,6 +31,7 @@ WS_MINIMIZEBOX = 0x00020000
 WS_MAXIMIZEBOX = 0x00010000
 
 GWL_STYLE = -16
+ERROR_INVALID_WINDOW_HANDLE = 1400
 
 WM_NCCALCSIZE = 0x0083
 
@@ -461,17 +462,24 @@ class NativeWindowHook(QObject):
 
     def _detach(self, hwnd: int) -> bool:
         """Restore one tracked HWND and commit cleanup last. 恢复句柄并最后提交清理。"""
-        if hwnd in self._restore_pending_hwnds:
+        try:
+            if hwnd in self._restore_pending_hwnds:
+                _request_frame_changed(hwnd)
+                return self._commit_detach(hwnd)
+            original_style = self._original_styles.get(hwnd)
+            if original_style is None:
+                raise RuntimeError(f"missing original style for hwnd={hwnd}")
+            _set_window_style(hwnd, original_style)
+            self._framechanged_hwnds.discard(hwnd)
+            self._restore_pending_hwnds.add(hwnd)
             _request_frame_changed(hwnd)
             return self._commit_detach(hwnd)
-        original_style = self._original_styles.get(hwnd)
-        if original_style is None:
-            raise RuntimeError(f"missing original style for hwnd={hwnd}")
-        _set_window_style(hwnd, original_style)
-        self._framechanged_hwnds.discard(hwnd)
-        self._restore_pending_hwnds.add(hwnd)
-        _request_frame_changed(hwnd)
-        return self._commit_detach(hwnd)
+        except OSError as exc:
+            if exc.errno != ERROR_INVALID_WINDOW_HANDLE:
+                raise
+            self._forget_hwnd(hwnd)
+            info(f"NativeWindowHook: discarded destroyed hwnd={hwnd}")
+            return True
 
     def _commit_detach(self, hwnd: int) -> bool:
         """Clear state only after native restoration completes. 原生恢复完成后才清状态。"""
