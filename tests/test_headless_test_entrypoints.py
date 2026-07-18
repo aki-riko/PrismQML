@@ -401,6 +401,25 @@ def test_gallery_entrypoints_use_compiled_resource_registry(relative):
     assert "register_gallery_resources" in source
 
 
+def test_gallery_main_supports_package_import():
+    result = subprocess.run(
+        [
+            sys.executable, str(TEST_PROCESS_RUNNER),
+            "--qt-platform", "offscreen", "--timeout", "30", "--",
+            sys.executable, "-X", "utf8", "-c", "import examples.main",
+        ],
+        cwd=REPO_ROOT,
+        env=_clean_qt_platform_environment(),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30 + RUNNER_SUPERVISOR_GRACE_SECONDS,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_standalone_qt_entrypoints_bootstrap_before_pyside_import():
     """可直接执行的自动 Qt 入口必须先接入统一无界面策略。"""
     missing_manual = sorted(

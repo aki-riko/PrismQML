@@ -44,7 +44,7 @@ from prismqml.python.core import (
 )
 from prismqml.python.config import applyDpiScale
 from prismqml.python.providers import get_svg_provider
-from resources import GALLERY_RCC_PATH, register_gallery_resources
+from examples.resources import GALLERY_RCC_PATH, register_gallery_resources
 
 # 注册二进制资源文件(QML 通过 qrc:/ 访问图片等)
 # 用 .rcc 二进制资源代替编译成 .py 的资源(体积更小,不污染代码仓库)
