@@ -4,8 +4,13 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Prism Design public alias and core entry skin tests."""
 
-from PySide6.QtCore import QUrl
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtCore import QObject, QUrl
+from PySide6.QtQml import (
+    QQmlApplicationEngine,
+    QQmlComponent,
+    QQmlEngine,
+    QQmlExpression,
+)
 
 from prismqml import Skin, Theme, register_types, setSkin, setTheme
 
@@ -170,6 +175,7 @@ Item {
 import QtQuick
 import PrismQML
 Item {
+    readonly property int alignLeft: Text.AlignLeft
     property int tooltipCoreRadius: tooltipCore._tooltipRadius
     property color tooltipCoreBackground: tooltipCore._tooltipBackground
     property color tooltipCoreBorder: tooltipCore._tooltipBorderColor
@@ -261,6 +267,7 @@ Item {
 
     ComponentCard {
         id: componentCard
+        objectName: "componentCard"
         label: "Prism"
         Button { text: "Child" }
     }
@@ -293,6 +300,24 @@ Item {
         assert structure.property("menuHeight") == 32
         assert structure.property("scrollPadding") == 16
         assert structure.property("componentSpacing") == 4
+        component_card = structure.findChild(QObject, "componentCard")
+        assert component_card is not None
+        component_label = next(
+            child
+            for child in component_card.findChildren(QObject)
+            if child.property("text") == "Prism"
+            and child.metaObject().indexOfProperty("horizontalAlignment") >= 0
+        )
+        alignment_expression = QQmlExpression(
+            QQmlEngine.contextForObject(component_label),
+            component_label,
+            "horizontalAlignment",
+        )
+        component_label_alignment, is_undefined = alignment_expression.evaluate()
+        alignment_error = alignment_expression.error().toString()
+        assert not alignment_expression.hasError(), alignment_error
+        assert not is_undefined
+        assert component_label_alignment == structure.property("alignLeft")
         assert structure.property("exampleWidth") == 600
 
         keep.append(_build(engine, b"""
