@@ -144,7 +144,9 @@ def test_successful_icon_sync_replaces_all_outputs(tmp_path):
     qml = outputs[2].read_text(encoding="utf-8")
     assert "import QtQuick\n" in qml
     assert "QtQuick 2.15" not in qml
-    assert 'readonly property string search: "Search"' in qml
+    assert 'readonly property string _iconNames: "|Add|Search|"' in qml
+    assert "readonly property var resolver: _createResolver()" in qml
+    assert 'case "search"' not in qml
 
 
 def test_icon_check_mode_reports_stale_outputs_without_writing(tmp_path):
@@ -165,6 +167,8 @@ def test_icon_generator_targets_current_prism_enum_path():
     assert extract_icons.DEFAULT_QML_OUTPUT.parts[-2:] == ("PrismEnums", "Icons.qml")
     assert "FluentEnums" not in qml
     assert "QtQuick 2.15" not in qml
+    assert "return new Proxy(callable" in qml
+    assert 'readonly property string add: "Add"' not in qml
 
 
 def test_icon_generator_rejects_invalid_and_case_colliding_names():

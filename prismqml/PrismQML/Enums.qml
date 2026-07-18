@@ -154,9 +154,9 @@ Item {
     // Icon Enums Icon枚举
     // QML usage: Enums.icon.chevron_up (snake_case) QML侧使用: Enums.icon.chevron_up (小写下划线)
     // Python usage: Icon.CHEVRON_UP (UPPER_SNAKE_CASE) Python侧使用: Icon.CHEVRON_UP (大写下划线)
-    // Both data consistent, 2479 icons in total 两者数据一致，都是2479个图标
-    readonly property var icons: Icons
-    readonly property var icon: Icons  // Alias 别名
+    // Both registries are generated from the same SVG assets 两侧注册表由同一 SVG 资源生成
+    readonly property var icons: Icons.resolver
+    readonly property var icon: Icons.resolver  // Alias 别名
     
     // Forward theme colors 转发主题色
     readonly property alias backgroundColor: _theme.backgroundColor
@@ -240,10 +240,4 @@ Item {
     // Global icon path (resolved once, used everywhere) 全局图标路径
     readonly property string iconPath: Qt.resolvedUrl("controls/icons/fluent/")
     
-    // Helper: get icon file name from Icons mapping 从映射获取图标文件名
-    // Usage: Enums.icon("ADD") returns "Add.svg"
-    function icon(enumKey) {
-        var name = Icons.iconList[enumKey]
-        return name ? (name + ".svg") : ""
-    }
 }

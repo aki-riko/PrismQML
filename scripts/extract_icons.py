@@ -56,6 +56,15 @@ def escape_qml_property_name(name: str) -> str:
     return f"icon_{name}" if name in QML_RESERVED_WORDS else name
 
 
+def restore_source_name(property_name: str) -> str:
+    """Restore the default source name from a QML property. 恢复默认源名称。"""
+    return "".join(
+        part[:1].upper() + part[1:]
+        for part in property_name.split("_")
+        if part
+    )
+
+
 def validate_svg_file(svg_file: Path) -> None:
     try:
         root = ET.parse(svg_file).getroot()
@@ -169,57 +178,118 @@ pragma Singleton
 QtObject {{
     id: root
 
+    // ==================== Public Props 公开属性 ====================
+    readonly property string basePath: "fluent/"
+    readonly property var resolver: _createResolver()
+
+    // ==================== Internal Props 内部属性 ====================
     readonly property real _startupProfileStart: Date.now()
     readonly property bool _startupProfilingVerboseActive:
         (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
-    readonly property string basePath: "fluent/"
+    readonly property string _iconNames: "'''
 
-    // Icon list for iteration 图标列表（用于遍历）
-    readonly property var iconList: {{
+
+def _qml_compact_names(icons: Sequence[str]) -> str:
+    return "|" + "|".join(icons) + "|"
+
+
+def _qml_property_exceptions(icons: Sequence[str]) -> str:
+    exceptions = []
+    for icon in icons:
+        property_name = escape_qml_property_name(to_snake_case(icon))
+        if restore_source_name(property_name) != icon:
+            exceptions.append(f'        case "{property_name}": return "{icon}"')
+    return "\n".join(exceptions)
+
+
+def _qml_runtime(icons: Sequence[str]) -> str:
+    exceptions = _qml_property_exceptions(icons)
+    return f'''"
+    property var _iconListCache: null
+
+    // ==================== Public Methods 公开方法 ====================
+    function path(iconName) {{
+        return basePath + iconName + ".svg"
+    }}
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _propertyNameToSource(propertyName) {{
+        switch (propertyName) {{
+{exceptions}
+        }}
+        var parts = propertyName.split("_")
+        var sourceName = ""
+        for (var index = 0; index < parts.length; ++index) {{
+            var part = parts[index]
+            if (part.length > 0) {{
+                sourceName += part.charAt(0).toUpperCase() + part.slice(1)
+            }}
+        }}
+        return sourceName
+    }}
+
+    function _hasIcon(sourceName) {{
+        return _iconNames.indexOf("|" + sourceName + "|") >= 0
+    }}
+
+    function _resolvePropertyName(propertyName) {{
+        if (typeof propertyName !== "string") return undefined
+        var sourceName = _propertyNameToSource(propertyName)
+        return _hasIcon(sourceName) ? sourceName : undefined
+    }}
+
+    function _enumName(sourceName) {{
+        var enumName = sourceName.replace(/([A-Z])/g, "_$1").toUpperCase()
+        if (enumName.charAt(0) === "_") enumName = enumName.slice(1)
+        if (/^[0-9]/.test(enumName)) enumName = "_" + enumName
+        return enumName
+    }}
+
+    function _getIconList() {{
+        if (_iconListCache !== null) return _iconListCache
+        var iconList = {{}}
+        var names = _iconNames.split("|")
+        for (var index = 1; index < names.length - 1; ++index) {{
+            var sourceName = names[index]
+            iconList[_enumName(sourceName)] = sourceName
+        }}
+        _iconListCache = iconList
+        return _iconListCache
+    }}
+
+    function _createResolver() {{
+        var callable = function(enumKey) {{
+            if (typeof enumKey !== "string") return ""
+            var sourceName = root._resolvePropertyName(enumKey.toLowerCase())
+            return sourceName === undefined ? "" : sourceName + ".svg"
+        }}
+        return new Proxy(callable, {{
+            get: function(target, propertyName) {{
+                if (propertyName === "basePath") return root.basePath
+                if (propertyName === "path") return root.path
+                if (propertyName === "iconList") return root._getIconList()
+                return root._resolvePropertyName(propertyName)
+            }}
+        }})
+    }}
+
+    Component.onCompleted: {{
+        if (_startupProfilingVerboseActive) {{
+            console.info("[启动剖析] Icons singleton completed: total " +
+                         Math.round(Date.now() - _startupProfileStart) + "ms")
+        }}
+    }}
+}}
 '''
-
-
-def _qml_icon_mappings(icons: Sequence[str]) -> str:
-    mappings = [f'        "{to_enum_name(icon)}": "{icon}"' for icon in icons]
-    return ",\n".join(mappings)
-
-
-def _qml_icon_properties(icons: Sequence[str]) -> str:
-    properties = [
-        f'    readonly property string {escape_qml_property_name(to_snake_case(icon))}: "{icon}"'
-        for icon in icons
-    ]
-    return "\n".join(properties)
 
 
 def generate_qml_icons(icons: Sequence[str]) -> str:
     """Generate the QML icon singleton source. 生成 QML 图标单例源码。"""
     validate_icon_names(icons)
-    middle = '''    }
-
-    // ==================== Icon Properties 图标属性 ====================
-'''
-    footer = '''
-
-    function path(iconName) {
-        return basePath + iconName + ".svg"
-    }
-
-    Component.onCompleted: {
-        if (_startupProfilingVerboseActive) {
-            console.info("[启动剖析] Icons singleton completed: total " +
-                         Math.round(Date.now() - _startupProfileStart) + "ms")
-        }
-    }
-}
-'''
     return (
         _qml_header(len(icons))
-        + _qml_icon_mappings(icons)
-        + "\n"
-        + middle
-        + _qml_icon_properties(icons)
-        + footer
+        + _qml_compact_names(icons)
+        + _qml_runtime(icons)
     )
 
 
