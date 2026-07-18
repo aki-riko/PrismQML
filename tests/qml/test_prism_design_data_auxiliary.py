@@ -6,7 +6,8 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+import pytest
+from PySide6.QtCore import QObject, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import Skin, Theme, register_types, setSkin, setTheme
@@ -93,9 +94,31 @@ def _assert_avatar(item, border, content):
 
 
 def _assert_marquee(item):
+    content = item.findChild(QObject, "marqueeContent")
+    text = item.findChild(QObject, "marqueeText")
+    text_copy = item.findChild(QObject, "marqueeTextCopy")
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "prismqml"
+        / "PrismQML"
+        / "controls"
+        / "data"
+        / "Marquee.qml"
+    ).read_text(encoding="utf-8")
+
+    assert content is not None
+    assert text is not None
+    assert text_copy is not None
     assert item.property("forceScroll") is True
     assert item.property("_needsScroll") is True
+    assert item.property("scrollGap") == item.property("expectedScrollGap")
+    assert item.property("_scrollDistance") == pytest.approx(
+        text.property("implicitWidth") + item.property("scrollGap")
+    )
+    assert text_copy.property("x") == pytest.approx(item.property("_scrollDistance"))
     assert item.property("pauseDuration") == 1000
+    assert "ScriptAction" not in source
+    assert "target: marqueeContent" in source
 
 
 def _assert_watermark(item, text_color):
@@ -247,6 +270,7 @@ AvatarSelector {
 import PrismQML
 Marquee {
     width: 120
+    property int expectedScrollGap: Enums.spacing.l
     text: "Prism Design skin evidence"
     forceScroll: true
 }
@@ -387,6 +411,7 @@ AvatarSelector {
 import PrismQML
 Marquee {
     width: 120
+    property int expectedScrollGap: Enums.spacing.l
     text: "Prism Design skin evidence"
     forceScroll: true
 }

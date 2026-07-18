@@ -19,10 +19,13 @@ Item {
     property int labelType: Enums.label.type_body
     property int fontPixelSize: Enums.typography.body
     property color customTextColor: Enums.transparent
+    property int scrollGap: Enums.spacing.l
 
     // ==================== Readonly State 只读状态 ====================
     // Internal: track if text needs scrolling 内部：跟踪文本是否需要滚动
     readonly property bool _needsScroll: forceScroll || marqueeText.implicitWidth > control.width
+    readonly property real _scrollDistance: marqueeText.implicitWidth + scrollGap
+    readonly property int _scrollDuration: Math.max(Enums.duration.fast, _scrollDistance * 1000 / speed)
 
     // ==================== Public Methods 公开方法 ====================
     function getText() { return text }
@@ -37,11 +40,11 @@ Item {
     // Internal function to check and start animation 内部函数检查并启动动画
     function _tryStartAnimation() {
         if (running && _needsScroll && width > 0 && !scrollAnim.running) {
-            marqueeText.x = 0
+            marqueeContent.x = 0
             scrollAnim.restart()
         } else if (!running || !_needsScroll) {
             scrollAnim.stop()
-            marqueeText.x = 0
+            marqueeContent.x = 0
         }
     }
 
@@ -51,19 +54,47 @@ Item {
     clip: true
     onWidthChanged: startTimer.restart()
     on_NeedsScrollChanged: startTimer.restart()
+    on_ScrollDistanceChanged: startTimer.restart()
     onRunningChanged: _tryStartAnimation()
     onForceScrollChanged: startTimer.restart()
+    onScrollGapChanged: startTimer.restart()
+    onSpeedChanged: startTimer.restart()
+    onPauseDurationChanged: startTimer.restart()
     Component.onCompleted: startTimer.start()
 
     // ==================== Content 内容 ====================
-    Label {
-        id: marqueeText
-        type: control.labelType
-        text: control.text
-        y: (parent.height - height) / 2
+    Item {
+        id: marqueeContent
+        objectName: "marqueeContent"
+
         x: 0
-        font.pixelSize: control.fontPixelSize
-        customTextColor: control.customTextColor
+        width: control._scrollDistance + marqueeTextCopy.implicitWidth
+        height: parent.height
+
+        Label {
+            id: marqueeText
+            objectName: "marqueeText"
+
+            type: control.labelType
+            text: control.text
+            y: (parent.height - height) / 2
+            x: 0
+            font.pixelSize: control.fontPixelSize
+            customTextColor: control.customTextColor
+        }
+
+        Label {
+            id: marqueeTextCopy
+            objectName: "marqueeTextCopy"
+
+            type: control.labelType
+            text: control.text
+            y: marqueeText.y
+            x: control._scrollDistance
+            font.pixelSize: control.fontPixelSize
+            customTextColor: control.customTextColor
+            visible: control._needsScroll
+        }
     }
     
     // Scroll animation 滚动动画
@@ -74,21 +105,11 @@ Item {
         PauseAnimation { duration: control.pauseDuration }
         
         NumberAnimation {
-            target: marqueeText
+            target: marqueeContent
             property: "x"
             from: 0
-            to: -marqueeText.implicitWidth - 20
-            duration: Math.max(100, (marqueeText.implicitWidth + 20) * 1000 / control.speed)
-        }
-        
-        ScriptAction { script: marqueeText.x = control.width }
-        
-        NumberAnimation {
-            target: marqueeText
-            property: "x"
-            from: control.width
-            to: 0
-            duration: Math.max(100, control.width * 1000 / control.speed)
+            to: -control._scrollDistance
+            duration: control._scrollDuration
         }
     }
     

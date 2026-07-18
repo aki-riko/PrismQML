@@ -130,6 +130,8 @@ import PrismQML
 
 Window {
     readonly property int captionCompact: Enums.typography.captionCompact
+    readonly property int noDelay: Enums.duration.none
+    readonly property int marqueeGap: Enums.spacing.l
 
     width: 120
     height: 100
@@ -217,6 +219,14 @@ def _marquee_item(root: QQuickItem, text: str):
         for item in _descendants(root)
         if item.metaObject().indexOfProperty("forceScroll") >= 0
         and item.property("text") == text
+    )
+
+
+def _object_named(root: QQuickItem, object_name: str):
+    return next(
+        item
+        for item in _descendants(root)
+        if item.objectName() == object_name
     )
 
 
@@ -448,6 +458,9 @@ def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
 
         label = _direct_text_item(nav_item, "Prism Design")
         marquee = _marquee_item(nav_item, "Prism Design")
+        marquee_content = _object_named(marquee, "marqueeContent")
+        marquee_text = _object_named(marquee, "marqueeText")
+        marquee_text_copy = _object_named(marquee, "marqueeTextCopy")
         label_left = label.mapToItem(nav_item, 0, 0).x()
         label_right = label_left + label.width()
 
@@ -459,14 +472,25 @@ def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
         assert label.isVisible()
         assert not marquee.isVisible()
         assert marquee.property("running") is False
+        assert marquee.property("pauseDuration") == window.property("noDelay")
         assert marquee.property("fontPixelSize") == window.property("captionCompact")
+        assert marquee.property("scrollGap") == window.property("marqueeGap")
+        assert marquee.property("_scrollDistance") == pytest.approx(
+            marquee_text.implicitWidth() + marquee.property("scrollGap")
+        )
+        assert marquee_text_copy.x() == pytest.approx(marquee.property("_scrollDistance"))
+        marquee_left = marquee.mapToItem(nav_item, 0, 0).x()
+        marquee_right = marquee_left + marquee.width()
+        assert marquee.width() < label.width()
+        assert label_left < marquee_left
+        assert marquee_right < label_right
 
         point = nav_item.mapToScene(QPointF(nav_item.width() / 2, nav_item.height() / 2)).toPoint()
         QTest.mouseMove(window, point)
         assert _wait_for(lambda: nav_item.property("hovered") is True)
         assert _wait_for(lambda: marquee.isVisible() and marquee.property("running") is True)
+        assert _wait_for(lambda: marquee_content.x() < 0)
         assert not label.isVisible()
-        assert marquee.width() == pytest.approx(label.width())
         assert marquee.width() <= nav_item.width()
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
