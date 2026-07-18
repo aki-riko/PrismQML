@@ -69,12 +69,20 @@ Item {
         x: Math.max(Enums.opacityLevel.invisible, Math.min(parent.width - width, control.hue * parent.width - width / 2))
         y: Math.max(Enums.opacityLevel.invisible, Math.min(parent.height - height, (Enums.opacityLevel.visible - control.saturation) * parent.height - height / 2))
 
-        Behavior on x { NumberAnimation { duration: Enums.duration.fast } }
-        Behavior on y { NumberAnimation { duration: Enums.duration.fast } }
+        Behavior on x {
+            enabled: !pointerArea.pressed
+            NumberAnimation { duration: Enums.duration.fast }
+        }
+        Behavior on y {
+            enabled: !pointerArea.pressed
+            NumberAnimation { duration: Enums.duration.fast }
+        }
     }
 
     // Interaction 交互
     MouseArea {
+        id: pointerArea
+
         function updateColor(mouse) {
             control.hue = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, mouse.x / width))
             control.saturation = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, Enums.opacityLevel.visible - mouse.y / height))

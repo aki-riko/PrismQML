@@ -148,11 +148,16 @@ Item {
                 border.width: Enums.colorPickerMetrics.handleBorderWidth
                 border.color: Enums.accentColor
                 
-                Behavior on x { NumberAnimation { duration: Enums.duration.fast } }
+                Behavior on x {
+                    enabled: !pointerArea.pressed
+                    NumberAnimation { duration: Enums.duration.fast }
+                }
             }
             
             // Interaction 交互
             MouseArea {
+                id: pointerArea
+
                 function updateValue(mouse) {
                     var ratio = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, mouse.x / width))
                     var newValue = Math.round(ratio * Enums.colorPickerMetrics.channelMaxValue)

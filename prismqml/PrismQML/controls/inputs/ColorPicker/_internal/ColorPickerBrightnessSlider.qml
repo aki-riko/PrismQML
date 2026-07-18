@@ -72,11 +72,16 @@ Item {
             color: Qt.hsva(control.hue, control.saturation, control.value, Enums.opacityLevel.visible)
         }
         
-        Behavior on x { NumberAnimation { duration: Enums.duration.fast } }
+        Behavior on x {
+            enabled: !pointerArea.pressed
+            NumberAnimation { duration: Enums.duration.fast }
+        }
     }
     
     // Pointer interaction 指针交互
     MouseArea {
+        id: pointerArea
+
         function updateValue(mouse) {
             var newValue = Math.max(0, Math.min(1, mouse.x / width))
             if (Math.abs(newValue - control.value) > Enums.colorPickerMetrics.brightnessUpdateEpsilon) {

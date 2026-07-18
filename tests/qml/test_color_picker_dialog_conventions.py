@@ -218,6 +218,19 @@ def _brightness_area(dialog):
     return matches[0]
 
 
+def _brightness_handle(dialog):
+    area = _brightness_area(dialog)
+    matches = [
+        item
+        for item in area.parentItem().childItems()
+        if item.metaObject().className().startswith("QQuickRectangle")
+        and item.width() == pytest.approx(18)
+        and item.height() == pytest.approx(18)
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 def _click_item(window: QQuickWindow, item: QQuickItem, x_ratio=0.5, y_ratio=0.5):
     point = item.mapToItem(
         window.contentItem(), QPointF(item.width() * x_ratio, item.height() * y_ratio)
@@ -315,6 +328,36 @@ def test_color_picker_dialog_maps_panel_and_brightness_clicks(qapp):
         assert len(updated) == 2
         assert len(parent_changed) == 2
         assert _rgb(parent_changed[1]) == _rgb(expected)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window, picker)
+
+
+def test_color_picker_dialog_brightness_handle_tracks_drag_immediately(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, picker, warnings = _create_scene()
+    try:
+        dialog, _card = _open_dialog(picker, window)
+        area = _brightness_area(dialog)
+        handle = _brightness_handle(dialog)
+        press_point = area.mapToItem(
+            window.contentItem(), QPointF(area.width() * 0.6, area.height() / 2)
+        ).toPoint()
+        drag_point = area.mapToItem(
+            window.contentItem(), QPointF(area.width() * 0.85, area.height() / 2)
+        ).toPoint()
+
+        QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=press_point)
+        QTest.mouseMove(window, drag_point, delay=1)
+
+        assert dialog.property("_brightness") == pytest.approx(0.85, abs=0.01)
+        expected_x = dialog.property("_brightness") * (
+            handle.parentItem().width() - handle.width()
+        )
+        assert handle.x() == pytest.approx(expected_x, abs=1)
+
+        QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=drag_point)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

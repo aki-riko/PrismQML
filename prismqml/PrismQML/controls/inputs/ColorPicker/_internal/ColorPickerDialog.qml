@@ -138,10 +138,15 @@ MessageBox {
                         border.width: Enums.colorPickerMetrics.handleBorderWidth
                         border.color: Enums.accentColor
                         
-                        Behavior on x { NumberAnimation { duration: Enums.duration.fast } }
+                        Behavior on x {
+                            enabled: !brightnessArea.pressed
+                            NumberAnimation { duration: Enums.duration.fast }
+                        }
                     }
                     
                     MouseArea {
+                        id: brightnessArea
+
                         function updateBrightness(mouse) {
                             control._brightness = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, mouse.x / width))
                             control.updateColor()

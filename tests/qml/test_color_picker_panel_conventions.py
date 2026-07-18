@@ -12,6 +12,7 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QPoint,
+    QPointF,
     QTimer,
     Qt,
     QUrl,
@@ -235,6 +236,33 @@ def test_color_picker_panel_maps_real_mouse_clicks_and_emits(qapp):
         )
         assert (selector.x(), selector.y()) == pytest.approx((187, 42))
         assert changed == pytest.approx([(0.25, 0.25), (0.75, 0.75)])
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_color_picker_panel_selector_tracks_drag_immediately(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, warnings = _create_scene()
+    try:
+        panel, _canvas, selector = _panel_parts(window)
+        press_point = panel.mapToItem(
+            window.contentItem(), QPointF(panel.width() * 0.5, panel.height() * 0.1)
+        ).toPoint()
+        drag_point = panel.mapToItem(
+            window.contentItem(), QPointF(panel.width() * 0.8, panel.height() * 0.75)
+        ).toPoint()
+
+        QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=press_point)
+        QTest.mouseMove(window, drag_point, delay=1)
+
+        assert (panel.property("hue"), panel.property("saturation")) == pytest.approx(
+            (0.8, 0.25), abs=0.01
+        )
+        assert (selector.x(), selector.y()) == pytest.approx((200, 142), abs=1)
+
+        QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=drag_point)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

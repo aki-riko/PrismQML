@@ -27,6 +27,11 @@ SOURCE_PATH = (
     / "_internal"
     / "ColorPickerChannelSlider.qml"
 )
+DRAG_TRACKING_SOURCE_PATHS = (
+    SOURCE_PATH.parent / "ColorPickerBrightnessSlider.qml",
+    SOURCE_PATH.parent / "ColorPickerHueSlider.qml",
+    SOURCE_PATH,
+)
 ANIMATION_SETTLE_MS = 150  # Enums.duration.fast (100 ms) plus event-loop margin 动画时长加事件循环余量
 
 
@@ -179,3 +184,10 @@ def test_channel_slider_uses_tokens_and_convention_order():
         "% 2 === 0",
     ):
         assert literal not in source
+
+
+def test_color_picker_slider_handles_pause_animation_while_dragging():
+    for source_path in DRAG_TRACKING_SOURCE_PATHS:
+        source = source_path.read_text(encoding="utf-8")
+        assert "id: pointerArea" in source
+        assert "enabled: !pointerArea.pressed" in source
