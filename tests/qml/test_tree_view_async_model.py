@@ -19,6 +19,12 @@ import QtQuick
 import PrismQML
 
 Item {
+    readonly property color expectedTreeCard: Enums.cardColor
+    readonly property color expectedTreeHover: Qt.tint(
+        Enums.cardColor,
+        Enums.stateColor.treeItemHover
+    )
+
     width: 300
     height: 380
 
@@ -116,6 +122,24 @@ def test_tree_view_async_loader_tracks_internal_list_model(qapp):
         root_y = delegates_by_text["Root"].mapToItem(tree, QPointF()).y()
         leaf_y = delegates_by_text["Leaf"].mapToItem(tree, QPointF()).y()
         assert root_y < leaf_y
+
+        root_delegate = delegates_by_text["Root"]
+        backgrounds = [
+            item
+            for item in root_delegate.childItems()
+            if item.metaObject().indexOfProperty("color") >= 0
+            and item.width() > 0
+        ]
+        assert len(backgrounds) == 1
+        background = backgrounds[0]
+
+        tree.setProperty("_hoverIndex", root_delegate.property("index"))
+        _pump(250)
+        assert background.property("color") == root.property("expectedTreeHover")
+
+        tree.setProperty("_hoverIndex", -1)
+        _pump(250)
+        assert background.property("color") == root.property("expectedTreeCard")
         assert warnings == []
         assert [
             window
