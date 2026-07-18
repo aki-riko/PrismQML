@@ -112,7 +112,11 @@ def main():
     from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
     from PySide6.QtCore import Qt, QUrl
 
-    from resources import gallery_rc  # noqa: F401
+    from resources import GALLERY_RCC_PATH, register_gallery_resources
+
+    if not register_gallery_resources():
+        print(f"[ERROR] Gallery 资源注册失败: {GALLERY_RCC_PATH}")
+        return -1
 
     QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)

@@ -68,8 +68,7 @@ class FrameStats:
 
 
 def main():
-    import main as gallery_main  # noqa
-    # gallery_main.main() 会进事件循环, 我们需要在它之前 hook, 改为手动复刻其初始化
+    # Gallery main 会进入事件循环；探针手动复刻初始化以便提前安装采样 hook。
     from PySide6.QtGui import QGuiApplication
     from PySide6.QtQml import QQmlApplicationEngine
     from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
@@ -96,7 +95,11 @@ def main():
 
     os.chdir(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                           "examples"))
-    from resources import gallery_rc  # noqa
+    from resources import GALLERY_RCC_PATH, register_gallery_resources
+
+    if not register_gallery_resources():
+        print(f"[ERROR] Gallery 资源注册失败: {GALLERY_RCC_PATH}")
+        return -1
 
     applyDpiScale()
     app = QApplication(sys.argv)

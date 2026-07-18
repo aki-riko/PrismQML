@@ -35,7 +35,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
-from PySide6.QtCore import Qt, QUrl, QResource
+from PySide6.QtCore import Qt, QUrl
 
 from prismqml.python.core import (
     installDwmSyncFilter,
@@ -44,12 +44,12 @@ from prismqml.python.core import (
 )
 from prismqml.python.config import applyDpiScale
 from prismqml.python.providers import get_svg_provider
+from resources import GALLERY_RCC_PATH, register_gallery_resources
 
 # 注册二进制资源文件(QML 通过 qrc:/ 访问图片等)
 # 用 .rcc 二进制资源代替编译成 .py 的资源(体积更小,不污染代码仓库)
-_rcc_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "gallery.rcc")
-if not QResource.registerResource(_rcc_path):
-    print(f"警告: 资源注册失败 {_rcc_path}")
+if not register_gallery_resources():
+    print(f"警告: 资源注册失败 {GALLERY_RCC_PATH}")
 
 log_time("全部模块导入完成")
 

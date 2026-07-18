@@ -386,6 +386,21 @@ def test_shared_qml_bootstrap_forces_noninteractive_policy_before_pyside_import(
     assert state == {"platform": "offscreen", "noninteractive": True}
 
 
+@pytest.mark.parametrize(
+    "relative",
+    (
+        Path("examples/main.py"),
+        Path("scripts/fps_probe.py"),
+        Path("scripts/run_with_fps.py"),
+    ),
+)
+def test_gallery_entrypoints_use_compiled_resource_registry(relative):
+    source = (REPO_ROOT / relative).read_text(encoding="utf-8")
+
+    assert "gallery_rc" not in source
+    assert "register_gallery_resources" in source
+
+
 def test_standalone_qt_entrypoints_bootstrap_before_pyside_import():
     """可直接执行的自动 Qt 入口必须先接入统一无界面策略。"""
     missing_manual = sorted(

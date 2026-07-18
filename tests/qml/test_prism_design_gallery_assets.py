@@ -9,6 +9,8 @@ from pathlib import Path
 from PySide6.QtCore import QFile, QResource
 from PySide6.QtGui import QImage
 
+from examples.resources import GALLERY_RCC_PATH, register_gallery_resources
+
 
 ROOT = Path(__file__).resolve().parents[2]
 RESOURCE_DIR = ROOT / "examples" / "resources"
@@ -61,8 +63,8 @@ def test_prism_design_gallery_compare_assets_are_valid(qapp):
     qrc_text = (RESOURCE_DIR / "gallery.qrc").read_text(encoding="utf-8")
     index_doc = DOCS_INDEX_PAGE.read_text(encoding="utf-8")
     skins_doc = DOCS_SKINS_PAGE.read_text(encoding="utf-8")
-    rcc_path = RESOURCE_DIR / "gallery.rcc"
-    assert QResource.registerResource(str(rcc_path))
+    assert GALLERY_RCC_PATH == RESOURCE_DIR / "gallery.rcc"
+    assert register_gallery_resources()
 
     try:
         for theme_name in ("light", "dark"):
@@ -73,4 +75,4 @@ def test_prism_design_gallery_compare_assets_are_valid(qapp):
                 _assert_compare_image(asset_name)
                 _assert_docs_compare_image(asset_name, skins_doc, index_doc)
     finally:
-        QResource.unregisterResource(str(rcc_path))
+        QResource.unregisterResource(str(GALLERY_RCC_PATH))
