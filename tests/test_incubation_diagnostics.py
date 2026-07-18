@@ -71,6 +71,17 @@ def test_idle_tick_does_not_emit_active_diagnostics(monkeypatch, qapp):
     assert controller._timer.interval() == 250
 
 
+def test_new_incubation_work_promotes_idle_timer_immediately(qapp):
+    owner = QObject()
+    controller = incubation.PrismIncubationController(owner)
+
+    assert controller._timer.interval() == controller._idle_interval
+    controller.incubatingObjectCountChanged(1)
+
+    assert controller._timer.isActive()
+    assert controller._timer.interval() == controller._active_interval
+
+
 def test_tick_failure_logs_boundary_and_reraises(monkeypatch, qapp):
     messages = []
     monkeypatch.setattr(

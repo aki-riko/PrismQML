@@ -60,6 +60,14 @@ class PrismIncubationController(QQmlIncubationController):
         self._timer.timeout.connect(self._on_tick)
         self._timer.start(self._idle_interval)
 
+    def incubatingObjectCountChanged(self, incubating_object_count: int) -> None:
+        """Promote polling as soon as Qt queues work. Qt 入队任务后立即升频。"""
+        if incubating_object_count <= 0:
+            return
+        if (not self._timer.isActive()
+                or self._timer.interval() != self._active_interval):
+            self._timer.start(self._active_interval)
+
     def _on_tick(self) -> None:
         # incubatingObjectCount(): 当前仍在孵化中的对象数; >0 说明有异步实例化
         # 正在进行, 需要持续推进。incubateFor 在预算时间内尽可能多地推进孵化。
