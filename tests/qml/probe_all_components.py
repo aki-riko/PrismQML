@@ -12,7 +12,9 @@ property 的内部子模块会被归类为预期跳过,真正新增的加载错�
 退出码: 0=无非预期错误, 1=有非预期加载错误
 """
 import argparse
+import importlib
 import importlib.util
+import os
 import re
 import sys
 from pathlib import Path
@@ -23,7 +25,13 @@ from _test_process_bootstrap import configure_qml_test_process
 # 强制自动化探测无界面运行，并禁止原生崩溃弹窗。
 configure_qml_test_process()
 
-from PySide6.QtCore import QEventLoop, QUrl, QTimer
+from PySide6.QtCore import (
+    QEventLoop,
+    QTimer,
+    QUrl,
+    QtMsgType,
+    qInstallMessageHandler,
+)
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
@@ -67,6 +75,30 @@ def resolve_package_root(installed: bool) -> Path:
     if package_root == source_root:
         raise RuntimeError("--installed 被源码树遮蔽，未验证已安装 prismqml 包")
     return package_root
+
+
+def load_runtime_setup(package_root: Path):
+    """从被探测包加载真实 QML 环境与注册入口。"""
+    sys.path.insert(0, str(package_root.parent))
+    package = importlib.import_module("prismqml")
+    imported_root = Path(package.__file__).resolve().parent
+    if imported_root != package_root.resolve():
+        raise RuntimeError(
+            f"PrismQML Python/QML 根不一致: {imported_root} != {package_root}"
+        )
+    return package.configure_qml_environment, package.register_types
+
+
+def configure_probe_font_directory() -> None:
+    """在 Windows offscreen 下使用系统字体目录。"""
+    if os.name != "nt" or os.environ.get("QT_QPA_FONTDIR"):
+        return
+    windows_root = os.environ.get("WINDIR")
+    if not windows_root:
+        return
+    font_directory = Path(windows_root) / "Fonts"
+    if font_directory.is_dir():
+        os.environ["QT_QPA_FONTDIR"] = str(font_directory)
 
 
 def parse_qmldir(path: Path):
@@ -164,14 +196,65 @@ def probe_singleton(engine: QQmlEngine, type_name: str):
     return True, []
 
 
+def make_qt_message_handler(messages: list[str]):
+    """创建会收集 warning 及更高等级消息的 Qt handler。"""
+    failure_types = {
+        QtMsgType.QtWarningMsg,
+        QtMsgType.QtCriticalMsg,
+        QtMsgType.QtFatalMsg,
+    }
+
+    def handle_message(message_type, context, message):
+        if message_type not in failure_types:
+            return
+        location = f"{context.file}:{context.line}: " if context.file else ""
+        messages.append(f"{message_type.name}: {location}{message}")
+
+    return handle_message
+
+
+def flush_qt_events() -> None:
+    """运行一轮事件循环以收集 singleton 完成期消息。"""
+    loop = QEventLoop()
+    QTimer.singleShot(0, loop.quit)
+    loop.exec()
+
+
+def collect_singleton_results(engine: QQmlEngine, types):
+    """创建所有 singleton 并收集其 Qt 运行时消息。"""
+    errors = {}
+    ok = 0
+    singleton_messages = []
+    previous_handler = qInstallMessageHandler(
+        make_qt_message_handler(singleton_messages)
+    )
+    try:
+        for type_name, is_singleton in types:
+            if not is_singleton:
+                continue
+            passed, type_errors = probe_singleton(engine, type_name)
+            if passed:
+                ok += 1
+            else:
+                errors[type_name] = type_errors
+        flush_qt_events()
+    finally:
+        qInstallMessageHandler(previous_handler)
+
+    if singleton_messages:
+        errors["Singleton Qt runtime"] = singleton_messages
+    return ok, errors
+
+
 def collect_results(engine: QQmlEngine, types):
     """收集组件创建、预期跳过和真实错误。"""
-    errors = {}
+    ok, errors = collect_singleton_results(engine, types)
     expected_required_skips = {}
-    ok = 0
+
     for type_name, is_singleton in types:
-        probe = probe_singleton if is_singleton else probe_component
-        passed, type_errors = probe(engine, type_name)
+        if is_singleton:
+            continue
+        passed, type_errors = probe_component(engine, type_name)
         if passed:
             ok += 1
         elif is_expected_required_property_skip(type_name, type_errors):
@@ -205,18 +288,22 @@ def main():
     """运行源码树或安装包的全组件 probe。"""
     args = parse_args()
     package_root = resolve_package_root(args.installed)
+    configure_qml_environment, register_types = load_runtime_setup(package_root)
     qmldir = package_root / "PrismQML" / "qmldir"
     if not qmldir.is_file():
         raise FileNotFoundError(f"找不到 QML 模块注册文件: {qmldir}")
 
+    configure_qml_environment()
+    configure_probe_font_directory()
     app = QApplication([sys.argv[0]])
     engine = QQmlEngine()
+    register_types(engine)
     engine.addImportPath(str(package_root))
     types = parse_qmldir(qmldir)
     results = collect_results(engine, types)
-    report_results(*results, len(types))
     QTimer.singleShot(0, app.quit)
     app.exec()
+    report_results(*results, len(types))
     return 1 if results[1] else 0
 
 

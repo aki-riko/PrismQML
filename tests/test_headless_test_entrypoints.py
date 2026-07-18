@@ -337,6 +337,19 @@ def test_probe_defaults_to_headless_through_process_runner():
     assert "单例跳过" not in result.stdout
 
 
+def test_probe_installs_runtime_qt_warning_capture():
+    """全组件 probe 必须把 Qt warning 纳入失败门禁。"""
+    source = (REPO_ROOT / "tests/qml/probe_all_components.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "configure_qml_environment()" in source
+    assert "configure_probe_font_directory()" in source
+    assert "register_types(engine)" in source
+    assert "make_qt_message_handler(singleton_messages)" in source
+    assert 'errors["Singleton Qt runtime"] = singleton_messages' in source
+
+
 def test_pytest_conftest_forces_headless_even_with_explicit_platform_value():
     """conftest 必须覆盖可能弹窗的调用者平台配置。"""
     code = """
