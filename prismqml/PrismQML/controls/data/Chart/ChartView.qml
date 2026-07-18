@@ -13,10 +13,8 @@ import "../Label"
 // ChartView - Fluent Design chart component 综合图表组件
 // Supports Bar/Line/Pie/Scatter/Radar/Boxplot with Fluent Design styling 支持柱状图/折线图/饼图/散点图/雷达图/箱线图，Fluent Design 风格
 
-
 ShadowedRectangle {
     id: control
-
     // ==================== Public Props 公开属性 ====================
     property int chartType: Enums.chart.type_bar
     property int barOrientation: Enums.chart.orientation_vertical
@@ -75,7 +73,6 @@ ShadowedRectangle {
         }
         return max || 1
     }
-
     readonly property real totalValue: {
         var sum = 0
         for (var i = 0; i < chartData.length; i++) {
@@ -83,7 +80,6 @@ ShadowedRectangle {
         }
         return sum || 1
     }
-
     readonly property var defaultColors: Enums.chartColors.palette
 
     // Size and style 尺寸与样式
@@ -128,6 +124,9 @@ ShadowedRectangle {
     readonly property bool _isBoxplot: chartType === Enums.chart.type_boxplot
     readonly property bool _isHorizontalBar: chartType === Enums.chart.type_bar &&
                                              barOrientation === Enums.chart.orientation_horizontal
+    readonly property var _barContent: barContentLoader.item
+    readonly property var _lineContent: lineContentLoader.item
+    readonly property var _scatterContent: scatterContentLoader.item
 
     // Slice the viewport before LTTB sampling to preserve trends and extrema 先按视窗切片，再用 LTTB 保留趋势与峰谷
     readonly property var _viewChartData: ChartViewport.viewChartData(
@@ -152,13 +151,11 @@ ShadowedRectangle {
         if (chartData[index] && chartData[index].color) return chartData[index].color
         return defaultColors[index % defaultColors.length]
     }
-
     function formatValue(value) {
         if (valueFormatter && typeof valueFormatter === "function") return valueFormatter(value)
         if (typeof value === "number") return value.toLocaleString()
         return value
     }
-
     function toggleSeriesVisibility(seriesIndex) {
         var hidden = _hiddenSeriesIndices.slice()
         var idx = hidden.indexOf(seriesIndex)
@@ -166,11 +163,9 @@ ShadowedRectangle {
         else hidden.push(seriesIndex)
         _hiddenSeriesIndices = hidden
     }
-
     function isSeriesVisible(seriesIndex) {
         return _hiddenSeriesIndices.indexOf(seriesIndex) < 0
     }
-
     implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
     implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
     color: Enums.cardColor
@@ -188,7 +183,6 @@ ShadowedRectangle {
             entranceAnim.start()
         }
     }
-
     // Apply pointer-anchored wheel zoom and retarget running transitions 应用鼠标锚定滚轮缩放并重定向进行中的过渡
     onWheelZoomed: function(delta, anchorRatio) {
         var span = control._visualEnd - control._visualStart
@@ -214,7 +208,6 @@ ShadowedRectangle {
         control.viewportEnd = nextEnd
         control.viewportChanged(nextStart, nextEnd)
     }
-
     ChartViewportAnimator {
         id: viewportAnimator
         viewportStart: control.viewportStart
@@ -231,7 +224,6 @@ ShadowedRectangle {
             control._hoveredScatterPointIndex = -1
         }
     }
-
     SequentialAnimation {
         id: entranceAnim
         PauseAnimation { duration: Enums.duration.instant }
@@ -240,7 +232,6 @@ ShadowedRectangle {
             NumberAnimation { target: control; property: "scale"; to: 1.0; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
         }
     }
-
     // ==================== Content 内容 ====================
     XYChartCore {
         id: xyChartBase
@@ -294,66 +285,84 @@ ShadowedRectangle {
                     yScale: control._isHorizontalBar ? control._viewportScale : 1
                 }
 
-                BarChartContent {
-                    id: barContent
+                Loader {
+                    id: barContentLoader
+                    objectName: "barContentLoader"
                     anchors.fill: parent
-                    visible: control.chartType === Enums.chart.type_bar && (control.chartData.length > 0 || control.series.length > 0)
-                    chartData: control._viewChartData
-                    series: control._viewSeries
-                    maxValue: control.maxValue
-                    animated: control.animated
-                    showValues: control.showValues
-                    showAverage: control.showAverage
-                    showMinMax: control.showMinMax
-                    showBarGradient: control.showBarGradient
-                    getColor: control.getColor
-                    hoveredIndex: control._hoveredBarIndex
-                    hoveredSeriesIndex: control._hoveredBarSeriesIndex
-                    isHorizontal: control._isHorizontalBar
-                    valueRange: xyChartBase.valueRange
-                    zeroLineRatio: xyChartBase.zeroLineRatio
-                    onBarClicked: (index, data) => control.barClicked(index, data)
-                    onBarHovered: (index) => control._hoveredBarIndex = index
-                    onSeriesBarHovered: (si, bi) => { control._hoveredBarSeriesIndex = si; control._hoveredBarIndex = bi }
+                    active: control.chartType === Enums.chart.type_bar &&
+                            (control.chartData.length > 0 || control.series.length > 0)
+                    sourceComponent: Component {
+                        BarChartContent {
+                            chartData: control._viewChartData
+                            series: control._viewSeries
+                            maxValue: control.maxValue
+                            animated: control.animated
+                            showValues: control.showValues
+                            showAverage: control.showAverage
+                            showMinMax: control.showMinMax
+                            showBarGradient: control.showBarGradient
+                            getColor: control.getColor
+                            hoveredIndex: control._hoveredBarIndex
+                            hoveredSeriesIndex: control._hoveredBarSeriesIndex
+                            isHorizontal: control._isHorizontalBar
+                            valueRange: xyChartBase.valueRange
+                            zeroLineRatio: xyChartBase.zeroLineRatio
+                            onBarClicked: (index, data) => control.barClicked(index, data)
+                            onBarHovered: (index) => control._hoveredBarIndex = index
+                            onSeriesBarHovered: (si, bi) => { control._hoveredBarSeriesIndex = si; control._hoveredBarIndex = bi }
+                        }
+                    }
                 }
 
-                LineChartContent {
-                    id: lineContent
+                Loader {
+                    id: lineContentLoader
+                    objectName: "lineContentLoader"
                     anchors.fill: parent
-                    visible: control.chartType === Enums.chart.type_line && (control.chartData.length > 0 || control.series.length > 0)
-                    chartData: control._viewChartData
-                    series: control._viewSeries
-                    maxValue: control.maxValue
-                    primaryColor: control.primaryColor
-                    smoothLine: control.smoothLine
-                    hoverDetectEnabled: control.showTooltip && !control._viewportTransitionActive
-                    showAverage: control.showAverage
-                    showMinMax: control.showMinMax
-                    isArea: false
-                    hoveredIndex: control._hoveredPointIndex
-                    hoveredSeriesIndex: control._hoveredLineSeriesIndex
-                    boundaryGap: control.boundaryGap
-                    showAreaGradient: control.showAreaGradient
-                    stacked: control.stacked
-                    onPointClicked: (index, data) => control.pointClicked(index, data)
-                    onPointHovered: (index) => control._hoveredPointIndex = index
-                    onSeriesPointHovered: (si, pi) => { control._hoveredLineSeriesIndex = si; control._hoveredPointIndex = pi }
-                    onWheelZoomed: (delta, anchorRatio) => control.wheelZoomed(delta, anchorRatio)
+                    active: control.chartType === Enums.chart.type_line &&
+                            (control.chartData.length > 0 || control.series.length > 0)
+                    sourceComponent: Component {
+                        LineChartContent {
+                            chartData: control._viewChartData
+                            series: control._viewSeries
+                            maxValue: control.maxValue
+                            primaryColor: control.primaryColor
+                            smoothLine: control.smoothLine
+                            animated: control.animated
+                            hoverDetectEnabled: control.showTooltip && !control._viewportTransitionActive
+                            showAverage: control.showAverage
+                            showMinMax: control.showMinMax
+                            isArea: false
+                            hoveredIndex: control._hoveredPointIndex
+                            hoveredSeriesIndex: control._hoveredLineSeriesIndex
+                            boundaryGap: control.boundaryGap
+                            showAreaGradient: control.showAreaGradient
+                            stacked: control.stacked
+                            onPointClicked: (index, data) => control.pointClicked(index, data)
+                            onPointHovered: (index) => control._hoveredPointIndex = index
+                            onSeriesPointHovered: (si, pi) => { control._hoveredLineSeriesIndex = si; control._hoveredPointIndex = pi }
+                            onWheelZoomed: (delta, anchorRatio) => control.wheelZoomed(delta, anchorRatio)
+                        }
+                    }
                 }
 
-                ScatterChartContent {
-                    id: scatterContent
+                Loader {
+                    id: scatterContentLoader
+                    objectName: "scatterContentLoader"
                     anchors.fill: parent
-                    visible: control._isScatter && control.series.length > 0
-                    series: control._viewSeries
-                    dataRange: xyChartBase.scatterDataRange
-                    animated: control.animated
-                    showGrid: control.showGrid
-                    hoveredSeriesIndex: control._hoveredScatterSeriesIndex
-                    hoveredPointIndex: control._hoveredScatterPointIndex
-                    defaultSymbolSize: control.symbolSize
-                    onPointClicked: (index, data) => control.pointClicked(index, data)
-                    onPointHovered: (si, pi) => { control._hoveredScatterSeriesIndex = si; control._hoveredScatterPointIndex = pi }
+                    active: control._isScatter && control.series.length > 0
+                    sourceComponent: Component {
+                        ScatterChartContent {
+                            series: control._viewSeries
+                            dataRange: xyChartBase.scatterDataRange
+                            animated: control.animated
+                            showGrid: control.showGrid
+                            hoveredSeriesIndex: control._hoveredScatterSeriesIndex
+                            hoveredPointIndex: control._hoveredScatterPointIndex
+                            defaultSymbolSize: control.symbolSize
+                            onPointClicked: (index, data) => control.pointClicked(index, data)
+                            onPointHovered: (si, pi) => { control._hoveredScatterSeriesIndex = si; control._hoveredScatterPointIndex = pi }
+                        }
+                    }
                 }
             }
         }
@@ -362,7 +371,8 @@ ShadowedRectangle {
     // XY chart tooltips XY 图表提示框
     // Single series bar chart tooltip 单系列柱状图 Tooltip
     ChartTooltip {
-        visible: !control._viewportTransitionActive && control._hoveredBarIndex >= 0 && barContent.visible && !barContent.isMultiSeries
+        visible: !control._viewportTransitionActive && control._hoveredBarIndex >= 0 &&
+                 control._barContent !== null && !control._barContent.isMultiSeries
         x: {
             if (control._hoveredBarIndex < 0 || control._viewChartData.length === 0) return 0
             var barWidth = (xyChartBase.chartAreaWidth - control._viewChartData.length * Enums.spacing.s) / control._viewChartData.length
@@ -376,19 +386,21 @@ ShadowedRectangle {
 
     // Single series line chart tooltip 单系列折线图 Tooltip
     ChartTooltip {
-        visible: !control._viewportTransitionActive && control._hoveredPointIndex >= 0 && lineContent.visible && !lineContent.isMultiSeries
-        x: xyChartBase.chartAreaX + lineContent.getTooltipPosition(control._hoveredPointIndex).x - width / 2
-        y: xyChartBase.chartAreaY + lineContent.getTooltipPosition(control._hoveredPointIndex).y - height - Enums.spacing.m
+        visible: !control._viewportTransitionActive && control._hoveredPointIndex >= 0 &&
+                 control._lineContent !== null && !control._lineContent.isMultiSeries
+        x: xyChartBase.chartAreaX + (control._lineContent ? control._lineContent.getTooltipPosition(control._hoveredPointIndex).x : 0) - width / 2
+        y: xyChartBase.chartAreaY + (control._lineContent ? control._lineContent.getTooltipPosition(control._hoveredPointIndex).y : 0) - height - Enums.spacing.m
         label: control._hoveredPointIndex >= 0 && control._hoveredPointIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredPointIndex].label || "") : ""
         value: control._hoveredPointIndex >= 0 && control._hoveredPointIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredPointIndex].value || 0) : 0
         valueFormatter: control.valueFormatter
     }
 
     ChartMultiTooltip {
-        visible: !control._viewportTransitionActive && control.showTooltip && control._hoveredPointIndex >= 0 && lineContent.visible && lineContent.isMultiSeries
+        visible: !control._viewportTransitionActive && control.showTooltip && control._hoveredPointIndex >= 0 &&
+                 control._lineContent !== null && control._lineContent.isMultiSeries
         // 默认放鼠标右下角; 触右/下边时反向到左/上 (单轴独立判断)
         x: {
-            var mx = lineContent.mouseX || 0
+            var mx = control._lineContent ? control._lineContent.mouseX : 0
             var right = mx + Enums.spacing.m
             // 右侧放得下 → 右; 否则翻到左侧 (mx - width - spacing.s)
             if (right + width <= xyChartBase.chartAreaWidth) {
@@ -397,7 +409,7 @@ ShadowedRectangle {
             return xyChartBase.chartAreaX + Math.max(0, mx - width - Enums.spacing.s)
         }
         y: {
-            var my = lineContent.mouseY || 0
+            var my = control._lineContent ? control._lineContent.mouseY : 0
             var below = my + Enums.spacing.m
             if (below + height <= xyChartBase.chartAreaHeight) {
                 return xyChartBase.chartAreaY + below
@@ -432,8 +444,13 @@ ShadowedRectangle {
     }
 
     ChartMultiTooltip {
-        visible: !control._viewportTransitionActive && control._hoveredBarIndex >= 0 && barContent.visible && barContent.isMultiSeries
-        x: xyChartBase.chartAreaX + Math.min(Math.max((control._hoveredBarIndex + 0.5) * (xyChartBase.chartAreaWidth / barContent.dataLength) - width / 2, 0), xyChartBase.chartAreaWidth - width)
+        visible: !control._viewportTransitionActive && control._hoveredBarIndex >= 0 &&
+                 control._barContent !== null && control._barContent.isMultiSeries
+        x: {
+            var dataLength = control._barContent ? control._barContent.dataLength : 0
+            if (dataLength <= 0) return xyChartBase.chartAreaX
+            return xyChartBase.chartAreaX + Math.min(Math.max((control._hoveredBarIndex + 0.5) * (xyChartBase.chartAreaWidth / dataLength) - width / 2, 0), xyChartBase.chartAreaWidth - width)
+        }
         y: xyChartBase.chartAreaY + Enums.spacing.m
         xLabel: control._hoveredBarIndex >= 0 && control._viewChartData.length > control._hoveredBarIndex ? (control._viewChartData[control._hoveredBarIndex].label || "") : ""
         seriesData: {
@@ -453,13 +470,16 @@ ShadowedRectangle {
     }
 
     ChartTooltip {
-        visible: !control._viewportTransitionActive && control._hoveredScatterSeriesIndex >= 0 && scatterContent.visible
-        x: xyChartBase.chartAreaX + Math.min(Math.max(scatterContent.tooltipX - width / 2, 0), xyChartBase.chartAreaWidth - width)
-        y: xyChartBase.chartAreaY + scatterContent.tooltipY - height - Enums.spacing.m
+        visible: !control._viewportTransitionActive && control._hoveredScatterSeriesIndex >= 0 &&
+                 control._scatterContent !== null
+        x: xyChartBase.chartAreaX + Math.min(Math.max((control._scatterContent ? control._scatterContent.tooltipX : 0) - width / 2, 0), xyChartBase.chartAreaWidth - width)
+        y: xyChartBase.chartAreaY + (control._scatterContent ? control._scatterContent.tooltipY : 0) - height - Enums.spacing.m
         showColorDot: true
         dotColor: control._hoveredScatterSeriesIndex >= 0 ? (control._viewSeries[control._hoveredScatterSeriesIndex].color || Enums.chartColors.extendedPalette[control._hoveredScatterSeriesIndex % Enums.chartColors.extendedPalette.length]) : Enums.transparent
         label: control._hoveredScatterSeriesIndex >= 0 ? (control._viewSeries[control._hoveredScatterSeriesIndex].name || "") : ""
-        value: "(" + scatterContent.dataX.toFixed(2) + ", " + scatterContent.dataY.toFixed(2) + ")"
+        value: control._scatterContent
+               ? "(" + control._scatterContent.dataX.toFixed(2) + ", " + control._scatterContent.dataY.toFixed(2) + ")"
+               : ""
         isValueString: true
     }
 
@@ -503,62 +523,80 @@ ShadowedRectangle {
     }
 
     // Pie chart 饼图
-    PieChartArea {
+    Loader {
+        id: pieAreaLoader
+        objectName: "pieAreaLoader"
         anchors.fill: parent
-        visible: control._isPie
-        chartData: control.chartData
-        totalValue: control.totalValue
-        animated: control.animated
-        showValues: control.showValues
-        showLegend: control.showLegend
-        getColor: control.getColor
-        title: control.title
-        subtitle: control.subtitle
-        isDonut: control.isDonut
-        donutRatio: control.donutRatio
-        donutCenterText: control.donutCenterText
-        donutCenterSubtext: control.donutCenterSubtext
-        emphasisCenter: control.emphasisCenter
-        labelOutside: control.labelOutside
-        hoveredIndex: control._hoveredSliceIndex
-        onSliceClicked: (index, data) => control.sliceClicked(index, data)
-        onSliceHovered: (index) => control._hoveredSliceIndex = index
+        active: control._isPie && control.chartData.length > 0
+        sourceComponent: Component {
+            PieChartArea {
+                chartData: control.chartData
+                totalValue: control.totalValue
+                animated: control.animated
+                showValues: control.showValues
+                showLegend: control.showLegend
+                getColor: control.getColor
+                title: control.title
+                subtitle: control.subtitle
+                isDonut: control.isDonut
+                donutRatio: control.donutRatio
+                donutCenterText: control.donutCenterText
+                donutCenterSubtext: control.donutCenterSubtext
+                emphasisCenter: control.emphasisCenter
+                labelOutside: control.labelOutside
+                hoveredIndex: control._hoveredSliceIndex
+                onSliceClicked: (index, data) => control.sliceClicked(index, data)
+                onSliceHovered: (index) => control._hoveredSliceIndex = index
+            }
+        }
     }
 
     // Radar chart 雷达图
-    RadarChartArea {
+    Loader {
+        id: radarAreaLoader
+        objectName: "radarAreaLoader"
         anchors.fill: parent
-        visible: control._isRadar
-        indicators: control.indicators
-        series: control.series
-        animated: control.animated
-        showLabels: control.showLabels
-        showLegend: control.showLegend
-        rings: control.rings
-        title: control.title
-        subtitle: control.subtitle
-        hoveredSeriesIndex: control._hoveredRadarSeriesIndex
-        hoveredPointIndex: control._hoveredRadarPointIndex
-        hiddenSeriesIndices: control._hiddenSeriesIndices
-        onPointClicked: (index, data) => control.pointClicked(index, data)
-        onPointHovered: (si, pi) => { control._hoveredRadarSeriesIndex = si; control._hoveredRadarPointIndex = pi }
-        onLegendClicked: (index) => control.toggleSeriesVisibility(index)
+        active: control._isRadar && control.indicators.length > 2
+        sourceComponent: Component {
+            RadarChartArea {
+                indicators: control.indicators
+                series: control.series
+                animated: control.animated
+                showLabels: control.showLabels
+                showLegend: control.showLegend
+                rings: control.rings
+                title: control.title
+                subtitle: control.subtitle
+                hoveredSeriesIndex: control._hoveredRadarSeriesIndex
+                hoveredPointIndex: control._hoveredRadarPointIndex
+                hiddenSeriesIndices: control._hiddenSeriesIndices
+                onPointClicked: (index, data) => control.pointClicked(index, data)
+                onPointHovered: (si, pi) => { control._hoveredRadarSeriesIndex = si; control._hoveredRadarPointIndex = pi }
+                onLegendClicked: (index) => control.toggleSeriesVisibility(index)
+            }
+        }
     }
 
     // Boxplot chart 箱线图
-    BoxplotChartArea {
+    Loader {
+        id: boxplotAreaLoader
+        objectName: "boxplotAreaLoader"
         anchors.fill: parent
-        visible: control._isBoxplot
-        boxplotData: control.boxplotData
-        animated: control.animated
-        showValues: control.showValues
-        showGrid: control.showGrid
-        isHorizontal: control.barOrientation === Enums.chart.orientation_horizontal
-        title: control.title
-        subtitle: control.subtitle
-        hoveredIndex: control._hoveredBoxplotIndex
-        onBoxClicked: (index, data) => control.boxClicked(index, data)
-        onBoxHovered: (index) => control._hoveredBoxplotIndex = index
+        active: control._isBoxplot && control.boxplotData.length > 0
+        sourceComponent: Component {
+            BoxplotChartArea {
+                boxplotData: control.boxplotData
+                animated: control.animated
+                showValues: control.showValues
+                showGrid: control.showGrid
+                isHorizontal: control.barOrientation === Enums.chart.orientation_horizontal
+                title: control.title
+                subtitle: control.subtitle
+                hoveredIndex: control._hoveredBoxplotIndex
+                onBoxClicked: (index, data) => control.boxClicked(index, data)
+                onBoxHovered: (index) => control._hoveredBoxplotIndex = index
+            }
+        }
     }
 
     // Bottom data zoom slider 底部数据缩放滑块
@@ -626,6 +664,7 @@ ShadowedRectangle {
 
     // Empty state 空状态
     Column {
+        id: emptyState
         anchors.centerIn: parent
         spacing: Enums.spacing.m
         visible: ((control._isXYChart && !control._isScatter && control.chartData.length === 0) ||
@@ -643,6 +682,8 @@ ShadowedRectangle {
             font.pixelSize: Enums.typography.displayLarge
             color: Enums.textColor.tertiary
             SequentialAnimation on y {
+                objectName: "emptyStateAnimation"
+                running: emptyState.visible
                 loops: Animation.Infinite
                 NumberAnimation { from: 0; to: -4; duration: Enums.duration.emptyFloat; easing.type: Easing.InOutSine }
                 NumberAnimation { from: -4; to: 0; duration: Enums.duration.emptyFloat; easing.type: Easing.InOutSine }
@@ -656,5 +697,4 @@ ShadowedRectangle {
             color: Enums.textColor.tertiary
         }
     }
-
 }

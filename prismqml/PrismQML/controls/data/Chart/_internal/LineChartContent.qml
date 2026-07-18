@@ -268,32 +268,22 @@ Item {
         Component.onCompleted: {
             if (root.animated) {
                 animProgress = 0
-                lineAnimTimer.start()
+                lineAnimation.restart()
             } else {
                 requestPaint()
             }
         }
         onVisibleChanged: if (visible) requestPaint()
+        onAnimProgressChanged: requestPaint()
         
-        Timer {
-            id: lineAnimTimer
-
-            property real t: 0
-
-            interval: Enums.duration.tick
-            repeat: true
-
-            onTriggered: {
-                t += 0.04
-                if (t >= 1) {
-                    t = 1
-                    canvas.animProgress = 1
-                    stop()
-                } else {
-                    canvas.animProgress = 1 - Math.pow(1 - t, 5)
-                }
-                canvas.requestPaint()
-            }
+        NumberAnimation {
+            id: lineAnimation
+            target: canvas
+            property: "animProgress"
+            from: 0
+            to: 1
+            duration: Enums.duration.chart
+            easing.type: Easing.OutQuint
         }
     }
 

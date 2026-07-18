@@ -36,7 +36,7 @@ Item {
         // Start transition animation when switching between slices 扇区切换时启动过渡动画
         if (hoveredIndex >= 0 && previousHoveredIndex >= 0 && hoveredIndex !== previousHoveredIndex) {
             canvas.transitionProgress = 0
-            transitionTimer.start()
+            transitionAnimation.restart()
         } else if (hoveredIndex >= 0 && previousHoveredIndex < 0) {
             // First hover, no transition needed 首次悬停，无需过渡
             canvas.transitionProgress = 1
@@ -196,7 +196,7 @@ Item {
         Component.onCompleted: {
             if (root.animated) {
                 animProgress = 0
-                animTimer.start()
+                chartAnimation.restart()
             } else {
                 animProgress = 1
                 requestPaint()
@@ -204,43 +204,30 @@ Item {
         }
 
         onHoverOffsetChanged: requestPaint()
-
-        Timer {
-            id: animTimer
-
-            property real t: 0  // Normalized time 归一化时间
-
-            interval: Enums.duration.tick  // High-refresh tick 高刷定时器
-            repeat: true
-
-            onTriggered: {
-                t += 0.04  // ~400ms total duration 总时长约400ms
-                if (t >= 1) {
-                    t = 1
-                    canvas.animProgress = 1
-                    stop()
-                } else {
-                    // Fluent Design: OutQuint easing for smooth deceleration 平滑减速
-                    canvas.animProgress = 1 - Math.pow(1 - t, 5)
-                }
-                canvas.requestPaint()
-            }
+        onAnimProgressChanged: requestPaint()
+        onTransitionProgressChanged: {
+            if (transitionProgress >= 1) root.previousHoveredIndex = -1
+            requestPaint()
         }
 
-        // Slice transition animation timer 扇区切换动画计时器
-        Timer {
-            id: transitionTimer
-            interval: Enums.duration.tick  // High-refresh tick 高刷定时器
-            repeat: true
-            onTriggered: {
-                canvas.transitionProgress += 0.12
-                if (canvas.transitionProgress >= 1) {
-                    canvas.transitionProgress = 1
-                    root.previousHoveredIndex = -1  // Clear previous after transition 过渡完成后清除
-                    stop()
-                }
-                canvas.requestPaint()
-            }
+        NumberAnimation {
+            id: chartAnimation
+            target: canvas
+            property: "animProgress"
+            from: 0
+            to: 1
+            duration: Enums.duration.chart
+            easing.type: Easing.OutQuint
+        }
+
+        // Slice transition animation 扇区切换动画
+        NumberAnimation {
+            id: transitionAnimation
+            target: canvas
+            property: "transitionProgress"
+            from: 0
+            to: 1
+            duration: Enums.duration.normal
         }
     }
 

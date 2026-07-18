@@ -210,31 +210,21 @@ Item {
         Component.onCompleted: {
             if (root.animated) {
                 animProgress = 0
-                animTimer.start()
+                chartAnimation.restart()
             } else {
                 requestPaint()
             }
         }
+        onAnimProgressChanged: requestPaint()
         
-        Timer {
-            id: animTimer
-
-            property real t: 0  // Normalized time 归一化时间
-
-            interval: Enums.duration.tick  // High-refresh tick 高刷定时器
-            repeat: true
-            onTriggered: {
-                t += 0.04  // ~400ms total duration 总时长约400ms
-                if (t >= 1) {
-                    t = 1
-                    canvas.animProgress = 1
-                    stop()
-                } else {
-                    // Fluent Design: OutQuint easing for smooth deceleration 平滑减速
-                    canvas.animProgress = 1 - Math.pow(1 - t, 5)
-                }
-                canvas.requestPaint()
-            }
+        NumberAnimation {
+            id: chartAnimation
+            target: canvas
+            property: "animProgress"
+            from: 0
+            to: 1
+            duration: Enums.duration.chart
+            easing.type: Easing.OutQuint
         }
     }
     
@@ -578,17 +568,10 @@ Item {
                     
                     Component.onCompleted: {
                         if (root.animated) {
-                            // Use Timer to ensure layout is complete 使用定时器确保布局完成
-                            delayTimer.start()
-                        }
-                    }
-                    
-                    Timer {
-                        id: delayTimer
-                        interval: Enums.duration.tick
-                        repeat: false
-                        onTriggered: {
-                            horizontalBarRect.width = horizontalBarItem.barRatio * horizontalBarItem.width
+                            // Defer until layout is complete 延迟到布局完成后执行
+                            Qt.callLater(function() {
+                                horizontalBarRect.width = horizontalBarItem.barRatio * horizontalBarItem.width
+                            })
                         }
                     }
                 }
