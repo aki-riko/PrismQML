@@ -20,6 +20,23 @@ NavigationPanelCore {
     function smoothScrollTo(targetY) { topScrollHelper.scrollTo(targetY) }
     function smoothScrollBy(delta) { topScrollHelper.scrollBy(delta) }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _handleTopWheel(event) {
+        if (!topScrollHelper.enabled) {
+            event.accepted = false
+            return
+        }
+
+        var delta = event.angleDelta.y
+        if (delta === 0) {
+            event.accepted = false
+            return
+        }
+
+        topScrollHelper.scrollBy(-delta / 120 * topScrollHelper.step)
+        event.accepted = true
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.navBarWidth
     implicitHeight: parent ? parent.height : 400
@@ -76,6 +93,10 @@ NavigationPanelCore {
                 }
             }
         }
+
+        WheelHandler {
+            onWheel: (event) => control._handleTopWheel(event)
+        }
     }
 
     SmoothScrollHelper {
@@ -83,9 +104,10 @@ NavigationPanelCore {
         objectName: "navigationBarSmoothScrollHelper"
         target: topFlickable
         orientation: Qt.Vertical
+        duration: Enums.duration.fast
         enabled: topFlickable.contentHeight > topFlickable.height
         bounceEnabled: false
-        handleWheel: true
+        handleWheel: false
     }
     
     // Bottom fixed items 底部固定项

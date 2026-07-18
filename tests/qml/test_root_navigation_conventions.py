@@ -43,6 +43,7 @@ Window {
     readonly property string viewCurrentKey: navigationView.currentKey
     readonly property bool viewExpanded: navigationView.isExpanded
     readonly property bool viewCompact: navigationView.isCompact
+    readonly property int fastDuration: Enums.duration.fast
 
     function expandView() { navigationView.expand() }
     function collapseView() { navigationView.collapse() }
@@ -416,6 +417,10 @@ def test_navigation_bars_use_smooth_scroll_helper(navigation_scene):
     assert toggle_helper is not None
     assert not bar_flickable.property("interactive")
     assert not toggle_flickable.property("interactive")
+    assert bar_helper.property("handleWheel") is False
+    assert toggle_helper.property("handleWheel") is False
+    assert bar_helper.property("duration") == window.property("fastDuration")
+    assert toggle_helper.property("duration") == window.property("fastDuration")
     assert bar_helper.property("targetPos") == pytest.approx(0)
 
     wheel_point = _item_with_text(bar, "NavigationBarItem", "Four").mapToScene(QPointF(20, 20)).toPoint()
