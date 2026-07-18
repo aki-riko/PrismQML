@@ -78,10 +78,11 @@ Widget {
         return Math.max(Enums.controlSize.toastHeight, h)
     }
     readonly property real _verticalHeight: {
-        var h = Enums.spacing.m * 2 + Enums.spacing.l  // Margins + color bar offset
-        if (title !== "") h += titleTextVertical.implicitHeight + Enums.spacing.xs
-        if (message !== "") h += messageTextVertical.implicitHeight + Enums.spacing.xs
-        if (hasCustomContent) h += customContentLoader.height + Enums.spacing.m
+        // Use childrenRect because Column implicitHeight can lag behind wrapped children 使用 childrenRect 避免 Column implicitHeight 滞后于换行子项
+        var h = verticalLayout.childrenRect.height
+            + Enums.spacing.m * 2
+            + Enums.spacing.cardElevate
+            + Enums.spacing.l * 2
         return Math.max(Enums.controlSize.toastHeight, h)
     }
 
@@ -130,12 +131,15 @@ Widget {
             if (title !== "") textW += titleText.implicitWidth;
             if (message !== "") textW += (title !== "" ? Enums.spacing.xs : 0) + messageText.implicitWidth;
         } else {
-            if (title !== "") textW = Math.max(textW, titleTextVertical.implicitWidth);
-            if (message !== "") textW = Math.max(textW, messageTextVertical.implicitWidth);
+            // Keep text-only vertical toasts compact so long text grows downward 纯文本纵向 Toast 保持标准宽度，让长文本向下撑高
+            textW = hasCustomContent ? customContentLoader.implicitWidth : 0;
         }
 
         var targetWidth = baseWidth + textW;
-        return Math.min(Math.max(targetWidth, Enums.controlSize.toastWidth), 800)
+        return Math.min(
+            Math.max(targetWidth, Enums.controlSize.toastWidth),
+            Enums.controlSize.toastMaxWidth
+        )
     }
     // Height is always auto-calculated 高度始终自动计算
     implicitHeight: _isVertical ? _verticalHeight : _horizontalHeight
@@ -243,7 +247,7 @@ Widget {
                 type: Enums.label.type_body_strong
                 color: Enums.textColor.primary
                 visible: text !== "" && !_isVertical
-                width: Math.min(implicitWidth, 800 - parent.x - (closeBtn.visible ? closeBtn.width + Enums.spacing.l + Enums.spacing.m : 0))
+                width: Math.min(implicitWidth, Enums.controlSize.toastMaxWidth - parent.x - (closeBtn.visible ? closeBtn.width + Enums.spacing.l + Enums.spacing.m : 0))
                 elide: Text.ElideRight
             }
 

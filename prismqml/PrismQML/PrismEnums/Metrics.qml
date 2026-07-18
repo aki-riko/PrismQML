@@ -254,6 +254,7 @@ QtObject {
  // Feedback controls 反馈控件
  readonly property int tooltipHeight: 28 // Tooltip height
  readonly property int toastWidth: 360 // Toast width
+ readonly property int toastMaxWidth: 800 // Toast maximum width Toast 最大宽度
  readonly property int toastHeight: 80 // Toast height
  // Chat controls 聊天控件
  readonly property int chatContentMaxWidth: 600 // Shared chat content width 聊天内容共享最大宽度
