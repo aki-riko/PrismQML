@@ -263,7 +263,7 @@ Item {
         objectName: "toggleNavigationBarSmoothScrollHelper"
         target: topFlickable
         orientation: Qt.Vertical
-        duration: Enums.duration.fast
+        duration: Enums.duration.medium
         enabled: topFlickable.contentHeight > topFlickable.height
         bounceEnabled: false
         handleWheel: false
