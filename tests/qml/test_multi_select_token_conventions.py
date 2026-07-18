@@ -38,6 +38,7 @@ Item {
     readonly property color expectedTokenBackground: Enums.stateColor.accentLight
     readonly property color expectedOutlinedBackground: Enums.transparent
     readonly property color expectedDefaultBorder: Enums.stateColor.accentBorder
+    readonly property real expectedTokenPadding: Enums.spacing.m
 
     width: 720
     height: 180
@@ -167,12 +168,21 @@ def _assert_token_foreground(token, expected: QColor) -> None:
     assert icons[0].property("color") == expected
 
 
+def _assert_token_horizontal_padding(token, expected: float) -> None:
+    label, close_button = _token_parts(token)
+    label_left = label.mapToItem(token, 0, 0).x()
+    close_right = close_button.mapToItem(token, close_button.width(), 0).x()
+    assert abs(label_left - expected) < 0.01
+    assert abs((token.width() - close_right) - expected) < 0.01
+
+
 def _assert_outlined_token(token, override: str, root) -> None:
     assert token.property("_outlined")
     assert token.property("borderColorOverride") == override
     assert token.property("_tokenBorderColor") == QColor(override)
     assert token.property("color") == root.property("expectedOutlinedBackground")
     _assert_token_foreground(token, root.property("expectedDefaultText"))
+    _assert_token_horizontal_padding(token, root.property("expectedTokenPadding"))
 
 
 def _assert_default_parent(root, name: str) -> None:
@@ -188,6 +198,7 @@ def _assert_default_parent(root, name: str) -> None:
     )
     assert tokens[0].property("color") == root.property("expectedTokenBackground")
     _assert_token_foreground(tokens[0], root.property("expectedDefaultText"))
+    _assert_token_horizontal_padding(tokens[0], root.property("expectedTokenPadding"))
 
 
 def test_multi_select_token_public_parent_chains(qapp):

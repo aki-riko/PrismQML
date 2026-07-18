@@ -32,7 +32,7 @@ Rectangle {
 
     // ==================== Size 尺寸 ====================
     height: Enums.spacing.xxxl
-    width: tagText.implicitWidth + Enums.spacing.xxxl
+    width: contentRow.implicitWidth + Enums.spacing.m * 2
 
     // Visual style 视觉样式
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
@@ -42,7 +42,11 @@ Rectangle {
 
     // ==================== Content 内容 ====================
     Row {
-        anchors.centerIn: parent
+        id: contentRow
+
+        anchors.left: parent.left
+        anchors.leftMargin: Enums.spacing.m
+        anchors.verticalCenter: parent.verticalCenter
         spacing: Enums.spacing.xs
 
         // Text 文本
