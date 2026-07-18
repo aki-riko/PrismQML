@@ -39,8 +39,7 @@ Item {
     readonly property int _navItemBorderWidth: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : (Enums.isPrismDesign && control.selected ? Enums.prismDesign.borderWidth : 0)
     readonly property color _navItemBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (Enums.isPrismDesign ? Enums.prismDesign.primaryDark : Enums.transparent)
     readonly property color _navItemContentColor: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
-    readonly property real _labelWidth: Math.max(0, width - Enums.spacing.xxs * 2)
-    readonly property real _marqueeWidth: Math.max(0, Math.min(_labelWidth, width - Enums.spacing.l * 2))
+    readonly property real _labelWidth: Math.max(0, width - Enums.spacing.l * 2)
     readonly property bool _labelOverflowing: label.implicitWidth > label.width
     readonly property bool _showMarqueeLabel: hovered && _labelOverflowing
     
@@ -226,7 +225,7 @@ Item {
         id: marqueeLabel
         anchors.horizontalCenter: parent.horizontalCenter
         y: label.y
-        width: control._marqueeWidth
+        width: label.width
         height: label.height
         text: control.text
         running: control._showMarqueeLabel

@@ -132,6 +132,7 @@ Window {
     readonly property int captionCompact: Enums.typography.captionCompact
     readonly property int noDelay: Enums.duration.none
     readonly property int marqueeGap: Enums.spacing.l
+    readonly property int safeTextInset: Enums.spacing.l
 
     width: 120
     height: 100
@@ -464,8 +465,8 @@ def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
         label_left = label.mapToItem(nav_item, 0, 0).x()
         label_right = label_left + label.width()
 
-        assert label_left >= 0
-        assert label_right <= nav_item.width()
+        assert label_left >= window.property("safeTextInset")
+        assert label_right <= nav_item.width() - window.property("safeTextInset")
         assert label.implicitWidth() > label.width()
         assert nav_item.property("_labelOverflowing") is True
         assert label.property("clip") is True
@@ -481,9 +482,9 @@ def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
         assert marquee_text_copy.x() == pytest.approx(marquee.property("_scrollDistance"))
         marquee_left = marquee.mapToItem(nav_item, 0, 0).x()
         marquee_right = marquee_left + marquee.width()
-        assert marquee.width() < label.width()
-        assert label_left < marquee_left
-        assert marquee_right < label_right
+        assert marquee.width() == pytest.approx(label.width())
+        assert marquee_left == pytest.approx(label_left)
+        assert marquee_right == pytest.approx(label_right)
 
         point = nav_item.mapToScene(QPointF(nav_item.width() / 2, nav_item.height() / 2)).toPoint()
         QTest.mouseMove(window, point)
