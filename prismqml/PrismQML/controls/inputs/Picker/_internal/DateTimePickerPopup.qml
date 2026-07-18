@@ -38,6 +38,7 @@ Column {
         Row {
             anchors.fill: parent
             spacing: Enums.spacing.none
+            z: Enums.zIndex.content
             
             // Date wheels (order depends on _yearFirst) 日期滚轮（顺序取决于_yearFirst）
             // Column 1: year when year-first, otherwise month 第1列：年优先时为年，否则为月
@@ -187,16 +188,15 @@ Column {
         }
         
         // Selection highlight 选中高亮
-        // Render at popup z with translucent accent color so text stays visible 顶层使用半透明强调色，不遮挡文字
-        // The old background z was covered by CycleWheelPicker delegates and clipping 旧背景层会被内部代理与裁剪覆盖
-        // That made the highlight disappear on hover and was fragile 悬停时高亮会消失，行为脆弱
+        // Keep the opaque theme token below wheel content so the selected text remains visible.
+        // 将不透明主题令牌放在滚轮内容下方，确保选中文字可见。
         Rectangle {
             anchors.centerIn: parent
             width: parent.width - Enums.spacing.m
             height: Enums.controlSize.inputHeight
             radius: Enums.radius.small
             color: popupContent._selectionHighlightColor
-            z: Enums.zIndex.popup
+            z: Enums.zIndex.base
         }
     }
     
