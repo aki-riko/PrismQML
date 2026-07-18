@@ -5,55 +5,130 @@
 import "../.."
 import "."
 import "../containers/ScrollBar"
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // Place after library imports so native types keep no prefix 置于库 import 后，确保原生类型无需前缀
 
 /**
- * ChatMessageList — 消息列表 (变高 ListView + SmoothScrollHelper + ScrollBar)
+ * ChatMessageList - Virtualized variable-height message list 变高消息虚拟列表
  *
- * 接 ListModel,每项含 { role, content, timestamp }。
- * 用 PrismQML SmoothScrollHelper 接管滚轮 → 平滑滚动 + 边界回弹;
- * 自动滚到底部、消息更新时保持位置。
- * 气泡变高,故不套 ScrollArea 的虚拟化定高列表 (type_list 要求 itemHeight 等高)。
+ * Accepts messages containing { role, content, reasoning, timestamp } 接收消息字段。
+ * Lightweight height slots stay resident while complex ChatBubble delegates only load
+ * near the viewport, avoiding ListView's inaccurate variable-height estimation and
+ * full-session delegate retention. 轻量高度占位常驻，复杂气泡仅在视口附近加载，
+ * 同时规避 ListView 变高估算误差和整段会话常驻内存。
  *
- * Public methods:
+ * Public methods 公开方法:
  *   appendMessage(role, content, timestamp)
- *   updateLastContent(text)         流式更新最后一条 content
- *   appendToLast(chunk)             给最后一条 content 追加 chunk
- *   setLastContent(text)            ↔ updateLastContent (别名)
- *   clear()                         清空
- *   scrollToEnd()                   主动滚到底
+ *   appendReasoningToLast(chunk)
+ *   updateLastContent(text)
+ *   appendToLast(chunk)
+ *   setLastContent(text)
+ *   clear()
+ *   scrollToEnd()
+ *   getLastRole()
  *
- * Public props:
- *   maxBubbleWidth: int             转发给 ChatBubble
- *   assistantAvatarText: string     助手气泡头像文字 (兜底)
- *   assistantAvatarSource: url      助手气泡头像图片
- *   showAssistantAvatar: bool       是否显示助手头像
+ * Public props 公开属性:
+ *   maxBubbleWidth: int
+ *   assistantAvatarText: string
+ *   assistantAvatarSource: url
+ *   showAssistantAvatar: bool
  */
 Item {
     id: control
 
+    // ==================== Public Props 公开属性 ====================
     property int maxBubbleWidth: Enums.controlSize.chatContentMaxWidth
     property string assistantAvatarText: ""
     property url assistantAvatarSource: ""
     property bool showAssistantAvatar: true
-    readonly property int messageCount: chatModel.count
 
-    // 用户是否在底部 (容差 24px)
-    readonly property bool _isAtBottom: listView.contentY + listView.height >= listView.contentHeight - 24
+    // ==================== Internal Props 内部属性 ====================
+    property bool _followBottom: true
+    property bool _adjustingScroll: false
+    property bool _scrollPending: false
+    property bool _layoutPending: false
+    property real _pendingAnchorDelta: 0
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int messageCount: chatModel.count
+    readonly property real _loadMargin: Math.max(0, messageViewport.height)
+    readonly property real _minimumMessageHeight:
+        Enums.spacing.l * 2 + Enums.spacing.m + Enums.spacing.xl
+    readonly property real _bottomTolerance: Enums.spacing.l * 2
+    readonly property real _heightChangeTolerance: Enums.border.thin / 2
+    readonly property bool _isAtBottom:
+        messageViewport.contentY + messageViewport.height
+        >= messageViewport.contentHeight - _bottomTolerance
 
     // ==================== Internal Methods 内部方法 ====================
-    // 滚到底: positionViewAtEnd 同步改 contentY,再 callLater 把 SmoothScrollHelper
-    // 内部 _smoothY/_targetY 同步到新位置,否则下次滚轮从旧位置跳变 → 滚动条手柄错位。
+    function _setContentY(contentY, keepFollowing) {
+        var maximumY = Math.max(0, messageViewport.contentHeight - messageViewport.height)
+        _adjustingScroll = true
+        messageViewport.contentY = Math.max(0, Math.min(maximumY, contentY))
+        scrollHelper.syncPosition()
+        _adjustingScroll = false
+        _followBottom = keepFollowing
+    }
+
     function _scrollToBottom() {
-        listView.positionViewAtEnd()
+        _setContentY(messageViewport.contentHeight - messageViewport.height, true)
+    }
+
+    function _scheduleScrollToBottom() {
+        if (_scrollPending) return
+        _scrollPending = true
         Qt.callLater(function() {
-            listView.positionViewAtEnd()
-            scrollHelper.syncPosition()
+            _scrollPending = false
+            if (_followBottom) _scrollToBottom()
         })
     }
 
-    // ==================== Public Methods 公开方法 ====================
+    function _scheduleSlotLayout() {
+        if (_layoutPending) return
+        _layoutPending = true
+        Qt.callLater(function() {
+            _layoutPending = false
+            var nextY = 0
+            for (var i = 0; i < messageRepeater.count; i++) {
+                var slot = messageRepeater.itemAt(i)
+                if (!slot) continue
+                slot.y = nextY
+                nextY += slot.height
+                if (i + 1 < messageRepeater.count) nextY += Enums.spacing.xs
+                if (!slot._layoutReady) slot._layoutReady = true
+            }
+            messageColumn.height = nextY
+            if (_followBottom) {
+                _pendingAnchorDelta = 0
+                _scheduleScrollToBottom()
+            } else if (Math.abs(_pendingAnchorDelta) >= _heightChangeTolerance) {
+                var anchorDelta = _pendingAnchorDelta
+                _pendingAnchorDelta = 0
+                _setContentY(messageViewport.contentY + anchorDelta, false)
+            }
+        })
+    }
 
+    function _cacheSlotHeight(slot, measuredHeight) {
+        if (!slot || !isFinite(measuredHeight) || measuredHeight <= 0) return
+        var previousHeight = slot._measuredHeight
+        var nextHeight = Math.max(_minimumMessageHeight, measuredHeight)
+        var heightDelta = nextHeight - previousHeight
+        var slotWasAboveViewport = slot.y + previousHeight <= messageViewport.contentY
+        if (Math.abs(heightDelta) < _heightChangeTolerance
+                && slot._measuredKey === slot._measurementKey) return
+
+        slot._measuredHeight = nextHeight
+        slot._measuredKey = slot._measurementKey
+        _scheduleSlotLayout()
+        if (_followBottom) {
+            _scheduleScrollToBottom()
+        } else if (slotWasAboveViewport
+                && Math.abs(heightDelta) >= _heightChangeTolerance) {
+            _pendingAnchorDelta += heightDelta
+        }
+    }
+
+    // ==================== Public Methods 公开方法 ====================
     function appendMessage(role, content, timestamp) {
         chatModel.append({
             role: role || "assistant",
@@ -61,21 +136,21 @@ Item {
             reasoning: "",
             timestamp: timestamp || ""
         })
-        _scrollToBottom()
+        if (_followBottom) _scheduleScrollToBottom()
     }
 
-    // 给最后一条追加思考链 chunk (推理模型流式 reasoning_content)
     function appendReasoningToLast(chunk) {
         if (chatModel.count === 0) return
-        var idx = chatModel.count - 1
-        var prev = chatModel.get(idx).reasoning || ""
-        chatModel.setProperty(idx, "reasoning", prev + chunk)
-        if (control._isAtBottom) _scrollToBottom()
+        var index = chatModel.count - 1
+        var previousReasoning = chatModel.get(index).reasoning || ""
+        chatModel.setProperty(index, "reasoning", previousReasoning + chunk)
+        if (_followBottom) _scheduleScrollToBottom()
     }
 
     function updateLastContent(text) {
         if (chatModel.count === 0) return
         chatModel.setProperty(chatModel.count - 1, "content", text)
+        if (_followBottom) _scheduleScrollToBottom()
     }
 
     function setLastContent(text) {
@@ -84,17 +159,20 @@ Item {
 
     function appendToLast(chunk) {
         if (chatModel.count === 0) return
-        var idx = chatModel.count - 1
-        var prev = chatModel.get(idx).content || ""
-        chatModel.setProperty(idx, "content", prev + chunk)
+        var index = chatModel.count - 1
+        var previousContent = chatModel.get(index).content || ""
+        chatModel.setProperty(index, "content", previousContent + chunk)
+        if (_followBottom) _scheduleScrollToBottom()
     }
 
     function clear() {
         chatModel.clear()
+        _setContentY(0, true)
     }
 
     function scrollToEnd() {
-        _scrollToBottom()
+        _followBottom = true
+        _scheduleScrollToBottom()
     }
 
     function getLastRole() {
@@ -102,44 +180,120 @@ Item {
         return chatModel.get(chatModel.count - 1).role
     }
 
-    ListView {
-        id: listView
+    // ==================== Content 内容 ====================
+    ListModel {
+        id: chatModel
+    }
+
+    Flickable {
+        id: messageViewport
+
+        objectName: "chatMessageViewport"
         anchors.fill: parent
-        model: ListModel { id: chatModel }
-        spacing: Enums.spacing.xs
+        contentWidth: width
+        contentHeight: messageColumn.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        // 关键: 滚动驱动权交给 SmoothScrollHelper 独占 (handleWheel)。
-        // ListView 自身 interactive 会形成第二个滚动源 → 与 helper 的 _smoothY 各记一套
-        // contentY,互相拽回 = "滚动界面回弹"。PrismQML ScrollAreaList/Default 同样 false。
         interactive: false
-        // 气泡变高,ListView 对回收掉的 delegate 用平均高度估算 contentHeight,
-        // 短用户气泡+长助手气泡交替时高估可达十几% → 能滚过真实底部露出大片空白。
-        // 聊天消息数有限,用大 cacheBuffer 让 delegate 常驻 → contentHeight 精确。
-        cacheBuffer: 1000000
 
-        delegate: ChatBubble {
-            width: listView.width
-            role: model.role
-            content: model.content
-            reasoning: model.reasoning || ""
-            timestamp: model.timestamp || ""
-            maxBubbleWidth: control.maxBubbleWidth
-            avatarText: control.assistantAvatarText
-            avatarSource: control.assistantAvatarSource
-            showAvatar: control.showAssistantAvatar
+        onContentYChanged: {
+            if (!control._adjustingScroll) control._followBottom = control._isAtBottom
+        }
+        onContentHeightChanged: {
+            if (control._followBottom) control._scheduleScrollToBottom()
         }
 
-        // 当列表内容变化时,如果用户已经在底部,则保持在底部 (流式追加跟随)
-        onContentHeightChanged: {
-            if (control._isAtBottom) control._scrollToBottom()
+        Item {
+            id: messageColumn
+
+            objectName: "chatMessageContent"
+            width: messageViewport.width
+
+            Repeater {
+                id: messageRepeater
+
+                model: chatModel
+                onItemAdded: control._scheduleSlotLayout()
+
+                delegate: Loader {
+                    id: messageSlot
+
+                    required property int index
+                    required property string role
+                    required property string content
+                    required property string reasoning
+                    required property string timestamp
+                    property bool _layoutReady: false
+                    property bool _reasoningExpanded: true
+                    property bool _userToggledReasoning: false
+                    property real _measuredHeight: control._minimumMessageHeight
+                    property string _measuredKey: ""
+                    readonly property string _measurementKey: [
+                        width,
+                        role,
+                        content,
+                        reasoning,
+                        timestamp,
+                        control.maxBubbleWidth,
+                        control.assistantAvatarText,
+                        String(control.assistantAvatarSource),
+                        control.showAssistantAvatar,
+                        _reasoningExpanded,
+                        _userToggledReasoning,
+                        Enums.fontFamily
+                    ].join("\u001f")
+                    readonly property bool _inLoadRange:
+                        y + height >= messageViewport.contentY - control._loadMargin
+                        && y <= messageViewport.contentY + messageViewport.height
+                            + control._loadMargin
+
+                    function _measureLoadedBubble() {
+                        if (item) control._cacheSlotHeight(messageSlot, item.implicitHeight)
+                    }
+
+                    width: messageColumn.width
+                    height: _measuredHeight
+                    active: _layoutReady && _inLoadRange
+                    asynchronous: true
+
+                    onContentChanged: {
+                        if (content !== "" && !_userToggledReasoning) {
+                            _reasoningExpanded = false
+                        }
+                    }
+                    on_MeasurementKeyChanged: {
+                        if (item) Qt.callLater(_measureLoadedBubble)
+                    }
+                    onLoaded: _measureLoadedBubble()
+
+                    sourceComponent: ChatBubble {
+                        role: messageSlot.role
+                        content: messageSlot.content
+                        reasoning: messageSlot.reasoning
+                        timestamp: messageSlot.timestamp
+                        maxBubbleWidth: control.maxBubbleWidth
+                        avatarText: control.assistantAvatarText
+                        avatarSource: control.assistantAvatarSource
+                        showAvatar: control.showAssistantAvatar
+                        _reasoningExpanded: messageSlot._reasoningExpanded
+                        _userToggledReasoning: messageSlot._userToggledReasoning
+
+                        onImplicitHeightChanged:
+                            control._cacheSlotHeight(messageSlot, implicitHeight)
+                        on_ReasoningExpandedChanged:
+                            messageSlot._reasoningExpanded = _reasoningExpanded
+                        on_UserToggledReasoningChanged:
+                            messageSlot._userToggledReasoning = _userToggledReasoning
+                    }
+                }
+            }
         }
     }
 
-    // PrismQML 平滑滚动: 接管滚轮 → 缓动 + 边界回弹 (不主动驱动,仅响应滚轮)
     SmoothScrollHelper {
         id: scrollHelper
-        target: listView
+
+        target: messageViewport
         orientation: Qt.Vertical
         handleWheel: true
     }
@@ -149,7 +303,7 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.rightMargin: Enums.spacing.xxs
-        target: listView
+        target: messageViewport
         scrollHelper: scrollHelper
         orientation: Qt.Vertical
         barWidth: Enums.spacing.s
