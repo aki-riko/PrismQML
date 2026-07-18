@@ -30,9 +30,10 @@ class _ConfigManagerFixture(QObject):
     windowTypeChanged = Signal()
     dpiScaleChanged = Signal()
 
-    def __init__(self, *, accept_updates=True):
+    def __init__(self, *, accept_updates=True, dpi_options=None):
         super().__init__()
         self._accept_updates = accept_updates
+        self._dpi_options = dpi_options or [200, 0, 125]
         self._window_type = 0
         self._dpi_scale = 0
         self.window_calls = []
@@ -56,7 +57,7 @@ class _ConfigManagerFixture(QObject):
 
     @Property("QVariantList", constant=True)
     def dpiScaleOptions(self):
-        return [200, 0, 125]
+        return self._dpi_options
 
     @Property(int, notify=dpiScaleChanged)
     def dpiScale(self):
@@ -182,6 +183,16 @@ def _appearance_cards(root):
     return theme_card, skin_card
 
 
+def _follow_system_cards(root):
+    theme_card = root.findChild(QObject, "themeSettingsCard")
+    dpi_card = root.findChild(QObject, "dpiScaleSettingsCard")
+    language_card = root.findChild(QObject, "languageSettingsCard")
+    assert theme_card is not None
+    assert dpi_card is not None
+    assert language_card is not None
+    return theme_card, dpi_card, language_card
+
+
 def _activate_cards(window_card, dpi_card, qapp):
     window_nodes = _activate_combo_index(window_card, 0)
     dpi_nodes = _activate_combo_index(dpi_card, 2)
@@ -281,3 +292,19 @@ def test_appearance_cards_follow_selected_and_external_runtime_state(qapp):
     finally:
         theme_manager.setThemeFromQml(previous_theme)
         theme_manager.setSkinFromQml(previous_skin)
+
+
+def test_gallery_defaults_theme_dpi_and_language_to_follow_system(qapp):
+    theme_manager = ThemeManager()
+    previous_theme = theme_manager.theme
+    theme_manager.setThemeFromQml("auto")
+    manager = _ConfigManagerFixture(dpi_options=[0, 100, 125])
+
+    try:
+        with _settings_page(manager, qapp) as root:
+            for card in _follow_system_cards(root):
+                entry = _find_qml_descendant(card, "ComboBoxEntry")
+                inner = _find_qml_descendant(entry, "ComboBoxDefault")
+                _assert_combo_index(card, entry, inner, 0)
+    finally:
+        theme_manager.setThemeFromQml(previous_theme)

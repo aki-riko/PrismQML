@@ -94,7 +94,7 @@ QtObject {
     
     // 公共初始化函数 Common init function
     function initWindow(win) {
-        Fluent.Translator.setLanguage(Fluent.Enums.lang.zh_CN)
+        Fluent.Translator.setLanguage(Fluent.Enums.lang.auto)
     }
     
     // 启动时创建窗口

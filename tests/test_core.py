@@ -1,6 +1,7 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """
 PrismQML 核心模块单元测试
 
@@ -37,13 +38,12 @@ class TestThemeManager:
         b = ThemeManager()
         assert a is b
 
-    def test_default_theme_is_light(self):
-        """默认主题应为 light"""
+    def test_default_theme_follows_system(self):
+        """默认主题应跟随系统。"""
         from prismqml.python.core.theme import ThemeManager, Theme
 
         tm = ThemeManager()
-        assert tm.getTheme() == Theme.LIGHT
-        assert tm.isDark is False
+        assert tm.getTheme() == Theme.AUTO
 
     def test_set_theme(self):
         """设置主题应生效"""
@@ -73,7 +73,7 @@ class TestThemeManager:
         from prismqml.python.core.theme import ThemeManager, Theme
 
         tm = ThemeManager()
-        assert tm.getTheme() == Theme.LIGHT
+        assert tm.getTheme() == Theme.AUTO
         tm.toggleTheme()
         assert tm.getTheme() == Theme.DARK
         tm.toggleTheme()

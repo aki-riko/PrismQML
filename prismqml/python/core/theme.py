@@ -90,7 +90,7 @@ class ThemeManager(QObject):
         if self._initialized:
             return
         super().__init__()
-        self._theme = Theme.LIGHT
+        self._theme = Theme.AUTO
         self._skin = Skin.FLUENT
         self._accent_color = self.DEFAULT_ACCENT
         self._accent_color_light = self._lighten_color(self._accent_color, self.LIGHTEN_FACTOR)

@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GALLERY_MAIN = ROOT / "examples" / "main.py"
+GALLERY_QML = ROOT / "examples" / "main.qml"
 PUBLIC_CONTEXT_NAMES = {
     "ThemeManager",
     "ConfigManager",
@@ -65,3 +66,10 @@ def test_gallery_does_not_duplicate_public_context_or_lazy_providers():
 
     assert context_names.isdisjoint(PUBLIC_CONTEXT_NAMES)
     assert provider_names.isdisjoint({"acrylic", "qrcode"})
+
+
+def test_gallery_defaults_language_to_follow_system():
+    source = GALLERY_QML.read_text(encoding="utf-8")
+
+    assert "Fluent.Translator.setLanguage(Fluent.Enums.lang.auto)" in source
+    assert "Fluent.Translator.setLanguage(Fluent.Enums.lang.zh_CN)" not in source

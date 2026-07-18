@@ -194,24 +194,23 @@ Item {
                 // 界面语言
                 SettingsCard {
                     id: languageCard
+
+                    readonly property var languages: Fluent.Translator.supportedLanguages
+                    readonly property int languageIndex: {
+                        for (var i = 0; i < languages.length; i++) {
+                            if (languages[i].code === Fluent.Translator.language) return i
+                        }
+                        return 0
+                    }
+
+                    objectName: "languageSettingsCard"
                     width: parent ? parent.width : 0
                     title: "界面语言"
                     content: "选择显示语言"
                     icon: iconPath("LocalLanguage")
                     type: Fluent.Enums.settingCard.type_combobox
-                    
-                    property var languages: Fluent.Translator.supportedLanguages
                     model: languages.map(lang => lang.nativeName)
-                    
-                    Component.onCompleted: {
-                        var currentLang = Fluent.Translator.language
-                        for (var i = 0; i < languages.length; i++) {
-                            if (languages[i].code === currentLang) {
-                                currentIndex = i
-                                break
-                            }
-                        }
-                    }
+                    currentIndex: languageIndex
                     
                     onIndexSelected: function(idx) {
                         if (idx >= 0 && idx < languages.length) {
