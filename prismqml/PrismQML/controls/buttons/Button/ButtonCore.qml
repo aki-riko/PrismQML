@@ -102,12 +102,10 @@ Widget {
     // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
     readonly property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat) ? Enums.neo.pressOffset : 0
     readonly property int _spectralEdgeInset: Math.min(radius, Math.max(Enums.spacing.none, width / 2 - Enums.spacing.xs))
-    readonly property int _contentLeadingPadding:
-        feature === Enums.button.feature_dropdown ||
-        feature === Enums.button.feature_split
-        ? Enums.spacing.l
-        : Enums.spacing.m
-    readonly property int _contentTrailingPadding: Enums.spacing.m
+    readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
+                                            feature === Enums.button.feature_split
+    readonly property int _contentLeadingPadding: _hasMenuFeature ? Enums.spacing.l : Enums.spacing.m
+    readonly property int _contentTrailingPadding: _hasMenuFeature ? Enums.spacing.xs : Enums.spacing.m
 
     // Animated colors with instant press, smooth release 动画颜色：按下瞬间，释放平滑
     property color _animatedBgColor
@@ -252,7 +250,7 @@ Widget {
             contentLoader.item.width + _contentLeadingPadding + _contentTrailingPadding : 0
         var extraWidth = feature === Enums.button.feature_split ? Enums.controlSize.splitButtonArrowWidth :
                         (feature === Enums.button.feature_dropdown ? Enums.controlSize.dropdownArrowWidth : 0)
-        if (flat) return Math.max(cw + extraWidth, Enums.controlSize.buttonHeight)
+        if (flat || _hasMenuFeature) return Math.max(cw + extraWidth, Enums.controlSize.buttonHeight)
         return Math.max(Enums.controlSize.buttonMinWidth, cw + extraWidth)
     }
     contentHeight: Enums.controlSize.buttonHeight

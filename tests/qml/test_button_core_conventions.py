@@ -45,8 +45,11 @@ Item {
     readonly property int alignLeft: Enums.button.align_left
     readonly property int contentLeftMargin: Enums.spacing.m
     readonly property int menuContentLeadingPadding: Enums.spacing.l
-    readonly property int menuContentTrailingPadding: Enums.spacing.m
+    readonly property int menuContentTrailingPadding: Enums.spacing.xs
     readonly property int menuPaddingTolerance: Enums.spacing.xxs
+    readonly property int buttonMinWidth: Enums.controlSize.buttonMinWidth
+    readonly property int buttonHeight: Enums.controlSize.buttonHeight
+    readonly property int splitArrowWidth: Enums.controlSize.splitButtonArrowWidth
     readonly property int wideMenuPadding: Enums.spacing.xxxl
     readonly property real aliasBorderWidth: aliasButton.border.width
     readonly property color aliasBorderColor: aliasButton.border.color
@@ -136,6 +139,19 @@ Item {
         text: "Split"
         menuItems: ["Alpha", "Beta"]
     }
+
+    Button {
+        id: compactSplitButton
+        objectName: "compactSplitButton"
+        x: 350
+        y: 100
+        width: contentWidth
+        height: contentHeight
+        shape: Enums.button.shape_pill
+        feature: Enums.button.feature_split
+        text: "I"
+        menuItems: ["Alpha", "Beta"]
+    }
 }
 """
 
@@ -207,6 +223,11 @@ def _right_gap(left_item, right_item, ancestor):
     return _mapped_x(right_item, ancestor) - (
         _mapped_x(left_item, ancestor) + left_item.width()
     )
+
+
+def _painted_right_gap(text_item, right_item, ancestor):
+    painted_right = _mapped_x(text_item, ancestor) + text_item.property("paintedWidth")
+    return _mapped_x(right_item, ancestor) - painted_right
 
 
 def _matching(root, *properties):
@@ -403,19 +424,38 @@ def test_dropdown_and_split_main_content_use_asymmetric_padding(button_core_scen
         assert len(content) == 1
         assert len(dropdown) == 1
         assert len(chevrons) == 1
-        assert _mapped_x(content[0], button) == pytest.approx(expected_leading)
+        labels = _matching(content[0], "type", "customTextColor", "paintedWidth")
+        assert len(labels) == 1
+        assert _mapped_x(labels[0], button) == pytest.approx(expected_leading)
 
         if object_name == "pillDropdownButton":
-            assert _right_gap(content[0], chevrons[0], button) == pytest.approx(
+            assert _painted_right_gap(labels[0], chevrons[0], button) == pytest.approx(
                 expected_trailing
             )
         else:
             separators = _matching(dropdown[0], "lineLength", "lineColor", "isHorizontal")
             assert len(separators) == 1
-            split_gap = _right_gap(content[0], separators[0], button)
+            split_gap = _painted_right_gap(labels[0], separators[0], button)
             assert expected_trailing <= split_gap <= (
                 expected_trailing + root.property("menuPaddingTolerance")
             )
+
+    compact_button = _button(root, "compactSplitButton")
+    compact_content = _content_modules(compact_button)
+    assert len(compact_content) == 1
+    compact_labels = _matching(
+        compact_content[0], "type", "customTextColor", "paintedWidth"
+    )
+    assert len(compact_labels) == 1
+    expected_width = max(
+        root.property("buttonHeight"),
+        compact_labels[0].property("paintedWidth")
+        + expected_leading
+        + expected_trailing
+        + root.property("splitArrowWidth"),
+    )
+    assert compact_button.width() == pytest.approx(expected_width)
+    assert compact_button.width() < root.property("buttonMinWidth")
 
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
