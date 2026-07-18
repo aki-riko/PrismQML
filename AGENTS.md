@@ -407,6 +407,7 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 > 两边都要推时：`git push prism main && git push origin main`，tag 同理。
 
 1. **改版本号（两处必须同步）**：
+   - 🔴 **AI 自动升级发版铁律**：AI 自动决定版本升级时，仅允许递增第四位构建号（`x.y.z.n` 中的 `n`）；第一、第二、第三位的任何变更必须由用户或维护者明确决定，AI 不得自行升级。
    - **默认升构建号**：每次发版除非用户/维护者明确指定完整版本号或前三位升级策略，否则只递增最后一位构建号（`x.y.z.n` 中的 `n`）。例如 `0.2.24.1` 下一版默认 `0.2.24.2`，而不是 `0.2.25.0`。
    - `pyproject.toml` 的 `version = "x.y.z.n"`
    - `prismqml/__init__.py` 的 `__version__ = "x.y.z.n"`（回退值）
