@@ -30,6 +30,7 @@ INTERNAL_PATH = ROOT / "prismqml" / "PrismQML" / "_internal"
 SOURCE_PATH = INTERNAL_PATH / "WindowsSplit.qml"
 FILLED_SOURCE_PATH = INTERNAL_PATH / "WindowsFilled.qml"
 BAR_SOURCE_PATH = INTERNAL_PATH / "WindowsBar.qml"
+BAR_CONTENT_SOURCE_PATH = INTERNAL_PATH / "WindowsBarContent.qml"
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(INTERNAL_PATH / "windows-split-conventions.qml")
@@ -66,6 +67,9 @@ Internal.WindowsFilled {
     height: 540
     visible: true
     shadowMode: Enums.windowShadow.mode_none
+    navigationSmoothScroll: false
+    navigationScrollDuration: Enums.duration.slower
+    navigationScrollStep: Enums.spacing.xxl
 
     Item {
         objectName: "pageA"
@@ -87,6 +91,9 @@ Internal.WindowsBar {
     height: 540
     visible: true
     shadowMode: Enums.windowShadow.mode_none
+    navigationSmoothScroll: false
+    navigationScrollDuration: Enums.duration.slower
+    navigationScrollStep: Enums.spacing.xxl
 
     Item {
         objectName: "pageA"
@@ -193,6 +200,14 @@ def _assert_page_transfer(window):
     assert page_a.parentItem() is container
     assert page_b.parentItem() is container
     assert page_a.isVisible() and not page_b.isVisible()
+    if navigation.metaObject().indexOfProperty("smoothScroll") >= 0:
+        assert navigation.property("smoothScroll") == window.property(
+            "navigationSmoothScroll"
+        )
+        assert navigation.property("scrollDuration") == window.property(
+            "navigationScrollDuration"
+        )
+        assert navigation.property("scrollStep") == window.property("navigationScrollStep")
 
     window.setProperty("currentIndex", 1)
     assert _wait_for(lambda: stack.property("_displayIndex") == 1)
@@ -264,6 +279,8 @@ def test_windows_filled_source_conventions_and_stack_binding():
     assert "stackedWidget: stack" not in source
     assert "window.stackedWidget = item.stackAlias" in source
     assert "interval: Enums.window.splitStartupDelayMs" in source
+    assert "smoothScroll: window.navigationSmoothScroll" in source
+    assert "scrollDuration: window.navigationScrollDuration" in source
 
 
 def test_windows_bar_source_conventions_and_zero_delay_token():
@@ -277,3 +294,13 @@ def test_windows_bar_source_conventions_and_zero_delay_token():
     ] == []
     assert "interval: Enums.duration.none" in source
     assert "interval: 0" not in source
+    content_source = BAR_CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
+    assert (
+        "smoothScroll: root.hostWindow ? root.hostWindow.navigationSmoothScroll : true"
+        in content_source
+    )
+    assert (
+        "scrollDuration: root.hostWindow ? "
+        "root.hostWindow.navigationScrollDuration : Enums.duration.slow"
+        in content_source
+    )

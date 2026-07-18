@@ -48,6 +48,11 @@ NavigationWindowCore {
     property var readyEvents: []
     property var bottomEvents: []
     property var pageEvents: []
+    property bool smoothScrollDefault: navigationSmoothScroll
+    property int scrollDurationDefault: navigationScrollDuration
+    property real scrollStepDefault: navigationScrollStep
+    property int slowDuration: Enums.duration.slow
+    property real defaultScrollStep: Enums.spacing.xxxl * 3
 
     width: 640
     height: 480
@@ -185,6 +190,9 @@ def test_navigation_window_core_public_and_internal_contracts(monkeypatch, qapp)
         assert window.property("indicatorKey") == "page_1"
         assert _variant(window.property("bottomEvents")) == [0, 1]
         assert _variant(window.property("pageEvents")) == [1]
+        assert window.property("smoothScrollDefault") is True
+        assert window.property("scrollDurationDefault") == window.property("slowDuration")
+        assert window.property("scrollStepDefault") == window.property("defaultScrollStep")
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
@@ -203,6 +211,8 @@ def test_navigation_window_core_source_conventions_and_mica_tokens():
     ] == []
     assert "interval: Enums.window.micaReapplyDelayMs" in source
     assert "interval: Enums.window.micaLateReapplyDelayMs" in source
+    assert "property bool navigationSmoothScroll: true" in source
+    assert "property int navigationScrollDuration: Enums.duration.slow" in source
     assert "interval: 16" not in source
     assert "interval: 180" not in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")

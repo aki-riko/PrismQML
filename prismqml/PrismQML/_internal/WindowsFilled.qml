@@ -35,6 +35,9 @@ NavigationWindowCore {
             anchors.fill: parent
             model: window.navigationItems
             bottomItems: window.bottomNavigationItems
+            smoothScroll: window.navigationSmoothScroll
+            scrollDuration: window.navigationScrollDuration
+            scrollStep: window.navigationScrollStep
             backgroundColor: window._micaActive ? Enums.transparent : Enums.backgroundColor
             // Bind window.currentIndex to the navigation bar in one direction.
             // 单向绑定 window.currentIndex 到导航栏，setCurrentIndex 只需修改窗口状态。

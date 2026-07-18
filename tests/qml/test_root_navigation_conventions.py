@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ROOT_NAV_SOURCE_PATHS = tuple(
     ROOT / "prismqml" / "PrismQML" / "navigation" / name
     for name in (
+        "_internal/NavigationSmoothScroll.qml",
         "NavigationBar.qml",
         "NavigationBarItem.qml",
         "NavigationPanelCore.qml",
@@ -43,7 +44,12 @@ Window {
     readonly property string viewCurrentKey: navigationView.currentKey
     readonly property bool viewExpanded: navigationView.isExpanded
     readonly property bool viewCompact: navigationView.isCompact
-    readonly property int mediumDuration: Enums.duration.medium
+    readonly property int slowDuration: Enums.duration.slow
+    readonly property real defaultScrollStep: Enums.spacing.xxxl * 3
+    readonly property bool barSmoothScroll: navigationBar.smoothScroll
+    readonly property bool toggleSmoothScroll: toggleBar.smoothScroll
+    readonly property int barScrollDuration: navigationBar.scrollDuration
+    readonly property int toggleScrollDuration: toggleBar.scrollDuration
 
     function expandView() { navigationView.expand() }
     function collapseView() { navigationView.collapse() }
@@ -428,10 +434,16 @@ def test_navigation_bars_use_smooth_scroll_helper(navigation_scene):
     assert toggle_helper is not None
     assert not bar_flickable.property("interactive")
     assert not toggle_flickable.property("interactive")
+    assert window.property("barSmoothScroll") is True
+    assert window.property("toggleSmoothScroll") is True
+    assert window.property("barScrollDuration") == window.property("slowDuration")
+    assert window.property("toggleScrollDuration") == window.property("slowDuration")
+    assert bar.property("scrollStep") == pytest.approx(window.property("defaultScrollStep"))
+    assert toggle.property("scrollStep") == pytest.approx(window.property("defaultScrollStep"))
     assert bar_helper.property("handleWheel") is False
     assert toggle_helper.property("handleWheel") is False
-    assert bar_helper.property("duration") == window.property("mediumDuration")
-    assert toggle_helper.property("duration") == window.property("mediumDuration")
+    assert bar_helper.property("duration") == window.property("slowDuration")
+    assert toggle_helper.property("duration") == window.property("slowDuration")
     assert bar_helper.property("targetPos") == pytest.approx(0)
 
     wheel_point = _item_with_text(bar, "NavigationBarItem", "Four").mapToScene(QPointF(20, 20)).toPoint()
@@ -512,3 +524,10 @@ def test_root_navigation_sources_follow_conventions():
             if violation.rule in {"QML008", "QML009"}
         )
     assert violations == []
+    for source_path in (
+        ROOT / "prismqml" / "PrismQML" / "navigation" / "NavigationBar.qml",
+        ROOT / "prismqml" / "PrismQML" / "navigation" / "ToggleNavigationBar.qml",
+    ):
+        source = source_path.read_text(encoding="utf-8")
+        assert "NavigationSmoothScroll" in source
+        assert "_handleTopWheel" not in source

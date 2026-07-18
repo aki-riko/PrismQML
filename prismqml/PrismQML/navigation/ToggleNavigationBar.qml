@@ -7,8 +7,8 @@ import ".."
 import "../controls/buttons/Button"
 import "../controls/icons"
 import "../controls/data/Label"
-import "../controls/containers/ScrollBar"
 import "../controls/navigation/_internal"
+import "_internal"
 
 // ToggleNavigationBar - Navigation bar with toggle buttons 切换按钮导航栏
 // Mutually exclusive selection with sliding indicator 互斥选中带滑动指示器
@@ -21,6 +21,9 @@ Item {
     property int currentIndex: 0
     property color backgroundColor: Enums.transparent
     property bool fillWidth: true
+    property bool smoothScroll: true
+    property int scrollDuration: Enums.duration.slow
+    property real scrollStep: Enums.spacing.xxxl * 3
     
     // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items 将 key 映射到页面索引，用于底部页面项
@@ -39,26 +42,10 @@ Item {
     signal bottomItemClicked(int index)
 
     // ==================== Public Methods 公开方法 ====================
-    function smoothScrollTo(targetY) { topScrollHelper.scrollTo(targetY) }
-    function smoothScrollBy(delta) { topScrollHelper.scrollBy(delta) }
+    function smoothScrollTo(targetY) { topScrollBehavior.scrollTo(targetY) }
+    function smoothScrollBy(delta) { topScrollBehavior.scrollBy(delta) }
 
     // ==================== Internal Methods 内部方法 ====================
-    function _handleTopWheel(event) {
-        if (!topScrollHelper.enabled) {
-            event.accepted = false
-            return
-        }
-
-        var delta = event.angleDelta.y
-        if (delta === 0) {
-            event.accepted = false
-            return
-        }
-
-        topScrollHelper.scrollBy(-delta / 120 * topScrollHelper.step)
-        event.accepted = true
-    }
-
     function _getItemAt(globalIndex) {
         if (globalIndex < 0) return null
         if (globalIndex < model.length) {
@@ -253,20 +240,14 @@ Item {
             }
         }
 
-        WheelHandler {
-            onWheel: (event) => control._handleTopWheel(event)
+        NavigationSmoothScroll {
+            id: topScrollBehavior
+            helperName: "toggleNavigationBarSmoothScrollHelper"
+            flickable: topFlickable
+            smoothScroll: control.smoothScroll
+            duration: control.scrollDuration
+            step: control.scrollStep
         }
-    }
-
-    SmoothScrollHelper {
-        id: topScrollHelper
-        objectName: "toggleNavigationBarSmoothScrollHelper"
-        target: topFlickable
-        orientation: Qt.Vertical
-        duration: Enums.duration.medium
-        enabled: topFlickable.contentHeight > topFlickable.height
-        bounceEnabled: false
-        handleWheel: false
     }
     
     // Bottom fixed items 底部固定项

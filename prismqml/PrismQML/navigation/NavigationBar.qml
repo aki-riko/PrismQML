@@ -4,7 +4,7 @@
 
 import QtQuick
 import ".."
-import "../controls/containers/ScrollBar"
+import "_internal"
 
 // NavigationBar - Fluent Design navigation bar (compact-nav window style) 导航栏
 // Fixed width 72px, vertical layout (icon top, text bottom) 固定宽度垂直布局
@@ -12,30 +12,18 @@ import "../controls/containers/ScrollBar"
 NavigationPanelCore {
     id: control
 
+    // ==================== Public Props 公开属性 ====================
+    property bool smoothScroll: true
+    property int scrollDuration: Enums.duration.slow
+    property real scrollStep: Enums.spacing.xxxl * 3
+
     // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items 将 key 映射到页面索引，用于底部页面项
     property var _bottomPageIndexMap: ({})
 
     // ==================== Public Methods 公开方法 ====================
-    function smoothScrollTo(targetY) { topScrollHelper.scrollTo(targetY) }
-    function smoothScrollBy(delta) { topScrollHelper.scrollBy(delta) }
-
-    // ==================== Internal Methods 内部方法 ====================
-    function _handleTopWheel(event) {
-        if (!topScrollHelper.enabled) {
-            event.accepted = false
-            return
-        }
-
-        var delta = event.angleDelta.y
-        if (delta === 0) {
-            event.accepted = false
-            return
-        }
-
-        topScrollHelper.scrollBy(-delta / 120 * topScrollHelper.step)
-        event.accepted = true
-    }
+    function smoothScrollTo(targetY) { topScrollBehavior.scrollTo(targetY) }
+    function smoothScrollBy(delta) { topScrollBehavior.scrollBy(delta) }
 
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.navBarWidth
@@ -94,20 +82,14 @@ NavigationPanelCore {
             }
         }
 
-        WheelHandler {
-            onWheel: (event) => control._handleTopWheel(event)
+        NavigationSmoothScroll {
+            id: topScrollBehavior
+            helperName: "navigationBarSmoothScrollHelper"
+            flickable: topFlickable
+            smoothScroll: control.smoothScroll
+            duration: control.scrollDuration
+            step: control.scrollStep
         }
-    }
-
-    SmoothScrollHelper {
-        id: topScrollHelper
-        objectName: "navigationBarSmoothScrollHelper"
-        target: topFlickable
-        orientation: Qt.Vertical
-        duration: Enums.duration.medium
-        enabled: topFlickable.contentHeight > topFlickable.height
-        bounceEnabled: false
-        handleWheel: false
     }
     
     // Bottom fixed items 底部固定项
