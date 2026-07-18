@@ -235,3 +235,37 @@ def test_streaming_growth_follows_bottom_but_preserves_scrolled_position(qapp):
         engine.deleteLater()
         del component
         _pump(1)
+
+
+def test_clear_resets_virtual_content_extent(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = window = None
+    try:
+        component, window = _create(engine)
+        message_list = window.findChild(QQuickItem, "messages")
+        assert message_list is not None
+        _populate_mixed_session(message_list)
+        _wait_until(lambda: _is_slot_measured(_message_slots(message_list)[-1]))
+
+        viewport = message_list.findChild(QQuickItem, "chatMessageViewport")
+        content = message_list.findChild(QQuickItem, "chatMessageContent")
+        assert viewport is not None
+        assert content is not None
+        assert viewport.property("contentHeight") > viewport.property("height")
+
+        _evaluate(message_list, "clear()")
+        _wait_until(
+            lambda: message_list.property("messageCount") == 0
+            and not _message_slots(message_list)
+        )
+
+        assert viewport.property("contentY") == pytest.approx(0, abs=1)
+        assert viewport.property("contentHeight") == pytest.approx(0, abs=1)
+        assert content.property("height") == pytest.approx(0, abs=1)
+    finally:
+        if window is not None:
+            window.deleteLater()
+        engine.deleteLater()
+        del component
+        _pump(1)

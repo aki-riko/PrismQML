@@ -167,6 +167,8 @@ Item {
 
     function clear() {
         chatModel.clear()
+        _pendingAnchorDelta = 0
+        messageColumn.height = 0
         _setContentY(0, true)
     }
 
