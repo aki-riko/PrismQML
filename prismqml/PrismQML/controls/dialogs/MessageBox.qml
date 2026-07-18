@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import QtQuick as QtQuickNative
 import "../.."
 import "../data"
 import "../buttons/Button"
@@ -84,14 +85,20 @@ DialogBoxCore {
         }
         
         // Content label 内容标签
-        TextEdit {
+        QtQuickNative.TextEdit {
             id: contentLabel
+            objectName: "messageContentLabel"
             text: control.content
             visible: text !== ""
             wrapMode: Text.WordWrap
             // 固定换行宽度,使 implicitHeight 反映换行后的真实多行高度(修内容被裁)
             width: control._contentTextWidth
             readOnly: true
+            selectByMouse: control.contentCopyable
+            activeFocusOnPress: control.contentCopyable
+            cursorVisible: false
+            font.family: Enums.fontFamily
+            font.pixelSize: Enums.typography.body
             color: control._contentColor
         }
     }
