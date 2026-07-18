@@ -42,7 +42,7 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtGui import QGuiApplication, QIcon
 
 from ..core.engine import EngineManager
-from ..core.logger import warning, info, exception, debug
+from ..core.logger import warning, exception, debug
 
 # ==================== 窗口类型枚举 ====================
 
@@ -418,7 +418,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
 
     def show(self):
         """显示窗口"""
-        profile = make_show_profile(info)
+        profile = make_show_profile(debug)
         if not show_window_root(self, profile):
             return
         WindowCore._current_window_instance = self

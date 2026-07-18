@@ -122,7 +122,7 @@ def test_qt_warning_includes_source_context_and_replays_breadcrumbs_once(
         "target=2 current=2 display=1"
     )
 
-    handler(QtMsgType.QtInfoMsg, context, breadcrumb)
+    handler(QtMsgType.QtDebugMsg, context, breadcrumb)
     handler(QtMsgType.QtWarningMsg, context, "Unable to assign [undefined] to QColor")
     handler(QtMsgType.QtWarningMsg, context, "second warning")
 
@@ -143,6 +143,7 @@ def test_qt_warning_includes_source_context_and_replays_breadcrumbs_once(
         if getattr(record, "tag", "") == "QML:BREADCRUMB"
     ]
     assert len(replay_records) == 1
+    assert replay_records[0].levelno == logging.DEBUG
     assert breadcrumb in replay_records[0].getMessage()
 
 

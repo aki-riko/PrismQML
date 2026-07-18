@@ -14,6 +14,7 @@ from PySide6.QtCore import (
     QEventLoop,
     QObject,
     QTimer,
+    QtMsgType,
     QUrl,
     qInstallMessageHandler,
 )
@@ -174,9 +175,15 @@ StackedWidget {{
 }}
 """
     messages = []
-    previous_handler = qInstallMessageHandler(
-        lambda _mode, _context, message: messages.append(str(message))
-    )
+    diagnostic_modes = []
+
+    def record_message(mode, _context, message):
+        rendered = str(message)
+        messages.append(rendered)
+        if "[懒加载诊断] StackedWidget #" in rendered:
+            diagnostic_modes.append(mode)
+
+    previous_handler = qInstallMessageHandler(record_message)
     engine = QQmlApplicationEngine()
     component = None
     stack = None
@@ -206,6 +213,8 @@ StackedWidget {{
         diagnostic_messages = [
             message for message in messages if "[懒加载诊断] StackedWidget #" in message
         ]
+        assert diagnostic_modes
+        assert set(diagnostic_modes) == {QtMsgType.QtDebugMsg}
         expected_stages = (
             "stage=stacked.current_index_changed",
             "stage=stacked.switch_request",

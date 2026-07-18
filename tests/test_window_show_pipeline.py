@@ -158,7 +158,7 @@ class _ShowScenario:
         monkeypatch.setattr(
             self._manager, "_ensure_page_created", self.ensure_page
         )
-        monkeypatch.setattr(window_core, "info", _record_profile(self._calls))
+        monkeypatch.setattr(window_core, "debug", _record_profile(self._calls))
         return self.window
 
 

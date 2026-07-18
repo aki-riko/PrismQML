@@ -184,8 +184,8 @@ def test_window_pending_state_logs_residual_before_apply(monkeypatch):
     builder = _PendingBuilder(pending_props, [("navigate", 1)])
     monkeypatch.setattr(
         setup,
-        "info",
-        lambda message, tag=None: builder.calls.append(("info", message, tag)),
+        "debug",
+        lambda message, tag=None: builder.calls.append(("debug", message, tag)),
     )
     profile = lambda label: builder.calls.append(("profile", label))
 
@@ -193,7 +193,7 @@ def test_window_pending_state_logs_residual_before_apply(monkeypatch):
 
     assert builder.calls == [
         (
-            "info",
+            "debug",
             "[启动剖析] PrismQML._create_window pending state: "
             "props=['extra'], calls=1",
             "WindowBuilder",
@@ -215,7 +215,7 @@ def test_deduplicated_pending_state_skips_log_but_still_applies(
     builder = _PendingBuilder({"windowIcon": pending_icon}, [])
     monkeypatch.setattr(
         setup,
-        "info",
+        "debug",
         lambda _message, tag=None: pytest.fail(
             f"deduplicated state must not log with tag {tag}"
         ),
@@ -244,7 +244,7 @@ def test_pending_apply_failure_propagates(monkeypatch, error_type):
         _pending_calls=[],
         _apply_pending_state=stop_apply,
     )
-    monkeypatch.setattr(setup, "info", lambda _message, tag=None: None)
+    monkeypatch.setattr(setup, "debug", lambda _message, tag=None: None)
     with pytest.raises(error_type, match="stop"):
         setup.apply_window_pending_state(
             builder, "qrc:/icon.svg", False, lambda _label: pytest.fail("stop")

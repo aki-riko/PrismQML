@@ -100,7 +100,7 @@ def _exercise_post_component_profile_failure(temp_dir):
     from prismqml import Window, WindowType
     from prismqml.python.window import _splash_builder
 
-    original_info, profile_messages = _splash_builder.info, []
+    original_debug, profile_messages = _splash_builder.debug, []
     raised = False
 
     def fail_after_component(message):
@@ -109,11 +109,11 @@ def _exercise_post_component_profile_failure(temp_dir):
         if not raised and "PrismQML._create_splash QQmlComponent(file):" in message:
             raised = True
             raise RuntimeError("profile failed after Splash component creation")
-        return original_info(message)
+        return original_debug(message)
 
     window_class = _isolated_window_class(Window, temp_dir, "profile")
     window = _new_window(WindowType.BAR, window_class)
-    _splash_builder.info = fail_after_component
+    _splash_builder.debug = fail_after_component
     try:
         window.show()
         pump(120)
@@ -124,7 +124,7 @@ def _exercise_post_component_profile_failure(temp_dir):
             "component.setData fallback" in message for message in profile_messages
         )
     finally:
-        _splash_builder.info = original_info
+        _splash_builder.debug = original_debug
         _dispose_window(window)
 
 

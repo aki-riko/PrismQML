@@ -14,7 +14,7 @@ from typing import Any
 from PySide6.QtCore import QUrl
 from PySide6.QtQml import QQmlComponent
 
-from ..core.logger import debug, exception, info, warning
+from ..core.logger import debug, exception, warning
 
 
 _SPLASH_QML_TEMPLATE = Template("""import QtQuick
@@ -62,7 +62,7 @@ Rectangle {
         onTriggered: {
             contentLoader.active = true
             if (splash.startupProfilingVerbose) {
-                console.info("[启动剖析] Splash content Loader activated")
+                console.debug("[启动剖析] Splash content Loader activated")
             }
         }
     }
@@ -75,7 +75,7 @@ Rectangle {
         onTriggered: {
             splash.activeIconSource = splash.iconSource
             if (splash.startupProfilingVerbose) {
-                console.info("[启动剖析] Splash icon source activated")
+                console.debug("[启动剖析] Splash icon source activated")
             }
         }
     }
@@ -91,7 +91,7 @@ Rectangle {
                 splashIconTimer.start()
             }
             if (splash.startupProfilingVerbose) {
-                console.info("[启动剖析] Splash content Loader loaded")
+                console.debug("[启动剖析] Splash content Loader loaded")
             }
         }
     }
@@ -154,7 +154,7 @@ def _profile_generated_splash_qml(
     try:
         qml_bytes = splash_qml_file.read_bytes()
         qml_digest = hashlib.sha256(qml_bytes).hexdigest()[:20]
-        info(
+        debug(
             "[启动剖析] PrismQML._create_splash generated qml: "
             f"path={splash_qml_file}, bytes={len(qml_bytes)}, sha={qml_digest}, "
             f"iconSet={bool(icon_url)}, titleSet={bool(title)}, "
@@ -162,7 +162,7 @@ def _profile_generated_splash_qml(
         )
     except OSError as exc:
         warning(f"[启动剖析] 读取生成 Splash QML 失败: {exc}")
-    info("[启动剖析] PrismQML._create_splash QQmlComponent(file) begin")
+    debug("[启动剖析] PrismQML._create_splash QQmlComponent(file) begin")
 
 
 def _log_splash_file_failure(component, exc: Exception) -> None:
@@ -209,7 +209,7 @@ def _make_splash_profile():
     def profile(label: str) -> None:
         nonlocal profile_last
         now = time.perf_counter()
-        info(
+        debug(
             f"[启动剖析] PrismQML._create_splash {label}: "
             f"+{int((now - profile_last) * 1000)}ms / "
             f"total {int((now - profile_start) * 1000)}ms"

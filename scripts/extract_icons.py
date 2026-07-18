@@ -275,7 +275,7 @@ def _qml_runtime(icons: Sequence[str]) -> str:
 
     Component.onCompleted: {{
         if (_startupProfilingVerboseActive) {{
-            console.info("[启动剖析] Icons singleton completed: total " +
+            console.debug("[启动剖析] Icons singleton completed: total " +
                          Math.round(Date.now() - _startupProfileStart) + "ms")
         }}
     }}

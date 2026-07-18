@@ -11,7 +11,7 @@ import time
 from PySide6.QtCore import QStandardPaths
 
 from ..core.diagnostics import startup_profile_verbose_enabled
-from ..core.logger import info
+from ..core.logger import debug
 
 
 _WINDOW_BUILDER_LOG_TAG = "WindowBuilder"
@@ -25,7 +25,7 @@ def _make_window_profile():
     def profile(label: str):
         nonlocal profile_last
         now = time.perf_counter()
-        info(
+        debug(
             f"[启动剖析] PrismQML._create_window {label}: "
             f"+{int((now - profile_last) * 1000)}ms / "
             f"total {int((now - profile_start) * 1000)}ms",
@@ -46,7 +46,7 @@ def _log_window_cache_environment() -> None:
     cache_location = QStandardPaths.writableLocation(
         QStandardPaths.StandardLocation.CacheLocation
     )
-    info(
+    debug(
         "[启动剖析] PrismQML QML cache env: "
         f"QML_DISK_CACHE_PATH={os.environ.get('QML_DISK_CACHE_PATH', '')!r}, "
         f"QML_DISABLE_DISK_CACHE={os.environ.get('QML_DISABLE_DISK_CACHE', '')!r}, "

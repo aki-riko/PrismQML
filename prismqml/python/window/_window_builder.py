@@ -14,7 +14,7 @@ from string import Template
 import hashlib
 from PySide6.QtQml import QQmlComponent
 from PySide6.QtCore import QUrl
-from ..core.logger import warning, info, exception
+from ..core.logger import debug, warning, exception
 from ._generated_qml_cache import (
     GENERATED_SPLASH_QML_CACHE_DIR,
     GENERATED_WINDOW_QML_CACHE_DIR,
@@ -120,7 +120,7 @@ class WindowBuilderMixin:
         try:
             qml_bytes = window_qml_file.read_bytes()
             qml_digest = hashlib.sha256(qml_bytes).hexdigest()[:20]
-            info(
+            debug(
                 "[启动剖析] PrismQML._create_window generated qml: "
                 f"path={window_qml_file}, bytes={len(qml_bytes)}, "
                 f"sha={qml_digest}, component={qml_component}, "
@@ -130,11 +130,11 @@ class WindowBuilderMixin:
             )
         except OSError as exc:
             warning(f"[启动剖析] 读取生成窗口 QML 失败: {exc}")
-        info("[启动剖析] PrismQML._create_window QQmlComponent(file) begin")
+        debug("[启动剖析] PrismQML._create_window QQmlComponent(file) begin")
 
     @staticmethod
     def _profile_window_component_result(component, loaded_window) -> None:
-        info(
+        debug(
             "[启动剖析] PrismQML._create_window component.create(file) result: "
             f"loaded={loaded_window is not None}, "
             f"errors={[error.toString() for error in component.errors()]}"
@@ -170,7 +170,7 @@ class WindowBuilderMixin:
             if component is None:
                 return None
             if verbose:
-                info("[启动剖析] PrismQML._create_window component.create(file) begin")
+                debug("[启动剖析] PrismQML._create_window component.create(file) begin")
             loaded_window = component.create()
             self._window_component = component
             profile("component.create(file)")

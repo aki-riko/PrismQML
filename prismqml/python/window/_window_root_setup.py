@@ -5,7 +5,7 @@
 
 """Window root installation and startup finalization. 窗口根对象安装与启动收尾。"""
 
-from ..core.logger import info
+from ..core.logger import debug
 from ._window_startup import _WINDOW_BUILDER_LOG_TAG
 
 
@@ -78,7 +78,7 @@ def apply_window_pending_state(
     """Deduplicate, report, and apply pending startup state. 去重、记录并应用启动待处理状态。"""
     _remove_redundant_pending_props(builder, window_icon_qml, mica_enabled)
     if builder._pending_props or builder._pending_calls:
-        info(
+        debug(
             "[启动剖析] PrismQML._create_window pending state: "
             f"props={list(builder._pending_props.keys())}, "
             f"calls={len(builder._pending_calls)}",

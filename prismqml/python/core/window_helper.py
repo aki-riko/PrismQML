@@ -16,7 +16,7 @@ from PySide6.QtCore import QObject, QPoint, QSize, Slot
 from PySide6.QtGui import QGuiApplication, QIcon, QPainter, QPixmap, Qt
 
 from ._icon_path import resolve_icon_path
-from .logger import info, warning, error, debug
+from .logger import warning, error, debug
 
 
 # SVG 渲染的多尺寸列表（用于生成高质量任务栏图标）
@@ -98,7 +98,7 @@ class WindowHelper(QObject):
         if not qicon or qicon.isNull():
             return False
         app.setWindowIcon(qicon)
-        info(
+        debug(
             "[启动剖析] WindowHelper.setAppIcon SVG: "
             f"resolve={resolve_ms}ms / "
             f"render={int((time.perf_counter() - render_start) * 1000)}ms / "
@@ -120,7 +120,7 @@ class WindowHelper(QObject):
             warning(f"图标加载失败: {icon_path}")
             return
         app.setWindowIcon(qicon)
-        info(
+        debug(
             "[启动剖析] WindowHelper.setAppIcon bitmap: "
             f"resolve={resolve_ms}ms / "
             f"total={int((time.perf_counter() - profile_start) * 1000)}ms"

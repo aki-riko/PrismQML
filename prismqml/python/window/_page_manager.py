@@ -16,7 +16,7 @@ from typing import Any, Dict, Optional, Type
 from PySide6.QtCore import QTimer, QMetaObject, Q_ARG
 from PySide6.QtQuick import QQuickItem
 
-from ..core.logger import exception, warning, info
+from ..core.logger import debug, exception, warning, info
 
 
 _PAGE_LOAD_RENDER_DELAY_MS = 16
@@ -58,7 +58,7 @@ def _make_page_profile(index: int):
     def profile(label: str):
         nonlocal profile_last
         now = time.perf_counter()
-        info(
+        debug(
             f"[启动剖析] PageManager._create_page[{index}] {label}: "
             f"+{int((now - profile_last) * 1000)}ms / "
             f"total {int((now - profile_start) * 1000)}ms"

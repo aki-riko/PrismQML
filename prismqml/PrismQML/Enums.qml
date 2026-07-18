@@ -23,7 +23,7 @@ Item {
 
     function _profileStartup(msg) {
         if (!_startupProfilingVerboseActive) return
-        console.info("[启动剖析] Enums " + msg + ": total " +
+        console.debug("[启动剖析] Enums " + msg + ": total " +
                     Math.round(Date.now() - _startupProfileStart) + "ms")
     }
 

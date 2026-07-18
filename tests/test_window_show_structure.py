@@ -20,7 +20,7 @@ _HELPER_FUNCTIONS = {
     "show_window_root",
 }
 _EXPECTED_SHOW_STATEMENTS = (
-    "profile = make_show_profile(info)",
+    "profile = make_show_profile(debug)",
     "if not show_window_root(self, profile):\n    return",
     "WindowCore._current_window_instance = self",
     "ensure_initial_pages(self, profile)",

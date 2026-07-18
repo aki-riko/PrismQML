@@ -73,7 +73,7 @@ Item {
     function profileTime(msg) {
         if (!_startupProfilingVerboseActive) return
         var now = Date.now()
-        console.info("[启动剖析] StackedWidget " + msg + ": +" +
+        console.debug("[启动剖析] StackedWidget " + msg + ": +" +
                     Math.round(now - _startupProfileLast) + "ms / total " +
                     Math.round(now - _startupProfileStart) + "ms")
         _startupProfileLast = now
@@ -106,7 +106,7 @@ Item {
         if (!_startupProfilingVerboseActive) return
         _lazyDiagnosticSequence += 1
         var detailText = details ? " " + details : ""
-        console.info("[懒加载诊断] StackedWidget #" + _lazyDiagnosticSequence +
+        console.debug("[懒加载诊断] StackedWidget #" + _lazyDiagnosticSequence +
                     " stage=" + stage +
                     " target=" + index +
                     " current=" + currentIndex +

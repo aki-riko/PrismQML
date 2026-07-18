@@ -166,7 +166,7 @@ def _install_runtime_fakes(monkeypatch, events):
     monkeypatch.setattr(
         _page_manager, "QTimer", SimpleNamespace(singleShot=timers.single_shot)
     )
-    monkeypatch.setattr(_page_manager, "info", lambda *_args: None)
+    monkeypatch.setattr(_page_manager, "debug", lambda *_args: None)
     monkeypatch.setattr(
         _page_manager,
         "warning",

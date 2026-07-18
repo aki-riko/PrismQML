@@ -434,7 +434,7 @@ def _create_qt_message_handler(qt_msg_type):
             recent = list(breadcrumbs)[-_QT_BREADCRUMB_REPLAY_LIMIT:]
             for position, breadcrumb in enumerate(recent, start=1):
                 logger._log(
-                    logging.INFO,
+                    logging.DEBUG,
                     f"[QML诊断回放 {position}/{len(recent)}] {breadcrumb}",
                     tag="QML:BREADCRUMB",
                 )

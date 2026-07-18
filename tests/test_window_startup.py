@@ -115,7 +115,7 @@ def test_window_profile_keeps_shared_elapsed_state(monkeypatch):
     monkeypatch.setattr(startup.time, "perf_counter", lambda: next(moments))
     monkeypatch.setattr(
         startup,
-        "info",
+        "debug",
         lambda message, tag=None: records.append((message, tag)),
     )
 
@@ -143,7 +143,7 @@ def test_window_cache_environment_log_preserves_inputs(monkeypatch):
     monkeypatch.setattr(startup, "QStandardPaths", _FakeStandardPaths)
     monkeypatch.setattr(
         startup,
-        "info",
+        "debug",
         lambda message, tag=None: records.append((message, tag)),
     )
     monkeypatch.setenv("QML_DISK_CACHE_PATH", "D:/qml-cache")

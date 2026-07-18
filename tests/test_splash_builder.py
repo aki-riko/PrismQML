@@ -221,9 +221,9 @@ def test_create_splash_fixed_qml_bytes_and_file_fast_path(monkeypatch):
     _splash_builder.create_splash(builder)
 
     qml_bytes = captured["qml"].encode("utf-8")
-    assert len(qml_bytes) == 3455
+    assert len(qml_bytes) == 3458
     assert sha256(qml_bytes).hexdigest().upper() == (
-        "2FB0C01D9B0E69109BCAADD7F12F55D03F3D7B3964190D7EF53209E318BE3661"
+        "62E1B00C77E7D976A4926E5C6DD1BE8595824FF7F5E8B24EA902340EBA52959E"
     )
     assert captured["qml"].count("\n") == 126
     assert captured["profile_values"] == (
@@ -284,7 +284,7 @@ def test_create_splash_inline_fallback_uses_exact_source(monkeypatch):
         return component
 
     monkeypatch.setattr(_splash_builder, "QQmlComponent", make_component)
-    monkeypatch.setattr(_splash_builder, "info", profile_messages.append)
+    monkeypatch.setattr(_splash_builder, "debug", profile_messages.append)
     builder = _new_builder()
     _splash_builder.create_splash(builder)
 
@@ -333,14 +333,15 @@ def test_create_splash_mount_and_publish_order(monkeypatch):
     component = _FakeComponent(splash=splash, trace=trace)
     _install_file_loader(monkeypatch, component, trace)
 
-    def record_profile(message):
+    def record_debug(message):
         if "component.create(" in message:
             trace.append("profile.create")
         elif "挂载到窗口:" in message:
             trace.append("profile.mount")
+        elif message.startswith("[Splash]"):
+            trace.append("debug")
 
-    monkeypatch.setattr(_splash_builder, "info", record_profile)
-    monkeypatch.setattr(_splash_builder, "debug", lambda _msg: trace.append("debug"))
+    monkeypatch.setattr(_splash_builder, "debug", record_debug)
     builder = _new_builder(trace)
     _splash_builder.create_splash(builder)
 
@@ -402,7 +403,12 @@ def test_create_splash_profile_uses_shared_elapsed_time(monkeypatch):
     times = iter((1.0, 2.0, 4.0, 7.0, 11.0))
     messages = []
     monkeypatch.setattr(_splash_builder.time, "perf_counter", lambda: next(times))
-    monkeypatch.setattr(_splash_builder, "info", messages.append)
+
+    def record_profile(message):
+        if message.startswith("[启动剖析]"):
+            messages.append(message)
+
+    monkeypatch.setattr(_splash_builder, "debug", record_profile)
     _install_file_loader(monkeypatch, _FakeComponent())
 
     _splash_builder.create_splash(_new_builder())

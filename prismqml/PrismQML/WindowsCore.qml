@@ -80,7 +80,7 @@ Window {
     function logTime(msg) { console.log("[" + Math.round(Date.now() - _appStartTime) + "ms]", msg) }
     function profileTime(msg) {
         var now = Date.now()
-        console.info("[启动剖析] WindowsCore " + msg + ": +" +
+        console.debug("[启动剖析] WindowsCore " + msg + ": +" +
                     Math.round(now - _lastStartupProfileTime) + "ms / total " +
                     Math.round(now - _appStartTime) + "ms")
         _lastStartupProfileTime = now
@@ -88,7 +88,7 @@ Window {
     function profileDetail(msg) {
         if (!_startupProfilingVerboseActive) return
         var now = Date.now()
-        console.info("[启动剖析] WindowsCore DETAIL " + msg + ": +" +
+        console.debug("[启动剖析] WindowsCore DETAIL " + msg + ": +" +
                     Math.round(now - _lastStartupDetailTime) + "ms / total " +
                     Math.round(now - _appStartTime) + "ms")
         _lastStartupDetailTime = now
