@@ -109,7 +109,7 @@ P1、P2、P3 可以在不同提交中并行设计，但 P6/P7 的大规模整理
 ```powershell
 git status --short
 git rev-parse HEAD
-.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 480 -- .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
 ctest --test-dir cpp\build -N
 cargo test --manifest-path rust\Cargo.toml
@@ -657,7 +657,7 @@ P6D inputs CycleWheelPicker 批已完成：`d44e2db` 用真实循环与非循环
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
-.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 480 -- .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 120 -- .\.venv\Scripts\python.exe -m pytest tests\test_qml_conventions.py tests\test_qml_color_constructors.py -q
 .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 120 -- .\.venv\Scripts\python.exe scripts\check_qml_conventions.py --changed --base HEAD
 .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 120 -- .\.venv\Scripts\python.exe scripts\check_qml_conventions.py --all --report-only --max-details 100
@@ -945,6 +945,8 @@ git diff --check
 
 最终状态：已完成（2026-07-18），但按用户要求不实际发布。`8b746c5` 将 5 个 singleton 从无条件跳过改为 QtObject wrapper 真实创建/读取，`c7bc858` 进一步使用真实 `configure_qml_environment()` + `register_types(engine)` 装配并把 singleton 创建期 Qt warning / critical / fatal 纳入失败门禁；Windows offscreen 字体目录由 `WINDIR\Fonts` 动态配置，不使用硬编码路径或告警字符串豁免。改前 `9fbb8cb7` 隔离 worktree 与当前分支使用同一新版 probe 均为 `174 OK / 0 错误 / 7 跳过`，singleton 运行时消息为 0。最终门禁：Python 2494 passed / 1 skipped；QML 174/0/7；CMake NMake build 100%；CTest headless 9/9、native 2/2；Rust fmt、严格 Clippy、test 6/6；MkDocs strict、Python 3.9 grammar AST 352、compileall、全库 QML scanner 0、生产超长函数 0 与 `git diff --check` 全绿，全部 Qt runner 均为零可见窗口、零残留进程。
 
+P9 CI 后续：Build All [29637199001](https://github.com/aki-riko/PrismQML/actions/runs/29637199001) 的六个构建/扫描作业全部成功，Windows Python/QML 作业没有断言失败，但在 2495 项运行至 85% 时被既有 300 秒外层时限终止，runner 仍确认零可见窗口、零残留。`b3b234b` 将 Build All 与 Release 的全量 Python 时限统一为环境配置 `PRISM_FULL_PYTEST_TIMEOUT_SECONDS=480`，同步 AGENTS 命令与静态合同；未减少测试或放宽断言。
+
 预期效果：形成可以进入下一版本发布流程的唯一绿灯状态，但本阶段不实际发布。
 
 - 难度：2–4 小时
@@ -955,7 +957,7 @@ git diff --check
 
 ```powershell
 .\.venv\Scripts\python.exe -m compileall prismqml tests scripts
-.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 480 -- .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
 cmake --build cpp\build
 ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
@@ -1157,6 +1159,6 @@ F7a 补充 CI：Build All [29452118137](https://github.com/aki-riko/PrismQML/act
 | P7I-F F7r Mica DWM 状态事务（2026-07-18） | 已完成 | fake DWM + 真实 QObject signal 合同修前 7 failed / 1 passed：Python 只认 HRESULT `0`，把正成功码误报失败；负 HRESULT、空 HWND、旧 Build 与 dark-mode 普通/控制异常会在最终成功前污染 current window/HWND，且旧 Build 仍先产生 DWM 副作用。`9c3fe9b6` 对齐 Windows `SUCCEEDED(result>=0)`，以构造期缓存的支持状态拒绝旧 Build/空 HWND，将整数属性调用和已验证 HWND 的 Mica 流程拆开，并仅在 dark + corner + backdrop 完成后提交窗口、句柄、状态与信号；普通异常返回 false，KeyboardInterrupt/SystemExit 原对象传播且状态不变。`_applyMica()` 48→12 行、`setMicaEffect()` 47→28 行，全部目标 helper 不超过 20 行。聚焦联合 223 passed、全量 Python 2490 passed / 1 skipped、QML probe 169 OK / 0 错误 / 12 跳过、CTest headless 9/9 + native 2/2、MkDocs strict、Python 3.9 grammar AST 351、compileall、all scanner 0 与 `git diff --check` 全绿，生产超长函数库存 8→6 | `9c3fe9b6` |
 | P7I-F F7s SystemTray 数据子菜单与拆分（2026-07-18） | 已完成 | 仓内全量索引确认 Python `addMenu()` 只写 `submenuActions/hasSubmenu`，QML 仅消费箭头标志而从未消费子动作。`5dbd1df3` 为 MenuCore 增加运行时 SystemTrayMenu component 与 initialActions 数据入口，保持 hover/click 两条打开路径，并把子菜单 `actionTriggered(actionId)` 上冒到根菜单；真实隐藏 QML 场景确认父项、子菜单、子 actionId 和 Python callback 路由。Python 同批抽出 QML 创建、icon/options/submenu 序列化、action 构造/重复检查和子回调注册 helper，`_ensureQmlMenu()` 34→8、`_addActionToQml()` 43→27、`addAction()` 58→22、`addMenu()` 41→19、`createSystemTrayIcon()` 44→16 行，全部函数不超过 30 行。聚焦联合 37 passed、全量 Python 2491 passed / 1 skipped、QML probe 169 OK / 0 错误 / 12 跳过、CTest headless 9/9 + native 2/2、MkDocs strict、Python 3.9 grammar AST 352、compileall、all scanner 0 与 `git diff --check` 全绿，生产超长函数库存 6→1 | `5dbd1df3` |
 | P7I-F F7t WindowCore 图标管线统一（2026-07-18） | 已完成 | `e9c4e1e` 先用真实 PNG/SVG 固化 WindowHelper 与 WindowCore 的 FullyEncoded 路径、7 档 SVG pixmap、64px 中心像素和应用图标发布合同；`eea118b9` 删除 WindowCore 内重复的路径解析与 SVG/位图渲染实现，统一委托既有 WindowHelper 管线，保留 QML `_setAppIcon` 入口且不改变窗口图标对象语义，`_setAppIcon()` 47→5 行。聚焦 13 passed、全量 Python 2493 passed / 1 skipped、QML probe 169 OK / 0 错误 / 12 跳过、CTest headless 9/9 + native 2/2、MkDocs strict、Python 3.9 grammar AST 352、compileall、all scanner 0 与 `git diff --check` 全绿，全部 runner 零可见窗口、零残留；生产超长函数库存 1→0 | `e9c4e1e`、`eea118b9` |
-| P9 最终验收 | 已完成 | 5 个 singleton 真实 wrapper、运行时告警门禁、改前/当前双树对比与 Python/QML/C++/Rust/文档/静态总门禁全部通过；未改版本、未打 tag、未发布 | `8b746c5`、`c7bc858` |
+| P9 最终验收 | 已完成 | 5 个 singleton 真实 wrapper、运行时告警门禁、改前/当前双树对比与 Python/QML/C++/Rust/文档/静态总门禁全部通过；CI 全量 Python 时限按真实慢速 runner 调整为 480 秒；未改版本、未打 tag、未发布 | `8b746c5`、`c7bc858`、`b3b234b` |
 
 状态只能填写“待执行 / 进行中 / 已完成 / 阻塞”。“已完成”必须同时记录真实测试结果和提交哈希。
