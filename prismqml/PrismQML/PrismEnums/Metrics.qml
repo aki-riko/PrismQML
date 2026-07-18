@@ -196,7 +196,7 @@ QtObject {
  // Window layout spacing 窗口布局间距
  readonly property int navTitleGap: 160 // top-nav window nav left margin 顶部导航左边距
  readonly property int windowButtonGap: 150 // top-nav window right margin for buttons 窗口按钮右边距
- readonly property int navigationScrollStep: 12 // Navigation wheel scroll distance per tick 导航滚轮每格滚动距离
+ readonly property int navigationScrollStep: 6 // Navigation wheel scroll distance per tick 导航滚轮每格滚动距离
  // Scroll overshoot 滚动超出
  readonly property int scrollOvershoot: 150 // Scroll overshoot distance 滚动超出距离
  }
