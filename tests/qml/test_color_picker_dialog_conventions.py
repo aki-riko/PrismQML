@@ -7,6 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -50,6 +51,9 @@ Window {
     readonly property int redChannel: Enums.colorPickerMetrics.dialogRgbChannelR
     readonly property int greenChannel: Enums.colorPickerMetrics.dialogRgbChannelG
     readonly property int blueChannel: Enums.colorPickerMetrics.dialogRgbChannelB
+    readonly property int dialogContentWidth: Enums.colorPickerMetrics.dialogContentWidth
+    readonly property int dialogContentPadding: Enums.dialog.contentPadding
+    readonly property int dialogActionsRowHeight: Enums.dialog.actionsRowHeight
 
     width: 900
     height: 800
@@ -142,8 +146,18 @@ def _dialog_card(dialog):
         item
         for item in _visual_descendants(dialog)
         if item.metaObject().className().startswith("QQuickRectangle")
-        and item.width() == pytest.approx(440)
-        and item.height() == pytest.approx(616)
+        and item.clip()
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
+def _dialog_content_column(dialog, expected_width):
+    matches = [
+        item
+        for item in _visual_descendants(dialog)
+        if item.metaObject().className().startswith("QQuickColumn")
+        and item.width() == pytest.approx(expected_width)
     ]
     assert len(matches) == 1
     return matches[0]
@@ -248,12 +262,16 @@ def _rgb(color: QColor) -> tuple[int, int, int, int]:
 
 
 def _new_visible_windows(windows_before, root_window):
+    excluded = {
+        shiboken6.getCppPointer(window)[0]
+        for window in (*windows_before, root_window)
+        if shiboken6.isValid(window)
+    }
     return [
         window
         for window in QGuiApplication.topLevelWindows()
         if window.isVisible()
-        and window is not root_window
-        and not any(window is existing for existing in windows_before)
+        and shiboken6.getCppPointer(window)[0] not in excluded
     ]
 
 
@@ -264,6 +282,9 @@ def test_color_picker_dialog_preserves_public_parent_geometry(qapp):
         dialog, card = _open_dialog(picker, window)
         panel = _panel(dialog)
         rgb_inputs = _rgb_inputs(dialog)
+        content_column = _dialog_content_column(
+            dialog, window.property("dialogContentWidth")
+        )
         previews = [
             item
             for item in _visual_descendants(dialog)
@@ -272,7 +293,14 @@ def test_color_picker_dialog_preserves_public_parent_geometry(qapp):
             and item.height() == pytest.approx(126)
         ]
 
-        assert (card.width(), card.height()) == pytest.approx((440, 616))
+        assert card.width() == pytest.approx(
+            content_column.width() + window.property("dialogContentPadding")
+        )
+        assert card.height() == pytest.approx(
+            content_column.property("implicitHeight")
+            + window.property("dialogActionsRowHeight")
+            + window.property("dialogContentPadding")
+        )
         assert (panel.width(), panel.height()) == pytest.approx((260, 260))
         assert len(previews) == 2
         assert _rgb(dialog.property("selectedColor")) == (51, 102, 153, 255)

@@ -100,4 +100,5 @@ def test_app_initialization_failure_is_retryable_and_transactional():
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert "APP_INIT_RETRY_OK" in completed.stdout
-    assert "visible_windows=0 / job_active_processes=0" in completed.stderr
+    if sys.platform == "win32":
+        assert "visible_windows=0 / job_active_processes=0" in completed.stderr

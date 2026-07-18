@@ -131,9 +131,10 @@ def test_window_icon_renders_reserved_character_svg(
     assert not rendered.isNull()
 
 
-def test_window_icon_provider_id_encodes_literal_pipe(qapp) -> None:
+def test_window_icon_provider_id_encodes_literal_pipe(qapp, tmp_path: Path) -> None:
     """QML must preserve a literal pipe as one encoded provider layer. 保留竖线。"""
-    source = "C:/icons/A|B.svg"
+    icon_path = tmp_path / "A|B.svg"
+    source = str(icon_path).replace("\\", "/")
     svg_source, provider_id = _window_icon_request(qapp, source)
     encoded_source = quote(source, safe="")
     assert svg_source == "image://svg/" + encoded_source

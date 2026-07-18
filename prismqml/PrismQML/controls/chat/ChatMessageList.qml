@@ -46,6 +46,7 @@ Item {
     property bool _adjustingScroll: false
     property bool _scrollPending: false
     property bool _layoutPending: false
+    property bool _rangeUpdatePending: false
     property real _pendingAnchorDelta: 0
 
     // ==================== Readonly State 只读状态 ====================
@@ -97,6 +98,7 @@ Item {
                 if (!slot._layoutReady) slot._layoutReady = true
             }
             messageColumn.height = nextY
+            _scheduleLoadRangeUpdate()
             if (_followBottom) {
                 _pendingAnchorDelta = 0
                 _scheduleScrollToBottom()
@@ -104,6 +106,18 @@ Item {
                 var anchorDelta = _pendingAnchorDelta
                 _pendingAnchorDelta = 0
                 _setContentY(messageViewport.contentY + anchorDelta, false)
+            }
+        })
+    }
+
+    function _scheduleLoadRangeUpdate() {
+        if (_rangeUpdatePending) return
+        _rangeUpdatePending = true
+        Qt.callLater(function() {
+            _rangeUpdatePending = false
+            for (var i = 0; i < messageRepeater.count; i++) {
+                var slot = messageRepeater.itemAt(i)
+                if (slot) slot._updateLoadRange()
             }
         })
     }
@@ -200,10 +214,12 @@ Item {
 
         onContentYChanged: {
             if (!control._adjustingScroll) control._followBottom = control._isAtBottom
+            control._scheduleLoadRangeUpdate()
         }
         onContentHeightChanged: {
             if (control._followBottom) control._scheduleScrollToBottom()
         }
+        onHeightChanged: control._scheduleLoadRangeUpdate()
 
         Item {
             id: messageColumn
@@ -244,13 +260,17 @@ Item {
                         _userToggledReasoning,
                         Enums.fontFamily
                     ].join("\u001f")
-                    readonly property bool _inLoadRange:
-                        y + height >= messageViewport.contentY - control._loadMargin
-                        && y <= messageViewport.contentY + messageViewport.height
-                            + control._loadMargin
+                    property bool _inLoadRange: false
 
                     function _measureLoadedBubble() {
                         if (item) control._cacheSlotHeight(messageSlot, item.implicitHeight)
+                    }
+
+                    function _updateLoadRange() {
+                        _inLoadRange = y + _measuredHeight
+                            >= messageViewport.contentY - control._loadMargin
+                            && y <= messageViewport.contentY + messageViewport.height
+                                + control._loadMargin
                     }
 
                     width: messageColumn.width

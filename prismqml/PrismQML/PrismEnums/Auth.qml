@@ -41,16 +41,16 @@ QtObject {
     // ==================== OAuth Provider Icons OAuth提供商图标 ====================
     // Using Icon names 使用Icon图标名
     readonly property var oauthIcons: ({
-        0: "branch",           // GitHub - branch icon
-        1: "globe",            // Google - globe icon
-        2: "window",           // Microsoft - window icon
-        3: "phone",            // Apple - phone icon
-        4: "people",           // Facebook - people icon
-        5: "chat",             // Twitter - chat icon
-        6: "headset",          // Discord - headset icon
-        7: "branch_fork",      // GitLab - branch_fork icon
-        8: "repo",             // Bitbucket - repo icon
-        9: "person",           // LinkedIn - person icon
+        0: "Branch",           // GitHub - branch icon
+        1: "Globe",            // Google - globe icon
+        2: "Window",           // Microsoft - window icon
+        3: "Phone",            // Apple - phone icon
+        4: "People",           // Facebook - people icon
+        5: "Chat",             // Twitter - chat icon
+        6: "Headset",          // Discord - headset icon
+        7: "BranchFork",       // GitLab - branch fork icon
+        8: "Branch",           // Bitbucket - branch icon
+        9: "Person",           // LinkedIn - person icon
     })
     
     // ==================== Form Validation 表单验证 ====================
@@ -72,6 +72,6 @@ QtObject {
     }
     
     function getOAuthIcon(provider) {
-        return oauthIcons[provider] || "person"
+        return oauthIcons[provider] || "Person"
     }
 }

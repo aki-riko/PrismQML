@@ -47,6 +47,29 @@ Rectangle {
     // Clear 清除
     function clear() { /* Already implemented via signal handlers 已通过信号处理实现 */ }
 
+    // ==================== Internal Methods 内部方法 ====================
+    // Convert a file URL to a native absolute path 转换文件 URL 为本机绝对路径
+    function _toLocalPath(fileUrl) {
+        var encoded = fileUrl.toString()
+        if (!encoded.startsWith("file:")) return decodeURIComponent(encoded)
+        var withoutScheme = encoded.slice("file:".length)
+        if (withoutScheme.startsWith("///")) {
+            var localPath = decodeURIComponent(withoutScheme.slice(3))
+            return Qt.platform.os === "windows" ? localPath : "/" + localPath
+        }
+        if (withoutScheme.startsWith("//")) return decodeURIComponent(withoutScheme)
+        return decodeURIComponent(withoutScheme)
+    }
+
+    // Convert a native path to a file URL 转换本机路径为文件 URL
+    function _toFileUrl(localPath) {
+        var normalizedPath = String(localPath).replace(/\\/g, "/")
+        if (normalizedPath.startsWith("file:")) return normalizedPath
+        if (normalizedPath.startsWith("//")) return "file:" + normalizedPath
+        if (Qt.platform.os === "windows") return "file:///" + normalizedPath
+        return "file://" + (normalizedPath.startsWith("/") ? normalizedPath : "/" + normalizedPath)
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
     implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
@@ -145,7 +168,7 @@ Rectangle {
             if (drop.hasUrls) {
                 var files = []
                 for (var i = 0; i < drop.urls.length; i++) {
-                    var url = drop.urls[i].toString().replace("file:///", "")
+                    var url = control._toLocalPath(drop.urls[i])
                     files.push(url)
                     if (!control.multiple && !control.folderMode) break
                 }
@@ -172,14 +195,14 @@ Rectangle {
     FileDialog {
         id: fileDialog
         title: Translator.tr("select_file")
-        currentFolder: control.initialDir ? "file:///" + control.initialDir : ""
+        currentFolder: control.initialDir ? control._toFileUrl(control.initialDir) : ""
         fileMode: control.multiple ? FileDialog.OpenFiles : FileDialog.OpenFile
         nameFilters: control.allowedExtensions.length > 0 ? ["支持的文件 (*." + control.allowedExtensions.join(" *.") + ")"] : []
         
         onAccepted: {
             var files = []
             for (var i = 0; i < selectedFiles.length; i++) {
-                files.push(selectedFiles[i].toString().replace("file:///", ""))
+                files.push(control._toLocalPath(selectedFiles[i]))
             }
             if (control.multiple) {
                 control.filesSelected(files)
@@ -192,10 +215,10 @@ Rectangle {
     FolderDialog {
         id: folderDialog
         title: Translator.tr("select_folder")
-        currentFolder: control.initialDir ? "file:///" + control.initialDir : ""
+        currentFolder: control.initialDir ? control._toFileUrl(control.initialDir) : ""
         
         onAccepted: {
-            control.folderSelected(selectedFolder.toString().replace("file:///", ""))
+            control.folderSelected(control._toLocalPath(selectedFolder))
         }
     }
 }

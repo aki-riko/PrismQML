@@ -7,6 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -140,12 +141,16 @@ def _visual_descendants(root: QQuickItem) -> list[QQuickItem]:
 
 
 def _new_visible_windows(windows_before, *allowed):
+    excluded = {
+        shiboken6.getCppPointer(window)[0]
+        for window in (*windows_before, *allowed)
+        if shiboken6.isValid(window)
+    }
     return [
         window
         for window in QGuiApplication.topLevelWindows()
         if window.isVisible()
-        and not any(window is existing for existing in windows_before)
-        and not any(window is expected for expected in allowed)
+        and shiboken6.getCppPointer(window)[0] not in excluded
     ]
 
 
@@ -166,6 +171,11 @@ def _open_dropdown(picker, root_window, windows_before):
     popup_core = _popup_core(picker)
     assert QMetaObject.invokeMethod(picker, "open")
     assert _wait_for(lambda: picker.property("popupVisible"))
+    excluded = {
+        shiboken6.getCppPointer(window)[0]
+        for window in (*windows_before, root_window)
+        if shiboken6.isValid(window)
+    }
 
     def visible_popup_windows():
         return [
@@ -173,8 +183,7 @@ def _open_dropdown(picker, root_window, windows_before):
             for window in QGuiApplication.topLevelWindows()
             if isinstance(window, QQuickWindow)
             and window.isVisible()
-            and window is not root_window
-            and not any(window is existing for existing in windows_before)
+            and shiboken6.getCppPointer(window)[0] not in excluded
         ]
 
     assert _wait_for(lambda: len(visible_popup_windows()) == 1)

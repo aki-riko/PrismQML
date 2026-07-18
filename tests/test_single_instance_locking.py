@@ -42,6 +42,21 @@ class _FakeKernel:
         return True
 
 
+class _FakeCFunction:
+    def __init__(self):
+        self.argtypes = None
+        self.restype = None
+
+    def __call__(self, *_args):
+        return 0
+
+
+class _BootstrapKernel:
+    def __init__(self):
+        self.CreateMutexW = _FakeCFunction()
+        self.CloseHandle = _FakeCFunction()
+
+
 class _FakeSemaphore:
     def __init__(self):
         self.events = []
@@ -125,6 +140,16 @@ class _FakeSocket:
 
 def _load_module(monkeypatch, system_name: str):
     monkeypatch.setattr(platform, "system", lambda: system_name)
+    if system_name == "Windows":
+        import ctypes
+
+        if not hasattr(ctypes, "windll"):
+            monkeypatch.setattr(
+                ctypes,
+                "windll",
+                SimpleNamespace(kernel32=_BootstrapKernel()),
+                raising=False,
+            )
     name = f"prismqml.python.core._single_instance_test_{uuid4().hex}"
     spec = importlib.util.spec_from_file_location(name, SOURCE_PATH)
     assert spec is not None and spec.loader is not None

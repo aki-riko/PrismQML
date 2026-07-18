@@ -7,6 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -41,6 +42,8 @@ Window {
     readonly property color checkedBackground: Enums.accentColor
     readonly property color normalContent: Enums.foregroundColor
     readonly property color checkedContent: Enums.chipColors.checkedText
+    readonly property int chipHorizontalPadding: Enums.spacing.l
+    readonly property int chipContentSpacing: Enums.spacing.xs
 
     width: 400
     height: 200
@@ -143,6 +146,19 @@ def _close_button(chip):
     return matches[0]
 
 
+def _content_row(chip):
+    chip_pointer = shiboken6.getCppPointer(chip)[0]
+    matches = [
+        item
+        for item in _visual_descendants(chip)
+        if item.metaObject().className().startswith("QQuickRow")
+        and item.parentItem() is not None
+        and shiboken6.getCppPointer(item.parentItem())[0] == chip_pointer
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 def _point_for(window, item, x_ratio=0.5, y_ratio=0.5):
     point = item.mapToItem(
         window.contentItem(), QPointF(item.width() * x_ratio, item.height() * y_ratio)
@@ -161,12 +177,16 @@ def _assert_color(actual: QColor, expected: QColor) -> None:
 
 
 def _new_visible_windows(windows_before, root_window):
+    excluded = {
+        shiboken6.getCppPointer(window)[0]
+        for window in (*windows_before, root_window)
+        if shiboken6.isValid(window)
+    }
     return [
         window
         for window in QGuiApplication.topLevelWindows()
         if window.isVisible()
-        and window is not root_window
-        and not any(window is existing for existing in windows_before)
+        and shiboken6.getCppPointer(window)[0] not in excluded
     ]
 
 
@@ -175,8 +195,12 @@ def test_chip_preserves_default_geometry_and_pointer_states(qapp):
     engine, component, window, chip, warnings = _create_scene()
     try:
         background = _background(chip)
-        assert (chip.width(), chip.height()) == pytest.approx((132, 32))
-        assert chip.property("implicitWidth") == pytest.approx(132)
+        row = _content_row(chip)
+        expected_width = row.property("implicitWidth") + 2 * window.property(
+            "chipHorizontalPadding"
+        )
+        assert (chip.width(), chip.height()) == pytest.approx((expected_width, 32))
+        assert chip.property("implicitWidth") == pytest.approx(expected_width)
         assert chip.property("implicitHeight") == pytest.approx(32)
         assert not chip.property("hovered")
         assert not chip.property("pressed")
@@ -243,6 +267,7 @@ def test_chip_close_routes_without_toggling_and_updates_width(qapp):
         clicked = []
         toggled = []
         dismissed = []
+        initial_width = chip.property("implicitWidth")
         chip.clicked.connect(lambda: clicked.append(True))
         chip.toggled.connect(toggled.append)
         chip.dismissed.connect(lambda: dismissed.append(True))
@@ -263,7 +288,13 @@ def test_chip_close_routes_without_toggling_and_updates_width(qapp):
         chip.setProperty("closable", False)
         _pump(20)
         assert not close_button.isVisible()
-        assert chip.property("implicitWidth") == pytest.approx(112)
+        expected_width = _content_row(chip).property("implicitWidth") + 2 * window.property(
+            "chipHorizontalPadding"
+        )
+        assert chip.property("implicitWidth") == pytest.approx(expected_width)
+        assert initial_width - expected_width == pytest.approx(
+            close_button.width() + window.property("chipContentSpacing")
+        )
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
