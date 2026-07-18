@@ -7,8 +7,8 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QPointF, QTimer, QUrl, Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QPoint, QPointF, QTimer, QUrl, Qt
+from PySide6.QtGui import QGuiApplication, QWheelEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -52,6 +52,8 @@ Window {
         navigationView.addItem("dynamic", "", "Dynamic", null, true, "", "top")
     }
     function removeViewDynamic() { navigationView.removeWidget("dynamic") }
+    function smoothScrollNavigationBar() { navigationBar.smoothScrollBy(120) }
+    function smoothScrollToggleBar() { toggleBar.smoothScrollBy(120) }
 
     width: 900
     height: 420
@@ -89,7 +91,10 @@ Window {
             { "key": "three", "text": "Three" },
             { "key": "four", "text": "Four" },
             { "key": "five", "text": "Five" },
-            { "key": "six", "text": "Six" }
+            { "key": "six", "text": "Six" },
+            { "key": "seven", "text": "Seven" },
+            { "key": "eight", "text": "Eight" },
+            { "key": "nine", "text": "Nine" }
         ]
         bottomItems: [{ "key": "bar-settings", "text": "Settings", "selectable": true }]
         _bottomPageIndexMap: ({ "bar-settings": 6 })
@@ -105,7 +110,12 @@ Window {
         model: [
             { "key": "alpha", "text": "Alpha" },
             { "key": "beta", "text": "Beta" },
-            { "key": "gamma", "text": "Gamma" }
+            { "key": "gamma", "text": "Gamma" },
+            { "key": "delta", "text": "Delta" },
+            { "key": "epsilon", "text": "Epsilon" },
+            { "key": "zeta", "text": "Zeta" },
+            { "key": "eta", "text": "Eta" },
+            { "key": "theta", "text": "Theta" }
         ]
         bottomItems: [{ "key": "toggle-settings", "text": "Settings", "selectable": true }]
         _bottomPageIndexMap: ({ "toggle-settings": 3 })
@@ -172,6 +182,21 @@ def _toggle_item(root: QQuickItem, text: str):
 def _click_item(window: QQuickWindow, item: QQuickItem) -> None:
     point = item.mapToScene(QPointF(item.width() / 2, item.height() / 2)).toPoint()
     QTest.mouseClick(window, Qt.MouseButton.LeftButton, pos=point)
+
+
+def _send_wheel(window: QQuickWindow, point: QPoint, delta: int) -> None:
+    event = QWheelEvent(
+        QPointF(point),
+        QPointF(window.mapToGlobal(point)),
+        QPoint(),
+        QPoint(0, delta),
+        Qt.MouseButton.NoButton,
+        Qt.KeyboardModifier.NoModifier,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    QCoreApplication.sendEvent(window, event)
+    _pump()
 
 
 def _new_visible_windows(windows_before, *allowed):
@@ -310,6 +335,40 @@ def test_navigation_bar_and_toggle_indicator_geometry(navigation_scene):
     toggle_visual = _indicator_visual(toggle_indicator)
     assert toggle_visual.width() > 0
     assert toggle_visual.height() > 0
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_navigation_bars_use_smooth_scroll_helper(navigation_scene):
+    window, items, warnings, windows_before = navigation_scene
+    bar = items["navigationBar"]
+    toggle = items["toggleNavigationBar"]
+    bar_flickable = next(
+        item
+        for item in _descendants(bar)
+        if "QQuickFlickable" in item.metaObject().className()
+    )
+    toggle_flickable = next(
+        item
+        for item in _descendants(toggle)
+        if "QQuickFlickable" in item.metaObject().className()
+    )
+    bar_helper = bar.findChild(QQuickItem, "navigationBarSmoothScrollHelper")
+    toggle_helper = toggle.findChild(QQuickItem, "toggleNavigationBarSmoothScrollHelper")
+    assert bar_helper is not None
+    assert toggle_helper is not None
+    assert not bar_flickable.property("interactive")
+    assert not toggle_flickable.property("interactive")
+    assert bar_helper.property("targetPos") == pytest.approx(0)
+
+    wheel_point = _item_with_text(bar, "NavigationBarItem", "Four").mapToScene(QPointF(20, 20)).toPoint()
+    _send_wheel(window, wheel_point, -120)
+    assert bar_helper.property("targetPos") > 0
+    assert _wait_for(lambda: bar_flickable.property("contentY") > 0)
+
+    assert QMetaObject.invokeMethod(window, "smoothScrollToggleBar")
+    assert toggle_helper.property("targetPos") > 0
+    assert _wait_for(lambda: toggle_flickable.property("contentY") > 0)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

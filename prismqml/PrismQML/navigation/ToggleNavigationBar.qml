@@ -7,6 +7,7 @@ import ".."
 import "../controls/buttons/Button"
 import "../controls/icons"
 import "../controls/data/Label"
+import "../controls/containers/ScrollBar"
 import "../controls/navigation/_internal"
 
 // ToggleNavigationBar - Navigation bar with toggle buttons 切换按钮导航栏
@@ -36,6 +37,10 @@ Item {
     // ==================== Signals 信号 ====================
     signal itemClicked(int index)
     signal bottomItemClicked(int index)
+
+    // ==================== Public Methods 公开方法 ====================
+    function smoothScrollTo(targetY) { topScrollHelper.scrollTo(targetY) }
+    function smoothScrollBy(delta) { topScrollHelper.scrollBy(delta) }
 
     // ==================== Internal Methods 内部方法 ====================
     function _getItemAt(globalIndex) {
@@ -158,7 +163,7 @@ Item {
         contentHeight: topLayout.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        interactive: contentHeight > height
+        interactive: false
         
         Column {
             id: topLayout
@@ -231,6 +236,16 @@ Item {
                 }
             }
         }
+    }
+
+    SmoothScrollHelper {
+        id: topScrollHelper
+        objectName: "toggleNavigationBarSmoothScrollHelper"
+        target: topFlickable
+        orientation: Qt.Vertical
+        enabled: topFlickable.contentHeight > topFlickable.height
+        bounceEnabled: false
+        handleWheel: true
     }
     
     // Bottom fixed items 底部固定项

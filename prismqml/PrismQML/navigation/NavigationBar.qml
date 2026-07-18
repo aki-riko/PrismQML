@@ -4,6 +4,7 @@
 
 import QtQuick
 import ".."
+import "../controls/containers/ScrollBar"
 
 // NavigationBar - Fluent Design navigation bar (compact-nav window style) 导航栏
 // Fixed width 72px, vertical layout (icon top, text bottom) 固定宽度垂直布局
@@ -14,6 +15,10 @@ NavigationPanelCore {
     // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items 将 key 映射到页面索引，用于底部页面项
     property var _bottomPageIndexMap: ({})
+
+    // ==================== Public Methods 公开方法 ====================
+    function smoothScrollTo(targetY) { topScrollHelper.scrollTo(targetY) }
+    function smoothScrollBy(delta) { topScrollHelper.scrollBy(delta) }
 
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.navBarWidth
@@ -50,7 +55,7 @@ NavigationPanelCore {
         contentHeight: topLayout.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        interactive: contentHeight > height
+        interactive: false
         
         Column {
             id: topLayout
@@ -71,6 +76,16 @@ NavigationPanelCore {
                 }
             }
         }
+    }
+
+    SmoothScrollHelper {
+        id: topScrollHelper
+        objectName: "navigationBarSmoothScrollHelper"
+        target: topFlickable
+        orientation: Qt.Vertical
+        enabled: topFlickable.contentHeight > topFlickable.height
+        bounceEnabled: false
+        handleWheel: true
     }
     
     // Bottom fixed items 底部固定项
