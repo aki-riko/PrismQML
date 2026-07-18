@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """TreeView asynchronous model regressions. TreeView 异步模型回归。"""
 
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QObject, QPointF, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -102,13 +102,20 @@ def test_tree_view_async_loader_tracks_internal_list_model(qapp):
 
         assert tree.count() == 2
         assert tree.property("itemCount") == 2
-        delegates = [
-            item
-            for item in _descendants(tree)
-            if item.metaObject().indexOfProperty("itemText") >= 0
-        ]
-        assert delegates
-        assert delegates[0].property("itemText") == "Root"
+        delegates_by_text = {}
+        for _ in range(100):
+            delegates_by_text = {
+                item.property("itemText"): item
+                for item in _descendants(tree)
+                if item.metaObject().indexOfProperty("itemText") >= 0
+            }
+            if set(delegates_by_text) == {"Root", "Leaf"}:
+                break
+            _pump()
+        assert set(delegates_by_text) == {"Root", "Leaf"}
+        root_y = delegates_by_text["Root"].mapToItem(tree, QPointF()).y()
+        leaf_y = delegates_by_text["Leaf"].mapToItem(tree, QPointF()).y()
+        assert root_y < leaf_y
         assert warnings == []
         assert [
             window
