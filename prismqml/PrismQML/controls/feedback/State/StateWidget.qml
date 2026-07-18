@@ -85,6 +85,7 @@ Item {
     Column {
         id: contentCol
         anchors.centerIn: parent
+        width: control.width
         spacing: _isResultType ? Enums.spacing.xl : Enums.spacing.l
         
         // Icon container 图标容器
@@ -127,10 +128,16 @@ Item {
         
         // Title 标题
         Label {
-            type: _isResultType ? Enums.label.type_title_large : Enums.label.type_subtitle
+            objectName: "stateTitle"
+            type: _isResultType ? Enums.label.type_title : Enums.label.type_subtitle
             anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
             text: control.title || _defaultTitle
             color: _isResultType ? Enums.textColor.primary : Enums.textColor.tertiary
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
             visible: text !== ""
         }
         
@@ -142,7 +149,7 @@ Item {
             color: _isResultType ? Enums.textColor.tertiary : Enums.stateColor.textMedium
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            width: Math.min(implicitWidth, _isResultType ? Enums.controlSize.stateDescMaxWidth : Enums.controlSize.stateDescEmptyWidth)
+            width: Math.min(parent.width, _isResultType ? Enums.controlSize.stateDescMaxWidth : Enums.controlSize.stateDescEmptyWidth)
             visible: text !== ""
         }
         

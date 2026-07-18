@@ -367,7 +367,7 @@ QtObject {
  // QRCode controls 二维码控件
  readonly property int qrcodeSize: 128 // QRCode default size 二维码默认尺寸
  // State widget controls 状态组件控件
- readonly property int stateImageSize: 128 // StateWidget image size 状态组件图片尺寸
+ readonly property int stateImageSize: 96 // StateWidget image size 状态组件图片尺寸
  // Default component sizes 默认组件尺寸
  readonly property int chartDefaultWidth: 400 // Chart default width 图表默认宽度
  readonly property int chartDefaultHeight: 300 // Chart default height 图表默认高度
