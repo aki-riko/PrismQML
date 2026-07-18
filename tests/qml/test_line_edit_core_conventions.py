@@ -126,11 +126,34 @@ def _text_input(control: QQuickItem) -> QQuickItem:
     return matches[0]
 
 
+def _visible_descendant(control: QQuickItem, class_prefix: str) -> QQuickItem:
+    matches = [
+        item
+        for item in _visual_descendants(control)
+        if item.metaObject().className().startswith(class_prefix) and item.isVisible()
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
 def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
     point = item.mapToItem(
         window.contentItem(), QPointF(item.width() / 2, item.height() / 2)
     )
     return QPoint(round(point.x()), round(point.y()))
+
+
+def _click(window: QQuickWindow, item: QQuickItem) -> None:
+    QTest.mouseClick(
+        window,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        _point_for(window, item),
+    )
+
+
+def _variant(value):
+    return value.toVariant() if hasattr(value, "toVariant") else value
 
 
 def _new_visible_windows(windows_before, *allowed):
@@ -258,6 +281,29 @@ def test_line_edit_core_default_variant_geometry(qapp):
         assert controls["tagControl"].property("contentWidth") == window.property(
             "tagInputWidth"
         )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_line_edit_core_tag_buttons_accept_real_mouse_click(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_scene()
+    tag_control = controls["tagControl"]
+    removed = []
+    searched = []
+    tag_control.tagRemoved.connect(lambda index, tag: removed.append((index, tag)))
+    tag_control.searched.connect(searched.append)
+    try:
+        close_button = _visible_descendant(tag_control, "CloseButton")
+        search_button = _visible_descendant(tag_control, "SearchButton")
+        _click(window, close_button)
+        assert _wait_for(lambda: removed == [(0, "one")])
+        assert _variant(tag_control.property("tags")) == []
+        _click(window, search_button)
+        assert _wait_for(lambda: searched == [""])
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

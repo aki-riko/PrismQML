@@ -6,10 +6,21 @@
 
 from pathlib import Path, PurePosixPath
 
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QObject,
+    QPoint,
+    QPointF,
+    QTimer,
+    Qt,
+    QUrl,
+)
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -147,6 +158,22 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
+def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
+    point = item.mapToItem(
+        window.contentItem(), QPointF(item.width() / 2, item.height() / 2)
+    )
+    return QPoint(round(point.x()), round(point.y()))
+
+
+def _click(window: QQuickWindow, item: QQuickItem) -> None:
+    QTest.mouseClick(
+        window,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        _point_for(window, item),
+    )
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -199,7 +226,7 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
         inputs["normalInput"].cleared.connect(lambda: cleared.append(True))
         assert clear_button.property("size") == window.property("expectedClearButtonSize")
         assert clear_button.property("visible")
-        clear_button.clicked.emit()
+        _click(window, clear_button)
         _pump()
         assert inputs["normalInput"].property("text") == ""
         assert cleared == [True]
@@ -208,10 +235,10 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
         password = _normal_module(inputs["passwordInput"])
         password_action = _action_button(password)
         assert password.property("_actualEchoMode") == window.property("passwordEcho")
-        password_action.clicked.emit()
+        _click(window, password_action)
         _pump()
         assert password.property("_actualEchoMode") == window.property("normalEcho")
-        password_action.clicked.emit()
+        _click(window, password_action)
         _pump()
         assert password.property("_actualEchoMode") == window.property("passwordEcho")
 
@@ -221,11 +248,11 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
         inputs["searchInput"].searched.connect(searched.append)
         assert not search.property("expanded")
         assert search_action.property("collapsed")
-        search_action.clicked.emit()
+        _click(window, search_action)
         assert _wait_for(lambda: search.property("expanded"))
         inputs["searchInput"].setProperty("text", "needle")
         _pump()
-        search_action.clicked.emit()
+        _click(window, search_action)
         _pump()
         assert searched == ["needle"]
         assert warnings == []

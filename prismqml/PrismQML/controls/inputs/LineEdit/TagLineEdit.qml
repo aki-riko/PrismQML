@@ -145,6 +145,9 @@ InputCore {
     // ==================== Content 内容 ====================
     Flow {
         id: tagsFlow
+        // Keep tag close buttons above this nested InputCore interaction layer.
+        // 让标签关闭按钮高于当前嵌套 InputCore 的交互层。
+        z: Enums.zIndex.inputControls
         anchors.left: parent.left
         anchors.right: rightArea.left
         anchors.verticalCenter: parent.verticalCenter
@@ -218,6 +221,9 @@ InputCore {
     // Right area with count and search button 右侧计数与搜索按钮区域
     Row {
         id: rightArea
+        // Keep the search button above this nested InputCore interaction layer.
+        // 让搜索按钮高于当前嵌套 InputCore 的交互层。
+        z: Enums.zIndex.inputControls
         anchors.right: parent.right
         anchors.rightMargin: Enums.spacing.m
         anchors.verticalCenter: parent.verticalCenter

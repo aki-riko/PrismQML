@@ -149,6 +149,9 @@ InputCore {
     // Dynamic loader 动态加载器
     Loader {
         id: loader
+        // Keep embedded controls above InputCore's focus interaction layer.
+        // 让输入内容与内嵌按钮高于 InputCore 焦点交互层，保证真实鼠标命中。
+        z: Enums.zIndex.inputControls
         anchors.fill: parent
         sourceComponent: {
             switch (control.inputType) {
