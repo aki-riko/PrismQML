@@ -27,7 +27,7 @@ InputCore {
     property bool allowCustomTags: true  // Allow custom tags 允许自定义标签
     property var extraSeparators: []  // Extra separator chars, e.g. [",",";"] 额外分隔符,粘贴/输入时一并拆分
     property var validateTag: null  // Optional function(text)->bool, reject when returns false 可选校验回调,返回false拒绝
-    property var tagColors: ({})  // Optional {tagText: colorString} per-tag tint 可选按标签着色映射
+    property var tagColors: ({})  // Optional {tagText: colorString} per-tag outline 可选按标签描边颜色映射
     property alias textInput: inputField
 
     // ==================== Internal Props 内部属性 ====================
@@ -161,7 +161,7 @@ InputCore {
 
             delegate: Tag {
                 tagControl: control  // Use different name to avoid shadowing 使用不同名称避免遮蔽
-                tagColor: control.tagColors ? (control.tagColors[modelData] || "") : ""  // Per-tag tint 按标签着色
+                tagColor: control.tagColors ? (control.tagColors[modelData] || "") : ""  // Per-tag outline 按标签描边
             }
         }
 

@@ -64,12 +64,12 @@ Item {
                                 validateTag: (t) => t.length >= 2
                             }
                         }
-                        // 差异化能力: 按标签着色
+                        // Per-tag outline colors 按标签设置描边颜色
                         ComponentCard {
                             label: "tag_colors"
                             LineEdit {
                                 inputType: Enums.input.type_tag
-                                placeholderText: "彩色标签"
+                                placeholderText: "彩色描边标签"
                                 width: 280
                                 tags: ["紧急", "普通", "完成"]
                                 tagColors: ({

@@ -18,18 +18,14 @@ Rectangle {
     required property int tokenIndex
 
     // ==================== Public Props 公开属性 ====================
-    // Per-token tint override. Empty/transparent → keep default accent look. 着色覆盖,空则走默认强调色
+    // Per-token outline override. Empty/transparent → keep default accent border. 描边覆盖,空则走默认强调色边框
     // Only TagLineEdit passes this; ComboBoxMulti/Tree leave it unset (zero impact). 仅TagLineEdit传入,ComboBox不传零影响
-    property string bgColorOverride: ""
+    property string borderColorOverride: ""
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool _tinted: bgColorOverride !== "" && bgColorOverride !== "transparent"
-    // Foreground picked for contrast against the tint 文字色按对比度选黑/白
-    readonly property color _tintFg: _tinted
-        ? (Qt.color(bgColorOverride).hslLightness > 0.6
-            ? Enums.chipColors.textOnLight
-            : Enums.chipColors.textOnDark)
-        : Enums.accentColor
+    readonly property bool _outlined: borderColorOverride !== "" && borderColorOverride !== "transparent"
+    readonly property color _tokenBackgroundColor: _outlined ? Enums.transparent : Enums.stateColor.accentLight
+    readonly property color _tokenBorderColor: _outlined ? borderColorOverride : Enums.stateColor.accentBorder
 
     // ==================== Signals 信号 ====================
     signal removeClicked(int tokenIndex)
@@ -40,9 +36,9 @@ Rectangle {
 
     // Visual style 视觉样式
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    color: token._tinted ? token.bgColorOverride : Enums.stateColor.accentLight
+    color: token._tokenBackgroundColor
     border.width: Enums.border.thin
-    border.color: token._tinted ? Qt.darker(token.bgColorOverride, 1.2) : Enums.stateColor.accentBorder
+    border.color: token._tokenBorderColor
 
     // ==================== Content 内容 ====================
     Row {
@@ -54,7 +50,7 @@ Rectangle {
             id: tagText
             type: Enums.label.type_caption
             text: token.text
-            color: token._tintFg
+            color: Enums.accentColor
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -62,8 +58,8 @@ Rectangle {
         CloseButton {
             size: Enums.typography.body
             iconSizeValue: Enums.iconSize.tiny
-            normalIconColor: token._tintFg
-            hoverIconColor: token._tintFg
+            normalIconColor: Enums.accentColor
+            hoverIconColor: Enums.accentColor
             hoverBgColor: Enums.stateColor.chipCloseHover
             pressedBgColor: Enums.stateColor.chipClosePressed
             anchors.verticalCenter: parent.verticalCenter

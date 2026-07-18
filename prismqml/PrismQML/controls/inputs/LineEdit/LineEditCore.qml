@@ -39,7 +39,7 @@ InputCore {
     property bool allowCustomTags: true   // Allow custom (non-suggested) tags 允许自定义标签
     property var extraSeparators: []      // Extra separator chars for split/paste 额外分隔符
     property var validateTag: null        // Optional function(text)->bool 校验回调
-    property var tagColors: ({})          // Optional {tagText: color} tint map 按标签着色
+    property var tagColors: ({})          // Optional {tagText: color} outline map 按标签描边
     property var textInput: loader.item ? loader.item.textInput : null
 
     // ==================== Internal Props 内部属性 ====================

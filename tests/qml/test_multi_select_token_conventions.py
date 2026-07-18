@@ -11,7 +11,7 @@ from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
-from prismqml import Skin, Theme, register_types, setSkin, setTheme
+from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
 
 
@@ -35,8 +35,9 @@ import PrismQML
 
 Item {
     readonly property color expectedDefaultText: Enums.accentColor
-    readonly property color expectedLightText: "#000000"
-    readonly property color expectedDarkText: "#ffffff"
+    readonly property color expectedTokenBackground: Enums.stateColor.accentLight
+    readonly property color expectedOutlinedBackground: Enums.transparent
+    readonly property color expectedDefaultBorder: Enums.stateColor.accentBorder
 
     width: 720
     height: 180
@@ -64,15 +65,6 @@ Item {
         tags: ["Light token", "Dark token"]
         tagColors: ({"Light token": "#f5f5f5", "Dark token": "#d13438"})
     }
-}
-"""
-CONSTANTS_SOURCE = b"""
-import QtQuick
-import PrismQML
-
-QtObject {
-    readonly property color textOnLight: Enums.chipColors.textOnLight
-    readonly property color textOnDark: Enums.chipColors.textOnDark
 }
 """
 
@@ -135,8 +127,8 @@ def _tokens(root):
         child
         for child in _descendants(root)
         if child.metaObject().indexOfProperty("tokenIndex") >= 0
-        and child.metaObject().indexOfProperty("bgColorOverride") >= 0
-        and child.metaObject().indexOfProperty("_tintFg") >= 0
+        and child.metaObject().indexOfProperty("borderColorOverride") >= 0
+        and child.metaObject().indexOfProperty("_tokenBorderColor") >= 0
     ]
 
 
@@ -169,17 +161,18 @@ def _assert_token_foreground(token, expected: QColor) -> None:
         and child.metaObject().indexOfProperty("color") >= 0
     ]
     assert len(icons) == 1
-    assert token.property("_tintFg") == expected
     assert label.property("color") == expected
     assert close_button.property("normalIconColor") == expected
     assert close_button.property("hoverIconColor") == expected
     assert icons[0].property("color") == expected
 
 
-def _assert_tinted_token(token, override: str, expected: QColor) -> None:
-    assert token.property("_tinted")
-    assert token.property("bgColorOverride") == override
-    _assert_token_foreground(token, expected)
+def _assert_outlined_token(token, override: str, root) -> None:
+    assert token.property("_outlined")
+    assert token.property("borderColorOverride") == override
+    assert token.property("_tokenBorderColor") == QColor(override)
+    assert token.property("color") == root.property("expectedOutlinedBackground")
+    _assert_token_foreground(token, root.property("expectedDefaultText"))
 
 
 def _assert_default_parent(root, name: str) -> None:
@@ -188,8 +181,12 @@ def _assert_default_parent(root, name: str) -> None:
     tokens = _tokens(parent)
     assert len(tokens) == 1
     assert not parent.property("isOpen")
-    assert not tokens[0].property("_tinted")
-    assert tokens[0].property("bgColorOverride") == ""
+    assert not tokens[0].property("_outlined")
+    assert tokens[0].property("borderColorOverride") == ""
+    assert tokens[0].property("_tokenBorderColor") == root.property(
+        "expectedDefaultBorder"
+    )
+    assert tokens[0].property("color") == root.property("expectedTokenBackground")
     _assert_token_foreground(tokens[0], root.property("expectedDefaultText"))
 
 
@@ -205,12 +202,8 @@ def test_multi_select_token_public_parent_chains(qapp):
         assert tag_input is not None
         tags = {token.property("text"): token for token in _tokens(tag_input)}
         assert set(tags) == {"Light token", "Dark token"}
-        _assert_tinted_token(
-            tags["Light token"], "#f5f5f5", root.property("expectedLightText")
-        )
-        _assert_tinted_token(
-            tags["Dark token"], "#d13438", root.property("expectedDarkText")
-        )
+        _assert_outlined_token(tags["Light token"], "#f5f5f5", root)
+        _assert_outlined_token(tags["Dark token"], "#d13438", root)
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
@@ -221,36 +214,12 @@ def test_multi_select_token_public_parent_chains(qapp):
         _pump(1)
 
 
-def test_chip_text_tokens_stay_fixed_across_themes(qapp):
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    engine, warnings = _create_engine()
-    component = instance = None
-    try:
-        component, instance = _create(engine, CONSTANTS_SOURCE, SCENE_URL)
-        for skin in (Skin.FLUENT, Skin.NEOBRUTALISM):
-            for theme in (Theme.LIGHT, Theme.DARK):
-                setSkin(skin)
-                setTheme(theme)
-                _pump(1)
-                assert instance.property("textOnLight") == QColor("black")
-                assert instance.property("textOnDark") == QColor("white")
-        assert warnings == []
-        assert _new_visible_windows(windows_before) == []
-    finally:
-        setSkin(Skin.FLUENT)
-        setTheme(Theme.LIGHT)
-        if instance is not None:
-            instance.deleteLater()
-        del component
-        engine.deleteLater()
-        _pump(1)
-
-
-def test_multi_select_token_source_uses_chip_color_tokens():
+def test_multi_select_token_source_limits_tag_color_to_outline():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [item for item in violations if item.rule == "QML010"] == []
-    assert "Enums.chipColors.textOnLight" in source
-    assert "Enums.chipColors.textOnDark" in source
-    assert ".hslLightness > 0.6" in source
+    assert "property string borderColorOverride" in source
+    assert "color: token._tokenBackgroundColor" in source
+    assert "border.color: token._tokenBorderColor" in source
+    assert "_outlined ? Enums.transparent : Enums.stateColor.accentLight" in source

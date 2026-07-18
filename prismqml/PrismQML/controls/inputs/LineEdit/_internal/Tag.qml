@@ -18,12 +18,12 @@ MultiSelectToken {
     required property var tagControl   // Parent TagLineEdit 父控件
 
     // ==================== Public Props 公开属性 ====================
-    property string tagColor: ""       // Per-tag tint color, empty = default accent 按标签着色,空=默认强调色
+    property string tagColor: ""       // Per-tag outline color, empty = default accent border 按标签描边,空=默认强调色边框
 
     // Bind to MultiSelectToken 绑定到 MultiSelectToken
     text: modelData
     tokenIndex: index
-    bgColorOverride: tagColor          // Forward tint to token 透传着色
+    borderColorOverride: tagColor      // Forward outline to token 透传描边颜色
 
     // Handle token removal 处理标签删除
     onRemoveClicked: (idx) => {
