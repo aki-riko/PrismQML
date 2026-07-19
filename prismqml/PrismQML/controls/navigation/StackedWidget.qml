@@ -217,6 +217,15 @@ Item {
         })
     }
 
+    function _completePythonLazySwitch(targetIndex) {
+        if (targetIndex < 0 || targetIndex >= count || targetIndex !== currentIndex) {
+            return false
+        }
+        if (!animations.prepareEnter(targetIndex)) return false
+        _doEnterAnimation(targetIndex)
+        return true
+    }
+
     function _handleLazyLoadingComplete(targetIdx, prevIdx) {
         control._traceLazyStage("stacked.loading_complete.begin", targetIdx,
                                 "previous=" + prevIdx)
@@ -225,36 +234,9 @@ Item {
         // 否则打破外部 'currentIndex: window.currentIndex' 绑定)。
         control.previousIndex = control._displayIndex
         control._displayIndex = targetIdx
-
-        var newWidget = control.widget(targetIdx)
-        if (newWidget) {
-            newWidget.visible = true
-            switch (control.animationType) {
-                case Enums.animation.opacity:
-                    newWidget.opacity = 0
-                    break
-                case Enums.animation.popup:
-                    newWidget.opacity = 0
-                    newWidget.y = control.popUpOffset
-                    break
-                case Enums.animation.popdown:
-                    newWidget.opacity = 0
-                    newWidget.y = -control.popUpOffset
-                    break
-                case Enums.animation.zoom:
-                    newWidget.scale = 0
-                    newWidget.opacity = 1
-                    break
-                case Enums.animation.slide:
-                case Enums.animation.card:
-                    newWidget.x = control.width
-                    newWidget.opacity = 1
-                    break
-                default:
-                    newWidget.opacity = 0
-            }
+        if (animations.prepareEnter(targetIdx)) {
+            control._doEnterAnimation(targetIdx)
         }
-        control._doEnterAnimation(targetIdx)
         control.profileTime("lazyHelper loadingComplete done")
         control._traceLazyStage("stacked.loading_complete.done", targetIdx,
                                 "previous=" + prevIdx)

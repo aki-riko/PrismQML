@@ -64,6 +64,9 @@ WindowsCore {
         _pythonLoading = false
         var idx = _pythonPendingIndex
         _pythonPendingIndex = -1
+        if (stackedWidget && idx >= 0) {
+            stackedWidget._completePythonLazySwitch(idx)
+        }
         pythonPageReady(idx)
     }
 

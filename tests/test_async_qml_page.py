@@ -4,10 +4,23 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """AsyncQmlPage runtime regressions. AsyncQmlPage 运行时回归。"""
 
-from PySide6.QtCore import QObject, Property, QEventLoop, QTimer, Signal, Slot
-from PySide6.QtQml import QQmlApplicationEngine
+from types import SimpleNamespace
 
-from prismqml import AsyncQmlPage
+import shiboken6
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QObject,
+    Property,
+    QEventLoop,
+    QTimer,
+    Signal,
+    Slot,
+)
+from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQuick import QQuickItem
+
+from prismqml import AsyncQmlPage, Window, WindowType
 from prismqml.python.core.engine import EngineManager
 from prismqml.python.core.incubation import install_incubation_controller
 from prismqml.python.window import AsyncQmlPage as WindowAsyncQmlPage
@@ -40,10 +53,10 @@ def _pump_until(predicate, timeout_ms=3000):
     return predicate()
 
 
-def _write_page(path, *, gated=False):
+def _write_page(path, *, gated=False, ready_delay_ms=100):
     ready_property = "property bool prismqmlAsyncReady: false" if gated else ""
     ready_timer = (
-        "Timer { interval: 100; running: true; "
+        f"Timer {{ interval: {ready_delay_ms}; running: true; "
         "onTriggered: parent.prismqmlAsyncReady = true }"
         if gated
         else ""
@@ -61,6 +74,24 @@ Item {{
 """,
         encoding="utf-8",
     )
+
+
+def _plain_page():
+    item = QQuickItem()
+    item.setWidth(640)
+    item.setHeight(480)
+    return SimpleNamespace(_qml_item=item)
+
+
+def _dispose_window(window):
+    qml_window = window._window
+    if qml_window is not None and shiboken6.isValid(qml_window):
+        qml_window.setProperty("visible", False)
+        qml_window.deleteLater()
+        QCoreApplication.sendPostedEvents(qml_window, QEvent.DeferredDelete)
+    window._window = None
+    QCoreApplication.processEvents()
+    EngineManager.reset()
 
 
 def test_async_qml_page_injects_backend_before_completed(qapp, tmp_path):
@@ -136,3 +167,53 @@ def test_async_qml_page_reports_real_loader_failure(qapp, tmp_path):
 
     controller._timer.stop()
     EngineManager.reset()
+
+
+def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_path):
+    """Python 懒加载完成后必须播放目标页入场动画，而不是直接显现。"""
+    page_path = tmp_path / "DelayedTargetPage.qml"
+    _write_page(page_path, gated=True, ready_delay_ms=500)
+
+    class IsolatedWindow(Window):
+        _GENERATED_QML_CACHE_DIR = tmp_path / "window-qml"
+        _GENERATED_SPLASH_QML_CACHE_DIR = tmp_path / "splash-qml"
+
+    window = IsolatedWindow(window_type=WindowType.BAR)
+    window.setSplashEnabled(False)
+    window.setLazyLoading(True)
+    window.addPage(_plain_page, "Home", "Home")
+    window.addPage(lambda: AsyncQmlPage(page_path), "Library", "Library")
+
+    try:
+        window.show()
+        assert _pump_until(
+            lambda: window._window.property("stackedWidget") is not None
+        )
+        stack = window._window.property("stackedWidget")
+        loading_seen = False
+        animation_after_loading = []
+
+        def on_loading_changed():
+            nonlocal loading_seen
+            loading_seen = loading_seen or bool(
+                window._window.property("_pythonLoading")
+            )
+
+        def on_animation_started():
+            animation_after_loading.append(
+                loading_seen and not window._window.property("_pythonLoading")
+            )
+
+        window._window._pythonLoadingChanged.connect(on_loading_changed)
+        stack.animationStarted.connect(on_animation_started)
+
+        window._window.setProperty("currentIndex", 1)
+        window._window.currentPageChanged.emit(1)
+
+        assert _pump_until(
+            lambda: 1 in window._pages and window._pages[1].is_ready
+        )
+        assert loading_seen
+        assert any(animation_after_loading), animation_after_loading
+    finally:
+        _dispose_window(window)
