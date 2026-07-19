@@ -124,8 +124,13 @@ def test_qt_warning_includes_source_context_and_replays_breadcrumbs_once(
 
     handler(QtMsgType.QtDebugMsg, context, breadcrumb)
     handler(QtMsgType.QtWarningMsg, context, " \n\t")
+    handler(
+        QtMsgType.QtWarningMsg,
+        context,
+        "qrc:/diagnostics/Page.qml:77:9: ",
+    )
     handler(QtMsgType.QtWarningMsg, context, "Unable to assign [undefined] to QColor")
-    handler(QtMsgType.QtWarningMsg, context, "second warning")
+    handler(QtMsgType.QtWarningMsg, context, "qrc:/diagnostics/Page.qml:77:9: second warning")
 
     warning_records = [
         record for record in project_log_records if record.levelno == logging.WARNING
@@ -137,6 +142,7 @@ def test_qt_warning_includes_source_context_and_replays_breadcrumbs_once(
     assert "file=qrc:/diagnostics/Page.qml" in rendered_warning
     assert "line=77" in rendered_warning
     assert "function=onCurrentIndexChanged" in rendered_warning
+    assert "second warning" in warning_records[1].getMessage()
 
     replay_records = [
         record

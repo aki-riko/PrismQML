@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """DataWidget shadow fallback lifecycle regressions. 数据组件阴影兜底生命周期回归。"""
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -163,8 +164,8 @@ def test_data_widget_shadow_survives_metrics_teardown_without_qml_warnings(qapp)
     assert failures == []
 
 
-def test_data_widget_default_shadow_process_exit_has_no_qcolor_warning():
-    """Natural process exit must not feed an expired shadow color into QColor. 自然退出不得把失效阴影色传给 QColor。"""
+def test_data_widget_default_shadow_process_exit_has_no_teardown_warning():
+    """Natural process exit must not emit shadow teardown warnings. 自然退出不得产生阴影销毁警告。"""
     result = subprocess.run(
         [sys.executable, "-c", _PROCESS_EXIT_PROBE],
         cwd=_ROOT,
@@ -178,3 +179,7 @@ def test_data_widget_default_shadow_process_exit_has_no_qcolor_warning():
 
     assert result.returncode == 0, output
     assert "Unable to assign [undefined] to QColor" not in output
+    assert not re.search(
+        r"DataWidgetCore\.qml:\d+:\d+:\s+\[QtContext\]",
+        output,
+    ), output

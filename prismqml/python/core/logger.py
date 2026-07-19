@@ -392,6 +392,21 @@ def _qt_message_tag(context) -> str:
     return category_tags.get(category, f"QML:{category.upper()}")
 
 
+def _is_qt_source_location_only_message(context, message: str) -> bool:
+    """Detect a QML warning that contains only its source location. 识别只含源码位置的 QML 警告。"""
+    source_file = getattr(context, "file", None)
+    source_line = getattr(context, "line", 0) or 0
+    if not source_file or not source_line:
+        return False
+
+    prefix = f"{source_file}:{source_line}:"
+    if not message.startswith(prefix):
+        return False
+
+    column, separator, body = message[len(prefix) :].partition(":")
+    return bool(separator) and column.isdigit() and not body.strip()
+
+
 def _create_qt_message_handler(qt_msg_type):
     """Create the Qt-to-project logger callback. 创建 Qt 到项目日志的回调。"""
     level_map = {
@@ -411,6 +426,8 @@ def _create_qt_message_handler(qt_msg_type):
             return
         stripped_message = message.strip()
         if not stripped_message:
+            return
+        if _is_qt_source_location_only_message(context, stripped_message):
             return
         level = level_map.get(mode, logging.INFO)
         if stripped_message.startswith(_QT_BREADCRUMB_PREFIXES):
