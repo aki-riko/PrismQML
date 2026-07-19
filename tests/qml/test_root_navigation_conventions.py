@@ -129,7 +129,7 @@ Window {
     }
 }
 """
-LONG_TITLE_SOURCE = b"""
+LONG_TITLE_SOURCE = """
 import QtQuick
 import QtQuick.Window
 import PrismQML
@@ -139,10 +139,10 @@ Window {
     readonly property int noDelay: Enums.duration.none
     readonly property int navTitleMarqueeSpeed: Enums.motion.navigationTitleMarqueeSpeed
     readonly property int marqueeGap: Enums.spacing.l
-    readonly property int safeTextInset: Enums.spacing.l
+    readonly property int safeTextInset: Enums.spacing.xs
 
-    width: 120
-    height: 100
+    width: 200
+    height: 220
     visible: true
 
     NavigationBarItem {
@@ -153,8 +153,28 @@ Window {
         text: "Prism Design"
         icon: "Home"
     }
+
+    NavigationBarItem {
+        id: fiveCharItem
+        objectName: "fiveCharItem"
+        y: navItem.height
+        width: implicitWidth
+        height: implicitHeight
+        text: "悬浮窗工具"
+        icon: "Home"
+    }
+
+    NavigationBarItem {
+        id: sixCharItem
+        objectName: "sixCharItem"
+        y: navItem.height + fiveCharItem.height
+        width: implicitWidth
+        height: implicitHeight
+        text: "辅助工具中心"
+        icon: "Home"
+    }
 }
-"""
+""".encode("utf-8")
 
 
 def _pump(milliseconds: int = 30) -> None:
@@ -492,9 +512,19 @@ def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
         marquee_content = _object_named(marquee, "marqueeContent")
         marquee_text = _object_named(marquee, "marqueeText")
         marquee_text_copy = _object_named(marquee, "marqueeTextCopy")
+        five_char_item = window.findChild(QQuickItem, "fiveCharItem")
+        six_char_item = window.findChild(QQuickItem, "sixCharItem")
+        assert five_char_item is not None
+        assert six_char_item is not None
+        five_char_label = _direct_text_item(five_char_item, "悬浮窗工具")
+        six_char_label = _direct_text_item(six_char_item, "辅助工具中心")
         label_left = label.mapToItem(nav_item, 0, 0).x()
         label_right = label_left + label.width()
 
+        assert five_char_label.implicitWidth() <= five_char_label.width()
+        assert five_char_item.property("_labelOverflowing") is False
+        assert six_char_label.implicitWidth() > six_char_label.width()
+        assert six_char_item.property("_labelOverflowing") is True
         assert label_left >= window.property("safeTextInset")
         assert label_right <= nav_item.width() - window.property("safeTextInset")
         assert label.implicitWidth() > label.width()
