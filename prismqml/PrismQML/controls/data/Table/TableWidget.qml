@@ -60,6 +60,7 @@ DataWidgetCore {
     // 因为 QAbstractListModel.rowCount() 是函数调用,QML binding 不会自动 invalidate
     property int rowCount: _calcRowCount()
     readonly property int columnCount: columns.length
+    readonly property real _columnViewportWidth: listView.width > 0 ? listView.width : root.width
 
     // Context menu 右键菜单
     property bool contextMenuEnabled: false
@@ -73,7 +74,7 @@ DataWidgetCore {
     // 计算规则 (按优先级):
     //   1) column.autoWidth === true 且提供 measureWidth(rowData) → 扫前 N 行取 max,
     //      clamp 到 [minWidth, maxWidth]
-    //   2) 否则按 column.width: < 1 视为 root.width 比例, >= 1 视为绝对像素
+    //   2) 否则按 column.width: < 1 视为内部视口宽度比例, >= 1 视为绝对像素
     //   3) column.width 缺省时 fallback 0.15
     // delegate / cellItem / contentTotalWidth / dblclick hit-test 全部从这里取,
     // 不再各自重算 (避免漂移)。
@@ -118,8 +119,7 @@ DataWidgetCore {
         if (allAuto && root.width > 0) {
             var sum = 0
             for (var s = 0; s < widths.length; s++) sum += widths[s]
-            // 给 listView 自身的 contentMargin / scrollbar 等留 ~20px 余量
-            var avail = root.width - 20
+            var avail = root._columnViewportWidth
             if (sum > 0 && sum < avail) {
                 var scale = avail / sum
                 for (var t = 0; t < widths.length; t++) widths[t] = Math.floor(widths[t] * scale)
@@ -193,7 +193,7 @@ DataWidgetCore {
         }
         // 静态宽度: < 1 比例, >= 1 像素, 缺省 0.15
         var w = col.width || 0.15
-        return w < 1 ? root.width * w : w
+        return w < 1 ? root._columnViewportWidth * w : w
     }
 
     function _rowCountForMeasure() {
@@ -536,6 +536,14 @@ DataWidgetCore {
         TableInternal.TableHeader {
             table: root
         }
+    }
+
+    // Recompute after internal card/layout margins change the actual viewport width.
+    // 内部卡片或布局边距改变实际视口宽度后重新计算列宽。
+    Connections {
+        function onWidthChanged() { root._recomputeColumnWidths() }
+
+        target: root.listView
     }
 
     // 仅当 tableData 是真正的 QAbstractListModel/QObject (有 modelReset 等 signal) 才订阅;
