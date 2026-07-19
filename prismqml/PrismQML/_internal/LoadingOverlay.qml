@@ -23,35 +23,12 @@ Rectangle {
         anchors.centerIn: parent
         spacing: Enums.spacing.xl
         
-        Item {
+        ProgressRing {
             width: Enums.controlSize.navBarHeight
             height: Enums.controlSize.navBarHeight
             anchors.horizontalCenter: parent.horizontalCenter
-            
-            RotationAnimator on rotation {
-                from: 0; to: 360
-                duration: Enums.duration.scroll
-                loops: Animation.Infinite
-                running: root.loading
-            }
-            
-            Canvas {
-                anchors.fill: parent
-                onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.clearRect(0, 0, width, height)
-                    var centerX = width / 2, centerY = height / 2
-                    var sw = Enums.controlSize.progressStrokeWidth
-                    var r = Math.min(centerX, centerY) - sw / 2
-                    ctx.strokeStyle = Enums.accentColor
-                    ctx.lineWidth = sw
-                    ctx.lineCap = "round"
-                    ctx.beginPath()
-                    ctx.arc(centerX, centerY, r, -Math.PI / 2, 0, false)
-                    ctx.stroke()
-                }
-                Component.onCompleted: requestPaint()
-            }
+            indeterminate: root.loading
+            strokeWidth: Enums.controlSize.progressStrokeWidth
         }
         
         Label {

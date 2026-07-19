@@ -40,23 +40,32 @@ Item {
         spacing: Enums.spacing.xl
         
         // Icon 图标
-        Rectangle {
+        Item {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: Enums.controlSize.resultStateIconSize; height: Enums.controlSize.resultStateIconSize; radius: width / 2  // Fixed icon container 固定图标容器(圆形)
-            color: Enums.stateColor.accentSubtle
-            
-            Icon {
-                anchors.centerIn: parent
-                iconSize: Enums.controlSize.flyoutIconSize
+            width: Enums.controlSize.resultStateIconSize
+            height: Enums.controlSize.resultStateIconSize
+
+            // Standard loading ring 标准加载环
+            ProgressRing {
+                anchors.fill: parent
+                visible: state === "loading"
+                indeterminate: visible
                 color: stateColor
-                icon: stateIconName
             }
             
-            RotationAnimation on rotation {
-                running: state === "loading"
-                from: 0; to: 360
-                duration: Enums.duration.dialog * 3.75
-                loops: Animation.Infinite
+            // Result icon container 结果图标容器
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: Enums.stateColor.accentSubtle
+                visible: state !== "loading"
+
+                Icon {
+                    anchors.centerIn: parent
+                    iconSize: Enums.controlSize.flyoutIconSize
+                    color: stateColor
+                    icon: stateIconName
+                }
             }
         }
         

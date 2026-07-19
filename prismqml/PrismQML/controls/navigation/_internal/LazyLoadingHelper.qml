@@ -212,7 +212,7 @@ Item {
     }
 
     // ==================== Content 内容 ====================
-    // Custom loading overlay with render thread animation, using RotationAnimator to avoid freeze during Loader instantiation. 自定义加载覆盖层（渲染线程动画），使用 RotationAnimator 避免 Loader 实例化时卡顿。
+    // Standard loading overlay using the shared ProgressRing 标准加载遮罩，复用共享 ProgressRing
     Item {
         id: loadingOverlay
 
@@ -235,48 +235,13 @@ Item {
             anchors.centerIn: parent
             spacing: Enums.spacing.xl
             
-            // Render thread progress ring 渲染线程进度环
-            Item {
-                id: ringContainer
+            // Standard progress ring 标准进度环
+            ProgressRing {
                 width: Enums.controlSize.navBarHeight
                 height: Enums.controlSize.navBarHeight
                 anchors.horizontalCenter: parent.horizontalCenter
-                
-                RotationAnimator on rotation {
-                    from: 0
-                    to: 360
-                    duration: Enums.duration.scroll
-                    loops: Animation.Infinite
-                    running: loadingOverlay.running
-                }
-                
-                Canvas {
-                    id: ringCanvas
-                    anchors.fill: parent
-                    
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        
-                        var centerX = width / 2
-                        var centerY = height / 2
-                        var strokeWidth = Enums.controlSize.progressStrokeWidth
-                        var radius = Math.min(centerX, centerY) - strokeWidth / 2
-                        
-                        ctx.strokeStyle = Enums.accentColor
-                        ctx.lineWidth = strokeWidth
-                        ctx.lineCap = "round"
-                        
-                        var startRad = -Math.PI / 2
-                        var endRad = startRad + Math.PI / 2
-                        
-                        ctx.beginPath()
-                        ctx.arc(centerX, centerY, radius, startRad, endRad, false)
-                        ctx.stroke()
-                    }
-                    
-                    Component.onCompleted: requestPaint()
-                }
+                indeterminate: loadingOverlay.running
+                strokeWidth: Enums.controlSize.progressStrokeWidth
             }
             
             // Loading text 加载文字

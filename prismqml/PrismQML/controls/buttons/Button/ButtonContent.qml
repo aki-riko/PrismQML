@@ -77,42 +77,15 @@ Row {
         active: feature === Enums.button.feature_progress_ring
         anchors.verticalCenter: parent.verticalCenter
 
-        sourceComponent: Item {
+        sourceComponent: ProgressRing {
             anchors.fill: parent
-
-            Rectangle {
-                anchors.fill: parent
-                radius: width / 2
-                color: Enums.transparent
-                border.width: Enums.border.normal
-                border.color: content._ringBorderColor
-            }
-
-            Canvas {
-                id: progressCanvas
-
-                property color ringColor: content._ringColor
-
-                anchors.fill: parent
-                onRingColorChanged: requestPaint()
-
-                onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.reset()
-                    ctx.strokeStyle = ringColor
-                    ctx.lineWidth = 2
-                    ctx.lineCap = "round"
-                    ctx.beginPath()
-                    ctx.arc(width/2, height/2, width/2 - 2, -Math.PI/2, -Math.PI/2 + content.progress * 2 * Math.PI, false)
-                    ctx.stroke()
-                }
-            }
-
-            Connections {
-                function onProgressChanged() { progressCanvas.requestPaint() }
-
-                target: content
-            }
+            from: 0
+            to: 1
+            value: content.progress
+            strokeWidth: Enums.border.normal
+            color: content._ringColor
+            trackColorLight: content._ringBorderColor
+            trackColorDark: content._ringBorderColor
         }
     }
 

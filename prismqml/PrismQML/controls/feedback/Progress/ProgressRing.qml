@@ -17,8 +17,6 @@ Item {
     property bool paused: false
     property int strokeWidth: Enums.controlSize.progressRingStroke
     readonly property real position: (value - from) / (to - from)
-    readonly property color trackColor: Enums.stateColor.border
-    
     // Custom color props (per-theme) 颜色自定义属性（分主题）
     property color color: Enums.accentColor
     property color fillColorLight: color
@@ -27,6 +25,8 @@ Item {
     property color trackColorDark: Enums.isPrismDesign ? Enums.stateColor.track : Enums.stateColor.whiteOverlay
     readonly property color progressColor: Enums.isDark ? fillColorDark : fillColorLight
     readonly property color backgroundColor: Enums.isDark ? trackColorDark : trackColorLight
+    readonly property color trackColor: backgroundColor
+    property alias spinDuration: indeterminateArc.spinDuration
     
     // ==================== Public Methods 公开方法 ====================
     function setRange(min, max) { from = min; to = max }
@@ -78,6 +78,7 @@ Item {
     
     // Indeterminate animation 不确定进度动画(伸缩弧脉动)
     IndeterminateArcImpl {
+        id: indeterminateArc
         anchors.fill: parent
         visible: indeterminate
         running: indeterminate && !paused

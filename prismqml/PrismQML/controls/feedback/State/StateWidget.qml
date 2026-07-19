@@ -99,7 +99,7 @@ Item {
                 anchors.fill: parent
                 radius: width / 2
                 color: Enums.stateColor.accentSubtle
-                visible: _hasCircleIcon
+                visible: _hasCircleIcon && severity !== "loading"
                 
                 Icon {
                     anchors.centerIn: parent
@@ -108,12 +108,14 @@ Item {
                     icon: control.icon || _defaultIcon
                 }
                 
-                RotationAnimation on rotation {
-                    running: severity === "loading"
-                    from: 0; to: 360
-                    duration: Enums.duration.dialog * 3.75
-                    loops: Animation.Infinite
-                }
+            }
+
+            // Standard loading ring 标准加载环
+            ProgressRing {
+                anchors.fill: parent
+                visible: _isResultType && severity === "loading"
+                indeterminate: visible
+                color: _stateColor
             }
             
             // Normal icon for other types 其他类型的普通图标

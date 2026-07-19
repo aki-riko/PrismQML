@@ -45,9 +45,6 @@ Rectangle {
     readonly property int _progressRingSize: Enums.splashScreenMetrics.progressRingSize
     readonly property int _progressRingBorderWidth: Enums.splashScreenMetrics.progressRingBorderWidth
     readonly property real _progressTrackOpacity: Enums.splashScreenMetrics.progressTrackOpacity
-    readonly property int _progressDotSize: Enums.splashScreenMetrics.progressDotSize
-    readonly property int _progressDotRadius: Enums.splashScreenMetrics.progressDotRadius
-    readonly property int _progressDotTopMargin: Enums.splashScreenMetrics.progressDotTopMargin
     readonly property real _iconShadowBlur: Enums.splashScreenMetrics.iconShadowBlur
     readonly property int _iconShadowOffset: Enums.splashScreenMetrics.iconShadowOffset
     readonly property real _contentEnterScale: Enums.splashScreenMetrics.contentEnterScale
@@ -236,48 +233,24 @@ Rectangle {
             spacing: Enums.spacing.m
             visible: control.showProgress || control.subtitle !== ""
             
-            // Progress Ring 进度环
-            Item {
+            // Standard progress ring 标准进度环
+            ProgressRing {
+                objectName: "splashProgressRing"
                 width: control._progressRingSize
                 height: control._progressRingSize
                 visible: control.showProgress
                 anchors.verticalCenter: parent.verticalCenter
-                
-                // Spinning ring 旋转环
-                Rectangle {
-                    id: progressRing
-                    anchors.fill: parent
-                    radius: width / 2
-                    color: Enums.transparent
-                    border.width: control._progressRingBorderWidth
-                    border.color: control._progressColor
-                    opacity: control._progressTrackOpacity
-                }
-                
-                // Arc indicator 弧形指示器
-                Rectangle {
-                    width: parent.width
-                    height: parent.height
-                    radius: width / 2
-                    color: Enums.transparent
-                    
-                    Rectangle {
-                        width: control._progressDotSize
-                        height: control._progressDotSize
-                        radius: control._progressDotRadius
-                        color: control._progressColor
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: parent.top
-                        anchors.topMargin: control._progressDotTopMargin
-                    }
-                    
-                    RotationAnimation on rotation {
-                        from: 0
-                        to: 360
-                        duration: Enums.duration.splashProgressSpin
-                        loops: Animation.Infinite
-                    }
-                }
+                indeterminate: true
+                paused: !control.visible || !control.showProgress
+                strokeWidth: control._progressRingBorderWidth
+                spinDuration: Enums.duration.splashProgressSpin
+                color: control._progressColor
+                trackColorLight: Qt.rgba(
+                    control._progressColor.r,
+                    control._progressColor.g,
+                    control._progressColor.b,
+                    control._progressTrackOpacity)
+                trackColorDark: trackColorLight
             }
             
             // Subtitle 副标题

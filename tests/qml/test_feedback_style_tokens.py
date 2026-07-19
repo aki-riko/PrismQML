@@ -13,7 +13,6 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 
 from prismqml import register_types
 
-
 ROOT = Path(__file__).resolve().parents[2]
 TOAST_SOURCE = (
     ROOT
@@ -148,31 +147,11 @@ def _toast_targets(
     return container, color_bar
 
 
-def _splash_targets(
-    splash: QQuickItem, icon_xl: int, radius_tiny: float
-) -> tuple[QQuickItem, QQuickItem]:
-    items = list(_walk_visual_tree(splash))
-    indicator = _find_unique(
-        items,
-        lambda item: item.metaObject().className() == "QQuickRectangle"
-        and item.width() == pytest.approx(6)
-        and item.height() == pytest.approx(6)
-        and item.property("radius") == pytest.approx(radius_tiny),
-        "splash arc indicator",
-    )
-    arc_layer = indicator.parentItem()
-    progress_container = arc_layer.parentItem() if arc_layer is not None else None
-    assert isinstance(progress_container, QQuickItem)
-    progress_ring = _find_unique(
-        progress_container.childItems(),
-        lambda item: item is not arc_layer
-        and item.width() == pytest.approx(icon_xl)
-        and item.height() == pytest.approx(icon_xl)
-        and item.property("radius") == pytest.approx(icon_xl / 2)
-        and item.opacity() == pytest.approx(0.3),
-        "splash progress ring",
-    )
-    return progress_ring, indicator
+def _splash_progress_ring(splash: QQuickItem) -> QQuickItem:
+    progress_ring = splash.findChild(QQuickItem, "splashProgressRing")
+    assert progress_ring is not None
+    assert progress_ring.metaObject().className().startswith("ProgressRing_")
+    return progress_ring
 
 
 def _splash_effect_component(splash: QQuickItem, icon_size: int) -> QQmlComponent:
@@ -208,12 +187,10 @@ def _style_metrics(root: QQuickItem) -> dict[str, float]:
         "spacing_l": root.property("spacingL"),
         "card_elevate": root.property("cardElevate"),
         "radius_large": root.property("radiusLarge"),
-        "radius_tiny": root.property("radiusTiny"),
         "border_normal": root.property("borderNormal"),
-        "spacing_micro": root.property("spacingMicro"),
         "icon_xl": root.property("iconXl"),
     }
-    assert tuple(metrics.values()) == (8, 12, 3, 8, 2, 2, 1, 20)
+    assert tuple(metrics.values()) == (8, 12, 3, 8, 2, 20)
     return metrics
 
 
@@ -231,12 +208,11 @@ def _assert_toast_geometry(toast: QQuickItem, metrics: dict[str, float]) -> None
 
 
 def _assert_splash_geometry(splash: QQuickItem, metrics: dict[str, float]) -> None:
-    progress_ring, indicator = _splash_targets(
-        splash, metrics["icon_xl"], metrics["radius_tiny"]
-    )
-    assert _read(progress_ring, "border.width") == metrics["border_normal"]
-    assert _read(indicator, "anchors.topMargin") == -metrics["spacing_micro"]
-    assert indicator.y() == pytest.approx(-metrics["spacing_micro"])
+    progress_ring = _splash_progress_ring(splash)
+    assert progress_ring.width() == pytest.approx(metrics["icon_xl"])
+    assert progress_ring.height() == pytest.approx(metrics["icon_xl"])
+    assert progress_ring.property("strokeWidth") == metrics["border_normal"]
+    assert progress_ring.property("indeterminate") is True
 
 
 def test_feedback_metrics_preserve_runtime_geometry(qapp):
@@ -277,9 +253,7 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
             animation
             for animation in animations
             if animation.property("property") == "scale"
-            and {
-                (animation.property("from"), animation.property("to"))
-            }
+            and {(animation.property("from"), animation.property("to"))}
             <= {(1.0, 1.03), (1.03, 1.0)}
         ]
         assert len(breathe_animations) == 2
@@ -287,20 +261,12 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
             (animation.property("from"), animation.property("to"))
             for animation in breathe_animations
         } == {(1.0, 1.03), (1.03, 1.0)}
-        assert {
-            animation.property("duration") for animation in breathe_animations
-        } == {breathe_duration}
+        assert {animation.property("duration") for animation in breathe_animations} == {
+            breathe_duration
+        }
 
-        spin_animations = [
-            animation
-            for animation in animations
-            if animation.metaObject().className() == "QQuickRotationAnimation"
-            and animation.property("from") == pytest.approx(0)
-            and animation.property("to") == pytest.approx(360)
-            and animation.property("loops") == -1
-        ]
-        assert len(spin_animations) == 1
-        assert spin_animations[0].property("duration") == spin_duration
+        progress_ring = _splash_progress_ring(splash)
+        assert progress_ring.property("spinDuration") == spin_duration
 
         effect_component = _splash_effect_component(
             splash, root.property("splashIconSize")
@@ -326,8 +292,7 @@ def test_feedback_sources_use_shared_style_tokens():
     splash_source = SPLASH_SOURCE.read_text(encoding="utf-8")
 
     assert (
-        "anchors.topMargin: Enums.spacing.m + Enums.spacing.cardElevate"
-        in toast_source
+        "anchors.topMargin: Enums.spacing.m + Enums.spacing.cardElevate" in toast_source
     )
     assert "anchors.topMargin: -Enums.spacing.cardElevate" in toast_source
     assert "Enums.spacing.m + 3" not in toast_source
@@ -335,22 +300,17 @@ def test_feedback_sources_use_shared_style_tokens():
 
     assert (
         "readonly property int _progressRingBorderWidth: "
-        "Enums.splashScreenMetrics.progressRingBorderWidth"
-        in splash_source
+        "Enums.splashScreenMetrics.progressRingBorderWidth" in splash_source
     )
-    assert "border.width: control._progressRingBorderWidth" in splash_source
-    assert (
-        "readonly property int _progressDotTopMargin: "
-        "Enums.splashScreenMetrics.progressDotTopMargin"
-        in splash_source
-    )
-    assert "anchors.topMargin: control._progressDotTopMargin" in splash_source
+    assert "ProgressRing {" in splash_source
+    assert "strokeWidth: control._progressRingBorderWidth" in splash_source
     assert "duration: Enums.duration.splashBreathe" in splash_source
-    assert "duration: Enums.duration.splashProgressSpin" in splash_source
+    assert "spinDuration: Enums.duration.splashProgressSpin" in splash_source
     assert "shadowBlur: Enums.shadow.splashIcon.blurNormalized" in splash_source
     assert "shadowVerticalOffset: Enums.shadow.splashIcon.offset" in splash_source
     assert "border.width: 2" not in splash_source
-    assert "anchors.topMargin: -1" not in splash_source
+    assert "RotationAnimation on rotation" not in splash_source
+    assert "Canvas {" not in splash_source
     assert "duration: 1200" not in splash_source
     assert "duration: 1000" not in splash_source
     assert "shadowBlur: 0.8" not in splash_source

@@ -20,8 +20,8 @@ Item {
     required property string text
     
     readonly property real position: (to > from) ? (value - from) / (to - from) : 0
-    readonly property color progressColor: Enums.accentColor
-    readonly property color trackColor: Enums.stateColor.border
+    readonly property color progressColor: progressRing.progressColor
+    readonly property color trackColor: progressRing.trackColor
     
     // ==================== Internal Props 内部属性 ====================
     // Viewport detection 可视区域检测
@@ -80,49 +80,15 @@ Item {
     onVisibleChanged: _updateViewport()
     onYChanged: if (_flickableAncestor) Qt.callLater(_updateViewport)
     
-    // Track ring 轨道环
-    Canvas {
-        id: trackCanvas
+    // Standard progress ring 标准进度环
+    ProgressRing {
+        id: progressRing
         anchors.fill: parent
-        visible: !control.indeterminate
-        onPaint: {
-            var ctx = getContext("2d"); ctx.reset()
-            var cx = width / 2, cy = height / 2, r = Math.min(cx, cy) - control.strokeWidth / 2
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2)
-            ctx.strokeStyle = control.trackColor; ctx.lineWidth = control.strokeWidth; ctx.stroke()
-        }
-        onWidthChanged: requestPaint()
-        onHeightChanged: requestPaint()
-        Component.onCompleted: requestPaint()
-        Connections { target: control; function onTrackColorChanged() { trackCanvas.requestPaint() } }
-    }
-    
-    // Progress ring 进度环
-    Canvas {
-        id: progressCanvas
-        anchors.fill: parent; rotation: -90; visible: !control.indeterminate
-        onPaint: {
-            var ctx = getContext("2d"); ctx.reset()
-            var cx = width / 2, cy = height / 2, r = Math.min(cx, cy) - control.strokeWidth / 2
-            if (control.position > 0) {
-                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2 * control.position)
-                ctx.strokeStyle = control.progressColor; ctx.lineCap = "round"; ctx.lineWidth = control.strokeWidth; ctx.stroke()
-            }
-        }
-        onWidthChanged: requestPaint()
-        onHeightChanged: requestPaint()
-        Component.onCompleted: requestPaint()
-        Connections { target: control; function onValueChanged() { progressCanvas.requestPaint() } }
-        Connections { target: control; function onPositionChanged() { progressCanvas.requestPaint() } }
-        Connections { target: control; function onProgressColorChanged() { progressCanvas.requestPaint() } }
-    }
-    
-    // Indeterminate ring 不确定进度环(伸缩弧脉动)
-    IndeterminateArcImpl {
-        anchors.fill: parent
-        visible: control.indeterminate
-        running: control.indeterminate && control.running && control.visible && control._isInViewport
-        color: control.progressColor
+        value: control.value
+        from: control.from
+        to: control.to
+        indeterminate: control.indeterminate
+        paused: !control.running || !control.visible || !control._isInViewport
         strokeWidth: control.strokeWidth
     }
     
