@@ -11,7 +11,7 @@ from pathlib import Path
 import time
 
 import pytest
-from PySide6.QtCore import QObject, QPointF, QUrl
+from PySide6.QtCore import QObject, QPointF, QUrl, Slot
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -22,9 +22,9 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 REAL_EXPORT_PATH = (
-    r"C:\Users\Kotori\AppData\Roaming\Kaleidos\recordings\clip_20260719_224354.mp4"
+    r"C:\Users\Kotori\AppData\Roaming\Kaleidos\recordings\clip_20260720_001426.mp4"
 )
-REAL_EXPORT_MESSAGE = f"00:14\n{REAL_EXPORT_PATH}"
+REAL_EXPORT_MESSAGE = f"00:24\n{REAL_EXPORT_PATH}"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "desktop-notification-geometry.qml")
 )
@@ -202,10 +202,28 @@ def _wait_until(predicate, timeout_ms: int = 1500) -> None:
     assert predicate()
 
 
-def _create_scene() -> tuple[QQmlApplicationEngine, QQmlComponent, QQuickWindow]:
+class _FakeWindowHelper(QObject):
+    """Expose a deterministic work area to QML without relying on the host taskbar."""
+
+    def __init__(self, geometry: dict[str, int], parent: QObject) -> None:
+        super().__init__(parent)
+        self._geometry = geometry
+
+    @Slot(int, int, result="QVariantMap")
+    def availableScreenGeometryAt(self, _x: int, _y: int) -> dict[str, int]:
+        return dict(self._geometry)
+
+
+def _create_scene(
+    available_geometry: dict[str, int] | None = None,
+) -> tuple[QQmlApplicationEngine, QQmlComponent, QQuickWindow]:
     engine = QQmlApplicationEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    if available_geometry is not None:
+        helper = _FakeWindowHelper(available_geometry, engine)
+        engine.rootContext().setContextProperty("WindowHelper", helper)
+        engine._test_window_helper = helper
     component = QQmlComponent(engine)
     component.setData(SCENE_SOURCE, SCENE_URL)
     _wait_until(lambda: component.status() != QQmlComponent.Status.Loading)
@@ -263,6 +281,34 @@ def test_real_export_toast_reanchors_after_late_custom_content(qapp):
         assert toast.property("message") == REAL_EXPORT_MESSAGE
         assert actual_bottom == pytest.approx(expected_bottom, abs=1)
         assert actual_bottom <= geometry.y() + geometry.height()
+    finally:
+        _dispose(engine, component, root)
+
+
+def test_desktop_toast_uses_native_available_geometry_provider(qapp):
+    """QML Screen lacks availableGeometry, so the host helper must define the work area."""
+    screen_geometry = QGuiApplication.primaryScreen().geometry()
+    work_area = {
+        "x": screen_geometry.x() + 17,
+        "y": screen_geometry.y() + 23,
+        "width": screen_geometry.width() - 41,
+        "height": screen_geometry.height() - 95,
+    }
+    engine, component, root = _create_scene(work_area)
+    try:
+        root.createConfiguredExportToast()
+        toast = _toast(root)
+        overlay = _overlay(toast)
+        _wait_until(
+            lambda: toast.property("hasCustomContent") is True and overlay.isVisible()
+        )
+        QTest.qWait(400)
+
+        margin = root.property("screenMargin")
+        expected_right = work_area["x"] + work_area["width"] - margin
+        expected_bottom = work_area["y"] + work_area["height"] - margin
+        assert overlay.x() + overlay.width() == pytest.approx(expected_right, abs=1)
+        assert overlay.y() + overlay.height() == pytest.approx(expected_bottom, abs=1)
     finally:
         _dispose(engine, component, root)
 

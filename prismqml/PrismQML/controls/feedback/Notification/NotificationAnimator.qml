@@ -123,7 +123,11 @@ QtObject {
         ignoreUnknownSignals: true
     }
     property Connections _screenConnections: Connections {
-        function onAvailableGeometryChanged() { animator._schedulePositionUpdate() }
+        function onDesktopGeometryChanged() { animator._schedulePositionUpdate() }
+        function onWidthChanged() { animator._schedulePositionUpdate() }
+        function onHeightChanged() { animator._schedulePositionUpdate() }
+        function onVirtualXChanged() { animator._schedulePositionUpdate() }
+        function onVirtualYChanged() { animator._schedulePositionUpdate() }
 
         target: animator.desktopMode && animator.target ? animator.target.screen : null
         ignoreUnknownSignals: true
@@ -134,6 +138,37 @@ QtObject {
     signal hideFinished()
 
     // ==================== Internal Methods 内部方法 ====================
+    function _desktopAvailableGeometry() {
+        var screenInfo = target && target.screen ? target.screen : Screen
+        var virtualX = screenInfo.virtualX
+        var virtualY = screenInfo.virtualY
+        var screenWidth = screenInfo.width
+        var screenHeight = screenInfo.height
+
+        if (typeof WindowHelper !== "undefined" && WindowHelper
+                && typeof WindowHelper.availableScreenGeometryAt === "function") {
+            var geometry = WindowHelper.availableScreenGeometryAt(
+                virtualX + Math.floor(screenWidth / 2),
+                virtualY + Math.floor(screenHeight / 2)
+            )
+            if (geometry && geometry.width > 0 && geometry.height > 0)
+                return geometry
+        }
+
+        // QML Screen does not expose QScreen.availableGeometry. Supported hosts
+        // inject WindowHelper above; this is a best-effort fallback for bare QML hosts.
+        // QML Screen 不公开 QScreen.availableGeometry；受支持宿主通过上方
+        // WindowHelper 注入精确工作区，裸 QML 宿主在此使用可用宽高兜底。
+        return {
+            "x": virtualX,
+            "y": virtualY,
+            "width": screenInfo.desktopAvailableWidth > 0
+                ? screenInfo.desktopAvailableWidth : screenWidth,
+            "height": screenInfo.desktopAvailableHeight > 0
+                ? screenInfo.desktopAvailableHeight : screenHeight
+        }
+    }
+
     function _calculateBasePosition() {
         if (!target) return
 
@@ -144,13 +179,11 @@ QtObject {
         var ph = 0
 
         if (desktopMode) {
-            // QScreen availableGeometry is already in device-independent pixels and excludes taskbars.
-            // QScreen可用工作区使用设备无关像素并已排除任务栏。
-            var available = target.screen ? target.screen.availableGeometry : null
-            originX = available ? available.x : 0
-            originY = available ? available.y : 0
-            pw = available ? available.width : Screen.width
-            ph = available ? available.height : Screen.height
+            var available = _desktopAvailableGeometry()
+            originX = available.x
+            originY = available.y
+            pw = available.width
+            ph = available.height
         } else {
             if (!parentItem) return
             pw = parentItem.width

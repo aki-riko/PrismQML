@@ -16,6 +16,7 @@
 #include <QMutexLocker>
 #include <QPixmap>
 #include <QPainter>
+#include <QPoint>
 #include <QSvgRenderer>
 #include <QScreen>
 #include <QWindow>
@@ -84,6 +85,22 @@ void WindowHelper::setAppIcon(const QString &icon) {
         QGuiApplication::setWindowIcon(qicon);
     else
         qWarning() << "prism::WindowHelper 图标加载失败:" << path;
+}
+
+QVariantMap WindowHelper::availableScreenGeometryAt(int x, int y) const {
+    QScreen *screen = QGuiApplication::screenAt(QPoint(x, y));
+    if (!screen)
+        screen = QGuiApplication::primaryScreen();
+    if (!screen)
+        return {};
+
+    const QRect geometry = screen->availableGeometry();
+    return {
+        {QStringLiteral("x"), geometry.x()},
+        {QStringLiteral("y"), geometry.y()},
+        {QStringLiteral("width"), geometry.width()},
+        {QStringLiteral("height"), geometry.height()},
+    };
 }
 
 // ==================== AcrylicImageProvider + AcrylicHelper ====================

@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariantMap>
 
 namespace prism {
 
@@ -17,6 +18,7 @@ public:
     static WindowHelper *instance();
 public slots:
     void setAppIcon(const QString &icon);
+    QVariantMap availableScreenGeometryAt(int x, int y) const;
 private:
     explicit WindowHelper(QObject *parent = nullptr) : QObject(parent) {}
     static QString resolveIconPath(const QString &icon);

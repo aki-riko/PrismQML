@@ -17,8 +17,11 @@
 #include <QImage>
 #include <QIcon>
 #include <QSystemTrayIcon>
+#include <QPoint>
+#include <QScreen>
 #include <QTemporaryDir>
 #include <QUrl>
+#include <QVariantMap>
 #include <QStringList>
 
 static int g_failed = 0;
@@ -69,6 +72,23 @@ static void testRealEncodedIcon() {
           "SystemTrayIcon loads real encoded icon");
 }
 
+static void testAvailableScreenGeometry() {
+    QScreen *screen = QGuiApplication::primaryScreen();
+    CHECK(screen, "WindowHelper geometry has a primary screen");
+    if (!screen)
+        return;
+
+    const QRect expected = screen->availableGeometry();
+    const QPoint center = screen->geometry().center();
+    const QVariantMap actual = prism::WindowHelper::instance()
+                                   ->availableScreenGeometryAt(center.x(), center.y());
+    CHECK(actual.value(QStringLiteral("x")).toInt() == expected.x()
+              && actual.value(QStringLiteral("y")).toInt() == expected.y()
+              && actual.value(QStringLiteral("width")).toInt() == expected.width()
+              && actual.value(QStringLiteral("height")).toInt() == expected.height(),
+          "WindowHelper returns QScreen availableGeometry");
+}
+
 int main(int argc, char *argv[]) {
     if (!prism::test::configureNonInteractiveProcess()) return 2;
     QApplication app(argc, argv);
@@ -77,6 +97,7 @@ int main(int argc, char *argv[]) {
     qInfo() << "=== Icon path URL contract ===";
     testIconPathUrlMatrix();
     testRealEncodedIcon();
+    testAvailableScreenGeometry();
 
     qInfo() << "=== SystemTray 烟测 ===";
     // 构造 + addAction + addSeparator 不崩 (QApplication 下 QMenu 正常)
