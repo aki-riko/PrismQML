@@ -275,6 +275,27 @@ def test_release_linux_wheel_probe_provisions_openssl3_runtime():
     assert "PRISM_EPEL_RELEASE_RPM=https://" in source
 
 
+def test_release_python_compatibility_matrix_blocks_publish():
+    """Published abi3 wheel must pass every supported Python minor.
+
+    发布的 abi3 wheel 必须通过全部受支持 Python 小版本。
+    """
+    source = (PROJECT_ROOT / ".github/workflows/release.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        'python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]'
+        in source
+    )
+    assert "name: wheels-ubuntu-latest" in source
+    assert "probe_all_components.py\" --installed" in source
+    assert (
+        "needs: [quality_gate, build_wheels, python_compatibility, build_sdist]"
+        in source
+    )
+
+
 @pytest.mark.parametrize(
     "source",
     (
