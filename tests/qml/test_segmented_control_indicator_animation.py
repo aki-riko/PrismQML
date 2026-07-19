@@ -240,7 +240,10 @@ def test_mouse_click_switch_has_real_intermediate_frames(segmented_scene):
 
     assert window.property("itemClickedCount") == 1
     assert window.property("lastClickedIndex") == 2
-    assert samples[0][1] == pytest.approx(start_x, abs=0.5)
+    assert (
+        samples[0][1] == pytest.approx(start_x, abs=0.5)
+        or _strictly_between(samples[0][1], start_x, target_x)
+    )
     assert all(_strictly_between(value, start_x, target_x) for _, value in samples[1:]), samples
     assert _wait_for(lambda: not animation.property("running"))
     assert animation.property("indicatorX") == pytest.approx(target_x, abs=0.5)

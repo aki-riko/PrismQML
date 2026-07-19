@@ -139,13 +139,7 @@ def _new_visible_windows(windows_before):
 
 
 def _descendants(root):
-    result = []
-    pending = list(root.children())
-    while pending:
-        child = pending.pop()
-        result.append(child)
-        pending.extend(child.children())
-    return result
+    return root.findChildren(QObject)
 
 
 def _nav_buttons(calendar):
