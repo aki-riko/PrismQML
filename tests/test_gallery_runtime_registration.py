@@ -47,6 +47,14 @@ def test_gallery_uses_complete_public_runtime_registration():
     assert calls[0].args[0].id == "engine"
 
 
+def test_gallery_disables_debug_logging_by_default():
+    source = GALLERY_MAIN.read_text(encoding="utf-8")
+
+    level_setup = "getLogger().set_level(Logger.INFO)"
+    assert level_setup in source
+    assert source.index(level_setup) < source.index("install_qt_message_handler()")
+
+
 def test_gallery_does_not_duplicate_public_context_or_lazy_providers():
     tree = _gallery_tree()
     context_names = set()

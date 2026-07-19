@@ -22,7 +22,11 @@ os.environ["QT_LOGGING_RULES"] = "qt.text.font.db=false"
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from prismqml import configure_qml_environment
-from prismqml.python.core import log_time
+from prismqml.python.core import Logger, getLogger, log_time
+
+# Keep normal Gallery runs at INFO; diagnostics can still be enabled explicitly.
+# Gallery默认只输出INFO及以上；需要诊断时仍可显式开启DEBUG。
+getLogger().set_level(Logger.INFO)
 
 # Enable local QML XHR before creating the engine. 在创建引擎前启用本地 QML XHR。
 configure_qml_environment()
