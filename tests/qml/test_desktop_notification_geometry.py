@@ -22,9 +22,9 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 REAL_EXPORT_PATH = (
-    r"C:\Users\Kotori\AppData\Roaming\Kaleidos\recordings\clip_20260720_001426.mp4"
+    r"C:\Users\Kotori\AppData\Roaming\Kaleidos\recordings\clip_20260720_005908.mp4"
 )
-REAL_EXPORT_MESSAGE = f"00:24\n{REAL_EXPORT_PATH}"
+REAL_EXPORT_MESSAGE = f"00:05\n{REAL_EXPORT_PATH}"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "desktop-notification-geometry.qml")
 )
@@ -46,6 +46,17 @@ Window {{
     readonly property int progressFeature: Enums.notification.feature_progress_bar
     readonly property color optionColor: Enums.accentColor
     readonly property real optionRadius: Enums.radius.large
+    readonly property var notificationPositions: ({{
+        "topLeft": NotificationManager.posTopLeft,
+        "top": NotificationManager.posTop,
+        "topRight": NotificationManager.posTopRight,
+        "left": NotificationManager.posLeft,
+        "center": NotificationManager.posCenter,
+        "right": NotificationManager.posRight,
+        "bottomLeft": NotificationManager.posBottomLeft,
+        "bottom": NotificationManager.posBottom,
+        "bottomRight": NotificationManager.posBottomRight
+    }})
 
     function createLateConfiguredExportToast() {{
         firstToast = NotificationManager.desktop.success(
@@ -70,6 +81,19 @@ Window {{
                 "closable": false,
                 "feature": Enums.notification.feature_progress_bar,
                 "progress": 0.25,
+                "screen": host.screen
+            }}
+        )
+    }}
+
+    function createToastAt(requestedPosition) {{
+        firstToast = NotificationManager.desktop.success(
+            "九宫格定位",
+            "工作区边缘间距",
+            0,
+            requestedPosition,
+            {{
+                "closable": false,
                 "screen": host.screen
             }}
         )
@@ -262,6 +286,28 @@ def _dispose(
     QGuiApplication.processEvents()
 
 
+def test_notification_manager_exposes_row_major_nine_grid(qapp):
+    """NotificationManager must expose all nine public positions. 管理器须公开完整九宫格。"""
+    engine, component, root = _create_scene()
+    try:
+        positions = root.property("notificationPositions")
+        if hasattr(positions, "toVariant"):
+            positions = positions.toVariant()
+        assert positions == {
+            "topLeft": 0,
+            "top": 1,
+            "topRight": 2,
+            "left": 3,
+            "center": 4,
+            "right": 5,
+            "bottomLeft": 6,
+            "bottom": 7,
+            "bottomRight": 8,
+        }
+    finally:
+        _dispose(engine, component, root)
+
+
 def test_real_export_toast_reanchors_after_late_custom_content(qapp):
     """截图中的真实导出输入后注入按钮时仍贴合可用工作区底边。"""
     engine, component, root = _create_scene()
@@ -309,6 +355,51 @@ def test_desktop_toast_uses_native_available_geometry_provider(qapp):
         expected_bottom = work_area["y"] + work_area["height"] - margin
         assert overlay.x() + overlay.width() == pytest.approx(expected_right, abs=1)
         assert overlay.y() + overlay.height() == pytest.approx(expected_bottom, abs=1)
+    finally:
+        _dispose(engine, component, root)
+
+
+@pytest.mark.parametrize(
+    ("position", "horizontal", "vertical"),
+    [
+        (0, "left", "top"),
+        (1, "center", "top"),
+        (2, "right", "top"),
+        (3, "left", "center"),
+        (4, "center", "center"),
+        (5, "right", "center"),
+        (6, "left", "bottom"),
+        (7, "center", "bottom"),
+        (8, "right", "bottom"),
+    ],
+)
+def test_desktop_toast_anchors_all_nine_work_area_positions(
+    qapp, position: int, horizontal: str, vertical: str
+):
+    """All nine positions share the compact work-area edge margin. 九宫格位置共享紧凑工作区边距。"""
+    work_area = {"x": 113, "y": 71, "width": 997, "height": 701}
+    engine, component, root = _create_scene(work_area)
+    try:
+        root.createToastAt(position)
+        toast = _toast(root)
+        overlay = _overlay(toast)
+        _wait_until(overlay.isVisible)
+        QTest.qWait(400)
+
+        margin = 8
+        expected_x = {
+            "left": work_area["x"] + margin,
+            "center": work_area["x"] + (work_area["width"] - overlay.width()) / 2,
+            "right": work_area["x"] + work_area["width"] - overlay.width() - margin,
+        }[horizontal]
+        expected_y = {
+            "top": work_area["y"] + margin,
+            "center": work_area["y"] + (work_area["height"] - overlay.height()) / 2,
+            "bottom": work_area["y"] + work_area["height"] - overlay.height() - margin,
+        }[vertical]
+
+        assert overlay.x() == pytest.approx(expected_x, abs=1)
+        assert overlay.y() == pytest.approx(expected_y, abs=1)
     finally:
         _dispose(engine, component, root)
 

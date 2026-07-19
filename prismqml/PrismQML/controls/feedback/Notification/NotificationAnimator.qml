@@ -14,7 +14,7 @@ QtObject {
 
     // ==================== Required Props 必需属性 ====================
     required property var target         // Target item/window to animate 动画目标（Item或Window）
-    required property int position       // Position enum (0-5) 位置枚举
+    required property int position       // Nine-grid position enum (0-8) 九宫格位置枚举
 
     // ==================== Public Props 公开属性 ====================
     property var parentItem: null        // Parent for position calculation (window mode) 用于位置计算的父容器（窗口模式）
@@ -25,9 +25,11 @@ QtObject {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isTop: Enums.notification.isTop(position)
+    readonly property bool _isMiddle: Enums.notification.isMiddle(position)
+    readonly property bool _isBottom: Enums.notification.isBottom(position)
     readonly property bool _isLeft: Enums.notification.isLeft(position)
     readonly property bool _isRight: Enums.notification.isRight(position)
-    readonly property bool _isCenter: Enums.notification.isCenter(position)
+    readonly property bool _isHorizontalCenter: Enums.notification.isHorizontalCenter(position)
     readonly property real _targetWidth: target ? target.width : 0
     readonly property real _targetHeight: target ? target.height : 0
     readonly property real _slideOffset: _targetWidth + Enums.notification.layout.edgeMargin
@@ -79,10 +81,10 @@ QtObject {
         NumberAnimation {
             target: animator.target
             property: "y"
-            to: animator._isCenter
-                ? (animator._isTop ? animator._baseY - animator._slideOffsetY
-                    : animator._baseY + animator._slideOffsetY)
-                : animator._baseY
+            to: animator._isHorizontalCenter && animator._isTop
+                ? animator._baseY - animator._slideOffsetY
+                : (animator._isHorizontalCenter && animator._isBottom
+                    ? animator._baseY + animator._slideOffsetY : animator._baseY)
             duration: animator.hideDuration
             easing.type: animator._hideEasing
         }
@@ -190,34 +192,19 @@ QtObject {
             ph = parentItem.height
         }
 
-        var stackY = _isTop ? stackOffset : -stackOffset
-        switch (position) {
-            case 0:
-                _baseX = originX + margin
-                _baseY = originY + margin + stackY
-                break
-            case 1:
-                _baseX = originX + (pw - _targetWidth) / 2
-                _baseY = originY + margin + stackY
-                break
-            case 2:
-                _baseX = originX + pw - _targetWidth - margin
-                _baseY = originY + margin + stackY
-                break
-            case 3:
-                _baseX = originX + margin
-                _baseY = originY + ph - _targetHeight - margin + stackY
-                break
-            case 4:
-                _baseX = originX + (pw - _targetWidth) / 2
-                _baseY = originY + ph - _targetHeight - margin + stackY
-                break
-            case 5:
-            default:
-                _baseX = originX + pw - _targetWidth - margin
-                _baseY = originY + ph - _targetHeight - margin + stackY
-                break
-        }
+        if (_isLeft)
+            _baseX = originX + margin
+        else if (_isRight)
+            _baseX = originX + pw - _targetWidth - margin
+        else
+            _baseX = originX + (pw - _targetWidth) / 2
+
+        if (_isTop)
+            _baseY = originY + margin + stackOffset
+        else if (_isBottom)
+            _baseY = originY + ph - _targetHeight - margin - stackOffset
+        else
+            _baseY = originY + (ph - _targetHeight) / 2 + stackOffset
     }
 
     function _schedulePositionUpdate() {
@@ -232,9 +219,10 @@ QtObject {
         } else if (_isRight) {
             target.x = _baseX + _slideOffset
             target.y = _baseY
-        } else if (_isCenter) {
+        } else {
             target.x = _baseX
-            target.y = _isTop ? _baseY - _slideOffsetY : _baseY + _slideOffsetY
+            target.y = _isTop ? _baseY - _slideOffsetY
+                : (_isBottom ? _baseY + _slideOffsetY : _baseY)
         }
     }
 

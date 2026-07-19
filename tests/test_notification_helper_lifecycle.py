@@ -22,6 +22,21 @@ _QT_FAILURE_TYPES = {
 _OFFSCREEN_FONT_WARNING = "QFontDatabase: Cannot find font directory"
 
 
+def test_position_enum_matches_nine_grid_contract():
+    """Python position values must match QML's row-major nine-grid. Python位置须匹配QML九宫格。"""
+    assert {name: int(member) for name, member in notification.Position.__members__.items()} == {
+        "TopLeft": 0,
+        "Top": 1,
+        "TopRight": 2,
+        "Left": 3,
+        "Center": 4,
+        "Right": 5,
+        "BottomLeft": 6,
+        "Bottom": 7,
+        "BottomRight": 8,
+    }
+
+
 def _release_engine(engine: QQmlApplicationEngine) -> None:
     """Release one engine and its registered bindings. 释放单个引擎及其注册绑定。"""
     if not shiboken6.isValid(engine):

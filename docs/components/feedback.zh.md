@@ -55,6 +55,11 @@ Toast 与 InfoBar 的通用选项包括 `orient`、`customContent`、`closable`�
 `backgroundColorDark`；桌面 InfoBar 还支持 `icon`、`radius`。`screen` 用于选择目标显示器。
 窗口会按该显示器的 `availableGeometry` 定位，自动避开任务栏，并在内容尺寸或工作区变化后重新排布。
 
+桌面通知支持完整九宫格位置，按行从左到右依次为：
+`posTopLeft` / `posTop` / `posTopRight`、`posLeft` / `posCenter` / `posRight`、
+`posBottomLeft` / `posBottom` / `posBottomRight`。贴边位置与工作区边缘保持 8 个逻辑像素，
+中间行和中间列则分别按工作区垂直、水平中心定位。Python 的 `Position` 枚举使用同一顺序。
+
 Python helper 也支持同一组可序列化选项（QML `Component` 类型的 `customContent` 除外）：
 
 ```python

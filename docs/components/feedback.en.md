@@ -58,6 +58,12 @@ Use `screen` to select the target display. The native window is positioned insid
 that screen's `availableGeometry`, avoiding taskbars and reflowing after content
 or work-area geometry changes.
 
+Desktop notifications support a complete row-major nine-grid:
+`posTopLeft` / `posTop` / `posTopRight`, `posLeft` / `posCenter` / `posRight`, and
+`posBottomLeft` / `posBottom` / `posBottomRight`. Edge positions keep an 8 logical-pixel
+work-area margin, while the middle row and column are centered vertically and horizontally.
+Python's `Position` enum uses the same order.
+
 The Python helper accepts the same serializable options, except QML `Component`
 values such as `customContent`:
 

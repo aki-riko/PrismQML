@@ -22,7 +22,7 @@ Window {
     property string severity: "info"  // info, success, warning, error
     property int duration: Enums.duration.notification
     property bool closable: true
-    property int position: Enums.notification.posBottomRight  // 0=TOP_LEFT, 1=TOP, 2=TOP_RIGHT, 3=BOTTOM_LEFT, 4=BOTTOM, 5=BOTTOM_RIGHT
+    property int position: Enums.notification.posBottomRight  // Nine-grid enum (0-8), row-major 九宫格行优先枚举
 
     // Custom content slot 自定义内容插槽
     // Inject custom widget (e.g. confirm button) below message 在消息下方注入自定义控件（如确认按钮）

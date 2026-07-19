@@ -40,7 +40,7 @@ QtObject {
     readonly property QtObject layout: QtObject {
         readonly property int edgeMargin: 16      // Edge margin for slide animation 滑动动画边缘间距
         readonly property int verticalSlideExtra: 48  // Extra offset for top/bottom slide 正上/下方滑入额外偏移
-        readonly property int screenMargin: 24    // Screen edge margin 屏幕边缘间距
+        readonly property int screenMargin: 8     // Screen edge margin 屏幕边缘间距
         readonly property int windowMargin: 28    // In-window notification margin 窗口内通知边距
         readonly property int stackGapLarge: 25   // InfoBar stack gap InfoBar堆叠间距
         readonly property int stackGapSmall: 8    // Toast/Desktop stack gap Toast/桌面堆叠间距
@@ -52,16 +52,20 @@ QtObject {
     readonly property int posTopLeft: 0
     readonly property int posTop: 1
     readonly property int posTopRight: 2
-    readonly property int posBottomLeft: 3
-    readonly property int posBottom: 4
-    readonly property int posBottomRight: 5
+    readonly property int posLeft: 3
+    readonly property int posCenter: 4
+    readonly property int posRight: 5
+    readonly property int posBottomLeft: 6
+    readonly property int posBottom: 7
+    readonly property int posBottomRight: 8
     
     // Position helper functions 位置辅助函数
-    function isTop(pos) { return pos <= 2 }
-    function isBottom(pos) { return pos >= 3 }
-    function isLeft(pos) { return pos === 0 || pos === 3 }
-    function isRight(pos) { return pos === 2 || pos === 5 }
-    function isCenter(pos) { return pos === 1 || pos === 4 }
+    function isTop(pos) { return pos >= posTopLeft && pos <= posTopRight }
+    function isMiddle(pos) { return pos >= posLeft && pos <= posRight }
+    function isBottom(pos) { return pos >= posBottomLeft && pos <= posBottomRight }
+    function isLeft(pos) { return pos === posTopLeft || pos === posLeft || pos === posBottomLeft }
+    function isRight(pos) { return pos === posTopRight || pos === posRight || pos === posBottomRight }
+    function isHorizontalCenter(pos) { return pos === posTop || pos === posCenter || pos === posBottom }
     
     // ==================== Severity Helpers 语义辅助函数 ====================
     // Map severity string to level number 映射severity字符串到level数字

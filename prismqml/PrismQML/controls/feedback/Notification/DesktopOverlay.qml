@@ -13,7 +13,7 @@ Window {
     id: control
     
     // ==================== Public Props 公开属性 ====================
-    property int position: Enums.notification.posBottomRight  // 0-5 位置枚举
+    property int position: Enums.notification.posBottomRight  // Nine-grid enum (0-8) 九宫格位置枚举
     property real stackOffset: 0  // Stack offset for multiple notifications 堆叠偏移
     property Item notificationItem: null  // Reference to notification for dynamic size 通知组件引用用于动态尺寸
 

@@ -22,6 +22,9 @@ QtObject {
     readonly property int posTopLeft: _stackManager.posTopLeft
     readonly property int posTop: _stackManager.posTop
     readonly property int posTopRight: _stackManager.posTopRight
+    readonly property int posLeft: _stackManager.posLeft
+    readonly property int posCenter: _stackManager.posCenter
+    readonly property int posRight: _stackManager.posRight
     readonly property int posBottomLeft: _stackManager.posBottomLeft
     readonly property int posBottom: _stackManager.posBottom
     readonly property int posBottomRight: _stackManager.posBottomRight

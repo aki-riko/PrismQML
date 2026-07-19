@@ -15,6 +15,9 @@ QtObject {
     readonly property int posTopLeft: Enums.notification.posTopLeft
     readonly property int posTop: Enums.notification.posTop
     readonly property int posTopRight: Enums.notification.posTopRight
+    readonly property int posLeft: Enums.notification.posLeft
+    readonly property int posCenter: Enums.notification.posCenter
+    readonly property int posRight: Enums.notification.posRight
     readonly property int posBottomLeft: Enums.notification.posBottomLeft
     readonly property int posBottom: Enums.notification.posBottom
     readonly property int posBottomRight: Enums.notification.posBottomRight
@@ -29,7 +32,7 @@ QtObject {
     // ==================== Internal Methods 内部方法 ====================
     // Validate position 验证位置有效性
     function _isValidPosition(position) {
-        return position !== undefined && position !== null && position >= 0 && position <= 5
+        return position !== undefined && position !== null && position >= 0 && position <= 8
     }
 
     function _isSameScreen(first, second) {
@@ -138,7 +141,7 @@ QtObject {
 
     function closeAllDesktopNotifications() {
         if (!_desktopStacks) return
-        for (var pos = 0; pos <= 5; pos++) {
+        for (var pos = 0; pos <= 8; pos++) {
             var stack = _desktopStacks[pos]
             if (!stack) continue
             while (stack.length > 0) {
@@ -169,13 +172,17 @@ QtObject {
 
     // Utility method 工具方法
     function randomPosition() {
-        var positions = [posTopLeft, posTop, posTopRight, posBottomLeft, posBottom, posBottomRight]
+        var positions = [
+            posTopLeft, posTop, posTopRight,
+            posLeft, posCenter, posRight,
+            posBottomLeft, posBottom, posBottomRight
+        ]
         return positions[Math.floor(Math.random() * positions.length)]
     }
 
     // Initialize stacks on component completion 组件完成时初始化堆栈
     Component.onCompleted: {
-        _stacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] }
-        _desktopStacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] }
+        _stacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] }
+        _desktopStacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] }
     }
 }
