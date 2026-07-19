@@ -105,6 +105,7 @@ Widget {
 
     // ==================== Public Methods 公开方法 ====================
     function show() {
+        _showing = true
         if (desktopMode) {
             visible = true
             opacity = 1
@@ -113,9 +114,9 @@ Widget {
         }
     }
     function hide() {
+        if (!_showing) return
         _showing = false
         if (desktopMode) {
-            visible = false
             closed()
         } else {
             animator.hide()

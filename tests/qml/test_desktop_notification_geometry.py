@@ -99,6 +99,35 @@ Window {{
         )
     }}
 
+    function createExportToastAt(requestedPosition) {{
+        firstToast = NotificationManager.desktop.success(
+            "导出成功",
+            {json.dumps(REAL_EXPORT_MESSAGE, ensure_ascii=False)},
+            0,
+            requestedPosition,
+            {{
+                "orient": Qt.Vertical,
+                "customContent": exportAction,
+                "screen": host.screen
+            }}
+        )
+    }}
+
+    function createInfoBarAt(requestedPosition) {{
+        firstToast = NotificationManager.desktop.infoBar(
+            "warning",
+            "导出处理中",
+            "正在准备导出文件",
+            0,
+            requestedPosition,
+            {{ "screen": host.screen }}
+        )
+    }}
+
+    function hideFirstToast() {{
+        if (firstToast) firstToast.hide()
+    }}
+
     function createStackedToasts() {{
         firstToast = NotificationManager.desktop.success(
             "第一条", "底部通知", 0, Enums.notification.posBottomRight,
@@ -304,6 +333,46 @@ def test_notification_manager_exposes_row_major_nine_grid(qapp):
             "bottom": 7,
             "bottomRight": 8,
         }
+    finally:
+        _dispose(engine, component, root)
+
+
+@pytest.mark.parametrize("notification_kind", ["toast", "infoBar"])
+@pytest.mark.parametrize("position", range(9))
+def test_desktop_notifications_remain_visible_during_nine_grid_exit_animation(
+    qapp, notification_kind, position
+):
+    """Desktop content must stay rendered while its overlay exits at all nine positions."""
+    engine, component, root = _create_scene()
+    try:
+        if notification_kind == "toast":
+            root.createExportToastAt(position)
+        else:
+            root.createInfoBarAt(position)
+
+        notification = _toast(root)
+        overlay = _overlay(notification)
+        _wait_until(lambda: notification.property("visible") and overlay.isVisible())
+        QTest.qWait(400)
+
+        start_x = overlay.x()
+        start_y = overlay.y()
+        root.hideFirstToast()
+        QTest.qWait(150)
+
+        assert notification.property("visible") is True
+        assert overlay.isVisible()
+
+        if position in (0, 3, 6):
+            assert overlay.x() < start_x
+        elif position in (2, 5, 8):
+            assert overlay.x() > start_x
+        elif position == 1:
+            assert overlay.y() < start_y
+        elif position == 7:
+            assert overlay.y() > start_y
+        else:
+            assert overlay.property("opacity") < 1
     finally:
         _dispose(engine, component, root)
 

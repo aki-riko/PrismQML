@@ -85,6 +85,7 @@ Widget {
             + Enums.spacing.l * 2
         return Math.max(Enums.controlSize.toastHeight, h)
     }
+    property bool _desktopClosing: false
 
     // ==================== Signals 信号 ====================
     signal closed()
@@ -94,6 +95,7 @@ Widget {
         if (msg) message = msg
         if (type) severity = type
         if (desktopMode) {
+            _desktopClosing = false
             visible = true
             opacity = 1
         } else {
@@ -104,7 +106,9 @@ Widget {
 
     function hide() {
         if (desktopMode) {
-            visible = false
+            if (_desktopClosing) return
+            _desktopClosing = true
+            hideTimer.stop()
             closed()
         } else {
             animator.hide()

@@ -88,6 +88,13 @@ QtObject {
             duration: animator.hideDuration
             easing.type: animator._hideEasing
         }
+        NumberAnimation {
+            target: animator.target
+            property: "opacity"
+            to: animator._isMiddle && animator._isHorizontalCenter ? 0 : 1
+            duration: animator.hideDuration
+            easing.type: animator._hideEasing
+        }
     }
     property ParallelAnimation _repositionAnim: ParallelAnimation {
         NumberAnimation {
