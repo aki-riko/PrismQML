@@ -365,6 +365,8 @@ def test_popup_tracking_source_is_event_driven():
         assert "PopupPositionTracker {" in source
         assert "id: positionTracker" not in source
         assert "interval: Enums.popupMetrics.trackerIntervalMs" not in source
+    assert "referenceControlWidth" not in popup_source
+    assert "centerOffset" not in popup_source
     assert "function onAfterAnimating()" in tracker_source
     assert "function scheduleUpdate()" in tracker_source
     assert "Qt.callLater" not in tracker_source

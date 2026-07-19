@@ -301,8 +301,6 @@ ComboBoxCore {
     function openPopup() {
         _rebuildFlatModel()
         _popup.popupWidth = Math.max(control.width, Enums.comboBoxMetrics.treePopupMinWidth)
-        // Set reference width for center alignment 设置参考宽度用于居中对齐
-        _popup.referenceControlWidth = control.width
         _popup.popupHeight = Enums.comboBoxMetrics.treePopupHeight
         _popup.openAtControl(control)
         isOpen = true

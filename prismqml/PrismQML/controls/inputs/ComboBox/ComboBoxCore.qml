@@ -141,8 +141,6 @@ Widget {
         // Calculate popup width: max(content width, control width) 弹出宽度：取内容宽度和控件宽度的最大值
         var contentW = _calcContentWidth()
         comboPopup.popupWidth = Math.max(contentW, control.width)
-        // Set reference width for center alignment 设置参考宽度用于居中对齐
-        comboPopup.referenceControlWidth = control.width
         // Calculate height from model length 直接用model长度计算高度
         var itemCount = model.length
         var calcHeight = itemCount * popupItemHeight + Enums.comboBoxMetrics.popupPadding

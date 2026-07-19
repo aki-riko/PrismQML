@@ -251,8 +251,6 @@ Item {
         }
         readonly property bool _needsScroll: _contentHeight > Enums.comboBoxMetrics.popupMaxHeight
 
-        // Set reference width for center alignment 设置参考宽度用于居中对齐
-        referenceControlWidth: parent.width
         popupHeight: Math.min(_contentHeight, Enums.comboBoxMetrics.popupMaxHeight)
         closeOnClickOutside: true
         

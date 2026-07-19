@@ -32,7 +32,6 @@ Item {
     property bool stealFocus: true  // Whether to steal focus when opening 打开时是否抢夺焦点
     property Item targetControl: null  // Trigger control 触发弹出的控件
     property int animationType: 0  // 0=expand, 1=slideDown (Fluent Design style) 动画类型
-    property int referenceControlWidth: -1  // Reference control width for center alignment 参考控件宽度，用于居中对齐（-1=不居中，与控件左对齐）
     property bool _isPickerMode: false  // Internal: picker mode for center alignment 内部：Picker模式居中对齐
     property int _pickerRowHeight: 37  // Internal: row height for picker mode 内部：Picker模式行高
 
@@ -127,10 +126,8 @@ Item {
         if (!targetCtrl) return
         targetControl = targetCtrl
         var pos = targetCtrl.mapToGlobal(0, targetCtrl.height + Enums.popupMetrics.controlGap)
-        // Center only when a reference width is explicitly configured. 仅显式配置参考宽度时居中
-        var centerOffset = referenceControlWidth > 0 && popupWidth > referenceControlWidth
-            ? (popupWidth - referenceControlWidth) / 2 : 0
-        open(pos.x - Enums.popupMetrics.panelOffset - centerOffset, pos.y - Enums.popupMetrics.panelOffset)
+        // Align standard control popups by their left edges. 标准控件弹层统一左边缘对齐
+        open(pos.x - Enums.popupMetrics.panelOffset, pos.y - Enums.popupMetrics.panelOffset)
     }
     
     // Open popup above control with selected row aligned to control (Fluent Design Picker style) 在控件上方打开弹出框，选中行与控件对齐（Fluent Design Picker 风格）
@@ -260,9 +257,7 @@ Item {
             newX = pickerPos.x
             newY = pickerPos.y
         } else {
-            var centerOffset = referenceControlWidth > 0 && popupWidth > referenceControlWidth
-                ? (popupWidth - referenceControlWidth) / 2 : 0
-            newX = currentGlobalPos.x - Enums.popupMetrics.panelOffset - centerOffset
+            newX = currentGlobalPos.x - Enums.popupMetrics.panelOffset
             newY = currentGlobalPos.y + targetControl.height + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset
         }
         popupWindow.x = newX

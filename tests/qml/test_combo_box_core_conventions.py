@@ -47,6 +47,7 @@ import PrismQML
 
 Window {
     readonly property int expectedPopupPadding: Enums.comboBoxMetrics.popupPadding
+    readonly property int expectedPanelOffset: Enums.popupMetrics.panelOffset
 
     width: 720
     height: 360
@@ -419,6 +420,34 @@ def test_combo_box_core_edit_then_select_restores_model_text(qapp):
         assert _wait_for(lambda: editable.property("currentText") == "Gamma")
         assert warnings == []
         assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+    finally:
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_core_wide_popup_left_aligns_and_tracks_control(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    try:
+        combo.setProperty(
+            "model",
+            ["An intentionally wide combo box item that exceeds the control width"],
+        )
+        popup, popup_window = _open_popup(window, combo, windows_before)
+        assert popup.property("popupWidth") > combo.width()
+        target_global = window.mapToGlobal(combo.mapToScene(QPointF()).toPoint())
+        assert popup_window.x() + window.property(
+            "expectedPanelOffset"
+        ) == pytest.approx(target_global.x())
+
+        combo.setX(combo.x() + 32)
+        tracked_global = window.mapToGlobal(combo.mapToScene(QPointF()).toPoint())
+        assert _wait_for(
+            lambda: popup_window.x() + window.property("expectedPanelOffset")
+            == pytest.approx(tracked_global.x())
+        )
+        assert warnings == []
     finally:
         _dispose_scene(engine, component, window, combo, editable)
         assert _new_visible_windows(windows_before) == []

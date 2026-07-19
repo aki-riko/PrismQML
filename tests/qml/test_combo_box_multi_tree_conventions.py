@@ -47,6 +47,7 @@ import PrismQML
 Window {
     readonly property int expectedPopupHeight: Enums.comboBoxMetrics.treePopupHeight
     readonly property int expectedPopupMinWidth: Enums.comboBoxMetrics.treePopupMinWidth
+    readonly property int expectedPanelOffset: Enums.popupMetrics.panelOffset
 
     width: 560
     height: 280
@@ -57,7 +58,7 @@ Window {
         objectName: "combo"
         x: 70
         y: 60
-        width: 300
+        width: 220
         placeholderText: "Choose leaves"
         model: [
             {
@@ -217,6 +218,11 @@ def test_combo_box_multi_tree_selection_search_and_popup_lifecycle(qapp):
         assert popup.property("popupHeight") == window.property("expectedPopupHeight")
         assert _wait_for(lambda: len(_new_visible_windows(windows_before, window)) == 1)
         assert _wait_for(lambda: popup.property("isOpen"))
+        popup_window = _new_visible_windows(windows_before, window)[0]
+        target_global = window.mapToGlobal(combo.mapToScene(QPointF()).toPoint())
+        assert popup_window.x() + window.property(
+            "expectedPanelOffset"
+        ) == target_global.x()
 
         combo.closePopup()
         assert _wait_for(lambda: not combo.property("isOpen"))

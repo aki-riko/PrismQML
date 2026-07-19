@@ -49,6 +49,8 @@ Window {
     readonly property int expectedSearchHeight: Enums.comboBoxMetrics.searchBoxHeight
     readonly property int expectedSpacing: Enums.spacing.m
     readonly property int expectedMaxHeight: Enums.comboBoxMetrics.treePopupHeight
+    readonly property int expectedPopupMinWidth: Enums.comboBoxMetrics.treePopupMinWidth
+    readonly property int expectedPanelOffset: Enums.popupMetrics.panelOffset
 
     width: 560
     height: 280
@@ -208,7 +210,9 @@ def _open_popup(window, combo, windows_before) -> QQuickItem:
         _point_for(window, combo),
     )
     assert _wait_for(lambda: combo.property("isOpen"))
-    assert popup.property("popupWidth") == combo.width()
+    assert popup.property("popupWidth") == max(
+        combo.width(), window.property("expectedPopupMinWidth")
+    )
     expected_height = min(
         len(_flat_model(combo)) * window.property("expectedItemHeight")
         + window.property("expectedSearchHeight")
@@ -218,6 +222,11 @@ def _open_popup(window, combo, windows_before) -> QQuickItem:
     assert popup.property("popupHeight") == expected_height
     assert _wait_for(lambda: popup.property("isOpen"))
     assert _wait_for(lambda: len(_new_visible_windows(windows_before, window)) == 1)
+    popup_window = _new_visible_windows(windows_before, window)[0]
+    target_global = window.mapToGlobal(combo.mapToScene(QPointF()).toPoint())
+    assert popup_window.x() + window.property(
+        "expectedPanelOffset"
+    ) == target_global.x()
     return popup
 
 

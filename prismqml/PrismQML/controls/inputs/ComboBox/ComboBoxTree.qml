@@ -36,9 +36,7 @@ ComboBoxCore {
     // ==================== Public Methods 公开方法 ====================
     function openPopup() {
         _rebuildFlatModel()
-        _popup.popupWidth = Math.max(control.width, 200)
-        // Set reference width for center alignment 设置参考宽度用于居中对齐
-        _popup.referenceControlWidth = control.width
+        _popup.popupWidth = Math.max(control.width, Enums.comboBoxMetrics.treePopupMinWidth)
         var itemCount = _flatModel.length
         var searchHeight = searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0
         _popup.popupHeight = Math.min(itemCount * Enums.comboBoxMetrics.itemHeight + searchHeight + Enums.spacing.m, Enums.comboBoxMetrics.treePopupHeight)

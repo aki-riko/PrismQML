@@ -230,16 +230,25 @@ def test_destroying_loader_cancels_queued_prewarm_work(dropdown_scene):
     assert warnings == []
 
 
-def test_open_remeasures_reassigned_menu_items(dropdown_scene):
+@pytest.mark.parametrize("object_name", ["dropdownButton", "splitButton"])
+def test_open_remeasures_and_tracks_left_aligned_wide_menu(
+    dropdown_scene, object_name
+):
     root, window, warnings, _windows_before = dropdown_scene
-    button = _button(root, "dropdownButton")
+    button = _button(root, object_name)
     dropdown = _button_dropdown(button)
     popup = _dropdown_popup(dropdown)
     _invoke(dropdown, "prewarmMenu")
     assert _wait_for(lambda: dropdown.property("_geometryPrepared"))
     prepared_width = popup.property("popupWidth")
 
-    _invoke(root, "replaceDropdownMenuItems")
+    button.setProperty(
+        "menuItems",
+        [
+            "repositories/kiro-account-manager",
+            "Gamma",
+        ],
+    )
     _pump(20)
     assert popup.property("popupWidth") == pytest.approx(prepared_width)
 
@@ -252,22 +261,37 @@ def test_open_remeasures_reassigned_menu_items(dropdown_scene):
         and child.metaObject().indexOfProperty("text") >= 0
     ]
     assert sorted(menu_texts) == [
-        "An intentionally very long replacement label that must be remeasured",
         "Gamma",
+        "repositories/kiro-account-manager",
     ]
 
     assert popup.property("popupWidth") > prepared_width
-    assert popup.property("referenceControlWidth") == pytest.approx(button.width())
     target_global = window.mapToGlobal(
         button.mapToScene(QPointF()).toPoint()
     )
-    popup_panel_center = (
-        _popup_window(popup).x()
-        + root.property("popupPanelOffset")
-        + popup.property("popupWidth") / 2
+    popup_window = _popup_window(popup)
+    assert popup_window.x() + root.property("popupPanelOffset") == pytest.approx(
+        target_global.x()
     )
-    assert popup_panel_center == pytest.approx(
-        target_global.x() + button.width() / 2
+
+    button.setX(button.x() + 36)
+    tracked_global = window.mapToGlobal(
+        button.mapToScene(QPointF()).toPoint()
+    )
+    assert _wait_for(
+        lambda: popup_window.x() + root.property("popupPanelOffset")
+        == pytest.approx(tracked_global.x())
+    )
+
+    _invoke(popup, "forceReset")
+    _pump(20)
+    _invoke(dropdown, "openMenu")
+    _pump(20)
+    reopened_global = window.mapToGlobal(
+        button.mapToScene(QPointF()).toPoint()
+    )
+    assert popup_window.x() + root.property("popupPanelOffset") == pytest.approx(
+        reopened_global.x()
     )
     assert not dropdown.property("_geometryPrepared")
     assert warnings == []
@@ -330,17 +354,34 @@ def test_scheduled_prewarm_cannot_hide_immediate_dropdown_open(dropdown_scene):
     assert warnings == []
 
 
-def test_cold_click_without_hover_still_opens_dropdown(dropdown_scene):
+@pytest.mark.parametrize(
+    ("object_name", "split_arrow"),
+    [("dropdownButton", False), ("splitButton", True)],
+)
+def test_cold_click_opens_left_aligned_dropdown(
+    dropdown_scene, object_name, split_arrow
+):
     root, window, warnings, _windows_before = dropdown_scene
-    button = _button(root, "dropdownButton")
+    button = _button(root, object_name)
+    button.setWidth(120)
+    button.setProperty(
+        "menuItems",
+        ["repositories/kiro-account-manager"],
+    )
     popup = _dropdown_popup(_button_dropdown(button))
     QTest.mouseMove(window, QPoint(340, 220))
     _pump(20)
     assert not popup.property("_prewarmed")
 
-    _click(window, button)
+    _click(window, button, split_arrow)
     assert _wait_for(lambda: popup.property("isOpen"))
 
+    target_global = window.mapToGlobal(
+        button.mapToScene(QPointF()).toPoint()
+    )
+    assert _popup_window(popup).x() + root.property(
+        "popupPanelOffset"
+    ) == pytest.approx(target_global.x())
     assert popup.property("_prewarmed")
     assert not popup.property("_prewarmScheduled")
     assert _popup_window(popup).isVisible()
