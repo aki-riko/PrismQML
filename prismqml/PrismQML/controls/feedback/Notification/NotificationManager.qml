@@ -144,30 +144,30 @@ QtObject {
     
     // Desktop namespace 桌面通知命名空间
     readonly property QtObject desktop: QtObject {
-        function info(title, message, duration, position) {
+        function info(title, message, duration, position, options) {
             return manager._createDesktop("info", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posBottomRight, 0)
+                position !== undefined ? position : manager.posBottomRight, 0, options)
         }
-        function success(title, message, duration, position) {
+        function success(title, message, duration, position, options) {
             return manager._createDesktop("success", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posBottomRight, 0)
+                position !== undefined ? position : manager.posBottomRight, 0, options)
         }
-        function warning(title, message, duration, position) {
+        function warning(title, message, duration, position, options) {
             return manager._createDesktop("warning", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posBottomRight, 0)
+                position !== undefined ? position : manager.posBottomRight, 0, options)
         }
-        function error(title, message, duration, position) {
+        function error(title, message, duration, position, options) {
             return manager._createDesktop("error", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posBottomRight, 0)
+                position !== undefined ? position : manager.posBottomRight, 0, options)
         }
-        function infoBar(severity, title, message, duration, position) {
+        function infoBar(severity, title, message, duration, position, options) {
             return manager._createDesktop(severity, title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posTopRight, 1)
+                position !== undefined ? position : manager.posTopRight, 1, options)
         }
         function randomPosition() { return manager._stackManager.randomPosition() }
     }
@@ -204,6 +204,39 @@ QtObject {
             return item.Window.window.contentItem
         }
         return item
+    }
+
+    function _desktopOverlayProperties(position, options) {
+        var properties = { "position": position, "stackOffset": 0 }
+        if (options && options.screen !== undefined && options.screen !== null) {
+            properties.screen = options.screen
+        }
+        return properties
+    }
+
+    function _desktopNotificationProperties(severity, title, message, duration, position, mode, options) {
+        var properties = {
+            "severity": severity,
+            "title": title,
+            "message": message,
+            "duration": duration,
+            "position": position,
+            "desktopMode": true
+        }
+        var names = [
+            "orient", "customContent", "closable", "feature", "progress",
+            "completeDuration", "backgroundColorLight", "backgroundColorDark"
+        ]
+        if (mode === 1) names.push("icon", "radius")
+        for (var i = 0; options && i < names.length; i++) {
+            var name = names[i]
+            if (options[name] !== undefined) properties[name] = options[name]
+        }
+        if (!options || options.orient === undefined) {
+            properties.orient = message && (message.indexOf("\n") >= 0 || message.length > 60)
+                ? Qt.Vertical : Qt.Horizontal
+        }
+        return properties
     }
     
     function _createInfoBar(parent, severity, title, content, duration, position) {
@@ -264,52 +297,47 @@ QtObject {
         return item
     }
     
-    function _createDesktop(severity, title, message, duration, position, mode) {
+    function _createDesktop(severity, title, message, duration, position, mode, options) {
         var overlayComponent = _getDesktopComponent()
         if (overlayComponent.status !== Component.Ready) {
             console.error("NotificationManager: DesktopOverlay component not ready:", overlayComponent.errorString())
             return null
         }
-        var stackOffset = _stackManager.getDesktopStackOffset(position)
-        var overlay = overlayComponent.createObject(null, { 
-            "position": position, "stackOffset": stackOffset
-        })
+        var overlay = overlayComponent.createObject(
+            null, _desktopOverlayProperties(position, options)
+        )
         if (!overlay) return null
-        
-        _stackManager.addToDesktopStack(overlay, position)
-        
+
+        var properties = _desktopNotificationProperties(
+            severity, title, message, duration, position, mode, options
+        )
         var notification
         if (mode === 1) {
             var infoBarComp = _getInfoBarComponent()
             if (infoBarComp.status !== Component.Ready) { overlay.destroy(); return null }
-            notification = infoBarComp.createObject(overlay.content, {
-                "severity": severity, "title": title, "message": message,
-                "duration": duration, "position": position, "desktopMode": true
-            })
+            notification = infoBarComp.createObject(overlay.content, properties)
         } else {
             var toastComp = _getToastComponent()
             if (toastComp.status !== Component.Ready) { overlay.destroy(); return null }
-            notification = toastComp.createObject(overlay.content, {
-                "severity": severity, "title": title, "message": message,
-                "duration": duration, "position": position, "desktopMode": true
-            })
+            notification = toastComp.createObject(overlay.content, properties)
         }
-        
+
         if (!notification) { overlay.destroy(); return null }
-        
+
         overlay.notificationItem = notification
         notification.anchors.centerIn = overlay.content
-        
+        _stackManager.addToDesktopStack(overlay, position)
+
         notification.closed.connect(function() { overlay.hide() })
         overlay.closed.connect(function() {
             manager._stackManager.removeFromDesktopStack(overlay, position)
             notification.destroy()
             overlay.destroy()
         })
-        
+
         notification.visible = true
         overlay.show()
-        
+
         return notification
     }
 }

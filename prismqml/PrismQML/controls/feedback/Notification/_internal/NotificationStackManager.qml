@@ -32,6 +32,12 @@ QtObject {
         return position !== undefined && position !== null && position >= 0 && position <= 5
     }
 
+    function _isSameScreen(first, second) {
+        if (first === second) return true
+        if (!first || !second) return false
+        return first.name === second.name
+    }
+
     // Window stack methods 窗口内堆叠方法
     function addToStack(item, position) {
         if (!_stacks || !_isValidPosition(position)) {
@@ -39,6 +45,9 @@ QtObject {
             return
         }
         _stacks[position].push(item)
+        item.heightChanged.connect(function() {
+            stackManager.repositionStack(position)
+        })
     }
 
     function removeFromStack(item, position) {
@@ -85,6 +94,13 @@ QtObject {
             return
         }
         _desktopStacks[position].push(overlay)
+        overlay.contentHeightChanged.connect(function() {
+            stackManager.repositionDesktopStack(position)
+        })
+        overlay.screenChanged.connect(function() {
+            stackManager.repositionDesktopStack(position)
+        })
+        repositionDesktopStack(position)
     }
 
     function removeFromDesktopStack(overlay, position) {
@@ -103,26 +119,21 @@ QtObject {
         var stack = _desktopStacks[position]
         if (!stack) return
         for (var i = 0; i < stack.length; i++) {
-            var offset = calculateDesktopOffset(stack, i)
+            var offset = calculateDesktopOffset(stack, i, stack[i])
             stack[i].stackOffset = offset
             stack[i].updatePosition()
         }
     }
 
-    function calculateDesktopOffset(stack, index) {
+    function calculateDesktopOffset(stack, index, targetOverlay) {
         if (!stack) return 0
         var offset = 0
+        var targetScreen = targetOverlay ? targetOverlay.screen : null
         for (var i = 0; i < index; i++) {
-            offset += stack[i].contentHeight + _stackGap
+            if (targetScreen && !_isSameScreen(stack[i].screen, targetScreen)) continue
+            offset += stack[i].height + _stackGap
         }
         return offset
-    }
-
-    function getDesktopStackOffset(position) {
-        if (!_desktopStacks || !_isValidPosition(position)) return 0
-        var stack = _desktopStacks[position]
-        if (!stack) return 0
-        return calculateDesktopOffset(stack, stack.length)
     }
 
     function closeAllDesktopNotifications() {

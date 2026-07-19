@@ -22,6 +22,53 @@ showDesktopSuccess("操作成功")
 showDesktopError("出错了")
 ```
 
+QML 桌面通知支持在显示前原子传入 `options`，避免通知已经定位后再追加按钮或切换布局：
+
+```qml
+Component {
+    id: openFolderAction
+    Fluent.Button {
+        text: "打开目录"
+        width: parent ? parent.width : implicitWidth
+    }
+}
+
+Fluent.Button {
+    text: "显示导出通知"
+    onClicked: Fluent.NotificationManager.desktop.success(
+        "导出成功",
+        "00:14\nC:/recordings/clip.mp4",
+        0,
+        Fluent.Enums.notification.posBottomRight,
+        {
+            "orient": Qt.Vertical,
+            "customContent": openFolderAction,
+            "closable": true,
+            "screen": Window.window.screen
+        }
+    )
+}
+```
+
+Toast 与 InfoBar 的通用选项包括 `orient`、`customContent`、`closable`、
+`feature`、`progress`、`completeDuration`、`backgroundColorLight` 和
+`backgroundColorDark`；桌面 InfoBar 还支持 `icon`、`radius`。`screen` 用于选择目标显示器。
+窗口会按该显示器的 `availableGeometry` 定位，自动避开任务栏，并在内容尺寸或工作区变化后重新排布。
+
+Python helper 也支持同一组可序列化选项（QML `Component` 类型的 `customContent` 除外）：
+
+```python
+from PySide6.QtCore import Qt
+from prismqml import showDesktopSuccess
+
+showDesktopSuccess(
+    "导出成功",
+    "00:14\nC:/recordings/clip.mp4",
+    duration=0,
+    options={"orient": Qt.Vertical, "closable": False},
+)
+```
+
 ## InfoBar 信息条
 
 ```qml

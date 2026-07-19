@@ -16,6 +16,14 @@ Item {
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
     }
+
+    Component {
+        id: desktopToastAction
+        Button {
+            text: "打开目录"
+            width: parent ? parent.width : implicitWidth
+        }
+    }
     
     ScrollArea {
         anchors.fill: parent
@@ -166,7 +174,22 @@ Item {
                 Row {
                     spacing: Fluent.Enums.spacing.l
                     Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.info("提示", "左上位置", Fluent.Enums.duration.notification, 0) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.success("成功", "中上位置", Fluent.Enums.duration.notification, 1) }
+                    Button {
+                        style: Fluent.Enums.button.style_filled
+                        level: 1
+                        text: "Success + options"
+                        onClicked: NotificationManager.desktop.success(
+                            "成功",
+                            "00:14\nC:/recordings/clip.mp4",
+                            Fluent.Enums.duration.notification,
+                            Fluent.Enums.notification.posBottomRight,
+                            {
+                                "orient": Qt.Vertical,
+                                "customContent": desktopToastAction,
+                                "screen": root.Window.window.screen
+                            }
+                        )
+                    }
                     Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.warning("警告", "右上位置", Fluent.Enums.duration.notification, 2) }
                     Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.error("错误", "左下位置", Fluent.Enums.duration.notification, 3) }
                     Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.info("注意", "中下位置", Fluent.Enums.duration.notification, 4) }

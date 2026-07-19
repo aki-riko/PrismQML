@@ -44,7 +44,6 @@ QtObject {
         readonly property int windowMargin: 28    // In-window notification margin 窗口内通知边距
         readonly property int stackGapLarge: 25   // InfoBar stack gap InfoBar堆叠间距
         readonly property int stackGapSmall: 8    // Toast/Desktop stack gap Toast/桌面堆叠间距
-        readonly property int taskbarOffset: 40   // Bottom taskbar offset 底部任务栏偏移
         readonly property int maxVisible: 5       // Max visible notifications 最大可见通知数
     }
     

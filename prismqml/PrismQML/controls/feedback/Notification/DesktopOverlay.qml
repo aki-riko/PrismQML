@@ -15,9 +15,11 @@ Window {
     // ==================== Public Props 公开属性 ====================
     property int position: Enums.notification.posBottomRight  // 0-5 位置枚举
     property real stackOffset: 0  // Stack offset for multiple notifications 堆叠偏移
-    property Item notificationItem: null  // Reference to notification for dynamic height 通知组件引用用于动态高度
-    // Use implicitHeight first, fallback to height to ensure proper dynamic height 优先使用 implicitHeight，fallback 到 height 以确保动态高度正确传递
+    property Item notificationItem: null  // Reference to notification for dynamic size 通知组件引用用于动态尺寸
 
+    readonly property real contentWidth: notificationItem
+        ? (notificationItem.implicitWidth > 0 ? notificationItem.implicitWidth : notificationItem.width)
+        : Enums.controlSize.toastWidth
     readonly property real contentHeight: notificationItem ? (notificationItem.implicitHeight > 0 ? notificationItem.implicitHeight : notificationItem.height) : Enums.controlSize.toastHeight
     
     // ==================== Signals 信号 ====================
@@ -41,11 +43,8 @@ Window {
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     visible: false
     color: Enums.transparent
-    width: Enums.controlSize.toastWidth + Enums.spacing.xs
+    width: contentWidth + Enums.spacing.xs  // Follow actual notification width 跟随通知实际宽度
     height: contentHeight + Enums.spacing.xs  // Use actual content height 使用实际内容高度
-
-    // Sync stackOffset to animator 同步stackOffset到动画器
-    onStackOffsetChanged: animator.stackOffset = stackOffset
 
     // ==================== Content 内容 ====================
     // Shared animator 共享动画器

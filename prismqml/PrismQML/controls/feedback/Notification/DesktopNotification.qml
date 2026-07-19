@@ -50,63 +50,18 @@ Window {
             default: return "Info"
         }
     }
-    // Use shared animation config 使用共享动画配置
-    readonly property real _slideOffset: width + Enums.notification.layout.edgeMargin
-    // Vertical slide needs larger offset for better bounce effect 垂直滑动需要更大偏移以获得更好的回弹效果
-    readonly property real _slideOffsetY: height + Enums.notification.layout.verticalSlideExtra
-    readonly property bool _isTop: Enums.notification.isTop(position)
-    readonly property bool _isLeft: Enums.notification.isLeft(position)
-    readonly property bool _isRight: Enums.notification.isRight(position)
-    readonly property bool _isCenter: Enums.notification.isCenter(position)
-    readonly property int _showEasing: Enums.notification.animation.showEasing
-    readonly property real _showOvershoot: Enums.notification.animation.showOvershoot
-    readonly property int _hideEasing: Enums.notification.animation.hideEasing
-    property real _baseX: 0
-    property real _baseY: 0
-
     // ==================== Signals 信号 ====================
     signal closed()
     signal clicked()
 
     // ==================== Public Methods 公开方法 ====================
     function show() {
-        _calculateBasePosition()
-        // Set initial position (from outside edge) 设置初始位置（从边缘外）
-        if (_isLeft) {
-            x = _baseX - _slideOffset
-            y = _baseY
-        } else if (_isRight) {
-            x = _baseX + _slideOffset
-            y = _baseY
-        } else if (_isCenter) {
-            x = _baseX
-            y = _isTop ? _baseY - _slideOffsetY : _baseY + _slideOffsetY
-        }
-        visible = true
-        showAnim.start()
-        if (duration > 0) autoCloseTimer.start()
+        animator.show()
+        if (duration > 0) autoCloseTimer.restart()
     }
 
     function hide() {
-        hideAnim.start()
-    }
-
-    // ==================== Internal Methods 内部方法 ====================
-    function _calculateBasePosition() {
-        var screen = Screen
-        var margin = Enums.notification.layout.screenMargin
-        var taskbarOffset = Enums.notification.layout.taskbarOffset
-        var sw = screen.width
-        var sh = screen.height
-
-        switch (position) {
-            case 0: _baseX = margin; _baseY = margin; break
-            case 1: _baseX = (sw - width) / 2; _baseY = margin; break
-            case 2: _baseX = sw - width - margin; _baseY = margin; break
-            case 3: _baseX = margin; _baseY = sh - height - margin - taskbarOffset; break
-            case 4: _baseX = (sw - width) / 2; _baseY = sh - height - margin - taskbarOffset; break
-            case 5: default: _baseX = sw - width - margin; _baseY = sh - height - margin - taskbarOffset; break
-        }
+        animator.hide()
     }
 
     // Window settings 窗口设置
@@ -116,45 +71,21 @@ Window {
     width: Enums.controlSize.desktopNotificationWidth
     height: Math.max(
         Enums.controlSize.toastHeight,
-        contentCol.implicitHeight
-            + (hasCustomContent ? customContentLoader.height + Enums.spacing.m : 0)
-            + Enums.controlSize.dialogButtonHeight
+        contentCol.implicitHeight + Enums.controlSize.dialogButtonHeight
     )
 
     // ==================== Content 内容 ====================
     Timer { id: autoCloseTimer; interval: duration; onTriggered: control.hide() }
 
-    // Animations 动画
-    ParallelAnimation {
-        id: showAnim
-        NumberAnimation { 
-            target: control; property: "x"; to: control._baseX
-            duration: Enums.notification.animation.showDuration
-            easing.type: control._showEasing; easing.overshoot: control._showOvershoot
-        }
-        NumberAnimation { 
-            target: control; property: "y"; to: control._baseY
-            duration: Enums.notification.animation.showDuration
-            easing.type: control._showEasing; easing.overshoot: control._showOvershoot
-        }
-    }
-    
-    ParallelAnimation {
-        id: hideAnim
-        onFinished: { control.visible = false; control.closed() }
-
-        NumberAnimation { 
-            target: control; property: "x"
-            to: control._isLeft ? control._baseX - control._slideOffset : 
-                (control._isRight ? control._baseX + control._slideOffset : control._baseX)
-            duration: Enums.notification.animation.hideDuration
-            easing.type: control._hideEasing
-        }
-        NumberAnimation { 
-            target: control; property: "y"
-            to: control._isCenter ? (control._isTop ? control._baseY - control._slideOffsetY : control._baseY + control._slideOffsetY) : control._baseY
-            duration: Enums.notification.animation.hideDuration
-            easing.type: control._hideEasing
+    property alias animator: animator
+    NotificationAnimator {
+        id: animator
+        target: control
+        position: control.position
+        desktopMode: true
+        onHideFinished: {
+            control.visible = false
+            control.closed()
         }
     }
 

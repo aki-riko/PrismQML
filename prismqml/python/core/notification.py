@@ -30,7 +30,7 @@ helper 全局单例缓存, 第一次调用时按需 lazy load。
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Optional
+from typing import Any, Mapping, Optional
 
 from PySide6.QtCore import QObject, QUrl, Qt, QMetaObject, Q_ARG, Slot
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -70,17 +70,17 @@ import QtQuick
 import PrismQML
 
 QtObject {
-    function desktopShow(severity, title, message, duration, position) {
+    function desktopShow(severity, title, message, duration, position, options) {
         switch (severity) {
-            case "info":      return NotificationManager.desktop.info(title, message, duration, position)
-            case "success":   return NotificationManager.desktop.success(title, message, duration, position)
-            case "warning":   return NotificationManager.desktop.warning(title, message, duration, position)
-            case "error":     return NotificationManager.desktop.error(title, message, duration, position)
-            default:          return NotificationManager.desktop.infoBar(severity, title, message, duration, position)
+            case "info":      return NotificationManager.desktop.info(title, message, duration, position, options)
+            case "success":   return NotificationManager.desktop.success(title, message, duration, position, options)
+            case "warning":   return NotificationManager.desktop.warning(title, message, duration, position, options)
+            case "error":     return NotificationManager.desktop.error(title, message, duration, position, options)
+            default:          return NotificationManager.desktop.infoBar(severity, title, message, duration, position, options)
         }
     }
-    function desktopInfoBar(severity, title, message, duration, position) {
-        return NotificationManager.desktop.infoBar(severity, title, message, duration, position)
+    function desktopInfoBar(severity, title, message, duration, position, options) {
+        return NotificationManager.desktop.infoBar(severity, title, message, duration, position, options)
     }
     function closeAllDesktop() {
         NotificationManager.closeAllDesktopNotifications()
@@ -166,36 +166,93 @@ def showDesktopNotification(
     message: str = "",
     duration: int = 5000,
     position: int = Position.BottomRight,
+    options: Optional[Mapping[str, Any]] = None,
 ) -> bool:
     """通用桌面通知入口
 
     severity: 见 Severity 类常量
     duration: 毫秒, 默认 5000
     position: 见 Position 枚举, 默认 BottomRight
+    options: 创建前应用的通知属性, 如 orient/closable/feature/progress
     返回是否成功 dispatch (不代表用户已看到)
     """
-    return _invoke("desktopShow", severity, title, message, int(duration), int(position))
+    return _invoke(
+        "desktopShow",
+        severity,
+        title,
+        message,
+        int(duration),
+        int(position),
+        dict(options or {}),
+    )
 
 
-def showDesktopInfo(title: str, message: str = "", duration: int = 5000, position: int = Position.BottomRight) -> bool:
-    return showDesktopNotification(Severity.INFO, title, message, duration, position)
+def showDesktopInfo(
+    title: str,
+    message: str = "",
+    duration: int = 5000,
+    position: int = Position.BottomRight,
+    options: Optional[Mapping[str, Any]] = None,
+) -> bool:
+    return showDesktopNotification(
+        Severity.INFO, title, message, duration, position, options
+    )
 
 
-def showDesktopSuccess(title: str, message: str = "", duration: int = 5000, position: int = Position.BottomRight) -> bool:
-    return showDesktopNotification(Severity.SUCCESS, title, message, duration, position)
+def showDesktopSuccess(
+    title: str,
+    message: str = "",
+    duration: int = 5000,
+    position: int = Position.BottomRight,
+    options: Optional[Mapping[str, Any]] = None,
+) -> bool:
+    return showDesktopNotification(
+        Severity.SUCCESS, title, message, duration, position, options
+    )
 
 
-def showDesktopWarning(title: str, message: str = "", duration: int = 5000, position: int = Position.BottomRight) -> bool:
-    return showDesktopNotification(Severity.WARNING, title, message, duration, position)
+def showDesktopWarning(
+    title: str,
+    message: str = "",
+    duration: int = 5000,
+    position: int = Position.BottomRight,
+    options: Optional[Mapping[str, Any]] = None,
+) -> bool:
+    return showDesktopNotification(
+        Severity.WARNING, title, message, duration, position, options
+    )
 
 
-def showDesktopError(title: str, message: str = "", duration: int = 5000, position: int = Position.BottomRight) -> bool:
-    return showDesktopNotification(Severity.ERROR, title, message, duration, position)
+def showDesktopError(
+    title: str,
+    message: str = "",
+    duration: int = 5000,
+    position: int = Position.BottomRight,
+    options: Optional[Mapping[str, Any]] = None,
+) -> bool:
+    return showDesktopNotification(
+        Severity.ERROR, title, message, duration, position, options
+    )
 
 
-def showDesktopInfoBar(severity: str, title: str, message: str = "", duration: int = 5000, position: int = Position.TopRight) -> bool:
+def showDesktopInfoBar(
+    severity: str,
+    title: str,
+    message: str = "",
+    duration: int = 5000,
+    position: int = Position.TopRight,
+    options: Optional[Mapping[str, Any]] = None,
+) -> bool:
     """桌面级 InfoBar (横长条样式)"""
-    return _invoke("desktopInfoBar", severity, title, message, int(duration), int(position))
+    return _invoke(
+        "desktopInfoBar",
+        severity,
+        title,
+        message,
+        int(duration),
+        int(position),
+        dict(options or {}),
+    )
 
 
 def closeAllDesktopNotifications() -> bool:

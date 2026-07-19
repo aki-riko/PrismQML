@@ -22,6 +22,57 @@ showDesktopSuccess("Done")
 showDesktopError("Something went wrong")
 ```
 
+QML desktop notifications accept atomic creation `options`, so layout and action
+content are applied before the notification is positioned:
+
+```qml
+Component {
+    id: openFolderAction
+    Fluent.Button {
+        text: "Open folder"
+        width: parent ? parent.width : implicitWidth
+    }
+}
+
+Fluent.Button {
+    text: "Show export notification"
+    onClicked: Fluent.NotificationManager.desktop.success(
+        "Export complete",
+        "00:14\nC:/recordings/clip.mp4",
+        0,
+        Fluent.Enums.notification.posBottomRight,
+        {
+            "orient": Qt.Vertical,
+            "customContent": openFolderAction,
+            "closable": true,
+            "screen": Window.window.screen
+        }
+    )
+}
+```
+
+Shared Toast and InfoBar options are `orient`, `customContent`, `closable`,
+`feature`, `progress`, `completeDuration`, `backgroundColorLight`, and
+`backgroundColorDark`. Desktop InfoBar also accepts `icon` and `radius`.
+Use `screen` to select the target display. The native window is positioned inside
+that screen's `availableGeometry`, avoiding taskbars and reflowing after content
+or work-area geometry changes.
+
+The Python helper accepts the same serializable options, except QML `Component`
+values such as `customContent`:
+
+```python
+from PySide6.QtCore import Qt
+from prismqml import showDesktopSuccess
+
+showDesktopSuccess(
+    "Export complete",
+    "00:14\nC:/recordings/clip.mp4",
+    duration=0,
+    options={"orient": Qt.Vertical, "closable": False},
+)
+```
+
 ## InfoBar
 
 ```qml

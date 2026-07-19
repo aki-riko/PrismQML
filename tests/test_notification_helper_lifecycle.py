@@ -126,3 +126,36 @@ def test_helper_rebuilds_after_old_engine_is_destroyed(notification_engines):
     assert helper_second is not helper_first
     assert helper_second.parent() is engine_b
     assert qmlEngine(helper_second) is engine_b
+
+
+def test_python_helper_dispatches_desktop_options_atomically(monkeypatch):
+    """Python helper must forward creation options in the same dispatch. Python入口须同次转发创建参数。"""
+    calls = []
+
+    def fake_invoke(method_name, *args):
+        calls.append((method_name, args))
+        return True
+
+    monkeypatch.setattr(notification, "_invoke", fake_invoke)
+
+    result = notification.showDesktopSuccess(
+        "导出成功",
+        "00:14\nC:/recordings/clip.mp4",
+        duration=0,
+        options={"closable": False, "progress": 0.25},
+    )
+
+    assert result is True
+    assert calls == [
+        (
+            "desktopShow",
+            (
+                notification.Severity.SUCCESS,
+                "导出成功",
+                "00:14\nC:/recordings/clip.mp4",
+                0,
+                int(notification.Position.BottomRight),
+                {"closable": False, "progress": 0.25},
+            ),
+        )
+    ]
