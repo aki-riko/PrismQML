@@ -21,7 +21,9 @@ from PySide6.QtGui import QGuiApplication, QWindow
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
+from examples.resources import register_gallery_resources
 from prismqml import register_types
+from prismqml.python.core.incubation import install_incubation_controller
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -50,6 +52,7 @@ METRICS_SOURCE = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "popup-position-tracking.qml")
 )
+MENU_PAGE_URL = QUrl.fromLocalFile(str(ROOT / "examples" / "pages" / "MenuPage.qml"))
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window
@@ -112,6 +115,30 @@ Window {
     }
 }
 """
+ASYNC_MENU_SCENE_SOURCE = f"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {{
+    id: root
+    objectName: "asyncMenuWindow"
+
+    readonly property bool menuReady: menuLoader.status === Loader.Ready
+
+    width: 900
+    height: 700
+    visible: true
+
+    Loader {{
+        id: menuLoader
+        objectName: "menuLoader"
+        anchors.fill: parent
+        asynchronous: true
+        source: "{MENU_PAGE_URL.toString()}"
+    }}
+}}
+""".encode("utf-8")
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -154,6 +181,22 @@ def _repeat_timers(root: QObject) -> list[QObject]:
     ]
 
 
+def _popup_trackers(root: QObject) -> list[QObject]:
+    return [
+        obj
+        for obj in root.findChildren(QObject)
+        if obj.metaObject().className().startswith("PopupPositionTracker_")
+    ]
+
+
+def _tracker_connections(tracker: QObject) -> list[QObject]:
+    return [
+        obj
+        for obj in tracker.findChildren(QObject)
+        if obj.metaObject().className().startswith("QQmlConnections_")
+    ]
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -190,6 +233,31 @@ def _dispose_scene(engine, component, window) -> None:
     engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
+
+
+def _create_async_menu_scene():
+    assert register_gallery_resources()
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    install_incubation_controller(engine)
+    component = QQmlComponent(engine)
+    component.setData(ASYNC_MENU_SCENE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    loader = window.findChild(QQuickItem, "menuLoader")
+    assert loader is not None
+    assert _wait_for(lambda: window.property("menuReady"), timeout_ms=5_000)
+    return engine, component, window, loader, warnings
 
 
 @pytest.fixture
@@ -299,5 +367,43 @@ def test_popup_tracking_source_is_event_driven():
         assert "interval: Enums.popupMetrics.trackerIntervalMs" not in source
     assert "function onAfterAnimating()" in tracker_source
     assert "function scheduleUpdate()" in tracker_source
-    assert "Timer {" not in tracker_source
+    assert "Qt.callLater" not in tracker_source
+    assert "Timer {" in tracker_source
+    assert "repeat: false" in tracker_source
+    assert "repeat: true" not in tracker_source
     assert "trackerIntervalMs" not in metrics_source
+
+
+def test_popup_tracking_connections_only_exist_while_tracking(popup_scene):
+    window, items, warnings, _windows_before = popup_scene
+    popup = items["popup"]
+    tip = items["tip"]
+
+    popup_trackers = _popup_trackers(popup)
+    tip_trackers = _popup_trackers(tip)
+    assert len(popup_trackers) == 1
+    assert len(tip_trackers) == 1
+    assert _tracker_connections(popup_trackers[0]) == []
+    assert _tracker_connections(tip_trackers[0]) == []
+
+    assert QMetaObject.invokeMethod(window, "openPopup")
+    assert _wait_for(lambda: len(_tracker_connections(popup_trackers[0])) == 2)
+    assert QMetaObject.invokeMethod(popup, "close")
+    assert _wait_for(lambda: _tracker_connections(popup_trackers[0]) == [])
+
+    assert QMetaObject.invokeMethod(window, "showTip")
+    assert _wait_for(lambda: len(_tracker_connections(tip_trackers[0])) == 2)
+    assert QMetaObject.invokeMethod(tip, "close")
+    assert _wait_for(lambda: _tracker_connections(tip_trackers[0]) == [])
+    assert warnings == []
+
+
+def test_menu_page_async_incubation_keeps_closed_popup_connections_inactive(qapp):
+    engine, component, window, _loader, warnings = _create_async_menu_scene()
+    try:
+        trackers = _popup_trackers(window)
+        assert trackers
+        assert all(_tracker_connections(tracker) == [] for tracker in trackers)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)

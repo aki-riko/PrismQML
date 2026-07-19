@@ -16,7 +16,6 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     property point _lastGlobalPosition: Qt.point(-1, -1)
-    property bool _updatePending: false
 
     // ==================== Signals 信号 ====================
     signal targetMoved(point globalPosition)
@@ -24,12 +23,8 @@ Item {
 
     // ==================== Internal Methods 内部方法 ====================
     function scheduleUpdate() {
-        if (!trackingEnabled || !target || _updatePending) return
-        _updatePending = true
-        Qt.callLater(function() {
-            tracker._updatePending = false
-            tracker._updatePosition()
-        })
+        if (!trackingEnabled || !target || updateTimer.running) return
+        updateTimer.start()
     }
 
     function _updatePosition() {
@@ -62,29 +57,51 @@ Item {
     onTargetWindowChanged: scheduleUpdate()
     onTrackingEnabledChanged: scheduleUpdate()
 
-    // Follow direct target geometry changes without polling 目标几何变化时事件驱动跟随
-    Connections {
-        function onXChanged() { tracker.scheduleUpdate() }
-        function onYChanged() { tracker.scheduleUpdate() }
-        function onWidthChanged() { tracker.scheduleUpdate() }
-        function onHeightChanged() { tracker.scheduleUpdate() }
-        function onVisibleChanged() { tracker.scheduleUpdate() }
-        function onParentChanged() { tracker.scheduleUpdate() }
+    // Coalesce geometry signals while keeping queued work bound to this lifecycle.
+    // 合并几何信号，并让待执行任务跟随当前对象生命周期销毁。
+    Timer {
+        id: updateTimer
 
-        target: tracker.trackingEnabled ? tracker.target : null
-        ignoreUnknownSignals: true
+        interval: 0
+        repeat: false
+        onTriggered: tracker._updatePosition()
     }
 
-    // Ancestor scrolling renders a frame; native window movement emits geometry signals.
-    // 祖先滚动会渲染新帧，原生窗口移动会发出几何信号。
-    Connections {
-        function onAfterAnimating() { tracker.scheduleUpdate() }
-        function onXChanged() { tracker.scheduleUpdate() }
-        function onYChanged() { tracker.scheduleUpdate() }
-        function onWidthChanged() { tracker.scheduleUpdate() }
-        function onHeightChanged() { tracker.scheduleUpdate() }
+    // Delay QQmlConnections creation until the popup is actively tracking.
+    // 仅在弹层实际跟踪时创建QQmlConnections，避开异步孵化期的Qt连接竞态。
+    Loader {
+        id: connectionLoader
 
-        target: tracker.trackingEnabled ? tracker.targetWindow : null
-        ignoreUnknownSignals: true
+        active: tracker.trackingEnabled && tracker.target !== null
+        asynchronous: false
+        sourceComponent: Item {
+            visible: false
+
+            // Follow direct target geometry changes without polling 目标几何变化时事件驱动跟随
+            Connections {
+                function onXChanged() { tracker.scheduleUpdate() }
+                function onYChanged() { tracker.scheduleUpdate() }
+                function onWidthChanged() { tracker.scheduleUpdate() }
+                function onHeightChanged() { tracker.scheduleUpdate() }
+                function onVisibleChanged() { tracker.scheduleUpdate() }
+                function onParentChanged() { tracker.scheduleUpdate() }
+
+                target: tracker.target
+                ignoreUnknownSignals: true
+            }
+
+            // Ancestor scrolling renders a frame; native window movement emits geometry signals.
+            // 祖先滚动会渲染新帧，原生窗口移动会发出几何信号。
+            Connections {
+                function onAfterAnimating() { tracker.scheduleUpdate() }
+                function onXChanged() { tracker.scheduleUpdate() }
+                function onYChanged() { tracker.scheduleUpdate() }
+                function onWidthChanged() { tracker.scheduleUpdate() }
+                function onHeightChanged() { tracker.scheduleUpdate() }
+
+                target: tracker.targetWindow
+                ignoreUnknownSignals: true
+            }
+        }
     }
 }
