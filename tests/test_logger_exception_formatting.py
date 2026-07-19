@@ -123,6 +123,7 @@ def test_qt_warning_includes_source_context_and_replays_breadcrumbs_once(
     )
 
     handler(QtMsgType.QtDebugMsg, context, breadcrumb)
+    handler(QtMsgType.QtWarningMsg, context, " \n\t")
     handler(QtMsgType.QtWarningMsg, context, "Unable to assign [undefined] to QColor")
     handler(QtMsgType.QtWarningMsg, context, "second warning")
 

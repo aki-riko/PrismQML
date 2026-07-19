@@ -166,10 +166,16 @@ Rectangle {
             offset: 0
         })
 
-        color: _activeLevel ? _activeLevel.color : Enums.transparent
-        blur: _activeLevel ? _activeLevel.blur : 0
+        color: _activeLevel && _activeLevel.color !== undefined
+               ? _activeLevel.color
+               : (_staticFallbackShadow ? _staticFallbackShadow.color : Enums.transparent)
+        blur: _activeLevel && _activeLevel.blur !== undefined
+              ? _activeLevel.blur
+              : (_staticFallbackShadow ? _staticFallbackShadow.blur : 0)
         offset.x: 0
-        offset.y: _activeLevel ? _activeLevel.offset : 0
+        offset.y: _activeLevel && _activeLevel.offset !== undefined
+                  ? _activeLevel.offset
+                  : (_staticFallbackShadow ? _staticFallbackShadow.offset : 0)
 
         Behavior on blur {
             enabled: root.animated && hoverElevation

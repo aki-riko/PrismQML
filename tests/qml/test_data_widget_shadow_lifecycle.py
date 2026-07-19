@@ -4,6 +4,8 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """DataWidget shadow fallback lifecycle regressions. 数据组件阴影兜底生命周期回归。"""
 
+import subprocess
+import sys
 from pathlib import Path
 
 import shiboken6
@@ -43,6 +45,34 @@ _QT_FAILURE_TYPES = {
     QtMsgType.QtCriticalMsg,
     QtMsgType.QtFatalMsg,
 }
+_PROCESS_EXIT_PROBE = r"""
+from PySide6.QtCore import QUrl
+from PySide6.QtQml import QQmlComponent
+
+from prismqml import App
+
+
+app = App([])
+component = QQmlComponent(app._engine)
+component.setData(
+    b'''import QtQuick
+import PrismQML
+
+Item {
+    DataWidgetCore {
+        width: 240
+        height: 140
+    }
+}
+''',
+    QUrl("data-widget-process-exit.qml"),
+)
+assert component.status() == QQmlComponent.Status.Ready, [
+    error.toString() for error in component.errors()
+]
+root = component.create(app._engine.rootContext())
+assert root is not None, [error.toString() for error in component.errors()]
+"""
 
 
 def _find_metrics(enums):
@@ -131,3 +161,20 @@ def test_data_widget_shadow_survives_metrics_teardown_without_qml_warnings(qapp)
         if mode in _QT_FAILURE_TYPES
     ]
     assert failures == []
+
+
+def test_data_widget_default_shadow_process_exit_has_no_qcolor_warning():
+    """Natural process exit must not feed an expired shadow color into QColor. 自然退出不得把失效阴影色传给 QColor。"""
+    result = subprocess.run(
+        [sys.executable, "-c", _PROCESS_EXIT_PROBE],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    output = f"{result.stdout}\n{result.stderr}"
+
+    assert result.returncode == 0, output
+    assert "Unable to assign [undefined] to QColor" not in output

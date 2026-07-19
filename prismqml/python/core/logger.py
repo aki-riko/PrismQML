@@ -410,6 +410,8 @@ def _create_qt_message_handler(qt_msg_type):
         if not message:
             return
         stripped_message = message.strip()
+        if not stripped_message:
+            return
         level = level_map.get(mode, logging.INFO)
         if stripped_message.startswith(_QT_BREADCRUMB_PREFIXES):
             breadcrumbs.append(stripped_message)
