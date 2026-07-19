@@ -13,7 +13,7 @@ try:
 
     __version__ = _get_version("prismqml")  # PyPI 分发名为 prismqml
 except _PackageNotFoundError:
-    __version__ = "0.3.1.2"  # 回退值：开发模式或未安装时
+    __version__ = "0.3.1.3"  # 回退值：开发模式或未安装时
 __author__ = "aki-riko"
 
 __all__ = [
@@ -53,6 +53,7 @@ __all__ = [
     "WindowCore",
     "WindowType",
     "NavigationItem",
+    "AsyncQmlPage",
     # Logger
     "Logger",
     "getLogger",
@@ -137,6 +138,7 @@ _LAZY_EXPORTS = {
     "WindowCore": (".python.window.window_core", "WindowCore"),
     "WindowType": (".python.window.window_core", "WindowType"),
     "NavigationItem": (".python.window.window_core", "NavigationItem"),
+    "AsyncQmlPage": (".python.window.async_qml_page", "AsyncQmlPage"),
     # Logger
     "Logger": (".python.core.logger", "Logger"),
     "getLogger": (".python.core.logger", "getLogger"),

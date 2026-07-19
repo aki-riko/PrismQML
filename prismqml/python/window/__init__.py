@@ -173,6 +173,7 @@ __all__ = [
     "WindowCore",
     "WindowType",
     "NavigationItem",
+    "AsyncQmlPage",
     # Mica/Acrylic
     "MicaManager",
     "get_mica_manager",
@@ -196,6 +197,7 @@ _LAZY_EXPORTS = {
     "WindowCore": (".window_core", "WindowCore"),
     "WindowType": (".window_core", "WindowType"),
     "NavigationItem": (".window_core", "NavigationItem"),
+    "AsyncQmlPage": (".async_qml_page", "AsyncQmlPage"),
     # Mica/Acrylic
     "MicaManager": (".mica_window", "MicaManager"),
     "get_mica_manager": (".mica_window", "get_mica_manager"),

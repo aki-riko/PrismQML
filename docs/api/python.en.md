@@ -10,6 +10,7 @@ Top-level API importable via `from prismqml import ...`.
 | `Window` / `WindowCore` | Main window |
 | `WindowType` | Window type enum (BAR / SPLIT / FILLED) |
 | `NavigationItem` | Navigation item |
+| `AsyncQmlPage` | Creates a Python-backed QML page through the engine LoadingOverlay and incubation controller |
 
 ```python
 from prismqml import App, WindowType
@@ -18,6 +19,31 @@ window = app.create_window(WindowType.BAR)
 ```
 
 `App(allow_qml_file_read=True)` enables local i18n JSON access for Translator before creating the QML engine; pass `False` to disable it explicitly. A plain `import prismqml` does not change this environment setting.
+
+`AsyncQmlPage` is intended for Python page factories. The target QML root must
+declare `property var backend`. The page manager attaches a lightweight host,
+incubates the target tree through an asynchronous `Loader`, and keeps the
+window's standard loading overlay visible until `page_ready` is emitted:
+
+```python
+from pathlib import Path
+
+from prismqml import AsyncQmlPage
+
+class LibraryPage(AsyncQmlPage):
+    def __init__(self, parent=None):
+        super().__init__(Path(__file__).with_name("LibraryPage.qml"), parent)
+```
+
+Strings and `Path` values identify local files; pass `QUrl` explicitly for other
+URL schemes. The page factory and its Python business initialization remain
+synchronous and should stay lightweight; this wrapper asynchronously creates
+the target QML object tree.
+If the target root has additional first-frame content that is also incubated
+(for example, `StackView.initialItem`), it may declare
+`property bool prismqmlAsyncReady`. The engine waits for that property to first
+become `true` before emitting `page_ready`. Targets without the property still
+use Loader Ready as their readiness condition.
 
 ## Skin & Theme
 

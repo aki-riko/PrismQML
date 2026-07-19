@@ -10,6 +10,7 @@
 | `Window` / `WindowCore` | 主窗口 |
 | `WindowType` | 窗口类型枚举（BAR / SPLIT / FILLED） |
 | `NavigationItem` | 导航项 |
+| `AsyncQmlPage` | 使用引擎标准 LoadingOverlay 和孵化控制器异步创建带 Python backend 的 QML 页面 |
 
 ```python
 from prismqml import App, WindowType
@@ -18,6 +19,26 @@ window = app.create_window(WindowType.BAR)
 ```
 
 `App(allow_qml_file_read=True)` 默认在创建 QML 引擎前启用 Translator 的本地 i18n JSON 读取；传入 `False` 可显式关闭。普通 `import prismqml` 不会修改该环境变量。
+
+`AsyncQmlPage` 供 Python 页面工厂使用。目标 QML 根对象必须声明
+`property var backend`；页面管理器会先挂载轻量宿主，再通过异步 `Loader`
+分帧创建目标对象树，并在 `page_ready` 之前持续显示窗口自带的标准加载遮罩：
+
+```python
+from pathlib import Path
+
+from prismqml import AsyncQmlPage
+
+class LibraryPage(AsyncQmlPage):
+    def __init__(self, parent=None):
+        super().__init__(Path(__file__).with_name("LibraryPage.qml"), parent)
+```
+
+字符串和 `Path` 表示本地文件；其他 URL 应显式传入 `QUrl`。页面工厂本身及其
+Python 业务初始化仍同步执行，应保持轻量；该封装异步处理的是目标 QML 对象树。
+如果目标根对象内部还有需要分帧完成的首屏容器（例如 `StackView.initialItem`），
+可声明 `property bool prismqmlAsyncReady`。引擎会等待该属性首次变为 `true` 后再
+发出 `page_ready`；未声明该属性的页面仍以 Loader Ready 作为就绪条件。
 
 ## 皮肤与主题
 

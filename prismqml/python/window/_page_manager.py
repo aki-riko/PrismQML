@@ -82,21 +82,27 @@ def _resolve_sync_page_instance(item: Any):
     return None, None
 
 
+def _resolve_page_layout_item(page_instance: Any):
+    layout_item = getattr(page_instance, "_prismqml_layout_item", None)
+    return layout_item if layout_item is not None else page_instance._qml_item
+
+
 def _make_page_size_binder(
     page_instance: Any, page_container: Any, emit_signals: bool
 ):
     from shiboken6 import isValid
 
     def bind_size():
-        if not isValid(page_instance._qml_item) or not isValid(page_container):
+        page_item = _resolve_page_layout_item(page_instance)
+        if not isValid(page_item) or not isValid(page_container):
             return
         width = page_container.width()
         height = page_container.height()
         if width > 0 and height > 0:
-            page_instance._qml_item.setWidth(width)
-            page_instance._qml_item.setHeight(height)
+            page_item.setWidth(width)
+            page_item.setHeight(height)
             if emit_signals:
-                _emit_page_size_signals(page_instance._qml_item)
+                _emit_page_size_signals(page_item)
 
     return bind_size
 
@@ -113,6 +119,10 @@ def _has_deferred_queue(page_instance: Any):
         hasattr(page_instance, "_deferred_queue")
         and page_instance._deferred_queue
     )
+
+
+def _is_managed_async_page(page_instance: Any) -> bool:
+    return bool(getattr(page_instance, "_prismqml_async_page", False))
 
 
 class PageManagerMixin:
@@ -163,7 +173,7 @@ class PageManagerMixin:
     def _attach_sync_page_content(
         self, index, page_instance, page_container, profile
     ):
-        page_item = page_instance._qml_item
+        page_item = _resolve_page_layout_item(page_instance)
         if page_item:
             page_item.setParentItem(page_container)
             profile("setParentItem")
@@ -183,6 +193,10 @@ class PageManagerMixin:
         self._pages[index] = page_instance
         info(f"创建页面: {item.text}")
         profile("登记页面实例")
+        if _is_managed_async_page(page_instance):
+            page_instance.start_loading()
+            profile("启动异步 QML 页面")
+            return
         if _has_deferred_queue(page_instance):
             profile("发现 deferred queue")
             page_instance.startBatchCreation()
@@ -285,7 +299,7 @@ class PageManagerMixin:
         self._finalize_async_page(index, item, page_instance)
 
     def _attach_async_page_content(self, page_instance, page_container):
-        page_item = page_instance._qml_item
+        page_item = _resolve_page_layout_item(page_instance)
         if not page_item:
             return
         page_item.setParentItem(page_container)
@@ -301,6 +315,9 @@ class PageManagerMixin:
     def _finalize_async_page(self, index, item, page_instance):
         self._pages[index] = page_instance
         info(f"异步创建页面: {item.text}")
+        if _is_managed_async_page(page_instance):
+            self._start_managed_async_page(index, item, page_instance)
+            return
         if _has_deferred_queue(page_instance):
             on_complete = partial(
                 self._on_async_batch_complete, index, page_instance
@@ -308,6 +325,37 @@ class PageManagerMixin:
             page_instance.startBatchCreation(on_complete=on_complete)
             return
         self._finish_loading_and_switch(index)
+
+    def _start_managed_async_page(self, index, item, page_instance):
+        on_ready = partial(self._on_managed_async_page_ready, index)
+        on_failed = partial(
+            self._on_managed_async_page_failed, index, item, page_instance
+        )
+        page_instance.page_ready.connect(on_ready)
+        page_instance.page_failed.connect(on_failed)
+        try:
+            page_instance.start_loading()
+        except Exception as exc:
+            exception(
+                "异步 QML 页面启动失败: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            self._on_managed_async_page_failed(
+                index, item, page_instance, str(exc)
+            )
+
+    def _on_managed_async_page_ready(self, index):
+        self._finish_loading_and_switch(index)
+
+    def _on_managed_async_page_failed(
+        self, index, item, page_instance, message
+    ):
+        warning(f"异步 QML 页面加载失败: {message}")
+        if self._pages.get(index) is page_instance:
+            self._pages.pop(index)
+        if item._page_instance is page_instance:
+            item._page_instance = None
+        self._finish_loading()
 
     def _on_async_batch_complete(self, index, page_instance):
         if page_instance._qml_item:

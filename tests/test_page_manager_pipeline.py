@@ -33,6 +33,11 @@ class _Signal:
     def emit(self, *args):
         self.events.append(("emit", self.name, *args))
 
+    def fire(self, *args):
+        self.events.append(("fire", self.name, *args))
+        for callback in tuple(self.callbacks):
+            callback(*args)
+
 
 class _TimerQueue:
     def __init__(self, events):
@@ -113,6 +118,37 @@ class _Page:
         if self.batch_error is not None:
             raise self.batch_error("batch failed")
         self.batch_callback = on_complete
+
+
+def test_size_binder_uses_stable_async_layout_item(monkeypatch):
+    qml_events = []
+    layout_events = []
+    container_events = []
+    page = _Page(qml_events)
+    page._prismqml_layout_item = _PageItem(layout_events)
+    container = _Container(container_events, width=900, height=640)
+    monkeypatch.setattr(shiboken6, "isValid", lambda _item: True)
+
+    bind_size = _page_manager._make_page_size_binder(page, container, False)
+    bind_size()
+
+    assert qml_events == []
+    assert layout_events == [("set_width", 900), ("set_height", 640)]
+
+
+class _AsyncPage(_Page):
+    _prismqml_async_page = True
+
+    def __init__(self, events, *, start_error=None):
+        super().__init__(events)
+        self.page_ready = _Signal("async_page_ready", events)
+        self.page_failed = _Signal("async_page_failed", events)
+        self.start_error = start_error
+
+    def start_loading(self):
+        self.events.append(("start_async_qml",))
+        if self.start_error is not None:
+            raise self.start_error("start failed")
 
 
 class _RecordingPages(dict):
@@ -400,6 +436,83 @@ def test_async_deferred_page_waits_for_batch_before_switch(monkeypatch):
     assert not any(event[0] in {"finish", "switch"} for event in events)
     page.batch_callback()
     assert events[-3:] == [("opacity", 1), ("finish",), ("switch", 0)]
+
+
+def test_managed_async_qml_page_keeps_overlay_until_target_is_ready(monkeypatch):
+    events = []
+    page = _AsyncPage(events)
+    item = _source_item("getter", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    timers = _install_runtime_fakes(monkeypatch, events)
+
+    manager._start_async_page_load(0)
+    timers.run(_PAGE_RENDER_DELAY_MS)
+
+    assert events[-4:] == [
+        ("register", 0),
+        ("connect", "async_page_ready"),
+        ("connect", "async_page_failed"),
+        ("start_async_qml",),
+    ]
+    assert not any(event[0] in {"finish", "switch"} for event in events)
+
+    page.page_ready.fire()
+
+    assert events[-3:] == [
+        ("fire", "async_page_ready"),
+        ("finish",),
+        ("switch", 0),
+    ]
+
+
+def test_managed_async_qml_page_failure_clears_cached_instance(monkeypatch):
+    events = []
+    page = _AsyncPage(events)
+    item = _source_item("getter", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    timers = _install_runtime_fakes(monkeypatch, events)
+
+    manager._start_async_page_load(0)
+    timers.run(_PAGE_RENDER_DELAY_MS)
+    page.page_failed.fire("broken target")
+
+    assert manager._pages == {}
+    assert item._page_instance is None
+    assert events[-2:] == [("warning", "异步 QML 页面加载失败: broken target"), ("finish",)]
+    assert not any(event[0] == "switch" for event in events)
+
+
+def test_managed_async_qml_page_start_failure_keeps_traceback_and_cleans_up(monkeypatch):
+    events = []
+    page = _AsyncPage(events, start_error=RuntimeError)
+    item = _source_item("getter", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    timers = _install_runtime_fakes(monkeypatch, events)
+
+    manager._start_async_page_load(0)
+    timers.run(_PAGE_RENDER_DELAY_MS)
+
+    exception_events = [event for event in events if event[0] == "exception"]
+    assert len(exception_events) == 1
+    assert "异步 QML 页面启动失败" in exception_events[0][1]
+    assert exception_events[0][2] is RuntimeError
+    assert manager._pages == {}
+    assert item._page_instance is None
+    assert events[-1] == ("finish",)
+
+
+def test_sync_managed_async_qml_page_starts_after_registration(monkeypatch):
+    events = []
+    page = _AsyncPage(events)
+    item = _source_item("existing", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    _install_runtime_fakes(monkeypatch, events)
+
+    manager._create_page(0)
+
+    assert ("register", 0) in events
+    assert events[-1] == ("start_async_qml",)
+    assert not any(event[0] in {"finish", "switch"} for event in events)
 
 
 @pytest.mark.parametrize("case", ["invalid_index", "missing_container", "no_loader"])
