@@ -11,11 +11,13 @@ from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QObject,
     QTimer,
     QtMsgType,
     QUrl,
     qInstallMessageHandler,
 )
+from PySide6.QtGui import QWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import configure_qml_environment, register_types
@@ -137,6 +139,30 @@ Item {
             { text: "Right", role: "right", width: 240 }
         ]
         tableData: [{ left: "A", right: "B" }]
+    }
+}
+"""
+_CONTEXT_MENU_SCENE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    width: 360
+    height: 240
+    visible: true
+
+    TableWidget {
+        id: table
+
+        objectName: "table"
+        anchors.fill: parent
+        columns: [{ text: "Name", role: "name", width: 160 }]
+        tableData: [{ name: "Alpha" }, { name: "Beta" }]
+
+        function openDefaultMenu(rowIndex) {
+            _showDefaultContextMenu(rowIndex, 12, 12)
+        }
     }
 }
 """
@@ -295,5 +321,69 @@ def test_table_widget_fractional_columns_use_inner_viewport_width(qapp):
 
     failures = [
         message for mode, message in messages if mode in _QT_FAILURE_TYPES
+    ]
+    assert failures == []
+
+
+def test_table_widget_default_context_menu_loads_only_when_enabled(qapp):
+    """The built-in menu must stay absent until enabled and preserve first open.
+
+    内置菜单须在启用前保持未创建，并保留首次打开行为。
+    """
+    configure_qml_environment()
+    messages = []
+    previous_handler = qInstallMessageHandler(
+        lambda mode, _context, message: messages.append((mode, str(message)))
+    )
+    engine = QQmlApplicationEngine()
+    component = None
+    host = None
+    table = None
+    try:
+        register_types(engine)
+        component = QQmlComponent(engine)
+        component.setData(
+            _CONTEXT_MENU_SCENE,
+            QUrl.fromLocalFile(str(_ROOT / "tests/qml/table-widget-context-menu.qml")),
+        )
+        assert component.status() == QQmlComponent.Status.Ready, [
+            error.toString() for error in component.errors()
+        ]
+        host = component.create(engine.rootContext())
+        assert host is not None, [error.toString() for error in component.errors()]
+        table = host.findChild(QObject, "table")
+        assert table is not None
+        _pump()
+        messages.clear()
+
+        loader = table.findChild(QObject, "defaultTableContextMenuLoader")
+        assert loader is not None
+        assert loader.property("item") is None
+        assert table.findChildren(QWindow) == []
+
+        table.setProperty("defaultContextMenuEnabled", True)
+        _pump()
+
+        menu = loader.property("item")
+        assert menu is not None
+        table.openDefaultMenu(1)
+        _pump(50)
+        assert menu.property("activeRowIndex") == 1
+        assert menu.property("isOpen") is True
+
+        menu.hide()
+        table.setProperty("defaultContextMenuEnabled", False)
+        _pump(50)
+        assert loader.property("item") is None
+        assert table.findChildren(QWindow) == []
+    finally:
+        _release(qapp, host, component, engine)
+        qInstallMessageHandler(previous_handler)
+
+    failures = [
+        message
+        for mode, message in messages
+        if mode in _QT_FAILURE_TYPES
+        and message != "This plugin does not support raise()"
     ]
     assert failures == []

@@ -486,7 +486,8 @@ DataWidgetCore {
     }
 
     function _showDefaultContextMenu(rowIndex, x, y) {
-        defaultTableContextMenu.showMenu(rowIndex, x, y)
+        var menu = defaultTableContextMenuLoader.item
+        if (menu) menu.showMenu(rowIndex, x, y)
     }
 
     // ==================== Size 尺寸 ====================
@@ -566,72 +567,84 @@ DataWidgetCore {
         // (列宽算法采样真实数据, 空 model 时算的宽度毫无意义)
     }
 
-    // Built-in context menu 默认内置上下文菜单
-    ContextMenu {
-        id: defaultTableContextMenu
+    // Load the built-in menu only when enabled 仅在启用时加载内置菜单
+    Loader {
+        id: defaultTableContextMenuLoader
 
-        property int activeRowIndex: -1
+        objectName: "defaultTableContextMenuLoader"
+        active: root.defaultContextMenuEnabled
+        sourceComponent: defaultTableContextMenuComponent
+    }
 
-        function showMenu(rowIndex, x, y) {
-            activeRowIndex = rowIndex
-            popup(x, y, root)
-        }
+    Component {
+        id: defaultTableContextMenuComponent
 
-        autoBindRightClick: false
+        ContextMenu {
+            id: defaultTableContextMenu
 
-        Action {
-            text: "复制所选行 (Copy Row)"
-            icon: "Copy"
-            onTriggered: {
-                if (defaultTableContextMenu.activeRowIndex >= 0) {
-                    var rowData = root.getRow(defaultTableContextMenu.activeRowIndex)
-                    if (rowData) {
-                        var textParts = []
-                        for (var i = 0; i < root.columns.length; i++) {
-                            textParts.push(rowData[root.columns[i].role] || "")
+            property int activeRowIndex: -1
+
+            function showMenu(rowIndex, x, y) {
+                activeRowIndex = rowIndex
+                popup(x, y, root)
+            }
+
+            autoBindRightClick: false
+
+            Action {
+                text: "复制所选行 (Copy Row)"
+                icon: "Copy"
+                onTriggered: {
+                    if (defaultTableContextMenu.activeRowIndex >= 0) {
+                        var rowData = root.getRow(defaultTableContextMenu.activeRowIndex)
+                        if (rowData) {
+                            var textParts = []
+                            for (var i = 0; i < root.columns.length; i++) {
+                                textParts.push(rowData[root.columns[i].role] || "")
+                            }
+                            ClipboardHelper.copy(textParts.join("\t"))
                         }
-                        ClipboardHelper.copy(textParts.join("\t"))
                     }
                 }
             }
-        }
 
-        MenuSeparator {}
+            MenuSeparator {}
 
-        Action {
-            text: "在上方插入空行 (Insert Row Above)"
-            icon: "Add"
-            onTriggered: {
-                if (defaultTableContextMenu.activeRowIndex >= 0) {
-                    if (!root._isPureJsArray()) { console.warn("TableWidget: Cannot insert row via built-in menu when a QAbstractListModel is bound."); return }
-                    var arr = root.tableData.slice()
-                    arr.splice(defaultTableContextMenu.activeRowIndex, 0, {})
-                    root.tableData = arr
+            Action {
+                text: "在上方插入空行 (Insert Row Above)"
+                icon: "Add"
+                onTriggered: {
+                    if (defaultTableContextMenu.activeRowIndex >= 0) {
+                        if (!root._isPureJsArray()) { console.warn("TableWidget: Cannot insert row via built-in menu when a QAbstractListModel is bound."); return }
+                        var arr = root.tableData.slice()
+                        arr.splice(defaultTableContextMenu.activeRowIndex, 0, {})
+                        root.tableData = arr
+                    }
                 }
             }
-        }
 
-        Action {
-            text: "在下方插入空行 (Insert Row Below)"
-            icon: "Add"
-            onTriggered: {
-                if (defaultTableContextMenu.activeRowIndex >= 0) {
-                    if (!root._isPureJsArray()) { console.warn("TableWidget: Cannot insert row via built-in menu when a QAbstractListModel is bound."); return }
-                    var arr = root.tableData.slice()
-                    arr.splice(defaultTableContextMenu.activeRowIndex + 1, 0, {})
-                    root.tableData = arr
+            Action {
+                text: "在下方插入空行 (Insert Row Below)"
+                icon: "Add"
+                onTriggered: {
+                    if (defaultTableContextMenu.activeRowIndex >= 0) {
+                        if (!root._isPureJsArray()) { console.warn("TableWidget: Cannot insert row via built-in menu when a QAbstractListModel is bound."); return }
+                        var arr = root.tableData.slice()
+                        arr.splice(defaultTableContextMenu.activeRowIndex + 1, 0, {})
+                        root.tableData = arr
+                    }
                 }
             }
-        }
 
-        MenuSeparator {}
+            MenuSeparator {}
 
-        Action {
-            text: "删除受指行 (Delete Row)"
-            icon: "Delete"
-            onTriggered: {
-                if (defaultTableContextMenu.activeRowIndex >= 0) {
-                    root.removeRow(defaultTableContextMenu.activeRowIndex)
+            Action {
+                text: "删除受指行 (Delete Row)"
+                icon: "Delete"
+                onTriggered: {
+                    if (defaultTableContextMenu.activeRowIndex >= 0) {
+                        root.removeRow(defaultTableContextMenu.activeRowIndex)
+                    }
                 }
             }
         }
