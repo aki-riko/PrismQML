@@ -199,8 +199,11 @@ Rectangle {
     clip: true
 
     onDirectionChanged: canvas.initDrops()
-    
     onCharsetPresetChanged: canvas.requestPaint()
+    onMainColorChanged: canvas.clearCanvas()
+    onHeadColorChanged: canvas.clearCanvas()
+    onBackgroundColorChanged: canvas.clearCanvas()
+    onDensityChanged: canvas.initDrops()
     
     Canvas {
         id: canvas
@@ -370,15 +373,6 @@ Rectangle {
             if (root.rainbowMode) {
                 root._rainbowOffset = (root._rainbowOffset + 2) % 360
             }
-        }
-
-        // Respond to property changes 响应属性变化
-        Connections {
-            function onMainColorChanged() { canvas.clearCanvas() }
-            function onHeadColorChanged() { canvas.clearCanvas() }
-            function onBackgroundColorChanged() { canvas.clearCanvas() }
-            function onDensityChanged() { canvas.initDrops() }
-            target: root
         }
     }
     

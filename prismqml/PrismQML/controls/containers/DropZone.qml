@@ -78,6 +78,9 @@ Rectangle {
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
     color: Enums.transparent
     border.width: Enums.border.none
+
+    onHoveredChanged: dashedBorder.requestPaint()
+    onDragActiveChanged: dashedBorder.requestPaint()
     
     // ==================== Content 内容 ====================
     // Dashed border 虚线边框
@@ -98,13 +101,6 @@ Rectangle {
         }
         
         Component.onCompleted: requestPaint()
-        
-        Connections {
-            function onHoveredChanged() { dashedBorder.requestPaint() }
-            function onDragActiveChanged() { dashedBorder.requestPaint() }
-
-            target: control
-        }
     }
 
     Column {

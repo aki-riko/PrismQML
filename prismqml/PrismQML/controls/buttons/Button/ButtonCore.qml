@@ -91,6 +91,9 @@ Widget {
         hovered: control.hovered
         pressed: control.pressed
         isToggleChecked: feature === Enums.button.feature_toggle && control.checked
+
+        onBgColorChanged: if (control._colorAnimationsReady) control._updateTargetColors()
+        onBorderColorChanged: if (control._colorAnimationsReady) control._updateTargetColors()
     }
 
     // Appearance and animated colors 外观与动画颜色
@@ -112,6 +115,7 @@ Widget {
     property color _animatedBorderColor
     property color _targetBgColor
     property color _targetBorderColor
+    property bool _colorAnimationsReady: false
 
     property Gradient _gradientDef: Gradient {
         GradientStop { position: Enums.button.gradientStart; color: Qt.lighter(Enums.accentColor, Enums.button.gradientLighten) }
@@ -277,6 +281,7 @@ Widget {
         _animatedBorderColor = styleHelper.borderColor
         _targetBgColor = styleHelper.bgColor
         _targetBorderColor = styleHelper.borderColor
+        _colorAnimationsReady = true
     }
 
     onPressedChanged: {
@@ -422,14 +427,6 @@ Widget {
 
             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
         }
-    }
-
-    // Watch for target color changes (from styleHelper) 监听目标颜色变化
-    Connections {
-        function onBgColorChanged() { control._updateTargetColors() }
-        function onBorderColorChanged() { control._updateTargetColors() }
-
-        target: styleHelper
     }
 
     ColorAnimation {

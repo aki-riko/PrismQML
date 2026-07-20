@@ -167,17 +167,6 @@ Rectangle {
         }
     }
     
-    Connections {
-        function onContainsMouseChanged() {
-            if (!itemArea.containsMouse) {
-                tipTimer.stop()
-                if (tipLoader.item) tipLoader.item.hide()
-            }
-        }
-
-        target: itemArea
-    }
-    
     // Mouse area 鼠标区域
     MouseArea {
         id: itemArea
@@ -185,6 +174,12 @@ Rectangle {
         hoverEnabled: true
         enabled: control.enabled
         cursorShape: Qt.ArrowCursor
+        onContainsMouseChanged: {
+            if (!containsMouse) {
+                tipTimer.stop()
+                if (tipLoader.item) tipLoader.item.hide()
+            }
+        }
         onClicked: {
             if (control.hasSubmenu) {
                 control.submenuRequested()
