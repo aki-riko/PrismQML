@@ -300,6 +300,29 @@ def test_no_qt_busy_indicator_or_extra_rotating_ring_remains():
     }
 
 
+def test_progress_ring_repaint_handlers_do_not_allocate_connections(qapp):
+    """Direct handlers preserve repainting without QQmlConnections. 直接处理器避免额外对象。"""
+    source = CANONICAL_RING.read_text(encoding="utf-8")
+    assert "onTrackColorChanged: canvas.requestPaint()" in source
+    assert "onProgressColorChanged: canvas.requestPaint()" in source
+    assert "Connections {" not in source
+
+    engine, component, root = _create_scene()
+    try:
+        ring = root.findChild(QQuickItem, "blockingProgressRing")
+        assert ring is not None
+        assert not {
+            child.metaObject().className()
+            for child in ring.findChildren(QObject)
+            if child.metaObject().className() == "QQmlConnections"
+        }
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_indeterminate_ring_keeps_rendering_while_gui_thread_is_blocked():
     """同步页面创建占住 GUI 线程时，三种视觉模式都须持续交换帧。"""
     env = os.environ.copy()

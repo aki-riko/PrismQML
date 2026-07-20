@@ -50,6 +50,8 @@ Item {
     onIndeterminateChanged: canvas.requestPaint()
     onIndeterminateStyleChanged: canvas.requestPaint()
     onStrokeWidthChanged: canvas.requestPaint()
+    onTrackColorChanged: canvas.requestPaint()
+    onProgressColorChanged: canvas.requestPaint()
     Component.onCompleted: canvas.requestPaint()
     
     Canvas {
@@ -101,11 +103,5 @@ Item {
         dotSize: control.indeterminateDotSize
         dotRadius: control.indeterminateDotRadius
         dotTopMargin: control.indeterminateDotTopMargin
-    }
-    
-    Connections {
-        function onTrackColorChanged() { canvas.requestPaint() }
-        function onProgressColorChanged() { canvas.requestPaint() }
-        target: control
     }
 }
