@@ -145,26 +145,33 @@ Rectangle {
         visible: control.hasSubmenu && !control._isBottomText
     }
     
-    // Tooltip 提示
-    TooltipCore {
-        id: tipPopup
-        text: control.toolTip
-        x: itemArea.mouseX + Enums.spacing.m
-        y: control.height + Enums.spacing.xxs
+    // Load tooltip only when text is available 仅在存在提示文本时加载
+    Loader {
+        id: tipLoader
+
+        objectName: "actionTooltipLoader"
+        active: control.toolTip !== ""
+        sourceComponent: TooltipCore {
+            text: control.toolTip
+            x: itemArea.mouseX + Enums.spacing.m
+            y: control.height + Enums.spacing.xxs
+        }
     }
     
     Timer {
         id: tipTimer
         interval: 600
         running: control.toolTip !== "" && itemArea.containsMouse
-        onTriggered: tipPopup.show()
+        onTriggered: {
+            if (tipLoader.item) tipLoader.item.show()
+        }
     }
     
     Connections {
         function onContainsMouseChanged() {
             if (!itemArea.containsMouse) {
                 tipTimer.stop()
-                tipPopup.hide()
+                if (tipLoader.item) tipLoader.item.hide()
             }
         }
 

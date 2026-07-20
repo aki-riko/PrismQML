@@ -241,6 +241,21 @@ def test_menu_core_imperative_action_lifecycle(menu_scene):
     assert menu.getAction("open") is not None
     assert menu.getAction("save") is not None
     assert not menu.getAction("disabled").isEnabled()
+
+    open_action = menu.getAction("open")
+    save_action = menu.getAction("save")
+    open_tooltip_loader = open_action.findChild(QQuickItem, "actionTooltipLoader")
+    save_tooltip_loader = save_action.findChild(QQuickItem, "actionTooltipLoader")
+    assert open_tooltip_loader is not None
+    assert save_tooltip_loader is not None
+    assert open_tooltip_loader.property("item") is not None
+    assert save_tooltip_loader.property("item") is None
+
+    assert menu.updateAction("open", {"toolTip": ""})
+    assert _wait_for(lambda: open_tooltip_loader.property("item") is None)
+    assert menu.updateAction("open", {"toolTip": "Restored tooltip"})
+    assert _wait_for(lambda: open_tooltip_loader.property("item") is not None)
+
     assert QMetaObject.invokeMethod(window, "updateOpen")
     assert window.property("openText") == "Open now"
     assert window.property("openChecked")
