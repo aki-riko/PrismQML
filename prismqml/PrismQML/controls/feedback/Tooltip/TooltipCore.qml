@@ -30,40 +30,56 @@ Item {
     readonly property int _tooltipShadowBlur: Enums.shadow.level8.blur
     readonly property int _tooltipShadowOffset: Enums.shadow.level8.offset
     property bool _pendingShow: false
+    property bool _windowRequested: false
+    property bool _openScheduled: false
     
     // ==================== Readonly State 只读状态 ====================
-    readonly property int tooltipWidth: tooltipText.implicitWidth + Enums.spacing.xl
+    readonly property bool _windowVisible: tooltipWindowLoader.item
+                                           ? tooltipWindowLoader.item.windowVisible
+                                           : false
+    readonly property int tooltipWidth: tooltipMetrics.advanceWidth + Enums.spacing.xl
     readonly property int tooltipHeight: Enums.controlSize.tooltipHeight  // 28
 
     // ==================== Public Methods 公开方法 ====================
     function show() {
         _pendingShow = true
-        Qt.callLater(_doOpen)
+        _windowRequested = true
+        _scheduleOpen()
     }
 
     function hide() {
         _pendingShow = false
-        _animIn.stop()
-        _animOut.start()
+        var host = tooltipWindowLoader.item
+        if (host) host.close()
     }
 
     // ==================== Internal Methods 内部方法 ====================
+    function _scheduleOpen() {
+        if (_openScheduled) return
+        _openScheduled = true
+        Qt.callLater(function() {
+            control._openScheduled = false
+            control._doOpen()
+        })
+    }
+
     // 按当前锚点位置重算窗口全局坐标(show 时一次 + followAnchor 时持续)
     function _reposition() {
         if (!control.parent) return
+        var host = tooltipWindowLoader.item
+        if (!host) return
         var globalPos = control.parent.mapToGlobal(control.x, control.y)
-        _tipWindow.x = Math.round(globalPos.x)
-        _tipWindow.y = Math.round(globalPos.y)
+        host.reposition(Math.round(globalPos.x), Math.round(globalPos.y))
     }
 
     function _doOpen() {
         if (!_pendingShow) return
         if (!control.parent) return
+        var host = tooltipWindowLoader.item
+        if (!host) return
 
         _reposition()
-        _animOut.stop()
-        _tipWindow.visible = true
-        _animIn.start()
+        host.open()
     }
 
     // ==================== Size 尺寸 ====================
@@ -85,72 +101,126 @@ Item {
     Timer {
         interval: 16
         repeat: true
-        running: control.followAnchor && _tipWindow.visible
+        running: control.followAnchor && control._windowVisible
         onTriggered: control._reposition()
     }
 
     // ==================== Content 内容 ====================
-    // Tooltip window 独立提示窗口
-    Window {
-        id: _tipWindow
-        
-        flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
-        color: Enums.transparent
-        
-        width: control.tooltipWidth
-        height: control.tooltipHeight
-        
-        visible: false
-        
-        // Content container for scale animation 用于缩放动画的内容容器
-        Item {
-            id: _content
-            anchors.fill: parent
-            opacity: 0
-            scale: 0.8
-            transformOrigin: Item.Center
-            
-            // Background styling 背景样式
-            ShadowedRectangle {
-                id: _tipBg
-                anchors.fill: parent
-                radius: control._tooltipRadius
-                color: control._tooltipBackground
-                border.width: control._tooltipBorderWidth
-                border.color: control._tooltipBorderColor
-                shadowLevel: control._tooltipShadowLevel
-                shadowVisible: !Enums.isNeobrutalism  // neo 关软阴影, 用下方硬阴影
+    // Keep width available before the window is created 窗口创建前保持宽度可用
+    TextMetrics {
+        id: tooltipMetrics
 
-                // neo 硬阴影
-                NeoShadow {
-                    target: _tipBg
-                    visible: Enums.isNeobrutalism
-                    z: -1
+        text: control.text
+        font.family: Enums.fontFamily
+        font.pixelSize: Enums.typography.caption
+        font.weight: Font.Normal
+    }
+
+    // Create the native window on first show 首次显示时创建原生窗口
+    Loader {
+        id: tooltipWindowLoader
+
+        objectName: "tooltipWindowLoader"
+        active: control._windowRequested
+        sourceComponent: tooltipWindowComponent
+        onLoaded: {
+            if (control._pendingShow) control._scheduleOpen()
+        }
+    }
+
+    Component {
+        id: tooltipWindowComponent
+
+        Item {
+            id: windowHost
+
+            readonly property bool windowVisible: tipWindow.visible
+
+            function reposition(globalX, globalY) {
+                tipWindow.x = globalX
+                tipWindow.y = globalY
+            }
+
+            function open() {
+                animOut.stop()
+                tipWindow.visible = true
+                animIn.start()
+            }
+
+            function close() {
+                animIn.stop()
+                animOut.start()
+            }
+
+            objectName: "tooltipWindowHost"
+            width: 0
+            height: 0
+
+            // Tooltip window 独立提示窗口
+            Window {
+                id: tipWindow
+
+                flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+                color: Enums.transparent
+                width: control.tooltipWidth
+                height: control.tooltipHeight
+                visible: false
+
+                // Content container for scale animation 用于缩放动画的内容容器
+                Item {
+                    id: content
+
+                    objectName: "tooltipContent"
+                    anchors.fill: parent
+                    opacity: 0
+                    scale: 0.8
+                    transformOrigin: Item.Center
+
+                    // Background styling 背景样式
+                    ShadowedRectangle {
+                        id: tipBackground
+
+                        anchors.fill: parent
+                        radius: control._tooltipRadius
+                        color: control._tooltipBackground
+                        border.width: control._tooltipBorderWidth
+                        border.color: control._tooltipBorderColor
+                        shadowLevel: control._tooltipShadowLevel
+                        shadowVisible: !Enums.isNeobrutalism  // neo 关软阴影, 用下方硬阴影
+
+                        // Neo hard shadow neo 硬阴影
+                        NeoShadow {
+                            target: tipBackground
+                            visible: Enums.isNeobrutalism
+                            z: -1
+                        }
+
+                        // ==================== Content 内容 ====================
+                        Label {
+                            anchors.centerIn: parent
+                            text: control.text
+                            type: Enums.label.type_caption
+                            color: Enums.textColor.primary
+                        }
+                    }
                 }
-                
-                // ==================== Content 内容 ====================
-                Label {
-                    id: tooltipText
-                    anchors.centerIn: parent
-                    text: control.text
-                    type: Enums.label.type_caption
-                    color: Enums.textColor.primary
+
+                // Animations 动画
+                ParallelAnimation {
+                    id: animIn
+
+                    NumberAnimation { target: content; property: "opacity"; from: 0.0; to: 1.0; duration: Enums.duration.normal }
+                    NumberAnimation { target: content; property: "scale"; from: 0.8; to: 1.0; duration: Enums.duration.normal; easing.type: Easing.OutBack }
+                }
+                ParallelAnimation {
+                    id: animOut
+
+                    onFinished: tipWindow.visible = false
+
+                    NumberAnimation { target: content; property: "opacity"; from: 1.0; to: 0.0; duration: Enums.duration.normal }
+                    NumberAnimation { target: content; property: "scale"; from: 1.0; to: 0.8; duration: Enums.duration.normal }
                 }
             }
-        }
-        
-        // Animations 动画
-        ParallelAnimation {
-            id: _animIn
-            NumberAnimation { target: _content; property: "opacity"; from: 0.0; to: 1.0; duration: Enums.duration.normal }
-            NumberAnimation { target: _content; property: "scale"; from: 0.8; to: 1.0; duration: Enums.duration.normal; easing.type: Easing.OutBack }
-        }
-        ParallelAnimation {
-            id: _animOut
-            onFinished: _tipWindow.visible = false
-
-            NumberAnimation { target: _content; property: "opacity"; from: 1.0; to: 0.0; duration: Enums.duration.normal }
-            NumberAnimation { target: _content; property: "scale"; from: 1.0; to: 0.8; duration: Enums.duration.normal }
         }
     }
 }
