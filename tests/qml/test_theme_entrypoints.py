@@ -260,7 +260,11 @@ NavigationWindowCore {
 }
 """,
         )
-        _evaluate(instance, '_nativeHookReady = true; _applyMicaEffect("initial")')
+        _evaluate(instance, "_nativeHookReady = false")
+        fake_mica.calls.clear()
+        _evaluate(instance, "nativeHookReady()")
+        _pump(1)
+        assert instance.property("_nativeHookReady") is True
         assert fake_mica.calls[-1] == (True, False)
         assert instance.property("_micaBackdropReady") is True
 

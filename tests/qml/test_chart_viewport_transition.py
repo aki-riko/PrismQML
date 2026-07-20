@@ -9,7 +9,7 @@ import math
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
@@ -225,6 +225,34 @@ def test_direct_manipulation_updates_render_viewport_immediately(qapp):
         assert chart.property("renderEnd") == pytest.approx(0.9)
         assert chart.property("viewportScale") == pytest.approx(1)
         assert 80 <= chart.property("renderedPointCount") <= 82
+    finally:
+        chart.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_data_zoom_syncs_external_viewport_to_range_slider(qapp):
+    engine, component, chart = _create_chart()
+    try:
+        data_zoom = next(
+            item
+            for item in chart.findChildren(QObject)
+            if item.metaObject().className().startswith("ChartDataZoom")
+        )
+        range_slider = next(
+            item
+            for item in data_zoom.findChildren(QObject)
+            if item.metaObject().className().startswith("SliderCore")
+        )
+        slider_steps = range_slider.property("to")
+
+        data_zoom.setProperty("viewportStart", 0.2)
+        data_zoom.setProperty("viewportEnd", 0.75)
+        _pump(1)
+
+        assert range_slider.property("firstValue") == round(0.2 * slider_steps)
+        assert range_slider.property("secondValue") == round(0.75 * slider_steps)
     finally:
         chart.deleteLater()
         del component

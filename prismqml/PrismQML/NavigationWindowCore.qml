@@ -293,6 +293,16 @@ WindowsCore {
         if (active) _scheduleMicaReapply("activeChanged")
     }
 
+    // Apply Mica only after the native hook completes its frame changes.
+    // 仅在原生钩子完成窗口框架变更后应用 Mica，避免 DWM 背板被重置。
+    onNativeHookReady: {
+        if (!_micaAvailable) return
+        profileTime("NavigationWindowCore nativeHookReady handler start")
+        _nativeHookReady = true
+        _applyMicaEffect("nativeHookReady")
+        profileTime("NavigationWindowCore nativeHookReady handler done")
+    }
+
     // ==================== Content 内容 ====================
     Timer {
         id: _splashTimeoutTimer
@@ -341,19 +351,5 @@ WindowsCore {
 
         target: Enums
         enabled: window._micaAvailable && window._nativeHookReady
-    }
-
-    // Apply Mica only after the native hook completes its frame changes.
-    // 仅在原生钩子完成窗口框架变更后应用 Mica，避免 DWM 背板被重置。
-    Connections {
-        function onNativeHookReady() {
-            window.profileTime("NavigationWindowCore nativeHookReady handler start")
-            window._nativeHookReady = true
-            window._applyMicaEffect("nativeHookReady")
-            window.profileTime("NavigationWindowCore nativeHookReady handler done")
-        }
-
-        target: window
-        enabled: window._micaAvailable
     }
 }

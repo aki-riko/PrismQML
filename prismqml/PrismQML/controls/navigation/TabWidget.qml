@@ -135,6 +135,7 @@ Widget {
     onCurrentIndexChanged: {
         currentChanged(currentIndex)
         if (tabFlickable) tabFlickable.scrollToCurrentTab()
+        if (slidingIndicator) slidingIndicator._scheduleSync(true)
     }
 
     // ==================== Content 内容 ====================
@@ -291,10 +292,6 @@ Widget {
             SlidingIndicatorAnimation {
                 id: _eng
                 orientation: Qt.Horizontal
-            }
-            Connections {
-                function onCurrentIndexChanged() { slidingIndicator._scheduleSync(true) }
-                target: control
             }
             Timer {
                 id: _syncTimer

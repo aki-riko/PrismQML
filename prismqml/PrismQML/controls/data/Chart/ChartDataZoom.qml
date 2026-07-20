@@ -57,6 +57,21 @@ Item {
     implicitWidth: Enums.controlSize.chartDataZoomDefaultWidth
     implicitHeight: Enums.controlSize.chartDataZoomDefaultHeight
 
+    onChartDataChanged: if (thumbCanvas) thumbCanvas.requestPaint()
+    onSeriesChanged: if (thumbCanvas) thumbCanvas.requestPaint()
+    onViewportStartChanged: {
+        if (!rangeSlider) return
+        _suppressSliderUpdate = true
+        rangeSlider.firstValue = Math.round(viewportStart * Enums.chart.viewport_slider_steps)
+        _suppressSliderUpdate = false
+    }
+    onViewportEndChanged: {
+        if (!rangeSlider) return
+        _suppressSliderUpdate = true
+        rangeSlider.secondValue = Math.round(viewportEnd * Enums.chart.viewport_slider_steps)
+        _suppressSliderUpdate = false
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: control._panelRadius
@@ -135,14 +150,6 @@ Item {
         }
 
         Component.onCompleted: requestPaint()
-
-        // Repaint when source data changes 数据源变化时重绘
-        Connections {
-            function onChartDataChanged() { thumbCanvas.requestPaint() }
-            function onSeriesChanged()    { thumbCanvas.requestPaint() }
-
-            target: control
-        }
     }
 
     // Overlay the dual-handle range slider on the thumbnail 将双手柄范围滑块叠加在缩略图上
@@ -183,21 +190,5 @@ Item {
             control._dragging = false
             control.interactiveChanged(false)
         }
-    }
-
-    // Synchronize external viewport changes without slider feedback 外部视窗变化反向同步且不触发滑块回弹
-    Connections {
-        function onViewportStartChanged() {
-            control._suppressSliderUpdate = true
-            rangeSlider.firstValue = Math.round(control.viewportStart * Enums.chart.viewport_slider_steps)
-            control._suppressSliderUpdate = false
-        }
-        function onViewportEndChanged() {
-            control._suppressSliderUpdate = true
-            rangeSlider.secondValue = Math.round(control.viewportEnd * Enums.chart.viewport_slider_steps)
-            control._suppressSliderUpdate = false
-        }
-
-        target: control
     }
 }

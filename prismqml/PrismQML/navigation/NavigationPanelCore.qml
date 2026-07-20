@@ -368,6 +368,8 @@ Item {
     Canvas {
         id: bgCanvas
 
+        readonly property color _backgroundColor: control.backgroundColor
+
         function _scheduleBgRepaint() {
             Qt.callLater(bgCanvas.requestPaint)
         }
@@ -382,7 +384,7 @@ Item {
             ctx.clearRect(0, 0, w, h)
             
             // Fill background 填充背景
-            ctx.fillStyle = control.backgroundColor.toString()
+            ctx.fillStyle = _backgroundColor.toString()
             ctx.beginPath()
             ctx.moveTo(0, 0)
             ctx.lineTo(w, 0)  // Top edge (no corner, extends into title bar) 顶边（无圆角，延伸到标题栏）
@@ -401,11 +403,7 @@ Item {
         // 不绑死 60fps 帧时长, 跟随事件循环节拍刷新一次
         onWidthChanged: _scheduleBgRepaint()
         onHeightChanged: _scheduleBgRepaint()
-        
-        Connections {
-            function onBackgroundColorChanged() { bgCanvas.requestPaint() }
-            target: control
-        }
+        on_BackgroundColorChanged: requestPaint()
     }
     
     // Layer B: Acrylic blurred background 层B：亚克力模糊背景
