@@ -56,6 +56,10 @@ Item {
     readonly property real contentY: loader.item ? loader.item.contentY : 0
     readonly property real contentHeight: loader.item ? loader.item.contentHeight : 0
     readonly property int count: loader.item && loader.item.count !== undefined ? loader.item.count : 0
+    readonly property var flickableItem: !loader.item ? null
+        : type === Enums.scroll.type_list ? loader.item.listView
+        : type === Enums.scroll.type_grid ? loader.item.gridView
+        : loader.item.flickableItem
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, var item)

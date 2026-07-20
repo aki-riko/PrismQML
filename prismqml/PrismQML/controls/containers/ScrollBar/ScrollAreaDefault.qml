@@ -63,6 +63,19 @@ Item {
         _needsHScrollBar = _canScrollH && flickable.contentWidth > flickable.width
     }
 
+    function _scrollViewport(item) {
+        return item
+            ? item.flickableItem || item.listView || item.gridView || null
+            : null
+    }
+
+    function _isAtVerticalBoundary(viewport, delta) {
+        var endY = viewport.originY
+            + Math.max(0, viewport.contentHeight - viewport.height)
+        return (viewport.contentY >= endY - 1 && delta > 0)
+            || (viewport.contentY <= viewport.originY + 1 && delta < 0)
+    }
+
     // Nested scroll dispatcher 嵌套滚动调度
     // 嵌套 ScrollArea(及兼容 ListWidget/TableWidget)的滚轮事件由外层统一调度：
     //   1. 命中点向下递归找可滚子组件（识别 smoothScrollBy 函数 / listView 鸭子类型）
@@ -80,28 +93,15 @@ Item {
             // 优先递归命中更深层
             var deeper = _findScrollableChild(child, pt.x, pt.y, delta)
             if (deeper) return deeper
-            // 嵌套 ScrollArea：暴露了 smoothScrollBy/contentY/contentHeight
-            if (typeof child.smoothScrollBy === "function"
-                && child.contentHeight !== undefined && child.height !== undefined
-                && child.contentHeight > child.height) {
-                var childOriginY = child.flickableItem ? child.flickableItem.originY : 0
-                var childEndY = childOriginY + Math.max(0, child.contentHeight - child.height)
-                var atEnd = child.contentY >= childEndY - 1
-                var atBegin = child.contentY <= childOriginY + 1
-                var towardEnd = delta > 0
-                var towardBegin = delta < 0
-                var atBoundary = (atEnd && towardEnd) || (atBegin && towardBegin)
-                return { item: child, atBoundary: atBoundary }
-            }
-            // 兼容 a890fbd0 旧场景：ListWidget/TableWidget 通过 listView 暴露
-            if (child.listView && child.listView.contentHeight !== undefined
-                && child.listView.contentHeight > child.listView.height) {
-                var lvOriginY = child.listView.originY
-                var lvEndY = lvOriginY + Math.max(0, child.listView.contentHeight - child.listView.height)
-                var lvAtEnd = child.listView.contentY >= lvEndY - 1
-                var lvAtBegin = child.listView.contentY <= lvOriginY + 1
-                var lvBoundary = (lvAtEnd && delta > 0) || (lvAtBegin && delta < 0)
-                return { item: child, atBoundary: lvBoundary }
+            // 嵌套 ScrollArea：始终以真实 Flickable/ListView/GridView 视口计算边界。
+            var viewport = _scrollViewport(child)
+            if (viewport && viewport.contentHeight !== undefined
+                && viewport.contentHeight > viewport.height
+                && (typeof child.smoothScrollBy === "function" || child.listView)) {
+                return {
+                    item: child,
+                    atBoundary: _isAtVerticalBoundary(viewport, delta)
+                }
             }
         }
         return null

@@ -41,10 +41,31 @@ Window {
     id: root
     objectName: "window"
 
-    function positionAtEnd() { dynamicList.positionViewAtEnd() }
-    function scrollPopupToStart() { popupHelper.scrollTo(0) }
+    property bool dispatcherAtBoundary: false
+    property var dispatcherItem: null
+    readonly property var nestedViewport: nestedScroll.flickableItem
 
-    width: 240
+    function positionAtEnd() { dynamicList.positionViewAtEnd() }
+    function positionNestedAtEnd() { nestedViewport.positionViewAtEnd() }
+    function positionNestedBeforeEnd() {
+        nestedViewport.contentY = nestedViewport.originY
+            + Math.max(0, nestedViewport.contentHeight - nestedViewport.height) - 50
+    }
+    function scrollPopupToStart() { popupHelper.scrollTo(0) }
+    function syncDispatcherBoundary() {
+        var point = nestedScroll.mapToItem(
+            outerScroll.flickableItem,
+            nestedScroll.width / 2,
+            nestedScroll.height / 2
+        )
+        var hit = outerScroll._findScrollableChild(
+            outerScroll.flickableItem, point.x, point.y, 100
+        )
+        dispatcherItem = hit ? hit.item : null
+        dispatcherAtBoundary = hit ? hit.atBoundary : false
+    }
+
+    width: 520
     height: 180
     visible: true
 
@@ -79,6 +100,38 @@ Window {
         y: 20
         height: 120
         flickable: dynamicList
+    }
+
+    Internal.ScrollAreaDefault {
+        id: outerScroll
+        objectName: "outerScroll"
+        x: 260
+        y: 10
+        width: 240
+        height: 160
+
+        ScrollArea {
+            id: nestedScroll
+            objectName: "nestedScroll"
+            x: 10
+            y: 10
+            width: 200
+            height: 120
+            type: Enums.scroll.type_list
+            model: 90
+            itemHeight: 30
+            delegate: Rectangle {
+                required property int index
+                width: nestedScroll.width
+                height: index % 5 === 0 ? 60 : 30
+            }
+        }
+
+        Item {
+            y: 200
+            width: 1
+            height: 200
+        }
     }
 }
 """
@@ -187,6 +240,50 @@ def test_popup_and_entry_track_dynamic_list_origin(qapp):
             lambda: dynamic_list.property("contentY")
             > dynamic_list.property("originY") + 1
         )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_nested_scroll_dispatcher_uses_dynamic_viewport_origin(qapp):
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, _, _, _, warnings = scene
+    try:
+        nested_viewport = window.property("nestedViewport")
+        assert isinstance(nested_viewport, QQuickItem)
+
+        assert QMetaObject.invokeMethod(window, "positionNestedAtEnd")
+        assert _wait_for(lambda: abs(nested_viewport.property("originY")) > 1)
+
+        origin_y = nested_viewport.property("originY")
+        actual_end = origin_y + max(
+            0,
+            nested_viewport.property("contentHeight") - nested_viewport.height(),
+        )
+        assert QMetaObject.invokeMethod(window, "positionNestedBeforeEnd")
+        assert _wait_for(
+            lambda: nested_viewport.property("contentY")
+            == pytest.approx(actual_end - 50, abs=1)
+        )
+
+        assert QMetaObject.invokeMethod(window, "syncDispatcherBoundary")
+        dispatcher_item = window.property("dispatcherItem")
+        assert isinstance(dispatcher_item, QQuickItem)
+        assert dispatcher_item.metaObject().className().startswith("ScrollAreaList")
+        assert window.property("dispatcherAtBoundary") is False
+
+        assert QMetaObject.invokeMethod(window, "positionNestedAtEnd")
+        assert _wait_for(
+            lambda: nested_viewport.property("contentY")
+            == pytest.approx(actual_end, abs=1)
+        )
+        assert QMetaObject.invokeMethod(window, "syncDispatcherBoundary")
+        assert window.property("dispatcherAtBoundary") is True
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
