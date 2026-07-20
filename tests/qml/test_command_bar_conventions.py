@@ -343,6 +343,36 @@ def test_command_bar_more_controls_load_on_demand_and_open(qapp):
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
+def test_command_bar_open_menu_is_destroyed_when_more_controls_deactivate(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene()
+    wide_core = root.findChild(QQuickItem, "wideCore")
+    loader = _more_loader(wide_core)
+    more_button = wide_core.findChild(QQuickItem, "commandBarMoreButton")
+    more_menu = wide_core.findChild(QQuickItem, "commandBarMoreMenu")
+    try:
+        assert loader.property("item") is not None
+        assert QMetaObject.invokeMethod(more_button, "click")
+        assert _wait_for(lambda: more_menu.property("isOpen"))
+        popup_windows = _new_visible_windows(windows_before, root)
+        assert len(popup_windows) == 1
+        opened_popup = popup_windows[0]
+
+        wide_core.setProperty("secondaryCommands", [])
+        assert _wait_for(lambda: loader.property("item") is None)
+        assert _wait_for(
+            lambda: all(
+                window is not opened_popup
+                for window in QGuiApplication.topLevelWindows()
+            )
+        )
+        assert _new_visible_windows(windows_before, root) == []
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, root)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
 def test_command_bar_sources_follow_conventions():
     for source_path in SOURCE_PATHS:
         source = source_path.read_text(encoding="utf-8")
