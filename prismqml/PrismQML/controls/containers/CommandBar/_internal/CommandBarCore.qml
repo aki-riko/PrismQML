@@ -29,6 +29,9 @@ Item {
     property var _hiddenCommands: []
     property bool _hasOverflow: false
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _needsMore: _hasOverflow || secondaryCommands.length > 0
+
     // ==================== Signals 信号 ====================
     signal actionTriggered(int index, var action)
     signal secondaryActionTriggered(int index, var action)
@@ -120,59 +123,84 @@ Item {
             }
         }
         
-        // More button 更多按钮
-        Button {
-            id: moreButton
-            visible: _hasOverflow || secondaryCommands.length > 0
-            style: Enums.button.style_transparent
-            icon: Enums.icon.more_horizontal
-            iconSize: Enums.iconSize.m
-            implicitWidth: Enums.controlSize.commandBarMoreWidth
-            implicitHeight: Enums.controlSize.commandBarButtonSize
-            flat: true
-            onClicked: moreMenu.show(moreButton)
+        // Load more controls only when needed 仅在需要时加载更多控件
+        Loader {
+            id: moreControlsLoader
+
+            objectName: "commandBarMoreLoader"
+            active: control._needsMore
+            visible: active
+            sourceComponent: moreControlsComponent
         }
     }  // Row
     
-    // More Menu (outside Row, use popup with position) 更多菜单（Row外部，使用popup定位）
-    ContextMenu {
-        id: moreMenu
-        autoBindRightClick: false
-        
-        Repeater {
-            model: _hiddenCommands
-            Action {
-                text: modelData.text || ""
-                icon: modelData.icon || ""
-                enabled: modelData.enabled !== false
-                visible: !modelData.separator
-                onTriggered: {
-                    var originalIndex = primaryCommands.indexOf(modelData)
-                    control.actionTriggered(originalIndex, modelData)
-                    moreMenu.close()
-                }
+    // Delegate components 委托组件
+
+    // More button and menu 更多按钮与菜单
+    Component {
+        id: moreControlsComponent
+
+        Item {
+            width: moreButton.implicitWidth
+            height: moreButton.implicitHeight
+
+            Button {
+                id: moreButton
+
+                objectName: "commandBarMoreButton"
+                anchors.fill: parent
+                style: Enums.button.style_transparent
+                icon: Enums.icon.more_horizontal
+                iconSize: Enums.iconSize.m
+                implicitWidth: Enums.controlSize.commandBarMoreWidth
+                implicitHeight: Enums.controlSize.commandBarButtonSize
+                flat: true
+                onClicked: moreMenu.show(moreButton)
             }
-        }
-        
-        MenuSeparator {
-            visible: _hiddenCommands.length > 0 && secondaryCommands.length > 0
-        }
-        
-        Repeater {
-            model: secondaryCommands
-            Action {
-                text: modelData.text || ""
-                icon: modelData.icon || ""
-                enabled: modelData.enabled !== false
-                onTriggered: {
-                    control.secondaryActionTriggered(index, modelData)
-                    moreMenu.close()
+
+            // More menu uses a popup window 更多菜单使用弹出窗口
+            ContextMenu {
+                id: moreMenu
+
+                objectName: "commandBarMoreMenu"
+                autoBindRightClick: false
+
+                Repeater {
+                    model: control._hiddenCommands
+                    Action {
+                        text: modelData.text || ""
+                        icon: modelData.icon || ""
+                        enabled: modelData.enabled !== false
+                        visible: !modelData.separator
+                        onTriggered: {
+                            var originalIndex = control.primaryCommands.indexOf(modelData)
+                            control.actionTriggered(originalIndex, modelData)
+                            moreMenu.close()
+                        }
+                    }
+                }
+
+                MenuSeparator {
+                    visible: control._hiddenCommands.length > 0
+                             && control.secondaryCommands.length > 0
+                }
+
+                Repeater {
+                    model: control.secondaryCommands
+                    Action {
+                        objectName: "commandBarSecondaryAction_" + index
+                        text: modelData.text || ""
+                        icon: modelData.icon || ""
+                        enabled: modelData.enabled !== false
+                        onTriggered: {
+                            control.secondaryActionTriggered(index, modelData)
+                            moreMenu.close()
+                        }
+                    }
                 }
             }
         }
     }
-    
-    // Delegate components 委托组件
     
     // Command button 命令按钮
     Component {

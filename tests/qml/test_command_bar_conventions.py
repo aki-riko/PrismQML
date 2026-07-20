@@ -94,6 +94,13 @@ Window {
         primaryCommands: narrowCore.primaryCommands
     }
 
+    Internal.CommandBarCore {
+        id: emptyCore
+        objectName: "emptyCore"
+        y: 180
+        width: 400
+    }
+
     CommandBar {
         id: defaultEntry
         objectName: "defaultEntry"
@@ -124,6 +131,16 @@ def _pump(milliseconds: int = 30) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _wait_for(predicate, timeout_ms: int = 1600) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 30
+    return predicate()
 
 
 def _create_scene():
@@ -169,6 +186,16 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
+def _visual_descendants(root):
+    result = []
+    pending = list(root.childItems())
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(child.childItems())
+    return result
+
+
 def _command_bar_core(entry):
     matches = [
         item
@@ -185,12 +212,13 @@ def _command_button(core, text):
         for item in core.childItems()
         if item.metaObject().className() == "QQuickRow"
     )
-    loaders = [
-        item
-        for item in row.childItems()
-        if item.metaObject().className().startswith("QQuickLoader")
-        and _variant(item.property("commandData")).get("text") == text
-    ]
+    loaders = []
+    for item in row.childItems():
+        if not item.metaObject().className().startswith("QQuickLoader"):
+            continue
+        command_data = _variant(item.property("commandData"))
+        if isinstance(command_data, dict) and command_data.get("text") == text:
+            loaders.append(item)
     assert len(loaders) == 1
     wrapper = loaders[0].property("item")
     buttons = [
@@ -200,6 +228,12 @@ def _command_button(core, text):
     ]
     assert len(buttons) == 1
     return loaders[0], wrapper, buttons[0]
+
+
+def _more_loader(core):
+    loader = core.findChild(QQuickItem, "commandBarMoreLoader")
+    assert loader is not None
+    return loader
 
 
 def test_command_bar_overflow_matrix(qapp):
@@ -252,6 +286,58 @@ def test_command_bar_entry_styles_and_signal_forwarding(qapp):
         assert commands == [(0, "Open")]
         assert warnings == []
         assert _new_visible_windows(windows_before, root) == []
+    finally:
+        _dispose_scene(engine, component, root)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_command_bar_more_controls_load_on_demand_and_open(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene()
+    wide_core = root.findChild(QQuickItem, "wideCore")
+    narrow_core = root.findChild(QQuickItem, "narrowCore")
+    disabled_core = root.findChild(QQuickItem, "disabledCore")
+    empty_core = root.findChild(QQuickItem, "emptyCore")
+    secondary_actions = []
+    wide_core.secondaryActionTriggered.connect(
+        lambda index, action: secondary_actions.append(
+            (index, _variant(action)["text"])
+        )
+    )
+    try:
+        wide_loader = _more_loader(wide_core)
+        narrow_loader = _more_loader(narrow_core)
+        disabled_loader = _more_loader(disabled_core)
+        empty_loader = _more_loader(empty_core)
+        assert wide_loader.property("item") is not None
+        assert narrow_loader.property("item") is not None
+        assert disabled_loader.property("item") is None
+        assert empty_loader.property("item") is None
+
+        more_button = wide_core.findChild(QQuickItem, "commandBarMoreButton")
+        more_menu = wide_core.findChild(QQuickItem, "commandBarMoreMenu")
+        assert more_button is not None
+        assert more_menu is not None
+        assert QMetaObject.invokeMethod(more_button, "click")
+        assert _wait_for(lambda: more_menu.property("isOpen"))
+        popup_windows = _new_visible_windows(windows_before, root)
+        assert len(popup_windows) == 1
+
+        settings_action = next(
+            (
+                item
+                for item in _visual_descendants(popup_windows[0].contentItem())
+                if item.objectName() == "commandBarSecondaryAction_0"
+            ),
+            None,
+        )
+        assert settings_action is not None
+        assert settings_action.property("text") == "Settings"
+        assert QMetaObject.invokeMethod(settings_action, "triggered")
+        assert _wait_for(lambda: secondary_actions == [(0, "Settings")])
+        assert _wait_for(lambda: not more_menu.property("isOpen"))
+        assert _wait_for(lambda: _new_visible_windows(windows_before, root) == [])
+        assert warnings == []
     finally:
         _dispose_scene(engine, component, root)
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
