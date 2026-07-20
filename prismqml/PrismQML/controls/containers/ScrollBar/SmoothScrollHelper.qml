@@ -28,11 +28,13 @@ Item {
     property real _targetY: 0
     property real _smoothY: 0
     property bool _isOvershotV: false
+    property int _boundaryTargetV: 0  // -1=start, 0=absolute, 1=end
     
     // Horizontal state 水平状态
     property real _targetX: 0
     property real _smoothX: 0
     property bool _isOvershotH: false
+    property int _boundaryTargetH: 0  // -1=start, 0=absolute, 1=end
     // _syncing = true 时禁用动画, 让 ScrollBar 拖拽场景下 contentX/Y 立即跟随 handle,
     // 不被 Behavior 平滑过渡反向拖拽.
     property bool _syncing: false
@@ -40,40 +42,71 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property real targetPos: _isVertical ? _targetY : _targetX
     readonly property real smoothPos: _isVertical ? _smoothY : _smoothX
+    readonly property real minScroll: _isVertical ? _minY : _minX
     readonly property real maxScroll: _isVertical ? _maxY : _maxX
     readonly property bool isOvershot: _isVertical ? _isOvershotV : _isOvershotH
     readonly property bool _isVertical: orientation === Qt.Vertical
-    readonly property real _maxY: Math.max(0, target.contentHeight - target.height)
-    readonly property real _maxX: Math.max(0, target.contentWidth - target.width)
+    readonly property real _minY: target ? target.originY : 0
+    readonly property real _minX: target ? target.originX : 0
+    readonly property real _maxY: _minY + Math.max(0, target.contentHeight - target.height)
+    readonly property real _maxX: _minX + Math.max(0, target.contentWidth - target.width)
     readonly property real _maxOvershoot: Enums.spacing.scrollOvershoot
 
     // ==================== Public Methods 公开方法 ====================
 
     // Scroll to absolute position 滚动到绝对位置
     function scrollTo(pos) {
-        if (_isVertical) _scrollToY(pos)
-        else _scrollToX(pos)
+        if (_isVertical) {
+            _boundaryTargetV = 0
+            _scrollToY(pos)
+        } else {
+            _boundaryTargetH = 0
+            _scrollToX(pos)
+        }
     }
 
     // Scroll by delta 相对滚动
     function scrollBy(delta) {
-        if (_isVertical) _scrollByY(delta)
-        else _scrollByX(delta)
+        if (_isVertical) {
+            _boundaryTargetV = 0
+            _scrollByY(delta)
+        } else {
+            _boundaryTargetH = 0
+            _scrollByX(delta)
+        }
     }
 
     // Scroll to top/left 滚动到顶部/左侧
-    function scrollToStart() { scrollTo(0) }
+    function scrollToStart() {
+        if (_isVertical) {
+            _boundaryTargetV = -1
+            _scrollToY(_minY)
+        } else {
+            _boundaryTargetH = -1
+            _scrollToX(_minX)
+        }
+    }
 
     // Scroll to bottom/right 滚动到底部/右侧
-    function scrollToEnd() { scrollTo(_isVertical ? _maxY : _maxX) }
+    function scrollToEnd() {
+        if (_isVertical) {
+            _boundaryTargetV = 1
+            _scrollToY(_maxY)
+        } else {
+            _boundaryTargetH = 1
+            _scrollToX(_maxX)
+        }
+    }
 
     // Sync position (call after drag) 同步位置（拖拽后调用）
     function syncPosition() {
         _syncing = true
         if (_isVertical) {
+            _boundaryTargetV = 0
             _targetY = target.contentY
             _smoothY = target.contentY
         } else {
+            _boundaryTargetH = 0
             _targetX = target.contentX
             _smoothX = target.contentX
         }
@@ -81,9 +114,67 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
+    function _clamp(value, minimum, maximum) {
+        return Math.max(minimum, Math.min(maximum, value))
+    }
+
+    // ListView/GridView may change origin while delegates are recycled.
+    // ListView/GridView 复用 delegate 时可能动态改变 origin，目标与动画值必须同步回合法区间。
+    function _reconcileVerticalBounds() {
+        if (_boundaryTargetV === 0 && !smoothYAnimation.running && !_isOvershotV) {
+            var currentY = _clamp(target.contentY, _minY, _maxY)
+            if (currentY === _targetY && currentY === _smoothY) return
+            _syncing = true
+            _targetY = currentY
+            _smoothY = currentY
+            _syncing = false
+            return
+        }
+        var targetY = _boundaryTargetV < 0
+            ? _minY
+            : (_boundaryTargetV > 0 ? _maxY : _clamp(_targetY, _minY, _maxY))
+        var smoothY = _clamp(_smoothY, _minY, _maxY)
+        if (targetY === _targetY && smoothY === _smoothY) return
+        _isOvershotV = false
+        bounceTimerV.stop()
+        _targetY = targetY
+        if (smoothY !== _smoothY) {
+            _syncing = true
+            _smoothY = smoothY
+            _syncing = false
+        }
+        if (_smoothY !== _targetY) _smoothY = _targetY
+    }
+
+    function _reconcileHorizontalBounds() {
+        if (_boundaryTargetH === 0 && !smoothXAnimation.running && !_isOvershotH) {
+            var currentX = _clamp(target.contentX, _minX, _maxX)
+            if (currentX === _targetX && currentX === _smoothX) return
+            _syncing = true
+            _targetX = currentX
+            _smoothX = currentX
+            _syncing = false
+            return
+        }
+        var targetX = _boundaryTargetH < 0
+            ? _minX
+            : (_boundaryTargetH > 0 ? _maxX : _clamp(_targetX, _minX, _maxX))
+        var smoothX = _clamp(_smoothX, _minX, _maxX)
+        if (targetX === _targetX && smoothX === _smoothX) return
+        _isOvershotH = false
+        bounceTimerH.stop()
+        _targetX = targetX
+        if (smoothX !== _smoothX) {
+            _syncing = true
+            _smoothX = smoothX
+            _syncing = false
+        }
+        if (_smoothX !== _targetX) _smoothX = _targetX
+    }
+
     // Vertical implementation 垂直实现
     function _scrollToY(targetY) {
-        _targetY = Math.max(0, Math.min(_maxY, targetY))
+        _targetY = _clamp(targetY, _minY, _maxY)
         _isOvershotV = false
         _smoothY = _targetY
     }
@@ -92,7 +183,7 @@ Item {
         var newTarget = _targetY + delta
 
         // Normal scroll 正常滚动
-        if (newTarget >= 0 && newTarget <= _maxY) {
+        if (newTarget >= _minY && newTarget <= _maxY) {
             _targetY = newTarget
             _isOvershotV = false
             _smoothY = _targetY
@@ -105,13 +196,13 @@ Item {
             return
         }
 
-        if (newTarget < 0) {
+        if (newTarget < _minY) {
             // Top overshoot 顶部超出
-            _targetY = 0
+            _targetY = _minY
             _isOvershotV = true
-            var overshootDelta = -newTarget
-            var currentOvershoot = _smoothY < 0 ? -_smoothY : 0
-            _smoothY = -Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            var overshootDelta = _minY - newTarget
+            var currentOvershoot = _smoothY < _minY ? _minY - _smoothY : 0
+            _smoothY = _minY - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
             bounceTimerV.restart()
         } else {
             // Bottom overshoot 底部超出
@@ -131,7 +222,7 @@ Item {
 
     // Horizontal implementation 水平实现
     function _scrollToX(targetX) {
-        _targetX = Math.max(0, Math.min(_maxX, targetX))
+        _targetX = _clamp(targetX, _minX, _maxX)
         _isOvershotH = false
         _smoothX = _targetX
     }
@@ -140,7 +231,7 @@ Item {
         var newTarget = _targetX + delta
 
         // Normal scroll 正常滚动
-        if (newTarget >= 0 && newTarget <= _maxX) {
+        if (newTarget >= _minX && newTarget <= _maxX) {
             _targetX = newTarget
             _isOvershotH = false
             _smoothX = _targetX
@@ -153,13 +244,13 @@ Item {
             return
         }
 
-        if (newTarget < 0) {
+        if (newTarget < _minX) {
             // Left overshoot 左侧超出
-            _targetX = 0
+            _targetX = _minX
             _isOvershotH = true
-            var overshootDelta = -newTarget
-            var currentOvershoot = _smoothX < 0 ? -_smoothX : 0
-            _smoothX = -Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            var overshootDelta = _minX - newTarget
+            var currentOvershoot = _smoothX < _minX ? _minX - _smoothX : 0
+            _smoothX = _minX - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
             bounceTimerH.restart()
         } else {
             // Right overshoot 右侧超出
@@ -180,6 +271,10 @@ Item {
     // Bindings 绑定
     on_SmoothYChanged: if (_isVertical && target) target.contentY = _smoothY
     on_SmoothXChanged: if (!_isVertical && target) target.contentX = _smoothX
+    on_MinYChanged: _reconcileVerticalBounds()
+    on_MaxYChanged: _reconcileVerticalBounds()
+    on_MinXChanged: _reconcileHorizontalBounds()
+    on_MaxXChanged: _reconcileHorizontalBounds()
 
     // Sync initial position 同步初始位置
     Component.onCompleted: {
@@ -195,16 +290,26 @@ Item {
     Behavior on _smoothY {
         enabled: helper.enabled && helper._isVertical && !helper._syncing
         NumberAnimation {
+            id: smoothYAnimation
             duration: helper._isOvershotV ? Enums.duration.bounce : helper.duration
             easing.type: helper._isOvershotV ? Easing.OutBack : helper.easing
+            onStopped: {
+                if (!helper._syncing && !helper._isOvershotV)
+                    helper._boundaryTargetV = 0
+            }
         }
     }
 
     Behavior on _smoothX {
         enabled: helper.enabled && !helper._isVertical && !helper._syncing
         NumberAnimation {
+            id: smoothXAnimation
             duration: helper._isOvershotH ? Enums.duration.bounce : helper.duration
             easing.type: helper._isOvershotH ? Easing.OutBack : helper.easing
+            onStopped: {
+                if (!helper._syncing && !helper._isOvershotH)
+                    helper._boundaryTargetH = 0
+            }
         }
     }
     

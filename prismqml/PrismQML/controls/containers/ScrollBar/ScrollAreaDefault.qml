@@ -84,8 +84,10 @@ Item {
             if (typeof child.smoothScrollBy === "function"
                 && child.contentHeight !== undefined && child.height !== undefined
                 && child.contentHeight > child.height) {
-                var atEnd = child.contentY >= (child.contentHeight - child.height) - 1
-                var atBegin = child.contentY <= 1
+                var childOriginY = child.flickableItem ? child.flickableItem.originY : 0
+                var childEndY = childOriginY + Math.max(0, child.contentHeight - child.height)
+                var atEnd = child.contentY >= childEndY - 1
+                var atBegin = child.contentY <= childOriginY + 1
                 var towardEnd = delta > 0
                 var towardBegin = delta < 0
                 var atBoundary = (atEnd && towardEnd) || (atBegin && towardBegin)
@@ -94,8 +96,10 @@ Item {
             // 兼容 a890fbd0 旧场景：ListWidget/TableWidget 通过 listView 暴露
             if (child.listView && child.listView.contentHeight !== undefined
                 && child.listView.contentHeight > child.listView.height) {
-                var lvAtEnd = child.listView.contentY >= (child.listView.contentHeight - child.listView.height) - 1
-                var lvAtBegin = child.listView.contentY <= 1
+                var lvOriginY = child.listView.originY
+                var lvEndY = lvOriginY + Math.max(0, child.listView.contentHeight - child.listView.height)
+                var lvAtEnd = child.listView.contentY >= lvEndY - 1
+                var lvAtBegin = child.listView.contentY <= lvOriginY + 1
                 var lvBoundary = (lvAtEnd && delta > 0) || (lvAtBegin && delta < 0)
                 return { item: child, atBoundary: lvBoundary }
             }
@@ -232,7 +236,7 @@ Item {
             if (useH) {
                 var hPos = hScrollHelper.targetPos
                 if ((hPos >= hScrollHelper.maxScroll - 1 && delta > 0)
-                    || (hPos <= 1 && delta < 0)) {
+                    || (hPos <= hScrollHelper.minScroll + 1 && delta < 0)) {
                     if (!control.smoothScroll || !hScrollHelper.bounceEnabled) {
                         event.accepted = false
                         return
@@ -245,7 +249,7 @@ Item {
             if (useV) {
                 var vPos = vScrollHelper.targetPos
                 if ((vPos >= vScrollHelper.maxScroll - 1 && delta > 0)
-                    || (vPos <= 1 && delta < 0)) {
+                    || (vPos <= vScrollHelper.minScroll + 1 && delta < 0)) {
                     if (!control.smoothScroll || !vScrollHelper.bounceEnabled) {
                         event.accepted = false
                         return

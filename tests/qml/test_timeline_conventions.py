@@ -48,7 +48,9 @@ Window {
     objectName: "window"
 
     property var virtualItems: makeItems(12)
+    property var largeVirtualItems: makeLargeItems()
     readonly property int virtualFlatCount: virtualTimeline._flatRows.length
+    readonly property int largeVirtualFlatCount: largeVirtualTimeline._flatRows.length
 
     function makeItems(count) {
         var result = []
@@ -78,8 +80,30 @@ Window {
         virtualItems = next
     }
 
-    width: 760
-    height: 520
+    function makeLargeItems() {
+        var result = []
+        for (var groupIndex = 0; groupIndex < 3; groupIndex++) {
+            var cards = []
+            for (var cardIndex = 0; cardIndex < 30; cardIndex++) {
+                var suffix = cardIndex % 5 === 0
+                    ? " with a deliberately long summary that wraps onto multiple lines and changes delegate height"
+                    : ""
+                cards.push({
+                    "text": "Commit " + groupIndex + "-" + cardIndex + suffix,
+                    "commit": "large-" + groupIndex + "-" + cardIndex
+                })
+            }
+            result.push({
+                "title": "Large Group " + groupIndex,
+                "status": groupIndex % 2 ? "success" : "info",
+                "cards": cards
+            })
+        }
+        return result
+    }
+
+    width: 1140
+    height: 857
     visible: true
 
     TimelineCore {
@@ -116,6 +140,17 @@ Window {
         selectedRole: "commit"
         selectedKey: "b0"
         items: root.virtualItems
+    }
+
+    TimelineCore {
+        id: largeVirtualTimeline
+        objectName: "largeVirtualTimeline"
+        x: 760
+        y: 20
+        width: 340
+        height: 817
+        virtualized: true
+        items: root.largeVirtualItems
     }
 }
 """
@@ -239,6 +274,64 @@ def test_timeline_virtual_append_preserves_scroll_and_reaches_end(timeline_scene
     assert _wait_for(lambda: window.property("virtualFlatCount") == 39)
     assert _wait_for(lambda: list_view.property("count") == 39)
     assert list_view.property("contentY") == pytest.approx(before_y)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_virtual_scroll_to_start_tracks_dynamic_origin(timeline_scene):
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    large_timeline = window.findChild(QQuickItem, "largeVirtualTimeline")
+    assert large_timeline is not None
+    list_view = next(
+        item
+        for item in large_timeline.findChildren(QQuickItem)
+        if "ListView" in item.metaObject().className()
+    )
+    helper = next(
+        item
+        for item in large_timeline.findChildren(QQuickItem)
+        if "SmoothScrollHelper" in item.metaObject().className()
+    )
+    scroll_bar = next(
+        item
+        for item in list_view.childItems()
+        if "ScrollBar" in item.metaObject().className()
+    )
+    handle = next(
+        item
+        for item in scroll_bar.childItems()
+        if item.metaObject().className().startswith("QQuickRectangle")
+    )
+
+    assert _wait_for(
+        lambda: list_view.property("count")
+        == window.property("largeVirtualFlatCount")
+    )
+    assert list_view.property("count") == 93
+    assert QMetaObject.invokeMethod(list_view, "positionViewAtEnd")
+    assert _wait_for(
+        lambda: abs(list_view.property("originY")) > 1,
+        timeout_ms=3000,
+    )
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+
+    assert QMetaObject.invokeMethod(helper, "scrollToStart")
+    assert _wait_for(
+        lambda: list_view.property("contentY")
+        == pytest.approx(list_view.property("originY"), abs=1),
+        timeout_ms=3000,
+    ), (
+        list_view.property("contentY"),
+        list_view.property("originY"),
+        helper.property("targetPos"),
+        helper.property("smoothPos"),
+        helper.property("minScroll"),
+        helper.property("maxScroll"),
+    )
+    assert helper.property("targetPos") == pytest.approx(
+        list_view.property("originY"), abs=1
+    )
+    assert handle.y() == pytest.approx(0, abs=1)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

@@ -26,20 +26,48 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property real _targetY: 0
     property real _smoothY: flickable ? flickable.contentY : 0
+    property bool _syncing: false
+    property int _boundaryTargetY: 0  // -1=start, 0=absolute, 1=end
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _minY: flickable ? flickable.originY : 0
+    readonly property real _maxY: _minY + Math.max(0, flickable.contentHeight - flickable.height)
     
     // ==================== Public Methods 公开方法 ====================
     function scrollTo(targetY) {
         if (!flickable) return
-        var maxY = Math.max(0, flickable.contentHeight - flickable.height)
-        _targetY = Math.max(0, Math.min(maxY, targetY))
+        _boundaryTargetY = targetY <= _minY ? -1 : (targetY >= _maxY ? 1 : 0)
+        _targetY = Math.max(_minY, Math.min(_maxY, targetY))
         _smoothY = _targetY
     }
     
     function scrollBy(delta) {
         if (!flickable) return
-        var maxY = Math.max(0, flickable.contentHeight - flickable.height)
-        _targetY = Math.max(0, Math.min(maxY, _targetY + delta))
+        _boundaryTargetY = 0
+        _targetY = Math.max(_minY, Math.min(_maxY, _targetY + delta))
         _smoothY = _targetY
+    }
+
+    function _reconcileBounds() {
+        if (_boundaryTargetY === 0 && !smoothYAnimation.running) {
+            var currentY = Math.max(_minY, Math.min(_maxY, flickable.contentY))
+            if (currentY === _targetY && currentY === _smoothY) return
+            _syncing = true
+            _targetY = currentY
+            _smoothY = currentY
+            _syncing = false
+            return
+        }
+        var targetY = _boundaryTargetY < 0
+            ? _minY
+            : (_boundaryTargetY > 0 ? _maxY : Math.max(_minY, Math.min(_maxY, _targetY)))
+        var smoothY = Math.max(_minY, Math.min(_maxY, _smoothY))
+        if (targetY === _targetY && smoothY === _smoothY) return
+        _syncing = true
+        _targetY = targetY
+        _smoothY = smoothY
+        _syncing = false
+        if (_smoothY !== _targetY) _smoothY = _targetY
     }
 
     // Fill parent to receive wheel events 填充父级以接收滚轮事件
@@ -47,6 +75,8 @@ Item {
 
     // Sync contentY with animated value 同步contentY与动画值
     on_SmoothYChanged: if (flickable) flickable.contentY = _smoothY
+    on_MinYChanged: _reconcileBounds()
+    on_MaxYChanged: _reconcileBounds()
 
     // Sync initial position 同步初始位置
     Component.onCompleted: {
@@ -57,8 +87,13 @@ Item {
     }
 
     Behavior on _smoothY {
-        enabled: control.enabled && control.flickable && control.flickable.contentHeight > control.flickable.height
-        NumberAnimation { duration: control.duration; easing.type: control.easing }
+        enabled: control.enabled && !control._syncing && control.flickable && control.flickable.contentHeight > control.flickable.height
+        NumberAnimation {
+            id: smoothYAnimation
+            duration: control.duration
+            easing.type: control.easing
+            onStopped: if (!control._syncing) control._boundaryTargetY = 0
+        }
     }
 
     // ==================== Content 内容 ====================

@@ -23,6 +23,7 @@ Rectangle {
     readonly property real _contentSize: target ? (_isVertical ? target.contentHeight : target.contentWidth) : 0
     readonly property real _viewSize: target ? (_isVertical ? target.height : target.width) : 0
     readonly property real _contentPos: target ? (_isVertical ? target.contentY : target.contentX) : 0
+    readonly property real _contentOrigin: target ? (_isVertical ? target.originY : target.originX) : 0
     readonly property bool _needsBar: target && _contentSize > _viewSize
     readonly property color _scrollTrackColor: Enums.stateColor.scrollTrack
     readonly property color _scrollHandleDefaultColor: Enums.stateColor.scrollHandleDefault
@@ -44,7 +45,7 @@ Rectangle {
 
         property real maxPos: control._isVertical ? Math.max(0, control.height - height) : Math.max(0, control.width - width)
         property real maxContent: Math.max(0, control._contentSize - control._viewSize)
-        property real ratio: maxContent > 0 ? control._contentPos / maxContent : 0
+        property real ratio: maxContent > 0 ? (control._contentPos - control._contentOrigin) / maxContent : 0
         
         // Size 尺寸
         width: control._isVertical ? control.barWidth - Enums.spacing.xxs : Math.max(control.minHandleSize, control._viewSize / control._contentSize * control.width)
@@ -76,8 +77,8 @@ Rectangle {
                 if (!drag.active || handle.maxPos <= 0 || !control.target) return
                 
                 var newContentPos = control._isVertical
-                    ? (handle.y / handle.maxPos) * handle.maxContent
-                    : (handle.x / handle.maxPos) * handle.maxContent
+                    ? control._contentOrigin + (handle.y / handle.maxPos) * handle.maxContent
+                    : control._contentOrigin + (handle.x / handle.maxPos) * handle.maxContent
                 
                 if (control._isVertical) {
                     control.target.contentY = newContentPos

@@ -65,8 +65,8 @@ Rectangle {
  (flickable ? flickable.height / flickable.contentHeight : 0)
  
  property real position: horizontal ?
- (flickable ? flickable.contentX / (flickable.contentWidth - flickable.width) : 0) :
- (flickable ? flickable.contentY / (flickable.contentHeight - flickable.height) : 0)
+ (flickable ? (flickable.contentX - flickable.originX) / (flickable.contentWidth - flickable.width) : 0) :
+ (flickable ? (flickable.contentY - flickable.originY) / (flickable.contentHeight - flickable.height) : 0)
  
  x: horizontal ? position * (parent.width - width) : 0
  y: horizontal ? 0 : position * (parent.height - height)
@@ -102,13 +102,14 @@ Rectangle {
  var delta = horizontal ? (mouseX - startPos) : (mouseY - startPos)
  var scrollDelta = delta / (horizontal ? (control.width - thumb.width) : (control.height - thumb.height))
  var maxScroll = horizontal ? (flickable.contentWidth - flickable.width) : (flickable.contentHeight - flickable.height)
+ var minScroll = horizontal ? flickable.originX : flickable.originY
  var newScroll = startScroll + scrollDelta * maxScroll
- 
+
  if (horizontal) {
- flickable.contentX = Math.max(0, Math.min(maxScroll, newScroll))
+ flickable.contentX = Math.max(minScroll, Math.min(minScroll + maxScroll, newScroll))
  control.valueChanged(Math.round(flickable.contentX))
  } else {
- flickable.contentY = Math.max(0, Math.min(maxScroll, newScroll))
+ flickable.contentY = Math.max(minScroll, Math.min(minScroll + maxScroll, newScroll))
  control.valueChanged(Math.round(flickable.contentY))
  }
  control.sliderMoved()
