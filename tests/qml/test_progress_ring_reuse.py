@@ -4,8 +4,12 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Progress ring reuse regressions. 进度环复用回归。"""
 
+import os
 from pathlib import Path
 import re
+import subprocess
+import sys
+import textwrap
 
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem
@@ -65,6 +69,14 @@ Item {
         value: 35
     }
 
+    ProgressRing {
+        objectName: "blockingProgressRing"
+        x: 420
+        width: 48
+        height: 48
+        indeterminate: true
+    }
+
     ResultState {
         objectName: "resultState"
         y: 80
@@ -86,6 +98,92 @@ Item {
     }
 }
 """
+RENDER_THREAD_PROBE_SOURCE = textwrap.dedent(
+    '''
+    import os
+    import sys
+    import time
+    from pathlib import Path
+
+    from scripts.test_process import prepare_automated_test_process
+
+    prepare_automated_test_process()
+
+    from PySide6.QtCore import QEventLoop, Qt, QTimer, QUrl
+    from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+    from PySide6.QtWidgets import QApplication
+    from prismqml import register_types
+
+
+    def pump(milliseconds):
+        loop = QEventLoop()
+        QTimer.singleShot(milliseconds, loop.quit)
+        loop.exec()
+
+
+    root_dir = Path.cwd()
+    app = QApplication(sys.argv)
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(root_dir / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""
+        import QtQuick
+        import PrismQML
+
+        Window {
+            width: 320
+            height: 240
+            visible: true
+
+            ProgressRing {
+                anchors.centerIn: parent
+                width: 48
+                height: 48
+                indeterminate: true
+            }
+        }
+        """,
+        QUrl("inline:render-thread-progress-ring-probe.qml"),
+    )
+    for _ in range(100):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        pump(10)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert window is not None, [error.toString() for error in component.errors()]
+
+    frame_times = []
+    window.frameSwapped.connect(
+        lambda: frame_times.append(time.perf_counter()),
+        Qt.ConnectionType.DirectConnection,
+    )
+    pump(250)
+    frame_times.clear()
+
+    block_started = time.perf_counter()
+    time.sleep(0.5)
+    block_finished = time.perf_counter()
+    blocked_frames = [
+        timestamp
+        for timestamp in frame_times
+        if block_started <= timestamp <= block_finished
+    ]
+    frame_gaps = [
+        later - earlier
+        for earlier, later in zip(blocked_frames, blocked_frames[1:])
+    ]
+    assert len(blocked_frames) >= 5, blocked_frames
+    assert max(frame_gaps) < 0.12, frame_gaps
+    sys.stdout.write(f"BLOCKED_FRAMES={len(blocked_frames)}\\n")
+    sys.stdout.flush()
+    os._exit(0)
+    '''
+)
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -164,7 +262,37 @@ def test_no_qt_busy_indicator_or_extra_rotating_ring_remains():
         for path, source in sources.items()
         if re.search(r"Rotation(?:Animation|Animator)\s+on\s+rotation", source)
     }
-    assert rotating_sources == {"controls/feedback/Confetti.qml"}
+    assert rotating_sources == {
+        "controls/feedback/Confetti.qml",
+        "controls/feedback/Progress/_internal/IndeterminateArcImpl.qml",
+    }
+
+
+def test_indeterminate_ring_keeps_rendering_while_gui_thread_is_blocked():
+    """同步页面创建占住 GUI 线程时，标准环仍须由渲染线程持续交换帧。"""
+    env = os.environ.copy()
+    env.update(
+        {
+            "QSG_RENDER_LOOP": "threaded",
+            "QSG_RHI_BACKEND": "software",
+        }
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", RENDER_THREAD_PROBE_SOURCE],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=15,
+        check=False,
+    )
+    output = result.stdout + result.stderr
+    assert result.returncode == 0, output
+    match = re.search(r"^BLOCKED_FRAMES=(\d+)$", output, re.MULTILINE)
+    assert match is not None, output
+    assert int(match.group(1)) >= 5, output
 
 
 def test_public_consumers_create_the_standard_ring_at_runtime(qapp):

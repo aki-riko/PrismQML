@@ -21,13 +21,11 @@ Item {
     property bool showTrack: trackColor.a > 0
 
     // Animation state 动画状态
-    // baseRotation: 整体旋转角 (0->360 匀速循环) overall spin
     // sweepLen: 当前弧长 (角度) current arc length, 呼吸伸缩
     // spinDuration: 旋转/伸缩周期, 越小越快 (可被上层覆盖) spin & pulse period, smaller = faster
     property int spinDuration: 800
     readonly property real _minSweep: 25    // 最短弧 shortest arc
     readonly property real _maxSweep: 160   // 最长弧 ~44% (不到半圈, 不显冗长) longest arc
-    property real baseRotation: 0
     property real sweepLen: _minSweep
 
     readonly property real _cx: width / 2
@@ -62,8 +60,21 @@ Item {
 
     // Spinning arc 旋转伸缩弧
     Shape {
+        id: spinningArc
+
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
+
+        // Keep spinning on the render thread while page creation blocks the GUI
+        // thread. 页面同步创建阻塞 GUI 线程时仍由渲染线程保持旋转。
+        RotationAnimator on rotation {
+            running: control.running
+            from: 0
+            to: 360
+            duration: control.spinDuration
+            loops: Animation.Infinite
+        }
+
         ShapePath {
             strokeWidth: control.strokeWidth
             strokeColor: control.color
@@ -74,18 +85,10 @@ Item {
                 radiusX: control._radius; radiusY: control._radius
                 // 收缩锚定尾端: 头部随 sweepLen 增减前后探动, 避免突跳
                 // anchor tail; head leads forward as arc grows
-                startAngle: control.baseRotation - (control.sweepLen - control._minSweep)
+                startAngle: -(control.sweepLen - control._minSweep)
                 sweepAngle: control.sweepLen
             }
         }
-    }
-
-    // Spin animation 匀速旋转
-    NumberAnimation on baseRotation {
-        running: control.running
-        from: 0; to: 360
-        duration: control.spinDuration
-        loops: Animation.Infinite
     }
 
     // Pulse animation 呼吸伸缩
