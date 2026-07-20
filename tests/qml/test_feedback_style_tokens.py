@@ -50,6 +50,10 @@ Item {
     readonly property int iconXl: Enums.iconSize.xl
     readonly property int splashBreatheDuration: Enums.duration.splashBreathe
     readonly property int splashProgressSpinDuration: Enums.duration.splashProgressSpin
+    readonly property int splashProgressStyle: Enums.progress.indeterminate_style_orbit_dot
+    readonly property int splashProgressDotSize: Enums.splashScreenMetrics.progressDotSize
+    readonly property int splashProgressDotRadius: Enums.splashScreenMetrics.progressDotRadius
+    readonly property int splashProgressDotTopMargin: Enums.splashScreenMetrics.progressDotTopMargin
     readonly property real splashShadowBlur: Enums.shadow.splashIcon.blurNormalized
     readonly property real splashShadowOffset: Enums.shadow.splashIcon.offset
     readonly property int splashIconSize: splash.iconSize
@@ -213,6 +217,18 @@ def _assert_splash_geometry(splash: QQuickItem, metrics: dict[str, float]) -> No
     assert progress_ring.height() == pytest.approx(metrics["icon_xl"])
     assert progress_ring.property("strokeWidth") == metrics["border_normal"]
     assert progress_ring.property("indeterminate") is True
+    assert progress_ring.property("indeterminateStyle") == splash.property(
+        "parent"
+    ).property("splashProgressStyle")
+    assert progress_ring.property("indeterminateDotSize") == splash.property(
+        "parent"
+    ).property("splashProgressDotSize")
+    assert progress_ring.property("indeterminateDotRadius") == splash.property(
+        "parent"
+    ).property("splashProgressDotRadius")
+    assert progress_ring.property("indeterminateDotTopMargin") == splash.property(
+        "parent"
+    ).property("splashProgressDotTopMargin")
 
 
 def test_feedback_metrics_preserve_runtime_geometry(qapp):
@@ -304,6 +320,10 @@ def test_feedback_sources_use_shared_style_tokens():
     )
     assert "ProgressRing {" in splash_source
     assert "strokeWidth: control._progressRingBorderWidth" in splash_source
+    assert (
+        "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot"
+        in splash_source
+    )
     assert "duration: Enums.duration.splashBreathe" in splash_source
     assert "spinDuration: Enums.duration.splashProgressSpin" in splash_source
     assert "shadowBlur: Enums.shadow.splashIcon.blurNormalized" in splash_source

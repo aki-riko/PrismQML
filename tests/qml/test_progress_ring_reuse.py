@@ -20,11 +20,18 @@ from prismqml import register_types
 ROOT = Path(__file__).resolve().parents[2]
 QML_ROOT = ROOT / "prismqml" / "PrismQML"
 CANONICAL_RING = QML_ROOT / "controls" / "feedback" / "Progress" / "ProgressRing.qml"
+LOADING_OVERLAY = QML_ROOT / "_internal" / "LoadingOverlay.qml"
+LAZY_LOADING_HELPER = (
+    QML_ROOT / "controls" / "navigation" / "_internal" / "LazyLoadingHelper.qml"
+)
+SPLASH_SCREEN = (
+    QML_ROOT / "controls" / "feedback" / "SplashScreen" / "SplashScreen.qml"
+)
 RING_CONSUMERS = (
-    QML_ROOT / "_internal" / "LoadingOverlay.qml",
-    QML_ROOT / "controls" / "navigation" / "_internal" / "LazyLoadingHelper.qml",
+    LOADING_OVERLAY,
+    LAZY_LOADING_HELPER,
     QML_ROOT / "controls" / "buttons" / "Button" / "ButtonContent.qml",
-    QML_ROOT / "controls" / "feedback" / "SplashScreen" / "SplashScreen.qml",
+    SPLASH_SCREEN,
     QML_ROOT / "controls" / "feedback" / "State" / "ResultState.qml",
     QML_ROOT / "controls" / "feedback" / "State" / "StateWidget.qml",
     QML_ROOT
@@ -127,8 +134,8 @@ RENDER_THREAD_PROBE_SOURCE = textwrap.dedent(
     engine.addImportPath(str(root_dir / "prismqml"))
     register_types(engine)
     component = QQmlComponent(engine)
-    component.setData(
-        b"""
+    style_name = sys.argv[1]
+    scene_source = b"""
         import QtQuick
         import PrismQML
 
@@ -142,9 +149,12 @@ RENDER_THREAD_PROBE_SOURCE = textwrap.dedent(
                 width: 48
                 height: 48
                 indeterminate: true
+                indeterminateStyle: Enums.progress.__STYLE__
             }
         }
-        """,
+        """.replace(b"__STYLE__", style_name.encode("ascii"))
+    component.setData(
+        scene_source,
         QUrl("inline:render-thread-progress-ring-probe.qml"),
     )
     for _ in range(100):
@@ -238,6 +248,28 @@ def test_ring_consumers_delegate_to_canonical_progress_ring():
             assert marker not in source, (source_path, marker)
 
 
+def test_lazy_and_splash_consumers_preserve_their_legacy_visual_modes():
+    """复用公共实现时仍须保留两类入口原有的不同视觉。"""
+    for source_path in (LOADING_OVERLAY, LAZY_LOADING_HELPER):
+        source = source_path.read_text(encoding="utf-8")
+        assert (
+            "indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc"
+            in source
+        )
+        assert "spinDuration: Enums.duration.scroll" in source
+        assert "trackColorLight: Enums.transparent" in source
+        assert "trackColorDark: Enums.transparent" in source
+
+    splash_source = SPLASH_SCREEN.read_text(encoding="utf-8")
+    assert (
+        "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot"
+        in splash_source
+    )
+    assert "indeterminateDotSize: control._progressDotSize" in splash_source
+    assert "indeterminateDotRadius: control._progressDotRadius" in splash_source
+    assert "indeterminateDotTopMargin: control._progressDotTopMargin" in splash_source
+
+
 def test_all_non_progress_arc_painters_remain_explicitly_classified():
     arc_sources = {
         path.relative_to(QML_ROOT).as_posix()
@@ -269,7 +301,7 @@ def test_no_qt_busy_indicator_or_extra_rotating_ring_remains():
 
 
 def test_indeterminate_ring_keeps_rendering_while_gui_thread_is_blocked():
-    """同步页面创建占住 GUI 线程时，标准环仍须由渲染线程持续交换帧。"""
+    """同步页面创建占住 GUI 线程时，三种视觉模式都须持续交换帧。"""
     env = os.environ.copy()
     env.update(
         {
@@ -277,22 +309,28 @@ def test_indeterminate_ring_keeps_rendering_while_gui_thread_is_blocked():
             "QSG_RHI_BACKEND": "software",
         }
     )
-    result = subprocess.run(
-        [sys.executable, "-c", RENDER_THREAD_PROBE_SOURCE],
-        cwd=ROOT,
-        env=env,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=15,
-        check=False,
+    styles = (
+        "indeterminate_style_pulse",
+        "indeterminate_style_fixed_arc",
+        "indeterminate_style_orbit_dot",
     )
-    output = result.stdout + result.stderr
-    assert result.returncode == 0, output
-    match = re.search(r"^BLOCKED_FRAMES=(\d+)$", output, re.MULTILINE)
-    assert match is not None, output
-    assert int(match.group(1)) >= 5, output
+    for style_name in styles:
+        result = subprocess.run(
+            [sys.executable, "-c", RENDER_THREAD_PROBE_SOURCE, style_name],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=15,
+            check=False,
+        )
+        output = result.stdout + result.stderr
+        assert result.returncode == 0, (style_name, output)
+        match = re.search(r"^BLOCKED_FRAMES=(\d+)$", output, re.MULTILINE)
+        assert match is not None, (style_name, output)
+        assert int(match.group(1)) >= 5, (style_name, output)
 
 
 def test_public_consumers_create_the_standard_ring_at_runtime(qapp):

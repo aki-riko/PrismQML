@@ -45,6 +45,9 @@ Rectangle {
     readonly property int _progressRingSize: Enums.splashScreenMetrics.progressRingSize
     readonly property int _progressRingBorderWidth: Enums.splashScreenMetrics.progressRingBorderWidth
     readonly property real _progressTrackOpacity: Enums.splashScreenMetrics.progressTrackOpacity
+    readonly property int _progressDotSize: Enums.splashScreenMetrics.progressDotSize
+    readonly property int _progressDotRadius: Enums.splashScreenMetrics.progressDotRadius
+    readonly property int _progressDotTopMargin: Enums.splashScreenMetrics.progressDotTopMargin
     readonly property real _iconShadowBlur: Enums.splashScreenMetrics.iconShadowBlur
     readonly property int _iconShadowOffset: Enums.splashScreenMetrics.iconShadowOffset
     readonly property real _contentEnterScale: Enums.splashScreenMetrics.contentEnterScale
@@ -241,9 +244,13 @@ Rectangle {
                 visible: control.showProgress
                 anchors.verticalCenter: parent.verticalCenter
                 indeterminate: true
+                indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot
                 paused: !control.visible || !control.showProgress
                 strokeWidth: control._progressRingBorderWidth
                 spinDuration: Enums.duration.splashProgressSpin
+                indeterminateDotSize: control._progressDotSize
+                indeterminateDotRadius: control._progressDotRadius
+                indeterminateDotTopMargin: control._progressDotTopMargin
                 color: control._progressColor
                 trackColorLight: Qt.rgba(
                     control._progressColor.r,

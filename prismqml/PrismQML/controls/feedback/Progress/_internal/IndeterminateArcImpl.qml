@@ -16,7 +16,12 @@ Item {
     property color color: Enums.accentColor
     property int strokeWidth: Enums.border.normal
     property bool running: true
-    // 可选底环 track (默认不画, 由上层决定) Optional track ring
+    property int style: Enums.progress.indeterminate_style_pulse
+    property real fixedArcSweep: Enums.progressRingMetrics.fixedArcSweep
+    property real dotSize: Enums.progressRingMetrics.orbitDotSize
+    property real dotRadius: Enums.progressRingMetrics.orbitDotRadius
+    property real dotTopMargin: Enums.progressRingMetrics.orbitDotTopMargin
+    // Optional track ring (drawn here only for orbit-dot style) 可选底环（仅绕圈圆点模式在此绘制）
     property color trackColor: Enums.transparent
     property bool showTrack: trackColor.a > 0
 
@@ -31,6 +36,9 @@ Item {
     readonly property real _cx: width / 2
     readonly property real _cy: height / 2
     readonly property real _radius: Math.min(_cx, _cy) - strokeWidth / 2
+    readonly property bool _isPulseStyle: style === Enums.progress.indeterminate_style_pulse
+    readonly property bool _isFixedArcStyle: style === Enums.progress.indeterminate_style_fixed_arc
+    readonly property bool _isOrbitDotStyle: style === Enums.progress.indeterminate_style_orbit_dot
 
     // ==================== Public Methods 公开方法 ====================
     function start() { control.running = true }
@@ -40,22 +48,14 @@ Item {
     implicitHeight: Enums.controlSize.indeterminateRingSize
 
     // ==================== Content 内容 ====================
-    // Optional track ring 可选底环
-    Shape {
+    // Legacy splash track 原开屏底环
+    Rectangle {
         anchors.fill: parent
-        visible: control.showTrack
-        preferredRendererType: Shape.CurveRenderer
-        ShapePath {
-            strokeWidth: control.strokeWidth
-            strokeColor: control.trackColor
-            fillColor: Enums.transparent
-            capStyle: ShapePath.FlatCap
-            PathAngleArc {
-                centerX: control._cx; centerY: control._cy
-                radiusX: control._radius; radiusY: control._radius
-                startAngle: 0; sweepAngle: 360
-            }
-        }
+        visible: control._isOrbitDotStyle && control.showTrack
+        radius: width / 2
+        color: Enums.transparent
+        border.width: control.strokeWidth
+        border.color: control.trackColor
     }
 
     // Spinning arc 旋转伸缩弧
@@ -63,12 +63,13 @@ Item {
         id: spinningArc
 
         anchors.fill: parent
+        visible: control._isPulseStyle || control._isFixedArcStyle
         preferredRendererType: Shape.CurveRenderer
 
         // Keep spinning on the render thread while page creation blocks the GUI
         // thread. 页面同步创建阻塞 GUI 线程时仍由渲染线程保持旋转。
         RotationAnimator on rotation {
-            running: control.running
+            running: control.running && spinningArc.visible
             from: 0
             to: 360
             duration: control.spinDuration
@@ -85,15 +86,43 @@ Item {
                 radiusX: control._radius; radiusY: control._radius
                 // 收缩锚定尾端: 头部随 sweepLen 增减前后探动, 避免突跳
                 // anchor tail; head leads forward as arc grows
-                startAngle: -(control.sweepLen - control._minSweep)
-                sweepAngle: control.sweepLen
+                startAngle: control._isFixedArcStyle ?
+                                -control.fixedArcSweep :
+                                -(control.sweepLen - control._minSweep)
+                sweepAngle: control._isFixedArcStyle ? control.fixedArcSweep : control.sweepLen
             }
+        }
+    }
+
+    // Legacy splash orbiting dot, now render-thread driven 原开屏绕圈圆点，现由渲染线程驱动
+    Item {
+        id: orbitingDot
+
+        anchors.fill: parent
+        visible: control._isOrbitDotStyle
+
+        RotationAnimator on rotation {
+            running: control.running && orbitingDot.visible
+            from: 0
+            to: 360
+            duration: control.spinDuration
+            loops: Animation.Infinite
+        }
+
+        Rectangle {
+            width: control.dotSize
+            height: control.dotSize
+            radius: control.dotRadius
+            color: control.color
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: control.dotTopMargin
         }
     }
 
     // Pulse animation 呼吸伸缩
     SequentialAnimation on sweepLen {
-        running: control.running
+        running: control.running && control._isPulseStyle
         loops: Animation.Infinite
         NumberAnimation {
             from: control._minSweep; to: control._maxSweep

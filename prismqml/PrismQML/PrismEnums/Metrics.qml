@@ -577,9 +577,17 @@ QtObject {
  readonly property int progressRingSize: root.iconSize.xl
  readonly property int progressRingBorderWidth: root.border.normal
  readonly property real progressTrackOpacity: root.opacity.light
- readonly property int progressDotSize: root.spacing.s
- readonly property int progressDotRadius: root.isPrismDesign ? progressDotSize / 2 : root.radius.tiny
- readonly property int progressDotTopMargin: -root.spacing.micro
+ readonly property int progressDotSize: root.progressRing.orbitDotSize
+ readonly property int progressDotRadius: root.progressRing.orbitDotRadius
+ readonly property int progressDotTopMargin: root.progressRing.orbitDotTopMargin
+ }
+
+ // ==================== ProgressRing 进度环度量 ====================
+ readonly property QtObject progressRing: QtObject {
+ readonly property int fixedArcSweep: 90 // Legacy lazy-loading quarter arc 原懒加载四分之一圆弧
+ readonly property int orbitDotSize: root.spacing.s // Orbiting dot size 绕圈圆点尺寸
+ readonly property int orbitDotRadius: root.isPrismDesign ? orbitDotSize / 2 : root.radius.tiny
+ readonly property int orbitDotTopMargin: -root.spacing.micro // Orbiting dot offset 绕圈圆点偏移
  }
 
  // ==================== ColorPicker 颜色选择器度量 ====================

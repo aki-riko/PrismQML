@@ -16,6 +16,11 @@ Item {
     property bool indeterminate: false
     property bool paused: false
     property int strokeWidth: Enums.controlSize.progressRingStroke
+    property int indeterminateStyle: Enums.progress.indeterminate_style_pulse
+    property real indeterminateFixedArcSweep: Enums.progressRingMetrics.fixedArcSweep
+    property real indeterminateDotSize: Enums.progressRingMetrics.orbitDotSize
+    property real indeterminateDotRadius: Enums.progressRingMetrics.orbitDotRadius
+    property real indeterminateDotTopMargin: Enums.progressRingMetrics.orbitDotTopMargin
     readonly property real position: (value - from) / (to - from)
     // Custom color props (per-theme) 颜色自定义属性（分主题）
     property color color: Enums.accentColor
@@ -42,6 +47,9 @@ Item {
 
     onValueChanged: canvas.requestPaint()
     onPositionChanged: canvas.requestPaint()
+    onIndeterminateChanged: canvas.requestPaint()
+    onIndeterminateStyleChanged: canvas.requestPaint()
+    onStrokeWidthChanged: canvas.requestPaint()
     Component.onCompleted: canvas.requestPaint()
     
     Canvas {
@@ -57,12 +65,15 @@ Item {
             var cy = height / 2
             var r = Math.min(cx, cy) - strokeWidth / 2
             
-            // Background track 背景轨道
-            ctx.beginPath()
-            ctx.arc(cx, cy, r, 0, Math.PI * 2)
-            ctx.strokeStyle = trackColor
-            ctx.lineWidth = strokeWidth
-            ctx.stroke()
+            // Orbit-dot mode uses its legacy Rectangle track. 绕圈圆点模式使用原有 Rectangle 底环。
+            if (trackColor.a > 0 && (!indeterminate ||
+                    indeterminateStyle !== Enums.progress.indeterminate_style_orbit_dot)) {
+                ctx.beginPath()
+                ctx.arc(cx, cy, r, 0, Math.PI * 2)
+                ctx.strokeStyle = trackColor
+                ctx.lineWidth = strokeWidth
+                ctx.stroke()
+            }
             
             // Progress arc 进度弧
             if (!indeterminate) {
@@ -83,7 +94,13 @@ Item {
         visible: indeterminate
         running: indeterminate && !paused
         color: control.progressColor
+        trackColor: control.trackColor
         strokeWidth: control.strokeWidth
+        style: control.indeterminateStyle
+        fixedArcSweep: control.indeterminateFixedArcSweep
+        dotSize: control.indeterminateDotSize
+        dotRadius: control.indeterminateDotRadius
+        dotTopMargin: control.indeterminateDotTopMargin
     }
     
     Connections {

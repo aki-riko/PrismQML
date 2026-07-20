@@ -28,7 +28,11 @@ Rectangle {
             height: Enums.controlSize.navBarHeight
             anchors.horizontalCenter: parent.horizontalCenter
             indeterminate: root.loading
+            indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc
             strokeWidth: Enums.controlSize.progressStrokeWidth
+            spinDuration: Enums.duration.scroll
+            trackColorLight: Enums.transparent
+            trackColorDark: Enums.transparent
         }
         
         Label {
