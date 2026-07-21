@@ -425,3 +425,26 @@ def test_spin_box_button_layer_and_repeat_signal_contract(qapp):
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_spin_box_double_click_changes_value_exactly_twice(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_scene()
+    try:
+        normal = controls["normal"]
+        values = []
+        normal.valueModified.connect(values.append)
+        increase_button = _button_with_icon(window, normal, "addIcon")
+        QTest.mouseDClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            _point_for(window, increase_button),
+        )
+        _pump()
+        assert (normal.property("value"), values) == (9, [7, 9])
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []

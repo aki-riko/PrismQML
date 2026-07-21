@@ -7,9 +7,11 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QEventLoop, QObject, QPointF, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QObject, QPoint, QPointF, Qt, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -155,6 +157,40 @@ Item {
 }
 """
 
+CLICK_SCENE_URL = QUrl.fromLocalFile(
+    str(ROOT / "tests" / "qml" / "button-core-double-click.qml")
+)
+CLICK_SCENE_SOURCE = b"""
+import QtQuick
+import PrismQML
+
+Window {
+    id: root
+
+    property int pressedCount: 0
+    property int releasedCount: 0
+    property int clickedCount: 0
+    property int doubleClickedCount: 0
+
+    width: 320
+    height: 160
+    visible: true
+
+    Button {
+        id: button
+        objectName: "rapidClickButton"
+        anchors.centerIn: parent
+        width: 160
+        height: 40
+        text: "Rapid click"
+        onButtonPressed: root.pressedCount += 1
+        onReleased: root.releasedCount += 1
+        onClicked: root.clickedCount += 1
+        onDoubleClicked: root.doubleClickedCount += 1
+    }
+}
+"""
+
 
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
@@ -182,6 +218,34 @@ def _create_scene():
     root = component.create(engine.rootContext())
     assert root is not None, [error.toString() for error in component.errors()]
     _pump(20)
+    assert warnings == []
+    return engine, component, root, warnings
+
+
+def _create_click_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(CLICK_SCENE_SOURCE, CLICK_SCENE_URL)
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump(20)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    assert isinstance(root, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    _pump(50)
+    assert root.isVisible()
+    assert root.isExposed()
     assert warnings == []
     return engine, component, root, warnings
 
@@ -364,6 +428,36 @@ def test_button_core_initial_colors_and_handlers(button_core_scene):
     button.setProperty("pseudoHovered", False)
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
+
+
+def test_button_core_double_click_preserves_both_click_activations(qapp):
+    engine, component, window, warnings = _create_click_scene()
+    try:
+        button = _button(window, "rapidClickButton")
+        center = button.mapToScene(
+            QPointF(button.width() / 2, button.height() / 2)
+        ).toPoint()
+        QTest.mouseDClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            QPoint(center.x(), center.y()),
+        )
+        _pump(20)
+
+        assert (
+            window.property("pressedCount"),
+            window.property("releasedCount"),
+            window.property("clickedCount"),
+            window.property("doubleClickedCount"),
+        ) == (2, 2, 2, 1)
+        assert warnings == []
+    finally:
+        window.close()
+        window.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
 
 
 def test_button_core_feature_loader_lifecycle(button_core_scene):

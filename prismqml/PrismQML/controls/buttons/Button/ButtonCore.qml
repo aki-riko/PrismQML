@@ -616,7 +616,11 @@ Widget {
             control.buttonPressed()
         }
         onReleased: control.released()
-        onDoubleClicked: control.doubleClicked()
+        onDoubleClicked: (mouse) => {
+            // Replay the suppressed second activation before forwarding the double-click signal 重放被抑制的第二次激活，再转发双击信号
+            clicked(mouse)
+            control.doubleClicked()
+        }
     }
 
     // Dropdown feature 下拉模块

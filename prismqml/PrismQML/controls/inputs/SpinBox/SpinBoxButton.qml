@@ -23,8 +23,4 @@ ButtonCore {
     // Auto adjust radius to keep it rounded 自动调整圆角（可选）
     radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
 
-    // Treat double-click as two clicks 将双击按两次单击处理
-    // MouseArea suppresses the second clicked signal within doubleClickInterval (about 400ms) MouseArea 会在 doubleClickInterval（约 400ms）内抑制第二次 clicked 信号
-    // Forward doubleClicked to clicked so rapid +/- clicks are not lost 将 doubleClicked 转发到 clicked，避免快速连点 +/- 时丢失点击
-    onDoubleClicked: clicked()
 }
