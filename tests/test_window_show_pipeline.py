@@ -260,6 +260,26 @@ def test_lazy_show_without_navigation_does_not_create_page(manager, monkeypatch)
     assert window_core.WindowCore._current_window_instance is instance
 
 
+def test_borrowed_show_skips_unavailable_startup_guard_hooks(monkeypatch):
+    calls = []
+    previous = window_core.WindowCore._current_window_instance
+    owner = SimpleNamespace(
+        _window=SimpleNamespace(show=lambda: calls.append("show")),
+        _lazy_loading=True,
+        _nav_items=[],
+        _bottom_nav_items=[],
+        _restore_visible_state=lambda: calls.append("restore"),
+    )
+    monkeypatch.setattr(window_core, "debug", lambda _message: None)
+
+    try:
+        window_core.WindowCore.show(owner)
+    finally:
+        window_core.WindowCore._current_window_instance = previous
+
+    assert calls == ["restore", "show", "restore"]
+
+
 def test_lazy_show_with_only_bottom_navigation_creates_local_home(
     manager, monkeypatch
 ):

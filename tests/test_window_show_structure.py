@@ -16,6 +16,7 @@ _CORE_PATH = Path(window_core.__file__).resolve()
 _HELPER_PATH = Path(_window_show.__file__).resolve()
 _HELPER_FUNCTIONS = {
     "ensure_initial_pages",
+    "invoke_optional_startup_hook",
     "make_show_profile",
     "show_window_root",
 }
@@ -23,7 +24,7 @@ _EXPECTED_SHOW_STATEMENTS = (
     "profile = make_show_profile(debug)",
     "if not show_window_root(self, profile):\n    return",
     "WindowCore._current_window_instance = self",
-    "self._begin_startup_page_guard()",
+    'invoke_optional_startup_hook(self, "_begin_startup_page_guard")',
     "ensure_initial_pages(self, profile)",
 )
 _CONTROL_FLOW_NODES = (

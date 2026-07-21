@@ -29,14 +29,14 @@ class PagePrewarmMixin:
     """Admission guard and idle scheduler for non-current pages."""
 
     def _begin_startup_page_guard(self) -> None:
-        if not self._lazy_loading:
+        if not getattr(self, "_lazy_loading", False):
             return
         self._startup_page_guard_active = True
-        self._startup_page_index = self._current_index
+        self._startup_page_index = getattr(self, "_current_index", 0)
 
     def _startup_page_creation_blocked(self, index: int) -> bool:
         return bool(
-            self._lazy_loading
+            getattr(self, "_lazy_loading", False)
             and getattr(self, "_startup_page_guard_active", False)
             and index != self._startup_page_index
         )
@@ -64,7 +64,7 @@ class PagePrewarmMixin:
     def prewarmPage(self, index: int) -> bool:
         """Queue one non-current page for idle prewarming. 将非当前页加入空闲预热队列。"""
         total = len(self._nav_items) + len(self._bottom_nav_items)
-        if not self._lazy_loading or not 0 <= index < total:
+        if not getattr(self, "_lazy_loading", False) or not 0 <= index < total:
             return False
         if index == self._current_index or index in self._pages:
             return False

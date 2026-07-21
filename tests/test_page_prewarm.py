@@ -93,6 +93,15 @@ def test_startup_guard_allows_current_page_and_finishes_when_ready():
     assert manager._startup_page_guard_active is False
 
 
+def test_missing_lazy_state_keeps_partial_manager_page_admission_open():
+    manager = _page_manager.PageManagerMixin.__new__(
+        _page_manager.PageManagerMixin
+    )
+
+    assert manager._startup_page_creation_blocked(1) is False
+    assert manager._admit_page_creation(1) is True
+
+
 def test_prewarm_waits_for_startup_then_runs_after_idle_delay(monkeypatch):
     manager = _Manager()
     timers = _install_timer(monkeypatch)

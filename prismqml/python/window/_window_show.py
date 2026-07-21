@@ -12,6 +12,13 @@ from typing import Any, Callable
 ProfileCallback = Callable[[str], None]
 
 
+def invoke_optional_startup_hook(owner: Any, hook_name: str) -> None:
+    """Invoke an available startup lifecycle hook. 调用对象已提供的启动生命周期钩子。"""
+    hook = getattr(owner, hook_name, None)
+    if callable(hook):
+        hook()
+
+
 def make_show_profile(log: ProfileCallback) -> ProfileCallback:
     """Create the WindowCore.show profiler. 创建窗口显示剖析器。"""
     profile_start = time.perf_counter()
@@ -60,10 +67,12 @@ def ensure_initial_pages(owner: Any, profile: ProfileCallback) -> None:
     if owner._lazy_loading:
         if owner._nav_items or owner._bottom_nav_items:
             owner._ensure_page_created(0)
-            owner._complete_startup_page_guard_if_ready()
+            invoke_optional_startup_hook(
+                owner, "_complete_startup_page_guard_if_ready"
+            )
             profile("创建/确认首页")
         else:
-            owner._complete_startup_page_guard()
+            invoke_optional_startup_hook(owner, "_complete_startup_page_guard")
     else:
         total = len(owner._nav_items) + len(owner._bottom_nav_items)
         for index in range(total):

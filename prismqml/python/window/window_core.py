@@ -142,7 +142,12 @@ from ._window_builder import WindowBuilderMixin
 from ._window_init import initialize_splash_state, initialize_window_state
 from ._page_manager import PageManagerMixin
 from ._window_compat import WindowCompatMixin
-from ._window_show import ensure_initial_pages, make_show_profile, show_window_root
+from ._window_show import (
+    ensure_initial_pages,
+    invoke_optional_startup_hook,
+    make_show_profile,
+    show_window_root,
+)
 
 
 class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixin):
@@ -431,7 +436,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         if not show_window_root(self, profile):
             return
         WindowCore._current_window_instance = self
-        self._begin_startup_page_guard()
+        invoke_optional_startup_hook(self, "_begin_startup_page_guard")
         ensure_initial_pages(self, profile)
         # Keep Mica initialization in QML nativeHookReady; no Python timer here.
         # Mica 初始化继续由 QML nativeHookReady 负责；此处不新增 Python timer。
