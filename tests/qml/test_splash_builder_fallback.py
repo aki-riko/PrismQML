@@ -21,7 +21,7 @@ configure_qml_test_process()
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import shiboken6
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer
 from PySide6.QtWidgets import QApplication
 
 
@@ -188,6 +188,9 @@ def _exercise_rich_splash_contract(temp_dir):
         assert splash.property("iconSource") == "qrc:/icons/splash.svg"
         assert splash.property("title") == title
         assert splash.property("subtitle") == subtitle
+        assert splash.property("showProgress") is True
+        assert splash.property("enableShadow") is True
+        assert splash.findChild(QObject, "splashProgressRing") is not None
         assert splash.parentItem() == window._window.contentItem()
         assert splash.property("width") == 1111
         assert splash.property("height") == 777

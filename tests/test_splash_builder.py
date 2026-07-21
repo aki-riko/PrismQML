@@ -4,7 +4,6 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Splash builder boundary regressions. 启动画面构建边界回归。"""
 
-from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -220,12 +219,23 @@ def test_create_splash_fixed_qml_bytes_and_file_fast_path(monkeypatch):
     builder = _new_builder()
     _splash_builder.create_splash(builder)
 
-    qml_bytes = captured["qml"].encode("utf-8")
-    assert len(qml_bytes) == 3458
-    assert sha256(qml_bytes).hexdigest().upper() == (
-        "62E1B00C77E7D976A4926E5C6DD1BE8595824FF7F5E8B24EA902340EBA52959E"
+    expected_qml = (
+        "import QtQuick\n"
+        'import "file:///D:/Fixed/Qml/controls/feedback/SplashScreen"\n'
+        "\n"
+        "SplashScreen {\n"
+        '    iconSource: "qrc:/icons/splash.svg"\n'
+        '    title: "Title \\"quoted\\" \\u007Bbrace\\u007D\\nline"\n'
+        '    subtitle: "Sub $ value"\n'
+        "}\n"
     )
-    assert captured["qml"].count("\n") == 126
+    assert captured["qml"].encode("utf-8") == expected_qml.encode("utf-8")
+    assert (
+        'import "file:///D:/Fixed/Qml/controls/feedback/SplashScreen"'
+        in captured["qml"]
+    )
+    assert "\nSplashScreen {" in captured["qml"]
+    assert "\nRectangle {" not in captured["qml"]
     assert captured["profile_values"] == (
         "qrc:/icons/splash.svg",
         'Title "quoted" {brace}\nline',
