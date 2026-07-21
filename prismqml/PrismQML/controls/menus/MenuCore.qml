@@ -168,33 +168,11 @@ PopupWindowCore {
  // Open as a child menu with both first action rows aligned 作为子菜单打开，并对齐父子首行
  function openAsSubmenu(parentAction) {
  if (!parentAction) return
- var parentWindow = parentAction.Window.window
- var windowContent = parentWindow ? parentWindow.contentItem : null
- var logicalX = 0
- var logicalY = 0
- var currentItem = parentAction
- while (currentItem && currentItem !== windowContent) {
- logicalX += currentItem.x
- logicalY += currentItem.y
- currentItem = currentItem.parent
- }
-
- var windowPos
- if (parentWindow && currentItem === windowContent) {
- windowPos = Qt.point(
- parentWindow.x + logicalX + parentAction.width + Enums.spacing.xs
- + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset,
- parentWindow.y + logicalY - Enums.popupMetrics.panelOffset - Enums.spacing.xs
- )
- } else {
- var actionPos = parentAction.mapToGlobal(0, 0)
- windowPos = Qt.point(
- actionPos.x + parentAction.width + Enums.spacing.xs
- + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset,
- actionPos.y - Enums.popupMetrics.panelOffset - Enums.spacing.xs
- )
- }
- open(windowPos.x, windowPos.y)
+ targetControl = parentAction
+ _submenuPlacement = true
+ _updateSize()
+ var windowPos = _calcSubmenuPosition()
+ _openAtPosition(windowPos.x, windowPos.y, true)
  }
 
  // Add custom widget to menu 添加自定义组件

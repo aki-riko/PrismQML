@@ -33,6 +33,7 @@ Item {
     property Item targetControl: null  // Trigger control 触发弹出的控件
     property int animationType: 0  // 0=expand, 1=slideDown (Fluent Design style) 动画类型
     property bool _isPickerMode: false  // Internal: picker mode for center alignment 内部：Picker模式居中对齐
+    property bool _submenuPlacement: false  // Internal: right/left placement for anchored submenus 子菜单锚点定位
     property int _pickerRowHeight: 37  // Internal: row height for picker mode 内部：Picker模式行高
 
     // ==================== Internal Props 内部属性 ====================
@@ -67,6 +68,65 @@ Item {
     signal aboutToHide()
     
     // ==================== Public Methods 公开方法 ====================
+    function _screenBoundsAt(globalX, globalY, sourceItem) {
+        if (typeof WindowHelper !== "undefined" && WindowHelper
+                && typeof WindowHelper.availableScreenGeometryAt === "function") {
+            var geometry = WindowHelper.availableScreenGeometryAt(
+                Math.round(globalX), Math.round(globalY))
+            if (geometry && geometry.width > 0 && geometry.height > 0) {
+                return {
+                    left: geometry.x,
+                    top: geometry.y,
+                    right: geometry.x + geometry.width,
+                    bottom: geometry.y + geometry.height
+                }
+            }
+        }
+
+        var screen = sourceItem && sourceItem.Screen ? sourceItem.Screen : Screen
+        if (screen && screen.width > 0 && screen.height > 0) {
+            var virtualX = typeof screen.virtualX === "number" ? screen.virtualX : 0
+            var virtualY = typeof screen.virtualY === "number" ? screen.virtualY : 0
+            return {
+                left: virtualX,
+                top: virtualY,
+                right: virtualX + screen.width,
+                bottom: virtualY + screen.height
+            }
+        }
+        return null
+    }
+
+    function _calcSubmenuPosition() {
+        if (!targetControl || !targetControl.mapToGlobal) return Qt.point(0, 0)
+
+        var actionTop = targetControl.mapToGlobal(0, 0)
+        var actionRight = targetControl.mapToGlobal(targetControl.width, 0)
+        var actionCenter = targetControl.mapToGlobal(
+            targetControl.width / 2, targetControl.height / 2)
+        var outerWidth = _outerWidth
+        var outerHeight = _outerHeight
+        var panelOffset = Enums.popupMetrics.panelOffset
+        var gap = Enums.spacing.xs + Enums.popupMetrics.controlGap
+        var posX = actionRight.x + gap - panelOffset
+        var posY = actionTop.y - panelOffset - Enums.spacing.xs
+        var bounds = _screenBoundsAt(
+            actionCenter.x,
+            actionCenter.y,
+            targetControl
+        )
+
+        if (bounds) {
+            var leftPosX = actionTop.x - gap - outerWidth + panelOffset
+            if (posX + outerWidth > bounds.right && leftPosX >= bounds.left) {
+                posX = leftPosX
+            }
+            posX = Math.max(bounds.left, Math.min(posX, bounds.right - outerWidth))
+            posY = Math.max(bounds.top, Math.min(posY, bounds.bottom - outerHeight))
+        }
+        return Qt.point(posX, posY)
+    }
+
     // 预热 native window handle —— 第一次 show() 在 Windows 上会同步阻塞
     // ~170ms 等 native surface 创建。在 hover/focus 等"用户即将点开"时机调用,
     // 让真正点击时走暖路径 (<5ms)。已预热则 no-op。
@@ -105,8 +165,13 @@ Item {
     }
 
     function open(x, y) {
+        _openAtPosition(x, y, false)
+    }
+
+    function _openAtPosition(x, y, preservePlacement) {
         // Prevent open during closing animation 防止关闭期间打开
         if (isClosing) return
+        if (preservePlacement !== true) _submenuPlacement = false
 
         aboutToShow()
 
@@ -129,14 +194,10 @@ Item {
         popupWindow.width = _outerWidth
         popupWindow.height = _outerHeight
 
-        var screen = Screen
-        if (screen) {
-            if (posX + popupWindow.width > screen.width) {
-                posX = Math.max(0, screen.width - popupWindow.width)
-            }
-            if (posY + popupWindow.height > screen.height) {
-                posY = Math.max(0, screen.height - popupWindow.height)
-            }
+        var bounds = _screenBoundsAt(posX, posY, targetControl)
+        if (bounds) {
+            posX = Math.max(bounds.left, Math.min(posX, bounds.right - popupWindow.width))
+            posY = Math.max(bounds.top, Math.min(posY, bounds.bottom - popupWindow.height))
         }
 
         popupWindow.x = posX
@@ -158,6 +219,7 @@ Item {
     
     function openAtControl(targetCtrl) {
         if (!targetCtrl) return
+        _submenuPlacement = false
         targetControl = targetCtrl
         var pos = targetCtrl.mapToGlobal(0, targetCtrl.height + Enums.popupMetrics.controlGap)
         // Align standard control popups by their left edges. 标准控件弹层统一左边缘对齐
@@ -167,6 +229,7 @@ Item {
     // Open popup above control with selected row aligned to control (Fluent Design Picker style) 在控件上方打开弹出框，选中行与控件对齐（Fluent Design Picker 风格）
     function openAtPicker(targetCtrl, rowHeight) {
         if (!targetCtrl) return
+        _submenuPlacement = false
         targetControl = targetCtrl
         _isPickerMode = true
         _pickerRowHeight = rowHeight
@@ -274,6 +337,7 @@ Item {
         isClosing = false
         _clipHeight = 0
         _scale = 0.7   // [Anim C]
+        _submenuPlacement = false
         popupSurface.opacity = 0
         if (useInWindowPopup) inlinePopup.close()
         else popupWindow.hide()
@@ -287,7 +351,11 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _applyTrackedPosition(currentGlobalPos) {
         var newX, newY
-        if (_isPickerMode) {
+        if (_submenuPlacement) {
+            var submenuPos = _calcSubmenuPosition()
+            newX = submenuPos.x
+            newY = submenuPos.y
+        } else if (_isPickerMode) {
             var pickerPos = _calcPickerPosition(targetControl, _pickerRowHeight)
             newX = pickerPos.x
             newY = pickerPos.y

@@ -108,7 +108,8 @@ Window {
 
         MenuCore {
             closeOnClickOutside: false
-            Component.onCompleted: addAction("Child", "", "", { "actionId": "child" })
+            Component.onCompleted: addAction(
+                "Child action with a deliberately wide label", "", "", { "actionId": "child" })
         }
     }
 
@@ -392,9 +393,46 @@ def test_menu_submenu_first_row_aligns_with_parent_action(menu_scene):
         parent_action = window.property("submenuAction")
         child_action = submenu.getAction("child")
         parent_top = parent_action.mapToGlobal(QPointF()).y()
-        child_top = child_action.mapToGlobal(QPointF()).y()
 
-        assert child_top == pytest.approx(parent_top)
+        assert _wait_for(
+            lambda: round(child_action.mapToGlobal(QPointF()).y())
+            == round(parent_action.mapToGlobal(QPointF()).y())
+        )
+        assert submenu.property("targetControl") is parent_action
+
+        parent_top = parent_action.mapToGlobal(QPointF()).y()
+        menu.open(260, 260)
+        assert _wait_for(lambda: parent_action.mapToGlobal(QPointF()).y() != parent_top)
+        parent_top = parent_action.mapToGlobal(QPointF()).y()
+        followed_parent = _wait_for(
+            lambda: round(child_action.mapToGlobal(QPointF()).y()) == round(parent_top)
+        )
+        assert followed_parent, {
+            "parent_top": parent_top,
+            "child_top": child_action.mapToGlobal(QPointF()).y(),
+            "submenu_open": submenu.property("isOpen"),
+            "submenu_closing": submenu.property("isClosing"),
+        }
+
+        edge_screen = parent_action.window().screen().availableGeometry()
+        screen_right = edge_screen.x() + edge_screen.width()
+        menu.open(screen_right - parent_action.window().width(), 260)
+        assert _wait_for(lambda: parent_action.mapToGlobal(QPointF()).x() > screen_right - 260)
+        assert _wait_for(
+            lambda: child_action.mapToGlobal(QPointF()).x() + child_action.width()
+            < parent_action.mapToGlobal(QPointF()).x()
+        )
+
+        parent_window = parent_action.window()
+        menu.open(edge_screen.x() - parent_window.width(), edge_screen.y() - parent_window.height())
+        assert _wait_for(
+            lambda: parent_window.x() >= edge_screen.x()
+            and parent_window.y() >= edge_screen.y()
+        )
+
+        screen_bottom = edge_screen.y() + edge_screen.height()
+        menu.open(edge_screen.x() + 100, screen_bottom)
+        assert _wait_for(lambda: parent_window.y() + parent_window.height() <= screen_bottom)
         assert len(_new_visible_windows(windows_before, window)) == 2
         assert warnings == []
     finally:
