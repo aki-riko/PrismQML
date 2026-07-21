@@ -253,6 +253,7 @@ Item {
 
         popupHeight: Math.min(_contentHeight, Enums.comboBoxMetrics.popupMaxHeight)
         closeOnClickOutside: true
+        useInWindowPopup: true
         
         Flickable {
             id: menuFlickable

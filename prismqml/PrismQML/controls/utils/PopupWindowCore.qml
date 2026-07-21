@@ -3,9 +3,8 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../.."
-import "../../effects"
 import "_internal"
-import QtQuick.Effects
+import QtQuick.Controls as Controls
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
 
@@ -30,6 +29,7 @@ Item {
     property bool modal: false
     property bool closeOnClickOutside: true
     property bool stealFocus: true  // Whether to steal focus when opening 打开时是否抢夺焦点
+    property bool useInWindowPopup: false  // Render in the owning window to avoid a second native surface 页内渲染以避免第二个原生窗口
     property Item targetControl: null  // Trigger control 触发弹出的控件
     property int animationType: 0  // 0=expand, 1=slideDown (Fluent Design style) 动画类型
     property bool _isPickerMode: false  // Internal: picker mode for center alignment 内部：Picker模式居中对齐
@@ -44,9 +44,21 @@ Item {
     property real _scale: 0.7
     // Follow parent control position (sync move on scroll) 跟随父控件位置变化
     readonly property var _targetWindow: targetControl ? targetControl.Window.window : null
+    readonly property Item _inlineParent: _targetWindow ? _targetWindow.contentItem : null
+    readonly property int _outerWidth: Math.max(
+        Enums.popupMetrics.minWidth,
+        popupWidth + Enums.popupMetrics.windowPadding
+    )
+    readonly property int _outerHeight: Math.max(
+        Enums.popupMetrics.minHeight,
+        popupHeight + Enums.popupMetrics.windowPadding
+    )
+    readonly property bool _surfaceVisible: useInWindowPopup
+        ? inlinePopup.visible
+        : popupWindow.visible
 
     // Popup content 弹出内容
-    default property alias popupContent: contentContainer.data
+    default property alias popupContent: popupSurface.popupContent
     
     // ==================== Signals 信号 ====================
     signal opened()
@@ -61,10 +73,19 @@ Item {
     // 真正的预热推到 Qt.callLater, 避免 hover 进入瞬间卡顿主线程。
     function prewarm() {
         if (_prewarmed || _prewarmScheduled || isOpen) return
+        if (useInWindowPopup) {
+            _prewarmed = true
+            return
+        }
         _prewarmScheduled = true
         prewarmTimer.start()
     }
     function _doPrewarm() {
+        if (useInWindowPopup) {
+            _prewarmed = true
+            _prewarmScheduled = false
+            return
+        }
         // A real open may win the race before this queued callback runs.
         // 真正打开可能先于排队预热执行，此时绝不能再 show+hide 把菜单藏掉。
         if (!_prewarmScheduled || _prewarmed || isOpen || popupWindow.visible) {
@@ -92,8 +113,21 @@ Item {
         var posX = (x !== undefined && !isNaN(x)) ? x : 0
         var posY = (y !== undefined && !isNaN(y)) ? y : 0
 
-        popupWindow.width = Math.max(Enums.popupMetrics.minWidth, popupWidth + Enums.popupMetrics.windowPadding)
-        popupWindow.height = Math.max(Enums.popupMetrics.minHeight, popupHeight + Enums.popupMetrics.windowPadding)
+        if (useInWindowPopup) {
+            if (!_inlineParent) return
+            var localPos = _inlineParent.mapFromGlobal(posX, posY)
+            inlinePopup.x = localPos.x
+            inlinePopup.y = localPos.y
+            inlinePopup.open()
+            _prewarmed = true
+            _prewarmScheduled = false
+            prewarmTimer.stop()
+            showAnimTimer.start()
+            return
+        }
+
+        popupWindow.width = _outerWidth
+        popupWindow.height = _outerHeight
 
         var screen = Screen
         if (screen) {
@@ -218,7 +252,7 @@ Item {
     }
     
     function close() {
-        if (isClosing || (!isOpen && !showAnimTimer.running && !popupWindow.visible)) return
+        if (isClosing || (!isOpen && !showAnimTimer.running && !_surfaceVisible)) return
         aboutToHide()
         showAnimTimer.stop()
         showAnim.stop()
@@ -236,12 +270,13 @@ Item {
         showAnimTimer.stop()
         _prewarmScheduled = false
         prewarmTimer.stop()
-        popupWindow.hide()
         isOpen = false
         isClosing = false
         _clipHeight = 0
         _scale = 0.7   // [Anim C]
-        popupPanel.opacity = 0
+        popupSurface.opacity = 0
+        if (useInWindowPopup) inlinePopup.close()
+        else popupWindow.hide()
     }
     
     function toggle() {
@@ -260,8 +295,14 @@ Item {
             newX = currentGlobalPos.x - Enums.popupMetrics.panelOffset
             newY = currentGlobalPos.y + targetControl.height + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset
         }
-        popupWindow.x = newX
-        popupWindow.y = newY
+        if (useInWindowPopup && _inlineParent) {
+            var localPos = _inlineParent.mapFromGlobal(newX, newY)
+            inlinePopup.x = localPos.x
+            inlinePopup.y = localPos.y
+        } else {
+            popupWindow.x = newX
+            popupWindow.y = newY
+        }
     }
     
     // ==================== Content 内容 ====================
@@ -277,7 +318,7 @@ Item {
         id: showAnim
 
         NumberAnimation {
-            target: popupPanel
+            target: popupSurface
             property: "opacity"
             from: 0; to: 1
             duration: Enums.popupMetrics.showOpacityDuration
@@ -310,7 +351,7 @@ Item {
 
         ParallelAnimation {
             NumberAnimation {
-                target: popupPanel
+                target: popupSurface
                 property: "opacity"
                 to: 0
                 duration: Enums.popupMetrics.hideOpacityDuration
@@ -328,7 +369,8 @@ Item {
 
         ScriptAction {
             script: {
-                popupWindow.hide()
+                if (control.useInWindowPopup) inlinePopup.close()
+                else popupWindow.hide()
                 control.isClosing = false
                 control._clipHeight = 0  // [Anim C] reset for next show
             }
@@ -353,11 +395,44 @@ Item {
         onTargetMoved: (globalPosition) => control._applyTrackedPosition(globalPosition)
         onTargetOutOfView: control.close()
     }
+
+    Controls.Popup {
+        id: inlinePopup
+
+        parent: control._inlineParent ? control._inlineParent : control
+        width: control._outerWidth
+        height: control._outerHeight
+        padding: 0
+        // Preserve the requested anchor instead of centering an oversized popup.
+        // 保持请求的锚点，避免超宽弹层被 Qt 自动居中后发生水平漂移。
+        margins: -1
+        modal: control.modal
+        focus: control.stealFocus
+        popupType: Controls.Popup.Item
+        closePolicy: control.closeOnClickOutside
+            ? Controls.Popup.CloseOnPressOutside | Controls.Popup.CloseOnEscape
+            : Controls.Popup.NoAutoClose
+        background: null
+        contentItem: Item { id: inlinePopupContent }
+
+        onClosed: {
+            if (control.isOpen && !control.isClosing) {
+                showAnim.stop()
+                hideAnim.stop()
+                showAnimTimer.stop()
+                control.isOpen = false
+                control._clipHeight = 0
+                control._scale = 0.7
+                popupSurface.opacity = 0
+                control.closed()
+            }
+        }
+    }
     
     Window {
         id: popupWindow
-        width: Math.max(Enums.popupMetrics.minWidth, control.popupWidth + Enums.popupMetrics.windowPadding)
-        height: Math.max(Enums.popupMetrics.minHeight, control.popupHeight + Enums.popupMetrics.windowPadding)
+        width: control._outerWidth
+        height: control._outerHeight
         visible: false
         flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
         color: Enums.transparent
@@ -373,101 +448,26 @@ Item {
             }
         }
         
-        // Shadow Layer 阴影层 (z: background to ensure it's behind popupPanel)
-        // Sync opacity with popupPanel for smooth fade animation 与面板同步透明度实现平滑淡入
-        // Fluent: 模糊阴影; neo: 硬阴影(偏移纯色矩形)
-        RectangularShadow {
-            z: Enums.zIndex.background
-            x: clipContainer.x
-            y: clipContainer.y
-            width: clipContainer.width
-            height: clipContainer.height
-            radius: control.popupRadius
-            color: control._popupShadowColor
-            blur: control._popupShadowBlur
-            offset.x: 0
-            offset.y: control._popupShadowOffset
-            opacity: popupPanel.opacity
-            visible: !Enums.isNeobrutalism
-        }
+    }
 
-        // neo 硬阴影: 偏移纯色矩形(弹层用 explicit 几何, 不用 NeoShadow 的 target)
-        Rectangle {
-            z: Enums.zIndex.background
-            visible: Enums.isNeobrutalism
-            x: clipContainer.x + Enums.neo.shadowOffset
-            y: clipContainer.y + Enums.neo.shadowOffset
-            width: clipContainer.width
-            height: clipContainer.height
-            radius: control.popupRadius
-            color: Enums.neo.shadowColor
-            opacity: popupPanel.opacity
-        }
-        
-        // Clip container for drop-down animation 下拉动画裁剪容器
-        Item {
-            id: clipContainer
-            x: Enums.popupMetrics.panelOffset
-            y: Enums.popupMetrics.panelOffset
-            width: control.popupWidth
-            height: control._clipHeight
-            clip: true
-            
-            // Popup panel 弹出面板
-            Rectangle {
-                id: popupPanel
-                width: control.popupWidth
-                height: control.popupHeight
-                radius: control.popupRadius
-                color: control._popupBackground
-                border.width: control._popupBorderWidth
-                border.color: control._popupBorderColor
-                opacity: Enums.opacityLevel.invisible
+    PopupSurface {
+        id: popupSurface
 
-                // [Anim C] Uniform scale, top-center origin (iOS spring style)
-                transform: Scale {
-                    origin.x: popupPanel.width / 2
-                    origin.y: 0
-                    xScale: control._scale
-                    yScale: control._scale
-                }
-
-                // Prism floating glass rim Prism浮层玻璃边缘
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    height: Enums.prismDesign.borderWidth
-                    color: Enums.prismDesign.glassRimLight
-                    visible: Enums.isPrismDesign
-                }
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: Enums.prismDesign.borderWidth
-                    color: Enums.prismDesign.glassRimShadow
-                    visible: Enums.isPrismDesign
-                }
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    height: Enums.prismDesign.focusBorderWidth
-                    color: Enums.prismDesign.spectralEdge
-                    opacity: 0.42
-                    visible: Enums.isPrismDesign
-                }
-
-                // Content container 内容容器
-                Item {
-                    id: contentContainer
-                    anchors.fill: parent
-                    anchors.margins: Enums.spacing.xs
-                }
-            }
-        }
+        parent: control.useInWindowPopup
+            ? inlinePopupContent
+            : popupWindow.contentItem
+        outerWidth: control._outerWidth
+        outerHeight: control._outerHeight
+        popupWidth: control.popupWidth
+        popupHeight: control.popupHeight
+        popupRadius: control.popupRadius
+        popupBackground: control._popupBackground
+        popupBorderWidth: control._popupBorderWidth
+        popupBorderColor: control._popupBorderColor
+        popupShadowColor: control._popupShadowColor
+        popupShadowBlur: control._popupShadowBlur
+        popupShadowOffset: control._popupShadowOffset
+        clipHeight: control._clipHeight
+        panelScale: control._scale
     }
 }

@@ -13,6 +13,7 @@ from PySide6.QtCore import (
     QMetaObject,
     QObject,
     QPoint,
+    QPointF,
     QTimer,
     Qt,
     QUrl,
@@ -171,6 +172,26 @@ def _popup_window(popup):
     windows = popup.findChildren(QWindow)
     assert len(windows) == 1
     return windows[0]
+
+
+def _popup_surface(popup):
+    surface = popup.findChild(QQuickItem, "_popupSurface")
+    assert surface is not None
+    return surface
+
+
+def _popup_content(popup):
+    content = popup.findChild(QQuickItem, "_popupContent")
+    assert content is not None
+    return content
+
+
+def _popup_is_visible(popup):
+    return bool(popup.property("_surfaceVisible"))
+
+
+def _popup_panel_global_position(popup, panel_offset):
+    return _popup_surface(popup).mapToGlobal(QPointF(panel_offset, panel_offset))
 
 
 def _tooltip(button):
