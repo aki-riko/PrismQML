@@ -158,6 +158,83 @@ NavigationWindowCore {{
         result = 0
     print(f"{'='*60}")
 
+    # Python-managed page mode must also keep the splash until the host marks
+    # the page ready; this is the regression that Kaleidos exercises.
+    python_qml = """
+import QtQuick
+import PrismQML
+
+NavigationWindowCore {
+    id: win
+    property int finishAtCall: -1
+    property bool pageReadyAtCall: false
+    readonly property int splashFinishCount: mockSplash.finishCount
+
+    QtObject {
+        id: mockSplash
+        property int finishCount: 0
+        function finish() { finishCount += 1 }
+    }
+
+    StackedWidget {
+        id: stack
+        _pythonPageMode: true
+        Rectangle { width: 320; height: 180 }
+    }
+
+    stackedWidget: stack
+    Component.onCompleted: {
+        win._splashInstance = mockSplash
+        win.pageReadyAtCall = stack._isPageLoaded(stack.currentIndex)
+        win._dismissSplashWhenReady(stack)
+        win.finishAtCall = mockSplash.finishCount
+    }
+
+    Timer {
+        interval: 120
+        running: true
+        repeat: false
+        onTriggered: win._markPythonPageReady(0)
+    }
+}
+"""
+    python_component = QQmlComponent(engine)
+    python_component.setData(python_qml.encode("utf-8"), QUrl("python-inline"))
+    for _ in range(60):
+        if python_component.status() != QQmlComponent.Status.Loading:
+            break
+        pump(20)
+    python_win = python_component.create()
+    python_failures = []
+    if python_win is None:
+        python_failures.append(
+            "Python 页面 Splash 回归场景创建失败: "
+            + "; ".join(error.toString() for error in python_component.errors())
+        )
+    else:
+        pump(50)
+        if python_win.property("pageReadyAtCall"):
+            python_failures.append("Python 页面尚未通知 ready，却被判定为已就绪")
+        if python_win.property("finishAtCall") != 0:
+            python_failures.append("Python 页面 ready 前 Splash 已 finish")
+        for _ in range(20):
+            pump(20)
+            if python_win.property("splashFinishCount") > 0:
+                break
+        if python_win.property("splashFinishCount") != 1:
+            python_failures.append(
+                "Python 页面 ready 后 Splash 未恰好 finish 一次: "
+                + str(python_win.property("splashFinishCount"))
+            )
+    failures.extend(python_failures)
+    if python_failures:
+        result = 1
+        print("Python-managed Splash 回归: FAIL")
+        for failure in python_failures:
+            print("  [FAIL]", failure)
+    else:
+        print("Python-managed Splash 回归: PASS")
+
     QTimer.singleShot(0, app.quit)
     app.exec()
     sys.exit(result)

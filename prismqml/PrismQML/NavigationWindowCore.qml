@@ -33,6 +33,7 @@ WindowsCore {
     property bool _micaBackdropReady: false
     property bool _pythonLoading: false
     property int _pythonPendingIndex: -1
+    property bool _pythonPageMode: false
     property bool _nativeHookReady: false
     property string _micaReapplyReason: ""
     property bool _splashDismissed: false
@@ -68,6 +69,12 @@ WindowsCore {
             stackedWidget._completePythonLazySwitch(idx)
         }
         pythonPageReady(idx)
+    }
+
+    function _markPythonPageReady(index) {
+        if (stackedWidget && stackedWidget._markPythonPageReady) {
+            stackedWidget._markPythonPageReady(index)
+        }
     }
 
     function _applyMicaEffect(reason) {

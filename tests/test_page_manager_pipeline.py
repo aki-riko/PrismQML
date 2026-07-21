@@ -250,7 +250,9 @@ def _assert_async_ready_events(events):
         ("connect", "container_width"), ("connect", "container_height"),
         ("timer", _ASYNC_SIZE_DELAYS_MS[0]),
         ("timer", _ASYNC_SIZE_DELAYS_MS[1]),
-        ("register", 1), ("finish",), ("switch", 1),
+        ("register", 1),
+        ("invoke", "_markPythonPageReady", 1),
+        ("finish",), ("switch", 1),
     ]
 
 
@@ -318,6 +320,7 @@ def test_sync_page_pipeline_preserves_source_priority_and_global_index(
     ]
     if deferred:
         expected.append(("batch", False))
+    expected.append(("invoke", "_markPythonPageReady", 1))
     assert events == expected
     assert manager._pages[1] is page and item._page_instance is page
     _assert_sync_size_result(timers, container, events, size)
@@ -435,7 +438,12 @@ def test_async_deferred_page_waits_for_batch_before_switch(monkeypatch):
     assert manager._pages[0] is page and item._page_instance is page
     assert not any(event[0] in {"finish", "switch"} for event in events)
     page.batch_callback()
-    assert events[-3:] == [("opacity", 1), ("finish",), ("switch", 0)]
+    assert events[-4:] == [
+        ("opacity", 1),
+        ("invoke", "_markPythonPageReady", 0),
+        ("finish",),
+        ("switch", 0),
+    ]
 
 
 def test_managed_async_qml_page_keeps_overlay_until_target_is_ready(monkeypatch):
@@ -458,8 +466,9 @@ def test_managed_async_qml_page_keeps_overlay_until_target_is_ready(monkeypatch)
 
     page.page_ready.fire()
 
-    assert events[-3:] == [
+    assert events[-4:] == [
         ("fire", "async_page_ready"),
+        ("invoke", "_markPythonPageReady", 0),
         ("finish",),
         ("switch", 0),
     ]

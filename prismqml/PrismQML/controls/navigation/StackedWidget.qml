@@ -55,6 +55,10 @@ Item {
     property int _displayIndex: 0
     property int _pendingLazySwitchIndex: -1
     property int _lazyDiagnosticSequence: 0
+    // Python-managed windows must explicitly acknowledge page readiness.
+    // Python 页面由宿主生命周期确认就绪，不能把“容器已创建”当成首屏已完成。
+    property bool _pythonPageMode: false
+    property var _pythonReadyIndexes: []
 
     // ==================== Signals 信号 ====================
     signal currentChanged(int index)
@@ -117,8 +121,21 @@ Item {
 
     // ==================== Internal Methods 内部方法 ====================
     function _isPageLoaded(index) {
+        if (_pythonPageMode) {
+            return count === 0 || _pythonReadyIndexes.indexOf(index) >= 0
+        }
         if (!lazyLoading || !_useSourceMode) return true
         return _loaders[index] && _loaders[index].status === Loader.Ready
+    }
+
+    function _markPythonPageReady(index) {
+        if (!_pythonPageMode || index < 0) return
+        if (_pythonReadyIndexes.indexOf(index) < 0) {
+            var readyIndexes = _pythonReadyIndexes.slice()
+            readyIndexes.push(index)
+            _pythonReadyIndexes = readyIndexes
+        }
+        pageLoaded(index)
     }
 
     function _activateLoader(index) {

@@ -120,6 +120,7 @@ Item {
             animationType: Enums.animation.popup
             pageSources: root.hostWindow ? root.hostWindow.pageSources : []
             lazyLoading: root.hostWindow ? root.hostWindow.lazyLoading : false
+            _pythonPageMode: root.hostWindow ? root.hostWindow._pythonPageMode : false
             currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
             Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("WindowsBarContent StackedWidget instance completed count=" + count)
 

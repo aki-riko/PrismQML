@@ -203,7 +203,24 @@ class PageManagerMixin:
             profile("启动 deferred queue")
         else:
             profile("无 deferred queue")
+        if _resolve_page_layout_item(page_instance) is not None:
+            self._mark_python_page_ready(index)
 
+    def _mark_python_page_ready(self, index: int) -> None:
+        """Tell the generated QML stack that a Python page is renderable."""
+        if not self._window:
+            return
+        try:
+            QMetaObject.invokeMethod(
+                self._window,
+                "_markPythonPageReady",
+                Q_ARG("QVariant", index),
+            )
+        except RuntimeError as exc:
+            exception(
+                "Python 页面就绪通知失败: "
+                f"{type(exc).__name__}: {exc}"
+            )
 
     def _find_child_by_name(self, name: str) -> Optional[QQuickItem]:
         """根据objectName查找子项"""
@@ -324,6 +341,7 @@ class PageManagerMixin:
             )
             page_instance.startBatchCreation(on_complete=on_complete)
             return
+        self._mark_python_page_ready(index)
         self._finish_loading_and_switch(index)
 
     def _start_managed_async_page(self, index, item, page_instance):
@@ -345,6 +363,7 @@ class PageManagerMixin:
             )
 
     def _on_managed_async_page_ready(self, index):
+        self._mark_python_page_ready(index)
         self._finish_loading_and_switch(index)
 
     def _on_managed_async_page_failed(
@@ -360,6 +379,7 @@ class PageManagerMixin:
     def _on_async_batch_complete(self, index, page_instance):
         if page_instance._qml_item:
             page_instance._qml_item.setOpacity(1)
+        self._mark_python_page_ready(index)
         self._finish_loading_and_switch(index)
 
     def _schedule_async_page_creation(self, item, on_page_ready):

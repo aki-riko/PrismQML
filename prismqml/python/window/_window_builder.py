@@ -48,6 +48,7 @@ ${qml_component} {
     windowIconColored: ${window_icon_colored}
     startupProfilingVerbose: ${startup_profiling_verbose}
     lazyLoading: false
+    _pythonPageMode: true
     micaEnabled: ${mica_enabled}
 $indent
     navigationItems: [${nav_items}]

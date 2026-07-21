@@ -119,6 +119,7 @@ NavigationWindowCore {
  // Bind externally stored page data. 绑定外部保存的页面数据。
  pageSources: window.pageSources
  lazyLoading: window.lazyLoading
+ _pythonPageMode: window._pythonPageMode
  // Bind window.currentIndex to stack.currentIndex in one direction.
  // 单向绑定 window.currentIndex 到 stack.currentIndex；内部显示由 _displayIndex 驱动。
  currentIndex: window.currentIndex
