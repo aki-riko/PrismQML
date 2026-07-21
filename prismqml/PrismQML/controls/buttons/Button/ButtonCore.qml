@@ -25,7 +25,8 @@ Widget {
     property int style: Enums.button.style_default
     property int shape: Enums.button.shape_default
     property int feature: Enums.button.feature_none
-    property int contentAlignment: feature === Enums.button.feature_dropdown ||
+    property bool showDropdownIndicator: true
+    property int contentAlignment: (feature === Enums.button.feature_dropdown && showDropdownIndicator) ||
                                    feature === Enums.button.feature_split
                                    ? Enums.button.align_left
                                    : Enums.button.align_center  // Content alignment 内容对齐
@@ -107,6 +108,8 @@ Widget {
     readonly property int _spectralEdgeInset: Math.min(radius, Math.max(Enums.spacing.none, width / 2 - Enums.spacing.xs))
     readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
                                             feature === Enums.button.feature_split
+    readonly property bool _showsDropdownIndicator: feature === Enums.button.feature_dropdown &&
+                                                    showDropdownIndicator
     readonly property int _contentLeadingPadding: _hasMenuFeature ? Enums.spacing.l : Enums.spacing.m
     readonly property int _contentTrailingPadding: _hasMenuFeature ? Enums.spacing.xs : Enums.spacing.m
 
@@ -264,12 +267,15 @@ Widget {
     // Content size calculation (inherited from Widget) 内容尺寸计算（继承自Widget）
     contentWidth: {
         if (_countdownActive && _countdownInitialWidth > 0) return _countdownInitialWidth
-        if (isToolButton) return Enums.controlSize.buttonHeight
+        if (isToolButton) {
+            return Enums.controlSize.buttonHeight +
+                   (_showsDropdownIndicator ? Enums.controlSize.dropdownArrowWidth : 0)
+        }
         // Transparent/text/hyperlink styles have no minimum width 透明/文本/超链接样式无最小宽度
         var cw = contentLoader.item ?
             contentLoader.item.width + _contentLeadingPadding + _contentTrailingPadding : 0
         var extraWidth = feature === Enums.button.feature_split ? Enums.controlSize.splitButtonArrowWidth :
-                        (feature === Enums.button.feature_dropdown ? Enums.controlSize.dropdownArrowWidth : 0)
+                        (_showsDropdownIndicator ? Enums.controlSize.dropdownArrowWidth : 0)
         if (flat || _hasMenuFeature) return Math.max(cw + extraWidth, Enums.controlSize.buttonHeight)
         return Math.max(Enums.controlSize.buttonMinWidth, cw + extraWidth)
     }
@@ -458,7 +464,7 @@ Widget {
         anchors.rightMargin: contentAlignment === Enums.button.align_right ? control._contentTrailingPadding : 0
         anchors.horizontalCenterOffset: contentAlignment === Enums.button.align_center ?
                                         (feature === Enums.button.feature_split ? -Enums.controlSize.splitButtonContentOffset :
-                                        (feature === Enums.button.feature_dropdown ? -Enums.spacing.m : 0)) : 0
+                                        (control._showsDropdownIndicator ? -Enums.spacing.m : 0)) : 0
         z: Enums.zIndex.content
         visible: control.hasCustomContent
         onChildrenChanged: control._syncCustomContentState()
@@ -481,7 +487,7 @@ Widget {
         anchors.rightMargin: contentAlignment === Enums.button.align_right ? control._contentTrailingPadding : 0
         anchors.horizontalCenterOffset: contentAlignment === Enums.button.align_center ?
                                         (feature === Enums.button.feature_split ? -Enums.controlSize.splitButtonContentOffset :
-                                        (feature === Enums.button.feature_dropdown ? -Enums.spacing.m : 0)) : 0
+                                        (control._showsDropdownIndicator ? -Enums.spacing.m : 0)) : 0
         z: Enums.zIndex.content
         active: !control.hasCustomContent  // Only load default content when no custom content 仅在无自定义内容时加载默认内容
         // Neobrutalism 按下位移: 默认内容(文字/图标)随 face 一起滑动
@@ -522,7 +528,7 @@ Widget {
         anchors.right: parent.right
         anchors.rightMargin: Enums.spacing.m
         anchors.verticalCenter: parent.verticalCenter
-        active: feature === Enums.button.feature_dropdown
+        active: control._showsDropdownIndicator
 
         sourceComponent: ChevronIcon {
             animated: true
