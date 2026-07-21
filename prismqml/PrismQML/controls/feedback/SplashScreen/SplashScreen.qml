@@ -53,6 +53,9 @@ Rectangle {
     readonly property real _contentEnterScale: Enums.splashScreenMetrics.contentEnterScale
     readonly property real _contentExitScale: Enums.splashScreenMetrics.contentExitScale
     readonly property real _iconBreatheScale: Enums.splashScreenMetrics.iconBreatheScale
+    property bool _introComplete: false
+    property bool _finishRequested: false
+    property bool _finishing: false
     
     // ==================== Signals 信号 ====================
     signal finished()  // Emitted when splash screen is closed 启动画面关闭时触发
@@ -60,6 +63,15 @@ Rectangle {
     // ==================== Public Methods 公开方法 ====================
     // Close splash screen 关闭启动画面
     function finish() {
+        if (control._finishRequested || control._finishing) return
+        control._finishRequested = true
+        if (!control._introComplete) return
+        control._startFadeOut()
+    }
+
+    function _startFadeOut() {
+        if (control._finishing) return
+        control._finishing = true
         breatheAnim.stop()
         fadeOutAnim.start()
     }
@@ -87,7 +99,11 @@ Rectangle {
     ParallelAnimation {
         id: fadeInAnim
 
-        onFinished: breatheAnim.start()
+        onFinished: {
+            control._introComplete = true
+            if (control._finishRequested) control._startFadeOut()
+            else breatheAnim.start()
+        }
         
         NumberAnimation {
             target: control

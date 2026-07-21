@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 
@@ -328,6 +328,30 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
     finally:
         if effect is not None:
             effect.deleteLater()
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_splash_finish_during_fade_in_preserves_visible_intro(qapp):
+    engine, component, root = _create_scene()
+    try:
+        splash = root.findChild(QQuickItem, "splash")
+        assert splash is not None
+        assert QMetaObject.invokeMethod(splash, "finish")
+
+        _pump(80)
+        assert splash.property("visible") is True
+        assert splash.property("opacity") > 0.1
+
+        _pump(220)
+        assert splash.property("visible") is True
+        assert splash.property("opacity") > 0
+
+        _pump(220)
+        assert splash.property("visible") is False
+    finally:
         root.deleteLater()
         del component
         engine.deleteLater()
