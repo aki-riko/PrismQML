@@ -10,9 +10,9 @@ PrismQML 应用入口类 PrismQML Application Entry
 """
 
 import os
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
@@ -87,6 +87,23 @@ def _delete_qt_object(value) -> None:
         shiboken6.delete(value)
 
 
+def _delete_remaining_qml_windows() -> None:
+    """Delete every QML window while QApplication is still alive. 在应用存活时销毁全部 QML 窗口。"""
+    import shiboken6
+
+    for window in tuple(QGuiApplication.topLevelWindows()):
+        if shiboken6.isValid(window):
+            window.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+def _clear_current_window_reference() -> None:
+    """Drop the process-wide active window reference. 清除进程级活动窗口引用。"""
+    from .window_core import WindowCore
+
+    WindowCore._current_window_instance = None
+
+
 def _restore_qml_environment(previous_value) -> None:
     """Restore the caller's QML XHR setting. 恢复调用方 QML XHR 设置。"""
     if previous_value is _MISSING_ENVIRONMENT:
@@ -111,6 +128,27 @@ def _rollback_app_initialization(owner, previous_qml_environment) -> None:
     owner._engine = None
     owner._app = None
     _restore_qml_environment(previous_qml_environment)
+
+
+def _shutdown_app_runtime(owner) -> None:
+    """Release QML before QApplication teardown. 在 QApplication 析构前释放 QML。"""
+    from ..core.shadow import reset_dwm_sync_filter
+
+    if owner._input_filter_started:
+        _run_app_cleanup("input filter", reset_input_focus_filter)
+        owner._input_filter_started = False
+    if owner._engine_publish_started:
+        if EngineManager._engine is owner._engine:
+            _run_app_cleanup("engine bindings", EngineManager.reset)
+        owner._engine_publish_started = False
+    if owner._dwm_filter_started:
+        _run_app_cleanup("DWM filter", reset_dwm_sync_filter)
+        owner._dwm_filter_started = False
+    _run_app_cleanup("QML engine", lambda: _delete_qt_object(owner._engine))
+    owner._engine = None
+    _run_app_cleanup("QML windows", _delete_remaining_qml_windows)
+    _run_app_cleanup("current window", _clear_current_window_reference)
+    owner._windows.clear()
 
 
 class App:
@@ -325,8 +363,8 @@ class App:
         return window
 
     @property
-    def engine(self) -> QQmlApplicationEngine:
-        """获取QML引擎 Get QML engine"""
+    def engine(self) -> Optional[QQmlApplicationEngine]:
+        """Get the live QML engine, or None after exec returns. 获取活动引擎，exec 返回后为 None。"""
         return self._engine
 
     @property
@@ -349,8 +387,11 @@ class App:
         return self._app
 
     def exec(self) -> int:
-        """运行应用 Run application"""
-        return self._app.exec()
+        """Run once, then release the QML runtime in dependency order. 运行一次并按依赖顺序释放 QML 运行时。"""
+        try:
+            return self._app.exec()
+        finally:
+            _shutdown_app_runtime(self)
 
     # ==================== 自动转发 Auto-forwarding ====================
     # 任何未在本类显式定义的属性/方法,都透传到底层 QApplication.
