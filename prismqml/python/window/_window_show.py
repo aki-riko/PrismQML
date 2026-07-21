@@ -41,6 +41,9 @@ def show_window_root(owner: Any, profile: ProfileCallback) -> bool:
 
     if not owner._window:
         return False
+    if created_window:
+        owner._prepare_initial_frame()
+        profile("show 前准备首帧")
     if not created_window:
         owner._restore_visible_state()
         profile("show 前恢复可见状态")

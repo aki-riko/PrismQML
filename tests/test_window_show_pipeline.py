@@ -72,6 +72,8 @@ def _new_show_events(marker):
     return [
         ("create", marker),
         ("profile", "_create_window"),
+        ("prepare", marker),
+        ("profile", "show 前准备首帧"),
         ("native_show", marker),
         ("profile", "QQuickWindow.show"),
     ]
@@ -142,6 +144,11 @@ class _ShowScenario:
         ):
             raise self._restore_error
 
+    def prepare_initial_frame(self):
+        self._calls.append(
+            ("prepare", _current_marker(self._manager, self._previous))
+        )
+
     def ensure_page(self, index):
         self._calls.append(
             ("page", index, _current_marker(self._manager, self._previous))
@@ -154,6 +161,12 @@ class _ShowScenario:
         monkeypatch.setattr(self._manager, "_create_window", self.create_window)
         monkeypatch.setattr(
             self._manager, "_restore_visible_state", self.restore_visible_state
+        )
+        monkeypatch.setattr(
+            self._manager,
+            "_prepare_initial_frame",
+            self.prepare_initial_frame,
+            raising=False,
         )
         monkeypatch.setattr(
             self._manager, "_ensure_page_created", self.ensure_page
@@ -379,7 +392,7 @@ def test_native_show_failures_after_create_keep_partial_root_unpublished(
 
     _assert_raises_same(error_type, expected_error, instance.show)
 
-    assert calls == _new_show_events("previous")[:3]
+    assert calls == _new_show_events("previous")[:5]
     assert instance._window is scenario.window
     assert window_core.WindowCore._current_window_instance is previous
 

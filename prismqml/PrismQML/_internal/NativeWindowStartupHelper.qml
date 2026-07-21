@@ -20,10 +20,18 @@ Item {
     property bool readyPublished: false
     property bool showAnimationStarted: false
     property int showAnimationStartCount: 0
+    property int nativeHookAttemptCount: 0
 
     // ==================== Public Methods 公开方法 ====================
     function start() {
+        if (nativeHookAttemptCount > 0 || delayTimer.running) return
         delayTimer.start()
+    }
+
+    function prepareBeforeShow() {
+        if (nativeHookAttemptCount > 0) return
+        delayTimer.stop()
+        root._attemptNativeHook()
     }
 
     // ==================== Internal Methods 内部方法 ====================
@@ -76,6 +84,7 @@ Item {
         }
     }
     function _attemptNativeHook() {
+        nativeHookAttemptCount += 1
         var nativeHookSucceeded = _callNativeHook()
         targetWindow._dwmInitializationDone = true
         targetWindow.profileTime("DWM initialization attempt marked done")

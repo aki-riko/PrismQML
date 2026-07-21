@@ -16,6 +16,16 @@ from ..core.logger import exception
 class WindowCompatMixin:
     """QWidget-compatible window operations for WindowCore."""
 
+    def _prepare_initial_frame(self):
+        """Finish native frame setup before the first visible frame. 在首个可见帧前完成原生框架设置。"""
+        if not self._window:
+            return
+
+        from PySide6.QtCore import QMetaObject
+
+        if not QMetaObject.invokeMethod(self._window, "prepareBeforeShow"):
+            raise RuntimeError("prepareBeforeShow invoke failed")
+
     def _restore_visible_state(self):
         if not self._window:
             return

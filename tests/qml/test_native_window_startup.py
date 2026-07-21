@@ -11,6 +11,7 @@ from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QMetaObject,
     QObject,
     QTimer,
     QUrl,
@@ -319,6 +320,30 @@ def test_native_hook_success_emits_ready_and_shows_window(monkeypatch, qapp):
         "opacity": 1.0,
         "detach_calls": 1,
     }
+
+
+def test_prepare_before_show_finishes_native_hook_synchronously(monkeypatch, qapp):
+    fake = _FakeNativeWindow([True])
+    engine = _create_engine(monkeypatch, fake, [])
+    component = instance = None
+    try:
+        component, instance = _create_window(engine)
+        assert fake.finalize_calls == 0
+
+        assert QMetaObject.invokeMethod(instance, "prepareBeforeShow")
+        assert fake.finalize_calls == 1
+        assert instance.property("readyCount") == 1
+        assert instance.property("_dwmInitializationDone") is True
+        assert instance.property("_showAnimationStartCount") == 1
+
+        _pump(STARTUP_SETTLE_MS)
+        assert fake.finalize_calls == 1
+        assert instance.property("readyCount") == 1
+        assert instance.property("_showAnimationStartCount") == 1
+    finally:
+        _delete_deferred(instance)
+        component = None
+        _delete_deferred(engine)
 
 
 def test_native_hook_transient_failure_retries_once(monkeypatch, qapp):

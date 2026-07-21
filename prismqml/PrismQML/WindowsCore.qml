@@ -131,6 +131,7 @@ Window {
     }
 
     // ==================== Public Methods 公开方法 ====================
+    function prepareBeforeShow() { nativeWindowStartup.prepareBeforeShow() }
     function requestClose() {
         if (_closeInProgress) return
         closeRequestAccepted = true

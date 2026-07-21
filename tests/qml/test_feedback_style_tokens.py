@@ -358,7 +358,7 @@ def test_splash_finish_during_fade_in_preserves_visible_intro(qapp):
         _pump(1)
 
 
-def test_splash_first_frame_keeps_window_shell_covered(qapp):
+def test_splash_first_frame_shows_complete_content(qapp):
     engine, component, root = _create_scene()
     try:
         splash = root.findChild(QQuickItem, "splash")
@@ -366,15 +366,15 @@ def test_splash_first_frame_keeps_window_shell_covered(qapp):
         content = splash.findChild(QQuickItem, "splashContent")
         assert content is not None
 
-        # The shell background must be opaque before the event loop can advance
-        # the intro animation; only the logo/text/progress content fades in.
+        # The very first visible frame must already be the complete splash.
+        # A background-only frame is a user-visible white flash.
         assert splash.property("visible") is True
         assert splash.property("opacity") == pytest.approx(1.0)
-        assert content.property("opacity") < 1.0
+        assert content.property("opacity") == pytest.approx(1.0)
 
         _pump(80)
         assert splash.property("opacity") == pytest.approx(1.0)
-        assert content.property("opacity") > 0.1
+        assert content.property("opacity") == pytest.approx(1.0)
     finally:
         root.deleteLater()
         del component

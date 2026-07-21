@@ -94,9 +94,9 @@ Rectangle {
     z: Enums.zIndex.splash
     color: control._splashBackground
     visible: true
-    // Keep the window shell covered even when first-page creation blocks the
-    // event loop; only the splash content participates in the intro fade.
-    // 即使首屏创建阻塞事件循环也始终覆盖窗口壳；仅启动内容参与淡入。
+    // Keep the complete splash visible from the first rendered frame. The
+    // intro keeps its scale motion without exposing a background-only frame.
+    // 从首个渲染帧起完整显示启动画面；入场仅保留缩放，不暴露纯背景帧。
     opacity: 1
     Component.onCompleted: fadeInAnim.start()
 
@@ -108,14 +108,6 @@ Rectangle {
             control._introComplete = true
             if (control._finishRequested) control._startFadeOut()
             else breatheAnim.start()
-        }
-        
-        NumberAnimation {
-            target: contentColumn
-            property: "opacity"
-            from: 0; to: 1
-            duration: Enums.duration.slow
-            easing.type: Easing.OutCubic
         }
         
         NumberAnimation {
@@ -204,7 +196,7 @@ Rectangle {
 
         objectName: "splashContent"
         anchors.centerIn: parent
-        opacity: 0
+        opacity: 1
         spacing: Enums.spacing.xl
         transformOrigin: Item.Center
         
