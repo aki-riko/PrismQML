@@ -281,8 +281,8 @@ Item {
                         icon: typeof modelData === "object" ? (modelData.icon || "") : ""
                         isSeparator: text === "-"
                         onClicked: {
-                            dropdownFeature.menuItemClicked(index, text)
                             dropDownMenu.close()
+                            dropdownFeature.menuItemClicked(index, text)
                         }
                     }
                 }

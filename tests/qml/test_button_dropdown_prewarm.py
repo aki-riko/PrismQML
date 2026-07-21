@@ -452,6 +452,42 @@ def test_inline_dropdown_item_click_emits_and_closes(dropdown_scene):
     assert warnings == []
 
 
+def test_inline_dropdown_item_click_closes_before_sync_model_rebuild(
+    dropdown_scene,
+):
+    root, window, warnings, windows_before = dropdown_scene
+    button = _button(root, "dropdownButton")
+    popup = _dropdown_popup(_button_dropdown(button))
+    button.menuItemClicked.connect(
+        lambda _index, _text: _invoke(root, "replaceDropdownMenuItems")
+    )
+
+    _click(window, button)
+    assert _wait_for(lambda: popup.property("isOpen"))
+    _pump(20)
+    alpha = next(
+        child
+        for child in _visual_descendants(_popup_content(popup))
+        if child.metaObject().indexOfProperty("isSeparator") >= 0
+        and child.property("text") == "Alpha"
+    )
+    click_position = alpha.mapToScene(
+        QPointF(alpha.width() / 2, alpha.height() / 2)
+    ).toPoint()
+
+    QTest.mouseClick(
+        window,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        click_position,
+    )
+
+    assert _wait_for(lambda: not popup.property("isOpen"))
+    assert _wait_for(lambda: not _popup_is_visible(popup))
+    assert _new_visible_windows(windows_before, window) == []
+    assert warnings == []
+
+
 def test_inline_dropdown_object_items_select_without_native_window(
     dropdown_scene,
 ):
