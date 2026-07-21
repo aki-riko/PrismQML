@@ -89,7 +89,9 @@ Rectangle {
 
     // ==================== Size 尺寸 ====================
     anchors.fill: parent
-    z: Enums.zIndex.tooltip  // Always on top 始终在最上层
+    // Match the Gallery host: cover the whole window shell during startup.
+    // 与 Gallery 宿主保持一致：启动期间覆盖整个窗口壳。
+    z: Enums.zIndex.splash
     color: control._splashBackground
     visible: true
     opacity: 0  // Start invisible for fade-in 初始不可见用于淡入

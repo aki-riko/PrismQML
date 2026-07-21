@@ -95,6 +95,7 @@ QtObject {
  readonly property int modal: 6
  readonly property int overlay: 7
  readonly property int tooltip: 8
+ readonly property int splash: 9999
  readonly property int inputInteraction: 10 // Input cursor/focus interaction layer 输入光标与焦点交互层
  readonly property int inputControls: 11 // Input embedded controls above interaction layer 输入内嵌控件层
  }

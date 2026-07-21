@@ -186,7 +186,7 @@ QtObject {
             iconSource: root.windowIcon
             title: root.windowTitle
             subtitle: "正在加载组件..."
-            z: 9999
+            z: Fluent.Enums.zIndex.splash
         }
     }
 }

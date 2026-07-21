@@ -115,7 +115,7 @@ def _assert_feedback_effects(item, background, accent):
     assert _rgb(item.property("confettiAccent")) == accent
 
     assert item.property("splashIconSize") == 102
-    assert item.property("splashZ") == 8
+    assert item.property("splashZ") == 9999
     assert _rgb(item.property("splashBackground")) == background
     assert _rgb(item.property("splashProgressColor")) == accent
     assert item.property("splashProgressRingSize") == 20
