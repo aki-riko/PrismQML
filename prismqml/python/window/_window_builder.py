@@ -12,8 +12,9 @@ from typing import List, TYPE_CHECKING
 from pathlib import Path
 from string import Template
 import hashlib
-from PySide6.QtQml import QQmlComponent
+from PySide6.QtQml import QQmlComponent, QQmlListReference
 from PySide6.QtCore import QUrl
+from PySide6.QtQuick import QQuickItem
 from ..core.logger import debug, warning, exception
 from ._generated_qml_cache import (
     GENERATED_WINDOW_QML_CACHE_DIR,
@@ -176,6 +177,161 @@ class WindowBuilderMixin:
             )
         return loaded_window
 
+    def _build_navigation_items_data(self) -> list[dict]:
+        """Build top navigation data for initial-property injection. 构建顶部导航初始属性数据。"""
+        return [
+            {
+                "text": item.text,
+                "icon": self._resolve_icon_path(item.icon),
+            }
+            for item in self._nav_items
+        ]
+
+    def _build_bottom_items_data(self) -> list[dict]:
+        """Build bottom navigation data for initial-property injection. 构建底部导航初始属性数据。"""
+        nav_count = len(self._nav_items)
+        return [
+            {
+                "text": item.text,
+                "icon": self._resolve_icon_path(item.icon),
+                "key": f"page_{nav_count + index}",
+                "selectable": bool(getattr(item, "selectable", True)),
+            }
+            for index, item in enumerate(self._bottom_nav_items)
+        ]
+
+    def _build_initial_window_properties(
+        self,
+        window_icon_qml: str,
+        startup_profile_verbose: bool,
+        mica_enabled: bool,
+    ) -> dict:
+        """Build runtime root properties without changing static QML source. 构建不改变静态 QML 源码的根属性。"""
+        return {
+            "objectName": "mainWindow",
+            "width": self._width,
+            "height": self._height,
+            "visible": False,
+            "windowTitle": self._title,
+            "windowIcon": window_icon_qml,
+            "windowIconColored": self._icon_colored,
+            "startupProfilingVerbose": startup_profile_verbose,
+            "lazyLoading": False,
+            "_pythonPageMode": True,
+            "micaEnabled": mica_enabled,
+            "navigationItems": self._build_navigation_items_data(),
+            "bottomNavigationItems": self._build_bottom_items_data(),
+        }
+
+    def _append_static_page_containers(self, loaded_window) -> None:
+        """Append lightweight Python-owned containers through the root default property. 通过根默认属性追加轻量 Python 页面容器。"""
+        pages = QQmlListReference(loaded_window, "pages")
+        if not pages.isValid() or not pages.canAppend():
+            raise RuntimeError("Static window root does not expose appendable pages")
+
+        page_count = len(self._nav_items) + len(self._bottom_nav_items)
+        for index in range(page_count):
+            page = QQuickItem(loaded_window.contentItem())
+            page.setObjectName(f"page_{index}")
+            if not pages.append(page):
+                page.deleteLater()
+                raise RuntimeError(f"Failed to append static page container page_{index}")
+
+    def _load_static_window_component(
+        self, qml_dir: Path, qml_component: str, profile, verbose: bool
+    ):
+        """Compile the stable packaged root component. 编译稳定的包内根组件。"""
+        root_qml_file = qml_dir / "_internal" / f"{qml_component}.qml"
+        if verbose:
+            debug(
+                "[启动剖析] PrismQML._create_window static qml: "
+                f"path={root_qml_file}, component={qml_component}, "
+                f"nav={len(self._nav_items)}, bottom={len(self._bottom_nav_items)}, "
+                "verbose=True"
+            )
+        component = QQmlComponent(
+            self._engine, QUrl.fromLocalFile(str(root_qml_file))
+        )
+        profile("QQmlComponent(static)")
+        if component.isError():
+            warning(
+                "[WindowBuilder] 静态窗口 QML 加载失败，回退动态根: "
+                f"{[error.toString() for error in component.errors()]}"
+            )
+            return None
+        return component
+
+    def _create_static_window_root(
+        self,
+        component,
+        window_icon_qml: str,
+        mica_enabled: bool,
+        profile,
+        verbose: bool,
+    ):
+        """Create the static root and append page containers. 创建静态根并追加页面容器。"""
+        initial_properties = self._build_initial_window_properties(
+            window_icon_qml,
+            verbose,
+            mica_enabled,
+        )
+        loaded_window = component.createWithInitialProperties(
+            initial_properties,
+            self._engine.rootContext(),
+        )
+        profile("component.createWithInitialProperties(static)")
+        if loaded_window is None:
+            warning(
+                "[WindowBuilder] 静态窗口 QML 创建失败，回退动态根: "
+                f"{[error.toString() for error in component.errors()]}"
+            )
+            return None
+        self._append_static_page_containers(loaded_window)
+        profile("创建静态根页面容器")
+        return loaded_window
+
+    def _load_static_window_boundary(
+        self,
+        qml_dir: Path,
+        qml_component: str,
+        window_icon_qml: str,
+        mica_enabled: bool,
+        profile,
+        verbose: bool,
+    ):
+        """Load the stable packaged root and inject runtime data at creation. 加载稳定包内根组件并在创建时注入运行态数据。"""
+        loaded_window = None
+        try:
+            component = self._load_static_window_component(
+                qml_dir, qml_component, profile, verbose
+            )
+            if component is None:
+                return None
+            loaded_window = self._create_static_window_root(
+                component,
+                window_icon_qml,
+                mica_enabled,
+                profile,
+                verbose,
+            )
+            if loaded_window is None:
+                return None
+            self._window_component = component
+            if verbose:
+                debug(
+                    "[启动剖析] PrismQML._create_window static result: "
+                    f"loaded=True, errors={[error.toString() for error in component.errors()]}"
+                )
+            return loaded_window
+        except Exception as exc:
+            if loaded_window is not None:
+                loaded_window.deleteLater()
+            exception(
+                "[WindowBuilder] 静态窗口根加载失败，回退动态根: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            return None
+
     def _render_navigation_items_qml(self) -> str:
         """Render top navigation item data. 渲染顶部导航项数据。"""
         esc = self._escape_qml
@@ -286,7 +442,7 @@ class WindowBuilderMixin:
             pages_qml,
         )
         profile("拼接窗口 QML")
-        return window_qml, qml_component, window_icon_qml, mica_enabled
+        return qml_dir, window_qml, qml_component, window_icon_qml, mica_enabled
 
     def _create_window(self):
         """创建QML窗口"""

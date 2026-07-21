@@ -89,7 +89,8 @@ def _exercise_file_fallback(temp_dir):
     blocked_cache.write_text("not a directory", encoding="utf-8")
 
     class FileFallbackWindow(Window):
-        pass
+        def _load_static_window_boundary(self, *_args, **_kwargs):
+            return None
 
     FileFallbackWindow._GENERATED_QML_CACHE_DIR = blocked_cache
     win = FileFallbackWindow(window_type=WindowType.BAR)
@@ -122,10 +123,20 @@ def _exercise_missing_root_failure(temp_dir):
 
     builder = MissingRootBuilder()
     builder._engine = QQmlApplicationEngine()
+    builder._load_static_window_boundary = lambda *_args, **_kwargs: None
     source = "import QtQuick\nItem { missingProperty: true }"
     try:
         try:
-            load_window_root(builder, source, "Item", lambda _label: None, False)
+            load_window_root(
+                builder,
+                Path(temp_dir),
+                source,
+                "Item",
+                "",
+                False,
+                lambda _label: None,
+                False,
+            )
         except RuntimeError as exc:
             assert str(exc) == "Failed to create window"
         else:

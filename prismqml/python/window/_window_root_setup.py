@@ -10,9 +10,27 @@ from ._window_startup import _WINDOW_BUILDER_LOG_TAG
 
 
 def load_window_root(
-    builder, window_qml, qml_component, profile, startup_profile_verbose
+    builder,
+    qml_dir,
+    window_qml,
+    qml_component,
+    window_icon_qml,
+    mica_enabled,
+    profile,
+    startup_profile_verbose,
 ):
-    """Load the file root, then preserve the inline fallback. 加载文件根对象并保留 inline 回退。"""
+    """Load the stable root, then preserve file and inline fallbacks. 加载稳定根并保留文件与 inline 回退。"""
+    loaded_window = builder._load_static_window_boundary(
+        qml_dir,
+        qml_component,
+        window_icon_qml,
+        mica_enabled,
+        profile,
+        startup_profile_verbose,
+    )
+    if loaded_window is not None:
+        return loaded_window
+
     loaded_window = builder._load_generated_window_boundary(
         window_qml,
         qml_component,
@@ -98,11 +116,16 @@ def finish_window_startup(
     builder, rendered_window, profile, startup_profile_verbose
 ) -> None:
     """Install the rendered root and finish startup in order. 按顺序安装渲染根对象并完成启动。"""
-    window_qml, qml_component, window_icon_qml, mica_enabled = rendered_window
+    qml_dir, window_qml, qml_component, window_icon_qml, mica_enabled = (
+        rendered_window
+    )
     loaded_window = load_window_root(
         builder,
+        qml_dir,
         window_qml,
         qml_component,
+        window_icon_qml,
+        mica_enabled,
         profile,
         startup_profile_verbose,
     )

@@ -33,10 +33,19 @@ class _ForbiddenRootEngine:
 
 
 class _RootBuilder:
-    def __init__(self, calls, file_root, engine):
+    def __init__(self, calls, static_root, file_root, engine):
         self._calls = calls
+        self._static_root = static_root
         self._file_root = file_root
         self._engine = engine
+
+    def _load_static_window_boundary(
+        self, qml_dir, component, icon, mica, profile, verbose
+    ):
+        self._calls.append(
+            ("static", qml_dir, component, icon, mica, profile, verbose)
+        )
+        return self._static_root
 
     def _load_generated_window_boundary(self, source, component, profile, verbose):
         self._calls.append(("file", source, component, profile, verbose))
@@ -62,8 +71,22 @@ class _FinishScenario:
         self.calls = []
         self.root = object()
 
-    def load(self, builder, source, component, profile, verbose):
-        self.calls.append(("load", builder, source, component, profile, verbose))
+    def load(
+        self, builder, qml_dir, source, component, icon, mica, profile, verbose
+    ):
+        self.calls.append(
+            (
+                "load",
+                builder,
+                qml_dir,
+                source,
+                component,
+                icon,
+                mica,
+                profile,
+                verbose,
+            )
+        )
         return self.root
 
     def install(self, builder, root, profile):
@@ -82,18 +105,71 @@ class _FinishScenario:
         monkeypatch.setattr(module, "finalize_window_startup", self.finalize)
 
 
-def test_window_root_loader_prefers_file_root():
+def test_window_root_loader_prefers_static_root():
     from prismqml.python.window import _window_root_setup as setup
 
     calls = []
     root = object()
     profile = object()
-    builder = _RootBuilder(calls, root, _ForbiddenRootEngine())
+    builder = _RootBuilder(calls, root, object(), _ForbiddenRootEngine())
 
-    result = setup.load_window_root(builder, "source", "Component", profile, True)
+    result = setup.load_window_root(
+        builder,
+        "qml-dir",
+        "source",
+        "Component",
+        "qrc:/icon.svg",
+        True,
+        profile,
+        True,
+    )
 
     assert result is root
-    assert calls == [("file", "source", "Component", profile, True)]
+    assert calls == [
+        (
+            "static",
+            "qml-dir",
+            "Component",
+            "qrc:/icon.svg",
+            True,
+            profile,
+            True,
+        )
+    ]
+
+
+def test_window_root_loader_uses_file_root_after_static_failure():
+    from prismqml.python.window import _window_root_setup as setup
+
+    calls = []
+    root = object()
+    profile = object()
+    builder = _RootBuilder(calls, None, root, _ForbiddenRootEngine())
+
+    result = setup.load_window_root(
+        builder,
+        "qml-dir",
+        "source",
+        "Component",
+        "qrc:/icon.svg",
+        False,
+        profile,
+        True,
+    )
+
+    assert result is root
+    assert calls == [
+        (
+            "static",
+            "qml-dir",
+            "Component",
+            "qrc:/icon.svg",
+            False,
+            profile,
+            True,
+        ),
+        ("file", "source", "Component", profile, True),
+    ]
 
 
 def test_window_root_loader_uses_inline_last_root():
@@ -102,12 +178,30 @@ def test_window_root_loader_uses_inline_last_root():
     calls = []
     roots = [object(), object()]
     profile = lambda label: calls.append(("profile", label))
-    builder = _RootBuilder(calls, None, _RootEngine(calls, roots))
+    builder = _RootBuilder(calls, None, None, _RootEngine(calls, roots))
 
-    result = setup.load_window_root(builder, "源码", "Component", profile, False)
+    result = setup.load_window_root(
+        builder,
+        "qml-dir",
+        "源码",
+        "Component",
+        "qrc:/icon.svg",
+        False,
+        profile,
+        False,
+    )
 
     assert result is roots[-1]
     assert calls == [
+        (
+            "static",
+            "qml-dir",
+            "Component",
+            "qrc:/icon.svg",
+            False,
+            profile,
+            False,
+        ),
         ("file", "源码", "Component", profile, False),
         ("loadData", "源码".encode("utf-8")),
         ("profile", "engine.loadData fallback"),
@@ -121,12 +215,30 @@ def test_window_root_loader_rejects_missing_root():
 
     calls = []
     profile = lambda label: calls.append(("profile", label))
-    builder = _RootBuilder(calls, None, _RootEngine(calls, []))
+    builder = _RootBuilder(calls, None, None, _RootEngine(calls, []))
 
     with pytest.raises(RuntimeError, match="^Failed to create window$"):
-        setup.load_window_root(builder, "source", "Component", profile, False)
+        setup.load_window_root(
+            builder,
+            "qml-dir",
+            "source",
+            "Component",
+            "qrc:/icon.svg",
+            False,
+            profile,
+            False,
+        )
 
     assert calls == [
+        (
+            "static",
+            "qml-dir",
+            "Component",
+            "qrc:/icon.svg",
+            False,
+            profile,
+            False,
+        ),
         ("file", "source", "Component", profile, False),
         ("loadData", b"source"),
         ("profile", "engine.loadData fallback"),
@@ -143,11 +255,20 @@ def test_window_root_loader_process_control_propagates(error_type):
 
     engine = _ForbiddenRootEngine()
     builder = SimpleNamespace(
-        _load_generated_window_boundary=stop_file_load,
+        _load_static_window_boundary=stop_file_load,
         _engine=engine,
     )
     with pytest.raises(error_type, match="stop"):
-        setup.load_window_root(builder, "source", "Component", object(), False)
+        setup.load_window_root(
+            builder,
+            "qml-dir",
+            "source",
+            "Component",
+            "qrc:/icon.svg",
+            False,
+            object(),
+            False,
+        )
 
 
 def test_install_window_root_preserves_publish_find_connect_order():
@@ -272,12 +393,22 @@ def test_finish_window_startup_preserves_root_pending_splash_order(monkeypatch):
     scenario.patch(monkeypatch, setup)
     builder = object()
     profile = object()
-    rendered = ("source", "Component", "qrc:/icon.svg", True)
+    rendered = ("qml-dir", "source", "Component", "qrc:/icon.svg", True)
 
     setup.finish_window_startup(builder, rendered, profile, False)
 
     assert scenario.calls == [
-        ("load", builder, "source", "Component", profile, False),
+        (
+            "load",
+            builder,
+            "qml-dir",
+            "source",
+            "Component",
+            "qrc:/icon.svg",
+            True,
+            profile,
+            False,
+        ),
         ("install", builder, scenario.root, profile),
         ("pending", builder, "qrc:/icon.svg", True, profile),
         ("splash", builder, profile),

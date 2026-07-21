@@ -15,7 +15,15 @@ configure_qml_test_process()
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import shiboken6
-from PySide6.QtCore import QCoreApplication, QEvent, QObject, Property, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QObject,
+    Property,
+    QTimer,
+    QUrl,
+)
 from PySide6.QtWidgets import QApplication
 
 
@@ -42,10 +50,25 @@ def _dispose_window(window):
     QApplication.processEvents()
 
 
-def _generated_source(window_class):
+def _pump(milliseconds=20):
+    loop = QEventLoop()
+    QTimer.singleShot(milliseconds, loop.quit)
+    loop.exec()
+
+
+def _wait_for(predicate, timeout_ms=2400):
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 20
+    return predicate()
+
+
+def _assert_static_root_used(window_class):
     files = sorted(window_class._GENERATED_QML_CACHE_DIR.glob("window_*.qml"))
-    assert len(files) == 1
-    return files[0].read_text(encoding="utf-8")
+    assert files == []
 
 
 def _configure_rich_window(window, temp_dir):
@@ -61,23 +84,28 @@ def _configure_rich_window(window, temp_dir):
     )
 
 
-def _assert_rich_source(source, temp_dir):
+def _to_variant(value):
+    return value.toVariant() if hasattr(value, "toVariant") else value
+
+
+def _assert_rich_models(root, temp_dir):
     bottom_icon = QUrl.fromLocalFile(str(Path(temp_dir) / "tool.svg")).toString()
-    assert '\nWindowsBar {\n' in source
-    assert 'width: 1111\n    height: 777' in source
-    assert 'windowTitle: "Title \\"quoted\\" \\u007Bbrace\\u007D\\nline"' in source
-    assert 'windowIcon: "qrc:/icons/app.svg"' in source
-    assert 'windowIconColored: false' in source
-    assert 'micaEnabled: false' in source
-    assert '"text": "Top \\"one\\""' in source
-    assert '"key": "page_1", "selectable": false' in source
-    assert f'"icon": "{bottom_icon}"' in source
-    assert "userCard" not in source
-    assert "userCardPosition" not in source
-    assert source.count('objectName: "page_') == 2
+    navigation_items = _to_variant(root.property("navigationItems"))
+    bottom_items = _to_variant(root.property("bottomNavigationItems"))
+    assert len(navigation_items) == 1
+    assert navigation_items[0]["text"] == 'Top "one"'
+    assert navigation_items[0]["icon"].endswith("/Home.svg")
+    assert bottom_items == [
+        {
+            "text": "Bottom",
+            "icon": bottom_icon,
+            "key": "page_1",
+            "selectable": False,
+        }
+    ]
 
 
-def _assert_rich_root(window):
+def _assert_rich_root(window, temp_dir):
     root = window._window
     assert "WindowsBar" in root.metaObject().className()
     assert int(root.width()) == 1111
@@ -88,7 +116,20 @@ def _assert_rich_root(window):
     assert root.property("micaEnabled") is False
     assert root.findChild(QObject, "page_0") is not None
     assert root.findChild(QObject, "page_1") is not None
+    _assert_rich_models(root, temp_dir)
     assert window._pending_props == {}
+
+
+def _assert_page_containers_attached(window, count):
+    root = window._window
+    assert _wait_for(lambda: root.property("stackedWidget") is not None)
+    stack = root.property("stackedWidget")
+    container = stack.property("containerItem")
+    assert _wait_for(lambda: stack.property("count") == count)
+    for index in range(count):
+        page = root.findChild(QObject, f"page_{index}")
+        assert page is not None
+        assert page.parentItem() is container
 
 
 def _exercise_rich_bar(window_class, temp_dir, window_type):
@@ -97,8 +138,9 @@ def _exercise_rich_bar(window_class, temp_dir, window_type):
     try:
         window.show()
         QApplication.processEvents()
-        _assert_rich_source(_generated_source(window_class), temp_dir)
-        _assert_rich_root(window)
+        _assert_static_root_used(window_class)
+        _assert_rich_root(window, temp_dir)
+        _assert_page_containers_attached(window, 2)
     finally:
         _dispose_window(window)
 
@@ -110,11 +152,10 @@ def _exercise_window_type(window, window_class, component):
     try:
         window.show()
         QApplication.processEvents()
-        source = _generated_source(window_class)
-        assert f"\n{component} {{\n" in source
-        assert "micaEnabled: false" in source
+        _assert_static_root_used(window_class)
         assert component in window._window.metaObject().className()
         assert window._window.property("micaEnabled") is False
+        _assert_page_containers_attached(window, 1)
     finally:
         _dispose_window(window)
 
