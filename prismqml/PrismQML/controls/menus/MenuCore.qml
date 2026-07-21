@@ -107,6 +107,21 @@ PopupWindowCore {
  submenu.destroy(Enums.popupMetrics.closingDelayMs)
  }
 
+ function _bindSubmenuAction(action, submenuComponent, initialProperties) {
+ if (!action || !submenuComponent) return action
+ action.hoveredChanged.connect(function() {
+ if (!action.hovered) return
+ _pendingSubmenuAction = action
+ _pendingSubmenuComponent = submenuComponent
+ _pendingSubmenuProperties = initialProperties
+ submenuOpenTimer.restart()
+ })
+ action.submenuRequested.connect(function() {
+ _openSubmenuForAction(action, submenuComponent, initialProperties)
+ })
+ return action
+ }
+
  function _openSubmenuForAction(action, submenuComponent, initialProperties) {
  if (!action || !submenuComponent) return
  if (_openSubmenu && _openSubmenuAction === action) return
@@ -125,20 +140,6 @@ PopupWindowCore {
  })
  }
 
- function _bindSubmenuAction(action, submenuComponent, initialProperties) {
- if (!action || !submenuComponent) return action
- action.hoveredChanged.connect(function() {
- if (!action.hovered) return
- _pendingSubmenuAction = action
- _pendingSubmenuComponent = submenuComponent
- _pendingSubmenuProperties = initialProperties
- submenuOpenTimer.restart()
- })
- action.submenuRequested.connect(function() {
- _openSubmenuForAction(action, submenuComponent, initialProperties)
- })
- return action
- }
  if (submenu.dismissed) {
  submenu.dismissed.connect(function() {
  if (control._openSubmenu === submenu) {
@@ -151,6 +152,9 @@ PopupWindowCore {
 
  _openSubmenu = submenu
  _openSubmenuAction = action
+ if (submenu.openAsSubmenu) {
+ submenu.openAsSubmenu(action)
+ } else {
  var globalPos = action.mapToGlobal(action.width - Enums.popupMetrics.controlGap, 0)
  if (submenu.showAtPosition) {
  submenu.showAtPosition(globalPos.x, globalPos.y)
@@ -158,8 +162,41 @@ PopupWindowCore {
  submenu.open(globalPos.x, globalPos.y)
  }
  }
+ }
  
  // ==================== Public Methods 公开方法 ====================
+ // Open as a child menu with both first action rows aligned 作为子菜单打开，并对齐父子首行
+ function openAsSubmenu(parentAction) {
+ if (!parentAction) return
+ var parentWindow = parentAction.Window.window
+ var windowContent = parentWindow ? parentWindow.contentItem : null
+ var logicalX = 0
+ var logicalY = 0
+ var currentItem = parentAction
+ while (currentItem && currentItem !== windowContent) {
+ logicalX += currentItem.x
+ logicalY += currentItem.y
+ currentItem = currentItem.parent
+ }
+
+ var windowPos
+ if (parentWindow && currentItem === windowContent) {
+ windowPos = Qt.point(
+ parentWindow.x + logicalX + parentAction.width + Enums.spacing.xs
+ + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset,
+ parentWindow.y + logicalY - Enums.popupMetrics.panelOffset - Enums.spacing.xs
+ )
+ } else {
+ var actionPos = parentAction.mapToGlobal(0, 0)
+ windowPos = Qt.point(
+ actionPos.x + parentAction.width + Enums.spacing.xs
+ + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset,
+ actionPos.y - Enums.popupMetrics.panelOffset - Enums.spacing.xs
+ )
+ }
+ open(windowPos.x, windowPos.y)
+ }
+
  // Add custom widget to menu 添加自定义组件
  // @param widget: Item - the widget to add
  // @param selectable: bool - whether clickable (default false)

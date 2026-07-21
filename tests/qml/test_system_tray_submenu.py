@@ -70,9 +70,8 @@ def test_data_submenu_opens_and_routes_child_action(qapp):
             'var child = submenu.getAction("drive_nas"); '
             'if (child === null) return false; '
             'var observed = ""; actionTriggered.connect(function(id) { observed = id; }); '
-            'submenu.actionTriggered(child.actionId); return observed === "drive_nas"; })()',
+            'child.triggered(); return observed === "drive_nas"; })()',
         )
-        tray._onMenuActionTriggered("drive_nas")
         assert triggered == ["drive_nas"]
     finally:
         tray.clearActions()

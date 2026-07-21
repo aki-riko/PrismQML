@@ -39,6 +39,7 @@ Window {
     objectName: "window"
 
     property var openAction: null
+    property var submenuAction: null
     readonly property string openText: openAction ? openAction.text : ""
     readonly property bool openChecked: openAction ? openAction.checked : false
     readonly property bool contextBound: contextMenu._mouseArea !== null
@@ -68,6 +69,16 @@ Window {
     function rebindContext() { contextMenu.bindToParent() }
     function showContext() { contextMenu.show(contextTarget) }
     function hideContext() { contextMenu.hide() }
+    function buildAndShowSubmenu() {
+        submenuAction = menu.addSubmenu("Parent", "", submenuComponent)
+        menu.closeOnClickOutside = false
+        menu.open(200, 200)
+        submenuAction.submenuRequested()
+    }
+    function closeSubmenuMenus() {
+        if (menu._openSubmenu) menu._openSubmenu.forceReset()
+        menu.forceReset()
+    }
 
     width: 720
     height: 360
@@ -90,6 +101,15 @@ Window {
     MenuCore {
         id: menu
         objectName: "menuCore"
+    }
+
+    Component {
+        id: submenuComponent
+
+        MenuCore {
+            closeOnClickOutside: false
+            Component.onCompleted: addAction("Child", "", "", { "actionId": "child" })
+        }
     }
 
     MenuBar {
@@ -357,6 +377,29 @@ def test_menu_bar_popup_panel_left_aligns_with_trigger(menu_scene):
     assert QMetaObject.invokeMethod(popup_cores[0], "close")
     assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
     assert warnings == []
+
+
+def test_menu_submenu_first_row_aligns_with_parent_action(menu_scene):
+    window, items, warnings, windows_before = menu_scene
+    menu = items["menuCore"]
+
+    try:
+        assert QMetaObject.invokeMethod(window, "buildAndShowSubmenu")
+        assert _wait_for(lambda: menu.property("_openSubmenu") is not None)
+        submenu = menu.property("_openSubmenu")
+        assert _wait_for(lambda: submenu.getAction("child") is not None)
+
+        parent_action = window.property("submenuAction")
+        child_action = submenu.getAction("child")
+        parent_top = parent_action.mapToGlobal(QPointF()).y()
+        child_top = child_action.mapToGlobal(QPointF()).y()
+
+        assert child_top == pytest.approx(parent_top)
+        assert len(_new_visible_windows(windows_before, window)) == 2
+        assert warnings == []
+    finally:
+        assert QMetaObject.invokeMethod(window, "closeSubmenuMenus")
+        assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
 
 
 def test_menu_sources_follow_conventions():
