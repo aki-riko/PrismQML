@@ -28,7 +28,7 @@ Item {
     // Animation state 动画状态
     // sweepLen: 当前弧长 (角度) current arc length, 呼吸伸缩
     // spinDuration: 旋转/伸缩周期, 越小越快 (可被上层覆盖) spin & pulse period, smaller = faster
-    property int spinDuration: 800
+    property int spinDuration: Enums.progressRingMetrics.spinDuration
     readonly property real _minSweep: 25    // 最短弧 shortest arc
     readonly property real _maxSweep: 160   // 最长弧 ~44% (不到半圈, 不显冗长) longest arc
     property real sweepLen: _minSweep
@@ -48,75 +48,96 @@ Item {
     implicitHeight: Enums.controlSize.indeterminateRingSize
 
     // ==================== Content 内容 ====================
-    // Legacy splash track 原开屏底环
-    Rectangle {
+    Loader {
+        id: spinningArcLoader
+
         anchors.fill: parent
-        visible: control._isOrbitDotStyle && control.showTrack
-        radius: width / 2
-        color: Enums.transparent
-        border.width: control.strokeWidth
-        border.color: control.trackColor
+        active: control._isPulseStyle || control._isFixedArcStyle
+        sourceComponent: spinningArcComponent
     }
 
-    // Spinning arc 旋转伸缩弧
-    Shape {
-        id: spinningArc
+    Loader {
+        id: orbitingDotLoader
 
         anchors.fill: parent
-        visible: control._isPulseStyle || control._isFixedArcStyle
-        preferredRendererType: Shape.CurveRenderer
+        active: control._isOrbitDotStyle
+        sourceComponent: orbitingDotComponent
+    }
 
-        // Keep spinning on the render thread while page creation blocks the GUI
-        // thread. 页面同步创建阻塞 GUI 线程时仍由渲染线程保持旋转。
-        RotationAnimator on rotation {
-            running: control.running && spinningArc.visible
-            from: 0
-            to: 360
-            duration: control.spinDuration
-            loops: Animation.Infinite
-        }
+    Component {
+        id: spinningArcComponent
 
-        ShapePath {
-            strokeWidth: control.strokeWidth
-            strokeColor: control.color
-            fillColor: Enums.transparent
-            capStyle: ShapePath.RoundCap
-            PathAngleArc {
-                centerX: control._cx; centerY: control._cy
-                radiusX: control._radius; radiusY: control._radius
-                // 收缩锚定尾端: 头部随 sweepLen 增减前后探动, 避免突跳
-                // anchor tail; head leads forward as arc grows
-                startAngle: control._isFixedArcStyle ?
-                                -control.fixedArcSweep :
-                                -(control.sweepLen - control._minSweep)
-                sweepAngle: control._isFixedArcStyle ? control.fixedArcSweep : control.sweepLen
+        // Spinning arc 旋转伸缩弧
+        Shape {
+            id: spinningArc
+
+            objectName: "progressRingSpinningArc"
+            preferredRendererType: Shape.CurveRenderer
+
+            // Keep spinning on the render thread while page creation blocks the GUI
+            // thread. 页面同步创建阻塞 GUI 线程时仍由渲染线程保持旋转。
+            RotationAnimator on rotation {
+                running: control.running
+                from: 0
+                to: 360
+                duration: control.spinDuration
+                loops: Animation.Infinite
+            }
+
+            ShapePath {
+                strokeWidth: control.strokeWidth
+                strokeColor: control.color
+                fillColor: Enums.transparent
+                capStyle: ShapePath.RoundCap
+                PathAngleArc {
+                    centerX: control._cx; centerY: control._cy
+                    radiusX: control._radius; radiusY: control._radius
+                    // Shrink around the tail anchor. 收缩时保持尾端锚定。
+                    startAngle: control._isFixedArcStyle ?
+                                    -control.fixedArcSweep :
+                                    -(control.sweepLen - control._minSweep)
+                    sweepAngle: control._isFixedArcStyle ? control.fixedArcSweep : control.sweepLen
+                }
             }
         }
     }
 
-    // Legacy splash orbiting dot, now render-thread driven 原开屏绕圈圆点，现由渲染线程驱动
-    Item {
-        id: orbitingDot
+    Component {
+        id: orbitingDotComponent
 
-        anchors.fill: parent
-        visible: control._isOrbitDotStyle
+        // Legacy splash orbiting dot, now render-thread driven 原开屏绕圈圆点，现由渲染线程驱动
+        Item {
+            id: orbitingDot
 
-        RotationAnimator on rotation {
-            running: control.running && orbitingDot.visible
-            from: 0
-            to: 360
-            duration: control.spinDuration
-            loops: Animation.Infinite
-        }
+            objectName: "progressRingOrbitingDot"
 
-        Rectangle {
-            width: control.dotSize
-            height: control.dotSize
-            radius: control.dotRadius
-            color: control.color
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: parent.top
-            anchors.topMargin: control.dotTopMargin
+            // Legacy splash track 原开屏底环
+            Rectangle {
+                anchors.fill: parent
+                visible: control.showTrack
+                radius: width / 2
+                color: Enums.transparent
+                border.width: control.strokeWidth
+                border.color: control.trackColor
+            }
+
+            RotationAnimator on rotation {
+                running: control.running
+                from: 0
+                to: 360
+                duration: control.spinDuration
+                loops: Animation.Infinite
+            }
+
+            Rectangle {
+                width: control.dotSize
+                height: control.dotSize
+                radius: control.dotRadius
+                color: control.color
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: control.dotTopMargin
+            }
         }
     }
 

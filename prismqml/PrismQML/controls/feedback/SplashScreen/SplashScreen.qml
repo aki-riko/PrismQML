@@ -199,26 +199,40 @@ Rectangle {
                 shadowVerticalOffset: Enums.shadow.splashIcon.offset
             }
 
-            // Icon display (for icon enum) Icon显示
-            Icon {
-                id: fluentIconDisplay
-                anchors.centerIn: parent
-                icon: (control.icon !== null && control.icon !== undefined) ? control.icon : Enums.icon.home
-                iconSize: control.iconSize
-                visible: control.icon !== null && control.icon !== undefined && control.iconSource === ""
+            // Create only the selected icon renderer. 仅创建当前选中的图标渲染器。
+            Loader {
+                id: iconDisplayLoader
+
+                anchors.fill: parent
+                active: control.iconSource !== "" ||
+                        (control.icon !== null && control.icon !== undefined)
+                sourceComponent: control.iconSource !== "" ? imageDisplayComponent : fluentIconDisplayComponent
             }
-            
-            // Image display (for iconSource) 图片显示
-            Image {
-                id: imageDisplay
-                anchors.centerIn: parent
-                width: control.iconSize
-                height: control.iconSize
-                source: control.iconSource
-                fillMode: Image.PreserveAspectFit
-                visible: control.iconSource !== ""
-                smooth: true
-                mipmap: true
+
+            Component {
+                id: fluentIconDisplayComponent
+
+                Icon {
+                    objectName: "splashFluentIconDisplay"
+                    anchors.centerIn: parent
+                    icon: control.icon
+                    iconSize: control.iconSize
+                }
+            }
+
+            Component {
+                id: imageDisplayComponent
+
+                Image {
+                    objectName: "splashImageDisplay"
+                    anchors.centerIn: parent
+                    width: control.iconSize
+                    height: control.iconSize
+                    source: control.iconSource
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    mipmap: true
+                }
             }
         }
         

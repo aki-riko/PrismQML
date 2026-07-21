@@ -54,6 +54,7 @@ Item {
     readonly property int splashProgressDotSize: Enums.splashScreenMetrics.progressDotSize
     readonly property int splashProgressDotRadius: Enums.splashScreenMetrics.progressDotRadius
     readonly property int splashProgressDotTopMargin: Enums.splashScreenMetrics.progressDotTopMargin
+    readonly property var splashHomeIcon: Enums.icon.home
     readonly property real splashShadowBlur: Enums.shadow.splashIcon.blurNormalized
     readonly property real splashShadowOffset: Enums.shadow.splashIcon.offset
     readonly property int splashIconSize: splash.iconSize
@@ -240,6 +241,36 @@ def test_feedback_metrics_preserve_runtime_geometry(qapp):
         assert toast is not None and splash is not None
         _assert_toast_geometry(toast, metrics)
         _assert_splash_geometry(splash, metrics)
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_splash_instantiates_only_selected_icon_renderer(qapp):
+    engine, component, root = _create_scene()
+    try:
+        splash = root.findChild(QQuickItem, "splash")
+        assert splash is not None
+
+        assert splash.findChild(QObject, "splashFluentIconDisplay") is None
+        assert splash.findChild(QObject, "splashImageDisplay") is None
+
+        splash.setProperty("icon", root.property("splashHomeIcon"))
+        _pump(1)
+        assert splash.findChild(QObject, "splashFluentIconDisplay") is not None
+        assert splash.findChild(QObject, "splashImageDisplay") is None
+
+        splash.setProperty("iconSource", "qrc:/icons/splash.svg")
+        _pump(1)
+        assert splash.findChild(QObject, "splashFluentIconDisplay") is None
+        assert splash.findChild(QObject, "splashImageDisplay") is not None
+
+        splash.setProperty("iconSource", "")
+        _pump(1)
+        assert splash.findChild(QObject, "splashFluentIconDisplay") is not None
+        assert splash.findChild(QObject, "splashImageDisplay") is None
     finally:
         root.deleteLater()
         del component

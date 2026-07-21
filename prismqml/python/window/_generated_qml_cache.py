@@ -14,9 +14,6 @@ from ..core.logger import debug
 GENERATED_WINDOW_QML_CACHE_DIR = (
     Path.home() / ".prismqml" / "qml_cache" / "generated_windows"
 )
-GENERATED_SPLASH_QML_CACHE_DIR = (
-    Path.home() / ".prismqml" / "qml_cache" / "generated_splash"
-)
 
 
 def write_generated_qml(

@@ -73,7 +73,6 @@ def _assert_traceback_record(records, marker, error_type, source_line):
 def _isolated_window_class(window_class, temp_dir, prefix):
     class IsolatedWindow(window_class):
         _GENERATED_QML_CACHE_DIR = Path(temp_dir) / f"{prefix}-windows"
-        _GENERATED_SPLASH_QML_CACHE_DIR = Path(temp_dir) / f"{prefix}-splash"
 
     return IsolatedWindow
 

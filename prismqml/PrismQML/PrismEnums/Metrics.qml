@@ -584,6 +584,7 @@ QtObject {
 
  // ==================== ProgressRing 进度环度量 ====================
  readonly property QtObject progressRing: QtObject {
+ readonly property int spinDuration: 800 // Default progress ring rotation cycle 默认进度环旋转周期
  readonly property int fixedArcSweep: 90 // Legacy lazy-loading quarter arc 原懒加载四分之一圆弧
  readonly property int orbitDotSize: root.spacing.s // Orbiting dot size 绕圈圆点尺寸
  readonly property int orbitDotRadius: root.isPrismDesign ? orbitDotSize / 2 : root.radius.tiny

@@ -57,6 +57,10 @@ import QtQuick
 import PrismQML
 
 Item {
+    readonly property int pulseStyle: Enums.progress.indeterminate_style_pulse
+    readonly property int fixedArcStyle: Enums.progress.indeterminate_style_fixed_arc
+    readonly property int orbitDotStyle: Enums.progress.indeterminate_style_orbit_dot
+
     width: 800
     height: 600
 
@@ -303,8 +307,8 @@ def test_no_qt_busy_indicator_or_extra_rotating_ring_remains():
 def test_progress_ring_repaint_handlers_do_not_allocate_connections(qapp):
     """Direct handlers preserve repainting without QQmlConnections. 直接处理器避免额外对象。"""
     source = CANONICAL_RING.read_text(encoding="utf-8")
-    assert "onTrackColorChanged: canvas.requestPaint()" in source
-    assert "onProgressColorChanged: canvas.requestPaint()" in source
+    assert "onTrackColorChanged: _requestCanvasPaint()" in source
+    assert "onProgressColorChanged: _requestCanvasPaint()" in source
     assert "Connections {" not in source
 
     engine, component, root = _create_scene()
@@ -316,6 +320,48 @@ def test_progress_ring_repaint_handlers_do_not_allocate_connections(qapp):
             for child in ring.findChildren(QObject)
             if child.metaObject().className() == "QQmlConnections"
         }
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_progress_ring_creates_only_the_active_visual_branch(qapp):
+    engine, component, root = _create_scene()
+    try:
+        ring = root.findChild(QQuickItem, "blockingProgressRing")
+        assert ring is not None
+
+        def child(name):
+            return ring.findChild(QObject, name)
+
+        # Pulse is the default indeterminate style: only the Shape branch exists.
+        assert child("progressRingCanvas") is None
+        assert child("progressRingSpinningArc") is not None
+        assert child("progressRingOrbitingDot") is None
+
+        ring.setProperty("indeterminateStyle", root.property("fixedArcStyle"))
+        _pump(1)
+        assert child("progressRingSpinningArc") is not None
+        assert child("progressRingOrbitingDot") is None
+
+        ring.setProperty("indeterminateStyle", root.property("orbitDotStyle"))
+        _pump(1)
+        assert child("progressRingSpinningArc") is None
+        assert child("progressRingOrbitingDot") is not None
+
+        ring.setProperty("indeterminate", False)
+        _pump(1)
+        assert child("progressRingCanvas") is not None
+        assert child("progressRingIndeterminateArc") is None
+
+        ring.setProperty("indeterminate", True)
+        ring.setProperty("indeterminateStyle", root.property("pulseStyle"))
+        _pump(1)
+        assert child("progressRingCanvas") is None
+        assert child("progressRingSpinningArc") is not None
+        assert child("progressRingOrbitingDot") is None
     finally:
         root.deleteLater()
         del component

@@ -31,9 +31,12 @@ Item {
     readonly property color progressColor: Enums.isDark ? fillColorDark : fillColorLight
     readonly property color backgroundColor: Enums.isDark ? trackColorDark : trackColorLight
     readonly property color trackColor: backgroundColor
-    property alias spinDuration: indeterminateArc.spinDuration
+    property int spinDuration: Enums.progressRingMetrics.spinDuration
     
     // ==================== Public Methods 公开方法 ====================
+    function _requestCanvasPaint() {
+        if (canvasLoader.item) canvasLoader.item.requestPaint()
+    }
     function setRange(min, max) { from = min; to = max }
     function pause() { paused = true }
     function resume() { paused = false }
@@ -45,63 +48,84 @@ Item {
     implicitWidth: Enums.controlSize.progressRingSize   // Default ring size 默认环形尺寸
     implicitHeight: Enums.controlSize.progressRingSize  // Default ring size 默认环形尺寸
 
-    onValueChanged: canvas.requestPaint()
-    onPositionChanged: canvas.requestPaint()
-    onIndeterminateChanged: canvas.requestPaint()
-    onIndeterminateStyleChanged: canvas.requestPaint()
-    onStrokeWidthChanged: canvas.requestPaint()
-    onTrackColorChanged: canvas.requestPaint()
-    onProgressColorChanged: canvas.requestPaint()
-    Component.onCompleted: canvas.requestPaint()
-    
-    Canvas {
-        id: canvas
+    onValueChanged: _requestCanvasPaint()
+    onPositionChanged: _requestCanvasPaint()
+    onIndeterminateChanged: _requestCanvasPaint()
+    onIndeterminateStyleChanged: _requestCanvasPaint()
+    onStrokeWidthChanged: _requestCanvasPaint()
+    onTrackColorChanged: _requestCanvasPaint()
+    onProgressColorChanged: _requestCanvasPaint()
+
+    Loader {
+        id: canvasLoader
+
         anchors.fill: parent
-        rotation: -90
-        
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.reset()
-            
-            var cx = width / 2
-            var cy = height / 2
-            var r = Math.min(cx, cy) - strokeWidth / 2
-            
-            // Orbit-dot mode uses its legacy Rectangle track. 绕圈圆点模式使用原有 Rectangle 底环。
-            if (trackColor.a > 0 && (!indeterminate ||
-                    indeterminateStyle !== Enums.progress.indeterminate_style_orbit_dot)) {
+        active: !control.indeterminate
+        sourceComponent: canvasComponent
+    }
+
+    Component {
+        id: canvasComponent
+
+        Canvas {
+            objectName: "progressRingCanvas"
+            rotation: -90
+
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.reset()
+
+                var cx = width / 2
+                var cy = height / 2
+                var r = Math.min(cx, cy) - control.strokeWidth / 2
+
+                if (control.trackColor.a > 0) {
+                    ctx.beginPath()
+                    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+                    ctx.strokeStyle = control.trackColor
+                    ctx.lineWidth = control.strokeWidth
+                    ctx.stroke()
+                }
+
+                // Progress arc 进度弧
                 ctx.beginPath()
-                ctx.arc(cx, cy, r, 0, Math.PI * 2)
-                ctx.strokeStyle = trackColor
-                ctx.lineWidth = strokeWidth
-                ctx.stroke()
-            }
-            
-            // Progress arc 进度弧
-            if (!indeterminate) {
-                ctx.beginPath()
-                ctx.arc(cx, cy, r, 0, Math.PI * 2 * position)
+                ctx.arc(cx, cy, r, 0, Math.PI * 2 * control.position)
                 ctx.strokeStyle = control.progressColor
                 ctx.lineCap = "round"
-                ctx.lineWidth = strokeWidth
+                ctx.lineWidth = control.strokeWidth
                 ctx.stroke()
             }
+
+            Component.onCompleted: requestPaint()
         }
     }
     
     // Indeterminate animation 不确定进度动画(伸缩弧脉动)
-    IndeterminateArcImpl {
-        id: indeterminateArc
+    Loader {
+        id: indeterminateArcLoader
+
         anchors.fill: parent
-        visible: indeterminate
-        running: indeterminate && !paused
-        color: control.progressColor
-        trackColor: control.trackColor
-        strokeWidth: control.strokeWidth
-        style: control.indeterminateStyle
-        fixedArcSweep: control.indeterminateFixedArcSweep
-        dotSize: control.indeterminateDotSize
-        dotRadius: control.indeterminateDotRadius
-        dotTopMargin: control.indeterminateDotTopMargin
+        active: control.indeterminate
+        sourceComponent: indeterminateArcComponent
+    }
+
+    Component {
+        id: indeterminateArcComponent
+
+        IndeterminateArcImpl {
+            id: indeterminateArc
+            objectName: "progressRingIndeterminateArc"
+            anchors.fill: parent
+            running: !control.paused
+            color: control.progressColor
+            trackColor: control.trackColor
+            strokeWidth: control.strokeWidth
+            style: control.indeterminateStyle
+            fixedArcSweep: control.indeterminateFixedArcSweep
+            dotSize: control.indeterminateDotSize
+            dotRadius: control.indeterminateDotRadius
+            dotTopMargin: control.indeterminateDotTopMargin
+            spinDuration: control.spinDuration
+        }
     }
 }

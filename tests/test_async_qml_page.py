@@ -176,7 +176,6 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
 
     class IsolatedWindow(Window):
         _GENERATED_QML_CACHE_DIR = tmp_path / "window-qml"
-        _GENERATED_SPLASH_QML_CACHE_DIR = tmp_path / "splash-qml"
 
     window = IsolatedWindow(window_type=WindowType.BAR)
     window.setSplashEnabled(False)

@@ -16,7 +16,6 @@ from PySide6.QtQml import QQmlComponent
 from PySide6.QtCore import QUrl
 from ..core.logger import debug, warning, exception
 from ._generated_qml_cache import (
-    GENERATED_SPLASH_QML_CACHE_DIR,
     GENERATED_WINDOW_QML_CACHE_DIR,
     write_generated_qml,
 )
@@ -68,7 +67,6 @@ class WindowBuilderMixin:
     """窗口构建器 Mixin，提供 _create_window 等方法"""
 
     _GENERATED_QML_CACHE_DIR = GENERATED_WINDOW_QML_CACHE_DIR
-    _GENERATED_SPLASH_QML_CACHE_DIR = GENERATED_SPLASH_QML_CACHE_DIR
 
     @staticmethod
     def _escape_qml(text: str) -> str:
@@ -102,16 +100,6 @@ class WindowBuilderMixin:
             cls._GENERATED_QML_CACHE_DIR,
             "window",
             "[WindowBuilder]",
-        )
-
-    @classmethod
-    def _write_generated_splash_qml(cls, source: str) -> Path:
-        """Write generated splash QML to a stable file so Qt can disk-cache it."""
-        return write_generated_qml(
-            source,
-            cls._GENERATED_SPLASH_QML_CACHE_DIR,
-            "splash",
-            "[Splash]",
         )
 
     def _profile_generated_window_qml(

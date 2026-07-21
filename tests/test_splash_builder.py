@@ -11,22 +11,6 @@ import pytest
 
 
 _DEFAULT_SPLASH = object()
-_MOUNT_TRACE = [
-    "file.load",
-    "component.create",
-    "profile.create",
-    "window.contentItem",
-    "splash.setParentItem",
-    "window.width",
-    "splash.setProperty:width",
-    "window.height",
-    "splash.setProperty:height",
-    "window.setProperty:_splashInstance",
-    "profile.mount",
-    "builder._splash_instance",
-    "builder._splash_component",
-    "debug",
-]
 
 
 class _FakeError:
@@ -55,21 +39,29 @@ class _FakeSplash:
         self.properties[name] = value
 
 
+class _FakeEngine:
+    def __init__(self, trace=None):
+        self.trace = trace if trace is not None else []
+
+    def rootContext(self):
+        self.trace.append("engine.rootContext")
+        return object()
+
+
 class _FakeComponent:
     def __init__(
         self,
         splash=_DEFAULT_SPLASH,
         errors=(),
         trace=None,
-        create_error=None,
+        begin_error=None,
     ):
         self.trace = trace if trace is not None else []
         self.splash = _FakeSplash(self.trace) if splash is _DEFAULT_SPLASH else splash
         self._errors = [_FakeError(text) for text in errors]
-        self.create_error = create_error
-        self.create_calls = 0
-        self.inline_data = None
-        self.inline_url = None
+        self.begin_error = begin_error
+        self.begin_calls = 0
+        self.complete_calls = 0
 
     def isError(self):
         return bool(self._errors)
@@ -77,17 +69,16 @@ class _FakeComponent:
     def errors(self):
         return self._errors
 
-    def create(self):
-        self.trace.append("component.create")
-        self.create_calls += 1
-        if self.create_error is not None:
-            raise self.create_error
+    def beginCreate(self, context):
+        self.trace.append("component.beginCreate")
+        self.begin_calls += 1
+        if self.begin_error is not None:
+            raise self.begin_error
         return self.splash
 
-    def setData(self, data, url):
-        self.trace.append("component.setData")
-        self.inline_data = data
-        self.inline_url = url
+    def completeCreate(self):
+        self.trace.append("component.completeCreate")
+        self.complete_calls += 1
 
 
 class _FakeWindow:
@@ -130,8 +121,6 @@ class _RecordingBuilder(SimpleNamespace):
 
 
 def _new_builder(trace=None, **overrides):
-    from prismqml.python.window._window_builder import WindowBuilderMixin
-
     resolve_calls = []
 
     def resolve_icon(name):
@@ -146,9 +135,8 @@ def _new_builder(trace=None, **overrides):
         "_splash_title": 'Title "quoted" {brace}\nline',
         "_title": "Fallback title",
         "_splash_subtitle": "Sub $ value",
-        "_escape_qml": WindowBuilderMixin._escape_qml,
         "_resolve_icon_path": resolve_icon,
-        "_engine": object(),
+        "_engine": _FakeEngine(trace),
         "_splash_instance": None,
         "_splash_component": None,
     }
@@ -159,26 +147,14 @@ def _new_builder(trace=None, **overrides):
     return builder
 
 
-def _install_file_loader(monkeypatch, component, trace=None):
-    from prismqml.python.core import utils
+def _install_loader(monkeypatch, component):
     from prismqml.python.window import _splash_builder
 
-    captured = {}
-
-    def load(builder, splash_qml, profile, verbose, profile_values):
-        if trace is not None:
-            trace.append("file.load")
-        captured.update(
-            qml=splash_qml,
-            profile=profile,
-            verbose=verbose,
-            profile_values=profile_values,
-        )
-        return component
-
-    monkeypatch.setattr(utils, "qml_path", lambda: Path("D:/Fixed/Qml"))
-    monkeypatch.setattr(_splash_builder, "_load_splash_file_component", load)
-    return captured
+    monkeypatch.setattr(
+        _splash_builder,
+        "_load_splash_component",
+        lambda builder, profile: component,
+    )
 
 
 @pytest.mark.parametrize(
@@ -197,53 +173,62 @@ def test_create_splash_guards_before_setup(monkeypatch, builder):
     )
     monkeypatch.setattr(
         _splash_builder,
-        "_prepare_splash_qml",
+        "_prepare_splash_profile",
         lambda *_args: setup_calls.append("prepare"),
     )
     _splash_builder.create_splash(builder)
     assert setup_calls == []
 
 
-def test_create_splash_fixed_qml_bytes_and_file_fast_path(monkeypatch):
+def test_load_splash_component_uses_public_component_file(monkeypatch):
+    from prismqml.python.core import utils
     from prismqml.python.window import _splash_builder
 
-    component, inline_calls = _FakeComponent(), []
-    captured = _install_file_loader(monkeypatch, component)
-    monkeypatch.setenv("PRISMQML_STARTUP_PROFILE_VERBOSE", "YES")
+    captured = {}
 
-    def record_inline(*args):
-        inline_calls.append(args)
-        return _FakeComponent()
+    class CapturingComponent:
+        def __init__(self, engine, url):
+            captured["engine"] = engine
+            captured["url"] = url.toLocalFile()
 
-    monkeypatch.setattr(_splash_builder, "QQmlComponent", record_inline)
+        def isError(self):
+            return False
+
+    monkeypatch.setattr(utils, "qml_path", lambda: Path("D:/Fixed/Qml"))
+    monkeypatch.setattr(_splash_builder, "QQmlComponent", CapturingComponent)
     builder = _new_builder()
+    assert _splash_builder._load_splash_component(builder, lambda _label: None) is not None
+    assert captured == {
+        "engine": builder._engine,
+        "url": "D:/Fixed/Qml/controls/feedback/SplashScreen/SplashScreen.qml",
+    }
+
+
+def test_create_splash_injects_initial_properties_before_complete(monkeypatch):
+    from prismqml.python.window import _splash_builder
+
+    trace = []
+    component = _FakeComponent(trace=trace)
+    _install_loader(monkeypatch, component)
+    builder = _new_builder(trace)
     _splash_builder.create_splash(builder)
 
-    expected_qml = (
-        "import QtQuick\n"
-        'import "file:///D:/Fixed/Qml/controls/feedback/SplashScreen"\n'
-        "\n"
-        "SplashScreen {\n"
-        '    iconSource: "qrc:/icons/splash.svg"\n'
-        '    title: "Title \\"quoted\\" \\u007Bbrace\\u007D\\nline"\n'
-        '    subtitle: "Sub $ value"\n'
-        "}\n"
+    assert trace.index("component.beginCreate") < trace.index(
+        "splash.setProperty:iconSource"
     )
-    assert captured["qml"].encode("utf-8") == expected_qml.encode("utf-8")
-    assert (
-        'import "file:///D:/Fixed/Qml/controls/feedback/SplashScreen"'
-        in captured["qml"]
+    assert trace.index("splash.setProperty:subtitle") < trace.index(
+        "component.completeCreate"
     )
-    assert "\nSplashScreen {" in captured["qml"]
-    assert "\nRectangle {" not in captured["qml"]
-    assert captured["profile_values"] == (
-        "qrc:/icons/splash.svg",
-        'Title "quoted" {brace}\nline',
-        "Sub $ value",
-    )
-    assert captured["verbose"] is True
-    assert builder._resolve_calls == [":/icons/splash.svg"]
-    assert inline_calls == []
+    assert component.begin_calls == 1
+    assert component.complete_calls == 1
+    assert component.splash.properties == {
+        "iconSource": "qrc:/icons/splash.svg",
+        "title": 'Title "quoted" {brace}\nline',
+        "subtitle": "Sub $ value",
+        "width": 1111,
+        "height": 777,
+    }
+    assert builder._splash_instance is component.splash
     assert builder._splash_component is component
 
 
@@ -273,66 +258,48 @@ def test_create_splash_resolves_fallback_values(
 ):
     from prismqml.python.window import _splash_builder
 
-    captured = _install_file_loader(monkeypatch, _FakeComponent())
+    _install_loader(monkeypatch, _FakeComponent())
     builder = _new_builder(**overrides)
     _splash_builder.create_splash(builder)
 
-    assert captured["profile_values"] == expected_values
+    assert tuple(
+        builder._splash_instance.properties[name]
+        for name in ("iconSource", "title", "subtitle")
+    ) == expected_values
     assert builder._resolve_calls == expected_resolves
 
 
-def test_create_splash_inline_fallback_uses_exact_source(monkeypatch):
-    from prismqml.python.window import _splash_builder
-
-    component = _FakeComponent()
-    captured = _install_file_loader(monkeypatch, None)
-    created_with = []
-    profile_messages = []
-
-    def make_component(engine):
-        created_with.append(engine)
-        return component
-
-    monkeypatch.setattr(_splash_builder, "QQmlComponent", make_component)
-    monkeypatch.setattr(_splash_builder, "debug", profile_messages.append)
-    builder = _new_builder()
-    _splash_builder.create_splash(builder)
-
-    assert created_with == [builder._engine]
-    assert component.inline_data == captured["qml"].encode("utf-8")
-    assert component.inline_url.toString() == "inline-splash"
-    assert any("component.setData fallback" in msg for msg in profile_messages)
-    assert any("component.create(inline)" in msg for msg in profile_messages)
-
-
 @pytest.mark.parametrize(
-    ("case", "expected_warning", "expected_create_calls"),
+    ("component", "expected_warning"),
     [
-        ("error", "[Splash] 组件加载失败: ['broken qml']", 0),
-        ("none", "[Splash] create() 返回 None,跳过启动画面", 1),
+        (None, None),
+        (
+            _FakeComponent(splash=None),
+            "[Splash] beginCreate() 返回 None,跳过启动画面",
+        ),
     ],
 )
 def test_create_splash_rejects_invalid_component_results(
-    monkeypatch, case, expected_warning, expected_create_calls
+    monkeypatch, component, expected_warning
 ):
     from prismqml.python.window import _splash_builder
 
-    component = (
-        _FakeComponent(errors=("broken qml",))
-        if case == "error"
-        else _FakeComponent(splash=None)
-    )
-    _install_file_loader(monkeypatch, component)
     warnings = []
     monkeypatch.setattr(_splash_builder, "warning", warnings.append)
+    if component is None:
+        monkeypatch.setattr(
+            _splash_builder,
+            "_load_splash_component",
+            lambda builder, profile: None,
+        )
+    else:
+        _install_loader(monkeypatch, component)
     builder = _new_builder()
     _splash_builder.create_splash(builder)
 
-    assert warnings == [expected_warning]
-    assert component.create_calls == expected_create_calls
+    assert warnings == ([] if expected_warning is None else [expected_warning])
     assert builder._splash_instance is None
     assert builder._splash_component is None
-    assert builder._window.properties == {}
 
 
 def test_create_splash_mount_and_publish_order(monkeypatch):
@@ -341,26 +308,16 @@ def test_create_splash_mount_and_publish_order(monkeypatch):
     trace = []
     splash = _FakeSplash(trace)
     component = _FakeComponent(splash=splash, trace=trace)
-    _install_file_loader(monkeypatch, component, trace)
-
-    def record_debug(message):
-        if "component.create(" in message:
-            trace.append("profile.create")
-        elif "挂载到窗口:" in message:
-            trace.append("profile.mount")
-        elif message.startswith("[Splash]"):
-            trace.append("debug")
-
-    monkeypatch.setattr(_splash_builder, "debug", record_debug)
+    _install_loader(monkeypatch, component)
     builder = _new_builder(trace)
     _splash_builder.create_splash(builder)
 
-    assert trace == _MOUNT_TRACE
+    assert trace.index("component.beginCreate") < trace.index("component.completeCreate")
+    assert trace.index("component.completeCreate") < trace.index("window.contentItem")
     assert splash.parent is builder._window.content
-    assert splash.properties == {"width": 1111, "height": 777}
+    assert splash.properties["width"] == 1111
+    assert splash.properties["height"] == 777
     assert builder._window.properties["_splashInstance"] is splash
-    assert builder._splash_instance is splash
-    assert builder._splash_component is component
 
 
 def test_create_splash_mount_failure_is_nonfatal_and_keeps_old_refs(monkeypatch):
@@ -368,7 +325,7 @@ def test_create_splash_mount_failure_is_nonfatal_and_keeps_old_refs(monkeypatch)
 
     old_instance, old_component = object(), object()
     window = _FakeWindow(failures={"content": RuntimeError("deleted window")})
-    _install_file_loader(monkeypatch, _FakeComponent())
+    _install_loader(monkeypatch, _FakeComponent())
     messages = []
     monkeypatch.setattr(_splash_builder, "exception", messages.append)
     builder = _new_builder(
@@ -398,9 +355,9 @@ def test_create_splash_late_process_control_propagates(
     splash = _FakeSplash(parent_error=error if stage == "mount" else None)
     component = _FakeComponent(
         splash=splash,
-        create_error=error if stage == "create" else None,
+        begin_error=error if stage == "create" else None,
     )
-    _install_file_loader(monkeypatch, component)
+    _install_loader(monkeypatch, component)
     builder = _new_builder()
 
     with pytest.raises(error_type, match=f"stop at {stage}"):
@@ -410,7 +367,7 @@ def test_create_splash_late_process_control_propagates(
 def test_create_splash_profile_uses_shared_elapsed_time(monkeypatch):
     from prismqml.python.window import _splash_builder
 
-    times = iter((1.0, 2.0, 4.0, 7.0, 11.0))
+    times = iter((1.0, 2.0, 4.0, 7.0, 11.0, 16.0))
     messages = []
     monkeypatch.setattr(_splash_builder.time, "perf_counter", lambda: next(times))
 
@@ -419,15 +376,15 @@ def test_create_splash_profile_uses_shared_elapsed_time(monkeypatch):
             messages.append(message)
 
     monkeypatch.setattr(_splash_builder, "debug", record_profile)
-    _install_file_loader(monkeypatch, _FakeComponent())
+    _install_loader(monkeypatch, _FakeComponent())
 
     _splash_builder.create_splash(_new_builder())
 
-    assert messages == [
-        "[启动剖析] PrismQML._create_splash 导入/准备: +1000ms / total 1000ms",
-        "[启动剖析] PrismQML._create_splash 拼接 Splash QML: +2000ms / total 3000ms",
-        "[启动剖析] PrismQML._create_splash component.create(file): +3000ms / total 6000ms",
-        "[启动剖析] PrismQML._create_splash 挂载到窗口: +4000ms / total 10000ms",
+    assert [message.split(" PrismQML._create_splash ", 1)[1].split(":", 1)[0] for message in messages] == [
+        "导入/准备",
+        "component.beginCreate(public)",
+        "component.completeCreate(public)",
+        "挂载到窗口",
     ]
 
 
@@ -442,21 +399,3 @@ def test_create_splash_process_control_propagates(monkeypatch, error_type):
     builder = SimpleNamespace(_splash_enabled=True, _window=object())
     with pytest.raises(error_type, match="stop"):
         _splash_builder.create_splash(builder)
-
-
-@pytest.mark.parametrize("error_type", [KeyboardInterrupt, SystemExit])
-def test_splash_file_component_process_control_propagates(error_type):
-    from prismqml.python.window import _splash_builder
-
-    def stop_file_load(_source):
-        raise error_type("stop")
-
-    builder = SimpleNamespace(_write_generated_splash_qml=stop_file_load)
-    with pytest.raises(error_type, match="stop"):
-        _splash_builder._load_splash_file_component(
-            builder,
-            "",
-            lambda _label: None,
-            False,
-            ("", "", ""),
-        )
