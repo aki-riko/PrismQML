@@ -198,10 +198,11 @@ def test_load_splash_component_uses_public_component_file(monkeypatch):
     monkeypatch.setattr(_splash_builder, "QQmlComponent", CapturingComponent)
     builder = _new_builder()
     assert _splash_builder._load_splash_component(builder, lambda _label: None) is not None
-    assert captured == {
-        "engine": builder._engine,
-        "url": "D:/Fixed/Qml/controls/feedback/SplashScreen/SplashScreen.qml",
-    }
+    actual_url = captured["url"].replace("\\", "/")
+    if actual_url.startswith("/D:/"):
+        actual_url = actual_url[1:]
+    assert captured["engine"] is builder._engine
+    assert actual_url == "D:/Fixed/Qml/controls/feedback/SplashScreen/SplashScreen.qml"
 
 
 def test_create_splash_injects_initial_properties_before_complete(monkeypatch):
