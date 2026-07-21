@@ -194,7 +194,9 @@ class PageManagerMixin:
         info(f"创建页面: {item.text}")
         profile("登记页面实例")
         if _is_managed_async_page(page_instance):
-            page_instance.start_loading()
+            self._start_managed_async_page(
+                index, item, page_instance, finish_loading=False
+            )
             profile("启动异步 QML 页面")
             return
         if _has_deferred_queue(page_instance):
@@ -344,8 +346,15 @@ class PageManagerMixin:
         self._mark_python_page_ready(index)
         self._finish_loading_and_switch(index)
 
-    def _start_managed_async_page(self, index, item, page_instance):
-        on_ready = partial(self._on_managed_async_page_ready, index)
+    def _start_managed_async_page(
+        self, index, item, page_instance, *, finish_loading=True
+    ):
+        on_ready = partial(
+            self._on_managed_async_page_ready
+            if finish_loading
+            else self._on_initial_managed_async_page_ready,
+            index,
+        )
         on_failed = partial(
             self._on_managed_async_page_failed, index, item, page_instance
         )
@@ -365,6 +374,9 @@ class PageManagerMixin:
     def _on_managed_async_page_ready(self, index):
         self._mark_python_page_ready(index)
         self._finish_loading_and_switch(index)
+
+    def _on_initial_managed_async_page_ready(self, index):
+        self._mark_python_page_ready(index)
 
     def _on_managed_async_page_failed(
         self, index, item, page_instance, message

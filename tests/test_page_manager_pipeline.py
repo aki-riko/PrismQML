@@ -523,6 +523,29 @@ def test_sync_managed_async_qml_page_starts_after_registration(monkeypatch):
     assert events[-1] == ("start_async_qml",)
     assert not any(event[0] in {"finish", "switch"} for event in events)
 
+    page.page_ready.fire()
+
+    assert events[-2:] == [("fire", "async_page_ready"), ("invoke", "_markPythonPageReady", 0)]
+    assert not any(event[0] in {"finish", "switch"} for event in events)
+
+
+def test_sync_managed_async_qml_page_failure_clears_cached_instance(monkeypatch):
+    events = []
+    page = _AsyncPage(events)
+    item = _source_item("existing", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    _install_runtime_fakes(monkeypatch, events)
+
+    manager._create_page(0)
+    page.page_failed.fire("broken initial target")
+
+    assert manager._pages == {}
+    assert item._page_instance is None
+    assert events[-2][0] == "warning"
+    assert "异步 QML 页面加载失败: broken initial target" in events[-2][1]
+    assert events[-1] == ("finish",)
+    assert not any(event[0] == "switch" for event in events)
+
 
 @pytest.mark.parametrize("case", ["invalid_index", "missing_container", "no_loader"])
 def test_async_invalid_target_starts_then_finishes_without_timer(monkeypatch, case):
