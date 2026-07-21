@@ -154,7 +154,8 @@ def test_data_components_preserve_transparent_runtime_state(qapp):
 
 def test_data_transparent_sources_are_the_characterized_targets():
     sources = [path.read_text(encoding="utf-8") for path in _SOURCE_PATHS]
-    assert "control.shadowLevel.color : Enums.transparent" in sources[0]
+    assert "Component.onCompleted: _staticFallbackShadow = ({" in sources[0]
+    assert "color: Enums.transparent" in sources[0]
     assert "root.getColor(root.hoveredIndex) : Enums.transparent" in sources[1]
     assert "root.getSeriesColor(root.hoveredSeriesIndex) : Enums.transparent" in sources[2]
     assert "customTextColor != Enums.transparent" in sources[3]
