@@ -32,7 +32,8 @@ def _make_splash_profile():
         debug(
             f"[启动剖析] PrismQML._create_splash {label}: "
             f"+{int((now - profile_last) * 1000)}ms / "
-            f"total {int((now - profile_start) * 1000)}ms"
+            f"total {int((now - profile_start) * 1000)}ms",
+            tag="SplashBuilder",
         )
         profile_last = now
 

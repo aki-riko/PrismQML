@@ -372,8 +372,9 @@ def test_create_splash_profile_uses_shared_elapsed_time(monkeypatch):
     messages = []
     monkeypatch.setattr(_splash_builder.time, "perf_counter", lambda: next(times))
 
-    def record_profile(message):
+    def record_profile(message, *, tag=None):
         if message.startswith("[启动剖析]"):
+            assert tag == "SplashBuilder"
             messages.append(message)
 
     monkeypatch.setattr(_splash_builder, "debug", record_profile)
