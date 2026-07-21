@@ -358,6 +358,30 @@ def test_splash_finish_during_fade_in_preserves_visible_intro(qapp):
         _pump(1)
 
 
+def test_splash_first_frame_keeps_window_shell_covered(qapp):
+    engine, component, root = _create_scene()
+    try:
+        splash = root.findChild(QQuickItem, "splash")
+        assert splash is not None
+        content = splash.findChild(QQuickItem, "splashContent")
+        assert content is not None
+
+        # The shell background must be opaque before the event loop can advance
+        # the intro animation; only the logo/text/progress content fades in.
+        assert splash.property("visible") is True
+        assert splash.property("opacity") == pytest.approx(1.0)
+        assert content.property("opacity") < 1.0
+
+        _pump(80)
+        assert splash.property("opacity") == pytest.approx(1.0)
+        assert content.property("opacity") > 0.1
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_feedback_sources_use_shared_style_tokens():
     toast_source = TOAST_SOURCE.read_text(encoding="utf-8")
     splash_source = SPLASH_SOURCE.read_text(encoding="utf-8")
