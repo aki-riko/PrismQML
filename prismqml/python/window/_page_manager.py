@@ -17,6 +17,7 @@ from PySide6.QtCore import QTimer, QMetaObject, Q_ARG
 from PySide6.QtQuick import QQuickItem
 
 from ..core.logger import debug, exception, warning, info
+from ._page_prewarm import PagePrewarmMixin
 
 
 _PAGE_LOAD_RENDER_DELAY_MS = 16
@@ -125,7 +126,7 @@ def _is_managed_async_page(page_instance: Any) -> bool:
     return bool(getattr(page_instance, "_prismqml_async_page", False))
 
 
-class PageManagerMixin:
+class PageManagerMixin(PagePrewarmMixin):
     """页面管理器 Mixin，提供懒加载和页面生命周期管理"""
 
     # ==================== 懒加载管理（统一入口） ====================
@@ -135,11 +136,16 @@ class PageManagerMixin:
 
     def _ensure_page_created(self, index: int):
         """确保指定索引的页面已创建（同步）"""
+        if not self._admit_page_creation(index):
+            return False
         if index not in self._pages:
-            self._create_page(index)
+            return self._create_page(index) is not False
+        return True
 
     def _create_page(self, index: int):
         """创建页面内容"""
+        if not self._admit_page_creation(index):
+            return False
         profile = _make_page_profile(index)
         item, page_container = self._resolve_sync_page_target(index, profile)
         if item is _NO_PAGE_TARGET:
@@ -153,6 +159,15 @@ class PageManagerMixin:
             index, page_instance, page_container, profile
         )
         self._finalize_sync_page(index, item, page_instance, profile)
+
+    def _admit_page_creation(self, index: int) -> bool:
+        if not self._startup_page_creation_blocked(index):
+            return True
+        warning(
+            f"启动阶段拒绝预建非当前页 index={index}; "
+            "请使用 prewarmPage() 排入低优先级队列"
+        )
+        return False
 
     def _resolve_sync_page_target(self, index: int, profile):
         all_items = self._nav_items + self._bottom_nav_items
@@ -207,6 +222,10 @@ class PageManagerMixin:
             profile("无 deferred queue")
         if _resolve_page_layout_item(page_instance) is not None:
             self._mark_python_page_ready(index)
+        if self._is_page_prewarming(index):
+            self._finish_page_prewarm(index)
+        elif index == getattr(self, "_startup_page_index", None):
+            self._complete_startup_page_guard(index)
 
     def _mark_python_page_ready(self, index: int) -> None:
         """Tell the generated QML stack that a Python page is renderable."""
@@ -243,9 +262,13 @@ class PageManagerMixin:
     def _on_nav_changed(self, index: int):
         """导航项切换回调（QML触发）"""
         self._current_index = index
+        self._discard_page_prewarm(index)
 
         # Python侧懒加载：页面未创建时异步加载并显示loading
-        if self._lazy_loading and index not in self._pages:
+        if self._is_page_prewarming(index):
+            self._mark_foreground_page_load_started(index)
+            self._start_loading_overlay(index)
+        elif self._lazy_loading and index not in self._pages:
             self._start_async_page_load(index)
         else:
             self._switch_to_index(index)
@@ -272,17 +295,8 @@ class PageManagerMixin:
         4. 如果页面有_deferred_queue，启动分批创建
         5. 完成后隐藏loading覆盖层
         """
-        if self._window:
-            try:
-                QMetaObject.invokeMethod(
-                    self._window, "_startPythonLoading", Q_ARG("QVariant", index)
-                )
-            except RuntimeError as exc:
-                # Method may not exist, ignore 方法可能不存在
-                exception(
-                    "页面 loading 启动方法不可用: "
-                    f"{type(exc).__name__}: {exc}"
-                )
+        self._mark_foreground_page_load_started(index)
+        self._start_loading_overlay(index)
         item, page_container = self._resolve_async_page_target(index)
         if item is _NO_PAGE_TARGET:
             self._finish_loading()
@@ -349,14 +363,8 @@ class PageManagerMixin:
     def _start_managed_async_page(
         self, index, item, page_instance, *, finish_loading=True
     ):
-        on_ready = partial(
-            self._on_managed_async_page_ready
-            if finish_loading
-            else self._on_initial_managed_async_page_ready,
-            index,
-        )
-        on_failed = partial(
-            self._on_managed_async_page_failed, index, item, page_instance
+        on_ready, on_failed = self._managed_page_callbacks(
+            index, item, page_instance, finish_loading
         )
         page_instance.page_ready.connect(on_ready)
         page_instance.page_failed.connect(on_failed)
@@ -367,9 +375,12 @@ class PageManagerMixin:
                 "异步 QML 页面启动失败: "
                 f"{type(exc).__name__}: {exc}"
             )
-            self._on_managed_async_page_failed(
-                index, item, page_instance, str(exc)
-            )
+            if self._is_page_prewarming(index):
+                self._on_prewarm_managed_page_failed(
+                    index, item, page_instance, str(exc)
+                )
+            else:
+                self._on_managed_page_failed(index, item, page_instance, str(exc))
 
     def _on_managed_async_page_ready(self, index):
         self._mark_python_page_ready(index)
@@ -377,16 +388,55 @@ class PageManagerMixin:
 
     def _on_initial_managed_async_page_ready(self, index):
         self._mark_python_page_ready(index)
+        self._complete_startup_page_guard(index)
 
-    def _on_managed_async_page_failed(
-        self, index, item, page_instance, message
-    ):
+    def _managed_page_callbacks(self, index, item, page_instance, finish_loading):
+        if self._is_page_prewarming(index):
+            return (
+                partial(self._on_prewarm_managed_page_ready, index),
+                partial(
+                    self._on_prewarm_managed_page_failed,
+                    index,
+                    item,
+                    page_instance,
+                ),
+            )
+        if finish_loading:
+            return (
+                partial(self._on_managed_async_page_ready, index),
+                partial(self._on_managed_page_failed, index, item, page_instance),
+            )
+        return (
+            partial(self._on_initial_managed_async_page_ready, index),
+            partial(self._on_managed_page_failed, index, item, page_instance),
+        )
+
+    def _on_managed_page_failed(self, index, item, page_instance, message):
         warning(f"异步 QML 页面加载失败: {message}")
+        self._clear_managed_page(index, item, page_instance)
+        self._complete_startup_page_guard(index)
+        self._finish_loading()
+
+    def _clear_managed_page(self, index, item, page_instance):
         if self._pages.get(index) is page_instance:
             self._pages.pop(index)
         if item._page_instance is page_instance:
             item._page_instance = None
-        self._finish_loading()
+
+    def _on_prewarm_managed_page_ready(self, index):
+        self._mark_python_page_ready(index)
+        promoted = self._foreground_page_load_index == index
+        self._finish_page_prewarm(index)
+        if promoted:
+            self._finish_loading_and_switch(index)
+
+    def _on_prewarm_managed_page_failed(self, index, item, page_instance, message):
+        warning(f"异步 QML 页面预热失败: {message}")
+        self._clear_managed_page(index, item, page_instance)
+        promoted = self._foreground_page_load_index == index
+        self._finish_page_prewarm(index)
+        if promoted:
+            self._finish_loading()
 
     def _on_async_batch_complete(self, index, page_instance):
         if page_instance._qml_item:
@@ -398,6 +448,19 @@ class PageManagerMixin:
         create_page = partial(_create_async_page_boundary, item, on_page_ready)
         QTimer.singleShot(_PAGE_LOAD_RENDER_DELAY_MS, create_page)
 
+    def _start_loading_overlay(self, index: int) -> None:
+        if not self._window:
+            return
+        try:
+            QMetaObject.invokeMethod(
+                self._window, "_startPythonLoading", Q_ARG("QVariant", index)
+            )
+        except RuntimeError as exc:
+            exception(
+                "页面 loading 启动方法不可用: "
+                f"{type(exc).__name__}: {exc}"
+            )
+
     def _finish_loading_and_switch(self, index: int):
         """完成加载并切换到目标页面"""
         self._finish_loading()
@@ -405,6 +468,7 @@ class PageManagerMixin:
 
     def _finish_loading(self):
         """完成加载，隐藏loading动画"""
+        self._mark_foreground_page_load_finished()
         if self._window:
             try:
                 QMetaObject.invokeMethod(self._window, "_finishPythonLoading")

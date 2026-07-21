@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
+from ._page_prewarm import initialize_page_prewarm_state
+
 if TYPE_CHECKING:
     from .window_core import NavigationItem
 
@@ -37,6 +39,7 @@ def initialize_window_state(owner: Any, window_type: int) -> None:
     owner._bottom_nav_items: List["NavigationItem"] = []
     owner._current_index = 0
     owner._pages: Dict[int, Any] = {}
+    initialize_page_prewarm_state(owner)
 
 
 def initialize_splash_state(owner: Any) -> None:

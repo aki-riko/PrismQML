@@ -155,7 +155,7 @@ def _assert_boundary_records(records):
         ("页面创建失败", RuntimeError, 'raise RuntimeError("page factory failed")'),
         ("页面尺寸信号触发失败", RuntimeError, "page_item.widthChanged.emit()"),
         ("页面切换失败", RuntimeError, "in _switch_to_index"),
-        ("页面 loading 启动方法不可用", RuntimeError, "in _start_async_page_load"),
+        ("页面 loading 启动方法不可用", RuntimeError, "in _start_loading_overlay"),
         ("页面 loading 结束方法不可用", RuntimeError, '"_finishPythonLoading"'),
     )
     for marker, error_type, source_line in expected:

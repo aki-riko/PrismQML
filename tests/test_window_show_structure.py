@@ -23,6 +23,7 @@ _EXPECTED_SHOW_STATEMENTS = (
     "profile = make_show_profile(debug)",
     "if not show_window_root(self, profile):\n    return",
     "WindowCore._current_window_instance = self",
+    "self._begin_startup_page_guard()",
     "ensure_initial_pages(self, profile)",
 )
 _CONTROL_FLOW_NODES = (

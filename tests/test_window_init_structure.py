@@ -38,6 +38,7 @@ _EXPECTED_WINDOW_STATE = (
     'owner._bottom_nav_items: List["NavigationItem"] = []',
     "owner._current_index = 0",
     "owner._pages: Dict[int, Any] = {}",
+    "initialize_page_prewarm_state(owner)",
 )
 _EXPECTED_SPLASH_STATE = (
     "owner._splash_enabled = True",

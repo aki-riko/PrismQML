@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import pytest
 import shiboken6
 
-from prismqml.python.window import _page_manager
+from prismqml.python.window import _page_manager, _page_prewarm
 
 
 _PAGE_RENDER_DELAY_MS = 16
@@ -201,6 +201,9 @@ def _install_runtime_fakes(monkeypatch, events):
     monkeypatch.setattr(_page_manager, "Q_ARG", lambda name, value: (name, value))
     monkeypatch.setattr(
         _page_manager, "QTimer", SimpleNamespace(singleShot=timers.single_shot)
+    )
+    monkeypatch.setattr(
+        _page_prewarm, "QTimer", SimpleNamespace(singleShot=timers.single_shot)
     )
     monkeypatch.setattr(_page_manager, "debug", lambda *_args: None)
     monkeypatch.setattr(
@@ -545,6 +548,49 @@ def test_sync_managed_async_qml_page_failure_clears_cached_instance(monkeypatch)
     assert "异步 QML 页面加载失败: broken initial target" in events[-2][1]
     assert events[-1] == ("finish",)
     assert not any(event[0] == "switch" for event in events)
+
+
+def test_managed_async_qml_page_prewarm_success_stays_background(monkeypatch):
+    events = []
+    page = _AsyncPage(events)
+    item = _source_item("existing", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    _page_prewarm.initialize_page_prewarm_state(manager)
+    manager._page_prewarm_in_flight = 0
+    timers = _install_runtime_fakes(monkeypatch, events)
+
+    manager._create_page(0)
+    page.page_ready.fire()
+
+    assert manager._pages[0] is page
+    assert manager._page_prewarm_in_flight is None
+    assert events[-2:] == [
+        ("fire", "async_page_ready"),
+        ("invoke", "_markPythonPageReady", 0),
+    ]
+    assert 250 not in timers.delays
+    assert not any(event[0] in {"finish", "switch"} for event in events)
+
+
+def test_managed_async_qml_page_prewarm_failure_clears_background_page(monkeypatch):
+    events = []
+    page = _AsyncPage(events)
+    item = _source_item("existing", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    _page_prewarm.initialize_page_prewarm_state(manager)
+    manager._page_prewarm_in_flight = 0
+    timers = _install_runtime_fakes(monkeypatch, events)
+
+    manager._create_page(0)
+    page.page_failed.fire("broken prewarm target")
+
+    assert manager._pages == {}
+    assert item._page_instance is None
+    assert manager._page_prewarm_in_flight is None
+    assert events[-1][0] == "warning"
+    assert "prewarm target" in events[-1][1]
+    assert not any(event[0] in {"finish", "switch"} for event in events)
+    assert 250 not in timers.delays
 
 
 @pytest.mark.parametrize("case", ["invalid_index", "missing_container", "no_loader"])
