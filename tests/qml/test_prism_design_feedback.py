@@ -123,8 +123,6 @@ def _assert_feedback_effects(item, background, accent):
     assert round(item.property("splashProgressTrackOpacity"), 2) == 0.3
     assert round(item.property("splashIconShadowBlur"), 2) == 0.8
     assert item.property("splashIconShadowOffset") == 6
-    assert round(item.property("splashContentEnterScale"), 2) == 0.8
-    assert round(item.property("splashContentExitScale"), 2) == 1.1
     assert round(item.property("splashIconBreatheScale"), 2) == 1.03
 
 
@@ -310,8 +308,6 @@ Item {
     property real splashProgressTrackOpacity: splash._progressTrackOpacity
     property real splashIconShadowBlur: splash._iconShadowBlur
     property int splashIconShadowOffset: splash._iconShadowOffset
-    property real splashContentEnterScale: splash._contentEnterScale
-    property real splashContentExitScale: splash._contentExitScale
     property real splashIconBreatheScale: splash._iconBreatheScale
 
     width: 320
@@ -537,8 +533,6 @@ Item {
     property real splashProgressTrackOpacity: splash._progressTrackOpacity
     property real splashIconShadowBlur: splash._iconShadowBlur
     property int splashIconShadowOffset: splash._iconShadowOffset
-    property real splashContentEnterScale: splash._contentEnterScale
-    property real splashContentExitScale: splash._contentExitScale
     property real splashIconBreatheScale: splash._iconBreatheScale
 
     width: 320

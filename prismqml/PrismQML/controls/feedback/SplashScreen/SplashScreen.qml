@@ -50,11 +50,7 @@ Rectangle {
     readonly property int _progressDotTopMargin: Enums.splashScreenMetrics.progressDotTopMargin
     readonly property real _iconShadowBlur: Enums.splashScreenMetrics.iconShadowBlur
     readonly property int _iconShadowOffset: Enums.splashScreenMetrics.iconShadowOffset
-    readonly property real _contentEnterScale: Enums.splashScreenMetrics.contentEnterScale
-    readonly property real _contentExitScale: Enums.splashScreenMetrics.contentExitScale
     readonly property real _iconBreatheScale: Enums.splashScreenMetrics.iconBreatheScale
-    property bool _introComplete: false
-    property bool _finishRequested: false
     property bool _finishing: false
     
     // ==================== Signals 信号 ====================
@@ -63,13 +59,6 @@ Rectangle {
     // ==================== Public Methods 公开方法 ====================
     // Close splash screen 关闭启动画面
     function finish() {
-        if (control._finishRequested || control._finishing) return
-        control._finishRequested = true
-        if (!control._introComplete) return
-        control._startFadeOut()
-    }
-
-    function _startFadeOut() {
         if (control._finishing) return
         control._finishing = true
         breatheAnim.stop()
@@ -94,50 +83,22 @@ Rectangle {
     z: Enums.zIndex.splash
     color: control._splashBackground
     visible: true
-    // Keep the complete splash visible from the first rendered frame. The
-    // intro keeps its scale motion without exposing a background-only frame.
-    // 从首个渲染帧起完整显示启动画面；入场仅保留缩放，不暴露纯背景帧。
+    // Keep the complete splash stable from the first rendered frame; only
+    // the icon participates in the continuous breathing animation.
+    // 从首个渲染帧起稳定显示完整启动画面；仅图标参与循环呼吸动画。
     opacity: 1
-    Component.onCompleted: fadeInAnim.start()
-
-    // Fade in animation 淡入动画
-    ParallelAnimation {
-        id: fadeInAnim
-
-        onFinished: {
-            control._introComplete = true
-            if (control._finishRequested) control._startFadeOut()
-            else breatheAnim.start()
-        }
-        
-        NumberAnimation {
-            target: contentColumn
-            property: "scale"
-            from: control._contentEnterScale; to: 1
-            duration: Enums.duration.slow
-            easing.type: Easing.OutBack
-        }
-    }
+    Component.onCompleted: breatheAnim.start()
 
     // Fade out animation 淡出动画
     SequentialAnimation {
         id: fadeOutAnim
         
-        ParallelAnimation {
-            NumberAnimation {
-                target: control
-                property: "opacity"
-                to: 0
-                duration: Enums.duration.medium
-                easing.type: Easing.InCubic
-            }
-            NumberAnimation {
-                target: contentColumn
-                property: "scale"
-                to: control._contentExitScale
-                duration: Enums.duration.medium
-                easing.type: Easing.InCubic
-            }
+        NumberAnimation {
+            target: control
+            property: "opacity"
+            to: 0
+            duration: Enums.duration.medium
+            easing.type: Easing.InCubic
         }
         
         ScriptAction {
@@ -198,7 +159,6 @@ Rectangle {
         anchors.centerIn: parent
         opacity: 1
         spacing: Enums.spacing.xl
-        transformOrigin: Item.Center
         
         // Icon Container 图标容器
         Item {

@@ -575,8 +575,6 @@ QtObject {
  readonly property int iconSize: root.controlSize.progressRingSize + root.spacing.s
  readonly property real iconShadowBlur: 0.8
  readonly property int iconShadowOffset: root.spacing.s
- readonly property real contentEnterScale: 0.8
- readonly property real contentExitScale: 1.1
  readonly property real iconBreatheScale: 1.03
  readonly property int progressRingSize: root.iconSize.xl
  readonly property int progressRingBorderWidth: root.border.normal

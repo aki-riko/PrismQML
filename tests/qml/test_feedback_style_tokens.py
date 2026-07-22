@@ -296,11 +296,16 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
         )
 
         animations = _animation_objects(splash)
-        breathe_animations = [
+        scale_animations = [
             animation
             for animation in animations
             if animation.property("property") == "scale"
-            and {(animation.property("from"), animation.property("to"))}
+        ]
+        assert len(scale_animations) == 2
+        breathe_animations = [
+            animation
+            for animation in scale_animations
+            if {(animation.property("from"), animation.property("to"))}
             <= {(1.0, 1.03), (1.03, 1.0)}
         ]
         assert len(breathe_animations) == 2
@@ -334,7 +339,7 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
         _pump(1)
 
 
-def test_splash_finish_during_fade_in_preserves_visible_intro(qapp):
+def test_splash_finish_fades_out_without_waiting_for_an_intro(qapp):
     engine, component, root = _create_scene()
     try:
         splash = root.findChild(QQuickItem, "splash")
@@ -345,11 +350,7 @@ def test_splash_finish_during_fade_in_preserves_visible_intro(qapp):
         assert splash.property("visible") is True
         assert splash.property("opacity") > 0.1
 
-        _pump(220)
-        assert splash.property("visible") is True
-        assert splash.property("opacity") > 0
-
-        _pump(220)
+        _pump(180)
         assert splash.property("visible") is False
     finally:
         root.deleteLater()
@@ -371,10 +372,12 @@ def test_splash_first_frame_shows_complete_content(qapp):
         assert splash.property("visible") is True
         assert splash.property("opacity") == pytest.approx(1.0)
         assert content.property("opacity") == pytest.approx(1.0)
+        assert content.property("scale") == pytest.approx(1.0)
 
         _pump(80)
         assert splash.property("opacity") == pytest.approx(1.0)
         assert content.property("opacity") == pytest.approx(1.0)
+        assert content.property("scale") == pytest.approx(1.0)
     finally:
         root.deleteLater()
         del component
@@ -404,6 +407,7 @@ def test_feedback_sources_use_shared_style_tokens():
         in splash_source
     )
     assert "duration: Enums.duration.splashBreathe" in splash_source
+    assert "target: contentColumn" not in splash_source
     assert "spinDuration: Enums.duration.splashProgressSpin" in splash_source
     assert "shadowBlur: Enums.shadow.splashIcon.blurNormalized" in splash_source
     assert "shadowVerticalOffset: Enums.shadow.splashIcon.offset" in splash_source
