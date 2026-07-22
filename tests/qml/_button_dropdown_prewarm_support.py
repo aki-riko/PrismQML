@@ -169,7 +169,11 @@ def _dropdown_popup(dropdown):
 
 
 def _popup_window(popup):
-    windows = popup.findChildren(QWindow)
+    windows = [
+        window
+        for window in popup.findChildren(QWindow)
+        if window.metaObject().className() != "QQuickPopupWindow"
+    ]
     assert len(windows) == 1
     return windows[0]
 
@@ -192,6 +196,20 @@ def _popup_is_visible(popup):
 
 def _popup_panel_global_position(popup, panel_offset):
     return _popup_surface(popup).mapToGlobal(QPointF(panel_offset, panel_offset))
+
+
+def _click_popup_item(item):
+    window = item.window()
+    assert window is not None
+    click_position = item.mapToScene(
+        QPointF(item.width() / 2, item.height() / 2)
+    ).toPoint()
+    QTest.mouseClick(
+        window,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        click_position,
+    )
 
 
 def _tooltip(button):
@@ -230,6 +248,25 @@ def _new_visible_windows(windows_before, root_window):
         if window.isVisible()
         and window is not root_window
         and not any(window is existing for existing in windows_before)
+    ]
+
+
+def _active_qt_popup_window(windows_before, root_window):
+    windows = _new_visible_windows(windows_before, root_window)
+    assert len(windows) == 1
+    assert (
+        windows[0].flags() & Qt.WindowType.WindowType_Mask
+    ) == Qt.WindowType.Popup
+    return windows[0]
+
+
+def _qt_popup_windows(root_window):
+    return [
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if window is not root_window
+        and window.transientParent() is root_window
+        and window.metaObject().className() == "QQuickPopupWindow"
     ]
 
 

@@ -30,6 +30,7 @@ Item {
     property bool closeOnClickOutside: true
     property bool stealFocus: true  // Whether to steal focus when opening 打开时是否抢夺焦点
     property bool useInWindowPopup: false  // Render in the owning window to avoid a second native surface 页内渲染以避免第二个原生窗口
+    property bool useQtPopupWindow: false  // Render with Qt Quick Controls Popup.Window 使用Qt管理的原生弹出窗口
     property Item targetControl: null  // Trigger control 触发弹出的控件
     property int animationType: 0  // 0=expand, 1=slideDown (Fluent Design style) 动画类型
     property bool _isPickerMode: false  // Internal: picker mode for center alignment 内部：Picker模式居中对齐
@@ -39,6 +40,8 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property bool _prewarmed: false
     property bool _prewarmScheduled: false
+    property bool _prewarmingQtPopup: false
+    property Item _prewarmFocusItem: null
     // Internal: animated clip height for drop-down effect 内部：下拉展开动画的裁剪高度
     property real _clipHeight: 0
     // [Anim C] Spring scale for iOS-style bounce 弹簧缩放
@@ -46,6 +49,7 @@ Item {
     // Follow parent control position (sync move on scroll) 跟随父控件位置变化
     readonly property var _targetWindow: targetControl ? targetControl.Window.window : null
     readonly property Item _inlineParent: _targetWindow ? _targetWindow.contentItem : null
+    readonly property bool _usesControlsPopup: useInWindowPopup || useQtPopupWindow
     readonly property int _outerWidth: Math.max(
         Enums.popupMetrics.minWidth,
         popupWidth + Enums.popupMetrics.windowPadding
@@ -54,7 +58,7 @@ Item {
         Enums.popupMetrics.minHeight,
         popupHeight + Enums.popupMetrics.windowPadding
     )
-    readonly property bool _surfaceVisible: useInWindowPopup
+    readonly property bool _surfaceVisible: _usesControlsPopup
         ? inlinePopup.visible
         : popupWindow.visible
 
@@ -97,9 +101,25 @@ Item {
         return null
     }
 
-    // Keep inline surfaces inside their owning window. 页内弹层保持在宿主窗口内
-    function _calcInlinePosition(globalX, globalY) {
+    function _calcControlsPopupPosition(globalX, globalY) {
         if (!_inlineParent) return Qt.point(0, 0)
+        // Popup.Window owns a top-level Qt::Popup surface and may cross the
+        // host window boundary. Only Popup.Item needs host-window clamping.
+        // Popup.Window由Qt管理顶层弹层，可越过宿主边界；仅页内Popup.Item需夹紧。
+        if (useQtPopupWindow) {
+            var bounds = _screenBoundsAt(globalX, globalY, targetControl)
+            if (bounds) {
+                globalX = Math.max(
+                    bounds.left,
+                    Math.min(globalX, bounds.right - _outerWidth)
+                )
+                globalY = Math.max(
+                    bounds.top,
+                    Math.min(globalY, bounds.bottom - _outerHeight)
+                )
+            }
+            return _inlineParent.mapFromGlobal(globalX, globalY)
+        }
         var localPos = _inlineParent.mapFromGlobal(globalX, globalY)
         var fitsHorizontally = _outerWidth <= _inlineParent.width
         var fitsVertically = _outerHeight <= _inlineParent.height
@@ -154,10 +174,41 @@ Item {
         _prewarmScheduled = true
         prewarmTimer.start()
     }
+    function _finishQtPopupPrewarm() {
+        var ownerWindow = control.Window.window
+        var focusItem = _prewarmFocusItem
+        _prewarmingQtPopup = false
+        _prewarmFocusItem = null
+        if (!_prewarmScheduled || isOpen || inlinePopup.visible) return
+        if (ownerWindow) ownerWindow.requestActivate()
+        if (focusItem) focusItem.forceActiveFocus()
+        _prewarmed = true
+        _prewarmScheduled = false
+    }
     function _doPrewarm() {
         if (useInWindowPopup) {
             _prewarmed = true
             _prewarmScheduled = false
+            return
+        }
+        if (useQtPopupWindow) {
+            if (!_prewarmScheduled || _prewarmed || isOpen || inlinePopup.visible) {
+                if (inlinePopup.visible) _prewarmed = true
+                _prewarmScheduled = false
+                return
+            }
+            var savedInlineX = inlinePopup.x, savedInlineY = inlinePopup.y
+            _prewarmingQtPopup = true
+            _prewarmFocusItem = control.Window.window
+                ? control.Window.window.activeFocusItem
+                : null
+            inlinePopup.x = -32000
+            inlinePopup.y = -32000
+            inlinePopup.open()
+            inlinePopup.close()
+            inlinePopup.x = savedInlineX
+            inlinePopup.y = savedInlineY
+            Qt.callLater(control._finishQtPopupPrewarm)
             return
         }
         // A real open may win the race before this queued callback runs.
@@ -192,9 +243,11 @@ Item {
         var posX = (x !== undefined && !isNaN(x)) ? x : 0
         var posY = (y !== undefined && !isNaN(y)) ? y : 0
 
-        if (useInWindowPopup) {
+        if (_usesControlsPopup) {
             if (!_inlineParent) return
-            var localPos = _calcInlinePosition(posX, posY)
+            _prewarmingQtPopup = false
+            _prewarmFocusItem = null
+            var localPos = _calcControlsPopupPosition(posX, posY)
             inlinePopup.x = localPos.x
             inlinePopup.y = localPos.y
             inlinePopup.open()
@@ -221,6 +274,8 @@ Item {
         popupWindow.show()
         _prewarmed = true
         _prewarmScheduled = false
+        _prewarmingQtPopup = false
+        _prewarmFocusItem = null
         prewarmTimer.stop()
         popupWindow.raise()
         if (control.stealFocus) {
@@ -346,6 +401,8 @@ Item {
         hideAnim.stop()
         showAnimTimer.stop()
         _prewarmScheduled = false
+        _prewarmingQtPopup = false
+        _prewarmFocusItem = null
         prewarmTimer.stop()
         isOpen = false
         isClosing = false
@@ -353,7 +410,7 @@ Item {
         _scale = 0.7   // [Anim C]
         _submenuPlacement = false
         popupSurface.opacity = 0
-        if (useInWindowPopup) inlinePopup.close()
+        if (_usesControlsPopup) inlinePopup.close()
         else popupWindow.hide()
     }
     
@@ -377,8 +434,8 @@ Item {
             newX = currentGlobalPos.x - Enums.popupMetrics.panelOffset
             newY = currentGlobalPos.y + targetControl.height + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset
         }
-        if (useInWindowPopup && _inlineParent) {
-            var localPos = _calcInlinePosition(newX, newY)
+        if (_usesControlsPopup && _inlineParent) {
+            var localPos = _calcControlsPopupPosition(newX, newY)
             inlinePopup.x = localPos.x
             inlinePopup.y = localPos.y
         } else {
@@ -451,7 +508,7 @@ Item {
 
         ScriptAction {
             script: {
-                if (control.useInWindowPopup) inlinePopup.close()
+                if (control._usesControlsPopup) inlinePopup.close()
                 else popupWindow.hide()
                 control.isClosing = false
                 control._clipHeight = 0  // [Anim C] reset for next show
@@ -489,8 +546,10 @@ Item {
         // 保持请求的锚点，避免超宽弹层被 Qt 自动居中后发生水平漂移。
         margins: -1
         modal: control.modal
-        focus: control.stealFocus
-        popupType: Controls.Popup.Item
+        focus: control.stealFocus && !control._prewarmingQtPopup
+        popupType: control.useQtPopupWindow
+            ? Controls.Popup.Window
+            : Controls.Popup.Item
         closePolicy: control.closeOnClickOutside
             ? Controls.Popup.CloseOnPressOutside | Controls.Popup.CloseOnEscape
             : Controls.Popup.NoAutoClose
@@ -535,7 +594,7 @@ Item {
     PopupSurface {
         id: popupSurface
 
-        parent: control.useInWindowPopup
+        parent: control._usesControlsPopup
             ? inlinePopupContent
             : popupWindow.contentItem
         outerWidth: control._outerWidth

@@ -11,9 +11,11 @@ from PySide6.QtQuick import QQuickWindow
 from PySide6.QtTest import QTest
 
 from _button_dropdown_prewarm_support import (
+    _active_qt_popup_window,
     _button,
     _button_dropdown,
     _click,
+    _click_popup_item,
     _create_scene,
     _dispose_scene,
     _dropdown_popup,
@@ -27,6 +29,7 @@ from _button_dropdown_prewarm_support import (
     _popup_surface,
     _popup_window,
     _pump,
+    _qt_popup_windows,
     _tooltip,
     _visual_descendants,
     _wait_for,
@@ -68,6 +71,8 @@ def test_dropdown_and_split_hover_prepare_hidden_menu_surface(
     assert not popup.property("_prewarmScheduled")
     assert not popup.property("isOpen")
     assert not _popup_is_visible(popup)
+    assert len(_qt_popup_windows(window)) == 1
+    assert not _qt_popup_windows(window)[0].isVisible()
     assert _popup_window(popup) not in _new_visible_windows(windows_before, window)
     assert warnings == []
 
@@ -203,7 +208,7 @@ def test_dropdown_prewarm_delegate_is_idempotent(dropdown_scene, object_name):
     _invoke(dropdown, "prewarmMenu")
     _invoke(dropdown, "prewarmMenu")
     assert dropdown.property("_geometryPrewarmScheduled")
-    assert not popup.property("_prewarmScheduled")
+    assert popup.property("_prewarmScheduled")
     assert _wait_for(lambda: popup.property("_prewarmed"))
     assert _wait_for(
         lambda: not dropdown.property("_geometryPrewarmScheduled")
@@ -227,7 +232,7 @@ def test_destroying_loader_cancels_queued_prewarm_work(dropdown_scene):
 
     _invoke(dropdown, "prewarmMenu")
     assert dropdown.property("_geometryPrewarmScheduled")
-    assert not popup.property("_prewarmScheduled")
+    assert popup.property("_prewarmScheduled")
 
     button.setProperty("feature", root.property("featureNone"))
     _pump(200)
@@ -303,8 +308,8 @@ def test_open_remeasures_and_tracks_left_aligned_wide_menu(
     assert warnings == []
 
 
-def test_inline_reset_menu_near_right_edge_stays_inside_window(dropdown_scene):
-    root, window, warnings, _windows_before = dropdown_scene
+def test_reset_menu_near_right_edge_extends_beyond_window(dropdown_scene):
+    root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     button.setWidth(120)
     edge_gap = 12
@@ -329,13 +334,16 @@ def test_inline_reset_menu_near_right_edge_stays_inside_window(dropdown_scene):
     surface = _popup_surface(popup)
     assert target_global.x() + surface.width() > window_right
     surface_global = surface.mapToGlobal(QPointF())
-    assert surface_global.x() == pytest.approx(window_right - surface.width())
-    assert surface_global.x() + surface.width() <= window_right + 0.5
+    assert surface_global.x() == pytest.approx(
+        target_global.x() - root.property("popupPanelOffset")
+    )
+    assert surface_global.x() + surface.width() > window_right
+    _active_qt_popup_window(windows_before, window)
     assert warnings == []
 
 
-def test_inline_reset_menu_tracking_stays_inside_window(dropdown_scene):
-    root, window, warnings, _windows_before = dropdown_scene
+def test_reset_menu_tracking_preserves_cross_window_anchor(dropdown_scene):
+    root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     button.setWidth(120)
     button.setProperty(
@@ -356,14 +364,42 @@ def test_inline_reset_menu_tracking_stays_inside_window(dropdown_scene):
     button.setX(window.width() - button.width() - edge_gap)
     target_global = window.mapToGlobal(button.mapToScene(QPointF()).toPoint())
     window_right = window.mapToGlobal(QPoint(round(window.width()), 0)).x()
-    expected_surface_x = window_right - surface.width()
+    expected_surface_x = target_global.x() - root.property("popupPanelOffset")
 
     assert target_global.x() + surface.width() > window_right
     assert _wait_for(
         lambda: abs(surface.mapToGlobal(QPointF()).x() - expected_surface_x) < 0.5
     )
     surface_global = surface.mapToGlobal(QPointF())
-    assert surface_global.x() + surface.width() <= window_right + 0.5
+    assert surface_global.x() + surface.width() > window_right
+    _active_qt_popup_window(windows_before, window)
+    assert warnings == []
+
+
+def test_qt_popup_window_stays_inside_available_screen(dropdown_scene):
+    root, window, warnings, windows_before = dropdown_scene
+    button = _button(root, "dropdownButton")
+    button.setWidth(120)
+    button.setX(window.width() - button.width() - 12)
+    button.setProperty(
+        "menuItems",
+        [
+            "Soft — 保留暂存区+工作区",
+            "Mixed — 保留工作区,清暂存区",
+            "Hard — 丢弃所有改动",
+        ],
+    )
+    available = window.screen().availableGeometry()
+    window.setX(available.right() - window.width() + 1)
+    _pump(20)
+    popup = _dropdown_popup(_button_dropdown(button))
+
+    _invoke(_button_dropdown(button), "openMenu")
+    assert _wait_for(lambda: popup.property("isOpen"))
+
+    popup_window = _active_qt_popup_window(windows_before, window)
+    assert popup_window.geometry().right() <= available.right()
+    assert popup_window.geometry().left() >= available.left()
     assert warnings == []
 
 
@@ -404,13 +440,15 @@ def test_public_tooltip_hide_cancels_button_show_timer(dropdown_scene):
     assert warnings == []
 
 
-def test_inline_prepare_cannot_hide_immediate_dropdown_open(dropdown_scene):
+def test_queued_qt_popup_prewarm_cannot_hide_immediate_dropdown_open(
+    dropdown_scene,
+):
     root, _window, warnings, _windows_before = dropdown_scene
     dropdown = _button_dropdown(_button(root, "dropdownButton"))
     popup = _dropdown_popup(dropdown)
 
     _invoke(dropdown, "prewarmMenu")
-    assert not popup.property("_prewarmScheduled")
+    assert popup.property("_prewarmScheduled")
     _invoke(dropdown, "openMenu")
     assert _popup_is_visible(popup)
 
@@ -455,13 +493,13 @@ def test_cold_click_opens_left_aligned_dropdown(
     assert popup.property("_prewarmed")
     assert not popup.property("_prewarmScheduled")
     assert _popup_is_visible(popup)
-    assert popup.property("useInWindowPopup")
+    assert popup.property("useQtPopupWindow")
     assert not _popup_window(popup).isVisible()
-    assert _new_visible_windows(windows_before, window) == []
+    _active_qt_popup_window(windows_before, window)
     assert warnings == []
 
 
-def test_inline_dropdown_closes_on_outside_press(dropdown_scene):
+def test_qt_popup_window_closes_on_outside_press(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     popup = _dropdown_popup(_button_dropdown(button))
@@ -482,7 +520,24 @@ def test_inline_dropdown_closes_on_outside_press(dropdown_scene):
     assert warnings == []
 
 
-def test_inline_dropdown_item_click_emits_and_closes(dropdown_scene):
+def test_qt_popup_window_closes_on_escape(dropdown_scene):
+    root, window, warnings, windows_before = dropdown_scene
+    button = _button(root, "dropdownButton")
+    popup = _dropdown_popup(_button_dropdown(button))
+
+    _click(window, button)
+    assert _wait_for(lambda: popup.property("isOpen"))
+    popup_window = _active_qt_popup_window(windows_before, window)
+
+    QTest.keyClick(popup_window, Qt.Key.Key_Escape)
+
+    assert _wait_for(lambda: not popup.property("isOpen"))
+    assert not _popup_is_visible(popup)
+    assert _new_visible_windows(windows_before, window) == []
+    assert warnings == []
+
+
+def test_qt_popup_window_item_click_emits_and_closes(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     popup = _dropdown_popup(_button_dropdown(button))
@@ -500,24 +555,17 @@ def test_inline_dropdown_item_click_emits_and_closes(dropdown_scene):
         if child.metaObject().indexOfProperty("isSeparator") >= 0
         and child.property("text") == "Alpha"
     )
-    click_position = alpha.mapToScene(
-        QPointF(alpha.width() / 2, alpha.height() / 2)
-    ).toPoint()
-
-    QTest.mouseClick(
-        window,
-        Qt.MouseButton.LeftButton,
-        Qt.KeyboardModifier.NoModifier,
-        click_position,
-    )
+    assert alpha.window() is _active_qt_popup_window(windows_before, window)
+    _click_popup_item(alpha)
 
     assert received == [(0, "Alpha")]
     assert _wait_for(lambda: not popup.property("isOpen"))
+    assert _wait_for(lambda: not _popup_is_visible(popup))
     assert _new_visible_windows(windows_before, window) == []
     assert warnings == []
 
 
-def test_inline_dropdown_item_click_closes_before_sync_model_rebuild(
+def test_qt_popup_window_item_click_closes_before_sync_model_rebuild(
     dropdown_scene,
 ):
     root, window, warnings, windows_before = dropdown_scene
@@ -536,16 +584,8 @@ def test_inline_dropdown_item_click_closes_before_sync_model_rebuild(
         if child.metaObject().indexOfProperty("isSeparator") >= 0
         and child.property("text") == "Alpha"
     )
-    click_position = alpha.mapToScene(
-        QPointF(alpha.width() / 2, alpha.height() / 2)
-    ).toPoint()
-
-    QTest.mouseClick(
-        window,
-        Qt.MouseButton.LeftButton,
-        Qt.KeyboardModifier.NoModifier,
-        click_position,
-    )
+    assert alpha.window() is _active_qt_popup_window(windows_before, window)
+    _click_popup_item(alpha)
 
     assert _wait_for(lambda: not popup.property("isOpen"))
     assert _wait_for(lambda: not _popup_is_visible(popup))
@@ -553,7 +593,7 @@ def test_inline_dropdown_item_click_closes_before_sync_model_rebuild(
     assert warnings == []
 
 
-def test_inline_dropdown_object_items_select_without_native_window(
+def test_qt_popup_window_object_items_select_and_close(
     dropdown_scene,
 ):
     root, window, warnings, windows_before = dropdown_scene
@@ -580,19 +620,14 @@ def test_inline_dropdown_object_items_select_without_native_window(
         if child.metaObject().indexOfProperty("isSeparator") >= 0
         and child.property("text") == "Claude Desktop 官网版"
     )
-    click_position = desktop_item.mapToScene(
-        QPointF(desktop_item.width() / 2, desktop_item.height() / 2)
-    ).toPoint()
-
-    QTest.mouseClick(
-        window,
-        Qt.MouseButton.LeftButton,
-        Qt.KeyboardModifier.NoModifier,
-        click_position,
+    assert desktop_item.window() is _active_qt_popup_window(
+        windows_before, window
     )
+    _click_popup_item(desktop_item)
 
     assert received == [(1, "Claude Desktop 官网版")]
     assert _wait_for(lambda: not popup.property("isOpen"))
+    assert _wait_for(lambda: not _popup_is_visible(popup))
     assert not _popup_window(popup).isVisible()
     assert _new_visible_windows(windows_before, window) == []
     assert warnings == []
@@ -616,7 +651,7 @@ def test_open_menu_immediately_dismisses_visible_tooltip(
 
     assert not tooltip.property("visible")
     assert _popup_is_visible(popup)
-    assert _new_visible_windows(windows_before, window) == []
+    _active_qt_popup_window(windows_before, window)
     assert warnings == []
 
 
@@ -638,7 +673,7 @@ def test_open_menu_interrupts_tooltip_exit_transition(dropdown_scene):
 
     assert not tooltip.property("visible")
     assert _popup_is_visible(popup)
-    assert _new_visible_windows(windows_before, _window) == []
+    _active_qt_popup_window(windows_before, _window)
     assert warnings == []
 
 
