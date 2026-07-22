@@ -190,23 +190,23 @@ QtObject {
     }
 
     // ==================== SemanticColors 语义色 ====================
-    // success/warning/error 及其背景色取自微软 WinUI 官方 SystemFillColor 资源
-    // (Common_themeresources_any.xaml: SystemFillColorSuccess/Caution/Critical[Background])，
-    // 系 Fluent Design System 公开标准语义色，非第三方库衍生。
-    // info/attention/processing 为本项目自定义扩展(WinUI 无对应固定值)。
-    // 来源: https://github.com/microsoft/microsoft-ui-xaml CommonStyles/Common_themeresources_any.xaml
+    // success/error and light backgrounds reference official WinUI SystemFillColor resources. success/error 与浅色背景参考 WinUI 官方 SystemFillColor 资源。
+    // warning foregrounds are accessibility-tuned from Caution for stronger Info separation. warning 前景色基于 Caution 调优，以加强与 Info 的区分。
+    // info/attention/processing are project extensions without fixed WinUI values. info/attention/processing 是无固定 WinUI 值的项目扩展。
+    // Consumer icons and labels retain non-color severity cues. 消费组件的图标与标签仍保留非颜色严重级别提示。
+    // Source 来源: https://github.com/microsoft/microsoft-ui-xaml CommonStyles/Common_themeresources_any.xaml
     readonly property QtObject semanticColors: QtObject {
         // Foreground semantic colors 语义前景色
-        readonly property color infoLight: "#676767"  // 自定义：中性灰信息色
+        readonly property color infoLight: "#005fb8"  // Deep blue distinguishes Info from Warning 深蓝色区分信息与警告
         readonly property color successLight: "#0f7b0f"  // WinUI SystemFillColorSuccess (Light)
-        readonly property color warningLight: "#9d5d00"  // WinUI SystemFillColorCaution (Light)
+        readonly property color warningLight: "#7a3e00"  // Deep amber strengthens luminance contrast 深琥珀色增强明度对比
         readonly property color errorLight: "#c42b1c"  // WinUI SystemFillColorCritical (Light)
         readonly property color processingLight: "#7b2cbf"  // 自定义：鲜紫色代表处理中
         readonly property color attentionLight: "#0a93a8"  // 自定义：青色代表注意
 
-        readonly property color infoDark: "#a3a3a3"  // 自定义：中性灰信息色
+        readonly property color infoDark: "#60cdff"  // Bright blue preserves dark-surface contrast 亮蓝色保持暗色表面对比度
         readonly property color successDark: "#6ccb5f"  // WinUI SystemFillColorSuccess (Dark)
-        readonly property color warningDark: "#c09000"  // 自定义：较 WinUI #FCE100 调深以提升暗色可读性
+        readonly property color warningDark: "#cf7900"  // Deep orange-amber stays distinct from Info 深橙琥珀色与信息色保持区分
         readonly property color errorDark: "#ff99a4"  // WinUI SystemFillColorCritical (Dark)
         readonly property color processingDark: "#d8b4fe"  // 自定义：深色主题亮鲜紫
         readonly property color attentionDark: "#33b5bf"  // 自定义：深色主题亮青色
