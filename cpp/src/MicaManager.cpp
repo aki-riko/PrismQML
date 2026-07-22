@@ -12,8 +12,14 @@
 #ifdef Q_OS_WIN
 #  include <windows.h>
 #  include <dwmapi.h>
-// DWM 常量 (镜像 Python mica_window.py)
+#endif
+
 namespace {
+constexpr quint32 kWin11BuildThreshold = 22000;
+constexpr quint32 kWin11BackdropBuildThreshold = 22621;
+
+#ifdef Q_OS_WIN
+// DWM 常量 (镜像 Python mica_window.py)
 constexpr int kDwmwaUseImmersiveDarkMode = 20;
 constexpr int kDwmwaWindowCornerPreference = 33;
 constexpr int kDwmwaSystemBackdropType = 38;   // 需 Build >= 22621
@@ -21,10 +27,8 @@ constexpr int kDwmwcpDoNotRound = 1;
 constexpr int kDwmwcpRound = 2;
 constexpr int kDwmBackdropNone = 1;            // DWMSBT_NONE
 constexpr int kDwmBackdropMica = 2;            // DWMSBT_MAINWINDOW (Mica)
-constexpr int kWin11BuildThreshold = 22000;
-constexpr int kWin11BackdropBuildThreshold = 22621;
-}  // namespace
 #endif
+}  // namespace
 
 namespace prism {
 

@@ -15,6 +15,7 @@ import pytest
 from PySide6.QtCore import QCoreApplication, QEventLoop, QThread, QTimer
 from PySide6.QtTest import QSignalSpy
 
+import prismqml.python.core.task_runner as task_runner_module
 from prismqml import (
     TaskFailure,
     TaskState,
@@ -25,7 +26,7 @@ from prismqml import (
 
 
 TASK_TIMEOUT_MS = 3000
-THREAD_RELEASE_STRESS_CYCLES = 64
+THREAD_RELEASE_STRESS_CYCLES = 200
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_PROCESS = REPO_ROOT / "scripts" / "test_process.py"
 
@@ -247,6 +248,27 @@ def test_app_shutdown_waits_for_active_dedicated_thread() -> None:
     assert "QThread: Destroyed while thread" not in output
     if sys.platform == "win32":
         assert "visible_windows=0 / job_active_processes=0" in output
+
+
+def test_backend_release_waits_before_dropping_ownership(qapp, monkeypatch) -> None:
+    """Backend wrappers stay owned until their native work stops. 后端原生工作停止前保持所有权。"""
+    events = []
+    backend = type("BackendStub", (), {
+        "wait": lambda _self, timeout: events.append(("wait", timeout)) or True,
+        "release": lambda _self: events.append(("release",)),
+    })()
+    handle = task_runner_module.TaskHandle(task_runner_module._TaskControl())
+    handle._backend = backend
+    monkeypatch.setattr(
+        task_runner_module,
+        "_release_handle",
+        lambda current: events.append(("drop", current)),
+    )
+
+    handle._release_backend()
+
+    assert events == [("wait", None), ("release",), ("drop", handle)]
+    assert handle._backend is None
 
 
 def test_dedicated_thread_release_survives_repeated_cancellation(qapp) -> None:

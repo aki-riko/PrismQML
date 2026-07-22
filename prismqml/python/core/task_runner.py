@@ -392,9 +392,11 @@ class TaskHandle(QObject):
             QTimer.singleShot(0, self._release_backend)
 
     def _release_backend(self) -> None:
-        if self._backend is None:
+        backend = self._backend
+        if backend is None:
             return
-        self._backend.release()
+        backend.wait(None)
+        backend.release()
         self._backend = None
         _release_handle(self)
 
