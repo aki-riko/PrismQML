@@ -24,7 +24,8 @@ public slots:
     void setAppIcon(const QString &icon);
     QVariantMap availableScreenGeometryAt(int x, int y) const;
     bool registerWindowFollower(
-        const QVariant &hostWindow, const QVariant &followerWindow, int edge);
+        const QVariant &hostWindow, const QVariant &followerWindow,
+        int edge, qreal logicalExtent);
     bool updateWindowFollowerGeometry(
         const QVariant &hostWindow, const QVariant &followerWindow,
         int edge, qreal logicalExtent);
@@ -44,8 +45,7 @@ private:
         qulonglong hostHwnd;
         qulonglong followerHwnd;
         int edge;
-        int followerWidth;
-        int followerHeight;
+        int outwardExtent;
     };
 
     QHash<qulonglong, WindowFollowerBinding> m_followers;

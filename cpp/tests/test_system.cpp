@@ -126,6 +126,7 @@ static void testWindowFollowerGeometry() {
     CHECK(extentBottom.left == 100 && extentBottom.top == 520
               && extentBottom.right == 700 && extentBottom.bottom == 580,
           "WindowHelper 底部动画帧原子更新完整 RECT");
+
 }
 
 int main(int argc, char *argv[]) {

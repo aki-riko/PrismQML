@@ -60,7 +60,9 @@ def test_animation_frame_reads_host_once_and_submits_one_complete_rect():
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda hwnd: reads.append(hwnd)
         or _rect(100, 120, 700, 520),
-        set_geometry=lambda hwnd, geometry: moves.append((hwnd, geometry)) or True,
+        set_geometry=lambda hwnd, geometry, after: moves.append(
+            (hwnd, geometry, after)
+        ) or True,
     )
 
     assert event_filter.update_geometry(
@@ -71,7 +73,7 @@ def test_animation_frame_reads_host_once_and_submits_one_complete_rect():
     )
 
     assert reads == [11]
-    assert moves == [(21, (100, 60, 700, 120))]
+    assert moves == [(21, (100, 60, 700, 120), 11)]
     assert event_filter.binding_count == 0
 
 
@@ -86,18 +88,20 @@ def test_filter_syncs_all_followers_for_the_moving_host():
     moves = []
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda hwnd: native_rects.get(hwnd),
-        set_geometry=lambda hwnd, geometry: moves.append((hwnd, geometry)) or True,
+        set_geometry=lambda hwnd, geometry, after: moves.append(
+            (hwnd, geometry, after)
+        ) or True,
     )
-    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_LEFT)
-    assert event_filter.register(11, 22, window_helper.WINDOW_EDGE_RIGHT)
-    assert event_filter.register(88, 99, window_helper.WINDOW_EDGE_BOTTOM)
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_LEFT, 180)
+    assert event_filter.register(11, 22, window_helper.WINDOW_EDGE_RIGHT, 180)
+    assert event_filter.register(88, 99, window_helper.WINDOW_EDGE_BOTTOM, 120)
     moves.clear()
 
     event_filter.sync_host_rect(11, _rect(240, 260, 880, 680))
 
     assert moves == [
-        (21, (60, 260, 240, 680)),
-        (22, (880, 260, 1060, 680)),
+        (21, (60, 260, 240, 680), 11),
+        (22, (880, 260, 1060, 680), 11),
     ]
 
 
@@ -109,15 +113,17 @@ def test_registration_immediately_aligns_to_native_host_rect():
     moves = []
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda hwnd: native_rects.get(hwnd),
-        set_geometry=lambda hwnd, geometry: moves.append((hwnd, geometry)) or True,
+        set_geometry=lambda hwnd, geometry, after: moves.append(
+            (hwnd, geometry, after)
+        ) or True,
     )
 
-    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT)
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 280)
 
-    assert moves == [(21, (1880, 296, 2160, 1096))]
+    assert moves == [(21, (1880, 296, 2160, 1096), 11)]
 
 
-def test_registration_does_not_resubmit_an_already_aligned_rect():
+def test_registration_resubmits_aligned_rect_to_refresh_z_order():
     native_rects = {
         11: _rect(680, 296, 1880, 1096),
         21: _rect(1880, 296, 2160, 1096),
@@ -125,12 +131,14 @@ def test_registration_does_not_resubmit_an_already_aligned_rect():
     moves = []
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda hwnd: native_rects.get(hwnd),
-        set_geometry=lambda hwnd, geometry: moves.append((hwnd, geometry)) or True,
+        set_geometry=lambda hwnd, geometry, after: moves.append(
+            (hwnd, geometry, after)
+        ) or True,
     )
 
-    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT)
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 280)
 
-    assert moves == []
+    assert moves == [(21, (1880, 296, 2160, 1096), 11)]
     assert event_filter.binding_count == 1
 
 
@@ -142,30 +150,34 @@ def test_reregister_updates_edge_and_unregister_cleans_binding():
     moves = []
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda hwnd: native_rects.get(hwnd),
-        set_geometry=lambda hwnd, geometry: moves.append((hwnd, geometry)) or True,
+        set_geometry=lambda hwnd, geometry, after: moves.append(
+            (hwnd, geometry, after)
+        ) or True,
     )
-    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT)
-    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_BOTTOM)
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_BOTTOM, 120)
     moves.clear()
 
     event_filter.sync_host_rect(11, _rect(200, 300, 800, 700))
-    assert moves == [(21, (200, 700, 800, 1100))]
+    assert moves == [(21, (200, 700, 800, 820), 11)]
 
     assert event_filter.unregister(21)
     event_filter.sync_host_rect(11, _rect(300, 400, 900, 800))
-    assert moves == [(21, (200, 700, 800, 1100))]
+    assert moves == [(21, (200, 700, 800, 820), 11)]
     assert event_filter.unregister(21) is False
 
 
 def test_registration_rejects_invalid_edge_and_missing_native_rect():
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda _hwnd: None,
-        set_geometry=lambda _hwnd, _geometry: True,
+        set_geometry=lambda _hwnd, _geometry, _after: True,
     )
 
-    assert event_filter.register(11, 21, 99) is False
+    assert event_filter.register(11, 21, 99, 180) is False
     assert (
-        event_filter.register(11, 21, window_helper.WINDOW_EDGE_LEFT) is False
+        event_filter.register(
+            11, 21, window_helper.WINDOW_EDGE_LEFT, 180
+        ) is False
     )
 
 
@@ -177,13 +189,31 @@ def test_set_window_pos_failure_does_not_drop_registration():
     results = iter((True, False))
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda hwnd: native_rects.get(hwnd),
-        set_geometry=lambda _hwnd, _geometry: next(results),
+        set_geometry=lambda _hwnd, _geometry, _after: next(results),
     )
-    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT)
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
 
     event_filter.sync_host_rect(11, _rect(240, 260, 840, 660))
 
     assert event_filter.binding_count == 1
+
+
+def test_follower_raise_is_rewritten_behind_host():
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+    )
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    window_pos = SimpleNamespace(
+        hwndInsertAfter=0,
+        flags=window_helper._SWP_NOZORDER,
+    )
+
+    event_filter.enforce_follower_z_order(21, window_pos)
+
+    assert window_pos.hwndInsertAfter == 11
+    assert window_pos.flags & window_helper._SWP_NOZORDER == 0
+    assert window_pos.flags & window_helper._SWP_NOOWNERZORDER
 
 
 class _FakeWindow:
@@ -192,6 +222,9 @@ class _FakeWindow:
 
     def winId(self) -> int:
         return self._hwnd
+
+    def devicePixelRatio(self) -> float:
+        return 1.5
 
 
 def test_window_helper_installs_one_filter_and_delegates_lifecycle(monkeypatch):
@@ -202,8 +235,8 @@ def test_window_helper_installs_one_filter_and_delegates_lifecycle(monkeypatch):
             calls.append(("update", host_hwnd, follower_hwnd, edge, extent))
             return True
 
-        def register(self, host_hwnd, follower_hwnd, edge):
-            calls.append(("register", host_hwnd, follower_hwnd, edge))
+        def register(self, host_hwnd, follower_hwnd, edge, extent):
+            calls.append(("register", host_hwnd, follower_hwnd, edge, extent))
             return True
 
         def unregister(self, follower_hwnd):
@@ -230,10 +263,12 @@ def test_window_helper_installs_one_filter_and_delegates_lifecycle(monkeypatch):
     helper = window_helper.WindowHelper()
 
     assert helper.registerWindowFollower(
-        _FakeWindow(11), _FakeWindow(21), window_helper.WINDOW_EDGE_RIGHT
+        _FakeWindow(11), _FakeWindow(21),
+        window_helper.WINDOW_EDGE_RIGHT, 180,
     )
     assert helper.registerWindowFollower(
-        _FakeWindow(11), _FakeWindow(22), window_helper.WINDOW_EDGE_LEFT
+        _FakeWindow(11), _FakeWindow(22),
+        window_helper.WINDOW_EDGE_LEFT, 180,
     )
     assert helper.updateWindowFollowerGeometry(
         _FakeWindow(11),
@@ -245,8 +280,8 @@ def test_window_helper_installs_one_filter_and_delegates_lifecycle(monkeypatch):
 
     assert calls == [
         ("install", fake_filter),
-        ("register", 11, 21, window_helper.WINDOW_EDGE_RIGHT),
-        ("register", 11, 22, window_helper.WINDOW_EDGE_LEFT),
-        ("update", 11, 22, window_helper.WINDOW_EDGE_TOP, 60),
+        ("register", 11, 21, window_helper.WINDOW_EDGE_RIGHT, 270),
+        ("register", 11, 22, window_helper.WINDOW_EDGE_LEFT, 270),
+        ("update", 11, 22, window_helper.WINDOW_EDGE_TOP, 90),
         ("unregister", 21),
     ]

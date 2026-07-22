@@ -137,46 +137,49 @@ bool WindowHelper::ensureFollowerFilterInstalled() {
 }
 
 bool WindowHelper::registerWindowFollower(
-    const QVariant &hostWindow, const QVariant &followerWindow, int edge) {
+    const QVariant &hostWindow, const QVariant &followerWindow,
+    int edge, qreal logicalExtent) {
 #ifdef Q_OS_WIN
-    const qulonglong hostHwnd = winIdFromVariant(hostWindow);
-    const qulonglong followerHwnd = winIdFromVariant(followerWindow);
-    if (!hostHwnd || !followerHwnd || !detail::isWindowFollowerEdge(edge)
+    QObject *hostObject = qvariant_cast<QObject *>(hostWindow);
+    QObject *followerObject = qvariant_cast<QObject *>(followerWindow);
+    auto *nativeHostWindow = qobject_cast<QWindow *>(hostObject);
+    auto *nativeFollowerWindow = qobject_cast<QWindow *>(followerObject);
+    if (!nativeHostWindow || !nativeFollowerWindow
+        || !detail::isWindowFollowerEdge(edge)
+        || logicalExtent <= 0
         || !ensureFollowerFilterInstalled())
         return false;
 
+    const qulonglong hostHwnd = static_cast<qulonglong>(nativeHostWindow->winId());
+    const qulonglong followerHwnd = static_cast<qulonglong>(nativeFollowerWindow->winId());
+    if (!hostHwnd || !followerHwnd
+        || GetWindow(reinterpret_cast<HWND>(followerHwnd), GW_OWNER) != nullptr)
+        return false;
+
     RECT hostNativeRect{};
-    RECT followerNativeRect{};
-    if (!GetWindowRect(reinterpret_cast<HWND>(hostHwnd), &hostNativeRect)
-        || !GetWindowRect(reinterpret_cast<HWND>(followerHwnd), &followerNativeRect))
+    if (!GetWindowRect(reinterpret_cast<HWND>(hostHwnd), &hostNativeRect))
         return false;
-    const int width = followerNativeRect.right - followerNativeRect.left;
-    const int height = followerNativeRect.bottom - followerNativeRect.top;
-    if (width <= 0 || height <= 0)
-        return false;
+    const qreal scale = nativeHostWindow->devicePixelRatio();
+    const int physicalExtent = qMax(1, qRound(logicalExtent * scale));
     const detail::WindowFollowerRect hostRect{
         hostNativeRect.left, hostNativeRect.top,
         hostNativeRect.right, hostNativeRect.bottom};
-    const detail::WindowFollowerRect followerRect = detail::followerRect(
-        hostRect, width, height, edge);
-    const detail::WindowFollowerRect currentFollowerRect{
-        followerNativeRect.left, followerNativeRect.top,
-        followerNativeRect.right, followerNativeRect.bottom};
-    if (!detail::sameWindowFollowerRect(currentFollowerRect, followerRect)) {
-        if (!SetWindowPos(
-                reinterpret_cast<HWND>(followerHwnd), nullptr,
-                followerRect.left, followerRect.top,
-                followerRect.right - followerRect.left,
-                followerRect.bottom - followerRect.top,
-                SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER))
-            return false;
-    }
+    const detail::WindowFollowerRect followerRect =
+        detail::followerRectForExtent(hostRect, physicalExtent, edge);
+    if (!SetWindowPos(
+            reinterpret_cast<HWND>(followerHwnd), reinterpret_cast<HWND>(hostHwnd),
+            followerRect.left, followerRect.top,
+            followerRect.right - followerRect.left,
+            followerRect.bottom - followerRect.top,
+            SWP_NOACTIVATE | SWP_NOOWNERZORDER))
+        return false;
     m_followers.insert(
         followerHwnd,
-        {hostHwnd, followerHwnd, edge, width, height});
+        {hostHwnd, followerHwnd, edge, physicalExtent});
     return true;
 #else
     Q_UNUSED(hostWindow); Q_UNUSED(followerWindow); Q_UNUSED(edge);
+    Q_UNUSED(logicalExtent);
     return false;
 #endif
 }
@@ -198,20 +201,21 @@ bool WindowHelper::updateWindowFollowerGeometry(
     const qulonglong followerHwnd = static_cast<qulonglong>(nativeFollowerWindow->winId());
     RECT hostNativeRect{};
     if (hostHwnd && followerHwnd
+        && GetWindow(reinterpret_cast<HWND>(followerHwnd), GW_OWNER) == nullptr
         && GetWindowRect(reinterpret_cast<HWND>(hostHwnd), &hostNativeRect)) {
-        const int physicalExtent = qMax(
-            1, qRound(logicalExtent * nativeHostWindow->devicePixelRatio()));
+        const qreal scale = nativeHostWindow->devicePixelRatio();
+        const int physicalExtent = qMax(1, qRound(logicalExtent * scale));
         const detail::WindowFollowerRect hostRect{
             hostNativeRect.left, hostNativeRect.top,
             hostNativeRect.right, hostNativeRect.bottom};
         const detail::WindowFollowerRect followerRect =
             detail::followerRectForExtent(hostRect, physicalExtent, edge);
         if (SetWindowPos(
-                reinterpret_cast<HWND>(followerHwnd), nullptr,
+                reinterpret_cast<HWND>(followerHwnd), reinterpret_cast<HWND>(hostHwnd),
                 followerRect.left, followerRect.top,
                 followerRect.right - followerRect.left,
                 followerRect.bottom - followerRect.top,
-                SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER))
+                SWP_NOACTIVATE | SWP_NOOWNERZORDER))
             return true;
     }
 #endif
@@ -249,6 +253,17 @@ bool WindowHelper::nativeEventFilter(
     if (eventType != "windows_generic_MSG" || !message)
         return false;
     MSG *msg = static_cast<MSG *>(message);
+    if (msg->message == WM_WINDOWPOSCHANGING && msg->lParam) {
+        const qulonglong followerHwnd = reinterpret_cast<qulonglong>(msg->hwnd);
+        const auto follower = m_followers.constFind(followerHwnd);
+        if (follower != m_followers.cend()) {
+            WINDOWPOS *windowPos = reinterpret_cast<WINDOWPOS *>(msg->lParam);
+            windowPos->hwndInsertAfter = reinterpret_cast<HWND>(follower->hostHwnd);
+            windowPos->flags &= ~SWP_NOZORDER;
+            windowPos->flags |= SWP_NOOWNERZORDER;
+        }
+        return false;
+    }
     if ((msg->message != WM_MOVING && msg->message != WM_SIZING) || !msg->lParam)
         return false;
 
@@ -259,13 +274,15 @@ bool WindowHelper::nativeEventFilter(
         const WindowFollowerBinding &binding = it.value();
         if (binding.hostHwnd != reinterpret_cast<qulonglong>(msg->hwnd))
             continue;
-        const detail::WindowFollowerRect follower = detail::followerRect(
-            hostRect, binding.followerWidth, binding.followerHeight, binding.edge);
+        const detail::WindowFollowerRect follower =
+            detail::followerRectForExtent(
+                hostRect, binding.outwardExtent, binding.edge);
         SetWindowPos(
-            reinterpret_cast<HWND>(binding.followerHwnd), nullptr,
+            reinterpret_cast<HWND>(binding.followerHwnd),
+            reinterpret_cast<HWND>(binding.hostHwnd),
             follower.left, follower.top,
             follower.right - follower.left, follower.bottom - follower.top,
-            SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+            SWP_NOACTIVATE | SWP_NOOWNERZORDER);
     }
 #else
     Q_UNUSED(eventType); Q_UNUSED(message);

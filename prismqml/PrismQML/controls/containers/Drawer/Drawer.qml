@@ -31,9 +31,9 @@ OverlayDialogCore {
     property alias opened: control._isOpen
 
     // Panel corner radius 面板圆角
-    property int radius: Enums.isPrismDesign
-        ? Enums.prismDesign.radiusPopup
-        : (_isOutside ? Enums.radius.xlarge : Enums.radius.none)
+    property int radius: _isOutside
+        ? Enums.radius.large
+        : (Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.none)
 
     // ==================== Internal Props 内部属性 ====================
     property bool _outsideFollowRegistered: false
@@ -150,7 +150,10 @@ OverlayDialogCore {
                 || !outsideDrawerWindow.visible
                 || typeof WindowHelper === "undefined" || !WindowHelper) return
         control._outsideFollowRegistered = WindowHelper.registerWindowFollower(
-            control._hostWindow, outsideDrawerWindow, control.position)
+            control._hostWindow,
+            outsideDrawerWindow,
+            control.position,
+            control._outsideFullExtent)
     }
 
     // Remove the native follower before hiding or destruction
@@ -210,8 +213,8 @@ OverlayDialogCore {
         control._outsidePrepared = false
     }
 
-    // Let DWM own the stable full-size HWND corner
-    // 由 DWM 绘制稳定完整尺寸 HWND 的圆角
+    // Keep native antialiasing; QML still limits panel rounding to the outer corners
+    // 保留原生抗锯齿,面板仍仅由 QML 设置远离宿主的两个外角
     function _applyOutsideNativeFrame() {
         if (typeof MicaManager !== "undefined" && MicaManager) {
             MicaManager.setWindowCorner(outsideDrawerWindow, true)
@@ -268,16 +271,20 @@ OverlayDialogCore {
         opacity: control._outsidePrepared ? 1 : 0
         flags: Qt.Tool | Qt.FramelessWindowHint
         color: Enums.transparent
-        transientParent: control._hostWindow
+        transientParent: null
 
         onVisibleChanged: {
             if (visible) {
                 control._applyOutsideNativeFrame()
                 control._setOutsideNativeShadow(false)
-                outsideDrawerWindow.requestActivate()
                 Qt.callLater(control._beginOutsideReveal)
             } else {
                 control._unregisterOutsideWindow()
+            }
+        }
+        onActiveChanged: {
+            if (active && control._outsidePrepared) {
+                control._scheduleOutsideHostSync()
             }
         }
         onClosing: (close) => control._resetDrawerState()
@@ -310,7 +317,19 @@ OverlayDialogCore {
                 x: -outsideDrawerViewport.x
                 y: -outsideDrawerViewport.y
                 color: control._drawerBackground
-                radius: control.radius
+                radius: Enums.radius.none
+                topLeftRadius: control.position === Enums.position.left
+                    || control.position === Enums.position.top
+                    ? control.radius : Enums.radius.none
+                topRightRadius: control.position === Enums.position.right
+                    || control.position === Enums.position.top
+                    ? control.radius : Enums.radius.none
+                bottomLeftRadius: control.position === Enums.position.left
+                    || control.position === Enums.position.bottom
+                    ? control.radius : Enums.radius.none
+                bottomRightRadius: control.position === Enums.position.right
+                    || control.position === Enums.position.bottom
+                    ? control.radius : Enums.radius.none
                 border.width: control._drawerBorderWidth
                 border.color: control._drawerBorderColor
 
@@ -422,6 +441,14 @@ OverlayDialogCore {
         function onYChanged() { control._scheduleOutsideHostSync() }
         function onWidthChanged() { control._scheduleOutsideHostSync() }
         function onHeightChanged() { control._scheduleOutsideHostSync() }
+        function onActiveChanged() { control._scheduleOutsideHostSync() }
+        function onVisibilityChanged() {
+            if (control._isOutside && control._hostWindow
+                    && (control._hostWindow.visibility === Window.Hidden
+                        || control._hostWindow.visibility === Window.Minimized)) {
+                control._resetDrawerState()
+            }
+        }
         function onVisibleChanged() {
             if (control._isOutside && control._hostWindow
                     && !control._hostWindow.visible) {

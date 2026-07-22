@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) {
 
     QQuickWindow follower;
     follower.setFlags(Qt::Tool | Qt::FramelessWindowHint);
+    follower.setTransientParent(nullptr);
     follower.setWidth(180);
     follower.setHeight(300);
     const auto followerId = follower.winId();
@@ -91,13 +92,15 @@ int main(int argc, char *argv[]) {
         CHECK(disableOk, "disableShadowForWindow 返回 true (DWM 阴影禁用成功)");
 #ifdef Q_OS_WIN
         SetWindowPos(
-            reinterpret_cast<HWND>(nativeId), nullptr,
-            100, 120, 600, 400, SWP_NOZORDER | SWP_NOACTIVATE);
+            reinterpret_cast<HWND>(nativeId), HWND_TOP,
+            100, 120, 600, 400, SWP_NOACTIVATE);
         SetWindowPos(
-            reinterpret_cast<HWND>(followerId), nullptr,
-            650, 90, 180, 300, SWP_NOZORDER | SWP_NOACTIVATE);
+            reinterpret_cast<HWND>(followerId), HWND_TOP,
+            650, 90, 180, 300, SWP_NOACTIVATE);
         WindowHelper *helper = WindowHelper::instance();
         QVariant followerVariant = QVariant::fromValue(static_cast<QObject *>(&follower));
+        CHECK(GetWindow(reinterpret_cast<HWND>(followerId), GW_OWNER) == nullptr,
+              "外侧附属窗口没有 owner, 可位于宿主下层");
         CHECK(helper->updateWindowFollowerGeometry(wv, followerVariant, 2, 90),
               "updateWindowFollowerGeometry 原子提交顶部动画帧");
         RECT animatedTop{};
@@ -111,12 +114,13 @@ int main(int argc, char *argv[]) {
         CHECK(animatedTopRectOk
                   && animatedTop.left == 100
                   && animatedTop.top == 120 - animatedTopExtent
-                  && animatedTop.right == 700 && animatedTop.bottom == 120,
+                  && animatedTop.right == 700
+                  && animatedTop.bottom == 120,
               animatedTopGeometryMessage);
         CHECK(helper->updateWindowFollowerGeometry(wv, followerVariant, 1, 180),
               "updateWindowFollowerGeometry 准备右侧完整尺寸");
         const int animatedRightExtent = qRound(180 * win.devicePixelRatio());
-        CHECK(helper->registerWindowFollower(wv, followerVariant, 1),
+        CHECK(helper->registerWindowFollower(wv, followerVariant, 1, 180),
               "registerWindowFollower 注册右侧原生跟随");
         RECT registered{};
         const bool registeredRectOk = GetWindowRect(
@@ -126,10 +130,26 @@ int main(int argc, char *argv[]) {
                 .arg(registered.left).arg(registered.top)
                 .arg(registered.right).arg(registered.bottom);
         CHECK(registeredRectOk
-                  && registered.left == 700 && registered.top == 120
+                  && registered.left == 700
+                  && registered.top == 120
                   && registered.right == 700 + animatedRightExtent
                   && registered.bottom == 520,
               registeredGeometryMessage);
+        CHECK(GetWindow(reinterpret_cast<HWND>(followerId), GW_HWNDPREV)
+                  == reinterpret_cast<HWND>(nativeId),
+              "附属窗口紧贴宿主窗口下层");
+        WINDOWPOS attemptedRaise{
+            reinterpret_cast<HWND>(followerId), HWND_TOP,
+            0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER};
+        MSG zOrderChanging{};
+        zOrderChanging.hwnd = reinterpret_cast<HWND>(followerId);
+        zOrderChanging.message = WM_WINDOWPOSCHANGING;
+        zOrderChanging.lParam = reinterpret_cast<LPARAM>(&attemptedRaise);
+        helper->nativeEventFilter("windows_generic_MSG", &zOrderChanging, nullptr);
+        CHECK(attemptedRaise.hwndInsertAfter == reinterpret_cast<HWND>(nativeId)
+                  && (attemptedRaise.flags & SWP_NOZORDER) == 0,
+              "附属窗口抬升请求被改写到宿主下层");
         RECT proposed{240, 260, 880, 680};
         MSG moving{};
         moving.hwnd = reinterpret_cast<HWND>(nativeId);

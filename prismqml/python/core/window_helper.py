@@ -44,6 +44,7 @@ _WINDOW_EDGES = frozenset(
 
 _WM_SIZING = 0x0214
 _WM_MOVING = 0x0216
+_WM_WINDOWPOSCHANGING = 0x0046
 _SWP_NOZORDER = 0x0004
 _SWP_NOACTIVATE = 0x0010
 _SWP_NOOWNERZORDER = 0x0200
@@ -58,8 +59,7 @@ class _WindowFollowerBinding:
     host_hwnd: int
     follower_hwnd: int
     edge: int
-    follower_width: int
-    follower_height: int
+    outward_extent: int
 
 
 @dataclass(frozen=True)
@@ -99,11 +99,15 @@ def _follower_rect_for_extent(
     extent: int,
     edge: int,
 ) -> tuple[int, int, int, int]:
-    """Calculate one complete animation-frame RECT. 计算一帧动画的完整 RECT。"""
+    """Calculate one complete follower RECT. 计算一个完整附属窗口 RECT。"""
     host_width = host_rect.right - host_rect.left
     host_height = host_rect.bottom - host_rect.top
-    follower_width = extent if edge in (WINDOW_EDGE_LEFT, WINDOW_EDGE_RIGHT) else host_width
-    follower_height = extent if edge in (WINDOW_EDGE_TOP, WINDOW_EDGE_BOTTOM) else host_height
+    follower_width = (
+        extent if edge in (WINDOW_EDGE_LEFT, WINDOW_EDGE_RIGHT) else host_width
+    )
+    follower_height = (
+        extent if edge in (WINDOW_EDGE_TOP, WINDOW_EDGE_BOTTOM) else host_height
+    )
     return _follower_rect(host_rect, follower_width, follower_height, edge)
 
 
@@ -183,12 +187,25 @@ def _read_native_window_rect(get_window_rect, hwnd: int):
     return rect
 
 
-def _set_native_window_geometry(set_window_pos, hwnd: int, geometry) -> bool:
+def _set_native_window_geometry(
+    set_window_pos,
+    hwnd: int,
+    geometry,
+    insert_after: int,
+) -> bool:
     """Apply one physical-pixel follower geometry. 应用物理像素附属窗口几何。"""
     left, top, right, bottom = geometry
-    flags = _SWP_NOZORDER | _SWP_NOACTIVATE | _SWP_NOOWNERZORDER
+    flags = _SWP_NOACTIVATE | _SWP_NOOWNERZORDER
     return bool(
-        set_window_pos(hwnd, 0, left, top, right - left, bottom - top, flags)
+        set_window_pos(
+            hwnd,
+            insert_after,
+            left,
+            top,
+            right - left,
+            bottom - top,
+            flags,
+        )
     )
 
 
@@ -196,19 +213,24 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
     """Synchronize followers inside WM_MOVING/WM_SIZING. 在原生移动循环同步附属窗口。"""
 
     _MSG = None
+    _WINDOWPOS = None
 
     def __init__(
         self,
         read_rect: Optional[Callable[[int], Any]] = None,
-        set_geometry: Optional[Callable[[int, tuple[int, int, int, int]], bool]] = None,
+        set_geometry: Optional[
+            Callable[[int, tuple[int, int, int, int], int], bool]
+        ] = None,
     ) -> None:
         super().__init__()
         functions = _load_user32_window_functions()
         if read_rect is None and functions is not None:
             read_rect = lambda hwnd: _read_native_window_rect(functions[0], hwnd)
         if set_geometry is None and functions is not None:
-            set_geometry = lambda hwnd, geometry: _set_native_window_geometry(
-                functions[1], hwnd, geometry
+            set_geometry = lambda hwnd, geometry, insert_after: (
+                _set_native_window_geometry(
+                    functions[1], hwnd, geometry, insert_after
+                )
             )
         self._read_rect = read_rect
         self._set_geometry = set_geometry
@@ -238,50 +260,63 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
             cls._MSG = MSG
         return cls._MSG
 
-    def register(self, host_hwnd: int, follower_hwnd: int, edge: int) -> bool:
+    @classmethod
+    def _get_window_pos_class(cls):
+        """Lazily build a pointer-width WINDOWPOS type. 延迟构建 WINDOWPOS 类型。"""
+        if cls._WINDOWPOS is None:
+            from ctypes import wintypes
+
+            class WINDOWPOS(ctypes.Structure):
+                _fields_ = [
+                    ("hwnd", wintypes.HWND),
+                    ("hwndInsertAfter", wintypes.HWND),
+                    ("x", ctypes.c_int),
+                    ("y", ctypes.c_int),
+                    ("cx", ctypes.c_int),
+                    ("cy", ctypes.c_int),
+                    ("flags", wintypes.UINT),
+                ]
+
+            cls._WINDOWPOS = WINDOWPOS
+        return cls._WINDOWPOS
+
+    def register(
+        self,
+        host_hwnd: int,
+        follower_hwnd: int,
+        edge: int,
+        extent: int,
+    ) -> bool:
         """Register or update one follower. 注册或更新一个附属窗口。"""
-        registration = self._registration_geometry(
-            host_hwnd, follower_hwnd, edge
-        )
+        registration = self._registration_geometry(host_hwnd, edge, extent)
         if registration is None:
             return False
-        geometry, current_geometry, width, height = registration
-        if current_geometry != geometry and not self._set_geometry(
-            follower_hwnd, geometry
-        ):
+        if not self._set_geometry(follower_hwnd, registration, host_hwnd):
             debug(f"附属窗口初次原生同步失败: hwnd={follower_hwnd}")
             return False
         self._bindings[follower_hwnd] = _WindowFollowerBinding(
-            host_hwnd, follower_hwnd, edge, width, height
+            host_hwnd, follower_hwnd, edge, extent
         )
         return True
 
     def _registration_geometry(
-        self, host_hwnd: int, follower_hwnd: int, edge: int
+        self,
+        host_hwnd: int,
+        edge: int,
+        extent: int,
     ):
         """Resolve the initial native follower geometry. 解析初始原生跟随几何。"""
         if (
             edge not in _WINDOW_EDGES
+            or extent < _MINIMUM_NATIVE_EXTENT
             or self._read_rect is None
             or self._set_geometry is None
         ):
             return None
         host_rect = self._read_rect(host_hwnd)
-        follower_rect = self._read_rect(follower_hwnd)
-        if host_rect is None or follower_rect is None:
+        if host_rect is None:
             return None
-        width = follower_rect.right - follower_rect.left
-        height = follower_rect.bottom - follower_rect.top
-        if width <= 0 or height <= 0:
-            return None
-        geometry = _follower_rect(host_rect, width, height, edge)
-        current_geometry = (
-            follower_rect.left,
-            follower_rect.top,
-            follower_rect.right,
-            follower_rect.bottom,
-        )
-        return geometry, current_geometry, width, height
+        return _follower_rect_for_extent(host_rect, extent, edge)
 
     def update_geometry(
         self,
@@ -302,7 +337,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         if host_rect is None:
             return False
         geometry = _follower_rect_for_extent(host_rect, extent, edge)
-        return self._set_geometry(follower_hwnd, geometry)
+        return self._set_geometry(follower_hwnd, geometry, host_hwnd)
 
     def unregister(self, follower_hwnd: int) -> bool:
         """Remove one follower binding. 移除一个附属窗口绑定。"""
@@ -315,20 +350,36 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         for binding in tuple(self._bindings.values()):
             if binding.host_hwnd != host_hwnd:
                 continue
-            geometry = _follower_rect(
+            geometry = _follower_rect_for_extent(
                 host_rect,
-                binding.follower_width,
-                binding.follower_height,
+                binding.outward_extent,
                 binding.edge,
             )
-            if not self._set_geometry(binding.follower_hwnd, geometry):
+            if not self._set_geometry(
+                binding.follower_hwnd, geometry, binding.host_hwnd
+            ):
                 debug(f"附属窗口原生同步失败: hwnd={binding.follower_hwnd}")
+
+    def enforce_follower_z_order(self, follower_hwnd: int, window_pos) -> None:
+        """Keep a follower immediately behind its host. 保持附属窗口紧贴宿主下层。"""
+        binding = self._bindings.get(follower_hwnd)
+        if binding is None:
+            return
+        window_pos.hwndInsertAfter = binding.host_hwnd
+        window_pos.flags &= ~_SWP_NOZORDER
+        window_pos.flags |= _SWP_NOOWNERZORDER
 
     def nativeEventFilter(self, eventType: QByteArray, message: int) -> tuple:
         """Consume proposed move/size RECTs without blocking Qt. 消费候选 RECT 但不拦截 Qt。"""
         del eventType
         try:
             msg = self._get_msg_class().from_address(int(message))
+            if msg.message == _WM_WINDOWPOSCHANGING and msg.lParam:
+                window_pos = self._get_window_pos_class().from_address(
+                    int(msg.lParam)
+                )
+                self.enforce_follower_z_order(int(msg.hwnd), window_pos)
+                return False, 0
             if msg.message not in (_WM_MOVING, _WM_SIZING) or not msg.lParam:
                 return False, 0
             from ctypes import wintypes
@@ -397,18 +448,39 @@ class WindowHelper(QObject):
             return 0
         return int(window.winId())
 
-    @Slot("QVariant", "QVariant", int, result=bool)
-    def registerWindowFollower(self, host_window, follower_window, edge: int) -> bool:
+    @Slot("QVariant", "QVariant", int, float, result=bool)
+    def registerWindowFollower(
+        self,
+        host_window,
+        follower_window,
+        edge: int,
+        logical_extent: float,
+    ) -> bool:
         """Follow a host edge during native move/size loops. 在原生移动/缩放循环跟随宿主边缘。"""
         try:
             host_hwnd = self._window_id(host_window)
             follower_hwnd = self._window_id(follower_window)
-            if not host_hwnd or not follower_hwnd:
+            if (
+                not host_hwnd
+                or not follower_hwnd
+                or edge not in _WINDOW_EDGES
+                or logical_extent <= 0
+            ):
                 return False
             event_filter = self._ensure_follower_filter()
+            scale = _window_device_pixel_ratio(host_window)
+            physical_extent = max(
+                _MINIMUM_NATIVE_EXTENT,
+                round(logical_extent * scale),
+            )
             return bool(
                 event_filter
-                and event_filter.register(host_hwnd, follower_hwnd, edge)
+                and event_filter.register(
+                    host_hwnd,
+                    follower_hwnd,
+                    edge,
+                    physical_extent,
+                )
             )
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             error(f"窗口跟随注册失败: {exc}")
@@ -427,18 +499,28 @@ class WindowHelper(QObject):
             return False
         try:
             if self._update_native_follower_geometry(
-                host_window, follower_window, edge, logical_extent
+                host_window,
+                follower_window,
+                edge,
+                logical_extent,
             ):
                 return True
             return _set_qt_follower_geometry(
-                host_window, follower_window, edge, logical_extent
+                host_window,
+                follower_window,
+                edge,
+                logical_extent,
             )
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             error(f"窗口跟随几何更新失败: {exc}")
             return False
 
     def _update_native_follower_geometry(
-        self, host_window, follower_window, edge: int, logical_extent: float
+        self,
+        host_window,
+        follower_window,
+        edge: int,
+        logical_extent: float,
     ) -> bool:
         """Try one native complete-RECT update. 尝试一次原生完整 RECT 更新。"""
         host_hwnd = self._window_id(host_window)
@@ -453,7 +535,10 @@ class WindowHelper(QObject):
             and follower_hwnd
             and event_filter
             and event_filter.update_geometry(
-                host_hwnd, follower_hwnd, edge, physical_extent
+                host_hwnd,
+                follower_hwnd,
+                edge,
+                physical_extent,
             )
         )
 

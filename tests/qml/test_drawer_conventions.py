@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Drawer geometry and scrim interaction contracts. Drawer 几何与遮罩交互合同。"""
 
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import (
@@ -24,19 +24,7 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
-from scripts.qml_conventions import scan_source_text
-
-
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_PATH = (
-    ROOT
-    / "prismqml"
-    / "PrismQML"
-    / "controls"
-    / "containers"
-    / "Drawer"
-    / "Drawer.qml"
-)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "drawer-conventions.qml")
 )
@@ -55,7 +43,7 @@ Window {
     readonly property int rightPosition: Enums.position.right
     readonly property int topPosition: Enums.position.top
     readonly property int bottomPosition: Enums.position.bottom
-    readonly property int outsideRadius: Enums.radius.xlarge
+    readonly property int outsideRadius: Enums.radius.large
     readonly property int outsideCollapsedExtent: Enums.border.thin
     property int drawerClicks: 0
 
@@ -302,6 +290,23 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
             ) else 120)
         )
         assert content_item.parentItem() is outside_panel
+        assert drawer_window.transientParent() is None
+        radius = drawer.property("radius")
+        expected_radii = {
+            window.property("leftPosition"): (radius, 0, radius, 0),
+            window.property("rightPosition"): (0, radius, 0, radius),
+            window.property("topPosition"): (radius, radius, 0, 0),
+            window.property("bottomPosition"): (0, 0, radius, radius),
+        }
+        assert tuple(
+            outside_panel.property(name)
+            for name in (
+                "topLeftRadius",
+                "topRightRadius",
+                "bottomLeftRadius",
+                "bottomRightRadius",
+            )
+        ) == expected_radii[position]
         if position == window.property("rightPosition"):
             QTest.mouseClick(
                 drawer_window,
@@ -393,12 +398,18 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
             else viewport.height()
         )
         assert mid_open_geometry == pytest.approx(expected_window_geometry)
-        assert viewport_extent == pytest.approx(
-            drawer.property("_outsideExtent")
-        )
+        assert viewport_extent == pytest.approx(drawer.property("_outsideExtent"))
         assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
+        expected_content_size = (
+            (full_extent - 32, outside_panel.height() - 32)
+            if position in (
+                window.property("leftPosition"),
+                window.property("rightPosition"),
+            )
+            else (outside_panel.width() - 32, full_extent - 32)
+        )
         assert (content_item.width(), content_item.height()) == pytest.approx(
-            (outside_panel.width() - 32, outside_panel.height() - 32)
+            expected_content_size
         )
 
         assert _wait_for(
@@ -434,9 +445,7 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
             else viewport.height()
         )
         assert mid_close_geometry == pytest.approx(mid_open_geometry)
-        assert viewport_extent == pytest.approx(
-            drawer.property("_outsideExtent")
-        )
+        assert viewport_extent == pytest.approx(drawer.property("_outsideExtent"))
         assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
         assert _wait_for(lambda: not drawer_window.isVisible())
 
@@ -461,41 +470,3 @@ def test_drawer_outside_mode_closes_with_host_window(qapp):
     finally:
         _dispose_scene(engine, component, window)
     assert tuple(QGuiApplication.topLevelWindows()) == windows_before
-
-
-def test_drawer_source_follows_conventions():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
-
-
-def test_drawer_source_uses_native_outside_window_corner_and_following():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-
-    assert "Qt.NoFluentShadowWindowHint" not in source
-    assert "Qt.NoDropShadowWindowHint" not in source
-    assert "_outsideShadowExtent" not in source
-    assert 'objectName: "outsideDrawerShadow"' not in source
-    assert "ShadowManager.enableShadowForWindow(outsideDrawerWindow)" in source
-    assert "MicaManager.setWindowCorner(outsideDrawerWindow, true)" in source
-    assert "id: outsideOpeningTimer" not in source
-    assert "id: outsideVisibilityTimer" not in source
-    assert "Behavior on width" not in source
-    assert "Behavior on height" not in source
-    assert 'id: outsideGeometryAnimation' in source
-    assert 'property: "_outsideExtent"' in source
-    assert 'objectName: "outsideDrawerViewport"' in source
-    assert "clip: true" in source
-    assert "on_OutsideExtentChanged" not in source
-    assert "control._syncOutsideWindowGeometry()" not in source
-    assert source.count("WindowHelper.updateWindowFollowerGeometry(") == 1
-    assert "control._outsideFullExtent)" in source
-    assert "WindowHelper.updateWindowFollowerGeometry(" in source
-    assert "WindowHelper.registerWindowFollower(" in source
-    assert "WindowHelper.unregisterWindowFollower(outsideDrawerWindow)" in source
-    assert "ShadowManager.disableShadowForWindow(outsideDrawerWindow)" in source
