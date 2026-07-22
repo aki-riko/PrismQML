@@ -99,6 +99,16 @@ __all__ = [
     "SqlListModel",
     "DbRouter",
     "is_rust_accelerated",
+    # Background tasks
+    "TaskCancelledError",
+    "TaskContext",
+    "TaskFailure",
+    "TaskHandle",
+    "TaskState",
+    "current_task",
+    "run_in_pool",
+    "run_in_thread",
+    "shutdown_tasks",
 ]
 
 _LAZY_EXPORTS = {
@@ -187,6 +197,16 @@ _LAZY_EXPORTS = {
     "SqlListModel": (".python.models.sql_list_model", "SqlListModel"),
     "DbRouter": (".python.models.sql_list_model", "DbRouter"),
     "is_rust_accelerated": (".python.models.sql_list_model", "is_rust_accelerated"),
+    # Background tasks
+    "TaskCancelledError": (".python.core.task_runner", "TaskCancelledError"),
+    "TaskContext": (".python.core.task_runner", "TaskContext"),
+    "TaskFailure": (".python.core.task_runner", "TaskFailure"),
+    "TaskHandle": (".python.core.task_runner", "TaskHandle"),
+    "TaskState": (".python.core.task_runner", "TaskState"),
+    "current_task": (".python.core.task_runner", "current_task"),
+    "run_in_pool": (".python.core.task_runner", "run_in_pool"),
+    "run_in_thread": (".python.core.task_runner", "run_in_thread"),
+    "shutdown_tasks": (".python.core.task_runner", "shutdown_tasks"),
 }
 
 

@@ -133,7 +133,9 @@ def _rollback_app_initialization(owner, previous_qml_environment) -> None:
 def _shutdown_app_runtime(owner) -> None:
     """Release QML before QApplication teardown. 在 QApplication 析构前释放 QML。"""
     from ..core.shadow import reset_dwm_sync_filter
+    from ..core.task_runner import shutdown_tasks
 
+    _run_app_cleanup("background tasks", shutdown_tasks)
     if owner._input_filter_started:
         _run_app_cleanup("input filter", reset_input_focus_filter)
         owner._input_filter_started = False

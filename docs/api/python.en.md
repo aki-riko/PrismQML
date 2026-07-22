@@ -63,6 +63,46 @@ use Loader Ready as their readiness condition.
 | `Store` | Reactive state store |
 | `prismqml.python.config` | Config system (AppConfig / getConfigManager / SettingsCore / SettingEntry / Validator) |
 
+## Background tasks
+
+Application code can submit a plain Python callable without subclassing
+`QRunnable`, `QThread`, or a worker object:
+
+```python
+from prismqml import current_task, run_in_pool
+
+def load_library(path):
+    task = current_task()
+    task.report_progress("scanning")
+    task.raise_if_cancelled()
+    return scan_library(path)
+
+handle = run_in_pool(load_library, library_path)
+handle.progress.connect(update_progress)
+handle.succeeded.connect(apply_library)
+handle.failed.connect(report_failure)
+```
+
+`run_in_pool()` uses Qt's global thread pool for bounded concurrent calls.
+`run_in_thread()` creates one dedicated `QThread` for a long blocking call.
+Both return a `TaskHandle` with the same `started`, `progress`, `succeeded`,
+`failed`, `cancelled`, `finished`, and `state_changed` signals. Public signals
+are emitted on the Qt application thread; `result`, `failure`, and `state`
+expose the final outcome. `TaskFailure` preserves both the exception object and
+its formatted traceback.
+
+`handle.cancel()` is cooperative and never calls the unsafe `terminate()`.
+Long-running work should periodically call
+`current_task().raise_if_cancelled()`, or inspect `cancel_requested` and return
+after its own cleanup. On exit, `App.exec()` calls `shutdown_tasks()` to request
+cancellation and wait until every execution backend has stopped, preventing a
+running `QThread` from being destroyed. Applications using a bare
+`QCoreApplication` should call `shutdown_tasks()` before teardown. Python
+CPU-bound code is still constrained by the GIL; use multiprocessing for true
+CPU parallelism. `handle.wait(timeout_ms)` is intended for tests or non-UI
+teardown paths; normal UI code should observe signals instead of blocking the
+Qt application thread.
+
 ## Engine components
 
 | Name | Description |

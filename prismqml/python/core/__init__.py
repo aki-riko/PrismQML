@@ -68,6 +68,16 @@ __all__ = [
     "showDesktopError",
     "showDesktopInfoBar",
     "closeAllDesktopNotifications",
+    # Background tasks
+    "TaskCancelledError",
+    "TaskContext",
+    "TaskFailure",
+    "TaskHandle",
+    "TaskState",
+    "current_task",
+    "run_in_pool",
+    "run_in_thread",
+    "shutdown_tasks",
 ]
 
 _LAZY_EXPORTS = {
@@ -131,6 +141,16 @@ _LAZY_EXPORTS = {
     "showDesktopError": (".notification", "showDesktopError"),
     "showDesktopInfoBar": (".notification", "showDesktopInfoBar"),
     "closeAllDesktopNotifications": (".notification", "closeAllDesktopNotifications"),
+    # Background tasks
+    "TaskCancelledError": (".task_runner", "TaskCancelledError"),
+    "TaskContext": (".task_runner", "TaskContext"),
+    "TaskFailure": (".task_runner", "TaskFailure"),
+    "TaskHandle": (".task_runner", "TaskHandle"),
+    "TaskState": (".task_runner", "TaskState"),
+    "current_task": (".task_runner", "current_task"),
+    "run_in_pool": (".task_runner", "run_in_pool"),
+    "run_in_thread": (".task_runner", "run_in_thread"),
+    "shutdown_tasks": (".task_runner", "shutdown_tasks"),
 }
 
 
