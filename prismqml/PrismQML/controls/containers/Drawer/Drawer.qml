@@ -16,10 +16,11 @@ OverlayDialogCore {
     id: control
     
     // ==================== Public Props 公开属性 ====================
+    property int mode: Enums.drawer.mode_inside  // Inside/outside placement 内侧/外侧放置模式
     property int position: Enums.position.right
     property int drawerWidth: 320
     property int drawerHeight: 400
-    property bool modal: true
+    property bool modal: true  // Inside mode scrim only 仅控制内侧模式遮罩
     /// 抽屉滑入/滑出动画时长 (毫秒)。默认与全局慢速一致;
     /// 紧凑场景可调小,例如 200。
     property int animationDuration: Enums.duration.slow
@@ -32,7 +33,13 @@ OverlayDialogCore {
     // Panel corner radius 面板圆角
     property int radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.none
 
+    // ==================== Internal Props 内部属性 ====================
+    property bool _outsideResetting: false
+
     // ==================== Readonly State 只读状态 ====================
+    readonly property bool _isOutside: mode === Enums.drawer.mode_outside
+    readonly property var _hostWindow: control.Window.window
+    readonly property int _outsideShadowExtent: Enums.shadow.level28.blur + Enums.shadow.level28.offset
     readonly property color _drawerBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
     readonly property int _drawerBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : 0)
     readonly property color _drawerBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.borderColor : Enums.transparent)
@@ -46,14 +53,15 @@ OverlayDialogCore {
         }
 
         // Auto-find window contentItem if not already there 自动找到窗口 contentItem（如果还不在那里）
-
-        if (control.Window && control.Window.window) {
+        if (!control._isOutside && control.Window && control.Window.window) {
             var windowContent = control.Window.window.contentItem
             if (windowContent && control.parent !== windowContent) {
                 control.parent = windowContent
             }
         }
 
+        outsideVisibilityTimer.stop()
+        _isClosing = false
         _isOpen = true
     }
 
@@ -64,11 +72,153 @@ OverlayDialogCore {
         return _isOpen
     }
 
+    // Reset both render paths when switching mode or closing the host window
+    // 切换模式或宿主窗口关闭时重置两条渲染路径
+    function _resetDrawerState() {
+        _outsideResetting = true
+        outsideVisibilityTimer.stop()
+        _isOpen = false
+        _isClosing = false
+        _outsideResetting = false
+    }
+
     // Overlay overrides 覆盖层配置
     dismissOnScrimClick: modal  // Close when scrim is clicked in modal mode 模态时点击遮罩关闭
-    maskColor: modal ? Enums.stateColor.dialogOverlay : Enums.transparent
+    maskColor: !_isOutside && modal ? Enums.stateColor.dialogOverlay : Enums.transparent
+    visible: !_isOutside && (_isOpen || _isClosing)
+
+    onModeChanged: _resetDrawerState()
+    onOpenedChanged: {
+        if (!control._isOutside || control._outsideResetting) return
+        if (control._isOpen) {
+            outsideVisibilityTimer.stop()
+        } else if (control._isClosing || outsideDrawerWindow.visible) {
+            outsideVisibilityTimer.restart()
+        }
+    }
 
     // ==================== Content 内容 ====================
+    // Native host for the outside mode 外侧模式的原生承载窗口
+    Window {
+        id: outsideDrawerWindow
+        readonly property bool horizontal: control.isHorizontal
+
+        objectName: "outsideDrawerWindow"
+        x: {
+            if (!control._hostWindow) return 0
+            if (control.position === Enums.position.left) {
+                return control._hostWindow.x - control.drawerWidth - control._outsideShadowExtent
+            }
+            if (control.position === Enums.position.right) {
+                return control._hostWindow.x + control._hostWindow.width
+            }
+            return control._hostWindow.x - control._outsideShadowExtent
+        }
+        y: {
+            if (!control._hostWindow) return 0
+            if (control.position === Enums.position.top) {
+                return control._hostWindow.y - control.drawerHeight - control._outsideShadowExtent
+            }
+            if (control.position === Enums.position.bottom) {
+                return control._hostWindow.y + control._hostWindow.height
+            }
+            return control._hostWindow.y - control._outsideShadowExtent
+        }
+        width: horizontal
+            ? control.drawerWidth + control._outsideShadowExtent
+            : (control._hostWindow
+                ? control._hostWindow.width + control._outsideShadowExtent * 2
+                : 0)
+        height: horizontal
+            ? (control._hostWindow
+                ? control._hostWindow.height + control._outsideShadowExtent * 2
+                : 0)
+            : control.drawerHeight + control._outsideShadowExtent
+        visible: control._isOutside
+            && (control._isOpen || control._isClosing || outsideVisibilityTimer.running)
+            && control._hostWindow !== null
+        flags: Qt.Tool | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
+        color: Enums.transparent
+        transientParent: control._hostWindow
+
+        onVisibleChanged: {
+            if (visible && control._isOpen) {
+                outsideDrawerWindow.requestActivate()
+            }
+        }
+        onClosing: (close) => control._resetDrawerState()
+
+        RectangularShadow {
+            anchors.fill: outsideDrawerPanel
+            radius: control.radius
+            color: Enums.shadow.level28.color
+            blur: Enums.shadow.level28.blur
+            offset.x: 0
+            offset.y: Enums.shadow.level28.offset
+        }
+
+        Rectangle {
+            id: outsideDrawerPanel
+            objectName: "outsideDrawerPanel"
+
+            width: control.isHorizontal
+                ? control.drawerWidth
+                : (control._hostWindow ? control._hostWindow.width : 0)
+            height: control.isHorizontal
+                ? (control._hostWindow ? control._hostWindow.height : 0)
+                : control.drawerHeight
+            color: control._drawerBackground
+            radius: control.radius
+            border.width: control._drawerBorderWidth
+            border.color: control._drawerBorderColor
+
+            MouseArea {
+                anchors.fill: parent
+            }
+
+            states: [
+                State {
+                    name: "open"
+                    when: control._isOpen
+                    PropertyChanges {
+                        target: outsideDrawerPanel
+                        x: control.position === Enums.position.right
+                            ? 0
+                            : control._outsideShadowExtent
+                        y: control.position === Enums.position.bottom
+                            ? 0
+                            : control._outsideShadowExtent
+                    }
+                },
+                State {
+                    name: "closed"
+                    when: !control._isOpen
+                    PropertyChanges {
+                        target: outsideDrawerPanel
+                        x: control.position === Enums.position.left
+                            ? outsideDrawerWindow.width
+                            : (control.position === Enums.position.right
+                                ? -outsideDrawerPanel.width
+                                : control._outsideShadowExtent)
+                        y: control.position === Enums.position.top
+                            ? outsideDrawerWindow.height
+                            : (control.position === Enums.position.bottom
+                                ? -outsideDrawerPanel.height
+                                : control._outsideShadowExtent)
+                    }
+                }
+            ]
+
+            transitions: Transition {
+                NumberAnimation {
+                    properties: "x,y"
+                    duration: control.animationDuration
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+    }
+
     // Drawer shadow 抽屉阴影
     // Shadow for drawer 抽屉阴影
     RectangularShadow {
@@ -105,21 +255,6 @@ OverlayDialogCore {
             // Consume all clicks so they don't propagate to the mask 消费点击防止穿透
         }
         
-        // Content container 内容容器
-        Item {
-            id: contentItem
-            objectName: "contentItem"  // For Python findChild 供Python查找
-            anchors.fill: parent
-            anchors.margins: Enums.spacing.xl
-
-            // 点击内容区域空白处清除输入焦点
-            MouseArea {
-                anchors.fill: parent
-                z: Enums.zIndex.background
-                onClicked: contentItem.forceActiveFocus()
-            }
-        }
-
         // Use states to manage position 使用states管理位置
         states: [
             State {
@@ -149,5 +284,42 @@ OverlayDialogCore {
         transitions: Transition {
             NumberAnimation { properties: "x,y"; duration: control.animationDuration; easing.type: Easing.OutCubic }
         }
+    }
+
+    // Shared content host moves between inside and outside panels
+    // 共享内容宿主在内侧与外侧面板间移动
+    Item {
+        id: contentItem
+        objectName: "contentItem"  // For Python findChild 供Python查找
+
+        parent: control._isOutside ? outsideDrawerPanel : drawer
+        anchors.fill: parent
+        anchors.margins: Enums.spacing.xl
+
+        // Clear input focus when clicking empty content area 点击内容空白处清除输入焦点
+        MouseArea {
+            anchors.fill: parent
+            z: Enums.zIndex.background
+            onClicked: contentItem.forceActiveFocus()
+        }
+    }
+
+    Timer {
+        id: outsideVisibilityTimer
+        interval: control.animationDuration
+        repeat: false
+    }
+
+    Connections {
+        function onClosing(close) { control._resetDrawerState() }
+        function onVisibleChanged() {
+            if (control._isOutside && control._hostWindow
+                    && !control._hostWindow.visible) {
+                control._resetDrawerState()
+            }
+        }
+
+        target: control._hostWindow
+        ignoreUnknownSignals: true
     }
 }

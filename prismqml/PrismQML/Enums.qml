@@ -11,7 +11,7 @@ import "PrismEnums"
 // 
 // Architecture 架构: Modular design, each category in separate file 模块化设计
 // Files 文件: Theme.qml, StatusLevel.qml, Button.qml, StateColor.qml, Constants.qml, Metrics.qml, Icons.qml
-// TODO: 44 个子组件在启动时同步创建，可能影响首帧渲染时间。
+// TODO: 45 个子组件在启动时同步创建，可能影响首帧渲染时间。
 //       如需优化，可对低频使用的枚举组件改用 Loader 按需加载。
 
 Item {
@@ -76,6 +76,7 @@ Item {
     Flow { id: _flow }
     Chart { id: _chart }
     Card { id: _card }
+    Drawer { id: _drawer }
     Position { id: _position }
     Notification { id: _notification }
     Slider { id: _slider }
@@ -119,6 +120,7 @@ Item {
     readonly property alias flow: _flow
     readonly property alias chart: _chart
     readonly property alias card: _card
+    readonly property alias drawer: _drawer
     readonly property alias position: _position
     readonly property alias notification: _notification
     readonly property alias slider: _slider

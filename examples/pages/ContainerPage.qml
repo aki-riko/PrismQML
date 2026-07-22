@@ -235,13 +235,25 @@ Item {
             // 抽屉
             ExampleCard {
                 title: "抽屉"
-                description: "Drawer"
+                description: "Drawer (mode_inside)"
                 Row {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard { label: "position.left"; Button { text: "左侧抽屉"; onClicked: leftDrawer.open() } }
                     ComponentCard { label: "position.right"; Button { text: "右侧抽屉"; onClicked: rightDrawer.open() } }
                     ComponentCard { label: "position.top"; Button { text: "顶部抽屉"; onClicked: topDrawer.open() } }
                     ComponentCard { label: "position.bottom"; Button { text: "底部抽屉"; onClicked: bottomDrawer.open() } }
+                }
+            }
+
+            ExampleCard {
+                title: "窗口外侧抽屉"
+                description: "Drawer (mode_outside)"
+                Row {
+                    spacing: Fluent.Enums.spacing.l
+                    ComponentCard { label: "position.left"; Button { text: "左侧展开"; onClicked: { outsideDrawer.position = Fluent.Enums.position.left; outsideDrawer.open() } } }
+                    ComponentCard { label: "position.right"; Button { text: "右侧展开"; onClicked: { outsideDrawer.position = Fluent.Enums.position.right; outsideDrawer.open() } } }
+                    ComponentCard { label: "position.top"; Button { text: "顶部展开"; onClicked: { outsideDrawer.position = Fluent.Enums.position.top; outsideDrawer.open() } } }
+                    ComponentCard { label: "position.bottom"; Button { text: "底部展开"; onClicked: { outsideDrawer.position = Fluent.Enums.position.bottom; outsideDrawer.open() } } }
                 }
             }
             
@@ -326,6 +338,18 @@ Item {
             anchors.centerIn: parent; spacing: Fluent.Enums.spacing.l
             Text { text: "底部抽屉"; font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
             Button { text: "关闭"; onClicked: bottomDrawer.close() }
+        }
+    }
+
+    Drawer {
+        id: outsideDrawer
+        mode: Fluent.Enums.drawer.mode_outside
+        drawerWidth: rightDrawer.drawerWidth
+        drawerHeight: bottomDrawer.drawerHeight
+        Column {
+            anchors.centerIn: parent; spacing: Fluent.Enums.spacing.l
+            Text { text: "窗口外侧抽屉"; font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
+            Button { text: "关闭"; onClicked: outsideDrawer.close() }
         }
     }
 }

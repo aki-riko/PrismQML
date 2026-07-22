@@ -10,6 +10,7 @@ Orient Orient.qml
 Flow Flow.qml
 Chart Chart.qml
 Card Card.qml
+Drawer Drawer.qml
 Position Position.qml
 Notification Notification.qml
 Slider Slider.qml
