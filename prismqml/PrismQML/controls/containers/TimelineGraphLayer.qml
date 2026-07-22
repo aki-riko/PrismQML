@@ -3,20 +3,33 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import QtQuick.Shapes
 import "../.."
 
 // TimelineGraphLayer - Generic per-row graph renderer 通用时间线逐行图渲染器
 Item {
     id: control
 
+    // ==================== Required Props 必需属性 ====================
     required property var graphData
     required property bool showNode
     required property real nodeY
     required property bool selected
+
+    // ==================== Public Props 公开属性 ====================
     property var graphPalette: Enums.chartColors.extendedPalette
     property color nodeBackground: Enums.cardColor
     property color selectedColor: Enums.accentColor
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _strokeWidth: Enums.border.normal
+    readonly property real _nodeRadius: Enums.controlSize.timelineGraphNode / 2
+    readonly property real _nodeOuterRadius: _nodeRadius + _strokeWidth
+    readonly property real _nodeX: _laneX((graphData || {}).nodeLane)
+    readonly property var _segments: (graphData && graphData.segments)
+        ? graphData.segments : []
+
+    // ==================== Internal Methods 内部方法 ====================
     function _laneX(lane) {
         var safeLane = Math.max(0, Number(lane) || 0)
         return Enums.spacing.timelineGraphPadding
@@ -30,75 +43,90 @@ Item {
         return graphPalette[safeIndex]
     }
 
-    function _paintSegment(ctx, segment) {
-        var fromX = _laneX(segment.fromLane)
-        var toX = _laneX(segment.toLane)
-        var strokeWidth = Enums.border.normal
-        // Overdraw clipped row edges so fractional-DPI canvases meet opaquely.
-        // 向裁剪边界外延伸，避免分数 DPI 下相邻 Canvas 接缝变淡或断裂。
-        var boundaryOverdraw = strokeWidth
-        var startY = segment.startAtNode ? nodeY : -boundaryOverdraw
-        var endY = segment.endAtNode ? nodeY : height + boundaryOverdraw
-        var middleY = (startY + endY) / 2
-        ctx.beginPath()
-        ctx.moveTo(fromX, startY)
-        if (fromX === toX) {
-            ctx.lineTo(toX, endY)
-        } else {
-            ctx.bezierCurveTo(fromX, middleY, toX, middleY, toX, endY)
-        }
-        ctx.lineWidth = strokeWidth
-        ctx.strokeStyle = _colorFor(segment.colorIndex)
-        ctx.stroke()
-    }
-
-    function _paintNode(ctx, data) {
-        var nodeX = _laneX(data.nodeLane)
-        var nodeRadius = Enums.controlSize.timelineGraphNode / 2
-        var outerRadius = nodeRadius + Enums.border.normal
-        ctx.beginPath()
-        ctx.arc(nodeX, nodeY, outerRadius, 0, Math.PI * 2)
-        ctx.fillStyle = nodeBackground
-        ctx.fill()
-        ctx.beginPath()
-        ctx.arc(nodeX, nodeY, nodeRadius, 0, Math.PI * 2)
-        ctx.fillStyle = _colorFor(data.nodeColorIndex)
-        ctx.fill()
-        if (selected) {
-            ctx.beginPath()
-            ctx.arc(nodeX, nodeY, outerRadius + Enums.spacing.xxs, 0, Math.PI * 2)
-            ctx.lineWidth = Enums.border.normal
-            ctx.strokeStyle = selectedColor
-            ctx.stroke()
-        }
-    }
-
     objectName: "timelineGraphLayer"
 
-    onGraphDataChanged: graphCanvas.requestPaint()
-    onShowNodeChanged: graphCanvas.requestPaint()
-    onNodeYChanged: graphCanvas.requestPaint()
-    onSelectedChanged: graphCanvas.requestPaint()
-    onGraphPaletteChanged: graphCanvas.requestPaint()
-    onNodeBackgroundChanged: graphCanvas.requestPaint()
-    onSelectedColorChanged: graphCanvas.requestPaint()
-    onWidthChanged: graphCanvas.requestPaint()
-    onHeightChanged: graphCanvas.requestPaint()
+    // ==================== Content 内容 ====================
+    Repeater {
+        model: control._segments
 
-    Canvas {
-        id: graphCanvas
+        delegate: Item {
+            id: segmentItem
 
-        anchors.fill: parent
-        antialiasing: true
+            required property var modelData
+            readonly property real fromX: control._laneX(modelData.fromLane)
+            readonly property real toX: control._laneX(modelData.toLane)
+            readonly property real startY: modelData.startAtNode ? control.nodeY : 0
+            readonly property real endY: modelData.endAtNode ? control.nodeY : height
+            readonly property real middleY: (startY + endY) / 2
+            readonly property color segmentColor: control._colorFor(modelData.colorIndex)
 
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            var data = control.graphData || {}
-            var segments = data.segments || []
-            for (var index = 0; index < segments.length; index++)
-                control._paintSegment(ctx, segments[index])
-            if (control.showNode) control._paintNode(ctx, data)
+            width: control.width
+            height: control.height
+
+            // Scene-graph rectangles tile exactly at virtual row boundaries.
+            // 场景图矩形在虚拟行边界精确拼接，避免 Canvas 纹理重复混合。
+            Rectangle {
+                x: segmentItem.fromX - control._strokeWidth / 2
+                y: segmentItem.startY
+                width: control._strokeWidth
+                height: Math.max(0, segmentItem.endY - segmentItem.startY)
+                visible: segmentItem.fromX === segmentItem.toX
+                color: segmentItem.segmentColor
+            }
+
+            Shape {
+                anchors.fill: parent
+                visible: segmentItem.fromX !== segmentItem.toX
+                preferredRendererType: Shape.CurveRenderer
+
+                ShapePath {
+                    startX: segmentItem.fromX
+                    startY: segmentItem.startY
+                    strokeWidth: control._strokeWidth
+                    strokeColor: segmentItem.segmentColor
+                    fillColor: Enums.transparent
+                    capStyle: ShapePath.FlatCap
+
+                    PathCubic {
+                        x: segmentItem.toX
+                        y: segmentItem.endY
+                        control1X: segmentItem.fromX
+                        control1Y: segmentItem.middleY
+                        control2X: segmentItem.toX
+                        control2Y: segmentItem.middleY
+                    }
+                }
+            }
         }
+    }
+
+    Rectangle {
+        x: control._nodeX - control._nodeOuterRadius
+        y: control.nodeY - control._nodeOuterRadius
+        width: control._nodeOuterRadius * 2
+        height: control._nodeOuterRadius * 2
+        radius: control._nodeOuterRadius
+        visible: control.showNode
+        color: control.nodeBackground
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: control._nodeRadius * 2
+            height: control._nodeRadius * 2
+            radius: control._nodeRadius
+            color: control._colorFor((control.graphData || {}).nodeColorIndex)
+        }
+    }
+
+    Rectangle {
+        x: control._nodeX - width / 2
+        y: control.nodeY - height / 2
+        width: (control._nodeOuterRadius + Enums.spacing.xxs) * 2
+        height: width
+        radius: width / 2
+        visible: control.showNode && control.selected
+        color: Enums.transparent
+        border.width: control._strokeWidth
+        border.color: control.selectedColor
     }
 }

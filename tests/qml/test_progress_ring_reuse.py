@@ -49,7 +49,6 @@ NON_PROGRESS_ARC_SOURCES = {
     "controls/data/Chart/_internal/RadarChartContent.qml",
     "controls/data/Chart/_internal/ScatterChartContent.qml",
     "controls/data/CircularGauge.qml",
-    "controls/containers/TimelineGraphLayer.qml",
     "controls/inputs/_internal/ImageCropperContent.qml",
 }
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "progress-ring-reuse.qml"))

@@ -151,15 +151,23 @@ for layer, boundary_y in boundaries:
     lane_x = layer.mapToScene(QPointF(16, 0)).x()
     sample_x = round(lane_x * scale)
     boundary = round(boundary_y * scale)
-    interior = image.pixelColor(sample_x, boundary - 4)
-    junction = [
-        image.pixelColor(sample_x, sample_y)
+    profile_radius = 4
+
+    def horizontal_profile(sample_y):
+        return [
+            image.pixelColor(sample_point, sample_y).rgba()
+            for sample_point in range(
+                sample_x - profile_radius, sample_x + profile_radius + 1
+            )
+        ]
+
+    interior_profile = horizontal_profile(boundary - 6)
+    junction_profiles = [
+        horizontal_profile(sample_y)
         for sample_y in range(boundary - 1, boundary + 2)
     ]
-    if any(color != interior for color in junction):
-        failures.append(
-            (boundary_y, interior.name(), [color.name() for color in junction])
-        )
+    if any(profile != interior_profile for profile in junction_profiles):
+        failures.append((boundary_y, interior_profile, junction_profiles))
 assert failures == [], (failures, scale, list_view.property("contentY"))
 assert warnings == [], warnings
 print("TIMELINE_GRAPH_BOUNDARY_OK", len(boundaries), scale)
@@ -171,8 +179,8 @@ app.processEvents()
 '''
 
 
-def test_timeline_graph_stays_opaque_across_scaled_delegate_boundaries():
-    """Scaled adjacent rows must not expose a one-pixel seam. 缩放后相邻行不得露出像素缝。"""
+def test_timeline_graph_keeps_uniform_stroke_across_scaled_delegate_boundaries():
+    """Scaled row joins must retain stroke color and width. 缩放后接缝须保持描边颜色与宽度。"""
     environment = os.environ.copy()
     environment["QT_SCALE_FACTOR"] = "1.5"
     result = subprocess.run(

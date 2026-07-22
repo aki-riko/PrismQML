@@ -325,24 +325,22 @@ Item {
         delegate: Item {
             id: rowDelegate
             required property var model
-            readonly property real graphBoundaryOverlap: Enums.border.normal
             width: virtualList.width
             height: model.kind === "header" ? headerPart.height : cardPart.height
             clip: !control._graphMode
 
-            // Keep graph canvases away from fractional row clip edges. The
-            // header/card content remains clipped locally for delegate reuse.
-            // 图层跨过分数行边界重叠绘制，标题与卡片内容仍各自裁剪以避免复用残影。
+            // Graph primitives stay inside each row and meet at the exact
+            // boundary. Header/card content remains clipped for delegate reuse.
+            // 图元保持在行内并于边界精确拼接，标题与卡片内容仍裁剪以避免复用残影。
             TimelineGraphLayer {
                 x: 0
-                y: -rowDelegate.graphBoundaryOverlap
+                y: 0
                 width: control._graphWidth
-                height: rowDelegate.height + rowDelegate.graphBoundaryOverlap * 2
+                height: rowDelegate.height
                 visible: control._graphMode
                 graphData: rowDelegate.model.graphData || {}
                 showNode: rowDelegate.model.kind === "card"
-                nodeY: rowDelegate.graphBoundaryOverlap
-                    + cardBox.y + cardBox.height / 2
+                nodeY: cardBox.y + cardBox.height / 2
                 selected: showNode && cardPart.isSelected
                 graphPalette: control.graphPalette
             }
