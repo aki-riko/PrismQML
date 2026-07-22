@@ -10,7 +10,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from prismqml.python.core.logger import ColoredFormatter, PlainFormatter
+from prismqml.python.core.logger import Colors, ColoredFormatter, PlainFormatter
+
+
+_INFO_RGB = (96, 165, 250)
+_WARNING_RGB = (217, 119, 6)
 
 
 class _RecordCapture(logging.Handler):
@@ -53,6 +57,49 @@ def _runtime_failure_record() -> logging.LogRecord:
             "PrismQML", logging.ERROR, __file__, 1,
             "native filter failed", (), sys.exc_info()
         )
+
+
+def _level_record(level: int) -> logging.LogRecord:
+    return logging.LogRecord(
+        "PrismQML",
+        level,
+        __file__,
+        1,
+        "CLI color probe",
+        (),
+        None,
+    )
+
+
+def _truecolor_code(rgb: tuple[int, int, int]) -> str:
+    return f"\033[38;2;{rgb[0]};{rgb[1]};{rgb[2]}m"
+
+
+def _weighted_brightness(rgb: tuple[int, int, int]) -> float:
+    red, green, blue = rgb
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+
+@pytest.mark.parametrize(
+    ("level", "expected_rgb"),
+    (
+        (logging.INFO, _INFO_RGB),
+        (logging.WARNING, _WARNING_RGB),
+    ),
+)
+def test_colored_formatter_uses_distinct_info_warning_palette(level, expected_rgb):
+    output = ColoredFormatter(datefmt="%H:%M:%S").format(_level_record(level))
+
+    level_name = logging.getLevelName(level)
+    expected_color = _truecolor_code(expected_rgb)
+    assert f"{expected_color}[{level_name}]{Colors.RESET}" in output
+
+
+def test_warning_cli_color_is_darker_than_info():
+    info_brightness = _weighted_brightness(_INFO_RGB)
+    warning_brightness = _weighted_brightness(_WARNING_RGB)
+
+    assert info_brightness - warning_brightness >= 20
 
 
 @pytest.mark.parametrize(

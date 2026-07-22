@@ -29,7 +29,7 @@ def _rgb(qcolor):
 
 
 def _assert_common(item, accent, divider, header, card, border):
-    expected_warning = (122, 62, 0) if accent == (11, 127, 137) else (207, 121, 0)
+    expected_warning = (157, 93, 0) if accent == (11, 127, 137) else (192, 144, 0)
 
     assert item.property("focusRadius") == 10
     assert _rgb(item.property("focusColor")) == accent

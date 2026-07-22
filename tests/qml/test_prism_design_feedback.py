@@ -395,7 +395,7 @@ InfoBar {
             )
         )
         dark_info_bar = keep[-1][1]
-        _assert_info_bar(dark_info_bar, (52, 30, 0), (50, 72, 79), 153)
+        _assert_info_bar(dark_info_bar, (48, 36, 0), (50, 72, 79), 153)
 
         keep.append(
             _build(

@@ -40,8 +40,8 @@ class Colors:
 
     # Log level colors 日志级别颜色
     DEBUG = "\033[36m"  # Cyan 青色
-    INFO = "\033[32m"  # Green 绿色
-    WARNING = "\033[33m"  # Yellow 黄色
+    INFO = "\033[38;2;96;165;250m"  # Clear blue 清晰蓝色
+    WARNING = "\033[38;2;217;119;6m"  # Deep amber 深琥珀色
     ERROR = "\033[31m"  # Red 红色
 
     # Component colors 组件颜色
