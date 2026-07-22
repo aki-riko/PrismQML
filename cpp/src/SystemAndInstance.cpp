@@ -46,11 +46,30 @@ void SystemTrayIcon::setIcon(const QString &icon) {
 
 void SystemTrayIcon::setToolTip(const QString &tip) { m_tray->setToolTip(tip); }
 
-void SystemTrayIcon::addAction(const QString &text, std::function<void()> triggered) {
+void SystemTrayIcon::addAction(const QString &text, std::function<void()> triggered,
+                               const TrayActionOptions &options) {
+    const QString actionId = options.actionId.isEmpty() ? text : options.actionId;
+    if (m_actions.contains(actionId)) {
+        qWarning() << "SystemTrayIcon: duplicate actionId" << actionId;
+    }
     QAction *act = m_menu->addAction(text);
+    act->setObjectName(actionId);
+    act->setCheckable(options.checkable);
+    act->setChecked(options.checked);
+    act->setEnabled(options.enabled);
+    act->setToolTip(options.toolTip);
+    m_actions.insert(actionId, act);
     if (triggered) {
         connect(act, &QAction::triggered, this, [triggered]() { triggered(); });
     }
+}
+
+bool SystemTrayIcon::setActionChecked(const QString &actionId, bool checked) {
+    const auto action = m_actions.constFind(actionId);
+    if (action == m_actions.cend() || !action.value())
+        return false;
+    action.value()->setChecked(checked);
+    return true;
 }
 
 void SystemTrayIcon::addSeparator() { m_menu->addSeparator(); }

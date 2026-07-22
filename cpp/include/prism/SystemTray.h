@@ -5,10 +5,12 @@
 // PrismQML C++ 宿主 - SystemTrayIcon (镜像 Python window/system_tray.py)
 #pragma once
 
+#include <QHash>
 #include <QObject>
 #include <QString>
 #include <functional>
 
+class QAction;
 class QSystemTrayIcon;
 class QMenu;
 
@@ -28,6 +30,14 @@ enum class ActivationReason {
     MiddleClick = 4,  // 中键点击
 };
 
+struct TrayActionOptions {
+    QString actionId;
+    bool checkable = false;
+    bool checked = false;
+    bool enabled = true;
+    QString toolTip;
+};
+
 // SystemTrayIcon - 系统托盘 (镜像 Python SystemTrayIcon, 封装 QSystemTrayIcon+QMenu)
 class SystemTrayIcon : public QObject {
     Q_OBJECT
@@ -39,7 +49,9 @@ public:
 
     void setIcon(const QString &icon);
     void setToolTip(const QString &tip);
-    void addAction(const QString &text, std::function<void()> triggered = nullptr);
+    void addAction(const QString &text, std::function<void()> triggered = nullptr,
+                   const TrayActionOptions &options = {});
+    bool setActionChecked(const QString &actionId, bool checked);
     void addSeparator();
     void showMessage(const QString &title, const QString &message,
                      MessageIcon icon = MessageIcon::Information, int msecs = 5000);
@@ -57,6 +69,7 @@ signals:
 private:
     QSystemTrayIcon *m_tray = nullptr;
     QMenu *m_menu = nullptr;
+    QHash<QString, QAction *> m_actions;
 };
 
 }  // namespace prism

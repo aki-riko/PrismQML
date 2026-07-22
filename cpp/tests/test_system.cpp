@@ -11,12 +11,14 @@
 #include "TestProcess.h"
 
 #include <QApplication>
+#include <QAction>
 #include <QColor>
 #include <QDebug>
 #include <QDir>
 #include <QGuiApplication>
 #include <QImage>
 #include <QIcon>
+#include <QMenu>
 #include <QSystemTrayIcon>
 #include <QPoint>
 #include <QScreen>
@@ -129,6 +131,40 @@ static void testWindowFollowerGeometry() {
 
 }
 
+static void testTrayCheckableActionContract() {
+    using prism::SystemTrayIcon;
+    using prism::TrayActionOptions;
+
+    SystemTrayIcon tray;
+    bool triggered = false;
+    TrayActionOptions options;
+    options.actionId = QStringLiteral("desktop_lyrics");
+    options.checkable = true;
+    options.checked = true;
+    options.toolTip = QStringLiteral("显示或隐藏桌面歌词");
+    tray.addAction(QStringLiteral("显示桌面歌词"),
+                   [&triggered]() { triggered = true; }, options);
+
+    QSystemTrayIcon *nativeTray = tray.findChild<QSystemTrayIcon *>();
+    QMenu *menu = nativeTray ? nativeTray->contextMenu() : nullptr;
+    QAction *action = menu && menu->actions().size() == 1 ? menu->actions().constFirst()
+                                                          : nullptr;
+    CHECK(action && action->objectName() == QStringLiteral("desktop_lyrics"),
+          "SystemTray actionId reaches native QAction");
+    CHECK(action && action->isCheckable() && action->isChecked(),
+          "SystemTray checkable/checked initial state reaches native QAction");
+    CHECK(action && action->toolTip() == QStringLiteral("显示或隐藏桌面歌词"),
+          "SystemTray tooltip reaches native QAction");
+    CHECK(tray.setActionChecked(QStringLiteral("desktop_lyrics"), false)
+              && action && !action->isChecked(),
+          "SystemTray setActionChecked synchronizes existing action");
+    CHECK(!tray.setActionChecked(QStringLiteral("missing"), true),
+          "SystemTray setActionChecked reports unknown actionId");
+    if (action)
+        action->trigger();
+    CHECK(triggered, "SystemTray checkable action keeps callback contract");
+}
+
 int main(int argc, char *argv[]) {
     if (!prism::test::configureNonInteractiveProcess()) return 2;
     QApplication app(argc, argv);
@@ -139,6 +175,7 @@ int main(int argc, char *argv[]) {
     testRealEncodedIcon();
     testAvailableScreenGeometry();
     testWindowFollowerGeometry();
+    testTrayCheckableActionContract();
 
     qInfo() << "=== SystemTray 烟测 ===";
     // 构造 + addAction + addSeparator 不崩 (QApplication 下 QMenu 正常)
