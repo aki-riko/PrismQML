@@ -197,6 +197,8 @@ QtObject {
  // Layout specific spacing 布局专用间距
  readonly property int timelineIndent: 40 // Timeline card left padding 时间线卡片左内边距
  readonly property int timelineHeaderHeight: 40 // Timeline header height 时间线标题高度
+ readonly property int timelineGraphLane: 16 // Timeline graph lane spacing 时间线图轨道间距
+ readonly property int timelineGraphPadding: 8 // Timeline graph horizontal padding 时间线图水平留白
  readonly property int arrowAreaWidth: 40 // ComboBox arrow area width 下拉框箭头区域宽度
  readonly property int listItemPadding: 12 // List item left/right padding 列表项左右内边距
  // Window layout spacing 窗口布局间距
@@ -276,6 +278,7 @@ QtObject {
  readonly property int timelineCardIcon: 12 // Timeline card icon size 时间线卡片图标尺寸
  readonly property int timelineIconText: 10 // Timeline icon inner text size 时间线图标内文字尺寸
  readonly property int timelineCardIconText: 8 // Timeline card icon inner text size 时间线卡片图标内文字尺寸
+ readonly property int timelineGraphNode: 10 // Timeline graph commit node size 时间线图提交节点尺寸
  // Button controls 按钮控件
  readonly property int closeButton: 32 // Close button size 关闭按钮尺寸
  readonly property int buttonMinWidth: 80 // Button minimum width 按钮最小宽度

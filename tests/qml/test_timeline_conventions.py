@@ -35,6 +35,8 @@ SOURCE_PATH = (
     / "containers"
     / "TimelineCore.qml"
 )
+GRAPH_SOURCE_PATH = SOURCE_PATH.with_name("TimelineGraphLayer.qml")
+GRAPH_LABELS_SOURCE_PATH = SOURCE_PATH.with_name("TimelineGraphLabels.qml")
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "timeline-conventions.qml")
 )
@@ -51,6 +53,7 @@ Window {
     property var largeVirtualItems: makeLargeItems()
     readonly property int virtualFlatCount: virtualTimeline._flatRows.length
     readonly property int largeVirtualFlatCount: largeVirtualTimeline._flatRows.length
+    readonly property int graphFlatCount: graphTimeline._flatRows.length
 
     function makeItems(count) {
         var result = []
@@ -102,7 +105,7 @@ Window {
         return result
     }
 
-    width: 1140
+    width: 1500
     height: 857
     visible: true
 
@@ -152,6 +155,57 @@ Window {
         virtualized: true
         items: root.largeVirtualItems
     }
+
+    TimelineCore {
+        id: graphTimeline
+        objectName: "graphTimeline"
+        x: 1120
+        y: 20
+        width: 360
+        height: 360
+        type: Enums.timeline.type_graph
+        graphLaneCount: 3
+        selectedRole: "commit"
+        selectedKey: "merge"
+        items: [
+            {
+                "title": "Graph",
+                "graph": {
+                    "segments": [
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0},
+                        {"fromLane": 1, "toLane": 1, "colorIndex": 1}
+                    ]
+                },
+                "cards": [
+                    {
+                        "text": "Merge feature",
+                        "commit": "merge",
+                        "labels": [{"text": "main", "status": Enums.statusLevel.info}],
+                        "graph": {
+                            "nodeLane": 0,
+                            "nodeColorIndex": 0,
+                            "segments": [
+                                {"fromLane": 0, "toLane": 0, "colorIndex": 0},
+                                {"fromLane": 0, "toLane": 1, "colorIndex": 1}
+                            ]
+                        }
+                    },
+                    {
+                        "text": "Feature work",
+                        "commit": "feature",
+                        "graph": {
+                            "nodeLane": 1,
+                            "nodeColorIndex": 1,
+                            "segments": [
+                                {"fromLane": 0, "toLane": 0, "colorIndex": 0},
+                                {"fromLane": 1, "toLane": 1, "colorIndex": 1}
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
 }
 """
 
@@ -180,6 +234,14 @@ def _new_visible_windows(windows_before, *allowed):
         and not any(window is existing for existing in windows_before)
         and not any(window is accepted for accepted in allowed)
     ]
+
+
+def _visual_descendants(item):
+    descendants = []
+    for child in item.childItems():
+        descendants.append(child)
+        descendants.extend(_visual_descendants(child))
+    return descendants
 
 
 def _create_scene():
@@ -336,11 +398,44 @@ def test_timeline_virtual_scroll_to_start_tracks_dynamic_origin(timeline_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_timeline_graph_type_uses_virtual_rows_and_renders_graph_layers(timeline_scene):
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    graph_timeline = window.findChild(QQuickItem, "graphTimeline")
+    assert graph_timeline is not None
+    list_view = next(
+        item
+        for item in graph_timeline.findChildren(QQuickItem)
+        if "ListView" in item.metaObject().className()
+    )
+
+    assert graph_timeline.property("_usesVirtualList") is True
+    assert _wait_for(
+        lambda: list_view.property("count") == window.property("graphFlatCount")
+    )
+    assert list_view.property("count") == 3
+    def visible_graph_layers():
+        return [
+            item
+            for item in _visual_descendants(graph_timeline)
+            if item.objectName() == "timelineGraphLayer" and item.isVisible()
+        ]
+
+    assert _wait_for(lambda: len(visible_graph_layers()) == 3)
+    graph_layers = visible_graph_layers()
+    assert all(
+        layer.width() == pytest.approx(graph_timeline.property("_graphWidth"))
+        for layer in graph_layers
+    )
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_timeline_core_source_follows_conventions():
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(SOURCE_PATH.read_text(encoding="utf-8"), path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
+    for source_path in (SOURCE_PATH, GRAPH_SOURCE_PATH, GRAPH_LABELS_SOURCE_PATH):
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations = scan_source_text(source_path.read_text(encoding="utf-8"), path)
+        assert [
+            violation
+            for violation in violations
+            if violation.rule in {"QML008", "QML009"}
+        ] == []

@@ -22,6 +22,13 @@ Item {
     // status: "success", "info", "warning", "error"
     property var items: []
 
+    // Visual type: standard grouped timeline or generic graph timeline.
+    // Graph cards may provide graph:{nodeLane,nodeColorIndex,segments:[{fromLane,toLane,colorIndex}]}
+    // and labels:[{text,status}]. Group graph data draws lanes through date headers.
+    property int type: Enums.timeline.type_standard
+    property int graphLaneCount: 1
+    property var graphPalette: Enums.chartColors.extendedPalette
+
     // 虚拟滚动:默认关(保持原 Column+Repeater 全量渲染,向后兼容)。
     // 开启后整个组件改用单层 ListView 渲染,把 items 拍平成行(组头行+卡片行),
     // 只渲染可见项,适合大列表(上千条)。开启时组件自身可滚动,需给定 height。
@@ -33,13 +40,21 @@ Item {
     property var selectedKey: undefined        // 当前选中值(与 card[selectedRole] 比对)
 
     // ==================== Readonly State 只读状态 ====================
+    readonly property bool _graphMode: type === Enums.timeline.type_graph
+    readonly property bool _usesVirtualList: virtualized || _graphMode
+    readonly property real _graphWidth: Enums.spacing.timelineGraphPadding * 2
+        + Math.max(1, graphLaneCount) * Enums.spacing.timelineGraphLane
     // 拍平 items 为线性行: [{kind:"header",groupIndex,title,status}, {kind:"card",groupIndex,cardIndex,...}, ...]
     readonly property var _flatRows: {
-        if (!virtualized) return []
+        if (!_usesVirtualList) return []
         var rows = []
         for (var g = 0; g < items.length; g++) {
             var grp = items[g] || {}
-            rows.push({ "kind": "header", "groupIndex": g, "title": grp.title || "", "status": grp.status || "info" })
+            rows.push({
+                "kind": "header", "groupIndex": g,
+                "title": grp.title || "", "status": grp.status || "info",
+                "graphData": grp.graph || {}
+            })
             var cards = grp.cards || []
             for (var c = 0; c < cards.length; c++) {
                 var card = cards[c]
@@ -51,6 +66,7 @@ Item {
                     "description": (typeof card === "object") ? (card.description || "") : "",
                     "status": (typeof card === "object") ? (card.status || grp.status || "info") : (grp.status || "info"),
                     "strikeOut": (typeof card === "object") ? (card.strikeOut || false) : false,
+                    "graphData": (typeof card === "object") ? (card.graph || {}) : {},
                     "isLastCard": c === cards.length - 1
                 })
             }
@@ -72,7 +88,7 @@ Item {
     // - 纯尾部追加(分页常态):只 append 新增行,现有行不动→contentY 不重置
     // - 其他变化(reset/搜索/切仓库):清空重填
     function _syncFlat() {
-        if (!virtualized) return
+        if (!_usesVirtualList) return
         var rows = _flatRows
         var oldN = _flatModel.count
         var isAppend = rows.length >= oldN && oldN > 0
@@ -112,11 +128,12 @@ Item {
     }
 
     onVirtualizedChanged: _syncFlat()
+    onTypeChanged: _syncFlat()
     on_FlatRowsChanged: _syncFlat()
     Component.onCompleted: _syncFlat()
     
     implicitWidth: 400
-    implicitHeight: virtualized ? 400 : contentColumn.implicitHeight
+    implicitHeight: _usesVirtualList ? 400 : contentColumn.implicitHeight
 
     // ==================== Content 内容 ====================
     // 虚拟模式实际驱动 ListView 的 ListModel(增量同步,避免整体替换导致滚动跳顶)
@@ -127,7 +144,7 @@ Item {
         id: contentColumn
         width: parent.width
         spacing: Enums.spacing.none
-        visible: !control.virtualized
+        visible: !control._usesVirtualList
         
         Repeater {
             model: items
@@ -293,8 +310,8 @@ Item {
     QtQ.ListView {
         id: virtualList
         anchors.fill: parent
-        visible: control.virtualized
-        model: control.virtualized ? _flatModel : null
+        visible: control._usesVirtualList
+        model: control._usesVirtualList ? _flatModel : null
         clip: true
         cacheBuffer: 600
         reuseItems: true   // 复用 delegate,滚动时不重复实例化(大列表性能关键)
@@ -318,8 +335,21 @@ Item {
                 visible: rowDelegate.model.kind === "header"
                 width: parent.width
                 height: visible ? Enums.spacing.timelineHeaderHeight + Enums.spacing.s : 0
+                TimelineGraphLayer {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: control._graphWidth
+                    visible: control._graphMode
+                    graphData: rowDelegate.model.graphData || {}
+                    showNode: false
+                    nodeY: 0
+                    selected: false
+                    palette: control.graphPalette
+                }
                 Row {
                     anchors.left: parent.left
+                    anchors.leftMargin: control._graphMode ? control._graphWidth : 0
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Enums.spacing.m
                     Rectangle {
@@ -328,6 +358,7 @@ Item {
                         radius: Enums.controlSize.timelineIcon / 2
                         anchors.verticalCenter: parent.verticalCenter
                         color: control._getStatusColor(rowDelegate.model.status || "info")
+                        visible: !control._graphMode
                         Icon {
                             anchors.centerIn: parent
                             icon: control._getStatusIcon(rowDelegate.model.status || "info")
@@ -361,13 +392,26 @@ Item {
                     width: Enums.border.normal
                     height: parent.height
                     color: Enums.stateColor.borderSubtle
+                    visible: !control._graphMode
+                }
+                TimelineGraphLayer {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: control._graphWidth
+                    visible: control._graphMode
+                    graphData: rowDelegate.model.graphData || {}
+                    showNode: true
+                    nodeY: cardBox.y + cardBox.height / 2
+                    selected: cardPart.isSelected
+                    palette: control.graphPalette
                 }
                 Card {
                     id: cardBox
-                    x: Enums.spacing.timelineIndent
+                    x: control._graphMode ? control._graphWidth : Enums.spacing.timelineIndent
                     y: cardPart.shadowPadding
                     // 右侧留出滚动条宽度 + 间距,避免卡片边缘与滚动条重叠
-                    width: parent.width - Enums.spacing.timelineIndent - Enums.spacing.xl
+                    width: parent.width - x - Enums.spacing.xl
                     height: cardCol.implicitHeight + Enums.spacing.l * 2
                     cardType: Enums.card.type_hover
                     clickEnabled: true
@@ -408,6 +452,14 @@ Item {
                             color: (rowDelegate.model.strikeOut || false) ? Enums.textColor.secondary : Enums.textColor.primary
                             wrapMode: Text.Wrap
                             font.strikeout: rowDelegate.model.strikeOut || false
+                        }
+                        TimelineGraphLabels {
+                            width: parent.width
+                            visible: control._graphMode
+                                && !!rowDelegate.model.cardData
+                                && !!rowDelegate.model.cardData.labels
+                                && rowDelegate.model.cardData.labels.length > 0
+                            labels: visible ? rowDelegate.model.cardData.labels : []
                         }
                         Label {
                             type: Enums.label.type_caption

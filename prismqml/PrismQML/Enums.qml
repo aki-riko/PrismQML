@@ -62,6 +62,12 @@ Item {
     
     // Transparent color constant 透明色常量
     readonly property color transparent: "transparent"
+
+    // ==================== Timeline 时间线 ====================
+    readonly property QtObject timeline: QtObject {
+        readonly property int type_standard: 0
+        readonly property int type_graph: 1
+    }
     
     // ==================== Modular Components 模块化组件 ====================
     Theme { id: _theme; isDark: root.isDark; isNeo: root.isNeobrutalism; isPrismDesign: root.isPrismDesign; accentColor: root.accentColor; accentColorLight: root.accentColorLight; accentColorDark: root.accentColorDark; constants: _constants }
