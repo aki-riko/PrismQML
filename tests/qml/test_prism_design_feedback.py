@@ -123,7 +123,8 @@ def _assert_feedback_effects(item, background, accent):
     assert round(item.property("splashProgressTrackOpacity"), 2) == 0.3
     assert round(item.property("splashIconShadowBlur"), 2) == 0.8
     assert item.property("splashIconShadowOffset") == 6
-    assert round(item.property("splashIconBreatheScale"), 2) == 1.03
+    assert round(item.property("splashIconBreatheMinScale"), 2) == 0.9
+    assert round(item.property("splashIconBreatheMaxScale"), 2) == 1.1
 
 
 def test_prism_design_feedback_light_and_dark(qapp):
@@ -308,7 +309,8 @@ Item {
     property real splashProgressTrackOpacity: splash._progressTrackOpacity
     property real splashIconShadowBlur: splash._iconShadowBlur
     property int splashIconShadowOffset: splash._iconShadowOffset
-    property real splashIconBreatheScale: splash._iconBreatheScale
+    property real splashIconBreatheMinScale: splash._iconBreatheMinScale
+    property real splashIconBreatheMaxScale: splash._iconBreatheMaxScale
 
     width: 320
     height: 240
@@ -533,7 +535,8 @@ Item {
     property real splashProgressTrackOpacity: splash._progressTrackOpacity
     property real splashIconShadowBlur: splash._iconShadowBlur
     property int splashIconShadowOffset: splash._iconShadowOffset
-    property real splashIconBreatheScale: splash._iconBreatheScale
+    property real splashIconBreatheMinScale: splash._iconBreatheMinScale
+    property real splashIconBreatheMaxScale: splash._iconBreatheMaxScale
 
     width: 320
     height: 240

@@ -50,7 +50,8 @@ Rectangle {
     readonly property int _progressDotTopMargin: Enums.splashScreenMetrics.progressDotTopMargin
     readonly property real _iconShadowBlur: Enums.splashScreenMetrics.iconShadowBlur
     readonly property int _iconShadowOffset: Enums.splashScreenMetrics.iconShadowOffset
-    readonly property real _iconBreatheScale: Enums.splashScreenMetrics.iconBreatheScale
+    readonly property real _iconBreatheMinScale: Enums.splashScreenMetrics.iconBreatheMinScale
+    readonly property real _iconBreatheMaxScale: Enums.splashScreenMetrics.iconBreatheMaxScale
     property bool _finishing: false
     
     // ==================== Signals 信号 ====================
@@ -117,14 +118,14 @@ Rectangle {
         NumberAnimation {
             target: iconContainer
             property: "scale"
-            from: 1.0; to: control._iconBreatheScale
+            to: control._iconBreatheMaxScale
             duration: Enums.duration.splashBreathe
             easing.type: Easing.InOutSine
         }
         NumberAnimation {
             target: iconContainer
             property: "scale"
-            from: control._iconBreatheScale; to: 1.0
+            to: control._iconBreatheMinScale
             duration: Enums.duration.splashBreathe
             easing.type: Easing.InOutSine
         }
@@ -163,6 +164,8 @@ Rectangle {
         // Icon Container 图标容器
         Item {
             id: iconContainer
+
+            objectName: "splashIconContainer"
             anchors.horizontalCenter: parent.horizontalCenter
             width: control.iconSize
             height: control.iconSize

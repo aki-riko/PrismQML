@@ -80,7 +80,7 @@ Rectangle {
 - `Enums.isPrismDesign` — Prism Design 布尔便捷判断
 - `Enums.neo.*` — neo 皮肤专属 token（borderWidth / radius / shadowOffset 等）
 - `Enums.prismDesign.*` — Prism Design 专属 token（radiusControl / radiusCard / primary / surface 等）
-- `Enums.splashScreenMetrics.*` — 启动画面专用度量（iconSize / progressRingSize / iconBreatheScale 等）
+- `Enums.splashScreenMetrics.*` — 启动画面专用度量（iconSize / progressRingSize / iconBreatheMinScale / iconBreatheMaxScale 等）
 
 ## 架构：token 驱动，皮肤与控件解耦
 

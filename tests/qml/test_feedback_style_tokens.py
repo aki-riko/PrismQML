@@ -302,18 +302,10 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
             if animation.property("property") == "scale"
         ]
         assert len(scale_animations) == 2
-        breathe_animations = [
-            animation
-            for animation in scale_animations
-            if {(animation.property("from"), animation.property("to"))}
-            <= {(1.0, 1.03), (1.03, 1.0)}
-        ]
-        assert len(breathe_animations) == 2
         assert {
-            (animation.property("from"), animation.property("to"))
-            for animation in breathe_animations
-        } == {(1.0, 1.03), (1.03, 1.0)}
-        assert {animation.property("duration") for animation in breathe_animations} == {
+            animation.property("to") for animation in scale_animations
+        } == {0.9, 1.1}
+        assert {animation.property("duration") for animation in scale_animations} == {
             breathe_duration
         }
 
@@ -366,6 +358,8 @@ def test_splash_first_frame_shows_complete_content(qapp):
         assert splash is not None
         content = splash.findChild(QQuickItem, "splashContent")
         assert content is not None
+        icon_container = splash.findChild(QQuickItem, "splashIconContainer")
+        assert icon_container is not None
 
         # The very first visible frame must already be the complete splash.
         # A background-only frame is a user-visible white flash.
@@ -373,6 +367,7 @@ def test_splash_first_frame_shows_complete_content(qapp):
         assert splash.property("opacity") == pytest.approx(1.0)
         assert content.property("opacity") == pytest.approx(1.0)
         assert content.property("scale") == pytest.approx(1.0)
+        assert icon_container.property("scale") == pytest.approx(1.0, abs=0.005)
 
         _pump(80)
         assert splash.property("opacity") == pytest.approx(1.0)
