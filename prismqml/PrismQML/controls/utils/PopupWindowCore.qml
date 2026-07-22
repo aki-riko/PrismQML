@@ -97,6 +97,20 @@ Item {
         return null
     }
 
+    // Keep inline surfaces inside their owning window. 页内弹层保持在宿主窗口内
+    function _calcInlinePosition(globalX, globalY) {
+        if (!_inlineParent) return Qt.point(0, 0)
+        var localPos = _inlineParent.mapFromGlobal(globalX, globalY)
+        var fitsHorizontally = _outerWidth <= _inlineParent.width
+        var fitsVertically = _outerHeight <= _inlineParent.height
+        var maxX = _inlineParent.width - _outerWidth
+        var maxY = _inlineParent.height - _outerHeight
+        return Qt.point(
+            fitsHorizontally ? Math.max(0, Math.min(localPos.x, maxX)) : localPos.x,
+            fitsVertically ? Math.max(0, Math.min(localPos.y, maxY)) : localPos.y
+        )
+    }
+
     function _calcSubmenuPosition() {
         if (!targetControl || !targetControl.mapToGlobal) return Qt.point(0, 0)
 
@@ -180,7 +194,7 @@ Item {
 
         if (useInWindowPopup) {
             if (!_inlineParent) return
-            var localPos = _inlineParent.mapFromGlobal(posX, posY)
+            var localPos = _calcInlinePosition(posX, posY)
             inlinePopup.x = localPos.x
             inlinePopup.y = localPos.y
             inlinePopup.open()
@@ -364,7 +378,7 @@ Item {
             newY = currentGlobalPos.y + targetControl.height + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset
         }
         if (useInWindowPopup && _inlineParent) {
-            var localPos = _inlineParent.mapFromGlobal(newX, newY)
+            var localPos = _calcInlinePosition(newX, newY)
             inlinePopup.x = localPos.x
             inlinePopup.y = localPos.y
         } else {

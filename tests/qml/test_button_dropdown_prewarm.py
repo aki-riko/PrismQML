@@ -24,6 +24,7 @@ from _button_dropdown_prewarm_support import (
     _popup_content,
     _popup_is_visible,
     _popup_panel_global_position,
+    _popup_surface,
     _popup_window,
     _pump,
     _tooltip,
@@ -299,6 +300,70 @@ def test_open_remeasures_and_tracks_left_aligned_wide_menu(
         reopened_global.x()
     )
     assert not dropdown.property("_geometryPrepared")
+    assert warnings == []
+
+
+def test_inline_reset_menu_near_right_edge_stays_inside_window(dropdown_scene):
+    root, window, warnings, _windows_before = dropdown_scene
+    button = _button(root, "dropdownButton")
+    button.setWidth(120)
+    edge_gap = 12
+    button.setX(window.width() - button.width() - edge_gap)
+    button.setProperty("text", "Reset")
+    button.setProperty(
+        "menuItems",
+        [
+            "Soft — 保留暂存区+工作区",
+            "Mixed — 保留工作区,清暂存区",
+            "Hard — 丢弃所有改动",
+        ],
+    )
+    dropdown = _button_dropdown(button)
+    popup = _dropdown_popup(dropdown)
+
+    target_global = window.mapToGlobal(button.mapToScene(QPointF()).toPoint())
+    window_right = window.mapToGlobal(QPoint(round(window.width()), 0)).x()
+    _invoke(dropdown, "openMenu")
+    assert _wait_for(lambda: popup.property("isOpen"))
+
+    surface = _popup_surface(popup)
+    assert target_global.x() + surface.width() > window_right
+    surface_global = surface.mapToGlobal(QPointF())
+    assert surface_global.x() == pytest.approx(window_right - surface.width())
+    assert surface_global.x() + surface.width() <= window_right + 0.5
+    assert warnings == []
+
+
+def test_inline_reset_menu_tracking_stays_inside_window(dropdown_scene):
+    root, window, warnings, _windows_before = dropdown_scene
+    button = _button(root, "dropdownButton")
+    button.setWidth(120)
+    button.setProperty(
+        "menuItems",
+        [
+            "Soft — 保留暂存区+工作区",
+            "Mixed — 保留工作区,清暂存区",
+            "Hard — 丢弃所有改动",
+        ],
+    )
+    dropdown = _button_dropdown(button)
+    popup = _dropdown_popup(dropdown)
+    _invoke(dropdown, "openMenu")
+    assert _wait_for(lambda: popup.property("isOpen"))
+
+    surface = _popup_surface(popup)
+    edge_gap = 12
+    button.setX(window.width() - button.width() - edge_gap)
+    target_global = window.mapToGlobal(button.mapToScene(QPointF()).toPoint())
+    window_right = window.mapToGlobal(QPoint(round(window.width()), 0)).x()
+    expected_surface_x = window_right - surface.width()
+
+    assert target_global.x() + surface.width() > window_right
+    assert _wait_for(
+        lambda: abs(surface.mapToGlobal(QPointF()).x() - expected_surface_x) < 0.5
+    )
+    surface_global = surface.mapToGlobal(QPointF())
+    assert surface_global.x() + surface.width() <= window_right + 0.5
     assert warnings == []
 
 
