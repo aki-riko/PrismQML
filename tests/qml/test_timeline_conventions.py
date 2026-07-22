@@ -185,8 +185,10 @@ Window {
                             "nodeLane": 0,
                             "nodeColorIndex": 0,
                             "segments": [
-                                {"fromLane": 0, "toLane": 0, "colorIndex": 0},
-                                {"fromLane": 0, "toLane": 1, "colorIndex": 1}
+                                {"fromLane": 0, "toLane": 0, "colorIndex": 0,
+                                    "endAtNode": true},
+                                {"fromLane": 0, "toLane": 1, "colorIndex": 1,
+                                    "startAtNode": true}
                             ]
                         }
                     },

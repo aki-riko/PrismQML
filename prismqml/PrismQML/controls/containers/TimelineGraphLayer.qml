@@ -33,12 +33,15 @@ Item {
     function _paintSegment(ctx, segment) {
         var fromX = _laneX(segment.fromLane)
         var toX = _laneX(segment.toLane)
+        var startY = segment.startAtNode ? nodeY : 0
+        var endY = segment.endAtNode ? nodeY : height
+        var middleY = (startY + endY) / 2
         ctx.beginPath()
-        ctx.moveTo(fromX, 0)
+        ctx.moveTo(fromX, startY)
         if (fromX === toX) {
-            ctx.lineTo(toX, height)
+            ctx.lineTo(toX, endY)
         } else {
-            ctx.bezierCurveTo(fromX, height / 2, toX, height / 2, toX, height)
+            ctx.bezierCurveTo(fromX, middleY, toX, middleY, toX, endY)
         }
         ctx.lineWidth = Enums.border.normal
         ctx.strokeStyle = _colorFor(segment.colorIndex)
