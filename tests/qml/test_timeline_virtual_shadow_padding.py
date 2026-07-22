@@ -4,9 +4,11 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Timeline virtualized shadow padding regression test.
 
-The virtualized Timeline keeps delegate rows clipped to avoid stale reused
-content. Card shadows must therefore be drawn inside the row bounds; otherwise
-the first visible card is clipped when a row aligns with the viewport top.
+The standard virtualized Timeline keeps delegate rows clipped to avoid stale
+reused content. Card shadows must therefore be drawn inside the row bounds;
+otherwise the first visible card is clipped when a row aligns with the viewport
+top. Graph rows move clipping to their header/card content so graph canvases can
+overlap fractional row boundaries.
 """
 import sys
 from pathlib import Path

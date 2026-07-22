@@ -412,6 +412,10 @@ Item {
                             ]
                         }
                     }
+                    ComponentCard {
+                        label: "Timeline · Git graph（分数缩放接缝验收）"
+                        TimelineGitGraphDemo {}
+                    }
                 }
             }
             

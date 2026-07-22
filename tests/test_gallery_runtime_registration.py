@@ -13,6 +13,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GALLERY_MAIN = ROOT / "examples" / "main.py"
 GALLERY_QML = ROOT / "examples" / "main.qml"
+GALLERY_MENU_PAGE = ROOT / "examples" / "pages" / "MenuPage.qml"
+GALLERY_GIT_GRAPH = ROOT / "examples" / "pages" / "TimelineGitGraphDemo.qml"
 PUBLIC_CONTEXT_NAMES = {
     "ThemeManager",
     "ConfigManager",
@@ -81,3 +83,15 @@ def test_gallery_defaults_language_to_follow_system():
 
     assert "Fluent.Translator.setLanguage(Fluent.Enums.lang.auto)" in source
     assert "Fluent.Translator.setLanguage(Fluent.Enums.lang.zh_CN)" not in source
+
+
+def test_gallery_exposes_fractional_dpi_git_graph_timeline():
+    menu_source = GALLERY_MENU_PAGE.read_text(encoding="utf-8")
+    graph_source = GALLERY_GIT_GRAPH.read_text(encoding="utf-8")
+
+    assert "TimelineGitGraphDemo {}" in menu_source
+    assert 'objectName: "galleryGitGraphTimeline"' in graph_source
+    assert "type: Fluent.Enums.timeline.type_graph" in graph_source
+    assert "graphLaneCount: 3" in graph_source
+    assert "startAtNode: true" in graph_source
+    assert "endAtNode: true" in graph_source

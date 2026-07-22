@@ -325,9 +325,27 @@ Item {
         delegate: Item {
             id: rowDelegate
             required property var model
+            readonly property real graphBoundaryOverlap: Enums.border.normal
             width: virtualList.width
             height: model.kind === "header" ? headerPart.height : cardPart.height
-            clip: true   // 防止复用切换(header↔card)瞬间旧内容溢出残留("鬼影")
+            clip: !control._graphMode
+
+            // Keep graph canvases away from fractional row clip edges. The
+            // header/card content remains clipped locally for delegate reuse.
+            // 图层跨过分数行边界重叠绘制，标题与卡片内容仍各自裁剪以避免复用残影。
+            TimelineGraphLayer {
+                x: 0
+                y: -rowDelegate.graphBoundaryOverlap
+                width: control._graphWidth
+                height: rowDelegate.height + rowDelegate.graphBoundaryOverlap * 2
+                visible: control._graphMode
+                graphData: rowDelegate.model.graphData || {}
+                showNode: rowDelegate.model.kind === "card"
+                nodeY: rowDelegate.graphBoundaryOverlap
+                    + cardBox.y + cardBox.height / 2
+                selected: showNode && cardPart.isSelected
+                graphPalette: control.graphPalette
+            }
 
             // ---------- 组头行 ----------
             Item {
@@ -335,18 +353,7 @@ Item {
                 visible: rowDelegate.model.kind === "header"
                 width: parent.width
                 height: visible ? Enums.spacing.timelineHeaderHeight + Enums.spacing.s : 0
-                TimelineGraphLayer {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: control._graphWidth
-                    visible: control._graphMode
-                    graphData: rowDelegate.model.graphData || {}
-                    showNode: false
-                    nodeY: 0
-                    selected: false
-                    graphPalette: control.graphPalette
-                }
+                clip: true
                 Row {
                     anchors.left: parent.left
                     anchors.leftMargin: control._graphMode ? control._graphWidth : 0
@@ -386,6 +393,7 @@ Item {
                 visible: rowDelegate.model.kind === "card"
                 width: parent.width
                 height: visible ? cardBox.y + cardBox.height + Enums.spacing.m : 0
+                clip: true
                 // 左侧连接线
                 Rectangle {
                     x: 7; y: 0
@@ -393,18 +401,6 @@ Item {
                     height: parent.height
                     color: Enums.stateColor.borderSubtle
                     visible: !control._graphMode
-                }
-                TimelineGraphLayer {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: control._graphWidth
-                    visible: control._graphMode
-                    graphData: rowDelegate.model.graphData || {}
-                    showNode: true
-                    nodeY: cardBox.y + cardBox.height / 2
-                    selected: cardPart.isSelected
-                    graphPalette: control.graphPalette
                 }
                 Card {
                     id: cardBox

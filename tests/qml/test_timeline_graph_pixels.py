@@ -17,8 +17,9 @@ TEST_PROCESS = ROOT / "scripts" / "test_process.py"
 BOUNDARY_PROBE = r'''
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QPointF, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem
 from PySide6.QtWidgets import QApplication
 
 from prismqml import register_types
@@ -41,32 +42,48 @@ import QtQuick.Window
 import PrismQML
 
 Window {
-    width: 120
-    height: 130
+    width: 420
+    height: 420
     visible: true
     color: Enums.backgroundColor
 
-    TimelineGraphLayer {
-        width: 64
-        height: 65
-        graphData: ({"segments": [
-            {"fromLane": 0, "toLane": 0, "colorIndex": 0}
-        ]})
-        showNode: false
-        nodeY: 0
-        selected: false
-    }
-
-    TimelineGraphLayer {
-        y: 65
-        width: 64
-        height: 65
-        graphData: ({"segments": [
-            {"fromLane": 0, "toLane": 0, "colorIndex": 0}
-        ]})
-        showNode: false
-        nodeY: 0
-        selected: false
+    TimelineCore {
+        objectName: "timeline"
+        x: 20
+        y: 20
+        width: 380
+        height: 380
+        type: Enums.timeline.type_graph
+        graphLaneCount: 1
+        graphPalette: ["#0078d4"]
+        items: [{
+            "title": "Graph",
+            "graph": {"segments": [
+                {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+            ]},
+            "cards": [
+                {"text": "One", "graph": {"nodeLane": 0,
+                    "nodeColorIndex": 0, "segments": [
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+                    ]}},
+                {"text": "Two", "graph": {"nodeLane": 0,
+                    "nodeColorIndex": 0, "segments": [
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+                    ]}},
+                {"text": "Three", "graph": {"nodeLane": 0,
+                    "nodeColorIndex": 0, "segments": [
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+                    ]}},
+                {"text": "Four", "graph": {"nodeLane": 0,
+                    "nodeColorIndex": 0, "segments": [
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+                    ]}},
+                {"text": "Five", "graph": {"nodeLane": 0,
+                    "nodeColorIndex": 0, "segments": [
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+                    ]}}
+            ]
+        }]
     }
 }
 """,
@@ -89,23 +106,63 @@ assert window is not None, [error.toString() for error in component.errors()]
 loop = QEventLoop()
 QTimer.singleShot(400, loop.quit)
 loop.exec()
+timeline = window.findChild(QQuickItem, "timeline")
+assert timeline is not None
+list_view = next(
+    item
+    for item in timeline.findChildren(QQuickItem)
+    if "ListView" in item.metaObject().className()
+)
+list_view.setProperty("contentY", 23.25)
+QTimer.singleShot(200, loop.quit)
+loop.exec()
 image = window.grabWindow()
 assert not image.isNull()
 scale = image.width() / window.width()
-sample_x = round(16 * scale)
-boundary = round(65 * scale)
-interior = image.pixelColor(sample_x, boundary - 4)
-junction = [
-    image.pixelColor(sample_x, sample_y)
-    for sample_y in range(boundary - 1, boundary + 2)
-]
-assert all(color == interior for color in junction), (
-    interior.name(),
-    [color.name() for color in junction],
-    scale,
+
+def visual_descendants(item):
+    descendants = []
+    for child in item.childItems():
+        descendants.append(child)
+        descendants.extend(visual_descendants(child))
+    return descendants
+
+layer_rows = sorted(
+    (
+        (item, item.parentItem())
+        for item in visual_descendants(timeline)
+        if item.objectName() == "timelineGraphLayer" and item.isVisible()
+    ),
+    key=lambda pair: pair[1].mapToScene(QPointF(0, 0)).y(),
 )
+assert len(layer_rows) >= 4, len(layer_rows)
+boundaries = []
+for current, following in zip(layer_rows, layer_rows[1:]):
+    current_layer, current_row = current
+    _following_layer, following_row = following
+    current_bottom = current_row.mapToScene(QPointF(0, current_row.height())).y()
+    following_top = following_row.mapToScene(QPointF(0, 0)).y()
+    if abs(current_bottom - following_top) < 0.01:
+        boundaries.append((current_layer, current_bottom))
+assert len(boundaries) >= 3, boundaries
+
+failures = []
+for layer, boundary_y in boundaries:
+    lane_x = layer.mapToScene(QPointF(16, 0)).x()
+    sample_x = round(lane_x * scale)
+    boundary = round(boundary_y * scale)
+    interior = image.pixelColor(sample_x, boundary - 4)
+    junction = [
+        image.pixelColor(sample_x, sample_y)
+        for sample_y in range(boundary - 1, boundary + 2)
+    ]
+    if any(color != interior for color in junction):
+        failures.append(
+            (boundary_y, interior.name(), [color.name() for color in junction])
+        )
+assert failures == [], (failures, scale, list_view.property("contentY"))
 assert warnings == [], warnings
-print("TIMELINE_GRAPH_BOUNDARY_OK", interior.name(), scale)
+print("TIMELINE_GRAPH_BOUNDARY_OK", len(boundaries), scale)
 window.close()
 window.deleteLater()
 component.deleteLater()
