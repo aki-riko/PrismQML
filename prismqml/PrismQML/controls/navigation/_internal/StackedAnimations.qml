@@ -193,7 +193,8 @@ Item {
         oldWidget.opacity = 1
         oldWidget.x = 0
 
-        var direction = isBack ? 1 : -1
+        // 前进时新页面从右侧进入，返回时从左侧进入。
+        var direction = isBack ? -1 : 1
         newWidget.x = control.width * direction
         newWidget.opacity = 1  // Ensure visible 确保可见
         newWidget.visible = true
