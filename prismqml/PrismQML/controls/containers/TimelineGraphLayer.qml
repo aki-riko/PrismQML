@@ -13,7 +13,7 @@ Item {
     required property bool showNode
     required property real nodeY
     required property bool selected
-    property var palette: Enums.chartColors.extendedPalette
+    property var graphPalette: Enums.chartColors.extendedPalette
     property color nodeBackground: Enums.cardColor
     property color selectedColor: Enums.accentColor
 
@@ -25,9 +25,9 @@ Item {
     }
 
     function _colorFor(index) {
-        if (!palette || palette.length === 0) return Enums.accentColor
-        var safeIndex = Math.abs(Math.floor(Number(index) || 0)) % palette.length
-        return palette[safeIndex]
+        if (!graphPalette || graphPalette.length === 0) return Enums.accentColor
+        var safeIndex = Math.abs(Math.floor(Number(index) || 0)) % graphPalette.length
+        return graphPalette[safeIndex]
     }
 
     function _paintSegment(ctx, segment) {
@@ -79,7 +79,7 @@ Item {
     onShowNodeChanged: graphCanvas.requestPaint()
     onNodeYChanged: graphCanvas.requestPaint()
     onSelectedChanged: graphCanvas.requestPaint()
-    onPaletteChanged: graphCanvas.requestPaint()
+    onGraphPaletteChanged: graphCanvas.requestPaint()
     onNodeBackgroundChanged: graphCanvas.requestPaint()
     onSelectedColorChanged: graphCanvas.requestPaint()
     onWidthChanged: graphCanvas.requestPaint()

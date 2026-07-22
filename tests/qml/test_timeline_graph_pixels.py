@@ -27,6 +27,10 @@ from prismqml import register_types
 root = Path.cwd()
 app = QApplication([])
 engine = QQmlApplicationEngine()
+warnings = []
+engine.warnings.connect(
+    lambda errors: warnings.extend(error.toString() for error in errors)
+)
 engine.addImportPath(str(root / "prismqml"))
 register_types(engine)
 component = QQmlComponent(engine)
@@ -100,6 +104,7 @@ assert all(color == interior for color in junction), (
     [color.name() for color in junction],
     scale,
 )
+assert warnings == [], warnings
 print("TIMELINE_GRAPH_BOUNDARY_OK", interior.name(), scale)
 window.close()
 window.deleteLater()
@@ -141,4 +146,5 @@ def test_timeline_graph_stays_opaque_across_scaled_delegate_boundaries():
 
     assert result.returncode == 0, output
     assert "TIMELINE_GRAPH_BOUNDARY_OK" in output
-    assert "visible_windows=0 / job_active_processes=0" in output
+    if sys.platform == "win32":
+        assert "visible_windows=0 / job_active_processes=0" in output

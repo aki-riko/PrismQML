@@ -345,7 +345,7 @@ Item {
                     showNode: false
                     nodeY: 0
                     selected: false
-                    palette: control.graphPalette
+                    graphPalette: control.graphPalette
                 }
                 Row {
                     anchors.left: parent.left
@@ -404,7 +404,7 @@ Item {
                     showNode: true
                     nodeY: cardBox.y + cardBox.height / 2
                     selected: cardPart.isSelected
-                    palette: control.graphPalette
+                    graphPalette: control.graphPalette
                 }
                 Card {
                     id: cardBox
