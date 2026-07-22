@@ -16,12 +16,14 @@ class MicaManager : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(bool isWin11 READ isWin11 CONSTANT)
+    Q_PROPERTY(bool isMicaSupported READ isMicaSupported CONSTANT)
     Q_PROPERTY(bool micaEnabled READ micaEnabled NOTIFY micaEnabledChanged)
 
 public:
     static MicaManager *instance();
 
     bool isWin11() const { return m_isWin11; }
+    bool isMicaSupported() const { return m_isMicaSupported; }
     bool micaEnabled() const { return m_micaEnabled; }
 
 public slots:
@@ -35,11 +37,13 @@ signals:
 
 private:
     explicit MicaManager(QObject *parent = nullptr);
-    static bool detectWin11();
+    static quint32 detectWindowsBuild();
     bool applyMica(qulonglong hwnd, bool enabled);
     static qulonglong winIdFromVariant(const QVariant &window);
 
+    quint32 m_windowsBuild;
     bool m_isWin11;
+    bool m_isMicaSupported;
     bool m_micaEnabled = false;
     qulonglong m_currentHwnd = 0;
 };

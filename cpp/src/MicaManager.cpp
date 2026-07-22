@@ -34,11 +34,14 @@ MicaManager *MicaManager::instance() {
 }
 
 MicaManager::MicaManager(QObject *parent)
-    : QObject(parent), m_isWin11(detectWin11()) {}
+    : QObject(parent),
+      m_windowsBuild(detectWindowsBuild()),
+      m_isWin11(m_windowsBuild >= kWin11BuildThreshold),
+      m_isMicaSupported(m_windowsBuild >= kWin11BackdropBuildThreshold) {}
 
-bool MicaManager::detectWin11() {
+quint32 MicaManager::detectWindowsBuild() {
 #ifdef Q_OS_WIN
-    // 用 RtlGetVersion 拿真实 build (镜像 Python sys.getwindowsversion().build >= 22000)
+    // 用 RtlGetVersion 拿真实 build (镜像 Python sys.getwindowsversion().build)
     typedef LONG(WINAPI * RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
     if (HMODULE hMod = GetModuleHandleW(L"ntdll.dll")) {
         auto fn = reinterpret_cast<RtlGetVersionPtr>(
@@ -47,12 +50,12 @@ bool MicaManager::detectWin11() {
             RTL_OSVERSIONINFOW info{};
             info.dwOSVersionInfoSize = sizeof(info);
             if (fn(&info) == 0)
-                return info.dwBuildNumber >= kWin11BuildThreshold;
+                return static_cast<quint32>(info.dwBuildNumber);
         }
     }
-    return false;
+    return 0;
 #else
-    return false;
+    return 0;
 #endif
 }
 
@@ -68,7 +71,7 @@ qulonglong MicaManager::winIdFromVariant(const QVariant &window) {
 
 bool MicaManager::applyMica(qulonglong hwnd, bool enabled) {
 #ifdef Q_OS_WIN
-    if (!m_isWin11 || !hwnd)
+    if (!m_isMicaSupported || !hwnd)
         return false;
     HWND h = reinterpret_cast<HWND>(hwnd);
     m_currentHwnd = hwnd;
@@ -76,25 +79,6 @@ bool MicaManager::applyMica(qulonglong hwnd, bool enabled) {
     // 圆角 (镜像 Python: DWMWCP_ROUND)
     int corner = kDwmwcpRound;
     DwmSetWindowAttribute(h, kDwmwaWindowCornerPreference, &corner, sizeof(corner));
-
-    // 背景类型需 Build >= 22621
-    typedef LONG(WINAPI * RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
-    DWORD build = 0;
-    if (HMODULE hMod = GetModuleHandleW(L"ntdll.dll")) {
-        auto fn = reinterpret_cast<RtlGetVersionPtr>(
-            reinterpret_cast<void *>(GetProcAddress(hMod, "RtlGetVersion")));
-        if (fn) {
-            RTL_OSVERSIONINFOW info{};
-            info.dwOSVersionInfoSize = sizeof(info);
-            if (fn(&info) == 0)
-                build = info.dwBuildNumber;
-        }
-    }
-    if (build < static_cast<DWORD>(kWin11BackdropBuildThreshold)) {
-        qWarning() << "prism::MicaManager: 背景类型需 Build >=" << kWin11BackdropBuildThreshold
-                   << "当前" << build;
-        return false;
-    }
 
     int backdrop = enabled ? kDwmBackdropMica : kDwmBackdropNone;
     HRESULT r = DwmSetWindowAttribute(h, kDwmwaSystemBackdropType, &backdrop, sizeof(backdrop));
@@ -107,7 +91,7 @@ bool MicaManager::applyMica(qulonglong hwnd, bool enabled) {
 
 bool MicaManager::setMicaEffect(const QVariant &window, bool enabled, bool dark) {
 #ifdef Q_OS_WIN
-    if (!m_isWin11)
+    if (!m_isMicaSupported)
         return false;
     const qulonglong hwnd = winIdFromVariant(window);
     if (!hwnd) {

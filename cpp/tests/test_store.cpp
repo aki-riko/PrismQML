@@ -356,6 +356,11 @@ int main(int argc, char *argv[]) {
         CHECK(getThemeManager() == ThemeManager::instance(), "getThemeManager==instance");
         CHECK(getShadowManager() == ShadowManager::instance(), "getShadowManager==instance");
         CHECK(get_mica_manager() == MicaManager::instance(), "get_mica_manager==instance");
+        MicaManager *mica = MicaManager::instance();
+        CHECK(mica->metaObject()->indexOfProperty("isMicaSupported") >= 0,
+              "MicaManager 暴露 isMicaSupported QML 属性");
+        CHECK(mica->property("isMicaSupported").toBool() == mica->isMicaSupported(),
+              "isMicaSupported 元对象值与 C++ getter 一致");
         CHECK(getConfigManager() == ConfigManager::instance(), "getConfigManager==instance");
         // NavigationItem 构造
         NavigationItem nav(QStringLiteral("首页"), QStringLiteral("Home"),
