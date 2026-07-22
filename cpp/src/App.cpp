@@ -43,6 +43,7 @@ App *App::s_instance = nullptr;
 
 void configureQmlEnvironment(bool allowFileRead) {
     qputenv(kQmlXhrAllowFileReadEnvironment, allowFileRead ? "1" : "0");
+    QQuickWindow::setDefaultAlphaBuffer(true);
 }
 
 App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRead) {

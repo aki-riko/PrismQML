@@ -7,6 +7,7 @@
 #include "prism/SingleInstance.h"
 #include "prism/WindowHelper.h"
 #include "../src/IconPath_p.h"
+#include "../src/WindowFollower_p.h"
 #include "TestProcess.h"
 
 #include <QApplication>
@@ -89,6 +90,44 @@ static void testAvailableScreenGeometry() {
           "WindowHelper returns QScreen availableGeometry");
 }
 
+static void testWindowFollowerGeometry() {
+    using namespace prism::detail;
+    const WindowFollowerRect host{100, 120, 700, 520};
+    const WindowFollowerRect left = followerRect(host, 180, 120, WindowFollowerLeft);
+    const WindowFollowerRect right = followerRect(host, 180, 120, WindowFollowerRight);
+    const WindowFollowerRect top = followerRect(host, 180, 120, WindowFollowerTop);
+    const WindowFollowerRect bottom = followerRect(host, 180, 120, WindowFollowerBottom);
+    CHECK(left.left == -80 && left.top == 120 && left.right == 100 && left.bottom == 520,
+          "WindowHelper 左侧跟随使用候选原生 RECT");
+    CHECK(right.left == 700 && right.top == 120 && right.right == 880 && right.bottom == 520,
+          "WindowHelper 右侧跟随使用候选原生 RECT");
+    CHECK(top.left == 100 && top.top == 0 && top.right == 700 && top.bottom == 120,
+          "WindowHelper 顶部跟随使用候选原生 RECT");
+    CHECK(bottom.left == 100 && bottom.top == 520 && bottom.right == 700 && bottom.bottom == 640,
+          "WindowHelper 底部跟随使用候选原生 RECT");
+
+    const WindowFollowerRect extentLeft = followerRectForExtent(
+        host, 60, WindowFollowerLeft);
+    const WindowFollowerRect extentRight = followerRectForExtent(
+        host, 60, WindowFollowerRight);
+    const WindowFollowerRect extentTop = followerRectForExtent(
+        host, 60, WindowFollowerTop);
+    const WindowFollowerRect extentBottom = followerRectForExtent(
+        host, 60, WindowFollowerBottom);
+    CHECK(extentLeft.left == 40 && extentLeft.top == 120
+              && extentLeft.right == 100 && extentLeft.bottom == 520,
+          "WindowHelper 左侧动画帧原子更新完整 RECT");
+    CHECK(extentRight.left == 700 && extentRight.top == 120
+              && extentRight.right == 760 && extentRight.bottom == 520,
+          "WindowHelper 右侧动画帧原子更新完整 RECT");
+    CHECK(extentTop.left == 100 && extentTop.top == 60
+              && extentTop.right == 700 && extentTop.bottom == 120,
+          "WindowHelper 顶部动画帧原子更新完整 RECT");
+    CHECK(extentBottom.left == 100 && extentBottom.top == 520
+              && extentBottom.right == 700 && extentBottom.bottom == 580,
+          "WindowHelper 底部动画帧原子更新完整 RECT");
+}
+
 int main(int argc, char *argv[]) {
     if (!prism::test::configureNonInteractiveProcess()) return 2;
     QApplication app(argc, argv);
@@ -98,6 +137,7 @@ int main(int argc, char *argv[]) {
     testIconPathUrlMatrix();
     testRealEncodedIcon();
     testAvailableScreenGeometry();
+    testWindowFollowerGeometry();
 
     qInfo() << "=== SystemTray 烟测 ===";
     // 构造 + addAction + addSeparator 不崩 (QApplication 下 QMenu 正常)

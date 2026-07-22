@@ -8,7 +8,9 @@
 #include "prism/WindowHelper.h"
 #include "prism/AcrylicHelper.h"
 #include "IconPath_p.h"
+#include "WindowFollower_p.h"
 
+#include <QCoreApplication>
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QIcon>
@@ -23,6 +25,10 @@
 #include <QFileInfo>
 #include <QDebug>
 #include <utility>
+
+#ifdef Q_OS_WIN
+#  include <windows.h>
+#endif
 
 namespace prism {
 
@@ -103,6 +109,170 @@ QVariantMap WindowHelper::availableScreenGeometryAt(int x, int y) const {
     };
 }
 
+qulonglong WindowHelper::winIdFromVariant(const QVariant &window) {
+    QObject *object = qvariant_cast<QObject *>(window);
+    if (!object)
+        return 0;
+    if (auto *nativeWindow = qobject_cast<QWindow *>(object))
+        return static_cast<qulonglong>(nativeWindow->winId());
+    const QVariant winId = object->property("winId");
+    return winId.isValid() ? winId.toULongLong() : 0;
+}
+
+bool WindowHelper::ensureFollowerFilterInstalled() {
+#ifdef Q_OS_WIN
+    if (m_followerFilterInstalled)
+        return true;
+    QCoreApplication *app = QCoreApplication::instance();
+    if (!app) {
+        qWarning() << "prism::WindowHelper: QCoreApplication 未创建, 无法注册窗口跟随";
+        return false;
+    }
+    app->installNativeEventFilter(this);
+    m_followerFilterInstalled = true;
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool WindowHelper::registerWindowFollower(
+    const QVariant &hostWindow, const QVariant &followerWindow, int edge) {
+#ifdef Q_OS_WIN
+    const qulonglong hostHwnd = winIdFromVariant(hostWindow);
+    const qulonglong followerHwnd = winIdFromVariant(followerWindow);
+    if (!hostHwnd || !followerHwnd || !detail::isWindowFollowerEdge(edge)
+        || !ensureFollowerFilterInstalled())
+        return false;
+
+    RECT hostNativeRect{};
+    RECT followerNativeRect{};
+    if (!GetWindowRect(reinterpret_cast<HWND>(hostHwnd), &hostNativeRect)
+        || !GetWindowRect(reinterpret_cast<HWND>(followerHwnd), &followerNativeRect))
+        return false;
+    const int width = followerNativeRect.right - followerNativeRect.left;
+    const int height = followerNativeRect.bottom - followerNativeRect.top;
+    if (width <= 0 || height <= 0)
+        return false;
+    const detail::WindowFollowerRect hostRect{
+        hostNativeRect.left, hostNativeRect.top,
+        hostNativeRect.right, hostNativeRect.bottom};
+    const detail::WindowFollowerRect followerRect = detail::followerRect(
+        hostRect, width, height, edge);
+    const detail::WindowFollowerRect currentFollowerRect{
+        followerNativeRect.left, followerNativeRect.top,
+        followerNativeRect.right, followerNativeRect.bottom};
+    if (!detail::sameWindowFollowerRect(currentFollowerRect, followerRect)) {
+        if (!SetWindowPos(
+                reinterpret_cast<HWND>(followerHwnd), nullptr,
+                followerRect.left, followerRect.top,
+                followerRect.right - followerRect.left,
+                followerRect.bottom - followerRect.top,
+                SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER))
+            return false;
+    }
+    m_followers.insert(
+        followerHwnd,
+        {hostHwnd, followerHwnd, edge, width, height});
+    return true;
+#else
+    Q_UNUSED(hostWindow); Q_UNUSED(followerWindow); Q_UNUSED(edge);
+    return false;
+#endif
+}
+
+bool WindowHelper::updateWindowFollowerGeometry(
+    const QVariant &hostWindow, const QVariant &followerWindow,
+    int edge, qreal logicalExtent) {
+    if (!detail::isWindowFollowerEdge(edge) || logicalExtent <= 0)
+        return false;
+    QObject *hostObject = qvariant_cast<QObject *>(hostWindow);
+    QObject *followerObject = qvariant_cast<QObject *>(followerWindow);
+    auto *nativeHostWindow = qobject_cast<QWindow *>(hostObject);
+    auto *nativeFollowerWindow = qobject_cast<QWindow *>(followerObject);
+    if (!nativeHostWindow || !nativeFollowerWindow)
+        return false;
+
+#ifdef Q_OS_WIN
+    const qulonglong hostHwnd = static_cast<qulonglong>(nativeHostWindow->winId());
+    const qulonglong followerHwnd = static_cast<qulonglong>(nativeFollowerWindow->winId());
+    RECT hostNativeRect{};
+    if (hostHwnd && followerHwnd
+        && GetWindowRect(reinterpret_cast<HWND>(hostHwnd), &hostNativeRect)) {
+        const int physicalExtent = qMax(
+            1, qRound(logicalExtent * nativeHostWindow->devicePixelRatio()));
+        const detail::WindowFollowerRect hostRect{
+            hostNativeRect.left, hostNativeRect.top,
+            hostNativeRect.right, hostNativeRect.bottom};
+        const detail::WindowFollowerRect followerRect =
+            detail::followerRectForExtent(hostRect, physicalExtent, edge);
+        if (SetWindowPos(
+                reinterpret_cast<HWND>(followerHwnd), nullptr,
+                followerRect.left, followerRect.top,
+                followerRect.right - followerRect.left,
+                followerRect.bottom - followerRect.top,
+                SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER))
+            return true;
+    }
+#endif
+
+    const QRect hostGeometry = nativeHostWindow->frameGeometry();
+    const detail::WindowFollowerRect hostRect{
+        hostGeometry.left(), hostGeometry.top(),
+        hostGeometry.right() + 1, hostGeometry.bottom() + 1};
+    const detail::WindowFollowerRect followerRect =
+        detail::followerRectForExtent(
+            hostRect, qMax(1, qRound(logicalExtent)), edge);
+    nativeFollowerWindow->setGeometry(QRect(
+        followerRect.left, followerRect.top,
+        followerRect.right - followerRect.left,
+        followerRect.bottom - followerRect.top));
+    return true;
+}
+
+bool WindowHelper::unregisterWindowFollower(const QVariant &followerWindow) {
+#ifdef Q_OS_WIN
+    const qulonglong followerHwnd = winIdFromVariant(followerWindow);
+    if (!followerHwnd)
+        return false;
+    return m_followers.remove(followerHwnd);
+#else
+    Q_UNUSED(followerWindow);
+    return false;
+#endif
+}
+
+bool WindowHelper::nativeEventFilter(
+    const QByteArray &eventType, void *message, qintptr *result) {
+    Q_UNUSED(result);
+#ifdef Q_OS_WIN
+    if (eventType != "windows_generic_MSG" || !message)
+        return false;
+    MSG *msg = static_cast<MSG *>(message);
+    if ((msg->message != WM_MOVING && msg->message != WM_SIZING) || !msg->lParam)
+        return false;
+
+    RECT *rect = reinterpret_cast<RECT *>(msg->lParam);
+    const detail::WindowFollowerRect hostRect{
+        rect->left, rect->top, rect->right, rect->bottom};
+    for (auto it = m_followers.cbegin(); it != m_followers.cend(); ++it) {
+        const WindowFollowerBinding &binding = it.value();
+        if (binding.hostHwnd != reinterpret_cast<qulonglong>(msg->hwnd))
+            continue;
+        const detail::WindowFollowerRect follower = detail::followerRect(
+            hostRect, binding.followerWidth, binding.followerHeight, binding.edge);
+        SetWindowPos(
+            reinterpret_cast<HWND>(binding.followerHwnd), nullptr,
+            follower.left, follower.top,
+            follower.right - follower.left, follower.bottom - follower.top,
+            SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+    }
+#else
+    Q_UNUSED(eventType); Q_UNUSED(message);
+#endif
+    return false;
+}
+
 // ==================== AcrylicImageProvider + AcrylicHelper ====================
 QImage AcrylicImageState::image() const {
     QMutexLocker locker(&m_mutex);
@@ -162,10 +332,10 @@ static QImage scaleBlur(const QImage &src, int radius) {
     if (src.isNull())
         return src;
     const int factor = qMax(2, radius / 4);
-    QSize small = src.size() / factor;
-    if (small.width() < 1 || small.height() < 1)
+    QSize smallSize = src.size() / factor;
+    if (smallSize.width() < 1 || smallSize.height() < 1)
         return src;
-    QImage down = src.scaled(small, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    QImage down = src.scaled(smallSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     return down.scaled(src.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 }
 

@@ -14,13 +14,26 @@ from .diagnostics import startup_profile_verbose_enabled
 QML_XHR_ALLOW_FILE_READ_ENV = "QML_XHR_ALLOW_FILE_READ"
 
 
+def _enable_quick_window_alpha_buffer() -> None:
+    """Enable translucent child windows before their native surfaces exist.
+
+    在原生表面创建前启用透明子窗口所需的 alpha buffer。
+    """
+    from PySide6.QtQuick import QQuickWindow
+
+    QQuickWindow.setDefaultAlphaBuffer(True)
+
+
 def configure_qml_environment(allow_file_read: bool = True) -> None:
-    """Configure local QML XHR before engine creation. 配置 QML 本地文件读取。
+    """Configure process-wide QML rendering before engine creation.
+
+    在引擎创建前配置进程级 QML 渲染环境。
 
     普通 ``import prismqml`` 不修改该进程环境。使用裸 ``QQmlEngine`` 且需要
     Translator 加载本地 i18n JSON 时，必须在创建引擎前显式调用本函数。
     """
     os.environ[QML_XHR_ALLOW_FILE_READ_ENV] = "1" if allow_file_read else "0"
+    _enable_quick_window_alpha_buffer()
 
 
 def qml_path(relative_path: str = "") -> Path:
@@ -99,6 +112,7 @@ def _register_support_context(context: QQmlContext) -> None:
 
 def register_types(engine: QQmlApplicationEngine) -> None:
     """Register public QML context and providers. 注册公开 QML 上下文与 provider。"""
+    _enable_quick_window_alpha_buffer()
     context = engine.rootContext()
     _register_primary_context(context)
     _register_lazy_context(engine, context)

@@ -22,6 +22,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QQuickWindow>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QTemporaryDir>
@@ -231,9 +232,12 @@ int main(int argc, char *argv[]) {
 
     const bool hadQmlFileRead = qEnvironmentVariableIsSet(kQmlXhrAllowFileReadEnvironment);
     const QByteArray originalQmlFileRead = qgetenv(kQmlXhrAllowFileReadEnvironment);
+    QQuickWindow::setDefaultAlphaBuffer(false);
     configureQmlEnvironment(false);
     CHECK(qgetenv(kQmlXhrAllowFileReadEnvironment) == QByteArrayLiteral("0"),
           "QML 本地文件读取可显式关闭");
+    CHECK(QQuickWindow::hasDefaultAlphaBuffer(),
+          "QML 透明子窗口在首个原生表面前启用 alpha buffer");
     configureQmlEnvironment();
     CHECK(qgetenv(kQmlXhrAllowFileReadEnvironment) == QByteArrayLiteral("1"),
           "QML 本地文件读取可显式启用");

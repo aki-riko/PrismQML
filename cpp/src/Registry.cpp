@@ -19,12 +19,14 @@
 
 #include <QQmlEngine>
 #include <QQmlContext>
+#include <QQuickWindow>
 #include <QProcessEnvironment>
 #include <QDir>
 
 namespace prism {
 
 void registerTypes(QQmlEngine *engine, const QString &importPath) {
+    QQuickWindow::setDefaultAlphaBuffer(true);
     QQmlContext *ctx = engine->rootContext();
 
     // ==================== context 对象注入 (镜像 register_types) ====================

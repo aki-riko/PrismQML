@@ -94,13 +94,21 @@ def test_import_prismqml_does_not_enable_local_qml_xhr():
 
 def test_configure_qml_environment_is_explicit(monkeypatch):
     from prismqml import configure_qml_environment
+    from PySide6.QtQuick import QQuickWindow
 
     monkeypatch.delenv("QML_XHR_ALLOW_FILE_READ", raising=False)
-    configure_qml_environment()
-    assert os.environ["QML_XHR_ALLOW_FILE_READ"] == "1"
+    original_alpha_buffer = QQuickWindow.hasDefaultAlphaBuffer()
+    QQuickWindow.setDefaultAlphaBuffer(False)
+    try:
+        configure_qml_environment()
+        assert os.environ["QML_XHR_ALLOW_FILE_READ"] == "1"
+        assert QQuickWindow.hasDefaultAlphaBuffer()
 
-    configure_qml_environment(False)
-    assert os.environ["QML_XHR_ALLOW_FILE_READ"] == "0"
+        configure_qml_environment(False)
+        assert os.environ["QML_XHR_ALLOW_FILE_READ"] == "0"
+        assert QQuickWindow.hasDefaultAlphaBuffer()
+    finally:
+        QQuickWindow.setDefaultAlphaBuffer(original_alpha_buffer)
 
 
 def test_app_initialization_enables_local_qml_xhr():

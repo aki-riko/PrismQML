@@ -16,6 +16,7 @@ from PySide6.QtCore import (
     qInstallMessageHandler,
 )
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickWindow
 
 from prismqml.python.config.config_manager import ConfigManager
 from prismqml.python.core.shadow import getShadowManager
@@ -169,6 +170,7 @@ def test_register_types_injects_public_context_without_qml_warnings(
         not any(marker in message for marker in _MISSING_CONTEXT_MARKERS)
         for _mode, message in messages
     )
+    assert QQuickWindow.hasDefaultAlphaBuffer()
 
 
 def test_register_types_injects_enabled_verbose_diagnostic_switch(

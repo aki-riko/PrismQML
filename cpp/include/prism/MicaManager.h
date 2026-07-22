@@ -27,6 +27,7 @@ public:
 public slots:
     // QML: setMicaEffect(QQuickWindow, bool, bool) -> bool
     bool setMicaEffect(const QVariant &window, bool enabled, bool dark = false);
+    bool setWindowCorner(const QVariant &window, bool rounded);
     void updateDarkMode(bool dark);
 
 signals:

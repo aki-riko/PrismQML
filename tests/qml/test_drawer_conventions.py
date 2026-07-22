@@ -13,6 +13,7 @@ from PySide6.QtCore import (
     QEventLoop,
     QMetaObject,
     QPoint,
+    QPointF,
     QTimer,
     QUrl,
     Qt,
@@ -54,6 +55,8 @@ Window {
     readonly property int rightPosition: Enums.position.right
     readonly property int topPosition: Enums.position.top
     readonly property int bottomPosition: Enums.position.bottom
+    readonly property int outsideRadius: Enums.radius.xlarge
+    readonly property int outsideCollapsedExtent: Enums.border.thin
     property int drawerClicks: 0
 
     x: 100
@@ -183,6 +186,21 @@ def _drawer_window():
     )
 
 
+def _outside_window_geometry(host_window, position, extent):
+    frame = host_window.frameGeometry()
+    left = frame.left()
+    top = frame.top()
+    right = frame.right() + 1
+    bottom = frame.bottom() + 1
+    if position == host_window.property("leftPosition"):
+        return (left - extent, top, extent, frame.height())
+    if position == host_window.property("rightPosition"):
+        return (right, top, extent, frame.height())
+    if position == host_window.property("topPosition"):
+        return (left, top - extent, frame.width(), extent)
+    return (left, bottom, frame.width(), extent)
+
+
 def test_drawer_four_direction_geometry(drawer_scene):
     window, drawer, content_item, panel, warnings, windows_before = drawer_scene
     assert drawer.property("mode") == window.property("insideMode")
@@ -228,32 +246,25 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
     outside_panel = drawer.findChild(QQuickItem, "outsideDrawerPanel")
     assert isinstance(outside_panel, QQuickItem)
 
-    extent = drawer.property("_outsideShadowExtent")
+    assert drawer.property("radius") == window.property("outsideRadius")
     cases = [
-        (
-            window.property("leftPosition"),
-            (100 - 180 - extent, 120 - extent, 180 + extent, 400 + extent * 2),
-            (extent, extent, 180, 400),
-        ),
-        (
-            window.property("rightPosition"),
-            (700, 120 - extent, 180 + extent, 400 + extent * 2),
-            (0, extent, 180, 400),
-        ),
-        (
-            window.property("topPosition"),
-            (100 - extent, 120 - 120 - extent, 600 + extent * 2, 120 + extent),
-            (extent, extent, 600, 120),
-        ),
-        (
-            window.property("bottomPosition"),
-            (100 - extent, 520, 600 + extent * 2, 120 + extent),
-            (extent, 0, 600, 120),
-        ),
+        window.property("leftPosition"),
+        window.property("rightPosition"),
+        window.property("topPosition"),
+        window.property("bottomPosition"),
     ]
 
-    for position, window_geometry, panel_geometry in cases:
+    for position in cases:
         drawer.setProperty("position", position)
+        QCoreApplication.processEvents()
+        window_geometry = _outside_window_geometry(
+            window,
+            position,
+            180 if position in (
+                window.property("leftPosition"),
+                window.property("rightPosition"),
+            ) else 120,
+        )
         assert QMetaObject.invokeMethod(drawer, "open")
         assert _wait_for(lambda: drawer.property("opened"))
         assert _wait_for(drawer_window.isVisible)
@@ -265,6 +276,12 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
                 drawer_window.height(),
             )
             == pytest.approx(window_geometry)
+        ), (
+            drawer_window.x(),
+            drawer_window.y(),
+            drawer_window.width(),
+            drawer_window.height(),
+            drawer.property("_outsideExtent"),
         )
         assert _wait_for(
             lambda: (
@@ -273,7 +290,16 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
                 outside_panel.width(),
                 outside_panel.height(),
             )
-            == pytest.approx(panel_geometry)
+            == pytest.approx(
+                (0, 0, drawer_window.width(), drawer_window.height())
+            )
+        )
+        assert _wait_for(
+            lambda: drawer.property("_outsideExtent")
+            == (180 if position in (
+                window.property("leftPosition"),
+                window.property("rightPosition"),
+            ) else 120)
         )
         assert content_item.parentItem() is outside_panel
         if position == window.property("rightPosition"):
@@ -302,10 +328,118 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
             drawer_window.width(),
             drawer_window.height(),
         )
-        == pytest.approx((880, 260 - extent, 180 + extent, 420 + extent * 2))
+        == pytest.approx(
+            _outside_window_geometry(
+                window,
+                window.property("rightPosition"),
+                180,
+            )
+        )
     )
     _close(drawer)
     assert _wait_for(lambda: not drawer_window.isVisible())
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
+    drawer_scene,
+):
+    window, drawer, content_item, _panel, warnings, windows_before = drawer_scene
+    drawer.setProperty("mode", window.property("outsideMode"))
+    drawer.setProperty("animationDuration", 240)
+    drawer_window = _drawer_window()
+    outside_panel = drawer.findChild(QQuickItem, "outsideDrawerPanel")
+    viewport = drawer.findChild(QQuickItem, "outsideDrawerViewport")
+    assert isinstance(drawer_window, QQuickWindow)
+    assert isinstance(outside_panel, QQuickItem)
+    assert isinstance(viewport, QQuickItem)
+    cases = [
+        (window.property("leftPosition"), 180),
+        (window.property("rightPosition"), 180),
+        (window.property("topPosition"), 120),
+        (window.property("bottomPosition"), 120),
+    ]
+
+    for position, full_extent in cases:
+        drawer.setProperty("position", position)
+        expected_window_geometry = _outside_window_geometry(
+            window,
+            position,
+            full_extent,
+        )
+
+        assert QMetaObject.invokeMethod(drawer, "open")
+        assert _wait_for(drawer_window.isVisible)
+        assert _wait_for(
+            lambda: 1 < drawer.property("_outsideExtent") < full_extent,
+        )
+        mid_open_geometry = (
+            drawer_window.x(),
+            drawer_window.y(),
+            drawer_window.width(),
+            drawer_window.height(),
+        )
+        panel_origin = outside_panel.mapToItem(
+            drawer_window.contentItem(),
+            QPointF(),
+        )
+        viewport_extent = (
+            viewport.width()
+            if position in (
+                window.property("leftPosition"),
+                window.property("rightPosition"),
+            )
+            else viewport.height()
+        )
+        assert mid_open_geometry == pytest.approx(expected_window_geometry)
+        assert viewport_extent == pytest.approx(
+            drawer.property("_outsideExtent")
+        )
+        assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
+        assert (content_item.width(), content_item.height()) == pytest.approx(
+            (outside_panel.width() - 32, outside_panel.height() - 32)
+        )
+
+        assert _wait_for(
+            lambda: drawer.property("_outsideExtent") == full_extent
+        )
+        assert (
+            drawer_window.x(),
+            drawer_window.y(),
+            drawer_window.width(),
+            drawer_window.height(),
+        ) == pytest.approx(mid_open_geometry)
+
+        assert QMetaObject.invokeMethod(drawer, "close")
+        assert _wait_for(
+            lambda: 1 < drawer.property("_outsideExtent") < full_extent,
+        )
+        mid_close_geometry = (
+            drawer_window.x(),
+            drawer_window.y(),
+            drawer_window.width(),
+            drawer_window.height(),
+        )
+        panel_origin = outside_panel.mapToItem(
+            drawer_window.contentItem(),
+            QPointF(),
+        )
+        viewport_extent = (
+            viewport.width()
+            if position in (
+                window.property("leftPosition"),
+                window.property("rightPosition"),
+            )
+            else viewport.height()
+        )
+        assert mid_close_geometry == pytest.approx(mid_open_geometry)
+        assert viewport_extent == pytest.approx(
+            drawer.property("_outsideExtent")
+        )
+        assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
+        assert _wait_for(lambda: not drawer_window.isVisible())
+
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
@@ -338,3 +472,30 @@ def test_drawer_source_follows_conventions():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+
+
+def test_drawer_source_uses_native_outside_window_corner_and_following():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "Qt.NoFluentShadowWindowHint" not in source
+    assert "Qt.NoDropShadowWindowHint" not in source
+    assert "_outsideShadowExtent" not in source
+    assert 'objectName: "outsideDrawerShadow"' not in source
+    assert "ShadowManager.enableShadowForWindow(outsideDrawerWindow)" in source
+    assert "MicaManager.setWindowCorner(outsideDrawerWindow, true)" in source
+    assert "id: outsideOpeningTimer" not in source
+    assert "id: outsideVisibilityTimer" not in source
+    assert "Behavior on width" not in source
+    assert "Behavior on height" not in source
+    assert 'id: outsideGeometryAnimation' in source
+    assert 'property: "_outsideExtent"' in source
+    assert 'objectName: "outsideDrawerViewport"' in source
+    assert "clip: true" in source
+    assert "on_OutsideExtentChanged" not in source
+    assert "control._syncOutsideWindowGeometry()" not in source
+    assert source.count("WindowHelper.updateWindowFollowerGeometry(") == 1
+    assert "control._outsideFullExtent)" in source
+    assert "WindowHelper.updateWindowFollowerGeometry(" in source
+    assert "WindowHelper.registerWindowFollower(" in source
+    assert "WindowHelper.unregisterWindowFollower(outsideDrawerWindow)" in source
+    assert "ShadowManager.disableShadowForWindow(outsideDrawerWindow)" in source

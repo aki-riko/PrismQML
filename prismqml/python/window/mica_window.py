@@ -43,6 +43,7 @@ DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWA_SYSTEMBACKDROP_TYPE = 38  # 需要 Build >= 22621
 
 # Window corner preference 窗口圆角偏好
+DWMWCP_DONOTROUND = 1
 DWMWCP_ROUND = 2
 
 # DWM backdrop type values DWM背景类型值
@@ -172,6 +173,24 @@ class MicaManager(QObject):
             return self._apply_mica_to_hwnd(hwnd, enabled)
         except (ValueError, OSError, TypeError) as e:
             error(f"Failed to apply mica: {e}")
+            return False
+
+    @Slot(QWindow, bool, result=bool)
+    def setWindowCorner(self, window: QWindow, rounded: bool) -> bool:
+        """Set corner preference without changing Mica state. 设置圆角但不改变 Mica 状态。"""
+        if not self._is_win11 or self._dwm_set_attr is None or not window:
+            return False
+        try:
+            hwnd = int(window.winId())
+            if not hwnd:
+                return False
+            preference = DWMWCP_ROUND if rounded else DWMWCP_DONOTROUND
+            result = self._set_dwm_int_attribute(
+                hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, preference
+            )
+            return _dwm_hresult_succeeded(result)
+        except (ValueError, OSError, TypeError) as e:
+            error(f"Failed to set window corner: {e}")
             return False
     
     @Slot(QWindow, bool, bool, result=bool)

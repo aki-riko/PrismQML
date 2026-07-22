@@ -31,15 +31,23 @@ OverlayDialogCore {
     property alias opened: control._isOpen
 
     // Panel corner radius 面板圆角
-    property int radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.none
+    property int radius: Enums.isPrismDesign
+        ? Enums.prismDesign.radiusPopup
+        : (_isOutside ? Enums.radius.xlarge : Enums.radius.none)
 
     // ==================== Internal Props 内部属性 ====================
+    property bool _outsideFollowRegistered: false
+    property bool _outsideHostSyncPending: false
+    property bool _outsidePrepared: false
     property bool _outsideResetting: false
+    property bool _outsideVisible: false
+    property real _outsideExtent: _outsideCollapsedExtent
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isOutside: mode === Enums.drawer.mode_outside
     readonly property var _hostWindow: control.Window.window
-    readonly property int _outsideShadowExtent: Enums.shadow.level28.blur + Enums.shadow.level28.offset
+    readonly property int _outsideCollapsedExtent: Enums.border.thin
+    readonly property real _outsideFullExtent: isHorizontal ? drawerWidth : drawerHeight
     readonly property color _drawerBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
     readonly property int _drawerBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : 0)
     readonly property color _drawerBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.borderColor : Enums.transparent)
@@ -60,7 +68,23 @@ OverlayDialogCore {
             }
         }
 
-        outsideVisibilityTimer.stop()
+        if (control._isOutside) {
+            if (control._isOpen) return
+            if (control._outsideVisible && !control._outsidePrepared) return
+            _isClosing = false
+            outsideGeometryAnimation.stop()
+            if (!control._outsideVisible) {
+                control._unregisterOutsideWindow()
+                control._outsidePrepared = false
+                control._outsideExtent = control._outsideCollapsedExtent
+                control._updateOutsideWindowGeometry()
+                control._outsideVisible = true
+                return
+            }
+            control._isOpen = true
+            control._startOutsideAnimation(control._outsideFullExtent)
+            return
+        }
         _isClosing = false
         _isOpen = true
     }
@@ -75,11 +99,134 @@ OverlayDialogCore {
     // Reset both render paths when switching mode or closing the host window
     // 切换模式或宿主窗口关闭时重置两条渲染路径
     function _resetDrawerState() {
+        outsideGeometryAnimation.stop()
+        _setOutsideNativeShadow(false)
+        _unregisterOutsideWindow()
         _outsideResetting = true
-        outsideVisibilityTimer.stop()
+        _outsideVisible = false
+        _outsidePrepared = false
+        _outsideExtent = _outsideCollapsedExtent
+        _outsideHostSyncPending = false
         _isOpen = false
         _isClosing = false
         _outsideResetting = false
+        if (control._isOutside && control._hostWindow
+                && control._hostWindow.visible) {
+            control._updateOutsideWindowGeometry()
+        }
+    }
+
+    // Animate only the clip extent; the HWND and content keep their final geometry
+    // 只动画裁剪范围,HWND 与内容始终保持最终几何
+    function _startOutsideAnimation(targetExtent) {
+        outsideGeometryAnimation.stop()
+        outsideGeometryAnimation.from = control._outsideExtent
+        outsideGeometryAnimation.to = targetExtent
+        if (control.animationDuration <= 0
+                || control._outsideExtent === targetExtent) {
+            control._outsideExtent = targetExtent
+            control._finishOutsideAnimation()
+            return
+        }
+        outsideGeometryAnimation.start()
+    }
+
+    // Correct Qt's post-show geometry once, then reveal the fixed window
+    // 在 Qt 完成 show 后校正一次几何,随后再显露固定窗口
+    function _beginOutsideReveal() {
+        if (!control._isOutside || !control._outsideVisible
+                || control._outsidePrepared || control._isOpen) return
+        control._updateOutsideWindowGeometry()
+        control._outsidePrepared = true
+        control._registerOutsideWindow()
+        control._isOpen = true
+        control._startOutsideAnimation(control._outsideFullExtent)
+    }
+
+    // Register native edge following for the visible outside window
+    // 为可见外侧窗口注册原生边缘跟随
+    function _registerOutsideWindow() {
+        if (!control._isOutside || !control._hostWindow
+                || !outsideDrawerWindow.visible
+                || typeof WindowHelper === "undefined" || !WindowHelper) return
+        control._outsideFollowRegistered = WindowHelper.registerWindowFollower(
+            control._hostWindow, outsideDrawerWindow, control.position)
+    }
+
+    // Remove the native follower before hiding or destruction
+    // 在隐藏或销毁前移除原生跟随
+    function _unregisterOutsideWindow() {
+        if (typeof WindowHelper !== "undefined" && WindowHelper) {
+            WindowHelper.unregisterWindowFollower(outsideDrawerWindow)
+        }
+        control._outsideFollowRegistered = false
+    }
+
+    // Submit position and size together with one native geometry call
+    // 通过一次原生几何调用同时提交位置与尺寸
+    function _updateOutsideWindowGeometry() {
+        if (!control._isOutside || !control._hostWindow
+                || typeof WindowHelper === "undefined" || !WindowHelper) return false
+        return WindowHelper.updateWindowFollowerGeometry(
+            control._hostWindow,
+            outsideDrawerWindow,
+            control.position,
+            control._outsideFullExtent)
+    }
+
+    // Coalesce host geometry notifications outside the drawer animation
+    // 在抽屉动画以外合并宿主几何通知
+    function _scheduleOutsideHostSync() {
+        if (!control._isOutside || !control._outsideVisible
+                || control._outsideHostSyncPending) return
+        control._outsideHostSyncPending = true
+        Qt.callLater(control._flushOutsideHostSync)
+    }
+
+    function _flushOutsideHostSync() {
+        control._outsideHostSyncPending = false
+        if (control._isOutside && control._outsideVisible
+                && control._outsidePrepared) {
+            control._updateOutsideWindowGeometry()
+        }
+    }
+
+    // Finish visibility and following from the real animation lifecycle
+    // 根据真实动画生命周期收尾可见性与窗口跟随
+    function _finishOutsideAnimation() {
+        if (!control._isOutside || control._outsideResetting
+                || !control._outsideVisible) return
+        if (outsideGeometryAnimation.running) return
+        if (control._isOpen) {
+            if (!control._outsideFollowRegistered) {
+                control._registerOutsideWindow()
+            }
+            control._setOutsideNativeShadow(true)
+            return
+        }
+        control._setOutsideNativeShadow(false)
+        control._unregisterOutsideWindow()
+        control._outsideVisible = false
+        control._outsidePrepared = false
+    }
+
+    // Let DWM own the stable full-size HWND corner
+    // 由 DWM 绘制稳定完整尺寸 HWND 的圆角
+    function _applyOutsideNativeFrame() {
+        if (typeof MicaManager !== "undefined" && MicaManager) {
+            MicaManager.setWindowCorner(outsideDrawerWindow, true)
+        }
+    }
+
+    // Hide the full-size HWND shadow while only part of its content is revealed
+    // 内容仅部分显露时隐藏完整尺寸 HWND 的阴影
+    function _setOutsideNativeShadow(enabled) {
+        if (typeof ShadowManager === "undefined" || !ShadowManager) return
+        if (enabled) {
+            ShadowManager.enableShadowForWindow(outsideDrawerWindow)
+        } else {
+            ShadowManager.disableShadowForWindow(outsideDrawerWindow)
+        }
     }
 
     // Overlay overrides 覆盖层配置
@@ -90,10 +237,18 @@ OverlayDialogCore {
     onModeChanged: _resetDrawerState()
     onOpenedChanged: {
         if (!control._isOutside || control._outsideResetting) return
-        if (control._isOpen) {
-            outsideVisibilityTimer.stop()
-        } else if (control._isClosing || outsideDrawerWindow.visible) {
-            outsideVisibilityTimer.restart()
+        if (!control._isOpen && control._outsideVisible) {
+            control._setOutsideNativeShadow(false)
+            control._startOutsideAnimation(control._outsideCollapsedExtent)
+        }
+    }
+    onPositionChanged: {
+        if (control._isOutside) {
+            control._unregisterOutsideWindow()
+            control._updateOutsideWindowGeometry()
+            if (control._outsideVisible && control._outsidePrepared) {
+                control._registerOutsideWindow()
+            }
         }
     }
 
@@ -104,119 +259,76 @@ OverlayDialogCore {
         readonly property bool horizontal: control.isHorizontal
 
         objectName: "outsideDrawerWindow"
-        x: {
-            if (!control._hostWindow) return 0
-            if (control.position === Enums.position.left) {
-                return control._hostWindow.x - control.drawerWidth - control._outsideShadowExtent
-            }
-            if (control.position === Enums.position.right) {
-                return control._hostWindow.x + control._hostWindow.width
-            }
-            return control._hostWindow.x - control._outsideShadowExtent
-        }
-        y: {
-            if (!control._hostWindow) return 0
-            if (control.position === Enums.position.top) {
-                return control._hostWindow.y - control.drawerHeight - control._outsideShadowExtent
-            }
-            if (control.position === Enums.position.bottom) {
-                return control._hostWindow.y + control._hostWindow.height
-            }
-            return control._hostWindow.y - control._outsideShadowExtent
-        }
-        width: horizontal
-            ? control.drawerWidth + control._outsideShadowExtent
-            : (control._hostWindow
-                ? control._hostWindow.width + control._outsideShadowExtent * 2
-                : 0)
-        height: horizontal
-            ? (control._hostWindow
-                ? control._hostWindow.height + control._outsideShadowExtent * 2
-                : 0)
-            : control.drawerHeight + control._outsideShadowExtent
-        visible: control._isOutside
-            && (control._isOpen || control._isClosing || outsideVisibilityTimer.running)
+        x: 0
+        y: 0
+        width: control.drawerWidth
+        height: control.drawerHeight
+        visible: control._isOutside && control._outsideVisible
             && control._hostWindow !== null
-        flags: Qt.Tool | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
+        opacity: control._outsidePrepared ? 1 : 0
+        flags: Qt.Tool | Qt.FramelessWindowHint
         color: Enums.transparent
         transientParent: control._hostWindow
 
         onVisibleChanged: {
-            if (visible && control._isOpen) {
+            if (visible) {
+                control._applyOutsideNativeFrame()
+                control._setOutsideNativeShadow(false)
                 outsideDrawerWindow.requestActivate()
+                Qt.callLater(control._beginOutsideReveal)
+            } else {
+                control._unregisterOutsideWindow()
             }
         }
         onClosing: (close) => control._resetDrawerState()
+        Component.onDestruction: control._unregisterOutsideWindow()
 
-        RectangularShadow {
-            anchors.fill: outsideDrawerPanel
-            radius: control.radius
-            color: Enums.shadow.level28.color
-            blur: Enums.shadow.level28.blur
-            offset.x: 0
-            offset.y: Enums.shadow.level28.offset
-        }
+        Item {
+            id: outsideDrawerViewport
+            objectName: "outsideDrawerViewport"
 
-        Rectangle {
-            id: outsideDrawerPanel
-            objectName: "outsideDrawerPanel"
-
+            x: control.position === Enums.position.left
+                ? outsideDrawerWindow.width - width
+                : 0
+            y: control.position === Enums.position.top
+                ? outsideDrawerWindow.height - height
+                : 0
             width: control.isHorizontal
-                ? control.drawerWidth
-                : (control._hostWindow ? control._hostWindow.width : 0)
+                ? Math.min(control._outsideExtent, outsideDrawerWindow.width)
+                : outsideDrawerWindow.width
             height: control.isHorizontal
-                ? (control._hostWindow ? control._hostWindow.height : 0)
-                : control.drawerHeight
-            color: control._drawerBackground
-            radius: control.radius
-            border.width: control._drawerBorderWidth
-            border.color: control._drawerBorderColor
+                ? outsideDrawerWindow.height
+                : Math.min(control._outsideExtent, outsideDrawerWindow.height)
+            clip: true
 
-            MouseArea {
-                anchors.fill: parent
-            }
+            Rectangle {
+                id: outsideDrawerPanel
+                objectName: "outsideDrawerPanel"
 
-            states: [
-                State {
-                    name: "open"
-                    when: control._isOpen
-                    PropertyChanges {
-                        target: outsideDrawerPanel
-                        x: control.position === Enums.position.right
-                            ? 0
-                            : control._outsideShadowExtent
-                        y: control.position === Enums.position.bottom
-                            ? 0
-                            : control._outsideShadowExtent
-                    }
-                },
-                State {
-                    name: "closed"
-                    when: !control._isOpen
-                    PropertyChanges {
-                        target: outsideDrawerPanel
-                        x: control.position === Enums.position.left
-                            ? outsideDrawerWindow.width
-                            : (control.position === Enums.position.right
-                                ? -outsideDrawerPanel.width
-                                : control._outsideShadowExtent)
-                        y: control.position === Enums.position.top
-                            ? outsideDrawerWindow.height
-                            : (control.position === Enums.position.bottom
-                                ? -outsideDrawerPanel.height
-                                : control._outsideShadowExtent)
-                    }
-                }
-            ]
+                width: outsideDrawerWindow.width
+                height: outsideDrawerWindow.height
+                x: -outsideDrawerViewport.x
+                y: -outsideDrawerViewport.y
+                color: control._drawerBackground
+                radius: control.radius
+                border.width: control._drawerBorderWidth
+                border.color: control._drawerBorderColor
 
-            transitions: Transition {
-                NumberAnimation {
-                    properties: "x,y"
-                    duration: control.animationDuration
-                    easing.type: Easing.OutCubic
+                MouseArea {
+                    anchors.fill: parent
                 }
             }
         }
+    }
+
+    NumberAnimation {
+        id: outsideGeometryAnimation
+
+        target: control
+        property: "_outsideExtent"
+        duration: control.animationDuration
+        easing.type: Easing.OutCubic
+        onFinished: control._finishOutsideAnimation()
     }
 
     // Drawer shadow 抽屉阴影
@@ -304,14 +416,12 @@ OverlayDialogCore {
         }
     }
 
-    Timer {
-        id: outsideVisibilityTimer
-        interval: control.animationDuration
-        repeat: false
-    }
-
     Connections {
         function onClosing(close) { control._resetDrawerState() }
+        function onXChanged() { control._scheduleOutsideHostSync() }
+        function onYChanged() { control._scheduleOutsideHostSync() }
+        function onWidthChanged() { control._scheduleOutsideHostSync() }
+        function onHeightChanged() { control._scheduleOutsideHostSync() }
         function onVisibleChanged() {
             if (control._isOutside && control._hostWindow
                     && !control._hostWindow.visible) {

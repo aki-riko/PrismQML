@@ -17,6 +17,7 @@ namespace {
 constexpr int kDwmwaUseImmersiveDarkMode = 20;
 constexpr int kDwmwaWindowCornerPreference = 33;
 constexpr int kDwmwaSystemBackdropType = 38;   // 需 Build >= 22621
+constexpr int kDwmwcpDoNotRound = 1;
 constexpr int kDwmwcpRound = 2;
 constexpr int kDwmBackdropNone = 1;            // DWMSBT_NONE
 constexpr int kDwmBackdropMica = 2;            // DWMSBT_MAINWINDOW (Mica)
@@ -128,6 +129,25 @@ bool MicaManager::setMicaEffect(const QVariant &window, bool enabled, bool dark)
     return ok;
 #else
     Q_UNUSED(window); Q_UNUSED(enabled); Q_UNUSED(dark);
+    return false;
+#endif
+}
+
+bool MicaManager::setWindowCorner(const QVariant &window, bool rounded) {
+#ifdef Q_OS_WIN
+    if (!m_isWin11)
+        return false;
+    const qulonglong hwnd = winIdFromVariant(window);
+    if (!hwnd)
+        return false;
+    HWND nativeWindow = reinterpret_cast<HWND>(hwnd);
+    int preference = rounded ? kDwmwcpRound : kDwmwcpDoNotRound;
+    const HRESULT result = DwmSetWindowAttribute(
+        nativeWindow, kDwmwaWindowCornerPreference,
+        &preference, sizeof(preference));
+    return SUCCEEDED(result);
+#else
+    Q_UNUSED(window); Q_UNUSED(rounded);
     return false;
 #endif
 }
