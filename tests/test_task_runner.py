@@ -25,6 +25,7 @@ from prismqml import (
 
 
 TASK_TIMEOUT_MS = 3000
+THREAD_RELEASE_STRESS_CYCLES = 64
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_PROCESS = REPO_ROOT / "scripts" / "test_process.py"
 
@@ -115,6 +116,26 @@ def _assert_success_outcome(handle, progress, observations) -> None:
     ]
     assert handle.state is TaskState.SUCCEEDED
     assert handle.failure is None
+
+
+def _cancel_one_dedicated_task() -> None:
+    """Cancel one dedicated worker and drain its backend. 取消单个独立 worker 并释放后端。"""
+    worker_started = threading.Event()
+    emergency_stop = threading.Event()
+
+    def work():
+        worker_started.set()
+        while not emergency_stop.is_set():
+            current_task().raise_if_cancelled()
+            time.sleep(0.0005)
+
+    handle = run_in_thread(work)
+    try:
+        assert worker_started.wait(TASK_TIMEOUT_MS / 1000)
+        assert handle.cancel()
+        _wait_for_finished(handle)
+    finally:
+        emergency_stop.set()
 
 
 @pytest.mark.parametrize("launcher", (run_in_pool, run_in_thread))
@@ -226,3 +247,10 @@ def test_app_shutdown_waits_for_active_dedicated_thread() -> None:
     assert "QThread: Destroyed while thread" not in output
     if sys.platform == "win32":
         assert "visible_windows=0 / job_active_processes=0" in output
+
+
+def test_dedicated_thread_release_survives_repeated_cancellation(qapp) -> None:
+    """Repeated cancellation must not double-delete QThread. 重复取消不得双重销毁 QThread。"""
+    for _iteration in range(THREAD_RELEASE_STRESS_CYCLES):
+        _cancel_one_dedicated_task()
+        qapp.processEvents()

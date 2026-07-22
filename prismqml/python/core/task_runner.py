@@ -17,6 +17,7 @@ from PySide6.QtCore import (
     QRunnable,
     QThread,
     QThreadPool,
+    QTimer,
     Qt,
     Signal,
     Slot,
@@ -211,6 +212,14 @@ class _PoolRunnable(QRunnable):
         """Use the shared cooperative token for pool cancellation. 使用共享令牌协作取消。"""
         return None
 
+    def wait(self, timeout_ms: Optional[int]) -> bool:
+        """Wait until the pool callable has returned. 等待线程池任务返回。"""
+        return self._control.wait_for_backend(timeout_ms)
+
+    def release(self) -> None:
+        """Leave Qt-owned runnable cleanup to QThreadPool. 由 QThreadPool 清理 runnable。"""
+        return None
+
 
 class _TaskWorker(QObject):
     """Internal worker-object adapter for QThread. QThread 的内部 worker-object 适配器。"""
@@ -238,7 +247,7 @@ class _ThreadBackend:
         handle: "TaskHandle",
         control: _TaskControl,
     ) -> None:
-        self._thread = QThread()
+        self._thread = QThread(handle)
         self._worker = _TaskWorker(execution)
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.execute)
@@ -255,13 +264,25 @@ class _ThreadBackend:
             handle._relay_backend_stopped,
             Qt.ConnectionType.QueuedConnection,
         )
-        self._thread.finished.connect(self._thread.deleteLater)
+        # Let the retained handle own QThread until execution has fully stopped.
+        # 由受保留的 handle 持有 QThread，直至执行完全停止。
 
     def start(self) -> None:
         self._thread.start()
 
     def request_cancel(self) -> None:
         self._thread.requestInterruption()
+
+    def wait(self, timeout_ms: Optional[int]) -> bool:
+        """Wait for QThread.run() to return completely. 等待 QThread.run() 完全返回。"""
+        if timeout_ms is None:
+            return self._thread.wait()
+        return self._thread.wait(timeout_ms)
+
+    def release(self) -> None:
+        """Release invalid worker wrapper before the stopped thread. 先释放失效 worker 再释放线程。"""
+        self._worker = None
+        self._thread = None
 
 
 class TaskHandle(QObject):
@@ -283,6 +304,7 @@ class TaskHandle(QObject):
         self._failure = None
         self._backend = None
         self._backend_stopped = False
+        self._backend_release_scheduled = False
         self._events = _TaskEvents(self)
         self._context = TaskContext(control, self._events.progress.emit)
         self._connect_events()
@@ -318,7 +340,9 @@ class TaskHandle(QObject):
         """Wait until the execution backend has stopped. 等待执行后端完全停止。"""
         if timeout_ms is not None and timeout_ms < 0:
             raise ValueError("Task wait timeout must be non-negative or None")
-        return self._control.wait_for_backend(timeout_ms)
+        if self._backend is None:
+            return self._control.wait_for_backend(timeout_ms)
+        return self._backend.wait(timeout_ms)
 
     def _connect_events(self) -> None:
         queued = Qt.ConnectionType.QueuedConnection
@@ -362,10 +386,15 @@ class TaskHandle(QObject):
         self.state_changed.emit(state)
 
     def _release_if_stopped(self) -> None:
-        if self._backend_stopped and self._state in TaskState.terminal_states():
-            self._release_backend()
+        terminal = self._state in TaskState.terminal_states()
+        if self._backend_stopped and terminal and not self._backend_release_scheduled:
+            self._backend_release_scheduled = True
+            QTimer.singleShot(0, self._release_backend)
 
     def _release_backend(self) -> None:
+        if self._backend is None:
+            return
+        self._backend.release()
         self._backend = None
         _release_handle(self)
 
