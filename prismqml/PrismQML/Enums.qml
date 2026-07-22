@@ -43,7 +43,7 @@ Item {
     readonly property string skin: ThemeManager ? ThemeManager.skin : "fluent"
     readonly property bool isNeobrutalism: skin === "neobrutalism"
     readonly property bool isPrismDesign: skin === "prism_design"
-    readonly property string fontFamily: ThemeManager ? ThemeManager.fontFamily : "Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, Microsoft YaHei UI, sans-serif"
+    readonly property string fontFamily: ThemeManager ? ThemeManager.fontFamily : "Microsoft YaHei UI, Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, sans-serif"
     readonly property string fontMonospace: ThemeManager ? ThemeManager.fontMonospace : "Cascadia Code, Consolas, SF Mono, Menlo, Roboto Mono, monospace"
     readonly property string canvasFontFamily: "'" + fontFamily.split(",")[0].trim() + "', sans-serif"
     // Skin accent resolver 皮肤主色解析器:

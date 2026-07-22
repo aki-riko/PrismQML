@@ -186,13 +186,13 @@ class ThemeManager(QObject):
 
     # ==================== 字体属性 ====================
 
-    # 全平台字体 fallback 链: Windows → macOS/iOS → Android → Linux → 中文 → 通用兜底
-    # Cross-platform font fallback: Windows → macOS/iOS → Android → Linux → CJK → generic
+    # 全平台字体 fallback 链: Windows 中文 UI → Windows → macOS/iOS → Android/Linux → 通用兜底
+    # Cross-platform font fallback: Windows CJK UI → Windows → macOS/iOS → Android/Linux → generic
     FONT_FAMILY = (
+        "Microsoft YaHei UI, "                  # Windows 中文 UI
         "Segoe UI Variable, Segoe UI, "        # Windows
         "-apple-system, PingFang SC, "          # macOS / iOS
         "Roboto, Noto Sans CJK SC, "            # Android / Linux
-        "Microsoft YaHei UI, "                  # Windows 中文
         "sans-serif"                            # 通用兜底
     )
     FONT_MONOSPACE = (

@@ -97,6 +97,15 @@ class TestThemeManager:
         available_families = set(QFontDatabase.families())
         if available_families:
             assert tm.fontFamily in available_families
+        if "Microsoft YaHei UI" in available_families:
+            assert tm.fontFamily == "Microsoft YaHei UI"
+
+    def test_default_font_prefers_microsoft_yahei_ui(self):
+        """默认字体候选应优先使用覆盖中英文的 Windows UI 字体。"""
+        from prismqml.python.core.theme import ThemeManager
+
+        candidates = ThemeManager._font_candidates(ThemeManager.FONT_FAMILY)
+        assert candidates[0] == "Microsoft YaHei UI"
 
     def test_set_accent_color(self):
         """设置主题色应更新 accent 和派生色"""
