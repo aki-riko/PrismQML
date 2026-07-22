@@ -33,8 +33,12 @@ Item {
     function _paintSegment(ctx, segment) {
         var fromX = _laneX(segment.fromLane)
         var toX = _laneX(segment.toLane)
-        var startY = segment.startAtNode ? nodeY : 0
-        var endY = segment.endAtNode ? nodeY : height
+        var strokeWidth = Enums.border.normal
+        // Overdraw clipped row edges so fractional-DPI canvases meet opaquely.
+        // 向裁剪边界外延伸，避免分数 DPI 下相邻 Canvas 接缝变淡或断裂。
+        var boundaryOverdraw = strokeWidth
+        var startY = segment.startAtNode ? nodeY : -boundaryOverdraw
+        var endY = segment.endAtNode ? nodeY : height + boundaryOverdraw
         var middleY = (startY + endY) / 2
         ctx.beginPath()
         ctx.moveTo(fromX, startY)
@@ -43,7 +47,7 @@ Item {
         } else {
             ctx.bezierCurveTo(fromX, middleY, toX, middleY, toX, endY)
         }
-        ctx.lineWidth = Enums.border.normal
+        ctx.lineWidth = strokeWidth
         ctx.strokeStyle = _colorFor(segment.colorIndex)
         ctx.stroke()
     }

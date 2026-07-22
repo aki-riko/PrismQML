@@ -413,12 +413,11 @@ Item {
                     // 右侧留出滚动条宽度 + 间距,避免卡片边缘与滚动条重叠
                     width: parent.width - x - Enums.spacing.xl
                     height: cardCol.implicitHeight + Enums.spacing.l * 2
-                    cardType: Enums.card.type_hover
+                    // Graph cards use Fluent elevation and the Card token border.
+                    // 图模式卡片使用 Fluent 层级动效与 Card 自带轻边框。
+                    cardType: control._graphMode
+                        ? Enums.card.type_elevated : Enums.card.type_hover
                     clickEnabled: true
-                    // 选中态走 Fluent 标准:边框/背景不变,仅左侧 accent 圆角指示条(下方),
-                    // 不做换边框色/背景染色(那样显花)
-                    border.width: Enums.border.normal
-                    border.color: Enums.stateColor.border
 
                     onClicked: {
                         control.cardClicked(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.text)
@@ -430,7 +429,7 @@ Item {
                         anchors.left: parent.left
                         anchors.leftMargin: Enums.spacing.xs
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 3
+                        width: Enums.border.thick
                         radius: Enums.radius.micro
                         color: Enums.accentColor
                         height: cardPart.isSelected ? parent.height * 0.5 : 0
