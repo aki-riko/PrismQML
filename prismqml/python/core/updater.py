@@ -58,6 +58,7 @@ logger = getLogger()
 _USER_AGENT = b"PrismQML-Updater"
 _UPDATER_API_BASE_ENV = "PRISMQML_UPDATER_API_BASE_URL"
 _DEFAULT_API_BASE_URL = "https://api.github.com"
+_CONNECTION_CACHE_EXPIRY_SECONDS = 0
 _SHELL_EXECUTE_ERRORS = (
     OSError,
     AttributeError,
@@ -89,6 +90,23 @@ def _latest_release_url(repo: str, api_base_url: Optional[str] = None) -> str:
     """Build the latest-release endpoint. 构造 latest release 端点。"""
     normalized_repo = repo.strip().strip("/")
     return f"{_resolve_api_base_url(api_base_url)}/repos/{normalized_repo}/releases/latest"
+
+
+def _network_request(url: str) -> QNetworkRequest:
+    """Build one updater request with bounded connection lifetime. 构造连接寿命受控的更新请求。"""
+    request = QNetworkRequest(QUrl(url))
+    request.setRawHeader(b"User-Agent", _USER_AGENT)
+    request.setAttribute(
+        QNetworkRequest.Attribute.RedirectPolicyAttribute,
+        QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy,
+    )
+    # GitHub 关闭空闲 HTTP/2 连接时，Qt 可能在关闭回调中读取已关闭的
+    # QSslSocket；不缓存更新器连接可避免该 Qt 生命周期竞态。
+    request.setAttribute(
+        QNetworkRequest.Attribute.ConnectionCacheExpiryTimeoutSecondsAttribute,
+        _CONNECTION_CACHE_EXPIRY_SECONDS,
+    )
+    return request
 
 
 def _normalize_version_tag(tag: str) -> str:
@@ -243,12 +261,8 @@ class Updater(QObject):
             logger.debug("[Updater] 已有检测请求在进行,忽略重复调用")
             return
         url = _latest_release_url(self._repo, self._api_base_url)
-        req = QNetworkRequest(QUrl(url))
-        req.setRawHeader(b"User-Agent", _USER_AGENT)
+        req = _network_request(url)
         req.setRawHeader(b"Accept", b"application/vnd.github+json")
-        # 下载 asset 时会 302 到对象存储,这里统一允许安全重定向。
-        req.setAttribute(QNetworkRequest.Attribute.RedirectPolicyAttribute,
-                         QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy)
         self._check_reply = self._nam.get(req)
         self._check_reply.finished.connect(self._on_check_finished)
 
@@ -332,12 +346,7 @@ class Updater(QObject):
 
     def _start_download_request(self, url: str):
         """Create and wire one download reply. 创建并连接单个下载响应。"""
-        request = QNetworkRequest(QUrl(url))
-        request.setRawHeader(b"User-Agent", _USER_AGENT)
-        request.setAttribute(
-            QNetworkRequest.Attribute.RedirectPolicyAttribute,
-            QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy,
-        )
+        request = _network_request(url)
         reply = self._nam.get(request)
         reply.downloadProgress.connect(self._on_download_progress)
         reply.readyRead.connect(lambda reply=reply: self._on_download_ready_read(reply))

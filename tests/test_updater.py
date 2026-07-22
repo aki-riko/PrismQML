@@ -13,10 +13,12 @@ import os
 from types import SimpleNamespace
 
 import pytest
+from PySide6.QtNetwork import QNetworkRequest
 
 import prismqml.python.core.updater as updater_module
 from prismqml.python.core.updater import (
     Updater,
+    _network_request,
     _parse_version,
     _is_newer,
     _pick_asset,
@@ -53,6 +55,19 @@ class TestApiBaseUrl:
         assert updater_module._latest_release_url(
             "owner/repo", updater.api_base_url
         ) == "https://explicit.example/api/v3/repos/owner/repo/releases/latest"
+
+    def test_network_request_does_not_cache_idle_https_connection(self):
+        request = _network_request(
+            "https://api.github.com/repos/owner/repo/releases/latest"
+        )
+
+        expiry = request.attribute(
+            QNetworkRequest.Attribute.ConnectionCacheExpiryTimeoutSecondsAttribute
+        )
+        assert expiry == 0
+        assert request.attribute(
+            QNetworkRequest.Attribute.RedirectPolicyAttribute
+        ) == QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy
 
 
 # ==================== 版本比对 ====================

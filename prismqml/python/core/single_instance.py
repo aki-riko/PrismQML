@@ -29,7 +29,7 @@ import platform
 import sys
 from typing import Optional, Callable
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QCoreApplication, QObject, Signal
 
 from .logger import getLogger
 
@@ -108,6 +108,7 @@ class SingleInstance(QObject):
 
         # IPC(跨平台,基于本地套接字)
         self._server = None
+        self._quit_cleanup_registered = False
 
         if not IS_WINDOWS:
             self._shared_memory = QSharedMemory(app_id)
@@ -130,8 +131,19 @@ class SingleInstance(QObject):
     def _claim_primary(self) -> bool:
         """Commit primary ownership and start IPC. 提交主实例所有权并启动 IPC。"""
         self._is_locked = True
+        self._register_quit_cleanup()
         self._start_server()
         return True
+
+    def _register_quit_cleanup(self) -> None:
+        """Release Qt resources before application teardown. 在应用析构前释放 Qt 资源。"""
+        if self._quit_cleanup_registered:
+            return
+        app = QCoreApplication.instance()
+        if app is None:
+            return
+        app.aboutToQuit.connect(self.unlock)
+        self._quit_cleanup_registered = True
 
     def _notify_second_instance(self):
         """Invoke the optional second-instance callback. 调用可选的第二实例回调。"""

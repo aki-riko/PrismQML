@@ -6,12 +6,14 @@
 
 import ast
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import uuid4
 
 from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtNetwork import QLocalSocket
 from PySide6.QtTest import QSignalSpy
 
+import prismqml.python.core.single_instance as single_instance_module
 from prismqml.python.core.single_instance import SingleInstance
 
 
@@ -96,6 +98,39 @@ def test_unlock_aborts_and_releases_active_connections(qapp):
         assert client.state() == QLocalSocket.LocalSocketState.UnconnectedState
     finally:
         _cleanup(instance, client)
+
+
+class _SignalStub:
+    def __init__(self):
+        self.callbacks = []
+
+    def connect(self, callback):
+        self.callbacks.append(callback)
+
+    def emit(self):
+        for callback in tuple(self.callbacks):
+            callback()
+
+
+def test_primary_lock_releases_resources_before_application_teardown(monkeypatch):
+    about_to_quit = _SignalStub()
+    app = SimpleNamespace(aboutToQuit=about_to_quit)
+    monkeypatch.setattr(
+        single_instance_module.QCoreApplication,
+        "instance",
+        staticmethod(lambda: app),
+    )
+    instance = SingleInstance(f"PrismQML.QuitCleanupTest.{uuid4().hex}")
+    instance._start_server = lambda: None
+
+    assert instance._claim_primary()
+    assert instance._is_locked
+    assert len(about_to_quit.callbacks) == 1
+
+    about_to_quit.emit()
+
+    assert not instance._is_locked
+    assert instance._server is None
 
 
 def test_connection_lifecycle_methods_stay_small_and_delegated():
