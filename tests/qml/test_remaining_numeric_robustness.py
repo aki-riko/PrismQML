@@ -89,6 +89,11 @@ Item {
         currentStep: 99
     }
 
+    Stepper {
+        objectName: "nullStepper"
+        steps: null
+    }
+
     ChartDataZoom {
         objectName: "dataZoom"
         width: 0
@@ -150,10 +155,12 @@ def test_nullable_lists_and_zero_geometry_stay_finite(qapp):
         marquee = root.findChild(type(root), "marquee")
         waveform = root.findChild(type(root), "waveform")
         stepper = root.findChild(type(root), "stepper")
+        null_stepper = root.findChild(type(root), "nullStepper")
         data_zoom = root.findChild(type(root), "dataZoom")
         slider = root.findChild(type(root), "slider")
         assert pips is not None and marquee is not None
-        assert waveform is not None and stepper is not None and data_zoom is not None
+        assert waveform is not None and stepper is not None and null_stepper is not None
+        assert data_zoom is not None
         assert slider is not None
 
         assert pips.property("_safePageCount") == 0
@@ -170,6 +177,9 @@ def test_nullable_lists_and_zero_geometry_stay_finite(qapp):
         assert stepper.property("_safeSteps").toVariant() == [None, {"text": "Done"}]
         assert stepper.property("_safeCurrentStep") == 1
         assert math.isfinite(float(stepper.property("_lineWidth")))
+        assert null_stepper.property("_safeSteps").toVariant() == []
+        assert null_stepper.property("_safeCurrentStep") == 0
+        assert null_stepper.property("_stepWidth") == 0
 
         assert data_zoom.property("_safeViewportStart") == 0
         assert data_zoom.property("_safeViewportEnd") == 1

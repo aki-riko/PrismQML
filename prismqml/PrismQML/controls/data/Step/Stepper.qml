@@ -19,7 +19,7 @@ Item {
     property int indicatorSize: 36  // Circle size 圆形大小
     
     // ==================== Readonly State 只读状态 ====================
-    readonly property real _stepWidth: steps.length > 0 ? width / steps.length : 0
+    readonly property real _stepWidth: _safeSteps.length > 0 ? width / _safeSteps.length : 0
     readonly property real _lineStartX: _stepWidth / 2  // First circle center 第一个圆圈中心
     readonly property real _lineEndX: width - _stepWidth / 2  // Last circle center 最后一个圆圈中心
     readonly property real _lineWidth: _lineEndX - _lineStartX  // Total line width 总线宽
