@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - SystemTray/SingleInstance 运行时烟测 (需 QApplication)
+#include "prism/App.h"
 #include "prism/SystemTray.h"
 #include "prism/SingleInstance.h"
 #include "prism/WindowHelper.h"
@@ -165,9 +166,60 @@ static void testTrayCheckableActionContract() {
     CHECK(triggered, "SystemTray checkable action keeps callback contract");
 }
 
+static QObject *findTrayAction(QObject *menu, const QString &actionId) {
+    if (!menu)
+        return nullptr;
+    const QList<QObject *> children = menu->findChildren<QObject *>();
+    for (QObject *child : children) {
+        if (child->property("actionId").toString() == actionId)
+            return child;
+    }
+    return nullptr;
+}
+
+static void testPrismTrayMenuContract(prism::App &app) {
+    using prism::SystemTrayIcon;
+    using prism::TrayActionOptions;
+
+    SystemTrayIcon &tray = app.createSystemTrayIcon(
+        QString(), QStringLiteral("Prism tray test"), false);
+    CHECK(tray.usesPrismMenu(),
+          "App-owned SystemTrayIcon uses PrismQML SystemTrayMenu");
+
+    bool triggered = false;
+    TrayActionOptions options;
+    options.actionId = QStringLiteral("styled_action");
+    options.icon = QStringLiteral("MusicNote2");
+    options.shortcut = QStringLiteral("Ctrl+M");
+    options.checkable = true;
+    options.checked = true;
+    options.toolTip = QStringLiteral("PrismQML styled action");
+    tray.addAction(QStringLiteral("Styled action"),
+                   [&triggered]() { triggered = true; }, options);
+
+    QObject *menu = tray.findChild<QObject *>(QStringLiteral("prismSystemTrayMenu"));
+    QObject *action = findTrayAction(menu, options.actionId);
+    QSystemTrayIcon *nativeTray = tray.findChild<QSystemTrayIcon *>();
+    CHECK(menu && action, "PrismQML tray menu creates the configured action");
+    CHECK(nativeTray && nativeTray->contextMenu() == nullptr,
+          "PrismQML tray menu replaces the native QMenu surface");
+    CHECK(action && action->property("checked").toBool(),
+          "PrismQML tray action receives initial checked state");
+    CHECK(tray.setActionChecked(options.actionId, false)
+              && action && !action->property("checked").toBool(),
+          "setActionChecked synchronizes the PrismQML action");
+    CHECK(tray.setActionEnabled(options.actionId, false)
+              && action && !action->property("enabled").toBool(),
+          "setActionEnabled synchronizes the PrismQML action");
+    CHECK(QMetaObject::invokeMethod(
+              menu, "actionTriggered", Qt::DirectConnection,
+              Q_ARG(QString, options.actionId)) && triggered,
+          "PrismQML action signal routes to the C++ callback");
+}
+
 int main(int argc, char *argv[]) {
     if (!prism::test::configureNonInteractiveProcess()) return 2;
-    QApplication app(argc, argv);
+    prism::App app(argc, argv);
     using namespace prism;
 
     qInfo() << "=== Icon path URL contract ===";
@@ -176,6 +228,7 @@ int main(int argc, char *argv[]) {
     testAvailableScreenGeometry();
     testWindowFollowerGeometry();
     testTrayCheckableActionContract();
+    testPrismTrayMenuContract(app);
 
     qInfo() << "=== SystemTray 烟测 ===";
     // 构造 + addAction + addSeparator 不崩 (QApplication 下 QMenu 正常)

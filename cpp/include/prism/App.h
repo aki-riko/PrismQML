@@ -5,6 +5,7 @@
 // PrismQML C++ 宿主 - App 门面 (镜像 Python window/app.py)
 #pragma once
 
+#include "prism/SystemTray.h"
 #include "prism/Window.h"
 #include <QString>
 #include <memory>
@@ -42,6 +43,11 @@ public:
     // 创建窗口 (镜像 Python create_window)
     Window &createWindow(WindowType type = WindowType::Bar);
 
+    // 创建由 App 托管的托盘；托盘会在 QML 引擎销毁前释放。
+    SystemTrayIcon &createSystemTrayIcon(const QString &icon = QString(),
+                                         const QString &toolTip = QString(),
+                                         bool menuOnLeftClick = true);
+
     // 进入事件循环 (转发 QApplication::exec)
     int exec();
 
@@ -64,6 +70,7 @@ private:
     std::unique_ptr<QApplication> m_app;
     std::unique_ptr<QQmlApplicationEngine> m_engine;
     std::vector<std::unique_ptr<Window>> m_windows;
+    std::vector<std::unique_ptr<SystemTrayIcon>> m_systemTrays;
     QString m_importPath;
     std::unique_ptr<AppLifecycleBridge> m_lifecycle;
     std::function<void()> m_onPause;

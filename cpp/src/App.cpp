@@ -83,6 +83,8 @@ App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRea
 }
 
 App::~App() {
+    // QML 托盘菜单依赖 m_engine，必须先于引擎销毁。
+    m_systemTrays.clear();
     s_instance = nullptr;
 }
 
@@ -93,6 +95,14 @@ Window &App::createWindow(WindowType type) {
     m_windows.push_back(
         std::make_unique<Window>(m_engine.get(), m_importPath, type));
     return *m_windows.back();
+}
+
+SystemTrayIcon &App::createSystemTrayIcon(const QString &icon,
+                                          const QString &toolTip,
+                                          bool menuOnLeftClick) {
+    m_systemTrays.push_back(std::make_unique<SystemTrayIcon>(
+        icon, toolTip, nullptr, m_engine.get(), menuOnLeftClick));
+    return *m_systemTrays.back();
 }
 
 int App::exec() {
