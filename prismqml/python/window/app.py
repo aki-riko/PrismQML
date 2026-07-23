@@ -52,6 +52,7 @@ def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> Non
     owner._engine_publish_started = False
     owner._task_shutdown_timeout_ms = task_shutdown_timeout_ms
     owner._windows = []
+    owner._updater = None
 
 
 def _prepare_app_environment(allow_qml_file_read: bool) -> None:
@@ -384,6 +385,40 @@ class App:
         window = Window(window_type=window_type)
         self._windows.append(window)
         return window
+
+    def enable_auto_update(
+        self,
+        repo: str,
+        current_version: str,
+        asset_keyword: str = "Setup",
+    ) -> "Updater":
+        """Wire the engine-level auto-update backend. 启用引擎级自动更新底层。
+
+        创建 ``Updater`` 并以 ``appUpdater`` 注入 QML 根上下文,供
+        ``AutoUpdater { updater: appUpdater }`` 门面消费。应用侧仅需提供
+        仓库与当前版本,即可复用检测→下载→静默安装的完整流程。与 C++
+        ``App::enableAutoUpdate`` 对称。以最后一次调用为准重建底层实例,
+        其生命周期由 App 持有。
+
+        Args:
+            repo: GitHub 仓库 "owner/repo"。
+            current_version: 当前应用版本(如 "v1.0.3")。
+            asset_keyword: 从 release assets 中挑安装包的关键词(默认 "Setup")。
+
+        Returns:
+            创建的 ``Updater`` 实例;引擎未就绪时返回 ``None``。
+        """
+        from ..core import Updater
+
+        if self._engine is None:
+            from ..core.logger import warning
+
+            warning("App enable_auto_update: 引擎未就绪，无法启用自动更新")
+            return None
+        # 以最后一次调用为准重建底层 Updater;parent=None,生命周期由 self 持有。
+        self._updater = Updater(repo, current_version, asset_keyword, None)
+        self._engine.rootContext().setContextProperty("appUpdater", self._updater)
+        return self._updater
 
     @property
     def engine(self) -> Optional[QQmlApplicationEngine]:

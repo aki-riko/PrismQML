@@ -18,6 +18,7 @@ class QQmlApplicationEngine;
 namespace prism {
 
 class AppLifecycleBridge;  // 内部: 中转 Qt applicationStateChanged 信号
+class Updater;             // 自动更新底层 (enableAutoUpdate 使用)
 
 inline constexpr char kQmlXhrAllowFileReadEnvironment[] = "QML_XHR_ALLOW_FILE_READ";
 
@@ -58,6 +59,17 @@ public:
     void onPause(std::function<void()> cb);
     void onResume(std::function<void()> cb);
 
+    // ==================== 自动更新 (一等能力) ====================
+    // 一行接入 GitHub Release 自动更新:内部 new Updater 并注入为 QML 上下文
+    // 属性 "appUpdater",配合 QML 门面 AutoUpdater{ updater: appUpdater } 使用。
+    //   repo           形如 "owner/repo"
+    //   currentVersion 当前版本 (如 "1.0.0";建议由 CMake/构建注入,勿硬编码)
+    //   assetKeyword   Release 资产名匹配关键字 (默认 "Setup")
+    // 重复调用以最后一次为准。返回底层 Updater 指针 (所有权仍归 App)。
+    Updater *enableAutoUpdate(const QString &repo,
+                              const QString &currentVersion,
+                              const QString &assetKeyword = QStringLiteral("Setup"));
+
     // 逃生口: 直接拿底层引擎/应用 (镜像 Python engine / qapp 属性)
     QQmlApplicationEngine *engine() const { return m_engine.get(); }
     QApplication *qapp() const { return m_app.get(); }
@@ -75,6 +87,7 @@ private:
     std::unique_ptr<AppLifecycleBridge> m_lifecycle;
     std::function<void()> m_onPause;
     std::function<void()> m_onResume;
+    std::unique_ptr<Updater> m_updater;  // 自动更新底层实例 (enableAutoUpdate 创建)
 };
 
 }  // namespace prism

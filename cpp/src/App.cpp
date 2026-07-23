@@ -7,9 +7,11 @@
 #include "prism/ConfigContracts.h"
 #include "prism/Registry.h"
 #include "prism/ShadowManager.h"
+#include "prism/Updater.h"
 
 #include <QApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 #include <QObject>
@@ -90,6 +92,21 @@ App::~App() {
 
 void App::onPause(std::function<void()> cb) { m_onPause = std::move(cb); }
 void App::onResume(std::function<void()> cb) { m_onResume = std::move(cb); }
+
+Updater *App::enableAutoUpdate(const QString &repo,
+                              const QString &currentVersion,
+                              const QString &assetKeyword) {
+    if (!m_engine) {
+        qWarning() << "App::enableAutoUpdate: 引擎未就绪，无法启用自动更新";
+        return nullptr;
+    }
+    // 以最后一次调用为准，重建底层 Updater。
+    // App 非 QObject，故 parent 传 nullptr，所有权由 m_updater(unique_ptr) 独占。
+    m_updater = std::make_unique<Updater>(repo, currentVersion, assetKeyword, nullptr);
+    m_engine->rootContext()->setContextProperty(QStringLiteral("appUpdater"),
+                                                m_updater.get());
+    return m_updater.get();
+}
 
 Window &App::createWindow(WindowType type) {
     m_windows.push_back(
