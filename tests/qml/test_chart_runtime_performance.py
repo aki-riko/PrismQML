@@ -247,6 +247,11 @@ def test_chart_null_and_empty_inputs_stay_finite_and_select_empty_state(chart_sc
     assert value_range["min"] != float("inf")
     assert value_range["max"] != float("inf")
 
+    chart.setProperty("series", [None, {"name": "nonempty", "values": [1, 2]}])
+    _pump(20)
+    assert loaders["lineContentLoader"].property("item") is not None
+    assert warnings == []
+
     chart.setProperty("chartType", chart.property("scatterType"))
     chart.setProperty("series", [{"name": "empty", "data": []}])
     _pump(20)
@@ -255,8 +260,13 @@ def test_chart_null_and_empty_inputs_stay_finite_and_select_empty_state(chart_sc
     chart.setProperty("chartType", chart.property("radarType"))
     chart.setProperty(
         "indicators",
-        [{"name": "A", "max": 5}, {"name": "B", "max": 5}, {"name": "C", "max": 5}],
+        [None, {"name": "B", "max": 5}, {"name": "C", "max": 5}],
     )
+    chart.setProperty("series", [{"name": "radar", "values": [1, 2, 3]}])
+    _pump(20)
+    assert loaders["radarAreaLoader"].property("item") is not None
+    assert warnings == []
+
     chart.setProperty("series", [])
     _pump(20)
     assert loaders["radarAreaLoader"].property("item") is None

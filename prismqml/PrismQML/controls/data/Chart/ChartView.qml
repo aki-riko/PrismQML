@@ -82,9 +82,9 @@ ShadowedRectangle {
     }
     readonly property var defaultColors: Enums.chartColors.palette
     // Normalize nullable Python/QML list properties before renderer access 归一化可空的 Python/QML 列表，避免渲染器直接读取 null.length
-    readonly property var _chartData: _listOrEmpty(chartData)
-    readonly property var _indicators: _listOrEmpty(indicators)
-    readonly property var _series: _listOrEmpty(series)
+    readonly property var _chartData: _normalizeChartData(chartData)
+    readonly property var _indicators: _normalizeIndicators(indicators)
+    readonly property var _series: _normalizeSeries(series)
     readonly property var _boxplotData: _validBoxplotData(boxplotData)
     readonly property bool _hasChartData: _chartData.length > 0
     readonly property bool _hasSeriesValues: _hasRenderableSeries(_series, "values")
@@ -161,6 +161,39 @@ ShadowedRectangle {
     // Return a length-bearing list for QVariantList and JavaScript arrays 返回带 length 的列表，兼容 QVariantList 与 JavaScript 数组
     function _listOrEmpty(value) {
         return value && typeof value.length === "number" ? value : []
+    }
+
+    function _normalizeChartData(value) {
+        var source = _listOrEmpty(value)
+        var normalized = []
+        for (var i = 0; i < source.length; i++) {
+            var item = source[i]
+            normalized.push(item && typeof item === "object" && !Array.isArray(item)
+                            ? item : { label: "", value: 0 })
+        }
+        return normalized
+    }
+
+    function _normalizeIndicators(value) {
+        var source = _listOrEmpty(value)
+        var normalized = []
+        for (var i = 0; i < source.length; i++) {
+            var item = source[i]
+            normalized.push(item && typeof item === "object" && !Array.isArray(item)
+                            ? item : { name: "", max: 100 })
+        }
+        return normalized
+    }
+
+    function _normalizeSeries(value) {
+        var source = _listOrEmpty(value)
+        var normalized = []
+        for (var i = 0; i < source.length; i++) {
+            var item = source[i]
+            normalized.push(item && typeof item === "object" && !Array.isArray(item)
+                            ? item : {})
+        }
+        return normalized
     }
 
     function _hasRenderableSeries(items, field) {
