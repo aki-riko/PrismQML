@@ -7,7 +7,7 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import Property, QObject, Signal, Slot, QUrl
+from PySide6.QtCore import Property, QMetaObject, QObject, Signal, Slot, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 from prismqml import register_types
@@ -95,6 +95,22 @@ def test_gallery_auto_update_page_binds_backend_metadata(qapp):
         backend.upToDate.emit("v1.0.0")
         qapp.processEvents()
         assert root.property("latestVersion") == "v1.0.0"
+
+        toggle = root.findChild(QObject, "galleryAutoUpdatePresenterToggle")
+        facade = root.findChild(QObject, "galleryAutoUpdater")
+        assert toggle is not None
+        assert facade is not None
+        assert toggle.property("checked") is False
+
+        root.setProperty("useProgressDialog", True)
+        qapp.processEvents()
+        assert toggle.property("checked") is True
+        assert QMetaObject.invokeMethod(facade, "check")
+        qapp.processEvents()
+        dialog = root.findChild(QObject, "autoUpdaterProgressDialog")
+        assert dialog is not None
+        assert dialog.property("_isOpen") is True
+        assert backend.check_calls == 1
     finally:
         root.deleteLater()
         component.deleteLater()

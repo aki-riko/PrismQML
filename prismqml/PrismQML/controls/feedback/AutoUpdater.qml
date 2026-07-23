@@ -1,6 +1,6 @@
 // AutoUpdater.qml —— 高层自动更新门面
 //
-// 把底层 Updater(网络/版本比较/安装启动)与 UI 零件(UpdateDialog / Toast)
+// 把底层 Updater(网络/版本比较/安装启动)与 UI 零件(UpdateDialog / feedback presenter)
 // 串成一条完整链路,应用只需注入 updater 实例并调用 check():
 //   检查 → 有新版弹 UpdateDialog 确认 → 右下角 Toast 不确定进度环
 //        → 拿到总大小转确定环 → 下载完成启动安装程序
@@ -9,6 +9,9 @@
 // 用法:
 //   AutoUpdater { id: au; updater: appUpdater }   // appUpdater 由宿主 enableAutoUpdate 注入
 //   Button { onClicked: au.check() }
+// Custom presenter 自定义展示器:
+//   Component { id: dialogPresenter; AutoUpdaterProgressDialogPresenter {} }
+//   AutoUpdater { updater: appUpdater; feedbackPresenter: dialogPresenter }
 //
 // 说明:本组件不含任何网络逻辑,仅做 UI 编排;网络与安装全部委托注入的 updater。
 pragma ComponentBehavior: Bound
@@ -31,10 +34,38 @@ Item {
     property bool autoDownload: true              // 用户确认后是否自动下载(false 则仅发 downloadRequested 信号)
     property string silentArgs: ""                // 安装参数;空则启动可见安装向导
     property bool notifyWhenUpToDate: false        // 已是最新时是否弹提示 toast
+    // Presenter component contract 展示器组件契约:
+    //   property var feedbackModel / property Item presenterHost
+    // Defaults to bottom-right Toast; null disables built-in feedback.
+    // 默认使用右下角 Toast;设为 null 可完全关闭内置展示。
+    property Component feedbackPresenter: defaultFeedbackPresenter
 
     // ---- 展示信息(默认读取底层,应用仍可直接赋值覆盖) ----
     property string repository: updater && updater.repository ? updater.repository : ""
     property string currentVersion: updater && updater.currentVersion ? updater.currentVersion : ""
+
+    // ---- 展示状态(供自定义 Presenter 只读消费) ----
+    readonly property QtObject feedbackModel: QtObject {
+        readonly property bool active: root._feedbackActive
+        readonly property bool checking: root._checking
+        readonly property bool downloading: root._downloading
+        readonly property string title: root._feedbackTitle
+        readonly property string message: root._feedbackMessage
+        readonly property string severity: root._feedbackSeverity
+        readonly property int feature: root._feedbackFeature
+        readonly property int duration: root._feedbackDuration
+        readonly property real progress: root._feedbackProgress
+        readonly property bool indeterminate:
+            feature === Enums.notification.feature_indeterminate_bar
+            || feature === Enums.notification.feature_indeterminate_ring
+        readonly property bool determinate:
+            feature === Enums.notification.feature_progress_bar
+            || feature === Enums.notification.feature_progress_ring
+
+        function dismiss() {
+            root._dismissFeedback();
+        }
+    }
 
     // ---- 内部状态 ----
     property string _pendingUrl: ""
@@ -44,7 +75,15 @@ Item {
     property bool _checking: false      // 是否处于检查态(不确定环)
     property bool _downloading: false   // 是否处于下载态(不确定环→确定环)
     property bool _awaitingDecision: false
-    property var _toast: null
+    property bool _componentReady: false
+    property bool _feedbackActive: false
+    property string _feedbackTitle: ""
+    property string _feedbackMessage: ""
+    property string _feedbackSeverity: "info"
+    property int _feedbackFeature: Enums.notification.feature_normal
+    property int _feedbackDuration: Enums.duration.none
+    property real _feedbackProgress: 0
+    property var _feedbackPresenterObject: null
 
     // ---- 对外信号(供应用可选接管) ----
     signal upToDateNotified(string version)
@@ -60,11 +99,11 @@ Item {
         if (root._checking || root._downloading || root._awaitingDecision)
             return;
         _clearPending();
-        _hideToast();
+        _dismissFeedback();
         // 检查阶段:总量未知,显示不确定进度环(读信息=不确定,下载拿到总大小才转确定)
         root._checking = true;
         root._rangeKnown = false;
-        _showToast(
+        _presentFeedback(
             qsTr("正在检查更新"), "", "info",
             Enums.notification.feature_indeterminate_ring,
             Enums.duration.none, 0
@@ -94,7 +133,7 @@ Item {
         }
         root._rangeKnown = false;
         root._downloading = true;
-        _showToast(
+        _presentFeedback(
             qsTr("正在下载更新"), version, "info",
             Enums.notification.feature_indeterminate_ring,
             Enums.duration.none, 0
@@ -103,54 +142,90 @@ Item {
     }
 
     function _showError(title, message) {
-        _showToast(
+        _presentFeedback(
             title, message, "error", Enums.notification.feature_normal,
             Enums.duration.notification, 0
         );
         root.errorOccurred(message);
     }
 
-    function _showToast(title, message, severity, feature, duration, progress) {
-        var item = root._toast;
-        var created = false;
-        if (!item) {
-            item = NotificationManager.toast.info(
-                root, title, message, duration,
-                Enums.notification.posBottomRight
-            );
-            if (!item) {
-                console.warn("AutoUpdater: Toast 创建失败");
-                return;
-            }
-            created = true;
-            item.objectName = "autoUpdaterToast";
-            root._toast = item;
-            item.closed.connect(function() {
-                if (root._toast === item)
-                    root._toast = null;
-            });
-        }
-        item.title = title;
-        item.message = message;
-        item.severity = severity;
-        item.feature = feature;
-        item.duration = duration;
-        item.progress = progress;
-        if (!created)
-            item.show();
+    function _presentFeedback(title, message, severity, feature, duration, progress) {
+        root._feedbackTitle = title;
+        root._feedbackMessage = message;
+        root._feedbackSeverity = severity;
+        root._feedbackFeature = feature;
+        root._feedbackDuration = duration;
+        root._feedbackProgress = progress;
+        root._feedbackActive = true;
     }
 
-    function _hideToast() {
-        var item = root._toast;
-        root._toast = null;
-        if (item)
-            item.hide();
+    function _dismissFeedback() {
+        root._feedbackActive = false;
+    }
+
+    function _createFeedbackPresenter() {
+        if (!root._componentReady || root._feedbackPresenterObject
+                || !root.feedbackPresenter)
+            return;
+        var item = root.feedbackPresenter.createObject(root, {
+            "feedbackModel": root.feedbackModel,
+            "presenterHost": root
+        });
+        if (!item) {
+            console.error(
+                "AutoUpdater: feedbackPresenter 创建失败:",
+                root.feedbackPresenter.errorString()
+            );
+            return;
+        }
+        root._feedbackPresenterObject = item;
+    }
+
+    function _destroyFeedbackPresenter() {
+        var item = root._feedbackPresenterObject;
+        root._feedbackPresenterObject = null;
+        if (!item)
+            return;
+        // Disconnect before deferred destroy to isolate the old presenter.
+        // 延迟销毁前先断开模型,避免旧 Presenter 收到新状态。
+        item.feedbackModel = null;
+        item.presenterHost = null;
+        item.destroy();
+    }
+
+    function _recreateFeedbackPresenter() {
+        if (!root._componentReady)
+            return;
+        _destroyFeedbackPresenter();
+        _createFeedbackPresenter();
     }
 
     function _clearPending() {
         root._pendingVersion = "";
         root._pendingUrl = "";
         root._pendingHtmlUrl = "";
+    }
+
+    onFeedbackPresenterChanged: _recreateFeedbackPresenter()
+
+    Component.onCompleted: {
+        root._componentReady = true;
+        root._createFeedbackPresenter();
+    }
+    Component.onDestruction: root._destroyFeedbackPresenter()
+
+    // ---- 默认反馈展示器 ----
+    Component {
+        id: defaultFeedbackPresenter
+
+        AutoUpdaterToastPresenter {}
+    }
+
+    // ---- 短时反馈生命周期 ----
+    Timer {
+        interval: root._feedbackDuration
+        running: root._feedbackActive && root._feedbackDuration > Enums.duration.none
+        onTriggered: root._dismissFeedback()
     }
 
     // ---- 接底层 updater 信号 ----
@@ -161,7 +236,7 @@ Item {
             // 检查结束,停不确定环并收起检查 toast,转入确认弹窗
             root._checking = false;
             root._awaitingDecision = true;
-            root._hideToast();
+            root._dismissFeedback();
             root._pendingVersion = version;
             root._pendingUrl = downloadUrl;
             root._pendingHtmlUrl = htmlUrl;
@@ -176,9 +251,9 @@ Item {
                 return;
             root._checking = false;
             if (!root.notifyWhenUpToDate)
-                root._hideToast();   // 不提示时收起检查 Toast
+                root._dismissFeedback();   // 不提示时收起检查反馈
             if (root.notifyWhenUpToDate) {
-                root._showToast(
+                root._presentFeedback(
                     qsTr("已是最新版本"), version, "success",
                     Enums.notification.feature_normal,
                     Enums.duration.notification, 0
@@ -200,11 +275,10 @@ Item {
             // 首次拿到有效总大小 → 不确定环转确定环
             if (total > 0 && !root._rangeKnown) {
                 root._rangeKnown = true;
-                if (root._toast)
-                    root._toast.feature = Enums.notification.feature_progress_ring;
+                root._feedbackFeature = Enums.notification.feature_progress_ring;
             }
-            if (root._rangeKnown && root._toast)
-                root._toast.progress = Math.max(0, Math.min(1, received / total));
+            if (root._rangeKnown)
+                root._feedbackProgress = Math.max(0, Math.min(1, received / total));
         }
 
         function onDownloadFinished(filePath) {
@@ -215,7 +289,7 @@ Item {
                 _showError(qsTr("安装启动失败"), qsTr("无法启动安装程序,请重试"));
                 return;
             }
-            root._showToast(
+            root._presentFeedback(
                 qsTr("安装程序已启动"), qsTr("请按安装程序提示完成更新"),
                 "success", Enums.notification.feature_normal,
                 Enums.duration.notification, 0

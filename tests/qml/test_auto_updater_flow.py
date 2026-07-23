@@ -19,6 +19,11 @@ SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "auto-updater-flow.q
 AUTO_UPDATER_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "feedback" / "AutoUpdater.qml"
 )
+TOAST_PRESENTER_SOURCE = AUTO_UPDATER_SOURCE.with_name("AutoUpdaterToastPresenter.qml")
+PROGRESS_DIALOG_PRESENTER_SOURCE = AUTO_UPDATER_SOURCE.with_name(
+    "AutoUpdaterProgressDialogPresenter.qml"
+)
+ROOT_QMLDIR = ROOT / "prismqml" / "PrismQML" / "qmldir"
 SCENE_SOURCE = b"""
 import QtQuick
 import PrismQML
@@ -48,6 +53,18 @@ Window {
         facade._checking = false;
         facade._downloading = true;
         backend.downloadProgress(25, 100);
+    }
+
+    function useProgressDialogAndCheck() {
+        facade.feedbackModel.dismiss();
+        facade.feedbackPresenter = progressDialogPresenter;
+        facade.check();
+    }
+
+    function useCustomPresenterAndCheck() {
+        facade.feedbackModel.dismiss();
+        facade.feedbackPresenter = customPresenter;
+        facade.check();
     }
 
     function triggerInstallerFailure() {
@@ -89,6 +106,27 @@ Window {
         function downloadUpdate(url) { downloadCalls += 1; }
         function runInstallerAndQuit(path, args) { installCalls += 1; return false; }
         function openInBrowser(url) { browserCalls += 1; return true; }
+    }
+
+    Component {
+        id: progressDialogPresenter
+
+        AutoUpdaterProgressDialogPresenter {}
+    }
+
+    Component {
+        id: customPresenter
+
+        QtObject {
+            property var feedbackModel: null
+            property Item presenterHost: null
+            readonly property bool active: feedbackModel ? feedbackModel.active : false
+            readonly property bool checking: feedbackModel ? feedbackModel.checking : false
+            readonly property string title: feedbackModel ? feedbackModel.title : ""
+            readonly property real progress: feedbackModel ? feedbackModel.progress : 0
+
+            objectName: "customAutoUpdaterPresenter"
+        }
     }
 
     AutoUpdater {
@@ -148,7 +186,7 @@ def test_check_is_single_flight_until_terminal_signal(auto_updater_scene):
     assert backend.property("checkCalls") == 2
 
 
-def test_check_uses_managed_toast_and_builtin_progress(auto_updater_scene):
+def test_check_uses_managed_toast_and_builtin_progress(auto_updater_scene, qapp):
     root = auto_updater_scene
     windows_before = set(QGuiApplication.topLevelWindows())
 
@@ -162,17 +200,63 @@ def test_check_uses_managed_toast_and_builtin_progress(auto_updater_scene):
     assert set(QGuiApplication.topLevelWindows()) == windows_before
 
     assert QMetaObject.invokeMethod(root, "emitDownloadProgress")
+    qapp.processEvents()
     assert toast.property("feature") == root.property("progressRingFeature")
     assert toast.property("progress") == pytest.approx(0.25)
 
 
-def test_auto_updater_does_not_hand_roll_desktop_notification():
-    source = AUTO_UPDATER_SOURCE.read_text(encoding="utf-8")
+def test_progress_dialog_presenter_can_replace_default(auto_updater_scene, qapp):
+    root = auto_updater_scene
 
-    assert "NotificationManager.toast.info(" in source
-    assert "DesktopNotification {" not in source
-    assert "customContent: Component" not in source
-    assert "ProgressRing {" not in source
+    assert QMetaObject.invokeMethod(root, "useProgressDialogAndCheck")
+    qapp.processEvents()
+    dialog = root.findChild(QObject, "autoUpdaterProgressDialog")
+    assert dialog is not None
+    assert dialog.metaObject().className().startswith("ProgressDialog_QMLTYPE_")
+    assert dialog.property("_isOpen") is True
+    assert dialog.property("title") == "正在检查更新"
+    assert dialog.property("progress") == pytest.approx(-1)
+    assert root.findChild(QObject, "autoUpdaterToast") is None
+
+    assert QMetaObject.invokeMethod(root, "emitDownloadProgress")
+    qapp.processEvents()
+    assert dialog.property("progress") == pytest.approx(25)
+
+
+def test_developer_component_receives_shared_feedback_model(auto_updater_scene, qapp):
+    root = auto_updater_scene
+
+    assert QMetaObject.invokeMethod(root, "useCustomPresenterAndCheck")
+    presenter = root.findChild(QObject, "customAutoUpdaterPresenter")
+    assert presenter is not None
+    assert presenter.property("active") is True
+    assert presenter.property("checking") is True
+    assert presenter.property("title") == "正在检查更新"
+
+    assert QMetaObject.invokeMethod(root, "emitDownloadProgress")
+    qapp.processEvents()
+    assert presenter.property("progress") == pytest.approx(0.25)
+
+
+def test_auto_updater_delegates_feedback_without_desktop_notification():
+    facade_source = AUTO_UPDATER_SOURCE.read_text(encoding="utf-8")
+    toast_source = TOAST_PRESENTER_SOURCE.read_text(encoding="utf-8")
+    dialog_source = PROGRESS_DIALOG_PRESENTER_SOURCE.read_text(encoding="utf-8")
+    qmldir_source = ROOT_QMLDIR.read_text(encoding="utf-8")
+
+    assert "property Component feedbackPresenter" in facade_source
+    assert "readonly property QtObject feedbackModel" in facade_source
+    assert "NotificationManager.toast.info(" not in facade_source
+    assert "NotificationManager.toast.info(" in toast_source
+    assert "ProgressDialog {" in dialog_source
+    assert "AutoUpdaterToastPresenter controls/feedback/AutoUpdaterToastPresenter.qml" in qmldir_source
+    assert (
+        "AutoUpdaterProgressDialogPresenter "
+        "controls/feedback/AutoUpdaterProgressDialogPresenter.qml"
+    ) in qmldir_source
+    for source in (facade_source, toast_source, dialog_source):
+        assert "DesktopNotification {" not in source
+        assert "customContent: Component" not in source
 
 
 def test_installer_launch_failure_is_reported_and_retryable(auto_updater_scene):

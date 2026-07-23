@@ -20,6 +20,7 @@ Item {
         ? "尚未检查"
         : "Gallery 未注入 appUpdater"
     property string latestVersion: ""
+    property bool useProgressDialog: false
 
     // ==================== Public Methods 公开方法 ====================
     function canCheck() {
@@ -61,12 +62,22 @@ Item {
 
             ExampleCard {
                 title: "真实 GitHub Releases 更新流程"
-                description: "点击检查后，会使用 Gallery 注入的真实 Updater；发现版本时弹出 UpdateDialog，下载过程显示桌面通知。"
+                description: "点击检查后，会使用 Gallery 注入的真实 Updater；反馈默认显示为右下角 Toast，也可切换为 ProgressDialog。"
                 orientation: Qt.Vertical
 
                 Column {
                     width: parent ? parent.width : 0
                     spacing: Fluent.Enums.spacing.l
+
+                    Toggle {
+                        objectName: "galleryAutoUpdatePresenterToggle"
+                        controlType: Fluent.Enums.toggle.control_switch
+                        text: checked ? "ProgressDialog" : "右下角 Toast"
+                        checked: root.useProgressDialog
+                        onToggled: function(checked) {
+                            root.useProgressDialog = checked
+                        }
+                    }
 
                     Row {
                         width: parent ? parent.width : 0
@@ -142,7 +153,7 @@ Item {
 
             ExampleCard {
                 title: "更新链路"
-                description: "Gallery 中可以直接看到门面组件如何编排底层 Updater、UpdateDialog 和下载进度。"
+                description: "Gallery 中可以直接看到门面组件如何编排底层 Updater、UpdateDialog 和可替换反馈展示器。"
                 orientation: Qt.Vertical
 
                 Column {
@@ -153,7 +164,7 @@ Item {
                         model: [
                             "1. 检查 GitHub Releases 并比较当前版本",
                             "2. 发现新版本后显示更新说明和确认对话框",
-                            "3. 下载时显示不确定/确定进度环",
+                            "3. 下载时由 Toast 或 ProgressDialog 显示不确定/确定进度",
                             "4. 下载完成后启动安装程序，或打开 Release 页面"
                         ]
 
@@ -175,11 +186,27 @@ Item {
     // AutoUpdater facade is intentionally visible here, rather than hidden in
     // a startup hook, so the Gallery exposes the actual user-facing flow.
     // 门面直接放在页面中而不是藏在启动钩子里，确保 Gallery 展示真实用户流程。
+    Component {
+        id: toastFeedbackPresenter
+
+        Fluent.AutoUpdaterToastPresenter {}
+    }
+
+    Component {
+        id: progressDialogFeedbackPresenter
+
+        Fluent.AutoUpdaterProgressDialogPresenter {}
+    }
+
     Fluent.AutoUpdater {
         id: autoUpdater
+        objectName: "galleryAutoUpdater"
         updater: root.updaterBackend
         autoDownload: true
         notifyWhenUpToDate: true
+        feedbackPresenter: root.useProgressDialog
+            ? progressDialogFeedbackPresenter
+            : toastFeedbackPresenter
 
         onUpToDateNotified: function(version) {
             root.latestVersion = version

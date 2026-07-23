@@ -122,6 +122,8 @@ ToggleNavigationBar navigation/ToggleNavigationBar.qml
 
 # ==================== Feedback 反馈 ====================
 AutoUpdater controls/feedback/AutoUpdater.qml
+AutoUpdaterToastPresenter controls/feedback/AutoUpdaterToastPresenter.qml
+AutoUpdaterProgressDialogPresenter controls/feedback/AutoUpdaterProgressDialogPresenter.qml
 Confetti controls/feedback/Confetti.qml
 InfoBarCore controls/feedback/InfoBar/InfoBarCore.qml
 InfoBar controls/feedback/InfoBar/InfoBarEntry.qml
