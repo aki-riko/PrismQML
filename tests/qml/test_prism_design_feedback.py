@@ -175,6 +175,41 @@ Toast {
             _build(
                 engine,
                 b"""
+import QtQuick
+import PrismQML
+Item {
+    property string toastPresenterName: toastPresenter.objectName
+    property string progressPresenterName: progressPresenter.objectName
+    property string progressDialogName: progressPresenter.progressDialog.objectName
+    property real progressMaximum: progressPresenter.progressMaximum
+
+    AutoUpdaterToastPresenter {
+        id: toastPresenter
+    }
+
+    AutoUpdaterProgressDialogPresenter {
+        id: progressPresenter
+    }
+}
+""",
+            )
+        )
+        updater_presenters = keep[-1][1]
+        assert updater_presenters.property("toastPresenterName") == (
+            "autoUpdaterToastPresenter"
+        )
+        assert updater_presenters.property("progressPresenterName") == (
+            "autoUpdaterProgressDialogPresenter"
+        )
+        assert updater_presenters.property("progressDialogName") == (
+            "autoUpdaterProgressDialog"
+        )
+        assert updater_presenters.property("progressMaximum") == 100
+
+        keep.append(
+            _build(
+                engine,
+                b"""
 import PrismQML
 DesktopNotification {
     title: "Deploy"
