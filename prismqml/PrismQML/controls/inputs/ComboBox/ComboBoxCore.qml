@@ -62,6 +62,9 @@ Widget {
     readonly property bool pressed: mouseArea.pressed
     readonly property bool popupVisible: isOpen || comboPopup.isClosing
     readonly property color focusedBorderColor: Enums.isDark ? focusedBorderColorDark : focusedBorderColorLight
+    readonly property var _safeModel:
+        model === null || model === undefined ? []
+        : (typeof model.length === "number" ? model : [])
 
     // Default delegate 默认委托
     property Component defaultDelegate: Component {
@@ -112,7 +115,7 @@ Widget {
     signal textEdited(string text)  // Editable mode signal editable模式信号
 
     // ==================== Public Methods 公开方法 ====================
-    function count() { return _methods.count(model) }
+    function count() { return _methods.count(_safeModel || []) }
     function addItem(text, userData) { _methods.addItem(control, text, userData) }
     function addItems(texts) { _methods.addItems(control, texts) }
     function removeItem(index) { _methods.removeItem(control, index) }
@@ -121,8 +124,8 @@ Widget {
     function clear() { _methods.clear(control) }
     function showPopup() { openPopup() }
     function hidePopup() { closePopup() }
-    function itemText(index) { return _methods.itemText(model, index) }
-    function findText(text) { return _methods.findText(model, text) }
+    function itemText(index) { return _methods.itemText(_safeModel || [], index) }
+    function findText(text) { return _methods.findText(_safeModel || [], text) }
     function setCurrentText(text) { _methods.setCurrentText(control, text) }
     function setItemText(index, text) { _methods.setItemText(control, index, text) }
     function currentData() { return _methods.currentData(control) }
@@ -142,7 +145,7 @@ Widget {
         var contentW = _calcContentWidth()
         comboPopup.popupWidth = Math.max(contentW, control.width)
         // Calculate height from model length 直接用model长度计算高度
-        var itemCount = model.length
+        var itemCount = (_safeModel || []).length
         var calcHeight = itemCount * popupItemHeight + Enums.comboBoxMetrics.popupPadding
         comboPopup.popupHeight = Math.min(calcHeight, maxVisibleItems > 0 ? (maxVisibleItems * popupItemHeight + Enums.comboBoxMetrics.popupPadding) : Enums.comboBoxMetrics.popupMaxHeight)
         comboPopup.openAtControl(control)
@@ -159,11 +162,12 @@ Widget {
     function isEnabled() { return enabled }
 
     // ==================== Internal Methods 内部方法 ====================
-    function _getItemText(index) { return _methods.getItemText(model, index) }
-    function _hasMatchingItems(searchText) { return _methods.hasMatchingItems(model, searchText) }
+    function _getItemText(index) { return _methods.getItemText(_safeModel || [], index) }
+    function _hasMatchingItems(searchText) { return _methods.hasMatchingItems(_safeModel || [], searchText) }
     function _syncCurrentTextFromSelection() {
         if (editable && currentIndex === -1) return
-        var nextText = currentIndex >= 0 && currentIndex < model.length
+        var safeModel = _safeModel || []
+        var nextText = currentIndex >= 0 && currentIndex < safeModel.length
             ? _getItemText(currentIndex) : ""
         if (currentText !== nextText) currentText = nextText
     }
@@ -174,7 +178,8 @@ Widget {
         // Total horizontal padding: contentContainer margins(xs*2) + itemBg margins(xs*2) + text margins(l*2)
         // 总水平内边距：内容容器边距(xs*2) + 项背景边距(xs*2) + 文本边距(l*2)
         var itemPadding = Enums.spacing.l * 2 + Enums.spacing.xs * 4
-        for (var i = 0; i < model.length; i++) {
+        var safeModel = _safeModel || []
+        for (var i = 0; i < safeModel.length; i++) {
             var text = _getItemText(i)
             if (!text) continue
             comboTextMeasure.text = text

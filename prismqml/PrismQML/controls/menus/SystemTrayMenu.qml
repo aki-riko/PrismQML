@@ -14,6 +14,11 @@ MenuCore {
     // ==================== Public Props 公开属性 ====================
     property bool showAtCursor: true
     property var initialActions: []
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeInitialActions:
+        initialActions === null || initialActions === undefined ? []
+        : (typeof initialActions.length === "number" ? initialActions : [])
     
     // ==================== Public Methods 公开方法 ====================
     function showAtPosition(x, y) {
@@ -43,6 +48,6 @@ MenuCore {
 
     closeOnClickOutside: true
     Component.onCompleted: {
-        if (initialActions.length > 0) addActions(initialActions)
+        if (_safeInitialActions.length > 0) addActions(_safeInitialActions)
     }
 }

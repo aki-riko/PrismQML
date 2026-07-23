@@ -21,8 +21,8 @@ NavigationWindowCore {
     titleBarLeftMargin: Enums.spacing.xxl
 
     Component.onCompleted: window.profileDetail(
-        "WindowsBar root completed nav=" + navigationItems.length +
-        " bottom=" + bottomNavigationItems.length +
+        "WindowsBar root completed nav=" + _safeNavigationItems.length +
+        " bottom=" + _safeBottomNavigationItems.length +
         " hidden=" + _hiddenStack.data.length
     )
 

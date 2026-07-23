@@ -35,12 +35,21 @@ ComboBoxCore {
     property real _smoothContentX: 0
 
     // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeSelectedPaths: {
+        var values = selectedPaths
+        if (!values || typeof values.length !== "number") return []
+        var result = []
+        for (var i = 0; i < values.length; i++) {
+            if (Array.isArray(values[i])) result.push(values[i])
+        }
+        return result
+    }
     // Filter out parent nodes, only show leaf nodes in token 过滤父节点，token只显示叶子节点
     readonly property var _leafSelectedPaths: {
         var leaves = []
-        for (var i = 0; i < selectedPaths.length; i++) {
-            if (!_nodeHasChildren(selectedPaths[i])) {
-                leaves.push(selectedPaths[i])
+        for (var i = 0; i < _safeSelectedPaths.length; i++) {
+            if (Array.isArray(_safeSelectedPaths[i]) && !_nodeHasChildren(_safeSelectedPaths[i])) {
+                leaves.push(_safeSelectedPaths[i])
             }
         }
         return leaves
@@ -62,7 +71,7 @@ ComboBoxCore {
 
     // ==================== Internal Methods 内部方法 ====================
     function _initTree() {
-        if (model && model.length > 0) {
+        if (_safeModel.length > 0) {
             _expandAllNodes()
             _rebuildFlatModel()
         }
@@ -70,7 +79,7 @@ ComboBoxCore {
 
     function _expandAllNodes() {
         var expanded = {}
-        _collectExpandableNodes(model, "root", expanded)
+        _collectExpandableNodes(_safeModel, "root", expanded)
         _expandedNodes = expanded
     }
 
@@ -78,6 +87,7 @@ ComboBoxCore {
         if (!nodes) return
         for (var i = 0; i < nodes.length; i++) {
             var node = nodes[i]
+            if (!node) continue
             var nodeId = parentId + "_" + i
             if (node.children && node.children.length > 0) {
                 result[nodeId] = true
@@ -88,7 +98,7 @@ ComboBoxCore {
 
     function _rebuildFlatModel() {
         _flatListModel.clear()
-        _flattenTree(model, [], 0, "root")
+        _flattenTree(_safeModel, [], 0, "root")
     }
 
     // Get selection state for a node 获取节点的选中状态
@@ -113,6 +123,7 @@ ComboBoxCore {
         if (!nodes) return
         for (var i = 0; i < nodes.length; i++) {
             var node = nodes[i]
+            if (!node) continue
             var nodeText = typeof node === "string" ? node : (node.text || "")
             var nodeId = parentId + "_" + i
             var path = parentPath.concat([nodeText])
@@ -153,6 +164,7 @@ ComboBoxCore {
         if (!children) return false
         for (var i = 0; i < children.length; i++) {
             var child = children[i]
+            if (!child) continue
             var text = typeof child === "string" ? child : (child.text || "")
             if (text.toLowerCase().indexOf(_searchText.toLowerCase()) >= 0) return true
             if (child.children && _hasMatchingDescendants(child.children)) return true
@@ -172,21 +184,22 @@ ComboBoxCore {
 
     function _isSelected(path) {
         var pathStr = _pathToString(path)
-        for (var i = 0; i < selectedPaths.length; i++) {
-            if (_pathToString(selectedPaths[i]) === pathStr) return true
+        for (var i = 0; i < _safeSelectedPaths.length; i++) {
+            if (_pathToString(_safeSelectedPaths[i]) === pathStr) return true
         }
         return false
     }
 
     // Find node by path 根据路径查找节点
     function _findNodeByPath(path) {
-        if (!path || path.length === 0 || !model) return null
-        var nodes = model
+        if (!path || path.length === 0 || _safeModel.length === 0) return null
+        var nodes = _safeModel
         var node = null
         for (var i = 0; i < path.length; i++) {
             var found = false
             for (var j = 0; j < nodes.length; j++) {
                 var n = nodes[j]
+                if (!n) continue
                 var text = typeof n === "string" ? n : (n.text || "")
                 if (text === path[i]) {
                     node = n
@@ -212,6 +225,7 @@ ComboBoxCore {
             // Recurse into children 递归子节点
             for (var i = 0; i < children.length; i++) {
                 var child = children[i]
+                if (!child) continue
                 var childText = typeof child === "string" ? child : (child.text || "")
                 var childPath = currentPath.concat([childText])
                 var childLeaves = _getLeafPaths(child, childPath)
@@ -244,7 +258,7 @@ ComboBoxCore {
                 }
             }
 
-            var newPaths = selectedPaths.slice()
+            var newPaths = _safeSelectedPaths.slice()
             if (allSelected) {
                 // Deselect all leaves 取消选中所有叶子
                 for (var i = 0; i < leafPaths.length; i++) {
@@ -265,11 +279,11 @@ ComboBoxCore {
             var pathStr = _pathToString(path)
             var newPaths = []
             var found = false
-            for (var i = 0; i < selectedPaths.length; i++) {
-                if (_pathToString(selectedPaths[i]) === pathStr) {
+            for (var i = 0; i < _safeSelectedPaths.length; i++) {
+                if (_pathToString(_safeSelectedPaths[i]) === pathStr) {
                     found = true
                 } else {
-                    newPaths.push(selectedPaths[i])
+                    newPaths.push(_safeSelectedPaths[i])
                 }
             }
             if (!found) newPaths.push(path.slice())
@@ -446,11 +460,11 @@ ComboBoxCore {
                         // Find the path in selectedPaths by matching 通过匹配在selectedPaths中找到路径
                         var pathToRemove = tokenDelegate._control._leafSelectedPaths[idx]
                         var pathStr = tokenDelegate._control._pathToString(pathToRemove)
-                        var newPaths = tokenDelegate._control.selectedPaths.filter(function(p) {
+                        var newPaths = tokenDelegate._control._safeSelectedPaths.filter(function(p) {
                             return tokenDelegate._control._pathToString(p) !== pathStr
                         })
                         tokenDelegate._control.selectedPaths = newPaths
-                        tokenDelegate._control.selectionChanged(tokenDelegate._control.selectedPaths)
+                        tokenDelegate._control.selectionChanged(tokenDelegate._control._safeSelectedPaths)
                         tokenDelegate._control._updateSelectionStates()
                     }
                 }

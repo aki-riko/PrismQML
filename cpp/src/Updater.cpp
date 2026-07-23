@@ -370,7 +370,8 @@ void Updater::setApiBaseUrl(const QString &apiBaseUrl) {
 // 检查更新: GET GitHub releases/latest (镜像 checkForUpdate)
 void Updater::checkForUpdate() {
     if (m_checkReply || m_downloadReply) {
-        qDebug() << "[Updater] 已有更新事务在进行, 忽略重复检测";
+        qWarning() << "[Updater] 已有更新事务在进行, 拒绝重复检测";
+        emit checkFailed(QStringLiteral("更新检查已在进行"));
         return;
     }
     m_expectedDownloadUrl.clear();
@@ -434,8 +435,11 @@ void Updater::onCheckFinished(QNetworkReply *reply) {
 
 // 下载更新包 (镜像 downloadUpdate)
 void Updater::downloadUpdate(const QString &url) {
-    if (m_downloadReply) {
-        qDebug() << "[Updater] 已有下载在进行, 忽略重复调用";
+    if (m_checkReply || m_downloadReply) {
+        const QString message = m_checkReply ? QStringLiteral("更新检查已在进行")
+                                             : QStringLiteral("下载已在进行");
+        qWarning() << "[Updater] 已有更新事务在进行, 拒绝下载:" << message;
+        emit downloadFailed(message);
         return;
     }
     if (url.isEmpty()) {
@@ -507,7 +511,6 @@ void Updater::onDownloadFinished(QNetworkReply *reply) {
         return;
     }
     const QString completedPath = m_downloadPath;
-    m_downloadPath.clear();
     m_downloadError.clear();
     emit downloadFinished(completedPath);
 }
@@ -580,6 +583,7 @@ bool Updater::runInstallerAndQuit(const QString &installerPath, const QString &s
     if (reinterpret_cast<INT_PTR>(ret) <= 32) {
         qWarning() << "[Updater] 启动安装包失败(ShellExecute 返回"
                    << reinterpret_cast<INT_PTR>(ret) << "):" << installerPath;
+        discardCompletedDownload(installerPath);
         return false;
     }
     qInfo() << "[Updater] 已启动安装包, 应用即将退出:" << installerPath << args;
@@ -588,12 +592,14 @@ bool Updater::runInstallerAndQuit(const QString &installerPath, const QString &s
 #elif defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     // Mobile sandboxes do not support launching an external installer process.
     qWarning() << "[Updater] 当前平台不支持启动外部安装包:" << installerPath;
+    discardCompletedDownload(installerPath);
     return false;
 #elif defined(Q_OS_MACOS)
     // macOS DMG/PKG must be opened by the system Installer/Finder handler.
     const bool ok = QProcess::startDetached(QStringLiteral("/usr/bin/open"), {installerPath});
     if (!ok) {
         qWarning() << "[Updater] 打开 macOS 安装包失败:" << installerPath;
+        discardCompletedDownload(installerPath);
         return false;
     }
     qInfo() << "[Updater] 已打开 macOS 安装包, 应用即将退出:" << installerPath;
@@ -608,12 +614,14 @@ bool Updater::runInstallerAndQuit(const QString &installerPath, const QString &s
         if (!(permissions & QFileDevice::ExeOwner)
             && !QFile::setPermissions(installerPath, permissions | QFileDevice::ExeOwner)) {
             qWarning() << "[Updater] 设置 Linux 安装包执行权限失败:" << installerPath;
+            discardCompletedDownload(installerPath);
             return false;
         }
         ok = QProcess::startDetached(installerPath, args);
     }
     if (!ok) {
         qWarning() << "[Updater] 启动 Linux 安装包失败:" << installerPath;
+        discardCompletedDownload(installerPath);
         return false;
     }
     qInfo() << "[Updater] 已启动 Linux 安装包, 应用即将退出:" << installerPath << args;
@@ -624,6 +632,7 @@ bool Updater::runInstallerAndQuit(const QString &installerPath, const QString &s
     const bool ok = QProcess::startDetached(installerPath, args);
     if (!ok) {
         qWarning() << "[Updater] 启动安装包失败:" << installerPath;
+        discardCompletedDownload(installerPath);
         return false;
     }
     qInfo() << "[Updater] 已启动安装包, 应用即将退出:" << installerPath << args;
@@ -642,6 +651,16 @@ bool Updater::openInBrowser(const QString &url) {
     if (!ok)
         qWarning() << "[Updater] 打开浏览器失败:" << url;
     return ok;
+}
+
+void Updater::discardCompletedDownload(const QString &installerPath) {
+    if (installerPath != m_downloadPath)
+        return;
+    if (!QFile::remove(installerPath)) {
+        qWarning() << "[Updater] 清理安装包失败:" << installerPath;
+        return;
+    }
+    m_downloadPath.clear();
 }
 
 }  // namespace prism

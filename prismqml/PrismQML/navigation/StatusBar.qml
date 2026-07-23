@@ -20,6 +20,12 @@ Rectangle {
     readonly property color _statusBarBackground: Enums.surfaceColor
     readonly property color _statusBarDividerColor: Enums.dividerColor
     readonly property color _statusBarTextColor: Enums.textColor.secondary
+    readonly property var _safeLeftItems:
+        leftItems === null || leftItems === undefined ? []
+        : (typeof leftItems.length === "number" ? leftItems : [])
+    readonly property var _safeRightItems:
+        rightItems === null || rightItems === undefined ? []
+        : (typeof rightItems.length === "number" ? rightItems : [])
 
     // ==================== Size 尺寸 ====================
     implicitWidth: parent ? parent.width : 400
@@ -52,11 +58,12 @@ Rectangle {
         
         // Left custom items 左侧自定义项
         Repeater {
-            model: control.leftItems
+            model: control._safeLeftItems
             
             Label {
                 type: Enums.label.type_caption
-                text: modelData.text || modelData
+                text: modelData && typeof modelData === "object"
+                      ? (modelData.text || modelData) : (modelData || "")
                 color: control._statusBarTextColor
             }
         }
@@ -70,11 +77,12 @@ Rectangle {
         spacing: Enums.spacing.xl
         
         Repeater {
-            model: control.rightItems
+            model: control._safeRightItems
             
             Label {
                 type: Enums.label.type_caption
-                text: modelData.text || modelData
+                text: modelData && typeof modelData === "object"
+                      ? (modelData.text || modelData) : (modelData || "")
                 color: control._statusBarTextColor
             }
         }

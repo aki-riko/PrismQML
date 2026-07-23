@@ -94,6 +94,8 @@ Internal.WindowsBar {
     navigationSmoothScroll: false
     navigationScrollDuration: Enums.duration.slower
     navigationScrollStep: Enums.spacing.xxl
+    navigationItems: null
+    bottomNavigationItems: null
 
     Item {
         objectName: "pageA"

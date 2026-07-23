@@ -39,39 +39,40 @@ function _hasMapValue(source, index) {
 }
 
 function addItem(control, text, userData) {
-    var newModel = control.model.slice()
+    var newModel = (control._safeModel || []).slice()
     var newIndex = newModel.length
     newModel.push(text)
     control.model = newModel
     if (userData !== undefined) setItemData(control, newIndex, userData)
-    if (control.model.length === 1) control.currentIndex = 0
+    if ((control._safeModel || []).length === 1) control.currentIndex = 0
 }
 
 function addItems(control, texts) {
-    var newModel = control.model.slice()
-    for (var i = 0; i < texts.length; i++) {
-        newModel.push(texts[i])
+    var newModel = (control._safeModel || []).slice()
+    var safeTexts = texts && typeof texts.length === "number" ? texts : []
+    for (var i = 0; i < safeTexts.length; i++) {
+        newModel.push(safeTexts[i])
     }
     control.model = newModel
-    if (control.currentIndex < 0 && control.model.length > 0) control.currentIndex = 0
+    if (control.currentIndex < 0 && (control._safeModel || []).length > 0) control.currentIndex = 0
 }
 
 function removeItem(control, index) {
-    if (index < 0 || index >= control.model.length) return
-    var newModel = control.model.slice()
+    if (index < 0 || index >= (control._safeModel || []).length) return
+    var newModel = (control._safeModel || []).slice()
     newModel.splice(index, 1)
     control.model = newModel
     _shiftMetadata(control, index + 1, -1, index)
     if (index < control.currentIndex) control.currentIndex--
     else if (index === control.currentIndex) {
-        if (control.currentIndex >= control.model.length) control.currentIndex = control.model.length - 1
+        if (control.currentIndex >= (control._safeModel || []).length) control.currentIndex = (control._safeModel || []).length - 1
     }
 }
 
 function insertItem(control, index, text, userData) {
     if (index < 0) index = 0
-    if (index > control.model.length) index = control.model.length
-    var newModel = control.model.slice()
+    if (index > (control._safeModel || []).length) index = (control._safeModel || []).length
+    var newModel = (control._safeModel || []).slice()
     newModel.splice(index, 0, text)
     _shiftMetadata(control, index, 1, -1)
     control.model = newModel
@@ -82,14 +83,15 @@ function insertItem(control, index, text, userData) {
 // Insert multiple items at index 批量插入多项
 function insertItems(control, index, texts) {
     if (index < 0) index = 0
-    if (index > control.model.length) index = control.model.length
-    var newModel = control.model.slice()
-    for (var i = 0; i < texts.length; i++) {
-        newModel.splice(index + i, 0, texts[i])
+    if (index > (control._safeModel || []).length) index = (control._safeModel || []).length
+    var newModel = (control._safeModel || []).slice()
+    var safeTexts = texts && typeof texts.length === "number" ? texts : []
+    for (var i = 0; i < safeTexts.length; i++) {
+        newModel.splice(index + i, 0, safeTexts[i])
     }
-    _shiftMetadata(control, index, texts.length, -1)
+    _shiftMetadata(control, index, safeTexts.length, -1)
     control.model = newModel
-    if (index <= control.currentIndex) control.currentIndex += texts.length
+    if (index <= control.currentIndex) control.currentIndex += safeTexts.length
 }
 
 function clear(control) {
@@ -107,6 +109,7 @@ function itemText(model, index) {
 }
 
 function findText(model, text) {
+    if (!model || typeof model.length !== "number") return -1
     for (var i = 0; i < model.length; i++) {
         if (getItemText(model, i) === text) return i
     }
@@ -114,14 +117,14 @@ function findText(model, text) {
 }
 
 function setCurrentText(control, text) {
-    var idx = findText(control.model, text)
+    var idx = findText(control._safeModel || [], text)
     if (idx >= 0) control.currentIndex = idx
 }
 
 function setItemText(control, index, text) {
-    if (index < 0 || index >= control.model.length) return
-    var newModel = control.model.slice()
-    if (typeof newModel[index] === 'object') {
+    if (index < 0 || index >= (control._safeModel || []).length) return
+    var newModel = (control._safeModel || []).slice()
+    if (newModel[index] && typeof newModel[index] === 'object') {
         newModel[index].text = text
     } else {
         newModel[index] = text
@@ -136,21 +139,22 @@ function currentData(control) {
 }
 
 function itemData(control, index) {
-    if (index < 0 || index >= control.model.length) return undefined
+    if (index < 0 || index >= (control._safeModel || []).length) return undefined
     if (_hasMapValue(control._itemDataMap, index)) return control._itemDataMap[index]
-    if (typeof control.model[index] === 'object' && control.model[index].data !== undefined) {
-        return control.model[index].data
+    var item = (control._safeModel || [])[index]
+    if (item && typeof item === 'object' && item.data !== undefined) {
+        return item.data
     }
     return undefined
 }
 
 function setItemData(control, index, value) {
-    if (index < 0 || index >= control.model.length) return
+    if (index < 0 || index >= (control._safeModel || []).length) return
     control._itemDataMap = _setMapValue(control._itemDataMap, index, value)
 }
 
 function findData(control, data) {
-    for (var i = 0; i < control.model.length; i++) {
+    for (var i = 0; i < (control._safeModel || []).length; i++) {
         if (itemData(control, i) === data) return i
     }
     return -1
@@ -159,31 +163,33 @@ function findData(control, data) {
 // ==================== Icon Methods 图标方法 ====================
 
 function itemIcon(control, index) {
-    if (index < 0 || index >= control.model.length) return ""
+    if (index < 0 || index >= (control._safeModel || []).length) return ""
     if (_hasMapValue(control._itemIconMap, index)) return control._itemIconMap[index]
-    if (typeof control.model[index] === 'object' && control.model[index].icon !== undefined) {
-        return control.model[index].icon
+    var item = (control._safeModel || [])[index]
+    if (item && typeof item === 'object' && item.icon !== undefined) {
+        return item.icon
     }
     return ""
 }
 
 function setItemIcon(control, index, icon) {
-    if (index < 0 || index >= control.model.length) return
+    if (index < 0 || index >= (control._safeModel || []).length) return
     control._itemIconMap = _setMapValue(control._itemIconMap, index, icon)
 }
 
 // ==================== Enabled State Methods 启用状态方法 ====================
 
 function setItemEnabled(control, index, isEnabled) {
-    if (index < 0 || index >= control.model.length) return
+    if (index < 0 || index >= (control._safeModel || []).length) return
     control._itemEnabledMap = _setMapValue(control._itemEnabledMap, index, isEnabled)
 }
 
 function isItemEnabled(control, index) {
-    if (index < 0 || index >= control.model.length) return true
+    if (index < 0 || index >= (control._safeModel || []).length) return true
     if (_hasMapValue(control._itemEnabledMap, index)) return control._itemEnabledMap[index]
-    if (typeof control.model[index] === 'object' && control.model[index].enabled !== undefined) {
-        return control.model[index].enabled
+    var item = (control._safeModel || [])[index]
+    if (item && typeof item === 'object' && item.enabled !== undefined) {
+        return item.enabled
     }
     return true
 }
@@ -191,11 +197,13 @@ function isItemEnabled(control, index) {
 // ==================== Helper Methods 辅助方法 ====================
 
 function getItemText(model, index) {
-    if (index < 0 || index >= model.length) return ""
-    if (typeof model[index] === 'object') {
-        return model[index].text || model[index].toString()
+    if (!model || typeof model.length !== "number" || index < 0 || index >= model.length) return ""
+    var item = model[index]
+    if (item === null || item === undefined) return ""
+    if (typeof item === 'object') {
+        return item.text || item.toString()
     }
-    return model[index].toString()
+    return item.toString()
 }
 
 function hasMatchingItems(model, searchText) {

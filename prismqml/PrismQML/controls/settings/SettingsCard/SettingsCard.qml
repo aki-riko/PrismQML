@@ -46,7 +46,7 @@ Item {
     // ComboBox properties 下拉框属性
     property var model: []
     property int currentIndex: -1
-    property string currentText: currentIndex >= 0 && currentIndex < model.length ? model[currentIndex] : ""
+    property string currentText: currentIndex >= 0 && currentIndex < _safeModel.length ? _safeModel[currentIndex] : ""
     property string placeholderText: Translator.tr("placeholder_select")
     
     // Range properties 滑块属性
@@ -62,8 +62,8 @@ Item {
     // Options properties 选项属性
     property var options: []
     property int selectedIndex: 0
-    property string selectedText: options.length > 0 && selectedIndex >= 0 && selectedIndex < options.length ? 
-                                  options[selectedIndex] : ""
+    property string selectedText: _safeOptions.length > 0 && selectedIndex >= 0 && selectedIndex < _safeOptions.length ?
+                                  _safeOptions[selectedIndex] : ""
     
     // Folder list properties 文件夹列表属性
     property var folders: []
@@ -84,6 +84,15 @@ Item {
                                          type === Enums.settingCard.type_folder_list ||
                                          type === Enums.settingCard.type_color
     readonly property color currentColor: useCustomColor ? customColor : defaultColor
+    readonly property var _safeModel:
+        model === null || model === undefined ? []
+        : (typeof model.length === "number" ? model : [])
+    readonly property var _safeOptions:
+        options === null || options === undefined ? []
+        : (typeof options.length === "number" ? options : [])
+    readonly property var _safeFolders:
+        folders === null || folders === undefined ? []
+        : (typeof folders.length === "number" ? folders : [])
     
     // ==================== Signals 信号 ====================
     signal clicked()
@@ -102,6 +111,11 @@ Item {
     signal foldersUpdated(var list)
     signal customColorPicked(color c)
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _listOrEmpty(value) {
+        return value && typeof value.length === "number" ? value : []
+    }
+
     // ==================== Public Methods 公开方法 ====================
     function isChecked() { return checked }
 
@@ -114,10 +128,10 @@ Item {
                 shortcut = val
                 break
             case Enums.settingCard.type_options:
-                if (val >= 0 && val < options.length) selectedIndex = val
+                if (val >= 0 && val < _safeOptions.length) selectedIndex = val
                 break
             case Enums.settingCard.type_folder_list:
-                folders = val.slice()
+                folders = _listOrEmpty(val).slice()
                 break
             case Enums.settingCard.type_color:
                 if (val === defaultColor) {
@@ -139,7 +153,7 @@ Item {
             case Enums.settingCard.type_options:
                 return selectedIndex
             case Enums.settingCard.type_folder_list:
-                return folders.slice()
+                return _safeFolders.slice()
             case Enums.settingCard.type_color:
                 return currentColor
             default:
@@ -160,12 +174,12 @@ Item {
     }
 
     function addFolder(folder) {
-        if (folder === "" || folders.indexOf(folder) >= 0) return
-        var newFolders = folders.slice()
+        if (folder === "" || _safeFolders.indexOf(folder) >= 0) return
+        var newFolders = _safeFolders.slice()
         newFolders.push(folder)
         folders = newFolders
         folderAppended(folder)
-        foldersUpdated(folders)
+        foldersUpdated(newFolders)
         if (!expanded) {
             expanded = true
             expandToggled(true)
@@ -173,13 +187,13 @@ Item {
     }
 
     function removeFolder(folder) {
-        var index = folders.indexOf(folder)
+        var index = _safeFolders.indexOf(folder)
         if (index < 0) return
-        var newFolders = folders.slice()
+        var newFolders = _safeFolders.slice()
         newFolders.splice(index, 1)
         folders = newFolders
         folderDeleted(folder)
-        foldersUpdated(folders)
+        foldersUpdated(newFolders)
     }
 
     function clearFolders() {
@@ -217,7 +231,7 @@ Item {
                 checked: control.checked
                 onText: control.onText
                 offText: control.offText
-                model: control.model
+                model: control._safeModel
                 currentIndex: control.currentIndex
                 placeholderText: control.placeholderText
                 value: control.value
@@ -244,7 +258,7 @@ Item {
                     // 调用方应在自己的 onIndexSelected 中更新数据源，新值
                     // 会通过原 binding 自动回流到视图。
                     control.indexSelected(index)
-                    control.textSelected(control.model && index >= 0 && index < control.model.length ? control.model[index] : "")
+                    control.textSelected(index >= 0 && index < control._safeModel.length ? control._safeModel[index] : "")
                 }
                 onRangeValueChanged: function(val) {
                     control.value = val
@@ -337,7 +351,7 @@ Item {
             spacing: Enums.spacing.l
             
             Repeater {
-                model: control.options
+                model: control._safeOptions
                 
                 RadioButton {
                     text: modelData
@@ -372,7 +386,7 @@ Item {
             spacing: Enums.spacing.none
             
             Repeater {
-                model: control.folders
+                model: control._safeFolders
                 
                 Item {
                     width: parent.width

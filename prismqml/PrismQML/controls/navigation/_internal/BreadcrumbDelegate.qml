@@ -16,6 +16,7 @@ Item {
     // ==================== Required Props 必需属性 ====================
     required property int index
     required property var modelData
+    readonly property var _safeModelData: modelData || ({})
     // Get control via parent chain (Repeater -> Row -> Breadcrumb) 通过父级链获取control
     readonly property var control: parent ? parent.parent : null
     
@@ -148,10 +149,10 @@ Item {
             flat: true
             // Disable early when will become last to avoid color jump 提前禁用避免颜色跳变
             enabled: !itemRow.isLast && !itemRow.isRemoving && !itemRow.willBecomeLast
-            text: modelData.text || ""
-            icon: (_safeShowIcons && modelData.icon) ? modelData.icon : ""
+            text: _safeModelData.text || ""
+            icon: (_safeShowIcons && _safeModelData.icon) ? _safeModelData.icon : ""
             iconSize: Enums.iconSize.s
-            onClicked: if (control) control.setCurrentItem(modelData.key)
+            onClicked: if (control) control.setCurrentItem(_safeModelData.key)
         }
         
         // Chevron 箭头
@@ -246,7 +247,10 @@ Item {
                     autoBindRightClick: false
                     Repeater {
                         model: _safeCollapsedItems
-                        Action { text: modelData.text; onTriggered: if (control) control.setCurrentItem(modelData.key) }
+                        Action {
+                            text: modelData ? (modelData.text || "") : ""
+                            onTriggered: if (control) control.setCurrentItem(modelData ? modelData.key : "")
+                        }
                     }
                 }
                 

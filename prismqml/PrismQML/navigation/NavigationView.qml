@@ -142,12 +142,12 @@ NavigationPanelCore {
         
         Repeater {
             id: topRep
-            model: control.model
+            model: control._safeModel
             
             delegate: NavigationViewItem {
                 width: parent.width
-                text: modelData.text || ""
-                icon: modelData.icon || ""
+                text: modelData ? (modelData.text || "") : ""
+                icon: modelData ? (modelData.icon || "") : ""
                 selected: index === control.currentIndex
                 compact: control.isCompact
                 
@@ -168,15 +168,15 @@ NavigationPanelCore {
         
         Repeater {
             id: bottomRep
-            model: control.bottomItems
+            model: control._safeBottomItems
             
             delegate: NavigationViewItem {
                 width: parent.width
-                text: modelData.text || ""
-                icon: modelData.icon || ""
+                text: modelData ? (modelData.text || "") : ""
+                icon: modelData ? (modelData.icon || "") : ""
                 // Bottom page items use key to find page index 底部页面项通过 key 查找页面索引来判断渲染状态
                 selected: {
-                    var item = control.bottomItems[index]
+                    var item = control._safeBottomItems[index]
                     var hasKey = item && item.key !== undefined
                     var isSelectable = item && item.selectable !== false
                     if (hasKey && isSelectable) {
@@ -186,7 +186,7 @@ NavigationPanelCore {
                     return false  // Function items are never selected 功能项永不选中
                 }
                 compact: control.isCompact
-                selectable: modelData.selectable !== false
+                selectable: !modelData || modelData.selectable !== false
                 
                 onClicked: {
                     // Always emit signal, let window handle page switch 始终发送信号，让窗口组件处理页面切换

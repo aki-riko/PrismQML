@@ -74,11 +74,20 @@ Item {
 
     // Current selected page key 当前选中的页面键
     readonly property string currentKey: {
-        if (currentIndex >= 0 && currentIndex < model.length) {
-            return model[currentIndex].key || model[currentIndex].text || ""
+        var safeModel = _safeModel || []
+        var item = currentIndex >= 0 && currentIndex < safeModel.length ? safeModel[currentIndex] : null
+        if (item) {
+            return item.key || item.text || ""
         }
         return ""
     }
+
+    readonly property var _safeModel:
+        model === null || model === undefined ? []
+        : (typeof model.length === "number" ? model : [])
+    readonly property var _safeBottomItems:
+        bottomItems === null || bottomItems === undefined ? []
+        : (typeof bottomItems.length === "number" ? bottomItems : [])
 
     // ==================== Signals 信号 ====================
     signal itemClicked(int index)
@@ -126,11 +135,11 @@ Item {
         }
 
         if (pos === "bottom") {
-            var bottom = bottomItems.slice()
+            var bottom = (_safeBottomItems || []).slice()
             bottom.push(item)
             bottomItems = bottom
         } else {
-            var items = model.slice()
+            var items = (_safeModel || []).slice()
             _keyMap[key] = items.length
             items.push(item)
             model = items
@@ -139,8 +148,8 @@ Item {
     }
     function removeWidget(key) {
         var idx = _keyMap[key]
-        if (idx !== undefined && idx >= 0 && idx < model.length) {
-            var items = model.slice()
+        if (idx !== undefined && idx >= 0 && idx < (_safeModel || []).length) {
+            var items = (_safeModel || []).slice()
             items.splice(idx, 1)
             delete _keyMap[key]
             _rebuildRouteMap(items)
@@ -153,8 +162,9 @@ Item {
         if (idx !== undefined) {
             currentIndex = idx
         } else {
-            for (var i = 0; i < model.length; i++) {
-                if (model[i].text === key || model[i].key === key) {
+            for (var i = 0; i < (_safeModel || []).length; i++) {
+                var item = (_safeModel || [])[i]
+                if (item && (item.text === key || item.key === key)) {
                     currentIndex = i
                     break
                 }
@@ -164,7 +174,7 @@ Item {
 
     function widget(key) {
         var idx = _keyMap[key]
-        if (idx !== undefined && idx < model.length) return model[idx]
+        if (idx !== undefined && idx < (_safeModel || []).length) return (_safeModel || [])[idx]
         return null
     }
 
@@ -172,7 +182,7 @@ Item {
     function _rebuildRouteMap(items) {
         _keyMap = {}
         for (var i = 0; i < items.length; i++) {
-            if (items[i].key) _keyMap[items[i].key] = i
+            if (items[i] && items[i].key) _keyMap[items[i].key] = i
         }
     }
 
@@ -182,7 +192,7 @@ Item {
         if (index >= 0 && index < topRepeater.count) {
             return topRepeater.itemAt(index)
         } else if (bottomRepeater) {
-            var bottomIdx = index - model.length
+            var bottomIdx = index - (_safeModel || []).length
             if (bottomIdx >= 0 && bottomIdx < bottomRepeater.count) {
                 return bottomRepeater.itemAt(bottomIdx)
             }
@@ -193,8 +203,9 @@ Item {
     // Get bottom item by key (for page items in bottom) 通过 key 获取底部项（用于底部页面项）
     function _getBottomItemByKey(key) {
         if (!bottomRepeater || !key) return null
-        for (var i = 0; i < bottomItems.length; i++) {
-            if (bottomItems[i].key === key) {
+        for (var i = 0; i < (_safeBottomItems || []).length; i++) {
+            var item = (_safeBottomItems || [])[i]
+            if (item && item.key === key) {
                 return bottomRepeater.itemAt(i)
             }
         }
@@ -204,8 +215,9 @@ Item {
     // Get bottom item index by key 通过 key 获取底部项索引
     function _getBottomIndexByKey(key) {
         if (!key) return -1
-        for (var i = 0; i < bottomItems.length; i++) {
-            if (bottomItems[i].key === key) {
+        for (var i = 0; i < (_safeBottomItems || []).length; i++) {
+            var item = (_safeBottomItems || [])[i]
+            if (item && item.key === key) {
                 return i
             }
         }
@@ -218,7 +230,7 @@ Item {
 
         var endRect = _computeIndicatorRect(item)
         var bottomIndex = _getBottomIndexByKey(key)
-        var targetIndex = model.length + bottomIndex
+        var targetIndex = (_safeModel || []).length + bottomIndex
 
         // Get previous item for animation 获取上一个项用于动画
         var prevItem = null
@@ -308,7 +320,7 @@ Item {
         var item
         if (control._currentKey !== "") {
             item = _getBottomItemByKey(control._currentKey)
-            _prevIndex = model.length + _getBottomIndexByKey(control._currentKey)
+            _prevIndex = (_safeModel || []).length + _getBottomIndexByKey(control._currentKey)
         } else {
             item = _getItemAt(currentIndex)
             _prevIndex = currentIndex
@@ -320,8 +332,10 @@ Item {
 
     onCurrentIndexChanged: {
         var changedKey = ""
-        if (currentIndex >= 0 && currentIndex < model.length) {
-            changedKey = model[currentIndex].key || model[currentIndex].text || ""
+        var safeModel = _safeModel || []
+        var changedItem = currentIndex >= 0 && currentIndex < safeModel.length ? safeModel[currentIndex] : null
+        if (changedItem) {
+            changedKey = changedItem.key || changedItem.text || ""
         }
         if (changedKey) currentItemChanged(changedKey)
 

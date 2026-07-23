@@ -14,6 +14,11 @@ Item {
     property color selectedColor: Enums.colorPickerDefaults.defaultColor
     property var colors: Enums.colorPickerDefaults.quickPalette
     property int circleSize: Enums.spacing.xxl
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeColors:
+        colors === null || colors === undefined ? []
+        : (typeof colors.length === "number" ? colors : [])
     
     // ==================== Signals 信号 ====================
     signal colorSelected(color value)
@@ -29,12 +34,15 @@ Item {
         spacing: Enums.spacing.l
         
         Repeater {
-            model: control.colors
+            model: control._safeColors
             
             // Container for circle and selection ring 圆形和选中环容器
             Item {
-                property bool selected: control.selectedColor.toString().toUpperCase() === modelData.toString().toUpperCase()
+                id: circleItem
+                property bool selected: control.selectedColor.toString().toUpperCase() === _colorText.toUpperCase()
                 property bool hovered: circleArea.containsMouse
+                readonly property string _colorText:
+                    modelData === null || modelData === undefined ? "" : String(modelData)
 
                 width: control.circleSize + Enums.spacing.m
                 height: control.circleSize + Enums.spacing.m
@@ -47,7 +55,7 @@ Item {
                     radius: width / 2
                     color: Enums.transparent
                     border.width: parent.selected ? Enums.border.normal : Enums.border.none
-                    border.color: modelData
+                    border.color: circleItem._colorText || Enums.transparent
                     opacity: parent.selected ? Enums.opacityLevel.secondary : Enums.opacityLevel.invisible
                     
                     Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
@@ -60,7 +68,7 @@ Item {
                     width: control.circleSize
                     height: control.circleSize
                     radius: width / 2
-                    color: modelData
+                    color: circleItem._colorText || Enums.transparent
                     
                     // Hover effect 悬停效果
                     opacity: circleArea.containsMouse ? Enums.colorPickerMetrics.circleHoverOpacity : Enums.opacityLevel.visible
@@ -74,8 +82,9 @@ Item {
                     enabled: control.enabled
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        control.selectedColor = modelData
-                        control.colorSelected(modelData)
+                        if (!circleItem._colorText) return
+                        control.selectedColor = circleItem._colorText
+                        control.colorSelected(circleItem._colorText)
                     }
                 }
             }

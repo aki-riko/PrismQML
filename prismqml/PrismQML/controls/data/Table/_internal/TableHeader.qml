@@ -17,10 +17,12 @@ Row {
     anchors.fill: parent
 
     Repeater {
-        model: root.table.columns
+        model: root.table._safeColumns
 
         Item {
             id: headerItem
+
+            readonly property var columnData: modelData || ({})
 
             // ==================== Readonly State 只读状态 ====================
             readonly property bool hovered: headerHoverArea.containsMouse
@@ -38,7 +40,7 @@ Row {
             Label {
                 anchors.centerIn: parent
                 type: Enums.label.type_caption
-                text: modelData.text || ""
+                text: headerItem.columnData.text || ""
                 font.bold: true
                 color: root.table.secondaryColor
             }
@@ -48,7 +50,7 @@ Row {
                 anchors.verticalCenter: parent.verticalCenter
                 width: Enums.spacing.s
                 height: parent.height
-                visible: index < root.table.columns.length - 1
+                visible: index < root.table._safeColumns.length - 1
 
                 Separator {
                     anchors.centerIn: parent
@@ -80,8 +82,8 @@ Row {
                         if (pressed) {
                             var delta = mouse.x - startX
                             var newWidth = Math.max(50, startWidth + delta)
-                            var cols = root.table.columns.slice()
-                            cols[index].width = newWidth
+                            var cols = (root.table._safeColumns || []).slice()
+                            cols[index] = Object.assign({}, cols[index] || {}, {width: newWidth})
                             root.table.columns = cols
                         }
                     }

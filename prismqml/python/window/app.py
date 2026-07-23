@@ -417,7 +417,7 @@ class App:
             return None
         # 以最后一次调用为准重建底层 Updater;parent=None,生命周期由 self 持有。
         self._updater = Updater(repo, current_version, asset_keyword, None)
-        self._updater.requireArtifactDigest = True
+        self._updater.set_require_artifact_digest(True)
         self._engine.rootContext().setContextProperty("appUpdater", self._updater)
         return self._updater
 

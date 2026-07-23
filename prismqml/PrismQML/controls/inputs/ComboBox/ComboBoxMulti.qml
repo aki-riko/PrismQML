@@ -24,6 +24,20 @@ ComboBoxCore {
     // ==================== Internal Props 内部属性 ====================
     property real _smoothContentX: 0
     property real _targetX: 0
+    readonly property var _safeSelectedIndices: {
+        var values = selectedIndices
+        var modelValues = _safeModel || []
+        if (!values || typeof values.length !== "number") return []
+        var result = []
+        for (var i = 0; i < values.length; i++) {
+            var value = values[i]
+            if (typeof value === "number" && isFinite(value) &&
+                    value >= 0 && value < modelValues.length) {
+                result.push(value)
+            }
+        }
+        return result
+    }
 
     // ==================== Signals 信号 ====================
     signal selectionChanged(var indices, var items)
@@ -71,10 +85,10 @@ ComboBoxCore {
                     width: parent.width
 
                     Repeater {
-                        model: control.model
+                        model: control._safeModel
 
                         delegate: Rectangle {
-                            property bool selected: control.selectedIndices.indexOf(index) >= 0
+                            property bool selected: control._safeSelectedIndices.indexOf(index) >= 0
 
                             width: multiColumn.width
                             height: Enums.comboBoxMetrics.itemHeight
@@ -103,7 +117,8 @@ ComboBoxCore {
 
                                 Label {
                                     type: Enums.label.type_body
-                                    text: typeof modelData === 'object' ? (modelData.text || modelData) : modelData
+                                    text: modelData && typeof modelData === 'object'
+                                          ? (modelData.text || modelData) : (modelData || "")
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
@@ -113,14 +128,14 @@ ComboBoxCore {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 onClicked: {
-                                    var idx = control.selectedIndices.indexOf(index)
-                                    var newIndices = control.selectedIndices.slice()
+                                    var idx = control._safeSelectedIndices.indexOf(index)
+                                    var newIndices = control._safeSelectedIndices.slice()
                                     if (idx >= 0) newIndices.splice(idx, 1)
                                     else newIndices.push(index)
                                     control.selectedIndices = newIndices
 
                                     var items = []
-                                    for (var i = 0; i < newIndices.length; i++) items.push(control.model[newIndices[i]])
+                                    for (var i = 0; i < newIndices.length; i++) items.push(control._safeModel[newIndices[i]])
                                     control.selectionChanged(newIndices, items)
                                 }
                             }
@@ -183,36 +198,36 @@ ComboBoxCore {
                 type: Enums.label.type_body
                 text: control.placeholderText
                 color: Enums.textColor.disabled
-                visible: control.selectedIndices.length === 0
+                visible: control._safeSelectedIndices.length === 0
                 anchors.verticalCenter: parent.verticalCenter
             }
 
             // Token tags 标签
             Repeater {
-                model: control.selectedIndices
+                model: control._safeSelectedIndices
 
                 delegate: MultiSelectToken {
                     id: tokenDelegate
                     required property int index
                     required property var modelData
 
-                    readonly property int itemIndex: modelData
+                    readonly property int itemIndex: typeof modelData === "number" ? modelData : -1
                     readonly property var _control: control  // Capture control reference 捕获control引用
 
                     text: {
-                        if (itemIndex < 0 || itemIndex >= _control.model.length) return ""
-                        var item = _control.model[itemIndex]
-                        return typeof item === 'object' ? (item.text || item) : item
+                        if (itemIndex < 0 || itemIndex >= _control._safeModel.length) return ""
+                        var item = _control._safeModel[itemIndex]
+                        return item && typeof item === 'object' ? (item.text || item) : (item || "")
                     }
                     tokenIndex: index
                     anchors.verticalCenter: parent.verticalCenter
 
                     onRemoveClicked: (idx) => {
-                        var newIndices = tokenDelegate._control.selectedIndices.slice()
+                        var newIndices = tokenDelegate._control._safeSelectedIndices.slice()
                         newIndices.splice(idx, 1)
                         tokenDelegate._control.selectedIndices = newIndices
                         var items = []
-                        for (var i = 0; i < newIndices.length; i++) items.push(tokenDelegate._control.model[newIndices[i]])
+                        for (var i = 0; i < newIndices.length; i++) items.push(tokenDelegate._control._safeModel[newIndices[i]])
                         tokenDelegate._control.selectionChanged(newIndices, items)
                     }
                 }

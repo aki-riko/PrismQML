@@ -36,11 +36,6 @@ Item {
     property string repository: updater && updater.repository ? updater.repository : ""
     property string currentVersion: updater && updater.currentVersion ? updater.currentVersion : ""
 
-    // ---- 对外信号(供应用可选接管) ----
-    signal upToDateNotified(string version)
-    signal errorOccurred(string message)
-    signal downloadRequested(string version, string downloadUrl, string htmlUrl)
-
     // ---- 内部状态 ----
     property string _pendingUrl: ""
     property string _pendingHtmlUrl: ""
@@ -51,6 +46,11 @@ Item {
     property bool _awaitingDecision: false
     // 进度环显示条件:检查中或下载中
     readonly property bool _ringVisible: _checking || _downloading
+
+    // ---- 对外信号(供应用可选接管) ----
+    signal upToDateNotified(string version)
+    signal errorOccurred(string message)
+    signal downloadRequested(string version, string downloadUrl, string htmlUrl)
 
     // 触发一次检查
     function check() {
@@ -120,9 +120,6 @@ Item {
 
     // ---- 接底层 updater 信号 ----
     Connections {
-        target: root.updater
-        ignoreUnknownSignals: true
-
         function onUpdateAvailable(version, notes, downloadUrl, htmlUrl) {
             if (!root._checking)
                 return;
@@ -198,6 +195,9 @@ Item {
             root._downloading = false;
             _showError(qsTr("下载失败"), error);
         }
+
+        target: root.updater
+        ignoreUnknownSignals: true
     }
 
     // ---- 更新确认弹窗 ----
@@ -223,7 +223,7 @@ Item {
     DesktopNotification {
         id: toast
         position: Enums.notification.posBottomRight
-        duration: 0   // 常驻,由下载流程主动 hide
+        duration: Enums.duration.none   // 常驻,由下载流程主动 hide
 
         customContent: Component {
             ProgressRing {

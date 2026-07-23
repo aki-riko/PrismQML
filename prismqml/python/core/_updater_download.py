@@ -82,3 +82,15 @@ def commit_download_file(
     os.fsync(handle.fileno())
     handle.close()
     os.replace(partial_path, final_path)
+
+
+def discard_completed_download(installer_path: str, expected_path: str) -> str:
+    """Remove one completed updater artifact after launch failure. 启动失败后清理已完成产物。"""
+    if installer_path != expected_path:
+        return expected_path
+    try:
+        os.remove(installer_path)
+    except OSError as exc:
+        logger.exception(f"[Updater] 清理安装包失败: {exc}")
+        return expected_path
+    return ""

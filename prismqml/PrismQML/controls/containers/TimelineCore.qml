@@ -39,6 +39,10 @@ Item {
     property string selectedRole: "commit"   // card 对象里用作唯一标识的字段名
     property var selectedKey: undefined        // 当前选中值(与 card[selectedRole] 比对)
 
+    readonly property var _safeItems:
+        items === null || items === undefined ? []
+        : (typeof items.length === "number" ? items : [])
+
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _graphMode: type === Enums.timeline.type_graph
     readonly property bool _usesVirtualList: virtualized || _graphMode
@@ -48,8 +52,8 @@ Item {
     readonly property var _flatRows: {
         if (!_usesVirtualList) return []
         var rows = []
-        for (var g = 0; g < items.length; g++) {
-            var grp = items[g] || {}
+        for (var g = 0; g < _safeItems.length; g++) {
+            var grp = _safeItems[g] || {}
             rows.push({
                 "kind": "header", "groupIndex": g,
                 "title": grp.title || "", "status": grp.status || "info",
@@ -58,15 +62,16 @@ Item {
             var cards = grp.cards || []
             for (var c = 0; c < cards.length; c++) {
                 var card = cards[c]
+                var cardObject = card && typeof card === "object"
                 rows.push({
                     "kind": "card", "groupIndex": g, "cardIndex": c,
                     "groupStatus": grp.status || "info",
                     "cardData": card,
-                    "text": (typeof card === "string") ? card : (card.text || ""),
-                    "description": (typeof card === "object") ? (card.description || "") : "",
-                    "status": (typeof card === "object") ? (card.status || grp.status || "info") : (grp.status || "info"),
-                    "strikeOut": (typeof card === "object") ? (card.strikeOut || false) : false,
-                    "graphData": (typeof card === "object") ? (card.graph || {}) : {},
+                    "text": (typeof card === "string") ? card : (cardObject ? (card.text || "") : ""),
+                    "description": cardObject ? (card.description || "") : "",
+                    "status": cardObject ? (card.status || grp.status || "info") : (grp.status || "info"),
+                    "strikeOut": cardObject ? (card.strikeOut || false) : false,
+                    "graphData": cardObject ? (card.graph || {}) : {},
                     "isLastCard": c === cards.length - 1
                 })
             }
@@ -147,13 +152,14 @@ Item {
         visible: !control._usesVirtualList
         
         Repeater {
-            model: items
+            model: control._safeItems
             
             delegate: Item {
                 id: groupItem
 
                 required property var modelData
                 required property int index
+                readonly property var groupData: modelData || ({})
 
                 width: contentColumn.width
                 height: groupContent.height
@@ -187,11 +193,11 @@ Item {
                                 height: Enums.controlSize.timelineIcon
                                 radius: Enums.controlSize.timelineIcon / 2
                                 anchors.verticalCenter: parent.verticalCenter
-                                color: control._getStatusColor(groupItem.modelData.status || "info")
+                                color: control._getStatusColor(groupItem.groupData.status || "info")
                                 
                                 Icon {
                                     anchors.centerIn: parent
-                                    icon: control._getStatusIcon(groupItem.modelData.status || "info")
+                                    icon: control._getStatusIcon(groupItem.groupData.status || "info")
                                     iconSize: Enums.controlSize.timelineIconText
                                     color: Enums.accentForeground
                                 }
@@ -201,13 +207,13 @@ Item {
                             Label {
                                 type: Enums.label.type_body_strong
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: groupItem.modelData.title || ""
+                                text: groupItem.groupData.title || ""
                             }
                         }
                         
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: control.itemClicked(groupItem.index, groupItem.modelData.title || "")
+                            onClicked: control.itemClicked(groupItem.index, groupItem.groupData.title || "")
                         }
                     }
                     
@@ -220,20 +226,21 @@ Item {
                         bottomPadding: Enums.spacing.l
                         
                         Repeater {
-                            model: groupItem.modelData.cards || []
+                            model: groupItem.groupData.cards || []
                             
                             delegate: Item {
                                 id: cardItem
 
                                 required property var modelData
                                 required property int index
+                                readonly property var cardData: modelData || ""
 
                                 // Card status 卡片状态
-                                property string cardStatus: typeof modelData === "object" ? (modelData.status || groupItem.modelData.status || "info") : (groupItem.modelData.status || "info")
-                                property bool hasStrikeOut: typeof modelData === "object" ? (modelData.strikeOut || false) : false
-                                property string cardText: typeof modelData === "string" ? modelData : (modelData.text || "")
+                                property string cardStatus: cardData && typeof cardData === "object" ? (cardData.status || groupItem.groupData.status || "info") : (groupItem.groupData.status || "info")
+                                property bool hasStrikeOut: cardData && typeof cardData === "object" ? (cardData.strikeOut || false) : false
+                                property string cardText: typeof cardData === "string" ? cardData : (cardData ? (cardData.text || "") : "")
                                 // 可选副标题行(如提交的 hash·作者·日期);为空则不显示
-                                property string cardDescription: typeof modelData === "object" ? (modelData.description || "") : ""
+                                property string cardDescription: cardData && typeof cardData === "object" ? (cardData.description || "") : ""
 
                                 width: groupContent.width - 56
                                 height: simpleCard.height

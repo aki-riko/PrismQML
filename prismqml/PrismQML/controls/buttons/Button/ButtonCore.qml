@@ -54,6 +54,10 @@ Widget {
     property real _countdownInitialWidth: 0
     property bool dropdownOpen: false  // External dropdown open state 外部下拉打开状态
 
+    readonly property var _safeMenuItems:
+        menuItems === null || menuItems === undefined ? []
+        : (typeof menuItems.length === "number" ? menuItems : [])
+
     // Base appearance 基础外观
     property bool flat: style === Enums.button.style_transparent ||
                         style === Enums.button.style_text ||
@@ -227,7 +231,7 @@ Widget {
     function _prewarmMenu() {
         var hasMenuFeature = feature === Enums.button.feature_dropdown ||
                              feature === Enums.button.feature_split
-        if (hasMenuFeature && enabled && !loading && menuItems.length > 0 &&
+        if (hasMenuFeature && enabled && !loading && _safeMenuItems.length > 0 &&
                 dropdownFeature.item) {
             dropdownFeature.item.prewarmMenu()
         }
@@ -599,7 +603,7 @@ Widget {
                 control.checked = !control.checked
                 control.toggled(control.checked)
             }
-            if (feature === Enums.button.feature_dropdown && control.menuItems.length > 0) {
+            if (feature === Enums.button.feature_dropdown && control._safeMenuItems.length > 0) {
                 if (dropdownFeature.item) dropdownFeature.item.openMenu()
                 return
             }
@@ -638,7 +642,7 @@ Widget {
         sourceComponent: ButtonDropdown {
             isToolButton: control.isToolButton
             feature: control.feature
-            menuItems: control.menuItems
+            menuItems: control._safeMenuItems
             controlEnabled: control.enabled
             loading: control.loading
             parentRadius: control.radius

@@ -59,7 +59,7 @@ DataWidgetCore {
     // 必须用普通 property + Connections 显式跟踪 model.modelReset/rowsInserted/rowsRemoved,
     // 因为 QAbstractListModel.rowCount() 是函数调用,QML binding 不会自动 invalidate
     property int rowCount: _calcRowCount()
-    readonly property int columnCount: columns.length
+    readonly property int columnCount: (_safeColumns || []).length
     readonly property real _columnViewportWidth: listView.width > 0 ? listView.width : root.width
 
     // Context menu 右键菜单
@@ -79,6 +79,9 @@ DataWidgetCore {
     // delegate / cellItem / contentTotalWidth / dblclick hit-test 全部从这里取,
     // 不再各自重算 (避免漂移)。
     property var _columnPixelWidths: []
+    readonly property var _safeColumns:
+        columns === null || columns === undefined ? []
+        : (typeof columns.length === "number" ? columns : [])
 
     // ==================== Signals 信号 ====================
     signal pageChanged(int page)
@@ -91,6 +94,10 @@ DataWidgetCore {
     signal customContextMenuRequested(point pos)  // 右键菜单信号 Context menu signal
 
     // ==================== Internal Methods 内部方法 ====================
+    function _listOrEmpty(value) {
+        return value && typeof value.length === "number" ? value : []
+    }
+
     function _calcRowCount() {
         if (!tableData) return 0
         // PySide6 把 list[dict] 转 QVariantList 给 QML, QVariantList 不是 JS Array
@@ -102,17 +109,18 @@ DataWidgetCore {
     }
 
     function _recomputeColumnWidths() {
+        var safeColumns = _safeColumns || []
         var widths = []
-        for (var i = 0; i < columns.length; i++) {
-            widths.push(_computeColumnWidth(columns[i]))
+        for (var i = 0; i < safeColumns.length; i++) {
+            widths.push(_computeColumnWidth(safeColumns[i]))
         }
         // 自适应列宽 (autoWidth) 算完后, 如果总宽 < 表格容器宽, 按比例放大到铺满,
         // 避免出现"右侧大片空白"的视觉缺陷。
         // 如果总宽 > 容器宽, 保持原值, DataWidgetCore 会启用横向滚动。
         // 只在所有列都没显式 width (即都是 autoWidth) 时拉伸, 业务设了固定 width 的列尊重原值。
-        var allAuto = columns.length > 0
-        for (var k = 0; k < columns.length; k++) {
-            var c = columns[k]
+        var allAuto = safeColumns.length > 0
+        for (var k = 0; k < safeColumns.length; k++) {
+            var c = safeColumns[k] || {}
             var explicitWidth = (c.autoWidth === false) || (c.width !== undefined && c.width !== null)
             if (explicitWidth) { allAuto = false; break }
         }
@@ -149,6 +157,7 @@ DataWidgetCore {
     }
 
     function _computeColumnWidth(col) {
+        if (!col) col = {}
         // autoWidth 决策:
         // - 业务显式 col.autoWidth = true/false → 走业务设置
         // - 否则: 没写 width 就默认 autoWidth (引擎按内容自适应);
@@ -336,7 +345,7 @@ DataWidgetCore {
 
     function setColumnCount(count) {
         // Columns are defined via columns property 列通过columns属性定义
-        var cols = columns.slice()
+        var cols = (_safeColumns || []).slice()
         while (cols.length < count) cols.push({ text: "", width: 0.15, role: "col" + cols.length })
         while (cols.length > count) cols.pop()
         columns = cols
@@ -344,26 +353,37 @@ DataWidgetCore {
 
     function setHorizontalHeaderLabels(labels) {
         var cols = []
-        for (var i = 0; i < labels.length; i++) {
-            cols.push({ text: labels[i], width: 1.0 / labels.length, role: "col" + i })
+        var safeLabels = _listOrEmpty(labels)
+        if (safeLabels.length === 0) {
+            columns = []
+            return
+        }
+        for (var i = 0; i < safeLabels.length; i++) {
+            cols.push({ text: safeLabels[i], width: 1.0 / safeLabels.length, role: "col" + i })
         }
         columns = cols
     }
 
     function setItem(row, column, value) {
         if (!_isPureJsArray()) { console.warn("TableWidget: Cannot setItem via JS when a QAbstractListModel is bound."); return }
-        if (row >= 0 && row < tableData.length && column >= 0 && column < columns.length) {
+        var safeColumns = _safeColumns || []
+        if (row >= 0 && row < tableData.length && column >= 0 && column < safeColumns.length) {
             var arr = tableData.slice()
             var rowData = Object.assign({}, arr[row])
-            rowData[columns[column].role] = typeof value === "string" ? value : (value.text || value)
+            var columnData = safeColumns[column] || {}
+            rowData[columnData.role] = typeof value === "string" ? value : (value && value.text || value)
             arr[row] = rowData
             tableData = arr
         }
     }
 
     function item(row, column) {
-        if (row >= 0 && row < tableData.length && column >= 0 && column < columns.length) {
-            var val = tableData[row][columns[column].role]
+        var safeColumns = _safeColumns || []
+        if (!_isPureJsArray()) return null
+        if (row >= 0 && row < tableData.length && column >= 0 && column < safeColumns.length) {
+            var columnData = safeColumns[column] || {}
+            var rowData = tableData[row] || {}
+            var val = rowData[columnData.role]
             return { text: (val === null || val === undefined) ? "" : val, row: row, column: column }
         }
         return null
@@ -374,7 +394,7 @@ DataWidgetCore {
         var result = []
         for (var i = 0; i < selectedRows.length; i++) {
             var row = selectedRows[i]
-            for (var c = 0; c < columns.length; c++) {
+            for (var c = 0; c < (_safeColumns || []).length; c++) {
                 result.push(item(row, c))
             }
         }
@@ -405,17 +425,18 @@ DataWidgetCore {
 
     // Sorting API 排序 API
     function sortItems(column, order) {
-        if (column < 0 || column >= columns.length) return
+        var safeColumns = _safeColumns || []
+        if (column < 0 || column >= safeColumns.length) return
         if (!_isPureJsArray()) { console.warn("TableWidget: Cannot sortItems via JS when a QAbstractListModel is bound."); return }
-        var role = columns[column].role
+        var role = (safeColumns[column] || {}).role
         var arr = tableData.slice()
         var currentValid = currentRow >= 0 && currentRow < arr.length
         var currentRef = currentValid ? arr[currentRow] : null
         var selectedRefs = _rowRefs(selectedRows, arr)
         var widgetEntries = _captureCellWidgetEntries(arr)
         arr.sort(function(a, b) {
-            var valueA = a[role]
-            var valueB = b[role]
+            var valueA = (a || {})[role]
+            var valueB = (b || {})[role]
             var textA = String((valueA === null || valueA === undefined) ? "" : valueA)
             var textB = String((valueB === null || valueB === undefined) ? "" : valueB)
             var cmp = textA.localeCompare(textB)
@@ -438,7 +459,8 @@ DataWidgetCore {
         if (headers) setHorizontalHeaderLabels(headers)
         if (!data || !data.length) { tableData = []; return }
 
-        var cols = columns.length > 0 ? columns : []
+        var safeColumns = _safeColumns || []
+        var cols = safeColumns.length > 0 ? safeColumns.slice() : []
         if (cols.length === 0 && data[0]) {
             var colCount = Array.isArray(data[0]) ? data[0].length : Object.keys(data[0]).length
             for (var c = 0; c < colCount; c++) {
@@ -494,7 +516,7 @@ DataWidgetCore {
     // Base configuration 基类配置
     itemCount: rowCount
     listModel: tableData
-    showHeader: columns.length > 0
+    showHeader: (_safeColumns || []).length > 0
 
     // 计算所有列的总像素宽度 (基类 DataWidgetCore 据此判断是否启用横向滚动)。
     contentTotalWidth: {
@@ -599,8 +621,9 @@ DataWidgetCore {
                         var rowData = root.getRow(defaultTableContextMenu.activeRowIndex)
                         if (rowData) {
                             var textParts = []
-                            for (var i = 0; i < root.columns.length; i++) {
-                                textParts.push(rowData[root.columns[i].role] || "")
+                            for (var i = 0; i < (root._safeColumns || []).length; i++) {
+                                var columnData = root._safeColumns[i] || {}
+                                textParts.push(rowData[columnData.role] || "")
                             }
                             ClipboardHelper.copy(textParts.join("\t"))
                         }

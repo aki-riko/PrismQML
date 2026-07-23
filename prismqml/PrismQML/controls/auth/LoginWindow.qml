@@ -65,6 +65,9 @@ Rectangle {
     property real cardOpacity: 0.92
 
     // ==================== Internal Props 内部属性 ====================
+    readonly property var _safeOauthProviders:
+        oauthProviders === null || oauthProviders === undefined ? []
+        : (typeof oauthProviders.length === "number" ? oauthProviders : [])
     readonly property bool _isLogin: mode === Enums.auth.mode_login
     readonly property int _cardRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
     readonly property int _errorRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
@@ -395,7 +398,7 @@ Rectangle {
             // OAuth divider. OAuth 分隔线。
             RowLayout {
                 Layout.fillWidth: true
-                visible: root.oauthProviders.length > 0
+                visible: root._safeOauthProviders.length > 0
                 spacing: Enums.spacing.m
 
                 Separator {
@@ -419,10 +422,10 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
                 spacing: Enums.spacing.m
-                visible: root.oauthProviders.length > 0
+                visible: root._safeOauthProviders.length > 0
                 
                 Repeater {
-                    model: root.oauthProviders
+                    model: root._safeOauthProviders
                     
                     ButtonCore {
                         required property int modelData

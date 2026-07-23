@@ -154,6 +154,13 @@ Item {
         buttonText: "Run"
     }
 
+    AutoUpdater {
+        id: autoUpdater
+        x: 0
+        y: 0
+        updater: null
+    }
+
     ListView {
         id: listView
         y: 360

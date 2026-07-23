@@ -40,6 +40,10 @@ Item {
     property real borderRadius: 0
     // Shadow level. 传入 Enums.shadow.levelN 启用阴影；null 为无阴影。
     property var shadowLevel: null
+
+    readonly property var _safeModel:
+        model === null || model === undefined ? []
+        : (typeof model.length === "number" ? model : [])
     
     // Feature Props 功能属性
     property bool autoPlay: false
@@ -54,7 +58,7 @@ Item {
     
     // Internal 内部属性
     readonly property bool isVertical: orientation === Qt.Vertical
-    readonly property int _modelCount: model ? model.length : 0
+    readonly property int _modelCount: (_safeModel || []).length
     // 指针是否位于 Carousel 范围内（含 itemDelegate 的子元素、导航按钮）。
     // 用 HoverHandler 判定：传统 MouseArea 的 containsMouse 会被子元素自带的 hover MouseArea
     //   「偷走」（停在 delegate 里的按钮上时变 false），导致悬停子元素时自动播放又恢复。
@@ -169,7 +173,7 @@ Item {
     CarouselContent {
         id: contentArea
         anchors.fill: parent
-        model: control.model
+        model: control._safeModel
         effect: control.effect
         orientation: control.orientation
         currentIndex: control.currentIndex

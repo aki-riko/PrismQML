@@ -25,6 +25,11 @@ Rectangle {
     // Style props 样式属性
     property color backgroundColor: Enums.transparent
     property int itemPadding: Enums.spacing.l
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeItems:
+        items === null || items === undefined ? []
+        : (typeof items.length === "number" ? items : [])
     
     // ==================== Signals 信号 ====================
     signal menuItemClicked(string menuText, string itemText)
@@ -42,7 +47,7 @@ Rectangle {
         spacing: Enums.spacing.none
         
         Repeater {
-            model: control.items
+            model: control._safeItems
             
             // Menu item button 菜单项按钮
             Item {
@@ -52,7 +57,7 @@ Rectangle {
 
                 // Open menu at this item 在此项打开菜单
                 function _openMenuAt(idx) {
-                    if (!modelData.children || modelData.children.length === 0) return
+                    if (!modelData || !modelData.children || modelData.children.length === 0) return
 
                     // Close all other menus first 先关闭所有其他菜单
                     control._closeAllMenus()
@@ -61,6 +66,7 @@ Rectangle {
                     dropdownMenu.clear()
                     for (var i = 0; i < modelData.children.length; i++) {
                         var child = modelData.children[i]
+                        if (!child) continue
                         if (child.separator) {
                             dropdownMenu.addSeparator()
                         } else {
@@ -84,14 +90,14 @@ Rectangle {
                     id: menuBtnText
                     visible: false
                     type: Enums.label.type_body
-                    text: modelData.text || modelData
+                    text: modelData ? (modelData.text || modelData) : ""
                 }
                 
                 Button {
                     id: menuBtn
                     anchors.centerIn: parent
                     style: Enums.button.style_transparent
-                    text: modelData.text || modelData
+                    text: modelData ? (modelData.text || modelData) : ""
                     flat: true
                     contentAlignment: Enums.button.align_left
                     
@@ -122,7 +128,7 @@ Rectangle {
                     id: dropdownMenu
 
                     onActionTriggered: function(text) {
-                        control.menuItemClicked(modelData.text, text)
+                        control.menuItemClicked(modelData ? (modelData.text || "") : "", text)
                         control.activeIndex = -1
                     }
 

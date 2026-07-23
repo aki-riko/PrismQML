@@ -25,6 +25,11 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property int _spawnIndex: 0
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeColors:
+        colors && typeof colors.length === "number" && colors.length > 0
+        ? colors : [Enums.accentColor]
+
     // ==================== Internal Methods 内部方法 ====================
     // Spawn initial batch immediately 立即生成首批粒子
     function _spawnBatch(count) {
@@ -87,7 +92,13 @@ Item {
             property real targetY: control.height + 50
             property real fallDuration: control.duration * (0.7 + Math.random() * 0.6)
             property int shapeType: Math.floor(Math.random() * 3)
-            property color particleColor: control.colors[Math.floor(Math.random() * control.colors.length)]
+            property color particleColor: {
+                var candidate = control._safeColors[
+                    Math.floor(Math.random() * control._safeColors.length)
+                ]
+                return candidate === null || candidate === undefined
+                    ? Enums.accentColor : candidate
+            }
             property real particleSize: Enums.spacing.m + Math.random() * Enums.spacing.m
             property real initialRotation: Math.random() * 360
             property real rotationSpeed: (Math.random() - 0.5) * 720

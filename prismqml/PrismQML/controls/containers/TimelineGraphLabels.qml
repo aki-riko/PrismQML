@@ -12,14 +12,19 @@ Flow {
 
     required property var labels
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeLabels:
+        labels === null || labels === undefined ? []
+        : (typeof labels.length === "number" ? labels : [])
+
     spacing: Enums.spacing.s
 
     Repeater {
-        model: control.labels || []
+        model: control._safeLabels
         delegate: Tag {
             required property var modelData
-            text: modelData.text || ""
-            status: modelData.status === undefined
+            text: modelData ? (modelData.text || "") : ""
+            status: !modelData || modelData.status === undefined
                 ? Enums.statusLevel.info : modelData.status
             showDot: false
         }

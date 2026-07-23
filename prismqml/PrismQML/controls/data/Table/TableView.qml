@@ -33,18 +33,25 @@ DataWidgetCore {
     property alias model: root.listModel
     property alias delegate: root.contentDelegate
 
+    // ==================== Internal Props 内部属性 ====================
+    readonly property var _safeColumns:
+        columns === null || columns === undefined ? []
+        : (typeof columns.length === "number" ? columns : [])
+
     // ==================== Public Methods 公开方法 ====================
     function scrollToTop() { listView.positionViewAtBeginning() }
     function scrollToBottom() { listView.positionViewAtEnd() }
 
     function columnWidth(index) {
-        if (index < 0 || index >= columns.length) return 0
-        var col = columns[index]
+        var safeColumns = _safeColumns || []
+        if (index < 0 || index >= safeColumns.length) return 0
+        var col = safeColumns[index] || {}
         if (col.fillWidth) {
             var used = 0
-            for (var i = 0; i < columns.length; i++) {
+            for (var i = 0; i < safeColumns.length; i++) {
                 if (i === index) continue
-                if (!columns[i].fillWidth) used += _columnWidth(columns[i], listView.width)
+                var other = safeColumns[i] || {}
+                if (!other.fillWidth) used += _columnWidth(other, listView.width)
             }
             return Math.max(60, listView.width - used)
         }
@@ -53,6 +60,7 @@ DataWidgetCore {
 
     // ==================== Internal Methods 内部方法 ====================
     function _columnWidth(col, totalWidth) {
+        if (!col) col = {}
         if (col.fillWidth) return -1
         var w = col.width
         if (w === undefined || w === null) return Math.max(60, totalWidth * 0.15)
@@ -85,22 +93,25 @@ DataWidgetCore {
                 anchors.rightMargin: Enums.spacing.m
 
                 Repeater {
-                    model: root.columns
+                    model: root._safeColumns || []
                     delegate: Item {
+                        readonly property var columnData: modelData || ({})
                         property bool _hovered: _headerCellHover.containsMouse
 
                         width: {
-                            if (modelData.fillWidth) {
+                            var safeColumns = root._safeColumns || []
+                            if (columnData.fillWidth) {
                                 var used = 0
-                                for (var i = 0; i < root.columns.length; i++) {
+                                for (var i = 0; i < safeColumns.length; i++) {
                                     if (i === index) continue
-                                    if (!root.columns[i].fillWidth) {
-                                        used += root._columnWidth(root.columns[i], parent.width)
+                                    var other = safeColumns[i] || {}
+                                    if (!other.fillWidth) {
+                                        used += root._columnWidth(other, parent.width)
                                     }
                                 }
                                 return Math.max(60, parent.width - used)
                             }
-                            return root._columnWidth(modelData, parent.width)
+                            return root._columnWidth(columnData, parent.width)
                         }
                         height: parent.height
 
@@ -117,7 +128,7 @@ DataWidgetCore {
                             anchors.verticalCenter: parent.verticalCenter
                             lineLength: parent.height * 0.5
                             lineColor: root.borderColor
-                            visible: index < root.columns.length - 1
+                            visible: index < (root._safeColumns || []).length - 1
                             opacity: parent._hovered ? 1.0 : 0.4
                             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
                         }
@@ -125,7 +136,7 @@ DataWidgetCore {
                         Label {
                             anchors.centerIn: parent
                             type: Enums.label.type_caption
-                            text: modelData.text || ""
+                            text: columnData.text || ""
                             font.bold: true
                             color: root.secondaryColor
                         }

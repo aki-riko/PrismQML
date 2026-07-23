@@ -26,6 +26,10 @@ Widget {
     property bool scrollable: false  // Whether tab bar is scrollable 是否可滚动
     property bool showAddButton: false  // Show add button 显示添加按钮
 
+    readonly property var _safeTabs:
+        tabs === null || tabs === undefined ? []
+        : (typeof tabs.length === "number" ? tabs : [])
+
     // ==================== Internal Props 内部属性 ====================
     readonly property int _tabHeight: Enums.controlSize.inputHeightLarge - Enums.spacing.xs
     readonly property int _tabBarHeight: Enums.controlSize.tableHeaderHeight
@@ -48,15 +52,15 @@ Widget {
     
     // Add a new tab 添加新标签
     function addTab(title, icon, content) {
-        var newTabs = tabs.slice()
+        var newTabs = (_safeTabs || []).slice()
         newTabs.push({title: title, icon: icon || "", content: content})
         tabs = newTabs
-        return tabs.length - 1
+        return newTabs.length - 1
     }
     
     // Insert a tab at index 在指定位置插入标签
     function insertTab(index, title, icon, content) {
-        var newTabs = tabs.slice()
+        var newTabs = (_safeTabs || []).slice()
         var idx = Math.max(0, Math.min(index, newTabs.length))
         newTabs.splice(idx, 0, {title: title, icon: icon || "", content: content})
         tabs = newTabs
@@ -65,12 +69,12 @@ Widget {
     
     // Remove tab at index 移除指定位置的标签
     function removeTab(index) {
-        if (index < 0 || index >= tabs.length) return
-        var newTabs = tabs.slice()
+        if (index < 0 || index >= (_safeTabs || []).length) return
+        var newTabs = (_safeTabs || []).slice()
         newTabs.splice(index, 1)
         tabs = newTabs
-        if (currentIndex >= tabs.length) {
-            currentIndex = Math.max(0, tabs.length - 1)
+        if (currentIndex >= newTabs.length) {
+            currentIndex = Math.max(0, newTabs.length - 1)
         }
     }
     
@@ -82,40 +86,42 @@ Widget {
     
     // Get tab count 获取标签数量
     function count() {
-        return tabs.length
+        return (_safeTabs || []).length
     }
     
     // Get tab text 获取标签文本
     function tabText(index) {
-        if (index < 0 || index >= tabs.length) return ""
-        return tabs[index].title || ""
+        if (index < 0 || index >= (_safeTabs || []).length) return ""
+        var tab = (_safeTabs || [])[index]
+        return tab ? (tab.title || "") : ""
     }
     
     // Set tab text 设置标签文本
     function setTabText(index, text) {
-        if (index < 0 || index >= tabs.length) return
-        var newTabs = tabs.slice()
-        newTabs[index] = Object.assign({}, newTabs[index], {title: text})
+        if (index < 0 || index >= (_safeTabs || []).length) return
+        var newTabs = (_safeTabs || []).slice()
+        newTabs[index] = Object.assign({}, newTabs[index] || {}, {title: text})
         tabs = newTabs
     }
     
     // Get tab icon 获取标签图标
     function tabIcon(index) {
-        if (index < 0 || index >= tabs.length) return ""
-        return tabs[index].icon || ""
+        if (index < 0 || index >= (_safeTabs || []).length) return ""
+        var tab = (_safeTabs || [])[index]
+        return tab ? (tab.icon || "") : ""
     }
     
     // Set tab icon 设置标签图标
     function setTabIcon(index, icon) {
-        if (index < 0 || index >= tabs.length) return
-        var newTabs = tabs.slice()
-        newTabs[index] = Object.assign({}, newTabs[index], {icon: icon})
+        if (index < 0 || index >= (_safeTabs || []).length) return
+        var newTabs = (_safeTabs || []).slice()
+        newTabs[index] = Object.assign({}, newTabs[index] || {}, {icon: icon})
         tabs = newTabs
     }
     
     // Set current index 设置当前索引
     function setCurrentIndex(index) {
-        if (index >= 0 && index < tabs.length) {
+        if (index >= 0 && index < (_safeTabs || []).length) {
             currentIndex = index
         }
     }
@@ -383,7 +389,7 @@ Widget {
             
             Repeater {
                 id: tabRepeater
-                model: control.tabs
+                model: control._safeTabs
 
                 // delegate 创建/销毁时刷新 currentTab (itemAt 非响应式, 必须显式触发)
                 onItemAdded: slidingIndicator._currentTabKey++
@@ -488,7 +494,7 @@ Widget {
                         Label {
                             id: tabText
                             type: Enums.label.type_caption
-                            text: modelData.title || modelData
+                            text: modelData ? (modelData.title || modelData) : ""
                             color: Enums.foregroundColor
                             anchors.verticalCenter: parent.verticalCenter
                             opacity: tabItem.selected ? Enums.opacityLevel.visible : (Enums.isDark ? Enums.opacityLevel.strong : Enums.opacityLevel.secondary)
@@ -572,7 +578,7 @@ Widget {
                             var w = tabItem.width
                             if (w <= 0) return
                             var sourceCenterRowX = index * w + activeTranslation.x + w / 2
-                            var newVisual = Math.max(0, Math.min(control.tabs.length - 1,
+                            var newVisual = Math.max(0, Math.min((control._safeTabs || []).length - 1,
                                                                   Math.floor(sourceCenterRowX / w)))
                             if (newVisual !== control._dragVisualIndex) {
                                 control._dragVisualIndex = newVisual
@@ -591,7 +597,7 @@ Widget {
                         visible: {
                             if (control._dragging) return false  // 拖动期间隐藏分隔线避免视觉干扰
                             // Don't show for last tab 最后一个标签不显示
-                            if (index >= control.tabs.length - 1) return false
+                            if (index >= (control._safeTabs || []).length - 1) return false
                             // Don't show when current or next tab is selected 当前标签或下一个标签选中时不显示
                             if (tabItem.selected) return false
                             if (index + 1 === control.currentIndex) return false
@@ -649,7 +655,7 @@ Widget {
         clip: true  // 裁掉滑入/滑出时露在区域外的内容
 
         Repeater {
-            model: control.tabs
+            model: control._safeTabs
 
             Loader {
                 id: pageLoader
@@ -660,7 +666,7 @@ Widget {
                 width: contentArea.width
                 height: contentArea.height
                 y: 0
-                sourceComponent: (modelData.content && typeof modelData.content === 'object') ? modelData.content : null
+                sourceComponent: (modelData && modelData.content && typeof modelData.content === 'object') ? modelData.content : null
 
                 // 动画期间(自身正在滑出)保持 active+visible, 否则卸载省资源
                 active: isCurrent || _animatingOut

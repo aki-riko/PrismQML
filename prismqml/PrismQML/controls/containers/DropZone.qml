@@ -29,7 +29,7 @@ Rectangle {
 
     // Custom text 自定义文字
     property string dropText: folderMode ? Translator.tr("drop_folder_hint") :
-                              (allowedExtensions.length > 0 ? Translator.tr("drop_file_hint") + " (" + allowedExtensions.join(", ").toUpperCase() + ")" : Translator.tr("drop_file_hint"))
+                              (_safeAllowedExtensions.length > 0 ? Translator.tr("drop_file_hint") + " (" + _safeAllowedExtensions.join(", ").toUpperCase() + ")" : Translator.tr("drop_file_hint"))
     property string orText: Translator.tr("or") // orText 或者
     property string browseFileText: Translator.tr("browse_file")
     property string browseFolderText: Translator.tr("browse_folder")
@@ -37,6 +37,9 @@ Rectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse || browseFileBtn.hovered || browseFolderBtn.hovered
     readonly property bool dragActive: dropArea.containsDrag
+    readonly property var _safeAllowedExtensions:
+        allowedExtensions === null || allowedExtensions === undefined ? []
+        : (typeof allowedExtensions.length === "number" ? allowedExtensions : [])
 
     // ==================== Signals 信号 ====================
     signal fileSelected(string file)
@@ -193,7 +196,7 @@ Rectangle {
         title: Translator.tr("select_file")
         currentFolder: control.initialDir ? control._toFileUrl(control.initialDir) : ""
         fileMode: control.multiple ? FileDialog.OpenFiles : FileDialog.OpenFile
-        nameFilters: control.allowedExtensions.length > 0 ? ["支持的文件 (*." + control.allowedExtensions.join(" *.") + ")"] : []
+        nameFilters: control._safeAllowedExtensions.length > 0 ? ["支持的文件 (*." + control._safeAllowedExtensions.join(" *.") + ")"] : []
         
         onAccepted: {
             var files = []

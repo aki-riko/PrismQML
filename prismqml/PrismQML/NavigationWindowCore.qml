@@ -49,6 +49,12 @@ WindowsCore {
     readonly property int contentCornerRadius: Enums.isPrismDesign
         ? Enums.prismDesign.radiusCard
         : Enums.radius.large
+    readonly property var _safeNavigationItems:
+        navigationItems === null || navigationItems === undefined ? []
+        : (typeof navigationItems.length === "number" ? navigationItems : [])
+    readonly property var _safeBottomNavigationItems:
+        bottomNavigationItems === null || bottomNavigationItems === undefined ? []
+        : (typeof bottomNavigationItems.length === "number" ? bottomNavigationItems : [])
 
     // ==================== Signals 信号 ====================
     signal pythonPageReady(int index)
@@ -149,9 +155,11 @@ WindowsCore {
     }
 
     function _handleBottomItemClicked(index, navPanel, stack, pageSources) {
-        var item = bottomNavigationItems[index]
+        var item = _safeBottomNavigationItems[index]
         var isPageItem = item && item.key !== undefined
         var isSelectable = item && item.selectable !== false
+        var safePageSources = pageSources && typeof pageSources.length === "number"
+            ? pageSources : []
 
         if (!isPageItem || !isSelectable) {
             // Function items only emit the public signal. 功能项只发送公开信号。
@@ -161,14 +169,16 @@ WindowsCore {
 
         var pageIndex = -1
         // Prefer the Python window key format page_N. 优先解析 Python 窗口的 page_N 键格式。
-        var match = item.key.match(/^page_(\d+)$/)
+        var itemKey = String(item.key)
+        var match = itemKey.match(/^page_(\d+)$/)
         if (match) {
             pageIndex = parseInt(match[1])
-        } else if (pageSources) {
+        } else {
             // Otherwise search QML lazy-loading sources. 否则搜索 QML 懒加载源。
-            for (var i = 0; i < pageSources.length; i++) {
-                var source = pageSources[i].toString()
-                if (source.indexOf(item.key) !== -1) {
+            for (var i = 0; i < safePageSources.length; i++) {
+                var source = safePageSources[i]
+                if (source === null || source === undefined) continue
+                if (String(source).indexOf(itemKey) !== -1) {
                     pageIndex = i
                     break
                 }
@@ -223,17 +233,17 @@ WindowsCore {
             "icon": icon || "",
             "text": text || "",
             "selectedIcon": selectedIcon || icon || "",
-            "key": text || ("page_" + navigationItems.length),
+            "key": text || ("page_" + _safeNavigationItems.length),
             "parentKey": parent || "",
             "isTransparent": isTransparent || false
         }
 
         if (pos === "bottom") {
-            var bottomItems = bottomNavigationItems.slice()
+            var bottomItems = _safeBottomNavigationItems.slice()
             bottomItems.push(navItem)
             bottomNavigationItems = bottomItems
         } else {
-            var items = navigationItems.slice()
+            var items = _safeNavigationItems.slice()
             items.push(navItem)
             navigationItems = items
         }
@@ -243,8 +253,8 @@ WindowsCore {
 
     function removePage(keyOrIndex) {
         var idx = typeof keyOrIndex === "number" ? keyOrIndex : findKeyIndex(keyOrIndex)
-        if (idx >= 0 && idx < navigationItems.length) {
-            var items = navigationItems.slice()
+        if (idx >= 0 && idx < _safeNavigationItems.length) {
+            var items = _safeNavigationItems.slice()
             items.splice(idx, 1)
             navigationItems = items
         }
@@ -262,8 +272,9 @@ WindowsCore {
     function setCurrentItem(key) { navigateTo(key) }
 
     function findKeyIndex(key) {
-        for (var i = 0; i < navigationItems.length; i++) {
-            if (navigationItems[i].key === key || navigationItems[i].text === key) return i
+        for (var i = 0; i < _safeNavigationItems.length; i++) {
+            var item = _safeNavigationItems[i]
+            if (item && (item.key === key || item.text === key)) return i
         }
         return -1
     }
@@ -273,8 +284,8 @@ WindowsCore {
     Component.onCompleted: profileDetail(
         "NavigationWindowCore completed micaAvailable=" + _micaAvailable +
         " micaEnabled=" + micaEnabled +
-        " nav=" + navigationItems.length +
-        " bottom=" + bottomNavigationItems.length
+        " nav=" + _safeNavigationItems.length +
+        " bottom=" + _safeBottomNavigationItems.length
     )
 
     onMicaEnabledChanged: {

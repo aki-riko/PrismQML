@@ -91,6 +91,26 @@ class TestApiBaseUrl:
         assert updater.repository == "owner/repo"
         assert updater.currentVersion == "v1.2.3"
         assert updater.requireArtifactDigest is True
+        with pytest.raises(AttributeError):
+            updater.requireArtifactDigest = False
+
+    def test_busy_transactions_emit_terminal_failures(self, qapp):
+        updater = Updater("owner/repo", "v1.2.3")
+        check_failures = []
+        download_failures = []
+        updater.checkFailed.connect(check_failures.append)
+        updater.downloadFailed.connect(download_failures.append)
+
+        updater._check_reply = object()
+        updater.checkForUpdate()
+        updater.downloadUpdate("https://example.test/App-Setup.exe")
+        updater._check_reply = None
+        updater._download_reply = object()
+        updater.checkForUpdate()
+        updater.downloadUpdate("https://example.test/App-Setup.exe")
+
+        assert check_failures == ["更新检查已在进行", "更新检查已在进行"]
+        assert download_failures == ["更新检查已在进行", "下载已在进行"]
 
 
 # ==================== 版本比对 ====================
@@ -402,6 +422,42 @@ class TestInstaller:
         up = Updater("owner/repo", "v1.0.3")
         assert up.runInstallerAndQuit(str(installer)) is False
         assert quits == []
+
+    def test_failed_installer_launch_removes_completed_download(
+        self, qapp, tmp_path, monkeypatch
+    ):
+        installer = tmp_path / "Setup.run"
+        installer.write_bytes(b"dummy")
+        monkeypatch.setattr(updater_module.sys, "platform", "linux")
+        monkeypatch.setattr(
+            install_module.QProcess,
+            "startDetached",
+            staticmethod(lambda *_args: (False, 0)),
+        )
+        updater = Updater("owner/repo", "v1.0.3")
+        updater._download_path = str(installer)
+
+        assert updater.runInstallerAndQuit(str(installer)) is False
+        assert not installer.exists()
+
+    def test_failed_installer_launch_preserves_unowned_file(
+        self, qapp, tmp_path, monkeypatch
+    ):
+        tracked = tmp_path / "tracked.run"
+        unowned = tmp_path / "unowned.run"
+        tracked.write_bytes(b"tracked")
+        unowned.write_bytes(b"unowned")
+        monkeypatch.setattr(updater_module.sys, "platform", "linux")
+        monkeypatch.setattr(
+            install_module.QProcess,
+            "startDetached",
+            staticmethod(lambda *_args: (False, 0)),
+        )
+        updater = Updater("owner/repo", "v1.0.3")
+        updater._download_path = str(tracked)
+
+        assert updater.runInstallerAndQuit(str(unowned)) is False
+        assert tracked.exists() and unowned.exists()
 
     def test_detached_success_tuple_quits_once(self, qapp, tmp_path, monkeypatch):
         installer = tmp_path / "Setup.pkg"

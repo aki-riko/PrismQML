@@ -16,6 +16,11 @@ Rectangle {
     property int currentIndex: 0
     property bool window_micaActiveFallback: false
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeModel:
+        model === null || model === undefined ? []
+        : (typeof model.length === "number" ? model : [])
+
     // Touch target height: defensive PlatformInfo read, default uses metrics 触摸目标高度：防御式读 PlatformInfo，默认使用度量常量
     readonly property int barHeight:
         (typeof PlatformInfo !== "undefined" && PlatformInfo && PlatformInfo.touchTargetSize > 0)
@@ -48,7 +53,7 @@ Rectangle {
 
         Repeater {
             id: rep
-            model: control.model
+            model: control._safeModel
 
             delegate: Item {
                 width: control.width / Math.max(1, rep.count)
@@ -56,9 +61,9 @@ Rectangle {
 
                 NavigationBarItem {
                     anchors.centerIn: parent
-                    text: modelData.text || ""
-                    icon: modelData.icon || ""
-                    selectedIcon: modelData.selectedIcon || ""
+                    text: modelData ? (modelData.text || "") : ""
+                    icon: modelData ? (modelData.icon || "") : ""
+                    selectedIcon: modelData ? (modelData.selectedIcon || "") : ""
                     selected: index === control.currentIndex
                     onClicked: control.itemClicked(index)
                 }

@@ -53,6 +53,12 @@ Rectangle {
     property var _selectedIndices: []
     property var _previousItem: null
     property int _hoverIndex: -1
+    readonly property var _safeModel:
+        model === null || model === undefined ? []
+        : (typeof model.length === "number" ? model : [])
+    readonly property var _safeHeaderLabels:
+        headerLabels === null || headerLabels === undefined ? []
+        : (typeof headerLabels.length === "number" ? headerLabels : [])
     // cardColor overrides the default card color; use transparent for transparent scenes.
     // cardColor 可覆盖默认卡片色；透明场景使用 cardColor:"transparent"。
     // Match the DataWidgetCore family API naming (ListView/TableView, etc.).
@@ -181,26 +187,26 @@ Rectangle {
                 Layout.preferredHeight: Enums.controlSize.tableHeaderHeight
                 color: headerColor
                 radius: borderRadius
-                visible: headerLabels.length > 0
+                visible: control._safeHeaderLabels.length > 0
                 Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: parent.height / 2; color: parent.color }
                 Row {
                     anchors.fill: parent
                     Repeater {
-                        model: headerLabels
+                        model: control._safeHeaderLabels
                         Label {
                             anchors.verticalCenter: parent.verticalCenter
                             type: Enums.label.type_caption
                             text: modelData || ""
                             font.bold: true
                             color: secondaryColor
-                            width: (card.width - Enums.spacing.xl * 2) / Math.max(1, headerLabels.length)
+                            width: (card.width - Enums.spacing.xl * 2) / Math.max(1, control._safeHeaderLabels.length)
                         }
                     }
                 }
             }
             
             // Header separator 分隔线
-            Separator { Layout.fillWidth: true; lineColor: borderColor; visible: headerLabels.length > 0 }
+            Separator { Layout.fillWidth: true; lineColor: borderColor; visible: control._safeHeaderLabels.length > 0 }
             
             // Content 内容
             Item {

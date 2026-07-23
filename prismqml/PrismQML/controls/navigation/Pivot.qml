@@ -24,6 +24,9 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property int _prevIndex: -1
     property bool _initialized: false
+    readonly property var _safeItems:
+        items === null || items === undefined ? []
+        : (typeof items.length === "number" ? items : [])
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, bool byUser)
@@ -31,7 +34,7 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function setCurrentIndex(idx) {
-        if (idx < 0 || idx >= items.length) return
+        if (idx < 0 || idx >= _safeItems.length) return
         if (idx === currentIndex && _initialized) return
 
         currentIndex = idx
@@ -86,7 +89,7 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function setCurrentItem(key) {
-        for (var i = 0; i < items.length; i++) {
+        for (var i = 0; i < _safeItems.length; i++) {
             var item = repeater.itemAt(i)
             if (item && item.key === key) {
                 setCurrentIndex(i)
@@ -98,7 +101,7 @@ Item {
     // Add item 添加项目
     function addItem(key, text, icon) {
         var newItem = { key: key, text: text, icon: icon || "" }
-        items = items.concat([newItem])
+        items = _safeItems.concat([newItem])
     }
 
     // Get current page key 获取当前页面键
@@ -128,15 +131,15 @@ Item {
         
         Repeater {
             id: repeater
-            model: control.items
+            model: control._safeItems
             
             Item {
                 id: pivotItem
 
                 property bool selected: index === control.currentIndex
-                property string itemText: modelData.text !== undefined ? modelData.text : (typeof modelData === "string" ? modelData : "")
-                property string itemIcon: modelData.icon !== undefined ? modelData.icon : ""
-                property string key: modelData.key !== undefined ? modelData.key : (itemText !== "" ? itemText : itemIcon)
+                property string itemText: typeof modelData === "string" ? modelData : (modelData && modelData.text !== undefined ? modelData.text : "")
+                property string itemIcon: modelData && modelData.icon !== undefined ? modelData.icon : ""
+                property string key: modelData && modelData.key !== undefined ? modelData.key : (itemText !== "" ? itemText : itemIcon)
                 property bool hasIcon: itemIcon !== ""
                 property bool hasText: itemText !== ""
 
@@ -171,7 +174,7 @@ Item {
         indicatorHeight: Enums.border.thick
         radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.micro
         animationEnabled: control.indicatorAnimationEnabled
-        visible: control.items.length > 0 && control._initialized
+        visible: control._safeItems.length > 0 && control._initialized
     }
 
 }

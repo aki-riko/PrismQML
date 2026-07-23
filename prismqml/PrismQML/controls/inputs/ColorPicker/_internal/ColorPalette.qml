@@ -30,10 +30,24 @@ Item {
     property int cellSize: Enums.colorPickerMetrics.paletteCellSize
     property int cellSpacing: Enums.colorPickerMetrics.paletteCellSpacing
     property int columns: Enums.colorPickerMetrics.paletteColumns
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeThemeColors: _colorsOrEmpty(themeColors)
+    readonly property var _safeStandardColors: _colorsOrEmpty(standardColors)
     
     // ==================== Signals 信号 ====================
     signal colorSelected(color value)
     signal moreColorsClicked()
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _colorsOrEmpty(value) {
+        if (!value || typeof value.length !== "number") return []
+        var result = []
+        for (var i = 0; i < value.length; i++) {
+            if (value[i] !== null && value[i] !== undefined) result.push(value[i])
+        }
+        return result
+    }
     
     // ==================== Size 尺寸 ====================
     implicitWidth: columns * (cellSize + cellSpacing) + Enums.spacing.xl * 2
@@ -105,19 +119,19 @@ Item {
                 spacing: control.cellSpacing
                 
                 Repeater {
-                    model: control.themeColors
+                    model: control._safeThemeColors
                     
                     Rectangle {
                         width: control.cellSize
                         height: control.cellSize
-                        color: modelData
+                        color: modelData || Enums.transparent
                         radius: Enums.radius.tiny
                         border.width: {
-                            if (control.selectedColor.toString().toUpperCase() === modelData.toUpperCase()) return Enums.colorPickerMetrics.paletteSelectedBorderWidth
+                            if (control.selectedColor.toString().toUpperCase() === String(modelData).toUpperCase()) return Enums.colorPickerMetrics.paletteSelectedBorderWidth
                             return cellArea.containsMouse ? Enums.border.thin : Enums.border.none
                         }
                         border.color: {
-                            if (control.selectedColor.toString().toUpperCase() === modelData.toUpperCase()) 
+                            if (control.selectedColor.toString().toUpperCase() === String(modelData).toUpperCase())
                                 return Enums.accentColor
                             return Enums.stateColor.border
                         }
@@ -152,19 +166,19 @@ Item {
                 spacing: control.cellSpacing
                 
                 Repeater {
-                    model: control.standardColors
+                    model: control._safeStandardColors
                     
                     Rectangle {
                         width: control.cellSize
                         height: control.cellSize
-                        color: modelData
+                        color: modelData || Enums.transparent
                         radius: Enums.radius.tiny
                         border.width: {
-                            if (control.selectedColor.toString().toUpperCase() === modelData.toUpperCase()) return Enums.colorPickerMetrics.paletteSelectedBorderWidth
+                            if (control.selectedColor.toString().toUpperCase() === String(modelData).toUpperCase()) return Enums.colorPickerMetrics.paletteSelectedBorderWidth
                             return stdArea.containsMouse ? Enums.border.thin : Enums.border.none
                         }
                         border.color: {
-                            if (control.selectedColor.toString().toUpperCase() === modelData.toUpperCase()) 
+                            if (control.selectedColor.toString().toUpperCase() === String(modelData).toUpperCase())
                                 return Enums.accentColor
                             return Enums.stateColor.border
                         }

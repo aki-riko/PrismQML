@@ -50,6 +50,9 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property string query: lineEdit.text
     readonly property bool isOpen: searchPopup.isOpen
+    readonly property var _safeEntries:
+        entries === null || entries === undefined ? []
+        : (typeof entries.length === "number" ? entries : [])
 
     // ==================== Signals 信号 ====================
     signal entrySelected(var entry)
@@ -119,7 +122,7 @@ Item {
         }
         Keys.onDownPressed: function(event) {
             if (searchPopup.isOpen) { resultList.moveDown(); event.accepted = true }
-            else if (control.entries.length > 0) {
+            else if (control._safeEntries.length > 0) {
                 searchPopup.open()
                 event.accepted = true
             }
@@ -148,7 +151,7 @@ Item {
     SearchInternal.SearchResultList {
         id: resultList
         query: control.query
-        entries: control.entries
+        entries: control._safeEntries
         matchKeys: control.matchKeys
         fuzzyMatch: control.fuzzyMatch
         maxSuggestions: control.maxSuggestions

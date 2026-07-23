@@ -17,6 +17,7 @@ Rectangle {
     required property var table
     required property int index
     required property var modelData
+    readonly property var columnData: modelData || ({})
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var effectiveData: {
@@ -141,7 +142,7 @@ Rectangle {
             if (table.editable) {
                 var clickX = mouse.x
                 var accumulatedX = 0
-                for (var i = 0; i < table.columns.length; i++) {
+                for (var i = 0; i < table._safeColumns.length; i++) {
                     var actualWidth = table._columnPixelWidths[i] || 0
                     if (clickX >= accumulatedX && clickX < accumulatedX + actualWidth) {
                         table.cellDoubleClicked(rowDelegate.index, i)
@@ -167,7 +168,7 @@ Rectangle {
         id: paintedRowComponent
 
         PaintedRow {
-            columns: table.columns
+            columns: table._safeColumns
             rowData: rowDelegate.effectiveData
             rowIndex: rowDelegate.index
             rowHeight: table.rowHeight
@@ -180,7 +181,7 @@ Rectangle {
         visible: !table.paintedRowMode
 
         Repeater {
-            model: table.paintedRowMode ? 0 : table.columns
+            model: table.paintedRowMode ? 0 : table._safeColumns
 
             Item {
                 id: cellItem
@@ -195,11 +196,11 @@ Rectangle {
                     id: customCellLoader
 
                     anchors.fill: parent
-                    active: !!modelData.cellComponent
+                    active: !!rowDelegate.columnData.cellComponent
                             && !cellItem.cellWidgetItem
                             && rowDelegate.editColumnIndex !== index
                     visible: active
-                    sourceComponent: modelData.cellComponent || null
+                    sourceComponent: rowDelegate.columnData.cellComponent || null
                     asynchronous: true
                     opacity: status === Loader.Ready ? 1 : 0
 
@@ -210,8 +211,8 @@ Rectangle {
 
                     onLoaded: {
                         if (item) {
-                            if ('colKey' in item) item.colKey = modelData.role
-                            if ('role' in item) item.role = modelData.role
+                            if ('colKey' in item) item.colKey = rowDelegate.columnData.role
+                            if ('role' in item) item.role = rowDelegate.columnData.role
                             if ('rowIndex' in item) item.rowIndex = rowDelegate.index
                         }
                     }
@@ -221,7 +222,7 @@ Rectangle {
                     target: customCellLoader.item || null
                     property: "value"
                     when: customCellLoader.item && ('value' in customCellLoader.item)
-                    value: rowDelegate.effectiveData ? rowDelegate.effectiveData[modelData.role] : null
+                    value: rowDelegate.effectiveData ? rowDelegate.effectiveData[rowDelegate.columnData.role] : null
                     restoreMode: Binding.RestoreNone
                 }
                 Binding {
@@ -243,11 +244,11 @@ Rectangle {
                     anchors.centerIn: parent
                     type: Enums.label.type_caption
                     text: rowDelegate.effectiveData
-                        ? String(rowDelegate.effectiveData[modelData.role] ?? "") : ""
+                        ? String(rowDelegate.effectiveData[rowDelegate.columnData.role] ?? "") : ""
                     color: table.textColor
                     elide: Text.ElideRight
                     visible: !cellItem.cellWidgetItem
-                             && !modelData.cellComponent
+                             && !rowDelegate.columnData.cellComponent
                              && rowDelegate.editColumnIndex !== index
                 }
 
@@ -262,7 +263,7 @@ Rectangle {
                             inputType: Enums.input.type_normal
                             placeholderText: ""
                             text: rowDelegate.effectiveData
-                                ? String(rowDelegate.effectiveData[modelData.role] ?? "") : ""
+                                ? String(rowDelegate.effectiveData[rowDelegate.columnData.role] ?? "") : ""
 
                             Component.onCompleted: {
                                 forceActiveFocus()
@@ -271,7 +272,7 @@ Rectangle {
 
                             onEditingFinished: {
                                 var currentText = rowDelegate.effectiveData
-                                    ? String(rowDelegate.effectiveData[modelData.role] ?? "") : ""
+                                    ? String(rowDelegate.effectiveData[rowDelegate.columnData.role] ?? "") : ""
                                 if (rowDelegate.editColumnIndex === index && text !== currentText) {
                                     table.setItem(rowDelegate.index, index, text)
                                 }

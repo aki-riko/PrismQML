@@ -44,8 +44,11 @@ Item {
         return String(loader.source)
     }
     
-    readonly property bool _useSourceMode: pageSources.length > 0
-    property int count: _useSourceMode ? pageSources.length : stackLayout.children.length
+    readonly property var _safePageSources:
+        pageSources === null || pageSources === undefined ? []
+        : (typeof pageSources.length === "number" ? pageSources : [])
+    readonly property bool _useSourceMode: _safePageSources.length > 0
+    property int count: _useSourceMode ? _safePageSources.length : stackLayout.children.length
 
     // ==================== Internal Props 内部属性 ====================
     default property alias content: stackLayout.children
@@ -86,10 +89,10 @@ Item {
     function _loaderDiagnosticSnapshot(index, loaderOverride) {
         var loader = loaderOverride ||
                 (index >= 0 && index < _loaders.length ? _loaders[index] : null)
-        var targetSource = index >= 0 && index < pageSources.length ?
-                    String(pageSources[index]) : ""
-        var currentSource = _displayIndex >= 0 && _displayIndex < pageSources.length ?
-                    String(pageSources[_displayIndex]) : ""
+        var targetSource = index >= 0 && index < _safePageSources.length ?
+                    String(_safePageSources[index]) : ""
+        var currentSource = _displayIndex >= 0 && _displayIndex < _safePageSources.length ?
+                    String(_safePageSources[_displayIndex]) : ""
         if (!loader) {
             return "loader=missing" +
                     " targetSource=\"" + targetSource + "\"" +
@@ -142,7 +145,7 @@ Item {
         _traceLazyStage("stacked.loader_activate.begin", index)
         if (_loaders[index] && !_loaders[index].active) {
             if (_useSourceMode) {
-                _loaders[index].source = pageSources[index] || ""
+                _loaders[index].source = _safePageSources[index] || ""
             }
             _loaders[index].active = true
         }
@@ -505,7 +508,7 @@ Item {
         
         Repeater {
             id: sourceRepeater
-            model: control._useSourceMode ? control.pageSources.length : 0
+            model: control._useSourceMode ? control._safePageSources.length : 0
             
             Loader {
                 id: sourceLoader
@@ -528,7 +531,10 @@ Item {
                 }
                 onStatusChanged: control._traceLazyStage(
                     "stacked.source_loader.status_changed", index, "", sourceLoader)
-                source: control.lazyLoading ? (index === control.currentIndex || _loadOnce ? control.pageSources[index] : "") : control.pageSources[index]
+                source: control.lazyLoading
+                        ? (index === control.currentIndex || _loadOnce
+                           ? (control._safePageSources[index] || "") : "")
+                        : (control._safePageSources[index] || "")
                 active: !control.lazyLoading || index === control.currentIndex || _loadOnce
                 visible: index === control._displayIndex
                 opacity: index === control._displayIndex ? 1 : 0

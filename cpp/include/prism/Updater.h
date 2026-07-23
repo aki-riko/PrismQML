@@ -31,8 +31,7 @@ class Updater : public QObject {
     Q_PROPERTY(QString apiBaseUrl READ apiBaseUrl WRITE setApiBaseUrl)
     Q_PROPERTY(QString repository READ repository CONSTANT)
     Q_PROPERTY(QString currentVersion READ currentVersion CONSTANT)
-    Q_PROPERTY(bool requireArtifactDigest READ requireArtifactDigest
-               WRITE setRequireArtifactDigest)
+    Q_PROPERTY(bool requireArtifactDigest READ requireArtifactDigest CONSTANT)
 public:
     explicit Updater(const QString &repo, const QString &currentVersion,
                      const QString &assetKeyword = QStringLiteral("Setup"),
@@ -85,6 +84,7 @@ private:
     QString finalizeDownload(QNetworkReply *reply);
     void failDownload(const QString &message);
     void cleanupDownloadArtifacts();
+    void discardCompletedDownload(const QString &installerPath);
 
     QString m_repo;
     QString m_currentVersion;

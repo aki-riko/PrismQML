@@ -20,7 +20,12 @@ Item {
     readonly property int _maxItems: (control && control.maxVisibleItems > 0)
         ? control.maxVisibleItems
         : Enums.comboBoxMetrics.popupDefaultMaxItems
-    readonly property bool needsScroll: control ? control.model.length > _maxItems : false
+    readonly property var _safeControlModel: {
+        var value = control && control._safeModel !== undefined
+                    ? control._safeModel : (control ? control.model : [])
+        return value && typeof value.length === "number" ? value : []
+    }
+    readonly property bool needsScroll: _safeControlModel.length > _maxItems
 
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : (control ? control.width : 100)
@@ -33,7 +38,7 @@ Item {
 
         anchors.fill: parent
         anchors.rightMargin: popupContainer.needsScroll ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
-        model: popupContainer.control ? popupContainer.control.model : []
+        model: popupContainer._safeControlModel
         delegate: popupContainer.control ? popupContainer.control.popupDelegate : null
         clip: true
         boundsBehavior: Flickable.StopAtBounds

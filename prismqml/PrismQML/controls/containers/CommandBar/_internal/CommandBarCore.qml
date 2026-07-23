@@ -25,12 +25,20 @@ Item {
     property bool disableOverflow: false
 
     // ==================== Internal Props 内部属性 ====================
-    property var _visibleCommands: primaryCommands
+    property var _visibleCommands: _safePrimaryCommands
     property var _hiddenCommands: []
     property bool _hasOverflow: false
+    readonly property var _safePrimaryCommands:
+        primaryCommands === null || primaryCommands === undefined ? []
+        : (typeof primaryCommands.length === "number" ? primaryCommands : [])
+    readonly property var _safeSecondaryCommands:
+        secondaryCommands === null || secondaryCommands === undefined ? []
+        : (typeof secondaryCommands.length === "number" ? secondaryCommands : [])
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool _needsMore: _hasOverflow || secondaryCommands.length > 0
+    readonly property bool _needsMore: _hasOverflow ||
+        (secondaryCommands !== null && secondaryCommands !== undefined &&
+         typeof secondaryCommands.length === "number" && secondaryCommands.length > 0)
 
     // ==================== Signals 信号 ====================
     signal actionTriggered(int index, var action)
@@ -39,18 +47,20 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _updateOverflow() {
         if (disableOverflow || width <= 0) {
-            _visibleCommands = primaryCommands
+            _visibleCommands = _safePrimaryCommands
             _hiddenCommands = []
             _hasOverflow = false
             return
         }
 
         var moreButtonWidth = Enums.controlSize.commandBarMoreWidth + Enums.spacing.xs
-        var hasSecondary = secondaryCommands.length > 0
+        var safePrimary = _safePrimaryCommands || []
+        var safeSecondary = _safeSecondaryCommands || []
+        var hasSecondary = safeSecondary.length > 0
 
         var totalContentWidth = 0
-        for (var i = 0; i < primaryCommands.length; i++) {
-            var cmd = primaryCommands[i]
+        for (var i = 0; i < safePrimary.length; i++) {
+            var cmd = safePrimary[i] || {}
             var btnWidth = cmd.separator ? Enums.controlSize.commandBarSeparatorWidth : Enums.controlSize.commandBarButtonSize
             if (buttonStyle === Enums.commandBar.style_text_beside && cmd.text) btnWidth += Enums.controlSize.commandBarMoreWidth
             totalContentWidth += btnWidth + (i > 0 ? spacing : 0)
@@ -58,7 +68,7 @@ Item {
 
         var availableWithoutMore = hasSecondary ? width - moreButtonWidth : width
         if (totalContentWidth <= availableWithoutMore) {
-            _visibleCommands = primaryCommands
+            _visibleCommands = _safePrimaryCommands
             _hiddenCommands = []
             _hasOverflow = false
             return
@@ -68,8 +78,8 @@ Item {
         var currentWidth = 0
         var visibleCount = 0
 
-        for (var j = 0; j < primaryCommands.length; j++) {
-            var cmd2 = primaryCommands[j]
+        for (var j = 0; j < safePrimary.length; j++) {
+            var cmd2 = safePrimary[j] || {}
             var btnWidth2 = cmd2.separator ? Enums.controlSize.commandBarSeparatorWidth : Enums.controlSize.commandBarButtonSize
             if (buttonStyle === Enums.commandBar.style_text_beside && cmd2.text) btnWidth2 += Enums.controlSize.commandBarMoreWidth
 
@@ -81,12 +91,12 @@ Item {
 
         visibleCount = Math.max(1, visibleCount)
 
-        if (visibleCount < primaryCommands.length) {
-            _visibleCommands = primaryCommands.slice(0, visibleCount)
-            _hiddenCommands = primaryCommands.slice(visibleCount)
+        if (visibleCount < safePrimary.length) {
+            _visibleCommands = safePrimary.slice(0, visibleCount)
+            _hiddenCommands = safePrimary.slice(visibleCount)
             _hasOverflow = true
         } else {
-            _visibleCommands = primaryCommands
+            _visibleCommands = safePrimary
             _hiddenCommands = []
             _hasOverflow = false
         }
@@ -98,6 +108,7 @@ Item {
 
     onWidthChanged: _updateOverflow()
     onPrimaryCommandsChanged: _updateOverflow()
+    onSecondaryCommandsChanged: _updateOverflow()
     Component.onCompleted: _updateOverflow()
 
     // ==================== Content 内容 ====================
@@ -116,8 +127,8 @@ Item {
 
                 // ✅ 2026-02-02: 支持三种类型：separator、widget、button
                 sourceComponent: {
-                    if (modelData.separator) return separatorComponent
-                    if (modelData.widget && modelData.qmlItem) return widgetComponent
+                    if (modelData && modelData.separator) return separatorComponent
+                    if (modelData && modelData.widget && modelData.qmlItem) return widgetComponent
                     return buttonComponent
                 }
             }
@@ -168,12 +179,12 @@ Item {
                 Repeater {
                     model: control._hiddenCommands
                     Action {
-                        text: modelData.text || ""
-                        icon: modelData.icon || ""
-                        enabled: modelData.enabled !== false
-                        visible: !modelData.separator
+                        text: modelData ? (modelData.text || "") : ""
+                        icon: modelData ? (modelData.icon || "") : ""
+                        enabled: !modelData || modelData.enabled !== false
+                        visible: !modelData || !modelData.separator
                         onTriggered: {
-                            var originalIndex = control.primaryCommands.indexOf(modelData)
+                            var originalIndex = control._safePrimaryCommands.indexOf(modelData)
                             control.actionTriggered(originalIndex, modelData)
                             moreMenu.close()
                         }
@@ -182,16 +193,16 @@ Item {
 
                 MenuSeparator {
                     visible: control._hiddenCommands.length > 0
-                             && control.secondaryCommands.length > 0
+                             && control._safeSecondaryCommands.length > 0
                 }
 
                 Repeater {
-                    model: control.secondaryCommands
+                    model: control._safeSecondaryCommands
                     Action {
                         objectName: "commandBarSecondaryAction_" + index
-                        text: modelData.text || ""
-                        icon: modelData.icon || ""
-                        enabled: modelData.enabled !== false
+                        text: modelData ? (modelData.text || "") : ""
+                        icon: modelData ? (modelData.icon || "") : ""
+                        enabled: !modelData || modelData.enabled !== false
                         onTriggered: {
                             control.secondaryActionTriggered(index, modelData)
                             moreMenu.close()
@@ -214,7 +225,7 @@ Item {
                 id: btnTextMeasure
                 visible: false
                 type: Enums.label.type_caption
-                text: commandData.text || ""
+                text: commandData ? (commandData.text || "") : ""
             }
             
             Button {
@@ -228,9 +239,10 @@ Item {
 
                 style: Enums.button.style_transparent
                 flat: true
-                enabled: commandData.enabled !== false
-                icon: commandData.icon || ""
-                text: buttonStyle === Enums.commandBar.style_text_beside ? (commandData.text || "") : ""
+                enabled: !commandData || commandData.enabled !== false
+                icon: commandData ? (commandData.icon || "") : ""
+                text: buttonStyle === Enums.commandBar.style_text_beside
+                      ? (commandData ? (commandData.text || "") : "") : ""
                 iconSize: control.iconSize
                 implicitWidth: _calcButtonWidth()
                 implicitHeight: Enums.controlSize.commandBarButtonSize
@@ -264,8 +276,8 @@ Item {
         Item {
             id: widgetWrapper
             // 尺寸跟随嵌入的组件
-            implicitWidth: commandData.qmlItem ? commandData.qmlItem.width : 0
-            implicitHeight: commandData.qmlItem ? commandData.qmlItem.height : Enums.controlSize.commandBarButtonSize
+            implicitWidth: commandData && commandData.qmlItem ? commandData.qmlItem.width : 0
+            implicitHeight: commandData && commandData.qmlItem ? commandData.qmlItem.height : Enums.controlSize.commandBarButtonSize
             width: implicitWidth
             height: implicitHeight
             

@@ -23,7 +23,7 @@ def _allow_unbound_transaction_downloads(monkeypatch):
 
     def init_without_release_binding(self, *args, **kwargs):
         original_init(self, *args, **kwargs)
-        self.requireArtifactDigest = False
+        self.set_require_artifact_digest(False)
 
     monkeypatch.setattr(Updater, "__init__", init_without_release_binding)
 
@@ -124,7 +124,7 @@ def _finish_download(updater, manager, payload: bytes):
 @pytest.mark.parametrize("digest_matches", [True, False])
 def test_release_bound_sha256_controls_download_commit(qapp, digest_matches):
     updater = Updater("owner/repo", "v1.0.0")
-    updater.requireArtifactDigest = True
+    updater.set_require_artifact_digest(True)
     manager = _NetworkManagerStub()
     updater._nam = manager
     payload = b"real-installer-payload"
@@ -155,7 +155,7 @@ def test_release_bound_sha256_controls_download_commit(qapp, digest_matches):
 
 def test_digest_read_failure_reports_and_removes_committed_file(qapp, monkeypatch):
     updater = Updater("owner/repo", "v1.0.0")
-    updater.requireArtifactDigest = True
+    updater.set_require_artifact_digest(True)
     manager = _NetworkManagerStub()
     updater._nam = manager
     url = "https://example.test/App-Setup.exe"
@@ -299,7 +299,7 @@ def test_duplicate_download_call_does_not_replace_active_reply(qapp):
 
 def test_duplicate_download_cannot_drop_active_digest_binding(qapp):
     updater = Updater("owner/repo", "v1.0.0")
-    updater.requireArtifactDigest = True
+    updater.set_require_artifact_digest(True)
     manager = _NetworkManagerStub()
     updater._nam = manager
     first_url = "https://example.test/first.exe"

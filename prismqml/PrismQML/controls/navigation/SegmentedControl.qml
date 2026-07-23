@@ -25,6 +25,9 @@ Rectangle {
     property real _slideX: 0
     property int _selectedItemWidth: Enums.controlSize.segmentedMinWidth
     property int _selectedItemHeight: height - Enums.spacing.xxs * 2
+    readonly property var _safeItems:
+        items === null || items === undefined ? []
+        : (typeof items.length === "number" ? items : [])
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, bool byUser)
@@ -32,7 +35,7 @@ Rectangle {
 
     // ==================== Public Methods 公开方法 ====================
     function setCurrentIndex(idx) {
-        if (idx < 0 || idx >= items.length) return
+        if (idx < 0 || idx >= _safeItems.length) return
         if (idx === currentIndex) return
 
         // Only update the index; one handler drives geometry to avoid duplicate interruption 只修改索引，由统一handler驱动几何以免双发打断动画
@@ -73,7 +76,7 @@ Rectangle {
 
     // ==================== Public Methods 公开方法 ====================
     function setCurrentItem(key) {
-        for (var i = 0; i < items.length; i++) {
+        for (var i = 0; i < _safeItems.length; i++) {
             var item = repeater.itemAt(i)
             if (item && item.key === key) {
                 setCurrentIndex(i)
@@ -85,7 +88,7 @@ Rectangle {
     // Add item 添加项目
     function addItem(key, text, icon) {
         var newItem = { key: key, text: text, icon: icon || "" }
-        items = items.concat([newItem])
+        items = _safeItems.concat([newItem])
     }
 
     // Get current page key 获取当前页面键
@@ -117,7 +120,7 @@ Rectangle {
         width: control._selectedItemWidth
         height: control.height - Enums.spacing.xxs * 2
         radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-        visible: control.items.length > 0
+        visible: control._safeItems.length > 0
         color: Enums.stateColor.segmentedSelected
         border.width: Enums.border.thin
         border.color: Enums.stateColor.segmentedSelectedBorder
@@ -133,7 +136,7 @@ Rectangle {
         indicatorWidth: control.indicatorSize
         indicatorHeight: Enums.border.thick
         radius: Enums.radius.micro
-        visible: control.showIndicator && control.items.length > 0
+        visible: control.showIndicator && control._safeItems.length > 0
     }
 
     Timer {
@@ -161,7 +164,7 @@ Rectangle {
             if (!item || typeof item.x !== "number") {
                 // A valid model may briefly have no delegate while Repeater rebuilds
                 // Repeater 重建期间，有效模型可能短暂没有对应 delegate
-                if (control.currentIndex >= 0 && control.currentIndex < control.items.length) {
+                if (control.currentIndex >= 0 && control.currentIndex < control._safeItems.length) {
                     restart()
                     return
                 }
@@ -196,16 +199,16 @@ Rectangle {
         
         Repeater {
             id: repeater
-            model: control.items
+            model: control._safeItems
             
             Item {
                 id: segmentItem
                 property bool selected: index === control.currentIndex
                 property bool hovered: hoverHandler.hovered
                 property bool pressed: tapHandler.pressed
-                property string itemText: modelData.text !== undefined ? modelData.text : (typeof modelData === "string" ? modelData : "")
-                property string itemIcon: modelData.icon !== undefined ? modelData.icon : ""
-                property string key: modelData.key !== undefined ? modelData.key : (itemText !== "" ? itemText : itemIcon)
+                property string itemText: typeof modelData === "string" ? modelData : (modelData && modelData.text !== undefined ? modelData.text : "")
+                property string itemIcon: modelData && modelData.icon !== undefined ? modelData.icon : ""
+                property string key: modelData && modelData.key !== undefined ? modelData.key : (itemText !== "" ? itemText : itemIcon)
                 property bool hasIcon: itemIcon !== ""
                 property bool hasText: itemText !== ""
 

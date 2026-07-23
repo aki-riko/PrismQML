@@ -176,7 +176,8 @@ static void testInvalidReleaseSchemas(HttpFixture &http) {
 static void testValidReleaseAndDuplicateCheck(HttpFixture &http) {
     prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.3"),
                            QStringLiteral("Setup"), http.url());
-    int available = 0;
+    int available = 0, checkFailed = 0;
+    QString downloadBusyMessage;
     QStringList received;
     QObject::connect(&updater, &prism::Updater::updateAvailable,
                      [&](const QString &tag, const QString &notes,
@@ -184,6 +185,10 @@ static void testValidReleaseAndDuplicateCheck(HttpFixture &http) {
         ++available;
         received = {tag, notes, download, html};
     });
+    QObject::connect(&updater, &prism::Updater::checkFailed,
+                     [&](const QString &) { ++checkFailed; });
+    QObject::connect(&updater, &prism::Updater::downloadFailed,
+                     [&](const QString &message) { downloadBusyMessage = message; });
     QJsonObject asset{
         {QStringLiteral("name"), platformInstallerName()},
         {QStringLiteral("browser_download_url"), QStringLiteral("https://example.test/setup")},
@@ -200,6 +205,10 @@ static void testValidReleaseAndDuplicateCheck(HttpFixture &http) {
     const int before = http.requestCount;
     updater.checkForUpdate();
     updater.checkForUpdate();
+    updater.downloadUpdate(http.url(QStringLiteral("/busy.exe")));
+    CHECK(checkFailed == 1, "duplicate check reports busy failure");
+    CHECK(downloadBusyMessage == QStringLiteral("更新检查已在进行"),
+          "download is rejected while check transaction is active");
     CHECK(updater.m_checkReply
               && updater.m_checkReply->request()
                      .attribute(QNetworkRequest::ConnectionCacheExpiryTimeoutSecondsAttribute)
@@ -297,11 +306,30 @@ static void testDuplicateDownloadKeepsDigestBinding(HttpFixture &http) {
     updater.downloadUpdate(firstUrl);
     updater.downloadUpdate(http.url(QStringLiteral("/second.exe")));
     CHECK(updater.m_expectedDigest == digest, "duplicate download preserves digest binding");
+    CHECK(failed == 1, "duplicate download reports busy failure");
     CHECK(waitUntil([&]() { return http.requestCount == requests + 1; }),
           "duplicate secure download creates one request");
     http.releasePending();
-    CHECK(waitUntil([&]() { return failed == 1; }), "digest mismatch closes active download");
+    CHECK(waitUntil([&]() { return failed == 2; }), "digest mismatch closes active download");
     CHECK(updaterArtifacts() == before, "duplicate secure download leaves no artifact");
+}
+
+static void testCompletedDownloadRemainsTracked(HttpFixture &http) {
+    const QStringList before = updaterArtifacts();
+    prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+    updater.setRequireArtifactDigest(false);
+    QString completed;
+    QObject::connect(&updater, &prism::Updater::downloadFinished,
+                     [&](const QString &path) { completed = path; });
+    http.queue(QByteArrayLiteral("payload"));
+    updater.downloadUpdate(http.url(QStringLiteral("/cleanup.exe")));
+    CHECK(waitUntil([&]() { return !completed.isEmpty(); }),
+          "completed download is available for installer launch");
+    CHECK(updater.m_downloadPath == completed && QFileInfo::exists(completed),
+          "completed download remains bound to updater");
+    QFile::remove(completed);
+    updater.m_downloadPath.clear();
+    CHECK(updaterArtifacts() == before, "completed cleanup leaves no artifact");
 }
 
 static QString runDownload(HttpFixture &http, const QByteArray &payload,
@@ -437,6 +465,7 @@ int main(int argc, char *argv[]) {
     testDigestVerification(http, true);
     testDigestVerification(http, false);
     testDuplicateDownloadKeepsDigestBinding(http);
+    testCompletedDownloadRemainsTracked(http);
     testUniqueAtomicDownloads(http);
     testEmptyDownloadCleansArtifacts(http);
     testNetworkFailureCleansArtifacts(http);

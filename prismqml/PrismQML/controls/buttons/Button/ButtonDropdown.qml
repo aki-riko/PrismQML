@@ -32,6 +32,10 @@ Item {
     property bool _geometryPrewarmScheduled: false
     property bool _geometryPrepared: false
 
+    readonly property var _safeMenuItems:
+        menuItems === null || menuItems === undefined ? []
+        : (typeof menuItems.length === "number" ? menuItems : [])
+
     // ==================== Readonly State 只读状态 ====================
     // Expose menu open state for arrow animation 暴露菜单打开状态供箭头动画使用
     readonly property bool isMenuOpen: dropDownMenu.isOpen
@@ -78,7 +82,7 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function prewarmMenu() {
-        if (controlEnabled && !loading && menuItems.length > 0) {
+        if (controlEnabled && !loading && _safeMenuItems.length > 0) {
             if (!_geometryPrewarmScheduled) {
                 _geometryPrewarmScheduled = true
                 geometryPrewarmTimer.start()
@@ -96,18 +100,18 @@ Item {
         var itemPadding = Enums.spacing.l * 2 + Enums.spacing.xs * 4
         // Check if any item has icon 检查是否有图标项
         var hasIcon = false
-        for (var i = 0; i < menuItems.length; i++) {
-            var item = menuItems[i]
-            if (typeof item === "object" && item.icon && item.icon !== "") {
+        for (var i = 0; i < _safeMenuItems.length; i++) {
+            var item = _safeMenuItems[i]
+            if (item && typeof item === "object" && item.icon && item.icon !== "") {
                 hasIcon = true
                 break
             }
         }
         // Add icon space if any item has icon 有图标时加上图标占位空间
         var iconSpace = hasIcon ? (Enums.iconSize.m + Enums.spacing.m) : 0
-        for (var j = 0; j < menuItems.length; j++) {
-            var mi = menuItems[j]
-            var text = typeof mi === "object" ? (mi.text || mi) : (mi || "")
+        for (var j = 0; j < _safeMenuItems.length; j++) {
+            var mi = _safeMenuItems[j]
+            var text = mi && typeof mi === "object" ? (mi.text || mi) : (mi || "")
             if (text === "-") continue  // Skip separator 跳过分隔线
             textMeasure.text = text
             maxW = Math.max(maxW, textMeasure.advanceWidth + itemPadding + iconSpace)
@@ -126,13 +130,13 @@ Item {
     function _prewarmMenuGeometry() {
         if (!_geometryPrewarmScheduled) return
         _geometryPrewarmScheduled = false
-        if (controlEnabled && !loading && menuItems.length > 0) {
+        if (controlEnabled && !loading && _safeMenuItems.length > 0) {
             _updatePopupWidth()
         }
     }
 
     function openMenu() {
-        if (menuItems.length > 0) {
+        if (_safeMenuItems.length > 0) {
             menuAboutToOpen()
             _geometryPrewarmScheduled = false
             geometryPrewarmTimer.stop()
@@ -242,9 +246,9 @@ Item {
         // Calculate content height 计算内容高度
         readonly property int _contentHeight: {
             var h = Enums.comboBoxMetrics.popupPadding
-            for (var i = 0; i < dropdownFeature.menuItems.length; i++) {
-                var item = dropdownFeature.menuItems[i]
-                var text = typeof item === "object" ? (item.text || item) : (item || "")
+            for (var i = 0; i < dropdownFeature._safeMenuItems.length; i++) {
+                var item = dropdownFeature._safeMenuItems[i]
+                var text = item && typeof item === "object" ? (item.text || item) : (item || "")
                 h += (text === "-") ? Enums.controlSize.menuSeparatorHeight : Enums.comboBoxMetrics.itemHeight
             }
             return h
@@ -273,12 +277,12 @@ Item {
                 width: parent.width
                 
                 Repeater {
-                    model: dropdownFeature.menuItems
+                    model: dropdownFeature._safeMenuItems
                     
                     MenuDelegate {
                         width: menuColumn.width
-                        text: typeof modelData === "object" ? (modelData.text || modelData) : (modelData || "")
-                        icon: typeof modelData === "object" ? (modelData.icon || "") : ""
+                        text: modelData && typeof modelData === "object" ? (modelData.text || modelData) : (modelData || "")
+                        icon: modelData && typeof modelData === "object" ? (modelData.icon || "") : ""
                         isSeparator: text === "-"
                         onClicked: {
                             dropDownMenu.close()

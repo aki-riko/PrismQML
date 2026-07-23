@@ -26,10 +26,18 @@ Item {
     readonly property real _nodeRadius: Enums.controlSize.timelineGraphNode / 2
     readonly property real _nodeOuterRadius: _nodeRadius + _strokeWidth
     readonly property real _nodeX: _laneX((graphData || {}).nodeLane)
-    readonly property var _segments: (graphData && graphData.segments)
-        ? graphData.segments : []
+    readonly property var _segments: _normalizeSegments(graphData && graphData.segments)
 
     // ==================== Internal Methods 内部方法 ====================
+    function _normalizeSegments(value) {
+        if (!value || typeof value.length !== "number") return []
+        var result = []
+        for (var i = 0; i < value.length; i++) {
+            result.push(value[i] && typeof value[i] === "object" ? value[i] : {})
+        }
+        return result
+    }
+
     function _laneX(lane) {
         var safeLane = Math.max(0, Number(lane) || 0)
         return Enums.spacing.timelineGraphPadding
@@ -53,12 +61,12 @@ Item {
             id: segmentItem
 
             required property var modelData
-            readonly property real fromX: control._laneX(modelData.fromLane)
-            readonly property real toX: control._laneX(modelData.toLane)
-            readonly property real startY: modelData.startAtNode ? control.nodeY : 0
-            readonly property real endY: modelData.endAtNode ? control.nodeY : height
+            readonly property real fromX: control._laneX((modelData || {}).fromLane)
+            readonly property real toX: control._laneX((modelData || {}).toLane)
+            readonly property real startY: (modelData || {}).startAtNode ? control.nodeY : 0
+            readonly property real endY: (modelData || {}).endAtNode ? control.nodeY : height
             readonly property real middleY: (startY + endY) / 2
-            readonly property color segmentColor: control._colorFor(modelData.colorIndex)
+            readonly property color segmentColor: control._colorFor((modelData || {}).colorIndex)
 
             width: control.width
             height: control.height

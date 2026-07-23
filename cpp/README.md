@@ -176,7 +176,7 @@ Updater updater("owner/repo", "v1.0.0", "Setup",
 
 `Updater::versionIsNewer()` 与 Python Updater 使用同一 tag 比较合同：去除可选 `v` / `V` 前缀，支持可变长度点分数字主版本和点分预发布标识，正式版高于同主版本预发布版，忽略 `+` 后的构建元数据，并把空白或仅前缀标签视为最小版本。该函数用于比较 GitHub tag，不是严格拒绝非标准 tag 的完整 SemVer 校验器。
 
-C++ `Updater` 与 Python 使用同一响应和下载事务合同：release 必须是严格 UTF-8 JSON 对象且字段类型有效；下载写入进程唯一的 `QSaveFile`，禁用 direct-write fallback，只有完整写入并成功 `commit()` 后才发 `downloadFinished`。网络、写入、commit 或空文件失败只发一次 `downloadFailed` 并清理残留；同一实例的重复检查/下载不会覆盖活动 reply。
+C++ `Updater` 与 Python 使用同一响应和下载事务合同：release 必须是严格 UTF-8 JSON 对象且字段类型有效；默认要求所选安装资产带有效 `sha256:<64位十六进制>` `digest`，并在下载完成后再次校验。下载写入进程唯一的 `QSaveFile`，禁用 direct-write fallback，只有完整写入并成功 `commit()` 后才发 `downloadFinished`。网络、写入、commit、摘要或空文件失败只发一次 `downloadFailed` 并清理残留；同一实例已有任意检查或下载事务时，新检查/下载调用会发对应失败信号，不会静默覆盖活动 reply。`requireArtifactDigest` 只作为 QML 只读属性暴露，可信 C++ 集成仍可通过 `setRequireArtifactDigest()` 显式设置兼容策略。
 
 ### 平台相关的诚实降级（非 Windows 按 `#ifdef` no-op，无功能缺口）
 - `installDwmSyncFilter` / `Updater::runInstallerAndQuit` 的 Windows 专属路径

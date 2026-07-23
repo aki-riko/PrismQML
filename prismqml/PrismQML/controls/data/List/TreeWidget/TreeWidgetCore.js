@@ -6,6 +6,7 @@ var nextTreeItemId = 1
 // ==================== Model Functions 模型函数 ====================
 
 function ensureItemIdentity(item) {
+    if (!item || typeof item !== "object") return -1
     if (item._treeItemId === undefined || item._treeItemId === null) {
         item._treeItemId = nextTreeItemId
         nextTreeItemId += 1
@@ -15,8 +16,10 @@ function ensureItemIdentity(item) {
 
 function rebuildModel(ctrl, internalModel) {
     internalModel.clear()
-    if (!ctrl.model || ctrl.model.length === 0) return
-    var flat = flattenModel(ctrl.model, 0, [])
+    var sourceModel = ctrl.model
+    if (!sourceModel || typeof sourceModel.length !== "number") sourceModel = []
+    if (sourceModel.length === 0) return
+    var flat = flattenModel(sourceModel, 0, [])
     for (var i = 0; i < flat.length; i++) {
         var item = flat[i]
         internalModel.append({
@@ -39,6 +42,9 @@ function flattenModel(items, depth, path) {
     if (!items) return result
     for (var i = 0; i < items.length; i++) {
         var item = items[i]
+        if (item === null || item === undefined) continue
+        if (typeof item === "string") item = {text: item}
+        if (typeof item !== "object") continue
         ensureItemIdentity(item)
         item.depth = depth
         item.path = path.concat([i])
@@ -54,16 +60,23 @@ function findOriginalItem(ctrl, pathStr) {
     if (!pathStr) return null
     var path = pathStr.split(",").map(function (x) { return parseInt(x) })
     var target = ctrl.model
+    if (!target || typeof target.length !== "number") return null
     for (var i = 0; i < path.length - 1; i++) {
-        if (!target[path[i]]) return null
-        target = target[path[i]].children
+        var parent = target[path[i]]
+        if (!parent || typeof parent !== "object" || !parent.children ||
+                typeof parent.children.length !== "number") return null
+        target = parent.children
     }
-    return target ? target[path[path.length - 1]] : null
+    if (!target || typeof target.length !== "number") return null
+    return target[path[path.length - 1]] || null
 }
 
 function normalizeItem(item) {
     if (typeof item === "string") {
         return { text: item, icon: "", children: [], expanded: false, checkable: false, checkState: 0, data: {} }
+    }
+    if (!item || typeof item !== "object") {
+        return { text: "", icon: "", children: [], expanded: false, checkable: false, checkState: 0, data: {} }
     }
     return {
         text: item.text || "",
@@ -110,6 +123,7 @@ function findItemIndex(internalModel, item) {
 function setExpandedRecursive(items, expanded) {
     if (!items) return
     for (var i = 0; i < items.length; i++) {
+        if (!items[i] || typeof items[i] !== "object") continue
         items[i].expanded = expanded
         if (items[i].children) setExpandedRecursive(items[i].children, expanded)
     }
@@ -118,11 +132,11 @@ function setExpandedRecursive(items, expanded) {
 function sortRecursive(items, order) {
     if (!items) return
     items.sort(function (a, b) {
-        var cmp = (a.text || "").localeCompare(b.text || "")
+        var cmp = ((a && a.text) || "").localeCompare((b && b.text) || "")
         return order === 1 ? -cmp : cmp
     })
     for (var i = 0; i < items.length; i++) {
-        if (items[i].children) sortRecursive(items[i].children, order)
+        if (items[i] && items[i].children) sortRecursive(items[i].children, order)
     }
 }
 

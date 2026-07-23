@@ -96,7 +96,7 @@ Item {
                 height: defaultListView.height
 
                 Loader {
-                    property var itemData: modelData
+                    property var itemData: modelData || ""
 
                     anchors.fill: parent
                     sourceComponent: control.itemDelegate ? control.itemDelegate : _contentComponent
@@ -182,7 +182,7 @@ Item {
                 z: PathView.iZ === undefined ? 0 : PathView.iZ
 
                 Loader {
-                    property var itemData: modelData
+                    property var itemData: modelData || ""
 
                     anchors.fill: parent
                     sourceComponent: control.itemDelegate ? control.itemDelegate : _contentComponent
@@ -198,7 +198,8 @@ Item {
         Item {
             // Check if image source 检查是否为图片源图片识别逻辑
             readonly property bool isImage: {
-                var src = itemData.source || itemData
+                var data = itemData || ""
+                var src = data && typeof data === "object" ? (data.source || data) : data
                 return typeof src === "string" && (src.indexOf("/") >= 0 || src.indexOf(".") >= 0 || src.indexOf(":") >= 0)
             }
 
@@ -208,7 +209,9 @@ Item {
             Image {
                 id: contentImage
                 anchors.fill: parent
-                source: parent.isImage ? (itemData.source || itemData) : ""
+                source: parent.isImage
+                        ? (itemData && typeof itemData === "object" ? (itemData.source || itemData) : itemData)
+                        : ""
                 fillMode: Image.PreserveAspectCrop
                 visible: parent.isImage
                 // 异步解码 + sourceSize 上限 1920(全屏轮播覆盖大多数显示器宽度),
@@ -224,13 +227,13 @@ Item {
             // Color/Text content 颜色/文本内容渲染颜色或文本内容
             Rectangle {
                 anchors.fill: parent
-                color: itemData.color || Enums.surfaceColor
+                color: itemData && typeof itemData === "object" ? (itemData.color || Enums.surfaceColor) : Enums.surfaceColor
                 visible: !parent.isImage
 
                 Label {
                     anchors.centerIn: parent
                     type: Enums.label.type_body_strong
-                    text: typeof itemData === 'string' ? itemData : (itemData.text || "")
+                    text: typeof itemData === 'string' ? itemData : (itemData ? (itemData.text || "") : "")
                     visible: text.length > 0
                 }
             }

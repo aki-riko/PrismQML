@@ -23,6 +23,14 @@ Rectangle {
     property var selectedIndices: [0]  // Selected indexes (multi-select mode) 选中索引（多选模式）
     property int iconSize: Enums.iconSize.s  // Icon size for filter items 过滤项图标尺寸
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeItems:
+        items === null || items === undefined ? []
+        : (typeof items.length === "number" ? items : [])
+    readonly property var _safeSelectedIndices:
+        selectedIndices === null || selectedIndices === undefined ? []
+        : (typeof selectedIndices.length === "number" ? selectedIndices : [])
+
     // Color callables can be overridden by subclasses 颜色回调可由子类覆盖
     // Container background 容器背景色
     property var getContainerColor: function() {
@@ -139,7 +147,7 @@ Rectangle {
             
             Repeater {
                 id: itemRepeater
-                model: control.items
+                model: control._safeItems
                 
                 // Refresh indicator after all items are created 所有项创建完成后刷新指示器
                 onItemAdded: (index, item) => {
@@ -159,7 +167,7 @@ Rectangle {
                     // ==================== Internal Props 内部属性 ====================
                     property bool selected: control.exclusive ?
                         (index === control.currentIndex) :
-                        (control.selectedIndices.indexOf(index) >= 0)
+                        (control._safeSelectedIndices.indexOf(index) >= 0)
                     property bool hovered: itemArea.containsMouse && control.enabled
                     property bool pressed: itemArea.pressed
 
@@ -238,8 +246,8 @@ Rectangle {
                                     control.indexChanged(filterItem.index)
                                 }
                             } else {
-                                var idx = control.selectedIndices.indexOf(filterItem.index)
-                                var newIndices = control.selectedIndices.slice()
+                                var idx = control._safeSelectedIndices.indexOf(filterItem.index)
+                                var newIndices = control._safeSelectedIndices.slice()
                                 if (idx >= 0) {
                                     newIndices.splice(idx, 1)
                                 } else {

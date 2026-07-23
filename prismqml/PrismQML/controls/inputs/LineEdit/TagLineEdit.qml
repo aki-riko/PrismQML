@@ -34,24 +34,33 @@ InputCore {
     property bool _forceShowAll: false  // Force show all items 强制显示全部
 
     // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeTags:
+        tags === null || tags === undefined ? []
+        : (typeof tags.length === "number" ? tags : [])
+    readonly property var _safeSuggestions:
+        suggestions === null || suggestions === undefined ? []
+        : (typeof suggestions.length === "number" ? suggestions : [])
+    readonly property var _safeExtraSeparators:
+        extraSeparators === null || extraSeparators === undefined ? []
+        : (typeof extraSeparators.length === "number" ? extraSeparators : [])
     // Filtered suggestions 过滤后的建议列表
     readonly property var _filteredItems: {
         // Show all when forced, filter when typing 强制时显示全部，输入时过滤
         if (_forceShowAll) {
-            return suggestions.filter(function(item) {
-                var text = typeof item === 'string' ? item : (item.text || '')
-                return tags.indexOf(text) < 0  // Exclude already added 排除已添加
+            return _safeSuggestions.filter(function(item) {
+                var text = typeof item === 'string' ? item : (item ? (item.text || '') : '')
+                return _safeTags.indexOf(text) < 0  // Exclude already added 排除已添加
             }).slice(0, 8)
         }
         if (!inputField.text.trim()) return []
         var query = inputField.text.trim().toLowerCase()
-        return suggestions.filter(function(item) {
-            var text = typeof item === 'string' ? item : (item.text || '')
-            return text.toLowerCase().indexOf(query) >= 0 && tags.indexOf(text) < 0
+        return _safeSuggestions.filter(function(item) {
+            var text = typeof item === 'string' ? item : (item ? (item.text || '') : '')
+            return text.toLowerCase().indexOf(query) >= 0 && _safeTags.indexOf(text) < 0
         }).slice(0, 8)  // Max 8 items 最多8个
     }
     readonly property bool _showSuggestions: _filteredItems.length > 0 && inputField.activeFocus
-    readonly property string _countText: maxTags > 0 ? tags.length + "/" + maxTags : ""
+    readonly property string _countText: maxTags > 0 ? _safeTags.length + "/" + maxTags : ""
 
     // ==================== Signals 信号 ====================
     signal tagAdded(string tag)
@@ -64,7 +73,7 @@ InputCore {
         var trimmed = (text || "").trim()
         if (!_canAcceptTag(trimmed)) return
         // QML array needs reassign to trigger update QML数组重新赋值触发更新
-        var newTags = tags.slice()
+        var newTags = (_safeTags || []).slice()
         newTags.push(trimmed)
         tags = newTags
         tagsModified(tags)
@@ -80,9 +89,9 @@ InputCore {
     // All separator chars (primary + extras) 全部分隔符集合
     function _allSeparators() {
         var list = (separator && separator.length) ? [separator] : []
-        if (extraSeparators && extraSeparators.length) {
-            for (var i = 0; i < extraSeparators.length; i++) {
-                var s = extraSeparators[i]
+        if (_safeExtraSeparators.length) {
+            for (var i = 0; i < _safeExtraSeparators.length; i++) {
+                var s = _safeExtraSeparators[i]
                 if (s && list.indexOf(s) < 0) list.push(s)
             }
         }
@@ -91,9 +100,9 @@ InputCore {
 
     // Whether text matches one of the suggestions 文本是否命中建议项 (兼容字符串/对象形态)
     function _isSuggested(text) {
-        for (var i = 0; i < suggestions.length; i++) {
-            var item = suggestions[i]
-            var label = typeof item === 'string' ? item : (item.text || '')
+        for (var i = 0; i < _safeSuggestions.length; i++) {
+            var item = _safeSuggestions[i]
+            var label = typeof item === 'string' ? item : (item ? (item.text || '') : '')
             if (label === text) return true
         }
         return false
@@ -103,8 +112,8 @@ InputCore {
     // 去重 / maxTags / allowCustomTags / validateTag 集中一处, 避免逻辑散落
     function _canAcceptTag(text) {
         if (!text) return false
-        if (maxTags > 0 && tags.length >= maxTags) return false
-        if (tags.indexOf(text) >= 0) return false  // Block duplicate 拒绝重复
+        if (maxTags > 0 && _safeTags.length >= maxTags) return false
+        if (_safeTags.indexOf(text) >= 0) return false  // Block duplicate 拒绝重复
         if (!allowCustomTags && !_isSuggested(text)) return false  // Only suggested 仅允许建议项
         if (validateTag && !validateTag(text)) return false  // User validation 用户校验
         return true
@@ -160,7 +169,7 @@ InputCore {
         // Existing tags 已有标签
         Repeater {
             id: tagsRepeater
-            model: control.tags
+            model: control._safeTags
 
             delegate: Tag {
                 tagControl: control  // Use different name to avoid shadowing 使用不同名称避免遮蔽
@@ -213,7 +222,7 @@ InputCore {
             InputsInternal.InputPlaceholderLabel {
                 anchors.fill: parent
                 text: control.placeholderText
-                visible: !parent.text && !parent.activeFocus && control.tags.length === 0
+                visible: !parent.text && !parent.activeFocus && control._safeTags.length === 0
             }
         }
     }

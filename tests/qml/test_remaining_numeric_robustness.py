@@ -11,7 +11,7 @@ from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
 
-from prismqml import register_types
+from prismqml import configure_qml_environment, register_types
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -156,6 +156,213 @@ Item {
 """
 
 
+NULLABLE_COLLECTION_SCENE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    CommandBar {
+        objectName: "nullCommandBar"
+        primaryCommands: null
+        secondaryCommands: null
+    }
+    DropZone {
+        objectName: "nullDropZone"
+        allowedExtensions: null
+    }
+    LoginWindow {
+        objectName: "nullLoginWindow"
+        oauthProviders: null
+    }
+    Pivot { objectName: "nullPivot"; items: null }
+    SegmentedControl { objectName: "nullSegmented"; items: null }
+    SettingsCard {
+        objectName: "nullSettingsCard"
+        model: null
+        options: null
+        folders: null
+    }
+    ToggleNavigationBar {
+        objectName: "nullToggleNavigation"
+        model: null
+        bottomItems: null
+    }
+    ListWidget { objectName: "nullListWidget"; model: null }
+    TreeWidget {
+        objectName: "nullTreeWidget"
+        model: null
+        headerLabels: null
+    }
+    TableWidget { objectName: "nullTableWidget"; tableData: []; columns: null }
+    StackedWidget { objectName: "nullStackedWidget"; pageSources: null }
+    ComboBox { objectName: "nullComboBox"; model: null }
+    ComboBoxTree { objectName: "nullComboBoxTree"; model: null }
+    ComboBoxMulti {
+        objectName: "nullComboBoxMulti"
+        model: null
+        selectedIndices: null
+    }
+    ComboBoxMultiTree {
+        objectName: "nullComboBoxMultiTree"
+        model: null
+        selectedPaths: null
+    }
+    LocalSearchBar { objectName: "nullLocalSearchBar"; entries: null }
+    SystemTrayMenu { objectName: "nullSystemTrayMenu"; initialActions: null }
+}
+"""
+
+
+NULLABLE_ELEMENT_SCENE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    id: root
+
+    property bool nullPathSelected: true
+    property bool invalidTreePathFound: true
+    property string nullTableCellText: "pending"
+    property int nullListRow: -1
+    property int tabIndexAfterRemove: -1
+
+    CommandBar {
+        objectName: "elementCommandBar"
+        primaryCommands: [null]
+        secondaryCommands: [null]
+    }
+    LoginWindow {
+        objectName: "elementLoginWindow"
+        oauthProviders: [null]
+    }
+    SettingsCard {
+        objectName: "elementSettingsCard"
+        model: [null]
+        options: [null]
+        folders: [null]
+    }
+    ListWidget { id: elementListWidget; objectName: "elementListWidget"; model: [null] }
+    TreeWidget {
+        id: elementTreeWidget
+        objectName: "elementTreeWidget"
+        model: [{children: null}, null]
+    }
+    TableWidget {
+        id: elementTableWidget
+        objectName: "elementTableWidget"
+        tableData: [null, {value: "row"}]
+        columns: [null, {role: "value"}]
+    }
+    TableView { objectName: "elementTableView"; model: []; columns: [null] }
+    Pivot { objectName: "elementPivot"; items: [null] }
+    SegmentedControl { objectName: "elementSegmented"; items: [null] }
+    ToggleNavigationBar {
+        objectName: "elementToggleNavigation"
+        model: [null]
+        bottomItems: [null]
+    }
+    NavigationBar {
+        objectName: "elementNavigationBar"
+        model: [null]
+        bottomItems: [null]
+    }
+    NavigationView {
+        objectName: "elementNavigationView"
+        model: [null]
+        bottomItems: [null]
+    }
+    StatusBar {
+        objectName: "elementStatusBar"
+        leftItems: [null]
+        rightItems: [null]
+    }
+    MenuBar { objectName: "elementMenuBar"; items: [null] }
+    FilterBar {
+        objectName: "elementFilterBar"
+        items: [null]
+        selectedIndices: [null]
+    }
+    Carousel { objectName: "elementCarousel"; model: [null] }
+    Timeline { objectName: "elementTimeline"; items: [{cards: [null]}] }
+    Timeline { objectName: "elementTimelineVirtual"; items: [{cards: [null]}]; virtualized: true; height: 120 }
+    Timeline {
+        objectName: "elementTimelineGraph"
+        type: Enums.timeline.type_graph
+        virtualized: true
+        height: 180
+        items: [{
+            graph: {nodeLane: 0, segments: [null], labels: [null]},
+            cards: [{labels: [null], graph: {segments: [null]}}]
+        }]
+    }
+    LineEdit {
+        objectName: "elementTagLineEdit"
+        inputType: Enums.input.type_tag
+        tags: [null]
+        suggestions: [null]
+        extraSeparators: [null]
+    }
+    ChartView {
+        objectName: "elementChartView"
+        chartData: [null]
+        indicators: [null]
+        series: [null]
+        boxplotData: [null]
+    }
+    Button {
+        objectName: "elementDropdownButton"
+        feature: Enums.button.feature_dropdown
+        menuItems: [null]
+    }
+    StackedWidget { objectName: "elementStackedWidget"; pageSources: [null] }
+    TabWidget {
+        id: elementTabWidget
+        objectName: "elementTabWidget"
+        tabs: [null, {title: "Second"}]
+        currentIndex: 1
+    }
+    ComboBox { objectName: "elementComboBox"; model: [null] }
+    ComboBoxTree { objectName: "elementComboBoxTree"; model: [null] }
+    ComboBoxMulti {
+        objectName: "elementComboBoxMulti"
+        model: [null]
+        selectedIndices: [null]
+    }
+    ComboBoxMultiTree {
+        id: elementComboBoxMultiTree
+        objectName: "elementComboBoxMultiTree"
+        model: [null]
+        selectedPaths: [null]
+    }
+    LocalSearchBar { objectName: "elementLocalSearchBar"; entries: [null] }
+    SystemTrayMenu { objectName: "elementSystemTrayMenu"; initialActions: [null] }
+    Confetti {
+        id: elementConfetti
+        objectName: "elementConfetti"
+        colors: [null]
+        particleCount: 1
+    }
+    ColorPicker {
+        objectName: "elementColorPicker"
+        type: Enums.colorPicker.type_circle
+        circleColors: [null]
+    }
+
+    Component.onCompleted: {
+        nullPathSelected = elementComboBoxMultiTree._isSelected(["leaf"])
+        invalidTreePathFound = elementTreeWidget._findOriginalItem("0,0,0") !== null
+        nullTableCellText = elementTableWidget.item(0, 0).text
+        elementTableWidget.sortItems(0, 0)
+        elementListWidget.addItem(null)
+        nullListRow = elementListWidget.row(null)
+        elementTabWidget.removeTab(1)
+        tabIndexAfterRemove = elementTabWidget.currentIndex
+        elementConfetti.start()
+    }
+}
+"""
+
+
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
@@ -279,3 +486,170 @@ def test_zero_width_slider_variants_keep_finite_geometry(qapp):
             engine.deleteLater()
             QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
             QCoreApplication.processEvents()
+
+
+def test_nullable_public_collections_have_no_qml_runtime_errors(qapp):
+    """公共集合输入为 null 时保持空视图且不产生 QML TypeError。"""
+    configure_qml_environment()
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        NULLABLE_COLLECTION_SCENE,
+        QUrl("inline:nullable-public-collections.qml"),
+    )
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    assert root is not None, [error.toString() for error in component.errors()]
+    try:
+        _pump(100)
+        assert warnings == []
+        for name in (
+            "nullCommandBar",
+            "nullDropZone",
+            "nullLoginWindow",
+            "nullPivot",
+            "nullSegmented",
+            "nullSettingsCard",
+            "nullToggleNavigation",
+            "nullListWidget",
+            "nullTreeWidget",
+            "nullTableWidget",
+            "nullStackedWidget",
+            "nullComboBox",
+            "nullComboBoxTree",
+            "nullComboBoxMulti",
+            "nullComboBoxMultiTree",
+            "nullLocalSearchBar",
+            "nullSystemTrayMenu",
+        ):
+            assert root.findChild(type(root), name) is not None
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
+
+
+def test_nullable_collection_elements_have_no_qml_runtime_errors(qapp):
+    """公共集合包含 null 元素时也不得触发 delegate/宽度计算 TypeError。"""
+    configure_qml_environment()
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        NULLABLE_ELEMENT_SCENE,
+        QUrl("inline:nullable-public-collection-elements.qml"),
+    )
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    assert root is not None, [error.toString() for error in component.errors()]
+    try:
+        _pump(100)
+        assert not warnings, "\\n".join(warnings)
+        assert root.property("nullPathSelected") is False
+        assert root.property("invalidTreePathFound") is False
+        assert root.property("nullTableCellText") == ""
+        assert root.property("nullListRow") == 0
+        assert root.property("tabIndexAfterRemove") == 0
+        for name in (
+            "elementCommandBar",
+            "elementLoginWindow",
+            "elementSettingsCard",
+            "elementListWidget",
+            "elementTreeWidget",
+            "elementTableWidget",
+            "elementTableView",
+            "elementPivot",
+            "elementSegmented",
+            "elementToggleNavigation",
+            "elementNavigationBar",
+            "elementNavigationView",
+            "elementStatusBar",
+            "elementMenuBar",
+            "elementFilterBar",
+            "elementCarousel",
+            "elementTimeline",
+            "elementTimelineVirtual",
+            "elementTimelineGraph",
+            "elementTagLineEdit",
+            "elementChartView",
+            "elementDropdownButton",
+            "elementStackedWidget",
+            "elementTabWidget",
+            "elementComboBox",
+            "elementComboBoxTree",
+            "elementComboBoxMulti",
+            "elementComboBoxMultiTree",
+            "elementLocalSearchBar",
+            "elementSystemTrayMenu",
+            "elementConfetti",
+            "elementColorPicker",
+        ):
+            assert root.findChild(type(root), name) is not None
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
+
+
+def test_painted_row_null_columns_have_no_qml_runtime_errors(qapp):
+    """PaintedRow 的列定义包含 null 时，绘制和命中测试保持安全。"""
+    configure_qml_environment()
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    register_types(engine)
+    source_path = ROOT / "prismqml" / "PrismQML" / "controls" / "data" / "Table" / "PaintedRow.qml"
+    component = QQmlComponent(engine, QUrl.fromLocalFile(str(source_path)))
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    row = component.create(engine.rootContext())
+    assert isinstance(row, QQuickItem), [
+        error.toString() for error in component.errors()
+    ]
+    try:
+        row.setWidth(120)
+        row.setHeight(32)
+        row.setProperty("columns", [None])
+        row.setProperty("rowData", {})
+        _pump(100)
+        assert warnings == [], warnings
+    finally:
+        row.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()

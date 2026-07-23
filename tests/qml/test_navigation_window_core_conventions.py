@@ -44,6 +44,10 @@ NavigationWindowCore {
     property bool loadingAfterFinish: true
     property int bottomPageResult: -99
     property int bottomActionResult: -99
+    property int nullableTopCount: -1
+    property int nullableBottomCount: -1
+    property int nullableFoundIndex: -1
+    property int nullPageSourceResult: -99
     property string indicatorKey: ""
     property var readyEvents: []
     property var bottomEvents: []
@@ -86,6 +90,19 @@ NavigationWindowCore {
         bottomPageResult = _handleBottomItemClicked(0, navStub, null, [])
         bottomActionResult = _handleBottomItemClicked(1, navStub, null, [])
         indicatorKey = navStub.lastKey
+    }
+
+    function exerciseNullableCollections() {
+        navigationItems = null
+        bottomNavigationItems = null
+        addPage(null, "home", "Recovered", "", "top", "", false)
+        addPage(null, "settings", "RecoveredBottom", "", "bottom", "", false)
+        nullableTopCount = navigationItems.length
+        nullableBottomCount = bottomNavigationItems.length
+        navigationItems = [null, {"key": "safe", "text": "Safe"}]
+        nullableFoundIndex = findKeyIndex("safe")
+        bottomNavigationItems = [{"key": "null-source", "selectable": true}]
+        nullPageSourceResult = _handleBottomItemClicked(0, navStub, null, [null])
     }
 
     onPythonPageReady: (index) => readyEvents = readyEvents.concat(index)
@@ -190,6 +207,11 @@ def test_navigation_window_core_public_and_internal_contracts(monkeypatch, qapp)
         assert window.property("indicatorKey") == "page_1"
         assert _variant(window.property("bottomEvents")) == [0, 1]
         assert _variant(window.property("pageEvents")) == [1]
+        assert QMetaObject.invokeMethod(window, "exerciseNullableCollections")
+        assert window.property("nullableTopCount") == 1
+        assert window.property("nullableBottomCount") == 1
+        assert window.property("nullableFoundIndex") == 1
+        assert window.property("nullPageSourceResult") == -1
         assert window.property("smoothScrollDefault") is True
         assert window.property("scrollDurationDefault") == window.property(
             "expectedNavigationScrollDuration"

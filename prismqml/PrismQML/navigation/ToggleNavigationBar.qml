@@ -24,8 +24,14 @@ Item {
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.navigationScroll
     property real scrollStep: Enums.spacing.navigationScrollStep
-    
     // ==================== Internal Props 内部属性 ====================
+    readonly property var _safeModel:
+        model === null || model === undefined ? []
+        : (typeof model.length === "number" ? model : [])
+    readonly property var _safeBottomItems:
+        bottomItems === null || bottomItems === undefined ? []
+        : (typeof bottomItems.length === "number" ? bottomItems : [])
+
     // Maps key to page index for bottom page items 将 key 映射到页面索引，用于底部页面项
     property var _bottomPageIndexMap: ({})
     property bool _skipIndicatorAnimation: false
@@ -48,11 +54,11 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _getItemAt(globalIndex) {
         if (globalIndex < 0) return null
-        if (globalIndex < model.length) {
+        if (globalIndex < _safeModel.length) {
             return topRep.itemAt(globalIndex)
         }
-        var bottomIndex = globalIndex - model.length
-        if (bottomIndex < bottomItems.length) {
+        var bottomIndex = globalIndex - _safeModel.length
+        if (bottomIndex < _safeBottomItems.length) {
             return bottomRep.itemAt(bottomIndex)
         }
         return null
@@ -89,8 +95,8 @@ Item {
         if (!key) return
         // Delay to ensure Repeater items are ready 延迟以确保 Repeater 项已准备好
         Qt.callLater(function() {
-            for (var i = 0; i < bottomItems.length; i++) {
-                if (bottomItems[i].key === key) {
+            for (var i = 0; i < _safeBottomItems.length; i++) {
+                if (_safeBottomItems[i] && _safeBottomItems[i].key === key) {
                     var item = bottomRep.itemAt(i)
                     if (item) {
                         var mappedPos = item.mapToItem(control, 0, 0)
@@ -147,7 +153,7 @@ Item {
         orientation: Qt.Vertical
         z: Enums.zIndex.content  // Below bottom cover 低于底部遮盖层
         radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-        visible: (control.model.length + control.bottomItems.length) > 0
+        visible: (control._safeModel.length + control._safeBottomItems.length) > 0
     }
     
     // Top navigation items 顶部导航项
@@ -175,7 +181,7 @@ Item {
             
             Repeater {
                 id: topRep
-                model: control.model
+                model: control._safeModel
                 
                 onItemAdded: Qt.callLater(function() { control._updateIndicator(false) })
                 
@@ -185,8 +191,8 @@ Item {
                     required property int index
                     required property var modelData
 
-                    readonly property string itemText: modelData.text || ""
-                    readonly property string itemIcon: modelData.icon || ""
+                    readonly property string itemText: modelData ? (modelData.text || "") : ""
+                    readonly property string itemIcon: modelData ? (modelData.icon || "") : ""
                     readonly property bool selected: index === control.currentIndex
                     readonly property bool hovered: topHoverHandler.hovered
                     readonly property bool pressed: topTapHandler.pressed
@@ -275,7 +281,7 @@ Item {
         
         Repeater {
             id: bottomRep
-            model: control.bottomItems
+            model: control._safeBottomItems
             
             onItemAdded: Qt.callLater(control._updateIndicator)
             
@@ -285,13 +291,13 @@ Item {
                 required property int index
                 required property var modelData
 
-                readonly property int globalIndex: control.model.length + index
-                readonly property string itemText: modelData.text || ""
-                readonly property string itemIcon: modelData.icon || ""
-                readonly property bool itemSelectable: modelData.selectable !== false
+                readonly property int globalIndex: control._safeModel.length + index
+                readonly property string itemText: modelData ? (modelData.text || "") : ""
+                readonly property string itemIcon: modelData ? (modelData.icon || "") : ""
+                readonly property bool itemSelectable: !modelData || modelData.selectable !== false
                 // Bottom page items use key to find page index 底部页面项通过 key 查找页面索引来判断渲染状态
                 readonly property bool selected: {
-                    var item = control.bottomItems[index]
+                    var item = control._safeBottomItems[index]
                     var hasKey = item && item.key !== undefined
                     var isSelectable = item && item.selectable !== false
                     if (hasKey && isSelectable) {

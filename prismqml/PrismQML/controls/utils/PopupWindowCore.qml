@@ -541,7 +541,7 @@ Item {
         parent: control._inlineParent ? control._inlineParent : control
         width: control._outerWidth
         height: control._outerHeight
-        padding: 0
+        padding: Enums.spacing.none
         // Preserve the requested anchor instead of centering an oversized popup.
         // 保持请求的锚点，避免超宽弹层被 Qt 自动居中后发生水平漂移。
         margins: -1

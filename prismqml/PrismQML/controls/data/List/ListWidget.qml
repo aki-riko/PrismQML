@@ -31,7 +31,7 @@ Rectangle {
     property int selectionMode: singleSelection
     
     property var model: []  // External model 外部模型
-    readonly property int count: model.length > 0 ? model.length : listModel.count
+    readonly property int count: _externalModelLength > 0 ? _externalModelLength : listModel.count
     property alias currentIndex: listView.currentIndex
     property bool selectOnRightClick: false
     property bool showScrollBar: true
@@ -54,6 +54,9 @@ Rectangle {
     property int _pressedRow: -1
     property var _selectedRows: []  // Multi-selection support 多选支持
     property var _previousItem: null
+    readonly property int _externalModelLength:
+        model === null || model === undefined ? 0
+        : (typeof model.length === "number" ? model.length : 0)
 
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, var item)
@@ -75,8 +78,9 @@ Rectangle {
 
     // Add multiple items 添加多项
     function addItems(items) {
-        for (var i = 0; i < items.length; i++) {
-            addItem(items[i])
+        var safeItems = items && typeof items.length === "number" ? items : []
+        for (var i = 0; i < safeItems.length; i++) {
+            addItem(safeItems[i])
         }
     }
 
@@ -90,8 +94,9 @@ Rectangle {
 
     // Insert multiple items 插入多项
     function insertItems(row, items) {
-        for (var i = 0; i < items.length; i++) {
-            insertItem(row + i, items[i])
+        var safeItems = items && typeof items.length === "number" ? items : []
+        for (var i = 0; i < safeItems.length; i++) {
+            insertItem(row + i, safeItems[i])
         }
     }
 
@@ -112,7 +117,7 @@ Rectangle {
 
     // Get row of item (by text match) 获取项的行号
     function row(item) {
-        var searchText = typeof item === "string" ? item : (item.text || "")
+        var searchText = typeof item === "string" ? item : (item ? (item.text || "") : "")
         for (var i = 0; i < listModel.count; i++) {
             if (listModel.get(i).text === searchText) return i
         }
@@ -366,6 +371,9 @@ Rectangle {
         if (typeof item === "string") {
             return { text: item, icon: "", data: {}, checkable: false, checkState: 0, selected: false, flags: 0 }
         }
+        if (!item || typeof item !== "object") {
+            return { text: "", icon: "", data: {}, checkable: false, checkState: 0, selected: false, flags: 0 }
+        }
         return {
             text: item.text || "",
             icon: item.icon || item.iconSource || "",
@@ -413,7 +421,7 @@ Rectangle {
         // Performance: reuse delegates and prerender offscreen boundaries. 性能：复用委托并预渲染屏外边界。
         reuseItems: true
         cacheBuffer: 600
-        model: control.model.length > 0 ? control.model : listModel
+        model: control._externalModelLength > 0 ? control.model : listModel
         
         // Padding 内边距
         leftMargin: Enums.spacing.xs
@@ -469,8 +477,8 @@ Rectangle {
             required property var modelData
             
             // Normalize modelData 规范化数据
-            property string _text: typeof modelData === "string" ? modelData : (modelData.text || "")
-            property string _icon: typeof modelData === "string" ? "" : (modelData.icon || "")
+            property string _text: typeof modelData === "string" ? modelData : (modelData ? (modelData.text || "") : "")
+            property string _icon: typeof modelData === "string" ? "" : (modelData ? (modelData.icon || "") : "")
             
             width: listView.width - listView.leftMargin - listView.rightMargin
             itemIndex: delegateItem.index

@@ -38,7 +38,12 @@ Item {
     // Font and color configuration aligned with Enums 字体与颜色配置默认对齐 Enums
     property int fontPointSize: 12
     property color textColor: Enums.foregroundColor
-    property color textColorSubtle: Enums.foregroundColorSubtle
+    property color textColorSubtle: Enums.secondaryForeground
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _safeColumns:
+        columns === null || columns === undefined ? []
+        : (typeof columns.length === "number" ? columns : [])
 
     // ==================== Signals 信号 ====================
     signal cellHovered(int colIdx, int rowIdx)
@@ -76,12 +81,12 @@ Item {
             ctx.fillStyle = root.textColor
             var x = 0
             var y = root.height / 2
-            for (var i = 0; i < root.columns.length; i++) {
-                var col = root.columns[i]
+            for (var i = 0; i < (root._safeColumns || []).length; i++) {
+                var col = root._safeColumns[i] || {}
                 var w = col.width || 0.15
                 if (w < 1) w = w * root.width
                 var key = col.key
-                var val = root.rowData[key]
+                var val = (root.rowData || {})[key]
                 var text = (val === null || val === undefined) ? "" : String(val)
                 var align = col.align || "left"
                 ctx.save()
@@ -120,8 +125,9 @@ Item {
         acceptedButtons: Qt.NoButton  // Let the parent ListView delegate handle clicks 由上层 ListView 委托处理点击
         onPositionChanged: function(mouse) {
             var x = 0
-            for (var i = 0; i < root.columns.length; i++) {
-                var w = root.columns[i].width || 0.15
+            for (var i = 0; i < (root._safeColumns || []).length; i++) {
+                var col = root._safeColumns[i] || {}
+                var w = col.width || 0.15
                 if (w < 1) w = w * root.width
                 if (mouse.x >= x && mouse.x < x + w) {
                     root.cellHovered(i, root.rowIndex)

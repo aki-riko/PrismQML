@@ -230,8 +230,10 @@ PopupWindowCore {
  // Add multiple actions 批量添加动作
  // @param actions: array of {text, icon, shortcut, ...options}
  function addActions(actionsArray) {
- for (var i = 0; i < actionsArray.length; i++) {
- var a = actionsArray[i]
+ var actions = actionsArray && typeof actionsArray.length === "number" ? actionsArray : []
+ for (var i = 0; i < actions.length; i++) {
+ var a = actions[i]
+ if (!a) continue
  addAction(a.text, a.icon, a.shortcut, a)
  }
  }

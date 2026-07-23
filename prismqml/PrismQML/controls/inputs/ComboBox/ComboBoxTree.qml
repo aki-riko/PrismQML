@@ -46,7 +46,7 @@ ComboBoxCore {
 
     // ==================== Internal Methods 内部方法 ====================
     function _initTree() {
-        if (model && model.length > 0) {
+        if (_safeModel.length > 0) {
             _expandAllNodes()
             _rebuildFlatModel()
         }
@@ -54,7 +54,7 @@ ComboBoxCore {
     
     function _expandAllNodes() {
         var expanded = {}
-        _collectExpandableNodes(model, "root", expanded)
+        _collectExpandableNodes(_safeModel, "root", expanded)
         _expandedNodes = expanded
     }
     
@@ -62,6 +62,7 @@ ComboBoxCore {
         if (!nodes) return
         for (var i = 0; i < nodes.length; i++) {
             var node = nodes[i]
+            if (!node) continue
             var nodeId = parentId + "_" + i
             if (node.children && node.children.length > 0) {
                 result[nodeId] = true
@@ -72,7 +73,7 @@ ComboBoxCore {
     
     function _rebuildFlatModel() {
         var flat = []
-        _flattenTree(model, [], 0, "root", flat)
+        _flattenTree(_safeModel, [], 0, "root", flat)
         _flatModel = flat
     }
     
@@ -80,6 +81,7 @@ ComboBoxCore {
         if (!nodes) return
         for (var i = 0; i < nodes.length; i++) {
             var node = nodes[i]
+            if (!node) continue
             var nodeText = typeof node === "string" ? node : (node.text || "")
             var nodeId = parentId + "_" + i
             var path = parentPath.concat([nodeText])
@@ -102,6 +104,7 @@ ComboBoxCore {
         if (!children) return false
         for (var i = 0; i < children.length; i++) {
             var child = children[i]
+            if (!child) continue
             var text = typeof child === "string" ? child : (child.text || "")
             if (text.toLowerCase().indexOf(_searchText.toLowerCase()) >= 0) return true
             if (child.children && _hasMatchingDescendants(child.children)) return true

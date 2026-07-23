@@ -37,6 +37,7 @@ from PySide6.QtNetwork import (
 
 from ._updater_download import (
     commit_download_file,
+    discard_completed_download,
     open_unique_download_file,
     verify_download_digest,
     write_download_bytes,
@@ -207,27 +208,23 @@ class Updater(QObject):
     def repository(self) -> str:
         """Repository identifier exposed to QML. 暴露给 QML 的仓库标识。"""
         return self._repo
-
     @Property(str, constant=True)
     def currentVersion(self) -> str:
         """Current version exposed to QML. 暴露给 QML 的当前版本。"""
         return self._current_version
-
-    @Property(bool)
+    @Property(bool, constant=True)
     def requireArtifactDigest(self) -> bool:
         """Whether release assets must carry SHA-256. 是否要求资产带 SHA-256。"""
         return self._require_artifact_digest
-
-    @requireArtifactDigest.setter
-    def requireArtifactDigest(self, value: bool) -> None:
+    def set_require_artifact_digest(self, value: bool) -> None:
+        """Set the policy from trusted Python code, not from QML. 仅允许可信 Python 入口设置策略。"""
         self._require_artifact_digest = bool(value)
-
     # ==================== 检测 ====================
     @Slot()
     def checkForUpdate(self):
         """异步请求 GitHub latest release,完成后发 updateAvailable / upToDate / checkFailed。"""
         if self._check_reply is not None or self._download_reply is not None:
-            logger.debug("[Updater] 已有更新事务在进行,忽略重复检测")
+            self.checkFailed.emit("更新检查已在进行")
             return
         self._expected_digest = ""
         self._expected_download_url = ""
@@ -301,10 +298,10 @@ class Updater(QObject):
     # ==================== 下载 ====================
     @Slot(str)
     def downloadUpdate(self, url: str):
-        """异步下载安装包到系统临时目录,过程发 downloadProgress,
-        完成发 downloadFinished(localPath),失败发 downloadFailed。"""
-        if self._download_reply is not None:
-            logger.debug("[Updater] 已有下载在进行,忽略重复调用")
+        """异步下载安装包，并通过 progress/finished/failed 信号报告结果。"""
+        if self._check_reply is not None or self._download_reply is not None:
+            message = "更新检查已在进行" if self._check_reply is not None else "下载已在进行"
+            self.downloadFailed.emit(message)
             return
         error = self._validate_download_url(url)
         if error:
@@ -484,11 +481,13 @@ class Updater(QObject):
             else launch_non_windows_installer
         )
         if not launcher(installer_path, args):
+            self._download_path = discard_completed_download(
+                installer_path, self._download_path
+            )
             return False
         logger.info(f"[Updater] 已启动安装包,应用即将退出: {installer_path} {args}")
         QCoreApplication.quit()
         return True
-
     @Slot(str, result=bool)
     def openInBrowser(self, url: str) -> bool:
         """用系统浏览器打开 URL(检测到新版时跳 Releases 页的兜底)。"""
