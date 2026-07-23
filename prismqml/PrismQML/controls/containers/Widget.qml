@@ -35,6 +35,8 @@ Item {
     property int toolTipShowDelay: Enums.duration.tooltipShowDelay
     property int toolTipHideDelay: Enums.duration.none
     property int toolTipPosition: Enums.position.top
+    // Horizontal text alignment inside the tooltip (Qt Text enum) 提示内文本水平对齐(Qt Text 枚举),默认左对齐
+    property int toolTipTextAlignment: Text.AlignLeft
 
     // ==================== Internal Props 内部属性 ====================
     property bool _toolTipShowPending: false
@@ -307,8 +309,8 @@ Item {
                 color: Enums.foregroundColor
                 // Wrap long text within max width; \n still forces line breaks 超过最大宽度自动换行;\n 仍强制断行
                 wrapMode: Text.Wrap
-                // Left-align reads better for multi-line hints 多行提示左对齐更易读
-                horizontalAlignment: Text.AlignLeft
+                // Alignment exposed via toolTipTextAlignment (default left) 对齐由 toolTipTextAlignment 暴露(默认左对齐)
+                horizontalAlignment: widget.toolTipTextAlignment
                 verticalAlignment: Text.AlignVCenter
                 width: Math.min(_tooltipMetrics.width, Enums.controlSize.tooltipMaxWidth)
             }
