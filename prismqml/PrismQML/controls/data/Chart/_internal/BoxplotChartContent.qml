@@ -38,15 +38,21 @@ Item {
         var min = Infinity, max = -Infinity
         for (var i = 0; i < boxplotData.length; i++) {
             var d = boxplotData[i]
+            if (!d || typeof d.min !== "number" || typeof d.q1 !== "number" ||
+                    typeof d.median !== "number" || typeof d.q3 !== "number" ||
+                    typeof d.max !== "number" || !isFinite(d.min) || !isFinite(d.q1) ||
+                    !isFinite(d.median) || !isFinite(d.q3) || !isFinite(d.max)) continue
             if (d.min < min) min = d.min
             if (d.max > max) max = d.max
             // Check outliers 检查异常点
             var outliers = d.outliers || []
             for (var j = 0; j < outliers.length; j++) {
+                if (typeof outliers[j] !== "number" || !isFinite(outliers[j])) continue
                 if (outliers[j] < min) min = outliers[j]
                 if (outliers[j] > max) max = outliers[j]
             }
         }
+        if (!isFinite(min) || !isFinite(max)) return { min: 0, max: 1 }
         var padding = (max - min) * 0.1 || 1
         return { min: min - padding, max: max + padding }
     }
@@ -66,6 +72,13 @@ Item {
     function getBoxColor(index) {
         if (boxplotData[index] && boxplotData[index].color) return boxplotData[index].color
         return Enums.chartColors.extendedPalette[index % Enums.chartColors.extendedPalette.length]
+    }
+
+    function _isValidBoxplot(item) {
+        return item && typeof item.min === "number" && typeof item.q1 === "number" &&
+               typeof item.median === "number" && typeof item.q3 === "number" &&
+               typeof item.max === "number" && isFinite(item.min) && isFinite(item.q1) &&
+               isFinite(item.median) && isFinite(item.q3) && isFinite(item.max)
     }
 
     onHoveredIndexChanged: canvas.requestPaint()
@@ -96,6 +109,7 @@ Item {
             
             for (var i = 0; i < dataLen; i++) {
                 var d = root.boxplotData[i]
+                if (!root._isValidBoxplot(d)) continue
                 var centerX = (i + 0.5) * groupWidth
                 var hovered = (i === root.hoveredIndex)
                 var color = root.getBoxColor(i)
@@ -210,6 +224,7 @@ Item {
             
             for (var i = 0; i < dataLen; i++) {
                 var d = root.boxplotData[i]
+                if (!root._isValidBoxplot(d)) continue
                 var centerY = (i + 0.5) * groupHeight
                 var hovered = (i === root.hoveredIndex)
                 var color = root.getBoxColor(i)

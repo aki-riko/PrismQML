@@ -59,9 +59,11 @@ Item {
         }
         // 2) series 多 series 模式: 每 series {name, values[], color}
         for (var s = 0; s < series.length; s++) {
-            var vals = series[s] && series[s].values ? series[s].values : []
+            var vals = series[s] && series[s].values && typeof series[s].values.length === "number"
+                       ? series[s].values : []
             for (var k = 0; k < vals.length; k++) {
                 var v = vals[k] !== undefined ? vals[k] : 0
+                if (typeof v !== "number" || !isFinite(v)) continue
                 if (v < min) min = v
                 if (v > max) max = v
             }
@@ -93,14 +95,21 @@ Item {
         var minY = Infinity, maxY = -Infinity
         
         for (var s = 0; s < series.length; s++) {
-            var data = series[s].data || []
+            var data = series[s] && series[s].data && typeof series[s].data.length === "number"
+                       ? series[s].data : []
             for (var i = 0; i < data.length; i++) {
+                if (!data[i] || typeof data[i].length !== "number") continue
                 var x = data[i][0], y = data[i][1]
+                if (typeof x !== "number" || typeof y !== "number" || !isFinite(x) || !isFinite(y)) continue
                 if (x < minX) minX = x
                 if (x > maxX) maxX = x
                 if (y < minY) minY = y
                 if (y > maxY) maxY = y
             }
+        }
+
+        if (!isFinite(minX) || !isFinite(maxX) || !isFinite(minY) || !isFinite(maxY)) {
+            return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 }
         }
         
         var xPadding = (maxX - minX) * 0.1 || 1

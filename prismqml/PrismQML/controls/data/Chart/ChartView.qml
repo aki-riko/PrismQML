@@ -68,19 +68,30 @@ ShadowedRectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property real maxValue: {
         var max = 0
-        for (var i = 0; i < chartData.length; i++) {
-            if (chartData[i] && chartData[i].value > max) max = chartData[i].value
+        for (var i = 0; i < _chartData.length; i++) {
+            if (_chartData[i] && _chartData[i].value > max) max = _chartData[i].value
         }
         return max || 1
     }
     readonly property real totalValue: {
         var sum = 0
-        for (var i = 0; i < chartData.length; i++) {
-            if (chartData[i]) sum += chartData[i].value || 0
+        for (var i = 0; i < _chartData.length; i++) {
+            if (_chartData[i]) sum += _chartData[i].value || 0
         }
         return sum || 1
     }
     readonly property var defaultColors: Enums.chartColors.palette
+    // Normalize nullable Python/QML list properties before renderer access 归一化可空的 Python/QML 列表，避免渲染器直接读取 null.length
+    readonly property var _chartData: _listOrEmpty(chartData)
+    readonly property var _indicators: _listOrEmpty(indicators)
+    readonly property var _series: _listOrEmpty(series)
+    readonly property var _boxplotData: _validBoxplotData(boxplotData)
+    readonly property bool _hasChartData: _chartData.length > 0
+    readonly property bool _hasSeriesValues: _hasRenderableSeries(_series, "values")
+    readonly property bool _hasScatterData: _hasRenderableSeries(_series, "data")
+    readonly property bool _hasSeriesData: _hasSeriesValues || _hasScatterData
+    readonly property bool _hasRadarData: _indicators.length > 2 && _hasSeriesValues
+    readonly property bool _hasBoxplotData: _boxplotData.length > 0
 
     // Size and style 尺寸与样式
     // Size priority (manual, ShadowedRectangle can't extend Widget) 尺寸优先级（手动实现，ShadowedRectangle 无法继承 Widget）
@@ -130,10 +141,10 @@ ShadowedRectangle {
 
     // Slice the viewport before LTTB sampling to preserve trends and extrema 先按视窗切片，再用 LTTB 保留趋势与峰谷
     readonly property var _viewChartData: ChartViewport.viewChartData(
-        chartData, _renderViewport.start, _renderViewport.end, lttbThreshold
+        _chartData, _renderViewport.start, _renderViewport.end, lttbThreshold
     )
     readonly property var _viewSeries: ChartViewport.viewSeries(
-        series, _renderViewport.start, _renderViewport.end, lttbThreshold
+        _series, _renderViewport.start, _renderViewport.end, lttbThreshold
     )
 
     // ==================== Signals 信号 ====================
@@ -147,8 +158,41 @@ ShadowedRectangle {
     // Emitted by wheel, panning, or slider changes 由滚轮、平移或滑块变化触发
     signal viewportChanged(real start, real end)
 
+    // Return a length-bearing list for QVariantList and JavaScript arrays 返回带 length 的列表，兼容 QVariantList 与 JavaScript 数组
+    function _listOrEmpty(value) {
+        return value && typeof value.length === "number" ? value : []
+    }
+
+    function _hasRenderableSeries(items, field) {
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i]
+            if (!item) continue
+            if (_listOrEmpty(item[field]).length > 0) return true
+        }
+        return false
+    }
+
+    function _validBoxplotData(items) {
+        items = _listOrEmpty(items)
+        var valid = []
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i]
+            if (!item) continue
+            var fields = [item.min, item.q1, item.median, item.q3, item.max]
+            var complete = true
+            for (var j = 0; j < fields.length; j++) {
+                if (typeof fields[j] !== "number" || !isFinite(fields[j])) {
+                    complete = false
+                    break
+                }
+            }
+            if (complete) valid.push(item)
+        }
+        return valid
+    }
+
     function getColor(index) {
-        if (chartData[index] && chartData[index].color) return chartData[index].color
+        if (_chartData[index] && _chartData[index].color) return _chartData[index].color
         return defaultColors[index % defaultColors.length]
     }
     function formatValue(value) {
@@ -290,7 +334,7 @@ ShadowedRectangle {
                     objectName: "barContentLoader"
                     anchors.fill: parent
                     active: control.chartType === Enums.chart.type_bar &&
-                            (control.chartData.length > 0 || control.series.length > 0)
+                            (control._hasChartData || control._hasSeriesValues)
                     sourceComponent: Component {
                         BarChartContent {
                             chartData: control._viewChartData
@@ -319,7 +363,7 @@ ShadowedRectangle {
                     objectName: "lineContentLoader"
                     anchors.fill: parent
                     active: control.chartType === Enums.chart.type_line &&
-                            (control.chartData.length > 0 || control.series.length > 0)
+                            (control._hasChartData || control._hasSeriesValues)
                     sourceComponent: Component {
                         LineChartContent {
                             chartData: control._viewChartData
@@ -349,7 +393,7 @@ ShadowedRectangle {
                     id: scatterContentLoader
                     objectName: "scatterContentLoader"
                     anchors.fill: parent
-                    active: control._isScatter && control.series.length > 0
+                    active: control._isScatter && control._hasScatterData
                     sourceComponent: Component {
                         ScatterChartContent {
                             series: control._viewSeries
@@ -488,8 +532,8 @@ ShadowedRectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Enums.spacing.m
-        visible: control.chartType === Enums.chart.type_line && control.showLegend && control.series.length > 0
-        legendData: control.series
+        visible: control.chartType === Enums.chart.type_line && control.showLegend && control._hasSeriesValues
+        legendData: control._series
         legendStyle: "line"
         hoveredIndex: control._hoveredLineSeriesIndex
         hiddenIndices: control._hiddenSeriesIndices
@@ -501,8 +545,8 @@ ShadowedRectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Enums.spacing.m
-        visible: control.chartType === Enums.chart.type_bar && control.showLegend && control.series.length > 0
-        legendData: control.series
+        visible: control.chartType === Enums.chart.type_bar && control.showLegend && control._hasSeriesValues
+        legendData: control._series
         legendStyle: "bar"
         hoveredIndex: control._hoveredBarSeriesIndex
         hiddenIndices: control._hiddenSeriesIndices
@@ -514,8 +558,8 @@ ShadowedRectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Enums.spacing.m
-        visible: control._isScatter && control.showLegend && control.series.length > 0
-        legendData: control.series
+        visible: control._isScatter && control.showLegend && control._hasScatterData
+        legendData: control._series
         legendStyle: "dot"
         hoveredIndex: control._hoveredScatterSeriesIndex
         clickable: false
@@ -527,10 +571,10 @@ ShadowedRectangle {
         id: pieAreaLoader
         objectName: "pieAreaLoader"
         anchors.fill: parent
-        active: control._isPie && control.chartData.length > 0
+        active: control._isPie && control._hasChartData
         sourceComponent: Component {
             PieChartArea {
-                chartData: control.chartData
+                chartData: control._chartData
                 totalValue: control.totalValue
                 animated: control.animated
                 showValues: control.showValues
@@ -556,11 +600,11 @@ ShadowedRectangle {
         id: radarAreaLoader
         objectName: "radarAreaLoader"
         anchors.fill: parent
-        active: control._isRadar && control.indicators.length > 2
+        active: control._isRadar && control._hasRadarData
         sourceComponent: Component {
             RadarChartArea {
-                indicators: control.indicators
-                series: control.series
+                indicators: control._indicators
+                series: control._series
                 animated: control.animated
                 showLabels: control.showLabels
                 showLegend: control.showLegend
@@ -582,10 +626,10 @@ ShadowedRectangle {
         id: boxplotAreaLoader
         objectName: "boxplotAreaLoader"
         anchors.fill: parent
-        active: control._isBoxplot && control.boxplotData.length > 0
+        active: control._isBoxplot && control._hasBoxplotData
         sourceComponent: Component {
             BoxplotChartArea {
-                boxplotData: control.boxplotData
+                boxplotData: control._boxplotData
                 animated: control.animated
                 showValues: control.showValues
                 showGrid: control.showGrid
@@ -610,8 +654,8 @@ ShadowedRectangle {
         anchors.bottomMargin: Enums.spacing.s
         height: Enums.controlSize.chartDataZoomBarHeight
         visible: control.dataZoomEnabled && control._isXYChart
-        chartData: control.chartData
-        series: control.series
+        chartData: control._chartData
+        series: control._series
         primaryColor: control.primaryColor
         viewportStart: control._visualStart
         viewportEnd: control._visualEnd
@@ -667,11 +711,12 @@ ShadowedRectangle {
         id: emptyState
         anchors.centerIn: parent
         spacing: Enums.spacing.m
-        visible: ((control._isXYChart && !control._isScatter && control.chartData.length === 0) ||
-                 (control._isScatter && control.series.length === 0) ||
-                 (control._isPie && control.chartData.length === 0) ||
-                 (control._isRadar && control.indicators.length <= 2) ||
-                 (control._isBoxplot && control.boxplotData.length === 0))
+        visible: ((control._isXYChart && !control._isScatter &&
+                   !control._hasChartData && !control._hasSeriesValues) ||
+                 (control._isScatter && !control._hasScatterData) ||
+                 (control._isPie && !control._hasChartData) ||
+                 (control._isRadar && !control._hasRadarData) ||
+                 (control._isBoxplot && !control._hasBoxplotData))
         opacity: visible ? 1.0 : 0.0
         Behavior on opacity { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
 

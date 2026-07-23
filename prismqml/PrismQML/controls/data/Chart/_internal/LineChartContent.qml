@@ -62,22 +62,27 @@ Item {
             if (stacked) {
                 var maxLen = 0
                 for (var s = 0; s < series.length; s++) {
-                    var vals = series[s].values || []
+                    var vals = series[s] && series[s].values && typeof series[s].values.length === "number"
+                               ? series[s].values : []
                     if (vals.length > maxLen) maxLen = vals.length
                 }
                 for (var i = 0; i < maxLen; i++) {
                     var sum = 0
                     for (var ss = 0; ss < series.length; ss++) {
-                        var v = (series[ss].values || [])[i] || 0
-                        sum += v
+                        var stackedValues = series[ss] && series[ss].values && typeof series[ss].values.length === "number"
+                                            ? series[ss].values : []
+                        var v = stackedValues[i]
+                        if (typeof v === "number" && isFinite(v)) sum += v
                     }
                     if (sum > max) max = sum
                 }
                 min = 0
             } else {
                 for (var s2 = 0; s2 < series.length; s2++) {
-                    var vals2 = series[s2].values || []
+                    var vals2 = series[s2] && series[s2].values && typeof series[s2].values.length === "number"
+                                 ? series[s2].values : []
                     for (var j = 0; j < vals2.length; j++) {
+                        if (typeof vals2[j] !== "number" || !isFinite(vals2[j])) continue
                         if (vals2[j] < min) min = vals2[j]
                         if (vals2[j] > max) max = vals2[j]
                     }
@@ -85,11 +90,14 @@ Item {
             }
         } else {
             for (var k = 0; k < chartData.length; k++) {
+                if (!chartData[k]) continue
                 var v2 = chartData[k].value
+                if (typeof v2 !== "number" || !isFinite(v2)) continue
                 if (v2 < min) min = v2
                 if (v2 > max) max = v2
             }
         }
+        if (!isFinite(min) || !isFinite(max)) return { min: 0, max: 1 }
         var padding = (max - min) * 0.15 || 1
         return { min: stacked ? 0 : min - padding, max: max + padding }
     }
@@ -167,7 +175,8 @@ Item {
             
             var maxLen = 0
             for (var s = 0; s < seriesData.length; s++) {
-                var vals = seriesData[s].values || []
+                var vals = seriesData[s] && seriesData[s].values && typeof seriesData[s].values.length === "number"
+                           ? seriesData[s].values : []
                 if (vals.length > maxLen) maxLen = vals.length
             }
             if (maxLen < 2) return
@@ -188,7 +197,8 @@ Item {
             
             for (var si = 0; si < seriesData.length; si++) {
                 var seriesItem = seriesData[si]
-                var values = seriesItem.values || []
+                var values = seriesItem && seriesItem.values && typeof seriesItem.values.length === "number"
+                             ? seriesItem.values : []
                 var points = []
                 
                 for (var i = 0; i < values.length; i++) {
@@ -228,7 +238,8 @@ Item {
             var allSeriesPoints = []
             for (var li = 0; li < seriesData.length; li++) {
                 var lineSeriesItem = seriesData[li]
-                var lineValues = lineSeriesItem.values || []
+                var lineValues = lineSeriesItem && lineSeriesItem.values && typeof lineSeriesItem.values.length === "number"
+                                 ? lineSeriesItem.values : []
                 var lineColor = root.getSeriesColor(li)
                 var linePoints = allPoints[li]
                 var isLineSeriesHovered = (li === root.hoveredSeriesIndex)

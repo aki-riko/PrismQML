@@ -134,6 +134,8 @@ Item {
             
             for (var s = 0; s < root.series.length; s++) {
                 var seriesData = root.series[s]
+                var seriesValues = seriesData && seriesData.values && typeof seriesData.values.length === "number"
+                                   ? seriesData.values : []
                 var seriesColor = root.getSeriesColor(s)
                 var isSeriesHovered = (s === root.hoveredSeriesIndex)
                 
@@ -141,9 +143,11 @@ Item {
                 ctx.beginPath()
                 var seriesPoints = []
                 for (var p = 0; p < root.indicators.length; p++) {
-                    var indicator = root.indicators[p]
-                    var value = seriesData.values[p] || 0
-                    var normalizedValue = (value / (indicator.max || 100)) * progress
+                    var indicator = root.indicators[p] || {}
+                    var value = typeof seriesValues[p] === "number" && isFinite(seriesValues[p]) ? seriesValues[p] : 0
+                    var indicatorMax = typeof indicator.max === "number" && isFinite(indicator.max) && indicator.max > 0
+                                      ? indicator.max : 100
+                    var normalizedValue = (value / indicatorMax) * progress
                     var pointRadius = radius * normalizedValue
                     var pointAngle = startAngle + p * angleStep
                     var px = centerX + Math.cos(pointAngle) * pointRadius
@@ -170,9 +174,10 @@ Item {
                 
                 // Fluent Design: simple data points 简洁数据点
                 for (var q = 0; q < root.indicators.length; q++) {
-                    var ind = root.indicators[q]
-                    var val = seriesData.values[q] || 0
-                    var normVal = (val / (ind.max || 100)) * progress
+                    var ind = root.indicators[q] || {}
+                    var val = typeof seriesValues[q] === "number" && isFinite(seriesValues[q]) ? seriesValues[q] : 0
+                    var indMax = typeof ind.max === "number" && isFinite(ind.max) && ind.max > 0 ? ind.max : 100
+                    var normVal = (val / indMax) * progress
                     var dotRadius = radius * normVal
                     var dotAngle = startAngle + q * angleStep
                     var dx = centerX + Math.cos(dotAngle) * dotRadius
@@ -260,11 +265,15 @@ Item {
         
         onClicked: {
             if (root.hoveredSeriesIndex >= 0 && root.hoveredPointIndex >= 0) {
+                var clickedSeries = root.series[root.hoveredSeriesIndex] || {}
+                var clickedIndicator = root.indicators[root.hoveredPointIndex] || {}
+                var clickedValues = clickedSeries.values && typeof clickedSeries.values.length === "number"
+                                    ? clickedSeries.values : []
                 root.pointClicked(root.hoveredPointIndex, {
                     seriesIndex: root.hoveredSeriesIndex,
-                    seriesName: root.series[root.hoveredSeriesIndex].name,
-                    indicatorName: root.indicators[root.hoveredPointIndex].name,
-                    value: root.series[root.hoveredSeriesIndex].values[root.hoveredPointIndex]
+                    seriesName: clickedSeries.name || "",
+                    indicatorName: clickedIndicator.name || "",
+                    value: clickedValues[root.hoveredPointIndex] || 0
                 })
             }
         }

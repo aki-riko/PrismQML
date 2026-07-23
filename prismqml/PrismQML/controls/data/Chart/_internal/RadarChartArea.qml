@@ -89,8 +89,11 @@ Item {
         label: root.hoveredSeriesIndex >= 0 ? (root.series[root.hoveredSeriesIndex].name || "") : ""
         value: {
             if (root.hoveredSeriesIndex < 0 || root.hoveredPointIndex < 0) return ""
-            var indicator = root.indicators[root.hoveredPointIndex]
-            var val = root.series[root.hoveredSeriesIndex].values[root.hoveredPointIndex]
+            var indicator = root.indicators[root.hoveredPointIndex] || {}
+            var hoveredSeries = root.series[root.hoveredSeriesIndex] || {}
+            var values = hoveredSeries.values && typeof hoveredSeries.values.length === "number"
+                         ? hoveredSeries.values : []
+            var val = values[root.hoveredPointIndex]
             return (indicator.name || "") + ": " + (val || 0)
         }
         isValueString: true

@@ -43,12 +43,18 @@ function viewSeries(series, renderStart, renderEnd, threshold) {
 
     var maxLen = 0
     for (var s = 0; s < series.length; s++) {
-        var values = series[s].values || series[s].data || []
+        var source = series[s] || {}
+        var values = source.values && typeof source.values.length === "number"
+                     ? source.values
+                     : (source.data && typeof source.data.length === "number" ? source.data : [])
         var valueRange = bounds(values.length, renderStart, renderEnd)
         if (valueRange.length > maxLen) maxLen = valueRange.length
     }
 
-    var primary = series[0].values || series[0].data || []
+    var primarySource = series[0] || {}
+    var primary = primarySource.values && typeof primarySource.values.length === "number"
+                  ? primarySource.values
+                  : (primarySource.data && typeof primarySource.data.length === "number" ? primarySource.data : [])
     var primaryRange = bounds(primary.length, renderStart, renderEnd)
     var indices = null
     if (maxLen > threshold && primaryRange.length > threshold) {
@@ -62,17 +68,17 @@ function viewSeries(series, renderStart, renderEnd, threshold) {
         var c = {}
         var source = series[s2] || {}
         for (var key in source) c[key] = source[key]
-        if (Array.isArray(source.values)) {
+        if (source.values && typeof source.values.length === "number") {
             var valueBounds = bounds(source.values.length, renderStart, renderEnd)
             c.values = indices
                 ? indices.map(function(i) { return source.values[valueBounds.lo + i] })
-                : source.values.slice(valueBounds.lo, valueBounds.hi)
+                : Array.prototype.slice.call(source.values, valueBounds.lo, valueBounds.hi)
         }
-        if (Array.isArray(source.data)) {
+        if (source.data && typeof source.data.length === "number") {
             var dataBounds = bounds(source.data.length, renderStart, renderEnd)
             c.data = indices
                 ? indices.map(function(i) { return source.data[dataBounds.lo + i] })
-                : source.data.slice(dataBounds.lo, dataBounds.hi)
+                : Array.prototype.slice.call(source.data, dataBounds.lo, dataBounds.hi)
         }
         out.push(c)
     }

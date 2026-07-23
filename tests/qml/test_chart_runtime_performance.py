@@ -213,3 +213,56 @@ def test_empty_state_animation_runs_only_while_visible(chart_scene):
     assert _loaders(chart)["lineContentLoader"].property("item") is None
     assert empty_animation.property("running")
     assert warnings == []
+
+
+def test_chart_null_and_empty_inputs_stay_finite_and_select_empty_state(chart_scene):
+    chart, warnings = chart_scene
+    loaders = _loaders(chart)
+
+    chart.setProperty("chartData", None)
+    chart.setProperty("series", None)
+    chart.setProperty("indicators", None)
+    chart.setProperty("boxplotData", None)
+    _pump(20)
+
+    assert not chart.property("_hasChartData")
+    assert not chart.property("_hasSeriesData")
+    assert not chart.property("_hasRadarData")
+    assert not chart.property("_hasBoxplotData")
+    assert chart.property("maxValue") == 1
+    assert loaders["lineContentLoader"].property("item") is None
+
+    chart.setProperty("chartType", chart.property("lineType"))
+    chart.setProperty("chartData", [])
+    chart.setProperty("series", [{"name": "empty", "values": []}])
+    _pump(20)
+    assert loaders["lineContentLoader"].property("item") is None
+
+    chart.setProperty("series", [{"name": "nonempty", "values": [1, 2]}])
+    _pump(20)
+    assert loaders["lineContentLoader"].property("item") is not None
+    assert not chart.findChild(QObject, "emptyStateAnimation").property("running")
+    line_content = loaders["lineContentLoader"].property("item")
+    value_range = line_content.property("valueRange").toVariant()
+    assert value_range["min"] != float("inf")
+    assert value_range["max"] != float("inf")
+
+    chart.setProperty("chartType", chart.property("scatterType"))
+    chart.setProperty("series", [{"name": "empty", "data": []}])
+    _pump(20)
+    assert loaders["scatterContentLoader"].property("item") is None
+
+    chart.setProperty("chartType", chart.property("radarType"))
+    chart.setProperty(
+        "indicators",
+        [{"name": "A", "max": 5}, {"name": "B", "max": 5}, {"name": "C", "max": 5}],
+    )
+    chart.setProperty("series", [])
+    _pump(20)
+    assert loaders["radarAreaLoader"].property("item") is None
+
+    chart.setProperty("chartType", chart.property("boxplotType"))
+    chart.setProperty("boxplotData", [{"label": "bad"}])
+    _pump(20)
+    assert loaders["boxplotAreaLoader"].property("item") is None
+    assert warnings == []
