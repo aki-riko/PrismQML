@@ -100,6 +100,22 @@ def test_repeated_no_payload_disconnects_release_server_connections(qapp):
             _cleanup(instance, client)
 
 
+def test_activate_payload_is_consumed_before_immediate_eof(qapp):
+    instance = _new_instance()
+    client = _connect(instance)
+    activations = []
+    instance.activateRequested.connect(lambda: activations.append(True))
+    try:
+        client.write(b"activate")
+        client.flush()
+        client.disconnectFromServer()
+        _pump(50)
+        assert activations == [True]
+        assert getattr(instance, "_conns", []) == []
+    finally:
+        _cleanup(instance, client)
+
+
 def test_unlock_aborts_and_releases_active_connections(qapp):
     instance = _new_instance()
     client = _connect(instance)

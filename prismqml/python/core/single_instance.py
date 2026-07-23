@@ -246,7 +246,7 @@ class SingleInstance(QObject):
             lambda current=connection: self._release_connection(current)
         )
         connection.readChannelFinished.connect(
-            lambda current=connection: self._release_connection(current)
+            lambda current=connection: self._handle_channel_finished(current)
         )
         connection.errorOccurred.connect(
             lambda _error, current=connection: self._release_connection(current)
@@ -273,6 +273,15 @@ class SingleInstance(QObject):
         except (OSError, RuntimeError):
             closed = True
         if closed:
+            self._release_connection(connection)
+
+    def _handle_channel_finished(self, connection):
+        """Consume buffered data before releasing an EOF socket. EOF 前先消费已缓冲数据再释放连接。"""
+        if connection not in getattr(self, "_conns", []):
+            return
+        if connection.bytesAvailable() > 0:
+            self._consume_connection(connection)
+        else:
             self._release_connection(connection)
 
     def _release_connection(self, connection):
