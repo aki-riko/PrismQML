@@ -70,13 +70,15 @@ Item {
     onViewportStartChanged: {
         if (!rangeSlider) return
         _suppressSliderUpdate = true
-        rangeSlider.firstValue = Math.round(_safeViewportStart * Enums.chart.viewport_slider_steps)
+        rangeSlider.firstValue = Math.round(_normalizeViewport(viewportStart, 0)
+                                            * Enums.chart.viewport_slider_steps)
         _suppressSliderUpdate = false
     }
     onViewportEndChanged: {
         if (!rangeSlider) return
         _suppressSliderUpdate = true
-        rangeSlider.secondValue = Math.round(_safeViewportEnd * Enums.chart.viewport_slider_steps)
+        rangeSlider.secondValue = Math.round(_normalizeViewport(viewportEnd, 1)
+                                             * Enums.chart.viewport_slider_steps)
         _suppressSliderUpdate = false
     }
 
