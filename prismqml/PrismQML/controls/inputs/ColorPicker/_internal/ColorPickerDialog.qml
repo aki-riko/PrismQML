@@ -148,6 +148,7 @@ MessageBox {
                         id: brightnessArea
 
                         function updateBrightness(mouse) {
+                            if (!(width > 0)) return
                             control._brightness = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, mouse.x / width))
                             control.updateColor()
                         }

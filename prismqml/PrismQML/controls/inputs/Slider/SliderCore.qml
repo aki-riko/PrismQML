@@ -183,7 +183,10 @@ Item {
                     hoverEnabled: true
                     onClicked: (mouse) => {
                         var trackPoint = trackArea.mapToItem(track, mouse.x, mouse.y)
-                        var pos = isHorizontal ? trackPoint.x / track.width : 1 - trackPoint.y / track.height
+                        var span = isHorizontal ? track.width : track.height
+                        var pos = span > 0
+                                ? (isHorizontal ? trackPoint.x / span : 1 - trackPoint.y / span)
+                                : 0
                         pos = Math.max(0, Math.min(1, pos))
                         var newValue = control.from + pos * (control.to - control.from)
                         if (control.stepSize > 0 && isFinite(control.stepSize)) {
@@ -237,9 +240,10 @@ Item {
 
                     function _applyFromGlobal(gx, gy) {
                         var p = track.mapFromGlobal(gx, gy)
-                        var pos = isHorizontal
-                            ? p.x / track.width
-                            : 1 - p.y / track.height
+                        var span = isHorizontal ? track.width : track.height
+                        var pos = span > 0
+                                ? (isHorizontal ? p.x / span : 1 - p.y / span)
+                                : 0
                         pos = Math.max(0, Math.min(1, pos))
                         var newValue = control.from + pos * (control.to - control.from)
                         newValue = control._maybeSnap(newValue, true)
@@ -349,8 +353,8 @@ Item {
                     hoverEnabled: true
                     drag.target: parent
                     drag.axis: isHorizontal ? Drag.XAxis : Drag.YAxis
-                    drag.minimumX: 0; drag.maximumX: parent.parent.width - parent.width
-                    drag.minimumY: 0; drag.maximumY: parent.parent.height - parent.height
+                    drag.minimumX: 0; drag.maximumX: Math.max(0, parent.parent.width - parent.width)
+                    drag.minimumY: 0; drag.maximumY: Math.max(0, parent.parent.height - parent.height)
                     enabled: control.enabled
                     preventStealing: true
                     

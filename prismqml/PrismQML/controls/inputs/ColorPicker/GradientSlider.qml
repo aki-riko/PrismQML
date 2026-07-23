@@ -16,6 +16,10 @@ Item {
     property int mode: Enums.gradientSlider.mode_hue
     property real value: 0  // 0-1
     property color baseColor: Enums.colorPickerDefaults.baseRed
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _safeValue: isFinite(value) ? Math.max(0, Math.min(1, value)) : 0
+    readonly property real _handleTravel: Math.max(0, track.width - handle.width)
     
     signal valueModified(real newValue)
     
@@ -96,7 +100,7 @@ Item {
         width: Enums.spacing.xxl
         height: Enums.spacing.xxl
         radius: width / 2
-        x: control.value * (track.width - width)
+        x: control._safeValue * control._handleTravel
         anchors.verticalCenter: parent.verticalCenter
         
         border.width: Enums.border.normal
@@ -109,7 +113,7 @@ Item {
             radius: width / 2
             color: {
                 switch (control.mode) {
-                    case Enums.gradientSlider.mode_hue: return Qt.hsla(control.value, 1, 0.5, 1)
+                    case Enums.gradientSlider.mode_hue: return Qt.hsla(control._safeValue, 1, 0.5, 1)
                     default: return control.baseColor
                 }
             }
@@ -122,11 +126,12 @@ Item {
             drag.target: parent
             drag.axis: Drag.XAxis
             drag.minimumX: 0
-            drag.maximumX: track.width - handle.width
+            drag.maximumX: control._handleTravel
             
             onPositionChanged: {
                 if (pressed) {
-                    control.value = handle.x / (track.width - handle.width)
+                    var newValue = control._handleTravel > 0 ? handle.x / control._handleTravel : 0
+                    control.value = Math.max(0, Math.min(1, newValue))
                     control.valueModified(control.value)
                 }
             }

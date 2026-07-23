@@ -148,11 +148,12 @@ Item {
             var dataCount = root.chartData.length
             var stepX = root.boundaryGap ? chartWidth / dataCount : chartWidth / (dataCount - 1)
             var startX = root.boundaryGap ? padding + stepX / 2 : padding
+            var yScale = height > 0 ? chartHeight / height : 0
             var points = []
             
             for (var i = 0; i < root.chartData.length; i++) {
                 var x = startX + i * stepX
-                var y = padding + root.valueToY(root.chartData[i].value) * (chartHeight / height)
+                var y = padding + root.valueToY(root.chartData[i].value) * yScale
                 points.push({x: x, y: y})
             }
             root.pointPositions = points

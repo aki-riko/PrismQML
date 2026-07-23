@@ -30,22 +30,29 @@ Item {
     readonly property color _stepActiveContentColor: Enums.accentForeground
     readonly property color _stepInactiveContentColor: Enums.textColor.secondary
     readonly property color _stepActiveLabelColor: Enums.textColor.primary
+    readonly property var _safeSteps: _listOrEmpty(steps)
+    readonly property int _safeCurrentStep: _safeSteps.length > 0
+        ? Math.max(0, Math.min(currentStep, _safeSteps.length - 1)) : 0
 
     // ==================== Signals 信号 ====================
     signal stepChanged(int step)
     signal stepClicked(int index)
     
     // ==================== Public Methods 公开方法 ====================
-    function stepNext() { if (currentStep < steps.length - 1) currentStep++ }
-    function stepBack() { if (currentStep > 0) currentStep-- }
+    function stepNext() { if (_safeCurrentStep < _safeSteps.length - 1) currentStep = _safeCurrentStep + 1 }
+    function stepBack() { if (_safeCurrentStep > 0) currentStep = _safeCurrentStep - 1 }
 
     // ==================== Internal Methods 内部方法 ====================
-    function _getStepText(step) { return typeof step === "string" ? step : (step.text || "") }
-    function _getStepIcon(step) { return typeof step === "string" ? "" : (step.icon || "") }
+    function _listOrEmpty(value) {
+        return value && typeof value.length === "number" ? value : []
+    }
+
+    function _getStepText(step) { return typeof step === "string" ? step : (step && step.text || "") }
+    function _getStepIcon(step) { return typeof step === "string" ? "" : (step && step.icon || "") }
     
     // ==================== Size 尺寸 ====================
     onCurrentStepChanged: stepChanged(currentStep)
-    implicitWidth: Math.max(400, steps.length * 100)
+    implicitWidth: Math.max(400, _safeSteps.length * 100)
     implicitHeight: indicatorSize + Enums.spacing.m + Enums.typography.caption + Enums.spacing.s
 
     // ==================== Content 内容 ====================
@@ -56,17 +63,18 @@ Item {
         width: _lineWidth
         height: Enums.border.normal
         color: control._stepLineColor
-        visible: steps.length > 1
+        visible: control._safeSteps.length > 1
     }
     
     // Progress line 进度连接线
     Rectangle {
         x: _lineStartX
         y: indicatorSize / 2 - Enums.border.normal / 2
-        width: steps.length > 1 ? _lineWidth * currentStep / (steps.length - 1) : 0
+        width: control._safeSteps.length > 1
+               ? _lineWidth * control._safeCurrentStep / (control._safeSteps.length - 1) : 0
         height: Enums.border.normal
         color: control._stepActiveColor
-        visible: steps.length > 1
+        visible: control._safeSteps.length > 1
         
         Behavior on width { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
     }
@@ -76,15 +84,15 @@ Item {
         anchors.fill: parent
         
         Repeater {
-            model: steps
+            model: control._safeSteps
             
             Item {
-                readonly property bool isCompleted: index < currentStep
-                readonly property bool isCurrent: index === currentStep
-                readonly property bool isActive: index <= currentStep
+                readonly property bool isCompleted: index < control._safeCurrentStep
+                readonly property bool isCurrent: index === control._safeCurrentStep
+                readonly property bool isActive: index <= control._safeCurrentStep
                 readonly property string stepIcon: control._getStepIcon(modelData)
 
-                width: parent.width / steps.length
+                width: parent.width / Math.max(1, control._safeSteps.length)
                 height: parent.height
                 
                 Column {

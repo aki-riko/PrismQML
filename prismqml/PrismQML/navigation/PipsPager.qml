@@ -27,6 +27,10 @@ Item {
     readonly property int _pipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     readonly property color _pipActiveColor: control.accentColor
     readonly property color _pipInactiveColor: Enums.stateColor.pipNormal
+    readonly property int _safePageCount: Math.max(0, pageCount)
+    readonly property int _safeVisiblePipCount: Math.max(1, visiblePipCount)
+    readonly property int _safeCurrentIndex: _safePageCount > 0
+        ? Math.max(0, Math.min(currentIndex, _safePageCount - 1)) : 0
 
     // ==================== Signals 信号 ====================
     signal pageClicked(int index)
@@ -46,7 +50,7 @@ Item {
         height: Enums.iconSize.xl
         radius: control._navButtonRadius
         color: prevArea.containsMouse ? control._navButtonHoverColor : control._navButtonIdleColor
-        visible: control.currentIndex > 0
+        visible: control._safeCurrentIndex > 0
         
         Icon {
             anchors.centerIn: parent
@@ -60,8 +64,8 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             onClicked: {
-                if (control.currentIndex > 0) {
-                    control.currentIndex--
+                if (control._safeCurrentIndex > 0) {
+                    control.currentIndex = control._safeCurrentIndex - 1
                     control.pageClicked(control.currentIndex)
                 }
             }
@@ -76,13 +80,13 @@ Item {
         visible: control.isHorizontal
         
         Repeater {
-            model: Math.min(control.pageCount, control.visiblePipCount)
+            model: Math.min(control._safePageCount, control._safeVisiblePipCount)
             
             Rectangle {
-                width: index === control.currentIndex % control.visiblePipCount ? 16 : 8
+                width: index === control._safeCurrentIndex % control._safeVisiblePipCount ? 16 : 8
                 height: 8
                 radius: control._pipRadius
-                color: index === control.currentIndex % control.visiblePipCount 
+                color: index === control._safeCurrentIndex % control._safeVisiblePipCount
                     ? control._pipActiveColor
                     : control._pipInactiveColor
                 
@@ -107,13 +111,13 @@ Item {
         visible: !control.isHorizontal
         
         Repeater {
-            model: Math.min(control.pageCount, control.visiblePipCount)
+            model: Math.min(control._safePageCount, control._safeVisiblePipCount)
             
             Rectangle {
                 width: 8
-                height: index === control.currentIndex % control.visiblePipCount ? 16 : 8
+                height: index === control._safeCurrentIndex % control._safeVisiblePipCount ? 16 : 8
                 radius: control._pipRadius
-                color: index === control.currentIndex % control.visiblePipCount 
+                color: index === control._safeCurrentIndex % control._safeVisiblePipCount
                     ? control._pipActiveColor
                     : control._pipInactiveColor
                 
@@ -141,7 +145,7 @@ Item {
         height: Enums.iconSize.xl
         radius: control._navButtonRadius
         color: nextArea.containsMouse ? control._navButtonHoverColor : control._navButtonIdleColor
-        visible: control.currentIndex < control.pageCount - 1
+        visible: control._safeCurrentIndex < control._safePageCount - 1
         
         Icon {
             anchors.centerIn: parent
@@ -155,8 +159,8 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             onClicked: {
-                if (control.currentIndex < control.pageCount - 1) {
-                    control.currentIndex++
+                if (control._safeCurrentIndex < control._safePageCount - 1) {
+                    control.currentIndex = control._safeCurrentIndex + 1
                     control.pageClicked(control.currentIndex)
                 }
             }

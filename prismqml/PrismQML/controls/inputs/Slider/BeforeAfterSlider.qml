@@ -22,6 +22,7 @@ Item {
     readonly property color _dividerColor: Enums.isPrismDesign ? Enums.accentColor : Enums.themeColors.accentForeground
     readonly property color _handleColor: Enums.isPrismDesign ? Enums.cardColor : Enums.themeColors.accentForeground
     readonly property color _handleIconColor: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.gray.text
+    readonly property real _safePosition: isFinite(position) ? Math.max(0, Math.min(1, position)) : 0.5
     
     signal positionModified(real newPosition)
     
@@ -82,7 +83,7 @@ Item {
             var w = width
             var h = height
             var r = control.radius
-            var pos = control.position
+            var pos = control._safePosition
             
             // Draw rounded rect clip path 绘制圆角矩形裁剪路径
             ctx.beginPath()
@@ -149,7 +150,7 @@ Item {
     // Divider line 分割线
     Rectangle {
         id: dividerLine
-        x: parent.width * control.position - width / 2
+        x: parent.width * control._safePosition - width / 2
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: Enums.border.normal
@@ -173,7 +174,7 @@ Item {
     // Handle 手柄
     Rectangle {
         id: handle
-        x: parent.width * control.position - width / 2
+        x: parent.width * control._safePosition - width / 2
         anchors.verticalCenter: parent.verticalCenter
         width: Enums.spacing.xxl
         height: Enums.spacing.xxl
@@ -214,7 +215,8 @@ Item {
 
         function updatePosition(mx) {
             // Clamp position with handle margin 限制位置范围，预留手柄边距
-            var margin = handle.width / 2 / width  // Convert to 0-1 range 转换为0-1范围
+            if (!(width > 0)) return
+            var margin = Math.min(0.5, handle.width / 2 / width)  // Convert to 0-1 range 转换为0-1范围
             var newPos = Math.max(margin, Math.min(1 - margin, mx / width))
             control.position = newPos
             control.positionModified(newPos)

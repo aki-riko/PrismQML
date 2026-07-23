@@ -14,6 +14,10 @@ Item {
     property real hue: Enums.colorPickerMetrics.dialogHueDefault           // Current hue 当前色相
     property real saturation: Enums.colorPickerMetrics.dialogSaturationDefault    // Current saturation 当前饱和度
     property real value: Enums.colorPickerMetrics.brightnessValueDefault         // 0-1, brightness value 亮度值
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _safeValue: isFinite(value) ? Math.max(0, Math.min(1, value)) : 0
+    readonly property real _handleTravel: Math.max(0, track.width - handle.width)
     
     // ==================== Signals 信号 ====================
     signal valueModified(real newValue)
@@ -56,7 +60,7 @@ Item {
         width: Enums.colorPickerMetrics.brightnessHandleSize
         height: Enums.colorPickerMetrics.brightnessHandleSize
         radius: width / 2
-        x: control.value * (track.width - width)
+        x: control._safeValue * control._handleTravel
         anchors.verticalCenter: parent.verticalCenter
         
         color: Enums.textColor.primary
@@ -69,7 +73,7 @@ Item {
             width: parent.width - Enums.colorPickerMetrics.brightnessHandleInnerPadding
             height: parent.height - Enums.colorPickerMetrics.brightnessHandleInnerPadding
             radius: width / 2
-            color: Qt.hsva(control.hue, control.saturation, control.value, Enums.opacityLevel.visible)
+            color: Qt.hsva(control.hue, control.saturation, control._safeValue, Enums.opacityLevel.visible)
         }
         
         Behavior on x {
@@ -83,6 +87,7 @@ Item {
         id: pointerArea
 
         function updateValue(mouse) {
+            if (!(width > 0)) return
             var newValue = Math.max(0, Math.min(1, mouse.x / width))
             if (Math.abs(newValue - control.value) > Enums.colorPickerMetrics.brightnessUpdateEpsilon) {
                 control.value = newValue

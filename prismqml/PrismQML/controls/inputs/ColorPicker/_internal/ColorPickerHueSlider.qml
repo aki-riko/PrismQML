@@ -12,6 +12,10 @@ Item {
     
     // ==================== Public Props 公开属性 ====================
     property real value: Enums.colorPickerMetrics.hueValueDefault         // 0-1, maps to hue 0-360°
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _safeValue: isFinite(value) ? Math.max(0, Math.min(1, value)) : 0
+    readonly property real _handleTravel: Math.max(0, track.width - handle.width)
     
     // ==================== Signals 信号 ====================
     signal valueModified(real newValue)
@@ -51,7 +55,7 @@ Item {
         width: Enums.colorPickerMetrics.hueHandleSize
         height: Enums.colorPickerMetrics.hueHandleSize
         radius: width / 2
-        x: control.value * (track.width - width)
+        x: control._safeValue * control._handleTravel
         anchors.verticalCenter: parent.verticalCenter
         
         color: Enums.textColor.primary
@@ -64,7 +68,7 @@ Item {
             width: parent.width - Enums.colorPickerMetrics.hueHandleInnerPadding
             height: parent.height - Enums.colorPickerMetrics.hueHandleInnerPadding
             radius: width / 2
-            color: Qt.hsva(control.value, Enums.opacityLevel.visible, Enums.opacityLevel.visible, Enums.opacityLevel.visible)
+            color: Qt.hsva(control._safeValue, Enums.opacityLevel.visible, Enums.opacityLevel.visible, Enums.opacityLevel.visible)
         }
         
         Behavior on x {
@@ -78,6 +82,7 @@ Item {
         id: pointerArea
 
         function updateValue(mouse) {
+            if (!(width > 0)) return
             var newValue = Math.max(0, Math.min(1, mouse.x / width))
             if (Math.abs(newValue - control.value) > Enums.colorPickerMetrics.hueUpdateEpsilon) {
                 control.value = newValue

@@ -24,8 +24,10 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     // Internal: track if text needs scrolling 内部：跟踪文本是否需要滚动
     readonly property bool _needsScroll: forceScroll || marqueeText.implicitWidth > control.width
-    readonly property real _scrollDistance: marqueeText.implicitWidth + scrollGap
-    readonly property int _scrollDuration: Math.max(Enums.duration.fast, _scrollDistance * 1000 / speed)
+    readonly property int _safeSpeed: Math.max(1, speed)
+    readonly property int _safeScrollGap: Math.max(0, scrollGap)
+    readonly property real _scrollDistance: Math.max(0, marqueeText.implicitWidth + _safeScrollGap)
+    readonly property int _scrollDuration: Math.max(Enums.duration.fast, _scrollDistance * 1000 / _safeSpeed)
 
     // ==================== Public Methods 公开方法 ====================
     function getText() { return text }
@@ -102,7 +104,7 @@ Item {
         id: scrollAnim
         loops: Animation.Infinite
         
-        PauseAnimation { duration: control.pauseDuration }
+        PauseAnimation { duration: Math.max(0, control.pauseDuration) }
         
         NumberAnimation {
             target: marqueeContent

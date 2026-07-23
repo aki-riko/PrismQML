@@ -30,6 +30,10 @@ Item {
     readonly property int _waveformInnerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
     readonly property color _waveformBorderColor: control._hovered ? Enums.accentColor : Enums.stateColor.cardBorder
     readonly property color _progressOverlayColor: Enums.stateColor.accentSubtle
+    readonly property var _safeWaveformData: _normalizeWaveformData(waveformData)
+    readonly property real _safeProgress: isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0
+    readonly property int _safeBarWidth: Math.max(1, barWidth)
+    readonly property int _safeBarSpacing: Math.max(0, barSpacing)
 
     // ==================== Signals 信号 ====================
     signal clicked(real position)  // Click position 0-1 点击位置
@@ -53,12 +57,31 @@ Item {
         waveformData = data
     }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _normalizeWaveformData(value) {
+        if (!value || typeof value.length !== "number") return []
+        var normalized = []
+        for (var i = 0; i < value.length; i++) {
+            var sample = value[i]
+            normalized.push(typeof sample === "number" && isFinite(sample)
+                            ? Math.max(0, Math.min(1, sample)) : 0)
+        }
+        return normalized
+    }
+
+    function _positionAt(mouseX) {
+        var span = waveformContainer.width
+        if (!(span > 0) || !isFinite(span)) return 0
+        var position = (mouseX - waveformContainer.anchors.margins) / span
+        return isFinite(position) ? Math.max(0, Math.min(1, position)) : 0
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: 300
     implicitHeight: 80
 
     Component.onCompleted: {
-        if (waveformData.length === 0) {
+        if (_safeWaveformData.length === 0) {
             generateRandomWaveform(50)
         }
     }
@@ -93,7 +116,7 @@ Item {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.left: parent.left
-            width: parent.width * control.progress
+            width: parent.width * control._safeProgress
             color: control._progressOverlayColor
             radius: control._waveformInnerRadius
             
@@ -108,15 +131,15 @@ Item {
             id: waveformRow
             anchors.centerIn: parent
             height: parent.height
-            spacing: control.barSpacing
+            spacing: control._safeBarSpacing
             
             Repeater {
-                model: control.waveformData.length
+                model: control._safeWaveformData.length
                 
                 Rectangle {
                     id: bar
-                    width: control.barWidth
-                    height: Math.max(Enums.spacing.xs, control.waveformData[index] * waveformRow.height * 0.9)
+                    width: control._safeBarWidth
+                    height: Math.max(Enums.spacing.xs, control._safeWaveformData[index] * waveformRow.height * 0.9)
                     radius: width / 2
                     anchors.verticalCenter: parent.verticalCenter
                     
@@ -126,23 +149,23 @@ Item {
                         GradientStop { 
                             position: 0.0 
                             color: {
-                                var pos = index / control.waveformData.length
-                                return pos < control.progress ? control.progressColorEnd : control.waveColorEnd
+                                var pos = index / control._safeWaveformData.length
+                                return pos < control._safeProgress ? control.progressColorEnd : control.waveColorEnd
                             }
                         }
                         GradientStop { 
                             position: 1.0 
                             color: {
-                                var pos = index / control.waveformData.length
-                                return pos < control.progress ? control.progressColor : control.waveColor
+                                var pos = index / control._safeWaveformData.length
+                                return pos < control._safeProgress ? control.progressColor : control.waveColor
                             }
                         }
                     }
                     
                     // Subtle glow effect for active bars 活跃条的微妙发光效果
                     opacity: {
-                        var pos = index / control.waveformData.length
-                        if (pos < control.progress) return 1.0
+                        var pos = index / control._safeWaveformData.length
+                        if (pos < control._safeProgress) return 1.0
                         return control._hovered ? 0.85 : 0.7
                     }
                     
@@ -174,8 +197,8 @@ Item {
         // Progress indicator line 进度指示线
         Rectangle {
             id: progressLine
-            visible: control.showProgressIndicator && control.progress > 0
-            x: parent.width * control.progress - 1
+            visible: control.showProgressIndicator && control._safeProgress > 0
+            x: parent.width * control._safeProgress - 1
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.topMargin: Enums.spacing.xs
@@ -223,8 +246,7 @@ Item {
         cursorShape: Qt.PointingHandCursor
         
         onClicked: function(mouse) {
-            var pos = (mouse.x - waveformContainer.anchors.margins) / waveformContainer.width
-            pos = Math.max(0, Math.min(1, pos))
+            var pos = control._positionAt(mouse.x)
             control.progress = pos
             control.clicked(pos)
             control.progressUpdated(pos)
@@ -232,8 +254,7 @@ Item {
         
         onPositionChanged: function(mouse) {
             if (pressed) {
-                var pos = (mouse.x - waveformContainer.anchors.margins) / waveformContainer.width
-                pos = Math.max(0, Math.min(1, pos))
+                var pos = control._positionAt(mouse.x)
                 control.progress = pos
                 control.progressUpdated(pos)
             }

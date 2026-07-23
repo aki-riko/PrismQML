@@ -48,8 +48,9 @@ Item {
         id: cropImage
 
         // Calculate actual image display rect 计算实际图片显示区域
-        readonly property real imgRatio: sourceSize.width > 0 ? sourceSize.width / sourceSize.height : 1
-        readonly property real containerRatio: width > 0 ? width / height : 1
+        readonly property real imgRatio: sourceSize.width > 0 && sourceSize.height > 0
+            ? sourceSize.width / sourceSize.height : 1
+        readonly property real containerRatio: width > 0 && height > 0 ? width / height : 1
         readonly property real displayWidth: imgRatio > containerRatio ? width : height * imgRatio
         readonly property real displayHeight: imgRatio > containerRatio ? width / imgRatio : height
         readonly property real displayX: (width - displayWidth) / 2

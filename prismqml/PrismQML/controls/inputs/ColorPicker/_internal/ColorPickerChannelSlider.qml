@@ -17,6 +17,11 @@ Item {
     property int value: Enums.colorPickerMetrics.channelMinValue
     property color baseColor: Enums.colorPalette.automaticColor  // Current color (for gradient calculation)
     property bool showInput: true    // Show input field 显示输入框
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int _safeValue: Math.max(Enums.colorPickerMetrics.channelMinValue,
+                                               Math.min(Enums.colorPickerMetrics.channelMaxValue, value))
+    readonly property real _handleTravel: Math.max(0, track.width - handle.width)
     
     // ==================== Signals 信号 ====================
     signal valueModified(int newValue)
@@ -141,7 +146,7 @@ Item {
                 width: Enums.spacing.xl
                 height: Enums.spacing.xl
                 radius: width / 2
-                x: (control.value / Enums.colorPickerMetrics.channelMaxValue) * (track.width - width)
+                x: (control._safeValue / Enums.colorPickerMetrics.channelMaxValue) * control._handleTravel
                 anchors.verticalCenter: parent.verticalCenter
                 
                 color: Enums.textColor.primary
@@ -159,6 +164,7 @@ Item {
                 id: pointerArea
 
                 function updateValue(mouse) {
+                    if (!(width > 0)) return
                     var ratio = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, mouse.x / width))
                     var newValue = Math.round(ratio * Enums.colorPickerMetrics.channelMaxValue)
                     if (newValue !== control.value) {

@@ -48,11 +48,19 @@ Item {
     readonly property int _thumbnailStrokeWidth: Enums.border.thin
     readonly property real _thumbnailFillAlpha: Enums.isPrismDesign ? Enums.stateColor.chartFillMedium : Enums.opacityLevel.light - Enums.opacityLevel.faint
     readonly property real _thumbnailStrokeAlpha: Enums.isPrismDesign ? Enums.stateColor.chartStrokeAlpha : Enums.opacityLevel.strong
+    readonly property real _safeViewportStart: _normalizeViewport(viewportStart, 0)
+    readonly property real _safeViewportEnd: _normalizeViewport(viewportEnd, 1)
 
     // ==================== Signals 信号 ====================
     signal viewportChanged(real start, real end)
     // Notify the parent about direct manipulation so transitions can pause 通知父级直接拖动状态以暂停过渡
     signal interactiveChanged(bool active)
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _normalizeViewport(value, fallback) {
+        return typeof value === "number" && isFinite(value)
+                ? Math.max(0, Math.min(1, value)) : fallback
+    }
 
     implicitWidth: Enums.controlSize.chartDataZoomDefaultWidth
     implicitHeight: Enums.controlSize.chartDataZoomDefaultHeight
@@ -62,13 +70,13 @@ Item {
     onViewportStartChanged: {
         if (!rangeSlider) return
         _suppressSliderUpdate = true
-        rangeSlider.firstValue = Math.round(viewportStart * Enums.chart.viewport_slider_steps)
+        rangeSlider.firstValue = Math.round(_safeViewportStart * Enums.chart.viewport_slider_steps)
         _suppressSliderUpdate = false
     }
     onViewportEndChanged: {
         if (!rangeSlider) return
         _suppressSliderUpdate = true
-        rangeSlider.secondValue = Math.round(viewportEnd * Enums.chart.viewport_slider_steps)
+        rangeSlider.secondValue = Math.round(_safeViewportEnd * Enums.chart.viewport_slider_steps)
         _suppressSliderUpdate = false
     }
 
@@ -85,18 +93,34 @@ Item {
         id: thumbCanvas
 
         property var _drawValues: {
-            if (control.series && control.series.length > 0) {
-                return control.series[0].values || []
-            }
-            if (control.chartData && control.chartData.length > 0) {
-                var out = []
-                for (var i = 0; i < control.chartData.length; i++) {
-                    var it = control.chartData[i]
-                    out.push(it && it.value !== undefined ? it.value : 0)
+            var source = []
+            var series = control.series
+            if (series && typeof series.length === "number" && series.length > 0) {
+                var first = series[0]
+                if (first && first.values && typeof first.values.length === "number") {
+                    source = first.values
                 }
-                return out
             }
-            return []
+            if (source.length === 0) {
+                var chartData = control.chartData
+                if (chartData && typeof chartData.length === "number") {
+                    for (var i = 0; i < chartData.length; i++) {
+                        var item = chartData[i]
+                        source.push(item && item.value !== undefined ? item.value : 0)
+                    }
+                }
+            }
+            return _normalizeValues(source)
+        }
+
+        function _normalizeValues(values) {
+            var normalized = []
+            if (!values || typeof values.length !== "number") return normalized
+            for (var i = 0; i < values.length; i++) {
+                var value = values[i]
+                normalized.push(typeof value === "number" && isFinite(value) ? value : 0)
+            }
+            return normalized
         }
 
         anchors.fill: parent
@@ -159,8 +183,8 @@ Item {
         type: Enums.slider.type_range
         from: 0
         to: Enums.chart.viewport_slider_steps
-        firstValue: Math.round(control.viewportStart * Enums.chart.viewport_slider_steps)
-        secondValue: Math.round(control.viewportEnd * Enums.chart.viewport_slider_steps)
+        firstValue: Math.round(control._safeViewportStart * Enums.chart.viewport_slider_steps)
+        secondValue: Math.round(control._safeViewportEnd * Enums.chart.viewport_slider_steps)
 
         onSliderMoved: (first, second) => {
             if (control._suppressSliderUpdate) return

@@ -84,6 +84,7 @@ Item {
         id: pointerArea
 
         function updateColor(mouse) {
+            if (!(width > 0) || !(height > 0)) return
             control.hue = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, mouse.x / width))
             control.saturation = Math.max(Enums.opacityLevel.invisible, Math.min(Enums.opacityLevel.visible, Enums.opacityLevel.visible - mouse.y / height))
             control.colorChanged(control.hue, control.saturation)
