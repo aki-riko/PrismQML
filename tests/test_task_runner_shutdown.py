@@ -12,7 +12,7 @@ import threading
 import time
 
 import pytest
-from PySide6.QtCore import QThreadPool
+from PySide6.QtCore import QThreadPool, Qt
 
 from prismqml import (
     PoolTaskOptions,
@@ -219,3 +219,47 @@ def test_cancel_is_safe_during_backend_release(qapp, launcher) -> None:
 
     assert wait_finished.is_set()
     assert handle.state is TaskState.CANCELLED
+
+
+def test_pool_wait_cannot_release_backend_before_stop_event(qapp) -> None:
+    """Pool wait must not clear fields still used by run(). 线程池等待不得提前清理运行字段。"""
+    pool = QThreadPool()
+    pool.setMaxThreadCount(1)
+    callable_started = threading.Event()
+    finish_callable = threading.Event()
+    backend_marked = threading.Event()
+    allow_backend_return = threading.Event()
+    backend_event_emitted = threading.Event()
+
+    def work():
+        callable_started.set()
+        finish_callable.wait()
+        return 41
+
+    handle = run_in_pool(work, task_options=PoolTaskOptions(pool=pool))
+    backend = handle._backend
+    original_mark = handle._control.mark_backend_stopped
+    backend._events.backend_stopped.connect(
+        backend_event_emitted.set,
+        Qt.ConnectionType.DirectConnection,
+    )
+
+    def paused_mark():
+        original_mark()
+        backend_marked.set()
+        assert allow_backend_return.wait(TASK_TIMEOUT_MS / 1000)
+
+    handle._control.mark_backend_stopped = paused_mark
+    try:
+        assert callable_started.wait(TASK_TIMEOUT_MS / 1000)
+        finish_callable.set()
+        assert backend_marked.wait(TASK_TIMEOUT_MS / 1000)
+        assert handle.wait(TASK_TIMEOUT_MS)
+    finally:
+        finish_callable.set()
+        allow_backend_return.set()
+        assert pool.waitForDone(TASK_TIMEOUT_MS)
+
+    assert backend_event_emitted.is_set()
+    assert handle.state is TaskState.SUCCEEDED
+    assert handle.result == 41

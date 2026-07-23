@@ -39,14 +39,19 @@ class _PoolRunnable(QRunnable):
         return self._pool.tryStart(self)
 
     def run(self) -> None:
-        execution = self._execution
-        if execution is None:
+        with self._lifecycle_lock:
+            execution = self._execution
+            events = self._events
+            control = self._control
+        if execution is None or events is None or control is None:
             return
         try:
             execution.run()
         finally:
-            self._control.mark_backend_stopped()
-            self._events.backend_stopped.emit()
+            try:
+                events.backend_stopped.emit()
+            finally:
+                control.mark_backend_stopped()
 
     def request_cancel(self) -> None:
         """Remove queued work when possible, otherwise stay cooperative. 优先移除排队任务。"""
