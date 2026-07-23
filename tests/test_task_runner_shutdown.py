@@ -21,6 +21,7 @@ from prismqml import (
     current_task,
     run_in_pool,
     run_in_thread,
+    shutdown_tasks,
 )
 
 
@@ -293,3 +294,19 @@ def test_pool_clear_settles_managed_queued_task(qapp) -> None:
         release_blocker.set()
         assert blocker.wait(TASK_TIMEOUT_MS)
         assert pool.waitForDone(TASK_TIMEOUT_MS)
+
+
+@pytest.mark.parametrize("launcher", (run_in_pool, run_in_thread))
+def test_shutdown_tasks_rejects_background_self_wait(qapp, launcher) -> None:
+    """Shutdown coordination rejects worker-thread self-wait. 退出协调拒绝后台线程自等待。"""
+    def work():
+        try:
+            shutdown_tasks()
+        except RuntimeError as caught:
+            return str(caught)
+        return "not rejected"
+
+    handle = launcher(work)
+    assert handle.wait(TASK_TIMEOUT_MS)
+    assert handle.state is TaskState.SUCCEEDED
+    assert "Qt application thread" in handle.result

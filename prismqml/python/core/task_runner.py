@@ -457,6 +457,11 @@ def run_in_thread(
 
 def shutdown_tasks(timeout_ms: Optional[int] = None) -> TaskShutdownReport:
     """Cancel active tasks and wait up to one shared deadline. 取消任务并等待统一截止时间。"""
+    app = QCoreApplication.instance()
+    if app is None:
+        raise RuntimeError("A QCoreApplication is required before shutting down tasks")
+    if QThread.currentThread() != app.thread():
+        raise RuntimeError("shutdown_tasks() must be called from the Qt application thread")
     _validate_timeout_ms(timeout_ms, "Task shutdown timeout")
     handles = _active_handles()
     for handle in handles:

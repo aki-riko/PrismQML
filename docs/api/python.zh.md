@@ -125,6 +125,9 @@ PrismQML 任务；原生 `QThreadPool` 无法通知框架哪些非自动删除�
 `QCoreApplication`，应在销毁应用前显式调用 `shutdown_tasks()`。Python CPU 密集型
 代码仍受 GIL 限制，需要真正并行时应使用多进程。
 
+`shutdown_tasks()` 必须从 Qt 应用线程调用；后台任务调用会立即抛出 `RuntimeError`，
+避免任务等待自身结束。
+
 ## 引擎组件
 
 | 名称 | 说明 |

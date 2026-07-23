@@ -141,6 +141,9 @@ Applications using a bare
 CPU-bound code is still constrained by the GIL; use multiprocessing for true
 CPU parallelism.
 
+`shutdown_tasks()` must be called from the Qt application thread. A background
+task call raises `RuntimeError` immediately instead of waiting for itself.
+
 ## Engine components
 
 | Name | Description |
