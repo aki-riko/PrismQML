@@ -307,7 +307,8 @@ Item {
                 color: Enums.foregroundColor
                 // Wrap long text within max width; \n still forces line breaks 超过最大宽度自动换行;\n 仍强制断行
                 wrapMode: Text.Wrap
-                horizontalAlignment: Text.AlignHCenter
+                // Left-align reads better for multi-line hints 多行提示左对齐更易读
+                horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 width: Math.min(_tooltipMetrics.width, Enums.controlSize.tooltipMaxWidth)
             }
