@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QMetaObject, QObject, QUrl
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
@@ -15,6 +16,9 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "auto-updater-flow.qml"))
+AUTO_UPDATER_SOURCE = (
+    ROOT / "prismqml" / "PrismQML" / "controls" / "feedback" / "AutoUpdater.qml"
+)
 SCENE_SOURCE = b"""
 import QtQuick
 import PrismQML
@@ -26,6 +30,10 @@ Window {
     property string lastError: ""
     readonly property string facadeRepository: facade.repository
     readonly property string facadeVersion: facade.currentVersion
+    readonly property int indeterminateRingFeature: Enums.notification.feature_indeterminate_ring
+    readonly property int progressRingFeature: Enums.notification.feature_progress_ring
+    readonly property int toastWidth: Enums.controlSize.toastWidth
+    readonly property int toastHeight: Enums.controlSize.toastHeight
 
     function triggerDoubleCheck() {
         facade.check();
@@ -34,6 +42,12 @@ Window {
 
     function finishCheck() {
         backend.checkFailed("check failed");
+    }
+
+    function emitDownloadProgress() {
+        facade._checking = false;
+        facade._downloading = true;
+        backend.downloadProgress(25, 100);
     }
 
     function triggerInstallerFailure() {
@@ -132,6 +146,33 @@ def test_check_is_single_flight_until_terminal_signal(auto_updater_scene):
     assert QMetaObject.invokeMethod(root, "finishCheck")
     assert QMetaObject.invokeMethod(root, "triggerDoubleCheck")
     assert backend.property("checkCalls") == 2
+
+
+def test_check_uses_managed_toast_and_builtin_progress(auto_updater_scene):
+    root = auto_updater_scene
+    windows_before = set(QGuiApplication.topLevelWindows())
+
+    assert QMetaObject.invokeMethod(root, "triggerDoubleCheck")
+    toast = root.findChild(QObject, "autoUpdaterToast")
+    assert toast is not None
+    assert toast.metaObject().className().startswith("Toast_QMLTYPE_")
+    assert toast.property("feature") == root.property("indeterminateRingFeature")
+    assert toast.property("width") == root.property("toastWidth")
+    assert toast.property("height") == root.property("toastHeight")
+    assert set(QGuiApplication.topLevelWindows()) == windows_before
+
+    assert QMetaObject.invokeMethod(root, "emitDownloadProgress")
+    assert toast.property("feature") == root.property("progressRingFeature")
+    assert toast.property("progress") == pytest.approx(0.25)
+
+
+def test_auto_updater_does_not_hand_roll_desktop_notification():
+    source = AUTO_UPDATER_SOURCE.read_text(encoding="utf-8")
+
+    assert "NotificationManager.toast.info(" in source
+    assert "DesktopNotification {" not in source
+    assert "customContent: Component" not in source
+    assert "ProgressRing {" not in source
 
 
 def test_installer_launch_failure_is_reported_and_retryable(auto_updater_scene):

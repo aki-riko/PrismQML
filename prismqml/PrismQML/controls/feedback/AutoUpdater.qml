@@ -1,8 +1,8 @@
 // AutoUpdater.qml —— 高层自动更新门面
 //
-// 把底层 Updater(网络/版本比较/安装启动)与 UI 零件(UpdateDialog / DesktopNotification /
-// ProgressRing)串成一条完整链路,应用只需注入 updater 实例并调用 check():
-//   检查 → 有新版弹 UpdateDialog 确认 → 右下角 toast 不确定进度环
+// 把底层 Updater(网络/版本比较/安装启动)与 UI 零件(UpdateDialog / Toast)
+// 串成一条完整链路,应用只需注入 updater 实例并调用 check():
+//   检查 → 有新版弹 UpdateDialog 确认 → 右下角 Toast 不确定进度环
 //        → 拿到总大小转确定环 → 下载完成启动安装程序
 //        → 无安装包(downloadUrl 为空)则跳转 Release 页
 //
@@ -44,8 +44,7 @@ Item {
     property bool _checking: false      // 是否处于检查态(不确定环)
     property bool _downloading: false   // 是否处于下载态(不确定环→确定环)
     property bool _awaitingDecision: false
-    // 进度环显示条件:检查中或下载中
-    readonly property bool _ringVisible: _checking || _downloading
+    property var _toast: null
 
     // ---- 对外信号(供应用可选接管) ----
     signal upToDateNotified(string version)
@@ -61,14 +60,15 @@ Item {
         if (root._checking || root._downloading || root._awaitingDecision)
             return;
         _clearPending();
+        _hideToast();
         // 检查阶段:总量未知,显示不确定进度环(读信息=不确定,下载拿到总大小才转确定)
         root._checking = true;
         root._rangeKnown = false;
-        progressRing.indeterminate = true;
-        progressRing.start();
-        toast.title = qsTr("正在检查更新");
-        toast.severity = "info";
-        toast.show();
+        _showToast(
+            qsTr("正在检查更新"), "", "info",
+            Enums.notification.feature_indeterminate_ring,
+            Enums.duration.none, 0
+        );
         updater.checkForUpdate();
     }
 
@@ -94,22 +94,57 @@ Item {
         }
         root._rangeKnown = false;
         root._downloading = true;
-        progressRing.indeterminate = true;
-        progressRing.start();
-        toast.title = qsTr("正在下载更新");
-        toast.message = version;
-        toast.severity = "info";
-        toast.show();
+        _showToast(
+            qsTr("正在下载更新"), version, "info",
+            Enums.notification.feature_indeterminate_ring,
+            Enums.duration.none, 0
+        );
         updater.downloadUpdate(downloadUrl);
     }
 
     function _showError(title, message) {
-        progressRing.stop();
-        toast.title = title;
-        toast.message = message;
-        toast.severity = "error";
-        toast.show();
+        _showToast(
+            title, message, "error", Enums.notification.feature_normal,
+            Enums.duration.notification, 0
+        );
         root.errorOccurred(message);
+    }
+
+    function _showToast(title, message, severity, feature, duration, progress) {
+        var item = root._toast;
+        var created = false;
+        if (!item) {
+            item = NotificationManager.toast.info(
+                root, title, message, duration,
+                Enums.notification.posBottomRight
+            );
+            if (!item) {
+                console.warn("AutoUpdater: Toast 创建失败");
+                return;
+            }
+            created = true;
+            item.objectName = "autoUpdaterToast";
+            root._toast = item;
+            item.closed.connect(function() {
+                if (root._toast === item)
+                    root._toast = null;
+            });
+        }
+        item.title = title;
+        item.message = message;
+        item.severity = severity;
+        item.feature = feature;
+        item.duration = duration;
+        item.progress = progress;
+        if (!created)
+            item.show();
+    }
+
+    function _hideToast() {
+        var item = root._toast;
+        root._toast = null;
+        if (item)
+            item.hide();
     }
 
     function _clearPending() {
@@ -126,8 +161,7 @@ Item {
             // 检查结束,停不确定环并收起检查 toast,转入确认弹窗
             root._checking = false;
             root._awaitingDecision = true;
-            progressRing.stop();
-            toast.hide();
+            root._hideToast();
             root._pendingVersion = version;
             root._pendingUrl = downloadUrl;
             root._pendingHtmlUrl = htmlUrl;
@@ -141,14 +175,14 @@ Item {
             if (!root._checking)
                 return;
             root._checking = false;
-            progressRing.stop();
             if (!root.notifyWhenUpToDate)
-                toast.hide();   // 不提示时收起检查 toast
+                root._hideToast();   // 不提示时收起检查 Toast
             if (root.notifyWhenUpToDate) {
-                toast.title = qsTr("已是最新版本");
-                toast.message = version;
-                toast.severity = "success";
-                toast.show();
+                root._showToast(
+                    qsTr("已是最新版本"), version, "success",
+                    Enums.notification.feature_normal,
+                    Enums.duration.notification, 0
+                );
             }
             root.upToDateNotified(version);
         }
@@ -166,27 +200,26 @@ Item {
             // 首次拿到有效总大小 → 不确定环转确定环
             if (total > 0 && !root._rangeKnown) {
                 root._rangeKnown = true;
-                progressRing.stop();
-                progressRing.indeterminate = false;
-                progressRing.setRange(0, total);
+                if (root._toast)
+                    root._toast.feature = Enums.notification.feature_progress_ring;
             }
-            if (root._rangeKnown)
-                progressRing.value = received;
+            if (root._rangeKnown && root._toast)
+                root._toast.progress = Math.max(0, Math.min(1, received / total));
         }
 
         function onDownloadFinished(filePath) {
             if (!root._downloading)
                 return;
             root._downloading = false;
-            progressRing.stop();
             if (!root.updater.runInstallerAndQuit(filePath, root.silentArgs)) {
                 _showError(qsTr("安装启动失败"), qsTr("无法启动安装程序,请重试"));
                 return;
             }
-            toast.title = qsTr("安装程序已启动");
-            toast.message = qsTr("请按安装程序提示完成更新");
-            toast.severity = "success";
-            toast.show();
+            root._showToast(
+                qsTr("安装程序已启动"), qsTr("请按安装程序提示完成更新"),
+                "success", Enums.notification.feature_normal,
+                Enums.duration.notification, 0
+            );
         }
 
         function onDownloadFailed(error) {
@@ -219,33 +252,4 @@ Item {
         }
     }
 
-    // ---- 右下角下载进度 toast(不确定环 → 确定环) ----
-    DesktopNotification {
-        id: toast
-        position: Enums.notification.posBottomRight
-        duration: Enums.duration.none   // 常驻,由下载流程主动 hide
-
-        customContent: Component {
-            ProgressRing {
-                id: progressRingItem
-                visible: root._ringVisible   // 检查/下载态显示;其他提示(失败/最新)不带进度环
-                indeterminate: progressRing.indeterminate
-                from: progressRing.from
-                to: progressRing.to
-                value: progressRing.value
-            }
-        }
-    }
-
-    // 进度环状态载体(与 toast 内 customContent 解耦,避免 Loader 重建丢状态)
-    QtObject {
-        id: progressRing
-        property bool indeterminate: true
-        property real from: 0
-        property real to: 100
-        property real value: 0
-        function setRange(min, max) { from = min; to = max; value = min; }
-        function start() { indeterminate = true; }
-        function stop() { indeterminate = false; }
-    }
 }
