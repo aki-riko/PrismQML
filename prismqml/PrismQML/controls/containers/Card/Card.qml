@@ -18,6 +18,9 @@ Widget {
  // ==================== Public Props 公开属性 ====================
  property int cardType: Enums.card.type_default // Card type 卡片类型
  property int borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card // Border radius 圆角
+ // Content padding: header cards align with the title; regular cards provide one comfortable inset.
+ // 内容内边距：标题卡与标题对齐；普通卡默认提供一层舒适留白。
+ property int contentPadding: isHeader ? Enums.spacing.xxxl : Enums.spacing.l
  // autoHeight: 普通卡片高度跟随内容自撑(默认 false 保持固定 cardHeight)。
  // ⚠️ 开启时内容**不要用 anchors.fill: parent**(fill 的子项不计入 childrenRect→自撑失效退回兜底),
  //    用 width: parent.width 让内容自然堆叠撑高。header 卡不受此开关影响(本就按内容算高)。
@@ -35,11 +38,6 @@ Widget {
  readonly property bool isNormal: cardType === Enums.card.type_hover
  readonly property bool isElevated: cardType === Enums.card.type_elevated
  readonly property bool isHeader: cardType === Enums.card.type_header
- // 内容区内边距: header 卡沿用 xxxl(与标题区对齐); 普通卡默认给 l 的舒适留白,
- // 避免内容贴卡片边框(健壮性默认: 使用方无需再手动内缩内容)。
- // 上下/左右统一, height 公式按 _contentInset*2 配套, 保证 autoHeight 不裁剪、无 binding loop。
- readonly property int _contentInset: isHeader ? Enums.spacing.xxxl : Enums.spacing.l
-
  // ==================== Signals 信号 ====================
  signal clicked()
  
@@ -49,7 +47,7 @@ Widget {
  // 否则保持原行为(固定 cardHeight)。header 卡始终由 card 自身按标题区算高。
  contentWidth: Enums.controlSize.cardContentWidth
  contentHeight: isHeader ? card.height
-                : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control._contentInset * 2)
+                : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control.contentPadding * 2)
                               : Enums.controlSize.cardHeight)
  
  // Elevation animation for elevated cards 悬浮卡片上浮动画
@@ -117,8 +115,8 @@ Widget {
  // Use preferredHeight if set, otherwise auto-calculate for HeaderCard, fit content when autoHeight, else fill parent
  // preferredHeight 优先; header 卡按标题区+分隔线+内容算高; autoHeight 时普通卡按内容自撑; 否则填充父容器(原行为)。
  height: preferredHeight > 0 ? preferredHeight
-         : (isHeader ? (headerView.height + separator.height + contentLoader.childrenRect.height + Enums.spacing.xxxl * 2)
-                     : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control._contentInset * 2)
+         : (isHeader ? (headerView.height + separator.height + contentLoader.childrenRect.height + control.contentPadding * 2)
+                     : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control.contentPadding * 2)
                                    : parent.height))
  radius: control.borderRadius
  
@@ -199,7 +197,7 @@ Widget {
  height: _fitContent ? childrenRect.height : undefined
  anchors.left: parent.left
  anchors.right: parent.right
- anchors.margins: control._contentInset
+ anchors.margins: control.contentPadding
  }
  
  // Interaction 交互

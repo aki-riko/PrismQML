@@ -316,6 +316,22 @@ def test_timeline_nonvirtual_header_and_card_clicks(timeline_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_timeline_cards_keep_their_single_managed_inset(timeline_scene):
+    window, timeline, virtual_timeline, warnings, windows_before = timeline_scene
+    cards = [
+        item
+        for owner in (timeline, virtual_timeline)
+        for item in _visual_descendants(owner)
+        if item.property("clickEnabled") is True
+        and item.property("contentPadding") is not None
+    ]
+
+    assert cards
+    assert all(card.property("contentPadding") == 0 for card in cards)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_timeline_virtual_append_preserves_scroll_and_reaches_end(timeline_scene):
     window, _timeline, virtual_timeline, warnings, windows_before = timeline_scene
     list_view = next(

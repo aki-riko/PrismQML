@@ -275,6 +275,13 @@ def test_settings_card_core_and_group_composition(settings_scene):
     core = items["settingsCardCore"]
     group = items["settingsCardGroup"]
     collapsed_height = window.property("coreHeight")
+    content_loader = core.findChild(QQuickItem, "contentLoader")
+
+    assert core.property("contentPadding") == 0
+    assert content_loader.x() == pytest.approx(0)
+    assert content_loader.y() == pytest.approx(0)
+    assert content_loader.width() == pytest.approx(core.width())
+    assert content_loader.height() == pytest.approx(core.height())
 
     assert QMetaObject.invokeMethod(window, "addCoreWidgets")
     assert window.property("coreExpandable")

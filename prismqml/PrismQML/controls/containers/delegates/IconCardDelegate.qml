@@ -12,6 +12,7 @@ import "../../icons"
 Card {
     id: card
     cardType: Enums.card.type_elevated
+    contentPadding: Enums.spacing.none
     borderRadius: Enums.radius.large
     width: 100
     height: 88

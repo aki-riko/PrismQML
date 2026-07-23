@@ -53,10 +53,13 @@ Window {
     readonly property real shortHeight: shortCard.height
     readonly property real headerHeight: headerCard.height
     readonly property real headerContentHeight: headerContent.height
+    readonly property real noPaddingHeaderHeight: noPaddingHeader.height
     readonly property real elevatedOffset: elevatedCard.transform[0].y
     readonly property bool elevatedHovered: elevatedCard.hovered
     readonly property bool elevatedPressed: elevatedCard.pressed
     readonly property real cardElevate: Enums.spacing.cardElevate
+    readonly property real defaultContentPadding: Enums.spacing.l
+    readonly property real headerContentPadding: Enums.spacing.xxxl
 
     width: 680
     height: 560
@@ -113,6 +116,22 @@ Window {
         Rectangle {
             id: headerContent
             objectName: "headerContent"
+            width: parent.width
+            height: 40
+        }
+    }
+
+    Card {
+        id: noPaddingHeader
+        objectName: "noPaddingHeader"
+        x: 520
+        y: 140
+        width: 140
+        cardType: Enums.card.type_header
+        contentPadding: Enums.spacing.none
+        title: "Compact"
+
+        Rectangle {
             width: parent.width
             height: 40
         }
@@ -202,12 +221,30 @@ def card_scene(qapp):
 def test_card_fixed_auto_and_header_heights(card_scene):
     window, warnings, windows_before = card_scene
     minimum_height = window.property("cardMinimumHeight")
+    fixed = window.findChild(QQuickItem, "fixedCard")
+    content_loader = fixed.findChild(QQuickItem, "contentLoader")
     assert window.property("fixedHeight") == pytest.approx(80)
+    assert fixed.property("contentPadding") == pytest.approx(
+        window.property("defaultContentPadding")
+    )
+    assert content_loader.x() == pytest.approx(window.property("defaultContentPadding"))
+    assert content_loader.y() == pytest.approx(window.property("defaultContentPadding"))
+    assert content_loader.width() == pytest.approx(
+        fixed.width() - window.property("defaultContentPadding") * 2
+    )
     assert window.property("shortHeight") == pytest.approx(minimum_height)
     assert window.property("tallHeight") > minimum_height
     assert window.property("tallHeight") > window.property("shortHeight")
     assert window.property("headerHeight") > window.property("headerContentHeight")
+    assert window.property("headerHeight") - window.property(
+        "noPaddingHeaderHeight"
+    ) == pytest.approx(window.property("headerContentPadding") * 2)
     header = window.findChild(QQuickItem, "headerCard")
+    no_padding_header = window.findChild(QQuickItem, "noPaddingHeader")
+    no_padding_loader = no_padding_header.findChild(QQuickItem, "contentLoader")
+    assert no_padding_header.property("contentPadding") == 0
+    assert no_padding_loader.x() == pytest.approx(0)
+    assert no_padding_loader.width() == pytest.approx(no_padding_header.width())
     labels = [
         item
         for item in header.findChildren(QQuickItem)

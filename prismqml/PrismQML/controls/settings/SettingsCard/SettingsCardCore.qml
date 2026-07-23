@@ -44,6 +44,7 @@ Card {
     implicitWidth: Enums.controlSize.cardWidth
     implicitHeight: mainRow.implicitHeight + (expandable && expanded ? expandArea.height : 0)
     cardType: Enums.card.type_default
+    contentPadding: Enums.spacing.none
     borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card
     opacity: disabled ? Enums.opacityLevel.disabled : Enums.opacityLevel.visible
 

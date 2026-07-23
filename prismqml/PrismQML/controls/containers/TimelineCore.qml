@@ -248,6 +248,7 @@ Item {
                                 Card {
                                     id: simpleCard
                                     cardType: Enums.card.type_hover
+                                    contentPadding: Enums.spacing.none
                                     width: parent.width
                                     height: cardContent.implicitHeight + Enums.spacing.l * 2
                                     clickEnabled: true
@@ -418,6 +419,7 @@ Item {
                     // 图模式卡片使用 Fluent 层级动效与 Card 自带轻边框。
                     cardType: control._graphMode
                         ? Enums.card.type_elevated : Enums.card.type_hover
+                    contentPadding: Enums.spacing.none
                     clickEnabled: true
 
                     onClicked: {
