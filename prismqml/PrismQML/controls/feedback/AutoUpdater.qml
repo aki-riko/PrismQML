@@ -46,7 +46,10 @@ Item {
     property string _pendingUrl: ""
     property string _pendingHtmlUrl: ""
     property bool _rangeKnown: false
-    property bool _downloading: false   // 是否处于下载态(决定 toast 内进度环是否显示)
+    property bool _checking: false      // 是否处于检查态(不确定环)
+    property bool _downloading: false   // 是否处于下载态(不确定环→确定环)
+    // 进度环显示条件:检查中或下载中
+    readonly property bool _ringVisible: _checking || _downloading
 
     // 触发一次检查
     function check() {
@@ -54,6 +57,14 @@ Item {
             console.warn("AutoUpdater: updater 未注入,无法检查更新");
             return;
         }
+        // 检查阶段:总量未知,显示不确定进度环(读信息=不确定,下载拿到总大小才转确定)
+        root._checking = true;
+        root._rangeKnown = false;
+        progressRing.indeterminate = true;
+        progressRing.start();
+        toast.title = qsTr("正在检查更新");
+        toast.severity = "info";
+        toast.show();
         updater.checkForUpdate();
     }
 
@@ -90,6 +101,10 @@ Item {
         ignoreUnknownSignals: true
 
         function onUpdateAvailable(version, notes, downloadUrl, htmlUrl) {
+            // 检查结束,停不确定环并收起检查 toast,转入确认弹窗
+            root._checking = false;
+            progressRing.stop();
+            toast.hide();
             root._pendingVersion = version;
             root._pendingUrl = downloadUrl;
             root._pendingHtmlUrl = htmlUrl;
@@ -100,6 +115,10 @@ Item {
         }
 
         function onUpToDate(version) {
+            root._checking = false;
+            progressRing.stop();
+            if (!root.notifyWhenUpToDate)
+                toast.hide();   // 不提示时收起检查 toast
             if (root.notifyWhenUpToDate) {
                 toast.title = qsTr("已是最新版本");
                 toast.message = version;
@@ -110,6 +129,8 @@ Item {
         }
 
         function onCheckFailed(error) {
+            root._checking = false;
+            progressRing.stop();
             toast.title = qsTr("检查更新失败");
             toast.message = error;
             toast.severity = "error";
@@ -176,7 +197,7 @@ Item {
         customContent: Component {
             ProgressRing {
                 id: progressRingItem
-                visible: root._downloading   // 仅下载态显示;其他提示(失败/最新)不带进度环
+                visible: root._ringVisible   // 检查/下载态显示;其他提示(失败/最新)不带进度环
                 indeterminate: progressRing.indeterminate
                 from: progressRing.from
                 to: progressRing.to
