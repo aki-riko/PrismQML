@@ -21,7 +21,14 @@ Item {
     property real indeterminateDotSize: Enums.progressRingMetrics.orbitDotSize
     property real indeterminateDotRadius: Enums.progressRingMetrics.orbitDotRadius
     property real indeterminateDotTopMargin: Enums.progressRingMetrics.orbitDotTopMargin
-    readonly property real position: (value - from) / (to - from)
+    // Keep progress finite and bounded for degenerate or inverted ranges 对退化或反向范围保持有限且有界
+    readonly property real position: {
+        var range = to - from
+        if (!isFinite(range) || range <= 0) return 0
+        var ratio = (value - from) / range
+        if (!isFinite(ratio)) return 0
+        return Math.max(0, Math.min(1, ratio))
+    }
     // Custom color props (per-theme) 颜色自定义属性（分主题）
     property color color: Enums.accentColor
     property color fillColorLight: color

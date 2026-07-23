@@ -25,7 +25,14 @@ Widget {
     property color fillColorDark: Enums.accentColor
     property color trackColorLight: Enums.stateColor.track
     property color trackColorDark: Enums.isPrismDesign ? Enums.stateColor.track : Enums.stateColor.whiteOverlay
-    readonly property real position: (value - from) / (to - from)
+    // Keep progress finite and bounded for degenerate or inverted ranges 对退化或反向范围保持有限且有界
+    readonly property real position: {
+        var range = to - from
+        if (!isFinite(range) || range <= 0) return 0
+        var ratio = (value - from) / range
+        if (!isFinite(ratio)) return 0
+        return Math.max(0, Math.min(1, ratio))
+    }
     property color progressColor: {
         if (error) return Enums.isDark ? Enums.statusLevel.errorColorDark : Enums.statusLevel.errorColor
         if (paused) return Enums.isDark ? Enums.statusLevel.warningColorDark : Enums.statusLevel.warningColor

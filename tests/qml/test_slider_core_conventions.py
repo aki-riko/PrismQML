@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """SliderCore runtime contracts. SliderCore 运行时合同。"""
 
+import math
 from pathlib import Path, PurePosixPath
 
 import pytest
@@ -376,3 +377,40 @@ def test_slider_core_source_conventions():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+
+
+def test_slider_degenerate_ranges_and_zero_step_stay_finite(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_scene()
+    horizontal = controls["horizontal"]
+    range_slider = controls["range"]
+    try:
+        horizontal.setProperty("from", 5)
+        horizontal.setProperty("to", 5)
+        horizontal.setProperty("value", 5)
+        horizontal.setProperty("stepSize", 0)
+        assert math.isfinite(float(_default_handle(horizontal).property("_ratio")))
+        assert _default_handle(horizontal).property("_ratio") == 0
+
+        range_slider.setProperty("from", 5)
+        range_slider.setProperty("to", 5)
+        range_slider.setProperty("firstValue", 5)
+        range_slider.setProperty("secondValue", 5)
+        range_impl = next(
+            item
+            for item in _visual_descendants(range_slider)
+            if item.metaObject().indexOfProperty("firstPos") >= 0
+        )
+        assert math.isfinite(float(range_impl.property("firstPos")))
+        assert math.isfinite(float(range_impl.property("secondPos")))
+        assert range_impl.property("firstPos") == 0
+        assert range_impl.property("secondPos") == 0
+        assert all(
+            math.isfinite(float(handle.property("x")))
+            and math.isfinite(float(handle.property("y")))
+            for handle in _range_handles(range_slider)
+        )
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []

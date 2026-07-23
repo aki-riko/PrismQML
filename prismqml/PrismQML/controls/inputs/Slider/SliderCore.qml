@@ -61,10 +61,19 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     // Apply snapMode for dragging and release 根据拖动或松手阶段应用 snapMode
     function _maybeSnap(v, dragging) {
-        if (stepSize <= 0) return v
+        if (!isFinite(stepSize) || stepSize <= 0) return v
         if (snapMode === 0) return v
         if (snapMode === 1 && dragging) return v
         return Math.round(v / stepSize) * stepSize
+    }
+
+    // Return a finite normalized position for any range 返回始终有限的归一化位置
+    function _safePosition(v) {
+        var range = to - from
+        if (!isFinite(range) || range <= 0) return 0
+        var ratio = (v - from) / range
+        if (!isFinite(ratio)) return 0
+        return Math.max(0, Math.min(1, ratio))
     }
 
     // Format tooltip text for default/range implementations 格式化默认及范围滑块的提示文本
@@ -169,7 +178,9 @@ Item {
                         var pos = isHorizontal ? trackPoint.x / track.width : 1 - trackPoint.y / track.height
                         pos = Math.max(0, Math.min(1, pos))
                         var newValue = control.from + pos * (control.to - control.from)
-                        newValue = Math.round(newValue / control.stepSize) * control.stepSize
+                        if (control.stepSize > 0 && isFinite(control.stepSize)) {
+                            newValue = Math.round(newValue / control.stepSize) * control.stepSize
+                        }
                         newValue = Math.max(control.from, Math.min(control.to, newValue))
                         control.value = newValue
                         control.valueModified(newValue)
@@ -182,9 +193,7 @@ Item {
                 id: handle
                 // Clamp ratio during transient range changes 在量程瞬时变化时将比例钳制到 [0,1]
                 // Prevent the handle from escaping before to/from settle 防止程序改值早于量程更新时手柄越界
-                readonly property real _ratio: (control.to - control.from) !== 0
-                    ? Math.max(0, Math.min(1, (control.value - control.from) / (control.to - control.from)))
-                    : 0
+                readonly property real _ratio: control._safePosition(control.value)
 
                 width: Enums.controlSize.switchHeight; height: Enums.controlSize.switchHeight; radius: width / 2
                 x: isHorizontal ? _ratio * (track.width - width) + track.x : (parent.width - width) / 2
@@ -271,8 +280,8 @@ Item {
     Component {
         id: rangeSliderComponent
         Item {
-            readonly property real firstPos: (control.firstValue - control.from) / (control.to - control.from)
-            readonly property real secondPos: (control.secondValue - control.from) / (control.to - control.from)
+            readonly property real firstPos: control._safePosition(control.firstValue)
+            readonly property real secondPos: control._safePosition(control.secondValue)
 
             anchors.fill: parent
 
@@ -302,8 +311,8 @@ Item {
                 signal valueChanged(real v)
                 
                 width: Enums.controlSize.switchHeight; height: Enums.controlSize.switchHeight; radius: width / 2
-                x: isHorizontal ? Math.max(0, Math.min(parent.width-width, (parent.width-width)*((handleValue-control.from)/(control.to-control.from)))) : (parent.width-width)/2
-                y: isHorizontal ? (parent.height-height)/2 : Math.max(0, Math.min(parent.height-height, (parent.height-height)*(1-(handleValue-control.from)/(control.to-control.from))))
+                x: isHorizontal ? Math.max(0, Math.min(parent.width-width, (parent.width-width)*control._safePosition(handleValue))) : (parent.width-width)/2
+                y: isHorizontal ? (parent.height-height)/2 : Math.max(0, Math.min(parent.height-height, (parent.height-height)*(1-control._safePosition(handleValue))))
                 color: control.handleColor
                 border.width: control._handleBorderWidth
                 border.color: control._handleBorderColor
@@ -341,7 +350,9 @@ Item {
                         var pos = isHorizontal ? parent.x / (parent.parent.width - parent.width) : 1 - parent.y / (parent.parent.height - parent.height)
                         pos = Math.max(0, Math.min(1, pos))
                         var newVal = control.from + pos * (control.to - control.from)
-                        if (control.stepSize > 0) newVal = Math.round(newVal / control.stepSize) * control.stepSize
+                        if (control.stepSize > 0 && isFinite(control.stepSize)) {
+                            newVal = Math.round(newVal / control.stepSize) * control.stepSize
+                        }
                         valueChanged(newVal)
                     }
                 }
