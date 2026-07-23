@@ -21,7 +21,9 @@ os.environ["QT_LOGGING_RULES"] = "qt.text.font.db=false"
 # 添加项目根目录到路径(main.py 在 examples/,上 2 层到项目根)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from prismqml import configure_qml_environment
+import prismqml
+
+from prismqml import Updater, configure_qml_environment
 from prismqml.python.core import Logger, getLogger, log_time
 
 # Keep normal Gallery runs at INFO; diagnostics can still be enabled explicitly.
@@ -103,6 +105,21 @@ def main():
     register_types(engine)
     # 注册SVG图片提供器（高质量SVG渲染）
     engine.addImageProvider("svg", get_svg_provider())
+
+    # Gallery 使用真实的 GitHub Releases 更新后端，供“自动更新”页面演示。
+    # Gallery wires the same backend contract as an application host, but does
+    # not start a network check until the user presses the check button.
+    gallery_repository = os.environ.get(
+        "PRISMQML_GALLERY_UPDATE_REPOSITORY", "aki-riko/PrismQML"
+    ).strip() or "aki-riko/PrismQML"
+    gallery_asset_keyword = os.environ.get(
+        "PRISMQML_GALLERY_UPDATE_ASSET_KEYWORD", "Setup"
+    ).strip() or "Setup"
+    gallery_updater = Updater(
+        gallery_repository, prismqml.__version__, gallery_asset_keyword
+    )
+    gallery_updater.set_require_artifact_digest(True)
+    engine.rootContext().setContextProperty("appUpdater", gallery_updater)
     log_time("上下文属性注册完成")
     
     # 添加QML导入路径
