@@ -29,7 +29,7 @@ import platform
 import sys
 from typing import Optional, Callable
 
-from PySide6.QtCore import QCoreApplication, QObject, Signal
+from PySide6.QtCore import QCoreApplication, QObject, QTimer, Signal
 
 from .logger import getLogger
 
@@ -245,6 +245,29 @@ class SingleInstance(QObject):
         connection.disconnected.connect(
             lambda current=connection: self._release_connection(current)
         )
+        connection.stateChanged.connect(
+            lambda _state, current=connection: self._schedule_connection_check(current)
+        )
+
+    def _schedule_connection_check(self, connection):
+        """Check a socket after Qt has delivered pending state changes. 延迟检查 Qt 待处理状态变化。"""
+        QTimer.singleShot(0, lambda current=connection: self._release_if_closed(current))
+
+    def _release_if_closed(self, connection):
+        """Release sockets that closed before their signals were connected. 释放连接信号绑定前已关闭的套接字。"""
+        if connection not in getattr(self, "_conns", []):
+            return
+        try:
+            from PySide6.QtNetwork import QLocalSocket
+
+            closed = (
+                connection.state() == QLocalSocket.LocalSocketState.UnconnectedState
+                or not connection.isOpen()
+            )
+        except (OSError, RuntimeError):
+            closed = True
+        if closed:
+            self._release_connection(connection)
 
     def _release_connection(self, connection):
         """Release and schedule deletion of one IPC connection. 释放并延迟删除 IPC 连接。"""
@@ -306,8 +329,8 @@ class SingleInstance(QObject):
         # 兜底:连接建立时数据可能已就绪(错过 readyRead 信号)
         if connection.bytesAvailable() > 0:
             self._consume_connection(connection)
-        elif not connection.isOpen():
-            self._release_connection(connection)
+        else:
+            self._schedule_connection_check(connection)
 
     def _close_connections(self):
         """Abort and release every retained IPC connection. 中止并释放全部 IPC 连接。"""

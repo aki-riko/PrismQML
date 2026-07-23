@@ -86,6 +86,20 @@ def test_no_payload_disconnect_releases_server_connection(qapp):
         _cleanup(instance, client)
 
 
+def test_repeated_no_payload_disconnects_release_server_connections(qapp):
+    for _ in range(20):
+        instance = _new_instance()
+        client = _connect(instance)
+        try:
+            client.disconnectFromServer()
+            if client.state() != QLocalSocket.LocalSocketState.UnconnectedState:
+                client.waitForDisconnected(1000)
+            _pump(20)
+            assert getattr(instance, "_conns", []) == []
+        finally:
+            _cleanup(instance, client)
+
+
 def test_unlock_aborts_and_releases_active_connections(qapp):
     instance = _new_instance()
     client = _connect(instance)
