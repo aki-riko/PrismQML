@@ -12,16 +12,22 @@ import threading
 import time
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEventLoop, QThread, QTimer
+from PySide6.QtCore import QCoreApplication, QEventLoop, QThread, QThreadPool, QTimer
 from PySide6.QtTest import QSignalSpy
 
 import prismqml.python.core.task_runner as task_runner_module
 from prismqml import (
+    PoolSubmitPolicy,
+    PoolTaskOptions,
     TaskFailure,
+    TaskRejectedError,
+    TaskShutdownReport,
+    TaskShutdownTimeoutError,
     TaskState,
     current_task,
     run_in_pool,
     run_in_thread,
+    shutdown_tasks,
 )
 
 
@@ -211,6 +217,215 @@ def test_cooperative_cancellation(qapp, launcher) -> None:
     assert handle.failure is None
 
 
+@pytest.mark.parametrize("launcher", (run_in_pool, run_in_thread))
+def test_wait_exposes_outcome_before_queued_signals(qapp, launcher) -> None:
+    """A successful wait makes the final outcome readable. wait 成功后结果立即可读。"""
+    handle = launcher(lambda: 73)
+    finished = QSignalSpy(handle.finished)
+
+    assert handle.wait(TASK_TIMEOUT_MS)
+    assert handle.state is TaskState.SUCCEEDED
+    assert handle.result == 73
+    assert handle.failure is None
+    assert finished.count() == 0
+
+    qapp.processEvents()
+    assert finished.count() == 1
+
+
+@pytest.mark.parametrize("launcher", (run_in_pool, run_in_thread))
+def test_wait_exposes_failure_before_queued_signals(qapp, launcher) -> None:
+    """A waited failure is immediately inspectable. wait 返回后失败信息立即可读。"""
+    def fail():
+        raise ValueError("waited failure")
+
+    handle = launcher(fail)
+    assert handle.wait(TASK_TIMEOUT_MS)
+    assert handle.state is TaskState.FAILED
+    assert isinstance(handle.failure, TaskFailure)
+    assert isinstance(handle.failure.exception, ValueError)
+    assert "waited failure" in handle.failure.traceback
+
+
+@pytest.mark.parametrize("launcher", (run_in_pool, run_in_thread))
+def test_wait_timeout_keeps_running_task_owned(qapp, launcher) -> None:
+    """A timed-out wait keeps the backend alive for retry. wait 超时后保留后端供重试。"""
+    worker_started = threading.Event()
+    release_worker = threading.Event()
+    handle = launcher(
+        lambda: (worker_started.set(), release_worker.wait(), "complete")[-1]
+    )
+    try:
+        assert worker_started.wait(TASK_TIMEOUT_MS / 1000)
+        assert not handle.wait(20)
+        assert handle in task_runner_module._active_handles()
+    finally:
+        release_worker.set()
+
+    assert handle.wait(TASK_TIMEOUT_MS)
+    assert handle.state is TaskState.SUCCEEDED
+    assert handle.result == "complete"
+
+
+def test_concurrent_waiters_observe_one_released_backend(qapp) -> None:
+    """Concurrent waits share one safe backend release. 并发等待共享一次安全后端释放。"""
+    release_worker = threading.Event()
+    handle = run_in_thread(lambda: (release_worker.wait(), "complete")[-1])
+    observations = []
+    waiters = [
+        threading.Thread(
+            target=lambda: observations.append(handle.wait(TASK_TIMEOUT_MS)),
+            daemon=True,
+        )
+        for _index in range(2)
+    ]
+    for waiter in waiters:
+        waiter.start()
+    release_worker.set()
+    for waiter in waiters:
+        waiter.join(TASK_TIMEOUT_MS / 1000)
+
+    assert observations == [True, True]
+    assert handle.state is TaskState.SUCCEEDED
+    assert handle.result == "complete"
+
+
+@pytest.mark.parametrize("launcher", (run_in_pool, run_in_thread))
+def test_cleanup_return_after_cancel_is_cancelled(qapp, launcher) -> None:
+    """An accepted cancellation wins over a cleanup return. 已接受取消优先于清理返回。"""
+    worker_started = threading.Event()
+
+    def cleanup_after_cancel():
+        worker_started.set()
+        while not current_task().cancel_requested:
+            time.sleep(0.001)
+        return "cleanup complete"
+
+    handle = launcher(cleanup_after_cancel)
+    cancelled = QSignalSpy(handle.cancelled)
+    assert worker_started.wait(TASK_TIMEOUT_MS / 1000)
+    assert handle.cancel()
+    assert handle.wait(TASK_TIMEOUT_MS)
+    assert handle.state is TaskState.CANCELLED
+    assert handle.result is None
+
+    qapp.processEvents()
+    assert cancelled.count() == 1
+
+
+def test_custom_pool_priority_controls_queued_order(qapp) -> None:
+    """Custom pool priority orders queued work. 自定义线程池优先级控制排队顺序。"""
+    pool = QThreadPool()
+    pool.setMaxThreadCount(1)
+    blocker_started = threading.Event()
+    release_blocker = threading.Event()
+    execution_order = []
+    blocker = run_in_pool(
+        lambda: (blocker_started.set(), release_blocker.wait()),
+        task_options=PoolTaskOptions(pool=pool),
+    )
+    try:
+        assert blocker_started.wait(TASK_TIMEOUT_MS / 1000)
+        low = run_in_pool(
+            lambda: execution_order.append("low"),
+            task_options=PoolTaskOptions(pool=pool, priority=-10),
+        )
+        high = run_in_pool(
+            lambda: execution_order.append("high"),
+            task_options=PoolTaskOptions(pool=pool, priority=10),
+        )
+        release_blocker.set()
+
+        assert blocker.wait(TASK_TIMEOUT_MS)
+        assert high.wait(TASK_TIMEOUT_MS)
+        assert low.wait(TASK_TIMEOUT_MS)
+        assert execution_order == ["high", "low"]
+    finally:
+        release_blocker.set()
+        pool.waitForDone(TASK_TIMEOUT_MS)
+
+
+def test_queued_pool_task_can_be_cancelled_before_start(qapp) -> None:
+    """Queued cancellation removes work without executing it. 排队取消不执行任务。"""
+    pool = QThreadPool()
+    pool.setMaxThreadCount(1)
+    blocker_started = threading.Event()
+    release_blocker = threading.Event()
+    queued_executed = threading.Event()
+    options = PoolTaskOptions(pool=pool)
+
+    def block_pool():
+        blocker_started.set()
+        release_blocker.wait()
+
+    blocker = run_in_pool(block_pool, task_options=options)
+    try:
+        assert blocker_started.wait(TASK_TIMEOUT_MS / 1000)
+        queued = run_in_pool(queued_executed.set, task_options=options)
+        assert queued.cancel()
+        assert queued.wait(TASK_TIMEOUT_MS)
+        assert queued.state is TaskState.CANCELLED
+        assert not queued_executed.is_set()
+    finally:
+        release_blocker.set()
+        assert blocker.wait(TASK_TIMEOUT_MS)
+        pool.waitForDone(TASK_TIMEOUT_MS)
+
+
+def test_require_available_policy_rejects_without_leaking_handle(qapp) -> None:
+    """Backpressure rejects when the custom pool is busy. 线程池繁忙时背压拒绝。"""
+    pool = QThreadPool()
+    pool.setMaxThreadCount(1)
+    blocker_started = threading.Event()
+    release_blocker = threading.Event()
+    blocker = run_in_pool(
+        lambda: (blocker_started.set(), release_blocker.wait()),
+        task_options=PoolTaskOptions(pool=pool),
+    )
+    try:
+        assert blocker_started.wait(TASK_TIMEOUT_MS / 1000)
+        retained_before = len(task_runner_module._active_handles())
+        options = PoolTaskOptions(
+            pool=pool,
+            submit_policy=PoolSubmitPolicy.REQUIRE_AVAILABLE,
+        )
+
+        with pytest.raises(TaskRejectedError, match="available"):
+            run_in_pool(lambda: None, task_options=options)
+
+        assert len(task_runner_module._active_handles()) == retained_before
+    finally:
+        release_blocker.set()
+        assert blocker.wait(TASK_TIMEOUT_MS)
+        pool.waitForDone(TASK_TIMEOUT_MS)
+
+
+def test_shutdown_timeout_reports_and_retains_non_cooperative_task(qapp) -> None:
+    """Bounded shutdown reports live work for a safe retry. 有界退出保留活任务供重试。"""
+    worker_started = threading.Event()
+    release_worker = threading.Event()
+
+    def ignore_cancel_until_released():
+        worker_started.set()
+        release_worker.wait()
+
+    handle = run_in_thread(ignore_cancel_until_released)
+    assert worker_started.wait(TASK_TIMEOUT_MS / 1000)
+    try:
+        report = shutdown_tasks(20)
+        assert isinstance(report, TaskShutdownReport)
+        assert report.requested_count == 1
+        assert report.stopped_count == 0
+        assert report.pending == (handle,)
+        assert not report.complete
+    finally:
+        release_worker.set()
+
+    retried = shutdown_tasks(TASK_TIMEOUT_MS)
+    assert retried.complete
+    assert retried.stopped_count == 1
+
+
 def test_current_task_rejects_calls_outside_runner(qapp) -> None:
     """Task context is scoped to worker invocation. 任务上下文仅在后台调用中有效。"""
     with pytest.raises(RuntimeError, match="background task"):
@@ -223,10 +438,15 @@ def test_task_api_is_exported_from_public_modules(qapp) -> None:
     from prismqml.python import core
 
     names = {
+        "PoolSubmitPolicy",
+        "PoolTaskOptions",
         "TaskCancelledError",
         "TaskContext",
         "TaskFailure",
         "TaskHandle",
+        "TaskRejectedError",
+        "TaskShutdownReport",
+        "TaskShutdownTimeoutError",
         "TaskState",
         "current_task",
         "run_in_pool",

@@ -83,25 +83,60 @@ handle.succeeded.connect(apply_library)
 handle.failed.connect(report_failure)
 ```
 
-`run_in_pool()` uses Qt's global thread pool for bounded concurrent calls.
-`run_in_thread()` creates one dedicated `QThread` for a long blocking call.
+`run_in_pool()` uses Qt's global thread pool by default for bounded concurrent
+calls. `run_in_thread()` creates one dedicated `QThread` for a long blocking
+call, but does not replace QObject/QThread services that require a persistent
+event loop.
 Both return a `TaskHandle` with the same `started`, `progress`, `succeeded`,
 `failed`, `cancelled`, `finished`, and `state_changed` signals. Public signals
 are emitted on the Qt application thread; `result`, `failure`, and `state`
 expose the final outcome. `TaskFailure` preserves both the exception object and
 its formatted traceback.
 
+Custom pools, priority, and backpressure use a separate options object, leaving
+ordinary callable positional arguments untouched:
+
+```python
+from PySide6.QtCore import QThreadPool
+from prismqml import PoolSubmitPolicy, PoolTaskOptions, run_in_pool
+
+io_pool = QThreadPool()
+io_pool.setMaxThreadCount(16)
+options = PoolTaskOptions(pool=io_pool, priority=10)
+handle = run_in_pool(load_library, library_path, task_options=options)
+
+# Reject with TaskRejectedError instead of queueing when all workers are busy.
+immediate = PoolTaskOptions(
+    pool=io_pool,
+    submit_policy=PoolSubmitPolicy.REQUIRE_AVAILABLE,
+)
+```
+
 `handle.cancel()` is cooperative and never calls the unsafe `terminate()`.
-Long-running work should periodically call
-`current_task().raise_if_cancelled()`, or inspect `cancel_requested` and return
-after its own cleanup. On exit, `App.exec()` calls `shutdown_tasks()` to request
-cancellation and wait until every execution backend has stopped, preventing a
-running `QThread` from being destroyed. Applications using a bare
+Queued pool work is safely removed when possible. Running work should
+periodically call `current_task().raise_if_cancelled()`, or inspect
+`cancel_requested`, clean up, and return. Once `cancel()` accepts a request, a
+subsequent normal return settles as `CANCELLED` instead of reporting success.
+
+`handle.wait(timeout_ms)` is intended for tests or non-UI teardown paths. A
+`True` return guarantees the backend has stopped and `state`, `result`, and
+`failure` are immediately readable. Public signals remain queued to the Qt
+application thread, so their callbacks may still be pending when `wait()`
+returns. Normal UI code should observe signals instead of blocking the event
+loop.
+
+`shutdown_tasks(timeout_ms)` requests cancellation for the captured tasks,
+waits against one shared deadline, and returns a `TaskShutdownReport`. When
+`complete` is false, `pending` retains the live handles so cleanup can finish
+before a retry. `App(task_shutdown_timeout_ms=...)` applies the same policy to
+`App.exec()` teardown; a deadline raises `TaskShutdownTimeoutError` while
+preserving the Qt runtime instead of destroying a live `QThread`. After its
+cleanup finishes, the caller can retry through the public, idempotent
+`app.shutdown()`. The default `None` waits indefinitely for safety.
+Applications using a bare
 `QCoreApplication` should call `shutdown_tasks()` before teardown. Python
 CPU-bound code is still constrained by the GIL; use multiprocessing for true
-CPU parallelism. `handle.wait(timeout_ms)` is intended for tests or non-UI
-teardown paths; normal UI code should observe signals instead of blocking the
-Qt application thread.
+CPU parallelism.
 
 ## Engine components
 

@@ -32,6 +32,28 @@ _DEFAULT_WINDOW_TYPE = 1
 _MISSING_ENVIRONMENT = object()
 
 
+def _validate_task_shutdown_timeout(timeout_ms: Optional[int]) -> None:
+    if timeout_ms is None:
+        return
+    if isinstance(timeout_ms, bool) or not isinstance(timeout_ms, int):
+        raise TypeError("task_shutdown_timeout_ms must be an int or None")
+    if timeout_ms < 0:
+        raise ValueError("task_shutdown_timeout_ms must be non-negative or None")
+
+
+def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> None:
+    """Initialize fields before fallible Qt startup. 在可能失败的 Qt 启动前初始化字段。"""
+    _validate_task_shutdown_timeout(task_shutdown_timeout_ms)
+    owner._app = None
+    owner._engine = None
+    owner._owns_app = False
+    owner._input_filter_started = False
+    owner._dwm_filter_started = False
+    owner._engine_publish_started = False
+    owner._task_shutdown_timeout_ms = task_shutdown_timeout_ms
+    owner._windows = []
+
+
 def _prepare_app_environment(allow_qml_file_read: bool) -> None:
     """Prepare process-wide Qt settings. 准备进程级 Qt 设置。"""
     from ..config import applyDpiScale
@@ -133,9 +155,11 @@ def _rollback_app_initialization(owner, previous_qml_environment) -> None:
 def _shutdown_app_runtime(owner) -> None:
     """Release QML before QApplication teardown. 在 QApplication 析构前释放 QML。"""
     from ..core.shadow import reset_dwm_sync_filter
-    from ..core.task_runner import shutdown_tasks
+    from ..core.task_runner import TaskShutdownTimeoutError, shutdown_tasks
 
-    _run_app_cleanup("background tasks", shutdown_tasks)
+    report = shutdown_tasks(owner._task_shutdown_timeout_ms)
+    if not report.complete:
+        raise TaskShutdownTimeoutError(report)
     if owner._input_filter_started:
         _run_app_cleanup("input filter", reset_input_focus_filter)
         owner._input_filter_started = False
@@ -171,6 +195,8 @@ class App:
 
     ``allow_qml_file_read`` 默认启用 Translator 读取本地 i18n JSON 所需的
     QML XHR；传入 ``False`` 可在创建引擎前显式关闭。
+    ``task_shutdown_timeout_ms`` 可为后台任务退出设置总截止时间；超时会保留
+    Qt 运行时并抛出 ``TaskShutdownTimeoutError``，传入 ``None`` 则安全地持续等待。
     """
 
     _instance: "App" = None
@@ -180,18 +206,13 @@ class App:
         argv: List[str] = None,
         *,
         allow_qml_file_read: bool = True,
+        task_shutdown_timeout_ms: Optional[int] = None,
     ):
         if App._instance is not None:
             raise RuntimeError(
                 "App already exists. Use App.instance() to get the existing instance."
             )
-        self._app = None
-        self._engine = None
-        self._owns_app = False
-        self._input_filter_started = False
-        self._dwm_filter_started = False
-        self._engine_publish_started = False
-        self._windows: List["WindowCore"] = []
+        _initialize_app_state(self, task_shutdown_timeout_ms)
         previous_qml_environment = os.environ.get(
             QML_XHR_ALLOW_FILE_READ_ENV, _MISSING_ENVIRONMENT
         )
@@ -388,12 +409,16 @@ class App:
         """
         return self._app
 
+    def shutdown(self) -> None:
+        """Safely release tasks and the QML runtime. 安全释放任务和 QML 运行时。"""
+        _shutdown_app_runtime(self)
+
     def exec(self) -> int:
         """Run once, then release the QML runtime in dependency order. 运行一次并按依赖顺序释放 QML 运行时。"""
         try:
             return self._app.exec()
         finally:
-            _shutdown_app_runtime(self)
+            self.shutdown()
 
     # ==================== 自动转发 Auto-forwarding ====================
     # 任何未在本类显式定义的属性/方法,都透传到底层 QApplication.

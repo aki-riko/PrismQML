@@ -78,20 +78,49 @@ handle.succeeded.connect(apply_library)
 handle.failed.connect(report_failure)
 ```
 
-`run_in_pool()` 使用 Qt 全局线程池，适合有界、可并发的后台调用；
-`run_in_thread()` 为单次调用创建独立 `QThread`，适合需要独占线程的长阻塞任务。
+`run_in_pool()` 默认使用 Qt 全局线程池，适合有界、可并发的后台调用；
+`run_in_thread()` 为单次调用创建独立 `QThread`，适合需要独占线程的长阻塞任务，
+但不替代需要持续事件循环的 QObject/QThread 服务。
 两者都返回 `TaskHandle`，统一提供 `started`、`progress`、`succeeded`、
 `failed`、`cancelled`、`finished` 和 `state_changed` 信号。公开信号在 Qt 应用
 线程发出，`result` / `failure` / `state` 可读取最终状态；`TaskFailure` 同时保留
 异常对象和格式化堆栈。
 
-`handle.cancel()` 是协作式取消，不会调用不安全的 `terminate()`。长任务应周期性
-调用 `current_task().raise_if_cancelled()`；也可读取 `cancel_requested` 自行清理后
-返回。`App.exec()` 退出时会调用 `shutdown_tasks()`，先请求取消，再等待执行后端
-完全停止，防止仍在运行的 `QThread` 被析构。若只使用裸 `QCoreApplication`，应在
-销毁应用前显式调用 `shutdown_tasks()`。Python CPU 密集型代码仍受 GIL 限制，需
-真正并行时应使用多进程。`handle.wait(timeout_ms)` 仅适合测试或非 UI 退出流程；
-正常界面逻辑应监听信号，避免阻塞 Qt 应用线程。
+自定义线程池、优先级和背压通过独立选项对象传入，不会占用普通 callable 的位置参数：
+
+```python
+from PySide6.QtCore import QThreadPool
+from prismqml import PoolSubmitPolicy, PoolTaskOptions, run_in_pool
+
+io_pool = QThreadPool()
+io_pool.setMaxThreadCount(16)
+options = PoolTaskOptions(pool=io_pool, priority=10)
+handle = run_in_pool(load_library, library_path, task_options=options)
+
+# 繁忙时不排队，直接抛出 TaskRejectedError
+immediate = PoolTaskOptions(
+    pool=io_pool,
+    submit_policy=PoolSubmitPolicy.REQUIRE_AVAILABLE,
+)
+```
+
+`handle.cancel()` 是协作式取消，不会调用不安全的 `terminate()`。尚未开始的线程池
+任务会尽量从队列安全移除；已经运行的任务应周期性调用
+`current_task().raise_if_cancelled()`，或读取 `cancel_requested` 完成清理后返回。
+一旦 `cancel()` 接受请求，随后正常返回也会结算为 `CANCELLED`，不会误报成功。
+
+`handle.wait(timeout_ms)` 仅适合测试或非 UI 退出流程；返回 `True` 时后端已经停止，
+且 `state` / `result` / `failure` 可立即读取。公开信号仍在 Qt 应用线程排队派发，
+因此 `wait()` 返回时回调可能尚未执行；正常界面逻辑应监听信号，避免阻塞事件循环。
+
+`shutdown_tasks(timeout_ms)` 先向当前全部任务请求取消，再使用一个共享总截止时间等待，
+并返回 `TaskShutdownReport`。`complete` 为 `False` 时，`pending` 保留仍运行的句柄，
+调用方可完成业务清理后再次调用。`App(task_shutdown_timeout_ms=...)` 会将同一策略用于
+`App.exec()` 退出；超时时抛出 `TaskShutdownTimeoutError` 并保留 Qt 运行时，防止活跃
+`QThread` 被析构；调用方完成清理后可调用公开且幂等的 `app.shutdown()` 重试。
+默认 `None` 表示为了安全持续等待。若只使用裸
+`QCoreApplication`，应在销毁应用前显式调用 `shutdown_tasks()`。Python CPU 密集型
+代码仍受 GIL 限制，需要真正并行时应使用多进程。
 
 ## 引擎组件
 

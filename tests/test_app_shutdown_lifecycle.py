@@ -27,7 +27,6 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import QGuiApplication
 from prismqml import App, SystemTrayIcon
 from prismqml.python.core.engine import EngineManager
-from prismqml.python.window.app import _shutdown_app_runtime
 from prismqml.python.window.window_core import WindowCore
 
 app = App([])
@@ -47,7 +46,7 @@ engine_released = app.engine is None and EngineManager._engine is None
 window_references_released = (
     WindowCore.get_current_window() is None and not app.windows
 )
-_shutdown_app_runtime(app)
+app.shutdown()
 
 print(f"APP_SHUTDOWN_RESULT={result}", flush=True)
 print(f"APP_SHUTDOWN_WINDOWS={windows_before}->{windows_after}", flush=True)

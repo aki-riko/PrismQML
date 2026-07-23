@@ -5,16 +5,15 @@
 """Callable-based Qt background tasks. 基于可调用对象的 Qt 后台任务。"""
 
 from contextvars import ContextVar
-from dataclasses import dataclass
-from enum import Enum
+import math
 import threading
+import time
 import traceback as traceback_module
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from PySide6.QtCore import (
     QCoreApplication,
     QObject,
-    QRunnable,
     QThread,
     QThreadPool,
     QTimer,
@@ -24,33 +23,17 @@ from PySide6.QtCore import (
 )
 
 from .logger import exception
-
-
-class TaskState(Enum):
-    """Public background-task states. 公开后台任务状态。"""
-
-    PENDING = "pending"
-    RUNNING = "running"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
-
-    @classmethod
-    def terminal_states(cls) -> Tuple["TaskState", ...]:
-        """Return all terminal states. 返回全部终态。"""
-        return cls.SUCCEEDED, cls.FAILED, cls.CANCELLED
-
-
-class TaskCancelledError(Exception):
-    """Raised when cooperative task cancellation is observed. 任务发现协作取消时抛出。"""
-
-
-@dataclass(frozen=True)
-class TaskFailure:
-    """Structured exception details from a background task. 后台任务的结构化异常信息。"""
-
-    exception: BaseException
-    traceback: str
+from ._task_types import (
+    _TaskOutcome,
+    PoolSubmitPolicy,
+    PoolTaskOptions,
+    TaskCancelledError,
+    TaskFailure,
+    TaskRejectedError,
+    TaskShutdownReport,
+    TaskShutdownTimeoutError,
+    TaskState,
+)
 
 
 class _TaskControl:
@@ -59,7 +42,7 @@ class _TaskControl:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._cancel_requested = False
-        self._done = False
+        self._outcome = None
         self._backend_stopped = threading.Event()
 
     @property
@@ -69,14 +52,21 @@ class _TaskControl:
 
     def request_cancel(self) -> bool:
         with self._lock:
-            if self._done or self._cancel_requested:
+            if self._outcome is not None or self._cancel_requested:
                 return False
             self._cancel_requested = True
             return True
 
-    def mark_done(self) -> None:
+    def settle(self, state: TaskState, payload: Any) -> bool:
         with self._lock:
-            self._done = True
+            if self._outcome is not None:
+                return False
+            self._outcome = _TaskOutcome(state, payload)
+            return True
+
+    def outcome(self) -> Optional[_TaskOutcome]:
+        with self._lock:
+            return self._outcome
 
     def mark_backend_stopped(self) -> None:
         self._backend_stopped.set()
@@ -110,8 +100,8 @@ class TaskContext:
     def _request_cancel(self) -> bool:
         return self._control.request_cancel()
 
-    def _mark_done(self) -> None:
-        self._control.mark_done()
+    def _settle(self, state: TaskState, payload: Any) -> bool:
+        return self._control.settle(state, payload)
 
 
 _CURRENT_TASK = ContextVar("prismqml_current_task", default=None)
@@ -164,13 +154,22 @@ class _TaskExecution:
         except BaseException as caught:
             self._fail(caught)
         else:
-            self._settle(TaskState.SUCCEEDED, result)
+            if self._context.cancel_requested:
+                self._settle(TaskState.CANCELLED, None)
+            else:
+                self._settle(TaskState.SUCCEEDED, result)
         finally:
             _CURRENT_TASK.reset(token)
 
+    def cancel_before_start(self) -> None:
+        """Settle queued work removed before execution. 结算执行前被移除的排队任务。"""
+        self._settle(TaskState.CANCELLED, None)
+
     def _fail(self, caught: BaseException) -> None:
         rendered = "".join(
-            traceback_module.format_exception(type(caught), caught, caught.__traceback__)
+            traceback_module.format_exception(
+                type(caught), caught, caught.__traceback__
+            )
         )
         exception(
             f"Background task failed: {type(caught).__name__}: {caught}",
@@ -182,107 +181,8 @@ class _TaskExecution:
         )
 
     def _settle(self, state: TaskState, payload: Any) -> None:
-        self._context._mark_done()
-        self._events.settled.emit(state, payload)
-
-
-class _PoolRunnable(QRunnable):
-    """Internal QRunnable adapter. 内部 QRunnable 适配器。"""
-
-    def __init__(
-        self,
-        execution: _TaskExecution,
-        events: _TaskEvents,
-        control: _TaskControl,
-    ) -> None:
-        super().__init__()
-        self._execution = execution
-        self._events = events
-        self._control = control
-        self.setAutoDelete(True)
-
-    def run(self) -> None:
-        try:
-            self._execution.run()
-        finally:
-            self._control.mark_backend_stopped()
-            self._events.backend_stopped.emit()
-
-    def request_cancel(self) -> None:
-        """Use the shared cooperative token for pool cancellation. 使用共享令牌协作取消。"""
-        return None
-
-    def wait(self, timeout_ms: Optional[int]) -> bool:
-        """Wait until the pool callable has returned. 等待线程池任务返回。"""
-        return self._control.wait_for_backend(timeout_ms)
-
-    def release(self) -> None:
-        """Leave Qt-owned runnable cleanup to QThreadPool. 由 QThreadPool 清理 runnable。"""
-        return None
-
-
-class _TaskWorker(QObject):
-    """Internal worker-object adapter for QThread. QThread 的内部 worker-object 适配器。"""
-
-    finished = Signal()
-
-    def __init__(self, execution: _TaskExecution) -> None:
-        super().__init__()
-        self._execution = execution
-
-    @Slot()
-    def execute(self) -> None:
-        try:
-            self._execution.run()
-        finally:
-            self.finished.emit()
-
-
-class _ThreadBackend:
-    """Own one QThread and its worker. 持有一个 QThread 及其 worker。"""
-
-    def __init__(
-        self,
-        execution: _TaskExecution,
-        handle: "TaskHandle",
-        control: _TaskControl,
-    ) -> None:
-        self._thread = QThread(handle)
-        self._worker = _TaskWorker(execution)
-        self._worker.moveToThread(self._thread)
-        self._thread.started.connect(self._worker.execute)
-        self._worker.finished.connect(
-            self._thread.quit,
-            Qt.ConnectionType.DirectConnection,
-        )
-        self._worker.finished.connect(self._worker.deleteLater)
-        self._thread.finished.connect(
-            control.mark_backend_stopped,
-            Qt.ConnectionType.DirectConnection,
-        )
-        self._thread.finished.connect(
-            handle._relay_backend_stopped,
-            Qt.ConnectionType.QueuedConnection,
-        )
-        # Let the retained handle own QThread until execution has fully stopped.
-        # 由受保留的 handle 持有 QThread，直至执行完全停止。
-
-    def start(self) -> None:
-        self._thread.start()
-
-    def request_cancel(self) -> None:
-        self._thread.requestInterruption()
-
-    def wait(self, timeout_ms: Optional[int]) -> bool:
-        """Wait for QThread.run() to return completely. 等待 QThread.run() 完全返回。"""
-        if timeout_ms is None:
-            return self._thread.wait()
-        return self._thread.wait(timeout_ms)
-
-    def release(self) -> None:
-        """Release invalid worker wrapper before the stopped thread. 先释放失效 worker 再释放线程。"""
-        self._worker = None
-        self._thread = None
+        if self._context._settle(state, payload):
+            self._events.settled.emit(state, payload)
 
 
 class TaskHandle(QObject):
@@ -302,7 +202,10 @@ class TaskHandle(QObject):
         self._state = TaskState.PENDING
         self._result = None
         self._failure = None
+        self._waited_outcome = None
+        self._waited_outcome_lock = threading.Lock()
         self._backend = None
+        self._backend_lock = threading.RLock()
         self._backend_stopped = False
         self._backend_release_scheduled = False
         self._events = _TaskEvents(self)
@@ -311,17 +214,26 @@ class TaskHandle(QObject):
 
     @property
     def state(self) -> TaskState:
-        """Return the last state published on the Qt thread. 返回 Qt 线程已发布的最新状态。"""
+        """Return the published or explicitly waited state. 返回已发布或已等待的状态。"""
+        outcome = self._get_waited_outcome()
+        if outcome is not None:
+            return outcome.state
         return self._state
 
     @property
     def result(self) -> Any:
         """Return the successful result, otherwise None. 返回成功结果，否则返回 None。"""
+        outcome = self._get_waited_outcome()
+        if outcome is not None and outcome.state is TaskState.SUCCEEDED:
+            return outcome.payload
         return self._result
 
     @property
     def failure(self) -> Optional[TaskFailure]:
         """Return structured failure details, otherwise None. 返回结构化失败信息，否则返回 None。"""
+        outcome = self._get_waited_outcome()
+        if outcome is not None and outcome.state is TaskState.FAILED:
+            return outcome.payload
         return self._failure
 
     @property
@@ -337,12 +249,28 @@ class TaskHandle(QObject):
         return requested
 
     def wait(self, timeout_ms: Optional[int] = None) -> bool:
-        """Wait until the execution backend has stopped. 等待执行后端完全停止。"""
-        if timeout_ms is not None and timeout_ms < 0:
-            raise ValueError("Task wait timeout must be non-negative or None")
-        if self._backend is None:
-            return self._control.wait_for_backend(timeout_ms)
-        return self._backend.wait(timeout_ms)
+        """Wait for backend stop and expose its outcome. 等待后端停止并公开结果。"""
+        _validate_timeout_ms(timeout_ms, "Task wait timeout")
+        with self._backend_lock:
+            if self._backend is None:
+                stopped = self._control.wait_for_backend(timeout_ms)
+            else:
+                stopped = self._backend.wait(timeout_ms)
+            if stopped:
+                self._cache_waited_outcome()
+                self._release_backend()
+        return stopped
+
+    def _get_waited_outcome(self) -> Optional[_TaskOutcome]:
+        with self._waited_outcome_lock:
+            return self._waited_outcome
+
+    def _cache_waited_outcome(self) -> None:
+        outcome = self._control.outcome()
+        if outcome is None:
+            return
+        with self._waited_outcome_lock:
+            self._waited_outcome = outcome
 
     def _connect_events(self) -> None:
         queued = Qt.ConnectionType.QueuedConnection
@@ -392,13 +320,22 @@ class TaskHandle(QObject):
             QTimer.singleShot(0, self._release_backend)
 
     def _release_backend(self) -> None:
-        backend = self._backend
-        if backend is None:
-            return
-        backend.wait(None)
-        backend.release()
-        self._backend = None
-        _release_handle(self)
+        with self._backend_lock:
+            backend = self._backend
+            if backend is None:
+                return
+            backend.wait(None)
+            backend.release()
+            self._backend = None
+            _release_handle(self)
+
+    def _discard_unstarted_backend(self) -> None:
+        with self._backend_lock:
+            backend = self._backend
+            if backend is not None:
+                backend.release()
+                self._backend = None
+            _release_handle(self)
 
 
 _ACTIVE_HANDLES = {}
@@ -420,6 +357,21 @@ def _active_handles() -> Tuple[TaskHandle, ...]:
         return tuple(_ACTIVE_HANDLES.values())
 
 
+def _validate_timeout_ms(timeout_ms: Optional[int], label: str) -> None:
+    if timeout_ms is None:
+        return
+    if isinstance(timeout_ms, bool) or not isinstance(timeout_ms, int):
+        raise TypeError(f"{label} must be an int or None")
+    if timeout_ms < 0:
+        raise ValueError(f"{label} must be non-negative or None")
+
+
+def _remaining_timeout_ms(deadline: Optional[float]) -> Optional[int]:
+    if deadline is None:
+        return None
+    return max(0, math.ceil((deadline - time.monotonic()) * 1000))
+
+
 def _create_task(
     function: Callable[..., Any],
     args: Tuple[Any, ...],
@@ -429,7 +381,9 @@ def _create_task(
     if app is None:
         raise RuntimeError("A QCoreApplication is required before starting a task")
     if QThread.currentThread() != app.thread():
-        raise RuntimeError("Background tasks must be started from the Qt application thread")
+        raise RuntimeError(
+            "Background tasks must be started from the Qt application thread"
+        )
     if not callable(function):
         raise TypeError("Background task function must be callable")
     control = _TaskControl()
@@ -439,40 +393,102 @@ def _create_task(
     return handle, execution
 
 
-def run_in_pool(function: Callable[..., Any], /, *args: Any, **kwargs: Any) -> TaskHandle:
-    """Run a callable on Qt's global thread pool. 在线程池中运行可调用对象。"""
+def _start_pool_backend(
+    handle: TaskHandle,
+    execution: _TaskExecution,
+    options: PoolTaskOptions,
+    pool: QThreadPool,
+) -> None:
+    from ._task_backends import _PoolRunnable
+
+    try:
+        backend = _PoolRunnable(execution, handle._events, handle._control, pool)
+        handle._backend = backend
+        if options.submit_policy is PoolSubmitPolicy.REQUIRE_AVAILABLE:
+            if backend.try_start():
+                return
+            handle._discard_unstarted_backend()
+            raise TaskRejectedError("No QThreadPool worker thread is available")
+        backend.start(options.priority)
+    except TaskRejectedError:
+        raise
+    except Exception as caught:
+        handle._discard_unstarted_backend()
+        exception(
+            f"QThreadPool task submission failed: {type(caught).__name__}: {caught}"
+        )
+        raise
+
+
+def _start_thread_backend(handle: TaskHandle, execution: _TaskExecution) -> None:
+    from ._task_backends import _ThreadBackend
+
+    try:
+        backend = _ThreadBackend(execution, handle, handle._control)
+        handle._backend = backend
+        backend.start()
+    except Exception as caught:
+        handle._discard_unstarted_backend()
+        exception(f"QThread task startup failed: {type(caught).__name__}: {caught}")
+        raise
+
+
+def run_in_pool(
+    function: Callable[..., Any],
+    /,
+    *args: Any,
+    task_options: Optional[PoolTaskOptions] = None,
+    **kwargs: Any,
+) -> TaskHandle:
+    """Run a callable on a configured Qt thread pool. 在配置的 Qt 线程池运行调用。"""
+    if task_options is None:
+        task_options = PoolTaskOptions()
+    elif not isinstance(task_options, PoolTaskOptions):
+        raise TypeError("task_options must be a PoolTaskOptions or None")
+    pool = task_options.pool or QThreadPool.globalInstance()
     handle, execution = _create_task(function, args, kwargs)
-    runnable = _PoolRunnable(execution, handle._events, handle._control)
-    handle._backend = runnable
-    QThreadPool.globalInstance().start(runnable)
+    _start_pool_backend(handle, execution, task_options, pool)
     return handle
 
 
-def run_in_thread(function: Callable[..., Any], /, *args: Any, **kwargs: Any) -> TaskHandle:
+def run_in_thread(
+    function: Callable[..., Any], /, *args: Any, **kwargs: Any
+) -> TaskHandle:
     """Run a callable on one dedicated QThread. 在独立 QThread 中运行可调用对象。"""
     handle, execution = _create_task(function, args, kwargs)
-    backend = _ThreadBackend(execution, handle, handle._control)
-    handle._backend = backend
-    backend.start()
+    _start_thread_backend(handle, execution)
     return handle
 
 
-def shutdown_tasks() -> int:
-    """Cancel and wait for every active task without force termination. 取消并等待全部任务且不强杀。"""
+def shutdown_tasks(timeout_ms: Optional[int] = None) -> TaskShutdownReport:
+    """Cancel active tasks and wait up to one shared deadline. 取消任务并等待统一截止时间。"""
+    _validate_timeout_ms(timeout_ms, "Task shutdown timeout")
     handles = _active_handles()
     for handle in handles:
         handle.cancel()
+    deadline = None
+    if timeout_ms is not None:
+        deadline = time.monotonic() + timeout_ms / 1000
+    stopped_count = 0
+    pending = []
     for handle in handles:
-        handle.wait()
-        handle._release_backend()
-    return len(handles)
+        if handle.wait(_remaining_timeout_ms(deadline)):
+            stopped_count += 1
+        else:
+            pending.append(handle)
+    return TaskShutdownReport(len(handles), stopped_count, tuple(pending))
 
 
 __all__ = [
+    "PoolSubmitPolicy",
+    "PoolTaskOptions",
     "TaskCancelledError",
     "TaskContext",
     "TaskFailure",
     "TaskHandle",
+    "TaskRejectedError",
+    "TaskShutdownReport",
+    "TaskShutdownTimeoutError",
     "TaskState",
     "current_task",
     "run_in_pool",
