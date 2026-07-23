@@ -199,7 +199,7 @@ QtObject {
         // Foreground semantic colors 语义前景色
         readonly property color infoLight: "#676767"  // 自定义：中性灰信息色
         readonly property color successLight: "#0f7b0f"  // WinUI SystemFillColorSuccess (Light)
-        readonly property color warningLight: "#8b6b03"  // 金黄警告色 hue~46° 对白5.0:1(AA);较原 #9d5d00 更黄,与错误红拉开色相区分
+        readonly property color warningLight: "#9d5d00"  // WinUI SystemFillColorCaution (Light)
         readonly property color errorLight: "#c42b1c"  // WinUI SystemFillColorCritical (Light)
         readonly property color processingLight: "#7b2cbf"  // 自定义：鲜紫色代表处理中
         readonly property color attentionLight: "#0a93a8"  // 自定义：青色代表注意
