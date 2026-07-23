@@ -244,8 +244,9 @@ class TaskHandle(QObject):
     def cancel(self) -> bool:
         """Request cooperative cancellation once. 请求一次协作取消。"""
         requested = self._context._request_cancel()
-        if requested and self._backend is not None:
-            self._backend.request_cancel()
+        backend = self._backend
+        if requested and backend is not None:
+            backend.request_cancel()
         return requested
 
     def wait(self, timeout_ms: Optional[int] = None) -> bool:

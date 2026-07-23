@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Qt execution backends for callable tasks. 可调用任务的 Qt 执行后端。"""
 
+import threading
 from typing import Any, Optional
 
 from PySide6.QtCore import QObject, QRunnable, QThread, QThreadPool, Qt, Signal, Slot
@@ -24,6 +25,7 @@ class _PoolRunnable(QRunnable):
         self._events = events
         self._control = control
         self._pool = pool
+        self._lifecycle_lock = threading.Lock()
         # Non-auto-delete is required for safe QThreadPool.tryTake() use.
         # 安全使用 QThreadPool.tryTake() 必须关闭自动删除以规避 ABA 问题。
         self.setAutoDelete(False)
@@ -48,11 +50,18 @@ class _PoolRunnable(QRunnable):
 
     def request_cancel(self) -> None:
         """Remove queued work when possible, otherwise stay cooperative. 优先移除排队任务。"""
-        if not self._pool.tryTake(self):
-            return
-        self._execution.cancel_before_start()
-        self._control.mark_backend_stopped()
-        self._events.backend_stopped.emit()
+        with self._lifecycle_lock:
+            pool = self._pool
+            execution = self._execution
+            control = self._control
+            events = self._events
+            if pool is None or execution is None or control is None or events is None:
+                return
+            if not pool.tryTake(self):
+                return
+            execution.cancel_before_start()
+            control.mark_backend_stopped()
+            events.backend_stopped.emit()
 
     def wait(self, timeout_ms: Optional[int]) -> bool:
         """Wait until the pool callable has returned. 等待线程池任务返回。"""
@@ -60,10 +69,11 @@ class _PoolRunnable(QRunnable):
 
     def release(self) -> None:
         """Drop retained Python objects after execution stops. 后端停止后释放 Python 对象。"""
-        self._execution = None
-        self._events = None
-        self._control = None
-        self._pool = None
+        with self._lifecycle_lock:
+            self._execution = None
+            self._events = None
+            self._control = None
+            self._pool = None
 
 
 class _TaskWorker(QObject):
@@ -89,6 +99,7 @@ class _ThreadBackend:
     def __init__(self, execution: Any, handle: QObject, control: Any) -> None:
         self._thread = QThread(handle)
         self._worker = _TaskWorker(execution)
+        self._lifecycle_lock = threading.Lock()
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.execute)
         self._worker.finished.connect(
@@ -111,7 +122,10 @@ class _ThreadBackend:
 
     def request_cancel(self) -> None:
         """Request cooperative QThread interruption. 请求协作式 QThread 中断。"""
-        self._thread.requestInterruption()
+        with self._lifecycle_lock:
+            thread = self._thread
+            if thread is not None:
+                thread.requestInterruption()
 
     def wait(self, timeout_ms: Optional[int]) -> bool:
         """Wait for QThread.run() to return completely. 等待 QThread.run() 完全返回。"""
@@ -121,5 +135,6 @@ class _ThreadBackend:
 
     def release(self) -> None:
         """Release invalid worker wrapper before the stopped thread. 先释放失效 worker。"""
-        self._worker = None
-        self._thread = None
+        with self._lifecycle_lock:
+            self._worker = None
+            self._thread = None

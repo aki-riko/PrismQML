@@ -9,10 +9,18 @@ from pathlib import Path
 import subprocess
 import sys
 import threading
+import time
 
+import pytest
 from PySide6.QtCore import QThreadPool
 
-from prismqml import PoolTaskOptions, TaskState, run_in_pool
+from prismqml import (
+    PoolTaskOptions,
+    TaskState,
+    current_task,
+    run_in_pool,
+    run_in_thread,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -138,3 +146,76 @@ def test_queued_pool_cancellation_stress(qapp) -> None:
 
     assert not queued_executed.is_set()
     qapp.processEvents()
+
+
+@pytest.mark.parametrize("launcher", (run_in_pool, run_in_thread))
+def test_cancel_is_safe_during_backend_release(qapp, launcher) -> None:
+    """Cancellation must tolerate concurrent backend release. 取消必须容忍并发后端释放。"""
+    worker_started = threading.Event()
+    cancel_accepted = threading.Event()
+    release_entered = threading.Event()
+    allow_release_return = threading.Event()
+    cancel_finished = threading.Event()
+    wait_finished = threading.Event()
+    errors = []
+    cancel_results = []
+
+    def work():
+        worker_started.set()
+        while not current_task().cancel_requested:
+            time.sleep(0.001)
+
+    handle = launcher(work)
+    control_request_cancel = handle._control.request_cancel
+    backend = handle._backend
+    backend_release = backend.release
+
+    def delayed_request_cancel():
+        requested = control_request_cancel()
+        if requested:
+            cancel_accepted.set()
+            assert release_entered.wait(TASK_TIMEOUT_MS / 1000)
+        return requested
+
+    def paused_release():
+        backend_release()
+        release_entered.set()
+        assert allow_release_return.wait(TASK_TIMEOUT_MS / 1000)
+
+    handle._control.request_cancel = delayed_request_cancel
+    backend.release = paused_release
+
+    def cancel_task():
+        try:
+            cancel_results.append(handle.cancel())
+        except BaseException as caught:
+            errors.append(caught)
+        finally:
+            cancel_finished.set()
+
+    def wait_task():
+        try:
+            assert handle.wait(TASK_TIMEOUT_MS)
+        except BaseException as caught:
+            errors.append(caught)
+        finally:
+            wait_finished.set()
+
+    cancel_thread = threading.Thread(target=cancel_task, daemon=True)
+    wait_thread = threading.Thread(target=wait_task, daemon=True)
+    try:
+        assert worker_started.wait(TASK_TIMEOUT_MS / 1000)
+        cancel_thread.start()
+        assert cancel_accepted.wait(TASK_TIMEOUT_MS / 1000)
+        wait_thread.start()
+        assert release_entered.wait(TASK_TIMEOUT_MS / 1000)
+        assert cancel_finished.wait(TASK_TIMEOUT_MS / 1000)
+        assert cancel_results == [True]
+        assert not errors
+    finally:
+        allow_release_return.set()
+        cancel_thread.join(TASK_TIMEOUT_MS / 1000)
+        wait_thread.join(TASK_TIMEOUT_MS / 1000)
+
+    assert wait_finished.is_set()
+    assert handle.state is TaskState.CANCELLED
