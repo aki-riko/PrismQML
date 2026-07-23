@@ -4,11 +4,16 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """MatrixRain theme preset runtime contracts. MatrixRain 主题预设运行时契约。"""
 
+from pathlib import Path
+
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
+
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 EXPECTED_PALETTES = {
@@ -39,6 +44,7 @@ def _pump(milliseconds: int = 10) -> None:
 
 
 def _create_matrix_rain(engine: QQmlApplicationEngine):
+    engine.addImportPath(str(ROOT / "prismqml"))
     component = QQmlComponent(engine)
     component.setData(
         b"""import PrismQML
@@ -93,6 +99,26 @@ def test_matrix_rain_theme_presets_preserve_runtime_contract(qapp):
         instance.setTheme("missing-theme")
         assert _palette(instance) == palette_before_unknown
         assert emitted == []
+    finally:
+        if instance is not None:
+            instance.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump()
+
+
+def test_matrix_rain_invalid_runtime_limits_stay_finite(qapp):
+    engine = QQmlApplicationEngine()
+    component = instance = None
+    try:
+        component, instance = _create_matrix_rain(engine)
+        instance.setProperty("density", 0)
+        instance.setProperty("speed", 0)
+        instance.setProperty("interactionRadius", 0)
+        _pump(20)
+        assert instance.property("_safeDensity") == 0.5
+        assert instance.property("_safeSpeed") == 0.1
+        assert instance.property("_safeInteractionRadius") == 0
     finally:
         if instance is not None:
             instance.deleteLater()

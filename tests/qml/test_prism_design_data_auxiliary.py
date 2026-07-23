@@ -285,9 +285,13 @@ Watermark {
     height: 120
     text: "PRISM"
 }
-"""))
+        """))
         watermark = keep[-1][1]
         _assert_watermark(watermark, (118, 138, 145))
+        watermark.setProperty("gapX", 0)
+        watermark.setProperty("gapY", 0)
+        assert watermark.property("_safeGapX") == 1
+        assert watermark.property("_safeGapY") == 1
 
         keep.append(_build(engine, b"""
 import PrismQML

@@ -14,6 +14,7 @@ Item {
     property int spacing: Enums.spacing.l
     property var model: []
     property Component delegate: null
+    readonly property int _safeColumns: Math.max(1, columns)
 
     property real contentHeight: {
         var maxH = 0
@@ -25,19 +26,19 @@ Item {
     
     property var columnHeights: {
         var heights = []
-        for (var i = 0; i < columns; i++) heights.push(0)
+        for (var i = 0; i < _safeColumns; i++) heights.push(0)
         return heights
     }
 
     function _relayout() {
         var heights = []
-        for (var column = 0; column < columns; column++) heights.push(0)
+        for (var column = 0; column < _safeColumns; column++) heights.push(0)
         for (var itemIndex = 0; itemIndex < itemRepeater.count; itemIndex++) {
             var loader = itemRepeater.itemAt(itemIndex)
             if (!loader || !loader.item) continue
             var targetColumn = 0
             var targetHeight = heights[0] || 0
-            for (var candidate = 1; candidate < columns; candidate++) {
+            for (var candidate = 1; candidate < _safeColumns; candidate++) {
                 var candidateHeight = heights[candidate] || 0
                 if (candidateHeight < targetHeight) {
                     targetHeight = candidateHeight
@@ -74,9 +75,9 @@ Item {
             property real targetY: 0
 
             sourceComponent: control.delegate
-            x: targetColumn * ((control.width - (control.columns - 1) * control.spacing) / control.columns + control.spacing)
+            x: targetColumn * ((control.width - (control._safeColumns - 1) * control.spacing) / control._safeColumns + control.spacing)
             y: targetY
-            width: (control.width - (control.columns - 1) * control.spacing) / control.columns
+            width: (control.width - (control._safeColumns - 1) * control.spacing) / control._safeColumns
 
             onLoaded: control._relayout()
 

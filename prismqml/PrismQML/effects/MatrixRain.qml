@@ -51,6 +51,19 @@ Rectangle {
     property bool rainbowMode: false                    // Rainbow color mode 彩虹模式
     
     // ==================== Internal Props 内部属性 ====================
+    // Clamp runtime inputs before geometry, timer, and interaction math 在几何、定时器和交互计算前钳制运行时输入
+    readonly property real _safeDensity: {
+        if (!isFinite(density)) return 0.5
+        return Math.max(0.5, density)
+    }
+    readonly property real _safeSpeed: {
+        if (!isFinite(speed)) return 0.1
+        return Math.max(0.1, speed)
+    }
+    readonly property real _safeInteractionRadius: {
+        if (!isFinite(interactionRadius)) return 0
+        return Math.max(0, interactionRadius)
+    }
     property var drops: []
     property int cols: 0
     property int rows: 0
@@ -222,12 +235,12 @@ Rectangle {
 
             var arr = []
             if (root.isHorizontal) {
-                root.rows = Math.ceil(height / root.cellSize / root.density)
+                root.rows = Math.ceil(height / root.cellSize / root._safeDensity)
                 for (var i = 0; i < root.rows; i++) {
                     arr.push(Math.random() * -50)
                 }
             } else {
-                root.cols = Math.ceil(width / root.cellSize / root.density)
+                root.cols = Math.ceil(width / root.cellSize / root._safeDensity)
                 for (var j = 0; j < root.cols; j++) {
                     arr.push(Math.random() * -50)
                 }
@@ -245,6 +258,7 @@ Rectangle {
         onPaint: {
             var ctx = getContext("2d")
             if (!ctx || root.drops.length === 0) return
+            if (root._activeCharset.length === 0) return
             
             // Extract background RGB for fade 提取背景色用于渐隐
             var bgColor = root.backgroundColor.toString()
@@ -262,7 +276,7 @@ Rectangle {
             ctx.font = root.fontSize + "px monospace"
             
             var w = width, h = height
-            var cs = root.cellSize * root.density
+            var cs = root.cellSize * root._safeDensity
             var localDrops = root.drops
             var charLen = root._activeCharset.length
             var isHoriz = root.isHorizontal
@@ -308,12 +322,12 @@ Rectangle {
                 }
                 
                 // Interactive repulsion 交互排斥
-                if (root.interactive) {
+                if (root.interactive && root._safeInteractionRadius > 0) {
                     var dx = x - root.mousePos.x
                     var dy = y - root.mousePos.y
                     var dist = Math.sqrt(dx * dx + dy * dy)
-                    if (dist < root.interactionRadius) {
-                        var force = (1 - dist / root.interactionRadius) * 30
+                    if (dist > 0 && dist < root._safeInteractionRadius) {
+                        var force = (1 - dist / root._safeInteractionRadius) * 30
                         x += dx / dist * force
                         y += dy / dist * force
                     }
@@ -389,7 +403,7 @@ Rectangle {
     }
     
     Timer {
-        interval: Math.max(16, 50 / root.speed)
+        interval: Math.max(16, 50 / root._safeSpeed)
         running: root.running && !root.paused && root.visible
         repeat: true
         onTriggered: canvas.requestPaint()

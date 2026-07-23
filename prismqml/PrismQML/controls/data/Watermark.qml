@@ -20,6 +20,10 @@ Item {
     property int gapY: _internal.defaultGapY
     property color textColor: Enums.textColor.tertiary
 
+    // Keep tiling gaps positive to avoid zero-division and empty models 保持平铺间距为正，避免除零和空模型
+    readonly property int _safeGapX: Math.max(1, gapX)
+    readonly property int _safeGapY: Math.max(1, gapY)
+
     default property alias content: contentItem.data
 
     // ==================== Content 内容 ====================
@@ -49,19 +53,19 @@ Item {
         Repeater {
             id: watermarkRepeater
             model: {
-                var cols = Math.ceil(control.width / control.gapX) + _internal.extraCols
-                var rows = Math.ceil(control.height / control.gapY) + _internal.extraRows
+                var cols = Math.ceil(control.width / control._safeGapX) + _internal.extraCols
+                var rows = Math.ceil(control.height / control._safeGapY) + _internal.extraRows
                 return cols * rows
             }
 
             Label {
                 id: watermarkText
-                property int cols: Math.ceil(control.width / control.gapX) + _internal.extraCols
+                property int cols: Math.ceil(control.width / control._safeGapX) + _internal.extraCols
                 property int col: index % cols
                 property int row: Math.floor(index / cols)
 
-                x: col * control.gapX - control.gapX / _internal.extraCols + (row % _internal.extraRows === 0 ? 0 : control.gapX / _internal.extraCols)
-                y: row * control.gapY - control.gapY / _internal.extraRows
+                x: col * control._safeGapX - control._safeGapX / _internal.extraCols + (row % _internal.extraRows === 0 ? 0 : control._safeGapX / _internal.extraCols)
+                y: row * control._safeGapY - control._safeGapY / _internal.extraRows
 
                 type: Enums.label.type_caption
                 text: control.text

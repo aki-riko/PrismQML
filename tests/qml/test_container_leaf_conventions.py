@@ -222,6 +222,25 @@ def test_waterfall_places_items_in_shortest_columns(leaf_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_waterfall_zero_columns_use_one_finite_column(leaf_scene):
+    window, items, warnings, windows_before = leaf_scene
+    waterfall = items["waterfall"]
+    waterfall.setProperty("columns", 0)
+    waterfall.setProperty("model", [52])
+    assert _wait_for(lambda: waterfall.property("_safeColumns") == 1)
+    assert waterfall.property("contentHeight") == pytest.approx(62)
+    loaders = [
+        item
+        for item in _visual_items(waterfall)
+        if item.property("itemIndex") is not None
+    ]
+    assert len(loaders) == 1
+    assert loaders[0].x() == pytest.approx(0)
+    assert loaders[0].width() == pytest.approx(220)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_separator_fixed_and_auto_geometry(leaf_scene):
     window, items, warnings, windows_before = leaf_scene
     horizontal = items["horizontalSeparator"]
