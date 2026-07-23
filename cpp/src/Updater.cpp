@@ -16,6 +16,7 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QUrl>
+#include <QDesktopServices>
 #include <QList>
 #include <QPair>
 #include <QProcess>
@@ -495,6 +496,18 @@ bool Updater::runInstallerAndQuit(const QString &installerPath, const QString &s
     QCoreApplication::quit();
     return true;
 #endif
+}
+
+// ==================== 浏览器打开 (镜像 Python openInBrowser) ====================
+bool Updater::openInBrowser(const QString &url) {
+    if (url.isEmpty()) {
+        qWarning() << "[Updater] openInBrowser: URL 为空";
+        return false;
+    }
+    const bool ok = QDesktopServices::openUrl(QUrl(url));
+    if (!ok)
+        qWarning() << "[Updater] 打开浏览器失败:" << url;
+    return ok;
 }
 
 }  // namespace prism

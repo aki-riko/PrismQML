@@ -54,6 +54,11 @@ public slots:
     bool runInstallerAndQuit(const QString &installerPath,
                              const QString &silentArgs = QString());
 
+    // 用系统浏览器打开 URL (镜像 Python openInBrowser)。
+    // 无匹配安装包资产时, AutoUpdater 门面据此跳转 GitHub Releases 页兜底。
+    // url 为空返回 false; 否则委托 QDesktopServices::openUrl。
+    bool openInBrowser(const QString &url);
+
 signals:
     void updateAvailable(const QString &version, const QString &notes,
                          const QString &downloadUrl, const QString &htmlUrl);

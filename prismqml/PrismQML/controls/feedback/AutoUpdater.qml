@@ -46,6 +46,7 @@ Item {
     property string _pendingUrl: ""
     property string _pendingHtmlUrl: ""
     property bool _rangeKnown: false
+    property bool _downloading: false   // 是否处于下载态(决定 toast 内进度环是否显示)
 
     // 触发一次检查
     function check() {
@@ -73,6 +74,7 @@ Item {
             return;
         }
         root._rangeKnown = false;
+        root._downloading = true;
         progressRing.indeterminate = true;
         progressRing.start();
         toast.title = qsTr("正在下载更新");
@@ -128,6 +130,7 @@ Item {
         }
 
         function onDownloadFinished(filePath) {
+            root._downloading = false;
             toast.title = qsTr("下载完成,正在安装");
             toast.message = qsTr("即将自动重启");
             toast.severity = "success";
@@ -136,6 +139,7 @@ Item {
         }
 
         function onDownloadFailed(error) {
+            root._downloading = false;
             progressRing.stop();
             toast.title = qsTr("下载失败");
             toast.message = error;
@@ -172,6 +176,7 @@ Item {
         customContent: Component {
             ProgressRing {
                 id: progressRingItem
+                visible: root._downloading   // 仅下载态显示;其他提示(失败/最新)不带进度环
                 indeterminate: progressRing.indeterminate
                 from: progressRing.from
                 to: progressRing.to
