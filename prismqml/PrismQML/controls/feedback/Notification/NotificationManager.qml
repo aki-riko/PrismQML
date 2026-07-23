@@ -179,6 +179,12 @@ QtObject {
     function closeAllDesktopNotifications() {
         _stackManager.closeAllDesktopNotifications()
     }
+
+    function orientationForMessage(message) {
+        return message && (message.indexOf("\n") >= 0
+            || message.length > Enums.notification.layout.longMessageThreshold)
+            ? Qt.Vertical : Qt.Horizontal
+    }
     
     // ==================== Internal Methods 内部方法 ====================
     function _getInfoBarComponent() {
@@ -236,8 +242,7 @@ QtObject {
             if (options[name] !== undefined) properties[name] = options[name]
         }
         if (!options || options.orient === undefined) {
-            properties.orient = message && (message.indexOf("\n") >= 0 || message.length > 60)
-                ? Qt.Vertical : Qt.Horizontal
+            properties.orient = orientationForMessage(message)
         }
         return properties
     }
@@ -285,7 +290,7 @@ QtObject {
             "severity": severity, "title": title, "message": message,
             "duration": duration, "position": position, "feature": feature,
             // 长文本/多行自动用垂直布局(水平布局高度受限,长内容易裁切)
-            "orient": (message && (message.indexOf("\n") >= 0 || message.length > 60)) ? Qt.Vertical : Qt.Horizontal
+            "orient": orientationForMessage(message)
         })
         if (item) {
             item.z = Enums.zIndex.overlay

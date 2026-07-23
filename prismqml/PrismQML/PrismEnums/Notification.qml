@@ -45,6 +45,7 @@ QtObject {
         readonly property int stackGapLarge: 25   // InfoBar stack gap InfoBar堆叠间距
         readonly property int stackGapSmall: 8    // Toast/Desktop stack gap Toast/桌面堆叠间距
         readonly property int maxVisible: 5       // Max visible notifications 最大可见通知数
+        readonly property int longMessageThreshold: 60 // Vertical layout threshold 垂直布局长度阈值
     }
     
     // ==================== Position Constants 位置常量 ====================

@@ -7,8 +7,9 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QMetaObject, QObject, QUrl
+from PySide6.QtCore import QMetaObject, QObject, QPointF, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
+from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
@@ -24,6 +25,10 @@ PROGRESS_DIALOG_PRESENTER_SOURCE = AUTO_UPDATER_SOURCE.with_name(
     "AutoUpdaterProgressDialogPresenter.qml"
 )
 ROOT_QMLDIR = ROOT / "prismqml" / "PrismQML" / "qmldir"
+REAL_UPDATE_ERROR = (
+    "Error transferring https://api.github.com/repos/aki-riko/MCNeteaseToolPE/"
+    "releases/latest - server replied with status code 404"
+)
 SCENE_SOURCE = b"""
 import QtQuick
 import PrismQML
@@ -39,6 +44,8 @@ Window {
     readonly property int progressRingFeature: Enums.notification.feature_progress_ring
     readonly property int toastWidth: Enums.controlSize.toastWidth
     readonly property int toastHeight: Enums.controlSize.toastHeight
+    readonly property int spacingM: Enums.spacing.m
+    readonly property int spacingL: Enums.spacing.l
 
     function triggerDoubleCheck() {
         facade.check();
@@ -168,6 +175,18 @@ def _backend(root):
     return backend
 
 
+def _visible_text_item(toast, text):
+    matches = [
+        item
+        for item in toast.findChildren(QObject)
+        if isinstance(item, QQuickItem)
+        and item.property("text") == text
+        and item.property("visible")
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 def test_backend_metadata_is_bound_by_default(auto_updater_scene):
     root = auto_updater_scene
 
@@ -203,6 +222,28 @@ def test_check_uses_managed_toast_and_builtin_progress(auto_updater_scene, qapp)
     qapp.processEvents()
     assert toast.property("feature") == root.property("progressRingFeature")
     assert toast.property("progress") == pytest.approx(0.25)
+
+
+def test_reused_check_toast_reflows_for_real_multiline_error(auto_updater_scene, qapp):
+    root = auto_updater_scene
+    backend = _backend(root)
+
+    assert QMetaObject.invokeMethod(root, "triggerDoubleCheck")
+    toast = root.findChild(QQuickItem, "autoUpdaterToast")
+    assert toast is not None
+    assert toast.property("orient") == Qt.Orientation.Horizontal.value
+
+    backend.checkFailed.emit(REAL_UPDATE_ERROR)
+    qapp.processEvents()
+    body = _visible_text_item(toast, REAL_UPDATE_ERROR)
+    body_bottom = body.mapToItem(toast, QPointF(0, body.height())).y()
+
+    assert toast.property("orient") == Qt.Orientation.Vertical.value
+    assert body.property("lineCount") > 1
+    assert toast.height() > root.property("toastHeight")
+    assert toast.height() - body_bottom == pytest.approx(
+        root.property("spacingM") + root.property("spacingL")
+    )
 
 
 def test_progress_dialog_presenter_can_replace_default(auto_updater_scene, qapp):

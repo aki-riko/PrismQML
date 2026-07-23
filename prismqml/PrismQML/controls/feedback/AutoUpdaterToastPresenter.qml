@@ -56,6 +56,7 @@ Item {
             });
         }
 
+        item.orient = NotificationManager.orientationForMessage(model.message);
         item.title = model.title;
         item.message = model.message;
         item.severity = model.severity;
