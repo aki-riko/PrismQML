@@ -13,9 +13,12 @@ from typing import BinaryIO
 
 from PySide6.QtCore import QStandardPaths, QUrl
 
+from .logger import getLogger
+
 
 _DOWNLOAD_TEMP_PREFIX = "prismqml-update-"
 _DOWNLOAD_PART_SUFFIX = ".part"
+logger = getLogger()
 
 
 def verify_download_digest(path: str, digest: str) -> bool:
@@ -28,9 +31,13 @@ def verify_download_digest(path: str, digest: str) -> bool:
     except ValueError:
         return False
     hasher = hashlib.sha256()
-    with open(path, "rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(chunk)
+    try:
+        with open(path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                hasher.update(chunk)
+    except OSError as exc:
+        logger.exception(f"[Updater] 读取下载文件摘要失败: {exc}")
+        return False
     return hasher.hexdigest().lower() == expected.lower()
 
 

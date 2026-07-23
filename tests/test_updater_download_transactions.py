@@ -153,6 +153,34 @@ def test_release_bound_sha256_controls_download_commit(qapp, digest_matches):
         assert not final_path.exists()
 
 
+def test_digest_read_failure_reports_and_removes_committed_file(qapp, monkeypatch):
+    updater = Updater("owner/repo", "v1.0.0")
+    updater.requireArtifactDigest = True
+    manager = _NetworkManagerStub()
+    updater._nam = manager
+    url = "https://example.test/App-Setup.exe"
+    updater._expected_download_url = url
+    updater._expected_digest = "sha256:" + "0" * 64
+    failures = []
+    completed = []
+    updater.downloadFailed.connect(failures.append)
+    updater.downloadFinished.connect(completed.append)
+    monkeypatch.setattr(
+        download_module,
+        "open",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("read failed")),
+        raising=False,
+    )
+
+    updater.downloadUpdate(url)
+    final_path = Path(updater._download_path)
+    _finish_download(updater, manager, b"payload")
+
+    assert failures == ["下载文件摘要校验失败"]
+    assert completed == []
+    assert not final_path.exists()
+
+
 def test_same_url_downloads_keep_distinct_completed_files(qapp):
     first = Updater("owner/repo", "v1.0.0")
     second = Updater("owner/repo", "v1.0.0")
