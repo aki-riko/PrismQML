@@ -391,6 +391,8 @@ def test_slider_degenerate_ranges_and_zero_step_stay_finite(qapp):
         horizontal.setProperty("stepSize", 0)
         assert math.isfinite(float(_default_handle(horizontal).property("_ratio")))
         assert _default_handle(horizontal).property("_ratio") == 0
+        assert horizontal._safeTrackPosition(5, 0) == 0
+        assert horizontal._safeTrackPosition(5, -1) == 0
 
         range_slider.setProperty("from", 5)
         range_slider.setProperty("to", 5)

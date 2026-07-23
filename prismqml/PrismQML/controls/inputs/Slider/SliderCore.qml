@@ -76,6 +76,14 @@ Item {
         return Math.max(0, Math.min(1, ratio))
     }
 
+    // Normalize a handle offset even when the track has no travel distance 轨道没有可移动距离时也返回安全比例
+    function _safeTrackPosition(offset, span) {
+        if (!isFinite(span) || span <= 0) return 0
+        var ratio = offset / span
+        if (!isFinite(ratio)) return 0
+        return Math.max(0, Math.min(1, ratio))
+    }
+
     // Format tooltip text for default/range implementations 格式化默认及范围滑块的提示文本
     function _tipText(v) {
         return displayValueFn ? displayValueFn(v) : (v.toFixed(decimals) + suffix)
@@ -347,7 +355,14 @@ Item {
                     preventStealing: true
                     
                     onPositionChanged: {
-                        var pos = isHorizontal ? parent.x / (parent.parent.width - parent.width) : 1 - parent.y / (parent.parent.height - parent.height)
+                        var available = isHorizontal
+                                ? parent.parent.width - parent.width
+                                : parent.parent.height - parent.height
+                        var pos = available > 0
+                                ? (isHorizontal
+                                   ? control._safeTrackPosition(parent.x, available)
+                                   : 1 - control._safeTrackPosition(parent.y, available))
+                                : 0
                         pos = Math.max(0, Math.min(1, pos))
                         var newVal = control.from + pos * (control.to - control.from)
                         if (control.stepSize > 0 && isFinite(control.stepSize)) {
