@@ -126,6 +126,15 @@ Item {
         steps: null
     }
 
+    CycleWheelPicker {
+        objectName: "nullCyclePicker"
+        items: null
+        itemHeight: 0
+        visibleItems: 0
+        width: 0
+        height: 0
+    }
+
     ChartDataZoom {
         objectName: "dataZoom"
         width: 0
@@ -188,10 +197,12 @@ def test_nullable_lists_and_zero_geometry_stay_finite(qapp):
         waveform = root.findChild(type(root), "waveform")
         stepper = root.findChild(type(root), "stepper")
         null_stepper = root.findChild(type(root), "nullStepper")
+        null_cycle_picker = root.findChild(type(root), "nullCyclePicker")
         data_zoom = root.findChild(type(root), "dataZoom")
         slider = root.findChild(type(root), "slider")
         assert pips is not None and marquee is not None
         assert waveform is not None and stepper is not None and null_stepper is not None
+        assert null_cycle_picker is not None
         assert data_zoom is not None
         assert slider is not None
         assert math.isfinite(float(root.property("zeroScrollBarRatio")))
@@ -215,6 +226,9 @@ def test_nullable_lists_and_zero_geometry_stay_finite(qapp):
         assert null_stepper.property("_safeSteps").toVariant() == []
         assert null_stepper.property("_safeCurrentStep") == 0
         assert null_stepper.property("_stepWidth") == 0
+        assert null_cycle_picker.property("_safeItems").toVariant() == []
+        assert null_cycle_picker.property("_safeItemHeight") == 1
+        assert null_cycle_picker.property("_safeVisibleItems") == 1
 
         assert data_zoom.property("_safeViewportStart") == 0
         assert data_zoom.property("_safeViewportEnd") == 1

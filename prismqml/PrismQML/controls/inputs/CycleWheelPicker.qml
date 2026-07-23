@@ -24,12 +24,18 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     property bool _hovered: false
+    readonly property var _safeItems: _listOrEmpty(items)
+    readonly property int _safeItemHeight: Math.max(1, itemHeight)
+    readonly property int _safeVisibleItems: Math.max(1, visibleItems)
+    readonly property int _safeCurrentIndex: _safeItems.length > 0
+        ? Math.max(0, Math.min(currentIndex, _safeItems.length - 1)) : 0
 
     // ==================== Signals 信号 ====================
     signal currentItemChanged(int index, string value)
 
     // ==================== Public Methods 公开方法 ====================
     function scrollUp() {
+        if (_safeItems.length === 0) return
         if (cycle) {
             pathView.decrementCurrentIndex()
         } else {
@@ -38,15 +44,16 @@ Item {
     }
 
     function scrollDown() {
+        if (_safeItems.length === 0) return
         if (cycle) {
             pathView.incrementCurrentIndex()
         } else {
-            if (listView.currentIndex < items.length - 1) listView.currentIndex++
+            if (listView.currentIndex < _safeItems.length - 1) listView.currentIndex++
         }
     }
 
     function setCurrentIndex(index) {
-        if (index >= 0 && index < items.length) {
+        if (index >= 0 && index < _safeItems.length) {
             currentIndex = index
             if (cycle) {
                 pathView.currentIndex = index
@@ -59,8 +66,8 @@ Item {
 
     function setCurrentValue(value) {
         var strValue = String(value)
-        for (var i = 0; i < items.length; i++) {
-            if (String(items[i]) === strValue) {
+        for (var i = 0; i < _safeItems.length; i++) {
+            if (String(_safeItems[i]) === strValue) {
                 setCurrentIndex(i)
                 return
             }
@@ -73,20 +80,31 @@ Item {
     // Get current item 获取当前选项
     function currentItem() { return currentValue }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _listOrEmpty(value) {
+        return value && typeof value.length === "number" ? value : []
+    }
+
+    function _distanceFromCenter(center, itemCenter) {
+        var span = control.height / 2
+        return span > 0 && isFinite(span) ? Math.abs(center - itemCenter) / span : 0
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: 80
-    implicitHeight: itemHeight * visibleItems
+    implicitHeight: _safeItemHeight * _safeVisibleItems
 
     // Sync view index when items change 当items变化时同步视图索引
     onItemsChanged: {
-        if (items.length > 0 && currentIndex >= items.length) {
-            currentIndex = 0
+        if (_safeItems.length > 0 && currentIndex !== _safeCurrentIndex) {
+            currentIndex = _safeCurrentIndex
         }
         Qt.callLater(function() {
+            if (_safeItems.length === 0) return
             if (cycle) {
-                pathView.currentIndex = currentIndex
+                pathView.currentIndex = _safeCurrentIndex
             } else {
-                listView.currentIndex = currentIndex
+                listView.currentIndex = _safeCurrentIndex
             }
         })
     }
@@ -97,8 +115,8 @@ Item {
         id: pathView
         anchors.fill: parent
         visible: control.cycle
-        model: control.cycle ? control.items : []
-        pathItemCount: control.visibleItems + 2
+        model: control.cycle ? control._safeItems : []
+        pathItemCount: control._safeVisibleItems + 2
         preferredHighlightBegin: 0.5
         preferredHighlightEnd: 0.5
         highlightRangeMode: PathView.StrictlyEnforceRange
@@ -106,7 +124,7 @@ Item {
         clip: true
         interactive: true
         
-        currentIndex: control.currentIndex
+        currentIndex: control._safeCurrentIndex
         onCurrentIndexChanged: {
             if (control.cycle && control.currentIndex !== currentIndex) {
                 control.currentIndex = currentIndex
@@ -127,11 +145,11 @@ Item {
             property real distanceFromCenter: {
                 var center = control.height / 2
                 var itemCenter = y + height / 2
-                return Math.abs(center - itemCenter) / (control.height / 2)
+                return control._distanceFromCenter(center, itemCenter)
             }
 
             width: control.width
-            height: control.itemHeight
+            height: control._safeItemHeight
             x: -width / 2  // PathView centers on path, offset to fill width 沿路径居中,左偏使内容填满列
             // Keep Item instead of Rectangle so transparent delegates do not occlude the popup highlight.
             // 保持 Item，避免透明 Rectangle 委托遮挡弹窗选中高亮。
@@ -160,22 +178,22 @@ Item {
         id: listView
         anchors.fill: parent
         visible: !control.cycle
-        model: control.cycle ? [] : control.items
+        model: control.cycle ? [] : control._safeItems
         clip: true
         interactive: true
         snapMode: ListView.SnapToItem
         highlightRangeMode: ListView.StrictlyEnforceRange
-        preferredHighlightBegin: (control.height - control.itemHeight) / 2
-        preferredHighlightEnd: (control.height + control.itemHeight) / 2
+        preferredHighlightBegin: (control.height - control._safeItemHeight) / 2
+        preferredHighlightEnd: (control.height + control._safeItemHeight) / 2
         highlightMoveDuration: Enums.duration.medium  // Smooth scroll animation 平滑滚动动画
         maximumFlickVelocity: Enums.controlSize.wheelPickerMaxFlickVelocity
         flickDeceleration: Enums.controlSize.wheelPickerFlickDeceleration
         
         // Add padding so items can scroll to center 添加边距以便项目可以滚动到中心
-        header: Item { width: 1; height: (control.height - control.itemHeight) / 2 }
-        footer: Item { width: 1; height: (control.height - control.itemHeight) / 2 }
+        header: Item { width: 1; height: (control.height - control._safeItemHeight) / 2 }
+        footer: Item { width: 1; height: (control.height - control._safeItemHeight) / 2 }
         
-        currentIndex: control.currentIndex
+        currentIndex: control._safeCurrentIndex
         onCurrentIndexChanged: {
             if (!control.cycle && control.currentIndex !== currentIndex) {
                 control.currentIndex = currentIndex
@@ -188,11 +206,11 @@ Item {
             property real distanceFromCenter: {
                 var center = control.height / 2
                 var itemCenter = y - listView.contentY + height / 2
-                return Math.abs(center - itemCenter) / (control.height / 2)
+                return control._distanceFromCenter(center, itemCenter)
             }
 
             width: listView.width
-            height: control.itemHeight
+            height: control._safeItemHeight
             // Keep Item instead of Rectangle so transparent delegates do not occlude the popup highlight.
             // 保持 Item，避免透明 Rectangle 委托遮挡弹窗选中高亮。
 
@@ -234,8 +252,8 @@ Item {
         
         onClicked: (mouse) => {
             // Click to select item 点击选择项目
-            var itemIndex = Math.floor(mouse.y / control.itemHeight)
-            var centerIndex = Math.floor(control.visibleItems / 2)
+            var itemIndex = Math.floor(mouse.y / control._safeItemHeight)
+            var centerIndex = Math.floor(control._safeVisibleItems / 2)
             var diff = itemIndex - centerIndex
             if (diff !== 0) {
                 if (diff > 0) {
