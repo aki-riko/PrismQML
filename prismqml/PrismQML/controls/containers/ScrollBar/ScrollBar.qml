@@ -30,6 +30,17 @@ Rectangle {
     readonly property color _scrollHandleHoverColor: Enums.stateColor.scrollHandleHover
     readonly property color _scrollHandlePressedColor: Enums.accentColor
     readonly property color _scrollHandleColor: handleArea.pressed ? _scrollHandlePressedColor : (handleArea.containsMouse ? _scrollHandleHoverColor : _scrollHandleDefaultColor)
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _safeRatio(viewSize, contentSize) {
+        if (!isFinite(viewSize) || !isFinite(contentSize) || contentSize <= 0) return 0
+        return Math.max(0, Math.min(1, viewSize / contentSize))
+    }
+
+    function _safePosition(contentPos, contentOrigin, maxContent) {
+        if (!isFinite(contentPos) || !isFinite(contentOrigin) || !isFinite(maxContent) || maxContent <= 0) return 0
+        return Math.max(0, Math.min(1, (contentPos - contentOrigin) / maxContent))
+    }
     
     // ==================== Size 尺寸 ====================
     width: _isVertical ? barWidth : undefined
@@ -44,12 +55,13 @@ Rectangle {
         id: handle
 
         property real maxPos: control._isVertical ? Math.max(0, control.height - height) : Math.max(0, control.width - width)
-        property real maxContent: Math.max(0, control._contentSize - control._viewSize)
-        property real ratio: maxContent > 0 ? (control._contentPos - control._contentOrigin) / maxContent : 0
+        property real maxContent: isFinite(control._contentSize) && isFinite(control._viewSize)
+                                   ? Math.max(0, control._contentSize - control._viewSize) : 0
+        property real ratio: control._safePosition(control._contentPos, control._contentOrigin, maxContent)
         
         // Size 尺寸
-        width: control._isVertical ? control.barWidth - Enums.spacing.xxs : Math.max(control.minHandleSize, control._viewSize / control._contentSize * control.width)
-        height: control._isVertical ? Math.max(control.minHandleSize, control._viewSize / control._contentSize * control.height) : control.barWidth - Enums.spacing.xxs
+        width: control._isVertical ? control.barWidth - Enums.spacing.xxs : Math.max(control.minHandleSize, control._safeRatio(control._viewSize, control._contentSize) * control.width)
+        height: control._isVertical ? Math.max(control.minHandleSize, control._safeRatio(control._viewSize, control._contentSize) * control.height) : control.barWidth - Enums.spacing.xxs
         radius: (control._isVertical ? width : height) / 2
         
         // Position 位置

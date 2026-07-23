@@ -59,6 +59,38 @@ import QtQuick
 import PrismQML
 
 Item {
+    Flickable {
+        id: zeroView
+        objectName: "zeroView"
+        width: 0
+        height: 0
+        contentWidth: 0
+        contentHeight: 0
+    }
+
+    ScrollBar {
+        id: zeroScrollBar
+        objectName: "zeroScrollBar"
+        target: zeroView
+        width: 0
+        height: 0
+    }
+
+    ScrollBarEntry {
+        id: zeroScrollBarEntry
+        objectName: "zeroScrollBarEntry"
+        flickable: zeroView
+        width: 0
+        height: 0
+    }
+
+    readonly property real zeroScrollBarRatio: zeroScrollBar.children.length > 0
+        ? zeroScrollBar.children[0].ratio : 0
+    readonly property real zeroScrollBarEntryRatio: zeroScrollBarEntry.children.length > 1
+        ? zeroScrollBarEntry.children[1].ratio : 0
+    readonly property real zeroScrollBarEntryPosition: zeroScrollBarEntry.children.length > 1
+        ? zeroScrollBarEntry.children[1].position : 0
+
     PipsPager {
         objectName: "pips"
         pageCount: -3
@@ -162,6 +194,9 @@ def test_nullable_lists_and_zero_geometry_stay_finite(qapp):
         assert waveform is not None and stepper is not None and null_stepper is not None
         assert data_zoom is not None
         assert slider is not None
+        assert math.isfinite(float(root.property("zeroScrollBarRatio")))
+        assert math.isfinite(float(root.property("zeroScrollBarEntryRatio")))
+        assert math.isfinite(float(root.property("zeroScrollBarEntryPosition")))
 
         assert pips.property("_safePageCount") == 0
         assert pips.property("_safeVisiblePipCount") == 1
