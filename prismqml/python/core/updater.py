@@ -3,10 +3,7 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
-"""通用应用更新组件 - 基于 GitHub Releases 的检测 / 下载 / 静默安装。
-
-设计为引擎级通用组件(与 SingleInstance 平级),任何基于 PrismQML 的应用都可复用:
-仅依赖 PySide6 自带的 QNetworkAccessManager / QProcess,不引入第三方网络库。
+"""通用应用更新组件 - 基于 GitHub Releases 的检测 / 下载 / 安装启动。
 
 典型用法(应用层)::
 
@@ -20,22 +17,16 @@
 所有网络操作均异步,通过信号回传结果;不阻塞 GUI 线程。
 """
 
-import ctypes
 import os
 import sys
 from typing import BinaryIO, Optional
 
-if sys.platform == "win32":
-    from ctypes import wintypes
-else:
-    wintypes = None
-
 from PySide6.QtCore import (
     QObject,
+    Property,
     Signal,
     Slot,
     QCoreApplication,
-    QProcess,
     QUrl,
 )
 from PySide6.QtNetwork import (
@@ -47,9 +38,16 @@ from PySide6.QtNetwork import (
 from ._updater_download import (
     commit_download_file,
     open_unique_download_file,
+    verify_download_digest,
     write_download_bytes,
 )
-from ._updater_release import decode_release_payload, pick_asset as _pick_asset
+from ._updater_install import launch_non_windows_installer, launch_windows_installer
+from ._updater_release import (
+    decode_release_payload,
+    is_safe_update_url,
+    is_sha256_digest,
+    pick_asset as _pick_asset,
+)
 from .logger import getLogger
 
 logger = getLogger()
@@ -59,13 +57,6 @@ _USER_AGENT = b"PrismQML-Updater"
 _UPDATER_API_BASE_ENV = "PRISMQML_UPDATER_API_BASE_URL"
 _DEFAULT_API_BASE_URL = "https://api.github.com"
 _CONNECTION_CACHE_EXPIRY_SECONDS = 0
-_SHELL_EXECUTE_ERRORS = (
-    OSError,
-    AttributeError,
-    ctypes.ArgumentError,
-    TypeError,
-    ValueError,
-)
 
 
 def _normalize_api_base_url(value: Optional[str]) -> str:
@@ -160,54 +151,10 @@ def _is_newer(latest: str, current: str) -> bool:
     return _parse_version(latest) > _parse_version(current)
 
 
-def _configure_shell_execute():
-    """Configure ShellExecuteW's pointer-safe ctypes contract. 配置指针安全签名。"""
-    shell_execute = ctypes.windll.shell32.ShellExecuteW
-    shell_execute.argtypes = [
-        wintypes.HWND,
-        wintypes.LPCWSTR,
-        wintypes.LPCWSTR,
-        wintypes.LPCWSTR,
-        wintypes.LPCWSTR,
-        ctypes.c_int,
-    ]
-    shell_execute.restype = wintypes.HINSTANCE
-    return shell_execute
-
-
-def _launch_windows_installer(installer_path: str, args: list[str]) -> bool:
-    """Launch through the manifest-aware Windows shell. 通过 Windows shell 启动。"""
-    try:
-        shell_execute = _configure_shell_execute()
-        result = int(shell_execute(
-            None, "open", installer_path, " ".join(args) or None, None, 1
-        ) or 0)
-    except _SHELL_EXECUTE_ERRORS as exc:
-        logger.exception(
-            "[Updater] 启动安装包异常: "
-            f"{type(exc).__name__}: {exc}"
-        )
-        return False
-    if result <= 32:
-        logger.warning(
-            f"[Updater] 启动安装包失败(ShellExecute 返回 {result}): {installer_path}"
-        )
-        return False
-    return True
-
-
-def _launch_detached_installer(installer_path: str, args: list[str]) -> bool:
-    """Launch through QProcess without blocking. 通过 QProcess 分离启动。"""
-    ok, _pid = QProcess.startDetached(installer_path, args)
-    if not ok:
-        logger.warning(f"[Updater] 启动安装包失败: {installer_path}")
-    return ok
-
-
 class Updater(QObject):
     """基于 GitHub Releases 的应用更新器。
 
-    检测最新 release、比对版本、异步下载安装包、静默安装并重启。
+    检测最新 release、比对版本、异步下载安装包、启动平台安装程序。
     所有结果经信号回传;同一时刻只处理一个下载任务。
 
     Attributes:
@@ -247,20 +194,47 @@ class Updater(QObject):
         self._download_partial_path = ""
         self._download_path = ""
         self._download_error = ""
+        self._expected_digest = ""
+        self._expected_download_url = ""
+        self._require_artifact_digest = True
 
     @property
     def api_base_url(self) -> str:
         """Resolved API base URL. 已解析的更新 API 根地址。"""
         return self._api_base_url
 
+    @Property(str, constant=True)
+    def repository(self) -> str:
+        """Repository identifier exposed to QML. 暴露给 QML 的仓库标识。"""
+        return self._repo
+
+    @Property(str, constant=True)
+    def currentVersion(self) -> str:
+        """Current version exposed to QML. 暴露给 QML 的当前版本。"""
+        return self._current_version
+
+    @Property(bool)
+    def requireArtifactDigest(self) -> bool:
+        """Whether release assets must carry SHA-256. 是否要求资产带 SHA-256。"""
+        return self._require_artifact_digest
+
+    @requireArtifactDigest.setter
+    def requireArtifactDigest(self, value: bool) -> None:
+        self._require_artifact_digest = bool(value)
+
     # ==================== 检测 ====================
     @Slot()
     def checkForUpdate(self):
         """异步请求 GitHub latest release,完成后发 updateAvailable / upToDate / checkFailed。"""
-        if self._check_reply is not None:
-            logger.debug("[Updater] 已有检测请求在进行,忽略重复调用")
+        if self._check_reply is not None or self._download_reply is not None:
+            logger.debug("[Updater] 已有更新事务在进行,忽略重复检测")
             return
+        self._expected_digest = ""
+        self._expected_download_url = ""
         url = _latest_release_url(self._repo, self._api_base_url)
+        if not is_safe_update_url(url):
+            self.checkFailed.emit("更新 API 地址不安全")
+            return
         req = _network_request(url)
         req.setRawHeader(b"Accept", b"application/vnd.github+json")
         self._check_reply = self._nam.get(req)
@@ -295,17 +269,30 @@ class Updater(QObject):
             self.checkFailed.emit("解析更新信息失败")
             return
 
+        self._handle_release_data(data)
+
+    def _handle_release_data(self, data: dict):
+        """Emit one validated release result. 发出一个已校验的 release 结果。"""
         tag = data["tag_name"]
-        if _is_newer(tag, self._current_version):
-            notes = data["body"]
-            html_url = data["html_url"]
-            asset = _pick_asset(data["assets"], self._asset_keyword)
-            download_url = asset["browser_download_url"] if asset else ""
-            logger.info(f"[Updater] 发现新版本 {tag}(当前 {self._current_version})")
-            self.updateAvailable.emit(tag, notes, download_url, html_url)
-        else:
+        if not _is_newer(tag, self._current_version):
+            self._expected_digest = ""
+            self._expected_download_url = ""
             logger.debug(f"[Updater] 已是最新版本 {self._current_version}")
             self.upToDate.emit(self._current_version)
+            return
+        asset = _pick_asset(data["assets"], self._asset_keyword)
+        download_url = asset["browser_download_url"] if asset else ""
+        digest = asset.get("digest", "") if asset else ""
+        if asset and not is_safe_update_url(download_url):
+            self.checkFailed.emit("更新资产下载地址不安全")
+            return
+        if asset and self._require_artifact_digest and not is_sha256_digest(digest):
+            self.checkFailed.emit("更新资产缺少有效 SHA-256 摘要")
+            return
+        self._expected_digest = digest
+        self._expected_download_url = download_url
+        logger.info(f"[Updater] 发现新版本 {tag}(当前 {self._current_version})")
+        self.updateAvailable.emit(tag, data["body"], download_url, data["html_url"])
 
     def _inject_release_for_test(self, raw: bytes):
         """测试专用:直接喂入 release JSON 字节,走与网络回调相同的解析路径。"""
@@ -316,13 +303,13 @@ class Updater(QObject):
     def downloadUpdate(self, url: str):
         """异步下载安装包到系统临时目录,过程发 downloadProgress,
         完成发 downloadFinished(localPath),失败发 downloadFailed。"""
-        if not url:
-            self.downloadFailed.emit("下载地址为空")
-            return
         if self._download_reply is not None:
             logger.debug("[Updater] 已有下载在进行,忽略重复调用")
             return
-
+        error = self._validate_download_url(url)
+        if error:
+            self.downloadFailed.emit(error)
+            return
         try:
             (
                 self._download_file,
@@ -343,6 +330,18 @@ class Updater(QObject):
         except Exception as e:
             logger.exception(f"[Updater] 创建下载请求失败: {e}")
             self._fail_download(f"创建下载请求失败: {e}")
+
+    def _validate_download_url(self, url: str) -> str:
+        """Validate URL and release digest binding. 校验地址及摘要绑定。"""
+        if not url:
+            return "下载地址为空"
+        if not is_safe_update_url(url):
+            return "下载地址不安全"
+        if url != self._expected_download_url:
+            self._expected_digest = ""
+        if self._require_artifact_digest and not is_sha256_digest(self._expected_digest):
+            return "下载地址未绑定有效 SHA-256 摘要"
+        return ""
 
     def _start_download_request(self, url: str):
         """Create and wire one download reply. 创建并连接单个下载响应。"""
@@ -417,6 +416,10 @@ class Updater(QObject):
             return f"提交下载文件失败: {e}"
         if not os.path.isfile(self._download_path) or os.path.getsize(self._download_path) == 0:
             return "下载文件无效"
+        if self._expected_digest and not verify_download_digest(
+            self._download_path, self._expected_digest
+        ):
+            return "下载文件摘要校验失败"
         self._download_partial_path = ""
         return ""
 
@@ -468,7 +471,7 @@ class Updater(QObject):
     def runInstallerAndQuit(self, installer_path: str, silent_args: str = "") -> bool:
         """启动安装包并在成功后请求退出。Launch installer, then request quit.
 
-        Windows 遵循安装包 manifest 处理 UAC；其他平台使用 QProcess detached。
+        Windows 遵循安装包 manifest 处理 UAC；macOS/Linux 使用平台安装处理器。
         文件缺失或启动失败时返回 False，且绝不退出当前应用。
         """
         if not installer_path or not os.path.isfile(installer_path):
@@ -476,9 +479,9 @@ class Updater(QObject):
             return False
         args = [a for a in silent_args.split(" ") if a] if silent_args else []
         launcher = (
-            _launch_windows_installer
+            launch_windows_installer
             if sys.platform == "win32"
-            else _launch_detached_installer
+            else launch_non_windows_installer
         )
         if not launcher(installer_path, args):
             return False
@@ -489,7 +492,7 @@ class Updater(QObject):
     @Slot(str, result=bool)
     def openInBrowser(self, url: str) -> bool:
         """用系统浏览器打开 URL(检测到新版时跳 Releases 页的兜底)。"""
-        if not url:
+        if not is_safe_update_url(url, allow_local_http=False):
             return False
         from PySide6.QtGui import QDesktopServices
         return QDesktopServices.openUrl(QUrl(url))

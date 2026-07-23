@@ -10,7 +10,12 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QHostAddress>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
 #include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <QTcpServer>
@@ -126,6 +131,16 @@ static QStringList updaterArtifacts() {
                                 QDir::Files | QDir::Dirs, QDir::Name);
 }
 
+static QString platformInstallerName() {
+#ifdef Q_OS_WIN
+    return QStringLiteral("App-Setup.exe");
+#elif defined(Q_OS_MACOS)
+    return QStringLiteral("App-Setup.dmg");
+#else
+    return QStringLiteral("App-Setup.AppImage");
+#endif
+}
+
 static void testInvalidReleaseSchemas(HttpFixture &http) {
     const QList<QByteArray> invalid = {
         QByteArrayLiteral("[]"),
@@ -137,6 +152,7 @@ static void testInvalidReleaseSchemas(HttpFixture &http) {
         QByteArrayLiteral("{\"tag_name\":\"v1.0.4\",\"assets\":[7]}"),
         QByteArrayLiteral("{\"tag_name\":\"v1.0.4\",\"assets\":[{\"name\":[]}]}"),
         QByteArrayLiteral("{\"tag_name\":\"v1.0.4\",\"assets\":[{\"browser_download_url\":7}]}"),
+        QByteArrayLiteral("{\"tag_name\":\"v1.0.4\",\"assets\":[{\"digest\":7}]}"),
         QByteArrayLiteral("{\"tag_name\":\"v1.\xff\"}"),
         QByteArray("{\"tag_name\":\"v1.0.4\"}\xff", 24),
     };
@@ -168,24 +184,130 @@ static void testValidReleaseAndDuplicateCheck(HttpFixture &http) {
         ++available;
         received = {tag, notes, download, html};
     });
-    http.queue(QByteArrayLiteral(
-        "{\"tag_name\":\"v1.0.4\",\"body\":null,\"html_url\":null,"
-        "\"assets\":[{\"name\":\"App-Setup.exe\","
-        "\"browser_download_url\":\"https://example.test/setup.exe\"}]}"), true);
+    QJsonObject asset{
+        {QStringLiteral("name"), platformInstallerName()},
+        {QStringLiteral("browser_download_url"), QStringLiteral("https://example.test/setup")},
+        {QStringLiteral("digest"), QStringLiteral(
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000")},
+    };
+    QJsonObject release{
+        {QStringLiteral("tag_name"), QStringLiteral("v1.0.4")},
+        {QStringLiteral("body"), QJsonValue::Null},
+        {QStringLiteral("html_url"), QJsonValue::Null},
+        {QStringLiteral("assets"), QJsonArray{asset}},
+    };
+    http.queue(QJsonDocument(release).toJson(QJsonDocument::Compact), true);
     const int before = http.requestCount;
     updater.checkForUpdate();
     updater.checkForUpdate();
+    CHECK(updater.m_checkReply
+              && updater.m_checkReply->request()
+                     .attribute(QNetworkRequest::ConnectionCacheExpiryTimeoutSecondsAttribute)
+                     .toInt() == 0,
+          "updater request disables connection cache");
     CHECK(waitUntil([&]() { return http.requestCount == before + 1; }),
           "duplicate check creates one request");
     http.releasePending();
     CHECK(waitUntil([&]() { return available == 1; }), "valid release emits update");
-    CHECK(received == QStringList({"v1.0.4", "", "https://example.test/setup.exe", ""}),
+    CHECK(received == QStringList({"v1.0.4", "", "https://example.test/setup", ""}),
           "valid nullable release fields normalize");
+}
+
+static void testDefaultDigestBindingAndUrlPolicy(HttpFixture &http) {
+    prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+    int failed = 0;
+    QString message;
+    QObject::connect(&updater, &prism::Updater::downloadFailed,
+                     [&](const QString &value) { ++failed; message = value; });
+    const int requests = http.requestCount;
+    updater.downloadUpdate(http.url(QStringLiteral("/unbound.exe")));
+    CHECK(failed == 1 && message.contains(QStringLiteral("SHA-256")),
+          "default download requires release digest binding");
+    CHECK(http.requestCount == requests, "unbound download never reaches network");
+
+    prism::Updater unsafe(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"),
+                          QStringLiteral("Setup"), QStringLiteral("http://example.com"));
+    int checkFailed = 0;
+    QObject::connect(&unsafe, &prism::Updater::checkFailed,
+                     [&](const QString &) { ++checkFailed; });
+    unsafe.checkForUpdate();
+    CHECK(checkFailed == 1, "external plain HTTP API is rejected");
+
+    prism::Updater unsafeAsset(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"),
+                               QStringLiteral("Setup"), http.url());
+    int assetFailed = 0;
+    QObject::connect(&unsafeAsset, &prism::Updater::checkFailed,
+                     [&](const QString &) { ++assetFailed; });
+    QJsonObject asset{
+        {QStringLiteral("name"), platformInstallerName()},
+        {QStringLiteral("browser_download_url"),
+         QStringLiteral("http://downloads.example/installer")},
+        {QStringLiteral("digest"), QStringLiteral(
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000")},
+    };
+    QJsonObject release{
+        {QStringLiteral("tag_name"), QStringLiteral("v1.0.1")},
+        {QStringLiteral("assets"), QJsonArray{asset}},
+    };
+    http.queue(QJsonDocument(release).toJson(QJsonDocument::Compact));
+    unsafeAsset.checkForUpdate();
+    CHECK(waitUntil([&]() { return assetFailed == 1; }),
+          "external plain HTTP asset is rejected before confirmation");
+}
+
+static void testDigestVerification(HttpFixture &http, bool matches) {
+    const QStringList before = updaterArtifacts();
+    prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+    const QString url = http.url(QStringLiteral("/digest-bound.exe"));
+    updater.m_expectedDownloadUrl = url;
+    updater.m_expectedDigest = matches
+        ? QStringLiteral("sha256:239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5")
+        : QStringLiteral("sha256:0000000000000000000000000000000000000000000000000000000000000000");
+    QString completed;
+    int failed = 0;
+    QObject::connect(&updater, &prism::Updater::downloadFinished,
+                     [&](const QString &path) { completed = path; });
+    QObject::connect(&updater, &prism::Updater::downloadFailed,
+                     [&](const QString &) { ++failed; });
+    http.queue(QByteArrayLiteral("payload"));
+    updater.downloadUpdate(url);
+    CHECK(waitUntil([&]() { return !completed.isEmpty() || failed > 0; }),
+          "digest-bound download finishes");
+    CHECK(matches ? (!completed.isEmpty() && failed == 0)
+                  : (completed.isEmpty() && failed == 1),
+          "digest decides download commit");
+    if (!completed.isEmpty())
+        QFile::remove(completed);
+    CHECK(updaterArtifacts() == before, "digest test leaves no artifact");
+}
+
+static void testDuplicateDownloadKeepsDigestBinding(HttpFixture &http) {
+    const QStringList before = updaterArtifacts();
+    prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+    const QString firstUrl = http.url(QStringLiteral("/first.exe"));
+    const QString digest = QStringLiteral(
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000");
+    updater.m_expectedDownloadUrl = firstUrl;
+    updater.m_expectedDigest = digest;
+    int failed = 0;
+    QObject::connect(&updater, &prism::Updater::downloadFailed,
+                     [&](const QString &) { ++failed; });
+    http.queue(QByteArrayLiteral("payload"), true);
+    const int requests = http.requestCount;
+    updater.downloadUpdate(firstUrl);
+    updater.downloadUpdate(http.url(QStringLiteral("/second.exe")));
+    CHECK(updater.m_expectedDigest == digest, "duplicate download preserves digest binding");
+    CHECK(waitUntil([&]() { return http.requestCount == requests + 1; }),
+          "duplicate secure download creates one request");
+    http.releasePending();
+    CHECK(waitUntil([&]() { return failed == 1; }), "digest mismatch closes active download");
+    CHECK(updaterArtifacts() == before, "duplicate secure download leaves no artifact");
 }
 
 static QString runDownload(HttpFixture &http, const QByteArray &payload,
                            int *failed = nullptr) {
     prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+    updater.setRequireArtifactDigest(false);
     QString completed;
     int failureCount = 0;
     QObject::connect(&updater, &prism::Updater::downloadFinished,
@@ -227,6 +349,7 @@ static void testEmptyDownloadCleansArtifacts(HttpFixture &http) {
 static void testNetworkFailureCleansArtifacts(HttpFixture &http) {
     const QStringList before = updaterArtifacts();
     prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+    updater.setRequireArtifactDigest(false);
     int failed = 0, finished = 0;
     QObject::connect(&updater, &prism::Updater::downloadFailed,
                      [&](const QString &) { ++failed; });
@@ -242,6 +365,7 @@ static void testNetworkFailureCleansArtifacts(HttpFixture &http) {
 
 static void testDuplicateDownloadUsesOneReply(HttpFixture &http) {
     prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+    updater.setRequireArtifactDigest(false);
     QString completed;
     QObject::connect(&updater, &prism::Updater::downloadFinished,
                      [&](const QString &path) { completed = path; });
@@ -264,6 +388,7 @@ static void testDuplicateDownloadUsesOneReply(HttpFixture &http) {
 static void testWriteAndCommitFailures(HttpFixture &http) {
     const QStringList before = updaterArtifacts();
     prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+    updater.setRequireArtifactDigest(false);
     int failed = 0, finished = 0;
     QString failureMessage;
     QObject::connect(&updater, &prism::Updater::downloadFailed,
@@ -289,6 +414,7 @@ static void testDestroyActiveDownloadCleansTransaction(HttpFixture &http) {
     const int requestBefore = http.requestCount;
     {
         prism::Updater updater(QStringLiteral("owner/repo"), QStringLiteral("v1.0.0"));
+        updater.setRequireArtifactDigest(false);
         updater.downloadUpdate(http.url(QStringLiteral("/late.exe")));
         CHECK(waitUntil([&]() { return http.requestCount == requestBefore + 1; }),
               "active download reaches server before destruction");
@@ -307,6 +433,10 @@ int main(int argc, char *argv[]) {
     HttpFixture http;
     testInvalidReleaseSchemas(http);
     testValidReleaseAndDuplicateCheck(http);
+    testDefaultDigestBindingAndUrlPolicy(http);
+    testDigestVerification(http, true);
+    testDigestVerification(http, false);
+    testDuplicateDownloadKeepsDigestBinding(http);
     testUniqueAtomicDownloads(http);
     testEmptyDownloadCleansArtifacts(http);
     testNetworkFailureCleansArtifacts(http);

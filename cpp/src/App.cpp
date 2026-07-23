@@ -103,6 +103,7 @@ Updater *App::enableAutoUpdate(const QString &repo,
     // 以最后一次调用为准，重建底层 Updater。
     // App 非 QObject，故 parent 传 nullptr，所有权由 m_updater(unique_ptr) 独占。
     m_updater = std::make_unique<Updater>(repo, currentVersion, assetKeyword, nullptr);
+    m_updater->setRequireArtifactDigest(true);
     m_engine->rootContext()->setContextProperty(QStringLiteral("appUpdater"),
                                                 m_updater.get());
     return m_updater.get();

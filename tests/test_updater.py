@@ -16,6 +16,8 @@ import pytest
 from PySide6.QtNetwork import QNetworkRequest
 
 import prismqml.python.core.updater as updater_module
+import prismqml.python.core._updater_install as install_module
+from prismqml.python.core._updater_release import is_safe_update_url
 from prismqml.python.core.updater import (
     Updater,
     _network_request,
@@ -68,6 +70,27 @@ class TestApiBaseUrl:
         assert request.attribute(
             QNetworkRequest.Attribute.RedirectPolicyAttribute
         ) == QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy
+
+    @pytest.mark.parametrize(
+        ("url", "expected"),
+        [
+            ("https://updates.example/release", True),
+            ("http://127.0.0.1:8080/release", True),
+            ("http://localhost/release", True),
+            ("http://updates.example/release", False),
+            ("https://user:secret@updates.example/release", False),
+            ("not-a-url", False),
+        ],
+    )
+    def test_update_url_security_policy(self, url, expected):
+        assert is_safe_update_url(url) is expected
+
+    def test_qml_metadata_properties(self, qapp):
+        updater = Updater("owner/repo", "v1.2.3")
+
+        assert updater.repository == "owner/repo"
+        assert updater.currentVersion == "v1.2.3"
+        assert updater.requireArtifactDigest is True
 
 
 # ==================== 版本比对 ====================
@@ -146,26 +169,51 @@ class TestPickAsset:
     def test_keyword_exe_first(self):
         assets = [
             {"name": "source.zip"},
-            {"name": "Gitora-Setup-1.0.4.exe"},
-            {"name": "other.exe"},
+            {"name": "Gitora-Setup-1.0.4.exe", "browser_download_url": "https://x/a.exe"},
+            {"name": "other.exe", "browser_download_url": "https://x/b.exe"},
         ]
         a = _pick_asset(assets, "Setup")
         assert a["name"] == "Gitora-Setup-1.0.4.exe"
 
     def test_fallback_any_exe(self):
-        assets = [{"name": "source.zip"}, {"name": "tool.exe"}]
+        assets = [{"name": "source.zip"}, {"name": "tool.exe", "browser_download_url": "https://x/tool.exe"}]
         a = _pick_asset(assets, "Setup")
         assert a["name"] == "tool.exe"
 
-    def test_fallback_first(self):
-        assets = [{"name": "a.zip"}, {"name": "b.tar.gz"}]
-        a = _pick_asset(assets, "Setup")
-        assert a["name"] == "a.zip"
+    def test_no_installer_asset(self):
+        assets = [{"name": "a.zip", "browser_download_url": "https://x/a.zip"},
+                  {"name": "b.tar.gz", "browser_download_url": "https://x/b.tar.gz"}]
+        assert _pick_asset(assets, "Setup") is None
 
     def test_keyword_case_insensitive(self):
-        assets = [{"name": "MyApp-setup-2.0.exe"}]
+        assets = [{"name": "MyApp-setup-2.0.exe", "browser_download_url": "https://x/a.exe"}]
         a = _pick_asset(assets, "Setup")
         assert a["name"] == "MyApp-setup-2.0.exe"
+
+    @pytest.mark.parametrize(
+        ("platform_name", "asset_name"),
+        [("win32", "App.exe"), ("darwin", "App.dmg"), ("linux", "App.AppImage")],
+    )
+    def test_platform_installer_filter(self, platform_name, asset_name):
+        assets = [
+            {"name": "Wrong.zip", "browser_download_url": "https://x/wrong.zip"},
+            {"name": asset_name, "browser_download_url": "https://x/installer"},
+        ]
+
+        assert _pick_asset(assets, "", platform_name)["name"] == asset_name
+
+    def test_unsupported_platform_has_no_installer_fallback(self):
+        assets = [{"name": "App.exe", "browser_download_url": "https://x/a.exe"}]
+
+        assert _pick_asset(assets, "", "android") is None
+
+    def test_empty_download_url_never_shadows_valid_asset(self):
+        assets = [
+            {"name": "Preferred-Setup.exe", "browser_download_url": ""},
+            {"name": "Fallback.exe", "browser_download_url": "https://x/fallback.exe"},
+        ]
+
+        assert _pick_asset(assets, "Setup", "win32")["name"] == "Fallback.exe"
 
 
 # ==================== 信号(注入假数据,不连网) ====================
@@ -188,7 +236,8 @@ class TestSignals:
             "html_url": "https://github.com/owner/repo/releases/tag/v1.0.4",
             "assets": [
                 {"name": "Gitora-Setup-1.0.4.exe",
-                 "browser_download_url": "https://example.com/Gitora-Setup-1.0.4.exe"},
+                 "browser_download_url": "https://example.com/Gitora-Setup-1.0.4.exe",
+                 "digest": "sha256:" + "0" * 64},
             ],
         }
         up._inject_release_for_test(json.dumps(fake).encode("utf-8"))
@@ -226,6 +275,51 @@ class TestSignals:
         up._inject_release_for_test(json.dumps({"name": "no tag here"}).encode("utf-8"))
         assert "m" in seen
 
+    def test_missing_asset_digest_fails_closed(self, qapp):
+        up = self._make()
+        failures = []
+        successes = []
+        up.checkFailed.connect(failures.append)
+        up.updateAvailable.connect(lambda *args: successes.append(args))
+        payload = {
+            "tag_name": "v1.0.4",
+            "assets": [{
+                "name": "App-Setup.exe",
+                "browser_download_url": "https://example.test/App-Setup.exe",
+            }],
+        }
+
+        up._inject_release_for_test(json.dumps(payload).encode("utf-8"))
+
+        assert failures == ["更新资产缺少有效 SHA-256 摘要"]
+        assert successes == []
+
+    def test_unsafe_asset_url_fails_before_confirmation(self, qapp):
+        up = self._make()
+        failures = []
+        up.checkFailed.connect(failures.append)
+        payload = {
+            "tag_name": "v1.0.4",
+            "assets": [{
+                "name": "App-Setup.exe",
+                "browser_download_url": "http://downloads.example/App-Setup.exe",
+                "digest": "sha256:" + "0" * 64,
+            }],
+        }
+
+        up._inject_release_for_test(json.dumps(payload).encode("utf-8"))
+
+        assert failures == ["更新资产下载地址不安全"]
+
+    def test_direct_download_without_release_digest_is_rejected(self, qapp):
+        up = self._make()
+        failures = []
+        up.downloadFailed.connect(failures.append)
+
+        up.downloadUpdate("https://example.test/App-Setup.exe")
+
+        assert failures == ["下载地址未绑定有效 SHA-256 摘要"]
+
 
 # ==================== 安装(不真启动进程) ====================
 class _FakeShellExecute:
@@ -256,8 +350,8 @@ def _patch_windows_shell(monkeypatch, shell_execute):
         ArgumentError=type("ArgumentError", (Exception,), {}),
     )
     monkeypatch.setattr(updater_module.sys, "platform", "win32")
-    monkeypatch.setattr(updater_module, "ctypes", fake_ctypes, raising=False)
-    monkeypatch.setattr(updater_module, "wintypes", wintypes, raising=False)
+    monkeypatch.setattr(install_module, "ctypes", fake_ctypes)
+    monkeypatch.setattr(install_module, "wintypes", wintypes)
     return fake_ctypes, wintypes
 
 
@@ -296,7 +390,7 @@ class TestInstaller:
         quits = []
         monkeypatch.setattr(updater_module.sys, "platform", "linux")
         monkeypatch.setattr(
-            updater_module.QProcess,
+            install_module.QProcess,
             "startDetached",
             staticmethod(lambda *_args: (False, 0)),
         )
@@ -316,7 +410,7 @@ class TestInstaller:
         quits = []
         monkeypatch.setattr(updater_module.sys, "platform", "darwin")
         monkeypatch.setattr(
-            updater_module.QProcess,
+            install_module.QProcess,
             "startDetached",
             staticmethod(lambda path, args: calls.append((path, args)) or (True, 1234)),
         )
@@ -328,7 +422,29 @@ class TestInstaller:
 
         up = Updater("owner/repo", "v1.0.3")
         assert up.runInstallerAndQuit(str(installer), "--silent") is True
-        assert calls == [(str(installer), ["--silent"])]
+        assert calls == [("/usr/bin/open", [str(installer)])]
+        assert quits == [True]
+
+    def test_linux_deb_uses_system_package_handler(self, qapp, tmp_path, monkeypatch):
+        installer = tmp_path / "Setup.deb"
+        installer.write_bytes(b"dummy")
+        opened = []
+        quits = []
+        monkeypatch.setattr(updater_module.sys, "platform", "linux")
+        monkeypatch.setattr(
+            install_module.QDesktopServices,
+            "openUrl",
+            staticmethod(lambda url: opened.append(url.toLocalFile()) or True),
+        )
+        monkeypatch.setattr(
+            updater_module.QCoreApplication,
+            "quit",
+            staticmethod(lambda: quits.append(True)),
+        )
+
+        up = Updater("owner/repo", "v1.0.3")
+        assert up.runInstallerAndQuit(str(installer)) is True
+        assert opened == [installer.as_posix()]
         assert quits == [True]
 
     @pytest.mark.parametrize("error_type", (KeyboardInterrupt, SystemExit))
@@ -348,7 +464,7 @@ class TestInstaller:
 
         monkeypatch.setattr(updater_module.sys, "platform", "darwin")
         monkeypatch.setattr(
-            updater_module.QProcess,
+            install_module.QProcess,
             "startDetached",
             staticmethod(fail_start),
         )
@@ -445,7 +561,7 @@ class TestInstaller:
         _patch_windows_shell(monkeypatch, shell_execute)
         messages = []
         quits = []
-        monkeypatch.setattr(updater_module.logger, "exception", messages.append)
+        monkeypatch.setattr(install_module.logger, "exception", messages.append)
         monkeypatch.setattr(
             updater_module.QCoreApplication,
             "quit",

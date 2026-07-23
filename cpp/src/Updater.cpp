@@ -25,6 +25,8 @@
 #include <QStringList>
 #include <QUuid>
 #include <QDebug>
+#include <QCryptographicHash>
+#include <algorithm>
 
 #ifdef Q_OS_WIN
 #  include <windows.h>
@@ -92,7 +94,7 @@ int cmpSegList(const QList<Seg> &a, const QList<Seg> &b) {
 // 解析版本为 (core, preMarker)
 struct Version { QList<Seg> core; QList<Seg> preMarker; bool empty = false; };
 
-struct ReleaseAsset { QString name; QString downloadUrl; };
+struct ReleaseAsset { QString name; QString downloadUrl; QString digest; };
 struct ReleaseData {
     QString tag;
     QString notes;
@@ -167,7 +169,8 @@ bool parseReleaseAssets(const QJsonValue &value, QList<ReleaseAsset> *assets,
         const QJsonObject object = item.toObject();
         if (!readOptionalString(object, QStringLiteral("name"), &asset.name, error)
             || !readOptionalString(object, QStringLiteral("browser_download_url"),
-                                   &asset.downloadUrl, error))
+                                   &asset.downloadUrl, error)
+            || !readOptionalString(object, QStringLiteral("digest"), &asset.digest, error))
             return false;
         assets->append(asset);
     }
@@ -194,24 +197,99 @@ bool parseReleaseData(const QByteArray &raw, ReleaseData *release, QString *erro
                               &release->assets, error);
 }
 
-QString pickDownloadUrl(const QList<ReleaseAsset> &assets, const QString &keyword) {
-    const QString normalizedKeyword = keyword.toLower();
-    QString firstExecutable;
-    bool hasExecutable = false;
-    for (const ReleaseAsset &asset : assets) {
-        if (!asset.name.toLower().endsWith(QStringLiteral(".exe")))
-            continue;
-        if (!hasExecutable) {
-            firstExecutable = asset.downloadUrl;
-            hasExecutable = true;
-        }
-        if (!normalizedKeyword.isEmpty()
-            && asset.name.toLower().contains(normalizedKeyword))
-            return asset.downloadUrl;
+bool isSafeUpdateUrl(const QString &value, bool allowLocalHttp = true) {
+    const QUrl url(value.trimmed(), QUrl::StrictMode);
+    if (!url.isValid() || url.host().isEmpty() || !url.userInfo().isEmpty())
+        return false;
+    const QString scheme = url.scheme().toLower();
+    if (scheme == QStringLiteral("https"))
+        return true;
+    return allowLocalHttp && scheme == QStringLiteral("http")
+        && (url.host().compare(QStringLiteral("localhost"), Qt::CaseInsensitive) == 0
+            || url.host() == QStringLiteral("127.0.0.1")
+            || url.host() == QStringLiteral("::1"));
+}
+
+bool isSha256Digest(const QString &value) {
+    const QStringList parts = value.trimmed().split(QLatin1Char(':'), Qt::KeepEmptyParts);
+    if (parts.size() != 2 || parts[0].compare(QStringLiteral("sha256"), Qt::CaseInsensitive) != 0
+        || parts[1].size() != 64)
+        return false;
+    for (const QChar character : parts[1]) {
+        const QChar lower = character.toLower();
+        if ((character < QLatin1Char('0') || character > QLatin1Char('9'))
+            && (lower < QLatin1Char('a') || lower > QLatin1Char('f')))
+            return false;
     }
-    if (hasExecutable)
-        return firstExecutable;
-    return assets.isEmpty() ? QString() : assets.first().downloadUrl;
+    return true;
+}
+
+QStringList installerSuffixes() {
+#ifdef Q_OS_WIN
+    return {QStringLiteral(".exe")};
+#elif defined(Q_OS_MACOS)
+    return {QStringLiteral(".dmg"), QStringLiteral(".pkg")};
+#elif defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+    return {QStringLiteral(".appimage"), QStringLiteral(".run"), QStringLiteral(".deb")};
+#else
+    return {};
+#endif
+}
+
+bool verifyFileDigest(const QString &path, const QString &digest) {
+    if (!isSha256Digest(digest))
+        return false;
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return false;
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    while (!file.atEnd()) {
+        const QByteArray chunk = file.read(1024 * 1024);
+        if (chunk.isEmpty() && !file.atEnd())
+            return false;
+        hash.addData(chunk);
+    }
+    return QStringLiteral("sha256:%1").arg(QString::fromLatin1(hash.result().toHex()))
+        .compare(digest.trimmed(), Qt::CaseInsensitive) == 0;
+}
+
+QString pickDownloadUrl(const QList<ReleaseAsset> &assets, const QString &keyword,
+                        QString *digest = nullptr) {
+    const QString normalizedKeyword = keyword.toLower();
+    const QStringList suffixes = installerSuffixes();
+    const ReleaseAsset *firstInstaller = nullptr;
+    for (const ReleaseAsset &asset : assets) {
+        const QString name = asset.name.toLower();
+        if (asset.downloadUrl.isEmpty()
+            || !std::any_of(suffixes.cbegin(), suffixes.cend(),
+                            [&name](const QString &suffix) { return name.endsWith(suffix); }))
+            continue;
+        if (!firstInstaller)
+            firstInstaller = &asset;
+        if (!normalizedKeyword.isEmpty() && name.contains(normalizedKeyword)) {
+            if (digest)
+                *digest = asset.digest;
+            return asset.downloadUrl;
+        }
+    }
+    if (firstInstaller) {
+        if (digest)
+            *digest = firstInstaller->digest;
+        return firstInstaller->downloadUrl;
+    }
+    if (digest)
+        digest->clear();
+    return QString();
+}
+
+QNetworkRequest updaterRequest(const QString &url) {
+    QNetworkRequest request{QUrl(url)};
+    request.setHeader(QNetworkRequest::UserAgentHeader,
+                      QStringLiteral("PrismQML-Updater"));
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::NoLessSafeRedirectPolicy);
+    request.setAttribute(QNetworkRequest::ConnectionCacheExpiryTimeoutSecondsAttribute, 0);
+    return request;
 }
 
 QString uniqueDownloadPath(const QString &url) {
@@ -291,16 +369,19 @@ void Updater::setApiBaseUrl(const QString &apiBaseUrl) {
 
 // 检查更新: GET GitHub releases/latest (镜像 checkForUpdate)
 void Updater::checkForUpdate() {
-    if (m_checkReply) {
-        qDebug() << "[Updater] 已有检测请求在进行, 忽略重复调用";
+    if (m_checkReply || m_downloadReply) {
+        qDebug() << "[Updater] 已有更新事务在进行, 忽略重复检测";
         return;
     }
+    m_expectedDownloadUrl.clear();
+    m_expectedDigest.clear();
     const QString url = latestReleaseApiUrl(m_repo, m_apiBaseUrl);
-    QNetworkRequest req((QUrl(url)));
-    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("PrismQML-Updater"));
+    if (!isSafeUpdateUrl(url)) {
+        emit checkFailed(QStringLiteral("更新 API 地址不安全"));
+        return;
+    }
+    QNetworkRequest req = updaterRequest(url);
     req.setRawHeader("Accept", "application/vnd.github+json");
-    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
-                     QNetworkRequest::NoLessSafeRedirectPolicy);
     m_checkReply = m_nam->get(req);
     QNetworkReply *reply = m_checkReply;
     connect(reply, &QNetworkReply::finished, this,
@@ -329,22 +410,46 @@ void Updater::onCheckFinished(QNetworkReply *reply) {
         return;
     }
     if (!versionIsNewer(release.tag, m_currentVersion)) {
+        m_expectedDownloadUrl.clear();
+        m_expectedDigest.clear();
         emit upToDate(m_currentVersion);
         return;
     }
+    QString digest;
+    const QString downloadUrl = pickDownloadUrl(release.assets, m_assetKeyword, &digest);
+    if (!downloadUrl.isEmpty() && !isSafeUpdateUrl(downloadUrl)) {
+        emit checkFailed(QStringLiteral("更新资产下载地址不安全"));
+        return;
+    }
+    if (!downloadUrl.isEmpty() && m_requireArtifactDigest && !isSha256Digest(digest)) {
+        emit checkFailed(QStringLiteral("更新资产缺少有效 SHA-256 摘要"));
+        return;
+    }
+    m_expectedDownloadUrl = downloadUrl;
+    m_expectedDigest = digest;
     emit updateAvailable(release.tag, release.notes,
-                         pickDownloadUrl(release.assets, m_assetKeyword),
+                         downloadUrl,
                          release.htmlUrl);
 }
 
 // 下载更新包 (镜像 downloadUpdate)
 void Updater::downloadUpdate(const QString &url) {
+    if (m_downloadReply) {
+        qDebug() << "[Updater] 已有下载在进行, 忽略重复调用";
+        return;
+    }
     if (url.isEmpty()) {
         emit downloadFailed(QStringLiteral("下载 URL 为空"));
         return;
     }
-    if (m_downloadReply) {
-        qDebug() << "[Updater] 已有下载在进行, 忽略重复调用";
+    if (!isSafeUpdateUrl(url)) {
+        emit downloadFailed(QStringLiteral("下载地址不安全"));
+        return;
+    }
+    if (url != m_expectedDownloadUrl)
+        m_expectedDigest.clear();
+    if (m_requireArtifactDigest && !isSha256Digest(m_expectedDigest)) {
+        emit downloadFailed(QStringLiteral("下载地址未绑定有效 SHA-256 摘要"));
         return;
     }
     if (!openDownloadFile(url))
@@ -366,10 +471,7 @@ bool Updater::openDownloadFile(const QString &url) {
 }
 
 void Updater::startDownloadRequest(const QString &url) {
-    QNetworkRequest req((QUrl(url)));
-    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("PrismQML-Updater"));
-    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
-                     QNetworkRequest::NoLessSafeRedirectPolicy);
+    QNetworkRequest req = updaterRequest(url);
     m_downloadReply = m_nam->get(req);
     QNetworkReply *reply = m_downloadReply;
     connect(reply, &QNetworkReply::downloadProgress, this, &Updater::downloadProgress);
@@ -425,9 +527,11 @@ QString Updater::finalizeDownload(QNetworkReply *reply) {
     delete m_downloadFile;
     m_downloadFile = nullptr;
     const QFileInfo fileInfo(m_downloadPath);
-    return fileInfo.isFile() && fileInfo.size() > 0
-        ? QString()
-        : QStringLiteral("下载文件无效");
+    if (!fileInfo.isFile() || fileInfo.size() <= 0)
+        return QStringLiteral("下载文件无效");
+    if (!m_expectedDigest.isEmpty() && !verifyFileDigest(m_downloadPath, m_expectedDigest))
+        return QStringLiteral("下载文件摘要校验失败");
+    return QString();
 }
 
 void Updater::failDownload(const QString &message) {
@@ -481,10 +585,40 @@ bool Updater::runInstallerAndQuit(const QString &installerPath, const QString &s
     qInfo() << "[Updater] 已启动安装包, 应用即将退出:" << installerPath << args;
     QCoreApplication::quit();
     return true;
-#elif defined(Q_OS_IOS)
-    // iOS sandbox does not support launching an external installer process.
+#elif defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
+    // Mobile sandboxes do not support launching an external installer process.
     qWarning() << "[Updater] 当前平台不支持启动外部安装包:" << installerPath;
     return false;
+#elif defined(Q_OS_MACOS)
+    // macOS DMG/PKG must be opened by the system Installer/Finder handler.
+    const bool ok = QProcess::startDetached(QStringLiteral("/usr/bin/open"), {installerPath});
+    if (!ok) {
+        qWarning() << "[Updater] 打开 macOS 安装包失败:" << installerPath;
+        return false;
+    }
+    qInfo() << "[Updater] 已打开 macOS 安装包, 应用即将退出:" << installerPath;
+    QCoreApplication::quit();
+    return true;
+#elif defined(Q_OS_LINUX)
+    bool ok = false;
+    if (installerPath.endsWith(QStringLiteral(".deb"), Qt::CaseInsensitive)) {
+        ok = QDesktopServices::openUrl(QUrl::fromLocalFile(installerPath));
+    } else {
+        QFile::Permissions permissions = QFile::permissions(installerPath);
+        if (!(permissions & QFileDevice::ExeOwner)
+            && !QFile::setPermissions(installerPath, permissions | QFileDevice::ExeOwner)) {
+            qWarning() << "[Updater] 设置 Linux 安装包执行权限失败:" << installerPath;
+            return false;
+        }
+        ok = QProcess::startDetached(installerPath, args);
+    }
+    if (!ok) {
+        qWarning() << "[Updater] 启动 Linux 安装包失败:" << installerPath;
+        return false;
+    }
+    qInfo() << "[Updater] 已启动 Linux 安装包, 应用即将退出:" << installerPath << args;
+    QCoreApplication::quit();
+    return true;
 #else
     // 非 Windows: QProcess detached 启动
     const bool ok = QProcess::startDetached(installerPath, args);
@@ -500,8 +634,8 @@ bool Updater::runInstallerAndQuit(const QString &installerPath, const QString &s
 
 // ==================== 浏览器打开 (镜像 Python openInBrowser) ====================
 bool Updater::openInBrowser(const QString &url) {
-    if (url.isEmpty()) {
-        qWarning() << "[Updater] openInBrowser: URL 为空";
+    if (!isSafeUpdateUrl(url, false)) {
+        qWarning() << "[Updater] openInBrowser: URL 不安全或为空";
         return false;
     }
     const bool ok = QDesktopServices::openUrl(QUrl(url));

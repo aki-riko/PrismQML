@@ -396,7 +396,7 @@ class App:
 
         创建 ``Updater`` 并以 ``appUpdater`` 注入 QML 根上下文,供
         ``AutoUpdater { updater: appUpdater }`` 门面消费。应用侧仅需提供
-        仓库与当前版本,即可复用检测→下载→静默安装的完整流程。与 C++
+        仓库与当前版本,即可复用检测→下载→启动安装程序的完整流程。与 C++
         ``App::enableAutoUpdate`` 对称。以最后一次调用为准重建底层实例,
         其生命周期由 App 持有。
 
@@ -417,6 +417,7 @@ class App:
             return None
         # 以最后一次调用为准重建底层 Updater;parent=None,生命周期由 self 持有。
         self._updater = Updater(repo, current_version, asset_keyword, None)
+        self._updater.requireArtifactDigest = True
         self._engine.rootContext().setContextProperty("appUpdater", self._updater)
         return self._updater
 

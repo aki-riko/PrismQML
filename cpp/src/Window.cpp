@@ -385,13 +385,20 @@ bool Window::goBack() {
 }
 
 void NavBridge::onClosing(QQuickCloseEvent *event) {
-    // Android 返回键触发窗口 closing: 能 goBack 则拦截(不关窗), 否则放行(退出)。
+#if PRISM_MOBILE
+    // Mobile back key triggers window closing: intercept if goBack is possible,
+    // otherwise let it through (exit). 移动端返回键触发关闭: 能 goBack 则拦截(不关窗), 否则放行退出。
     // QQuickCloseEvent 公开头仅前向声明, 但它单继承 QObject 且 accepted 是
     // Q_PROPERTY → 经 QObject* 用 setProperty 设置, 避免依赖私有头。
     if (m_owner && m_owner->goBack()) {
         if (event)
             reinterpret_cast<QObject *>(event)->setProperty("accepted", false);
     }
+#else
+    // Desktop: the close button must quit immediately, never replay nav history.
+    // 桌面端: 点关闭即退出, 绝不把关闭当作返回键逐级弹导航栈(否则需点击 N 次才能关闭)。
+    Q_UNUSED(event);
+#endif
 }
 
 // 确保页面已创建并挂入 page_N 容器 (镜像 _create_page)

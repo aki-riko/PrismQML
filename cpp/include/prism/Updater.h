@@ -29,6 +29,10 @@ QString latestReleaseApiUrl(const QString &repo,
 class Updater : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString apiBaseUrl READ apiBaseUrl WRITE setApiBaseUrl)
+    Q_PROPERTY(QString repository READ repository CONSTANT)
+    Q_PROPERTY(QString currentVersion READ currentVersion CONSTANT)
+    Q_PROPERTY(bool requireArtifactDigest READ requireArtifactDigest
+               WRITE setRequireArtifactDigest)
 public:
     explicit Updater(const QString &repo, const QString &currentVersion,
                      const QString &assetKeyword = QStringLiteral("Setup"),
@@ -40,6 +44,10 @@ public:
 
     QString apiBaseUrl() const { return m_apiBaseUrl; }
     void setApiBaseUrl(const QString &apiBaseUrl);
+    QString repository() const { return m_repo; }
+    QString currentVersion() const { return m_currentVersion; }
+    bool requireArtifactDigest() const { return m_requireArtifactDigest; }
+    void setRequireArtifactDigest(bool required) { m_requireArtifactDigest = required; }
 
 public slots:
     void checkForUpdate();
@@ -47,7 +55,7 @@ public slots:
 
     // 启动安装包并退出当前应用, 让安装包覆盖文件 (镜像 Python runInstallerAndQuit)。
     // Windows 用 ShellExecuteW open 动词 (安装包 manifest 标记需管理员权限时系统自动弹 UAC);
-    // 非 Windows 用 QProcess::startDetached；iOS 等不支持外部安装器的平台返回 false。
+    // macOS 交给系统 open，Linux 按包类型打开或执行；移动端返回 false。
     // installerPath 通常是 downloadFinished 给出的 localPath;
     // silentArgs 为传给安装包的参数(空格分隔), 留空走可见安装向导。
     // 成功发起安装时本应用即将退出并返回 true; 文件不存在/启动失败返回 false 且不退出。
@@ -82,12 +90,15 @@ private:
     QString m_currentVersion;
     QString m_assetKeyword;
     QString m_apiBaseUrl;
+    bool m_requireArtifactDigest = true;
     QNetworkAccessManager *m_nam;
     QNetworkReply *m_checkReply = nullptr;
     QNetworkReply *m_downloadReply = nullptr;
     QSaveFile *m_downloadFile = nullptr;
     QString m_downloadPath;
     QString m_downloadError;
+    QString m_expectedDownloadUrl;
+    QString m_expectedDigest;
 };
 
 }  // namespace prism

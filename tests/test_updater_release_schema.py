@@ -31,6 +31,7 @@ def _encoded(value) -> bytes:
         {"tag_name": "v1.0.4", "assets": ["not-an-object"]},
         {"tag_name": "v1.0.4", "assets": [{"name": []}]},
         {"tag_name": "v1.0.4", "assets": [{"browser_download_url": 7}]},
+        {"tag_name": "v1.0.4", "assets": [{"digest": 7}]},
         b'{"tag_name":"v1.0.4"}\xff',
     ],
 )

@@ -1,9 +1,9 @@
 // AutoUpdater.qml —— 高层自动更新门面
 //
-// 把底层 Updater(网络/版本比较/静默安装)与 UI 零件(UpdateDialog / DesktopNotification /
+// 把底层 Updater(网络/版本比较/安装启动)与 UI 零件(UpdateDialog / DesktopNotification /
 // ProgressRing)串成一条完整链路,应用只需注入 updater 实例并调用 check():
 //   检查 → 有新版弹 UpdateDialog 确认 → 右下角 toast 不确定进度环
-//        → 拿到总大小转确定环 → 下载完成静默重启安装
+//        → 拿到总大小转确定环 → 下载完成启动安装程序
 //        → 无安装包(downloadUrl 为空)则跳转 Release 页
 //
 // 用法:
@@ -29,13 +29,12 @@ Item {
 
     // ---- 可配置行为 ----
     property bool autoDownload: true              // 用户确认后是否自动下载(false 则仅发 downloadRequested 信号)
-    property string silentArgs: ""                // 静默安装参数;空则交由 updater 内部默认值
+    property string silentArgs: ""                // 安装参数;空则启动可见安装向导
     property bool notifyWhenUpToDate: false        // 已是最新时是否弹提示 toast
 
-    // ---- 展示信息(由宿主 enableAutoUpdate 注入,或应用直接赋值) ----
-    // 底层 Updater 未暴露这两项为 QML 可读属性,故在门面层显式持有。
-    property string repository: ""
-    property string currentVersion: ""
+    // ---- 展示信息(默认读取底层,应用仍可直接赋值覆盖) ----
+    property string repository: updater && updater.repository ? updater.repository : ""
+    property string currentVersion: updater && updater.currentVersion ? updater.currentVersion : ""
 
     // ---- 对外信号(供应用可选接管) ----
     signal upToDateNotified(string version)
@@ -45,9 +44,11 @@ Item {
     // ---- 内部状态 ----
     property string _pendingUrl: ""
     property string _pendingHtmlUrl: ""
+    property string _pendingVersion: ""
     property bool _rangeKnown: false
     property bool _checking: false      // 是否处于检查态(不确定环)
     property bool _downloading: false   // 是否处于下载态(不确定环→确定环)
+    property bool _awaitingDecision: false
     // 进度环显示条件:检查中或下载中
     readonly property bool _ringVisible: _checking || _downloading
 
@@ -57,6 +58,9 @@ Item {
             console.warn("AutoUpdater: updater 未注入,无法检查更新");
             return;
         }
+        if (root._checking || root._downloading || root._awaitingDecision)
+            return;
+        _clearPending();
         // 检查阶段:总量未知,显示不确定进度环(读信息=不确定,下载拿到总大小才转确定)
         root._checking = true;
         root._rangeKnown = false;
@@ -70,18 +74,22 @@ Item {
 
     // 手动开始下载(autoDownload=false 时供应用调用)
     function startDownload() {
-        if (!updater || root._pendingUrl === "")
+        if (!updater || root._checking || root._downloading || root._awaitingDecision
+            || (root._pendingUrl === "" && root._pendingHtmlUrl === ""))
             return;
         _beginDownload(_pendingVersion, _pendingUrl, _pendingHtmlUrl);
     }
 
-    property string _pendingVersion: ""
-
     function _beginDownload(version, downloadUrl, htmlUrl) {
-        // 无安装包资产 → 跳转 Release 页,不报错
+        if (root._downloading)
+            return;
+        // 无安装包资产 → 跳转 Release 页
         if (!downloadUrl || downloadUrl === "") {
-            if (htmlUrl && htmlUrl !== "")
-                updater.openInBrowser(htmlUrl);
+            if (htmlUrl && htmlUrl !== "" && updater.openInBrowser(htmlUrl)) {
+                _clearPending();
+                return;
+            }
+            _showError(qsTr("打开发布页失败"), qsTr("无法打开更新发布页"));
             return;
         }
         root._rangeKnown = false;
@@ -95,14 +103,32 @@ Item {
         updater.downloadUpdate(downloadUrl);
     }
 
+    function _showError(title, message) {
+        progressRing.stop();
+        toast.title = title;
+        toast.message = message;
+        toast.severity = "error";
+        toast.show();
+        root.errorOccurred(message);
+    }
+
+    function _clearPending() {
+        root._pendingVersion = "";
+        root._pendingUrl = "";
+        root._pendingHtmlUrl = "";
+    }
+
     // ---- 接底层 updater 信号 ----
     Connections {
         target: root.updater
         ignoreUnknownSignals: true
 
         function onUpdateAvailable(version, notes, downloadUrl, htmlUrl) {
+            if (!root._checking)
+                return;
             // 检查结束,停不确定环并收起检查 toast,转入确认弹窗
             root._checking = false;
+            root._awaitingDecision = true;
             progressRing.stop();
             toast.hide();
             root._pendingVersion = version;
@@ -115,6 +141,8 @@ Item {
         }
 
         function onUpToDate(version) {
+            if (!root._checking)
+                return;
             root._checking = false;
             progressRing.stop();
             if (!root.notifyWhenUpToDate)
@@ -129,16 +157,15 @@ Item {
         }
 
         function onCheckFailed(error) {
+            if (!root._checking)
+                return;
             root._checking = false;
-            progressRing.stop();
-            toast.title = qsTr("检查更新失败");
-            toast.message = error;
-            toast.severity = "error";
-            toast.show();
-            root.errorOccurred(error);
+            _showError(qsTr("检查更新失败"), error);
         }
 
         function onDownloadProgress(received, total) {
+            if (!root._downloading)
+                return;
             // 首次拿到有效总大小 → 不确定环转确定环
             if (total > 0 && !root._rangeKnown) {
                 root._rangeKnown = true;
@@ -151,22 +178,25 @@ Item {
         }
 
         function onDownloadFinished(filePath) {
+            if (!root._downloading)
+                return;
             root._downloading = false;
-            toast.title = qsTr("下载完成,正在安装");
-            toast.message = qsTr("即将自动重启");
+            progressRing.stop();
+            if (!root.updater.runInstallerAndQuit(filePath, root.silentArgs)) {
+                _showError(qsTr("安装启动失败"), qsTr("无法启动安装程序,请重试"));
+                return;
+            }
+            toast.title = qsTr("安装程序已启动");
+            toast.message = qsTr("请按安装程序提示完成更新");
             toast.severity = "success";
-            // 静默安装并退出;silentArgs 为空则用 updater 内部默认参数
-            root.updater.runInstallerAndQuit(filePath, root.silentArgs);
+            toast.show();
         }
 
         function onDownloadFailed(error) {
+            if (!root._downloading)
+                return;
             root._downloading = false;
-            progressRing.stop();
-            toast.title = qsTr("下载失败");
-            toast.message = error;
-            toast.severity = "error";
-            toast.show();
-            root.errorOccurred(error);
+            _showError(qsTr("下载失败"), error);
         }
     }
 
@@ -177,14 +207,15 @@ Item {
         cancelText: qsTr("稍后")
 
         onConfirmed: {
+            root._awaitingDecision = false;
             root.downloadRequested(root._pendingVersion, root._pendingUrl, root._pendingHtmlUrl);
             if (root.autoDownload)
                 root._beginDownload(root._pendingVersion, root._pendingUrl, root._pendingHtmlUrl);
         }
         onCancelled: {
             // 用户稍后再说,清空待处理状态
-            root._pendingUrl = "";
-            root._pendingHtmlUrl = "";
+            root._awaitingDecision = false;
+            root._clearPending();
         }
     }
 

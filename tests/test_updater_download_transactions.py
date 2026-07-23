@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,18 @@ from PySide6.QtNetwork import QNetworkReply
 
 import prismqml.python.core._updater_download as download_module
 from prismqml.python.core.updater import Updater
+
+
+@pytest.fixture(autouse=True)
+def _allow_unbound_transaction_downloads(monkeypatch):
+    """Low-level transaction tests bypass release metadata by design."""
+    original_init = Updater.__init__
+
+    def init_without_release_binding(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        self.requireArtifactDigest = False
+
+    monkeypatch.setattr(Updater, "__init__", init_without_release_binding)
 
 
 class _SignalStub:
@@ -106,6 +119,38 @@ def _finish_download(updater, manager, payload: bytes):
     reply.feed(payload)
     reply.readyRead.emit()
     reply.finished.emit()
+
+
+@pytest.mark.parametrize("digest_matches", [True, False])
+def test_release_bound_sha256_controls_download_commit(qapp, digest_matches):
+    updater = Updater("owner/repo", "v1.0.0")
+    updater.requireArtifactDigest = True
+    manager = _NetworkManagerStub()
+    updater._nam = manager
+    payload = b"real-installer-payload"
+    expected = hashlib.sha256(payload).hexdigest()
+    if not digest_matches:
+        expected = "0" * 64
+    url = "https://example.test/App-Setup.exe"
+    updater._expected_download_url = url
+    updater._expected_digest = f"sha256:{expected}"
+    failures = []
+    completed = []
+    updater.downloadFailed.connect(failures.append)
+    updater.downloadFinished.connect(completed.append)
+
+    updater.downloadUpdate(url)
+    final_path = Path(updater._download_path)
+    _finish_download(updater, manager, payload)
+
+    if digest_matches:
+        assert failures == []
+        assert Path(completed[0]).read_bytes() == payload
+        Path(completed[0]).unlink()
+    else:
+        assert failures == ["下载文件摘要校验失败"]
+        assert completed == []
+        assert not final_path.exists()
 
 
 def test_same_url_downloads_keep_distinct_completed_files(qapp):
@@ -220,6 +265,31 @@ def test_duplicate_download_call_does_not_replace_active_reply(qapp):
     finally:
         if updater._download_file is not None:
             updater._download_file.close()
+        Path(updater._download_partial_path).unlink(missing_ok=True)
+        Path(updater._download_path).unlink(missing_ok=True)
+
+
+def test_duplicate_download_cannot_drop_active_digest_binding(qapp):
+    updater = Updater("owner/repo", "v1.0.0")
+    updater.requireArtifactDigest = True
+    manager = _NetworkManagerStub()
+    updater._nam = manager
+    first_url = "https://example.test/first.exe"
+    digest = "sha256:" + "0" * 64
+    updater._expected_download_url = first_url
+    updater._expected_digest = digest
+
+    try:
+        updater.downloadUpdate(first_url)
+        updater.downloadUpdate("https://example.test/second.exe")
+
+        assert len(manager.replies) == 1
+        assert updater._expected_download_url == first_url
+        assert updater._expected_digest == digest
+    finally:
+        if updater._download_file is not None:
+            updater._download_file.close()
+        Path(updater._download_partial_path).unlink(missing_ok=True)
         Path(updater._download_path).unlink(missing_ok=True)
 
 

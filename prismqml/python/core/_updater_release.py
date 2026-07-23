@@ -7,7 +7,9 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import Optional
+from urllib.parse import urlsplit
 
 
 def _optional_release_string(data: dict, key: str) -> str:
@@ -36,6 +38,7 @@ def _validated_release_assets(data: dict) -> list[dict]:
             "browser_download_url": _optional_release_string(
                 asset, "browser_download_url"
             ),
+            "digest": _optional_release_string(asset, "digest"),
         })
     return normalized
 
@@ -56,20 +59,63 @@ def decode_release_payload(raw: bytes) -> dict:
     }
 
 
-def pick_asset(assets: list, keyword: str) -> Optional[dict]:
-    """Pick a preferred installer asset. 选择首选安装包资源。"""
-    if not assets:
+def is_safe_update_url(url: str, *, allow_local_http: bool = True) -> bool:
+    """Accept only HTTPS, or loopback HTTP for local tests. 仅允许安全更新地址。"""
+    try:
+        parsed = urlsplit((url or "").strip())
+    except ValueError:
+        return False
+    if parsed.username or parsed.password or not parsed.hostname:
+        return False
+    if parsed.scheme.lower() == "https":
+        return True
+    return (
+        allow_local_http
+        and parsed.scheme.lower() == "http"
+        and parsed.hostname.lower() in {"localhost", "127.0.0.1", "::1"}
+    )
+
+
+def is_sha256_digest(digest: str) -> bool:
+    """Validate a GitHub ``sha256:<hex>`` digest. 校验摘要格式。"""
+    algorithm, separator, expected = (digest or "").partition(":")
+    if not separator or algorithm.lower() != "sha256" or len(expected) != 64:
+        return False
+    try:
+        int(expected, 16)
+    except ValueError:
+        return False
+    return True
+
+
+def _platform_suffixes(platform_name: Optional[str] = None) -> tuple[str, ...]:
+    """Return launchable installer suffixes for one platform. 返回平台安装包后缀。"""
+    name = platform_name or sys.platform
+    if name == "win32":
+        return (".exe",)
+    if name == "darwin":
+        return (".dmg", ".pkg")
+    if name.startswith("linux"):
+        return (".appimage", ".run", ".deb")
+    return ()
+
+
+def pick_asset(
+    assets: list,
+    keyword: str,
+    platform_name: Optional[str] = None,
+) -> Optional[dict]:
+    """Pick a valid platform installer. 选择带地址的平台安装包。"""
+    candidates = [
+        asset for asset in assets
+        if asset.get("browser_download_url")
+        and asset.get("name", "").lower().endswith(_platform_suffixes(platform_name))
+    ]
+    if not candidates:
         return None
     normalized_keyword = (keyword or "").lower()
-    executable_assets = [
-        asset
-        for asset in assets
-        if asset["name"].lower().endswith(".exe")
-    ]
     if normalized_keyword:
-        for asset in executable_assets:
+        for asset in candidates:
             if normalized_keyword in asset["name"].lower():
                 return asset
-    if executable_assets:
-        return executable_assets[0]
-    return assets[0]
+    return candidates[0]

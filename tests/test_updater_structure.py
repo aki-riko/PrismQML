@@ -9,12 +9,17 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from prismqml.python.core import _updater_download, _updater_release, updater
+from prismqml.python.core import (
+    _updater_download,
+    _updater_install,
+    _updater_release,
+    updater,
+)
 
 
 _MAX_FILE_LINES = 499
 _MAX_FUNCTION_LINES = 30
-_MODULES = (updater, _updater_download, _updater_release)
+_MODULES = (updater, _updater_download, _updater_install, _updater_release)
 
 
 def _module_functions(path: Path):

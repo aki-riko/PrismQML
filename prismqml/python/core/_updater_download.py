@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import tempfile
 from typing import BinaryIO
@@ -15,6 +16,22 @@ from PySide6.QtCore import QStandardPaths, QUrl
 
 _DOWNLOAD_TEMP_PREFIX = "prismqml-update-"
 _DOWNLOAD_PART_SUFFIX = ".part"
+
+
+def verify_download_digest(path: str, digest: str) -> bool:
+    """Verify a GitHub ``sha256:<hex>`` digest. 校验 GitHub SHA-256 摘要。"""
+    algorithm, separator, expected = (digest or "").partition(":")
+    if algorithm.lower() != "sha256" or len(expected) != 64:
+        return False
+    try:
+        int(expected, 16)
+    except ValueError:
+        return False
+    hasher = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest().lower() == expected.lower()
 
 
 def _download_suffix(url: str) -> str:
