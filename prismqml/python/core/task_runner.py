@@ -8,7 +8,6 @@ from contextvars import ContextVar
 import math
 import threading
 import time
-import traceback as traceback_module
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from PySide6.QtCore import (
@@ -23,6 +22,7 @@ from PySide6.QtCore import (
 )
 
 from .logger import exception
+from ._task_failures import build_task_failure, log_task_failure
 from ._task_types import (
     _TaskOutcome,
     PoolSubmitPolicy,
@@ -166,19 +166,9 @@ class _TaskExecution:
         self._settle(TaskState.CANCELLED, None)
 
     def _fail(self, caught: BaseException) -> None:
-        rendered = "".join(
-            traceback_module.format_exception(
-                type(caught), caught, caught.__traceback__
-            )
-        )
-        exception(
-            f"Background task failed: {type(caught).__name__}: {caught}",
-            tag="TaskRunner",
-        )
-        self._settle(
-            TaskState.FAILED,
-            TaskFailure(caught.with_traceback(None), rendered),
-        )
+        failure = build_task_failure(caught)
+        self._settle(TaskState.FAILED, failure)
+        log_task_failure(caught)
 
     def _settle(self, state: TaskState, payload: Any) -> None:
         if self._context._settle(state, payload):
