@@ -75,27 +75,18 @@ NavigationWindowCore {
             onLoaded: {
                 window.stackedWidget = item.stackAlias
                 
-                if (_hiddenStack.data.length > 0) {
-                    let container = window.stackedWidget.containerItem
-                    let items = []
-                    for(let i=0; i<_hiddenStack.data.length; i++) {
-                        items.push(_hiddenStack.data[i])
+                try {
+                    if (_hiddenStack.data.length > 0) {
+                        window._moveDefaultPages(
+                            _hiddenStack.data,
+                            window.stackedWidget.containerItem,
+                            "WindowsFilled"
+                        )
                     }
-                    for(let i=0; i<items.length; i++) {
-                        let child = items[i]
-                        child.parent = container
-                        child.width = Qt.binding(function() { return container.width })
-                        child.height = Qt.binding(function() { return container.height })
-                        child.x = 0
-                        child.y = 0
-                        child.scale = 1
-                        child.visible = (i === window.stackedWidget.currentIndex)
-                        child.opacity = (i === window.stackedWidget.currentIndex ? 1 : 0)
-                    }
+                } finally {
+                    // Dismiss the splash after the home page is ready, not after the shell alone. 首页就绪后再关闭欢迎页，而不是仅等待框架壳。
+                    window._dismissSplashWhenReady(window.stackedWidget)
                 }
-                
-                // Dismiss the splash after the home page is ready, not after the shell alone. 首页就绪后再关闭欢迎页，而不是仅等待框架壳。
-                window._dismissSplashWhenReady(window.stackedWidget)
             }
         }
         

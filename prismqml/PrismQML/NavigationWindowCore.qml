@@ -105,6 +105,51 @@ WindowsCore {
         _micaLateReapplyTimer.restart()
     }
 
+    function _moveDefaultPage(child, container, pageIndex, sourceIndex, ownerName) {
+        if (!child || !(child instanceof Item)) {
+            console.warn(
+                "[" + ownerName + "] Skipping non-Item default child / " +
+                "跳过非 Item 默认子对象: sourceIndex=" + sourceIndex
+            )
+            return false
+        }
+
+        try {
+            child.parent = container
+            child.width = Qt.binding(function() { return container.width })
+            child.height = Qt.binding(function() { return container.height })
+            child.x = 0
+            child.y = 0
+            child.scale = 1
+            child.visible = (pageIndex === stackedWidget.currentIndex)
+            child.opacity = (pageIndex === stackedWidget.currentIndex ? 1 : 0)
+            return true
+        } catch (error) {
+            console.warn(
+                "[" + ownerName + "] Failed to move default page / " +
+                "迁移默认页面失败: sourceIndex=" + sourceIndex + ", error=" + error
+            )
+            return false
+        }
+    }
+
+    function _moveDefaultPages(stagedItems, container, ownerName) {
+        var items = []
+        for (var i = 0; i < stagedItems.length; i++) {
+            items.push(stagedItems[i])
+        }
+
+        var pageIndex = 0
+        for (var sourceIndex = 0; sourceIndex < items.length; sourceIndex++) {
+            if (_moveDefaultPage(
+                items[sourceIndex], container, pageIndex, sourceIndex, ownerName
+            )) {
+                pageIndex += 1
+            }
+        }
+        return pageIndex
+    }
+
     function _dismissSplashWhenReady(stack) {
         profileTime("NavigationWindowCore _dismissSplashWhenReady start")
         if (_splashDismissed) {

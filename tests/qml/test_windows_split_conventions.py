@@ -12,6 +12,7 @@ from PySide6.QtCore import (
     QEventLoop,
     QObject,
     Property,
+    qInstallMessageHandler,
     QTimer,
     QUrl,
     Slot,
@@ -96,6 +97,41 @@ Internal.WindowsBar {
     navigationScrollStep: Enums.spacing.xxl
     navigationItems: null
     bottomNavigationItems: null
+
+    Item {
+        objectName: "pageA"
+    }
+
+    Item {
+        objectName: "pageB"
+    }
+}
+"""
+BAR_NON_ITEM_SCENE_SOURCE = b"""
+import QtQuick
+import PrismQML
+import "." as Internal
+
+Internal.WindowsBar {
+    id: window
+    objectName: "barWindowWithTimer"
+    width: 760
+    height: 540
+    visible: true
+    shadowMode: Enums.windowShadow.mode_none
+
+    property QtObject splashProbe: QtObject {
+        property int finishCount: 0
+        function finish() { finishCount += 1 }
+    }
+    readonly property int splashFinishCount: splashProbe.finishCount
+
+    _splashInstance: splashProbe
+
+    Timer {
+        objectName: "nonPageTimer"
+        running: false
+    }
 
     Item {
         objectName: "pageA"
@@ -254,6 +290,45 @@ def test_windows_bar_loads_core_and_transfers_default_pages(monkeypatch, qapp):
     _exercise_page_transfer(monkeypatch, BAR_SCENE_SOURCE)
 
 
+def test_windows_bar_skips_non_item_default_child_and_dismisses_splash(
+    monkeypatch, qapp
+):
+    marker = "[WindowsBar] Skipping non-Item default child"
+    messages = []
+    previous_handler = None
+
+    def message_handler(message_type, context, message):
+        if marker in message:
+            messages.append(message)
+            return
+        if previous_handler is not None:
+            previous_handler(message_type, context, message)
+
+    previous_handler = qInstallMessageHandler(message_handler)
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    try:
+        engine, component, window, warnings = _create_scene(
+            monkeypatch, BAR_NON_ITEM_SCENE_SOURCE
+        )
+        try:
+            _assert_page_transfer(window)
+            assert _wait_for(lambda: window.property("_splashDismissed"))
+            assert window.property("splashFinishCount") == 1
+            assert messages == [
+                marker + " / 跳过非 Item 默认子对象: sourceIndex=0"
+            ]
+            assert not any(
+                "Cannot assign to read-only property \"parent\"" in warning
+                for warning in warnings
+            )
+            assert _new_visible_windows(windows_before, window) == []
+        finally:
+            _dispose_scene(engine, component, window)
+            assert _new_visible_windows(windows_before) == []
+    finally:
+        qInstallMessageHandler(previous_handler)
+
+
 def test_windows_split_source_conventions_and_startup_delay_token():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
@@ -296,6 +371,8 @@ def test_windows_bar_source_conventions_and_zero_delay_token():
     ] == []
     assert "interval: Enums.duration.none" in source
     assert "interval: 0" not in source
+    assert "window._moveDefaultPages(" in source
+    assert "finally {" in source
     content_source = BAR_CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
     assert (
         "smoothScroll: root.hostWindow ? root.hostWindow.navigationSmoothScroll : true"

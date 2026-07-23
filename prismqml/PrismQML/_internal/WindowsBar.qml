@@ -64,30 +64,21 @@ NavigationWindowCore {
                 window.stackedWidget = item.stackAlias
                 window.profileTime("WindowsBar bind navigation/stack navReady=" + (window.navigationView !== null))
 
-                if (_hiddenStack.data.length > 0) {
-                    window.profileTime("WindowsBar move hidden pages start count=" + _hiddenStack.data.length)
-                    let container = window.stackedWidget.containerItem
-                    let items = []
-                    for (let i = 0; i < _hiddenStack.data.length; i++) {
-                        items.push(_hiddenStack.data[i])
+                try {
+                    if (_hiddenStack.data.length > 0) {
+                        window.profileTime("WindowsBar move hidden pages start count=" + _hiddenStack.data.length)
+                        window._moveDefaultPages(
+                            _hiddenStack.data,
+                            window.stackedWidget.containerItem,
+                            "WindowsBar"
+                        )
+                        window.profileTime("WindowsBar move hidden pages done")
                     }
-                    for (let i = 0; i < items.length; i++) {
-                        let child = items[i]
-                        child.parent = container
-                        child.width = Qt.binding(function() { return container.width })
-                        child.height = Qt.binding(function() { return container.height })
-                        child.x = 0
-                        child.y = 0
-                        child.scale = 1
-                        child.visible = (i === window.stackedWidget.currentIndex)
-                        child.opacity = (i === window.stackedWidget.currentIndex ? 1 : 0)
-                    }
-                    window.profileTime("WindowsBar move hidden pages done")
+                } finally {
+                    window.profileTime("WindowsBar dismissSplashWhenReady start")
+                    window._dismissSplashWhenReady(window.stackedWidget)
+                    window.profileTime("WindowsBar dismissSplashWhenReady done")
                 }
-
-                window.profileTime("WindowsBar dismissSplashWhenReady start")
-                window._dismissSplashWhenReady(window.stackedWidget)
-                window.profileTime("WindowsBar dismissSplashWhenReady done")
             }
         }
     }
