@@ -11,14 +11,28 @@ Top-level API importable via `from prismqml import ...`.
 | `WindowType` | Window type enum (BAR / SPLIT / FILLED) |
 | `NavigationItem` | Navigation item |
 | `AsyncQmlPage` | Creates a Python-backed QML page through the engine LoadingOverlay and incubation controller |
+| `prepare_windows_icon` | Derives a multi-size Windows ICO from one source image |
+| `nuitka_icon_options` | Produces the platform Nuitka icon option from the same source image |
 
 ```python
+from pathlib import Path
+
 from prismqml import App, WindowType
-app = App()
+
+app = App(application_icon=Path(__file__).with_name("app_icon.png"))
 window = app.create_window(WindowType.BAR)
 ```
 
 `App(allow_qml_file_read=True)` enables local i18n JSON access for Translator before creating the QML engine; pass `False` to disable it explicitly. A plain `import prismqml` does not change this environment setting.
+
+`application_icon` is the application-level entry point. The shared Qt icon,
+all current and future PrismQML windows, the taskbar, and the default splash
+inherit it. Call `app.set_application_icon(path, colored=True)` to update all
+managed windows at runtime. During packaging, pass the same source image to
+`nuitka_icon_options(source, output_dir)`: Windows receives a generated
+multi-size ICO, while macOS and Linux receive their verified Nuitka option.
+External installers such as Inno Setup can consume the ICO path returned by
+`prepare_windows_icon()`.
 
 `AsyncQmlPage` is intended for Python page factories. The target QML root must
 declare `property var backend`. The page manager attaches a lightweight host,

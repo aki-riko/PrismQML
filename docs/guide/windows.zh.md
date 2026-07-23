@@ -11,14 +11,19 @@ PrismQML 通过 `App.create_window(WindowType)` 创建带导航的主窗口。
 | `WindowType.FILLED` | 2 | 填充式分割窗口 |
 
 ```python
+from pathlib import Path
+
 from prismqml import App, WindowType
 
-app = App()
+app = App(application_icon=Path(__file__).with_name("app_icon.png"))
 
 window = app.create_window(WindowType.BAR)     # 紧凑侧边导航
 # window = app.create_window(WindowType.SPLIT) # 展开式侧边导航
 # window = app.create_window(WindowType.FILLED)# 填充式分割
 ```
+
+应用图标在 `App` 层配置一次即可；现有窗口、后续窗口、任务栏和默认启动画面会自动
+继承。只有需要单独覆盖某个窗口时，才调用该窗口的 `setWindowIcon()`。
 
 ## 添加导航页面
 

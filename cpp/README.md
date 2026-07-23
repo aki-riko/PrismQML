@@ -101,6 +101,7 @@ int main(int argc, char **argv) {
     App app(argc, argv);
     setSkin(Skin::Fluent);            // 一行切换设计语言 (Fluent / Neobrutalism)
     setAccentColor("#0078d4");        // 主题色, 实时流到 QML 控件
+    app.setApplicationIcon("qrc:/branding/app.png"); // 全窗口/任务栏/启动画面统一图标
 
     Window &w = app.createWindow(WindowType::Bar);
     w.setWindowTitle("我的应用");
@@ -149,7 +150,7 @@ Updater updater("owner/repo", "v1.0.0", "Setup",
 
 | 类别 | C++ API | 镜像的 Python 源 |
 |------|---------|------------------|
-| 应用入口 | `App`（createWindow / exec / engine / qapp） | window/app.py |
+| 应用入口 | `App`（createWindow / setApplicationIcon / exec / engine / qapp） | window/app.py |
 | 窗口 | `Window`（addPage / setWindowTitle / resize / show / navigateTo），三布局 `WindowType` | window_core.py + _window_builder.py + _page_manager.py |
 | 主题 | `setTheme/getTheme` `isDark` `ThemeManager` | core/theme.py |
 | 皮肤 | `setSkin/getSkin`（Fluent / Neobrutalism） | core/theme.py |
@@ -160,7 +161,7 @@ Updater updater("owner/repo", "v1.0.0", "Setup",
 | 无边框 | `NativeWindow`（WS_CAPTION + WM_NCCALCSIZE 拦截） | window/native_window.py |
 | 亚克力 | `AcrylicHelper`（截屏模糊） | window/mica_window.py |
 | 剪贴板 | `ClipboardHelper` | providers/clipboard.py |
-| 应用图标 | `WindowHelper`（setAppIcon，SVG 多尺寸） | core/window_helper.py |
+| 应用图标 | `App::setApplicationIcon`（全窗口/托盘继承）+ `WindowHelper`（SVG 多尺寸） | window/_application_icon_runtime.py + core/window_helper.py |
 | SVG 渲染 | `SvgImageProvider`（image://svg） | providers/svg_provider.py |
 | 状态管理 | `Store`（define/get/set/watch/batch） | state/store.py |
 | 日志 | `prism::log` + `Logger` 类（debug/info/warning/error + Qt 重定向） | core/logger.py |

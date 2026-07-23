@@ -39,6 +39,8 @@ __all__ = [
     "IconProvider",
     "register_icon_provider",
     "get_icon_provider",
+    "prepare_windows_icon",
+    "nuitka_icon_options",
     # Shadow
     "ShadowManager",
     "getShadowManager",
@@ -141,6 +143,14 @@ _LAZY_EXPORTS = {
     "IconProvider": (".python.core.icon_provider", "IconProvider"),
     "register_icon_provider": (".python.core.icon_provider", "register_icon_provider"),
     "get_icon_provider": (".python.core.icon_provider", "get_icon_provider"),
+    "prepare_windows_icon": (
+        ".python.core.application_icon",
+        "prepare_windows_icon",
+    ),
+    "nuitka_icon_options": (
+        ".python.core.application_icon",
+        "nuitka_icon_options",
+    ),
     # Shadow
     "ShadowManager": (".python.core.shadow", "ShadowManager"),
     "getShadowManager": (".python.core.shadow", "getShadowManager"),

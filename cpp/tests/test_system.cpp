@@ -76,6 +76,35 @@ static void testRealEncodedIcon() {
           "SystemTrayIcon loads real encoded icon");
 }
 
+static void testApplicationIconFacade(prism::App &app) {
+    QTemporaryDir directory(
+        QDir::tempPath() + QStringLiteral("/prismqml-app-icon-XXXXXX"));
+    const QString path = directory.filePath(QStringLiteral("application.png"));
+    QImage image(16, 16, QImage::Format_ARGB32);
+    image.fill(QColor(QStringLiteral("#2060d0")));
+    CHECK(directory.isValid() && image.save(path),
+          "App application icon fixture saved");
+
+    const QString source = QUrl::fromLocalFile(path).toString(QUrl::FullyEncoded);
+    app.setApplicationIcon(source, false);
+    CHECK(app.applicationIcon() == source && !app.applicationIconColored(),
+          "App stores application icon state");
+    CHECK(!QGuiApplication::windowIcon().isNull(),
+          "App publishes the shared Qt icon");
+
+    prism::Window &window = app.createWindow();
+    window.show();
+    CHECK(window.rootObject()
+              && window.rootObject()->property("windowIcon").toString() == source
+              && !window.rootObject()->property("windowIconColored").toBool(),
+          "App-created window inherits the application icon");
+
+    prism::SystemTrayIcon &tray = app.createSystemTrayIcon();
+    QSystemTrayIcon *nativeTray = tray.findChild<QSystemTrayIcon *>();
+    CHECK(nativeTray && !nativeTray->icon().isNull(),
+          "App-created tray inherits the application icon");
+}
+
 static void testAvailableScreenGeometry() {
     QScreen *screen = QGuiApplication::primaryScreen();
     CHECK(screen, "WindowHelper geometry has a primary screen");
@@ -225,6 +254,7 @@ int main(int argc, char *argv[]) {
     qInfo() << "=== Icon path URL contract ===";
     testIconPathUrlMatrix();
     testRealEncodedIcon();
+    testApplicationIconFacade(app);
     testAvailableScreenGeometry();
     testWindowFollowerGeometry();
     testTrayCheckableActionContract();

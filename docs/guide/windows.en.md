@@ -11,14 +11,20 @@ PrismQML creates navigated main windows via `App.create_window(WindowType)`.
 | `WindowType.FILLED` | 2 | Filled split window |
 
 ```python
+from pathlib import Path
+
 from prismqml import App, WindowType
 
-app = App()
+app = App(application_icon=Path(__file__).with_name("app_icon.png"))
 
 window = app.create_window(WindowType.BAR)     # compact side nav
 # window = app.create_window(WindowType.SPLIT) # expanded side nav
 # window = app.create_window(WindowType.FILLED)# filled split
 ```
+
+Configure the application icon once on `App`; existing windows, future
+windows, the taskbar, and the default splash inherit it automatically. Use a
+window's `setWindowIcon()` only when that window needs an explicit override.
 
 ## Adding navigation pages
 

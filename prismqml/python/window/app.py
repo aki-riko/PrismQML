@@ -10,7 +10,7 @@ PrismQML 应用入口类 PrismQML Application Entry
 """
 
 import os
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtQml import QQmlApplicationEngine
@@ -23,6 +23,12 @@ from ..core.input_focus_filter import (
     reset_input_focus_filter,
 )
 from ..core.utils import QML_XHR_ALLOW_FILE_READ_ENV
+from ._application_icon_runtime import (
+    ApplicationIconMixin,
+    apply_application_icon_to_window,
+    configure_initial_application_icon,
+    initialize_application_icon_state,
+)
 
 if TYPE_CHECKING:
     from .fluent_window import Window
@@ -53,6 +59,7 @@ def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> Non
     owner._task_shutdown_timeout_ms = task_shutdown_timeout_ms
     owner._windows = []
     owner._updater = None
+    initialize_application_icon_state(owner)
 
 
 def _prepare_app_environment(allow_qml_file_read: bool) -> None:
@@ -178,7 +185,7 @@ def _shutdown_app_runtime(owner) -> None:
     owner._windows.clear()
 
 
-class App:
+class App(ApplicationIconMixin):
     """
     PrismQML应用入口 PrismQML Application Entry
 
@@ -208,6 +215,8 @@ class App:
         *,
         allow_qml_file_read: bool = True,
         task_shutdown_timeout_ms: Optional[int] = None,
+        application_icon: Optional[Union[str, os.PathLike]] = None,
+        application_icon_colored: bool = True,
     ):
         if App._instance is not None:
             raise RuntimeError(
@@ -222,6 +231,9 @@ class App:
             _prepare_app_environment(allow_qml_file_read)
             _create_qt_application(self, argv or [])
             _create_qml_engine(self)
+            configure_initial_application_icon(
+                self, application_icon, application_icon_colored
+            )
             App._instance = self
             committed = True
         finally:
@@ -383,6 +395,7 @@ class App:
         from .fluent_window import Window
 
         window = Window(window_type=window_type)
+        apply_application_icon_to_window(self, window)
         self._windows.append(window)
         return window
 

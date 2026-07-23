@@ -8,6 +8,7 @@
 #include "prism/Registry.h"
 #include "prism/ShadowManager.h"
 #include "prism/Updater.h"
+#include "prism/WindowHelper.h"
 
 #include <QApplication>
 #include <QQmlApplicationEngine>
@@ -109,17 +110,33 @@ Updater *App::enableAutoUpdate(const QString &repo,
     return m_updater.get();
 }
 
+void App::setApplicationIcon(const QString &icon, bool colored) {
+    if (icon.isEmpty()) {
+        qWarning() << "App::setApplicationIcon: 图标来源不能为空";
+        return;
+    }
+    m_applicationIcon = icon;
+    m_applicationIconColored = colored;
+    WindowHelper::instance()->setAppIcon(icon);
+    for (const auto &window : m_windows)
+        window->setWindowIcon(icon, colored);
+}
+
 Window &App::createWindow(WindowType type) {
     m_windows.push_back(
         std::make_unique<Window>(m_engine.get(), m_importPath, type));
+    if (!m_applicationIcon.isEmpty())
+        m_windows.back()->setWindowIcon(m_applicationIcon,
+                                        m_applicationIconColored);
     return *m_windows.back();
 }
 
 SystemTrayIcon &App::createSystemTrayIcon(const QString &icon,
                                           const QString &toolTip,
                                           bool menuOnLeftClick) {
+    const QString effectiveIcon = icon.isEmpty() ? m_applicationIcon : icon;
     m_systemTrays.push_back(std::make_unique<SystemTrayIcon>(
-        icon, toolTip, nullptr, m_engine.get(), menuOnLeftClick));
+        effectiveIcon, toolTip, nullptr, m_engine.get(), menuOnLeftClick));
     return *m_systemTrays.back();
 }
 

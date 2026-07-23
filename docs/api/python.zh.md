@@ -11,14 +11,26 @@
 | `WindowType` | 窗口类型枚举（BAR / SPLIT / FILLED） |
 | `NavigationItem` | 导航项 |
 | `AsyncQmlPage` | 使用引擎标准 LoadingOverlay 和孵化控制器异步创建带 Python backend 的 QML 页面 |
+| `prepare_windows_icon` | 从单一图片生成 Windows 多尺寸 ICO |
+| `nuitka_icon_options` | 从同一源图片生成当前平台的 Nuitka 图标参数 |
 
 ```python
+from pathlib import Path
+
 from prismqml import App, WindowType
-app = App()
+
+app = App(application_icon=Path(__file__).with_name("app_icon.png"))
 window = app.create_window(WindowType.BAR)
 ```
 
 `App(allow_qml_file_read=True)` 默认在创建 QML 引擎前启用 Translator 的本地 i18n JSON 读取；传入 `False` 可显式关闭。普通 `import prismqml` 不会修改该环境变量。
+
+`application_icon` 是应用级统一入口：Qt 全局图标、当前及后续创建的 PrismQML
+窗口、任务栏和默认启动画面都会继承它；运行时也可调用
+`app.set_application_icon(path, colored=True)` 更新全部托管窗口。构建阶段可把同一
+源图片交给 `nuitka_icon_options(source, output_dir)`；Windows 会生成多尺寸 ICO，
+macOS/Linux 则返回 Nuitka 已验证的平台参数。Inno Setup 等外部安装器可直接消费
+`prepare_windows_icon()` 返回的 ICO 路径。
 
 `AsyncQmlPage` 供 Python 页面工厂使用。目标 QML 根对象必须声明
 `property var backend`；页面管理器会先挂载轻量宿主，再通过异步 `Loader`

@@ -58,6 +58,8 @@ __all__ = [
     "IconProvider",
     "register_icon_provider",
     "get_icon_provider",
+    "prepare_windows_icon",
+    "nuitka_icon_options",
     # Notification (Python helper, 不需要业务方手撸 NotificationBridge.qml 胶水)
     "NotificationPosition",
     "NotificationSeverity",
@@ -138,6 +140,8 @@ _LAZY_EXPORTS = {
     "IconProvider": (".icon_provider", "IconProvider"),
     "register_icon_provider": (".icon_provider", "register_icon_provider"),
     "get_icon_provider": (".icon_provider", "get_icon_provider"),
+    "prepare_windows_icon": (".application_icon", "prepare_windows_icon"),
+    "nuitka_icon_options": (".application_icon", "nuitka_icon_options"),
     # Notification
     "NotificationPosition": (".notification", "Position"),
     "NotificationSeverity": (".notification", "Severity"),

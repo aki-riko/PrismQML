@@ -44,6 +44,12 @@ public:
     // 创建窗口 (镜像 Python create_window)
     Window &createWindow(WindowType type = WindowType::Bar);
 
+    // Set one shared runtime icon for Qt, windows, splash, and managed trays.
+    // 设置 Qt、窗口、启动画面及托管托盘共用的运行时图标。
+    void setApplicationIcon(const QString &icon, bool colored = true);
+    const QString &applicationIcon() const { return m_applicationIcon; }
+    bool applicationIconColored() const { return m_applicationIconColored; }
+
     // 创建由 App 托管的托盘；托盘会在 QML 引擎销毁前释放。
     SystemTrayIcon &createSystemTrayIcon(const QString &icon = QString(),
                                          const QString &toolTip = QString(),
@@ -84,6 +90,8 @@ private:
     std::vector<std::unique_ptr<Window>> m_windows;
     std::vector<std::unique_ptr<SystemTrayIcon>> m_systemTrays;
     QString m_importPath;
+    QString m_applicationIcon;
+    bool m_applicationIconColored = true;
     std::unique_ptr<AppLifecycleBridge> m_lifecycle;
     std::function<void()> m_onPause;
     std::function<void()> m_onResume;
