@@ -286,8 +286,10 @@ Item {
             closePolicy: Popup.NoAutoClose
             clip: false
 
-            width: _tooltipMetrics.width + leftPadding + rightPadding
-            height: Enums.controlSize.tooltipHeight
+            // Width follows text but caps at tooltipMaxWidth to trigger wrapping 宽度跟随文本但以 tooltipMaxWidth 封顶以触发换行
+            width: Math.min(_tooltipMetrics.width, Enums.controlSize.tooltipMaxWidth) + leftPadding + rightPadding
+            // Height adapts to (possibly wrapped) content, never smaller than one line 高度自适应(可能换行的)内容,不小于单行高
+            height: Math.max(Enums.controlSize.tooltipHeight, _tooltipText.implicitHeight + topPadding + bottomPadding)
 
             background: Rectangle {
                 radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small
@@ -297,15 +299,17 @@ Item {
                 border.color: Enums.stateColor.borderStrong
             }
 
-            contentItem: Item {
-                Text {
-                    id: _tooltipText
-                    anchors.centerIn: parent
-                    text: widget.toolTipText
-                    font.pixelSize: Enums.typography.caption
-                    font.family: Enums.fontFamily
-                    color: Enums.foregroundColor
-                }
+            contentItem: Text {
+                id: _tooltipText
+                text: widget.toolTipText
+                font.pixelSize: Enums.typography.caption
+                font.family: Enums.fontFamily
+                color: Enums.foregroundColor
+                // Wrap long text within max width; \n still forces line breaks 超过最大宽度自动换行;\n 仍强制断行
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                width: Math.min(_tooltipMetrics.width, Enums.controlSize.tooltipMaxWidth)
             }
             enter: Transition {
                 ParallelAnimation {

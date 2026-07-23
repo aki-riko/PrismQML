@@ -255,7 +255,8 @@ QtObject {
  readonly property int commandBarButtonSize: 36 // CommandBar button size (square) 命令栏按钮尺寸（正方形）
  readonly property int statusBarHeight: 24 // StatusBar height 状态栏高度
  // Feedback controls 反馈控件
- readonly property int tooltipHeight: 28 // Tooltip height
+ readonly property int tooltipHeight: 28 // Tooltip height (single line) 提示单行高度
+ readonly property int tooltipMaxWidth: 320 // Tooltip max width before wrapping 提示自动换行前的最大宽度
  readonly property int toastWidth: 360 // Toast width
  readonly property int toastMaxWidth: 800 // Toast maximum width Toast 最大宽度
  readonly property int toastHeight: 80 // Toast height
