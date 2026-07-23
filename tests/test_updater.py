@@ -192,12 +192,12 @@ class TestPickAsset:
             {"name": "Gitora-Setup-1.0.4.exe", "browser_download_url": "https://x/a.exe"},
             {"name": "other.exe", "browser_download_url": "https://x/b.exe"},
         ]
-        a = _pick_asset(assets, "Setup")
+        a = _pick_asset(assets, "Setup", "win32")
         assert a["name"] == "Gitora-Setup-1.0.4.exe"
 
     def test_fallback_any_exe(self):
         assets = [{"name": "source.zip"}, {"name": "tool.exe", "browser_download_url": "https://x/tool.exe"}]
-        a = _pick_asset(assets, "Setup")
+        a = _pick_asset(assets, "Setup", "win32")
         assert a["name"] == "tool.exe"
 
     def test_no_installer_asset(self):
@@ -207,7 +207,7 @@ class TestPickAsset:
 
     def test_keyword_case_insensitive(self):
         assets = [{"name": "MyApp-setup-2.0.exe", "browser_download_url": "https://x/a.exe"}]
-        a = _pick_asset(assets, "Setup")
+        a = _pick_asset(assets, "Setup", "win32")
         assert a["name"] == "MyApp-setup-2.0.exe"
 
     @pytest.mark.parametrize(
@@ -238,6 +238,15 @@ class TestPickAsset:
 
 # ==================== 信号(注入假数据,不连网) ====================
 class TestSignals:
+    @pytest.fixture(autouse=True)
+    def _select_windows_assets(self, monkeypatch):
+        pick_asset = updater_module._pick_asset
+        monkeypatch.setattr(
+            updater_module,
+            "_pick_asset",
+            lambda assets, keyword: pick_asset(assets, keyword, "win32"),
+        )
+
     def _make(self):
         return Updater("owner/repo", "v1.0.3", asset_keyword="Setup")
 
