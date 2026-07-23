@@ -12,7 +12,7 @@ import threading
 import time
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEventLoop, QThread, QThreadPool, QTimer
+from PySide6.QtCore import QCoreApplication, QEventLoop, QThread, QTimer
 from PySide6.QtTest import QSignalSpy
 
 import prismqml.python.core.task_runner as task_runner_module
@@ -24,6 +24,7 @@ from prismqml import (
     TaskShutdownReport,
     TaskShutdownTimeoutError,
     TaskState,
+    TaskThreadPool,
     current_task,
     run_in_pool,
     run_in_thread,
@@ -315,7 +316,7 @@ def test_cleanup_return_after_cancel_is_cancelled(qapp, launcher) -> None:
 
 def test_custom_pool_priority_controls_queued_order(qapp) -> None:
     """Custom pool priority orders queued work. 自定义线程池优先级控制排队顺序。"""
-    pool = QThreadPool()
+    pool = TaskThreadPool()
     pool.setMaxThreadCount(1)
     blocker_started = threading.Event()
     release_blocker = threading.Event()
@@ -347,7 +348,7 @@ def test_custom_pool_priority_controls_queued_order(qapp) -> None:
 
 def test_queued_pool_task_can_be_cancelled_before_start(qapp) -> None:
     """Queued cancellation removes work without executing it. 排队取消不执行任务。"""
-    pool = QThreadPool()
+    pool = TaskThreadPool()
     pool.setMaxThreadCount(1)
     blocker_started = threading.Event()
     release_blocker = threading.Event()
@@ -374,7 +375,7 @@ def test_queued_pool_task_can_be_cancelled_before_start(qapp) -> None:
 
 def test_require_available_policy_rejects_without_leaking_handle(qapp) -> None:
     """Backpressure rejects when the custom pool is busy. 线程池繁忙时背压拒绝。"""
-    pool = QThreadPool()
+    pool = TaskThreadPool()
     pool.setMaxThreadCount(1)
     blocker_started = threading.Event()
     release_blocker = threading.Event()
@@ -448,6 +449,7 @@ def test_task_api_is_exported_from_public_modules(qapp) -> None:
         "TaskShutdownReport",
         "TaskShutdownTimeoutError",
         "TaskState",
+        "TaskThreadPool",
         "current_task",
         "run_in_pool",
         "run_in_thread",

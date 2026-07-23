@@ -12,11 +12,12 @@ import threading
 import time
 
 import pytest
-from PySide6.QtCore import QThreadPool, Qt
+from PySide6.QtCore import Qt
 
 from prismqml import (
     PoolTaskOptions,
     TaskState,
+    TaskThreadPool,
     current_task,
     run_in_pool,
     run_in_thread,
@@ -122,7 +123,7 @@ def test_app_bounded_shutdown_preserves_runtime_until_retry() -> None:
 
 def test_queued_pool_cancellation_stress(qapp) -> None:
     """Repeated queue removal must not execute or retain tasks. 重复移除队列不得执行或残留。"""
-    pool = QThreadPool()
+    pool = TaskThreadPool()
     pool.setMaxThreadCount(1)
     blocker_started = threading.Event()
     release_blocker = threading.Event()
@@ -223,7 +224,7 @@ def test_cancel_is_safe_during_backend_release(qapp, launcher) -> None:
 
 def test_pool_wait_cannot_release_backend_before_stop_event(qapp) -> None:
     """Pool wait must not clear fields still used by run(). 线程池等待不得提前清理运行字段。"""
-    pool = QThreadPool()
+    pool = TaskThreadPool()
     pool.setMaxThreadCount(1)
     callable_started = threading.Event()
     finish_callable = threading.Event()
@@ -263,3 +264,32 @@ def test_pool_wait_cannot_release_backend_before_stop_event(qapp) -> None:
     assert backend_event_emitted.is_set()
     assert handle.state is TaskState.SUCCEEDED
     assert handle.result == 41
+
+
+def test_pool_clear_settles_managed_queued_task(qapp) -> None:
+    """Managed clear must settle queued work. 受管清理必须结算排队任务。"""
+    pool = TaskThreadPool()
+    pool.setMaxThreadCount(1)
+    blocker_started = threading.Event()
+    release_blocker = threading.Event()
+    queued_executed = threading.Event()
+
+    def block_pool():
+        blocker_started.set()
+        release_blocker.wait()
+
+    blocker = run_in_pool(block_pool, task_options=PoolTaskOptions(pool=pool))
+    queued = run_in_pool(
+        queued_executed.set,
+        task_options=PoolTaskOptions(pool=pool),
+    )
+    try:
+        assert blocker_started.wait(TASK_TIMEOUT_MS / 1000)
+        pool.clear()
+        assert queued.wait(TASK_TIMEOUT_MS)
+        assert queued.state is TaskState.CANCELLED
+        assert not queued_executed.is_set()
+    finally:
+        release_blocker.set()
+        assert blocker.wait(TASK_TIMEOUT_MS)
+        assert pool.waitForDone(TASK_TIMEOUT_MS)

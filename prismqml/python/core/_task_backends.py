@@ -7,7 +7,9 @@
 import threading
 from typing import Any, Optional
 
-from PySide6.QtCore import QObject, QRunnable, QThread, QThreadPool, Qt, Signal, Slot
+from PySide6.QtCore import QObject, QRunnable, QThread, Qt, Signal, Slot
+
+from ._task_pool import TaskThreadPool
 
 
 class _PoolRunnable(QRunnable):
@@ -18,7 +20,7 @@ class _PoolRunnable(QRunnable):
         execution: Any,
         events: QObject,
         control: Any,
-        pool: QThreadPool,
+        pool: TaskThreadPool,
     ) -> None:
         super().__init__()
         self._execution = execution
@@ -32,19 +34,21 @@ class _PoolRunnable(QRunnable):
 
     def start(self, priority: int) -> None:
         """Queue the runnable with a priority. 按优先级提交到队列。"""
-        self._pool.start(self, priority)
+        self._pool._start_task(self, priority)
 
     def try_start(self) -> bool:
         """Start only when a worker thread is available. 仅在线程可用时启动。"""
-        return self._pool.tryStart(self)
+        return self._pool._try_start_task(self)
 
     def run(self) -> None:
         with self._lifecycle_lock:
             execution = self._execution
             events = self._events
             control = self._control
-        if execution is None or events is None or control is None:
+            pool = self._pool
+        if execution is None or events is None or control is None or pool is None:
             return
+        pool._mark_task_started(self)
         try:
             execution.run()
         finally:
@@ -55,6 +59,13 @@ class _PoolRunnable(QRunnable):
 
     def request_cancel(self) -> None:
         """Remove queued work when possible, otherwise stay cooperative. 优先移除排队任务。"""
+        self._cancel_queued(request_control=False)
+
+    def cancel_from_pool_clear(self) -> None:
+        """Settle queued work removed by TaskThreadPool.clear(). 结算由线程池清理的排队任务。"""
+        self._cancel_queued(request_control=True)
+
+    def _cancel_queued(self, request_control: bool) -> None:
         with self._lifecycle_lock:
             pool = self._pool
             execution = self._execution
@@ -62,11 +73,15 @@ class _PoolRunnable(QRunnable):
             events = self._events
             if pool is None or execution is None or control is None or events is None:
                 return
-            if not pool.tryTake(self):
-                return
-            execution.cancel_before_start()
-            control.mark_backend_stopped()
+        if not pool._try_take_task(self):
+            return
+        if request_control:
+            control.request_cancel()
+        execution.cancel_before_start()
+        try:
             events.backend_stopped.emit()
+        finally:
+            control.mark_backend_stopped()
 
     def wait(self, timeout_ms: Optional[int]) -> bool:
         """Wait until the pool callable has returned. 等待线程池任务返回。"""

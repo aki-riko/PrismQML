@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, Tuple, TYPE_CHECKING
 
-from PySide6.QtCore import QThreadPool
+from ._task_pool import TaskThreadPool
 
 if TYPE_CHECKING:
     from .task_runner import TaskHandle
@@ -58,13 +58,13 @@ class TaskRejectedError(RuntimeError):
 class PoolTaskOptions:
     """Options for one QThreadPool submission. 单次 QThreadPool 提交选项。"""
 
-    pool: Optional[QThreadPool] = None
+    pool: Optional[TaskThreadPool] = None
     priority: int = 0
     submit_policy: PoolSubmitPolicy = PoolSubmitPolicy.QUEUE
 
     def __post_init__(self) -> None:
-        if self.pool is not None and not isinstance(self.pool, QThreadPool):
-            raise TypeError("PoolTaskOptions.pool must be a QThreadPool or None")
+        if self.pool is not None and not isinstance(self.pool, TaskThreadPool):
+            raise TypeError("PoolTaskOptions.pool must be a TaskThreadPool or None")
         if isinstance(self.priority, bool) or not isinstance(self.priority, int):
             raise TypeError("PoolTaskOptions.priority must be an int")
         if not isinstance(self.submit_policy, PoolSubmitPolicy):

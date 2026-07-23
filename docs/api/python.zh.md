@@ -78,7 +78,7 @@ handle.succeeded.connect(apply_library)
 handle.failed.connect(report_failure)
 ```
 
-`run_in_pool()` 默认使用 Qt 全局线程池，适合有界、可并发的后台调用；
+`run_in_pool()` 默认使用 PrismQML 进程级受管线程池，适合有界、可并发的后台调用；
 `run_in_thread()` 为单次调用创建独立 `QThread`，适合需要独占线程的长阻塞任务，
 但不替代需要持续事件循环的 QObject/QThread 服务。
 两者都返回 `TaskHandle`，统一提供 `started`、`progress`、`succeeded`、
@@ -89,10 +89,9 @@ handle.failed.connect(report_failure)
 自定义线程池、优先级和背压通过独立选项对象传入，不会占用普通 callable 的位置参数：
 
 ```python
-from PySide6.QtCore import QThreadPool
-from prismqml import PoolSubmitPolicy, PoolTaskOptions, run_in_pool
+from prismqml import PoolSubmitPolicy, PoolTaskOptions, TaskThreadPool, run_in_pool
 
-io_pool = QThreadPool()
+io_pool = TaskThreadPool()
 io_pool.setMaxThreadCount(16)
 options = PoolTaskOptions(pool=io_pool, priority=10)
 handle = run_in_pool(load_library, library_path, task_options=options)
@@ -103,6 +102,10 @@ immediate = PoolTaskOptions(
     submit_policy=PoolSubmitPolicy.REQUIRE_AVAILABLE,
 )
 ```
+
+`PoolTaskOptions.pool` 只接受 `TaskThreadPool`。它会在 `clear()` 时结算已排队的
+PrismQML 任务；原生 `QThreadPool` 无法通知框架哪些非自动删除任务被外部清掉，
+因此不会被接受。
 
 `handle.cancel()` 是协作式取消，不会调用不安全的 `terminate()`。尚未开始的线程池
 任务会尽量从队列安全移除；已经运行的任务应周期性调用

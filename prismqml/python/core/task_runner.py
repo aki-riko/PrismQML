@@ -14,7 +14,6 @@ from PySide6.QtCore import (
     QCoreApplication,
     QObject,
     QThread,
-    QThreadPool,
     QTimer,
     Qt,
     Signal,
@@ -23,6 +22,7 @@ from PySide6.QtCore import (
 
 from .logger import exception
 from ._task_failures import build_task_failure, log_task_failure
+from ._task_pool import TaskThreadPool, global_task_pool
 from ._task_types import (
     _TaskOutcome,
     PoolSubmitPolicy,
@@ -388,7 +388,7 @@ def _start_pool_backend(
     handle: TaskHandle,
     execution: _TaskExecution,
     options: PoolTaskOptions,
-    pool: QThreadPool,
+    pool: TaskThreadPool,
 ) -> None:
     from ._task_backends import _PoolRunnable
 
@@ -436,7 +436,11 @@ def run_in_pool(
         task_options = PoolTaskOptions()
     elif not isinstance(task_options, PoolTaskOptions):
         raise TypeError("task_options must be a PoolTaskOptions or None")
-    pool = task_options.pool or QThreadPool.globalInstance()
+    pool = (
+        task_options.pool
+        if task_options.pool is not None
+        else global_task_pool()
+    )
     handle, execution = _create_task(function, args, kwargs)
     _start_pool_backend(handle, execution, task_options, pool)
     return handle
@@ -481,7 +485,9 @@ __all__ = [
     "TaskShutdownReport",
     "TaskShutdownTimeoutError",
     "TaskState",
+    "TaskThreadPool",
     "current_task",
+    "global_task_pool",
     "run_in_pool",
     "run_in_thread",
     "shutdown_tasks",

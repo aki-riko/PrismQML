@@ -83,7 +83,7 @@ handle.succeeded.connect(apply_library)
 handle.failed.connect(report_failure)
 ```
 
-`run_in_pool()` uses Qt's global thread pool by default for bounded concurrent
+`run_in_pool()` uses PrismQML's process-wide managed pool by default for bounded concurrent
 calls. `run_in_thread()` creates one dedicated `QThread` for a long blocking
 call, but does not replace QObject/QThread services that require a persistent
 event loop.
@@ -97,10 +97,9 @@ Custom pools, priority, and backpressure use a separate options object, leaving
 ordinary callable positional arguments untouched:
 
 ```python
-from PySide6.QtCore import QThreadPool
-from prismqml import PoolSubmitPolicy, PoolTaskOptions, run_in_pool
+from prismqml import PoolSubmitPolicy, PoolTaskOptions, TaskThreadPool, run_in_pool
 
-io_pool = QThreadPool()
+io_pool = TaskThreadPool()
 io_pool.setMaxThreadCount(16)
 options = PoolTaskOptions(pool=io_pool, priority=10)
 handle = run_in_pool(load_library, library_path, task_options=options)
@@ -111,6 +110,10 @@ immediate = PoolTaskOptions(
     submit_policy=PoolSubmitPolicy.REQUIRE_AVAILABLE,
 )
 ```
+
+`PoolTaskOptions.pool` accepts only `TaskThreadPool`. It settles queued PrismQML
+tasks when `clear()` is called; a raw `QThreadPool` cannot report which
+non-auto-deleting tasks were externally removed, so it is rejected.
 
 `handle.cancel()` is cooperative and never calls the unsafe `terminate()`.
 Queued pool work is safely removed when possible. Running work should
