@@ -17,7 +17,6 @@ Rectangle {
     required property var table
     required property int index
     required property var modelData
-    readonly property var columnData: modelData || ({})
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var effectiveData: {
@@ -186,6 +185,7 @@ Rectangle {
             Item {
                 id: cellItem
 
+                readonly property var columnData: modelData || ({})
                 property var cellWidgetItem: table.cellWidgets[rowDelegate.index + "_" + index] || null
 
                 width: table._columnPixelWidths[index] || 60
@@ -196,11 +196,11 @@ Rectangle {
                     id: customCellLoader
 
                     anchors.fill: parent
-                    active: !!rowDelegate.columnData.cellComponent
+                    active: !!cellItem.columnData.cellComponent
                             && !cellItem.cellWidgetItem
                             && rowDelegate.editColumnIndex !== index
                     visible: active
-                    sourceComponent: rowDelegate.columnData.cellComponent || null
+                    sourceComponent: cellItem.columnData.cellComponent || null
                     asynchronous: true
                     opacity: status === Loader.Ready ? 1 : 0
 
@@ -211,8 +211,8 @@ Rectangle {
 
                     onLoaded: {
                         if (item) {
-                            if ('colKey' in item) item.colKey = rowDelegate.columnData.role
-                            if ('role' in item) item.role = rowDelegate.columnData.role
+                            if ('colKey' in item) item.colKey = cellItem.columnData.role
+                            if ('role' in item) item.role = cellItem.columnData.role
                             if ('rowIndex' in item) item.rowIndex = rowDelegate.index
                         }
                     }
@@ -222,7 +222,7 @@ Rectangle {
                     target: customCellLoader.item || null
                     property: "value"
                     when: customCellLoader.item && ('value' in customCellLoader.item)
-                    value: rowDelegate.effectiveData ? rowDelegate.effectiveData[rowDelegate.columnData.role] : null
+                    value: rowDelegate.effectiveData ? rowDelegate.effectiveData[cellItem.columnData.role] : null
                     restoreMode: Binding.RestoreNone
                 }
                 Binding {
@@ -244,11 +244,11 @@ Rectangle {
                     anchors.centerIn: parent
                     type: Enums.label.type_caption
                     text: rowDelegate.effectiveData
-                        ? String(rowDelegate.effectiveData[rowDelegate.columnData.role] ?? "") : ""
+                        ? String(rowDelegate.effectiveData[cellItem.columnData.role] ?? "") : ""
                     color: table.textColor
                     elide: Text.ElideRight
                     visible: !cellItem.cellWidgetItem
-                             && !rowDelegate.columnData.cellComponent
+                             && !cellItem.columnData.cellComponent
                              && rowDelegate.editColumnIndex !== index
                 }
 
@@ -263,7 +263,7 @@ Rectangle {
                             inputType: Enums.input.type_normal
                             placeholderText: ""
                             text: rowDelegate.effectiveData
-                                ? String(rowDelegate.effectiveData[rowDelegate.columnData.role] ?? "") : ""
+                                ? String(rowDelegate.effectiveData[cellItem.columnData.role] ?? "") : ""
 
                             Component.onCompleted: {
                                 forceActiveFocus()
@@ -272,7 +272,7 @@ Rectangle {
 
                             onEditingFinished: {
                                 var currentText = rowDelegate.effectiveData
-                                    ? String(rowDelegate.effectiveData[rowDelegate.columnData.role] ?? "") : ""
+                                    ? String(rowDelegate.effectiveData[cellItem.columnData.role] ?? "") : ""
                                 if (rowDelegate.editColumnIndex === index && text !== currentText) {
                                     table.setItem(rowDelegate.index, index, text)
                                 }

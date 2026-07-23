@@ -18,9 +18,11 @@ from PySide6.QtCore import (
     qInstallMessageHandler,
 )
 from PySide6.QtGui import QWindow
+from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import configure_qml_environment, register_types
+from prismqml.python.core.incubation import install_incubation_controller
 
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -79,6 +81,38 @@ TableWidget {
     Component {
         id: cellWidgetComponent
         Item { width: 20; height: 10 }
+    }
+}
+"""
+_RENDER_SCENE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: host
+
+    width: 360
+    height: 240
+    visible: true
+
+    TableWidget {
+        id: table
+
+        objectName: "table"
+        anchors.fill: parent
+
+        function seedItems() {
+            columns = [
+                { text: "Name", role: "name", width: 160 },
+                { text: "Quantity", role: "quantity", width: 100 }
+            ]
+            tableData = [
+                { name: "Beta", quantity: 0 },
+                { name: "Alpha", quantity: 1 },
+                { name: "Gamma", quantity: 2 }
+            ]
+        }
     }
 }
 """
@@ -191,6 +225,16 @@ def _release(qapp, *objects) -> None:
     qapp.processEvents()
 
 
+def _visual_items(root: QQuickItem) -> list[QQuickItem]:
+    result = [root]
+    pending = list(root.childItems())
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(child.childItems())
+    return result
+
+
 def test_table_widget_sort_remove_and_falsy_values_preserve_rows(qapp):
     """Sorting and removal must preserve row identity and falsy values. 排序与删除须保持行身份和假值。"""
     configure_qml_environment()
@@ -264,6 +308,61 @@ def test_table_widget_sort_remove_and_falsy_values_preserve_rows(qapp):
         message for mode, message in messages if mode in _QT_FAILURE_TYPES
     ]
     assert failures == []
+
+
+def test_table_widget_row_labels_render_column_roles(qapp):
+    """Rendered table cells must read the configured column roles.
+
+    表格行委托必须按列 role 读取真实行数据，不能因列委托上下文丢失而整行空白。
+    """
+    configure_qml_environment()
+    messages = []
+    previous_handler = qInstallMessageHandler(
+        lambda mode, _context, message: messages.append((mode, str(message)))
+    )
+    engine = QQmlApplicationEngine()
+    component = None
+    host = None
+    table = None
+    try:
+        register_types(engine)
+        install_incubation_controller(engine)
+        component = QQmlComponent(engine)
+        component.setData(
+            _RENDER_SCENE,
+            QUrl.fromLocalFile(str(_ROOT / "tests/qml/table-widget-render.qml")),
+        )
+        assert component.status() == QQmlComponent.Status.Ready, [
+            error.toString() for error in component.errors()
+        ]
+        host = component.create(engine.rootContext())
+        assert host is not None, [error.toString() for error in component.errors()]
+        host.show()
+        table = host.findChild(QObject, "table")
+        assert table is not None
+        _pump(50)
+        messages.clear()
+        table.seedItems()
+        _pump(1000)
+
+        rendered_texts = []
+        visual_items = _visual_items(table)
+        for item in visual_items:
+            if item.metaObject().indexOfProperty("text") < 0:
+                continue
+            value = item.property("text")
+            if isinstance(value, str) and value:
+                rendered_texts.append(value)
+
+        failures = [
+            message for mode, message in messages if mode in _QT_FAILURE_TYPES
+        ]
+        assert failures == []
+        assert {"Beta", "Alpha", "Gamma"}.issubset(set(rendered_texts))
+        assert {"0", "1", "2"}.issubset(set(rendered_texts))
+    finally:
+        _release(qapp, host, component, engine)
+        qInstallMessageHandler(previous_handler)
 
 
 def test_table_widget_fractional_columns_use_inner_viewport_width(qapp):
