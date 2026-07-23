@@ -245,6 +245,12 @@ class SingleInstance(QObject):
         connection.disconnected.connect(
             lambda current=connection: self._release_connection(current)
         )
+        connection.readChannelFinished.connect(
+            lambda current=connection: self._release_connection(current)
+        )
+        connection.errorOccurred.connect(
+            lambda _error, current=connection: self._release_connection(current)
+        )
         connection.stateChanged.connect(
             lambda _state, current=connection: self._schedule_connection_check(current)
         )
