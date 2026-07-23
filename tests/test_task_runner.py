@@ -43,13 +43,23 @@ from scripts.test_process import prepare_automated_test_process
 prepare_automated_test_process()
 
 import time
+import threading
 import shiboken6
 from PySide6.QtCore import QTimer
 from prismqml import App, run_in_thread
 
 app = App([])
+worker_started = threading.Event()
+
+def work():
+    worker_started.set()
+    time.sleep(0.1)
+
 started_at = time.monotonic()
-run_in_thread(lambda: time.sleep(0.1))
+run_in_thread(work)
+if not worker_started.wait(3.0):
+    print("TASK_START_TIMEOUT", flush=True)
+    raise SystemExit(4)
 QTimer.singleShot(1, app.quit)
 result = app.exec()
 elapsed = time.monotonic() - started_at
