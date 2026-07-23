@@ -35,7 +35,11 @@ Widget {
  readonly property bool isNormal: cardType === Enums.card.type_hover
  readonly property bool isElevated: cardType === Enums.card.type_elevated
  readonly property bool isHeader: cardType === Enums.card.type_header
- 
+ // 内容区内边距: header 卡沿用 xxxl(与标题区对齐); 普通卡默认给 l 的舒适留白,
+ // 避免内容贴卡片边框(健壮性默认: 使用方无需再手动内缩内容)。
+ // 上下/左右统一, height 公式按 _contentInset*2 配套, 保证 autoHeight 不裁剪、无 binding loop。
+ readonly property int _contentInset: isHeader ? Enums.spacing.xxxl : Enums.spacing.l
+
  // ==================== Signals 信号 ====================
  signal clicked()
  
@@ -45,7 +49,7 @@ Widget {
  // 否则保持原行为(固定 cardHeight)。header 卡始终由 card 自身按标题区算高。
  contentWidth: Enums.controlSize.cardContentWidth
  contentHeight: isHeader ? card.height
-                : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + Enums.border.thin * 2)
+                : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control._contentInset * 2)
                               : Enums.controlSize.cardHeight)
  
  // Elevation animation for elevated cards 悬浮卡片上浮动画
@@ -114,7 +118,7 @@ Widget {
  // preferredHeight 优先; header 卡按标题区+分隔线+内容算高; autoHeight 时普通卡按内容自撑; 否则填充父容器(原行为)。
  height: preferredHeight > 0 ? preferredHeight
          : (isHeader ? (headerView.height + separator.height + contentLoader.childrenRect.height + Enums.spacing.xxxl * 2)
-                     : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + Enums.border.thin * 2)
+                     : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control._contentInset * 2)
                                    : parent.height))
  radius: control.borderRadius
  
@@ -195,7 +199,7 @@ Widget {
  height: _fitContent ? childrenRect.height : undefined
  anchors.left: parent.left
  anchors.right: parent.right
- anchors.margins: isHeader ? Enums.spacing.xxxl : Enums.border.thin
+ anchors.margins: control._contentInset
  }
  
  // Interaction 交互
