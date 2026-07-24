@@ -18,6 +18,8 @@ class FolderDropPathHelper(QObject):
             not folder_url.isValid()
             or not folder_url.isLocalFile()
             or folder_url.host()
+            or folder_url.hasQuery()
+            or folder_url.hasFragment()
         ):
             return ""
         local_path = folder_url.toLocalFile()

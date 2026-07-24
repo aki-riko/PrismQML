@@ -14,11 +14,13 @@ from PySide6.QtCore import (
     QEventLoop,
     QFileInfo,
     QMimeData,
+    QObject,
     QPoint,
     QPointF,
     QTimer,
     QUrl,
     Qt,
+    Slot,
 )
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -77,6 +79,20 @@ Window {
 """
 
 
+class _CountingWindowHelper(QObject):
+    """Count QML path-resolution calls. 统计 QML 路径解析调用。"""
+
+    def __init__(self, folder_path: str):
+        super().__init__()
+        self.folder_path = folder_path
+        self.calls = []
+
+    @Slot(QUrl, result=str)
+    def resolveDroppedFolderPath(self, folder_url: QUrl) -> str:
+        self.calls.append(QUrl(folder_url))
+        return self.folder_path
+
+
 def _pump(milliseconds: int = 30) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
@@ -93,7 +109,7 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
-def _create_scene():
+def _create_scene(window_helper=None):
     engine = QQmlApplicationEngine()
     warnings = []
     engine.warnings.connect(
@@ -101,6 +117,9 @@ def _create_scene():
     )
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    if window_helper is not None:
+        engine.rootContext().setContextProperty("WindowHelper", window_helper)
+        engine._folder_drop_test_helper = window_helper
     component = QQmlComponent(engine)
     component.setData(SCENE_SOURCE, SCENE_URL)
     assert component.status() == QQmlComponent.Status.Ready, [
@@ -146,13 +165,23 @@ def folder_drop_scene(qapp):
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
-def _drop_urls(window: QQuickWindow, control: QQuickItem, urls: list[QUrl]):
+def _drop_mime(urls: list[QUrl]) -> QMimeData:
     mime = QMimeData()
     mime.setUrls(urls)
+    return mime
+
+
+def _drop_position(window: QQuickWindow, control: QQuickItem) -> QPoint:
     center = control.mapToItem(
         window.contentItem(), QPointF(control.width() / 2, control.height() / 2)
     )
-    position = QPoint(round(center.x()), round(center.y()))
+    return QPoint(round(center.x()), round(center.y()))
+
+
+def _send_drag_enter(
+    window: QQuickWindow, control: QQuickItem, mime: QMimeData
+) -> QDragEnterEvent:
+    position = _drop_position(window, control)
     enter = QDragEnterEvent(
         position,
         Qt.DropAction.CopyAction,
@@ -161,6 +190,14 @@ def _drop_urls(window: QQuickWindow, control: QQuickItem, urls: list[QUrl]):
         Qt.KeyboardModifier.NoModifier,
     )
     QCoreApplication.sendEvent(window, enter)
+    _pump()
+    return enter
+
+
+def _send_drop(
+    window: QQuickWindow, control: QQuickItem, mime: QMimeData
+) -> QDropEvent:
+    position = _drop_position(window, control)
     drop = QDropEvent(
         QPointF(position),
         Qt.DropAction.CopyAction,
@@ -170,6 +207,13 @@ def _drop_urls(window: QQuickWindow, control: QQuickItem, urls: list[QUrl]):
     )
     QCoreApplication.sendEvent(window, drop)
     _pump()
+    return drop
+
+
+def _drop_urls(window: QQuickWindow, control: QQuickItem, urls: list[QUrl]):
+    mime = _drop_mime(urls)
+    enter = _send_drag_enter(window, control, mime)
+    drop = _send_drop(window, control, mime)
     return enter.isAccepted(), drop.isAccepted()
 
 
@@ -215,6 +259,37 @@ def test_folder_drop_accepts_one_real_local_directory(
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_folder_drop_defers_path_resolution_until_drop(
+    qapp, tmp_path: Path
+) -> None:
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    folder = tmp_path / "deferred-folder"
+    folder.mkdir()
+    expected = QDir.cleanPath(QFileInfo(str(folder)).absoluteFilePath())
+    helper = _CountingWindowHelper(expected)
+    engine, component, window, controls, warnings = _create_scene(helper)
+    try:
+        control = controls["enabledControl"]
+        folder_url = QUrl.fromLocalFile(str(folder))
+        mime = _drop_mime([folder_url])
+
+        enter = _send_drag_enter(window, control, mime)
+
+        assert enter.isAccepted()
+        assert helper.calls == []
+
+        drop = _send_drop(window, control, mime)
+
+        assert drop.isAccepted()
+        assert helper.calls == [folder_url]
+        assert control.property("text") == expected
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
 def test_folder_drop_rejects_files_missing_remote_network_and_multiple_urls(
     folder_drop_scene, tmp_path: Path
 ) -> None:
@@ -226,18 +301,27 @@ def test_folder_drop_rejects_files_missing_remote_network_and_multiple_urls(
     second = tmp_path / "second"
     first.mkdir()
     second.mkdir()
+    query_url = QUrl.fromLocalFile(str(first))
+    query_url.setQuery("source=drop")
+    fragment_url = QUrl.fromLocalFile(str(first))
+    fragment_url.setFragment("section")
 
     candidates = [
-        [QUrl.fromLocalFile(str(regular_file))],
-        [QUrl.fromLocalFile(str(tmp_path / "missing"))],
-        [QUrl("https://example.com/folder")],
-        [QUrl("file://server/share")],
-        [QUrl.fromLocalFile(str(first)), QUrl.fromLocalFile(str(second))],
+        ([QUrl.fromLocalFile(str(regular_file))], (True, False)),
+        ([QUrl.fromLocalFile(str(tmp_path / "missing"))], (True, False)),
+        ([QUrl("https://example.com/folder")], (True, False)),
+        ([QUrl("file://server/share")], (True, False)),
+        ([query_url], (True, False)),
+        ([fragment_url], (True, False)),
+        (
+            [QUrl.fromLocalFile(str(first)), QUrl.fromLocalFile(str(second))],
+            (False, False),
+        ),
     ]
-    for urls in candidates:
+    for urls, expected_acceptance in candidates:
         control.setProperty("text", "initial")
         accepted = _drop_urls(window, control, urls)
-        assert accepted == (False, False)
+        assert accepted == expected_acceptance
         assert control.property("text") == "initial"
 
     assert warnings == []

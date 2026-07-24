@@ -76,15 +76,16 @@ Widget {
     signal folderDropped(string path)
 
     // ==================== Internal Methods 内部方法 ====================
+    function _acceptsFolderDrag(dragEvent) {
+        return dragEvent && dragEvent.hasUrls && dragEvent.urls.length === 1
+            && (dragEvent.supportedActions & Qt.CopyAction) !== 0
+    }
+
     function _resolveDroppedFolder(dragEvent) {
-        if (!dragEvent || !dragEvent.hasUrls || dragEvent.urls.length !== 1) return ""
+        if (!_acceptsFolderDrag(dragEvent)) return ""
         if (typeof WindowHelper === "undefined"
                 || typeof WindowHelper.resolveDroppedFolderPath !== "function") return ""
         return WindowHelper.resolveDroppedFolderPath(dragEvent.urls[0])
-    }
-
-    function _acceptsFolderCopy(dragEvent) {
-        return (dragEvent.supportedActions & Qt.CopyAction) !== 0
     }
 
     function _applyDroppedFolder(folderPath) {
@@ -239,8 +240,7 @@ Widget {
         enabled: control.folderDropEnabled && control.enabled && control._folderDropWritable
 
         onEntered: function(drag) {
-            var folderPath = control._resolveDroppedFolder(drag)
-            if (!folderPath || !control._acceptsFolderCopy(drag)) {
+            if (!control._acceptsFolderDrag(drag)) {
                 drag.accepted = false
                 return
             }
@@ -249,7 +249,7 @@ Widget {
 
         onDropped: function(drop) {
             var folderPath = control._resolveDroppedFolder(drop)
-            if (!folderPath || !control._acceptsFolderCopy(drop)) {
+            if (!folderPath) {
                 drop.accepted = false
                 return
             }

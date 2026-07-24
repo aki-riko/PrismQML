@@ -38,6 +38,23 @@ def test_resolve_dropped_folder_path_rejects_file_and_missing_path(
     assert helper.resolveDroppedFolderPath(QUrl.fromLocalFile(str(missing))) == ""
 
 
+def test_resolve_dropped_folder_path_rejects_query_and_fragment(
+    tmp_path: Path,
+) -> None:
+    """A folder drop must be an unambiguous file URL. 文件夹 URL 不得携带附加组件。"""
+    folder = tmp_path / "folder"
+    folder.mkdir()
+    plain_url = QUrl.fromLocalFile(str(folder))
+    query_url = QUrl(plain_url)
+    query_url.setQuery("source=drop")
+    fragment_url = QUrl(plain_url)
+    fragment_url.setFragment("section")
+    helper = WindowHelper()
+
+    assert helper.resolveDroppedFolderPath(query_url) == ""
+    assert helper.resolveDroppedFolderPath(fragment_url) == ""
+
+
 @pytest.mark.parametrize(
     "source",
     [

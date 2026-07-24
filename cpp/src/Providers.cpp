@@ -62,7 +62,8 @@ QString WindowHelper::resolveIconPath(const QString &icon) {
 
 QString WindowHelper::resolveDroppedFolderPath(const QUrl &folderUrl) const {
     if (!folderUrl.isValid() || !folderUrl.isLocalFile()
-        || !folderUrl.host().isEmpty()) {
+        || !folderUrl.host().isEmpty() || folderUrl.hasQuery()
+        || folderUrl.hasFragment()) {
         return {};
     }
     const QString localPath = folderUrl.toLocalFile();

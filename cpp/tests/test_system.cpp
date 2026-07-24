@@ -139,6 +139,13 @@ static void testDroppedFolderPathValidation() {
     CHECK(helper->resolveDroppedFolderPath(QUrl::fromLocalFile(folderPath))
               == QDir::cleanPath(QFileInfo(folderPath).absoluteFilePath()),
           "WindowHelper accepts one real local folder URL");
+    QUrl queryUrl = QUrl::fromLocalFile(folderPath);
+    queryUrl.setQuery(QStringLiteral("source=drop"));
+    QUrl fragmentUrl = QUrl::fromLocalFile(folderPath);
+    fragmentUrl.setFragment(QStringLiteral("section"));
+    CHECK(helper->resolveDroppedFolderPath(queryUrl).isEmpty()
+              && helper->resolveDroppedFolderPath(fragmentUrl).isEmpty(),
+          "WindowHelper rejects ambiguous local folder URLs");
     CHECK(helper->resolveDroppedFolderPath(QUrl::fromLocalFile(filePath)).isEmpty(),
           "WindowHelper rejects a regular file URL");
     CHECK(helper->resolveDroppedFolderPath(
