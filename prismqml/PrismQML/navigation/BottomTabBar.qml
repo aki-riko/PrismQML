@@ -60,7 +60,8 @@ Rectangle {
                 height: control.height
 
                 NavigationBarItem {
-                    anchors.centerIn: parent
+                    objectName: "bottomNavigationItem_" + text
+                    anchors.fill: parent
                     text: modelData ? (modelData.text || "") : ""
                     icon: modelData ? (modelData.icon || "") : ""
                     selectedIcon: modelData ? (modelData.selectedIcon || "") : ""

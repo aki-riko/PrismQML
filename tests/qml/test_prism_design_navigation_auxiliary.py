@@ -107,12 +107,20 @@ PipsPager {
         assert bottom_tab.property("_bottomTabDividerHeight") == 1
         files_badge = _visual_child_with_object_name(bottom_tab, "navigationBadge_Files")
         settings_badge = _visual_child_with_object_name(bottom_tab, "navigationBadge_Settings")
+        files_item = _visual_child_with_object_name(bottom_tab, "bottomNavigationItem_Files")
+        settings_item = _visual_child_with_object_name(bottom_tab, "bottomNavigationItem_Settings")
         assert files_badge is not None
         assert settings_badge is not None
+        assert files_item is not None
+        assert settings_item is not None
         assert files_badge.property("count") == 0
         assert not files_badge.property("visible")
         assert settings_badge.property("count") == 12
         assert settings_badge.property("visible")
+        assert files_item.width() == bottom_tab.width() / 2
+        assert settings_item.width() == bottom_tab.width() / 2
+        assert files_item.height() == bottom_tab.height()
+        assert settings_item.height() == bottom_tab.height()
 
         setTheme(Theme.DARK)
 
