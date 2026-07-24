@@ -19,6 +19,7 @@ Item {
     required property bool isToolButton
     required property int feature
     required property var menuItems
+    required property var menu
     required property bool controlEnabled
     required property bool loading
     required property real parentRadius
@@ -31,15 +32,19 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property bool _geometryPrewarmScheduled: false
     property bool _geometryPrepared: false
+    property bool _invalidMenuWarningIssued: false
     property int _animationDuration
 
     readonly property var _safeMenuItems:
         menuItems === null || menuItems === undefined ? []
         : (typeof menuItems.length === "number" ? menuItems : [])
+    readonly property bool _hasExternalMenu: menu !== null && menu !== undefined
+    readonly property bool _hasMenuContent: _hasExternalMenu || _safeMenuItems.length > 0
 
     // ==================== Readonly State 只读状态 ====================
     // Expose menu open state for arrow animation 暴露菜单打开状态供箭头动画使用
-    readonly property bool isMenuOpen: dropDownMenu.isOpen
+    readonly property bool isMenuOpen: _hasExternalMenu && typeof menu.isOpen === "boolean"
+        ? menu.isOpen : dropDownMenu.isOpen
     // Expose hover states for parent button color calculation 暴露悬浮状态供父按钮颜色计算
     readonly property bool mainHovered: splitMainMouse.containsMouse
     readonly property bool mainPressed: splitMainMouse.pressed
@@ -83,7 +88,15 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function prewarmMenu() {
-        if (controlEnabled && !loading && _safeMenuItems.length > 0) {
+        if (controlEnabled && !loading && _hasMenuContent) {
+            if (_hasExternalMenu) {
+                if (!_externalMenuIsValid()) {
+                    _warnInvalidExternalMenu()
+                    return
+                }
+                menu.prewarm()
+                return
+            }
             if (!_geometryPrewarmScheduled) {
                 _geometryPrewarmScheduled = true
                 geometryPrewarmTimer.start()
@@ -137,16 +150,45 @@ Item {
     }
 
     function openMenu() {
-        if (_safeMenuItems.length > 0) {
+        if (!_hasMenuContent) return
+        if (_hasExternalMenu) {
+            if (!_externalMenuIsValid()) {
+                _warnInvalidExternalMenu()
+                return
+            }
+            if (menu.isOpen) {
+                menu.close()
+                return
+            }
             menuAboutToOpen()
-            _geometryPrewarmScheduled = false
-            geometryPrewarmTimer.stop()
-            // Re-measure authoritatively so click geometry never relies on stale prewarm data.
-            // 点击时权威重测，避免继续使用已过期的预热几何数据。
-            _updatePopupWidth()
-            dropDownMenu.openAtControl(parent)
-            _geometryPrepared = false
+            menu.openAtControl(parent)
+            return
         }
+        if (dropDownMenu.isOpen) {
+            dropDownMenu.close()
+            return
+        }
+        menuAboutToOpen()
+        _geometryPrewarmScheduled = false
+        geometryPrewarmTimer.stop()
+        // Re-measure authoritatively so click geometry never relies on stale prewarm data.
+        // 点击时权威重测，避免继续使用已过期的预热几何数据。
+        _updatePopupWidth()
+        dropDownMenu.openAtControl(parent)
+        _geometryPrepared = false
+    }
+
+    function _externalMenuIsValid() {
+        return typeof menu.isOpen === "boolean" &&
+               typeof menu.prewarm === "function" &&
+               typeof menu.openAtControl === "function" &&
+               typeof menu.close === "function"
+    }
+
+    function _warnInvalidExternalMenu() {
+        if (_invalidMenuWarningIssued) return
+        _invalidMenuWarningIssued = true
+        console.warn("PrismQML Button.menu must expose isOpen, prewarm(), openAtControl(), and close()")
     }
 
     Component.onCompleted: _animationDuration = Enums.duration.fast
@@ -207,7 +249,7 @@ Item {
         ChevronIcon {
             id: splitArrow
             animated: true
-            isOpen: dropDownMenu.isOpen
+            isOpen: dropdownFeature.isMenuOpen
             color: dropdownFeature._arrowColor
             anchors.centerIn: parent
         }

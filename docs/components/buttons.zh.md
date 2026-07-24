@@ -14,6 +14,27 @@ Fluent.Button {
 }
 ```
 
+## 统一菜单入口
+
+`feature_dropdown` 和 `feature_split` 都可以直接绑定 `PopupWindowCore` 契约的菜单对象（例如 `MenuCore`）。按钮会负责预热、定位、开关和箭头状态；`menuItems` 仍可用于简单菜单。
+
+```qml
+Fluent.MenuCore {
+    id: actionMenu
+    Fluent.Action { text: "打开" }
+    Fluent.Action { text: "导出" }
+}
+
+Fluent.Button {
+    text: "操作"
+    feature: Fluent.Enums.button.feature_split
+    menu: actionMenu
+    onClicked: console.log("主按钮点击")
+}
+```
+
+外部菜单需要提供 `isOpen`、`prewarm()`、`openAtControl(control)` 和 `close()`；不满足契约时会输出明确警告。
+
 ## 样式 style（7 种）
 
 | 值 | 说明 |

@@ -70,6 +70,7 @@ Item {{
         isToolButton: false
         feature: Enums.button.feature_split
         menuItems: ["Open"]
+        menu: null
         controlEnabled: true
         loading: false
         parentRadius: Enums.prismDesign.radiusControl

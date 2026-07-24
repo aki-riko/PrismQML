@@ -48,6 +48,7 @@ import QtQuick.Window
 import PrismQML
 
 Window {
+    readonly property int dropdownFeature: Enums.button.feature_dropdown
     readonly property var checkIcon: Enums.icon.checkmark
     readonly property var dismissIcon: Enums.icon.dismiss
     readonly property int rgbMode: Enums.colorPicker.mode_rgb
@@ -260,6 +261,17 @@ def _action_button(dropdown, icon):
     return matches[0]
 
 
+def _trigger_button(picker, feature):
+    matches = [
+        item
+        for item in _visual_descendants(picker)
+        if item.metaObject().className().startswith("ButtonCore")
+        and item.property("feature") == feature
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 def _click_item(window: QQuickWindow, item: QQuickItem) -> None:
     point = item.mapToItem(
         window.contentItem(), QPointF(item.width() / 2, item.height() / 2)
@@ -397,6 +409,28 @@ def test_color_picker_dropdown_accepts_rejects_and_closes_parent_popup(qapp):
         assert _rgb(picker.property("selectedColor")) == (17, 34, 51, 255)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window, picker)
+
+
+def test_color_picker_trigger_delegates_real_click_to_popup_menu(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, picker, warnings = _create_scene()
+    try:
+        trigger = _trigger_button(picker, window.property("dropdownFeature"))
+        popup_core = _popup_core(picker)
+        point = trigger.mapToScene(QPointF(trigger.width() / 2, trigger.height() / 2))
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            point.toPoint(),
+        )
+        assert _wait_for(lambda: picker.property("popupVisible"))
+        assert _wait_for(lambda: popup_core.property("isOpen"))
+        assert trigger.property("dropdownOpen")
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window)
     finally:
         _dispose_scene(engine, component, window, picker)
 

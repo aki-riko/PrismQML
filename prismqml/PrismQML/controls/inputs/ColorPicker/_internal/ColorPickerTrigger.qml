@@ -14,9 +14,11 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property color selectedColor: Enums.colorPickerDefaults.defaultColor
     property bool isOpen: false
+    property var menu: null
     
     // ==================== Signals 信号 ====================
     signal clicked()
+    signal menuAboutToOpen()
     
     // ==================== Size 尺寸 ====================
     implicitWidth: btn.implicitWidth
@@ -29,8 +31,10 @@ Item {
         feature: Enums.button.feature_dropdown
         contentAlignment: Enums.button.align_center
         enabled: control.enabled
+        menu: control.menu
         dropdownOpen: control.isOpen  // Sync arrow animation with popup state 同步箭头动画与弹窗状态
         onClicked: control.clicked()
+        onMenuAboutToOpen: control.menuAboutToOpen()
         
         // Custom content: color preview 自定义内容：颜色预览
         // Note: customContentContainer is Item without size, need anchors 注意：customContentContainer是无尺寸Item，需要锚点

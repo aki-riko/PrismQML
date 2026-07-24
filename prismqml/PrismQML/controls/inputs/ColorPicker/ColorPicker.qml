@@ -77,6 +77,13 @@ Item {
         _isOpen = false
     }
 
+    function _preparePopup() {
+        if (type === Enums.colorPicker.type_palette ||
+                type === Enums.colorPicker.type_picker) {
+            _isOpen = true
+        }
+    }
+
     // Open ColorDialog from palette "自定义颜色" button 从调色板"自定义颜色"按钮打开
     function _openPaletteDialog() {
         if (_mainWindow && _mainWindow.contentItem) {
@@ -138,6 +145,9 @@ Item {
             selectedColor: control.selectedColor
             isOpen: control._isOpen
             enabled: control.enabled
+            menu: control.type === Enums.colorPicker.type_palette ||
+                  control.type === Enums.colorPicker.type_picker ? popup : null
+            onMenuAboutToOpen: control._preparePopup()
             onClicked: {
                 // Prevent reopen during closing animation 防止关闭动画期间重新打开
                 if (popup.isClosing) return

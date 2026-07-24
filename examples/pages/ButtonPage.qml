@@ -14,6 +14,12 @@ Item {
     id: root
     readonly property int _flowSpacing: Fluent.Enums.isPrismDesign ? Fluent.Enums.spacing.s : Fluent.Enums.spacing.l
 
+    MenuCore {
+        id: externalButtonMenu
+        Action { text: "外部动作一" }
+        Action { text: "外部动作二" }
+    }
+
     // 图标路径解析函数 (用模块内 Enums.iconPath, 可移植: 不依赖源码树位置)
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
@@ -122,6 +128,16 @@ Item {
                             menuItems: ["操作A", "操作B"]
                             onClicked: console.log("主按钮点击")
                             onMenuItemClicked: function(index, text) { console.log("菜单:", text) }
+                        }
+                    }
+                    ComponentCard {
+                        label: "feature_split + MenuCore"
+                        Button {
+                            style: Fluent.Enums.button.style_primary
+                            feature: Fluent.Enums.button.feature_split
+                            text: "外部菜单"
+                            menu: externalButtonMenu
+                            onClicked: console.log("外部菜单主按钮点击")
                         }
                     }
                     ComponentCard { 

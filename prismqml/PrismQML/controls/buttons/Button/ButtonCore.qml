@@ -45,6 +45,7 @@ Widget {
     property real progress: 0
     property bool showProgress: false
     property var menuItems: []
+    property var menu: null  // Optional external PopupWindowCore-compatible menu 外部菜单
     property int level: 0
     property string textToCopy: ""
     property int countdown: Enums.button.countdownDefault
@@ -139,6 +140,7 @@ Widget {
     signal doubleClicked()
     signal toggled(bool checked)
     signal menuItemClicked(int index, string text)
+    signal menuAboutToOpen()
     signal countdownFinished()
 
     // ==================== Public Methods 公开方法 ====================
@@ -231,7 +233,8 @@ Widget {
     function _prewarmMenu() {
         var hasMenuFeature = feature === Enums.button.feature_dropdown ||
                              feature === Enums.button.feature_split
-        if (hasMenuFeature && enabled && !loading && _safeMenuItems.length > 0 &&
+        if (hasMenuFeature && enabled && !loading &&
+                (menu !== null && menu !== undefined || _safeMenuItems.length > 0) &&
                 dropdownFeature.item) {
             dropdownFeature.item.prewarmMenu()
         }
@@ -603,7 +606,9 @@ Widget {
                 control.checked = !control.checked
                 control.toggled(control.checked)
             }
-            if (feature === Enums.button.feature_dropdown && control._safeMenuItems.length > 0) {
+            if (feature === Enums.button.feature_dropdown &&
+                    (control.menu !== null && control.menu !== undefined ||
+                     control._safeMenuItems.length > 0)) {
                 if (dropdownFeature.item) dropdownFeature.item.openMenu()
                 return
             }
@@ -643,6 +648,7 @@ Widget {
             isToolButton: control.isToolButton
             feature: control.feature
             menuItems: control._safeMenuItems
+            menu: control.menu
             controlEnabled: control.enabled
             loading: control.loading
             parentRadius: control.radius
@@ -651,7 +657,10 @@ Widget {
             textColor: styleHelper.textColor
             onMenuItemClicked: (index, text) => control.menuItemClicked(index, text)
             onMainButtonClicked: control.clicked()
-            onMenuAboutToOpen: control._dismissToolTipForMenu()
+            onMenuAboutToOpen: {
+                control._dismissToolTipForMenu()
+                control.menuAboutToOpen()
+            }
         }
     }
 

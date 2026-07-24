@@ -14,6 +14,27 @@ Fluent.Button {
 }
 ```
 
+## Unified menu entry point
+
+Both `feature_dropdown` and `feature_split` accept a menu object that follows the `PopupWindowCore` contract (for example, `MenuCore`). The button handles prewarming, anchoring, toggling, and the arrow state; `menuItems` remains available for simple menus.
+
+```qml
+Fluent.MenuCore {
+    id: actionMenu
+    Fluent.Action { text: "Open" }
+    Fluent.Action { text: "Export" }
+}
+
+Fluent.Button {
+    text: "Actions"
+    feature: Fluent.Enums.button.feature_split
+    menu: actionMenu
+    onClicked: console.log("main button clicked")
+}
+```
+
+An external menu must expose `isOpen`, `prewarm()`, `openAtControl(control)`, and `close()`; an explicit warning is emitted for an invalid contract.
+
 ## style (7)
 
 | Value | Description |
