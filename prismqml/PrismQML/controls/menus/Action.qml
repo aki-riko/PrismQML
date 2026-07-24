@@ -36,6 +36,7 @@ Rectangle {
     readonly property color _shortcutTextColor: Enums.stateColor.textMedium
 
     // ==================== Signals 信号 ====================
+    signal pressed()
     signal triggered()
     signal submenuRequested()  // Submenu open request 子菜单打开请求
     
@@ -174,6 +175,7 @@ Rectangle {
         hoverEnabled: true
         enabled: control.enabled
         cursorShape: Qt.ArrowCursor
+        onPressed: control.pressed()
         onContainsMouseChanged: {
             if (!containsMouse) {
                 tipTimer.stop()

@@ -393,6 +393,11 @@ PopupWindowCore {
  var c = itemsColumn.children[i]
  if (c && c.triggered && _autoBoundActions.indexOf(c) === -1) {
  _autoBoundActions.push(c)
+ if (c.pressed) {
+ c.pressed.connect(function() {
+ control.stabilizeInteraction()
+ })
+ }
  if (c.hoveredChanged) {
  c.hoveredChanged.connect((function(child) {
  return function() {
