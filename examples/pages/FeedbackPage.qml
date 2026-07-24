@@ -431,8 +431,7 @@ Item {
                     }
                 }
             }
-            
-            
+            FeedbackTeachingTourExample {}
             // 其他弹出组件
             ExampleCard {
                 title: "其他弹出组件"

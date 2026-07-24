@@ -28,6 +28,16 @@ ExampleCard {
             ComponentCard { label: "toggle"; Toggle { text: "Live preview"; checked: true } }
             ComponentCard { label: "slider"; Slider { width: 180; value: 64 } }
             ComponentCard { label: "progress"; Progress { type: Enums.progress.type_bar; width: 160; value: 72 } }
+            ComponentCard {
+                label: "teaching tour"
+
+                Button {
+                    id: teachingTourTarget
+
+                    text: "Start tour"
+                    onClicked: teachingTour.start()
+                }
+            }
         }
 
         Row {
@@ -119,5 +129,18 @@ ExampleCard {
             Skeleton { width: 120; height: 14 }
             Skeleton { shape: Enums.skeleton.shape_circle; width: 42; height: 42 }
         }
+    }
+
+    TeachingTour {
+        id: teachingTour
+
+        steps: [
+            {
+                "target": teachingTourTarget,
+                "title": "TeachingTour",
+                "content": "Prism Design overlay and action styling.",
+                "anchorPosition": Enums.teachingTip.anchor_bottom
+            }
+        ]
     }
 }

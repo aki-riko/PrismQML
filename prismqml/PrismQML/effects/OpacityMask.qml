@@ -17,12 +17,16 @@ import QtQuick.Effects
 
 MultiEffect {
     id: root
-    
+
+    // ==================== Public Props 公开属性 ====================
     property var mask: null
-    
+    property bool invert: false
+
+    // ==================== Content 内容 ====================
     // Only enable when mask exists 仅有mask时启用
     maskEnabled: root.mask !== null
     maskSource: root.mask
+    maskInverted: root.invert
     // Set threshold to 0 for full mask visibility 阈值0全可见
     maskThresholdMin: 0.0
     maskSpreadAtMin: 1.0

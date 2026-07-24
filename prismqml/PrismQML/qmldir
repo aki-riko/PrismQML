@@ -143,6 +143,7 @@ StateWidget controls/feedback/State/StateWidget.qml
 TipPopup controls/feedback/Tooltip/TipPopup.qml
 Flyout controls/feedback/Tooltip/Flyout.qml
 TeachingTip controls/feedback/Tooltip/TeachingTip.qml
+TeachingTour controls/feedback/Overlay/TeachingTour.qml
 ToolTip controls/feedback/Tooltip/ToolTipEntry.qml
 TooltipCore controls/feedback/Tooltip/TooltipCore.qml
 HintIcon controls/feedback/Tooltip/HintIcon.qml

@@ -28,6 +28,9 @@ Item {
     property int tipType: Enums.tip.type_flyout
     property int animationType: Enums.flyout.pullUp
     property int anchorPosition: Enums.teachingTip.anchor_bottom
+    property string primaryButtonText: ""
+    property string secondaryButtonText: ""
+    property bool closeOnAction: true
     readonly property int _tipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
     readonly property color _tipBackground: Enums.isPrismDesign ? Enums.dialogColor : (Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight)
     readonly property int _tipBorderWidth: Enums.border.thin
@@ -37,6 +40,7 @@ Item {
     property real _animX: 0
     property real _animY: 0
     property bool _isOpen: false
+    readonly property bool _hasActions: primaryButtonText !== "" || secondaryButtonText !== ""
 
     // Follow target control position (sync move on scroll) 跟随目标控件位置变化
     readonly property var _targetWindow: target && target.contentItem !== undefined
@@ -44,6 +48,8 @@ Item {
 
     // ==================== Signals 信号 ====================
     signal closed()
+    signal primaryActionTriggered()
+    signal secondaryActionTriggered()
 
     // ==================== Public Methods 公开方法 ====================
     function show() {
@@ -109,6 +115,16 @@ Item {
         }
     }
 
+    function _triggerPrimaryAction() {
+        primaryActionTriggered()
+        if (closeOnAction) close()
+    }
+
+    function _triggerSecondaryAction() {
+        secondaryActionTriggered()
+        if (closeOnAction) close()
+    }
+
     visible: false
 
     // ==================== Content 内容 ====================
@@ -118,8 +134,8 @@ Item {
         tipType: control.tipType
         animationType: control.animationType
         anchorPosition: control.anchorPosition
-        viewWidth: 220
-        viewHeight: 90
+        viewWidth: control._hasActions ? Enums.controlSize.teachingTipWidth : 220
+        viewHeight: control._hasActions ? Enums.controlSize.teachingTipHeight : 90
     }
 
     // Main window 主窗口
@@ -153,9 +169,14 @@ Item {
             border.color: control._tipBorderColor
             
             Column {
-                anchors.fill: parent
-                anchors.margins: Enums.spacing.l
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: actionRow.visible ? actionRow.top : parent.bottom
+                anchors.topMargin: Enums.spacing.l
+                anchors.leftMargin: Enums.spacing.l
                 anchors.rightMargin: control.closable ? 32 : Enums.spacing.l
+                anchors.bottomMargin: actionRow.visible ? Enums.spacing.s : Enums.spacing.l
                 spacing: Enums.spacing.xs
                 
                 Label {
@@ -171,6 +192,32 @@ Item {
                     wrapMode: Text.Wrap
                     width: parent.width
                     visible: text !== ""
+                }
+            }
+
+            Row {
+                id: actionRow
+
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.rightMargin: Enums.spacing.l
+                anchors.bottomMargin: Enums.spacing.l
+                spacing: Enums.spacing.m
+                visible: control._hasActions
+
+                Button {
+                    objectName: "tipSecondaryActionButton"
+                    text: control.secondaryButtonText
+                    visible: text !== ""
+                    onClicked: control._triggerSecondaryAction()
+                }
+
+                Button {
+                    objectName: "tipPrimaryActionButton"
+                    style: Enums.button.style_primary
+                    text: control.primaryButtonText
+                    visible: text !== ""
+                    onClicked: control._triggerPrimaryAction()
                 }
             }
             
