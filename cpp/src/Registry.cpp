@@ -22,10 +22,24 @@
 #include <QQuickWindow>
 #include <QProcessEnvironment>
 #include <QDir>
+#include <QtCore/qtsymbolmacros.h>
+
+QT_DECLARE_EXTERN_RESOURCE(prismqml_components)
+
+static void keepPrismQmlResources() {
+    QT_KEEP_RESOURCE(prismqml_components);
+}
 
 namespace prism {
 
 void registerTypes(QQmlEngine *engine, const QString &importPath) {
+    static constexpr char kRuntimeRegisteredProperty[] =
+        "_prismqmlRuntimeRegistered";
+    if (!engine || engine->property(kRuntimeRegisteredProperty).toBool())
+        return;
+    engine->setProperty(kRuntimeRegisteredProperty, true);
+    keepPrismQmlResources();
+
     QQuickWindow::setDefaultAlphaBuffer(true);
     QQmlContext *ctx = engine->rootContext();
 
@@ -71,7 +85,7 @@ QString resolveImportPath(const QString &fallback) {
         return fallback;
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     // 移动端: QML 打进 qrc, import path 指向资源根
-    return QStringLiteral("qrc:/");
+    return QStringLiteral("qrc:/qt/qml");
 #else
     // 桌面兜底: 编译期注入的 QML 源/安装目录(CMake 定义 PRISM_QML_DIR_DEFAULT),
     // 使未设 PRISMQML_QML_DIR 环境变量时 import PrismQML 仍可解析(开发树/安装树通用)。

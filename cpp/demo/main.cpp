@@ -54,8 +54,9 @@ int main(int argc, char *argv[]) {
             << "accent =" << getAccentColor() << "isDark =" << isDark();
 
 #ifdef PRISM_QML_FROM_QRC
-    // Android: QML 从 qrc 资源加载 (addImportPath qrc:/ 找 qrc:/PrismQML/qmldir)
-    app.engine()->addImportPath(QStringLiteral("qrc:/"));
+    // Android: load PrismQML from Qt's standard qrc QML import prefix.
+    // Android：从 Qt 标准 qrc QML 导入前缀加载 PrismQML。
+    app.engine()->addImportPath(QStringLiteral("qrc:/qt/qml"));
     const QString pagesDir = QStringLiteral("qrc:/pages");
     const bool fromQrc = true;
 #else

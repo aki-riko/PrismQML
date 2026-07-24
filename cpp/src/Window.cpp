@@ -161,13 +161,17 @@ void Window::navigateTo(int index) {
 }
 
 void Window::build() {
-    // Android: m_importPath 为 "qrc:/" → qmlDir="qrc:/PrismQML", import 用 qrc 前缀
+    // Mobile: m_importPath is the standard qrc import root; desktop uses disk.
+    // 移动端使用标准 qrc 导入根；桌面端使用磁盘路径。
     // 桌面: m_importPath 为磁盘路径 → file:/// 前缀
     const bool isQrc = m_importPath.startsWith(QStringLiteral("qrc:"));
     QString qmlDir;
     QString importPrefix;
     if (isQrc) {
-        qmlDir = QStringLiteral("qrc:/PrismQML");
+        qmlDir = m_importPath;
+        if (!qmlDir.endsWith(QLatin1Char('/')))
+            qmlDir += QLatin1Char('/');
+        qmlDir += QStringLiteral("PrismQML");
         importPrefix = QString();  // qrc: 路径直接用, 无 file:/// 前缀
     } else {
         qmlDir = QDir(m_importPath).filePath(QStringLiteral("PrismQML"));
@@ -195,7 +199,7 @@ void Window::build() {
     // 必须拼进 QML 字面量(同 windowTitle), 因 m_root 在 show()->build() 时才创建。
     QString effectiveIcon = m_windowIcon;
     if (effectiveIcon.isEmpty()) {
-        effectiveIcon = (isQrc ? QStringLiteral("qrc:/PrismQML/controls/icons/fluent/Apps.svg")
+        effectiveIcon = (isQrc ? qmlDir + QStringLiteral("/controls/icons/fluent/Apps.svg")
                                : importPrefix + qmlDir + QStringLiteral("/controls/icons/fluent/Apps.svg"));
     }
     const QString iconQml =
@@ -298,7 +302,10 @@ void Window::createSplash() {
     const bool isQrc = m_importPath.startsWith(QStringLiteral("qrc:"));
     QString qmlDir, importPrefix;
     if (isQrc) {
-        qmlDir = QStringLiteral("qrc:/PrismQML");
+        qmlDir = m_importPath;
+        if (!qmlDir.endsWith(QLatin1Char('/')))
+            qmlDir += QLatin1Char('/');
+        qmlDir += QStringLiteral("PrismQML");
     } else {
         qmlDir = QDir::fromNativeSeparators(QDir(m_importPath).filePath(QStringLiteral("PrismQML")));
         importPrefix = QStringLiteral("file:///");
@@ -308,7 +315,7 @@ void Window::createSplash() {
     // 图标名 → fluent svg url
     if (!icon.isEmpty() && !icon.contains(QLatin1Char('/')) && !icon.contains(QLatin1Char('\\'))
         && !icon.startsWith(QStringLiteral("qrc:")) && !icon.contains(QStringLiteral("://"))) {
-        icon = (isQrc ? QStringLiteral("qrc:/PrismQML/controls/icons/fluent/")
+        icon = (isQrc ? qmlDir + QStringLiteral("/controls/icons/fluent/")
                       : importPrefix + qmlDir + QStringLiteral("/controls/icons/fluent/"))
                + icon + QStringLiteral(".svg");
     }

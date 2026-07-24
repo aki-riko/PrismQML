@@ -37,6 +37,7 @@ add_library(prism STATIC
     src/Icon.cpp
     src/DataModels.cpp
     src/Registry.cpp
+    src/QmlRuntimePlugin.cpp
     src/App.cpp
     src/Window.cpp
     # 第三方: nayuki QR-Code-generator (MIT), QRCodeGenerator 编码后端
@@ -73,6 +74,10 @@ add_library(prism STATIC
     src/ConfigContracts_p.h
     src/QRCodeProtocol_p.h
 )
+set_source_files_properties(src/QmlRuntimePlugin.cpp PROPERTIES
+    COMPILE_DEFINITIONS "QT_PLUGIN;QT_STATICPLUGIN")
+set_property(TARGET prism APPEND PROPERTY
+    AUTOMOC_MOC_OPTIONS "-Muri=PrismQML")
 
 target_include_directories(prism PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -89,6 +94,88 @@ target_link_libraries(prism PUBLIC
     Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Svg Qt6::Widgets Qt6::Network Qt6::Sql
     Qt6::QuickControls2 Qt6::QuickLayouts Qt6::QuickEffects
 )
+
+# ==================== Embedded QML runtime ====================
+# Keep the complete source module in the exported prism target.  A generated
+# qrc source avoids leaking Qt's private resource object targets into the
+# installed CMake export set.
+function(prism_attach_generated_qrc
+         target resource_name qrc_body_variable qrc_dependencies_variable)
+    set(_qrc_file "${CMAKE_CURRENT_BINARY_DIR}/${resource_name}.qrc")
+    file(WRITE "${_qrc_file}"
+        "<RCC>\n  <qresource prefix=\"/\">\n${${qrc_body_variable}}  </qresource>\n</RCC>\n")
+
+    find_program(PRISM_RCC NAMES rcc
+        PATHS "${QT_HOST_PATH}/bin" "${QT_HOST_PATH}/libexec"
+        NO_DEFAULT_PATH)
+    if(NOT PRISM_RCC)
+        find_program(PRISM_RCC NAMES rcc REQUIRED)
+    endif()
+
+    set(_qrc_cpp "${CMAKE_CURRENT_BINARY_DIR}/qrc_${resource_name}.cpp")
+    add_custom_command(
+        OUTPUT "${_qrc_cpp}"
+        COMMAND "${PRISM_RCC}" --name "${resource_name}" --no-zstd
+                -o "${_qrc_cpp}" "${_qrc_file}"
+        DEPENDS "${_qrc_file}" ${${qrc_dependencies_variable}}
+        VERBATIM)
+    target_sources(${target} PRIVATE "${_qrc_cpp}")
+endfunction()
+
+set(_prism_qml_package_root "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml")
+set(_prism_qml_module_root "${_prism_qml_package_root}/PrismQML")
+set(_prism_qml_source_qmldir "${_prism_qml_module_root}/qmldir")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${_prism_qml_source_qmldir}")
+file(GLOB_RECURSE _prism_qml_resources CONFIGURE_DEPENDS
+    RELATIVE "${_prism_qml_module_root}"
+    "${_prism_qml_module_root}/*.qml"
+    "${_prism_qml_module_root}/*.js"
+    "${_prism_qml_module_root}/*.svg"
+    "${_prism_qml_module_root}/*.json"
+    "${_prism_qml_module_root}/*.png"
+    "${_prism_qml_module_root}/*.frag"
+    "${_prism_qml_module_root}/*.qsb"
+    "${_prism_qml_module_root}/qmldir"
+)
+
+# Keep the filesystem module plugin-free for PySide hosts.  Generate a
+# resource-only qmldir that activates the static C++ runtime plugin.
+# 文件系统模块供 PySide 显式注入；资源模块单独生成静态 C++ 插件声明。
+file(READ "${_prism_qml_source_qmldir}"
+    _prism_qml_source_qmldir_contents)
+string(REGEX REPLACE
+    "^(module[^\r\n]*\r?\n)"
+    "\\1plugin prismqmlruntimeplugin\nclassname PrismQMLRuntimePlugin\n"
+    _prism_qml_runtime_qmldir_contents
+    "${_prism_qml_source_qmldir_contents}")
+if(_prism_qml_runtime_qmldir_contents STREQUAL
+   _prism_qml_source_qmldir_contents)
+    message(FATAL_ERROR "PrismQML qmldir has no module declaration")
+endif()
+set(_prism_qml_runtime_qmldir
+    "${CMAKE_CURRENT_BINARY_DIR}/prismqml_runtime_qmldir")
+file(WRITE "${_prism_qml_runtime_qmldir}"
+    "${_prism_qml_runtime_qmldir_contents}")
+
+set(_prism_qml_qrc_body "")
+set(_prism_qml_qrc_dependencies "")
+foreach(_prism_qml_file IN LISTS _prism_qml_resources)
+    if(_prism_qml_file STREQUAL "qmldir")
+        continue()
+    endif()
+    string(APPEND _prism_qml_qrc_body
+        "    <file alias=\"qt/qml/PrismQML/${_prism_qml_file}\">${_prism_qml_module_root}/${_prism_qml_file}</file>\n")
+    list(APPEND _prism_qml_qrc_dependencies
+        "${_prism_qml_module_root}/${_prism_qml_file}")
+endforeach()
+string(APPEND _prism_qml_qrc_body
+    "    <file alias=\"qt/qml/PrismQML/qmldir\">${_prism_qml_runtime_qmldir}</file>\n")
+list(APPEND _prism_qml_qrc_dependencies
+    "${_prism_qml_runtime_qmldir}")
+prism_attach_generated_qrc(
+    prism prismqml_components _prism_qml_qrc_body
+    _prism_qml_qrc_dependencies)
 
 # Windows: 链接 DWM API (Shadow/Mica) + user32 (NativeWindow) + shell32 (Updater 安装包启动)
 if(WIN32)
@@ -114,48 +201,22 @@ if(PRISM_BUILD_DEMO)
             PRISM_DEMO_PAGES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/pages")
     endif()
 
-    # Android/iOS: QML 资源必须打进 bundle(无磁盘路径)。glob PrismQML 引擎 QML + svg +
-    # i18n + demo pages 生成 qrc, prefix "/" 使 addImportPath("qrc:/") 能找到
-    # qrc:/PrismQML/qmldir。demo main.cpp 在移动端走 qrc import path。
+    # Android/iOS: PrismQML resources are already carried by prism.  Only the
+    # demo pages need a second generated resource bundle here.
     if(ANDROID OR IOS)
-        set(_pqml_root "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml/PrismQML")
-        file(GLOB_RECURSE _pqml_res RELATIVE "${_pqml_root}"
-             "${_pqml_root}/*.qml" "${_pqml_root}/*.js" "${_pqml_root}/*.svg"
-             "${_pqml_root}/*.json")
-        # qmldir 无扩展名, 单独 glob
-        file(GLOB_RECURSE _pqml_dirs RELATIVE "${_pqml_root}" "${_pqml_root}/qmldir")
-        set(_qrc_body "")
-        foreach(f ${_pqml_res} ${_pqml_dirs})
-            string(APPEND _qrc_body
-                "    <file alias=\"PrismQML/${f}\">${_pqml_root}/${f}</file>\n")
-        endforeach()
-        # demo pages
         file(GLOB _demo_pages RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/demo"
              "${CMAKE_CURRENT_SOURCE_DIR}/demo/pages/*.qml")
+        set(_demo_qrc_body "")
+        set(_demo_qrc_dependencies "")
         foreach(f ${_demo_pages})
-            string(APPEND _qrc_body
+            string(APPEND _demo_qrc_body
                 "    <file alias=\"${f}\">${CMAKE_CURRENT_SOURCE_DIR}/demo/${f}</file>\n")
+            list(APPEND _demo_qrc_dependencies
+                "${CMAKE_CURRENT_SOURCE_DIR}/demo/${f}")
         endforeach()
-        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
-             "<RCC>\n  <qresource prefix=\"/\">\n${_qrc_body}  </qresource>\n</RCC>\n")
-        # 用 rcc 显式预编译 qrc -> cpp (最可控, 不依赖 AUTORCC 对生成qrc的处理)
-        # rcc 在 host Qt 的 libexec 或 bin
-        find_program(PRISM_RCC NAMES rcc
-            PATHS "${QT_HOST_PATH}/bin" "${QT_HOST_PATH}/libexec"
-            NO_DEFAULT_PATH)
-        if(NOT PRISM_RCC)
-            find_program(PRISM_RCC NAMES rcc)
-        endif()
-        set(_qrc_cpp "${CMAKE_CURRENT_BINARY_DIR}/qrc_prism_qml.cpp")
-        add_custom_command(
-            OUTPUT "${_qrc_cpp}"
-            # --no-zstd: 不用 zstd 压缩资源, 避免链接时 undefined symbol
-            # qt_resourceFeatureZstd(CI Android 链接配置下该符号未拉入 Qt6Core)
-            COMMAND "${PRISM_RCC}" --name prism_qml --no-zstd
-                    -o "${_qrc_cpp}" "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
-            DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/prism_qml.qrc"
-            VERBATIM)
-        target_sources(prism_demo PRIVATE "${_qrc_cpp}")
+        prism_attach_generated_qrc(
+            prism_demo prism_demo_pages _demo_qrc_body
+            _demo_qrc_dependencies)
         target_compile_definitions(prism_demo PRIVATE PRISM_QML_FROM_QRC)
     endif()
 
@@ -251,6 +312,12 @@ if(PRISM_BUILD_TESTS)
     prism_add_cpp_test(
         prism_test_native_window prism_test_native_window offscreen
         "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml")
+
+    qt_add_executable(prism_test_qml_runtime_plugin
+        tests/test_qml_runtime_plugin.cpp)
+    target_link_libraries(prism_test_qml_runtime_plugin PRIVATE prism)
+    prism_add_cpp_test(
+        prism_test_qml_runtime_plugin prism_test_qml_runtime_plugin offscreen)
 
     if(PRISM_BUILD_NATIVE_TESTS AND WIN32)
         set(PRISM_NATIVE_FAILURE_CASE_TIMEOUT_SECONDS "15" CACHE STRING
@@ -366,6 +433,7 @@ if(PRISM_BUILD_TESTS)
         prism_test_provider_lifecycle
         PROPERTIES LABELS headless
     )
+    set_tests_properties(prism_test_qml_runtime_plugin PROPERTIES LABELS headless)
 endif()
 
 # ==================== 移动端条件编译分支验证 ====================

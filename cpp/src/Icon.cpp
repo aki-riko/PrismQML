@@ -23,7 +23,7 @@ QString iconRoot() {
         return g_iconRoot;
     const QString imp = resolveImportPath();
     if (imp.startsWith(QStringLiteral("qrc:")))
-        return QStringLiteral("qrc:/PrismQML/controls/icons/fluent");
+        return imp + QStringLiteral("/PrismQML/controls/icons/fluent");
     if (!imp.isEmpty())
         return QDir(imp).filePath(QStringLiteral("PrismQML/controls/icons/fluent"));
     return QString();
