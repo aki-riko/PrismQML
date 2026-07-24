@@ -31,6 +31,7 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property bool _geometryPrewarmScheduled: false
     property bool _geometryPrepared: false
+    property int _animationDuration
 
     readonly property var _safeMenuItems:
         menuItems === null || menuItems === undefined ? []
@@ -148,6 +149,8 @@ Item {
         }
     }
 
+    Component.onCompleted: _animationDuration = Enums.duration.fast
+
     // ==================== Content 内容 ====================
     Timer {
         id: geometryPrewarmTimer
@@ -169,7 +172,7 @@ Item {
         visible: feature === Enums.button.feature_split
         
         Behavior on color {
-            ColorAnimation { duration: Enums.duration.fast }
+            ColorAnimation { duration: dropdownFeature._animationDuration }
         }
     }
     
@@ -198,7 +201,7 @@ Item {
         visible: feature === Enums.button.feature_split
         
         Behavior on color {
-            ColorAnimation { duration: Enums.duration.fast }
+            ColorAnimation { duration: dropdownFeature._animationDuration }
         }
         
         ChevronIcon {
@@ -215,7 +218,7 @@ Item {
             hoverEnabled: true
             enabled: dropdownFeature.controlEnabled && !dropdownFeature.loading
             onContainsMouseChanged: {
-                if (containsMouse) dropdownFeature.prewarmMenu()
+                if (splitDropMouse.containsMouse) dropdownFeature.prewarmMenu()
             }
             onClicked: dropdownFeature.openMenu()
         }

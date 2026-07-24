@@ -23,10 +23,13 @@ from scripts.test_process import prepare_automated_test_process
 prepare_automated_test_process()
 
 import shiboken6
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
+from PySide6.QtQml import QQmlComponent
+from PySide6.QtQuick import QQuickItem
 from prismqml import App, SystemTrayIcon
 from prismqml.python.core.engine import EngineManager
+from prismqml.python.window import app as app_module
 from prismqml.python.window.window_core import WindowCore
 
 app = App([])
@@ -37,6 +40,67 @@ window.show()
 tray = SystemTrayIcon(toolTip="shutdown-probe")
 tray.addAction("Exit", actionId="exit")
 tray._showQmlMenu()
+
+button_component = QQmlComponent(app.engine)
+button_component.setData(
+    b"""import QtQuick
+import QtQuick.Window
+import PrismQML
+Window {
+    width: 360
+    height: 240
+    visible: true
+    Button {
+        id: splitButton
+        objectName: "shutdownSplitButton"
+        x: 20
+        y: 20
+        width: 240
+        height: 40
+        feature: Enums.button.feature_split
+        text: "Split"
+        menuItems: ["Alpha", "Beta"]
+    }
+}
+""",
+    QUrl("file:///shutdown-button.qml"),
+)
+button_window = button_component.create()
+if button_window is None:
+    raise RuntimeError([error.toString() for error in button_component.errors()])
+split_button = button_window.findChild(QQuickItem, "shutdownSplitButton")
+dropdown = next(
+    child
+    for child in split_button.findChildren(QQuickItem)
+    if child.metaObject().indexOfMethod("openMenu()") >= 0
+)
+if not QMetaObject.invokeMethod(dropdown, "openMenu", Qt.ConnectionType.DirectConnection):
+    raise RuntimeError("ButtonDropdown.openMenu invocation failed")
+popup_loop = QEventLoop()
+QTimer.singleShot(100, popup_loop.quit)
+popup_loop.exec()
+
+shutdown_order = []
+original_delete_windows = app_module._delete_remaining_qml_windows
+original_engine_reset = EngineManager.reset
+original_delete_qt_object = app_module._delete_qt_object
+
+def traced_delete_windows():
+    shutdown_order.append("windows")
+    return original_delete_windows()
+
+def traced_engine_reset():
+    shutdown_order.append("bindings")
+    return original_engine_reset()
+
+def traced_delete_qt_object(value):
+    if value is app.engine:
+        shutdown_order.append("engine")
+    return original_delete_qt_object(value)
+
+app_module._delete_remaining_qml_windows = traced_delete_windows
+EngineManager.reset = traced_engine_reset
+app_module._delete_qt_object = traced_delete_qt_object
 
 windows_before = len(QGuiApplication.topLevelWindows())
 QTimer.singleShot(100, lambda: App.exit(7))
@@ -51,6 +115,7 @@ app.shutdown()
 print(f"APP_SHUTDOWN_RESULT={result}", flush=True)
 print(f"APP_SHUTDOWN_WINDOWS={windows_before}->{windows_after}", flush=True)
 print(f"APP_SHUTDOWN_ENGINE_RELEASED={int(engine_released)}", flush=True)
+print(f"APP_SHUTDOWN_ORDER={','.join(shutdown_order)}", flush=True)
 print(
     f"APP_SHUTDOWN_WINDOW_REFERENCES_RELEASED={int(window_references_released)}",
     flush=True,
@@ -62,6 +127,7 @@ if (
     or windows_after != 0
     or not engine_released
     or not window_references_released
+    or shutdown_order[:3] != ["windows", "bindings", "engine"]
 ):
     raise SystemExit(4)
 
@@ -108,9 +174,13 @@ def test_exec_destroys_qml_windows_before_qapplication_teardown() -> None:
     assert window_result is not None, output
     assert int(window_result.group(1)) >= 2
     assert "APP_SHUTDOWN_ENGINE_RELEASED=1" in output
+    assert "APP_SHUTDOWN_ORDER=windows,bindings,engine" in output
     assert "APP_SHUTDOWN_WINDOW_REFERENCES_RELEASED=1" in output
     assert "QObject::disconnect: Unexpected nullptr parameter" not in output
     assert "PopupWindowCore.qml" not in output
+    assert "Cannot read property 'fast' of undefined" not in output
+    assert "containsMouse is not defined" not in output
+    assert "Unable to assign [undefined] to QColor" not in output
     assert "APP_SHUTDOWN_OK" in output
     if sys.platform == "win32":
         assert "visible_windows=0 / job_active_processes=0" in completed.stderr

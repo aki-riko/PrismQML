@@ -13,7 +13,7 @@ try:
 
     __version__ = _get_version("prismqml")  # PyPI 分发名为 prismqml
 except _PackageNotFoundError:
-    __version__ = "0.3.2.1"  # 回退值：开发模式或未安装时
+    __version__ = "0.3.2.2"  # 回退值：开发模式或未安装时
 __author__ = "aki-riko"
 
 __all__ = [

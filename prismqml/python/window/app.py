@@ -171,18 +171,18 @@ def _shutdown_app_runtime(owner) -> None:
     if owner._input_filter_started:
         _run_app_cleanup("input filter", reset_input_focus_filter)
         owner._input_filter_started = False
+    if owner._dwm_filter_started:
+        _run_app_cleanup("DWM filter", reset_dwm_sync_filter)
+        owner._dwm_filter_started = False
+    _run_app_cleanup("QML windows", _delete_remaining_qml_windows)
+    _run_app_cleanup("current window", _clear_current_window_reference)
+    owner._windows.clear()
     if owner._engine_publish_started:
         if EngineManager._engine is owner._engine:
             _run_app_cleanup("engine bindings", EngineManager.reset)
         owner._engine_publish_started = False
-    if owner._dwm_filter_started:
-        _run_app_cleanup("DWM filter", reset_dwm_sync_filter)
-        owner._dwm_filter_started = False
     _run_app_cleanup("QML engine", lambda: _delete_qt_object(owner._engine))
     owner._engine = None
-    _run_app_cleanup("QML windows", _delete_remaining_qml_windows)
-    _run_app_cleanup("current window", _clear_current_window_reference)
-    owner._windows.clear()
 
 
 class App(ApplicationIconMixin):

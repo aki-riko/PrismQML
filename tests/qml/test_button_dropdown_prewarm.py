@@ -108,6 +108,15 @@ def test_split_arrow_hover_drives_tooltip_state(dropdown_scene):
     assert warnings == []
 
 
+def test_dropdown_snapshots_animation_duration(dropdown_scene):
+    """Nested animations must not bind directly to a tearing-down singleton. 子动画不得直绑销毁中的单例。"""
+    root, _window, warnings, _windows_before = dropdown_scene
+    dropdown = _button_dropdown(_button(root, "splitButton"))
+
+    assert dropdown.property("_animationDuration") == root.property("durationFast")
+    assert warnings == []
+
+
 @pytest.mark.parametrize("object_name", ["dropdownButton", "splitButton"])
 def test_dropdown_and_split_focus_prewarm(dropdown_scene, object_name):
     root, _window, warnings, _windows_before = dropdown_scene

@@ -59,8 +59,8 @@ Item {
         popupHeight + Enums.popupMetrics.windowPadding
     )
     readonly property bool _surfaceVisible: _usesControlsPopup
-        ? inlinePopup.visible
-        : popupWindow.visible
+        ? (inlinePopup ? inlinePopup.visible : false)
+        : (popupWindow ? popupWindow.visible : false)
 
     // Popup content 弹出内容
     default property alias popupContent: popupSurface.popupContent
@@ -596,7 +596,7 @@ Item {
 
         parent: control._usesControlsPopup
             ? inlinePopupContent
-            : popupWindow.contentItem
+            : (popupWindow ? popupWindow.contentItem : null)
         outerWidth: control._outerWidth
         outerHeight: control._outerHeight
         popupWidth: control.popupWidth
