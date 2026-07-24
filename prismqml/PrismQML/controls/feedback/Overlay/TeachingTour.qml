@@ -276,6 +276,7 @@ Item {
                     mask: ShaderEffectSource {
                         hideSource: true
                         live: true
+                        smooth: true
                         sourceItem: Item {
                             width: overlayRoot.width
                             height: overlayRoot.height
@@ -286,6 +287,7 @@ Item {
                                 width: control._holeRight - control._holeLeft
                                 height: control._holeBottom - control._holeTop
                                 radius: control._currentHighlightRadius
+                                antialiasing: true
                                 color: Enums.textColor.primary
                                 visible: control._targetAvailable
                             }

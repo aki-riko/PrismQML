@@ -27,8 +27,7 @@ MultiEffect {
     maskEnabled: root.mask !== null
     maskSource: root.mask
     maskInverted: root.invert
-    // Set threshold to 0 for full mask visibility 阈值0全可见
-    maskThresholdMin: 0.0
-    // Inverted masks must preserve zero-alpha pixels before inversion 反向蒙版必须在反转前保留零透明度像素
-    maskSpreadAtMin: root.invert ? 0.0 : 1.0
+    // Map the full mask alpha range so antialiased edges survive inversion 映射完整蒙版透明度范围，使反向遮罩保留抗锯齿边缘
+    maskThresholdMin: 0.5
+    maskSpreadAtMin: 1.0
 }

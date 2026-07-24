@@ -110,7 +110,7 @@ def _assert_remaining_effects_utils(item, background, shadow_alpha):
     assert round(item.property("gaussianBlurValue"), 2) == 0.25
     assert item.property("gaussianSamples") == 17
     assert item.property("opacityMaskEnabled") is True
-    assert item.property("opacityMaskThreshold") == 0
+    assert item.property("opacityMaskThreshold") == 0.5
     assert item.property("opacityMaskSpread") == 1
     assert round(item.property("shadowBlur"), 2) == 0.15
     assert item.property("shadowOffset") == 2

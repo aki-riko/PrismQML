@@ -189,7 +189,8 @@ def test_opacity_mask_exposes_invert_contract(qapp):
     try:
         assert item.property("invert") is True
         assert item.property("maskInverted") is True
-        assert item.property("maskSpreadAtMin") == pytest.approx(0.0)
+        assert item.property("maskThresholdMin") == pytest.approx(0.5)
+        assert item.property("maskSpreadAtMin") == pytest.approx(1.0)
     finally:
         item.deleteLater()
         del component
@@ -312,11 +313,14 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     opacity_mask_source = OPACITY_MASK_SOURCE.read_text(encoding="utf-8")
     assert "property bool invert: false" in opacity_mask_source
     assert "maskInverted: root.invert" in opacity_mask_source
-    assert "maskSpreadAtMin: root.invert ? 0.0 : 1.0" in opacity_mask_source
+    assert "maskThresholdMin: 0.5" in opacity_mask_source
+    assert "maskSpreadAtMin: 1.0" in opacity_mask_source
 
     tour_source = TEACHING_TOUR_SOURCE.read_text(encoding="utf-8")
     assert "mask: ShaderEffectSource" in tour_source
     assert "hideSource: true" in tour_source
+    assert "smooth: true" in tour_source
+    assert "antialiasing: true" in tour_source
     assert "overlayComponent.createObject(resolvedTarget)" in tour_source
     assert "property color highlightBorderColor: Enums.transparent" in tour_source
     assert "border.width: Enums.border.thin" in tour_source
