@@ -3,12 +3,7 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
-"""
-WindowHelper - 窗口辅助工具（QML可调用）
-
-提供 setAppIcon 等需要 Python 原生能力的窗口操作。
-Provides native window operations callable from QML, such as taskbar icon setting.
-"""
+"""WindowHelper native operations exposed to QML. 暴露给 QML 的原生窗口操作。"""
 import ctypes
 import sys
 import time
@@ -26,6 +21,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QGuiApplication, QIcon, QPainter, QPixmap, Qt
 
+from ._folder_drop import FolderDropPathHelper
 from ._icon_path import resolve_icon_path
 from .logger import warning, error, debug, exception
 
@@ -410,7 +406,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         return False, 0
 
 
-class WindowHelper(QObject):
+class WindowHelper(FolderDropPathHelper):
     """
     窗口辅助工具单例
 

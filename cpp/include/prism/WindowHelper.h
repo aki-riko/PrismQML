@@ -10,6 +10,7 @@
 #include <QHash>
 #include <QObject>
 #include <QString>
+#include <QUrl>
 #include <QVariant>
 #include <QVariantMap>
 
@@ -22,6 +23,7 @@ public:
     static WindowHelper *instance();
 public slots:
     void setAppIcon(const QString &icon);
+    QString resolveDroppedFolderPath(const QUrl &folderUrl) const;
     QVariantMap availableScreenGeometryAt(int x, int y) const;
     bool registerWindowFollower(
         const QVariant &hostWindow, const QVariant &followerWindow,

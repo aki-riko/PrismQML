@@ -31,6 +31,7 @@ Widget {
     property int radius: Enums.isNeobrutalism ? Enums.neo.radius
                          : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
     property bool transparentBackground: false
+    property bool folderDropEnabled: false  // Enable one-folder drop 启用单文件夹拖放
 
     // Use unified control colors 使用统一的控件颜色
     // Note: transparentBackground takes highest priority 透明背景优先级最高
@@ -44,6 +45,10 @@ Widget {
 
     property alias border: _bg.border
     property int cursorShape: Qt.IBeamCursor  // Subclass can override 子类可覆盖
+
+    // ==================== Internal Props 内部属性 ====================
+    property Item _folderDropTarget: null
+    property bool _folderDropWritable: true
 
     // ==================== Readonly State 只读状态 ====================
     readonly property color focusedBorderColor: Enums.isDark ? focusedBorderColorDark : focusedBorderColorLight
@@ -66,6 +71,26 @@ Widget {
     // Unified colors for clear/action/spin buttons 清除/操作/加减按钮统一颜色
     readonly property color innerButtonHover: Enums.stateColor.controlBgHover
     readonly property color innerButtonPressed: Enums.stateColor.controlBgPressed
+
+    // ==================== Signals 信号 ====================
+    signal folderDropped(string path)
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _resolveDroppedFolder(dragEvent) {
+        if (!dragEvent || !dragEvent.hasUrls || dragEvent.urls.length !== 1) return ""
+        if (typeof WindowHelper === "undefined"
+                || typeof WindowHelper.resolveDroppedFolderPath !== "function") return ""
+        return WindowHelper.resolveDroppedFolderPath(dragEvent.urls[0])
+    }
+
+    function _acceptsFolderCopy(dragEvent) {
+        return (dragEvent.supportedActions & Qt.CopyAction) !== 0
+    }
+
+    function _applyDroppedFolder(folderPath) {
+        if (_folderDropTarget) _folderDropTarget.text = folderPath
+        folderDropped(folderPath)
+    }
 
     // ==================== Size 尺寸 ====================
     // Content size (inherited from Widget) 内容尺寸（继承自Widget）
@@ -206,5 +231,30 @@ Widget {
         lineColor: control.focusedBorderColor
         parentRadius: control.radius
         visible: !Enums.isNeobrutalism && !Enums.isPrismDesign && control.showFocusedBorder
+    }
+
+    // Folder drop surface 文件夹拖放区域
+    DropArea {
+        anchors.fill: parent
+        enabled: control.folderDropEnabled && control.enabled && control._folderDropWritable
+
+        onEntered: function(drag) {
+            var folderPath = control._resolveDroppedFolder(drag)
+            if (!folderPath || !control._acceptsFolderCopy(drag)) {
+                drag.accepted = false
+                return
+            }
+            drag.accept(Qt.CopyAction)
+        }
+
+        onDropped: function(drop) {
+            var folderPath = control._resolveDroppedFolder(drop)
+            if (!folderPath || !control._acceptsFolderCopy(drop)) {
+                drop.accepted = false
+                return
+            }
+            control._applyDroppedFolder(folderPath)
+            drop.accept(Qt.CopyAction)
+        }
     }
 }

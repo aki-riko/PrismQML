@@ -16,6 +16,8 @@
 #include <QColor>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QImage>
 #include <QIcon>
@@ -120,6 +122,38 @@ static void testAvailableScreenGeometry() {
               && actual.value(QStringLiteral("width")).toInt() == expected.width()
               && actual.value(QStringLiteral("height")).toInt() == expected.height(),
           "WindowHelper returns QScreen availableGeometry");
+}
+
+static void testDroppedFolderPathValidation() {
+    QTemporaryDir directory(
+        QDir::tempPath() + QStringLiteral("/prismqml-folder-drop-XXXXXX"));
+    const QString folderPath = directory.filePath(QStringLiteral("拖 放#百分%"));
+    const QString filePath = directory.filePath(QStringLiteral("not-a-folder.txt"));
+    CHECK(directory.isValid() && QDir().mkpath(folderPath),
+          "real dropped folder fixture created");
+    QFile file(filePath);
+    CHECK(file.open(QIODevice::WriteOnly), "real dropped file fixture created");
+    file.close();
+
+    prism::WindowHelper *helper = prism::WindowHelper::instance();
+    CHECK(helper->resolveDroppedFolderPath(QUrl::fromLocalFile(folderPath))
+              == QDir::cleanPath(QFileInfo(folderPath).absoluteFilePath()),
+          "WindowHelper accepts one real local folder URL");
+    CHECK(helper->resolveDroppedFolderPath(QUrl::fromLocalFile(filePath)).isEmpty(),
+          "WindowHelper rejects a regular file URL");
+    CHECK(helper->resolveDroppedFolderPath(
+              QUrl::fromLocalFile(directory.filePath(QStringLiteral("missing"))))
+              .isEmpty(),
+          "WindowHelper rejects a missing folder URL");
+    CHECK(helper->resolveDroppedFolderPath(
+              QUrl(QStringLiteral("https://example.com/folder"))).isEmpty(),
+          "WindowHelper rejects a remote URL");
+    CHECK(helper->resolveDroppedFolderPath(
+              QUrl(QStringLiteral("file://server/share"))).isEmpty(),
+          "WindowHelper rejects a network file URL before lookup");
+    CHECK(helper->resolveDroppedFolderPath(
+              QUrl(QStringLiteral("file:////?/C:/Windows"))).isEmpty(),
+          "WindowHelper rejects a device-style file URL before lookup");
 }
 
 static void testWindowFollowerGeometry() {
@@ -256,6 +290,7 @@ int main(int argc, char *argv[]) {
     testRealEncodedIcon();
     testApplicationIconFacade(app);
     testAvailableScreenGeometry();
+    testDroppedFolderPathValidation();
     testWindowFollowerGeometry();
     testTrayCheckableActionContract();
     testPrismTrayMenuContract(app);

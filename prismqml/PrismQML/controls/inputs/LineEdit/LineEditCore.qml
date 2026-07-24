@@ -105,6 +105,8 @@ InputCore {
     focusTarget: textInput
     focused: loader.item ? loader.item.focused : false
     hovered: loader.item ? loader.item.hovered : false
+    _folderDropTarget: control
+    _folderDropWritable: !readOnly && inputType === Enums.input.type_normal
 
     // Override InputCore content size 覆盖InputCore内容尺寸
     // Content calculated size based on inputType 根据inputType计算内容尺寸

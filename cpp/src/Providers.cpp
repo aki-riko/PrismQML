@@ -13,6 +13,7 @@
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QClipboard>
+#include <QDir>
 #include <QIcon>
 #include <QImage>
 #include <QMutexLocker>
@@ -21,6 +22,7 @@
 #include <QPoint>
 #include <QSvgRenderer>
 #include <QScreen>
+#include <QUrl>
 #include <QWindow>
 #include <QFileInfo>
 #include <QDebug>
@@ -56,6 +58,23 @@ WindowHelper *WindowHelper::instance() {
 // 解析路径为本地文件路径 (镜像 _resolveIconPath)
 QString WindowHelper::resolveIconPath(const QString &icon) {
     return detail::resolveIconPath(icon);
+}
+
+QString WindowHelper::resolveDroppedFolderPath(const QUrl &folderUrl) const {
+    if (!folderUrl.isValid() || !folderUrl.isLocalFile()
+        || !folderUrl.host().isEmpty()) {
+        return {};
+    }
+    const QString localPath = folderUrl.toLocalFile();
+    const QString normalizedPath = QDir::fromNativeSeparators(localPath);
+    if (localPath.isEmpty() || localPath.contains(QChar::Null)
+        || normalizedPath.startsWith(QLatin1String("//"))) {
+        return {};
+    }
+    const QFileInfo fileInfo(localPath);
+    if (!fileInfo.isAbsolute() || !fileInfo.exists() || !fileInfo.isDir())
+        return {};
+    return QDir::cleanPath(fileInfo.absoluteFilePath());
 }
 
 void WindowHelper::setAppIcon(const QString &icon) {
