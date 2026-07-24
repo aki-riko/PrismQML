@@ -254,6 +254,7 @@ def test_tour_spotlight_tracks_target_and_keeps_hole_clickable(tour_scene):
     assert overlay is not None and scrim_area is not None
     assert overlay.parentItem() is window.contentItem()
     assert tour.parentItem() is source_host
+    assert tour.property("highlightBorderColor").alpha() == 0
     assert tour.property("currentIndex") == 0
     assert window.property("stepChangeCount") == 1
 
@@ -317,6 +318,9 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     assert "mask: ShaderEffectSource" in tour_source
     assert "hideSource: true" in tour_source
     assert "overlayComponent.createObject(resolvedTarget)" in tour_source
+    assert "property color highlightBorderColor: Enums.transparent" in tour_source
+    assert "border.width: Enums.border.thin" in tour_source
+    assert "property color highlightBorderColor: Enums.accentColor" not in tour_source
 
     gallery_source = GALLERY_EXAMPLE_SOURCE.read_text(encoding="utf-8")
     assert 'objectName: "galleryTeachingTourStartButton"' in gallery_source

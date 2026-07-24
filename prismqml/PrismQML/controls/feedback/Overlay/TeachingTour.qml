@@ -17,7 +17,7 @@ Item {
     property var steps: []
     property Item overlayTarget: null
     property color maskColor: Enums.stateColor.maskHeavy
-    property color highlightBorderColor: Enums.accentColor
+    property color highlightBorderColor: Enums.transparent  // Optional spotlight outline; the tip tail identifies the target by default 可选聚光描边；默认由提示箭头指向目标
     property real highlightPadding: Enums.spacing.m
     property real highlightRadius: Enums.radius.large
     property bool blockOutsideInput: true
@@ -316,7 +316,7 @@ Item {
                 height: control._holeBottom - control._holeTop
                 radius: control._currentHighlightRadius
                 color: Enums.transparent
-                border.width: Enums.border.normal
+                border.width: Enums.border.thin
                 border.color: control.highlightBorderColor
                 visible: control._targetAvailable
             }
