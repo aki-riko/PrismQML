@@ -3,108 +3,187 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import QtQuick.Effects
-
-// 导入组件
-import PrismQML
 import PrismQML as Fluent
 
-// 卡片与容器页面
+// CardPage - Card and container gallery 卡片与容器展示页
 Item {
     id: root
-    
+
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
     }
-    
-    ScrollArea {
+
+    Fluent.ScrollArea {
         anchors.fill: parent
-        
+
         Column {
             width: parent ? parent.width : 0
             spacing: Fluent.Enums.spacing.xxl
-            
-            // 页面标题
+
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "卡片与容器"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "prismqml.controls.containers"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+
+                Fluent.Label {
+                    type: Fluent.Enums.label.type_title
+                    text: "卡片与容器"
+                }
+
+                Fluent.Label {
+                    type: Fluent.Enums.label.type_caption
+                    text: "prismqml.controls.containers"
+                    color: Fluent.Enums.textColor.secondary
+                }
             }
-            
-            // 基础卡片
-            ExampleCard {
+
+            // Basic cards 基础卡片
+            Fluent.ExampleCard {
                 title: "基础卡片"
-                description: "Card"
+                description: "Card · contentPadding / autoHeight"
+
                 Column {
                     spacing: Fluent.Enums.spacing.l
-                    ComponentCard {
+
+                    Fluent.ComponentCard {
                         label: "type_default"
-                        Card {
+
+                        Fluent.Card {
+                            objectName: "galleryDefaultCard"
                             cardType: Fluent.Enums.card.type_default
-                            width: 280; height: 60
+                            autoHeight: true
+                            width: Fluent.Enums.controlSize.cardContentWidth
+
                             Column {
-                                anchors.fill: parent; anchors.margins: Fluent.Enums.spacing.l; spacing: Fluent.Enums.spacing.xs
-                                Text { text: "简单卡片"; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                                Text { text: "无悬停效果"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                                objectName: "galleryDefaultContent"
+                                width: parent.width
+                                spacing: Fluent.Enums.spacing.xs
+
+                                Fluent.Label {
+                                    type: Fluent.Enums.label.type_body_strong
+                                    text: "简单卡片"
+                                }
+
+                                Fluent.Label {
+                                    type: Fluent.Enums.label.type_caption
+                                    text: "无悬停效果"
+                                    color: Fluent.Enums.textColor.secondary
+                                }
                             }
                         }
                     }
-                    ComponentCard {
+
+                    Fluent.ComponentCard {
                         label: "type_hover"
-                        Card {
+
+                        Fluent.Card {
+                            objectName: "galleryHoverCard"
                             cardType: Fluent.Enums.card.type_hover
-                            width: 280; height: 60
+                            autoHeight: true
+                            width: Fluent.Enums.controlSize.cardContentWidth
+
                             Column {
-                                anchors.fill: parent; anchors.margins: Fluent.Enums.spacing.l; spacing: Fluent.Enums.spacing.xs
-                                Text { text: "普通卡片"; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                                Text { text: "悬停变色，不上浮"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                                objectName: "galleryHoverContent"
+                                width: parent.width
+                                spacing: Fluent.Enums.spacing.xs
+
+                                Fluent.Label {
+                                    type: Fluent.Enums.label.type_body_strong
+                                    text: "普通卡片"
+                                }
+
+                                Fluent.Label {
+                                    type: Fluent.Enums.label.type_caption
+                                    text: "悬停变色，不上浮"
+                                    color: Fluent.Enums.textColor.secondary
+                                }
                             }
                         }
                     }
-                    ComponentCard {
+
+                    Fluent.ComponentCard {
                         label: "type_elevated"
-                        Card {
+
+                        Fluent.Card {
+                            objectName: "galleryElevatedCard"
                             cardType: Fluent.Enums.card.type_elevated
-                            borderRadius: Fluent.Enums.radius.large
-                            width: 280; height: 60
+                            autoHeight: true
+                            width: Fluent.Enums.controlSize.cardContentWidth
+
                             Column {
-                                anchors.fill: parent; anchors.margins: Fluent.Enums.spacing.l; spacing: Fluent.Enums.spacing.xs
-                                Text { text: "悬浮卡片"; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                                Text { text: "悬停上浮+阴影增强"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                                objectName: "galleryElevatedContent"
+                                width: parent.width
+                                spacing: Fluent.Enums.spacing.xs
+
+                                Fluent.Label {
+                                    type: Fluent.Enums.label.type_body_strong
+                                    text: "悬浮卡片"
+                                }
+
+                                Fluent.Label {
+                                    type: Fluent.Enums.label.type_caption
+                                    text: "悬停上浮并增强阴影"
+                                    color: Fluent.Enums.textColor.secondary
+                                }
                             }
                         }
                     }
-                    ComponentCard {
+
+                    Fluent.ComponentCard {
                         label: "type_header"
-                        Card {
+
+                        Fluent.Card {
+                            objectName: "galleryHeaderCard"
                             cardType: Fluent.Enums.card.type_header
-                            borderRadius: Fluent.Enums.radius.large
-                            title: "HeaderCard"
-                            width: 300
-                            Text { text: "带标题头的卡片"; color: Fluent.Enums.textColor.strong; font.family: Fluent.Enums.fontFamily }
+                            title: "标题卡片"
+                            width: Fluent.Enums.controlSize.cardContentWidth
+
+                            Fluent.Label {
+                                objectName: "galleryHeaderContent"
+                                type: Fluent.Enums.label.type_body
+                                width: parent.width
+                                text: "带独立标题区域的卡片"
+                            }
                         }
                     }
                 }
             }
-            
-            // 特殊卡片
-            ExampleCard {
+
+            // Specialized cards 特殊卡片
+            Fluent.ExampleCard {
                 title: "特殊卡片"
                 description: "SettingsCard / Expander"
+
                 Column {
                     spacing: Fluent.Enums.spacing.l
-                    ComponentCard {
+
+                    Fluent.ComponentCard {
                         label: "SettingsCard"
-                        SettingsCard { width: 300; title: "SettingsCard"; content: "设置项卡片"; icon: iconPath("Settings") }
+
+                        Fluent.SettingsCard {
+                            width: Fluent.Enums.controlSize.cardContentWidth
+                            title: "SettingsCard"
+                            content: "设置项卡片"
+                            icon: root.iconPath("Settings")
+                        }
                     }
-                    ComponentCard {
+
+                    Fluent.ComponentCard {
                         label: "Expander"
-                        Expander { width: 300; title: "Expander"; content: "点击展开"; Text { text: "展开内容"; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily } }
+
+                        Fluent.Expander {
+                            width: Fluent.Enums.controlSize.cardContentWidth
+                            title: "Expander"
+                            content: "点击展开"
+
+                            Fluent.Label {
+                                type: Fluent.Enums.label.type_body
+                                text: "展开内容"
+                            }
+                        }
                     }
                 }
             }
-            
         }
     }
 }
