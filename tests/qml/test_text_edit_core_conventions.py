@@ -257,8 +257,14 @@ def _assert_plain_methods_and_signals(window, plain, background) -> None:
     plain.selectionChanged.connect(lambda: selections.append(editor.property("selectedText")))
     plain.cursorPositionChanged.connect(lambda: cursors.append(editor.property("cursorPosition")))
     assert (plain.getText(), plain.toPlainText()) == ("alpha", "alpha")
+    assert plain.property("textContentHeight") == pytest.approx(
+        editor.property("contentHeight")
+    )
     plain.append(" beta")
     assert plain.getText() == "alpha beta"
+    assert plain.property("textContentHeight") == pytest.approx(
+        editor.property("contentHeight")
+    )
     assert edited == []
     plain.selectAll()
     assert editor.property("selectedText") == "alpha beta"
