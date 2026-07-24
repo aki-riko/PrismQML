@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """SearchPopup parent-chain regressions. SearchPopup 公开父链回归。"""
 
+import re
 from pathlib import Path, PurePosixPath
 
 import pytest
@@ -233,7 +234,7 @@ def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
         assert search.property("query") == ""
         assert not search.property("isOpen")
         assert popup.property("_resolvedWidth") == 320
-        assert _wait_for(lambda: popup.property("_resolvedHeight") == 156)
+        assert _wait_for(lambda: popup.property("_resolvedHeight") == 164)
 
         search.setWidth(180)
         assert _wait_for(lambda: popup.property("_resolvedWidth") == 240)
@@ -254,7 +255,7 @@ def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
         assert _wait_for(lambda: len(_visible_popup_windows(windows_before, window)) == 1)
         popup_window = _visible_popup_windows(windows_before, window)[0]
         assert popup_core.property("popupWidth") == 320
-        assert _wait_for(lambda: popup_core.property("popupHeight") == 56)
+        assert _wait_for(lambda: popup_core.property("popupHeight") == 64)
         assert opened == [True]
 
         _type_text(text_input, " ")
@@ -266,8 +267,8 @@ def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
         assert QMetaObject.invokeMethod(text_input, "selectAll")
         _type_text(text_input, "missing")
         assert _wait_for(lambda: search.property("query") == "missing")
-        assert _wait_for(lambda: popup.property("_resolvedHeight") == 60)
-        assert _wait_for(lambda: popup_core.property("popupHeight") == 60)
+        assert _wait_for(lambda: popup.property("_resolvedHeight") == 68)
+        assert _wait_for(lambda: popup_core.property("popupHeight") == 68)
 
         assert QMetaObject.invokeMethod(search, "dismiss")
         assert _wait_for(lambda: not search.property("isOpen"))
@@ -294,7 +295,11 @@ def test_search_result_item_preserves_selection_hover_and_click(qapp):
 
         text_input.forceActiveFocus()
         assert _wait_for(text_input.hasActiveFocus)
-        _type_text(text_input, "build")
+        assert search.setProperty(
+            "entries",
+            [{"title": r"D:\MinecraftProject\mojin", "subtitle": ""}],
+        )
+        _type_text(text_input, "mojin")
         assert _wait_for(lambda: search.property("isOpen"))
         assert _wait_for(lambda: len(_visible_popup_windows(windows_before, window)) == 1)
         popup_window = _visible_popup_windows(windows_before, window)[0]
@@ -309,9 +314,22 @@ def test_search_result_item_preserves_selection_hover_and_click(qapp):
         assert len(result_items) == 1
         result_item = result_items[0]
         assert result_item.property("itemIndex") == 0
-        assert result_item.property("entryData")["title"] == "Build"
-        assert "Build" in result_item.property("highlightedTitle")
+        assert result_item.property("entryData")["title"] == r"D:\MinecraftProject\mojin"
+        highlighted_title = result_item.property("highlightedTitle")
+        assert "<b style=" in highlighted_title
+        assert re.sub(r"<[^>]+>", "", highlighted_title) == (
+            r"D:\MinecraftProject\mojin"
+        )
         assert result_item.height() == pytest.approx(48)
+        result_list = _result_list(popup_window)
+        item_origin = result_item.mapToItem(result_list, QPointF(0, 0))
+        top_padding = item_origin.y()
+        bottom_padding = result_list.height() - item_origin.y() - result_item.height()
+        assert result_list.height() == pytest.approx(
+            result_list.property("implicitHeight")
+        )
+        assert bottom_padding == pytest.approx(top_padding)
+        assert bottom_padding > 0
         assert result_item.property("selected")
         assert not result_item.property("hovered")
         assert not result_item.property("pressed")
@@ -335,7 +353,7 @@ def test_search_result_item_preserves_selection_hover_and_click(qapp):
             point,
         )
         assert _wait_for(lambda: len(selected_entries) == 1)
-        assert _entry_mapping(selected_entries[0])["title"] == "Build"
+        assert _entry_mapping(selected_entries[0])["title"] == r"D:\MinecraftProject\mojin"
         assert _wait_for(lambda: search.property("query") == "")
         assert _wait_for(lambda: not search.property("isOpen"))
         assert _wait_for(lambda: not popup_window.isVisible())

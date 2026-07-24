@@ -38,12 +38,15 @@ Item {
         }
         return Enums.searchMetrics.popupCenteredWidth
     }
-    readonly property int _resolvedHeight: {
+    readonly property int _resolvedContentHeight: {
         if (rootContent && rootContent.implicitHeight > 0) {
             return rootContent.implicitHeight
         }
         return Enums.searchMetrics.popupFallbackHeight
     }
+    // Include PopupSurface margins to keep symmetric list padding 计入弹层边距以保留列表对称留白
+    readonly property int _resolvedHeight:
+        _resolvedContentHeight + 2 * Enums.spacing.xs
 
     // ==================== Signals 信号 ====================
     signal opened()
