@@ -234,6 +234,20 @@ def test_internal_follower_placement_does_not_promote_host():
     assert promotions == []
 
 
+def test_mouse_activation_promotes_host_and_follower_as_one_group():
+    promotions = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+    )
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+
+    event_filter.promote_follower_group(21)
+
+    assert promotions == [(11, 0), (21, 11)]
+
+
 class _FakeWindow:
     def __init__(self, hwnd: int) -> None:
         self._hwnd = hwnd

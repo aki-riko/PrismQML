@@ -42,6 +42,7 @@ private:
     static QString resolveIconPath(const QString &icon);
     static qulonglong winIdFromVariant(const QVariant &window);
     bool ensureFollowerFilterInstalled();
+    void promoteFollowerGroup(qulonglong followerHwnd);
 
     struct WindowFollowerBinding {
         qulonglong hostHwnd;

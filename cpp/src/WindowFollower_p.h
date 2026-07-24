@@ -21,6 +21,11 @@ struct WindowFollowerRect {
     int bottom;
 };
 
+struct WindowFollowerPromotionResult {
+    bool hostPromoted;
+    bool followerPlaced;
+};
+
 inline bool isWindowFollowerEdge(int edge) {
     return edge >= WindowFollowerLeft && edge <= WindowFollowerBottom;
 }
@@ -56,6 +61,16 @@ inline bool sameWindowFollowerRect(
     const WindowFollowerRect &left, const WindowFollowerRect &right) {
     return left.left == right.left && left.top == right.top
         && left.right == right.right && left.bottom == right.bottom;
+}
+
+template <typename Handle, typename SetZOrder>
+inline WindowFollowerPromotionResult promoteWindowFollowerGroup(
+    Handle host, Handle follower, SetZOrder setZOrder) {
+    if (!host || !follower)
+        return {false, false};
+    const bool hostPromoted = setZOrder(host, Handle{});
+    const bool followerPlaced = setZOrder(follower, host);
+    return {hostPromoted, followerPlaced};
 }
 
 }  // namespace prism::detail

@@ -40,6 +40,7 @@ _WINDOW_EDGES = frozenset(
 
 _WM_SIZING = 0x0214
 _WM_MOVING = 0x0216
+_WM_MOUSEACTIVATE = 0x0021
 _WM_WINDOWPOSCHANGING = 0x0046
 _SWP_NOSIZE, _SWP_NOMOVE = 0x0001, 0x0002
 _SWP_NOZORDER = 0x0004
@@ -379,11 +380,24 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         window_pos.flags &= ~_SWP_NOZORDER
         window_pos.flags |= _SWP_NOOWNERZORDER
 
+    def promote_follower_group(self, follower_hwnd: int) -> None:
+        """Promote a clicked follower with its host. 点击附属窗口时整体提升窗口对。"""
+        binding = self._bindings.get(follower_hwnd)
+        if binding is None or self._promote_window is None:
+            return
+        if not self._promote_window(binding.host_hwnd, 0):
+            debug(f"宿主窗口原生抬升失败: hwnd={binding.host_hwnd}")
+        if not self._promote_window(binding.follower_hwnd, binding.host_hwnd):
+            debug(f"附属窗口原生抬升失败: hwnd={binding.follower_hwnd}")
+
     def nativeEventFilter(self, eventType: QByteArray, message: int) -> tuple:
         """Consume proposed move/size RECTs without blocking Qt. 消费候选 RECT 但不拦截 Qt。"""
         del eventType
         try:
             msg = self._get_msg_class().from_address(int(message))
+            if msg.message == _WM_MOUSEACTIVATE:
+                self.promote_follower_group(int(msg.hwnd))
+                return False, 0
             if msg.message == _WM_WINDOWPOSCHANGING and msg.lParam:
                 window_pos = self._get_window_pos_class().from_address(
                     int(msg.lParam)

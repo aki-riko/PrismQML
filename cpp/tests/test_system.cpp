@@ -200,6 +200,18 @@ static void testWindowFollowerGeometry() {
               && extentBottom.right == 700 && extentBottom.bottom == 580,
           "WindowHelper 底部动画帧原子更新完整 RECT");
 
+    QList<QPair<qulonglong, qulonglong>> promotions;
+    const WindowFollowerPromotionResult promotion = promoteWindowFollowerGroup(
+        qulonglong{11}, qulonglong{21},
+        [&promotions](qulonglong window, qulonglong insertAfter) {
+            promotions.append({window, insertAfter});
+            return true;
+        });
+    const QList<QPair<qulonglong, qulonglong>> expectedPromotions{
+        {11, 0}, {21, 11}};
+    CHECK(promotion.hostPromoted && promotion.followerPlaced
+              && promotions == expectedPromotions,
+          "WindowHelper 鼠标激活先提升宿主再排列附属窗口");
 }
 
 static void testTrayCheckableActionContract() {
