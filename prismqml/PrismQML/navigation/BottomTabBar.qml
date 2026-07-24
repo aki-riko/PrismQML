@@ -64,6 +64,7 @@ Rectangle {
                     text: modelData ? (modelData.text || "") : ""
                     icon: modelData ? (modelData.icon || "") : ""
                     selectedIcon: modelData ? (modelData.selectedIcon || "") : ""
+                    badgeCount: modelData ? (modelData.badgeCount || 0) : 0
                     selected: index === control.currentIndex
                     onClicked: control.itemClicked(index)
                 }

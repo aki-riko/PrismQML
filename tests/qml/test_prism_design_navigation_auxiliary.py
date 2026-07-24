@@ -34,6 +34,16 @@ def _rgb(qcolor):
     )
 
 
+def _visual_child_with_object_name(root, object_name: str):
+    pending = list(root.childItems())
+    while pending:
+        candidate = pending.pop()
+        if candidate.objectName() == object_name:
+            return candidate
+        pending.extend(candidate.childItems())
+    return None
+
+
 def _bottom_tab_qml() -> bytes:
     navigation_url = NAVIGATION_DIR.as_posix()
     return f"""
@@ -44,7 +54,7 @@ Nav.BottomTabBar {{
     width: 360
     model: [
         {{ "text": "Files", "icon": "Home" }},
-        {{ "text": "Settings", "icon": "Settings" }}
+        {{ "text": "Settings", "icon": "Settings", "badgeCount": 12 }}
     ]
     currentIndex: 1
 }}
@@ -95,6 +105,14 @@ PipsPager {
         assert _rgb(bottom_tab.property("_bottomTabBackground")) == (238, 245, 247)
         assert _rgb(bottom_tab.property("_bottomTabDividerColor")) == (214, 227, 230)
         assert bottom_tab.property("_bottomTabDividerHeight") == 1
+        files_badge = _visual_child_with_object_name(bottom_tab, "navigationBadge_Files")
+        settings_badge = _visual_child_with_object_name(bottom_tab, "navigationBadge_Settings")
+        assert files_badge is not None
+        assert settings_badge is not None
+        assert files_badge.property("count") == 0
+        assert not files_badge.property("visible")
+        assert settings_badge.property("count") == 12
+        assert settings_badge.property("visible")
 
         setTheme(Theme.DARK)
 

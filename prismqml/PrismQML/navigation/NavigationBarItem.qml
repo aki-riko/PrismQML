@@ -20,6 +20,7 @@ Item {
     property string selectedIcon: ""
     property bool selected: false
     property bool selectable: true
+    property int badgeCount: 0
     
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
@@ -199,6 +200,18 @@ Item {
             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
             Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
         }
+    }
+
+    DataControls.Badge {
+        id: badge
+
+        objectName: "navigationBadge_" + control.text
+        anchors.left: iconContainer.horizontalCenter
+        anchors.leftMargin: Enums.spacing.xxs
+        anchors.top: iconContainer.top
+        anchors.topMargin: -Enums.spacing.xs
+        count: Math.max(0, control.badgeCount)
+        level: Enums.statusLevel.error
     }
     
     // Text 文字
