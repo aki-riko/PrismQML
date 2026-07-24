@@ -26,6 +26,7 @@ Item {
     
     // ==================== Signals 信号 ====================
     signal clicked()
+    signal pressed()
     
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : Enums.comboBoxMetrics.defaultWidth
@@ -104,6 +105,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         enabled: !delegateRoot.isSeparator && delegateRoot.itemEnabled
+        onPressed: delegateRoot.pressed()
         onClicked: delegateRoot.clicked()
     }
 }

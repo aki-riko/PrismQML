@@ -394,6 +394,16 @@ Item {
         hideAnim.start()
         closed()
     }
+
+    // Finish geometry-changing entrance motion before a child handles a press.
+    // 子项处理按下事件前结束会改变命中区域的入场动画。
+    function stabilizeInteraction() {
+        if (!showAnim.running) return
+        showAnim.stop()
+        popupSurface.opacity = 1
+        _scale = 1
+        _clipHeight = popupHeight
+    }
     
     // Force reset all state - for system tray menu reopen 强制重置所有状态（系统托盘菜单重新打开使用）
     function forceReset() {
