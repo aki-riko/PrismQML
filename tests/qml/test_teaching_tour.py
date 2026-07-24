@@ -83,57 +83,65 @@ Window {
         onClicked: root.backgroundClickCount++
     }
 
-    Rectangle {
-        id: firstTarget
+    Item {
+        id: sourceHost
 
-        objectName: "firstTarget"
-        x: 100
-        y: 120
-        width: 80
-        height: 40
-        color: "steelblue"
+        objectName: "sourceHost"
+        width: 320
+        height: 240
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.targetClickCount++
-        }
-    }
+        Rectangle {
+            id: firstTarget
 
-    Rectangle {
-        id: secondTarget
+            objectName: "firstTarget"
+            x: 100
+            y: 120
+            width: 80
+            height: 40
+            color: "steelblue"
 
-        objectName: "secondTarget"
-        x: 360
-        y: 260
-        width: 96
-        height: 48
-        color: "seagreen"
-    }
-
-    TeachingTour {
-        id: tour
-
-        objectName: "tour"
-        nextButtonText: "Continue"
-        finishButtonText: "Done"
-        skipButtonText: "Skip"
-        steps: [
-            {
-                "target": firstTarget,
-                "title": "First",
-                "content": "First target",
-                "anchorPosition": Enums.teachingTip.anchor_top
-            },
-            {
-                "target": secondTarget,
-                "title": "Second",
-                "content": "Second target",
-                "anchorPosition": Enums.teachingTip.anchor_left
+            MouseArea {
+                anchors.fill: parent
+                onClicked: root.targetClickCount++
             }
-        ]
-        onCompleted: root.completedCount++
-        onSkipped: root.skippedCount++
-        onStepChanged: root.stepChangeCount++
+        }
+
+        Rectangle {
+            id: secondTarget
+
+            objectName: "secondTarget"
+            x: 360
+            y: 260
+            width: 96
+            height: 48
+            color: "seagreen"
+        }
+
+        TeachingTour {
+            id: tour
+
+            objectName: "tour"
+            nextButtonText: "Continue"
+            finishButtonText: "Done"
+            skipButtonText: "Skip"
+            steps: [
+                {
+                    "target": firstTarget,
+                    "title": "First",
+                    "content": "First target",
+                    "anchorPosition": Enums.teachingTip.anchor_top
+                },
+                {
+                    "target": secondTarget,
+                    "title": "Second",
+                    "content": "Second target",
+                    "anchorPosition": Enums.teachingTip.anchor_left
+                }
+            ]
+            onCompleted: root.completedCount++
+            onSkipped: root.skippedCount++
+            onStepChanged: root.stepChangeCount++
+        }
     }
 }
 """
@@ -235,11 +243,17 @@ def tour_scene(qapp):
 def test_tour_spotlight_tracks_target_and_keeps_hole_clickable(tour_scene):
     window, tour = tour_scene
     first_target = window.findChild(QQuickItem, "firstTarget")
-    scrim_area = tour.findChild(QQuickItem, "teachingTourScrimArea")
-    assert first_target is not None and scrim_area is not None
+    source_host = window.findChild(QQuickItem, "sourceHost")
+    assert first_target is not None and source_host is not None
+    assert tour.parentItem() is source_host
 
     assert QMetaObject.invokeMethod(window, "startTour")
     assert _wait_for(lambda: tour.property("active"))
+    overlay = window.findChild(QQuickItem, "teachingTourOverlay")
+    scrim_area = window.findChild(QQuickItem, "teachingTourScrimArea")
+    assert overlay is not None and scrim_area is not None
+    assert overlay.parentItem() is window.contentItem()
+    assert tour.parentItem() is source_host
     assert tour.property("currentIndex") == 0
     assert window.property("stepChangeCount") == 1
 
@@ -302,6 +316,11 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     tour_source = TEACHING_TOUR_SOURCE.read_text(encoding="utf-8")
     assert "mask: ShaderEffectSource" in tour_source
     assert "hideSource: true" in tour_source
+    assert "overlayComponent.createObject(resolvedTarget)" in tour_source
+
+    gallery_source = GALLERY_EXAMPLE_SOURCE.read_text(encoding="utf-8")
+    assert 'objectName: "galleryTeachingTourStartButton"' in gallery_source
+    assert 'objectName: "galleryTeachingTour"' in gallery_source
 
     for source_path in (OPACITY_MASK_SOURCE, TEACHING_TOUR_SOURCE, TIP_POPUP_SOURCE):
         source = source_path.read_text(encoding="utf-8")

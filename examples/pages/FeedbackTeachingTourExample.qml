@@ -18,6 +18,7 @@ ExampleCard {
         spacing: Fluent.Enums.spacing.l
 
         Button {
+            objectName: "galleryTeachingTourStartButton"
             text: "开始新手指引"
             style: Fluent.Enums.button.style_primary
             onClicked: teachingTour.start()
@@ -39,6 +40,7 @@ ExampleCard {
     TeachingTour {
         id: teachingTour
 
+        objectName: "galleryTeachingTour"
         steps: [
             {
                 "target": firstTarget,

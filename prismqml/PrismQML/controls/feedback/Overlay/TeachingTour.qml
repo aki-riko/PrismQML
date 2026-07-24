@@ -36,7 +36,7 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property int _currentIndex: -1
     property bool _active: false
-    property Item _originalParent: null
+    property Item _overlayItem: null
     property real _targetX: 0
     property real _targetY: 0
     property real _targetWidth: 0
@@ -57,10 +57,16 @@ Item {
         "highlightPadding", highlightPadding)
     readonly property real _currentHighlightRadius: _stepValue(
         "highlightRadius", highlightRadius)
-    readonly property real _holeLeft: Math.max(Enums.spacing.none, Math.min(width, _targetX))
-    readonly property real _holeTop: Math.max(Enums.spacing.none, Math.min(height, _targetY))
-    readonly property real _holeRight: Math.max(_holeLeft, Math.min(width, _targetX + _targetWidth))
-    readonly property real _holeBottom: Math.max(_holeTop, Math.min(height, _targetY + _targetHeight))
+    readonly property real _overlayWidth: _overlayItem ? _overlayItem.width : Enums.spacing.none
+    readonly property real _overlayHeight: _overlayItem ? _overlayItem.height : Enums.spacing.none
+    readonly property real _holeLeft: Math.max(
+        Enums.spacing.none, Math.min(_overlayWidth, _targetX))
+    readonly property real _holeTop: Math.max(
+        Enums.spacing.none, Math.min(_overlayHeight, _targetY))
+    readonly property real _holeRight: Math.max(
+        _holeLeft, Math.min(_overlayWidth, _targetX + _targetWidth))
+    readonly property real _holeBottom: Math.max(
+        _holeTop, Math.min(_overlayHeight, _targetY + _targetHeight))
 
     // ==================== Signals 信号 ====================
     signal started()
@@ -85,14 +91,25 @@ Item {
             return false
         }
 
-        restoreTimer.stop()
-        if (!_originalParent) _originalParent = control.parent
         var resolvedTarget = _resolveOverlayTarget()
         if (!resolvedTarget) {
             _fail(requestedIndex, "TeachingTour cannot resolve an overlay target")
             return false
         }
-        if (control.parent !== resolvedTarget) control.parent = resolvedTarget
+
+        stateResetTimer.stop()
+        if (_active) {
+            _deactivate()
+            stateResetTimer.stop()
+        }
+        // Create the visual tree at its final host. Reparenting an existing
+        // layer.effect subtree leaves a stale OpenGL texture. 在最终宿主直接
+        // 创建视觉树，避免重挂已有layer.effect子树后残留旧OpenGL纹理。
+        _overlayItem = overlayComponent.createObject(resolvedTarget)
+        if (!_overlayItem) {
+            _fail(requestedIndex, "TeachingTour cannot create the overlay surface")
+            return false
+        }
 
         _currentIndex = requestedIndex
         _active = true
@@ -164,7 +181,8 @@ Item {
         }
 
         var globalPosition = _currentTarget.mapToGlobal(Enums.spacing.none, Enums.spacing.none)
-        var localPosition = control.mapFromGlobal(globalPosition.x, globalPosition.y)
+        if (!_overlayItem) return false
+        var localPosition = _overlayItem.mapFromGlobal(globalPosition.x, globalPosition.y)
         _targetX = localPosition.x - _currentHighlightPadding
         _targetY = localPosition.y - _currentHighlightPadding
         _targetWidth = _currentTarget.width + _currentHighlightPadding * 2
@@ -214,7 +232,11 @@ Item {
         _active = false
         _targetAvailable = false
         stepTip.close()
-        restoreTimer.restart()
+        if (_overlayItem) {
+            _overlayItem.destroy()
+            _overlayItem = null
+        }
+        stateResetTimer.restart()
     }
 
     function _fail(index, reason) {
@@ -223,75 +245,82 @@ Item {
         failed(index, reason)
     }
 
-    function _restoreParent() {
-        if (_active) return
-        if (_originalParent && control.parent !== _originalParent) control.parent = _originalParent
-        _currentIndex = -1
-    }
-
-    anchors.fill: parent
-    z: Enums.zIndex.overlay
-    visible: _active
-
-    onWidthChanged: if (_active) Qt.callLater(control._refreshSpotlight)
-    onHeightChanged: if (_active) Qt.callLater(control._refreshSpotlight)
+    width: Enums.spacing.none
+    height: Enums.spacing.none
+    visible: false
 
     // ==================== Content 内容 ====================
-    Rectangle {
-        id: maskSurface
+    Component {
+        id: overlayComponent
 
-        objectName: "teachingTourMaskSurface"
-        anchors.fill: parent
-        color: control.maskColor
-        layer.enabled: true
-        layer.effect: OpacityMask {
-            invert: true
-            mask: ShaderEffectSource {
-                hideSource: true
-                live: true
-                sourceItem: Item {
-                    width: control.width
-                    height: control.height
+        Item {
+            id: overlayRoot
 
-                    Rectangle {
-                        x: control._holeLeft
-                        y: control._holeTop
-                        width: control._holeRight - control._holeLeft
-                        height: control._holeBottom - control._holeTop
-                        radius: control._currentHighlightRadius
-                        color: Enums.textColor.primary
-                        visible: control._targetAvailable
+            objectName: "teachingTourOverlay"
+            anchors.fill: parent
+            z: Enums.zIndex.overlay
+            visible: control._active && control._overlayItem === overlayRoot
+
+            onWidthChanged: if (control._active) Qt.callLater(control._refreshSpotlight)
+            onHeightChanged: if (control._active) Qt.callLater(control._refreshSpotlight)
+
+            Rectangle {
+                id: maskSurface
+
+                objectName: "teachingTourMaskSurface"
+                anchors.fill: parent
+                color: control.maskColor
+                layer.enabled: true
+                layer.effect: OpacityMask {
+                    invert: true
+                    mask: ShaderEffectSource {
+                        hideSource: true
+                        live: true
+                        sourceItem: Item {
+                            width: overlayRoot.width
+                            height: overlayRoot.height
+
+                            Rectangle {
+                                x: control._holeLeft
+                                y: control._holeTop
+                                width: control._holeRight - control._holeLeft
+                                height: control._holeBottom - control._holeTop
+                                radius: control._currentHighlightRadius
+                                color: Enums.textColor.primary
+                                visible: control._targetAvailable
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
 
-    MouseArea {
-        objectName: "teachingTourScrimArea"
-        anchors.fill: parent
-        enabled: control.blockOutsideInput
-        hoverEnabled: true
-        acceptedButtons: Qt.AllButtons
-        containmentMask: QtObject {
-            function contains(point: point): bool {
-                return !control._pointInsideSpotlight(point)
+            MouseArea {
+                objectName: "teachingTourScrimArea"
+                anchors.fill: parent
+                enabled: control.blockOutsideInput
+                hoverEnabled: true
+                acceptedButtons: Qt.AllButtons
+                containmentMask: QtObject {
+                    function contains(point: point): bool {
+                        return !control._pointInsideSpotlight(point)
+                    }
+                }
+                onWheel: (wheel) => wheel.accepted = true
+            }
+
+            Rectangle {
+                objectName: "teachingTourHighlight"
+                x: control._holeLeft
+                y: control._holeTop
+                width: control._holeRight - control._holeLeft
+                height: control._holeBottom - control._holeTop
+                radius: control._currentHighlightRadius
+                color: Enums.transparent
+                border.width: Enums.border.normal
+                border.color: control.highlightBorderColor
+                visible: control._targetAvailable
             }
         }
-        onWheel: (wheel) => wheel.accepted = true
-    }
-
-    Rectangle {
-        objectName: "teachingTourHighlight"
-        x: control._holeLeft
-        y: control._holeTop
-        width: control._holeRight - control._holeLeft
-        height: control._holeBottom - control._holeTop
-        radius: control._currentHighlightRadius
-        color: Enums.transparent
-        border.width: Enums.border.normal
-        border.color: control.highlightBorderColor
-        visible: control._targetAvailable
     }
 
     TeachingTip {
@@ -324,10 +353,10 @@ Item {
     }
 
     Timer {
-        id: restoreTimer
+        id: stateResetTimer
 
         interval: Enums.duration.tipHide
         repeat: false
-        onTriggered: control._restoreParent()
+        onTriggered: if (!control._active) control._currentIndex = -1
     }
 }
