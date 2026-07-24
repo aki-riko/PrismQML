@@ -45,9 +45,11 @@ _WINDOW_EDGES = frozenset(
 _WM_SIZING = 0x0214
 _WM_MOVING = 0x0216
 _WM_WINDOWPOSCHANGING = 0x0046
+_SWP_NOSIZE, _SWP_NOMOVE = 0x0001, 0x0002
 _SWP_NOZORDER = 0x0004
 _SWP_NOACTIVATE = 0x0010
 _SWP_NOOWNERZORDER = 0x0200
+_SWP_PROMOTE_FLAGS = _SWP_NOSIZE | _SWP_NOMOVE | _SWP_NOACTIVATE | _SWP_NOOWNERZORDER
 _DEFAULT_DEVICE_PIXEL_RATIO = 1.0
 _MINIMUM_NATIVE_EXTENT = 1
 
@@ -221,6 +223,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         set_geometry: Optional[
             Callable[[int, tuple[int, int, int, int], int], bool]
         ] = None,
+        promote_window: Optional[Callable[[int, Optional[int]], bool]] = None,
     ) -> None:
         super().__init__()
         functions = _load_user32_window_functions()
@@ -232,8 +235,12 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
                     functions[1], hwnd, geometry, insert_after
                 )
             )
+        if promote_window is None and functions is not None:
+            promote_window = lambda hwnd, after: bool(
+                functions[1](hwnd, after, 0, 0, 0, 0, _SWP_PROMOTE_FLAGS))
         self._read_rect = read_rect
         self._set_geometry = set_geometry
+        self._promote_window = promote_window
         self._bindings: dict[int, _WindowFollowerBinding] = {}
 
     @property
@@ -361,10 +368,17 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
                 debug(f"附属窗口原生同步失败: hwnd={binding.follower_hwnd}")
 
     def enforce_follower_z_order(self, follower_hwnd: int, window_pos) -> None:
-        """Keep a follower immediately behind its host. 保持附属窗口紧贴宿主下层。"""
+        """Promote the host, then keep its follower behind. 提升宿主后保持附属窗口在下层。"""
         binding = self._bindings.get(follower_hwnd)
         if binding is None:
             return
+        if (
+            not window_pos.flags & _SWP_NOZORDER
+            and window_pos.hwndInsertAfter != binding.host_hwnd
+            and self._promote_window is not None
+            and not self._promote_window(binding.host_hwnd, window_pos.hwndInsertAfter)
+        ):
+            debug(f"宿主窗口原生抬升失败: hwnd={binding.host_hwnd}")
         window_pos.hwndInsertAfter = binding.host_hwnd
         window_pos.flags &= ~_SWP_NOZORDER
         window_pos.flags |= _SWP_NOOWNERZORDER

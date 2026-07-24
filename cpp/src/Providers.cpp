@@ -258,7 +258,18 @@ bool WindowHelper::nativeEventFilter(
         const auto follower = m_followers.constFind(followerHwnd);
         if (follower != m_followers.cend()) {
             WINDOWPOS *windowPos = reinterpret_cast<WINDOWPOS *>(msg->lParam);
-            windowPos->hwndInsertAfter = reinterpret_cast<HWND>(follower->hostHwnd);
+            const HWND hostHwnd = reinterpret_cast<HWND>(follower->hostHwnd);
+            // Mirror external follower Z-order requests without activating the host.
+            // 同步外部附属窗口的 Z 序请求,但不激活宿主窗口。
+            if (!(windowPos->flags & SWP_NOZORDER)
+                && windowPos->hwndInsertAfter != hostHwnd
+                && !SetWindowPos(
+                    hostHwnd, windowPos->hwndInsertAfter,
+                    0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER)) {
+                qWarning() << "prism::WindowHelper: 宿主窗口原生抬升失败";
+            }
+            windowPos->hwndInsertAfter = hostHwnd;
             windowPos->flags &= ~SWP_NOZORDER;
             windowPos->flags |= SWP_NOOWNERZORDER;
         }

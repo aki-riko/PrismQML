@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
         WINDOWPOS attemptedRaise{
             reinterpret_cast<HWND>(followerId), HWND_TOP,
             0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER};
+            SWP_NOMOVE | SWP_NOSIZE};
         MSG zOrderChanging{};
         zOrderChanging.hwnd = reinterpret_cast<HWND>(followerId);
         zOrderChanging.message = WM_WINDOWPOSCHANGING;

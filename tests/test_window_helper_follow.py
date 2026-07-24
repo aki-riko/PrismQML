@@ -198,22 +198,40 @@ def test_set_window_pos_failure_does_not_drop_registration():
     assert event_filter.binding_count == 1
 
 
-def test_follower_raise_is_rewritten_behind_host():
+def test_follower_raise_promotes_host_then_stays_behind_it():
+    promotions = []
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
         set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
     )
     assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
     window_pos = SimpleNamespace(
         hwndInsertAfter=0,
-        flags=window_helper._SWP_NOZORDER,
+        flags=0,
     )
 
     event_filter.enforce_follower_z_order(21, window_pos)
 
+    assert promotions == [(11, 0)]
     assert window_pos.hwndInsertAfter == 11
     assert window_pos.flags & window_helper._SWP_NOZORDER == 0
     assert window_pos.flags & window_helper._SWP_NOOWNERZORDER
+
+
+def test_internal_follower_placement_does_not_promote_host():
+    promotions = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+    )
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    window_pos = SimpleNamespace(hwndInsertAfter=11, flags=0)
+
+    event_filter.enforce_follower_z_order(21, window_pos)
+
+    assert promotions == []
 
 
 class _FakeWindow:
