@@ -45,7 +45,7 @@ Item {
                     ComponentCard { label: "type_body"; Label { type: Fluent.Enums.label.type_body; text: "正文" } }
                     ComponentCard { label: "type_body_strong"; Label { type: Fluent.Enums.label.type_body_strong; text: "正文加粗" } }
                     ComponentCard { label: "type_caption"; Label { type: Fluent.Enums.label.type_caption; text: "辅助文字" } }
-                    ComponentCard { label: "type_hyperlink"; Label { type: Fluent.Enums.label.type_hyperlink; text: "超链接文本"; url: "https://example.com" } }
+                    ComponentCard { label: "type_hyperlink"; Label { type: Fluent.Enums.label.type_hyperlink; text: "超链接文本"; url: "https://github.com/aki-riko/PrismQML" } }
                 }
             }
             

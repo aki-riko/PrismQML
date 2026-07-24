@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GALLERY_MAIN = ROOT / "examples" / "main.py"
 GALLERY_QML = ROOT / "examples" / "main.qml"
 GALLERY_AUTO_UPDATE_PAGE = ROOT / "examples" / "pages" / "AutoUpdatePage.qml"
+GALLERY_LABEL_PAGE = ROOT / "examples" / "pages" / "LabelPage.qml"
 GALLERY_MENU_PAGE = ROOT / "examples" / "pages" / "MenuPage.qml"
 GALLERY_GIT_GRAPH = ROOT / "examples" / "pages" / "TimelineGitGraphDemo.qml"
 PUBLIC_CONTEXT_NAMES = {
@@ -110,3 +111,10 @@ def test_gallery_exposes_real_auto_update_page_and_backend():
     assert "Fluent.AutoUpdater" in page_source
     assert "updater: root.updaterBackend" in page_source
     assert "onUpdateAvailable" in page_source
+
+
+def test_gallery_hyperlink_label_targets_github_repository():
+    source = GALLERY_LABEL_PAGE.read_text(encoding="utf-8")
+
+    assert 'text: "超链接文本"; url: "https://github.com/aki-riko/PrismQML"' in source
+    assert 'text: "超链接文本"; url: "https://example.com"' not in source
