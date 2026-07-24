@@ -181,7 +181,7 @@ def test_opacity_mask_exposes_invert_contract(qapp):
     try:
         assert item.property("invert") is True
         assert item.property("maskInverted") is True
-        assert item.property("maskSpreadAtMin") == pytest.approx(1.0)
+        assert item.property("maskSpreadAtMin") == pytest.approx(0.0)
     finally:
         item.deleteLater()
         del component
@@ -297,6 +297,11 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     opacity_mask_source = OPACITY_MASK_SOURCE.read_text(encoding="utf-8")
     assert "property bool invert: false" in opacity_mask_source
     assert "maskInverted: root.invert" in opacity_mask_source
+    assert "maskSpreadAtMin: root.invert ? 0.0 : 1.0" in opacity_mask_source
+
+    tour_source = TEACHING_TOUR_SOURCE.read_text(encoding="utf-8")
+    assert "mask: ShaderEffectSource" in tour_source
+    assert "hideSource: true" in tour_source
 
     for source_path in (OPACITY_MASK_SOURCE, TEACHING_TOUR_SOURCE, TIP_POPUP_SOURCE):
         source = source_path.read_text(encoding="utf-8")

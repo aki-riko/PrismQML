@@ -238,25 +238,6 @@ Item {
 
     // ==================== Content 内容 ====================
     Rectangle {
-        id: inverseMaskSource
-
-        anchors.fill: parent
-        color: Enums.transparent
-        visible: false
-        layer.enabled: true
-
-        Rectangle {
-            x: control._holeLeft
-            y: control._holeTop
-            width: control._holeRight - control._holeLeft
-            height: control._holeBottom - control._holeTop
-            radius: control._currentHighlightRadius
-            color: Enums.textColor.primary
-            visible: control._targetAvailable
-        }
-    }
-
-    Rectangle {
         id: maskSurface
 
         objectName: "teachingTourMaskSurface"
@@ -265,7 +246,24 @@ Item {
         layer.enabled: true
         layer.effect: OpacityMask {
             invert: true
-            mask: inverseMaskSource
+            mask: ShaderEffectSource {
+                hideSource: true
+                live: true
+                sourceItem: Item {
+                    width: control.width
+                    height: control.height
+
+                    Rectangle {
+                        x: control._holeLeft
+                        y: control._holeTop
+                        width: control._holeRight - control._holeLeft
+                        height: control._holeBottom - control._holeTop
+                        radius: control._currentHighlightRadius
+                        color: Enums.textColor.primary
+                        visible: control._targetAvailable
+                    }
+                }
+            }
         }
     }
 
