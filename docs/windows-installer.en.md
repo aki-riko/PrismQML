@@ -66,7 +66,7 @@ Successful JSON contains `ok`, `command`, and command-specific fields. Errors us
 }
 ```
 
-`compile --dry-run` validates all inputs, resolves ISCC, and returns the exact `argv`, generated-script path, and expected installer path without writing files or starting a process. An explicit `compile` atomically generates the script, invokes `ISCC <script path>` with the script directory as its working directory, and verifies that the expected `.exe` exists.
+`compile --dry-run` validates all inputs, resolves ISCC, and returns the exact `argv`, generated-script path, expected installer path, and `script_sha256` without writing files or starting a process; `installer_sha256` is `null`. An explicit `compile` atomically generates the script, invokes `ISCC <script path>` with the script directory as its working directory, requires the expected `.exe` to be created or refreshed by that invocation, and returns its `installer_sha256`.
 
 Exit codes are `0` for success, `2` for invalid arguments, `3` for an invalid manifest, `4` for missing or stale generated output, `5` for file-system errors, and `6` for missing compile prerequisites or ISCC failures.
 

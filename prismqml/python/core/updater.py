@@ -170,7 +170,7 @@ class Updater(QObject):
     upToDate = Signal(str)                          # (currentVersion)
     checkFailed = Signal(str)                       # (errorMessage)
     # 下载过程
-    downloadProgress = Signal(int, int)             # (received, total)
+    downloadProgress = Signal("qint64", "qint64")  # (received, total)
     downloadFinished = Signal(str)                  # (localPath)
     downloadFailed = Signal(str)                    # (errorMessage)
 

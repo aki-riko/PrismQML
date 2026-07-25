@@ -94,6 +94,17 @@ class TestApiBaseUrl:
         with pytest.raises(AttributeError):
             updater.requireArtifactDigest = False
 
+    def test_download_progress_preserves_qint64_byte_counts(self, qapp):
+        updater = Updater("owner/repo", "v1.2.3")
+        progress = []
+        updater.downloadProgress.connect(
+            lambda received, total: progress.append((received, total))
+        )
+
+        updater.downloadProgress.emit(3_000_000_000, 4_000_000_000)
+
+        assert progress == [(3_000_000_000, 4_000_000_000)]
+
     def test_busy_transactions_emit_terminal_failures(self, qapp):
         updater = Updater("owner/repo", "v1.2.3")
         check_failures = []

@@ -140,7 +140,8 @@ def _compile_payload(result: InstallerCompileResult) -> Dict[str, Any]:
         "installer": str(result.installer),
         "compiler": str(result.compiler),
         "argv": list(result.argv),
-        "sha256": result.sha256,
+        "script_sha256": result.script_sha256,
+        "installer_sha256": result.installer_sha256,
         "dry_run": result.dry_run,
         "compiled": result.compiled,
     }

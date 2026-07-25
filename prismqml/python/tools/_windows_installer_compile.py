@@ -10,7 +10,7 @@ import hashlib
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 from ._windows_installer_core import (
     ManifestError,
@@ -35,7 +35,8 @@ class InstallerCompileResult:
     installer: Path
     compiler: Path
     argv: Tuple[str, ...]
-    sha256: str
+    script_sha256: str
+    installer_sha256: Optional[str]
     dry_run: bool
     compiled: bool
 
@@ -95,6 +96,35 @@ def _run_compiler(compiler: Path, script: Path) -> None:
     raise _compile_error("compile_failed", detail)
 
 
+def _artifact_state(path: Path) -> Optional[Tuple[int, int, int]]:
+    """Return fields that prove the compiler refreshed an artifact. 返回产物刷新证据。"""
+    try:
+        status = path.stat()
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise _compile_error(
+            "compile_failed", f"cannot inspect expected installer: {path}: {exc}"
+        ) from exc
+    if not path.is_file():
+        return None
+    return status.st_size, status.st_mtime_ns, status.st_ctime_ns
+
+
+def _installer_sha256(path: Path) -> str:
+    """Hash the compiled installer artifact. 计算已编译安装包摘要。"""
+    digest = hashlib.sha256()
+    try:
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError as exc:
+        raise _compile_error(
+            "compile_failed", f"cannot hash expected installer: {path}: {exc}"
+        ) from exc
+    return digest.hexdigest()
+
+
 def compile_installer(
     manifest: WindowsInstallerManifest,
     output_path: Path,
@@ -105,17 +135,37 @@ def compile_installer(
     content = render_installer(manifest, output_path, version)
     compiler, script, installer = _compile_paths(manifest, output_path, version)
     argv = (str(compiler), str(script))
-    sha256 = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    script_sha256 = hashlib.sha256(content.encode("utf-8")).hexdigest()
     if dry_run:
         return InstallerCompileResult(
-            script, installer, compiler, argv, sha256, True, False
+            script=script,
+            installer=installer,
+            compiler=compiler,
+            argv=argv,
+            script_sha256=script_sha256,
+            installer_sha256=None,
+            dry_run=True,
+            compiled=False,
         )
     generate_installer(manifest, script, version)
+    artifact_before = _artifact_state(installer)
     _run_compiler(compiler, script)
-    if not installer.is_file():
+    artifact_after = _artifact_state(installer)
+    if not artifact_after:
         raise _compile_error(
             "compile_failed", f"ISCC did not create expected installer: {installer}"
         )
+    if artifact_before and artifact_after == artifact_before:
+        raise _compile_error(
+            "compile_failed", f"ISCC did not refresh expected installer: {installer}"
+        )
     return InstallerCompileResult(
-        script, installer, compiler, argv, sha256, False, True
+        script=script,
+        installer=installer,
+        compiler=compiler,
+        argv=argv,
+        script_sha256=script_sha256,
+        installer_sha256=_installer_sha256(installer),
+        dry_run=False,
+        compiled=True,
     )

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -113,9 +114,21 @@ def test_machine_manifest_and_optional_sections_are_rendered_relatively(tmp_path
         ({"schema": 2}, "schema"),
         ({"unknown_option": True}, "unknown"),
         ({"install_scope": "portable"}, "install_scope"),
+        ({"name": ".."}, "name"),
+        ({"name": "CON"}, "name"),
+        ({"name": "{tmp}"}, "name"),
+        ({"publisher": "{tmp}"}, "publisher"),
         ({"executable": "bin/ExampleApp.exe"}, "executable"),
+        ({"executable": "NUL.exe"}, "executable"),
+        ({"executable": "{tmp}.exe"}, "executable"),
         ({"dist_dir": "../outside"}, "dist_dir"),
+        ({"dist_dir": "build/{tmp}"}, "dist_dir"),
         ({"homepage": "http://example.test/app"}, "homepage"),
+        ({"homepage": "https://example.test/{tmp}"}, "homepage"),
+        (
+            {"chinese_messages_file": "compiler:Languages\\{tmp}.isl"},
+            "chinese_messages_file",
+        ),
     ],
 )
 def test_manifest_rejects_ambiguous_or_unsafe_values(tmp_path, overrides, match):
@@ -131,8 +144,11 @@ def test_manifest_rejects_ambiguous_or_unsafe_values(tmp_path, overrides, match)
         ({"app_id": "not-a-guid"}, "app_id"),
         ({"dist_dir": "build/main.dist:stream"}, "dist_dir"),
         ({"icon": "assets/app?.ico"}, "icon"),
+        ({"icon": "assets/COM1.ico"}, "icon"),
         ({"output_name": "{name.__class__}-{version}"}, "output_name"),
         ({"output_name": "ExampleApp-Setup.exe"}, "output_name"),
+        ({"output_name": ".."}, "output_name"),
+        ({"output_name": "{name}-{{tmp}}"}, "output_name"),
     ],
 )
 def test_manifest_rejects_values_that_cannot_form_a_portable_iss(
@@ -299,6 +315,8 @@ def test_compile_dry_run_is_read_only_and_reports_exact_command(
     assert payload["command"] == "compile"
     assert payload["dry_run"] is True
     assert payload["compiled"] is False
+    assert payload["installer_sha256"] is None
+    assert len(payload["script_sha256"]) == 64
     assert payload["argv"] == [str(iscc.resolve()), str(output_path.resolve())]
     assert payload["installer"] == str(
         (tmp_path / "dist_installer" / "ExampleApp-Setup-1.0.0.exe").resolve()
@@ -331,6 +349,11 @@ def test_compile_generates_iss_and_verifies_compiler_artifact(
     assert exit_code == EXIT_OK
     assert payload["compiled"] is True
     assert payload["installer"] == str(installer_path.resolve())
+    assert payload["script_sha256"] == hashlib.sha256(
+        output_path.read_bytes()
+    ).hexdigest()
+    assert payload["installer_sha256"] == hashlib.sha256(b"setup").hexdigest()
+    assert "sha256" not in payload
     assert output_path.is_file() and installer_path.is_file()
     assert calls == [([str(iscc.resolve()), str(output_path.resolve())], {
         "capture_output": True,
@@ -387,6 +410,32 @@ def test_compile_zero_exit_without_expected_artifact_is_failure(
     assert exit_code == EXIT_COMPILE
     assert payload["error"]["code"] == "compile_failed"
     assert "did not create expected installer" in payload["error"]["message"]
+
+
+def test_compile_zero_exit_cannot_reuse_a_preexisting_installer(
+    tmp_path, monkeypatch, capsys
+):
+    manifest_path, _iscc = _write_compile_inputs(tmp_path, monkeypatch)
+    installer_path = tmp_path / "dist_installer" / "ExampleApp-Setup-1.0.0.exe"
+    installer_path.parent.mkdir()
+    installer_path.write_bytes(b"stale setup")
+    monkeypatch.setattr(
+        installer_compile.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0, stdout="compiled", stderr=""
+        ),
+    )
+
+    exit_code = main([
+        "--json", "compile", "--manifest", str(manifest_path),
+        "--version", "1.0.0",
+    ])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == EXIT_COMPILE
+    assert payload["error"]["code"] == "compile_failed"
+    assert "did not refresh expected installer" in payload["error"]["message"]
 
 
 def test_compile_dry_run_reports_missing_prerequisites_without_writing(
