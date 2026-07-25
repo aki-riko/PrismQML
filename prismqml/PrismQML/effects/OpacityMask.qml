@@ -27,7 +27,8 @@ MultiEffect {
     maskEnabled: root.mask !== null
     maskSource: root.mask
     maskInverted: root.invert
-    // Map the full mask alpha range so antialiased edges survive inversion 映射完整蒙版透明度范围，使反向遮罩保留抗锯齿边缘
-    maskThresholdMin: 0.5
+    // Keep regular masks at Qt's default threshold; inverted spotlight masks need the midpoint mapping
+    // 普通蒙版保留 Qt 默认阈值；仅反向聚光蒙版使用中点映射
+    maskThresholdMin: root.invert ? 0.5 : 0.0
     maskSpreadAtMin: 1.0
 }

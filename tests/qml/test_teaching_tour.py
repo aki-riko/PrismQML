@@ -172,13 +172,22 @@ def _dispose_scene(engine, component, window, tour) -> None:
     QCoreApplication.processEvents()
 
 
-def test_opacity_mask_exposes_invert_contract(qapp):
+@pytest.mark.parametrize(
+    ("invert", "expected_threshold"),
+    ((False, 0.0), (True, 0.5)),
+)
+def test_opacity_mask_preserves_regular_and_inverted_thresholds(
+    qapp, invert, expected_threshold
+):
     engine = QQmlApplicationEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
     component = QQmlComponent(engine)
     component.setData(
-        b"import PrismQML\nOpacityMask { invert: true }",
+        (
+            "import PrismQML\n"
+            f"OpacityMask {{ invert: {str(invert).lower()} }}"
+        ).encode("utf-8"),
         QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "opacity-mask.qml")),
     )
     assert component.status() == QQmlComponent.Status.Ready, [
@@ -187,9 +196,9 @@ def test_opacity_mask_exposes_invert_contract(qapp):
     item = component.create(engine.rootContext())
     assert isinstance(item, QQuickItem)
     try:
-        assert item.property("invert") is True
-        assert item.property("maskInverted") is True
-        assert item.property("maskThresholdMin") == pytest.approx(0.5)
+        assert item.property("invert") is invert
+        assert item.property("maskInverted") is invert
+        assert item.property("maskThresholdMin") == pytest.approx(expected_threshold)
         assert item.property("maskSpreadAtMin") == pytest.approx(1.0)
     finally:
         item.deleteLater()
@@ -313,7 +322,7 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     opacity_mask_source = OPACITY_MASK_SOURCE.read_text(encoding="utf-8")
     assert "property bool invert: false" in opacity_mask_source
     assert "maskInverted: root.invert" in opacity_mask_source
-    assert "maskThresholdMin: 0.5" in opacity_mask_source
+    assert "maskThresholdMin: root.invert ? 0.5 : 0.0" in opacity_mask_source
     assert "maskSpreadAtMin: 1.0" in opacity_mask_source
 
     tour_source = TEACHING_TOUR_SOURCE.read_text(encoding="utf-8")
