@@ -264,6 +264,8 @@ def test_combo_box_tree_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
+    assert "if ((_safeModel || []).length > 0)" in source
+    assert "if (_safeModel.length > 0)" not in source
     assert [
         violation
         for violation in violations

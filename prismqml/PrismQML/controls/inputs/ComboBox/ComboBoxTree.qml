@@ -46,7 +46,7 @@ ComboBoxCore {
 
     // ==================== Internal Methods 内部方法 ====================
     function _initTree() {
-        if (_safeModel.length > 0) {
+        if ((_safeModel || []).length > 0) {
             _expandAllNodes()
             _rebuildFlatModel()
         }
