@@ -8,8 +8,8 @@ The generated template fixes the following upgrade behavior:
 
 - `AppId` remains stable across releases so a new release upgrades the same installation;
 - `CloseApplications=yes` lets Inno Setup close processes that hold old files;
-- `RestartApplications=no` never reopens the application after installation;
-- `[Run]` uses `skipifsilent`, so a silent update waits for the user's next launch;
+- `RestartApplications=no` avoids Restart Manager relaunches and duplicate starts;
+- with the default `launch_after_install=false`, `[Run]` uses `skipifsilent`, so a silent update waits for the user's next launch; set it to `true` to launch the new version once from the installed directory after a silent install;
 - per-user installs use `{localappdata}\Programs` without proactively requesting elevation;
 - machine installs use `{autopf}`, where Windows can still show the mandatory UAC prompt.
 
@@ -25,7 +25,7 @@ Copy the [example manifest](examples/prismqml-installer.json) to the application
 - `install_scope`: either `user` or `machine`; do not change it for an existing application without a migration decision;
 - `dist_dir`: the Nuitka standalone directory relative to the manifest.
 
-Optional fields are `homepage`, `icon`, `installer_output_dir`, `output_name`, `chinese_messages_file`, and `extension_include`. `output_name` may only use the `{name}` and `{version}` placeholders and must omit the `.exe` suffix. Use `extension_include` for application-specific logic such as brand migration; the shared template does not guess or remove legacy directories.
+Optional fields are `homepage`, `icon`, `installer_output_dir`, `output_name`, `chinese_messages_file`, `extension_include`, and `launch_after_install`. `launch_after_install` must be a JSON boolean and defaults to `false`; automatic-update applications can set it to `true` to explicitly launch the new version once after a silent install. `output_name` may only use the `{name}` and `{version}` placeholders and must omit the `.exe` suffix. Use `extension_include` for application-specific logic such as brand migration; the shared template does not guess or remove legacy directories.
 
 The manifest does not store the release version. The release workflow injects it through `--version`.
 

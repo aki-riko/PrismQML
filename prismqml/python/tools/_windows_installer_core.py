@@ -135,6 +135,11 @@ def render_installer(
         "CHINESE_MESSAGES_FILE": _messages_for_output(manifest, output_path),
         "DEFAULT_DIR": default_dir,
         "PRIVILEGES": privileges,
+        "RUN_FLAGS": (
+            "nowait postinstall"
+            if manifest.launch_after_install
+            else "nowait postinstall skipifsilent"
+        ),
         **_optional_template_values(manifest, output_path),
     }
     return Template(_template_text()).substitute(values).rstrip() + "\n"

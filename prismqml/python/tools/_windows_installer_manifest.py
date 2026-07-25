@@ -61,6 +61,7 @@ OPTIONAL_FIELDS = frozenset({
     "installer_output_dir",
     "output_name",
     "chinese_messages_file",
+    "launch_after_install",
 })
 
 
@@ -91,6 +92,7 @@ class WindowsInstallerManifest:
     installer_output_dir: str = DEFAULT_INSTALLER_OUTPUT_DIR
     output_name: str = DEFAULT_OUTPUT_NAME
     chinese_messages_file: str = DEFAULT_CHINESE_MESSAGES_FILE
+    launch_after_install: bool = False
 
 
 def _manifest_error(field: str, detail: str) -> ManifestError:
@@ -112,6 +114,13 @@ def _optional_literal(data: Mapping[str, Any], field: str) -> str:
     if value == "":
         return ""
     return _literal(data, field)
+
+
+def _optional_bool(data: Mapping[str, Any], field: str, default: bool = False) -> bool:
+    value = data.get(field, default)
+    if not isinstance(value, bool):
+        raise _manifest_error(field, "must be a boolean")
+    return value
 
 
 def _reject_inno_constants(field: str, value: str) -> str:
@@ -269,6 +278,7 @@ def load_manifest(path: Path) -> WindowsInstallerManifest:
         ),
         output_name=_validate_output_name(data),
         chinese_messages_file=_validate_messages_file(data),
+        launch_after_install=_optional_bool(data, "launch_after_install"),
         **identity,
     )
 

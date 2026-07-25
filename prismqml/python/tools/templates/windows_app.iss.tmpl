@@ -37,7 +37,7 @@ LanguageDetectionMethod=uilanguage
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=$PRIVILEGES
-; Silent next-launch contract: close old files, never restart the app. 静默覆盖且不自动重启应用。
+; Close old files; optional relaunch is handled once by [Run]. 关闭旧进程；可选重启由 [Run] 单次执行。
 CloseApplications=yes
 RestartApplications=no
 
@@ -57,8 +57,8 @@ Name: "{group}\{cm:UninstallProgram,{#PrismAppName}}"; Filename: "{uninstallexe}
 Name: "{autodesktop}\{#PrismAppName}"; Filename: "{app}\{#PrismAppExe}"; IconFilename: "{app}\{#PrismAppExe}"; AppUserModelID: "{#PrismAppUserModelID}"; Tasks: desktopicon
 
 [Run]
-; Interactive installs may offer launch; silent updates stay stopped until next user launch.
-; 交互安装可选择启动；静默更新保持退出，等待用户下次启动。
-Filename: "{app}\{#PrismAppExe}"; Description: "{cm:LaunchProgram,{#PrismAppName}}"; Flags: nowait postinstall skipifsilent
+; The manifest decides whether silent installs relaunch the installed application.
+; 清单决定静默安装完成后是否重新启动已安装的应用。
+Filename: "{app}\{#PrismAppExe}"; Description: "{cm:LaunchProgram,{#PrismAppName}}"; Flags: $RUN_FLAGS
 
 $EXTENSION_INCLUDE

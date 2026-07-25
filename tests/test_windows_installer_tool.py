@@ -81,6 +81,21 @@ def test_minimal_manifest_renders_silent_next_launch_contract(tmp_path):
     assert str(tmp_path) not in rendered
 
 
+def test_launch_after_install_relaunches_once_without_restart_manager(tmp_path):
+    manifest_path = _write_manifest(tmp_path, launch_after_install=True)
+    manifest = load_manifest(manifest_path)
+    output_path = tmp_path / "installer.generated.iss"
+
+    rendered = render_installer(manifest, output_path, "1.2.3.4")
+
+    assert manifest.launch_after_install is True
+    assert "RestartApplications=no" in rendered
+    assert "Flags: nowait postinstall" in rendered
+    assert "skipifsilent" not in rendered
+    assert "/RESTARTAPPLICATIONS" not in rendered
+    assert "/AUTORESTARTAPP" not in rendered
+
+
 def test_machine_manifest_and_optional_sections_are_rendered_relatively(tmp_path):
     (tmp_path / "installer").mkdir()
     manifest_path = _write_manifest(
@@ -125,6 +140,8 @@ def test_machine_manifest_and_optional_sections_are_rendered_relatively(tmp_path
         ({"dist_dir": "build/{tmp}"}, "dist_dir"),
         ({"homepage": "http://example.test/app"}, "homepage"),
         ({"homepage": "https://example.test/{tmp}"}, "homepage"),
+        ({"launch_after_install": "true"}, "launch_after_install"),
+        ({"launch_after_install": 1}, "launch_after_install"),
         (
             {"chinese_messages_file": "compiler:Languages\\{tmp}.isl"},
             "chinese_messages_file",

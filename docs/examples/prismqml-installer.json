@@ -10,5 +10,6 @@
   "homepage": "https://example.com/example-app",
   "icon": "assets/app.ico",
   "installer_output_dir": "dist_installer",
-  "output_name": "ExampleApp-Setup-{version}"
+  "output_name": "ExampleApp-Setup-{version}",
+  "launch_after_install": false
 }

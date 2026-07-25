@@ -8,8 +8,8 @@
 
 - `AppId` 在所有版本中保持不变，新版覆盖同一安装；
 - `CloseApplications=yes`，安装时允许 Inno Setup 关闭占用旧文件的进程；
-- `RestartApplications=no`，安装完成后不自动重新打开应用；
-- `[Run]` 使用 `skipifsilent`，静默更新等待用户下次启动；
+- `RestartApplications=no`，不依赖 Restart Manager 自动恢复应用，避免重复启动；
+- `launch_after_install=false`（默认）时 `[Run]` 使用 `skipifsilent`，静默更新等待用户下次启动；设为 `true` 时，静默安装完成后从新安装目录启动一次新版；
 - 用户级安装写入 `{localappdata}\Programs` 且不主动请求管理员权限；
 - 机器级安装写入 `{autopf}`，Windows 仍会显示无法绕过的 UAC 安全提示。
 
@@ -25,7 +25,7 @@
 - `install_scope`：只能是 `user` 或 `machine`，既有应用不得擅自改变；
 - `dist_dir`：相对于清单的 Nuitka standalone 目录。
 
-可选字段包括 `homepage`、`icon`、`installer_output_dir`、`output_name`、`chinese_messages_file` 和 `extension_include`。`output_name` 只能使用 `{name}`、`{version}` 占位符且不写 `.exe` 后缀；`extension_include` 用于品牌迁移等应用专属 Inno Setup 逻辑，公共模板不会猜测或删除旧目录。
+可选字段包括 `homepage`、`icon`、`installer_output_dir`、`output_name`、`chinese_messages_file`、`extension_include` 和 `launch_after_install`。`launch_after_install` 必须是 JSON 布尔值，默认 `false`；自动更新应用可设为 `true`，使静默安装完成后显式启动一次新版。`output_name` 只能使用 `{name}`、`{version}` 占位符且不写 `.exe` 后缀；`extension_include` 用于品牌迁移等应用专属 Inno Setup 逻辑，公共模板不会猜测或删除旧目录。
 
 版本号不写入清单，由发布流程通过 `--version` 唯一注入。
 
