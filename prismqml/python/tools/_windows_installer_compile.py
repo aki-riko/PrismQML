@@ -125,6 +125,43 @@ def _installer_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _compile_result(
+    script: Path,
+    installer: Path,
+    compiler: Path,
+    argv: Tuple[str, ...],
+    script_sha256: str,
+    installer_sha256: Optional[str],
+    compiled: bool,
+) -> InstallerCompileResult:
+    """Build one immutable compile result. 构建不可变编译结果。"""
+    return InstallerCompileResult(
+        script=script,
+        installer=installer,
+        compiler=compiler,
+        argv=argv,
+        script_sha256=script_sha256,
+        installer_sha256=installer_sha256,
+        dry_run=not compiled,
+        compiled=compiled,
+    )
+
+
+def _require_refreshed_installer(
+    installer: Path, artifact_before: Optional[Tuple[int, int, int]]
+) -> None:
+    """Require a newly created or refreshed installer. 要求安装包已创建或刷新。"""
+    artifact_after = _artifact_state(installer)
+    if not artifact_after:
+        raise _compile_error(
+            "compile_failed", f"ISCC did not create expected installer: {installer}"
+        )
+    if artifact_before and artifact_after == artifact_before:
+        raise _compile_error(
+            "compile_failed", f"ISCC did not refresh expected installer: {installer}"
+        )
+
+
 def compile_installer(
     manifest: WindowsInstallerManifest,
     output_path: Path,
@@ -137,35 +174,14 @@ def compile_installer(
     argv = (str(compiler), str(script))
     script_sha256 = hashlib.sha256(content.encode("utf-8")).hexdigest()
     if dry_run:
-        return InstallerCompileResult(
-            script=script,
-            installer=installer,
-            compiler=compiler,
-            argv=argv,
-            script_sha256=script_sha256,
-            installer_sha256=None,
-            dry_run=True,
-            compiled=False,
+        return _compile_result(
+            script, installer, compiler, argv, script_sha256, None, False
         )
     generate_installer(manifest, script, version)
     artifact_before = _artifact_state(installer)
     _run_compiler(compiler, script)
-    artifact_after = _artifact_state(installer)
-    if not artifact_after:
-        raise _compile_error(
-            "compile_failed", f"ISCC did not create expected installer: {installer}"
-        )
-    if artifact_before and artifact_after == artifact_before:
-        raise _compile_error(
-            "compile_failed", f"ISCC did not refresh expected installer: {installer}"
-        )
-    return InstallerCompileResult(
-        script=script,
-        installer=installer,
-        compiler=compiler,
-        argv=argv,
-        script_sha256=script_sha256,
-        installer_sha256=_installer_sha256(installer),
-        dry_run=False,
-        compiled=True,
+    _require_refreshed_installer(installer, artifact_before)
+    installer_sha256 = _installer_sha256(installer)
+    return _compile_result(
+        script, installer, compiler, argv, script_sha256, installer_sha256, True
     )
