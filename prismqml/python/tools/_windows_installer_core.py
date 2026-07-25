@@ -111,6 +111,12 @@ def _optional_template_values(
     }
 
 
+def _run_flags(manifest: WindowsInstallerManifest) -> str:
+    if manifest.launch_after_install:
+        return "nowait postinstall"
+    return "nowait postinstall skipifsilent"
+
+
 def render_installer(
     manifest: WindowsInstallerManifest, output_path: Path, version: str
 ) -> str:
@@ -135,11 +141,7 @@ def render_installer(
         "CHINESE_MESSAGES_FILE": _messages_for_output(manifest, output_path),
         "DEFAULT_DIR": default_dir,
         "PRIVILEGES": privileges,
-        "RUN_FLAGS": (
-            "nowait postinstall"
-            if manifest.launch_after_install
-            else "nowait postinstall skipifsilent"
-        ),
+        "RUN_FLAGS": _run_flags(manifest),
         **_optional_template_values(manifest, output_path),
     }
     return Template(_template_text()).substitute(values).rstrip() + "\n"
