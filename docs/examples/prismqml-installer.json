@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "app_id": "00000000-0000-0000-0000-000000000000",
+  "name": "ExampleApp",
+  "publisher": "Example Publisher",
+  "executable": "ExampleApp.exe",
+  "aumid": "PrismQML.ExampleApp",
+  "install_scope": "user",
+  "dist_dir": "build/main.dist",
+  "homepage": "https://example.com/example-app",
+  "icon": "assets/app.ico",
+  "installer_output_dir": "dist_installer",
+  "output_name": "ExampleApp-Setup-{version}"
+}

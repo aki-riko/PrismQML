@@ -31,6 +31,9 @@ dependencies = [
     "qrcode>=7.0",
 ]
 
+[project.scripts]
+prismqml-installer = "prismqml.python.tools.windows_installer:main"
+
 [project.optional-dependencies]
 macos = [
     "pyobjc-framework-Cocoa>=9.0",
@@ -60,7 +63,7 @@ where = ["."]
 include = ["prismqml*"]
 
 [tool.setuptools.package-data]
-prismqml = ["PrismQML/**/*.qml", "PrismQML/**/*.js", "PrismQML/qmldir", "PrismQML/**/qmldir", "PrismQML/**/*.json", "PrismQML/**/*.frag", "**/*.svg", "**/*.png", "**/*.qsb", "py.typed", "PrismQML/controls/icons/fluent/LICENSE"]
+prismqml = ["PrismQML/**/*.qml", "PrismQML/**/*.js", "PrismQML/qmldir", "PrismQML/**/qmldir", "PrismQML/**/*.json", "PrismQML/**/*.frag", "python/tools/templates/*.tmpl", "**/*.svg", "**/*.png", "**/*.qsb", "py.typed", "PrismQML/controls/icons/fluent/LICENSE"]
 
 # Rust 加速扩展(可选):SqlListModel 的 SQLite 分页加速。
 # 编为顶层模块 prismqml_rs(代码 import prismqml_rs),abi3 一个 wheel 兼容 py3.9+。
