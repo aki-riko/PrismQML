@@ -14,6 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 GALLERY_MAIN = ROOT / "examples" / "main.py"
 GALLERY_QML = ROOT / "examples" / "main.qml"
 GALLERY_AUTO_UPDATE_PAGE = ROOT / "examples" / "pages" / "AutoUpdatePage.qml"
+GALLERY_DRY_RUN_UPDATER = (
+    ROOT / "examples" / "pages" / "_internal" / "GalleryDryRunUpdater.qml"
+)
 GALLERY_LABEL_PAGE = ROOT / "examples" / "pages" / "LabelPage.qml"
 GALLERY_MENU_PAGE = ROOT / "examples" / "pages" / "MenuPage.qml"
 GALLERY_GIT_GRAPH = ROOT / "examples" / "pages" / "TimelineGitGraphDemo.qml"
@@ -99,18 +102,23 @@ def test_gallery_exposes_fractional_dpi_git_graph_timeline():
     assert "endAtNode: true" in graph_source
 
 
-def test_gallery_exposes_real_auto_update_page_and_backend():
+def test_gallery_exposes_dry_and_real_auto_update_backends():
     main_source = GALLERY_MAIN.read_text(encoding="utf-8")
     qml_source = GALLERY_QML.read_text(encoding="utf-8")
     page_source = GALLERY_AUTO_UPDATE_PAGE.read_text(encoding="utf-8")
+    dry_run_source = GALLERY_DRY_RUN_UPDATER.read_text(encoding="utf-8")
 
     assert "gallery_repository, prismqml.__version__, gallery_asset_keyword" in main_source
     assert 'setContextProperty("appUpdater", gallery_updater)' in main_source
     assert '"text": "自动更新"' in qml_source
     assert 'pages/AutoUpdatePage.qml' in qml_source
     assert "Fluent.AutoUpdater" in page_source
-    assert "updater: root.updaterBackend" in page_source
+    assert "updater: root.activeUpdater" in page_source
+    assert "GalleryInternal.GalleryDryRunUpdater" in page_source
     assert "onUpdateAvailable" in page_source
+    assert "function checkForUpdate()" in dry_run_source
+    assert "function downloadUpdate(token)" in dry_run_source
+    assert "function runInstallerAndQuit(path, args)" in dry_run_source
 
 
 def test_gallery_hyperlink_label_targets_github_repository():
