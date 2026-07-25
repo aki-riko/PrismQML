@@ -26,19 +26,23 @@ QtObject {
         "## DRY 演示更新\n\n"
         + "- 展示真实更新确认对话框\n"
         + "- 模拟下载进度从 0% 到 100%\n"
-        + "- 模拟安装交接，不创建文件或启动程序"
+        + "- 模拟 ISS 静默安装交接，不创建文件或启动程序"
     readonly property int totalProgress: 100
+    readonly property int bytesPerMebibyte: 1024 * 1024
+    readonly property int totalDownloadBytes: totalProgress * bytesPerMebibyte
     readonly property int minimumProgressStep: 1
     readonly property int progress: root._progress
     readonly property int checkSimulationCount: root._checkSimulationCount
     readonly property int downloadSimulationCount: root._downloadSimulationCount
     readonly property int installSimulationCount: root._installSimulationCount
+    readonly property string lastInstallerArgs: root._lastInstallerArgs
 
     // ==================== Internal Props 内部属性 ====================
     property int _progress: 0
     property int _checkSimulationCount: 0
     property int _downloadSimulationCount: 0
     property int _installSimulationCount: 0
+    property string _lastInstallerArgs: ""
     property Timer _checkTimer: Timer {
         interval: Math.max(Enums.duration.tick, root.checkDelay)
         repeat: false
@@ -62,7 +66,10 @@ QtObject {
                 root.totalProgress,
                 root._progress + Math.max(root.minimumProgressStep, root.progressStep)
             )
-            root.downloadProgress(root._progress, root.totalProgress)
+            var receivedBytes = Math.round(
+                root.totalDownloadBytes * root._progress / root.totalProgress
+            )
+            root.downloadProgress(receivedBytes, root.totalDownloadBytes)
             root.stageChanged("DRY：模拟下载中 " + root._progress + "%")
             if (root._progress >= root.totalProgress) {
                 stop()
@@ -115,12 +122,13 @@ QtObject {
     }
 
     function runInstallerAndQuit(path, args) {
+        root._lastInstallerArgs = args
         if (path !== root.installerPath) {
             root.stageChanged("DRY：安装交接失败")
             return false
         }
         root._installSimulationCount += 1
-        root.stageChanged("DRY 演示完成：未下载文件，也未启动安装器")
+        root.stageChanged("DRY 演示完成：已模拟静默安装交接，未下载文件、未启动安装器")
         root.installSimulated(path)
         return true
     }

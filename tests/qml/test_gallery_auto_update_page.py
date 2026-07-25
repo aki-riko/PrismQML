@@ -124,8 +124,8 @@ def test_gallery_dry_run_shows_download_progress_and_simulates_install(qapp):
         assert dry_run_backend is not None
 
         dry_run_backend.setProperty("checkDelay", 1)
-        dry_run_backend.setProperty("progressInterval", 1)
-        dry_run_backend.setProperty("progressStep", 50)
+        dry_run_backend.setProperty("progressInterval", 40)
+        dry_run_backend.setProperty("progressStep", 25)
 
         assert QMetaObject.invokeMethod(facade, "check")
         _wait_until(qapp, lambda: facade.property("_awaitingDecision"))
@@ -146,18 +146,24 @@ def test_gallery_dry_run_shows_download_progress_and_simulates_install(qapp):
         assert len(confirm_buttons) == 1
         assert QMetaObject.invokeMethod(confirm_buttons[0], "clicked")
 
+        _wait_until(qapp, lambda: dry_run_backend.property("progress") >= 25)
+        feedback = facade.property("feedbackModel")
+        assert feedback.property("message") == "25%  (25.0 MB / 100.0 MB)"
+
         _wait_until(
             qapp,
             lambda: dry_run_backend.property("installSimulationCount") == 1,
         )
-        feedback = facade.property("feedbackModel")
         assert dry_run_backend.property("checkSimulationCount") == 1
         assert dry_run_backend.property("downloadSimulationCount") == 1
         assert dry_run_backend.property("progress") == 100
+        assert dry_run_backend.property("lastInstallerArgs") == (
+            "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
+        )
         assert dialogs[0].property("isOpen") is False
         assert feedback.property("title") == "安装程序已启动"
         assert root.property("statusText") == (
-            "DRY 演示完成：未下载文件，也未启动安装器"
+            "DRY 演示完成：已模拟静默安装交接，未下载文件、未启动安装器"
         )
     finally:
         root.setParentItem(None)

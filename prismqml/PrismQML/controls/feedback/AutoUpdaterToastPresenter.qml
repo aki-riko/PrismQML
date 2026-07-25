@@ -31,7 +31,6 @@ Item {
         }
 
         var item = root._toast;
-        var created = false;
         if (!item) {
             item = NotificationManager.toast.info(
                 root.presenterHost || root,
@@ -44,7 +43,6 @@ Item {
                 console.warn("AutoUpdaterToastPresenter: Toast 创建失败");
                 return;
             }
-            created = true;
             item.objectName = "autoUpdaterToast";
             root._toast = item;
             item.closed.connect(function() {
@@ -63,8 +61,6 @@ Item {
         item.feature = model.feature;
         item.duration = model.duration;
         item.progress = model.progress;
-        if (!created)
-            item.show();
     }
 
     function _hideToast() {

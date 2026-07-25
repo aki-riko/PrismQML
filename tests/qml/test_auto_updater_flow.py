@@ -46,6 +46,7 @@ Window {
     readonly property int toastHeight: Enums.controlSize.toastHeight
     readonly property int spacingM: Enums.spacing.m
     readonly property int spacingL: Enums.spacing.l
+    readonly property int mebibyte: 1024 * 1024
 
     function triggerDoubleCheck() {
         facade.check();
@@ -56,10 +57,24 @@ Window {
         backend.checkFailed("check failed");
     }
 
+    function triggerSilentCheck() {
+        facade.checkSilently();
+    }
+
+    function finishSilentUpdate() {
+        backend.updateAvailable(
+            "v2.0.0", "silent check update", "download-token", ""
+        );
+    }
+
     function emitDownloadProgress() {
         facade._checking = false;
         facade._downloading = true;
-        backend.downloadProgress(25, 100);
+        backend.downloadProgress(25 * scene.mebibyte, 100 * scene.mebibyte);
+    }
+
+    function emitSecondDownloadProgress() {
+        backend.downloadProgress(50 * scene.mebibyte, 100 * scene.mebibyte);
     }
 
     function useProgressDialogAndCheck() {
@@ -99,6 +114,7 @@ Window {
         property int downloadCalls: 0
         property int installCalls: 0
         property int browserCalls: 0
+        property string lastInstallerArgs: ""
 
         objectName: "backend"
 
@@ -111,7 +127,11 @@ Window {
 
         function checkForUpdate() { checkCalls += 1; }
         function downloadUpdate(url) { downloadCalls += 1; }
-        function runInstallerAndQuit(path, args) { installCalls += 1; return false; }
+        function runInstallerAndQuit(path, args) {
+            installCalls += 1;
+            lastInstallerArgs = args;
+            return false;
+        }
         function openInBrowser(url) { browserCalls += 1; return true; }
     }
 
@@ -222,6 +242,53 @@ def test_check_uses_managed_toast_and_builtin_progress(auto_updater_scene, qapp)
     qapp.processEvents()
     assert toast.property("feature") == root.property("progressRingFeature")
     assert toast.property("progress") == pytest.approx(0.25)
+    assert toast.property("message") == "25%  (25.0 MB / 100.0 MB)"
+
+    assert QMetaObject.invokeMethod(root, "emitSecondDownloadProgress")
+    qapp.processEvents()
+    assert root.findChild(QObject, "autoUpdaterToast") is toast
+    assert toast.property("progress") == pytest.approx(0.5)
+    assert toast.property("message") == "50%  (50.0 MB / 100.0 MB)"
+
+
+def test_silent_check_has_no_toast_but_still_reports_failure(
+    auto_updater_scene, qapp
+):
+    root = auto_updater_scene
+    backend = _backend(root)
+
+    assert QMetaObject.invokeMethod(root, "triggerSilentCheck")
+    qapp.processEvents()
+    assert backend.property("checkCalls") == 1
+    assert root.findChild(QObject, "autoUpdaterToast") is None
+
+    backend.checkFailed.emit("silent check failed")
+    qapp.processEvents()
+    assert root.property("errorCount") == 1
+    assert root.property("lastError") == "silent check failed"
+    assert root.findChild(QObject, "autoUpdaterToast") is None
+
+    assert QMetaObject.invokeMethod(root, "triggerSilentCheck")
+    backend.upToDate.emit("v1.0.0")
+    qapp.processEvents()
+    assert root.findChild(QObject, "autoUpdaterToast") is None
+
+
+def test_silent_check_still_opens_update_confirmation(auto_updater_scene, qapp):
+    root = auto_updater_scene
+
+    assert QMetaObject.invokeMethod(root, "triggerSilentCheck")
+    assert QMetaObject.invokeMethod(root, "finishSilentUpdate")
+    qapp.processEvents()
+
+    dialogs = [
+        obj
+        for obj in root.findChildren(QObject)
+        if "UpdateDialog" in obj.metaObject().className()
+    ]
+    assert len(dialogs) == 1
+    assert dialogs[0].property("isOpen") is True
+    assert root.findChild(QObject, "autoUpdaterToast") is None
 
 
 def test_reused_check_toast_reflows_for_real_multiline_error(auto_updater_scene, qapp):
@@ -289,6 +356,7 @@ def test_auto_updater_delegates_feedback_without_desktop_notification():
     assert "readonly property QtObject feedbackModel" in facade_source
     assert "NotificationManager.toast.info(" not in facade_source
     assert "NotificationManager.toast.info(" in toast_source
+    assert "item.show();" not in toast_source
     assert "ProgressDialog {" in dialog_source
     assert "AutoUpdaterToastPresenter controls/feedback/AutoUpdaterToastPresenter.qml" in qmldir_source
     assert (
@@ -307,6 +375,9 @@ def test_installer_launch_failure_is_reported_and_retryable(auto_updater_scene):
     assert QMetaObject.invokeMethod(root, "triggerInstallerFailure")
 
     assert backend.property("installCalls") == 1
+    assert backend.property("lastInstallerArgs") == (
+        "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
+    )
     assert root.property("errorCount") == 1
     assert "安装程序" in root.property("lastError")
 

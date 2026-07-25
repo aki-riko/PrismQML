@@ -85,7 +85,7 @@ Item {
                     ? "DRY 下载并安装演示"
                     : "真实 GitHub Releases 更新流程"
                 description: root.dryRunMode
-                    ? "完整展示检查、确认、下载进度和安装交接；全程不访问网络、不创建文件，也不启动安装器。"
+                    ? "完整展示检查、确认、下载进度和静默安装交接；全程不访问网络、不创建文件，也不启动安装器。"
                     : "使用 Gallery 注入的真实 Updater 检查 Release；此模式可能访问网络并打开发布页。"
                 orientation: Qt.Vertical
 
@@ -222,13 +222,13 @@ Item {
                                 "1. 模拟检查并返回一个演示版本",
                                 "2. 使用真实 UpdateDialog 展示说明与“下载并安装”确认",
                                 "3. 使用真实 Toast 或 ProgressDialog 将模拟进度推进到 100%",
-                                "4. 模拟安装交接并明确告知未创建文件、未启动程序"
+                                "4. 模拟 ISS 静默安装参数交接，并明确告知未创建文件、未启动程序"
                             ]
                             : [
                                 "1. 检查 GitHub Releases 并比较当前版本",
                                 "2. 发现新版本后显示更新说明和确认对话框",
                                 "3. 下载时由 Toast 或 ProgressDialog 显示不确定/确定进度",
-                                "4. 下载完成后启动安装程序，或打开 Release 页面"
+                                "4. Windows ISS 安装包在后台静默执行，或打开 Release 页面"
                             ]
 
                         delegate: Text {

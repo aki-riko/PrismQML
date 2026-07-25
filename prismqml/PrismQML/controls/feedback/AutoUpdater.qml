@@ -9,6 +9,7 @@
 // 用法:
 //   AutoUpdater { id: au; updater: appUpdater }   // appUpdater 由宿主 enableAutoUpdate 注入
 //   Button { onClicked: au.check() }
+//   Component.onCompleted: au.checkSilently()     // Silent startup check 启动静默检查
 // Custom presenter 自定义展示器:
 //   Component { id: dialogPresenter; AutoUpdaterProgressDialogPresenter {} }
 //   AutoUpdater { updater: appUpdater; feedbackPresenter: dialogPresenter }
@@ -32,7 +33,9 @@ Item {
 
     // ---- 可配置行为 ----
     property bool autoDownload: true              // 用户确认后是否自动下载(false 则仅发 downloadRequested 信号)
-    property string silentArgs: ""                // 安装参数;空则启动可见安装向导
+    property string silentArgs: Qt.platform.os === "windows"
+        ? "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
+        : "" // Inno Setup silent install arguments Inno Setup 静默安装参数
     property bool notifyWhenUpToDate: false        // 已是最新时是否弹提示 toast
     // Presenter component contract 展示器组件契约:
     //   property var feedbackModel / property Item presenterHost
@@ -73,6 +76,7 @@ Item {
     property string _pendingVersion: ""
     property bool _rangeKnown: false
     property bool _checking: false      // 是否处于检查态(不确定环)
+    property bool _checkSilent: false   // Suppress startup check feedback 抑制启动检查反馈
     property bool _downloading: false   // 是否处于下载态(不确定环→确定环)
     property bool _awaitingDecision: false
     property bool _componentReady: false
@@ -84,14 +88,25 @@ Item {
     property int _feedbackDuration: Enums.duration.none
     property real _feedbackProgress: 0
     property var _feedbackPresenterObject: null
+    readonly property int _bytesPerKibibyte: 1024
+    readonly property int _bytesPerMebibyte: _bytesPerKibibyte * _bytesPerKibibyte
 
     // ---- 对外信号(供应用可选接管) ----
     signal upToDateNotified(string version)
     signal errorOccurred(string message)
     signal downloadRequested(string version, string downloadUrl, string htmlUrl)
 
-    // 触发一次检查
+    // Trigger a visible manual check. 触发一次有反馈的手动检查。
     function check() {
+        _beginCheck(false);
+    }
+
+    // Trigger a startup check without check/result Toast. 触发不显示检查/结果 Toast 的启动检查。
+    function checkSilently() {
+        _beginCheck(true);
+    }
+
+    function _beginCheck(silent) {
         if (!updater) {
             console.warn("AutoUpdater: updater 未注入,无法检查更新");
             return;
@@ -100,14 +115,17 @@ Item {
             return;
         _clearPending();
         _dismissFeedback();
+        root._checkSilent = silent === true;
         // 检查阶段:总量未知,显示不确定进度环(读信息=不确定,下载拿到总大小才转确定)
         root._checking = true;
         root._rangeKnown = false;
-        _presentFeedback(
-            qsTr("正在检查更新"), "", "info",
-            Enums.notification.feature_indeterminate_ring,
-            Enums.duration.none, 0
-        );
+        if (!root._checkSilent) {
+            _presentFeedback(
+                qsTr("正在检查更新"), "", "info",
+                Enums.notification.feature_indeterminate_ring,
+                Enums.duration.none, 0
+            );
+        }
         updater.checkForUpdate();
     }
 
@@ -117,6 +135,15 @@ Item {
             || (root._pendingUrl === "" && root._pendingHtmlUrl === ""))
             return;
         _beginDownload(_pendingVersion, _pendingUrl, _pendingHtmlUrl);
+    }
+
+    function _formatSize(bytes) {
+        var value = Math.max(0, Number(bytes) || 0);
+        if (value >= root._bytesPerMebibyte)
+            return (value / root._bytesPerMebibyte).toFixed(1) + " MB";
+        if (value >= root._bytesPerKibibyte)
+            return (value / root._bytesPerKibibyte).toFixed(0) + " KB";
+        return Math.round(value) + " B";
     }
 
     function _beginDownload(version, downloadUrl, htmlUrl) {
@@ -235,6 +262,7 @@ Item {
                 return;
             // 检查结束,停不确定环并收起检查 toast,转入确认弹窗
             root._checking = false;
+            root._checkSilent = false;
             root._awaitingDecision = true;
             root._dismissFeedback();
             root._pendingVersion = version;
@@ -250,9 +278,11 @@ Item {
             if (!root._checking)
                 return;
             root._checking = false;
-            if (!root.notifyWhenUpToDate)
+            var silent = root._checkSilent;
+            root._checkSilent = false;
+            if (silent || !root.notifyWhenUpToDate)
                 root._dismissFeedback();   // 不提示时收起检查反馈
-            if (root.notifyWhenUpToDate) {
+            if (!silent && root.notifyWhenUpToDate) {
                 root._presentFeedback(
                     qsTr("已是最新版本"), version, "success",
                     Enums.notification.feature_normal,
@@ -266,6 +296,12 @@ Item {
             if (!root._checking)
                 return;
             root._checking = false;
+            if (root._checkSilent) {
+                root._checkSilent = false;
+                root._dismissFeedback();
+                root.errorOccurred(error);
+                return;
+            }
             _showError(qsTr("检查更新失败"), error);
         }
 
@@ -277,8 +313,14 @@ Item {
                 root._rangeKnown = true;
                 root._feedbackFeature = Enums.notification.feature_progress_ring;
             }
-            if (root._rangeKnown)
-                root._feedbackProgress = Math.max(0, Math.min(1, received / total));
+            if (root._rangeKnown) {
+                var progress = Math.max(0, Math.min(1, received / total));
+                root._feedbackProgress = progress;
+                root._feedbackMessage = Math.round(progress * 100) + "%  ("
+                    + root._formatSize(received) + " / " + root._formatSize(total) + ")";
+            } else {
+                root._feedbackMessage = root._formatSize(received) + qsTr(" 已下载");
+            }
         }
 
         function onDownloadFinished(filePath) {
@@ -290,7 +332,7 @@ Item {
                 return;
             }
             root._presentFeedback(
-                qsTr("安装程序已启动"), qsTr("请按安装程序提示完成更新"),
+                qsTr("安装程序已启动"), qsTr("安装将在后台静默完成"),
                 "success", Enums.notification.feature_normal,
                 Enums.duration.notification, 0
             );
