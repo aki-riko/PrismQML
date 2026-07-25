@@ -274,6 +274,9 @@ Item {
         objectName: "galleryAutoUpdater"
         updater: root.activeUpdater
         autoDownload: true
+        silentArgs: root.dryRunMode || Qt.platform.os === "windows"
+            ? dryRunUpdater.installerSilentArgs
+            : ""
         notifyWhenUpToDate: true
         feedbackPresenter: root.useProgressDialog
             ? progressDialogFeedbackPresenter

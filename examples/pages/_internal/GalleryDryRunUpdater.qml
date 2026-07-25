@@ -22,6 +22,8 @@ QtObject {
     readonly property string simulatedVersion: "DRY Next"
     readonly property string downloadToken: "gallery-dry-download"
     readonly property string installerPath: "PrismQML-Gallery-Setup-DryRun.exe"
+    readonly property string installerSilentArgs:
+        "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
     readonly property string releaseNotes:
         "## DRY 演示更新\n\n"
         + "- 展示真实更新确认对话框\n"

@@ -47,6 +47,8 @@ Window {
     readonly property int spacingM: Enums.spacing.m
     readonly property int spacingL: Enums.spacing.l
     readonly property int mebibyte: 1024 * 1024
+    readonly property string installerSilentArgs:
+        "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
 
     function triggerDoubleCheck() {
         facade.check();
@@ -159,6 +161,7 @@ Window {
     AutoUpdater {
         id: facade
         updater: backend
+        silentArgs: scene.installerSilentArgs
 
         onErrorOccurred: function(message) {
             scene.errorCount += 1;
@@ -375,8 +378,8 @@ def test_installer_launch_failure_is_reported_and_retryable(auto_updater_scene):
     assert QMetaObject.invokeMethod(root, "triggerInstallerFailure")
 
     assert backend.property("installCalls") == 1
-    assert backend.property("lastInstallerArgs") == (
-        "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
+    assert backend.property("lastInstallerArgs") == root.property(
+        "installerSilentArgs"
     )
     assert root.property("errorCount") == 1
     assert "安装程序" in root.property("lastError")
