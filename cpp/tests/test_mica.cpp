@@ -74,6 +74,12 @@ int main(int argc, char *argv[]) {
     const auto followerId = follower.winId();
     CHECK(followerId != 0, "隐藏附属窗口已创建 HWND");
 
+    QQuickWindow popup;
+    popup.setFlags(Qt::Popup);
+    popup.setTransientParent(&win);
+    const auto popupId = popup.winId();
+    CHECK(popupId != 0, "隐藏弹层已创建 HWND");
+
     // 进入一次事件循环后调用 DWM，但窗口始终不 show。
     QTimer::singleShot(0, [&]() {
         CHECK(!win.isVisible(), "DWM 调用前测试窗口仍隐藏");
@@ -98,6 +104,16 @@ int main(int argc, char *argv[]) {
             reinterpret_cast<HWND>(followerId), HWND_TOP,
             650, 90, 180, 300, SWP_NOACTIVATE);
         WindowHelper *helper = WindowHelper::instance();
+        SetWindowLongPtrW(
+            reinterpret_cast<HWND>(popupId), GWLP_HWNDPARENT, 0);
+        QVariant popupVariant = QVariant::fromValue(static_cast<QObject *>(&popup));
+        CHECK(GetWindow(reinterpret_cast<HWND>(popupId), GW_OWNER) == nullptr,
+              "弹层原生 owner 缺失输入已复现");
+        CHECK(helper->ensurePopupWindowOwner(popupVariant, wv),
+              "ensurePopupWindowOwner 修复并抬升弹层");
+        CHECK(GetWindow(reinterpret_cast<HWND>(popupId), GW_OWNER)
+                  == reinterpret_cast<HWND>(nativeId),
+              "弹层原生 owner 指向宿主窗口");
         QVariant followerVariant = QVariant::fromValue(static_cast<QObject *>(&follower));
         CHECK(GetWindow(reinterpret_cast<HWND>(followerId), GW_OWNER) == nullptr,
               "外侧附属窗口没有 owner, 可位于宿主下层");

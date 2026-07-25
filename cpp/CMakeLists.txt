@@ -23,6 +23,7 @@ add_library(prism STATIC
     src/ShadowManager.cpp
     src/MicaManager.cpp
     src/NativeWindow.cpp
+    src/PopupOwner.cpp
     src/Providers.cpp
     src/SvgImageProvider.cpp
     src/Store.cpp

@@ -13,6 +13,7 @@ from PySide6.QtGui import QGuiApplication, QIcon, QPainter, QPixmap, Qt
 
 from ._folder_drop import FolderDropPathHelper
 from ._icon_path import resolve_icon_path
+from ._popup_owner import ensure_popup_window_owner
 from ._window_follower import (
     WINDOW_EDGE_BOTTOM,
     WINDOW_EDGE_LEFT,
@@ -124,6 +125,22 @@ class WindowHelper(FolderDropPathHelper):
             )
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             error(f"窗口跟随注册失败: {exc}")
+            return False
+
+    @Slot("QVariant", "QVariant", result=bool)
+    def ensurePopupWindowOwner(self, popup_window, owner_window) -> bool:
+        """Keep a Qt popup natively owned and above its host. 保持 Qt 弹层原生隶属并位于宿主上方。"""
+        try:
+            popup_flags = popup_window.flags() if popup_window else Qt.WindowType.Widget
+            if (
+                popup_flags & Qt.WindowType.WindowType_Mask
+            ) != Qt.WindowType.Popup:
+                return False
+            popup_hwnd = self._window_id(popup_window)
+            owner_hwnd = self._window_id(owner_window)
+            return ensure_popup_window_owner(popup_hwnd, owner_hwnd)
+        except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:
+            error(f"弹层原生 owner 修复失败: {exc}")
             return False
 
     @Slot("QVariant", "QVariant", int, float, result=bool)
