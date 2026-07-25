@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
-"""Generate and verify PrismQML Windows installers. 生成并校验 Windows 安装器。"""
+"""Generate, verify, and compile Windows installers. 生成、校验并编译 Windows 安装器。"""
 
 from __future__ import annotations
 
@@ -12,6 +12,11 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
+from ._windows_installer_compile import (
+    EXIT_COMPILE,
+    InstallerCompileResult,
+    compile_installer,
+)
 from ._windows_installer_core import (
     EXIT_IO,
     EXIT_MANIFEST,
@@ -30,6 +35,7 @@ from ._windows_installer_core import (
 
 EXIT_OK = 0
 EXIT_USAGE = 2
+COMMAND_NAMES = frozenset({"doctor", "generate", "check", "compile"})
 
 
 class InstallerArgumentParser(argparse.ArgumentParser):
@@ -52,7 +58,12 @@ class InstallerArgumentParser(argparse.ArgumentParser):
 
 
 def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--json", action="store_true", help="emit stable JSON to stdout")
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="emit stable JSON to stdout",
+    )
     parser.add_argument(
         "--manifest",
         type=Path,
@@ -74,6 +85,7 @@ def _add_generation_arguments(parser: argparse.ArgumentParser) -> None:
 def build_parser() -> InstallerArgumentParser:
     """Build the stable public CLI surface. 构建稳定公开 CLI。"""
     parser = InstallerArgumentParser(description=__doc__)
+    parser.add_argument("--json", action="store_true", help="emit stable JSON to stdout")
     subparsers = parser.add_subparsers(dest="command", required=True)
     doctor = subparsers.add_parser("doctor", help="validate manifest and compile readiness")
     _add_common_arguments(doctor)
@@ -81,6 +93,15 @@ def build_parser() -> InstallerArgumentParser:
     _add_generation_arguments(generate)
     check = subparsers.add_parser("check", help="verify the generated ISS is current")
     _add_generation_arguments(check)
+    compile_command = subparsers.add_parser(
+        "compile", help="generate and explicitly invoke ISCC"
+    )
+    _add_generation_arguments(compile_command)
+    compile_command.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="validate and print the compile plan without writing or invoking ISCC",
+    )
     return parser
 
 
@@ -111,6 +132,20 @@ def _doctor_payload(manifest: WindowsInstallerManifest) -> Dict[str, Any]:
     return payload
 
 
+def _compile_payload(result: InstallerCompileResult) -> Dict[str, Any]:
+    return {
+        "ok": True,
+        "command": "compile",
+        "script": str(result.script),
+        "installer": str(result.installer),
+        "compiler": str(result.compiler),
+        "argv": list(result.argv),
+        "sha256": result.sha256,
+        "dry_run": result.dry_run,
+        "compiled": result.compiled,
+    }
+
+
 def _emit_json(payload: MappingLike) -> None:
     sys.stdout.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
 
@@ -124,6 +159,10 @@ def _emit_human(payload: MappingLike) -> None:
             marker = "ok" if check["available"] else "missing"
             sys.stdout.write(f"- {name}: {marker}\n")
         return
+    if command == "compile":
+        state = "planned" if payload["dry_run"] else "compiled"
+        sys.stdout.write(f"compile: {state} {payload['installer']}\n")
+        return
     changed = "updated" if payload["changed"] else "unchanged"
     sys.stdout.write(f"{command}: {changed} {payload['output']}\n")
 
@@ -136,6 +175,11 @@ def _success_payload(arguments: argparse.Namespace) -> MappingLike:
     if arguments.command == "doctor":
         return _doctor_payload(manifest)
     output = _output_path(manifest, arguments.output)
+    if arguments.command == "compile":
+        result = compile_installer(
+            manifest, output, arguments.version, arguments.dry_run
+        )
+        return _compile_payload(result)
     if arguments.command == "generate":
         result = generate_installer(manifest, output, arguments.version)
     else:
@@ -151,6 +195,12 @@ def _error_payload(command: Optional[str], error: ManifestError) -> MappingLike:
     }
 
 
+def _requested_command(raw_arguments: Sequence[str]) -> Optional[str]:
+    return next(
+        (argument for argument in raw_arguments if argument in COMMAND_NAMES), None
+    )
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """Run the installer CLI and return a stable exit code. 运行 CLI 并返回稳定退出码。"""
     raw_arguments = list(argv) if argv is not None else sys.argv[1:]
@@ -160,7 +210,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         arguments = parser.parse_args(raw_arguments)
         payload = _success_payload(arguments)
     except ManifestError as error:
-        command = raw_arguments[0] if raw_arguments else None
+        command = _requested_command(raw_arguments)
         payload = _error_payload(command, error)
         if "--json" in raw_arguments:
             _emit_json(payload)
@@ -175,6 +225,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 __all__ = [
+    "EXIT_COMPILE",
     "EXIT_IO",
     "EXIT_MANIFEST",
     "EXIT_OK",
@@ -185,6 +236,8 @@ __all__ = [
     "WindowsInstallerManifest",
     "build_parser",
     "check_installer",
+    "compile_installer",
+    "doctor_manifest",
     "generate_installer",
     "load_manifest",
     "main",

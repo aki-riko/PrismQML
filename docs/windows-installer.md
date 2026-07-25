@@ -1,6 +1,6 @@
 # PrismQML Windows 安装器模板
 
-`prismqml-installer` 根据一个小型 JSON 清单确定性生成 Inno Setup 脚本。它只读清单并生成或检查 `.iss` 文件，不调用 ISCC、不运行 Nuitka，也不执行安装程序。
+`prismqml-installer` 根据一个小型 JSON 清单确定性生成 Inno Setup 脚本，并提供显式编译入口。`doctor`、`generate`、`check` 和 `compile --dry-run` 都不会调用 ISCC；只有用户明确运行 `compile` 才会调用已安装的 ISCC。工具不会运行 Nuitka，也不会执行生成的安装程序。
 
 ## 行为合同
 
@@ -19,13 +19,13 @@
 
 复制 [示例清单](examples/prismqml-installer.json) 到应用仓库根目录。七个核心字段必须由应用明确声明：
 
-- `app_id`：永久固定的 Inno Setup 应用标识，不带花括号；
+- `app_id`：永久固定的规范 UUID，不带花括号；
 - `name`、`publisher`、`executable`；
 - `aumid`：Windows 快捷方式与通知使用的 AppUserModelID；
 - `install_scope`：只能是 `user` 或 `machine`，既有应用不得擅自改变；
 - `dist_dir`：相对于清单的 Nuitka standalone 目录。
 
-可选字段包括 `homepage`、`icon`、`installer_output_dir`、`output_name`、`chinese_messages_file` 和 `extension_include`。`extension_include` 用于品牌迁移等应用专属 Inno Setup 逻辑，公共模板不会猜测或删除旧目录。
+可选字段包括 `homepage`、`icon`、`installer_output_dir`、`output_name`、`chinese_messages_file` 和 `extension_include`。`output_name` 只能使用 `{name}`、`{version}` 占位符且不写 `.exe` 后缀；`extension_include` 用于品牌迁移等应用专属 Inno Setup 逻辑，公共模板不会猜测或删除旧目录。
 
 版本号不写入清单，由发布流程通过 `--version` 唯一注入。
 
@@ -35,6 +35,8 @@
 prismqml-installer doctor --manifest prismqml-installer.json
 prismqml-installer generate --manifest prismqml-installer.json --version 1.2.3.4
 prismqml-installer check --manifest prismqml-installer.json --version 1.2.3.4
+prismqml-installer compile --manifest prismqml-installer.json --version 1.2.3.4 --dry-run
+prismqml-installer compile --manifest prismqml-installer.json --version 1.2.3.4
 ```
 
 从源码仓运行时可使用：
@@ -45,10 +47,10 @@ prismqml-installer check --manifest prismqml-installer.json --version 1.2.3.4
 
 默认输出为清单旁的 `installer.generated.iss`。生成器只写相对路径，不把开发机绝对路径写入脚本；内容未变化时不会重写文件。`check` 完全只读，适合 CI 检查生成结果是否漂移。
 
-所有命令都接受 `--json`，例如：
+所有命令都接受全局 `--json`；为兼容直接按子命令阅读帮助的习惯，也支持把它放在子命令后。推荐形式：
 
 ```powershell
-prismqml-installer doctor --json --manifest prismqml-installer.json
+prismqml-installer --json doctor --manifest prismqml-installer.json
 ```
 
 JSON 成功结果包含 `ok`、`command` 及命令特有字段。错误结果固定为：
@@ -64,6 +66,8 @@ JSON 成功结果包含 `ok`、`command` 及命令特有字段。错误结果固
 }
 ```
 
-退出码：`0` 成功、`2` 参数错误、`3` 清单错误、`4` 输出缺失或漂移、`5` 文件系统错误。
+`compile --dry-run` 会校验全部输入、解析 ISCC 路径并返回准确的 `argv`、生成脚本路径和预期安装包路径，但不会写文件或启动进程。显式 `compile` 会先原子生成脚本，再以脚本所在目录为工作目录调用 `ISCC <脚本路径>`，并校验预期 `.exe` 确实生成。
+
+退出码：`0` 成功、`2` 参数错误、`3` 清单错误、`4` 输出缺失或漂移、`5` 文件系统错误、`6` 编译前置条件或 ISCC 编译失败。
 
 `doctor` 即使找不到 dist、图标或 ISCC 也返回 `0`，并通过 `ready_to_compile=false` 和 `checks` 报告缺项。可用 `PRISMQML_ISCC` 指定 ISCC 路径，或将其加入 `PATH`；工具不会自行安装依赖。

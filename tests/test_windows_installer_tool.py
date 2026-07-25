@@ -11,16 +11,20 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
+from prismqml.python.tools import _windows_installer_compile as installer_compile
 from prismqml.python.tools.windows_installer import (
+    EXIT_COMPILE,
     EXIT_MANIFEST,
     EXIT_OK,
     EXIT_STALE_OUTPUT,
     ManifestError,
     build_parser,
     check_installer,
+    doctor_manifest,
     generate_installer,
     load_manifest,
     main,
@@ -121,6 +125,25 @@ def test_manifest_rejects_ambiguous_or_unsafe_values(tmp_path, overrides, match)
         load_manifest(manifest_path)
 
 
+@pytest.mark.parametrize(
+    ("overrides", "match"),
+    [
+        ({"app_id": "not-a-guid"}, "app_id"),
+        ({"dist_dir": "build/main.dist:stream"}, "dist_dir"),
+        ({"icon": "assets/app?.ico"}, "icon"),
+        ({"output_name": "{name.__class__}-{version}"}, "output_name"),
+        ({"output_name": "ExampleApp-Setup.exe"}, "output_name"),
+    ],
+)
+def test_manifest_rejects_values_that_cannot_form_a_portable_iss(
+    tmp_path, overrides, match
+):
+    manifest_path = _write_manifest(tmp_path, **overrides)
+
+    with pytest.raises(ManifestError, match=match):
+        load_manifest(manifest_path)
+
+
 def test_render_rejects_invalid_release_version(tmp_path):
     manifest = load_manifest(_write_manifest(tmp_path))
 
@@ -142,6 +165,19 @@ def test_generate_is_atomic_and_does_not_rewrite_identical_output(tmp_path):
     assert first.sha256 == second.sha256
     assert output_path.stat().st_mtime_ns == first_timestamp
     assert check_installer(manifest, output_path, "1.0.0").sha256 == first.sha256
+
+
+def test_generate_replaces_non_utf8_generated_output(tmp_path):
+    manifest = load_manifest(_write_manifest(tmp_path))
+    output_path = tmp_path / "installer.generated.iss"
+    output_path.write_bytes(b"\xff\xfe stale")
+
+    result = generate_installer(manifest, output_path, "1.0.0")
+
+    assert result.changed is True
+    assert output_path.read_text(encoding="utf-8").startswith(
+        "; SPDX-License-Identifier: MIT"
+    )
 
 
 def test_check_reports_missing_and_stale_outputs(tmp_path):
@@ -213,6 +249,163 @@ def test_doctor_reports_missing_build_inputs_without_failing(tmp_path, capsys):
     assert "iscc" in payload["checks"]
 
 
+def test_doctor_distinguishes_required_files_from_directories(
+    tmp_path, monkeypatch
+):
+    dist_dir = tmp_path / "build" / "main.dist"
+    executable = dist_dir / "ExampleApp.exe"
+    icon = tmp_path / "assets" / "app.ico"
+    executable.mkdir(parents=True)
+    icon.mkdir(parents=True)
+    iscc = tmp_path / "tools" / "ISCC.exe"
+    iscc.parent.mkdir()
+    iscc.write_bytes(b"")
+    monkeypatch.setenv("PRISMQML_ISCC", str(iscc))
+    manifest = load_manifest(_write_manifest(tmp_path, icon="assets/app.ico"))
+
+    payload = doctor_manifest(manifest)
+
+    assert payload["checks"]["dist_dir"]["available"] is True
+    assert payload["checks"]["executable"]["available"] is False
+    assert payload["checks"]["icon"]["available"] is False
+    assert payload["checks"]["iscc"]["available"] is True
+    assert payload["ready_to_compile"] is False
+
+
+def _write_compile_inputs(tmp_path: Path, monkeypatch):
+    dist_dir = tmp_path / "build" / "main.dist"
+    dist_dir.mkdir(parents=True)
+    (dist_dir / "ExampleApp.exe").write_bytes(b"app")
+    iscc = tmp_path / "tools" / "ISCC.exe"
+    iscc.parent.mkdir()
+    iscc.write_bytes(b"compiler")
+    monkeypatch.setenv("PRISMQML_ISCC", str(iscc))
+    return _write_manifest(tmp_path), iscc
+
+
+def test_compile_dry_run_is_read_only_and_reports_exact_command(
+    tmp_path, monkeypatch, capsys
+):
+    manifest_path, iscc = _write_compile_inputs(tmp_path, monkeypatch)
+    output_path = tmp_path / "generated" / "installer.iss"
+
+    exit_code = main([
+        "--json", "compile", "--manifest", str(manifest_path),
+        "--version", "1.0.0", "--output", str(output_path), "--dry-run",
+    ])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == EXIT_OK
+    assert payload["command"] == "compile"
+    assert payload["dry_run"] is True
+    assert payload["compiled"] is False
+    assert payload["argv"] == [str(iscc.resolve()), str(output_path.resolve())]
+    assert payload["installer"] == str(
+        (tmp_path / "dist_installer" / "ExampleApp-Setup-1.0.0.exe").resolve()
+    )
+    assert not output_path.exists()
+
+
+def test_compile_generates_iss_and_verifies_compiler_artifact(
+    tmp_path, monkeypatch, capsys
+):
+    manifest_path, iscc = _write_compile_inputs(tmp_path, monkeypatch)
+    output_path = tmp_path / "generated" / "installer.iss"
+    installer_path = tmp_path / "dist_installer" / "ExampleApp-Setup-1.0.0.exe"
+    calls = []
+
+    def fake_run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        installer_path.parent.mkdir()
+        installer_path.write_bytes(b"setup")
+        return SimpleNamespace(returncode=0, stdout="compiled", stderr="")
+
+    monkeypatch.setattr(installer_compile.subprocess, "run", fake_run)
+
+    exit_code = main([
+        "--json", "compile", "--manifest", str(manifest_path),
+        "--version", "1.0.0", "--output", str(output_path),
+    ])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == EXIT_OK
+    assert payload["compiled"] is True
+    assert payload["installer"] == str(installer_path.resolve())
+    assert output_path.is_file() and installer_path.is_file()
+    assert calls == [([str(iscc.resolve()), str(output_path.resolve())], {
+        "capture_output": True,
+        "check": False,
+        "cwd": output_path.parent.resolve(),
+        "encoding": "utf-8",
+        "errors": "replace",
+        "text": True,
+    })]
+
+
+def test_compile_failure_uses_stable_json_and_exit_code(
+    tmp_path, monkeypatch, capsys
+):
+    manifest_path, _iscc = _write_compile_inputs(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        installer_compile.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=2, stdout="", stderr="compile failed"
+        ),
+    )
+
+    exit_code = main([
+        "--json", "compile", "--manifest", str(manifest_path),
+        "--version", "1.0.0",
+    ])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == EXIT_COMPILE
+    assert payload["ok"] is False
+    assert payload["command"] == "compile"
+    assert payload["error"]["code"] == "compile_failed"
+
+
+def test_compile_zero_exit_without_expected_artifact_is_failure(
+    tmp_path, monkeypatch, capsys
+):
+    manifest_path, _iscc = _write_compile_inputs(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        installer_compile.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0, stdout="compiled", stderr=""
+        ),
+    )
+
+    exit_code = main([
+        "--json", "compile", "--manifest", str(manifest_path),
+        "--version", "1.0.0",
+    ])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == EXIT_COMPILE
+    assert payload["error"]["code"] == "compile_failed"
+    assert "did not create expected installer" in payload["error"]["message"]
+
+
+def test_compile_dry_run_reports_missing_prerequisites_without_writing(
+    tmp_path, capsys
+):
+    manifest_path = _write_manifest(tmp_path)
+    output_path = tmp_path / "installer.generated.iss"
+
+    exit_code = main([
+        "--json", "compile", "--manifest", str(manifest_path),
+        "--version", "1.0.0", "--output", str(output_path), "--dry-run",
+    ])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == EXIT_COMPILE
+    assert payload["error"]["code"] == "compile_not_ready"
+    assert not output_path.exists()
+
+
 def test_cli_reports_invalid_manifest_as_machine_readable_error(tmp_path, capsys):
     manifest_path = _write_manifest(tmp_path, install_scope="invalid")
 
@@ -232,6 +425,7 @@ def test_help_and_module_entrypoint_work_from_another_directory(tmp_path):
     assert "doctor" in help_text
     assert "generate" in help_text
     assert "check" in help_text
+    assert "compile" in help_text
     manifest_path = _write_manifest(tmp_path)
     environment = os.environ.copy()
     environment["PYTHONPATH"] = str(ROOT)
@@ -260,9 +454,22 @@ def test_help_and_module_entrypoint_work_from_another_directory(tmp_path):
     assert completed.stderr == ""
 
 
+def test_json_option_is_supported_before_or_after_subcommand(tmp_path, capsys):
+    manifest_path = _write_manifest(tmp_path)
+
+    for arguments in (
+        ["--json", "doctor", "--manifest", str(manifest_path)],
+        ["doctor", "--json", "--manifest", str(manifest_path)],
+    ):
+        assert main(arguments) == EXIT_OK
+        assert json.loads(capsys.readouterr().out)["command"] == "doctor"
+
+
 def test_distribution_registers_cli_template_and_documentation():
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    mkdocs = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     documentation = ROOT / "docs" / "windows-installer.md"
+    english_documentation = ROOT / "docs" / "windows-installer.en.md"
     example = ROOT / "docs" / "examples" / "prismqml-installer.json"
 
     assert '[project.scripts]' in pyproject
@@ -272,5 +479,12 @@ def test_distribution_registers_cli_template_and_documentation():
     )
     assert 'python/tools/templates/*.tmpl' in pyproject
     assert documentation.is_file()
+    assert english_documentation.is_file()
     assert example.is_file()
-    assert "RestartApplications=no" in documentation.read_text(encoding="utf-8")
+    documentation_text = documentation.read_text(encoding="utf-8")
+    assert "RestartApplications=no" in documentation_text
+    assert "compile --manifest" in documentation_text
+    assert "RestartApplications=no" in english_documentation.read_text(
+        encoding="utf-8"
+    )
+    assert "Windows 安装器: windows-installer.md" in mkdocs

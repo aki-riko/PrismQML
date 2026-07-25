@@ -15,7 +15,7 @@ import tempfile
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path, PureWindowsPath
-from string import Template
+from string import Formatter, Template
 from typing import Any, Dict, Mapping, Optional
 from urllib.parse import urlparse
 
@@ -29,7 +29,13 @@ DEFAULT_INSTALLER_OUTPUT_DIR = "dist_installer"
 DEFAULT_CHINESE_MESSAGES_FILE = "compiler:Languages\\ChineseSimplified.isl"
 VERSION_PATTERN = re.compile(r"[0-9]+(?:\.[0-9]+){2,3}\Z")
 AUMID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{1,127}\Z")
+UUID_PATTERN = re.compile(
+    r"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-"
+    r"[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\Z"
+)
 INVALID_NAME_CHARS = frozenset('<>:"/\\|?*')
+INVALID_PATH_CHARS = frozenset('<>:"|?*')
+OUTPUT_NAME_FIELDS = frozenset({"name", "version"})
 INSTALL_SCOPE_VALUES = {
     "user": ("{localappdata}\\Programs\\{#PrismAppName}", "lowest"),
     "machine": ("{autopf}\\{#PrismAppName}", "admin"),
@@ -119,6 +125,12 @@ def _relative_path(data: Mapping[str, Any], field: str, default: Optional[str] =
     windows_path = PureWindowsPath(value)
     if path.is_absolute() or windows_path.is_absolute() or ".." in path.parts:
         raise _manifest_error(field, "must be a project-relative path without '..'")
+    if any(
+        char in INVALID_PATH_CHARS
+        for part in windows_path.parts
+        for char in part
+    ):
+        raise _manifest_error(field, "contains characters invalid in Windows paths")
     return path.as_posix()
 
 
@@ -143,6 +155,8 @@ def _validate_identity(data: Mapping[str, Any]) -> Dict[str, str]:
     app_id = _literal(data, "app_id")
     if "{" in app_id or "}" in app_id:
         raise _manifest_error("app_id", "store the identifier without braces")
+    if UUID_PATTERN.fullmatch(app_id) is None:
+        raise _manifest_error("app_id", "must be a canonical UUID without braces")
     name = _literal(data, "name")
     if any(char in name for char in INVALID_NAME_CHARS):
         raise _manifest_error("name", "contains characters invalid in install paths")
@@ -180,12 +194,20 @@ def _validate_scope(data: Mapping[str, Any]) -> str:
 
 def _validate_output_name(data: Mapping[str, Any]) -> str:
     value = _literal(data, "output_name", DEFAULT_OUTPUT_NAME)
-    if "/" in value or "\\" in value:
-        raise _manifest_error("output_name", "must be a file name pattern without directories")
     try:
-        value.format(name="App", version="1.0.0")
+        fields = list(Formatter().parse(value))
     except (KeyError, ValueError) as exc:
         raise _manifest_error("output_name", f"invalid format pattern: {exc}") from exc
+    for _literal_text, field_name, format_spec, conversion in fields:
+        if field_name is not None and field_name not in OUTPUT_NAME_FIELDS:
+            raise _manifest_error("output_name", "only {name} and {version} are allowed")
+        if format_spec or conversion:
+            raise _manifest_error("output_name", "format specifiers and conversions are not allowed")
+    rendered = value.format(name="App", version="1.0.0")
+    if any(char in rendered for char in INVALID_NAME_CHARS):
+        raise _manifest_error("output_name", "renders an invalid Windows file name")
+    if rendered.lower().endswith(".exe"):
+        raise _manifest_error("output_name", "must omit the compiler-added .exe suffix")
     return value
 
 
@@ -265,7 +287,12 @@ def _template_text() -> str:
     template = resources.files("prismqml.python.tools").joinpath(
         "templates", "windows_app.iss.tmpl"
     )
-    return template.read_text(encoding="utf-8")
+    try:
+        return template.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ManifestError(
+            "io_error", f"cannot read installer template: {exc}", EXIT_IO
+        ) from exc
 
 
 def _optional_template_values(
@@ -332,14 +359,38 @@ def _content_sha256(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
+def _generated_output_matches(output_path: Path, content: str) -> bool:
+    if not output_path.is_file():
+        return False
+    try:
+        return output_path.read_text(encoding="utf-8") == content
+    except UnicodeDecodeError:
+        return False
+    except OSError as exc:
+        raise ManifestError(
+            "io_error", f"cannot read generated installer: {exc}", EXIT_IO
+        ) from exc
+
+
+def _cleanup_temporary_file(temporary_name: Optional[str]) -> str:
+    if not temporary_name:
+        return ""
+    try:
+        Path(temporary_name).unlink(missing_ok=True)
+    except OSError as exc:
+        return f"; temporary cleanup also failed: {exc}"
+    return ""
+
+
 def generate_installer(
     manifest: WindowsInstallerManifest, output_path: Path, version: str
 ) -> InstallerResult:
     """Atomically create or refresh one generated ISS. 原子创建或刷新 ISS。"""
     output_path = Path(output_path).resolve()
     content = render_installer(manifest, output_path, version)
-    if output_path.is_file() and output_path.read_text(encoding="utf-8") == content:
+    if _generated_output_matches(output_path, content):
         return InstallerResult(output_path, _content_sha256(content), False)
+    temporary_name = None
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         descriptor, temporary_name = tempfile.mkstemp(
@@ -349,10 +400,12 @@ def generate_installer(
             stream.write(content)
         os.replace(temporary_name, output_path)
     except OSError as exc:
-        temporary = locals().get("temporary_name")
-        if temporary:
-            Path(temporary).unlink(missing_ok=True)
-        raise ManifestError("io_error", f"cannot write generated installer: {exc}", EXIT_IO) from exc
+        cleanup_detail = _cleanup_temporary_file(temporary_name)
+        raise ManifestError(
+            "io_error",
+            f"cannot write generated installer: {exc}{cleanup_detail}",
+            EXIT_IO,
+        ) from exc
     return InstallerResult(output_path, _content_sha256(content), True)
 
 
@@ -385,11 +438,13 @@ def check_installer(
     return InstallerResult(output_path, _content_sha256(expected), False)
 
 
-def _path_check(path: Path, required: bool = True) -> Dict[str, Any]:
+def _path_check(path: Path, expected: str) -> Dict[str, Any]:
+    available = path.is_dir() if expected == "directory" else path.is_file()
     return {
-        "available": path.exists(),
+        "available": available,
+        "expected": expected,
         "path": str(path),
-        "required": required,
+        "required": True,
     }
 
 
@@ -397,11 +452,19 @@ def _iscc_check() -> Dict[str, Any]:
     configured = os.environ.get("PRISMQML_ISCC", "").strip()
     if configured:
         path = Path(configured).resolve()
-        return {"available": path.is_file(), "path": str(path), "source": "env"}
+        return {
+            "available": path.is_file(),
+            "expected": "file",
+            "path": str(path),
+            "required": True,
+            "source": "env",
+        }
     discovered = shutil.which("ISCC.exe") or shutil.which("iscc")
     return {
         "available": discovered is not None,
+        "expected": "file",
         "path": str(Path(discovered).resolve()) if discovered else None,
+        "required": True,
         "source": "path" if discovered else "missing",
     }
 
@@ -410,19 +473,19 @@ def doctor_manifest(manifest: WindowsInstallerManifest) -> Dict[str, Any]:
     """Return non-mutating compile readiness diagnostics. 返回只读编译就绪诊断。"""
     dist_dir = _project_path(manifest, manifest.dist_dir)
     checks = {
-        "dist_dir": _path_check(dist_dir),
-        "executable": _path_check(dist_dir / manifest.executable),
+        "dist_dir": _path_check(dist_dir, "directory"),
+        "executable": _path_check(dist_dir / manifest.executable, "file"),
         "iscc": _iscc_check(),
     }
     if manifest.icon:
-        checks["icon"] = _path_check(_project_path(manifest, manifest.icon))
+        checks["icon"] = _path_check(_project_path(manifest, manifest.icon), "file")
     if manifest.extension_include:
         checks["extension_include"] = _path_check(
-            _project_path(manifest, manifest.extension_include)
+            _project_path(manifest, manifest.extension_include), "file"
         )
     if not manifest.chinese_messages_file.lower().startswith("compiler:"):
         checks["chinese_messages_file"] = _path_check(
-            _project_path(manifest, manifest.chinese_messages_file)
+            _project_path(manifest, manifest.chinese_messages_file), "file"
         )
     return {
         "checks": checks,

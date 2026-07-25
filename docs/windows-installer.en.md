@@ -1,0 +1,73 @@
+# PrismQML Windows Installer Template
+
+`prismqml-installer` deterministically generates an Inno Setup script from a small JSON manifest and provides an explicit compile entry point. `doctor`, `generate`, `check`, and `compile --dry-run` never invoke ISCC. Only an explicit `compile` command invokes an installed ISCC. The tool never runs Nuitka or executes the generated installer.
+
+## Behavior contract
+
+The generated template fixes the following upgrade behavior:
+
+- `AppId` remains stable across releases so a new release upgrades the same installation;
+- `CloseApplications=yes` lets Inno Setup close processes that hold old files;
+- `RestartApplications=no` never reopens the application after installation;
+- `[Run]` uses `skipifsilent`, so a silent update waits for the user's next launch;
+- per-user installs use `{localappdata}\Programs` without proactively requesting elevation;
+- machine installs use `{autopf}`, where Windows can still show the mandatory UAC prompt.
+
+PrismQML `AutoUpdater` supplies the runtime silent arguments. The template does not contain `/RESTARTAPPLICATIONS` or `/AUTORESTARTAPP`.
+
+## Manifest
+
+Copy the [example manifest](examples/prismqml-installer.json) to the application repository root. Each application must explicitly declare seven core fields:
+
+- `app_id`: a permanently stable canonical UUID without braces;
+- `name`, `publisher`, and `executable`;
+- `aumid`: the AppUserModelID used by Windows shortcuts and notifications;
+- `install_scope`: either `user` or `machine`; do not change it for an existing application without a migration decision;
+- `dist_dir`: the Nuitka standalone directory relative to the manifest.
+
+Optional fields are `homepage`, `icon`, `installer_output_dir`, `output_name`, `chinese_messages_file`, and `extension_include`. `output_name` may only use the `{name}` and `{version}` placeholders and must omit the `.exe` suffix. Use `extension_include` for application-specific logic such as brand migration; the shared template does not guess or remove legacy directories.
+
+The manifest does not store the release version. The release workflow injects it through `--version`.
+
+## Commands
+
+```powershell
+prismqml-installer doctor --manifest prismqml-installer.json
+prismqml-installer generate --manifest prismqml-installer.json --version 1.2.3.4
+prismqml-installer check --manifest prismqml-installer.json --version 1.2.3.4
+prismqml-installer compile --manifest prismqml-installer.json --version 1.2.3.4 --dry-run
+prismqml-installer compile --manifest prismqml-installer.json --version 1.2.3.4
+```
+
+From a source checkout, use:
+
+```powershell
+.\.venv\Scripts\python.exe -m prismqml.python.tools.windows_installer doctor --manifest prismqml-installer.json
+```
+
+The default output is `installer.generated.iss` beside the manifest. Generated scripts only contain relative paths and never capture development-machine absolute paths. Identical content is not rewritten. `check` is read-only and is suitable for detecting generated-output drift in CI.
+
+Every command accepts the global `--json` option. It is also accepted after a subcommand for discoverability in subcommand help. The recommended form is:
+
+```powershell
+prismqml-installer --json doctor --manifest prismqml-installer.json
+```
+
+Successful JSON contains `ok`, `command`, and command-specific fields. Errors use this stable envelope:
+
+```json
+{
+  "ok": false,
+  "command": "check",
+  "error": {
+    "code": "stale_output",
+    "message": "generated installer is stale: ..."
+  }
+}
+```
+
+`compile --dry-run` validates all inputs, resolves ISCC, and returns the exact `argv`, generated-script path, and expected installer path without writing files or starting a process. An explicit `compile` atomically generates the script, invokes `ISCC <script path>` with the script directory as its working directory, and verifies that the expected `.exe` exists.
+
+Exit codes are `0` for success, `2` for invalid arguments, `3` for an invalid manifest, `4` for missing or stale generated output, `5` for file-system errors, and `6` for missing compile prerequisites or ISCC failures.
+
+`doctor` returns `0` even when the dist directory, icon, or ISCC is unavailable, reporting missing items through `ready_to_compile=false` and `checks`. Set `PRISMQML_ISCC` to the compiler path or add it to `PATH`. The tool never installs dependencies automatically.
