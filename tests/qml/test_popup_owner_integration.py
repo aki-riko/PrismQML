@@ -5,6 +5,9 @@
 
 """PopupWindowCore owner repair integration. 弹层 owner 修复集成测试。"""
 
+import sys
+
+import pytest
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -20,6 +23,11 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
 
+
+pytestmark = pytest.mark.skipif(
+    sys.platform != "win32",
+    reason="QQuickPopupWindow 原生 owner 修复只在 Windows 启用",
+)
 
 SCENE_URL = QUrl.fromLocalFile(__file__.replace(".py", ".qml"))
 SCENE_SOURCE = b"""
