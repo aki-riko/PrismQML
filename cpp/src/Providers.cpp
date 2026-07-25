@@ -156,29 +156,38 @@ bool WindowHelper::ensureFollowerFilterInstalled() {
 #endif
 }
 
-void WindowHelper::promoteFollowerGroup(qulonglong followerHwnd) {
+bool WindowHelper::activateFollowerGroup(qulonglong followerHwnd) {
 #ifdef Q_OS_WIN
     const auto follower = m_followers.constFind(followerHwnd);
     if (follower == m_followers.cend())
-        return;
+        return false;
     const HWND hostHwnd = reinterpret_cast<HWND>(follower->hostHwnd);
     const HWND nativeFollowerHwnd = reinterpret_cast<HWND>(follower->followerHwnd);
     const UINT flags =
         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER;
-    // Promote the pair before Windows activates the clicked follower.
-    // 在 Windows 激活被点击的附属窗口前整体提升窗口对。
-    const detail::WindowFollowerPromotionResult result =
-        detail::promoteWindowFollowerGroup(
+    // Let the host consume activation while preserving the follower mouse click.
+    // 由宿主接管激活,同时保留附属窗口的鼠标点击。
+    const detail::WindowFollowerActivationResult result =
+        detail::activateWindowFollowerGroup(
             hostHwnd, nativeFollowerHwnd,
+            [](HWND window) {
+                return SetForegroundWindow(window) != FALSE;
+            },
             [flags](HWND window, HWND insertAfter) {
                 return SetWindowPos(window, insertAfter, 0, 0, 0, 0, flags) != FALSE;
             });
+    if (!result.hostActivated) {
+        qWarning() << "prism::WindowHelper: 宿主窗口原生激活失败";
+        return false;
+    }
     if (!result.hostPromoted)
         qWarning() << "prism::WindowHelper: 宿主窗口原生抬升失败";
     if (!result.followerPlaced)
         qWarning() << "prism::WindowHelper: 附属窗口原生抬升失败";
+    return true;
 #else
     Q_UNUSED(followerHwnd);
+    return false;
 #endif
 }
 
@@ -294,14 +303,14 @@ bool WindowHelper::unregisterWindowFollower(const QVariant &followerWindow) {
 
 bool WindowHelper::nativeEventFilter(
     const QByteArray &eventType, void *message, qintptr *result) {
-    Q_UNUSED(result);
 #ifdef Q_OS_WIN
     if (eventType != "windows_generic_MSG" || !message)
         return false;
     MSG *msg = static_cast<MSG *>(message);
-    if (msg->message == WM_MOUSEACTIVATE) {
-        promoteFollowerGroup(reinterpret_cast<qulonglong>(msg->hwnd));
-        return false;
+    if (msg->message == WM_MOUSEACTIVATE && result
+        && activateFollowerGroup(reinterpret_cast<qulonglong>(msg->hwnd))) {
+        *result = MA_NOACTIVATE;
+        return true;
     }
     if (msg->message == WM_WINDOWPOSCHANGING && msg->lParam) {
         const qulonglong followerHwnd = reinterpret_cast<qulonglong>(msg->hwnd);
@@ -346,7 +355,7 @@ bool WindowHelper::nativeEventFilter(
             SWP_NOACTIVATE | SWP_NOOWNERZORDER);
     }
 #else
-    Q_UNUSED(eventType); Q_UNUSED(message);
+    Q_UNUSED(eventType); Q_UNUSED(message); Q_UNUSED(result);
 #endif
     return false;
 }

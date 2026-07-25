@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Native window follower contracts. 原生附属窗口跟随合同。"""
 
+import ctypes
 from types import SimpleNamespace
 
 import pytest
@@ -234,18 +235,46 @@ def test_internal_follower_placement_does_not_promote_host():
     assert promotions == []
 
 
-def test_mouse_activation_promotes_host_and_follower_as_one_group():
+def test_mouse_activation_activates_host_and_handles_follower_message():
+    activations = []
     promotions = []
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
         set_geometry=lambda _hwnd, _geometry, _after: True,
         promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+        activate_window=lambda hwnd: activations.append(hwnd) or True,
     )
     assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    msg = event_filter._get_msg_class()()
+    msg.hwnd = 21
+    msg.message = window_helper._WM_MOUSEACTIVATE
 
-    event_filter.promote_follower_group(21)
+    handled, result = event_filter.nativeEventFilter(None, ctypes.addressof(msg))
 
+    assert handled is True
+    assert result == window_helper._MA_NOACTIVATE
+    assert activations == [11]
     assert promotions == [(11, 0), (21, 11)]
+
+
+def test_mouse_activation_falls_back_when_host_cannot_activate():
+    promotions = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+        activate_window=lambda _hwnd: False,
+    )
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    msg = event_filter._get_msg_class()()
+    msg.hwnd = 21
+    msg.message = window_helper._WM_MOUSEACTIVATE
+
+    handled, result = event_filter.nativeEventFilter(None, ctypes.addressof(msg))
+
+    assert handled is False
+    assert result == 0
+    assert promotions == []
 
 
 class _FakeWindow:

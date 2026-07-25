@@ -212,6 +212,41 @@ static void testWindowFollowerGeometry() {
     CHECK(promotion.hostPromoted && promotion.followerPlaced
               && promotions == expectedPromotions,
           "WindowHelper 鼠标激活先提升宿主再排列附属窗口");
+
+    QList<qulonglong> activations;
+    promotions.clear();
+    const WindowFollowerActivationResult activation = activateWindowFollowerGroup(
+        qulonglong{11}, qulonglong{21},
+        [&activations](qulonglong window) {
+            activations.append(window);
+            return true;
+        },
+        [&promotions](qulonglong window, qulonglong insertAfter) {
+            promotions.append({window, insertAfter});
+            return true;
+        });
+    CHECK(activation.hostActivated && activation.hostPromoted
+              && activation.followerPlaced && activations == QList<qulonglong>{11}
+              && promotions == expectedPromotions,
+          "WindowHelper 点击附属窗口时由宿主接管激活");
+
+    activations.clear();
+    promotions.clear();
+    const WindowFollowerActivationResult activationFailure =
+        activateWindowFollowerGroup(
+            qulonglong{11}, qulonglong{21},
+            [&activations](qulonglong window) {
+                activations.append(window);
+                return false;
+            },
+            [&promotions](qulonglong window, qulonglong insertAfter) {
+                promotions.append({window, insertAfter});
+                return true;
+            });
+    CHECK(!activationFailure.hostActivated && !activationFailure.hostPromoted
+              && !activationFailure.followerPlaced
+              && activations == QList<qulonglong>{11} && promotions.isEmpty(),
+          "WindowHelper 宿主激活失败时保留系统默认路径");
 }
 
 static void testTrayCheckableActionContract() {

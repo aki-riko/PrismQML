@@ -26,6 +26,12 @@ struct WindowFollowerPromotionResult {
     bool followerPlaced;
 };
 
+struct WindowFollowerActivationResult {
+    bool hostActivated;
+    bool hostPromoted;
+    bool followerPlaced;
+};
+
 inline bool isWindowFollowerEdge(int edge) {
     return edge >= WindowFollowerLeft && edge <= WindowFollowerBottom;
 }
@@ -71,6 +77,16 @@ inline WindowFollowerPromotionResult promoteWindowFollowerGroup(
     const bool hostPromoted = setZOrder(host, Handle{});
     const bool followerPlaced = setZOrder(follower, host);
     return {hostPromoted, followerPlaced};
+}
+
+template <typename Handle, typename Activate, typename SetZOrder>
+inline WindowFollowerActivationResult activateWindowFollowerGroup(
+    Handle host, Handle follower, Activate activate, SetZOrder setZOrder) {
+    if (!host || !follower || !activate(host))
+        return {false, false, false};
+    const WindowFollowerPromotionResult promotion =
+        promoteWindowFollowerGroup(host, follower, setZOrder);
+    return {true, promotion.hostPromoted, promotion.followerPlaced};
 }
 
 }  // namespace prism::detail

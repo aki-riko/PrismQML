@@ -42,6 +42,7 @@ _WM_SIZING = 0x0214
 _WM_MOVING = 0x0216
 _WM_MOUSEACTIVATE = 0x0021
 _WM_WINDOWPOSCHANGING = 0x0046
+_MA_NOACTIVATE = 0x0003
 _SWP_NOSIZE, _SWP_NOMOVE = 0x0001, 0x0002
 _SWP_NOZORDER = 0x0004
 _SWP_NOACTIVATE = 0x0010
@@ -149,7 +150,7 @@ def _set_qt_follower_geometry(
 
 
 def _load_user32_window_functions():
-    """Load pointer-width Win32 geometry functions. 加载指针宽度 Win32 几何函数。"""
+    """Load pointer-width Win32 window functions. 加载指针宽度 Win32 窗口函数。"""
     if sys.platform != "win32":
         return None
     try:
@@ -170,7 +171,10 @@ def _load_user32_window_functions():
             wintypes.UINT,
         ]
         set_window_pos.restype = wintypes.BOOL
-        return get_window_rect, set_window_pos
+        set_foreground_window = user32.SetForegroundWindow
+        set_foreground_window.argtypes = [wintypes.HWND]
+        set_foreground_window.restype = wintypes.BOOL
+        return get_window_rect, set_window_pos, set_foreground_window
     except (AttributeError, OSError) as exc:
         debug(f"Win32窗口跟随 API 不可用: {exc}")
         return None
@@ -221,6 +225,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
             Callable[[int, tuple[int, int, int, int], int], bool]
         ] = None,
         promote_window: Optional[Callable[[int, Optional[int]], bool]] = None,
+        activate_window: Optional[Callable[[int], bool]] = None,
     ) -> None:
         super().__init__()
         functions = _load_user32_window_functions()
@@ -235,9 +240,12 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         if promote_window is None and functions is not None:
             promote_window = lambda hwnd, after: bool(
                 functions[1](hwnd, after, 0, 0, 0, 0, _SWP_PROMOTE_FLAGS))
+        if activate_window is None and functions is not None:
+            activate_window = lambda hwnd: bool(functions[2](hwnd))
         self._read_rect = read_rect
         self._set_geometry = set_geometry
         self._promote_window = promote_window
+        self._activate_window = activate_window
         self._bindings: dict[int, _WindowFollowerBinding] = {}
 
     @property
@@ -390,13 +398,29 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         if not self._promote_window(binding.follower_hwnd, binding.host_hwnd):
             debug(f"附属窗口原生抬升失败: hwnd={binding.follower_hwnd}")
 
+    def activate_follower_group(self, follower_hwnd: int) -> bool:
+        """Activate the host while preserving the follower click. 激活宿主并保留附属窗口点击。"""
+        binding = self._bindings.get(follower_hwnd)
+        if (
+            binding is None
+            or self._activate_window is None
+            or self._promote_window is None
+        ):
+            return False
+        if not self._activate_window(binding.host_hwnd):
+            debug(f"宿主窗口原生激活失败: hwnd={binding.host_hwnd}")
+            return False
+        self.promote_follower_group(follower_hwnd)
+        return True
+
     def nativeEventFilter(self, eventType: QByteArray, message: int) -> tuple:
         """Consume proposed move/size RECTs without blocking Qt. 消费候选 RECT 但不拦截 Qt。"""
         del eventType
         try:
             msg = self._get_msg_class().from_address(int(message))
             if msg.message == _WM_MOUSEACTIVATE:
-                self.promote_follower_group(int(msg.hwnd))
+                if self.activate_follower_group(int(msg.hwnd)):
+                    return True, _MA_NOACTIVATE
                 return False, 0
             if msg.message == _WM_WINDOWPOSCHANGING and msg.lParam:
                 window_pos = self._get_window_pos_class().from_address(
