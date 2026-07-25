@@ -16,6 +16,7 @@
 #include <QDir>
 #include <QIcon>
 #include <QImage>
+#include <QList>
 #include <QMutexLocker>
 #include <QPixmap>
 #include <QPainter>
@@ -156,25 +157,33 @@ bool WindowHelper::ensureFollowerFilterInstalled() {
 #endif
 }
 
-bool WindowHelper::activateFollowerGroup(qulonglong followerHwnd) {
+bool WindowHelper::activateWindowGroup(qulonglong windowHwnd) {
 #ifdef Q_OS_WIN
-    const auto follower = m_followers.constFind(followerHwnd);
-    if (follower == m_followers.cend())
+    const auto clickedFollower = m_followers.constFind(windowHwnd);
+    const qulonglong hostHwnd = clickedFollower == m_followers.cend()
+        ? windowHwnd : clickedFollower->hostHwnd;
+    QList<qulonglong> followerHwnds;
+    for (auto it = m_followers.cbegin(); it != m_followers.cend(); ++it) {
+        if (it->hostHwnd == hostHwnd)
+            followerHwnds.append(it->followerHwnd);
+    }
+    if (followerHwnds.isEmpty())
         return false;
-    const HWND hostHwnd = reinterpret_cast<HWND>(follower->hostHwnd);
-    const HWND nativeFollowerHwnd = reinterpret_cast<HWND>(follower->followerHwnd);
     const UINT flags =
         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER;
-    // Let the host consume activation while preserving the follower mouse click.
-    // 由宿主接管激活,同时保留附属窗口的鼠标点击。
+    // Let the host consume activation while preserving the original mouse click.
+    // 由宿主接管激活,同时保留原窗口的鼠标点击。
     const detail::WindowFollowerActivationResult result =
         detail::activateWindowFollowerGroup(
-            hostHwnd, nativeFollowerHwnd,
-            [](HWND window) {
-                return SetForegroundWindow(window) != FALSE;
+            hostHwnd, followerHwnds,
+            [](qulonglong window) {
+                return SetForegroundWindow(reinterpret_cast<HWND>(window)) != FALSE;
             },
-            [flags](HWND window, HWND insertAfter) {
-                return SetWindowPos(window, insertAfter, 0, 0, 0, 0, flags) != FALSE;
+            [flags](qulonglong window, qulonglong insertAfter) {
+                return SetWindowPos(
+                    reinterpret_cast<HWND>(window),
+                    reinterpret_cast<HWND>(insertAfter),
+                    0, 0, 0, 0, flags) != FALSE;
             });
     if (!result.hostActivated) {
         qWarning() << "prism::WindowHelper: 宿主窗口原生激活失败";
@@ -182,11 +191,11 @@ bool WindowHelper::activateFollowerGroup(qulonglong followerHwnd) {
     }
     if (!result.hostPromoted)
         qWarning() << "prism::WindowHelper: 宿主窗口原生抬升失败";
-    if (!result.followerPlaced)
-        qWarning() << "prism::WindowHelper: 附属窗口原生抬升失败";
+    if (!result.followersPlaced)
+        qWarning() << "prism::WindowHelper: 一个或多个附属窗口原生抬升失败";
     return true;
 #else
-    Q_UNUSED(followerHwnd);
+    Q_UNUSED(windowHwnd);
     return false;
 #endif
 }
@@ -308,7 +317,7 @@ bool WindowHelper::nativeEventFilter(
         return false;
     MSG *msg = static_cast<MSG *>(message);
     if (msg->message == WM_MOUSEACTIVATE && result
-        && activateFollowerGroup(reinterpret_cast<qulonglong>(msg->hwnd))) {
+        && activateWindowGroup(reinterpret_cast<qulonglong>(msg->hwnd))) {
         *result = MA_NOACTIVATE;
         return true;
     }

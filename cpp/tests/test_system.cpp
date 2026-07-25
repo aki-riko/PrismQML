@@ -201,22 +201,23 @@ static void testWindowFollowerGeometry() {
           "WindowHelper 底部动画帧原子更新完整 RECT");
 
     QList<QPair<qulonglong, qulonglong>> promotions;
+    const QList<qulonglong> followers{21, 22};
     const WindowFollowerPromotionResult promotion = promoteWindowFollowerGroup(
-        qulonglong{11}, qulonglong{21},
+        qulonglong{11}, followers,
         [&promotions](qulonglong window, qulonglong insertAfter) {
             promotions.append({window, insertAfter});
             return true;
         });
     const QList<QPair<qulonglong, qulonglong>> expectedPromotions{
-        {11, 0}, {21, 11}};
-    CHECK(promotion.hostPromoted && promotion.followerPlaced
+        {11, 0}, {21, 11}, {22, 21}};
+    CHECK(promotion.hostPromoted && promotion.followersPlaced
               && promotions == expectedPromotions,
-          "WindowHelper 鼠标激活先提升宿主再排列附属窗口");
+          "WindowHelper 鼠标激活先提升宿主再连续排列全部附属窗口");
 
     QList<qulonglong> activations;
     promotions.clear();
     const WindowFollowerActivationResult activation = activateWindowFollowerGroup(
-        qulonglong{11}, qulonglong{21},
+        qulonglong{11}, followers,
         [&activations](qulonglong window) {
             activations.append(window);
             return true;
@@ -226,15 +227,15 @@ static void testWindowFollowerGeometry() {
             return true;
         });
     CHECK(activation.hostActivated && activation.hostPromoted
-              && activation.followerPlaced && activations == QList<qulonglong>{11}
+              && activation.followersPlaced && activations == QList<qulonglong>{11}
               && promotions == expectedPromotions,
-          "WindowHelper 点击附属窗口时由宿主接管激活");
+          "WindowHelper 点击窗口组时由宿主接管激活并立即排列全部附属窗口");
 
     activations.clear();
     promotions.clear();
     const WindowFollowerActivationResult activationFailure =
         activateWindowFollowerGroup(
-            qulonglong{11}, qulonglong{21},
+            qulonglong{11}, followers,
             [&activations](qulonglong window) {
                 activations.append(window);
                 return false;
@@ -244,7 +245,7 @@ static void testWindowFollowerGeometry() {
                 return true;
             });
     CHECK(!activationFailure.hostActivated && !activationFailure.hostPromoted
-              && !activationFailure.followerPlaced
+              && !activationFailure.followersPlaced
               && activations == QList<qulonglong>{11} && promotions.isEmpty(),
           "WindowHelper 宿主激活失败时保留系统默认路径");
 }

@@ -257,6 +257,29 @@ def test_mouse_activation_activates_host_and_handles_follower_message():
     assert promotions == [(11, 0), (21, 11)]
 
 
+def test_mouse_activation_on_host_promotes_all_registered_followers_immediately():
+    activations = []
+    promotions = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+        activate_window=lambda hwnd: activations.append(hwnd) or True,
+    )
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    assert event_filter.register(11, 22, window_helper.WINDOW_EDGE_LEFT, 180)
+    msg = event_filter._get_msg_class()()
+    msg.hwnd = 11
+    msg.message = window_helper._WM_MOUSEACTIVATE
+
+    handled, result = event_filter.nativeEventFilter(None, ctypes.addressof(msg))
+
+    assert handled is True
+    assert result == window_helper._MA_NOACTIVATE
+    assert activations == [11]
+    assert promotions == [(11, 0), (21, 11), (22, 21)]
+
+
 def test_mouse_activation_falls_back_when_host_cannot_activate():
     promotions = []
     event_filter = window_helper._WindowFollowerFilter(

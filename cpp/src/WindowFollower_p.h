@@ -5,6 +5,8 @@
 // PrismQML C++ 宿主 - 原生附属窗口几何私有工具
 #pragma once
 
+#include <QList>
+
 namespace prism::detail {
 
 enum WindowFollowerEdge {
@@ -23,13 +25,13 @@ struct WindowFollowerRect {
 
 struct WindowFollowerPromotionResult {
     bool hostPromoted;
-    bool followerPlaced;
+    bool followersPlaced;
 };
 
 struct WindowFollowerActivationResult {
     bool hostActivated;
     bool hostPromoted;
-    bool followerPlaced;
+    bool followersPlaced;
 };
 
 inline bool isWindowFollowerEdge(int edge) {
@@ -69,24 +71,43 @@ inline bool sameWindowFollowerRect(
         && left.right == right.right && left.bottom == right.bottom;
 }
 
+template <typename Handle>
+inline bool isWindowFollowerGroupValid(
+    Handle host, const QList<Handle> &followers) {
+    if (!host || followers.isEmpty())
+        return false;
+    for (const Handle follower : followers) {
+        if (!follower)
+            return false;
+    }
+    return true;
+}
+
 template <typename Handle, typename SetZOrder>
 inline WindowFollowerPromotionResult promoteWindowFollowerGroup(
-    Handle host, Handle follower, SetZOrder setZOrder) {
-    if (!host || !follower)
+    Handle host, const QList<Handle> &followers, SetZOrder setZOrder) {
+    if (!isWindowFollowerGroupValid(host, followers))
         return {false, false};
     const bool hostPromoted = setZOrder(host, Handle{});
-    const bool followerPlaced = setZOrder(follower, host);
-    return {hostPromoted, followerPlaced};
+    bool followersPlaced = true;
+    Handle insertAfter = host;
+    for (const Handle follower : followers) {
+        const bool followerPlaced = setZOrder(follower, insertAfter);
+        followersPlaced = followerPlaced && followersPlaced;
+        insertAfter = follower;
+    }
+    return {hostPromoted, followersPlaced};
 }
 
 template <typename Handle, typename Activate, typename SetZOrder>
 inline WindowFollowerActivationResult activateWindowFollowerGroup(
-    Handle host, Handle follower, Activate activate, SetZOrder setZOrder) {
-    if (!host || !follower || !activate(host))
+    Handle host, const QList<Handle> &followers,
+    Activate activate, SetZOrder setZOrder) {
+    if (!isWindowFollowerGroupValid(host, followers) || !activate(host))
         return {false, false, false};
     const WindowFollowerPromotionResult promotion =
-        promoteWindowFollowerGroup(host, follower, setZOrder);
-    return {true, promotion.hostPromoted, promotion.followerPlaced};
+        promoteWindowFollowerGroup(host, followers, setZOrder);
+    return {true, promotion.hostPromoted, promotion.followersPlaced};
 }
 
 }  // namespace prism::detail
