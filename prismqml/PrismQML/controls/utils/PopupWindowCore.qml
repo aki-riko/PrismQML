@@ -161,23 +161,6 @@ Item {
         return Qt.point(posX, posY)
     }
 
-    function _ensureQtPopupStacking() {
-        if (!useQtPopupWindow || Qt.platform.os !== "windows") return false
-        var ownerWindow = _targetWindow ? _targetWindow : control.Window.window
-        var nativePopupWindow = inlinePopupContent.Window.window
-        if (!ownerWindow || !nativePopupWindow || nativePopupWindow === ownerWindow)
-            return false
-        if (typeof WindowHelper === "undefined" || !WindowHelper
-                || typeof WindowHelper.ensurePopupWindowOwner !== "function")
-            return false
-        return WindowHelper.ensurePopupWindowOwner(nativePopupWindow, ownerWindow)
-    }
-
-    function _scheduleQtPopupStackingRepair() {
-        if (!useQtPopupWindow || Qt.platform.os !== "windows") return
-        popupStackingTimer.restart()
-    }
-
     // 预热 native window handle —— 第一次 show() 在 Windows 上会同步阻塞
     // ~170ms 等 native surface 创建。在 hover/focus 等"用户即将点开"时机调用,
     // 让真正点击时走暖路径 (<5ms)。已预热则 no-op。
@@ -222,7 +205,6 @@ Item {
             inlinePopup.x = -32000
             inlinePopup.y = -32000
             inlinePopup.open()
-            _ensureQtPopupStacking()
             inlinePopup.close()
             inlinePopup.x = savedInlineX
             inlinePopup.y = savedInlineY
@@ -269,8 +251,6 @@ Item {
             inlinePopup.x = localPos.x
             inlinePopup.y = localPos.y
             inlinePopup.open()
-            _ensureQtPopupStacking()
-            _scheduleQtPopupStackingRepair()
             _prewarmed = true
             _prewarmScheduled = false
             prewarmTimer.stop()
@@ -406,7 +386,6 @@ Item {
     function close() {
         if (isClosing || (!isOpen && !showAnimTimer.running && !_surfaceVisible)) return
         aboutToHide()
-        popupStackingTimer.stop()
         showAnimTimer.stop()
         showAnim.stop()
         isClosing = true
@@ -435,7 +414,6 @@ Item {
         _prewarmingQtPopup = false
         _prewarmFocusItem = null
         prewarmTimer.stop()
-        popupStackingTimer.stop()
         isOpen = false
         isClosing = false
         _clipHeight = 0
@@ -481,12 +459,6 @@ Item {
         id: prewarmTimer
         interval: 0
         onTriggered: control._doPrewarm()
-    }
-
-    Timer {
-        id: popupStackingTimer
-        interval: Enums.duration.none
-        onTriggered: control._ensureQtPopupStacking()
     }
 
     // Show animation 弹出动画
@@ -606,7 +578,15 @@ Item {
                 control.closed()
             }
         }
-        onOpened: control._scheduleQtPopupStackingRepair()
+        onOpened: {
+            if (control.useQtPopupWindow
+                    && typeof WindowHelper !== "undefined" && WindowHelper) {
+                WindowHelper.ensurePopupWindowOwner(
+                    inlinePopupContent.Window.window,
+                    control._targetWindow ? control._targetWindow : control.Window.window
+                )
+            }
+        }
     }
     
     Window {

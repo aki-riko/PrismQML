@@ -6,6 +6,7 @@
 """PopupWindowCore owner repair integration. 弹层 owner 修复集成测试。"""
 
 import sys
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import (
@@ -30,6 +31,14 @@ pytestmark = pytest.mark.skipif(
 )
 
 SCENE_URL = QUrl.fromLocalFile(__file__.replace(".py", ".qml"))
+POPUP_SOURCE_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "utils"
+    / "PopupWindowCore.qml"
+)
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window
@@ -119,12 +128,10 @@ def _dispose_scene(engine, component, root) -> None:
     _pump(20)
 
 
-def test_cold_open_repairs_owner_and_close_cancels_queued_work(qapp):
+def test_cold_open_repairs_owner_without_deferred_work(qapp):
     engine, component, root, helper = _create_scene()
     try:
         _invoke(root, "openMenu")
-        _pump(40)
-
         assert helper.calls
         assert all(owner is root for _, owner in helper.calls)
         assert all(
@@ -133,7 +140,6 @@ def test_cold_open_repairs_owner_and_close_cancels_queued_work(qapp):
         )
 
         _invoke(root, "resetMenu")
-        _pump(20)
         calls_after_close = len(helper.calls)
         _pump(40)
         assert len(helper.calls) == calls_after_close
@@ -152,3 +158,13 @@ def test_first_prewarm_repairs_the_created_qt_popup_owner(qapp):
         assert helper.calls[-1][0].metaObject().className() == "QQuickPopupWindow"
     finally:
         _dispose_scene(engine, component, root)
+
+
+def test_owner_repair_uses_shared_event_queue_without_per_instance_timer():
+    """Repair from onOpened without per-popup queued work. 从onOpened修复且不增加逐弹层排队对象。"""
+    source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "popupStackingTimer" not in source
+    assert "_scheduleQtPopupStackingRepair" not in source
+    assert "onOpened:" in source
+    assert "WindowHelper.ensurePopupWindowOwner(" in source
