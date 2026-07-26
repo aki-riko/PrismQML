@@ -34,6 +34,8 @@ Distribution name matches import name: after `pip install prismqml`, use `from p
 - [Getting Started](getting-started.md) — run your first window in a few lines
 - [Skins](guide/skins.md) — PrismQML's signature capability
 - [Components](components/index.md) — all available controls
+- [Automatic Updates](auto-update.md) — checks, download feedback, installer handoff, and real upgrade acceptance
+- [Windows Installer Template](windows-installer.md) — manifest-driven Inno Setup generation and compilation
 
 ---
 

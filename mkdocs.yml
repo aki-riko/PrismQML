@@ -74,6 +74,7 @@ nav:
       - 配置系统: guide/config.md
       - 状态管理: guide/state.md
       - 系统托盘: guide/tray.md
+      - 自动更新: auto-update.md
       - Windows 安装器: windows-installer.md
   - 控件:
       - 总览: components/index.md

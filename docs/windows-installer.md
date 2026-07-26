@@ -15,6 +15,8 @@
 
 运行时静默参数由 PrismQML `AutoUpdater` 负责。模板不包含 `/RESTARTAPPLICATIONS` 或 `/AUTORESTARTAPP`。
 
+完整的 Python/QML 接入、`/SILENT` 与 `/VERYSILENT` 选择、下载进度和真实升级验收见 [自动更新接入](auto-update.md)。
+
 ## 清单
 
 复制 [示例清单](examples/prismqml-installer.json) 到应用仓库根目录。七个核心字段必须由应用明确声明：

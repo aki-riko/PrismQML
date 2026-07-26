@@ -534,6 +534,8 @@ def test_json_option_is_supported_before_or_after_subcommand(tmp_path, capsys):
 def test_distribution_registers_cli_template_and_documentation():
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     mkdocs = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
+    auto_update_documentation = ROOT / "docs" / "auto-update.md"
+    english_auto_update_documentation = ROOT / "docs" / "auto-update.en.md"
     documentation = ROOT / "docs" / "windows-installer.md"
     english_documentation = ROOT / "docs" / "windows-installer.en.md"
     example = ROOT / "docs" / "examples" / "prismqml-installer.json"
@@ -544,13 +546,36 @@ def test_distribution_registers_cli_template_and_documentation():
         in pyproject
     )
     assert 'python/tools/templates/*.tmpl' in pyproject
+    assert auto_update_documentation.is_file()
+    assert english_auto_update_documentation.is_file()
     assert documentation.is_file()
     assert english_documentation.is_file()
     assert example.is_file()
+    auto_update_text = auto_update_documentation.read_text(encoding="utf-8")
+    english_auto_update_text = english_auto_update_documentation.read_text(
+        encoding="utf-8"
+    )
+    for contract in (
+        "checkSilently()",
+        "AutoUpdaterToastPresenter",
+        "launch_after_install=true",
+        "/SILENT",
+        "xx MB / xx MB",
+    ):
+        assert contract in auto_update_text
+    for contract in (
+        "checkSilently()",
+        "AutoUpdaterToastPresenter",
+        "launch_after_install=true",
+        "/SILENT",
+        "received MB / total MB",
+    ):
+        assert contract in english_auto_update_text
     documentation_text = documentation.read_text(encoding="utf-8")
     assert "RestartApplications=no" in documentation_text
     assert "compile --manifest" in documentation_text
     assert "RestartApplications=no" in english_documentation.read_text(
         encoding="utf-8"
     )
+    assert "自动更新: auto-update.md" in mkdocs
     assert "Windows 安装器: windows-installer.md" in mkdocs

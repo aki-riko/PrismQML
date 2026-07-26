@@ -15,6 +15,8 @@ The generated template fixes the following upgrade behavior:
 
 PrismQML `AutoUpdater` supplies the runtime silent arguments. The template does not contain `/RESTARTAPPLICATIONS` or `/AUTORESTARTAPP`.
 
+See [Automatic Update Integration](auto-update.md) for the complete Python/QML wiring, `/SILENT` versus `/VERYSILENT`, download feedback, and real upgrade acceptance.
+
 ## Manifest
 
 Copy the [example manifest](examples/prismqml-installer.json) to the application repository root. Each application must explicitly declare seven core fields:

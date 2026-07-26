@@ -36,6 +36,8 @@ pip install prismqml
 - [快速开始](getting-started.md) — 几行代码跑起第一个窗口
 - [皮肤系统](guide/skins.md) — PrismQML 的招牌能力
 - [控件总览](components/index.md) — 全部可用控件
+- [自动更新接入](auto-update.md) — 检查、下载进度、安装交接与真实升级验收
+- [Windows 安装器模板](windows-installer.md) — 清单驱动的 Inno Setup 生成与编译
 
 ---
 
