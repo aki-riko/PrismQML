@@ -322,15 +322,74 @@ def test_sync_page_pipeline_preserves_source_priority_and_global_index(
         ("deferred_read", 1), ("deferred_read", 2),
     ]
     if deferred:
-        expected.append(("batch", False))
-    expected.append(("invoke", "_markPythonPageReady", 1))
+        expected.append(("batch", True))
+    else:
+        expected.append(("invoke", "_markPythonPageReady", 1))
     assert events == expected
     assert manager._pages[1] is page and item._page_instance is page
+    if deferred:
+        assert page.batch_callback is not None
+        assert not any(
+            event[:2] == ("invoke", "_markPythonPageReady")
+            for event in events
+        )
+        page.batch_callback()
+        assert events[-1] == ("invoke", "_markPythonPageReady", 1)
     _assert_sync_size_result(timers, container, events, size)
     assert not any(
         event[0] == "emit" and event[1] in {"page_width", "page_height"}
         for event in events
     )
+
+
+def test_sync_deferred_startup_page_keeps_guard_until_batch_complete(monkeypatch):
+    events = []
+    page = _Page(events, deferred=True)
+    item = _source_item("existing", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    _page_prewarm.initialize_page_prewarm_state(manager)
+    manager._current_index = 0
+    manager._begin_startup_page_guard()
+    _install_runtime_fakes(monkeypatch, events)
+
+    manager._create_page(0)
+
+    assert page.batch_callback is not None
+    assert manager._startup_page_guard_active is True
+    assert not any(
+        event[:2] == ("invoke", "_markPythonPageReady")
+        for event in events
+    )
+
+    page.batch_callback()
+
+    assert events[-1] == ("invoke", "_markPythonPageReady", 0)
+    assert manager._startup_page_guard_active is False
+
+
+def test_sync_deferred_prewarm_promotes_only_after_batch_complete(monkeypatch):
+    events = []
+    page = _Page(events, deferred=True)
+    item = _source_item("existing", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    _page_prewarm.initialize_page_prewarm_state(manager)
+    manager._page_prewarm_in_flight = 0
+    manager._foreground_page_load_index = 0
+    _install_runtime_fakes(monkeypatch, events)
+
+    manager._create_page(0)
+
+    assert page.batch_callback is not None
+    assert not any(event[0] in {"finish", "switch"} for event in events)
+
+    page.batch_callback()
+
+    assert manager._page_prewarm_in_flight is None
+    assert events[-3:] == [
+        ("invoke", "_markPythonPageReady", 0),
+        ("finish",),
+        ("switch", 0),
+    ]
 
 
 @pytest.mark.parametrize("mode", ["sync", "async"])

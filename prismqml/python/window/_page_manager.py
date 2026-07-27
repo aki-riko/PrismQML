@@ -216,14 +216,28 @@ class PageManagerMixin(PagePrewarmMixin):
             return
         if _has_deferred_queue(page_instance):
             profile("发现 deferred queue")
-            page_instance.startBatchCreation()
+            on_complete = partial(
+                self._on_sync_batch_complete, index, page_instance
+            )
+            page_instance.startBatchCreation(on_complete=on_complete)
             profile("启动 deferred queue")
-        else:
-            profile("无 deferred queue")
+            return
+        profile("无 deferred queue")
+        self._complete_sync_page(index, page_instance)
+
+    def _on_sync_batch_complete(self, index, page_instance):
+        """Publish only after deferred content completes. 延迟内容完成后再发布页面。"""
+        self._complete_sync_page(index, page_instance)
+
+    def _complete_sync_page(self, index, page_instance):
+        """Mark the page renderable and release guards. 标记页面可渲染并解除门禁。"""
         if _resolve_page_layout_item(page_instance) is not None:
             self._mark_python_page_ready(index)
         if self._is_page_prewarming(index):
+            promoted = self._foreground_page_load_index == index
             self._finish_page_prewarm(index)
+            if promoted:
+                self._finish_loading_and_switch(index)
         elif index == getattr(self, "_startup_page_index", None):
             self._complete_startup_page_guard(index)
 
