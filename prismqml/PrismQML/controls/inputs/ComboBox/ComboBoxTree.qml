@@ -46,10 +46,18 @@ ComboBoxCore {
 
     // ==================== Internal Methods 内部方法 ====================
     function _initTree() {
-        if ((_safeModel || []).length > 0) {
-            _expandAllNodes()
-            _rebuildFlatModel()
-        }
+        // Component.onCompleted can run before ComboBoxCore's derived
+        // _safeModel binding is ready in an asynchronous Loader. Read the
+        // public base property and validate it before touching length.
+        // 异步 Loader 中 Component.onCompleted 可能早于 ComboBoxCore 的
+        // _safeModel 派生绑定就绪；先校验基类公开 model，再读取 length。
+        var sourceModel = control.model
+        if (sourceModel === null || sourceModel === undefined
+                || typeof sourceModel.length !== "number"
+                || sourceModel.length <= 0) return
+
+        _expandAllNodes()
+        _rebuildFlatModel()
     }
     
     function _expandAllNodes() {

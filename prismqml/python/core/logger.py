@@ -364,6 +364,9 @@ _QT_CONTEXT_TEXT_LIMIT = 240
 _QT_BREADCRUMB_CAPACITY = 32
 _QT_BREADCRUMB_REPLAY_LIMIT = 12
 _QT_BREADCRUMB_PREFIXES = ("[懒加载诊断]", "[启动剖析]")
+_QT_TRANSIENT_MESSAGES = {
+    ("qt.qpa.mime", "Retrying to obtain clipboard."),
+}
 
 
 def _shorten_qt_context_value(value) -> str:
@@ -407,15 +410,26 @@ def _is_qt_source_location_only_message(context, message: str) -> bool:
     return bool(separator) and column.isdigit() and not body.strip()
 
 
-def _create_qt_message_handler(qt_msg_type):
-    """Create the Qt-to-project logger callback. 创建 Qt 到项目日志的回调。"""
-    level_map = {
+def _qt_message_level(mode, context, message: str, qt_msg_type) -> int:
+    """Map Qt messages while demoting known transient platform retries.
+
+    映射 Qt 消息级别，并降低已知瞬态平台重试的噪声。
+    """
+    category = (getattr(context, "category", None) or "").lower()
+    if (category, message) in _QT_TRANSIENT_MESSAGES:
+        return logging.DEBUG
+
+    return {
         qt_msg_type.QtDebugMsg: logging.DEBUG,
         qt_msg_type.QtInfoMsg: logging.INFO,
         qt_msg_type.QtWarningMsg: logging.WARNING,
         qt_msg_type.QtCriticalMsg: logging.ERROR,
         qt_msg_type.QtFatalMsg: logging.CRITICAL,
-    }
+    }.get(mode, logging.INFO)
+
+
+def _create_qt_message_handler(qt_msg_type):
+    """Create the Qt-to-project logger callback. 创建 Qt 到项目日志的回调。"""
     breadcrumbs = deque(maxlen=_QT_BREADCRUMB_CAPACITY)
     breadcrumb_version = 0
     replayed_version = -1
@@ -429,7 +443,7 @@ def _create_qt_message_handler(qt_msg_type):
             return
         if _is_qt_source_location_only_message(context, stripped_message):
             return
-        level = level_map.get(mode, logging.INFO)
+        level = _qt_message_level(mode, context, stripped_message, qt_msg_type)
         if stripped_message.startswith(_QT_BREADCRUMB_PREFIXES):
             breadcrumbs.append(stripped_message)
             breadcrumb_version += 1

@@ -201,6 +201,37 @@ def test_qt_warning_includes_source_context_and_replays_breadcrumbs_once(
     assert breadcrumb in replay_records[0].getMessage()
 
 
+def test_qt_clipboard_retry_is_debug_but_other_mime_warnings_remain_visible(
+    project_log_records,
+):
+    from PySide6.QtCore import QtMsgType
+    from prismqml.python.core.logger import _create_qt_message_handler
+
+    handler = _create_qt_message_handler(QtMsgType)
+    context = SimpleNamespace(
+        category="qt.qpa.mime",
+        file=None,
+        line=0,
+        function=None,
+    )
+
+    handler(QtMsgType.QtWarningMsg, context, "Retrying to obtain clipboard.")
+    handler(QtMsgType.QtWarningMsg, context, "Clipboard conversion failed.")
+
+    clipboard_records = [
+        record
+        for record in project_log_records
+        if "clipboard" in record.getMessage().lower()
+    ]
+    assert [record.levelno for record in clipboard_records] == [
+        logging.DEBUG,
+        logging.WARNING,
+    ]
+    assert clipboard_records[0].tag == "QML:QT.QPA.MIME"
+    assert "[QtContext]" not in clipboard_records[0].getMessage()
+    assert "[QtContext]" in clipboard_records[1].getMessage()
+
+
 def test_install_qt_message_handler_failure_logs_traceback(
     monkeypatch, project_log_records
 ):
