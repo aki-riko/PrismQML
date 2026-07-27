@@ -60,6 +60,7 @@ import PrismQML
 NavigationWindowCore {{
     id: win
     splashEnabled: false
+    splashMinimumVisibleDuration: 0
 
     // 测试可读结果
     property int finishAtCall: -1     // 调函数瞬间 splash.finish 次数
@@ -95,6 +96,7 @@ NavigationWindowCore {{
 
     Component.onCompleted: {{
         win._splashInstance = mockSplash
+        win._splashVisibleSinceMs = Date.now()
         // 模拟框架 onLoaded 时机调真函数
         win.pageReadyAtCall = stack._isPageLoaded(stack.currentIndex)
         win._dismissSplashWhenReady(stack)
@@ -168,6 +170,7 @@ import PrismQML
 NavigationWindowCore {
     id: win
     splashEnabled: false
+    splashMinimumVisibleDuration: 0
     property int finishAtCall: -1
     property bool pageReadyAtCall: false
     readonly property int splashFinishCount: mockSplash.finishCount
@@ -187,6 +190,7 @@ NavigationWindowCore {
     stackedWidget: stack
     Component.onCompleted: {
         win._splashInstance = mockSplash
+        win._splashVisibleSinceMs = Date.now()
         win.pageReadyAtCall = stack._isPageLoaded(stack.currentIndex)
         win._dismissSplashWhenReady(stack)
         win.finishAtCall = mockSplash.finishCount
@@ -236,6 +240,79 @@ NavigationWindowCore {
             print("  [FAIL]", failure)
     else:
         print("Python-managed Splash 回归: PASS")
+
+    minimum_qml = """
+import QtQuick
+import PrismQML
+
+NavigationWindowCore {
+    id: win
+    splashEnabled: false
+    splashMinimumVisibleDuration: 240
+    property int finishAtCall: -1
+    property double requestedAtMs: 0
+    property double finishedAtMs: 0
+    readonly property int splashFinishCount: mockSplash.finishCount
+
+    QtObject {
+        id: mockSplash
+        property int finishCount: 0
+        function finish() {
+            finishCount += 1
+            win.finishedAtMs = Date.now()
+        }
+    }
+
+    Component.onCompleted: {
+        win._splashInstance = mockSplash
+        win._splashVisibleSinceMs = Date.now()
+        win.requestedAtMs = Date.now()
+        win._dismissSplashWhenReady(null)
+        win.finishAtCall = mockSplash.finishCount
+    }
+}
+"""
+    minimum_component = QQmlComponent(engine)
+    minimum_component.setData(minimum_qml.encode("utf-8"), QUrl("minimum-inline"))
+    for _ in range(60):
+        if minimum_component.status() != QQmlComponent.Status.Loading:
+            break
+        pump(20)
+    minimum_win = minimum_component.create()
+    minimum_failures = []
+    if minimum_win is None:
+        minimum_failures.append(
+            "最短可见时间场景创建失败: "
+            + "; ".join(error.toString() for error in minimum_component.errors())
+        )
+    else:
+        pump(100)
+        if minimum_win.property("finishAtCall") != 0:
+            minimum_failures.append("首屏立即 ready 时 Splash 同步 finish")
+        if minimum_win.property("splashFinishCount") != 0:
+            minimum_failures.append("未达到最短可见时间时 Splash 已 finish")
+        for _ in range(20):
+            pump(20)
+            if minimum_win.property("splashFinishCount") > 0:
+                break
+        elapsed = (
+            minimum_win.property("finishedAtMs")
+            - minimum_win.property("requestedAtMs")
+        )
+        if minimum_win.property("splashFinishCount") != 1:
+            minimum_failures.append("达到最短可见时间后 Splash 未恰好 finish 一次")
+        if elapsed < 220:
+            minimum_failures.append(
+                f"Splash 提前 finish: elapsed={elapsed}ms, expected>=220ms"
+            )
+    failures.extend(minimum_failures)
+    if minimum_failures:
+        result = 1
+        print("Splash 最短可见时间回归: FAIL")
+        for failure in minimum_failures:
+            print("  [FAIL]", failure)
+    else:
+        print("Splash 最短可见时间回归: PASS")
 
     QTimer.singleShot(0, app.quit)
     app.exec()

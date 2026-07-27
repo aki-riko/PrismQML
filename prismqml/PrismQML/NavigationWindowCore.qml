@@ -31,6 +31,7 @@ WindowsCore {
     property string splashIcon: ""  // Empty inherits windowIcon 空值继承窗口图标
     property string splashTitle: ""  // Empty inherits windowTitle 空值继承窗口标题
     property string splashSubtitle: ""  // Startup status text 启动状态文本
+    property int splashMinimumVisibleDuration: Enums.duration.splashMinimumVisible  // Stable display after window exposure 窗口可见后的最短稳定展示时长
     // Replaceable startup visual; the root must provide finish(). 可替换启动视觉，根对象须提供 finish()。
     property Component splashComponent: Component {
         SplashScreen {
@@ -50,6 +51,8 @@ WindowsCore {
     property bool _nativeHookReady: false
     property string _micaReapplyReason: ""
     property bool _splashDismissed: false
+    property bool _splashDismissRequested: false
+    property double _splashVisibleSinceMs: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _micaAvailable: MicaManager ? MicaManager.isMicaSupported : false
@@ -176,7 +179,7 @@ WindowsCore {
         // Dismiss immediately when the current page is already loaded. 当前页已加载时立即关闭欢迎页。
         if (!stack || stack._isPageLoaded(stack.currentIndex)) {
             profileTime("NavigationWindowCore splash ready immediate")
-            _doDismissSplash()
+            _requestSplashDismiss()
             return
         }
 
@@ -187,16 +190,47 @@ WindowsCore {
             stack.pageLoaded.disconnect(onPageLoaded)
             _splashTimeoutTimer.stop()
             profileTime("NavigationWindowCore splash pageLoaded target=" + idx)
-            _doDismissSplash()
+            _requestSplashDismiss()
         }
         stack.pageLoaded.connect(onPageLoaded)
         _splashTimeoutTimer._onTimeout = function() {
             stack.pageLoaded.disconnect(onPageLoaded)
             profileTime("NavigationWindowCore splash timeout")
-            _doDismissSplash()
+            _requestSplashDismiss()
         }
         _splashTimeoutTimer.restart()
         profileTime("NavigationWindowCore splash wait pageLoaded target=" + target)
+    }
+
+    function _markSplashVisible() {
+        if (_splashVisibleSinceMs > 0 || !_splashInstance || !window.visible) return
+        _splashVisibleSinceMs = Date.now()
+        profileTime("NavigationWindowCore splash visible")
+        _scheduleSplashDismiss()
+    }
+
+    function _requestSplashDismiss() {
+        if (_splashDismissed) return
+        _splashDismissRequested = true
+        _scheduleSplashDismiss()
+    }
+
+    function _scheduleSplashDismiss() {
+        if (_splashDismissed || !_splashDismissRequested) return
+        if (_splashVisibleSinceMs <= 0) {
+            profileTime("NavigationWindowCore splash wait visible")
+            return
+        }
+
+        var elapsed = Date.now() - _splashVisibleSinceMs
+        var remaining = Math.max(0, splashMinimumVisibleDuration - elapsed)
+        if (remaining > 0) {
+            _splashMinimumVisibleTimer.interval = Math.max(Enums.duration.tick, Math.ceil(remaining))
+            _splashMinimumVisibleTimer.restart()
+            profileTime("NavigationWindowCore splash wait minimum visible remaining=" + Math.ceil(remaining))
+            return
+        }
+        _doDismissSplash()
     }
 
     function _doDismissSplash() {
@@ -205,6 +239,7 @@ WindowsCore {
             return
         }
         _splashDismissed = true
+        _splashMinimumVisibleTimer.stop()
         profileTime("NavigationWindowCore splash finish start")
         if (_splashInstance) _splashInstance.finish()
         profileTime("NavigationWindowCore splash finish done")
@@ -337,12 +372,15 @@ WindowsCore {
 
     windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
 
-    Component.onCompleted: profileDetail(
-        "NavigationWindowCore completed micaAvailable=" + _micaAvailable +
-        " micaEnabled=" + micaEnabled +
-        " nav=" + _safeNavigationItems.length +
-        " bottom=" + _safeBottomNavigationItems.length
-    )
+    Component.onCompleted: {
+        profileDetail(
+            "NavigationWindowCore completed micaAvailable=" + _micaAvailable +
+            " micaEnabled=" + micaEnabled +
+            " nav=" + _safeNavigationItems.length +
+            " bottom=" + _safeBottomNavigationItems.length
+        )
+        _markSplashVisible()
+    }
 
     onMicaEnabledChanged: {
         if (_micaAvailable && MicaManager && _nativeHookReady) {
@@ -353,7 +391,10 @@ WindowsCore {
     }
 
     onVisibleChanged: {
-        if (visible) _scheduleMicaReapply("visibleChanged")
+        if (visible) {
+            _markSplashVisible()
+            _scheduleMicaReapply("visibleChanged")
+        }
         else _micaBackdropReady = false
     }
 
@@ -391,8 +432,16 @@ WindowsCore {
             window._splashInstance = item
             if (item) {
                 window.profileTime("NavigationWindowCore splash mounted")
+                window._markSplashVisible()
             }
         }
+    }
+
+    Timer {
+        id: _splashMinimumVisibleTimer
+
+        interval: Enums.duration.splashMinimumVisible
+        onTriggered: window._scheduleSplashDismiss()
     }
 
     Timer {

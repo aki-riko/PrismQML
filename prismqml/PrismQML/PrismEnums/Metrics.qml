@@ -41,6 +41,7 @@ QtObject {
  readonly property int wheelPickerRepeatDelay: 500 // Wheel picker held-button initial delay 滚轮选择器长按初始延迟
  readonly property int spinBoxRepeatDelay: 500 // SpinBox held-button initial delay 微调框长按初始延迟
  readonly property int splashTimeout: 5000 // Splash dismiss fallback when first page never signals loaded 首屏加载信号意外不来时关闭欢迎页的兜底超时
+ readonly property int splashMinimumVisible: 600 // Minimum stable splash display after the window becomes visible 窗口可见后启动画面最短稳定展示时长
  readonly property int navigationScroll: 250 // Navigation wheel smooth scroll animation 导航滚轮平滑滚动动画
  readonly property int scroll: 750
  readonly property int bounce: 750 // Scroll bounce animation 滚动回弹动画
