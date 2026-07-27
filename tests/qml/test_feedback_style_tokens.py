@@ -51,7 +51,7 @@ Item {
     readonly property int splashBreatheDuration: Enums.duration.splashBreathe
     readonly property int splashProgressSpinDuration: Enums.duration.splashProgressSpin
     readonly property int splashExitAnticipationDuration: Enums.duration.splashExitAnticipation
-    readonly property int splashExitRevealDuration: Enums.duration.splashExitReveal
+    readonly property int splashExitFlipDuration: Enums.duration.splashExitFlip
     readonly property int splashProgressStyle: Enums.progress.indeterminate_style_orbit_dot
     readonly property int splashProgressDotSize: Enums.splashScreenMetrics.progressDotSize
     readonly property int splashProgressDotRadius: Enums.splashScreenMetrics.progressDotRadius
@@ -289,21 +289,21 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
         breathe_duration = root.property("splashBreatheDuration")
         spin_duration = root.property("splashProgressSpinDuration")
         exit_anticipation = root.property("splashExitAnticipationDuration")
-        exit_reveal = root.property("splashExitRevealDuration")
+        exit_flip = root.property("splashExitFlipDuration")
         shadow_blur = root.property("splashShadowBlur")
         shadow_offset = root.property("splashShadowOffset")
         assert (
             breathe_duration,
             spin_duration,
             exit_anticipation,
-            exit_reveal,
+            exit_flip,
             shadow_blur,
             shadow_offset,
         ) == (
             1200,
             1000,
             120,
-            420,
+            480,
             0.8,
             6,
         )
@@ -394,34 +394,31 @@ def test_splash_first_frame_shows_complete_content(qapp):
         _pump(1)
 
 
-def test_splash_finish_uses_split_curtain_reveal(qapp):
+def test_splash_finish_uses_glass_page_flip(qapp):
     engine, component, root = _create_scene()
     try:
         splash = root.findChild(QQuickItem, "splash")
         assert splash is not None
         content = splash.findChild(QQuickItem, "splashContent")
-        left_curtain = splash.findChild(QQuickItem, "splashLeftCurtain")
-        right_curtain = splash.findChild(QQuickItem, "splashRightCurtain")
-        reveal_seam = splash.findChild(QQuickItem, "splashRevealSeam")
+        light_edge = splash.findChild(QQuickItem, "splashLightEdge")
+        exit_flip = splash.findChild(QObject, "splashExitFlip")
         assert content is not None
-        assert left_curtain is not None
-        assert right_curtain is not None
-        assert reveal_seam is not None
+        assert light_edge is not None
+        assert exit_flip is not None
 
-        assert left_curtain.property("x") == pytest.approx(0.0)
-        assert right_curtain.property("x") == pytest.approx(left_curtain.width())
-        assert reveal_seam.property("opacity") == pytest.approx(0.0)
+        assert exit_flip.property("angle") == pytest.approx(0.0)
+        assert light_edge.property("opacity") == pytest.approx(0.0)
 
         assert QMetaObject.invokeMethod(splash, "finish")
         _pump(220)
 
         assert splash.property("visible") is True
-        assert left_curtain.property("x") < 0
-        assert right_curtain.property("x") > left_curtain.width()
-        assert 0.82 < content.property("scale") < 1.1
-        assert content.property("opacity") < 1.0
+        assert exit_flip.property("angle") < 0
+        assert splash.property("scale") < 1.0
+        assert light_edge.property("opacity") == pytest.approx(1.0)
+        assert 1.0 <= content.property("scale") < 1.1
 
-        _pump(400)
+        _pump(500)
         assert splash.property("visible") is False
     finally:
         root.deleteLater()
@@ -452,12 +449,12 @@ def test_feedback_sources_use_shared_style_tokens():
         in splash_source
     )
     assert "duration: Enums.duration.splashBreathe" in splash_source
-    assert "id: exitRevealAnim" in splash_source
-    assert "target: leftCurtain" in splash_source
-    assert "target: rightCurtain" in splash_source
-    assert "target: revealSeam" in splash_source
-    assert "duration: Enums.duration.splashExitReveal" in splash_source
-    assert "easing.type: Easing.InBack" in splash_source
+    assert "id: exitFlipAnim" in splash_source
+    assert "target: exitFlip" in splash_source
+    assert "target: lightEdge" in splash_source
+    assert "duration: Enums.duration.splashExitFlip" in splash_source
+    assert "target: leftCurtain" not in splash_source
+    assert "target: rightCurtain" not in splash_source
     assert "spinDuration: Enums.duration.splashProgressSpin" in splash_source
     assert "shadowBlur: Enums.shadow.splashIcon.blurNormalized" in splash_source
     assert "shadowVerticalOffset: Enums.shadow.splashIcon.offset" in splash_source

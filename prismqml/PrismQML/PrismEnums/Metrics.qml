@@ -68,7 +68,7 @@ QtObject {
  readonly property int splashBreathe: 1200 // Splash icon breathe cycle half-duration 启动画面图标单程呼吸时长
  readonly property int splashProgressSpin: 1000 // Splash progress rotation cycle 启动画面进度旋转周期
  readonly property int splashExitAnticipation: 120 // Splash exit anticipation phase 启动画面退场蓄力阶段
- readonly property int splashExitReveal: 420 // Splash split reveal phase 启动画面分屏揭幕阶段
+ readonly property int splashExitFlip: 480 // Splash glass-page flip phase 启动画面玻璃翻页阶段
  readonly property int chart: 500 // Chart animation 图表动画
  readonly property int progressComplete: 1500 // Progress complete display 进度完成后显示时长
  readonly property int copyFeedback: 1500 // Clipboard copy feedback display 复制反馈显示时长
@@ -579,10 +579,10 @@ QtObject {
  readonly property int iconShadowOffset: root.spacing.s
  readonly property real iconBreatheMinScale: 0.9
  readonly property real iconBreatheMaxScale: 1.1
- readonly property real curtainWidthRatio: 0.5
  readonly property real exitContentPeakScale: 1.04
- readonly property real exitContentEndScale: 0.82
- readonly property int exitCurtainAngle: 4
+ readonly property real exitSurfaceEndScale: 0.96
+ readonly property real exitPivotYRatio: 0.5
+ readonly property int exitFlipAngle: 88
  readonly property int progressRingSize: root.iconSize.xl
  readonly property int progressRingBorderWidth: root.border.normal
  readonly property real progressTrackOpacity: root.opacity.light

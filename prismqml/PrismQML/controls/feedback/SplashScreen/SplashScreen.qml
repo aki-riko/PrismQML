@@ -63,7 +63,7 @@ Rectangle {
         if (control._finishing) return
         control._finishing = true
         breatheAnim.stop()
-        exitRevealAnim.start()
+        exitFlipAnim.start()
     }
     
     // Set icon (Icon enum or string) 设置图标
@@ -82,29 +82,32 @@ Rectangle {
     // Match the Gallery host: cover the whole window shell during startup.
     // 与 Gallery 宿主保持一致：启动期间覆盖整个窗口壳。
     z: Enums.zIndex.splash
-    color: Enums.transparent
+    color: control._splashBackground
     visible: true
     // Keep the complete splash stable from the first rendered frame; only
     // the icon participates in the continuous breathing animation.
     // 从首个渲染帧起稳定显示完整启动画面；仅图标参与循环呼吸动画。
     opacity: 1
+    transform: Rotation {
+        id: exitFlip
+
+        objectName: "splashExitFlip"
+        origin.x: control.width
+        origin.y: control.height * Enums.splashScreenMetrics.exitPivotYRatio
+        axis.x: 0
+        axis.y: 1
+        axis.z: 0
+        angle: 0
+    }
     Component.onCompleted: breatheAnim.start()
 
-    // Split-curtain reveal animation 分屏揭幕退场动画
+    // Glass-page flip animation 玻璃页翻场动画
     SequentialAnimation {
-        id: exitRevealAnim
+        id: exitFlipAnim
 
         ParallelAnimation {
             NumberAnimation {
-                target: revealSeam
-                property: "scale"
-                to: Enums.opacityLevel.visible
-                duration: Enums.duration.splashExitAnticipation
-                easing.type: Easing.OutCubic
-            }
-
-            NumberAnimation {
-                target: revealSeam
+                target: lightEdge
                 property: "opacity"
                 to: Enums.opacityLevel.visible
                 duration: Enums.duration.splashExitAnticipation
@@ -122,58 +125,26 @@ Rectangle {
 
         ParallelAnimation {
             NumberAnimation {
-                target: leftCurtain
-                property: "x"
-                to: -leftCurtain.width
-                duration: Enums.duration.splashExitReveal
-                easing.type: Easing.InOutExpo
+                target: exitFlip
+                property: "angle"
+                to: -Enums.splashScreenMetrics.exitFlipAngle
+                duration: Enums.duration.splashExitFlip
+                easing.type: Easing.InOutQuart
             }
 
             NumberAnimation {
-                target: leftCurtain
-                property: "rotation"
-                to: -Enums.splashScreenMetrics.exitCurtainAngle
-                duration: Enums.duration.splashExitReveal
-                easing.type: Easing.InOutCubic
-            }
-
-            NumberAnimation {
-                target: rightCurtain
-                property: "x"
-                to: control.width
-                duration: Enums.duration.splashExitReveal
-                easing.type: Easing.InOutExpo
-            }
-
-            NumberAnimation {
-                target: rightCurtain
-                property: "rotation"
-                to: Enums.splashScreenMetrics.exitCurtainAngle
-                duration: Enums.duration.splashExitReveal
-                easing.type: Easing.InOutCubic
+                target: control
+                property: "scale"
+                to: Enums.splashScreenMetrics.exitSurfaceEndScale
+                duration: Enums.duration.splashExitFlip
+                easing.type: Easing.InCubic
             }
 
             NumberAnimation {
                 target: contentColumn
                 property: "scale"
-                to: Enums.splashScreenMetrics.exitContentEndScale
-                duration: Enums.duration.splashExitReveal
-                easing.type: Easing.InBack
-            }
-
-            NumberAnimation {
-                target: contentColumn
-                property: "opacity"
-                to: Enums.opacityLevel.invisible
-                duration: Enums.duration.splashExitReveal
-                easing.type: Easing.InCubic
-            }
-
-            NumberAnimation {
-                target: revealSeam
-                property: "opacity"
-                to: Enums.opacityLevel.invisible
-                duration: Enums.duration.splashExitReveal
+                to: Enums.opacityLevel.visible
+                duration: Enums.duration.splashExitFlip
                 easing.type: Easing.OutCubic
             }
         }
@@ -186,41 +157,17 @@ Rectangle {
         }
     }
 
-    // Background curtains reveal the ready application from the center.
-    // 背景双翼从中央揭开已就绪的应用界面。
+    // Accent edge travels with the flipping glass page. 强调色光边随玻璃页翻转扫过。
     Rectangle {
-        id: leftCurtain
+        id: lightEdge
 
-        objectName: "splashLeftCurtain"
-        x: 0
-        width: control.width * Enums.splashScreenMetrics.curtainWidthRatio
-        height: control.height
-        color: control._splashBackground
-        transformOrigin: Item.Right
-    }
-
-    Rectangle {
-        id: rightCurtain
-
-        objectName: "splashRightCurtain"
-        x: leftCurtain.width
-        width: control.width - leftCurtain.width
-        height: control.height
-        color: control._splashBackground
-        transformOrigin: Item.Left
-    }
-
-    Rectangle {
-        id: revealSeam
-
-        objectName: "splashRevealSeam"
-        anchors.centerIn: parent
+        objectName: "splashLightEdge"
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
         width: Enums.border.normal
-        height: parent.height
         color: Enums.accentColor
         opacity: Enums.opacityLevel.invisible
-        scale: Enums.opacityLevel.invisible
-        transformOrigin: Item.Center
     }
     
     // Breathe animation 呼吸动画
