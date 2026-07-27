@@ -313,8 +313,8 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
     def setSplashEnabled(self, enabled: bool):
         """开关启动画面(默认开启)。
 
-        必须在 show()/_create_window() 之前调用才生效 —— splash 在
-        _create_window 末尾一次性创建,创建后此开关不再读取。
+        必须在 show()/_create_window() 之前调用才生效，配置会在创建 QML
+        窗口根对象时交给 NavigationWindowCore。
 
         Args:
             enabled: False 则不显示启动画面

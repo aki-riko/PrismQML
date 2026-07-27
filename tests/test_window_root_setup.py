@@ -95,14 +95,10 @@ class _FinishScenario:
     def apply(self, builder, icon, mica, profile):
         self.calls.append(("pending", builder, icon, mica, profile))
 
-    def finalize(self, builder, profile):
-        self.calls.append(("splash", builder, profile))
-
     def patch(self, monkeypatch, module):
         monkeypatch.setattr(module, "load_window_root", self.load)
         monkeypatch.setattr(module, "install_window_root", self.install)
         monkeypatch.setattr(module, "apply_window_pending_state", self.apply)
-        monkeypatch.setattr(module, "finalize_window_startup", self.finalize)
 
 
 def test_window_root_loader_prefers_static_root():
@@ -372,27 +368,13 @@ def test_pending_apply_failure_propagates(monkeypatch, error_type):
         )
 
 
-@pytest.mark.parametrize("error_type", [KeyboardInterrupt, SystemExit])
-def test_window_splash_process_control_propagates(error_type):
-    from prismqml.python.window import _window_root_setup as setup
-
-    def stop_splash():
-        raise error_type("stop")
-
-    builder = SimpleNamespace(_create_splash=stop_splash)
-    with pytest.raises(error_type, match="stop"):
-        setup.finalize_window_startup(
-            builder, lambda _label: pytest.fail("must fail fast")
-        )
-
-
-def test_finish_window_startup_preserves_root_pending_splash_order(monkeypatch):
+def test_finish_window_startup_preserves_root_pending_order(monkeypatch):
     from prismqml.python.window import _window_root_setup as setup
 
     scenario = _FinishScenario()
     scenario.patch(monkeypatch, setup)
     builder = object()
-    profile = object()
+    profile = lambda label: scenario.calls.append(("profile", label))
     rendered = ("qml-dir", "source", "Component", "qrc:/icon.svg", True)
 
     setup.finish_window_startup(builder, rendered, profile, False)
@@ -411,5 +393,5 @@ def test_finish_window_startup_preserves_root_pending_splash_order(monkeypatch):
         ),
         ("install", builder, scenario.root, profile),
         ("pending", builder, "qrc:/icon.svg", True, profile),
-        ("splash", builder, profile),
+        ("profile", "确认 QML Splash"),
     ]

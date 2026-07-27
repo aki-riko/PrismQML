@@ -10,7 +10,6 @@
 
 #include <QQmlEngine>
 #include <QQmlComponent>
-#include <QQmlContext>
 #include <QObject>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -224,7 +223,29 @@ void Window::build() {
         shadowMode = 0;  // mode_auto
 #endif
     const QString shadowQml = QStringLiteral("    shadowMode: %1\n").arg(shadowMode);
-    const QString extraQml = iconQml + micaQml + shadowQml;
+    QString effectiveSplashIcon = m_splashIcon;
+    if (!effectiveSplashIcon.isEmpty()
+        && !effectiveSplashIcon.contains(QLatin1Char('/'))
+        && !effectiveSplashIcon.contains(QLatin1Char('\\'))
+        && !effectiveSplashIcon.startsWith(QStringLiteral("qrc:"))
+        && !effectiveSplashIcon.contains(QStringLiteral("://"))) {
+        effectiveSplashIcon = (
+            isQrc ? qmlDir + QStringLiteral("/controls/icons/fluent/")
+                  : importPrefix + qmlDir + QStringLiteral("/controls/icons/fluent/")
+        ) + effectiveSplashIcon + QStringLiteral(".svg");
+    }
+    const QString splashQml = QStringLiteral(
+        "    splashEnabled: %1\n"
+        "    splashIcon: \"%2\"\n"
+        "    splashTitle: \"%3\"\n"
+        "    splashSubtitle: \"%4\"\n"
+    ).arg(
+        m_splashEnabled ? QStringLiteral("true") : QStringLiteral("false"),
+        escapeQml(effectiveSplashIcon),
+        escapeQml(m_splashTitle),
+        escapeQml(m_splashSubtitle)
+    );
+    const QString extraQml = iconQml + micaQml + shadowQml + splashQml;
 
     const QString qml = QStringLiteral(
         "import QtQuick\n"
@@ -286,73 +307,6 @@ void Window::build() {
         ensurePageCreated(0);
         m_navHistory.append(0);
     }
-}
-
-// 挂 SplashScreen 启动画面覆盖层到窗口 contentItem (镜像 Python _create_splash)。
-// 框架 NavigationWindowCore._dismissSplashWhenReady 在首屏就绪时自动 finish() 淡出。
-// 失败不致命: splash 仅视觉增强, 异常只 warning 并继续。
-void Window::createSplash() {
-    if (!m_splashEnabled || !m_root)
-        return;
-    auto *contentItem = m_root->property("contentItem").value<QQuickItem *>();
-    if (!contentItem)
-        return;
-
-    // 路径前缀(同 build): qrc 直接用, 桌面加 file:///
-    const bool isQrc = m_importPath.startsWith(QStringLiteral("qrc:"));
-    QString qmlDir, importPrefix;
-    if (isQrc) {
-        qmlDir = m_importPath;
-        if (!qmlDir.endsWith(QLatin1Char('/')))
-            qmlDir += QLatin1Char('/');
-        qmlDir += QStringLiteral("PrismQML");
-    } else {
-        qmlDir = QDir::fromNativeSeparators(QDir(m_importPath).filePath(QStringLiteral("PrismQML")));
-        importPrefix = QStringLiteral("file:///");
-    }
-    // 图标/标题回退到窗口自身配置
-    QString icon = m_splashIcon.isEmpty() ? m_windowIcon : m_splashIcon;
-    // 图标名 → fluent svg url
-    if (!icon.isEmpty() && !icon.contains(QLatin1Char('/')) && !icon.contains(QLatin1Char('\\'))
-        && !icon.startsWith(QStringLiteral("qrc:")) && !icon.contains(QStringLiteral("://"))) {
-        icon = (isQrc ? qmlDir + QStringLiteral("/controls/icons/fluent/")
-                      : importPrefix + qmlDir + QStringLiteral("/controls/icons/fluent/"))
-               + icon + QStringLiteral(".svg");
-    }
-    const QString title = m_splashTitle.isEmpty() ? m_title : m_splashTitle;
-
-    const QString splashQml = QStringLiteral(
-        "import QtQuick\n"
-        "import \"%1/controls/feedback/SplashScreen\"\n"
-        "SplashScreen {\n"
-        "    iconSource: \"%2\"\n"
-        "    title: \"%3\"\n"
-        "    subtitle: \"%4\"\n"
-        "}\n"
-    ).arg(importPrefix + qmlDir, escapeQml(icon), escapeQml(title), escapeQml(m_splashSubtitle));
-
-    auto *comp = new QQmlComponent(m_engine);
-    comp->setData(splashQml.toUtf8(), QUrl(QStringLiteral("inline-prism-splash")));
-    if (comp->isError()) {
-        qWarning() << "prism::Window [Splash] 组件加载失败:";
-        for (const auto &e : comp->errors())
-            qWarning().noquote() << "  " << e.toString();
-        comp->deleteLater();
-        return;
-    }
-    auto *splash = qobject_cast<QQuickItem *>(comp->create());
-    if (!splash) {
-        qWarning() << "prism::Window [Splash] create() 失败, 跳过启动画面";
-        comp->deleteLater();
-        return;
-    }
-    comp->setParent(splash);
-    splash->setParentItem(contentItem);
-    splash->setWidth(contentItem->width());
-    splash->setHeight(contentItem->height());
-    // QML 端 _dismissSplashWhenReady 读此引用, 首屏就绪时自动 finish() 淡出
-    m_root->setProperty("_splashInstance", QVariant::fromValue(static_cast<QObject *>(splash)));
-    m_splashInstance = splash;
 }
 
 void Window::onCurrentPageChanged(int index) {
@@ -496,7 +450,6 @@ void Window::show() {
 #else
     m_root->setProperty("visible", true);
 #endif
-    createSplash();  // 挂启动画面覆盖层(首屏就绪后框架自动淡出)
 }
 
 }  // namespace prism

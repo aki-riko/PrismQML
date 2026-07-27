@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Window
 import "navigation"
 import "controls/navigation"
+import "controls/feedback/SplashScreen"
 
 // NavigationWindowCore - Base class for navigation windows 导航窗口基类
 // Provides common navigation logic for all navigation windows 为所有导航窗口提供公共导航逻辑
@@ -26,9 +27,21 @@ WindowsCore {
     property bool micaEnabled: false
     property bool lazyLoading: false
     property string loadingText: Translator.tr("loading")
+    property bool splashEnabled: true  // Enable the shared startup overlay 启用通用启动覆盖层
+    property string splashIcon: ""  // Empty inherits windowIcon 空值继承窗口图标
+    property string splashTitle: ""  // Empty inherits windowTitle 空值继承窗口标题
+    property string splashSubtitle: ""  // Startup status text 启动状态文本
+    // Replaceable startup visual; the root must provide finish(). 可替换启动视觉，根对象须提供 finish()。
+    property Component splashComponent: Component {
+        SplashScreen {
+            iconSource: window.splashIcon !== "" ? window.splashIcon : window.windowIcon
+            title: window.splashTitle !== "" ? window.splashTitle : window.windowTitle
+            subtitle: window.splashSubtitle
+        }
+    }
 
     // ==================== Internal Props 内部属性 ====================
-    // Splash instance supplied by the caller. 调用方提供的欢迎页实例。
+    // Splash instance owned by the shared loader. 由通用加载器持有的欢迎页实例。
     property var _splashInstance: null
     property bool _micaBackdropReady: false
     property bool _pythonLoading: false
@@ -365,6 +378,23 @@ WindowsCore {
     }
 
     // ==================== Content 内容 ====================
+    Loader {
+        id: _splashLoader
+
+        objectName: "windowSplashLoader"
+        parent: window.contentItem
+        anchors.fill: parent
+        z: Enums.zIndex.splash
+        active: window.splashEnabled
+        sourceComponent: window.splashComponent
+        onItemChanged: {
+            window._splashInstance = item
+            if (item) {
+                window.profileTime("NavigationWindowCore splash mounted")
+            }
+        }
+    }
+
     Timer {
         id: _splashTimeoutTimer
         property var _onTimeout: null

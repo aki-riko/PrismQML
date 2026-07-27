@@ -106,12 +106,6 @@ def apply_window_pending_state(
     profile("应用 pending state")
 
 
-def finalize_window_startup(builder, profile) -> None:
-    """Mount Splash synchronously after pending state. 在 pending 后同步挂载 Splash。"""
-    builder._create_splash()
-    profile("创建 Splash")
-
-
 def finish_window_startup(
     builder, rendered_window, profile, startup_profile_verbose
 ) -> None:
@@ -133,6 +127,6 @@ def finish_window_startup(
     # Apply constructor-time properties before nativeHookReady reads defaults.
     # 在 nativeHookReady 读取默认值前应用构造期属性。
     apply_window_pending_state(builder, window_icon_qml, mica_enabled, profile)
-    # Mount Splash before the asynchronous 50ms mainLoader can activate.
-    # 在异步 50ms mainLoader 激活前同步挂载 Splash。
-    finalize_window_startup(builder, profile)
+    # NavigationWindowCore owns Splash creation from its initial properties.
+    # NavigationWindowCore 根据初始属性统一创建 Splash。
+    profile("确认 QML Splash")

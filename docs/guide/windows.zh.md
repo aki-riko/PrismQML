@@ -40,6 +40,33 @@ window.show()
 - **系统托盘** — 见 [系统托盘](tray.md)
 - **启动画面** — `SplashScreen` 首屏就绪后自动淡出（默认挂载）
 
+## 启动画面
+
+启动画面由 `NavigationWindowCore` 统一创建、覆盖窗口并等待首页就绪；Python、
+C++ 和纯 QML 使用同一套生命周期。宿主只传配置，不需要自行创建组件：
+
+```python
+window.showSplash(title="PrismQML", subtitle="正在加载组件...")
+# window.setSplashEnabled(False)  # 按需关闭
+```
+
+```cpp
+window.setSplash(true, {}, {}, QStringLiteral("正在加载组件..."));
+```
+
+```qml
+import PrismQML as Fluent
+
+Fluent.Windows {
+    windowTitle: "My App"
+    windowIcon: "qrc:/app_icon.svg"
+    splashSubtitle: "正在加载..."
+}
+```
+
+纯 QML 窗口还可以通过 `splashComponent` 替换视觉组件；自定义根对象必须提供
+`finish()` 方法，框架会在首页就绪时调用它。
+
 !!! tip "neo 皮肤下的窗口"
     新粗野皮肤会自动关闭 Mica（实心米白底）、内容区加粗黑边、导航选中项变橙实心块——
     这些都由皮肤系统自动处理，无需手动配置。

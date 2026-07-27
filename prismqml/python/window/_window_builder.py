@@ -8,7 +8,6 @@
 负责 QML 窗口的动态构建与字符串拼接。
 """
 
-from typing import List, TYPE_CHECKING
 from pathlib import Path
 from string import Template
 import hashlib
@@ -20,17 +19,13 @@ from ._generated_qml_cache import (
     GENERATED_WINDOW_QML_CACHE_DIR,
     write_generated_qml,
 )
-from ._splash_builder import create_splash
+from ._splash_builder import build_splash_properties, build_splash_template_values
 from ._window_engine_setup import prepare_window_engine
 from ._window_root_setup import finish_window_startup
 from ._window_startup import (
     prepare_window_startup_profile,
     resolve_window_qml_paths,
 )
-
-if TYPE_CHECKING:
-    from .window_core import NavigationItem
-
 
 _WINDOW_QML_TEMPLATE = Template(
     """import QtQuick
@@ -47,6 +42,10 @@ ${qml_component} {
     windowTitle: "${window_title}"
     windowIcon: "${window_icon}"
     windowIconColored: ${window_icon_colored}
+    splashEnabled: ${splash_enabled}
+    splashIcon: "${splash_icon}"
+    splashTitle: "${splash_title}"
+    splashSubtitle: "${splash_subtitle}"
     startupProfilingVerbose: ${startup_profiling_verbose}
     lazyLoading: false
     _pythonPageMode: true
@@ -221,6 +220,7 @@ class WindowBuilderMixin:
             "micaEnabled": mica_enabled,
             "navigationItems": self._build_navigation_items_data(),
             "bottomNavigationItems": self._build_bottom_items_data(),
+            **build_splash_properties(self),
         }
 
     def _append_static_page_containers(self, loaded_window) -> None:
@@ -398,6 +398,7 @@ class WindowBuilderMixin:
             bottom_items=bottom_items_qml,
             pages=pages_qml,
             indent="    ",
+            **build_splash_template_values(self, esc),
         )
 
     def _resolve_window_qml_state(self, icon_dir: Path, get_config_manager):
@@ -491,21 +492,3 @@ class WindowBuilderMixin:
         from ..core.utils import qml_path
         icon_dir = qml_path() / "controls" / "icons" / "fluent"
         return f"file:///{(icon_dir / f'{name}.svg').as_posix()}"
-
-    def _create_splash(self):
-        """创建启动画面并挂到 QML 根对象的 _splashInstance。
-
-        框架 (NavigationWindowCore._dismissSplashWhenReady) 会在首屏内容
-        真正加载完成时自动调 _splashInstance.finish() 退场,无需 Python 干预。
-        _splash_enabled=False 时跳过。
-
-        失败不致命: splash 仅是视觉增强,任何异常只 warning 并继续启动。
-        """
-        create_splash(self)
-
-    def _build_nav_items_json(self, items: List['NavigationItem']) -> str:
-        """构建导航项JSON"""
-        esc = self._escape_qml
-        return ", ".join(
-            [f'{{"text": "{esc(item.text)}", "icon": "{esc(item.icon)}"}}' for item in items]
-        )

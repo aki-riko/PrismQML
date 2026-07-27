@@ -10,7 +10,6 @@ import PrismQML as Fluent
 import "../prismqml/PrismQML/_internal" as FluentInternal
 import "../prismqml/PrismQML/controls/buttons"
 import "../prismqml/PrismQML/controls/containers"
-import "../prismqml/PrismQML/controls/feedback"
 
 // PrismQML Gallery - 组件展示应用
 // 使用QtObject作为根元素，动态创建窗口
@@ -30,6 +29,7 @@ QtObject {
     readonly property bool micaEnabled: ConfigManager ? ConfigManager.micaEnabled : false
     readonly property bool lazyLoading: ConfigManager ? ConfigManager.lazyLoading : true
     readonly property string loadingText: "加载中"
+    readonly property string splashSubtitle: "正在加载组件..."
     
     // 图标路径解析函数
     function iconPath(name) {
@@ -118,12 +118,12 @@ QtObject {
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
             loadingText: root.loadingText
+            splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
             Component.onCompleted: {
                 root.initWindow(this)
-                this._splashInstance = root.splashComponent.createObject(this.contentItem)
             }
             onBottomItemClicked: (index) => {
                 // Handle function items (e.g., avatar click) 处理功能项（如头像点击）
@@ -144,12 +144,12 @@ QtObject {
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
             loadingText: root.loadingText
+            splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
             Component.onCompleted: {
                 root.initWindow(this)
-                this._splashInstance = root.splashComponent.createObject(this.contentItem)
             }
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
@@ -167,12 +167,12 @@ QtObject {
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
             loadingText: root.loadingText
+            splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
             Component.onCompleted: {
                 root.initWindow(this)
-                this._splashInstance = root.splashComponent.createObject(this.contentItem)
             }
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
@@ -180,13 +180,4 @@ QtObject {
         }
     }
     
-    // ==================== Splash Screen 启动屏幕 ====================
-    property Component splashComponent: Component {
-        SplashScreen {
-            iconSource: root.windowIcon
-            title: root.windowTitle
-            subtitle: "正在加载组件..."
-            z: Fluent.Enums.zIndex.splash
-        }
-    }
 }

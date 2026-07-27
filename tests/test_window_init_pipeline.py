@@ -48,7 +48,6 @@ _SPLASH_FIELDS = (
     "_splash_icon",
     "_splash_title",
     "_splash_subtitle",
-    "_splash_instance",
 )
 _TRACKED_FIELDS = frozenset(
     (*_PRE_CONFIG_FIELDS, "_lazy_loading", *_SPLASH_FIELDS)
@@ -283,7 +282,7 @@ def _assert_default_state(instance, lazy_value):
     assert instance._splash_enabled is True
     assert (instance._splash_icon, instance._splash_title) == ("", "")
     assert instance._splash_subtitle == ""
-    assert instance._splash_instance is None
+    assert not hasattr(instance, "_splash_instance")
     assert not hasattr(instance, "_splash_component")
 
 

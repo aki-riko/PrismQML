@@ -41,6 +41,35 @@ window.show()
 - **System tray** — see [System Tray](tray.md)
 - **Splash screen** — `SplashScreen` auto-fades once the first frame is ready (mounted by default)
 
+## Splash screen
+
+`NavigationWindowCore` owns creation, window coverage, and first-page-ready
+dismissal. Python, C++, and pure QML therefore use the same lifecycle; hosts
+only pass configuration and do not create the component themselves:
+
+```python
+window.showSplash(title="PrismQML", subtitle="Loading components...")
+# window.setSplashEnabled(False)  # disable when needed
+```
+
+```cpp
+window.setSplash(true, {}, {}, QStringLiteral("Loading components..."));
+```
+
+```qml
+import PrismQML as Fluent
+
+Fluent.Windows {
+    windowTitle: "My App"
+    windowIcon: "qrc:/app_icon.svg"
+    splashSubtitle: "Loading..."
+}
+```
+
+Pure QML windows may replace the visual through `splashComponent`. Its root
+object must provide `finish()`, which the framework calls once the first page
+is ready.
+
 !!! tip "Windows under the neo skin"
     The neo skin auto-disables Mica (solid cream background), adds thick black borders to the content
     area, and turns the selected nav item into a solid orange block — all handled by the skin system.

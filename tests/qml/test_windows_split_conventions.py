@@ -126,6 +126,7 @@ Internal.WindowsBar {
     }
     readonly property int splashFinishCount: splashProbe.finishCount
 
+    splashEnabled: false
     _splashInstance: splashProbe
 
     Timer {

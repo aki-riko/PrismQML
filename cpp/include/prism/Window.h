@@ -111,11 +111,9 @@ private:
     // 启动画面(SplashScreen): 默认开启, 图标/标题空则回退 windowIcon/windowTitle
     bool m_splashEnabled = true;
     QString m_splashIcon, m_splashTitle, m_splashSubtitle;
-    QObject *m_splashInstance = nullptr;
     std::function<void(int)> m_onBottomItemClicked;  // 底部项点击回调
 
     void build();
-    void createSplash();  // show() 后挂 SplashScreen 覆盖层到 contentItem
     void handleBottomItemClicked(int localIndex);  // NavBridge 转发的底部项点击(局部索引→全局)
     void ensurePageCreated(int index);
     QQuickItem *findChildByName(const QString &name) const;

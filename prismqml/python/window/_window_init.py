@@ -48,4 +48,3 @@ def initialize_splash_state(owner: Any) -> None:
     owner._splash_icon = ""
     owner._splash_title = ""
     owner._splash_subtitle = ""
-    owner._splash_instance: Optional[QQuickItem] = None

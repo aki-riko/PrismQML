@@ -59,6 +59,7 @@ import PrismQML
 
 NavigationWindowCore {{
     id: win
+    splashEnabled: false
 
     // 测试可读结果
     property int finishAtCall: -1     // 调函数瞬间 splash.finish 次数
@@ -166,6 +167,7 @@ import PrismQML
 
 NavigationWindowCore {
     id: win
+    splashEnabled: false
     property int finishAtCall: -1
     property bool pageReadyAtCall: false
     readonly property int splashFinishCount: mockSplash.finishCount
