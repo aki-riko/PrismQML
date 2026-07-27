@@ -94,7 +94,7 @@ def _mount_splash(builder: Any, splash, component, profile) -> None:
     # 持引用防 GC(QQmlComponent.create 的所有权在调用方)
     builder._splash_instance = splash
     builder._splash_component = component
-    debug("[Splash] 启动画面已挂载,等待首屏就绪后自动淡出")
+    debug("[Splash] 启动画面已挂载,等待首屏就绪后自动退场")
 
 
 def create_splash(builder: Any) -> None:

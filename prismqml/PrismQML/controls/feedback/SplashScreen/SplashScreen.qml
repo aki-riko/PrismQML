@@ -63,7 +63,7 @@ Rectangle {
         if (control._finishing) return
         control._finishing = true
         breatheAnim.stop()
-        fadeOutAnim.start()
+        exitRevealAnim.start()
     }
     
     // Set icon (Icon enum or string) 设置图标
@@ -82,7 +82,7 @@ Rectangle {
     // Match the Gallery host: cover the whole window shell during startup.
     // 与 Gallery 宿主保持一致：启动期间覆盖整个窗口壳。
     z: Enums.zIndex.splash
-    color: control._splashBackground
+    color: Enums.transparent
     visible: true
     // Keep the complete splash stable from the first rendered frame; only
     // the icon participates in the continuous breathing animation.
@@ -90,24 +90,137 @@ Rectangle {
     opacity: 1
     Component.onCompleted: breatheAnim.start()
 
-    // Fade out animation 淡出动画
+    // Split-curtain reveal animation 分屏揭幕退场动画
     SequentialAnimation {
-        id: fadeOutAnim
-        
-        NumberAnimation {
-            target: control
-            property: "opacity"
-            to: 0
-            duration: Enums.duration.medium
-            easing.type: Easing.InCubic
+        id: exitRevealAnim
+
+        ParallelAnimation {
+            NumberAnimation {
+                target: revealSeam
+                property: "scale"
+                to: Enums.opacityLevel.visible
+                duration: Enums.duration.splashExitAnticipation
+                easing.type: Easing.OutCubic
+            }
+
+            NumberAnimation {
+                target: revealSeam
+                property: "opacity"
+                to: Enums.opacityLevel.visible
+                duration: Enums.duration.splashExitAnticipation
+                easing.type: Easing.OutCubic
+            }
+
+            NumberAnimation {
+                target: contentColumn
+                property: "scale"
+                to: Enums.splashScreenMetrics.exitContentPeakScale
+                duration: Enums.duration.splashExitAnticipation
+                easing.type: Easing.OutCubic
+            }
         }
-        
+
+        ParallelAnimation {
+            NumberAnimation {
+                target: leftCurtain
+                property: "x"
+                to: -leftCurtain.width
+                duration: Enums.duration.splashExitReveal
+                easing.type: Easing.InOutExpo
+            }
+
+            NumberAnimation {
+                target: leftCurtain
+                property: "rotation"
+                to: -Enums.splashScreenMetrics.exitCurtainAngle
+                duration: Enums.duration.splashExitReveal
+                easing.type: Easing.InOutCubic
+            }
+
+            NumberAnimation {
+                target: rightCurtain
+                property: "x"
+                to: control.width
+                duration: Enums.duration.splashExitReveal
+                easing.type: Easing.InOutExpo
+            }
+
+            NumberAnimation {
+                target: rightCurtain
+                property: "rotation"
+                to: Enums.splashScreenMetrics.exitCurtainAngle
+                duration: Enums.duration.splashExitReveal
+                easing.type: Easing.InOutCubic
+            }
+
+            NumberAnimation {
+                target: contentColumn
+                property: "scale"
+                to: Enums.splashScreenMetrics.exitContentEndScale
+                duration: Enums.duration.splashExitReveal
+                easing.type: Easing.InBack
+            }
+
+            NumberAnimation {
+                target: contentColumn
+                property: "opacity"
+                to: Enums.opacityLevel.invisible
+                duration: Enums.duration.splashExitReveal
+                easing.type: Easing.InCubic
+            }
+
+            NumberAnimation {
+                target: revealSeam
+                property: "opacity"
+                to: Enums.opacityLevel.invisible
+                duration: Enums.duration.splashExitReveal
+                easing.type: Easing.OutCubic
+            }
+        }
+
         ScriptAction {
             script: {
                 control.visible = false
                 control.finished()
             }
         }
+    }
+
+    // Background curtains reveal the ready application from the center.
+    // 背景双翼从中央揭开已就绪的应用界面。
+    Rectangle {
+        id: leftCurtain
+
+        objectName: "splashLeftCurtain"
+        x: 0
+        width: control.width * Enums.splashScreenMetrics.curtainWidthRatio
+        height: control.height
+        color: control._splashBackground
+        transformOrigin: Item.Right
+    }
+
+    Rectangle {
+        id: rightCurtain
+
+        objectName: "splashRightCurtain"
+        x: leftCurtain.width
+        width: control.width - leftCurtain.width
+        height: control.height
+        color: control._splashBackground
+        transformOrigin: Item.Left
+    }
+
+    Rectangle {
+        id: revealSeam
+
+        objectName: "splashRevealSeam"
+        anchors.centerIn: parent
+        width: Enums.border.normal
+        height: parent.height
+        color: Enums.accentColor
+        opacity: Enums.opacityLevel.invisible
+        scale: Enums.opacityLevel.invisible
+        transformOrigin: Item.Center
     }
     
     // Breathe animation 呼吸动画
@@ -159,6 +272,7 @@ Rectangle {
         objectName: "splashContent"
         anchors.centerIn: parent
         opacity: 1
+        transformOrigin: Item.Center
         spacing: Enums.spacing.xl
         
         // Icon Container 图标容器

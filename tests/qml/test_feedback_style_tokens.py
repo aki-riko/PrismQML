@@ -50,6 +50,8 @@ Item {
     readonly property int iconXl: Enums.iconSize.xl
     readonly property int splashBreatheDuration: Enums.duration.splashBreathe
     readonly property int splashProgressSpinDuration: Enums.duration.splashProgressSpin
+    readonly property int splashExitAnticipationDuration: Enums.duration.splashExitAnticipation
+    readonly property int splashExitRevealDuration: Enums.duration.splashExitReveal
     readonly property int splashProgressStyle: Enums.progress.indeterminate_style_orbit_dot
     readonly property int splashProgressDotSize: Enums.splashScreenMetrics.progressDotSize
     readonly property int splashProgressDotRadius: Enums.splashScreenMetrics.progressDotRadius
@@ -286,11 +288,22 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
         assert splash is not None
         breathe_duration = root.property("splashBreatheDuration")
         spin_duration = root.property("splashProgressSpinDuration")
+        exit_anticipation = root.property("splashExitAnticipationDuration")
+        exit_reveal = root.property("splashExitRevealDuration")
         shadow_blur = root.property("splashShadowBlur")
         shadow_offset = root.property("splashShadowOffset")
-        assert (breathe_duration, spin_duration, shadow_blur, shadow_offset) == (
+        assert (
+            breathe_duration,
+            spin_duration,
+            exit_anticipation,
+            exit_reveal,
+            shadow_blur,
+            shadow_offset,
+        ) == (
             1200,
             1000,
+            120,
+            420,
             0.8,
             6,
         )
@@ -300,6 +313,7 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
             animation
             for animation in animations
             if animation.property("property") == "scale"
+            and animation.property("duration") == breathe_duration
         ]
         assert len(scale_animations) == 2
         assert {
@@ -331,7 +345,7 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
         _pump(1)
 
 
-def test_splash_finish_fades_out_without_waiting_for_an_intro(qapp):
+def test_splash_finish_exits_without_waiting_for_an_intro(qapp):
     engine, component, root = _create_scene()
     try:
         splash = root.findChild(QQuickItem, "splash")
@@ -342,7 +356,7 @@ def test_splash_finish_fades_out_without_waiting_for_an_intro(qapp):
         assert splash.property("visible") is True
         assert splash.property("opacity") > 0.1
 
-        _pump(180)
+        _pump(520)
         assert splash.property("visible") is False
     finally:
         root.deleteLater()
@@ -380,6 +394,42 @@ def test_splash_first_frame_shows_complete_content(qapp):
         _pump(1)
 
 
+def test_splash_finish_uses_split_curtain_reveal(qapp):
+    engine, component, root = _create_scene()
+    try:
+        splash = root.findChild(QQuickItem, "splash")
+        assert splash is not None
+        content = splash.findChild(QQuickItem, "splashContent")
+        left_curtain = splash.findChild(QQuickItem, "splashLeftCurtain")
+        right_curtain = splash.findChild(QQuickItem, "splashRightCurtain")
+        reveal_seam = splash.findChild(QQuickItem, "splashRevealSeam")
+        assert content is not None
+        assert left_curtain is not None
+        assert right_curtain is not None
+        assert reveal_seam is not None
+
+        assert left_curtain.property("x") == pytest.approx(0.0)
+        assert right_curtain.property("x") == pytest.approx(left_curtain.width())
+        assert reveal_seam.property("opacity") == pytest.approx(0.0)
+
+        assert QMetaObject.invokeMethod(splash, "finish")
+        _pump(220)
+
+        assert splash.property("visible") is True
+        assert left_curtain.property("x") < 0
+        assert right_curtain.property("x") > left_curtain.width()
+        assert 0.82 < content.property("scale") < 1.1
+        assert content.property("opacity") < 1.0
+
+        _pump(400)
+        assert splash.property("visible") is False
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_feedback_sources_use_shared_style_tokens():
     toast_source = TOAST_SOURCE.read_text(encoding="utf-8")
     splash_source = SPLASH_SOURCE.read_text(encoding="utf-8")
@@ -402,7 +452,12 @@ def test_feedback_sources_use_shared_style_tokens():
         in splash_source
     )
     assert "duration: Enums.duration.splashBreathe" in splash_source
-    assert "target: contentColumn" not in splash_source
+    assert "id: exitRevealAnim" in splash_source
+    assert "target: leftCurtain" in splash_source
+    assert "target: rightCurtain" in splash_source
+    assert "target: revealSeam" in splash_source
+    assert "duration: Enums.duration.splashExitReveal" in splash_source
+    assert "easing.type: Easing.InBack" in splash_source
     assert "spinDuration: Enums.duration.splashProgressSpin" in splash_source
     assert "shadowBlur: Enums.shadow.splashIcon.blurNormalized" in splash_source
     assert "shadowVerticalOffset: Enums.shadow.splashIcon.offset" in splash_source

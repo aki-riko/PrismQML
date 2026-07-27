@@ -496,7 +496,7 @@ class WindowBuilderMixin:
         """创建启动画面并挂到 QML 根对象的 _splashInstance。
 
         框架 (NavigationWindowCore._dismissSplashWhenReady) 会在首屏内容
-        真正加载完成时自动调 _splashInstance.finish() 淡出,无需 Python 干预。
+        真正加载完成时自动调 _splashInstance.finish() 退场,无需 Python 干预。
         _splash_enabled=False 时跳过。
 
         失败不致命: splash 仅是视觉增强,任何异常只 warning 并继续启动。
