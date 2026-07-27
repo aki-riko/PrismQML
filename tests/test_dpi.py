@@ -123,6 +123,10 @@ def test_app_config_options_are_the_python_runtime_contract():
     assert AppConfig.window_type.options == [0, 1, 2]
 
 
+def test_ms_style_window_is_the_default_window_type():
+    assert AppConfig.window_type.default_value == 1
+
+
 def _read_cpp_int_array(symbol):
     header = (
         Path(__file__).resolve().parents[1]
