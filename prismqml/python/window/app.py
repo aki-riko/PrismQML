@@ -205,6 +205,8 @@ class App(ApplicationIconMixin):
     QML XHR；传入 ``False`` 可在创建引擎前显式关闭。
     ``task_shutdown_timeout_ms`` 可为后台任务退出设置总截止时间；超时会保留
     Qt 运行时并抛出 ``TaskShutdownTimeoutError``，传入 ``None`` 则安全地持续等待。
+    ``auto_update_slot_redirect`` 默认读取安装器双槽状态并在创建 Qt 前切换到
+    下次启动槽；源码开发态和普通单目录安装不受影响。
     """
 
     _instance: "App" = None
@@ -217,11 +219,18 @@ class App(ApplicationIconMixin):
         task_shutdown_timeout_ms: Optional[int] = None,
         application_icon: Optional[Union[str, os.PathLike]] = None,
         application_icon_colored: bool = True,
+        auto_update_slot_redirect: bool = True,
     ):
         if App._instance is not None:
             raise RuntimeError(
                 "App already exists. Use App.instance() to get the existing instance."
             )
+        if auto_update_slot_redirect:
+            from ..core.update_slots import redirect_to_active_update_slot
+
+            forwarded_args = None if argv is None else list(argv[1:])
+            if redirect_to_active_update_slot(forwarded_args):
+                raise SystemExit(0)
         _initialize_app_state(self, task_shutdown_timeout_ms)
         previous_qml_environment = os.environ.get(
             QML_XHR_ALLOW_FILE_READ_ENV, _MISSING_ENVIRONMENT
@@ -404,6 +413,8 @@ class App(ApplicationIconMixin):
         repo: str,
         current_version: str,
         asset_keyword: str = "Setup",
+        *,
+        install_strategy: str = "in_place",
     ) -> "Updater":
         """Wire the engine-level auto-update backend. 启用引擎级自动更新底层。
 
@@ -417,6 +428,7 @@ class App(ApplicationIconMixin):
             repo: GitHub 仓库 "owner/repo"。
             current_version: 当前应用版本(如 "v1.0.3")。
             asset_keyword: 从 release assets 中挑安装包的关键词(默认 "Setup")。
+            install_strategy: ``in_place`` 或 Windows ``dual_slot``。
 
         Returns:
             创建的 ``Updater`` 实例;引擎未就绪时返回 ``None``。
@@ -429,7 +441,13 @@ class App(ApplicationIconMixin):
             warning("App enable_auto_update: 引擎未就绪，无法启用自动更新")
             return None
         # 以最后一次调用为准重建底层 Updater;parent=None,生命周期由 self 持有。
-        self._updater = Updater(repo, current_version, asset_keyword, None)
+        self._updater = Updater(
+            repo,
+            current_version,
+            asset_keyword,
+            None,
+            install_strategy=install_strategy,
+        )
         self._updater.set_require_artifact_digest(True)
         self._engine.rootContext().setContextProperty("appUpdater", self._updater)
         return self._updater

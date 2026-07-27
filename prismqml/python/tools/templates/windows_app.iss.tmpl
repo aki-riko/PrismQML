@@ -28,7 +28,7 @@ DisableProgramGroupPage=yes
 OutputDir=$INSTALLER_OUTPUT_DIR
 OutputBaseFilename=$OUTPUT_NAME
 $SETUP_ICON_LINE
-UninstallDisplayIcon={app}\{#PrismAppExe}
+UninstallDisplayIcon=$UNINSTALL_ICON
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -38,7 +38,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=$PRIVILEGES
 ; Close old files; optional relaunch is handled once by [Run]. 关闭旧进程；可选重启由 [Run] 单次执行。
-CloseApplications=yes
+CloseApplications=$CLOSE_APPLICATIONS
 RestartApplications=no
 
 [Languages]
@@ -48,17 +48,21 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+$INSTALL_DELETE_SECTION
 [Files]
-Source: "{#PrismDistDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#PrismDistDir}\*"; DestDir: "$PAYLOAD_DIR"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#PrismAppName}"; Filename: "{app}\{#PrismAppExe}"; IconFilename: "{app}\{#PrismAppExe}"; AppUserModelID: "{#PrismAppUserModelID}"
+Name: "{group}\{#PrismAppName}"; Filename: "$LAUNCH_EXE"; IconFilename: "$LAUNCH_EXE"; AppUserModelID: "{#PrismAppUserModelID}"
 Name: "{group}\{cm:UninstallProgram,{#PrismAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#PrismAppName}"; Filename: "{app}\{#PrismAppExe}"; IconFilename: "{app}\{#PrismAppExe}"; AppUserModelID: "{#PrismAppUserModelID}"; Tasks: desktopicon
+Name: "{autodesktop}\{#PrismAppName}"; Filename: "$LAUNCH_EXE"; IconFilename: "$LAUNCH_EXE"; AppUserModelID: "{#PrismAppUserModelID}"; Tasks: desktopicon
 
 [Run]
 ; The manifest decides whether silent installs relaunch the installed application.
 ; 清单决定静默安装完成后是否重新启动已安装的应用。
-Filename: "{app}\{#PrismAppExe}"; Description: "{cm:LaunchProgram,{#PrismAppName}}"; Flags: $RUN_FLAGS
+Filename: "$LAUNCH_EXE"; Description: "{cm:LaunchProgram,{#PrismAppName}}"; Flags: $RUN_FLAGS$RUN_CHECK
+
+$UNINSTALL_DELETE_SECTION
+$DUAL_SLOT_CODE
 
 $EXTENSION_INCLUDE

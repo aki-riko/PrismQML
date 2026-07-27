@@ -44,12 +44,15 @@ from ._updater_download import (
 )
 from ._updater_install import launch_non_windows_installer, launch_windows_installer
 from ._updater_release import (
+    _is_newer,
+    _parse_version,
     decode_release_payload,
     is_safe_update_url,
     is_sha256_digest,
     pick_asset as _pick_asset,
 )
 from .logger import getLogger
+from .update_slots import SlotUpdatePreparation
 
 logger = getLogger()
 
@@ -58,6 +61,13 @@ _USER_AGENT = b"PrismQML-Updater"
 _UPDATER_API_BASE_ENV = "PRISMQML_UPDATER_API_BASE_URL"
 _DEFAULT_API_BASE_URL = "https://api.github.com"
 _CONNECTION_CACHE_EXPIRY_SECONDS = 0
+_INSTALL_STRATEGIES = frozenset(("in_place", "dual_slot"))
+
+
+def _validate_install_strategy(value: str) -> str:
+    if value not in _INSTALL_STRATEGIES:
+        raise ValueError("install_strategy must be 'in_place' or 'dual_slot'")
+    return value
 
 
 def _normalize_api_base_url(value: Optional[str]) -> str:
@@ -101,57 +111,6 @@ def _network_request(url: str) -> QNetworkRequest:
     return request
 
 
-def _normalize_version_tag(tag: str) -> str:
-    """Normalize prefix and build metadata. 归一化前缀与构建元数据。"""
-    normalized = tag.strip()
-    if normalized[:1] in ("v", "V"):
-        normalized = normalized[1:]
-    return normalized.partition("+")[0].strip()
-
-
-def _parse_version_segments(value: str) -> tuple:
-    """Parse dot-separated precedence segments. 解析点分优先级片段。"""
-    segments = []
-    for raw_segment in value.split("."):
-        segment = raw_segment.strip()
-        if not segment:
-            continue
-        if segment.isascii() and segment.isdigit():
-            segments.append((0, int(segment)))
-        else:
-            segments.append((1, segment))
-    return tuple(segments)
-
-
-def _parse_version(tag: str) -> tuple:
-    """把版本号(如 'v1.0.3' / '1.2.0-beta')解析成可比较的元组。
-
-    返回 ``(core, pre_marker)`` 二元组:
-    - core: 主版本号各段(去前导 'v',按 '.' 拆,纯数字转 int,非数字保留为
-      (1, str) 排在数字之后)。
-    - pre_marker: 预发布标记。无预发布(无 '-')为 ``(1,)``,有预发布为
-      ``(0,) + 预发布各段``。保证 core 相同时正式版 > 预发布版
-      (如 '1.0.0' > '1.0.0-beta'),符合语义版本直觉。
-    构建元数据不参与优先级；空白或仅 v/V 前缀返回 ``()``,视为最小版本。
-    """
-    normalized = _normalize_version_tag(tag)
-    if not normalized:
-        return ()
-
-    core_str, separator, prerelease_str = normalized.partition("-")
-    core = _parse_version_segments(core_str)
-    if separator:  # 有 '-',是预发布版,排在同 core 正式版之前
-        pre_marker = (0,) + _parse_version_segments(prerelease_str)
-    else:    # 无预发布,正式版,排在最后(更大)
-        pre_marker = (1,)
-    return (core, pre_marker)
-
-
-def _is_newer(latest: str, current: str) -> bool:
-    """latest 是否比 current 新。两者均做 _parse_version 后逐段比较。"""
-    return _parse_version(latest) > _parse_version(current)
-
-
 class Updater(QObject):
     """基于 GitHub Releases 的应用更新器。
 
@@ -173,6 +132,8 @@ class Updater(QObject):
     downloadProgress = Signal("qint64", "qint64")  # (received, total)
     downloadFinished = Signal(str)                  # (localPath)
     downloadFailed = Signal(str)                    # (errorMessage)
+    installPreparationFinished = Signal()
+    installPreparationFailed = Signal(str)
 
     def __init__(
         self,
@@ -182,6 +143,7 @@ class Updater(QObject):
         parent: Optional[QObject] = None,
         *,
         api_base_url: Optional[str] = None,
+        install_strategy: str = "in_place",
     ):
         super().__init__(parent)
         self._repo = repo
@@ -198,6 +160,10 @@ class Updater(QObject):
         self._expected_digest = ""
         self._expected_download_url = ""
         self._require_artifact_digest = True
+        self._install_strategy = _validate_install_strategy(install_strategy)
+        self._slot_preparation = SlotUpdatePreparation(self)
+        self._slot_preparation.finished.connect(self.installPreparationFinished)
+        self._slot_preparation.failed.connect(self.installPreparationFailed)
 
     @property
     def api_base_url(self) -> str:
@@ -216,6 +182,11 @@ class Updater(QObject):
     def requireArtifactDigest(self) -> bool:
         """Whether release assets must carry SHA-256. 是否要求资产带 SHA-256。"""
         return self._require_artifact_digest
+
+    @Property(str, constant=True)
+    def installStrategy(self) -> str:
+        """Selected installer strategy. 当前安装策略。"""
+        return self._install_strategy
     def set_require_artifact_digest(self, value: bool) -> None:
         """Set the policy from trusted Python code, not from QML. 仅允许可信 Python 入口设置策略。"""
         self._require_artifact_digest = bool(value)
@@ -488,6 +459,22 @@ class Updater(QObject):
         logger.info(f"[Updater] 已启动安装包,应用即将退出: {installer_path} {args}")
         QCoreApplication.quit()
         return True
+
+    @Slot(str, str, result=bool)
+    def stageInstallerForNextLaunch(
+        self, installer_path: str, silent_args: str = ""
+    ) -> bool:
+        """Install into the inactive Windows slot without closing this process."""
+        if self._install_strategy != "dual_slot":
+            logger.warning("[Updater] 当前更新器未启用 Windows 双槽策略")
+            return False
+        if not self._slot_preparation.stage(installer_path, silent_args):
+            self._download_path = discard_completed_download(
+                installer_path, self._download_path
+            )
+            return False
+        return True
+
     @Slot(str, result=bool)
     def openInBrowser(self, url: str) -> bool:
         """用系统浏览器打开 URL(检测到新版时跳 Releases 页的兜底)。"""

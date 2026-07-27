@@ -19,6 +19,7 @@ QtObject {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property string repository: "Gallery DRY"
+    readonly property string installStrategy: "dual_slot"
     readonly property string simulatedVersion: "DRY Next"
     readonly property string downloadToken: "gallery-dry-download"
     readonly property string installerPath: "PrismQML-Gallery-Setup-DryRun.exe"
@@ -45,6 +46,15 @@ QtObject {
     property int _downloadSimulationCount: 0
     property int _installSimulationCount: 0
     property string _lastInstallerArgs: ""
+    property Timer _prepareTimer: Timer {
+        interval: Enums.duration.slower
+        repeat: false
+
+        onTriggered: {
+            root.stageChanged("DRY：双槽已准备完成，下次启动自动切换")
+            root.installPreparationFinished()
+        }
+    }
     property Timer _checkTimer: Timer {
         interval: Math.max(Enums.duration.tick, root.checkDelay)
         repeat: false
@@ -93,6 +103,8 @@ QtObject {
     signal downloadProgress(int received, int total)
     signal downloadFinished(string filePath)
     signal downloadFailed(string error)
+    signal installPreparationFinished()
+    signal installPreparationFailed(string error)
     signal stageChanged(string message)
     signal installSimulated(string installerPath)
 
@@ -132,6 +144,19 @@ QtObject {
         root._installSimulationCount += 1
         root.stageChanged("DRY 演示完成：已模拟静默安装交接，未下载文件、未启动安装器")
         root.installSimulated(path)
+        return true
+    }
+
+    function stageInstallerForNextLaunch(path, args) {
+        root._lastInstallerArgs = args
+        if (path !== root.installerPath) {
+            root.stageChanged("DRY：双槽安装交接失败")
+            root.installPreparationFailed("DRY 安装包路径无效")
+            return false
+        }
+        root._installSimulationCount += 1
+        root.stageChanged("DRY：正在后台准备非活动槽")
+        root._prepareTimer.restart()
         return true
     }
 

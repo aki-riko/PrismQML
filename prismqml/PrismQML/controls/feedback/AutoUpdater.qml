@@ -28,6 +28,7 @@ Item {
     //        checkFailed(error) / downloadProgress(received, total)
     //        downloadFinished(filePath) / downloadFailed(error)
     //   方法 checkForUpdate() / downloadUpdate(url) / runInstallerAndQuit(path, args)
+    //        / stageInstallerForNextLaunch(path, args) (dual_slot)
     //        openInBrowser(url)
     property var updater: null
 
@@ -37,6 +38,8 @@ Item {
         ? "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
         : "" // Inno Setup silent install arguments Inno Setup 静默安装参数
     property bool notifyWhenUpToDate: false        // 已是最新时是否弹提示 toast
+    readonly property bool usesDualSlot:
+        updater && updater.installStrategy === "dual_slot"
     // Presenter component contract 展示器组件契约:
     //   property var feedbackModel / property Item presenterHost
     // Defaults to bottom-right Toast; null disables built-in feedback.
@@ -52,6 +55,7 @@ Item {
         readonly property bool active: root._feedbackActive
         readonly property bool checking: root._checking
         readonly property bool downloading: root._downloading
+        readonly property bool preparing: root._installPreparing
         readonly property string title: root._feedbackTitle
         readonly property string message: root._feedbackMessage
         readonly property string severity: root._feedbackSeverity
@@ -78,6 +82,7 @@ Item {
     property bool _checking: false      // 是否处于检查态(不确定环)
     property bool _checkSilent: false   // Suppress startup check feedback 抑制启动检查反馈
     property bool _downloading: false   // 是否处于下载态(不确定环→确定环)
+    property bool _installPreparing: false
     property bool _awaitingDecision: false
     property bool _componentReady: false
     property bool _feedbackActive: false
@@ -95,6 +100,7 @@ Item {
     signal upToDateNotified(string version)
     signal errorOccurred(string message)
     signal downloadRequested(string version, string downloadUrl, string htmlUrl)
+    signal updatePreparedForNextLaunch(string version)
 
     // Trigger a visible manual check. 触发一次有反馈的手动检查。
     function check() {
@@ -111,7 +117,8 @@ Item {
             console.warn("AutoUpdater: updater 未注入,无法检查更新");
             return;
         }
-        if (root._checking || root._downloading || root._awaitingDecision)
+        if (root._checking || root._downloading || root._awaitingDecision
+            || root._installPreparing)
             return;
         _clearPending();
         _dismissFeedback();
@@ -132,6 +139,7 @@ Item {
     // 手动开始下载(autoDownload=false 时供应用调用)
     function startDownload() {
         if (!updater || root._checking || root._downloading || root._awaitingDecision
+            || root._installPreparing
             || (root._pendingUrl === "" && root._pendingHtmlUrl === ""))
             return;
         _beginDownload(_pendingVersion, _pendingUrl, _pendingHtmlUrl);
@@ -327,6 +335,20 @@ Item {
             if (!root._downloading)
                 return;
             root._downloading = false;
+            if (root.usesDualSlot) {
+                if (!root.updater.stageInstallerForNextLaunch(filePath, root.silentArgs)) {
+                    _showError(qsTr("后台安装启动失败"), qsTr("无法准备下次启动的新版,请重试"));
+                    return;
+                }
+                root._installPreparing = true;
+                root._presentFeedback(
+                    qsTr("正在后台准备新版"),
+                    qsTr("当前版本可继续使用,完成后下次启动自动切换"),
+                    "info", Enums.notification.feature_indeterminate_ring,
+                    Enums.duration.none, 0
+                );
+                return;
+            }
             if (!root.updater.runInstallerAndQuit(filePath, root.silentArgs)) {
                 _showError(qsTr("安装启动失败"), qsTr("无法启动安装程序,请重试"));
                 return;
@@ -343,6 +365,28 @@ Item {
                 return;
             root._downloading = false;
             _showError(qsTr("下载失败"), error);
+        }
+
+        function onInstallPreparationFinished() {
+            if (!root._installPreparing)
+                return;
+            root._installPreparing = false;
+            root._presentFeedback(
+                qsTr("新版已准备完成"),
+                qsTr("当前版本继续运行,下次启动将自动切换"),
+                "success", Enums.notification.feature_normal,
+                Enums.duration.notification, 0
+            );
+            var version = root._pendingVersion;
+            root._clearPending();
+            root.updatePreparedForNextLaunch(version);
+        }
+
+        function onInstallPreparationFailed(error) {
+            if (!root._installPreparing)
+                return;
+            root._installPreparing = false;
+            _showError(qsTr("后台安装失败"), error);
         }
 
         target: root.updater

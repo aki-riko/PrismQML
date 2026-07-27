@@ -154,6 +154,11 @@ def test_gallery_dry_run_shows_download_progress_and_simulates_install(qapp):
             qapp,
             lambda: dry_run_backend.property("installSimulationCount") == 1,
         )
+        _wait_until(
+            qapp,
+            lambda: root.property("statusText")
+            == "DRY：双槽已准备完成，下次启动自动切换",
+        )
         assert dry_run_backend.property("checkSimulationCount") == 1
         assert dry_run_backend.property("downloadSimulationCount") == 1
         assert dry_run_backend.property("progress") == 100
@@ -161,9 +166,9 @@ def test_gallery_dry_run_shows_download_progress_and_simulates_install(qapp):
             "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
         )
         assert dialogs[0].property("isOpen") is False
-        assert feedback.property("title") == "安装程序已启动"
+        assert feedback.property("title") == "新版已准备完成"
         assert root.property("statusText") == (
-            "DRY 演示完成：已模拟静默安装交接，未下载文件、未启动安装器"
+            "DRY：双槽已准备完成，下次启动自动切换"
         )
     finally:
         root.setParentItem(None)

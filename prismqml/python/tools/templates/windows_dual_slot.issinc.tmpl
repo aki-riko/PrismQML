@@ -1,0 +1,104 @@
+[Code]
+var
+  PrismTargetSlot: String;
+  PrismHadExistingInstall: Boolean;
+
+function PrismNormalizeSlot(Value: String): String;
+begin
+  if CompareText(Value, 'A') = 0 then
+    Result := 'A'
+  else if CompareText(Value, 'B') = 0 then
+    Result := 'B'
+  else
+    Result := '';
+end;
+
+function PrismSlotDirectory(Slot: String): String;
+begin
+  if Slot = 'B' then
+    Result := ExpandConstant('{app}\slot-b')
+  else if Slot = 'A' then
+    Result := ExpandConstant('{app}\slot-a');
+  else
+    Result := ExpandConstant('{app}\.prism-invalid-slot');
+end;
+
+function PrismStateFile: String;
+begin
+  Result := ExpandConstant('{app}\prism-update-slot.ini');
+end;
+
+function PrismChooseTargetSlot: String;
+var
+  CurrentSlot: String;
+  LaunchSlot: String;
+begin
+  CurrentSlot := PrismNormalizeSlot(
+    ExpandConstant('{param:PRISMCURRENTSLOT|}')
+  );
+  if CurrentSlot = 'A' then
+    Result := 'B'
+  else if CurrentSlot = 'B' then
+    Result := 'A'
+  else begin
+    LaunchSlot := PrismNormalizeSlot(
+      GetIniString('Slots', 'LaunchSlot', '', PrismStateFile)
+    );
+    if LaunchSlot = 'A' then
+      Result := 'B'
+    else if LaunchSlot = 'B' then
+      Result := 'A'
+    else if not PrismHadExistingInstall then
+      Result := 'A';
+    else
+      Result := '';
+  end;
+end;
+
+procedure PrismEnsureSlotState;
+begin
+  if PrismTargetSlot <> '' then
+    exit;
+  PrismHadExistingInstall :=
+    FileExists(PrismStateFile) or
+    DirExists(PrismSlotDirectory('A')) or
+    DirExists(PrismSlotDirectory('B'));
+  PrismTargetSlot := PrismChooseTargetSlot;
+end;
+
+function PrismInstallDir(Param: String): String;
+begin
+  PrismEnsureSlotState;
+  Result := PrismSlotDirectory(PrismTargetSlot);
+end;
+
+function PrismLaunchExecutable(Param: String): String;
+begin
+  Result := AddBackslash(PrismInstallDir('')) + '{#PrismAppExe}';
+end;
+
+function PrismShouldLaunchAfterInstall: Boolean;
+begin
+  PrismEnsureSlotState;
+  Result := not PrismHadExistingInstall;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  PrismEnsureSlotState;
+  if PrismTargetSlot = '' then
+    Result := 'Cannot determine the inactive update slot. Start the installed application and retry the update.'
+  else
+    Result := '';
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep <> ssPostInstall then
+    exit;
+  PrismEnsureSlotState;
+  if not SetIniString(
+    'Slots', 'LaunchSlot', PrismTargetSlot, PrismStateFile
+  ) then
+    RaiseException('Failed to persist the active update slot');
+end;

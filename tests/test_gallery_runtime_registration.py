@@ -119,6 +119,7 @@ def test_gallery_exposes_dry_and_real_auto_update_backends():
     assert "function checkForUpdate()" in dry_run_source
     assert "function downloadUpdate(token)" in dry_run_source
     assert "function runInstallerAndQuit(path, args)" in dry_run_source
+    assert "function stageInstallerForNextLaunch(path, args)" in dry_run_source
 
 
 def test_gallery_hyperlink_label_targets_github_repository():

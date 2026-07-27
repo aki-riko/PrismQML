@@ -10,9 +10,10 @@ Check the Latest Release
 → download the matching platform asset
 → update one feedback object in place
 → verify SHA-256
-→ launch the installer
-→ quit the current application
-→ launch the new version according to the installer manifest
+→ hand off according to the install strategy
+→ `in_place`: launch the installer and quit the current application
+→ `dual_slot`: write the inactive slot in the background while the current app keeps running
+→ switch to the new version automatically on the next launch
 ```
 
 ## 1. Release asset contract
@@ -43,19 +44,20 @@ app.enable_auto_update(
     UPDATE_REPOSITORY,
     CURRENT_VERSION,
     UPDATE_ASSET_KEYWORD,
+    install_strategy="dual_slot",
 )
 
 # Continue creating windows, loading pages, and calling app.exec().
 ```
 
-This creates an `Updater`, enforces Release-asset digest verification, and injects it into the QML root context as `appUpdater`. Applications normally do not need to connect the backend signals directly.
+This creates an `Updater`, enforces Release-asset digest verification, and injects it into the QML root context as `appUpdater`. With `dual_slot`, the current process keeps running and the startup entry redirects to the prepared slot on the next launch. Applications normally do not need to connect the backend signals directly.
 
 For a manually created `QQmlApplicationEngine`, create and inject `Updater` explicitly. The host remains responsible for QML environment setup and type registration:
 
 ```python
 from prismqml import Updater
 
-updater = Updater("OWNER/REPO", "v1.2.3", "Setup")
+updater = Updater("OWNER/REPO", "v1.2.3", "Setup", install_strategy="dual_slot")
 updater.set_require_artifact_digest(True)
 engine.rootContext().setContextProperty("appUpdater", updater)
 ```
@@ -129,11 +131,13 @@ Use `AutoUpdaterToastPresenter` to select Toast feedback explicitly. Do not also
 
 ## 5. Windows installer template
 
-Copy the [installer manifest example](examples/prismqml-installer.json), then give the application a stable `app_id`, `aumid`, install scope, and Nuitka standalone directory. To launch the new version immediately after an automatic update, set:
+Copy the [installer manifest example](examples/prismqml-installer.json), then give the application a stable `app_id`, `aumid`, install scope, and Nuitka standalone directory. For inactive-slot replacement, set:
 
 ```json
-"launch_after_install": true
+"install_strategy": "dual_slot"
 ```
+
+For `in_place` installations that must restart immediately, the manifest can use `launch_after_install=true`; an existing dual-slot installation never starts the new version in the current session.
 
 Generate and check the Inno Setup script with the same application version:
 
@@ -145,9 +149,10 @@ prismqml-installer doctor --manifest prismqml-installer.json
 
 See [Windows Installer Template](windows-installer.md) for every manifest field and compile command. The generated contract uses:
 
-- `CloseApplications=yes` so the installer may close the process holding old files;
+- `CloseApplications=no` in dual-slot mode, leaving the current process running while the inactive slot is written;
 - `RestartApplications=no` so Restart Manager cannot produce a duplicate relaunch;
-- `Flags: nowait postinstall` when `launch_after_install=true`, launching the executable once from the new install directory;
+- `prism-update-slot.ini` to persist the next launch target;
+- `App` startup redirection so stale shortcuts and taskbar entries still enter the selected slot;
 - a stable `AppId`, upgrading the same installation instead of creating a second application.
 
 ## 6. Choose installer arguments
@@ -160,7 +165,7 @@ The application passes Windows runtime arguments through `AutoUpdater.silentArgs
 | `/SILENT /SUPPRESSMSGBOXES /NORESTART /SP-` | Hides the wizard but shows installation progress | Default automatic-update experience |
 | `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-` | Hides both wizard and installation progress | Installation must be completely hidden |
 
-A machine-wide installation may still display the Windows UAC prompt; that is an operating-system security boundary. Do not combine `/RESTARTAPPLICATIONS` or `/AUTORESTARTAPP` with `launch_after_install=true`, or the application may launch twice.
+A machine-wide installation may still display the Windows UAC prompt; that is an operating-system security boundary. Dual-slot updates do not use `/RESTARTAPPLICATIONS` or `/AUTORESTARTAPP` and do not restart the current session.
 
 ## 7. End-to-end acceptance
 
@@ -171,7 +176,7 @@ Source tests are not packaged-installation proof. A release should verify at lea
 3. Nuitka and ISCC run on a disposable Windows runner;
 4. the installer runs with the application's `/SILENT` arguments into an isolated directory and retains an installation log;
 5. installer exit status, uninstall registration, install directory, and product version are correct;
-6. with `launch_after_install=true`, the process launched after installation is the EXE from the new directory;
+6. with `dual_slot`, the old process remains usable, the inactive slot is complete, and launching through an old shortcut redirects to the new EXE;
 7. that process is stopped before running a packaged SELFTEST from the installation directory;
 8. the installer is attached to a public Release only after every gate passes.
 
@@ -187,7 +192,7 @@ User acceptance must exercise two real versions: install the old version, publis
 | An update exists but no installer is selected | Check the platform suffix and `asset_keyword` |
 | Asset digest is missing or verification fails | Check that the GitHub API exposes a matching asset `digest` |
 | No installation progress window appears | Replace `/VERYSILENT` with `/SILENT` |
-| The new version does not launch | Set `launch_after_install=true` and confirm generated output does not use `skipifsilent` |
+| A dual-slot install still enters the old version | Check `LaunchSlot` in `prism-update-slot.ini`, the target-slot EXE, and the default `App` slot redirect |
 | The application launches twice | Do not enable both Restart Manager relaunch and `[Run] postinstall` |
 
-The real and DRY demonstrations live in `examples/pages/AutoUpdatePage.qml`. DRY mode does not access the network, create files, or launch an installer.
+The real and DRY demonstrations live in `examples/pages/AutoUpdatePage.qml`. DRY mode simulates inactive-slot preparation and next-launch switching without network access, files, or processes.

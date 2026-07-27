@@ -4,7 +4,9 @@
 
 ## 行为合同
 
-生成模板固定以下升级行为：
+`install_strategy` 默认是 `in_place`。需要“当前会话不退出、下次启动切新版”时设为 `dual_slot`。
+
+`in_place` 模板固定以下升级行为：
 
 - `AppId` 在所有版本中保持不变，新版覆盖同一安装；
 - `CloseApplications=yes`，安装时允许 Inno Setup 关闭占用旧文件的进程；
@@ -12,6 +14,14 @@
 - `launch_after_install=false`（默认）时 `[Run]` 使用 `skipifsilent`，静默更新等待用户下次启动；设为 `true` 时，静默安装完成后从新安装目录启动一次新版；
 - 用户级安装写入 `{localappdata}\Programs` 且不主动请求管理员权限；
 - 机器级安装写入 `{autopf}`，Windows 仍会显示无法绕过的 UAC 安全提示。
+
+`dual_slot` 行为合同：
+
+- 安装根目录下维护 `slot-a` 与 `slot-b`，每次只清理并写入非活动槽；
+- 安装器接收 `/PRISMCURRENTSLOT=A|B`，将下次启动槽写入 `prism-update-slot.ini`；
+- `CloseApplications=no`，当前进程不退出、不被覆盖；
+- `App` 启动时若发现旧槽，会自动分离启动 `LaunchSlot` 指向的新版并结束旧入口；
+- 首次安装可按 `launch_after_install` 启动，已有安装的后台更新只在下次启动切换。
 
 运行时静默参数由 PrismQML `AutoUpdater` 负责。模板不包含 `/RESTARTAPPLICATIONS` 或 `/AUTORESTARTAPP`。
 
@@ -27,7 +37,7 @@
 - `install_scope`：只能是 `user` 或 `machine`，既有应用不得擅自改变；
 - `dist_dir`：相对于清单的 Nuitka standalone 目录。
 
-可选字段包括 `homepage`、`icon`、`installer_output_dir`、`output_name`、`chinese_messages_file`、`extension_include` 和 `launch_after_install`。`launch_after_install` 必须是 JSON 布尔值，默认 `false`；自动更新应用可设为 `true`，使静默安装完成后显式启动一次新版。`output_name` 只能使用 `{name}`、`{version}` 占位符且不写 `.exe` 后缀；`extension_include` 用于品牌迁移等应用专属 Inno Setup 逻辑，公共模板不会猜测或删除旧目录。
+可选字段包括 `homepage`、`icon`、`installer_output_dir`、`output_name`、`chinese_messages_file`、`extension_include`、`launch_after_install` 和 `install_strategy`。`install_strategy` 只能是 `in_place`（默认）或 `dual_slot`。`launch_after_install` 必须是 JSON 布尔值，默认 `false`；双槽已有安装不会立即启动新版。`output_name` 只能使用 `{name}`、`{version}` 占位符且不写 `.exe` 后缀；`extension_include` 用于品牌迁移等应用专属 Inno Setup 逻辑，公共模板不会猜测或删除旧目录。
 
 版本号不写入清单，由发布流程通过 `--version` 唯一注入。
 

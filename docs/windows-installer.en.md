@@ -4,7 +4,9 @@
 
 ## Behavior contract
 
-The generated template fixes the following upgrade behavior:
+`install_strategy` defaults to `in_place`. Set it to `dual_slot` when the current session must keep running and the new version should take effect on the next launch.
+
+The `in_place` template fixes the following upgrade behavior:
 
 - `AppId` remains stable across releases so a new release upgrades the same installation;
 - `CloseApplications=yes` lets Inno Setup close processes that hold old files;
@@ -12,6 +14,14 @@ The generated template fixes the following upgrade behavior:
 - with the default `launch_after_install=false`, `[Run]` uses `skipifsilent`, so a silent update waits for the user's next launch; set it to `true` to launch the new version once from the installed directory after a silent install;
 - per-user installs use `{localappdata}\Programs` without proactively requesting elevation;
 - machine installs use `{autopf}`, where Windows can still show the mandatory UAC prompt.
+
+The `dual_slot` contract is:
+
+- maintain `slot-a` and `slot-b` below the install root and replace only the inactive slot;
+- accept `/PRISMCURRENTSLOT=A|B` and persist the next launch slot in `prism-update-slot.ini`;
+- use `CloseApplications=no`, so the current process is neither closed nor overwritten;
+- let `App` redirect stale shortcuts/taskbar entries to the `LaunchSlot` executable at startup;
+- allow `launch_after_install` for the first install, while an existing install switches only on the next launch.
 
 PrismQML `AutoUpdater` supplies the runtime silent arguments. The template does not contain `/RESTARTAPPLICATIONS` or `/AUTORESTARTAPP`.
 
@@ -27,7 +37,7 @@ Copy the [example manifest](examples/prismqml-installer.json) to the application
 - `install_scope`: either `user` or `machine`; do not change it for an existing application without a migration decision;
 - `dist_dir`: the Nuitka standalone directory relative to the manifest.
 
-Optional fields are `homepage`, `icon`, `installer_output_dir`, `output_name`, `chinese_messages_file`, `extension_include`, and `launch_after_install`. `launch_after_install` must be a JSON boolean and defaults to `false`; automatic-update applications can set it to `true` to explicitly launch the new version once after a silent install. `output_name` may only use the `{name}` and `{version}` placeholders and must omit the `.exe` suffix. Use `extension_include` for application-specific logic such as brand migration; the shared template does not guess or remove legacy directories.
+Optional fields are `homepage`, `icon`, `installer_output_dir`, `output_name`, `chinese_messages_file`, `extension_include`, `launch_after_install`, and `install_strategy`. `install_strategy` accepts only `in_place` (default) or `dual_slot`. `launch_after_install` must be a JSON boolean and defaults to `false`; an existing dual-slot install does not launch the new version immediately. `output_name` may only use the `{name}` and `{version}` placeholders and must omit the `.exe` suffix. Use `extension_include` for application-specific logic such as brand migration; the shared template does not guess or remove legacy directories.
 
 The manifest does not store the release version. The release workflow injects it through `--version`.
 

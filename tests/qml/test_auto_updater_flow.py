@@ -40,6 +40,10 @@ Window {
     property string lastError: ""
     readonly property string facadeRepository: facade.repository
     readonly property string facadeVersion: facade.currentVersion
+    readonly property bool facadeUsesDualSlot: facade.usesDualSlot
+    readonly property bool facadePreparing: facade.feedbackModel.preparing
+    readonly property string facadeFeedbackTitle: facade.feedbackModel.title
+    readonly property string facadeFeedbackMessage: facade.feedbackModel.message
     readonly property int indeterminateRingFeature: Enums.notification.feature_indeterminate_ring
     readonly property int progressRingFeature: Enums.notification.feature_progress_ring
     readonly property int toastWidth: Enums.controlSize.toastWidth
@@ -96,6 +100,17 @@ Window {
         backend.downloadFinished("missing-installer.exe");
     }
 
+    function triggerDualSlotPreparation() {
+        backend.installStrategy = "dual_slot";
+        facade._pendingVersion = "v2.0.0";
+        facade._downloading = true;
+        backend.downloadFinished("dummy-installer.exe");
+    }
+
+    function finishDualSlotPreparation() {
+        backend.installPreparationFinished();
+    }
+
     function triggerReleaseFallback() {
         facade._pendingVersion = "v2.0.0";
         facade._pendingUrl = "";
@@ -112,9 +127,11 @@ Window {
 
         property string repository: "owner/repo"
         property string currentVersion: "v1.0.0"
+        property string installStrategy: "in_place"
         property int checkCalls: 0
         property int downloadCalls: 0
         property int installCalls: 0
+        property int stageCalls: 0
         property int browserCalls: 0
         property string lastInstallerArgs: ""
 
@@ -126,6 +143,8 @@ Window {
         signal downloadProgress(int received, int total)
         signal downloadFinished(string filePath)
         signal downloadFailed(string error)
+        signal installPreparationFinished()
+        signal installPreparationFailed(string error)
 
         function checkForUpdate() { checkCalls += 1; }
         function downloadUpdate(url) { downloadCalls += 1; }
@@ -133,6 +152,11 @@ Window {
             installCalls += 1;
             lastInstallerArgs = args;
             return false;
+        }
+        function stageInstallerForNextLaunch(path, args) {
+            stageCalls += 1;
+            lastInstallerArgs = args;
+            return true;
         }
         function openInBrowser(url) { browserCalls += 1; return true; }
     }
@@ -383,6 +407,30 @@ def test_installer_launch_failure_is_reported_and_retryable(auto_updater_scene):
     )
     assert root.property("errorCount") == 1
     assert "安装程序" in root.property("lastError")
+
+
+def test_dual_slot_preparation_keeps_feedback_until_next_launch_ready(
+    auto_updater_scene, qapp
+):
+    root = auto_updater_scene
+    backend = _backend(root)
+
+    assert QMetaObject.invokeMethod(root, "triggerDualSlotPreparation")
+    qapp.processEvents()
+    assert backend.property("stageCalls") == 1
+    assert root.property("facadeUsesDualSlot") is True
+    assert root.property("facadePreparing") is True
+    assert root.property("facadeFeedbackMessage") == (
+        "当前版本可继续使用,完成后下次启动自动切换"
+    )
+
+    assert QMetaObject.invokeMethod(root, "finishDualSlotPreparation")
+    qapp.processEvents()
+    assert root.property("facadePreparing") is False
+    assert root.property("facadeFeedbackTitle") == "新版已准备完成"
+    assert root.property("facadeFeedbackMessage") == (
+        "当前版本继续运行,下次启动将自动切换"
+    )
 
 
 def test_manual_no_asset_path_opens_release_page(auto_updater_scene):

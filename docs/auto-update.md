@@ -10,9 +10,10 @@ PrismQML 的自动更新由两层组成：Python `Updater` 负责读取 GitHub L
 → 下载同平台安装资产
 → 同一反馈控件原位刷新进度
 → 校验 SHA-256
-→ 启动安装器
-→ 当前应用退出
-→ 安装完成后按清单策略启动新版
+→ 按安装策略交接
+→ `in_place`：启动安装器并退出当前应用
+→ `dual_slot`：后台写入非活动槽，当前应用继续运行
+→ 下次启动自动切换到新版
 ```
 
 ## 1. 发布资产约定
@@ -43,19 +44,20 @@ app.enable_auto_update(
     UPDATE_REPOSITORY,
     CURRENT_VERSION,
     UPDATE_ASSET_KEYWORD,
+    install_strategy="dual_slot",
 )
 
 # 继续创建窗口、加载页面并调用 app.exec()。
 ```
 
-该调用创建 `Updater`，强制启用 Release 资产摘要校验，并以 `appUpdater` 注入 QML 根上下文。应用通常不需要直接连接底层信号。
+该调用创建 `Updater`，强制启用 Release 资产摘要校验，并以 `appUpdater` 注入 QML 根上下文。`dual_slot` 会让本次运行继续使用旧槽，安装完成后由启动入口自动切到新槽。应用通常不需要直接连接底层信号。
 
 自行创建 `QQmlApplicationEngine` 时，可以显式创建 `Updater` 并注入同名上下文属性；初始化 QML 环境和注册类型仍由宿主负责：
 
 ```python
 from prismqml import Updater
 
-updater = Updater("OWNER/REPO", "v1.2.3", "Setup")
+updater = Updater("OWNER/REPO", "v1.2.3", "Setup", install_strategy="dual_slot")
 updater.set_require_artifact_digest(True)
 engine.rootContext().setContextProperty("appUpdater", updater)
 ```
@@ -129,11 +131,13 @@ Fluent.AutoUpdater {
 
 ## 5. Windows 安装器模板
 
-先复制 [安装器示例清单](examples/prismqml-installer.json)，为应用固定 `app_id`、`aumid`、安装范围和 Nuitka standalone 目录。自动更新后立即启动新版时，将：
+先复制 [安装器示例清单](examples/prismqml-installer.json)，为应用固定 `app_id`、`aumid`、安装范围和 Nuitka standalone 目录。需要双槽替换安装时，将：
 
 ```json
-"launch_after_install": true
+"install_strategy": "dual_slot"
 ```
+
+若仍使用 `in_place` 并要求安装后立即重启，新安装清单可设 `launch_after_install=true`；双槽已有安装不会在本次会话启动新版。
 
 然后按同一应用版本生成并检查 Inno Setup 脚本：
 
@@ -145,9 +149,10 @@ prismqml-installer doctor --manifest prismqml-installer.json
 
 完整字段和编译命令见 [Windows 安装器模板](windows-installer.md)。生成结果会使用：
 
-- `CloseApplications=yes`：允许安装器关闭占用旧文件的应用；
+- `CloseApplications=no`（双槽）：不关闭当前应用，完整写入非活动槽；
 - `RestartApplications=no`：不让 Restart Manager 再启动一次，避免双开；
-- `Flags: nowait postinstall`：`launch_after_install=true` 时安装完成后从新目录启动一次新版；
+- `prism-update-slot.ini`：记录下次启动目标槽；
+- `App` 启动重定向：旧快捷方式/任务栏入口也会自动进入目标槽；
 - 稳定 `AppId`：新版覆盖同一安装，而不是创建第二个应用。
 
 ## 6. 安装参数选择
@@ -160,7 +165,7 @@ Windows 运行参数由应用传给 `AutoUpdater.silentArgs`：
 | `/SILENT /SUPPRESSMSGBOXES /NORESTART /SP-` | 隐藏向导，但显示安装进度窗口 | 默认自动更新体验 |
 | `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-` | 向导和安装进度窗口都隐藏 | 确实需要完全无界面安装 |
 
-机器级安装仍可能显示 Windows UAC 提示，这是操作系统安全边界。不要把 `/RESTARTAPPLICATIONS` 或 `/AUTORESTARTAPP` 与 `launch_after_install=true` 混用，否则可能重复启动。
+机器级安装仍可能显示 Windows UAC 提示，这是操作系统安全边界。双槽更新不使用 `/RESTARTAPPLICATIONS` 或 `/AUTORESTARTAPP`，也不会在本次运行中重启应用。
 
 ## 7. 端到端验收
 
@@ -171,7 +176,7 @@ Windows 运行参数由应用传给 `AutoUpdater.silentArgs`：
 3. 在一次性 Windows runner 上运行 Nuitka 和 ISCC；
 4. 使用与应用相同的 `/SILENT` 参数安装到隔离目录，并保留安装日志；
 5. 核对安装退出码、卸载注册信息、安装目录和产品版本；
-6. `launch_after_install=true` 时确认安装器自动启动的是新安装目录中的 EXE；
+6. `dual_slot` 时确认旧进程仍可操作、非活动槽完整写入，随后从旧快捷方式启动并自动跳转新版；
 7. 结束自动启动的进程，再从安装目录执行 packaged SELFTEST；
 8. 只有全部通过后，才把安装包附加到公开 Release。
 
@@ -187,7 +192,7 @@ Windows 运行参数由应用传给 `AutoUpdater.silentArgs`：
 | 找到新版但没有安装包 | Release 资产后缀或 `asset_keyword` 是否匹配当前平台 |
 | 报资产摘要缺失或校验失败 | GitHub API 的资产 `digest` 是否存在且与下载内容一致 |
 | 安装时完全没有进度窗口 | 是否误用了 `/VERYSILENT`；需要进度窗口时改为 `/SILENT` |
-| 安装完成后没有启动新版 | 清单是否设置 `launch_after_install=true`，生成脚本是否仍含 `skipifsilent` |
+| 双槽安装后仍进入旧版 | 检查 `prism-update-slot.ini` 的 `LaunchSlot`、目标槽 EXE 和 `App` 是否使用默认槽重定向 |
 | 安装后启动两次 | 是否同时启用了 Restart Manager 重启和 `[Run] postinstall` |
 
-Gallery 的真实/DRY 演示见 `examples/pages/AutoUpdatePage.qml`；DRY 模式不会访问网络、创建文件或启动安装器。
+Gallery 的真实/DRY 演示见 `examples/pages/AutoUpdatePage.qml`；DRY 模式会模拟双槽准备与下次启动切换，不访问网络、创建文件或启动安装器。

@@ -12,6 +12,47 @@ from typing import Optional
 from urllib.parse import urlsplit
 
 
+def _normalize_version_tag(tag: str) -> str:
+    """Normalize prefix and build metadata. 归一化前缀与构建元数据。"""
+    normalized = tag.strip()
+    if normalized[:1] in ("v", "V"):
+        normalized = normalized[1:]
+    return normalized.partition("+")[0].strip()
+
+
+def _parse_version_segments(value: str) -> tuple:
+    """Parse dot-separated precedence segments. 解析点分优先级片段。"""
+    segments = []
+    for raw_segment in value.split("."):
+        segment = raw_segment.strip()
+        if not segment:
+            continue
+        if segment.isascii() and segment.isdigit():
+            segments.append((0, int(segment)))
+        else:
+            segments.append((1, segment))
+    return tuple(segments)
+
+
+def _parse_version(tag: str) -> tuple:
+    """Parse a release tag into core and prerelease precedence segments."""
+    normalized = _normalize_version_tag(tag)
+    if not normalized:
+        return ()
+    core_str, separator, prerelease_str = normalized.partition("-")
+    core = _parse_version_segments(core_str)
+    if separator:
+        pre_marker = (0,) + _parse_version_segments(prerelease_str)
+    else:
+        pre_marker = (1,)
+    return (core, pre_marker)
+
+
+def _is_newer(latest: str, current: str) -> bool:
+    """Return whether latest has higher precedence than current. 比较版本优先级。"""
+    return _parse_version(latest) > _parse_version(current)
+
+
 def _optional_release_string(data: dict, key: str) -> str:
     """Read a nullable optional string field. 读取可空的可选字符串字段。"""
     value = data.get(key)

@@ -17,6 +17,7 @@ from PySide6.QtNetwork import QNetworkRequest
 
 import prismqml.python.core.updater as updater_module
 import prismqml.python.core._updater_install as install_module
+import prismqml.python.core.update_slots as slot_module
 from prismqml.python.core._updater_release import is_safe_update_url
 from prismqml.python.core.updater import (
     Updater,
@@ -416,6 +417,61 @@ def _assert_shell_execute_contract(
 
 
 class TestInstaller:
+    def test_dual_slot_reports_ready_only_after_state_and_executable_match(
+        self, qapp, tmp_path, monkeypatch
+    ):
+        target = tmp_path / "slot-b" / "Gitora.exe"
+        target.parent.mkdir()
+        target.write_bytes(b"new")
+        finished = []
+        up = Updater("owner/repo", "v1.0.3", install_strategy="dual_slot")
+        up.installPreparationFinished.connect(lambda: finished.append(True))
+        preparation = up._slot_preparation
+        preparation._preparing = True
+        preparation._target_slot = "B"
+        preparation._deadline = slot_module.time.monotonic() + 60
+        monkeypatch.setattr(slot_module, "read_launch_slot", lambda: "B")
+        monkeypatch.setattr(
+            slot_module, "executable_for_slot", lambda _slot: target
+        )
+
+        preparation._poll()
+
+        assert finished == [True]
+        assert preparation.next_launch_prepared is True
+        assert preparation._preparing is False
+
+    def test_dual_slot_stage_keeps_process_running_and_records_slot_argument(
+        self, qapp, tmp_path, monkeypatch
+    ):
+        installer = tmp_path / "Setup.exe"
+        installer.write_bytes(b"dummy")
+        calls = []
+        monkeypatch.setattr(slot_module.sys, "platform", "win32")
+        monkeypatch.setattr(slot_module, "current_update_slot", lambda: "A")
+        monkeypatch.setattr(slot_module, "opposite_slot", lambda slot: "B")
+        monkeypatch.setattr(
+            slot_module,
+            "launch_windows_installer",
+            lambda path, args: calls.append((path, args)) or True,
+        )
+        monkeypatch.setattr(slot_module.QTimer, "start", lambda _timer: None)
+
+        quits = []
+        monkeypatch.setattr(
+            updater_module.QCoreApplication,
+            "quit",
+            staticmethod(lambda: quits.append(True)),
+        )
+
+        up = Updater("owner/repo", "v1.0.3", install_strategy="dual_slot")
+        assert up.stageInstallerForNextLaunch(
+            str(installer), "/VERYSILENT /PRISMCURRENTSLOT=B"
+        ) is True
+        assert calls == [(str(installer), ["/VERYSILENT", "/PRISMCURRENTSLOT=A"])]
+        assert quits == []
+        assert up.installStrategy == "dual_slot"
+
     def test_run_installer_missing_file(self, qapp):
         up = Updater("owner/repo", "v1.0.3")
         assert up.runInstallerAndQuit("/non/existent/path.exe") is False

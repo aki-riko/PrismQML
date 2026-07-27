@@ -68,9 +68,9 @@ def _messages_for_output(
     return _path_for_output(manifest, output_path, value)
 
 
-def _template_text() -> str:
+def _template_text(name: str = "windows_app.iss.tmpl") -> str:
     template = resources.files("prismqml.python.tools").joinpath(
-        "templates", "windows_app.iss.tmpl"
+        "templates", name
     )
     try:
         return template.read_text(encoding="utf-8")
@@ -117,6 +117,47 @@ def _run_flags(manifest: WindowsInstallerManifest) -> str:
     return "nowait postinstall skipifsilent"
 
 
+def _install_strategy_values(manifest: WindowsInstallerManifest) -> Dict[str, str]:
+    if manifest.install_strategy == "dual_slot":
+        return _dual_slot_strategy_values()
+    return _in_place_strategy_values()
+
+
+def _in_place_strategy_values() -> Dict[str, str]:
+    return {
+        "PAYLOAD_DIR": "{app}",
+        "LAUNCH_EXE": "{app}\\{#PrismAppExe}",
+        "UNINSTALL_ICON": "{app}\\{#PrismAppExe}",
+        "CLOSE_APPLICATIONS": "yes",
+        "INSTALL_DELETE_SECTION": "",
+        "UNINSTALL_DELETE_SECTION": "",
+        "RUN_CHECK": "",
+        "DUAL_SLOT_CODE": "",
+    }
+
+
+def _dual_slot_strategy_values() -> Dict[str, str]:
+    return {
+        "PAYLOAD_DIR": "{code:PrismInstallDir}",
+        "LAUNCH_EXE": "{code:PrismLaunchExecutable}",
+        "UNINSTALL_ICON": "{app}\\slot-a\\{#PrismAppExe}",
+        "CLOSE_APPLICATIONS": "no",
+        "INSTALL_DELETE_SECTION": (
+            "[InstallDelete]\n"
+            "; Only the inactive slot is replaced. 仅替换非活动槽。\n"
+            'Type: filesandordirs; Name: "{code:PrismInstallDir}\\*"\n'
+        ),
+        "UNINSTALL_DELETE_SECTION": (
+            "[UninstallDelete]\n"
+            'Type: filesandordirs; Name: "{app}\\slot-a"\n'
+            'Type: filesandordirs; Name: "{app}\\slot-b"\n'
+            'Type: files; Name: "{app}\\prism-update-slot.ini"\n'
+        ),
+        "RUN_CHECK": "; Check: PrismShouldLaunchAfterInstall",
+        "DUAL_SLOT_CODE": _template_text("windows_dual_slot.issinc.tmpl").rstrip(),
+    }
+
+
 def render_installer(
     manifest: WindowsInstallerManifest, output_path: Path, version: str
 ) -> str:
@@ -142,6 +183,7 @@ def render_installer(
         "DEFAULT_DIR": default_dir,
         "PRIVILEGES": privileges,
         "RUN_FLAGS": _run_flags(manifest),
+        **_install_strategy_values(manifest),
         **_optional_template_values(manifest, output_path),
     }
     return Template(_template_text()).substitute(values).rstrip() + "\n"

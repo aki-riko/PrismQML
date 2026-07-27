@@ -96,6 +96,36 @@ def test_launch_after_install_relaunches_once_without_restart_manager(tmp_path):
     assert "/AUTORESTARTAPP" not in rendered
 
 
+def test_dual_slot_install_replaces_only_inactive_slot_for_next_launch(tmp_path):
+    manifest_path = _write_manifest(
+        tmp_path,
+        install_strategy="dual_slot",
+        launch_after_install=True,
+    )
+    manifest = load_manifest(manifest_path)
+    rendered = render_installer(
+        manifest,
+        tmp_path / "installer.generated.iss",
+        "1.2.3.4",
+    )
+
+    assert manifest.install_strategy == "dual_slot"
+    assert "CloseApplications=no" in rendered
+    assert 'DestDir: "{code:PrismInstallDir}"' in rendered
+    assert '[InstallDelete]' in rendered
+    assert 'Name: "{code:PrismInstallDir}\\*"' in rendered
+    assert "{param:PRISMCURRENTSLOT|}" in rendered
+    assert "PrismTargetSlot := PrismChooseTargetSlot" in rendered
+    assert "else if not PrismHadExistingInstall then" in rendered
+    assert "Cannot determine the inactive update slot" in rendered
+    assert "{app}\\.prism-invalid-slot" in rendered
+    assert "SetIniString(" in rendered
+    assert "'Slots', 'LaunchSlot', PrismTargetSlot" in rendered
+    assert "Check: PrismShouldLaunchAfterInstall" in rendered
+    assert "RestartApplications=no" in rendered
+    assert "CloseApplications=yes" not in rendered
+
+
 def test_machine_manifest_and_optional_sections_are_rendered_relatively(tmp_path):
     (tmp_path / "installer").mkdir()
     manifest_path = _write_manifest(
@@ -142,6 +172,8 @@ def test_machine_manifest_and_optional_sections_are_rendered_relatively(tmp_path
         ({"homepage": "https://example.test/{tmp}"}, "homepage"),
         ({"launch_after_install": "true"}, "launch_after_install"),
         ({"launch_after_install": 1}, "launch_after_install"),
+        ({"install_strategy": "replace"}, "install_strategy"),
+        ({"install_strategy": True}, "install_strategy"),
         (
             {"chinese_messages_file": "compiler:Languages\\{tmp}.isl"},
             "chinese_messages_file",
@@ -559,6 +591,7 @@ def test_distribution_registers_cli_template_and_documentation():
         "checkSilently()",
         "AutoUpdaterToastPresenter",
         "launch_after_install=true",
+        'install_strategy="dual_slot"',
         "/SILENT",
         "xx MB / xx MB",
     ):
@@ -567,12 +600,14 @@ def test_distribution_registers_cli_template_and_documentation():
         "checkSilently()",
         "AutoUpdaterToastPresenter",
         "launch_after_install=true",
+        'install_strategy="dual_slot"',
         "/SILENT",
         "received MB / total MB",
     ):
         assert contract in english_auto_update_text
     documentation_text = documentation.read_text(encoding="utf-8")
     assert "RestartApplications=no" in documentation_text
+    assert "prism-update-slot.ini" in documentation_text
     assert "compile --manifest" in documentation_text
     assert "RestartApplications=no" in english_documentation.read_text(
         encoding="utf-8"

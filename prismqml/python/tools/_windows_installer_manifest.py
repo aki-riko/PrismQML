@@ -44,6 +44,7 @@ INSTALL_SCOPE_VALUES = {
     "user": ("{localappdata}\\Programs\\{#PrismAppName}", "lowest"),
     "machine": ("{autopf}\\{#PrismAppName}", "admin"),
 }
+INSTALL_STRATEGY_VALUES = frozenset({"in_place", "dual_slot"})
 REQUIRED_FIELDS = frozenset({
     "schema",
     "app_id",
@@ -62,6 +63,7 @@ OPTIONAL_FIELDS = frozenset({
     "output_name",
     "chinese_messages_file",
     "launch_after_install",
+    "install_strategy",
 })
 
 
@@ -93,6 +95,7 @@ class WindowsInstallerManifest:
     output_name: str = DEFAULT_OUTPUT_NAME
     chinese_messages_file: str = DEFAULT_CHINESE_MESSAGES_FILE
     launch_after_install: bool = False
+    install_strategy: str = "in_place"
 
 
 def _manifest_error(field: str, detail: str) -> ManifestError:
@@ -224,6 +227,16 @@ def _validate_scope(data: Mapping[str, Any]) -> str:
     return install_scope
 
 
+def _validate_install_strategy(data: Mapping[str, Any]) -> str:
+    strategy = _literal(data, "install_strategy", "in_place")
+    if strategy not in INSTALL_STRATEGY_VALUES:
+        raise _manifest_error(
+            "install_strategy",
+            "must be 'in_place' or 'dual_slot'",
+        )
+    return strategy
+
+
 def _validate_output_name(data: Mapping[str, Any]) -> str:
     value = _literal(data, "output_name", DEFAULT_OUTPUT_NAME)
     try:
@@ -279,6 +292,7 @@ def load_manifest(path: Path) -> WindowsInstallerManifest:
         output_name=_validate_output_name(data),
         chinese_messages_file=_validate_messages_file(data),
         launch_after_install=_optional_bool(data, "launch_after_install"),
+        install_strategy=_validate_install_strategy(data),
         **identity,
     )
 
