@@ -299,11 +299,11 @@ OverlayDialogCore {
             objectName: "outsideDrawerViewport"
 
             x: control.position === Enums.position.left
-                ? 0
-                : (outsideDrawerWindow ? outsideDrawerWindow.width : 0) - width
+                ? (outsideDrawerWindow ? outsideDrawerWindow.width : 0) - width
+                : 0
             y: control.position === Enums.position.top
-                ? 0
-                : (outsideDrawerWindow ? outsideDrawerWindow.height : 0) - height
+                ? (outsideDrawerWindow ? outsideDrawerWindow.height : 0) - height
+                : 0
             width: control.isHorizontal
                 ? Math.min(control._outsideExtent,
                     outsideDrawerWindow ? outsideDrawerWindow.width : 0)

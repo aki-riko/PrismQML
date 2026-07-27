@@ -189,6 +189,14 @@ def _outside_window_geometry(host_window, position, extent):
     return (left, bottom, frame.width(), extent)
 
 
+def _outside_viewport_origin(host_window, position, full_extent, extent):
+    if position == host_window.property("leftPosition"):
+        return (full_extent - extent, 0)
+    if position == host_window.property("topPosition"):
+        return (0, full_extent - extent)
+    return (0, 0)
+
+
 def test_drawer_four_direction_geometry(drawer_scene):
     window, drawer, content_item, panel, warnings, windows_before = drawer_scene
     assert drawer.property("mode") == window.property("insideMode")
@@ -399,6 +407,14 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
         )
         assert mid_open_geometry == pytest.approx(expected_window_geometry)
         assert viewport_extent == pytest.approx(drawer.property("_outsideExtent"))
+        assert (viewport.x(), viewport.y()) == pytest.approx(
+            _outside_viewport_origin(
+                window,
+                position,
+                full_extent,
+                drawer.property("_outsideExtent"),
+            )
+        )
         assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
         expected_content_size = (
             (full_extent - 32, outside_panel.height() - 32)
@@ -446,6 +462,14 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
         )
         assert mid_close_geometry == pytest.approx(mid_open_geometry)
         assert viewport_extent == pytest.approx(drawer.property("_outsideExtent"))
+        assert (viewport.x(), viewport.y()) == pytest.approx(
+            _outside_viewport_origin(
+                window,
+                position,
+                full_extent,
+                drawer.property("_outsideExtent"),
+            )
+        )
         assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
         assert _wait_for(lambda: not drawer_window.isVisible())
 

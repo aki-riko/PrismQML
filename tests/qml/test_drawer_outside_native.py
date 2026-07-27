@@ -84,5 +84,5 @@ def test_drawer_source_guards_native_window_during_destruction():
 def test_drawer_source_reveals_from_the_corresponding_edge():
     source = SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "x: control.position === Enums.position.left\n                ? 0\n                : (outsideDrawerWindow" in source
-    assert "y: control.position === Enums.position.top\n                ? 0\n                : (outsideDrawerWindow" in source
+    assert "x: control.position === Enums.position.left\n                ? (outsideDrawerWindow" in source
+    assert "y: control.position === Enums.position.top\n                ? (outsideDrawerWindow" in source
