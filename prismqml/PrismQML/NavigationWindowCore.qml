@@ -83,6 +83,26 @@ WindowsCore {
         }
     }
 
+    function _syncNavigationIndicatorLoading(index) {
+        if (!navigationView ||
+                typeof navigationView.delayIndicatorAnimation === "undefined" ||
+                typeof navigationView._isPageLoading === "undefined") return
+
+        navigationView.delayIndicatorAnimation = lazyLoading
+        navigationView._isPageLoading = Boolean(
+            lazyLoading && stackedWidget && stackedWidget._isPageLoaded &&
+            !stackedWidget._isPageLoaded(index)
+        )
+    }
+
+    function _finishNavigationIndicatorLoading(index) {
+        if (!navigationView || index !== currentIndex ||
+                typeof navigationView._isPageLoading === "undefined" ||
+                typeof navigationView.playPendingIndicatorAnimation !== "function") return
+        navigationView._isPageLoading = false
+        navigationView.playPendingIndicatorAnimation()
+    }
+
     function _applyMicaEffect(reason) {
         if (!MicaManager || !_micaAvailable || !_nativeHookReady) {
             _micaBackdropReady = false
@@ -333,6 +353,11 @@ WindowsCore {
         " bottom=" + _safeBottomNavigationItems.length
     )
 
+    onCurrentIndexChanged: _syncNavigationIndicatorLoading(currentIndex)
+    onLazyLoadingChanged: _syncNavigationIndicatorLoading(currentIndex)
+    onNavigationViewChanged: _syncNavigationIndicatorLoading(currentIndex)
+    onStackedWidgetChanged: _syncNavigationIndicatorLoading(currentIndex)
+
     onMicaEnabledChanged: {
         if (_micaAvailable && MicaManager && _nativeHookReady) {
             _applyMicaEffect("micaEnabledChanged")
@@ -367,6 +392,15 @@ WindowsCore {
     }
 
     // ==================== Content 内容 ====================
+    Connections {
+        function onPageLoaded(index) {
+            window._finishNavigationIndicatorLoading(index)
+        }
+
+        target: window.stackedWidget
+        enabled: target !== null
+    }
+
     Timer {
         id: _splashTimeoutTimer
         property var _onTimeout: null

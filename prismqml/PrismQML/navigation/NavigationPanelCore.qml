@@ -50,15 +50,16 @@ Item {
     // Current selected page key (for bottom page items) 当前选中的页面键（用于底部页面项）
     property string _currentKey: ""
     
-    // Indicator animation pending state (for Python lazy loading) 指示器动画待处理状态（用于 Python 懒加载）
+    // Indicator animation pending state for lazy loading 懒加载期间的指示器动画待处理状态
     property bool _pendingIndicatorAnimation: false
     property int _pendingTargetIndex: -1
+    property int _indicatorUpdateGeneration: 0
 
     // 临时屏蔽 onCurrentIndexChanged 的动画路径(底部 item 点击时由
     // NavigationWindowCore 设 true,避免用页面索引(非导航项索引)算错指示器位置)
     property bool _skipIndicatorAnimation: false
     
-    // Delay indicator animation (controlled by Python) 延迟指示器动画（由Python控制）
+    // Delay indicator animation until the target page is ready 指示器动画延迟到目标页就绪后执行
     property bool delayIndicatorAnimation: false
     
     // Subclass must provide these repeaters 子类必须提供这些Repeater
@@ -121,6 +122,25 @@ Item {
                 _updateIndicatorWithAnimation()
             }
         }
+    }
+
+    function _scheduleIndicatorUpdate(targetIndex) {
+        _indicatorUpdateGeneration += 1
+        var generation = _indicatorUpdateGeneration
+        Qt.callLater(function() {
+            if (generation !== control._indicatorUpdateGeneration ||
+                    targetIndex !== control.currentIndex) return
+
+            if (control.delayIndicatorAnimation && control._isPageLoading) {
+                control._pendingIndicatorAnimation = true
+                control._pendingTargetIndex = targetIndex
+                return
+            }
+
+            control._pendingIndicatorAnimation = false
+            control._pendingTargetIndex = -1
+            control._updateIndicatorWithAnimation()
+        })
     }
 
     function addItem(key, icon, text, onClick, selectable, selectedIcon, position) {
@@ -346,14 +366,12 @@ Item {
         // 指示器动画: currentIndex 在 _onItemClicked 删掉直接赋值后, 通过 Qt Binding
         // 从 window.currentIndex 异步同步过来. 由这里统一驱动动画, 既支持点击 (走 _onItemClicked)
         // 也支持外部直接改 window.currentIndex (Python 侧 setCurrentIndex / 程序化切换).
-        if (delayIndicatorAnimation && _isPageLoading) {
-            _pendingIndicatorAnimation = true
-            _pendingTargetIndex = currentIndex
-        } else {
-            _pendingIndicatorAnimation = false
-            _pendingTargetIndex = -1
-            _updateIndicatorWithAnimation()
-        }
+        // Defer one event-loop turn so the window can publish the lazy-loading
+        // state before animation starts. This also keeps synchronous QML
+        // incubation from freezing an already-running indicator animation.
+        // 延后一轮事件循环，等待窗口发布懒加载状态；同时避免同步 QML
+        // 孵化冻结已经开始的指示器动画。
+        _scheduleIndicatorUpdate(currentIndex)
     }
 
     // Track scroll state changes 跟踪滚动状态变化

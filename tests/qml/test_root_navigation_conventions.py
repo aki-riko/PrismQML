@@ -60,6 +60,15 @@ Window {
     }
     function removeViewDynamic() { navigationView.removeWidget("dynamic") }
     function smoothScrollNavigationBar() { navigationBar.smoothScrollBy(120) }
+    function beginLazyIndicatorSwitch() {
+        navigationView.delayIndicatorAnimation = true
+        navigationView._isPageLoading = true
+        navigationView.currentIndex = 2
+    }
+    function finishLazyIndicatorSwitch() {
+        navigationView._isPageLoading = false
+        navigationView.playPendingIndicatorAnimation()
+    }
     function smoothScrollToggleBar() { toggleBar.smoothScrollBy(toggleBar.scrollStep) }
 
     width: 900
@@ -412,6 +421,28 @@ def test_navigation_bar_and_toggle_indicator_geometry(navigation_scene):
     toggle_visual = _indicator_visual(toggle_indicator)
     assert toggle_visual.width() > 0
     assert toggle_visual.height() > 0
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_navigation_indicator_waits_until_lazy_page_is_ready(navigation_scene):
+    window, items, warnings, windows_before = navigation_scene
+    view = items["navigationView"]
+    indicator = _component_items(view, "SlidingIndicator")[0]
+    indicator_visual = _indicator_visual(indicator)
+    initial_y = indicator_visual.y()
+
+    assert QMetaObject.invokeMethod(window, "beginLazyIndicatorSwitch")
+    _pump()
+
+    assert view.property("_pendingIndicatorAnimation") is True
+    assert view.property("_pendingTargetIndex") == 2
+    assert indicator_visual.y() == pytest.approx(initial_y)
+
+    assert QMetaObject.invokeMethod(window, "finishLazyIndicatorSwitch")
+    assert _wait_for(lambda: not view.property("_pendingIndicatorAnimation"))
+    assert view.property("_pendingTargetIndex") == -1
+    assert _wait_for(lambda: indicator_visual.y() != pytest.approx(initial_y))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
