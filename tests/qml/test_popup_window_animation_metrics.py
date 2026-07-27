@@ -43,6 +43,14 @@ Item {
         objectName: "popup"
         popupWidth: 200
         popupHeight: 180
+
+        Rectangle {
+            objectName: "overflowProbe"
+            x: -Enums.spacing.m
+            y: -Enums.spacing.m
+            width: parent.width + 2 * Enums.spacing.m
+            height: parent.height + 2 * Enums.spacing.m
+        }
     }
 }
 """
@@ -140,6 +148,28 @@ def test_popup_window_animation_metrics_preserve_runtime_values(qapp):
         windows = popup.findChildren(QWindow)
         assert len(windows) == 1
         assert not windows[0].isVisible()
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_popup_window_content_clips_overflow_for_every_consumer(qapp):
+    engine, component, root = _create_scene()
+    try:
+        popup = root.findChild(QQuickItem, "popup")
+        assert popup is not None
+        content = popup.findChild(QQuickItem, "_popupContent")
+        overflow_probe = popup.findChild(QQuickItem, "overflowProbe")
+        assert content is not None
+        assert overflow_probe is not None
+        assert overflow_probe.parentItem() is content
+        assert overflow_probe.x() < 0
+        assert overflow_probe.y() < 0
+        assert overflow_probe.width() > content.width()
+        assert overflow_probe.height() > content.height()
+        assert content.clip()
     finally:
         root.deleteLater()
         del component

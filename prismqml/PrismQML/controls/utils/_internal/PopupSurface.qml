@@ -124,6 +124,9 @@ Item {
                 objectName: "_popupContent"
                 anchors.fill: parent
                 anchors.margins: Enums.spacing.xs
+                // Keep delegates and animated loaders inside the popup padding.
+                // 将代理项和动画 Loader 限制在弹层内边距以内。
+                clip: true
             }
         }
     }
