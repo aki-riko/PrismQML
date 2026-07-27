@@ -77,3 +77,10 @@ def test_drawer_source_guards_native_window_during_destruction():
     assert "|| !outsideDrawerWindow" in source
     assert "outsideDrawerWindow ? outsideDrawerWindow.width : 0" in source
     assert "outsideDrawerWindow ? outsideDrawerWindow.height : 0" in source
+
+
+def test_drawer_source_reveals_from_the_corresponding_edge():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "x: control.position === Enums.position.left\n                ? 0\n                : (outsideDrawerWindow" in source
+    assert "y: control.position === Enums.position.top\n                ? 0\n                : (outsideDrawerWindow" in source
