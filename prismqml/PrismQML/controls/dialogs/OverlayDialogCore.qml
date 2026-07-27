@@ -58,6 +58,7 @@ Item {
             control.parent = target
         }
 
+        _prepareOpen()
         _isOpen = true
     }
 
@@ -89,6 +90,10 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
+
+    // Extension hook for derived dialog layout 派生对话框布局扩展钩子
+    function _prepareOpen() {}
+
     // Resolve overlay target 解析覆盖目标
     function _resolveOverlayTarget() {
         // If overlayTarget is specified, use it 如果指定了overlayTarget则使用它

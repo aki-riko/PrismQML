@@ -209,6 +209,7 @@ SettingsCard controls/settings/SettingsCard/SettingsCard.qml
 SettingsCardGroup controls/settings/SettingsCard/SettingsCardGroup.qml
 
 # ==================== Dialogs 对话框 ====================
+OverlayDialogCore controls/dialogs/OverlayDialogCore.qml
 MaskedDialog controls/dialogs/MaskedDialog.qml
 MessageBox controls/dialogs/MessageBox.qml
 DialogBoxCore controls/dialogs/DialogBoxCore.qml

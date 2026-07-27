@@ -64,26 +64,13 @@ OverlayDialogCore {
         close()
     }
 
-    // Override open to reset dialogBody position 重写 open 以重置位置
-    function open() {
-        // Save original parent 保存原始父组件
-        if (!_originalParent) {
-            _originalParent = control.parent
-        }
+    // ==================== Internal Methods 内部方法 ====================
 
-        // Determine overlay target 确定覆盖目标
-        var target = _resolveOverlayTarget()
-        if (target && target !== control.parent) {
-            control.parent = target
-        }
-
-        // Reset position 重置位置
+    // Reset dialog body position before opening 打开前重置对话框位置
+    function _prepareOpen() {
         dialogBodyContainer.anchors.horizontalCenter = Qt.binding(function() { return control.horizontalCenter })
         dialogBodyContainer.anchors.verticalCenter = Qt.binding(function() { return control.verticalCenter })
-        _isOpen = true
     }
-
-    // ==================== Internal Methods 内部方法 ====================
 
     // Keep the complete dialog body inside the overlay bounds 保持对话框完整位于遮罩范围内
     function _setBoundedDialogPosition(candidateX, candidateY) {

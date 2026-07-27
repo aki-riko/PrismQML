@@ -31,23 +31,10 @@ OverlayDialogCore {
     readonly property real _dialogShadowBlur: Enums.shadow.level16.blur
     readonly property real _dialogShadowOffset: Enums.shadow.level16.offset
 
-    // ==================== Public Methods 公开方法 ====================
-    // Override open to reset dialogBody position 重写open以重置 dialogBody 位置
-    function open() {
-        // Save original parent 保存原始父组件
-        if (!_originalParent) {
-            _originalParent = control.parent
-        }
-
-        // Determine overlay target 确定覆盖目标
-        var target = _resolveOverlayTarget()
-        if (target && target !== control.parent) {
-            control.parent = target
-        }
-
-        // Reset position 重置位置
+    // ==================== Internal Methods 内部方法 ====================
+    // Reset dialogBody position before opening 打开前重置 dialogBody 位置
+    function _prepareOpen() {
         dialogBody.anchors.centerIn = Qt.binding(function() { return control })
-        _isOpen = true
     }
 
     // ==================== Content 内容 ====================
