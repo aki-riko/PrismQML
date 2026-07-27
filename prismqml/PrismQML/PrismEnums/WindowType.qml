@@ -14,7 +14,7 @@ QtObject {
     // Window type names for display 窗口类型显示名称
     readonly property var typeNames: [
         "Window",
-        "CompactWindow",
+        "MSStyleWindow",
         "SplitWindow"
     ]
     
