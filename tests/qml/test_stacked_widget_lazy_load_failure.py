@@ -80,6 +80,7 @@ StackedWidget {{
     height: 180
     animationEnabled: false
     lazyLoading: true
+    lazyActivationDelay: Enums.duration.dialog
     currentIndex: 0
     pageSources: ["{valid_url}", "{invalid_url}"]
 }}
@@ -116,6 +117,9 @@ StackedWidget {{
         )
 
         stack.setProperty("currentIndex", 1)
+        _pump(50)
+        assert bool(_evaluate(stack, "_loaders[1].active")) is False
+        assert bool(_evaluate(stack, "_loaders[0].visible")) is True
         assert _wait_until(
             lambda: bool(
                 _evaluate(stack, "_loaders[1].status === Loader.Error")
@@ -131,6 +135,11 @@ StackedWidget {{
         helper = overlay.parent()
         assert helper.property("pendingTargetIndex") == -1
         assert helper.property("isLoadingSwitching") is False
+        activation_timer = helper.findChild(QObject, "lazyLoaderActivateTimer")
+        assert activation_timer is not None
+        assert 0 < activation_timer.property("interval") < stack.property(
+            "lazyActivationDelay"
+        )
         assert overlay.property("visible") is False
         assert len(failures) == 1
         assert failures[0][0] == 1

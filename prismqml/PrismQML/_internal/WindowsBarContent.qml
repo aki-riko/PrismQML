@@ -118,6 +118,8 @@ Item {
 
             anchors.fill: parent
             animationType: Enums.animation.popup
+            lazyActivationDelay: navigationBar.indicatorAnimationEnabled
+                ? Enums.duration.dialog : Enums.duration.none
             pageSources: root.hostWindow ? root.hostWindow.pageSources : []
             lazyLoading: root.hostWindow ? root.hostWindow.lazyLoading : false
             _pythonPageMode: root.hostWindow ? root.hostWindow._pythonPageMode : false

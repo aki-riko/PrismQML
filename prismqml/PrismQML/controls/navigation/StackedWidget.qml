@@ -17,6 +17,9 @@ Item {
     property int currentIndex: 0
     property int animationType: Enums.animation.opacity
     property int animationDuration: Enums.duration.slow
+    // Extra delay before Loader activation, used to let navigation feedback settle
+    // Loader 激活前的额外延迟，用于等待导航反馈动画稳定
+    property int lazyActivationDelay: Enums.duration.none
     property bool animationEnabled: true
     property real cardScale: Enums.opacityLevel.heavy
     property real cardOpacity: Enums.opacityLevel.heavy
@@ -160,6 +163,7 @@ Item {
             "loadingText": control.loadingText,
             "animationType": control.animationType,
             "animationDuration": control.animationDuration,
+            "loaderActivationDelay": control.lazyActivationDelay,
             "popUpOffset": control.popUpOffset,
             "isPageLoadedFunc": control._isPageLoaded,
             "isPageLoadFailedFunc": control._isPageLoadFailedFunc,
@@ -222,6 +226,7 @@ Item {
         item.loadingText = Qt.binding(function() { return control.loadingText })
         item.animationType = Qt.binding(function() { return control.animationType })
         item.animationDuration = Qt.binding(function() { return control.animationDuration })
+        item.loaderActivationDelay = Qt.binding(function() { return control.lazyActivationDelay })
         item.popUpOffset = Qt.binding(function() { return control.popUpOffset })
         item.isPageLoadedFunc = control._isPageLoaded
         item.isPageLoadFailedFunc = control._isPageLoadFailedFunc
@@ -521,7 +526,7 @@ Item {
                 // latch 用独立布尔 _loadOnce, 不自引用 active(自引用——含绕 _loaders[index]
                 // 间接自引用——会因 Loader.active 默认 true / _loaders 数组 slice 重建触发
                 // 连锁, 导致所有页一启动就 active 全加载, 懒加载失效)。
-                // _loadOnce 初始 false → 初始 active 仅跟 index===currentIndex(只当前页);
+                // _loadOnce 初始 false → 初始 active 仅跟 index===_displayIndex(只当前页);
                 // 页面一旦被激活 onActiveChanged 锁 _loadOnce=true, 切走再切回仍 active,
                 // source 不清空(避免 status===Ready latch 的切走退出 Ready→source 清空→永久轮询死锁)。
                 onActiveChanged: {
@@ -532,10 +537,10 @@ Item {
                 onStatusChanged: control._traceLazyStage(
                     "stacked.source_loader.status_changed", index, "", sourceLoader)
                 source: control.lazyLoading
-                        ? (index === control.currentIndex || _loadOnce
+                        ? (index === control._displayIndex || _loadOnce
                            ? (control._safePageSources[index] || "") : "")
                         : (control._safePageSources[index] || "")
-                active: !control.lazyLoading || index === control.currentIndex || _loadOnce
+                active: !control.lazyLoading || index === control._displayIndex || _loadOnce
                 visible: index === control._displayIndex
                 opacity: index === control._displayIndex ? 1 : 0
                 scale: 1

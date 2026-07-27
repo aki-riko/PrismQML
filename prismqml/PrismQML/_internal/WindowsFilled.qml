@@ -110,6 +110,8 @@ NavigationWindowCore {
 
             anchors.fill: parent
             animationType: Enums.animation.popup
+            lazyActivationDelay: navigationBar.indicatorAnimationEnabled
+                ? Enums.duration.dialog : Enums.duration.none
             pageSources: window.pageSources
             lazyLoading: window.lazyLoading
             _pythonPageMode: window._pythonPageMode

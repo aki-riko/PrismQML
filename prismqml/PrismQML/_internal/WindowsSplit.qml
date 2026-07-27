@@ -106,6 +106,8 @@ NavigationWindowCore {
 
  anchors.fill: parent
  animationType: Enums.animation.popup
+ lazyActivationDelay: navInterface.indicatorAnimationEnabled
+     ? Enums.duration.dialog : Enums.duration.none
 
  // Bind externally stored page data. 绑定外部保存的页面数据。
  pageSources: window.pageSources

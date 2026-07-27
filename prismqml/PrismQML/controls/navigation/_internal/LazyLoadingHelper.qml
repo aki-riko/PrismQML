@@ -25,6 +25,7 @@ Item {
     property string loadingText: Translator.tr("loading")
     property int animationType: Enums.animation.opacity  // Animation type from parent 父级动画类型
     property int animationDuration: Enums.duration.slow  // Animation duration 动画时长
+    property int loaderActivationDelay: Enums.duration.none  // Extra delay before Loader activation Loader 激活前额外延迟
     property int popUpOffset: Enums.controlSize.popUpOffset  // PopUp offset PopUp偏移量
 
     // ==================== Internal Props 内部属性 ====================
@@ -329,8 +330,12 @@ Item {
     // Timers 定时器
     Timer {
         id: loaderActivateTimer
+        objectName: "lazyLoaderActivateTimer"
         property int targetIndex: 0
-        interval: Enums.duration.tick  // High-refresh tick 高刷定时器
+        interval: Math.max(
+            Enums.duration.tick,
+            helper.loaderActivationDelay - helper.animationDuration
+        )  // Keep indicator feedback ahead of loading 让指示器反馈先于加载
         onTriggered: {
             if (targetIndex !== helper.pendingTargetIndex) return
 

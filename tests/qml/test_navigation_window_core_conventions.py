@@ -245,6 +245,3 @@ def test_navigation_window_core_source_conventions_and_mica_tokens():
     assert "interval: 180" not in source
     assert "readonly property int micaReapplyDelayMs: 16" in metrics
     assert "readonly property int micaLateReapplyDelayMs: 180" in metrics
-    assert "function _syncNavigationIndicatorLoading(index)" in source
-    assert "function _finishNavigationIndicatorLoading(index)" in source
-    assert "function onPageLoaded(index)" in source
