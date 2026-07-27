@@ -29,7 +29,7 @@ Widget {
     property bool focused: false  // Bind to input's activeFocus 绑定到activeFocus
     property bool hovered: false  // Bind to HoverHandler's hovered 绑定到hovered
     property int radius: Enums.isNeobrutalism ? Enums.neo.radius
-                         : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+                         : (Enums.radius.small)
     property bool transparentBackground: false
     property bool folderDropEnabled: false  // Enable one-folder drop 启用单文件夹拖放
 
@@ -100,7 +100,7 @@ Widget {
 
     // ==================== Content 内容 ====================
     // Shadow layer 阴影层
-    // Fluent: 模糊阴影。Neobrutalism: 硬阴影。Prism Design: 纯边界层级。
+    // Fluent: blurred shadow. Neobrutalism: hard shadow. Fluent：模糊阴影。Neobrutalism：硬阴影。
     RectangularShadow {
         anchors.fill: _bg
         radius: _bg.radius
@@ -108,7 +108,7 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !control.transparentBackground && !Enums.isNeobrutalism && !Enums.isPrismDesign
+        visible: !control.transparentBackground && !Enums.isNeobrutalism
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件; 聚焦时 accent=true 转橙主色强调。
@@ -141,48 +141,15 @@ Widget {
         // Use unified border colors 使用统一边框颜色
         border.width: control.transparentBackground ? 0
             : (Enums.isNeobrutalism ? Enums.neo.borderWidth
-               : (Enums.isPrismDesign && control.focused && control.showFocusedBorder ? Enums.prismDesign.focusBorderWidth
-                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)))
+               : ((Enums.border.thin)))
         border.color: {
             if (control.transparentBackground) return Enums.transparent
             // neo 聚焦转橙(token 不含此交互, 属结构差异); 其余黑边由 token 自动返回
             if (Enums.isNeobrutalism && control.enabled && control.focused) return Enums.neo.primary
-            if (Enums.isPrismDesign && control.enabled && control.focused && control.showFocusedBorder) return Enums.prismDesign.primary
-            if (Enums.isPrismDesign && control.enabled && control.hovered) return Enums.prismDesign.borderStrong
             if (!control.enabled) return Enums.stateColor.borderLight
             return Enums.stateColor.border
         }
 
-        // Prism glass rim Prism玻璃边缘
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: Enums.prismDesign.borderWidth
-            color: Enums.prismDesign.glassRimLight
-            visible: Enums.isPrismDesign && !control.transparentBackground && control.enabled
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: Enums.prismDesign.borderWidth
-            color: Enums.prismDesign.glassRimShadow
-            visible: Enums.isPrismDesign && !control.transparentBackground && control.enabled
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: Enums.prismDesign.focusBorderWidth
-            color: Enums.prismDesign.spectralEdge
-            opacity: control.focused ? 0.75 : (control.hovered ? 0.35 : 0.0)
-            visible: Enums.isPrismDesign && !control.transparentBackground && control.enabled
-
-            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-        }
     }
 
     // Mouse cursor 鼠标光标
@@ -228,10 +195,10 @@ Widget {
     // Neobrutalism/Prism: 关闭底线，改由整圈边界表达聚焦。
     FocusLine {
         z: Enums.zIndex.inputInteraction
-        showLine: !Enums.isNeobrutalism && !Enums.isPrismDesign && control.focused && control.showFocusedBorder
+        showLine: !Enums.isNeobrutalism && control.focused && control.showFocusedBorder
         lineColor: control.focusedBorderColor
         parentRadius: control.radius
-        visible: !Enums.isNeobrutalism && !Enums.isPrismDesign && control.showFocusedBorder
+        visible: !Enums.isNeobrutalism && control.showFocusedBorder
     }
 
     // Folder drop surface 文件夹拖放区域

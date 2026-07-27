@@ -23,22 +23,20 @@ Rectangle {
     property string language: ""
 
     // ==================== Internal Props 内部属性 ====================
-    readonly property int _radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
-    readonly property color _blockBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.codeBlockColors.background
-    readonly property color _blockBorder: Enums.isPrismDesign ? Enums.borderColor : Enums.codeBlockColors.border
-    readonly property int _blockBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
-    readonly property color _mutedText: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.codeBlockColors.secondaryText
-    readonly property color _codeText: Enums.isPrismDesign ? Enums.textColor.primary : Enums.codeBlockColors.foreground
-    readonly property color _copyHover: Enums.isPrismDesign ? Enums.hoverColor : Enums.codeBlockColors.hover
-    readonly property int _copyRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property int _radius: Enums.radius.small
+    readonly property color _blockBackground: Enums.codeBlockColors.background
+    readonly property color _blockBorder: Enums.codeBlockColors.border
+    readonly property int _blockBorderWidth: Enums.border.thin
+    readonly property color _mutedText: Enums.codeBlockColors.secondaryText
+    readonly property color _codeText: Enums.codeBlockColors.foreground
+    readonly property color _copyHover: Enums.codeBlockColors.hover
+    readonly property int _copyRadius: Enums.radius.small
     readonly property color _copyTextColor: _mutedText
-    readonly property color _copySuccessTextColor: Enums.isPrismDesign ? Enums.statusLevel.successColor : Enums.codeBlockColors.copySuccess
-    readonly property int _labelFontSize: Enums.isPrismDesign ? Enums.typography.caption : Enums.typography.captionCompact
+    readonly property color _copySuccessTextColor: Enums.codeBlockColors.copySuccess
+    readonly property int _labelFontSize: Enums.typography.captionCompact
     readonly property int _codeFontSize: Enums.typography.caption
     readonly property string _codeFontFamily: Enums.fontMonospace
-    readonly property int _headerHeight: Enums.isPrismDesign
-                                         ? Enums.controlSize.buttonHeight - Enums.spacing.l
-                                         : Enums.controlSize.codeBlockHeaderHeight
+    readonly property int _headerHeight: Enums.controlSize.codeBlockHeaderHeight
 
     // ==================== Size 尺寸 ====================
     color: _blockBackground

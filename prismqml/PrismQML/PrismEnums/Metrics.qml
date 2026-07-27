@@ -10,7 +10,6 @@ QtObject {
  id: root
  
  required property bool isDark
- property bool isPrismDesign: false
  // neo 配色单一真相源(Constants.neoColors, dark-aware), 由 Enums 注入
  property var constants: null
  
@@ -591,7 +590,7 @@ QtObject {
  readonly property int spinDuration: 800 // Default progress ring rotation cycle 默认进度环旋转周期
  readonly property int fixedArcSweep: 90 // Legacy lazy-loading quarter arc 原懒加载四分之一圆弧
  readonly property int orbitDotSize: root.spacing.s // Orbiting dot size 绕圈圆点尺寸
- readonly property int orbitDotRadius: root.isPrismDesign ? orbitDotSize / 2 : root.radius.tiny
+ readonly property int orbitDotRadius: root.radius.tiny
  readonly property int orbitDotTopMargin: -root.spacing.micro // Orbiting dot offset 绕圈圆点偏移
  }
 
@@ -751,7 +750,7 @@ QtObject {
  readonly property real offset: 1
  readonly property real blur: 4
  readonly property int samples: 13
- readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadow : Qt.rgba(0, 0, 0, 0.08 * shadow._alphaMultiplier)
+ readonly property color color: Qt.rgba(0, 0, 0, 0.08 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.1
  }
  
@@ -762,7 +761,7 @@ QtObject {
  readonly property real offset: 2
  readonly property real blur: 8
  readonly property int samples: 17
- readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadow : Qt.rgba(0, 0, 0, 0.12 * shadow._alphaMultiplier)
+ readonly property color color: Qt.rgba(0, 0, 0, 0.12 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.15
  }
  
@@ -773,7 +772,7 @@ QtObject {
  readonly property real offset: 4
  readonly property real blur: 16
  readonly property int samples: 21
- readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadowStrong : Qt.rgba(0, 0, 0, 0.14 * shadow._alphaMultiplier)
+ readonly property color color: Qt.rgba(0, 0, 0, 0.14 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.25
  }
  
@@ -784,7 +783,7 @@ QtObject {
  readonly property real offset: 8
  readonly property real blur: 32
  readonly property int samples: 25
- readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadowStrong : Qt.rgba(0, 0, 0, 0.18 * shadow._alphaMultiplier)
+ readonly property color color: Qt.rgba(0, 0, 0, 0.18 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.4
  }
  
@@ -795,7 +794,7 @@ QtObject {
  readonly property real offset: 12
  readonly property real blur: 48
  readonly property int samples: 29
- readonly property color color: root.isPrismDesign ? root.constants.prismDesign.shadowStrong : Qt.rgba(0, 0, 0, 0.22 * shadow._alphaMultiplier)
+ readonly property color color: Qt.rgba(0, 0, 0, 0.22 * shadow._alphaMultiplier)
  readonly property real blurNormalized: 0.5
  }
 

@@ -26,7 +26,7 @@ Item {
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
     readonly property color accentColor: Enums.accentColor
-    readonly property int _navItemRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+    readonly property int _navItemRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.small)
     readonly property color _navItemBackground: {
         if (control.selected) {
             if (Enums.isNeobrutalism) return Enums.neo.primary
@@ -37,8 +37,8 @@ Item {
         }
         return Enums.transparent
     }
-    readonly property int _navItemBorderWidth: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : (Enums.isPrismDesign && control.selected ? Enums.prismDesign.borderWidth : 0)
-    readonly property color _navItemBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (Enums.isPrismDesign ? Enums.prismDesign.primaryDark : Enums.transparent)
+    readonly property int _navItemBorderWidth: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : (0)
+    readonly property color _navItemBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (Enums.transparent)
     readonly property color _navItemContentColor: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
     readonly property real _labelWidth: Math.max(0, width - Enums.spacing.xs * 2)
     readonly property bool _labelOverflowing: label.implicitWidth > label.width
@@ -70,29 +70,6 @@ Item {
         // Neo selected border neo选中态边框
         border.width: control._navItemBorderWidth
         border.color: control._navItemBorderColor
-
-        // Prism glass rail rim Prism玻璃导航边缘
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: Enums.prismDesign.borderWidth
-            color: Enums.prismDesign.glassRimLight
-            visible: Enums.isPrismDesign && (control.selected || control.hovered)
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: Enums.prismDesign.focusBorderWidth
-            radius: height / 2
-            color: Enums.prismDesign.spectralEdge
-            opacity: control.selected ? 0.9 : 0.35
-            visible: Enums.isPrismDesign && (control.selected || control.hovered)
-
-            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-        }
 
         // No animation to avoid flicker 无动画避免闪烁
     }

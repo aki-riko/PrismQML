@@ -50,7 +50,7 @@ Rectangle {
 
     // Background state layer, aligned with ListWidgetItem 背景状态层，与 ListWidgetItem 一致
     color: _bgColor
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
+    radius: Enums.radius.card
 
     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
 

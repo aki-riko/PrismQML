@@ -12,7 +12,7 @@ import PrismQML as Fluent
 // 按钮展示页面
 Item {
     id: root
-    readonly property int _flowSpacing: Fluent.Enums.isPrismDesign ? Fluent.Enums.spacing.s : Fluent.Enums.spacing.l
+    readonly property int _flowSpacing: Fluent.Enums.spacing.l
 
     MenuCore {
         id: externalButtonMenu

@@ -28,7 +28,7 @@ print(getAccentColor())  # "#0078d4"
 ```
 
 !!! note "固定主色皮肤下的主题色"
-    新粗野皮肤有自己固定的橙色主色体系，Prism Design 也有自己的蓝青主色体系。
+    新粗野皮肤使用自己固定的橙色主色体系。
     `accentColor` 在这些皮肤下会自动解析为对应主色，`setAccentColor` 的自定义值主要作用于 Fluent 皮肤。
 
 ## QML 中使用

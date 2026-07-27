@@ -21,7 +21,6 @@ Item {
     readonly property color _effectiveFillColor: enabled ? fillColor : Enums.textColor.disabled
     readonly property color _effectiveOutlineColor: {
         if (!enabled) return Enums.textColor.disabled
-        if (Enums.isPrismDesign) return Enums.textColor.tertiary
         return outlineColor
     }
     readonly property color _effectiveHoverColor: enabled ? fillColor : Enums.textColor.disabled

@@ -33,7 +33,6 @@ RUNNER_SUPERVISOR_GRACE_SECONDS = (
     + 10
 )
 MANUAL_VISIBLE_ENTRYPOINTS = {
-    Path("scripts/render_prism_skin_compare.py"),
     Path("scripts/fps_probe.py"),
     Path("scripts/run_with_fps.py"),
     Path("tests/qml/bench_skin_frames.py"),

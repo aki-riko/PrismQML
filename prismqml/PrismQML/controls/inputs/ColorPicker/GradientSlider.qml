@@ -33,7 +33,7 @@ Item {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         height: Enums.controlSize.checkboxInner
-        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.large
+        radius: Enums.radius.large
         
         gradient: Gradient {
             orientation: Gradient.Horizontal

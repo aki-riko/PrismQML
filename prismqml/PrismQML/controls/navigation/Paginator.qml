@@ -24,7 +24,7 @@ Item {
     readonly property real _buttonSize: Enums.controlSize.buttonHeight
     readonly property real _spacing: Enums.spacing.xxs
     readonly property real _itemWidth: _buttonSize + _spacing
-    readonly property int _pageRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property int _pageRadius: Enums.radius.small
     readonly property color _pageIndicatorColor: root.accentColor
     readonly property color _pageHoverColor: Enums.stateColor.hover
     readonly property color _pageIdleColor: Enums.transparent

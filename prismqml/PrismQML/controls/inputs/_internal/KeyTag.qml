@@ -16,7 +16,7 @@ Rectangle {
     
     width: tagText.implicitWidth + Enums.spacing.l * 2
     height: 26
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    radius: Enums.radius.small
     color: Enums.stateColor.accentLight
     border.width: Enums.border.thin
     border.color: Enums.stateColor.accentBorder

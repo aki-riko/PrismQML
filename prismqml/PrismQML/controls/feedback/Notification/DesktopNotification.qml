@@ -30,9 +30,9 @@ Window {
     readonly property bool hasCustomContent: customContentLoader.sourceComponent !== null && customContentLoader.item !== null
 
     // ==================== Internal Props 内部属性 ====================
-    readonly property int _notificationRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
-    readonly property int _notificationIconRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.large
-    readonly property color _notificationBackground: Enums.isPrismDesign ? Enums.toastCardColor : Enums.cardColor
+    readonly property int _notificationRadius: Enums.radius.large
+    readonly property int _notificationIconRadius: Enums.radius.large
+    readonly property color _notificationBackground: Enums.cardColor
     readonly property int _notificationBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
     readonly property color _notificationBorderColor: Enums.stateColor.border
     readonly property color _notificationMessageColor: Enums.stateColor.notificationText

@@ -26,10 +26,10 @@ OverlayDialogCore {
     property int maxWaitingTime: -1  // -1 = infinite wait 无限等待
     property real progress: -1  // -1 = 不确定(转圈), 0~100 = 确定进度百分比
 
-    readonly property int _dialogRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
-    readonly property color _dialogBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _dialogRadius: Enums.radius.large
+    readonly property color _dialogBackground: Enums.cardColor
     readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+                                                                  : (Enums.border.thin)
     readonly property color _dialogBorderColor: Enums.stateColor.dialogBorder
     readonly property color _dialogShadowColor: Enums.shadow.level16.color
     readonly property real _dialogShadowBlur: Enums.shadow.level16.blur

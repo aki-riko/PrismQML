@@ -17,7 +17,7 @@ Column {
     readonly property int _contentHeight: contentHost.childrenRect.height > 0 ? contentHost.childrenRect.height : Enums.controlSize.buttonHeight
     readonly property int _labelWidth: labelItem.visible ? labelItem.implicitWidth : 0
     readonly property int _prismWidth: Math.max(_contentWidth, Enums.controlSize.buttonMinWidth)
-    readonly property int _effectiveWidth: Enums.isPrismDesign ? _prismWidth : Math.max(_contentWidth, _labelWidth)
+    readonly property int _effectiveWidth: Math.max(_contentWidth, _labelWidth)
     
     width: _effectiveWidth
     spacing: Enums.spacing.xs
@@ -44,10 +44,10 @@ Column {
         type: Enums.label.type_caption
         width: control._effectiveWidth
         text: control.label
-        color: Enums.isPrismDesign ? Enums.textColor.tertiary : Enums.accentColor
+        color: Enums.accentColor
         visible: control.label !== ""
         maximumLineCount: 1
-        elide: Enums.isPrismDesign ? Text.ElideRight : Text.ElideNone
+        elide: Text.ElideNone
         horizontalAlignment: Text.AlignHCenter  // Center text 文本居中
     }
 }

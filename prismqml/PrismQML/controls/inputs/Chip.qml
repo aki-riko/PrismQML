@@ -66,7 +66,7 @@ Item {
     Rectangle {
         id: chipBg
         anchors.fill: parent
-        radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+        radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.small)
 
         color: {
             if (checked) return Enums.accentColor

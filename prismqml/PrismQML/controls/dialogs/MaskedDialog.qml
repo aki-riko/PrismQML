@@ -22,10 +22,10 @@ OverlayDialogCore {
     // Dialog body reference 对话框主体引用
     readonly property alias body: dialogBody
 
-    readonly property int _dialogRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.dialog
-    readonly property color _dialogBackground: Enums.isNeobrutalism || Enums.isPrismDesign ? Enums.dialogColor : Enums.dialogColors.containerBg
+    readonly property int _dialogRadius: Enums.radius.dialog
+    readonly property color _dialogBackground: Enums.isNeobrutalism ? Enums.dialogColor : Enums.dialogColors.containerBg
     readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+                                                                  : (Enums.border.thin)
     readonly property color _dialogBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.stateColor.dialogBorder
     readonly property color _dialogShadowColor: Enums.shadow.level16.color
     readonly property real _dialogShadowBlur: Enums.shadow.level16.blur

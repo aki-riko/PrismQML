@@ -38,27 +38,21 @@ Item {
     // ==================== Global Theme Props 全局主题属性 ====================
     readonly property string theme: ThemeManager ? ThemeManager.theme : "auto"
     readonly property bool isDark: ThemeManager ? ThemeManager.isDark : false
-    // Skin (design language) 皮肤（设计语言）: "fluent" | "neobrutalism" | "prism_design"
+    // Skin (design language) 皮肤（设计语言）: "fluent" | "neobrutalism"
     // 与 isDark 正交: isDark 控明暗, skin 控设计语言。控件按 skin 切换几何/阴影范式。
     readonly property string skin: ThemeManager ? ThemeManager.skin : "fluent"
     readonly property bool isNeobrutalism: skin === "neobrutalism"
-    readonly property bool isPrismDesign: skin === "prism_design"
     readonly property string fontFamily: ThemeManager ? ThemeManager.fontFamily : "Microsoft YaHei UI, Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, sans-serif"
     readonly property string fontMonospace: ThemeManager ? ThemeManager.fontMonospace : "Cascadia Code, Consolas, SF Mono, Menlo, Roboto Mono, monospace"
     readonly property string canvasFontFamily: "'" + fontFamily.split(",")[0].trim() + "', sans-serif"
     // Skin accent resolver 皮肤主色解析器:
     // Existing accent consumers auto-switch colors under skins 现有主色消费者在皮肤下自动换色。
     readonly property color _rawAccentColor: ThemeManager ? ThemeManager.accentColor : _constants.accentDefaults.accent
-    readonly property color accentColor: isNeobrutalism ? _constants.neoColors.primary
-        : (isPrismDesign ? _constants.prismDesign.primary : _rawAccentColor)
+    readonly property color accentColor: isNeobrutalism ? _constants.neoColors.primary : _rawAccentColor
     readonly property color accentColorLight: isNeobrutalism ? Qt.lighter(_constants.neoColors.primary, 1.08)
-        : (isPrismDesign ? _constants.prismDesign.primaryLight
         : (ThemeManager ? ThemeManager.accentColorLight : _constants.accentDefaults.accentLight)
-        )
     readonly property color accentColorDark: isNeobrutalism ? Qt.darker(_constants.neoColors.primary, 1.15)
-        : (isPrismDesign ? _constants.prismDesign.primaryDark
         : (ThemeManager ? ThemeManager.accentColorDark : _constants.accentDefaults.accentDark)
-        )
     
     // Transparent color constant 透明色常量
     readonly property color transparent: "transparent"
@@ -70,14 +64,14 @@ Item {
     }
     
     // ==================== Modular Components 模块化组件 ====================
-    Theme { id: _theme; isDark: root.isDark; isNeo: root.isNeobrutalism; isPrismDesign: root.isPrismDesign; accentColor: root.accentColor; accentColorLight: root.accentColorLight; accentColorDark: root.accentColorDark; constants: _constants }
+    Theme { id: _theme; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; accentColorLight: root.accentColorLight; accentColorDark: root.accentColorDark; constants: _constants }
     StatusLevel { id: _statusLevel; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; constants: _constants }
     Button { id: _button }
     Tab { id: _tab }
     CommandBar { id: _commandBar }
-    StateColor { id: _stateColor; isDark: root.isDark; isNeo: root.isNeobrutalism; isPrismDesign: root.isPrismDesign; accentColor: root.accentColor; constants: _constants }
-    Constants { id: _constants; isDark: root.isDark; isNeo: root.isNeobrutalism; isPrismDesign: root.isPrismDesign }
-    Metrics { id: _metrics; isDark: root.isDark; isPrismDesign: root.isPrismDesign; constants: _constants }
+    StateColor { id: _stateColor; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; constants: _constants }
+    Constants { id: _constants; isDark: root.isDark; isNeo: root.isNeobrutalism }
+    Metrics { id: _metrics; isDark: root.isDark; constants: _constants }
     Orient { id: _orient }
     Flow { id: _flow }
     Chart { id: _chart }
@@ -204,7 +198,6 @@ Item {
     readonly property alias colorPickerGradient: _constants.colorPickerGradient
     readonly property alias gray: _constants.gray
     readonly property alias grayColors: _constants.grayColors
-    readonly property alias prismDesign: _constants.prismDesign
     readonly property alias demoPalette: _constants.demoPalette
     readonly property alias themeColors: _constants.themeColors
     readonly property alias textColor: _constants.textColor

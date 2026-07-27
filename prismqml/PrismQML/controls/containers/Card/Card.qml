@@ -17,7 +17,7 @@ Widget {
  
  // ==================== Public Props 公开属性 ====================
  property int cardType: Enums.card.type_default // Card type 卡片类型
- property int borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card // Border radius 圆角
+ property int borderRadius: Enums.radius.card// Border radius 圆角
  // Content padding: header cards align with the title; regular cards provide one comfortable inset.
  // 内容内边距：标题卡与标题对齐；普通卡默认提供一层舒适留白。
  property int contentPadding: isHeader ? Enums.spacing.xxxl : Enums.spacing.l
@@ -76,7 +76,7 @@ Widget {
  blur: _shadowBlur
  offset.x: 0
  offset.y: _shadowOffset
- visible: !Enums.isNeobrutalism && (!Enums.isPrismDesign || isElevated || hovered)
+ visible: !Enums.isNeobrutalism && (isElevated || hovered)
 
  // Shadow properties based on type and state 根据类型和状态计算阴影
  Behavior on _shadowBlur { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
@@ -126,39 +126,9 @@ Widget {
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  
  // Border 边框
- border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
- border.color: Enums.isPrismDesign ? Enums.prismDesign.border : Enums.stateColor.borderLight  // neo 黑边由 token 自动返回
+ border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.border.thin)
+ border.color: Enums.stateColor.borderLight// neo 黑边由 token 自动返回
 
- // Prism glass rim Prism玻璃边缘
- Rectangle {
- anchors.left: parent.left
- anchors.right: parent.right
- anchors.top: parent.top
- height: Enums.prismDesign.borderWidth
- color: Enums.prismDesign.glassRimLight
- visible: Enums.isPrismDesign
- }
-
- Rectangle {
- anchors.left: parent.left
- anchors.right: parent.right
- anchors.bottom: parent.bottom
- height: Enums.prismDesign.borderWidth
- color: Enums.prismDesign.glassRimShadow
- visible: Enums.isPrismDesign
- }
-
- Rectangle {
- anchors.left: parent.left
- anchors.right: parent.right
- anchors.bottom: parent.bottom
- height: Enums.prismDesign.focusBorderWidth
- color: Enums.prismDesign.spectralEdge
- opacity: hovered ? 0.45 : 0.0
- visible: Enums.isPrismDesign && (isNormal || isElevated)
- Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
- }
- 
  // Header for header cards 标题卡标题区域
  Item {
  id: headerView

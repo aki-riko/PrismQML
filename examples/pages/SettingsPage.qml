@@ -127,20 +127,20 @@ Item {
                     }
                 }
 
-                // Design skin 设计皮肤 (Fluent / Neobrutalism / Prism Design)
+                // Design skin 设计皮肤 (Fluent / Neobrutalism)
                 SettingsCard {
                     id: skinCard
 
-                    readonly property var skinValues: ["fluent", "neobrutalism", "prism_design"]
+                    readonly property var skinValues: ["fluent", "neobrutalism"]
                     readonly property int skinIndex: skinValues.indexOf(Fluent.Enums.skin)
 
                     objectName: "skinSettingsCard"
                     width: parent ? parent.width : 0
                     title: "设计皮肤"
-                    content: "切换设计语言：Fluent / 新粗野 / Prism Design"
+                    content: "切换设计语言：Fluent / 新粗野"
                     icon: iconPath("Color")
                     type: Fluent.Enums.settingCard.type_combobox
-                    model: ["Fluent", "新粗野 Neobrutalism", "Prism Design"]
+                    model: ["Fluent", "新粗野 Neobrutalism"]
                     currentIndex: skinIndex >= 0 ? skinIndex : 0
 
                     onIndexSelected: function(idx) {

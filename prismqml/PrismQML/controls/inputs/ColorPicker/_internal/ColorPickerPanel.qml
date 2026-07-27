@@ -102,7 +102,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: Enums.transparent
-        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
+        radius: Enums.radius.large
         border.width: Enums.border.thin
         border.color: Enums.stateColor.border
     }

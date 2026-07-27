@@ -159,7 +159,7 @@ Window {
         objectName: "navItem"
         width: implicitWidth
         height: implicitHeight
-        text: "Prism Design"
+        text: "Navigation Settings"
         icon: "Home"
     }
 
@@ -520,8 +520,8 @@ def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
         QTest.mouseMove(window, QPoint(window.width() - 1, window.height() - 1))
         assert _wait_for(lambda: nav_item.property("hovered") is False)
 
-        label = _direct_text_item(nav_item, "Prism Design")
-        marquee = _marquee_item(nav_item, "Prism Design")
+        label = _direct_text_item(nav_item, "Navigation Settings")
+        marquee = _marquee_item(nav_item, "Navigation Settings")
         marquee_content = _object_named(marquee, "marqueeContent")
         marquee_text = _object_named(marquee, "marqueeText")
         marquee_text_copy = _object_named(marquee, "marqueeTextCopy")

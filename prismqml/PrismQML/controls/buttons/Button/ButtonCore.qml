@@ -105,7 +105,7 @@ Widget {
     // Appearance and animated colors 外观与动画颜色
     property int radius: shape === Enums.button.shape_pill ? height / 2
                          : (Enums.isNeobrutalism ? Enums.neo.radius
-                            : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small))
+                            : (Enums.radius.small))
     property color color: styleHelper.bgColor
 
     // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
@@ -367,7 +367,7 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !control.flat && !Enums.isNeobrutalism && !Enums.isPrismDesign
+        visible: !control.flat && !Enums.isNeobrutalism
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件(纯黑零模糊, 偏移)。按下位移由下方 Translate 压平。
@@ -391,9 +391,7 @@ Widget {
         color: _animatedBgColor
         border.width: Enums.isNeobrutalism
             ? (flat ? 0 : Enums.neo.borderWidth)
-            : (Enums.isPrismDesign
-               ? (flat ? 0 : Enums.prismDesign.borderWidth)
-               : ((styleHelper.isToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin)))
+            : (((styleHelper.isToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin)))
         border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
 
         // Gradient (for gradient style) 渐变
@@ -406,40 +404,6 @@ Widget {
             Behavior on y { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
         }
 
-        // Prism glass rim Prism玻璃边缘
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: Enums.prismDesign.borderWidth
-            color: Enums.prismDesign.glassRimLight
-            visible: Enums.isPrismDesign && !control.flat && control.enabled
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: Enums.prismDesign.borderWidth
-            color: Enums.prismDesign.glassRimShadow
-            visible: Enums.isPrismDesign && !control.flat && control.enabled
-        }
-
-        // Spectral edge for active glass 光谱边用于激活玻璃态
-        Rectangle {
-            anchors.left: parent.left
-            anchors.leftMargin: control._spectralEdgeInset
-            anchors.right: parent.right
-            anchors.rightMargin: control._spectralEdgeInset
-            anchors.bottom: parent.bottom
-            height: Enums.prismDesign.focusBorderWidth
-            color: Enums.prismDesign.spectralEdge
-            opacity: control.activeFocus ? 0.38 : 0.0
-            visible: Enums.isPrismDesign && !control.flat && control.enabled
-                     && control.activeFocus
-
-            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-        }
     }
 
     ColorAnimation {

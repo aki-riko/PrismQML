@@ -24,9 +24,9 @@ Item {
 
     readonly property real _radius: {
         switch (control.shape) {
-            case Enums.skeleton.shape_rect: return Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small  // 方形也需要圆角
+            case Enums.skeleton.shape_rect: return Enums.radius.small// 方形也需要圆角
             case Enums.skeleton.shape_circle: return Math.min(width, height) / 2
-            default: return Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            default: return Enums.radius.small
         }
     }
     

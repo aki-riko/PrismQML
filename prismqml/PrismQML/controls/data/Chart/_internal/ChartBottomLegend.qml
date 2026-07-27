@@ -21,9 +21,9 @@ Item {
     property var getColor: null              // Custom color function 自定义颜色函数
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    readonly property color _itemHoverColor: Enums.isPrismDesign ? Enums.hoverColor : Enums.stateColor.hoverSubtle
-    readonly property color _itemBorderColor: Enums.isPrismDesign ? Enums.borderLightColor : Enums.transparent
+    readonly property int _itemRadius: Enums.radius.small
+    readonly property color _itemHoverColor: Enums.stateColor.hoverSubtle
+    readonly property color _itemBorderColor: Enums.transparent
     
     // ==================== Signals 信号 ====================
     signal itemHovered(int index)
@@ -71,7 +71,7 @@ Item {
                     anchors.fill: parent
                     radius: root._itemRadius
                     color: hovered && !isItemHidden ? root._itemHoverColor : Enums.transparent
-                    border.width: hovered && Enums.isPrismDesign ? Enums.border.thin : Enums.border.none
+                    border.width: hovered && Enums.border.none
                     border.color: root._itemBorderColor
 
                     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }

@@ -32,7 +32,7 @@ Item {
             errorLevel
         )
     }
-    readonly property int _qrPlaceholderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property int _qrPlaceholderRadius: Enums.radius.small
     readonly property color _qrBorderColor: Enums.stateColor.border
     readonly property color _qrHintColor: Enums.textColor.secondary
 

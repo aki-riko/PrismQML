@@ -24,7 +24,7 @@ Item {
  property int _currentAvatarSize: isCompacted ? _avatarSizeCompact : _avatarSizeExpanded
 
  // ==================== Readonly State 只读状态 ====================
- readonly property int _profileRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+ readonly property int _profileRadius: Enums.radius.small
  readonly property color _profileHoverColor: Enums.stateColor.hover
  readonly property color _profilePressedColor: Enums.stateColor.pressed
  readonly property color _profileBackground: mouseArea.pressed ? control._profilePressedColor

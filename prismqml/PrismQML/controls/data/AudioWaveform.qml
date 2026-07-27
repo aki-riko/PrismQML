@@ -26,8 +26,8 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _hovered: mouseArea.containsMouse
     readonly property bool _pressed: mouseArea.pressed
-    readonly property int _waveformRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
-    readonly property int _waveformInnerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property int _waveformRadius: Enums.radius.large
+    readonly property int _waveformInnerRadius: Enums.radius.small
     readonly property color _waveformBorderColor: control._hovered ? Enums.accentColor : Enums.stateColor.cardBorder
     readonly property color _progressOverlayColor: Enums.stateColor.accentSubtle
     readonly property var _safeWaveformData: _normalizeWaveformData(waveformData)

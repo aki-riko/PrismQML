@@ -32,10 +32,10 @@ OverlayDialogCore {
     default property alias bodyContent: bodyLayout.data
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _dialogRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.dialog
+    readonly property int _dialogRadius: Enums.radius.dialog
     readonly property color _dialogBackground: Enums.dialogColor
     readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+                                                                  : (Enums.border.thin)
     readonly property color _dialogBorderColor: Enums.stateColor.dialogBorder
     readonly property color _dialogMaskColor: Enums.stateColor.dialogOverlay
     readonly property color _actionsRowBackground: Enums.stateColor.actionsRowBg

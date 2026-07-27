@@ -56,7 +56,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: actionBtnText.implicitWidth + 24
             height: 32
-            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            radius: Enums.radius.small
             color: actionArea.pressed ? Enums.accentColorDark : (actionArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
             visible: actionText !== ""
             

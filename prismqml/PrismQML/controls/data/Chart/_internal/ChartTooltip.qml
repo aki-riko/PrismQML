@@ -27,9 +27,9 @@ Item {
     property int pointerDirection: 0     // 0=down, 1=up, 2=left, 3=right 指针方向
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property color _tooltipBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.gray.tooltip
-    readonly property color _tooltipBorderColor: Enums.isPrismDesign ? Enums.borderColor : Enums.transparent
-    readonly property int _tooltipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small
+    readonly property color _tooltipBackground: Enums.gray.tooltip
+    readonly property color _tooltipBorderColor: Enums.transparent
+    readonly property int _tooltipRadius: Enums.radius.small
     
     // ==================== Size 尺寸 ====================
     width: tooltipRect.width
@@ -50,9 +50,9 @@ Item {
         
         radius: root._tooltipRadius
         color: root._tooltipBackground
-        border.width: Enums.isPrismDesign ? Enums.border.thin : Enums.border.none
+        border.width: Enums.border.none
         border.color: root._tooltipBorderColor
-        shadowLevel: Enums.isPrismDesign ? Enums.shadow.level8 : Enums.shadow.level2
+        shadowLevel: Enums.shadow.level2
         shadowVisible: root.visible
         
         // ==================== Content 内容 ====================
@@ -78,7 +78,7 @@ Item {
                 Label {
                     type: Enums.label.type_caption
                     text: root.label
-                    color: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.stateColor.chartTooltipText
+                    color: Enums.stateColor.chartTooltipText
                     visible: root.label !== ""
                 }
             }

@@ -47,9 +47,9 @@ Widget {
     property int completeDuration: Enums.duration.progressComplete  // 进度完成后持续显示时间(ms)
 
     // Style properties 样式属性
-    property real radius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large  // 圆角半径
+    property real radius: Enums.radius.large// 圆角半径
     // Border color 边框色 (neo 用控件边框 token=黑; Fluent 用 divider 轻分隔)
-    readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.stateColor.border : Enums.stateColor.divider)
+    readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.stateColor.divider)
     readonly property real _infoBarRadius: radius
     readonly property color _infoBarBackground: backgroundColor
     readonly property int _infoBarBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin

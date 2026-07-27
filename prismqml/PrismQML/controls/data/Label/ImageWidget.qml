@@ -15,7 +15,7 @@ Item {
     
     // ==================== Public Props 公开属性 ====================
     property string source: ""
-    property int radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    property int radius: Enums.radius.small
     property int fillMode: Image.PreserveAspectCrop  // Fill mode 填充模式
     property bool loading: sourceImage.status === Image.Loading
     property bool error: sourceImage.status === Image.Error

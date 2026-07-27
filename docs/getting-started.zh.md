@@ -52,7 +52,7 @@ from prismqml import setSkin, Skin
 
 setSkin(Skin.FLUENT)         # Fluent Design
 setSkin(Skin.NEOBRUTALISM)   # 新粗野
-setSkin(Skin.PRISM_DESIGN)   # Prism Design
+setSkin(Skin.NEOBRUTALISM)   # 新粗野皮肤
 ```
 
 详见 [皮肤系统](guide/skins.md)。

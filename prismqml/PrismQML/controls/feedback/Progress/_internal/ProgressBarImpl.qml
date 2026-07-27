@@ -30,7 +30,7 @@ Item {
         return Enums.accentColor
     }
     readonly property color trackColor: Enums.stateColor.progressTrack
-    readonly property real _barRadius: filled ? (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small) : (height / 2)
+    readonly property real _barRadius: filled ? (Enums.radius.small) : (height / 2)
     readonly property color _filledTextColor: control.position > 0.5 ? Enums.accentForeground : Enums.textColor.primary
     
     // ==================== Internal Props 内部属性 ====================

@@ -42,7 +42,7 @@ Item {
             anchors.centerIn: parent
             width: Enums.spacing.xxl
             height: Enums.spacing.xxl
-            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            radius: Enums.radius.small
             color: control.selectedColor
             border.width: Enums.border.thin
             border.color: Enums.stateColor.inputBorderStrong

@@ -56,7 +56,7 @@ Python 业务初始化仍同步执行，应保持轻量；该封装异步处理�
 
 | 名称 | 说明 |
 |------|------|
-| `Skin` | 皮肤枚举（FLUENT / NEOBRUTALISM / PRISM_DESIGN） |
+| `Skin` | 皮肤枚举（FLUENT / NEOBRUTALISM） |
 | `setSkin` / `getSkin` | 切换 / 获取皮肤 |
 | `Theme` | 主题枚举（LIGHT / DARK / AUTO） |
 | `setTheme` / `getTheme` / `isDark` | 主题切换 / 查询 |

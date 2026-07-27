@@ -170,7 +170,7 @@ MessageBox {
                 Rectangle {
                     width: Enums.colorPickerMetrics.dialogPreviewWidth
                     height: Enums.colorPickerMetrics.dialogPreviewHeight
-                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                    radius: Enums.radius.small
                     color: control.selectedColor
                     border.width: Enums.border.thin
                     border.color: Enums.stateColor.border
@@ -180,7 +180,7 @@ MessageBox {
                 Rectangle {
                     width: Enums.colorPickerMetrics.dialogPreviewWidth
                     height: Enums.colorPickerMetrics.dialogPreviewHeight
-                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                    radius: Enums.radius.small
                     color: control.initialColor
                     border.width: Enums.border.thin
                     border.color: Enums.stateColor.border
@@ -205,7 +205,7 @@ MessageBox {
                 Rectangle {
                     width: Enums.colorPickerMetrics.dialogInputWidth
                     height: Enums.colorPickerMetrics.dialogInputHeight
-                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                    radius: Enums.radius.small
                     color: Enums.stateColor.controlBg
                     border.width: hexInput.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
                     border.color: hexInput.activeFocus ? Enums.accentColor : Enums.stateColor.border
@@ -259,7 +259,7 @@ MessageBox {
                     Rectangle {
                         width: Enums.colorPickerMetrics.dialogInputWidth
                         height: Enums.colorPickerMetrics.dialogInputHeight
-                        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                        radius: Enums.radius.small
                         color: Enums.stateColor.controlBg
                         border.width: rgbInput.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
                         border.color: rgbInput.activeFocus ? Enums.accentColor : Enums.stateColor.border

@@ -55,7 +55,7 @@ Rectangle {
 
     // Background 背景
     color: _bgColor
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
+    radius: Enums.radius.card
 
     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
 

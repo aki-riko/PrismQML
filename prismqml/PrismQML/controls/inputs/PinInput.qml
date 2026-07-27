@@ -85,7 +85,7 @@ Item {
                 Rectangle {
                     id: pinCell
                     anchors.fill: parent
-                    radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+                    radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.small)
 
                     // Fluent Design: default/hover/current cell states 默认/悬浮/当前格状态
                     color: {

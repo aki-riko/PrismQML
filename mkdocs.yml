@@ -1,5 +1,5 @@
 site_name: PrismQML
-site_description: 多皮肤 QML UI 引擎 (Fluent + Neobrutalism + Prism Design) for PySide6
+site_description: 多皮肤 QML UI 引擎 (Fluent + Neobrutalism) for PySide6
 site_author: aki-riko
 repo_url: https://github.com/aki-riko/PrismQML
 repo_name: aki-riko/PrismQML
@@ -67,8 +67,6 @@ nav:
   - 快速开始: getting-started.md
   - 指南:
       - 皮肤系统: guide/skins.md
-      - Prism Design 视觉规范: guide/prism-design.md
-      - Prism Design 落地标准: guide/prism-design-implementation.md
       - 主题: guide/theming.md
       - 窗口: guide/windows.md
       - 配置系统: guide/config.md

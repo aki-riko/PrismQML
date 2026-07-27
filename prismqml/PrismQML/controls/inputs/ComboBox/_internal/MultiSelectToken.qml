@@ -35,7 +35,7 @@ Rectangle {
     width: contentRow.implicitWidth + Enums.spacing.m * 2
 
     // Visual style 视觉样式
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    radius: Enums.radius.small
     color: token._tokenBackgroundColor
     border.width: Enums.border.thin
     border.color: token._tokenBorderColor

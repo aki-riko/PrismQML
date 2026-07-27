@@ -31,10 +31,10 @@ Item {
     property string primaryButtonText: ""
     property string secondaryButtonText: ""
     property bool closeOnAction: true
-    readonly property int _tipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
-    readonly property color _tipBackground: Enums.isPrismDesign ? Enums.dialogColor : (Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight)
+    readonly property int _tipRadius: Enums.radius.large
+    readonly property color _tipBackground: (Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight)
     readonly property int _tipBorderWidth: Enums.border.thin
-    readonly property color _tipBorderColor: Enums.isPrismDesign ? Enums.stateColor.dialogBorder : Enums.stateColor.maskLight
+    readonly property color _tipBorderColor: Enums.stateColor.maskLight
     
     // ==================== Internal Props 内部属性 ====================
     property real _animX: 0

@@ -24,7 +24,7 @@ Rectangle {
             if (!enabled) return checked ? Enums.stateColor.primaryDisabled : Enums.stateColor.checkBoxFill
             return checked ? checkedColor : Enums.stateColor.checkBoxFill
         }
-        if (Enums.isPrismDesign) {
+        if (false) {
             if (!enabled) return checked ? Enums.stateColor.primaryDisabled : Enums.stateColor.controlBgDisabled
             if (checked) {
                 if (_effectivePressed) return Qt.darker(checkedColor, 1.1)
@@ -41,29 +41,28 @@ Rectangle {
         }
         return checked ? checkedColor : Enums.stateColor.disabledBorder
     }
-    readonly property real _trackOpacity: Enums.isPrismDesign ? 1.0 : (enabled ? 1.0 : 0.65)
+    readonly property real _trackOpacity: (enabled ? 1.0 : 0.65)
     readonly property int _trackBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.none)
+                                                                  : (Enums.border.none)
     readonly property color _trackBorderColor: {
         if (Enums.isNeobrutalism) return Enums.stateColor.toggleBorder
-        if (Enums.isPrismDesign) {
+        if (false) {
             if (!enabled) return Enums.stateColor.disabledBorder
             return checked ? Enums.accentColorDark : Enums.stateColor.toggleBorder
         }
         return Enums.transparent
     }
     readonly property color _handleColor: {
-        if (Enums.isPrismDesign) {
+        if (false) {
             if (!enabled) return Enums.stateColor.controlBgDisabled
             return checked ? Enums.accentForeground : Enums.stateColor.controlBg
         }
         return enabled ? (Enums.isNeobrutalism ? Enums.neo.background : Enums.accentForeground) : Enums.gray.background
     }
     readonly property int _handleBorderWidth: Enums.isNeobrutalism ? Enums.border.medium
-                                                                   : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.none)
+                                                                   : (Enums.border.none)
     readonly property color _handleBorderColor: {
         if (Enums.isNeobrutalism) return Enums.stateColor.toggleBorder
-        if (Enums.isPrismDesign) return enabled ? Enums.stateColor.border : Enums.stateColor.disabledBorder
         return Enums.transparent
     }
 

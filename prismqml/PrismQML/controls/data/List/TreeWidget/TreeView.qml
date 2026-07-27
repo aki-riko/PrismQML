@@ -100,7 +100,7 @@ DataWidgetCore {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: Enums.spacing.xxs
-                radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                radius: Enums.radius.small
                 // Keep both animation endpoints opaque to avoid gray trails while moving across rows.
                 // 动画两端都保持不透明，避免鼠标划过多行时出现灰色拖影。
                 color: delegateRoot.hovered

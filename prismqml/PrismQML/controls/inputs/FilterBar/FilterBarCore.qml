@@ -108,7 +108,7 @@ Rectangle {
     // ==================== Size 尺寸 ====================
     implicitWidth: filterRow.implicitWidth + Enums.spacing.m * 2
     implicitHeight: Enums.controlSize.inputHeightLarge  // 40
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    radius: Enums.radius.small
 
     // Appearance 外观
     color: getContainerColor()
@@ -133,7 +133,7 @@ Rectangle {
             x: refreshTrigger >= 0 ? control.getItemX(targetIndex) : 0
             width: refreshTrigger >= 0 ? control.getItemWidth(targetIndex) : 0
             height: 30
-            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            radius: Enums.radius.small
             color: Enums.accentColor
             
             // Smooth sliding animation 平滑滑动动画
@@ -181,7 +181,7 @@ Rectangle {
 
                     width: itemContentRow.implicitWidth + Enums.spacing.xl * 2
                     height: 30
-                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                    radius: Enums.radius.small
 
                     // Background: transparent for exclusive (indicator handles it), colored for multi 背景：互斥模式透明（指示器处理），多选模式着色
                     color: control.exclusive ? 

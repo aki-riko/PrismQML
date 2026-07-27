@@ -33,7 +33,7 @@ OverlayDialogCore {
     // Panel corner radius 面板圆角
     property int radius: _isOutside
         ? Enums.radius.large
-        : (Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.none)
+        : (Enums.radius.none)
 
     // ==================== Internal Props 内部属性 ====================
     property bool _outsideFollowRegistered: false
@@ -50,9 +50,9 @@ OverlayDialogCore {
     readonly property var _hostWindow: control.Window.window
     readonly property int _outsideCollapsedExtent: Enums.border.thin
     readonly property real _outsideFullExtent: isHorizontal ? drawerWidth : drawerHeight
-    readonly property color _drawerBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
-    readonly property int _drawerBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : 0)
-    readonly property color _drawerBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.borderColor : Enums.transparent)
+    readonly property color _drawerBackground: Enums.cardColor
+    readonly property int _drawerBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (0)
+    readonly property color _drawerBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.transparent)
 
     // ==================== Public Methods 公开方法 ====================
     // Override open to use base class mechanism 重写open使用基类机制

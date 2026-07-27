@@ -55,7 +55,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: retryTextItem.width + 32
             height: 32
-            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            radius: Enums.radius.small
             color: retryArea.pressed ? Enums.accentColorDark : (retryArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
             
             Label {

@@ -126,7 +126,7 @@ InputCore {
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.spinBoxWidth
     implicitHeight: Enums.controlSize.inputHeight
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    radius: Enums.radius.small
 
     // ==================== Content 内容 ====================
     // Decrease button for inline mode 内联模式减号按钮

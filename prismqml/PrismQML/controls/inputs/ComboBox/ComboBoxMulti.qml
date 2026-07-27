@@ -92,7 +92,7 @@ ComboBoxCore {
 
                             width: multiColumn.width
                             height: Enums.comboBoxMetrics.itemHeight
-                            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                            radius: Enums.radius.small
 
                             color: {
                                 if (itemArea.pressed) return Enums.stateColor.menuItemPressed

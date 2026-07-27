@@ -160,7 +160,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: actionBtnText.implicitWidth + (_isResultType ? Enums.controlSize.stateButtonPaddingLarge : Enums.controlSize.stateButtonPaddingSmall)
             height: _isResultType ? Enums.controlSize.topNavItemHeight : Enums.controlSize.emptyStateButtonHeight
-            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            radius: Enums.radius.small
             color: actionArea.pressed ? Enums.accentColorDark : (actionArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
             visible: (control.actionText || _defaultActionText) !== ""
             

@@ -66,7 +66,7 @@ Item {
             width: parent.width
             height: Enums.controlSize.inputHeight
             color: autoArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
-            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            radius: Enums.radius.small
             
             Row {
                 anchors.fill: parent
@@ -77,7 +77,7 @@ Item {
                 Rectangle {
                     width: Enums.colorPickerMetrics.palettePreviewSize
                     height: Enums.colorPickerMetrics.palettePreviewSize
-                    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                    radius: Enums.radius.small
                     color: Enums.colorPalette.automaticColor
                     border.width: Enums.border.thin
                     border.color: Enums.stateColor.border
@@ -204,7 +204,7 @@ Item {
             width: parent.width
             height: Enums.controlSize.inputHeight
             color: moreArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
-            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+            radius: Enums.radius.small
             
             Row {
                 anchors.fill: parent

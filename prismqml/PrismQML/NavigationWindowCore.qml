@@ -46,9 +46,7 @@ WindowsCore {
     readonly property color contentBgColor: _micaTransparent
         ? Enums.stateColor.contentBgTransparent
         : Enums.stateColor.contentBg
-    readonly property int contentCornerRadius: Enums.isPrismDesign
-        ? Enums.prismDesign.radiusCard
-        : Enums.radius.large
+    readonly property int contentCornerRadius: Enums.radius.large
     readonly property var _safeNavigationItems:
         navigationItems === null || navigationItems === undefined ? []
         : (typeof navigationItems.length === "number" ? navigationItems : [])

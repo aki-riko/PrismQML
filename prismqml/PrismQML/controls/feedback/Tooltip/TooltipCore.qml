@@ -22,8 +22,8 @@ Item {
     property bool followAnchor: false
 
     // ==================== Internal Props 内部属性 ====================
-    readonly property int _tooltipRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.small)
-    readonly property color _tooltipBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _tooltipRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.small)
+    readonly property color _tooltipBackground: Enums.cardColor
     readonly property int _tooltipBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
     readonly property color _tooltipBorderColor: Enums.stateColor.border
     readonly property var _tooltipShadowLevel: Enums.shadow.level8

@@ -26,7 +26,7 @@ Widget {
     property color titleBgColor: Enums.backgroundColor
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property real _borderRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
+    readonly property real _borderRadius: Enums.radius.small
     // Title height - fixed value based on typography 标题高度 - 基于字体的固定值
     readonly property real _titleHeight: title !== "" ? Enums.typography.body + Enums.spacing.s : 0
     readonly property real _titleLeftMargin: {

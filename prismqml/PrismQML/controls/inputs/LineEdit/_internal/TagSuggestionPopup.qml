@@ -68,7 +68,7 @@ Item {
             root.filteredItems.length * Enums.controlSize.inputHeight + Enums.spacing.m,
             Enums.controlSize.listDefaultHeight
         )
-        popupRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+        popupRadius: Enums.radius.large
         closeOnClickOutside: false  // Don't auto close, controlled by focus 不自动关闭，由焦点控制
         stealFocus: false  // Keep focus on input field 保持输入框焦点
 

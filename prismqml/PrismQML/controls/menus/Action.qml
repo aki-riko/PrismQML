@@ -29,7 +29,7 @@ Rectangle {
 
     // ==================== Internal Props 内部属性 ====================
     readonly property bool _isBottomText: textPosition === Enums.position.bottom
-    readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property int _itemRadius: Enums.radius.small
     readonly property color _itemHoverColor: Enums.stateColor.menuItemHover
     readonly property color _itemPressedColor: Enums.stateColor.menuItemPressed
     readonly property color _itemTextColor: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled

@@ -40,14 +40,14 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property bool _suppressSliderUpdate: false
     property bool _dragging: false
-    readonly property int _panelRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.small
-    readonly property color _panelColor: Enums.isPrismDesign ? Enums.surfaceColor : Enums.transparent
-    readonly property color _panelBorderColor: Enums.isPrismDesign ? Enums.borderLightColor : Enums.transparent
-    readonly property int _thumbnailMargin: Enums.isPrismDesign ? Enums.spacing.xs : Enums.spacing.none
+    readonly property int _panelRadius: Enums.radius.small
+    readonly property color _panelColor: Enums.transparent
+    readonly property color _panelBorderColor: Enums.transparent
+    readonly property int _thumbnailMargin: Enums.spacing.none
     readonly property int _sliderSpace: Enums.spacing.m
     readonly property int _thumbnailStrokeWidth: Enums.border.thin
-    readonly property real _thumbnailFillAlpha: Enums.isPrismDesign ? Enums.stateColor.chartFillMedium : Enums.opacityLevel.light - Enums.opacityLevel.faint
-    readonly property real _thumbnailStrokeAlpha: Enums.isPrismDesign ? Enums.stateColor.chartStrokeAlpha : Enums.opacityLevel.strong
+    readonly property real _thumbnailFillAlpha: Enums.opacityLevel.light - Enums.opacityLevel.faint
+    readonly property real _thumbnailStrokeAlpha: Enums.opacityLevel.strong
     readonly property real _safeViewportStart: _normalizeViewport(viewportStart, 0)
     readonly property real _safeViewportEnd: _normalizeViewport(viewportEnd, 1)
 
@@ -86,7 +86,7 @@ Item {
         anchors.fill: parent
         radius: control._panelRadius
         color: control._panelColor
-        border.width: Enums.isPrismDesign ? Enums.border.thin : Enums.border.none
+        border.width: Enums.border.none
         border.color: control._panelBorderColor
     }
 

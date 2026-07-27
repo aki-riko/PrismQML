@@ -31,12 +31,12 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int _tv: Translator._v
-    readonly property int _previewRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    readonly property color _previewBackground: Enums.isPrismDesign ? Enums.surfaceColor : Enums.gray.background
-    readonly property color _previewBorderColor: Enums.isPrismDesign ? Enums.borderLightColor : Enums.gray.border
-    readonly property color _previewIconColor: Enums.isPrismDesign ? Enums.accentColor : Enums.gray.disabled
-    readonly property color _previewTextColor: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.gray.text
-    readonly property color _dialogBackground: Enums.isPrismDesign ? Enums.backgroundColor : Enums.gray.background
+    readonly property int _previewRadius: Enums.radius.small
+    readonly property color _previewBackground: Enums.gray.background
+    readonly property color _previewBorderColor: Enums.gray.border
+    readonly property color _previewIconColor: Enums.gray.disabled
+    readonly property color _previewTextColor: Enums.gray.text
+    readonly property color _dialogBackground: Enums.gray.background
     
     // ==================== Signals 信号 ====================
     signal accepted(rect cropRect)

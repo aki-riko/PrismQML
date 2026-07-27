@@ -19,8 +19,8 @@ Rectangle {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property color _avatarBackground: source !== "" ? Enums.transparent : Enums.accentColor
-    readonly property int _avatarBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : 0)
-    readonly property color _avatarBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isPrismDesign ? Enums.borderStrongColor : Enums.transparent)
+    readonly property int _avatarBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (0)
+    readonly property color _avatarBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.transparent)
     readonly property color _avatarContentColor: Enums.accentForeground
 
     // ==================== Public Methods 公开方法 ====================

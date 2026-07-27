@@ -34,7 +34,7 @@ Widget {
     property int maxVisibleItems: -1  // Qt-style max visible items Qt风格最大可见项数
     property color accentColor: Enums.accentColor
     property int radius: Enums.isNeobrutalism ? Enums.neo.radius
-                         : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+                         : (Enums.radius.small)
     property bool focused: _inputFocused
     property bool isOpen: false
     property bool showFocusedBorder: style === 0

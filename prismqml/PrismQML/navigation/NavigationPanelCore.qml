@@ -71,7 +71,7 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     // Right-side rounded corner radius 右侧圆角半径
-    readonly property int _cornerRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.large
+    readonly property int _cornerRadius: Enums.radius.large
 
     // Current selected page key 当前选中的页面键
     readonly property string currentKey: {
@@ -586,10 +586,10 @@ Item {
             id: navIndicator
             x: control.indicatorX
             orientation: Qt.Vertical
-            mode: Enums.isPrismDesign ? "instant" : "stretch"
+            mode: "stretch"
             indicatorWidth: control.indicatorWidth
             indicatorHeight: control.indicatorHeight
-            radius: Enums.isPrismDesign ? Enums.radius.none : Enums.radius.micro
+            radius: Enums.radius.micro
             animationEnabled: control.indicatorAnimationEnabled
             // neo: 隐藏滑动指示条(选中态用橙实心块代替, 避免双重标记)
             visible: !Enums.isNeobrutalism

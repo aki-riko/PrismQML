@@ -19,18 +19,16 @@ Rectangle {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int _indicatorRadius: Enums.isNeobrutalism ? Enums.neo.radius
-                                                                 : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+                                                                 : (Enums.radius.small)
     readonly property bool _hasCheckState: checkState !== Enums.toggle.state_unchecked
     readonly property int _indicatorBorderWidth: {
         if (Enums.isNeobrutalism) return Enums.neo.borderWidth
-        if (Enums.isPrismDesign) return Enums.prismDesign.borderWidth
         return _hasCheckState ? Enums.border.none : Enums.border.medium
     }
     readonly property color _indicatorColor: {
         if (!enabled) {
-            if (_hasCheckState) return Enums.isPrismDesign ? Enums.stateColor.primaryDisabled : Enums.stateColor.disabledBorder
+            if (_hasCheckState) return Enums.stateColor.disabledBorder
             if (Enums.isNeobrutalism) return Enums.stateColor.checkBoxFill
-            if (Enums.isPrismDesign) return Enums.stateColor.controlBgDisabled
             return Enums.transparent
         }
         if (_hasCheckState) {
@@ -44,7 +42,6 @@ Rectangle {
     }
     readonly property color _indicatorBorderColor: {
         if (Enums.isNeobrutalism && _hasCheckState) return enabled ? Enums.stateColor.toggleBorder : Enums.stateColor.disabledBorder
-        if (Enums.isPrismDesign && _hasCheckState) return enabled ? Enums.accentColorDark : Enums.stateColor.disabledBorder
         if (_hasCheckState) return Enums.transparent
         if (!enabled) return Enums.stateColor.disabledBorder
         if (pressed) return Enums.stateColor.togglePressed
@@ -53,7 +50,6 @@ Rectangle {
     }
     readonly property color _checkIconColor: {
         if (!enabled) return Enums.textColor.disabled
-        if (Enums.isPrismDesign) return Enums.accentForeground
         return Enums.isDark && !Enums.isNeobrutalism ? Enums.themeColors.foregroundLight : Enums.accentForeground
     }
 
@@ -66,7 +62,7 @@ Rectangle {
     // Checked uses accent; unchecked uses skin fill 选中使用强调色，未选使用皮肤填充。
     color: _indicatorColor
 
-    // Neo and Prism keep a visible outline  Neo 与 Prism 保持可见描边。
+    // Neo keeps a visible outline. Neo 保持可见描边。
     border.width: _indicatorBorderWidth
     border.color: _indicatorBorderColor
 

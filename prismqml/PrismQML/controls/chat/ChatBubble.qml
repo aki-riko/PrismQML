@@ -53,9 +53,9 @@ Item {
     readonly property bool _isSystem: role === "system"
     readonly property bool _hasAvatar: !_isUser && !_isSystem && showAvatar
     readonly property bool _hasReasoning: !_isUser && !_isSystem && reasoning !== ""
-    readonly property int _bubbleRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
-    readonly property int _bubbleTailRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    readonly property color _assistantBubbleBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _bubbleRadius: Enums.radius.large
+    readonly property int _bubbleTailRadius: Enums.radius.small
+    readonly property color _assistantBubbleBackground: Enums.cardColor
     readonly property color _userBubbleBackground: Enums.accentColor
     readonly property color _systemBubbleBackground: Enums.hoverColor
     readonly property color _bubbleBackground: _isSystem ? _systemBubbleBackground : (_isUser ? _userBubbleBackground : _assistantBubbleBackground)

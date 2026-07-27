@@ -19,7 +19,7 @@ Item {
     property bool selected: false
     property bool isSeparator: false
     property bool itemEnabled: true
-    readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property int _itemRadius: Enums.radius.small
     readonly property color _itemHoverColor: Enums.stateColor.menuItemHover
     readonly property color _itemPressedColor: Enums.stateColor.menuItemPressed
     readonly property color _itemTextColor: delegateRoot.itemEnabled ? Enums.textColor.primary : Enums.textColor.disabled

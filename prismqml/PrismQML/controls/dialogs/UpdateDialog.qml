@@ -142,7 +142,7 @@ DialogBoxCore {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: control.notes !== ""
-            radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.medium
+            radius: Enums.radius.medium
             color: Enums.transparent
             border.width: Enums.border.thin
             border.color: Enums.stateColor.cardBorder

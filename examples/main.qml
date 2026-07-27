@@ -50,8 +50,7 @@ QtObject {
         { "text": "容器", "icon": iconPath("LayoutRowFour") },
         { "text": "图表", "icon": iconPath("DataPie") },
         { "text": "图标", "icon": iconPath("Icons") },
-        { "text": "特效", "icon": iconPath("Sparkle") },
-        { "text": "Prism Design", "icon": iconPath("Color") }
+        { "text": "特效", "icon": iconPath("Sparkle") }
     ]
     
     property var bottomNavItems: [
@@ -73,7 +72,6 @@ QtObject {
         Qt.resolvedUrl("pages/ChartPage.qml"),
         Qt.resolvedUrl("pages/IconPage.qml"),
         Qt.resolvedUrl("pages/EffectsPage.qml"),
-        Qt.resolvedUrl("pages/PrismDesignPage.qml"),
         Qt.resolvedUrl("pages/SettingsPage.qml")
     ]
     

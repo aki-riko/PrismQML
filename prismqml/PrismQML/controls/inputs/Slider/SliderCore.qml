@@ -24,7 +24,7 @@ Item {
     //          2=SnapAlways (default, snap while dragging) 默认实时吸附
     // Match the Qt Slider enum behavior 与 Qt Slider 同名枚举行为一致
     property int snapMode: 2
-    property color handleColor: Enums.isPrismDesign ? Enums.stateColor.controlBg : Enums.gray.handle  // Custom handle color 自定义手柄颜色
+    property color handleColor: Enums.gray.handle// Custom handle color 自定义手柄颜色
     property string suffix: ""
     property int decimals: 0
     // Optional tooltip formatter: (value)->string 可选的 tooltip 格式化函数
@@ -45,9 +45,9 @@ Item {
     readonly property color _trackColor: control.enabled ? Enums.stateColor.sliderTrack : Enums.stateColor.sliderTrackDisabled
     readonly property color _progressColor: control.enabled ? control.accentColor : Enums.stateColor.disabledBorder
     readonly property int _handleBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin)
+                                                                  : (Enums.border.thin)
     readonly property color _handleBorderColor: control.enabled
-                                                ? (Enums.isPrismDesign ? Enums.stateColor.borderStrong : Enums.stateColor.border)
+                                                ? (Enums.stateColor.border)
                                                 : Enums.stateColor.disabledBorder
     readonly property color _handleInnerColor: control.enabled ? control.accentColor : Enums.textColor.disabled
     readonly property bool isHorizontal: orientation === Qt.Horizontal

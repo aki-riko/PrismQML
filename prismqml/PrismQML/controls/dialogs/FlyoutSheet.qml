@@ -25,8 +25,8 @@ Window {
     // ==================== Internal Props 内部属性 ====================
     property Item targetItem: null
     property bool isOpen: false
-    readonly property int _sheetRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
-    readonly property color _sheetBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _sheetRadius: Enums.radius.large
+    readonly property color _sheetBackground: Enums.cardColor
     readonly property int _sheetBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
     readonly property color _sheetBorderColor: Enums.stateColor.dialogBorder
     readonly property color _sheetDividerColor: Enums.stateColor.borderLight

@@ -69,19 +69,19 @@ Rectangle {
         oauthProviders === null || oauthProviders === undefined ? []
         : (typeof oauthProviders.length === "number" ? oauthProviders : [])
     readonly property bool _isLogin: mode === Enums.auth.mode_login
-    readonly property int _cardRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusDialog : Enums.radius.large
-    readonly property int _errorRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
-    readonly property color _cardColor: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
+    readonly property int _cardRadius: Enums.radius.large
+    readonly property int _errorRadius: Enums.radius.small
+    readonly property color _cardColor: Enums.cardColor
     readonly property color _cardBackgroundColor: Qt.rgba(
         root._cardColor.r,
         root._cardColor.g,
         root._cardColor.b,
         root.cardOpacity
     )
-    readonly property int _cardBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
+    readonly property int _cardBorderWidth: Enums.border.thin
     readonly property color _cardBorderColor: Enums.stateColor.border
     readonly property color _errorBackgroundColor: Enums.statusLevel.getBgColor(Enums.statusLevel.errorStr)
-    readonly property int _errorBorderWidth: Enums.isPrismDesign ? Enums.prismDesign.borderWidth : Enums.border.thin
+    readonly property int _errorBorderWidth: Enums.border.thin
     readonly property color _errorBorderColor: Enums.statusLevel.getColor(Enums.statusLevel.errorStr)
     readonly property color _errorTextColor: _errorBorderColor
     

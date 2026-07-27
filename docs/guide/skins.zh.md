@@ -1,67 +1,43 @@
 # 皮肤系统
 
-皮肤系统是 PrismQML 的招牌能力：**同一套控件，多种设计语言**。
-
-Prism Design 的完整口径见 [Prism Design 视觉规范](prism-design.zh.md) 和 [Prism Design 落地标准](prism-design-implementation.zh.md)。新增或调整第三套皮肤时，必须先对齐这两份规范。
+皮肤系统让同一套 PrismQML 控件在 Fluent 与新粗野两种设计语言之间切换。
 
 ## 皮肤与主题正交
 
-PrismQML 把"设计语言"和"明暗"拆成两个独立维度：
+PrismQML 把设计语言和明暗拆成两个独立维度：
 
 | 维度 | 控制 | 取值 |
 |------|------|------|
-| **skin**（皮肤） | 设计语言 | `fluent` / `neobrutalism` / `prism_design` |
+| **skin**（皮肤） | 设计语言 | `fluent` / `neobrutalism` |
 | **theme**（主题） | 明暗 | `light` / `dark` / `auto` |
 
-两者自由组合——Fluent、neo、Prism Design 都有明暗模式。
+两种皮肤都支持明暗主题。
 
 ## 切换皮肤
 
 ```python
-from prismqml import setSkin, Skin
+from prismqml import Skin, getSkin, setSkin
 
-setSkin(Skin.FLUENT)          # Fluent Design：圆角、模糊阴影、蓝主色
-setSkin(Skin.NEOBRUTALISM)    # 新粗野：粗黑边、硬阴影、橙撞色
-setSkin(Skin.PRISM_DESIGN)    # Prism Design：Prism Glass、棱镜光谱边、自有设计语言
+setSkin(Skin.FLUENT)          # Fluent：圆角、模糊阴影、蓝色主色
+setSkin(Skin.NEOBRUTALISM)    # 新粗野：粗边框、硬阴影、橙色主色
+print(getSkin())              # Skin.NEOBRUTALISM
 ```
 
-```python
-from prismqml import getSkin
-print(getSkin())   # Skin.PRISM_DESIGN
-```
-
-## 三种皮肤的视觉范式
+## 两种视觉范式
 
 === "Fluent"
 
-    - 圆角（小圆角 / 药丸）
-    - 模糊阴影（RectangularShadow，带模糊半径）
-    - 蓝色主题色，半透明叠加表达 hover/press
-    - Mica 云母效果
+    - 圆角控件与柔和阴影
+    - 蓝色主题色
+    - 半透明状态层表达 hover / pressed
+    - 可选 Mica 云母效果
 
 === "Neobrutalism（新粗野）"
 
-    - 粗黑边（2px 纯黑描边）
-    - 硬阴影（偏移纯黑矩形，零模糊）
-    - 橙色主色 + 高饱和撞色（绿/红/琥珀）
-    - 按钮按下"压平"硬阴影、输入聚焦边框转橙
-    - 实心扁平（关闭 Mica）
-
-=== "Prism Design"
-
-    - PrismQML 自有设计语言，不复刻外部平台
-    - 当前方向为 Prism Glass：内容层稳定可读，功能层轻盈浮起
-    - 导航、工具栏、菜单、弹层使用 glass surface 和棱镜光谱边
-    - 数据、表格、输入正文区保持实心或近实心，不牺牲长期可读性
-    - 按钮、输入框、卡片、弹层使用专属 token 约束半径、边框和材质
-    - light / dark 都有独立调色板
-
-同一界面在三种皮肤下必须能看出明确差异。下面的截图由 `scripts/render_prism_skin_compare.py` 生成，并由 `tests/qml/test_prism_design_gallery_assets.py` 验证本地 PNG、qrc 注册和文档引用均可用。
-
-| 主题 | Fluent | Neobrutalism | Prism Design |
-|------|--------|--------------|--------------|
-| Light | ![Fluent light](../assets/images/prism-design/skin-compare-fluent-light.png) | ![Neobrutalism light](../assets/images/prism-design/skin-compare-neobrutalism-light.png) | ![Prism Design light](../assets/images/prism-design/skin-compare-prism-design-light.png) |
-| Dark | ![Fluent dark](../assets/images/prism-design/skin-compare-fluent-dark.png) | ![Neobrutalism dark](../assets/images/prism-design/skin-compare-neobrutalism-dark.png) | ![Prism Design dark](../assets/images/prism-design/skin-compare-prism-design-dark.png) |
+    - 粗边框与零模糊硬阴影
+    - 橙色主色和高饱和语义色
+    - 按下时压平硬阴影
+    - 实心表面，不使用 Mica
 
 ## 在 QML 中读取皮肤
 
@@ -69,34 +45,26 @@ print(getSkin())   # Skin.PRISM_DESIGN
 import PrismQML
 
 Rectangle {
-    // 大多数情况你无需判断——控件已自动适配皮肤
-    radius: Enums.isNeobrutalism ? Enums.neo.radius
-            : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small)
+    radius: Enums.isNeobrutalism ? Enums.neo.radius : Enums.radius.small
 }
 ```
 
-- `Enums.skin` — 当前皮肤字符串（`"fluent"` / `"neobrutalism"` / `"prism_design"`）
-- `Enums.isNeobrutalism` — 布尔便捷判断
-- `Enums.isPrismDesign` — Prism Design 布尔便捷判断
-- `Enums.neo.*` — neo 皮肤专属 token（borderWidth / radius / shadowOffset 等）
-- `Enums.prismDesign.*` — Prism Design 专属 token（radiusControl / radiusCard / primary / surface 等）
-- `Enums.splashScreenMetrics.*` — 启动画面专用度量（iconSize / progressRingSize / iconBreatheMinScale / iconBreatheMaxScale 等）
+- `Enums.skin`：当前皮肤字符串（`"fluent"` / `"neobrutalism"`）
+- `Enums.isNeobrutalism`：新粗野皮肤便捷判断
+- `Enums.neo.*`：新粗野专属几何与阴影 token
+- `Enums.splashScreenMetrics.*`：启动画面专用度量
 
-## 架构：token 驱动，皮肤与控件解耦
+## 架构：token 驱动
 
-PrismQML 的皮肤切换不靠在每个控件里写 `if neo`，而是**把差异收敛到 token 层**：
+皮肤差异优先收敛到 token 层：
 
-- **颜色**走 `Theme` / `StateColor` / `Constants.neoColors` / `Constants.prismDesign`
-- **几何**走 `Metrics`（radius / border / shadow）
-- **组件专用度量**走 `Metrics` 下的专用入口（如 `splashScreenMetrics` / `imageCropperDialogMetrics`）
-- **主色**：`Enums.accentColor` 在 neo 下自动解析成橙，在 Prism Design 下自动解析成 Prism 主色——所有引用主色的控件（primary 按钮、选中态、聚焦边框）自动变色，无需改动
+- 颜色走 `Theme`、`StateColor` 与 `Constants.neoColors`
+- 几何走 `Metrics`（radius / border / shadow）
+- 组件专用度量走 `Metrics` 下的专用入口
+- `Enums.accentColor` 在新粗野皮肤下自动解析为其固定主色
 
-控件本身对皮肤**近乎无感知**。新增皮肤优先扩展 token 调色板 + 少量结构差异分支，避免把皮肤逻辑散落到每个控件里。
+仅在阴影形态、按压位移等 token 无法表达的结构差异上，组件才读取 `Enums.isNeobrutalism`。
 
-## 深色 neo
+## 深色新粗野
 
-neo 皮肤的深色模式参照 [neobrutalism.dev](https://neobrutalism.dev) 的深色范式：深炭底 + 提亮主色 + 浅色描边/硬阴影 + 浅字。切到深色主题时 neo 皮肤自动应用这套深色调色板。
-
-## 深色 Prism Design
-
-Prism Design 的深色模式使用深石墨背景、提亮的棱镜主色、低噪声内容 surface 和更清楚的玻璃边缘。它不依赖自动反色；`Constants.prismDesign` 中的 light/dark token 会随 `Enums.isDark` 自动切换。
+深色新粗野使用深色背景、提亮主色、浅色描边与硬阴影。切换深色主题后，调色板随 `Enums.isDark` 自动更新。

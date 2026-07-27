@@ -21,7 +21,7 @@ Item {
     property bool checkable: false           // Show checkbox 显示复选框
     property int checkState: 0               // 0=Unchecked, 1=Partial, 2=Checked
     property bool itemEnabled: true
-    readonly property int _itemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property int _itemRadius: Enums.radius.small
     readonly property color _itemHoverColor: Enums.stateColor.menuItemHover
     readonly property color _itemPressedColor: Enums.stateColor.menuItemPressed
 

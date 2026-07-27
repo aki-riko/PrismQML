@@ -22,9 +22,9 @@ ShadowedRectangle {
     property var valueFormatter: null
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property color _tooltipBackground: Enums.isPrismDesign ? Enums.dialogColor : Enums.cardColor
-    readonly property color _tooltipBorderColor: Enums.isPrismDesign ? Enums.borderColor : Enums.stateColor.border
-    readonly property int _tooltipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.medium
+    readonly property color _tooltipBackground: Enums.cardColor
+    readonly property color _tooltipBorderColor: Enums.stateColor.border
+    readonly property int _tooltipRadius: Enums.radius.medium
     
     // ==================== Size 尺寸 ====================
     width: Math.max(contentColumn.width + Enums.spacing.l, 80)

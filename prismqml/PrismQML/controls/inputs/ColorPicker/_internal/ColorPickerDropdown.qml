@@ -113,7 +113,7 @@ Item {
             Rectangle {
                 width: Enums.colorPickerMetrics.dropdownModeWidth
                 height: Enums.controlSize.inputHeightCompact
-                radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                radius: Enums.radius.small
                 color: modeArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.stateColor.controlBg
                 border.width: Enums.border.thin
                 border.color: Enums.stateColor.border
@@ -148,7 +148,7 @@ Item {
             Rectangle {
                 width: parent.width - Enums.colorPickerMetrics.dropdownHexGap
                 height: Enums.controlSize.inputHeightCompact
-                radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                radius: Enums.radius.small
                 color: Enums.stateColor.controlBg
                 border.width: hexInput.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
                 border.color: hexInput.activeFocus ? Enums.accentColor : Enums.stateColor.border

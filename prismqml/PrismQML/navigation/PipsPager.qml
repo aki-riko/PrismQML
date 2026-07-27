@@ -20,11 +20,11 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     readonly property bool isHorizontal: orientation === Qt.Horizontal
-    readonly property int _navButtonRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property int _navButtonRadius: Enums.radius.small
     readonly property color _navButtonHoverColor: Enums.stateColor.controlBgHover
     readonly property color _navButtonIdleColor: Enums.transparent
     readonly property color _navIconColor: Enums.textColor.tertiary
-    readonly property int _pipRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    readonly property int _pipRadius: Enums.radius.small
     readonly property color _pipActiveColor: control.accentColor
     readonly property color _pipInactiveColor: Enums.stateColor.pipNormal
     readonly property int _safePageCount: Math.max(0, pageCount)

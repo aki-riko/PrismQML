@@ -551,7 +551,7 @@ DataWidgetCore {
 
     contentDelegate: TableInternal.TableRowDelegate {
         table: root
-        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+        radius: Enums.radius.small
     }
 
     // ==================== Content 内容 ====================

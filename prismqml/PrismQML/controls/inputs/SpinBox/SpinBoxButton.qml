@@ -21,6 +21,6 @@ ButtonCore {
     preferredWidth: preferredHeight
     
     // Auto adjust radius to keep it rounded 自动调整圆角（可选）
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    radius: Enums.radius.small
 
 }

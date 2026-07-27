@@ -34,7 +34,7 @@ Widget {
     property var onWidgetAdded: null
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _radius: Enums.isPrismDesign ? Enums.prismDesign.radiusCard : Enums.radius.card + 1
+    readonly property int _radius: Enums.radius.card + 1
     readonly property bool hovered: !control.disabled && headerArea.containsMouse
     readonly property bool pressed: !control.disabled && headerArea.pressed
     
@@ -215,7 +215,7 @@ Widget {
                     
                     Rectangle {
                         anchors.fill: parent
-                        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+                        radius: Enums.radius.small
                         color: {
                             if (control.pressed) return Enums.stateColor.expandBtnPressed
                             if (control.hovered) return Enums.stateColor.expandBtnHover

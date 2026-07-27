@@ -202,7 +202,7 @@ Rectangle {
     // ==================== Size 尺寸 ====================
     implicitWidth: Math.max(200, _totalColCount * 70)
     implicitHeight: Enums.controlSize.inputHeight
-    radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+    radius: Enums.radius.small
 
     layer.enabled: true
     layer.effect: OpacityMask {
@@ -275,7 +275,7 @@ Rectangle {
         id: pickerPopup
         popupWidth: control.width
         popupHeight: 280
-        popupRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusPopup : Enums.radius.large
+        popupRadius: Enums.radius.large
         onClosed: control.isOpen = false
 
         Loader {

@@ -325,12 +325,12 @@ Widget {
             Rectangle {
                 id: indicatorBg
                 anchors.fill: parent
-                radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card)
+                radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.card)
                 color: Enums.isNeobrutalism ? Enums.neo.surface
-                       : (Enums.isPrismDesign ? Enums.stateColor.segmentedSelected : (Enums.isDark ? Enums.themeColors.tabSelectedDark : Enums.themeColors.tabSelectedLight))
+                       : ((Enums.isDark ? Enums.themeColors.tabSelectedDark : Enums.themeColors.tabSelectedLight))
                 border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
                 border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
-                       : (Enums.isPrismDesign ? Enums.stateColor.segmentedSelectedBorder : (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border))
+                       : ((Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border))
             }
         }
     }
@@ -445,7 +445,7 @@ Widget {
                         anchors.fill: parent
                         anchors.margins: Enums.border.thin
                         anchors.bottomMargin: Enums.border.thin
-                        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
+                        radius: Enums.radius.card
                         color: {
                             // 拖拽中的源 tab (含选中态 source): 用稍深 hover 背景 + 边框,
                             // 视觉上像"被抓起来",但不与 selected 同色避免割裂感
@@ -465,7 +465,7 @@ Widget {
                         }
                         // 拖拽中的源 tab 加细边框,提示"被抓起来"的视觉
                         border.width: tabItem.isDragSource ? Enums.border.thin : 0
-                        border.color: Enums.isPrismDesign ? Enums.stateColor.borderLight : (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border)
+                        border.color: (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border)
 
                         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
                     }

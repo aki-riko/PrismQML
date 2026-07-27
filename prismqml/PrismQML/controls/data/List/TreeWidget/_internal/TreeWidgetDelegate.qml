@@ -54,7 +54,7 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         anchors.margins: Enums.spacing.xxs
-        radius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.small
+        radius: Enums.radius.small
         // Compose state colors over cardColor so interpolation stays opaque and smooth.
         // 将状态色合成到 cardColor 上，使插值保持不透明且平滑。
         // Transparent black to translucent gray would otherwise flash dirty gray frames.

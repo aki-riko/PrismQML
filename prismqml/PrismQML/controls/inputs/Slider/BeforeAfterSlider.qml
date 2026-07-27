@@ -19,9 +19,9 @@ Item {
     property url rightImage: ""
     property real position: 0.5  // 0-1
     property int radius: Enums.radius.large  // Corner radius 圆角
-    readonly property color _dividerColor: Enums.isPrismDesign ? Enums.accentColor : Enums.themeColors.accentForeground
-    readonly property color _handleColor: Enums.isPrismDesign ? Enums.cardColor : Enums.themeColors.accentForeground
-    readonly property color _handleIconColor: Enums.isPrismDesign ? Enums.textColor.secondary : Enums.gray.text
+    readonly property color _dividerColor: Enums.themeColors.accentForeground
+    readonly property color _handleColor: Enums.themeColors.accentForeground
+    readonly property color _handleIconColor: Enums.gray.text
     readonly property real _safePosition: isFinite(position) ? Math.max(0, Math.min(1, position)) : 0.5
     
     signal positionModified(real newPosition)
@@ -155,13 +155,6 @@ Item {
         anchors.bottom: parent.bottom
         width: Enums.border.normal
 
-        Binding {
-            target: dividerLine
-            property: "color"
-            value: control._dividerColor
-            when: Enums.isPrismDesign
-        }
-        
         // Line shadow 线条阴影
         Rectangle {
             anchors.fill: parent
@@ -182,13 +175,6 @@ Item {
         scale: dragArea.pressed ? 0.95 : (dragArea.containsMouse ? 1.08 : 1.0)
         Behavior on scale { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutBack } }
 
-        Binding {
-            target: handle
-            property: "color"
-            value: control._handleColor
-            when: Enums.isPrismDesign
-        }
-        
         // Handle shadow 手柄阴影
         Rectangle {
             anchors.fill: parent

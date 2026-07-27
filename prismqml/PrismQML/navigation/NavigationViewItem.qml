@@ -24,14 +24,14 @@ Item {
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
     readonly property color accentColor: Enums.accentColor
-    readonly property int _navItemRadius: Enums.isPrismDesign ? Enums.prismDesign.radiusControl : Enums.radius.card
+    readonly property int _navItemRadius: Enums.radius.card
     readonly property color _navItemBackground: {
         if (control.selected) return Enums.stateColor.navSelected
         if (control.pressed || control.hovered) return control.hovered ? Enums.stateColor.hover : Enums.stateColor.pressed
         return Enums.transparent
     }
-    readonly property int _navItemBorderWidth: Enums.isPrismDesign && control.selected ? Enums.prismDesign.borderWidth : 0
-    readonly property color _navItemBorderColor: Enums.isPrismDesign ? Enums.prismDesign.primaryDark : Enums.transparent
+    readonly property int _navItemBorderWidth: 0
+    readonly property color _navItemBorderColor: Enums.transparent
     readonly property color _navItemContentColor: control.selected ? control.accentColor : Enums.textColor.primary
 
     // ==================== Signals 信号 ====================
@@ -53,29 +53,6 @@ Item {
         border.width: control._navItemBorderWidth
         border.color: control._navItemBorderColor
         
-        // Prism glass rail rim Prism玻璃导航边缘
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: Enums.prismDesign.borderWidth
-            color: Enums.prismDesign.glassRimLight
-            visible: Enums.isPrismDesign && (control.selected || control.hovered)
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: Enums.prismDesign.focusBorderWidth
-            radius: width / 2
-            color: Enums.prismDesign.spectralEdge
-            opacity: control.selected ? 0.9 : 0.35
-            visible: Enums.isPrismDesign && (control.selected || control.hovered)
-
-            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-        }
-
         // No animation to avoid flicker 无动画避免闪烁
     }
     
