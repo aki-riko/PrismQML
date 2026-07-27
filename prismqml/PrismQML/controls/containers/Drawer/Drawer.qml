@@ -159,7 +159,8 @@ OverlayDialogCore {
     // Remove the native follower before hiding or destruction
     // 在隐藏或销毁前移除原生跟随
     function _unregisterOutsideWindow() {
-        if (typeof WindowHelper !== "undefined" && WindowHelper) {
+        if (outsideDrawerWindow
+                && typeof WindowHelper !== "undefined" && WindowHelper) {
             WindowHelper.unregisterWindowFollower(outsideDrawerWindow)
         }
         control._outsideFollowRegistered = false
@@ -169,6 +170,7 @@ OverlayDialogCore {
     // 通过一次原生几何调用同时提交位置与尺寸
     function _updateOutsideWindowGeometry() {
         if (!control._isOutside || !control._hostWindow
+                || !outsideDrawerWindow
                 || typeof WindowHelper === "undefined" || !WindowHelper) return false
         return WindowHelper.updateWindowFollowerGeometry(
             control._hostWindow,
@@ -216,7 +218,8 @@ OverlayDialogCore {
     // Keep native antialiasing; QML still limits panel rounding to the outer corners
     // 保留原生抗锯齿,面板仍仅由 QML 设置远离宿主的两个外角
     function _applyOutsideNativeFrame() {
-        if (typeof MicaManager !== "undefined" && MicaManager) {
+        if (outsideDrawerWindow
+                && typeof MicaManager !== "undefined" && MicaManager) {
             MicaManager.setWindowCorner(outsideDrawerWindow, true)
         }
     }
@@ -224,7 +227,8 @@ OverlayDialogCore {
     // Hide the full-size HWND shadow while only part of its content is revealed
     // 内容仅部分显露时隐藏完整尺寸 HWND 的阴影
     function _setOutsideNativeShadow(enabled) {
-        if (typeof ShadowManager === "undefined" || !ShadowManager) return
+        if (!outsideDrawerWindow
+                || typeof ShadowManager === "undefined" || !ShadowManager) return
         if (enabled) {
             ShadowManager.enableShadowForWindow(outsideDrawerWindow)
         } else {
@@ -295,25 +299,27 @@ OverlayDialogCore {
             objectName: "outsideDrawerViewport"
 
             x: control.position === Enums.position.left
-                ? outsideDrawerWindow.width - width
+                ? (outsideDrawerWindow ? outsideDrawerWindow.width : 0) - width
                 : 0
             y: control.position === Enums.position.top
-                ? outsideDrawerWindow.height - height
+                ? (outsideDrawerWindow ? outsideDrawerWindow.height : 0) - height
                 : 0
             width: control.isHorizontal
-                ? Math.min(control._outsideExtent, outsideDrawerWindow.width)
-                : outsideDrawerWindow.width
+                ? Math.min(control._outsideExtent,
+                    outsideDrawerWindow ? outsideDrawerWindow.width : 0)
+                : (outsideDrawerWindow ? outsideDrawerWindow.width : 0)
             height: control.isHorizontal
-                ? outsideDrawerWindow.height
-                : Math.min(control._outsideExtent, outsideDrawerWindow.height)
+                ? (outsideDrawerWindow ? outsideDrawerWindow.height : 0)
+                : Math.min(control._outsideExtent,
+                    outsideDrawerWindow ? outsideDrawerWindow.height : 0)
             clip: true
 
             Rectangle {
                 id: outsideDrawerPanel
                 objectName: "outsideDrawerPanel"
 
-                width: outsideDrawerWindow.width
-                height: outsideDrawerWindow.height
+                width: outsideDrawerWindow ? outsideDrawerWindow.width : 0
+                height: outsideDrawerWindow ? outsideDrawerWindow.height : 0
                 x: -outsideDrawerViewport.x
                 y: -outsideDrawerViewport.y
                 color: control._drawerBackground

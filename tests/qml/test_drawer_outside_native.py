@@ -68,3 +68,12 @@ def test_drawer_source_keeps_native_window_behind_host_without_overlap():
     assert "topRightRadius:" in source
     assert "bottomLeftRadius:" in source
     assert "bottomRightRadius:" in source
+
+
+def test_drawer_source_guards_native_window_during_destruction():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "if (outsideDrawerWindow" in source
+    assert "|| !outsideDrawerWindow" in source
+    assert "outsideDrawerWindow ? outsideDrawerWindow.width : 0" in source
+    assert "outsideDrawerWindow ? outsideDrawerWindow.height : 0" in source
