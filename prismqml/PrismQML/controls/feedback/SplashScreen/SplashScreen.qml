@@ -123,8 +123,8 @@ Rectangle {
         }
     }
 
-    // Deterministic center-out grid reveals the ready application in porous waves.
-    // 确定性的中心外扩网格以孔隙波纹逐格露出已就绪的应用。
+    // Seamless cells fade independently to reveal the ready application.
+    // 无缝网格块独立渐隐，逐格露出已就绪的应用。
     Repeater {
         id: dissolveGrid
 
@@ -152,8 +152,6 @@ Rectangle {
             height: control.height / Enums.splashScreenMetrics.exitGridRows +
                     Enums.splashScreenMetrics.exitGridOverlap
             color: control._splashBackground
-            border.width: control._finishing ? Enums.border.thin : Enums.border.none
-            border.color: Enums.accentColor
             opacity: Enums.opacityLevel.visible
 
             SequentialAnimation on opacity {

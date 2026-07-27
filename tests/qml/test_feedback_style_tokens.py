@@ -413,7 +413,6 @@ def test_splash_finish_uses_center_out_grid_dissolve(qapp):
 
         assert center_cell.property("opacity") == pytest.approx(1.0)
         assert corner_cell.property("opacity") == pytest.approx(1.0)
-        assert _read(center_cell, "border.width") == pytest.approx(0.0)
 
         assert QMetaObject.invokeMethod(splash, "finish")
         _pump(200)
@@ -459,6 +458,8 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "duration: Enums.duration.splashGridCellFade" in splash_source
     assert "duration: Enums.duration.splashExitDissolve" in splash_source
     assert 'objectName: "splashGridCell_" + index' in splash_source
+    assert "border.width:" not in splash_source
+    assert "border.color:" not in splash_source
     assert "target: leftCurtain" not in splash_source
     assert "target: rightCurtain" not in splash_source
     assert "target: exitFlip" not in splash_source
