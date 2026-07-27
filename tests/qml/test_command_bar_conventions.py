@@ -280,6 +280,12 @@ def test_command_bar_entry_styles_and_signal_forwarding(qapp):
         assert button_loader.property("item") is not None
         assert button_wrapper is not None
         assert button.property("text") == "Open"
+        assert button.width() == button_wrapper.width()
+        assert button.height() == button_wrapper.height()
+
+        _, view_button_wrapper, view_button = _command_button(view_core, "View")
+        assert view_button.width() == view_button_wrapper.width()
+        assert view_button.height() == view_button_wrapper.height()
         assert QMetaObject.invokeMethod(button, "click")
         _pump()
         assert actions == [(0, "Open")]

@@ -237,6 +237,7 @@ Item {
                     return Math.max(Enums.controlSize.commandBarButtonSize, btnTextMeasure.implicitWidth + Enums.spacing.xl)
                 }
 
+                anchors.fill: parent
                 style: Enums.button.style_transparent
                 flat: true
                 enabled: !commandData || commandData.enabled !== false
