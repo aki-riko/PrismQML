@@ -42,8 +42,9 @@ window.show()
 
 ## 启动画面
 
-启动画面由 `NavigationWindowCore` 统一创建、覆盖窗口并等待首页就绪；Python、
-C++ 和纯 QML 使用同一套生命周期。宿主只传配置，不需要自行创建组件：
+启动画面由 `NavigationWindowCore` 统一创建、覆盖窗口并等待首页就绪；窗口可见后
+默认至少稳定展示 600ms，再播放退场动画。Python、C++ 和纯 QML 使用同一套生命周期。
+宿主只传配置，不需要自行创建组件：
 
 ```python
 window.showSplash(title="PrismQML", subtitle="正在加载组件...")
@@ -61,6 +62,8 @@ Fluent.Windows {
     windowTitle: "My App"
     windowIcon: "qrc:/app_icon.svg"
     splashSubtitle: "正在加载..."
+    // 可按产品需要覆盖；默认值来自 Enums.duration.splashMinimumVisible。
+    splashMinimumVisibleDuration: 600
 }
 ```
 

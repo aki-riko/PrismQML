@@ -44,8 +44,10 @@ window.show()
 ## Splash screen
 
 `NavigationWindowCore` owns creation, window coverage, and first-page-ready
-dismissal. Python, C++, and pure QML therefore use the same lifecycle; hosts
-only pass configuration and do not create the component themselves:
+dismissal. After the window becomes visible, the splash remains stable for at
+least 600ms by default before its exit animation starts. Python, C++, and pure
+QML therefore use the same lifecycle; hosts only pass configuration and do not
+create the component themselves:
 
 ```python
 window.showSplash(title="PrismQML", subtitle="Loading components...")
@@ -63,6 +65,8 @@ Fluent.Windows {
     windowTitle: "My App"
     windowIcon: "qrc:/app_icon.svg"
     splashSubtitle: "Loading..."
+    // Override when needed; the default comes from Enums.duration.splashMinimumVisible.
+    splashMinimumVisibleDuration: 600
 }
 ```
 
