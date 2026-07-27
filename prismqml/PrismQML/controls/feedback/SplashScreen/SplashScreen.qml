@@ -204,7 +204,7 @@ Rectangle {
         
         // Default transparent title bar 默认透明标题栏
         Rectangle {
-            height: Enums.controlSize.titleBarHeight
+            height: Enums.window.titleBarHeight
             color: Enums.transparent
         }
     }

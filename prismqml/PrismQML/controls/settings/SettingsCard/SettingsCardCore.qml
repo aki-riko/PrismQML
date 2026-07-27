@@ -90,7 +90,7 @@ Card {
                 width: parent.width - parent.leftPadding - parent.rightPadding 
                        - (control.icon !== "" ? (Enums.settingCard.icon_size + Enums.spacing.xl) : 0) 
                        - contentArea.width - Enums.spacing.xl
-                       - (control.expandable ? expandButton.width + Enums.spacing.sm : 0)
+                       - (control.expandable ? expandButton.width + Enums.spacing.s : 0)
                 
                 Label {
                     id: titleLabel
@@ -152,7 +152,7 @@ Card {
         Item {
             id: expandArea
             width: parent.width
-            height: control.expandable && control.expanded ? expandContent.height + Enums.spacing.lg : 0
+            height: control.expandable && control.expanded ? expandContent.height + Enums.spacing.l : 0
             clip: true
             visible: control.expandable
             

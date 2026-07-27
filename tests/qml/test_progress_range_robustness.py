@@ -9,7 +9,7 @@ import math
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
-from prismqml import register_types
+from prismqml import Skin, register_types, setSkin
 
 
 SCENE = b"""
@@ -51,6 +51,7 @@ def _pump(milliseconds: int = 20) -> None:
 
 
 def test_degenerate_progress_ranges_have_zero_finite_position(qapp):
+    setSkin(Skin.NEOBRUTALISM)
     engine = QQmlApplicationEngine()
     warnings = []
     engine.warnings.connect(
@@ -87,6 +88,7 @@ def test_degenerate_progress_ranges_have_zero_finite_position(qapp):
         )
         assert warnings == []
     finally:
+        setSkin(Skin.FLUENT)
         root.deleteLater()
         component.deleteLater()
         engine.collectGarbage()

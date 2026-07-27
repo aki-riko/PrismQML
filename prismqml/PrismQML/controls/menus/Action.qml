@@ -44,7 +44,7 @@ Rectangle {
     width: parent ? parent.width : implicitWidth
     implicitWidth: _isBottomText 
         ? Math.max(Enums.controlSize.menuMinWidth, bottomContent.implicitWidth + Enums.spacing.xl * 2)
-        : Math.max(Enums.controlSize.menuMinWidth, sideContent.implicitWidth + Enums.spacing.navBarHeight)
+        : Math.max(Enums.controlSize.menuMinWidth, sideContent.implicitWidth + Enums.controlSize.navBarHeight)
     implicitHeight: _isBottomText 
         ? (Enums.iconSize.xxl + Enums.typography.bodySmall + Enums.spacing.m * 3)
         : Enums.controlSize.emptyStateButtonHeight

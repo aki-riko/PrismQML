@@ -419,6 +419,8 @@ def test_nullable_lists_and_zero_geometry_stay_finite(qapp):
         assert pips.property("_safePageCount") == 0
         assert pips.property("_safeVisiblePipCount") == 1
         assert pips.property("_safeCurrentIndex") == 0
+        assert math.isfinite(pips.implicitWidth())
+        assert math.isfinite(pips.implicitHeight())
 
         assert marquee.property("_safeSpeed") == 1
         assert marquee.property("_safeScrollGap") == 0

@@ -46,18 +46,52 @@ PopupWindowCore {
  property var _pendingSubmenuAction: null
  property var _pendingSubmenuComponent: null
  property var _pendingSubmenuProperties: null
+ property var _logicalItems: []
 
  // ==================== Signals 信号 ====================
  signal dismissed()
  signal actionTriggered(string text) // Action triggered signal 动作触发信号
  
  // ==================== Internal Methods 内部方法 ====================
+ function _registerMenuItem(item) {
+ if (!item || _logicalItems.indexOf(item) !== -1) return
+ _logicalItems = _logicalItems.concat([item])
+ }
+
+ function _unregisterMenuItem(item) {
+ var remaining = []
+ for (var i = 0; i < _logicalItems.length; i++) {
+ var current = _logicalItems[i]
+ if (current && current !== item) remaining.push(current)
+ }
+ _logicalItems = remaining
+ }
+
+ function _syncMenuItems() {
+ // Persist visual menu items before popup reparenting makes children mode-dependent. 弹层重挂载前持久记录视觉菜单项
+ var children = itemsColumn.children
+ for (var i = 0; i < children.length; i++) {
+ _registerMenuItem(children[i])
+ }
+ }
+
+ function _menuItems() {
+ var result = []
+ for (var i = 0; i < _logicalItems.length; i++) {
+ var item = _logicalItems[i]
+ if (item) result.push(item)
+ }
+ _logicalItems = result
+ return result
+ }
+
  function _calcWidth() {
  // Guard against destroyed object or invalid context 防止对象已销毁或上下文无效
  if (_isDestroyed || typeof Math === 'undefined') return minWidth
  var maxW = minWidth
- for (var i = 0; i < itemsColumn.children.length; i++) {
- var child = itemsColumn.children[i]
+ var items = _menuItems()
+ for (var i = 0; i < items.length; i++) {
+ var child = items[i]
  if (child && child.implicitWidth) {
  maxW = Math.max(maxW, child.implicitWidth)
  }
@@ -70,8 +104,9 @@ PopupWindowCore {
  if (_isDestroyed || typeof Math === 'undefined') return Enums ? Enums.controlSize.emptyStateButtonHeight : 0
  if (!Enums || !Enums.spacing) return 0
  var h = Enums.spacing.xs * 2 // contentContainer margins 容器边距
- for (var i = 0; i < itemsColumn.children.length; i++) {
- var child = itemsColumn.children[i]
+ var items = _menuItems()
+ for (var i = 0; i < items.length; i++) {
+ var child = items[i]
  if (child && child.visible !== false) {
  // Use height if set, otherwise implicitHeight 优先使用height
  var itemH = child.height > 0 ? child.height : child.implicitHeight
@@ -182,6 +217,7 @@ PopupWindowCore {
  function addWidget(widget, selectable, onClick) {
  if (!widget) return
  widget.parent = itemsColumn
+ _registerMenuItem(widget)
  widget.width = Qt.binding(function() { return itemsColumn.width })
  
  if (selectable && onClick) {
@@ -196,7 +232,8 @@ PopupWindowCore {
  
  // Add separator to menu 添加分隔线
  function addSeparator() {
- separatorComponent.createObject(itemsColumn)
+ var separator = separatorComponent.createObject(itemsColumn)
+ _registerMenuItem(separator)
  Qt.callLater(_updateSize)
  }
  
@@ -221,6 +258,7 @@ PopupWindowCore {
  }
  
  var action = actionComponent.createObject(itemsColumn, props)
+ _registerMenuItem(action)
  // triggered → actionTriggered + close 由 itemsColumn.onChildrenChanged 统一接管,
  // 这里不再 connect, 避免双发。
  Qt.callLater(_updateSize)
@@ -242,8 +280,9 @@ PopupWindowCore {
  // @param actionId: string
  // @returns Action item or null
  function getAction(actionId) {
- for (var i = 0; i < itemsColumn.children.length; i++) {
- var child = itemsColumn.children[i]
+ var items = _menuItems()
+ for (var i = 0; i < items.length; i++) {
+ var child = items[i]
  if (child && child.actionId === actionId) return child
  }
  return null
@@ -271,6 +310,7 @@ PopupWindowCore {
  function removeAction(actionId) {
  var action = getAction(actionId)
  if (action) {
+ _unregisterMenuItem(action)
  action.destroy()
  Qt.callLater(_updateSize)
  return true
@@ -303,8 +343,10 @@ PopupWindowCore {
  // Clear all items 清空所有项
  function clear() {
  _closeOpenSubmenu()
- for (var i = itemsColumn.children.length - 1; i >= 0; i--) {
- var child = itemsColumn.children[i]
+ var items = _menuItems()
+ _logicalItems = []
+ for (var i = items.length - 1; i >= 0; i--) {
+ var child = items[i]
  // destroy() 是延迟执行的，先设 visible=false 防止 _calcHeight 计入
  child.visible = false
  child.height = 0
@@ -323,12 +365,19 @@ PopupWindowCore {
  _closeOpenSubmenu()
  }
 
- Component.onCompleted: Qt.callLater(_updateSize)
+ Component.onCompleted: {
+ _syncMenuItems()
+ Qt.callLater(_updateSize)
+ }
  onClosed: {
  _closeOpenSubmenu()
  dismissed()
  }
- onAboutToShow: _updateSize() // Recalculate before showing 显示前重新计算
+ onAboutToShow: {
+ _updateSize()
+ // Popup.Item exposes its reparented visual content after open() returns; refresh before the next frame. Popup.Item在open返回后才暴露重挂载内容，下一帧前重算
+ if (_usesControlsPopup) Qt.callLater(_updateSize)
+ }
 
  // ==================== Content 内容 ====================
  Component {
@@ -389,8 +438,10 @@ PopupWindowCore {
  onChildrenChanged: {
  // 声明式子项 Action 不走 addAction(那条路径会显式 connect),所以 triggered
  // 后菜单不会自动关。这里统一在 children 变化时给所有 Action 补 connect。
- for (var i = 0; i < itemsColumn.children.length; i++) {
- var c = itemsColumn.children[i]
+ control._syncMenuItems()
+ var items = control._menuItems()
+ for (var i = 0; i < items.length; i++) {
+ var c = items[i]
  if (c && c.triggered && _autoBoundActions.indexOf(c) === -1) {
  _autoBoundActions.push(c)
  if (c.pressed) {

@@ -41,8 +41,11 @@ Window {
         id: dropdownMenu
         objectName: "externalDropdownMenu"
         useInWindowPopup: true
-        Action { text: "外部菜单一" }
-        Action { text: "外部菜单二" }
+        Action { actionId: "dropdown-one"; text: "外部菜单一" }
+        Action {
+            actionId: "dropdown-two"
+            text: "外部菜单二（用于验证重挂载后宽度仍完整保留的超长文本）"
+        }
     }
 
     MenuCore {
@@ -191,7 +194,10 @@ def test_dropdown_and_split_delegate_to_external_menu(qapp):
         assert window.property("dropdownMainClicks") == 0
 
         dropdown_menu.close()
-        assert _wait_for(lambda: not dropdown_menu.property("isOpen"))
+        assert _wait_for(
+            lambda: not dropdown_menu.property("isOpen")
+            and not dropdown_menu.property("isClosing")
+        )
 
         _click(window, split)
         assert window.property("splitMainClicks") == 1
@@ -231,6 +237,67 @@ def test_external_menu_toggles_and_prewarms_without_internal_fallback(qapp):
         dropdown_modules[0].openMenu()
         assert _wait_for(lambda: not menu.property("isOpen"))
         assert not internal_menu.property("isOpen")
+        assert not warnings
+    finally:
+        _dispose(engine, component, window)
+
+
+def test_in_window_external_menu_preserves_geometry_and_action_lifecycle(qapp):
+    """Popup.Item 重挂载不得丢失多行尺寸或声明式 Action API。"""
+    engine, component, window, warnings = _create_scene()
+    try:
+        dropdown = _button(window, "externalDropdownButton")
+        menu = _menu(window, "externalDropdownMenu")
+        first = menu.getAction("dropdown-one")
+        second = menu.getAction("dropdown-two")
+        assert first is not None
+        assert second is not None
+        expected_height = first.height() + second.height()
+
+        _click(window, dropdown)
+        assert _wait_for(lambda: menu.property("isOpen"))
+        assert menu.property("popupHeight") >= expected_height
+        assert menu.property("popupWidth") > menu.property("minWidth"), {
+            "popup_width": menu.property("popupWidth"),
+            "first_width": first.width(),
+            "first_implicit_width": first.implicitWidth(),
+            "first_children_rect": first.childrenRect(),
+            "second_width": second.width(),
+            "second_implicit_width": second.implicitWidth(),
+            "second_children_rect": second.childrenRect(),
+        }
+
+        menu.close()
+        assert _wait_for(
+            lambda: not menu.property("isOpen")
+            and not menu.property("isClosing")
+        )
+        menu.clear()
+        assert _wait_for(
+            lambda: menu.getAction("dropdown-one") is None
+            and menu.getAction("dropdown-two") is None
+        )
+
+        dynamic_one = menu.addAction(
+            "动态菜单一", "", "", {"actionId": "dynamic-one"}
+        )
+        dynamic_two = menu.addAction(
+            "动态菜单二", "", "", {"actionId": "dynamic-two"}
+        )
+        assert menu.getAction("dynamic-one") is not None
+        assert menu.getAction("dynamic-two") is not None
+
+        _click(window, dropdown)
+        assert _wait_for(lambda: menu.property("isOpen"))
+        assert menu.property("popupHeight") >= dynamic_one.height() + dynamic_two.height()
+        menu.close()
+        assert _wait_for(
+            lambda: not menu.property("isOpen")
+            and not menu.property("isClosing")
+        )
+        assert menu.removeAction("dynamic-one")
+        assert _wait_for(lambda: menu.getAction("dynamic-one") is None)
+        assert menu.getAction("dynamic-two") is not None
         assert not warnings
     finally:
         _dispose(engine, component, window)

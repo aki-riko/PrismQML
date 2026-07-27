@@ -19,7 +19,7 @@ ProgressCore {
     Rectangle {
         anchors.fill: parent
         radius: height / 2
-        color: Enums.isNeobrutalism ? Enums.neo.muted : trackColor
+        color: trackColor
         // neo: 轨道加黑边显形
         border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
         border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent

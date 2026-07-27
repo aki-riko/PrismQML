@@ -36,8 +36,8 @@ Item {
     signal pageClicked(int index)
 
     // ==================== Size 尺寸 ====================
-    implicitWidth: isHorizontal ? (pipsRow.implicitWidth + Enums.spacing.navBarHeight) : Enums.controlSize.emptyStateButtonHeight
-    implicitHeight: isHorizontal ? Enums.controlSize.emptyStateButtonHeight : (pipsColumn.implicitHeight + Enums.spacing.navBarHeight)
+    implicitWidth: isHorizontal ? (pipsRow.implicitWidth + Enums.controlSize.navBarHeight) : Enums.controlSize.emptyStateButtonHeight
+    implicitHeight: isHorizontal ? Enums.controlSize.emptyStateButtonHeight : (pipsColumn.implicitHeight + Enums.controlSize.navBarHeight)
     
     // Prev button 上一页按钮
     Rectangle {
