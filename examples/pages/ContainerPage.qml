@@ -250,10 +250,10 @@ Item {
                 description: "Drawer (mode_outside)"
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    ComponentCard { label: "position.left"; Button { text: "左侧展开"; onClicked: { outsideDrawer.position = Fluent.Enums.position.left; outsideDrawer.open() } } }
-                    ComponentCard { label: "position.right"; Button { text: "右侧展开"; onClicked: { outsideDrawer.position = Fluent.Enums.position.right; outsideDrawer.open() } } }
-                    ComponentCard { label: "position.top"; Button { text: "顶部展开"; onClicked: { outsideDrawer.position = Fluent.Enums.position.top; outsideDrawer.open() } } }
-                    ComponentCard { label: "position.bottom"; Button { text: "底部展开"; onClicked: { outsideDrawer.position = Fluent.Enums.position.bottom; outsideDrawer.open() } } }
+                    ComponentCard { label: "position.left"; Button { text: "左侧展开"; onClicked: outsideLeftDrawer.open() } }
+                    ComponentCard { label: "position.right"; Button { text: "右侧展开"; onClicked: outsideRightDrawer.open() } }
+                    ComponentCard { label: "position.top"; Button { text: "顶部展开"; onClicked: outsideTopDrawer.open() } }
+                    ComponentCard { label: "position.bottom"; Button { text: "底部展开"; onClicked: outsideBottomDrawer.open() } }
                 }
             }
             
@@ -341,15 +341,46 @@ Item {
         }
     }
 
-    Drawer {
-        id: outsideDrawer
+    // Reusable outside Drawer demo 独立外层抽屉演示组件
+    component OutsideDrawer: Drawer {
+        id: outsideControl
+
         mode: Fluent.Enums.drawer.mode_outside
         drawerWidth: rightDrawer.drawerWidth
         drawerHeight: bottomDrawer.drawerHeight
+
         Column {
             anchors.centerIn: parent; spacing: Fluent.Enums.spacing.l
             Text { text: "窗口外侧抽屉"; font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
-            Button { text: "关闭"; onClicked: outsideDrawer.close() }
+            Button { text: "关闭"; onClicked: outsideControl.close() }
         }
+    }
+
+    OutsideDrawer {
+        id: outsideLeftDrawer
+
+        objectName: "galleryOutsideLeftDrawer"
+        position: Fluent.Enums.position.left
+    }
+
+    OutsideDrawer {
+        id: outsideRightDrawer
+
+        objectName: "galleryOutsideRightDrawer"
+        position: Fluent.Enums.position.right
+    }
+
+    OutsideDrawer {
+        id: outsideTopDrawer
+
+        objectName: "galleryOutsideTopDrawer"
+        position: Fluent.Enums.position.top
+    }
+
+    OutsideDrawer {
+        id: outsideBottomDrawer
+
+        objectName: "galleryOutsideBottomDrawer"
+        position: Fluent.Enums.position.bottom
     }
 }
