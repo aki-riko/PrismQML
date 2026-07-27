@@ -77,6 +77,8 @@ def test_drawer_source_guards_native_window_during_destruction():
     assert "|| !outsideDrawerWindow" in source
     assert "outsideDrawerWindow ? outsideDrawerWindow.width : 0" in source
     assert "outsideDrawerWindow ? outsideDrawerWindow.height : 0" in source
+    assert "outsideDrawerViewport ? -outsideDrawerViewport.x : 0" in source
+    assert "outsideDrawerViewport ? -outsideDrawerViewport.y : 0" in source
 
 
 def test_drawer_source_reveals_from_the_corresponding_edge():

@@ -320,8 +320,8 @@ OverlayDialogCore {
 
                 width: outsideDrawerWindow ? outsideDrawerWindow.width : 0
                 height: outsideDrawerWindow ? outsideDrawerWindow.height : 0
-                x: -outsideDrawerViewport.x
-                y: -outsideDrawerViewport.y
+                x: outsideDrawerViewport ? -outsideDrawerViewport.x : 0
+                y: outsideDrawerViewport ? -outsideDrawerViewport.y : 0
                 color: control._drawerBackground
                 radius: Enums.radius.none
                 topLeftRadius: control.position === Enums.position.left
