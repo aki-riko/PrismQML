@@ -63,7 +63,7 @@ Rectangle {
         if (control._finishing) return
         control._finishing = true
         breatheAnim.stop()
-        exitFlipAnim.start()
+        exitDissolveAnim.start()
     }
     
     // Set icon (Icon enum or string) 设置图标
@@ -82,71 +82,37 @@ Rectangle {
     // Match the Gallery host: cover the whole window shell during startup.
     // 与 Gallery 宿主保持一致：启动期间覆盖整个窗口壳。
     z: Enums.zIndex.splash
-    color: control._splashBackground
+    color: Enums.transparent
     visible: true
+    clip: true
     // Keep the complete splash stable from the first rendered frame; only
     // the icon participates in the continuous breathing animation.
     // 从首个渲染帧起稳定显示完整启动画面；仅图标参与循环呼吸动画。
     opacity: 1
-    transform: Rotation {
-        id: exitFlip
-
-        objectName: "splashExitFlip"
-        origin.x: control.width
-        origin.y: control.height * Enums.splashScreenMetrics.exitPivotYRatio
-        axis.x: 0
-        axis.y: 1
-        axis.z: 0
-        angle: 0
-    }
     Component.onCompleted: breatheAnim.start()
 
-    // Glass-page flip animation 玻璃页翻场动画
+    // Grid permeation dissolve animation 网格渗透溶解动画
     SequentialAnimation {
-        id: exitFlipAnim
+        id: exitDissolveAnim
 
         ParallelAnimation {
-            NumberAnimation {
-                target: lightEdge
-                property: "opacity"
-                to: Enums.opacityLevel.visible
-                duration: Enums.duration.splashExitAnticipation
-                easing.type: Easing.OutCubic
-            }
-
             NumberAnimation {
                 target: contentColumn
-                property: "scale"
-                to: Enums.splashScreenMetrics.exitContentPeakScale
-                duration: Enums.duration.splashExitAnticipation
-                easing.type: Easing.OutCubic
-            }
-        }
-
-        ParallelAnimation {
-            NumberAnimation {
-                target: exitFlip
-                property: "angle"
-                to: -Enums.splashScreenMetrics.exitFlipAngle
-                duration: Enums.duration.splashExitFlip
-                easing.type: Easing.InOutQuart
-            }
-
-            NumberAnimation {
-                target: control
-                property: "scale"
-                to: Enums.splashScreenMetrics.exitSurfaceEndScale
-                duration: Enums.duration.splashExitFlip
+                property: "opacity"
+                to: Enums.opacityLevel.invisible
+                duration: Enums.duration.splashGridContentFade
                 easing.type: Easing.InCubic
             }
 
             NumberAnimation {
                 target: contentColumn
                 property: "scale"
-                to: Enums.opacityLevel.visible
-                duration: Enums.duration.splashExitFlip
-                easing.type: Easing.OutCubic
+                to: Enums.splashScreenMetrics.exitContentEndScale
+                duration: Enums.duration.splashGridContentFade
+                easing.type: Easing.InCubic
             }
+
+            PauseAnimation { duration: Enums.duration.splashExitDissolve }
         }
 
         ScriptAction {
@@ -157,17 +123,50 @@ Rectangle {
         }
     }
 
-    // Accent edge travels with the flipping glass page. 强调色光边随玻璃页翻转扫过。
-    Rectangle {
-        id: lightEdge
+    // Deterministic center-out grid reveals the ready application in porous waves.
+    // 确定性的中心外扩网格以孔隙波纹逐格露出已就绪的应用。
+    Repeater {
+        id: dissolveGrid
 
-        objectName: "splashLightEdge"
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: Enums.border.normal
-        color: Enums.accentColor
-        opacity: Enums.opacityLevel.invisible
+        model: Enums.splashScreenMetrics.exitGridColumns *
+               Enums.splashScreenMetrics.exitGridRows
+
+        delegate: Rectangle {
+            id: gridCell
+
+            readonly property int _column: index % Enums.splashScreenMetrics.exitGridColumns
+            readonly property int _row: Math.floor(index / Enums.splashScreenMetrics.exitGridColumns)
+            readonly property real _centerColumn: (Enums.splashScreenMetrics.exitGridColumns - 1) /
+                                                  2
+            readonly property real _centerRow: (Enums.splashScreenMetrics.exitGridRows - 1) / 2
+            readonly property int _delay: Math.round((
+                Math.abs(gridCell._column - gridCell._centerColumn) +
+                Math.abs(gridCell._row - gridCell._centerRow)
+            ) * Enums.duration.splashGridDelayStep)
+
+            objectName: "splashGridCell_" + index
+            x: gridCell._column * control.width / Enums.splashScreenMetrics.exitGridColumns
+            y: gridCell._row * control.height / Enums.splashScreenMetrics.exitGridRows
+            width: control.width / Enums.splashScreenMetrics.exitGridColumns +
+                   Enums.splashScreenMetrics.exitGridOverlap
+            height: control.height / Enums.splashScreenMetrics.exitGridRows +
+                    Enums.splashScreenMetrics.exitGridOverlap
+            color: control._splashBackground
+            border.width: control._finishing ? Enums.border.thin : Enums.border.none
+            border.color: Enums.accentColor
+            opacity: Enums.opacityLevel.visible
+
+            SequentialAnimation on opacity {
+                running: control._finishing
+
+                PauseAnimation { duration: gridCell._delay }
+                NumberAnimation {
+                    to: Enums.opacityLevel.invisible
+                    duration: Enums.duration.splashGridCellFade
+                    easing.type: Easing.InOutCubic
+                }
+            }
+        }
     }
     
     // Breathe animation 呼吸动画
