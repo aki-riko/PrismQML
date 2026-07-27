@@ -72,6 +72,9 @@ Window {
     // Fired after DWM-touching init done (shadow + native hook attached) 通知子类: DWM 相关初始化完成
     // 子类可挂这个信号设置 Mica 等会被 SWP_FRAMECHANGED 重置的 DWM 属性
     signal nativeHookReady()
+    // Fired synchronously after a close request is accepted, before HWND teardown.
+    // 关闭请求确认后、HWND 销毁前同步触发。
+    signal nativeCloseAccepted()
     // Fired before a user/system close request is accepted. Handlers may set
     // closeRequestAccepted to false to keep the window alive.
     signal closeRequested()
@@ -201,6 +204,7 @@ Window {
                 return
             }
         }
+        nativeCloseAccepted()
         // 注意: onClosing 在窗口收到「任何」关闭请求时都会触发,包括上层
         // event.ignore() 拦截后「隐藏到托盘」的场景 —— 此时窗口并未销毁,
         // 仍要继续使用。这里绝不能 detach NativeWindowHook,否则 hwnd 的

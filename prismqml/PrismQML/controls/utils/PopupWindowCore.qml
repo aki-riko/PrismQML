@@ -229,6 +229,15 @@ Item {
         _prewarmScheduled = false
     }
 
+    function _clearQtPopupOwner() {
+        if (!useQtPopupWindow
+                || typeof WindowHelper === "undefined" || !WindowHelper
+                || typeof WindowHelper.clearPopupWindowOwner !== "function") return
+        var popup = inlinePopupContent.Window.window
+        var owner = control._targetWindow ? control._targetWindow : control.Window.window
+        if (popup && owner) WindowHelper.clearPopupWindowOwner(popup, owner)
+    }
+
     function open(x, y) {
         _openAtPosition(x, y, false)
     }
@@ -566,6 +575,7 @@ Item {
         background: null
         contentItem: Item { id: inlinePopupContent }
 
+        onAboutToHide: control._clearQtPopupOwner()
         onClosed: {
             if (control.isOpen && !control.isClosing) {
                 showAnim.stop()
@@ -587,6 +597,13 @@ Item {
                 )
             }
         }
+    }
+
+    Connections {
+        function onNativeCloseAccepted() { control._clearQtPopupOwner() }
+
+        target: control._targetWindow
+        ignoreUnknownSignals: true
     }
     
     Window {

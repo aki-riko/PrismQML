@@ -53,6 +53,9 @@ Window {
     function prewarmMenu() { popup.prewarm() }
     function openMenu() { popup.openAtControl(target) }
     function resetMenu() { popup.forceReset() }
+    function acceptNativeClose() { nativeCloseAccepted() }
+
+    signal nativeCloseAccepted()
 
     Item {
         id: target
@@ -77,10 +80,16 @@ class _CountingWindowHelper(QObject):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.calls = []
+        self.clear_calls = []
 
     @Slot("QVariant", "QVariant", result=bool)
     def ensurePopupWindowOwner(self, popup_window, owner_window) -> bool:
         self.calls.append((popup_window, owner_window))
+        return True
+
+    @Slot("QVariant", "QVariant", result=bool)
+    def clearPopupWindowOwner(self, popup_window, owner_window) -> bool:
+        self.clear_calls.append((popup_window, owner_window))
         return True
 
 
@@ -140,6 +149,9 @@ def test_cold_open_repairs_owner_without_deferred_work(qapp):
         )
 
         _invoke(root, "resetMenu")
+        assert helper.clear_calls
+        assert helper.clear_calls[-1][1] is root
+        assert helper.clear_calls[-1][0].metaObject().className() == "QQuickPopupWindow"
         calls_after_close = len(helper.calls)
         _pump(40)
         assert len(helper.calls) == calls_after_close
@@ -156,6 +168,22 @@ def test_first_prewarm_repairs_the_created_qt_popup_owner(qapp):
         assert helper.calls
         assert helper.calls[-1][1] is root
         assert helper.calls[-1][0].metaObject().className() == "QQuickPopupWindow"
+        assert helper.clear_calls
+    finally:
+        _dispose_scene(engine, component, root)
+
+
+def test_accepted_native_close_clears_owner_before_host_teardown(qapp):
+    engine, component, root, helper = _create_scene()
+    try:
+        _invoke(root, "openMenu")
+        helper.clear_calls.clear()
+
+        _invoke(root, "acceptNativeClose")
+
+        assert helper.clear_calls
+        assert helper.clear_calls[-1][1] is root
+        assert helper.clear_calls[-1][0].metaObject().className() == "QQuickPopupWindow"
     finally:
         _dispose_scene(engine, component, root)
 
@@ -168,3 +196,6 @@ def test_owner_repair_uses_shared_event_queue_without_per_instance_timer():
     assert "_scheduleQtPopupStackingRepair" not in source
     assert "onOpened:" in source
     assert "WindowHelper.ensurePopupWindowOwner(" in source
+    assert "onAboutToHide:" in source
+    assert "WindowHelper.clearPopupWindowOwner(" in source
+    assert "function onNativeCloseAccepted()" in source

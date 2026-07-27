@@ -86,6 +86,42 @@ def test_failed_or_unverified_owner_assignment_does_not_raise():
     assert not any(call[0] == "raise" for call in unverified_api.calls)
 
 
+def test_matching_popup_owner_is_cleared_and_verified():
+    api = _FakePopupOwnerApi(owner=21)
+
+    assert _popup_owner._clear_popup_owner_with_api(api, 11, 21, 700)
+
+    assert api.current_owner == 0
+    assert api.calls == [
+        ("process", 11),
+        ("process", 21),
+        ("owner", 11),
+        ("set_owner", 11, 0),
+        ("owner", 11),
+    ]
+
+
+def test_popup_owner_clear_rejects_foreign_or_reassigned_windows():
+    foreign_api = _FakePopupOwnerApi(owner=21)
+    foreign_api.process_ids[11] = 701
+    assert not _popup_owner._clear_popup_owner_with_api(foreign_api, 11, 21, 700)
+    assert not any(call[0] == "set_owner" for call in foreign_api.calls)
+
+    reassigned_api = _FakePopupOwnerApi(owner=31)
+    assert not _popup_owner._clear_popup_owner_with_api(
+        reassigned_api, 11, 21, 700
+    )
+    assert not any(call[0] == "set_owner" for call in reassigned_api.calls)
+
+
+def test_already_unowned_popup_is_a_successful_no_op():
+    api = _FakePopupOwnerApi()
+
+    assert _popup_owner._clear_popup_owner_with_api(api, 11, 21, 700)
+
+    assert not any(call[0] == "set_owner" for call in api.calls)
+
+
 class _FakeWindow:
     def __init__(self, hwnd: int, window_type: Qt.WindowType) -> None:
         self._hwnd = hwnd
@@ -99,11 +135,17 @@ class _FakeWindow:
 
 
 def test_window_helper_accepts_only_qt_popup_windows(monkeypatch):
-    calls = []
+    ensure_calls = []
+    clear_calls = []
     monkeypatch.setattr(
         window_helper,
         "ensure_popup_window_owner",
-        lambda popup, owner: calls.append((popup, owner)) or True,
+        lambda popup, owner: ensure_calls.append((popup, owner)) or True,
+    )
+    monkeypatch.setattr(
+        window_helper,
+        "clear_popup_window_owner",
+        lambda popup, owner: clear_calls.append((popup, owner)) or True,
     )
     monkeypatch.setattr(window_helper.WindowHelper, "_instance", None)
     helper = window_helper.WindowHelper()
@@ -111,6 +153,11 @@ def test_window_helper_accepts_only_qt_popup_windows(monkeypatch):
     owner = _FakeWindow(21, Qt.WindowType.Window)
 
     assert helper.ensurePopupWindowOwner(popup, owner)
-    assert calls == [(11, 21)]
+    assert ensure_calls == [(11, 21)]
     assert not helper.ensurePopupWindowOwner(owner, popup)
-    assert calls == [(11, 21)]
+    assert ensure_calls == [(11, 21)]
+
+    assert helper.clearPopupWindowOwner(popup, owner)
+    assert clear_calls == [(11, 21)]
+    assert not helper.clearPopupWindowOwner(owner, popup)
+    assert clear_calls == [(11, 21)]

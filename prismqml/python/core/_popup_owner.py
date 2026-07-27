@@ -120,6 +120,30 @@ def _ensure_popup_owner_with_api(
     return api.raise_popup(popup_hwnd)
 
 
+def _clear_popup_owner_with_api(
+    api,
+    popup_hwnd: int,
+    owner_hwnd: int,
+    expected_process_id: int,
+) -> bool:
+    """Clear one matching same-process popup owner. 清除匹配的同进程弹层 owner。"""
+    if not popup_hwnd or not owner_hwnd or popup_hwnd == owner_hwnd:
+        return False
+    if (
+        api.process_id(popup_hwnd) != expected_process_id
+        or api.process_id(owner_hwnd) != expected_process_id
+    ):
+        return False
+    current_owner = api.owner(popup_hwnd)
+    if not current_owner:
+        return True
+    if current_owner != owner_hwnd:
+        return False
+    if not api.set_owner(popup_hwnd, 0):
+        return False
+    return api.owner(popup_hwnd) == 0
+
+
 def ensure_popup_window_owner(popup_hwnd: int, owner_hwnd: int) -> bool:
     """Repair a same-process popup owner on Windows. 修复 Windows 同进程弹层 owner。"""
     if sys.platform != "win32":
@@ -136,4 +160,23 @@ def ensure_popup_window_owner(popup_hwnd: int, owner_hwnd: int) -> bool:
         )
     except (AttributeError, OSError, TypeError, ValueError) as exc:
         debug(f"Win32弹层 owner 修复不可用: {exc}")
+        return False
+
+
+def clear_popup_window_owner(popup_hwnd: int, owner_hwnd: int) -> bool:
+    """Clear a matching popup owner on Windows. 清除 Windows 弹层的匹配 owner。"""
+    if sys.platform != "win32":
+        return False
+    global _popup_owner_api
+    try:
+        if _popup_owner_api is None:
+            _popup_owner_api = _WindowsPopupOwnerApi()
+        return _clear_popup_owner_with_api(
+            _popup_owner_api,
+            popup_hwnd,
+            owner_hwnd,
+            os.getpid(),
+        )
+    except (AttributeError, OSError, TypeError, ValueError) as exc:
+        debug(f"Win32弹层 owner 清理不可用: {exc}")
         return False
