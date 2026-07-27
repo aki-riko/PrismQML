@@ -42,6 +42,8 @@ OverlayDialogCore {
     property bool _outsideResetting: false
     property bool _outsideVisible: false
     property real _outsideExtent: _outsideCollapsedExtent
+    property bool _insideAnimationReady: false
+    property bool _insideOpenPending: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isOutside: mode === Enums.drawer.mode_outside
@@ -60,11 +62,17 @@ OverlayDialogCore {
             _originalParent = control.parent
         }
 
-        // Auto-find window contentItem if not already there 自动找到窗口 contentItem（如果还不在那里）
+        // Rebase the first inside opening to the window edge before animating
+        // 首次内侧打开先按窗口边缘重定位,再启动动画
         if (!control._isOutside && control.Window && control.Window.window) {
             var windowContent = control.Window.window.contentItem
             if (windowContent && control.parent !== windowContent) {
+                if (control._insideOpenPending) return
+                control._insideOpenPending = true
+                control._insideAnimationReady = false
                 control.parent = windowContent
+                Qt.callLater(control._completeInsideOpen)
+                return
             }
         }
 
@@ -96,6 +104,18 @@ OverlayDialogCore {
         return _isOpen
     }
 
+    // Start the first inside animation after reparenting geometry has settled
+    // 重父化几何稳定后再启动首次内侧动画
+    function _completeInsideOpen() {
+        if (!control._insideOpenPending) return
+        control._insideOpenPending = false
+        control._insideAnimationReady = true
+        if (!control._isOutside) {
+            control._isClosing = false
+            control._isOpen = true
+        }
+    }
+
     // Reset both render paths when switching mode or closing the host window
     // 切换模式或宿主窗口关闭时重置两条渲染路径
     function _resetDrawerState() {
@@ -107,6 +127,8 @@ OverlayDialogCore {
         _outsidePrepared = false
         _outsideExtent = _outsideCollapsedExtent
         _outsideHostSyncPending = false
+        _insideOpenPending = false
+        _insideAnimationReady = true
         _isOpen = false
         _isClosing = false
         _outsideResetting = false
@@ -242,6 +264,7 @@ OverlayDialogCore {
     visible: !_isOutside && (_isOpen || _isClosing)
 
     onModeChanged: _resetDrawerState()
+    Component.onCompleted: control._insideAnimationReady = true
     onOpenedChanged: {
         if (!control._isOutside || control._outsideResetting) return
         if (!control._isOpen && control._outsideVisible) {
@@ -419,6 +442,7 @@ OverlayDialogCore {
         ]
 
         transitions: Transition {
+            enabled: control._insideAnimationReady
             NumberAnimation { properties: "x,y"; duration: control.animationDuration; easing.type: Easing.OutCubic }
         }
     }
