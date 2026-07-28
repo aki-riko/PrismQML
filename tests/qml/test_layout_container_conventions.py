@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Container layout runtime contracts. 容器布局运行时合同。"""
 
+import math
 from pathlib import Path, PurePosixPath
 
 import pytest
@@ -162,7 +163,8 @@ Window {
         width: 300
         height: 200
         handleWidth: 8
-        minimumSize: 50
+        firstMinimumSize: 90
+        secondMinimumSize: 70
 
         firstContent: Item { id: firstPane; objectName: "firstContent" }
         secondContent: Item { id: secondPane; objectName: "secondContent" }
@@ -274,16 +276,17 @@ def test_row_fit_scale_and_split_pane_geometry(layout_scene):
     assert (second.width(), second.height()) == pytest.approx((146, 200))
     assert QMetaObject.invokeMethod(window, "setVerticalSplit")
     _pump()
-    assert (first.width(), first.height()) == pytest.approx((300, 48))
+    assert split.property("splitPosition") == pytest.approx(90 / 192)
+    assert (first.width(), first.height()) == pytest.approx((300, 90))
     assert (handle.x(), handle.y(), handle.width(), handle.height()) == pytest.approx(
-        (0, 48, 300, 8)
+        (0, 90, 300, 8)
     )
-    assert (second.width(), second.height()) == pytest.approx((300, 144))
+    assert (second.width(), second.height()) == pytest.approx((300, 102))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
 
-def test_split_pane_real_drag_clamps_minimum(layout_scene):
+def test_split_pane_real_drag_clamps_asymmetric_minimum(layout_scene):
     window, warnings, windows_before = layout_scene
     window.show()
     _pump()
@@ -292,9 +295,46 @@ def test_split_pane_real_drag_clamps_minimum(layout_scene):
     QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=QPoint(320, 400))
     _pump()
     split = window.findChild(QQuickItem, "splitPane")
-    assert split.property("splitPosition") == pytest.approx(50 / 292)
+    assert split.property("splitPosition") == pytest.approx(90 / 292)
     window.hide()
     _pump()
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_split_pane_clamps_external_values_and_undersized_geometry(layout_scene):
+    window, warnings, windows_before = layout_scene
+    split = window.findChild(QQuickItem, "splitPane")
+    first = split.findChild(QQuickItem, "firstPane")
+    second = split.findChild(QQuickItem, "secondPane")
+
+    split.setProperty("splitPosition", -1)
+    _pump()
+    assert split.property("splitPosition") == pytest.approx(90 / 292)
+    assert (first.width(), second.width()) == pytest.approx((90, 202))
+
+    split.setProperty("splitPosition", 2)
+    _pump()
+    assert split.property("splitPosition") == pytest.approx(1 - 70 / 292)
+    assert (first.width(), second.width()) == pytest.approx((222, 70))
+
+    split.setWidth(108)
+    _pump()
+    assert split.property("splitPosition") == pytest.approx(90 / 160)
+    assert (first.width(), second.width()) == pytest.approx((56.25, 43.75))
+
+    split.setWidth(4)
+    _pump()
+    assert first.width() == pytest.approx(0)
+    assert second.width() == pytest.approx(0)
+
+    split.setWidth(108)
+    split.setProperty("firstMinimumSize", math.nan)
+    split.setProperty("secondMinimumSize", -20)
+    split.setProperty("splitPosition", 2)
+    _pump()
+    assert split.property("splitPosition") == pytest.approx(1)
+    assert (first.width(), second.width()) == pytest.approx((100, 0))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

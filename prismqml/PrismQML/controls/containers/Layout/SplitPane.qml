@@ -19,7 +19,8 @@ Item {
     property int orientation: Qt.Horizontal  // Qt.Horizontal or Qt.Vertical
     property real splitPosition: 0.5  // 0-1 range
     property int handleWidth: Enums.comboBoxMetrics.scrollBarWidth
-    property int minimumSize: 50
+    property real firstMinimumSize: Enums.controlSize.splitPaneMinimumSize
+    property real secondMinimumSize: Enums.controlSize.splitPaneMinimumSize
     
     // Content areas 内容区域
     property alias firstContent: firstPane.data
@@ -27,6 +28,15 @@ Item {
     
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isHorizontal: orientation === Qt.Horizontal
+    readonly property real _axisSize: Math.max(0, isHorizontal ? width : height)
+    readonly property real _safeHandleWidth: Math.min(
+        _axisSize,
+        Math.max(0, handleWidth)
+    )
+    readonly property real _availableSize: Math.max(0, _axisSize - _safeHandleWidth)
+    readonly property real _effectiveSplitPosition: _boundedSplitPosition(splitPosition)
+    readonly property real _firstExtent: _availableSize * _effectiveSplitPosition
+    readonly property real _secondExtent: Math.max(0, _availableSize - _firstExtent)
     readonly property color _splitHandleColor: handleArea.pressed
         ? Enums.stateColor.controlBgPressed
         : (handleArea.containsMouse ? Enums.stateColor.controlBgHover
@@ -40,11 +50,49 @@ Item {
     // Get child count 获取子组件数量
     function count() { return 2 }
 
+    // Clamp a requested split against asymmetric minimum extents.
+    // 根据两侧独立最小范围约束请求的分割位置。
+    function _boundedSplitPosition(candidate) {
+        var safeCandidate = isFinite(candidate) ? candidate : 0.5
+        if (_availableSize <= 0)
+            return Math.max(0, Math.min(1, safeCandidate))
+
+        var firstMinimum = isFinite(firstMinimumSize)
+            ? Math.max(0, firstMinimumSize) : 0
+        var secondMinimum = isFinite(secondMinimumSize)
+            ? Math.max(0, secondMinimumSize) : 0
+        var minimumTotal = firstMinimum + secondMinimum
+        if (minimumTotal > _availableSize)
+            return minimumTotal > 0 ? firstMinimum / minimumTotal : 0.5
+
+        var minimumPosition = firstMinimum / _availableSize
+        var maximumPosition = 1 - secondMinimum / _availableSize
+        return Math.max(minimumPosition, Math.min(maximumPosition, safeCandidate))
+    }
+
+    // Keep writable public state aligned with the safe rendered geometry.
+    // 让可写公开状态与安全渲染几何保持一致。
+    function _clampSplitPosition() {
+        var boundedPosition = _boundedSplitPosition(splitPosition)
+        if (!isFinite(splitPosition)
+                || Math.abs(splitPosition - boundedPosition) > 0.0001) {
+            splitPosition = boundedPosition
+        }
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: preferredWidth > 0 ? preferredWidth : 300
     implicitHeight: preferredHeight > 0 ? preferredHeight : 200
     width: implicitWidth
     height: implicitHeight
+    onSplitPositionChanged: _clampSplitPosition()
+    onWidthChanged: _clampSplitPosition()
+    onHeightChanged: _clampSplitPosition()
+    onOrientationChanged: _clampSplitPosition()
+    onHandleWidthChanged: _clampSplitPosition()
+    onFirstMinimumSizeChanged: _clampSplitPosition()
+    onSecondMinimumSizeChanged: _clampSplitPosition()
+    Component.onCompleted: _clampSplitPosition()
 
     // First pane 第一面板
     Item {
@@ -52,8 +100,8 @@ Item {
         objectName: "firstPane"
         anchors.left: parent.left
         anchors.top: parent.top
-        width: control.isHorizontal ? (parent.width - control.handleWidth) * control.splitPosition : parent.width
-        height: control.isHorizontal ? parent.height : (parent.height - control.handleWidth) * control.splitPosition
+        width: control.isHorizontal ? control._firstExtent : parent.width
+        height: control.isHorizontal ? parent.height : control._firstExtent
         clip: true
     }
     
@@ -62,8 +110,8 @@ Item {
         id: handle
         x: control.isHorizontal ? firstPane.width : 0
         y: control.isHorizontal ? 0 : firstPane.height
-        width: control.isHorizontal ? control.handleWidth : parent.width
-        height: control.isHorizontal ? parent.height : control.handleWidth
+        width: control.isHorizontal ? control._safeHandleWidth : parent.width
+        height: control.isHorizontal ? parent.height : control._safeHandleWidth
 
         // Default transparent, tint only on hover/press 默认透明，悬停/按下才着色
         color: control._splitHandleColor
@@ -111,17 +159,10 @@ Item {
                 
                 var currentPos = control.isHorizontal ? mapToItem(control, mouse.x, 0).x : mapToItem(control, 0, mouse.y).y
                 var delta = currentPos - startPos
-                var totalSize = control.isHorizontal 
-                    ? control.width - control.handleWidth 
-                    : control.height - control.handleWidth
-                
-                var newSplit = startSplit + delta / totalSize
-                
-                // Limit minimum size 限制最小尺寸
-                var minRatio = control.minimumSize / totalSize
-                newSplit = Math.max(minRatio, Math.min(1 - minRatio, newSplit))
-                
-                control.splitPosition = newSplit
+                if (control._availableSize <= 0) return
+
+                var newSplit = startSplit + delta / control._availableSize
+                control.splitPosition = control._boundedSplitPosition(newSplit)
             }
         }
     }
@@ -132,8 +173,8 @@ Item {
         objectName: "secondPane"
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        width: control.isHorizontal ? parent.width - firstPane.width - control.handleWidth : parent.width
-        height: control.isHorizontal ? parent.height : parent.height - firstPane.height - control.handleWidth
+        width: control.isHorizontal ? control._secondExtent : parent.width
+        height: control.isHorizontal ? parent.height : control._secondExtent
         clip: true
     }
 }
