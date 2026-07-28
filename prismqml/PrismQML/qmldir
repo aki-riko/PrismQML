@@ -148,6 +148,7 @@ ToolTip controls/feedback/Tooltip/ToolTipEntry.qml
 TooltipCore controls/feedback/Tooltip/TooltipCore.qml
 HintIcon controls/feedback/Tooltip/HintIcon.qml
 SplashScreen controls/feedback/SplashScreen/SplashScreen.qml
+QMLPage controls/feedback/QMLPage.qml
 
 # ==================== Inputs 输入 ====================
 InputCore controls/inputs/InputCore.qml

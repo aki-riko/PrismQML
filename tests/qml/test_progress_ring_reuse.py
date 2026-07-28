@@ -24,12 +24,13 @@ LOADING_OVERLAY = QML_ROOT / "_internal" / "LoadingOverlay.qml"
 LAZY_LOADING_HELPER = (
     QML_ROOT / "controls" / "navigation" / "_internal" / "LazyLoadingHelper.qml"
 )
+QML_PAGE = QML_ROOT / "controls" / "feedback" / "QMLPage.qml"
 SPLASH_SCREEN = (
     QML_ROOT / "controls" / "feedback" / "SplashScreen" / "SplashScreen.qml"
 )
 RING_CONSUMERS = (
     LOADING_OVERLAY,
-    LAZY_LOADING_HELPER,
+    QML_PAGE,
     QML_ROOT / "controls" / "buttons" / "Button" / "ButtonContent.qml",
     SPLASH_SCREEN,
     QML_ROOT / "controls" / "feedback" / "State" / "ResultState.qml",
@@ -252,26 +253,25 @@ def test_ring_consumers_delegate_to_canonical_progress_ring():
             assert marker not in source, (source_path, marker)
 
 
-def test_lazy_and_splash_consumers_preserve_their_legacy_visual_modes():
-    """复用公共实现时仍须保留两类入口原有的不同视觉。"""
-    for source_path in (LOADING_OVERLAY, LAZY_LOADING_HELPER):
+def test_qml_page_and_splash_share_the_orbit_dot_visual_mode():
+    """公开加载页与 SplashScreen 必须保持同款绕圈圆点动画。"""
+    helper_source = LAZY_LOADING_HELPER.read_text(encoding="utf-8")
+    assert "QMLPage {" in helper_source
+
+    for source_path in (QML_PAGE, SPLASH_SCREEN):
         source = source_path.read_text(encoding="utf-8")
         assert (
-            "indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc"
+            "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot"
             in source
         )
-        assert "spinDuration: Enums.duration.scroll" in source
-        assert "trackColorLight: Enums.transparent" in source
-        assert "trackColorDark: Enums.transparent" in source
+        assert "spinDuration: Enums.duration.splashProgressSpin" in source
+        assert "indeterminateDotSize: control._progressDotSize" in source
+        assert "indeterminateDotRadius: control._progressDotRadius" in source
+        assert "indeterminateDotTopMargin: control._progressDotTopMargin" in source
 
-    splash_source = SPLASH_SCREEN.read_text(encoding="utf-8")
-    assert (
-        "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot"
-        in splash_source
-    )
-    assert "indeterminateDotSize: control._progressDotSize" in splash_source
-    assert "indeterminateDotRadius: control._progressDotRadius" in splash_source
-    assert "indeterminateDotTopMargin: control._progressDotTopMargin" in splash_source
+    overlay_source = LOADING_OVERLAY.read_text(encoding="utf-8")
+    assert "indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc" in overlay_source
+    assert "spinDuration: Enums.duration.scroll" in overlay_source
 
 
 def test_all_non_progress_arc_painters_remain_explicitly_classified():

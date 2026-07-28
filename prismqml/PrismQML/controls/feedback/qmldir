@@ -34,3 +34,4 @@ TooltipCore Tooltip/TooltipCore.qml
 
 # SplashScreen 启动画面
 SplashScreen SplashScreen/SplashScreen.qml
+QMLPage QMLPage.qml

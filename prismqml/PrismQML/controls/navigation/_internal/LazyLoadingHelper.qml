@@ -4,7 +4,6 @@
 
 import QtQuick
 import "../../.."
-import "../../data"
 
 // LazyLoadingHelper - Lazy loading logic for StackedWidget 懒加载逻辑辅助器
 // Extracted from StackedWidget for modularity 从StackedWidget提取以模块化
@@ -213,50 +212,18 @@ Item {
     }
 
     // ==================== Content 内容 ====================
-    // Standard loading overlay using the shared ProgressRing 标准加载遮罩，复用共享 ProgressRing
-    Item {
+    // Public QML loading page matching SplashScreen 公开的 SplashScreen 同款 QML 加载页
+    QMLPage {
         id: loadingOverlay
-
-        property alias text: loadingText.text
-        property bool running: visible && opacity > 0
 
         objectName: "lazyLoadingOverlay"
         anchors.fill: parent
+        text: helper.loadingText
+        running: visible && opacity > 0
         visible: false
         opacity: 0
         y: 0
         z: Enums.zIndex.controls
-        
-        Rectangle {
-            anchors.fill: parent
-            color: Enums.transparent  // Transparent to let parent bg show through 透明以显示父级背景
-        }
-        
-        Column {
-            anchors.centerIn: parent
-            spacing: Enums.spacing.xl
-            
-            // Standard progress ring 标准进度环
-            ProgressRing {
-                width: Enums.controlSize.navBarHeight
-                height: Enums.controlSize.navBarHeight
-                anchors.horizontalCenter: parent.horizontalCenter
-                indeterminate: loadingOverlay.running
-                indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc
-                strokeWidth: Enums.controlSize.progressStrokeWidth
-                spinDuration: Enums.duration.scroll
-                trackColorLight: Enums.transparent
-                trackColorDark: Enums.transparent
-            }
-            
-            // Loading text 加载文字
-            Label {
-                id: loadingText
-                type: Enums.label.type_body
-                text: helper.loadingText
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-        }
         
         Behavior on y {
             enabled: !helper.isLoadingSwitching  // Disable during instant show 立即显示时禁用
