@@ -122,13 +122,14 @@ Item {
         anchors.left: parent ? parent.left : undefined
         anchors.right: parent ? parent.right : undefined
         anchors.bottom: parent ? parent.bottom : undefined
-        anchors.rightMargin: mixin.rightInset
+        anchors.rightMargin: parent
+            ? Math.min(Math.max(0, mixin.rightInset), Math.max(0, parent.width)) : 0
         anchors.bottomMargin: Enums.spacing.xxs
 
         target: mixin.target
         scrollHelper: hHelper
         orientation: Qt.Horizontal
-        barWidth: mixin.barWidth
+        barWidth: Math.max(0, mixin.barWidth)
         visible: mixin.showScrollBar && mixin.active
         z: Enums.zIndex.controlsAbove
     }

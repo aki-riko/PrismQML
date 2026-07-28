@@ -13,7 +13,7 @@ Item {
 
     // ==================== Public Props 公开属性 ====================
     property bool searchEnabled: true
-    property string placeholderText: Translator.tr("placeholder_keyword")
+    property string placeholderText: { Translator._v; return Translator.tr("placeholder_keyword") }
     property alias text: lineEdit.text
     
     // ==================== Signals 信号 ====================

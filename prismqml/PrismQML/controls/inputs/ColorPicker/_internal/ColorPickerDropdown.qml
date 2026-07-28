@@ -179,7 +179,7 @@ Item {
             
             ColorPickerChannelSlider {
                 width: parent.width
-                label: Translator.tr("rgb_r")
+                label: { Translator._v; return Translator.tr("rgb_r") }
                 channel: Enums.colorPickerMetrics.dialogRgbChannelR
                 value: Math.round(control.selectedColor.r * Enums.colorPickerMetrics.channelMaxValue)
                 baseColor: control.selectedColor
@@ -193,7 +193,7 @@ Item {
             
             ColorPickerChannelSlider {
                 width: parent.width
-                label: Translator.tr("rgb_g")
+                label: { Translator._v; return Translator.tr("rgb_g") }
                 channel: Enums.colorPickerMetrics.dialogRgbChannelG
                 value: Math.round(control.selectedColor.g * Enums.colorPickerMetrics.channelMaxValue)
                 baseColor: control.selectedColor
@@ -207,7 +207,7 @@ Item {
             
             ColorPickerChannelSlider {
                 width: parent.width
-                label: Translator.tr("rgb_b")
+                label: { Translator._v; return Translator.tr("rgb_b") }
                 channel: Enums.colorPickerMetrics.dialogRgbChannelB
                 value: Math.round(control.selectedColor.b * Enums.colorPickerMetrics.channelMaxValue)
                 baseColor: control.selectedColor
@@ -222,7 +222,7 @@ Item {
             ColorPickerChannelSlider {
                 visible: control.enableAlpha
                 width: parent.width
-                label: Translator.tr("rgb_a")
+                label: { Translator._v; return Translator.tr("rgb_a") }
                 channel: Enums.colorPickerMetrics.channelAlphaIndex
                 value: control._alpha
                 baseColor: control.selectedColor

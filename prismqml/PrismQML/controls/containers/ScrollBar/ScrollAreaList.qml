@@ -40,6 +40,9 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property alias listView: listView
     readonly property int count: listView.count
+    readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property real _scrollBarGutter:
+        Math.max(0, scrollBarWidth) + Enums.spacing.xs
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, var item)
@@ -52,13 +55,24 @@ Item {
     function smoothScrollTo(targetY) { scrollHelper.scrollTo(targetY) }
     function smoothScrollBy(delta) { scrollHelper.scrollBy(delta) }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _scheduleScrollBarUpdate() {
+        if (scrollViewportState) scrollViewportState.invalidate()
+    }
+
+    onWidthChanged: _scheduleScrollBarUpdate()
+    onHeightChanged: _scheduleScrollBarUpdate()
+    onItemHeightChanged: _scheduleScrollBarUpdate()
+    onSpacingChanged: _scheduleScrollBarUpdate()
+    onScrollBarWidthChanged: _scheduleScrollBarUpdate()
+
     // ==================== Content 内容 ====================
     // List view 列表视图
     ListView {
         id: listView
         anchors.fill: parent
-        anchors.rightMargin: showScrollBar && (alwaysShowScrollBar || contentHeight > height)
-            ? scrollBarWidth + Enums.spacing.xs : 0
+        anchors.rightMargin: control._needsScrollBar
+            ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
 
         model: control.model
         // delegateAsync 模式: 包一层 Loader.asynchronous=true, ListView instantiate
@@ -75,6 +89,15 @@ Item {
         highlight: selectable ? highlightComp : null
         highlightFollowsCurrentItem: true
         highlightMoveDuration: Enums.duration.fast
+    }
+
+    ScrollViewportState {
+        id: scrollViewportState
+        target: listView
+        scrollBarsEnabled: control.showScrollBar
+        verticalEnabled: true
+        alwaysShowVertical: control.alwaysShowScrollBar
+        itemCount: listView.count
     }
 
     // 异步 delegate 包装: Loader 几乎零创建成本, 真组件下一帧填充。
@@ -137,7 +160,7 @@ Item {
         target: listView
         scrollHelper: scrollHelper
         orientation: Qt.Vertical
-        barWidth: scrollBarWidth
-        visible: showScrollBar && (alwaysShowScrollBar || listView.contentHeight > listView.height)
+        barWidth: Math.max(0, scrollBarWidth)
+        visible: control._needsScrollBar
     }
 }

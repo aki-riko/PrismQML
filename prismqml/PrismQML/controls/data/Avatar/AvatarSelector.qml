@@ -83,7 +83,7 @@ Avatar {
     // File dialog 文件对话框
     FileDialog {
         id: fileDialog
-        title: Translator.tr("select_avatar")
+        title: { Translator._v; return Translator.tr("select_avatar") }
         nameFilters: ["Image files (*.png *.jpg *.jpeg *.bmp *.gif)"]
         onAccepted: {
             if (control.enableCrop) {

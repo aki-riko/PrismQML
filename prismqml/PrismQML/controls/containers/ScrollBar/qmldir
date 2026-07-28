@@ -14,3 +14,4 @@ ScrollAreaGrid ScrollAreaGrid.qml
 # Helper 辅助
 SmoothScrollHelper SmoothScrollHelper.qml
 PopupSmoothScroll PopupSmoothScroll.qml
+ScrollViewportState ScrollViewportState.qml

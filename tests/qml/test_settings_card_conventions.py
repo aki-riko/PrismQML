@@ -12,7 +12,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
-from prismqml import register_types
+from prismqml import configure_qml_environment, register_types
 from scripts.qml_conventions import scan_source_text
 
 
@@ -40,6 +40,15 @@ Window {
     readonly property var cardValue: card.getValue()
     readonly property bool cardExpanded: card.expanded
     readonly property int folderCount: card.folders.length
+    readonly property string cardPlaceholder: card.placeholderText
+    readonly property string contentPlaceholder: settingsCardContent.placeholderText
+    readonly property string cardAddButtonText: card.addButtonText
+    readonly property string contentShortcutPlaceholder: settingsCardContent.shortcutPlaceholder
+    readonly property string translatedPlaceholder: {
+        Translator._v
+        return Translator.tr("placeholder_select")
+    }
+    readonly property string translatorLanguage: Translator.language
     readonly property bool coreExpandable: core.expandable
     readonly property bool coreExpanded: core.expanded
     readonly property real coreHeight: core.implicitHeight
@@ -68,6 +77,8 @@ Window {
     }
     function removeGroupCard() { group.removeCard(addedGroupCard) }
     function clearGroupCards() { group.clearCards() }
+    function useEnglish() { Translator.setLanguage(Enums.lang.en) }
+    function useSimplifiedChinese() { Translator.setLanguage(Enums.lang.zh_CN) }
 
     width: 760
     height: 520
@@ -137,11 +148,12 @@ Window {
     }
 
     SettingsCardContent {
+        id: settingsCardContent
         objectName: "settingsCardContent"
         x: 380
         y: 260
-        type: Enums.settingCard.type_push
-        buttonText: "Apply"
+        type: Enums.settingCard.type_combobox
+        model: ["One", "Two"]
     }
 }
 """
@@ -186,6 +198,7 @@ def _visual_items(item):
 
 
 def _create_scene():
+    configure_qml_environment()
     engine = QQmlApplicationEngine()
     warnings = []
     engine.warnings.connect(
@@ -318,6 +331,26 @@ def test_settings_card_core_and_group_composition(settings_scene):
     assert not any(
         item.objectName() == "dynamicGroupCard" for item in _visual_items(group)
     )
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_settings_card_default_placeholder_follows_runtime_language(settings_scene):
+    window, _items, warnings, windows_before = settings_scene
+
+    assert QMetaObject.invokeMethod(window, "useEnglish")
+    assert _wait_for(lambda: window.property("translatedPlaceholder") == "Select")
+    assert window.property("translatorLanguage") == "en"
+    assert window.property("cardPlaceholder") == "Select"
+    assert window.property("contentPlaceholder") == "Select"
+    assert window.property("cardAddButtonText") == "Add Folder"
+    assert window.property("contentShortcutPlaceholder") == "Click to record shortcut"
+
+    assert QMetaObject.invokeMethod(window, "useSimplifiedChinese")
+    assert _wait_for(lambda: window.property("cardPlaceholder") == "请选择")
+    assert window.property("contentPlaceholder") == "请选择"
+    assert window.property("cardAddButtonText") == "添加文件夹"
+    assert window.property("contentShortcutPlaceholder") == "点击录入快捷键"
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

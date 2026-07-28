@@ -12,7 +12,7 @@ Item {
     id: control
     
     property string icon: Enums.icon.mail_inbox_dismiss
-    property string title: Translator.tr("no_data")
+    property string title: { Translator._v; return Translator.tr("no_data") }
     property string description: ""
     property string actionText: ""
     

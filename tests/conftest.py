@@ -21,6 +21,12 @@ from scripts.test_process import prepare_automated_test_process
 # 强制自动化测试无界面运行，并禁止原生崩溃弹窗。
 prepare_automated_test_process()
 
+from prismqml import configure_qml_environment
+
+# Enable local translation resources before the suite creates its first QML engine.
+# 在测试套件创建首个 QML 引擎前启用本地翻译资源。
+configure_qml_environment()
+
 import pytest
 
 

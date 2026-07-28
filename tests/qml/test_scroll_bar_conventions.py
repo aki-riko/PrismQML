@@ -64,6 +64,7 @@ Window {
     readonly property real listContentHeight: listArea.contentHeight
     readonly property int listCount: listArea.count
     readonly property real gridY: gridArea.contentY
+    readonly property real gridOriginY: gridArea.gridView.originY
     readonly property real gridContentHeight: gridArea.contentHeight
     readonly property int gridCount: gridArea.count
 
@@ -434,7 +435,9 @@ def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
     assert _wait_for(lambda: window.property("listCount") == 20)
     assert _wait_for(lambda: window.property("gridCount") == 20)
     assert window.property("listContentHeight") > 120
-    assert window.property("gridContentHeight") > 120
+    # The vertical gutter changes this fixed scene from three to two columns.
+    # 垂直避让槽会让该固定场景从三列重排为两列，滚动前必须等布局稳定。
+    assert _wait_for(lambda: window.property("gridContentHeight") == pytest.approx(400))
 
     assert QMetaObject.invokeMethod(window, "scrollDefault")
     assert _wait_for(lambda: window.property("defaultY") == pytest.approx(160))
@@ -442,8 +445,18 @@ def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
     assert QMetaObject.invokeMethod(window, "scrollList")
     assert _wait_for(lambda: window.property("listY") == pytest.approx(300))
     assert QMetaObject.invokeMethod(window, "scrollGrid")
-    grid_max = window.property("gridContentHeight") - 120
-    assert _wait_for(lambda: window.property("gridY") == pytest.approx(grid_max))
+    assert _wait_for(
+        lambda: window.property("gridY")
+        == pytest.approx(
+            window.property("gridOriginY")
+            + window.property("gridContentHeight")
+            - 120
+        )
+    ), (
+        window.property("gridY"),
+        window.property("gridOriginY"),
+        window.property("gridContentHeight"),
+    )
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

@@ -57,6 +57,9 @@ Rectangle {
     readonly property int _externalModelLength:
         model === null || model === undefined ? 0
         : (typeof model.length === "number" ? model.length : 0)
+    readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property real _scrollBarGutter:
+        Math.max(0, scrollBarWidth) + Enums.spacing.xs
 
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, var item)
@@ -400,11 +403,19 @@ Rectangle {
         }
     }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _scheduleScrollBarUpdate() {
+        if (scrollViewportState) scrollViewportState.invalidate()
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.listDefaultWidth
     implicitHeight: Enums.controlSize.listDefaultHeight
     color: cardColor
     radius: borderRadius
+    onWidthChanged: _scheduleScrollBarUpdate()
+    onHeightChanged: _scheduleScrollBarUpdate()
+    onScrollBarWidthChanged: _scheduleScrollBarUpdate()
 
     // ==================== Content 内容 ====================
     // Internal model 内部模型
@@ -415,7 +426,8 @@ Rectangle {
         id: listView
         objectName: "listWidgetViewport"
         anchors.fill: parent
-        anchors.rightMargin: showScrollBar && contentHeight > height ? scrollBarWidth + Enums.spacing.xs : 0
+        anchors.rightMargin: control._needsScrollBar
+            ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
         clip: true
         boundsBehavior: Flickable.DragAndOvershootBounds
         interactive: false
@@ -438,6 +450,14 @@ Rectangle {
             control.currentRowChanged(currentIndex)
             control._previousItem = currentItem
         }
+    }
+
+    ScrollViewportState {
+        id: scrollViewportState
+        target: listView
+        scrollBarsEnabled: control.showScrollBar
+        verticalEnabled: true
+        itemCount: listView.count
     }
     
     // Smooth scroll helper 平滑滚动助手
@@ -464,8 +484,8 @@ Rectangle {
         target: listView
         scrollHelper: scrollHelper
         orientation: Qt.Vertical
-        barWidth: scrollBarWidth
-        visible: showScrollBar && listView.contentHeight > listView.height
+        barWidth: Math.max(0, scrollBarWidth)
+        visible: control._needsScrollBar
     }
 
     // Default delegate 默认委托

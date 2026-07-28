@@ -31,14 +31,13 @@ Item {
     property alias contentWidth: flickable.contentWidth
     property alias flickableItem: flickable
     
-    // ==================== Internal Props 内部属性 ====================
-    // Track if scrollbar should show (breaks binding loop) 跟踪滚动条是否显示
-    property bool _needsVScrollBar: false
-    property bool _needsHScrollBar: false
-
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _canScrollV: orientation & Qt.Vertical
     readonly property bool _canScrollH: orientation & Qt.Horizontal
+    readonly property alias _needsVScrollBar: scrollViewportState.needsVertical
+    readonly property alias _needsHScrollBar: scrollViewportState.needsHorizontal
+    readonly property real _scrollBarGutter:
+        Math.max(0, scrollBarWidth) + Enums.spacing.xs
 
     // ==================== Public Methods 公开方法 ====================
     function smoothScrollTo(targetY) {
@@ -59,8 +58,7 @@ Item {
 
     // ==================== Internal Methods 内部方法 ====================
     function _updateScrollBar() {
-        _needsVScrollBar = _canScrollV && flickable.contentHeight > flickable.height
-        _needsHScrollBar = _canScrollH && flickable.contentWidth > flickable.width
+        if (scrollViewportState) scrollViewportState.invalidate()
     }
 
     function _scrollViewport(item) {
@@ -109,6 +107,7 @@ Item {
 
     onHeightChanged: Qt.callLater(_updateScrollBar)
     onWidthChanged: Qt.callLater(_updateScrollBar)
+    onScrollBarWidthChanged: _updateScrollBar()
 
     // ==================== Content 内容 ====================
     // Flickable scroll area 可滚动区域
@@ -118,8 +117,10 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.right: parent.right
-        anchors.rightMargin: showScrollBar && control._needsVScrollBar ? scrollBarWidth + Enums.spacing.xs : 0
-        anchors.bottomMargin: showScrollBar && control._needsHScrollBar ? scrollBarWidth + Enums.spacing.xs : 0
+        anchors.rightMargin: showScrollBar && control._needsVScrollBar
+            ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
+        anchors.bottomMargin: showScrollBar && control._needsHScrollBar
+            ? Math.min(control._scrollBarGutter, Math.max(0, parent.height)) : 0
 
         // childrenRect 在子项使用 anchors.fill / Layout.fillHeight 时会坍缩到 0;
         // 由 contentHolder 自己用一次性 implicit 兜底, 不在 Flickable 这条绑定里跑 for 循环
@@ -128,9 +129,6 @@ Item {
         contentHeight: contentHolder.implicitHeight + control.padding * 2
         clip: true
         interactive: false
-
-        onContentHeightChanged: Qt.callLater(control._updateScrollBar)
-        onContentWidthChanged: Qt.callLater(control._updateScrollBar)
 
         Item {
             id: contentHolder
@@ -148,6 +146,14 @@ Item {
             implicitWidth: childrenRect.width
             implicitHeight: childrenRect.height
         }
+    }
+
+    ScrollViewportState {
+        id: scrollViewportState
+        target: flickable
+        scrollBarsEnabled: control.showScrollBar
+        verticalEnabled: control._canScrollV
+        horizontalEnabled: control._canScrollH
     }
     
     // Smooth scroll helpers 平滑滚动助手
@@ -179,13 +185,15 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: control._needsHScrollBar ? scrollBarWidth + Enums.spacing.xs : Enums.spacing.xxs
+        anchors.bottomMargin: control._needsHScrollBar
+            ? Math.min(control._scrollBarGutter, Math.max(0, parent.height))
+            : Enums.spacing.xxs
         anchors.margins: Enums.spacing.xxs
         
         target: flickable
         scrollHelper: vScrollHelper
         orientation: Qt.Vertical
-        barWidth: scrollBarWidth
+        barWidth: Math.max(0, scrollBarWidth)
         visible: showScrollBar && control._needsVScrollBar
     }
     
@@ -196,13 +204,15 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.leftMargin: Enums.spacing.xxs
-        anchors.rightMargin: control._needsVScrollBar ? scrollBarWidth + Enums.spacing.xs : Enums.spacing.xxs
+        anchors.rightMargin: control._needsVScrollBar
+            ? Math.min(control._scrollBarGutter, Math.max(0, parent.width))
+            : Enums.spacing.xxs
         anchors.bottomMargin: Enums.spacing.xxs
         
         target: flickable
         scrollHelper: hScrollHelper
         orientation: Qt.Horizontal
-        barWidth: scrollBarWidth
+        barWidth: Math.max(0, scrollBarWidth)
         visible: showScrollBar && control._needsHScrollBar
     }
 

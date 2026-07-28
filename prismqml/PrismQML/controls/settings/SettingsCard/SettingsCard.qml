@@ -47,7 +47,7 @@ Item {
     property var model: []
     property int currentIndex: -1
     property string currentText: currentIndex >= 0 && currentIndex < _safeModel.length ? _safeModel[currentIndex] : ""
-    property string placeholderText: Translator.tr("placeholder_select")
+    property string placeholderText: { _tv; return Translator.tr("placeholder_select") }
     
     // Range properties 滑块属性
     property real value: 0
@@ -68,7 +68,7 @@ Item {
     // Folder list properties 文件夹列表属性
     property var folders: []
     property string directory: ""
-    property string addButtonText: Translator.tr("add_folder")
+    property string addButtonText: { _tv; return Translator.tr("add_folder") }
     
     // Custom color properties 自定义颜色属性
     property color defaultColor: Enums.accentColor
@@ -542,7 +542,7 @@ Item {
     // Folder dialog 文件夹对话框
     FolderDialog {
         id: folderDialog
-        title: Translator.tr("choose_folder")
+        title: { control._tv; return Translator.tr("choose_folder") }
         currentFolder: control.directory !== "" ? "file:///" + control.directory : ""
         onAccepted: {
             var folderPath = decodeURIComponent(selectedFolder.toString().replace(/^(file:\/{2,3})/, ""))

@@ -156,7 +156,7 @@ Item {
         fuzzyMatch: control.fuzzyMatch
         maxSuggestions: control.maxSuggestions
         highlightMatches: control.highlightMatches
-        emptyText: control.emptyText || Translator.tr('no_results')
+        emptyText: { Translator._v; return control.emptyText || Translator.tr('no_results') }
 
         onEntrySelected: function(entry) {
             control.entrySelected(entry)

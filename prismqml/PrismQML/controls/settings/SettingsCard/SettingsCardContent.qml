@@ -30,7 +30,7 @@ Item {
     // ComboBox properties 下拉框属性
     property var model: []
     property int currentIndex: -1
-    property string placeholderText: Translator.tr("placeholder_select")
+    property string placeholderText: { _tv; return Translator.tr("placeholder_select") }
     
     // Range properties 滑块属性
     property real value: 0
@@ -40,7 +40,7 @@ Item {
     
     // Shortcut properties 快捷键属性
     property string shortcut: ""
-    property string shortcutPlaceholder: Translator.tr("click_to_record")
+    property string shortcutPlaceholder: { _tv; return Translator.tr("click_to_record") }
     
     // Hyperlink properties 超链接属性
     property string url: ""

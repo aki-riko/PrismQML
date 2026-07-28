@@ -17,7 +17,7 @@ InputCore {
     // ==================== Public Props 公开属性 ====================
     property string shortcut: ""
     property string defaultShortcut: ""  // Default shortcut for reset 重置用默认快捷键
-    property string placeholderText: Translator.tr("click_to_record")
+    property string placeholderText: { Translator._v; return Translator.tr("click_to_record") }
     property bool recording: false
     property bool allowSingleKey: false  // Allow single key without modifier 允许单键录制（无需修饰键）
 
@@ -166,7 +166,7 @@ InputCore {
                 type: Enums.label.type_body
                 anchors.verticalCenter: parent.verticalCenter
                 visible: control.recording
-                text: Translator.tr("recording")
+                text: { Translator._v; return Translator.tr("recording") }
                 color: Enums.accentColor
                 
                 SequentialAnimation on opacity {

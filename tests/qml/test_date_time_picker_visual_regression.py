@@ -152,6 +152,13 @@ def test_selected_row_text_stays_above_opaque_highlight(qapp):
                 for loader in loaders
             ]
             == expected_indices
+        ), (
+            [
+                loader.property("item").property("currentIndex")
+                for loader in loaders
+            ],
+            expected_indices,
+            picker.property("_yearFirst"),
         )
         assert warnings == []
     finally:

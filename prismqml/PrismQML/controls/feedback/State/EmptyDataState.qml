@@ -13,7 +13,7 @@ Item {
     id: control
     
     property string image: ""  // Image path or emoji 图片路径或emoji
-    property string title: Translator.tr("no_data")  // No data 暂无数据
+    property string title: { Translator._v; return Translator.tr("no_data") }  // No data 暂无数据
     property int imageWidth: 128
     property int imageHeight: 128
     

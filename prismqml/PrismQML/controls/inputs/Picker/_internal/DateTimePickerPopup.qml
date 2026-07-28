@@ -15,6 +15,7 @@ Column {
     property var control  // Parent DateTimePicker 父日期时间选择器
 
     // Loader aliases for parent control 给父控件使用的 Loader 别名
+    property alias col1Loader: col1Loader
     property alias col2Loader: col2Loader
     property alias col3Loader: col3Loader
     property alias hourWheelLoader: hourWheelLoader
@@ -43,6 +44,7 @@ Column {
             // Date wheels (order depends on _yearFirst) 日期滚轮（顺序取决于_yearFirst）
             // Column 1: year when year-first, otherwise month 第1列：年优先时为年，否则为月
             Loader {
+                id: col1Loader
                 active: control ? (control._hasDate && (control._yearFirst ? control._showYear : control._showMonth)) : false
                 width: active ? parent.parent._wheelWidth : 0
                 height: parent.height
@@ -50,7 +52,7 @@ Column {
                     items: control ? (control._yearFirst ? control._buildYearModel() : control._buildMonthModel()) : []
                     currentIndex: control ? (control._yearFirst ? control._tempYear - control.minYear : control._tempMonth - 1) : 0
                     onCurrentIndexChanged: {
-                        if (!control) return
+                        if (!control || control._initializing) return
                         if (control._yearFirst) { control._tempYear = control.minYear + currentIndex; control._updateDayWheel() }
                         else { control._tempMonth = currentIndex + 1; control._updateDayWheel() }
                     }
@@ -67,7 +69,7 @@ Column {
                     items: control ? (control._yearFirst ? control._buildMonthModel() : control._buildDayModel()) : []
                     currentIndex: control ? (control._yearFirst ? control._tempMonth - 1 : control._tempDay - 1) : 0
                     onCurrentIndexChanged: {
-                        if (!control) return
+                        if (!control || control._initializing) return
                         if (control._yearFirst) { control._tempMonth = currentIndex + 1; control._updateDayWheel() }
                         else control._tempDay = currentIndex + 1
                     }
@@ -84,7 +86,7 @@ Column {
                     items: control ? (control._yearFirst ? control._buildDayModel() : control._buildYearModel()) : []
                     currentIndex: control ? (control._yearFirst ? control._tempDay - 1 : control._tempYear - control.minYear) : 0
                     onCurrentIndexChanged: {
-                        if (!control) return
+                        if (!control || control._initializing) return
                         if (control._yearFirst) control._tempDay = currentIndex + 1
                         else { control._tempYear = control.minYear + currentIndex; control._updateDayWheel() }
                     }

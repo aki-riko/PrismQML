@@ -21,7 +21,7 @@ Item {
     required property var diagnosticFunc // Diagnostic stage callback 诊断阶段回调
     
     // ==================== Public Props 公开属性 ====================
-    property string loadingText: Translator.tr("loading")
+    property string loadingText: { Translator._v; return Translator.tr("loading") }
     property int animationType: Enums.animation.opacity  // Animation type from parent 父级动画类型
     property int animationDuration: Enums.duration.slow  // Animation duration 动画时长
     property int loaderActivationDelay: Enums.duration.none  // Extra delay before Loader activation Loader 激活前额外延迟

@@ -12,7 +12,7 @@ Rectangle {
     id: root
     
     property bool loading: false
-    property string text: Translator.tr("loading")
+    property string text: { Translator._v; return Translator.tr("loading") }
     property color backgroundColor: Enums.backgroundColor
 
     color: backgroundColor

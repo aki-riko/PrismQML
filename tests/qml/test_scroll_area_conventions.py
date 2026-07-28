@@ -44,6 +44,7 @@ Window {
     readonly property int gridType: Enums.scroll.type_grid
     readonly property int areaType: area.type
     readonly property real areaY: area.contentY
+    readonly property real areaOriginY: area.flickableItem ? area.flickableItem.originY : 0
     readonly property real areaContentHeight: area.contentHeight
     readonly property int areaCount: area.count
     readonly property real areaImplicitWidth: area.implicitWidth
@@ -200,8 +201,14 @@ def test_scroll_area_switches_list_grid_and_back(scroll_area_scene):
     assert _wait_for(lambda: window.property("areaCount") == 20)
     assert _wait_for(lambda: indices and indices[-1] == 6)
     assert QMetaObject.invokeMethod(window, "scrollBottom")
-    grid_max = window.property("areaContentHeight") - area.height()
-    assert _wait_for(lambda: window.property("areaY") == pytest.approx(grid_max))
+    assert _wait_for(
+        lambda: window.property("areaY")
+        == pytest.approx(
+            window.property("areaOriginY")
+            + window.property("areaContentHeight")
+            - area.height()
+        )
+    )
     assert QMetaObject.invokeMethod(window, "scrollTop")
     assert _wait_for(lambda: window.property("areaY") == pytest.approx(0))
 

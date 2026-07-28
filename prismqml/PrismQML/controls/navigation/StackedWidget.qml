@@ -28,7 +28,7 @@ Item {
     // QML lazy-loading props for pure QML usage 纯QML使用的懒加载属性
     property bool lazyLoading: false
     property var pageSources: []  // QML file paths QML文件路径列表
-    property string loadingText: Translator.tr("loading")
+    property string loadingText: { Translator._v; return Translator.tr("loading") }
     property var _loaders: []
     readonly property real _startupProfileStart: Date.now()
     property real _startupProfileLast: _startupProfileStart

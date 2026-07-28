@@ -70,6 +70,9 @@ Rectangle {
     readonly property color borderColor: Enums.stateColor.borderLight
     readonly property color textColor: Enums.textColor.primary
     readonly property color secondaryColor: Enums.textColor.secondary
+    readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property real _scrollBarGutter:
+        Math.max(0, scrollBarWidth) + Enums.spacing.xs
 
     // ==================== Signals 信号 ====================
     signal itemClicked(var item, int index)
@@ -95,6 +98,9 @@ Rectangle {
     function _normalizeItem(item) { return Core.normalizeItem(item) }
     function _setExpandedRecursive(items, expanded) { Core.setExpandedRecursive(items, expanded) }
     function _sortRecursive(items, order) { Core.sortRecursive(items, order) }
+    function _scheduleScrollBarUpdate() {
+        if (scrollViewportState) scrollViewportState.invalidate()
+    }
     // ==================== Public Methods 公开方法 ====================
     function topLevelItemCount() { return Api.topLevelItemCount(control) }
     function topLevelItem(index) { return Api.topLevelItem(control, index) }
@@ -146,6 +152,10 @@ Rectangle {
     color: Enums.transparent
     Component.onCompleted: Core.rebuildModel(control, internalModel)
     onModelChanged: Core.rebuildModel(control, internalModel)
+    onWidthChanged: _scheduleScrollBarUpdate()
+    onHeightChanged: _scheduleScrollBarUpdate()
+    onItemHeightChanged: _scheduleScrollBarUpdate()
+    onScrollBarWidthChanged: _scheduleScrollBarUpdate()
 
     // ==================== Content 内容 ====================
     // Internal model 内部模型
@@ -222,8 +232,8 @@ Rectangle {
 
                     objectName: "treeWidgetViewport"
                     anchors.fill: parent
-                    anchors.rightMargin: control.showScrollBar && contentHeight > height
-                        ? control.scrollBarWidth + Enums.spacing.xs : 0
+                    anchors.rightMargin: control._needsScrollBar
+                        ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
                     interactive: false
@@ -268,6 +278,14 @@ Rectangle {
                         }
                     }
                 }
+
+                ScrollViewportState {
+                    id: scrollViewportState
+                    target: listView
+                    scrollBarsEnabled: control.showScrollBar
+                    verticalEnabled: true
+                    itemCount: internalModel.count
+                }
                 
                 SmoothScrollHelper {
                     id: scrollHelper
@@ -287,8 +305,8 @@ Rectangle {
                     target: listView
                     scrollHelper: scrollHelper
                     orientation: Qt.Vertical
-                    barWidth: control.scrollBarWidth
-                    visible: control.showScrollBar && listView.contentHeight > listView.height
+                    barWidth: Math.max(0, control.scrollBarWidth)
+                    visible: control._needsScrollBar
                 }
                 
                 MouseArea {

@@ -17,8 +17,8 @@ Window {
     
     // ==================== Public Props 公开属性 ====================
     property var contentItem: null  // Custom content component 自定义内容组件
-    property string confirmText: Translator.tr("ok")
-    property string cancelText: Translator.tr("cancel")
+    property string confirmText: { Translator._v; return Translator.tr("ok") }
+    property string cancelText: { Translator._v; return Translator.tr("cancel") }
     property bool showCancelButton: true
     property bool deleteOnClose: true
     

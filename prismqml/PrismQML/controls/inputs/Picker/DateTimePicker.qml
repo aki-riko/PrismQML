@@ -115,25 +115,89 @@ Rectangle {
         initTimer.restart()
     }
 
-    function _initWheelPositions() {
-        if (!_popupLoader.item) return
-        var popup = _popupLoader.item
-        if (popup.hourWheelLoader.item) {
-            if (_is12Hour && !_tempUse24H) {
-                var h12 = _tempHour % 12
-                if (h12 === 0) h12 = 12
-                popup.hourWheelLoader.item.setCurrentIndex(h12 - 1)
-            } else {
-                popup.hourWheelLoader.item.setCurrentIndex(_tempHour)
-            }
+    function _dateWheelLoaders(popup) {
+        return {
+            year: _yearFirst ? popup.col1Loader : popup.col3Loader,
+            month: _yearFirst ? popup.col2Loader : popup.col1Loader,
+            day: _yearFirst ? popup.col3Loader : popup.col2Loader
         }
-        if (popup.ampmWheelLoader.item) popup.ampmWheelLoader.item.setCurrentIndex(_tempHour < 12 ? 0 : 1)
-        if (popup.minuteWheelLoader.item) popup.minuteWheelLoader.item.setCurrentIndex(_tempMinute)
-        if (popup.secondWheelLoader.item) popup.secondWheelLoader.item.setCurrentIndex(_tempSecond)
-        _initializing = false
     }
 
-    function closePopup() { pickerPopup.close(); isOpen = false }
+    function _wheelLoadersReady(popup, dateLoaders) {
+        var dateReady = !_hasDate
+            || ((!_showYear || dateLoaders.year.item)
+                && (!_showMonth || dateLoaders.month.item)
+                && (!_showDay || dateLoaders.day.item))
+        var timeReady = !_hasTime
+            || ((!_showHour || popup.hourWheelLoader.item)
+                && (!_showMinute || popup.minuteWheelLoader.item)
+                && (!_showSecond || popup.secondWheelLoader.item)
+                && (!_is12Hour || popup.ampmWheelLoader.item))
+        return dateReady && timeReady
+    }
+
+    function _initializeDateWheels(dateLoaders) {
+        if (!_hasDate) return
+        if (dateLoaders.year.item)
+            dateLoaders.year.item.setCurrentIndex(_tempYear - minYear)
+        if (dateLoaders.month.item)
+            dateLoaders.month.item.setCurrentIndex(_tempMonth - 1)
+        if (dateLoaders.day.item)
+            dateLoaders.day.item.setCurrentIndex(_tempDay - 1)
+    }
+
+    function _initializeTimeWheels(popup) {
+        if (popup.hourWheelLoader.item) {
+            var hourIndex = _tempHour
+            if (_is12Hour && !_tempUse24H) {
+                hourIndex = _tempHour % 12
+                if (hourIndex === 0) hourIndex = 12
+                hourIndex--
+            }
+            popup.hourWheelLoader.item.setCurrentIndex(hourIndex)
+        }
+        if (popup.ampmWheelLoader.item)
+            popup.ampmWheelLoader.item.setCurrentIndex(_tempHour < 12 ? 0 : 1)
+        if (popup.minuteWheelLoader.item)
+            popup.minuteWheelLoader.item.setCurrentIndex(_tempMinute)
+        if (popup.secondWheelLoader.item)
+            popup.secondWheelLoader.item.setCurrentIndex(_tempSecond)
+    }
+
+    function _initWheelPositions() {
+        if (!isOpen) {
+            _initializing = false
+            return
+        }
+        if (!_popupLoader.item) {
+            initTimer.restart()
+            return
+        }
+        var popup = _popupLoader.item
+        var dateLoaders = _dateWheelLoaders(popup)
+        if (!_wheelLoadersReady(popup, dateLoaders)) {
+            initTimer.restart()
+            return
+        }
+        // Let each wheel finish its own deferred model synchronization first.
+        // 先让各滚轮完成自身的延迟模型同步，再统一落定初始位置。
+        Qt.callLater(function() {
+            if (!control.isOpen) {
+                control._initializing = false
+                return
+            }
+            control._initializeDateWheels(dateLoaders)
+            control._initializeTimeWheels(popup)
+            control._initializing = false
+        })
+    }
+
+    function closePopup() {
+        initTimer.stop()
+        _initializing = false
+        pickerPopup.close()
+        isOpen = false
+    }
 
     function reset() {
         if (_hasDate) { year = 0; month = 0; day = 0 }

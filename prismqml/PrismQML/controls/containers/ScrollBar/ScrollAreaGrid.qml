@@ -38,6 +38,9 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property alias gridView: gridView
     readonly property int count: gridView.count
+    readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property real _scrollBarGutter:
+        Math.max(0, scrollBarWidth) + Enums.spacing.xs
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, var item)
@@ -49,12 +52,24 @@ Item {
     function smoothScrollTo(targetY) { scrollHelper.scrollTo(targetY) }
     function smoothScrollBy(delta) { scrollHelper.scrollBy(delta) }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _scheduleScrollBarUpdate() {
+        if (scrollViewportState) scrollViewportState.invalidate()
+    }
+
+    onWidthChanged: _scheduleScrollBarUpdate()
+    onHeightChanged: _scheduleScrollBarUpdate()
+    onCellWidthChanged: _scheduleScrollBarUpdate()
+    onCellHeightChanged: _scheduleScrollBarUpdate()
+    onScrollBarWidthChanged: _scheduleScrollBarUpdate()
+
     // ==================== Content 内容 ====================
     // Grid view 网格视图
     GridView {
         id: gridView
         anchors.fill: parent
-        anchors.rightMargin: showScrollBar && contentHeight > height ? scrollBarWidth + Enums.spacing.xs : 0
+        anchors.rightMargin: control._needsScrollBar
+            ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
         
         model: control.model
         delegate: control.delegate
@@ -70,6 +85,14 @@ Item {
         highlight: selectable ? highlightComp : null
         highlightFollowsCurrentItem: true
         highlightMoveDuration: Enums.duration.fast
+    }
+
+    ScrollViewportState {
+        id: scrollViewportState
+        target: gridView
+        scrollBarsEnabled: control.showScrollBar
+        verticalEnabled: true
+        itemCount: gridView.count
     }
     
     Component {
@@ -104,7 +127,7 @@ Item {
         target: gridView
         scrollHelper: scrollHelper
         orientation: Qt.Vertical
-        barWidth: scrollBarWidth
-        visible: showScrollBar && gridView.contentHeight > gridView.height
+        barWidth: Math.max(0, scrollBarWidth)
+        visible: control._needsScrollBar
     }
 }

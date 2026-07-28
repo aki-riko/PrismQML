@@ -10,7 +10,7 @@ Rectangle {
     id: control
 
     // ==================== Public Props 公开属性 ====================
-    property string text: Translator.tr("loading")  // Loading message 加载提示
+    property string text: { Translator._v; return Translator.tr("loading") }  // Loading message 加载提示
     property bool running: visible                  // Run animation while loading 加载时运行动画
     property color backgroundColor: Enums.backgroundColor  // Page background 页面背景
 

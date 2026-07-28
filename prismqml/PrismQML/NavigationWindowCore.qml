@@ -26,7 +26,7 @@ WindowsCore {
     property real navigationScrollStep: Enums.spacing.navigationScrollStep
     property bool micaEnabled: false
     property bool lazyLoading: false
-    property string loadingText: Translator.tr("loading")
+    property string loadingText: { Translator._v; return Translator.tr("loading") }
     property bool splashEnabled: true  // Enable the shared startup overlay 启用通用启动覆盖层
     property string splashIcon: ""  // Empty inherits windowIcon 空值继承窗口图标
     property string splashTitle: ""  // Empty inherits windowTitle 空值继承窗口标题

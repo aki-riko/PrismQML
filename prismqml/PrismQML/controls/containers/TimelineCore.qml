@@ -41,16 +41,15 @@ Item {
     property string selectedRole: "commit"   // card 对象里用作唯一标识的字段名
     property var selectedKey: undefined        // 当前选中值(与 card[selectedRole] 比对)
 
-    // ==================== Internal Props 内部属性 ====================
-    property bool _needsVirtualScrollBar: false
-    property bool _scrollBarUpdatePending: false
-
     // ==================== Readonly State 只读状态 ====================
     readonly property var _safeItems:
         items === null || items === undefined ? []
         : (typeof items.length === "number" ? items : [])
     readonly property bool _graphMode: type === Enums.timeline.type_graph
     readonly property bool _usesVirtualList: virtualized || _graphMode
+    readonly property alias _needsVirtualScrollBar: scrollViewportState.needsVertical
+    readonly property real _scrollBarGutter:
+        Math.max(0, scrollBarWidth) + Enums.spacing.xs
     readonly property real _graphWidth: Enums.spacing.timelineGraphPadding * 2
         + Math.max(1, graphLaneCount) * Enums.spacing.timelineGraphLane
     // 拍平 items 为线性行: [{kind:"header",groupIndex,title,status}, {kind:"card",groupIndex,cardIndex,...}, ...]
@@ -120,13 +119,7 @@ Item {
     }
 
     function _scheduleScrollBarUpdate() {
-        if (_scrollBarUpdatePending) return
-        _scrollBarUpdatePending = true
-        Qt.callLater(function() {
-            _scrollBarUpdatePending = false
-            _needsVirtualScrollBar = _usesVirtualList && showScrollBar
-                && virtualList.contentHeight > virtualList.height
-        })
+        if (scrollViewportState) scrollViewportState.invalidate()
     }
 
     function _getStatusColor(status) {
@@ -152,6 +145,8 @@ Item {
     on_FlatRowsChanged: _syncFlat()
     onShowScrollBarChanged: _scheduleScrollBarUpdate()
     onScrollBarWidthChanged: _scheduleScrollBarUpdate()
+    onWidthChanged: _scheduleScrollBarUpdate()
+    onHeightChanged: _scheduleScrollBarUpdate()
     Component.onCompleted: {
         _syncFlat()
         _scheduleScrollBarUpdate()
@@ -340,7 +335,7 @@ Item {
         objectName: "timelineVirtualViewport"
         anchors.fill: parent
         anchors.rightMargin: control._needsVirtualScrollBar
-            ? control.scrollBarWidth + Enums.spacing.xs : 0
+            ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
         visible: control._usesVirtualList
         model: control._usesVirtualList ? _flatModel : null
         clip: true
@@ -348,9 +343,6 @@ Item {
         reuseItems: true   // 复用 delegate,滚动时不重复实例化(大列表性能关键)
         interactive: false // 关原生 flick,交给 SmoothScrollHelper 接管(否则平滑滚动不生效)
         boundsBehavior: Flickable.StopAtBounds
-        onContentHeightChanged: control._scheduleScrollBarUpdate()
-        onHeightChanged: control._scheduleScrollBarUpdate()
-        onWidthChanged: control._scheduleScrollBarUpdate()
         onContentYChanged: {
             if (contentHeight > height && contentY + height >= contentHeight - 600)
                 control.reachedEnd()
@@ -405,6 +397,7 @@ Item {
                             color: Enums.accentForeground
                         }
                     }
+
                     Label {
                         type: Enums.label.type_body_strong
                         anchors.verticalCenter: parent.verticalCenter
@@ -517,6 +510,14 @@ Item {
 
     }
 
+    ScrollViewportState {
+        id: scrollViewportState
+        target: virtualList
+        scrollBarsEnabled: control._usesVirtualList && control.showScrollBar
+        verticalEnabled: true
+        itemCount: virtualList.count
+    }
+
     // Fluent scrollbar stays outside the reduced virtual viewport.
     // Fluent 滚动条位于缩小后的虚拟视口之外。
     ScrollBar {
@@ -526,7 +527,7 @@ Item {
         anchors.margins: Enums.spacing.xxs
         target: virtualList
         scrollHelper: vScrollHelper
-        barWidth: control.scrollBarWidth
+        barWidth: Math.max(0, control.scrollBarWidth)
         visible: control._needsVirtualScrollBar
     }
 }

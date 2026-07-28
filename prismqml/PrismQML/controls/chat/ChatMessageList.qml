@@ -51,12 +51,14 @@ Item {
     property bool _scrollPending: false
     property bool _layoutPending: false
     property bool _rangeUpdatePending: false
-    property bool _needsScrollBar: false
-    property bool _scrollBarUpdatePending: false
+    property bool _destroying: false
     property real _pendingAnchorDelta: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int messageCount: chatModel.count
+    readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property real _scrollBarGutter:
+        Math.max(0, scrollBarWidth) + Enums.spacing.xs
     readonly property real _loadMargin: Math.max(0, messageViewport.height)
     readonly property real _minimumMessageHeight:
         Enums.spacing.l * 2 + Enums.spacing.m + Enums.spacing.xl
@@ -68,13 +70,7 @@ Item {
 
     // ==================== Internal Methods 内部方法 ====================
     function _scheduleScrollBarUpdate() {
-        if (_scrollBarUpdatePending) return
-        _scrollBarUpdatePending = true
-        Qt.callLater(function() {
-            _scrollBarUpdatePending = false
-            _needsScrollBar = showScrollBar
-                && messageViewport.contentHeight > messageViewport.height
-        })
+        if (scrollViewportState) scrollViewportState.invalidate()
     }
 
     function _setContentY(contentY, keepFollowing) {
@@ -138,6 +134,14 @@ Item {
         })
     }
 
+    function _scheduleSlotMeasurement(slot) {
+        var owner = control
+        Qt.callLater(function() {
+            if (!owner || owner._destroying || !slot || !slot.item) return
+            owner._cacheSlotHeight(slot, slot.item.implicitHeight)
+        })
+    }
+
     function _cacheSlotHeight(slot, measuredHeight) {
         if (!slot || !isFinite(measuredHeight) || measuredHeight <= 0) return
         var previousHeight = slot._measuredHeight
@@ -166,6 +170,7 @@ Item {
             reasoning: "",
             timestamp: timestamp || ""
         })
+        _scheduleScrollBarUpdate()
         if (_followBottom) _scheduleScrollToBottom()
     }
 
@@ -174,12 +179,14 @@ Item {
         var index = chatModel.count - 1
         var previousReasoning = chatModel.get(index).reasoning || ""
         chatModel.setProperty(index, "reasoning", previousReasoning + chunk)
+        _scheduleScrollBarUpdate()
         if (_followBottom) _scheduleScrollToBottom()
     }
 
     function updateLastContent(text) {
         if (chatModel.count === 0) return
         chatModel.setProperty(chatModel.count - 1, "content", text)
+        _scheduleScrollBarUpdate()
         if (_followBottom) _scheduleScrollToBottom()
     }
 
@@ -192,6 +199,7 @@ Item {
         var index = chatModel.count - 1
         var previousContent = chatModel.get(index).content || ""
         chatModel.setProperty(index, "content", previousContent + chunk)
+        _scheduleScrollBarUpdate()
         if (_followBottom) _scheduleScrollToBottom()
     }
 
@@ -200,6 +208,7 @@ Item {
         _pendingAnchorDelta = 0
         messageColumn.height = 0
         _setContentY(0, true)
+        _scheduleScrollBarUpdate()
     }
 
     function scrollToEnd() {
@@ -214,7 +223,10 @@ Item {
 
     onShowScrollBarChanged: _scheduleScrollBarUpdate()
     onScrollBarWidthChanged: _scheduleScrollBarUpdate()
+    onWidthChanged: _scheduleScrollBarUpdate()
+    onHeightChanged: _scheduleScrollBarUpdate()
     Component.onCompleted: _scheduleScrollBarUpdate()
+    Component.onDestruction: _destroying = true
 
     // ==================== Content 内容 ====================
     ListModel {
@@ -227,7 +239,7 @@ Item {
         objectName: "chatMessageViewport"
         anchors.fill: parent
         anchors.rightMargin: control._needsScrollBar
-            ? control.scrollBarWidth + Enums.spacing.xs : 0
+            ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
         contentWidth: width
         contentHeight: messageColumn.height
         clip: true
@@ -239,14 +251,11 @@ Item {
             control._scheduleLoadRangeUpdate()
         }
         onContentHeightChanged: {
-            control._scheduleScrollBarUpdate()
             if (control._followBottom) control._scheduleScrollToBottom()
         }
         onHeightChanged: {
-            control._scheduleScrollBarUpdate()
             control._scheduleLoadRangeUpdate()
         }
-        onWidthChanged: control._scheduleScrollBarUpdate()
 
         Item {
             id: messageColumn
@@ -289,10 +298,6 @@ Item {
                     ].join("\u001f")
                     property bool _inLoadRange: false
 
-                    function _measureLoadedBubble() {
-                        if (item) control._cacheSlotHeight(messageSlot, item.implicitHeight)
-                    }
-
                     function _updateLoadRange() {
                         _inLoadRange = y + _measuredHeight
                             >= messageViewport.contentY - control._loadMargin
@@ -311,9 +316,9 @@ Item {
                         }
                     }
                     on_MeasurementKeyChanged: {
-                        if (item) Qt.callLater(_measureLoadedBubble)
+                        if (item) control._scheduleSlotMeasurement(messageSlot)
                     }
-                    onLoaded: _measureLoadedBubble()
+                    onLoaded: control._scheduleSlotMeasurement(messageSlot)
 
                     sourceComponent: ChatBubble {
                         role: messageSlot.role
@@ -339,6 +344,14 @@ Item {
         }
     }
 
+    ScrollViewportState {
+        id: scrollViewportState
+        target: messageViewport
+        scrollBarsEnabled: control.showScrollBar
+        verticalEnabled: true
+        itemCount: control.messageCount
+    }
+
     SmoothScrollHelper {
         id: scrollHelper
 
@@ -355,7 +368,7 @@ Item {
         target: messageViewport
         scrollHelper: scrollHelper
         orientation: Qt.Vertical
-        barWidth: control.scrollBarWidth
+        barWidth: Math.max(0, control.scrollBarWidth)
         visible: control._needsScrollBar
         z: Enums.zIndex.controlsAbove
     }

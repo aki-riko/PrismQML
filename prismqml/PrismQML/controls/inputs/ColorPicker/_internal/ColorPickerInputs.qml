@@ -140,7 +140,7 @@ Item {
             // Red 红色
             ColorPickerChannelSlider {
                 width: parent.width
-                label: Translator.tr("rgb_r")
+                label: { Translator._v; return Translator.tr("rgb_r") }
                 channel: Enums.colorPickerMetrics.dialogRgbChannelR
                 value: control._r
                 baseColor: control.selectedColor
@@ -154,7 +154,7 @@ Item {
             // Green 绿色
             ColorPickerChannelSlider {
                 width: parent.width
-                label: Translator.tr("rgb_g")
+                label: { Translator._v; return Translator.tr("rgb_g") }
                 channel: Enums.colorPickerMetrics.dialogRgbChannelG
                 value: control._g
                 baseColor: control.selectedColor
@@ -168,7 +168,7 @@ Item {
             // Blue 蓝色
             ColorPickerChannelSlider {
                 width: parent.width
-                label: Translator.tr("rgb_b")
+                label: { Translator._v; return Translator.tr("rgb_b") }
                 channel: Enums.colorPickerMetrics.dialogRgbChannelB
                 value: control._b
                 baseColor: control.selectedColor

@@ -22,6 +22,7 @@ Item {
     readonly property real expectedInset:
         Fluent.Enums.controlSize.scrollBarWidth + Fluent.Enums.spacing.xs
     readonly property real customExpectedInset: 20 + Fluent.Enums.spacing.xs
+    readonly property real zeroWidthExpectedInset: Fluent.Enums.spacing.xs
     readonly property var tableRows: {
         var rows = []
         for (var i = 0; i < 20; ++i) rows.push({ name: "Row " + i })
@@ -60,13 +61,74 @@ Item {
     readonly property real defaultAreaInset:
         defaultArea.flickableItem
             ? defaultArea.flickableItem.parent.width - defaultArea.flickableItem.width : -1
+    readonly property real defaultAreaBottomInset:
+        defaultArea.flickableItem
+            ? defaultArea.flickableItem.parent.height - defaultArea.flickableItem.height : -1
+    property bool defaultAreaForceOverflow: true
+    readonly property real responsiveListInset:
+        responsiveList.listView.parent.width - responsiveList.listView.width
+    property bool responsiveListForceOverflow: true
+    readonly property real tinyCustomListViewportWidth: customList.listView.width
+    readonly property real tinyCustomListViewportHeight: customList.listView.height
+    readonly property real tinyGridViewportWidth:
+        virtualGrid.flickableItem ? virtualGrid.flickableItem.width : -1
+    readonly property real tinyGridViewportHeight:
+        virtualGrid.flickableItem ? virtualGrid.flickableItem.height : -1
+    readonly property real tinyDefaultViewportWidth:
+        defaultArea.flickableItem ? defaultArea.flickableItem.width : -1
+    readonly property real tinyDefaultViewportHeight:
+        defaultArea.flickableItem ? defaultArea.flickableItem.height : -1
 
     function shrinkLowList() {
         lowList.model = 1
         lowList.itemCount = 1
     }
 
-    width: 2000
+    function shrinkVirtualGridToFullWidthFit() {
+        virtualGrid.model = 9
+    }
+
+    function shrinkResponsiveDefaultAreaToFullWidthFit() {
+        defaultAreaForceOverflow = false
+    }
+
+    function shrinkResponsiveListToFullWidthFit() {
+        responsiveList.model = 1
+        responsiveList.itemCount = 1
+        responsiveListForceOverflow = false
+    }
+
+    function growResponsiveViews() {
+        responsiveListForceOverflow = true
+        responsiveList.model = 5
+        responsiveList.itemCount = 5
+        defaultAreaForceOverflow = true
+        virtualGrid.model = 20
+    }
+
+    function makeCoreViewsTiny() {
+        customList.width = 6
+        customList.height = 6
+        virtualGrid.width = 6
+        virtualGrid.height = 6
+        defaultArea.width = 6
+        defaultArea.height = 6
+    }
+
+    function restoreCoreViewSizes() {
+        customList.width = 180
+        customList.height = 120
+        virtualGrid.width = 180
+        virtualGrid.height = 120
+        defaultArea.width = 180
+        defaultArea.height = 120
+    }
+
+    function setCustomListScrollBarWidth(value) {
+        customList.scrollBarWidth = value
+    }
+
+    width: 2200
     height: 220
 
     Component {
@@ -74,6 +136,18 @@ Item {
         Rectangle {
             width: ListView.view ? ListView.view.width : 0
             height: 40
+        }
+    }
+
+    Component {
+        id: responsiveRowDelegate
+        Rectangle {
+            width: ListView.view ? ListView.view.width : 0
+            height: root.responsiveListForceOverflow
+                ? 200
+                : (ListView.view
+                    && width >= ListView.view.parent.width - root.expectedInset / 2
+                    ? 40 : 200)
         }
     }
 
@@ -190,9 +264,22 @@ Item {
         height: 120
 
         Rectangle {
-            width: 140
-            height: 400
+            width: root.defaultAreaForceOverflow
+                ? 145 : (parent ? parent.width : 0)
+            height: root.defaultAreaForceOverflow
+                ? 400 : (width >= 140 ? 80 : 200)
         }
+    }
+
+
+    Fluent.ListView {
+        id: responsiveList
+        x: 2000
+        width: 180
+        height: 120
+        model: 5
+        itemCount: 5
+        delegate: responsiveRowDelegate
     }
 }
 """
@@ -225,10 +312,36 @@ Item {
         return [{ title: "Group", status: "info", cards: cards }]
     }
 
+    function shrinkSpecializedViews() {
+        listWidget.model = [{ text: "One" }]
+        treeWidget.clear()
+        chat.clear()
+        timeline.items = []
+    }
+
+    function growSpecializedViews() {
+        listWidget.model = root.listRows
+        for (var treeIndex = 0; treeIndex < 20; ++treeIndex) {
+            treeWidget.addTopLevelItem({ text: "Node " + treeIndex })
+        }
+        timeline.virtualized = false
+        timeline.items = root.timelineItems
+        timeline.virtualized = true
+        chat.clear()
+        for (var i = 0; i < 20; ++i) {
+            chat.appendMessage(
+                "assistant",
+                ("Long wrapped message " + i + " ").repeat(12),
+                ""
+            )
+        }
+    }
+
     width: 800
     height: 140
 
     Fluent.ListWidget {
+        id: listWidget
         objectName: "listWidget"
         width: 180
         height: 120
@@ -236,6 +349,7 @@ Item {
     }
 
     Fluent.TreeWidget {
+        id: treeWidget
         objectName: "treeWidget"
         x: 200
         width: 180
@@ -252,6 +366,7 @@ Item {
     }
 
     Fluent.TimelineCore {
+        id: timeline
         objectName: "timelineCore"
         x: 600
         width: 180
@@ -269,6 +384,7 @@ Item {
             )
         }
     }
+
 }
 """
 
@@ -321,6 +437,7 @@ def test_scrollbar_gutter_is_reserved_across_data_and_virtual_views(qapp):
             "virtualGridInset",
             "alwaysVisibleListInset",
             "defaultAreaInset",
+            "responsiveListInset",
         )
         ready = _wait_for(
             lambda: all(float(root.property(name)) > 0 for name in inset_names)
@@ -335,6 +452,14 @@ def test_scrollbar_gutter_is_reserved_across_data_and_virtual_views(qapp):
             root.property("customExpectedInset")
         )
         assert float(root.property("overflowTableBottomInset")) == expected
+        assert _wait_for(
+            lambda: float(root.property("defaultAreaBottomInset")) == expected
+        )
+        for _ in range(5):
+            _pump()
+            assert {
+                name: float(root.property(name)) for name in inset_names
+            } == {name: expected for name in inset_names}
         assert warnings == []
         assert [
             window
@@ -345,6 +470,75 @@ def test_scrollbar_gutter_is_reserved_across_data_and_virtual_views(qapp):
 
         root.shrinkLowList()
         assert _wait_for(lambda: float(root.property("listInset")) == 0)
+
+        root.shrinkResponsiveListToFullWidthFit()
+        assert _wait_for(lambda: float(root.property("responsiveListInset")) == 0)
+
+        root.shrinkResponsiveDefaultAreaToFullWidthFit()
+        assert _wait_for(lambda: float(root.property("defaultAreaInset")) == 0)
+
+        root.shrinkVirtualGridToFullWidthFit()
+        assert _wait_for(lambda: float(root.property("virtualGridInset")) == 0)
+
+        for _ in range(10):
+            root.growResponsiveViews()
+            root.shrinkResponsiveListToFullWidthFit()
+            root.shrinkResponsiveDefaultAreaToFullWidthFit()
+            root.shrinkVirtualGridToFullWidthFit()
+        assert _wait_for(
+            lambda: all(
+                float(root.property(name)) == 0
+                for name in (
+                    "responsiveListInset",
+                    "defaultAreaInset",
+                    "virtualGridInset",
+                )
+            )
+        )
+
+        root.growResponsiveViews()
+        assert _wait_for(
+            lambda: all(
+                float(root.property(name)) == expected
+                for name in (
+                    "responsiveListInset",
+                    "defaultAreaInset",
+                    "virtualGridInset",
+                )
+            )
+        )
+
+        root.setCustomListScrollBarWidth(0)
+        assert _wait_for(
+            lambda: float(root.property("customListInset"))
+            == float(root.property("zeroWidthExpectedInset"))
+        )
+        root.setCustomListScrollBarWidth(20)
+        assert _wait_for(
+            lambda: float(root.property("customListInset"))
+            == float(root.property("customExpectedInset"))
+        )
+
+        root.makeCoreViewsTiny()
+        assert _wait_for(
+            lambda: all(
+                float(root.property(name)) >= 0
+                for name in (
+                    "tinyCustomListViewportWidth",
+                    "tinyCustomListViewportHeight",
+                    "tinyGridViewportWidth",
+                    "tinyGridViewportHeight",
+                    "tinyDefaultViewportWidth",
+                    "tinyDefaultViewportHeight",
+                )
+            )
+        )
+        root.restoreCoreViewSizes()
+        assert _wait_for(
+            lambda: float(root.property("customListInset"))
+            == float(root.property("customExpectedInset"))
+        )
+        assert warnings == []
     finally:
         root.deleteLater()
         component.deleteLater()
@@ -406,6 +600,27 @@ def test_specialized_virtual_and_widget_views_reserve_scrollbar_gutter(qapp):
             and not any(window is existing for existing in windows_before)
         ] == []
 
+        root.shrinkSpecializedViews()
+        assert _wait_for(
+            lambda: all(value == 0 for value in insets().values())
+        ), {"insets": insets(), "warnings": warnings}
+        root.growSpecializedViews()
+        assert _wait_for(
+            lambda: all(value == expected for value in insets().values())
+        ), {"insets": insets(), "warnings": warnings}
+        for _ in range(5):
+            _pump()
+            assert insets() == {name: expected for name in controls}
+
+        timeline = root.findChild(QObject, "timelineCore")
+        assert timeline is not None
+        timeline.setProperty("virtualized", False)
+        assert _wait_for(lambda: insets()["timelineCore"] == 0), insets()
+        timeline.setProperty("virtualized", True)
+        assert _wait_for(
+            lambda: insets()["timelineCore"] == expected
+        ), insets()
+
         for control_name in controls:
             control = root.findChild(QObject, control_name)
             assert control is not None
@@ -420,3 +635,50 @@ def test_specialized_virtual_and_widget_views_reserve_scrollbar_gutter(qapp):
         engine.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         QCoreApplication.processEvents()
+
+
+def test_pending_scrollbar_measurement_is_safe_during_destruction(qapp):
+    """Queued geometry probes must not warn after teardown. 销毁后排队的几何探测不得告警。"""
+    configure_qml_environment()
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(SCENE_SOURCE, SCENE_URL)
+    assert _wait_for(
+        lambda: component.status() != QQmlComponent.Status.Loading
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    assert root is not None, [error.toString() for error in component.errors()]
+
+    root.growResponsiveViews()
+    root.shrinkResponsiveListToFullWidthFit()
+    root.shrinkResponsiveDefaultAreaToFullWidthFit()
+    root.shrinkVirtualGridToFullWidthFit()
+    root.makeCoreViewsTiny()
+    root.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    for _ in range(5):
+        QCoreApplication.processEvents()
+
+    component.deleteLater()
+    engine.collectGarbage()
+    engine.clearComponentCache()
+    engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+
+    assert warnings == []
+    assert [
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if window.isVisible()
+        and not any(window is existing for existing in windows_before)
+    ] == []

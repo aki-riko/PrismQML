@@ -142,7 +142,10 @@ Item {
             sourceComponent: LoadingOverlay {
                 loading: root._loadingOverlayActive
                 backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
-                text: root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
+                text: {
+                    Translator._v
+                    return root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
+                }
                 Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("LoadingOverlay completed loading=" + loading)
             }
             Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("LoadingOverlay Loader completed active=" + active)
