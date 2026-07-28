@@ -54,6 +54,7 @@ Item {
     property int count: _useSourceMode ? _safePageSources.length : stackLayout.children.length
 
     // ==================== Internal Props 内部属性 ====================
+    property bool _destroying: false
     default property alias content: stackLayout.children
     property alias containerItem: stackLayout
     property Item currentWidget: _getCurrentWidget()
@@ -307,14 +308,22 @@ Item {
         animationStarted()
     }
     function _hideAllExcept(exceptIndices) {
+        if (_destroying) return
         if (_useSourceMode) {
             for (var i = 0; i < _loaders.length; i++) {
-                if (_loaders[i] && exceptIndices.indexOf(i) === -1) {
-                    _loaders[i].visible = false
-                    _loaders[i].opacity = 0
-                    _loaders[i].y = 0
-                    _loaders[i].x = 0
-                    _loaders[i].scale = 1
+                var loader = _loaders[i]
+                if (loader && exceptIndices.indexOf(i) === -1) {
+                    // Each assignment may synchronously destroy a Loader through bindings.
+                    // 每次赋值都可能通过绑定同步销毁 Loader，因此逐项重验引用。
+                    loader.visible = false
+                    if (!loader) continue
+                    loader.opacity = 0
+                    if (!loader) continue
+                    loader.y = 0
+                    if (!loader) continue
+                    loader.x = 0
+                    if (!loader) continue
+                    loader.scale = 1
                 }
             }
         } else {
@@ -442,6 +451,7 @@ Item {
                     ", sourceMode=" + _useSourceMode)
         _preloadLazyHelperWhenReady("completed")
     }
+    Component.onDestruction: _destroying = true
 
     onLazyLoadingChanged: if (lazyLoading) _preloadLazyHelperWhenReady("lazyLoadingChanged")
     onPageLoaded: (index) => {
@@ -552,6 +562,16 @@ Item {
                     loaders[index] = sourceLoader
                     control._loaders = loaders
                     control.profileTime("sourceLoader registered index=" + index)
+                }
+                Component.onDestruction: {
+                    if (!control || control._destroying) return
+                    var loaders = control._loaders.slice()
+                    var registeredIndex = pageIndex
+                    if (registeredIndex >= 0 && loaders[registeredIndex] === sourceLoader) {
+                        loaders[registeredIndex] = null
+                        while (loaders.length > 0 && !loaders[loaders.length - 1]) loaders.pop()
+                        control._loaders = loaders
+                    }
                 }
 
                 // latch on actual load completion 加载完成即合锁。

@@ -54,6 +54,7 @@ Window {
     function openMenu() { popup.openAtControl(target) }
     function resetMenu() { popup.forceReset() }
     function acceptNativeClose() { nativeCloseAccepted() }
+    function hideOwner() { hide() }
 
     signal nativeCloseAccepted()
 
@@ -180,6 +181,22 @@ def test_accepted_native_close_clears_owner_before_host_teardown(qapp):
         helper.clear_calls.clear()
 
         _invoke(root, "acceptNativeClose")
+
+        assert helper.clear_calls
+        assert helper.clear_calls[-1][1] is root
+        assert helper.clear_calls[-1][0].metaObject().className() == "QQuickPopupWindow"
+    finally:
+        _dispose_scene(engine, component, root)
+
+
+def test_hiding_owner_releases_open_qt_popup_owner(qapp):
+    engine, component, root, helper = _create_scene()
+    try:
+        _invoke(root, "openMenu")
+        helper.clear_calls.clear()
+
+        _invoke(root, "hideOwner")
+        _pump(20)
 
         assert helper.clear_calls
         assert helper.clear_calls[-1][1] is root

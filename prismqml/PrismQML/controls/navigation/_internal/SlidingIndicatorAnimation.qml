@@ -45,6 +45,8 @@ Item {
     // spring 模式专用 (整体平移 + 长度弹簧)
     property real _springPos: 0
     property real _springLen: 0
+    property real _targetNear: 0
+    property real _targetFar: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property real _mainPos: mode === "spring" ? _springPos : Math.min(_near, _far)
@@ -63,9 +65,20 @@ Item {
     function _mainOf(rect) { return _isH ? { p: rect.x, l: rect.width } : { p: rect.y, l: rect.height } }
     function _crossOf(rect) { return _isH ? { p: rect.y, l: rect.height } : { p: rect.x, l: rect.width } }
 
+    // Reject incomplete or non-finite geometry before it reaches QML real properties.
+    // 在不完整或非有限几何进入 QML real 属性前拒绝它。
+    function _isFiniteRect(rect) {
+        return rect !== null && rect !== undefined
+                && typeof rect.x === "number" && isFinite(rect.x)
+                && typeof rect.y === "number" && isFinite(rect.y)
+                && typeof rect.width === "number" && isFinite(rect.width)
+                && typeof rect.height === "number" && isFinite(rect.height)
+    }
+
     // ==================== Public Methods 公开方法 ====================
     // 直接设几何, 无动画
     function setGeometry(rect) {
+        if (!_isFiniteRect(rect)) return false
         nearAnim.stop(); farAnim.stop()
         _immediate = true   // 禁用所有 Behavior, 保证瞬间定位
         var m = _mainOf(rect), c = _crossOf(rect)
@@ -73,10 +86,12 @@ Item {
         _near = m.p; _far = m.p + m.l
         _springPos = m.p; _springLen = m.l
         _immediate = false
+        return true
     }
 
     // 从 startRect 动画到 endRect
     function animateTo(startRect, endRect) {
+        if (!_isFiniteRect(startRect) || !_isFiniteRect(endRect)) return false
         var ms = _mainOf(startRect), me = _mainOf(endRect)
         var ce = _crossOf(endRect)
 
@@ -88,7 +103,7 @@ Item {
             _springPos = me.p; _springLen = me.l
             _immediate = false
             root.finished()
-            return
+            return true
         }
 
         // 副轴快速跟随 (位置/长度差异由 Behavior 平滑)
@@ -103,7 +118,7 @@ Item {
             _immediate = true
             _near = me.p; _far = me.p + me.l
             _immediate = false
-            return
+            return true
         }
 
         // Stretch mode 橡皮筋模式
@@ -121,8 +136,8 @@ Item {
         _far = startFar
         _immediate = false
 
-        nearAnim.from = startNear; nearAnim.to = endNear
-        farAnim.from = startFar; farAnim.to = endFar
+        _targetNear = endNear
+        _targetFar = endFar
 
         if (forward) {
             // far(下/右边) 是前缘, 先到; near(上/左边) 后随
@@ -136,6 +151,7 @@ Item {
 
         nearAnim.start()
         farAnim.start()
+        return true
     }
 
     function stopAnimation() {
@@ -147,12 +163,14 @@ Item {
     NumberAnimation {
         id: nearAnim
         target: root; property: "_near"
+        to: root._targetNear
         easing.type: Easing.OutCubic
         onStopped: if (!farAnim.running) root.finished()
     }
     NumberAnimation {
         id: farAnim
         target: root; property: "_far"
+        to: root._targetFar
         easing.type: Easing.OutCubic
         onStopped: if (!nearAnim.running) root.finished()
     }

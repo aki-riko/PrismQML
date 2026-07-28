@@ -55,6 +55,7 @@ Item {
     property bool _prewarmScheduled: false
     property bool _prewarmingQtPopup: false
     property Item _prewarmFocusItem: null
+    property bool _ownerReleaseInProgress: false
     // Internal: animated clip height for drop-down effect 内部：下拉展开动画的裁剪高度
     property real _clipHeight: 0
     // [Anim C] Spring scale for iOS-style bounce 弹簧缩放
@@ -258,6 +259,20 @@ Item {
         var popup = inlinePopupContent.Window.window
         var owner = control._targetWindow ? control._targetWindow : control.Window.window
         if (popup && owner) WindowHelper.clearPopupWindowOwner(popup, owner)
+    }
+
+    // Windows may destroy an owned native popup when its hidden/minimized owner is torn down.
+    // Windows 可能在隐藏或最小化的 owner 被拆除时连带销毁其原生弹层。
+    function _releaseQtPopupForUnavailableOwner() {
+        if (!useQtPopupWindow || _ownerReleaseInProgress) return
+        var owner = control._targetWindow ? control._targetWindow : control.Window.window
+        if (owner && owner.visible
+                && owner.visibility !== Window.Hidden
+                && owner.visibility !== Window.Minimized) return
+        _ownerReleaseInProgress = true
+        _clearQtPopupOwner()
+        forceReset()
+        _ownerReleaseInProgress = false
     }
 
     function open(x, y) {
@@ -623,6 +638,8 @@ Item {
 
     Connections {
         function onNativeCloseAccepted() { control._clearQtPopupOwner() }
+        function onVisibleChanged() { control._releaseQtPopupForUnavailableOwner() }
+        function onVisibilityChanged() { control._releaseQtPopupForUnavailableOwner() }
 
         target: control._targetWindow
         ignoreUnknownSignals: true
