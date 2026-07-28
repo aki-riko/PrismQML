@@ -5,7 +5,7 @@
 import "../.."
 import QtQuick  // Keep native types unprefixed after library import 库导入后保留原生类型无前缀
 
-// QMLPage - Reusable QML loading page matching SplashScreen 可复用的 SplashScreen 同款 QML 加载页
+// QMLPage - Reusable QML loading page with SplashScreen exit 可复用 SplashScreen 退场效果的 QML 加载页
 Rectangle {
     id: control
 
@@ -15,18 +15,117 @@ Rectangle {
     property color backgroundColor: Enums.backgroundColor  // Page background 页面背景
 
     // ==================== Internal Props 内部属性 ====================
-    readonly property int _progressRingSize: Enums.splashScreenMetrics.progressRingSize
-    readonly property int _progressRingBorderWidth: Enums.splashScreenMetrics.progressRingBorderWidth
-    readonly property real _progressTrackOpacity: Enums.splashScreenMetrics.progressTrackOpacity
-    readonly property int _progressDotSize: Enums.splashScreenMetrics.progressDotSize
-    readonly property int _progressDotRadius: Enums.splashScreenMetrics.progressDotRadius
-    readonly property int _progressDotTopMargin: Enums.splashScreenMetrics.progressDotTopMargin
+    readonly property bool finishing: _finishing     // Exit is running 正在退场
+    property bool _finishing: false
 
-    color: control.backgroundColor
+    // ==================== Signals 信号 ====================
+    signal finished()  // Emitted after the page is removed 页面移除后触发
+
+    // ==================== Public Methods 公开方法 ====================
+    function start() {
+        exitDissolveAnim.stop()
+        control._finishing = false
+        control.visible = true
+        contentRow.opacity = Enums.opacityLevel.visible
+        contentRow.scale = Enums.opacityLevel.visible
+        for (var i = 0; i < dissolveGrid.count; i++) {
+            var cell = dissolveGrid.itemAt(i)
+            if (cell) cell.opacity = Enums.opacityLevel.visible
+        }
+    }
+
+    function finish() {
+        if (control._finishing || !control.visible) return
+        control._finishing = true
+        exitDissolveAnim.start()
+    }
+
+    color: Enums.transparent
+    clip: true
+
+    // Grid permeation dissolve animation 网格渗透溶解动画
+    SequentialAnimation {
+        id: exitDissolveAnim
+
+        ParallelAnimation {
+            NumberAnimation {
+                target: contentRow
+                property: "opacity"
+                to: Enums.opacityLevel.invisible
+                duration: Enums.duration.splashGridContentFade
+                easing.type: Easing.InCubic
+            }
+
+            NumberAnimation {
+                target: contentRow
+                property: "scale"
+                to: Enums.splashScreenMetrics.exitContentEndScale
+                duration: Enums.duration.splashGridContentFade
+                easing.type: Easing.InCubic
+            }
+
+            PauseAnimation { duration: Enums.duration.splashExitDissolve }
+        }
+
+        ScriptAction {
+            script: {
+                control.visible = false
+                control.finished()
+            }
+        }
+    }
+
+    // Seamless cells reveal the loaded content center-out 无缝网格块由中心向外揭露已加载内容
+    Repeater {
+        id: dissolveGrid
+
+        model: Enums.splashScreenMetrics.exitGridColumns *
+               Enums.splashScreenMetrics.exitGridRows
+
+        delegate: Rectangle {
+            id: gridCell
+
+            readonly property int _column: index % Enums.splashScreenMetrics.exitGridColumns
+            readonly property int _row: Math.floor(index / Enums.splashScreenMetrics.exitGridColumns)
+            readonly property real _centerColumn: (Enums.splashScreenMetrics.exitGridColumns - 1) / 2
+            readonly property real _centerRow: (Enums.splashScreenMetrics.exitGridRows - 1) / 2
+            readonly property int _delay: Math.round((
+                Math.abs(gridCell._column - gridCell._centerColumn) +
+                Math.abs(gridCell._row - gridCell._centerRow)
+            ) * Enums.duration.splashGridDelayStep)
+
+            objectName: "qmlPageGridCell_" + index
+            x: gridCell._column * control.width / Enums.splashScreenMetrics.exitGridColumns
+            y: gridCell._row * control.height / Enums.splashScreenMetrics.exitGridRows
+            width: control.width / Enums.splashScreenMetrics.exitGridColumns +
+                   Enums.splashScreenMetrics.exitGridOverlap
+            height: control.height / Enums.splashScreenMetrics.exitGridRows +
+                    Enums.splashScreenMetrics.exitGridOverlap
+            color: control.backgroundColor
+            opacity: Enums.opacityLevel.visible
+
+            SequentialAnimation on opacity {
+                running: control._finishing
+
+                PauseAnimation { duration: gridCell._delay }
+                NumberAnimation {
+                    to: Enums.opacityLevel.invisible
+                    duration: Enums.duration.splashGridCellFade
+                    easing.type: Easing.InOutCubic
+                }
+            }
+        }
+    }
 
     // ==================== Content 内容 ====================
     Row {
+        id: contentRow
+
+        objectName: "qmlPageContent"
         anchors.centerIn: parent
+        opacity: Enums.opacityLevel.visible
+        scale: Enums.opacityLevel.visible
+        transformOrigin: Item.Center
         spacing: Enums.spacing.m
 
         ProgressRing {
@@ -34,28 +133,15 @@ Rectangle {
 
             objectName: "qmlPageProgressRing"
             anchors.verticalCenter: parent.verticalCenter
-            width: control._progressRingSize
-            height: control._progressRingSize
-            indeterminate: control.running
-            indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot
-            paused: !control.running
-            strokeWidth: control._progressRingBorderWidth
-            spinDuration: Enums.duration.splashProgressSpin
-            trackColorLight: Qt.rgba(
-                Enums.accentColor.r,
-                Enums.accentColor.g,
-                Enums.accentColor.b,
-                control._progressTrackOpacity
-            )
-            trackColorDark: Qt.rgba(
-                Enums.accentColor.r,
-                Enums.accentColor.g,
-                Enums.accentColor.b,
-                control._progressTrackOpacity
-            )
-            indeterminateDotSize: control._progressDotSize
-            indeterminateDotRadius: control._progressDotRadius
-            indeterminateDotTopMargin: control._progressDotTopMargin
+            width: Enums.controlSize.navBarHeight
+            height: Enums.controlSize.navBarHeight
+            indeterminate: control.running && !control._finishing
+            indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc
+            paused: !control.running || control._finishing
+            strokeWidth: Enums.controlSize.progressStrokeWidth
+            spinDuration: Enums.duration.scroll
+            trackColorLight: Enums.transparent
+            trackColorDark: Enums.transparent
         }
 
         Label {

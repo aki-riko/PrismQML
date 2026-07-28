@@ -253,21 +253,24 @@ def test_ring_consumers_delegate_to_canonical_progress_ring():
             assert marker not in source, (source_path, marker)
 
 
-def test_qml_page_and_splash_share_the_orbit_dot_visual_mode():
-    """公开加载页与 SplashScreen 必须保持同款绕圈圆点动画。"""
+def test_qml_page_preserves_lazy_ring_and_reuses_splash_exit():
+    """公开加载页保留原懒加载圆环，并复用 SplashScreen 退场。"""
     helper_source = LAZY_LOADING_HELPER.read_text(encoding="utf-8")
     assert "QMLPage {" in helper_source
+    assert "loadingOverlay.finish()" in helper_source
 
-    for source_path in (QML_PAGE, SPLASH_SCREEN):
-        source = source_path.read_text(encoding="utf-8")
-        assert (
-            "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot"
-            in source
-        )
-        assert "spinDuration: Enums.duration.splashProgressSpin" in source
-        assert "indeterminateDotSize: control._progressDotSize" in source
-        assert "indeterminateDotRadius: control._progressDotRadius" in source
-        assert "indeterminateDotTopMargin: control._progressDotTopMargin" in source
+    page_source = QML_PAGE.read_text(encoding="utf-8")
+    assert "indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc" in page_source
+    assert "spinDuration: Enums.duration.scroll" in page_source
+    assert "trackColorLight: Enums.transparent" in page_source
+    assert "trackColorDark: Enums.transparent" in page_source
+    assert "function finish()" in page_source
+    assert "Enums.duration.splashGridCellFade" in page_source
+    assert "Enums.duration.splashExitDissolve" in page_source
+
+    splash_source = SPLASH_SCREEN.read_text(encoding="utf-8")
+    assert "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot" in splash_source
+    assert "spinDuration: Enums.duration.splashProgressSpin" in splash_source
 
     overlay_source = LOADING_OVERLAY.read_text(encoding="utf-8")
     assert "indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc" in overlay_source

@@ -66,7 +66,6 @@ Item {
         loaderActivateTimer.stop()
         lazyLoadTimer.stop()
         pageRenderTimer.stop()
-        hideLoadingTimer.stop()
         pendingTargetIndex = -1
         _observedLoaderIndex = -1
         _observedLoaderStatus = Loader.Null
@@ -92,7 +91,7 @@ Item {
         }
 
         // Show loading overlay 显示加载页
-        loadingOverlay.visible = true
+        loadingOverlay.start()
         loadingOverlay.y = 0
         loadingOverlay.opacity = 1
 
@@ -188,7 +187,6 @@ Item {
         loaderActivateTimer.stop()
         lazyLoadTimer.stop()
         pageRenderTimer.stop()
-        hideLoadingTimer.stop()
 
         var failedLoader = loaders[targetIdx]
         if (failedLoader) {
@@ -224,21 +222,18 @@ Item {
         opacity: 0
         y: 0
         z: Enums.zIndex.controls
-        
-        Behavior on y {
-            enabled: !helper.isLoadingSwitching  // Disable during instant show 立即显示时禁用
-            NumberAnimation {
-                duration: Enums.duration.medium
-                easing.type: Easing.OutCubic
-            }
-        }
-        
-        Behavior on opacity {
-            enabled: !helper.isLoadingSwitching  // Disable during instant show 立即显示时禁用
-            NumberAnimation {
-                duration: Enums.duration.medium
-                easing.type: Easing.OutCubic
-            }
+
+        onFinished: {
+            if (helper.pendingTargetIndex < 0) return
+
+            var targetIndex = helper.pendingTargetIndex
+            helper._trace("helper.hide_loading.begin", targetIndex)
+            loadingOverlay.y = 0
+            loadingOverlay.opacity = 1
+            helper.pendingTargetIndex = -1
+            helper.isLoadingSwitching = false
+            helper.animationStart()
+            helper._trace("helper.hide_loading.done", targetIndex)
         }
     }
 
@@ -351,35 +346,13 @@ Item {
             if (targetIndex !== helper.pendingTargetIndex) return
 
             helper._trace("helper.page_render.begin", targetIndex)
-            loadingOverlay.y = Enums.controlSize.popUpOffset
-            loadingOverlay.opacity = 0
-            hideLoadingTimer.targetIndex = targetIndex
-            hideLoadingTimer.start()
-            helper._trace("helper.page_render.done", targetIndex)
-        }
-    }
-    
-    Timer {
-        id: hideLoadingTimer
-        property int targetIndex: 0
-        interval: Enums.duration.ultraFast  // Hide loading overlay 隐藏加载动画
-        onTriggered: {
-            if (targetIndex !== helper.pendingTargetIndex) return
-
-            helper._trace("helper.hide_loading.begin", targetIndex)
-            loadingOverlay.visible = false
-            loadingOverlay.y = 0
-
             var prevIdx = helper.internalLastIndex
             helper.internalLastIndex = targetIndex
-            helper.pendingTargetIndex = -1
-            helper.isLoadingSwitching = false
-
             helper._trace("helper.loading_complete.emit_begin", targetIndex)
             helper.loadingComplete(targetIndex, prevIdx)
             helper._trace("helper.loading_complete.emit_done", targetIndex)
-            helper.animationStart()
-            helper._trace("helper.hide_loading.done", targetIndex)
+            loadingOverlay.finish()
+            helper._trace("helper.page_render.done", targetIndex)
         }
     }
 }
