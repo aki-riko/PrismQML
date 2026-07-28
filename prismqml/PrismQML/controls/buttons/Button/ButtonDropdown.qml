@@ -305,10 +305,9 @@ Item {
 
         implicitContentHeight: Math.min(_itemsHeight, _maxContentHeight)
         closeOnClickOutside: true
-        // Keep the common menuItems path in the owning scene so pointer
-        // delivery does not depend on a second native popup HWND. External
-        // MenuCore users may still opt into Popup.Window when overflow is
-        // required. 常规菜单留在宿主场景，显式外部菜单仍可选择原生弹层。
+        // Keep menuItems in the owning scene for reliable pointer delivery. 常规菜单留在宿主场景以可靠接收指针输入。
+        // This avoids depending on a second native popup HWND. 这避免依赖第二个原生弹层 HWND。
+        // External MenuCore may opt into Popup.Window for overflow. 外部 MenuCore 仍可为跨界显示显式选择 Popup.Window。
         useInWindowPopup: true
         
         Flickable {
