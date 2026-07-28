@@ -12,7 +12,8 @@ import threading
 import time
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEventLoop, QThread, QTimer
+from PySide6.QtCore import QCoreApplication, QEventLoop, QThread, QTimer, QUrl
+from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtTest import QSignalSpy
 
 import prismqml.python.core.task_runner as task_runner_module
@@ -176,6 +177,37 @@ def test_callable_result_progress_and_signal_thread(qapp, launcher) -> None:
 
     _wait_for_finished(handle)
     _assert_success_outcome(handle, progress, callback_observations)
+
+
+def test_success_string_is_a_native_qml_value(qapp) -> None:
+    """QML receives strings instead of PyObjectWrapper. QML 接收原生字符串而非包装对象。"""
+    handle = run_in_pool(lambda: "master")
+    engine = QQmlEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda messages: warnings.extend(message.toString() for message in messages)
+    )
+    engine.rootContext().setContextProperty("taskHandle", handle)
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""import QtQuick
+QtObject {
+    property string branch: ""
+    Component.onCompleted: taskHandle.succeeded.connect(function(result) {
+        branch = result
+    })
+}
+""",
+        QUrl("task_result.qml"),
+    )
+    root = component.create()
+
+    assert root is not None, [error.toString() for error in component.errors()]
+    _wait_for_finished(handle)
+    QCoreApplication.processEvents()
+
+    assert root.property("branch") == "master"
+    assert warnings == []
 
 
 @pytest.mark.parametrize("launcher", (run_in_pool, run_in_thread))

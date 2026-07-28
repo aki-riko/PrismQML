@@ -179,12 +179,12 @@ class TaskHandle(QObject):
     """Signals and control surface for one background task. 单个后台任务的信号与控制面。"""
 
     started = Signal()
-    progress = Signal(object)
-    succeeded = Signal(object)
-    failed = Signal(object)
+    progress = Signal("QVariant")
+    succeeded = Signal("QVariant")
+    failed = Signal("QVariant")
     cancelled = Signal()
     finished = Signal()
-    state_changed = Signal(object)
+    state_changed = Signal("QVariant")
 
     def __init__(self, control: _TaskControl) -> None:
         super().__init__()
