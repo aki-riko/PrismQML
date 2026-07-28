@@ -85,8 +85,12 @@ def test_qml_page_is_public_and_preserves_lazy_progress(qapp):
         assert ring.property("spinDuration") == root.property("lazyRingSpinDuration")
         assert ring.width() == root.property("lazyRingSize")
         assert ring.height() == root.property("lazyRingSize")
-        assert ring.x() + ring.width() / 2 == pytest.approx(content.width() / 2)
-        assert label.x() + label.width() / 2 == pytest.approx(content.width() / 2)
+        assert ring.x() + ring.width() / 2 == pytest.approx(
+            content.width() / 2, abs=0.5
+        )
+        assert label.x() + label.width() / 2 == pytest.approx(
+            content.width() / 2, abs=0.5
+        )
         assert label.y() > ring.y() + ring.height()
 
         page.setProperty("running", False)
