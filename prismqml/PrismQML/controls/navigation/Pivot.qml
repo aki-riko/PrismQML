@@ -35,7 +35,10 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     function setCurrentIndex(idx) {
         if (idx < 0 || idx >= _safeItems.length) return
-        if (idx === currentIndex) return
+        if (idx === currentIndex) {
+            if (!_initialized) _updateIndicatorWithAnimation()
+            return
+        }
 
         // Only update the index; one handler drives geometry to avoid duplicate interruption 只修改索引，由统一handler驱动几何以免双发打断动画
         currentIndex = idx
@@ -60,7 +63,22 @@ Item {
 
     function _updateIndicatorWithAnimation() {
         var newItem = repeater.itemAt(currentIndex)
-        if (!newItem) return
+        if (!newItem) {
+            if (currentIndex >= 0 && currentIndex < _safeItems.length) {
+                // A valid model may briefly have no delegate while Repeater rebuilds
+                // Repeater重建期间合法索引可能暂时没有delegate，延后一帧重试
+                if (!indicatorSyncTimer.running) indicatorSyncTimer.restart()
+                return
+            }
+            // Drop stale geometry while selection is invalid
+            // 选择真实失效时撤销旧几何，避免指示器停在错误项目
+            indicatorSyncTimer.stop()
+            navIndicator.stopAnimation()
+            _initialized = false
+            _prevIndex = -1
+            return
+        }
+        indicatorSyncTimer.stop()
 
         var endRect = _rectAt(newItem)
 
@@ -79,7 +97,11 @@ Item {
 
         var prevItem = repeater.itemAt(_prevIndex)
         if (prevItem) {
-            navIndicator.startAnimation(_rectAt(prevItem), endRect)
+            // Retarget from the rendered frame instead of the previous destination
+            // 连续切换时从当前渲染帧改道，避免瞬跳到上一个目标位置
+            var startRect = navIndicator.running
+                ? navIndicator.getIndicatorRect() : _rectAt(prevItem)
+            navIndicator.startAnimation(startRect, endRect)
         } else {
             navIndicator.setGeometry(endRect)
         }
@@ -114,8 +136,8 @@ Item {
     implicitWidth: pivotRow.implicitWidth
     implicitHeight: Enums.controlSize.inputHeight
 
-    Component.onCompleted: Qt.callLater(_updateIndicatorWithAnimation)
-    onItemsChanged: Qt.callLater(_updateIndicatorWithAnimation)
+    Component.onCompleted: indicatorSyncTimer.restart()
+    onItemsChanged: indicatorSyncTimer.restart()
     onCurrentIndexChanged: _updateIndicatorWithAnimation()
     onWidthChanged: {
         if (_initialized && !navIndicator.running) {
@@ -177,6 +199,13 @@ Item {
         radius: Enums.radius.micro
         animationEnabled: control.indicatorAnimationEnabled
         visible: control._safeItems.length > 0 && control._initialized
+    }
+
+    Timer {
+        id: indicatorSyncTimer
+        interval: Enums.duration.tick
+        repeat: true
+        onTriggered: control._updateIndicatorWithAnimation()
     }
 
 }
