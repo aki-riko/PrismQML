@@ -280,6 +280,8 @@ def _exercise(
     startup = None
     try:
         component, instance = _create_window(engine)
+        if not destroy_after_first_attempt:
+            instance.show()
         _wait_for_startup(fake, destroy_after_first_attempt)
         startup = _startup_snapshot(instance, fake)
     finally:
@@ -334,11 +336,39 @@ def test_prepare_before_show_finishes_native_hook_synchronously(monkeypatch, qap
         assert fake.finalize_calls == 1
         assert instance.property("readyCount") == 1
         assert instance.property("_dwmInitializationDone") is True
-        assert instance.property("_showAnimationStartCount") == 1
+        assert instance.property("_showAnimationStartCount") == 0
 
         _pump(STARTUP_SETTLE_MS)
         assert fake.finalize_calls == 1
         assert instance.property("readyCount") == 1
+        assert instance.property("_showAnimationStartCount") == 0
+    finally:
+        _delete_deferred(instance)
+        component = None
+        _delete_deferred(engine)
+
+
+def test_prepare_before_show_waits_for_first_presented_frame(monkeypatch, qapp):
+    fake = _FakeNativeWindow([True])
+    engine = _create_engine(monkeypatch, fake, [])
+    component = instance = None
+    presented_frames = []
+    try:
+        component, instance = _create_window(engine)
+        instance.frameSwapped.connect(lambda: presented_frames.append(True))
+
+        assert QMetaObject.invokeMethod(instance, "prepareBeforeShow")
+        assert fake.finalize_calls == 1
+        assert instance.property("_showAnimationStartCount") == 0
+        assert instance.property("opacity") == 0.0
+
+        instance.show()
+        _wait_until(
+            lambda: instance.property("_showAnimationStartCount") == 1,
+            QML_LOAD_TIMEOUT_MS,
+        )
+
+        assert presented_frames
         assert instance.property("_showAnimationStartCount") == 1
     finally:
         _delete_deferred(instance)
@@ -446,8 +476,8 @@ def test_destroy_before_retry_cancels_future_attempt(monkeypatch, qapp):
     assert result["finalize_calls"] == 1
     assert result["ready_count"] == 0
     assert result["initialization_done"] is True
-    assert result["show_started"] is True
-    assert result["show_start_count"] == 1
+    assert result["show_started"] is False
+    assert result["show_start_count"] == 0
     assert result["detach_calls"] == 1
 
 

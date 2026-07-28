@@ -151,6 +151,9 @@ Window {
     function restoreVisibleState() { animHelper.restoreVisibleState() }
     function ensureVisiblePaintState(reason) {
         if (_closeInProgress || !window.visible) return
+        // Initial exposure stays transparent until Splash reaches frameSwapped.
+        // Splash 首帧提交前保持透明，避免原生空白表面提前曝光。
+        if (!nativeWindowStartup.showAnimationStarted) return
         if (window.opacity >= 0.99 && _animOpacity >= 0.99 && _animScale >= 0.99) return
         profileTime("ensureVisiblePaintState " + reason)
         animHelper.restoreVisibleState()

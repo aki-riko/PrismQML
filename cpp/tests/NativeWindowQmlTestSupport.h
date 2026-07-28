@@ -117,6 +117,8 @@ inline QmlCreationResult createWindowsCoreConsumer(QQmlEngine &engine) {
         kNativeWindowQmlLoadTimeoutMs);
     QmlCreationResult result;
     result.object = component.create(engine.rootContext());
+    if (result.object)
+        result.object->setProperty("visible", true);
     waitForQml([&]() {
         return result.object &&
                result.object->property("_dwmInitializationDone").toBool() &&

@@ -5,6 +5,7 @@
 """Regression: pure QML Fluent.Windows must show after create()."""
 
 import sys
+import time
 from pathlib import Path
 
 from _test_process_bootstrap import configure_qml_test_process
@@ -23,6 +24,15 @@ def pump(ms: int):
     loop = QEventLoop()
     QTimer.singleShot(ms, loop.quit)
     loop.exec()
+
+
+def wait_until(predicate, timeout_ms: int) -> bool:
+    deadline = time.monotonic() + timeout_ms / 1000
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        pump(10)
+    return bool(predicate())
 
 
 def main() -> int:
@@ -62,7 +72,11 @@ Fluent.Windows {
             print(err.toString(), file=sys.stderr)
         return 1
 
-    pump(250)
+    wait_until(
+        lambda: bool(win.property("visible"))
+        and float(win.property("opacity")) >= 0.99,
+        1000,
+    )
     visible = bool(win.property("visible"))
     opacity = float(win.property("opacity"))
     win.close()

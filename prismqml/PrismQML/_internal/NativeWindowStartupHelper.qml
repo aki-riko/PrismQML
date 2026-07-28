@@ -18,6 +18,8 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property bool retryAttempted: false
     property bool readyPublished: false
+    property bool firstFramePresented: false
+    property bool waitingForFirstFrame: false
     property bool showAnimationStarted: false
     property int showAnimationStartCount: 0
     property int nativeHookAttemptCount: 0
@@ -35,8 +37,26 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
+    function _armStartupVisibility() {
+        if (showAnimationStarted) return
+        if (firstFramePresented) {
+            root._ensureStartupVisible()
+            return
+        }
+        waitingForFirstFrame = true
+        targetWindow.profileTime("startup visibility waits for first frame")
+    }
+    function _handleFrameSwapped() {
+        if (!firstFramePresented) {
+            firstFramePresented = true
+            targetWindow.profileTime("first frame swapped")
+        }
+        if (!waitingForFirstFrame) return
+        root._ensureStartupVisible()
+    }
     function _ensureStartupVisible() {
         if (showAnimationStarted) return
+        waitingForFirstFrame = false
         showAnimationStarted = true
         showAnimationStartCount += 1
         targetWindow.profileTime("animHelper.startShow start")
@@ -88,13 +108,20 @@ Item {
         var nativeHookSucceeded = _callNativeHook()
         targetWindow._dwmInitializationDone = true
         targetWindow.profileTime("DWM initialization attempt marked done")
-        // Visibility must complete even when optional native enhancement fails.
-        // 即使可选原生增强失败，窗口显示也必须继续。
-        _ensureStartupVisible()
+        // Reveal only after the first complete scene frame reaches the surface.
+        // 仅在完整场景首帧提交到窗口表面后才显示窗口。
+        _armStartupVisibility()
         _publishNativeHookResult(nativeHookSucceeded)
     }
 
     visible: false
+
+    Connections {
+        function onFrameSwapped() { root._handleFrameSwapped() }
+
+        target: root.targetWindow
+        enabled: !root.firstFramePresented
+    }
 
     Timer {
         id: delayTimer
