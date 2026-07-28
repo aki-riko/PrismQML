@@ -122,6 +122,15 @@ static void testAvailableScreenGeometry() {
               && actual.value(QStringLiteral("width")).toInt() == expected.width()
               && actual.value(QStringLiteral("height")).toInt() == expected.height(),
           "WindowHelper returns QScreen availableGeometry");
+
+    const QRect expectedFull = screen->geometry();
+    const QVariantMap actualFull = prism::WindowHelper::instance()
+                                       ->screenGeometryAt(center.x(), center.y());
+    CHECK(actualFull.value(QStringLiteral("x")).toInt() == expectedFull.x()
+              && actualFull.value(QStringLiteral("y")).toInt() == expectedFull.y()
+              && actualFull.value(QStringLiteral("width")).toInt() == expectedFull.width()
+              && actualFull.value(QStringLiteral("height")).toInt() == expectedFull.height(),
+          "WindowHelper returns full QScreen geometry");
 }
 
 static void testDroppedFolderPathValidation() {

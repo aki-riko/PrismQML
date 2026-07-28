@@ -29,23 +29,19 @@ MenuCore {
         _updateSize()
         
         var menuHeight = popupHeight
-        var menuWidth = popupWidth
         
         // 上拉定位：菜单出现在点击位置上方
         var posX = x
         var posY = y - menuHeight - Enums.spacing.xs
         
-        // 使用 Qt.application.screens 做边界检查
-        var screen = Qt.application.screens[0]
-        if (screen) {
-            if (posY < 0) posY = y + Enums.spacing.xs
-            if (posX + menuWidth > screen.width) posX = screen.width - menuWidth - Enums.spacing.xs
-            if (posX < 0) posX = Enums.spacing.xs
-        }
+        // Flip below the click only when there is no room above. 上方空间不足时才翻转到点击点下方
+        var bounds = _screenBoundsAt(x, y, null)
+        if (bounds && posY < bounds.top) posY = y + Enums.spacing.xs
         
         open(posX, posY)
     }
 
+    constrainToAvailableScreen: false
     closeOnClickOutside: true
     Component.onCompleted: {
         if (_safeInitialActions.length > 0) addActions(_safeInitialActions)

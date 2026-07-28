@@ -43,6 +43,7 @@ Item {
     property bool stealFocus: true  // Whether to steal focus when opening 打开时是否抢夺焦点
     property bool useInWindowPopup: false  // Render in the owning window to avoid a second native surface 页内渲染以避免第二个原生窗口
     property bool useQtPopupWindow: false  // Render with Qt Quick Controls Popup.Window 使用Qt管理的原生弹出窗口
+    property bool constrainToAvailableScreen: true  // Keep clear of taskbars and reserved system UI 避让任务栏与系统保留区
     property Item targetControl: null  // Trigger control 触发弹出的控件
     property int animationType: 0  // 0=expand, 1=slideDown (Fluent Design style) 动画类型
     property bool _isPickerMode: false  // Internal: picker mode for center alignment 内部：Picker模式居中对齐
@@ -84,31 +85,40 @@ Item {
     signal aboutToHide()
     
     // ==================== Public Methods 公开方法 ====================
+    function _boundsFromGeometry(geometry) {
+        if (!geometry || geometry.width <= 0 || geometry.height <= 0) return null
+        return {
+            left: geometry.x,
+            top: geometry.y,
+            right: geometry.x + geometry.width,
+            bottom: geometry.y + geometry.height
+        }
+    }
+
     function _screenBoundsAt(globalX, globalY, sourceItem) {
-        if (typeof WindowHelper !== "undefined" && WindowHelper
-                && typeof WindowHelper.availableScreenGeometryAt === "function") {
-            var geometry = WindowHelper.availableScreenGeometryAt(
-                Math.round(globalX), Math.round(globalY))
-            if (geometry && geometry.width > 0 && geometry.height > 0) {
-                return {
-                    left: geometry.x,
-                    top: geometry.y,
-                    right: geometry.x + geometry.width,
-                    bottom: geometry.y + geometry.height
-                }
+        var geometry = null
+        if (typeof WindowHelper !== "undefined" && WindowHelper) {
+            if (constrainToAvailableScreen
+                    && typeof WindowHelper.availableScreenGeometryAt === "function") {
+                geometry = WindowHelper.availableScreenGeometryAt(
+                    Math.round(globalX), Math.round(globalY))
+            } else if (!constrainToAvailableScreen
+                    && typeof WindowHelper.screenGeometryAt === "function") {
+                geometry = WindowHelper.screenGeometryAt(
+                    Math.round(globalX), Math.round(globalY))
             }
+            var injectedBounds = _boundsFromGeometry(geometry)
+            if (injectedBounds) return injectedBounds
         }
 
         var screen = sourceItem && sourceItem.Screen ? sourceItem.Screen : Screen
         if (screen && screen.width > 0 && screen.height > 0) {
             var virtualX = typeof screen.virtualX === "number" ? screen.virtualX : 0
             var virtualY = typeof screen.virtualY === "number" ? screen.virtualY : 0
-            return {
-                left: virtualX,
-                top: virtualY,
-                right: virtualX + screen.width,
-                bottom: virtualY + screen.height
-            }
+            return _boundsFromGeometry({
+                x: virtualX, y: virtualY,
+                width: screen.width, height: screen.height
+            })
         }
         return null
     }

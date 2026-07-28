@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QPoint, QPointF, QTimer, QUrl, Qt
+from PySide6.QtCore import QObject, Slot
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -45,6 +46,7 @@ Window {
     readonly property bool contextBound: contextMenu._mouseArea !== null
     readonly property bool contextVisible: contextMenu.isVisible()
     readonly property bool trayAtCursor: trayMenu.showAtCursor
+    readonly property bool trayCrossesSystemUi: !trayMenu.constrainToAvailableScreen
     readonly property int popupPanelOffset: Enums.popupMetrics.panelOffset
 
     function buildMenu() {
@@ -164,6 +166,23 @@ Window {
 """
 
 
+class _ScreenGeometryHelper(QObject):
+    def __init__(self) -> None:
+        super().__init__()
+        self.available_requests = []
+        self.full_requests = []
+
+    @Slot(int, int, result="QVariantMap")
+    def availableScreenGeometryAt(self, x: int, y: int) -> dict[str, int]:
+        self.available_requests.append((x, y))
+        return {"x": -1920, "y": 40, "width": 1920, "height": 1040}
+
+    @Slot(int, int, result="QVariantMap")
+    def screenGeometryAt(self, x: int, y: int) -> dict[str, int]:
+        self.full_requests.append((x, y))
+        return {"x": -1920, "y": 0, "width": 1920, "height": 1080}
+
+
 def _pump(milliseconds: int = 30) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
@@ -237,6 +256,50 @@ def _dispose_scene(engine, component, window) -> None:
     engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
+
+
+def test_system_tray_uses_full_screen_bounds(qapp):
+    engine = QQmlApplicationEngine()
+    helper = _ScreenGeometryHelper()
+    register_types(engine)
+    engine.rootContext().setContextProperty("WindowHelper", helper)
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""
+        import QtQuick
+        import PrismQML
+
+        Item {
+            property var trayBounds: trayMenu._screenBoundsAt(-1200, 1060, trayMenu)
+
+            SystemTrayMenu { id: trayMenu }
+        }
+        """,
+        SCENE_URL,
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    try:
+        assert root is not None
+        assert helper.available_requests == []
+        assert helper.full_requests == [(-1200, 1060)]
+        bounds = root.property("trayBounds").toVariant()
+        assert bounds == {
+            "left": -1920,
+            "top": 0,
+            "right": 0,
+            "bottom": 1080,
+        }
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
 
 
 @pytest.fixture
@@ -329,6 +392,10 @@ def test_menu_delegates_and_context_binding(menu_scene):
     assert window.property("contextBound")
     assert not window.property("contextVisible")
     assert window.property("trayAtCursor")
+    assert items["systemTrayMenu"].metaObject().indexOfProperty(
+        "constrainToAvailableScreen"
+    ) >= 0
+    assert window.property("trayCrossesSystemUi")
     assert QMetaObject.invokeMethod(window, "rebindContext")
     assert window.property("contextBound")
     assert QMetaObject.invokeMethod(window, "showContext")

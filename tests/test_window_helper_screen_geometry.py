@@ -30,10 +30,18 @@ class _FakeGeometry:
 
 
 class _FakeScreen:
-    def __init__(self, geometry: _FakeGeometry) -> None:
-        self._geometry = geometry
+    def __init__(
+        self,
+        available_geometry: _FakeGeometry,
+        geometry: Optional[_FakeGeometry] = None,
+    ) -> None:
+        self._available_geometry = available_geometry
+        self._geometry = geometry or available_geometry
 
     def availableGeometry(self) -> _FakeGeometry:
+        return self._available_geometry
+
+    def geometry(self) -> _FakeGeometry:
         return self._geometry
 
 
@@ -74,3 +82,22 @@ def test_available_screen_geometry_preserves_negative_monitor_origin(
         520,
     )
     assert result == {"x": -1920, "y": 40, "width": 1920, "height": 1040}
+
+
+def test_screen_geometry_includes_reserved_system_area(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    available_geometry = _FakeGeometry(-1920, 40, 1920, 1040)
+    full_geometry = _FakeGeometry(-1920, 0, 1920, 1080)
+    application = _FakeApplication(_FakeScreen(available_geometry, full_geometry))
+    _FakeQGuiApplication.current = application
+    monkeypatch.setattr(window_helper_module, "QGuiApplication", _FakeQGuiApplication)
+
+    result = WindowHelper().screenGeometryAt(-1200, 1060)
+
+    assert application.requested_point is not None
+    assert (application.requested_point.x(), application.requested_point.y()) == (
+        -1200,
+        1060,
+    )
+    assert result == {"x": -1920, "y": 0, "width": 1920, "height": 1080}

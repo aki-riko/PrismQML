@@ -37,6 +37,26 @@ from .logger import warning, error, debug, exception
 # SVG 渲染的多尺寸列表（用于生成高质量任务栏图标）
 _ICON_SIZES = [16, 24, 32, 48, 64, 128, 256]
 
+
+def _screen_geometry_at(x: int, y: int, available: bool) -> dict[str, int]:
+    """Return one screen geometry map. 返回指定屏幕的几何映射。"""
+    app = QGuiApplication.instance()
+    if app is None:
+        return {}
+    screen = app.screenAt(QPoint(x, y))
+    if screen is None:
+        screen = app.primaryScreen()
+    if screen is None:
+        return {}
+    geometry = screen.availableGeometry() if available else screen.geometry()
+    return {
+        "x": geometry.x(),
+        "y": geometry.y(),
+        "width": geometry.width(),
+        "height": geometry.height(),
+    }
+
+
 class WindowHelper(FolderDropPathHelper):
     """
     窗口辅助工具单例
@@ -248,22 +268,13 @@ class WindowHelper(FolderDropPathHelper):
 
     @Slot(int, int, result="QVariantMap")
     def availableScreenGeometryAt(self, x: int, y: int) -> dict[str, int]:
-        """Return the available geometry for the screen containing a global point."""
-        app = QGuiApplication.instance()
-        if app is None:
-            return {}
-        screen = app.screenAt(QPoint(x, y))
-        if screen is None:
-            screen = app.primaryScreen()
-        if screen is None:
-            return {}
-        geometry = screen.availableGeometry()
-        return {
-            "x": geometry.x(),
-            "y": geometry.y(),
-            "width": geometry.width(),
-            "height": geometry.height(),
-        }
+        """Return available geometry at a global point. 返回全局点所在工作区。"""
+        return _screen_geometry_at(x, y, available=True)
+
+    @Slot(int, int, result="QVariantMap")
+    def screenGeometryAt(self, x: int, y: int) -> dict[str, int]:
+        """Return full geometry at a global point. 返回全局点所在完整屏幕。"""
+        return _screen_geometry_at(x, y, available=False)
 
     def _try_set_svg_icon(
         self,

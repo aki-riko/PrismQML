@@ -25,6 +25,7 @@ public slots:
     void setAppIcon(const QString &icon);
     QString resolveDroppedFolderPath(const QUrl &folderUrl) const;
     QVariantMap availableScreenGeometryAt(int x, int y) const;
+    QVariantMap screenGeometryAt(int x, int y) const;
     bool ensurePopupWindowOwner(
         const QVariant &popupWindow, const QVariant &ownerWindow);
     bool registerWindowFollower(

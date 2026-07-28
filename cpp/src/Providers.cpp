@@ -114,20 +114,28 @@ void WindowHelper::setAppIcon(const QString &icon) {
         qWarning() << "prism::WindowHelper 图标加载失败:" << path;
 }
 
-QVariantMap WindowHelper::availableScreenGeometryAt(int x, int y) const {
+static QVariantMap screenGeometryMapAt(int x, int y, bool available) {
     QScreen *screen = QGuiApplication::screenAt(QPoint(x, y));
     if (!screen)
         screen = QGuiApplication::primaryScreen();
     if (!screen)
         return {};
 
-    const QRect geometry = screen->availableGeometry();
+    const QRect geometry = available ? screen->availableGeometry() : screen->geometry();
     return {
         {QStringLiteral("x"), geometry.x()},
         {QStringLiteral("y"), geometry.y()},
         {QStringLiteral("width"), geometry.width()},
         {QStringLiteral("height"), geometry.height()},
     };
+}
+
+QVariantMap WindowHelper::availableScreenGeometryAt(int x, int y) const {
+    return screenGeometryMapAt(x, y, true);
+}
+
+QVariantMap WindowHelper::screenGeometryAt(int x, int y) const {
+    return screenGeometryMapAt(x, y, false);
 }
 
 qulonglong WindowHelper::winIdFromVariant(const QVariant &window) {
