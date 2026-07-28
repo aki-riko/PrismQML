@@ -69,12 +69,16 @@ Window {
     readonly property int gridCount: gridArea.count
 
     function scrollVertical() { verticalHelper.scrollTo(180) }
+    function scrollVerticalToEnd() { verticalHelper.scrollToEnd() }
+    function growVerticalContent() { verticalFlick.contentHeight = 720 }
     function overshootVertical() { verticalHelper.scrollBy(1000) }
     function syncVertical() {
         verticalFlick.contentY = 75
         verticalHelper.syncPosition()
     }
     function scrollHorizontal() { horizontalHelper.scrollTo(260) }
+    function scrollHorizontalToEnd() { horizontalHelper.scrollToEnd() }
+    function growHorizontalContent() { horizontalFlick.contentWidth = 820 }
     function scrollPopup() { popupHelper.scrollTo(999) }
     function setVerticalHalf() {
         verticalFlick.contentY = 240
@@ -352,6 +356,24 @@ def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
     assert _wait_for(lambda: window.property("horizontalX") == pytest.approx(260))
     assert QMetaObject.invokeMethod(window, "scrollPopup")
     assert _wait_for(lambda: window.property("popupY") == pytest.approx(380))
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_smooth_helpers_keep_boundary_target_when_content_grows(scroll_scene):
+    window, _items, warnings, windows_before = scroll_scene
+
+    assert QMetaObject.invokeMethod(window, "scrollVerticalToEnd")
+    assert _wait_for(lambda: window.property("verticalY") == pytest.approx(480))
+    assert QMetaObject.invokeMethod(window, "growVerticalContent")
+    assert _wait_for(lambda: window.property("verticalMax") == pytest.approx(600))
+    assert _wait_for(lambda: window.property("verticalY") == pytest.approx(600))
+
+    assert QMetaObject.invokeMethod(window, "scrollHorizontalToEnd")
+    assert _wait_for(lambda: window.property("horizontalX") == pytest.approx(520))
+    assert QMetaObject.invokeMethod(window, "growHorizontalContent")
+    assert _wait_for(lambda: window.property("horizontalMax") == pytest.approx(640))
+    assert _wait_for(lambda: window.property("horizontalX") == pytest.approx(640))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

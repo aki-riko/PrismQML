@@ -293,10 +293,6 @@ Item {
             id: smoothYAnimation
             duration: helper._isOvershotV ? Enums.duration.bounce : helper.duration
             easing.type: helper._isOvershotV ? Easing.OutBack : helper.easing
-            onStopped: {
-                if (!helper._syncing && !helper._isOvershotV)
-                    helper._boundaryTargetV = 0
-            }
         }
     }
 
@@ -306,10 +302,6 @@ Item {
             id: smoothXAnimation
             duration: helper._isOvershotH ? Enums.duration.bounce : helper.duration
             easing.type: helper._isOvershotH ? Easing.OutBack : helper.easing
-            onStopped: {
-                if (!helper._syncing && !helper._isOvershotH)
-                    helper._boundaryTargetH = 0
-            }
         }
     }
     
