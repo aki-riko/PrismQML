@@ -26,8 +26,8 @@ Rectangle {
         exitDissolveAnim.stop()
         control._finishing = false
         control.visible = true
-        contentRow.opacity = Enums.opacityLevel.visible
-        contentRow.scale = Enums.opacityLevel.visible
+        contentColumn.opacity = Enums.opacityLevel.visible
+        contentColumn.scale = Enums.opacityLevel.visible
         for (var i = 0; i < dissolveGrid.count; i++) {
             var cell = dissolveGrid.itemAt(i)
             if (cell) cell.opacity = Enums.opacityLevel.visible
@@ -49,7 +49,7 @@ Rectangle {
 
         ParallelAnimation {
             NumberAnimation {
-                target: contentRow
+                target: contentColumn
                 property: "opacity"
                 to: Enums.opacityLevel.invisible
                 duration: Enums.duration.splashGridContentFade
@@ -57,7 +57,7 @@ Rectangle {
             }
 
             NumberAnimation {
-                target: contentRow
+                target: contentColumn
                 property: "scale"
                 to: Enums.splashScreenMetrics.exitContentEndScale
                 duration: Enums.duration.splashGridContentFade
@@ -118,26 +118,26 @@ Rectangle {
     }
 
     // ==================== Content 内容 ====================
-    Row {
-        id: contentRow
+    Column {
+        id: contentColumn
 
         objectName: "qmlPageContent"
         anchors.centerIn: parent
         opacity: Enums.opacityLevel.visible
         scale: Enums.opacityLevel.visible
         transformOrigin: Item.Center
-        spacing: Enums.spacing.m
+        spacing: Enums.spacing.xl
 
         ProgressRing {
             id: progressRing
 
             objectName: "qmlPageProgressRing"
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.horizontalCenter: parent.horizontalCenter
             width: Enums.controlSize.navBarHeight
             height: Enums.controlSize.navBarHeight
-            indeterminate: control.running && !control._finishing
+            indeterminate: control.running
             indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc
-            paused: !control.running || control._finishing
+            paused: !control.running
             strokeWidth: Enums.controlSize.progressStrokeWidth
             spinDuration: Enums.duration.scroll
             trackColorLight: Enums.transparent
@@ -145,7 +145,8 @@ Rectangle {
         }
 
         Label {
-            anchors.verticalCenter: parent.verticalCenter
+            objectName: "qmlPageLabel"
+            anchors.horizontalCenter: parent.horizontalCenter
             text: control.text
             type: Enums.label.type_body
             visible: control.text !== ""

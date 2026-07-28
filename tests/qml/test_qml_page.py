@@ -71,9 +71,13 @@ def test_qml_page_is_public_and_preserves_lazy_progress(qapp):
     assert root is not None, [error.toString() for error in component.errors()]
     try:
         page = root.findChild(QQuickItem, "qmlPage")
+        content = root.findChild(QQuickItem, "qmlPageContent")
         ring = root.findChild(QQuickItem, "qmlPageProgressRing")
+        label = root.findChild(QQuickItem, "qmlPageLabel")
         assert page is not None
+        assert content is not None
         assert ring is not None
+        assert label is not None
         assert page.property("text") == "Loading page"
         assert page.property("running") is True
         assert ring.property("indeterminate") is True
@@ -81,6 +85,9 @@ def test_qml_page_is_public_and_preserves_lazy_progress(qapp):
         assert ring.property("spinDuration") == root.property("lazyRingSpinDuration")
         assert ring.width() == root.property("lazyRingSize")
         assert ring.height() == root.property("lazyRingSize")
+        assert ring.x() + ring.width() / 2 == pytest.approx(content.width() / 2)
+        assert label.x() + label.width() / 2 == pytest.approx(content.width() / 2)
+        assert label.y() > ring.y() + ring.height()
 
         page.setProperty("running", False)
         assert ring.property("indeterminate") is False

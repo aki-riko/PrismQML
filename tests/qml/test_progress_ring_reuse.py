@@ -264,6 +264,9 @@ def test_qml_page_preserves_lazy_ring_and_reuses_splash_exit():
     assert "spinDuration: Enums.duration.scroll" in page_source
     assert "trackColorLight: Enums.transparent" in page_source
     assert "trackColorDark: Enums.transparent" in page_source
+    assert "Column {" in page_source
+    assert "spacing: Enums.spacing.xl" in page_source
+    assert "anchors.horizontalCenter: parent.horizontalCenter" in page_source
     assert "function finish()" in page_source
     assert "Enums.duration.splashGridCellFade" in page_source
     assert "Enums.duration.splashExitDissolve" in page_source
