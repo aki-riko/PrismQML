@@ -35,10 +35,10 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     function setCurrentIndex(idx) {
         if (idx < 0 || idx >= _safeItems.length) return
-        if (idx === currentIndex && _initialized) return
+        if (idx === currentIndex) return
 
+        // Only update the index; one handler drives geometry to avoid duplicate interruption 只修改索引，由统一handler驱动几何以免双发打断动画
         currentIndex = idx
-        _updateIndicatorWithAnimation()
 
         var item = repeater.itemAt(idx)
         if (item) currentItemChanged(item.key)
@@ -115,6 +115,8 @@ Item {
     implicitHeight: Enums.controlSize.inputHeight
 
     Component.onCompleted: Qt.callLater(_updateIndicatorWithAnimation)
+    onItemsChanged: Qt.callLater(_updateIndicatorWithAnimation)
+    onCurrentIndexChanged: _updateIndicatorWithAnimation()
     onWidthChanged: {
         if (_initialized && !navIndicator.running) {
             var item = repeater.itemAt(currentIndex)
