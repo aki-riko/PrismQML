@@ -212,6 +212,29 @@ def test_popup_window_content_size_includes_padding_automatically(qapp):
         _pump(1)
 
 
+def test_popup_shadow_tracks_panel_geometry_not_animation_clip(qapp):
+    engine, component, root = _create_scene()
+    try:
+        popup = root.findChild(QQuickItem, "popup")
+        shadow = popup.findChild(QQuickItem, "_popupShadow") if popup else None
+        neo_shadow = popup.findChild(QQuickItem, "_popupNeoShadow") if popup else None
+        assert popup is not None
+        assert shadow is not None
+        assert neo_shadow is not None
+
+        popup.setProperty("popupHeight", 84)
+        popup.setProperty("_clipHeight", 308)
+        _pump()
+
+        assert (shadow.width(), shadow.height()) == pytest.approx((200, 84))
+        assert (neo_shadow.width(), neo_shadow.height()) == pytest.approx((200, 84))
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_popup_window_animation_source_uses_role_tokens():
     metrics_source = METRICS_SOURCE.read_text(encoding="utf-8")
     popup_source = POPUP_SOURCE.read_text(encoding="utf-8")

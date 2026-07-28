@@ -36,11 +36,12 @@ Item {
     // Sync opacity with popupPanel for smooth fade animation 与面板同步透明度实现平滑淡入
     // Fluent: 模糊阴影; neo: 硬阴影(偏移纯色矩形)
     RectangularShadow {
+        objectName: "_popupShadow"
         z: Enums.zIndex.background
         x: clipContainer.x
         y: clipContainer.y
-        width: clipContainer.width
-        height: clipContainer.height
+        width: popupPanel.width
+        height: popupPanel.height
         radius: surface.popupRadius
         color: surface.popupShadowColor
         blur: surface.popupShadowBlur
@@ -51,12 +52,13 @@ Item {
 
     // neo 硬阴影: 偏移纯色矩形(弹层用 explicit 几何, 不用 NeoShadow 的 target)
     Rectangle {
+        objectName: "_popupNeoShadow"
         z: Enums.zIndex.background
         visible: Enums.isNeobrutalism
         x: clipContainer.x + Enums.neo.shadowOffset
         y: clipContainer.y + Enums.neo.shadowOffset
-        width: clipContainer.width
-        height: clipContainer.height
+        width: popupPanel.width
+        height: popupPanel.height
         radius: surface.popupRadius
         color: Enums.neo.shadowColor
     }
