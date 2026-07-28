@@ -374,7 +374,7 @@ def test_timeline_virtual_scroll_to_start_tracks_dynamic_origin(timeline_scene):
     )
     scroll_bar = next(
         item
-        for item in list_view.childItems()
+        for item in large_timeline.findChildren(QQuickItem)
         if "ScrollBar" in item.metaObject().className()
     )
     handle = next(

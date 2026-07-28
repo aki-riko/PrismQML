@@ -31,6 +31,8 @@ import QtQuick  // Place after library imports so native types keep no prefix �
  *   assistantAvatarText: string
  *   assistantAvatarSource: url
  *   showAssistantAvatar: bool
+ *   showScrollBar: bool
+ *   scrollBarWidth: int
  */
 Item {
     id: control
@@ -40,6 +42,8 @@ Item {
     property string assistantAvatarText: ""
     property url assistantAvatarSource: ""
     property bool showAssistantAvatar: true
+    property bool showScrollBar: true
+    property int scrollBarWidth: Enums.controlSize.scrollBarWidth
 
     // ==================== Internal Props 内部属性 ====================
     property bool _followBottom: true
@@ -47,6 +51,8 @@ Item {
     property bool _scrollPending: false
     property bool _layoutPending: false
     property bool _rangeUpdatePending: false
+    property bool _needsScrollBar: false
+    property bool _scrollBarUpdatePending: false
     property real _pendingAnchorDelta: 0
 
     // ==================== Readonly State 只读状态 ====================
@@ -61,6 +67,16 @@ Item {
         >= messageViewport.contentHeight - _bottomTolerance
 
     // ==================== Internal Methods 内部方法 ====================
+    function _scheduleScrollBarUpdate() {
+        if (_scrollBarUpdatePending) return
+        _scrollBarUpdatePending = true
+        Qt.callLater(function() {
+            _scrollBarUpdatePending = false
+            _needsScrollBar = showScrollBar
+                && messageViewport.contentHeight > messageViewport.height
+        })
+    }
+
     function _setContentY(contentY, keepFollowing) {
         var maximumY = Math.max(0, messageViewport.contentHeight - messageViewport.height)
         _adjustingScroll = true
@@ -196,6 +212,10 @@ Item {
         return chatModel.get(chatModel.count - 1).role
     }
 
+    onShowScrollBarChanged: _scheduleScrollBarUpdate()
+    onScrollBarWidthChanged: _scheduleScrollBarUpdate()
+    Component.onCompleted: _scheduleScrollBarUpdate()
+
     // ==================== Content 内容 ====================
     ListModel {
         id: chatModel
@@ -206,6 +226,8 @@ Item {
 
         objectName: "chatMessageViewport"
         anchors.fill: parent
+        anchors.rightMargin: control._needsScrollBar
+            ? control.scrollBarWidth + Enums.spacing.xs : 0
         contentWidth: width
         contentHeight: messageColumn.height
         clip: true
@@ -217,9 +239,14 @@ Item {
             control._scheduleLoadRangeUpdate()
         }
         onContentHeightChanged: {
+            control._scheduleScrollBarUpdate()
             if (control._followBottom) control._scheduleScrollToBottom()
         }
-        onHeightChanged: control._scheduleLoadRangeUpdate()
+        onHeightChanged: {
+            control._scheduleScrollBarUpdate()
+            control._scheduleLoadRangeUpdate()
+        }
+        onWidthChanged: control._scheduleScrollBarUpdate()
 
         Item {
             id: messageColumn
@@ -328,7 +355,8 @@ Item {
         target: messageViewport
         scrollHelper: scrollHelper
         orientation: Qt.Vertical
-        barWidth: Enums.spacing.s
+        barWidth: control.scrollBarWidth
+        visible: control._needsScrollBar
         z: Enums.zIndex.controlsAbove
     }
 }

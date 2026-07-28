@@ -34,16 +34,21 @@ Item {
     // 只渲染可见项,适合大列表(上千条)。开启时组件自身可滚动,需给定 height。
     // Virtual scrolling: off by default (keeps original full render, backward compatible).
     property bool virtualized: false
+    property bool showScrollBar: true
+    property int scrollBarWidth: Enums.controlSize.scrollBarWidth
 
     // 选中项的 key 值(配合 selectedRole 高亮当前选中卡片);为空不高亮
     property string selectedRole: "commit"   // card 对象里用作唯一标识的字段名
     property var selectedKey: undefined        // 当前选中值(与 card[selectedRole] 比对)
 
+    // ==================== Internal Props 内部属性 ====================
+    property bool _needsVirtualScrollBar: false
+    property bool _scrollBarUpdatePending: false
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property var _safeItems:
         items === null || items === undefined ? []
         : (typeof items.length === "number" ? items : [])
-
-    // ==================== Readonly State 只读状态 ====================
     readonly property bool _graphMode: type === Enums.timeline.type_graph
     readonly property bool _usesVirtualList: virtualized || _graphMode
     readonly property real _graphWidth: Enums.spacing.timelineGraphPadding * 2
@@ -114,6 +119,16 @@ Item {
         }
     }
 
+    function _scheduleScrollBarUpdate() {
+        if (_scrollBarUpdatePending) return
+        _scrollBarUpdatePending = true
+        Qt.callLater(function() {
+            _scrollBarUpdatePending = false
+            _needsVirtualScrollBar = _usesVirtualList && showScrollBar
+                && virtualList.contentHeight > virtualList.height
+        })
+    }
+
     function _getStatusColor(status) {
         switch (status) {
             case "success": return Enums.statusLevel.getColor("success")
@@ -135,7 +150,12 @@ Item {
     onVirtualizedChanged: _syncFlat()
     onTypeChanged: _syncFlat()
     on_FlatRowsChanged: _syncFlat()
-    Component.onCompleted: _syncFlat()
+    onShowScrollBarChanged: _scheduleScrollBarUpdate()
+    onScrollBarWidthChanged: _scheduleScrollBarUpdate()
+    Component.onCompleted: {
+        _syncFlat()
+        _scheduleScrollBarUpdate()
+    }
     
     implicitWidth: 400
     implicitHeight: _usesVirtualList ? 400 : contentColumn.implicitHeight
@@ -317,7 +337,10 @@ Item {
     // Virtual content: flattened ListView renders visible rows 虚拟内容：拍平 ListView 仅渲染可见行
     QtQ.ListView {
         id: virtualList
+        objectName: "timelineVirtualViewport"
         anchors.fill: parent
+        anchors.rightMargin: control._needsVirtualScrollBar
+            ? control.scrollBarWidth + Enums.spacing.xs : 0
         visible: control._usesVirtualList
         model: control._usesVirtualList ? _flatModel : null
         clip: true
@@ -325,6 +348,9 @@ Item {
         reuseItems: true   // 复用 delegate,滚动时不重复实例化(大列表性能关键)
         interactive: false // 关原生 flick,交给 SmoothScrollHelper 接管(否则平滑滚动不生效)
         boundsBehavior: Flickable.StopAtBounds
+        onContentHeightChanged: control._scheduleScrollBarUpdate()
+        onHeightChanged: control._scheduleScrollBarUpdate()
+        onWidthChanged: control._scheduleScrollBarUpdate()
         onContentYChanged: {
             if (contentHeight > height && contentY + height >= contentHeight - 600)
                 control.reachedEnd()
@@ -412,8 +438,9 @@ Item {
                     id: cardBox
                     x: control._graphMode ? control._graphWidth : Enums.spacing.timelineIndent
                     y: cardPart.shadowPadding
-                    // 右侧留出滚动条宽度 + 间距,避免卡片边缘与滚动条重叠
-                    width: parent.width - x - Enums.spacing.xl
+                    // Keep the normal card inset; the viewport reserves the scrollbar gutter.
+                    // 保留常规卡片内缩；滚动条空间由视口统一预留。
+                    width: parent.width - x - Enums.spacing.m
                     height: cardCol.implicitHeight + Enums.spacing.l * 2
                     // Graph cards use Fluent elevation and the Card token border.
                     // 图模式卡片使用 Fluent 层级动效与 Card 自带轻边框。
@@ -488,14 +515,18 @@ Item {
             bounceEnabled: false
         }
 
-        // Fluent 风格滚动条
-        ScrollBar {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.margins: Enums.spacing.xxs
-            target: virtualList
-            scrollHelper: vScrollHelper
-        }
+    }
+
+    // Fluent scrollbar stays outside the reduced virtual viewport.
+    // Fluent 滚动条位于缩小后的虚拟视口之外。
+    ScrollBar {
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.margins: Enums.spacing.xxs
+        target: virtualList
+        scrollHelper: vScrollHelper
+        barWidth: control.scrollBarWidth
+        visible: control._needsVirtualScrollBar
     }
 }

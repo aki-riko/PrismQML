@@ -145,12 +145,4 @@ DataWidgetCore {
             }
         }
     }
-
-    // ==================== Content 内容 ====================
-    // Reserve ListView right margin for the scrollbar 为滚动条预留 ListView 右边距
-    Binding {
-        target: listView
-        property: "rightMargin"
-        value: listView.contentHeight > listView.height ? Enums.controlSize.scrollBarWidth + Enums.spacing.xs : 0
-    }
 }

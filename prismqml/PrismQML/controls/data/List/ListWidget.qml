@@ -413,6 +413,7 @@ Rectangle {
     // List view 列表视图
     ListView {
         id: listView
+        objectName: "listWidgetViewport"
         anchors.fill: parent
         anchors.rightMargin: showScrollBar && contentHeight > height ? scrollBarWidth + Enums.spacing.xs : 0
         clip: true

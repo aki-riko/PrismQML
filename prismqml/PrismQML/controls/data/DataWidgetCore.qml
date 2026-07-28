@@ -39,6 +39,10 @@ Rectangle {
     // 子类计算所有列总像素宽度赋给该属性；大于 listView.width 时启用横向滚动。
     property real contentTotalWidth: 0
 
+    // Scrollbars 滚动条
+    property bool showScrollBar: true
+    property int scrollBarWidth: Enums.controlSize.scrollBarWidth
+
     // Smooth scroll 平滑滚动
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.scroll
@@ -67,9 +71,14 @@ Rectangle {
 
     // ==================== Internal Props 内部属性 ====================
     property int _autoItemCount: 0
+    property bool _needsVerticalScrollBar: false
+    property bool _needsHorizontalScrollBar: false
+    property bool _scrollBarUpdatePending: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _hasHorizontalScroll: contentTotalWidth > listView.width
+    readonly property real _scrollBarGutter:
+        scrollBarWidth + Enums.spacing.xs
     readonly property real _effectiveContentWidth: _hasHorizontalScroll ? contentTotalWidth : listView.width
     readonly property color headerColor: Enums.headerColor
     readonly property color borderColor: Enums.stateColor.borderLight
@@ -93,17 +102,36 @@ Rectangle {
         Qt.callLater(function() { root._autoItemCount = listView.count })
     }
 
+    // Coalesce geometry-dependent scrollbar state to avoid a binding loop between
+    // viewport width, delegate layout, and contentHeight.
+    // 合并依赖几何的滚动条状态，避免视口宽度、委托布局与 contentHeight 形成绑定环。
+    function _scheduleScrollBarUpdate() {
+        if (_scrollBarUpdatePending) return
+        _scrollBarUpdatePending = true
+        Qt.callLater(function() {
+            _scrollBarUpdatePending = false
+            _needsVerticalScrollBar = showScrollBar
+                && listView.contentHeight > listView.height
+            _needsHorizontalScrollBar = showScrollBar
+                && contentTotalWidth > listView.width
+        })
+    }
+
     Layout.fillWidth: layoutFillWidth
     Layout.fillHeight: layoutFillHeight
     Layout.alignment: layoutAlignment
 
     color: Enums.transparent  // Transparent background avoids square corners 透明背景避免直角露出圆角卡片外
 
+    onShowScrollBarChanged: _scheduleScrollBarUpdate()
+    onScrollBarWidthChanged: _scheduleScrollBarUpdate()
+    onContentTotalWidthChanged: _scheduleScrollBarUpdate()
     // ==================== Size 尺寸 ====================
     implicitWidth: 200
     implicitHeight: 150
 
     onListModelChanged: _refreshItemCount()
+    Component.onCompleted: _scheduleScrollBarUpdate()
 
     // ==================== Content 内容 ====================
     Connections {
@@ -292,12 +320,19 @@ Rectangle {
                 QtQ.ListView {
                     id: listView
                     anchors.fill: parent
+                    anchors.rightMargin: root._needsVerticalScrollBar ? root._scrollBarGutter : 0
+                    anchors.bottomMargin: root._needsHorizontalScrollBar ? root._scrollBarGutter : 0
                     clip: true
                     boundsBehavior: Flickable.DragAndOvershootBounds
                     interactive: false
                     cacheBuffer: 600
                     reuseItems: true
                     contentWidth: root.contentTotalWidth > width ? root.contentTotalWidth : width
+
+                    onContentHeightChanged: root._scheduleScrollBarUpdate()
+                    onContentWidthChanged: root._scheduleScrollBarUpdate()
+                    onHeightChanged: root._scheduleScrollBarUpdate()
+                    onWidthChanged: root._scheduleScrollBarUpdate()
 
                     // Transitions 过渡动画
                     add: Transition {
@@ -360,12 +395,13 @@ Rectangle {
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     anchors.rightMargin: Enums.spacing.xxs
+                    anchors.bottomMargin: root._needsHorizontalScrollBar ? root._scrollBarGutter : 0
 
                     target: listView
                     scrollHelper: scrollHelper
                     orientation: Qt.Vertical
-                    barWidth: Enums.spacing.s
-                    visible: listView.contentHeight > listView.height
+                    barWidth: root.scrollBarWidth
+                    visible: root._needsVerticalScrollBar
                     z: Enums.zIndex.controlsAbove
                 }
 
@@ -381,7 +417,9 @@ Rectangle {
                     scrollDuration: root.scrollDuration
                     scrollStep: root.scrollStep
                     scrollEasing: root.scrollEasing
-                    barWidth: Enums.spacing.s
+                    barWidth: root.scrollBarWidth
+                    showScrollBar: root.showScrollBar
+                    rightInset: root._needsVerticalScrollBar ? root._scrollBarGutter : 0
                 }
             }
 

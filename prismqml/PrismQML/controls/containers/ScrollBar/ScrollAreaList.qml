@@ -57,7 +57,8 @@ Item {
     ListView {
         id: listView
         anchors.fill: parent
-        anchors.rightMargin: showScrollBar && contentHeight > height ? scrollBarWidth + Enums.spacing.xs : 0
+        anchors.rightMargin: showScrollBar && (alwaysShowScrollBar || contentHeight > height)
+            ? scrollBarWidth + Enums.spacing.xs : 0
 
         model: control.model
         // delegateAsync 模式: 包一层 Loader.asynchronous=true, ListView instantiate

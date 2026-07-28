@@ -43,6 +43,8 @@ Item {
     property int scrollEasing: Easing.OutQuart
     property bool bounceEnabled: true
     property int barWidth: Enums.spacing.s
+    property bool showScrollBar: true
+    property real rightInset: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool active: target && target.contentWidth > target.width
@@ -120,13 +122,14 @@ Item {
         anchors.left: parent ? parent.left : undefined
         anchors.right: parent ? parent.right : undefined
         anchors.bottom: parent ? parent.bottom : undefined
+        anchors.rightMargin: mixin.rightInset
         anchors.bottomMargin: Enums.spacing.xxs
 
         target: mixin.target
         scrollHelper: hHelper
         orientation: Qt.Horizontal
         barWidth: mixin.barWidth
-        visible: mixin.active
+        visible: mixin.showScrollBar && mixin.active
         z: Enums.zIndex.controlsAbove
     }
 }

@@ -21,7 +21,7 @@ Item {
 
     // Common properties 通用属性
     property bool showScrollBar: true
-    property int scrollBarWidth: 8
+    property int scrollBarWidth: Enums.controlSize.scrollBarWidth
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3

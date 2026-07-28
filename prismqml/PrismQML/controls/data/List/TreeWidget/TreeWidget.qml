@@ -45,6 +45,8 @@ Rectangle {
     property bool borderVisible: true
     property int borderRadius: Enums.radius.large
     property bool selectOnRightClick: false
+    property bool showScrollBar: true
+    property int scrollBarWidth: Enums.controlSize.scrollBarWidth
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3
@@ -218,8 +220,10 @@ Rectangle {
 
                     property var treeControl: control
 
+                    objectName: "treeWidgetViewport"
                     anchors.fill: parent
-                    anchors.rightMargin: contentHeight > height ? Enums.spacing.xl : 0
+                    anchors.rightMargin: control.showScrollBar && contentHeight > height
+                        ? control.scrollBarWidth + Enums.spacing.xs : 0
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
                     interactive: false
@@ -283,8 +287,8 @@ Rectangle {
                     target: listView
                     scrollHelper: scrollHelper
                     orientation: Qt.Vertical
-                    barWidth: Enums.spacing.s
-                    visible: listView.contentHeight > listView.height
+                    barWidth: control.scrollBarWidth
+                    visible: control.showScrollBar && listView.contentHeight > listView.height
                 }
                 
                 MouseArea {
