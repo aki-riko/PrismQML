@@ -305,7 +305,11 @@ Item {
 
         implicitContentHeight: Math.min(_itemsHeight, _maxContentHeight)
         closeOnClickOutside: true
-        useQtPopupWindow: true
+        // Keep the common menuItems path in the owning scene so pointer
+        // delivery does not depend on a second native popup HWND. External
+        // MenuCore users may still opt into Popup.Window when overflow is
+        // required. 常规菜单留在宿主场景，显式外部菜单仍可选择原生弹层。
+        useInWindowPopup: true
         
         Flickable {
             id: menuFlickable
