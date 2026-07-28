@@ -49,6 +49,9 @@ NavigationWindowCore {
     property int nullableFoundIndex: -1
     property int nullPageSourceResult: -99
     property string indicatorKey: ""
+    readonly property string bottomCurrentKey: navStub._currentKey
+    readonly property int bottomMappedIndex: navStub._bottomPageIndexMap["page_1"] === undefined
+        ? -1 : navStub._bottomPageIndexMap["page_1"]
     property var readyEvents: []
     property var bottomEvents: []
     property var pageEvents: []
@@ -113,6 +116,7 @@ NavigationWindowCore {
         id: navStub
         property var _bottomPageIndexMap: ({})
         property bool _skipIndicatorAnimation: false
+        property string _currentKey: ""
         property string lastKey: ""
         function updateIndicatorForBottomItem(key) { lastKey = key }
     }
@@ -205,6 +209,8 @@ def test_navigation_window_core_public_and_internal_contracts(monkeypatch, qapp)
         assert window.property("bottomPageResult") == 1
         assert window.property("bottomActionResult") == -1
         assert window.property("indicatorKey") == "page_1"
+        assert window.property("bottomCurrentKey") == "page_1"
+        assert window.property("bottomMappedIndex") == 1
         assert _variant(window.property("bottomEvents")) == [0, 1]
         assert _variant(window.property("pageEvents")) == [1]
         assert QMetaObject.invokeMethod(window, "exerciseNullableCollections")

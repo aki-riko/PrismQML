@@ -80,12 +80,25 @@ def _configure_rich_window(window, temp_dir):
     window.setMicaEffectEnabled(False)
     window.addPage(None, "Home", 'Top "one"')
     window.addPage(
-        None, str(bottom_icon), "Bottom", position="bottom", selectable=False
+        None, str(bottom_icon), "Bottom", position="bottom", selectable=True
     )
 
 
 def _to_variant(value):
     return value.toVariant() if hasattr(value, "toVariant") else value
+
+
+def _visual_descendants(item):
+    for child in item.childItems():
+        yield child
+        yield from _visual_descendants(child)
+
+
+def _navigation_item_text(item):
+    for property_name in ("text", "itemText"):
+        if item.metaObject().indexOfProperty(property_name) >= 0:
+            return item.property(property_name)
+    return None
 
 
 def _assert_rich_models(root, temp_dir):
@@ -100,9 +113,35 @@ def _assert_rich_models(root, temp_dir):
             "text": "Bottom",
             "icon": bottom_icon,
             "key": "page_1",
-            "selectable": False,
+            "selectable": True,
         }
     ]
+
+
+def _assert_programmatic_bottom_navigation(window):
+    root = window._window
+    navigation = root.property("navigationView")
+    assert navigation is not None
+
+    window.setCurrentIndex(1)
+    assert _wait_for(lambda: root.property("currentIndex") == 1)
+
+    bottom_page_map = _to_variant(navigation.property("_bottomPageIndexMap"))
+    assert bottom_page_map["page_1"] == 1
+    if navigation.metaObject().indexOfProperty("_currentKey") >= 0:
+        assert navigation.property("_currentKey") == "page_1"
+    else:
+        assert navigation.metaObject().indexOfProperty("_bottomItemActive") >= 0
+        assert navigation.property("_bottomItemActive") is True
+
+    bottom_delegates = [
+        item
+        for item in _visual_descendants(navigation)
+        if item.metaObject().indexOfProperty("selected") >= 0
+        and _navigation_item_text(item) == "Bottom"
+    ]
+    assert len(bottom_delegates) == 1
+    assert bottom_delegates[0].property("selected") is True
 
 
 def _assert_rich_root(window, temp_dir):
@@ -141,6 +180,7 @@ def _exercise_rich_bar(window_class, temp_dir, window_type):
         _assert_static_root_used(window_class)
         _assert_rich_root(window, temp_dir)
         _assert_page_containers_attached(window, 2)
+        _assert_programmatic_bottom_navigation(window)
     finally:
         _dispose_window(window)
 
@@ -149,13 +189,15 @@ def _exercise_window_type(window, window_class, component):
     window.setSplashEnabled(False)
     window.setMicaEffectEnabled(False)
     window.addPage(None, "Home", "Home")
+    window.addPage(None, "Settings", "Bottom", position="bottom", selectable=True)
     try:
         window.show()
         QApplication.processEvents()
         _assert_static_root_used(window_class)
         assert component in window._window.metaObject().className()
         assert window._window.property("micaEnabled") is False
-        _assert_page_containers_attached(window, 1)
+        _assert_page_containers_attached(window, 2)
+        _assert_programmatic_bottom_navigation(window)
     finally:
         _dispose_window(window)
 

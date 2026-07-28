@@ -245,12 +245,69 @@ WindowsCore {
         profileTime("NavigationWindowCore splash finish done")
     }
 
+    function _safeNavigationPageSources(pageSources) {
+        return pageSources && typeof pageSources.length === "number" ? pageSources : []
+    }
+
+    function _windowPageSources() {
+        return _safeNavigationPageSources(window["pageSources"])
+    }
+
+    function _resolveBottomPageIndex(item, pageSources) {
+        if (!item || item.key === undefined || item.selectable === false) return -1
+
+        var itemKey = String(item.key)
+        // Prefer the Python window key format page_N. 优先解析 Python 窗口的 page_N 键格式。
+        var match = itemKey.match(/^page_(\d+)$/)
+        if (match) return parseInt(match[1], 10)
+
+        // Otherwise search QML lazy-loading sources. 否则搜索 QML 懒加载源。
+        var safePageSources = _safeNavigationPageSources(pageSources)
+        for (var i = 0; i < safePageSources.length; i++) {
+            var source = safePageSources[i]
+            if (source === null || source === undefined) continue
+            if (String(source).indexOf(itemKey) !== -1) return i
+        }
+        return -1
+    }
+
+    function _findBottomPageItem(pageIndex, pageSources) {
+        for (var i = 0; i < _safeBottomNavigationItems.length; i++) {
+            var item = _safeBottomNavigationItems[i]
+            if (_resolveBottomPageIndex(item, pageSources) === pageIndex) return item
+        }
+        return null
+    }
+
+    function _syncNavigationSelection(pageIndex, navPanel, pageSources) {
+        if (!navPanel) return false
+
+        var item = _findBottomPageItem(pageIndex, pageSources)
+        if (!item) {
+            if (navPanel["_currentKey"] !== undefined) navPanel._currentKey = ""
+            if (navPanel["_bottomItemActive"] !== undefined) navPanel._bottomItemActive = false
+            return false
+        }
+
+        // Keep the bottom delegate, selected icon, and indicator on the same source index.
+        // 让底部委托、选中图标和指示器共同跟随同一个源索引。
+        var oldMap = navPanel._bottomPageIndexMap || {}
+        var map = ({})
+        for (var key in oldMap) { map[key] = oldMap[key] }
+        map[item.key] = pageIndex
+        navPanel._bottomPageIndexMap = map
+        if (navPanel["_currentKey"] !== undefined) navPanel._currentKey = String(item.key)
+        if (navPanel["_bottomItemActive"] !== undefined) navPanel._bottomItemActive = true
+        if (typeof navPanel.updateIndicatorForBottomItem === "function") {
+            navPanel.updateIndicatorForBottomItem(item.key)
+        }
+        return true
+    }
+
     function _handleBottomItemClicked(index, navPanel, stack, pageSources) {
         var item = _safeBottomNavigationItems[index]
         var isPageItem = item && item.key !== undefined
         var isSelectable = item && item.selectable !== false
-        var safePageSources = pageSources && typeof pageSources.length === "number"
-            ? pageSources : []
 
         if (!isPageItem || !isSelectable) {
             // Function items only emit the public signal. 功能项只发送公开信号。
@@ -258,40 +315,17 @@ WindowsCore {
             return -1
         }
 
-        var pageIndex = -1
-        // Prefer the Python window key format page_N. 优先解析 Python 窗口的 page_N 键格式。
-        var itemKey = String(item.key)
-        var match = itemKey.match(/^page_(\d+)$/)
-        if (match) {
-            pageIndex = parseInt(match[1])
-        } else {
-            // Otherwise search QML lazy-loading sources. 否则搜索 QML 懒加载源。
-            for (var i = 0; i < safePageSources.length; i++) {
-                var source = safePageSources[i]
-                if (source === null || source === undefined) continue
-                if (String(source).indexOf(itemKey) !== -1) {
-                    pageIndex = i
-                    break
-                }
-            }
-        }
+        var pageIndex = _resolveBottomPageIndex(item, pageSources)
 
         if (pageIndex >= 0) {
-            var oldMap = navPanel._bottomPageIndexMap || {}
-            var map = ({})
-            for (var k in oldMap) { map[k] = oldMap[k] }
-            map[item.key] = pageIndex
-            navPanel._bottomPageIndexMap = map
-
             // Change the window source index only; direct stack writes would break its binding.
             // 只修改窗口源索引；直接写 stack 会破坏其声明式绑定。
-            // Suppress the top-item indicator path so the bottom item owns this animation.
-            // 暂停顶部项指示器路径，让底部项独占本次动画。
-            navPanel._skipIndicatorAnimation = true
+            var changed = currentIndex !== pageIndex
             currentIndex = pageIndex
-            navPanel._skipIndicatorAnimation = false
+            // Re-selecting the active bottom page emits no currentIndex change; synchronize explicitly.
+            // 再次选择当前底部页不会触发 currentIndex 变化，因此显式同步一次。
+            if (!changed) _syncNavigationSelection(pageIndex, navPanel, pageSources)
             currentPageChanged(pageIndex)
-            navPanel.updateIndicatorForBottomItem(item.key)
         }
         bottomItemClicked(index)
         return pageIndex
@@ -367,6 +401,12 @@ WindowsCore {
             var item = _safeNavigationItems[i]
             if (item && (item.key === key || item.text === key)) return i
         }
+        for (var j = 0; j < _safeBottomNavigationItems.length; j++) {
+            var bottomItem = _safeBottomNavigationItems[j]
+            if (bottomItem && (bottomItem.key === key || bottomItem.text === key)) {
+                return _resolveBottomPageIndex(bottomItem, _windowPageSources())
+            }
+        }
         return -1
     }
 
@@ -380,6 +420,18 @@ WindowsCore {
             " bottom=" + _safeBottomNavigationItems.length
         )
         _markSplashVisible()
+    }
+
+    onCurrentIndexChanged: {
+        _syncNavigationSelection(currentIndex, navigationView, _windowPageSources())
+    }
+
+    onNavigationViewChanged: {
+        _syncNavigationSelection(currentIndex, navigationView, _windowPageSources())
+    }
+
+    onBottomNavigationItemsChanged: {
+        _syncNavigationSelection(currentIndex, navigationView, _windowPageSources())
     }
 
     onMicaEnabledChanged: {
