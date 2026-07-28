@@ -21,12 +21,6 @@ from scripts.test_process import prepare_automated_test_process
 # 强制自动化测试无界面运行，并禁止原生崩溃弹窗。
 prepare_automated_test_process()
 
-from prismqml import configure_qml_environment
-
-# Enable local translation resources before the suite creates its first QML engine.
-# 在测试套件创建首个 QML 引擎前启用本地翻译资源。
-configure_qml_environment()
-
 import pytest
 
 
@@ -37,7 +31,12 @@ def qapp():
     QApplication 单进程单例，session 级保证全程只创建一次；不主动调用
     quit()，交由进程退出时自然回收，避免提前销毁影响其它用例。
     """
+    from prismqml import configure_qml_environment
     from PySide6.QtWidgets import QApplication
+
+    # Enable local translations before the first QApplication or QML engine.
+    # 在首个 QApplication 或 QML 引擎前启用本地翻译资源。
+    configure_qml_environment()
 
     app = QApplication.instance()
     if app is None:
