@@ -162,7 +162,7 @@ def _dropdown_popup(dropdown):
     matches = [
         child
         for child in _descendants(dropdown)
-        if child.metaObject().indexOfProperty("_contentHeight") >= 0
+        if child.metaObject().indexOfProperty("_itemsHeight") >= 0
         and child.metaObject().indexOfProperty("_prewarmed") >= 0
     ]
     assert len(matches) == 1, [child.metaObject().className() for child in matches]

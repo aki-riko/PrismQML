@@ -52,6 +52,19 @@ Item {
             height: parent.height + 2 * Enums.spacing.m
         }
     }
+
+    PopupWindowCore {
+        id: autoSizedPopup
+        objectName: "autoSizedPopup"
+        contentPadding: Enums.spacing.m
+        implicitContentWidth: 240
+        implicitContentHeight: 96
+
+        Rectangle {
+            objectName: "autoSizedContent"
+            anchors.fill: parent
+        }
+    }
 }
 """
 
@@ -169,7 +182,29 @@ def test_popup_window_content_clips_overflow_for_every_consumer(qapp):
         assert overflow_probe.y() < 0
         assert overflow_probe.width() > content.width()
         assert overflow_probe.height() > content.height()
+        assert popup.property("availableContentWidth") == 192
+        assert popup.property("availableContentHeight") == 172
+        assert (content.width(), content.height()) == pytest.approx((192, 172))
         assert content.clip()
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_popup_window_content_size_includes_padding_automatically(qapp):
+    engine, component, root = _create_scene()
+    try:
+        popup = root.findChild(QQuickItem, "autoSizedPopup")
+        content = popup.findChild(QQuickItem, "_popupContent") if popup else None
+        assert popup is not None
+        assert content is not None
+        assert popup.property("popupWidth") == 256
+        assert popup.property("popupHeight") == 112
+        assert popup.property("availableContentWidth") == 240
+        assert popup.property("availableContentHeight") == 96
+        assert (content.width(), content.height()) == pytest.approx((240, 96))
     finally:
         root.deleteLater()
         del component

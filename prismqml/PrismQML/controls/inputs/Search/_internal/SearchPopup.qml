@@ -44,10 +44,6 @@ Item {
         }
         return Enums.searchMetrics.popupFallbackHeight
     }
-    // Include PopupSurface margins to keep symmetric list padding 计入弹层边距以保留列表对称留白
-    readonly property int _resolvedHeight:
-        _resolvedContentHeight + 2 * Enums.spacing.xs
-
     // ==================== Signals 信号 ====================
     signal opened()
     signal dismissed()
@@ -58,7 +54,7 @@ Item {
         // 用 callLater 确保 rootContent 已经布局完成
         Qt.callLater(function() {
             popupBase.popupWidth = popupRoot._resolvedWidth
-            popupBase.popupHeight = popupRoot._resolvedHeight
+            popupBase.implicitContentHeight = popupRoot._resolvedContentHeight
         })
     }
 
@@ -68,7 +64,7 @@ Item {
 
         // 实时同步尺寸 (rootContent 可能在 open 调用前刚换内容)
         popupBase.popupWidth = popupRoot._resolvedWidth
-        popupBase.popupHeight = popupRoot._resolvedHeight
+        popupBase.implicitContentHeight = popupRoot._resolvedContentHeight
 
         if (popupMode === Enums.input.search_popup_anchored_below && anchorTarget) {
             // AnchoredBelow: 让底层 openAtControl 自动处理 panelOffset
@@ -79,7 +75,7 @@ Item {
             var screenW = Screen.width
             var screenH = Screen.height
             var x = (screenW - popupRoot._resolvedWidth) / 2
-            var y = (screenH - popupRoot._resolvedHeight) / 3
+            var y = (screenH - popupBase.popupHeight) / 3
             popupBase.open(x, y)
         }
     }
@@ -97,7 +93,7 @@ Item {
     Connections {
         function onImplicitHeightChanged() {
             popupBase.popupWidth = popupRoot._resolvedWidth
-            popupBase.popupHeight = popupRoot._resolvedHeight
+            popupBase.implicitContentHeight = popupRoot._resolvedContentHeight
         }
 
         target: popupRoot.rootContent
@@ -112,7 +108,7 @@ Item {
         closeOnClickOutside: true
         stealFocus: true
         popupWidth: popupRoot._resolvedWidth
-        popupHeight: popupRoot._resolvedHeight
+        implicitContentHeight: popupRoot._resolvedContentHeight
 
         onOpened: popupRoot.opened()
         onClosed: popupRoot.dismissed()

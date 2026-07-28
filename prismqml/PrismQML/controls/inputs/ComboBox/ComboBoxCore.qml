@@ -144,10 +144,15 @@ Widget {
         // Calculate popup width: max(content width, control width) 弹出宽度：取内容宽度和控件宽度的最大值
         var contentW = _calcContentWidth()
         comboPopup.popupWidth = Math.max(contentW, control.width)
-        // Calculate height from model length 直接用model长度计算高度
+        // Let PopupWindowCore add its content padding exactly once.
+        // 由 PopupWindowCore 统一补入一次内容内边距。
         var itemCount = (_safeModel || []).length
-        var calcHeight = itemCount * popupItemHeight + Enums.comboBoxMetrics.popupPadding
-        comboPopup.popupHeight = Math.min(calcHeight, maxVisibleItems > 0 ? (maxVisibleItems * popupItemHeight + Enums.comboBoxMetrics.popupPadding) : Enums.comboBoxMetrics.popupMaxHeight)
+        var maxContentHeight = maxVisibleItems > 0
+            ? maxVisibleItems * popupItemHeight
+            : Math.max(0, Enums.comboBoxMetrics.popupMaxHeight
+                - 2 * comboPopup.contentPadding)
+        comboPopup.implicitContentHeight = Math.min(
+            itemCount * popupItemHeight, maxContentHeight)
         comboPopup.openAtControl(control)
         isOpen = true
     }
@@ -397,7 +402,8 @@ Widget {
     PopupWindowCore {
         id: comboPopup
         popupWidth: control.width
-        popupHeight: Enums.comboBoxMetrics.popupDefaultHeight
+        implicitContentHeight: Math.max(
+            0, Enums.comboBoxMetrics.popupDefaultHeight - 2 * contentPadding)
         closeOnClickOutside: control.popupCloseOnClickOutside
         
         onClosed: {

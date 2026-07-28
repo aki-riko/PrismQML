@@ -39,7 +39,10 @@ ComboBoxCore {
         _popup.popupWidth = Math.max(control.width, Enums.comboBoxMetrics.treePopupMinWidth)
         var itemCount = _flatModel.length
         var searchHeight = searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0
-        _popup.popupHeight = Math.min(itemCount * Enums.comboBoxMetrics.itemHeight + searchHeight + Enums.spacing.m, Enums.comboBoxMetrics.treePopupHeight)
+        _popup.implicitContentHeight = Math.min(
+            itemCount * Enums.comboBoxMetrics.itemHeight + searchHeight,
+            Math.max(0, Enums.comboBoxMetrics.treePopupHeight
+                - 2 * _popup.contentPadding))
         _popup.openAtControl(control)
         isOpen = true
     }

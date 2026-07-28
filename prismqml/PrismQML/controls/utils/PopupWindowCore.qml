@@ -16,8 +16,20 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property bool isOpen: false
     property bool isClosing: false  // Closing flag, prevent quick reopen 关闭标志
-    property int popupWidth: 200
-    property int popupHeight: 200
+    property int contentPadding: Enums.spacing.xs  // Core-owned panel padding 基类统一管理的面板内边距
+    // Preferred content size drives the panel size unless popupWidth/popupHeight is overridden.
+    // 首选内容尺寸自动推导面板尺寸；显式设置 popupWidth/popupHeight 时以外框尺寸为准。
+    property int implicitContentWidth: Math.max(
+        0, Enums.popupMetrics.defaultSize - 2 * contentPadding)
+    property int implicitContentHeight: Math.max(
+        0, Enums.popupMetrics.defaultSize - 2 * contentPadding)
+    property int popupWidth: implicitContentWidth + 2 * contentPadding
+    property int popupHeight: implicitContentHeight + 2 * contentPadding
+    // Actual content viewport after applying the panel padding. 应用面板内边距后的真实内容视口。
+    readonly property int availableContentWidth: Math.max(
+        0, popupWidth - 2 * contentPadding)
+    readonly property int availableContentHeight: Math.max(
+        0, popupHeight - 2 * contentPadding)
     property int popupRadius: Enums.radius.large
     property int shadowRadius: popupRadius
     readonly property color _popupBackground: Enums.cardColor
@@ -637,6 +649,7 @@ Item {
         outerHeight: control._outerHeight
         popupWidth: control.popupWidth
         popupHeight: control.popupHeight
+        contentPadding: control.contentPadding
         popupRadius: control.popupRadius
         popupBackground: control._popupBackground
         popupBorderWidth: control._popupBorderWidth

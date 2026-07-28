@@ -39,7 +39,9 @@ PopupWindowCore {
  // ==================== Internal Props 内部属性 ====================
  property bool _needsScroll: false
  property int _cachedWidth: minWidth // Cached width to break binding loop 缓存宽度打破绑定循环
- property int _cachedHeight: Enums.controlSize.emptyStateButtonHeight // Cached height 缓存高度
+ property int _cachedContentHeight: Math.max(
+ 0, Enums.controlSize.emptyStateButtonHeight - 2 * contentPadding
+ ) // Cached content height 缓存内容高度
  property bool _isDestroyed: false // Destruction flag 销毁标记
  property var _openSubmenu: null
  property var _openSubmenuAction: null
@@ -103,7 +105,7 @@ PopupWindowCore {
  // Guard against destroyed object or invalid context 防止对象已销毁或上下文无效
  if (_isDestroyed || typeof Math === 'undefined') return Enums ? Enums.controlSize.emptyStateButtonHeight : 0
  if (!Enums || !Enums.spacing) return 0
- var h = Enums.spacing.xs * 2 // contentContainer margins 容器边距
+ var h = 0
  var items = _menuItems()
  for (var i = 0; i < items.length; i++) {
  var child = items[i]
@@ -124,8 +126,11 @@ PopupWindowCore {
  if (!Enums || !Enums.controlSize) return
  _cachedWidth = Math.max(minWidth, _calcWidth())
  var calcH = _calcHeight()
- _cachedHeight = Math.min(Math.max(Enums.controlSize.emptyStateButtonHeight, calcH), maxHeight)
- _needsScroll = calcH > maxHeight
+ var minContentHeight = Math.max(
+  0, Enums.controlSize.emptyStateButtonHeight - 2 * contentPadding)
+ var maxContentHeight = Math.max(0, maxHeight - 2 * contentPadding)
+ _cachedContentHeight = Math.min(Math.max(minContentHeight, calcH), maxContentHeight)
+ _needsScroll = calcH > maxContentHeight
  }
 
  function _closeOpenSubmenu() {
@@ -358,7 +363,7 @@ PopupWindowCore {
  // ==================== Size 尺寸 ====================
  // Use cached values to avoid binding loop 使用缓存值避免绑定循环
  popupWidth: _cachedWidth
- popupHeight: _cachedHeight
+ implicitContentHeight: _cachedContentHeight
 
  Component.onDestruction: {
  _isDestroyed = true

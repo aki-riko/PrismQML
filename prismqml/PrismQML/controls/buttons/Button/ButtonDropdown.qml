@@ -288,9 +288,10 @@ Item {
     PopupWindowCore {
         id: dropDownMenu
 
-        // Calculate content height 计算内容高度
-        readonly property int _contentHeight: {
-            var h = Enums.comboBoxMetrics.popupPadding
+        // Calculate item height without the core-owned popup padding.
+        // 计算不含基类弹层内边距的项目高度。
+        readonly property int _itemsHeight: {
+            var h = 0
             for (var i = 0; i < dropdownFeature._safeMenuItems.length; i++) {
                 var item = dropdownFeature._safeMenuItems[i]
                 var text = item && typeof item === "object" ? (item.text || item) : (item || "")
@@ -298,9 +299,11 @@ Item {
             }
             return h
         }
-        readonly property bool _needsScroll: _contentHeight > Enums.comboBoxMetrics.popupMaxHeight
+        readonly property int _maxContentHeight: Math.max(
+            0, Enums.comboBoxMetrics.popupMaxHeight - 2 * contentPadding)
+        readonly property bool _needsScroll: _itemsHeight > _maxContentHeight
 
-        popupHeight: Math.min(_contentHeight, Enums.comboBoxMetrics.popupMaxHeight)
+        implicitContentHeight: Math.min(_itemsHeight, _maxContentHeight)
         closeOnClickOutside: true
         useQtPopupWindow: true
         

@@ -342,7 +342,7 @@ def _assert_dropdown_bindings(root, button, dropdown):
         "menuItems"
     ).toVariant()
     assert not dropdown.property("isMenuOpen")
-    popup = _unique(dropdown, "_contentHeight", "_needsScroll")
+    popup = _unique(dropdown, "_itemsHeight", "_needsScroll")
     assert not popup.property("isOpen")
 
 

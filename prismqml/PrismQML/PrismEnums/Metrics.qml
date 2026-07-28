@@ -447,6 +447,7 @@ QtObject {
 
  // ==================== Popup 弹出窗口度量 ====================
  readonly property QtObject popup: QtObject {
+ readonly property int defaultSize: 200 // Default panel size 默认面板尺寸
  readonly property int windowPadding: 16
  readonly property int panelOffset: 8
  readonly property int minWidth: 64

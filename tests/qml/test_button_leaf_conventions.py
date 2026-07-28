@@ -88,9 +88,11 @@ Item {
     readonly property int expectedDropdownFeature: Enums.button.feature_dropdown
     readonly property int expectedSplitFeature: Enums.button.feature_split
     readonly property int expectedDefaultStyle: Enums.button.style_default
+    readonly property int expectedSmallContentHeight:
+        Enums.comboBoxMetrics.itemHeight * 2
+        + Enums.controlSize.menuSeparatorHeight
     readonly property int expectedSmallPopupHeight: Enums.comboBoxMetrics.popupPadding
-                                                    + Enums.comboBoxMetrics.itemHeight * 2
-                                                    + Enums.controlSize.menuSeparatorHeight
+                                                    + expectedSmallContentHeight
     readonly property int expectedPopupMaxHeight: Enums.comboBoxMetrics.popupMaxHeight
     readonly property int expectedSmallRadius: Enums.radius.small
     readonly property color expectedDropdownTextColor: dropdownButton.getTextColor()
@@ -250,7 +252,7 @@ def _dropdown_popup(dropdown):
     matches = [
         child
         for child in _descendants(dropdown)
-        if child.metaObject().indexOfProperty("_contentHeight") >= 0
+        if child.metaObject().indexOfProperty("_itemsHeight") >= 0
         and child.metaObject().indexOfProperty("_needsScroll") >= 0
     ]
     assert len(matches) == 1, [item.metaObject().className() for item in matches]
@@ -379,7 +381,7 @@ def test_button_dropdown_parent_bindings_remain_stable(button_leaf_scene):
     _assert_dropdown_parent_bindings(button, dropdown)
     _assert_dropdown_idle(dropdown)
     assert dropdown.property("textColor") == root.property("expectedDropdownTextColor")
-    assert popup.property("_contentHeight") == root.property("expectedSmallPopupHeight")
+    assert popup.property("_itemsHeight") == root.property("expectedSmallContentHeight")
     assert popup.property("popupHeight") == root.property("expectedSmallPopupHeight")
     assert not popup.property("_needsScroll")
     assert not popup.property("isOpen")
@@ -389,7 +391,7 @@ def test_button_dropdown_parent_bindings_remain_stable(button_leaf_scene):
     _assert_dropdown_parent_bindings(button, dropdown)
     _assert_dropdown_idle(dropdown)
     assert dropdown.property("textColor") == root.property("expectedDropdownTextColor")
-    assert popup.property("_contentHeight") > root.property("expectedPopupMaxHeight")
+    assert popup.property("_itemsHeight") > popup.property("availableContentHeight")
     assert popup.property("popupHeight") == root.property("expectedPopupMaxHeight")
     assert popup.property("_needsScroll")
     assert not popup.property("isOpen")

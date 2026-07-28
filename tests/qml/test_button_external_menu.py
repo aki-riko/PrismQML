@@ -224,7 +224,7 @@ def test_external_menu_toggles_and_prewarms_without_internal_fallback(qapp):
         assert len(dropdown_modules) == 1
         internal_menu = next(
             item for item in dropdown_modules[0].findChildren(QQuickItem)
-            if item.metaObject().indexOfProperty("_contentHeight") >= 0
+            if item.metaObject().indexOfProperty("_itemsHeight") >= 0
         )
 
         dropdown.forceActiveFocus()

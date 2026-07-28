@@ -234,7 +234,7 @@ def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
         assert search.property("query") == ""
         assert not search.property("isOpen")
         assert popup.property("_resolvedWidth") == 320
-        assert _wait_for(lambda: popup.property("_resolvedHeight") == 164)
+        assert _wait_for(lambda: popup.property("_resolvedContentHeight") == 156)
 
         search.setWidth(180)
         assert _wait_for(lambda: popup.property("_resolvedWidth") == 240)
@@ -267,7 +267,7 @@ def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
         assert QMetaObject.invokeMethod(text_input, "selectAll")
         _type_text(text_input, "missing")
         assert _wait_for(lambda: search.property("query") == "missing")
-        assert _wait_for(lambda: popup.property("_resolvedHeight") == 68)
+        assert _wait_for(lambda: popup.property("_resolvedContentHeight") == 60)
         assert _wait_for(lambda: popup_core.property("popupHeight") == 68)
 
         assert QMetaObject.invokeMethod(search, "dismiss")

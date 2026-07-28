@@ -43,9 +43,10 @@ Item {
     onFilteredItemsChanged: {
         // Update popup height when items change 项目变化时更新高度
         if (popup.isOpen) {
-            popup.popupHeight = Math.min(
-                filteredItems.length * Enums.controlSize.inputHeight + Enums.spacing.m,
-                Enums.controlSize.listDefaultHeight
+            popup.implicitContentHeight = Math.min(
+                filteredItems.length * Enums.controlSize.inputHeight,
+                Math.max(0, Enums.controlSize.listDefaultHeight
+                    - 2 * popup.contentPadding)
             )
         }
     }
@@ -64,9 +65,9 @@ Item {
 
         // ==================== Size 尺寸 ====================
         popupWidth: root.control ? root.control.width : Enums.controlSize.listDefaultWidth
-        popupHeight: Math.min(
-            root.filteredItems.length * Enums.controlSize.inputHeight + Enums.spacing.m,
-            Enums.controlSize.listDefaultHeight
+        implicitContentHeight: Math.min(
+            root.filteredItems.length * Enums.controlSize.inputHeight,
+            Math.max(0, Enums.controlSize.listDefaultHeight - 2 * contentPadding)
         )
         popupRadius: Enums.radius.large
         closeOnClickOutside: false  // Don't auto close, controlled by focus 不自动关闭，由焦点控制

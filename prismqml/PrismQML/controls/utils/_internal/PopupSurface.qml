@@ -14,6 +14,7 @@ Item {
     required property int outerHeight
     required property int popupWidth
     required property int popupHeight
+    required property int contentPadding
     required property int popupRadius
     required property color popupBackground
     required property int popupBorderWidth
@@ -94,7 +95,7 @@ Item {
 
                 objectName: "_popupContent"
                 anchors.fill: parent
-                anchors.margins: Enums.spacing.xs
+                anchors.margins: surface.contentPadding
                 // Keep delegates and animated loaders inside the popup padding.
                 // 将代理项和动画 Loader 限制在弹层内边距以内。
                 clip: true
