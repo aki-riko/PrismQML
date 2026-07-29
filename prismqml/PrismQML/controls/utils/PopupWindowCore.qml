@@ -46,7 +46,7 @@ Item {
     property bool constrainToAvailableScreen: true  // Keep clear of taskbars and reserved system UI 避让任务栏与系统保留区
     property Item targetControl: null  // Trigger control 触发弹出的控件
     property int animationType: 0  // 0=expand, 1=slideDown (Fluent Design style) 动画类型
-    property bool horizontalCenterExpand: false  // Expand horizontally from the center 从中心向两侧水平展开
+    property bool verticalCenterExpand: false  // Expand vertically from the center 从中心向上下两侧垂直展开
     property bool _isPickerMode: false  // Internal: picker mode for center alignment 内部：Picker模式居中对齐
     property bool _submenuPlacement: false  // Internal: right/left placement for anchored submenus 子菜单锚点定位
     property int _pickerRowHeight: 37  // Internal: row height for picker mode 内部：Picker模式行高
@@ -464,7 +464,7 @@ Item {
         isOpen = false
         isClosing = false
         _clipHeight = 0
-        _scale = horizontalCenterExpand ? 0 : 0.7   // [Anim C]
+        _scale = verticalCenterExpand ? 0 : 0.7   // [Anim C]
         _submenuPlacement = false
         popupSurface.opacity = 0
         if (_usesControlsPopup) inlinePopup.close()
@@ -509,7 +509,7 @@ Item {
     }
 
     // Show animation 弹出动画
-    // [Anim C] Spring scale or horizontal center expansion 弹簧缩放或水平中心展开
+    // [Anim C] Spring scale or vertical center expansion 弹簧缩放或垂直中心展开
     ParallelAnimation {
         id: showAnim
 
@@ -523,9 +523,9 @@ Item {
         NumberAnimation {
             target: control
             property: "_scale"
-            from: control.horizontalCenterExpand ? 0 : 0.7; to: 1.0
+            from: control.verticalCenterExpand ? 0 : 0.7; to: 1.0
             duration: Enums.popupMetrics.showScaleDuration
-            easing.type: control.horizontalCenterExpand ? Easing.OutCubic : Easing.OutBack
+            easing.type: control.verticalCenterExpand ? Easing.OutCubic : Easing.OutBack
             easing.overshoot: 1.4
         }
         NumberAnimation {
@@ -556,9 +556,9 @@ Item {
             NumberAnimation {
                 target: control
                 property: "_scale"
-                to: control.horizontalCenterExpand ? 0 : 0.85
+                to: control.verticalCenterExpand ? 0 : 0.85
                 duration: Enums.popupMetrics.hideScaleDuration
-                easing.type: control.horizontalCenterExpand ? Easing.InCubic : Easing.InBack
+                easing.type: control.verticalCenterExpand ? Easing.InCubic : Easing.InBack
                 easing.overshoot: 1.2
             }
         }
@@ -621,7 +621,7 @@ Item {
                 showAnimTimer.stop()
                 control.isOpen = false
                 control._clipHeight = 0
-                control._scale = control.horizontalCenterExpand ? 0 : 0.7
+                control._scale = control.verticalCenterExpand ? 0 : 0.7
                 popupSurface.opacity = 0
                 control.closed()
             }
@@ -687,6 +687,6 @@ Item {
         popupShadowOffset: control._popupShadowOffset
         clipHeight: control._clipHeight
         panelScale: control._scale
-        horizontalCenterExpand: control.horizontalCenterExpand
+        verticalCenterExpand: control.verticalCenterExpand
     }
 }

@@ -138,25 +138,27 @@ def _popup_core(picker):
         for child in _descendants(picker)
         if all(
             child.metaObject().indexOfProperty(name) >= 0
-            for name in ("horizontalCenterExpand", "isClosing", "popupWidth")
+            for name in ("verticalCenterExpand", "isClosing", "popupWidth")
         )
     )
 
 
-def _assert_horizontally_centered(item, expected_center):
-    center = item.property("x") + item.property("width") / 2
+def _assert_vertically_centered(item, expected_center):
+    center = item.property("y") + item.property("height") / 2
     assert center == pytest.approx(expected_center)
 
 
 def _assert_center_expand_geometry(root, popup, panel_scale, shadow):
     scale = popup.property("_scale")
-    popup_width = popup.property("popupWidth")
-    expected_center = root.property("expectedPopupPanelOffset") + popup_width / 2
+    popup_height = popup.property("popupHeight")
+    expected_center = root.property("expectedPopupPanelOffset") + popup_height / 2
     assert 0 < scale < 1
-    assert panel_scale.property("xScale") == pytest.approx(scale)
-    assert panel_scale.property("yScale") == pytest.approx(1)
-    assert panel_scale.property("origin").x() == pytest.approx(popup_width / 2)
-    _assert_horizontally_centered(shadow, expected_center)
+    assert panel_scale.property("xScale") == pytest.approx(1)
+    assert panel_scale.property("yScale") == pytest.approx(scale)
+    assert panel_scale.property("origin").y() == pytest.approx(popup_height / 2)
+    assert shadow.property("width") == pytest.approx(popup.property("popupWidth"))
+    assert shadow.property("height") == pytest.approx(popup_height * scale)
+    _assert_vertically_centered(shadow, expected_center)
 
 
 def _destroy_scene(engine, component, root):
@@ -205,14 +207,14 @@ def test_selected_row_text_stays_above_opaque_highlight(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_popup_expands_smoothly_from_horizontal_center(qapp):
+def test_popup_expands_smoothly_from_vertical_center(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, root, picker, warnings = _create_scene()
     try:
         popup = _popup_core(picker)
         panel_scale = popup.findChild(QObject, "_popupPanelScale")
         shadow = popup.findChild(QObject, "_popupShadow")
-        assert popup.property("horizontalCenterExpand")
+        assert popup.property("verticalCenterExpand")
         assert panel_scale is not None
         assert shadow is not None
 

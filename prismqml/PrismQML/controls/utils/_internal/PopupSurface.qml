@@ -24,7 +24,7 @@ Item {
     required property int popupShadowOffset
     required property real clipHeight
     required property real panelScale
-    required property bool horizontalCenterExpand
+    required property bool verticalCenterExpand
 
     default property alias popupContent: contentContainer.data
 
@@ -39,10 +39,10 @@ Item {
     RectangularShadow {
         objectName: "_popupShadow"
         z: Enums.zIndex.background
-        x: clipContainer.x + (surface.popupWidth - width) / 2
-        y: clipContainer.y
-        width: surface.horizontalCenterExpand ? popupPanel.width * surface.panelScale : popupPanel.width
-        height: popupPanel.height
+        x: clipContainer.x
+        y: clipContainer.y + (surface.popupHeight - height) / 2
+        width: popupPanel.width
+        height: surface.verticalCenterExpand ? popupPanel.height * surface.panelScale : popupPanel.height
         radius: surface.popupRadius
         color: surface.popupShadowColor
         blur: surface.popupShadowBlur
@@ -56,10 +56,10 @@ Item {
         objectName: "_popupNeoShadow"
         z: Enums.zIndex.background
         visible: Enums.isNeobrutalism
-        x: clipContainer.x + (surface.popupWidth - width) / 2 + Enums.neo.shadowOffset
-        y: clipContainer.y + Enums.neo.shadowOffset
-        width: surface.horizontalCenterExpand ? popupPanel.width * surface.panelScale : popupPanel.width
-        height: popupPanel.height
+        x: clipContainer.x + Enums.neo.shadowOffset
+        y: clipContainer.y + (surface.popupHeight - height) / 2 + Enums.neo.shadowOffset
+        width: popupPanel.width
+        height: surface.verticalCenterExpand ? popupPanel.height * surface.panelScale : popupPanel.height
         radius: surface.popupRadius
         color: Enums.neo.shadowColor
     }
@@ -84,13 +84,13 @@ Item {
             color: surface.popupBackground
             border.width: surface.popupBorderWidth
             border.color: surface.popupBorderColor
-            // [Anim C] Uniform or horizontal-only scale from the top center 从顶部中心统一或仅水平缩放
+            // [Anim C] Uniform scale from top center or vertical scale from center 顶部中心统一缩放或中心垂直缩放
             transform: Scale {
                 objectName: "_popupPanelScale"
                 origin.x: popupPanel.width / 2
-                origin.y: 0
-                xScale: surface.panelScale
-                yScale: surface.horizontalCenterExpand ? 1 : surface.panelScale
+                origin.y: surface.verticalCenterExpand ? popupPanel.height / 2 : 0
+                xScale: surface.verticalCenterExpand ? 1 : surface.panelScale
+                yScale: surface.panelScale
             }
 
             // Content container 内容容器
