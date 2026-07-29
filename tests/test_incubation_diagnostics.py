@@ -156,6 +156,13 @@ def test_default_installation_skips_windows_qt_6111(monkeypatch, qapp):
     assert messages == []
 
 
+def test_asynchronous_page_loader_is_disabled_for_windows_qt_6111():
+    """The native-crash fallback must cover page Loaders too. 原生崩溃回退须覆盖页面 Loader。"""
+    assert incubation.asynchronous_page_loader_enabled("6.11.1", "win32") is False
+    assert incubation.asynchronous_page_loader_enabled("6.11.1", "linux") is True
+    assert incubation.asynchronous_page_loader_enabled("6.10.2", "win32") is True
+
+
 def test_default_fallback_is_logged_only_in_verbose_diagnostics(monkeypatch, qapp):
     messages = []
     monkeypatch.setenv("PRISMQML_STARTUP_PROFILE_VERBOSE", "1")

@@ -94,6 +94,9 @@ class _EngineSetupScenario:
         monkeypatch.setattr(setup, "_load_window_dependencies", self.load_window)
         monkeypatch.setattr(setup, "QQmlApplicationEngine", self.fail_create_engine)
         monkeypatch.setattr(
+            setup, "asynchronous_page_loader_enabled", lambda: False
+        )
+        monkeypatch.setattr(
             setup,
             "get_svg_provider",
             _recording_factory(self.calls, "svg", self.svg_provider),
@@ -126,6 +129,7 @@ def _expected_engine_context_calls(scenario):
         ("factory", "clipboard"),
         ("context", "ClipboardHelper", values["clipboard"]),
         ("context", "PrismQmlStartupProfileVerbose", True),
+        ("context", "PrismQmlAsynchronousPageLoaderEnabled", False),
         ("factory", "native"),
         ("context", "NativeWindow", values["native"]),
         ("profile", "注入 ContextProperty"),

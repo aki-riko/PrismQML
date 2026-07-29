@@ -265,3 +265,68 @@ StackedWidget {{
     finally:
         qInstallMessageHandler(previous_handler)
         _release(qapp, stack, component, engine)
+
+
+def test_unsafe_incubation_runtime_loads_real_navigation_page_synchronously(qapp):
+    """Qt 6.11.1 fallback must not strand the real Gallery page in Loading.
+
+    Qt 6.11.1 回退不得让真实 Gallery 导航页永久停在 Loading。
+    """
+    configure_qml_environment()
+    first_url = QUrl.fromLocalFile(
+        str(_ROOT / "examples/pages/ButtonPage.qml")
+    ).toString()
+    navigation_url = QUrl.fromLocalFile(
+        str(_ROOT / "examples/pages/NavigationPage.qml")
+    ).toString()
+    scene = f"""
+import QtQuick
+import PrismQML
+
+StackedWidget {{
+    width: 1200
+    height: 800
+    animationEnabled: false
+    lazyLoading: true
+    currentIndex: 0
+    pageSources: ["{first_url}", "{navigation_url}"]
+}}
+"""
+    engine = QQmlApplicationEngine()
+    component = None
+    stack = None
+    try:
+        register_types(engine)
+        engine.rootContext().setContextProperty(
+            "PrismQmlAsynchronousPageLoaderEnabled", False
+        )
+        component = QQmlComponent(engine)
+        component.setData(
+            scene.encode("utf-8"),
+            QUrl.fromLocalFile(str(_ROOT / "tests/qml/navigation-page-fallback.qml")),
+        )
+        assert _wait_until(
+            lambda: component.status() != QQmlComponent.Status.Loading
+        )
+        assert component.status() == QQmlComponent.Status.Ready, [
+            error.toString() for error in component.errors()
+        ]
+        stack = component.create(engine.rootContext())
+        assert stack is not None, [error.toString() for error in component.errors()]
+        assert _wait_until(lambda: bool(_evaluate(stack, "_isPageLoaded(0)")))
+
+        stack.setProperty("currentIndex", 1)
+        assert bool(_evaluate(stack, "_loaders[1].asynchronous")) is False
+        assert _wait_until(
+            lambda: bool(_evaluate(stack, "_isPageLoaded(1)")),
+            timeout_ms=3000,
+        )
+        assert _wait_until(
+            lambda: int(_evaluate(stack, "_displayIndex")) == 1,
+            timeout_ms=1000,
+        )
+        overlay = stack.findChild(QObject, "lazyLoadingOverlay")
+        assert overlay is not None
+        assert _wait_until(lambda: overlay.property("visible") is False)
+    finally:
+        _release(qapp, stack, component, engine)

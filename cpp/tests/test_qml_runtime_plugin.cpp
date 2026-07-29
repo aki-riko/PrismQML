@@ -76,6 +76,7 @@ Item {
     readonly property bool runtimeReady:
         typeof ThemeManager !== "undefined"
         && typeof PlatformInfo !== "undefined"
+        && typeof PrismQmlAsynchronousPageLoaderEnabled !== "undefined"
         && Enums.fontFamily.length > 0
 
     LineEdit {
@@ -111,6 +112,9 @@ Item {
             return fail(component, "ThemeManager is absent from the engine root context");
         if (!engine.rootContext()->contextProperty(QStringLiteral("PlatformInfo")).isValid())
             return fail(component, "PlatformInfo is absent from the engine root context");
+        if (!engine.rootContext()->contextProperty(
+                QStringLiteral("PrismQmlAsynchronousPageLoaderEnabled")).isValid())
+            return fail(component, "Asynchronous page-loader policy is absent from the engine root context");
         object.reset();
     }
     return 0;

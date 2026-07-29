@@ -34,6 +34,9 @@ Item {
     property real _startupProfileLast: _startupProfileStart
     readonly property bool _startupProfilingVerboseActive:
         (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
+    readonly property bool _asynchronousPageLoaderEnabled:
+        typeof PrismQmlAsynchronousPageLoaderEnabled === "undefined" ||
+        PrismQmlAsynchronousPageLoaderEnabled
     property var _isPageLoadFailedFunc: function(index) {
         if (!lazyLoading || !_useSourceMode) return false
         return _loaders[index] && _loaders[index].status === Loader.Error
@@ -555,7 +558,7 @@ Item {
                 opacity: index === control._displayIndex ? 1 : 0
                 scale: 1
                 transformOrigin: Item.Center
-                asynchronous: control.lazyLoading
+                asynchronous: control.lazyLoading && control._asynchronousPageLoaderEnabled
                 
                 Component.onCompleted: {
                     var loaders = control._loaders.slice()

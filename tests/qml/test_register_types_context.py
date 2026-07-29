@@ -44,6 +44,7 @@ QtObject {
     property int dpiDirect: ConfigManager.dpiScale
     property string clipboardName: ClipboardHelper.objectName
     property bool verboseProfile: PrismQmlStartupProfileVerbose
+    property bool asynchronousPageLoaderEnabled: PrismQmlAsynchronousPageLoaderEnabled
 }
 """
 _MISSING_CONTEXT_MARKERS = (
@@ -156,10 +157,17 @@ def test_register_types_injects_public_context_without_qml_warnings(
         assert context.contextProperty("ConfigManager") is manager
         assert context.contextProperty("ClipboardHelper") is clipboard
         assert context.contextProperty("PrismQmlStartupProfileVerbose") is False
+        assert isinstance(
+            context.contextProperty("PrismQmlAsynchronousPageLoaderEnabled"),
+            bool,
+        )
     assert probe.property("dpiFromSingleton") == 125
     assert probe.property("dpiDirect") == 125
     assert probe.property("clipboardName") == ""
     assert probe.property("verboseProfile") is False
+    assert probe.property("asynchronousPageLoaderEnabled") is context.contextProperty(
+        "PrismQmlAsynchronousPageLoaderEnabled"
+    )
     failures = [
         message
         for mode, message in messages

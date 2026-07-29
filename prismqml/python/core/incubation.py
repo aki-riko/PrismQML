@@ -38,6 +38,19 @@ _CONNECTIONS_VME_CRASH_PLATFORM = "win32"
 _CONNECTIONS_VME_CRASH_QT_VERSIONS = frozenset(("6.11.1",))
 
 
+def asynchronous_page_loader_enabled(qt_version=None, platform_name=None):
+    """Return whether framework page Loaders may use asynchronous incubation.
+
+    返回框架页面 Loader 是否可安全使用异步孵化。自定义 controller 与 QML Loader
+    必须使用同一安全判定；否则跳过 controller 后，Loader 仍可能永久停在 Loading。
+    """
+    resolved_qt_version = qVersion() if qt_version is None else qt_version
+    resolved_platform = sys.platform if platform_name is None else platform_name
+    return not _requires_synchronous_incubation_fallback(
+        resolved_qt_version, resolved_platform
+    )
+
+
 class PrismIncubationController(QQmlIncubationController):
     """驱动 QML 异步孵化的时间分片控制器。
 
@@ -193,7 +206,7 @@ def install_default_incubation_controller(engine, budget_ms: int = 5):
     ``install_incubation_controller()`` for diagnostics and controlled tests.
     """
     qt_version = qVersion()
-    if _requires_synchronous_incubation_fallback(qt_version, sys.platform):
+    if not asynchronous_page_loader_enabled(qt_version, sys.platform):
         _log_synchronous_incubation_fallback(qt_version)
         return None
     return install_incubation_controller(engine, budget_ms=budget_ms)

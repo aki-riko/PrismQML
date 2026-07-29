@@ -22,6 +22,7 @@
 #include <QQuickWindow>
 #include <QProcessEnvironment>
 #include <QDir>
+#include <QtGlobal>
 #include <QtCore/qtsymbolmacros.h>
 
 QT_DECLARE_EXTERN_RESOURCE(prismqml_components)
@@ -57,6 +58,14 @@ void registerTypes(QQmlEngine *engine, const QString &importPath) {
                             ScreenEyedropperManager::instance());
     // 移动端触摸适配地基 (QML 防御式可选读取 isMobile/isCompact/touchTargetSize)
     ctx->setContextProperty(QStringLiteral("PlatformInfo"), PlatformInfo::instance());
+#if defined(Q_OS_WIN) && QT_VERSION == QT_VERSION_CHECK(6, 11, 1)
+    constexpr bool asynchronousPageLoaderEnabled = false;
+#else
+    constexpr bool asynchronousPageLoaderEnabled = true;
+#endif
+    ctx->setContextProperty(
+        QStringLiteral("PrismQmlAsynchronousPageLoaderEnabled"),
+        asynchronousPageLoaderEnabled);
 
     // ==================== image provider 注入 ====================
     // 引擎接管 provider 所有权(析构时 delete); svg/qrcode 用独立 new 实例。

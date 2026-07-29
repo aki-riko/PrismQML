@@ -8,6 +8,7 @@
 from PySide6.QtQml import QQmlApplicationEngine
 
 from ..core.engine import EngineManager
+from ..core.incubation import asynchronous_page_loader_enabled
 from ..providers import get_svg_provider
 
 
@@ -58,6 +59,10 @@ def _inject_window_context(
     context.setContextProperty("ClipboardHelper", get_clipboard_helper())
     context.setContextProperty(
         "PrismQmlStartupProfileVerbose", startup_profile_verbose
+    )
+    context.setContextProperty(
+        "PrismQmlAsynchronousPageLoaderEnabled",
+        asynchronous_page_loader_enabled(),
     )
     # WindowCore defers NativeWindow attach/finalizeAttach for DWM animations.
     # WindowCore 延后 NativeWindow attach/finalizeAttach，以保留 DWM 动画。

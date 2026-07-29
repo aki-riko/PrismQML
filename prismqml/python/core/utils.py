@@ -58,6 +58,7 @@ def init_style():
 
 def _register_primary_context(context: QQmlContext) -> None:
     """Register shared managers. 注册共享管理器。"""
+    from .incubation import asynchronous_page_loader_enabled
     from .theme import getThemeManager
     from ..config import getConfigManager
 
@@ -65,6 +66,10 @@ def _register_primary_context(context: QQmlContext) -> None:
     context.setContextProperty("ConfigManager", getConfigManager())
     context.setContextProperty(
         "PrismQmlStartupProfileVerbose", startup_profile_verbose_enabled()
+    )
+    context.setContextProperty(
+        "PrismQmlAsynchronousPageLoaderEnabled",
+        asynchronous_page_loader_enabled(),
     )
 
 
