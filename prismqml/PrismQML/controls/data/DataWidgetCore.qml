@@ -116,7 +116,6 @@ Rectangle {
 
     onShowScrollBarChanged: _scheduleScrollBarUpdate()
     onScrollBarWidthChanged: _scheduleScrollBarUpdate()
-    onContentTotalWidthChanged: _scheduleScrollBarUpdate()
     onWidthChanged: _scheduleScrollBarUpdate()
     onHeightChanged: _scheduleScrollBarUpdate()
     // ==================== Size 尺寸 ====================

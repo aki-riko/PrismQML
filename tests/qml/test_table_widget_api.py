@@ -176,6 +176,46 @@ Item {
     }
 }
 """
+_GUTTER_STABILITY_SCENE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    id: root
+
+    readonly property real viewportWidth: table.listView.width
+    readonly property real viewportHeight: table.listView.height
+    readonly property real viewportContentWidth: table.listView.contentWidth
+    readonly property real viewportContentHeight: table.listView.contentHeight
+    readonly property bool needsVerticalScrollBar: table._needsVerticalScrollBar
+
+    width: 400
+    height: 380
+
+    TableWidget {
+        id: table
+
+        width: 380
+        height: 360
+        editable: true
+        showFooter: true
+        defaultContextMenuEnabled: true
+        columns: [
+            { text: "Name", width: 0.4, role: "name" },
+            { text: "Count", width: 0.3, role: "count" },
+            { text: "Price", width: 0.3, role: "price" }
+        ]
+
+        Component.onCompleted: {
+            var rows = []
+            for (var i = 1; i <= 10; ++i) {
+                rows.push({ name: "Product" + i, count: i * 2, price: i * 10 })
+            }
+            tableData = rows
+        }
+    }
+}
+"""
 _CONTEXT_MENU_SCENE = b"""
 import QtQuick
 import QtQuick.Window
@@ -233,6 +273,41 @@ def _visual_items(root: QQuickItem) -> list[QQuickItem]:
         result.append(child)
         pending.extend(child.childItems())
     return result
+
+
+def test_fractional_columns_keep_scrollbar_gutter_stable(qapp):
+    """Fractional columns must not restart gutter measurement. 比例列不得重启避让槽测量。"""
+    configure_qml_environment()
+    engine = QQmlApplicationEngine()
+    component = root = None
+    try:
+        register_types(engine)
+        component = QQmlComponent(engine)
+        component.setData(
+            _GUTTER_STABILITY_SCENE,
+            QUrl.fromLocalFile(str(_ROOT / "tests/qml/table-widget-gutter.qml")),
+        )
+        assert component.status() == QQmlComponent.Status.Ready, [
+            error.toString() for error in component.errors()
+        ]
+        root = component.create(engine.rootContext())
+        assert root is not None, [error.toString() for error in component.errors()]
+
+        for _ in range(30):
+            _pump()
+        widths = []
+        for _ in range(30):
+            _pump()
+            widths.append(float(root.property("viewportWidth")))
+
+        assert root.property("needsVerticalScrollBar") is True
+        assert float(root.property("viewportContentHeight")) > float(
+            root.property("viewportHeight")
+        )
+        assert len(set(widths)) == 1, widths
+        assert float(root.property("viewportContentWidth")) == widths[-1]
+    finally:
+        _release(qapp, root, component, engine)
 
 
 def test_table_widget_sort_remove_and_falsy_values_preserve_rows(qapp):
