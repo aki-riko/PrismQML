@@ -102,8 +102,8 @@ Rectangle {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
             ctx.setLineDash([6, 4])
-            ctx.strokeStyle = dragActive ? Enums.accentColor : 
-                             (hovered ? Enums.stateColor.borderStrong : Enums.stateColor.borderSubtle)
+            ctx.strokeStyle = dragActive ? Enums.accentColor :
+                             (hovered ? Enums.stateColor.borderStrong : Enums.stateColor.border)
             ctx.lineWidth = 1.5
             ctx.beginPath()
             ctx.roundedRect(1, 1, width - 2, height - 2, control.radius, control.radius)
