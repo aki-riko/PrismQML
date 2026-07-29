@@ -25,7 +25,10 @@ Widget {
     property var model: []  // Text array or object array 文本数组或对象数组
     property int currentIndex: -1
     property string currentText: ""
-    property string placeholderText: "Select"
+    property string placeholderText: {
+        Translator._v
+        return Translator.tr("placeholder_select")
+    }
     property bool editable: false
     property bool useDefaultContent: true
     property int style: 0  // 0 = style_default

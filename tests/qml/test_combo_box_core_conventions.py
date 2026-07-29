@@ -11,6 +11,7 @@ from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QMetaObject,
     QObject,
     QPoint,
     QPointF,
@@ -49,6 +50,9 @@ Window {
     readonly property int expectedPopupPadding: Enums.comboBoxMetrics.popupPadding
     readonly property int expectedPanelOffset: Enums.popupMetrics.panelOffset
 
+    function useEnglish() { Translator.setLanguage(Enums.lang.en) }
+    function useSimplifiedChinese() { Translator.setLanguage(Enums.lang.zh_CN) }
+
     width: 720
     height: 360
     visible: true
@@ -78,6 +82,19 @@ Window {
         model: ["Alpha", "Beta", "Gamma"]
         currentIndex: 0
         editable: true
+    }
+
+    ComboBoxCore {
+        objectName: "translatedCombo"
+        currentIndex: -1
+        visible: false
+    }
+
+    ComboBoxCore {
+        objectName: "customPlaceholderCombo"
+        currentIndex: -1
+        placeholderText: "Choose a value"
+        visible: false
     }
 }
 """
@@ -309,6 +326,28 @@ def test_combo_box_core_qt_style_item_methods_preserve_metadata(qapp):
         assert combo.itemData(0) is None
         assert combo.itemIcon(0) == ""
         assert combo.isItemEnabled(0)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_core_default_placeholder_follows_runtime_language(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    translated = window.findChild(QQuickItem, "translatedCombo")
+    custom = window.findChild(QQuickItem, "customPlaceholderCombo")
+    assert translated is not None and custom is not None
+    try:
+        assert QMetaObject.invokeMethod(window, "useEnglish")
+        assert _wait_for(lambda: translated.property("placeholderText") == "Select")
+        assert custom.property("placeholderText") == "Choose a value"
+
+        assert QMetaObject.invokeMethod(window, "useSimplifiedChinese")
+        assert _wait_for(lambda: translated.property("placeholderText") == "请选择")
+        assert custom.property("placeholderText") == "Choose a value"
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
