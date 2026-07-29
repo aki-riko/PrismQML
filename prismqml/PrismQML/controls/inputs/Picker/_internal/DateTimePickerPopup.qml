@@ -41,54 +41,78 @@ Column {
             spacing: Enums.spacing.none
             z: Enums.zIndex.content
             
-            // Date wheels (order depends on _yearFirst) 日期滚轮（顺序取决于_yearFirst）
-            // Column 1: year when year-first, otherwise month 第1列：年优先时为年，否则为月
+            // Date wheels follow the active locale field order 日期滚轮遵循当前区域字段顺序
             Loader {
                 id: col1Loader
-                active: control ? (control._hasDate && (control._yearFirst ? control._showYear : control._showMonth)) : false
+                active: control ? (control._hasDate && control._isDateFieldVisible(control._dateFieldAt(0))) : false
                 width: active ? parent.parent._wheelWidth : 0
                 height: parent.height
                 sourceComponent: CycleWheelPicker {
-                    items: control ? (control._yearFirst ? control._buildYearModel() : control._buildMonthModel()) : []
-                    currentIndex: control ? (control._yearFirst ? control._tempYear - control.minYear : control._tempMonth - 1) : 0
+                    id: dateWheel
+
+                    readonly property string dateField: control ? control._dateFieldAt(0) : ""
+
+                    items: control ? control._buildDateFieldModel(dateField) : []
+                    onDateFieldChanged: Qt.callLater(function() {
+                        if (control) dateWheel.setCurrentIndex(control._dateFieldIndex(dateField))
+                    })
                     onCurrentIndexChanged: {
-                        if (!control || control._initializing) return
-                        if (control._yearFirst) { control._tempYear = control.minYear + currentIndex; control._updateDayWheel() }
-                        else { control._tempMonth = currentIndex + 1; control._updateDayWheel() }
+                        if (!control || !control.isOpen || control._initializing
+                                || currentIndex === control._dateFieldIndex(dateField)) return
+                        control._setDateFieldIndex(dateField, currentIndex)
+                    }
+                    Component.onCompleted: {
+                        if (control) setCurrentIndex(control._dateFieldIndex(dateField))
                     }
                 }
             }
             
-            // Column 2: month when year-first, otherwise day 第2列：年优先时为月，否则为日
             Loader {
                 id: col2Loader
-                active: control ? (control._hasDate && (control._yearFirst ? control._showMonth : control._showDay)) : false
+                active: control ? (control._hasDate && control._isDateFieldVisible(control._dateFieldAt(1))) : false
                 width: active ? parent.parent._wheelWidth : 0
                 height: parent.height
                 sourceComponent: CycleWheelPicker {
-                    items: control ? (control._yearFirst ? control._buildMonthModel() : control._buildDayModel()) : []
-                    currentIndex: control ? (control._yearFirst ? control._tempMonth - 1 : control._tempDay - 1) : 0
+                    id: dateWheel
+
+                    readonly property string dateField: control ? control._dateFieldAt(1) : ""
+
+                    items: control ? control._buildDateFieldModel(dateField) : []
+                    onDateFieldChanged: Qt.callLater(function() {
+                        if (control) dateWheel.setCurrentIndex(control._dateFieldIndex(dateField))
+                    })
                     onCurrentIndexChanged: {
-                        if (!control || control._initializing) return
-                        if (control._yearFirst) { control._tempMonth = currentIndex + 1; control._updateDayWheel() }
-                        else control._tempDay = currentIndex + 1
+                        if (!control || !control.isOpen || control._initializing
+                                || currentIndex === control._dateFieldIndex(dateField)) return
+                        control._setDateFieldIndex(dateField, currentIndex)
+                    }
+                    Component.onCompleted: {
+                        if (control) setCurrentIndex(control._dateFieldIndex(dateField))
                     }
                 }
             }
             
-            // Column 3: day when year-first, otherwise year 第3列：年优先时为日，否则为年
             Loader {
                 id: col3Loader
-                active: control ? (control._hasDate && (control._yearFirst ? control._showDay : control._showYear)) : false
+                active: control ? (control._hasDate && control._isDateFieldVisible(control._dateFieldAt(2))) : false
                 width: active ? parent.parent._wheelWidth : 0
                 height: parent.height
                 sourceComponent: CycleWheelPicker {
-                    items: control ? (control._yearFirst ? control._buildDayModel() : control._buildYearModel()) : []
-                    currentIndex: control ? (control._yearFirst ? control._tempDay - 1 : control._tempYear - control.minYear) : 0
+                    id: dateWheel
+
+                    readonly property string dateField: control ? control._dateFieldAt(2) : ""
+
+                    items: control ? control._buildDateFieldModel(dateField) : []
+                    onDateFieldChanged: Qt.callLater(function() {
+                        if (control) dateWheel.setCurrentIndex(control._dateFieldIndex(dateField))
+                    })
                     onCurrentIndexChanged: {
-                        if (!control || control._initializing) return
-                        if (control._yearFirst) control._tempDay = currentIndex + 1
-                        else { control._tempYear = control.minYear + currentIndex; control._updateDayWheel() }
+                        if (!control || !control.isOpen || control._initializing
+                                || currentIndex === control._dateFieldIndex(dateField)) return
+                        control._setDateFieldIndex(dateField, currentIndex)
+                    }
+                    Component.onCompleted: {
+                        if (control) setCurrentIndex(control._dateFieldIndex(dateField))
                     }
                 }
             }

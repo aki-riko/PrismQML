@@ -40,15 +40,17 @@ Rectangle {
     // ==================== Readonly State 只读状态 ====================
     // Bind to _v to trigger re-evaluation on language change 绑定_v实现语言切换时自动更新
     readonly property int _tv: Translator._v
-    readonly property string _lang: Translator.language
-    readonly property bool _isEastern: _lang === "zh_CN" || _lang === "zh_TW" || _lang === "ja" || _lang === "ko"
-    readonly property bool _yearFirst: _isEastern  // Eastern YMD, otherwise MDY 东亚年月日，其他月日年
-    readonly property string _yearSuffix: { _tv; return _isEastern ? Translator.tr("year") : "" }
-    readonly property string _monthSuffix: { _tv; return _isEastern ? Translator.tr("month") : "" }
-    readonly property string _daySuffix: { _tv; return _isEastern ? Translator.tr("day") : "" }
-    readonly property string _hourSuffix: { _tv; return _isEastern ? Translator.tr("hour") : "" }
-    readonly property string _minuteSuffix: { _tv; return _isEastern ? Translator.tr("minute") : "" }
-    readonly property string _secondSuffix: { _tv; return _isEastern ? Translator.tr("second") : "" }
+    readonly property string _lang: Translator._resolvedLanguage
+    readonly property string _localeName: Helpers.localeNameForLanguage(_lang, Qt.locale().name)
+    readonly property string _dateFormat: Qt.locale(_localeName).dateFormat(Locale.ShortFormat)
+    readonly property var _dateFieldOrder: Helpers.dateFieldOrder(_dateFormat)
+    readonly property bool _usesDateUnitSuffixes: Helpers.usesDateUnitSuffixes(_lang)
+    readonly property string _yearSuffix: { _tv; return _usesDateUnitSuffixes ? Translator.tr("year") : "" }
+    readonly property string _monthSuffix: { _tv; return _usesDateUnitSuffixes ? Translator.tr("month") : "" }
+    readonly property string _daySuffix: { _tv; return _usesDateUnitSuffixes ? Translator.tr("day") : "" }
+    readonly property string _hourSuffix: { _tv; return _usesDateUnitSuffixes ? Translator.tr("hour") : "" }
+    readonly property string _minuteSuffix: { _tv; return _usesDateUnitSuffixes ? Translator.tr("minute") : "" }
+    readonly property string _secondSuffix: { _tv; return _usesDateUnitSuffixes ? Translator.tr("second") : "" }
     readonly property string _amText: "AM"
     readonly property string _pmText: "PM"
     readonly property string _24hText: "24H"
@@ -116,12 +118,19 @@ Rectangle {
     }
 
     function _dateWheelLoaders(popup) {
-        return {
-            year: _yearFirst ? popup.col1Loader : popup.col3Loader,
-            month: _yearFirst ? popup.col2Loader : popup.col1Loader,
-            day: _yearFirst ? popup.col3Loader : popup.col2Loader
+        var loaders = [popup.col1Loader, popup.col2Loader, popup.col3Loader]
+        var result = {}
+        for (var i = 0; i < _dateFieldOrder.length; i++) {
+            result[_dateFieldOrder[i]] = loaders[i]
         }
+        return result
     }
+
+    function _dateFieldAt(index) { return _dateFieldOrder[index] || "" }
+    function _isDateFieldVisible(field) { return Helpers.isDateFieldVisible(control, field) }
+    function _buildDateFieldModel(field) { return Helpers.buildDateFieldModel(control, field) }
+    function _dateFieldIndex(field) { return Helpers.dateFieldIndex(control, field) }
+    function _setDateFieldIndex(field, index) { Helpers.setDateFieldIndex(control, field, index) }
 
     function _wheelLoadersReady(popup, dateLoaders) {
         var dateReady = !_hasDate
@@ -244,7 +253,7 @@ Rectangle {
 
     // ==================== Internal Methods 内部方法 ====================
     function _buildYearModel() { return Helpers.buildYearModel(minYear, maxYear, _yearSuffix) }
-    function _buildMonthModel() { return Helpers.buildMonthModel(_yearFirst, _monthSuffix, Translator) }
+    function _buildMonthModel() { return Helpers.buildMonthModel(_usesDateUnitSuffixes, _monthSuffix, Translator) }
     function _buildDayModel() { return Helpers.buildDayModel(_tempYear, _tempMonth, _daySuffix) }
     function _buildHour24Model() { return Helpers.buildHour24Model(_hourSuffix) }
     function _buildHour12Model() { return Helpers.buildHour12Model(_hourSuffix) }
@@ -252,7 +261,7 @@ Rectangle {
     function _buildSecondModel() { return Helpers.buildSecondModel(_secondSuffix) }
 
     function _updateDayWheel() {
-        var dayLoader = _yearFirst ? _popupLoader.item.col3Loader : _popupLoader.item.col2Loader
+        var dayLoader = _dateWheelLoaders(_popupLoader.item).day
         if (!dayLoader || !dayLoader.item) return
         var maxDays = getDaysInMonth(_tempYear, _tempMonth)
         var arr = Helpers.buildDayModel(_tempYear, _tempMonth, _daySuffix)

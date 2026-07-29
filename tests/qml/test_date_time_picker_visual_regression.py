@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import Q_ARG, QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -26,19 +26,32 @@ Item {
     readonly property int expectedBaseZ: Enums.zIndex.base
     readonly property int expectedContentZ: Enums.zIndex.content
     readonly property int expectedPopupPanelOffset: Enums.popupMetrics.panelOffset
+    readonly property string selectedLanguage: Translator.language
+    readonly property string resolvedLanguage: Translator._resolvedLanguage
+    readonly property var pickerDateOrder: picker._dateFieldOrder
+    readonly property var pickerDisplayTexts: picker._buildDisplayModel().map(function(entry) { return entry.text })
+
+    function useLanguage(code) { Translator.setLanguage(code) }
+    function useAutoResolvedChinese() {
+        Translator.setLanguage("zh_CN")
+        Translator.language = "auto"
+    }
 
     width: 700
     height: 400
 
     DateTimePicker {
+        id: picker
         objectName: "picker"
         width: 520
         type: Enums.picker.type_datetime
         year: 2026
         month: 7
-        day: 18
-        hour: 15
-        minute: 10
+        day: 3
+        hour: 10
+        minute: 30
+        second: 10
+        timePrecision: Enums.picker.time_second
     }
 }
 """
@@ -77,6 +90,21 @@ def _new_visible_windows(windows_before):
         if window.isVisible()
         and not any(window is existing for existing in windows_before)
     ]
+
+
+def _variant(value):
+    return value.toVariant() if hasattr(value, "toVariant") else value
+
+
+def _use_language(root, language, auto_resolved=False):
+    if auto_resolved:
+        assert QMetaObject.invokeMethod(root, "useAutoResolvedChinese")
+        assert root.property("selectedLanguage") == "auto"
+    else:
+        assert QMetaObject.invokeMethod(
+            root, "useLanguage", Q_ARG("QVariant", language)
+        )
+    assert _wait_for(lambda: root.property("resolvedLanguage") == language)
 
 
 def _create_scene():
@@ -174,6 +202,7 @@ def test_selected_row_text_stays_above_opaque_highlight(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, root, picker, warnings = _create_scene()
     try:
+        _use_language(root, "fr")
         picker.openPopup()
         assert _wait_for(lambda: picker.property("isOpen"))
         assert _wait_for(lambda: picker.property("_tempYear") == 2026)
@@ -183,9 +212,11 @@ def test_selected_row_text_stays_above_opaque_highlight(qapp):
         assert row.property("z") == root.property("expectedContentZ")
         assert row.property("z") > highlight.property("z")
 
-        assert len(loaders) == 5
-        expected_date_indices = [100, 6, 17] if picker.property("_yearFirst") else [6, 17, 100]
-        expected_indices = [*expected_date_indices, 15, 10]
+        assert len(loaders) == 6
+        date_indices = {"year": 100, "month": 6, "day": 2}
+        date_order = _variant(picker.property("_dateFieldOrder"))
+        expected_date_indices = [date_indices[field] for field in date_order]
+        expected_indices = [*expected_date_indices, 10, 30, 10]
         assert _wait_for(
             lambda: [
                 loader.property("item").property("currentIndex")
@@ -198,8 +229,47 @@ def test_selected_row_text_stays_above_opaque_highlight(qapp):
                 for loader in loaders
             ],
             expected_indices,
-            picker.property("_yearFirst"),
+            date_order,
         )
+        assert warnings == []
+    finally:
+        picker.closePopup()
+        _destroy_scene(engine, component, root)
+        assert _new_visible_windows(windows_before) == []
+
+
+@pytest.mark.parametrize(
+    ("language", "auto_resolved", "expected_order", "expected_texts"),
+    [
+        (
+            "zh_CN",
+            True,
+            ["year", "month", "day"],
+            ["2026年", "7月", "3日", "10时", "30分", "10秒"],
+        ),
+        (
+            "en",
+            False,
+            ["month", "day", "year"],
+            ["July", "3", "2026", "10", "30", "10"],
+        ),
+        (
+            "fr",
+            False,
+            ["day", "month", "year"],
+            ["3", "Juillet", "2026", "10", "30", "10"],
+        ),
+    ],
+)
+def test_display_order_and_units_follow_i18n_locale(
+    qapp, language, auto_resolved, expected_order, expected_texts
+):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, picker, warnings = _create_scene()
+    try:
+        _use_language(root, language, auto_resolved)
+        assert _variant(root.property("pickerDateOrder")) == expected_order
+        assert _variant(root.property("pickerDisplayTexts")) == expected_texts
         assert warnings == []
     finally:
         picker.closePopup()
