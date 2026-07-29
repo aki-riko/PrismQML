@@ -121,6 +121,7 @@ Window {
     width: 320
     height: 240
     visible: false
+    Component.onCompleted: Translator.setLanguage(Enums.lang.zh_CN)
 
     QtObject {
         id: backend

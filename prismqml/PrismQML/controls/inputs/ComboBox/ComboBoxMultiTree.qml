@@ -26,7 +26,10 @@ ComboBoxCore {
     property string delimiter: ", "
     property int maxDisplay: 3  // Max items to display 最多显示数量
     property bool searchEnabled: true
-    property string searchPlaceholder: "请输入关键字"
+    property string searchPlaceholder: {
+        Translator._v
+        return Translator.tr("placeholder_keyword")
+    }
 
     // ==================== Internal Props 内部属性 ====================
     property var _expandedNodes: ({})

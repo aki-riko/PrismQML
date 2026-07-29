@@ -18,8 +18,19 @@ Item {
     property int month: new Date().getMonth() + 1
     property int day: 0  // Selected day 选中的日期，0表示未选中
     property color accentColor: Enums.accentColor
-    property var weekDays: ["日", "一", "二", "三", "四", "五", "六"]
-    property string monthFormat: "{month}月 {year}"
+    property var weekDays: {
+        Translator._v
+        return [
+            Translator.tr("sunday"), Translator.tr("monday"),
+            Translator.tr("tuesday"), Translator.tr("wednesday"),
+            Translator.tr("thursday"), Translator.tr("friday"),
+            Translator.tr("saturday")
+        ]
+    }
+    property string monthFormat: {
+        Translator._v
+        return Translator.tr("calendar_month_format")
+    }
     
     // Range mode props 范围模式属性
     property bool rangeMode: false

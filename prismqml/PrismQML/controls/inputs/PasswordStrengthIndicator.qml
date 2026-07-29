@@ -15,7 +15,16 @@ Item {
     property int strength: calculateStrength(password)  // 0-4
     
     readonly property var strengthColors: Enums.passwordStrengthColors.palette
-    readonly property var strengthTexts: ["Very Weak", "Weak", "Fair", "Strong", "Very Strong"]  // Strength texts 强度文本
+    readonly property var strengthTexts: {
+        Translator._v
+        return [
+            Translator.tr("password_very_weak"),
+            Translator.tr("password_weak"),
+            Translator.tr("password_fair"),
+            Translator.tr("password_strong"),
+            Translator.tr("password_very_strong")
+        ]
+    }
 
     function calculateStrength(pwd) {
         if (!pwd || pwd.length === 0) return 0

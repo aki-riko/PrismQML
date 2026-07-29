@@ -27,6 +27,7 @@ Item {
 
     width: 736
     height: 240
+    Component.onCompleted: Translator.setLanguage(Enums.lang.en)
 
     StateWidget {
         objectName: "noData"

@@ -16,10 +16,22 @@ Item {
     property color selectedColor: Enums.accentColor
     property bool showAutomatic: true
     property bool showMoreColors: true
-    property string automaticText: "Automatic"
-    property string themeColorsText: "Theme Colors"
-    property string standardColorsText: "Standard Colors"
-    property string moreColorsText: "More Colors..."
+    property string automaticText: {
+        Translator._v
+        return Translator.tr("default_color_text")
+    }
+    property string themeColorsText: {
+        Translator._v
+        return Translator.tr("theme_colors")
+    }
+    property string standardColorsText: {
+        Translator._v
+        return Translator.tr("standard_colors")
+    }
+    property string moreColorsText: {
+        Translator._v
+        return Translator.tr("more_colors")
+    }
     
     // Theme colors (10 columns x 6 rows) 主题色
     property var themeColors: Enums.colorPalette.themeColors

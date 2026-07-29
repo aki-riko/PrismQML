@@ -464,7 +464,11 @@ DataWidgetCore {
         if (cols.length === 0 && data[0]) {
             var colCount = Array.isArray(data[0]) ? data[0].length : Object.keys(data[0]).length
             for (var c = 0; c < colCount; c++) {
-                cols.push({ text: "Col " + (c+1), width: 1.0 / colCount, role: "col" + c })
+                cols.push({
+                    text: _columnLabel(c + 1),
+                    width: 1.0 / colCount,
+                    role: "col" + c
+                })
             }
             columns = cols
         }
@@ -510,6 +514,10 @@ DataWidgetCore {
     function _showDefaultContextMenu(rowIndex, x, y) {
         var menu = defaultTableContextMenuLoader.item
         if (menu) menu.showMenu(rowIndex, x, y)
+    }
+
+    function _columnLabel(index) {
+        return Translator.tr("column").replace("{index}", index)
     }
 
     // ==================== Size 尺寸 ====================
@@ -595,80 +603,9 @@ DataWidgetCore {
 
         objectName: "defaultTableContextMenuLoader"
         active: root.defaultContextMenuEnabled
-        sourceComponent: defaultTableContextMenuComponent
-    }
-
-    Component {
-        id: defaultTableContextMenuComponent
-
-        ContextMenu {
-            id: defaultTableContextMenu
-
-            property int activeRowIndex: -1
-
-            function showMenu(rowIndex, x, y) {
-                activeRowIndex = rowIndex
-                popup(x, y, root)
-            }
-
-            autoBindRightClick: false
-
-            Action {
-                text: "复制所选行 (Copy Row)"
-                icon: "Copy"
-                onTriggered: {
-                    if (defaultTableContextMenu.activeRowIndex >= 0) {
-                        var rowData = root.getRow(defaultTableContextMenu.activeRowIndex)
-                        if (rowData) {
-                            var textParts = []
-                            for (var i = 0; i < (root._safeColumns || []).length; i++) {
-                                var columnData = root._safeColumns[i] || {}
-                                textParts.push(rowData[columnData.role] || "")
-                            }
-                            ClipboardHelper.copy(textParts.join("\t"))
-                        }
-                    }
-                }
-            }
-
-            MenuSeparator {}
-
-            Action {
-                text: "在上方插入空行 (Insert Row Above)"
-                icon: "Add"
-                onTriggered: {
-                    if (defaultTableContextMenu.activeRowIndex >= 0) {
-                        if (!root._isPureJsArray()) { console.warn("TableWidget: Cannot insert row via built-in menu when a QAbstractListModel is bound."); return }
-                        var arr = root.tableData.slice()
-                        arr.splice(defaultTableContextMenu.activeRowIndex, 0, {})
-                        root.tableData = arr
-                    }
-                }
-            }
-
-            Action {
-                text: "在下方插入空行 (Insert Row Below)"
-                icon: "Add"
-                onTriggered: {
-                    if (defaultTableContextMenu.activeRowIndex >= 0) {
-                        if (!root._isPureJsArray()) { console.warn("TableWidget: Cannot insert row via built-in menu when a QAbstractListModel is bound."); return }
-                        var arr = root.tableData.slice()
-                        arr.splice(defaultTableContextMenu.activeRowIndex + 1, 0, {})
-                        root.tableData = arr
-                    }
-                }
-            }
-
-            MenuSeparator {}
-
-            Action {
-                text: "删除受指行 (Delete Row)"
-                icon: "Delete"
-                onTriggered: {
-                    if (defaultTableContextMenu.activeRowIndex >= 0) {
-                        root.removeRow(defaultTableContextMenu.activeRowIndex)
-                    }
-                }
+        sourceComponent: Component {
+            TableInternal.TableDefaultContextMenu {
+                table: root
             }
         }
     }

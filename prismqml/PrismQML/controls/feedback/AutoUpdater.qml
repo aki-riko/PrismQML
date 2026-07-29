@@ -128,7 +128,7 @@ Item {
         root._rangeKnown = false;
         if (!root._checkSilent) {
             _presentFeedback(
-                qsTr("正在检查更新"), "", "info",
+                Translator.tr("checking_for_updates"), "", "info",
                 Enums.notification.feature_indeterminate_ring,
                 Enums.duration.none, 0
             );
@@ -163,13 +163,14 @@ Item {
                 _clearPending();
                 return;
             }
-            _showError(qsTr("打开发布页失败"), qsTr("无法打开更新发布页"));
+            _showError(Translator.tr("open_release_page_failed"),
+                       Translator.tr("cannot_open_release_page"));
             return;
         }
         root._rangeKnown = false;
         root._downloading = true;
         _presentFeedback(
-            qsTr("正在下载更新"), version, "info",
+            Translator.tr("downloading_update"), version, "info",
             Enums.notification.feature_indeterminate_ring,
             Enums.duration.none, 0
         );
@@ -292,7 +293,7 @@ Item {
                 root._dismissFeedback();   // 不提示时收起检查反馈
             if (!silent && root.notifyWhenUpToDate) {
                 root._presentFeedback(
-                    qsTr("已是最新版本"), version, "success",
+                    Translator.tr("already_latest_version"), version, "success",
                     Enums.notification.feature_normal,
                     Enums.duration.notification, 0
                 );
@@ -310,7 +311,7 @@ Item {
                 root.errorOccurred(error);
                 return;
             }
-            _showError(qsTr("检查更新失败"), error);
+            _showError(Translator.tr("check_updates_failed"), error);
         }
 
         function onDownloadProgress(received, total) {
@@ -327,7 +328,8 @@ Item {
                 root._feedbackMessage = Math.round(progress * 100) + "%  ("
                     + root._formatSize(received) + " / " + root._formatSize(total) + ")";
             } else {
-                root._feedbackMessage = root._formatSize(received) + qsTr(" 已下载");
+                root._feedbackMessage = root._formatSize(received)
+                    + Translator.tr("downloaded_suffix");
             }
         }
 
@@ -337,24 +339,27 @@ Item {
             root._downloading = false;
             if (root.usesDualSlot) {
                 if (!root.updater.stageInstallerForNextLaunch(filePath, root.silentArgs)) {
-                    _showError(qsTr("后台安装启动失败"), qsTr("无法准备下次启动的新版,请重试"));
+                    _showError(Translator.tr("background_install_start_failed"),
+                               Translator.tr("cannot_prepare_next_version"));
                     return;
                 }
                 root._installPreparing = true;
                 root._presentFeedback(
-                    qsTr("正在后台准备新版"),
-                    qsTr("当前版本可继续使用,完成后下次启动自动切换"),
+                    Translator.tr("preparing_update_in_background"),
+                    Translator.tr("current_version_remains_available"),
                     "info", Enums.notification.feature_indeterminate_ring,
                     Enums.duration.none, 0
                 );
                 return;
             }
             if (!root.updater.runInstallerAndQuit(filePath, root.silentArgs)) {
-                _showError(qsTr("安装启动失败"), qsTr("无法启动安装程序,请重试"));
+                _showError(Translator.tr("install_start_failed"),
+                           Translator.tr("cannot_start_installer"));
                 return;
             }
             root._presentFeedback(
-                qsTr("安装程序已启动"), qsTr("安装将在后台静默完成"),
+                Translator.tr("installer_started"),
+                Translator.tr("install_completes_in_background"),
                 "success", Enums.notification.feature_normal,
                 Enums.duration.notification, 0
             );
@@ -364,7 +369,7 @@ Item {
             if (!root._downloading)
                 return;
             root._downloading = false;
-            _showError(qsTr("下载失败"), error);
+            _showError(Translator.tr("download_failed"), error);
         }
 
         function onInstallPreparationFinished() {
@@ -372,8 +377,8 @@ Item {
                 return;
             root._installPreparing = false;
             root._presentFeedback(
-                qsTr("新版已准备完成"),
-                qsTr("当前版本继续运行,下次启动将自动切换"),
+                Translator.tr("new_version_ready"),
+                Translator.tr("switch_on_next_start"),
                 "success", Enums.notification.feature_normal,
                 Enums.duration.notification, 0
             );
@@ -386,7 +391,7 @@ Item {
             if (!root._installPreparing)
                 return;
             root._installPreparing = false;
-            _showError(qsTr("后台安装失败"), error);
+            _showError(Translator.tr("background_install_failed"), error);
         }
 
         target: root.updater
@@ -396,8 +401,14 @@ Item {
     // ---- 更新确认弹窗 ----
     UpdateDialog {
         id: updateDialog
-        confirmText: qsTr("下载并安装")
-        cancelText: qsTr("稍后")
+        confirmText: {
+            Translator._v
+            return Translator.tr("download_and_install")
+        }
+        cancelText: {
+            Translator._v
+            return Translator.tr("later")
+        }
 
         onConfirmed: {
             root._awaitingDecision = false;

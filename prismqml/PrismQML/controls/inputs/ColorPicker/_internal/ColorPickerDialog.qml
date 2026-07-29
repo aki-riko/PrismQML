@@ -14,8 +14,14 @@ MessageBox {
     // ==================== Public Props 公开属性 ====================
     property color selectedColor: Enums.accentColor
     property color initialColor: Enums.accentColor       // Old color for preview 旧颜色预览
-    property string title: qsTr("Choose Background Color")
-    property string editColorText: qsTr("Custom Color")
+    property string title: {
+        Translator._v
+        return Translator.tr("choose_background_color")
+    }
+    property string editColorText: {
+        Translator._v
+        return Translator.tr("custom_color")
+    }
     property bool enableAlpha: false
 
     // ==================== Internal Props 内部属性 ====================
@@ -247,11 +253,14 @@ MessageBox {
             
             // RGB Inputs RGB输入
             Repeater {
-                model: [
-                    { label: qsTr("Red"), getValue: () => Math.round(control.selectedColor.r * Enums.colorPickerMetrics.channelMaxValue), channel: Enums.colorPickerMetrics.dialogRgbChannelR },
-                    { label: qsTr("Green"), getValue: () => Math.round(control.selectedColor.g * Enums.colorPickerMetrics.channelMaxValue), channel: Enums.colorPickerMetrics.dialogRgbChannelG },
-                    { label: qsTr("Blue"), getValue: () => Math.round(control.selectedColor.b * Enums.colorPickerMetrics.channelMaxValue), channel: Enums.colorPickerMetrics.dialogRgbChannelB }
-                ]
+                model: {
+                    Translator._v
+                    return [
+                        { label: Translator.tr("red"), getValue: () => Math.round(control.selectedColor.r * Enums.colorPickerMetrics.channelMaxValue), channel: Enums.colorPickerMetrics.dialogRgbChannelR },
+                        { label: Translator.tr("green"), getValue: () => Math.round(control.selectedColor.g * Enums.colorPickerMetrics.channelMaxValue), channel: Enums.colorPickerMetrics.dialogRgbChannelG },
+                        { label: Translator.tr("blue"), getValue: () => Math.round(control.selectedColor.b * Enums.colorPickerMetrics.channelMaxValue), channel: Enums.colorPickerMetrics.dialogRgbChannelB }
+                    ]
+                }
                 
                 Row {
                     spacing: Enums.spacing.m

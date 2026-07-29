@@ -47,26 +47,28 @@ Item {
     }
     
     readonly property string _defaultTitle: {
+        Translator._v
         switch (stateType) {
             case Enums.state.type_result:
                 switch (severity) {
-                    case "success": return "提交成功"
-                    case "error": return "操作失败"
-                    case "warning": return "警告"
+                    case "success": return Translator.tr("submit_success")
+                    case "error": return Translator.tr("operation_failed")
+                    case "warning": return Translator.tr("warning")
                     default: return ""
                 }
             case Enums.state.type_no_data:
-                return "No Data"
+                return Translator.tr("no_data")
             case Enums.state.type_no_internet:
-                return "No Internet Connection"
+                return Translator.tr("no_internet")
             default:
                 return ""
         }
     }
     
     readonly property string _defaultActionText: {
+        Translator._v
         if (stateType === Enums.state.type_no_internet) {
-            return "Retry"
+            return Translator.tr("retry")
         }
         return ""
     }

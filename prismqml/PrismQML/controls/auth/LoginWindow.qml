@@ -28,8 +28,17 @@ Rectangle {
     property int mode: Enums.auth.mode_login
     
     // Content 内容
-    property string title: mode === Enums.auth.mode_login ? qsTr("Welcome Back") : qsTr("Create Account")
-    property string subtitle: mode === Enums.auth.mode_login ? qsTr("Sign in to continue") : qsTr("Sign up to get started")
+    property string title: {
+        _translationVersion
+        return mode === Enums.auth.mode_login
+            ? Translator.tr("welcome_back") : Translator.tr("create_account")
+    }
+    property string subtitle: {
+        _translationVersion
+        return mode === Enums.auth.mode_login
+            ? Translator.tr("sign_in_to_continue")
+            : Translator.tr("sign_up_to_get_started")
+    }
     property string logoSource: ""
     property string logoText: "PrismQML"
     
@@ -55,7 +64,10 @@ Rectangle {
     
     // Loading state 加载状态
     property bool loading: false
-    property string loadingText: qsTr("Please wait...")
+    property string loadingText: {
+        _translationVersion
+        return Translator.tr("please_wait")
+    }
     
     // Error state 错误状态
     property string errorMessage: ""
@@ -65,6 +77,7 @@ Rectangle {
     property real cardOpacity: 0.92
 
     // ==================== Internal Props 内部属性 ====================
+    readonly property int _translationVersion: Translator._v
     readonly property var _safeOauthProviders:
         oauthProviders === null || oauthProviders === undefined ? []
         : (typeof oauthProviders.length === "number" ? oauthProviders : [])
@@ -296,7 +309,12 @@ Rectangle {
                     id: usernameInput
                     Layout.fillWidth: true
                     inputType: Enums.input.type_normal
-                    placeholderText: root._isLogin ? qsTr("Username or Email") : qsTr("Username")
+                    placeholderText: {
+                        root._translationVersion
+                        return root._isLogin
+                            ? Translator.tr("username_or_email")
+                            : Translator.tr("username")
+                    }
                     enabled: !root.loading
                     
                     onAccepted: {
@@ -310,7 +328,10 @@ Rectangle {
                     id: emailInput
                     Layout.fillWidth: true
                     inputType: Enums.input.type_normal
-                    placeholderText: qsTr("Email")
+                    placeholderText: {
+                        root._translationVersion
+                        return Translator.tr("email")
+                    }
                     visible: !root._isLogin
                     enabled: !root.loading
                     
@@ -322,7 +343,10 @@ Rectangle {
                     id: passwordInput
                     Layout.fillWidth: true
                     inputType: Enums.input.type_password
-                    placeholderText: qsTr("Password")
+                    placeholderText: {
+                        root._translationVersion
+                        return Translator.tr("password")
+                    }
                     enabled: !root.loading
                     
                     onAccepted: {
@@ -336,7 +360,10 @@ Rectangle {
                     id: confirmPasswordInput
                     Layout.fillWidth: true
                     inputType: Enums.input.type_password
-                    placeholderText: qsTr("Confirm Password")
+                    placeholderText: {
+                        root._translationVersion
+                        return Translator.tr("confirm_password")
+                    }
                     visible: !root._isLogin
                     enabled: !root.loading
                     
@@ -359,7 +386,10 @@ Rectangle {
                 // Remember me 记住我
                 CheckBox {
                     id: rememberMeCheck
-                    text: qsTr("Remember me")
+                    text: {
+                        root._translationVersion
+                        return Translator.tr("remember_me")
+                    }
                     visible: root.rememberMeEnabled
                     enabled: !root.loading
                 }
@@ -368,7 +398,10 @@ Rectangle {
                 
                 // Forgot password 忘记密码
                 Text {
-                    text: qsTr("Forgot password?")
+                    text: {
+                        root._translationVersion
+                        return Translator.tr("forgot_password")
+                    }
                     font.family: Enums.fontFamily
                     font.pixelSize: Enums.typography.bodySmall
                     color: Enums.accentColor
@@ -387,7 +420,12 @@ Rectangle {
             ButtonCore {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Enums.controlSize.buttonHeight
-                text: root.loading ? root.loadingText : (root._isLogin ? qsTr("Sign In") : qsTr("Sign Up"))
+                text: {
+                    root._translationVersion
+                    return root.loading ? root.loadingText
+                        : (root._isLogin ? Translator.tr("sign_in")
+                                         : Translator.tr("sign_up"))
+                }
                 style: Enums.button.style_primary
                 loading: root.loading
                 enabled: !root.loading && root._isFormValid()
@@ -406,7 +444,10 @@ Rectangle {
                 }
 
                 Text {
-                    text: qsTr("or continue with")
+                    text: {
+                        root._translationVersion
+                        return Translator.tr("or_continue_with")
+                    }
                     font.family: Enums.fontFamily
                     font.pixelSize: Enums.typography.caption
                     color: Enums.secondaryForeground
@@ -449,14 +490,23 @@ Rectangle {
                 spacing: Enums.spacing.xs
                 
                 Text {
-                    text: root._isLogin ? qsTr("Don't have an account?") : qsTr("Already have an account?")
+                    text: {
+                        root._translationVersion
+                        return root._isLogin
+                            ? Translator.tr("no_account")
+                            : Translator.tr("already_have_account")
+                    }
                     font.family: Enums.fontFamily
                     font.pixelSize: Enums.typography.bodySmall
                     color: Enums.secondaryForeground
                 }
                 
                 Text {
-                    text: root._isLogin ? qsTr("Sign Up") : qsTr("Sign In")
+                    text: {
+                        root._translationVersion
+                        return root._isLogin ? Translator.tr("sign_up")
+                                             : Translator.tr("sign_in")
+                    }
                     font.family: Enums.fontFamily
                     font.pixelSize: Enums.typography.bodySmall
                     font.bold: true

@@ -20,6 +20,9 @@ CHART_VIEW_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "data" / "Chart" / "ChartView.qml"
 )
 CHART_DATA_ZOOM_SOURCE = CHART_VIEW_SOURCE.with_name("ChartDataZoom.qml")
+CHART_DATA_ZOOM_LAYER_SOURCE = (
+    CHART_VIEW_SOURCE.parent / "_internal" / "ChartDataZoomLayer.qml"
+)
 LINE_CHART_SOURCE = CHART_VIEW_SOURCE.parent / "_internal" / "LineChartContent.qml"
 XY_CHART_CORE_SOURCE = CHART_VIEW_SOURCE.parent / "_internal" / "XYChartCore.qml"
 VIEWPORT_ANIMATOR_SOURCE = (
@@ -379,6 +382,7 @@ def test_range_lttb_matches_the_allocating_reference(qapp):
 def test_chart_zoom_uses_shared_tokens_and_render_values():
     chart_view_source = CHART_VIEW_SOURCE.read_text(encoding="utf-8")
     data_zoom_source = CHART_DATA_ZOOM_SOURCE.read_text(encoding="utf-8")
+    data_zoom_layer_source = CHART_DATA_ZOOM_LAYER_SOURCE.read_text(encoding="utf-8")
     line_chart_source = LINE_CHART_SOURCE.read_text(encoding="utf-8")
     xy_chart_core_source = XY_CHART_CORE_SOURCE.read_text(encoding="utf-8")
     animator_source = VIEWPORT_ANIMATOR_SOURCE.read_text(encoding="utf-8")
@@ -387,6 +391,7 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     zoom_consumers = (
         chart_view_source
         + data_zoom_source
+        + data_zoom_layer_source
         + line_chart_source
         + xy_chart_core_source
         + animator_source
@@ -399,8 +404,8 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     assert "Behavior on viewportStart" not in chart_view_source
     assert "id: _renderTimer" not in chart_view_source
     assert "duration: Enums.duration.normal" in animator_source
-    assert "viewportStart: control._visualStart" in chart_view_source
-    assert "viewportEnd: control._visualEnd" in chart_view_source
+    assert "viewportStart: chart ? chart._visualStart : 0" in data_zoom_layer_source
+    assert "viewportEnd: chart ? chart._visualEnd : 1" in data_zoom_layer_source
     assert "xScale: control._isHorizontalBar ? 1 : control._viewportScale" in chart_view_source
     assert "yScale: control._isHorizontalBar ? control._viewportScale : 1" in chart_view_source
     assert "viewportScale: control._viewportScale" in chart_view_source

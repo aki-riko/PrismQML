@@ -141,7 +141,7 @@ Item {
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "已深度思考"
+                text: { Translator._v; return Translator.tr("deep_thought") }
                 font.family: Enums.fontFamily
                 font.pixelSize: Enums.typography.caption
                 color: Enums.textColor.tertiary

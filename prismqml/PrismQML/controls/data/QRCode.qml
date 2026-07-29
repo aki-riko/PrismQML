@@ -68,7 +68,13 @@ Item {
             Label {
                 anchors.horizontalCenter: parent.horizontalCenter
                 type: Enums.label.type_caption
-                text: control.content === "" ? "无内容" : (control.imageSource === "" ? "参数无效" : "加载中...")
+                text: {
+                    Translator._v
+                    if (control.content === "") return Translator.tr("no_content")
+                    return control.imageSource === ""
+                        ? Translator.tr("invalid_parameters")
+                        : Translator.tr("loading")
+                }
                 color: control._qrHintColor
                 horizontalAlignment: Text.AlignHCenter
             }

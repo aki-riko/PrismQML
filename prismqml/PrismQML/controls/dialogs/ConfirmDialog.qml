@@ -40,11 +40,17 @@ DialogBoxCore {
 
     // ==================== Public Props 公开属性 ====================
     property int level: Enums.statusLevel.warning
-    property string title: qsTr("确认操作")
+    property string title: {
+        Translator._v
+        return Translator.tr("confirm_action")
+    }
     property string message: ""
     property int messageAlignment: Text.AlignHCenter  // 消息正文水平对齐, 默认居中; 长文本(如更新说明)可设 Text.AlignLeft
     property string confirmText: ""
-    property string cancelText: qsTr("取消")
+    property string cancelText: {
+        Translator._v
+        return Translator.tr("cancel")
+    }
     property string confirmIcon: ""
     property bool destructive: level === Enums.statusLevel.error  // error 自动 destructive 视觉
     property int countdown: 0  // 倒计时秒数, 0 = 关闭
@@ -70,11 +76,12 @@ DialogBoxCore {
 
     // level → 主按钮默认文案 (用户没显式设 confirmText 时回退)
     readonly property string _autoConfirmText: {
+        Translator._v
         switch (level) {
-            case Enums.statusLevel.error:   return qsTr("删除")
-            case Enums.statusLevel.warning: return qsTr("确认")
-            case Enums.statusLevel.success: return qsTr("好的")
-            default:                               return qsTr("确认")
+            case Enums.statusLevel.error:   return Translator.tr("delete")
+            case Enums.statusLevel.warning: return Translator.tr("confirm")
+            case Enums.statusLevel.success: return Translator.tr("ok")
+            default:                       return Translator.tr("confirm")
         }
     }
 

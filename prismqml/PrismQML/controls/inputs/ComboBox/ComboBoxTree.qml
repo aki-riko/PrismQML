@@ -20,7 +20,10 @@ ComboBoxCore {
     
     // ==================== Public Props 公开属性 ====================
     property bool searchEnabled: true
-    property string searchPlaceholder: "请输入关键字"
+    property string searchPlaceholder: {
+        Translator._v
+        return Translator.tr("placeholder_keyword")
+    }
     property string delimiter: " → "
     property bool showPathFromRoot: true
 

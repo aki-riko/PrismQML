@@ -12,7 +12,10 @@ Item {
     id: control
 
     // ==================== Public Props 公开属性 ====================
-    property string text: "Watermark"
+    property string text: {
+        Translator._v
+        return Translator.tr("watermark")
+    }
     property real fontSize: Enums.typography.body
     property real opacity_: Enums.opacityLevel.watermark
     property real rotation_: _internal.defaultRotation

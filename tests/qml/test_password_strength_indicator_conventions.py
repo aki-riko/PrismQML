@@ -36,6 +36,7 @@ Item {
 
     width: 320
     height: 80
+    Component.onCompleted: Translator.setLanguage(Enums.lang.en)
 
     PasswordStrengthIndicator {
         id: indicator

@@ -30,6 +30,9 @@ QtObject {
     
     // Current active dictionary 当前活动字典
     property var _currentDict: ({})
+
+    // Whether fallback and active dictionaries are ready 词典是否已就绪
+    property bool _initialized: false
     
     // i18n directory path i18n目录路径
     readonly property string _i18nPath: Qt.resolvedUrl("i18n/")
@@ -140,6 +143,16 @@ QtObject {
         }
     }
     
+    // Ensure first translation calls never expose raw keys 确保首次翻译不暴露原始键
+    function _ensureInitialized() {
+        if (_initialized) return
+        _fallback = _loadTranslation("en")
+        _resolvedLanguage = language === "auto" ? detectSystemLanguage() : language
+        if (!_isValidLang(_resolvedLanguage)) _resolvedLanguage = "en"
+        _currentDict = _loadTranslation(_resolvedLanguage)
+        _initialized = true
+    }
+
     // Set language 设置语言
     function setLanguage(lang) {
         language = lang
@@ -155,7 +168,9 @@ QtObject {
         }
         
         // Load translation 加载翻译
+        if (!_initialized) _fallback = _loadTranslation("en")
         _currentDict = _loadTranslation(_resolvedLanguage)
+        _initialized = true
         
         _v++  // Increment version to trigger bindings 递增版本触发绑定更新
         languageUpdated(_resolvedLanguage)
@@ -175,17 +190,6 @@ QtObject {
     
     // Initialize on startup 启动时初始化
     Component.onCompleted: {
-        // 利用延时避免引擎生命周期过早在 Component.onCompleted 中发送 XMLHttpRequest
-        Qt.callLater(function() {
-            // Load English fallback first 先加载英语回退
-            _fallback = _loadTranslation("en")
-            
-            // Auto-detect system language on first load 首次加载时自动检测系统语言
-            if (language === "auto") {
-                _resolvedLanguage = detectSystemLanguage()
-                _currentDict = _loadTranslation(_resolvedLanguage)
-                console.log("Translator: Auto-detected language:", _resolvedLanguage, "(System locale:", Qt.locale().name + ")")
-            }
-        })
+        _ensureInitialized()
     }
 }

@@ -16,6 +16,15 @@ Item {
     property string retryText: ""  // Retry button text 重试按钮文本
     property int imageWidth: 128
     property int imageHeight: 128
+
+    readonly property string _defaultTitle: {
+        Translator._v
+        return Translator.tr("no_internet")
+    }
+    readonly property string _defaultRetryText: {
+        Translator._v
+        return Translator.tr("retry")
+    }
     
     signal retried()
     
@@ -45,7 +54,7 @@ Item {
         Label {
             type: Enums.label.type_subtitle
             anchors.horizontalCenter: parent.horizontalCenter
-            text: control.title || "No Internet Connection"
+            text: control.title || control._defaultTitle
             color: Enums.textColor.tertiary
             horizontalAlignment: Text.AlignHCenter
         }
@@ -62,7 +71,7 @@ Item {
                 id: retryTextItem
                 type: Enums.label.type_body
                 anchors.centerIn: parent
-                text: control.retryText || "Retry"
+                text: control.retryText || control._defaultRetryText
                 color: Enums.accentForeground
             }
             

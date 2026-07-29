@@ -43,6 +43,10 @@ Rectangle {
     readonly property var _safeAllowedExtensions:
         allowedExtensions === null || allowedExtensions === undefined ? []
         : (typeof allowedExtensions.length === "number" ? allowedExtensions : [])
+    readonly property string _supportedFilesText: {
+        Translator._v
+        return Translator.tr("supported_files")
+    }
 
     // ==================== Signals 信号 ====================
     signal fileSelected(string file)
@@ -199,7 +203,10 @@ Rectangle {
         title: { Translator._v; return Translator.tr("select_file") }
         currentFolder: control.initialDir ? control._toFileUrl(control.initialDir) : ""
         fileMode: control.multiple ? FileDialog.OpenFiles : FileDialog.OpenFile
-        nameFilters: control._safeAllowedExtensions.length > 0 ? ["支持的文件 (*." + control._safeAllowedExtensions.join(" *.") + ")"] : []
+        nameFilters: control._safeAllowedExtensions.length > 0
+                     ? [control._supportedFilesText + " (*."
+                        + control._safeAllowedExtensions.join(" *.") + ")"]
+                     : []
         
         onAccepted: {
             var files = []

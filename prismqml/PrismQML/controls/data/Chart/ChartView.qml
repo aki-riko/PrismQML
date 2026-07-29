@@ -677,102 +677,20 @@ ShadowedRectangle {
     }
 
     // Bottom data zoom slider 底部数据缩放滑块
-    ChartDataZoom {
+    ChartDataZoomLayer {
         id: dataZoomBar
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: Enums.spacing.m
-        anchors.rightMargin: Enums.spacing.m
-        anchors.bottomMargin: Enums.spacing.s
-        height: Enums.controlSize.chartDataZoomBarHeight
-        visible: control.dataZoomEnabled && control._isXYChart
-        chartData: control._chartData
-        series: control._series
-        primaryColor: control.primaryColor
-        viewportStart: control._visualStart
-        viewportEnd: control._visualEnd
-        onViewportChanged: (s, e) => {
-            control.viewportStart = s
-            control.viewportEnd = e
-            control.viewportChanged(s, e)
-        }
-        onInteractiveChanged: (active) => {
-            control._viewportInteractive = active
-        }
+        chart: control
     }
 
     // Chart panning interaction 主图拖动平移交互
-    // Keep chart hover and tooltips above this pointer area 图表悬停与提示层保持更高优先级
-    MouseArea {
-        property real _pressX: 0
-        property real _pressVS: 0
-        property real _pressVE: 0
-
+    ChartPanArea {
+        chart: control
         anchors.fill: xyChartBase
         z: -1
-        enabled: control.panEnabled && control._isXYChart
-        acceptedButtons: Qt.LeftButton
-        cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-        propagateComposedEvents: true
-        onPressed: (mouse) => {
-            _pressX = mouse.x
-            _pressVS = control._visualStart
-            _pressVE = control._visualEnd
-            control._viewportInteractive = true
-        }
-        onReleased: { control._viewportInteractive = false }
-        onCanceled: { control._viewportInteractive = false }
-        onPositionChanged: (mouse) => {
-            if (!pressed || width <= 0) return
-            var dx = mouse.x - _pressX
-            // Convert pointer movement to inverse viewport movement 将指针位移转换为反向视窗位移
-            var span = _pressVE - _pressVS
-            var deltaRatio = -dx / width * span
-            var ns = _pressVS + deltaRatio
-            var ne = _pressVE + deltaRatio
-            if (ns < 0) { ns = 0; ne = span }
-            if (ne > 1) { ne = 1; ns = 1 - span }
-            control.viewportStart = ns
-            control.viewportEnd = ne
-            control.viewportChanged(ns, ne)
-        }
     }
 
     // Empty state 空状态
-    Column {
-        id: emptyState
-        anchors.centerIn: parent
-        spacing: Enums.spacing.m
-        visible: ((control._isXYChart && !control._isScatter &&
-                   !control._hasChartData && !control._hasSeriesValues) ||
-                 (control._isScatter && !control._hasScatterData) ||
-                 (control._isPie && !control._hasChartData) ||
-                 (control._isRadar && !control._hasRadarData) ||
-                 (control._isBoxplot && !control._hasBoxplotData))
-        opacity: visible ? 1.0 : 0.0
-        Behavior on opacity { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
-
-        Label {
-            type: Enums.label.type_display
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "📊"
-            font.pixelSize: Enums.typography.displayLarge
-            color: Enums.textColor.tertiary
-            SequentialAnimation on y {
-                objectName: "emptyStateAnimation"
-                running: emptyState.visible
-                loops: Animation.Infinite
-                NumberAnimation { from: 0; to: -4; duration: Enums.duration.emptyFloat; easing.type: Easing.InOutSine }
-                NumberAnimation { from: -4; to: 0; duration: Enums.duration.emptyFloat; easing.type: Easing.InOutSine }
-            }
-        }
-
-        Label {
-            type: Enums.label.type_body
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: control.emptyText || "No data"
-            color: Enums.textColor.tertiary
-        }
+    ChartEmptyState {
+        chart: control
     }
 }

@@ -34,11 +34,32 @@ Rectangle {
     property color accentColor: Enums.accentColor
 
     // Localization 本地化
-    property var weekDays: ["日", "一", "二", "三", "四", "五", "六"]
-    property string monthFormat: "{month}月 {year}"
-    property string placeholderText: _isRange ? "选择日期范围" : "选择日期"
-    property string startHint: "选择开始日期"
-    property string endHint: "选择结束日期"
+    property var weekDays: {
+        Translator._v
+        return [
+            Translator.tr("sunday"), Translator.tr("monday"),
+            Translator.tr("tuesday"), Translator.tr("wednesday"),
+            Translator.tr("thursday"), Translator.tr("friday"),
+            Translator.tr("saturday")
+        ]
+    }
+    property string monthFormat: {
+        Translator._v
+        return Translator.tr("calendar_month_format")
+    }
+    property string placeholderText: {
+        Translator._v
+        return _isRange ? Translator.tr("select_date_range")
+                        : Translator.tr("select_date")
+    }
+    property string startHint: {
+        Translator._v
+        return Translator.tr("select_start_date")
+    }
+    property string endHint: {
+        Translator._v
+        return Translator.tr("select_end_date")
+    }
 
     // ==================== Internal Props 内部属性 ====================
     property bool _selectingStart: true  // Selecting start or end 选择开始或结束

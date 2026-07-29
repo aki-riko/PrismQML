@@ -22,6 +22,14 @@ Avatar {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
+    readonly property string _defaultChangeText: {
+        Translator._v
+        return Translator.tr("change")
+    }
+    readonly property string _imageFilesText: {
+        Translator._v
+        return Translator.tr("image_files")
+    }
 
     // ==================== Signals 信号 ====================
     signal clicked()
@@ -62,12 +70,12 @@ Avatar {
             Label {
                 type: Enums.label.type_caption
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: control.changeText || "Change"
+                text: control.changeText || control._defaultChangeText
                 color: Enums.themeColors.accentForeground
             }
         }
     }
-    
+
     // Interaction 交互
     MouseArea {
         id: mouseArea
@@ -84,7 +92,7 @@ Avatar {
     FileDialog {
         id: fileDialog
         title: { Translator._v; return Translator.tr("select_avatar") }
-        nameFilters: ["Image files (*.png *.jpg *.jpeg *.bmp *.gif)"]
+        nameFilters: [control._imageFilesText + " (*.png *.jpg *.jpeg *.bmp *.gif)"]
         onAccepted: {
             if (control.enableCrop) {
                 cropperDialog.openWithSource(selectedFile)

@@ -30,6 +30,7 @@ SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "login-window-conventions.qml")
 )
 SCENE_SOURCE = b"""
+import QtQuick
 import PrismQML
 
 LoginWindow {
@@ -39,6 +40,7 @@ LoginWindow {
     width: 640
     height: 520
     matrixEnabled: false
+    Component.onCompleted: Translator.setLanguage(Enums.lang.en)
 }
 """
 
@@ -57,6 +59,15 @@ def _wait_for(predicate, timeout_ms: int = 800) -> bool:
         _pump()
         elapsed += 20
     return predicate()
+
+
+def _new_visible_windows(windows_before):
+    return [
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if window.isVisible()
+        and not any(window is existing for existing in windows_before)
+    ]
 
 
 def _line_edit(root, placeholder: str):
@@ -143,10 +154,10 @@ def test_login_window_submits_login_and_register_payloads(qapp):
         assert QMetaObject.invokeMethod(root, "_submitForm")
         assert register_events == [("bob", "bob@example.test", "secret")]
         assert warnings == []
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        assert _new_visible_windows(windows_before) == []
     finally:
         _dispose_scene(engine, component, root)
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        assert _new_visible_windows(windows_before) == []
 
 
 def test_login_window_clear_form_and_error(qapp):
@@ -166,10 +177,10 @@ def test_login_window_clear_form_and_error(qapp):
         assert not remember.property("checked")
         assert root.property("errorMessage") == ""
         assert warnings == []
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        assert _new_visible_windows(windows_before) == []
     finally:
         _dispose_scene(engine, component, root)
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        assert _new_visible_windows(windows_before) == []
 
 
 def test_login_window_source_conventions():

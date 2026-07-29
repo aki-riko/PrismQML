@@ -17,8 +17,8 @@ DialogBoxCore {
     property string content: ""                  // Dialog content 对话框内容
     property bool contentCopyable: false         // Allow copy content 允许复制内容
     property int minWidth: Enums.dialog.minWidth // Minimum width 最小宽度 (8px 网格对齐)
-    property string confirmText: qsTr("OK")          // Confirm button text 确定按钮文字
-    property string cancelText: qsTr("Cancel")   // Cancel button text 取消按钮文字
+    property string confirmText: { Translator._v; return Translator.tr("ok") }
+    property string cancelText: { Translator._v; return Translator.tr("cancel") }
     property bool yesButtonVisible: true         // Show yes button 显示确定按钮
     property bool cancelButtonVisible: true      // Show cancel button 显示取消按钮
     

@@ -45,6 +45,7 @@ Item {
 
     width: 520
     height: 100
+    Component.onCompleted: Translator.setLanguage(Enums.lang.zh_CN)
 
     CalendarPicker {
         objectName: "single"
@@ -170,7 +171,7 @@ def test_calendar_picker_range_runtime_contract(calendar_scene):
     assert picker.property("weekDays").toVariant() == [
         "日", "一", "二", "三", "四", "五", "六"
     ]
-    assert picker.property("monthFormat") == "{month}月 {year}"
+    assert picker.property("monthFormat") == "{year}年{month}月"
     assert icon.property("opacity") == calendar_scene.property("visibleOpacity")
     assert QMetaObject.invokeMethod(picker, "reset")
     _pump()

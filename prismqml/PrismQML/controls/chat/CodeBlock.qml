@@ -94,7 +94,12 @@ Rectangle {
 
                 Text {
                     anchors.centerIn: parent
-                    text: copyBtn._copied ? "已复制" : "复制"
+                    text: {
+                        Translator._v
+                        return copyBtn._copied
+                            ? Translator.tr("copied")
+                            : Translator.tr("copy")
+                    }
                     color: copyBtn._copied ? control._copySuccessTextColor : control._copyTextColor
                     font.family: Enums.fontFamily
                     font.pixelSize: control._labelFontSize

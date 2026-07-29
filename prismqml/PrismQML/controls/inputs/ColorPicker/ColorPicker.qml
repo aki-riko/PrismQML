@@ -24,16 +24,34 @@ Item {
     property bool enableAlpha: true
     property var circleColors: Enums.colorPickerDefaults.quickPalette
     property int circleSize: Enums.colorPickerMetrics.circleDefaultSize
-    property string dialogTitle: qsTr("选择背景颜色")
-    property string editColorText: qsTr("编辑颜色")
-    property string confirmText: qsTr("确定")
-    property string cancelText: qsTr("取消")
+    property string dialogTitle: {
+        Translator._v
+        return Translator.tr("choose_background_color")
+    }
+    property string editColorText: {
+        Translator._v
+        return Translator.tr("edit_color")
+    }
+    property string confirmText: { Translator._v; return Translator.tr("ok") }
+    property string cancelText: { Translator._v; return Translator.tr("cancel") }
     property bool showAutomatic: true
     property bool showMoreColors: true
-    property string automaticText: qsTr("默认")
-    property string themeColorsText: qsTr("主题色")
-    property string standardColorsText: qsTr("标准色")
-    property string moreColorsText: qsTr("自定义颜色")
+    property string automaticText: {
+        Translator._v
+        return Translator.tr("default_color_text")
+    }
+    property string themeColorsText: {
+        Translator._v
+        return Translator.tr("theme_colors")
+    }
+    property string standardColorsText: {
+        Translator._v
+        return Translator.tr("standard_colors")
+    }
+    property string moreColorsText: {
+        Translator._v
+        return Translator.tr("more_colors")
+    }
     property bool picking: false
 
     // ==================== Internal Props 内部属性 ====================
@@ -341,7 +359,7 @@ Item {
         id: paletteDialogLoader
         active: control.type === Enums.colorPicker.type_palette
         sourceComponent: ColorPickerDialog {
-            title: qsTr("自定义颜色")
+            title: { Translator._v; return Translator.tr("custom_color") }
             selectedColor: control.selectedColor
             onColorAccepted: (c) => {
                 control.selectedColor = c

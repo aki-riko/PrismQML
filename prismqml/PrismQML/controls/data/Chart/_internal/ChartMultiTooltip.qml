@@ -107,7 +107,7 @@ ShadowedRectangle {
             }
             Label {
                 type: Enums.label.type_caption
-                text: "Total"
+                text: { Translator._v; return Translator.tr("total") }
                 color: Enums.textColor.secondary
                 width: 60
             }

@@ -41,8 +41,14 @@ DialogBoxCore {
     property string version: ""
     property string currentVersion: ""
     property string notes: ""
-    property string confirmText: qsTr("下载并安装")
-    property string cancelText: qsTr("稍后")
+    property string confirmText: {
+        Translator._v
+        return Translator.tr("download_and_install")
+    }
+    property string cancelText: {
+        Translator._v
+        return Translator.tr("later")
+    }
 
     readonly property bool isOpen: _isOpen
     readonly property color _accentColor: Enums.statusLevel.getColorByLevel(Enums.statusLevel.attention)
@@ -117,7 +123,7 @@ DialogBoxCore {
         // 标题
         Label {
             Layout.fillWidth: true
-            text: qsTr("发现新版本")
+            text: { Translator._v; return Translator.tr("new_version_available") }
             type: Enums.label.type_subtitle
             color: Enums.stateColor.textStrong
             horizontalAlignment: Text.AlignHCenter
@@ -127,7 +133,12 @@ DialogBoxCore {
         // 版本对比副文本
         Label {
             Layout.fillWidth: true
-            text: control.version + (control.currentVersion !== "" ? ("  (" + qsTr("当前") + " " + control.currentVersion + ")") : "")
+            text: {
+                Translator._v
+                return control.version + (control.currentVersion !== ""
+                    ? ("  (" + Translator.tr("current") + " "
+                       + control.currentVersion + ")") : "")
+            }
             type: Enums.label.type_body
             color: Enums.stateColor.textMedium
             horizontalAlignment: Text.AlignHCenter
