@@ -127,3 +127,12 @@ def test_gallery_hyperlink_label_targets_github_repository():
 
     assert 'text: "超链接文本"; url: "https://github.com/aki-riko/PrismQML"' in source
     assert 'text: "超链接文本"; url: "https://example.com"' not in source
+
+
+def test_gallery_list_view_delegate_keeps_current_item_selected():
+    source = GALLERY_MENU_PAGE.read_text(encoding="utf-8")
+
+    assert "demoFluentListView.currentIndex === index" in source
+    assert "Fluent.Enums.stateColor.selectedHover" in source
+    assert "Fluent.Enums.stateColor.selected" in source
+    assert "opacity: _lvDelegate._selected ? 1 : 0" in source

@@ -166,6 +166,7 @@ Item {
                         label: "ListView"
                         Fluent.ListView {
                             id: demoFluentListView
+                            objectName: "galleryListViewDemo"
                             width: 220; height: 360
                             framed: true
                             showFooter: true
@@ -178,17 +179,56 @@ Item {
                                 id: _lvDelegate
                                 required property int index
                                 required property var modelData
+                                readonly property bool _selected: demoFluentListView.currentIndex === index
+
+                                objectName: "galleryListViewDelegate-" + index
                                 width: ListView.view.width
-                                height: 36
-                                color: _lvMa.containsMouse
-                                       ? Fluent.Enums.stateColor.treeItemHover
-                                       : Fluent.Enums.transparent
+                                height: Fluent.Enums.controlSize.listItemHeight
+                                color: {
+                                    if (_selected) {
+                                        return _lvMa.containsMouse
+                                            ? Fluent.Enums.stateColor.selectedHover
+                                            : Fluent.Enums.stateColor.selected
+                                    }
+                                    return _lvMa.containsMouse
+                                        ? Fluent.Enums.stateColor.treeItemHover
+                                        : Fluent.Enums.transparent
+                                }
                                 radius: Fluent.Enums.radius.small
-                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Behavior on color {
+                                    ColorAnimation { duration: Fluent.Enums.duration.fast }
+                                }
 
                                 scale: _lvMa.pressed ? 0.97 : 1.0
-                                Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: Fluent.Enums.duration.fast
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
                                 transformOrigin: Item.Center
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: Fluent.Enums.border.thick
+                                    height: parent.height * Fluent.Enums.listIndicator.normalRatio
+                                    radius: Fluent.Enums.radius.micro
+                                    color: Fluent.Enums.accentColor
+                                    opacity: _lvDelegate._selected ? 1 : 0
+                                    scale: _lvDelegate._selected ? 1 : 0
+                                    transformOrigin: Item.Center
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Fluent.Enums.duration.fast }
+                                    }
+                                    Behavior on scale {
+                                        NumberAnimation {
+                                            duration: Fluent.Enums.duration.spring
+                                            easing.type: Easing.OutBack
+                                        }
+                                    }
+                                }
 
                                 Fluent.Label {
                                     anchors.verticalCenter: parent.verticalCenter

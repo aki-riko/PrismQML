@@ -10,6 +10,7 @@ import pytest
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickView
 
 from prismqml import Skin, Theme, register_types, setSkin, setTheme
 
@@ -72,6 +73,7 @@ QtObject {
     property color transparentColor: Enums.transparent
     property color dialogBorder: Enums.stateColor.dialogBorder
     property color treeHover: Enums.stateColor.treeItemHover
+    property color selected: Enums.stateColor.selected
 }
 """
 
@@ -103,6 +105,16 @@ def _create_inline(engine: QQmlApplicationEngine):
 
 def _rgba(color: QColor) -> tuple[float, float, float, float]:
     return color.redF(), color.greenF(), color.blueF(), color.alphaF()
+
+
+def _find_visual_item(root, object_name: str):
+    if root.objectName() == object_name:
+        return root
+    for child in root.childItems():
+        match = _find_visual_item(child, object_name)
+        if match is not None:
+            return match
+    return None
 
 
 def _assert_color(instance, name: str, expected: str) -> None:
@@ -190,4 +202,53 @@ def test_migrated_example_pages_load_with_global_color_tokens(qapp):
             page.deleteLater()
             component.deleteLater()
         engine.deleteLater()
+        _pump(1)
+
+
+def test_gallery_list_view_current_item_keeps_selected_visual(qapp):
+    setSkin(Skin.FLUENT)
+    setTheme(Theme.LIGHT)
+    view = QQuickView()
+    engine = view.engine()
+    register_types(engine)
+    token_component = token_instance = page = None
+    try:
+        token_component, token_instance = _create_inline(engine)
+        page_path = ROOT / "examples" / "pages" / "MenuPage.qml"
+        view.setResizeMode(QQuickView.ResizeMode.SizeRootObjectToView)
+        view.resize(1200, 900)
+        view.setSource(QUrl.fromLocalFile(str(page_path)))
+        assert view.status() == QQuickView.Status.Ready, [
+            error.toString() for error in view.errors()
+        ]
+        page = view.rootObject()
+        assert page is not None
+        view.show()
+        _pump(150)
+
+        list_view = _find_visual_item(page, "galleryListViewDemo")
+        assert list_view is not None
+        list_view.setProperty("currentIndex", 2)
+        _pump(150)
+
+        selected_delegate = _find_visual_item(page, "galleryListViewDelegate-2")
+        other_delegate = _find_visual_item(page, "galleryListViewDelegate-1")
+        assert selected_delegate is not None
+        assert other_delegate is not None
+        assert selected_delegate.property("_selected") is True
+        assert other_delegate.property("_selected") is False
+        assert _rgba(selected_delegate.property("color")) == pytest.approx(
+            _rgba(token_instance.property("selected")), abs=1 / 65535
+        )
+    finally:
+        setTheme(Theme.LIGHT)
+        setSkin(Skin.FLUENT)
+        if page is not None:
+            page.deleteLater()
+        if token_instance is not None:
+            token_instance.deleteLater()
+        if token_component is not None:
+            token_component.deleteLater()
+        view.close()
+        view.deleteLater()
         _pump(1)
