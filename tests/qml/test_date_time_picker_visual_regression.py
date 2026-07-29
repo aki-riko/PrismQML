@@ -6,6 +6,7 @@
 
 from pathlib import Path
 
+import pytest
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -24,6 +25,7 @@ import PrismQML
 Item {
     readonly property int expectedBaseZ: Enums.zIndex.base
     readonly property int expectedContentZ: Enums.zIndex.content
+    readonly property int expectedPopupPanelOffset: Enums.popupMetrics.panelOffset
 
     width: 700
     height: 400
@@ -130,6 +132,42 @@ def _popup_parts(picker):
     return row, highlight, loaders
 
 
+def _popup_core(picker):
+    return next(
+        child
+        for child in _descendants(picker)
+        if all(
+            child.metaObject().indexOfProperty(name) >= 0
+            for name in ("horizontalCenterExpand", "isClosing", "popupWidth")
+        )
+    )
+
+
+def _assert_horizontally_centered(item, expected_center):
+    center = item.property("x") + item.property("width") / 2
+    assert center == pytest.approx(expected_center)
+
+
+def _assert_center_expand_geometry(root, popup, panel_scale, shadow):
+    scale = popup.property("_scale")
+    popup_width = popup.property("popupWidth")
+    expected_center = root.property("expectedPopupPanelOffset") + popup_width / 2
+    assert 0 < scale < 1
+    assert panel_scale.property("xScale") == pytest.approx(scale)
+    assert panel_scale.property("yScale") == pytest.approx(1)
+    assert panel_scale.property("origin").x() == pytest.approx(popup_width / 2)
+    _assert_horizontally_centered(shadow, expected_center)
+
+
+def _destroy_scene(engine, component, root):
+    root.deleteLater()
+    component.deleteLater()
+    engine.collectGarbage()
+    engine.clearComponentCache()
+    engine.deleteLater()
+    _pump()
+
+
 def test_selected_row_text_stays_above_opaque_highlight(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, root, picker, warnings = _create_scene()
@@ -163,10 +201,28 @@ def test_selected_row_text_stays_above_opaque_highlight(qapp):
         assert warnings == []
     finally:
         picker.closePopup()
-        root.deleteLater()
-        component.deleteLater()
-        engine.collectGarbage()
-        engine.clearComponentCache()
-        engine.deleteLater()
+        _destroy_scene(engine, component, root)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_popup_expands_smoothly_from_horizontal_center(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, picker, warnings = _create_scene()
+    try:
+        popup = _popup_core(picker)
+        panel_scale = popup.findChild(QObject, "_popupPanelScale")
+        shadow = popup.findChild(QObject, "_popupShadow")
+        assert popup.property("horizontalCenterExpand")
+        assert panel_scale is not None
+        assert shadow is not None
+
+        picker.openPopup()
+        assert _wait_for(lambda: popup.property("isOpen"))
         _pump()
+        _assert_center_expand_geometry(root, popup, panel_scale, shadow)
+        assert _wait_for(lambda: popup.property("_scale") == pytest.approx(1))
+        assert warnings == []
+    finally:
+        picker.closePopup()
+        _destroy_scene(engine, component, root)
         assert _new_visible_windows(windows_before) == []

@@ -24,6 +24,7 @@ Item {
     required property int popupShadowOffset
     required property real clipHeight
     required property real panelScale
+    required property bool horizontalCenterExpand
 
     default property alias popupContent: contentContainer.data
 
@@ -38,9 +39,9 @@ Item {
     RectangularShadow {
         objectName: "_popupShadow"
         z: Enums.zIndex.background
-        x: clipContainer.x
+        x: clipContainer.x + (surface.popupWidth - width) / 2
         y: clipContainer.y
-        width: popupPanel.width
+        width: surface.horizontalCenterExpand ? popupPanel.width * surface.panelScale : popupPanel.width
         height: popupPanel.height
         radius: surface.popupRadius
         color: surface.popupShadowColor
@@ -55,9 +56,9 @@ Item {
         objectName: "_popupNeoShadow"
         z: Enums.zIndex.background
         visible: Enums.isNeobrutalism
-        x: clipContainer.x + Enums.neo.shadowOffset
+        x: clipContainer.x + (surface.popupWidth - width) / 2 + Enums.neo.shadowOffset
         y: clipContainer.y + Enums.neo.shadowOffset
-        width: popupPanel.width
+        width: surface.horizontalCenterExpand ? popupPanel.width * surface.panelScale : popupPanel.width
         height: popupPanel.height
         radius: surface.popupRadius
         color: Enums.neo.shadowColor
@@ -83,12 +84,13 @@ Item {
             color: surface.popupBackground
             border.width: surface.popupBorderWidth
             border.color: surface.popupBorderColor
-            // [Anim C] Uniform scale, top-center origin (iOS spring style)
+            // [Anim C] Uniform or horizontal-only scale from the top center 从顶部中心统一或仅水平缩放
             transform: Scale {
+                objectName: "_popupPanelScale"
                 origin.x: popupPanel.width / 2
                 origin.y: 0
                 xScale: surface.panelScale
-                yScale: surface.panelScale
+                yScale: surface.horizontalCenterExpand ? 1 : surface.panelScale
             }
 
             // Content container 内容容器

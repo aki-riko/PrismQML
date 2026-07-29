@@ -340,6 +340,7 @@ Rectangle {
         popupWidth: control.width
         popupHeight: 280
         popupRadius: Enums.radius.large
+        horizontalCenterExpand: true
         onClosed: control.isOpen = false
 
         Loader {
