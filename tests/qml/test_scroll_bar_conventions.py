@@ -269,11 +269,12 @@ def _wait_for_stable(predicate, stable_checks: int = 5, timeout_ms: int = 1500) 
     elapsed = 0
     consecutive_matches = 0
     while elapsed < timeout_ms:
+        QCoreApplication.processEvents(QEventLoop.AllEvents)
         consecutive_matches = consecutive_matches + 1 if predicate() else 0
         if consecutive_matches >= stable_checks:
             return True
-        _pump()
-        elapsed += 30
+        QTest.qSleep(10)
+        elapsed += 10
     return False
 
 
