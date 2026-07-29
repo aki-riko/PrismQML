@@ -103,7 +103,7 @@ Rectangle {
             ctx.clearRect(0, 0, width, height)
             ctx.setLineDash([6, 4])
             ctx.strokeStyle = dragActive ? Enums.accentColor :
-                             (hovered ? Enums.stateColor.borderStrong : Enums.stateColor.border)
+                             (hovered ? Enums.stateColor.dropBorderHover : Enums.stateColor.dropBorder)
             ctx.lineWidth = 1.5
             ctx.beginPath()
             ctx.roundedRect(1, 1, width - 2, height - 2, control.radius, control.radius)

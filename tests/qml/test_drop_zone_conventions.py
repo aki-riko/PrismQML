@@ -222,7 +222,10 @@ def test_drop_zone_source_follows_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
-    assert "hovered ? Enums.stateColor.borderStrong : Enums.stateColor.border)" in source
+    assert (
+        "hovered ? Enums.stateColor.dropBorderHover : Enums.stateColor.dropBorder)"
+        in source
+    )
     assert "Enums.stateColor.borderSubtle" not in source
     assert [
         violation

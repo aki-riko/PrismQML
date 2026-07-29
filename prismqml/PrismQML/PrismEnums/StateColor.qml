@@ -107,6 +107,7 @@ QtObject {
     readonly property color textMedium: (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.5))
     // Drop zone 拖放区域
     readonly property color dropBg: (root.isDark ? Qt.rgba(1,1,1,0.02) : Qt.rgba(0,0,0,0.01))
+    readonly property color dropBorder: (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.18))
     readonly property color dropBorderHover: (root.isDark ? Qt.rgba(1,1,1,0.3) : Qt.rgba(0,0,0,0.2))
     readonly property color disabledTextLight: (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.35))
     readonly property color disabledGray: Qt.rgba(0.5,0.5,0.5,0.5)
