@@ -265,6 +265,18 @@ def _wait_for(predicate, timeout_ms: int = 1500) -> bool:
     return predicate()
 
 
+def _wait_for_stable(predicate, stable_checks: int = 5, timeout_ms: int = 1500) -> bool:
+    elapsed = 0
+    consecutive_matches = 0
+    while elapsed < timeout_ms:
+        consecutive_matches = consecutive_matches + 1 if predicate() else 0
+        if consecutive_matches >= stable_checks:
+            return True
+        _pump()
+        elapsed += 30
+    return False
+
+
 def _new_visible_windows(windows_before, *allowed):
     return [
         window
@@ -459,7 +471,9 @@ def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
     assert window.property("listContentHeight") > 120
     # The vertical gutter changes this fixed scene from three to two columns.
     # 垂直避让槽会让该固定场景从三列重排为两列，滚动前必须等布局稳定。
-    assert _wait_for(lambda: window.property("gridContentHeight") == pytest.approx(400))
+    assert _wait_for_stable(
+        lambda: window.property("gridContentHeight") == pytest.approx(400)
+    )
 
     assert QMetaObject.invokeMethod(window, "scrollDefault")
     assert _wait_for(lambda: window.property("defaultY") == pytest.approx(160))
