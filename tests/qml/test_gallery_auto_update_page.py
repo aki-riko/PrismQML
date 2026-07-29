@@ -137,14 +137,9 @@ def test_gallery_dry_run_shows_download_progress_and_simulates_install(qapp):
         ]
         assert len(dialogs) == 1
         assert dialogs[0].property("isOpen") is True
-        confirm_buttons = [
-            obj
-            for obj in dialogs[0].findChildren(QObject)
-            if obj.property("text") == "下载并安装"
-            and obj.metaObject().className().startswith("ButtonCore_QMLTYPE_")
-        ]
-        assert len(confirm_buttons) == 1
-        assert QMetaObject.invokeMethod(confirm_buttons[0], "clicked")
+        confirm_button = dialogs[0].findChild(QObject, "updateDialogConfirmButton")
+        assert confirm_button is not None
+        assert QMetaObject.invokeMethod(confirm_button, "clicked")
 
         _wait_until(qapp, lambda: dry_run_backend.property("progress") >= 25)
         feedback = facade.property("feedbackModel")

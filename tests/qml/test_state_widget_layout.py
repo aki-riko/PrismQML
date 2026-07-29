@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """StateWidget compact layout regressions. StateWidget 紧凑布局回归。"""
 
+import re
 from pathlib import Path
 
 from PySide6.QtCore import QEventLoop, QPointF, QTimer, QUrl
@@ -14,6 +15,18 @@ from prismqml import register_types
 
 
 ROOT = Path(__file__).resolve().parents[2]
+STATE_WIDGET = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "feedback"
+    / "State"
+    / "StateWidget.qml"
+)
+FLUENT_ICONS = (
+    ROOT / "prismqml" / "PrismQML" / "controls" / "icons" / "fluent"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "state-widget-layout.qml")
 )
@@ -126,3 +139,10 @@ def test_compact_state_widget_titles_do_not_overlap(qapp):
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+
+
+def test_state_widget_default_icons_match_asset_filename_case():
+    source = STATE_WIDGET.read_text(encoding="utf-8")
+    default_icons = set(re.findall(r'return "([A-Za-z0-9]+)"', source))
+    asset_names = {path.stem for path in FLUENT_ICONS.glob("*.svg")}
+    assert default_icons <= asset_names, sorted(default_icons - asset_names)

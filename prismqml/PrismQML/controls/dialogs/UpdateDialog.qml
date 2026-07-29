@@ -65,6 +65,7 @@ DialogBoxCore {
             spacing: Enums.spacing.l
 
             ButtonCore {
+                objectName: "updateDialogConfirmButton"
                 text: control.confirmText
                 icon: "ArrowDownload"
                 style: Enums.button.style_filled

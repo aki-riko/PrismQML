@@ -207,6 +207,18 @@ def _find_text(root: QQuickItem, text: str) -> QQuickItem:
     return matches[0]
 
 
+def _find_only_text(root: QQuickItem) -> QQuickItem:
+    matches = [
+        item
+        for item in _walk_visual_tree(root)
+        if item.metaObject().indexOfProperty("text") >= 0
+    ]
+    assert len(matches) == 1, [
+        (item.metaObject().className(), item.property("text")) for item in matches
+    ]
+    return matches[0]
+
+
 def _find_code_block(root: QQuickItem, code: str) -> QQuickItem:
     matches = [
         item
@@ -262,7 +274,7 @@ def _assert_legacy_tokens(window: QQuickWindow) -> None:
 
 def _code_block_parts(code_block: QQuickItem, language: str, code: str) -> dict:
     copy_area = _find_copy_area(code_block)
-    copy_text = _find_text(code_block, "复制")
+    copy_text = _find_only_text(copy_area)
     return {
         "language": _find_text(code_block, language),
         "code": _find_text(code_block, code),

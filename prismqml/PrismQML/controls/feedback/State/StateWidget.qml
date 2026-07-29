@@ -40,7 +40,7 @@ Item {
             case Enums.state.type_no_data:
                 return "MailInboxDismiss"
             case Enums.state.type_no_internet:
-                return "WifiOff"
+                return "WiFiOff"
             default:
                 return "Info"
         }
