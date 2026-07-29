@@ -125,27 +125,7 @@ Item {
     z: Enums.zIndex.modal
     visible: _isOpen || _isClosing
 
-    // Ensure anchors update when parent changes (e.g. via Python setParentItem) 确保 parent 变化时 anchors 正确更新（如通过 Python setParentItem）
-    onParentChanged: {
-        if (parent) {
-            // Force anchors reset to ensure size updates 强制重置 anchors 确保尺寸更新
-            anchors.fill = undefined
-            anchors.fill = parent
-            // Force immediate size update from parent 强制立即从parent更新尺寸
-            if (parent.width > 0) control.width = parent.width
-            if (parent.height > 0) control.height = parent.height
-        }
-    }
-
     // ==================== Content 内容 ====================
-    // Also update size when parent size changes 当parent尺寸变化时也更新
-    Connections {
-        function onWidthChanged() { if (control.parent) control.width = control.parent.width }
-        function onHeightChanged() { if (control.parent) control.height = control.parent.height }
-
-        target: control.parent
-    }
-    
     // Mask layer 遮罩层
     Rectangle {
         id: windowMask

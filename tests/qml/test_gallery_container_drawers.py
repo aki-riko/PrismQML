@@ -13,11 +13,33 @@ from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
+from prismqml.python.core.incubation import install_default_incubation_controller
 
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = ROOT / "examples" / "pages" / "ContainerPage.qml"
 PAGE_URL = QUrl.fromLocalFile(str(SOURCE_PATH))
+ASYNC_PAGE_SOURCE = f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    id: root
+
+    readonly property bool pageReady: pageLoader.status === Loader.Ready
+
+    width: 1_200
+    height: 800
+
+    Loader {{
+        id: pageLoader
+
+        anchors.fill: parent
+        asynchronous: true
+        source: "{PAGE_URL.toString()}"
+    }}
+}}
+""".encode("utf-8")
 
 
 def _wait_for(qapp, predicate, timeout_ms=2_000):
@@ -59,6 +81,47 @@ def test_gallery_uses_one_outside_drawer_per_edge():
     for drawer_id in drawer_ids:
         assert f"id: {drawer_id}" in source
         assert f"onClicked: {drawer_id}.open()" in source
+
+
+def test_gallery_container_page_finishes_async_incubation(qapp):
+    engine = QQmlEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    install_default_incubation_controller(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        ASYNC_PAGE_SOURCE,
+        QUrl("inmemory:/gallery-container-async.qml"),
+    )
+    assert _wait_for(
+        qapp,
+        lambda: component.status() != QQmlComponent.Status.Loading,
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create()
+    try:
+        assert isinstance(root, QQuickItem), [
+            error.toString() for error in component.errors()
+        ]
+        assert _wait_for(
+            qapp,
+            lambda: root.property("pageReady"),
+            timeout_ms=5_000,
+        )
+        assert len(
+            root.findChildren(QObject, "galleryOutsideLeftDrawer")
+        ) == 1
+    finally:
+        if root is not None:
+            root.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
 
 
 def test_gallery_can_animate_two_outside_drawers_together(qapp):

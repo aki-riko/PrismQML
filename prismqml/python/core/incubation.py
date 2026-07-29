@@ -23,16 +23,19 @@ QML 的 `Loader { asynchronous: true }`(StackedWidget 懒加载就用它)只有�
 有待孵化对象时用 `_active_interval`(贴近一帧, 16ms)持续推进; 空闲时切到
 `_idle_interval`(250ms)低频轮询, 几乎不占 CPU, 一旦有新异步对象立即升频。
 """
+import sys
 from time import perf_counter
 
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QTimer, Qt, qVersion
 from PySide6.QtQml import QQmlIncubationController
 
 from prismqml.python.core.diagnostics import startup_profile_verbose_enabled
-from prismqml.python.core.logger import debug, exception, info
+from prismqml.python.core.logger import debug, exception, info, warning
 
 
 _DIAGNOSTIC_TAG = "Incubation"
+_CONNECTIONS_VME_CRASH_PLATFORM = "win32"
+_CONNECTIONS_VME_CRASH_QT_VERSIONS = frozenset(("6.11.1",))
 
 
 class PrismIncubationController(QQmlIncubationController):
@@ -169,6 +172,37 @@ def install_incubation_controller(engine, budget_ms: int = 5):
     engine._fluent_incubation_ctrl = controller
     _log_controller_installed(engine, controller)
     return controller
+
+
+def _requires_synchronous_incubation_fallback(qt_version, platform_name):
+    """Return whether automatic sliced incubation is unsafe. 判断自动分片孵化是否不安全。"""
+    return (
+        platform_name == _CONNECTIONS_VME_CRASH_PLATFORM
+        and qt_version in _CONNECTIONS_VME_CRASH_QT_VERSIONS
+    )
+
+
+def install_default_incubation_controller(engine, budget_ms: int = 5):
+    """Install the default controller unless this Qt build is unsafe. 安全时安装默认控制器。
+
+    Qt 6.11.1 on Windows can return a null VME method while finalizing a
+    function-style ``Connections`` handler from ``incubateFor()``. Two real
+    crash dumps reached different handlers through that same native path, so
+    automatic engine setup falls back to Qt's synchronous incubation there.
+    Explicit callers can still opt into the controller through
+    ``install_incubation_controller()`` for diagnostics and controlled tests.
+    """
+    qt_version = qVersion()
+    if _requires_synchronous_incubation_fallback(qt_version, sys.platform):
+        warning(
+            "controller skipped "
+            f"qt_version={qt_version} "
+            f"platform={sys.platform} "
+            "reason=QQmlConnections null VME method during sliced incubation",
+            tag=_DIAGNOSTIC_TAG,
+        )
+        return None
+    return install_incubation_controller(engine, budget_ms=budget_ms)
 
 
 def _log_controller_reused(controller):

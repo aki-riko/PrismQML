@@ -135,6 +135,48 @@ def test_installation_and_reuse_are_logged(monkeypatch, qapp):
     assert "controller reused" in messages[1][1]
 
 
+def test_default_installation_skips_windows_qt_6111(monkeypatch, qapp):
+    messages = []
+    monkeypatch.setattr(incubation.sys, "platform", "win32")
+    monkeypatch.setattr(incubation, "qVersion", lambda: "6.11.1")
+    monkeypatch.setattr(
+        incubation,
+        "warning",
+        lambda message, tag=None: messages.append((tag, message)),
+    )
+    engine = QQmlApplicationEngine()
+
+    installed = incubation.install_default_incubation_controller(engine)
+
+    assert installed is None
+    assert not isinstance(
+        engine.incubationController(), incubation.PrismIncubationController
+    )
+    assert messages == [
+        (
+            "Incubation",
+            "controller skipped qt_version=6.11.1 platform=win32 "
+            "reason=QQmlConnections null VME method during sliced incubation",
+        )
+    ]
+
+
+def test_default_installation_keeps_controller_on_other_platforms(
+    monkeypatch, qapp
+):
+    monkeypatch.setattr(incubation.sys, "platform", "linux")
+    monkeypatch.setattr(incubation, "qVersion", lambda: "6.11.1")
+    engine = QQmlApplicationEngine()
+
+    installed = incubation.install_default_incubation_controller(engine)
+
+    try:
+        assert isinstance(installed, incubation.PrismIncubationController)
+        assert engine.incubationController() is installed
+    finally:
+        installed._timer.stop()
+
+
 def test_detailed_logs_are_disabled_by_default(monkeypatch, qapp):
     messages = []
     monkeypatch.delenv("PRISMQML_STARTUP_PROFILE_VERBOSE", raising=False)

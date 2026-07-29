@@ -103,6 +103,31 @@ def test_root_module_exports_bodyless_overlay_and_masked_open_hook(qapp):
         _dispose_scene(engine, component, root)
 
 
+def test_overlay_dialog_anchor_binding_tracks_reparent_and_resize(qapp):
+    engine, component, root = _create_scene()
+    try:
+        overlay = root.findChild(QQuickItem, "publicOverlay")
+        alternate_parent = QQuickItem(root)
+        alternate_parent.setWidth(512)
+        alternate_parent.setHeight(384)
+
+        overlay.setParentItem(alternate_parent)
+        qapp.processEvents()
+
+        assert overlay.parentItem() is alternate_parent
+        assert overlay.width() == 512
+        assert overlay.height() == 384
+
+        alternate_parent.setWidth(560)
+        alternate_parent.setHeight(420)
+        qapp.processEvents()
+
+        assert overlay.width() == 560
+        assert overlay.height() == 420
+    finally:
+        _dispose_scene(engine, component, root)
+
+
 def test_dialog_derivatives_extend_the_base_open_hook_without_copying_open():
     masked_source = (QML_ROOT / "controls" / "dialogs" / "MaskedDialog.qml").read_text(encoding="utf-8")
     box_source = (QML_ROOT / "controls" / "dialogs" / "DialogBoxCore.qml").read_text(encoding="utf-8")
@@ -110,3 +135,15 @@ def test_dialog_derivatives_extend_the_base_open_hook_without_copying_open():
     for source in (masked_source, box_source):
         assert "function open()" not in source
         assert "function _prepareOpen()" in source
+
+
+def test_overlay_dialog_parent_geometry_uses_anchor_binding_without_connections():
+    source = (
+        QML_ROOT / "controls" / "dialogs" / "OverlayDialogCore.qml"
+    ).read_text(encoding="utf-8")
+
+    assert "anchors.fill: parent" in source
+    assert "onParentChanged:" not in source
+    assert "target: control.parent" not in source
+    assert "function onWidthChanged()" not in source
+    assert "function onHeightChanged()" not in source

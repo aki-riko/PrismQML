@@ -42,6 +42,7 @@ __all__ = [
     "init_style",
     "EngineManager",
     "PrismIncubationController",
+    "install_default_incubation_controller",
     "install_incubation_controller",
     # Single Instance
     "SingleInstance",
@@ -124,6 +125,9 @@ _LAZY_EXPORTS = {
     "init_style": (".utils", "init_style"),
     "EngineManager": (".engine", "EngineManager"),
     "PrismIncubationController": (".incubation", "PrismIncubationController"),
+    "install_default_incubation_controller": (
+        ".incubation", "install_default_incubation_controller"
+    ),
     "install_incubation_controller": (".incubation", "install_incubation_controller"),
     # Single Instance
     "SingleInstance": (".single_instance", "SingleInstance"),

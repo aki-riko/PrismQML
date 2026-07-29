@@ -92,11 +92,10 @@ def main():
     engine = QQmlApplicationEngine()
     log_time("QML引擎创建完成")
 
-    # 安装异步孵化控制器: 让 asynchronous Loader(StackedWidget 懒加载)分帧切片
-    # 实例化, 避免切到未加载页时单帧建整棵页面树阻塞 GUI 线程造成掉帧。
-    # 注: 走 prismqml.App 的应用会自动安装; 此处直接裸建 engine 故需显式调用。
-    from prismqml.python.core.incubation import install_incubation_controller
-    install_incubation_controller(engine)
+    # Install safe sliced incubation for lazy pages. 为懒加载页面安装安全的分片孵化。
+    # Known-unsafe Qt builds fall back automatically. 已知不安全的 Qt 构建会自动回退。
+    from prismqml.python.core.incubation import install_default_incubation_controller
+    install_default_incubation_controller(engine)
     
     # 资源已通过 QResource.registerResource(gallery.rcc) 在模块加载时注册
     
