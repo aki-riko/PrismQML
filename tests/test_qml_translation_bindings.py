@@ -6,6 +6,7 @@
 
 import json
 import re
+from collections import Counter
 from pathlib import Path
 
 
@@ -16,6 +17,8 @@ TRANSLATION_BINDING = re.compile(
     r"(?P<value>.*Translator\.tr\()"
 )
 TRANSLATION_CALL = re.compile(r'Translator\.tr\(["\']([^"\']+)["\']\)')
+SUPPORTED_LANGUAGE_CODE = re.compile(r'\{\s*code:\s*"([^"]+)"')
+TRANSLATION_PLACEHOLDER = re.compile(r"\{[^{}]+\}")
 VISIBLE_TEXT_ASSIGNMENT = re.compile(
     r"(?:property\s+string\s+)?"
     r"(?:text|title|placeholderText|label|message|description|emptyText|"
@@ -70,7 +73,7 @@ def test_public_qml_uses_external_translator_instead_of_qstr():
     assert violations == []
 
 
-def test_all_literal_translation_keys_have_required_dictionaries():
+def test_all_literal_translation_keys_exist_in_every_supported_language():
     used_keys = set()
     for source_path in sorted(QML_ROOT.rglob("*.qml")):
         if source_path.name == "Translator.qml":
@@ -79,10 +82,24 @@ def test_all_literal_translation_keys_have_required_dictionaries():
             TRANSLATION_CALL.findall(source_path.read_text(encoding="utf-8"))
         )
 
-    for language in ("en", "zh_CN", "zh_TW"):
-        dictionary_path = QML_ROOT / "i18n" / f"{language}.json"
+    translator_source = (QML_ROOT / "Translator.qml").read_text(encoding="utf-8")
+    supported_languages = set(SUPPORTED_LANGUAGE_CODE.findall(translator_source))
+    supported_languages.remove("auto")
+    dictionary_paths = sorted((QML_ROOT / "i18n").glob("*.json"))
+
+    assert {path.stem for path in dictionary_paths} == supported_languages
+
+    english_dictionary = json.loads(
+        (QML_ROOT / "i18n" / "en.json").read_text(encoding="utf-8")
+    )
+    for dictionary_path in dictionary_paths:
         dictionary = json.loads(dictionary_path.read_text(encoding="utf-8"))
         assert sorted(used_keys - set(dictionary)) == []
+        assert set(dictionary) == set(english_dictionary)
+        for key, value in dictionary.items():
+            assert Counter(TRANSLATION_PLACEHOLDER.findall(value)) == Counter(
+                TRANSLATION_PLACEHOLDER.findall(english_dictionary[key])
+            ), f"{dictionary_path.name}:{key}"
 
 
 def test_public_controls_have_no_hardcoded_visible_text_literals():
