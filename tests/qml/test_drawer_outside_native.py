@@ -81,6 +81,16 @@ def test_drawer_source_guards_native_window_during_destruction():
     assert "outsideDrawerViewport ? -outsideDrawerViewport.y : 0" in source
 
 
+def test_drawer_stages_host_signal_connections_until_component_completion():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "property var _hostSignalTarget: null" in source
+    assert "control._hostSignalTarget = Qt.binding(function()" in source
+    assert "return control._hostWindow" in source
+    assert "target: control._hostSignalTarget" in source
+    assert "target: control._hostWindow" not in source
+
+
 def test_drawer_source_reveals_from_the_corresponding_edge():
     source = SOURCE_PATH.read_text(encoding="utf-8")
 

@@ -44,6 +44,8 @@ OverlayDialogCore {
     property real _outsideExtent: _outsideCollapsedExtent
     property bool _insideAnimationReady: false
     property bool _insideOpenPending: false
+    // Delay window signal wiring until every V4 method is finalized. 延迟窗口信号连接，直到所有 V4 方法完成终结。
+    property var _hostSignalTarget: null
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isOutside: mode === Enums.drawer.mode_outside
@@ -264,7 +266,10 @@ OverlayDialogCore {
     visible: !_isOutside && (_isOpen || _isClosing)
 
     onModeChanged: _resetDrawerState()
-    Component.onCompleted: control._insideAnimationReady = true
+    Component.onCompleted: {
+        control._insideAnimationReady = true
+        control._hostSignalTarget = Qt.binding(function() { return control._hostWindow })
+    }
     onOpenedChanged: {
         if (!control._isOutside || control._outsideResetting) return
         if (!control._isOpen && control._outsideVisible) {
@@ -486,7 +491,7 @@ OverlayDialogCore {
             }
         }
 
-        target: control._hostWindow
+        target: control._hostSignalTarget
         ignoreUnknownSignals: true
     }
 }
