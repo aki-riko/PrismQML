@@ -17,6 +17,14 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 PAGE_URL = QUrl.fromLocalFile(str(ROOT / "examples" / "pages" / "AutoUpdatePage.qml"))
+LANGUAGE_SOURCE = b"""
+import QtQuick
+import PrismQML
+
+QtObject {
+    Component.onCompleted: Translator.setLanguage(Enums.lang.zh_CN)
+}
+"""
 
 
 class _GalleryUpdater(QObject):
@@ -60,6 +68,22 @@ def _load_page(qapp, backend=None):
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    language_component = QQmlComponent(engine)
+    language_component.setData(LANGUAGE_SOURCE, QUrl("inline:test-language.qml"))
+    _wait_until(
+        qapp,
+        lambda: language_component.status() != QQmlComponent.Status.Loading,
+    )
+    assert language_component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in language_component.errors()
+    ]
+    language_object = language_component.create()
+    assert language_object is not None, [
+        error.toString() for error in language_component.errors()
+    ]
+    language_object.deleteLater()
+    language_component.deleteLater()
+    qapp.processEvents()
     if backend is not None:
         engine.rootContext().setContextProperty("appUpdater", backend)
 

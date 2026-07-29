@@ -118,6 +118,7 @@ Window {
     visible: false
     width: 900
     height: 700
+    Component.onCompleted: Translator.setLanguage(Enums.lang.zh_CN)
 
     CodeBlock {
         objectName: "directCodeBlock"
