@@ -137,11 +137,12 @@ def test_installation_and_reuse_are_logged(monkeypatch, qapp):
 
 def test_default_installation_skips_windows_qt_6111(monkeypatch, qapp):
     messages = []
+    monkeypatch.delenv("PRISMQML_STARTUP_PROFILE_VERBOSE", raising=False)
     monkeypatch.setattr(incubation.sys, "platform", "win32")
     monkeypatch.setattr(incubation, "qVersion", lambda: "6.11.1")
     monkeypatch.setattr(
         incubation,
-        "warning",
+        "debug",
         lambda message, tag=None: messages.append((tag, message)),
     )
     engine = QQmlApplicationEngine()
@@ -152,6 +153,24 @@ def test_default_installation_skips_windows_qt_6111(monkeypatch, qapp):
     assert not isinstance(
         engine.incubationController(), incubation.PrismIncubationController
     )
+    assert messages == []
+
+
+def test_default_fallback_is_logged_only_in_verbose_diagnostics(monkeypatch, qapp):
+    messages = []
+    monkeypatch.setenv("PRISMQML_STARTUP_PROFILE_VERBOSE", "1")
+    monkeypatch.setattr(incubation.sys, "platform", "win32")
+    monkeypatch.setattr(incubation, "qVersion", lambda: "6.11.1")
+    monkeypatch.setattr(
+        incubation,
+        "debug",
+        lambda message, tag=None: messages.append((tag, message)),
+    )
+    engine = QQmlApplicationEngine()
+
+    installed = incubation.install_default_incubation_controller(engine)
+
+    assert installed is None
     assert messages == [
         (
             "Incubation",

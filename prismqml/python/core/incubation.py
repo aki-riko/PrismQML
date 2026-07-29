@@ -30,7 +30,7 @@ from PySide6.QtCore import QTimer, Qt, qVersion
 from PySide6.QtQml import QQmlIncubationController
 
 from prismqml.python.core.diagnostics import startup_profile_verbose_enabled
-from prismqml.python.core.logger import debug, exception, info, warning
+from prismqml.python.core.logger import debug, exception, info
 
 
 _DIAGNOSTIC_TAG = "Incubation"
@@ -194,15 +194,22 @@ def install_default_incubation_controller(engine, budget_ms: int = 5):
     """
     qt_version = qVersion()
     if _requires_synchronous_incubation_fallback(qt_version, sys.platform):
-        warning(
-            "controller skipped "
-            f"qt_version={qt_version} "
-            f"platform={sys.platform} "
-            "reason=QQmlConnections null VME method during sliced incubation",
-            tag=_DIAGNOSTIC_TAG,
-        )
+        _log_synchronous_incubation_fallback(qt_version)
         return None
     return install_incubation_controller(engine, budget_ms=budget_ms)
+
+
+def _log_synchronous_incubation_fallback(qt_version):
+    """Log an expected fallback only in verbose diagnostics. 仅在详细诊断中记录预期回退。"""
+    if not startup_profile_verbose_enabled():
+        return
+    debug(
+        "controller skipped "
+        f"qt_version={qt_version} "
+        f"platform={sys.platform} "
+        "reason=QQmlConnections null VME method during sliced incubation",
+        tag=_DIAGNOSTIC_TAG,
+    )
 
 
 def _log_controller_reused(controller):
