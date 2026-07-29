@@ -24,9 +24,12 @@ Item {
     property bool _needsHorizontal: false
     property bool _updatePending: false
     property bool _rerunRequested: false
+    property bool _contentRerunRequested: false
+    property bool _suppressViewportContentChanges: false
     property bool _destroying: false
     property real _lastTargetWidth: -1
     property real _lastTargetHeight: -1
+    property int _clearDeferrals: 0
     property int _phase: _phaseIdle
     property bool _baseVertical: false
     property bool _baseHorizontal: false
@@ -69,13 +72,26 @@ Item {
 
     function _clearPending() {
         if (_destroying) return
+        if (_suppressViewportContentChanges && _clearDeferrals === 0) {
+            // Responsive children may defer their relayout with Qt.callLater.
+            // Keep the transaction open for one more event-loop turn so the
+            // resulting content change is classified as viewport-induced.
+            // 响应式子项可能通过 Qt.callLater 延迟重排；额外保留一轮
+            // 测量事务，使后续内容变化能被识别为视口几何变化。
+            _clearDeferrals = 1
+            _queuePhase(_phaseClear)
+            return
+        }
         if (target) {
             _lastTargetWidth = target.width
             _lastTargetHeight = target.height
         }
+        _clearDeferrals = 0
+        _suppressViewportContentChanges = false
         _updatePending = false
-        if (_rerunRequested) {
+        if (_rerunRequested || _contentRerunRequested) {
             _rerunRequested = false
+            _contentRerunRequested = false
             scheduleUpdate()
         }
     }
@@ -90,7 +106,16 @@ Item {
             || target.height !== _lastTargetHeight
         _lastTargetWidth = target.width
         _lastTargetHeight = target.height
-        if (!viewportChanged) _rerunRequested = true
+        if (viewportChanged) {
+            // A viewport resize can emit both contentWidthChanged and
+            // contentHeightChanged. Suppress the whole resulting relayout,
+            // not only the first signal. 视口变尺可以连续触发内容宽高信号，
+            // 必须把整轮重排作为同一次几何变化处理。
+            _suppressViewportContentChanges = true
+            _contentRerunRequested = false
+        } else if (!_suppressViewportContentChanges) {
+            _contentRerunRequested = true
+        }
     }
 
     function _settleCrossAxis() {
@@ -170,6 +195,9 @@ Item {
         if (_updatePending) return
         _updatePending = true
         _rerunRequested = false
+        _contentRerunRequested = false
+        _suppressViewportContentChanges = false
+        _clearDeferrals = 0
         // Remove old gutters on the next turn so content signals cannot reenter layout.
         // 下一事件循环再撤销旧避让槽，避免内容信号重入布局。
         _queuePhase(_phaseBegin)
@@ -206,6 +234,9 @@ Item {
         _phase = _phaseIdle
         _updatePending = false
         _rerunRequested = false
+        _contentRerunRequested = false
+        _suppressViewportContentChanges = false
+        _clearDeferrals = 0
     }
 
     // ==================== Content 内容 ====================
