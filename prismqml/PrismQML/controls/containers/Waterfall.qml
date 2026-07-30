@@ -14,6 +14,12 @@ Item {
     property int spacing: Enums.spacing.l
     property var model: []
     property Component delegate: null
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _relayoutPending: false
+    property int _relayoutCount: 0
+
+    // ==================== Readonly State 只读状态 ====================
     readonly property int _safeColumns: Math.max(1, columns)
 
     property real contentHeight: {
@@ -30,7 +36,18 @@ Item {
         return heights
     }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _scheduleRelayout() {
+        if (_relayoutPending) return
+        _relayoutPending = true
+        Qt.callLater(function() {
+            _relayoutPending = false
+            _relayout()
+        })
+    }
+
     function _relayout() {
+        _relayoutCount++
         var heights = []
         for (var column = 0; column < _safeColumns; column++) heights.push(0)
         for (var itemIndex = 0; itemIndex < itemRepeater.count; itemIndex++) {
@@ -55,14 +72,14 @@ Item {
     implicitWidth: 400
     implicitHeight: contentHeight
 
-    onColumnsChanged: Qt.callLater(_relayout)
-    onSpacingChanged: Qt.callLater(_relayout)
+    onColumnsChanged: _scheduleRelayout()
+    onSpacingChanged: _scheduleRelayout()
 
     Repeater {
         id: itemRepeater
 
         model: control.model
-        onItemRemoved: Qt.callLater(control._relayout)
+        onItemRemoved: control._scheduleRelayout()
 
         Loader {
             id: itemLoader
@@ -79,11 +96,11 @@ Item {
             y: targetY
             width: (control.width - (control._safeColumns - 1) * control.spacing) / control._safeColumns
 
-            onLoaded: control._relayout()
+            onLoaded: control._scheduleRelayout()
 
             Connections {
                 function onHeightChanged() {
-                    Qt.callLater(control._relayout)
+                    control._scheduleRelayout()
                 }
 
                 target: itemLoader.item

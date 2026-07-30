@@ -228,7 +228,9 @@ def test_waterfall_zero_columns_use_one_finite_column(leaf_scene):
     waterfall.setProperty("columns", 0)
     waterfall.setProperty("model", [52])
     assert _wait_for(lambda: waterfall.property("_safeColumns") == 1)
-    assert waterfall.property("contentHeight") == pytest.approx(62)
+    assert _wait_for(
+        lambda: waterfall.property("contentHeight") == pytest.approx(62)
+    )
     loaders = [
         item
         for item in _visual_items(waterfall)
@@ -237,6 +239,31 @@ def test_waterfall_zero_columns_use_one_finite_column(leaf_scene):
     assert len(loaders) == 1
     assert loaders[0].x() == pytest.approx(0)
     assert loaders[0].width() == pytest.approx(220)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_waterfall_coalesces_bulk_loader_relayout(leaf_scene):
+    window, items, warnings, windows_before = leaf_scene
+    waterfall = items["waterfall"]
+    relayouts_before = waterfall.property("_relayoutCount")
+
+    waterfall.setProperty("model", [40 + index % 5 * 10 for index in range(100)])
+    assert _wait_for(
+        lambda: len(
+            [
+                item
+                for item in _visual_items(waterfall)
+                if item.property("itemIndex") is not None
+            ]
+        )
+        == 100
+    )
+    assert _wait_for(lambda: waterfall.property("_relayoutCount") > relayouts_before)
+    _pump(100)
+
+    assert waterfall.property("_relayoutCount") - relayouts_before <= 3
+    assert waterfall.property("contentHeight") > 0
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
