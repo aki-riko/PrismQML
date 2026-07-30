@@ -241,6 +241,8 @@ def test_navigation_window_core_source_conventions_and_mica_tokens():
         if violation.rule in {"QML008", "QML009"}
     ] == []
     assert "interval: Enums.window.micaReapplyDelayMs" in source
+    assert "id: _micaBackdropCommitTimer" in source
+    assert "window._micaBackdropReady = true" in source
     assert "interval: Enums.window.micaLateReapplyDelayMs" in source
     assert "property bool navigationSmoothScroll: true" in source
     assert "property int navigationScrollDuration: Enums.duration.navigationScroll" in source

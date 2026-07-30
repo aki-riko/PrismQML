@@ -266,6 +266,8 @@ NavigationWindowCore {
         _pump(1)
         assert instance.property("_nativeHookReady") is True
         assert fake_mica.calls[-1] == (True, False)
+        assert instance.property("_micaBackdropReady") is False
+        _pump(100)
         assert instance.property("_micaBackdropReady") is True
 
         setSkin(Skin.NEOBRUTALISM)
@@ -278,6 +280,7 @@ NavigationWindowCore {
         _pump(1)
         assert instance.property("_micaActive") is True
         assert fake_mica.calls[-1] == (True, False)
+        _pump(100)
         assert instance.property("_micaBackdropReady") is True
     finally:
         setSkin(Skin.FLUENT)

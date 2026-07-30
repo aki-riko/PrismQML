@@ -50,6 +50,7 @@ WindowsCore {
     property bool _pythonPageMode: false
     property bool _nativeHookReady: false
     property string _micaReapplyReason: ""
+    property bool _micaNativeApplySucceeded: false
     property bool _splashDismissed: false
     property bool _splashDismissRequested: false
     property double _splashVisibleSinceMs: 0
@@ -99,12 +100,16 @@ WindowsCore {
 
     function _applyMicaEffect(reason) {
         if (!MicaManager || !_micaAvailable || !_nativeHookReady) {
+            _micaNativeApplySucceeded = false
             _micaBackdropReady = false
             return false
         }
         profileTime("NavigationWindowCore apply Mica " + reason + " start")
         var success = MicaManager.setMicaEffect(window, _micaActive, Enums.isDark)
-        _micaBackdropReady = _micaActive && success
+        _micaNativeApplySucceeded = success
+        _micaBackdropReady = false
+        _micaBackdropCommitTimer.stop()
+        if (_micaActive && success) _micaBackdropCommitTimer.restart()
         profileTime("NavigationWindowCore apply Mica " + reason + " done success=" + success)
         return success
     }
@@ -114,6 +119,7 @@ WindowsCore {
         // Hide the transparent fallback until DWM confirms the backdrop again.
         // 在 DWM 重新确认背板前关闭透明兜底，避免只剩透明外壳。
         _micaBackdropReady = false
+        _micaBackdropCommitTimer.stop()
         _micaReapplyReason = reason
         _micaReapplyTimer.restart()
         _micaLateReapplyTimer.restart()
@@ -333,12 +339,15 @@ WindowsCore {
 
     // ==================== Public Methods 公开方法 ====================
     function setMicaEffectEnabled(enabled) {
+        var changed = micaEnabled !== enabled
         micaEnabled = enabled
         if (!_micaAvailable) {
+            _micaNativeApplySucceeded = false
             _micaBackdropReady = false
             console.log("[NavigationWindowCore] Mica not available")
             return false
         }
+        if (changed) return _micaNativeApplySucceeded
         return _applyMicaEffect("setMicaEffectEnabled")
     }
 
@@ -447,7 +456,10 @@ WindowsCore {
             _markSplashVisible()
             _scheduleMicaReapply("visibleChanged")
         }
-        else _micaBackdropReady = false
+        else {
+            _micaBackdropCommitTimer.stop()
+            _micaBackdropReady = false
+        }
     }
 
     onVisibilityChanged: {
@@ -502,6 +514,16 @@ WindowsCore {
 
         interval: Enums.duration.splashTimeout
         onTriggered: if (_onTimeout) _onTimeout()
+    }
+
+    Timer {
+        id: _micaBackdropCommitTimer
+
+        interval: Enums.window.micaReapplyDelayMs
+        onTriggered: {
+            if (window._micaActive && window._nativeHookReady && window._micaNativeApplySucceeded)
+                window._micaBackdropReady = true
+        }
     }
 
     Timer {
