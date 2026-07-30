@@ -79,20 +79,27 @@ Item {
             ctx.textBaseline = "middle"
             ctx.font = canvas.fontSpec
             ctx.fillStyle = root.textColor
+            var columns = root._safeColumns
+            var publicColumns = root.columns
+            var publicRowData = root.rowData
+            var rowData = publicRowData || {}
+            var rowWidth = root.width
+            var rowHeight = root.height
+            var extraDraw = root.extraDraw
             var x = 0
-            var y = root.height / 2
-            for (var i = 0; i < (root._safeColumns || []).length; i++) {
-                var col = root._safeColumns[i] || {}
+            var y = rowHeight / 2
+            for (var i = 0; i < columns.length; i++) {
+                var col = columns[i] || {}
                 var w = col.width || 0.15
-                if (w < 1) w = w * root.width
+                if (w < 1) w = w * rowWidth
                 var key = col.key
-                var val = (root.rowData || {})[key]
+                var val = rowData[key]
                 var text = (val === null || val === undefined) ? "" : String(val)
                 var align = col.align || "left"
                 ctx.save()
                 // Clip the cell rectangle to prevent text overflow 裁剪单元格以防文本溢出
                 ctx.beginPath()
-                ctx.rect(x + 8, 0, w - 16, root.height)
+                ctx.rect(x + 8, 0, w - 16, rowHeight)
                 ctx.clip()
                 if (align === "right") {
                     ctx.textAlign = "right"
@@ -108,9 +115,9 @@ Item {
                 x += w
             }
             // Draw business-specific additions 绘制业务自定义内容
-            if (root.extraDraw) {
+            if (extraDraw) {
                 try {
-                    root.extraDraw(ctx, root.columns, root.rowData, root.width, root.height)
+                    extraDraw(ctx, publicColumns, publicRowData, rowWidth, rowHeight)
                 } catch (e) {
                     console.warn("[PaintedRow] extraDraw error:", e)
                 }
