@@ -79,33 +79,47 @@ Item {
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
-            
-            if (root.chartData.length === 0) return
-            
+
+            // Cache frame state before entering the slice loop 进入扇区循环前缓存帧状态
+            var chartData = root.chartData
+            if (chartData.length === 0) return
+
+            var totalValue = root.totalValue
+            var frameAnimProgress = animProgress
+            var frameProgress = root.animated ? frameAnimProgress : 1
+            var showValues = root.showValues
+            var isDonut = root.isDonut
+            var donutRatio = root.donutRatio
+            var hoveredIndex = root.hoveredIndex
+            var previousHoveredIndex = root.previousHoveredIndex
+            var labelOutside = root.labelOutside
+            var frameHoverOffset = hoverOffset
+            var frameTransitionProgress = transitionProgress
             var centerX = width / 2
             var centerY = height / 2
             var outerRadius = Math.min(width, height) / 2 - Enums.spacing.l
-            var innerRadius = root.isDonut ? outerRadius * root.donutRatio : 0
+            var innerRadius = isDonut ? outerRadius * donutRatio : 0
             
             var startAngle = -Math.PI / 2  // Start from top 从顶部开始
             
             // Draw all slices 绘制所有扇区
-            for (var i = 0; i < root.chartData.length; i++) {
-                var sliceAngle = (root.chartData[i].value / root.totalValue) * Math.PI * 2
-                var endAngle = startAngle + sliceAngle * (root.animated ? animProgress : 1)
+            for (var i = 0; i < chartData.length; i++) {
+                var sliceData = chartData[i]
+                var sliceAngle = (sliceData.value / totalValue) * Math.PI * 2
+                var endAngle = startAngle + sliceAngle * frameProgress
                 
-                var hovered = (i === root.hoveredIndex)
-                var isPreviousHovered = (i === root.previousHoveredIndex)
+                var hovered = (i === hoveredIndex)
+                var isPreviousHovered = (i === previousHoveredIndex)
                 var offsetX = 0, offsetY = 0
                 
                 // Fluent Design: subtle offset on hover 悬停时微妙偏移
                 var midAngle = startAngle + sliceAngle / 2
-                if (hovered && hoverOffset > 0) {
-                    var currentOffset = hoverOffset * transitionProgress * 0.5  // Reduced offset 减少偏移量
+                if (hovered && frameHoverOffset > 0) {
+                    var currentOffset = frameHoverOffset * frameTransitionProgress * 0.5  // Reduced offset 减少偏移量
                     offsetX = Math.cos(midAngle) * currentOffset
                     offsetY = Math.sin(midAngle) * currentOffset
-                } else if (isPreviousHovered && hoverOffset > 0 && transitionProgress < 1) {
-                    var prevOffset = hoverOffset * (1 - transitionProgress) * 0.5
+                } else if (isPreviousHovered && frameHoverOffset > 0 && frameTransitionProgress < 1) {
+                    var prevOffset = frameHoverOffset * (1 - frameTransitionProgress) * 0.5
                     offsetX = Math.cos(midAngle) * prevOffset
                     offsetY = Math.sin(midAngle) * prevOffset
                 }
@@ -126,8 +140,8 @@ Item {
                 // Fluent Design: subtle brightness change on hover 悬停时微妙亮度变化
                 if (hovered) {
                     ctx.fillStyle = Qt.lighter(sliceColor, 1.08)
-                } else if (isPreviousHovered && transitionProgress < 1) {
-                    var prevLightness = 1.0 + 0.08 * (1 - transitionProgress)
+                } else if (isPreviousHovered && frameTransitionProgress < 1) {
+                    var prevLightness = 1.0 + 0.08 * (1 - frameTransitionProgress)
                     ctx.fillStyle = Qt.lighter(sliceColor, prevLightness)
                 } else {
                     ctx.fillStyle = sliceColor
@@ -140,12 +154,12 @@ Item {
                 ctx.stroke()
                 
                 // Draw percentage label inside slice 在扇区内绘制百分比标签
-                if (root.showValues && animProgress >= 1) {
-                    var percent = Math.round(root.chartData[i].value / root.totalValue * 100)
+                if (showValues && frameAnimProgress >= 1) {
+                    var percent = Math.round(sliceData.value / totalValue * 100)
                     if (percent >= 5) {  // Only show if >= 5% 仅显示>=5%的
                         var labelAngle = startAngle + sliceAngle / 2
                         
-                        if (root.labelOutside) {
+                        if (labelOutside) {
                             // Draw line from slice to outside label 绘制从扇区到外部标签的连接线
 
                             var innerLabelRadius = outerRadius + 5
@@ -172,7 +186,7 @@ Item {
                             ctx.font = Enums.typography.caption + "px " + Enums.canvasFontFamily
                             ctx.textAlign = extendX > 0 ? "left" : "right"
                             ctx.textBaseline = "middle"
-                            var labelText = (root.chartData[i].label || "") + " " + percent + "%"
+                            var labelText = (sliceData.label || "") + " " + percent + "%"
                             ctx.fillText(labelText, lineEndX + extendX + (extendX > 0 ? 4 : -4), lineEndY)
                         } else {
                             // Inside label 内部标签
@@ -189,7 +203,7 @@ Item {
                     }
                 }
                 
-                startAngle += sliceAngle * (root.animated ? animProgress : 1)
+                startAngle += sliceAngle * frameProgress
             }
         }
         
