@@ -257,41 +257,54 @@ Rectangle {
 
         onPaint: {
             var ctx = getContext("2d")
-            if (!ctx || root.drops.length === 0) return
-            if (root._activeCharset.length === 0) return
-            
-            // Extract background RGB for fade 提取背景色用于渐隐
-            var bgColor = root.backgroundColor.toString()
-            var fadeAlpha = root.fadeSpeed
+            if (!ctx) return
+
+            var localDrops = root.drops
+            var activeCharset = root._activeCharset
+            if (localDrops.length === 0 || activeCharset.length === 0) return
+
+            var backgroundColor = root.backgroundColor
             
             // Fade trail 拖尾效果
             ctx.fillStyle = Qt.rgba(
-                root.backgroundColor.r, 
-                root.backgroundColor.g, 
-                root.backgroundColor.b, 
-                fadeAlpha
+                backgroundColor.r,
+                backgroundColor.g,
+                backgroundColor.b,
+                root.fadeSpeed
             )
             ctx.fillRect(0, 0, width, height)
             
             ctx.font = root.fontSize + "px monospace"
             
             var w = width, h = height
-            var cs = root.cellSize * root._safeDensity
-            var localDrops = root.drops
-            var charLen = root._activeCharset.length
+            var cellSize = root.cellSize
+            var cs = cellSize * root._safeDensity
+            var charLen = activeCharset.length
             var isHoriz = root.isHorizontal
             var dir = root.direction
             var count = isHoriz ? root.rows : root.cols
-            var maxDim = isHoriz ? w : h
+            var flickerEnabled = root.flickerEnabled
+            var flickerRate = root.flickerRate
+            var perspective = root.perspective
+            var interactive = root.interactive
+            var interactionRadius = root._safeInteractionRadius
+            var mousePos = root.mousePos
+            var mainColor = root.mainColor
+            var headColor = root.headColor
+            var rainbowMode = root.rainbowMode
+            var rainbowOffset = root._rainbowOffset
+            var glowEnabled = root.glowEnabled
+            var glowIntensity = root.glowIntensity
+            var trailOffset = (dir === "up" ? -cellSize : cellSize) * 0.5
             
             // Note: Glow is applied per-character for head only (performance) 发光只应用于头部字符
             
             for (var i = 0; i < count; i++) {
                 // Flicker skip 闪烁跳过
-                if (root.flickerEnabled && Math.random() < root.flickerRate) continue
+                if (flickerEnabled && Math.random() < flickerRate) continue
                 
-                var character = root._activeCharset[Math.floor(Math.random() * charLen)]
-                var pos = localDrops[i] * root.cellSize
+                var character = activeCharset[Math.floor(Math.random() * charLen)]
+                var pos = localDrops[i] * cellSize
                 var x, y
                 
                 // Calculate position based on direction 根据方向计算位置
@@ -310,11 +323,11 @@ Rectangle {
                 }
                 
                 // Perspective transform 透视变换
-                if (root.perspective > 0) {
+                if (perspective > 0) {
                     var centerX = w / 2, centerY = h / 2
                     var distX = (x - centerX) / centerX
                     var distY = (y - centerY) / centerY
-                    var scale = 1 - root.perspective * 0.3 * (Math.abs(distX) + Math.abs(distY))
+                    var scale = 1 - perspective * 0.3 * (Math.abs(distX) + Math.abs(distY))
                     ctx.save()
                     ctx.translate(x, y)
                     ctx.scale(scale, scale)
@@ -322,29 +335,29 @@ Rectangle {
                 }
                 
                 // Interactive repulsion 交互排斥
-                if (root.interactive && root._safeInteractionRadius > 0) {
-                    var dx = x - root.mousePos.x
-                    var dy = y - root.mousePos.y
+                if (interactive && interactionRadius > 0) {
+                    var dx = x - mousePos.x
+                    var dy = y - mousePos.y
                     var dist = Math.sqrt(dx * dx + dy * dy)
-                    if (dist > 0 && dist < root._safeInteractionRadius) {
-                        var force = (1 - dist / root._safeInteractionRadius) * 30
+                    if (dist > 0 && dist < interactionRadius) {
+                        var force = (1 - dist / interactionRadius) * 30
                         x += dx / dist * force
                         y += dy / dist * force
                     }
                 }
                 
                 // Rainbow mode color 彩虹模式颜色
-                var currentMainColor = root.mainColor
-                var currentHeadColor = root.headColor
-                if (root.rainbowMode) {
-                    var hue = (root._rainbowOffset + i * 10) % 360
+                var currentMainColor = mainColor
+                var currentHeadColor = headColor
+                if (rainbowMode) {
+                    var hue = (rainbowOffset + i * 10) % 360
                     currentMainColor = Qt.hsla(hue / 360, 1, 0.5, 1)
                     currentHeadColor = Qt.hsla(hue / 360, 0.8, 0.7, 1)
                 }
                 
                 // Glow effect (lightweight simulation) 发光效果（轻量模拟）
-                if (root.glowEnabled) {
-                    ctx.globalAlpha = 0.3 * root.glowIntensity
+                if (glowEnabled) {
+                    ctx.globalAlpha = 0.3 * glowIntensity
                     ctx.fillStyle = currentHeadColor
                     ctx.fillText(character, x - 1, y)
                     ctx.fillText(character, x + 1, y)
@@ -359,10 +372,9 @@ Rectangle {
                 
                 // Main trail 主拖尾
                 ctx.fillStyle = currentMainColor
-                var trailOffset = (dir === "up" ? -root.cellSize : root.cellSize) * 0.5
                 ctx.fillText(character, x, y - trailOffset)
                 
-                if (root.perspective > 0) {
+                if (perspective > 0) {
                     ctx.restore()
                 }
                 
@@ -381,11 +393,9 @@ Rectangle {
                 }
             }
             
-            root.drops = localDrops
-            
             // Update rainbow offset 更新彩虹偏移
-            if (root.rainbowMode) {
-                root._rainbowOffset = (root._rainbowOffset + 2) % 360
+            if (rainbowMode) {
+                root._rainbowOffset = (rainbowOffset + 2) % 360
             }
         }
     }

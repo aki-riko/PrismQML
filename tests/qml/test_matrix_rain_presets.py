@@ -6,9 +6,15 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtGui import QColor
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickWindow
+from PySide6.QtQml import (
+    QQmlApplicationEngine,
+    QQmlComponent,
+    QQmlEngine,
+    QQmlExpression,
+)
 
 from prismqml import register_types
 
@@ -35,6 +41,23 @@ EXPECTED_PALETTES = {
     "forest": ("#228b22", "#98fb98", "#000800"),
     "midnight": ("#191970", "#6495ed", "#000008"),
 }
+
+WINDOW_SOURCE = b"""import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    visible: true
+    width: 64
+    height: 64
+
+    MatrixRain {
+        objectName: "rain"
+        anchors.fill: parent
+        running: false
+    }
+}
+"""
 
 
 def _pump(milliseconds: int = 10) -> None:
@@ -68,11 +91,52 @@ MatrixRain {
     return component, instance
 
 
+def _create_matrix_rain_window(engine: QQmlApplicationEngine):
+    engine.addImportPath(str(ROOT / "prismqml"))
+    component = QQmlComponent(engine)
+    component.setData(WINDOW_SOURCE, QUrl("inline:p6c-matrix-rain-frame.qml"))
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump(20)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    rain = window.findChild(QObject, "rain")
+    assert rain is not None
+    canvases = [
+        child
+        for child in rain.findChildren(QObject)
+        if "Canvas" in child.metaObject().className()
+    ]
+    assert len(canvases) == 1
+    for _ in range(50):
+        if canvases[0].property("available"):
+            break
+        _pump(20)
+    assert canvases[0].property("available") is True
+    return component, window, rain, canvases[0]
+
+
 def _palette(instance) -> tuple[str, str, str]:
     return tuple(
         instance.property(name).name(QColor.NameFormat.HexRgb)
         for name in ("mainColor", "headColor", "backgroundColor")
     )
+
+
+def _evaluate(instance, source: str):
+    expression = QQmlExpression(QQmlEngine.contextForObject(instance), instance, source)
+    result = expression.evaluate()
+    assert not expression.hasError(), expression.error().toString()
+    if isinstance(result, tuple):
+        result, is_undefined = result
+        assert not is_undefined
+    return result
 
 
 def test_matrix_rain_theme_presets_preserve_runtime_contract(qapp):
@@ -122,6 +186,66 @@ def test_matrix_rain_invalid_runtime_limits_stay_finite(qapp):
     finally:
         if instance is not None:
             instance.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump()
+
+
+def test_matrix_rain_frame_updates_reuse_drop_array_without_property_change(qapp):
+    engine = QQmlApplicationEngine()
+    component = instance = None
+    try:
+        component, instance = _create_matrix_rain(engine)
+        emitted: list[None] = []
+        instance.dropsChanged.connect(lambda: emitted.append(None))
+
+        _evaluate(instance, "drops = [1]")
+        emitted.clear()
+        _evaluate(instance, "drops = drops")
+        assert emitted == []
+
+        emitted.clear()
+        assert _evaluate(instance, "drops[0] += 1; drops[0]") == 2
+        assert emitted == []
+
+        source = (ROOT / "prismqml" / "PrismQML" / "effects" / "MatrixRain.qml").read_text(
+            encoding="utf-8"
+        )
+        assert "root.drops = localDrops" not in source
+        hot_loop = source.split("for (var i = 0; i < count; i++) {", 1)[1].split(
+            "// Update rainbow offset", 1
+        )[0]
+        assert "root." not in hot_loop
+    finally:
+        if instance is not None:
+            instance.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump()
+
+
+def test_matrix_rain_offscreen_frame_advances_drop_without_property_change(qapp):
+    engine = QQmlApplicationEngine()
+    component = window = None
+    try:
+        component, window, rain, canvas = _create_matrix_rain_window(engine)
+        _evaluate(rain, "direction = 'down'; cols = 1; drops = [0]")
+        emitted: list[None] = []
+        rain.dropsChanged.connect(lambda: emitted.append(None))
+
+        assert QMetaObject.invokeMethod(canvas, "requestPaint") is True
+        for _ in range(50):
+            if _evaluate(rain, "drops[0]") > 0:
+                break
+            _pump(20)
+
+        drop = _evaluate(rain, "drops[0]")
+        assert 0.5 <= drop < 1.0
+        assert emitted == []
+    finally:
+        if window is not None:
+            window.close()
+            window.deleteLater()
         del component
         engine.deleteLater()
         _pump()
