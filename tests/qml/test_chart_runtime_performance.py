@@ -9,7 +9,12 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import (
+    QQmlApplicationEngine,
+    QQmlComponent,
+    QQmlEngine,
+    QQmlExpression,
+)
 
 from prismqml import register_types
 
@@ -83,6 +88,15 @@ def _pump(milliseconds: int = 10) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _evaluate(expression: QQmlExpression):
+    result = expression.evaluate()
+    assert not expression.hasError(), expression.error().toString()
+    if isinstance(result, tuple):
+        result, is_undefined = result
+        assert not is_undefined
+    return result
 
 
 def _object_tree(root: QObject) -> list[QObject]:
@@ -178,6 +192,13 @@ def test_three_point_line_chart_has_bounded_tree_and_no_tick_polling(chart_scene
     canvases = _animated_canvases(line_content)
     assert len(canvases) == 1
     assert 0 <= canvases[0].property("animProgress") < 1
+    expression = QQmlExpression(
+        QQmlEngine.contextForObject(canvases[0]),
+        canvases[0],
+        "animatedY(100, 300)",
+    )
+    initial_y = _evaluate(expression)
+    assert 100 < initial_y <= 300
 
     tick_timers = [
         obj
@@ -189,6 +210,8 @@ def test_three_point_line_chart_has_bounded_tree_and_no_tick_polling(chart_scene
 
     _pump(chart.property("chartDuration") + 50)
     assert canvases[0].property("animProgress") == pytest.approx(1)
+    final_y = _evaluate(expression)
+    assert final_y == pytest.approx(100)
     running_infinite_animations = [
         obj
         for obj in _object_tree(chart)

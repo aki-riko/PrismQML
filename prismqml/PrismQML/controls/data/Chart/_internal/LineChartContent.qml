@@ -139,6 +139,10 @@ Item {
 
         property real animProgress: 1.0
 
+        function animatedY(targetY, baselineY) {
+            return baselineY + (targetY - baselineY) * animProgress
+        }
+
         function paintSingleSeries(ctx) {
             if (root.chartData.length < 2) return
             
@@ -149,11 +153,13 @@ Item {
             var stepX = root.boundaryGap ? chartWidth / dataCount : chartWidth / (dataCount - 1)
             var startX = root.boundaryGap ? padding + stepX / 2 : padding
             var yScale = height > 0 ? chartHeight / height : 0
+            var baselineY = padding + chartHeight
             var points = []
             
             for (var i = 0; i < root.chartData.length; i++) {
                 var x = startX + i * stepX
-                var y = padding + root.valueToY(root.chartData[i].value) * yScale
+                var targetY = padding + root.valueToY(root.chartData[i].value) * yScale
+                var y = canvas.animatedY(targetY, baselineY)
                 points.push({x: x, y: y})
             }
             root.pointPositions = points
@@ -212,6 +218,7 @@ Item {
                     } else {
                         y = root.valueToY(val)
                     }
+                    y = canvas.animatedY(y, height)
                     points.push({x: x, y: y, value: val, stackedValue: stackedCumulative[i]})
                 }
                 allPoints.push(points)
