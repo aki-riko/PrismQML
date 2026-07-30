@@ -41,6 +41,12 @@ Item {
     property string selectedRole: "commit"   // card 对象里用作唯一标识的字段名
     property var selectedKey: undefined        // 当前选中值(与 card[selectedRole] 比对)
 
+    // ==================== Internal Props 内部属性 ====================
+    property var _flatRows: []
+    property var _flatGroupRefs: []
+    property int _flatGroupCount: 0
+    property int _lastFlatBuildGroupCount: 0
+
     // ==================== Readonly State 只读状态 ====================
     readonly property var _safeItems:
         items === null || items === undefined ? []
@@ -52,37 +58,6 @@ Item {
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
     readonly property real _graphWidth: Enums.spacing.timelineGraphPadding * 2
         + Math.max(1, graphLaneCount) * Enums.spacing.timelineGraphLane
-    // 拍平 items 为线性行: [{kind:"header",groupIndex,title,status}, {kind:"card",groupIndex,cardIndex,...}, ...]
-    readonly property var _flatRows: {
-        if (!_usesVirtualList) return []
-        var rows = []
-        for (var g = 0; g < _safeItems.length; g++) {
-            var grp = _safeItems[g] || {}
-            rows.push({
-                "kind": "header", "groupIndex": g,
-                "title": grp.title || "", "status": grp.status || "info",
-                "graphData": grp.graph || {}
-            })
-            var cards = grp.cards || []
-            for (var c = 0; c < cards.length; c++) {
-                var card = cards[c]
-                var cardObject = card && typeof card === "object"
-                rows.push({
-                    "kind": "card", "groupIndex": g, "cardIndex": c,
-                    "groupStatus": grp.status || "info",
-                    "cardData": card,
-                    "text": (typeof card === "string") ? card : (cardObject ? (card.text || "") : ""),
-                    "description": cardObject ? (card.description || "") : "",
-                    "status": cardObject ? (card.status || grp.status || "info") : (grp.status || "info"),
-                    "strikeOut": cardObject ? (card.strikeOut || false) : false,
-                    "graphData": cardObject ? (card.graph || {}) : {},
-                    "isLastCard": c === cards.length - 1
-                })
-            }
-        }
-        return rows
-    }
-
     // ==================== Signals 信号 ====================
     signal itemClicked(int groupIndex, string title)
     signal cardClicked(int groupIndex, int cardIndex, string text)
@@ -93,29 +68,73 @@ Item {
     signal reachedEnd()
 
     // ==================== Internal Methods 内部方法 ====================
-    // 把 _flatRows 增量同步到 _flatModel:
-    // - 纯尾部追加(分页常态):只 append 新增行,现有行不动→contentY 不重置
-    // - 其他变化(reset/搜索/切仓库):清空重填
+    function _rowsForGroup(group, groupIndex) {
+        var grp = group || {}
+        var rows = []
+        var groupStatus = grp.status || "info"
+        rows.push({
+            "kind": "header", "groupIndex": groupIndex,
+            "title": grp.title || "", "status": groupStatus,
+            "graphData": grp.graph || {}
+        })
+        var cards = grp.cards || []
+        for (var cardIndex = 0; cardIndex < cards.length; cardIndex++) {
+            var card = cards[cardIndex]
+            var cardObject = card && typeof card === "object"
+            rows.push({
+                "kind": "card", "groupIndex": groupIndex, "cardIndex": cardIndex,
+                "groupStatus": groupStatus, "cardData": card,
+                "text": typeof card === "string" ? card : (cardObject ? card.text || "" : ""),
+                "description": cardObject ? card.description || "" : "",
+                "status": cardObject ? card.status || groupStatus : groupStatus,
+                "strikeOut": cardObject ? card.strikeOut || false : false,
+                "graphData": cardObject ? card.graph || {} : {},
+                "isLastCard": cardIndex === cards.length - 1
+            })
+        }
+        return rows
+    }
+
+    function _clearFlatState() {
+        _flatModel.clear()
+        _flatRows = []
+        _flatGroupRefs = []
+        _flatGroupCount = 0
+        _lastFlatBuildGroupCount = 0
+    }
+
+    function _appendStartIndex(source) {
+        if (_flatGroupCount <= 0 || source.length < _flatGroupCount) return -1
+        for (var index = 0; index < _flatGroupCount; index++) {
+            if (source[index] !== _flatGroupRefs[index]) return -1
+        }
+        return _flatGroupCount
+    }
+
     function _syncFlat() {
-        if (!_usesVirtualList) return
-        var rows = _flatRows
-        var oldN = _flatModel.count
-        var isAppend = rows.length >= oldN && oldN > 0
-        // 校验前缀一致(纯追加的前提:前 oldN 行的 groupIndex/cardIndex/kind 不变)
-        if (isAppend) {
-            // 抽样校验首行+最后一旧行的标识,足以判断是否前缀稳定
-            var f0 = _flatModel.get(0)
-            if (!f0 || f0.kind !== rows[0].kind || f0.title !== (rows[0].title || "")
-                || f0.text !== (rows[0].text || "")) {
-                isAppend = false
+        if (!_usesVirtualList) {
+            _clearFlatState()
+            return
+        }
+        var source = _safeItems || []
+        var appendStart = _appendStartIndex(source)
+        if (appendStart === source.length) return
+        var nextRows = appendStart >= 0 ? _flatRows.slice() : []
+        var nextRefs = appendStart >= 0 ? _flatGroupRefs.slice() : []
+        var buildStart = appendStart >= 0 ? appendStart : 0
+        if (appendStart < 0) _flatModel.clear()
+        for (var groupIndex = buildStart; groupIndex < source.length; groupIndex++) {
+            var groupRows = _rowsForGroup(source[groupIndex], groupIndex)
+            nextRefs.push(source[groupIndex])
+            for (var rowIndex = 0; rowIndex < groupRows.length; rowIndex++) {
+                nextRows.push(groupRows[rowIndex])
+                _flatModel.append(groupRows[rowIndex])
             }
         }
-        if (isAppend) {
-            for (var i = oldN; i < rows.length; i++) _flatModel.append(rows[i])
-        } else {
-            _flatModel.clear()
-            for (var j = 0; j < rows.length; j++) _flatModel.append(rows[j])
-        }
+        _flatRows = nextRows
+        _flatGroupRefs = nextRefs
+        _flatGroupCount = source.length
+        _lastFlatBuildGroupCount = source.length - buildStart
     }
 
     function _scheduleScrollBarUpdate() {
@@ -140,9 +159,8 @@ Item {
         }
     }
 
-    onVirtualizedChanged: _syncFlat()
-    onTypeChanged: _syncFlat()
-    on_FlatRowsChanged: _syncFlat()
+    on_UsesVirtualListChanged: _syncFlat()
+    on_SafeItemsChanged: _syncFlat()
     onShowScrollBarChanged: _scheduleScrollBarUpdate()
     onScrollBarWidthChanged: _scheduleScrollBarUpdate()
     onWidthChanged: _scheduleScrollBarUpdate()

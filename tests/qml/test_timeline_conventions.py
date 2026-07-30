@@ -345,6 +345,7 @@ def test_timeline_virtual_append_preserves_scroll_and_reaches_end(timeline_scene
         lambda: list_view.property("count") == window.property("virtualFlatCount")
     )
     assert list_view.property("count") == 36
+    assert virtual_timeline.property("_lastFlatBuildGroupCount") == 12
     max_y = list_view.property("contentHeight") - list_view.height()
     list_view.setProperty("contentY", max_y - 5)
     assert _wait_for(lambda: reached)
@@ -353,6 +354,7 @@ def test_timeline_virtual_append_preserves_scroll_and_reaches_end(timeline_scene
     assert QMetaObject.invokeMethod(window, "appendVirtualGroup")
     assert _wait_for(lambda: window.property("virtualFlatCount") == 39)
     assert _wait_for(lambda: list_view.property("count") == 39)
+    assert virtual_timeline.property("_lastFlatBuildGroupCount") == 1
     assert list_view.property("contentY") == pytest.approx(before_y)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []

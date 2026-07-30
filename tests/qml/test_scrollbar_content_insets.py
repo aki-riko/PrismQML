@@ -605,6 +605,15 @@ def test_specialized_virtual_and_widget_views_reserve_scrollbar_gutter(qapp):
             lambda: all(value == 0 for value in insets().values())
         ), {"insets": insets(), "warnings": warnings}
         root.growSpecializedViews()
+        timeline = root.findChild(QObject, "timelineCore")
+        timeline_view = timeline.findChild(QObject, "timelineVirtualViewport")
+        assert _wait_for(lambda: timeline_view.property("count") == 21), {
+            "count": timeline_view.property("count"),
+            "flatGroupCount": timeline.property("_flatGroupCount"),
+            "flatRows": len(timeline.property("_flatRows").toVariant()),
+            "lastBuildGroupCount": timeline.property("_lastFlatBuildGroupCount"),
+            "warnings": warnings,
+        }
         assert _wait_for(
             lambda: all(value == expected for value in insets().values())
         ), {"insets": insets(), "warnings": warnings}
