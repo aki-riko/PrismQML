@@ -138,6 +138,12 @@ Item {
                 
                 Rectangle {
                     id: bar
+
+                    readonly property real _positionRatio:
+                        control._safeWaveformData.length > 0
+                            ? index / control._safeWaveformData.length : 0
+                    readonly property bool _played: bar._positionRatio < control._safeProgress
+
                     width: control._safeBarWidth
                     height: Math.max(Enums.spacing.xs, control._safeWaveformData[index] * waveformRow.height * 0.9)
                     radius: width / 2
@@ -148,26 +154,16 @@ Item {
                         orientation: Gradient.Vertical
                         GradientStop { 
                             position: 0.0 
-                            color: {
-                                var pos = index / control._safeWaveformData.length
-                                return pos < control._safeProgress ? control.progressColorEnd : control.waveColorEnd
-                            }
+                            color: bar._played ? control.progressColorEnd : control.waveColorEnd
                         }
                         GradientStop { 
                             position: 1.0 
-                            color: {
-                                var pos = index / control._safeWaveformData.length
-                                return pos < control._safeProgress ? control.progressColor : control.waveColor
-                            }
+                            color: bar._played ? control.progressColor : control.waveColor
                         }
                     }
                     
                     // Subtle glow effect for active bars 活跃条的微妙发光效果
-                    opacity: {
-                        var pos = index / control._safeWaveformData.length
-                        if (pos < control._safeProgress) return 1.0
-                        return control._hovered ? 0.85 : 0.7
-                    }
+                    opacity: bar._played ? 1.0 : (control._hovered ? 0.85 : 0.7)
                     
                     // Scale animation on hover 悬停时的缩放动画
                     transform: Scale {
