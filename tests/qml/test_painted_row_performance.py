@@ -12,11 +12,14 @@ from PySide6.QtCore import (
     QEventLoop,
     QMetaObject,
     QObject,
+    QPoint,
+    QPointF,
     QTimer,
     QUrl,
 )
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 
@@ -128,7 +131,7 @@ def _create_scene():
     ]
     assert len(canvases) == 1
     assert _wait_for(lambda: canvases[0].property("available"))
-    return engine, component, window, canvases[0], warnings
+    return engine, component, window, row, canvases[0], warnings
 
 
 def _dispose_scene(engine, component, window) -> None:
@@ -143,7 +146,7 @@ def _dispose_scene(engine, component, window) -> None:
 
 
 def test_painted_row_offscreen_paint_preserves_extra_draw_contract(qapp):
-    engine, component, window, canvas, warnings = _create_scene()
+    engine, component, window, _row, canvas, warnings = _create_scene()
     try:
         calls_before = window.property("extraDrawCalls")
         assert QMetaObject.invokeMethod(canvas, "requestPaint") is True
@@ -152,6 +155,23 @@ def test_painted_row_offscreen_paint_preserves_extra_draw_contract(qapp):
         assert window.property("extraValue") == 42
         assert window.property("extraWidth") == 300
         assert window.property("extraHeight") == 40
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_painted_row_hover_preserves_column_and_row_indices(qapp):
+    engine, component, window, row, _canvas, warnings = _create_scene()
+    hovered: list[tuple[int, int]] = []
+    row.cellHovered.connect(lambda column, row_index: hovered.append((column, row_index)))
+    try:
+        for column, local_x in ((0, 50), (1, 170), (2, 220)):
+            point = row.mapToScene(QPointF(local_x, row.height() / 2)).toPoint()
+            QTest.mouseMove(window, point)
+            assert _wait_for(lambda: hovered[-1:] == [(column, 7)])
+
+        QTest.mouseMove(window, QPoint(319, 79))
+        assert _wait_for(lambda: hovered[-1:] == [(-1, -1)])
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
@@ -166,3 +186,16 @@ def test_painted_row_hot_loop_uses_frame_snapshot():
     assert loop_marker in paint_section
     hot_loop = paint_section.split(loop_marker, 1)[1]
     assert "root." not in hot_loop
+
+
+def test_painted_row_hover_loop_uses_event_snapshot():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    hover_section = source.split("onPositionChanged: function(mouse) {", 1)[1].split(
+        "onExited:", 1
+    )[0]
+    loop_marker = "for (var i = 0; i < columns.length; i++) {"
+    assert loop_marker in hover_section
+    hot_loop = hover_section.split(loop_marker, 1)[1]
+    assert "root._safeColumns" not in hot_loop
+    assert "root.width" not in hot_loop
+    assert "root.rowIndex" not in hot_loop

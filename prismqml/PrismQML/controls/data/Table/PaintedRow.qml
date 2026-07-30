@@ -131,13 +131,16 @@ Item {
         hoverEnabled: true
         acceptedButtons: Qt.NoButton  // Let the parent ListView delegate handle clicks 由上层 ListView 委托处理点击
         onPositionChanged: function(mouse) {
+            var columns = root._safeColumns
+            var rowWidth = root.width
+            var rowIndex = root.rowIndex
             var x = 0
-            for (var i = 0; i < (root._safeColumns || []).length; i++) {
-                var col = root._safeColumns[i] || {}
+            for (var i = 0; i < columns.length; i++) {
+                var col = columns[i] || {}
                 var w = col.width || 0.15
-                if (w < 1) w = w * root.width
+                if (w < 1) w = w * rowWidth
                 if (mouse.x >= x && mouse.x < x + w) {
-                    root.cellHovered(i, root.rowIndex)
+                    root.cellHovered(i, rowIndex)
                     return
                 }
                 x += w
