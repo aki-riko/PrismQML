@@ -42,6 +42,7 @@ Item {
     property real tooltipY: 0
     property real mouseX: 0
     property real mouseY: 0
+    property int _lastHoverCandidateCount: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
@@ -116,6 +117,36 @@ Item {
     function getTooltipPosition(index) {
         if (index < 0 || index >= pointPositions.length) return { x: 0, y: 0 }
         return pointPositions[index]
+    }
+
+    function _lowerBoundPointX(value) {
+        var low = 0
+        var high = pointPositions.length
+        while (low < high) {
+            var middle = Math.floor((low + high) / 2)
+            if (pointPositions[middle].x < value) low = middle + 1
+            else high = middle
+        }
+        return low
+    }
+
+    function _nearestPointIndex(pointerX, pointerY, maxDistance) {
+        var first = _lowerBoundPointX(pointerX - maxDistance)
+        var last = _lowerBoundPointX(pointerX + maxDistance)
+        var minimumSquared = maxDistance * maxDistance
+        var foundIndex = -1
+        _lastHoverCandidateCount = last - first
+        for (var index = first; index < last; index++) {
+            var point = pointPositions[index]
+            var dx = pointerX - point.x
+            var dy = pointerY - point.y
+            var distanceSquared = dx * dx + dy * dy
+            if (distanceSquared < minimumSquared) {
+                minimumSquared = distanceSquared
+                foundIndex = index
+            }
+        }
+        return foundIndex
     }
 
     onHoveredIndexChanged: canvas.requestPaint()
@@ -380,15 +411,7 @@ Item {
                 root.hoveredSeriesIndex = foundSeriesIndex
                 root.seriesPointHovered(foundSeriesIndex, foundIndex)
             } else {
-                var minDist = 30
-                for (var j = 0; j < root.pointPositions.length; j++) {
-                    var p = root.pointPositions[j]
-                    var d = Math.sqrt(Math.pow(mouse.x - p.x, 2) + Math.pow(mouse.y - p.y, 2))
-                    if (d < minDist) {
-                        minDist = d
-                        foundIndex = j
-                    }
-                }
+                foundIndex = root._nearestPointIndex(mouse.x, mouse.y, 30)
             }
             root.pointHovered(foundIndex)
         }

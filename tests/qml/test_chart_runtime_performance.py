@@ -238,6 +238,35 @@ def test_empty_state_animation_runs_only_while_visible(chart_scene):
     assert warnings == []
 
 
+def test_line_hover_search_only_checks_the_local_x_range(chart_scene):
+    chart, warnings = chart_scene
+    line_content = _loaders(chart)["lineContentLoader"].property("item")
+    assert line_content is not None
+    points = [
+        {"x": index, "y": (index * 37) % 200}
+        for index in range(1_000)
+    ]
+    line_content.setProperty("pointPositions", points)
+
+    for pointer_x, pointer_y in ((500, 100), (5, 10), (995, 190), (500, 500)):
+        distances = [
+            ((pointer_x - point["x"]) ** 2 + (pointer_y - point["y"]) ** 2, index)
+            for index, point in enumerate(points)
+            if (pointer_x - point["x"]) ** 2
+            + (pointer_y - point["y"]) ** 2
+            < 30**2
+        ]
+        expected = min(distances)[1] if distances else -1
+        expression = QQmlExpression(
+            QQmlEngine.contextForObject(line_content),
+            line_content,
+            f"_nearestPointIndex({pointer_x}, {pointer_y}, 30)",
+        )
+        assert _evaluate(expression) == expected
+        assert line_content.property("_lastHoverCandidateCount") <= 60
+    assert warnings == []
+
+
 def test_chart_null_and_empty_inputs_stay_finite_and_select_empty_state(chart_scene):
     chart, warnings = chart_scene
     loaders = _loaders(chart)
