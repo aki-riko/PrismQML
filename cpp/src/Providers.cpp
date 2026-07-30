@@ -348,6 +348,43 @@ bool WindowHelper::nativeEventFilter(
             windowPos->hwndInsertAfter = hostHwnd;
             windowPos->flags &= ~SWP_NOZORDER;
             windowPos->flags |= SWP_NOOWNERZORDER;
+        } else {
+            // WM_WINDOWPOSCHANGING carries the proposed host RECT one message
+            // earlier than WM_MOVING; mirror it immediately for zero-lag drag.
+            // WM_WINDOWPOSCHANGING 比 WM_MOVING 更早携带宿主候选 RECT，立即同步以消除拖动滞后。
+            const WINDOWPOS *windowPos = reinterpret_cast<WINDOWPOS *>(msg->lParam);
+            if (!(windowPos->flags & SWP_NOMOVE)) {
+                int hostWidth = windowPos->cx;
+                int hostHeight = windowPos->cy;
+                if (windowPos->flags & SWP_NOSIZE) {
+                    RECT currentHostRect{};
+                    if (GetWindowRect(msg->hwnd, &currentHostRect)) {
+                        hostWidth = currentHostRect.right - currentHostRect.left;
+                        hostHeight = currentHostRect.bottom - currentHostRect.top;
+                    }
+                }
+                if (hostWidth <= 0 || hostHeight <= 0)
+                    return false;
+                const detail::WindowFollowerRect hostRect{
+                    windowPos->x, windowPos->y,
+                    windowPos->x + hostWidth,
+                    windowPos->y + hostHeight};
+                for (auto it = m_followers.cbegin(); it != m_followers.cend(); ++it) {
+                    const WindowFollowerBinding &binding = it.value();
+                    if (binding.hostHwnd != reinterpret_cast<qulonglong>(msg->hwnd))
+                        continue;
+                    const detail::WindowFollowerRect followerRect =
+                        detail::followerRectForExtent(
+                            hostRect, binding.outwardExtent, binding.edge);
+                    SetWindowPos(
+                        reinterpret_cast<HWND>(binding.followerHwnd),
+                        reinterpret_cast<HWND>(binding.hostHwnd),
+                        followerRect.left, followerRect.top,
+                        followerRect.right - followerRect.left,
+                        followerRect.bottom - followerRect.top,
+                        SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+                }
+            }
         }
         return false;
     }

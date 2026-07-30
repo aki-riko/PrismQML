@@ -96,6 +96,32 @@ def _follower_rect_for_extent(
     return _follower_rect(host_rect, follower_width, follower_height, edge)
 
 
+def _window_rect_from_pos(
+    window_pos: Any, current_rect: Optional[Any] = None
+) -> Optional[_WindowRect]:
+    """Build a proposed host RECT from WM_WINDOWPOSCHANGING. 从原生候选几何构造宿主矩形。"""
+    if window_pos.flags & _SWP_NOMOVE:
+        return None
+    width = (
+        int(current_rect.right - current_rect.left)
+        if window_pos.flags & _SWP_NOSIZE and current_rect is not None
+        else int(window_pos.cx)
+    )
+    height = (
+        int(current_rect.bottom - current_rect.top)
+        if window_pos.flags & _SWP_NOSIZE and current_rect is not None
+        else int(window_pos.cy)
+    )
+    if width <= 0 or height <= 0:
+        return None
+    return _WindowRect(
+        int(window_pos.x),
+        int(window_pos.y),
+        int(window_pos.x + width),
+        int(window_pos.y + height),
+    )
+
+
 def _window_device_pixel_ratio(window: Any) -> float:
     """Read a valid QWindow device scale. 读取有效的 QWindow 设备缩放。"""
     try:
@@ -433,7 +459,18 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
                 window_pos = self._get_window_pos_class().from_address(
                     int(msg.lParam)
                 )
-                self.enforce_follower_z_order(int(msg.hwnd), window_pos)
+                window_hwnd = int(msg.hwnd)
+                self.enforce_follower_z_order(window_hwnd, window_pos)
+                if window_hwnd not in self._bindings:
+                    current_rect = (
+                        self._read_rect(window_hwnd)
+                        if window_pos.flags & _SWP_NOSIZE
+                        and self._read_rect is not None
+                        else None
+                    )
+                    proposed_rect = _window_rect_from_pos(window_pos, current_rect)
+                    if proposed_rect is not None:
+                        self.sync_host_rect(window_hwnd, proposed_rect)
                 return False, 0
             if msg.message not in (_WM_MOVING, _WM_SIZING) or not msg.lParam:
                 return False, 0

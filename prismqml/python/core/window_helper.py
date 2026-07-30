@@ -25,6 +25,7 @@ from ._window_follower import (
     _SWP_NOZORDER,
     _WINDOW_EDGES,
     _WM_MOUSEACTIVATE,
+    _WM_WINDOWPOSCHANGING,
     _WindowFollowerFilter,
     _follower_rect,
     _follower_rect_for_extent,

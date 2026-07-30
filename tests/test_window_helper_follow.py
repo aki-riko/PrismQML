@@ -106,6 +106,38 @@ def test_filter_syncs_all_followers_for_the_moving_host():
     ]
 
 
+def test_filter_syncs_host_windowposchanging_before_moving_message():
+    moves = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda hwnd, geometry, after: moves.append(
+            (hwnd, geometry, after)
+        ) or True,
+    )
+    assert event_filter.register(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    moves.clear()
+
+    msg = event_filter._get_msg_class()()
+    msg.hwnd = 11
+    msg.message = window_helper._WM_WINDOWPOSCHANGING
+    window_pos = event_filter._get_window_pos_class()()
+    window_pos.hwnd = 11
+    window_pos.x = 240
+    window_pos.y = 260
+    window_pos.cx = 640
+    window_pos.cy = 420
+    window_pos.flags = 0
+    msg.lParam = ctypes.addressof(window_pos)
+
+    handled, result = event_filter.nativeEventFilter(
+        None, ctypes.addressof(msg)
+    )
+
+    assert handled is False
+    assert result == 0
+    assert moves == [(21, (880, 260, 1060, 680), 11)]
+
+
 def test_registration_immediately_aligns_to_native_host_rect():
     native_rects = {
         11: _rect(680, 296, 1880, 1096),
