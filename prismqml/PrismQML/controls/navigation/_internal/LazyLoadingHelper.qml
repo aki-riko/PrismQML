@@ -217,6 +217,9 @@ Item {
         objectName: "lazyLoadingOverlay"
         anchors.fill: parent
         text: helper.loadingText
+        // Keep the lazy-loading surface transparent so the window Mica backdrop remains visible.
+        // 保持懒加载表面透明，让窗口云母背板持续可见。
+        backgroundColor: Enums.transparent
         running: visible && opacity > 0
         visible: false
         opacity: 0

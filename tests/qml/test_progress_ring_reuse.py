@@ -257,6 +257,7 @@ def test_qml_page_preserves_lazy_ring_and_reuses_splash_exit():
     """公开加载页保留原懒加载圆环，并复用 SplashScreen 退场。"""
     helper_source = LAZY_LOADING_HELPER.read_text(encoding="utf-8")
     assert "QMLPage {" in helper_source
+    assert "backgroundColor: Enums.transparent" in helper_source
     assert "loadingOverlay.finish()" in helper_source
 
     page_source = QML_PAGE.read_text(encoding="utf-8")
