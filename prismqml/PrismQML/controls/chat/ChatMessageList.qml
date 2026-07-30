@@ -53,6 +53,10 @@ Item {
     property bool _rangeUpdatePending: false
     property bool _destroying: false
     property real _pendingAnchorDelta: 0
+    property int _layoutStartIndex: -1
+    property int _lastLayoutStartIndex: -1
+    property int _firstLoadIndex: -1
+    property int _lastLoadIndex: -1
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int messageCount: chatModel.count
@@ -95,18 +99,36 @@ Item {
         })
     }
 
-    function _scheduleSlotLayout() {
+    function _scheduleSlotLayout(startIndex) {
+        var count = messageRepeater.count
+        var requestedStart = typeof startIndex === "number" && isFinite(startIndex)
+            ? Math.max(0, Math.min(count, Math.floor(startIndex))) : 0
+        if (_layoutStartIndex < 0 || requestedStart < _layoutStartIndex) {
+            _layoutStartIndex = requestedStart
+        }
         if (_layoutPending) return
         _layoutPending = true
         Qt.callLater(function() {
             _layoutPending = false
+            var slotCount = messageRepeater.count
+            var layoutStart = Math.max(0, Math.min(slotCount, _layoutStartIndex))
+            _layoutStartIndex = -1
             var nextY = 0
-            for (var i = 0; i < messageRepeater.count; i++) {
+            if (layoutStart > 0) {
+                var previousSlot = messageRepeater.itemAt(layoutStart - 1)
+                if (previousSlot && previousSlot._layoutReady) {
+                    nextY = previousSlot.y + previousSlot.height + Enums.spacing.xs
+                } else {
+                    layoutStart = 0
+                }
+            }
+            _lastLayoutStartIndex = layoutStart
+            for (var i = layoutStart; i < slotCount; i++) {
                 var slot = messageRepeater.itemAt(i)
                 if (!slot) continue
                 slot.y = nextY
                 nextY += slot.height
-                if (i + 1 < messageRepeater.count) nextY += Enums.spacing.xs
+                if (i + 1 < slotCount) nextY += Enums.spacing.xs
                 if (!slot._layoutReady) slot._layoutReady = true
             }
             messageColumn.height = nextY
@@ -122,15 +144,80 @@ Item {
         })
     }
 
+    function _findFirstLoadIndex(topY) {
+        var low = 0
+        var high = messageRepeater.count - 1
+        var result = messageRepeater.count
+        while (low <= high) {
+            var middle = Math.floor((low + high) / 2)
+            var slot = messageRepeater.itemAt(middle)
+            if (slot && slot.y + slot.height >= topY) {
+                result = middle
+                high = middle - 1
+            } else {
+                low = middle + 1
+            }
+        }
+        return result
+    }
+
+    function _findLastLoadIndex(bottomY) {
+        var low = 0
+        var high = messageRepeater.count - 1
+        var result = -1
+        while (low <= high) {
+            var middle = Math.floor((low + high) / 2)
+            var slot = messageRepeater.itemAt(middle)
+            if (slot && slot.y <= bottomY) {
+                result = middle
+                low = middle + 1
+            } else {
+                high = middle - 1
+            }
+        }
+        return result
+    }
+
+    function _applyLoadRange(firstIndex, lastIndex) {
+        for (var oldIndex = Math.max(0, _firstLoadIndex);
+                oldIndex <= _lastLoadIndex; oldIndex++) {
+            if (oldIndex >= firstIndex && oldIndex <= lastIndex) continue
+            var oldSlot = messageRepeater.itemAt(oldIndex)
+            if (oldSlot) oldSlot._inLoadRange = false
+        }
+        for (var newIndex = Math.max(0, firstIndex);
+                newIndex <= lastIndex; newIndex++) {
+            var newSlot = messageRepeater.itemAt(newIndex)
+            if (newSlot) newSlot._inLoadRange = true
+        }
+        _firstLoadIndex = firstIndex
+        _lastLoadIndex = lastIndex
+    }
+
     function _scheduleLoadRangeUpdate() {
         if (_rangeUpdatePending) return
         _rangeUpdatePending = true
         Qt.callLater(function() {
             _rangeUpdatePending = false
-            for (var i = 0; i < messageRepeater.count; i++) {
-                var slot = messageRepeater.itemAt(i)
-                if (slot) slot._updateLoadRange()
+            var count = messageRepeater.count
+            if (count === 0) {
+                _applyLoadRange(-1, -1)
+                return
             }
+            var finalSlot = messageRepeater.itemAt(count - 1)
+            if (!finalSlot || !finalSlot._layoutReady) {
+                _scheduleSlotLayout(0)
+                return
+            }
+            var topY = messageViewport.contentY - _loadMargin
+            var bottomY = messageViewport.contentY + messageViewport.height + _loadMargin
+            var firstIndex = _findFirstLoadIndex(topY)
+            var lastIndex = _findLastLoadIndex(bottomY)
+            if (firstIndex > lastIndex) {
+                _applyLoadRange(-1, -1)
+                return
+            }
+            _applyLoadRange(firstIndex, lastIndex)
         })
     }
 
@@ -153,7 +240,7 @@ Item {
 
         slot._measuredHeight = nextHeight
         slot._measuredKey = slot._measurementKey
-        _scheduleSlotLayout()
+        _scheduleSlotLayout(slot.index)
         if (_followBottom) {
             _scheduleScrollToBottom()
         } else if (slotWasAboveViewport
@@ -206,6 +293,10 @@ Item {
     function clear() {
         chatModel.clear()
         _pendingAnchorDelta = 0
+        _layoutStartIndex = -1
+        _lastLayoutStartIndex = -1
+        _firstLoadIndex = -1
+        _lastLoadIndex = -1
         messageColumn.height = 0
         _setContentY(0, true)
         _scheduleScrollBarUpdate()
@@ -267,7 +358,7 @@ Item {
                 id: messageRepeater
 
                 model: chatModel
-                onItemAdded: control._scheduleSlotLayout()
+                onItemAdded: (index, item) => control._scheduleSlotLayout(index)
 
                 delegate: Loader {
                     id: messageSlot
@@ -297,13 +388,6 @@ Item {
                         Enums.fontFamily
                     ].join("\u001f")
                     property bool _inLoadRange: false
-
-                    function _updateLoadRange() {
-                        _inLoadRange = y + _measuredHeight
-                            >= messageViewport.contentY - control._loadMargin
-                            && y <= messageViewport.contentY + messageViewport.height
-                                + control._loadMargin
-                    }
 
                     width: messageColumn.width
                     height: _measuredHeight

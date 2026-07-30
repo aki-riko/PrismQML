@@ -169,6 +169,12 @@ def test_long_mixed_session_keeps_only_viewport_bubbles_alive(qapp):
             visual_objects,
         )
         assert visual_objects < MAX_VISUAL_OBJECTS
+        assert [slot.property("index") for slot in active_slots] == list(
+            range(
+                message_list.property("_firstLoadIndex"),
+                message_list.property("_lastLoadIndex") + 1,
+            )
+        )
 
         viewport = message_list.findChild(QQuickItem, "chatMessageViewport")
         assert viewport is not None
@@ -189,6 +195,8 @@ def test_long_mixed_session_keeps_only_viewport_bubbles_alive(qapp):
         assert len(
             [slot for slot in _message_slots(message_list) if slot.property("active")]
         ) <= MAX_ACTIVE_MESSAGES
+        assert message_list.property("_firstLoadIndex") > 0
+        assert message_list.property("_lastLoadIndex") < MESSAGE_COUNT - 1
 
         _evaluate(message_list, "scrollToEnd()")
         _wait_until(lambda: _is_slot_measured(_message_slots(message_list)[-1]))
@@ -216,7 +224,11 @@ def test_streaming_growth_follows_bottom_but_preserves_scrolled_position(qapp):
         _wait_until(lambda: _is_slot_measured(_message_slots(message_list)[-1]))
 
         _evaluate(message_list, 'appendToLast("\\n\\n流式追加后的尾部内容。")')
-        _wait_until(lambda: _is_slot_measured(_message_slots(message_list)[-1]))
+        _wait_until(
+            lambda: _is_slot_measured(_message_slots(message_list)[-1])
+            and message_list.property("_lastLayoutStartIndex")
+            == MESSAGE_COUNT - 1
+        )
         viewport = message_list.findChild(QQuickItem, "chatMessageViewport")
         bottom_gap = viewport.property("contentHeight") - (
             viewport.property("contentY") + viewport.property("height")
