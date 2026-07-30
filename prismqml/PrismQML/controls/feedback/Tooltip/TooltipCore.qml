@@ -134,20 +134,23 @@ Item {
         Item {
             id: windowHost
 
-            readonly property bool windowVisible: tipWindow.visible
+            readonly property bool windowVisible: tipWindow ? tipWindow.visible : false
 
             function reposition(globalX, globalY) {
+                if (!tipWindow) return
                 tipWindow.x = globalX
                 tipWindow.y = globalY
             }
 
             function open() {
+                if (!tipWindow) return
                 animOut.stop()
                 tipWindow.visible = true
                 animIn.start()
             }
 
             function close() {
+                if (!tipWindow) return
                 animIn.stop()
                 animOut.start()
             }
@@ -215,7 +218,7 @@ Item {
                 ParallelAnimation {
                     id: animOut
 
-                    onFinished: tipWindow.visible = false
+                    onFinished: if (tipWindow) tipWindow.visible = false
 
                     NumberAnimation { target: content; property: "opacity"; from: 1.0; to: 0.0; duration: Enums.duration.normal }
                     NumberAnimation { target: content; property: "scale"; from: 1.0; to: 0.8; duration: Enums.duration.normal }

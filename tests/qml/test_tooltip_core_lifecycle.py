@@ -113,6 +113,10 @@ def test_tooltip_text_metrics_match_existing_label_width(qapp):
         assert warnings == []
     finally:
         _release(qapp, root, component, engine)
+        assert not any(
+            "Cannot read property 'visible' of null" in warning
+            for warning in warnings
+        ), warnings
 
 
 def test_tooltip_window_is_created_on_first_show_and_reused(qapp):
@@ -187,5 +191,47 @@ def test_tooltip_window_is_created_on_first_show_and_reused(qapp):
         assert _wait_for(lambda: not tip_window.isVisible())
         assert loader.property("item") is host
         assert warnings == []
+    finally:
+        _release(qapp, root, component, engine)
+
+
+def test_tooltip_native_window_can_disappear_before_host_without_warning(qapp):
+    """A detached native window must not make its QML host dereference null."""
+    configure_qml_environment()
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    component = None
+    root = None
+    try:
+        register_types(engine)
+        component = QQmlComponent(engine)
+        component.setData(SCENE_SOURCE, SCENE_URL)
+        assert component.status() == QQmlComponent.Status.Ready, [
+            error.toString() for error in component.errors()
+        ]
+        root = component.create(engine.rootContext())
+        assert root is not None, [error.toString() for error in component.errors()]
+        _pump()
+
+        tooltip = root.findChild(QObject, "tooltip")
+        loader = tooltip.findChild(QQuickItem, "tooltipWindowLoader")
+        root.showTooltip()
+        assert _wait_for(lambda: loader.property("item") is not None)
+        tip_window = tooltip.findChildren(QWindow)[0]
+        assert _wait_for(tip_window.isVisible)
+
+        # NativeWindowHook can detach the native window before the QML host
+        # is destroyed during application shutdown.
+        tip_window.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        qapp.processEvents()
+
+        assert not any(
+            "Cannot read property 'visible' of null" in warning
+            for warning in warnings
+        ), warnings
     finally:
         _release(qapp, root, component, engine)
