@@ -7,10 +7,19 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QMetaObject, QObject, QPointF, Qt, QUrl
+from PySide6.QtCore import (
+    QMetaObject,
+    QObject,
+    QPointF,
+    Qt,
+    QtMsgType,
+    QUrl,
+    qInstallMessageHandler,
+)
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 
@@ -42,12 +51,15 @@ Window {
     readonly property string facadeVersion: facade.currentVersion
     readonly property bool facadeUsesDualSlot: facade.usesDualSlot
     readonly property bool facadePreparing: facade.feedbackModel.preparing
+    readonly property bool facadeFeedbackActive: facade.feedbackModel.active
     readonly property string facadeFeedbackTitle: facade.feedbackModel.title
     readonly property string facadeFeedbackMessage: facade.feedbackModel.message
     readonly property int indeterminateRingFeature: Enums.notification.feature_indeterminate_ring
     readonly property int progressRingFeature: Enums.notification.feature_progress_ring
     readonly property int toastWidth: Enums.controlSize.toastWidth
     readonly property int toastHeight: Enums.controlSize.toastHeight
+    readonly property int toastHideDuration: Enums.notification.animation.hideDuration
+    readonly property int progressCompleteDuration: Enums.duration.progressComplete
     readonly property int spacingM: Enums.spacing.m
     readonly property int spacingL: Enums.spacing.l
     readonly property int mebibyte: 1024 * 1024
@@ -93,6 +105,10 @@ Window {
         facade.feedbackModel.dismiss();
         facade.feedbackPresenter = customPresenter;
         facade.check();
+    }
+
+    function disableFeedbackPresenter() {
+        facade.feedbackPresenter = null;
     }
 
     function triggerInstallerFailure() {
@@ -359,6 +375,23 @@ def test_progress_dialog_presenter_can_replace_default(auto_updater_scene, qapp)
     assert dialog.property("progress") == pytest.approx(25)
 
 
+def test_progress_dialog_ready_state_uses_completion_timeout(auto_updater_scene):
+    root = auto_updater_scene
+    assert QMetaObject.invokeMethod(root, "useProgressDialogAndCheck")
+    assert QMetaObject.invokeMethod(root, "triggerDualSlotPreparation")
+    assert QMetaObject.invokeMethod(root, "finishDualSlotPreparation")
+
+    dialog = root.findChild(QObject, "autoUpdaterProgressDialog")
+    assert dialog is not None
+    assert root.property("facadeFeedbackActive") is True
+    assert dialog.property("_isOpen") is True
+
+    QTest.qWait(int(root.property("progressCompleteDuration")) + 50)
+
+    assert root.property("facadeFeedbackActive") is False
+    assert dialog.property("_isOpen") is False
+
+
 def test_developer_component_receives_shared_feedback_model(auto_updater_scene, qapp):
     root = auto_updater_scene
 
@@ -372,6 +405,31 @@ def test_developer_component_receives_shared_feedback_model(auto_updater_scene, 
     assert QMetaObject.invokeMethod(root, "emitDownloadProgress")
     qapp.processEvents()
     assert presenter.property("progress") == pytest.approx(0.25)
+
+
+def test_destroyed_toast_presenter_does_not_read_dead_root(auto_updater_scene):
+    root = auto_updater_scene
+    assert QMetaObject.invokeMethod(root, "triggerDoubleCheck")
+    assert root.findChild(QObject, "autoUpdaterToast") is not None
+
+    messages = []
+    previous_handler = qInstallMessageHandler(
+        lambda mode, _context, message: messages.append((mode, str(message)))
+    )
+    try:
+        assert QMetaObject.invokeMethod(root, "disableFeedbackPresenter")
+        QTest.qWait(int(root.property("toastHideDuration")) + 50)
+    finally:
+        qInstallMessageHandler(previous_handler)
+
+    failures = [
+        message
+        for mode, message in messages
+        if mode == QtMsgType.QtWarningMsg
+        and "AutoUpdaterToastPresenter.qml" in message
+        and "Cannot read property '_toast' of null" in message
+    ]
+    assert failures == []
 
 
 def test_auto_updater_delegates_feedback_without_desktop_notification():

@@ -23,6 +23,16 @@ Item {
         syncTimer.restart();
     }
 
+    function _onToastClosed() {
+        var item = root._toast;
+        if (!item)
+            return;
+        item.closed.disconnect(root._onToastClosed);
+        root._toast = null;
+        if (root.feedbackModel && root.feedbackModel.active)
+            root.feedbackModel.dismiss();
+    }
+
     function _sync() {
         var model = root.feedbackModel;
         if (!model || !model.active) {
@@ -45,13 +55,7 @@ Item {
             }
             item.objectName = "autoUpdaterToast";
             root._toast = item;
-            item.closed.connect(function() {
-                if (root._toast !== item)
-                    return;
-                root._toast = null;
-                if (root.feedbackModel && root.feedbackModel.active)
-                    root.feedbackModel.dismiss();
-            });
+            item.closed.connect(root._onToastClosed);
         }
 
         item.orient = NotificationManager.orientationForMessage(model.message);
@@ -66,8 +70,10 @@ Item {
     function _hideToast() {
         var item = root._toast;
         root._toast = null;
-        if (item)
+        if (item) {
+            item.closed.disconnect(root._onToastClosed);
             item.hide();
+        }
     }
 
     objectName: "autoUpdaterToastPresenter"

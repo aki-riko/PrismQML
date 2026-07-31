@@ -380,7 +380,7 @@ Item {
                 Translator.tr("new_version_ready"),
                 Translator.tr("switch_on_next_start"),
                 "success", Enums.notification.feature_normal,
-                Enums.duration.notification, 0
+                Enums.duration.progressComplete, 0
             );
             var version = root._pendingVersion;
             root._clearPending();
