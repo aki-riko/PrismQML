@@ -82,9 +82,7 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _cancelToolTipTimers() {
         if (_hoverAreaLoader.item) _hoverAreaLoader.item._showScheduled = false
-        if (_showTimerLoader.item) _showTimerLoader.item.stop()
-        if (_hideTimerLoader.item) _hideTimerLoader.item.stop()
-        if (_autoHideTimerLoader.item) _autoHideTimerLoader.item.stop()
+        if (_toolTipLoader.item) _toolTipLoader.item.cancelTimers()
         _toolTipTimersCanceled()
     }
 
@@ -100,9 +98,6 @@ Item {
         return name !== "_background" &&
                name !== "_toolTipLoader" &&
                name !== "_hoverAreaLoader" &&
-               name !== "_showTimerLoader" &&
-               name !== "_hideTimerLoader" &&
-               name !== "_autoHideTimerLoader" &&
                name !== "_centerChildrenDelayed"
     }
 
@@ -268,6 +263,20 @@ Item {
                 _toolTip.enter = enterTransition
                 _toolTip.exit = exitTransition
             }
+            function startShowTimer() {
+                _showTimer.start()
+            }
+            function stopShowTimer() {
+                _showTimer.stop()
+            }
+            function startHideTimer() {
+                _hideTimer.start()
+            }
+            function cancelTimers() {
+                _showTimer.stop()
+                _hideTimer.stop()
+                _autoHideTimer.stop()
+            }
             function _doOpen() {
                 if (!_pendingShow) return
                 _toolTip.open()
@@ -334,6 +343,30 @@ Item {
                 font.pixelSize: Enums.typography.caption
                 font.family: Enums.fontFamily
             }
+
+            Timer {
+                id: _showTimer
+                interval: widget.toolTipShowDelay
+                onTriggered: {
+                    if (!_hoverAreaLoader.item || !_hoverAreaLoader.item._showScheduled) return
+                    widget.showToolTip()
+                    if (widget.toolTipDuration > 0) {
+                        _autoHideTimer.interval = widget.toolTipDuration
+                        _autoHideTimer.start()
+                    }
+                }
+            }
+
+            Timer {
+                id: _hideTimer
+                interval: widget.toolTipHideDelay
+                onTriggered: _toolTip.hide()
+            }
+
+            Timer {
+                id: _autoHideTimer
+                onTriggered: _toolTip.hide()
+            }
         }
     }
 
@@ -358,53 +391,15 @@ Item {
 
             onEntered: {
                 _showScheduled = true
-                if (_showTimerLoader.item) _showTimerLoader.item.start()
+                if (_toolTipLoader.item) _toolTipLoader.item.startShowTimer()
             }
             onExited: {
                 _showScheduled = false
-                if (_showTimerLoader.item) _showTimerLoader.item.stop()
-                if (_hideTimerLoader.item) _hideTimerLoader.item.start()
-            }
-        }
-    }
-    
-    Loader {
-        id: _showTimerLoader
-        objectName: "_showTimerLoader"
-        active: widget.toolTipText !== ""
-
-        sourceComponent: Timer {
-            interval: widget.toolTipShowDelay
-            onTriggered: {
-                if (_hoverAreaLoader.item && _hoverAreaLoader.item._showScheduled) {
-                    widget.showToolTip()
-                    if (widget.toolTipDuration > 0 && _autoHideTimerLoader.item) {
-                        _autoHideTimerLoader.item.interval = widget.toolTipDuration
-                        _autoHideTimerLoader.item.start()
-                    }
+                if (_toolTipLoader.item) {
+                    _toolTipLoader.item.stopShowTimer()
+                    _toolTipLoader.item.startHideTimer()
                 }
             }
-        }
-    }
-    
-    Loader {
-        id: _hideTimerLoader
-        objectName: "_hideTimerLoader"
-        active: widget.toolTipText !== ""
-
-        sourceComponent: Timer {
-            interval: widget.toolTipHideDelay
-            onTriggered: if (_toolTipLoader.item) _toolTipLoader.item.hide()
-        }
-    }
-    
-    Loader {
-        id: _autoHideTimerLoader
-        objectName: "_autoHideTimerLoader"
-        active: widget.toolTipText !== ""
-
-        sourceComponent: Timer {
-            onTriggered: if (_toolTipLoader.item) _toolTipLoader.item.hide()
         }
     }
 }
