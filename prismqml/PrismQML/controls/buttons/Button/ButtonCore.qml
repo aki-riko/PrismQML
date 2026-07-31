@@ -8,6 +8,7 @@ import "../../../effects"
 import QtQuick.Effects
 import "../../utils"
 import "../../containers"
+import "ButtonStyle.js" as ButtonStyle
 
 // Button - Unified button component 统一按钮组件
 // Auto-detect type by icon/text content 根据图标/文本自动识别类型
@@ -84,30 +85,27 @@ Widget {
             (featureLoader.item.mainHovered || featureLoader.item.dropHovered)))
         : hovered
 
-    // Style helper 样式辅助
-    // 用具名 property 持有(而非匿名子项), 避免被 default property alias
-    // contentData(→customContentContainer.data) 的归属探测卷入。
-    // ButtonStyleHelper 是 QtObject(无 data 成员), 作为匿名子项时
-    // 编译器对每个按钮实例都报 "Cannot find member data" 警告并干扰加载。
-    readonly property ButtonStyleHelper styleHelper: ButtonStyleHelper {
-        style: control.style
-        level: control.level
-        controlEnabled: control.enabled
-        loading: control.loading
-        countdownActive: control._countdownActive
-        hovered: control.hovered
-        pressed: control.pressed
-        isToggleChecked: feature === Enums.button.feature_toggle && control.checked
-
-        onBgColorChanged: if (control._colorAnimationsReady) control._updateTargetColors()
-        onBorderColorChanged: if (control._colorAnimationsReady) control._updateTargetColors()
-    }
+    // Shared style calculations avoid one resident QtObject per button.
+    // 共享样式计算避免每个按钮常驻一个QtObject。
+    readonly property bool _styleEffectiveEnabled:
+        control.enabled && !control.loading && !control._countdownActive
+    readonly property bool _styleToggleChecked:
+        feature === Enums.button.feature_toggle && control.checked
+    readonly property var styleHelper: ButtonStyle.snapshot(
+        style, level, _styleEffectiveEnabled, hovered, pressed,
+        _styleToggleChecked, Enums.isNeobrutalism, Enums.button,
+        Enums.stateColor, Enums.textColor, Enums.statusLevel,
+        Enums.accentColor, Enums.cardColor, Enums.accentForeground,
+        Enums.transparent, Enums.opacityLevel, Enums.neo)
+    readonly property color _styleBgColor: styleHelper.bgColor
+    readonly property color _styleBorderColor: styleHelper.borderColor
+    readonly property color _styleTextColor: styleHelper.textColor
 
     // Appearance and animated colors 外观与动画颜色
     property int radius: shape === Enums.button.shape_pill ? height / 2
                          : (Enums.isNeobrutalism ? Enums.neo.radius
                             : (Enums.radius.small))
-    property color color: styleHelper.bgColor
+    property color color: _styleBgColor
 
     // Neobrutalism target press shift. Neo按压目标位移。
     readonly property real _neoPressTargetShift:
@@ -149,7 +147,7 @@ Widget {
     signal countdownFinished()
 
     // ==================== Public Methods 公开方法 ====================
-    function getTextColor() { return styleHelper.textColor }
+    function getTextColor() { return _styleTextColor }
 
     // Programmatic click 程序化点击
     function click() {
@@ -184,8 +182,8 @@ Widget {
     }
 
     function _updateTargetColors() {
-        var newBg = styleHelper.bgColor
-        var newBorder = styleHelper.borderColor
+        var newBg = _styleBgColor
+        var newBorder = _styleBorderColor
 
         if (pressed) {
             // During press: instant update 按下时：瞬间更新
@@ -301,10 +299,10 @@ Widget {
 
     Component.onCompleted: {
         // Initialize with current values (break binding) 用当前值初始化（打破绑定）
-        _animatedBgColor = styleHelper.bgColor
-        _animatedBorderColor = styleHelper.borderColor
-        _targetBgColor = styleHelper.bgColor
-        _targetBorderColor = styleHelper.borderColor
+        _animatedBgColor = _styleBgColor
+        _animatedBorderColor = _styleBorderColor
+        _targetBgColor = _styleBgColor
+        _targetBorderColor = _styleBorderColor
         _colorAnimationsReady = true
     }
 
@@ -313,8 +311,8 @@ Widget {
             // Instant press: stop any running animation and set directly 按下瞬间：停止动画直接设置
             bgColorAnim.stop()
             borderColorAnim.stop()
-            _animatedBgColor = styleHelper.bgColor
-            _animatedBorderColor = styleHelper.borderColor
+            _animatedBgColor = _styleBgColor
+            _animatedBorderColor = _styleBorderColor
         }
     }
 
@@ -331,6 +329,12 @@ Widget {
     // Watch hover changes directly for reliable updates 直接监听悬浮变化以确保可靠更新
     onHoveredChanged: {
         _updateTargetColors()
+    }
+    on_StyleBgColorChanged: {
+        if (_colorAnimationsReady) _updateTargetColors()
+    }
+    on_StyleBorderColorChanged: {
+        if (_colorAnimationsReady) _updateTargetColors()
     }
 
     on_ToolTipHoveredChanged: {
@@ -384,7 +388,7 @@ Widget {
         color: _animatedBgColor
         border.width: Enums.isNeobrutalism
             ? (flat ? 0 : Enums.neo.borderWidth)
-            : (((styleHelper.isToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin)))
+            : (((_styleToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin)))
         border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
 
         // Gradient (for gradient style) 渐变
@@ -539,7 +543,7 @@ Widget {
             parentRadius: control.radius
             fontSize: control.fontSize
             parentStyle: control.style
-            textColor: styleHelper.textColor
+            textColor: control._styleTextColor
             onMenuItemClicked: (index, text) => control.menuItemClicked(index, text)
             onMainButtonClicked: control.clicked()
             onMenuAboutToOpen: {
