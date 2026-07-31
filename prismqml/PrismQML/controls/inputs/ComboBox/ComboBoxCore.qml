@@ -55,6 +55,7 @@ Widget {
     property var _itemIconMap: ({})  // {index: icon}
     property var _itemEnabledMap: ({})  // {index: enabled}
     property var _methods: ComboBoxMethods
+    property bool _popupContentRequested: false
 
     // ==================== Readonly State 只读状态 ====================
     // Editable mode input focus state editable模式输入框聚焦状态
@@ -144,6 +145,7 @@ Widget {
         // Prevent duplicate open 防止重复打开
         if (isOpen) return
 
+        _popupContentRequested = true
         // Calculate popup width: max(content width, control width) 弹出宽度：取内容宽度和控件宽度的最大值
         var contentW = _calcContentWidth()
         comboPopup.popupWidth = Math.max(contentW, control.width)
@@ -182,6 +184,8 @@ Widget {
 
     // Calculate max content width from model items 根据model项计算最大内容宽度
     function _calcContentWidth() {
+        var comboTextMeasure = comboTextMeasureLoader.item
+        if (!comboTextMeasure) return 0
         var maxW = 0
         // Total horizontal padding: contentContainer margins(xs*2) + itemBg margins(xs*2) + text margins(l*2)
         // 总水平内边距：内容容器边距(xs*2) + 项背景边距(xs*2) + 文本边距(l*2)
@@ -360,7 +364,10 @@ Widget {
         hoverEnabled: true
         // 鼠标 hover 进入时预热 popup native window, 让随后的点击不卡 ~170ms
         onContainsMouseChanged: {
-            if (containsMouse && comboPopup.prewarm) comboPopup.prewarm()
+            if (containsMouse) {
+                control._popupContentRequested = true
+                if (comboPopup.prewarm) comboPopup.prewarm()
+            }
         }
         onClicked: {
             if (control.isOpen && !comboPopup.isClosing) {
@@ -392,10 +399,13 @@ Widget {
 
     // Content width measurement 内容宽度测量
     // TextMetrics to measure popup item text width 用TextMetrics测量弹出菜单项文本宽度
-    TextMetrics {
-        id: comboTextMeasure
-        font.family: Enums.fontFamily
-        font.pixelSize: Enums.typography.body
+    Loader {
+        id: comboTextMeasureLoader
+        active: control._popupContentRequested
+        sourceComponent: TextMetrics {
+            font.family: Enums.fontFamily
+            font.pixelSize: Enums.typography.body
+        }
     }
 
     // Popup window using unified base 使用统一基类的弹出窗口
@@ -415,6 +425,7 @@ Widget {
         
         Loader {
             anchors.fill: parent
+            active: control._popupContentRequested
             sourceComponent: control.popupContent
             
             onLoaded: {

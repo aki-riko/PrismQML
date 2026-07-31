@@ -355,6 +355,52 @@ def test_combo_box_core_default_placeholder_follows_runtime_language(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_combo_box_core_hover_prewarms_hidden_popup_content(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    try:
+        popup = _popup_core(combo)
+        descendants = _object_descendants(combo)
+        assert not combo.property("_popupContentRequested")
+        assert not any(
+            "TextMetrics" in item.metaObject().className()
+            for item in descendants
+        )
+        assert not any(
+            item.metaObject().className().startswith("ComboBoxPopupContent")
+            for item in descendants
+        )
+
+        hover_point = _local_point(
+            window, combo, combo.width() - 12, combo.height() / 2
+        )
+        QTest.mouseMove(window, hover_point)
+
+        assert _wait_for(lambda: combo.property("_popupContentRequested"))
+        assert _wait_for(lambda: popup.property("_prewarmed"))
+        descendants = _object_descendants(combo)
+        assert any(
+            "TextMetrics" in item.metaObject().className()
+            for item in descendants
+        )
+        assert any(
+            item.metaObject().className().startswith("ComboBoxPopupContent")
+            for item in descendants
+        )
+        assert not combo.property("isOpen")
+        assert not popup.property("isOpen")
+        assert _new_visible_windows(windows_before, window) == []
+        assert warnings == []
+    finally:
+        QTest.mouseMove(
+            window, QPoint(round(window.width() - 12), round(window.height() - 12))
+        )
+        _pump()
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_combo_box_core_popup_honors_height_icon_disabled_and_signals(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     scene = _create_scene()
