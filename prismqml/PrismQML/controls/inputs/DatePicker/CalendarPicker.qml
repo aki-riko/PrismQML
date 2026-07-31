@@ -63,9 +63,11 @@ Rectangle {
 
     // ==================== Internal Props 内部属性 ====================
     property bool _selectingStart: true  // Selecting start or end 选择开始或结束
+    property bool _popupContentRequested: false  // Defer popup content until hover/open 悬浮或打开时再创建弹层内容
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isRange: type === Enums.calendarPicker.type_range
+    readonly property var _calendarView: calendarContentLoader.item
     readonly property string displayDate: {
         if (_isRange) {
             return hasRange ? _formatDate(startDate) + Enums.calendarPicker.rangeSeparator + _formatDate(endDate) : placeholderText
@@ -84,20 +86,26 @@ Rectangle {
 
     // ==================== Public Methods 公开方法 ====================
     function openPopup() {
+        _popupContentRequested = true
+        var view = _calendarView
+        if (!view) {
+            Qt.callLater(control.openPopup)
+            return
+        }
         // Sync CalendarView with current date 同步日历视图到当前日期
         if (_isRange) {
-            calendarView.year = startDate.getFullYear()
-            calendarView.month = startDate.getMonth() + Enums.calendarPicker.monthMinimum
-            calendarView.day = Enums.calendarPicker.noSelectionDay
-            calendarView.rangeMode = true
-            calendarView.rangeStart = hasRange ? startDate : null
-            calendarView.rangeEnd = hasRange ? endDate : null
+            view.year = startDate.getFullYear()
+            view.month = startDate.getMonth() + Enums.calendarPicker.monthMinimum
+            view.day = Enums.calendarPicker.noSelectionDay
+            view.rangeMode = true
+            view.rangeStart = hasRange ? startDate : null
+            view.rangeEnd = hasRange ? endDate : null
             _selectingStart = true
         } else {
-            calendarView.year = control.year
-            calendarView.month = control.month
-            calendarView.day = control.hasDate ? control.day : Enums.calendarPicker.noSelectionDay
-            calendarView.rangeMode = false
+            view.year = control.year
+            view.month = control.month
+            view.day = control.hasDate ? control.day : Enums.calendarPicker.noSelectionDay
+            view.rangeMode = false
         }
 
         calPopup.popupWidth = Enums.controlSize.calendarPopupWidth
@@ -107,6 +115,12 @@ Rectangle {
     }
 
     function closePopup() { calPopup.close(); isOpen = false }
+
+    function _prewarmPopupContent() {
+        if (!enabled) return
+        _popupContentRequested = true
+        if (calPopup.prewarm) calPopup.prewarm()
+    }
 
     function setDate(y, m, d) {
         year = y
@@ -186,6 +200,9 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: control.enabled
         enabled: control.enabled
+        onContainsMouseChanged: {
+            if (containsMouse) control._prewarmPopupContent()
+        }
         onClicked: isOpen ? closePopup() : openPopup()
     }
 
@@ -202,56 +219,63 @@ Rectangle {
         MouseArea {
             anchors.fill: parent
             onWheel: function(wheel) {
+                var view = control._calendarView
+                if (!view) return
                 if (wheel.angleDelta.y > 0) {
-                    calendarView.prevMonth()
+                    view.prevMonth()
                 } else if (wheel.angleDelta.y < 0) {
-                    calendarView.nextMonth()
+                    view.nextMonth()
                 }
             }
         }
-        
+
         // Use CalendarPickerCore for calendar grid 使用CalendarPickerCore作为日历网格
-        CalendarPickerCore {
-            id: calendarView
+        Loader {
+            id: calendarContentLoader
             anchors.fill: parent
-            anchors.margins: Enums.spacing.m
-            accentColor: control.accentColor
-            weekDays: control.weekDays
-            monthFormat: control.monthFormat
-            
-            onDateChanged: function(y, m, d) {
-                if (!control._isRange) {
-                    control.year = y
-                    control.month = m
-                    control.day = d
-                    control.hasDate = true
-                    control.dateChanged(y, m, d)
-                    control.closePopup()
-                }
-            }
-            
-            onRangeDateClicked: function(clickedDate) {
-                if (!control._isRange) return
-                
-                if (control._selectingStart) {
-                    // First click: set start date 第一次点击：设置开始日期
-                    calendarView.rangeStart = clickedDate
-                    calendarView.rangeEnd = clickedDate
-                    control._selectingStart = false
-                } else {
-                    // Second click: set end date and close 第二次点击：设置结束日期并关闭
-                    if (clickedDate < calendarView.rangeStart) {
-                        calendarView.rangeEnd = calendarView.rangeStart
-                        calendarView.rangeStart = clickedDate
-                    } else {
-                        calendarView.rangeEnd = clickedDate
+            active: control._popupContentRequested
+            sourceComponent: CalendarPickerCore {
+                id: calendarView
+                anchors.fill: parent
+                anchors.margins: Enums.spacing.m
+                accentColor: control.accentColor
+                weekDays: control.weekDays
+                monthFormat: control.monthFormat
+
+                onDateChanged: function(y, m, d) {
+                    if (!control._isRange) {
+                        control.year = y
+                        control.month = m
+                        control.day = d
+                        control.hasDate = true
+                        control.dateChanged(y, m, d)
+                        control.closePopup()
                     }
-                    control.startDate = calendarView.rangeStart
-                    control.endDate = calendarView.rangeEnd
-                    control.hasRange = true
-                    control.rangeChanged(control.startDate, control.endDate)
-                    control._selectingStart = true
-                    control.closePopup()
+                }
+
+                onRangeDateClicked: function(clickedDate) {
+                    if (!control._isRange) return
+
+                    if (control._selectingStart) {
+                        // First click: set start date 第一次点击：设置开始日期
+                        calendarView.rangeStart = clickedDate
+                        calendarView.rangeEnd = clickedDate
+                        control._selectingStart = false
+                    } else {
+                        // Second click: set end date and close 第二次点击：设置结束日期并关闭
+                        if (clickedDate < calendarView.rangeStart) {
+                            calendarView.rangeEnd = calendarView.rangeStart
+                            calendarView.rangeStart = clickedDate
+                        } else {
+                            calendarView.rangeEnd = clickedDate
+                        }
+                        control.startDate = calendarView.rangeStart
+                        control.endDate = calendarView.rangeEnd
+                        control.hasRange = true
+                        control.rangeChanged(control.startDate, control.endDate)
+                        control._selectingStart = true
+                        control.closePopup()
+                    }
                 }
             }
         }

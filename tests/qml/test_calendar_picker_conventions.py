@@ -7,9 +7,19 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
+from PySide6.QtCore import (
+    QEventLoop,
+    QMetaObject,
+    QObject,
+    QPoint,
+    QPointF,
+    QTimer,
+    QUrl,
+)
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -65,11 +75,43 @@ Item {
 }
 """
 
+HOVER_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    width: 520
+    height: 320
+    visible: true
+
+    CalendarPicker {
+        id: picker
+        objectName: "picker"
+        x: 40
+        y: 40
+        year: 2026
+        month: 3
+        day: 4
+    }
+}
+"""
+
 
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _wait_for(predicate, timeout_ms: int = 1600) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 20
+    return predicate()
 
 
 def _create_scene():
@@ -127,6 +169,39 @@ def _calendar_popup(picker):
     )
 
 
+def _calendar_view(picker):
+    matches = [
+        child
+        for child in _descendants(picker)
+        if child.metaObject().className().startswith("CalendarPickerCore")
+    ]
+    assert len(matches) == 1, [child.metaObject().className() for child in matches]
+    return matches[0]
+
+
+def _create_hover_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(HOVER_SCENE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    picker = window.findChild(QQuickItem, "picker")
+    assert picker is not None
+    assert _wait_for(window.isExposed)
+    return engine, component, window, picker, warnings
+
+
 @pytest.fixture
 def calendar_scene(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
@@ -178,6 +253,78 @@ def test_calendar_picker_range_runtime_contract(calendar_scene):
     assert not picker.property("hasRange")
     assert picker.property("displayDate") == "选择日期范围"
     assert icon.property("opacity") == calendar_scene.property("secondaryOpacity")
+
+
+def test_calendar_picker_cold_open_loads_and_syncs_popup(calendar_scene):
+    picker = calendar_scene.findChild(QObject, "single")
+    popup = _calendar_popup(picker)
+    assert not picker.property("_popupContentRequested")
+    assert not any(
+        child.metaObject().className().startswith("CalendarPickerCore")
+        for child in _descendants(picker)
+    )
+
+    assert QMetaObject.invokeMethod(picker, "openPopup")
+    assert _wait_for(lambda: picker.property("isOpen"))
+    view = _calendar_view(picker)
+    assert (view.property("year"), view.property("month"), view.property("day")) == (
+        2026,
+        3,
+        4,
+    )
+    assert not view.property("rangeMode")
+    assert QMetaObject.invokeMethod(picker, "closePopup")
+    assert _wait_for(
+        lambda: not picker.property("isOpen")
+        and not popup.property("isOpen")
+        and not popup.property("isClosing")
+    )
+
+
+def test_calendar_picker_hover_prewarms_without_opening(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, picker, warnings = _create_hover_scene()
+    try:
+        popup = _calendar_popup(picker)
+        assert not picker.property("_popupContentRequested")
+        assert not any(
+            child.metaObject().className().startswith("CalendarPickerCore")
+            for child in _descendants(picker)
+        )
+
+        QTest.mouseMove(window, QPoint(window.width() - 12, window.height() - 12))
+        _pump()
+        point = picker.mapToItem(
+            window.contentItem(), QPointF(picker.width() / 2, picker.height() / 2)
+        )
+        QTest.mouseMove(window, point.toPoint())
+
+        assert _wait_for(lambda: picker.property("_popupContentRequested"))
+        assert _wait_for(lambda: popup.property("_prewarmed"))
+        _calendar_view(picker)
+        assert not picker.property("isOpen")
+        assert not popup.property("isOpen")
+        assert [
+            item
+            for item in QGuiApplication.topLevelWindows()
+            if item.isVisible()
+            and item is not window
+            and not any(item is existing for existing in windows_before)
+        ] == []
+        assert warnings == []
+    finally:
+        picker.closePopup()
+        window.close()
+        window.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump()
+        assert [
+            item
+            for item in QGuiApplication.topLevelWindows()
+            if item.isVisible()
+            and not any(item is existing for existing in windows_before)
+        ] == []
 
 
 def test_calendar_picker_source_conventions():
