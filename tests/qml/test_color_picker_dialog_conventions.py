@@ -163,6 +163,17 @@ def _dialog_content_column(dialog, expected_width):
     return matches[0]
 
 
+def _trigger_button(picker):
+    matches = [
+        item
+        for item in _visual_descendants(picker)
+        if item.metaObject().className().startswith("ButtonCore")
+        and item.metaObject().indexOfProperty("dropdownOpen") >= 0
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 def _open_dialog(picker, window):
     assert QMetaObject.invokeMethod(picker, "open")
     assert _wait_for(lambda: picker.property("popupVisible"))
@@ -273,6 +284,43 @@ def _new_visible_windows(windows_before, root_window):
         if window.isVisible()
         and shiboken6.getCppPointer(window)[0] not in excluded
     ]
+
+
+def test_color_picker_dialog_hover_prewarms_hidden_content(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, picker, warnings = _create_scene()
+    try:
+        QTest.mouseMove(
+            window, QPoint(round(window.width() - 12), round(window.height() - 12))
+        )
+        _pump()
+        picker.setProperty("_dialogRequested", False)
+        _pump()
+        assert not picker.property("_dialogRequested")
+        assert not any(
+            item.metaObject().className().startswith("ColorPickerDialog")
+            for item in _visual_descendants(picker)
+        )
+        trigger = _trigger_button(picker)
+        point = trigger.mapToItem(
+            window.contentItem(), QPointF(trigger.width() / 2, trigger.height() / 2)
+        )
+        QTest.mouseMove(window, point.toPoint())
+
+        assert _wait_for(lambda: picker.property("_dialogRequested"))
+        assert any(
+            item.metaObject().className().startswith("ColorPickerDialog")
+            for item in _visual_descendants(picker)
+        )
+        assert not picker.property("popupVisible")
+        assert _new_visible_windows(windows_before, window) == []
+        assert warnings == []
+    finally:
+        QTest.mouseMove(
+            window, QPoint(round(window.width() - 12), round(window.height() - 12))
+        )
+        _pump()
+        _dispose_scene(engine, component, window, picker)
 
 
 def test_color_picker_dialog_preserves_public_parent_geometry(qapp):

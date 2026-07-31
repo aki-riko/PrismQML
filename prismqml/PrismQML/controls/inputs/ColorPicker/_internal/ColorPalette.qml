@@ -50,6 +50,7 @@ Item {
     // ==================== Signals 信号 ====================
     signal colorSelected(color value)
     signal moreColorsClicked()
+    signal moreColorsPrewarmRequested()
 
     // ==================== Internal Methods 内部方法 ====================
     function _colorsOrEmpty(value) {
@@ -242,6 +243,9 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 enabled: control.enabled
+                onContainsMouseChanged: {
+                    if (containsMouse) control.moreColorsPrewarmRequested()
+                }
                 onClicked: control.moreColorsClicked()
             }
         }

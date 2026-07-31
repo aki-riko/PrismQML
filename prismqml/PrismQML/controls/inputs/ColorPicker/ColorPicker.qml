@@ -56,6 +56,9 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     property bool _isOpen: false
+    property bool _dialogRequested: false
+    property bool _paletteDialogRequested: false
+    property bool _popupContentRequested: false
     property var _mainWindow: Window.window  // Main window reference for ColorDialog 主窗口引用
 
     // ==================== Readonly State 只读状态 ====================
@@ -73,6 +76,7 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     function open() {
         if (type === Enums.colorPicker.type_dialog) {
+            _dialogRequested = true
             // Set overlay target before opening 打开前设置覆盖目标
             if (dialogLoader.item) {
                 dialogLoader.item.overlayTarget = control.parent
@@ -81,6 +85,7 @@ Item {
             _isOpen = true
         } else if (type === Enums.colorPicker.type_palette ||
                    type === Enums.colorPicker.type_picker) {
+            _popupContentRequested = true
             popup.openAtControl(control)
             _isOpen = true
         }
@@ -98,13 +103,25 @@ Item {
     function _preparePopup() {
         if (type === Enums.colorPicker.type_palette ||
                 type === Enums.colorPicker.type_picker) {
+            _popupContentRequested = true
             _isOpen = true
+        }
+    }
+
+    function _prewarmTriggerContent() {
+        if (!enabled) return
+        if (type === Enums.colorPicker.type_dialog) {
+            _dialogRequested = true
+        } else if (type === Enums.colorPicker.type_palette ||
+                   type === Enums.colorPicker.type_picker) {
+            _popupContentRequested = true
         }
     }
 
     // Open ColorDialog from palette "自定义颜色" button 从调色板"自定义颜色"按钮打开
     function _openPaletteDialog() {
         if (_mainWindow && _mainWindow.contentItem) {
+            _paletteDialogRequested = true
             paletteDialogLoader.parent = _mainWindow.contentItem
             paletteDialogLoader.anchors.fill = _mainWindow.contentItem
             if (paletteDialogLoader.item) {
@@ -166,6 +183,9 @@ Item {
             menu: control.type === Enums.colorPicker.type_palette ||
                   control.type === Enums.colorPicker.type_picker ? popup : null
             onMenuAboutToOpen: control._preparePopup()
+            onHoveredChanged: {
+                if (hovered) control._prewarmTriggerContent()
+            }
             onClicked: {
                 // Prevent reopen during closing animation 防止关闭动画期间重新打开
                 if (popup.isClosing) return
@@ -302,7 +322,8 @@ Item {
         // Palette content 调色板内容
         Loader {
             anchors.fill: parent
-            active: control.type === Enums.colorPicker.type_palette && control._isOpen
+            active: control.type === Enums.colorPicker.type_palette &&
+                    (control._isOpen || control._popupContentRequested)
             sourceComponent: ColorPalette {
                 selectedColor: control.selectedColor
                 showAutomatic: control.showAutomatic
@@ -323,13 +344,15 @@ Item {
                     control.moreColorsClicked()
                     control._openPaletteDialog()  // Open ColorDialog 打开颜色对话框
                 }
+                onMoreColorsPrewarmRequested: control._paletteDialogRequested = true
             }
         }
         
         // Picker content 选择器内容
         Loader {
             anchors.fill: parent
-            active: control.type === Enums.colorPicker.type_picker && control._isOpen
+            active: control.type === Enums.colorPicker.type_picker &&
+                    (control._isOpen || control._popupContentRequested)
             sourceComponent: ColorPickerDropdown {
                 selectedColor: control.selectedColor
                 colorMode: control.colorMode
@@ -357,7 +380,8 @@ Item {
     // Palette color-dialog loader 调色板颜色对话框加载器
     Loader {
         id: paletteDialogLoader
-        active: control.type === Enums.colorPicker.type_palette
+        active: control.type === Enums.colorPicker.type_palette &&
+                control._paletteDialogRequested
         sourceComponent: ColorPickerDialog {
             title: { Translator._v; return Translator.tr("custom_color") }
             selectedColor: control.selectedColor
@@ -371,7 +395,8 @@ Item {
     // Modal dialog loader 模态对话框加载器
     Loader {
         id: dialogLoader
-        active: control.type === Enums.colorPicker.type_dialog
+        active: control.type === Enums.colorPicker.type_dialog &&
+                control._dialogRequested
         sourceComponent: ColorPickerDialog {
             selectedColor: control.selectedColor
             title: control.dialogTitle

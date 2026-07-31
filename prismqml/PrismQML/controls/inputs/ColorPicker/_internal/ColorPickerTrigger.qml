@@ -15,6 +15,9 @@ Item {
     property color selectedColor: Enums.colorPickerDefaults.defaultColor
     property bool isOpen: false
     property var menu: null
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool hovered: btn.hovered
     
     // ==================== Signals 信号 ====================
     signal clicked()

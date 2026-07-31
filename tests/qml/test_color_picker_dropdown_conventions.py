@@ -261,6 +261,43 @@ def _action_button(dropdown, icon):
     return matches[0]
 
 
+def test_color_picker_dropdown_hover_prewarms_hidden_content(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, picker, warnings = _create_scene()
+    try:
+        popup_core = _popup_core(picker)
+        assert not picker.property("_popupContentRequested")
+        assert not any(
+            item.metaObject().className().startswith("ColorPickerDropdown")
+            for item in picker.findChildren(QQuickItem)
+        )
+        trigger = _trigger_button(picker, window.property("dropdownFeature"))
+        QTest.mouseMove(
+            window, QPoint(round(window.width() - 12), round(window.height() - 12))
+        )
+        _pump()
+        point = trigger.mapToItem(
+            window.contentItem(), QPointF(trigger.width() / 2, trigger.height() / 2)
+        )
+        QTest.mouseMove(window, point.toPoint())
+
+        assert _wait_for(lambda: picker.property("_popupContentRequested"))
+        assert _wait_for(lambda: popup_core.property("_prewarmed"))
+        assert any(
+            item.metaObject().className().startswith("ColorPickerDropdown")
+            for item in picker.findChildren(QQuickItem)
+        )
+        assert not picker.property("popupVisible")
+        assert _new_visible_windows(windows_before, window) == []
+        assert warnings == []
+    finally:
+        QTest.mouseMove(
+            window, QPoint(round(window.width() - 12), round(window.height() - 12))
+        )
+        _pump()
+        _dispose_scene(engine, component, window, picker)
+
+
 def _trigger_button(picker, feature):
     matches = [
         item
