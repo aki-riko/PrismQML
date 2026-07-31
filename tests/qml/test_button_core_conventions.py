@@ -538,6 +538,32 @@ def test_button_core_double_click_preserves_both_click_activations(qapp):
         _pump(1)
 
 
+def test_button_core_main_mouse_area_drives_hover_state(qapp):
+    engine, component, window, warnings = _create_click_scene()
+    try:
+        button = _button(window, "rapidClickButton")
+        center = button.mapToScene(
+            QPointF(button.width() / 2, button.height() / 2)
+        ).toPoint()
+
+        QTest.mouseMove(window, QPoint(window.width() - 1, window.height() - 1))
+        _pump(20)
+        QTest.mouseMove(window, center)
+        _pump(20)
+        assert button.property("hovered")
+
+        QTest.mouseMove(window, QPoint(window.width() - 2, 1))
+        _pump(20)
+        assert not button.property("hovered")
+        assert warnings == []
+    finally:
+        window.close()
+        window.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_button_core_feature_loader_lifecycle(button_core_scene):
     root, warnings, windows_before = button_core_scene
     button = _button(root, "lifecycleButton")

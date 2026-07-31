@@ -75,7 +75,8 @@ Widget {
     // Interaction state 交互状态
     property bool pseudoHovered: false
     property bool pseudoPressed: false
-    property bool hovered: feature === Enums.button.feature_split ? false : (hoverHandler.hovered || pseudoHovered)
+    property bool hovered: feature === Enums.button.feature_split
+                           ? false : (mouseArea.containsMouse || pseudoHovered)
     property bool pressed: feature === Enums.button.feature_split ? false : ((mouseArea && mouseArea.pressed) || pseudoPressed)
     readonly property bool _toolTipHovered: feature === Enums.button.feature_split
         ? (pseudoHovered || (dropdownFeature.item &&
@@ -250,7 +251,7 @@ Widget {
     function _retryMenuPrewarm() {
         var splitArrowHovered = feature === Enums.button.feature_split &&
             dropdownFeature.item && dropdownFeature.item.dropHovered
-        if (activeFocus || hoverHandler.hovered || splitArrowHovered) {
+        if (activeFocus || mouseArea.containsMouse || splitArrowHovered) {
             _prewarmMenu()
         }
     }
@@ -336,13 +337,6 @@ Widget {
     on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
-    HoverHandler {
-        id: hoverHandler
-        enabled: control.enabled && !control.loading && !control._countdownActive &&
-                 feature !== Enums.button.feature_split
-        onHoveredChanged: if (hovered) control._prewarmMenu()
-    }
-
     Loader {
         id: _menuPrewarmRetryTimer
         active: control._hasMenuFeature
@@ -604,6 +598,9 @@ Widget {
             control.buttonPressed()
         }
         onReleased: control.released()
+        onContainsMouseChanged: {
+            if (containsMouse) control._prewarmMenu()
+        }
         onDoubleClicked: (mouse) => {
             // Replay the suppressed second activation before forwarding the double-click signal 重放被抑制的第二次激活，再转发双击信号
             clicked(mouse)
@@ -619,7 +616,7 @@ Widget {
                 feature === Enums.button.feature_dropdown
         onLoaded: {
             if (control.activeFocus ||
-                    (feature === Enums.button.feature_dropdown && hoverHandler.hovered)) {
+                    (feature === Enums.button.feature_dropdown && mouseArea.containsMouse)) {
                 control._prewarmMenu()
             }
         }
