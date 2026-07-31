@@ -7,7 +7,7 @@
 import pytest
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtQuick import QQuickWindow
+from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from _button_dropdown_prewarm_support import (
@@ -17,6 +17,7 @@ from _button_dropdown_prewarm_support import (
     _click,
     _click_popup_item,
     _create_scene,
+    _descendants,
     _dispose_scene,
     _dropdown_popup,
     _invoke,
@@ -59,6 +60,49 @@ def _use_qt_popup_window(popup):
     popup.setProperty("useQtPopupWindow", True)
     assert not popup.property("useInWindowPopup")
     assert popup.property("useQtPopupWindow")
+
+
+def test_feature_loader_switch_keeps_menu_state_binding_typed(dropdown_scene):
+    root, window, warnings, _windows_before = dropdown_scene
+    button = _button(root, "dropdownButton")
+    dropdown = _button_dropdown(button)
+    popup = _dropdown_popup(dropdown)
+    popup.setProperty("useQtPopupWindow", False)
+    popup.setProperty("useInWindowPopup", True)
+    _invoke(dropdown, "openMenu")
+    assert _wait_for(lambda: popup.property("isOpen"))
+
+    button.setProperty("feature", root.property("featureProgress"))
+    _pump(50)
+
+    assert [
+        child
+        for child in _descendants(button)
+        if child.metaObject().indexOfProperty("_progressColor") >= 0
+    ]
+    assert [
+        child
+        for child in window.findChildren(QQuickItem, "_popupSurface")
+        if child.isVisible()
+    ] == []
+
+    button.setProperty("feature", root.property("featureSplit"))
+    _pump(50)
+    split_dropdown = _button_dropdown(button)
+    assert split_dropdown.property("feature") == root.property("featureSplit")
+    assert warnings == []
+
+    button.setProperty("feature", root.property("featureDropdown"))
+    _pump(50)
+    reopened_dropdown = _button_dropdown(button)
+    reopened_popup = _dropdown_popup(reopened_dropdown)
+    reopened_popup.setProperty("useQtPopupWindow", False)
+    reopened_popup.setProperty("useInWindowPopup", True)
+    _invoke(reopened_dropdown, "openMenu")
+    assert _wait_for(lambda: reopened_popup.property("isOpen"))
+    _invoke(reopened_popup, "forceReset")
+
+    assert warnings == []
 
 
 def test_dropdown_defaults_to_qt_popup_window(dropdown_scene):

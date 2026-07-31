@@ -81,8 +81,8 @@ Widget {
                            ? false : (mouseArea.containsMouse || pseudoHovered)
     property bool pressed: feature === Enums.button.feature_split ? false : ((mouseArea && mouseArea.pressed) || pseudoPressed)
     readonly property bool _toolTipHovered: feature === Enums.button.feature_split
-        ? (pseudoHovered || (dropdownFeature.item &&
-            (dropdownFeature.item.mainHovered || dropdownFeature.item.dropHovered)))
+        ? (pseudoHovered || (featureLoader.item &&
+            (featureLoader.item.mainHovered || featureLoader.item.dropHovered)))
         : hovered
 
     // Style helper 样式辅助
@@ -241,14 +241,14 @@ Widget {
                              feature === Enums.button.feature_split
         if (hasMenuFeature && enabled && !loading &&
                 (menu !== null && menu !== undefined || _safeMenuItems.length > 0) &&
-                dropdownFeature.item) {
-            dropdownFeature.item.prewarmMenu()
+                featureLoader.item) {
+            featureLoader.item.prewarmMenu()
         }
     }
 
     function _retryMenuPrewarm() {
         var splitArrowHovered = feature === Enums.button.feature_split &&
-            dropdownFeature.item && dropdownFeature.item.dropHovered
+            featureLoader.item && featureLoader.item.dropHovered
         if (activeFocus || mouseArea.containsMouse || splitArrowHovered) {
             _prewarmMenu()
         }
@@ -473,7 +473,9 @@ Widget {
 
         sourceComponent: ChevronIcon {
             animated: true
-            isOpen: control.dropdownOpen || (dropdownFeature.item ? dropdownFeature.item.isMenuOpen : false)
+            isOpen: control.dropdownOpen ||
+                    (control._hasMenuFeature && featureLoader.item
+                     ? featureLoader.item.isMenuOpen : false)
             color: !control.enabled ? Enums.stateColor.indicatorActive :
                    (parent._useAccentForeground ? Enums.accentForeground : Enums.textColor.secondary)
         }
@@ -528,15 +530,47 @@ Widget {
         }
     }
 
-    // Progress and toggle visuals are mutually exclusive. 进度与切换视觉层互斥。
+    Component {
+        id: dropdownComponent
+
+        ButtonDropdown {
+            isToolButton: control.isToolButton
+            feature: control.feature
+            menuItems: control._safeMenuItems
+            menu: control.menu
+            controlEnabled: control.enabled
+            loading: control.loading
+            parentRadius: control.radius
+            fontSize: control.fontSize
+            parentStyle: control.style
+            textColor: styleHelper.textColor
+            onMenuItemClicked: (index, text) => control.menuItemClicked(index, text)
+            onMainButtonClicked: control.clicked()
+            onMenuAboutToOpen: {
+                control._dismissToolTipForMenu()
+                control.menuAboutToOpen()
+            }
+        }
+    }
+
+    // Menu, progress, and toggle features are mutually exclusive. 菜单、进度与切换功能互斥。
     Loader {
-        id: featureVisualLoader
+        id: featureLoader
         anchors.fill: parent
-        active: control._hasFeatureVisual
+        active: control._hasFeatureVisual || control._hasMenuFeature
+        onLoaded: {
+            if (control._hasMenuFeature &&
+                    (control.activeFocus ||
+                     (feature === Enums.button.feature_dropdown && mouseArea.containsMouse))) {
+                control._prewarmMenu()
+            }
+        }
         sourceComponent: control._hasProgressBarFeature
                          ? progressFeatureComponent
                          : (feature === Enums.button.feature_toggle
-                            ? toggleFeatureComponent : null)
+                            ? toggleFeatureComponent
+                            : (control._hasMenuFeature
+                               ? dropdownComponent : null))
     }
 
     // Main interaction 主交互
@@ -555,7 +589,7 @@ Widget {
             if (feature === Enums.button.feature_dropdown &&
                     (control.menu !== null && control.menu !== undefined ||
                      control._safeMenuItems.length > 0)) {
-                if (dropdownFeature.item) dropdownFeature.item.openMenu()
+                if (featureLoader.item) featureLoader.item.openMenu()
                 return
             }
             if (feature === Enums.button.feature_countdown) {
@@ -578,38 +612,6 @@ Widget {
             // Replay the suppressed second activation before forwarding the double-click signal 重放被抑制的第二次激活，再转发双击信号
             clicked(mouse)
             control.doubleClicked()
-        }
-    }
-
-    // Dropdown feature 下拉模块
-    Loader {
-        id: dropdownFeature
-        anchors.fill: parent
-        active: feature === Enums.button.feature_split ||
-                feature === Enums.button.feature_dropdown
-        onLoaded: {
-            if (control.activeFocus ||
-                    (feature === Enums.button.feature_dropdown && mouseArea.containsMouse)) {
-                control._prewarmMenu()
-            }
-        }
-        sourceComponent: ButtonDropdown {
-            isToolButton: control.isToolButton
-            feature: control.feature
-            menuItems: control._safeMenuItems
-            menu: control.menu
-            controlEnabled: control.enabled
-            loading: control.loading
-            parentRadius: control.radius
-            fontSize: control.fontSize
-            parentStyle: control.style
-            textColor: styleHelper.textColor
-            onMenuItemClicked: (index, text) => control.menuItemClicked(index, text)
-            onMainButtonClicked: control.clicked()
-            onMenuAboutToOpen: {
-                control._dismissToolTipForMenu()
-                control.menuAboutToOpen()
-            }
         }
     }
 

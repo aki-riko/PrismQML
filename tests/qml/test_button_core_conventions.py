@@ -605,7 +605,8 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
 
 def test_button_core_merges_mutually_exclusive_feature_shells():
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
-    assert "id: featureVisualLoader" in source
+    assert "id: featureLoader" in source
+    assert "id: dropdownFeature" not in source
     assert "id: progressFeatureLoader" not in source
     assert "id: toggleAnimLoader" not in source
     assert "active: true" not in source
