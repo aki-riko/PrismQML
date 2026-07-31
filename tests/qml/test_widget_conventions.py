@@ -14,6 +14,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtTest import QTest
 
 from prismqml import register_types
+from prismqml.python.core.theme import ThemeManager
 from scripts.qml_conventions import scan_source_text
 
 
@@ -44,7 +45,7 @@ TOOLTIP_SUPPORT_SOURCE = TOOLTIP_POPUP_SOURCE.with_name("WidgetToolTipSupport.qm
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "widget-conventions.qml")
 )
-SCENE_SOURCE = b"""
+SCENE_SOURCE = """
 import QtQuick
 import PrismQML
 
@@ -116,6 +117,8 @@ Item {
 
     Button {
         id: button
+        objectName: "tooltipButton"
+        toolTipText: "上一首"
     }
 
     HintIcon {
@@ -126,7 +129,7 @@ Item {
         toolTipText: "Hint tooltip"
     }
 }
-"""
+""".encode("utf-8")
 
 
 def _pump(milliseconds: int = 10) -> None:
@@ -174,6 +177,22 @@ def widget_scene(qapp):
     engine, component, root = _create_scene()
     try:
         yield root, windows_before
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+@pytest.fixture
+def cpp_font_widget_scene(qapp, monkeypatch):
+    # Mirror the raw C++ ThemeManager fallback chain. 对齐 C++ ThemeManager 的原始字体回退链。
+    monkeypatch.setattr(
+        ThemeManager, "_resolved_font_family", ThemeManager.FONT_FAMILY
+    )
+    engine, component, root = _create_scene()
+    try:
+        yield root
     finally:
         root.deleteLater()
         del component
@@ -230,6 +249,33 @@ def test_widget_tooltip_defaults_and_hidden_window_behavior(widget_scene):
     assert root.property("defaultTooltipPosition") == root.property("topPosition")
     assert root.property("hintTooltipPosition") == root.property("rightPosition")
     assert _new_visible_windows(windows_before) == []
+
+
+def test_short_chinese_button_tooltip_stays_on_one_line(cpp_font_widget_scene):
+    root = cpp_font_widget_scene
+    window = QQuickWindow()
+    window.setWidth(320)
+    window.setHeight(240)
+    root.setParentItem(window.contentItem())
+    window.show()
+    _pump(20)
+    try:
+        button = root.findChild(QQuickItem, "tooltipButton")
+        assert button is not None
+        assert QMetaObject.invokeMethod(button, "showToolTip")
+        _pump(root.property("tooltipAnimationDuration") + 50)
+        tooltip = button.findChild(QObject, "_toolTip")
+        assert tooltip is not None
+        content_item = tooltip.property("contentItem")
+        assert content_item is not None
+        assert content_item.property("text") == "上一首"
+        assert content_item.property("lineCount") == 1
+        assert QMetaObject.invokeMethod(button, "hideToolTip")
+    finally:
+        root.setParentItem(None)
+        window.close()
+        window.deleteLater()
+        _pump(1)
 
 
 def test_hint_tooltip_uses_real_padding_and_right_position(widget_scene):
@@ -342,6 +388,10 @@ def test_widget_source_follows_conventions_and_uses_tooltip_tokens():
     assert "rightPadding: Enums.spacing.l" in popup_source
     assert "topPadding: Enums.spacing.xs" in popup_source
     assert "bottomPadding: Enums.spacing.xs" in popup_source
+    assert "readonly property int _tooltipTextWidth: Math.min(" in popup_source
+    assert "Math.ceil(_tooltipMetrics.advanceWidth)" in popup_source
+    assert popup_source.count("_tooltipTextWidth") == 3
+    assert "Math.min(_tooltipMetrics.width" not in popup_source
     assert "function _resolvedDirection(sourcePos, bounds)" in popup_source
     assert "WindowHelper.availableScreenGeometryAt(" in popup_source
     assert "desktopAvailableWidth" not in popup_source
