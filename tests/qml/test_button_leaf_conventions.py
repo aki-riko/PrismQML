@@ -130,7 +130,6 @@ Item {
             style: Enums.button.style_primary
             progress: 0.4
             showProgress: true
-            parentRadius: Enums.radius.small
         }
     }
 
@@ -384,6 +383,11 @@ def test_button_content_omits_unused_parent_state_bindings():
     source = BUTTON_SOURCES[3].read_text(encoding="utf-8")
     assert "required property bool controlEnabled" not in source
     assert "required property bool pressed" not in source
+
+
+def test_button_progress_omits_unused_parent_radius_binding():
+    source = BUTTON_SOURCES[2].read_text(encoding="utf-8")
+    assert "required property real parentRadius" not in source
 
 
 def test_button_content_reuses_one_feature_ring_loader(button_leaf_scene):

@@ -357,7 +357,7 @@ def _dropdown_modules(button):
 
 
 def _progress_modules(button):
-    return _matching(button, "_progressColor", "showProgress", "parentRadius")
+    return _matching(button, "_progressColor", "showProgress", "progress")
 
 
 def _set_feature(root, property_name):
@@ -384,7 +384,6 @@ def _assert_progress_bindings(button, progress):
     assert progress.property("feature") == button.property("feature")
     assert progress.property("progress") == pytest.approx(button.property("progress"))
     assert progress.property("showProgress") == button.property("showProgress")
-    assert progress.property("parentRadius") == button.property("radius")
 
 
 def _assert_initial_colors(root, button):

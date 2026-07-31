@@ -16,7 +16,6 @@ Item {
     required property int style
     required property real progress
     required property bool showProgress
-    required property real parentRadius
     
     // ==================== Readonly State 只读状态 ====================
     // Color helpers shared with the ButtonContent ring 与 ButtonContent 圆环一致的颜色辅助

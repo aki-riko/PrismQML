@@ -521,7 +521,6 @@ Widget {
                     style: control.style
                     progress: control.progress
                     showProgress: control.showProgress
-                    parentRadius: control.radius
                 }
             }
         }
