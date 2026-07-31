@@ -100,3 +100,53 @@ function updateSeries(seriesPoints, progress, baseline) {
     }
     return updateCount
 }
+
+function _lowerBoundX(points, targetX) {
+    var low = 0
+    var high = points.length
+    while (low < high) {
+        var middle = Math.floor((low + high) / 2)
+        if (points[middle].x < targetX) low = middle + 1
+        else high = middle
+    }
+    return low
+}
+
+function dirtyBounds(points, index, canvasWidth, canvasHeight, padding) {
+    if (!points || index < 0 || index >= points.length) return null
+    var left = Math.max(0, points[index].x - padding)
+    var right = Math.min(canvasWidth, points[index].x + padding)
+    return { x: left, y: 0, width: right - left, height: canvasHeight }
+}
+
+function unitedBounds(first, second) {
+    if (!first) return second
+    if (!second) return first
+    var left = Math.min(first.x, second.x)
+    var right = Math.max(first.x + first.width, second.x + second.width)
+    return {
+        x: left, y: 0, width: right - left,
+        height: Math.max(first.height, second.height)
+    }
+}
+
+function firstNonEmpty(seriesPoints) {
+    for (var index = 0; index < seriesPoints.length; index++) {
+        if (seriesPoints[index] && seriesPoints[index].length > 0) {
+            return seriesPoints[index]
+        }
+    }
+    return []
+}
+
+function paintRange(points, region, fullPaint, pathPadding) {
+    if (!points || fullPaint) {
+        return { start: 0, end: points ? points.length : 0 }
+    }
+    var start = _lowerBoundX(points, region.x - pathPadding)
+    var end = Math.min(
+        points.length,
+        _lowerBoundX(points, region.x + region.width + pathPadding)
+    )
+    return { start: start, end: end }
+}

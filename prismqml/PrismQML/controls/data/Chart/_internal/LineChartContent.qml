@@ -51,6 +51,9 @@ Item {
     property int _lastFramePointUpdateCount: 0
     property real _lineGeometryBaseline: 0
     property real _lastGeometryProgress: -1
+    property int _lastFramePointDrawCount: 0
+    property int _paintedHoverIndex: -1
+    property int _paintedHoverSeriesIndex: -1
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
@@ -228,7 +231,27 @@ Item {
         canvas.requestPaint()
     }
 
-    onHoveredIndexChanged: canvas.requestPaint()
+    function _requestHoverPaint() {
+        if (_lineGeometryDirty || (animated && canvas.animProgress < 1) ||
+                (isMultiSeries && hoveredSeriesIndex !== _paintedHoverSeriesIndex)) {
+            canvas.requestPaint()
+            return
+        }
+        var points = isMultiSeries
+            ? Geometry.firstNonEmpty(seriesPointPositions) : pointPositions
+        var padding = Enums.spacing.m
+        var previous = Geometry.dirtyBounds(
+            points, _paintedHoverIndex, width, height, padding
+        )
+        var current = Geometry.dirtyBounds(
+            points, hoveredIndex, width, height, padding
+        )
+        if (!previous && !current) return
+        var dirty = Geometry.unitedBounds(previous, current)
+        canvas.markDirty(Qt.rect(dirty.x, dirty.y, dirty.width, dirty.height))
+    }
+
+    onHoveredIndexChanged: _requestHoverPaint()
     // hoveredSeriesIndex does not repaint because vertical movement between series is frequent
     // hoveredSeriesIndex 不触发重绘，因为在多个系列之间垂直移动时会频繁切换
     // It only anchors the tooltip and does not affect the painted line or points
@@ -253,31 +276,35 @@ Item {
             return baselineY + (targetY - baselineY) * animProgress
         }
 
-        function paintSingleSeries(ctx) {
-            if (root.chartData.length < 2) return
+        function paintSingleSeries(ctx, region, fullPaint) {
+            if (root.chartData.length < 2) return 0
             
             var padding = Enums.spacing.m
             var chartHeight = height - padding * 2
             var points = root.pointPositions
+            var range = Geometry.paintRange(points, region, fullPaint, padding)
+            var pathPoints = fullPaint ? points : points.slice(range.start, range.end)
             
             if (root.isArea || root.showAreaGradient) {
-                Painter.drawAreaFill(ctx, points, root.primaryColor, padding + chartHeight, 
+                Painter.drawAreaFill(ctx, pathPoints, root.primaryColor, padding + chartHeight,
                     root.smoothLine, Enums.stateColor.chartFillMedium, Enums.stateColor.chartFillSubtle)
             }
-            Painter.drawLine(ctx, points, root.primaryColor, 2, root.smoothLine)
+            Painter.drawLine(ctx, pathPoints, root.primaryColor, 2, root.smoothLine)
             
-            for (var p = 0; p < points.length; p++) {
+            for (var p = range.start; p < range.end; p++) {
                 var hovered = (p === root.hoveredIndex)
                 Painter.drawSolidPoint(ctx, points[p].x, points[p].y, root.primaryColor, hovered, Enums.cardColor)
             }
+            return range.end - range.start
         }
         
-        function paintMultiSeries(ctx) {
+        function paintMultiSeries(ctx, region, fullPaint) {
             var seriesData = root.series
-            if (seriesData.length === 0) return
+            if (seriesData.length === 0) return 0
             
             var maxLen = root._lineGeometry.maxLength
-            if (maxLen < 2) return
+            if (maxLen < 2) return 0
+            var drawCount = 0
             
             var stepX = root.boundaryGap ? width / maxLen : width / (maxLen - 1)
             var startX = root.boundaryGap ? stepX / 2 : 0
@@ -296,13 +323,23 @@ Item {
                 for (var ai = seriesData.length - 1; ai >= 0; ai--) {
                     var areaPoints = allPoints[ai]
                     var areaColor = root.getSeriesColor(ai)
+                    var areaRange = Geometry.paintRange(
+                        areaPoints, region, fullPaint, Enums.spacing.m
+                    )
+                    var visibleArea = fullPaint ? areaPoints
+                        : areaPoints.slice(areaRange.start, areaRange.end)
                     
                     if (root.stacked) {
                         var prevPoints = ai < seriesData.length - 1 ? allPoints[ai + 1] : null
-                        Painter.drawStackedArea(ctx, areaPoints, prevPoints, areaColor, height, 
+                        var prevRange = Geometry.paintRange(
+                            prevPoints, region, fullPaint, Enums.spacing.m
+                        )
+                        var visiblePrev = !prevPoints || fullPaint ? prevPoints
+                            : prevPoints.slice(prevRange.start, prevRange.end)
+                        Painter.drawStackedArea(ctx, visibleArea, visiblePrev, areaColor, height,
                             root.smoothLine, Enums.stateColor.chartFillStrong)
                     } else if (root.showAreaGradient) {
-                        Painter.drawAreaGradient(ctx, areaPoints, areaColor, height, root.smoothLine,
+                        Painter.drawAreaGradient(ctx, visibleArea, areaColor, height, root.smoothLine,
                             Enums.stateColor.chartFillMedium, Enums.stateColor.chartFillLight, 
                             Enums.stateColor.chartFillFaint)
                     }
@@ -317,6 +354,11 @@ Item {
                 var lineColor = root.getSeriesColor(li)
                 var linePoints = allPoints[li]
                 var isLineSeriesHovered = (li === root.hoveredSeriesIndex)
+                var lineRange = Geometry.paintRange(
+                    linePoints, region, fullPaint, Enums.spacing.m
+                )
+                var visibleLine = fullPaint ? linePoints
+                    : linePoints.slice(lineRange.start, lineRange.end)
                 
                 // Draw average line 绘制平均线
                 if (root.showAverage && lineValues.length > 0) {
@@ -325,27 +367,47 @@ Item {
                     Painter.drawAverageLine(ctx, avgY, width, lineColor, Enums.stateColor.chartLineAlpha)
                 }
                 
-                Painter.drawLine(ctx, linePoints, lineColor, isLineSeriesHovered ? 2.5 : 2, root.smoothLine)
+                Painter.drawLine(ctx, visibleLine, lineColor,
+                                 isLineSeriesHovered ? 2.5 : 2, root.smoothLine)
                 
-                for (var p = 0; p < linePoints.length; p++) {
+                for (var p = lineRange.start; p < lineRange.end; p++) {
                     var hovered = (p === root.hoveredIndex)
                     Painter.drawHollowPoint(ctx, linePoints[p].x, linePoints[p].y, lineColor, hovered, Enums.cardColor)
                 }
+                drawCount += lineRange.end - lineRange.start
             }
+            return drawCount
         }
 
         anchors.fill: parent
 
-        onPaint: {
+        onPaint: (region) => {
             var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
+            var fullPaint = root._lineGeometryDirty || !region ||
+                    (region.x <= 0 && region.y <= 0 &&
+                     region.width >= width && region.height >= height)
+            if (fullPaint) ctx.clearRect(0, 0, width, height)
+            else ctx.clearRect(region.x, region.y, region.width, region.height)
             root._updateAnimatedLineGeometry(root.animated ? animProgress : 1)
+            if (!fullPaint) {
+                ctx.save()
+                ctx.beginPath()
+                ctx.rect(region.x, region.y, region.width, region.height)
+                ctx.clip()
+            }
 
             if (root.isMultiSeries) {
-                paintMultiSeries(ctx)
+                root._lastFramePointDrawCount = paintMultiSeries(
+                    ctx, region, fullPaint
+                )
             } else {
-                paintSingleSeries(ctx)
+                root._lastFramePointDrawCount = paintSingleSeries(
+                    ctx, region, fullPaint
+                )
             }
+            if (!fullPaint) ctx.restore()
+            root._paintedHoverIndex = root.hoveredIndex
+            root._paintedHoverSeriesIndex = root.hoveredSeriesIndex
         }
 
         Component.onCompleted: {
