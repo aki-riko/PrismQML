@@ -109,7 +109,14 @@ Widget {
     property color color: styleHelper.bgColor
 
     // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
-    readonly property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat) ? Enums.neo.pressOffset : 0
+    property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat)
+                                   ? Enums.neo.pressOffset : 0
+    Behavior on _neoPressShift {
+        NumberAnimation {
+            duration: Enums.duration.fast
+            easing.type: Easing.OutCubic
+        }
+    }
     readonly property int _spectralEdgeInset: Math.min(radius, Math.max(Enums.spacing.none, width / 2 - Enums.spacing.xs))
     readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
                                             feature === Enums.button.feature_split
@@ -363,18 +370,6 @@ Widget {
         id: neoPressTransform
         x: control._neoPressShift
         y: control._neoPressShift
-        Behavior on x {
-            NumberAnimation {
-                duration: Enums.duration.fast
-                easing.type: Easing.OutCubic
-            }
-        }
-        Behavior on y {
-            NumberAnimation {
-                duration: Enums.duration.fast
-                easing.type: Easing.OutCubic
-            }
-        }
     }
 
     // Shadow layer 阴影层

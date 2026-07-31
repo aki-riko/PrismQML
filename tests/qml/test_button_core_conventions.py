@@ -483,7 +483,7 @@ def test_gradient_buttons_share_theme_bound_resource(button_core_scene):
     assert _new_visible_windows(windows_before) == []
 
 
-def test_button_core_shares_neo_press_transform(button_core_scene):
+def test_button_core_shares_neo_press_transform_and_animation(button_core_scene):
     root, warnings, windows_before = button_core_scene
     button = _button(root, "lifecycleButton")
     descendants = _descendants(button)
@@ -499,7 +499,11 @@ def test_button_core_shares_neo_press_transform(button_core_scene):
     ]
 
     assert len(transforms) == 1
-    assert len(behaviors) == 2
+    assert len(behaviors) == 1
+    assert button.setProperty("_neoPressShift", 4.0)
+    _pump(250)
+    assert transforms[0].property("x") == pytest.approx(4.0)
+    assert transforms[0].property("y") == pytest.approx(4.0)
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 
