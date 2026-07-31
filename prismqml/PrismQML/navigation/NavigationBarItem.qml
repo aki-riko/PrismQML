@@ -179,16 +179,18 @@ Item {
         }
     }
 
-    DataControls.Badge {
-        id: badge
-
-        objectName: "navigationBadge_" + control.text
+    Loader {
         anchors.left: iconContainer.horizontalCenter
         anchors.leftMargin: Enums.spacing.xxs
         anchors.top: iconContainer.top
         anchors.topMargin: -Enums.spacing.xs
-        count: Math.max(0, control.badgeCount)
-        level: Enums.statusLevel.error
+        active: control.badgeCount > 0
+
+        sourceComponent: DataControls.Badge {
+            objectName: "navigationBadge_" + control.text
+            count: Math.max(0, control.badgeCount)
+            level: Enums.statusLevel.error
+        }
     }
     
     // Text 文字
@@ -211,20 +213,24 @@ Item {
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
     }
 
-    DataControls.Marquee {
-        id: marqueeLabel
+    Loader {
         anchors.horizontalCenter: parent.horizontalCenter
         y: label.y
         width: label.width
         height: label.height
-        text: control.text
-        running: control._showMarqueeLabel
-        pauseDuration: Enums.duration.none
-        speed: Enums.motion.navigationTitleMarqueeSpeed
-        labelType: Enums.label.type_caption
-        fontPixelSize: Enums.typography.captionCompact
-        customTextColor: control._navItemContentColor
-        visible: control._showMarqueeLabel
+        active: control._labelOverflowing
+
+        sourceComponent: DataControls.Marquee {
+            anchors.fill: parent
+            text: control.text
+            running: control._showMarqueeLabel
+            pauseDuration: Enums.duration.none
+            speed: Enums.motion.navigationTitleMarqueeSpeed
+            labelType: Enums.label.type_caption
+            fontPixelSize: Enums.typography.captionCompact
+            customTextColor: control._navItemContentColor
+            visible: control._showMarqueeLabel
+        }
     }
     
     // Mouse interaction 鼠标交互

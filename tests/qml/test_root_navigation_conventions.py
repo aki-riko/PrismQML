@@ -564,6 +564,39 @@ def test_navigation_bar_item_long_title_elides_then_scrolls_on_hover(qapp):
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
+def test_navigation_bar_item_creates_badge_only_for_positive_count(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_long_title_scene()
+    engine, component, window, nav_item, warnings = scene
+    badge_name = "navigationBadge_Navigation Settings"
+    try:
+        assert not any(
+            item.objectName() == badge_name for item in _descendants(nav_item)
+        )
+
+        assert nav_item.setProperty("badgeCount", 7)
+        assert _wait_for(
+            lambda: any(
+                item.objectName() == badge_name for item in _descendants(nav_item)
+            )
+        )
+        badge = _object_named(nav_item, badge_name)
+        assert badge.property("count") == 7
+        assert badge.isVisible()
+
+        assert nav_item.setProperty("badgeCount", 0)
+        assert _wait_for(
+            lambda: not any(
+                item.objectName() == badge_name for item in _descendants(nav_item)
+            )
+        )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
 def test_root_navigation_sources_follow_conventions():
     violations = []
     for source_path in ROOT_NAV_SOURCE_PATHS:
