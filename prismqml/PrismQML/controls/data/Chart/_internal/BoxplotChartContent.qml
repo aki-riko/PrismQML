@@ -32,6 +32,15 @@ Item {
     property int hoveredIndex: -1
     property color boxColor: Enums.accentColor
 
+    // ==================== Internal Props 内部属性 ====================
+    property var _boxGeometry: []
+    property bool _boxGeometryDirty: true
+    property int _boxGeometryBuildCount: 0
+    property int _lastFramePointUpdateCount: 0
+    property real _boxGeometryGroupSize: 0
+    property real _boxGeometrySize: 0
+    property real _lastGeometryProgress: -1
+
     // ==================== Readonly State 只读状态 ====================
     readonly property int dataLength: boxplotData.length
     readonly property var valueRange: {
@@ -81,9 +90,79 @@ Item {
                isFinite(item.median) && isFinite(item.q3) && isFinite(item.max)
     }
 
+    function _buildBoxGeometryItem(index) {
+        var item = boxplotData[index]
+        if (!_isValidBoxplot(item)) return null
+        var outlierFinalPositions = []
+        var outlierPositions = []
+        var outliers = item.outliers || []
+        for (var outlierIndex = 0; outlierIndex < outliers.length; outlierIndex++) {
+            outlierFinalPositions.push(valueToPosition(outliers[outlierIndex]))
+            outlierPositions.push(0)
+        }
+        return {
+            center: (index + 0.5) * _boxGeometryGroupSize,
+            minFinal: valueToPosition(item.min), q1Final: valueToPosition(item.q1),
+            medianFinal: valueToPosition(item.median), q3Final: valueToPosition(item.q3),
+            maxFinal: valueToPosition(item.max),
+            minPosition: 0, q1Position: 0, medianPosition: 0,
+            q3Position: 0, maxPosition: 0,
+            outlierFinalPositions: outlierFinalPositions,
+            outlierPositions: outlierPositions
+        }
+    }
+
+    function _rebuildBoxGeometry(canvasWidth, canvasHeight) {
+        var dataLen = dataLength
+        var crossSize = isHorizontal ? canvasHeight : canvasWidth
+        _boxGeometryGroupSize = dataLen > 0 ? crossSize / dataLen : 0
+        _boxGeometrySize = Math.min(_boxGeometryGroupSize * 0.6, Enums.spacing.xxxl * 2)
+        var geometry = []
+        for (var index = 0; index < dataLen; index++) {
+            geometry.push(_buildBoxGeometryItem(index))
+        }
+        _boxGeometry = geometry
+        _boxGeometryDirty = false
+        _lastGeometryProgress = -1
+        _boxGeometryBuildCount++
+    }
+
+    function _updateBoxGeometryItem(geometry, progress, baseline) {
+        geometry.minPosition = geometry.minFinal * progress + baseline
+        geometry.q1Position = geometry.q1Final * progress + baseline
+        geometry.medianPosition = geometry.medianFinal * progress + baseline
+        geometry.q3Position = geometry.q3Final * progress + baseline
+        geometry.maxPosition = geometry.maxFinal * progress + baseline
+        for (var index = 0; index < geometry.outlierFinalPositions.length; index++) {
+            geometry.outlierPositions[index] = geometry.outlierFinalPositions[index] * progress + baseline
+        }
+        return 5 + geometry.outlierFinalPositions.length
+    }
+
+    function _updateAnimatedGeometry(progress) {
+        if (_boxGeometryDirty) _rebuildBoxGeometry(width, height)
+        if (progress === _lastGeometryProgress) {
+            _lastFramePointUpdateCount = 0
+            return
+        }
+        var baseline = isHorizontal ? 0 : height * (1 - progress)
+        var updateCount = 0
+        for (var index = 0; index < _boxGeometry.length; index++) {
+            var geometry = _boxGeometry[index]
+            if (geometry) updateCount += _updateBoxGeometryItem(geometry, progress, baseline)
+        }
+        _lastFramePointUpdateCount = updateCount
+        _lastGeometryProgress = progress
+    }
+
+    function _invalidateBoxGeometry() {
+        _boxGeometryDirty = true
+        canvas.requestPaint()
+    }
+
     onHoveredIndexChanged: canvas.requestPaint()
-    onBoxplotDataChanged: canvas.requestPaint()
-    onIsHorizontalChanged: canvas.requestPaint()
+    onBoxplotDataChanged: _invalidateBoxGeometry()
+    onIsHorizontalChanged: _invalidateBoxGeometry()
 
     // ==================== Content 内容 ====================
     // Canvas 画布
@@ -93,8 +172,8 @@ Item {
         property real animProgress: root.animated ? 0 : 1
 
         function paintVertical(ctx, dataLen) {
-            var groupWidth = width / dataLen
-            var boxWidth = Math.min(groupWidth * 0.6, Enums.spacing.xxxl * 2)
+            var groupWidth = root._boxGeometryGroupSize
+            var boxWidth = root._boxGeometrySize
             
             // Fluent Design: subtle vertical indicator line 微妙垂直指示线
             if (root.hoveredIndex >= 0 && root.hoveredIndex < dataLen) {
@@ -108,18 +187,19 @@ Item {
             }
             
             for (var i = 0; i < dataLen; i++) {
+                var geometry = root._boxGeometry[i]
+                if (!geometry) continue
                 var d = root.boxplotData[i]
-                if (!root._isValidBoxplot(d)) continue
-                var centerX = (i + 0.5) * groupWidth
+                var centerX = geometry.center
                 var hovered = (i === root.hoveredIndex)
                 var color = root.getBoxColor(i)
                 
-                // Calculate positions 计算位置
-                var minY = root.valueToPosition(d.min) * animProgress + height * (1 - animProgress)
-                var q1Y = root.valueToPosition(d.q1) * animProgress + height * (1 - animProgress)
-                var medianY = root.valueToPosition(d.median) * animProgress + height * (1 - animProgress)
-                var q3Y = root.valueToPosition(d.q3) * animProgress + height * (1 - animProgress)
-                var maxY = root.valueToPosition(d.max) * animProgress + height * (1 - animProgress)
+                // Reuse animated positions 复用动画坐标
+                var minY = geometry.minPosition
+                var q1Y = geometry.q1Position
+                var medianY = geometry.medianPosition
+                var q3Y = geometry.q3Position
+                var maxY = geometry.maxPosition
                 
                 var halfBox = boxWidth / 2
                 var whiskerWidth = boxWidth * 0.4
@@ -172,9 +252,9 @@ Item {
                 ctx.stroke()
                 
                 // Fluent Design: simple outlier points 简洁异常点
-                var outliers = d.outliers || []
-                for (var j = 0; j < outliers.length; j++) {
-                    var outlierY = root.valueToPosition(outliers[j]) * animProgress + height * (1 - animProgress)
+                var outlierPositions = geometry.outlierPositions
+                for (var j = 0; j < outlierPositions.length; j++) {
+                    var outlierY = outlierPositions[j]
                     var outlierSize = hovered ? 4 : 3
                     
                     // Solid point 实心点
@@ -208,8 +288,8 @@ Item {
         }
 
         function paintHorizontal(ctx, dataLen) {
-            var groupHeight = height / dataLen
-            var boxHeight = Math.min(groupHeight * 0.6, Enums.spacing.xxxl * 2)
+            var groupHeight = root._boxGeometryGroupSize
+            var boxHeight = root._boxGeometrySize
             
             // Fluent Design: subtle horizontal indicator line 微妙水平指示线
             if (root.hoveredIndex >= 0 && root.hoveredIndex < dataLen) {
@@ -223,18 +303,18 @@ Item {
             }
             
             for (var i = 0; i < dataLen; i++) {
-                var d = root.boxplotData[i]
-                if (!root._isValidBoxplot(d)) continue
-                var centerY = (i + 0.5) * groupHeight
+                var geometry = root._boxGeometry[i]
+                if (!geometry) continue
+                var centerY = geometry.center
                 var hovered = (i === root.hoveredIndex)
                 var color = root.getBoxColor(i)
                 
-                // Calculate positions 计算位置
-                var minX = root.valueToPosition(d.min) * animProgress
-                var q1X = root.valueToPosition(d.q1) * animProgress
-                var medianX = root.valueToPosition(d.median) * animProgress
-                var q3X = root.valueToPosition(d.q3) * animProgress
-                var maxX = root.valueToPosition(d.max) * animProgress
+                // Reuse animated positions 复用动画坐标
+                var minX = geometry.minPosition
+                var q1X = geometry.q1Position
+                var medianX = geometry.medianPosition
+                var q3X = geometry.q3Position
+                var maxX = geometry.maxPosition
                 
                 var halfBox = boxHeight / 2
                 var whiskerHeight = boxHeight * 0.4
@@ -287,9 +367,9 @@ Item {
                 ctx.stroke()
                 
                 // Fluent Design: simple outlier points 简洁异常点
-                var outliers = d.outliers || []
-                for (var j = 0; j < outliers.length; j++) {
-                    var outlierX = root.valueToPosition(outliers[j]) * animProgress
+                var outlierPositions = geometry.outlierPositions
+                for (var j = 0; j < outlierPositions.length; j++) {
+                    var outlierX = outlierPositions[j]
                     var outlierSize = hovered ? 4 : 3
                     
                     // Solid point 实心点
@@ -316,6 +396,7 @@ Item {
             if (root.boxplotData.length === 0) return
 
             var dataLen = root.dataLength
+            root._updateAnimatedGeometry(root.animated ? animProgress : 1)
 
             if (root.isHorizontal) {
                 paintHorizontal(ctx, dataLen)
@@ -323,6 +404,9 @@ Item {
                 paintVertical(ctx, dataLen)
             }
         }
+
+        onWidthChanged: root._invalidateBoxGeometry()
+        onHeightChanged: root._invalidateBoxGeometry()
 
         Component.onCompleted: {
             if (root.animated) {

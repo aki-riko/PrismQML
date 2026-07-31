@@ -430,6 +430,94 @@ def test_radar_animation_reuses_cached_polar_geometry(chart_scene):
     assert warnings == []
 
 
+def test_boxplot_animation_reuses_cached_value_geometry(chart_scene):
+    chart, warnings = chart_scene
+    box_count = 1_000
+    outliers_per_box = 2
+    chart.setProperty("animated", False)
+    chart.setProperty("chartType", chart.property("boxplotType"))
+    chart.setProperty(
+        "boxplotData",
+        [
+            {
+                "label": f"B{index}",
+                "min": index,
+                "q1": index + 10,
+                "median": index + 20,
+                "q3": index + 30,
+                "max": index + 40,
+                "outliers": [index - 5, index + 45],
+            }
+            for index in range(box_count)
+        ],
+    )
+    _pump(50)
+
+    boxplot_area = _loaders(chart)["boxplotAreaLoader"].property("item")
+    assert boxplot_area is not None
+    boxplot_content = next(
+        obj
+        for obj in _object_tree(boxplot_area)
+        if obj.metaObject().indexOfProperty("_boxGeometryBuildCount") >= 0
+    )
+    context = QQmlEngine.contextForObject(boxplot_content)
+    rebuild_geometry = QQmlExpression(
+        context,
+        boxplot_content,
+        "(_rebuildBoxGeometry(width, height), true)",
+    )
+    assert _evaluate(rebuild_geometry)
+    geometry_length = QQmlExpression(
+        context,
+        boxplot_content,
+        "_boxGeometry.length",
+    )
+    assert _evaluate(geometry_length) == box_count
+    build_count = boxplot_content.property("_boxGeometryBuildCount")
+    assert build_count >= 1
+
+    update_geometry = QQmlExpression(
+        context,
+        boxplot_content,
+        "(_updateAnimatedGeometry(0.5), true)",
+    )
+    assert _evaluate(update_geometry)
+    assert boxplot_content.property("_lastFramePointUpdateCount") == (
+        box_count * (5 + outliers_per_box)
+    )
+    assert boxplot_content.property("_boxGeometryBuildCount") == build_count
+    vertical_position = QQmlExpression(
+        context,
+        boxplot_content,
+        "Math.abs(_boxGeometry[0].minPosition - "
+        "(_boxGeometry[0].minFinal * 0.5 + height * 0.5)) < 0.000001",
+    )
+    assert _evaluate(vertical_position)
+
+    boxplot_content.setProperty("isHorizontal", True)
+    assert _evaluate(rebuild_geometry)
+    horizontal_build_count = boxplot_content.property("_boxGeometryBuildCount")
+    assert _evaluate(update_geometry)
+    horizontal_position = QQmlExpression(
+        context,
+        boxplot_content,
+        "Math.abs(_boxGeometry[0].minPosition - "
+        "_boxGeometry[0].minFinal * 0.5) < 0.000001",
+    )
+    assert _evaluate(horizontal_position)
+    assert boxplot_content.property("_boxGeometryBuildCount") == (
+        horizontal_build_count
+    )
+    assert _evaluate(update_geometry)
+    assert boxplot_content.property("_lastFramePointUpdateCount") == 0
+    boxplot_content.setProperty("hoveredIndex", box_count // 2)
+    _pump(20)
+    assert boxplot_content.property("_boxGeometryBuildCount") == (
+        horizontal_build_count
+    )
+    assert warnings == []
+
+
 def test_multi_series_bar_hover_searches_only_the_local_x_range(chart_scene):
     chart, warnings = chart_scene
     series_count = 4
