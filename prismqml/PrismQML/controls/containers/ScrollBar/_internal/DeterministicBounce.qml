@@ -21,6 +21,9 @@ Item {
     property real _outwardValue: 0
     property real _returnValue: 0
     property bool _active: false
+    property bool _outwardPhase: false
+    property real _lastPublishedValue: 0
+    property real _lastUpdateTimestamp: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool active: _active
@@ -36,6 +39,9 @@ Item {
         _startValue = startValue
         _outwardValue = outwardValue
         _returnValue = returnValue
+        _lastPublishedValue = startValue
+        _lastUpdateTimestamp = Date.now()
+        _outwardPhase = true
 
         if (!animated) {
             _active = true
@@ -52,20 +58,23 @@ Item {
 
     function stop() {
         _active = false
+        _outwardPhase = false
         outwardDriver.stop()
         returnAnimation.stop()
         immediateSequence.stop()
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    function _startReturn() {
-        if (!_active) return
+    function _startReturn(startValue) {
+        if (!_active || !_outwardPhase) return
+        _outwardPhase = false
+        outwardDriver.stop()
         if (!animated) {
             _value = _returnValue
             _finish()
             return
         }
-        returnAnimation.from = _value
+        returnAnimation.from = startValue === undefined ? _value : startValue
         returnAnimation.to = _returnValue
         returnAnimation.restart()
     }
@@ -73,17 +82,38 @@ Item {
     function _finish() {
         if (!_active) return
         _active = false
+        _outwardPhase = false
+    }
+
+    function _publishValue() {
+        if (!_active) return
+        var now = Date.now()
+        // When one delayed frame consumes the complete outward window, the
+        // animation driver catches up internally to the cutoff. Do not publish
+        // that unseen peak; return from the last position actually rendered.
+        // 单个延迟帧吞掉完整外移窗口时，驱动器会在内部补算到截止点；不要把这个
+        // 未显示过的峰值再发布出去，直接从最后实际渲染的位置回程。
+        if (_outwardPhase && _lastUpdateTimestamp > 0
+                && now - _lastUpdateTimestamp >= outwardDuration) {
+            _startReturn(_lastPublishedValue)
+            return
+        }
+        _lastUpdateTimestamp = now
+        _lastPublishedValue = _value
+        positionChanged(_value)
     }
 
     width: 0
     height: 0
     visible: false
 
-    on_ValueChanged: if (_active) positionChanged(_value)
+    on_ValueChanged: _publishValue()
 
-    // Drive only the original first outwardDuration milliseconds of the
-    // source easing curve. A delayed frame can reach this cutoff, never pass it.
-    // 只驱动原曲线最前面的 outwardDuration 毫秒；延迟帧最多到截止点，不会继续外冲。
+    // Drive only the original first outwardDuration milliseconds of the source
+    // easing curve. Normal frames may reach the cutoff; _publishValue discards
+    // a catch-up frame after the complete outward window has already elapsed.
+    // 只驱动原曲线最前面的 outwardDuration 毫秒；正常帧可到截止点，若完整外移窗口
+    // 已在停顿中耗尽，_publishValue 会丢弃随后补算出的追赶帧。
     AnimationController {
         id: outwardController
 

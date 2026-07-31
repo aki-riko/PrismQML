@@ -445,10 +445,16 @@ def test_scroll_area_bounce_peak_does_not_expand_after_gui_stall(scroll_scene):
     stalled_event = _send_wheel(window, area, -120)
     assert stalled_event.isAccepted()
     _pump(60)
+    assert values
+    before_stall = values[-1]
+    resume_index = len(values)
     QTest.qSleep(120)
     _pump(1000)
+    resumed_values = values[resume_index:]
+    assert resumed_values
     stalled_peak = max(values)
 
+    assert max(resumed_values) <= before_stall + 0.5
     assert stalled_peak <= normal_peak + 2
     assert area.property("contentY") == pytest.approx(maximum)
     assert warnings == []
