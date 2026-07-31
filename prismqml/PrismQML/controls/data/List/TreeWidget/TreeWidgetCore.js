@@ -232,7 +232,7 @@ function toggleExpandAt(ctrl, internalModel, idx) {
             ctrl.currentIndex = ctrl.currentIndex - removeCount
         }
 
-        for (var k = 0; k < removeCount; k++) internalModel.remove(idx + 1)
+        if (removeCount > 0) internalModel.remove(idx + 1, removeCount)
         ctrl.itemCollapsed(original)
     } else {
         var children = flattenModel(original.children, item.depth + 1, original.path)
