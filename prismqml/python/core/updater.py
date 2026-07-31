@@ -52,7 +52,6 @@ from ._updater_release import (
     pick_asset as _pick_asset,
 )
 from .logger import getLogger
-from .update_slots import SlotUpdatePreparation
 
 logger = getLogger()
 
@@ -161,9 +160,17 @@ class Updater(QObject):
         self._expected_download_url = ""
         self._require_artifact_digest = True
         self._install_strategy = _validate_install_strategy(install_strategy)
-        self._slot_preparation = SlotUpdatePreparation(self)
-        self._slot_preparation.finished.connect(self.installPreparationFinished)
-        self._slot_preparation.failed.connect(self.installPreparationFailed)
+        self._slot_preparation = self._create_slot_preparation()
+
+    def _create_slot_preparation(self):
+        if self._install_strategy != "dual_slot":
+            return None
+        from .update_slots import SlotUpdatePreparation
+
+        preparation = SlotUpdatePreparation(self)
+        preparation.finished.connect(self.installPreparationFinished)
+        preparation.failed.connect(self.installPreparationFailed)
+        return preparation
 
     @property
     def api_base_url(self) -> str:
@@ -467,6 +474,9 @@ class Updater(QObject):
         """Install into the inactive Windows slot without closing this process."""
         if self._install_strategy != "dual_slot":
             logger.warning("[Updater] 当前更新器未启用 Windows 双槽策略")
+            return False
+        if self._slot_preparation is None:
+            logger.error("[Updater] Windows 双槽准备器未初始化")
             return False
         if not self._slot_preparation.stage(installer_path, silent_args):
             self._download_path = discard_completed_download(
