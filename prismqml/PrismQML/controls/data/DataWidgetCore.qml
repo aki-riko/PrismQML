@@ -485,7 +485,7 @@ Rectangle {
                     Repeater {
                         model: Math.min(5, Math.max(3, Math.floor((skeletonArea.height - Enums.spacing.m * 2) / (root.rowHeight + Enums.spacing.s))))
                         Skeleton {
-                            width: parent.width
+                            width: parent ? parent.width : 0
                             height: root.rowHeight - Enums.spacing.s
                             loading: root.loading
                         }

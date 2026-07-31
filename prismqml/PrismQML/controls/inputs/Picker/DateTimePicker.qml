@@ -306,8 +306,8 @@ Rectangle {
             model: _buildDisplayModel()
 
             Item {
-                width: parent.width / _totalColCount
-                height: parent.height
+                width: parent ? parent.width / _totalColCount : 0
+                height: parent ? parent.height : 0
 
                 Label {
                     anchors.centerIn: parent
