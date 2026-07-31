@@ -25,6 +25,12 @@ CHART_DATA_ZOOM_LAYER_SOURCE = (
 )
 LINE_CHART_SOURCE = CHART_VIEW_SOURCE.parent / "_internal" / "LineChartContent.qml"
 XY_CHART_CORE_SOURCE = CHART_VIEW_SOURCE.parent / "_internal" / "XYChartCore.qml"
+XY_SINGLE_TOOLTIP_SOURCE = (
+    CHART_VIEW_SOURCE.parent / "_internal" / "XYSingleTooltip.qml"
+)
+XY_MULTI_TOOLTIP_SOURCE = (
+    CHART_VIEW_SOURCE.parent / "_internal" / "XYMultiTooltip.qml"
+)
 VIEWPORT_ANIMATOR_SOURCE = (
     CHART_VIEW_SOURCE.parent / "_internal" / "ChartViewportAnimator.qml"
 )
@@ -385,6 +391,8 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     data_zoom_layer_source = CHART_DATA_ZOOM_LAYER_SOURCE.read_text(encoding="utf-8")
     line_chart_source = LINE_CHART_SOURCE.read_text(encoding="utf-8")
     xy_chart_core_source = XY_CHART_CORE_SOURCE.read_text(encoding="utf-8")
+    single_tooltip_source = XY_SINGLE_TOOLTIP_SOURCE.read_text(encoding="utf-8")
+    multi_tooltip_source = XY_MULTI_TOOLTIP_SOURCE.read_text(encoding="utf-8")
     animator_source = VIEWPORT_ANIMATOR_SOURCE.read_text(encoding="utf-8")
     transition_source = VIEWPORT_TRANSITION_SOURCE.read_text(encoding="utf-8")
     chart_enum_source = CHART_ENUM_SOURCE.read_text(encoding="utf-8")
@@ -394,6 +402,8 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
         + data_zoom_layer_source
         + line_chart_source
         + xy_chart_core_source
+        + single_tooltip_source
+        + multi_tooltip_source
         + animator_source
         + transition_source
     )
@@ -409,13 +419,11 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     assert "xScale: control._isHorizontalBar ? 1 : control._viewportScale" in chart_view_source
     assert "yScale: control._isHorizontalBar ? control._viewportScale : 1" in chart_view_source
     assert "viewportScale: control._viewportScale" in chart_view_source
-    tooltip_source = chart_view_source.split("    ChartTooltip {", 1)[1].split(
-        "    ChartBottomLegend {", 1
-    )[0]
-    assert "control._viewChartData" in tooltip_source
-    assert "control._viewSeries" in tooltip_source
-    assert "control.chartData[control._hovered" not in tooltip_source
-    assert "control.series[i]" not in tooltip_source
+    tooltip_source = single_tooltip_source + multi_tooltip_source
+    assert "chart._viewChartData" in tooltip_source
+    assert "chart._viewSeries" in tooltip_source
+    assert "chart.chartData[chart._hovered" not in tooltip_source
+    assert "chart.series[i]" not in tooltip_source
     assert "xScale: root.viewportScale" in xy_chart_core_source
     assert "yScale: root.viewportScale" in xy_chart_core_source
     assert "y: chartAreaItem.y + root.viewportOffsetRatio" not in (

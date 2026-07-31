@@ -446,118 +446,14 @@ ShadowedRectangle {
     }
 
     // XY chart tooltips XY 图表提示框
-    // Single series bar chart tooltip 单系列柱状图 Tooltip
-    ChartTooltip {
-        visible: !control._viewportTransitionActive && control._hoveredBarIndex >= 0 &&
-                 control._barContent !== null && !control._barContent.isMultiSeries
-        x: {
-            if (control._hoveredBarIndex < 0 || control._viewChartData.length === 0) return 0
-            var barWidth = (xyChartBase.chartAreaWidth - control._viewChartData.length * Enums.spacing.s) / control._viewChartData.length
-            return xyChartBase.chartAreaX + control._hoveredBarIndex * (barWidth + Enums.spacing.s) + barWidth / 2 - width / 2
-        }
-        y: xyChartBase.chartAreaY + Enums.spacing.m
-        label: control._hoveredBarIndex >= 0 && control._hoveredBarIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredBarIndex].label || "") : ""
-        value: control._hoveredBarIndex >= 0 && control._hoveredBarIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredBarIndex].value || 0) : 0
-        valueFormatter: control.valueFormatter
+    XYSingleTooltip {
+        chart: control
+        chartBase: xyChartBase
     }
 
-    // Single series line chart tooltip 单系列折线图 Tooltip
-    ChartTooltip {
-        visible: !control._viewportTransitionActive && control._hoveredPointIndex >= 0 &&
-                 control._lineContent !== null && !control._lineContent.isMultiSeries
-        x: xyChartBase.chartAreaX + (control._lineContent ? control._lineContent.getTooltipPosition(control._hoveredPointIndex).x : 0) - width / 2
-        y: xyChartBase.chartAreaY + (control._lineContent ? control._lineContent.getTooltipPosition(control._hoveredPointIndex).y : 0) - height - Enums.spacing.m
-        label: control._hoveredPointIndex >= 0 && control._hoveredPointIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredPointIndex].label || "") : ""
-        value: control._hoveredPointIndex >= 0 && control._hoveredPointIndex < control._viewChartData.length ? (control._viewChartData[control._hoveredPointIndex].value || 0) : 0
-        valueFormatter: control.valueFormatter
-    }
-
-    ChartMultiTooltip {
-        visible: !control._viewportTransitionActive && control.showTooltip && control._hoveredPointIndex >= 0 &&
-                 control._lineContent !== null && control._lineContent.isMultiSeries
-        // 默认放鼠标右下角; 触右/下边时反向到左/上 (单轴独立判断)
-        x: {
-            var mx = control._lineContent ? control._lineContent.mouseX : 0
-            var right = mx + Enums.spacing.m
-            // 右侧放得下 → 右; 否则翻到左侧 (mx - width - spacing.s)
-            if (right + width <= xyChartBase.chartAreaWidth) {
-                return xyChartBase.chartAreaX + right
-            }
-            return xyChartBase.chartAreaX + Math.max(0, mx - width - Enums.spacing.s)
-        }
-        y: {
-            var my = control._lineContent ? control._lineContent.mouseY : 0
-            var below = my + Enums.spacing.m
-            if (below + height <= xyChartBase.chartAreaHeight) {
-                return xyChartBase.chartAreaY + below
-            }
-            return xyChartBase.chartAreaY + Math.max(0, my - height - Enums.spacing.s)
-        }
-        xLabel: control._hoveredPointIndex >= 0 && control._viewChartData.length > control._hoveredPointIndex ? (control._viewChartData[control._hoveredPointIndex].label || "") : ""
-        seriesData: {
-            var result = []
-            for (var i = 0; i < control._viewSeries.length; i++) {
-                var s = control._viewSeries[i]
-                var vals = s.values || []
-                result.push({
-                    name: s.name || "",
-                    value: control._hoveredPointIndex >= 0 && control._hoveredPointIndex < vals.length ? vals[control._hoveredPointIndex] : 0,
-                    color: s.color || Enums.chartColors.extendedPalette[i % Enums.chartColors.extendedPalette.length]
-                })
-            }
-            return result
-        }
-        showTotal: control.stacked
-        totalValue: {
-            if (control._hoveredPointIndex < 0) return 0
-            var sum = 0
-            for (var i = 0; i < control._viewSeries.length; i++) {
-                var vals = control._viewSeries[i].values || []
-                if (control._hoveredPointIndex < vals.length) sum += vals[control._hoveredPointIndex] || 0
-            }
-            return sum
-        }
-        valueFormatter: control.valueFormatter
-    }
-
-    ChartMultiTooltip {
-        visible: !control._viewportTransitionActive && control._hoveredBarIndex >= 0 &&
-                 control._barContent !== null && control._barContent.isMultiSeries
-        x: {
-            var dataLength = control._barContent ? control._barContent.dataLength : 0
-            if (dataLength <= 0) return xyChartBase.chartAreaX
-            return xyChartBase.chartAreaX + Math.min(Math.max((control._hoveredBarIndex + 0.5) * (xyChartBase.chartAreaWidth / dataLength) - width / 2, 0), xyChartBase.chartAreaWidth - width)
-        }
-        y: xyChartBase.chartAreaY + Enums.spacing.m
-        xLabel: control._hoveredBarIndex >= 0 && control._viewChartData.length > control._hoveredBarIndex ? (control._viewChartData[control._hoveredBarIndex].label || "") : ""
-        seriesData: {
-            var result = []
-            for (var i = 0; i < control._viewSeries.length; i++) {
-                var s = control._viewSeries[i]
-                var vals = s.values || []
-                result.push({
-                    name: s.name || "",
-                    value: control._hoveredBarIndex >= 0 && control._hoveredBarIndex < vals.length ? vals[control._hoveredBarIndex] : 0,
-                    color: s.color || Enums.chartColors.extendedPalette[i % Enums.chartColors.extendedPalette.length]
-                })
-            }
-            return result
-        }
-        valueFormatter: control.valueFormatter
-    }
-
-    ChartTooltip {
-        visible: !control._viewportTransitionActive && control._hoveredScatterSeriesIndex >= 0 &&
-                 control._scatterContent !== null
-        x: xyChartBase.chartAreaX + Math.min(Math.max((control._scatterContent ? control._scatterContent.tooltipX : 0) - width / 2, 0), xyChartBase.chartAreaWidth - width)
-        y: xyChartBase.chartAreaY + (control._scatterContent ? control._scatterContent.tooltipY : 0) - height - Enums.spacing.m
-        showColorDot: true
-        dotColor: control._hoveredScatterSeriesIndex >= 0 ? (control._viewSeries[control._hoveredScatterSeriesIndex].color || Enums.chartColors.extendedPalette[control._hoveredScatterSeriesIndex % Enums.chartColors.extendedPalette.length]) : Enums.transparent
-        label: control._hoveredScatterSeriesIndex >= 0 ? (control._viewSeries[control._hoveredScatterSeriesIndex].name || "") : ""
-        value: control._scatterContent
-               ? "(" + control._scatterContent.dataX.toFixed(2) + ", " + control._scatterContent.dataY.toFixed(2) + ")"
-               : ""
-        isValueString: true
+    XYMultiTooltip {
+        chart: control
+        chartBase: xyChartBase
     }
 
     // XY chart legend; load only the active type with renderable data XY 图表图例；仅加载当前类型且有可渲染数据的图例
