@@ -249,6 +249,7 @@ Item {
             // Confirm 确认
             ButtonCore {
                 width: (parent.width - parent.spacing) / 2
+                height: Enums.controlSize.buttonHeight
                 style: Enums.button.style_transparent
                 icon: Enums.icon.checkmark
                 enabled: control.enabled
@@ -258,6 +259,7 @@ Item {
             // Cancel 取消
             ButtonCore {
                 width: (parent.width - parent.spacing) / 2
+                height: Enums.controlSize.buttonHeight
                 style: Enums.button.style_transparent
                 icon: Enums.icon.dismiss
                 enabled: control.enabled

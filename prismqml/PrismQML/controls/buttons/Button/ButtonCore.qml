@@ -126,6 +126,7 @@ Widget {
         _hasProgressBarFeature || feature === Enums.button.feature_toggle
     readonly property bool _showsDropdownIndicator: feature === Enums.button.feature_dropdown &&
                                                     showDropdownIndicator
+    readonly property int _iconOnlyExtent: iconSize + Enums.spacing.xs * 2
     readonly property int _contentLeadingPadding: _hasMenuFeature ? Enums.spacing.l : Enums.spacing.m
     readonly property int _contentTrailingPadding: _hasMenuFeature ? Enums.spacing.xs : Enums.spacing.m
 
@@ -288,7 +289,8 @@ Widget {
     contentWidth: {
         if (_countdownActive && _countdownInitialWidth > 0) return _countdownInitialWidth
         if (isToolButton) {
-            return Enums.controlSize.buttonHeight +
+            var iconBaseWidth = _hasMenuFeature ? Enums.controlSize.buttonHeight : _iconOnlyExtent
+            return iconBaseWidth +
                    (_showsDropdownIndicator ? Enums.controlSize.dropdownArrowWidth : 0)
         }
         // Transparent/text/hyperlink styles have no minimum width 透明/文本/超链接样式无最小宽度
@@ -299,7 +301,7 @@ Widget {
         if (flat || _hasMenuFeature) return Math.max(cw + extraWidth, Enums.controlSize.buttonHeight)
         return Math.max(Enums.controlSize.buttonMinWidth, cw + extraWidth)
     }
-    contentHeight: Enums.controlSize.buttonHeight
+    contentHeight: isToolButton && !_hasMenuFeature ? _iconOnlyExtent : Enums.controlSize.buttonHeight
 
     Component.onCompleted: {
         // Initialize with current values (break binding) 用当前值初始化（打破绑定）
