@@ -187,6 +187,15 @@ def test_combo_box_multi_tree_selection_search_and_popup_lifecycle(qapp):
         selections = []
         combo.selectionChanged.connect(lambda paths: selections.append(_variant(paths)))
 
+        combo._toggleExpand("root_0")
+        assert _wait_for(lambda: flat_model.property("count") == 2)
+        combo.setProperty("_searchText", "LEAF B")
+        assert _wait_for(lambda: flat_model.property("count") == 1)
+        combo.setProperty("_searchText", "")
+        assert _wait_for(lambda: flat_model.property("count") == 2)
+        combo._toggleExpand("root_0")
+        assert _wait_for(lambda: flat_model.property("count") == 4)
+
         combo._toggleSelection(["Parent"])
         _pump()
         assert _variant(combo.property("selectedPaths")) == [
@@ -280,6 +289,9 @@ def test_combo_box_multi_tree_source_conventions():
         "PopupSmoothScroll { flickable: treeListView; "
         "enabled: treeContainer.needsScroll }"
     ) in source
+    assert 'var searchText = _searchText.toLowerCase()' in source
+    assert source.count("_searchText.toLowerCase()") == 1
+    assert "_hasMatchingDescendants(node.children, searchText)" in source
     assert [
         violation
         for violation in violations
