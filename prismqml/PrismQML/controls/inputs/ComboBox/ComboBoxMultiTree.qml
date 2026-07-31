@@ -101,7 +101,8 @@ ComboBoxCore {
 
     function _rebuildFlatModel() {
         _flatListModel.clear()
-        _flattenTree(_safeModel, [], 0, "root")
+        var searchText = _searchText.toLowerCase()
+        _flattenTree(_safeModel, [], 0, "root", searchText)
     }
 
     // Get selection state for a node 获取节点的选中状态
@@ -122,7 +123,7 @@ ComboBoxCore {
         return 1
     }
 
-    function _flattenTree(nodes, parentPath, depth, parentId) {
+    function _flattenTree(nodes, parentPath, depth, parentId, searchText) {
         if (!nodes) return
         for (var i = 0; i < nodes.length; i++) {
             var node = nodes[i]
@@ -132,12 +133,12 @@ ComboBoxCore {
             var path = parentPath.concat([nodeText])
             var hasChildren = !!(node.children && node.children.length > 0)
             var expanded = !!_expandedNodes[nodeId]
-            var matchesSearch = !_searchText || nodeText.toLowerCase().indexOf(_searchText.toLowerCase()) >= 0
+            var matchesSearch = !searchText || nodeText.toLowerCase().indexOf(searchText) >= 0
 
             // Check if any children match search 检查子节点是否匹配搜索
             var hasMatchingChildren = false
             if (!matchesSearch && hasChildren) {
-                hasMatchingChildren = _hasMatchingDescendants(node.children)
+                hasMatchingChildren = _hasMatchingDescendants(node.children, searchText)
             }
 
             // Calculate selection state 计算选中状态
@@ -158,19 +159,20 @@ ComboBoxCore {
 
             // Add children if expanded 如果展开则添加子节点
             if (hasChildren && expanded) {
-                _flattenTree(node.children, path, depth + 1, nodeId)
+                _flattenTree(node.children, path, depth + 1, nodeId, searchText)
             }
         }
     }
 
-    function _hasMatchingDescendants(children) {
+    function _hasMatchingDescendants(children, searchText) {
         if (!children) return false
         for (var i = 0; i < children.length; i++) {
             var child = children[i]
             if (!child) continue
             var text = typeof child === "string" ? child : (child.text || "")
-            if (text.toLowerCase().indexOf(_searchText.toLowerCase()) >= 0) return true
-            if (child.children && _hasMatchingDescendants(child.children)) return true
+            if (text.toLowerCase().indexOf(searchText) >= 0) return true
+            if (child.children
+                    && _hasMatchingDescendants(child.children, searchText)) return true
         }
         return false
     }
