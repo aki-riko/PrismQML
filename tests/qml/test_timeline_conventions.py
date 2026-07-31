@@ -424,6 +424,8 @@ def test_timeline_virtual_scroll_to_start_tracks_dynamic_origin(timeline_scene):
     assert QMetaObject.invokeMethod(helper, "scrollToStart")
     assert _wait_for(
         lambda: list_view.property("contentY")
+        == pytest.approx(list_view.property("originY"), abs=1)
+        and helper.property("targetPos")
         == pytest.approx(list_view.property("originY"), abs=1),
         timeout_ms=3000,
     ), (
