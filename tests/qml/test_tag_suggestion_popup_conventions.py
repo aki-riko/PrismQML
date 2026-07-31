@@ -241,6 +241,16 @@ def test_tag_suggestion_popup_source_conventions():
     source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(POPUP_SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
+    assert (
+        "readonly property bool needsScroll: "
+        "suggestionList.contentHeight > suggestionList.height"
+    ) in source
+    assert "interactive: false" in source
+    assert (
+        "PopupSmoothScroll { flickable: suggestionList; "
+        "enabled: popup.needsScroll }"
+    ) in source
+    assert "sourceComponent: ScrollBarEntry" in source
     assert [
         violation
         for violation in violations

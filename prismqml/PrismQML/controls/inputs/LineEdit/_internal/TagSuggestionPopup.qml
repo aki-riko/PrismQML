@@ -6,6 +6,7 @@ import "../../../.."
 import "../../../../effects"
 import "../../../data"
 import "../../../utils"
+import "../../../containers/ScrollBar"
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // TagSuggestionPopup - Autocomplete dropdown for TagLineEdit 标签输入自动完成下拉
@@ -59,6 +60,9 @@ Item {
         // Pass data to Window context 传递数据到Window上下文
         property var listModel: root.filteredItems
 
+        // ==================== Readonly State 只读状态 ====================
+        readonly property bool needsScroll: suggestionList.contentHeight > suggestionList.height
+
         // ==================== Signals 信号 ====================
         // Signal relay for delegate clicks 代理点击信号中继
         signal itemSelected(string text)
@@ -77,8 +81,11 @@ Item {
         ListView {
             id: suggestionList
             anchors.fill: parent
+            anchors.rightMargin: popup.needsScroll ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
             model: popup.listModel
             clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            interactive: false  // Disable native scroll, use smooth scroll 禁用原生滚动，使用平滑滚动
 
             delegate: TagSuggestionDelegate {
                 width: ListView.view ? ListView.view.width : suggestionList.width
@@ -86,6 +93,23 @@ Item {
                 onItemClicked: function(text) {
                     popup.itemSelected(text)
                 }
+            }
+
+            // Smooth scroll 平滑滚动
+            PopupSmoothScroll { flickable: suggestionList; enabled: popup.needsScroll }
+        }
+
+        // Scrollbar 滚动条
+        Loader {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.margins: Enums.spacing.xxs
+            width: Enums.comboBoxMetrics.scrollBarWidth
+            active: popup.needsScroll
+            sourceComponent: ScrollBarEntry {
+                flickable: suggestionList
+                width: Enums.comboBoxMetrics.scrollBarWidth
             }
         }
     }

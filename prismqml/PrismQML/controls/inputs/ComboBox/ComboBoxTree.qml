@@ -180,6 +180,7 @@ ComboBoxCore {
                     anchors.rightMargin: treeContainer.needsScroll ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
+                    interactive: false  // Disable native scroll, use smooth scroll 禁用原生滚动，使用平滑滚动
                     model: control._flatModel
                     
                     delegate: TreeMenuDelegate {
@@ -193,6 +194,9 @@ ComboBoxCore {
                         onToggleExpand: control._toggleExpand(modelData.nodeId)
                         onClicked: control._selectNode(modelData.text, modelData.path)
                     }
+
+                    // Smooth scroll 平滑滚动
+                    PopupSmoothScroll { flickable: treeListView; enabled: treeContainer.needsScroll }
                 }
                 
                 Loader {

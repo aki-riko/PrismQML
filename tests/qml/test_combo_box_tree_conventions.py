@@ -264,6 +264,11 @@ def test_combo_box_tree_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
+    assert "interactive: false" in source
+    assert (
+        "PopupSmoothScroll { flickable: treeListView; "
+        "enabled: treeContainer.needsScroll }"
+    ) in source
     assert "var sourceModel = control.model" in source
     assert 'typeof sourceModel.length !== "number"' in source
     assert "sourceModel.length <= 0" in source
