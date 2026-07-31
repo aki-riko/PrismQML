@@ -8,6 +8,7 @@ import QtQuick.Effects
 // 导入组件
 import PrismQML
 import PrismQML as Fluent
+import "_internal"
 
 // 反馈组件页面
 Item {
@@ -108,19 +109,8 @@ Item {
                 }
             }
             
-            // 信息条
-            ExampleCard {
-                title: "信息条"
-                description: "InfoBar"
-                Column {
-                    spacing: Fluent.Enums.spacing.m
-                    ComponentCard { label: "severity: info"; InfoBar { title: "Info"; content: "信息提示"; severity: "info"; width: 320; duration: Fluent.Enums.duration.notification } }
-                    ComponentCard { label: "severity: success"; InfoBar { title: "Success"; content: "操作成功"; severity: "success"; width: 320; duration: Fluent.Enums.duration.notification } }
-                    ComponentCard { label: "severity: warning"; InfoBar { title: "Warning"; content: "请注意"; severity: "warning"; width: 320; duration: Fluent.Enums.duration.notification } }
-                    ComponentCard { label: "severity: error"; InfoBar { title: "Error"; content: "发生错误"; severity: "error"; width: 320; duration: Fluent.Enums.duration.notification } }
-                    ComponentCard { label: "severity: processing"; InfoBar { title: "Processing"; content: "处理中..."; severity: "processing"; width: 320; duration: Fluent.Enums.duration.notification } }
-                }
-            }
+            // Static InfoBar and Toast showcases 静态 InfoBar 与 Toast 展示
+            FeedbackNotificationShowcase {}
             
             // NotificationManager - InfoBar - 6个位置
             ExampleCard {

@@ -826,6 +826,7 @@ QtObject {
 
  readonly property QtObject demoMetrics: QtObject {
  readonly property int carouselInterval: 2500
+ readonly property int feedbackNotificationWidth: 320 // Gallery notification showcase width Gallery 通知展示宽度
  readonly property int qrcodeModuleSize: 3
  readonly property int ratingDefaultValue: 3
  readonly property real pieChartInnerRadius: 0.6
