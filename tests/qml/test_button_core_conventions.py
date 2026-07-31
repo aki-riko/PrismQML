@@ -483,6 +483,27 @@ def test_gradient_buttons_share_theme_bound_resource(button_core_scene):
     assert _new_visible_windows(windows_before) == []
 
 
+def test_button_core_shares_neo_press_transform(button_core_scene):
+    root, warnings, windows_before = button_core_scene
+    button = _button(root, "lifecycleButton")
+    descendants = _descendants(button)
+    transforms = [
+        child
+        for child in descendants
+        if child.metaObject().className().startswith("QQuickTranslate")
+    ]
+    behaviors = [
+        child
+        for child in descendants
+        if child.metaObject().className() == "QQuickBehavior"
+    ]
+
+    assert len(transforms) == 1
+    assert len(behaviors) == 2
+    assert warnings == []
+    assert _new_visible_windows(windows_before) == []
+
+
 def test_button_core_double_click_preserves_both_click_activations(qapp):
     engine, component, window, warnings = _create_click_scene()
     try:
