@@ -121,6 +121,7 @@ Item {
     // ListView/GridView may change origin while delegates are recycled.
     // ListView/GridView 复用 delegate 时可能动态改变 origin，目标与动画值必须同步回合法区间。
     function _reconcileVerticalBounds() {
+        if (!target) return
         if (_boundaryTargetV === 0 && !smoothYAnimation.running && !_isOvershotV) {
             var currentY = _clamp(target.contentY, _minY, _maxY)
             if (currentY === _targetY && currentY === _smoothY) return
@@ -147,6 +148,7 @@ Item {
     }
 
     function _reconcileHorizontalBounds() {
+        if (!target) return
         if (_boundaryTargetH === 0 && !smoothXAnimation.running && !_isOvershotH) {
             var currentX = _clamp(target.contentX, _minX, _maxX)
             if (currentX === _targetX && currentX === _smoothX) return
@@ -271,10 +273,14 @@ Item {
     // Bindings 绑定
     on_SmoothYChanged: if (_isVertical && target) target.contentY = _smoothY
     on_SmoothXChanged: if (!_isVertical && target) target.contentX = _smoothX
-    on_MinYChanged: _reconcileVerticalBounds()
-    on_MaxYChanged: _reconcileVerticalBounds()
-    on_MinXChanged: _reconcileHorizontalBounds()
-    on_MaxXChanged: _reconcileHorizontalBounds()
+    // ListView can update contentHeight while contentY is changing. Reconcile
+    // on the next turn so bound evaluation cannot synchronously write contentY
+    // and re-enter the same _maxY binding. ListView 可能在 contentY 变化时更新
+    // contentHeight；下一事件循环再校正，避免写回 contentY 时重入 _maxY 绑定。
+    on_MinYChanged: verticalReconcileTimer.restart()
+    on_MaxYChanged: verticalReconcileTimer.restart()
+    on_MinXChanged: horizontalReconcileTimer.restart()
+    on_MaxXChanged: horizontalReconcileTimer.restart()
 
     // Sync initial position 同步初始位置
     Component.onCompleted: {
@@ -317,6 +323,20 @@ Item {
         id: bounceTimerH
         interval: Enums.duration.fast
         onTriggered: helper._bounceBackH()
+    }
+
+    Timer {
+        id: verticalReconcileTimer
+        interval: Enums.duration.instant
+        repeat: false
+        onTriggered: helper._reconcileVerticalBounds()
+    }
+
+    Timer {
+        id: horizontalReconcileTimer
+        interval: Enums.duration.instant
+        repeat: false
+        onTriggered: helper._reconcileHorizontalBounds()
     }
 
     // Auto wheel handler 自动滚轮处理
