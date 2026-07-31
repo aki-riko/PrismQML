@@ -7,9 +7,20 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import Q_ARG, QEventLoop, QMetaObject, QObject, QTimer, QUrl
+from PySide6.QtCore import (
+    Q_ARG,
+    QEventLoop,
+    QMetaObject,
+    QObject,
+    QPoint,
+    QPointF,
+    QTimer,
+    QUrl,
+)
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 
@@ -51,6 +62,28 @@ Item {
         hour: 10
         minute: 30
         second: 10
+        timePrecision: Enums.picker.time_second
+    }
+}
+"""
+
+HOVER_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    width: 700
+    height: 400
+    visible: true
+
+    DateTimePicker {
+        id: picker
+        objectName: "picker"
+        x: 40
+        y: 40
+        width: 520
+        type: Enums.picker.type_datetime
         timePrecision: Enums.picker.time_second
     }
 }
@@ -160,6 +193,14 @@ def _popup_parts(picker):
     return row, highlight, loaders
 
 
+def _has_popup_content(picker):
+    return any(
+        child.metaObject().indexOfProperty("hourWheelLoader") >= 0
+        and child.metaObject().indexOfProperty("minuteWheelLoader") >= 0
+        for child in _descendants(picker)
+    )
+
+
 def _popup_core(picker):
     return next(
         child
@@ -198,12 +239,38 @@ def _destroy_scene(engine, component, root):
     _pump()
 
 
+def _create_hover_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(HOVER_SCENE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    picker = window.findChild(QQuickItem, "picker")
+    assert picker is not None
+    assert _wait_for(window.isExposed)
+    return engine, component, window, picker, warnings
+
+
 def test_selected_row_text_stays_above_opaque_highlight(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, root, picker, warnings = _create_scene()
     try:
         _use_language(root, "fr")
+        assert not picker.property("_popupContentRequested")
+        assert not _has_popup_content(picker)
         picker.openPopup()
+        assert picker.property("_popupContentRequested")
         assert _wait_for(lambda: picker.property("isOpen"))
         assert _wait_for(lambda: picker.property("_tempYear") == 2026)
         row, highlight, loaders = _popup_parts(picker)
@@ -235,6 +302,39 @@ def test_selected_row_text_stays_above_opaque_highlight(qapp):
     finally:
         picker.closePopup()
         _destroy_scene(engine, component, root)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_hover_prewarms_hidden_popup_without_opening(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, picker, warnings = _create_hover_scene()
+    try:
+        popup = _popup_core(picker)
+        assert not picker.property("_popupContentRequested")
+        assert not _has_popup_content(picker)
+
+        QTest.mouseMove(window, QPoint(window.width() - 12, window.height() - 12))
+        _pump()
+        point = picker.mapToItem(
+            window.contentItem(), QPointF(picker.width() / 2, picker.height() / 2)
+        )
+        QTest.mouseMove(window, point.toPoint())
+
+        assert _wait_for(lambda: picker.property("_popupContentRequested"))
+        assert _wait_for(lambda: _has_popup_content(picker))
+        assert _wait_for(lambda: popup.property("_prewarmed"))
+        assert not picker.property("isOpen")
+        assert not popup.property("isOpen")
+        assert [
+            item
+            for item in _new_visible_windows(windows_before)
+            if item is not window
+        ] == []
+        assert warnings == []
+    finally:
+        picker.closePopup()
+        window.close()
+        _destroy_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
 
 

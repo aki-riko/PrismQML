@@ -84,6 +84,7 @@ Rectangle {
     property bool _tempIsAm: true
     property bool _tempUse24H: false  // Temp 24H mode in popup 弹窗内临时24小时制模式
     property bool _initializing: false  // Prevent recursive updates during init 初始化时防止递归更新
+    property bool _popupContentRequested: false  // Defer popup content until hover/open 悬浮或打开时再创建弹层内容
 
     // ==================== Signals 信号 ====================
     signal dateTimeChanged(int year, int month, int day, int hour, int minute, int second)
@@ -97,6 +98,7 @@ Rectangle {
     function getDaysInMonth(y, m) { return Helpers.getDaysInMonth(y, m) }
 
     function openPopup() {
+        _popupContentRequested = true
         var now = new Date()
         _tempYear = year > 0 ? year : now.getFullYear()
         _tempMonth = month > 0 ? month : now.getMonth() + 1
@@ -206,6 +208,11 @@ Rectangle {
         _initializing = false
         pickerPopup.close()
         isOpen = false
+    }
+
+    function _prewarmPopupContent() {
+        _popupContentRequested = true
+        if (pickerPopup.prewarm) pickerPopup.prewarm()
     }
 
     function reset() {
@@ -334,6 +341,9 @@ Rectangle {
         id: pickerMouseArea
         anchors.fill: parent
         hoverEnabled: true
+        onContainsMouseChanged: {
+            if (containsMouse) control._prewarmPopupContent()
+        }
         onClicked: isOpen ? closePopup() : openPopup()
     }
 
@@ -355,6 +365,7 @@ Rectangle {
         Loader {
             id: _popupLoader
             anchors.fill: parent
+            active: control._popupContentRequested
             sourceComponent: DateTimePickerPopup {}
             onLoaded: item.control = control
         }

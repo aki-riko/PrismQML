@@ -6,7 +6,7 @@
 
 from pathlib import Path, PurePosixPath
 
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -103,6 +103,16 @@ def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _wait_for(predicate, timeout_ms: int = 1600) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 20
+    return predicate()
 
 
 def _create_scene():
@@ -299,7 +309,7 @@ def _assert_date_time_runtime(root, picker):
     assert all(item.property("width") == expected_width for item in buttons)
     assert not picker.property("isOpen")
     assert not popup.property("isOpen")
-    assert not popup.property("_prewarmed")
+    assert popup.property("_prewarmed")
 
 
 def _focus_line(picker):
@@ -368,6 +378,8 @@ def test_date_time_buttons_parent_chain(qapp):
     try:
         picker = root.findChild(QObject, "dateTimePicker")
         assert picker is not None
+        assert QMetaObject.invokeMethod(picker, "_prewarmPopupContent")
+        _pump()
         _assert_date_time_runtime(root, picker)
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
@@ -402,11 +414,18 @@ def test_date_time_picker_popup_parent_chain(qapp):
         picker = root.findChild(QObject, "dateTimePicker")
         assert picker is not None
         assert not picker.property("isOpen")
-        _assert_picker_popup_runtime(picker)
         popup = _date_time_popup(picker)
+        assert not picker.property("_popupContentRequested")
         assert not popup.property("isOpen")
         assert not popup.property("_prewarmed")
         assert not popup.property("_prewarmScheduled")
+
+        assert QMetaObject.invokeMethod(picker, "_prewarmPopupContent")
+        assert _wait_for(lambda: picker.property("_popupContentRequested"))
+        assert _wait_for(lambda: popup.property("_prewarmed"))
+        _assert_picker_popup_runtime(picker)
+        assert not picker.property("isOpen")
+        assert not popup.property("isOpen")
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
