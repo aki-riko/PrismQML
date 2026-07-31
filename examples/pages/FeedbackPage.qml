@@ -118,12 +118,12 @@ Item {
                 description: "InfoBar - 左上/中上/右上/左下/中下/右下"
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.infoBar.info(root, "提示", "左上位置", Fluent.Enums.duration.notification, 0) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.infoBar.success(root, "成功", "中上位置", Fluent.Enums.duration.notification, 1) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.infoBar.warning(root, "警告", "右上位置", Fluent.Enums.duration.notification, 2) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.infoBar.error(root, "错误", "左下位置", Fluent.Enums.duration.notification, 3) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.infoBar.attention(root, "注意", "中下位置", Fluent.Enums.duration.notification, 4) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.infoBar.processing(root, "处理中", "右下位置", Fluent.Enums.duration.notification, 5) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.infoBar.info(root, "提示", "左上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.infoBar.success(root, "成功", "中上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.infoBar.warning(root, "警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.infoBar.error(root, "错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.infoBar.attention(root, "注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.infoBar.processing(root, "处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
                 }
             }
             
@@ -133,12 +133,12 @@ Item {
                 description: "Toast - 左上/中上/右上/左下/中下/右下"
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.toast.info(root, "提示", "左上位置", Fluent.Enums.duration.notification, 0) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.toast.success(root, "成功", "中上位置", Fluent.Enums.duration.notification, 1) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.toast.warning(root, "警告", "右上位置", Fluent.Enums.duration.notification, 2) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.toast.error(root, "错误", "左下位置", Fluent.Enums.duration.notification, 3) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.toast.attention(root, "注意", "中下位置", Fluent.Enums.duration.notification, 4) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.toast.processing(root, "处理中", "右下位置", Fluent.Enums.duration.notification, 5) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.toast.info(root, "提示", "左上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.toast.success(root, "成功", "中上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.toast.warning(root, "警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.toast.error(root, "错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.toast.attention(root, "注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.toast.processing(root, "处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
                 }
             }
             
@@ -148,12 +148,12 @@ Item {
                 description: "桌面InfoBar通知 (独立窗口) - 左上/中上/右上/左下/中下/右下"
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.infoBar("info", "提示", "左上位置", Fluent.Enums.duration.notification, 0) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.infoBar("success", "成功", "中上位置", Fluent.Enums.duration.notification, 1) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.infoBar("warning", "警告", "右上位置", Fluent.Enums.duration.notification, 2) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.infoBar("error", "错误", "左下位置", Fluent.Enums.duration.notification, 3) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.infoBar("attention", "注意", "中下位置", Fluent.Enums.duration.notification, 4) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.infoBar("processing", "处理中", "右下位置", Fluent.Enums.duration.notification, 5) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.infoBar("info", "提示", "左上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.infoBar("success", "成功", "中上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.infoBar("warning", "警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.infoBar("error", "错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.infoBar("attention", "注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.infoBar("processing", "处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
                 }
             }
             
@@ -163,7 +163,7 @@ Item {
                 description: "桌面Toast通知 (独立窗口) - 左上/中上/右上/左下/中下/右下"
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.info("提示", "左上位置", Fluent.Enums.duration.notification, 0) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.info("提示", "左上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
                     Button {
                         style: Fluent.Enums.button.style_filled
                         level: 1
@@ -172,7 +172,7 @@ Item {
                             "成功",
                             "00:14\nC:/recordings/clip.mp4",
                             Fluent.Enums.duration.notification,
-                            Fluent.Enums.notification.posBottomRight,
+                            Fluent.Enums.notification.posTop,
                             {
                                 "orient": Qt.Vertical,
                                 "customContent": desktopToastAction,
@@ -180,10 +180,10 @@ Item {
                             }
                         )
                     }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.warning("警告", "右上位置", Fluent.Enums.duration.notification, 2) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.error("错误", "左下位置", Fluent.Enums.duration.notification, 3) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.info("注意", "中下位置", Fluent.Enums.duration.notification, 4) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.info("处理中", "右下位置", Fluent.Enums.duration.notification, 5) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.warning("警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.error("错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.info("注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.info("处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
                 }
             }
             

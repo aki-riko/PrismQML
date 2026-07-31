@@ -5,6 +5,7 @@
 """Gallery notification showcase regressions. Gallery 通知展示回归。"""
 
 from pathlib import Path, PurePosixPath
+import re
 
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem
@@ -25,6 +26,14 @@ SHOWCASE_SOURCE = (
 )
 
 SEVERITIES = ("Info", "Success", "Warning", "Error", "Processing")
+EDGE_POSITION_NAMES = (
+    "posTopLeft",
+    "posTop",
+    "posTopRight",
+    "posBottomLeft",
+    "posBottom",
+    "posBottomRight",
+)
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -48,6 +57,28 @@ def _create_showcase():
     root = component.create(engine.rootContext())
     assert root is not None, [error.toString() for error in component.errors()]
     root.setWidth(900)
+    _pump(100)
+    return engine, component, root
+
+
+def _create_feedback_page():
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(
+        engine, QUrl.fromLocalFile(str(FEEDBACK_PAGE_SOURCE))
+    )
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    assert root is not None, [error.toString() for error in component.errors()]
+    root.setWidth(1200)
+    root.setHeight(800)
     _pump(100)
     return engine, component, root
 
@@ -86,6 +117,34 @@ def test_gallery_feedback_page_uses_shared_notification_showcase():
     assert showcase_source.count("visible: true") == len(SEVERITIES)
     assert "duration: Enums.duration.notification" not in showcase_source
     assert "width: 320" not in showcase_source
+
+
+def test_gallery_notification_buttons_use_current_edge_positions():
+    page_source = FEEDBACK_PAGE_SOURCE.read_text(encoding="utf-8")
+    manager_source = page_source.split(
+        "// NotificationManager - InfoBar - 6个位置", 1
+    )[1].split("// InfoBar进度模式", 1)[0]
+
+    for position_name in EDGE_POSITION_NAMES:
+        pattern = rf"Fluent\.Enums\.notification\.{position_name}(?![A-Za-z])"
+        assert len(re.findall(pattern, manager_source)) == 4
+
+    assert re.search(
+        r"Fluent\.Enums\.duration\.notification,\s*[0-8]\s*[),]",
+        manager_source,
+    ) is None
+
+
+def test_gallery_feedback_page_loads_with_current_edge_positions(qapp):
+    engine, component, root = _create_feedback_page()
+    try:
+        assert root.width() == 1200
+        assert root.height() == 800
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
 
 
 def test_gallery_notification_showcase_follows_qml_conventions():
