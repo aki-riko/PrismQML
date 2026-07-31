@@ -31,7 +31,7 @@ Window {
 
     property var firstToast: null
     property var secondToast: null
-    readonly property int stackGap: Enums.notification.layout.stackGapSmall
+    readonly property int stackGap: Enums.spacing.m
     readonly property int toastVisualInset: Enums.spacing.m
 
     function createScreenshotToasts(requestedPosition) {

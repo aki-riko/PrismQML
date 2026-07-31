@@ -21,6 +21,9 @@ Window {
         ? (notificationItem.implicitWidth > 0 ? notificationItem.implicitWidth : notificationItem.width)
         : Enums.controlSize.toastWidth
     readonly property real contentHeight: notificationItem ? (notificationItem.implicitHeight > 0 ? notificationItem.implicitHeight : notificationItem.height) : Enums.controlSize.toastHeight
+    readonly property real _contentInset: Enums.spacing.xs / 2
+    readonly property real _stackTopInset: _notificationStackInset("_stackTopInset")
+    readonly property real _stackBottomInset: _notificationStackInset("_stackBottomInset")
     
     // ==================== Signals 信号 ====================
     signal closed()
@@ -39,12 +42,19 @@ Window {
         animator.updatePosition()
     }
 
+    function _notificationStackInset(propertyName) {
+        if (!notificationItem) return 0
+        var inset = notificationItem[propertyName]
+        if (inset === undefined || inset === null) return 0
+        return _contentInset + inset
+    }
+
     // Window settings 窗口设置
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     visible: false
     color: Enums.transparent
-    width: contentWidth + Enums.spacing.xs  // Follow actual notification width 跟随通知实际宽度
-    height: contentHeight + Enums.spacing.xs  // Use actual content height 使用实际内容高度
+    width: contentWidth + _contentInset * 2  // Follow actual notification width 跟随通知实际宽度
+    height: contentHeight + _contentInset * 2  // Use actual content height 使用实际内容高度
 
     // ==================== Content 内容 ====================
     // Shared animator 共享动画器

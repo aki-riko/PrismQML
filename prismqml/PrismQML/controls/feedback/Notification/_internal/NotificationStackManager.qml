@@ -25,7 +25,7 @@ QtObject {
     // ==================== Internal Props 内部属性 ====================
     // Notification stack gap Use shared layout config 通知堆叠间距，使用共享布局配置
     readonly property int _infoBarStackGap: Enums.notification.layout.stackGapLarge
-    readonly property int _stackGap: Enums.notification.layout.stackGapSmall
+    readonly property int _compactStackGap: Enums.spacing.m
     property var _stacks: null
     property var _desktopStacks: null
 
@@ -85,22 +85,23 @@ QtObject {
         return value === undefined || value === null ? 0 : value
     }
 
+    function _visualStackAdvance(item, nextItem, position, gap) {
+        var inset = Enums.notification.isBottom(position)
+            ? _stackInset(item, "_stackTopInset")
+                + _stackInset(nextItem, "_stackBottomInset")
+            : _stackInset(item, "_stackBottomInset")
+                + _stackInset(nextItem, "_stackTopInset")
+        return item.height + gap - inset
+    }
+
     function calculateOffset(stack, index, position) {
         if (!stack) return 0
         var offset = 0
-        var stacksUpward = Enums.notification.isBottom(position)
         for (var i = 0; i < index; i++) {
             var item = stack[i]
             var nextItem = stack[i + 1]
-            var gap = (item.desktopMode === undefined) ? _infoBarStackGap : _stackGap
-            if (stacksUpward) {
-                gap -= _stackInset(item, "_stackTopInset")
-                    + _stackInset(nextItem, "_stackBottomInset")
-            } else {
-                gap -= _stackInset(item, "_stackBottomInset")
-                    + _stackInset(nextItem, "_stackTopInset")
-            }
-            offset += item.height + gap
+            var gap = (item.desktopMode === undefined) ? _infoBarStackGap : _compactStackGap
+            offset += _visualStackAdvance(item, nextItem, position, gap)
         }
         return offset
     }
@@ -137,19 +138,31 @@ QtObject {
         var stack = _desktopStacks[position]
         if (!stack) return
         for (var i = 0; i < stack.length; i++) {
-            var offset = calculateDesktopOffset(stack, i, stack[i])
+            var offset = calculateDesktopOffset(stack, i, stack[i], position)
             stack[i].stackOffset = offset
             stack[i].updatePosition()
         }
     }
 
-    function calculateDesktopOffset(stack, index, targetOverlay) {
+    function _nextDesktopItem(stack, currentIndex, targetIndex, targetScreen, targetOverlay) {
+        for (var i = currentIndex + 1; i < targetIndex; i++) {
+            if (!targetScreen || _isSameScreen(stack[i].screen, targetScreen)) return stack[i]
+        }
+        return targetOverlay
+    }
+
+    function calculateDesktopOffset(stack, index, targetOverlay, position) {
         if (!stack) return 0
         var offset = 0
         var targetScreen = targetOverlay ? targetOverlay.screen : null
         for (var i = 0; i < index; i++) {
             if (targetScreen && !_isSameScreen(stack[i].screen, targetScreen)) continue
-            offset += stack[i].height + _stackGap
+            var nextItem = _nextDesktopItem(
+                stack, i, index, targetScreen, targetOverlay
+            )
+            offset += _visualStackAdvance(
+                stack[i], nextItem, position, _compactStackGap
+            )
         }
         return offset
     }

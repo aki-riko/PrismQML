@@ -40,7 +40,7 @@ Window {{
     property var secondToast: null
     property var standalone: null
     readonly property int screenMargin: Enums.notification.layout.screenMargin
-    readonly property int stackGap: Enums.notification.layout.stackGapSmall
+    readonly property int stackGap: Enums.spacing.m
     readonly property int spacingXs: Enums.spacing.xs
     readonly property int spacingM: Enums.spacing.m
     readonly property int progressFeature: Enums.notification.feature_progress_bar
@@ -135,6 +135,17 @@ Window {{
         )
         secondToast = NotificationManager.desktop.info(
             "第二条", "上方通知", 0, Enums.notification.posBottomRight,
+            {{ "screen": host.screen }}
+        )
+    }}
+
+    function createScreenshotStackedToasts(requestedPosition) {{
+        firstToast = NotificationManager.desktop.info(
+            "提示", "左上位置", 0, requestedPosition,
+            {{ "screen": host.screen }}
+        )
+        secondToast = NotificationManager.desktop.info(
+            "提示", "左上位置", 0, requestedPosition,
             {{ "screen": host.screen }}
         )
     }}
@@ -516,14 +527,54 @@ def test_desktop_stack_reflows_when_existing_toast_grows(qapp):
         _wait_until(lambda: first.property("hasCustomContent") is True)
         QTest.qWait(400)
 
-        expected_offset = first_overlay.height() + root.property(
-            "stackGap"
+        expected_offset = (
+            first_overlay.height()
+            + root.property("stackGap")
+            - first_overlay.property("_stackTopInset")
+            - second_overlay.property("_stackBottomInset")
         )
         assert expected_offset > initial_offset
         assert second_overlay.property("stackOffset") == pytest.approx(expected_offset)
-        assert second_overlay.y() + second_overlay.height() + root.property(
-            "stackGap"
-        ) <= first_overlay.y() + 1
+        first_visual_top = first_overlay.y() + first.y() + root.property("spacingM")
+        second_visual_bottom = (
+            second_overlay.y()
+            + second.y()
+            + second.height()
+            - root.property("spacingM")
+        )
+        assert first_visual_top - second_visual_bottom == pytest.approx(
+            root.property("stackGap")
+        )
+    finally:
+        _dispose(engine, component, root)
+
+
+@pytest.mark.parametrize("position, stacks_upward", [(0, False), (6, True)])
+def test_desktop_toasts_use_visual_edge_stack_gap(qapp, position, stacks_upward):
+    """Desktop Toasts share the compact visual gap used by in-window Toasts."""
+    engine, component, root = _create_scene()
+    try:
+        root.createScreenshotStackedToasts(position)
+        first = _toast(root)
+        second = _toast(root, "secondToast")
+        first_overlay = _overlay(first)
+        second_overlay = _overlay(second)
+        _wait_until(lambda: first_overlay.isVisible() and second_overlay.isVisible())
+        QTest.qWait(400)
+
+        inset = root.property("spacingM")
+        first_visual_top = first_overlay.y() + first.y() + inset
+        first_visual_bottom = first_overlay.y() + first.y() + first.height() - inset
+        second_visual_top = second_overlay.y() + second.y() + inset
+        second_visual_bottom = (
+            second_overlay.y() + second.y() + second.height() - inset
+        )
+        actual_gap = (
+            first_visual_top - second_visual_bottom
+            if stacks_upward
+            else second_visual_top - first_visual_bottom
+        )
+        assert actual_gap == pytest.approx(root.property("stackGap"))
     finally:
         _dispose(engine, component, root)
 
