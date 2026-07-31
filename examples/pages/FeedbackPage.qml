@@ -164,6 +164,20 @@ Item {
                 Row {
                     spacing: Fluent.Enums.spacing.l
                     Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.info("提示", "左上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.success("成功", "中上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.warning("警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.error("错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.info("注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.info("处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
+                }
+            }
+
+            // Desktop Toast options demo 桌面 Toast 选项演示
+            ExampleCard {
+                title: "NotificationManager.desktop (Toast options)"
+                description: "特殊选项 - 垂直布局/自定义内容/显式屏幕"
+                Row {
+                    spacing: Fluent.Enums.spacing.l
                     Button {
                         style: Fluent.Enums.button.style_filled
                         level: 1
@@ -172,7 +186,7 @@ Item {
                             "成功",
                             "00:14\nC:/recordings/clip.mp4",
                             Fluent.Enums.duration.notification,
-                            Fluent.Enums.notification.posTop,
+                            Fluent.Enums.notification.posBottomRight,
                             {
                                 "orient": Qt.Vertical,
                                 "customContent": desktopToastAction,
@@ -180,10 +194,6 @@ Item {
                             }
                         )
                     }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.warning("警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.error("错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.info("注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.info("处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
                 }
             }
             

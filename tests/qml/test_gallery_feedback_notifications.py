@@ -123,7 +123,7 @@ def test_gallery_notification_buttons_use_current_edge_positions():
     page_source = FEEDBACK_PAGE_SOURCE.read_text(encoding="utf-8")
     manager_source = page_source.split(
         "// NotificationManager - InfoBar - 6个位置", 1
-    )[1].split("// InfoBar进度模式", 1)[0]
+    )[1].split("// Desktop Toast options", 1)[0]
 
     for position_name in EDGE_POSITION_NAMES:
         pattern = rf"Fluent\.Enums\.notification\.{position_name}(?![A-Za-z])"
@@ -133,6 +133,25 @@ def test_gallery_notification_buttons_use_current_edge_positions():
         r"Fluent\.Enums\.duration\.notification,\s*[0-8]\s*[),]",
         manager_source,
     ) is None
+
+
+def test_gallery_desktop_toast_options_use_separate_example_card():
+    page_source = FEEDBACK_PAGE_SOURCE.read_text(encoding="utf-8")
+    options_title = 'title: "NotificationManager.desktop (Toast options)"'
+    assert options_title in page_source
+
+    standard_card = page_source.split(
+        'title: "NotificationManager.desktop (Toast)"', 1
+    )[1].split(options_title, 1)[0]
+    options_card = page_source.split(options_title, 1)[1].split(
+        "// InfoBar进度模式", 1
+    )[0]
+
+    assert 'text: "Success"' in standard_card
+    assert 'text: "Success + options"' not in standard_card
+    assert 'text: "Success + options"' in options_card
+    assert '"customContent": desktopToastAction' in options_card
+    assert '"screen": root.Window.window.screen' in options_card
 
 
 def test_gallery_feedback_page_loads_with_current_edge_positions(qapp):
