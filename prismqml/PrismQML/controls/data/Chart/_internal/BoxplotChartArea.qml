@@ -24,10 +24,35 @@ Item {
     property string title: ""
     property string subtitle: ""
     property int hoveredIndex: -1
+
+    // ==================== Internal Props 内部属性 ====================
+    property int _labelHoverIndex: -1
+    property int _lastLabelUpdateCount: 0
     
     // ==================== Signals 信号 ====================
     signal boxClicked(int index, var data)
     signal boxHovered(int index)
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _setLabelHovered(index, hovered) {
+        if (index < 0 || index >= xAxisLabelRepeater.count) return false
+        var label = xAxisLabelRepeater.itemAt(index)
+        if (!label) return false
+        label._hovered = hovered
+        return true
+    }
+
+    function _syncHoveredLabel() {
+        var updateCount = 0
+        if (_labelHoverIndex !== hoveredIndex) {
+            if (_setLabelHovered(_labelHoverIndex, false)) updateCount++
+            if (_setLabelHovered(hoveredIndex, true)) updateCount++
+        }
+        _labelHoverIndex = hoveredIndex
+        _lastLabelUpdateCount = updateCount
+    }
+
+    onHoveredIndexChanged: _syncHoveredLabel()
     
     // ==================== Content 内容 ====================
     // Title 标题
@@ -78,15 +103,19 @@ Item {
             width: parent.width
             
             Repeater {
+                id: xAxisLabelRepeater
+
                 model: root.boxplotData
                 Label {
+                    property bool _hovered: false
+
                     width: chartArea.width / root.boxplotData.length
                     type: Enums.label.type_caption
                     text: modelData.label || ""
-                    color: root.hoveredIndex === index 
-                           ? Enums.textColor.primary : Enums.textColor.secondary
+                    color: _hovered ? Enums.textColor.primary : Enums.textColor.secondary
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
+                    Component.onCompleted: _hovered = root.hoveredIndex === index
                     Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
                 }
             }

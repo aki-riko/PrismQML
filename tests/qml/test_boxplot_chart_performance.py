@@ -42,6 +42,7 @@ def test_boxplot_hover_repaints_only_dirty_strips(windowed_chart_scene):
 
     boxplot_area = _loaders(chart)["boxplotAreaLoader"].property("item")
     assert boxplot_area is not None
+    assert boxplot_area.metaObject().indexOfProperty("_lastLabelUpdateCount") >= 0
     content = next(
         obj
         for obj in _object_tree(boxplot_area)
@@ -61,6 +62,8 @@ def test_boxplot_hover_repaints_only_dirty_strips(windowed_chart_scene):
         assert painted.wait(1_000)
         draw_count = content.property("_lastFrameBoxDrawCount")
         assert 0 < draw_count <= box_count
+        label_update_count = boxplot_area.property("_lastLabelUpdateCount")
+        assert 0 < label_update_count <= 2
         if expect_local:
             assert draw_count < box_count // 4
         partial_image = chart.window().grabWindow()
@@ -72,21 +75,21 @@ def test_boxplot_hover_repaints_only_dirty_strips(windowed_chart_scene):
         (True, box_count * 2 // 3, box_count // 3),
     ):
         content.setProperty("isHorizontal", horizontal)
-        content.setProperty("hoveredIndex", -1)
+        boxplot_area.setProperty("hoveredIndex", -1)
         request_full_paint()
         assert content.property("_lastFrameBoxDrawCount") == box_count
 
-        content.setProperty("hoveredIndex", first_index)
+        boxplot_area.setProperty("hoveredIndex", first_index)
         assert_partial_matches_full(expect_local=True)
-        content.setProperty("hoveredIndex", second_index)
+        boxplot_area.setProperty("hoveredIndex", second_index)
         assert_partial_matches_full(expect_local=False)
-        content.setProperty("hoveredIndex", -1)
+        boxplot_area.setProperty("hoveredIndex", -1)
         assert_partial_matches_full(expect_local=True)
 
     content.setProperty("isHorizontal", False)
     content.setProperty("showValues", True)
     request_full_paint()
-    content.setProperty("hoveredIndex", box_count // 2)
+    boxplot_area.setProperty("hoveredIndex", box_count // 2)
     assert painted.wait(1_000)
     assert content.property("_lastFrameBoxDrawCount") == box_count
     partial_image = chart.window().grabWindow()
@@ -95,6 +98,6 @@ def test_boxplot_hover_repaints_only_dirty_strips(windowed_chart_scene):
 
     content.setProperty("isHorizontal", True)
     request_full_paint()
-    content.setProperty("hoveredIndex", box_count // 3)
+    boxplot_area.setProperty("hoveredIndex", box_count // 3)
     assert_partial_matches_full(expect_local=True)
     assert warnings == []
