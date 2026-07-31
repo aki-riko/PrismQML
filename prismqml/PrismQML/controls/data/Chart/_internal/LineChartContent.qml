@@ -43,6 +43,7 @@ Item {
     property real mouseX: 0
     property real mouseY: 0
     property int _lastHoverCandidateCount: 0
+    property int _lastSeriesHoverCandidateCount: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
@@ -143,6 +144,34 @@ Item {
             var distanceSquared = dx * dx + dy * dy
             if (distanceSquared < minimumSquared) {
                 minimumSquared = distanceSquared
+                foundIndex = index
+            }
+        }
+        return foundIndex
+    }
+
+    function _nearestSeriesPointIndexByX(pointerX) {
+        var points = seriesPointPositions.length > 0 ? (seriesPointPositions[0] || []) : []
+        if (points.length === 0) {
+            _lastSeriesHoverCandidateCount = 0
+            return -1
+        }
+        var low = 0
+        var high = points.length
+        while (low < high) {
+            var middle = Math.floor((low + high) / 2)
+            if (points[middle].x < pointerX) low = middle + 1
+            else high = middle
+        }
+        var first = Math.max(0, low - 1)
+        var last = Math.min(points.length - 1, low)
+        var foundIndex = -1
+        var closestX = Infinity
+        _lastSeriesHoverCandidateCount = last - first + 1
+        for (var index = first; index <= last; index++) {
+            var distance = Math.abs(pointerX - points[index].x)
+            if (distance < closestX) {
+                closestX = distance
                 foundIndex = index
             }
         }
@@ -380,17 +409,7 @@ Item {
                 // 直接在 seriesPointPositions 缓存里找鼠标最近的 X — 不再用 stepX 公式
                 // (公式跟 paint 函数计算细节走偏后会错位; 直接对画面位置最稳)
                 if (root.seriesPointPositions.length > 0) {
-                    var firstSeriesPts = root.seriesPointPositions[0] || []
-                    var closestX = Infinity
-                    for (var i = 0; i < firstSeriesPts.length; i++) {
-                        var pt = firstSeriesPts[i]
-                        if (!pt) continue
-                        var dx = Math.abs(mouse.x - pt.x)
-                        if (dx < closestX) {
-                            closestX = dx
-                            foundIndex = i
-                        }
-                    }
+                    foundIndex = root._nearestSeriesPointIndexByX(mouse.x)
                     // 在该 X 索引上找 Y 最近的 series
                     if (foundIndex >= 0) {
                         var closestDist = Infinity

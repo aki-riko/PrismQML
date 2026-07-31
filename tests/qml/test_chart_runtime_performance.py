@@ -267,6 +267,52 @@ def test_line_hover_search_only_checks_the_local_x_range(chart_scene):
     assert warnings == []
 
 
+def test_multi_series_line_hover_uses_binary_x_search(chart_scene):
+    chart, warnings = chart_scene
+    point_count = 5_000
+    series_count = 4
+    chart.setProperty("lttbThreshold", point_count + 1)
+    chart.setProperty("chartType", chart.property("lineType"))
+    chart.setProperty(
+        "series",
+        [
+            {"name": f"S{series_index}", "values": list(range(point_count))}
+            for series_index in range(series_count)
+        ],
+    )
+    _pump(50)
+
+    line_content = _loaders(chart)["lineContentLoader"].property("item")
+    assert line_content is not None
+    positions = [
+        [
+            {"x": point_index * 2, "y": 20 + series_index * 30}
+            for point_index in range(point_count)
+        ]
+        for series_index in range(series_count)
+    ]
+    line_content.setProperty("seriesPointPositions", positions)
+    context = QQmlEngine.contextForObject(line_content)
+    target_index = 3_456
+    nearest_x = QQmlExpression(
+        context,
+        line_content,
+        f"_nearestSeriesPointIndexByX(seriesPointPositions[0][{target_index}].x)",
+    )
+    assert _evaluate(nearest_x) == target_index
+    assert line_content.property("_lastSeriesHoverCandidateCount") <= 2
+
+    midpoint_x = positions[0][target_index]["x"] + 1
+    midpoint = QQmlExpression(
+        context,
+        line_content,
+        f"_nearestSeriesPointIndexByX({midpoint_x})",
+    )
+    assert _evaluate(midpoint) == target_index
+    assert line_content.property("_lastSeriesHoverCandidateCount") <= 2
+    assert warnings == []
+
+
 def test_scatter_hover_search_uses_cached_local_geometry(chart_scene):
     chart, warnings = chart_scene
     point_count = 5_000
