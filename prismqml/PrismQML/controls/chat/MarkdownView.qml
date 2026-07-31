@@ -4,6 +4,7 @@
 
 import QtQuick
 import QtQuick.Layouts
+import QtQml.Models
 import "../.."
 import "."
 
@@ -77,23 +78,74 @@ Item {
         return blocks
     }
 
+    function _sameBlockShape(current, next) {
+        return current.kind === next.kind
+            && (current.language || "") === (next.language || "")
+    }
+
+    function _appendBlock(block) {
+        blockModel.append({
+            kind: block.kind,
+            content: block.content,
+            language: block.language || ""
+        })
+    }
+
+    function _syncBlocks() {
+        var parsed = _parseBlocks(markdown)
+        var sharedCount = Math.min(blockModel.count, parsed.length)
+        var index = 0
+        while (index < sharedCount
+               && _sameBlockShape(blockModel.get(index), parsed[index])) {
+            if (blockModel.get(index).content !== parsed[index].content) {
+                blockModel.setProperty(index, "content", parsed[index].content)
+            }
+            ++index
+        }
+        if (index < blockModel.count) {
+            blockModel.remove(index, blockModel.count - index)
+        }
+        while (index < parsed.length) {
+            _appendBlock(parsed[index])
+            ++index
+        }
+    }
+
     implicitHeight: contentColumn.implicitHeight
     implicitWidth: parent ? parent.width : Enums.controlSize.chatContentMaxWidth
 
+    onMarkdownChanged: _syncBlocks()
+    Component.onCompleted: _syncBlocks()
+
     // ==================== Content 内容 ====================
+    ListModel {
+        id: blockModel
+    }
+
     ColumnLayout {
         id: contentColumn
         width: parent.width
         spacing: Enums.spacing.m
 
         Repeater {
-            model: control._blocks
+            model: blockModel
 
             delegate: Loader {
-                required property var modelData
+                id: blockLoader
+
+                required property string kind
+                required property string content
+                required property string language
+
+                function _reloadRenderItem() {
+                    if (!item || status !== Loader.Ready) return
+                    active = false
+                    active = true
+                }
 
                 Layout.fillWidth: true
-                sourceComponent: modelData.kind === "code" ? codeCmp : textCmp
+                sourceComponent: kind === "code" ? codeCmp : textCmp
+                onContentChanged: _reloadRenderItem()
 
                 Component {
                     id: textCmp
@@ -101,7 +153,7 @@ Item {
                         // Qt CommonMark handles lists, emphasis, headings, inline code, links,
                         // and paragraph breaks, replacing the old subset regex parser
                         // Qt CommonMark 处理列表、强调、标题、行内码、链接和段落换行，替代旧子集正则解析器
-                        text: modelData.content
+                        text: blockLoader.content
                         color: control.textColor
                         linkColor: control.linkColor
                         textFormat: Text.MarkdownText
@@ -114,8 +166,8 @@ Item {
                 Component {
                     id: codeCmp
                     CodeBlock {
-                        code: modelData.content
-                        language: modelData.language
+                        code: blockLoader.content
+                        language: blockLoader.language
                     }
                 }
             }
