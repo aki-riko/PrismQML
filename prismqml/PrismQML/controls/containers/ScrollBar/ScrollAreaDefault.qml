@@ -109,8 +109,8 @@ Item {
         return null
     }
 
-    onHeightChanged: Qt.callLater(_updateScrollBar)
-    onWidthChanged: Qt.callLater(_updateScrollBar)
+    onHeightChanged: _updateScrollBar()
+    onWidthChanged: _updateScrollBar()
     onScrollBarWidthChanged: _updateScrollBar()
 
     // ==================== Content 内容 ====================
