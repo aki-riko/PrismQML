@@ -34,7 +34,11 @@ function match(query, text) {
     if (!query || !text) {
         return query ? null : { score: 0, ranges: [] }
     }
-    var q = _normalize(query)
+    return _matchNormalized(_normalize(query), text)
+}
+
+function _matchNormalized(q, text) {
+    if (!text) return null
     var t = _normalize(text)
 
     var ranges = []
@@ -80,7 +84,11 @@ function match(query, text) {
 function substringMatch(query, text) {
     if (!query) return { score: 0, ranges: [] }
     if (!text) return null
-    var q = _normalize(query)
+    return _substringMatchNormalized(_normalize(query), text)
+}
+
+function _substringMatchNormalized(q, text) {
+    if (!text) return null
     var t = _normalize(text)
     var idx = t.indexOf(q)
     if (idx < 0) return null
@@ -98,10 +106,16 @@ function substringMatch(query, text) {
 function matchEntry(query, entry, matchKeys, weights, useFuzzy) {
     if (!entry) return null
     if (!query) return { score: 0, fieldRanges: {} }
+    return _matchEntryNormalized(
+        _normalize(query), entry, matchKeys, weights, useFuzzy
+    )
+}
 
+function _matchEntryNormalized(query, entry, matchKeys, weights, useFuzzy) {
     var keys = matchKeys || ['title', 'subtitle', 'keywords']
     var w = weights || { title: 3, subtitle: 2, section: 2, keywords: 1 }
-    var matcher = (useFuzzy === false) ? substringMatch : match
+    var matcher = (useFuzzy === false)
+        ? _substringMatchNormalized : _matchNormalized
 
     var totalScore = 0
     var fieldRanges = {}
@@ -159,9 +173,12 @@ function filterAndRank(query, entries, matchKeys, weights, useFuzzy, maxResults)
         return out
     }
 
+    var normalizedQuery = _normalize(query)
     var hits = []
     for (var k = 0; k < entries.length; k++) {
-        var m = matchEntry(query, entries[k], matchKeys, weights, useFuzzy)
+        var m = _matchEntryNormalized(
+            normalizedQuery, entries[k], matchKeys, weights, useFuzzy
+        )
         if (m !== null) {
             hits.push({ entry: entries[k], score: m.score, fieldRanges: m.fieldRanges })
         }
