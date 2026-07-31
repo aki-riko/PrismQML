@@ -87,11 +87,12 @@ ComboBoxCore {
     
     function _rebuildFlatModel() {
         var flat = []
-        _flattenTree(_safeModel, [], 0, "root", flat)
+        var searchText = _searchText.toLowerCase()
+        _flattenTree(_safeModel, [], 0, "root", flat, searchText)
         _flatModel = flat
     }
     
-    function _flattenTree(nodes, parentPath, depth, parentId, result) {
+    function _flattenTree(nodes, parentPath, depth, parentId, result, searchText) {
         if (!nodes) return
         for (var i = 0; i < nodes.length; i++) {
             var node = nodes[i]
@@ -101,27 +102,32 @@ ComboBoxCore {
             var path = parentPath.concat([nodeText])
             var hasChildren = !!(node.children && node.children.length > 0)
             var expanded = !!_expandedNodes[nodeId]
-            var matchesSearch = !_searchText || nodeText.toLowerCase().indexOf(_searchText.toLowerCase()) >= 0
+            var matchesSearch = !searchText || nodeText.toLowerCase().indexOf(searchText) >= 0
             
             var hasMatchingChildren = false
-            if (!matchesSearch && hasChildren) hasMatchingChildren = _hasMatchingDescendants(node.children)
+            if (!matchesSearch && hasChildren) {
+                hasMatchingChildren = _hasMatchingDescendants(node.children, searchText)
+            }
             
             if (matchesSearch || hasMatchingChildren || !_searchText) {
                 result.push({ text: nodeText, depth: depth, nodeId: nodeId, path: path, hasChildren: hasChildren, expanded: expanded })
             }
             
-            if (hasChildren && expanded) _flattenTree(node.children, path, depth + 1, nodeId, result)
+            if (hasChildren && expanded) {
+                _flattenTree(node.children, path, depth + 1, nodeId, result, searchText)
+            }
         }
     }
     
-    function _hasMatchingDescendants(children) {
+    function _hasMatchingDescendants(children, searchText) {
         if (!children) return false
         for (var i = 0; i < children.length; i++) {
             var child = children[i]
             if (!child) continue
             var text = typeof child === "string" ? child : (child.text || "")
-            if (text.toLowerCase().indexOf(_searchText.toLowerCase()) >= 0) return true
-            if (child.children && _hasMatchingDescendants(child.children)) return true
+            if (text.toLowerCase().indexOf(searchText) >= 0) return true
+            if (child.children
+                    && _hasMatchingDescendants(child.children, searchText)) return true
         }
         return false
     }

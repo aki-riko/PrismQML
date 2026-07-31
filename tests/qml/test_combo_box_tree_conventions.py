@@ -188,6 +188,11 @@ def _assert_expand_and_search(combo: QQuickItem) -> None:
     combo._toggleExpand("root_0")
     assert _wait_for(lambda: len(_flat_model(combo)) == 2)
     assert [item["text"] for item in _flat_model(combo)] == ["Parent", "Solo"]
+    combo.setProperty("_searchText", "LEAF B")
+    assert _wait_for(lambda: len(_flat_model(combo)) == 1)
+    assert [item["text"] for item in _flat_model(combo)] == ["Parent"]
+    combo.setProperty("_searchText", "")
+    assert _wait_for(lambda: len(_flat_model(combo)) == 2)
     combo._toggleExpand("root_0")
     assert _wait_for(lambda: len(_flat_model(combo)) == 5)
     combo.setProperty("_searchText", "leaf b")
@@ -272,6 +277,9 @@ def test_combo_box_tree_source_conventions():
     assert "var sourceModel = control.model" in source
     assert 'typeof sourceModel.length !== "number"' in source
     assert "sourceModel.length <= 0" in source
+    assert 'var searchText = _searchText.toLowerCase()' in source
+    assert source.count("_searchText.toLowerCase()") == 1
+    assert "_hasMatchingDescendants(node.children, searchText)" in source
     assert "if ((_safeModel || []).length > 0)" not in source
     assert "if (_safeModel.length > 0)" not in source
     assert [
