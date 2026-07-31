@@ -117,7 +117,7 @@ Item {
             // Draw business-specific additions 绘制业务自定义内容
             if (extraDraw) {
                 try {
-                    extraDraw(ctx, publicColumns, publicRowData, rowWidth, rowHeight)
+                    extraDraw.call(root, ctx, publicColumns, publicRowData, rowWidth, rowHeight)
                 } catch (e) {
                     console.warn("[PaintedRow] extraDraw error:", e)
                 }

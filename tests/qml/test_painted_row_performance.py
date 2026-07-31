@@ -50,6 +50,7 @@ Window {{
     property int extraValue: -1
     property real extraWidth: -1
     property real extraHeight: -1
+    property bool extraDrawThisMatches: false
 
     width: 320
     height: 80
@@ -71,6 +72,7 @@ Window {{
         rowData: ({{ name: "Alpha", value: 42 }})
         rowIndex: 7
         extraDraw: function(ctx, columns, data, width, height) {{
+            root.extraDrawThisMatches = this === row
             root.extraDrawCalls += 1
             root.extraColumnCount = columns.length
             root.extraValue = data.value
@@ -155,6 +157,7 @@ def test_painted_row_offscreen_paint_preserves_extra_draw_contract(qapp):
         assert window.property("extraValue") == 42
         assert window.property("extraWidth") == 300
         assert window.property("extraHeight") == 40
+        assert window.property("extraDrawThisMatches") is True
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
