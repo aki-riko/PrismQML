@@ -3,27 +3,15 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
-import importlib.metadata
 import os
 from pathlib import Path
-import runpy
 import subprocess
 import sys
-
-import pytest
 
 import prismqml
 
 SUBPROCESS_TIMEOUT_SECONDS = 30
-PACKAGE_INIT = Path(__file__).resolve().parents[1] / "prismqml" / "__init__.py"
 PROJECT_CONFIG = Path(__file__).resolve().parents[1] / "pyproject.toml"
-
-
-def _metadata_failure(error):
-    def fail(_distribution_name):
-        raise error
-
-    return fail
 
 
 def _project_version():
@@ -43,21 +31,28 @@ def test_import_prismqml():
     assert hasattr(prismqml, "__version__")
 
 
-def test_missing_distribution_uses_source_version_fallback(monkeypatch):
-    missing = importlib.metadata.PackageNotFoundError("prismqml")
-    monkeypatch.setattr(importlib.metadata, "version", _metadata_failure(missing))
-
-    namespace = runpy.run_path(str(PACKAGE_INIT))
-
-    assert namespace["__version__"] == _project_version()
+def test_source_version_matches_project_version():
+    assert prismqml.__version__ == _project_version()
 
 
-def test_metadata_backend_failure_is_not_hidden_as_missing_package(monkeypatch):
-    failure = RuntimeError("metadata backend failed")
-    monkeypatch.setattr(importlib.metadata, "version", _metadata_failure(failure))
+def test_import_prismqml_does_not_scan_distribution_metadata():
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys; import prismqml; "
+            "raise SystemExit(2 if 'importlib.metadata' in sys.modules else 0)",
+        ],
+        cwd=os.fspath(Path(__file__).resolve().parents[1]),
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        timeout=SUBPROCESS_TIMEOUT_SECONDS,
+        check=False,
+    )
 
-    with pytest.raises(RuntimeError, match="metadata backend failed"):
-        runpy.run_path(str(PACKAGE_INIT))
+    assert completed.returncode == 0, completed.stdout + completed.stderr
 
 
 def test_qml_path_exists():

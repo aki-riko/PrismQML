@@ -7,13 +7,9 @@
 
 from importlib import import_module as _import_module
 
-try:
-    from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
-    from importlib.metadata import version as _get_version
-
-    __version__ = _get_version("prismqml")  # PyPI 分发名为 prismqml
-except _PackageNotFoundError:
-    __version__ = "0.3.3.8"  # 回退值：开发模式或未安装时
+# Keep this synchronized with pyproject.toml during release version bumps.
+# 发布升版时与 pyproject.toml 同步，避免导入阶段扫描分发元数据。
+__version__ = "0.3.3.8"
 __author__ = "aki-riko"
 
 __all__ = [
