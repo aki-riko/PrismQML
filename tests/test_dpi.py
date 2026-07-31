@@ -8,12 +8,14 @@
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
 
+from prismqml.python.config import _app_config_schema
 from prismqml.python.config.app_config import AppConfig
 import prismqml.python.config.dpi as dpi_module
 
@@ -24,6 +26,35 @@ _QT_DPI_ENVIRONMENT = (
     "QT_ENABLE_HIGHDPI_SCALING",
     "QT_SCALE_FACTOR",
 )
+
+
+def test_dpi_import_defers_full_app_config_runtime():
+    root = Path(__file__).resolve().parents[1]
+    code = """
+import os
+import sys
+
+root = os.path.abspath(sys.argv[1])
+sys.path.insert(0, root)
+os.chdir(root)
+import prismqml.python.config.dpi as dpi_module
+if os.path.commonpath((root, os.path.abspath(dpi_module.__file__))) != root:
+    raise SystemExit(2)
+for name in (
+    "prismqml.python.config.app_config",
+    "prismqml.python.config.config_item",
+    "prismqml.python.config.settings_core",
+):
+    if name in sys.modules:
+        raise SystemExit(3)
+"""
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code, str(root)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def _dirty_qt_dpi_environment(monkeypatch):
@@ -121,6 +152,17 @@ def test_apply_dpi_scale_rejects_valid_dpi_when_peer_window_field_is_invalid(
 def test_app_config_options_are_the_python_runtime_contract():
     assert AppConfig.dpi_scale.options == [0, 100, 125, 150, 175, 200]
     assert AppConfig.window_type.options == [0, 1, 2]
+
+
+def test_app_config_reuses_startup_schema_validators():
+    validators = {
+        AppConfig.lazy_loading: _app_config_schema.LAZY_LOADING_VALIDATOR,
+        AppConfig.dwm_shadow: _app_config_schema.DWM_SHADOW_VALIDATOR,
+        AppConfig.mica_enabled: _app_config_schema.MICA_ENABLED_VALIDATOR,
+        AppConfig.dpi_scale: _app_config_schema.DPI_SCALE_VALIDATOR,
+        AppConfig.window_type: _app_config_schema.WINDOW_TYPE_VALIDATOR,
+    }
+    assert all(entry.validator is validator for entry, validator in validators.items())
 
 
 def test_ms_style_window_is_the_default_window_type():

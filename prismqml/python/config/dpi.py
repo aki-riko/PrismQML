@@ -12,7 +12,11 @@ import os
 import sys
 from pathlib import Path
 
-from .app_config import AppConfig, DEFAULT_APP_CONFIG, validate_app_window_mapping
+from ._app_config_schema import (
+    DEFAULT_APP_CONFIG,
+    DPI_SCALE_VALIDATOR,
+    validate_app_window_mapping,
+)
 from ..core import debug, info, warning
 
 # ==================== DPI Constants DPI常量 ====================
@@ -105,7 +109,7 @@ def _read_configured_dpi_scale(config_file: Path) -> int:
         warning("DPI 启动配置含无效 Window 字段 Invalid Window startup config")
         return 0
     value = window.get("DpiScale", 0)
-    if not AppConfig.dpi_scale.validator.accepts(value):
+    if not DPI_SCALE_VALIDATOR.accepts(value):
         warning(f"拒绝无效 DPI 配置 Invalid DPI config rejected: {value!r}")
         return 0
     return value

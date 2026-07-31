@@ -13,15 +13,15 @@
 from pathlib import Path
 from typing import ClassVar
 
+from . import _app_config_schema as _schema
 from .config_item import EnumEntry, SettingEntry
 from .settings_core import SettingsCore
-from .validators import Validator
 
 
 # ---------- 默认存放路径 ----------
 
-DEFAULT_CONFIG_DIR: Path = Path.home() / ".prismqml"
-DEFAULT_APP_CONFIG: Path = DEFAULT_CONFIG_DIR / "app.json"
+DEFAULT_CONFIG_DIR: Path = _schema.DEFAULT_CONFIG_DIR
+DEFAULT_APP_CONFIG: Path = _schema.DEFAULT_APP_CONFIG
 
 
 # ---------- AppConfig ----------
@@ -34,21 +34,21 @@ class AppConfig(SettingsCore):
         group="Window",
         name="LazyLoading",
         default=True,
-        validator=Validator.boolean(),
+        validator=_schema.LAZY_LOADING_VALIDATOR,
     )
 
     dwm_shadow: ClassVar[SettingEntry] = SettingEntry(
         group="Window",
         name="DwmShadow",
         default=True,
-        validator=Validator.boolean(),
+        validator=_schema.DWM_SHADOW_VALIDATOR,
     )
 
     mica_enabled: ClassVar[SettingEntry] = SettingEntry(
         group="Window",
         name="MicaEnabled",
         default=False,
-        validator=Validator.boolean(),
+        validator=_schema.MICA_ENABLED_VALIDATOR,
     )
 
     # ── DPI & window type ──
@@ -57,7 +57,7 @@ class AppConfig(SettingsCore):
         group="Window",
         name="DpiScale",
         default=0,
-        validator=Validator.choice([0, 100, 125, 150, 175, 200]),
+        validator=_schema.DPI_SCALE_VALIDATOR,
         restart=True,
     )
 
@@ -66,21 +66,14 @@ class AppConfig(SettingsCore):
         group="Window",
         name="WindowType",
         default=1,
-        validator=Validator.choice([0, 1, 2]),
+        validator=_schema.WINDOW_TYPE_VALIDATOR,
         restart=True,
     )
 
 
 def validate_app_window_mapping(window) -> bool:
     """严格校验 AppConfig 已声明的 Window 字段；未知字段保持可扩展。"""
-    if not isinstance(window, dict):
-        return False
-    for entry in AppConfig._setting_entries.values():
-        if entry.group != "Window" or not entry.name or entry.name not in window:
-            continue
-        if not entry.validator.accepts(window[entry.name]):
-            return False
-    return True
+    return _schema.validate_app_window_mapping(window)
 
 
 __all__ = [
