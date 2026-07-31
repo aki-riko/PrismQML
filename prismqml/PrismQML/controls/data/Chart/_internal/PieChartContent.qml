@@ -26,10 +26,58 @@ Item {
     property int hoveredIndex: -1
     property int previousHoveredIndex: -1  // Track previous hover for transition 追踪上一个悬停索引用于过渡
     property bool labelOutside: false    // Label position: "outside" 标签在外部
+
+    // ==================== Internal Props 内部属性 ====================
+    property int _lastHoverCandidateCount: 0
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _sliceHoverGeometry: _buildSliceHoverGeometry()
     
     // ==================== Signals 信号 ====================
     signal sliceClicked(int index, var data)
     signal sliceHovered(int index)
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _buildSliceHoverGeometry() {
+        var endAngles = []
+        var cumulativeAngle = 0
+        var searchable = true
+        for (var index = 0; index < chartData.length; index++) {
+            var sliceAngle = (chartData[index].value / totalValue) * Math.PI * 2
+            if (!isFinite(sliceAngle) || sliceAngle < 0) searchable = false
+            cumulativeAngle += sliceAngle
+            endAngles.push(cumulativeAngle)
+        }
+        return { endAngles: endAngles, searchable: searchable }
+    }
+
+    function _findSliceIndex(angle) {
+        var geometry = _sliceHoverGeometry
+        var endAngles = geometry.endAngles
+        _lastHoverCandidateCount = 0
+        if (geometry.searchable) {
+            var low = 0
+            var high = endAngles.length
+            while (low < high) {
+                _lastHoverCandidateCount++
+                var middle = Math.floor((low + high) / 2)
+                if (angle < endAngles[middle]) high = middle
+                else low = middle + 1
+            }
+            return low < endAngles.length ? low : -1
+        }
+
+        var cumulativeAngle = 0
+        for (var index = 0; index < chartData.length; index++) {
+            _lastHoverCandidateCount++
+            var sliceAngle = (chartData[index].value / totalValue) * Math.PI * 2
+            if (angle >= cumulativeAngle && angle < cumulativeAngle + sliceAngle) {
+                return index
+            }
+            cumulativeAngle += sliceAngle
+        }
+        return -1
+    }
 
     // Hover animation trigger with slice transition 悬浮动画触发（带扇区过渡）
     onHoveredIndexChanged: {
@@ -271,17 +319,7 @@ Item {
             angle += Math.PI / 2
             if (angle > Math.PI * 2) angle -= Math.PI * 2
             
-            // Find which slice 查找扇区
-            var cumAngle = 0
-            for (var i = 0; i < root.chartData.length; i++) {
-                var sliceAngle = (root.chartData[i].value / root.totalValue) * Math.PI * 2
-                if (angle >= cumAngle && angle < cumAngle + sliceAngle) {
-                    root.sliceHovered(i)
-                    return
-                }
-                cumAngle += sliceAngle
-            }
-            root.sliceHovered(-1)
+            root.sliceHovered(root._findSliceIndex(angle))
         }
         
         onExited: root.sliceHovered(-1)
