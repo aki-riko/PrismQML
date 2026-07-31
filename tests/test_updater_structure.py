@@ -62,13 +62,20 @@ from prismqml import Updater
 app = QCoreApplication([])
 default = Updater("owner/repo", prismqml.__version__)
 slot_module = "prismqml.python.core.update_slots"
+install_module = "prismqml.python.core._updater_install"
 default_is_lazy = (
-    slot_module not in sys.modules and default._slot_preparation is None
+    slot_module not in sys.modules
+    and install_module not in sys.modules
+    and default._slot_preparation is None
 )
 dual = Updater(
     "owner/repo", prismqml.__version__, install_strategy="dual_slot"
 )
-dual_is_ready = slot_module in sys.modules and dual._slot_preparation is not None
+dual_is_ready = (
+    slot_module in sys.modules
+    and install_module in sys.modules
+    and dual._slot_preparation is not None
+)
 raise SystemExit(0 if default_is_lazy and dual_is_ready else 2)
 """
     completed = subprocess.run(

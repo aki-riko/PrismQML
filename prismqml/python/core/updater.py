@@ -42,7 +42,6 @@ from ._updater_download import (
     verify_download_digest,
     write_download_bytes,
 )
-from ._updater_install import launch_non_windows_installer, launch_windows_installer
 from ._updater_release import (
     _is_newer,
     _parse_version,
@@ -452,6 +451,11 @@ class Updater(QObject):
         if not installer_path or not os.path.isfile(installer_path):
             logger.warning(f"[Updater] 安装包不存在: {installer_path}")
             return False
+        from ._updater_install import (
+            launch_non_windows_installer,
+            launch_windows_installer,
+        )
+
         args = [a for a in silent_args.split(" ") if a] if silent_args else []
         launcher = (
             launch_windows_installer
