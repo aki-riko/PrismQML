@@ -6,6 +6,7 @@ import QtQuick
 import "../../../.."
 import "../../../data/Label"
 import "BarChartGeometry.js" as Geometry
+import "BarChartPainter.js" as Painter
 
 // BarChartContent - Multi-series bar chart rendering component 多系列柱状图渲染组件
 // Supports markPoint (min/max bubbles) and markLine (average dashed line)
@@ -40,6 +41,9 @@ Item {
     property int _barGeometryBuildCount: 0
     property int _lastFrameBarUpdateCount: 0
     property real _lastBarGeometryProgress: -1
+    property int _lastFrameBarDrawCount: 0
+    property int _paintedHoverIndex: -1
+    property int _paintedHoverSeriesIndex: -1
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
@@ -78,20 +82,11 @@ Item {
     }
     
     function calculateAverage(values) {
-        if (!values || values.length === 0) return 0
-        var sum = 0
-        for (var i = 0; i < values.length; i++) sum += values[i]
-        return sum / values.length
+        return Geometry.average(values)
     }
     
     function findMinMaxIndices(values) {
-        if (!values || values.length === 0) return { minIdx: -1, maxIdx: -1, minVal: 0, maxVal: 0 }
-        var minIdx = 0, maxIdx = 0
-        for (var i = 1; i < values.length; i++) {
-            if (values[i] < values[minIdx]) minIdx = i
-            if (values[i] > values[maxIdx]) maxIdx = i
-        }
-        return { minIdx: minIdx, maxIdx: maxIdx, minVal: values[minIdx], maxVal: values[maxIdx] }
+        return Geometry.findMinMaxIndices(values)
     }
     
     function valueToY(value) {
@@ -110,39 +105,10 @@ Item {
         return value >= 0
     }
 
-    function _lowerBoundBarX(positions, targetX) {
-        var low = 0
-        var high = positions.length
-        while (low < high) {
-            var middle = Math.floor((low + high) / 2)
-            if (positions[middle].x < targetX) low = middle + 1
-            else high = middle
-        }
-        return low
-    }
-
     function _nearestBarHit(x, y) {
-        var nearestDistance = _barHoverRadius
-        var foundIndex = -1
-        var foundSeriesIndex = -1
-        var candidateCount = 0
-        for (var seriesIndex = 0; seriesIndex < barPositions.length; seriesIndex++) {
-            var positions = barPositions[seriesIndex] || []
-            var start = _lowerBoundBarX(positions, x - _barHoverRadius)
-            for (var index = start; index < positions.length; index++) {
-                var position = positions[index]
-                if (position.x >= x + _barHoverRadius) break
-                candidateCount++
-                var distance = Math.abs(x - position.x)
-                if (distance < nearestDistance && y >= position.barTop && y <= position.barBottom) {
-                    nearestDistance = distance
-                    foundIndex = index
-                    foundSeriesIndex = seriesIndex
-                }
-            }
-        }
-        _lastHoverCandidateCount = candidateCount
-        return { barIndex: foundIndex, seriesIndex: foundSeriesIndex }
+        var hit = Geometry.nearestBarHit(barPositions, x, y, _barHoverRadius)
+        _lastHoverCandidateCount = hit.candidateCount
+        return { barIndex: hit.barIndex, seriesIndex: hit.seriesIndex }
     }
 
     function _rebuildBarGeometry(canvasWidth, canvasHeight) {
@@ -175,12 +141,38 @@ Item {
         canvas.requestPaint()
     }
 
+    function _requestMultiHoverPaint() {
+        if (_barGeometryDirty || (animated && canvas.animProgress < 1)) {
+            canvas.requestPaint()
+            return
+        }
+        var previousPosition = Geometry.barPosition(
+            barPositions, _paintedHoverSeriesIndex, _paintedHoverIndex
+        )
+        var currentPosition = Geometry.barPosition(
+            barPositions, hoveredSeriesIndex, hoveredIndex
+        )
+        var barWidth = _barGeometry ? _barGeometry.barWidth : 0
+        var dirtyBounds = Geometry.unitedBounds(
+            Geometry.dirtyBounds(previousPosition, barWidth, width, height, Enums.border.thin),
+            Geometry.dirtyBounds(currentPosition, barWidth, width, height, Enums.border.thin)
+        )
+        if (dirtyBounds && dirtyBounds.width > 0 && dirtyBounds.height > 0) {
+            canvas.markDirty(Qt.rect(
+                dirtyBounds.x, dirtyBounds.y,
+                dirtyBounds.width, dirtyBounds.height
+            ))
+        }
+    }
+
     // Repaint triggers 重绘触发
     onHoveredIndexChanged: {
-        canvas.requestPaint()
+        if (isMultiSeries && !isHorizontal) _requestMultiHoverPaint()
         if (!isMultiSeries && !isHorizontal) singleBarIndicator.requestPaint()
     }
-    onHoveredSeriesIndexChanged: canvas.requestPaint()
+    onHoveredSeriesIndexChanged: {
+        if (isMultiSeries && !isHorizontal) _requestMultiHoverPaint()
+    }
     onSeriesChanged: _invalidateBarGeometry()
     onShowAverageChanged: canvas.requestPaint()
     onShowBarGradientChanged: canvas.requestPaint()
@@ -192,72 +184,57 @@ Item {
 
         property real animProgress: root.animated ? 0 : 1
 
-        // Draw rounded rectangle with only top corners rounded 只有顶部圆角的矩形
-        function drawRoundedRect(ctx, x, y, w, h, r) {
-            if (w < 2 * r) r = w / 2
-            if (h < 2 * r) r = h / 2
-            ctx.beginPath()
-            ctx.moveTo(x + r, y)
-            ctx.lineTo(x + w - r, y)
-            ctx.arcTo(x + w, y, x + w, y + r, r)
-            ctx.lineTo(x + w, y + h)
-            ctx.lineTo(x, y + h)
-            ctx.lineTo(x, y + r)
-            ctx.arcTo(x, y, x + r, y, r)
-            ctx.closePath()
+        function drawBars(ctx, region, fullPaint) {
+            var geometry = root._barGeometry
+            var barWidth = geometry.barWidth
+            var allBarPositions = root.barPositions
+            var drawCount = 0
+            for (var seriesIndex = 0; seriesIndex < root.series.length; seriesIndex++) {
+                var seriesData = root.series[seriesIndex]
+                var values = seriesData.values || []
+                var color = root.getSeriesColor(seriesIndex)
+                drawCount += Painter.drawSeriesBars(
+                    ctx, allBarPositions[seriesIndex], values, seriesIndex,
+                    color, barWidth, region, fullPaint,
+                    root.hoveredSeriesIndex, root.hoveredIndex,
+                    Enums.radius.small
+                )
+                if (root.showAverage && values.length > 0) {
+                    Painter.drawAverageLine(
+                        ctx, geometry.averageYs[seriesIndex], color,
+                        width, Enums.stateColor.chartStrokeAlpha
+                    )
+                }
+            }
+            root._lastFrameBarDrawCount = drawCount
         }
 
         anchors.fill: parent
         visible: root.isMultiSeries && !root.isHorizontal
 
-        onPaint: {
+        onPaint: (region) => {
             var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            
-            if (!root.isMultiSeries || root.series.length === 0) return
-            
-            var seriesCount = root.series.length
-            var dataLen = root.dataLength
-            if (dataLen === 0) return
-            root._updateAnimatedBarGeometry(root.animated ? animProgress : 1)
-            var geometry = root._barGeometry
-            var barWidth = geometry.barWidth
-            var allBarPositions = root.barPositions
-            
-            // Draw bars 绘制柱子
-            for (var s = 0; s < seriesCount; s++) {
-                var seriesData = root.series[s]
-                var values = seriesData.values || []
-                var color = root.getSeriesColor(s)
-                var seriesPositions = allBarPositions[s]
-                
-                for (var i = 0; i < values.length; i++) {
-                    var position = seriesPositions[i]
-                    var hovered = (s === root.hoveredSeriesIndex && i === root.hoveredIndex)
-                    
-                    // Fluent Design: simple color with subtle hover effect 简洁颜色+微妙悬停效果
-                    ctx.fillStyle = hovered ? Qt.lighter(color, 1.1) : color
-                    
-                    // Draw bar with rounded top corners 绘制顶部圆角柱子
-                    drawRoundedRect(ctx, position.barX, position.barTop,
-                                    barWidth, position.barHeight,
-                                    Enums.radius.small)
-                    ctx.fill()
-                }
-                
-                // Fluent Design: simple average line 简洁平均线
-                if (root.showAverage && values.length > 0) {
-                    var avgY = geometry.averageYs[s]
-                    ctx.beginPath()
-                    ctx.strokeStyle = Qt.rgba(Qt.color(color).r, Qt.color(color).g, Qt.color(color).b, Enums.stateColor.chartStrokeAlpha)
-                    ctx.lineWidth = 1
-                    ctx.setLineDash([4, 4])
-                    ctx.moveTo(0, avgY)
-                    ctx.lineTo(width, avgY)
-                    ctx.stroke()
-                    ctx.setLineDash([])
-                }
+            var fullPaint = root._barGeometryDirty || !region ||
+                    (region.x <= 0 && region.y <= 0 &&
+                     region.width >= width && region.height >= height)
+            if (fullPaint) ctx.clearRect(0, 0, width, height)
+            else ctx.clearRect(region.x, region.y, region.width, region.height)
+            if (!root.isMultiSeries || root.series.length === 0 ||
+                    root.dataLength === 0) {
+                root._lastFrameBarDrawCount = 0
+                return
             }
+            root._updateAnimatedBarGeometry(root.animated ? animProgress : 1)
+            if (!fullPaint) {
+                ctx.save()
+                ctx.beginPath()
+                ctx.rect(region.x, region.y, region.width, region.height)
+                ctx.clip()
+            }
+            drawBars(ctx, region, fullPaint)
+            if (!fullPaint) ctx.restore()
+            root._paintedHoverIndex = root.hoveredIndex
+            root._paintedHoverSeriesIndex = root.hoveredSeriesIndex
         }
         
         Component.onCompleted: {

@@ -5,12 +5,14 @@
 """Bar chart animation geometry regressions. 柱状图动画几何回归。"""
 
 from PySide6.QtQml import QQmlEngine, QQmlExpression
+from PySide6.QtTest import QSignalSpy
 
 from test_chart_runtime_performance import (
+    _animated_canvases,
     _evaluate,
     _loaders,
     _pump,
-    chart_scene,
+    windowed_chart_scene,
 )
 
 
@@ -18,8 +20,8 @@ def _expression(content, source: str) -> QQmlExpression:
     return QQmlExpression(QQmlEngine.contextForObject(content), content, source)
 
 
-def test_multi_bar_animation_reuses_cached_geometry(chart_scene):
-    chart, warnings = chart_scene
+def test_multi_bar_animation_reuses_cached_geometry(windowed_chart_scene):
+    chart, warnings = windowed_chart_scene
     series_count = 4
     bar_count = 2_000
     chart.setProperty("animated", False)
@@ -58,6 +60,7 @@ def test_multi_bar_animation_reuses_cached_geometry(chart_scene):
     )
     build_count = content.property("_barGeometryBuildCount")
     assert build_count >= 1
+    assert content.metaObject().indexOfProperty("_lastFrameBarDrawCount") >= 0
 
     update = QQmlExpression(
         context,
@@ -115,8 +118,24 @@ def test_multi_bar_animation_reuses_cached_geometry(chart_scene):
 
     assert _evaluate(update)
     assert content.property("_lastFrameBarUpdateCount") == 0
+    canvas = _animated_canvases(content)[0]
+    painted = QSignalSpy(canvas.painted)
+    full_paint = QQmlExpression(
+        QQmlEngine.contextForObject(canvas), canvas, "(requestPaint(), true)"
+    )
+    assert _evaluate(full_paint)
+    assert painted.wait(1_000)
+    assert content.property("_lastFrameBarDrawCount") == series_count * bar_count
+    content.setProperty("hoveredSeriesIndex", 2)
     content.setProperty("hoveredIndex", bar_count // 2)
-    _pump(20)
+    assert painted.wait(1_000)
+    assert 0 < content.property("_lastFrameBarDrawCount") < (
+        series_count * bar_count // 4
+    )
+    partial_image = chart.window().grabWindow()
+    assert _evaluate(full_paint)
+    assert painted.wait(1_000)
+    assert partial_image == chart.window().grabWindow()
     assert content.property("_barGeometryBuildCount") == build_count
     assert content.property("_lastFrameBarUpdateCount") == 0
     assert warnings == []

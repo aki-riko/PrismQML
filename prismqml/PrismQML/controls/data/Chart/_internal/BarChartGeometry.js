@@ -10,11 +10,90 @@ function _valueToY(value, height, rangeMin, rangeMax) {
     return height - ((value - rangeMin) / range) * height
 }
 
-function _average(values) {
+function average(values) {
     if (!values || values.length === 0) return 0
     var sum = 0
     for (var index = 0; index < values.length; index++) sum += values[index]
     return sum / values.length
+}
+
+function findMinMaxIndices(values) {
+    if (!values || values.length === 0) {
+        return { minIdx: -1, maxIdx: -1, minVal: 0, maxVal: 0 }
+    }
+    var minIdx = 0
+    var maxIdx = 0
+    for (var index = 1; index < values.length; index++) {
+        if (values[index] < values[minIdx]) minIdx = index
+        if (values[index] > values[maxIdx]) maxIdx = index
+    }
+    return {
+        minIdx: minIdx, maxIdx: maxIdx,
+        minVal: values[minIdx], maxVal: values[maxIdx]
+    }
+}
+
+function _lowerBoundBarX(positions, targetX) {
+    var low = 0
+    var high = positions.length
+    while (low < high) {
+        var middle = Math.floor((low + high) / 2)
+        if (positions[middle].x < targetX) low = middle + 1
+        else high = middle
+    }
+    return low
+}
+
+function nearestBarHit(seriesPositions, x, y, hoverRadius) {
+    var nearestDistance = hoverRadius
+    var foundIndex = -1
+    var foundSeriesIndex = -1
+    var candidateCount = 0
+    for (var seriesIndex = 0; seriesIndex < seriesPositions.length; seriesIndex++) {
+        var positions = seriesPositions[seriesIndex] || []
+        var start = _lowerBoundBarX(positions, x - hoverRadius)
+        for (var index = start; index < positions.length; index++) {
+            var position = positions[index]
+            if (position.x >= x + hoverRadius) break
+            candidateCount++
+            var distance = Math.abs(x - position.x)
+            if (distance < nearestDistance &&
+                    y >= position.barTop && y <= position.barBottom) {
+                nearestDistance = distance
+                foundIndex = index
+                foundSeriesIndex = seriesIndex
+            }
+        }
+    }
+    return {
+        barIndex: foundIndex,
+        seriesIndex: foundSeriesIndex,
+        candidateCount: candidateCount
+    }
+}
+
+function barPosition(seriesPositions, seriesIndex, barIndex) {
+    var positions = seriesPositions[seriesIndex]
+    return positions && positions[barIndex] ? positions[barIndex] : null
+}
+
+function dirtyBounds(position, barWidth, canvasWidth, canvasHeight, padding) {
+    if (!position) return null
+    var left = Math.max(0, Math.floor(position.barX - padding))
+    var top = Math.max(0, Math.floor(position.barTop - padding))
+    var right = Math.min(canvasWidth, Math.ceil(position.barX + barWidth + padding))
+    var bottom = Math.min(canvasHeight, Math.ceil(position.barBottom + padding))
+    return { x: left, y: top, width: right - left, height: bottom - top }
+}
+
+function unitedBounds(first, second) {
+    if (!first) return second
+    if (!second) return first
+    var left = Math.min(first.x, second.x)
+    var top = Math.min(first.y, second.y)
+    var right = Math.max(first.x + first.width, second.x + second.width)
+    var bottom = Math.max(first.y + first.height, second.y + second.height)
+    return { x: left, y: top, width: right - left, height: bottom - top }
 }
 
 function build(seriesData, dataLength, canvasWidth, canvasHeight,
@@ -59,7 +138,7 @@ function build(seriesData, dataLength, canvasWidth, canvasHeight,
         }
         allPositions.push(positions)
         averageYs.push(_valueToY(
-            _average(values), canvasHeight, rangeMin, rangeMax
+            average(values), canvasHeight, rangeMin, rangeMax
         ))
     }
     return {
