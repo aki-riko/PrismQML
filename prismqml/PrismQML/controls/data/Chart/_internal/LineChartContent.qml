@@ -217,8 +217,10 @@ Item {
             : Geometry.updatePoints(_lineGeometry.points, progress,
                                     _lineGeometryBaseline)
         _lastGeometryProgress = progress
-        if (isMultiSeries && _lastFramePointUpdateCount > 0)
-            seriesPointPositionsChanged()
+        if (_lastFramePointUpdateCount > 0) {
+            if (isMultiSeries) seriesPointPositionsChanged()
+            else pointPositionsChanged()
+        }
     }
 
     function _invalidateLineGeometry() {

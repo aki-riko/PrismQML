@@ -5,6 +5,7 @@
 """Line chart animation geometry regressions. 折线图动画几何回归。"""
 
 from PySide6.QtQml import QQmlEngine, QQmlExpression
+from PySide6.QtTest import QSignalSpy
 
 from test_chart_runtime_performance import (
     _evaluate,
@@ -171,4 +172,33 @@ def test_stacked_line_animation_reuses_cached_geometry(chart_scene):
             "< 0.000001",
         )
     )
+    assert warnings == []
+
+
+def test_single_line_animation_notifies_position_bindings(chart_scene):
+    chart, warnings = chart_scene
+    chart.setProperty("animated", False)
+    chart.setProperty("chartType", chart.property("lineType"))
+    chart.setProperty(
+        "chartData",
+        [
+            {"label": "A", "value": 10},
+            {"label": "B", "value": 30},
+            {"label": "C", "value": 20},
+        ],
+    )
+    _pump(20)
+
+    content = _line_content(chart)
+    assert _evaluate(_expression(content, "(_rebuildLineGeometry(width, height), true)"))
+    position_changes = QSignalSpy(content.pointPositionsChanged)
+    before_y = _evaluate(_expression(content, "pointPositions[1].y"))
+
+    assert _evaluate(
+        _expression(content, "(_updateAnimatedLineGeometry(0.5), true)")
+    )
+    after_y = _evaluate(_expression(content, "pointPositions[1].y"))
+
+    assert after_y != before_y
+    assert position_changes.count() == 1
     assert warnings == []

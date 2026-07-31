@@ -118,6 +118,7 @@ Item {
             point.y = _geometryCenterY + point.offsetY * progress
         }
         _lastFramePointUpdateCount = pointPositions.length
+        if (_lastFramePointUpdateCount > 0) pointPositionsChanged()
     }
 
     function _invalidatePointGeometry() {

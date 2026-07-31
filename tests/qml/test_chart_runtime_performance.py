@@ -15,6 +15,7 @@ from PySide6.QtQml import (
     QQmlEngine,
     QQmlExpression,
 )
+from PySide6.QtTest import QSignalSpy
 
 from prismqml import register_types
 
@@ -427,6 +428,51 @@ def test_radar_animation_reuses_cached_polar_geometry(chart_scene):
     radar_content.setProperty("hoveredPointIndex", target_index % indicator_count)
     _pump(20)
     assert radar_content.property("_pointGeometryBuildCount") == build_count
+    assert warnings == []
+
+
+def test_radar_animation_notifies_position_bindings(chart_scene):
+    chart, warnings = chart_scene
+    chart.setProperty("animated", False)
+    chart.setProperty("chartType", chart.property("radarType"))
+    chart.setProperty(
+        "indicators",
+        [
+            {"name": "A", "max": 100},
+            {"name": "B", "max": 100},
+            {"name": "C", "max": 100},
+        ],
+    )
+    chart.setProperty("series", [{"name": "S", "values": [20, 40, 60]}])
+    _pump(20)
+
+    radar_area = _loaders(chart)["radarAreaLoader"].property("item")
+    assert radar_area is not None
+    radar_content = next(
+        obj
+        for obj in _object_tree(radar_area)
+        if obj.metaObject().indexOfProperty("pointPositions") >= 0
+    )
+    context = QQmlEngine.contextForObject(radar_content)
+    rebuild = QQmlExpression(
+        context,
+        radar_content,
+        "(_rebuildPointGeometry(width, height), true)",
+    )
+    assert _evaluate(rebuild)
+    position_changes = QSignalSpy(radar_content.pointPositionsChanged)
+    before_y = _evaluate(QQmlExpression(context, radar_content, "pointPositions[0].y"))
+
+    update = QQmlExpression(
+        context,
+        radar_content,
+        "(_updateAnimatedPoints(0.5), true)",
+    )
+    assert _evaluate(update)
+    after_y = _evaluate(QQmlExpression(context, radar_content, "pointPositions[0].y"))
+
+    assert after_y != before_y
+    assert position_changes.count() == 1
     assert warnings == []
 
 
