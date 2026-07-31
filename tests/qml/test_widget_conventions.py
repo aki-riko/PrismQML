@@ -324,6 +324,9 @@ def test_widget_source_follows_conventions_and_uses_tooltip_tokens():
     )
     assert "property int toolTipHideDelay: Enums.duration.none" in widget_source
     assert "property int toolTipPosition: Enums.position.top" in widget_source
+    assert "readonly property Loader _centerChildrenDelayed: Loader" in widget_source
+    assert "onLoaded: widget._scheduleCenterChildren()" in widget_source
+    assert "id: _centerChildrenDelayed" not in widget_source
     assert "leftPadding: Enums.spacing.l" in widget_source
     assert "rightPadding: Enums.spacing.l" in widget_source
     assert "topPadding: Enums.spacing.xs" in widget_source

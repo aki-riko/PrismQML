@@ -40,6 +40,24 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     property bool _toolTipShowPending: false
+    readonly property Loader _centerChildrenDelayed: Loader {
+        active: widget.centerContent
+        onLoaded: widget._scheduleCenterChildren()
+
+        sourceComponent: Timer {
+            interval: Enums.duration.tick
+            onTriggered: {
+                for (var i = 0; i < widget.children.length; i++) {
+                    var child = widget.children[i]
+                    if (widget._isCenterableChild(child)) {
+                        // Center through anchors for broad child compatibility 使用锚点居中以兼容不同子项。
+                        child.anchors.centerIn = widget
+                        break
+                    }
+                }
+            }
+        }
+    }
 
     // ==================== Signals 信号 ====================
     signal _toolTipTimersCanceled()
@@ -109,6 +127,10 @@ Item {
                name !== "_centerChildrenDelayed"
     }
 
+    function _scheduleCenterChildren() {
+        if (_centerChildrenDelayed.item) _centerChildrenDelayed.item.start()
+    }
+
     clip: false  // Allow tooltip to overflow 允许tooltip溢出显示
 
     // ==================== Size 尺寸 ====================
@@ -123,8 +145,8 @@ Item {
     Layout.fillHeight: layoutFillHeight
 
     // Center first child when centerContent is true 当centerContent为true时居中第一个子组件
-    onChildrenChanged: if (centerContent) _centerChildrenDelayed.start()
-    onCenterContentChanged: if (centerContent) _centerChildrenDelayed.start()
+    onChildrenChanged: if (centerContent) _scheduleCenterChildren()
+    onCenterContentChanged: if (centerContent) _scheduleCenterChildren()
 
     // ==================== Content 内容 ====================
 
@@ -135,21 +157,6 @@ Item {
         color: widget.backgroundColor
         radius: widget.backgroundRadius
         visible: widget.backgroundColor.a > 0
-    }
-
-    Timer {
-        id: _centerChildrenDelayed
-        interval: Enums.duration.tick
-        onTriggered: {
-            for (var i = 0; i < widget.children.length; i++) {
-                var child = widget.children[i]
-                if (widget._isCenterableChild(child)) {
-                    // Center through anchors for broad child compatibility 使用 anchors 居中以兼容不同子组件
-                    child.anchors.centerIn = widget
-                    break
-                }
-            }
-        }
     }
 
     Loader {
