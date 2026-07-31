@@ -24,8 +24,8 @@ import PrismQML
 Item {
     id: root
 
-    readonly property int iconOnlyPadding: Enums.spacing.xs
-    readonly property int iconOnlyIconSize: Enums.iconSize.xxl
+    readonly property int iconOnlyPadding: Enums.spacing.s
+    readonly property int iconOnlyIconSize: Enums.iconSize.xl
     readonly property int regularIconSize: Enums.iconSize.m
     readonly property int textContentPadding: Enums.spacing.m
     readonly property int buttonHeight: Enums.controlSize.buttonHeight

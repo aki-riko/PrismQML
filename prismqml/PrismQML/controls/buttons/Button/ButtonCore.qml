@@ -35,7 +35,7 @@ Widget {
     property string text: ""
     property string icon: ""           // Icon name / image path 图标名或图片路径
     property int iconSize: isToolButton && !_hasMenuFeature
-                           ? Enums.iconSize.xxl
+                           ? Enums.iconSize.xl
                            : Enums.iconSize.m
     default property alias contentData: customContentContainer.data  // Custom content 自定义内容
     property bool hasCustomContent: false
