@@ -31,6 +31,16 @@ HINT_ICON_SOURCE = (
     / "Tooltip"
     / "HintIcon.qml"
 )
+TOOLTIP_POPUP_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "containers"
+    / "_internal"
+    / "WidgetToolTipPopup.qml"
+)
+TOOLTIP_SUPPORT_SOURCE = TOOLTIP_POPUP_SOURCE.with_name("WidgetToolTipSupport.qml")
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "widget-conventions.qml")
 )
@@ -196,7 +206,7 @@ def test_widget_tooltip_defaults_and_hidden_window_behavior(widget_scene):
     assert default_widget is not None
     assert hint_icon is not None
     assert default_widget.findChild(QObject, "_toolTip") is None
-    assert hint_icon.findChild(QObject, "_toolTip") is not None
+    assert hint_icon.findChild(QObject, "_toolTip") is None
     assert (
         root.property("persistentDuration"),
         root.property("tooltipShowDelay"),
@@ -233,11 +243,10 @@ def test_hint_tooltip_uses_real_padding_and_right_position(widget_scene):
     try:
         hint_icon = root.findChild(QQuickItem, "hintIcon")
         assert hint_icon is not None
-        tooltip = hint_icon.findChild(QObject, "_toolTip")
-        assert tooltip is not None
-
         assert QMetaObject.invokeMethod(hint_icon, "showToolTip")
         _pump(20)
+        tooltip = hint_icon.findChild(QObject, "_toolTip")
+        assert tooltip is not None
         horizontal_padding = root.property("tooltipHorizontalPadding")
         vertical_padding = root.property("tooltipVerticalPadding")
         tooltip_gap = root.property("tooltipGap")
@@ -273,9 +282,7 @@ def test_hint_tooltip_flips_left_at_screen_right_edge(widget_scene):
         hint_icon = root.findChild(QQuickItem, "hintIcon")
         assert hint_icon is not None
         hint_icon.setX(window.width() - hint_icon.width())
-        tooltip = hint_icon.findChild(QObject, "_toolTip")
         hover_area = hint_icon.findChild(QObject, "_hoverArea")
-        assert tooltip is not None
         assert hover_area is not None
         assert hover_area.property("containsMouse") is False
         hint_icon.setProperty("toolTipShowDelay", 0)
@@ -286,6 +293,7 @@ def test_hint_tooltip_flips_left_at_screen_right_edge(widget_scene):
         )
         QTest.mouseMove(window, hover_point)
         _pump(root.property("tooltipAnimationDuration") + 50)
+        tooltip = hint_icon.findChild(QObject, "_toolTip")
         tooltip_gap = root.property("tooltipGap")
         assert hover_area.property("containsMouse") is True
         assert tooltip.property("visible") is True
@@ -308,6 +316,8 @@ def test_widget_source_follows_conventions_and_uses_tooltip_tokens():
     metrics_source = METRICS_SOURCE.read_text(encoding="utf-8")
     widget_source = WIDGET_SOURCE.read_text(encoding="utf-8")
     hint_icon_source = HINT_ICON_SOURCE.read_text(encoding="utf-8")
+    popup_source = TOOLTIP_POPUP_SOURCE.read_text(encoding="utf-8")
+    support_source = TOOLTIP_SUPPORT_SOURCE.read_text(encoding="utf-8")
     path = PurePosixPath(WIDGET_SOURCE.relative_to(ROOT).as_posix())
     violations = scan_source_text(widget_source, path)
 
@@ -327,15 +337,19 @@ def test_widget_source_follows_conventions_and_uses_tooltip_tokens():
     assert "readonly property Loader _centerChildrenDelayed: Loader" in widget_source
     assert "onLoaded: widget._scheduleCenterChildren()" in widget_source
     assert "id: _centerChildrenDelayed" not in widget_source
-    assert "leftPadding: Enums.spacing.l" in widget_source
-    assert "rightPadding: Enums.spacing.l" in widget_source
-    assert "topPadding: Enums.spacing.xs" in widget_source
-    assert "bottomPadding: Enums.spacing.xs" in widget_source
-    assert "function _resolvedDirection(sourcePos, bounds)" in widget_source
-    assert "WindowHelper.availableScreenGeometryAt(" in widget_source
-    assert "desktopAvailableWidth" not in widget_source
-    assert "desktopAvailableHeight" not in widget_source
-    assert "easing.type: Easing.OutCubic" in widget_source
+    assert 'source: "_internal/WidgetToolTipSupport.qml"' in widget_source
+    assert "leftPadding: Enums.spacing.l" in popup_source
+    assert "rightPadding: Enums.spacing.l" in popup_source
+    assert "topPadding: Enums.spacing.xs" in popup_source
+    assert "bottomPadding: Enums.spacing.xs" in popup_source
+    assert "function _resolvedDirection(sourcePos, bounds)" in popup_source
+    assert "WindowHelper.availableScreenGeometryAt(" in popup_source
+    assert "desktopAvailableWidth" not in popup_source
+    assert "desktopAvailableHeight" not in popup_source
+    assert "easing.type: Easing.OutCubic" in popup_source
+    assert "_showRequestedAt = Date.now()" in support_source
+    assert "Date.now() - support._showRequestedAt" in support_source
+    assert "widget.toolTipShowDelay - elapsedMilliseconds" in popup_source
     assert "toolTipPosition: Enums.position.right" in hint_icon_source
     assert "property int toolTipDuration: -1" not in widget_source
     assert "property int toolTipShowDelay: 500" not in widget_source

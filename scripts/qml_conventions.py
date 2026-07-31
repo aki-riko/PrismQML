@@ -43,6 +43,9 @@ _scan_repository = _scan_scope.scan_repository
 
 QTQUICK_CONTROLS_EXCEPTIONS = {
     PurePosixPath("prismqml/PrismQML/controls/containers/Widget.qml"),
+    PurePosixPath(
+        "prismqml/PrismQML/controls/containers/_internal/WidgetToolTipPopup.qml"
+    ),
     # PopupWindowCore is the reviewed internal Qt Popup infrastructure wrapper.
     # PopupWindowCore 是已评审的内部 Qt Popup 基础设施封装。
     PurePosixPath("prismqml/PrismQML/controls/utils/PopupWindowCore.qml"),
