@@ -563,6 +563,14 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_button_core_merges_mutually_exclusive_feature_shells():
+    source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    assert "id: featureVisualLoader" in source
+    assert "id: progressFeatureLoader" not in source
+    assert "id: toggleAnimLoader" not in source
+    assert "active: true" not in source
+
+
 def test_menu_bar_buttons_default_to_left_alignment(button_core_scene):
     root, warnings, windows_before = button_core_scene
     menu_bar = _button(root, "menuBar")

@@ -113,6 +113,11 @@ Widget {
     readonly property int _spectralEdgeInset: Math.min(radius, Math.max(Enums.spacing.none, width / 2 - Enums.spacing.xs))
     readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
                                             feature === Enums.button.feature_split
+    readonly property bool _hasProgressBarFeature:
+        feature === Enums.button.feature_progress_bar ||
+        feature === Enums.button.feature_indeterminate_bar
+    readonly property bool _hasFeatureVisual:
+        _hasProgressBarFeature || feature === Enums.button.feature_toggle
     readonly property bool _showsDropdownIndicator: feature === Enums.button.feature_dropdown &&
                                                     showDropdownIndicator
     readonly property int _contentLeadingPadding: _hasMenuFeature ? Enums.spacing.l : Enums.spacing.m
@@ -511,14 +516,10 @@ Widget {
         }
     }
 
-    // Progress feature 进度条模块
-    Loader {
-        id: progressFeatureLoader
-        anchors.fill: parent
-        active: feature === Enums.button.feature_progress_bar ||
-                feature === Enums.button.feature_indeterminate_bar
+    Component {
+        id: progressFeatureComponent
 
-        sourceComponent: Item {
+        Item {
             anchors.fill: parent
 
             // Rectangle defaults to opaque white, the intended mask source Rectangle 默认不透明白色，正是所需的遮罩源
@@ -541,22 +542,39 @@ Widget {
                     maskSpreadAtMin: Enums.mask.spreadAtMin
                 }
 
-                Loader {
+                ButtonProgress {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     height: Enums.border.thick
-                    active: true
-                    sourceComponent: ButtonProgress {
-                        feature: control.feature
-                        style: control.style
-                        progress: control.progress
-                        showProgress: control.showProgress
-                        parentRadius: control.radius
-                    }
+                    feature: control.feature
+                    style: control.style
+                    progress: control.progress
+                    showProgress: control.showProgress
+                    parentRadius: control.radius
                 }
             }
         }
+    }
+
+    Component {
+        id: toggleFeatureComponent
+
+        ToggleAnimation {
+            target: _bg
+            running: control.checked
+        }
+    }
+
+    // Progress and toggle visuals are mutually exclusive. 进度与切换视觉层互斥。
+    Loader {
+        id: featureVisualLoader
+        anchors.fill: parent
+        active: control._hasFeatureVisual
+        sourceComponent: control._hasProgressBarFeature
+                         ? progressFeatureComponent
+                         : (feature === Enums.button.feature_toggle
+                            ? toggleFeatureComponent : null)
     }
 
     // Main interaction 主交互
@@ -627,17 +645,6 @@ Widget {
                 control._dismissToolTipForMenu()
                 control.menuAboutToOpen()
             }
-        }
-    }
-
-    // Toggle animation 切换动画
-    Loader {
-        id: toggleAnimLoader
-        active: feature === Enums.button.feature_toggle
-
-        sourceComponent: ToggleAnimation {
-            target: _bg
-            running: control.checked
         }
     }
 
