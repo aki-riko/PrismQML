@@ -560,43 +560,40 @@ ShadowedRectangle {
         isValueString: true
     }
 
-    // XY chart legends XY 图表图例
-    ChartBottomLegend {
+    // XY chart legend; load only the active type with renderable data XY 图表图例；仅加载当前类型且有可渲染数据的图例
+    Loader {
+        id: xyLegendLoader
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Enums.spacing.m
-        visible: control.chartType === Enums.chart.type_line && control.showLegend && control._hasSeriesValues
-        legendData: control._series
-        legendStyle: "line"
-        hoveredIndex: control._hoveredLineSeriesIndex
-        hiddenIndices: control._hiddenSeriesIndices
-        onItemHovered: (index) => control._hoveredLineSeriesIndex = index
-        onItemClicked: (index) => control.toggleSeriesVisibility(index)
-    }
-
-    ChartBottomLegend {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Enums.spacing.m
-        visible: control.chartType === Enums.chart.type_bar && control.showLegend && control._hasSeriesValues
-        legendData: control._series
-        legendStyle: "bar"
-        hoveredIndex: control._hoveredBarSeriesIndex
-        hiddenIndices: control._hiddenSeriesIndices
-        onItemHovered: (index) => control._hoveredBarSeriesIndex = index
-        onItemClicked: (index) => control.toggleSeriesVisibility(index)
-    }
-
-    ChartBottomLegend {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Enums.spacing.m
-        visible: control._isScatter && control.showLegend && control._hasScatterData
-        legendData: control._series
-        legendStyle: "dot"
-        hoveredIndex: control._hoveredScatterSeriesIndex
-        clickable: false
-        onItemHovered: (index) => control._hoveredScatterSeriesIndex = index
+        active: control.showLegend &&
+                ((control.chartType === Enums.chart.type_line ||
+                  control.chartType === Enums.chart.type_bar) ? control._hasSeriesValues :
+                 (control._isScatter && control._hasScatterData))
+        sourceComponent: Component {
+            ChartBottomLegend {
+                legendData: control._series
+                legendStyle: control.chartType === Enums.chart.type_line ? "line" :
+                             control.chartType === Enums.chart.type_bar ? "bar" : "dot"
+                hoveredIndex: control.chartType === Enums.chart.type_line ? control._hoveredLineSeriesIndex :
+                              control.chartType === Enums.chart.type_bar ? control._hoveredBarSeriesIndex :
+                              control._hoveredScatterSeriesIndex
+                hiddenIndices: control._isScatter ? [] : control._hiddenSeriesIndices
+                clickable: !control._isScatter
+                onItemHovered: (index) => {
+                    if (control.chartType === Enums.chart.type_line)
+                        control._hoveredLineSeriesIndex = index
+                    else if (control.chartType === Enums.chart.type_bar)
+                        control._hoveredBarSeriesIndex = index
+                    else if (control._isScatter)
+                        control._hoveredScatterSeriesIndex = index
+                }
+                onItemClicked: (index) => {
+                    if (!control._isScatter)
+                        control.toggleSeriesVisibility(index)
+                }
+            }
+        }
     }
 
     // Pie chart 饼图
