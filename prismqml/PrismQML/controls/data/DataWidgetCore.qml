@@ -100,8 +100,21 @@ Rectangle {
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    // Qt.callLater reads ListView.count after the model update completes 模型更新完成后再读取 ListView.count
+    // Prefer an explicit model count before ListView finishes its queued refresh.
+    // ListView 完成排队刷新前优先读取模型显式计数。
+    function _immediateModelItemCount() {
+        var model = listView.model
+        if (model === null || model === undefined) return 0
+        if (typeof model === "number") return Math.max(0, Math.floor(model))
+        if (typeof model.count === "number") return model.count
+        if (typeof model.length === "number") return model.length
+        return listView.count
+    }
+
+    // Publish synchronous model state now, then converge on the internal ListView count.
+    // 立即发布同步模型状态，再以内部 ListView 计数收敛兜底。
     function _refreshItemCount() {
+        root._autoItemCount = root._immediateModelItemCount()
         Qt.callLater(function() { root._autoItemCount = listView.count })
     }
 
