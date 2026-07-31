@@ -61,8 +61,8 @@ def _use_qt_popup_window(popup):
     assert popup.property("useQtPopupWindow")
 
 
-def test_dropdown_defaults_to_in_window_popup(dropdown_scene):
-    """Simple menuItems must keep pointer input in the owning scene. 简单菜单必须在宿主场景内接收指针输入。"""
+def test_dropdown_defaults_to_qt_popup_window(dropdown_scene):
+    """Simple menuItems must use a native window. 简单菜单必须使用可跨宿主边界的原生窗口。"""
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     popup = _dropdown_popup(_button_dropdown(button))
@@ -71,8 +71,8 @@ def test_dropdown_defaults_to_in_window_popup(dropdown_scene):
         lambda index, text: received.append((index, text))
     )
 
-    assert popup.property("useInWindowPopup")
-    assert not popup.property("useQtPopupWindow")
+    assert not popup.property("useInWindowPopup")
+    assert popup.property("useQtPopupWindow")
     _click(window, button)
     assert _wait_for(lambda: popup.property("isOpen"))
     alpha = next(
@@ -81,8 +81,8 @@ def test_dropdown_defaults_to_in_window_popup(dropdown_scene):
         if child.metaObject().indexOfProperty("isSeparator") >= 0
         and child.property("text") == "Alpha"
     )
-    assert alpha.window() is window
-    assert _new_visible_windows(windows_before, window) == []
+    popup_window = _active_qt_popup_window(windows_before, window)
+    assert alpha.window() is popup_window
     _pump(20)
 
     _click_popup_item(alpha)
@@ -144,9 +144,11 @@ def test_dropdown_and_split_hover_prepare_hidden_menu_surface(
     assert not popup.property("_prewarmScheduled")
     assert not popup.property("isOpen")
     assert not _popup_is_visible(popup)
-    assert popup.property("useInWindowPopup")
-    assert not popup.property("useQtPopupWindow")
-    assert _qt_popup_windows(window) == []
+    assert not popup.property("useInWindowPopup")
+    assert popup.property("useQtPopupWindow")
+    qt_popup_windows = _qt_popup_windows(window)
+    assert len(qt_popup_windows) == 1
+    assert not qt_popup_windows[0].isVisible()
     assert _popup_window(popup) not in _new_visible_windows(windows_before, window)
     assert warnings == []
 
@@ -291,8 +293,8 @@ def test_dropdown_prewarm_delegate_is_idempotent(dropdown_scene, object_name):
     _invoke(dropdown, "prewarmMenu")
     _invoke(dropdown, "prewarmMenu")
     assert dropdown.property("_geometryPrewarmScheduled")
-    assert popup.property("_prewarmed")
-    assert not popup.property("_prewarmScheduled")
+    assert not popup.property("_prewarmed")
+    assert popup.property("_prewarmScheduled")
     assert _wait_for(lambda: popup.property("_prewarmed"))
     assert _wait_for(
         lambda: not dropdown.property("_geometryPrewarmScheduled")
@@ -316,8 +318,8 @@ def test_destroying_loader_cancels_queued_geometry_prewarm_work(dropdown_scene):
 
     _invoke(dropdown, "prewarmMenu")
     assert dropdown.property("_geometryPrewarmScheduled")
-    assert popup.property("_prewarmed")
-    assert not popup.property("_prewarmScheduled")
+    assert not popup.property("_prewarmed")
+    assert popup.property("_prewarmScheduled")
 
     button.setProperty("feature", root.property("featureNone"))
     _pump(200)
@@ -409,6 +411,10 @@ def test_in_window_popup_clamps_wide_menu_inside_owner(dropdown_scene):
     )
     dropdown = _button_dropdown(button)
     popup = _dropdown_popup(dropdown)
+    popup.setProperty("useQtPopupWindow", False)
+    popup.setProperty("useInWindowPopup", True)
+    assert not popup.property("useQtPopupWindow")
+    assert popup.property("useInWindowPopup")
 
     _invoke(dropdown, "openMenu")
     assert _wait_for(lambda: popup.property("isOpen"))
@@ -442,7 +448,8 @@ def test_reset_menu_near_right_edge_extends_beyond_window(dropdown_scene):
     )
     dropdown = _button_dropdown(button)
     popup = _dropdown_popup(dropdown)
-    _use_qt_popup_window(popup)
+    assert not popup.property("useInWindowPopup")
+    assert popup.property("useQtPopupWindow")
 
     target_global = window.mapToGlobal(button.mapToScene(QPointF()).toPoint())
     window_right = window.mapToGlobal(QPoint(round(window.width()), 0)).x()

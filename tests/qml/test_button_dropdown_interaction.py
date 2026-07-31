@@ -11,6 +11,7 @@ from PySide6.QtQuick import QQuickWindow
 from PySide6.QtTest import QTest
 
 from _button_dropdown_prewarm_support import (
+    _active_qt_popup_window,
     _button,
     _button_dropdown,
     _click,
@@ -24,7 +25,6 @@ from _button_dropdown_prewarm_support import (
     _popup_content,
     _popup_is_visible,
     _popup_panel_global_position,
-    _popup_window,
     _pump,
     _tooltip,
     _visual_descendants,
@@ -80,14 +80,13 @@ def test_cold_click_opens_left_aligned_dropdown(
     assert popup.property("_prewarmed")
     assert not popup.property("_prewarmScheduled")
     assert _popup_is_visible(popup)
-    assert popup.property("useInWindowPopup")
-    assert not popup.property("useQtPopupWindow")
-    assert not _popup_window(popup).isVisible()
-    assert _new_visible_windows(windows_before, window) == []
+    assert not popup.property("useInWindowPopup")
+    assert popup.property("useQtPopupWindow")
+    _active_qt_popup_window(windows_before, window)
     assert warnings == []
 
 
-def test_in_window_popup_closes_on_outside_press(dropdown_scene):
+def test_qt_popup_window_closes_on_outside_press(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     popup = _dropdown_popup(_button_dropdown(button))
@@ -108,15 +107,16 @@ def test_in_window_popup_closes_on_outside_press(dropdown_scene):
     assert warnings == []
 
 
-def test_in_window_popup_closes_on_escape(dropdown_scene):
+def test_qt_popup_window_closes_on_escape(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     popup = _dropdown_popup(_button_dropdown(button))
 
     _click(window, button)
     assert _wait_for(lambda: popup.property("isOpen"))
+    popup_window = _active_qt_popup_window(windows_before, window)
 
-    QTest.keyClick(window, Qt.Key.Key_Escape)
+    QTest.keyClick(popup_window, Qt.Key.Key_Escape)
 
     assert _wait_for(lambda: not popup.property("isOpen"))
     assert not _popup_is_visible(popup)
@@ -124,7 +124,7 @@ def test_in_window_popup_closes_on_escape(dropdown_scene):
     assert warnings == []
 
 
-def test_in_window_popup_item_click_emits_and_closes(dropdown_scene):
+def test_qt_popup_window_item_click_emits_and_closes(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     popup = _dropdown_popup(_button_dropdown(button))
@@ -142,8 +142,7 @@ def test_in_window_popup_item_click_emits_and_closes(dropdown_scene):
         if child.metaObject().indexOfProperty("isSeparator") >= 0
         and child.property("text") == "Alpha"
     )
-    assert alpha.window() is window
-    assert _new_visible_windows(windows_before, window) == []
+    assert alpha.window() is _active_qt_popup_window(windows_before, window)
     _click_popup_item(alpha)
 
     assert received == [(0, "Alpha")]
@@ -153,7 +152,7 @@ def test_in_window_popup_item_click_emits_and_closes(dropdown_scene):
     assert warnings == []
 
 
-def test_in_window_popup_item_click_closes_before_sync_model_rebuild(
+def test_qt_popup_window_item_click_closes_before_sync_model_rebuild(
     dropdown_scene,
 ):
     root, window, warnings, windows_before = dropdown_scene
@@ -172,8 +171,7 @@ def test_in_window_popup_item_click_closes_before_sync_model_rebuild(
         if child.metaObject().indexOfProperty("isSeparator") >= 0
         and child.property("text") == "Alpha"
     )
-    assert alpha.window() is window
-    assert _new_visible_windows(windows_before, window) == []
+    assert alpha.window() is _active_qt_popup_window(windows_before, window)
     _click_popup_item(alpha)
 
     assert _wait_for(lambda: not popup.property("isOpen"))
@@ -182,7 +180,7 @@ def test_in_window_popup_item_click_closes_before_sync_model_rebuild(
     assert warnings == []
 
 
-def test_in_window_popup_object_items_select_and_close(
+def test_qt_popup_window_object_items_select_and_close(
     dropdown_scene,
 ):
     root, window, warnings, windows_before = dropdown_scene
@@ -209,14 +207,14 @@ def test_in_window_popup_object_items_select_and_close(
         if child.metaObject().indexOfProperty("isSeparator") >= 0
         and child.property("text") == "Claude Desktop 官网版"
     )
-    assert desktop_item.window() is window
-    assert _new_visible_windows(windows_before, window) == []
+    assert desktop_item.window() is _active_qt_popup_window(
+        windows_before, window
+    )
     _click_popup_item(desktop_item)
 
     assert received == [(1, "Claude Desktop 官网版")]
     assert _wait_for(lambda: not popup.property("isOpen"))
     assert _wait_for(lambda: not _popup_is_visible(popup))
-    assert not _popup_window(popup).isVisible()
     assert _new_visible_windows(windows_before, window) == []
     assert warnings == []
 
@@ -239,7 +237,7 @@ def test_open_menu_immediately_dismisses_visible_tooltip(
 
     assert not tooltip.property("visible")
     assert _popup_is_visible(popup)
-    assert _new_visible_windows(windows_before, window) == []
+    _active_qt_popup_window(windows_before, window)
     assert warnings == []
 
 
@@ -261,7 +259,7 @@ def test_open_menu_interrupts_tooltip_exit_transition(dropdown_scene):
 
     assert not tooltip.property("visible")
     assert _popup_is_visible(popup)
-    assert _new_visible_windows(windows_before, window) == []
+    _active_qt_popup_window(windows_before, window)
     assert warnings == []
 
 

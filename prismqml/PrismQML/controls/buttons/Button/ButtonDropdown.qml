@@ -304,10 +304,9 @@ Item {
 
         implicitContentHeight: Math.min(_itemsHeight, _maxContentHeight)
         closeOnClickOutside: true
-        // Keep menuItems in the owning scene for reliable pointer delivery. 常规菜单留在宿主场景以可靠接收指针输入。
-        // This avoids depending on a second native popup HWND. 这避免依赖第二个原生弹层 HWND。
-        // External MenuCore may opt into Popup.Window for overflow. 外部 MenuCore 仍可为跨界显示显式选择 Popup.Window。
-        useInWindowPopup: true
+        // Keep button menus in a native popup so they may cross the owner boundary.
+        // 按钮菜单使用原生弹窗，以保持左侧锚定并允许跨越宿主窗口边界。
+        useQtPopupWindow: true
         
         Loader {
             id: menuContentLoader
