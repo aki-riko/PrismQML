@@ -12,7 +12,6 @@ QtObject {
     
     // ==================== Required Props 必需属性 ====================
     required property int style
-    required property int feature
     required property int level
     required property bool controlEnabled
     required property bool loading

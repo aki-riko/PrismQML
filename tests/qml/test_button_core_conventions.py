@@ -28,6 +28,7 @@ BUTTON_CORE_SOURCE = (
     / "ButtonCore.qml"
 )
 ENUMS_SOURCE = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
+BUTTON_STYLE_HELPER_SOURCE = BUTTON_CORE_SOURCE.with_name("ButtonStyleHelper.qml")
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "button-core-conventions.qml")
 )
@@ -446,6 +447,13 @@ def test_button_core_schedules_menu_retry_without_per_instance_timer():
     assert "property bool _menuPrewarmRetryScheduled: false" in source
     assert "Qt.callLater(control._runMenuPrewarmRetry)" in source
     assert "_menuPrewarmRetryTimer" not in source
+
+
+def test_button_style_omits_unused_feature_bindings():
+    button_source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    helper_source = BUTTON_STYLE_HELPER_SOURCE.read_text(encoding="utf-8")
+    assert "readonly property int _spectralEdgeInset" not in button_source
+    assert "required property int feature" not in helper_source
 
 
 def test_button_core_reuses_widget_tooltip_show_timer():

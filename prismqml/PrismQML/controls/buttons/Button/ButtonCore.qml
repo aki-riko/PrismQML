@@ -90,7 +90,6 @@ Widget {
     // 编译器对每个按钮实例都报 "Cannot find member data" 警告并干扰加载。
     readonly property ButtonStyleHelper styleHelper: ButtonStyleHelper {
         style: control.style
-        feature: control.feature
         level: control.level
         controlEnabled: control.enabled
         loading: control.loading
@@ -118,7 +117,6 @@ Widget {
             easing.type: Easing.OutCubic
         }
     }
-    readonly property int _spectralEdgeInset: Math.min(radius, Math.max(Enums.spacing.none, width / 2 - Enums.spacing.xs))
     readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
                                             feature === Enums.button.feature_split
     readonly property bool _hasProgressBarFeature:
