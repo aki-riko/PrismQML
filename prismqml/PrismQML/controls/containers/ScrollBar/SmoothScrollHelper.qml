@@ -56,6 +56,10 @@ Item {
     readonly property real _maxY: _minY + Math.max(0, target.contentHeight - target.height)
     readonly property real _maxX: _minX + Math.max(0, target.contentWidth - target.width)
     readonly property real _maxOvershoot: Enums.spacing.scrollOvershoot
+    readonly property bool _traceEnabled:
+        typeof PrismQmlScrollTraceEnabled !== "undefined" && PrismQmlScrollTraceEnabled
+    readonly property string _bouncePhase: _isVertical
+        ? verticalBounce.phase : horizontalBounce.phase
 
     // ==================== Public Methods 公开方法 ====================
 
@@ -72,6 +76,7 @@ Item {
 
     // Scroll by delta 相对滚动
     function scrollBy(delta) {
+        _trace("request.scrollBy", "delta=" + delta)
         if (_isVertical) {
             _boundaryTargetV = 0
             _scrollByY(delta)
@@ -105,16 +110,17 @@ Item {
 
     // Sync position (call after drag) 同步位置（拖拽后调用）
     function syncPosition() {
+        _trace("sync.begin", "")
         _syncing = true
         if (_isVertical) {
-            verticalBounce.stop()
+            verticalBounce.stop("sync-position")
             _bounceBoundaryV = 0
             _blockedBounceBoundaryV = 0
             _boundaryTargetV = 0
             _targetY = target.contentY
             _smoothY = target.contentY
         } else {
-            horizontalBounce.stop()
+            horizontalBounce.stop("sync-position")
             _bounceBoundaryH = 0
             _blockedBounceBoundaryH = 0
             _boundaryTargetH = 0
@@ -122,11 +128,30 @@ Item {
             _smoothX = target.contentX
         }
         _syncing = false
+        _trace("sync.finish", "")
     }
 
     // ==================== Internal Methods 内部方法 ====================
     function _clamp(value, minimum, maximum) {
         return Math.max(minimum, Math.min(maximum, value))
+    }
+
+    function _trace(stage, details) {
+        if (_traceEnabled) scrollTrace.record(stage, details)
+    }
+
+    function _scheduleReconcile(axis, reason) {
+        _trace("reconcile." + axis + ".scheduled", "reason=" + reason)
+        if (axis === "vertical") verticalReconcileTimer.restart()
+        else horizontalReconcileTimer.restart()
+    }
+
+    function _returnStarted(axis) {
+        var vertical = axis === "vertical"
+        if (vertical) _blockedBounceBoundaryV = _bounceBoundaryV
+        else _blockedBounceBoundaryH = _bounceBoundaryH
+        var boundary = vertical ? _bounceBoundaryV : _bounceBoundaryH
+        _trace("bounce." + axis + ".locked", "boundary=" + boundary)
     }
 
     // ListView/GridView may change origin while delegates are recycled.
@@ -150,7 +175,7 @@ Item {
         _isOvershotV = false
         _bounceBoundaryV = 0
         _blockedBounceBoundaryV = 0
-        verticalBounce.stop()
+        verticalBounce.stop("bounds-reconcile")
         _targetY = targetY
         if (smoothY !== _smoothY) {
             _syncing = true
@@ -179,7 +204,7 @@ Item {
         _isOvershotH = false
         _bounceBoundaryH = 0
         _blockedBounceBoundaryH = 0
-        horizontalBounce.stop()
+        horizontalBounce.stop("bounds-reconcile")
         _targetX = targetX
         if (smoothX !== _smoothX) {
             _syncing = true
@@ -191,7 +216,8 @@ Item {
 
     // Vertical implementation 垂直实现
     function _scrollToY(targetY) {
-        verticalBounce.stop()
+        _trace("scroll.vertical.to", "position=" + targetY)
+        verticalBounce.stop("scroll-to")
         _bounceBoundaryV = 0
         _blockedBounceBoundaryV = 0
         _targetY = _clamp(targetY, _minY, _maxY)
@@ -201,10 +227,11 @@ Item {
 
     function _scrollByY(delta) {
         var newTarget = _targetY + delta
+        _trace("scroll.vertical.evaluate", "delta=" + delta + " newTarget=" + newTarget)
 
         // Normal scroll 正常滚动
         if (newTarget >= _minY && newTarget <= _maxY) {
-            verticalBounce.stop()
+            verticalBounce.stop("normal-scroll")
             _bounceBoundaryV = 0
             if (delta !== 0) _blockedBounceBoundaryV = 0
             _targetY = newTarget
@@ -221,32 +248,44 @@ Item {
 
         if (newTarget < _minY) {
             // Top overshoot 顶部超出
-            if (_blockedBounceBoundaryV === -1) return
-            _blockedBounceBoundaryV = 0
+            if (_blockedBounceBoundaryV === -1) {
+                _trace("bounce.vertical.blocked", "boundary=-1")
+                return
+            }
+            _blockedBounceBoundaryV = -1
             _bounceBoundaryV = -1
             _targetY = _minY
             _isOvershotV = true
             var overshootDelta = _minY - newTarget
             var currentOvershoot = _smoothY < _minY ? _minY - _smoothY : 0
             var outwardY = _minY - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            _trace("bounce.vertical.request", "boundary=-1 delta=" + overshootDelta +
+                   " currentOvershoot=" + currentOvershoot + " outward=" + outwardY)
             verticalBounce.start(_smoothY, outwardY, _targetY)
         } else {
             // Bottom overshoot 底部超出
-            if (_blockedBounceBoundaryV === 1) return
-            _blockedBounceBoundaryV = 0
+            if (_blockedBounceBoundaryV === 1) {
+                _trace("bounce.vertical.blocked", "boundary=1")
+                return
+            }
+            _blockedBounceBoundaryV = 1
             _bounceBoundaryV = 1
             _targetY = _maxY
             _isOvershotV = true
             var overshootDeltaBottom = newTarget - _maxY
             var currentOvershootBottom = _smoothY > _maxY ? _smoothY - _maxY : 0
             var outwardYBottom = _maxY + Math.min(currentOvershootBottom + overshootDeltaBottom, _maxOvershoot)
+            _trace("bounce.vertical.request", "boundary=1 delta=" + overshootDeltaBottom +
+                   " currentOvershoot=" + currentOvershootBottom +
+                   " outward=" + outwardYBottom)
             verticalBounce.start(_smoothY, outwardYBottom, _targetY)
         }
     }
 
     // Horizontal implementation 水平实现
     function _scrollToX(targetX) {
-        horizontalBounce.stop()
+        _trace("scroll.horizontal.to", "position=" + targetX)
+        horizontalBounce.stop("scroll-to")
         _bounceBoundaryH = 0
         _blockedBounceBoundaryH = 0
         _targetX = _clamp(targetX, _minX, _maxX)
@@ -256,10 +295,11 @@ Item {
 
     function _scrollByX(delta) {
         var newTarget = _targetX + delta
+        _trace("scroll.horizontal.evaluate", "delta=" + delta + " newTarget=" + newTarget)
 
         // Normal scroll 正常滚动
         if (newTarget >= _minX && newTarget <= _maxX) {
-            horizontalBounce.stop()
+            horizontalBounce.stop("normal-scroll")
             _bounceBoundaryH = 0
             if (delta !== 0) _blockedBounceBoundaryH = 0
             _targetX = newTarget
@@ -276,40 +316,61 @@ Item {
 
         if (newTarget < _minX) {
             // Left overshoot 左侧超出
-            if (_blockedBounceBoundaryH === -1) return
-            _blockedBounceBoundaryH = 0
+            if (_blockedBounceBoundaryH === -1) {
+                _trace("bounce.horizontal.blocked", "boundary=-1")
+                return
+            }
+            _blockedBounceBoundaryH = -1
             _bounceBoundaryH = -1
             _targetX = _minX
             _isOvershotH = true
             var overshootDelta = _minX - newTarget
             var currentOvershoot = _smoothX < _minX ? _minX - _smoothX : 0
             var outwardX = _minX - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            _trace("bounce.horizontal.request", "boundary=-1 delta=" + overshootDelta +
+                   " currentOvershoot=" + currentOvershoot + " outward=" + outwardX)
             horizontalBounce.start(_smoothX, outwardX, _targetX)
         } else {
             // Right overshoot 右侧超出
-            if (_blockedBounceBoundaryH === 1) return
-            _blockedBounceBoundaryH = 0
+            if (_blockedBounceBoundaryH === 1) {
+                _trace("bounce.horizontal.blocked", "boundary=1")
+                return
+            }
+            _blockedBounceBoundaryH = 1
             _bounceBoundaryH = 1
             _targetX = _maxX
             _isOvershotH = true
             var overshootDeltaRight = newTarget - _maxX
             var currentOvershootRight = _smoothX > _maxX ? _smoothX - _maxX : 0
             var outwardXRight = _maxX + Math.min(currentOvershootRight + overshootDeltaRight, _maxOvershoot)
+            _trace("bounce.horizontal.request", "boundary=1 delta=" + overshootDeltaRight +
+                   " currentOvershoot=" + currentOvershootRight +
+                   " outward=" + outwardXRight)
             horizontalBounce.start(_smoothX, outwardXRight, _targetX)
         }
     }
 
     // Bindings 绑定
-    on_SmoothYChanged: if (_isVertical && target) target.contentY = _smoothY
-    on_SmoothXChanged: if (!_isVertical && target) target.contentX = _smoothX
+    on_SmoothYChanged: {
+        _trace("smooth.changed", "axis=y value=" + _smoothY)
+        if (_traceEnabled) scrollTrace.writeSource = scrollTrace.currentWriteSource()
+        if (_isVertical && target) target.contentY = _smoothY
+        if (_traceEnabled) scrollTrace.writeSource = ""
+    }
+    on_SmoothXChanged: {
+        _trace("smooth.changed", "axis=x value=" + _smoothX)
+        if (_traceEnabled) scrollTrace.writeSource = scrollTrace.currentWriteSource()
+        if (!_isVertical && target) target.contentX = _smoothX
+        if (_traceEnabled) scrollTrace.writeSource = ""
+    }
     // ListView can update contentHeight while contentY is changing. Reconcile
     // on the next turn so bound evaluation cannot synchronously write contentY
     // and re-enter the same _maxY binding. ListView 可能在 contentY 变化时更新
     // contentHeight；下一事件循环再校正，避免写回 contentY 时重入 _maxY 绑定。
-    on_MinYChanged: verticalReconcileTimer.restart()
-    on_MaxYChanged: verticalReconcileTimer.restart()
-    on_MinXChanged: horizontalReconcileTimer.restart()
-    on_MaxXChanged: horizontalReconcileTimer.restart()
+    on_MinYChanged: _scheduleReconcile("vertical", "minY")
+    on_MaxYChanged: _scheduleReconcile("vertical", "maxY")
+    on_MinXChanged: _scheduleReconcile("horizontal", "minX")
+    on_MaxXChanged: _scheduleReconcile("horizontal", "maxX")
 
     // Sync initial position 同步初始位置
     Component.onCompleted: {
@@ -354,8 +415,11 @@ Item {
         normalOutwardDistance: helper.step
         maxOutwardDistance: helper._maxOvershoot
         returnOvershoot: Enums.motion.scrollReturnBackOvershoot
+        traceEnabled: helper._traceEnabled
         onPositionChanged: (position) => helper._smoothY = position
-        onReturnStarted: helper._blockedBounceBoundaryV = helper._bounceBoundaryV
+        onReturnStarted: helper._returnStarted("vertical")
+        onTraceEvent: (stage, details) => helper._trace(
+            "bounce.vertical." + stage, details)
     }
 
     DeterministicBounce {
@@ -368,8 +432,18 @@ Item {
         normalOutwardDistance: helper.step
         maxOutwardDistance: helper._maxOvershoot
         returnOvershoot: Enums.motion.scrollReturnBackOvershoot
+        traceEnabled: helper._traceEnabled
         onPositionChanged: (position) => helper._smoothX = position
-        onReturnStarted: helper._blockedBounceBoundaryH = helper._bounceBoundaryH
+        onReturnStarted: helper._returnStarted("horizontal")
+        onTraceEvent: (stage, details) => helper._trace(
+            "bounce.horizontal." + stage, details)
+    }
+
+    SmoothScrollTrace {
+        id: scrollTrace
+        enabled: helper._traceEnabled
+        helper: helper
+        target: helper.target
     }
 
     Timer {
@@ -399,10 +473,18 @@ Item {
         z: Enums.zIndex.background
         
         onWheel: (event) => {
+            helper._trace("wheel.input", "angleX=" + event.angleDelta.x +
+                          " angleY=" + event.angleDelta.y +
+                          " pixelX=" + event.pixelDelta.x +
+                          " pixelY=" + event.pixelDelta.y +
+                          " phase=" + (typeof event.phase === "undefined"
+                                       ? "undefined" : event.phase) +
+                          " inverted=" + event.inverted)
             // Check if scroll is needed 检查是否需要滚动
             var contentSize = helper._isVertical ? target.contentHeight : target.contentWidth
             var viewSize = helper._isVertical ? target.height : target.width
             if (contentSize <= viewSize) {
+                helper._trace("wheel.propagated", "reason=content-fits")
                 event.accepted = false
                 return
             }

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from PySide6.QtQml import QQmlApplicationEngine, QQmlContext
 
-from .diagnostics import startup_profile_verbose_enabled
+from .diagnostics import scroll_trace_enabled, startup_profile_verbose_enabled
 
 
 QML_XHR_ALLOW_FILE_READ_ENV = "QML_XHR_ALLOW_FILE_READ"
@@ -67,6 +67,7 @@ def _register_primary_context(context: QQmlContext) -> None:
     context.setContextProperty(
         "PrismQmlStartupProfileVerbose", startup_profile_verbose_enabled()
     )
+    context.setContextProperty("PrismQmlScrollTraceEnabled", scroll_trace_enabled())
     context.setContextProperty(
         "PrismQmlAsynchronousPageLoaderEnabled",
         asynchronous_page_loader_enabled(),

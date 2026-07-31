@@ -17,6 +17,7 @@ from PySide6.QtCore import (
     QTimer,
     QUrl,
     Qt,
+    qInstallMessageHandler,
 )
 from PySide6.QtGui import QGuiApplication, QWheelEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -377,6 +378,8 @@ def scroll_scene(qapp):
 
 def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
     window, _items, warnings, windows_before = scroll_scene
+    vertical_helper = window.findChild(QQuickItem, "verticalHelper")
+    assert vertical_helper.property("_traceEnabled") is False
     assert window.property("verticalMax") == pytest.approx(480)
     assert window.property("horizontalMax") == pytest.approx(520)
 
@@ -559,6 +562,73 @@ def test_scroll_area_boundary_bounce_does_not_restart_during_return(scroll_scene
     _pump(1000)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
+    qapp, monkeypatch
+):
+    monkeypatch.setenv("PRISMQML_SCROLL_TRACE", "1")
+    messages = []
+    previous_handler = qInstallMessageHandler(
+        lambda _mode, _context, message: messages.append(str(message))
+    )
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = None
+    try:
+        scene = _create_scene()
+        _engine, _component, window, items, warnings = scene
+        area = items["defaultArea"]
+        helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+        assert helper.property("_traceEnabled") is True
+        assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+        maximum = helper.property("maxScroll")
+
+        area.setProperty("contentY", maximum)
+        assert QMetaObject.invokeMethod(helper, "syncPosition")
+        messages.clear()
+        event = _send_wheel(window, area, -120)
+        assert event.isAccepted()
+        for _ in range(5):
+            _pump(30)
+            repeated_event = _send_wheel(window, area, -120)
+            assert repeated_event.isAccepted()
+        _pump(1000)
+
+        trace = [message for message in messages if "[ScrollBounceTrace]" in message]
+        expected_fragments = (
+            "stage=wheel.input",
+            "route=ScrollAreaDefault",
+            "angleY=-120",
+            "stage=request.scrollBy",
+            "stage=bounce.vertical.request",
+            "stage=bounce.vertical.start",
+            "stage=bounce.vertical.outward.begin",
+            "stage=bounce.vertical.return.begin",
+            "adaptiveOvershoot=",
+            "stage=bounce.vertical.finish",
+            'source="bounce.outward"',
+            'source="bounce.return"',
+            "reversal=true",
+        )
+        assert trace
+        for fragment in expected_fragments:
+            assert any(fragment in message for message in trace), (
+                fragment,
+                "\n".join(trace),
+            )
+        starts = [message for message in trace if "stage=bounce.vertical.start" in message]
+        blocked = [
+            message for message in trace if "stage=bounce.vertical.blocked" in message
+        ]
+        assert len(starts) == 1, "\n".join(starts)
+        assert len(blocked) == 5, "\n".join(blocked)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        if scene is not None:
+            _dispose_scene(scene[0], scene[1], scene[2])
+        qInstallMessageHandler(previous_handler)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
 def test_smooth_helpers_keep_boundary_target_when_content_grows(scroll_scene):

@@ -18,6 +18,9 @@ Item {
     required property real maxOutwardDistance
     required property real returnOvershoot
 
+    // ==================== Public Props 公开属性 ====================
+    property bool traceEnabled: false
+
     // ==================== Internal Props 内部属性 ====================
     property real _value: 0
     property real _startValue: 0
@@ -31,16 +34,19 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool active: _active
+    readonly property string phase: !_active ? "idle"
+        : (_outwardPhase ? "outward" : "return")
     readonly property real _outwardProgress: sourceDuration > 0
         ? Math.min(1, outwardDuration / sourceDuration) : 1
 
     // ==================== Signals 信号 ====================
     signal positionChanged(real position)
     signal returnStarted()
+    signal traceEvent(string stage, string details)
 
     // ==================== Public Methods 公开方法 ====================
     function start(startValue, outwardValue, returnValue) {
-        stop()
+        stop("restart")
         _startValue = startValue
         _outwardValue = outwardValue
         _returnValue = returnValue
@@ -48,10 +54,16 @@ Item {
         _lastUpdateTimestamp = Date.now()
         _adaptiveReturnOvershoot = _resolveReturnOvershoot()
         _outwardPhase = true
+        _trace("start", "start=" + startValue +
+               " outward=" + outwardValue +
+               " return=" + returnValue +
+               " adaptiveOvershoot=" + _adaptiveReturnOvershoot +
+               " animated=" + animated)
 
         if (!animated) {
             _active = true
             _value = _outwardValue
+            _trace("outward.immediate", "value=" + _value)
             immediateSequence.restart()
             return
         }
@@ -59,10 +71,15 @@ Item {
         outwardController.reload()
         outwardController.progress = 0
         _active = true
+        _trace("outward.begin", "progress=" + outwardController.progress)
         outwardDriver.restart()
     }
 
-    function stop() {
+    function stop(reason) {
+        if (_active) {
+            _trace("stop", "reason=" + (reason === undefined ? "requested" : reason) +
+                   " phase=" + phase + " value=" + _value)
+        }
         _active = false
         _outwardPhase = false
         outwardDriver.stop()
@@ -71,23 +88,34 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    function _startReturn(startValue) {
+    function _trace(stage, details) {
+        if (traceEnabled) traceEvent(stage, details)
+    }
+
+    function _startReturn(startValue, reason) {
         if (!_active || !_outwardPhase) return
         _outwardPhase = false
         outwardDriver.stop()
+        var resolvedStart = startValue === undefined ? _value : startValue
+        _trace("return.begin", "reason=" +
+               (reason === undefined ? "requested" : reason) +
+               " start=" + resolvedStart +
+               " return=" + _returnValue +
+               " adaptiveOvershoot=" + _adaptiveReturnOvershoot)
         returnStarted()
         if (!animated) {
             _value = _returnValue
             _finish()
             return
         }
-        returnAnimation.from = startValue === undefined ? _value : startValue
+        returnAnimation.from = resolvedStart
         returnAnimation.to = _returnValue
         returnAnimation.restart()
     }
 
     function _finish() {
         if (!_active) return
+        _trace("finish", "value=" + _value + " return=" + _returnValue)
         _active = false
         _outwardPhase = false
     }
@@ -115,11 +143,17 @@ Item {
         // 未显示过的峰值再发布出去，直接从最后实际渲染的位置回程。
         if (_outwardPhase && _lastUpdateTimestamp > 0
                 && now - _lastUpdateTimestamp >= outwardDuration) {
-            _startReturn(_lastPublishedValue)
+            _trace("outward.catchup-discard", "elapsed=" +
+                   (now - _lastUpdateTimestamp) +
+                   " discarded=" + _value +
+                   " lastPublished=" + _lastPublishedValue)
+            _startReturn(_lastPublishedValue, "delayed-frame")
             return
         }
         _lastUpdateTimestamp = now
         _lastPublishedValue = _value
+        _trace(_outwardPhase ? "outward.frame" : "return.frame",
+               "value=" + _value)
         positionChanged(_value)
     }
 
@@ -155,7 +189,7 @@ Item {
         to: control._outwardProgress
         duration: control.outwardDuration
         easing.type: Easing.Linear
-        onFinished: control._startReturn()
+        onFinished: control._startReturn(undefined, "outward-finished")
     }
 
     NumberAnimation {
@@ -172,6 +206,6 @@ Item {
         id: immediateSequence
 
         PauseAnimation { duration: control.outwardDuration }
-        ScriptAction { script: control._startReturn() }
+        ScriptAction { script: control._startReturn(undefined, "outward-timeout") }
     }
 }
