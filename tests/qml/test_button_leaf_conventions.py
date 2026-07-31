@@ -84,6 +84,10 @@ Item {
     readonly property real progressValue: progressFeature.progress
     readonly property bool progressVisible: progressFeature.showProgress
     readonly property int expectedProgressFeature: Enums.button.feature_progress_bar
+    readonly property int expectedIndeterminateRingFeature:
+        Enums.button.feature_indeterminate_ring
+    readonly property color expectedRingTrackLight: Enums.stateColor.track
+    readonly property color expectedRingTrackDark: Enums.stateColor.whiteOverlay
     readonly property color expectedButtonTextColor: contentButton.getTextColor()
     readonly property int expectedDropdownFeature: Enums.button.feature_dropdown
     readonly property int expectedSplitFeature: Enums.button.feature_split
@@ -235,6 +239,14 @@ def _button_content(button):
     return matches[0]
 
 
+def _progress_rings(content):
+    return [
+        child
+        for child in _descendants(content)
+        if child.metaObject().className().startswith("ProgressRing_QMLTYPE_")
+    ]
+
+
 def _button_dropdown(button):
     matches = [
         child
@@ -369,6 +381,41 @@ def test_button_content_parent_bindings_remain_stable(button_leaf_scene):
     assert content.property("pressed")
     assert not content.property("controlEnabled")
     assert content.property("textColor") == root.property("expectedButtonTextColor")
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_content_reuses_one_feature_ring_loader(button_leaf_scene):
+    root, windows_before = button_leaf_scene
+    button = root.findChild(QObject, "contentButton")
+    assert button is not None
+    content = _button_content(button)
+
+    rings = _progress_rings(content)
+    assert len(rings) == 1
+    assert not rings[0].property("indeterminate")
+    assert rings[0].property("value") == pytest.approx(0.25)
+    assert rings[0].property("trackColorLight") == content.property(
+        "_ringBorderColor"
+    )
+    assert rings[0].property("trackColorDark") == content.property(
+        "_ringBorderColor"
+    )
+
+    button.setProperty("feature", root.property("expectedIndeterminateRingFeature"))
+    _pump(20)
+    rings = _progress_rings(content)
+    assert len(rings) == 1
+    assert rings[0].property("indeterminate")
+    assert rings[0].property("trackColorLight") == root.property(
+        "expectedRingTrackLight"
+    )
+    assert rings[0].property("trackColorDark") == root.property(
+        "expectedRingTrackDark"
+    )
+
+    button.setProperty("loading", True)
+    _pump(20)
+    assert len(_progress_rings(content)) == 2
     assert _new_visible_windows(windows_before) == []
 
 

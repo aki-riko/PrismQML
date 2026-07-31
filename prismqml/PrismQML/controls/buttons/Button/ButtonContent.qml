@@ -48,6 +48,11 @@ Row {
                                                 style === Enums.button.style_gradient
     readonly property color _ringColor: _useForegroundColor ? Enums.accentForeground : Enums.accentColor
     readonly property color _ringBorderColor: _useForegroundColor ? Enums.stateColor.onAccentOverlay : Enums.stateColor.loadingBorder
+    readonly property bool _hasDeterminateRing:
+        feature === Enums.button.feature_progress_ring
+    readonly property bool _hasIndeterminateRing:
+        feature === Enums.button.feature_indeterminate_ring
+    readonly property bool _hasFeatureRing: _hasDeterminateRing || _hasIndeterminateRing
 
     // ==================== Size 尺寸 ====================
     spacing: hasIcon ? 6 : 0
@@ -69,12 +74,12 @@ Row {
         }
     }
 
-    // Progress ring 进度环
+    // Feature ring modes are mutually exclusive and share one loader. 功能进度环模式互斥并复用同一个加载器。
     Loader {
-        id: progressRingLoader
+        id: featureRingLoader
         width: active ? content.iconSize : 0
         height: active ? content.iconSize : 0
-        active: feature === Enums.button.feature_progress_ring
+        active: content._hasFeatureRing
         anchors.verticalCenter: parent.verticalCenter
 
         sourceComponent: ProgressRing {
@@ -83,25 +88,14 @@ Row {
             to: 1
             value: content.progress
             strokeWidth: Enums.border.normal
+            indeterminate: content._hasIndeterminateRing
             color: content._ringColor
-            trackColorLight: content._ringBorderColor
-            trackColorDark: content._ringBorderColor
-        }
-    }
-
-    // Indeterminate ring 不确定环
-    Loader {
-        id: indeterminateRingLoader
-        width: active ? content.iconSize : 0
-        height: active ? content.iconSize : 0
-        active: feature === Enums.button.feature_indeterminate_ring
-        anchors.verticalCenter: parent.verticalCenter
-
-        sourceComponent: ProgressRing {
-            anchors.fill: parent
-            strokeWidth: Enums.border.normal
-            indeterminate: true
-            color: content._ringColor
+            trackColorLight: content._hasDeterminateRing
+                             ? content._ringBorderColor
+                             : Enums.stateColor.track
+            trackColorDark: content._hasDeterminateRing
+                            ? content._ringBorderColor
+                            : Enums.stateColor.whiteOverlay
         }
     }
 
