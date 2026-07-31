@@ -186,6 +186,8 @@ def test_combo_box_multi_tree_selection_search_and_popup_lifecycle(qapp):
     try:
         selections = []
         combo.selectionChanged.connect(lambda paths: selections.append(_variant(paths)))
+        parent = combo._findNodeByPath(["Parent"])
+        assert combo._getSelectionState(parent, ["Parent"]) == 0
 
         combo._toggleExpand("root_0")
         assert _wait_for(lambda: flat_model.property("count") == 2)
@@ -202,11 +204,13 @@ def test_combo_box_multi_tree_selection_search_and_popup_lifecycle(qapp):
             ["Parent", "Leaf A"],
             ["Parent", "Leaf B"],
         ]
+        assert combo._getSelectionState(parent, ["Parent"]) == 2
         assert combo.property("displayText") == "Leaf A, Leaf B"
 
         combo._toggleSelection(["Parent", "Leaf A"])
         _pump()
         assert _variant(combo.property("selectedPaths")) == [["Parent", "Leaf B"]]
+        assert combo._getSelectionState(parent, ["Parent"]) == 1
         assert combo.property("displayText") == "Leaf B"
         assert selections[-1] == [["Parent", "Leaf B"]]
 
@@ -292,6 +296,7 @@ def test_combo_box_multi_tree_source_conventions():
     assert 'var searchText = _searchText.toLowerCase()' in source
     assert source.count("_searchText.toLowerCase()") == 1
     assert "_hasMatchingDescendants(node.children, searchText)" in source
+    assert "if (_safeSelectedPaths.length === 0) return 0" in source
     assert [
         violation
         for violation in violations
