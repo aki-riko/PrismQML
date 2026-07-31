@@ -24,8 +24,21 @@ SHOWCASE_SOURCE = (
     / "_internal"
     / "FeedbackNotificationShowcase.qml"
 )
+PROGRESS_SHOWCASE_SOURCE = (
+    ROOT
+    / "examples"
+    / "pages"
+    / "_internal"
+    / "FeedbackProgressShowcase.qml"
+)
 
 SEVERITIES = ("Info", "Success", "Warning", "Error", "Processing")
+PROGRESS_MODES = (
+    "ProgressBar",
+    "IndeterminateBar",
+    "ProgressRing",
+    "IndeterminateRing",
+)
 EDGE_POSITION_NAMES = (
     "posTopLeft",
     "posTop",
@@ -119,19 +132,47 @@ def test_gallery_feedback_page_uses_shared_notification_showcase():
     assert "width: 320" not in showcase_source
 
 
-def test_gallery_progress_info_bar_showcase_is_persistent():
+def test_gallery_progress_showcases_share_static_and_popup_layout():
     page_source = FEEDBACK_PAGE_SOURCE.read_text(encoding="utf-8")
-    progress_showcase_source = page_source.split("// InfoBar进度模式", 1)[1].split(
-        "// 弹出演示", 1
-    )[0]
+    progress_source = PROGRESS_SHOWCASE_SOURCE.read_text(encoding="utf-8")
 
-    assert progress_showcase_source.count("InfoBar {") == 4
-    assert progress_showcase_source.count(
-        "duration: Fluent.Enums.duration.persistent"
-    ) == 4
-    assert "duration: Fluent.Enums.duration.notification" not in (
-        progress_showcase_source
+    assert "FeedbackProgressShowcase {" in page_source
+    assert "notificationParent: root" in page_source
+    assert progress_source.count("// Static showcase 静态展示") == 2
+    assert progress_source.count("// Popup showcase 弹出演示") == 2
+    assert progress_source.count("ComponentCard {") == len(PROGRESS_MODES) * 2
+    assert progress_source.count("InfoBar {") == len(PROGRESS_MODES)
+    assert progress_source.count("Toast {") == len(PROGRESS_MODES)
+    assert progress_source.count("duration: Enums.duration.persistent") == (
+        len(PROGRESS_MODES) * 2
     )
+    assert progress_source.count("width: Enums.demoMetrics.feedbackNotificationWidth") == (
+        len(PROGRESS_MODES) * 2
+    )
+    assert progress_source.count("visible: true") == len(PROGRESS_MODES)
+    assert "width: 280" not in progress_source
+
+
+def test_gallery_progress_static_previews_are_persistent(qapp):
+    engine, component, root = _create_feedback_page()
+    try:
+        for mode in PROGRESS_MODES:
+            info_bar = root.findChild(QQuickItem, f"galleryProgressInfoBar{mode}")
+            toast = root.findChild(QQuickItem, f"galleryProgressToast{mode}")
+
+            assert info_bar is not None
+            assert toast is not None
+            assert info_bar.property("duration") == -1
+            assert toast.property("duration") == -1
+            assert info_bar.width() == 320
+            assert toast.width() == 320
+            assert info_bar.isVisible()
+            assert toast.isVisible()
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
 
 
 def test_gallery_notification_buttons_use_current_edge_positions():
@@ -181,13 +222,14 @@ def test_gallery_feedback_page_loads_with_current_edge_positions(qapp):
         _pump(1)
 
 
-def test_gallery_notification_showcase_follows_qml_conventions():
-    source = SHOWCASE_SOURCE.read_text(encoding="utf-8")
-    path = PurePosixPath(SHOWCASE_SOURCE.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
+def test_gallery_notification_showcases_follow_qml_conventions():
+    for source_path in (SHOWCASE_SOURCE, PROGRESS_SHOWCASE_SOURCE):
+        source = source_path.read_text(encoding="utf-8")
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations = scan_source_text(source, path)
 
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009", "QML011"}
-    ] == []
+        assert [
+            violation
+            for violation in violations
+            if violation.rule in {"QML008", "QML009", "QML011"}
+        ] == []

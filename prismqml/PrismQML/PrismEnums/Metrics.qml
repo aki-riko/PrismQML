@@ -827,6 +827,9 @@ QtObject {
  readonly property QtObject demoMetrics: QtObject {
  readonly property int carouselInterval: 2500
  readonly property int feedbackNotificationWidth: 320 // Gallery notification showcase width Gallery 通知展示宽度
+ readonly property real feedbackProgressBarStep: 0.05 // Gallery progress bar step Gallery 进度条步长
+ readonly property real feedbackProgressRingStep: 0.03 // Gallery progress ring step Gallery 进度环步长
+ readonly property int feedbackProgressRingInterval: 80 // Gallery progress ring tick Gallery 进度环更新间隔
  readonly property int qrcodeModuleSize: 3
  readonly property int ratingDefaultValue: 3
  readonly property real pieChartInnerRadius: 0.6
