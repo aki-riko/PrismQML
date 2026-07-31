@@ -103,79 +103,97 @@ Item {
         width: Enums.iconSize.xl
         height: Enums.iconSize.xl
         
-        // SVG icon (apply color overlay) SVG图标（应用颜色叠加）
-        Image {
-            id: svgIcon
+        Loader {
             anchors.fill: parent
-            source: iconContainer.isPathIcon && !iconContainer.isAvatarIcon ?
-                iconContainer._resolveIcon(control.selected && control.selectedIcon ? control.selectedIcon : control.icon) : ""
-            visible: iconContainer.isPathIcon && !iconContainer.isAvatarIcon
-            fillMode: Image.PreserveAspectFit
-            opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
-            
-            // High quality scaling 高质量缩放 SVG
-            sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
-            smooth: true
-            antialiasing: true
-            
-            // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
-            layer.enabled: true
-            layer.effect: ColorOverlay {
-                color: control._navItemContentColor
-            }
-            
-            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+            active: control.icon !== ""
+            sourceComponent: iconContainer.isAvatarIcon
+                ? avatarIconComponent
+                : iconContainer.isPathIcon
+                    ? svgIconComponent
+                    : textIconComponent
         }
-        
-        // Avatar image (circular clipping, no color overlay) 头像图片（圆形裁剪，不应用颜色叠加）
-        Item {
-            id: avatarContainer
-            anchors.fill: parent
-            visible: iconContainer.isAvatarIcon
-            
+
+        // SVG icon (apply color overlay) SVG图标（应用颜色叠加）
+        Component {
+            id: svgIconComponent
+
             Image {
-                id: avatarImage
                 anchors.fill: parent
-                source: iconContainer.isAvatarIcon ? 
-                    (control.selected && control.selectedIcon ? control.selectedIcon : control.icon) : ""
-                fillMode: Image.PreserveAspectCrop
+                source: iconContainer._resolveIcon(
+                    control.selected && control.selectedIcon ? control.selectedIcon : control.icon
+                )
+                fillMode: Image.PreserveAspectFit
+                opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
+
                 // High quality scaling 高质量缩放
                 sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
                 smooth: true
                 antialiasing: true
-                opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
-                
+
+                // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
                 layer.enabled: true
-                layer.smooth: true
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskThresholdMin: 0.5
-                    maskSpreadAtMin: 1.0
-                    maskSource: ShaderEffectSource {
-                        sourceItem: Rectangle {
-                            width: avatarContainer.width
-                            height: avatarContainer.height
-                            radius: width / 2
-                            antialiasing: true
-                        }
-                    }
+                layer.effect: ColorOverlay {
+                    color: control._navItemContentColor
                 }
-                
+
                 Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
             }
         }
-        
+
+        // Avatar image (circular clipping, no color overlay) 头像图片（圆形裁剪，不应用颜色叠加）
+        Component {
+            id: avatarIconComponent
+
+            Item {
+                id: avatarContainer
+
+                anchors.fill: parent
+
+                Image {
+                    anchors.fill: parent
+                    source: control.selected && control.selectedIcon ? control.selectedIcon : control.icon
+                    fillMode: Image.PreserveAspectCrop
+                    // High quality scaling 高质量缩放
+                    sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
+                    smooth: true
+                    antialiasing: true
+                    opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
+
+                    layer.enabled: true
+                    layer.smooth: true
+                    layer.effect: MultiEffect {
+                        maskEnabled: true
+                        maskThresholdMin: 0.5
+                        maskSpreadAtMin: 1.0
+                        maskSource: ShaderEffectSource {
+                            sourceItem: Rectangle {
+                                width: avatarContainer.width
+                                height: avatarContainer.height
+                                radius: width / 2
+                                antialiasing: true
+                            }
+                        }
+                    }
+
+                    Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                }
+            }
+        }
+
         // Emoji/text icon Emoji/文字图标
-        Label {
-            type: Enums.label.type_title
-            anchors.centerIn: parent
-            text: control.selected && control.selectedIcon ? control.selectedIcon : control.icon
-            visible: !iconContainer.isPathIcon && control.icon !== ""
-            color: control._navItemContentColor
-            opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
-            
-            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-            Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+        Component {
+            id: textIconComponent
+
+            Label {
+                type: Enums.label.type_title
+                anchors.centerIn: parent
+                text: control.selected && control.selectedIcon ? control.selectedIcon : control.icon
+                color: control._navItemContentColor
+                opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
+
+                Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+            }
         }
     }
 
