@@ -155,17 +155,22 @@ Item {
     }
     
     // Legend 图例
-    ChartBottomLegend {
+    Loader {
+        id: legendLoader
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Enums.spacing.m
-        visible: root.showLegend && root.chartData.length > 0
-        legendData: root.chartData
-        legendStyle: "dot"
-        hoveredIndex: root.hoveredIndex
-        getColor: root.getColor
-        clickable: true
-        onItemHovered: (index) => root.sliceHovered(index)
-        onItemClicked: (index) => root.sliceClicked(index, root.chartData[index])
+        active: root.showLegend && root.chartData.length > 0
+        sourceComponent: Component {
+            ChartBottomLegend {
+                legendData: root.chartData
+                legendStyle: "dot"
+                hoveredIndex: root.hoveredIndex
+                getColor: root.getColor
+                clickable: true
+                onItemHovered: (index) => root.sliceHovered(index)
+                onItemClicked: (index) => root.sliceClicked(index, root.chartData[index])
+            }
+        }
     }
 }

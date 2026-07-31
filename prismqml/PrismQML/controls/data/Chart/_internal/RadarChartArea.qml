@@ -103,17 +103,22 @@ Item {
     }
     
     // Legend 图例
-    ChartBottomLegend {
+    Loader {
+        id: legendLoader
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Enums.spacing.m
-        visible: root.showLegend && root.series.length > 0
-        legendData: root.series
-        legendStyle: "bar"
-        hoveredIndex: root.hoveredSeriesIndex
-        hiddenIndices: root.hiddenSeriesIndices
-        clickable: true
-        onItemHovered: (index) => root.pointHovered(index, -1)
-        onItemClicked: (index) => root.legendClicked(index)
+        active: root.showLegend && root.series.length > 0
+        sourceComponent: Component {
+            ChartBottomLegend {
+                legendData: root.series
+                legendStyle: "bar"
+                hoveredIndex: root.hoveredSeriesIndex
+                hiddenIndices: root.hiddenSeriesIndices
+                clickable: true
+                onItemHovered: (index) => root.pointHovered(index, -1)
+                onItemClicked: (index) => root.legendClicked(index)
+            }
+        }
     }
 }
