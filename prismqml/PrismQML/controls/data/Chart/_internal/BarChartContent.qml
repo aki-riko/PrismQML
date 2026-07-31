@@ -5,6 +5,7 @@
 import QtQuick
 import "../../../.."
 import "../../../data/Label"
+import "BarChartGeometry.js" as Geometry
 
 // BarChartContent - Multi-series bar chart rendering component 多系列柱状图渲染组件
 // Supports markPoint (min/max bubbles) and markLine (average dashed line)
@@ -34,6 +35,11 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property var barPositions: []        // For markPoint positioning 用于markPoint定位
     property int _lastHoverCandidateCount: 0
+    property var _barGeometry: null
+    property bool _barGeometryDirty: true
+    property int _barGeometryBuildCount: 0
+    property int _lastFrameBarUpdateCount: 0
+    property real _lastBarGeometryProgress: -1
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
@@ -139,13 +145,43 @@ Item {
         return { barIndex: foundIndex, seriesIndex: foundSeriesIndex }
     }
 
+    function _rebuildBarGeometry(canvasWidth, canvasHeight) {
+        var range = computedValueRange
+        var geometry = Geometry.build(
+            series, dataLength, canvasWidth, canvasHeight, range.min, range.max
+        )
+        _barGeometry = geometry
+        if (geometry.dataLength > 0) barPositions = geometry.seriesPositions
+        _barGeometryDirty = false
+        _lastBarGeometryProgress = -1
+        _barGeometryBuildCount++
+    }
+
+    function _updateAnimatedBarGeometry(progress) {
+        if (_barGeometryDirty) _rebuildBarGeometry(width, height)
+        if (progress === _lastBarGeometryProgress) {
+            _lastFrameBarUpdateCount = 0
+            return
+        }
+        _lastFrameBarUpdateCount = Geometry.update(
+            _barGeometry.seriesPositions, progress, _barGeometry.baseline
+        )
+        _lastBarGeometryProgress = progress
+        if (_lastFrameBarUpdateCount > 0) barPositionsChanged()
+    }
+
+    function _invalidateBarGeometry() {
+        _barGeometryDirty = true
+        canvas.requestPaint()
+    }
+
     // Repaint triggers 重绘触发
     onHoveredIndexChanged: {
         canvas.requestPaint()
         if (!isMultiSeries && !isHorizontal) singleBarIndicator.requestPaint()
     }
     onHoveredSeriesIndexChanged: canvas.requestPaint()
-    onSeriesChanged: canvas.requestPaint()
+    onSeriesChanged: _invalidateBarGeometry()
     onShowAverageChanged: canvas.requestPaint()
     onShowBarGradientChanged: canvas.requestPaint()
 
@@ -183,54 +219,35 @@ Item {
             var seriesCount = root.series.length
             var dataLen = root.dataLength
             if (dataLen === 0) return
-            
-            var groupWidth = width / dataLen
-            var barWidth = (groupWidth * 0.7) / seriesCount
-            var barSpacing = barWidth * 0.1
-            var allBarPositions = []
+            root._updateAnimatedBarGeometry(root.animated ? animProgress : 1)
+            var geometry = root._barGeometry
+            var barWidth = geometry.barWidth
+            var allBarPositions = root.barPositions
             
             // Draw bars 绘制柱子
             for (var s = 0; s < seriesCount; s++) {
                 var seriesData = root.series[s]
                 var values = seriesData.values || []
                 var color = root.getSeriesColor(s)
-                var seriesPositions = []
+                var seriesPositions = allBarPositions[s]
                 
                 for (var i = 0; i < values.length; i++) {
-                    var value = values[i]
-                    var barHeight = root.getBarRatio(value) * height * animProgress
-                    var x = i * groupWidth + (groupWidth - barWidth * seriesCount - barSpacing * (seriesCount - 1)) / 2 + s * (barWidth + barSpacing)
-                    var y = root.isPositive(value) ? root.valueToY(value) : root.valueToY(0)
-                    
-                    if (!root.isPositive(value)) {
-                        y = root.valueToY(0)
-                    } else {
-                        y = root.valueToY(0) - barHeight
-                    }
-                    
+                    var position = seriesPositions[i]
                     var hovered = (s === root.hoveredSeriesIndex && i === root.hoveredIndex)
                     
                     // Fluent Design: simple color with subtle hover effect 简洁颜色+微妙悬停效果
                     ctx.fillStyle = hovered ? Qt.lighter(color, 1.1) : color
                     
                     // Draw bar with rounded top corners 绘制顶部圆角柱子
-                    drawRoundedRect(ctx, x, y, barWidth, barHeight, Enums.radius.small)
+                    drawRoundedRect(ctx, position.barX, position.barTop,
+                                    barWidth, position.barHeight,
+                                    Enums.radius.small)
                     ctx.fill()
-                    
-                    seriesPositions.push({
-                        x: x + barWidth / 2,
-                        y: root.isPositive(value) ? y : y + barHeight,
-                        value: value,
-                        barTop: y,
-                        barBottom: y + barHeight
-                    })
                 }
-                allBarPositions.push(seriesPositions)
                 
                 // Fluent Design: simple average line 简洁平均线
                 if (root.showAverage && values.length > 0) {
-                    var avg = root.calculateAverage(values)
-                    var avgY = root.valueToY(avg)
+                    var avgY = geometry.averageYs[s]
                     ctx.beginPath()
                     ctx.strokeStyle = Qt.rgba(Qt.color(color).r, Qt.color(color).g, Qt.color(color).b, Enums.stateColor.chartStrokeAlpha)
                     ctx.lineWidth = 1
@@ -241,7 +258,6 @@ Item {
                     ctx.setLineDash([])
                 }
             }
-            root.barPositions = allBarPositions
         }
         
         Component.onCompleted: {
@@ -253,6 +269,9 @@ Item {
             }
         }
         onAnimProgressChanged: requestPaint()
+        onWidthChanged: root._invalidateBarGeometry()
+        onHeightChanged: root._invalidateBarGeometry()
+        onVisibleChanged: if (visible) root._invalidateBarGeometry()
         
         NumberAnimation {
             id: chartAnimation
