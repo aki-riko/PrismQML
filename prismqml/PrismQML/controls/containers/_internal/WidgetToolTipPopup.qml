@@ -16,6 +16,9 @@ Popup {
 
     // ==================== Internal Props 内部属性 ====================
     property bool _pendingShow: false
+    readonly property int _tooltipTextWidth: Math.min(
+        Math.ceil(_tooltipMetrics.advanceWidth),
+        Enums.controlSize.tooltipMaxWidth)
 
     // ==================== Internal Methods 内部方法 ====================
     function _screenBounds(sourcePos) {
@@ -147,7 +150,7 @@ Popup {
     bottomPadding: Enums.spacing.xs
     closePolicy: Popup.NoAutoClose
     clip: false
-    width: Math.min(_tooltipMetrics.width, Enums.controlSize.tooltipMaxWidth) + leftPadding + rightPadding
+    width: _tooltipTextWidth + leftPadding + rightPadding
     height: Math.max(Enums.controlSize.tooltipHeight, _tooltipText.implicitHeight + topPadding + bottomPadding)
 
     // ==================== Content 内容 ====================
@@ -167,7 +170,7 @@ Popup {
         wrapMode: Text.Wrap
         horizontalAlignment: toolTip.widget.toolTipTextAlignment
         verticalAlignment: Text.AlignVCenter
-        width: Math.min(_tooltipMetrics.width, Enums.controlSize.tooltipMaxWidth)
+        width: toolTip._tooltipTextWidth
     }
     enter: Transition {
         ParallelAnimation {
