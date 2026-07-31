@@ -215,6 +215,12 @@ def _click_popup_item(item):
 
 def _tooltip(button):
     tooltip = button.findChild(QObject, "_toolTip")
+    if tooltip is None:
+        support = button.findChild(QObject, "_hoverArea")
+        assert support is not None
+        assert QMetaObject.invokeMethod(support, "_prewarm")
+        assert _wait_for(lambda: button.findChild(QObject, "_toolTip") is not None)
+        tooltip = button.findChild(QObject, "_toolTip")
     assert tooltip is not None
     return tooltip
 
