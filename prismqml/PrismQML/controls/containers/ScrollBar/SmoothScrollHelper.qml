@@ -30,12 +30,16 @@ Item {
     property real _smoothY: 0
     property bool _isOvershotV: false
     property int _boundaryTargetV: 0  // -1=start, 0=absolute, 1=end
+    property int _bounceBoundaryV: 0  // Boundary of the active bounce 当前回弹边界
+    property int _blockedBounceBoundaryV: 0  // Ignore repeated feedback until inward scroll 向内滚动前不重复反馈
     
     // Horizontal state 水平状态
     property real _targetX: 0
     property real _smoothX: 0
     property bool _isOvershotH: false
     property int _boundaryTargetH: 0  // -1=start, 0=absolute, 1=end
+    property int _bounceBoundaryH: 0  // Boundary of the active bounce 当前回弹边界
+    property int _blockedBounceBoundaryH: 0  // Ignore repeated feedback until inward scroll 向内滚动前不重复反馈
     // _syncing = true 时禁用动画, 让 ScrollBar 拖拽场景下 contentX/Y 立即跟随 handle,
     // 不被 Behavior 平滑过渡反向拖拽.
     property bool _syncing: false
@@ -104,11 +108,15 @@ Item {
         _syncing = true
         if (_isVertical) {
             verticalBounce.stop()
+            _bounceBoundaryV = 0
+            _blockedBounceBoundaryV = 0
             _boundaryTargetV = 0
             _targetY = target.contentY
             _smoothY = target.contentY
         } else {
             horizontalBounce.stop()
+            _bounceBoundaryH = 0
+            _blockedBounceBoundaryH = 0
             _boundaryTargetH = 0
             _targetX = target.contentX
             _smoothX = target.contentX
@@ -140,6 +148,8 @@ Item {
         var smoothY = _clamp(_smoothY, _minY, _maxY)
         if (targetY === _targetY && smoothY === _smoothY) return
         _isOvershotV = false
+        _bounceBoundaryV = 0
+        _blockedBounceBoundaryV = 0
         verticalBounce.stop()
         _targetY = targetY
         if (smoothY !== _smoothY) {
@@ -167,6 +177,8 @@ Item {
         var smoothX = _clamp(_smoothX, _minX, _maxX)
         if (targetX === _targetX && smoothX === _smoothX) return
         _isOvershotH = false
+        _bounceBoundaryH = 0
+        _blockedBounceBoundaryH = 0
         horizontalBounce.stop()
         _targetX = targetX
         if (smoothX !== _smoothX) {
@@ -180,6 +192,8 @@ Item {
     // Vertical implementation 垂直实现
     function _scrollToY(targetY) {
         verticalBounce.stop()
+        _bounceBoundaryV = 0
+        _blockedBounceBoundaryV = 0
         _targetY = _clamp(targetY, _minY, _maxY)
         _isOvershotV = false
         _smoothY = _targetY
@@ -191,6 +205,8 @@ Item {
         // Normal scroll 正常滚动
         if (newTarget >= _minY && newTarget <= _maxY) {
             verticalBounce.stop()
+            _bounceBoundaryV = 0
+            if (delta !== 0) _blockedBounceBoundaryV = 0
             _targetY = newTarget
             _isOvershotV = false
             _smoothY = _targetY
@@ -205,6 +221,9 @@ Item {
 
         if (newTarget < _minY) {
             // Top overshoot 顶部超出
+            if (_blockedBounceBoundaryV === -1) return
+            _blockedBounceBoundaryV = 0
+            _bounceBoundaryV = -1
             _targetY = _minY
             _isOvershotV = true
             var overshootDelta = _minY - newTarget
@@ -213,6 +232,9 @@ Item {
             verticalBounce.start(_smoothY, outwardY, _targetY)
         } else {
             // Bottom overshoot 底部超出
+            if (_blockedBounceBoundaryV === 1) return
+            _blockedBounceBoundaryV = 0
+            _bounceBoundaryV = 1
             _targetY = _maxY
             _isOvershotV = true
             var overshootDeltaBottom = newTarget - _maxY
@@ -225,6 +247,8 @@ Item {
     // Horizontal implementation 水平实现
     function _scrollToX(targetX) {
         horizontalBounce.stop()
+        _bounceBoundaryH = 0
+        _blockedBounceBoundaryH = 0
         _targetX = _clamp(targetX, _minX, _maxX)
         _isOvershotH = false
         _smoothX = _targetX
@@ -236,6 +260,8 @@ Item {
         // Normal scroll 正常滚动
         if (newTarget >= _minX && newTarget <= _maxX) {
             horizontalBounce.stop()
+            _bounceBoundaryH = 0
+            if (delta !== 0) _blockedBounceBoundaryH = 0
             _targetX = newTarget
             _isOvershotH = false
             _smoothX = _targetX
@@ -250,6 +276,9 @@ Item {
 
         if (newTarget < _minX) {
             // Left overshoot 左侧超出
+            if (_blockedBounceBoundaryH === -1) return
+            _blockedBounceBoundaryH = 0
+            _bounceBoundaryH = -1
             _targetX = _minX
             _isOvershotH = true
             var overshootDelta = _minX - newTarget
@@ -258,6 +287,9 @@ Item {
             horizontalBounce.start(_smoothX, outwardX, _targetX)
         } else {
             // Right overshoot 右侧超出
+            if (_blockedBounceBoundaryH === 1) return
+            _blockedBounceBoundaryH = 0
+            _bounceBoundaryH = 1
             _targetX = _maxX
             _isOvershotH = true
             var overshootDeltaRight = newTarget - _maxX
@@ -320,6 +352,7 @@ Item {
         returnDuration: Enums.duration.bounce
         easing: Easing.OutBack
         onPositionChanged: (position) => helper._smoothY = position
+        onReturnStarted: helper._blockedBounceBoundaryV = helper._bounceBoundaryV
     }
 
     DeterministicBounce {
@@ -330,6 +363,7 @@ Item {
         returnDuration: Enums.duration.bounce
         easing: Easing.OutBack
         onPositionChanged: (position) => helper._smoothX = position
+        onReturnStarted: helper._blockedBounceBoundaryH = helper._bounceBoundaryH
     }
 
     Timer {

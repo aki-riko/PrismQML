@@ -32,6 +32,7 @@ Item {
 
     // ==================== Signals 信号 ====================
     signal positionChanged(real position)
+    signal returnStarted()
 
     // ==================== Public Methods 公开方法 ====================
     function start(startValue, outwardValue, returnValue) {
@@ -69,6 +70,7 @@ Item {
         if (!_active || !_outwardPhase) return
         _outwardPhase = false
         outwardDriver.stop()
+        returnStarted()
         if (!animated) {
             _value = _returnValue
             _finish()

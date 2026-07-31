@@ -461,6 +461,63 @@ def test_scroll_area_bounce_peak_does_not_expand_after_gui_stall(scroll_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_scroll_area_boundary_bounce_does_not_restart_during_return(scroll_scene):
+    window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+    maximum = helper.property("maxScroll")
+
+    values = []
+    area.contentYChanged.connect(
+        lambda: values.append(float(area.property("contentY")))
+    )
+    area.setProperty("contentY", maximum)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+
+    first_event = _send_wheel(window, area, -120)
+    assert first_event.isAccepted()
+    _pump(130)
+    first_peak = max(values)
+    assert first_peak > maximum
+
+    for _ in range(5):
+        repeated_event = _send_wheel(window, area, -120)
+        assert repeated_event.isAccepted()
+        _pump(130)
+
+    assert max(values) <= first_peak + 0.5
+    assert _wait_for_stable(
+        lambda: area.property("contentY") == pytest.approx(maximum),
+        timeout_ms=1500,
+    )
+
+    values.clear()
+    settled_event = _send_wheel(window, area, -120)
+    assert settled_event.isAccepted()
+    _pump(250)
+    assert max(values or [maximum]) <= maximum + 0.5
+
+    inward_event = _send_wheel(window, area, 120)
+    assert inward_event.isAccepted()
+    assert _wait_for(lambda: area.property("contentY") < maximum)
+    _pump(1000)
+
+    return_to_boundary_event = _send_wheel(window, area, -120)
+    assert return_to_boundary_event.isAccepted()
+    assert _wait_for_stable(
+        lambda: area.property("contentY") == pytest.approx(maximum),
+        timeout_ms=1500,
+    )
+    values.clear()
+    unlocked_event = _send_wheel(window, area, -120)
+    assert unlocked_event.isAccepted()
+    assert _wait_for(lambda: max(values or [maximum]) > maximum)
+    _pump(1000)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_smooth_helpers_keep_boundary_target_when_content_grows(scroll_scene):
     window, _items, warnings, windows_before = scroll_scene
 
