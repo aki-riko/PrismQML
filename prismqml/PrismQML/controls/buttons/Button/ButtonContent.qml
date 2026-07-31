@@ -23,9 +23,7 @@ Row {
     required property string loadingText
     required property real progress
     required property color textColor
-    required property bool controlEnabled
     required property int fontSize
-    required property bool pressed  // For animation timing 用于动画时长控制
 
     // ==================== Public Props 公开属性 ====================
     // Optional font flags 可选字体修饰

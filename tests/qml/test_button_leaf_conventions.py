@@ -359,13 +359,11 @@ def test_button_content_parent_bindings_remain_stable(button_leaf_scene):
     assert button is not None
     content = _button_content(button)
     for name in ("feature", "style", "text", "icon", "iconSize", "loading",
-                 "loadingText", "progress", "fontBold", "fontItalic",
-                 "fontUnderline", "fontStrikeout", "countdownText"):
+                  "loadingText", "progress", "fontBold", "fontItalic",
+                  "fontUnderline", "fontStrikeout", "countdownText"):
         assert content.property(name) == button.property(name)
     assert content.property("textColor") == root.property("expectedButtonTextColor")
-    assert content.property("controlEnabled") == button.property("enabled")
     assert content.property("fontSize") == button.property("fontSize")
-    assert content.property("pressed") == button.property("pressed")
     assert not content.property("countdownActive")
     assert content.property("countdownRemaining") == 0
 
@@ -378,10 +376,14 @@ def test_button_content_parent_bindings_remain_stable(button_leaf_scene):
     assert content.property("text") == "Updated"
     assert content.property("progress") == pytest.approx(0.75)
     assert content.property("loading")
-    assert content.property("pressed")
-    assert not content.property("controlEnabled")
     assert content.property("textColor") == root.property("expectedButtonTextColor")
     assert _new_visible_windows(windows_before) == []
+
+
+def test_button_content_omits_unused_parent_state_bindings():
+    source = BUTTON_SOURCES[3].read_text(encoding="utf-8")
+    assert "required property bool controlEnabled" not in source
+    assert "required property bool pressed" not in source
 
 
 def test_button_content_reuses_one_feature_ring_loader(button_leaf_scene):

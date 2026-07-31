@@ -458,13 +458,11 @@ Widget {
             loadingText: control.loadingText
             progress: control.progress
             textColor: control.getTextColor()
-            controlEnabled: control.enabled
             fontSize: control.fontSize
             fontBold: control.fontBold
             fontItalic: control.fontItalic
             fontUnderline: control.fontUnderline
             fontStrikeout: control.fontStrikeout
-            pressed: control.pressed
             countdownActive: control._countdownActive
             countdownRemaining: control._countdownRemaining
             countdownText: control.countdownText
