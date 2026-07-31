@@ -33,10 +33,12 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     property var barPositions: []        // For markPoint positioning 用于markPoint定位
+    property int _lastHoverCandidateCount: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
     readonly property int dataLength: isMultiSeries ? (series[0].values ? series[0].values.length : 0) : chartData.length
+    readonly property real _barHoverRadius: 30
     readonly property var computedValueRange: {
         var min = 0, max = 0
         if (isMultiSeries) {
@@ -100,6 +102,41 @@ Item {
     
     function isPositive(value) {
         return value >= 0
+    }
+
+    function _lowerBoundBarX(positions, targetX) {
+        var low = 0
+        var high = positions.length
+        while (low < high) {
+            var middle = Math.floor((low + high) / 2)
+            if (positions[middle].x < targetX) low = middle + 1
+            else high = middle
+        }
+        return low
+    }
+
+    function _nearestBarHit(x, y) {
+        var nearestDistance = _barHoverRadius
+        var foundIndex = -1
+        var foundSeriesIndex = -1
+        var candidateCount = 0
+        for (var seriesIndex = 0; seriesIndex < barPositions.length; seriesIndex++) {
+            var positions = barPositions[seriesIndex] || []
+            var start = _lowerBoundBarX(positions, x - _barHoverRadius)
+            for (var index = start; index < positions.length; index++) {
+                var position = positions[index]
+                if (position.x >= x + _barHoverRadius) break
+                candidateCount++
+                var distance = Math.abs(x - position.x)
+                if (distance < nearestDistance && y >= position.barTop && y <= position.barBottom) {
+                    nearestDistance = distance
+                    foundIndex = index
+                    foundSeriesIndex = seriesIndex
+                }
+            }
+        }
+        _lastHoverCandidateCount = candidateCount
+        return { barIndex: foundIndex, seriesIndex: foundSeriesIndex }
     }
 
     // Repaint triggers 重绘触发
@@ -607,27 +644,10 @@ Item {
         
         onPositionChanged: (mouse) => {
             if (!root.isMultiSeries || root.barPositions.length === 0) return
-            
-            var minDist = 30
-            var foundIndex = -1
-            var foundSeriesIndex = -1
-            
-            for (var s = 0; s < root.barPositions.length; s++) {
-                var positions = root.barPositions[s]
-                for (var i = 0; i < positions.length; i++) {
-                    var pos = positions[i]
-                    var dist = Math.abs(mouse.x - pos.x)
-                    if (dist < minDist && mouse.y >= pos.barTop && mouse.y <= pos.barBottom) {
-                        minDist = dist
-                        foundIndex = i
-                        foundSeriesIndex = s
-                    }
-                }
-            }
-            
-            root.hoveredIndex = foundIndex
-            root.hoveredSeriesIndex = foundSeriesIndex
-            root.seriesBarHovered(foundSeriesIndex, foundIndex)
+            var hit = root._nearestBarHit(mouse.x, mouse.y)
+            root.hoveredIndex = hit.barIndex
+            root.hoveredSeriesIndex = hit.seriesIndex
+            root.seriesBarHovered(hit.seriesIndex, hit.barIndex)
         }
         
         onExited: {

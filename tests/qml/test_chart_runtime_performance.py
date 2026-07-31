@@ -384,6 +384,58 @@ def test_radar_animation_reuses_cached_polar_geometry(chart_scene):
     assert warnings == []
 
 
+def test_multi_series_bar_hover_searches_only_the_local_x_range(chart_scene):
+    chart, warnings = chart_scene
+    series_count = 4
+    bar_count = 2_000
+    chart.setProperty("lttbThreshold", bar_count + 1)
+    chart.setProperty("chartType", chart.property("barType"))
+    chart.setProperty(
+        "series",
+        [
+            {"name": f"S{series_index}", "values": list(range(bar_count))}
+            for series_index in range(series_count)
+        ],
+    )
+    _pump(50)
+
+    bar_content = _loaders(chart)["barContentLoader"].property("item")
+    assert bar_content is not None
+    positions = [
+        [
+            {
+                "x": bar_index * 5 + series_index * 0.5,
+                "barTop": 20 + series_index,
+                "barBottom": 300 - series_index,
+            }
+            for bar_index in range(bar_count)
+        ]
+        for series_index in range(series_count)
+    ]
+    bar_content.setProperty("barPositions", positions)
+
+    target_series = 2
+    target_index = 1_234
+    target_x = positions[target_series][target_index]["x"]
+    context = QQmlEngine.contextForObject(bar_content)
+    nearest_bar = QQmlExpression(
+        context,
+        bar_content,
+        "(function() {"
+        f" var hit = _nearestBarHit({target_x}, 100);"
+        " return hit.seriesIndex + ':' + hit.barIndex"
+        "})()",
+    )
+    assert _evaluate(nearest_bar) == f"{target_series}:{target_index}"
+    assert bar_content.property("_lastHoverCandidateCount") <= 60
+
+    positions[target_series][target_index]["barTop"] = 150
+    bar_content.setProperty("barPositions", positions)
+    assert _evaluate(nearest_bar) == f"1:{target_index}"
+    assert bar_content.property("_lastHoverCandidateCount") <= 60
+    assert warnings == []
+
+
 def test_chart_null_and_empty_inputs_stay_finite_and_select_empty_state(chart_scene):
     chart, warnings = chart_scene
     loaders = _loaders(chart)
