@@ -141,6 +141,9 @@ StackedWidget {{
             "lazyActivationDelay"
         )
         assert overlay.property("visible") is False
+        exit_loader = overlay.findChild(QObject, "qmlPageExitLoader")
+        assert exit_loader is not None
+        assert _wait_until(lambda: exit_loader.property("item") is None)
         assert len(failures) == 1
         assert failures[0][0] == 1
         assert "InvalidPage.qml" in failures[0][1]
@@ -328,5 +331,8 @@ StackedWidget {{
         overlay = stack.findChild(QObject, "lazyLoadingOverlay")
         assert overlay is not None
         assert _wait_until(lambda: overlay.property("visible") is False)
+        exit_loader = overlay.findChild(QObject, "qmlPageExitLoader")
+        assert exit_loader is not None
+        assert _wait_until(lambda: exit_loader.property("item") is None)
     finally:
         _release(qapp, stack, component, engine)

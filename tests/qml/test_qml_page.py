@@ -24,6 +24,7 @@ Item {
     readonly property int lazyRingStyle: Enums.progress.indeterminate_style_fixed_arc
     readonly property int lazyRingSize: Enums.controlSize.navBarHeight
     readonly property int lazyRingSpinDuration: Enums.duration.scroll
+    readonly property color expectedExitColor: Enums.backgroundColor
 
     width: 640
     height: 480
@@ -32,6 +33,8 @@ Item {
         objectName: "qmlPage"
         anchors.fill: parent
         text: "Loading page"
+        backgroundColor: Enums.transparent
+        exitBackgroundColor: Enums.backgroundColor
     }
 }
 """
@@ -41,6 +44,16 @@ def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _wait_until(predicate, timeout_ms: int = 2000) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 20
+    return predicate()
 
 
 def _visual_items(root: QQuickItem) -> dict[str, QQuickItem]:
@@ -120,13 +133,22 @@ def test_qml_page_finish_uses_reusable_center_out_grid_dissolve(qapp):
     try:
         page = root.findChild(QQuickItem, "qmlPage")
         content = root.findChild(QQuickItem, "qmlPageContent")
+        exit_loader = root.findChild(QQuickItem, "qmlPageExitLoader")
+        assert page is not None and content is not None
+        assert exit_loader is not None
+        assert exit_loader.property("item") is None
+        assert not any(
+            name.startswith("qmlPageGridCell_") for name in _visual_items(page)
+        )
+
+        assert QMetaObject.invokeMethod(page, "finish")
+        assert _wait_until(lambda: exit_loader.property("item") is not None)
         visual_items = _visual_items(page)
         center_cell = visual_items.get("qmlPageGridCell_41")
         corner_cell = visual_items.get("qmlPageGridCell_0")
-        assert page is not None and content is not None
         assert center_cell is not None and corner_cell is not None
-
-        assert QMetaObject.invokeMethod(page, "finish")
+        assert center_cell.property("color") == root.property("expectedExitColor")
+        assert center_cell.property("color").alphaF() > 0
         _pump(200)
         assert page.property("finishing") is True
         assert center_cell.property("opacity") < 0.2
@@ -135,13 +157,15 @@ def test_qml_page_finish_uses_reusable_center_out_grid_dissolve(qapp):
 
         _pump(400)
         assert page.property("visible") is False
+        assert _wait_until(lambda: exit_loader.property("item") is None)
+        assert not any(
+            name.startswith("qmlPageGridCell_") for name in _visual_items(page)
+        )
 
         assert QMetaObject.invokeMethod(page, "start")
         _pump()
         assert page.property("visible") is True
         assert page.property("finishing") is False
-        assert center_cell.property("opacity") == pytest.approx(1.0)
-        assert corner_cell.property("opacity") == pytest.approx(1.0)
         assert content.property("opacity") == pytest.approx(1.0)
         assert content.property("scale") == pytest.approx(1.0)
     finally:

@@ -13,108 +13,95 @@ Rectangle {
     property string text: { Translator._v; return Translator.tr("loading") }  // Loading message 加载提示
     property bool running: visible                  // Run animation while loading 加载时运行动画
     property color backgroundColor: Enums.backgroundColor  // Page background 页面背景
+    property color exitBackgroundColor: backgroundColor  // Exit grid color 退场网格颜色
 
     // ==================== Internal Props 内部属性 ====================
     readonly property bool finishing: _finishing     // Exit is running 正在退场
     property bool _finishing: false
+    property bool _exitPrepared: false
+    property bool _exitStartPending: false
 
     // ==================== Signals 信号 ====================
     signal finished()  // Emitted after the page is removed 页面移除后触发
 
     // ==================== Public Methods 公开方法 ====================
     function start() {
-        exitDissolveAnim.stop()
         control._finishing = false
+        control._exitPrepared = false
+        control._exitStartPending = false
         control.visible = true
         contentColumn.opacity = Enums.opacityLevel.visible
         contentColumn.scale = Enums.opacityLevel.visible
-        for (var i = 0; i < dissolveGrid.count; i++) {
-            var cell = dissolveGrid.itemAt(i)
-            if (cell) cell.opacity = Enums.opacityLevel.visible
+    }
+
+    function prepareFinish() {
+        if (!control.visible) return
+        if (String(exitLoader.source) === "") {
+            exitLoader.setSource(
+                Qt.resolvedUrl("_internal/QMLPageExitDissolve.qml"),
+                {
+                    "contentItem": contentColumn,
+                    "cellColor": control.exitBackgroundColor
+                }
+            )
         }
+        control._exitPrepared = true
     }
 
     function finish() {
         if (control._finishing || !control.visible) return
         control._finishing = true
-        exitDissolveAnim.start()
+        control._exitStartPending = true
+        control.prepareFinish()
+        control._startExitAnimation()
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _startExitAnimation() {
+        if (!control._exitStartPending || !exitLoader.item) return
+        control._exitStartPending = false
+        exitLoader.item.contentItem = contentColumn
+        exitLoader.item.cellColor = control.exitBackgroundColor
+        exitLoader.item.start()
+    }
+
+    function _completeExitAnimation() {
+        control.visible = false
+        control.finished()
+        control._finishing = false
+        control._exitPrepared = false
+        control._exitStartPending = false
     }
 
     color: Enums.transparent
     clip: true
 
-    // Grid permeation dissolve animation 网格渗透溶解动画
-    SequentialAnimation {
-        id: exitDissolveAnim
-
-        ParallelAnimation {
-            NumberAnimation {
-                target: contentColumn
-                property: "opacity"
-                to: Enums.opacityLevel.invisible
-                duration: Enums.duration.splashGridContentFade
-                easing.type: Easing.InCubic
-            }
-
-            NumberAnimation {
-                target: contentColumn
-                property: "scale"
-                to: Enums.splashScreenMetrics.exitContentEndScale
-                duration: Enums.duration.splashGridContentFade
-                easing.type: Easing.InCubic
-            }
-
-            PauseAnimation { duration: Enums.duration.splashExitDissolve }
-        }
-
-        ScriptAction {
-            script: {
-                control.visible = false
-                control.finished()
-            }
+    onVisibleChanged: {
+        if (!visible && !control._finishing) {
+            control._exitPrepared = false
+            control._exitStartPending = false
         }
     }
 
-    // Seamless cells reveal the loaded content center-out 无缝网格块由中心向外揭露已加载内容
-    Repeater {
-        id: dissolveGrid
+    // Lazy exit effect loader 懒加载退场效果
+    Loader {
+        id: exitLoader
 
-        model: Enums.splashScreenMetrics.exitGridColumns *
-               Enums.splashScreenMetrics.exitGridRows
+        objectName: "qmlPageExitLoader"
+        anchors.fill: parent
+        active: control._exitPrepared
+        asynchronous: true
 
-        delegate: Rectangle {
-            id: gridCell
+        onLoaded: control._startExitAnimation()
+    }
 
-            readonly property int _column: index % Enums.splashScreenMetrics.exitGridColumns
-            readonly property int _row: Math.floor(index / Enums.splashScreenMetrics.exitGridColumns)
-            readonly property real _centerColumn: (Enums.splashScreenMetrics.exitGridColumns - 1) / 2
-            readonly property real _centerRow: (Enums.splashScreenMetrics.exitGridRows - 1) / 2
-            readonly property int _delay: Math.round((
-                Math.abs(gridCell._column - gridCell._centerColumn) +
-                Math.abs(gridCell._row - gridCell._centerRow)
-            ) * Enums.duration.splashGridDelayStep)
-
-            objectName: "qmlPageGridCell_" + index
-            x: gridCell._column * control.width / Enums.splashScreenMetrics.exitGridColumns
-            y: gridCell._row * control.height / Enums.splashScreenMetrics.exitGridRows
-            width: control.width / Enums.splashScreenMetrics.exitGridColumns +
-                   Enums.splashScreenMetrics.exitGridOverlap
-            height: control.height / Enums.splashScreenMetrics.exitGridRows +
-                    Enums.splashScreenMetrics.exitGridOverlap
-            color: control.backgroundColor
-            opacity: Enums.opacityLevel.visible
-
-            SequentialAnimation on opacity {
-                running: control._finishing
-
-                PauseAnimation { duration: gridCell._delay }
-                NumberAnimation {
-                    to: Enums.opacityLevel.invisible
-                    duration: Enums.duration.splashGridCellFade
-                    easing.type: Easing.InOutCubic
-                }
-            }
+    Connections {
+        function onFinished() {
+            control._completeExitAnimation()
         }
+
+        target: exitLoader.item
+        ignoreUnknownSignals: true
     }
 
     // ==================== Content 内容 ====================

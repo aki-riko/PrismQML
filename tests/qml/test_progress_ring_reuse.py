@@ -25,6 +25,9 @@ LAZY_LOADING_HELPER = (
     QML_ROOT / "controls" / "navigation" / "_internal" / "LazyLoadingHelper.qml"
 )
 QML_PAGE = QML_ROOT / "controls" / "feedback" / "QMLPage.qml"
+QML_PAGE_EXIT = (
+    QML_ROOT / "controls" / "feedback" / "_internal" / "QMLPageExitDissolve.qml"
+)
 SPLASH_SCREEN = (
     QML_ROOT / "controls" / "feedback" / "SplashScreen" / "SplashScreen.qml"
 )
@@ -258,6 +261,8 @@ def test_qml_page_preserves_lazy_ring_and_reuses_splash_exit():
     helper_source = LAZY_LOADING_HELPER.read_text(encoding="utf-8")
     assert "QMLPage {" in helper_source
     assert "backgroundColor: Enums.transparent" in helper_source
+    assert "exitBackgroundColor: Enums.backgroundColor" in helper_source
+    assert "loadingOverlay.prepareFinish()" in helper_source
     assert "loadingOverlay.finish()" in helper_source
 
     page_source = QML_PAGE.read_text(encoding="utf-8")
@@ -269,8 +274,13 @@ def test_qml_page_preserves_lazy_ring_and_reuses_splash_exit():
     assert "spacing: Enums.spacing.xl" in page_source
     assert "anchors.horizontalCenter: parent.horizontalCenter" in page_source
     assert "function finish()" in page_source
-    assert "Enums.duration.splashGridCellFade" in page_source
-    assert "Enums.duration.splashExitDissolve" in page_source
+    assert 'objectName: "qmlPageExitLoader"' in page_source
+    assert "asynchronous: true" in page_source
+
+    exit_source = QML_PAGE_EXIT.read_text(encoding="utf-8")
+    assert 'objectName: "qmlPageGridCell_" + index' in exit_source
+    assert "Enums.duration.splashGridCellFade" in exit_source
+    assert "Enums.duration.splashExitDissolve" in exit_source
 
     splash_source = SPLASH_SCREEN.read_text(encoding="utf-8")
     assert "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot" in splash_source
