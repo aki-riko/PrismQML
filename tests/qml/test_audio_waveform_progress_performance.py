@@ -73,16 +73,12 @@ def _wait_for(predicate, timeout_ms: int = 1_500) -> bool:
 
 
 def _bars(waveform: QQuickItem) -> list[QQuickItem]:
-    rows = [
-        item
-        for item in waveform.findChildren(QQuickItem)
-        if "QQuickRow" in item.metaObject().className()
-    ]
-    assert len(rows) == 1
+    bars_parent = waveform.findChild(QQuickItem, "waveformBars")
+    assert bars_parent is not None
     return sorted(
         [
             item
-            for item in rows[0].childItems()
+            for item in bars_parent.childItems()
             if "Rectangle" in item.metaObject().className()
         ],
         key=lambda item: item.x(),
@@ -189,7 +185,48 @@ def test_audio_waveform_progress_preserves_bar_opacity_groups(qapp):
 
 def test_audio_waveform_bar_caches_position_and_played_state():
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("index / control._safeWaveformData.length") == 1
+    assert source.count("_dataIndex / control._safeWaveformData.length") == 1
+    assert "readonly property int _dataIndex:" in source
     assert "readonly property real _positionRatio:" in source
     assert "readonly property bool _played:" in source
     assert source.count("bar._played") == 3
+
+
+def test_audio_waveform_dense_data_instantiates_only_visible_bars(qapp):
+    engine, component, window, waveform, warnings = _create_scene()
+    sample_count = 2_000
+    values = [0.5 + ((index * 37) % 40) / 100 for index in range(sample_count)]
+    try:
+        waveform.setProperty("waveformData", values)
+        bars_parent = waveform.findChild(QQuickItem, "waveformBars")
+        assert bars_parent is not None
+        assert _wait_for(
+            lambda: len(_bars(waveform)) == bars_parent.property("_visibleCount")
+        )
+        bars = _bars(waveform)
+        pitch = waveform.property("_safeBarWidth") + waveform.property(
+            "_safeBarSpacing"
+        )
+        assert len(bars) <= waveform.width() / pitch + 2
+
+        data_indices = [bar.property("_dataIndex") for bar in bars]
+        assert all(isinstance(index, int) for index in data_indices)
+        assert data_indices == list(range(data_indices[0], data_indices[-1] + 1))
+        assert data_indices[0] > 0
+        assert data_indices[-1] < sample_count - 1
+        for bar, data_index in zip(bars, data_indices, strict=True):
+            assert bar.x() == pytest.approx(data_index * pitch)
+            expected_height = values[data_index] * bar.parentItem().height() * 0.9
+            assert bar.height() == pytest.approx(expected_height)
+
+        waveform.setWidth(200)
+        assert _wait_for(
+            lambda: len(_bars(waveform)) == bars_parent.property("_visibleCount")
+        )
+        narrow_indices = [bar.property("_dataIndex") for bar in _bars(waveform)]
+        assert len(narrow_indices) < len(data_indices)
+        assert narrow_indices[0] > data_indices[0]
+        assert narrow_indices[-1] < data_indices[-1]
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)

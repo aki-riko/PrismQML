@@ -127,25 +127,58 @@ Item {
         }
         
         // Waveform bars 波形条
-        Row {
-            id: waveformRow
+        Item {
+            id: waveformBars
+
+            readonly property int _sampleCount: control._safeWaveformData.length
+            readonly property real _pitch: control._safeBarWidth + control._safeBarSpacing
+            readonly property real _contentWidth:
+                _sampleCount > 0
+                    ? _sampleCount * control._safeBarWidth
+                      + (_sampleCount - 1) * control._safeBarSpacing
+                    : 0
+            readonly property real _viewportLeft:
+                Math.max(0, (width - waveformContainer.width) / 2)
+            readonly property real _viewportRight:
+                Math.min(width, _viewportLeft + waveformContainer.width)
+            readonly property int _firstVisibleIndex:
+                _sampleCount > 0
+                    ? Math.max(0, Math.min(
+                        _sampleCount - 1, Math.floor(_viewportLeft / _pitch)
+                    )) : 0
+            readonly property int _visibleCount:
+                _sampleCount > 0
+                    ? Math.min(
+                        _sampleCount - _firstVisibleIndex,
+                        Math.max(0, Math.ceil(
+                            (_viewportRight - _firstVisibleIndex * _pitch) / _pitch
+                        ) + 1)
+                    ) : 0
+
+            objectName: "waveformBars"
             anchors.centerIn: parent
+            width: _contentWidth
             height: parent.height
-            spacing: control._safeBarSpacing
             
             Repeater {
-                model: control._safeWaveformData.length
+                model: waveformBars._visibleCount
                 
                 Rectangle {
                     id: bar
 
+                    readonly property int _dataIndex:
+                        waveformBars._firstVisibleIndex + index
                     readonly property real _positionRatio:
                         control._safeWaveformData.length > 0
-                            ? index / control._safeWaveformData.length : 0
+                            ? _dataIndex / control._safeWaveformData.length : 0
                     readonly property bool _played: bar._positionRatio < control._safeProgress
 
+                    x: _dataIndex * waveformBars._pitch
                     width: control._safeBarWidth
-                    height: Math.max(Enums.spacing.xs, control._safeWaveformData[index] * waveformRow.height * 0.9)
+                    height: Math.max(
+                        Enums.spacing.xs,
+                        control._safeWaveformData[_dataIndex] * waveformBars.height * 0.9
+                    )
                     radius: width / 2
                     anchors.verticalCenter: parent.verticalCenter
                     
