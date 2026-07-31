@@ -448,6 +448,13 @@ def test_button_core_schedules_menu_retry_without_per_instance_timer():
     assert "_menuPrewarmRetryTimer" not in source
 
 
+def test_button_core_reuses_widget_tooltip_show_timer():
+    source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    assert "_startToolTipShowTimer()" in source
+    assert "_stopToolTipShowTimer()" in source
+    assert "_btnToolTipTimer" not in source
+
+
 def test_button_core_initial_colors_and_handlers(button_core_scene):
     root, warnings, windows_before = button_core_scene
     button = _button(root, "lifecycleButton")

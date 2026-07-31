@@ -86,6 +86,14 @@ Item {
         _toolTipTimersCanceled()
     }
 
+    function _startToolTipShowTimer() {
+        if (_toolTipLoader.item) _toolTipLoader.item.startShowTimer()
+    }
+
+    function _stopToolTipShowTimer() {
+        if (_toolTipLoader.item) _toolTipLoader.item.stopShowTimer()
+    }
+
     function _dismissToolTip() {
         _cancelToolTipTimers()
         if (_toolTipLoader.item) _toolTipLoader.item.dismiss()
@@ -348,7 +356,6 @@ Item {
                 id: _showTimer
                 interval: widget.toolTipShowDelay
                 onTriggered: {
-                    if (!_hoverAreaLoader.item || !_hoverAreaLoader.item._showScheduled) return
                     widget.showToolTip()
                     if (widget.toolTipDuration > 0) {
                         _autoHideTimer.interval = widget.toolTipDuration

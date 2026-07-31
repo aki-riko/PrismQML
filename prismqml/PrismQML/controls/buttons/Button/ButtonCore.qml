@@ -269,11 +269,11 @@ Widget {
     }
 
     function _startButtonToolTipTimer() {
-        if (_btnToolTipTimer.item) _btnToolTipTimer.item.start()
+        _startToolTipShowTimer()
     }
 
     function _stopButtonToolTipTimer() {
-        if (_btnToolTipTimer.item) _btnToolTipTimer.item.stop()
+        _stopToolTipShowTimer()
     }
 
     function _dismissToolTipForMenu() {
@@ -344,18 +344,6 @@ Widget {
     on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
-    // ToolTip timer for Button - override Widget's _hoverArea
-    // Button专用ToolTip定时器 - 覆盖Widget的_hoverArea
-    Loader {
-        id: _btnToolTipTimer
-        active: control.toolTipText !== ""
-
-        sourceComponent: Timer {
-            interval: control.toolTipShowDelay
-            onTriggered: if (control._toolTipHovered) control.showToolTip()
-        }
-    }
-
     // Shared face/content press transform. 共享按钮表面与内容的按下位移。
     Translate {
         id: neoPressTransform
