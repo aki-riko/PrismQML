@@ -125,11 +125,6 @@ Widget {
     property color _targetBorderColor
     property bool _colorAnimationsReady: false
 
-    property Gradient _gradientDef: Gradient {
-        GradientStop { position: Enums.button.gradientStart; color: Qt.lighter(Enums.accentColor, Enums.button.gradientLighten) }
-        GradientStop { position: Enums.button.gradientEnd; color: Enums.accentColor }
-    }
-
     // ==================== Signals 信号 ====================
     signal clicked()
     // 注意: 不能命名为 pressed, 会与下方 `property bool pressed` 同名,
@@ -395,7 +390,7 @@ Widget {
         border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
 
         // Gradient (for gradient style) 渐变
-        gradient: style === Enums.button.style_gradient ? _gradientDef : null
+        gradient: style === Enums.button.style_gradient ? Enums._buttonGradientDef : null
 
         // Neobrutalism 按下位移: face 向右下滑向硬阴影, 视觉压平。Fluent 下 shift 恒 0 无影响。
         transform: Translate {

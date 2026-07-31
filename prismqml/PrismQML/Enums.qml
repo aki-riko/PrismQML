@@ -57,6 +57,19 @@ Item {
     // Transparent color constant 透明色常量
     readonly property color transparent: "transparent"
 
+    // Shared button gradient resource; all gradient buttons use the same
+    // theme-bound stops. 共享按钮渐变资源；所有渐变按钮复用同一组主题绑定色标。
+    readonly property Gradient _buttonGradientDef: Gradient {
+        GradientStop {
+            position: _button.gradientStart
+            color: Qt.lighter(root.accentColor, _button.gradientLighten)
+        }
+        GradientStop {
+            position: _button.gradientEnd
+            color: root.accentColor
+        }
+    }
+
     // ==================== Timeline 时间线 ====================
     readonly property QtObject timeline: QtObject {
         readonly property int type_standard: 0

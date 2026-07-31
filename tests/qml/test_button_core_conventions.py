@@ -27,6 +27,7 @@ BUTTON_CORE_SOURCE = (
     / "Button"
     / "ButtonCore.qml"
 )
+ENUMS_SOURCE = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "button-core-conventions.qml")
 )
@@ -153,6 +154,24 @@ Item {
         feature: Enums.button.feature_split
         text: "I"
         menuItems: ["Alpha", "Beta"]
+    }
+
+    Button {
+        id: gradientButtonA
+        objectName: "gradientButtonA"
+        x: 0
+        y: 160
+        style: Enums.button.style_gradient
+        text: "Gradient A"
+    }
+
+    Button {
+        id: gradientButtonB
+        objectName: "gradientButtonB"
+        x: 180
+        y: 160
+        style: Enums.button.style_gradient
+        text: "Gradient B"
     }
 }
 """
@@ -314,6 +333,20 @@ def _button(root, name):
     return button
 
 
+def _active_gradient(button):
+    gradients = []
+    for child in _descendants(button):
+        if not child.metaObject().className().startswith("QQuickRectangle"):
+            continue
+        if child.metaObject().indexOfProperty("gradient") < 0:
+            continue
+        candidate = child.property("gradient")
+        if candidate.isQObject():
+            gradients.append(candidate.toQObject())
+    assert len(gradients) == 1
+    return gradients[0]
+
+
 def _content_modules(button):
     return _matching(button, "_ringBorderColor", "countdownRemaining")
 
@@ -426,6 +459,26 @@ def test_button_core_initial_colors_and_handlers(button_core_scene):
         "expectedLifecycleBackground"
     )
     button.setProperty("pseudoHovered", False)
+    assert warnings == []
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_gradient_buttons_share_theme_bound_resource(button_core_scene):
+    root, warnings, windows_before = button_core_scene
+    gradient_a = _active_gradient(_button(root, "gradientButtonA"))
+    gradient_b = _active_gradient(_button(root, "gradientButtonB"))
+    button_source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    enums_source = ENUMS_SOURCE.read_text(encoding="utf-8")
+
+    assert gradient_a is gradient_b
+    assert "property Gradient _gradientDef" not in button_source
+    assert (
+        "gradient: style === Enums.button.style_gradient "
+        "? Enums._buttonGradientDef : null"
+    ) in button_source
+    assert "readonly property Gradient _buttonGradientDef: Gradient" in enums_source
+    assert "color: Qt.lighter(root.accentColor, _button.gradientLighten)" in enums_source
+    assert "color: root.accentColor" in enums_source
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 
