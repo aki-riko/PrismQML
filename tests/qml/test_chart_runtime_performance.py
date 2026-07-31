@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
-from PySide6.QtQuick import QQuickItem
+from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import (
     QQmlApplicationEngine,
     QQmlComponent,
@@ -153,6 +153,23 @@ def chart_scene(qapp):
     try:
         yield scene[2], scene[3]
     finally:
+        _dispose_chart(scene[0], scene[1], scene[2])
+
+
+@pytest.fixture
+def windowed_chart_scene(qapp):
+    scene = _create_chart()
+    window = QQuickWindow()
+    window.resize(640, 360)
+    scene[2].setParentItem(window.contentItem())
+    window.show()
+    _pump(20)
+    try:
+        yield scene[2], scene[3]
+    finally:
+        scene[2].setParentItem(None)
+        window.close()
+        window.deleteLater()
         _dispose_chart(scene[0], scene[1], scene[2])
 
 
@@ -314,8 +331,8 @@ def test_multi_series_line_hover_uses_binary_x_search(chart_scene):
     assert warnings == []
 
 
-def test_scatter_hover_search_uses_cached_local_geometry(chart_scene):
-    chart, warnings = chart_scene
+def test_scatter_hover_search_uses_cached_local_geometry(windowed_chart_scene):
+    chart, warnings = windowed_chart_scene
     point_count = 5_000
     points = [
         [index, (index * 37) % 500]
@@ -343,6 +360,16 @@ def test_scatter_hover_search_uses_cached_local_geometry(chart_scene):
     assert _evaluate(point_positions_length) == point_count
     build_count = scatter_content.property("_pointGeometryBuildCount")
     assert build_count >= 1
+    assert scatter_content.metaObject().indexOfProperty("_lastFramePointDrawCount") >= 0
+
+    canvas = _animated_canvases(scatter_content)[0]
+    painted = QSignalSpy(canvas.painted)
+    full_paint = QQmlExpression(
+        QQmlEngine.contextForObject(canvas), canvas, "(requestPaint(), true)"
+    )
+    assert _evaluate(full_paint)
+    assert painted.wait(1_000)
+    assert scatter_content.property("_lastFramePointDrawCount") == point_count
 
     target_index = point_count // 2
     expression = QQmlExpression(
@@ -354,7 +381,14 @@ def test_scatter_hover_search_uses_cached_local_geometry(chart_scene):
     assert _evaluate(expression) == target_index
     assert scatter_content.property("_lastHoverCandidateCount") < point_count // 4
 
+    scatter_content.setProperty("hoveredSeriesIndex", 0)
     scatter_content.setProperty("hoveredPointIndex", target_index)
+    assert painted.wait(1_000)
+    assert 0 < scatter_content.property("_lastFramePointDrawCount") < point_count // 4
+    partial_image = chart.window().grabWindow()
+    assert _evaluate(full_paint)
+    assert painted.wait(1_000)
+    assert partial_image == chart.window().grabWindow()
     _pump(20)
     assert scatter_content.property("_pointGeometryBuildCount") == build_count
     assert warnings == []

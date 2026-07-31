@@ -31,9 +31,13 @@ Item {
     property real dataX: 0
     property real dataY: 0
     property var _pointBuckets: ({})
+    property var _pointLookup: ({})
     property bool _pointGeometryDirty: true
     property int _pointGeometryBuildCount: 0
     property int _lastHoverCandidateCount: 0
+    property int _lastFramePointDrawCount: 0
+    property int _paintedHoverSeriesIndex: -1
+    property int _paintedHoverPointIndex: -1
 
     // ==================== Readonly State 只读状态 ====================
     readonly property real _normalHitRadius: 15
@@ -69,7 +73,7 @@ Item {
         bucket.push(pointIndex)
     }
 
-    function _appendSeriesGeometry(points, buckets, seriesIndex, isEffect,
+    function _appendSeriesGeometry(points, buckets, lookup, seriesIndex, isEffect,
                                    canvasHeight, range, xScale, yScale) {
         var seriesData = series[seriesIndex] || {}
         var data = seriesData.data || []
@@ -85,6 +89,7 @@ Item {
                 isEffect: isEffect
             })
             _addPointToBucket(buckets, flatIndex, x, y)
+            lookup[seriesIndex + ":" + pointIndex] = flatIndex
         }
     }
 
@@ -94,6 +99,7 @@ Item {
         var ySpan = range.yMax - range.yMin
         var points = []
         var buckets = {}
+        var lookup = {}
         if (xSpan > 0 && ySpan > 0 && isFinite(xSpan) && isFinite(ySpan)) {
             var xScale = canvasWidth / xSpan
             var yScale = canvasHeight / ySpan
@@ -101,7 +107,7 @@ Item {
                 var wantEffect = pass === 1
                 for (var seriesIndex = 0; seriesIndex < series.length; seriesIndex++) {
                     if (isEffectScatter(series[seriesIndex]) === wantEffect) {
-                        _appendSeriesGeometry(points, buckets, seriesIndex, wantEffect,
+                        _appendSeriesGeometry(points, buckets, lookup, seriesIndex, wantEffect,
                                               canvasHeight, range, xScale, yScale)
                     }
                 }
@@ -109,6 +115,7 @@ Item {
         }
         pointPositions = points
         _pointBuckets = buckets
+        _pointLookup = lookup
         _pointGeometryDirty = false
         _pointGeometryBuildCount++
     }
@@ -152,9 +159,72 @@ Item {
         return nearestIndex
     }
 
+    function _maximumPointPaintRadius() {
+        var maximumRadius = 0
+        for (var seriesIndex = 0; seriesIndex < series.length; seriesIndex++) {
+            var seriesData = series[seriesIndex] || {}
+            var effect = isEffectScatter(seriesData)
+            var symbolSize = seriesData.symbolSize ||
+                    (effect ? _defaultEffectSymbolSize : defaultSymbolSize)
+            var radius = effect ? symbolSize / 2 + 5 : symbolSize * 1.3 / 2 + 1
+            maximumRadius = Math.max(maximumRadius, radius)
+        }
+        return maximumRadius
+    }
+
+    function _hoverPoint(seriesIndex, pointIndex) {
+        var flatIndex = _pointLookup[seriesIndex + ":" + pointIndex]
+        return flatIndex === undefined ? null : pointPositions[flatIndex]
+    }
+
+    function _pointDirtyRect(point, radius) {
+        if (!point) return null
+        var left = Math.max(0, Math.floor(point.x - radius))
+        var top = Math.max(0, Math.floor(point.y - radius))
+        var right = Math.min(width, Math.ceil(point.x + radius))
+        var bottom = Math.min(height, Math.ceil(point.y + radius))
+        return Qt.rect(left, top, right - left, bottom - top)
+    }
+
+    function _pointIntersectsRegion(point, region, radius) {
+        return point.x + radius >= region.x &&
+               point.x - radius <= region.x + region.width &&
+               point.y + radius >= region.y &&
+               point.y - radius <= region.y + region.height
+    }
+
+    function _unitedRect(first, second) {
+        if (!first) return second
+        if (!second) return first
+        var left = Math.min(first.x, second.x)
+        var top = Math.min(first.y, second.y)
+        var right = Math.max(first.x + first.width, second.x + second.width)
+        var bottom = Math.max(first.y + first.height, second.y + second.height)
+        return Qt.rect(left, top, right - left, bottom - top)
+    }
+
+    function _requestHoverPaint() {
+        if (_pointGeometryDirty || (animated && canvas.animProgress < 1)) {
+            canvas.requestPaint()
+            return
+        }
+        var radius = _maximumPointPaintRadius()
+        var previousPoint = _hoverPoint(
+            _paintedHoverSeriesIndex, _paintedHoverPointIndex
+        )
+        var currentPoint = _hoverPoint(hoveredSeriesIndex, hoveredPointIndex)
+        var dirtyRect = _unitedRect(
+            _pointDirtyRect(previousPoint, radius),
+            _pointDirtyRect(currentPoint, radius)
+        )
+        if (dirtyRect && dirtyRect.width > 0 && dirtyRect.height > 0) {
+            canvas.markDirty(dirtyRect)
+        }
+    }
+
     // Repaint on hover change 悬浮变化时重绘
-    onHoveredSeriesIndexChanged: canvas.requestPaint()
-    onHoveredPointIndexChanged: canvas.requestPaint()
+    onHoveredSeriesIndexChanged: _requestHoverPaint()
+    onHoveredPointIndexChanged: _requestHoverPaint()
     onSeriesChanged: _invalidatePointGeometry()
     onDataRangeChanged: _invalidatePointGeometry()
     onDefaultSymbolSizeChanged: canvas.requestPaint()
@@ -191,41 +261,46 @@ Item {
             ctx.globalAlpha = 1
         }
 
-        anchors.fill: parent
-
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            if (root._pointGeometryDirty) root._rebuildPointGeometry(width, height)
-            
-            // Fluent Design: light grid lines 轻量网格线
-            if (root.showGrid) {
-                ctx.strokeStyle = Enums.chartColors.gridLine
-                ctx.lineWidth = 1
-                
-                for (var i = 0; i <= 5; i++) {
-                    var y = i * height / 5
-                    ctx.beginPath()
-                    ctx.moveTo(0, y)
-                    ctx.lineTo(width, y)
-                    ctx.stroke()
-                }
-                
-                for (var j = 0; j <= 5; j++) {
-                    var x = j * width / 5
-                    ctx.beginPath()
-                    ctx.moveTo(x, 0)
-                    ctx.lineTo(x, height)
-                    ctx.stroke()
-                }
+        function drawPoint(ctx, point, color, symbolSize, hovered) {
+            if (point.isEffect) {
+                drawEffectPoint(ctx, point, color, symbolSize, hovered)
+            } else {
+                drawNormalPoint(ctx, point, color, symbolSize, hovered)
             }
-            
-            // Draw scatter points 绘制散点
+        }
+
+        function drawGrid(ctx) {
+            if (!root.showGrid) return
+            ctx.strokeStyle = Enums.chartColors.gridLine
+            ctx.lineWidth = 1
+            for (var row = 0; row <= 5; row++) {
+                var y = row * height / 5
+                ctx.beginPath()
+                ctx.moveTo(0, y)
+                ctx.lineTo(width, y)
+                ctx.stroke()
+            }
+            for (var column = 0; column <= 5; column++) {
+                var x = column * width / 5
+                ctx.beginPath()
+                ctx.moveTo(x, 0)
+                ctx.lineTo(x, height)
+                ctx.stroke()
+            }
+        }
+
+        function drawPoints(ctx, region, fullPaint) {
             var progress = root.animated ? animProgress : 1
             var colorCache = []
             var sizeCache = []
+            var maximumRadius = root._maximumPointPaintRadius()
+            var drawCount = 0
             for (var index = 0; index < root.pointPositions.length; index++) {
                 var point = root.pointPositions[index]
+                if (!fullPaint && !root._pointIntersectsRegion(
+                        point, region, maximumRadius)) {
+                    continue
+                }
                 var seriesIndex = point.seriesIndex
                 if (colorCache[seriesIndex] === undefined) {
                     var seriesData = root.series[seriesIndex] || {}
@@ -237,12 +312,36 @@ Item {
                               point.pointIndex === root.hoveredPointIndex
                 var hoverScale = hovered && !point.isEffect ? 1.3 : 1
                 var symbolSize = sizeCache[seriesIndex] * progress * hoverScale
-                if (point.isEffect) {
-                    drawEffectPoint(ctx, point, colorCache[seriesIndex], symbolSize, hovered)
-                } else {
-                    drawNormalPoint(ctx, point, colorCache[seriesIndex], symbolSize, hovered)
-                }
+                drawPoint(ctx, point, colorCache[seriesIndex], symbolSize, hovered)
+                drawCount++
             }
+            root._lastFramePointDrawCount = drawCount
+        }
+
+        anchors.fill: parent
+
+        onPaint: (region) => {
+            var ctx = getContext("2d")
+            var fullPaint = root._pointGeometryDirty || !region ||
+                    (region.x <= 0 && region.y <= 0 &&
+                     region.width >= width && region.height >= height)
+            if (root._pointGeometryDirty) root._rebuildPointGeometry(width, height)
+            if (fullPaint) {
+                ctx.clearRect(0, 0, width, height)
+                drawGrid(ctx)
+                drawPoints(ctx, region, true)
+            } else {
+                ctx.clearRect(region.x, region.y, region.width, region.height)
+                ctx.save()
+                ctx.beginPath()
+                ctx.rect(region.x, region.y, region.width, region.height)
+                ctx.clip()
+                drawGrid(ctx)
+                drawPoints(ctx, region, false)
+                ctx.restore()
+            }
+            root._paintedHoverSeriesIndex = root.hoveredSeriesIndex
+            root._paintedHoverPointIndex = root.hoveredPointIndex
         }
 
         onWidthChanged: root._invalidatePointGeometry()
