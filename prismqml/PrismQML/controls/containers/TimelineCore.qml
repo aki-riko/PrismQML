@@ -43,8 +43,9 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     property var _flatRows: []
-    property var _flatGroupRefs: []
     property var _flatGroupSignatures: []
+    property string _flatLastGroupHeaderSignature: ""
+    property var _flatLastCardSignatures: []
     property int _flatGroupCount: 0
     property int _lastFlatBuildGroupCount: 0
 
@@ -101,8 +102,9 @@ Item {
     function _clearFlatState() {
         _flatModel.clear()
         _flatRows = []
-        _flatGroupRefs = []
         _flatGroupSignatures = []
+        _flatLastGroupHeaderSignature = ""
+        _flatLastCardSignatures = []
         _flatGroupCount = 0
         _lastFlatBuildGroupCount = 0
     }
@@ -115,13 +117,111 @@ Item {
         return signatures
     }
 
-    function _appendStartIndex(source, signatures) {
-        if (_flatGroupCount <= 0 || source.length < _flatGroupCount) return -1
-        for (var index = 0; index < _flatGroupCount; index++) {
-            if (source[index] !== _flatGroupRefs[index]
-                    || signatures[index] !== _flatGroupSignatures[index]) return -1
+    function _groupHeaderSignature(group) {
+        var grp = group || {}
+        return JSON.stringify({
+            "title": grp.title || "",
+            "status": grp.status || "info",
+            "graphData": grp.graph || {}
+        })
+    }
+
+    function _cardSignatures(group) {
+        var cards = (group || {}).cards || []
+        var signatures = []
+        for (var index = 0; index < cards.length; index++) {
+            signatures.push(JSON.stringify(cards[index]))
         }
-        return _flatGroupCount
+        return signatures
+    }
+
+    function _commonPrefixGroupCount(signatures) {
+        var limit = Math.min(_flatGroupCount, signatures.length)
+        var count = 0
+        while (count < limit
+                && signatures[count] === _flatGroupSignatures[count]) count++
+        return count
+    }
+
+    function _isSignaturePrefix(previous, current) {
+        if (current.length <= previous.length) return false
+        for (var index = 0; index < previous.length; index++) {
+            if (previous[index] !== current[index]) return false
+        }
+        return true
+    }
+
+    function _tailAppendSignatures(source, prefixGroupCount) {
+        if (_flatGroupCount <= 0 || source.length < _flatGroupCount) return []
+        var tailGroupIndex = _flatGroupCount - 1
+        if (prefixGroupCount !== tailGroupIndex) return []
+        if (_groupHeaderSignature(source[tailGroupIndex])
+                !== _flatLastGroupHeaderSignature) return []
+        var signatures = _cardSignatures(source[tailGroupIndex])
+        return _isSignaturePrefix(_flatLastCardSignatures, signatures)
+            ? signatures : []
+    }
+
+    function _rowStartIndexForGroup(groupIndex) {
+        if (groupIndex <= 0) return 0
+        for (var rowIndex = 0; rowIndex < _flatRows.length; rowIndex++) {
+            if (_flatRows[rowIndex].groupIndex >= groupIndex) return rowIndex
+        }
+        return _flatRows.length
+    }
+
+    function _appendRows(rows, startIndex, nextRows) {
+        for (var rowIndex = startIndex; rowIndex < rows.length; rowIndex++) {
+            nextRows.push(rows[rowIndex])
+            _flatModel.append(rows[rowIndex])
+        }
+    }
+
+    function _appendGroups(source, startGroupIndex, nextRows) {
+        for (var groupIndex = startGroupIndex;
+                groupIndex < source.length; groupIndex++) {
+            _appendRows(_rowsForGroup(source[groupIndex], groupIndex), 0, nextRows)
+        }
+    }
+
+    function _replaceFlatSuffix(source, startGroupIndex) {
+        var rowStartIndex = _rowStartIndexForGroup(startGroupIndex)
+        var removeCount = _flatModel.count - rowStartIndex
+        if (removeCount > 0) _flatModel.remove(rowStartIndex, removeCount)
+        var nextRows = _flatRows.slice(0, rowStartIndex)
+        _appendGroups(source, startGroupIndex, nextRows)
+        _flatRows = nextRows
+        _lastFlatBuildGroupCount = source.length - startGroupIndex
+    }
+
+    function _appendTailGrowth(source) {
+        var tailGroupIndex = _flatGroupCount - 1
+        var previousCardCount = _flatLastCardSignatures.length
+        var tailRows = _rowsForGroup(source[tailGroupIndex], tailGroupIndex)
+        var nextRows = _flatRows.slice()
+        if (previousCardCount > 0) {
+            var lastCardRowIndex = _rowStartIndexForGroup(tailGroupIndex)
+                + previousCardCount
+            nextRows[lastCardRowIndex].isLastCard = false
+            _flatModel.setProperty(lastCardRowIndex, "isLastCard", false)
+        }
+        _appendRows(tailRows, previousCardCount + 1, nextRows)
+        _appendGroups(source, _flatGroupCount, nextRows)
+        _flatRows = nextRows
+        _lastFlatBuildGroupCount = source.length - tailGroupIndex
+    }
+
+    function _rememberFlatSource(source, signatures) {
+        _flatGroupSignatures = signatures
+        _flatGroupCount = source.length
+        if (source.length === 0) {
+            _flatLastGroupHeaderSignature = ""
+            _flatLastCardSignatures = []
+            return
+        }
+        var lastGroup = source[source.length - 1]
+        _flatLastGroupHeaderSignature = _groupHeaderSignature(lastGroup)
+        _flatLastCardSignatures = _cardSignatures(lastGroup)
     }
 
     function _syncFlat() {
@@ -131,25 +231,18 @@ Item {
         }
         var source = _safeItems || []
         var signatures = _groupSignatures(source)
-        var appendStart = _appendStartIndex(source, signatures)
-        if (appendStart === source.length) return
-        var nextRows = appendStart >= 0 ? _flatRows.slice() : []
-        var nextRefs = appendStart >= 0 ? _flatGroupRefs.slice() : []
-        var buildStart = appendStart >= 0 ? appendStart : 0
-        if (appendStart < 0) _flatModel.clear()
-        for (var groupIndex = buildStart; groupIndex < source.length; groupIndex++) {
-            var groupRows = _rowsForGroup(source[groupIndex], groupIndex)
-            nextRefs.push(source[groupIndex])
-            for (var rowIndex = 0; rowIndex < groupRows.length; rowIndex++) {
-                nextRows.push(groupRows[rowIndex])
-                _flatModel.append(groupRows[rowIndex])
-            }
+        var prefixGroupCount = _commonPrefixGroupCount(signatures)
+        if (prefixGroupCount === source.length
+                && source.length === _flatGroupCount) {
+            _rememberFlatSource(source, signatures)
+            return
         }
-        _flatRows = nextRows
-        _flatGroupRefs = nextRefs
-        _flatGroupSignatures = signatures
-        _flatGroupCount = source.length
-        _lastFlatBuildGroupCount = source.length - buildStart
+        var tailSignatures = _tailAppendSignatures(source, prefixGroupCount)
+        if (tailSignatures.length > 0)
+            _appendTailGrowth(source)
+        else
+            _replaceFlatSuffix(source, prefixGroupCount)
+        _rememberFlatSource(source, signatures)
     }
 
     function _scheduleScrollBarUpdate() {
