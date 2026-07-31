@@ -30,7 +30,7 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     // Parse Markdown into text and fenced-code blocks 将 Markdown 解析为文本块和围栏代码块
-    readonly property var _blocks: _parseBlocks(markdown)
+    readonly property var _blocks: blockModel.blocks
 
     // ==================== Internal Methods 内部方法 ====================
     function _parseBlocks(md) {
@@ -93,6 +93,7 @@ Item {
 
     function _syncBlocks() {
         var parsed = _parseBlocks(markdown)
+        blockModel.blocks = parsed
         var sharedCount = Math.min(blockModel.count, parsed.length)
         var index = 0
         while (index < sharedCount
@@ -120,6 +121,8 @@ Item {
     // ==================== Content 内容 ====================
     ListModel {
         id: blockModel
+
+        property var blocks: []
     }
 
     ColumnLayout {

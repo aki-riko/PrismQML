@@ -180,6 +180,10 @@ def test_markdown_block_parser_contract_is_unchanged(qapp):
     keep = _create_probe()
     try:
         probe = keep[-1]
+        property_index = probe.metaObject().indexOfProperty("_blocks")
+        assert property_index >= 0
+        meta_property = probe.metaObject().property(property_index)
+        assert meta_property.isWritable() is False
         for markdown, expected in BLOCK_CASES:
             assert probe.setProperty("markdown", markdown)
             _pump()
