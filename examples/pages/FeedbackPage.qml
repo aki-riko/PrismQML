@@ -213,7 +213,7 @@ Item {
                                 title: "下载中"; message: "60%"
                                 feature: Fluent.Enums.notification.feature_progress_bar
                                 progress: 0.6; width: 280
-                                duration: Fluent.Enums.duration.notification
+                                duration: Fluent.Enums.duration.persistent
                             }
                         }
                         ComponentCard { 
@@ -222,7 +222,7 @@ Item {
                                 title: "加载中"; message: "请稍候..."
                                 feature: Fluent.Enums.notification.feature_indeterminate_bar
                                 width: 280
-                                duration: Fluent.Enums.duration.notification
+                                duration: Fluent.Enums.duration.persistent
                             }
                         }
                     }
@@ -234,7 +234,7 @@ Item {
                                 title: "上传中"; message: "40%"
                                 feature: Fluent.Enums.notification.feature_progress_ring
                                 progress: 0.4; width: 280
-                                duration: Fluent.Enums.duration.notification
+                                duration: Fluent.Enums.duration.persistent
                             }
                         }
                         ComponentCard { 
@@ -243,7 +243,7 @@ Item {
                                 title: "处理中"; message: "请稍候..."
                                 feature: Fluent.Enums.notification.feature_indeterminate_ring
                                 width: 280
-                                duration: Fluent.Enums.duration.notification
+                                duration: Fluent.Enums.duration.persistent
                             }
                         }
                     }

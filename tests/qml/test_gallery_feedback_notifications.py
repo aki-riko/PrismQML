@@ -119,6 +119,21 @@ def test_gallery_feedback_page_uses_shared_notification_showcase():
     assert "width: 320" not in showcase_source
 
 
+def test_gallery_progress_info_bar_showcase_is_persistent():
+    page_source = FEEDBACK_PAGE_SOURCE.read_text(encoding="utf-8")
+    progress_showcase_source = page_source.split("// InfoBar进度模式", 1)[1].split(
+        "// 弹出演示", 1
+    )[0]
+
+    assert progress_showcase_source.count("InfoBar {") == 4
+    assert progress_showcase_source.count(
+        "duration: Fluent.Enums.duration.persistent"
+    ) == 4
+    assert "duration: Fluent.Enums.duration.notification" not in (
+        progress_showcase_source
+    )
+
+
 def test_gallery_notification_buttons_use_current_edge_positions():
     page_source = FEEDBACK_PAGE_SOURCE.read_text(encoding="utf-8")
     manager_source = page_source.split(
