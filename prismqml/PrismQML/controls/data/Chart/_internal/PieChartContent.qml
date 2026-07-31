@@ -40,15 +40,25 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _buildSliceHoverGeometry() {
         var endAngles = []
+        var sliceAngles = []
+        var percents = []
         var cumulativeAngle = 0
         var searchable = true
         for (var index = 0; index < chartData.length; index++) {
-            var sliceAngle = (chartData[index].value / totalValue) * Math.PI * 2
+            var ratio = chartData[index].value / totalValue
+            var sliceAngle = ratio * Math.PI * 2
             if (!isFinite(sliceAngle) || sliceAngle < 0) searchable = false
             cumulativeAngle += sliceAngle
             endAngles.push(cumulativeAngle)
+            sliceAngles.push(sliceAngle)
+            percents.push(Math.round(ratio * 100))
         }
-        return { endAngles: endAngles, searchable: searchable }
+        return {
+            endAngles: endAngles,
+            sliceAngles: sliceAngles,
+            percents: percents,
+            searchable: searchable
+        }
     }
 
     function _findSliceIndex(angle) {
@@ -132,7 +142,9 @@ Item {
             var chartData = root.chartData
             if (chartData.length === 0) return
 
-            var totalValue = root.totalValue
+            var sliceGeometry = root._sliceHoverGeometry
+            var sliceAngles = sliceGeometry.sliceAngles
+            var slicePercents = sliceGeometry.percents
             var frameAnimProgress = animProgress
             var frameProgress = root.animated ? frameAnimProgress : 1
             var showValues = root.showValues
@@ -153,7 +165,7 @@ Item {
             // Draw all slices 绘制所有扇区
             for (var i = 0; i < chartData.length; i++) {
                 var sliceData = chartData[i]
-                var sliceAngle = (sliceData.value / totalValue) * Math.PI * 2
+                var sliceAngle = sliceAngles[i]
                 var endAngle = startAngle + sliceAngle * frameProgress
                 
                 var hovered = (i === hoveredIndex)
@@ -203,7 +215,7 @@ Item {
                 
                 // Draw percentage label inside slice 在扇区内绘制百分比标签
                 if (showValues && frameAnimProgress >= 1) {
-                    var percent = Math.round(sliceData.value / totalValue * 100)
+                    var percent = slicePercents[i]
                     if (percent >= 5) {  // Only show if >= 5% 仅显示>=5%的
                         var labelAngle = startAngle + sliceAngle / 2
                         

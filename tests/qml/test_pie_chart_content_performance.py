@@ -183,6 +183,10 @@ def test_pie_chart_hover_uses_binary_slice_search_with_linear_fallback(qapp):
         _pump(20)
 
         context = QQmlEngine.contextForObject(content)
+        geometry = content.property("_sliceHoverGeometry").toVariant()
+        assert len(geometry["sliceAngles"]) == slice_count
+        assert len(geometry["percents"]) == slice_count
+        assert geometry["percents"] == [0] * slice_count
         target_index = 3_456
         target_angle = (target_index + 0.5) * 2 * 3.141592653589793 / slice_count
         dense_lookup = QQmlExpression(
@@ -239,7 +243,9 @@ def test_pie_chart_hot_loop_uses_frame_snapshot():
     frame_setup, hot_loop = paint_section.split(loop_marker, 1)
     for snapshot in (
         "var chartData = root.chartData",
-        "var totalValue = root.totalValue",
+        "var sliceGeometry = root._sliceHoverGeometry",
+        "var sliceAngles = sliceGeometry.sliceAngles",
+        "var slicePercents = sliceGeometry.percents",
         "var frameAnimProgress = animProgress",
         "var frameProgress = root.animated ? frameAnimProgress : 1",
         "var showValues = root.showValues",
@@ -254,6 +260,8 @@ def test_pie_chart_hot_loop_uses_frame_snapshot():
         assert snapshot in frame_setup
     assert hot_loop.count("root.getColor(i)") == 2
     assert hot_loop.count("root.") == 2
+    assert "sliceData.value / totalValue" not in hot_loop
+    assert "Math.round(" not in hot_loop
     assert "animProgress" not in hot_loop
     assert "hoverOffset" not in hot_loop
     assert "transitionProgress" not in hot_loop
