@@ -376,6 +376,8 @@ def _assert_dropdown_bindings(root, button, dropdown):
         "menuItems"
     ).toVariant()
     assert not dropdown.property("isMenuOpen")
+    if not _matching(dropdown, "_itemsHeight", "_needsScroll"):
+        dropdown._ensureInternalMenu()
     popup = _unique(dropdown, "_itemsHeight", "_needsScroll")
     assert not popup.property("isOpen")
 
@@ -596,6 +598,10 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
                 root.property("menuContentLeadingPadding")
             )
         if dropdown:
+            if feature_name == "featureDropdown":
+                assert _matching(
+                    dropdown[0], "_itemsHeight", "_needsScroll"
+                ) == []
             _assert_dropdown_bindings(root, button, dropdown[0])
         if progress:
             _assert_progress_bindings(button, progress[0])

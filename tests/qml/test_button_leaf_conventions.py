@@ -488,6 +488,12 @@ def test_button_dropdown_parent_bindings_remain_stable(button_leaf_scene):
     button = root.findChild(QObject, "dropdownButton")
     assert button is not None
     dropdown = _button_dropdown(button)
+    assert [
+        child
+        for child in _descendants(dropdown)
+        if child.metaObject().indexOfProperty("_itemsHeight") >= 0
+    ] == []
+    dropdown._ensureInternalMenu()
     popup = _dropdown_popup(dropdown)
     _assert_dropdown_parent_bindings(button, dropdown)
     _assert_dropdown_idle(dropdown)

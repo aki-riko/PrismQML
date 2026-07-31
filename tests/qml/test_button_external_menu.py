@@ -222,21 +222,23 @@ def test_external_menu_toggles_and_prewarms_without_internal_fallback(qapp):
             if item.metaObject().indexOfProperty("isMenuOpen") >= 0
         ]
         assert len(dropdown_modules) == 1
-        internal_menu = next(
-            item for item in dropdown_modules[0].findChildren(QQuickItem)
-            if item.metaObject().indexOfProperty("_itemsHeight") >= 0
-        )
+        def internal_menus():
+            return [
+                item for item in dropdown_modules[0].findChildren(QQuickItem)
+                if item.metaObject().indexOfProperty("_itemsHeight") >= 0
+            ]
+        assert internal_menus() == []
 
         dropdown.forceActiveFocus()
         assert _wait_for(lambda: menu.property("_prewarmed"))
         assert not menu.property("isOpen")
-        assert not internal_menu.property("isOpen")
+        assert internal_menus() == []
 
         dropdown_modules[0].openMenu()
         assert _wait_for(lambda: menu.property("isOpen"))
         dropdown_modules[0].openMenu()
         assert _wait_for(lambda: not menu.property("isOpen"))
-        assert not internal_menu.property("isOpen")
+        assert internal_menus() == []
         assert not warnings
     finally:
         _dispose(engine, component, window)

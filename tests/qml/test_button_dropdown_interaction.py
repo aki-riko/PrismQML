@@ -19,6 +19,7 @@ from _button_dropdown_prewarm_support import (
     _create_scene,
     _dispose_scene,
     _dropdown_popup,
+    _dropdown_popups,
     _invoke,
     _move_to,
     _new_visible_windows,
@@ -63,12 +64,14 @@ def test_cold_click_opens_left_aligned_dropdown(
         "menuItems",
         ["repositories/kiro-account-manager"],
     )
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
     QTest.mouseMove(window, QPoint(340, 220))
     _pump(20)
-    assert not popup.property("_prewarmed")
+    assert _dropdown_popups(dropdown) == []
 
     _click(window, button, split_arrow)
+    assert _wait_for(lambda: len(_dropdown_popups(dropdown)) == 1)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("isOpen"))
 
     target_global = window.mapToGlobal(
@@ -89,9 +92,11 @@ def test_cold_click_opens_left_aligned_dropdown(
 def test_qt_popup_window_closes_on_outside_press(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
+    assert _dropdown_popups(dropdown) == []
 
     _click(window, button)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("isOpen"))
 
     QTest.mouseClick(
@@ -110,9 +115,11 @@ def test_qt_popup_window_closes_on_outside_press(dropdown_scene):
 def test_qt_popup_window_closes_on_escape(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
+    assert _dropdown_popups(dropdown) == []
 
     _click(window, button)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("isOpen"))
     popup_window = _active_qt_popup_window(windows_before, window)
 
@@ -127,13 +134,14 @@ def test_qt_popup_window_closes_on_escape(dropdown_scene):
 def test_qt_popup_window_item_click_emits_and_closes(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
     received = []
     button.menuItemClicked.connect(
         lambda index, text: received.append((index, text))
     )
 
     _click(window, button)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("isOpen"))
     _pump(20)
     alpha = next(
@@ -157,12 +165,13 @@ def test_qt_popup_window_item_click_closes_before_sync_model_rebuild(
 ):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
     button.menuItemClicked.connect(
         lambda _index, _text: _invoke(root, "replaceDropdownMenuItems")
     )
 
     _click(window, button)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("isOpen"))
     _pump(20)
     alpha = next(
@@ -192,13 +201,14 @@ def test_qt_popup_window_object_items_select_and_close(
             {"text": "Claude Desktop 官网版", "id": "claude-desktop"},
         ],
     )
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
     received = []
     button.menuItemClicked.connect(
         lambda index, text: received.append((index, text))
     )
 
     _click(window, button)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("isOpen"))
     _pump(20)
     desktop_item = next(
@@ -228,13 +238,14 @@ def test_open_menu_immediately_dismisses_visible_tooltip(
 ):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, object_name)
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
     tooltip = _tooltip(button)
     _invoke(button, "showToolTip")
     assert _wait_for(lambda: tooltip.property("visible"))
 
     _click(window, button, split_arrow)
 
+    popup = _dropdown_popup(dropdown)
     assert not tooltip.property("visible")
     assert _popup_is_visible(popup)
     _active_qt_popup_window(windows_before, window)
@@ -245,9 +256,7 @@ def test_open_menu_interrupts_tooltip_exit_transition(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     dropdown = _button_dropdown(button)
-    popup = _dropdown_popup(dropdown)
     tooltip = _tooltip(button)
-    popup.setProperty("_prewarmed", True)
 
     _invoke(button, "showToolTip")
     assert _wait_for(lambda: tooltip.property("visible"))
@@ -257,6 +266,7 @@ def test_open_menu_interrupts_tooltip_exit_transition(dropdown_scene):
 
     _invoke(dropdown, "openMenu")
 
+    popup = _dropdown_popup(dropdown)
     assert not tooltip.property("visible")
     assert _popup_is_visible(popup)
     _active_qt_popup_window(windows_before, window)
@@ -272,10 +282,11 @@ def test_open_menu_cancels_pending_tooltip_show(
 ):
     root, window, warnings, _windows_before = dropdown_scene
     button = _button(root, object_name)
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
     tooltip = _tooltip(button)
-    popup.setProperty("_prewarmed", True)
     _move_to(window, button, split_arrow)
+    assert _wait_for(lambda: len(_dropdown_popups(dropdown)) == 1)
+    popup = _dropdown_popup(dropdown)
 
     _click(window, button, split_arrow)
     _pump(140)
@@ -303,8 +314,9 @@ def test_dropdown_split_loader_lifecycle_leaves_no_popup_window(
     button.setProperty("feature", root.property("featureSplit"))
     _pump(40)
     dropdown = _button_dropdown(button)
-    popup = _dropdown_popup(dropdown)
     _move_to(window, button, True)
+    assert _wait_for(lambda: len(_dropdown_popups(dropdown)) == 1)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("_prewarmed"))
     _click(window, button, True)
     assert _wait_for(lambda: popup.property("isOpen"))
