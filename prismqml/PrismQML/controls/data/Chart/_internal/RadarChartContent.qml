@@ -33,6 +33,7 @@ Item {
     property bool _pointGeometryDirty: true
     property int _pointGeometryBuildCount: 0
     property int _lastFramePointUpdateCount: 0
+    property real _lastGeometryProgress: -1
     property real _geometryCenterX: 0
     property real _geometryCenterY: 0
     property real _geometryRadius: 0
@@ -107,17 +108,23 @@ Item {
         _seriesPointGeometry = groupedPoints
         pointPositions = flatPoints
         _pointGeometryDirty = false
+        _lastGeometryProgress = -1
         _pointGeometryBuildCount++
     }
 
     function _updateAnimatedPoints(progress) {
         if (_pointGeometryDirty) _rebuildPointGeometry(width, height)
+        if (progress === _lastGeometryProgress) {
+            _lastFramePointUpdateCount = 0
+            return
+        }
         for (var index = 0; index < pointPositions.length; index++) {
             var point = pointPositions[index]
             point.x = _geometryCenterX + point.offsetX * progress
             point.y = _geometryCenterY + point.offsetY * progress
         }
         _lastFramePointUpdateCount = pointPositions.length
+        _lastGeometryProgress = progress
         if (_lastFramePointUpdateCount > 0) pointPositionsChanged()
     }
 

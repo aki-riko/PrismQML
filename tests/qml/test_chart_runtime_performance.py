@@ -407,6 +407,7 @@ def test_radar_animation_reuses_cached_polar_geometry(chart_scene):
     assert _evaluate(point_positions_length) == point_count
     build_count = radar_content.property("_pointGeometryBuildCount")
     assert build_count >= 1
+    position_changes = QSignalSpy(radar_content.pointPositionsChanged)
 
     update_points = QQmlExpression(
         context,
@@ -416,6 +417,23 @@ def test_radar_animation_reuses_cached_polar_geometry(chart_scene):
     assert _evaluate(update_points)
     assert radar_content.property("_lastFramePointUpdateCount") == point_count
     assert radar_content.property("_pointGeometryBuildCount") == build_count
+    assert position_changes.count() == 1
+
+    assert _evaluate(update_points)
+    assert radar_content.property("_lastFramePointUpdateCount") == 0
+    assert radar_content.property("_pointGeometryBuildCount") == build_count
+    assert position_changes.count() == 1
+
+    update_points.setExpression("(_updateAnimatedPoints(0.75), true)")
+    assert _evaluate(update_points)
+    assert radar_content.property("_lastFramePointUpdateCount") == point_count
+    assert radar_content.property("_pointGeometryBuildCount") == build_count
+    assert position_changes.count() == 2
+
+    assert _evaluate(rebuild_geometry)
+    assert _evaluate(update_points)
+    assert radar_content.property("_lastFramePointUpdateCount") == point_count
+    assert radar_content.property("_pointGeometryBuildCount") == build_count + 1
 
     target_index = point_count // 2 + indicator_count // 2
     nearest_point = QQmlExpression(
@@ -427,7 +445,7 @@ def test_radar_animation_reuses_cached_polar_geometry(chart_scene):
     assert _evaluate(nearest_point) == target_index
     radar_content.setProperty("hoveredPointIndex", target_index % indicator_count)
     _pump(20)
-    assert radar_content.property("_pointGeometryBuildCount") == build_count
+    assert radar_content.property("_pointGeometryBuildCount") == build_count + 1
     assert warnings == []
 
 
