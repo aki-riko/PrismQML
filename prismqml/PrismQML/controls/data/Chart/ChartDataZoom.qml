@@ -94,7 +94,8 @@ Item {
     Canvas {
         id: thumbCanvas
 
-        property var _drawValues: {
+        property int _drawFrameBuildCount: 0
+        property var _drawFrame: {
             var source = []
             var series = control.series
             if (series && typeof series.length === "number" && series.length > 0) {
@@ -112,22 +113,34 @@ Item {
                     }
                 }
             }
-            return _normalizeValues(source)
+            return _buildDrawFrame(source)
         }
+        readonly property var _drawValues: _drawFrame.values
+        readonly property real _drawMinimum: _drawFrame.minimum
+        readonly property real _drawMaximum: _drawFrame.maximum
 
-        function _normalizeValues(values) {
+        function _buildDrawFrame(values) {
             var normalized = []
-            if (!values || typeof values.length !== "number") return normalized
+            if (!values || typeof values.length !== "number" || values.length === 0) {
+                return { values: normalized, minimum: 0, maximum: 0 }
+            }
+            var minimum = 0
+            var maximum = 0
             for (var i = 0; i < values.length; i++) {
                 var value = values[i]
-                normalized.push(typeof value === "number" && isFinite(value) ? value : 0)
+                var normalizedValue = typeof value === "number" && isFinite(value)
+                        ? value : 0
+                normalized.push(normalizedValue)
+                if (i === 0 || normalizedValue < minimum) minimum = normalizedValue
+                if (i === 0 || normalizedValue > maximum) maximum = normalizedValue
             }
-            return normalized
+            return { values: normalized, minimum: minimum, maximum: maximum }
         }
 
         anchors.fill: parent
         anchors.margins: control._thumbnailMargin
         anchors.bottomMargin: control._sliderSpace  // Reserve space for the slider 为滑块预留空间
+        on_DrawFrameChanged: _drawFrameBuildCount++
 
         onPaint: {
             var ctx = getContext('2d')
@@ -135,11 +148,8 @@ Item {
             var vals = _drawValues
             if (!vals || vals.length === 0) return
             // Resolve the vertical data range 计算纵向数据范围
-            var minV = vals[0], maxV = vals[0]
-            for (var i = 1; i < vals.length; i++) {
-                if (vals[i] < minV) minV = vals[i]
-                if (vals[i] > maxV) maxV = vals[i]
-            }
+            var minV = _drawMinimum
+            var maxV = _drawMaximum
             var range = maxV - minV || 1
             var n = vals.length
             // Downsample to at most one point per pixel 每个像素最多保留一个点
