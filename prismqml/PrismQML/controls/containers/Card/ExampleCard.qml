@@ -107,14 +107,17 @@ Item {
  }
  
  // Component name label
- Label {
+ Loader {
  id: componentLabel
- type: Enums.label.type_caption
  x: control._contentPadding
  y: contentFlow.y + contentFlow.height + control._contentGap
+ active: control.componentName !== ""
+
+ sourceComponent: Label {
+ type: Enums.label.type_caption
  text: control.componentName
  color: Enums.accentColor
- visible: control.componentName !== ""
+ }
  }
  }
  

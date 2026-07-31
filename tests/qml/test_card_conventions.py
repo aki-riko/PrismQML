@@ -330,6 +330,27 @@ def test_example_card_creates_neo_shadow_only_for_neo_skin(card_scene):
         manager.setSkin(original_skin)
 
 
+def test_example_card_creates_component_label_only_for_text(card_scene):
+    window, warnings, windows_before = card_scene
+    example_card = window.findChild(QQuickItem, "exampleCard")
+
+    def component_labels():
+        return [
+            child
+            for child in _descendants(example_card)
+            if child.metaObject().indexOfProperty("text") >= 0
+            and child.property("text") == "Engine component"
+        ]
+
+    assert component_labels() == []
+    assert example_card.setProperty("componentName", "Engine component")
+    assert _wait_for(lambda: len(component_labels()) == 1)
+    assert example_card.setProperty("componentName", "")
+    assert _wait_for(lambda: component_labels() == [])
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_card_source_follows_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
