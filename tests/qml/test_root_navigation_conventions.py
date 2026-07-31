@@ -597,6 +597,85 @@ def test_navigation_bar_item_creates_badge_only_for_positive_count(qapp):
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
+def test_navigation_view_item_loads_only_active_icon_renderer(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(lambda errors: warnings.extend(error.toString() for error in errors))
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    width: 320
+    height: 180
+    visible: true
+
+    Column {
+        NavigationViewItem {
+            objectName: "svgItem"
+            width: 240
+            text: "SVG"
+            icon: Qt.resolvedUrl("../../prismqml/PrismQML/controls/icons/fluent/Settings.svg")
+        }
+        NavigationViewItem {
+            objectName: "avatarItem"
+            width: 240
+            text: "Avatar"
+            icon: Qt.resolvedUrl("../../examples/resources/image/avatar/avatar.png")
+        }
+        NavigationViewItem {
+            objectName: "textItem"
+            width: 240
+            text: "Text"
+            icon: "A"
+        }
+    }
+}
+""",
+        SCENE_URL,
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow)
+    try:
+        _pump(100)
+        svg_item = window.findChild(QQuickItem, "svgItem")
+        avatar_item = window.findChild(QQuickItem, "avatarItem")
+        text_item = window.findChild(QQuickItem, "textItem")
+
+        image_items = lambda item: [
+            child for child in _descendants(item)
+            if child.metaObject().indexOfProperty("fillMode") >= 0
+        ]
+        mask_items = lambda item: [
+            child for child in _descendants(item)
+            if child.metaObject().indexOfProperty("maskEnabled") >= 0
+        ]
+        assert len(image_items(svg_item)) == 1
+        assert len(image_items(avatar_item)) == 1
+        assert image_items(text_item) == []
+        assert not any(child.property("maskEnabled") for child in mask_items(svg_item))
+        assert sum(bool(child.property("maskEnabled")) for child in mask_items(avatar_item)) == 1
+        assert any(
+            child.metaObject().indexOfProperty("text") >= 0
+            and child.property("text") == "A"
+            for child in _descendants(text_item)
+        )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
 def test_root_navigation_sources_follow_conventions():
     violations = []
     for source_path in ROOT_NAV_SOURCE_PATHS:

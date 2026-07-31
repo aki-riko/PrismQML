@@ -78,71 +78,88 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Enums.spacing.l
         
-        // SVG icon (apply color overlay) SVG图标（应用颜色叠加）
-        Image {
+        Loader {
             anchors.verticalCenter: parent.verticalCenter
-            width: Enums.iconSize.xl
-            height: Enums.iconSize.xl
-            source: parent.isPathIcon && !parent.isAvatarIcon ? control.icon : ""
-            visible: parent.isPathIcon && !parent.isAvatarIcon
-            fillMode: Image.PreserveAspectFit
-            
-            // High quality scaling 高质量缩放 SVG
-            sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
-            smooth: true
-            antialiasing: true
-            
-            // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
-            layer.enabled: true
-            layer.effect: ColorOverlay {
-                color: control._navItemContentColor
-            }
+            active: control.icon !== ""
+            sourceComponent: parent.isAvatarIcon
+                ? avatarIconComponent
+                : parent.isPathIcon
+                    ? svgIconComponent
+                    : textIconComponent
         }
-        
-        // Avatar image (circular clipping, no color overlay) 头像图片（圆形裁剪，不应用颜色叠加）
-        Item {
-            id: avatarContainer
-            anchors.verticalCenter: parent.verticalCenter
-            width: Enums.iconSize.xl
-            height: Enums.iconSize.xl
-            visible: parent.isAvatarIcon
-            
+
+        // SVG icon (apply color overlay) SVG图标（应用颜色叠加）
+        Component {
+            id: svgIconComponent
+
             Image {
-                anchors.fill: parent
-                source: avatarContainer.visible ? control.icon : ""
-                fillMode: Image.PreserveAspectCrop
+                width: Enums.iconSize.xl
+                height: Enums.iconSize.xl
+                source: control.icon
+                fillMode: Image.PreserveAspectFit
+
                 // High quality scaling 高质量缩放
                 sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
                 smooth: true
                 antialiasing: true
-                
+
+                // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
                 layer.enabled: true
-                layer.smooth: true
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskThresholdMin: 0.5
-                    maskSpreadAtMin: 1.0
-                    maskSource: ShaderEffectSource {
-                        sourceItem: Rectangle {
-                            width: avatarContainer.width
-                            height: avatarContainer.height
-                            radius: width / 2
-                            antialiasing: true
+                layer.effect: ColorOverlay {
+                    color: control._navItemContentColor
+                }
+            }
+        }
+
+        // Avatar image (circular clipping, no color overlay) 头像图片（圆形裁剪，不应用颜色叠加）
+        Component {
+            id: avatarIconComponent
+
+            Item {
+                id: avatarContainer
+
+                width: Enums.iconSize.xl
+                height: Enums.iconSize.xl
+
+                Image {
+                    anchors.fill: parent
+                    source: control.icon
+                    fillMode: Image.PreserveAspectCrop
+                    // High quality scaling 高质量缩放
+                    sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
+                    smooth: true
+                    antialiasing: true
+
+                    layer.enabled: true
+                    layer.smooth: true
+                    layer.effect: MultiEffect {
+                        maskEnabled: true
+                        maskThresholdMin: 0.5
+                        maskSpreadAtMin: 1.0
+                        maskSource: ShaderEffectSource {
+                            sourceItem: Rectangle {
+                                width: avatarContainer.width
+                                height: avatarContainer.height
+                                radius: width / 2
+                                antialiasing: true
+                            }
                         }
                     }
                 }
             }
         }
-        
+
         // Emoji/text icon Emoji/文字图标
-        Label {
-            type: Enums.label.type_subtitle
-            anchors.verticalCenter: parent.verticalCenter
-            text: control.icon
-            visible: !parent.isPathIcon && control.icon !== ""
-            color: control._navItemContentColor
-            
-            Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+        Component {
+            id: textIconComponent
+
+            Label {
+                type: Enums.label.type_subtitle
+                text: control.icon
+                color: control._navItemContentColor
+
+                Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+            }
         }
         
         // Text (hidden in compact mode) 文字（紧凑模式下隐藏）
