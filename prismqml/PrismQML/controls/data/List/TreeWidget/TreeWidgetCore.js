@@ -37,8 +37,8 @@ function rebuildModel(ctrl, internalModel) {
     }
 }
 
-function flattenModel(items, depth, path) {
-    var result = []
+function flattenModel(items, depth, path, result) {
+    if (!result) result = []
     if (!items) return result
     for (var i = 0; i < items.length; i++) {
         var item = items[i]
@@ -50,7 +50,7 @@ function flattenModel(items, depth, path) {
         item.path = path.concat([i])
         result.push(item)
         if (item.children && item.children.length > 0 && item.expanded === true) {
-            result = result.concat(flattenModel(item.children, depth + 1, item.path))
+            flattenModel(item.children, depth + 1, item.path, result)
         }
     }
     return result
