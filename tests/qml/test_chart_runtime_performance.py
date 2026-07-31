@@ -267,6 +267,52 @@ def test_line_hover_search_only_checks_the_local_x_range(chart_scene):
     assert warnings == []
 
 
+def test_scatter_hover_search_uses_cached_local_geometry(chart_scene):
+    chart, warnings = chart_scene
+    point_count = 5_000
+    points = [
+        [index, (index * 37) % 500]
+        for index in range(point_count)
+    ]
+    chart.setProperty("animated", False)
+    chart.setProperty("lttbThreshold", point_count + 1)
+    chart.setProperty("chartType", chart.property("scatterType"))
+    chart.setProperty("series", [{"name": "dense", "data": points}])
+    _pump(50)
+
+    scatter_content = _loaders(chart)["scatterContentLoader"].property("item")
+    assert scatter_content is not None
+    rebuild_geometry = QQmlExpression(
+        QQmlEngine.contextForObject(scatter_content),
+        scatter_content,
+        "(_rebuildPointGeometry(width, height), true)",
+    )
+    assert _evaluate(rebuild_geometry)
+    point_positions_length = QQmlExpression(
+        QQmlEngine.contextForObject(scatter_content),
+        scatter_content,
+        "pointPositions.length",
+    )
+    assert _evaluate(point_positions_length) == point_count
+    build_count = scatter_content.property("_pointGeometryBuildCount")
+    assert build_count >= 1
+
+    target_index = point_count // 2
+    expression = QQmlExpression(
+        QQmlEngine.contextForObject(scatter_content),
+        scatter_content,
+        "_nearestPointIndex("
+        f"pointPositions[{target_index}].x, pointPositions[{target_index}].y)",
+    )
+    assert _evaluate(expression) == target_index
+    assert scatter_content.property("_lastHoverCandidateCount") < point_count // 4
+
+    scatter_content.setProperty("hoveredPointIndex", target_index)
+    _pump(20)
+    assert scatter_content.property("_pointGeometryBuildCount") == build_count
+    assert warnings == []
+
+
 def test_chart_null_and_empty_inputs_stay_finite_and_select_empty_state(chart_scene):
     chart, warnings = chart_scene
     loaders = _loaders(chart)

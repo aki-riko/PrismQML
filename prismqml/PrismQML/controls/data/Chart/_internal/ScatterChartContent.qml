@@ -30,6 +30,16 @@ Item {
     property real tooltipY: 0
     property real dataX: 0
     property real dataY: 0
+    property var _pointBuckets: ({})
+    property bool _pointGeometryDirty: true
+    property int _pointGeometryBuildCount: 0
+    property int _lastHoverCandidateCount: 0
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _normalHitRadius: 15
+    readonly property real _effectHitRadius: 20
+    readonly property real _pointBucketSize: _effectHitRadius * 2
+    readonly property real _defaultEffectSymbolSize: 16
 
     // ==================== Signals 信号 ====================
     signal pointClicked(int pointIndex, var data)
@@ -45,10 +55,109 @@ Item {
         return seriesItem && seriesItem.type === "effectScatter"
     }
 
+    function _bucketKey(x, y) {
+        return Math.floor(x / _pointBucketSize) + ":" + Math.floor(y / _pointBucketSize)
+    }
+
+    function _addPointToBucket(buckets, pointIndex, x, y) {
+        var key = _bucketKey(x, y)
+        var bucket = buckets[key]
+        if (!bucket) {
+            bucket = []
+            buckets[key] = bucket
+        }
+        bucket.push(pointIndex)
+    }
+
+    function _appendSeriesGeometry(points, buckets, seriesIndex, isEffect,
+                                   canvasHeight, range, xScale, yScale) {
+        var seriesData = series[seriesIndex] || {}
+        var data = seriesData.data || []
+        for (var pointIndex = 0; pointIndex < data.length; pointIndex++) {
+            var dataPoint = data[pointIndex]
+            var x = (dataPoint[0] - range.xMin) * xScale
+            var y = canvasHeight - (dataPoint[1] - range.yMin) * yScale
+            var flatIndex = points.length
+            points.push({
+                x: x, y: y,
+                seriesIndex: seriesIndex, pointIndex: pointIndex,
+                dataX: dataPoint[0], dataY: dataPoint[1],
+                isEffect: isEffect
+            })
+            _addPointToBucket(buckets, flatIndex, x, y)
+        }
+    }
+
+    function _rebuildPointGeometry(canvasWidth, canvasHeight) {
+        var range = dataRange
+        var xSpan = range.xMax - range.xMin
+        var ySpan = range.yMax - range.yMin
+        var points = []
+        var buckets = {}
+        if (xSpan > 0 && ySpan > 0 && isFinite(xSpan) && isFinite(ySpan)) {
+            var xScale = canvasWidth / xSpan
+            var yScale = canvasHeight / ySpan
+            for (var pass = 0; pass < 2; pass++) {
+                var wantEffect = pass === 1
+                for (var seriesIndex = 0; seriesIndex < series.length; seriesIndex++) {
+                    if (isEffectScatter(series[seriesIndex]) === wantEffect) {
+                        _appendSeriesGeometry(points, buckets, seriesIndex, wantEffect,
+                                              canvasHeight, range, xScale, yScale)
+                    }
+                }
+            }
+        }
+        pointPositions = points
+        _pointBuckets = buckets
+        _pointGeometryDirty = false
+        _pointGeometryBuildCount++
+    }
+
+    function _invalidatePointGeometry() {
+        _pointGeometryDirty = true
+        canvas.requestPaint()
+    }
+
+    function _nearbyPointIndices(x, y) {
+        var column = Math.floor(x / _pointBucketSize)
+        var row = Math.floor(y / _pointBucketSize)
+        var candidates = []
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                var bucket = _pointBuckets[(column + dx) + ":" + (row + dy)] || []
+                for (var index = 0; index < bucket.length; index++) candidates.push(bucket[index])
+            }
+        }
+        _lastHoverCandidateCount = candidates.length
+        return candidates
+    }
+
+    function _nearestPointIndex(x, y) {
+        if (_pointGeometryDirty) _rebuildPointGeometry(width, height)
+        var candidates = _nearbyPointIndices(x, y)
+        var nearestIndex = -1
+        var nearestDistanceSquared = _effectHitRadius * _effectHitRadius
+        for (var index = 0; index < candidates.length; index++) {
+            var flatIndex = candidates[index]
+            var point = pointPositions[flatIndex]
+            var deltaX = x - point.x
+            var deltaY = y - point.y
+            var distanceSquared = deltaX * deltaX + deltaY * deltaY
+            var hitRadius = point.isEffect ? _effectHitRadius : _normalHitRadius
+            if (distanceSquared < hitRadius * hitRadius && distanceSquared < nearestDistanceSquared) {
+                nearestDistanceSquared = distanceSquared
+                nearestIndex = flatIndex
+            }
+        }
+        return nearestIndex
+    }
+
     // Repaint on hover change 悬浮变化时重绘
     onHoveredSeriesIndexChanged: canvas.requestPaint()
     onHoveredPointIndexChanged: canvas.requestPaint()
-    onSeriesChanged: canvas.requestPaint()
+    onSeriesChanged: _invalidatePointGeometry()
+    onDataRangeChanged: _invalidatePointGeometry()
+    onDefaultSymbolSizeChanged: canvas.requestPaint()
 
     // ==================== Content 内容 ====================
     // Canvas 画布
@@ -57,15 +166,37 @@ Item {
 
         property real animProgress: 0
 
+        function drawNormalPoint(ctx, point, color, symbolSize, hovered) {
+            ctx.beginPath()
+            ctx.fillStyle = color
+            ctx.globalAlpha = hovered ? 1.0 : 0.8
+            ctx.arc(point.x, point.y, symbolSize / 2, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.globalAlpha = 1
+        }
+
+        function drawEffectPoint(ctx, point, color, symbolSize, hovered) {
+            ctx.beginPath()
+            ctx.strokeStyle = color
+            ctx.lineWidth = 2
+            ctx.globalAlpha = 0.4
+            ctx.arc(point.x, point.y, symbolSize / 2 + 4, 0, Math.PI * 2)
+            ctx.stroke()
+
+            ctx.beginPath()
+            ctx.fillStyle = color
+            ctx.globalAlpha = hovered ? 1.0 : 0.9
+            ctx.arc(point.x, point.y, symbolSize / 2, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.globalAlpha = 1
+        }
+
         anchors.fill: parent
 
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
-            
-            var range = root.dataRange
-            var xScale = width / (range.xMax - range.xMin)
-            var yScale = height / (range.yMax - range.yMin)
+            if (root._pointGeometryDirty) root._rebuildPointGeometry(width, height)
             
             // Fluent Design: light grid lines 轻量网格线
             if (root.showGrid) {
@@ -91,85 +222,31 @@ Item {
             
             // Draw scatter points 绘制散点
             var progress = root.animated ? animProgress : 1
-            var allPoints = []
-            
-            // First pass: draw normal scatter 第一遍：绘制普通散点
-            for (var s = 0; s < root.series.length; s++) {
-                var seriesData = root.series[s]
-                if (root.isEffectScatter(seriesData)) continue
-                
-                var data = seriesData.data || []
-                var color = root.getSeriesColor(s)
-                var baseSymbolSize = (seriesData.symbolSize || root.defaultSymbolSize) * progress
-                var isSeriesHovered = (s === root.hoveredSeriesIndex)
-                
-                for (var k = 0; k < data.length; k++) {
-                    var px = (data[k][0] - range.xMin) * xScale
-                    var py = height - (data[k][1] - range.yMin) * yScale
-                    
-                    allPoints.push({
-                        x: px, y: py,
-                        seriesIndex: s, pointIndex: k,
-                        dataX: data[k][0], dataY: data[k][1],
-                        isEffect: false
-                    })
-                    
-                    var isPointHovered = (s === root.hoveredSeriesIndex && k === root.hoveredPointIndex)
-                    var symbolSize = isPointHovered ? baseSymbolSize * 1.3 : baseSymbolSize
-                    
-                    // Fluent Design: simple solid point 简洁实心点
-                    ctx.beginPath()
-                    ctx.fillStyle = color
-                    ctx.globalAlpha = isPointHovered ? 1.0 : 0.8
-                    ctx.arc(px, py, symbolSize / 2, 0, Math.PI * 2)
-                    ctx.fill()
-                    ctx.globalAlpha = 1
+            var colorCache = []
+            var sizeCache = []
+            for (var index = 0; index < root.pointPositions.length; index++) {
+                var point = root.pointPositions[index]
+                var seriesIndex = point.seriesIndex
+                if (colorCache[seriesIndex] === undefined) {
+                    var seriesData = root.series[seriesIndex] || {}
+                    colorCache[seriesIndex] = root.getSeriesColor(seriesIndex)
+                    sizeCache[seriesIndex] = seriesData.symbolSize ||
+                            (point.isEffect ? root._defaultEffectSymbolSize : root.defaultSymbolSize)
+                }
+                var hovered = seriesIndex === root.hoveredSeriesIndex &&
+                              point.pointIndex === root.hoveredPointIndex
+                var hoverScale = hovered && !point.isEffect ? 1.3 : 1
+                var symbolSize = sizeCache[seriesIndex] * progress * hoverScale
+                if (point.isEffect) {
+                    drawEffectPoint(ctx, point, colorCache[seriesIndex], symbolSize, hovered)
+                } else {
+                    drawNormalPoint(ctx, point, colorCache[seriesIndex], symbolSize, hovered)
                 }
             }
-            
-            // Second pass: draw effectScatter (highlighted points) 第二遍：绘制高亮点
-            for (var es = 0; es < root.series.length; es++) {
-                var effectSeriesData = root.series[es]
-                if (!root.isEffectScatter(effectSeriesData)) continue
-                
-                var effectData = effectSeriesData.data || []
-                var effectColor = root.getSeriesColor(es)
-                var effectSymbolSize = (effectSeriesData.symbolSize || 16) * progress
-                
-                for (var ek = 0; ek < effectData.length; ek++) {
-                    var epx = (effectData[ek][0] - range.xMin) * xScale
-                    var epy = height - (effectData[ek][1] - range.yMin) * yScale
-                    
-                    allPoints.push({
-                        x: epx, y: epy,
-                        seriesIndex: es, pointIndex: ek,
-                        dataX: effectData[ek][0], dataY: effectData[ek][1],
-                        isEffect: true
-                    })
-                    
-                    var isEffectHovered = (es === root.hoveredSeriesIndex && ek === root.hoveredPointIndex)
-                    
-                    // Fluent Design: subtle outer ring for emphasis 微妙外环强调
-                    ctx.beginPath()
-                    ctx.strokeStyle = effectColor
-                    ctx.lineWidth = 2
-                    ctx.globalAlpha = 0.4
-                    ctx.arc(epx, epy, effectSymbolSize / 2 + 4, 0, Math.PI * 2)
-                    ctx.stroke()
-                    
-                    // Solid point 实心点
-                    ctx.beginPath()
-                    ctx.fillStyle = effectColor
-                    ctx.globalAlpha = isEffectHovered ? 1.0 : 0.9
-                    ctx.arc(epx, epy, effectSymbolSize / 2, 0, Math.PI * 2)
-                    ctx.fill()
-                    
-                    ctx.globalAlpha = 1
-                }
-            }
-            
-            root.pointPositions = allPoints
         }
+
+        onWidthChanged: root._invalidatePointGeometry()
+        onHeightChanged: root._invalidatePointGeometry()
         
         Component.onCompleted: {
             if (root.animated) {
@@ -200,34 +277,16 @@ Item {
         cursorShape: root.hoveredSeriesIndex >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
         
         onPositionChanged: (mouse) => {
-            var minDist = 20
-            var foundSeriesIndex = -1
-            var foundPointIndex = -1
-            
-            for (var i = 0; i < root.pointPositions.length; i++) {
-                var pt = root.pointPositions[i]
-                var dist = Math.sqrt(Math.pow(mouse.x - pt.x, 2) + Math.pow(mouse.y - pt.y, 2))
-                var hitRadius = pt.isEffect ? 20 : 15
-                if (dist < hitRadius && dist < minDist) {
-                    minDist = dist
-                    foundSeriesIndex = pt.seriesIndex
-                    foundPointIndex = pt.pointIndex
-                }
-            }
-            
+            var flatIndex = root._nearestPointIndex(mouse.x, mouse.y)
+            var point = flatIndex >= 0 ? root.pointPositions[flatIndex] : null
+            var foundSeriesIndex = point ? point.seriesIndex : -1
+            var foundPointIndex = point ? point.pointIndex : -1
             root.pointHovered(foundSeriesIndex, foundPointIndex)
-            
-            if (foundSeriesIndex >= 0 && foundPointIndex >= 0) {
-                for (var j = 0; j < root.pointPositions.length; j++) {
-                    var p = root.pointPositions[j]
-                    if (p.seriesIndex === foundSeriesIndex && p.pointIndex === foundPointIndex) {
-                        root.tooltipX = p.x
-                        root.tooltipY = p.y
-                        root.dataX = p.dataX
-                        root.dataY = p.dataY
-                        break
-                    }
-                }
+            if (point) {
+                root.tooltipX = point.x
+                root.tooltipY = point.y
+                root.dataX = point.dataX
+                root.dataY = point.dataY
             }
         }
         
