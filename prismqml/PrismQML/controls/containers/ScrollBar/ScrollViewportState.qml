@@ -27,6 +27,7 @@ Item {
     property bool _rerunRequested: false
     property bool _contentRerunRequested: false
     property bool _suppressViewportContentChanges: false
+    property bool _completed: false
     property bool _destroying: false
     property bool _reserveVerticalGutter: false
     property bool _reserveHorizontalGutter: false
@@ -243,7 +244,7 @@ Item {
     }
 
     function invalidate() {
-        if (_destroying) return
+        if (_destroying || !_completed) return
         if (!target || !scrollBarsEnabled) {
             scheduleUpdate()
             return
@@ -266,8 +267,12 @@ Item {
     onAlwaysShowVerticalChanged: invalidate()
     onAlwaysShowHorizontalChanged: invalidate()
     onItemCountChanged: invalidate()
-    Component.onCompleted: invalidate()
+    Component.onCompleted: {
+        _completed = true
+        invalidate()
+    }
     Component.onDestruction: {
+        _completed = false
         _destroying = true
         phaseTimer.stop()
         contentUpdateTimer.stop()
