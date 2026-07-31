@@ -110,15 +110,12 @@ Widget {
                             : (Enums.radius.small))
     property color color: styleHelper.bgColor
 
-    // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
-    property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat)
-                                   ? Enums.neo.pressOffset : 0
-    Behavior on _neoPressShift {
-        NumberAnimation {
-            duration: Enums.duration.fast
-            easing.type: Easing.OutCubic
-        }
-    }
+    // Neobrutalism target press shift. Neo按压目标位移。
+    readonly property real _neoPressTargetShift:
+        (Enums.isNeobrutalism && pressed && !flat) ? Enums.neo.pressOffset : 0
+    // The loaded Neo surface owns animation; Fluent keeps no resident Behavior. 动画由已加载的Neo表面持有，Fluent不常驻Behavior。
+    property real _neoPressShift:
+        neoShadowLoader.item ? neoShadowLoader.item.animatedPressShift : 0
     readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
                                             feature === Enums.button.feature_split
     readonly property bool _hasProgressBarFeature:
@@ -364,7 +361,7 @@ Widget {
 
         sourceComponent: ButtonNeoShadow {
             target: _bg
-            pressShift: control._neoPressShift
+            targetPressShift: control._neoPressTargetShift
         }
     }
 

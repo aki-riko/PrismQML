@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "../../.."
 import "../../../effects"
 
 // ButtonNeoShadow - Neo hard shadow and shared press transform Neo硬阴影与共享按压变换
@@ -10,15 +11,35 @@ NeoShadow {
     id: shadow
 
     // ==================== Required Props 必需属性 ====================
-    required property real pressShift
+    required property real targetPressShift
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _completed: false
+    property real _animatedPressShift: 0
 
     // Keep the shared transform externally reusable by all button face layers. 保持共享变换供按钮各表面层复用。
     readonly property alias pressTransform: pressTransform
+    readonly property alias animatedPressShift: shadow._animatedPressShift
+
+    onTargetPressShiftChanged: {
+        if (_completed) _animatedPressShift = targetPressShift
+    }
+    Component.onCompleted: {
+        _completed = true
+        _animatedPressShift = targetPressShift
+    }
+
+    Behavior on _animatedPressShift {
+        NumberAnimation {
+            duration: Enums.duration.fast
+            easing.type: Easing.OutCubic
+        }
+    }
 
     // ==================== Content 内容 ====================
     Translate {
         id: pressTransform
-        x: shadow.pressShift
-        y: shadow.pressShift
+        x: shadow._animatedPressShift
+        y: shadow._animatedPressShift
     }
 }

@@ -41,6 +41,14 @@ def _transforms(button: QObject) -> list[QObject]:
     ]
 
 
+def _behaviors(button: QObject) -> list[QObject]:
+    return [
+        child
+        for child in button.findChildren(QObject)
+        if child.metaObject().className() == "QQuickBehavior"
+    ]
+
+
 def test_neo_press_transform_loads_only_with_neo_skin(qapp):
     previous_skin = getSkin()
     setSkin(Skin.FLUENT)
@@ -61,11 +69,13 @@ def test_neo_press_transform_loads_only_with_neo_skin(qapp):
     assert button is not None, [error.toString() for error in component.errors()]
     try:
         assert _transforms(button) == []
+        assert _behaviors(button) == []
 
         setSkin(Skin.NEOBRUTALISM)
         _pump()
         transforms = _transforms(button)
         assert len(transforms) == 1
+        assert len(_behaviors(button)) >= 1
         expected_shift = button.property("expectedPressShift")
 
         button.setProperty("pseudoPressed", True)
@@ -74,10 +84,24 @@ def test_neo_press_transform_loads_only_with_neo_skin(qapp):
         assert transforms[0].property("x") == pytest.approx(expected_shift)
         assert transforms[0].property("y") == pytest.approx(expected_shift)
 
+        button.setProperty("pseudoPressed", False)
+        _pump(20)
+        assert 0.0 < button.property("_neoPressShift") < expected_shift
+        assert 0.0 < transforms[0].property("x") < expected_shift
+        _pump(250)
+        assert button.property("_neoPressShift") == pytest.approx(0.0)
+        assert transforms[0].property("x") == pytest.approx(0.0)
+
+        button.setProperty("pseudoPressed", True)
+        _pump(250)
+        assert button.property("_neoPressShift") == pytest.approx(expected_shift)
+        assert transforms[0].property("x") == pytest.approx(expected_shift)
+
         button.setProperty("flat", True)
         _pump(250)
         assert button.property("_neoPressShift") == pytest.approx(0.0)
         assert _transforms(button) == []
+        assert _behaviors(button) == []
 
         button.setProperty("flat", False)
         _pump(1)

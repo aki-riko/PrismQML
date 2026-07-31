@@ -513,7 +513,7 @@ def test_button_core_defers_neo_press_transform(button_core_scene):
     )
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
     assert "sourceComponent: ButtonNeoShadow" in source
-    assert "Behavior on _neoPressShift" in source
+    assert "Behavior on _neoPressShift" not in source
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 
