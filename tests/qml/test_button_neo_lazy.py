@@ -22,6 +22,7 @@ Button {
     text: "Neo lazy"
     width: 160
     height: 48
+    readonly property real expectedPressShift: Enums.neo.pressOffset
 }
 """
 
@@ -65,12 +66,44 @@ def test_neo_press_transform_loads_only_with_neo_skin(qapp):
         _pump()
         transforms = _transforms(button)
         assert len(transforms) == 1
-        assert button.setProperty("_neoPressShift", 4.0)
+        expected_shift = button.property("expectedPressShift")
+
+        button.setProperty("pseudoPressed", True)
         _pump(250)
-        assert transforms[0].property("x") == pytest.approx(4.0)
-        assert transforms[0].property("y") == pytest.approx(4.0)
+        assert button.property("_neoPressShift") == pytest.approx(expected_shift)
+        assert transforms[0].property("x") == pytest.approx(expected_shift)
+        assert transforms[0].property("y") == pytest.approx(expected_shift)
+
+        button.setProperty("flat", True)
+        _pump(250)
+        assert button.property("_neoPressShift") == pytest.approx(0.0)
+        assert _transforms(button) == []
+
+        button.setProperty("flat", False)
+        _pump(1)
+        transforms = _transforms(button)
+        assert len(transforms) == 1
+        assert button.property("_neoPressShift") < expected_shift
+        assert transforms[0].property("x") < expected_shift
+        _pump(250)
+        assert transforms[0].property("x") == pytest.approx(expected_shift)
+
+        setSkin(Skin.FLUENT)
+        _pump(250)
+        assert button.property("_neoPressShift") == pytest.approx(0.0)
+        assert _transforms(button) == []
+
+        setSkin(Skin.NEOBRUTALISM)
+        _pump(1)
+        transforms = _transforms(button)
+        assert len(transforms) == 1
+        assert button.property("_neoPressShift") < expected_shift
+        assert transforms[0].property("x") < expected_shift
+        _pump(250)
+        assert transforms[0].property("x") == pytest.approx(expected_shift)
         assert warnings == []
     finally:
+        button.setProperty("pseudoPressed", False)
         setSkin(previous_skin)
         button.deleteLater()
         engine.deleteLater()

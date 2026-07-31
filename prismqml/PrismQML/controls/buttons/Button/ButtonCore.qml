@@ -113,6 +113,12 @@ Widget {
     // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
     property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat)
                                    ? Enums.neo.pressOffset : 0
+    Behavior on _neoPressShift {
+        NumberAnimation {
+            duration: Enums.duration.fast
+            easing.type: Easing.OutCubic
+        }
+    }
     readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
                                             feature === Enums.button.feature_split
     readonly property bool _hasProgressBarFeature:
