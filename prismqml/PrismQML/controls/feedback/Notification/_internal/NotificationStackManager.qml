@@ -71,7 +71,7 @@ QtObject {
 
         for (var i = 0; i < stack.length; i++) {
             var item = stack[i]
-            var offset = calculateOffset(stack, i)
+            var offset = calculateOffset(stack, i, position)
             // Use animator's updatePosition for smooth reposition 使用动画器的 updatePosition 实现平滑补位
             if (item.animator) {
                 item.animator.updatePosition(offset)
@@ -79,12 +79,27 @@ QtObject {
         }
     }
 
-    function calculateOffset(stack, index) {
+    function _stackInset(item, propertyName) {
+        if (!item) return 0
+        var value = item[propertyName]
+        return value === undefined || value === null ? 0 : value
+    }
+
+    function calculateOffset(stack, index, position) {
         if (!stack) return 0
         var offset = 0
+        var stacksUpward = Enums.notification.isBottom(position)
         for (var i = 0; i < index; i++) {
             var item = stack[i]
+            var nextItem = stack[i + 1]
             var gap = (item.desktopMode === undefined) ? _infoBarStackGap : _stackGap
+            if (stacksUpward) {
+                gap -= _stackInset(item, "_stackTopInset")
+                    + _stackInset(nextItem, "_stackBottomInset")
+            } else {
+                gap -= _stackInset(item, "_stackBottomInset")
+                    + _stackInset(nextItem, "_stackTopInset")
+            }
             offset += item.height + gap
         }
         return offset
@@ -163,7 +178,7 @@ QtObject {
         if (!_stacks || !_isValidPosition(position)) return
         var stack = _stacks[position]
         if (!stack) return
-        var stackOffset = calculateOffset(stack, stack.length - 1)
+        var stackOffset = calculateOffset(stack, stack.length - 1, position)
         // Pass stackOffset to animator, animator handles actual positioning 传递stackOffset给动画器，动画器处理实际定位
         if (item.animator) {
             item.animator.stackOffset = stackOffset

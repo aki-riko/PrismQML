@@ -30,6 +30,10 @@ Widget {
     // Layout properties 布局属性
     property int orient: Qt.Horizontal  // Layout orientation 布局方向 (Qt.Horizontal/Qt.Vertical)
     readonly property bool _isVertical: orient === Qt.Vertical
+    // Transparent outer area reserved for shadows; excluded from visual stacking
+    // 为阴影保留的透明外围，可见堆叠时不计入间距
+    readonly property int _stackTopInset: Enums.spacing.m
+    readonly property int _stackBottomInset: Enums.spacing.m
     
     // Custom content 自定义内容
     property alias customContent: customContentLoader.sourceComponent  // Custom widget slot 自定义组件插槽
