@@ -85,13 +85,15 @@ Item {
     function _clearPending() {
         if (_destroying) return
         if (_suppressViewportContentChanges && _clearDeferrals === 0) {
-            // Responsive children may defer their relayout with Qt.callLater.
-            // Keep the transaction open for one more event-loop turn so the
-            // resulting content change is classified as viewport-induced.
-            // 响应式子项可能通过 Qt.callLater 延迟重排；额外保留一轮
-            // 测量事务，使后续内容变化能被识别为视口几何变化。
+            // Virtual item views may defer relayout beyond one event-loop
+            // turn. Keep their transaction open until content extents stay
+            // quiet. 虚拟项视图的重排可能延后超过一轮事件循环；保持其
+            // 事务到内容范围静默后再结束。
             _clearDeferrals = 1
-            _queuePhase(_phaseClear)
+            if (itemCount >= 0)
+                suppressionClearTimer.restart()
+            else
+                _queuePhase(_phaseClear)
             return
         }
         if (target) {
@@ -135,6 +137,9 @@ Item {
         } else if (!_suppressViewportContentChanges) {
             _contentRerunRequested = true
         }
+        if (_suppressViewportContentChanges && _clearDeferrals > 0
+                && itemCount >= 0)
+            suppressionClearTimer.restart()
     }
 
     function _settleCrossAxis() {
@@ -216,6 +221,7 @@ Item {
     function scheduleUpdate() {
         if (_destroying) return
         contentUpdateTimer.stop()
+        suppressionClearTimer.stop()
         if (!target || !scrollBarsEnabled) {
             _reserveVerticalGutter = false
             _reserveHorizontalGutter = false
@@ -265,6 +271,7 @@ Item {
         _destroying = true
         phaseTimer.stop()
         contentUpdateTimer.stop()
+        suppressionClearTimer.stop()
         _phase = _phaseIdle
         _updatePending = false
         _rerunRequested = false
@@ -296,5 +303,12 @@ Item {
         interval: Enums.duration.fast
         repeat: false
         onTriggered: control.scheduleUpdate()
+    }
+
+    Timer {
+        id: suppressionClearTimer
+        interval: Enums.duration.instant
+        repeat: false
+        onTriggered: control._clearPending()
     }
 }
