@@ -332,7 +332,7 @@ def test_probe_defaults_to_headless_through_process_runner():
         result.stdout,
     )
     assert summary is not None, result.stdout
-    assert tuple(map(int, summary.groups())) == (180, 0, 7)
+    assert tuple(map(int, summary.groups())) == (181, 0, 7)
     assert "单例跳过" not in result.stdout
 
 
