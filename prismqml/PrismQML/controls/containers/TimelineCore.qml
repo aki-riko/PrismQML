@@ -44,6 +44,7 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property var _flatRows: []
     property var _flatGroupRefs: []
+    property var _flatGroupSignatures: []
     property int _flatGroupCount: 0
     property int _lastFlatBuildGroupCount: 0
 
@@ -99,14 +100,24 @@ Item {
         _flatModel.clear()
         _flatRows = []
         _flatGroupRefs = []
+        _flatGroupSignatures = []
         _flatGroupCount = 0
         _lastFlatBuildGroupCount = 0
     }
 
-    function _appendStartIndex(source) {
+    function _groupSignatures(source) {
+        var signatures = []
+        for (var index = 0; index < source.length; index++) {
+            signatures.push(JSON.stringify(source[index]))
+        }
+        return signatures
+    }
+
+    function _appendStartIndex(source, signatures) {
         if (_flatGroupCount <= 0 || source.length < _flatGroupCount) return -1
         for (var index = 0; index < _flatGroupCount; index++) {
-            if (source[index] !== _flatGroupRefs[index]) return -1
+            if (source[index] !== _flatGroupRefs[index]
+                    || signatures[index] !== _flatGroupSignatures[index]) return -1
         }
         return _flatGroupCount
     }
@@ -117,7 +128,8 @@ Item {
             return
         }
         var source = _safeItems || []
-        var appendStart = _appendStartIndex(source)
+        var signatures = _groupSignatures(source)
+        var appendStart = _appendStartIndex(source, signatures)
         if (appendStart === source.length) return
         var nextRows = appendStart >= 0 ? _flatRows.slice() : []
         var nextRefs = appendStart >= 0 ? _flatGroupRefs.slice() : []
@@ -133,6 +145,7 @@ Item {
         }
         _flatRows = nextRows
         _flatGroupRefs = nextRefs
+        _flatGroupSignatures = signatures
         _flatGroupCount = source.length
         _lastFlatBuildGroupCount = source.length - buildStart
     }

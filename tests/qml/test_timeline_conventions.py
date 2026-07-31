@@ -52,6 +52,10 @@ Window {
     property var virtualItems: makeItems(12)
     property var largeVirtualItems: makeLargeItems()
     readonly property int virtualFlatCount: virtualTimeline._flatRows.length
+    readonly property string virtualFirstTitle:
+        virtualTimeline._flatRows.length > 0 ? virtualTimeline._flatRows[0].title : ""
+    readonly property string virtualFirstCardText:
+        virtualTimeline._flatRows.length > 1 ? virtualTimeline._flatRows[1].text : ""
     readonly property int largeVirtualFlatCount: largeVirtualTimeline._flatRows.length
     readonly property int graphFlatCount: graphTimeline._flatRows.length
 
@@ -81,6 +85,12 @@ Window {
             ]
         })
         virtualItems = next
+    }
+
+    function updateVirtualFirstGroupInPlace() {
+        virtualItems[0].title = "Updated Group 0"
+        virtualItems[0].cards[0].text = "Updated Card 0A"
+        virtualItems = virtualItems.slice()
     }
 
     function makeLargeItems() {
@@ -356,6 +366,20 @@ def test_timeline_virtual_append_preserves_scroll_and_reaches_end(timeline_scene
     assert _wait_for(lambda: list_view.property("count") == 39)
     assert virtual_timeline.property("_lastFlatBuildGroupCount") == 1
     assert list_view.property("contentY") == pytest.approx(before_y)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_virtual_same_group_reference_refreshes_existing_rows(timeline_scene):
+    window, _timeline, virtual_timeline, warnings, windows_before = timeline_scene
+    assert _wait_for(lambda: window.property("virtualFirstTitle") == "Group 0")
+
+    assert QMetaObject.invokeMethod(window, "updateVirtualFirstGroupInPlace")
+    assert _wait_for(
+        lambda: window.property("virtualFirstTitle") == "Updated Group 0"
+    )
+    assert window.property("virtualFirstCardText") == "Updated Card 0A"
+    assert virtual_timeline.property("_lastFlatBuildGroupCount") == 12
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
