@@ -113,12 +113,6 @@ Widget {
     // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
     property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat)
                                    ? Enums.neo.pressOffset : 0
-    Behavior on _neoPressShift {
-        NumberAnimation {
-            duration: Enums.duration.fast
-            easing.type: Easing.OutCubic
-        }
-    }
     readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
                                             feature === Enums.button.feature_split
     readonly property bool _hasProgressBarFeature:
@@ -344,13 +338,6 @@ Widget {
     on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
-    // Shared face/content press transform. 共享按钮表面与内容的按下位移。
-    Translate {
-        id: neoPressTransform
-        x: control._neoPressShift
-        y: control._neoPressShift
-    }
-
     // Shadow layer 阴影层
     // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯色矩形, 无模糊)。
     RectangularShadow {
@@ -369,8 +356,9 @@ Widget {
         active: Enums.isNeobrutalism && !control.flat
         z: _bg.z - 1
 
-        sourceComponent: NeoShadow {
+        sourceComponent: ButtonNeoShadow {
             target: _bg
+            pressShift: control._neoPressShift
         }
     }
 
@@ -391,7 +379,7 @@ Widget {
         gradient: style === Enums.button.style_gradient ? Enums._buttonGradientDef : null
 
         // Neobrutalism 按下位移: face 向右下滑向硬阴影, 视觉压平。Fluent 下 shift 恒 0 无影响。
-        transform: neoPressTransform
+        transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
 
     }
 
@@ -430,7 +418,7 @@ Widget {
         onChildrenChanged: control._syncCustomContentState()
         Component.onCompleted: control._syncCustomContentState()
         // Neobrutalism 按下位移: 内容随 face 一起滑动
-        transform: neoPressTransform
+        transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
     }
 
     Loader {
@@ -447,7 +435,7 @@ Widget {
         z: Enums.zIndex.content
         active: !control.hasCustomContent  // Only load default content when no custom content 仅在无自定义内容时加载默认内容
         // Neobrutalism 按下位移: 默认内容(文字/图标)随 face 一起滑动
-        transform: neoPressTransform
+        transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
         sourceComponent: ButtonContent {
             feature: control.feature
             style: control.style
