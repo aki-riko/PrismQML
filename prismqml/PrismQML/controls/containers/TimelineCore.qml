@@ -55,6 +55,8 @@ Item {
     readonly property bool _graphMode: type === Enums.timeline.type_graph
     readonly property bool _usesVirtualList: virtualized || _graphMode
     readonly property alias _needsVirtualScrollBar: scrollViewportState.needsVertical
+    readonly property alias _reserveVirtualScrollBarGutter:
+        scrollViewportState.reserveVerticalGutter
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
     readonly property real _graphWidth: Enums.spacing.timelineGraphPadding * 2
@@ -365,7 +367,7 @@ Item {
         id: virtualList
         objectName: "timelineVirtualViewport"
         anchors.fill: parent
-        anchors.rightMargin: control._needsVirtualScrollBar
+        anchors.rightMargin: control._reserveVirtualScrollBarGutter
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
         visible: control._usesVirtualList
         model: control._usesVirtualList ? _flatModel : null

@@ -36,6 +36,10 @@ Item {
     readonly property bool _canScrollH: orientation & Qt.Horizontal
     readonly property alias _needsVScrollBar: scrollViewportState.needsVertical
     readonly property alias _needsHScrollBar: scrollViewportState.needsHorizontal
+    readonly property alias _reserveVScrollBarGutter:
+        scrollViewportState.reserveVerticalGutter
+    readonly property alias _reserveHScrollBarGutter:
+        scrollViewportState.reserveHorizontalGutter
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
 
@@ -117,9 +121,9 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.right: parent.right
-        anchors.rightMargin: showScrollBar && control._needsVScrollBar
+        anchors.rightMargin: showScrollBar && control._reserveVScrollBarGutter
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
-        anchors.bottomMargin: showScrollBar && control._needsHScrollBar
+        anchors.bottomMargin: showScrollBar && control._reserveHScrollBarGutter
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.height)) : 0
 
         // childrenRect 在子项使用 anchors.fill / Layout.fillHeight 时会坍缩到 0;
@@ -185,7 +189,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: control._needsHScrollBar
+        anchors.bottomMargin: control._reserveHScrollBarGutter
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.height))
             : Enums.spacing.xxs
         anchors.margins: Enums.spacing.xxs
@@ -204,7 +208,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.leftMargin: Enums.spacing.xxs
-        anchors.rightMargin: control._needsVScrollBar
+        anchors.rightMargin: control._reserveVScrollBarGutter
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.width))
             : Enums.spacing.xxs
         anchors.bottomMargin: Enums.spacing.xxs

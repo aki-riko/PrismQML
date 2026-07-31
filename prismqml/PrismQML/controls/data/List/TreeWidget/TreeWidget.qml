@@ -71,6 +71,8 @@ Rectangle {
     readonly property color textColor: Enums.textColor.primary
     readonly property color secondaryColor: Enums.textColor.secondary
     readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property alias _reserveScrollBarGutter:
+        scrollViewportState.reserveVerticalGutter
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
 
@@ -232,7 +234,7 @@ Rectangle {
 
                     objectName: "treeWidgetViewport"
                     anchors.fill: parent
-                    anchors.rightMargin: control._needsScrollBar
+                    anchors.rightMargin: control._reserveScrollBarGutter
                         ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds

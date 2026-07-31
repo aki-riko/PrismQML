@@ -75,6 +75,10 @@ Rectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property alias _needsVerticalScrollBar: scrollViewportState.needsVertical
     readonly property alias _needsHorizontalScrollBar: scrollViewportState.needsHorizontal
+    readonly property alias _reserveVerticalScrollBarGutter:
+        scrollViewportState.reserveVerticalGutter
+    readonly property alias _reserveHorizontalScrollBarGutter:
+        scrollViewportState.reserveHorizontalGutter
     readonly property bool _hasHorizontalScroll: contentTotalWidth > listView.width
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
@@ -312,9 +316,9 @@ Rectangle {
                 QtQ.ListView {
                     id: listView
                     anchors.fill: parent
-                    anchors.rightMargin: root._needsVerticalScrollBar
+                    anchors.rightMargin: root._reserveVerticalScrollBarGutter
                         ? Math.min(root._scrollBarGutter, Math.max(0, parent.width)) : 0
-                    anchors.bottomMargin: root._needsHorizontalScrollBar
+                    anchors.bottomMargin: root._reserveHorizontalScrollBarGutter
                         ? Math.min(root._scrollBarGutter, Math.max(0, parent.height)) : 0
                     clip: true
                     boundsBehavior: Flickable.DragAndOvershootBounds
@@ -393,7 +397,7 @@ Rectangle {
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     anchors.rightMargin: Enums.spacing.xxs
-                    anchors.bottomMargin: root._needsHorizontalScrollBar
+                    anchors.bottomMargin: root._reserveHorizontalScrollBarGutter
                         ? Math.min(root._scrollBarGutter, Math.max(0, parent.height)) : 0
 
                     target: listView
@@ -418,7 +422,7 @@ Rectangle {
                     scrollEasing: root.scrollEasing
                     barWidth: Math.max(0, root.scrollBarWidth)
                     showScrollBar: root.showScrollBar
-                    rightInset: root._needsVerticalScrollBar
+                    rightInset: root._reserveVerticalScrollBarGutter
                         ? Math.min(root._scrollBarGutter, Math.max(0, parent.width)) : 0
                 }
             }

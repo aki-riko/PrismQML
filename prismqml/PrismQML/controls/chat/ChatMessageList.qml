@@ -61,6 +61,8 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property int messageCount: chatModel.count
     readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property alias _reserveScrollBarGutter:
+        scrollViewportState.reserveVerticalGutter
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
     readonly property real _loadMargin: Math.max(0, messageViewport.height)
@@ -329,7 +331,7 @@ Item {
 
         objectName: "chatMessageViewport"
         anchors.fill: parent
-        anchors.rightMargin: control._needsScrollBar
+        anchors.rightMargin: control._reserveScrollBarGutter
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
         contentWidth: width
         contentHeight: messageColumn.height

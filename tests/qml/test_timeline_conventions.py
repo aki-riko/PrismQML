@@ -442,6 +442,66 @@ def test_timeline_virtual_scroll_to_start_tracks_dynamic_origin(timeline_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_timeline_virtual_scrollbar_stays_visible_during_height_relayout(
+    timeline_scene,
+):
+    """Remeasure must not expose transient scrollbar state. 重测不得暴露瞬态滚动条状态。"""
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    large_timeline = window.findChild(QQuickItem, "largeVirtualTimeline")
+    assert large_timeline is not None
+    descendants = large_timeline.findChildren(QQuickItem)
+    list_view = next(
+        item
+        for item in descendants
+        if item.objectName() == "timelineVirtualViewport"
+    )
+    scroll_state = next(
+        item
+        for item in descendants
+        if "ScrollViewportState" in item.metaObject().className()
+    )
+    scroll_bar = next(
+        item
+        for item in descendants
+        if item.metaObject().className().split("_QMLTYPE_")[0] == "ScrollBar"
+    )
+
+    assert _wait_for(
+        lambda: list_view.property("count")
+        == window.property("largeVirtualFlatCount")
+        and bool(scroll_state.property("needsVertical"))
+        and bool(scroll_bar.property("visible"))
+    )
+    model_count = int(list_view.property("count"))
+    needs_states = []
+    visible_states = []
+    scroll_state.needsVerticalChanged.connect(
+        lambda: needs_states.append(bool(scroll_state.property("needsVertical")))
+    )
+    scroll_bar.visibleChanged.connect(
+        lambda: visible_states.append(bool(scroll_bar.property("visible")))
+    )
+
+    for index in range(60):
+        maximum = max(
+            0.0,
+            float(list_view.property("contentHeight")) - list_view.height(),
+        )
+        ratio = ((index * 37) % 59) / 58 if index else 0
+        list_view.setProperty("contentY", maximum * ratio)
+        QCoreApplication.processEvents()
+        _pump(8)
+    _pump(100)
+
+    assert int(list_view.property("count")) == model_count
+    assert False not in needs_states, needs_states
+    assert False not in visible_states, visible_states
+    assert bool(scroll_state.property("needsVertical")) is True
+    assert bool(scroll_bar.property("visible")) is True
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_timeline_graph_type_uses_virtual_rows_and_renders_graph_layers(timeline_scene):
     window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
     graph_timeline = window.findChild(QQuickItem, "graphTimeline")

@@ -58,6 +58,8 @@ Rectangle {
         model === null || model === undefined ? 0
         : (typeof model.length === "number" ? model.length : 0)
     readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property alias _reserveScrollBarGutter:
+        scrollViewportState.reserveVerticalGutter
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
 
@@ -426,7 +428,7 @@ Rectangle {
         id: listView
         objectName: "listWidgetViewport"
         anchors.fill: parent
-        anchors.rightMargin: control._needsScrollBar
+        anchors.rightMargin: control._reserveScrollBarGutter
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
         clip: true
         boundsBehavior: Flickable.DragAndOvershootBounds

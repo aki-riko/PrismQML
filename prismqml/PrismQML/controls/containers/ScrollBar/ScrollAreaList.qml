@@ -41,6 +41,8 @@ Item {
     readonly property alias listView: listView
     readonly property int count: listView.count
     readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property alias _reserveScrollBarGutter:
+        scrollViewportState.reserveVerticalGutter
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
     
@@ -71,7 +73,7 @@ Item {
     ListView {
         id: listView
         anchors.fill: parent
-        anchors.rightMargin: control._needsScrollBar
+        anchors.rightMargin: control._reserveScrollBarGutter
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
 
         model: control.model

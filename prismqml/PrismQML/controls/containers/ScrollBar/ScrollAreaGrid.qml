@@ -39,6 +39,8 @@ Item {
     readonly property alias gridView: gridView
     readonly property int count: gridView.count
     readonly property alias _needsScrollBar: scrollViewportState.needsVertical
+    readonly property alias _reserveScrollBarGutter:
+        scrollViewportState.reserveVerticalGutter
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
     
@@ -68,7 +70,7 @@ Item {
     GridView {
         id: gridView
         anchors.fill: parent
-        anchors.rightMargin: control._needsScrollBar
+        anchors.rightMargin: control._reserveScrollBarGutter
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
         
         model: control.model

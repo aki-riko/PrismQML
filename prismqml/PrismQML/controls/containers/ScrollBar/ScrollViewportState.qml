@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "../../.."
 
 // ScrollViewportState - Stable scrollbar viewport state 稳定的滚动条视口状态
 // Measures overflow without gutters first, then adds only cross-axis overflow.
@@ -27,6 +28,8 @@ Item {
     property bool _contentRerunRequested: false
     property bool _suppressViewportContentChanges: false
     property bool _destroying: false
+    property bool _reserveVerticalGutter: false
+    property bool _reserveHorizontalGutter: false
     property real _lastTargetWidth: -1
     property real _lastTargetHeight: -1
     property int _clearDeferrals: 0
@@ -37,6 +40,10 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property alias needsVertical: control._needsVertical
     readonly property alias needsHorizontal: control._needsHorizontal
+    readonly property alias reserveVerticalGutter:
+        control._reserveVerticalGutter
+    readonly property alias reserveHorizontalGutter:
+        control._reserveHorizontalGutter
     readonly property int _phaseIdle: 0
     readonly property int _phaseBegin: 1
     readonly property int _phaseMeasure: 2
@@ -48,6 +55,11 @@ Item {
         if (_destroying) return
         _phase = nextPhase
         phaseTimer.restart()
+    }
+
+    function _queueContentUpdate() {
+        if (_destroying) return
+        contentUpdateTimer.restart()
     }
 
     function _runPhase() {
@@ -89,17 +101,24 @@ Item {
         _clearDeferrals = 0
         _suppressViewportContentChanges = false
         _updatePending = false
-        if (_rerunRequested || _contentRerunRequested) {
+        if (_rerunRequested) {
             _rerunRequested = false
             _contentRerunRequested = false
             scheduleUpdate()
+        } else if (_contentRerunRequested) {
+            _contentRerunRequested = false
+            _queueContentUpdate()
         }
     }
 
     function _handleContentChange() {
         if (_destroying || !target) return
         if (!_updatePending) {
-            scheduleUpdate()
+            // Virtual views refine content extents while scrolling. Coalesce
+            // those estimates so one scroll does not repeatedly remove and
+            // restore gutters. 虚拟视图滚动时会持续修正内容范围；合并这些
+            // 估算，避免一次滚动反复撤销并恢复 gutter。
+            _queueContentUpdate()
             return
         }
         var viewportChanged = target.width !== _lastTargetWidth
@@ -121,6 +140,8 @@ Item {
     function _settleCrossAxis() {
         if (_destroying) return
         if (!target) {
+            _reserveVerticalGutter = false
+            _reserveHorizontalGutter = false
             _needsVertical = false
             _needsHorizontal = false
             _updatePending = false
@@ -134,6 +155,8 @@ Item {
         _needsHorizontal = !horizontalEmpty && (_baseHorizontal
             || (scrollBarsEnabled && horizontalEnabled
                 && target.contentWidth > target.width))
+        _reserveVerticalGutter = _needsVertical
+        _reserveHorizontalGutter = _needsHorizontal
         // Keep geometry notifications suppressed until bindings and delegates settle.
         // 在绑定与委托完成布局前持续抑制由避让槽自身触发的几何通知。
         _queuePhase(_phaseClear)
@@ -142,6 +165,8 @@ Item {
     function _measureWithoutGutters() {
         if (_destroying) return
         if (!target) {
+            _reserveVerticalGutter = false
+            _reserveHorizontalGutter = false
             _needsVertical = false
             _needsHorizontal = false
             _updatePending = false
@@ -159,14 +184,19 @@ Item {
             && (alwaysShowHorizontal || target.contentWidth > target.width)
         _lastTargetWidth = target.width
         _lastTargetHeight = target.height
-        _needsVertical = _baseVertical
-        _needsHorizontal = _baseHorizontal
+        // Apply only the base gutters for cross-axis measurement. Keep the
+        // committed visibility unchanged until the final state is known.
+        // 仅为交叉轴测量应用基础 gutter，最终状态确定前不改变已提交可见性。
+        _reserveVerticalGutter = _baseVertical
+        _reserveHorizontalGutter = _baseHorizontal
         _queuePhase(_phaseSettle)
     }
 
     function _beginMeasurement() {
         if (_destroying) return
         if (!target || !scrollBarsEnabled) {
+            _reserveVerticalGutter = false
+            _reserveHorizontalGutter = false
             _needsVertical = false
             _needsHorizontal = false
             _updatePending = false
@@ -175,17 +205,20 @@ Item {
         }
         _lastTargetWidth = target.width
         _lastTargetHeight = target.height
-        // Change viewport geometry outside target geometry-change signal delivery.
-        // 在目标几何变化信号派发结束后再改变视口，避免重入布局绑定。
-        _needsVertical = false
-        _needsHorizontal = false
+        // Remove gutters without exposing the measurement phase as committed
+        // scrollbar visibility. 仅撤销测量 gutter，不把测量中间态暴露为滚动条可见性。
+        _reserveVerticalGutter = false
+        _reserveHorizontalGutter = false
         _queuePhase(_phaseMeasure)
     }
 
     // ==================== Public Methods 公开方法 ====================
     function scheduleUpdate() {
         if (_destroying) return
+        contentUpdateTimer.stop()
         if (!target || !scrollBarsEnabled) {
+            _reserveVerticalGutter = false
+            _reserveHorizontalGutter = false
             _needsVertical = false
             _needsHorizontal = false
             _updatePending = false
@@ -231,11 +264,14 @@ Item {
     Component.onDestruction: {
         _destroying = true
         phaseTimer.stop()
+        contentUpdateTimer.stop()
         _phase = _phaseIdle
         _updatePending = false
         _rerunRequested = false
         _contentRerunRequested = false
         _suppressViewportContentChanges = false
+        _reserveVerticalGutter = false
+        _reserveHorizontalGutter = false
         _clearDeferrals = 0
     }
 
@@ -253,5 +289,12 @@ Item {
         interval: 0
         repeat: false
         onTriggered: control._runPhase()
+    }
+
+    Timer {
+        id: contentUpdateTimer
+        interval: Enums.duration.fast
+        repeat: false
+        onTriggered: control.scheduleUpdate()
     }
 }
