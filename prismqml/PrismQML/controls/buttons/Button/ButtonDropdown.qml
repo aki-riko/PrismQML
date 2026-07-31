@@ -22,6 +22,8 @@ Item {
     required property var menu
     required property bool controlEnabled
     required property bool loading
+    required property bool showDropdownIndicator
+    required property bool dropdownOpen
     required property real parentRadius
     required property int fontSize
     required property color textColor  // Parent button text color 父按钮文字颜色
@@ -268,14 +270,6 @@ Item {
             ColorAnimation { duration: dropdownFeature._animationDuration }
         }
         
-        ChevronIcon {
-            id: splitArrow
-            animated: true
-            isOpen: dropdownFeature.isMenuOpen
-            color: dropdownFeature._arrowColor
-            anchors.centerIn: parent
-        }
-        
         MouseArea {
             id: splitDropMouse
             anchors.fill: parent
@@ -286,6 +280,25 @@ Item {
             }
             onClicked: dropdownFeature.openMenu()
         }
+    }
+
+    // Shared dropdown/split arrow 复用的下拉/分离箭头
+    ChevronIcon {
+        id: menuArrow
+        anchors.centerIn: feature === Enums.button.feature_split
+                          ? splitDropArea : undefined
+        anchors.right: feature === Enums.button.feature_dropdown
+                       ? parent.right : undefined
+        anchors.rightMargin: feature === Enums.button.feature_dropdown
+                             ? Enums.spacing.m : 0
+        anchors.verticalCenter: feature === Enums.button.feature_dropdown
+                                ? parent.verticalCenter : undefined
+        animated: true
+        isOpen: (feature === Enums.button.feature_dropdown && dropdownFeature.dropdownOpen) ||
+                dropdownFeature.isMenuOpen
+        color: dropdownFeature._arrowColor
+        visible: feature === Enums.button.feature_split ||
+                 (feature === Enums.button.feature_dropdown && showDropdownIndicator)
     }
     
     // Split main button interaction 主按钮交互

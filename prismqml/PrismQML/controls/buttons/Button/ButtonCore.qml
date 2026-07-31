@@ -6,7 +6,6 @@ import QtQuick
 import "../../.."
 import "../../../effects"
 import QtQuick.Effects
-import "../../icons"
 import "../../utils"
 import "../../containers"
 
@@ -319,6 +318,16 @@ Widget {
         }
     }
 
+    onShowDropdownIndicatorChanged: {
+        if (showDropdownIndicator &&
+                feature === Enums.button.feature_dropdown &&
+                contentLoader.item) {
+            contentLoader._indicatorTransitionWidth = Math.max(
+                contentLoader.item.implicitWidth,
+                width - _contentLeadingPadding - _contentTrailingPadding)
+        }
+    }
+
     // Watch hover changes directly for reliable updates 直接监听悬浮变化以确保可靠更新
     onHoveredChanged: {
         _updateTargetColors()
@@ -426,15 +435,21 @@ Widget {
 
     Loader {
         id: contentLoader
+        property real _indicatorTransitionWidth: -1
+
+        width: item ? (_indicatorTransitionWidth >= 0
+                       ? _indicatorTransitionWidth : item.implicitWidth) : 0
+        x: {
+            if (contentAlignment === Enums.button.align_left)
+                return control._contentLeadingPadding
+            if (contentAlignment === Enums.button.align_right)
+                return parent.width - width - control._contentTrailingPadding
+            var centerOffset = feature === Enums.button.feature_split
+                               ? -Enums.controlSize.splitButtonContentOffset
+                               : (control._showsDropdownIndicator ? -Enums.spacing.m : 0)
+            return (parent.width - width) / 2 + centerOffset
+        }
         anchors.verticalCenter: parent.verticalCenter
-        anchors.left: contentAlignment === Enums.button.align_left ? parent.left : undefined
-        anchors.right: contentAlignment === Enums.button.align_right ? parent.right : undefined
-        anchors.horizontalCenter: contentAlignment === Enums.button.align_center ? parent.horizontalCenter : undefined
-        anchors.leftMargin: contentAlignment === Enums.button.align_left ? control._contentLeadingPadding : 0
-        anchors.rightMargin: contentAlignment === Enums.button.align_right ? control._contentTrailingPadding : 0
-        anchors.horizontalCenterOffset: contentAlignment === Enums.button.align_center ?
-                                        (feature === Enums.button.feature_split ? -Enums.controlSize.splitButtonContentOffset :
-                                        (control._showsDropdownIndicator ? -Enums.spacing.m : 0)) : 0
         z: Enums.zIndex.content
         active: !control.hasCustomContent  // Only load default content when no custom content 仅在无自定义内容时加载默认内容
         // Neobrutalism 按下位移: 默认内容(文字/图标)随 face 一起滑动
@@ -457,27 +472,6 @@ Widget {
             countdownActive: control._countdownActive
             countdownRemaining: control._countdownRemaining
             countdownText: control.countdownText
-        }
-    }
-
-    // Dropdown arrow 下拉箭头
-    Loader {
-        readonly property bool _useAccentForeground: control.style === Enums.button.style_primary ||
-                                                      control.style === Enums.button.style_filled ||
-                                                      control.style === Enums.button.style_gradient
-
-        anchors.right: parent.right
-        anchors.rightMargin: Enums.spacing.m
-        anchors.verticalCenter: parent.verticalCenter
-        active: control._showsDropdownIndicator
-
-        sourceComponent: ChevronIcon {
-            animated: true
-            isOpen: control.dropdownOpen ||
-                    (control._hasMenuFeature && featureLoader.item
-                     ? featureLoader.item.isMenuOpen : false)
-            color: !control.enabled ? Enums.stateColor.indicatorActive :
-                   (parent._useAccentForeground ? Enums.accentForeground : Enums.textColor.secondary)
         }
     }
 
@@ -540,6 +534,8 @@ Widget {
             menu: control.menu
             controlEnabled: control.enabled
             loading: control.loading
+            showDropdownIndicator: control.showDropdownIndicator
+            dropdownOpen: control.dropdownOpen
             parentRadius: control.radius
             fontSize: control.fontSize
             parentStyle: control.style
