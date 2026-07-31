@@ -446,38 +446,45 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         self.promote_window_group(host_hwnd, follower_hwnds)
         return True
 
+    def _handle_window_pos_changing(self, msg: Any) -> tuple[bool, int]:
+        """Sync one proposed WINDOWPOS update. 同步一次候选 WINDOWPOS 更新。"""
+        window_pos = self._get_window_pos_class().from_address(int(msg.lParam))
+        window_hwnd = int(msg.hwnd)
+        self.enforce_follower_z_order(window_hwnd, window_pos)
+        if window_hwnd not in self._bindings:
+            current_rect = (
+                self._read_rect(window_hwnd)
+                if window_pos.flags & _SWP_NOSIZE
+                and self._read_rect is not None
+                else None
+            )
+            proposed_rect = _window_rect_from_pos(window_pos, current_rect)
+            if proposed_rect is not None:
+                self.sync_host_rect(window_hwnd, proposed_rect)
+        return False, 0
+
+    def _handle_native_message(self, msg: Any) -> tuple[bool, int]:
+        """Dispatch one native follower message. 分派一条原生窗口跟随消息。"""
+        if msg.message == _WM_MOUSEACTIVATE:
+            if self.activate_window_group(int(msg.hwnd)):
+                return True, _MA_NOACTIVATE
+            return False, 0
+        if msg.message == _WM_WINDOWPOSCHANGING and msg.lParam:
+            return self._handle_window_pos_changing(msg)
+        if msg.message not in (_WM_MOVING, _WM_SIZING) or not msg.lParam:
+            return False, 0
+        from ctypes import wintypes
+
+        host_rect = wintypes.RECT.from_address(int(msg.lParam))
+        self.sync_host_rect(int(msg.hwnd), host_rect)
+        return False, 0
+
     def nativeEventFilter(self, eventType: QByteArray, message: int) -> tuple:
         """Consume proposed move/size RECTs without blocking Qt. 消费候选 RECT 但不拦截 Qt。"""
         del eventType
         try:
             msg = self._get_msg_class().from_address(int(message))
-            if msg.message == _WM_MOUSEACTIVATE:
-                if self.activate_window_group(int(msg.hwnd)):
-                    return True, _MA_NOACTIVATE
-                return False, 0
-            if msg.message == _WM_WINDOWPOSCHANGING and msg.lParam:
-                window_pos = self._get_window_pos_class().from_address(
-                    int(msg.lParam)
-                )
-                window_hwnd = int(msg.hwnd)
-                self.enforce_follower_z_order(window_hwnd, window_pos)
-                if window_hwnd not in self._bindings:
-                    current_rect = (
-                        self._read_rect(window_hwnd)
-                        if window_pos.flags & _SWP_NOSIZE
-                        and self._read_rect is not None
-                        else None
-                    )
-                    proposed_rect = _window_rect_from_pos(window_pos, current_rect)
-                    if proposed_rect is not None:
-                        self.sync_host_rect(window_hwnd, proposed_rect)
-                return False, 0
-            if msg.message not in (_WM_MOVING, _WM_SIZING) or not msg.lParam:
-                return False, 0
-            from ctypes import wintypes
-
-            host_rect = wintypes.RECT.from_address(int(msg.lParam))
-            self.sync_host_rect(int(msg.hwnd), host_rect)
+            return self._handle_native_message(msg)
         except (OSError, ValueError, ctypes.ArgumentError) as exc:
             debug(f"窗口跟随过滤器收到无效原生消息: {exc}")
         except Exception as exc:
