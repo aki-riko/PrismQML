@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../../.."
+import "_internal"
 
 // SmoothScrollHelper - Reusable smooth scroll logic 可复用平滑滚动逻辑
 // Usage 用法:
@@ -102,10 +103,12 @@ Item {
     function syncPosition() {
         _syncing = true
         if (_isVertical) {
+            verticalBounce.stop()
             _boundaryTargetV = 0
             _targetY = target.contentY
             _smoothY = target.contentY
         } else {
+            horizontalBounce.stop()
             _boundaryTargetH = 0
             _targetX = target.contentX
             _smoothX = target.contentX
@@ -137,7 +140,7 @@ Item {
         var smoothY = _clamp(_smoothY, _minY, _maxY)
         if (targetY === _targetY && smoothY === _smoothY) return
         _isOvershotV = false
-        bounceTimerV.stop()
+        verticalBounce.stop()
         _targetY = targetY
         if (smoothY !== _smoothY) {
             _syncing = true
@@ -164,7 +167,7 @@ Item {
         var smoothX = _clamp(_smoothX, _minX, _maxX)
         if (targetX === _targetX && smoothX === _smoothX) return
         _isOvershotH = false
-        bounceTimerH.stop()
+        horizontalBounce.stop()
         _targetX = targetX
         if (smoothX !== _smoothX) {
             _syncing = true
@@ -176,6 +179,7 @@ Item {
 
     // Vertical implementation 垂直实现
     function _scrollToY(targetY) {
+        verticalBounce.stop()
         _targetY = _clamp(targetY, _minY, _maxY)
         _isOvershotV = false
         _smoothY = _targetY
@@ -186,6 +190,7 @@ Item {
 
         // Normal scroll 正常滚动
         if (newTarget >= _minY && newTarget <= _maxY) {
+            verticalBounce.stop()
             _targetY = newTarget
             _isOvershotV = false
             _smoothY = _targetY
@@ -204,26 +209,22 @@ Item {
             _isOvershotV = true
             var overshootDelta = _minY - newTarget
             var currentOvershoot = _smoothY < _minY ? _minY - _smoothY : 0
-            _smoothY = _minY - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
-            bounceTimerV.restart()
+            var outwardY = _minY - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            verticalBounce.start(_smoothY, outwardY, _targetY)
         } else {
             // Bottom overshoot 底部超出
             _targetY = _maxY
             _isOvershotV = true
             var overshootDeltaBottom = newTarget - _maxY
             var currentOvershootBottom = _smoothY > _maxY ? _smoothY - _maxY : 0
-            _smoothY = _maxY + Math.min(currentOvershootBottom + overshootDeltaBottom, _maxOvershoot)
-            bounceTimerV.restart()
+            var outwardYBottom = _maxY + Math.min(currentOvershootBottom + overshootDeltaBottom, _maxOvershoot)
+            verticalBounce.start(_smoothY, outwardYBottom, _targetY)
         }
-    }
-
-    function _bounceBackV() {
-        _isOvershotV = true
-        _smoothY = _targetY
     }
 
     // Horizontal implementation 水平实现
     function _scrollToX(targetX) {
+        horizontalBounce.stop()
         _targetX = _clamp(targetX, _minX, _maxX)
         _isOvershotH = false
         _smoothX = _targetX
@@ -234,6 +235,7 @@ Item {
 
         // Normal scroll 正常滚动
         if (newTarget >= _minX && newTarget <= _maxX) {
+            horizontalBounce.stop()
             _targetX = newTarget
             _isOvershotH = false
             _smoothX = _targetX
@@ -252,22 +254,17 @@ Item {
             _isOvershotH = true
             var overshootDelta = _minX - newTarget
             var currentOvershoot = _smoothX < _minX ? _minX - _smoothX : 0
-            _smoothX = _minX - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
-            bounceTimerH.restart()
+            var outwardX = _minX - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            horizontalBounce.start(_smoothX, outwardX, _targetX)
         } else {
             // Right overshoot 右侧超出
             _targetX = _maxX
             _isOvershotH = true
             var overshootDeltaRight = newTarget - _maxX
             var currentOvershootRight = _smoothX > _maxX ? _smoothX - _maxX : 0
-            _smoothX = _maxX + Math.min(currentOvershootRight + overshootDeltaRight, _maxOvershoot)
-            bounceTimerH.restart()
+            var outwardXRight = _maxX + Math.min(currentOvershootRight + overshootDeltaRight, _maxOvershoot)
+            horizontalBounce.start(_smoothX, outwardXRight, _targetX)
         }
-    }
-
-    function _bounceBackH() {
-        _isOvershotH = true
-        _smoothX = _targetX
     }
 
     // Bindings 绑定
@@ -295,6 +292,7 @@ Item {
     // Animations 动画
     Behavior on _smoothY {
         enabled: helper.enabled && helper._isVertical && !helper._syncing
+            && !verticalBounce.active
         NumberAnimation {
             id: smoothYAnimation
             duration: helper._isOvershotV ? Enums.duration.bounce : helper.duration
@@ -304,6 +302,7 @@ Item {
 
     Behavior on _smoothX {
         enabled: helper.enabled && !helper._isVertical && !helper._syncing
+            && !horizontalBounce.active
         NumberAnimation {
             id: smoothXAnimation
             duration: helper._isOvershotH ? Enums.duration.bounce : helper.duration
@@ -312,17 +311,25 @@ Item {
     }
     
     // ==================== Content 内容 ====================
-    // Bounce timers 回弹定时器
-    Timer {
-        id: bounceTimerV
-        interval: Enums.duration.fast
-        onTriggered: helper._bounceBackV()
+    // Deterministic two-phase bounce 确定性的两阶段回弹
+    DeterministicBounce {
+        id: verticalBounce
+        animated: helper.enabled && helper._isVertical
+        sourceDuration: Enums.duration.bounce
+        outwardDuration: Enums.duration.fast
+        returnDuration: Enums.duration.bounce
+        easing: Easing.OutBack
+        onPositionChanged: (position) => helper._smoothY = position
     }
-    
-    Timer {
-        id: bounceTimerH
-        interval: Enums.duration.fast
-        onTriggered: helper._bounceBackH()
+
+    DeterministicBounce {
+        id: horizontalBounce
+        animated: helper.enabled && !helper._isVertical
+        sourceDuration: Enums.duration.bounce
+        outwardDuration: Enums.duration.fast
+        returnDuration: Enums.duration.bounce
+        easing: Easing.OutBack
+        onPositionChanged: (position) => helper._smoothX = position
     }
 
     Timer {

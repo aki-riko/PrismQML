@@ -18,7 +18,7 @@ from PySide6.QtCore import (
     QUrl,
     Qt,
 )
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QWheelEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -79,6 +79,7 @@ Window {
     function scrollHorizontal() { horizontalHelper.scrollTo(260) }
     function scrollHorizontalToEnd() { horizontalHelper.scrollToEnd() }
     function growHorizontalContent() { horizontalFlick.contentWidth = 820 }
+    function overshootHorizontal() { horizontalHelper.scrollBy(1000) }
     function scrollPopup() { popupHelper.scrollTo(999) }
     function setVerticalHalf() {
         verticalFlick.contentY = 240
@@ -278,6 +279,35 @@ def _wait_for_stable(predicate, stable_checks: int = 5, timeout_ms: int = 1500) 
     return False
 
 
+def _smooth_scroll_helper(item: QQuickItem, orientation: Qt.Orientation) -> QQuickItem:
+    return next(
+        child
+        for child in item.findChildren(QQuickItem)
+        if "SmoothScrollHelper" in child.metaObject().className()
+        and child.property("orientation") == orientation.value
+    )
+
+
+def _send_wheel(window: QQuickWindow, item: QQuickItem, delta: int) -> QWheelEvent:
+    position = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
+    global_position = QPointF(
+        window.x() + position.x(),
+        window.y() + position.y(),
+    )
+    event = QWheelEvent(
+        position,
+        global_position,
+        QPoint(0, 0),
+        QPoint(0, delta),
+        Qt.MouseButton.NoButton,
+        Qt.KeyboardModifier.NoModifier,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    assert QGuiApplication.sendEvent(window, event)
+    return event
+
+
 def _new_visible_windows(windows_before, *allowed):
     return [
         window
@@ -367,8 +397,60 @@ def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
 
     assert QMetaObject.invokeMethod(window, "scrollHorizontal")
     assert _wait_for(lambda: window.property("horizontalX") == pytest.approx(260))
+    assert QMetaObject.invokeMethod(window, "scrollHorizontalToEnd")
+    assert _wait_for(
+        lambda: window.property("horizontalX")
+        == pytest.approx(window.property("horizontalMax"))
+    )
+    assert QMetaObject.invokeMethod(window, "overshootHorizontal")
+    assert _wait_for(
+        lambda: window.property("horizontalX") > window.property("horizontalMax")
+    )
+    assert _wait_for_stable(
+        lambda: window.property("horizontalX")
+        == pytest.approx(window.property("horizontalMax")),
+        timeout_ms=1500,
+    )
     assert QMetaObject.invokeMethod(window, "scrollPopup")
     assert _wait_for(lambda: window.property("popupY") == pytest.approx(380))
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_scroll_area_bounce_peak_does_not_expand_after_gui_stall(scroll_scene):
+    window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+    maximum = helper.property("maxScroll")
+    step = helper.property("step")
+
+    values = []
+    area.contentYChanged.connect(
+        lambda: values.append(float(area.property("contentY")))
+    )
+
+    area.setProperty("contentY", maximum)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+    normal_event = _send_wheel(window, area, -120)
+    assert normal_event.isAccepted()
+    _pump(1000)
+    normal_peak = max(values)
+    assert maximum + step * 0.45 <= normal_peak <= maximum + step * 0.70
+    assert area.property("contentY") == pytest.approx(maximum)
+
+    values.clear()
+    area.setProperty("contentY", maximum)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+    stalled_event = _send_wheel(window, area, -120)
+    assert stalled_event.isAccepted()
+    _pump(60)
+    QTest.qSleep(120)
+    _pump(1000)
+    stalled_peak = max(values)
+
+    assert stalled_peak <= normal_peak + 2
+    assert area.property("contentY") == pytest.approx(maximum)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
@@ -500,7 +582,7 @@ def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
 
 def test_scroll_bar_sources_follow_conventions():
     violations = []
-    for source_path in sorted(SOURCE_DIR.glob("*.qml")):
+    for source_path in sorted(SOURCE_DIR.rglob("*.qml")):
         path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
         violations.extend(
             violation
