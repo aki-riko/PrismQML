@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Effects
 import "../../../.."
 import "../../../data"
+import "LineChartGeometry.js" as Geometry
 import "LineChartPainter.js" as Painter
 
 // LineChartContent - Multi-series line chart rendering component 多系列折线图渲染组件
@@ -44,6 +45,12 @@ Item {
     property real mouseY: 0
     property int _lastHoverCandidateCount: 0
     property int _lastSeriesHoverCandidateCount: 0
+    property var _lineGeometry: null
+    property bool _lineGeometryDirty: true
+    property int _lineGeometryBuildCount: 0
+    property int _lastFramePointUpdateCount: 0
+    property real _lineGeometryBaseline: 0
+    property real _lastGeometryProgress: -1
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
@@ -178,19 +185,60 @@ Item {
         return foundIndex
     }
 
+    function _rebuildLineGeometry(canvasWidth, canvasHeight) {
+        var range = valueRange
+        var geometry = isMultiSeries
+            ? Geometry.buildSeries(series, canvasWidth, canvasHeight, boundaryGap,
+                                   stacked, range.min, range.max)
+            : Geometry.buildSingle(chartData, canvasWidth, canvasHeight,
+                                   boundaryGap, Enums.spacing.m,
+                                   range.min, range.max)
+        _lineGeometry = geometry
+        _lineGeometryBaseline = geometry.baseline
+        if (isMultiSeries) {
+            if (geometry.maxLength >= 2) seriesPointPositions = geometry.seriesPoints
+        } else if (geometry.maxLength >= 2) {
+            pointPositions = geometry.points
+        }
+        _lineGeometryDirty = false
+        _lastGeometryProgress = -1
+        _lineGeometryBuildCount++
+    }
+
+    function _updateAnimatedLineGeometry(progress) {
+        if (_lineGeometryDirty) _rebuildLineGeometry(width, height)
+        if (progress === _lastGeometryProgress) {
+            _lastFramePointUpdateCount = 0
+            return
+        }
+        _lastFramePointUpdateCount = isMultiSeries
+            ? Geometry.updateSeries(_lineGeometry.seriesPoints, progress,
+                                    _lineGeometryBaseline)
+            : Geometry.updatePoints(_lineGeometry.points, progress,
+                                    _lineGeometryBaseline)
+        _lastGeometryProgress = progress
+        if (isMultiSeries && _lastFramePointUpdateCount > 0)
+            seriesPointPositionsChanged()
+    }
+
+    function _invalidateLineGeometry() {
+        _lineGeometryDirty = true
+        canvas.requestPaint()
+    }
+
     onHoveredIndexChanged: canvas.requestPaint()
     // hoveredSeriesIndex does not repaint because vertical movement between series is frequent
     // hoveredSeriesIndex 不触发重绘，因为在多个系列之间垂直移动时会频繁切换
     // It only anchors the tooltip and does not affect the painted line or points
     // 视觉上只用于 tooltip 锚定，不影响线条或折点绘制
     // onHoveredSeriesIndexChanged: canvas.requestPaint()
-    onChartDataChanged: canvas.requestPaint()
-    onSeriesChanged: canvas.requestPaint()
+    onChartDataChanged: _invalidateLineGeometry()
+    onSeriesChanged: _invalidateLineGeometry()
     onShowAverageChanged: canvas.requestPaint()
     onShowMinMaxChanged: canvas.requestPaint()
-    onBoundaryGapChanged: canvas.requestPaint()
+    onBoundaryGapChanged: _invalidateLineGeometry()
     onShowAreaGradientChanged: canvas.requestPaint()
-    onStackedChanged: canvas.requestPaint()
+    onStackedChanged: _invalidateLineGeometry()
 
     // ==================== Content 内容 ====================
     // Canvas 画布
@@ -208,21 +256,7 @@ Item {
             
             var padding = Enums.spacing.m
             var chartHeight = height - padding * 2
-            var chartWidth = width - padding * 2
-            var dataCount = root.chartData.length
-            var stepX = root.boundaryGap ? chartWidth / dataCount : chartWidth / (dataCount - 1)
-            var startX = root.boundaryGap ? padding + stepX / 2 : padding
-            var yScale = height > 0 ? chartHeight / height : 0
-            var baselineY = padding + chartHeight
-            var points = []
-            
-            for (var i = 0; i < root.chartData.length; i++) {
-                var x = startX + i * stepX
-                var targetY = padding + root.valueToY(root.chartData[i].value) * yScale
-                var y = canvas.animatedY(targetY, baselineY)
-                points.push({x: x, y: y})
-            }
-            root.pointPositions = points
+            var points = root.pointPositions
             
             if (root.isArea || root.showAreaGradient) {
                 Painter.drawAreaFill(ctx, points, root.primaryColor, padding + chartHeight, 
@@ -240,12 +274,7 @@ Item {
             var seriesData = root.series
             if (seriesData.length === 0) return
             
-            var maxLen = 0
-            for (var s = 0; s < seriesData.length; s++) {
-                var vals = seriesData[s] && seriesData[s].values && typeof seriesData[s].values.length === "number"
-                           ? seriesData[s].values : []
-                if (vals.length > maxLen) maxLen = vals.length
-            }
+            var maxLen = root._lineGeometry.maxLength
             if (maxLen < 2) return
             
             var stepX = root.boundaryGap ? width / maxLen : width / (maxLen - 1)
@@ -257,32 +286,8 @@ Item {
                 Painter.drawVerticalIndicator(ctx, indicatorX, height, Enums.chartColors.gridLine)
             }
             
-            // Calculate all points 计算所有点
-            var allPoints = []
-            var stackedCumulative = []
-            for (var sci = 0; sci < maxLen; sci++) stackedCumulative.push(0)
-            
-            for (var si = 0; si < seriesData.length; si++) {
-                var seriesItem = seriesData[si]
-                var values = seriesItem && seriesItem.values && typeof seriesItem.values.length === "number"
-                             ? seriesItem.values : []
-                var points = []
-                
-                for (var i = 0; i < values.length; i++) {
-                    var x = startX + i * stepX
-                    var val = values[i] || 0
-                    var y
-                    if (root.stacked) {
-                        stackedCumulative[i] += val
-                        y = root.valueToY(stackedCumulative[i])
-                    } else {
-                        y = root.valueToY(val)
-                    }
-                    y = canvas.animatedY(y, height)
-                    points.push({x: x, y: y, value: val, stackedValue: stackedCumulative[i]})
-                }
-                allPoints.push(points)
-            }
+            // Reuse cached points 复用缓存点位
+            var allPoints = root.seriesPointPositions
             
             // Draw areas 绘制面积
             if (root.stacked || root.showAreaGradient) {
@@ -303,7 +308,6 @@ Item {
             }
             
             // Draw lines and points 绘制线条和点
-            var allSeriesPoints = []
             for (var li = 0; li < seriesData.length; li++) {
                 var lineSeriesItem = seriesData[li]
                 var lineValues = lineSeriesItem && lineSeriesItem.values && typeof lineSeriesItem.values.length === "number"
@@ -311,8 +315,6 @@ Item {
                 var lineColor = root.getSeriesColor(li)
                 var linePoints = allPoints[li]
                 var isLineSeriesHovered = (li === root.hoveredSeriesIndex)
-                
-                allSeriesPoints.push(linePoints)
                 
                 // Draw average line 绘制平均线
                 if (root.showAverage && lineValues.length > 0) {
@@ -328,7 +330,6 @@ Item {
                     Painter.drawHollowPoint(ctx, linePoints[p].x, linePoints[p].y, lineColor, hovered, Enums.cardColor)
                 }
             }
-            root.seriesPointPositions = allSeriesPoints
         }
 
         anchors.fill: parent
@@ -336,6 +337,7 @@ Item {
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
+            root._updateAnimatedLineGeometry(root.animated ? animProgress : 1)
 
             if (root.isMultiSeries) {
                 paintMultiSeries(ctx)
@@ -354,6 +356,8 @@ Item {
         }
         onVisibleChanged: if (visible) requestPaint()
         onAnimProgressChanged: requestPaint()
+        onWidthChanged: root._invalidateLineGeometry()
+        onHeightChanged: root._invalidateLineGeometry()
         
         NumberAnimation {
             id: lineAnimation
