@@ -22,7 +22,9 @@ Text {
     property bool _useCustomColor: customTextColor != Enums.transparent
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool hovered: _mouseArea.containsMouse
+    readonly property bool hovered: _mouseArea.item
+        ? _mouseArea.item.containsMouse
+        : false
     readonly property int _fontSize: {
         switch (type) {
             case Enums.label.type_body:
@@ -102,18 +104,21 @@ Text {
 
     // ==================== Content 内容 ====================
     // Hyperlink interaction 超链接交互
-    MouseArea {
+    Loader {
         id: _mouseArea
         anchors.fill: parent
-        hoverEnabled: type === Enums.label.type_hyperlink
-        enabled: type === Enums.label.type_hyperlink
-        visible: type === Enums.label.type_hyperlink
-        cursorShape: type === Enums.label.type_hyperlink ? Qt.PointingHandCursor : Qt.ArrowCursor
-        
-        onClicked: {
-            control.clicked()
-            if (control.url.toString()) {
-                Qt.openUrlExternally(control.url)
+        active: type === Enums.label.type_hyperlink
+
+        sourceComponent: MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+
+            onClicked: {
+                control.clicked()
+                if (control.url.toString()) {
+                    Qt.openUrlExternally(control.url)
+                }
             }
         }
     }
