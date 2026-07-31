@@ -662,18 +662,18 @@ def test_dropdown_and_split_main_content_use_asymmetric_padding(button_core_scen
         assert len(content) == 1
         assert len(dropdown) == 1
         assert len(chevrons) == 1
-        labels = _matching(content[0], "type", "customTextColor", "paintedWidth")
-        assert len(labels) == 1
-        assert _mapped_x(labels[0], button) == pytest.approx(expected_leading)
+        texts = _matching(content[0], "text", "font", "paintedWidth")
+        assert len(texts) == 1
+        assert _mapped_x(texts[0], button) == pytest.approx(expected_leading)
 
         if object_name == "pillDropdownButton":
-            assert _painted_right_gap(labels[0], chevrons[0], button) == pytest.approx(
+            assert _painted_right_gap(texts[0], chevrons[0], button) == pytest.approx(
                 expected_trailing
             )
         else:
             separators = _matching(dropdown[0], "lineLength", "lineColor", "isHorizontal")
             assert len(separators) == 1
-            split_gap = _painted_right_gap(labels[0], separators[0], button)
+            split_gap = _painted_right_gap(texts[0], separators[0], button)
             assert expected_trailing <= split_gap <= (
                 expected_trailing + root.property("menuPaddingTolerance")
             )
@@ -681,13 +681,11 @@ def test_dropdown_and_split_main_content_use_asymmetric_padding(button_core_scen
     compact_button = _button(root, "compactSplitButton")
     compact_content = _content_modules(compact_button)
     assert len(compact_content) == 1
-    compact_labels = _matching(
-        compact_content[0], "type", "customTextColor", "paintedWidth"
-    )
-    assert len(compact_labels) == 1
+    compact_texts = _matching(compact_content[0], "text", "font", "paintedWidth")
+    assert len(compact_texts) == 1
     expected_width = max(
         root.property("buttonHeight"),
-        compact_labels[0].property("paintedWidth")
+        compact_texts[0].property("paintedWidth")
         + expected_leading
         + expected_trailing
         + root.property("splitArrowWidth"),

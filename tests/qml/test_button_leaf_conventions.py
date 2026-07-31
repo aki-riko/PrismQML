@@ -103,6 +103,7 @@ Item {
     readonly property int expectedScreenPickerType: Enums.colorPicker.type_screen
     readonly property int expectedButtonMinWidth: Enums.controlSize.buttonMinWidth
     readonly property int expectedInputHeight: Enums.controlSize.inputHeight
+    readonly property string expectedFontFamily: Enums.fontFamily
 
     width: 400
     height: 200
@@ -233,6 +234,16 @@ def _button_content(button):
         for child in _descendants(button)
         if child.metaObject().indexOfProperty("_ringBorderColor") >= 0
         and child.metaObject().indexOfProperty("countdownRemaining") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
+def _button_content_text(content):
+    matches = [
+        child
+        for child in _descendants(content)
+        if child.metaObject().className() == "QQuickText"
     ]
     assert len(matches) == 1, [item.metaObject().className() for item in matches]
     return matches[0]
@@ -377,6 +388,53 @@ def test_button_content_parent_bindings_remain_stable(button_leaf_scene):
     assert content.property("loading")
     assert content.property("textColor") == root.property("expectedButtonTextColor")
     assert _new_visible_windows(windows_before) == []
+
+
+def test_button_content_native_text_preserves_typography(button_leaf_scene):
+    root, windows_before = button_leaf_scene
+    button = root.findChild(QObject, "contentButton")
+    assert button is not None
+    content = _button_content(button)
+    text_item = _button_content_text(content)
+    font = text_item.property("font")
+
+    assert text_item.property("text") == "Ready"
+    assert text_item.property("color") == content.property("textColor")
+    assert font.family() == root.property("expectedFontFamily")
+    assert font.pixelSize() == button.property("fontSize")
+    assert font.bold()
+    assert font.italic()
+    assert font.underline()
+    assert font.strikeOut()
+
+    button.setProperty("loading", True)
+    _pump(20)
+    assert text_item.property("text") == "Working"
+    assert text_item.property("visible")
+
+    button.setProperty("loading", False)
+    button.setProperty("text", "")
+    button.setProperty("fontBold", False)
+    button.setProperty("fontItalic", False)
+    button.setProperty("fontUnderline", False)
+    button.setProperty("fontStrikeout", False)
+    _pump(20)
+    font = text_item.property("font")
+    assert text_item.property("text") == ""
+    assert not text_item.property("visible")
+    assert not font.bold()
+    assert not font.italic()
+    assert not font.underline()
+    assert not font.strikeOut()
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_content_uses_lightweight_noninteractive_text():
+    source = BUTTON_SOURCES[3].read_text(encoding="utf-8")
+    assert 'import "../../data"' not in source
+    assert "    Text {\n        id: contentText" in source
+    assert "    Label {\n        id: contentText" not in source
+    assert "        wrapMode: Text.WordWrap" in source
 
 
 def test_button_content_omits_unused_parent_state_bindings():

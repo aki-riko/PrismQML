@@ -6,7 +6,6 @@ import QtQuick
 import "../../.."
 import "../../icons"
 import "../../feedback"
-import "../../data"
 
 // ButtonContent - Content area (icon + text + rings) 内容区域
 // Internal module for Button Button内部模块
@@ -114,9 +113,8 @@ Row {
     }
 
     // Text 文字
-    Label {
+    Text {
         id: contentText
-        type: Enums.label.type_body
         text: {
             if (content.countdownActive) {
                 return content.countdownRemaining + content.countdownText
@@ -126,6 +124,7 @@ Row {
             }
             return content.text
         }
+        font.family: Enums.fontFamily
         font.pixelSize: content.fontSize
         font.bold: content.fontBold
         font.italic: content.fontItalic
@@ -135,6 +134,7 @@ Row {
         // A toggle button changes its background immediately when checked. toggle 类按钮从 unchecked 切换到 checked 时背景色会突变。
         // A 300 ms ColorAnimation passes through gray and nearly disappears on a light background. 300ms 的 ColorAnimation 会经过灰色中间态，在浅色背景上几乎不可见，表现为“切换后文字消失”。
         color: content.textColor
+        wrapMode: Text.WordWrap
         visible: text !== ""
         anchors.verticalCenter: parent.verticalCenter
     }
