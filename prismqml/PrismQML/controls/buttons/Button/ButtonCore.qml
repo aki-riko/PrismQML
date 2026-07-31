@@ -137,6 +137,7 @@ Widget {
     property color _targetBgColor
     property color _targetBorderColor
     property bool _colorAnimationsReady: false
+    property bool _menuPrewarmRetryScheduled: false
 
     // ==================== Signals 信号 ====================
     signal clicked()
@@ -257,8 +258,14 @@ Widget {
     }
 
     function _scheduleMenuPrewarmRetry() {
-        if (!_hasMenuFeature || !_menuPrewarmRetryTimer.item) return
-        if (!_menuPrewarmRetryTimer.item.running) _menuPrewarmRetryTimer.item.start()
+        if (!_hasMenuFeature || _menuPrewarmRetryScheduled) return
+        _menuPrewarmRetryScheduled = true
+        Qt.callLater(control._runMenuPrewarmRetry)
+    }
+
+    function _runMenuPrewarmRetry() {
+        _menuPrewarmRetryScheduled = false
+        _retryMenuPrewarm()
     }
 
     function _startButtonToolTipTimer() {
@@ -337,16 +344,6 @@ Widget {
     on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
-    Loader {
-        id: _menuPrewarmRetryTimer
-        active: control._hasMenuFeature
-
-        sourceComponent: Timer {
-            interval: Enums.duration.none
-            onTriggered: control._retryMenuPrewarm()
-        }
-    }
-
     // ToolTip timer for Button - override Widget's _hoverArea
     // Button专用ToolTip定时器 - 覆盖Widget的_hoverArea
     Loader {

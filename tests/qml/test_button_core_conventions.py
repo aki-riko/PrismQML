@@ -441,6 +441,13 @@ def test_button_core_custom_content_state_is_not_a_live_children_binding():
     )
 
 
+def test_button_core_schedules_menu_retry_without_per_instance_timer():
+    source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    assert "property bool _menuPrewarmRetryScheduled: false" in source
+    assert "Qt.callLater(control._runMenuPrewarmRetry)" in source
+    assert "_menuPrewarmRetryTimer" not in source
+
+
 def test_button_core_initial_colors_and_handlers(button_core_scene):
     root, warnings, windows_before = button_core_scene
     button = _button(root, "lifecycleButton")
