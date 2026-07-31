@@ -35,13 +35,6 @@ from PySide6.QtNetwork import (
     QNetworkRequest,
 )
 
-from ._updater_download import (
-    commit_download_file,
-    discard_completed_download,
-    open_unique_download_file,
-    verify_download_digest,
-    write_download_bytes,
-)
 from ._updater_release import (
     _is_newer,
     _parse_version,
@@ -60,6 +53,11 @@ _UPDATER_API_BASE_ENV = "PRISMQML_UPDATER_API_BASE_URL"
 _DEFAULT_API_BASE_URL = "https://api.github.com"
 _CONNECTION_CACHE_EXPIRY_SECONDS = 0
 _INSTALL_STRATEGIES = frozenset(("in_place", "dual_slot"))
+
+
+def _download_runtime():
+    from . import _updater_download
+    return _updater_download
 
 
 def _validate_install_strategy(value: str) -> str:
@@ -289,7 +287,7 @@ class Updater(QObject):
                 self._download_file,
                 self._download_partial_path,
                 self._download_path,
-            ) = open_unique_download_file(url)
+            ) = _download_runtime().open_unique_download_file(url)
         except OSError as e:
             logger.exception(f"[Updater] 创建下载文件失败: {e}")
             self.downloadFailed.emit(f"创建下载文件失败: {e}")
@@ -337,7 +335,7 @@ class Updater(QObject):
         if not payload or self._download_error:
             return
         try:
-            write_download_bytes(self._download_file, payload)
+            _download_runtime().write_download_bytes(self._download_file, payload)
         except (KeyboardInterrupt, SystemExit):
             self._abort_download_reply(reply)
             raise
@@ -371,6 +369,7 @@ class Updater(QObject):
 
     def _finalize_download(self, reply) -> str:
         """Write the tail and commit, returning an error message. 完成下载提交。"""
+        download_runtime = _download_runtime()
         if self._download_error:
             return self._download_error
         if reply.error() != QNetworkReply.NetworkError.NoError:
@@ -378,8 +377,8 @@ class Updater(QObject):
         try:
             remaining = bytes(reply.readAll())
             if remaining:
-                write_download_bytes(self._download_file, remaining)
-            commit_download_file(
+                download_runtime.write_download_bytes(self._download_file, remaining)
+            download_runtime.commit_download_file(
                 self._download_file,
                 self._download_partial_path,
                 self._download_path,
@@ -390,7 +389,7 @@ class Updater(QObject):
             return f"提交下载文件失败: {e}"
         if not os.path.isfile(self._download_path) or os.path.getsize(self._download_path) == 0:
             return "下载文件无效"
-        if self._expected_digest and not verify_download_digest(
+        if self._expected_digest and not download_runtime.verify_download_digest(
             self._download_path, self._expected_digest
         ):
             return "下载文件摘要校验失败"
@@ -463,7 +462,7 @@ class Updater(QObject):
             else launch_non_windows_installer
         )
         if not launcher(installer_path, args):
-            self._download_path = discard_completed_download(
+            self._download_path = _download_runtime().discard_completed_download(
                 installer_path, self._download_path
             )
             return False
@@ -483,7 +482,7 @@ class Updater(QObject):
             logger.error("[Updater] Windows 双槽准备器未初始化")
             return False
         if not self._slot_preparation.stage(installer_path, silent_args):
-            self._download_path = discard_completed_download(
+            self._download_path = _download_runtime().discard_completed_download(
                 installer_path, self._download_path
             )
             return False
