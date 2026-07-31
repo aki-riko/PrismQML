@@ -28,7 +28,7 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function startShow() {
-        closeAnim.stop()
+        if (closeAnimLoader.item) closeAnimLoader.item.stop()
         showAnim.stop()
         if (!targetWindow || targetWindow.opacity < 0.99) {
             animScale = 0.95
@@ -38,7 +38,7 @@ Item {
     }
 
     function restoreVisibleState() {
-        closeAnim.stop()
+        if (closeAnimLoader.item) closeAnimLoader.item.stop()
         showAnim.stop()
         if (targetWindow) {
             targetWindow.opacity = 1
@@ -50,9 +50,13 @@ Item {
     function animatedClose() {
         if (!targetWindow) return
         showAnim.stop()
-        closeAnim.stop()
-        closeAnim.start()
+        prewarmCloseAnimation()
+        if (!closeAnimLoader.item) return
+        closeAnimLoader.item.stop()
+        closeAnimLoader.item.start()
     }
+
+    function prewarmCloseAnimation() { closeAnimLoader.active = true }
 
     // Minimize directly and let DWM own the transition. 直接最小化并由 DWM 接管过渡。
     function animatedMinimize() {
@@ -89,15 +93,18 @@ Item {
     }
 
     // Close animation. 关闭动画。
-    SequentialAnimation {
-        id: closeAnim
-        Component.onCompleted: if (targetWindow && targetWindow.profileDetail) targetWindow.profileDetail("WindowAnimationHelper closeAnim completed")
-        ParallelAnimation {
-            NumberAnimation { target: targetWindow; property: "opacity"; to: 0; duration: Enums.duration.normal; easing.type: Easing.InCubic }
-            NumberAnimation { target: helper; property: "animScale"; to: 0.95; duration: Enums.duration.normal; easing.type: Easing.InCubic }
-            NumberAnimation { target: helper; property: "animOpacity"; to: 0; duration: Enums.duration.normal; easing.type: Easing.InCubic }
+    Loader {
+        id: closeAnimLoader
+        active: false
+        sourceComponent: SequentialAnimation {
+            Component.onCompleted: if (targetWindow && targetWindow.profileDetail) targetWindow.profileDetail("WindowAnimationHelper closeAnim completed")
+            ParallelAnimation {
+                NumberAnimation { target: targetWindow; property: "opacity"; to: 0; duration: Enums.duration.normal; easing.type: Easing.InCubic }
+                NumberAnimation { target: helper; property: "animScale"; to: 0.95; duration: Enums.duration.normal; easing.type: Easing.InCubic }
+                NumberAnimation { target: helper; property: "animOpacity"; to: 0; duration: Enums.duration.normal; easing.type: Easing.InCubic }
+            }
+            ScriptAction { script: onCloseCallback() }
         }
-        ScriptAction { script: onCloseCallback() }
     }
 
 }

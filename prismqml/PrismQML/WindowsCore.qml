@@ -161,6 +161,7 @@ Window {
     function animatedMinimize() { animHelper.animatedMinimize() }
     function animatedMaximize() { animHelper.animatedMaximize() }
     function animatedRestore() { animHelper.animatedRestore() }
+    function prewarmCloseAnimation() { animHelper.prewarmCloseAnimation() }
 
     // ==================== Size 尺寸 ====================
     width: Enums.window.defaultWidth

@@ -115,6 +115,9 @@ Rectangle {
         id: area
         anchors.fill: parent
         hoverEnabled: true
+        onEntered: {
+            if (captionBtn.isClose) captionBtn.targetWindow.prewarmCloseAnimation()
+        }
         onClicked: {
             captionBtn.clicked()
         }
