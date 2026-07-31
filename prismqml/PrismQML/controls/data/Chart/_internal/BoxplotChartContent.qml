@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../../../.."
+import "BoxplotChartGeometry.js" as Geometry
 
 // BoxplotChartContent - Boxplot chart rendering component 箱线图渲染组件
 // Fluent Design style: clean boxes with subtle hover effects
@@ -40,6 +41,8 @@ Item {
     property real _boxGeometryGroupSize: 0
     property real _boxGeometrySize: 0
     property real _lastGeometryProgress: -1
+    property int _lastFrameBoxDrawCount: 0
+    property int _paintedHoverIndex: -1
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int dataLength: boxplotData.length
@@ -160,7 +163,27 @@ Item {
         canvas.requestPaint()
     }
 
-    onHoveredIndexChanged: canvas.requestPaint()
+    function _hoverDirtyRect(index) {
+        return Geometry.dirtyRect(
+            index, dataLength, isHorizontal, width, height,
+            Enums.spacing.xs + Enums.border.thin
+        )
+    }
+
+    function _requestHoverPaint() {
+        if (_boxGeometryDirty || (animated && canvas.animProgress < 1) ||
+                (showValues && !isHorizontal)) {
+            canvas.requestPaint()
+            return
+        }
+        var previous = _hoverDirtyRect(_paintedHoverIndex)
+        var current = _hoverDirtyRect(hoveredIndex)
+        if (!previous && !current) return
+        var dirty = Geometry.unitedBounds(previous, current)
+        canvas.markDirty(Qt.rect(dirty.x, dirty.y, dirty.width, dirty.height))
+    }
+
+    onHoveredIndexChanged: _requestHoverPaint()
     onBoxplotDataChanged: _invalidateBoxGeometry()
     onIsHorizontalChanged: _invalidateBoxGeometry()
 
@@ -171,9 +194,10 @@ Item {
 
         property real animProgress: root.animated ? 0 : 1
 
-        function paintVertical(ctx, dataLen) {
+        function paintVertical(ctx, dataLen, startIndex, endIndex) {
             var groupWidth = root._boxGeometryGroupSize
             var boxWidth = root._boxGeometrySize
+            var drawCount = 0
             
             // Fluent Design: subtle vertical indicator line 微妙垂直指示线
             if (root.hoveredIndex >= 0 && root.hoveredIndex < dataLen) {
@@ -186,9 +210,10 @@ Item {
                 ctx.stroke()
             }
             
-            for (var i = 0; i < dataLen; i++) {
+            for (var i = startIndex; i < endIndex; i++) {
                 var geometry = root._boxGeometry[i]
                 if (!geometry) continue
+                drawCount++
                 var d = root.boxplotData[i]
                 var centerX = geometry.center
                 var hovered = (i === root.hoveredIndex)
@@ -285,11 +310,13 @@ Item {
                     ctx.fillText(d.min.toString(), labelX, minY)
                 }
             }
+            return drawCount
         }
 
-        function paintHorizontal(ctx, dataLen) {
+        function paintHorizontal(ctx, dataLen, startIndex, endIndex) {
             var groupHeight = root._boxGeometryGroupSize
             var boxHeight = root._boxGeometrySize
+            var drawCount = 0
             
             // Fluent Design: subtle horizontal indicator line 微妙水平指示线
             if (root.hoveredIndex >= 0 && root.hoveredIndex < dataLen) {
@@ -302,9 +329,10 @@ Item {
                 ctx.stroke()
             }
             
-            for (var i = 0; i < dataLen; i++) {
+            for (var i = startIndex; i < endIndex; i++) {
                 var geometry = root._boxGeometry[i]
                 if (!geometry) continue
+                drawCount++
                 var centerY = geometry.center
                 var hovered = (i === root.hoveredIndex)
                 var color = root.getBoxColor(i)
@@ -385,24 +413,49 @@ Item {
                     ctx.fill()
                 }
             }
+            return drawCount
         }
 
         anchors.fill: parent
 
-        onPaint: {
+        onPaint: (region) => {
             var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
+            var fullPaint = root._boxGeometryDirty || !region ||
+                    (region.x <= 0 && region.y <= 0 &&
+                     region.width >= width && region.height >= height)
+            if (fullPaint) ctx.clearRect(0, 0, width, height)
+            else ctx.clearRect(region.x, region.y, region.width, region.height)
 
-            if (root.boxplotData.length === 0) return
+            if (root.boxplotData.length === 0) {
+                root._lastFrameBoxDrawCount = 0
+                root._paintedHoverIndex = root.hoveredIndex
+                return
+            }
 
             var dataLen = root.dataLength
             root._updateAnimatedGeometry(root.animated ? animProgress : 1)
+            var range = Geometry.paintRange(
+                region, fullPaint, dataLen, root._boxGeometryGroupSize,
+                root.isHorizontal, Enums.spacing.xs + Enums.border.thin
+            )
+            if (!fullPaint) {
+                ctx.save()
+                ctx.beginPath()
+                ctx.rect(region.x, region.y, region.width, region.height)
+                ctx.clip()
+            }
 
             if (root.isHorizontal) {
-                paintHorizontal(ctx, dataLen)
+                root._lastFrameBoxDrawCount = paintHorizontal(
+                    ctx, dataLen, range.start, range.end
+                )
             } else {
-                paintVertical(ctx, dataLen)
+                root._lastFrameBoxDrawCount = paintVertical(
+                    ctx, dataLen, range.start, range.end
+                )
             }
+            if (!fullPaint) ctx.restore()
+            root._paintedHoverIndex = root.hoveredIndex
         }
 
         onWidthChanged: root._invalidateBoxGeometry()
