@@ -85,6 +85,7 @@ QtObject {
  // ==================== Motion 运动参数 ====================
  readonly property QtObject motion: QtObject {
  readonly property int navigationTitleMarqueeSpeed: 25 // Navigation title hover marquee speed in pixels per second 导航标题悬浮跑马灯速度（像素/秒）
+ readonly property real scrollReturnBackOvershoot: 1.70158 // Original Qt OutBack return strength 原始 Qt OutBack 回程强度
  }
  
  // ==================== Z-Index 层级 ====================

@@ -14,6 +14,9 @@ Item {
     required property int outwardDuration
     required property int returnDuration
     required property int easing
+    required property real normalOutwardDistance
+    required property real maxOutwardDistance
+    required property real returnOvershoot
 
     // ==================== Internal Props 内部属性 ====================
     property real _value: 0
@@ -24,6 +27,7 @@ Item {
     property bool _outwardPhase: false
     property real _lastPublishedValue: 0
     property real _lastUpdateTimestamp: 0
+    property real _adaptiveReturnOvershoot: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool active: _active
@@ -42,6 +46,7 @@ Item {
         _returnValue = returnValue
         _lastPublishedValue = startValue
         _lastUpdateTimestamp = Date.now()
+        _adaptiveReturnOvershoot = _resolveReturnOvershoot()
         _outwardPhase = true
 
         if (!animated) {
@@ -85,6 +90,19 @@ Item {
         if (!_active) return
         _active = false
         _outwardPhase = false
+    }
+
+    function _resolveReturnOvershoot() {
+        var normalDistance = Math.max(0, normalOutwardDistance)
+        var maximumDistance = Math.max(normalDistance, maxOutwardDistance)
+        var adaptiveSpan = maximumDistance - normalDistance
+        var outwardDistance = Math.abs(_outwardValue - _returnValue)
+        if (adaptiveSpan <= 0 || outwardDistance <= normalDistance) {
+            return returnOvershoot
+        }
+        var distanceProgress = Math.min(
+            1, (outwardDistance - normalDistance) / adaptiveSpan)
+        return returnOvershoot * (1 - distanceProgress)
     }
 
     function _publishValue() {
@@ -146,6 +164,7 @@ Item {
         property: "_value"
         duration: control.returnDuration
         easing.type: control.easing
+        easing.overshoot: control._adaptiveReturnOvershoot
         onFinished: control._finish()
     }
 

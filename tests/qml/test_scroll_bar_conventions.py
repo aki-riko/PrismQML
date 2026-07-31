@@ -461,6 +461,49 @@ def test_scroll_area_bounce_peak_does_not_expand_after_gui_stall(scroll_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_scroll_area_adapts_only_large_bounce_return(scroll_scene):
+    window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+    maximum = helper.property("maxScroll")
+    step = helper.property("step")
+
+    values = []
+    area.contentYChanged.connect(
+        lambda: values.append(float(area.property("contentY")))
+    )
+
+    area.setProperty("contentY", maximum)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+    normal_event = _send_wheel(window, area, -120)
+    assert normal_event.isAccepted()
+    _pump(1000)
+    normal_values = values.copy()
+    normal_peak = max(normal_values)
+    normal_trough = min(normal_values)
+    assert maximum - step * 0.08 <= normal_trough <= maximum - step * 0.03
+    assert area.property("contentY") == pytest.approx(maximum)
+    values.clear()
+    area.setProperty("contentY", maximum)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+    large_event = _send_wheel(window, area, -360)
+    assert large_event.isAccepted()
+    _pump(1000)
+    large_peak = max(values)
+    peak_index = values.index(large_peak)
+    return_values = values[peak_index:]
+    assert large_peak > normal_peak
+    assert min(return_values) >= maximum - 0.5
+    assert all(
+        current <= previous + 0.5
+        for previous, current in zip(return_values, return_values[1:])
+    )
+    assert area.property("contentY") == pytest.approx(maximum)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_scroll_area_boundary_bounce_does_not_restart_during_return(scroll_scene):
     window, items, warnings, windows_before = scroll_scene
     area = items["defaultArea"]

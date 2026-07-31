@@ -351,6 +351,9 @@ Item {
         outwardDuration: Enums.duration.fast
         returnDuration: Enums.duration.bounce
         easing: Easing.OutBack
+        normalOutwardDistance: helper.step
+        maxOutwardDistance: helper._maxOvershoot
+        returnOvershoot: Enums.motion.scrollReturnBackOvershoot
         onPositionChanged: (position) => helper._smoothY = position
         onReturnStarted: helper._blockedBounceBoundaryV = helper._bounceBoundaryV
     }
@@ -362,6 +365,9 @@ Item {
         outwardDuration: Enums.duration.fast
         returnDuration: Enums.duration.bounce
         easing: Easing.OutBack
+        normalOutwardDistance: helper.step
+        maxOutwardDistance: helper._maxOvershoot
+        returnOvershoot: Enums.motion.scrollReturnBackOvershoot
         onPositionChanged: (position) => helper._smoothX = position
         onReturnStarted: helper._blockedBounceBoundaryH = helper._bounceBoundaryH
     }
