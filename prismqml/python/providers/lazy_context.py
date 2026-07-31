@@ -17,7 +17,7 @@ from PySide6.QtCore import QObject, Property, Signal, Slot
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine
 
-from ._qrcode_protocol import DEFAULT_SIZE
+from ._qrcode_constants import DEFAULT_QR_CODE_SIZE
 
 
 class LazyQRCodeGenerator(QObject):
@@ -66,7 +66,7 @@ class LazyQRCodeGenerator(QObject):
     def getImageSource(
         self,
         content: str,
-        size: int = DEFAULT_SIZE,
+        size: int = DEFAULT_QR_CODE_SIZE,
         fgColor: str = "#000000",
         bgColor: str = "#ffffff",
         errorLevel: str = "M",

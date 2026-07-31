@@ -15,11 +15,13 @@ from typing import Any
 
 from PySide6.QtGui import QColor
 
+from ._qrcode_constants import DEFAULT_QR_CODE_SIZE
+
 
 PROTOCOL_VERSION = 1
 PROTOCOL_PREFIX = "v1."
 IMAGE_SOURCE_PREFIX = "image://qrcode/"
-DEFAULT_SIZE = 128
+DEFAULT_SIZE = DEFAULT_QR_CODE_SIZE
 MIN_SIZE = 32
 MAX_SIZE = 1024
 MAX_CONTENT_UTF8_BYTES = 1024
