@@ -12,6 +12,15 @@ from PySide6.QtCore import QDir, QFileInfo, QUrl
 from prismqml.python.core.window_helper import WindowHelper
 
 
+WINDOW_HELPER_SOURCE = (
+    Path(__file__).resolve().parents[1]
+    / "prismqml"
+    / "python"
+    / "core"
+    / "window_helper.py"
+)
+
+
 def test_resolve_dropped_folder_path_accepts_real_encoded_directory(
     tmp_path: Path,
 ) -> None:
@@ -23,6 +32,13 @@ def test_resolve_dropped_folder_path_accepts_real_encoded_directory(
 
     expected = QDir.cleanPath(QFileInfo(str(folder)).absoluteFilePath())
     assert actual == expected
+
+
+def test_window_helper_defers_folder_drop_implementation_import() -> None:
+    """Folder validation loads on the first real drop. 文件夹校验仅在真实拖放时加载。"""
+    source = WINDOW_HELPER_SOURCE.read_text(encoding="utf-8")
+    assert "from ._folder_drop import FolderDropPathHelper" not in source
+    assert "        from ._folder_drop import resolve_dropped_folder_path" in source
 
 
 def test_resolve_dropped_folder_path_rejects_file_and_missing_path(

@@ -8,10 +8,9 @@ import sys
 import time
 from typing import Any, Optional
 
-from PySide6.QtCore import QObject, QPoint, QSize, Slot
+from PySide6.QtCore import QObject, QPoint, QSize, QUrl, Slot
 from PySide6.QtGui import QGuiApplication, QIcon, QPainter, QPixmap, Qt
 
-from ._folder_drop import FolderDropPathHelper
 from ._icon_path import resolve_icon_path
 from ._popup_owner import clear_popup_window_owner, ensure_popup_window_owner
 from ._window_follower import (
@@ -58,7 +57,7 @@ def _screen_geometry_at(x: int, y: int, available: bool) -> dict[str, int]:
     }
 
 
-class WindowHelper(FolderDropPathHelper):
+class WindowHelper(QObject):
     """
     窗口辅助工具单例
 
@@ -247,6 +246,13 @@ class WindowHelper(FolderDropPathHelper):
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             error(f"窗口跟随解绑失败: {exc}")
             return False
+
+    @Slot(QUrl, result=str)
+    def resolveDroppedFolderPath(self, folder_url: QUrl) -> str:
+        """Resolve a dropped folder only when a drop occurs. 仅在真实拖放时解析文件夹。"""
+        from ._folder_drop import resolve_dropped_folder_path
+
+        return resolve_dropped_folder_path(folder_url)
 
     @Slot(str)
     def setAppIcon(self, icon: str) -> None:
