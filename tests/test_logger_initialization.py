@@ -9,6 +9,8 @@ from __future__ import annotations
 import ast
 import importlib.util
 import logging
+import subprocess
+import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from uuid import uuid4
@@ -67,6 +69,30 @@ def test_logger_initialization_configures_real_console_and_rotating_file(tmp_pat
         assert "[Init] real file message" in log_file.read_text(encoding="utf-8")
     finally:
         _cleanup_logger(logger_wrapper.logger)
+
+
+def test_logger_import_defers_rotating_file_runtime(tmp_path):
+    log_file = tmp_path / "lazy" / "prism.log"
+    code = """
+import importlib.util
+import sys
+
+spec = importlib.util.spec_from_file_location("_prismqml_logger_lazy_test", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+if "logging.handlers" in sys.modules:
+    raise SystemExit(2)
+module.Logger("PrismQML.Test.Logger.Lazy", sys.argv[2], colored=False)
+if "logging.handlers" not in sys.modules:
+    raise SystemExit(3)
+"""
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code, str(SOURCE_PATH), str(log_file)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_logger_singleton_second_initialization_is_a_noop():

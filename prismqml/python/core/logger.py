@@ -26,7 +26,6 @@ from collections import deque
 _start_time = time.perf_counter()
 from typing import Optional
 from pathlib import Path
-from logging.handlers import RotatingFileHandler
 
 # ==================== Color Support 彩色支持 ====================
 
@@ -178,8 +177,10 @@ def _create_console_handler(level: int, colored: bool) -> logging.StreamHandler:
 
 def _create_rotating_file_handler(
     log_file: str, level: int, max_bytes: int, backup_count: int
-) -> RotatingFileHandler:
+) -> logging.Handler:
     """Create the configured rotating file handler. 创建已配置的轮转文件处理器。"""
+    from logging.handlers import RotatingFileHandler
+
     log_path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     handler = RotatingFileHandler(
