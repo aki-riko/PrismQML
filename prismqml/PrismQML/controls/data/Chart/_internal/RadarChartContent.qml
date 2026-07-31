@@ -28,6 +28,17 @@ Item {
     property var pointPositions: []
     property real tooltipX: 0
     property real tooltipY: 0
+    property var _axisGeometry: []
+    property var _seriesPointGeometry: []
+    property bool _pointGeometryDirty: true
+    property int _pointGeometryBuildCount: 0
+    property int _lastFramePointUpdateCount: 0
+    property real _geometryCenterX: 0
+    property real _geometryCenterY: 0
+    property real _geometryRadius: 0
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _hitRadius: 20
 
     // ==================== Signals 信号 ====================
     signal pointClicked(int pointIndex, var data)
@@ -39,10 +50,108 @@ Item {
         return Enums.chartColors.extendedPalette[index % Enums.chartColors.extendedPalette.length]
     }
 
+    function _buildAxisGeometry() {
+        var axes = []
+        var count = indicators.length
+        var angleStep = count > 0 ? Math.PI * 2 / count : 0
+        var startAngle = -Math.PI / 2
+        for (var index = 0; index < count; index++) {
+            var indicator = indicators[index] || {}
+            var angle = startAngle + index * angleStep
+            var maximum = typeof indicator.max === "number" && isFinite(indicator.max) && indicator.max > 0
+                          ? indicator.max : 100
+            axes.push({
+                angle: angle,
+                unitX: Math.cos(angle), unitY: Math.sin(angle),
+                maximum: maximum, label: indicator.name || ""
+            })
+        }
+        return axes
+    }
+
+    function _buildSeriesPoints(seriesIndex, axes, radius) {
+        var seriesData = series[seriesIndex] || {}
+        var values = seriesData.values && typeof seriesData.values.length === "number"
+                     ? seriesData.values : []
+        var points = []
+        for (var pointIndex = 0; pointIndex < axes.length; pointIndex++) {
+            var value = typeof values[pointIndex] === "number" && isFinite(values[pointIndex])
+                        ? values[pointIndex] : 0
+            var pointRadius = radius * value / axes[pointIndex].maximum
+            var offsetX = axes[pointIndex].unitX * pointRadius
+            var offsetY = axes[pointIndex].unitY * pointRadius
+            points.push({
+                x: _geometryCenterX + offsetX, y: _geometryCenterY + offsetY,
+                offsetX: offsetX, offsetY: offsetY,
+                seriesIndex: seriesIndex, pointIndex: pointIndex, value: value
+            })
+        }
+        return points
+    }
+
+    function _rebuildPointGeometry(canvasWidth, canvasHeight) {
+        _geometryCenterX = canvasWidth / 2
+        _geometryCenterY = canvasHeight / 2
+        _geometryRadius = Math.min(canvasWidth, canvasHeight) / 2 - 40
+        var axes = _buildAxisGeometry()
+        var groupedPoints = []
+        var flatPoints = []
+        for (var seriesIndex = 0; seriesIndex < series.length; seriesIndex++) {
+            var points = _buildSeriesPoints(seriesIndex, axes, _geometryRadius)
+            groupedPoints.push(points)
+            for (var pointIndex = 0; pointIndex < points.length; pointIndex++) {
+                flatPoints.push(points[pointIndex])
+            }
+        }
+        _axisGeometry = axes
+        _seriesPointGeometry = groupedPoints
+        pointPositions = flatPoints
+        _pointGeometryDirty = false
+        _pointGeometryBuildCount++
+    }
+
+    function _updateAnimatedPoints(progress) {
+        if (_pointGeometryDirty) _rebuildPointGeometry(width, height)
+        for (var index = 0; index < pointPositions.length; index++) {
+            var point = pointPositions[index]
+            point.x = _geometryCenterX + point.offsetX * progress
+            point.y = _geometryCenterY + point.offsetY * progress
+        }
+        _lastFramePointUpdateCount = pointPositions.length
+    }
+
+    function _invalidatePointGeometry() {
+        _pointGeometryDirty = true
+        canvas.requestPaint()
+    }
+
+    function _nearestPointIndex(x, y) {
+        if (_pointGeometryDirty) {
+            _rebuildPointGeometry(width, height)
+            _updateAnimatedPoints(animated ? canvas.animProgress : 1)
+        }
+        var nearestIndex = -1
+        var nearestDistanceSquared = _hitRadius * _hitRadius
+        for (var index = 0; index < pointPositions.length; index++) {
+            var point = pointPositions[index]
+            var deltaX = x - point.x
+            var deltaY = y - point.y
+            var distanceSquared = deltaX * deltaX + deltaY * deltaY
+            if (distanceSquared < nearestDistanceSquared) {
+                nearestDistanceSquared = distanceSquared
+                nearestIndex = index
+            }
+        }
+        return nearestIndex
+    }
+
     // Repaint on hover change 悬浮变化时重绘
     onHoveredSeriesIndexChanged: canvas.requestPaint()
     onHoveredPointIndexChanged: canvas.requestPaint()
-    onSeriesChanged: canvas.requestPaint()
+    onSeriesChanged: _invalidatePointGeometry()
+    onIndicatorsChanged: _invalidatePointGeometry()
+    onShowLabelsChanged: canvas.requestPaint()
+    onRingsChanged: canvas.requestPaint()
 
     // ==================== Content 内容 ====================
     // Canvas 画布
@@ -51,158 +160,114 @@ Item {
 
         property real animProgress: 0
 
-        anchors.fill: parent
-
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            
-            var centerX = width / 2
-            var centerY = height / 2
-            var radius = Math.min(width, height) / 2 - 40  // More padding for labels 更多标签空间
-            var angleStep = Math.PI * 2 / root.indicators.length
-            var startAngle = -Math.PI / 2  // Start from top 从顶部开始
-            
-            // Draw grid rings (polygon style) 绘制网格环（多边形样式）
+        function drawGrid(ctx) {
+            var axes = root._axisGeometry
+            if (axes.length === 0) return
             ctx.strokeStyle = Enums.chartColors.gridLine
             ctx.lineWidth = 1
-            
-            for (var r = 1; r <= root.rings; r++) {
-                var ringRadius = radius * r / root.rings
+            for (var ring = 1; ring <= root.rings; ring++) {
+                var ringRadius = root._geometryRadius * ring / root.rings
                 ctx.beginPath()
-                for (var i = 0; i <= root.indicators.length; i++) {
-                    var angle = startAngle + i * angleStep
-                    var x = centerX + Math.cos(angle) * ringRadius
-                    var y = centerY + Math.sin(angle) * ringRadius
-                    if (i === 0) ctx.moveTo(x, y)
+                for (var index = 0; index < axes.length; index++) {
+                    var x = root._geometryCenterX + axes[index].unitX * ringRadius
+                    var y = root._geometryCenterY + axes[index].unitY * ringRadius
+                    if (index === 0) ctx.moveTo(x, y)
                     else ctx.lineTo(x, y)
                 }
                 ctx.closePath()
                 ctx.stroke()
             }
-            
-            // Draw axis lines 绘制轴线
-            for (var j = 0; j < root.indicators.length; j++) {
-                var axisAngle = startAngle + j * angleStep
+            for (var axisIndex = 0; axisIndex < axes.length; axisIndex++) {
                 ctx.beginPath()
-                ctx.strokeStyle = Enums.chartColors.gridLine
-                ctx.lineWidth = 1
-                ctx.moveTo(centerX, centerY)
-                ctx.lineTo(centerX + Math.cos(axisAngle) * radius,
-                          centerY + Math.sin(axisAngle) * radius)
+                ctx.moveTo(root._geometryCenterX, root._geometryCenterY)
+                ctx.lineTo(root._geometryCenterX + axes[axisIndex].unitX * root._geometryRadius,
+                           root._geometryCenterY + axes[axisIndex].unitY * root._geometryRadius)
                 ctx.stroke()
             }
-            
-            // Draw indicator labels 绘制指标标签
-            if (root.showLabels) {
-                ctx.fillStyle = Enums.textColor.secondary
-                ctx.font = "11px " + Enums.canvasFontFamily
-                ctx.textBaseline = "middle"
-                
-                for (var k = 0; k < root.indicators.length; k++) {
-                    var labelAngle = startAngle + k * angleStep
-                    var labelRadius = radius + 20
-                    var lx = centerX + Math.cos(labelAngle) * labelRadius
-                    var ly = centerY + Math.sin(labelAngle) * labelRadius
-                    
-                    // Adjust text alignment based on position 根据位置调整文本对齐
-                    var labelText = root.indicators[k].name || ""
-                    if (Math.abs(labelAngle + Math.PI / 2) < 0.1) {
-                        // Top 顶部
-                        ctx.textAlign = "center"
-                        ly -= 5
-                    } else if (Math.abs(labelAngle - Math.PI / 2) < 0.1) {
-                        // Bottom 底部
-                        ctx.textAlign = "center"
-                        ly += 5
-                    } else if (labelAngle > -Math.PI / 2 && labelAngle < Math.PI / 2) {
-                        // Right side 右侧
-                        ctx.textAlign = "left"
-                        lx += 5
-                    } else {
-                        // Left side 左侧
-                        ctx.textAlign = "right"
-                        lx -= 5
-                    }
-                    ctx.fillText(labelText, lx, ly)
-                }
-            }
-            
-            // Draw data series 绘制数据系列
-            var progress = root.animated ? animProgress : 1
-            var allPoints = []
-            
-            for (var s = 0; s < root.series.length; s++) {
-                var seriesData = root.series[s]
-                var seriesValues = seriesData && seriesData.values && typeof seriesData.values.length === "number"
-                                   ? seriesData.values : []
-                var seriesColor = root.getSeriesColor(s)
-                var isSeriesHovered = (s === root.hoveredSeriesIndex)
-                
-                // Draw filled area 绘制填充区域
-                ctx.beginPath()
-                var seriesPoints = []
-                for (var p = 0; p < root.indicators.length; p++) {
-                    var indicator = root.indicators[p] || {}
-                    var value = typeof seriesValues[p] === "number" && isFinite(seriesValues[p]) ? seriesValues[p] : 0
-                    var indicatorMax = typeof indicator.max === "number" && isFinite(indicator.max) && indicator.max > 0
-                                      ? indicator.max : 100
-                    var normalizedValue = (value / indicatorMax) * progress
-                    var pointRadius = radius * normalizedValue
-                    var pointAngle = startAngle + p * angleStep
-                    var px = centerX + Math.cos(pointAngle) * pointRadius
-                    var py = centerY + Math.sin(pointAngle) * pointRadius
-                    
-                    seriesPoints.push({x: px, y: py, seriesIndex: s, pointIndex: p, value: value})
-                    
-                    if (p === 0) ctx.moveTo(px, py)
-                    else ctx.lineTo(px, py)
-                }
-                allPoints = allPoints.concat(seriesPoints)
-                ctx.closePath()
-                
-                // Fluent Design: subtle fill 柔和填充
-                var fillAlpha = isSeriesHovered ? Enums.stateColor.chartFillMedium + 0.05 : Enums.opacityLevel.medium
-                ctx.fillStyle = Qt.rgba(Qt.color(seriesColor).r, Qt.color(seriesColor).g, 
-                                       Qt.color(seriesColor).b, fillAlpha)
-                ctx.fill()
-                
-                // Fluent Design: clean border line 简洁边框线
-                ctx.strokeStyle = seriesColor
-                ctx.lineWidth = isSeriesHovered ? 2.5 : 2
-                ctx.stroke()
-                
-                // Fluent Design: simple data points 简洁数据点
-                for (var q = 0; q < root.indicators.length; q++) {
-                    var ind = root.indicators[q] || {}
-                    var val = typeof seriesValues[q] === "number" && isFinite(seriesValues[q]) ? seriesValues[q] : 0
-                    var indMax = typeof ind.max === "number" && isFinite(ind.max) && ind.max > 0 ? ind.max : 100
-                    var normVal = (val / indMax) * progress
-                    var dotRadius = radius * normVal
-                    var dotAngle = startAngle + q * angleStep
-                    var dx = centerX + Math.cos(dotAngle) * dotRadius
-                    var dy = centerY + Math.sin(dotAngle) * dotRadius
-                    
-                    var isPointHovered = (s === root.hoveredSeriesIndex && q === root.hoveredPointIndex)
-                    var dotSize = isPointHovered ? 5 : 3
-                    
-                    // White fill 白色填充
-                    ctx.beginPath()
-                    ctx.fillStyle = Enums.cardColor
-                    ctx.arc(dx, dy, dotSize, 0, Math.PI * 2)
-                    ctx.fill()
-                    
-                    // Color border 彩色边框
-                    ctx.beginPath()
-                    ctx.strokeStyle = seriesColor
-                    ctx.lineWidth = isPointHovered ? 2 : 1.5
-                    ctx.arc(dx, dy, dotSize, 0, Math.PI * 2)
-                    ctx.stroke()
-                }
-            }
-            
-            root.pointPositions = allPoints
         }
+
+        function drawLabels(ctx) {
+            ctx.fillStyle = Enums.textColor.secondary
+            ctx.font = "11px " + Enums.canvasFontFamily
+            ctx.textBaseline = "middle"
+            var labelRadius = root._geometryRadius + 20
+            for (var index = 0; index < root._axisGeometry.length; index++) {
+                var axis = root._axisGeometry[index]
+                var x = root._geometryCenterX + axis.unitX * labelRadius
+                var y = root._geometryCenterY + axis.unitY * labelRadius
+                if (Math.abs(axis.angle + Math.PI / 2) < 0.1) {
+                    ctx.textAlign = "center"
+                    y -= 5
+                } else if (Math.abs(axis.angle - Math.PI / 2) < 0.1) {
+                    ctx.textAlign = "center"
+                    y += 5
+                } else if (axis.angle > -Math.PI / 2 && axis.angle < Math.PI / 2) {
+                    ctx.textAlign = "left"
+                    x += 5
+                } else {
+                    ctx.textAlign = "right"
+                    x -= 5
+                }
+                ctx.fillText(axis.label, x, y)
+            }
+        }
+
+        function drawSeriesArea(ctx, points, color, hovered) {
+            if (points.length === 0) return
+            ctx.beginPath()
+            for (var index = 0; index < points.length; index++) {
+                if (index === 0) ctx.moveTo(points[index].x, points[index].y)
+                else ctx.lineTo(points[index].x, points[index].y)
+            }
+            ctx.closePath()
+            var qColor = Qt.color(color)
+            var fillAlpha = hovered ? Enums.stateColor.chartFillMedium + 0.05 : Enums.opacityLevel.medium
+            ctx.fillStyle = Qt.rgba(qColor.r, qColor.g, qColor.b, fillAlpha)
+            ctx.fill()
+            ctx.strokeStyle = color
+            ctx.lineWidth = hovered ? 2.5 : 2
+            ctx.stroke()
+        }
+
+        function drawSeriesPoints(ctx, points, color, seriesIndex) {
+            for (var index = 0; index < points.length; index++) {
+                var point = points[index]
+                var hovered = seriesIndex === root.hoveredSeriesIndex &&
+                              point.pointIndex === root.hoveredPointIndex
+                var dotSize = hovered ? 5 : 3
+                ctx.beginPath()
+                ctx.fillStyle = Enums.cardColor
+                ctx.arc(point.x, point.y, dotSize, 0, Math.PI * 2)
+                ctx.fill()
+                ctx.beginPath()
+                ctx.strokeStyle = color
+                ctx.lineWidth = hovered ? 2 : 1.5
+                ctx.arc(point.x, point.y, dotSize, 0, Math.PI * 2)
+                ctx.stroke()
+            }
+        }
+
+        anchors.fill: parent
+
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            if (root._pointGeometryDirty) root._rebuildPointGeometry(width, height)
+            var progress = root.animated ? animProgress : 1
+            root._updateAnimatedPoints(progress)
+            drawGrid(ctx)
+            if (root.showLabels) drawLabels(ctx)
+            for (var seriesIndex = 0; seriesIndex < root._seriesPointGeometry.length; seriesIndex++) {
+                var points = root._seriesPointGeometry[seriesIndex]
+                var color = root.getSeriesColor(seriesIndex)
+                var hovered = seriesIndex === root.hoveredSeriesIndex
+                drawSeriesArea(ctx, points, color, hovered)
+                drawSeriesPoints(ctx, points, color, seriesIndex)
+            }
+        }
+
+        onWidthChanged: root._invalidatePointGeometry()
+        onHeightChanged: root._invalidatePointGeometry()
         
         Component.onCompleted: {
             if (root.animated) {
@@ -233,31 +298,14 @@ Item {
         cursorShape: root.hoveredSeriesIndex >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
         
         onPositionChanged: (mouse) => {
-            var minDist = 20
-            var foundSeriesIndex = -1
-            var foundPointIndex = -1
-            
-            for (var i = 0; i < root.pointPositions.length; i++) {
-                var pt = root.pointPositions[i]
-                var dist = Math.sqrt(Math.pow(mouse.x - pt.x, 2) + Math.pow(mouse.y - pt.y, 2))
-                if (dist < minDist) {
-                    minDist = dist
-                    foundSeriesIndex = pt.seriesIndex
-                    foundPointIndex = pt.pointIndex
-                }
-            }
-            
+            var flatIndex = root._nearestPointIndex(mouse.x, mouse.y)
+            var point = flatIndex >= 0 ? root.pointPositions[flatIndex] : null
+            var foundSeriesIndex = point ? point.seriesIndex : -1
+            var foundPointIndex = point ? point.pointIndex : -1
             root.pointHovered(foundSeriesIndex, foundPointIndex)
-            
-            if (foundSeriesIndex >= 0 && foundPointIndex >= 0) {
-                for (var j = 0; j < root.pointPositions.length; j++) {
-                    var p = root.pointPositions[j]
-                    if (p.seriesIndex === foundSeriesIndex && p.pointIndex === foundPointIndex) {
-                        root.tooltipX = p.x
-                        root.tooltipY = p.y
-                        break
-                    }
-                }
+            if (point) {
+                root.tooltipX = point.x
+                root.tooltipY = point.y
             }
         }
         

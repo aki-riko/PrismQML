@@ -313,6 +313,77 @@ def test_scatter_hover_search_uses_cached_local_geometry(chart_scene):
     assert warnings == []
 
 
+def test_radar_animation_reuses_cached_polar_geometry(chart_scene):
+    chart, warnings = chart_scene
+    indicator_count = 48
+    series_count = 24
+    indicators = [
+        {"name": f"I{index}", "max": 100}
+        for index in range(indicator_count)
+    ]
+    series = [
+        {
+            "name": f"S{series_index}",
+            "values": [
+                10 + series_index * 3 + point_index / (indicator_count + 1)
+                for point_index in range(indicator_count)
+            ],
+        }
+        for series_index in range(series_count)
+    ]
+    chart.setProperty("animated", False)
+    chart.setProperty("chartType", chart.property("radarType"))
+    chart.setProperty("indicators", indicators)
+    chart.setProperty("series", series)
+    _pump(50)
+
+    radar_area = _loaders(chart)["radarAreaLoader"].property("item")
+    assert radar_area is not None
+    radar_content = next(
+        obj
+        for obj in _object_tree(radar_area)
+        if obj.metaObject().indexOfProperty("pointPositions") >= 0
+    )
+    context = QQmlEngine.contextForObject(radar_content)
+    rebuild_geometry = QQmlExpression(
+        context,
+        radar_content,
+        "(_rebuildPointGeometry(width, height), true)",
+    )
+    assert _evaluate(rebuild_geometry)
+    point_count = indicator_count * series_count
+    point_positions_length = QQmlExpression(
+        context,
+        radar_content,
+        "pointPositions.length",
+    )
+    assert _evaluate(point_positions_length) == point_count
+    build_count = radar_content.property("_pointGeometryBuildCount")
+    assert build_count >= 1
+
+    update_points = QQmlExpression(
+        context,
+        radar_content,
+        "(_updateAnimatedPoints(0.5), true)",
+    )
+    assert _evaluate(update_points)
+    assert radar_content.property("_lastFramePointUpdateCount") == point_count
+    assert radar_content.property("_pointGeometryBuildCount") == build_count
+
+    target_index = point_count // 2 + indicator_count // 2
+    nearest_point = QQmlExpression(
+        context,
+        radar_content,
+        "_nearestPointIndex("
+        f"pointPositions[{target_index}].x, pointPositions[{target_index}].y)",
+    )
+    assert _evaluate(nearest_point) == target_index
+    radar_content.setProperty("hoveredPointIndex", target_index % indicator_count)
+    _pump(20)
+    assert radar_content.property("_pointGeometryBuildCount") == build_count
+    assert warnings == []
+
+
 def test_chart_null_and_empty_inputs_stay_finite_and_select_empty_state(chart_scene):
     chart, warnings = chart_scene
     loaders = _loaders(chart)
