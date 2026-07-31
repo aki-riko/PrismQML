@@ -25,6 +25,8 @@ Item {
     id: root
 
     readonly property int iconOnlyPadding: Enums.spacing.xs
+    readonly property int iconOnlyIconSize: Enums.iconSize.xxl
+    readonly property int regularIconSize: Enums.iconSize.m
     readonly property int textContentPadding: Enums.spacing.m
     readonly property int buttonHeight: Enums.controlSize.buttonHeight
     readonly property int buttonMinWidth: Enums.controlSize.buttonMinWidth
@@ -39,11 +41,11 @@ Item {
     }
 
     Button {
-        id: largeIconOnlyButton
-        objectName: "largeIconOnlyButton"
+        id: explicitIconOnlyButton
+        objectName: "explicitIconOnlyButton"
         x: 40
         icon: Enums.icon.image
-        iconSize: Enums.iconSize.xxl
+        iconSize: Enums.iconSize.m
     }
 
     Button {
@@ -118,6 +120,18 @@ def _content_module(button):
     return matches[0]
 
 
+def _icon_item(button):
+    matches = [
+        child
+        for child in _descendants(button)
+        if child.metaObject().className().startswith("Icon_QMLTYPE_")
+        and child.metaObject().indexOfProperty("icon") >= 0
+        and child.property("icon") == button.property("icon")
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 @pytest.fixture
 def button_scene(qapp):
     engine, component, root, warnings = _create_scene()
@@ -130,8 +144,7 @@ def button_scene(qapp):
         _pump(1)
 
 
-def _assert_icon_only_extent(button, padding):
-    expected_extent = button.property("iconSize") + padding * 2
+def _assert_icon_only_extent(button, expected_extent):
     assert button.property("isToolButton")
     assert button.property("contentWidth") == pytest.approx(expected_extent)
     assert button.property("contentHeight") == pytest.approx(expected_extent)
@@ -139,12 +152,30 @@ def _assert_icon_only_extent(button, padding):
     assert button.height() == pytest.approx(expected_extent)
 
 
-def test_icon_only_buttons_use_compact_icon_relative_padding(button_scene):
+def test_icon_only_button_keeps_extent_and_uses_larger_default_icon(button_scene):
     root, warnings = button_scene
-    padding = root.property("iconOnlyPadding")
+    button = _button(root, "iconOnlyButton")
+    expected_extent = root.property("buttonHeight")
+    expected_icon_size = root.property("iconOnlyIconSize")
 
-    _assert_icon_only_extent(_button(root, "iconOnlyButton"), padding)
-    _assert_icon_only_extent(_button(root, "largeIconOnlyButton"), padding)
+    _assert_icon_only_extent(button, expected_extent)
+    assert button.property("iconSize") == expected_icon_size
+    assert _icon_item(button).property("iconSize") == expected_icon_size
+    assert (expected_extent - expected_icon_size) / 2 == root.property(
+        "iconOnlyPadding"
+    )
+    assert warnings == []
+
+
+def test_icon_only_button_respects_explicit_icon_size(button_scene):
+    root, warnings = button_scene
+    button = _button(root, "explicitIconOnlyButton")
+
+    _assert_icon_only_extent(button, root.property("buttonHeight"))
+    assert button.property("iconSize") == root.property("regularIconSize")
+    assert _icon_item(button).property("iconSize") == root.property(
+        "regularIconSize"
+    )
     assert warnings == []
 
 
@@ -157,6 +188,7 @@ def test_text_content_keeps_existing_button_metrics(button_scene):
             _content_module(button).width() + root.property("textContentPadding") * 2,
         )
         assert not button.property("isToolButton")
+        assert button.property("iconSize") == root.property("regularIconSize")
         assert button.property("contentWidth") == pytest.approx(expected_width)
         assert button.property("contentHeight") == pytest.approx(
             root.property("buttonHeight")
@@ -169,7 +201,9 @@ def test_text_content_keeps_existing_button_metrics(button_scene):
 def test_button_recomputes_extent_when_text_is_added_or_removed(button_scene):
     root, warnings = button_scene
     button = _button(root, "iconOnlyButton")
-    compact_extent = button.property("iconSize") + root.property("iconOnlyPadding") * 2
+    button_extent = root.property("buttonHeight")
+
+    assert button.property("iconSize") == root.property("iconOnlyIconSize")
 
     button.setProperty("text", "Send")
     _pump()
@@ -178,6 +212,7 @@ def test_button_recomputes_extent_when_text_is_added_or_removed(button_scene):
         _content_module(button).width() + root.property("textContentPadding") * 2,
     )
     assert not button.property("isToolButton")
+    assert button.property("iconSize") == root.property("regularIconSize")
     assert button.property("contentWidth") == pytest.approx(expanded_width)
     assert button.property("contentHeight") == pytest.approx(
         root.property("buttonHeight")
@@ -186,6 +221,9 @@ def test_button_recomputes_extent_when_text_is_added_or_removed(button_scene):
     button.setProperty("text", "")
     _pump()
     assert button.property("isToolButton")
-    assert button.property("contentWidth") == pytest.approx(compact_extent)
-    assert button.property("contentHeight") == pytest.approx(compact_extent)
+    assert button.property("iconSize") == root.property("iconOnlyIconSize")
+    assert button.property("contentWidth") == pytest.approx(button_extent)
+    assert button.property("contentHeight") == pytest.approx(button_extent)
+    assert button.width() == pytest.approx(button_extent)
+    assert button.height() == pytest.approx(button_extent)
     assert warnings == []

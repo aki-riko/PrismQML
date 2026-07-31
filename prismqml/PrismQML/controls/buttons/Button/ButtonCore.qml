@@ -34,7 +34,9 @@ Widget {
     // Button content 按钮内容
     property string text: ""
     property string icon: ""           // Icon name / image path 图标名或图片路径
-    property int iconSize: Enums.iconSize.m
+    property int iconSize: isToolButton && !_hasMenuFeature
+                           ? Enums.iconSize.xxl
+                           : Enums.iconSize.m
     default property alias contentData: customContentContainer.data  // Custom content 自定义内容
     property bool hasCustomContent: false
 
@@ -126,7 +128,6 @@ Widget {
         _hasProgressBarFeature || feature === Enums.button.feature_toggle
     readonly property bool _showsDropdownIndicator: feature === Enums.button.feature_dropdown &&
                                                     showDropdownIndicator
-    readonly property int _iconOnlyExtent: iconSize + Enums.spacing.xs * 2
     readonly property int _contentLeadingPadding: _hasMenuFeature ? Enums.spacing.l : Enums.spacing.m
     readonly property int _contentTrailingPadding: _hasMenuFeature ? Enums.spacing.xs : Enums.spacing.m
 
@@ -289,8 +290,7 @@ Widget {
     contentWidth: {
         if (_countdownActive && _countdownInitialWidth > 0) return _countdownInitialWidth
         if (isToolButton) {
-            var iconBaseWidth = _hasMenuFeature ? Enums.controlSize.buttonHeight : _iconOnlyExtent
-            return iconBaseWidth +
+            return Enums.controlSize.buttonHeight +
                    (_showsDropdownIndicator ? Enums.controlSize.dropdownArrowWidth : 0)
         }
         // Transparent/text/hyperlink styles have no minimum width 透明/文本/超链接样式无最小宽度
@@ -301,7 +301,7 @@ Widget {
         if (flat || _hasMenuFeature) return Math.max(cw + extraWidth, Enums.controlSize.buttonHeight)
         return Math.max(Enums.controlSize.buttonMinWidth, cw + extraWidth)
     }
-    contentHeight: isToolButton && !_hasMenuFeature ? _iconOnlyExtent : Enums.controlSize.buttonHeight
+    contentHeight: Enums.controlSize.buttonHeight
 
     Component.onCompleted: {
         // Initialize with current values (break binding) 用当前值初始化（打破绑定）
