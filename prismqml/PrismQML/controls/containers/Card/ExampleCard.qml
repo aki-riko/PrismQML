@@ -76,10 +76,13 @@ Item {
  shadowOffsetY: Enums.shadow.level2.offset // 下偏移
 
  // neo 硬阴影
- NeoShadow {
- target: card
- visible: Enums.isNeobrutalism
+ Loader {
+ active: Enums.isNeobrutalism
  z: -1
+
+ sourceComponent: NeoShadow {
+ target: card
+ }
  }
 
  Column {

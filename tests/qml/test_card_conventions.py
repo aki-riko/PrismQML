@@ -147,6 +147,18 @@ Window {
         cardType: Enums.card.type_elevated
         clickEnabled: true
     }
+
+    ExampleCard {
+        id: exampleCard
+        objectName: "exampleCard"
+        x: 260
+        y: 320
+        width: 300
+        title: "Example"
+        description: "Description"
+
+        Rectangle { width: 100; height: 24 }
+    }
 }
 """
 
@@ -175,6 +187,12 @@ def _new_visible_windows(windows_before, *allowed):
         and not any(window is existing for existing in windows_before)
         and not any(window is accepted for accepted in allowed)
     ]
+
+
+def _descendants(item: QQuickItem):
+    for child in item.childItems():
+        yield child
+        yield from _descendants(child)
 
 
 def _create_scene():
@@ -280,6 +298,36 @@ def test_card_real_hover_press_and_click(card_scene):
     _pump()
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_example_card_creates_neo_shadow_only_for_neo_skin(card_scene):
+    from prismqml.python.core.theme import Skin, ThemeManager
+
+    window, warnings, windows_before = card_scene
+    example_card = window.findChild(QQuickItem, "exampleCard")
+    manager = ThemeManager()
+    original_skin = manager.getSkin()
+
+    def neo_shadows():
+        return [
+            child
+            for child in _descendants(example_card)
+            if "NeoShadow" in child.metaObject().className()
+        ]
+
+    try:
+        manager.setSkin(Skin.FLUENT)
+        assert _wait_for(lambda: neo_shadows() == [])
+
+        manager.setSkin(Skin.NEOBRUTALISM)
+        assert _wait_for(lambda: len(neo_shadows()) == 1)
+
+        manager.setSkin(Skin.FLUENT)
+        assert _wait_for(lambda: neo_shadows() == [])
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        manager.setSkin(original_skin)
 
 
 def test_card_source_follows_conventions():
