@@ -439,6 +439,11 @@ def test_scrollbar_gutter_is_reserved_across_data_and_virtual_views(qapp):
             "defaultAreaInset",
             "responsiveListInset",
         )
+        transitions = []
+        for name in inset_names:
+            getattr(root, name + "Changed").connect(
+                lambda name=name: transitions.append((name, float(root.property(name))))
+            )
         ready = _wait_for(
             lambda: all(float(root.property(name)) > 0 for name in inset_names)
         )
@@ -455,11 +460,13 @@ def test_scrollbar_gutter_is_reserved_across_data_and_virtual_views(qapp):
         assert _wait_for(
             lambda: float(root.property("defaultAreaBottomInset")) == expected
         )
-        for _ in range(5):
+        transitions.clear()
+        for _ in range(12):
             _pump()
             assert {
                 name: float(root.property(name)) for name in inset_names
             } == {name: expected for name in inset_names}
+        assert not any(value == 0 for _name, value in transitions), transitions
         assert warnings == []
         assert [
             window
