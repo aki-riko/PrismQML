@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QObject, Property, QTimer, QUrl, Slot
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, Property, QTimer, QUrl, Slot
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlEngine, QQmlExpression
 
 from prismqml import Skin, Theme, register_types, setSkin, setTheme
@@ -177,6 +177,16 @@ Item {{
 
         children = instance.findChildren(QObject)
         assert any(child.property("text") == "Default" for child in children)
+
+        dropdown_features = [
+            child
+            for child in children
+            if child.metaObject().indexOfProperty("_menuContentRequested") >= 0
+        ]
+        assert len(dropdown_features) == 1
+        assert QMetaObject.invokeMethod(dropdown_features[0], "prewarmMenu")
+        _pump(10)
+        children = instance.findChildren(QObject)
 
         text_metrics = [
             child

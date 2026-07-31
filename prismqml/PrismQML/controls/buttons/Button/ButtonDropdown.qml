@@ -33,6 +33,7 @@ Item {
     property bool _geometryPrewarmScheduled: false
     property bool _geometryPrepared: false
     property bool _invalidMenuWarningIssued: false
+    property bool _menuContentRequested: false
     property int _animationDuration
 
     readonly property var _safeMenuItems:
@@ -101,6 +102,7 @@ Item {
                 _geometryPrewarmScheduled = true
                 geometryPrewarmTimer.start()
             }
+            _menuContentRequested = true
             dropDownMenu.prewarm()
         }
     }
@@ -108,6 +110,10 @@ Item {
     // Calculate max content width from menu items (imperative, avoid binding loop)
     // 根据菜单项计算最大内容宽度（命令式调用，避免绑定循环）
     function _calcContentWidth() {
+        _menuContentRequested = true
+        var textMeasure = menuContentLoader.item
+                          ? menuContentLoader.item.textMeasure : null
+        if (!textMeasure) return 0
         var maxW = 0
         // Total horizontal padding: contentContainer margins(xs*2) + itemBg margins(xs*2) + text margins(l*2)
         // 总水平内边距：内容容器边距(xs*2) + 项背景边距(xs*2) + 文本边距(l*2)
@@ -168,6 +174,7 @@ Item {
             dropDownMenu.close()
             return
         }
+        _menuContentRequested = true
         menuAboutToOpen()
         _geometryPrewarmScheduled = false
         geometryPrewarmTimer.stop()
@@ -276,14 +283,6 @@ Item {
         onClicked: dropdownFeature.mainButtonClicked()
     }
     
-    // Content width measurement 内容宽度测量
-    // TextMetrics to measure menu item text width 用TextMetrics测量菜单项文本宽度
-    TextMetrics {
-        id: textMeasure
-        font.family: Enums.fontFamily
-        font.pixelSize: fontSize > 0 ? fontSize : Enums.typography.body
-    }
-
     // Dropdown menu 下拉菜单
     PopupWindowCore {
         id: dropDownMenu
@@ -310,52 +309,75 @@ Item {
         // External MenuCore may opt into Popup.Window for overflow. 外部 MenuCore 仍可为跨界显示显式选择 Popup.Window。
         useInWindowPopup: true
         
-        Flickable {
-            id: menuFlickable
+        Loader {
+            id: menuContentLoader
             anchors.fill: parent
-            anchors.rightMargin: dropDownMenu._needsScroll ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
-            contentWidth: width
-            contentHeight: menuColumn.height
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            interactive: false  // Disable native scroll, use smooth scroll 禁用原生滚动，使用平滑滚动
-            
-            // Smooth scroll 平滑滚动
-            PopupSmoothScroll { flickable: menuFlickable; enabled: dropDownMenu._needsScroll }
-            
-            Column {
-                id: menuColumn
-                width: parent.width
-                
-                Repeater {
-                    model: dropdownFeature._safeMenuItems
-                    
-                    MenuDelegate {
-                        width: menuColumn.width
-                        text: modelData && typeof modelData === "object" ? (modelData.text || modelData) : (modelData || "")
-                        icon: modelData && typeof modelData === "object" ? (modelData.icon || "") : ""
-                        isSeparator: text === "-"
-                        onPressed: dropDownMenu.stabilizeInteraction()
-                        onClicked: {
-                            dropDownMenu.close()
-                            dropdownFeature.menuItemClicked(index, text)
+            active: dropdownFeature._menuContentRequested
+
+            sourceComponent: Item {
+                readonly property alias textMeasure: textMeasure
+
+                // TextMetrics to measure menu item text width 用TextMetrics测量菜单项文本宽度
+                TextMetrics {
+                    id: textMeasure
+                    font.family: Enums.fontFamily
+                    font.pixelSize: fontSize > 0 ? fontSize : Enums.typography.body
+                }
+
+                Flickable {
+                    id: menuFlickable
+                    anchors.fill: parent
+                    anchors.rightMargin: dropDownMenu._needsScroll
+                                         ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
+                    contentWidth: width
+                    contentHeight: menuColumn.height
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    interactive: false  // Disable native scroll, use smooth scroll 禁用原生滚动，使用平滑滚动
+
+                    // Smooth scroll 平滑滚动
+                    PopupSmoothScroll {
+                        flickable: menuFlickable
+                        enabled: dropDownMenu._needsScroll
+                    }
+
+                    Column {
+                        id: menuColumn
+                        width: parent.width
+
+                        Repeater {
+                            model: dropdownFeature._safeMenuItems
+
+                            MenuDelegate {
+                                width: menuColumn.width
+                                text: modelData && typeof modelData === "object"
+                                      ? (modelData.text || modelData) : (modelData || "")
+                                icon: modelData && typeof modelData === "object"
+                                      ? (modelData.icon || "") : ""
+                                isSeparator: text === "-"
+                                onPressed: dropDownMenu.stabilizeInteraction()
+                                onClicked: {
+                                    dropDownMenu.close()
+                                    dropdownFeature.menuItemClicked(index, text)
+                                }
+                            }
                         }
                     }
                 }
-            }
-        }
-        
-        // Scrollbar 滚动条
-        Loader {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.margins: Enums.spacing.xxs
-            width: Enums.comboBoxMetrics.scrollBarWidth
-            active: dropDownMenu._needsScroll
-            sourceComponent: ScrollBarEntry {
-                flickable: menuFlickable
-                width: Enums.comboBoxMetrics.scrollBarWidth
+
+                // Scrollbar 滚动条
+                Loader {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.margins: Enums.spacing.xxs
+                    width: Enums.comboBoxMetrics.scrollBarWidth
+                    active: dropDownMenu._needsScroll
+                    sourceComponent: ScrollBarEntry {
+                        flickable: menuFlickable
+                        width: Enums.comboBoxMetrics.scrollBarWidth
+                    }
+                }
             }
         }
     }

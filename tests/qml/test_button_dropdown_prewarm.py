@@ -96,6 +96,40 @@ def test_dropdown_defaults_to_in_window_popup(dropdown_scene):
     ("object_name", "split_arrow"),
     [("dropdownButton", False), ("splitButton", True)],
 )
+def test_hover_prewarm_instantiates_hidden_menu_content(
+    dropdown_scene, object_name, split_arrow
+):
+    root, window, warnings, _windows_before = dropdown_scene
+    button = _button(root, object_name)
+    dropdown = _button_dropdown(button)
+    popup = _dropdown_popup(dropdown)
+
+    assert not dropdown.property("_menuContentRequested")
+    assert [
+        child
+        for child in _visual_descendants(_popup_content(popup))
+        if child.metaObject().indexOfProperty("isSeparator") >= 0
+    ] == []
+
+    _move_to(window, button, split_arrow)
+
+    assert _wait_for(lambda: dropdown.property("_menuContentRequested"))
+    assert _wait_for(lambda: popup.property("_prewarmed"))
+    menu_items = [
+        child
+        for child in _visual_descendants(_popup_content(popup))
+        if child.metaObject().indexOfProperty("isSeparator") >= 0
+    ]
+    assert sorted(item.property("text") for item in menu_items) == ["Alpha", "Beta"]
+    assert not popup.property("isOpen")
+    assert not _popup_is_visible(popup)
+    assert warnings == []
+
+
+@pytest.mark.parametrize(
+    ("object_name", "split_arrow"),
+    [("dropdownButton", False), ("splitButton", True)],
+)
 def test_dropdown_and_split_hover_prepare_hidden_menu_surface(
     dropdown_scene, object_name, split_arrow
 ):
