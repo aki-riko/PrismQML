@@ -45,19 +45,20 @@ InputCore {
         : (typeof extraSeparators.length === "number" ? extraSeparators : [])
     // Filtered suggestions 过滤后的建议列表
     readonly property var _filteredItems: {
-        // Show all when forced, filter when typing 强制时显示全部，输入时过滤
-        if (_forceShowAll) {
-            return _safeSuggestions.filter(function(item) {
-                var text = typeof item === 'string' ? item : (item ? (item.text || '') : '')
-                return _safeTags.indexOf(text) < 0  // Exclude already added 排除已添加
-            }).slice(0, 8)
-        }
-        if (!inputField.text.trim()) return []
-        var query = inputField.text.trim().toLowerCase()
-        return _safeSuggestions.filter(function(item) {
+        var inputText = _forceShowAll ? "" : inputField.text.trim()
+        if (!_forceShowAll && !inputText) return []
+        var query = inputText.toLowerCase()
+        var result = []
+        for (var i = 0; i < _safeSuggestions.length; i++) {
+            var item = _safeSuggestions[i]
             var text = typeof item === 'string' ? item : (item ? (item.text || '') : '')
-            return text.toLowerCase().indexOf(query) >= 0 && _safeTags.indexOf(text) < 0
-        }).slice(0, 8)  // Max 8 items 最多8个
+            var matches = _forceShowAll || text.toLowerCase().indexOf(query) >= 0
+            if (matches && _safeTags.indexOf(text) < 0) {
+                result.push(item)
+                if (result.length === 8) break
+            }
+        }
+        return result  // Max 8 items 最多8个
     }
     readonly property bool _showSuggestions: _filteredItems.length > 0 && inputField.activeFocus
     readonly property string _countText: maxTags > 0 ? _safeTags.length + "/" + maxTags : ""

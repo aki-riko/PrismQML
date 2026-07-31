@@ -237,6 +237,56 @@ def test_tag_line_edit_command_and_signal_parent_chain(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_tag_line_edit_keeps_only_first_eight_eligible_suggestions(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, tag_input, warnings = _create_scene()
+    try:
+        tag_edit = _tag_line_edit(tag_input)
+        text_input = tag_input.property("textInput")
+        assert isinstance(text_input, QQuickItem)
+
+        tag_input.setProperty(
+            "suggestions",
+            ["Skip", {"text": "Alpha"}, "Beta"]
+            + [f"Item {index}" for index in range(12)],
+        )
+        tag_input.setProperty("tags", ["Skip", "Item 1"])
+        tag_edit.setProperty("_forceShowAll", True)
+        assert _variant(tag_edit.property("_filteredItems")) == [
+            {"text": "Alpha"},
+            "Beta",
+            "Item 0",
+            "Item 2",
+            "Item 3",
+            "Item 4",
+            "Item 5",
+            "Item 6",
+        ]
+
+        tag_edit.setProperty("_forceShowAll", False)
+        tag_input.setProperty(
+            "suggestions",
+            ["Other"] + [f"Match {index}" for index in range(12)],
+        )
+        tag_input.setProperty("tags", ["Match 1"])
+        text_input.setProperty("text", "MATCH")
+        assert _variant(tag_edit.property("_filteredItems")) == [
+            "Match 0",
+            "Match 2",
+            "Match 3",
+            "Match 4",
+            "Match 5",
+            "Match 6",
+            "Match 7",
+            "Match 8",
+        ]
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_tag_suggestion_popup_source_conventions():
     source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(POPUP_SOURCE_PATH.relative_to(ROOT).as_posix())
@@ -262,6 +312,11 @@ def test_tag_line_edit_source_conventions():
     source = TAG_LINE_EDIT_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(TAG_LINE_EDIT_SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
+    filtered_binding = source.split(
+        "readonly property var _filteredItems:", 1
+    )[1].split("readonly property bool _showSuggestions:", 1)[0]
+    assert "if (result.length === 8) break" in filtered_binding
+    assert ".filter(" not in filtered_binding
     assert [
         violation
         for violation in violations
