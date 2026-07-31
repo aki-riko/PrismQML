@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../../../.."
+import "RadarChartGeometry.js" as Geometry
 
 // RadarChartContent - Radar chart rendering component 雷达图渲染组件
 // Fluent Design style: clean polygon grid, subtle filled areas
@@ -37,6 +38,9 @@ Item {
     property real _geometryCenterX: 0
     property real _geometryCenterY: 0
     property real _geometryRadius: 0
+    property int _lastFramePointDrawCount: 0
+    property int _paintedHoverSeriesIndex: -1
+    property int _paintedHoverPointIndex: -1
 
     // ==================== Readonly State 只读状态 ====================
     readonly property real _hitRadius: 20
@@ -153,9 +157,31 @@ Item {
         return nearestIndex
     }
 
+    function _requestHoverPaint() {
+        if (_pointGeometryDirty || (animated && canvas.animProgress < 1) ||
+                hoveredSeriesIndex !== _paintedHoverSeriesIndex) {
+            canvas.requestPaint()
+            return
+        }
+        var padding = Enums.spacing.m
+        var previous = Geometry.dirtyBounds(
+            _seriesPointGeometry, _paintedHoverSeriesIndex,
+            _paintedHoverPointIndex, width, height, padding
+        )
+        var current = Geometry.dirtyBounds(
+            _seriesPointGeometry, hoveredSeriesIndex,
+            hoveredPointIndex, width, height, padding
+        )
+        if (!previous && !current) return
+        var dirty = Geometry.unitedBounds(previous, current)
+        canvas.markDirty(Qt.rect(
+            dirty.x, dirty.y, dirty.width, dirty.height
+        ))
+    }
+
     // Repaint on hover change 悬浮变化时重绘
-    onHoveredSeriesIndexChanged: canvas.requestPaint()
-    onHoveredPointIndexChanged: canvas.requestPaint()
+    onHoveredSeriesIndexChanged: _requestHoverPaint()
+    onHoveredPointIndexChanged: _requestHoverPaint()
     onSeriesChanged: _invalidatePointGeometry()
     onIndicatorsChanged: _invalidatePointGeometry()
     onShowLabelsChanged: canvas.requestPaint()
@@ -237,9 +263,15 @@ Item {
             ctx.stroke()
         }
 
-        function drawSeriesPoints(ctx, points, color, seriesIndex) {
+        function drawSeriesPoints(ctx, points, color, seriesIndex,
+                                  region, fullPaint) {
+            var drawCount = 0
             for (var index = 0; index < points.length; index++) {
                 var point = points[index]
+                if (!fullPaint && !Geometry.intersectsPoint(
+                        point, region, Enums.spacing.xs + Enums.border.thin)) {
+                    continue
+                }
                 var hovered = seriesIndex === root.hoveredSeriesIndex &&
                               point.pointIndex === root.hoveredPointIndex
                 var dotSize = hovered ? 5 : 3
@@ -252,26 +284,45 @@ Item {
                 ctx.lineWidth = hovered ? 2 : 1.5
                 ctx.arc(point.x, point.y, dotSize, 0, Math.PI * 2)
                 ctx.stroke()
+                drawCount++
             }
+            return drawCount
         }
 
         anchors.fill: parent
 
-        onPaint: {
+        onPaint: (region) => {
             var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
+            var fullPaint = root._pointGeometryDirty || !region ||
+                    (region.x <= 0 && region.y <= 0 &&
+                     region.width >= width && region.height >= height)
+            if (fullPaint) ctx.clearRect(0, 0, width, height)
+            else ctx.clearRect(region.x, region.y, region.width, region.height)
             if (root._pointGeometryDirty) root._rebuildPointGeometry(width, height)
             var progress = root.animated ? animProgress : 1
             root._updateAnimatedPoints(progress)
+            if (!fullPaint) {
+                ctx.save()
+                ctx.beginPath()
+                ctx.rect(region.x, region.y, region.width, region.height)
+                ctx.clip()
+            }
             drawGrid(ctx)
             if (root.showLabels) drawLabels(ctx)
+            var drawCount = 0
             for (var seriesIndex = 0; seriesIndex < root._seriesPointGeometry.length; seriesIndex++) {
                 var points = root._seriesPointGeometry[seriesIndex]
                 var color = root.getSeriesColor(seriesIndex)
                 var hovered = seriesIndex === root.hoveredSeriesIndex
                 drawSeriesArea(ctx, points, color, hovered)
-                drawSeriesPoints(ctx, points, color, seriesIndex)
+                drawCount += drawSeriesPoints(
+                    ctx, points, color, seriesIndex, region, fullPaint
+                )
             }
+            if (!fullPaint) ctx.restore()
+            root._lastFramePointDrawCount = drawCount
+            root._paintedHoverSeriesIndex = root.hoveredSeriesIndex
+            root._paintedHoverPointIndex = root.hoveredPointIndex
         }
 
         onWidthChanged: root._invalidatePointGeometry()
