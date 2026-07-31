@@ -231,7 +231,7 @@ Item {
                             
                             // Draw label line 绘制标签线
                             ctx.beginPath()
-                            ctx.strokeStyle = root.getColor(i)
+                            ctx.strokeStyle = sliceColor
                             ctx.lineWidth = 1
                             ctx.moveTo(lineStartX, lineStartY)
                             ctx.lineTo(lineEndX, lineEndY)

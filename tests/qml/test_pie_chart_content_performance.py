@@ -157,8 +157,8 @@ def test_pie_chart_offscreen_paint_preserves_color_call_sequence(qapp):
     try:
         window.setProperty("colorCalls", "")
         assert QMetaObject.invokeMethod(canvas, "requestPaint") is True
-        assert _wait_for(lambda: len(window.property("colorCalls")) >= 6)
-        assert window.property("colorCalls") == "001122"
+        assert _wait_for(lambda: len(window.property("colorCalls")) >= 3)
+        assert window.property("colorCalls") == "012"
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
@@ -258,8 +258,8 @@ def test_pie_chart_hot_loop_uses_frame_snapshot():
         "var frameTransitionProgress = transitionProgress",
     ):
         assert snapshot in frame_setup
-    assert hot_loop.count("root.getColor(i)") == 2
-    assert hot_loop.count("root.") == 2
+    assert hot_loop.count("root.getColor(i)") == 1
+    assert hot_loop.count("root.") == 1
     assert "sliceData.value / totalValue" not in hot_loop
     assert "Math.round(" not in hot_loop
     assert "animProgress" not in hot_loop
