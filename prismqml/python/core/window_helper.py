@@ -8,8 +8,8 @@ import sys
 import time
 from typing import Any, Optional
 
-from PySide6.QtCore import QObject, QPoint, QSize, QUrl, Slot
-from PySide6.QtGui import QGuiApplication, QIcon, QPainter, QPixmap, Qt
+from PySide6.QtCore import QObject, QPoint, QUrl, Slot
+from PySide6.QtGui import QGuiApplication, QIcon, Qt
 
 from ._icon_path import resolve_icon_path
 from ._popup_owner import clear_popup_window_owner, ensure_popup_window_owner
@@ -341,34 +341,21 @@ class WindowHelper(QObject):
 
     @staticmethod
     def _renderSvgIcon(svg_path: str) -> Optional[QIcon]:
-        """Render one SVG into a multi-size icon. 将 SVG 渲染为多尺寸图标。"""
+        """Create a lazy fixed-size SVG icon. 创建惰性固定尺寸 SVG 图标。"""
         try:
-            from PySide6.QtSvg import QSvgRenderer
+            from ._taskbar_svg_icon import create_taskbar_svg_icon
 
-            renderer = QSvgRenderer(svg_path)
-            if not renderer.isValid():
+            qicon = create_taskbar_svg_icon(svg_path, _ICON_SIZES)
+            if qicon is None:
                 warning(f"SVG 渲染器无效: {svg_path}")
                 return None
-            return WindowHelper._render_svg_sizes(renderer)
+            return qicon
         except ImportError:
             warning("PySide6.QtSvg 未安装，SVG 图标无法渲染")
             return None
         except Exception as e:
             error(f"SVG 图标渲染失败: {e}")
             return None
-
-    @staticmethod
-    def _render_svg_sizes(renderer) -> QIcon:
-        """Render all taskbar sizes. 渲染全部任务栏尺寸。"""
-        qicon = QIcon()
-        for size in _ICON_SIZES:
-            pixmap = QPixmap(QSize(size, size))
-            pixmap.fill(Qt.GlobalColor.transparent)
-            painter = QPainter(pixmap)
-            renderer.render(painter)
-            painter.end()
-            qicon.addPixmap(pixmap)
-        return qicon
 
 
 def get_window_helper() -> WindowHelper:

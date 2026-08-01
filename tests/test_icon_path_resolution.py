@@ -10,8 +10,10 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QSize, QUrl
-from PySide6.QtGui import QColor, QIcon, QImage
+from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap, Qt
+from PySide6.QtSvg import QSvgRenderer
 
+from prismqml.python.core._taskbar_svg_icon import _TaskbarSvgIconEngine
 from prismqml.python.core.window_helper import WindowHelper, _ICON_SIZES
 from prismqml.python.window.system_tray import SystemTrayIcon
 from prismqml.python.window.window_core import WindowCore
@@ -41,6 +43,24 @@ def _write_real_svg(path: Path) -> None:
         'viewBox="0 0 32 32"><rect width="32" height="32" fill="#d02040"/></svg>',
         encoding="utf-8",
     )
+
+
+def _render_eager_svg_icon(path: Path) -> QIcon:
+    """Build the former eager taskbar icon as a pixel oracle. 构造原预渲染图标作为像素基准。"""
+    renderer = QSvgRenderer(str(path))
+    assert renderer.isValid()
+    icon = QIcon()
+    for size in _ICON_SIZES:
+        pixmap = QPixmap(QSize(size, size))
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        assert painter.isActive()
+        try:
+            renderer.render(painter)
+        finally:
+            painter.end()
+        icon.addPixmap(pixmap)
+    return icon
 
 
 def _load_icon(entrypoint: str, qapp, source: str) -> QIcon:
@@ -122,6 +142,57 @@ def test_window_helper_renders_every_svg_size(tmp_path: Path) -> None:
     assert rendered is not None
     assert not rendered.isNull()
     assert rendered.availableSizes() == [QSize(size, size) for size in _ICON_SIZES]
+
+
+@pytest.mark.parametrize(
+    "requested_size",
+    [
+        QSize(16, 16),
+        QSize(20, 20),
+        QSize(24, 24),
+        QSize(36, 36),
+        QSize(48, 48),
+        QSize(64, 64),
+        QSize(96, 96),
+        QSize(128, 128),
+        QSize(192, 192),
+        QSize(256, 256),
+        QSize(300, 300),
+        QSize(64, 24),
+    ],
+)
+def test_window_helper_lazy_svg_keeps_eager_pixels(
+    tmp_path: Path,
+    requested_size: QSize,
+) -> None:
+    """Lazy rendering must preserve the former eager icon pixels. 惰性渲染保持原像素。"""
+    icon_path = tmp_path / "pixel-oracle.svg"
+    _write_real_svg(icon_path)
+    expected = _render_eager_svg_icon(icon_path)
+    actual = WindowHelper._renderSvgIcon(str(icon_path))
+
+    assert actual is not None
+    assert actual.actualSize(requested_size) == expected.actualSize(requested_size)
+    assert actual.pixmap(requested_size).toImage() == expected.pixmap(
+        requested_size
+    ).toImage()
+
+
+def test_taskbar_svg_engine_defers_and_reuses_source_renders(tmp_path: Path) -> None:
+    """Creation must render nothing and repeated requests reuse one source. 创建零渲染且复用源图。"""
+    icon_path = tmp_path / "lazy-cache.svg"
+    _write_real_svg(icon_path)
+    engine = _TaskbarSvgIconEngine(str(icon_path), _ICON_SIZES)
+    icon = QIcon(engine)
+
+    assert engine._source_icons == {}
+    first_image = icon.pixmap(QSize(20, 20)).toImage()
+    assert set(engine._source_icons) == {24}
+    assert icon.pixmap(QSize(20, 20)).toImage() == first_image
+    assert set(engine._source_icons) == {24}
+
+    icon.pixmap(QSize(36, 36))
+    assert set(engine._source_icons) == {24, 48}
 
 
 @pytest.mark.parametrize("entrypoint", ["WindowHelper", "WindowCore"])
