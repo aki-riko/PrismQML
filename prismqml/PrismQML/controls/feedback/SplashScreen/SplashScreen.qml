@@ -61,6 +61,12 @@ Rectangle {
     // Close splash screen 关闭启动画面
     function finish() {
         if (control._finishing) return
+        dissolveGridLoader.active = true
+        if (!dissolveGridLoader.item) {
+            console.error('SplashScreen: failed to create the exit dissolve grid')
+            return
+        }
+        solidBackground.visible = false
         control._finishing = true
         breatheAnim.stop()
         exitDissolveAnim.start()
@@ -123,45 +129,73 @@ Rectangle {
         }
     }
 
-    // Seamless cells fade independently to reveal the ready application.
-    // 无缝网格块独立渐隐，逐格露出已就绪的应用。
-    Repeater {
-        id: dissolveGrid
+    // A single rectangle preserves the complete first frame before exit.
+    // 单个矩形在退场前保持完整首帧背景。
+    Rectangle {
+        id: solidBackground
 
-        model: Enums.splashScreenMetrics.exitGridColumns *
-               Enums.splashScreenMetrics.exitGridRows
+        objectName: "splashSolidBackground"
+        anchors.fill: parent
+        color: control._splashBackground
+    }
 
-        delegate: Rectangle {
-            id: gridCell
+    // Create the full dissolve grid synchronously only when finish starts.
+    // 仅在开始退场时同步创建完整溶解网格。
+    Loader {
+        id: dissolveGridLoader
 
-            readonly property int _column: index % Enums.splashScreenMetrics.exitGridColumns
-            readonly property int _row: Math.floor(index / Enums.splashScreenMetrics.exitGridColumns)
-            readonly property real _centerColumn: (Enums.splashScreenMetrics.exitGridColumns - 1) /
-                                                  2
-            readonly property real _centerRow: (Enums.splashScreenMetrics.exitGridRows - 1) / 2
-            readonly property int _delay: Math.round((
-                Math.abs(gridCell._column - gridCell._centerColumn) +
-                Math.abs(gridCell._row - gridCell._centerRow)
-            ) * Enums.duration.splashGridDelayStep)
+        objectName: "splashDissolveGridLoader"
+        anchors.fill: parent
+        active: false
+        asynchronous: false
+        sourceComponent: dissolveGridComponent
+    }
 
-            objectName: "splashGridCell_" + index
-            x: gridCell._column * control.width / Enums.splashScreenMetrics.exitGridColumns
-            y: gridCell._row * control.height / Enums.splashScreenMetrics.exitGridRows
-            width: control.width / Enums.splashScreenMetrics.exitGridColumns +
-                   Enums.splashScreenMetrics.exitGridOverlap
-            height: control.height / Enums.splashScreenMetrics.exitGridRows +
-                    Enums.splashScreenMetrics.exitGridOverlap
-            color: control._splashBackground
-            opacity: Enums.opacityLevel.visible
+    Component {
+        id: dissolveGridComponent
 
-            SequentialAnimation on opacity {
-                running: control._finishing
+        Item {
+            Repeater {
+                id: dissolveGrid
 
-                PauseAnimation { duration: gridCell._delay }
-                NumberAnimation {
-                    to: Enums.opacityLevel.invisible
-                    duration: Enums.duration.splashGridCellFade
-                    easing.type: Easing.InOutCubic
+                model: Enums.splashScreenMetrics.exitGridColumns *
+                       Enums.splashScreenMetrics.exitGridRows
+
+                delegate: Rectangle {
+                    id: gridCell
+
+                    readonly property int _column: index % Enums.splashScreenMetrics.exitGridColumns
+                    readonly property int _row: Math.floor(index / Enums.splashScreenMetrics.exitGridColumns)
+                    readonly property real _centerColumn: (Enums.splashScreenMetrics.exitGridColumns - 1) /
+                                                          2
+                    readonly property real _centerRow: (Enums.splashScreenMetrics.exitGridRows - 1) / 2
+                    readonly property int _delay: Math.round((
+                        Math.abs(gridCell._column - gridCell._centerColumn) +
+                        Math.abs(gridCell._row - gridCell._centerRow)
+                    ) * Enums.duration.splashGridDelayStep)
+
+                    objectName: "splashGridCell_" + index
+                    x: gridCell._column * control.width /
+                       Enums.splashScreenMetrics.exitGridColumns
+                    y: gridCell._row * control.height /
+                       Enums.splashScreenMetrics.exitGridRows
+                    width: control.width / Enums.splashScreenMetrics.exitGridColumns +
+                           Enums.splashScreenMetrics.exitGridOverlap
+                    height: control.height / Enums.splashScreenMetrics.exitGridRows +
+                            Enums.splashScreenMetrics.exitGridOverlap
+                    color: control._splashBackground
+                    opacity: Enums.opacityLevel.visible
+
+                    SequentialAnimation on opacity {
+                        running: control._finishing
+
+                        PauseAnimation { duration: gridCell._delay }
+                        NumberAnimation {
+                            to: Enums.opacityLevel.invisible
+                            duration: Enums.duration.splashGridCellFade
+                            easing.type: Easing.InOutCubic
+                        }
+                    }
                 }
             }
         }
