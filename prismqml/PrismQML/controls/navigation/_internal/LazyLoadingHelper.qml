@@ -299,8 +299,8 @@ Item {
     // Timers 定时器
     Timer {
         id: loaderActivateTimer
-        objectName: "lazyLoaderActivateTimer"
         property int targetIndex: 0
+        objectName: "lazyLoaderActivateTimer"
         interval: Math.max(
             Enums.duration.tick,
             helper.loaderActivationDelay - helper.animationDuration
