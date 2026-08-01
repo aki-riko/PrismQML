@@ -29,6 +29,11 @@ Item {
         Enums.imageCropperDialogMetrics.cropRectDefaultH
     )
 
+    // ==================== Internal Props 内部属性 ====================
+    property var _dialogHost: null
+    property var _overlayHost: null
+    property bool _completed: false
+
     // ==================== Readonly State 只读状态 ====================
     readonly property int _tv: Translator._v
     readonly property int _previewRadius: Enums.radius.small
@@ -45,19 +50,21 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function open() {
+        var host = _ensureCurrentHost()
+        if (!host) return
         if (control.type === Enums.imageCropper.type_dialog) {
-            cropWindow.show()
+            host.show()
         } else {
-            overlayPanel.initDefaultCropRect()
-            cropOverlay.open()
+            host.initDefaultCropRect()
+            host.open()
         }
     }
 
     function close() {
         if (control.type === Enums.imageCropper.type_dialog) {
-            cropWindow.close()
+            if (_dialogHost) _dialogHost.close()
         } else {
-            cropOverlay.close()
+            if (_overlayHost) _overlayHost.close()
         }
     }
 
@@ -66,9 +73,37 @@ Item {
         control.open()
     }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _ensureDialogHost() {
+        if (!_dialogHost) {
+            _dialogHost = dialogHostComponent.createObject(control)
+            if (!_dialogHost) console.error("ImageCropper: Failed to create dialog host.")
+        }
+        return _dialogHost
+    }
+
+    function _ensureOverlayHost() {
+        if (!_overlayHost) {
+            _overlayHost = overlayHostComponent.createObject(control)
+            if (!_overlayHost) console.error("ImageCropper: Failed to create overlay host.")
+        }
+        return _overlayHost
+    }
+
+    function _ensureCurrentHost() {
+        return control.type === Enums.imageCropper.type_dialog
+            ? _ensureDialogHost() : _ensureOverlayHost()
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.imageCropperDialogMetrics.previewWidth
     implicitHeight: Enums.imageCropperDialogMetrics.previewHeight
+
+    Component.onCompleted: {
+        _completed = true
+        _ensureCurrentHost()
+    }
+    onTypeChanged: if (_completed) _ensureCurrentHost()
 
     // ==================== Content 内容 ====================
     // Preview thumbnail 预览缩略图
@@ -126,30 +161,34 @@ Item {
     }
 
     // Dialog mode 窗口模式
-    Window {
-        id: cropWindow
-        title: { control._tv; return Translator.tr("crop_image") }
-        width: Enums.imageCropperDialogMetrics.panelWidth
-        height: Enums.imageCropperDialogMetrics.panelHeight
-        color: control._dialogBackground
-        modality: Qt.ApplicationModal
-        flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
-        visible: false
+    Component {
+        id: dialogHostComponent
 
-        onVisibleChanged: {
-            if (visible) dialogPanel.initDefaultCropRect()
-        }
+        Window {
+            id: cropWindow
+            title: { control._tv; return Translator.tr("crop_image") }
+            width: Enums.imageCropperDialogMetrics.panelWidth
+            height: Enums.imageCropperDialogMetrics.panelHeight
+            color: control._dialogBackground
+            modality: Qt.ApplicationModal
+            flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
+            visible: false
 
-        ImageCropperPanel {
-            id: dialogPanel
-            anchors.fill: parent
-            anchors.margins: Enums.spacing.xxl
-            source: control.source
-            cropShape: control.cropShape
-            cropRect: control.cropRect
-            onCropRectUpdated: (newRect) => { control.cropRect = newRect }
-            onConfirmClicked: { cropWindow.close(); control.accepted(control.cropRect) }
-            onCancelClicked: { cropWindow.close(); control.rejected() }
+            onVisibleChanged: {
+                if (visible) dialogPanel.initDefaultCropRect()
+            }
+
+            ImageCropperPanel {
+                id: dialogPanel
+                anchors.fill: parent
+                anchors.margins: Enums.spacing.xxl
+                source: control.source
+                cropShape: control.cropShape
+                cropRect: control.cropRect
+                onCropRectUpdated: (newRect) => { control.cropRect = newRect }
+                onConfirmClicked: { cropWindow.close(); control.accepted(control.cropRect) }
+                onCancelClicked: { cropWindow.close(); control.rejected() }
+            }
         }
     }
 
@@ -160,20 +199,29 @@ Item {
     // 内容点不动)。改为不指定 parent —— 默认留在 control 局部(invisible 不拦截),
     // 由 OverlayDialogCore.open() 在打开时经 _resolveOverlayTarget() 自动升到
     // Window.contentItem, 与项目其它 dialog 行为一致。
-    DialogBoxCore {
-        id: cropOverlay
-        actionsVisible: false
-        
-        ImageCropperPanel {
-            id: overlayPanel
-            implicitWidth: Enums.imageCropperDialogMetrics.panelWidth
-            implicitHeight: Enums.imageCropperDialogMetrics.panelHeight
-            source: control.source
-            cropShape: control.cropShape
-            cropRect: control.cropRect
-            onCropRectUpdated: (newRect) => { control.cropRect = newRect }
-            onConfirmClicked: { cropOverlay.close(); control.accepted(control.cropRect) }
-            onCancelClicked: { cropOverlay.close(); control.rejected() }
+    Component {
+        id: overlayHostComponent
+
+        DialogBoxCore {
+            id: cropOverlay
+
+            function initDefaultCropRect() {
+                overlayPanel.initDefaultCropRect()
+            }
+
+            actionsVisible: false
+
+            ImageCropperPanel {
+                id: overlayPanel
+                implicitWidth: Enums.imageCropperDialogMetrics.panelWidth
+                implicitHeight: Enums.imageCropperDialogMetrics.panelHeight
+                source: control.source
+                cropShape: control.cropShape
+                cropRect: control.cropRect
+                onCropRectUpdated: (newRect) => { control.cropRect = newRect }
+                onConfirmClicked: { cropOverlay.close(); control.accepted(control.cropRect) }
+                onCancelClicked: { cropOverlay.close(); control.rejected() }
+            }
         }
     }
 }
