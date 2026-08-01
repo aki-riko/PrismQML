@@ -97,6 +97,12 @@ Rectangle {
     readonly property int _errorBorderWidth: Enums.border.thin
     readonly property color _errorBorderColor: Enums.statusLevel.getColor(Enums.statusLevel.errorStr)
     readonly property color _errorTextColor: _errorBorderColor
+    property bool _registerContentRequested: false
+    property bool _loginContentRequested: false
+    readonly property var _emailInput: emailInputLoader.item
+    readonly property var _confirmPasswordInput: confirmPasswordInputLoader.item
+    readonly property var _rememberMeCheck: loginOptionsLoader.item
+        ? loginOptionsLoader.item.rememberMeCheck : null
     
     // ==================== Signals 信号 ====================
     signal loginRequested(string username, string password, bool rememberMe)
@@ -109,26 +115,44 @@ Rectangle {
     function _isFormValid() {
         if (_isLogin) {
             return usernameInput.text.length > 0 && passwordInput.text.length > 0
-        } else {
-            return usernameInput.text.length > 0 &&
-                   emailInput.text.length > 0 &&
-                   passwordInput.text.length > 0 &&
-                   confirmPasswordInput.text.length > 0 &&
-                   passwordInput.text === confirmPasswordInput.text
         }
+        if (!root._emailInput || !root._confirmPasswordInput) return false
+        return usernameInput.text.length > 0 &&
+               root._emailInput.text.length > 0 &&
+               passwordInput.text.length > 0 &&
+               root._confirmPasswordInput.text.length > 0 &&
+               passwordInput.text === root._confirmPasswordInput.text
     }
 
     function _submitForm() {
         if (!_isFormValid()) return
 
         if (_isLogin) {
-            loginRequested(usernameInput.text, passwordInput.text, rememberMeCheck.checked)
+            loginRequested(
+                usernameInput.text,
+                passwordInput.text,
+                root._rememberMeCheck ? root._rememberMeCheck.checked : false
+            )
         } else {
-            registerRequested(usernameInput.text, emailInput.text, passwordInput.text)
+            registerRequested(usernameInput.text, root._emailInput.text, passwordInput.text)
         }
     }
 
+    function _prewarmRegisterContent() {
+        root._registerContentRequested = true
+    }
+
+    function _prewarmLoginContent() {
+        root._loginContentRequested = true
+    }
+
+    function _prewarmAlternateModeContent() {
+        if (root._isLogin) root._prewarmRegisterContent()
+        else root._prewarmLoginContent()
+    }
+
     function _toggleMode() {
+        root._prewarmAlternateModeContent()
         if (_isLogin) {
             mode = Enums.auth.mode_register
         } else {
@@ -143,10 +167,10 @@ Rectangle {
     // Clear form 清空表单
     function clearForm() {
         usernameInput.setText("")
-        emailInput.setText("")
+        if (root._emailInput) root._emailInput.setText("")
         passwordInput.setText("")
-        confirmPasswordInput.setText("")
-        rememberMeCheck.checked = false
+        if (root._confirmPasswordInput) root._confirmPasswordInput.setText("")
+        if (root._rememberMeCheck) root._rememberMeCheck.checked = false
         errorMessage = ""
     }
 
@@ -178,13 +202,19 @@ Rectangle {
     function getFormData() {
         return {
             username: usernameInput.text,
-            email: emailInput.text,
+            email: root._emailInput ? root._emailInput.text : "",
             password: passwordInput.text,
-            rememberMe: rememberMeCheck.checked
+            rememberMe: root._rememberMeCheck
+                ? root._rememberMeCheck.checked : false
         }
     }
 
     color: Enums.transparent
+
+    onModeChanged: {
+        if (!root._isLogin) root._prewarmRegisterContent()
+        else root._prewarmLoginContent()
+    }
 
     // ==================== Content 内容 ====================
     // Matrix rain background. 矩阵雨背景。
@@ -324,18 +354,23 @@ Rectangle {
                 }
                 
                 // Email field (register only) 邮箱字段（仅注册）
-                LineEditCore {
-                    id: emailInput
+                Loader {
+                    id: emailInputLoader
+
+                    objectName: "loginEmailInputLoader"
                     Layout.fillWidth: true
-                    inputType: Enums.input.type_normal
-                    placeholderText: {
-                        root._translationVersion
-                        return Translator.tr("email")
-                    }
+                    active: root._registerContentRequested || !root._isLogin
                     visible: !root._isLogin
-                    enabled: !root.loading
-                    
-                    onAccepted: passwordInput.forceActiveFocus()
+                    sourceComponent: LineEditCore {
+                        inputType: Enums.input.type_normal
+                        placeholderText: {
+                            root._translationVersion
+                            return Translator.tr("email")
+                        }
+                        enabled: !root.loading
+
+                        onAccepted: passwordInput.forceActiveFocus()
+                    }
                 }
                 
                 // Password field 密码字段
@@ -351,69 +386,92 @@ Rectangle {
                     
                     onAccepted: {
                         if (root._isLogin) root._submitForm()
-                        else confirmPasswordInput.forceActiveFocus()
+                        else if (root._confirmPasswordInput) {
+                            root._confirmPasswordInput.forceActiveFocus()
+                        }
                     }
                 }
                 
                 // Confirm password (register only) 确认密码（仅注册）
-                LineEditCore {
-                    id: confirmPasswordInput
+                Loader {
+                    id: confirmPasswordInputLoader
+
+                    objectName: "loginConfirmPasswordInputLoader"
                     Layout.fillWidth: true
-                    inputType: Enums.input.type_password
-                    placeholderText: {
-                        root._translationVersion
-                        return Translator.tr("confirm_password")
-                    }
+                    active: root._registerContentRequested || !root._isLogin
                     visible: !root._isLogin
-                    enabled: !root.loading
-                    
-                    onAccepted: root._submitForm()
+                    sourceComponent: LineEditCore {
+                        inputType: Enums.input.type_password
+                        placeholderText: {
+                            root._translationVersion
+                            return Translator.tr("confirm_password")
+                        }
+                        enabled: !root.loading
+
+                        onAccepted: root._submitForm()
+                    }
                 }
                 
                 // Password strength indicator 密码强度指示器
-                PasswordStrengthIndicator {
+                Loader {
+                    id: passwordStrengthLoader
+
+                    objectName: "loginPasswordStrengthLoader"
                     Layout.fillWidth: true
-                    password: passwordInput.text
+                    active: root._registerContentRequested || !root._isLogin
                     visible: !root._isLogin && root.showPasswordStrength && passwordInput.text.length > 0
+                    sourceComponent: PasswordStrengthIndicator {
+                        password: passwordInput.text
+                    }
                 }
             }
             
             // Remember-me and forgot-password actions. 记住我与忘记密码操作。
-            RowLayout {
+            Loader {
+                id: loginOptionsLoader
+
+                objectName: "loginOptionsLoader"
                 Layout.fillWidth: true
+                Layout.minimumWidth: implicitWidth
+                active: root._isLogin || root._loginContentRequested
                 visible: root._isLogin
-                
-                // Remember me 记住我
-                CheckBox {
-                    id: rememberMeCheck
-                    text: {
-                        root._translationVersion
-                        return Translator.tr("remember_me")
-                    }
-                    visible: root.rememberMeEnabled
-                    enabled: !root.loading
-                }
-                
-                Item { Layout.fillWidth: true }
-                
-                // Forgot password 忘记密码
-                Text {
-                    text: {
-                        root._translationVersion
-                        return Translator.tr("forgot_password")
-                    }
-                    font.family: Enums.fontFamily
-                    font.pixelSize: Enums.typography.bodySmall
-                    color: Enums.accentColor
-                    visible: root.forgotPasswordEnabled
-                    
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
+                sourceComponent: RowLayout {
+                    property alias rememberMeCheck: rememberMeCheck
+
+                    // Remember me 记住我
+                    CheckBox {
+                        id: rememberMeCheck
+                        text: {
+                            root._translationVersion
+                            return Translator.tr("remember_me")
+                        }
+                        visible: root.rememberMeEnabled
                         enabled: !root.loading
-                        onClicked: root.forgotPasswordClicked()
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    // Forgot password 忘记密码
+                    Text {
+                        text: {
+                            root._translationVersion
+                            return Translator.tr("forgot_password")
+                        }
+                        font.family: Enums.fontFamily
+                        font.pixelSize: Enums.typography.bodySmall
+                        color: Enums.accentColor
+                        visible: root.forgotPasswordEnabled
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            enabled: !root.loading
+                            onClicked: root.forgotPasswordClicked()
+                        }
                     }
                 }
+
+                onLoaded: root._loginContentRequested = true
             }
             
             // Submit button. 提交按钮。
@@ -513,9 +571,13 @@ Rectangle {
                     color: Enums.accentColor
                     
                     MouseArea {
+                        objectName: "loginModeToggleArea"
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         enabled: !root.loading
+                        hoverEnabled: true
+
+                        onEntered: root._prewarmAlternateModeContent()
                         onClicked: root._toggleMode()
                     }
                 }
