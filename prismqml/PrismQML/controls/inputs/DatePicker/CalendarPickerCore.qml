@@ -292,7 +292,7 @@ Item {
                                     !(dayCell.isRangeStart && dayCell.isRangeEnd)
                                 anchors.fill: parent
                                 visible: showBar
-                                layer.enabled: true
+                                layer.enabled: showBar
                                 
                                 Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
