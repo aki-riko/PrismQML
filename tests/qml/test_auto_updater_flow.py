@@ -256,6 +256,10 @@ def test_backend_metadata_is_bound_by_default(auto_updater_scene):
 
     assert root.property("facadeRepository") == "owner/repo"
     assert root.property("facadeVersion") == "v1.0.0"
+    assert not any(
+        "UpdateDialog" in obj.metaObject().className()
+        for obj in root.findChildren(QObject)
+    )
 
 
 def test_check_is_single_flight_until_terminal_signal(auto_updater_scene):
