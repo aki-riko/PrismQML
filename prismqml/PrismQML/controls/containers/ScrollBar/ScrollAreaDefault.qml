@@ -230,15 +230,6 @@ Item {
             var horizontal = (event.modifiers & Qt.ShiftModifier) && control._canScrollH
             var useV = !horizontal && control._canScrollV
             var useH = horizontal || (!control._canScrollV && control._canScrollH)
-            var activeHelper = useV ? vScrollHelper : hScrollHelper
-            activeHelper._trace("wheel.input", "route=ScrollAreaDefault" +
-                                " angleX=" + event.angleDelta.x +
-                                " angleY=" + event.angleDelta.y +
-                                " pixelX=" + event.pixelDelta.x +
-                                " pixelY=" + event.pixelDelta.y +
-                                " phase=" + (typeof event.phase === "undefined"
-                                             ? "undefined" : event.phase) +
-                                " inverted=" + event.inverted)
             var delta = -event.angleDelta.y / 120 * (useV ? vScrollHelper.step : hScrollHelper.step)
 
             // Step 1: 命中点向下递归找可滚子组件，未到边界则调它的 smoothScrollBy

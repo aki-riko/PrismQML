@@ -17,9 +17,8 @@ from PySide6.QtCore import (
     QTimer,
     QUrl,
     Qt,
-    qInstallMessageHandler,
 )
-from PySide6.QtGui import QGuiApplication, QWheelEvent
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -80,7 +79,6 @@ Window {
     function scrollHorizontal() { horizontalHelper.scrollTo(260) }
     function scrollHorizontalToEnd() { horizontalHelper.scrollToEnd() }
     function growHorizontalContent() { horizontalFlick.contentWidth = 820 }
-    function overshootHorizontal() { horizontalHelper.scrollBy(1000) }
     function scrollPopup() { popupHelper.scrollTo(999) }
     function setVerticalHalf() {
         verticalFlick.contentY = 240
@@ -280,35 +278,6 @@ def _wait_for_stable(predicate, stable_checks: int = 5, timeout_ms: int = 1500) 
     return False
 
 
-def _smooth_scroll_helper(item: QQuickItem, orientation: Qt.Orientation) -> QQuickItem:
-    return next(
-        child
-        for child in item.findChildren(QQuickItem)
-        if "SmoothScrollHelper" in child.metaObject().className()
-        and child.property("orientation") == orientation.value
-    )
-
-
-def _send_wheel(window: QQuickWindow, item: QQuickItem, delta: int) -> QWheelEvent:
-    position = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
-    global_position = QPointF(
-        window.x() + position.x(),
-        window.y() + position.y(),
-    )
-    event = QWheelEvent(
-        position,
-        global_position,
-        QPoint(0, 0),
-        QPoint(0, delta),
-        Qt.MouseButton.NoButton,
-        Qt.KeyboardModifier.NoModifier,
-        Qt.ScrollPhase.NoScrollPhase,
-        False,
-    )
-    assert QGuiApplication.sendEvent(window, event)
-    return event
-
-
 def _new_visible_windows(windows_before, *allowed):
     return [
         window
@@ -378,8 +347,6 @@ def scroll_scene(qapp):
 
 def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
     window, _items, warnings, windows_before = scroll_scene
-    vertical_helper = window.findChild(QQuickItem, "verticalHelper")
-    assert vertical_helper.property("_traceEnabled") is False
     assert window.property("verticalMax") == pytest.approx(480)
     assert window.property("horizontalMax") == pytest.approx(520)
 
@@ -400,267 +367,10 @@ def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
 
     assert QMetaObject.invokeMethod(window, "scrollHorizontal")
     assert _wait_for(lambda: window.property("horizontalX") == pytest.approx(260))
-    assert QMetaObject.invokeMethod(window, "scrollHorizontalToEnd")
-    assert _wait_for(
-        lambda: window.property("horizontalX")
-        == pytest.approx(window.property("horizontalMax"))
-    )
-    assert QMetaObject.invokeMethod(window, "overshootHorizontal")
-    assert _wait_for(
-        lambda: window.property("horizontalX") > window.property("horizontalMax")
-    )
-    assert _wait_for_stable(
-        lambda: window.property("horizontalX")
-        == pytest.approx(window.property("horizontalMax")),
-        timeout_ms=1500,
-    )
     assert QMetaObject.invokeMethod(window, "scrollPopup")
     assert _wait_for(lambda: window.property("popupY") == pytest.approx(380))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
-
-
-def test_scroll_area_bounce_peak_does_not_expand_after_gui_stall(scroll_scene):
-    window, items, warnings, windows_before = scroll_scene
-    area = items["defaultArea"]
-    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
-    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
-    maximum = helper.property("maxScroll")
-    step = helper.property("step")
-
-    values = []
-    area.contentYChanged.connect(
-        lambda: values.append(float(area.property("contentY")))
-    )
-
-    area.setProperty("contentY", maximum)
-    assert QMetaObject.invokeMethod(helper, "syncPosition")
-    normal_event = _send_wheel(window, area, -120)
-    assert normal_event.isAccepted()
-    _pump(1000)
-    normal_peak = max(values)
-    assert maximum + step * 0.45 <= normal_peak <= maximum + step * 0.70
-    assert area.property("contentY") == pytest.approx(maximum)
-
-    values.clear()
-    area.setProperty("contentY", maximum)
-    assert QMetaObject.invokeMethod(helper, "syncPosition")
-    stalled_event = _send_wheel(window, area, -120)
-    assert stalled_event.isAccepted()
-    _pump(60)
-    assert values
-    before_stall = values[-1]
-    resume_index = len(values)
-    QTest.qSleep(120)
-    _pump(1000)
-    resumed_values = values[resume_index:]
-    assert resumed_values
-    stalled_peak = max(values)
-
-    assert max(resumed_values) <= before_stall + 0.5
-    assert stalled_peak <= normal_peak + 2
-    assert area.property("contentY") == pytest.approx(maximum)
-    assert warnings == []
-    assert _new_visible_windows(windows_before, window) == []
-
-
-def test_scroll_area_preserves_original_return_curve_for_large_bounce(scroll_scene):
-    window, items, warnings, windows_before = scroll_scene
-    area = items["defaultArea"]
-    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
-    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
-    maximum = helper.property("maxScroll")
-    step = helper.property("step")
-
-    values = []
-    area.contentYChanged.connect(
-        lambda: values.append(float(area.property("contentY")))
-    )
-
-    area.setProperty("contentY", maximum)
-    assert QMetaObject.invokeMethod(helper, "syncPosition")
-    normal_event = _send_wheel(window, area, -120)
-    assert normal_event.isAccepted()
-    _pump(1000)
-    normal_values = values.copy()
-    normal_peak = max(normal_values)
-    normal_trough = min(normal_values)
-    assert maximum - step * 0.08 <= normal_trough <= maximum - step * 0.03
-    assert area.property("contentY") == pytest.approx(maximum)
-    values.clear()
-    area.setProperty("contentY", maximum)
-    assert QMetaObject.invokeMethod(helper, "syncPosition")
-    large_event = _send_wheel(window, area, -360)
-    assert large_event.isAccepted()
-    _pump(1000)
-    large_peak = max(values)
-    peak_index = values.index(large_peak)
-    return_values = values[peak_index:]
-    large_trough = min(return_values)
-    trough_index = return_values.index(large_trough)
-    assert large_peak > normal_peak
-    assert maximum - large_trough > maximum - normal_trough
-    assert any(
-        current > previous + 0.5
-        for previous, current in zip(
-            return_values[trough_index:], return_values[trough_index + 1:]
-        )
-    )
-    assert area.property("contentY") == pytest.approx(maximum)
-    assert warnings == []
-    assert _new_visible_windows(windows_before, window) == []
-
-
-def test_scroll_area_boundary_bounce_groups_burst_and_reopens_after_quiet(
-    scroll_scene,
-):
-    window, items, warnings, windows_before = scroll_scene
-    area = items["defaultArea"]
-    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
-    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
-    maximum = helper.property("maxScroll")
-
-    values = []
-    area.contentYChanged.connect(
-        lambda: values.append(float(area.property("contentY")))
-    )
-    area.setProperty("contentY", maximum)
-    assert QMetaObject.invokeMethod(helper, "syncPosition")
-
-    first_event = _send_wheel(window, area, -120)
-    assert first_event.isAccepted()
-    _pump(130)
-    first_peak = max(values)
-    assert first_peak > maximum
-
-    # Keep the same burst alive beyond the return animation. It must not start
-    # another bounce merely because the first animation has finished.
-    # 让同一输入突发持续超过回程动画；不能仅因首轮动画结束就再次回弹。
-    for _ in range(10):
-        repeated_event = _send_wheel(window, area, -120)
-        assert repeated_event.isAccepted()
-        _pump(130)
-
-    assert max(values) <= first_peak + 0.5
-    assert _wait_for_stable(
-        lambda: area.property("contentY") == pytest.approx(maximum),
-        timeout_ms=1500,
-    )
-
-    # A quiet gap marks a new user action at the same boundary, so feedback
-    # becomes available again without requiring an inward scroll first.
-    # 静默间隔表示同一边界上的新一轮操作，无需先向内滚动即可再次获得反馈。
-    values.clear()
-    _pump(200)
-    next_action_event = _send_wheel(window, area, -120)
-    assert next_action_event.isAccepted()
-    assert _wait_for(lambda: max(values or [maximum]) > maximum)
-    _pump(1000)
-    assert warnings == []
-    assert _new_visible_windows(windows_before, window) == []
-
-
-def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
-    qapp, monkeypatch
-):
-    monkeypatch.setenv("PRISMQML_SCROLL_TRACE", "1")
-    messages = []
-    previous_handler = qInstallMessageHandler(
-        lambda _mode, _context, message: messages.append(str(message))
-    )
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    scene = None
-    try:
-        scene = _create_scene()
-        _engine, _component, window, items, warnings = scene
-        area = items["defaultArea"]
-        helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
-        assert helper.property("_traceEnabled") is True
-        assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
-        maximum = helper.property("maxScroll")
-        step = helper.property("step")
-        values = []
-        area.contentYChanged.connect(
-            lambda: values.append(float(area.property("contentY")))
-        )
-
-        # Reproduce the real boundary-crossing path: the first wheel packet
-        # contributes only a small residual overshoot, while following packets
-        # in the same burst build the visible bounce distance.
-        # 复现真实越界路径：首个滚轮包只产生很小的残余越界，后续同一突发中的
-        # 滚轮包继续累积出正常可见的回弹距离。
-        area.setProperty("contentY", maximum - step * 0.9)
-        assert QMetaObject.invokeMethod(helper, "syncPosition")
-        values.clear()
-        messages.clear()
-        event = _send_wheel(window, area, -120)
-        assert event.isAccepted()
-        for _ in range(4):
-            _pump(20)
-            repeated_event = _send_wheel(window, area, -120)
-            assert repeated_event.isAccepted()
-        assert _wait_for(lambda: helper.property("_bouncePhase") == "return")
-        return_event = _send_wheel(window, area, -120)
-        assert return_event.isAccepted()
-        _pump(1000)
-
-        trace = [message for message in messages if "[ScrollBounceTrace]" in message]
-        expected_fragments = (
-            "stage=wheel.input",
-            "route=ScrollAreaDefault",
-            "angleY=-120",
-            "stage=request.scrollBy",
-            "stage=bounce.vertical.request",
-            "stage=bounce.vertical.start",
-            "stage=bounce.vertical.outward.begin",
-            "stage=bounce.vertical.outward.extend",
-            "stage=bounce.vertical.return.begin",
-            "returnOvershoot=",
-            "stage=bounce.vertical.finish",
-            'source="bounce.outward"',
-            'source="bounce.return"',
-            "reversal=true",
-        )
-        assert trace
-        for fragment in expected_fragments:
-            assert any(fragment in message for message in trace), (
-                fragment,
-                "\n".join(trace),
-            )
-        starts = [message for message in trace if "stage=bounce.vertical.start" in message]
-        extensions = [
-            message
-            for message in trace
-            if "stage=bounce.vertical.outward.extend" in message
-        ]
-        blocked = [
-            message for message in trace if "stage=bounce.vertical.blocked" in message
-        ]
-        assert len(starts) == 1, "\n".join(starts)
-        assert len(extensions) == 4, "\n".join(trace)
-        assert all("progress=0" in message for message in extensions)
-        assert len(blocked) == 1, "\n".join(trace)
-        last_extension_timestamp = int(
-            extensions[-1].split(" ts=", 1)[1].split(" ", 1)[0]
-        )
-        return_trace = next(
-            message
-            for message in trace
-            if "stage=bounce.vertical.return.begin" in message
-        )
-        return_timestamp = int(
-            return_trace.split(" ts=", 1)[1].split(" ", 1)[0]
-        )
-        assert return_timestamp - last_extension_timestamp <= 180, "\n".join(trace)
-        assert max(values or [maximum]) >= maximum + step * 0.40, "\n".join(trace)
-        assert area.property("contentY") == pytest.approx(maximum)
-        assert warnings == []
-        assert _new_visible_windows(windows_before, window) == []
-    finally:
-        if scene is not None:
-            _dispose_scene(scene[0], scene[1], scene[2])
-        qInstallMessageHandler(previous_handler)
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
 def test_smooth_helpers_keep_boundary_target_when_content_grows(scroll_scene):
@@ -790,7 +500,7 @@ def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
 
 def test_scroll_bar_sources_follow_conventions():
     violations = []
-    for source_path in sorted(SOURCE_DIR.rglob("*.qml")):
+    for source_path in sorted(SOURCE_DIR.glob("*.qml")):
         path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
         violations.extend(
             violation

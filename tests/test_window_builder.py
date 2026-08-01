@@ -96,7 +96,6 @@ class _EngineSetupScenario:
         monkeypatch.setattr(
             setup, "asynchronous_page_loader_enabled", lambda: False
         )
-        monkeypatch.setattr(setup, "scroll_trace_enabled", lambda: True)
         monkeypatch.setattr(
             setup,
             "get_svg_provider",
@@ -130,7 +129,6 @@ def _expected_engine_context_calls(scenario):
         ("factory", "clipboard"),
         ("context", "ClipboardHelper", values["clipboard"]),
         ("context", "PrismQmlStartupProfileVerbose", True),
-        ("context", "PrismQmlScrollTraceEnabled", True),
         ("context", "PrismQmlAsynchronousPageLoaderEnabled", False),
         ("factory", "native"),
         ("context", "NativeWindow", values["native"]),

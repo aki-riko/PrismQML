@@ -7,7 +7,6 @@
 
 from PySide6.QtQml import QQmlApplicationEngine
 
-from ..core.diagnostics import scroll_trace_enabled
 from ..core.engine import EngineManager
 from ..core.incubation import asynchronous_page_loader_enabled
 from ..providers import get_svg_provider
@@ -61,7 +60,6 @@ def _inject_window_context(
     context.setContextProperty(
         "PrismQmlStartupProfileVerbose", startup_profile_verbose
     )
-    context.setContextProperty("PrismQmlScrollTraceEnabled", scroll_trace_enabled())
     context.setContextProperty(
         "PrismQmlAsynchronousPageLoaderEnabled",
         asynchronous_page_loader_enabled(),
