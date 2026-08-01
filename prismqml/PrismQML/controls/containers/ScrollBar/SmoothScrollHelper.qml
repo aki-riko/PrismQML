@@ -31,7 +31,7 @@ Item {
     property bool _isOvershotV: false
     property int _boundaryTargetV: 0  // -1=start, 0=absolute, 1=end
     property int _bounceBoundaryV: 0  // Boundary of the active bounce 当前回弹边界
-    property int _blockedBounceBoundaryV: 0  // Ignore repeated feedback until inward scroll 向内滚动前不重复反馈
+    readonly property int _blockedBounceBoundaryV: verticalBounce.blockedBoundary
     
     // Horizontal state 水平状态
     property real _targetX: 0
@@ -39,7 +39,7 @@ Item {
     property bool _isOvershotH: false
     property int _boundaryTargetH: 0  // -1=start, 0=absolute, 1=end
     property int _bounceBoundaryH: 0  // Boundary of the active bounce 当前回弹边界
-    property int _blockedBounceBoundaryH: 0  // Ignore repeated feedback until inward scroll 向内滚动前不重复反馈
+    readonly property int _blockedBounceBoundaryH: horizontalBounce.blockedBoundary
     // _syncing = true 时禁用动画, 让 ScrollBar 拖拽场景下 contentX/Y 立即跟随 handle,
     // 不被 Behavior 平滑过渡反向拖拽.
     property bool _syncing: false
@@ -62,7 +62,6 @@ Item {
         ? verticalBounce.phase : horizontalBounce.phase
 
     // ==================== Public Methods 公开方法 ====================
-
     // Scroll to absolute position 滚动到绝对位置
     function scrollTo(pos) {
         if (_isVertical) {
@@ -115,14 +114,14 @@ Item {
         if (_isVertical) {
             verticalBounce.stop("sync-position")
             _bounceBoundaryV = 0
-            _blockedBounceBoundaryV = 0
+            verticalBounce.resetInputGate()
             _boundaryTargetV = 0
             _targetY = target.contentY
             _smoothY = target.contentY
         } else {
             horizontalBounce.stop("sync-position")
             _bounceBoundaryH = 0
-            _blockedBounceBoundaryH = 0
+            horizontalBounce.resetInputGate()
             _boundaryTargetH = 0
             _targetX = target.contentX
             _smoothX = target.contentX
@@ -148,8 +147,8 @@ Item {
 
     function _returnStarted(axis) {
         var vertical = axis === "vertical"
-        if (vertical) _blockedBounceBoundaryV = _bounceBoundaryV
-        else _blockedBounceBoundaryH = _bounceBoundaryH
+        if (vertical) verticalBounce.lockInput(_bounceBoundaryV)
+        else horizontalBounce.lockInput(_bounceBoundaryH)
         var boundary = vertical ? _bounceBoundaryV : _bounceBoundaryH
         _trace("bounce." + axis + ".locked", "boundary=" + boundary)
     }
@@ -174,7 +173,7 @@ Item {
         if (targetY === _targetY && smoothY === _smoothY) return
         _isOvershotV = false
         _bounceBoundaryV = 0
-        _blockedBounceBoundaryV = 0
+        verticalBounce.resetInputGate()
         verticalBounce.stop("bounds-reconcile")
         _targetY = targetY
         if (smoothY !== _smoothY) {
@@ -203,7 +202,7 @@ Item {
         if (targetX === _targetX && smoothX === _smoothX) return
         _isOvershotH = false
         _bounceBoundaryH = 0
-        _blockedBounceBoundaryH = 0
+        horizontalBounce.resetInputGate()
         horizontalBounce.stop("bounds-reconcile")
         _targetX = targetX
         if (smoothX !== _smoothX) {
@@ -219,7 +218,7 @@ Item {
         _trace("scroll.vertical.to", "position=" + targetY)
         verticalBounce.stop("scroll-to")
         _bounceBoundaryV = 0
-        _blockedBounceBoundaryV = 0
+        verticalBounce.resetInputGate()
         _targetY = _clamp(targetY, _minY, _maxY)
         _isOvershotV = false
         _smoothY = _targetY
@@ -233,7 +232,7 @@ Item {
         if (newTarget >= _minY && newTarget <= _maxY) {
             verticalBounce.stop("normal-scroll")
             _bounceBoundaryV = 0
-            if (delta !== 0) _blockedBounceBoundaryV = 0
+            if (delta !== 0) verticalBounce.resetInputGate()
             _targetY = newTarget
             _isOvershotV = false
             _smoothY = _targetY
@@ -248,7 +247,7 @@ Item {
 
         if (newTarget < _minY) {
             // Top overshoot 顶部超出
-            if (_blockedBounceBoundaryV === -1) {
+            if (!verticalBounce.acceptInput(-1)) {
                 _trace("bounce.vertical.blocked", "boundary=-1")
                 return
             }
@@ -264,7 +263,7 @@ Item {
             if (startTopBounce || !verticalBounce.extendOutward(overshootDelta)) verticalBounce.start(_smoothY, outwardY, _targetY)
         } else {
             // Bottom overshoot 底部超出
-            if (_blockedBounceBoundaryV === 1) {
+            if (!verticalBounce.acceptInput(1)) {
                 _trace("bounce.vertical.blocked", "boundary=1")
                 return
             }
@@ -287,7 +286,7 @@ Item {
         _trace("scroll.horizontal.to", "position=" + targetX)
         horizontalBounce.stop("scroll-to")
         _bounceBoundaryH = 0
-        _blockedBounceBoundaryH = 0
+        horizontalBounce.resetInputGate()
         _targetX = _clamp(targetX, _minX, _maxX)
         _isOvershotH = false
         _smoothX = _targetX
@@ -301,7 +300,7 @@ Item {
         if (newTarget >= _minX && newTarget <= _maxX) {
             horizontalBounce.stop("normal-scroll")
             _bounceBoundaryH = 0
-            if (delta !== 0) _blockedBounceBoundaryH = 0
+            if (delta !== 0) horizontalBounce.resetInputGate()
             _targetX = newTarget
             _isOvershotH = false
             _smoothX = _targetX
@@ -316,7 +315,7 @@ Item {
 
         if (newTarget < _minX) {
             // Left overshoot 左侧超出
-            if (_blockedBounceBoundaryH === -1) {
+            if (!horizontalBounce.acceptInput(-1)) {
                 _trace("bounce.horizontal.blocked", "boundary=-1")
                 return
             }
@@ -332,7 +331,7 @@ Item {
             if (startLeftBounce || !horizontalBounce.extendOutward(overshootDelta)) horizontalBounce.start(_smoothX, outwardX, _targetX)
         } else {
             // Right overshoot 右侧超出
-            if (_blockedBounceBoundaryH === 1) {
+            if (!horizontalBounce.acceptInput(1)) {
                 _trace("bounce.horizontal.blocked", "boundary=1")
                 return
             }
@@ -415,6 +414,7 @@ Item {
         normalOutwardDistance: helper.step
         maxOutwardDistance: helper._maxOvershoot
         returnOvershoot: Enums.motion.scrollReturnBackOvershoot
+        inputQuietDuration: Enums.duration.normal
         traceEnabled: helper._traceEnabled
         onPositionChanged: (position) => helper._smoothY = position
         onReturnStarted: helper._returnStarted("vertical")
@@ -432,6 +432,7 @@ Item {
         normalOutwardDistance: helper.step
         maxOutwardDistance: helper._maxOvershoot
         returnOvershoot: Enums.motion.scrollReturnBackOvershoot
+        inputQuietDuration: Enums.duration.normal
         traceEnabled: helper._traceEnabled
         onPositionChanged: (position) => helper._smoothX = position
         onReturnStarted: helper._returnStarted("horizontal")
@@ -462,7 +463,6 @@ Item {
 
     // Auto wheel handler 自动滚轮处理
     // Use parent binding instead of anchors to avoid "not a parent or sibling" warning 使用 parent 绑定而非 anchors 避免锚点警告
-
     MouseArea {
         id: wheelArea
         parent: helper.target

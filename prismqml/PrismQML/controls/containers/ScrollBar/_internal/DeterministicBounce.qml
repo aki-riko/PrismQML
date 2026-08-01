@@ -17,6 +17,7 @@ Item {
     required property real normalOutwardDistance
     required property real maxOutwardDistance
     required property real returnOvershoot
+    required property int inputQuietDuration
 
     // ==================== Public Props 公开属性 ====================
     property bool traceEnabled: false
@@ -32,9 +33,12 @@ Item {
     property real _lastUpdateTimestamp: 0
     property real _adaptiveReturnOvershoot: 0
     property bool _retargeting: false
+    property int _blockedBoundary: 0
+    property real _lastInputTimestamp: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool active: _active
+    readonly property int blockedBoundary: _blockedBoundary
     readonly property string phase: !_active ? "idle"
         : (_outwardPhase ? "outward" : "return")
     readonly property real _outwardProgress: sourceDuration > 0
@@ -124,6 +128,32 @@ Item {
                " delta=" + outwardDelta +
                " adaptiveOvershoot=" + _adaptiveReturnOvershoot)
         return true
+    }
+
+    function acceptInput(boundary) {
+        var now = Date.now()
+        if (_blockedBoundary !== boundary) {
+            _blockedBoundary = 0
+            _lastInputTimestamp = now
+            return true
+        }
+        var sameBurst = _active
+            || now - _lastInputTimestamp < inputQuietDuration
+        _lastInputTimestamp = now
+        if (sameBurst) return false
+        _blockedBoundary = 0
+        _trace("input.unlock", "boundary=" + boundary +
+               " quietDuration=" + inputQuietDuration)
+        return true
+    }
+
+    function lockInput(boundary) {
+        _blockedBoundary = boundary
+    }
+
+    function resetInputGate() {
+        _blockedBoundary = 0
+        _lastInputTimestamp = 0
     }
 
     function stop(reason) {

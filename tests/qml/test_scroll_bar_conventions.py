@@ -507,7 +507,9 @@ def test_scroll_area_adapts_only_large_bounce_return(scroll_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
-def test_scroll_area_boundary_bounce_does_not_restart_during_return(scroll_scene):
+def test_scroll_area_boundary_bounce_groups_burst_and_reopens_after_quiet(
+    scroll_scene,
+):
     window, items, warnings, windows_before = scroll_scene
     area = items["defaultArea"]
     helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
@@ -527,7 +529,10 @@ def test_scroll_area_boundary_bounce_does_not_restart_during_return(scroll_scene
     first_peak = max(values)
     assert first_peak > maximum
 
-    for _ in range(5):
+    # Keep the same burst alive beyond the return animation. It must not start
+    # another bounce merely because the first animation has finished.
+    # 让同一输入突发持续超过回程动画；不能仅因首轮动画结束就再次回弹。
+    for _ in range(10):
         repeated_event = _send_wheel(window, area, -120)
         assert repeated_event.isAccepted()
         _pump(130)
@@ -538,26 +543,13 @@ def test_scroll_area_boundary_bounce_does_not_restart_during_return(scroll_scene
         timeout_ms=1500,
     )
 
+    # A quiet gap marks a new user action at the same boundary, so feedback
+    # becomes available again without requiring an inward scroll first.
+    # 静默间隔表示同一边界上的新一轮操作，无需先向内滚动即可再次获得反馈。
     values.clear()
-    settled_event = _send_wheel(window, area, -120)
-    assert settled_event.isAccepted()
-    _pump(250)
-    assert max(values or [maximum]) <= maximum + 0.5
-
-    inward_event = _send_wheel(window, area, 120)
-    assert inward_event.isAccepted()
-    assert _wait_for(lambda: area.property("contentY") < maximum)
-    _pump(1000)
-
-    return_to_boundary_event = _send_wheel(window, area, -120)
-    assert return_to_boundary_event.isAccepted()
-    assert _wait_for_stable(
-        lambda: area.property("contentY") == pytest.approx(maximum),
-        timeout_ms=1500,
-    )
-    values.clear()
-    unlocked_event = _send_wheel(window, area, -120)
-    assert unlocked_event.isAccepted()
+    _pump(200)
+    next_action_event = _send_wheel(window, area, -120)
+    assert next_action_event.isAccepted()
     assert _wait_for(lambda: max(values or [maximum]) > maximum)
     _pump(1000)
     assert warnings == []
@@ -641,8 +633,9 @@ def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
             message for message in trace if "stage=bounce.vertical.blocked" in message
         ]
         assert len(starts) == 1, "\n".join(starts)
-        assert len(extensions) == 4, "\n".join(extensions)
-        assert len(blocked) == 1, "\n".join(blocked)
+        assert extensions, "\n".join(trace)
+        assert blocked, "\n".join(trace)
+        assert len(extensions) + len(blocked) == 5, "\n".join(trace)
         start_timestamp = int(starts[0].split(" ts=", 1)[1].split(" ", 1)[0])
         return_trace = next(
             message
