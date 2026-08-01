@@ -149,6 +149,14 @@ def _search_popup(search: QQuickItem) -> QQuickItem:
     return matches[0]
 
 
+def _search_surface(search: QQuickItem, class_name: str) -> list[QQuickItem]:
+    return [
+        item
+        for item in search.findChildren(QQuickItem)
+        if item.metaObject().className().startswith(class_name)
+    ]
+
+
 def _popup_core(search_popup: QQuickItem) -> QQuickItem:
     matches = [
         item
@@ -223,8 +231,6 @@ def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, search, warnings = _create_scene()
     try:
-        popup = _search_popup(search)
-        popup_core = _popup_core(popup)
         text_input = _text_input(search)
         opened = []
         dismissed = []
@@ -233,13 +239,11 @@ def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
 
         assert search.property("query") == ""
         assert not search.property("isOpen")
-        assert popup.property("_resolvedWidth") == 320
-        assert _wait_for(lambda: popup.property("_resolvedContentHeight") == 156)
+        assert _search_surface(search, "SearchResultList") == []
+        assert _search_surface(search, "SearchPopup") == []
 
         search.setWidth(180)
-        assert _wait_for(lambda: popup.property("_resolvedWidth") == 240)
         search.setWidth(320)
-        assert _wait_for(lambda: popup.property("_resolvedWidth") == 320)
 
         text_input.forceActiveFocus()
         assert _wait_for(text_input.hasActiveFocus)
@@ -247,10 +251,12 @@ def test_search_popup_preserves_sizing_and_idempotent_lifecycle(qapp):
         assert _wait_for(lambda: search.property("query") == "build")
         assert _wait_for(lambda: search.property("isOpen")), (
             search.property("popupMode"),
-            popup_core.property("isOpen"),
-            popup_core.property("isClosing"),
             warnings,
         )
+        popup = _search_popup(search)
+        popup_core = _popup_core(popup)
+        assert popup.property("_resolvedWidth") == 320
+        assert _wait_for(lambda: popup.property("_resolvedContentHeight") == 56)
         assert _wait_for(lambda: popup_core.property("isOpen"))
         assert _wait_for(lambda: len(_visible_popup_windows(windows_before, window)) == 1)
         popup_window = _visible_popup_windows(windows_before, window)[0]
@@ -416,12 +422,18 @@ def test_local_search_bar_preserves_command_and_centered_open_contract(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, search, warnings = _create_scene()
     try:
-        popup_core = _popup_core(_search_popup(search))
+        assert _search_surface(search, "SearchResultList") == []
+        assert _search_surface(search, "SearchPopup") == []
         assert QMetaObject.invokeMethod(
             search, "setQuery", Q_ARG("QVariant", "programmatic")
         )
         assert _wait_for(lambda: search.property("query") == "programmatic")
         assert _wait_for(lambda: search.property("isOpen"))
+        popup = _search_popup(search)
+        popup_core = _popup_core(popup)
+        result_list = _search_surface(search, "SearchResultList")[0]
+        assert result_list.parent() is search
+        assert popup.parent() is search
         assert QMetaObject.invokeMethod(search, "setQuery", Q_ARG("QVariant", ""))
         assert _wait_for(lambda: search.property("query") == "")
         assert _wait_for(lambda: not search.property("isOpen"))
@@ -437,6 +449,58 @@ def test_local_search_bar_preserves_command_and_centered_open_contract(qapp):
         assert _wait_for(lambda: not popup_core.property("isClosing"))
         assert warnings == []
         assert _visible_popup_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window, search)
+
+
+def test_local_search_surface_is_lazy_reused_and_down_openable(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, search, warnings = _create_scene()
+    try:
+        text_input = _text_input(search)
+        assert _search_surface(search, "SearchResultList") == []
+        assert _search_surface(search, "SearchPopup") == []
+
+        assert QMetaObject.invokeMethod(search, "dismiss")
+        assert QMetaObject.invokeMethod(search, "setQuery", Q_ARG("QVariant", ""))
+        assert QMetaObject.invokeMethod(search, "open")
+        _pump(40)
+        assert _search_surface(search, "SearchResultList") == []
+        assert _search_surface(search, "SearchPopup") == []
+
+        text_input.forceActiveFocus()
+        assert _wait_for(text_input.hasActiveFocus)
+        QTest.keyClick(window, Qt.Key.Key_Down)
+        assert _wait_for(lambda: search.property("isOpen"))
+        result_list = _search_surface(search, "SearchResultList")[0]
+        popup = _search_surface(search, "SearchPopup")[0]
+        popup_core = _popup_core(popup)
+        assert result_list.parent() is search
+        assert popup.parent() is search
+        assert popup_core.parent() is popup
+        assert _wait_for(lambda: result_list.property("hitCount") == 3)
+        assert _wait_for(lambda: popup.property("_resolvedContentHeight") == 156)
+        assert _wait_for(
+            lambda: _selected_result_indices(
+                _visible_popup_windows(windows_before, window)[0]
+            )
+            == [0]
+        )
+
+        assert QMetaObject.invokeMethod(search, "dismiss")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert _wait_for(lambda: not popup_core.property("isClosing"))
+        assert QMetaObject.invokeMethod(
+            search, "setQuery", Q_ARG("QVariant", "project")
+        )
+        assert _wait_for(lambda: search.property("isOpen"))
+        assert _search_surface(search, "SearchResultList") == [result_list]
+        assert _search_surface(search, "SearchPopup") == [popup]
+        popup_window = _visible_popup_windows(windows_before, window)[0]
+        assert _wait_for(lambda: _selected_result_indices(popup_window) == [0])
+        assert QMetaObject.invokeMethod(result_list, "moveDown")
+        assert _wait_for(lambda: _selected_result_indices(popup_window) == [1])
+        assert warnings == []
     finally:
         _dispose_scene(engine, component, window, search)
 

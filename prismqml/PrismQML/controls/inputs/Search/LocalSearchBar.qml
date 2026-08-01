@@ -47,9 +47,13 @@ Item {
     property bool highlightMatches: true
     property string emptyText: ''  // 默认走 i18n no_results
 
+    // ==================== Internal Props 内部属性 ====================
+    property Item _resultList: null
+    property Item _searchPopup: null
+
     // ==================== Readonly State 只读状态 ====================
     readonly property string query: lineEdit.text
-    readonly property bool isOpen: searchPopup.isOpen
+    readonly property bool isOpen: _searchPopup ? _searchPopup.isOpen : false
     readonly property var _safeEntries:
         entries === null || entries === undefined ? []
         : (typeof entries.length === "number" ? entries : [])
@@ -66,12 +70,16 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     function open() {
         if (popupMode === Enums.input.search_popup_centered_overlay) {
-            searchPopup.open()
-            lineEdit.forceActiveFocus()
+            if (_ensureSearchSurface()) {
+                _searchPopup.open()
+                lineEdit.forceActiveFocus()
+            }
         }
     }
     function dismiss() {
-        searchPopup.dismiss()
+        if (_searchPopup) {
+            _searchPopup.dismiss()
+        }
     }
     function setQuery(text) {
         lineEdit.text = text || ''
@@ -79,14 +87,44 @@ Item {
         // isOpen/isClosing 守卫,重复调用幂等
         if (control.popupMode === Enums.input.search_popup_anchored_below) {
             if (lineEdit.text.length > 0) {
-                searchPopup.open()
+                if (_ensureSearchSurface()) {
+                    _searchPopup.open()
+                }
             } else {
-                searchPopup.dismiss()
+                dismiss()
             }
         }
     }
     function getQuery() {
         return lineEdit.text
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
+    // Create the search surface synchronously on first use 首次使用时同步创建搜索界面
+    function _ensureSearchSurface() {
+        if (!_resultList) {
+            _resultList = resultListComponent.createObject(control)
+            if (!_resultList) {
+                console.error(
+                    'LocalSearchBar: failed to create SearchResultList: '
+                    + resultListComponent.errorString()
+                )
+                return false
+            }
+            // Restore the eager component's initial selection 恢复原常驻组件的初始选中项
+            _resultList.reset()
+        }
+        if (!_searchPopup) {
+            _searchPopup = searchPopupComponent.createObject(control)
+            if (!_searchPopup) {
+                console.error(
+                    'LocalSearchBar: failed to create SearchPopup: '
+                    + searchPopupComponent.errorString()
+                )
+                return false
+            }
+        }
+        return true
     }
 
     // ==================== Size 尺寸 ====================
@@ -107,73 +145,94 @@ Item {
             // AnchoredBelow: 输入立即唤起 popup, 清空时关闭
             // 重复调用幂等(底层 PopupWindowCore 自带守卫)
             if (control.popupMode === Enums.input.search_popup_anchored_below) {
-                if (text.length > 0) searchPopup.open()
-                else searchPopup.dismiss()
+                if (text.length > 0) {
+                    if (control._ensureSearchSurface()) {
+                        control._searchPopup.open()
+                    }
+                } else {
+                    control.dismiss()
+                }
             }
         }
         onCleared: {
             control.cleared()
-            searchPopup.dismiss()
+            control.dismiss()
         }
 
         // 键盘事件 — Enter 命中,Esc 关闭,↑↓ 切换列表项
         Keys.onUpPressed: function(event) {
-            if (searchPopup.isOpen) { resultList.moveUp(); event.accepted = true }
+            if (control.isOpen) {
+                control._resultList.moveUp()
+                event.accepted = true
+            }
         }
         Keys.onDownPressed: function(event) {
-            if (searchPopup.isOpen) { resultList.moveDown(); event.accepted = true }
-            else if (control._safeEntries.length > 0) {
-                searchPopup.open()
+            if (control.isOpen) {
+                control._resultList.moveDown()
+                event.accepted = true
+            } else if (control._safeEntries.length > 0
+                       && control._ensureSearchSurface()) {
+                control._searchPopup.open()
                 event.accepted = true
             }
         }
         Keys.onReturnPressed: function(event) {
-            if (searchPopup.isOpen && resultList.hitCount > 0) {
-                resultList.selectCurrent()
+            if (control.isOpen && control._resultList.hitCount > 0) {
+                control._resultList.selectCurrent()
                 event.accepted = true
             }
         }
         Keys.onEnterPressed: function(event) {
-            if (searchPopup.isOpen && resultList.hitCount > 0) {
-                resultList.selectCurrent()
+            if (control.isOpen && control._resultList.hitCount > 0) {
+                control._resultList.selectCurrent()
                 event.accepted = true
             }
         }
         Keys.onEscapePressed: function(event) {
-            if (searchPopup.isOpen) {
-                searchPopup.dismiss()
+            if (control.isOpen) {
+                control.dismiss()
                 event.accepted = true
             }
         }
     }
 
-    // Popup and result list 弹窗与结果列表
-    SearchInternal.SearchResultList {
-        id: resultList
-        query: control.query
-        entries: control._safeEntries
-        matchKeys: control.matchKeys
-        fuzzyMatch: control.fuzzyMatch
-        maxSuggestions: control.maxSuggestions
-        highlightMatches: control.highlightMatches
-        emptyText: { Translator._v; return control.emptyText || Translator.tr('no_results') }
+    // Lazy result list component 延迟结果列表组件
+    Component {
+        id: resultListComponent
 
-        onEntrySelected: function(entry) {
-            control.entrySelected(entry)
-            // 默认行为: 选中后清空 + 关闭
-            lineEdit.text = ''
-            searchPopup.dismiss()
+        SearchInternal.SearchResultList {
+            query: control.query
+            entries: control._safeEntries
+            matchKeys: control.matchKeys
+            fuzzyMatch: control.fuzzyMatch
+            maxSuggestions: control.maxSuggestions
+            highlightMatches: control.highlightMatches
+            emptyText: {
+                Translator._v
+                return control.emptyText || Translator.tr('no_results')
+            }
+
+            onEntrySelected: function(entry) {
+                control.entrySelected(entry)
+                // Preserve clear-and-dismiss selection behavior 保持选中后清空并关闭
+                lineEdit.text = ''
+                control.dismiss()
+            }
+            onDismissed: control.dismiss()
         }
-        onDismissed: searchPopup.dismiss()
     }
 
-    SearchInternal.SearchPopup {
-        id: searchPopup
-        anchorTarget: lineEdit
-        popupMode: control.popupMode
-        rootContent: resultList
+    // Lazy popup component 延迟弹窗组件
+    Component {
+        id: searchPopupComponent
 
-        onOpened: control.opened()
-        onDismissed: control.dismissed()
+        SearchInternal.SearchPopup {
+            anchorTarget: lineEdit
+            popupMode: control.popupMode
+            rootContent: control._resultList
+
+            onOpened: control.opened()
+            onDismissed: control.dismissed()
+        }
     }
 }
