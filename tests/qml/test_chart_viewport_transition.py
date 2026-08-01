@@ -247,7 +247,7 @@ def test_data_zoom_syncs_external_viewport_to_range_slider(qapp):
         data_zoom = next(
             item
             for item in chart.findChildren(QObject)
-            if item.metaObject().className().startswith("ChartDataZoom")
+            if item.metaObject().indexOfProperty("_suppressSliderUpdate") >= 0
         )
         range_slider = next(
             item
@@ -414,8 +414,8 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     assert "Behavior on viewportStart" not in chart_view_source
     assert "id: _renderTimer" not in chart_view_source
     assert "duration: Enums.duration.normal" in animator_source
-    assert "viewportStart: chart ? chart._visualStart : 0" in data_zoom_layer_source
-    assert "viewportEnd: chart ? chart._visualEnd : 1" in data_zoom_layer_source
+    assert "viewportStart: root.chart ? root.chart._visualStart : 0" in data_zoom_layer_source
+    assert "viewportEnd: root.chart ? root.chart._visualEnd : 1" in data_zoom_layer_source
     assert "xScale: control._isHorizontalBar ? 1 : control._viewportScale" in chart_view_source
     assert "yScale: control._isHorizontalBar ? control._viewportScale : 1" in chart_view_source
     assert "viewportScale: control._viewportScale" in chart_view_source

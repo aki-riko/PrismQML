@@ -13,6 +13,7 @@ from test_chart_runtime_performance import (
     _evaluate,
     _object_tree,
     _pump,
+    chart_scene,
     windowed_chart_scene,
 )
 
@@ -37,6 +38,49 @@ def _request_full_paint(canvas, painted) -> None:
     assert painted.wait(1_000)
 
 
+def _data_zoom_hosts(chart):
+    return [
+        obj
+        for obj in _object_tree(chart)
+        if obj.metaObject().indexOfProperty("_suppressSliderUpdate") >= 0
+    ]
+
+
+def test_data_zoom_is_created_on_first_use_and_then_reused(chart_scene):
+    chart, warnings = chart_scene
+    chart.setProperty("animated", False)
+    assert _data_zoom_hosts(chart) == []
+
+    chart.setProperty("chartType", chart.property("pieType"))
+    chart.setProperty("dataZoomEnabled", True)
+    _pump(20)
+    assert _data_zoom_hosts(chart) == []
+
+    chart.setProperty("chartType", chart.property("lineType"))
+    _pump(20)
+    hosts = _data_zoom_hosts(chart)
+    assert len(hosts) == 1
+    host = hosts[0]
+    assert host.property("visible")
+
+    chart.setProperty("dataZoomEnabled", False)
+    _pump(20)
+    assert _data_zoom_hosts(chart) == [host]
+    assert not host.property("visible")
+
+    chart.setProperty("dataZoomEnabled", True)
+    chart.setProperty("chartType", chart.property("pieType"))
+    _pump(20)
+    assert _data_zoom_hosts(chart) == [host]
+    assert not host.property("visible")
+
+    chart.setProperty("chartType", chart.property("lineType"))
+    _pump(20)
+    assert _data_zoom_hosts(chart) == [host]
+    assert host.property("visible")
+    assert warnings == []
+
+
 def test_data_zoom_repaints_reuse_cached_value_range(windowed_chart_scene):
     chart, warnings = windowed_chart_scene
     value_count = 100_000
@@ -47,11 +91,7 @@ def test_data_zoom_repaints_reuse_cached_value_range(windowed_chart_scene):
     chart.setProperty("series", [{"name": "dense", "values": values}])
     _pump(50)
 
-    data_zoom = next(
-        obj
-        for obj in _object_tree(chart)
-        if obj.metaObject().indexOfProperty("_suppressSliderUpdate") >= 0
-    )
+    data_zoom = _data_zoom_hosts(chart)[0]
     canvas = next(
         obj
         for obj in _object_tree(data_zoom)
