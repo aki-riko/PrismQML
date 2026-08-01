@@ -97,6 +97,16 @@ def _day_cells(calendar: QQuickItem) -> list[QQuickItem]:
     ]
 
 
+def _animation_day_cells(calendar: QQuickItem) -> list[QQuickItem]:
+    return [
+        child
+        for child in _visual_descendants(calendar)
+        if child.metaObject().indexOfProperty("displayDay") >= 0
+        and child.metaObject().indexOfProperty("isCurrent") >= 0
+        and child.metaObject().indexOfProperty("cellDate") < 0
+    ]
+
+
 def _current_cell(calendar: QQuickItem, day: int) -> QQuickItem:
     matches = [
         cell
@@ -223,6 +233,38 @@ def test_calendar_picker_core_source_conventions():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+
+
+def test_calendar_core_lazily_creates_and_reuses_animation_grid(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, calendar, warnings = _create_scene()
+    try:
+        assert not calendar.property("_nextGridRequested")
+        assert _animation_day_cells(calendar) == []
+
+        calendar.nextMonth()
+        assert calendar.property("_nextGridRequested")
+        assert _wait_for(lambda: len(_animation_day_cells(calendar)) == 42)
+
+        current_geometry = sorted(
+            (cell.x(), cell.y(), cell.width(), cell.height())
+            for cell in _day_cells(calendar)
+        )
+        animation_geometry = sorted(
+            (cell.x(), cell.y(), cell.width(), cell.height())
+            for cell in _animation_day_cells(calendar)
+        )
+        assert animation_geometry == current_geometry
+        assert _wait_for(lambda: not calendar.property("_animating"))
+        assert len(_animation_day_cells(calendar)) == 42
+
+        calendar.nextMonth()
+        assert len(_animation_day_cells(calendar)) == 42
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
 
 
 def test_calendar_core_adjacent_day_emits_target_month(qapp):
