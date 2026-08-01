@@ -321,7 +321,7 @@ def test_tip_popup_follows_target_and_closes_out_of_view_without_polling(
     flickable = items["flickable"]
     tip = items["tip"]
     tip_windows = tip.findChildren(QWindow)
-    assert len(tip_windows) == 2
+    assert len(tip_windows) == 1
     popup_window = next(
         candidate
         for candidate in tip_windows

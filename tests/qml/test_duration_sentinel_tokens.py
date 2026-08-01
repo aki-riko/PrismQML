@@ -46,6 +46,8 @@ Item {
     readonly property int durationNone: Enums.duration.none
     readonly property int durationPersistent: Enums.duration.persistent
     readonly property int durationInstant: Enums.duration.instant
+    readonly property int flyoutType: Enums.tip.type_flyout
+    readonly property int teachingTipType: Enums.tip.type_teaching_tip
 
     width: 640
     height: 120
@@ -65,6 +67,10 @@ Item {
 
     TipPopup {
         objectName: "tipPopup"
+    }
+
+    TeachingTip {
+        objectName: "teachingTip"
     }
 }
 """
@@ -100,7 +106,9 @@ def test_duration_sentinels_preserve_runtime_behavior(qapp):
     try:
         breadcrumb = root.findChild(QQuickItem, "breadcrumb")
         tip_popup = root.findChild(QQuickItem, "tipPopup")
+        teaching_tip = root.findChild(QQuickItem, "teachingTip")
         assert breadcrumb is not None and tip_popup is not None
+        assert teaching_tip is not None
 
         assert root.property("durationNone") == 0
         assert root.property("durationPersistent") == -1
@@ -109,9 +117,12 @@ def test_duration_sentinels_preserve_runtime_behavior(qapp):
         assert breadcrumb.property("currentIndex") == 2
         assert breadcrumb.property("currentKey") == "leaf"
         assert tip_popup.property("duration") == root.property("durationPersistent")
-        windows = tip_popup.findChildren(QWindow)
-        assert len(windows) == 2
-        assert not any(window.isVisible() for window in windows)
+        flyout_windows = tip_popup.findChildren(QWindow)
+        teaching_windows = teaching_tip.findChildren(QWindow)
+        assert len(flyout_windows) == 1
+        assert len(teaching_windows) == 2
+        assert not any(window.isVisible() for window in flyout_windows)
+        assert not any(window.isVisible() for window in teaching_windows)
     finally:
         root.deleteLater()
         del component
@@ -145,6 +156,33 @@ def test_tip_popup_creates_action_buttons_only_when_needed(qapp):
         assert tip_popup.findChild(QQuickItem, "tipPrimaryActionButton") is None
         assert tip_popup.findChild(QQuickItem, "tipSecondaryActionButton") is None
         assert not any(window.isVisible() for window in tip_popup.findChildren(QWindow))
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_tip_popup_creates_arrow_window_only_for_teaching_tips(qapp):
+    engine, component, root = _create_scene()
+    try:
+        tip_popup = root.findChild(QQuickItem, "tipPopup")
+        teaching_tip = root.findChild(QQuickItem, "teachingTip")
+        assert tip_popup is not None and teaching_tip is not None
+        assert len(tip_popup.findChildren(QWindow)) == 1
+        assert len(teaching_tip.findChildren(QWindow)) == 2
+
+        tip_popup.setProperty("tipType", root.property("teachingTipType"))
+        _pump()
+        arrow_window = tip_popup.findChild(QWindow, "tipArrowWindow")
+        assert arrow_window is not None
+        assert len(tip_popup.findChildren(QWindow)) == 2
+        assert arrow_window.isVisible() is False
+
+        tip_popup.setProperty("tipType", root.property("flyoutType"))
+        _pump()
+        assert tip_popup.findChild(QWindow, "tipArrowWindow") is None
+        assert len(tip_popup.findChildren(QWindow)) == 1
     finally:
         root.deleteLater()
         del component
