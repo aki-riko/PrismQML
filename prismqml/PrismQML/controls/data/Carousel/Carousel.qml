@@ -6,7 +6,7 @@ import QtQuick
 import QtQuick.Effects
 import "../../.."
 import "../../../effects"
-import "../FlipView"
+import "../FlipView" as FlipViewControls
 import "_internal"
 
 // Carousel - Carousel component 轮播组件
@@ -187,29 +187,20 @@ Item {
     }
     
     // Indicator (PipsPager) 指示器
-    HorizontalPipsPager {
-        id: hIndicator
-        visible: control.showIndicator && control._modelCount > 1 && !control.isVertical
+    FlipViewControls.PipsPager {
+        id: indicator
+        visible: control.showIndicator && control._modelCount > 1
         count: control._modelCount
         currentIndex: control.currentIndex
-        
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Enums.spacing.l
-        
-        onIndexClicked: (index) => control.goTo(index)
-    }
-    
-    VerticalPipsPager {
-        id: vIndicator
-        visible: control.showIndicator && control._modelCount > 1 && control.isVertical
-        count: control._modelCount
-        currentIndex: control.currentIndex
-        
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.right: parent.right
-        anchors.rightMargin: Enums.spacing.l
-        
+        orientation: control.orientation
+
+        anchors.horizontalCenter: control.isVertical ? undefined : parent.horizontalCenter
+        anchors.bottom: control.isVertical ? undefined : parent.bottom
+        anchors.bottomMargin: control.isVertical ? Enums.spacing.none : Enums.spacing.l
+        anchors.verticalCenter: control.isVertical ? parent.verticalCenter : undefined
+        anchors.right: control.isVertical ? parent.right : undefined
+        anchors.rightMargin: control.isVertical ? Enums.spacing.l : Enums.spacing.none
+
         onIndexClicked: (index) => control.goTo(index)
     }
 
