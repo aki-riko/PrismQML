@@ -10,8 +10,9 @@ import QtQuick
 QtObject {
     id: root
     
-    // ==================== Flow Modes 流式模式 ====================
+    // ==================== Public Props 公开属性 ====================
     readonly property int default_: 0     // Compact packing (heightmap algorithm) 紧凑填充（高度图算法）
     readonly property int vertical: 1     // Waterfall (equal width, variable height) 瀑布流（等宽不等高）
     readonly property int horizontal: 2   // Equal height per row 同行等高
+    readonly property int sliding_window_min_items: 100 // Adaptive search threshold 自适应搜索阈值
 }

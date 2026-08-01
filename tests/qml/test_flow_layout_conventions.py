@@ -89,6 +89,8 @@ Item {
     property int dynamicIndex: -1
     property bool dynamicAtMatches: false
     property bool dynamicEmpty: true
+    property bool positionEquivalencePassed: false
+    property bool adaptiveBoundaryPassed: false
 
     function enableHorizontalAspect() {
         horizontalFlow.preserveAspectRatio = true
@@ -135,6 +137,62 @@ Item {
         dynamicAtMatches = candidate
             && dynamicFlow.itemAt(dynamicIndex) === candidate
         dynamicEmpty = dynamicFlow.isEmpty()
+    }
+
+    function naiveBestPosition(heightMap, containerWidth, itemWidth) {
+        var bestX = 0
+        var bestY = Infinity
+        var maxX = containerWidth - itemWidth
+        for (var x = 0; x <= maxX; x++) {
+            var maxHeight = 0
+            var endX = Math.min(x + itemWidth, containerWidth)
+            for (var index = x; index < endX; index++) {
+                maxHeight = Math.max(maxHeight, heightMap[index])
+            }
+            if (maxHeight < bestY) {
+                bestY = maxHeight
+                bestX = x
+            }
+        }
+        return { x: bestX, y: bestY }
+    }
+
+    function positionSearchMatches(containerWidth) {
+        var heightMap = []
+        for (var index = 0; index < containerWidth; index++) {
+            heightMap.push((index * 17 + containerWidth * 11) % 23)
+        }
+        var widths = [
+            -2, 0, 0.2, 1, 1.2, 2.9, containerWidth / 3,
+            containerWidth - 0.25, containerWidth, containerWidth + 0.1
+        ]
+        for (var widthIndex = 0; widthIndex < widths.length; widthIndex++) {
+            var itemWidth = widths[widthIndex]
+            var expected = naiveBestPosition(heightMap, containerWidth, itemWidth)
+            var actual = defaultFlow._findBestPosition(
+                heightMap, containerWidth, itemWidth, 1, true
+            )
+            if (actual.x !== expected.x || actual.y !== expected.y) {
+                return false
+            }
+        }
+        return true
+    }
+
+    function verifyPositionEquivalence() {
+        for (var containerWidth = 1; containerWidth <= 64; containerWidth++) {
+            if (!positionSearchMatches(containerWidth)) {
+                positionEquivalencePassed = false
+                return
+            }
+        }
+        positionEquivalencePassed = true
+    }
+
+    function verifyAdaptiveBoundary() {
+        var threshold = Enums.flow.sliding_window_min_items
+        adaptiveBoundaryPassed = !defaultFlow._usesSlidingWindow(threshold - 1)
+            && defaultFlow._usesSlidingWindow(threshold)
     }
 
     width: 900
@@ -370,6 +428,22 @@ def test_flow_layout_public_methods_and_child_filtering(flow_scene):
     assert QMetaObject.invokeMethod(root, "clearDynamicFlow")
     assert root.property("dynamicCount") == 0
     assert root.property("dynamicEmpty")
+    assert warnings == []
+    assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_flow_layout_position_search_matches_previous_algorithm(flow_scene):
+    root, warnings, windows_before = flow_scene
+    assert QMetaObject.invokeMethod(root, "verifyPositionEquivalence")
+    assert root.property("positionEquivalencePassed")
+    assert warnings == []
+    assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_flow_layout_search_adapts_only_for_large_item_sets(flow_scene):
+    root, warnings, windows_before = flow_scene
+    assert QMetaObject.invokeMethod(root, "verifyAdaptiveBoundary")
+    assert root.property("adaptiveBoundaryPassed")
     assert warnings == []
     assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
