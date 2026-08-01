@@ -464,7 +464,7 @@ def test_scroll_area_bounce_peak_does_not_expand_after_gui_stall(scroll_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
-def test_scroll_area_adapts_only_large_bounce_return(scroll_scene):
+def test_scroll_area_preserves_original_return_curve_for_large_bounce(scroll_scene):
     window, items, warnings, windows_before = scroll_scene
     area = items["defaultArea"]
     helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
@@ -496,11 +496,15 @@ def test_scroll_area_adapts_only_large_bounce_return(scroll_scene):
     large_peak = max(values)
     peak_index = values.index(large_peak)
     return_values = values[peak_index:]
+    large_trough = min(return_values)
+    trough_index = return_values.index(large_trough)
     assert large_peak > normal_peak
-    assert min(return_values) >= maximum - 0.5
-    assert all(
-        current <= previous + 0.5
-        for previous, current in zip(return_values, return_values[1:])
+    assert maximum - large_trough > maximum - normal_trough
+    assert any(
+        current > previous + 0.5
+        for previous, current in zip(
+            return_values[trough_index:], return_values[trough_index + 1:]
+        )
     )
     assert area.property("contentY") == pytest.approx(maximum)
     assert warnings == []
@@ -595,7 +599,7 @@ def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
             _pump(20)
             repeated_event = _send_wheel(window, area, -120)
             assert repeated_event.isAccepted()
-        _pump(50)
+        assert _wait_for(lambda: helper.property("_bouncePhase") == "return")
         return_event = _send_wheel(window, area, -120)
         assert return_event.isAccepted()
         _pump(1000)
@@ -611,7 +615,7 @@ def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
             "stage=bounce.vertical.outward.begin",
             "stage=bounce.vertical.outward.extend",
             "stage=bounce.vertical.return.begin",
-            "adaptiveOvershoot=",
+            "returnOvershoot=",
             "stage=bounce.vertical.finish",
             'source="bounce.outward"',
             'source="bounce.return"',
@@ -633,10 +637,12 @@ def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
             message for message in trace if "stage=bounce.vertical.blocked" in message
         ]
         assert len(starts) == 1, "\n".join(starts)
-        assert extensions, "\n".join(trace)
-        assert blocked, "\n".join(trace)
-        assert len(extensions) + len(blocked) == 5, "\n".join(trace)
-        start_timestamp = int(starts[0].split(" ts=", 1)[1].split(" ", 1)[0])
+        assert len(extensions) == 4, "\n".join(trace)
+        assert all("progress=0" in message for message in extensions)
+        assert len(blocked) == 1, "\n".join(trace)
+        last_extension_timestamp = int(
+            extensions[-1].split(" ts=", 1)[1].split(" ", 1)[0]
+        )
         return_trace = next(
             message
             for message in trace
@@ -645,8 +651,8 @@ def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
         return_timestamp = int(
             return_trace.split(" ts=", 1)[1].split(" ", 1)[0]
         )
-        assert return_timestamp - start_timestamp <= 180, "\n".join(trace)
-        assert max(values or [maximum]) >= maximum + step * 0.45, "\n".join(trace)
+        assert return_timestamp - last_extension_timestamp <= 180, "\n".join(trace)
+        assert max(values or [maximum]) >= maximum + step * 0.40, "\n".join(trace)
         assert area.property("contentY") == pytest.approx(maximum)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

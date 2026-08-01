@@ -14,8 +14,6 @@ Item {
     required property int outwardDuration
     required property int returnDuration
     required property int easing
-    required property real normalOutwardDistance
-    required property real maxOutwardDistance
     required property real returnOvershoot
     required property int inputQuietDuration
 
@@ -31,7 +29,6 @@ Item {
     property bool _outwardPhase: false
     property real _lastPublishedValue: 0
     property real _lastUpdateTimestamp: 0
-    property real _adaptiveReturnOvershoot: 0
     property bool _retargeting: false
     property int _blockedBoundary: 0
     property real _lastInputTimestamp: 0
@@ -57,12 +54,11 @@ Item {
         _returnValue = returnValue
         _lastPublishedValue = startValue
         _lastUpdateTimestamp = Date.now()
-        _adaptiveReturnOvershoot = _resolveReturnOvershoot()
         _outwardPhase = true
         _trace("start", "start=" + startValue +
                " outward=" + outwardValue +
                " return=" + returnValue +
-               " adaptiveOvershoot=" + _adaptiveReturnOvershoot +
+               " returnOvershoot=" + returnOvershoot +
                " animated=" + animated)
 
         if (!animated) {
@@ -80,53 +76,37 @@ Item {
         outwardDriver.restart()
     }
 
-    function extendOutward(outwardDelta) {
+    function extendOutward(outwardValue) {
         if (!_active || !_outwardPhase) return false
         var previousValue = _value
-        var previousStart = _startValue
-        var previousOutward = _outwardValue
-        var outwardDirection = previousOutward < _returnValue ? -1 : 1
-        // Accumulate input only inside this outward phase and keep its fixed cap.
-        // 只在本轮外移阶段累加输入，并继续遵守原有距离上限。
-        var previousDistance = Math.abs(previousOutward - _returnValue)
-        var nextDistance = Math.min(
-            previousDistance + Math.max(0, outwardDelta), maxOutwardDistance)
-        var outwardValue = _returnValue + outwardDirection * nextDistance
+        _startValue = previousValue
+        _outwardValue = outwardValue
+        _lastPublishedValue = previousValue
+        _lastUpdateTimestamp = Date.now()
         if (!animated) {
-            _outwardValue = outwardValue
-            _adaptiveReturnOvershoot = _resolveReturnOvershoot()
             _value = outwardValue
+            immediateSequence.restart()
             _trace("outward.extend", "progress=immediate" +
                    " previous=" + previousValue +
                    " value=" + _value +
                    " outward=" + outwardValue +
-                   " delta=" + outwardDelta +
-                   " adaptiveOvershoot=" + _adaptiveReturnOvershoot)
+                   " returnOvershoot=" + returnOvershoot)
             return true
         }
-        var progress = outwardController.progress
-        var outwardSpan = previousOutward - previousStart
-        var easedProgress = outwardSpan === 0
-            ? 0 : (previousValue - previousStart) / outwardSpan
-        var remainingProgress = 1 - easedProgress
-        // Move the curve's effective start together with its endpoint so the
-        // rendered position stays continuous while wall-clock progress is kept.
-        // 终点更新时同步修正曲线有效起点，保持画面位置连续且不重启时间进度。
+        // Match the original Behavior restart: every accepted wheel packet
+        // starts the same OutBack curve from the currently rendered position.
+        // 保持原 Behavior 重启语义：每个已接收滚轮包都从当前画面位置重新运行
+        // 同一条 OutBack 曲线。
         _retargeting = true
-        _startValue = remainingProgress === 0
-            ? previousValue
-            : (previousValue - easedProgress * outwardValue) / remainingProgress
-        _outwardValue = outwardValue
-        _adaptiveReturnOvershoot = _resolveReturnOvershoot()
         outwardController.reload()
-        outwardController.progress = progress
+        outwardController.progress = 0
         _retargeting = false
-        _trace("outward.extend", "progress=" + progress +
+        _trace("outward.extend", "progress=0" +
                " previous=" + previousValue +
                " value=" + _value +
                " outward=" + outwardValue +
-               " delta=" + outwardDelta +
-               " adaptiveOvershoot=" + _adaptiveReturnOvershoot)
+               " returnOvershoot=" + returnOvershoot)
+        outwardDriver.restart()
         return true
     }
 
@@ -182,7 +162,7 @@ Item {
                (reason === undefined ? "requested" : reason) +
                " start=" + resolvedStart +
                " return=" + _returnValue +
-               " adaptiveOvershoot=" + _adaptiveReturnOvershoot)
+               " returnOvershoot=" + returnOvershoot)
         returnStarted()
         if (!animated) {
             _value = _returnValue
@@ -199,19 +179,6 @@ Item {
         _trace("finish", "value=" + _value + " return=" + _returnValue)
         _active = false
         _outwardPhase = false
-    }
-
-    function _resolveReturnOvershoot() {
-        var normalDistance = Math.max(0, normalOutwardDistance)
-        var maximumDistance = Math.max(normalDistance, maxOutwardDistance)
-        var adaptiveSpan = maximumDistance - normalDistance
-        var outwardDistance = Math.abs(_outwardValue - _returnValue)
-        if (adaptiveSpan <= 0 || outwardDistance <= normalDistance) {
-            return returnOvershoot
-        }
-        var distanceProgress = Math.min(
-            1, (outwardDistance - normalDistance) / adaptiveSpan)
-        return returnOvershoot * (1 - distanceProgress)
     }
 
     function _publishValue() {
@@ -279,7 +246,7 @@ Item {
         property: "_value"
         duration: control.returnDuration
         easing.type: control.easing
-        easing.overshoot: control._adaptiveReturnOvershoot
+        easing.overshoot: control.returnOvershoot
         onFinished: control._finish()
     }
 

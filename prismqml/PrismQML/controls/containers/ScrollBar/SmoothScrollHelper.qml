@@ -260,7 +260,7 @@ Item {
             var outwardY = _minY - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
             _trace("bounce.vertical.request", "boundary=-1 delta=" + overshootDelta +
                    " currentOvershoot=" + currentOvershoot + " outward=" + outwardY)
-            if (startTopBounce || !verticalBounce.extendOutward(overshootDelta)) verticalBounce.start(_smoothY, outwardY, _targetY)
+            if (startTopBounce || !verticalBounce.extendOutward(outwardY)) verticalBounce.start(_smoothY, outwardY, _targetY)
         } else {
             // Bottom overshoot 底部超出
             if (!verticalBounce.acceptInput(1)) {
@@ -277,7 +277,7 @@ Item {
             _trace("bounce.vertical.request", "boundary=1 delta=" + overshootDeltaBottom +
                    " currentOvershoot=" + currentOvershootBottom +
                    " outward=" + outwardYBottom)
-            if (startBottomBounce || !verticalBounce.extendOutward(overshootDeltaBottom)) verticalBounce.start(_smoothY, outwardYBottom, _targetY)
+            if (startBottomBounce || !verticalBounce.extendOutward(outwardYBottom)) verticalBounce.start(_smoothY, outwardYBottom, _targetY)
         }
     }
 
@@ -328,7 +328,7 @@ Item {
             var outwardX = _minX - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
             _trace("bounce.horizontal.request", "boundary=-1 delta=" + overshootDelta +
                    " currentOvershoot=" + currentOvershoot + " outward=" + outwardX)
-            if (startLeftBounce || !horizontalBounce.extendOutward(overshootDelta)) horizontalBounce.start(_smoothX, outwardX, _targetX)
+            if (startLeftBounce || !horizontalBounce.extendOutward(outwardX)) horizontalBounce.start(_smoothX, outwardX, _targetX)
         } else {
             // Right overshoot 右侧超出
             if (!horizontalBounce.acceptInput(1)) {
@@ -345,7 +345,7 @@ Item {
             _trace("bounce.horizontal.request", "boundary=1 delta=" + overshootDeltaRight +
                    " currentOvershoot=" + currentOvershootRight +
                    " outward=" + outwardXRight)
-            if (startRightBounce || !horizontalBounce.extendOutward(overshootDeltaRight)) horizontalBounce.start(_smoothX, outwardXRight, _targetX)
+            if (startRightBounce || !horizontalBounce.extendOutward(outwardXRight)) horizontalBounce.start(_smoothX, outwardXRight, _targetX)
         }
     }
 
@@ -411,8 +411,6 @@ Item {
         outwardDuration: Enums.duration.fast
         returnDuration: Enums.duration.bounce
         easing: Easing.OutBack
-        normalOutwardDistance: helper.step
-        maxOutwardDistance: helper._maxOvershoot
         returnOvershoot: Enums.motion.scrollReturnBackOvershoot
         inputQuietDuration: Enums.duration.normal
         traceEnabled: helper._traceEnabled
@@ -429,8 +427,6 @@ Item {
         outwardDuration: Enums.duration.fast
         returnDuration: Enums.duration.bounce
         easing: Easing.OutBack
-        normalOutwardDistance: helper.step
-        maxOutwardDistance: helper._maxOvershoot
         returnOvershoot: Enums.motion.scrollReturnBackOvershoot
         inputQuietDuration: Enums.duration.normal
         traceEnabled: helper._traceEnabled
