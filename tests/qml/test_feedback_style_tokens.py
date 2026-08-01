@@ -378,6 +378,10 @@ def test_splash_first_frame_shows_complete_content(qapp):
         assert content is not None
         icon_container = splash.findChild(QQuickItem, "splashIconContainer")
         assert icon_container is not None
+        solid_background = splash.findChild(QQuickItem, "splashSolidBackground")
+        grid_loader = splash.findChild(QQuickItem, "splashDissolveGridLoader")
+        assert solid_background is not None
+        assert grid_loader is not None
 
         # The very first visible frame must already be the complete splash.
         # A background-only frame is a user-visible white flash.
@@ -386,6 +390,12 @@ def test_splash_first_frame_shows_complete_content(qapp):
         assert content.property("opacity") == pytest.approx(1.0)
         assert content.property("scale") == pytest.approx(1.0)
         assert icon_container.property("scale") == pytest.approx(1.0, abs=0.005)
+        assert solid_background.property("visible") is True
+        assert grid_loader.property("active") is False
+        assert not any(
+            item.objectName().startswith("splashGridCell_")
+            for item in _walk_visual_tree(splash)
+        )
 
         _pump(80)
         assert splash.property("opacity") == pytest.approx(1.0)
@@ -404,17 +414,29 @@ def test_splash_finish_uses_center_out_grid_dissolve(qapp):
         splash = root.findChild(QQuickItem, "splash")
         assert splash is not None
         content = splash.findChild(QQuickItem, "splashContent")
+        solid_background = splash.findChild(QQuickItem, "splashSolidBackground")
+        assert content is not None
+        assert solid_background is not None
+        assert not any(
+            item.objectName().startswith("splashGridCell_")
+            for item in _walk_visual_tree(splash)
+        )
+
+        assert QMetaObject.invokeMethod(splash, "finish")
         visual_items = {item.objectName(): item for item in _walk_visual_tree(splash)}
         center_cell = visual_items.get("splashGridCell_41")
         corner_cell = visual_items.get("splashGridCell_0")
-        assert content is not None
         assert center_cell is not None
         assert corner_cell is not None
+        assert len([
+            item for name, item in visual_items.items()
+            if name.startswith("splashGridCell_")
+        ]) == 96
+        assert solid_background.property("visible") is False
 
         assert center_cell.property("opacity") == pytest.approx(1.0)
         assert corner_cell.property("opacity") == pytest.approx(1.0)
 
-        assert QMetaObject.invokeMethod(splash, "finish")
         _pump(200)
 
         assert splash.property("visible") is True
