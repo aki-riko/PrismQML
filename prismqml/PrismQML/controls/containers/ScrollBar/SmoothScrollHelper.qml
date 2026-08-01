@@ -252,7 +252,7 @@ Item {
                 _trace("bounce.vertical.blocked", "boundary=-1")
                 return
             }
-            _blockedBounceBoundaryV = -1
+            var startTopBounce = _bounceBoundaryV !== -1
             _bounceBoundaryV = -1
             _targetY = _minY
             _isOvershotV = true
@@ -261,14 +261,14 @@ Item {
             var outwardY = _minY - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
             _trace("bounce.vertical.request", "boundary=-1 delta=" + overshootDelta +
                    " currentOvershoot=" + currentOvershoot + " outward=" + outwardY)
-            verticalBounce.start(_smoothY, outwardY, _targetY)
+            if (startTopBounce || !verticalBounce.extendOutward(overshootDelta)) verticalBounce.start(_smoothY, outwardY, _targetY)
         } else {
             // Bottom overshoot 底部超出
             if (_blockedBounceBoundaryV === 1) {
                 _trace("bounce.vertical.blocked", "boundary=1")
                 return
             }
-            _blockedBounceBoundaryV = 1
+            var startBottomBounce = _bounceBoundaryV !== 1
             _bounceBoundaryV = 1
             _targetY = _maxY
             _isOvershotV = true
@@ -278,7 +278,7 @@ Item {
             _trace("bounce.vertical.request", "boundary=1 delta=" + overshootDeltaBottom +
                    " currentOvershoot=" + currentOvershootBottom +
                    " outward=" + outwardYBottom)
-            verticalBounce.start(_smoothY, outwardYBottom, _targetY)
+            if (startBottomBounce || !verticalBounce.extendOutward(overshootDeltaBottom)) verticalBounce.start(_smoothY, outwardYBottom, _targetY)
         }
     }
 
@@ -320,7 +320,7 @@ Item {
                 _trace("bounce.horizontal.blocked", "boundary=-1")
                 return
             }
-            _blockedBounceBoundaryH = -1
+            var startLeftBounce = _bounceBoundaryH !== -1
             _bounceBoundaryH = -1
             _targetX = _minX
             _isOvershotH = true
@@ -329,14 +329,14 @@ Item {
             var outwardX = _minX - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
             _trace("bounce.horizontal.request", "boundary=-1 delta=" + overshootDelta +
                    " currentOvershoot=" + currentOvershoot + " outward=" + outwardX)
-            horizontalBounce.start(_smoothX, outwardX, _targetX)
+            if (startLeftBounce || !horizontalBounce.extendOutward(overshootDelta)) horizontalBounce.start(_smoothX, outwardX, _targetX)
         } else {
             // Right overshoot 右侧超出
             if (_blockedBounceBoundaryH === 1) {
                 _trace("bounce.horizontal.blocked", "boundary=1")
                 return
             }
-            _blockedBounceBoundaryH = 1
+            var startRightBounce = _bounceBoundaryH !== 1
             _bounceBoundaryH = 1
             _targetX = _maxX
             _isOvershotH = true
@@ -346,7 +346,7 @@ Item {
             _trace("bounce.horizontal.request", "boundary=1 delta=" + overshootDeltaRight +
                    " currentOvershoot=" + currentOvershootRight +
                    " outward=" + outwardXRight)
-            horizontalBounce.start(_smoothX, outwardXRight, _targetX)
+            if (startRightBounce || !horizontalBounce.extendOutward(overshootDeltaRight)) horizontalBounce.start(_smoothX, outwardXRight, _targetX)
         }
     }
 

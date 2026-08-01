@@ -582,16 +582,30 @@ def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
         assert helper.property("_traceEnabled") is True
         assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
         maximum = helper.property("maxScroll")
+        step = helper.property("step")
+        values = []
+        area.contentYChanged.connect(
+            lambda: values.append(float(area.property("contentY")))
+        )
 
-        area.setProperty("contentY", maximum)
+        # Reproduce the real boundary-crossing path: the first wheel packet
+        # contributes only a small residual overshoot, while following packets
+        # in the same burst build the visible bounce distance.
+        # 复现真实越界路径：首个滚轮包只产生很小的残余越界，后续同一突发中的
+        # 滚轮包继续累积出正常可见的回弹距离。
+        area.setProperty("contentY", maximum - step * 0.9)
         assert QMetaObject.invokeMethod(helper, "syncPosition")
+        values.clear()
         messages.clear()
         event = _send_wheel(window, area, -120)
         assert event.isAccepted()
-        for _ in range(5):
-            _pump(30)
+        for _ in range(4):
+            _pump(20)
             repeated_event = _send_wheel(window, area, -120)
             assert repeated_event.isAccepted()
+        _pump(50)
+        return_event = _send_wheel(window, area, -120)
+        assert return_event.isAccepted()
         _pump(1000)
 
         trace = [message for message in messages if "[ScrollBounceTrace]" in message]
@@ -603,6 +617,7 @@ def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
             "stage=bounce.vertical.request",
             "stage=bounce.vertical.start",
             "stage=bounce.vertical.outward.begin",
+            "stage=bounce.vertical.outward.extend",
             "stage=bounce.vertical.return.begin",
             "adaptiveOvershoot=",
             "stage=bounce.vertical.finish",
@@ -617,11 +632,29 @@ def test_scroll_trace_captures_real_wheel_bounce_and_content_writes(
                 "\n".join(trace),
             )
         starts = [message for message in trace if "stage=bounce.vertical.start" in message]
+        extensions = [
+            message
+            for message in trace
+            if "stage=bounce.vertical.outward.extend" in message
+        ]
         blocked = [
             message for message in trace if "stage=bounce.vertical.blocked" in message
         ]
         assert len(starts) == 1, "\n".join(starts)
-        assert len(blocked) == 5, "\n".join(blocked)
+        assert len(extensions) == 4, "\n".join(extensions)
+        assert len(blocked) == 1, "\n".join(blocked)
+        start_timestamp = int(starts[0].split(" ts=", 1)[1].split(" ", 1)[0])
+        return_trace = next(
+            message
+            for message in trace
+            if "stage=bounce.vertical.return.begin" in message
+        )
+        return_timestamp = int(
+            return_trace.split(" ts=", 1)[1].split(" ", 1)[0]
+        )
+        assert return_timestamp - start_timestamp <= 180, "\n".join(trace)
+        assert max(values or [maximum]) >= maximum + step * 0.45, "\n".join(trace)
+        assert area.property("contentY") == pytest.approx(maximum)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

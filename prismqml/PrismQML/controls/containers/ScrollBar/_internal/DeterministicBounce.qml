@@ -31,6 +31,7 @@ Item {
     property real _lastPublishedValue: 0
     property real _lastUpdateTimestamp: 0
     property real _adaptiveReturnOvershoot: 0
+    property bool _retargeting: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool active: _active
@@ -73,6 +74,56 @@ Item {
         _active = true
         _trace("outward.begin", "progress=" + outwardController.progress)
         outwardDriver.restart()
+    }
+
+    function extendOutward(outwardDelta) {
+        if (!_active || !_outwardPhase) return false
+        var previousValue = _value
+        var previousStart = _startValue
+        var previousOutward = _outwardValue
+        var outwardDirection = previousOutward < _returnValue ? -1 : 1
+        // Accumulate input only inside this outward phase and keep its fixed cap.
+        // 只在本轮外移阶段累加输入，并继续遵守原有距离上限。
+        var previousDistance = Math.abs(previousOutward - _returnValue)
+        var nextDistance = Math.min(
+            previousDistance + Math.max(0, outwardDelta), maxOutwardDistance)
+        var outwardValue = _returnValue + outwardDirection * nextDistance
+        if (!animated) {
+            _outwardValue = outwardValue
+            _adaptiveReturnOvershoot = _resolveReturnOvershoot()
+            _value = outwardValue
+            _trace("outward.extend", "progress=immediate" +
+                   " previous=" + previousValue +
+                   " value=" + _value +
+                   " outward=" + outwardValue +
+                   " delta=" + outwardDelta +
+                   " adaptiveOvershoot=" + _adaptiveReturnOvershoot)
+            return true
+        }
+        var progress = outwardController.progress
+        var outwardSpan = previousOutward - previousStart
+        var easedProgress = outwardSpan === 0
+            ? 0 : (previousValue - previousStart) / outwardSpan
+        var remainingProgress = 1 - easedProgress
+        // Move the curve's effective start together with its endpoint so the
+        // rendered position stays continuous while wall-clock progress is kept.
+        // 终点更新时同步修正曲线有效起点，保持画面位置连续且不重启时间进度。
+        _retargeting = true
+        _startValue = remainingProgress === 0
+            ? previousValue
+            : (previousValue - easedProgress * outwardValue) / remainingProgress
+        _outwardValue = outwardValue
+        _adaptiveReturnOvershoot = _resolveReturnOvershoot()
+        outwardController.reload()
+        outwardController.progress = progress
+        _retargeting = false
+        _trace("outward.extend", "progress=" + progress +
+               " previous=" + previousValue +
+               " value=" + _value +
+               " outward=" + outwardValue +
+               " delta=" + outwardDelta +
+               " adaptiveOvershoot=" + _adaptiveReturnOvershoot)
+        return true
     }
 
     function stop(reason) {
@@ -134,7 +185,7 @@ Item {
     }
 
     function _publishValue() {
-        if (!_active) return
+        if (!_active || _retargeting) return
         var now = Date.now()
         // When one delayed frame consumes the complete outward window, the
         // animation driver catches up internally to the cutoff. Do not publish
