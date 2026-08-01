@@ -119,6 +119,39 @@ def test_duration_sentinels_preserve_runtime_behavior(qapp):
         _pump(1)
 
 
+def test_tip_popup_creates_action_buttons_only_when_needed(qapp):
+    engine, component, root = _create_scene()
+    try:
+        tip_popup = root.findChild(QQuickItem, "tipPopup")
+        assert tip_popup is not None
+        assert tip_popup.findChild(QQuickItem, "tipPrimaryActionButton") is None
+        assert tip_popup.findChild(QQuickItem, "tipSecondaryActionButton") is None
+
+        tip_popup.setProperty("primaryButtonText", "Apply")
+        tip_popup.setProperty("secondaryButtonText", "Back")
+        _pump()
+
+        primary = tip_popup.findChild(QQuickItem, "tipPrimaryActionButton")
+        secondary = tip_popup.findChild(QQuickItem, "tipSecondaryActionButton")
+        assert primary is not None and secondary is not None
+        assert primary.property("text") == "Apply"
+        assert secondary.property("text") == "Back"
+        assert primary.property("visible") is True
+        assert secondary.property("visible") is True
+
+        tip_popup.setProperty("primaryButtonText", "")
+        tip_popup.setProperty("secondaryButtonText", "")
+        _pump()
+        assert tip_popup.findChild(QQuickItem, "tipPrimaryActionButton") is None
+        assert tip_popup.findChild(QQuickItem, "tipSecondaryActionButton") is None
+        assert not any(window.isVisible() for window in tip_popup.findChildren(QWindow))
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_duration_sentinels_use_semantic_tokens():
     metrics_source = METRICS_SOURCE.read_text(encoding="utf-8")
     breadcrumb_source = BREADCRUMB_DELEGATE_SOURCE.read_text(encoding="utf-8")

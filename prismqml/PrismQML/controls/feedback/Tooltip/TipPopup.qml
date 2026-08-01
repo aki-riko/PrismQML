@@ -195,29 +195,34 @@ Item {
                 }
             }
 
-            Row {
+            // Create action controls only for tips that expose actions.
+            // 仅为带操作的提示创建操作控件。
+            Loader {
                 id: actionRow
 
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.rightMargin: Enums.spacing.l
                 anchors.bottomMargin: Enums.spacing.l
-                spacing: Enums.spacing.m
-                visible: control._hasActions
+                active: control._hasActions
+                visible: active
+                sourceComponent: Row {
+                    spacing: Enums.spacing.m
 
-                Button {
-                    objectName: "tipSecondaryActionButton"
-                    text: control.secondaryButtonText
-                    visible: text !== ""
-                    onClicked: control._triggerSecondaryAction()
-                }
+                    Button {
+                        objectName: "tipSecondaryActionButton"
+                        text: control.secondaryButtonText
+                        visible: text !== ""
+                        onClicked: control._triggerSecondaryAction()
+                    }
 
-                Button {
-                    objectName: "tipPrimaryActionButton"
-                    style: Enums.button.style_primary
-                    text: control.primaryButtonText
-                    visible: text !== ""
-                    onClicked: control._triggerPrimaryAction()
+                    Button {
+                        objectName: "tipPrimaryActionButton"
+                        style: Enums.button.style_primary
+                        text: control.primaryButtonText
+                        visible: text !== ""
+                        onClicked: control._triggerPrimaryAction()
+                    }
                 }
             }
             
