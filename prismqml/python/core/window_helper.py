@@ -4,11 +4,12 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
 """WindowHelper native operations exposed to QML. 暴露给 QML 的原生窗口操作。"""
+import os
 import sys
 import time
 from typing import Any, Optional
 
-from PySide6.QtCore import QObject, QPoint, QSize, QUrl, Slot
+from PySide6.QtCore import QObject, QPoint, QResource, QSize, QUrl, Slot
 from PySide6.QtGui import QGuiApplication, QIcon, QPainter, QPixmap, Qt
 
 from ._icon_path import resolve_icon_path
@@ -78,6 +79,9 @@ class WindowHelper(QObject):
             return
         super().__init__(parent)
         self._follower_filter: Optional[_WindowFollowerFilter] = None
+        self._cached_svg_icon_path = ""
+        self._cached_svg_icon_signature: Optional[tuple[Any, ...]] = None
+        self._cached_svg_icon: Optional[QIcon] = None
         self._initialized = True
 
     def _ensure_follower_filter(self) -> Optional[_WindowFollowerFilter]:
@@ -294,18 +298,68 @@ class WindowHelper(QObject):
         if not icon_path.lower().endswith(".svg"):
             return False
         render_start = time.perf_counter()
-        qicon = self._renderSvgIcon(icon_path)
+        signature = self._svg_icon_signature(icon_path)
+        qicon = self._get_cached_svg_icon(icon_path, signature)
+        cache_hit = qicon is not None
+        if qicon is None:
+            qicon = self._renderSvgIcon(icon_path)
         if not qicon or qicon.isNull():
             return False
+        if not cache_hit:
+            self._cache_svg_icon(icon_path, signature, qicon)
         app.setWindowIcon(qicon)
+        self._log_svg_icon_profile(
+            icon_path, profile_start, render_start, resolve_ms, cache_hit
+        )
+        return True
+
+    def _get_cached_svg_icon(
+        self,
+        icon_path: str,
+        signature: Optional[tuple[Any, ...]],
+    ) -> Optional[QIcon]:
+        """Return a valid cached icon for the same source. 返回同源有效缓存图标。"""
+        if (
+            signature is None
+            or icon_path != self._cached_svg_icon_path
+            or signature != self._cached_svg_icon_signature
+        ):
+            return None
+        cached_icon = self._cached_svg_icon
+        if cached_icon is None or cached_icon.isNull():
+            return None
+        return cached_icon
+
+    def _cache_svg_icon(
+        self,
+        icon_path: str,
+        signature: Optional[tuple[Any, ...]],
+        icon: QIcon,
+    ) -> None:
+        """Cache one validated SVG icon when its source is stable. 缓存稳定源的有效图标。"""
+        if signature is None:
+            return
+        self._cached_svg_icon_path = icon_path
+        self._cached_svg_icon_signature = signature
+        self._cached_svg_icon = icon
+
+    @staticmethod
+    def _log_svg_icon_profile(
+        icon_path: str,
+        profile_start: float,
+        render_start: float,
+        resolve_ms: int,
+        cache_hit: bool,
+    ) -> None:
+        """Log one SVG publication profile. 记录一次 SVG 发布性能。"""
         debug(
             "[启动剖析] WindowHelper.setAppIcon SVG: "
             f"resolve={resolve_ms}ms / "
             f"render={int((time.perf_counter() - render_start) * 1000)}ms / "
+            f"cached={cache_hit} / "
             f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
         )
         debug(f"任务栏图标已设置 (SVG): {icon_path}")
-        return True
 
     @staticmethod
     def _set_bitmap_icon(
@@ -326,6 +380,20 @@ class WindowHelper(QObject):
             f"total={int((time.perf_counter() - profile_start) * 1000)}ms"
         )
         debug(f"任务栏图标已设置: {icon_path}")
+
+    @staticmethod
+    def _svg_icon_signature(icon_path: str) -> Optional[tuple[Any, ...]]:
+        """Return a stable cache signature for one SVG source. 返回SVG缓存签名。"""
+        if icon_path.startswith(":/"):
+            resource = QResource(icon_path)
+            if not resource.isValid() or not resource.isFile():
+                return None
+            return ("qrc", bytes(resource.data()))
+        try:
+            stat_result = os.stat(icon_path)
+        except OSError:
+            return None
+        return (stat_result.st_mtime_ns, stat_result.st_size)
 
     @staticmethod
     def _resolveIconPath(icon: str) -> str:
