@@ -7,7 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -54,8 +54,11 @@ Item {
     readonly property int microIconSize: Enums.iconSize.micro
     readonly property real smallRadius: Enums.radius.small
     readonly property real tinyRadius: Enums.radius.tiny
+    readonly property real spacingXxs: Enums.spacing.xxs
     readonly property real spacingXs: Enums.spacing.xs
     readonly property real miniButtonWidth: Enums.spacing.xl + Enums.spacing.xs
+    readonly property int normalType: Enums.input.spinbox_normal
+    readonly property int compactType: Enums.input.spinbox_compact
     readonly property string subtractIcon: Enums.icon.subtract
     readonly property string addIcon: Enums.icon.add
     readonly property string upIcon: Enums.icon.chevron_up
@@ -150,18 +153,40 @@ def _descendants(root):
     return result
 
 
-def _button_with_icon(spin_box, icon):
-    matches = [
+def _flush_deferred_delete() -> None:
+    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    _pump(1)
+
+
+def _buttons(spin_box):
+    return [
         child
         for child in _descendants(spin_box)
         if child.metaObject().indexOfProperty("preferredHeight") >= 0
         and child.metaObject().indexOfProperty("style") >= 0
         and child.metaObject().indexOfProperty("icon") >= 0
-        and child.property("icon") == icon
+    ]
+
+
+def _button_with_icon(spin_box, icon):
+    matches = [
+        child
+        for child in _buttons(spin_box)
+        if child.property("icon") == icon
     ]
     assert len(matches) == 1, [
         child.metaObject().className() for child in matches
     ]
+    return matches[0]
+
+
+def _text_input(spin_box):
+    matches = [
+        child
+        for child in _descendants(spin_box)
+        if child.metaObject().className().startswith("QQuickTextInput")
+    ]
+    assert len(matches) == 1
     return matches[0]
 
 
@@ -179,6 +204,14 @@ def _assert_normal_buttons(root, spin_box):
         assert button.property("width") == expected_size
         assert button.property("height") == expected_size
         assert button.property("visible")
+    editor = _text_input(spin_box)
+    expected_margin = root.property("spacingXs") + expected_size + root.property(
+        "spacingXs"
+    )
+    assert editor.property("x") == pytest.approx(expected_margin)
+    assert editor.property("x") + editor.property("width") == pytest.approx(
+        spin_box.property("width") - expected_margin
+    )
 
 
 def _assert_compact_buttons(root, spin_box):
@@ -195,6 +228,16 @@ def _assert_compact_buttons(root, spin_box):
         assert button.property("width") == expected_width
         assert button.property("height") == expected_height
         assert button.property("visible")
+    editor = _text_input(spin_box)
+    assert editor.property("x") == pytest.approx(root.property("spacingXs"))
+    expected_right_margin = (
+        root.property("spacingXxs")
+        + expected_width
+        + root.property("spacingXs")
+    )
+    assert editor.property("x") + editor.property("width") == pytest.approx(
+        spin_box.property("width") - expected_right_margin
+    )
 
 
 @pytest.fixture
@@ -246,6 +289,35 @@ def test_spin_box_type_runtime_contract(spin_box_scene):
             spin_box.property("displayValue"),
         )
         assert actual == contract
+
+
+def test_spin_box_creates_only_active_button_pair(spin_box_scene):
+    root = spin_box_scene
+    normal = root.findChild(QObject, "normalSpin")
+    compact = root.findChild(QObject, "compactSpin")
+    normal_icons = {root.property("subtractIcon"), root.property("addIcon")}
+    compact_icons = {root.property("upIcon"), root.property("downIcon")}
+
+    assert {button.property("icon") for button in _buttons(normal)} == normal_icons
+    assert {button.property("icon") for button in _buttons(compact)} == compact_icons
+
+    normal.setProperty("type", root.property("compactType"))
+    _flush_deferred_delete()
+    assert {button.property("icon") for button in _buttons(normal)} == compact_icons
+    _assert_compact_buttons(root, normal)
+
+    normal.setProperty("spinButtonsVisible", False)
+    _flush_deferred_delete()
+    assert {button.property("icon") for button in _buttons(normal)} == compact_icons
+
+    normal.setProperty("type", root.property("normalType"))
+    _flush_deferred_delete()
+    assert _buttons(normal) == []
+
+    normal.setProperty("spinButtonsVisible", True)
+    _flush_deferred_delete()
+    assert {button.property("icon") for button in _buttons(normal)} == normal_icons
+    _assert_normal_buttons(root, normal)
 
 
 def test_spin_box_uses_enum_tokens():

@@ -41,9 +41,13 @@ InputCore {
     // Held-button repeat runtime state 长按重复运行状态
     property bool _repeatIsUp: true
     property int _repeatCurrentInterval: Enums.duration.spinBoxRepeatInterval
+    property bool _buttonGroupInitialized: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property string displayValue: prefix + value.toFixed(decimals) + suffix
+    readonly property Item _buttonGroup: spinButtonsLoader.item
+    readonly property Item _increaseButton: _buttonGroup ? _buttonGroup.increaseButton : null
+    readonly property Item _decreaseButton: _buttonGroup ? _buttonGroup.decreaseButton : null
 
     // ==================== Signals 信号 ====================
     signal valueUpdated(real value)  // Internal alias 内部别名
@@ -107,14 +111,16 @@ InputCore {
     }
 
     function _triggerFeedback(isUp) {
+        var button = isUp ? _increaseButton : _decreaseButton
+        if (!button) return
         if (isUp) {
             upFeedbackTimer.restart()
-            if (compactMode) { compactUpBtn.pseudoHovered = true; compactUpBtn.pseudoPressed = true }
-            else { increaseBtn.pseudoHovered = true; increaseBtn.pseudoPressed = true }
+            button.pseudoHovered = true
+            button.pseudoPressed = true
         } else {
             downFeedbackTimer.restart()
-            if (compactMode) { compactDownBtn.pseudoHovered = true; compactDownBtn.pseudoPressed = true }
-            else { decreaseBtn.pseudoHovered = true; decreaseBtn.pseudoPressed = true }
+            button.pseudoHovered = true
+            button.pseudoPressed = true
         }
     }
 
@@ -129,29 +135,119 @@ InputCore {
     radius: Enums.radius.small
 
     // ==================== Content 内容 ====================
-    // Decrease button for inline mode 内联模式减号按钮
-    SpinBoxButton {
-        id: decreaseBtn
-        anchors.left: parent.left
-        anchors.leftMargin: Enums.spacing.xs
-        anchors.verticalCenter: parent.verticalCenter
-        icon: Enums.icon.subtract
-        visible: spinButtonsVisible && !compactMode
-        enabled: control.enabled
+    Component {
+        id: inlineButtonsComponent
+
+        Item {
+            readonly property alias increaseButton: increaseBtn
+            readonly property alias decreaseButton: decreaseBtn
+            readonly property real textLeftInset: Enums.spacing.xs + decreaseBtn.width + Enums.spacing.xs
+            readonly property real textRightInset: Enums.spacing.xs + increaseBtn.width + Enums.spacing.xs
+
+            // Decrease button for inline mode 内联模式减号按钮
+            SpinBoxButton {
+                id: decreaseBtn
+                anchors.left: parent.left
+                anchors.leftMargin: Enums.spacing.xs
+                anchors.verticalCenter: parent.verticalCenter
+                icon: Enums.icon.subtract
+                enabled: control.enabled
+                z: Enums.zIndex.inputControls
+                onClicked: control.decrease()
+                onButtonPressed: control._startAutoRepeat(false)
+                onReleased: control._stopAutoRepeat()
+            }
+
+            // Increase button for inline mode 内联模式加号按钮
+            SpinBoxButton {
+                id: increaseBtn
+                anchors.right: parent.right
+                anchors.rightMargin: Enums.spacing.xs
+                anchors.verticalCenter: parent.verticalCenter
+                icon: Enums.icon.add
+                enabled: control.enabled
+                z: Enums.zIndex.inputControls
+                onClicked: control.increase()
+                onButtonPressed: control._startAutoRepeat(true)
+                onReleased: control._stopAutoRepeat()
+            }
+        }
+    }
+
+    Component {
+        id: compactButtonsComponent
+
+        Item {
+            readonly property alias increaseButton: compactUpBtn
+            readonly property alias decreaseButton: compactDownBtn
+            readonly property real textLeftInset: Enums.spacing.xs
+            readonly property real textRightInset: Enums.spacing.xxs + compactBtnContainer.width + Enums.spacing.xs
+
+            // Compact buttons on the right 右侧紧凑按钮
+            // Inline mode: two separate clickable buttons 内联模式：两个独立可点击按钮
+            Item {
+                id: compactBtnContainer
+                anchors.right: parent.right
+                anchors.rightMargin: Enums.spacing.xxs
+                anchors.verticalCenter: parent.verticalCenter
+                width: Enums.spacing.xl + Enums.spacing.xs
+                height: control.height - Enums.spacing.xs
+                z: Enums.zIndex.inputControls
+
+                // Up button (extends ButtonCore) 增加按钮(继承ButtonCore)
+                MiniSpinButton {
+                    id: compactUpBtn
+                    anchors.top: parent.top
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width
+                    height: parent.height / 2
+                    icon: Enums.icon.chevron_up
+                    enabled: control.enabled
+                    onClicked: control.increase()
+                    onButtonPressed: control._startAutoRepeat(true)
+                    onReleased: control._stopAutoRepeat()
+                }
+
+                // Down button (extends ButtonCore) 减少按钮(继承ButtonCore)
+                MiniSpinButton {
+                    id: compactDownBtn
+                    anchors.bottom: parent.bottom
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width
+                    height: parent.height / 2
+                    icon: Enums.icon.chevron_down
+                    enabled: control.enabled
+                    onClicked: control.decrease()
+                    onButtonPressed: control._startAutoRepeat(false)
+                    onReleased: control._stopAutoRepeat()
+                }
+            }
+        }
+    }
+
+    // Create only the button pair used by the active mode. 仅创建当前模式使用的按钮对。
+    Loader {
+        id: spinButtonsLoader
+        anchors.fill: parent
+        active: control.compactMode || control.spinButtonsVisible
+        sourceComponent: control.compactMode ? compactButtonsComponent : inlineButtonsComponent
         z: Enums.zIndex.inputControls
-        onClicked: decrease()
-        onButtonPressed: control._startAutoRepeat(false)
-        onReleased: control._stopAutoRepeat()
+        onItemChanged: {
+            if (control._buttonGroupInitialized) control._stopAutoRepeat()
+            else if (item) control._buttonGroupInitialized = true
+        }
     }
 
     // Center input area 中央输入区域
     TextInput {
         id: textInput
-        anchors.left: (spinButtonsVisible && !compactMode) ? decreaseBtn.right : parent.left
-        anchors.right: compactMode ? compactBtnContainer.left : ((spinButtonsVisible && !compactMode) ? increaseBtn.left : parent.right)
+        anchors.left: parent.left
+        anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: Enums.spacing.xs
-        anchors.rightMargin: Enums.spacing.xs
+        anchors.leftMargin: control._buttonGroup
+                            ? control._buttonGroup.textLeftInset : Enums.spacing.xs
+        anchors.rightMargin: control._buttonGroup
+                             ? control._buttonGroup.textRightInset : Enums.spacing.xs
         
         text: control.displayValue
         font.family: Enums.fontFamily
@@ -190,63 +286,7 @@ InputCore {
             text = Qt.binding(function() { return control.displayValue })
         }
     }
-    
-    // Increase button for inline mode 内联模式加号按钮
-    SpinBoxButton {
-        id: increaseBtn
-        anchors.right: parent.right
-        anchors.rightMargin: Enums.spacing.xs
-        anchors.verticalCenter: parent.verticalCenter
-        icon: Enums.icon.add
-        visible: spinButtonsVisible && !compactMode
-        enabled: control.enabled
-        z: Enums.zIndex.inputControls
-        onClicked: increase()
-        onButtonPressed: control._startAutoRepeat(true)
-        onReleased: control._stopAutoRepeat()
-    }
-    
-    // Compact buttons on the right 右侧紧凑按钮
-    // Inline mode: two separate clickable buttons 内联模式：两个独立可点击按钮
-    Item {
-        id: compactBtnContainer
-        anchors.right: parent.right
-        anchors.rightMargin: Enums.spacing.xxs
-        anchors.verticalCenter: parent.verticalCenter
-        width: Enums.spacing.xl + Enums.spacing.xs  // 20
-        height: control.height - Enums.spacing.xs
-        visible: compactMode
-        z: Enums.zIndex.inputControls
-        
-        // Up button (extends ButtonCore) 增加按钮(继承ButtonCore)
-        MiniSpinButton {
-            id: compactUpBtn
-            anchors.top: parent.top
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width
-            height: parent.height / 2
-            icon: Enums.icon.chevron_up
-            enabled: control.enabled
-            onClicked: control.increase()
-            onButtonPressed: control._startAutoRepeat(true)
-            onReleased: control._stopAutoRepeat()
-        }
 
-        // Down button (extends ButtonCore) 减少按钮(继承ButtonCore)
-        MiniSpinButton {
-            id: compactDownBtn
-            anchors.bottom: parent.bottom
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width
-            height: parent.height / 2
-            icon: Enums.icon.chevron_down
-            enabled: control.enabled
-            onClicked: control.decrease()
-            onButtonPressed: control._startAutoRepeat(false)
-            onReleased: control._stopAutoRepeat()
-        }
-    }
-    
     // Hover detection 悬浮检测
     HoverHandler {
         id: hoverHandler
@@ -325,8 +365,9 @@ InputCore {
         id: upFeedbackTimer
         interval: Enums.duration.fast
         onTriggered: {
-            if (compactMode) { compactUpBtn.pseudoHovered = false; compactUpBtn.pseudoPressed = false }
-            else { increaseBtn.pseudoHovered = false; increaseBtn.pseudoPressed = false }
+            if (!control._increaseButton) return
+            control._increaseButton.pseudoHovered = false
+            control._increaseButton.pseudoPressed = false
         }
     }
     
@@ -334,8 +375,9 @@ InputCore {
         id: downFeedbackTimer
         interval: Enums.duration.fast
         onTriggered: {
-            if (compactMode) { compactDownBtn.pseudoHovered = false; compactDownBtn.pseudoPressed = false }
-            else { decreaseBtn.pseudoHovered = false; decreaseBtn.pseudoPressed = false }
+            if (!control._decreaseButton) return
+            control._decreaseButton.pseudoHovered = false
+            control._decreaseButton.pseudoPressed = false
         }
     }
 }
