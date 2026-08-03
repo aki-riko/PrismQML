@@ -32,6 +32,7 @@ Item {
     readonly property color _pipHoverColor: Enums.stateColor.pipActive
     readonly property int _buttonSize: _cellSize
     readonly property int _visibleCount: Math.min(count, maxVisible)
+    readonly property int _pipCount: Math.max(0, count)
     readonly property bool _hasPrevButton: prevButtonMode !== Enums.pipsPager.button_never
     readonly property bool _hasNextButton: nextButtonMode !== Enums.pipsPager.button_never
     property Item _prevButton: null
@@ -165,9 +166,9 @@ Item {
                 ? parent.bottom : control._nextButton.top
         }
         
-        // Horizontal pips 水平点
-        Row {
-            id: hRow
+        // Shared horizontal/vertical pips layout 横竖方向共享点布局
+        Item {
+            id: pipsLayout
 
             property real _scrollOffset: {
                 if (count <= maxVisible) return 0
@@ -175,20 +176,37 @@ Item {
                 var maxOffset = count - maxVisible
                 return Math.max(0, Math.min(centerOffset, maxOffset)) * _cellSize
             }
+            property real _animatedScrollOffset: _scrollOffset
 
-            visible: !control.vertical
-            y: (parent.height - height) / 2
-            x: -_scrollOffset
-            
-            Behavior on x { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
-            
+            width: control._pipCount > 0
+                ? (control.vertical ? control._cellSize : control._pipCount * control._cellSize)
+                : 0
+            height: control._pipCount > 0
+                ? (control.vertical ? control._pipCount * control._cellSize : control._cellSize)
+                : 0
+            x: control.vertical
+                ? (parent.width - width) / 2
+                : -_animatedScrollOffset
+            y: control.vertical
+                ? -_animatedScrollOffset
+                : (parent.height - height) / 2
+
+            Behavior on _animatedScrollOffset {
+                NumberAnimation {
+                    duration: Enums.duration.medium
+                    easing.type: Easing.OutCubic
+                }
+            }
+
             Repeater {
-                model: control.count
-                
+                model: control._pipCount
+
                 Item {
                     width: control._cellSize
                     height: control._cellSize
-                    
+                    x: control.vertical ? 0 : index * control._cellSize
+                    y: control.vertical ? index * control._cellSize : 0
+
                     Rectangle {
                         anchors.centerIn: parent
                         width: (index === control.currentIndex || pipMouse.containsMouse) ? control._activeDiameter : control._normalDiameter
@@ -197,63 +215,13 @@ Item {
                         color: index === control.currentIndex
                                ? control._pipActiveColor
                                : (pipMouse.containsMouse ? control._pipHoverColor : control._pipInactiveColor)
-                        
+
                         Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
                         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
                     }
-                    
+
                     MouseArea {
                         id: pipMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: {
-                            if (control.interactive) control.currentIndex = index
-                            control.indexClicked(index)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Vertical pips 垂直点
-        Column {
-            id: vCol
-
-            property real _scrollOffset: {
-                if (count <= maxVisible) return 0
-                var centerOffset = currentIndex - Math.floor(maxVisible / 2)
-                var maxOffset = count - maxVisible
-                return Math.max(0, Math.min(centerOffset, maxOffset)) * _cellSize
-            }
-
-            visible: control.vertical
-            x: (parent.width - width) / 2
-            y: -_scrollOffset
-            
-            Behavior on y { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
-            
-            Repeater {
-                model: control.count
-                
-                Item {
-                    width: control._cellSize
-                    height: control._cellSize
-                    
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: (index === control.currentIndex || pipMouseV.containsMouse) ? control._activeDiameter : control._normalDiameter
-                        height: width
-                        radius: width / 2
-                        color: index === control.currentIndex
-                               ? control._pipActiveColor
-                               : (pipMouseV.containsMouse ? control._pipHoverColor : control._pipInactiveColor)
-                        
-                        Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
-                        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
-                    }
-                    
-                    MouseArea {
-                        id: pipMouseV
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
