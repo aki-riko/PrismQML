@@ -62,6 +62,21 @@ def test_gallery_disables_debug_logging_by_default():
     assert source.index(level_setup) < source.index("install_qt_message_handler()")
 
 
+def test_gallery_uses_qt_platform_graphics_default():
+    tree = _gallery_tree()
+    calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "configure_graphics_api"
+    ]
+
+    assert len(calls) == 1
+    assert calls[0].args == []
+    assert calls[0].keywords == []
+
+
 def test_gallery_does_not_duplicate_public_context_or_lazy_providers():
     tree = _gallery_tree()
     context_names = set()

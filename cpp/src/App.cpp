@@ -17,6 +17,7 @@
 #include <QSGRendererInterface>
 #include <QObject>
 #include <QDebug>
+#include <stdexcept>
 
 namespace prism {
 
@@ -49,10 +50,29 @@ void configureQmlEnvironment(bool allowFileRead) {
     QQuickWindow::setDefaultAlphaBuffer(true);
 }
 
+void configureGraphicsApi() {
+    const QByteArray requested = qgetenv(kGraphicsApiEnvironment).trimmed().toLower();
+    if (requested.isEmpty()) return;
+    if (requested == QByteArrayLiteral("direct3d11")) {
+        QQuickWindow::setGraphicsApi(QSGRendererInterface::Direct3D11);
+        return;
+    }
+    if (requested == QByteArrayLiteral("opengl")) {
+        QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+        return;
+    }
+    throw std::invalid_argument(
+        QStringLiteral("PRISMQML_GRAPHICS_API must be one of: direct3d11, "
+                       "opengl; got %1")
+            .arg(QString::fromUtf8(requested))
+            .toStdString());
+}
+
 App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRead) {
     if (s_instance != nullptr) {
         qFatal("prism::App already exists. Only one instance allowed.");
     }
+    configureGraphicsApi();
     s_instance = this;
 
     // Translator 用 XMLHttpRequest 加载 i18n/*.json；App 构造是显式初始化边界。
@@ -65,10 +85,7 @@ App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRea
     // 固定 DPI 缩放配置 (必须在 QApplication 创建前; 镜像 Python applyDpiScale)
     applyDpiScaleBeforeApplication();
 
-    // 强制 OpenGL 后端, 规避部分 Windows 驱动 D3D11 device-lost 崩溃
-    // (镜像 Python main.py: QQuickWindow.setGraphicsApi(OpenGL))
-    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
-
+    // 默认遵循 Qt 平台原生后端；仅在宿主显式请求时覆盖。
     m_app = std::make_unique<QApplication>(argc, argv);
     m_engine = std::make_unique<QQmlApplicationEngine>();
 

@@ -69,9 +69,9 @@ def main():
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
 
-    # Preserve the Gallery OpenGL default while allowing an engine-level A/B.
-    # 保持 Gallery 默认 OpenGL，同时允许通过引擎级开关执行 A/B。
-    graphics_api = configure_graphics_api(default_api="opengl")
+    # Use Qt's platform-native backend; the engine switch can force a fallback.
+    # 使用 Qt 平台原生后端；必要时可通过引擎开关强制回退。
+    graphics_api = configure_graphics_api()
     log_time(f"Qt图形后端配置完成: {graphics_api}")
 
     applyDpiScale()

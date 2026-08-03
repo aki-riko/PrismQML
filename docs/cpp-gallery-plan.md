@@ -1,7 +1,7 @@
 # C++ Gallery — 让纯 C++ 用户看到完整组件画廊
 
 > **状态: 已完成 (2026-06)**。QML 可安装模块 + cpp/gallery 入口 + 13 页可移植化 +
-> 宿主对齐(DPI/OpenGL/mica/shadow/图标/异步懒加载/splash/selectable)均已落地并验证;
+> 宿主对齐(DPI/Qt原生图形后端/mica/shadow/图标/异步懒加载/splash/selectable)均已落地并验证;
 > 修复图标下划线 bug(2140 图标) + 安装树 INSTALL_INTERFACE 消费 bug。
 > 端到端验证: 独立项目 find_package(prism) → 编译 → 运行 → import PrismQML 全链路通。
 

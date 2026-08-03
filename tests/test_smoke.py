@@ -134,7 +134,8 @@ def test_configure_graphics_api_preserves_qt_default():
     completed = _run_graphics_api_probe()
 
     assert completed.returncode == 0, completed.stderr
-    assert completed.stdout.splitlines()[0] == "None"
+    selected, actual = completed.stdout.splitlines()
+    assert selected == repr(actual.lower())
 
 
 def test_configure_graphics_api_uses_caller_default():
