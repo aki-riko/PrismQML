@@ -22,6 +22,9 @@ Item {
     property color progressColorEnd: Qt.lighter(progressColor, 1.3)
     property bool animated: true  // Enable animations 启用动画
     property bool showProgressIndicator: true  // Show progress line 显示进度线
+
+    // ==================== Internal Props 内部属性 ====================
+    property real _hoverScaleProgress: _hovered ? 1.0 : 0.0
     
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _hovered: mouseArea.containsMouse
@@ -34,6 +37,9 @@ Item {
     readonly property real _safeProgress: isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0
     readonly property int _safeBarWidth: Math.max(1, barWidth)
     readonly property int _safeBarSpacing: Math.max(0, barSpacing)
+    readonly property real _barBaseScale: 1.0
+    readonly property real _barHoverXScale: 1.05
+    readonly property real _barHoverYScale: 1.02
     readonly property Gradient _playedGradient: Gradient {
         orientation: Gradient.Vertical
         GradientStop { position: 0.0; color: control.progressColorEnd }
@@ -203,17 +209,12 @@ Item {
                     transform: Scale {
                         origin.x: bar.width / 2
                         origin.y: bar.height / 2
-                        xScale: control._hovered ? 1.05 : 1.0
-                        yScale: control._hovered ? 1.02 : 1.0
-                        
-                        Behavior on xScale {
-                            enabled: control.animated
-                            NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic }
-                        }
-                        Behavior on yScale {
-                            enabled: control.animated
-                            NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic }
-                        }
+                        xScale: control._barBaseScale
+                            + (control._barHoverXScale - control._barBaseScale)
+                              * control._hoverScaleProgress
+                        yScale: control._barBaseScale
+                            + (control._barHoverYScale - control._barBaseScale)
+                              * control._hoverScaleProgress
                     }
                     
                     Behavior on opacity {
@@ -288,6 +289,14 @@ Item {
                 control.progress = pos
                 control.progressUpdated(pos)
             }
+        }
+    }
+
+    Behavior on _hoverScaleProgress {
+        enabled: control.animated
+        NumberAnimation {
+            duration: Enums.duration.medium
+            easing.type: Easing.OutCubic
         }
     }
 
