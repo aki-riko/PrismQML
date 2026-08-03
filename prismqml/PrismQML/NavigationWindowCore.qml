@@ -4,8 +4,6 @@
 
 import QtQuick
 import QtQuick.Window
-import "navigation"
-import "controls/navigation"
 import "controls/feedback/SplashScreen"
 
 // NavigationWindowCore - Base class for navigation windows 导航窗口基类
