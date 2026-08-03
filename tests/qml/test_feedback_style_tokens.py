@@ -435,6 +435,8 @@ def test_feedback_sources_use_shared_style_tokens():
     toast_source = TOAST_SOURCE.read_text(encoding="utf-8")
     splash_source = SPLASH_SOURCE.read_text(encoding="utf-8")
 
+    assert 'import "../../icons"' not in splash_source
+    assert 'import "../../data"' not in splash_source
     assert (
         "anchors.topMargin: Enums.spacing.m + Enums.spacing.cardElevate" in toast_source
     )
