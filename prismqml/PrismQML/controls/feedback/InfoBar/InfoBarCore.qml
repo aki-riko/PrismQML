@@ -354,17 +354,21 @@ Widget {
         // Mask uses Rectangle's opaque white default and requires a layer 遮罩使用 Rectangle 默认不透明白色，且必须启用 layer
         Rectangle {
             id: progressMask
+
+            objectName: "infoBarProgressMask"
             anchors.fill: parent
             radius: control.radius
-            layer.enabled: true
+            layer.enabled: control._isBarMode
             visible: false
         }
         
         // Progress bar content with mask 带遮罩的进度条内容
         Item {
             id: progressContent
+
+            objectName: "infoBarProgressContent"
             anchors.fill: parent
-            layer.enabled: true
+            layer.enabled: control._isBarMode
             layer.effect: MultiEffect {
                 maskEnabled: true
                 maskSource: progressMask
@@ -372,22 +376,8 @@ Widget {
                 maskSpreadAtMin: 0.0
             }
             
-            // Indeterminate progress bar: reuse ProgressBar indeterminate mode 不确定进度条：复用 ProgressBar 的不确定模式
-
             ProgressBar {
-                id: indeterminateBar
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: Enums.spacing.xs
-                indeterminate: true
-                visible: feature === Enums.notification.feature_indeterminate_bar
-            }
-            
-            // Determinate progress bar: reuse ProgressBar determinate mode 确定进度条：复用 ProgressBar 的确定模式
-
-            ProgressBar {
-                id: determinateBar
+                objectName: "infoBarProgressBar"
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -395,7 +385,7 @@ Widget {
                 value: control.progress * 100
                 from: 0
                 to: 100
-                visible: feature === Enums.notification.feature_progress_bar
+                indeterminate: feature === Enums.notification.feature_indeterminate_bar
             }
         }
     }
@@ -412,8 +402,8 @@ Widget {
         height: Enums.infoBarMetrics.iconContainerSize
         visible: _isRingMode
         
-        // Determinate progress ring: reuse ProgressRing 确定进度环：复用ProgressRing
         ProgressRing {
+            objectName: "infoBarProgressRing"
             anchors.centerIn: parent
             width: Enums.infoBarMetrics.iconSize
             height: width
@@ -421,22 +411,16 @@ Widget {
             value: control.progress * 100
             from: 0
             to: 100
-            visible: feature === Enums.notification.feature_progress_ring && !control._progressComplete
-        }
-        
-        // Indeterminate progress ring: ProgressRing with indeterminate 不确定进度环：ProgressRing 不确定模式
-
-        ProgressRing {
-            anchors.centerIn: parent
-            width: Enums.infoBarMetrics.iconSize
-            height: width
-            strokeWidth: Enums.border.normal
             indeterminate: feature === Enums.notification.feature_indeterminate_ring && ringContainer.visible && control.visible
-            visible: feature === Enums.notification.feature_indeterminate_ring && control.visible
+            visible: !control._progressComplete && (
+                feature === Enums.notification.feature_progress_ring ||
+                (feature === Enums.notification.feature_indeterminate_ring && control.visible)
+            )
         }
         
         // Complete icon 完成图标
         Icon {
+            objectName: "infoBarProgressCompleteIcon"
             anchors.centerIn: parent
             iconSize: Enums.infoBarMetrics.iconSize
             icon: control.severityIconName
