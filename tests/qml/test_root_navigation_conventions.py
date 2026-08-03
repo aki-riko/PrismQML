@@ -609,6 +609,13 @@ def test_root_navigation_sources_follow_conventions():
             if violation.rule in {"QML008", "QML009"}
         )
     assert violations == []
+
+    smooth_scroll = ROOT_NAV_SOURCE_PATHS[0].read_text(encoding="utf-8")
+    assert 'import "../../controls/containers/ScrollBar"' not in smooth_scroll
+    assert "SmoothScrollHelper {" not in smooth_scroll
+    assert smooth_scroll.count("Timer {") == 1
+    assert smooth_scroll.count("NumberAnimation {") == 1
+    assert "MouseArea {" not in smooth_scroll
     for source_path in (
         ROOT / "prismqml" / "PrismQML" / "navigation" / "NavigationBar.qml",
         ROOT / "prismqml" / "PrismQML" / "navigation" / "ToggleNavigationBar.qml",
