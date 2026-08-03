@@ -6,6 +6,7 @@
 
 from pathlib import Path
 
+import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QObject, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -18,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "progress-bar-lifecycle.qml")
 )
-SCENE_SOURCE = b"""
+BAR_SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window
 import PrismQML
@@ -38,6 +39,32 @@ Window {
         width: 300
         height: Enums.spacing.xs
         value: 42
+        indeterminate: root.initialIndeterminate
+    }
+}
+"""
+UNIFIED_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+
+    property bool initialIndeterminate: false
+
+    width: 360
+    height: 100
+    visible: true
+
+    Progress {
+        objectName: "progress"
+        anchors.centerIn: parent
+        width: 300
+        height: Enums.spacing.xs
+        type: Enums.progress.type_bar
+        value: 42
+        showText: false
         indeterminate: root.initialIndeterminate
     }
 }
@@ -73,7 +100,16 @@ def _dispose_scene(engine, component, window) -> None:
     QCoreApplication.processEvents()
 
 
-def test_progress_bar_creates_indeterminate_branch_only_while_needed(qapp):
+@pytest.mark.parametrize(
+    ("scene_source", "object_name"),
+    [
+        (BAR_SCENE_SOURCE, "progressBar"),
+        (UNIFIED_SCENE_SOURCE, "progress"),
+    ],
+)
+def test_progress_bar_creates_indeterminate_branch_only_while_needed(
+    scene_source, object_name, qapp
+):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine = QQmlApplicationEngine()
     warnings = []
@@ -83,7 +119,7 @@ def test_progress_bar_creates_indeterminate_branch_only_while_needed(qapp):
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
     component = QQmlComponent(engine)
-    component.setData(SCENE_SOURCE, SCENE_URL)
+    component.setData(scene_source, SCENE_URL)
     assert component.status() == QQmlComponent.Status.Ready, [
         error.toString() for error in component.errors()
     ]
@@ -91,7 +127,7 @@ def test_progress_bar_creates_indeterminate_branch_only_while_needed(qapp):
     assert isinstance(window, QQuickWindow), [
         error.toString() for error in component.errors()
     ]
-    progress_bar = window.findChild(QQuickItem, "progressBar")
+    progress_bar = window.findChild(QQuickItem, object_name)
     assert progress_bar is not None
     QCoreApplication.processEvents()
 
