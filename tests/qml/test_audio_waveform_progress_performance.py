@@ -55,6 +55,7 @@ Window {
     }
 }
 """
+ANIMATED_SCENE_SOURCE = SCENE_SOURCE.replace(b"animated: false", b"animated: true")
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -90,6 +91,21 @@ def _opacities(waveform: QQuickItem) -> list[float]:
     return [float(bar.opacity()) for bar in _bars(waveform)]
 
 
+def _scale_values(waveform: QQuickItem) -> list[tuple[float, float]]:
+    values = []
+    for bar in _bars(waveform):
+        scales = [
+            child
+            for child in bar.findChildren(QObject)
+            if "Scale" in child.metaObject().className()
+        ]
+        assert len(scales) == 1
+        values.append(
+            (float(scales[0].property("xScale")), float(scales[0].property("yScale")))
+        )
+    return values
+
+
 def _gradient(bar: QQuickItem) -> QObject:
     value = bar.property("gradient")
     assert isinstance(value, QJSValue)
@@ -112,7 +128,7 @@ def _gradient_colors(bar: QQuickItem):
     ]
 
 
-def _create_scene():
+def _create_scene(source: bytes = SCENE_SOURCE):
     engine = QQmlApplicationEngine()
     warnings: list[str] = []
     engine.warnings.connect(
@@ -122,7 +138,7 @@ def _create_scene():
     register_types(engine)
     component = QQmlComponent(engine)
     component.setData(
-        SCENE_SOURCE,
+        source,
         QUrl.fromLocalFile(
             str(ROOT / "tests" / "qml" / "audio-waveform-progress-performance.qml")
         ),
@@ -208,6 +224,47 @@ def test_audio_waveform_bar_caches_position_and_played_state():
     assert "readonly property real _positionRatio:" in source
     assert "readonly property bool _played:" in source
     assert source.count("bar._played") == 2
+
+
+def test_audio_waveform_hover_scale_preserves_curve_and_retargeting(qapp):
+    engine, component, window, waveform, warnings = _create_scene(
+        ANIMATED_SCENE_SOURCE
+    )
+    try:
+        QTest.mouseMove(window, QPoint(350, 110))
+        assert _wait_for(lambda: waveform.property("_hovered") is False)
+        assert _scale_values(waveform) == pytest.approx([(1.0, 1.0)] * 4)
+
+        QTest.mouseMove(window, QPoint(100, 50))
+        assert _wait_for(lambda: waveform.property("_hovered") is True)
+        _pump(30)
+        entering = _scale_values(waveform)
+        assert all(1.0 < x_scale < 1.05 for x_scale, _ in entering)
+        assert entering == pytest.approx([entering[0]] * 4)
+        assert (entering[0][0] - 1.0) / 0.05 == pytest.approx(
+            (entering[0][1] - 1.0) / 0.02,
+            abs=1e-4,
+        )
+        assert _wait_for(
+            lambda: _scale_values(waveform) == pytest.approx([(1.05, 1.02)] * 4)
+        )
+
+        QTest.mouseMove(window, QPoint(350, 110))
+        assert _wait_for(lambda: waveform.property("_hovered") is False)
+        _pump(30)
+        leaving = _scale_values(waveform)
+        assert all(1.0 < x_scale < 1.05 for x_scale, _ in leaving)
+        assert leaving == pytest.approx([leaving[0]] * 4)
+        assert (leaving[0][0] - 1.0) / 0.05 == pytest.approx(
+            (leaving[0][1] - 1.0) / 0.02,
+            abs=1e-4,
+        )
+        assert _wait_for(
+            lambda: _scale_values(waveform) == pytest.approx([(1.0, 1.0)] * 4)
+        )
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
 
 
 def test_audio_waveform_dense_data_instantiates_only_visible_bars(qapp):
