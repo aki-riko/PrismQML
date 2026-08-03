@@ -15,6 +15,15 @@ from prismqml import configure_qml_environment, register_types
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "data"
+    / "Carousel"
+    / "Carousel.qml"
+)
 SCENE = b"""
 import QtQuick
 import PrismQML
@@ -41,13 +50,17 @@ def _release(qapp, *objects) -> None:
     qapp.processEvents()
 
 
-def _indicator(carousel):
-    matches = [
+def _indicators(carousel):
+    return [
         child
         for child in carousel.findChildren(QObject)
         if "PipsPager" in child.metaObject().className()
         and child.metaObject().indexOfProperty("vertical") >= 0
     ]
+
+
+def _indicator(carousel):
+    matches = _indicators(carousel)
     assert len(matches) == 1, [child.metaObject().className() for child in matches]
     return matches[0]
 
@@ -98,5 +111,26 @@ def test_carousel_reuses_one_indicator_across_orientation_changes(qapp):
         assert indicator.y() + indicator.height() / 2 == pytest.approx(
             carousel.height() / 2
         )
+
+        carousel.setProperty("showIndicator", False)
+        qapp.processEvents()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        qapp.processEvents()
+        assert _indicators(carousel) == []
+        assert not shiboken6.isValid(indicator)
+
+        carousel.setProperty("showIndicator", True)
+        qapp.processEvents()
+        replacement = _indicator(carousel)
+        assert replacement.property("vertical") is True
+        assert replacement.property("currentIndex") == 2
+        assert replacement.property("count") == 3
     finally:
         _release(qapp, carousel, component, engine)
+
+
+def test_carousel_indicator_is_mode_gated_in_source():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "readonly property bool _hasIndicator:" in source
+    assert source.count("FlipViewControls.PipsPager {") == 1
+    assert "indicatorComponent.createObject(control)" in source

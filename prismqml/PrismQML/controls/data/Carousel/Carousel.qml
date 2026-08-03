@@ -59,12 +59,14 @@ Item {
     // Internal 内部属性
     readonly property bool isVertical: orientation === Qt.Vertical
     readonly property int _modelCount: (_safeModel || []).length
+    readonly property bool _hasIndicator: showIndicator && _modelCount > 1
     readonly property bool _hasNavButtons: showNavButtons && _modelCount > 1
     // 指针是否位于 Carousel 范围内（含 itemDelegate 的子元素、导航按钮）。
     // 用 HoverHandler 判定：传统 MouseArea 的 containsMouse 会被子元素自带的 hover MouseArea
     //   「偷走」（停在 delegate 里的按钮上时变 false），导致悬停子元素时自动播放又恢复。
     readonly property bool _isHovered: rootHover.hovered
     readonly property bool _navVisible: _hasNavButtons && _isHovered
+    property Item _indicator: null
     property Item _prevNavButton: null
     property Item _nextNavButton: null
 
@@ -146,10 +148,34 @@ Item {
         else _destroyNavButtons()
     }
 
+    function _createIndicator() {
+        if (_indicator) return
+        const indicator = indicatorComponent.createObject(control)
+        if (!indicator) {
+            console.error("Carousel: failed to create indicator")
+            return
+        }
+        _indicator = indicator
+    }
+
+    function _destroyIndicator() {
+        const indicator = _indicator
+        _indicator = null
+        if (!indicator) return
+        indicator.visible = false
+        indicator.destroy()
+    }
+
+    function _syncIndicator() {
+        if (_hasIndicator) _createIndicator()
+        else _destroyIndicator()
+    }
+
     // Size 尺寸
     implicitWidth: Enums.controlSize.carouselDefaultWidth
     implicitHeight: Enums.controlSize.carouselDefaultHeight
 
+    on_HasIndicatorChanged: _syncIndicator()
     on_HasNavButtonsChanged: _syncNavButtons()
 
     // ==================== Content 内容 ====================
@@ -234,22 +260,25 @@ Item {
         }
     }
     
-    // Indicator (PipsPager) 指示器
-    FlipViewControls.PipsPager {
-        id: indicator
-        visible: control.showIndicator && control._modelCount > 1
-        count: control._modelCount
-        currentIndex: control.currentIndex
-        orientation: control.orientation
+    // Indicator factory 指示器工厂
+    Component {
+        id: indicatorComponent
 
-        anchors.horizontalCenter: control.isVertical ? undefined : parent.horizontalCenter
-        anchors.bottom: control.isVertical ? undefined : parent.bottom
-        anchors.bottomMargin: control.isVertical ? Enums.spacing.none : Enums.spacing.l
-        anchors.verticalCenter: control.isVertical ? parent.verticalCenter : undefined
-        anchors.right: control.isVertical ? parent.right : undefined
-        anchors.rightMargin: control.isVertical ? Enums.spacing.l : Enums.spacing.none
+        FlipViewControls.PipsPager {
+            visible: control._hasIndicator
+            count: control._modelCount
+            currentIndex: control.currentIndex
+            orientation: control.orientation
 
-        onIndexClicked: (index) => control.goTo(index)
+            anchors.horizontalCenter: control.isVertical ? undefined : parent.horizontalCenter
+            anchors.bottom: control.isVertical ? undefined : parent.bottom
+            anchors.bottomMargin: control.isVertical ? Enums.spacing.none : Enums.spacing.l
+            anchors.verticalCenter: control.isVertical ? parent.verticalCenter : undefined
+            anchors.right: control.isVertical ? parent.right : undefined
+            anchors.rightMargin: control.isVertical ? Enums.spacing.l : Enums.spacing.none
+
+            onIndexClicked: (index) => control.goTo(index)
+        }
     }
 
     // Navigation button factory 导航按钮工厂
