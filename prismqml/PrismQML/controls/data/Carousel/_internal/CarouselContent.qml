@@ -44,6 +44,18 @@ Item {
         // 无需手动设置。保留此方法仅为兼容 Carousel.qml 既有调用契约。
     }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _isImageData(data) {
+        var value = data || ""
+        var sourceValue = value && typeof value === "object"
+            ? (value.source || value)
+            : value
+        return typeof sourceValue === "string" &&
+            (sourceValue.indexOf("/") >= 0 ||
+             sourceValue.indexOf(".") >= 0 ||
+             sourceValue.indexOf(":") >= 0)
+    }
+
     clip: true
 
     // Rounded corner mask via MultiEffect (project convention) 项目统一范式的圆角 mask
@@ -97,9 +109,12 @@ Item {
 
                 Loader {
                     property var itemData: modelData || ""
+                    readonly property bool isImage: control._isImageData(itemData)
 
                     anchors.fill: parent
-                    sourceComponent: control.itemDelegate ? control.itemDelegate : _contentComponent
+                    sourceComponent: control.itemDelegate
+                        ? control.itemDelegate
+                        : (isImage ? _imageContentComponent : _textContentComponent)
                 }
             }
         }
@@ -183,59 +198,55 @@ Item {
 
                 Loader {
                     property var itemData: modelData || ""
+                    readonly property bool isImage: control._isImageData(itemData)
 
                     anchors.fill: parent
-                    sourceComponent: control.itemDelegate ? control.itemDelegate : _contentComponent
+                    sourceComponent: control.itemDelegate
+                        ? control.itemDelegate
+                        : (isImage ? _imageContentComponent : _textContentComponent)
                 }
             }
         }
     }
 
-    // Content component 内容组件
+    // Image content component 图片内容组件
     Component {
-        id: _contentComponent
+        id: _imageContentComponent
 
-        Item {
-            // Check if image source 检查是否为图片源图片识别逻辑
-            readonly property bool isImage: {
-                var data = itemData || ""
-                var src = data && typeof data === "object" ? (data.source || data) : data
-                return typeof src === "string" && (src.indexOf("/") >= 0 || src.indexOf(".") >= 0 || src.indexOf(":") >= 0)
-            }
-
+        Image {
             anchors.fill: parent
+            source: itemData && typeof itemData === "object"
+                ? (itemData.source || itemData)
+                : itemData
+            fillMode: Image.PreserveAspectCrop
+            // 异步解码 + sourceSize 上限 1920(全屏轮播覆盖大多数显示器宽度),
+            // 避免 Qt 把 4K/8K 原图按原始分辨率解到 GPU 纹理 (可能数 MB),
+            // 滚动 ScrollArea 平移多张大图时纹理带宽吃紧, 是 CarouselPage 滚动卡的主因.
+            // 不绑 sourceSize 到 width: width 抖动会触发整图重新解码, 引入新卡顿.
+            asynchronous: true
+            cache: true
+            sourceSize.width: 1920
+            sourceSize.height: 1080
+        }
+    }
 
-            // Image content 图片内容渲染图片内容
-            Image {
-                id: contentImage
-                anchors.fill: parent
-                source: parent.isImage
-                        ? (itemData && typeof itemData === "object" ? (itemData.source || itemData) : itemData)
-                        : ""
-                fillMode: Image.PreserveAspectCrop
-                visible: parent.isImage
-                // 异步解码 + sourceSize 上限 1920(全屏轮播覆盖大多数显示器宽度),
-                // 避免 Qt 把 4K/8K 原图按原始分辨率解到 GPU 纹理 (可能数 MB),
-                // 滚动 ScrollArea 平移多张大图时纹理带宽吃紧, 是 CarouselPage 滚动卡的主因.
-                // 不绑 sourceSize 到 width: width 抖动会触发整图重新解码, 引入新卡顿.
-                asynchronous: true
-                cache: true
-                sourceSize.width: 1920
-                sourceSize.height: 1080
-            }
+    // Color/text content component 颜色/文本内容组件
+    Component {
+        id: _textContentComponent
 
-            // Color/Text content 颜色/文本内容渲染颜色或文本内容
-            Rectangle {
-                anchors.fill: parent
-                color: itemData && typeof itemData === "object" ? (itemData.color || Enums.surfaceColor) : Enums.surfaceColor
-                visible: !parent.isImage
+        Rectangle {
+            anchors.fill: parent
+            color: itemData && typeof itemData === "object"
+                ? (itemData.color || Enums.surfaceColor)
+                : Enums.surfaceColor
 
-                Label {
-                    anchors.centerIn: parent
-                    type: Enums.label.type_body_strong
-                    text: typeof itemData === 'string' ? itemData : (itemData ? (itemData.text || "") : "")
-                    visible: text.length > 0
-                }
+            Label {
+                anchors.centerIn: parent
+                type: Enums.label.type_body_strong
+                text: typeof itemData === "string"
+                    ? itemData
+                    : (itemData ? (itemData.text || "") : "")
+                visible: text.length > 0
             }
         }
     }
