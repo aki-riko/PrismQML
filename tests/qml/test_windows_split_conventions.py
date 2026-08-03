@@ -340,6 +340,8 @@ def test_windows_split_source_conventions_and_startup_delay_token():
         if violation.rule in {"QML008", "QML009"}
     ] == []
     assert "interval: Enums.window.splitStartupDelayMs" in source
+    assert "default property list<QtObject> pages" in source
+    assert "id: _hiddenStack" not in source
     assert "interval: 50" not in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int splitStartupDelayMs: 50" in metrics
@@ -355,6 +357,8 @@ def test_windows_filled_source_conventions_and_stack_binding():
         if violation.rule in {"QML008", "QML009"}
     ] == []
     assert "stackedWidget: stack" not in source
+    assert "default property list<QtObject> pages" in source
+    assert "id: _hiddenStack" not in source
     assert "window.stackedWidget = item.stackAlias" in source
     assert "interval: Enums.window.splitStartupDelayMs" in source
     assert "smoothScroll: window.navigationSmoothScroll" in source
@@ -373,6 +377,8 @@ def test_windows_bar_source_conventions_and_zero_delay_token():
     assert "interval: Enums.duration.none" in source
     assert "interval: 0" not in source
     assert "window._moveDefaultPages(" in source
+    assert "default property list<QtObject> pages" in source
+    assert "id: _hiddenStack" not in source
     assert "finally {" in source
     content_source = BAR_CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
     assert (

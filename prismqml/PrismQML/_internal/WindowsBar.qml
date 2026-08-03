@@ -12,7 +12,7 @@ NavigationWindowCore {
     id: window
 
     // ==================== Public Props 公开属性 ====================
-    default property alias pages: _hiddenStack.data
+    default property list<QtObject> pages
     property int contentTopMargin: Enums.spacing.none
     property var pageSources: []
 
@@ -23,7 +23,7 @@ NavigationWindowCore {
     Component.onCompleted: window.profileDetail(
         "WindowsBar root completed nav=" + _safeNavigationItems.length +
         " bottom=" + _safeBottomNavigationItems.length +
-        " hidden=" + _hiddenStack.data.length
+        " staged=" + pages.length
     )
 
     // Content layout. 内容布局。
@@ -65,14 +65,14 @@ NavigationWindowCore {
                 window.profileTime("WindowsBar bind navigation/stack navReady=" + (window.navigationView !== null))
 
                 try {
-                    if (_hiddenStack.data.length > 0) {
-                        window.profileTime("WindowsBar move hidden pages start count=" + _hiddenStack.data.length)
+                    if (window.pages.length > 0) {
+                        window.profileTime("WindowsBar move staged pages start count=" + window.pages.length)
                         window._moveDefaultPages(
-                            _hiddenStack.data,
+                            window.pages,
                             window.stackedWidget.containerItem,
                             "WindowsBar"
                         )
-                        window.profileTime("WindowsBar move hidden pages done")
+                        window.profileTime("WindowsBar move staged pages done")
                     }
                 } finally {
                     window.profileTime("WindowsBar dismissSplashWhenReady start")
@@ -83,10 +83,4 @@ NavigationWindowCore {
         }
     }
 
-    // Preserve default-property pages in a hidden staging item. 在隐藏暂存项中保留 default property 页面。
-    Item {
-        id: _hiddenStack
-        visible: false
-        Component.onCompleted: window.profileDetail("WindowsBar hiddenStack completed count=" + data.length)
-    }
 }

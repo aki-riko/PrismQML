@@ -16,7 +16,7 @@ NavigationWindowCore {
     id: window
 
     // ==================== Public Props 公开属性 ====================
-    default property alias pages: _hiddenStack.data
+    default property list<QtObject> pages
     property var pageSources: []
 
     windowTitle: ""
@@ -76,9 +76,9 @@ NavigationWindowCore {
                 window.stackedWidget = item.stackAlias
                 
                 try {
-                    if (_hiddenStack.data.length > 0) {
+                    if (window.pages.length > 0) {
                         window._moveDefaultPages(
-                            _hiddenStack.data,
+                            window.pages,
                             window.stackedWidget.containerItem,
                             "WindowsFilled"
                         )
@@ -134,7 +134,4 @@ NavigationWindowCore {
         }
     }
 }
-
-    // Preserve default-property pages in a hidden staging item. 在隐藏暂存项中保留 default property 页面。
-    Item { id: _hiddenStack; visible: false }
 }
