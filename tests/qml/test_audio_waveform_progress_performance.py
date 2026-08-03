@@ -7,6 +7,7 @@
 from pathlib import Path
 
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -16,7 +17,7 @@ from PySide6.QtCore import (
     QTimer,
     QUrl,
 )
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import QJSValue, QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
@@ -89,10 +90,19 @@ def _opacities(waveform: QQuickItem) -> list[float]:
     return [float(bar.opacity()) for bar in _bars(waveform)]
 
 
+def _gradient(bar: QQuickItem) -> QObject:
+    value = bar.property("gradient")
+    assert isinstance(value, QJSValue)
+    gradient = value.toQObject()
+    assert gradient is not None
+    return gradient
+
+
 def _gradient_colors(bar: QQuickItem):
+    gradient = _gradient(bar)
     stops = [
         child
-        for child in bar.findChildren(QObject)
+        for child in gradient.findChildren(QObject)
         if "GradientStop" in child.metaObject().className()
     ]
     assert len(stops) == 2
@@ -160,6 +170,12 @@ def test_audio_waveform_progress_preserves_bar_opacity_groups(qapp):
             waveform.property("waveColorEnd"),
             waveform.property("waveColor"),
         ]
+        gradient_pointers = [
+            shiboken6.getCppPointer(_gradient(bar))[0] for bar in bars
+        ]
+        assert gradient_pointers[0] == gradient_pointers[1]
+        assert gradient_pointers[2] == gradient_pointers[3]
+        assert gradient_pointers[0] != gradient_pointers[2]
 
         waveform.setProperty("progress", 0.8)
         assert _wait_for(
@@ -169,6 +185,7 @@ def test_audio_waveform_progress_preserves_bar_opacity_groups(qapp):
             waveform.property("progressColorEnd"),
             waveform.property("progressColor"),
         ]
+        assert len({shiboken6.getCppPointer(_gradient(bar))[0] for bar in bars}) == 1
 
         waveform.setProperty("progress", 0.0)
         assert _wait_for(
@@ -178,6 +195,7 @@ def test_audio_waveform_progress_preserves_bar_opacity_groups(qapp):
             waveform.property("waveColorEnd"),
             waveform.property("waveColor"),
         ]
+        assert len({shiboken6.getCppPointer(_gradient(bar))[0] for bar in bars}) == 1
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
@@ -189,7 +207,7 @@ def test_audio_waveform_bar_caches_position_and_played_state():
     assert "readonly property int _dataIndex:" in source
     assert "readonly property real _positionRatio:" in source
     assert "readonly property bool _played:" in source
-    assert source.count("bar._played") == 3
+    assert source.count("bar._played") == 2
 
 
 def test_audio_waveform_dense_data_instantiates_only_visible_bars(qapp):

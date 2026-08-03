@@ -34,6 +34,16 @@ Item {
     readonly property real _safeProgress: isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0
     readonly property int _safeBarWidth: Math.max(1, barWidth)
     readonly property int _safeBarSpacing: Math.max(0, barSpacing)
+    readonly property Gradient _playedGradient: Gradient {
+        orientation: Gradient.Vertical
+        GradientStop { position: 0.0; color: control.progressColorEnd }
+        GradientStop { position: 1.0; color: control.progressColor }
+    }
+    readonly property Gradient _unplayedGradient: Gradient {
+        orientation: Gradient.Vertical
+        GradientStop { position: 0.0; color: control.waveColorEnd }
+        GradientStop { position: 1.0; color: control.waveColor }
+    }
 
     // ==================== Signals 信号 ====================
     signal clicked(real position)  // Click position 0-1 点击位置
@@ -183,17 +193,8 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     
                     // Gradient based on position and progress 基于位置和进度的渐变
-                    gradient: Gradient {
-                        orientation: Gradient.Vertical
-                        GradientStop { 
-                            position: 0.0 
-                            color: bar._played ? control.progressColorEnd : control.waveColorEnd
-                        }
-                        GradientStop { 
-                            position: 1.0 
-                            color: bar._played ? control.progressColor : control.waveColor
-                        }
-                    }
+                    gradient: bar._played
+                        ? control._playedGradient : control._unplayedGradient
                     
                     // Subtle glow effect for active bars 活跃条的微妙发光效果
                     opacity: bar._played ? 1.0 : (control._hovered ? 0.85 : 0.7)
