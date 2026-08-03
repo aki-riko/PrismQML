@@ -82,6 +82,7 @@ Window {
     // ==================== Internal Methods 内部方法 ====================
     function logTime(msg) { console.log("[" + Math.round(Date.now() - _appStartTime) + "ms]", msg) }
     function profileTime(msg) {
+        if (!_startupProfilingVerboseActive) return
         var now = Date.now()
         console.debug("[启动剖析] WindowsCore " + msg + ": +" +
                     Math.round(now - _lastStartupProfileTime) + "ms / total " +

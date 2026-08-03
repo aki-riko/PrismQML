@@ -306,6 +306,11 @@ def test_windows_core_source_conventions_and_timing_tokens():
     assert "_animationStartTimer" not in source
     assert "interval: 100" not in source
     assert "interval: 1200" not in source
+    profile_start = source.index("function profileTime(msg)")
+    profile_end = source.index("function profileDetail(msg)", profile_start)
+    assert "if (!_startupProfilingVerboseActive) return" in source[
+        profile_start:profile_end
+    ]
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int resizeHandlesDelayMs: 1200" in metrics
 
