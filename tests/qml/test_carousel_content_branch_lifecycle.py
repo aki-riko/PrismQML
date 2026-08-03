@@ -16,6 +16,15 @@ from prismqml import register_types
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "data"
+    / "Carousel"
+    / "Carousel.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "carousel-content-branch-lifecycle.qml")
 )
@@ -152,6 +161,14 @@ def _dispose_scene(engine, component, window) -> None:
     _pump()
 
 
+def _release(qapp, *objects) -> None:
+    for item in objects:
+        if item is not None:
+            item.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    qapp.processEvents()
+
+
 @pytest.mark.parametrize("effect_property", ["peekEffect", "slideEffect"])
 def test_carousel_instantiates_only_the_active_builtin_content_branch(
     qapp, effect_property
@@ -170,6 +187,14 @@ def test_carousel_instantiates_only_the_active_builtin_content_branch(
         carousel.setProperty("model", TEXT_MODEL)
         assert _wait_for(lambda: _branch_counts(content)[1] > 0)
         assert _branch_counts(content)[0] == 0
+
+        carousel.setProperty("model", [])
+        assert _wait_for(lambda: _branch_counts(content) == (0, 0))
+        assert _content(carousel) is content
+
+        carousel.setProperty("model", TEXT_MODEL)
+        assert _wait_for(lambda: _branch_counts(content)[1] > 0)
+        assert _content(carousel) is content
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
@@ -179,3 +204,62 @@ def test_carousel_instantiates_only_the_active_builtin_content_branch(
             if top.isVisible()
             and not any(top is existing for existing in windows_before)
         ] == []
+
+
+def test_carousel_content_area_is_created_once_and_retained(qapp):
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""
+import QtQuick
+import PrismQML
+
+Carousel {
+    width: 320
+    height: 180
+    showIndicator: false
+    showNavButtons: false
+    model: []
+}
+""",
+        QUrl.fromLocalFile(
+            str(ROOT / "tests" / "qml" / "carousel-content-area-once.qml")
+        ),
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    carousel = component.create(engine.rootContext())
+    assert carousel is not None, [error.toString() for error in component.errors()]
+    qapp.processEvents()
+
+    try:
+        assert [
+            child
+            for child in carousel.findChildren(QObject)
+            if "CarouselContent" in child.metaObject().className()
+        ] == []
+
+        carousel.setProperty("model", TEXT_MODEL)
+        assert _wait_for(
+            lambda: any(
+                "CarouselContent" in child.metaObject().className()
+                for child in carousel.findChildren(QObject)
+            )
+        )
+        content = _content(carousel)
+
+        carousel.setProperty("model", [])
+        assert _wait_for(lambda: _branch_counts(content) == (0, 0))
+        assert _content(carousel) is content
+    finally:
+        _release(qapp, carousel, component, engine)
+
+
+def test_carousel_content_area_is_lazily_declared_in_source():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "readonly property bool _needsContentArea:" in source
+    assert source.count("CarouselContent {") == 1
+    assert "contentAreaComponent.createObject(control)" in source

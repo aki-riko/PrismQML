@@ -59,6 +59,8 @@ Item {
     // Internal 内部属性
     readonly property bool isVertical: orientation === Qt.Vertical
     readonly property int _modelCount: (_safeModel || []).length
+    readonly property bool _needsContentArea:
+        _modelCount > 0 || (shadowLevel !== null && shadowLevel !== undefined)
     readonly property bool _hasIndicator: showIndicator && _modelCount > 1
     readonly property bool _hasNavButtons: showNavButtons && _modelCount > 1
     // 指针是否位于 Carousel 范围内（含 itemDelegate 的子元素、导航按钮）。
@@ -66,6 +68,7 @@ Item {
     //   「偷走」（停在 delegate 里的按钮上时变 false），导致悬停子元素时自动播放又恢复。
     readonly property bool _isHovered: rootHover.hovered
     readonly property bool _navVisible: _hasNavButtons && _isHovered
+    property Item _contentArea: null
     property Item _indicator: null
     property Item _prevNavButton: null
     property Item _nextNavButton: null
@@ -81,7 +84,7 @@ Item {
         } else if (currentIndex < _modelCount - 1) {
             currentIndex++
         }
-        contentArea.setIndex(currentIndex)
+        if (_contentArea) _contentArea.setIndex(currentIndex)
     }
 
     function previous() {
@@ -91,13 +94,13 @@ Item {
         } else if (currentIndex > 0) {
             currentIndex--
         }
-        contentArea.setIndex(currentIndex)
+        if (_contentArea) _contentArea.setIndex(currentIndex)
     }
 
     function goTo(index) {
         if (index >= 0 && index < _modelCount) {
             currentIndex = index
-            contentArea.setIndex(currentIndex)
+            if (_contentArea) _contentArea.setIndex(currentIndex)
         }
     }
 
@@ -171,10 +174,25 @@ Item {
         else _destroyIndicator()
     }
 
+    function _createContentArea() {
+        if (_contentArea) return
+        const area = contentAreaComponent.createObject(control)
+        if (!area) {
+            console.error("Carousel: failed to create content area")
+            return
+        }
+        _contentArea = area
+    }
+
+    function _syncContentArea() {
+        if (_needsContentArea) _createContentArea()
+    }
+
     // Size 尺寸
     implicitWidth: Enums.controlSize.carouselDefaultWidth
     implicitHeight: Enums.controlSize.carouselDefaultHeight
 
+    on_NeedsContentAreaChanged: _syncContentArea()
     on_HasIndicatorChanged: _syncIndicator()
     on_HasNavButtonsChanged: _syncNavButtons()
 
@@ -214,8 +232,11 @@ Item {
         property var _staticFallbackShadow: null
         property var _activeLevel: control.shadowLevel || _staticFallbackShadow
 
-        anchors.fill: contentArea
-        visible: control.shadowLevel !== null && control.shadowLevel !== undefined && !Enums.isNeobrutalism
+        anchors.fill: control._contentArea
+        visible: control._contentArea !== null &&
+                 control.shadowLevel !== null &&
+                 control.shadowLevel !== undefined &&
+                 !Enums.isNeobrutalism
         radius: control.borderRadius
 
         Component.onCompleted: _staticFallbackShadow = ({
@@ -237,26 +258,32 @@ Item {
     }
 
     NeoShadow {
-        target: contentArea
-        visible: Enums.isNeobrutalism && control.shadowLevel !== null && control.shadowLevel !== undefined
+        target: control._contentArea
+        visible: control._contentArea !== null &&
+                 Enums.isNeobrutalism &&
+                 control.shadowLevel !== null &&
+                 control.shadowLevel !== undefined
         radius: control.borderRadius
-        z: contentArea.z - 1
+        z: control._contentArea ? control._contentArea.z - 1 : 0
     }
 
-    // Content area 内容区域
-    CarouselContent {
-        id: contentArea
-        anchors.fill: parent
-        model: control._safeModel
-        effect: control.effect
-        orientation: control.orientation
-        currentIndex: control.currentIndex
-        itemDelegate: control.itemDelegate
-        borderRadius: control.borderRadius
-        
-        onIndexChanged: (index) => {
-            control.currentIndex = index
-            control.indexChanged(index)
+    // Content area factory 内容区域工厂
+    Component {
+        id: contentAreaComponent
+
+        CarouselContent {
+            anchors.fill: parent
+            model: control._safeModel
+            effect: control.effect
+            orientation: control.orientation
+            currentIndex: control.currentIndex
+            itemDelegate: control.itemDelegate
+            borderRadius: control.borderRadius
+
+            onIndexChanged: (index) => {
+                control.currentIndex = index
+                control.indexChanged(index)
+            }
         }
     }
     
