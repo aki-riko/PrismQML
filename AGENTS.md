@@ -24,6 +24,23 @@
 - **后端**: PySide6
 - **主题**: ThemeManager（Python 注入），统一通过 `Enums` 访问
 
+### 1.1 Qt Quick 图形后端（冷启动铁律）
+
+- **默认遵循 Qt 的平台原生图形后端**：Windows 使用 Qt 6 的原生
+  D3D11/QRhi 路径；其他平台同样保留 Qt 的平台默认选择。Python 与 C++
+  宿主必须保持一致。
+- **严禁在 Windows 全局强制 OpenGL**：不得在通用启动路径无条件调用
+  `QQuickWindow.setGraphicsApi(OpenGL)`，也不得无条件设置等价的 Qt 环境
+  变量。实测该错误曾使真实可见 Gallery 的 QML 加载中位数从约
+  `350 ms` 恶化到约 `692 ms`，是已确认的重大冷启动回归。
+- **OpenGL 仅作显式兼容回退**：只有用户通过
+  `PRISMQML_GRAPHICS_API=opengl` 明确请求时才启用；不得因历史注释、未经
+  复现的驱动担忧或单个下游应用而改变引擎默认值。
+- **后端变更必须真实 A/B 验收**：使用完全重启、交错样本和真实可见窗口
+  对比 QML 加载、进入事件循环与首帧；同时验证动画、Mica、DWM 阴影、
+  首次弹层交互、像素差异及 `device lost` 日志。仅 offscreen、单次计时或
+  “窗口能打开”均不得作为后端性能与视觉验收结论。
+
 ### 目录结构
 
 ```
