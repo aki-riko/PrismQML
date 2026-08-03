@@ -157,6 +157,31 @@ OverlayDialogCore {
                 z: Enums.zIndex.base  // Below content 在内容层之下
                 onClicked: parent.forceActiveFocus()
             }
+
+            // Drag handler stays below body content so interactive child cursors
+            // and clicks keep precedence. 拖拽层位于正文内容下方，确保交互子项的光标和点击优先。
+            MouseArea {
+                property point dragStart
+
+                anchors.fill: bodyLayout
+                enabled: control.draggable
+                propagateComposedEvents: true
+
+                onPressed: (mouse) => {
+                    dragStart = Qt.point(mouse.x, mouse.y)
+                    mouse.accepted = control.draggable
+                }
+
+                onPositionChanged: (mouse) => {
+                    if (pressed && control.draggable) {
+                        dialogBodyContainer.anchors.horizontalCenter = undefined
+                        dialogBodyContainer.anchors.verticalCenter = undefined
+                        var candidateX = dialogBodyContainer.x + mouse.x - dragStart.x
+                        var candidateY = dialogBodyContainer.y + mouse.y - dragStart.y
+                        control._setBoundedDialogPosition(candidateX, candidateY)
+                    }
+                }
+            }
             
             // View layout 视图布局
             Item {
@@ -208,29 +233,6 @@ OverlayDialogCore {
                 }
             }
             
-            // Drag handler 拖拽处理
-            MouseArea {
-                property point dragStart
-
-                anchors.fill: bodyLayout
-                enabled: control.draggable
-                propagateComposedEvents: true
-                
-                onPressed: (mouse) => {
-                    dragStart = Qt.point(mouse.x, mouse.y)
-                    mouse.accepted = control.draggable
-                }
-                
-                onPositionChanged: (mouse) => {
-                    if (pressed && control.draggable) {
-                        dialogBodyContainer.anchors.horizontalCenter = undefined
-                        dialogBodyContainer.anchors.verticalCenter = undefined
-                        var candidateX = dialogBodyContainer.x + mouse.x - dragStart.x
-                        var candidateY = dialogBodyContainer.y + mouse.y - dragStart.y
-                        control._setBoundedDialogPosition(candidateX, candidateY)
-                    }
-                }
-            }
         }
     }
     

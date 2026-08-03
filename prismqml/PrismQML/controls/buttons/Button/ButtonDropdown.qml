@@ -275,6 +275,8 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             enabled: dropdownFeature.controlEnabled && !dropdownFeature.loading
+            cursorShape: enabled && dropdownFeature.parentStyle === Enums.button.style_hyperlink
+                         ? Qt.PointingHandCursor : Qt.ArrowCursor
             onContainsMouseChanged: {
                 if (splitDropMouse.containsMouse) dropdownFeature.prewarmMenu()
             }
@@ -308,6 +310,8 @@ Item {
         hoverEnabled: true
         enabled: dropdownFeature.controlEnabled && !dropdownFeature.loading && feature === Enums.button.feature_split
         visible: feature === Enums.button.feature_split
+        cursorShape: enabled && dropdownFeature.parentStyle === Enums.button.style_hyperlink
+                     ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: dropdownFeature.mainButtonClicked()
     }
     

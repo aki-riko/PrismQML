@@ -580,6 +580,8 @@ Widget {
         hoverEnabled: true
         enabled: control.enabled && !control.loading && !control._countdownActive && feature !== Enums.button.feature_split
         visible: feature !== Enums.button.feature_split
+        cursorShape: enabled && control.style === Enums.button.style_hyperlink
+                     ? Qt.PointingHandCursor : Qt.ArrowCursor
 
         onClicked: {
             if (feature === Enums.button.feature_toggle) {
