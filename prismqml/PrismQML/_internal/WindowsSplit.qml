@@ -123,11 +123,18 @@ NavigationWindowCore {
  }
  }
  
- LoadingOverlay {
+ Loader {
+ objectName: "loadingOverlayLoader"
  anchors.fill: parent
+ active: window._pythonLoading
+ visible: active
+ asynchronous: false
+ sourceComponent: LoadingOverlay {
+ objectName: "loadingOverlay"
  loading: window._pythonLoading
  backgroundColor: window.contentBgColor
  text: window.loadingText
+ }
  }
  }
  
