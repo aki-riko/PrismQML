@@ -59,11 +59,14 @@ Item {
     // Internal 内部属性
     readonly property bool isVertical: orientation === Qt.Vertical
     readonly property int _modelCount: (_safeModel || []).length
+    readonly property bool _hasNavButtons: showNavButtons && _modelCount > 1
     // 指针是否位于 Carousel 范围内（含 itemDelegate 的子元素、导航按钮）。
     // 用 HoverHandler 判定：传统 MouseArea 的 containsMouse 会被子元素自带的 hover MouseArea
     //   「偷走」（停在 delegate 里的按钮上时变 false），导致悬停子元素时自动播放又恢复。
     readonly property bool _isHovered: rootHover.hovered
-    readonly property bool _navVisible: showNavButtons && _modelCount > 1 && _isHovered
+    readonly property bool _navVisible: _hasNavButtons && _isHovered
+    property Item _prevNavButton: null
+    property Item _nextNavButton: null
 
     // Signals 信号
     signal indexChanged(int index)
@@ -100,9 +103,54 @@ Item {
     function setCurrentIndex(idx) { goTo(idx) }
     function getCurrentIndex() { return currentIndex }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _createNavButtons() {
+        if (_prevNavButton && _nextNavButton) return
+        _destroyNavButtons()
+
+        const previous = navButtonComponent.createObject(control, { "isNext": false })
+        const following = navButtonComponent.createObject(control, { "isNext": true })
+        if (!previous || !following) {
+            if (previous) previous.destroy()
+            if (following) following.destroy()
+            console.error("Carousel: failed to create navigation buttons")
+            return
+        }
+
+        _prevNavButton = previous
+        _nextNavButton = following
+        previous._revealEnabled = true
+        following._revealEnabled = true
+    }
+
+    function _destroyNavButtons() {
+        const previous = _prevNavButton
+        const following = _nextNavButton
+        _prevNavButton = null
+        _nextNavButton = null
+        _retireNavButton(previous)
+        _retireNavButton(following)
+    }
+
+    function _retireNavButton(button) {
+        if (!button) return
+        button.visible = false
+        button.x = Enums.spacing.none
+        button.y = Enums.spacing.none
+        button.parent = null
+        button.destroy()
+    }
+
+    function _syncNavButtons() {
+        if (_hasNavButtons) _createNavButtons()
+        else _destroyNavButtons()
+    }
+
     // Size 尺寸
     implicitWidth: Enums.controlSize.carouselDefaultWidth
     implicitHeight: Enums.controlSize.carouselDefaultHeight
+
+    on_HasNavButtonsChanged: _syncNavButtons()
 
     // ==================== Content 内容 ====================
     // Hover and wheel area 悬停和滚轮区域
@@ -204,41 +252,33 @@ Item {
         onIndexClicked: (index) => control.goTo(index)
     }
 
-    // Navigation buttons 导航按钮
-    // Prev button (horizontal left, vertical top) 上一个按钮（水平左侧，垂直顶部）
+    // Navigation button factory 导航按钮工厂
+    Component {
+        id: navButtonComponent
 
-    CarouselNavButton {
-        id: prevButton
-        visible: control._navVisible
-        opacity: control._navVisible ? 1.0 : 0.0
-        isNext: false
-        isVertical: control.isVertical
-        
-        // Position based on orientation 根据方向定位
-        x: control.isVertical ? (parent.width - width) / 2 : Enums.spacing.m
-        y: control.isVertical ? Enums.spacing.m : (parent.height - height) / 2
-        
-        Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-        
-        onClicked: control.previous()
-    }
-    
-    // Next button (horizontal right, vertical bottom) 下一个按钮（水平右侧，垂直底部）
+        CarouselNavButton {
+            property bool _revealEnabled: false
 
-    CarouselNavButton {
-        id: nextButton
-        visible: control._navVisible
-        opacity: control._navVisible ? 1.0 : 0.0
-        isNext: true
-        isVertical: control.isVertical
-        
-        // Position based on orientation 根据方向定位
-        x: control.isVertical ? (parent.width - width) / 2 : (parent.width - width - Enums.spacing.m)
-        y: control.isVertical ? (parent.height - height - Enums.spacing.m) : (parent.height - height) / 2
-        
-        Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-        
-        onClicked: control.next()
+            visible: control._navVisible
+            opacity: _revealEnabled && control._navVisible ? 1 : 0
+            isVertical: control.isVertical
+
+            x: control.isVertical
+                ? (parent.width - width) / 2
+                : (isNext ? parent.width - width - Enums.spacing.m : Enums.spacing.m)
+            y: control.isVertical
+                ? (isNext ? parent.height - height - Enums.spacing.m : Enums.spacing.m)
+                : (parent.height - height) / 2
+
+            Behavior on opacity {
+                NumberAnimation { duration: Enums.duration.fast }
+            }
+
+            onClicked: {
+                if (isNext) control.next()
+                else control.previous()
+            }
+        }
     }
     
     // Auto play timer 自动播放定时器
