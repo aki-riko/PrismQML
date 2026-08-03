@@ -34,6 +34,8 @@ Item {
     readonly property int _visibleCount: Math.min(count, maxVisible)
     readonly property bool _hasPrevButton: prevButtonMode !== Enums.pipsPager.button_never
     readonly property bool _hasNextButton: nextButtonMode !== Enums.pipsPager.button_never
+    property Item _prevButton: null
+    property Item _nextButton: null
 
     // ==================== Signals 信号 ====================
     signal indexClicked(int index)
@@ -57,9 +59,39 @@ Item {
         return nextButtonMode !== Enums.pipsPager.button_never && currentIndex < (count - 1)
     }
 
+    // Synchronize a navigation button with its public mode.
+    // 按公开模式同步单个翻页按钮的生命周期。
+    function _syncNavButton(isNext) {
+        const mode = isNext ? nextButtonMode : prevButtonMode
+        const shouldExist = mode !== Enums.pipsPager.button_never
+        const currentButton = isNext ? _nextButton : _prevButton
+        if ((shouldExist && currentButton) || (!shouldExist && !currentButton)) return
+
+        if (shouldExist) {
+            const button = navButtonComponent.createObject(control, { "isNext": isNext })
+            if (!button) {
+                console.error(
+                    "PipsPagerCore: failed to create " +
+                    (isNext ? "next" : "previous") + " navigation button"
+                )
+                return
+            }
+            if (isNext) _nextButton = button
+            else _prevButton = button
+            return
+        }
+
+        if (isNext) _nextButton = null
+        else _prevButton = null
+        currentButton.destroy()
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: vertical ? _cellSize : _visibleCount * _cellSize + (_hasPrevButton ? _buttonSize : 0) + (_hasNextButton ? _buttonSize : 0)
     implicitHeight: vertical ? _visibleCount * _cellSize + (_hasPrevButton ? _buttonSize : 0) + (_hasNextButton ? _buttonSize : 0) : _cellSize
+
+    on_HasPrevButtonChanged: _syncNavButton(false)
+    on_HasNextButtonChanged: _syncNavButton(true)
 
     // ==================== Content 内容 ====================
     // Wheel support 滚轮支持
@@ -78,25 +110,43 @@ Item {
         }
     }
     
-    // Previous button 上一页按钮
-    ButtonCore {
-        id: prevButton
-        visible: _isPrevButtonVisible()
-        style: Enums.button.style_transparent
-        shape: Enums.button.shape_pill
-        icon: vertical ? Enums.icon.chevron_up : Enums.icon.chevron_left
-        iconSize: Enums.iconSize.micro
-        width: _buttonSize
-        height: _buttonSize
-        
-        anchors {
-            left: vertical ? undefined : parent.left
-            top: vertical ? parent.top : undefined
-            horizontalCenter: vertical ? parent.horizontalCenter : undefined
-            verticalCenter: vertical ? undefined : parent.verticalCenter
+    // Shared factory for navigation buttons enabled by the public modes.
+    // 公开模式启用翻页按钮时使用的共享工厂。
+    Component {
+        id: navButtonComponent
+
+        ButtonCore {
+            id: navButton
+
+            required property bool isNext
+
+            objectName: isNext ? "pipsNextButton" : "pipsPrevButton"
+            visible: isNext
+                ? control._isNextButtonVisible()
+                : control._isPrevButtonVisible()
+            style: Enums.button.style_transparent
+            shape: Enums.button.shape_pill
+            icon: control.vertical
+                ? (isNext ? Enums.icon.chevron_down : Enums.icon.chevron_up)
+                : (isNext ? Enums.icon.chevron_right : Enums.icon.chevron_left)
+            iconSize: Enums.iconSize.micro
+            width: control._buttonSize
+            height: control._buttonSize
+
+            anchors {
+                left: !control.vertical && !isNext ? parent.left : undefined
+                right: !control.vertical && isNext ? parent.right : undefined
+                top: control.vertical && !isNext ? parent.top : undefined
+                bottom: control.vertical && isNext ? parent.bottom : undefined
+                horizontalCenter: control.vertical ? parent.horizontalCenter : undefined
+                verticalCenter: control.vertical ? undefined : parent.verticalCenter
+            }
+
+            onClicked: {
+                if (isNext) control.next()
+                else control.previous()
+            }
         }
-        
-        onClicked: control.previous()
     }
     
     // Pips container 点容器
@@ -105,10 +155,14 @@ Item {
         clip: true
         
         anchors {
-            left: vertical ? parent.left : (prevButton.visible ? prevButton.right : parent.left)
-            right: vertical ? parent.right : (nextButton.visible ? nextButton.left : parent.right)
-            top: vertical ? (prevButton.visible ? prevButton.bottom : parent.top) : parent.top
-            bottom: vertical ? (nextButton.visible ? nextButton.top : parent.bottom) : parent.bottom
+            left: vertical || !control._prevButton || !control._prevButton.visible
+                ? parent.left : control._prevButton.right
+            right: vertical || !control._nextButton || !control._nextButton.visible
+                ? parent.right : control._nextButton.left
+            top: !vertical || !control._prevButton || !control._prevButton.visible
+                ? parent.top : control._prevButton.bottom
+            bottom: !vertical || !control._nextButton || !control._nextButton.visible
+                ? parent.bottom : control._nextButton.top
         }
         
         // Horizontal pips 水平点
@@ -212,24 +266,4 @@ Item {
         }
     }
     
-    // Next button 下一页按钮
-    ButtonCore {
-        id: nextButton
-        visible: _isNextButtonVisible()
-        style: Enums.button.style_transparent
-        shape: Enums.button.shape_pill
-        icon: vertical ? Enums.icon.chevron_down : Enums.icon.chevron_right
-        iconSize: Enums.iconSize.micro
-        width: _buttonSize
-        height: _buttonSize
-        
-        anchors {
-            right: vertical ? undefined : parent.right
-            bottom: vertical ? parent.bottom : undefined
-            horizontalCenter: vertical ? parent.horizontalCenter : undefined
-            verticalCenter: vertical ? undefined : parent.verticalCenter
-        }
-        
-        onClicked: control.next()
-    }
 }
