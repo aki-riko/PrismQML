@@ -13,6 +13,8 @@ from PySide6.QtCore import (
     QEventLoop,
     QMetaObject,
     QObject,
+    QPoint,
+    QPointF,
     QRectF,
     QTimer,
     QUrl,
@@ -20,6 +22,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -204,8 +207,9 @@ def test_image_cropper_overlay_open_close_has_no_native_window_leak(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, cropper, warnings = _create_scene()
     try:
-        overlay = _overlay(cropper)
         cropper.setProperty("source", IMAGE_URL)
+        assert _wait_for(lambda: cropper.property("_overlayHost") is not None)
+        overlay = _overlay(cropper)
         assert not overlay.property("_isOpen")
         assert not overlay.isVisible()
 
@@ -226,10 +230,26 @@ def test_image_cropper_overlay_open_close_has_no_native_window_leak(qapp):
         _dispose_scene(engine, component, window)
 
 
-def test_image_cropper_creates_only_active_mode_host(qapp):
+def test_image_cropper_lazily_prewarms_and_reuses_mode_hosts(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, cropper, warnings = _create_scene()
     try:
+        assert cropper.property("_overlayHost") is None
+        assert cropper.property("_dialogHost") is None
+        assert [
+            item
+            for item in _object_descendants(cropper)
+            if item.metaObject().indexOfProperty("_imgW") >= 0
+            and item.metaObject().indexOfProperty("cropRect") >= 0
+        ] == []
+
+        QTest.mouseMove(window, QPoint(window.width() - 1, window.height() - 1))
+        _pump()
+        point = cropper.mapToItem(
+            window.contentItem(), QPointF(cropper.width() / 2, cropper.height() / 2)
+        )
+        QTest.mouseMove(window, point.toPoint())
+        assert _wait_for(lambda: cropper.property("_overlayHost") is not None)
         overlay_host = cropper.property("_overlayHost")
         assert overlay_host is not None
         assert cropper.property("_dialogHost") is None
@@ -249,7 +269,7 @@ def test_image_cropper_creates_only_active_mode_host(qapp):
         assert len(contents) == 1
 
         cropper.setProperty("type", window.property("dialogType"))
-        _pump()
+        assert _wait_for(lambda: cropper.property("_dialogHost") is not None)
         dialog_host = cropper.property("_dialogHost")
         assert isinstance(dialog_host, QQuickWindow)
         assert not dialog_host.isVisible()
@@ -265,6 +285,20 @@ def test_image_cropper_creates_only_active_mode_host(qapp):
         _pump()
         assert cropper.property("_overlayHost") == overlay_host
         assert cropper.property("_dialogHost") == dialog_host
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_image_cropper_source_assignment_prewarms_current_host(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, cropper, warnings = _create_scene()
+    try:
+        assert cropper.property("_overlayHost") is None
+        cropper.setProperty("source", IMAGE_URL)
+        assert _wait_for(lambda: cropper.property("_overlayHost") is not None)
+        assert cropper.property("_dialogHost") is None
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

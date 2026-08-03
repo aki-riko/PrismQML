@@ -101,9 +101,17 @@ Item {
 
     Component.onCompleted: {
         _completed = true
-        _ensureCurrentHost()
+        // Defer the hidden crop host until it can be used 隐藏裁剪宿主延迟到可用时创建
+        if (control.source.toString() !== "") _ensureCurrentHost()
     }
-    onTypeChanged: if (_completed) _ensureCurrentHost()
+    onTypeChanged: {
+        if (_completed && (_dialogHost || _overlayHost || control.source.toString() !== "")) {
+            _ensureCurrentHost()
+        }
+    }
+    onSourceChanged: {
+        if (_completed && control.source.toString() !== "") _ensureCurrentHost()
+    }
 
     // ==================== Content 内容 ====================
     // Preview thumbnail 预览缩略图
@@ -143,7 +151,10 @@ Item {
         
         MouseArea {
             anchors.fill: parent
+            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
+            onContainsMouseChanged: if (containsMouse) control._ensureCurrentHost()
+            onPressed: control._ensureCurrentHost()
             onClicked: fileDialog.open()
         }
     }
