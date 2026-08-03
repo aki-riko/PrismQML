@@ -14,7 +14,6 @@ Item {
     property string source: ""
     property bool colored: false
     property bool deferLoad: false
-    property var profileTarget: null
 
     property bool _deferredLoadReady: !deferLoad
     readonly property string _activeSource: _deferredLoadReady ? source : ""
@@ -65,12 +64,6 @@ Item {
 
     Component.onCompleted: {
         _scheduleDeferredLoad()
-        if (profileTarget && profileTarget.profileDetail) {
-            profileTarget.profileDetail("WindowIcon root completed sourceSet=" + (source !== "") +
-                                        " activeSourceSet=" + _hasActiveSource +
-                                        " colored=" + colored +
-                                        " deferLoad=" + deferLoad)
-        }
     }
 
     Timer {
@@ -79,9 +72,6 @@ Item {
         repeat: false
         onTriggered: {
             root._deferredLoadReady = true
-            if (root.profileTarget && root.profileTarget.profileDetail) {
-                root.profileTarget.profileDetail("WindowIcon deferred source activated sourceSet=" + (root.source !== ""))
-            }
         }
     }
 
@@ -96,16 +86,6 @@ Item {
         cache: true
         smooth: true
         mipmap: true
-        Component.onCompleted: {
-            if (root.profileTarget && root.profileTarget.profileDetail) {
-                root.profileTarget.profileDetail("WindowIcon svg Image completed status=" + status + " sourceSet=" + (source !== ""))
-            }
-        }
-        onStatusChanged: {
-            if (root.profileTarget && root.profileTarget.profileDetail) {
-                root.profileTarget.profileDetail("WindowIcon svg Image status=" + status)
-            }
-        }
 
         layer.enabled: !root.colored
         layer.effect: ColorOverlay {
@@ -124,15 +104,5 @@ Item {
         cache: true
         smooth: true
         mipmap: true
-        Component.onCompleted: {
-            if (root.profileTarget && root.profileTarget.profileDetail) {
-                root.profileTarget.profileDetail("WindowIcon direct Image completed status=" + status + " sourceSet=" + (source !== ""))
-            }
-        }
-        onStatusChanged: {
-            if (root.profileTarget && root.profileTarget.profileDetail) {
-                root.profileTarget.profileDetail("WindowIcon direct Image status=" + status)
-            }
-        }
     }
 }

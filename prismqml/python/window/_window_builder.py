@@ -364,8 +364,6 @@ class WindowBuilderMixin:
             objectName: "page_{i}"
             width: parent ? parent.width : 0
             height: parent ? parent.height : 0
-            Component.onCompleted: window.profileDetail("generated page container page_{i} completed parent=" + parent)
-            onParentChanged: window.profileDetail("generated page container page_{i} parentChanged parent=" + parent)
         }}"""
                 for i in range(page_count)
             ]

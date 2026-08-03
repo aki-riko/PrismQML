@@ -42,6 +42,16 @@ WINDOW_LEAF_PATHS = [
         "ContentFrame.qml",
     )
 ]
+STARTUP_DIAGNOSTIC_PATHS = [
+    ROOT / "prismqml" / "PrismQML" / "NavigationWindowCore.qml",
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsBar.qml",
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsBarContent.qml",
+    ANIMATION_HELPER_PATH,
+    *WINDOW_LEAF_PATHS,
+]
+WINDOW_BUILDER_PATH = (
+    ROOT / "prismqml" / "python" / "window" / "_window_builder.py"
+)
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "windows-core-conventions.qml")
@@ -313,6 +323,21 @@ def test_windows_core_source_conventions_and_timing_tokens():
     ]
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int resizeHandlesDelayMs: 1200" in metrics
+
+
+def test_leaf_startup_diagnostics_do_not_attach_to_default_object_tree():
+    windows_core = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "function profileDetail(msg)" in windows_core
+    assert "Component.onCompleted: window.profileDetail" not in windows_core
+    assert "profileTarget" not in windows_core
+
+    for source_path in STARTUP_DIAGNOSTIC_PATHS:
+        source = source_path.read_text(encoding="utf-8")
+        assert "profileDetail" not in source, source_path
+        assert "profileTarget" not in source, source_path
+
+    builder = WINDOW_BUILDER_PATH.read_text(encoding="utf-8")
+    assert "profileDetail" not in builder
 
 
 def test_window_animation_helper_source_conventions_and_dead_paths():

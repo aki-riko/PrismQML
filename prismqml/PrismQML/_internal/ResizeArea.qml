@@ -32,11 +32,6 @@ MouseArea {
     anchors.bottom: isB ? parent.bottom : undefined
     anchors.horizontalCenter: !isL && !isR ? parent.horizontalCenter : undefined
     anchors.verticalCenter: !isT && !isB ? parent.verticalCenter : undefined
-    Component.onCompleted: {
-        if (targetWindow && targetWindow.profileDetail) {
-            targetWindow.profileDetail("ResizeArea root completed edge=" + edge)
-        }
-    }
     
     cursorShape: {
         if (isCorner) return (isL && isT) || (isR && isB) ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor

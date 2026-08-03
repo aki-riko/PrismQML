@@ -185,7 +185,6 @@ Window {
         window._syncTaskbarIcon("nativeHookReady")
     })
     Component.onCompleted: {
-        profileDetailState("Window root Component.onCompleted pre-init")
         profileTime("Component.onCompleted start; NativeWindow defined=" +
                     (typeof NativeWindow !== "undefined"))
         animHelper.animScale = 0.95
@@ -287,7 +286,6 @@ Window {
                 window._cancelCloseRequest()
             }
         }
-        Component.onCompleted: window.profileDetail("WindowAnimationHelper completed")
     }
 
     // Listen to ConfigManager directly. 直接监听 ConfigManager 信号。
@@ -313,7 +311,6 @@ Window {
         repeat: false
         onTriggered: {
             _resizeHandlesReady = true
-            profileDetail("resize handles ready")
         }
     }
 
@@ -329,9 +326,6 @@ Window {
         scale: _animScale
         asynchronous: true
         source: active ? Qt.resolvedUrl("_internal/QmlShadowHost.qml") : ""
-        Component.onCompleted: window.profileDetail("shadowHost Loader completed active=" + active + " status=" + status)
-        onStatusChanged: window.profileDetail("shadowHost Loader status=" + status + " active=" + active + " source=" + source)
-        onLoaded: window.profileDetail("shadowHost Loader loaded")
     }
 
     // Main window frame. 主窗口框架。
@@ -344,7 +338,6 @@ Window {
         opacity: _animOpacity
         scale: _animScale
         clip: true
-        Component.onCompleted: window.profileDetail("windowFrame completed margin=" + margin + " radius=" + radius)
         
         // Top layout title bar. 顶部布局标题栏。
         Rectangle {
@@ -354,7 +347,6 @@ Window {
             color: Enums.transparent
             z: Enums.zIndex.controls
             visible: !_isLeftLayout
-            Component.onCompleted: window.profileDetail("titleBar completed visible=" + visible + " height=" + height)
             
 
             Loader {
@@ -363,13 +355,9 @@ Window {
                 // Async instantiation keeps title-bar chrome off the first-frame critical path (~350ms faster cold start).
                 // 异步实例化让标题栏 chrome 移出首帧关键路径（冷启动约快 350ms）；chrome 无外部 item 引用，异步安全。
                 asynchronous: true
-                Component.onCompleted: window.profileDetail("titleBar chrome Loader completed active=" + active + " status=" + status)
-                onStatusChanged: window.profileDetail("titleBar chrome Loader status=" + status + " active=" + active)
-                onLoaded: window.profileDetail("titleBar chrome Loader loaded")
                 sourceComponent: Component {
                     Item {
                         anchors.fill: parent
-                        Component.onCompleted: window.profileDetail("titleBar chrome content completed")
 
             WindowIcon {
                 id: titleIcon
@@ -378,9 +366,7 @@ Window {
                 source: windowIcon
                 colored: windowIconColored
                 deferLoad: true
-                profileTarget: window
                 visible: windowIcon !== "" && !_isLeftLayout
-                Component.onCompleted: window.profileDetail("titleIcon completed sourceSet=" + (source !== "") + " colored=" + colored)
             }
             
             Text {
@@ -392,7 +378,6 @@ Window {
                 color: Enums.textColor.primary
                 anchors.verticalCenter: parent.verticalCenter
                 visible: !_isLeftLayout
-                Component.onCompleted: window.profileDetail("titleText completed textLength=" + text.length)
             }
             
             Row {
@@ -402,7 +387,6 @@ Window {
                 spacing: Enums.spacing.none
                 visible: !_isLeftLayout
                 z: Enums.zIndex.controlsAbove  // 确保按钮在拖动区域之上
-                Component.onCompleted: window.profileDetail("captionButtonsTop Row completed visible=" + visible)
                 
                 CaptionButton {
                     targetWindow: window
@@ -410,7 +394,6 @@ Window {
                     buttonWidth: window.captionButtonWidth
                     buttonHeight: captionButtonHeight
                     onClicked: animatedMinimize()
-                    Component.onCompleted: window.profileDetail("captionButton top minimize completed")
                 }
                 
                 CaptionButton {
@@ -419,7 +402,6 @@ Window {
                     buttonWidth: window.captionButtonWidth
                     buttonHeight: captionButtonHeight
                     onClicked: isMaximized ? window.showNormal() : window.showMaximized()
-                    Component.onCompleted: window.profileDetail("captionButton top max/restore completed iconType=" + iconType)
                 }
                 
                 CaptionButton {
@@ -429,7 +411,6 @@ Window {
                     buttonHeight: captionButtonHeight
                     buttonRadius: isMaximized ? 0 : windowRadius
                     onClicked: requestClose()
-                    Component.onCompleted: window.profileDetail("captionButton top close completed")
                 }
             }
             
@@ -440,7 +421,6 @@ Window {
                 z: Enums.zIndex.background  // 确保在按钮之下
                 onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
                 onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
-                Component.onCompleted: window.profileDetail("titleBar drag MouseArea completed")
             }
                     }
                 }
@@ -457,7 +437,6 @@ Window {
             color: Enums.transparent
             visible: _isLeftLayout
             z: Enums.zIndex.controls
-            Component.onCompleted: window.profileDetail("leftPanel completed visible=" + visible + " width=" + width)
             
             // Left title bar area 左侧标题栏区域
             Rectangle {
@@ -467,25 +446,19 @@ Window {
                 anchors.top: parent.top
                 height: titleBarHeight
                 color: Enums.transparent
-                Component.onCompleted: window.profileDetail("leftTitleBar completed")
 
                 Loader {
                     anchors.fill: parent
                     active: _isLeftLayout && _titleChromeReady
-                    Component.onCompleted: window.profileDetail("leftTitleBar Loader completed active=" + active + " status=" + status)
-                    onStatusChanged: window.profileDetail("leftTitleBar Loader status=" + status + " active=" + active)
-                    onLoaded: window.profileDetail("leftTitleBar Loader loaded")
                     sourceComponent: Component {
                         Item {
                             anchors.fill: parent
-                            Component.onCompleted: window.profileDetail("leftTitleBar content Item completed")
 
                             // Window drag area 窗口拖拽区域
                             MouseArea {
                                 anchors.fill: parent
                                 onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
                                 onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
-                                Component.onCompleted: window.profileDetail("leftTitleBar drag MouseArea completed")
                             }
 
                             // Window icon 窗口图标
@@ -497,8 +470,6 @@ Window {
                                 source: windowIcon
                                 colored: windowIconColored
                                 deferLoad: true
-                                profileTarget: window
-                                Component.onCompleted: window.profileDetail("leftTitleIcon completed sourceSet=" + (source !== ""))
                             }
 
                             // Window title 窗口标题
@@ -511,7 +482,6 @@ Window {
                                 font.family: Enums.fontFamily
                                 font.pixelSize: Enums.typography.body
                                 color: Enums.textColor.primary
-                                Component.onCompleted: window.profileDetail("leftTitleText completed textLength=" + text.length)
                             }
                         }
                     }
@@ -525,7 +495,6 @@ Window {
                 anchors.right: parent.right
                 anchors.top: leftTitleBar.bottom
                 anchors.bottom: parent.bottom
-                Component.onCompleted: window.profileDetail("leftPanelContainer completed")
             }
         }
         
@@ -539,7 +508,6 @@ Window {
             color: Enums.stateColor.divider
             visible: _isLeftLayout && _titleChromeReady
             z: Enums.zIndex.controls
-            Component.onCompleted: window.profileDetail("verticalDivider completed visible=" + visible)
         }
         
         // Right caption buttons. 右侧窗口按钮。
@@ -551,19 +519,14 @@ Window {
             height: captionButtonHeight
             visible: _isLeftLayout
             z: Enums.zIndex.controlsAbove
-            Component.onCompleted: window.profileDetail("captionButtonsRight host completed visible=" + visible)
 
             Loader {
                 anchors.fill: parent
                 active: _isLeftLayout && _titleChromeReady
-                Component.onCompleted: window.profileDetail("captionButtonsRight Loader completed active=" + active + " status=" + status)
-                onStatusChanged: window.profileDetail("captionButtonsRight Loader status=" + status + " active=" + active)
-                onLoaded: window.profileDetail("captionButtonsRight Loader loaded")
                 sourceComponent: Component {
                     Row {
                         anchors.fill: parent
                         spacing: Enums.spacing.none
-                        Component.onCompleted: window.profileDetail("captionButtonsRight Row completed")
 
                         CaptionButton {
                             targetWindow: window
@@ -571,7 +534,6 @@ Window {
                             buttonWidth: window.captionButtonWidth
                             buttonHeight: captionButtonHeight
                             onClicked: animatedMinimize()
-                            Component.onCompleted: window.profileDetail("captionButton right minimize completed")
                         }
 
                         CaptionButton {
@@ -580,7 +542,6 @@ Window {
                             buttonWidth: window.captionButtonWidth
                             buttonHeight: captionButtonHeight
                             onClicked: isMaximized ? window.showNormal() : window.showMaximized()
-                            Component.onCompleted: window.profileDetail("captionButton right max/restore completed iconType=" + iconType)
                         }
 
                         CaptionButton {
@@ -590,7 +551,6 @@ Window {
                             buttonHeight: captionButtonHeight
                             buttonRadius: isMaximized ? 0 : windowRadius
                             onClicked: requestClose()
-                            Component.onCompleted: window.profileDetail("captionButton right close completed")
                         }
                     }
                 }
@@ -608,7 +568,6 @@ Window {
             z: Enums.zIndex.controls
             onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
             onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
-            Component.onCompleted: window.profileDetail("rightTitleBarDragArea completed visible=" + visible)
         }
         
         // Content area. 内容区域。
@@ -619,14 +578,12 @@ Window {
             anchors.left: _isLeftLayout ? verticalDivider.right : parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            Component.onCompleted: window.profileDetail("contentContainer completed dataChildren=" + data.length)
             
             // Click background to clear input focus 点击背景清除输入焦点
             MouseArea {
                 anchors.fill: parent
                 z: Enums.zIndex.background  // Below all content 在所有内容下方
                 onClicked: contentContainer.forceActiveFocus()
-                Component.onCompleted: window.profileDetail("contentContainer background MouseArea completed")
             }
         }
         
@@ -638,7 +595,6 @@ Window {
             border.width: Enums.border.thin
             border.color: Enums.borderColor
             z: Enums.zIndex.controls
-            Component.onCompleted: window.profileDetail("window border completed")
         }
     }
     
@@ -648,17 +604,13 @@ Window {
         anchors.fill: parent
         active: _resizeHandlesReady
         asynchronous: true
-        Component.onCompleted: window.profileDetail("resizeHandles Loader completed active=" + active + " status=" + status)
-        onStatusChanged: window.profileDetail("resizeHandles Loader status=" + status + " active=" + active)
-        onLoaded: window.profileDetail("resizeHandles Loader loaded")
         sourceComponent: Component {
             Item {
                 anchors.fill: parent
-                Component.onCompleted: window.profileDetail("resizeHandles content completed")
-                ResizeArea { targetWindow: window; edge: Qt.LeftEdge; Component.onCompleted: window.profileDetail("ResizeArea left completed") }
-                ResizeArea { targetWindow: window; edge: Qt.RightEdge; Component.onCompleted: window.profileDetail("ResizeArea right completed") }
-                ResizeArea { targetWindow: window; edge: Qt.TopEdge; Component.onCompleted: window.profileDetail("ResizeArea top completed") }
-                ResizeArea { targetWindow: window; edge: Qt.BottomEdge; Component.onCompleted: window.profileDetail("ResizeArea bottom completed") }
+                ResizeArea { targetWindow: window; edge: Qt.LeftEdge }
+                ResizeArea { targetWindow: window; edge: Qt.RightEdge }
+                ResizeArea { targetWindow: window; edge: Qt.TopEdge }
+                ResizeArea { targetWindow: window; edge: Qt.BottomEdge }
             }
         }
     }

@@ -20,23 +20,14 @@ NavigationWindowCore {
     titleBarHeight: Enums.spacing.xxxl * 2
     titleBarLeftMargin: Enums.spacing.xxl
 
-    Component.onCompleted: window.profileDetail(
-        "WindowsBar root completed nav=" + _safeNavigationItems.length +
-        " bottom=" + _safeBottomNavigationItems.length +
-        " staged=" + pages.length
-    )
-
     // Content layout. 内容布局。
     content: Item {
         anchors.fill: parent
-        Component.onCompleted: window.profileDetail("WindowsBar content shell completed")
 
         Timer {
             id: startupTimer
             interval: Enums.duration.none
             running: true
-            Component.onCompleted: window.profileDetail("WindowsBar startupTimer completed running=" + running + " interval=" + interval)
-            onRunningChanged: window.profileDetail("WindowsBar startupTimer running=" + running)
             onTriggered: {
                 window.profileTime("WindowsBar startupTimer triggered")
                 mainLoader.setSource(Qt.resolvedUrl("WindowsBarContent.qml"), {
@@ -53,13 +44,9 @@ NavigationWindowCore {
             anchors.fill: parent
             active: false
             asynchronous: false
-            Component.onCompleted: window.profileDetail("WindowsBar mainLoader completed active=" + active + " status=" + status)
-            onActiveChanged: window.profileDetail("WindowsBar mainLoader active=" + active + " status=" + status)
-            onStatusChanged: window.profileDetail("WindowsBar mainLoader status=" + status + " active=" + active + " source=" + source)
 
             onLoaded: {
                 window.profileTime("WindowsBar mainLoader.onLoaded start")
-                window.profileDetail("WindowsBar mainLoader loaded item=" + item)
                 window.navigationView = item.navAlias
                 window.stackedWidget = item.stackAlias
                 window.profileTime("WindowsBar bind navigation/stack navReady=" + (window.navigationView !== null))

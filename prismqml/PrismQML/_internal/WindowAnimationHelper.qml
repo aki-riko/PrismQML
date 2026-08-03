@@ -76,17 +76,10 @@ Item {
         targetWindow.showNormal()
     }
 
-    Component.onCompleted: {
-        if (targetWindow && targetWindow.profileDetail) {
-            targetWindow.profileDetail("WindowAnimationHelper root completed")
-        }
-    }
-
     // ==================== Content 内容 ====================
     // Show animation. 显示动画。
     ParallelAnimation {
         id: showAnim
-        Component.onCompleted: if (targetWindow && targetWindow.profileDetail) targetWindow.profileDetail("WindowAnimationHelper showAnim completed")
         NumberAnimation { target: targetWindow; property: "opacity"; to: 1; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
         NumberAnimation { target: helper; property: "animScale"; to: 1; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
         NumberAnimation { target: helper; property: "animOpacity"; to: 1; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
@@ -97,7 +90,6 @@ Item {
         id: closeAnimLoader
         active: false
         sourceComponent: SequentialAnimation {
-            Component.onCompleted: if (targetWindow && targetWindow.profileDetail) targetWindow.profileDetail("WindowAnimationHelper closeAnim completed")
             ParallelAnimation {
                 NumberAnimation { target: targetWindow; property: "opacity"; to: 0; duration: Enums.duration.normal; easing.type: Easing.InCubic }
                 NumberAnimation { target: helper; property: "animScale"; to: 0.95; duration: Enums.duration.normal; easing.type: Easing.InCubic }

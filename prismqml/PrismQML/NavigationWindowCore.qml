@@ -420,12 +420,6 @@ WindowsCore {
     windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
 
     Component.onCompleted: {
-        profileDetail(
-            "NavigationWindowCore completed micaAvailable=" + _micaAvailable +
-            " micaEnabled=" + micaEnabled +
-            " nav=" + _safeNavigationItems.length +
-            " bottom=" + _safeBottomNavigationItems.length
-        )
         _markSplashVisible()
     }
 

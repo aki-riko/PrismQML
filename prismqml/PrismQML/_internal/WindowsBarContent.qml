@@ -27,12 +27,6 @@ Item {
 
     Component.onCompleted: {
         if (hostWindow) {
-            hostWindow.profileDetail(
-                "WindowsBarContent root completed nav=" +
-                (hostWindow.navigationItems ? hostWindow.navigationItems.length : 0) +
-                " bottom=" +
-                (hostWindow.bottomNavigationItems ? hostWindow.bottomNavigationItems.length : 0)
-            )
             hostWindow.profileTime("WindowsBar contentComponent completed compactNav=" + _compactNav)
         }
     }
@@ -41,7 +35,6 @@ Item {
         anchors.fill: parent
         z: Enums.zIndex.background
         onClicked: parent.forceActiveFocus()
-        Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("WindowsBarContent focus MouseArea completed")
     }
 
     NavigationBar {
@@ -62,7 +55,6 @@ Item {
             ? Enums.transparent
             : Enums.backgroundColor
         currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
-        Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("NavigationBar completed visible=" + visible + " width=" + width)
 
         onItemClicked: (index) => {
             if (!root.hostWindow) return
@@ -90,7 +82,6 @@ Item {
             model: root.hostWindow ? root.hostWindow.navigationItems : []
             currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
             window_micaActiveFallback: root.hostWindow ? root.hostWindow._micaActive : false
-            Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("BottomTabBar completed visible=" + visible)
 
             onItemClicked: (index) => {
                 if (!root.hostWindow) return
@@ -98,7 +89,6 @@ Item {
                 root.hostWindow.currentPageChanged(index)
             }
         }
-        Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("BottomTabBar Loader completed active=" + active)
     }
 
     ContentFrame {
@@ -110,7 +100,6 @@ Item {
         anchors.bottom: root._compactNav ? bottomTabBarLoader.top : parent.bottom
         backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
         cornerRadius: root.hostWindow ? root.hostWindow.contentCornerRadius : Enums.radius.large
-        Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("ContentFrame completed")
 
         StackedWidget {
             id: stack
@@ -124,7 +113,6 @@ Item {
             lazyLoading: root.hostWindow ? root.hostWindow.lazyLoading : false
             _pythonPageMode: root.hostWindow ? root.hostWindow._pythonPageMode : false
             currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
-            Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("WindowsBarContent StackedWidget instance completed count=" + count)
 
             onCurrentChanged: (index) => {
                 if (root.hostWindow && root.hostWindow.currentIndex !== index) {
@@ -146,9 +134,7 @@ Item {
                     Translator._v
                     return root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
                 }
-                Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("LoadingOverlay completed loading=" + loading)
             }
-            Component.onCompleted: if (root.hostWindow) root.hostWindow.profileDetail("LoadingOverlay Loader completed active=" + active)
         }
     }
 }
