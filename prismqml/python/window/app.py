@@ -65,9 +65,14 @@ def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> Non
 def _prepare_app_environment(allow_qml_file_read: bool) -> None:
     """Prepare process-wide Qt settings. 准备进程级 Qt 设置。"""
     from ..config import applyDpiScale
-    from ..core import configure_qml_environment, install_qt_message_handler
+    from ..core import (
+        configure_graphics_api,
+        configure_qml_environment,
+        install_qt_message_handler,
+    )
 
     configure_qml_environment(allow_qml_file_read)
+    configure_graphics_api()
     QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )

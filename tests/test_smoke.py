@@ -106,6 +106,67 @@ def test_configure_qml_environment_is_explicit(monkeypatch):
         QQuickWindow.setDefaultAlphaBuffer(original_alpha_buffer)
 
 
+def _run_graphics_api_probe(environment_value=None, default_api=None):
+    environment = os.environ.copy()
+    environment.pop("PRISMQML_GRAPHICS_API", None)
+    if environment_value is not None:
+        environment["PRISMQML_GRAPHICS_API"] = environment_value
+    script = (
+        "from prismqml import configure_graphics_api; "
+        "from PySide6.QtQuick import QQuickWindow; "
+        f"selected = configure_graphics_api(default_api={default_api!r}); "
+        "print(repr(selected)); print(QQuickWindow.graphicsApi().name)"
+    )
+    return subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=os.fspath(Path(__file__).resolve().parents[1]),
+        env=environment,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        timeout=SUBPROCESS_TIMEOUT_SECONDS,
+        check=False,
+    )
+
+
+def test_configure_graphics_api_preserves_qt_default():
+    completed = _run_graphics_api_probe()
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.splitlines()[0] == "None"
+
+
+def test_configure_graphics_api_uses_caller_default():
+    completed = _run_graphics_api_probe(default_api="opengl")
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.splitlines() == ["'opengl'", "OpenGL"]
+
+
+def test_configure_graphics_api_environment_overrides_default():
+    completed = _run_graphics_api_probe(
+        environment_value="direct3d11", default_api="opengl"
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.splitlines() == ["'direct3d11'", "Direct3D11"]
+
+
+def test_configure_graphics_api_rejects_unknown_value():
+    completed = _run_graphics_api_probe(environment_value="unknown")
+
+    assert completed.returncode != 0
+    assert "PRISMQML_GRAPHICS_API must be one of" in completed.stderr
+
+
+def test_configure_graphics_api_rejects_non_string_default():
+    completed = _run_graphics_api_probe(default_api=1)
+
+    assert completed.returncode != 0
+    assert "default_api must be a string or None" in completed.stderr
+
+
 def test_app_initialization_enables_local_qml_xhr():
     environment = os.environ.copy()
     environment.pop("QML_XHR_ALLOW_FILE_READ", None)

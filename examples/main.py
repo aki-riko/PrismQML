@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import prismqml
 
-from prismqml import Updater, configure_qml_environment
+from prismqml import Updater, configure_graphics_api, configure_qml_environment
 from prismqml.python.core import Logger, getLogger, log_time
 
 # Keep normal Gallery runs at INFO; diagnostics can still be enabled explicitly.
@@ -40,7 +40,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtCore import Qt, QUrl
 
 from prismqml.python.core import (
@@ -70,9 +69,10 @@ def main():
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
 
-    # 强制使用OpenGL后端，避免 D3D11 device lost 问题
-    # Force OpenGL backend to avoid D3D11 device-lost crashes on some Windows drivers
-    QQuickWindow.setGraphicsApi(QSGRendererInterface.OpenGL)
+    # Preserve the Gallery OpenGL default while allowing an engine-level A/B.
+    # 保持 Gallery 默认 OpenGL，同时允许通过引擎级开关执行 A/B。
+    graphics_api = configure_graphics_api(default_api="opengl")
+    log_time(f"Qt图形后端配置完成: {graphics_api}")
 
     applyDpiScale()
     log_time("DPI缩放应用完成")

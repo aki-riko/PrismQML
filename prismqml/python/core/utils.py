@@ -6,12 +6,16 @@
 """PrismQML 工具函数"""
 import os
 from pathlib import Path
+from typing import Optional
+
 from PySide6.QtQml import QQmlApplicationEngine, QQmlContext
 
 from .diagnostics import startup_profile_verbose_enabled
 
 
 QML_XHR_ALLOW_FILE_READ_ENV = "QML_XHR_ALLOW_FILE_READ"
+GRAPHICS_API_ENV = "PRISMQML_GRAPHICS_API"
+_SUPPORTED_GRAPHICS_APIS = ("direct3d11", "opengl")
 
 
 def _enable_quick_window_alpha_buffer() -> None:
@@ -34,6 +38,38 @@ def configure_qml_environment(allow_file_read: bool = True) -> None:
     """
     os.environ[QML_XHR_ALLOW_FILE_READ_ENV] = "1" if allow_file_read else "0"
     _enable_quick_window_alpha_buffer()
+
+
+def configure_graphics_api(default_api: Optional[str] = None) -> Optional[str]:
+    """Select the Qt Quick graphics API before creating a QQuickWindow.
+
+    在创建 QQuickWindow 前选择 Qt Quick 图形后端。环境变量优先于调用方默认值；
+    两者均未提供时保持 Qt 自身默认值不变。
+    """
+    requested_api = os.environ.get(GRAPHICS_API_ENV, default_api)
+    if requested_api is None:
+        return None
+    if not isinstance(requested_api, str):
+        raise TypeError("default_api must be a string or None")
+
+    normalized_api = requested_api.strip().lower()
+    if not normalized_api:
+        return None
+    if normalized_api not in _SUPPORTED_GRAPHICS_APIS:
+        supported = ", ".join(_SUPPORTED_GRAPHICS_APIS)
+        raise ValueError(
+            f"{GRAPHICS_API_ENV} must be one of: {supported}; "
+            f"got {requested_api!r}"
+        )
+
+    from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
+
+    graphics_api = {
+        "direct3d11": QSGRendererInterface.GraphicsApi.Direct3D11,
+        "opengl": QSGRendererInterface.GraphicsApi.OpenGL,
+    }[normalized_api]
+    QQuickWindow.setGraphicsApi(graphics_api)
+    return normalized_api
 
 
 def qml_path(relative_path: str = "") -> Path:
