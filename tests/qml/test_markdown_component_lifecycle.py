@@ -209,6 +209,7 @@ def test_markdown_blocks_keep_rendering_while_component_count_is_measured(qapp):
             "js",
         ]
 
+        view_components = _component_count(view)
         per_loader_components = [_component_count(loader) for loader in loaders]
         object_count = _object_count(view)
         _pump()
@@ -218,13 +219,15 @@ def test_markdown_blocks_keep_rendering_while_component_count_is_measured(qapp):
 
         print(
             "MARKDOWN_COMPONENTS",
+            f"view_components={view_components}",
             f"per_loader={per_loader_components}",
             f"objects={object_count}",
             f"hash={image_hash}",
         )
 
-        assert per_loader_components == [2, 2, 2, 2, 2]
-        assert object_count == 142
+        assert view_components == 3
+        assert per_loader_components == [0, 0, 0, 0, 0]
+        assert object_count == 134
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

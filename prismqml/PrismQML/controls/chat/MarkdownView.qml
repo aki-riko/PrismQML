@@ -125,6 +125,38 @@ Item {
         property var blocks: []
     }
 
+    Component {
+        id: textBlockComponent
+
+        Text {
+            // Qt CommonMark handles lists, emphasis, headings, inline code, links,
+            // and paragraph breaks, replacing the old subset regex parser
+            // Qt CommonMark 处理列表、强调、标题、行内码、链接和段落换行，替代旧子集正则解析器
+            text: parent ? parent.content : ""
+            color: control.textColor
+            linkColor: control.linkColor
+            textFormat: Text.MarkdownText
+            wrapMode: Text.WordWrap
+            font.family: Enums.fontFamily
+            font.pixelSize: Enums.typography.body
+            onLinkActivated: (url) => Qt.openUrlExternally(url)
+
+            HoverHandler {
+                cursorShape: parent.hoveredLink !== ""
+                             ? Qt.PointingHandCursor : Qt.ArrowCursor
+            }
+        }
+    }
+
+    Component {
+        id: codeBlockComponent
+
+        CodeBlock {
+            code: parent ? parent.content : ""
+            language: parent ? parent.language : ""
+        }
+    }
+
     ColumnLayout {
         id: contentColumn
         width: parent.width
@@ -147,37 +179,9 @@ Item {
                 }
 
                 Layout.fillWidth: true
-                sourceComponent: kind === "code" ? codeCmp : textCmp
+                sourceComponent: kind === "code"
+                                 ? codeBlockComponent : textBlockComponent
                 onContentChanged: _reloadRenderItem()
-
-                Component {
-                    id: textCmp
-                    Text {
-                        // Qt CommonMark handles lists, emphasis, headings, inline code, links,
-                        // and paragraph breaks, replacing the old subset regex parser
-                        // Qt CommonMark 处理列表、强调、标题、行内码、链接和段落换行，替代旧子集正则解析器
-                        text: blockLoader.content
-                        color: control.textColor
-                        linkColor: control.linkColor
-                        textFormat: Text.MarkdownText
-                        wrapMode: Text.WordWrap
-                        font.family: Enums.fontFamily
-                        font.pixelSize: Enums.typography.body
-                        onLinkActivated: (url) => Qt.openUrlExternally(url)
-
-                        HoverHandler {
-                            cursorShape: parent.hoveredLink !== ""
-                                         ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        }
-                    }
-                }
-                Component {
-                    id: codeCmp
-                    CodeBlock {
-                        code: blockLoader.content
-                        language: blockLoader.language
-                    }
-                }
             }
         }
     }
