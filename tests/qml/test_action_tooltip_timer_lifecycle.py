@@ -200,8 +200,12 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
         assert len(shown_timers) == 2
         assert len(restored_timers) == 0
         assert restored_timers == initial_timers
-        assert initial_objects == restored_objects
-        assert loaded_objects > initial_objects
+        assert (initial_objects, loaded_objects, shown_objects, restored_objects) == (
+            30,
+            36,
+            58,
+            30,
+        )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
