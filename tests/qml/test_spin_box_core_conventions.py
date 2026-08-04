@@ -19,7 +19,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QGuiApplication, QWheelEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
-from PySide6.QtTest import QTest
+from PySide6.QtTest import QSignalSpy, QTest
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -455,11 +455,14 @@ def test_spin_box_repeat_phase_timing_and_live_delay_binding(qapp):
 
         normal._stopAutoRepeat()
         auto_repeat_timer = running[0]
+        timer_triggered = QSignalSpy(auto_repeat_timer.triggered)
         normal.setProperty("autoRepeatDelay", 80)
         normal._startAutoRepeat(True)
-        _pump(120)
+        assert _wait_for(lambda: timer_triggered.count() >= 1)
         assert values == []
-        _pump(40)
+        assert auto_repeat_timer.property("interval") == 60
+        assert auto_repeat_timer.property("repeat")
+        assert _wait_for(lambda: timer_triggered.count() >= 2)
         assert values == [1]
         normal._stopAutoRepeat()
         _pump(100)
@@ -468,8 +471,9 @@ def test_spin_box_repeat_phase_timing_and_live_delay_binding(qapp):
         normal.setProperty("autoRepeatDelay", 30)
         normal.setProperty("autoRepeatInterval", 20)
         normal.setProperty("autoRepeatMinInterval", 10)
+        triggered_count = timer_triggered.count()
         normal._startAutoRepeat(True)
-        _pump(120)
+        assert _wait_for(lambda: timer_triggered.count() >= triggered_count + 3)
         assert values[-1] > 1
         normal._stopAutoRepeat()
         assert auto_repeat_timer.property("interval") == 30
