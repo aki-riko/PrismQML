@@ -50,6 +50,8 @@ Item {
     readonly property int _phaseMeasure: 2
     readonly property int _phaseSettle: 3
     readonly property int _phaseClear: 4
+    readonly property int _phaseContentUpdate: 5
+    readonly property int _phaseSuppressionClear: 6
 
     // ==================== Internal Methods 内部方法 ====================
     function _queuePhase(nextPhase) {
@@ -60,7 +62,14 @@ Item {
 
     function _queueContentUpdate() {
         if (_destroying) return
-        contentUpdateTimer.restart()
+        _queuePhase(_phaseContentUpdate)
+    }
+
+    function _cancelDeferredPhase() {
+        if (_phase !== _phaseContentUpdate
+                && _phase !== _phaseSuppressionClear) return
+        phaseTimer.stop()
+        _phase = _phaseIdle
     }
 
     function _runPhase() {
@@ -80,6 +89,12 @@ Item {
             case _phaseClear:
                 _clearPending()
                 break
+            case _phaseContentUpdate:
+                scheduleUpdate()
+                break
+            case _phaseSuppressionClear:
+                _clearPending()
+                break
         }
     }
 
@@ -92,7 +107,7 @@ Item {
             // 事务到内容范围静默后再结束。
             _clearDeferrals = 1
             if (itemCount >= 0)
-                suppressionClearTimer.restart()
+                _queuePhase(_phaseSuppressionClear)
             else
                 _queuePhase(_phaseClear)
             return
@@ -140,7 +155,7 @@ Item {
         }
         if (_suppressViewportContentChanges && _clearDeferrals > 0
                 && itemCount >= 0)
-            suppressionClearTimer.restart()
+            _queuePhase(_phaseSuppressionClear)
     }
 
     function _settleCrossAxis() {
@@ -221,8 +236,7 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     function scheduleUpdate() {
         if (_destroying) return
-        contentUpdateTimer.stop()
-        suppressionClearTimer.stop()
+        _cancelDeferredPhase()
         if (!target || !scrollBarsEnabled) {
             _reserveVerticalGutter = false
             _reserveHorizontalGutter = false
@@ -275,8 +289,6 @@ Item {
         _completed = false
         _destroying = true
         phaseTimer.stop()
-        contentUpdateTimer.stop()
-        suppressionClearTimer.stop()
         _phase = _phaseIdle
         _updatePending = false
         _rerunRequested = false
@@ -298,22 +310,11 @@ Item {
 
     Timer {
         id: phaseTimer
-        interval: 0
+        interval: control._phase === control._phaseContentUpdate
+                  ? Enums.duration.fast
+                  : (control._phase === control._phaseSuppressionClear
+                     ? Enums.duration.instant : Enums.duration.none)
         repeat: false
         onTriggered: control._runPhase()
-    }
-
-    Timer {
-        id: contentUpdateTimer
-        interval: Enums.duration.fast
-        repeat: false
-        onTriggered: control.scheduleUpdate()
-    }
-
-    Timer {
-        id: suppressionClearTimer
-        interval: Enums.duration.instant
-        repeat: false
-        onTriggered: control._clearPending()
     }
 }

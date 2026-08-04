@@ -193,7 +193,7 @@ def test_scroll_viewport_state_timer_phase_baseline(qapp):
     try:
         initial_hash = _stable_hash(window)
         initial_object_count = len(state.findChildren(QObject))
-        assert len(_direct_timers(state)) == 3
+        assert len(_direct_timers(state)) == 1
         assert _running_timers(state) == []
 
         assert QMetaObject.invokeMethod(window, "growContent")
@@ -227,8 +227,8 @@ def test_scroll_viewport_state_timer_phase_baseline(qapp):
         settled_object_count = len(state.findChildren(QObject))
 
         print(
-            "SCROLL_VIEWPORT_TIMER_BASELINE",
-            f"timers=3/{content_timer_count}/{suppression_timer_count}/"
+            "SCROLL_VIEWPORT_TIMER",
+            f"timers=1/{content_timer_count}/{suppression_timer_count}/"
             f"{settled_timer_count}",
             f"objects={initial_object_count}/{settled_object_count}",
             f"hashes={initial_hash}/{restored_hash}",
@@ -238,8 +238,8 @@ def test_scroll_viewport_state_timer_phase_baseline(qapp):
             content_timer_count,
             suppression_timer_count,
             settled_timer_count,
-        ) == (3, 3, 3)
-        assert (initial_object_count, settled_object_count) == (5, 5)
+        ) == (1, 1, 1)
+        assert (initial_object_count, settled_object_count) == (3, 3)
         assert (initial_hash, restored_hash) == (
             "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
             "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
@@ -258,10 +258,12 @@ def test_scroll_viewport_state_timer_phase_baseline(qapp):
         ] == []
 
 
-def test_scroll_viewport_state_source_keeps_three_timer_roles():
-    """Baseline keeps three exclusive timer roles. 基线保留三个互斥计时器角色。"""
+def test_scroll_viewport_state_source_reuses_one_phase_timer():
+    """Exclusive roles reuse one timer. 互斥角色复用一个计时器。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("Timer {") == 3
+    assert source.count("Timer {") == 1
     assert "id: phaseTimer" in source
-    assert "id: contentUpdateTimer" in source
-    assert "id: suppressionClearTimer" in source
+    assert "id: contentUpdateTimer" not in source
+    assert "id: suppressionClearTimer" not in source
+    assert "_phaseContentUpdate" in source
+    assert "_phaseSuppressionClear" in source
