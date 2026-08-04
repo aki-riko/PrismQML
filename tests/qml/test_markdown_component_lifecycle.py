@@ -269,8 +269,8 @@ def test_markdown_blocks_keep_rendering_while_component_count_is_measured(qapp):
 
         assert view_components == 3
         assert per_loader_components == [0, 0, 0, 0, 0]
-        assert object_count == 134
-        assert text_edit_count == 2
+        assert object_count == 68
+        assert text_edit_count == 0
         assert image_hash == (
             "1ac2b431709f37deb796232e7d4ae0776daf4fdf390e29cd71aef1436200e3f6"
         )
@@ -297,6 +297,7 @@ def test_code_block_first_click_copies_and_feedback_expires(qapp):
         ]
         assert len(timers) == 1
         feedback_timer = timers[0]
+        feedback_duration = int(feedback_timer.property("interval"))
 
         clipboard.setText("")
         window.requestActivate()
@@ -310,8 +311,29 @@ def test_code_block_first_click_copies_and_feedback_expires(qapp):
         assert _wait_for(lambda: clipboard.text() == "print('one')")
         assert copy_area.property("_copied")
         assert feedback_timer.property("running")
+        assert _wait_for(lambda: _class_count(view, "QQuickTextEdit") == 0)
 
-        _pump(int(feedback_timer.property("interval")) + 40)
+        clipboard.setText("")
+        code_block = _block_loaders(view)[1].property("item")
+        copy_area = _copy_area(code_block)
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            _point_for(window, copy_area),
+        )
+        assert _wait_for(lambda: clipboard.text() == "print('one')")
+        assert _wait_for(lambda: _class_count(view, "QQuickTextEdit") == 0)
+
+        _pump(feedback_duration + 40)
+        code_block = _block_loaders(view)[1].property("item")
+        copy_area = _copy_area(code_block)
+        feedback_timer = next(
+            child
+            for child in copy_area.children()
+            if child.metaObject().indexOfProperty("interval") >= 0
+            and child.metaObject().indexOfProperty("repeat") >= 0
+        )
         assert not copy_area.property("_copied")
         assert not feedback_timer.property("running")
         assert warnings == []

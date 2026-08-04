@@ -80,9 +80,16 @@ Rectangle {
             hoverEnabled: true
 
             onClicked: {
-                _clipboardHelper.text = control.code
-                _clipboardHelper.selectAll()
-                _clipboardHelper.copy()
+                clipboardLoader.active = true
+                var helper = clipboardLoader.item
+                if (!helper) {
+                    console.warn("CodeBlock: clipboard helper failed to load")
+                    return
+                }
+                helper.text = control.code
+                helper.selectAll()
+                helper.copy()
+                clipboardLoader.active = false
                 _copied = true
                 copiedTimer.restart()
             }
@@ -114,9 +121,12 @@ Rectangle {
         }
     }
 
-    // Hidden TextEdit used for clipboard.copy() 隐藏的 TextEdit 用于走 clipboard.copy()
-    TextEdit {
-        id: _clipboardHelper
+    // Create the clipboard TextEdit only during copy. 仅在复制时创建剪贴板 TextEdit。
+    Loader {
+        id: clipboardLoader
+
+        active: false
+        source: "_internal/CodeBlockClipboard.qml"
         visible: false
         width: 0; height: 0
     }
