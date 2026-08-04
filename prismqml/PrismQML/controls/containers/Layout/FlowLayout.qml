@@ -46,6 +46,14 @@ Item {
     property var _originalSizes: []   // [{width, height}, ...] 原始尺寸缓存
     property bool _layoutPending: false
     property bool _initialized: false
+    property bool _appendLayoutPending: false
+    property bool _layoutAppendable: false
+    property int _laidOutItemCount: 0
+    property int _rawChildCount: 0
+    property var _lastRawChild: null
+    property var _pendingAppendItems: []
+    property var _defaultHeightMap: []
+    property real _defaultMaxHeight: 0
 
     // ==================== Public Methods 公开方法 ====================
     // addWidget - Add a child widget to layout 添加子组件到布局
@@ -122,23 +130,55 @@ Item {
 
     // ==================== Internal Methods 内部方法 ====================
 
+    function _isLayoutChild(child) {
+        if (!child) return false
+        if (child.toString().indexOf("QQuickRepeater") !== -1) return false
+        if (typeof child.width !== "number" || typeof child.height !== "number") return false
+        return child.width > 0 || child.height > 0
+    }
+
     // Get layout children (exclude Repeater and non-visual items) 获取布局子项（排除Repeater和非可视元素）
     function _getVisibleChildren() {
         var items = []
         for (var i = 0; i < contentItem.children.length; i++) {
             var child = contentItem.children[i]
-            if (!child) continue
-
-            // Skip Repeater 跳过Repeater
-            if (child.toString().indexOf("QQuickRepeater") !== -1) continue
-
-            // Must be a visual item with valid size 必须是有效尺寸的可视元素
-            if (typeof child.width !== "number" || typeof child.height !== "number") continue
-            if (child.width <= 0 && child.height <= 0) continue
-
-            items.push(child)
+            if (_isLayoutChild(child)) items.push(child)
         }
         return items
+    }
+
+    function _trackRawChildren() {
+        var rawChildren = contentItem.children
+        _rawChildCount = rawChildren.length
+        _lastRawChild = rawChildren.length > 0
+            ? rawChildren[rawChildren.length - 1] : null
+    }
+
+    function _invalidateLayout() {
+        _layoutAppendable = false
+        _laidOutItemCount = 0
+        _pendingAppendItems = []
+        _scheduleLayout()
+    }
+
+    function _queueTailAppend() {
+        var rawChildren = contentItem.children
+        var rawCount = rawChildren.length
+        var appendedAtEnd = rawCount === _rawChildCount + 1
+            && (_rawChildCount === 0
+                || rawChildren[_rawChildCount - 1] === _lastRawChild)
+        var child = rawCount > 0 ? rawChildren[rawCount - 1] : null
+        _trackRawChildren()
+        if (!appendedAtEnd) return false
+        if (!_isLayoutChild(child)) return true
+        if (!_layoutAppendable || mode !== Enums.flow.default_
+                || _layoutPending
+                || _laidOutItemCount + _pendingAppendItems.length
+                    !== _originalSizes.length) return false
+        _pendingAppendItems.push(child)
+        _originalSizes.push({ width: child.width, height: child.height })
+        _scheduleAppendLayout()
+        return true
     }
 
     // Cache all original sizes 缓存所有原始尺寸
@@ -154,6 +194,7 @@ Item {
                 })
             }
         }
+        _trackRawChildren()
     }
 
     // Schedule layout update 调度布局更新
@@ -163,9 +204,81 @@ Item {
         Qt.callLater(_performLayout)
     }
 
+    function _scheduleAppendLayout() {
+        if (_appendLayoutPending || _layoutPending) return
+        _appendLayoutPending = true
+        Qt.callLater(function() {
+            _appendLayoutPending = false
+            _appendDefaultItems()
+        })
+    }
+
+    function _placeDefaultItem(item, originalSize, heightMap,
+                               containerWidth, useSlidingWindow,
+                               positionDeque) {
+        var itemWidth = originalSize ? originalSize.width : item.width
+        var itemHeight = originalSize ? originalSize.height : item.height
+        var pos = _findBestPosition(
+            heightMap, containerWidth, itemWidth, itemHeight,
+            useSlidingWindow, positionDeque
+        )
+        item.x = pos.x
+        item.y = pos.y
+        item.width = itemWidth
+        item.height = itemHeight
+        var endX = Math.min(pos.x + itemWidth, containerWidth)
+        var newHeight = pos.y + itemHeight + rowSpacing
+        for (var px = pos.x; px < endX; px++) heightMap[px] = newHeight
+        var gapEnd = Math.min(endX + spacing, containerWidth)
+        for (var gx = endX; gx < gapEnd; gx++) {
+            heightMap[gx] = Math.max(heightMap[gx], newHeight)
+        }
+        return pos.y + itemHeight
+    }
+
+    function _appendDefaultItems() {
+        if (!_layoutAppendable || _layoutPending
+                || mode !== Enums.flow.default_) return
+        var items = _pendingAppendItems.slice(0)
+        _pendingAppendItems = []
+        if (items.length === 0) return
+        var containerWidth = Math.floor(control.width)
+        if (_defaultHeightMap.length !== containerWidth
+                || _laidOutItemCount + items.length
+                    !== _originalSizes.length) {
+            _invalidateLayout()
+            return
+        }
+        for (var check = 0; check < items.length; check++) {
+            if (!_isLayoutChild(items[check])) {
+                _invalidateLayout()
+                return
+            }
+        }
+        var heightMap = _defaultHeightMap.slice(0)
+        var maxHeight = _defaultMaxHeight
+        var useSlidingWindow = _usesSlidingWindow(_originalSizes.length)
+        var positionDeque = useSlidingWindow ? [] : null
+        for (var index = 0; index < items.length; index++) {
+            maxHeight = Math.max(maxHeight, _placeDefaultItem(
+                items[index], _originalSizes[_laidOutItemCount + index],
+                heightMap, containerWidth, useSlidingWindow, positionDeque
+            ))
+        }
+        _laidOutItemCount += items.length
+        _defaultHeightMap = heightMap
+        _defaultMaxHeight = maxHeight
+        _rowCount = 0
+        _rowHeights = []
+        implicitHeight = maxHeight
+    }
+
     // Perform layout based on mode 根据模式执行布局
     function _performLayout() {
         _layoutPending = false
+        _layoutAppendable = false
+        _laidOutItemCount = 0
+        _pendingAppendItems = []
 
         // Validate mode 验证模式
         if (mode < 0 || mode > 2) {
@@ -214,40 +327,18 @@ Item {
         var maxHeight = 0
 
         for (var i = 0; i < children.length; i++) {
-            var item = children[i]
-
-            // Restore original size from cache 从缓存恢复原始尺寸
-            var itemWidth = _originalSizes[i] ? _originalSizes[i].width : item.width
-            var itemHeight = _originalSizes[i] ? _originalSizes[i].height : item.height
-
-            // Find best position (lowest y where item fits) 找到最佳位置（子项能放下的最低y）
-            var pos = _findBestPosition(
-                heightMap, containerWidth, itemWidth, itemHeight,
-                useSlidingWindow, positionDeque
-            )
-
-            item.x = pos.x
-            item.y = pos.y
-            item.width = itemWidth
-            item.height = itemHeight
-
-            // Update heightmap for occupied area 更新已占用区域的高度图
-            var endX = Math.min(pos.x + itemWidth, containerWidth)
-            var newHeight = pos.y + itemHeight + rowSpacing
-            for (var px = pos.x; px < endX; px++) {
-                heightMap[px] = newHeight
-            }
-            // Add spacing gap to the right 右侧添加间距
-            var gapEnd = Math.min(endX + spacing, containerWidth)
-            for (var gx = endX; gx < gapEnd; gx++) {
-                heightMap[gx] = Math.max(heightMap[gx], newHeight)
-            }
-
-            maxHeight = Math.max(maxHeight, pos.y + itemHeight)
+            maxHeight = Math.max(maxHeight, _placeDefaultItem(
+                children[i], _originalSizes[i], heightMap,
+                containerWidth, useSlidingWindow, positionDeque
+            ))
         }
 
         _rowCount = 0
         _rowHeights = []
+        _defaultHeightMap = heightMap
+        _defaultMaxHeight = maxHeight
+        _laidOutItemCount = children.length
+        _layoutAppendable = true
 
         return maxHeight
     }
@@ -461,14 +552,14 @@ Item {
             // Re-cache original sizes (lazy loading may create children when width is 0) 重新缓存原始尺寸（懒加载场景下子项可能在 width 为 0 时创建）
             _cacheAllOriginalSizes()
             _layoutPending = false
-            _scheduleLayout()
+            _invalidateLayout()
         }
     }
-    onSpacingChanged: _scheduleLayout()
-    onRowSpacingChanged: _scheduleLayout()
-    onModeChanged: _scheduleLayout()
-    onColumnCountChanged: _scheduleLayout()
-    onPreserveAspectRatioChanged: _scheduleLayout()
+    onSpacingChanged: _invalidateLayout()
+    onRowSpacingChanged: _invalidateLayout()
+    onModeChanged: _invalidateLayout()
+    onColumnCountChanged: _invalidateLayout()
+    onPreserveAspectRatioChanged: _invalidateLayout()
 
     // Component initialization 组件初始化
     Component.onCompleted: {
@@ -489,9 +580,9 @@ Item {
         anchors.bottomMargin: control.bottomMargin
 
         onChildrenChanged: {
-            if (control._initialized) {
+            if (control._initialized && !control._queueTailAppend()) {
                 control._cacheAllOriginalSizes()
-                control._scheduleLayout()
+                control._invalidateLayout()
             }
         }
     }
