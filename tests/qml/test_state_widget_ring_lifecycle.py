@@ -215,10 +215,13 @@ def test_state_widget_preserves_first_and_repeated_loading_frames(qapp):
             f"{restored_success_objects}/{repeated_loading_objects}",
         )
 
-        assert no_data_ring is success_ring is first_loading_ring
-        assert first_loading_ring is restored_success_ring is second_loading_ring
+        assert no_data_ring is None
+        assert success_ring is None
+        assert restored_success_ring is None
+        assert first_loading_ring is not second_loading_ring
         assert no_data_objects == success_objects == restored_success_objects
         assert loading_objects == repeated_loading_objects
+        assert no_data_objects < loading_objects
         assert first_loading_image == loading_image
         assert first_repeated_loading_image == repeated_loading_image == loading_image
         assert restored_success_image == success_image
@@ -231,9 +234,9 @@ def test_state_widget_preserves_first_and_repeated_loading_frames(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_state_widget_source_keeps_direct_progress_ring():
-    """The baseline keeps one direct hidden ring. 基线保留一个直接创建的隐藏圆环。"""
+def test_state_widget_source_loads_ring_only_for_loading():
+    """Only a loading result may instantiate the ring. 仅加载结果可实例化圆环。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert "ProgressRing {" in source
-    assert "visible: _isResultType && severity === \"loading\"" in source
-    assert "sourceComponent: ProgressRing {" not in source
+    assert "active: control._isResultType && control.severity === \"loading\"" in source
+    assert "sourceComponent: ProgressRing {" in source
+    assert "indeterminate: true" in source

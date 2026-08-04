@@ -113,11 +113,13 @@ Item {
             }
 
             // Standard loading ring 标准加载环
-            ProgressRing {
+            Loader {
                 anchors.fill: parent
-                visible: _isResultType && severity === "loading"
-                indeterminate: visible
-                color: _stateColor
+                active: control._isResultType && control.severity === "loading"
+                sourceComponent: ProgressRing {
+                    indeterminate: true
+                    color: control._stateColor
+                }
             }
             
             // Normal icon for other types 其他类型的普通图标
