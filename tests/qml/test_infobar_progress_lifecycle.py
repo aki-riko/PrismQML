@@ -5,9 +5,18 @@
 """InfoBar progress branch lifecycle regressions. InfoBar 进度分支生命周期回归。"""
 
 from pathlib import Path
+from time import perf_counter
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QObject, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QMetaObject,
+    QObject,
+    QTimer,
+    QUrl,
+)
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -29,6 +38,9 @@ Window {
 
     property string initialMode: "normal"
     property real initialProgress: 0.42
+    property int autoCloseDuration: 0
+    property int completedCloseDuration: 0
+    property int closedCount: 0
     readonly property int normalFeature: Enums.notification.feature_normal
     readonly property int barFeature: Enums.notification.feature_progress_bar
     readonly property int indeterminateBarFeature: Enums.notification.feature_indeterminate_bar
@@ -50,15 +62,33 @@ Window {
         anchors.centerIn: parent
         visible: true
         desktopMode: true
-        duration: 0
+        duration: root.autoCloseDuration
+        completeDuration: root.completedCloseDuration
         closable: false
         title: "Progress"
         message: "Processing"
         feature: root.modeFeature
         progress: root.initialProgress
+        onClosed: root.closedCount += 1
     }
 }
 """
+
+
+def _pump(milliseconds: int = 20) -> None:
+    loop = QEventLoop()
+    QTimer.singleShot(milliseconds, loop.quit)
+    loop.exec()
+
+
+def _wait_for(predicate, timeout_ms: int = 1_000) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 20
+    return predicate()
 
 
 def _new_visible_windows(windows_before, *allowed):
@@ -114,6 +144,112 @@ def _progress_controls(info_bar: QQuickItem, prefix: str) -> list[QObject]:
         for obj in info_bar.findChildren(QObject)
         if obj.metaObject().className().startswith(prefix)
     ]
+
+
+def _timers(info_bar: QQuickItem) -> list[QObject]:
+    return [
+        obj
+        for obj in info_bar.findChildren(QObject)
+        if obj.metaObject().className() == "QQmlTimer"
+        and obj.parent() is info_bar
+    ]
+
+
+def test_infobar_keeps_two_mutually_exclusive_close_timers(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, info_bar, warnings = _create_scene("normal")
+    try:
+        timers = _timers(info_bar)
+        object_count = len(info_bar.findChildren(QObject))
+
+        print(
+            "INFOBAR_CLOSE_TIMER",
+            f"timers={len(timers)}",
+            f"objects={object_count}",
+        )
+
+        assert len(timers) == 2
+        assert all(timer.property("running") is False for timer in timers)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_infobar_preserves_normal_and_progress_close_timing(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, info_bar, warnings = _create_scene("normal")
+    try:
+        normal_duration = 180
+        assert window.setProperty("autoCloseDuration", normal_duration)
+        normal_started = perf_counter()
+        _pump(normal_duration // 2)
+        assert window.property("closedCount") == 0
+        assert _wait_for(lambda: window.property("closedCount") == 1)
+        normal_elapsed_ms = (perf_counter() - normal_started) * 1_000
+
+        assert window.setProperty("initialMode", "bar")
+        assert window.setProperty("initialProgress", 0.42)
+        assert window.setProperty("closedCount", 0)
+        assert window.setProperty("autoCloseDuration", 100)
+        assert QMetaObject.invokeMethod(info_bar, "show")
+        _pump(180)
+        assert window.property("closedCount") == 0
+
+        completed_duration = 180
+        assert window.setProperty("completedCloseDuration", completed_duration)
+        completed_started = perf_counter()
+        assert window.setProperty("initialProgress", 1.0)
+        _pump(completed_duration // 2)
+        assert window.property("closedCount") == 0
+        assert _wait_for(lambda: window.property("closedCount") == 1)
+        completed_elapsed_ms = (perf_counter() - completed_started) * 1_000
+
+        print(
+            "INFOBAR_CLOSE_TIMING",
+            f"normal_ms={normal_elapsed_ms:.1f}",
+            f"completed_ms={completed_elapsed_ms:.1f}",
+        )
+
+        assert normal_elapsed_ms >= normal_duration * 0.75
+        assert completed_elapsed_ms >= completed_duration * 0.75
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_infobar_restarts_full_delay_when_normal_becomes_complete(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, info_bar, warnings = _create_scene("normal")
+    try:
+        shared_duration = 300
+        assert window.setProperty("completedCloseDuration", shared_duration)
+        assert window.setProperty("autoCloseDuration", shared_duration)
+        _pump(190)
+        assert window.property("closedCount") == 0
+
+        assert window.setProperty("initialProgress", 1.0)
+        switched_at = perf_counter()
+        assert window.setProperty("initialMode", "bar")
+        _pump(170)
+        assert window.property("closedCount") == 0
+        assert _wait_for(lambda: window.property("closedCount") == 1)
+        elapsed_after_switch_ms = (perf_counter() - switched_at) * 1_000
+
+        print(
+            "INFOBAR_CLOSE_TRANSITION",
+            f"after_switch_ms={elapsed_after_switch_ms:.1f}",
+        )
+
+        assert elapsed_after_switch_ms >= shared_duration * 0.75
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
 
 
 def test_normal_infobar_keeps_one_idle_progress_control_per_shape(qapp):
