@@ -39,7 +39,7 @@ QtObject {
                 ? Qt.size(parent.iconControl.iconSize * 2, parent.iconControl.iconSize * 2)
                 : Qt.size(0, 0)
 
-            layer.enabled: true
+            layer.enabled: imageIcon.status === Image.Ready
             layer.effect: ColorOverlay {
                 color: imageIcon.parent.iconControl.color
             }
@@ -55,6 +55,8 @@ QtObject {
             anchors.centerIn: parent
 
             Image {
+                id: avatarImage
+
                 anchors.fill: parent
                 source: avatarContainer.parent.iconControl._resolvedSource
                 fillMode: Image.PreserveAspectCrop
@@ -62,7 +64,7 @@ QtObject {
                 mipmap: true
                 asynchronous: true
 
-                layer.enabled: true
+                layer.enabled: avatarImage.status === Image.Ready
                 layer.smooth: true
                 layer.effect: MultiEffect {
                     maskEnabled: true

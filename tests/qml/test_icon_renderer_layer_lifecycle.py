@@ -323,6 +323,10 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
             f"objects={loading_objects}/{ready_objects}/{error_objects}",
         )
 
+        assert loading_layers == (False, False)
+        assert ready_layers == (True, True)
+        assert error_layers == (False, False)
+        assert loading_objects == ready_objects == error_objects
         assert first_ready_image == ready_image
         assert error_image == loading_image
         assert _new_visible_windows(windows_before, window) == []
