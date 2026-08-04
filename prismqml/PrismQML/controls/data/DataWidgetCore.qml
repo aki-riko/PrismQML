@@ -483,7 +483,13 @@ Rectangle {
                     spacing: Enums.spacing.s
 
                     Repeater {
-                        model: Math.min(5, Math.max(3, Math.floor((skeletonArea.height - Enums.spacing.m * 2) / (root.rowHeight + Enums.spacing.s))))
+                        model: root.loading ? Math.min(
+                            5,
+                            Math.max(3, Math.floor(
+                                (skeletonArea.height - Enums.spacing.m * 2)
+                                / (root.rowHeight + Enums.spacing.s)
+                            ))
+                        ) : 0
                         Skeleton {
                             width: parent ? parent.width : 0
                             height: root.rowHeight - Enums.spacing.s

@@ -31,6 +31,7 @@ def test_data_widget_skeleton_delegate_guards_parent_teardown():
     """A destroyed Column may clear a live Repeater delegate parent. 销毁列时委托父项可先置空。"""
     section = _section(DATA_WIDGET, "// Loading skeleton", "// Footer")
 
+    assert "model: root.loading ? Math.min(" in section
     assert "width: parent ? parent.width : 0" in section
     assert "width: parent.width" not in section
 
