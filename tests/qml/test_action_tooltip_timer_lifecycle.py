@@ -182,10 +182,9 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
             f"show_ms={elapsed_ms:.1f}",
         )
 
-        assert len(initial_timers) == 1
+        assert len(initial_timers) == 0
         assert len(loaded_timers) == 2
-        assert len(restored_timers) == 1
-        assert initial_timers[0] in loaded_timers
+        assert len(restored_timers) == 0
         assert restored_timers == initial_timers
         assert initial_objects == restored_objects
         assert loaded_objects > initial_objects
@@ -196,8 +195,10 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_action_source_keeps_direct_tooltip_timer():
-    """The baseline keeps one direct tooltip timer. 基线保留一个直接提示计时器。"""
+def test_action_source_loads_timer_with_tooltip():
+    """The delay timer must share the tooltip lifecycle. 延迟计时器必须跟随提示生命周期。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert "id: tipTimer" in source
+    assert "id: tipTimer" not in source
+    assert "id: actionTooltip" in source
     assert 'running: control.toolTip !== "" && itemArea.containsMouse' in source
+    assert "onTriggered: actionTooltip.show()" in source

@@ -153,18 +153,17 @@ Rectangle {
         objectName: "actionTooltipLoader"
         active: control.toolTip !== ""
         sourceComponent: TooltipCore {
+            id: actionTooltip
+
             text: control.toolTip
             x: itemArea.mouseX + Enums.spacing.m
             y: control.height + Enums.spacing.xxs
-        }
-    }
-    
-    Timer {
-        id: tipTimer
-        interval: 600
-        running: control.toolTip !== "" && itemArea.containsMouse
-        onTriggered: {
-            if (tipLoader.item) tipLoader.item.show()
+
+            Timer {
+                interval: 600
+                running: control.toolTip !== "" && itemArea.containsMouse
+                onTriggered: actionTooltip.show()
+            }
         }
     }
     
@@ -178,7 +177,6 @@ Rectangle {
         onPressed: control.pressed()
         onContainsMouseChanged: {
             if (!containsMouse) {
-                tipTimer.stop()
                 if (tipLoader.item) tipLoader.item.hide()
             }
         }
