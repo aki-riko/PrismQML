@@ -64,7 +64,7 @@ Item {
         id: imageContainer
         anchors.fill: parent
         visible: sourceImage.status === Image.Ready
-        layer.enabled: control.radius > 0
+        layer.enabled: control.radius > 0 && sourceImage.status === Image.Ready
         layer.smooth: true
         layer.samples: 8
         layer.effect: MultiEffect {

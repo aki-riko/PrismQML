@@ -10,12 +10,15 @@ from base64 import b64encode
 from hashlib import sha256
 import os
 from pathlib import Path
+from threading import Event
 
 import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QObject,
+    QSize,
     QTimer,
     QtMsgType,
     QUrl,
@@ -23,7 +26,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QGuiApplication, QImage
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
-from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtQuick import QQuickImageProvider, QQuickItem, QQuickWindow
 
 from prismqml import register_types
 
@@ -31,6 +34,15 @@ from prismqml import register_types
 ROOT = Path(
     os.environ.get("PRISMQML_TEST_ROOT", Path(__file__).resolve().parents[2])
 ).resolve()
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "data"
+    / "Label"
+    / "ImageWidget.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "image-widget-layer-lifecycle.qml")
 )
@@ -69,6 +81,32 @@ QT_FAILURE_TYPES = {
 KNOWN_ENVIRONMENT_WARNING_PREFIXES = (
     "QFontDatabase: Cannot find font directory",
 )
+
+
+class _BlockingImageProvider(QQuickImageProvider):
+    """Hold an asynchronous image request at Loading. 异步图片请求保持在加载态。"""
+
+    def __init__(self):
+        super().__init__(
+            QQuickImageProvider.ImageType.Image,
+            QQuickImageProvider.Flag.ForceAsynchronousImageLoading,
+        )
+        self.request_started = Event()
+        self.release_request = Event()
+
+    def requestImage(self, provider_id: str, size: QSize, requested_size: QSize):
+        """Return a stable image after the test releases loading. 测试放行后返回稳定图片。"""
+        del requested_size
+        self.request_started.set()
+        if not self.release_request.wait(timeout=2):
+            return QImage()
+        if provider_id == "error":
+            return QImage()
+        image = QImage(64, 64, QImage.Format.Format_ARGB32_Premultiplied)
+        image.fill(0xFF005A9E)
+        size.setWidth(image.width())
+        size.setHeight(image.height())
+        return image
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -141,12 +179,14 @@ def _create_scene():
         lambda mode, _context, message: messages.append((mode, str(message)))
     )
     engine = QQmlApplicationEngine()
+    provider = _BlockingImageProvider()
+    engine.addImageProvider("layerprobe", provider)
     warnings = []
     engine.warnings.connect(
         lambda errors: warnings.extend(error.toString() for error in errors)
     )
-    engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    engine.addImportPath(str(ROOT / "prismqml"))
     component = QQmlComponent(engine)
     component.setData(SCENE_SOURCE, SCENE_URL)
     assert _wait_for(lambda: component.status() != QQmlComponent.Status.Loading)
@@ -160,10 +200,22 @@ def _create_scene():
     widget = window.findChild(QQuickItem, "widget")
     assert widget is not None
     assert _wait_for(window.isExposed)
-    return engine, component, window, widget, warnings, messages, previous_handler
+    return (
+        engine,
+        component,
+        window,
+        widget,
+        provider,
+        warnings,
+        messages,
+        previous_handler,
+    )
 
 
-def _dispose_scene(qapp, engine, component, window, previous_handler) -> None:
+def _dispose_scene(
+    qapp, engine, component, window, provider, previous_handler
+) -> None:
+    provider.release_request.set()
     window.close()
     for obj in (window, component, engine):
         if obj is not None and shiboken6.isValid(obj):
@@ -189,7 +241,16 @@ def test_image_widget_preserves_empty_ready_empty_frames(qapp):
     """
     windows_before = tuple(QGuiApplication.topLevelWindows())
     scene = _create_scene()
-    engine, component, window, widget, warnings, messages, previous_handler = scene
+    (
+        engine,
+        component,
+        window,
+        widget,
+        provider,
+        warnings,
+        messages,
+        previous_handler,
+    ) = scene
     try:
         container = _image_container(widget)
         layer_enabled = QQmlProperty(container, "layer.enabled")
@@ -199,6 +260,8 @@ def test_image_widget_preserves_empty_ready_empty_frames(qapp):
         assert widget.property("error") is False
         assert widget.property("ready") is False
         empty_image = _stable_window_image(window)
+        empty_layer_enabled = layer_enabled.read()
+        empty_object_count = len(window.findChildren(QObject))
 
         initial_geometry = (
             widget.x(),
@@ -214,6 +277,8 @@ def test_image_widget_preserves_empty_ready_empty_frames(qapp):
         assert widget.property("sourceWidth") == 64
         assert widget.property("sourceHeight") == 64
         ready_image = _stable_window_image(window)
+        ready_layer_enabled = layer_enabled.read()
+        ready_object_count = len(window.findChildren(QObject))
         assert ready_image != empty_image
         assert initial_geometry == (
             widget.x(),
@@ -226,6 +291,8 @@ def test_image_widget_preserves_empty_ready_empty_frames(qapp):
         widget.setProperty("source", "")
         assert _wait_for(lambda: not widget.property("ready"))
         restored_image = _stable_window_image(window)
+        restored_layer_enabled = layer_enabled.read()
+        restored_object_count = len(window.findChildren(QObject))
         assert restored_image == empty_image
         assert warnings == []
         assert _qt_failures(messages) == []
@@ -236,7 +303,80 @@ def test_image_widget_preserves_empty_ready_empty_frames(qapp):
             f"empty={_image_hash(empty_image)}",
             f"ready={_image_hash(ready_image)}",
             f"restored={_image_hash(restored_image)}",
+            "objects="
+            f"{empty_object_count}/{ready_object_count}/{restored_object_count}",
+            "layers="
+            f"{empty_layer_enabled}/{ready_layer_enabled}/{restored_layer_enabled}",
         )
     finally:
-        _dispose_scene(qapp, engine, component, window, previous_handler)
+        _dispose_scene(
+            qapp, engine, component, window, provider, previous_handler
+        )
         assert _new_visible_windows(windows_before) == []
+
+
+def test_image_widget_enables_rounding_layer_only_for_ready_images(qapp):
+    """Only a ready image with a radius may allocate its rounding layer.
+
+    仅就绪且带圆角的图片可启用裁剪图层。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    (
+        engine,
+        component,
+        window,
+        widget,
+        provider,
+        warnings,
+        messages,
+        previous_handler,
+    ) = scene
+    try:
+        container = _image_container(widget)
+        layer_enabled = QQmlProperty(container, "layer.enabled")
+        assert layer_enabled.isValid()
+        assert layer_enabled.read() is False
+
+        widget.setProperty("source", "image://layerprobe/ready")
+        assert _wait_for(provider.request_started.is_set)
+        assert widget.property("loading") is True
+        assert layer_enabled.read() is False
+
+        provider.release_request.set()
+        assert _wait_for(lambda: widget.property("ready"))
+        first_ready_image = window.grabWindow()
+        assert not first_ready_image.isNull()
+        assert layer_enabled.read() is True
+        stable_ready_image = _stable_window_image(window)
+        assert first_ready_image == stable_ready_image
+
+        widget.setProperty("radius", 0)
+        assert layer_enabled.read() is False
+        widget.setProperty("radius", 16)
+        assert layer_enabled.read() is True
+
+        widget.setProperty("source", "image://layerprobe/error")
+        assert _wait_for(lambda: widget.property("error"))
+        assert layer_enabled.read() is False
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(
+            qapp, engine, component, window, provider, previous_handler
+        )
+        assert _new_visible_windows(windows_before) == []
+
+    expected_error = "Failed to get image from provider: image://layerprobe/error"
+    assert warnings == [warning for warning in warnings if expected_error in warning]
+    assert _qt_failures(messages) == [
+        message for message in _qt_failures(messages) if expected_error in message
+    ]
+
+
+def test_image_widget_source_gates_layer_on_ready_status():
+    """The source binding must reject every non-ready image state. 源绑定须拒绝全部非就绪状态。"""
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert (
+        "layer.enabled: control.radius > 0 "
+        "&& sourceImage.status === Image.Ready"
+    ) in source
