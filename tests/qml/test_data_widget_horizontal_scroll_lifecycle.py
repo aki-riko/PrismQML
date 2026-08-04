@@ -112,11 +112,18 @@ Window {
     }
 }
 """
+INITIAL_OVERFLOW_SCENE_SOURCE = SCENE_SOURCE.replace(
+    b"contentTotalWidth: 0",
+    b"contentTotalWidth: 720",
+)
 QT_FAILURE_TYPES = {
     QtMsgType.QtWarningMsg,
     QtMsgType.QtCriticalMsg,
     QtMsgType.QtFatalMsg,
 }
+KNOWN_ENVIRONMENT_WARNING_PREFIXES = (
+    "QFontDatabase: Cannot find font directory",
+)
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -162,7 +169,7 @@ def _header_offset(widget: QQuickItem) -> float:
     return marker.mapToItem(widget, QPointF()).x()
 
 
-def _create_scene():
+def _create_scene(source: bytes = SCENE_SOURCE):
     configure_qml_environment()
     messages = []
     previous_handler = qInstallMessageHandler(
@@ -173,7 +180,7 @@ def _create_scene():
     register_types(engine)
     component = QQmlComponent(engine)
     component.setData(
-        SCENE_SOURCE,
+        source,
         QUrl.fromLocalFile(
             str(ROOT / "tests" / "qml" / "data-widget-horizontal-scroll.qml")
         ),
@@ -188,7 +195,6 @@ def _create_scene():
     widget = window.findChild(QQuickItem, "widget")
     assert widget is not None
     _pump(80)
-    messages.clear()
     return engine, component, window, widget, messages, previous_handler
 
 
@@ -202,13 +208,42 @@ def _dispose_scene(qapp, engine, component, window, previous_handler) -> None:
     qInstallMessageHandler(previous_handler)
 
 
+def _qt_failures(messages) -> list[str]:
+    return [
+        message
+        for mode, message in messages
+        if mode in QT_FAILURE_TYPES
+        and not message.startswith(KNOWN_ENVIRONMENT_WARNING_PREFIXES)
+    ]
+
+
+def test_initial_horizontal_overflow_preloads_before_user_input(qapp):
+    """Initial real overflow must preload its interactive branch. 初始真实溢出须预热交互分支。"""
+    scene = _create_scene(INITIAL_OVERFLOW_SCENE_SOURCE)
+    engine, component, window, widget, messages, previous_handler = scene
+    try:
+        mixins = _horizontal_mixins(widget)
+        assert len(mixins) == 1
+        assert widget.property("_horizontalScrollRequested") is True
+        assert widget.property("_horizontalScrollMixin") is mixins[0]
+        horizontal_bars = _horizontal_scroll_bars(widget)
+        assert len(horizontal_bars) == 1
+        assert horizontal_bars[0].isVisible()
+    finally:
+        _dispose_scene(qapp, engine, component, window, previous_handler)
+
+    assert _qt_failures(messages) == []
+
+
 def test_horizontal_scroll_preserves_pixels_header_and_instance_across_cycles(qapp):
     """Width cycles must preserve visible output and the active mixin. 宽度循环须保持画面和已激活 mixin。"""
     scene = _create_scene()
     engine, component, window, widget, messages, previous_handler = scene
     try:
         initial_mixins = _horizontal_mixins(widget)
-        assert len(initial_mixins) <= 1
+        assert initial_mixins == []
+        assert widget.property("_horizontalScrollRequested") is False
+        assert widget.property("_horizontalScrollMixin") is None
         idle_header_offset = _header_offset(widget)
         idle_image = window.grabWindow()
 
@@ -216,8 +251,8 @@ def test_horizontal_scroll_preserves_pixels_header_and_instance_across_cycles(qa
         active_mixins = _horizontal_mixins(widget)
         assert len(active_mixins) == 1
         active_mixin = active_mixins[0]
-        if initial_mixins:
-            assert active_mixin is initial_mixins[0]
+        assert widget.property("_horizontalScrollRequested") is True
+        assert widget.property("_horizontalScrollMixin") is active_mixin
         horizontal_bar_ready = _wait_for(
             lambda: len(_horizontal_scroll_bars(widget)) == 1
             and _horizontal_scroll_bars(widget)[0].isVisible()
@@ -238,6 +273,7 @@ def test_horizontal_scroll_preserves_pixels_header_and_instance_across_cycles(qa
         assert QMetaObject.invokeMethod(window, "deactivateHorizontalScroll")
         assert _wait_for(lambda: _header_offset(widget) == idle_header_offset)
         assert _horizontal_mixins(widget) == [active_mixin]
+        assert widget.property("_horizontalScrollMixin") is active_mixin
         assert window.grabWindow() == idle_image
 
         assert QMetaObject.invokeMethod(window, "activateHorizontalScroll")
@@ -249,7 +285,4 @@ def test_horizontal_scroll_preserves_pixels_header_and_instance_across_cycles(qa
     finally:
         _dispose_scene(qapp, engine, component, window, previous_handler)
 
-    failures = [
-        message for mode, message in messages if mode in QT_FAILURE_TYPES
-    ]
-    assert failures == []
+    assert _qt_failures(messages) == []

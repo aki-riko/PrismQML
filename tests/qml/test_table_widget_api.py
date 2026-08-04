@@ -124,11 +124,17 @@ Item {
     id: root
 
     readonly property bool fittedHasHorizontalScroll: fittedTable._hasHorizontalScroll
+    readonly property bool fittedHorizontalScrollRequested:
+        fittedTable._horizontalScrollRequested
     readonly property real fittedContentWidth: fittedTable.contentTotalWidth
     readonly property real fittedViewportWidth: fittedTable.listView.width
     readonly property var fittedColumnWidths: fittedTable._columnPixelWidths
     readonly property bool ratioOverflowHasHorizontalScroll: ratioOverflowTable._hasHorizontalScroll
+    readonly property bool ratioOverflowHorizontalScrollRequested:
+        ratioOverflowTable._horizontalScrollRequested
     readonly property bool absoluteOverflowHasHorizontalScroll: absoluteOverflowTable._hasHorizontalScroll
+    readonly property bool absoluteOverflowHorizontalScrollRequested:
+        absoluteOverflowTable._horizontalScrollRequested
 
     function resizeFittedTable(tableWidth) { fittedTable.width = tableWidth }
 
@@ -476,8 +482,11 @@ def test_table_widget_fractional_columns_use_inner_viewport_width(qapp):
         assert sum(column_widths) == content_width
         assert content_width == viewport_width
         assert root.property("fittedHasHorizontalScroll") is False
+        assert root.property("fittedHorizontalScrollRequested") is False
         assert root.property("ratioOverflowHasHorizontalScroll") is True
+        assert root.property("ratioOverflowHorizontalScrollRequested") is True
         assert root.property("absoluteOverflowHasHorizontalScroll") is True
+        assert root.property("absoluteOverflowHorizontalScrollRequested") is True
 
         root.resizeFittedTable(480)
         _pump(50)
@@ -489,6 +498,7 @@ def test_table_widget_fractional_columns_use_inner_viewport_width(qapp):
         assert sum(resized_column_widths) == resized_content_width
         assert resized_content_width == resized_viewport_width
         assert root.property("fittedHasHorizontalScroll") is False
+        assert root.property("fittedHorizontalScrollRequested") is False
     finally:
         _release(qapp, root, component, engine)
         qInstallMessageHandler(previous_handler)
