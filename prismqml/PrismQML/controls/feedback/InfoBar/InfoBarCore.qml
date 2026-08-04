@@ -72,6 +72,9 @@ Widget {
     readonly property bool _isBarMode: feature === Enums.notification.feature_progress_bar ||
                                        feature === Enums.notification.feature_indeterminate_bar
     readonly property bool _progressComplete: _isProgressMode && progress >= 1.0
+    readonly property bool _autoCloseActive: duration > 0 && control.visible &&
+                                              control._showing && !_isProgressMode
+    readonly property bool _completeCloseActive: _progressComplete && control.visible
     
     readonly property color backgroundColor: {
         // Custom background color takes priority 自定义背景色优先
@@ -328,18 +331,19 @@ Widget {
         onClicked: control.hide()
     }
     
-    // Auto close 自动关闭
+    // Shared close timer 共享关闭计时器
     Timer {
-        running: duration > 0 && control.visible && control._showing && !_isProgressMode
-        interval: duration
-        onTriggered: control.hide()
-    }
-    
-    // Progress complete timer 进度完成后延迟关闭
-    Timer {
-        id: completeTimer
-        running: _progressComplete && control.visible
-        interval: control.completeDuration
+        id: closeTimer
+
+        readonly property bool completeMode: control._completeCloseActive
+
+        running: control._autoCloseActive || control._completeCloseActive
+        interval: completeMode ? control.completeDuration : control.duration
+        onCompleteModeChanged: {
+            if (running && (control._autoCloseActive || control._completeCloseActive)) {
+                restart()
+            }
+        }
         onTriggered: control.hide()
     }
     

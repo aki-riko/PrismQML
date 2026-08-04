@@ -150,12 +150,12 @@ def _timers(info_bar: QQuickItem) -> list[QObject]:
     return [
         obj
         for obj in info_bar.findChildren(QObject)
-        if obj.metaObject().className() == "QQmlTimer"
+        if obj.metaObject().className().startswith("QQmlTimer")
         and obj.parent() is info_bar
     ]
 
 
-def test_infobar_keeps_two_mutually_exclusive_close_timers(qapp):
+def test_infobar_reuses_one_close_timer_for_both_modes(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, info_bar, warnings = _create_scene("normal")
     try:
@@ -168,7 +168,8 @@ def test_infobar_keeps_two_mutually_exclusive_close_timers(qapp):
             f"objects={object_count}",
         )
 
-        assert len(timers) == 2
+        assert len(timers) == 1
+        assert object_count == 86
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
