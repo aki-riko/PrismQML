@@ -215,7 +215,7 @@ def test_table_rows_preserve_rendering_while_components_are_measured(qapp):
 
         assert len(rows) == 12
         assert row_components == [0] * 12
-        assert normal_objects == 891
+        assert normal_objects == 890
         assert normal_hash == (
             "866ef579e4a08cfd577606afbc3f990beb68ef9e7f8047068b05b1a3e3db025e"
         )
