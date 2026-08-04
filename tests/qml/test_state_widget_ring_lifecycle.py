@@ -41,6 +41,7 @@ import PrismQML
 
 Window {
     readonly property int resultType: Enums.state.type_result
+    readonly property int noDataType: Enums.state.type_no_data
 
     width: 320
     height: 240
@@ -113,6 +114,16 @@ def _ring(widget: QQuickItem) -> QQuickItem | None:
     return rings[0] if rings else None
 
 
+def _icons(widget: QQuickItem) -> list[QQuickItem]:
+    return [
+        child
+        for child in widget.findChildren(QObject)
+        if isinstance(child, QQuickItem)
+        and child.metaObject().indexOfProperty("iconSize") >= 0
+        and child.metaObject().indexOfProperty("isImageIcon") >= 0
+    ]
+
+
 def _new_visible_windows(windows_before, *allowed):
     return [
         window
@@ -173,58 +184,96 @@ def test_state_widget_preserves_first_and_repeated_loading_frames(qapp):
     engine, component, window, widget, warnings = _create_scene()
     try:
         result_type = window.property("resultType")
+        no_data_type = window.property("noDataType")
         no_data_image = _stable_window_image(window)
         no_data_ring = _ring(widget)
+        no_data_icons = len(_icons(widget))
         no_data_objects = len(widget.findChildren(QObject))
 
         assert widget.setProperty("stateType", result_type)
+        first_success_image = window.grabWindow()
+        assert not first_success_image.isNull()
         success_image = _stable_window_image(window)
         success_ring = _ring(widget)
+        success_icons = len(_icons(widget))
         success_objects = len(widget.findChildren(QObject))
 
         first_loading_ring = _enter_paused_loading(widget)
         first_loading_image = window.grabWindow()
         assert not first_loading_image.isNull()
         loading_image = _stable_window_image(window)
+        loading_icons = len(_icons(widget))
         loading_objects = len(widget.findChildren(QObject))
 
         assert widget.setProperty("severity", "success")
         restored_success_image = _stable_window_image(window)
         restored_success_ring = _ring(widget)
+        restored_success_icons = len(_icons(widget))
         restored_success_objects = len(widget.findChildren(QObject))
 
         second_loading_ring = _enter_paused_loading(widget)
         first_repeated_loading_image = window.grabWindow()
         assert not first_repeated_loading_image.isNull()
         repeated_loading_image = _stable_window_image(window)
+        repeated_loading_icons = len(_icons(widget))
         repeated_loading_objects = len(widget.findChildren(QObject))
+
+        assert widget.setProperty("stateType", no_data_type)
+        first_restored_no_data_image = window.grabWindow()
+        assert not first_restored_no_data_image.isNull()
+        restored_no_data_image = _stable_window_image(window)
+        restored_no_data_icons = len(_icons(widget))
+        restored_no_data_objects = len(widget.findChildren(QObject))
 
         print(
             "STATE_WIDGET_RING",
             "hashes="
-            f"{_image_hash(no_data_image)}/{_image_hash(success_image)}/"
+            f"{_image_hash(no_data_image)}/{_image_hash(first_success_image)}/"
+            f"{_image_hash(success_image)}/"
             f"{_image_hash(first_loading_image)}/{_image_hash(loading_image)}/"
             f"{_image_hash(restored_success_image)}/"
             f"{_image_hash(first_repeated_loading_image)}/"
-            f"{_image_hash(repeated_loading_image)}",
+            f"{_image_hash(repeated_loading_image)}/"
+            f"{_image_hash(first_restored_no_data_image)}/"
+            f"{_image_hash(restored_no_data_image)}",
             "rings="
             f"{int(no_data_ring is not None)}/{int(success_ring is not None)}/"
             f"{len(_rings(widget))}/{int(restored_success_ring is not None)}",
+            "icons="
+            f"{no_data_icons}/{success_icons}/{loading_icons}/"
+            f"{restored_success_icons}/{repeated_loading_icons}/"
+            f"{restored_no_data_icons}",
             "objects="
             f"{no_data_objects}/{success_objects}/{loading_objects}/"
-            f"{restored_success_objects}/{repeated_loading_objects}",
+            f"{restored_success_objects}/{repeated_loading_objects}/"
+            f"{restored_no_data_objects}",
         )
 
         assert no_data_ring is None
         assert success_ring is None
         assert restored_success_ring is None
         assert first_loading_ring is not second_loading_ring
-        assert no_data_objects == success_objects == restored_success_objects
+        assert (
+            no_data_icons,
+            success_icons,
+            loading_icons,
+            restored_success_icons,
+            repeated_loading_icons,
+            restored_no_data_icons,
+        ) == (2, 2, 2, 2, 2, 2)
+        assert (
+            no_data_objects
+            == success_objects
+            == restored_success_objects
+            == restored_no_data_objects
+        )
         assert loading_objects == repeated_loading_objects
         assert no_data_objects < loading_objects
+        assert first_success_image == success_image
         assert first_loading_image == loading_image
         assert first_repeated_loading_image == repeated_loading_image == loading_image
         assert restored_success_image == success_image
+        assert first_restored_no_data_image == restored_no_data_image == no_data_image
         assert no_data_image != success_image
         assert loading_image != success_image
         assert warnings == []
@@ -240,3 +289,5 @@ def test_state_widget_source_loads_ring_only_for_loading():
     assert "active: control._isResultType && control.severity === \"loading\"" in source
     assert "sourceComponent: ProgressRing {" in source
     assert "indeterminate: true" in source
+    assert "sourceComponent: Rectangle {" not in source
+    assert "sourceComponent: Icon {" not in source
