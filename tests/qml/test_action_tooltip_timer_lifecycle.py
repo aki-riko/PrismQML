@@ -34,6 +34,15 @@ ROOT = Path(
 SOURCE_PATH = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "menus" / "Action.qml"
 )
+TOOLTIP_SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "feedback"
+    / "Tooltip"
+    / "TooltipCore.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "action-tooltip-timer-lifecycle.qml")
 )
@@ -164,6 +173,8 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
         assert _wait_for(lambda: bool(tooltip.property("_windowVisible")), 1_400)
         elapsed_ms = (perf_counter() - started) * 1_000
         assert elapsed_ms >= 500
+        shown_timers = _timers(action)
+        shown_objects = len(action.findChildren(QObject))
 
         QTest.mouseMove(window, QPoint(window.width() - 5, window.height() - 5))
         assert _wait_for(lambda: not bool(tooltip.property("_windowVisible")), 1_000)
@@ -177,13 +188,16 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
         print(
             "ACTION_TOOLTIP_TIMER",
             f"timers={len(initial_timers)}/{len(loaded_timers)}/"
+            f"{len(shown_timers)}/"
             f"{len(restored_timers)}",
-            f"objects={initial_objects}/{loaded_objects}/{restored_objects}",
+            f"objects={initial_objects}/{loaded_objects}/{shown_objects}/"
+            f"{restored_objects}",
             f"show_ms={elapsed_ms:.1f}",
         )
 
         assert len(initial_timers) == 0
         assert len(loaded_timers) == 2
+        assert len(shown_timers) == 2
         assert len(restored_timers) == 0
         assert restored_timers == initial_timers
         assert initial_objects == restored_objects
@@ -202,3 +216,10 @@ def test_action_source_loads_timer_with_tooltip():
     assert "id: actionTooltip" in source
     assert 'running: control.toolTip !== "" && itemArea.containsMouse' in source
     assert "onTriggered: actionTooltip.show()" in source
+
+
+def test_tooltip_source_keeps_direct_follow_timer():
+    """The baseline keeps one direct follow timer. 基线保留一个直接跟随计时器。"""
+    source = TOOLTIP_SOURCE_PATH.read_text(encoding="utf-8")
+    assert "running: control.followAnchor && control._windowVisible" in source
+    assert "running: control.followAnchor && windowHost.windowVisible" not in source
