@@ -98,6 +98,8 @@ def test_feature_loader_switch_keeps_menu_state_binding_typed(dropdown_scene):
     button.setProperty("feature", root.property("featureDropdown"))
     _pump(50)
     reopened_dropdown = _button_dropdown(button)
+    _invoke(reopened_dropdown, "prewarmMenu")
+    assert _wait_for(lambda: len(_dropdown_popups(reopened_dropdown)) == 1)
     reopened_popup = _dropdown_popup(reopened_dropdown)
     reopened_popup.setProperty("useQtPopupWindow", False)
     reopened_popup.setProperty("useInWindowPopup", True)
