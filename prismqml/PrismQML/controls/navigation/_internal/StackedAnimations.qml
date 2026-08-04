@@ -5,7 +5,7 @@
 import QtQuick
 import "../../.."
 
-// StackedAnimations - Mode-scoped stacked animations 按模式创建的堆叠动画
+// StackedAnimations - Animation definitions for StackedWidget 堆叠动画定义
 Item {
     id: animations
 
@@ -15,15 +15,8 @@ Item {
     required property real cardScale
     required property real cardOpacity
 
-    // ==================== Internal Props 内部属性 ====================
-    readonly property url _fadeSource: Qt.resolvedUrl("StackedFadeAnimations.qml")
-    readonly property url _slideSource: Qt.resolvedUrl("StackedSlideAnimations.qml")
-    readonly property url _popUpSource: Qt.resolvedUrl("StackedPopUpAnimations.qml")
-    readonly property url _popDownSource: Qt.resolvedUrl("StackedPopDownAnimations.qml")
-    readonly property url _zoomSource: Qt.resolvedUrl("StackedZoomAnimations.qml")
-    readonly property url _cardSource: Qt.resolvedUrl("StackedCardAnimations.qml")
-    readonly property url _desiredSource: _sourceForType(control.animationType)
-    readonly property QtObject _backend: backendLoader.item
+    property Item _zoomOldWidget: null
+    property Item _zoomNewWidget: null
 
     // ==================== Signals 信号 ====================
     signal animationFinished(int currentIndex)
@@ -63,110 +56,424 @@ Item {
         return true
     }
 
+    // Stop all running animations and reset states 停止所有动画并重置状态
     function stopAllAnimations() {
-        if (_backend) _backend.stopAllAnimations()
+        // Stop all animation groups 停止所有动画组
+        fadeGroup.stop()
+        slideGroup.stop()
+        popUpGroup.stop()
+        popDownGroup.stop()
+        zoomOutAnim.stop()
+        zoomInAnim.stop()
+        cardGroup.stop()
+
+        // Stop enter-only animations 停止仅入场动画
+        enterFadeAnim.stop()
+        enterPopUpGroup.stop()
+        enterPopDownGroup.stop()
+        enterZoomAnim.stop()
+        enterSlideAnim.stop()
+
+        // Reset all targets to clean state 重置所有目标到干净状态
+        if (fadeOutAnim.target) {
+            fadeOutAnim.target.opacity = 1
+            fadeOutAnim.target.visible = false
+        }
+        if (fadeInAnim.target && fadeInAnim.target !== fadeOutAnim.target) {
+            fadeInAnim.target.y = 0
+            fadeInAnim.target.x = 0
+            fadeInAnim.target.scale = 1
+        }
+        if (slideOutAnim.target) {
+            slideOutAnim.target.x = 0
+            slideOutAnim.target.visible = false
+        }
+        if (popUpGroup._oldWidget) {
+            popUpGroup._oldWidget.visible = false
+            popUpGroup._oldWidget.y = 0
+        }
+        if (popDownGroup._oldWidget) {
+            popDownGroup._oldWidget.visible = false
+            popDownGroup._oldWidget.y = 0
+        }
+        if (_zoomOldWidget) {
+            _zoomOldWidget.visible = false
+            _zoomOldWidget.scale = 1
+        }
+        if (cardGroup._oldWidget) {
+            cardGroup._oldWidget.visible = false
+            cardGroup._oldWidget.x = 0
+            cardGroup._oldWidget.scale = 1
+            cardGroup._oldWidget.opacity = 1
+        }
+        // Reset enter-only animation targets 重置仅入场动画目标
+        if (enterPopUpGroup.target) {
+            enterPopUpGroup.target.y = 0
+        }
+        if (enterPopDownGroup.target) {
+            enterPopDownGroup.target.y = 0
+        }
+        if (enterSlideAnim.target) {
+            enterSlideAnim.target.x = 0
+        }
     }
 
+    // Fade transition 淡入淡出过渡
     function fadeTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_fadeSource)
-        if (backend) backend.transition(oldIndex, newIndex)
+        stopAllAnimations()
+
+        var oldWidget = widget(oldIndex)
+        var newWidget = widget(newIndex)
+        if (!oldWidget || !newWidget) return
+
+        // Ensure old widget is in correct state 确保旧页面状态正确
+        oldWidget.visible = true
+        oldWidget.opacity = 1
+
+        newWidget.opacity = 0
+        newWidget.visible = true
+        fadeOutAnim.target = oldWidget
+        fadeInAnim.target = newWidget
+        fadeGroup.start()
     }
+    // Fade enter only 仅淡入
     function enterFadeOnly(newIndex) {
-        var backend = _ensureBackend(_fadeSource)
-        if (backend) backend.enterOnly(newIndex)
+        stopAllAnimations()
+        var newWidget = widget(newIndex)
+        if (!newWidget) return
+        enterFadeAnim.target = newWidget
+        enterFadeAnim.start()
     }
-    function slideTransition(oldIndex, newIndex, isBack) {
-        var backend = _ensureBackend(_slideSource)
-        if (backend) backend.transition(oldIndex, newIndex, isBack)
-    }
-    function enterSlideOnly(newIndex) {
-        var backend = _ensureBackend(
-                    control.animationType === Enums.animation.card ? _cardSource : _slideSource)
-        if (backend) backend.enterOnly(newIndex)
-    }
-    function popUpTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_popUpSource)
-        if (backend) backend.transition(oldIndex, newIndex)
-    }
+
+    // PopUp enter only 仅PopUp入场
     function enterPopUpOnly(newIndex) {
-        var backend = _ensureBackend(_popUpSource)
-        if (backend) backend.enterOnly(newIndex)
+        stopAllAnimations()
+        var newWidget = widget(newIndex)
+        if (!newWidget) return
+        enterPopUpGroup.target = newWidget
+        enterPopUpGroup.start()
     }
-    function popDownTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_popDownSource)
-        if (backend) backend.transition(oldIndex, newIndex)
-    }
+
+    // PopDown enter only 仅PopDown入场
     function enterPopDownOnly(newIndex) {
-        var backend = _ensureBackend(_popDownSource)
-        if (backend) backend.enterOnly(newIndex)
+        stopAllAnimations()
+        var newWidget = widget(newIndex)
+        if (!newWidget) return
+        enterPopDownGroup.target = newWidget
+        enterPopDownGroup.start()
     }
-    function zoomTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_zoomSource)
-        if (backend) backend.transition(oldIndex, newIndex)
-    }
+
+    // Zoom enter only 仅缩放入场
     function enterZoomOnly(newIndex) {
-        var backend = _ensureBackend(_zoomSource)
-        if (backend) backend.enterOnly(newIndex)
+        stopAllAnimations()
+        var newWidget = widget(newIndex)
+        if (!newWidget) return
+        enterZoomAnim.target = newWidget
+        enterZoomAnim.start()
     }
+
+    // Slide enter only 仅滑动入场
+    function enterSlideOnly(newIndex) {
+        stopAllAnimations()
+        var newWidget = widget(newIndex)
+        if (!newWidget) return
+        enterSlideAnim.target = newWidget
+        enterSlideAnim.start()
+    }
+    // 2. Slide Animation 滑动
+    function slideTransition(oldIndex, newIndex, isBack) {
+        stopAllAnimations()
+
+        var oldWidget = widget(oldIndex)
+        var newWidget = widget(newIndex)
+        if (!oldWidget || !newWidget) return
+
+        // Ensure old widget is in correct state 确保旧页面状态正确
+        oldWidget.visible = true
+        oldWidget.opacity = 1
+        oldWidget.x = 0
+
+        // 前进时新页面从右侧进入，返回时从左侧进入。
+        var direction = isBack ? -1 : 1
+        newWidget.x = control.width * direction
+        newWidget.opacity = 1  // Ensure visible 确保可见
+        newWidget.visible = true
+        slideOutAnim.target = oldWidget
+        slideOutAnim.to = -control.width * direction
+        slideInAnim.target = newWidget
+        slideInAnim.from = control.width * direction
+        slideGroup.start()
+    }
+
+    // 3. PopUp Animation 弹出
+    function popUpTransition(oldIndex, newIndex) {
+        stopAllAnimations()
+
+        var oldWidget = widget(oldIndex)
+        var newWidget = widget(newIndex)
+        if (!oldWidget || !newWidget) return
+
+        // Ensure old widget is in correct state 确保旧页面状态正确
+        oldWidget.visible = true
+        oldWidget.opacity = 1
+        oldWidget.y = 0
+
+        var offset = control.popUpOffset
+        newWidget.y = offset
+        newWidget.opacity = 0
+        newWidget.visible = true
+        popUpYAnim.target = newWidget
+        popUpYAnim.from = offset
+        popUpOpacityAnim.target = newWidget
+        popUpGroup._oldWidget = oldWidget
+        popUpGroup.start()
+    }
+    // 3.5 PopDown Animation 下落
+    function popDownTransition(oldIndex, newIndex) {
+        stopAllAnimations()
+
+        var oldWidget = widget(oldIndex)
+        var newWidget = widget(newIndex)
+        if (!oldWidget || !newWidget) return
+
+        // Ensure old widget is in correct state 确保旧页面状态正确
+        oldWidget.visible = true
+        oldWidget.opacity = 1
+        oldWidget.y = 0
+
+        var offset = -control.popUpOffset
+        newWidget.y = offset
+        newWidget.opacity = 0
+        newWidget.visible = true
+        popDownYAnim.target = newWidget
+        popDownYAnim.from = offset
+        popDownOpacityAnim.target = newWidget
+        popDownGroup._oldWidget = oldWidget
+        popDownGroup.start()
+    }
+
+    // 4. Zoom Animation 缩放
+    function zoomTransition(oldIndex, newIndex) {
+        stopAllAnimations()
+
+        var oldWidget = widget(oldIndex)
+        var newWidget = widget(newIndex)
+        if (!oldWidget || !newWidget) return
+
+        // Ensure old widget is in correct state 确保旧页面状态正确
+        oldWidget.visible = true
+        oldWidget.opacity = 1
+        oldWidget.scale = 1
+
+        _zoomOldWidget = oldWidget
+        _zoomNewWidget = newWidget
+
+        newWidget.visible = false
+        newWidget.opacity = 1
+        newWidget.scale = 1
+
+        zoomOutAnim.start()
+    }
+    // 5. Card Animation 卡片层叠
     function cardTransition(oldIndex, newIndex, isBack) {
-        var backend = _ensureBackend(_cardSource)
-        if (backend) backend.transition(oldIndex, newIndex, isBack)
-    }
+        stopAllAnimations()
 
-    // ==================== Internal Methods 内部方法 ====================
-    function _sourceForType(type) {
-        switch (type) {
-            case Enums.animation.opacity: return _fadeSource
-            case Enums.animation.popup: return _popUpSource
-            case Enums.animation.popdown: return _popDownSource
-            case Enums.animation.slide: return _slideSource
-            case Enums.animation.card: return _cardSource
-            case Enums.animation.zoom: return _zoomSource
-            case Enums.animation.none: return ""
-            default: return _fadeSource
+        var oldWidget = widget(oldIndex)
+        var newWidget = widget(newIndex)
+        if (!oldWidget || !newWidget) return
+
+        // Ensure old widget is in correct state 确保旧页面状态正确
+        oldWidget.visible = true
+        oldWidget.opacity = 1
+        oldWidget.x = 0
+        oldWidget.scale = 1
+
+        if (isBack) {
+            newWidget.visible = true
+            newWidget.x = 0
+            newWidget.scale = cardScale
+            newWidget.opacity = cardOpacity
+
+            cardSlideAnim.target = oldWidget
+            cardSlideAnim.from = 0
+            cardSlideAnim.to = control.width
+            cardScaleAnim.target = newWidget
+            cardScaleAnim.from = cardScale
+            cardScaleAnim.to = 1
+            cardOpacityAnim.target = newWidget
+            cardOpacityAnim.from = cardOpacity
+            cardOpacityAnim.to = 1
+        } else {
+            newWidget.visible = true
+            newWidget.x = control.width
+            newWidget.scale = 1
+            newWidget.opacity = 1
+
+            cardSlideAnim.target = newWidget
+            cardSlideAnim.from = control.width
+            cardSlideAnim.to = 0
+            cardScaleAnim.target = oldWidget
+            cardScaleAnim.from = 1
+            cardScaleAnim.to = cardScale
+            cardOpacityAnim.target = oldWidget
+            cardOpacityAnim.from = 1
+            cardOpacityAnim.to = cardOpacity
         }
+
+        cardGroup._isBack = isBack
+        cardGroup._oldWidget = oldWidget
+        cardGroup.start()
     }
-
-    function _ensureBackend(source) {
-        var requested = source ? source.toString() : ""
-        var loaded = backendLoader.source ? backendLoader.source.toString() : ""
-        if (requested === loaded && backendLoader.item) return backendLoader.item
-
-        if (backendLoader.item) backendLoader.item.stopAllAnimations()
-        if (requested === "") {
-            backendLoader.source = ""
-            return null
-        }
-        backendLoader.setSource(source, {"host": animations})
-        return backendLoader.item
-    }
-
-    function _preloadDesiredBackend() {
-        if (_backend && _backend.running) return
-        _ensureBackend(_desiredSource)
-    }
-
-    function _handleBackendFinished() {
-        animations.animationFinished(control.currentIndex)
-        if (backendLoader.source.toString() !== _desiredSource.toString()) {
-            Qt.callLater(animations._preloadDesiredBackend)
-        }
-    }
-
-    Component.onCompleted: _preloadDesiredBackend()
 
     // ==================== Content 内容 ====================
-    Connections {
-        function onAnimationTypeChanged() { animations._preloadDesiredBackend() }
+    ParallelAnimation {
+        id: fadeGroup
+        onFinished: {
+            fadeOutAnim.target.visible = false
+            fadeOutAnim.target.opacity = 1.0
+            animations.animationFinished(control.currentIndex)
+        }
 
-        target: animations.control
+        NumberAnimation { id: fadeOutAnim; property: "opacity"; from: 1.0; to: 0.0; duration: animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: fadeInAnim; property: "opacity"; from: 0.0; to: 1.0; duration: animationDuration; easing.type: Easing.InCubic }
     }
 
-    Loader {
-        id: backendLoader
+    // Enter-only animations for lazy-loading phase two 懒加载第二阶段的仅入场动画
 
-        visible: false
-        asynchronous: false
-        onLoaded: item.finished.connect(animations._handleBackendFinished)
+    NumberAnimation {
+        id: enterFadeAnim
+        property: "opacity"
+        from: 0.0; to: 1.0
+        duration: animationDuration
+        easing.type: Easing.OutCubic
+        onFinished: animations.animationFinished(control.currentIndex)
+    }
+
+    // PopUp enter only 仅PopUp入场
+    ParallelAnimation {
+        id: enterPopUpGroup
+        property Item target
+        onFinished: animations.animationFinished(control.currentIndex)
+
+        NumberAnimation { target: enterPopUpGroup.target; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutQuad }
+        NumberAnimation { target: enterPopUpGroup.target; property: "opacity"; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
+    }
+
+    // PopDown enter only 仅PopDown入场
+    ParallelAnimation {
+        id: enterPopDownGroup
+        property Item target
+        onFinished: animations.animationFinished(control.currentIndex)
+
+        NumberAnimation { target: enterPopDownGroup.target; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutBounce }
+        NumberAnimation { target: enterPopDownGroup.target; property: "opacity"; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
+    }
+
+    // Zoom enter only 仅缩放入场
+    NumberAnimation {
+        id: enterZoomAnim
+        property: "scale"
+        from: 0; to: 1
+        duration: animationDuration / 2
+        easing.type: Easing.OutQuad
+        onFinished: animations.animationFinished(control.currentIndex)
+    }
+
+    // Slide enter only 仅滑动入场
+    NumberAnimation {
+        id: enterSlideAnim
+        property: "x"
+        to: 0
+        duration: animationDuration
+        easing.type: Easing.OutCubic
+        onFinished: animations.animationFinished(control.currentIndex)
+    }
+
+    // Slide animation 滑动动画
+    ParallelAnimation {
+        id: slideGroup
+        onFinished: {
+            slideOutAnim.target.visible = false
+            slideOutAnim.target.x = 0
+            animations.animationFinished(control.currentIndex)
+        }
+
+        NumberAnimation { id: slideOutAnim; property: "x"; from: 0; duration: animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: slideInAnim; property: "x"; to: 0; duration: animationDuration; easing.type: Easing.OutCubic }
+    }
+
+    // PopUp animation 弹出动画
+    ParallelAnimation {
+        id: popUpGroup
+        property Item _oldWidget: null
+        onStarted: { if (_oldWidget) _oldWidget.visible = false }
+        onFinished: animations.animationFinished(control.currentIndex)
+
+        NumberAnimation { id: popUpYAnim; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutQuad }
+        NumberAnimation { id: popUpOpacityAnim; property: "opacity"; from: 0.0; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
+    }
+
+    // PopDown animation 下落动画
+    ParallelAnimation {
+        id: popDownGroup
+        property Item _oldWidget: null
+        onStarted: { if (_oldWidget) _oldWidget.visible = false }
+        onFinished: animations.animationFinished(control.currentIndex)
+
+        NumberAnimation { id: popDownYAnim; property: "y"; to: 0; duration: animationDuration; easing.type: Easing.OutBounce }
+        NumberAnimation { id: popDownOpacityAnim; property: "opacity"; from: 0.0; to: 1.0; duration: animationDuration; easing.type: Easing.OutQuad }
+    }
+
+    // Zoom animation 缩放动画
+    // Old page scale down (scale: 1 -> 0) 旧页面缩小
+    SequentialAnimation {
+        id: zoomOutAnim
+        NumberAnimation {
+            target: _zoomOldWidget
+            property: "scale"
+            from: 1; to: 0
+            duration: animationDuration / 2
+            easing.type: Easing.InQuad
+        }
+        ScriptAction {
+            script: {
+                _zoomOldWidget.visible = false
+                _zoomOldWidget.scale = 1
+                _zoomNewWidget.visible = true
+                _zoomNewWidget.scale = 0
+                zoomInAnim.start()
+            }
+        }
+    }
+
+    // New page scale up (scale: 0 -> 1) 新页面放大
+    NumberAnimation {
+        id: zoomInAnim
+        target: _zoomNewWidget
+        property: "scale"
+        from: 0; to: 1
+        duration: animationDuration / 2
+        easing.type: Easing.OutQuad
+        onFinished: animations.animationFinished(control.currentIndex)
+    }
+
+    // Card animation 卡片层叠动画
+    ParallelAnimation {
+        id: cardGroup
+        property bool _isBack: false
+        property Item _oldWidget: null
+        onFinished: {
+            if (_oldWidget) {
+                _oldWidget.visible = false
+                _oldWidget.x = 0
+                _oldWidget.scale = 1
+                _oldWidget.opacity = 1
+            }
+            animations.animationFinished(control.currentIndex)
+        }
+
+        NumberAnimation { id: cardSlideAnim; property: "x"; duration: animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: cardScaleAnim; property: "scale"; duration: animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: cardOpacityAnim; property: "opacity"; duration: animationDuration; easing.type: Easing.OutCubic }
     }
 }

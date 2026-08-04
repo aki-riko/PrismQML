@@ -483,7 +483,7 @@ Item {
 
     // ==================== Content 内容 ====================
     // Animation helper 动画助手
-    StackedAnimations {
+    StackedModeAnimations {
         id: animations
         control: control
         animationDuration: control.animationDuration
