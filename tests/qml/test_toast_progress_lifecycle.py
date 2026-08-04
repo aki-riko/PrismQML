@@ -5,9 +5,18 @@
 """Toast progress branch lifecycle regressions. Toast 进度分支生命周期回归。"""
 
 from pathlib import Path
+from time import perf_counter
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QObject, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QMetaObject,
+    QObject,
+    QTimer,
+    QUrl,
+)
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -29,6 +38,9 @@ Window {
 
     property string initialMode: "normal"
     property real initialProgress: 0.42
+    property int autoCloseDuration: 0
+    property int completedCloseDuration: 0
+    property int closedCount: 0
     readonly property int normalFeature: Enums.notification.feature_normal
     readonly property int barFeature: Enums.notification.feature_progress_bar
     readonly property int indeterminateBarFeature: Enums.notification.feature_indeterminate_bar
@@ -41,23 +53,45 @@ Window {
         initialMode === "indeterminate_ring" ? indeterminateRingFeature :
         normalFeature
 
+    function showToast() { toast.show() }
+
     width: 520
     height: 180
     visible: true
 
     Toast {
+        id: toast
+
         objectName: "toast"
         visible: true
         desktopMode: true
-        duration: 0
+        duration: root.autoCloseDuration
+        completeDuration: root.completedCloseDuration
         closable: false
         title: "Progress"
         message: "Processing"
         feature: root.modeFeature
         progress: root.initialProgress
+        onClosed: root.closedCount += 1
     }
 }
 """
+
+
+def _pump(milliseconds: int = 20) -> None:
+    loop = QEventLoop()
+    QTimer.singleShot(milliseconds, loop.quit)
+    loop.exec()
+
+
+def _wait_for(predicate, timeout_ms: int = 1_000) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 20
+    return predicate()
 
 
 def _new_visible_windows(windows_before, *allowed):
@@ -113,6 +147,93 @@ def _progress_controls(toast: QQuickItem, prefix: str) -> list[QObject]:
         for obj in toast.findChildren(QObject)
         if obj.metaObject().className().startswith(prefix)
     ]
+
+
+def _timers(toast: QQuickItem) -> list[QObject]:
+    return [
+        obj
+        for obj in toast.findChildren(QObject)
+        if obj.metaObject().className().startswith("QQmlTimer")
+        and obj.parent() is toast
+    ]
+
+
+def test_toast_keeps_two_close_timers(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, toast, warnings = _create_scene("normal")
+    try:
+        timers = _timers(toast)
+        object_count = len(toast.findChildren(QObject))
+
+        print(
+            "TOAST_CLOSE_TIMER",
+            f"timers={len(timers)}",
+            f"objects={object_count}",
+        )
+
+        assert len(timers) == 2
+        assert all(timer.property("running") is False for timer in timers)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_toast_show_restarts_auto_close_for_incomplete_progress(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, toast, warnings = _create_scene("bar")
+    try:
+        auto_close_duration = 120
+        assert window.setProperty("autoCloseDuration", auto_close_duration)
+        shown_at = perf_counter()
+        assert QMetaObject.invokeMethod(window, "showToast")
+        _pump(auto_close_duration // 2)
+        assert window.property("closedCount") == 0
+        assert _wait_for(lambda: window.property("closedCount") == 1)
+        elapsed_after_show_ms = (perf_counter() - shown_at) * 1_000
+
+        print(
+            "TOAST_INCOMPLETE_SHOW_TIMER",
+            f"after_show_ms={elapsed_after_show_ms:.1f}",
+        )
+
+        assert elapsed_after_show_ms >= auto_close_duration * 0.75
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_toast_show_does_not_restart_active_completion_timer(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, toast, warnings = _create_scene("bar")
+    try:
+        shared_duration = 300
+        assert window.setProperty("autoCloseDuration", shared_duration)
+        assert window.setProperty("completedCloseDuration", shared_duration)
+        assert window.setProperty("initialProgress", 1.0)
+        _pump(190)
+        assert window.property("closedCount") == 0
+
+        shown_at = perf_counter()
+        assert QMetaObject.invokeMethod(window, "showToast")
+        assert sum(timer.property("running") for timer in _timers(toast)) == 2
+        assert _wait_for(lambda: window.property("closedCount") == 1)
+        elapsed_after_show_ms = (perf_counter() - shown_at) * 1_000
+
+        print(
+            "TOAST_CLOSE_SHOW_TRANSITION",
+            f"after_show_ms={elapsed_after_show_ms:.1f}",
+        )
+
+        assert elapsed_after_show_ms < shared_duration * 0.75
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
 
 
 def test_normal_toast_keeps_one_idle_progress_control_per_shape(qapp):
