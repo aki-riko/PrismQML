@@ -158,21 +158,12 @@ Rectangle {
     }
 
     Loader {
+        readonly property var rowData: rowDelegate.effectiveData
+        readonly property int rowIndex: rowDelegate.index
+
         anchors.fill: parent
         active: table.paintedRowMode
-        sourceComponent: paintedRowComponent
-    }
-
-    Component {
-        id: paintedRowComponent
-
-        PaintedRow {
-            columns: table._safeColumns
-            rowData: rowDelegate.effectiveData
-            rowIndex: rowDelegate.index
-            rowHeight: table.rowHeight
-            extraDraw: table.paintedRowExtra
-        }
+        sourceComponent: table._paintedRowComponent
     }
 
     Row {

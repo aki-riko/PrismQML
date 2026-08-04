@@ -61,6 +61,7 @@ DataWidgetCore {
     property int rowCount: _calcRowCount()
     readonly property int columnCount: (_safeColumns || []).length
     readonly property real _columnViewportWidth: listView.width > 0 ? listView.width : root.width
+    readonly property Component _paintedRowComponent: paintedRowComponent
 
     // Context menu 右键菜单
     property bool contextMenuEnabled: false
@@ -563,6 +564,18 @@ DataWidgetCore {
     }
 
     // ==================== Content 内容 ====================
+    Component {
+        id: paintedRowComponent
+
+        PaintedRow {
+            columns: root._safeColumns
+            rowData: parent ? parent.rowData : null
+            rowIndex: parent ? parent.rowIndex : -1
+            rowHeight: root.rowHeight
+            extraDraw: root.paintedRowExtra
+        }
+    }
+
     headerContent: Component {
         TableInternal.TableHeader {
             table: root
