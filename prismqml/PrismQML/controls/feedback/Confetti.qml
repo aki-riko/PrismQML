@@ -110,68 +110,54 @@ Item {
             
             // Shape rendering 形状渲染
 
-            Loader {
+            Rectangle {
+                id: particleShape
+
                 anchors.centerIn: parent
-                sourceComponent: {
+                width: {
                     switch (particle.shapeType) {
-                        case 0: return rectShape      // Rectangle 矩形
-
-                        case 1: return circleShape    // Circle 圆形
-
-                        case 2: return ribbonShape    // Ribbon 丝带
-
+                        case 0: return particle.particleSize
+                        case 1: return particle.particleSize * 0.8
+                        case 2: return particle.particleSize * 1.5
+                        default: return 0
                     }
                 }
-            }
-            
-            // Rectangle confetti 矩形彩纸
-
-            Component {
-                id: rectShape
-                Rectangle {
-                    width: particle.particleSize
-                    height: particle.particleSize * 0.6
-                    radius: Enums.radius.micro
-                    color: particle.particleColor
-                    rotation: particle.initialRotation
-                    
-                    RotationAnimation on rotation {
-                        from: particle.initialRotation
-                        to: particle.initialRotation + particle.rotationSpeed
-                        duration: particle.fallDuration
-                        running: true
+                height: {
+                    switch (particle.shapeType) {
+                        case 0: return particle.particleSize * 0.6
+                        case 1: return width
+                        case 2: return particle.particleSize * 0.3
+                        default: return 0
                     }
                 }
-            }
-            
-            // Circle confetti 圆形彩纸
-
-            Component {
-                id: circleShape
-                Rectangle {
-                    width: particle.particleSize * 0.8
-                    height: width
-                    radius: width / 2
-                    color: particle.particleColor
+                radius: {
+                    switch (particle.shapeType) {
+                        case 0: return Enums.radius.micro
+                        case 1: return width / 2
+                        case 2: return height / 2
+                        default: return 0
+                    }
                 }
-            }
-            
-            // Ribbon confetti 丝带彩纸
+                color: particle.particleColor
+                rotation: particle.shapeType === 1 ? 0 : particle.initialRotation
+                visible: particle.shapeType >= 0 && particle.shapeType <= 2
 
-            Component {
-                id: ribbonShape
-                Rectangle {
-                    width: particle.particleSize * 1.5
-                    height: particle.particleSize * 0.3
-                    radius: height / 2
-                    color: particle.particleColor
-                    rotation: particle.initialRotation
-                    
-                    RotationAnimation on rotation {
-                        from: particle.initialRotation
-                        to: particle.initialRotation + particle.rotationSpeed * 1.5
-                        duration: particle.fallDuration
-                        running: true
+                RotationAnimation on rotation {
+                    id: particleShapeRotation
+
+                    readonly property int currentShape: particle.shapeType
+
+                    from: particle.initialRotation
+                    to: particle.initialRotation + particle.rotationSpeed
+                        * (particle.shapeType === 2 ? 1.5 : 1)
+                    duration: particle.fallDuration
+                    running: particleShape.visible && particle.shapeType !== 1
+                    onCurrentShapeChanged: {
+                        if (particleShape.visible && currentShape !== 1) {
+                            restart()
+                        } else {
+                            stop()
+                        }
                     }
                 }
             }

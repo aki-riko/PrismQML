@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import os
 from pathlib import Path
 from time import perf_counter
 
@@ -20,14 +22,16 @@ from PySide6.QtCore import (
     QTimer,
     QUrl,
 )
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QImage
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(
+    os.environ.get("PRISMQML_TEST_ROOT", Path(__file__).resolve().parents[2])
+).resolve()
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "confetti-particle-shape-lifecycle.qml")
 )
@@ -140,6 +144,11 @@ def _shape_rectangle(particle: QQuickItem) -> QQuickItem:
     return rectangles[0]
 
 
+def _image_hash(image: QImage) -> str:
+    normalized = image.convertToFormat(QImage.Format.Format_RGBA8888)
+    return hashlib.sha256(bytes(normalized.bits())).hexdigest()
+
+
 def _set_shape(particle: QQuickItem, shape_type: int) -> QQuickItem:
     intermediate_type = (shape_type + 1) % 3
     assert particle.setProperty("shapeType", intermediate_type)
@@ -189,6 +198,25 @@ def test_confetti_particle_shapes_preserve_geometry_and_color(
         assert rectangle.property("color") == particle.property("particleColor")
         assert center.x() == pytest.approx(0.0, abs=0.1)
         assert center.y() == pytest.approx(0.0, abs=0.1)
+
+        for animation in particle.findChildren(QObject):
+            if (
+                animation.metaObject().indexOfProperty("paused") >= 0
+                and animation.property("running") is True
+                and animation.parent() in (particle, rectangle)
+            ):
+                animation.setProperty("paused", True)
+        particle.setX(window.width() / 2)
+        particle.setY(window.height() / 2)
+        _pump()
+        image = window.grabWindow()
+        assert not image.isNull()
+        print(
+            "CONFETTI_SHAPE_HASH",
+            f"shape={shape_type}",
+            f"hash={_image_hash(image)}",
+        )
+
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
@@ -196,7 +224,7 @@ def test_confetti_particle_shapes_preserve_geometry_and_color(
         assert _new_visible_windows(windows_before) == []
 
 
-def test_confetti_particle_shape_object_baseline(qapp):
+def test_confetti_particle_reuses_one_shape_item(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, confetti, warnings = _create_scene()
     try:
@@ -224,9 +252,9 @@ def test_confetti_particle_shape_object_baseline(qapp):
         )
 
         assert rectangle is not None
-        assert len(descendants) == 16
-        assert len(loaders) == 1
-        assert len(components) == 3
+        assert len(descendants) == 11
+        assert len(loaders) == 0
+        assert len(components) == 0
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
@@ -234,7 +262,7 @@ def test_confetti_particle_shape_object_baseline(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_confetti_initial_batch_object_baseline(qapp):
+def test_confetti_initial_batch_reduces_shape_objects(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, confetti, warnings = _create_scene(20)
     try:
@@ -256,7 +284,7 @@ def test_confetti_initial_batch_object_baseline(qapp):
             f"start_ms={elapsed_ms:.3f}",
         )
 
-        assert object_count == 343
+        assert object_count == 243
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
