@@ -249,11 +249,11 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
 
         assert QMetaObject.invokeMethod(popup, "close")
         closing_timers = _timers(menu_bar)
+        QTest.mouseMove(window, QPoint(window.width() - 5, window.height() - 5))
         assert _wait_for(
             lambda: _new_visible_windows(windows_before, window) == []
         )
         assert _wait_for(lambda: menu_bar.property("activeIndex") == -1)
-        QTest.mouseMove(window, QPoint(window.width() - 5, window.height() - 5))
         _pump(500)
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         qapp.processEvents()
