@@ -16,14 +16,8 @@ Item {
     required property real cardOpacity
 
     // ==================== Internal Props 内部属性 ====================
-    readonly property url _fadeSource: Qt.resolvedUrl("StackedFadeAnimations.qml")
-    readonly property url _slideSource: Qt.resolvedUrl("StackedSlideAnimations.qml")
-    readonly property url _popUpSource: Qt.resolvedUrl("StackedPopUpAnimations.qml")
-    readonly property url _popDownSource: Qt.resolvedUrl("StackedPopDownAnimations.qml")
-    readonly property url _zoomSource: Qt.resolvedUrl("StackedZoomAnimations.qml")
-    readonly property url _cardSource: Qt.resolvedUrl("StackedCardAnimations.qml")
+    property bool _completed: false
     readonly property url _desiredSource: _sourceForType(control.animationType)
-    readonly property QtObject _backend: backendLoader.item
 
     // ==================== Signals 信号 ====================
     signal animationFinished(int currentIndex)
@@ -64,66 +58,73 @@ Item {
     }
 
     function stopAllAnimations() {
-        if (_backend) _backend.stopAllAnimations()
+        if (backendLoader.item) backendLoader.item.stopAllAnimations()
     }
 
     function fadeTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_fadeSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.opacity))
         if (backend) backend.transition(oldIndex, newIndex)
     }
     function enterFadeOnly(newIndex) {
-        var backend = _ensureBackend(_fadeSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.opacity))
         if (backend) backend.enterOnly(newIndex)
     }
     function slideTransition(oldIndex, newIndex, isBack) {
-        var backend = _ensureBackend(_slideSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.slide))
         if (backend) backend.transition(oldIndex, newIndex, isBack)
     }
     function enterSlideOnly(newIndex) {
         var backend = _ensureBackend(
-                    control.animationType === Enums.animation.card ? _cardSource : _slideSource)
+                    _sourceForType(control.animationType === Enums.animation.card ?
+                                       Enums.animation.card : Enums.animation.slide))
         if (backend) backend.enterOnly(newIndex)
     }
     function popUpTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_popUpSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.popup))
         if (backend) backend.transition(oldIndex, newIndex)
     }
     function enterPopUpOnly(newIndex) {
-        var backend = _ensureBackend(_popUpSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.popup))
         if (backend) backend.enterOnly(newIndex)
     }
     function popDownTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_popDownSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.popdown))
         if (backend) backend.transition(oldIndex, newIndex)
     }
     function enterPopDownOnly(newIndex) {
-        var backend = _ensureBackend(_popDownSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.popdown))
         if (backend) backend.enterOnly(newIndex)
     }
     function zoomTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_zoomSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.zoom))
         if (backend) backend.transition(oldIndex, newIndex)
     }
     function enterZoomOnly(newIndex) {
-        var backend = _ensureBackend(_zoomSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.zoom))
         if (backend) backend.enterOnly(newIndex)
     }
     function cardTransition(oldIndex, newIndex, isBack) {
-        var backend = _ensureBackend(_cardSource)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.card))
         if (backend) backend.transition(oldIndex, newIndex, isBack)
     }
 
     // ==================== Internal Methods 内部方法 ====================
     function _sourceForType(type) {
         switch (type) {
-            case Enums.animation.opacity: return _fadeSource
-            case Enums.animation.popup: return _popUpSource
-            case Enums.animation.popdown: return _popDownSource
-            case Enums.animation.slide: return _slideSource
-            case Enums.animation.card: return _cardSource
-            case Enums.animation.zoom: return _zoomSource
+            case Enums.animation.opacity:
+                return Qt.resolvedUrl("StackedFadeAnimations.qml")
+            case Enums.animation.popup:
+                return Qt.resolvedUrl("StackedPopUpAnimations.qml")
+            case Enums.animation.popdown:
+                return Qt.resolvedUrl("StackedPopDownAnimations.qml")
+            case Enums.animation.slide:
+                return Qt.resolvedUrl("StackedSlideAnimations.qml")
+            case Enums.animation.card:
+                return Qt.resolvedUrl("StackedCardAnimations.qml")
+            case Enums.animation.zoom:
+                return Qt.resolvedUrl("StackedZoomAnimations.qml")
             case Enums.animation.none: return ""
-            default: return _fadeSource
+            default: return Qt.resolvedUrl("StackedFadeAnimations.qml")
         }
     }
 
@@ -142,7 +143,7 @@ Item {
     }
 
     function _preloadDesiredBackend() {
-        if (_backend && _backend.running) return
+        if (backendLoader.item && backendLoader.item.running) return
         _ensureBackend(_desiredSource)
     }
 
@@ -153,15 +154,15 @@ Item {
         }
     }
 
-    Component.onCompleted: _preloadDesiredBackend()
-
-    // ==================== Content 内容 ====================
-    Connections {
-        function onAnimationTypeChanged() { animations._preloadDesiredBackend() }
-
-        target: animations.control
+    on_DesiredSourceChanged: {
+        if (_completed) _preloadDesiredBackend()
+    }
+    Component.onCompleted: {
+        _completed = true
+        _preloadDesiredBackend()
     }
 
+    // ==================== Content 内容 ====================
     Loader {
         id: backendLoader
 
