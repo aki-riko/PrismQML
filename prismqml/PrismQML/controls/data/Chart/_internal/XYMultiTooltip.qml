@@ -40,8 +40,12 @@ Loader {
             return chartBase.chartAreaY + Enums.spacing.m
         return 0
     }
-    active: (chart.chartType === Enums.chart.type_bar && chart._barContent !== null && chart._barContent.isMultiSeries) ||
-            (chart.chartType === Enums.chart.type_line && chart._lineContent !== null && chart._lineContent.isMultiSeries)
+    active: chart.showTooltip && (
+        (chart.chartType === Enums.chart.type_bar
+            && chart._barContent !== null && chart._barContent.isMultiSeries) ||
+        (chart.chartType === Enums.chart.type_line
+            && chart._lineContent !== null && chart._lineContent.isMultiSeries)
+    )
     sourceComponent: Component {
         ChartMultiTooltip {
             visible: !chart._viewportTransitionActive &&
