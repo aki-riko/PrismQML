@@ -196,7 +196,7 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
         )
 
         assert len(initial_timers) == 0
-        assert len(loaded_timers) == 2
+        assert len(loaded_timers) == 1
         assert len(shown_timers) == 2
         assert len(restored_timers) == 0
         assert restored_timers == initial_timers
@@ -218,8 +218,8 @@ def test_action_source_loads_timer_with_tooltip():
     assert "onTriggered: actionTooltip.show()" in source
 
 
-def test_tooltip_source_keeps_direct_follow_timer():
-    """The baseline keeps one direct follow timer. 基线保留一个直接跟随计时器。"""
+def test_tooltip_source_loads_follow_timer_with_window_host():
+    """The follow timer must share the native host lifecycle. 跟随计时器必须跟随原生宿主生命周期。"""
     source = TOOLTIP_SOURCE_PATH.read_text(encoding="utf-8")
-    assert "running: control.followAnchor && control._windowVisible" in source
-    assert "running: control.followAnchor && windowHost.windowVisible" not in source
+    assert "running: control.followAnchor && control._windowVisible" not in source
+    assert "running: control.followAnchor && windowHost.windowVisible" in source

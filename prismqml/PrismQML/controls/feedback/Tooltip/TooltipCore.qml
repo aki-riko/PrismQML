@@ -97,14 +97,6 @@ Item {
         }
     }
 
-    // followAnchor 开启且窗口可见时,持续跟随锚点位置(手柄拖动时 tooltip 不掉队)
-    Timer {
-        interval: 16
-        repeat: true
-        running: control.followAnchor && control._windowVisible
-        onTriggered: control._reposition()
-    }
-
     // ==================== Content 内容 ====================
     // Keep width available before the window is created 窗口创建前保持宽度可用
     TextMetrics {
@@ -158,6 +150,15 @@ Item {
             objectName: "tooltipWindowHost"
             width: 0
             height: 0
+
+            // Follow a moving anchor only after the native host exists.
+            // 仅在原生宿主创建后跟随移动锚点。
+            Timer {
+                interval: 16
+                repeat: true
+                running: control.followAnchor && windowHost.windowVisible
+                onTriggered: control._reposition()
+            }
 
             // Tooltip window 独立提示窗口
             Window {
