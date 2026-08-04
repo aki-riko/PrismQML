@@ -139,11 +139,16 @@ def _wait_for(predicate, timeout_ms: int = 2_000) -> bool:
 
 
 def _timers(helper: QQuickItem) -> list[QObject]:
-    return [
-        child
+    timers = {
+        shiboken6.getCppPointer(child)[0]: child
         for child in helper.findChildren(QObject)
         if child.metaObject().className() == "QQmlTimer"
-    ]
+    }
+    for property_name in ("_bounceTimerV", "_bounceTimerH"):
+        timer = helper.property(property_name)
+        if timer is not None:
+            timers[shiboken6.getCppPointer(timer)[0]] = timer
+    return list(timers.values())
 
 
 def _image_hash(image: QImage) -> str:
@@ -257,13 +262,14 @@ def test_smooth_scroll_bounce_timer_and_pixels(qapp):
             f"hash={settled_hash}",
         )
 
-        assert len(initial_vertical_timers) == 4
-        assert len(initial_horizontal_timers) == 4
-        assert len(active_vertical_timers) == 4
-        assert len(active_horizontal_timers) == 4
-        assert len(settled_vertical_timers) == 4
-        assert len(settled_horizontal_timers) == 4
-        assert settled_objects == initial_objects
+        assert len(initial_vertical_timers) == 2
+        assert len(initial_horizontal_timers) == 2
+        assert len(active_vertical_timers) == 3
+        assert len(active_horizontal_timers) == 3
+        assert len(settled_vertical_timers) == 2
+        assert len(settled_horizontal_timers) == 2
+        assert initial_objects == (9, 9)
+        assert settled_objects == (9, 9)
         assert peak_vertical > vertical_maximum
         assert peak_horizontal > horizontal_maximum
         assert repeated_hash == settled_hash
@@ -274,10 +280,18 @@ def test_smooth_scroll_bounce_timer_and_pixels(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_smooth_scroll_source_keeps_axis_bounce_timers():
-    """The baseline keeps one bounce timer per axis. 基线中每个轴各有回弹计时器。"""
+def test_smooth_scroll_source_creates_axis_bounce_timers_on_demand():
+    """Each axis creates an independent bounce timer only while needed.
+
+    每个轴仅在需要时创建独立回弹计时器。
+    """
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert "id: bounceTimerV" in source
-    assert "id: bounceTimerH" in source
-    assert "bounceTimerV.restart()" in source
-    assert "bounceTimerH.restart()" in source
+    assert "id: bounceTimerV" not in source
+    assert "id: bounceTimerH" not in source
+    assert "id: bounceTimerComponent" in source
+    assert "bounceTimerComponent.createObject(" in source
+    assert "_restartBounceTimer(true)" in source
+    assert "_restartBounceTimer(false)" in source
+    assert "_stopBounceTimer(true)" in source
+    assert "_stopBounceTimer(false)" in source
+    assert "_releaseBounceTimer(verticalAxis, bounceTimer)" in source

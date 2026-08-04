@@ -35,6 +35,8 @@ Item {
     property real _smoothX: 0
     property bool _isOvershotH: false
     property int _boundaryTargetH: 0  // -1=start, 0=absolute, 1=end
+    property QtObject _bounceTimerV: null
+    property QtObject _bounceTimerH: null
     // _syncing = true 时禁用动画, 让 ScrollBar 拖拽场景下 contentX/Y 立即跟随 handle,
     // 不被 Behavior 平滑过渡反向拖拽.
     property bool _syncing: false
@@ -118,6 +120,40 @@ Item {
         return Math.max(minimum, Math.min(maximum, value))
     }
 
+    function _restartBounceTimer(verticalAxis) {
+        var timer = verticalAxis ? _bounceTimerV : _bounceTimerH
+        if (!timer) {
+            timer = bounceTimerComponent.createObject(
+                helper, { "verticalAxis": verticalAxis }
+            )
+            if (!timer) {
+                console.error("SmoothScrollHelper failed to create bounce timer")
+                return
+            }
+            if (verticalAxis) _bounceTimerV = timer
+            else _bounceTimerH = timer
+        }
+        timer.restart()
+    }
+
+    function _stopBounceTimer(verticalAxis) {
+        var timer = verticalAxis ? _bounceTimerV : _bounceTimerH
+        if (!timer) return
+        timer.stop()
+        if (verticalAxis) _bounceTimerV = null
+        else _bounceTimerH = null
+        timer.destroy()
+    }
+
+    function _releaseBounceTimer(verticalAxis, timer) {
+        if (verticalAxis) {
+            if (_bounceTimerV === timer) _bounceTimerV = null
+        } else if (_bounceTimerH === timer) {
+            _bounceTimerH = null
+        }
+        timer.destroy()
+    }
+
     // ListView/GridView may change origin while delegates are recycled.
     // ListView/GridView 复用 delegate 时可能动态改变 origin，目标与动画值必须同步回合法区间。
     function _reconcileVerticalBounds() {
@@ -137,7 +173,7 @@ Item {
         var smoothY = _clamp(_smoothY, _minY, _maxY)
         if (targetY === _targetY && smoothY === _smoothY) return
         _isOvershotV = false
-        bounceTimerV.stop()
+        _stopBounceTimer(true)
         _targetY = targetY
         if (smoothY !== _smoothY) {
             _syncing = true
@@ -164,7 +200,7 @@ Item {
         var smoothX = _clamp(_smoothX, _minX, _maxX)
         if (targetX === _targetX && smoothX === _smoothX) return
         _isOvershotH = false
-        bounceTimerH.stop()
+        _stopBounceTimer(false)
         _targetX = targetX
         if (smoothX !== _smoothX) {
             _syncing = true
@@ -205,7 +241,7 @@ Item {
             var overshootDelta = _minY - newTarget
             var currentOvershoot = _smoothY < _minY ? _minY - _smoothY : 0
             _smoothY = _minY - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
-            bounceTimerV.restart()
+            _restartBounceTimer(true)
         } else {
             // Bottom overshoot 底部超出
             _targetY = _maxY
@@ -213,7 +249,7 @@ Item {
             var overshootDeltaBottom = newTarget - _maxY
             var currentOvershootBottom = _smoothY > _maxY ? _smoothY - _maxY : 0
             _smoothY = _maxY + Math.min(currentOvershootBottom + overshootDeltaBottom, _maxOvershoot)
-            bounceTimerV.restart()
+            _restartBounceTimer(true)
         }
     }
 
@@ -253,7 +289,7 @@ Item {
             var overshootDelta = _minX - newTarget
             var currentOvershoot = _smoothX < _minX ? _minX - _smoothX : 0
             _smoothX = _minX - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
-            bounceTimerH.restart()
+            _restartBounceTimer(false)
         } else {
             // Right overshoot 右侧超出
             _targetX = _maxX
@@ -261,7 +297,7 @@ Item {
             var overshootDeltaRight = newTarget - _maxX
             var currentOvershootRight = _smoothX > _maxX ? _smoothX - _maxX : 0
             _smoothX = _maxX + Math.min(currentOvershootRight + overshootDeltaRight, _maxOvershoot)
-            bounceTimerH.restart()
+            _restartBounceTimer(false)
         }
     }
 
@@ -312,17 +348,22 @@ Item {
     }
     
     // ==================== Content 内容 ====================
-    // Bounce timers 回弹定时器
-    Timer {
-        id: bounceTimerV
-        interval: Enums.duration.fast
-        onTriggered: helper._bounceBackV()
-    }
-    
-    Timer {
-        id: bounceTimerH
-        interval: Enums.duration.fast
-        onTriggered: helper._bounceBackH()
+    // On-demand bounce timer 按需回弹计时器
+    Component {
+        id: bounceTimerComponent
+
+        Timer {
+            id: bounceTimer
+
+            required property bool verticalAxis
+
+            interval: Enums.duration.fast
+            onTriggered: {
+                if (verticalAxis) helper._bounceBackV()
+                else helper._bounceBackH()
+                helper._releaseBounceTimer(verticalAxis, bounceTimer)
+            }
+        }
     }
 
     Timer {
