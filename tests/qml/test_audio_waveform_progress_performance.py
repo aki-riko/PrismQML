@@ -237,9 +237,13 @@ def test_audio_waveform_hover_scale_preserves_curve_and_retargeting(qapp):
 
         QTest.mouseMove(window, QPoint(100, 50))
         assert _wait_for(lambda: waveform.property("_hovered") is True)
-        _pump(30)
+        assert _wait_for(
+            lambda: all(
+                1.0 < x_scale < 1.05
+                for x_scale, _ in _scale_values(waveform)
+            )
+        )
         entering = _scale_values(waveform)
-        assert all(1.0 < x_scale < 1.05 for x_scale, _ in entering)
         assert entering == pytest.approx([entering[0]] * 4)
         assert (entering[0][0] - 1.0) / 0.05 == pytest.approx(
             (entering[0][1] - 1.0) / 0.02,
@@ -251,9 +255,13 @@ def test_audio_waveform_hover_scale_preserves_curve_and_retargeting(qapp):
 
         QTest.mouseMove(window, QPoint(350, 110))
         assert _wait_for(lambda: waveform.property("_hovered") is False)
-        _pump(30)
+        assert _wait_for(
+            lambda: all(
+                1.0 < x_scale < 1.05
+                for x_scale, _ in _scale_values(waveform)
+            )
+        )
         leaving = _scale_values(waveform)
-        assert all(1.0 < x_scale < 1.05 for x_scale, _ in leaving)
         assert leaving == pytest.approx([leaving[0]] * 4)
         assert (leaving[0][0] - 1.0) / 0.05 == pytest.approx(
             (leaving[0][1] - 1.0) / 0.02,
