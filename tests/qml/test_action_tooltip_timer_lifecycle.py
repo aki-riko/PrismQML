@@ -157,10 +157,10 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
         initial_objects = len(action.findChildren(QObject))
 
         assert action.setProperty("toolTip", "Dynamic tooltip")
-        assert _wait_for(lambda: loader.property("item") is not None)
-        tooltip = loader.property("item")
-        loaded_timers = _timers(action)
-        loaded_objects = len(action.findChildren(QObject))
+        _pump()
+        assert loader.property("item") is None
+        cold_timers = _timers(action)
+        cold_objects = len(action.findChildren(QObject))
 
         started = perf_counter()
         QTest.mouseMove(
@@ -170,6 +170,10 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
                 round(action.y() + action.height() / 2),
             ),
         )
+        assert _wait_for(lambda: loader.property("item") is not None)
+        tooltip = loader.property("item")
+        loaded_timers = _timers(action)
+        loaded_objects = len(action.findChildren(QObject))
         assert _wait_for(lambda: bool(tooltip.property("_windowVisible")), 1_400)
         elapsed_ms = (perf_counter() - started) * 1_000
         assert elapsed_ms >= 500
@@ -187,20 +191,30 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
 
         print(
             "ACTION_TOOLTIP_TIMER",
-            f"timers={len(initial_timers)}/{len(loaded_timers)}/"
+            f"timers={len(initial_timers)}/{len(cold_timers)}/"
+            f"{len(loaded_timers)}/"
             f"{len(shown_timers)}/"
             f"{len(restored_timers)}",
-            f"objects={initial_objects}/{loaded_objects}/{shown_objects}/"
+            f"objects={initial_objects}/{cold_objects}/{loaded_objects}/"
+            f"{shown_objects}/"
             f"{restored_objects}",
             f"show_ms={elapsed_ms:.1f}",
         )
 
         assert len(initial_timers) == 0
+        assert len(cold_timers) == 0
         assert len(loaded_timers) == 1
         assert len(shown_timers) == 2
         assert len(restored_timers) == 0
         assert restored_timers == initial_timers
-        assert (initial_objects, loaded_objects, shown_objects, restored_objects) == (
+        assert (
+            initial_objects,
+            cold_objects,
+            loaded_objects,
+            shown_objects,
+            restored_objects,
+        ) == (
+            30,
             30,
             36,
             58,
@@ -218,6 +232,7 @@ def test_action_source_loads_timer_with_tooltip():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     assert "id: tipTimer" not in source
     assert "id: actionTooltip" in source
+    assert "itemArea.containsMouse || item !== null" in source
     assert 'running: control.toolTip !== "" && itemArea.containsMouse' in source
     assert "onTriggered: actionTooltip.show()" in source
 

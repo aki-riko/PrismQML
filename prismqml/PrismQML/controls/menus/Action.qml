@@ -146,12 +146,13 @@ Rectangle {
         visible: control.hasSubmenu && !control._isBottomText
     }
     
-    // Load tooltip only when text is available 仅在存在提示文本时加载
+    // Load on first hover, then retain until text clears 首次悬停时加载，文本清空前保持复用
     Loader {
         id: tipLoader
 
         objectName: "actionTooltipLoader"
         active: control.toolTip !== ""
+                && (itemArea.containsMouse || item !== null)
         sourceComponent: TooltipCore {
             id: actionTooltip
 
