@@ -599,7 +599,7 @@ Item {
         id: lazyHelperLoader
         anchors.fill: parent
         active: false
-        asynchronous: true
+        asynchronous: control._asynchronousPageLoaderEnabled
         onActiveChanged: control._traceLazyStage(
             "stacked.helper_loader.active_changed", control.currentIndex,
             "", lazyHelperLoader)
