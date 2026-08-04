@@ -51,6 +51,7 @@ WindowsCore {
     property bool _micaNativeApplySucceeded: false
     property bool _splashDismissed: false
     property bool _splashDismissRequested: false
+    property bool _splashDismissSchedulePending: false
     property double _splashVisibleSinceMs: 0
 
     // ==================== Readonly State 只读状态 ====================
@@ -217,6 +218,13 @@ WindowsCore {
     function _requestSplashDismiss() {
         if (_splashDismissed) return
         _splashDismissRequested = true
+        if (_splashDismissSchedulePending) return
+        _splashDismissSchedulePending = true
+        Qt.callLater(window._flushSplashDismissSchedule)
+    }
+
+    function _flushSplashDismissSchedule() {
+        _splashDismissSchedulePending = false
         _scheduleSplashDismiss()
     }
 
@@ -247,6 +255,7 @@ WindowsCore {
             return
         }
         _splashDismissed = true
+        _splashDismissSchedulePending = false
         _splashTimer.stop()
         profileTime("NavigationWindowCore splash finish start")
         if (_splashInstance) _splashInstance.finish()

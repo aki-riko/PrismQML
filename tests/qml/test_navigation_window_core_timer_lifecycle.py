@@ -204,6 +204,7 @@ def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
         assert _running_intervals(window) == [5_000]
 
         assert QMetaObject.invokeMethod(window, "markSplashPageLoaded")
+        assert _wait_for(lambda: len(_running_intervals(window)) == 1)
         splash_intervals = _running_intervals(window)
         assert len(splash_intervals) == 1
         assert 16 <= splash_intervals[0] <= 160
@@ -258,6 +259,7 @@ def test_navigation_window_core_source_reuses_one_splash_timer():
     assert "id: _splashTimer" in source
     assert "id: _splashMinimumVisibleTimer" not in source
     assert "id: _splashTimeoutTimer" not in source
+    assert "Qt.callLater(window._flushSplashDismissSchedule)" in source
     assert "id: _micaBackdropCommitTimer" in source
     assert "id: _micaReapplyTimer" in source
     assert "id: _micaLateReapplyTimer" in source
