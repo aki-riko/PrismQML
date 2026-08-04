@@ -11,10 +11,21 @@ import os
 from pathlib import Path
 
 import shiboken6
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QObject,
+    QPoint,
+    QPointF,
+    QTimer,
+    Qt,
+    QUrl,
+)
 from PySide6.QtGui import QGuiApplication, QImage
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 
@@ -153,6 +164,18 @@ def _component_count(owner: QObject) -> int:
     )
 
 
+def _class_count(view: QQuickItem, class_prefix: str) -> int:
+    objects = {}
+    for item in _walk_items(view):
+        for obj in (item, *item.findChildren(QObject)):
+            if shiboken6.isValid(obj):
+                objects[shiboken6.getCppPointer(obj)[0]] = obj
+    return sum(
+        obj.metaObject().className().startswith(class_prefix)
+        for obj in objects.values()
+    )
+
+
 def _object_count(view: QQuickItem) -> int:
     objects = {}
     for item in _walk_items(view):
@@ -165,6 +188,23 @@ def _object_count(view: QQuickItem) -> int:
 def _image_hash(image: QImage) -> str:
     normalized = image.convertToFormat(QImage.Format.Format_RGBA8888)
     return hashlib.sha256(bytes(normalized.bits())).hexdigest()
+
+
+def _copy_area(code_block: QQuickItem) -> QQuickItem:
+    matches = [
+        item
+        for item in _walk_items(code_block)
+        if item.metaObject().indexOfProperty("_copied") >= 0
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
+def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
+    point = item.mapToItem(
+        window.contentItem(), QPointF(item.width() / 2, item.height() / 2)
+    )
+    return QPoint(round(point.x()), round(point.y()))
 
 
 def test_markdown_blocks_keep_rendering_while_component_count_is_measured(qapp):
@@ -212,6 +252,7 @@ def test_markdown_blocks_keep_rendering_while_component_count_is_measured(qapp):
         view_components = _component_count(view)
         per_loader_components = [_component_count(loader) for loader in loaders]
         object_count = _object_count(view)
+        text_edit_count = _class_count(view, "QQuickTextEdit")
         _pump()
         image = window.grabWindow()
         assert not image.isNull()
@@ -222,14 +263,60 @@ def test_markdown_blocks_keep_rendering_while_component_count_is_measured(qapp):
             f"view_components={view_components}",
             f"per_loader={per_loader_components}",
             f"objects={object_count}",
+            f"text_edits={text_edit_count}",
             f"hash={image_hash}",
         )
 
         assert view_components == 3
         assert per_loader_components == [0, 0, 0, 0, 0]
         assert object_count == 134
+        assert text_edit_count == 2
+        assert image_hash == (
+            "1ac2b431709f37deb796232e7d4ae0776daf4fdf390e29cd71aef1436200e3f6"
+        )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_code_block_first_click_copies_and_feedback_expires(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, view, warnings = _create_scene()
+    clipboard = QGuiApplication.clipboard()
+    previous_text = clipboard.text()
+    try:
+        code_block = _block_loaders(view)[1].property("item")
+        copy_area = _copy_area(code_block)
+        timers = [
+            child
+            for child in copy_area.children()
+            if child.metaObject().indexOfProperty("interval") >= 0
+            and child.metaObject().indexOfProperty("repeat") >= 0
+        ]
+        assert len(timers) == 1
+        feedback_timer = timers[0]
+
+        clipboard.setText("")
+        window.requestActivate()
+        assert _wait_for(window.isActive)
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            _point_for(window, copy_area),
+        )
+        assert _wait_for(lambda: clipboard.text() == "print('one')")
+        assert copy_area.property("_copied")
+        assert feedback_timer.property("running")
+
+        _pump(int(feedback_timer.property("interval")) + 40)
+        assert not copy_area.property("_copied")
+        assert not feedback_timer.property("running")
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        clipboard.setText(previous_text)
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
