@@ -32,6 +32,14 @@ from prismqml import register_types
 ROOT = Path(
     os.environ.get("PRISMQML_TEST_ROOT", Path(__file__).resolve().parents[2])
 ).resolve()
+SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "utils"
+    / "ViewportCulling.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "viewport-culling-window-lifecycle.qml")
 )
@@ -313,3 +321,77 @@ def test_hidden_scroll_restores_the_first_culled_frame(qapp):
     finally:
         _dispose_scene(qapp, engine, component, window, previous_handler)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_hidden_and_minimized_windows_stop_culling_timer_wakeups(qapp):
+    """Invisible windows must not keep periodic culling work alive.
+
+    不可见窗口不得继续周期性执行裁剪工作。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    (
+        engine,
+        component,
+        window,
+        _flick,
+        _culling_items,
+        timers,
+        warnings,
+        messages,
+        previous_handler,
+    ) = scene
+    try:
+        hidden_spies = [QSignalSpy(timer.triggered) for timer in timers]
+        window.hide()
+        assert _wait_for(
+            lambda: window.visibility() == QWindow.Visibility.Hidden
+        )
+        hidden_start = [spy.count() for spy in hidden_spies]
+        _pump(360)
+        assert all(timer.property("running") is False for timer in timers)
+        assert all(
+            spy.count() == initial
+            for spy, initial in zip(hidden_spies, hidden_start)
+        )
+
+        window.show()
+        assert _wait_for(window.isExposed)
+        assert all(timer.property("running") is True for timer in timers)
+
+        minimized_spies = [QSignalSpy(timer.triggered) for timer in timers]
+        window.showMinimized()
+        assert _wait_for(
+            lambda: window.visibility() == QWindow.Visibility.Minimized
+        )
+        minimized_start = [spy.count() for spy in minimized_spies]
+        _pump(360)
+        assert all(timer.property("running") is False for timer in timers)
+        assert all(
+            spy.count() == initial
+            for spy, initial in zip(minimized_spies, minimized_start)
+        )
+
+        window.showNormal()
+        assert _wait_for(
+            lambda: window.visibility() == QWindow.Visibility.Windowed
+            and window.isExposed()
+        )
+        assert all(timer.property("running") is True for timer in timers)
+        assert warnings == []
+        assert _qt_failures(messages) == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(qapp, engine, component, window, previous_handler)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_viewport_culling_source_pauses_hidden_window_timers():
+    """Hidden and minimized windows must stop culling timers. 隐藏和最小化窗口须停用裁剪计时器。"""
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "import QtQuick.Window" in source
+    assert "_hostWindow.visibility !== Window.Hidden" in source
+    assert "_hostWindow.visibility !== Window.Minimized" in source
+    assert (
+        "running: root._flickable !== null && root._hostWindowExposed"
+    ) in source

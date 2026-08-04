@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import QtQuick.Window
 
 // ViewportCulling - 视口裁剪感知 helper
 // 放入任意 Item 内部, 自动探测最近祖先 Flickable 并暴露 inViewport bool.
@@ -29,6 +30,10 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     // 当前宿主 Item 是否在视口内 (含 buffer 区)
     readonly property bool inViewport: _flickable === null || _visible
+    readonly property var _hostWindow: root.Window.window
+    readonly property bool _hostWindowExposed: !_hostWindow
+        || (_hostWindow.visibility !== Window.Hidden
+            && _hostWindow.visibility !== Window.Minimized)
 
     // ==================== Internal Props 内部属性 ====================
     property Flickable _flickable: null
@@ -72,7 +77,7 @@ Item {
     // 150ms 在快速滚动时 ≈ 2 帧延迟切换, 人眼不可察觉, 但不增加每帧 GUI 线程负担.
     Timer {
         interval: 150
-        running: root._flickable !== null
+        running: root._flickable !== null && root._hostWindowExposed
         repeat: true
         triggeredOnStart: true  // 首次立即判定
         onTriggered: root._updateVisibility()
