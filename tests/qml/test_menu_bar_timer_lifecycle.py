@@ -109,6 +109,11 @@ def _visual_descendants(item: QQuickItem) -> list[QQuickItem]:
 def _timers(menu_bar: QQuickItem) -> list[QObject]:
     timers = {}
     for owner in [menu_bar, *_visual_descendants(menu_bar)]:
+        if owner.metaObject().indexOfProperty("_closeTimer") >= 0:
+            close_timer = owner.property("_closeTimer")
+            if close_timer is not None:
+                pointer = shiboken6.getCppPointer(close_timer)[0]
+                timers[pointer] = close_timer
         for child in owner.findChildren(QObject):
             if child.metaObject().className() == "QQmlTimer":
                 pointer = shiboken6.getCppPointer(child)[0]
@@ -266,12 +271,12 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
             f"hashes={initial_hash}/{restored_hash}",
         )
 
-        assert len(initial_timers) == 20
-        assert len(restored_timers) == 20
-        assert len(interaction_timers) == 5
+        assert len(initial_timers) == 16
+        assert len(restored_timers) == 16
+        assert len(interaction_timers) == 4
         assert len(closing_timers) == 5
-        assert len(restored_interaction_timers) == 5
-        assert initial_objects == 358
+        assert len(restored_interaction_timers) == 4
+        assert initial_objects == 355
         assert restored_objects == initial_objects
         assert restored_hash == initial_hash
         assert warnings == []
@@ -281,9 +286,15 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_menu_bar_source_keeps_per_menu_close_timer():
-    """The baseline uses one close timer per menu. 基线中每个菜单各有关闭计时器。"""
+def test_menu_bar_source_creates_close_timer_on_demand():
+    """Each menu creates its close timer only while needed.
+
+    每个菜单仅在需要时创建自己的关闭计时器。
+    """
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert "id: closeTimer" in source
-    assert "closeTimer.start()" in source
-    assert "if (!menuBtn.hovered)" in source
+    assert "id: closeTimer\n" not in source
+    assert "id: closeTimerComponent" in source
+    assert "closeTimerComponent.createObject(" in source
+    assert "if (!menuButton.hovered)" in source
+    assert "ownerItem._closeTimer = null" in source
+    assert "destroy()" in source

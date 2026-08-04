@@ -54,6 +54,7 @@ Rectangle {
                 id: menuItemContainer
 
                 property bool isActive: index === control.activeIndex
+                property QtObject _closeTimer: null
 
                 // Open menu at this item 在此项打开菜单
                 function _openMenuAt(idx) {
@@ -80,6 +81,19 @@ Rectangle {
 
                     // Open below this button 在按钮下方打开
                     dropdownMenu.openAtControl(menuBtn)
+                }
+
+                function _startCloseTimer() {
+                    if (!_closeTimer) {
+                        _closeTimer = closeTimerComponent.createObject(
+                            menuItemContainer,
+                            {
+                                "menuButton": menuBtn,
+                                "ownerItem": menuItemContainer
+                            }
+                        )
+                    }
+                    if (_closeTimer) _closeTimer.restart()
                 }
 
                 width: menuBtn.implicitWidth
@@ -134,7 +148,7 @@ Rectangle {
 
                     onClosed: {
                         if (control.activeIndex === index) {
-                            closeTimer.start()
+                            menuItemContainer._startCloseTimer()
                         }
                     }
 
@@ -146,17 +160,23 @@ Rectangle {
 
                         target: control
                     }
-                    
-                    Timer {
-                        id: closeTimer
-                        interval: Enums.duration.fast
-                        onTriggered: {
-                            if (!menuBtn.hovered) {
-                                control.activeIndex = -1
-                            }
-                        }
-                    }
                 }
+            }
+        }
+    }
+
+    Component {
+        id: closeTimerComponent
+
+        Timer {
+            required property Item menuButton
+            required property Item ownerItem
+
+            interval: Enums.duration.fast
+            onTriggered: {
+                if (!menuButton.hovered) control.activeIndex = -1
+                ownerItem._closeTimer = null
+                destroy()
             }
         }
     }
