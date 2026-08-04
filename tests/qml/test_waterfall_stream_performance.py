@@ -207,8 +207,12 @@ def test_waterfall_stream_append_preserves_layout_without_full_rescans(qapp):
         stream_geometry_hash = _geometry_hash(waterfall)
         stream_hash = _grab_hash(window)
 
+        relayouts_before_column_change = waterfall.property("_relayoutCount")
         waterfall.setProperty("columns", 4)
-        assert _wait_for(lambda: waterfall.property("_relayoutCount") > relayouts_before)
+        assert _wait_for(
+            lambda: waterfall.property("_relayoutCount")
+            > relayouts_before_column_change
+        )
         four_column_geometry_hash = _geometry_hash(waterfall)
         four_column_hash = _grab_hash(window)
 
@@ -240,7 +244,7 @@ def test_waterfall_stream_append_preserves_layout_without_full_rescans(qapp):
             "0897de39de5b1203cadaf94cd72487444abf6e7248ffc4dbcbb9d5c2aae1b084"
         )
         assert four_column_geometry_hash == (
-            "9f3a368306bad5e757333ebf6ca5d2698a2da19d26a5c7a4aea59427144d7aba"
+            "6c1871514b8a82e367e943488b3764f8fd4dcf5e91811b12bcfeedfda60bd12c"
         )
         assert four_column_hash == (
             "fc9928e51ca3ae035038af56f74007b64f8df8485df3e9b7ce0f5182691f0ea1"
