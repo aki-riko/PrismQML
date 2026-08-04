@@ -44,6 +44,18 @@ Window {
         streamModel.append({ sequence: streamModel.count })
     }
 
+    function insertItem(index) {
+        streamModel.insert(index, { sequence: -1 })
+    }
+
+    function removeItem(index) {
+        streamModel.remove(index)
+    }
+
+    function useTallDelegate() {
+        waterfall.delegate = tallDelegate
+    }
+
     width: 420
     height: 720
     visible: true
@@ -58,6 +70,18 @@ Window {
 
         Rectangle {
             height: parent ? 40 + parent.itemIndex % 5 * 10 : 0
+            color: Enums.accentColor
+            radius: Enums.radius.small
+            border.width: Enums.border.thin
+            border.color: Enums.borderColor
+        }
+    }
+
+    Component {
+        id: tallDelegate
+
+        Rectangle {
+            height: 95
             color: Enums.accentColor
             radius: Enums.radius.small
             border.width: Enums.border.thin
@@ -139,6 +163,35 @@ def _geometry_hash(waterfall: QQuickItem) -> str:
         )
         for loader in _item_loaders(waterfall)
     ]
+    payload = json.dumps(geometry, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _expected_geometry_hash(
+    item_count: int,
+    columns: int = 3,
+    height_overrides: dict[int, int] | None = None,
+) -> str:
+    overrides = height_overrides or {}
+    spacing = 10
+    item_width = (380 - (columns - 1) * spacing) / columns
+    heights = [0.0] * columns
+    geometry = []
+    for item_index in range(item_count):
+        target_column = min(range(columns), key=heights.__getitem__)
+        target_y = heights[target_column]
+        item_height = float(overrides.get(item_index, 40 + item_index % 5 * 10))
+        geometry.append(
+            (
+                item_index,
+                target_column,
+                round(target_column * (item_width + spacing), 6),
+                round(target_y, 6),
+                round(item_width, 6),
+                round(item_height, 6),
+            )
+        )
+        heights[target_column] = target_y + item_height + spacing
     payload = json.dumps(geometry, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
@@ -250,6 +303,69 @@ def test_waterfall_stream_append_preserves_layout_without_full_rescans(qapp):
             "fc9928e51ca3ae035038af56f74007b64f8df8485df3e9b7ce0f5182691f0ea1"
         )
         assert restored_hash == stream_hash
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_waterfall_non_tail_changes_still_force_full_relayout(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, waterfall, warnings = _create_scene()
+    try:
+        relayouts_before = waterfall.property("_relayoutCount")
+        window.insertItem(5)
+        assert _wait_for(lambda: len(_item_loaders(waterfall)) == 21)
+        assert _wait_for(
+            lambda: waterfall.property("_relayoutCount") > relayouts_before
+        )
+        assert _wait_for(
+            lambda: _geometry_hash(waterfall) == _expected_geometry_hash(21)
+        )
+
+        relayouts_before = waterfall.property("_relayoutCount")
+        window.removeItem(5)
+        assert _wait_for(lambda: len(_item_loaders(waterfall)) == 20)
+        assert _wait_for(
+            lambda: waterfall.property("_relayoutCount") > relayouts_before
+        )
+        assert _wait_for(
+            lambda: _geometry_hash(waterfall) == _expected_geometry_hash(20)
+        )
+
+        first_item = _item_loaders(waterfall)[0].property("item")
+        relayouts_before = waterfall.property("_relayoutCount")
+        first_item.setHeight(95)
+        assert _wait_for(
+            lambda: waterfall.property("_relayoutCount") > relayouts_before
+        )
+        assert _wait_for(
+            lambda: _geometry_hash(waterfall)
+            == _expected_geometry_hash(20, height_overrides={0: 95})
+        )
+
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_waterfall_delegate_replacement_forces_full_relayout(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, waterfall, warnings = _create_scene()
+    try:
+        relayouts_before = waterfall.property("_relayoutCount")
+        window.useTallDelegate()
+        assert _wait_for(
+            lambda: waterfall.property("_relayoutCount") > relayouts_before
+        )
+        assert _wait_for(
+            lambda: _geometry_hash(waterfall)
+            == "d7aba1f9516e1c51292a6483f624161bd7d3379e8c5561446374e19403bd12c0"
+        )
+
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
