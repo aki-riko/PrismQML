@@ -60,12 +60,81 @@ Item {
         _trace("helper.loader_status.changed", targetIdx)
     }
 
+    function _stopStageTimer() {
+        stageTimer.stop()
+        stageTimer._activationPhase = false
+        stageTimer._renderPhase = false
+    }
+
+    function _startLoaderActivationTimer(targetIdx) {
+        stageTimer.stop()
+        stageTimer.targetIndex = targetIdx
+        stageTimer._activationPhase = true
+        stageTimer._renderPhase = false
+        stageTimer.start()
+    }
+
+    function _startLoaderPollingTimer(targetIdx) {
+        stageTimer.stop()
+        stageTimer.targetIndex = targetIdx
+        stageTimer._activationPhase = false
+        stageTimer._renderPhase = false
+        stageTimer.start()
+    }
+
+    function _startPageRenderTimer(targetIdx) {
+        stageTimer.stop()
+        stageTimer.targetIndex = targetIdx
+        stageTimer._activationPhase = false
+        stageTimer._renderPhase = true
+        stageTimer.start()
+    }
+
+    function _activateLoaderAndStartPolling(targetIdx) {
+        if (targetIdx !== pendingTargetIndex) return
+
+        _trace("helper.loader_activate.begin", targetIdx)
+        activateLoaderFunc(targetIdx)
+        _observeLoaderStatus(targetIdx)
+        _trace("helper.loader_activate.done", targetIdx)
+        _startLoaderPollingTimer(targetIdx)
+    }
+
+    function _pollLoader(targetIdx) {
+        if (targetIdx !== pendingTargetIndex) {
+            _stopStageTimer()
+            return
+        }
+
+        _observeLoaderStatus(targetIdx)
+        if (isPageLoadedFunc(targetIdx)) {
+            _trace("helper.page_ready", targetIdx)
+            _startPageRenderTimer(targetIdx)
+            return
+        }
+
+        if (isPageLoadFailedFunc(targetIdx)) {
+            _handleLoadFailure(targetIdx, pageLoadErrorFunc(targetIdx))
+        }
+    }
+
+    function _completePageRender(targetIdx) {
+        if (targetIdx !== pendingTargetIndex) return
+
+        _trace("helper.page_render.begin", targetIdx)
+        var prevIdx = internalLastIndex
+        internalLastIndex = targetIdx
+        _trace("helper.loading_complete.emit_begin", targetIdx)
+        loadingComplete(targetIdx, prevIdx)
+        _trace("helper.loading_complete.emit_done", targetIdx)
+        loadingOverlay.finish()
+        _trace("helper.page_render.done", targetIdx)
+    }
+
     // ==================== Public Methods 公开方法 ====================
     function cancelPendingLoad() {
         if (pendingTargetIndex >= 0) _trace("helper.cancel_pending.begin", pendingTargetIndex)
-        loaderActivateTimer.stop()
-        lazyLoadTimer.stop()
-        pageRenderTimer.stop()
+        _stopStageTimer()
         pendingTargetIndex = -1
         _observedLoaderIndex = -1
         _observedLoaderStatus = Loader.Null
@@ -103,8 +172,7 @@ Item {
             _playExitAnimation(currentLoader, targetIdx)
         } else {
             // No old page to animate, start loader activation immediately 没有旧页面需要动画，立即开始激活Loader
-            loaderActivateTimer.targetIndex = targetIdx
-            loaderActivateTimer.start()
+            _startLoaderActivationTimer(targetIdx)
         }
         _trace("helper.show.done", targetIdx)
     }
@@ -164,8 +232,7 @@ Item {
         // Start loader activation after exit animation completes 退出动画完成后开始激活 Loader
 
         if (_exitTargetIndex >= 0 && _exitTargetIndex === pendingTargetIndex) {
-            loaderActivateTimer.targetIndex = _exitTargetIndex
-            loaderActivateTimer.start()
+            _startLoaderActivationTimer(_exitTargetIndex)
         }
         _exitTargetIndex = -1
     }
@@ -185,9 +252,7 @@ Item {
         if (targetIdx !== pendingTargetIndex) return
         _trace("helper.loading_failed.begin", targetIdx)
 
-        loaderActivateTimer.stop()
-        lazyLoadTimer.stop()
-        pageRenderTimer.stop()
+        _stopStageTimer()
 
         var failedLoader = loaders[targetIdx]
         if (failedLoader) {
@@ -296,70 +361,32 @@ Item {
         onFinished: helper._onExitAnimationFinished(target)
     }
     
-    // Timers 定时器
+    // Sequential stage timer 串行阶段计时器
     Timer {
-        id: loaderActivateTimer
+        id: stageTimer
+
         property int targetIndex: 0
+        property bool _activationPhase: false
+        property bool _renderPhase: false
+
         objectName: "lazyLoaderActivateTimer"
-        interval: Math.max(
-            Enums.duration.tick,
-            helper.loaderActivationDelay - helper.animationDuration
-        )  // Keep indicator feedback ahead of loading 让指示器反馈先于加载
+        interval: _activationPhase
+                  ? Math.max(
+                        Enums.duration.tick,
+                        helper.loaderActivationDelay - helper.animationDuration)
+                  : (_renderPhase
+                     ? Enums.duration.ultraFast : Enums.duration.tick)
+        repeat: !_activationPhase && !_renderPhase
         onTriggered: {
-            if (targetIndex !== helper.pendingTargetIndex) return
-
-            helper._trace("helper.loader_activate.begin", targetIndex)
-            helper.activateLoaderFunc(targetIndex)
-            helper._observeLoaderStatus(targetIndex)
-            helper._trace("helper.loader_activate.done", targetIndex)
-            lazyLoadTimer.targetIndex = targetIndex
-            lazyLoadTimer.start()
-        }
-    }
-    
-    Timer {
-        id: lazyLoadTimer
-        property int targetIndex: 0
-        interval: Enums.duration.tick  // High-refresh tick 高刷定时器
-        repeat: true
-        onTriggered: {
-            if (targetIndex !== helper.pendingTargetIndex) {
-                stop()
+            if (_activationPhase) {
+                helper._activateLoaderAndStartPolling(targetIndex)
                 return
             }
-
-            helper._observeLoaderStatus(targetIndex)
-            if (helper.isPageLoadedFunc(targetIndex)) {
-                stop()
-                helper._trace("helper.page_ready", targetIndex)
-                pageRenderTimer.targetIndex = targetIndex
-                pageRenderTimer.start()
+            if (_renderPhase) {
+                helper._completePageRender(targetIndex)
                 return
             }
-
-            if (helper.isPageLoadFailedFunc(targetIndex)) {
-                stop()
-                helper._handleLoadFailure(
-                    targetIndex, helper.pageLoadErrorFunc(targetIndex))
-            }
-        }
-    }
-    
-    Timer {
-        id: pageRenderTimer
-        property int targetIndex: 0
-        interval: Enums.duration.ultraFast  // Wait for render stable 等待渲染稳定
-        onTriggered: {
-            if (targetIndex !== helper.pendingTargetIndex) return
-
-            helper._trace("helper.page_render.begin", targetIndex)
-            var prevIdx = helper.internalLastIndex
-            helper.internalLastIndex = targetIndex
-            helper._trace("helper.loading_complete.emit_begin", targetIndex)
-            helper.loadingComplete(targetIndex, prevIdx)
-            helper._trace("helper.loading_complete.emit_done", targetIndex)
-            loadingOverlay.finish()
-            helper._trace("helper.page_render.done", targetIndex)
+            helper._pollLoader(targetIndex)
         }
     }
 }

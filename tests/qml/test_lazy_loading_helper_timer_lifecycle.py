@@ -228,7 +228,7 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
     try:
         initial_hash = _stable_hash(window)
         initial_object_count = len(helper.findChildren(QObject))
-        assert len(_direct_timers(helper)) == 3
+        assert len(_direct_timers(helper)) == 1
         assert _running_timers(helper) == []
 
         assert QMetaObject.invokeMethod(window, "beginSwitch")
@@ -279,8 +279,8 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         settled_object_count = len(helper.findChildren(QObject))
 
         print(
-            "LAZY_HELPER_TIMER_BASELINE",
-            f"timers=3/{activation_timer_count}/{polling_timer_count}/"
+            "LAZY_HELPER_TIMER",
+            f"timers=1/{activation_timer_count}/{polling_timer_count}/"
             f"{render_timer_count}/{settled_timer_count}",
             f"objects={initial_object_count}/{settled_object_count}",
             f"hashes={initial_hash}/{restored_hash}",
@@ -291,8 +291,8 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             polling_timer_count,
             render_timer_count,
             settled_timer_count,
-        ) == (3, 3, 3, 3)
-        assert (initial_object_count, settled_object_count) == (28, 29)
+        ) == (1, 1, 1, 1)
+        assert (initial_object_count, settled_object_count) == (26, 27)
         assert (initial_hash, restored_hash) == (
             "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
             "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
@@ -311,10 +311,14 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         ] == []
 
 
-def test_lazy_loading_helper_source_keeps_three_timer_roles():
-    """Baseline keeps three sequential timer roles. 基线保留三个串行计时器角色。"""
+def test_lazy_loading_helper_source_reuses_one_stage_timer():
+    """Sequential phases reuse one timer. 串行阶段复用一个计时器。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("Timer {") == 3
-    assert "id: loaderActivateTimer" in source
-    assert "id: lazyLoadTimer" in source
-    assert "id: pageRenderTimer" in source
+    assert source.count("Timer {") == 1
+    assert "id: stageTimer" in source
+    assert "id: loaderActivateTimer" not in source
+    assert "id: lazyLoadTimer" not in source
+    assert "id: pageRenderTimer" not in source
+    assert "_startLoaderActivationTimer(targetIdx)" in source
+    assert "_startLoaderPollingTimer(targetIdx)" in source
+    assert "_startPageRenderTimer(targetIdx)" in source
