@@ -231,15 +231,15 @@ def test_breadcrumb_timer_animation_and_pixel_lifecycle(qapp):
             f"hashes={initial_hash}/{collapsed_hash}/{settled_hash}",
         )
 
-        assert len(initial_timers) == 3
-        assert len(collapse_timers) == 3
-        assert len(collapsed_timers) == 3
-        assert len(restore_timers) == 3
-        assert len(settled_timers) == 3
+        assert len(initial_timers) == 0
+        assert len(collapse_timers) == 1
+        assert len(collapsed_timers) == 0
+        assert len(restore_timers) == 2
+        assert len(settled_timers) == 0
         assert (initial_objects, collapsed_objects, settled_objects) == (
-            12,
-            12,
-            12,
+            10,
+            10,
+            10,
         )
         assert (initial_hash, collapsed_hash, settled_hash) == (
             "20257205ddc48958c27222783f84ca71b1ca963a49b4fd5e8a20d760b8e0e8f7",
@@ -253,11 +253,19 @@ def test_breadcrumb_timer_animation_and_pixel_lifecycle(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_breadcrumb_source_keeps_three_stage_timers():
-    """The baseline keeps three independent timers. 基线保留三个独立计时器。"""
+def test_breadcrumb_source_creates_stage_timers_on_demand():
+    """Each animation stage creates an independent timer only while needed.
+
+    每个动画阶段仅在需要时创建独立计时器。
+    """
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert "id: removeTimer" in source
-    assert "id: collapseToEllipsisTimer" in source
-    assert "id: showFromEllipsisTimer" in source
-    assert "collapseToEllipsisTimer.restart()" in source
-    assert "showFromEllipsisTimer.restart()" in source
+    assert "id: removeTimer" not in source
+    assert "id: collapseToEllipsisTimer" not in source
+    assert "id: showFromEllipsisTimer" not in source
+    assert "id: stageTimerComponent" in source
+    assert "stageTimerComponent.createObject(" in source
+    assert "_restartRemoveTimer()" in source
+    assert "_restartCollapseTimer()" in source
+    assert "_restartShowTimer()" in source
+    assert "releaseCallback(stageTimer)" in source
+    assert "destroy()" in source

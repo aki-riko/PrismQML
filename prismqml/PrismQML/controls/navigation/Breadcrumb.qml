@@ -38,6 +38,9 @@ Item {
     property real _shiftRightOffset: 0
     property real _shiftRightTarget: 0
     property bool _ellipsisWillHide: false
+    property QtObject _removeTimer: null
+    property QtObject _collapseTimer: null
+    property QtObject _showTimer: null
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _hasOverflow: _items.length > maxVisibleItems
@@ -50,6 +53,71 @@ Item {
     signal currentItemChanged(string key)
 
     // ==================== Public Methods 公开方法 ====================
+    function _createStageTimer(timerInterval, triggerCallback, releaseCallback) {
+        var timer = stageTimerComponent.createObject(
+            control,
+            {
+                "timerInterval": timerInterval,
+                "triggerCallback": triggerCallback,
+                "releaseCallback": releaseCallback
+            }
+        )
+        if (!timer) console.error("Breadcrumb failed to create stage timer")
+        return timer
+    }
+
+    function _restartRemoveTimer() {
+        if (!_removeTimer) {
+            _removeTimer = _createStageTimer(
+                Enums.duration.crossFade,
+                function() { control._doRemove() },
+                function(timer) {
+                    if (control._removeTimer === timer) control._removeTimer = null
+                }
+            )
+        }
+        if (_removeTimer) _removeTimer.restart()
+    }
+
+    function _restartCollapseTimer() {
+        if (!_collapseTimer) {
+            _collapseTimer = _createStageTimer(
+                Enums.duration.dialog,
+                function() { control._finishCollapseStage() },
+                function(timer) {
+                    if (control._collapseTimer === timer) control._collapseTimer = null
+                }
+            )
+        }
+        if (_collapseTimer) _collapseTimer.restart()
+    }
+
+    function _restartShowTimer() {
+        if (!_showTimer) {
+            _showTimer = _createStageTimer(
+                Enums.duration.crossFade,
+                function() { control._finishShowStage() },
+                function(timer) {
+                    if (control._showTimer === timer) control._showTimer = null
+                }
+            )
+        }
+        if (_showTimer) _showTimer.restart()
+    }
+
+    function _finishCollapseStage() {
+        _newlyCollapsedIndices = []
+        _shiftLeftActive = false
+        _shiftLeftOffset = 0
+    }
+
+    function _finishShowStage() {
+        _newlyShownIndices = []
+        _shiftRightActive = false
+        _shiftRightOffset = 0
+        _ellipsisWillHide = false
+    }
+
     function addItem(key, text, icon) {
         if (key in _itemMap) return
         _navDirection = 1
@@ -89,7 +157,7 @@ Item {
             _shiftLeftActive = true
             _shiftLeftOffset = 0
             shiftLeftAnim.restart()
-            collapseToEllipsisTimer.restart()
+            _restartCollapseTimer()
         }
     }
     
@@ -139,10 +207,10 @@ Item {
                 _shiftRightActive = true
                 _shiftRightOffset = -shownWidth
                 shiftRightAnim.restart()
-                showFromEllipsisTimer.restart()
+                _restartShowTimer()
             }
             
-            if (animated) removeTimer.restart()
+            if (animated) _restartRemoveTimer()
             else _doRemove()
         }
         currentIndex = index
@@ -169,7 +237,7 @@ Item {
         _removeFromIndex = 0
         _newItemIndex = -1
         for (var key in _itemMap) delete _itemMap[key]
-        if (animated) removeTimer.restart()
+        if (animated) _restartRemoveTimer()
         else _items = []
         currentIndex = -1
     }
@@ -192,31 +260,23 @@ Item {
     clip: true
 
     // ==================== Content 内容 ====================
-    // Timers 定时器
-    Timer {
-        id: removeTimer
-        interval: Enums.duration.crossFade
-        onTriggered: control._doRemove()
-    }
-    
-    Timer {
-        id: collapseToEllipsisTimer
-        interval: Enums.duration.dialog
-        onTriggered: {
-            control._newlyCollapsedIndices = []
-            control._shiftLeftActive = false
-            control._shiftLeftOffset = 0
-        }
-    }
-    
-    Timer {
-        id: showFromEllipsisTimer
-        interval: Enums.duration.crossFade
-        onTriggered: {
-            control._newlyShownIndices = []
-            control._shiftRightActive = false
-            control._shiftRightOffset = 0
-            control._ellipsisWillHide = false
+    // On-demand stage timer 按需阶段计时器
+    Component {
+        id: stageTimerComponent
+
+        Timer {
+            id: stageTimer
+
+            required property int timerInterval
+            required property var triggerCallback
+            required property var releaseCallback
+
+            interval: timerInterval
+            onTriggered: {
+                triggerCallback()
+                releaseCallback(stageTimer)
+                destroy()
+            }
         }
     }
     
