@@ -169,8 +169,33 @@ for layer, boundary_y in boundaries:
     if any(profile != interior_profile for profile in junction_profiles):
         failures.append((boundary_y, interior_profile, junction_profiles))
 assert failures == [], (failures, scale, list_view.property("contentY"))
+
+node_failures = []
+for layer, _row in layer_rows:
+    if not layer.property("showNode"):
+        continue
+    lane_x = layer.mapToScene(QPointF(16, 0)).x()
+    node_y = layer.mapToScene(
+        QPointF(0, float(layer.property("nodeY")))
+    ).y()
+    sample_x = round(lane_x * scale)
+    sample_y = round(node_y * scale)
+    sample_span = round(9 * scale)
+    expected = image.pixelColor(sample_x, sample_y).rgba()
+    profile = [
+        image.pixelColor(sample_x, point_y).rgba()
+        for point_y in range(sample_y - sample_span, sample_y + sample_span + 1)
+    ]
+    if any(color != expected for color in profile):
+        node_failures.append((node_y, expected, profile))
+assert node_failures == [], (node_failures, scale, list_view.property("contentY"))
 assert warnings == [], warnings
-print("TIMELINE_GRAPH_BOUNDARY_OK", len(boundaries), scale)
+print(
+    "TIMELINE_GRAPH_CONTINUITY_OK",
+    len(boundaries),
+    len(layer_rows) - 1,
+    scale,
+)
 window.close()
 window.deleteLater()
 component.deleteLater()
@@ -179,8 +204,8 @@ app.processEvents()
 '''
 
 
-def test_timeline_graph_keeps_uniform_stroke_across_scaled_delegate_boundaries():
-    """Scaled row joins must retain stroke color and width. 缩放后接缝须保持描边颜色与宽度。"""
+def test_timeline_graph_keeps_uniform_stroke_across_rows_and_nodes():
+    """Scaled row joins and commit nodes must retain a continuous stroke. 缩放后接缝与提交点须连续。"""
     environment = os.environ.copy()
     environment["QT_SCALE_FACTOR"] = "1.5"
     result = subprocess.run(
@@ -210,6 +235,6 @@ def test_timeline_graph_keeps_uniform_stroke_across_scaled_delegate_boundaries()
     output = f"{result.stdout}\n{result.stderr}"
 
     assert result.returncode == 0, output
-    assert "TIMELINE_GRAPH_BOUNDARY_OK" in output
+    assert "TIMELINE_GRAPH_CONTINUITY_OK" in output
     if sys.platform == "win32":
         assert "visible_windows=0 / job_active_processes=0" in output
