@@ -242,6 +242,15 @@ def _input_interaction_layer(spin_box):
     return matches[0]
 
 
+def _timers(spin_box):
+    return [
+        child
+        for child in spin_box.children()
+        if child.metaObject().indexOfProperty("interval") >= 0
+        and child.metaObject().indexOfProperty("repeat") >= 0
+    ]
+
+
 def _click(window, item) -> None:
     QTest.mouseClick(
         window,
@@ -307,16 +316,10 @@ def _assert_default_tokens(window, normal) -> None:
     )
     assert window.property("repeatAcceleration") == 0.85
     assert normal.property("implicitWidth") == window.property("spinBoxWidth")
-    timers = [
-        child
-        for child in normal.children()
-        if child.metaObject().indexOfProperty("interval") >= 0
-        and child.metaObject().indexOfProperty("repeat") >= 0
-    ]
-    assert len(timers) == 4
+    timers = _timers(normal)
+    assert len(timers) == 3
     intervals = [timer.property("interval") for timer in timers]
     assert intervals.count(window.property("repeatDelay")) >= 1
-    assert intervals.count(window.property("repeatInterval")) >= 1
     assert intervals.count(window.property("feedbackDuration")) >= 2
 
 
@@ -422,6 +425,56 @@ def test_spin_box_button_layer_and_repeat_signal_contract(qapp):
     engine, component, window, controls, warnings = _create_scene()
     try:
         _assert_button_layer_and_repeat_stops_at_bound(window, controls["bounded"])
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_spin_box_repeat_phase_timing_and_live_delay_binding(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_scene()
+    try:
+        normal = controls["normal"]
+        normal.setProperty("value", 0)
+        normal.setProperty("maximum", 1000)
+        normal.setProperty("stepSize", 1)
+        normal.setProperty("autoRepeatDelay", 80)
+        normal.setProperty("autoRepeatInterval", 60)
+        normal.setProperty("autoRepeatMinInterval", 60)
+        values = []
+        normal.valueModified.connect(values.append)
+
+        normal._startAutoRepeat(True)
+        running = [timer for timer in _timers(normal) if timer.property("running")]
+        assert len(running) == 1
+        assert running[0].property("interval") == 80
+        normal.setProperty("autoRepeatDelay", 100)
+        assert _wait_for(lambda: running[0].property("interval") == 100)
+
+        normal._stopAutoRepeat()
+        auto_repeat_timer = running[0]
+        normal.setProperty("autoRepeatDelay", 80)
+        normal._startAutoRepeat(True)
+        _pump(120)
+        assert values == []
+        _pump(40)
+        assert values == [1]
+        normal._stopAutoRepeat()
+        _pump(100)
+        assert values == [1]
+
+        normal.setProperty("autoRepeatDelay", 30)
+        normal.setProperty("autoRepeatInterval", 20)
+        normal.setProperty("autoRepeatMinInterval", 10)
+        normal._startAutoRepeat(True)
+        _pump(120)
+        assert values[-1] > 1
+        normal._stopAutoRepeat()
+        assert auto_repeat_timer.property("interval") == 30
+        assert not auto_repeat_timer.property("repeat")
+
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

@@ -102,12 +102,13 @@ InputCore {
     function _startAutoRepeat(isUp) {
         if (!autoRepeat || !enabled) return
         _repeatIsUp = isUp
-        autoRepeatDelayTimer.start()
+        autoRepeatTimer._inRepeatPhase = false
+        autoRepeatTimer.start()
     }
 
     function _stopAutoRepeat() {
-        autoRepeatDelayTimer.stop()
         autoRepeatTimer.stop()
+        autoRepeatTimer._inRepeatPhase = false
     }
 
     function _triggerFeedback(isUp) {
@@ -330,21 +331,20 @@ InputCore {
     // Held-button auto repeat 长按自动重复
     // Wait autoRepeatDelay, then repeat and accelerate toward the minimum interval 先等待延迟，再重复并逐步加速到最短间隔
     Timer {
-        id: autoRepeatDelayTimer
-        interval: control.autoRepeatDelay
-        repeat: false
-        onTriggered: {
-            control._repeatCurrentInterval = control.autoRepeatInterval
-            autoRepeatTimer.interval = control._repeatCurrentInterval
-            autoRepeatTimer.start()
-        }
-    }
-
-    Timer {
         id: autoRepeatTimer
-        interval: control.autoRepeatInterval
-        repeat: true
+
+        property bool _inRepeatPhase: false
+
+        interval: _inRepeatPhase
+                  ? control._repeatCurrentInterval : control.autoRepeatDelay
+        repeat: _inRepeatPhase
         onTriggered: {
+            if (!_inRepeatPhase) {
+                control._repeatCurrentInterval = control.autoRepeatInterval
+                _inRepeatPhase = true
+                start()
+                return
+            }
             if (control._repeatIsUp) control.increase()
             else control.decrease()
             // Accelerate each repeat toward the minimum interval 每次重复后向最短间隔收敛
@@ -354,7 +354,6 @@ InputCore {
                                     Math.floor(control._repeatCurrentInterval * Enums.input.spinBoxRepeatAcceleration))
                 if (next !== control._repeatCurrentInterval) {
                     control._repeatCurrentInterval = next
-                    autoRepeatTimer.interval = next
                 }
             }
         }
