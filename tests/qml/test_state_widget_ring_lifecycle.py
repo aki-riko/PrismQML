@@ -260,7 +260,7 @@ def test_state_widget_preserves_first_and_repeated_loading_frames(qapp):
             restored_success_icons,
             repeated_loading_icons,
             restored_no_data_icons,
-        ) == (2, 2, 2, 2, 2, 2)
+        ) == (1, 1, 1, 1, 1, 1)
         assert (
             no_data_objects
             == success_objects
@@ -268,7 +268,7 @@ def test_state_widget_preserves_first_and_repeated_loading_frames(qapp):
             == restored_no_data_objects
         )
         assert loading_objects == repeated_loading_objects
-        assert no_data_objects < loading_objects
+        assert max(no_data_objects, success_objects) < loading_objects
         assert first_success_image == success_image
         assert first_loading_image == loading_image
         assert first_repeated_loading_image == repeated_loading_image == loading_image
@@ -289,5 +289,7 @@ def test_state_widget_source_loads_ring_only_for_loading():
     assert "active: control._isResultType && control.severity === \"loading\"" in source
     assert "sourceComponent: ProgressRing {" in source
     assert "indeterminate: true" in source
+    assert source.count("Icon {") == 1
+    assert 'visible: !control._hasCircleIcon || control.severity !== "loading"' in source
     assert "sourceComponent: Rectangle {" not in source
     assert "sourceComponent: Icon {" not in source

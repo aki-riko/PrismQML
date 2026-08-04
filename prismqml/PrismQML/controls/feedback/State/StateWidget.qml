@@ -96,20 +96,23 @@ Item {
             width: _hasCircleIcon ? Enums.controlSize.resultStateIconSize : control.imageWidth
             height: _hasCircleIcon ? Enums.controlSize.resultStateIconSize : control.imageHeight
             
-            // Circle background for result type 结果类型的圆形背景
+            // Unified state icon background 统一状态图标背景
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
-                color: Enums.stateColor.accentSubtle
-                visible: _hasCircleIcon && severity !== "loading"
-                
+                color: control._hasCircleIcon
+                    ? Enums.stateColor.accentSubtle : Enums.transparent
+                visible: !control._hasCircleIcon || control.severity !== "loading"
+
                 Icon {
                     anchors.centerIn: parent
-                    iconSize: Enums.controlSize.flyoutIconSize
-                    color: _stateColor
-                    icon: control.icon || _defaultIcon
+                    iconSize: control._hasCircleIcon
+                        ? Enums.controlSize.flyoutIconSize
+                        : Math.min(parent.width, parent.height) * 0.6
+                    color: control._hasCircleIcon
+                        ? control._stateColor : Enums.textColor.tertiary
+                    icon: control.icon || control._defaultIcon
                 }
-                
             }
 
             // Standard loading ring 标准加载环
@@ -120,15 +123,6 @@ Item {
                     indeterminate: true
                     color: control._stateColor
                 }
-            }
-            
-            // Normal icon for other types 其他类型的普通图标
-            Icon {
-                anchors.centerIn: parent
-                iconSize: Math.min(parent.width, parent.height) * 0.6
-                color: Enums.textColor.tertiary
-                icon: control.icon || _defaultIcon
-                visible: !_hasCircleIcon
             }
         }
         
