@@ -34,19 +34,24 @@ Window {
     id: root
 
     function seedItems(count) {
-        streamCount = count
+        streamModel.clear()
+        for (var index = 0; index < count; ++index) {
+            streamModel.append({ sequence: index })
+        }
     }
 
     function appendItem() {
-        streamCount++
+        streamModel.append({ sequence: streamModel.count })
     }
-
-    property int streamCount: 0
 
     width: 420
     height: 720
     visible: true
     color: Enums.backgroundColor
+
+    ListModel {
+        id: streamModel
+    }
 
     Component {
         id: streamDelegate
@@ -69,7 +74,7 @@ Window {
         width: 380
         columns: 3
         spacing: 10
-        model: root.streamCount
+        model: streamModel
         delegate: streamDelegate
     }
 
