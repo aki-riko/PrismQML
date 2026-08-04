@@ -67,8 +67,7 @@ def test_xy_chart_instantiates_only_the_active_tooltip(chart_scene):
 
     chart.setProperty("showTooltip", False)
     _pump(20)
-    tooltip = _assert_single_tooltip(chart, "ChartMultiTooltip")
-    assert not tooltip.property("visible")
+    assert _tooltips(chart) == []
     chart.setProperty("showTooltip", True)
 
     chart.setProperty("chartType", chart.property("barType"))
@@ -148,7 +147,7 @@ def test_disabled_tooltip_restores_first_hover_without_visual_drift(
 
     chart.setProperty("showTooltip", False)
     _pump(20)
-    assert all(not item.property("visible") for item in _tooltips(chart))
+    assert _tooltips(chart) == []
 
     chart.setProperty("showTooltip", True)
     chart.setProperty("_hoveredPointIndex", -1)

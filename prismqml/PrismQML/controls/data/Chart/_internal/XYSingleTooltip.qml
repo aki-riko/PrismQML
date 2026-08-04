@@ -39,9 +39,13 @@ Loader {
         return 0
     }
     z: Enums.zIndex.tooltip
-    active: (chart.chartType === Enums.chart.type_bar && chart._barContent !== null && !chart._barContent.isMultiSeries) ||
-            (chart.chartType === Enums.chart.type_line && chart._lineContent !== null && !chart._lineContent.isMultiSeries) ||
-            (chart._isScatter && chart._scatterContent !== null)
+    active: chart.showTooltip && (
+        (chart.chartType === Enums.chart.type_bar
+            && chart._barContent !== null && !chart._barContent.isMultiSeries) ||
+        (chart.chartType === Enums.chart.type_line
+            && chart._lineContent !== null && !chart._lineContent.isMultiSeries) ||
+        (chart._isScatter && chart._scatterContent !== null)
+    )
     sourceComponent: Component {
         ChartTooltip {
             visible: !chart._viewportTransitionActive &&
