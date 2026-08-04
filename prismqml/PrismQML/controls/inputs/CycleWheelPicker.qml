@@ -24,6 +24,8 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     property bool _hovered: false
+    property bool _repeatStarted: false
+    property int _repeatDirection: 0
     readonly property var _safeItems: _listOrEmpty(items)
     readonly property int _safeItemHeight: Math.max(1, itemHeight)
     readonly property int _safeVisibleItems: Math.max(1, visibleItems)
@@ -88,6 +90,29 @@ Item {
     function _distanceFromCenter(center, itemCenter) {
         var span = control.height / 2
         return span > 0 && isFinite(span) ? Math.abs(center - itemCenter) / span : 0
+    }
+
+    function _startRepeat(direction) {
+        _repeatDirection = direction < 0 ? -1 : 1
+        _repeatStarted = false
+        repeatTimer.restart()
+    }
+
+    function _stopRepeat(direction) {
+        if (_repeatDirection !== direction) return
+        repeatTimer.stop()
+        _repeatDirection = 0
+        _repeatStarted = false
+    }
+
+    function _triggerRepeat() {
+        if (_repeatDirection < 0) scrollUp()
+        else if (_repeatDirection > 0) scrollDown()
+        else {
+            repeatTimer.stop()
+            return
+        }
+        _repeatStarted = true
     }
 
     // ==================== Size 尺寸 ====================
@@ -264,6 +289,16 @@ Item {
             }
         }
     }
+
+    Timer {
+        id: repeatTimer
+
+        interval: control._repeatStarted
+            ? Enums.duration.wheelPickerRepeatInterval
+            : Enums.duration.wheelPickerRepeatDelay
+        repeat: true
+        onTriggered: control._triggerRepeat()
+    }
     
     // Scroll buttons 滚动按钮
     Rectangle {
@@ -286,25 +321,13 @@ Item {
         MouseArea {
             id: upArea
 
-            property bool _repeating: false
-
             anchors.fill: parent
             hoverEnabled: true
 
             onClicked: control.scrollUp()
-            onPressed: repeatTimer.start()
-            onReleased: { repeatTimer.stop(); _repeating = false }
-            onExited: { repeatTimer.stop(); _repeating = false }
-            
-            Timer {
-                id: repeatTimer
-                interval: upArea._repeating ? Enums.duration.wheelPickerRepeatInterval : Enums.duration.wheelPickerRepeatDelay
-                repeat: true
-                onTriggered: {
-                    control.scrollUp()
-                    upArea._repeating = true
-                }
-            }
+            onPressed: control._startRepeat(-1)
+            onReleased: control._stopRepeat(-1)
+            onExited: control._stopRepeat(-1)
         }
     }
     
@@ -328,25 +351,13 @@ Item {
         MouseArea {
             id: downArea
 
-            property bool _repeating: false
-
             anchors.fill: parent
             hoverEnabled: true
 
             onClicked: control.scrollDown()
-            onPressed: downRepeatTimer.start()
-            onReleased: { downRepeatTimer.stop(); _repeating = false }
-            onExited: { downRepeatTimer.stop(); _repeating = false }
-            
-            Timer {
-                id: downRepeatTimer
-                interval: downArea._repeating ? Enums.duration.wheelPickerRepeatInterval : Enums.duration.wheelPickerRepeatDelay
-                repeat: true
-                onTriggered: {
-                    control.scrollDown()
-                    downArea._repeating = true
-                }
-            }
+            onPressed: control._startRepeat(1)
+            onReleased: control._stopRepeat(1)
+            onExited: control._stopRepeat(1)
         }
     }
 

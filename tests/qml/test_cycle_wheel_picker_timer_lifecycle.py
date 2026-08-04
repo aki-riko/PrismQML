@@ -180,8 +180,8 @@ def test_cycle_wheel_picker_first_button_presses_keep_visuals_and_repeat_state(q
             f"objects={object_count}",
             f"hover_hash={hover_hash}",
         )
-        assert len(timers) == 2
-        assert object_count == 34
+        assert len(timers) == 1
+        assert object_count == 33
         assert hover_hash == (
             "68d43bde2ec3538f0873fb76e055f5af0c7c82d3d4e34ddbf0643dd229c86b33"
         )
