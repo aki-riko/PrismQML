@@ -6,7 +6,7 @@
 
 from pathlib import Path, PurePosixPath
 
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
@@ -199,6 +199,49 @@ def test_cycle_wheel_picker_public_methods_wrap_and_clamp(qapp):
             timer.property("interval") == root.property("expectedRepeatInterval")
             for timer in repeat_timers
         )
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        _pump()
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_cycle_wheel_picker_repeat_timers_preserve_both_directions(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, _cycle_picker, linear_picker, warnings = _create_scene()
+    try:
+        descendants = _descendants(linear_picker)
+        repeat_timers = [
+            child
+            for child in descendants
+            if child.metaObject().indexOfProperty("interval") >= 0
+            and child.metaObject().indexOfProperty("repeat") >= 0
+            and child.property("repeat")
+            and child.property("interval") == root.property("expectedRepeatDelay")
+        ]
+        assert len(descendants) == 34
+        assert len(repeat_timers) == 2
+
+        up_timer, down_timer = (
+            timer
+            for _button_y, timer in sorted(
+                (timer.parent().parent().y(), timer) for timer in repeat_timers
+            )
+        )
+        linear_picker.setCurrentIndex(1)
+        assert QMetaObject.invokeMethod(up_timer, "triggered")
+        assert _wait_for(lambda: linear_picker.property("currentIndex") == 0)
+        up_timer.parent().setProperty("_repeating", False)
+
+        linear_picker.setCurrentIndex(1)
+        assert QMetaObject.invokeMethod(down_timer, "triggered")
+        assert _wait_for(lambda: linear_picker.property("currentIndex") == 2)
+
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
