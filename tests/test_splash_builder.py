@@ -113,7 +113,7 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "property bool splashEnabled: true" in qml_source
     assert "property int splashMinimumVisibleDuration:" in qml_source
     assert "_splashVisibleSinceMs = Date.now()" in qml_source
-    assert "_splashMinimumVisibleTimer.restart()" in qml_source
+    assert "_splashTimer.restart()" in qml_source
     assert "property Component splashComponent:" in qml_source
     assert 'objectName: "windowSplashLoader"' in qml_source
     assert "build_splash_properties(self)" in python_source

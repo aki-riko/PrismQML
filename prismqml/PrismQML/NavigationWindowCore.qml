@@ -192,17 +192,18 @@ WindowsCore {
         function onPageLoaded(idx) {
             if (idx !== target) return
             stack.pageLoaded.disconnect(onPageLoaded)
-            _splashTimeoutTimer.stop()
+            _splashTimer.stop()
             profileTime("NavigationWindowCore splash pageLoaded target=" + idx)
             _requestSplashDismiss()
         }
         stack.pageLoaded.connect(onPageLoaded)
-        _splashTimeoutTimer._onTimeout = function() {
+        _splashTimer._minimumVisiblePhase = false
+        _splashTimer._onTimeout = function() {
             stack.pageLoaded.disconnect(onPageLoaded)
             profileTime("NavigationWindowCore splash timeout")
             _requestSplashDismiss()
         }
-        _splashTimeoutTimer.restart()
+        _splashTimer.restart()
         profileTime("NavigationWindowCore splash wait pageLoaded target=" + target)
     }
 
@@ -229,8 +230,11 @@ WindowsCore {
         var elapsed = Date.now() - _splashVisibleSinceMs
         var remaining = Math.max(0, splashMinimumVisibleDuration - elapsed)
         if (remaining > 0) {
-            _splashMinimumVisibleTimer.interval = Math.max(Enums.duration.tick, Math.ceil(remaining))
-            _splashMinimumVisibleTimer.restart()
+            _splashTimer._minimumVisiblePhase = true
+            _splashTimer._minimumVisibleInterval = Math.max(
+                Enums.duration.tick, Math.ceil(remaining)
+            )
+            _splashTimer.restart()
             profileTime("NavigationWindowCore splash wait minimum visible remaining=" + Math.ceil(remaining))
             return
         }
@@ -243,7 +247,7 @@ WindowsCore {
             return
         }
         _splashDismissed = true
-        _splashMinimumVisibleTimer.stop()
+        _splashTimer.stop()
         profileTime("NavigationWindowCore splash finish start")
         if (_splashInstance) _splashInstance.finish()
         profileTime("NavigationWindowCore splash finish done")
@@ -494,18 +498,18 @@ WindowsCore {
     }
 
     Timer {
-        id: _splashMinimumVisibleTimer
+        id: _splashTimer
 
-        interval: Enums.duration.splashMinimumVisible
-        onTriggered: window._scheduleSplashDismiss()
-    }
-
-    Timer {
-        id: _splashTimeoutTimer
+        property bool _minimumVisiblePhase: false
+        property int _minimumVisibleInterval: Enums.duration.splashMinimumVisible
         property var _onTimeout: null
 
-        interval: Enums.duration.splashTimeout
-        onTriggered: if (_onTimeout) _onTimeout()
+        interval: _minimumVisiblePhase
+                  ? _minimumVisibleInterval : Enums.duration.splashTimeout
+        onTriggered: {
+            if (_minimumVisiblePhase) window._scheduleSplashDismiss()
+            else if (_onTimeout) _onTimeout()
+        }
     }
 
     Timer {

@@ -190,13 +190,14 @@ def _dispose_scene(qapp, engine, component, window) -> None:
 
 
 def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
-    """Five timers preserve serial splash and concurrent Mica roles. 五个计时器保持欢迎页串行与 Mica 并行角色。"""
+    """Four timers preserve serial splash and concurrent Mica roles. 四个计时器保持欢迎页串行与 Mica 并行角色。"""
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, mica_manager, warnings = _create_scene(monkeypatch)
     try:
         initial_timer_count = len(_direct_timers(window))
+        assert _wait_for(lambda: len(window.findChildren(QObject)) == 73)
         initial_object_count = len(window.findChildren(QObject))
-        assert initial_timer_count == 5
+        assert initial_timer_count == 4
         assert _running_timers(window) == []
 
         assert QMetaObject.invokeMethod(window, "beginSplashWait")
@@ -226,17 +227,18 @@ def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
         assert _wait_for(lambda: _running_timers(window) == [])
 
         settled_timer_count = len(_direct_timers(window))
+        assert _wait_for(lambda: len(window.findChildren(QObject)) == 73)
         settled_object_count = len(window.findChildren(QObject))
         print(
-            "NAVIGATION_WINDOW_TIMER_BASELINE",
+            "NAVIGATION_WINDOW_TIMER",
             f"timers={initial_timer_count}/{settled_timer_count}",
             f"objects={initial_object_count}/{settled_object_count}",
             f"splash_elapsed={splash_elapsed}",
             f"mica_calls={len(mica_manager.calls)}",
         )
 
-        assert settled_timer_count == 5
-        assert settled_object_count == initial_object_count
+        assert settled_timer_count == 4
+        assert (initial_object_count, settled_object_count) == (73, 73)
         assert mica_manager.calls == [(True, False), (True, False)]
         assert warnings == []
     finally:
@@ -249,12 +251,13 @@ def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
         ] == []
 
 
-def test_navigation_window_core_source_keeps_five_timer_roles():
-    """Baseline keeps five timer roles. 基线保留五个计时器角色。"""
+def test_navigation_window_core_source_reuses_one_splash_timer():
+    """Exclusive splash roles reuse one timer. 互斥的欢迎页角色复用一个计时器。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("Timer {") == 5
-    assert "id: _splashMinimumVisibleTimer" in source
-    assert "id: _splashTimeoutTimer" in source
+    assert source.count("Timer {") == 4
+    assert "id: _splashTimer" in source
+    assert "id: _splashMinimumVisibleTimer" not in source
+    assert "id: _splashTimeoutTimer" not in source
     assert "id: _micaBackdropCommitTimer" in source
     assert "id: _micaReapplyTimer" in source
     assert "id: _micaLateReapplyTimer" in source
