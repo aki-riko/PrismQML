@@ -56,6 +56,7 @@ Window {
     readonly property real repeatAcceleration: Enums.input.spinBoxRepeatAcceleration
     readonly property int feedbackDuration: Enums.duration.fast
     readonly property int spinBoxWidth: Enums.controlSize.spinBoxWidth
+    readonly property int compactType: Enums.input.spinbox_compact
 
     width: 620
     height: 300
@@ -443,6 +444,38 @@ def test_spin_box_double_click_changes_value_exactly_twice(qapp):
         )
         _pump()
         assert (normal.property("value"), values) == (9, [7, 9])
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_spin_box_mode_switch_cancels_held_repeat(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_scene()
+    try:
+        normal = controls["normal"]
+        normal.setProperty("maximum", 1000)
+        normal.setProperty("autoRepeatDelay", 30)
+        normal.setProperty("autoRepeatInterval", 20)
+        normal.setProperty("autoRepeatMinInterval", 20)
+        increase_button = _button_with_icon(window, normal, "addIcon")
+        point = _point_for(window, increase_button)
+
+        QTest.mouseMove(window, point)
+        QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=point)
+        _pump(110)
+        assert normal.property("value") > 5
+
+        normal.setProperty("type", window.property("compactType"))
+        _pump()
+        QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=point)
+        _pump()
+        value_after_release = normal.property("value")
+        _pump(160)
+
+        assert normal.property("value") == value_after_release
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

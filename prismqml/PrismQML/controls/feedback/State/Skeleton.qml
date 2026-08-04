@@ -157,6 +157,6 @@ Item {
         radius: control._radius
         color: Enums.textColor.primary
         visible: false
-        layer.enabled: true
+        layer.enabled: control._isInViewport
     }
 }

@@ -112,6 +112,7 @@ ComboBoxCore {
             // Leaf node 叶子节点
             return _isSelected(path) ? 2 : 0
         }
+        if (_safeSelectedPaths.length === 0) return 0
         // Parent node: check all descendants 父节点：检查所有后代
         var leafPaths = _getLeafPaths(node, path)
         var selectedCount = 0

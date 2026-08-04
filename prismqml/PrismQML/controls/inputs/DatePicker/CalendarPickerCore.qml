@@ -46,6 +46,7 @@ Item {
     property int _nextYear: year
     property int _nextMonth: month
     property var _pendingUpdateFunc: null
+    property bool _nextGridRequested: false
 
     // ==================== Readonly State 只读状态 ====================
     // Range bar color (opaque to avoid overlap issues) 范围条颜色（不透明避免重叠问题）
@@ -114,6 +115,7 @@ Item {
             if (month === 1) { _nextYear = year - 1; _nextMonth = 12 }
             else { _nextYear = year; _nextMonth = month - 1 }
         }
+        _nextGridRequested = true
 
         // Set grid positions based on direction 根据方向设置网格位置
         gridWrapperBehavior.enabled = false
@@ -290,7 +292,7 @@ Item {
                                     !(dayCell.isRangeStart && dayCell.isRangeEnd)
                                 anchors.fill: parent
                                 visible: showBar
-                                layer.enabled: true
+                                layer.enabled: showBar
                                 
                                 Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
@@ -359,52 +361,60 @@ Item {
                 }
                 
                 // Next month grid 目标月网格
-                Grid {
+                Loader {
                     id: nextGrid
                     width: parent.width
-                    columns: 7
-                    rows: 6
+                    height: gridContainer.height
                     y: gridContainer.height  // Always below dayGrid 固定在dayGrid下方
-                    
-                    Repeater {
-                        model: 42
-                        
-                        Rectangle {
-                            property int offset: index - control._nextFirstDay + 1
-                            property bool isPrevMonth: offset <= 0
-                            property bool isNextMonth: offset > control._nextDaysInMonth
-                            property bool isCurrent: !isPrevMonth && !isNextMonth
-                            property int displayDay: {
-                                if (isPrevMonth) return control._nextDaysInPrev + offset
-                                if (isNextMonth) return offset - control._nextDaysInMonth
-                                return offset
-                            }
-                            
-                            property bool isToday: isCurrent && 
-                                control._nextYear === control._todayYear && 
-                                control._nextMonth === control._todayMonth && 
-                                displayDay === control._todayDay
 
-                            width: nextGrid.width / 7
-                            height: Enums.controlSize.calendarCellHeight
-                            color: Enums.transparent
+                    active: control._nextGridRequested
+                    sourceComponent: Component {
+                        Grid {
+                            anchors.fill: parent
+                            columns: 7
+                            rows: 6
 
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: Enums.controlSize.calendarCell
-                                height: Enums.controlSize.calendarCell
-                                radius: Enums.radius.xlarge
-                                color: parent.isToday ? control.accentColor : Enums.transparent
-                            }
-                            
-                            Label {
-                                anchors.centerIn: parent
-                                type: Enums.label.type_body
-                                text: parent.displayDay
-                                color: {
-                                    if (parent.isToday) return Enums.accentForeground
-                                    if (!parent.isCurrent) return Enums.stateColor.pickerTextSecondary
-                                    return Enums.textColor.primary
+                            Repeater {
+                                model: 42
+
+                                Rectangle {
+                                    property int offset: index - control._nextFirstDay + 1
+                                    property bool isPrevMonth: offset <= 0
+                                    property bool isNextMonth: offset > control._nextDaysInMonth
+                                    property bool isCurrent: !isPrevMonth && !isNextMonth
+                                    property int displayDay: {
+                                        if (isPrevMonth) return control._nextDaysInPrev + offset
+                                        if (isNextMonth) return offset - control._nextDaysInMonth
+                                        return offset
+                                    }
+
+                                    property bool isToday: isCurrent &&
+                                        control._nextYear === control._todayYear &&
+                                        control._nextMonth === control._todayMonth &&
+                                        displayDay === control._todayDay
+
+                                    width: nextGrid.width / 7
+                                    height: Enums.controlSize.calendarCellHeight
+                                    color: Enums.transparent
+
+                                    Rectangle {
+                                        anchors.centerIn: parent
+                                        width: Enums.controlSize.calendarCell
+                                        height: Enums.controlSize.calendarCell
+                                        radius: Enums.radius.xlarge
+                                        color: parent.isToday ? control.accentColor : Enums.transparent
+                                    }
+
+                                    Label {
+                                        anchors.centerIn: parent
+                                        type: Enums.label.type_body
+                                        text: parent.displayDay
+                                        color: {
+                                            if (parent.isToday) return Enums.accentForeground
+                                            if (!parent.isCurrent) return Enums.stateColor.pickerTextSecondary
+                                            return Enums.textColor.primary
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -38,6 +38,7 @@ Item {
     readonly property int featureDropdown: Enums.button.feature_dropdown
     readonly property int featureSplit: Enums.button.feature_split
     readonly property int featureNone: Enums.button.feature_none
+    readonly property int featureProgress: Enums.button.feature_progress_bar
     readonly property int durationFast: Enums.duration.fast
     readonly property int popupPanelOffset: Enums.popupMetrics.panelOffset
 
@@ -158,13 +159,17 @@ def _button_dropdown(button):
     return matches[0]
 
 
-def _dropdown_popup(dropdown):
-    matches = [
+def _dropdown_popups(dropdown):
+    return [
         child
         for child in _descendants(dropdown)
         if child.metaObject().indexOfProperty("_itemsHeight") >= 0
         and child.metaObject().indexOfProperty("_prewarmed") >= 0
     ]
+
+
+def _dropdown_popup(dropdown):
+    matches = _dropdown_popups(dropdown)
     assert len(matches) == 1, [child.metaObject().className() for child in matches]
     return matches[0]
 
@@ -289,7 +294,8 @@ def _reset_button_popups(root):
             if child.metaObject().indexOfProperty("isMenuOpen") >= 0
         ]
         for dropdown in dropdowns:
-            _invoke(_dropdown_popup(dropdown), "forceReset")
+            for popup in _dropdown_popups(dropdown):
+                _invoke(popup, "forceReset")
 
 
 def _dispose_scene(engine, component, root, window):

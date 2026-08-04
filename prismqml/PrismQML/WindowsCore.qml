@@ -510,23 +510,46 @@ Window {
             z: Enums.zIndex.controls
         }
         
-        // Right caption buttons. 右侧窗口按钮。
-        Item {
-            id: captionButtonsRight
-            anchors.right: parent.right
-            anchors.top: parent.top
-            width: _isLeftLayout ? captionButtonWidth * 3 : 0
-            height: captionButtonHeight
-            visible: _isLeftLayout
-            z: Enums.zIndex.controlsAbove
+        // Left-layout right title chrome. 左侧布局右侧标题栏 chrome。
+        Loader {
+            id: rightTitleChromeLoader
 
-            Loader {
-                anchors.fill: parent
-                active: _isLeftLayout && _titleChromeReady
-                sourceComponent: Component {
+            objectName: "rightTitleChromeLoader"
+            anchors.fill: parent
+            active: _isLeftLayout && _titleChromeReady
+            z: Enums.zIndex.controlsAbove
+            sourceComponent: Component {
+                Item {
+                    objectName: "rightTitleChrome"
+                    anchors.fill: parent
+
+                    // Window drag area 窗口拖拽区域
+                    MouseArea {
+                        objectName: "rightTitleBarDragArea"
+                        anchors.left: parent.left
+                        anchors.leftMargin: Math.max(
+                            leftPanelWidth, Enums.window.navPanelMinWidth
+                        ) + Enums.border.thin
+                        anchors.right: parent.right
+                        anchors.rightMargin: captionButtonWidth * 3
+                        anchors.top: parent.top
+                        height: titleBarHeight
+                        z: Enums.zIndex.background
+                        onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
+                        onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                    }
+
+                    // Window caption buttons 窗口标题栏按钮
                     Row {
-                        anchors.fill: parent
+                        id: captionButtonsRight
+
+                        objectName: "captionButtonsRight"
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        width: captionButtonWidth * 3
+                        height: captionButtonHeight
                         spacing: Enums.spacing.none
+                        z: Enums.zIndex.controlsAbove
 
                         CaptionButton {
                             targetWindow: window
@@ -555,19 +578,6 @@ Window {
                     }
                 }
             }
-        }
-        
-        // Right title-bar drag area. 右侧标题栏拖动区域。
-        MouseArea {
-            id: rightTitleBarDragArea
-            anchors.left: verticalDivider.right
-            anchors.right: captionButtonsRight.left
-            anchors.top: parent.top
-            height: titleBarHeight
-            visible: _isLeftLayout && _titleChromeReady
-            z: Enums.zIndex.controls
-            onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
-            onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
         }
         
         // Content area. 内容区域。

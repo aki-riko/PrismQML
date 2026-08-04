@@ -124,11 +124,13 @@ Item {
     }
     
     // Indeterminate moving block 不确定进度单块穿梭
-    IndeterminateBarImpl {
+    Loader {
         anchors.fill: parent
-        visible: control.indeterminate
-        color: control.progressColor
-        radius: control._barRadius
-        running: control.indeterminate && control._isInViewport && control.visible
+        active: control.indeterminate
+        sourceComponent: IndeterminateBarImpl {
+            color: control.progressColor
+            radius: control._barRadius
+            running: control.indeterminate && control._isInViewport && control.visible
+        }
     }
 }

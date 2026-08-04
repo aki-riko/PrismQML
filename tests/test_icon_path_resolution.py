@@ -6,10 +6,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
-from PySide6.QtCore import QSize, QUrl
+from PySide6.QtCore import QResource, QSize, QUrl
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap, Qt
 from PySide6.QtSvg import QSvgRenderer
 
@@ -17,6 +19,9 @@ from prismqml.python.core._taskbar_svg_icon import _TaskbarSvgIconEngine
 from prismqml.python.core.window_helper import WindowHelper, _ICON_SIZES
 from prismqml.python.window.system_tray import SystemTrayIcon
 from prismqml.python.window.window_core import WindowCore
+
+
+_GALLERY_RCC = Path(__file__).parents[1] / "examples" / "resources" / "gallery.rcc"
 
 
 def _normalized(path: str) -> str:
@@ -36,11 +41,11 @@ def _write_real_icon(path: Path) -> None:
     assert image.save(str(path))
 
 
-def _write_real_svg(path: Path) -> None:
+def _write_real_svg(path: Path, color: str = "#d02040") -> None:
     """Write a real scalable icon. 写入真实可缩放图标。"""
     path.write_text(
         '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" '
-        'viewBox="0 0 32 32"><rect width="32" height="32" fill="#d02040"/></svg>',
+        f'viewBox="0 0 32 32"><rect width="32" height="32" fill="{color}"/></svg>',
         encoding="utf-8",
     )
 
@@ -212,6 +217,85 @@ def test_window_entrypoints_publish_real_svg(
         assert published.pixmap(QSize(64, 64)).toImage().pixelColor(32, 32) == QColor(
             "#d02040"
         )
+    finally:
+        qapp.setWindowIcon(original_icon)
+
+
+def test_window_helper_reuses_unchanged_svg_render(
+    qapp,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """The native-ready reapply must reuse identical SVG pixels. 原生就绪重设复用相同SVG。"""
+    icon_path = tmp_path / "cached.svg"
+    _write_real_svg(icon_path)
+    helper = WindowHelper()
+    render_spy = Mock(wraps=helper._renderSvgIcon)
+    monkeypatch.setattr(helper, "_renderSvgIcon", render_spy)
+    original_icon = qapp.windowIcon()
+    try:
+        helper.setAppIcon(str(icon_path))
+        first_icon = qapp.windowIcon()
+        helper.setAppIcon(str(icon_path))
+        second_icon = qapp.windowIcon()
+
+        render_spy.assert_called_once_with(str(icon_path))
+        assert not first_icon.isNull()
+        assert second_icon.cacheKey() == first_icon.cacheKey()
+        assert second_icon.pixmap(QSize(64, 64)).toImage() == first_icon.pixmap(
+            QSize(64, 64)
+        ).toImage()
+    finally:
+        qapp.setWindowIcon(original_icon)
+
+
+def test_window_helper_reuses_unchanged_qrc_svg_render(qapp, monkeypatch) -> None:
+    """Packaged QRC icons must retain exact pixels while reusing renders. QRC复用渲染。"""
+    assert QResource.registerResource(str(_GALLERY_RCC))
+    helper = WindowHelper()
+    helper._cached_svg_icon_path = ""
+    helper._cached_svg_icon_signature = None
+    helper._cached_svg_icon = None
+    render_spy = Mock(wraps=helper._renderSvgIcon)
+    monkeypatch.setattr(helper, "_renderSvgIcon", render_spy)
+    original_icon = qapp.windowIcon()
+    try:
+        helper.setAppIcon("qrc:/app_icon.svg")
+        first_image = qapp.windowIcon().pixmap(QSize(64, 64)).toImage()
+        helper.setAppIcon("qrc:/app_icon.svg")
+
+        render_spy.assert_called_once_with(":/app_icon.svg")
+        assert qapp.windowIcon().pixmap(QSize(64, 64)).toImage() == first_image
+    finally:
+        qapp.setWindowIcon(original_icon)
+        assert QResource.unregisterResource(str(_GALLERY_RCC))
+
+
+def test_window_helper_refreshes_changed_svg(
+    qapp,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """A changed file must invalidate cached SVG pixels. 文件变化必须使SVG缓存失效。"""
+    icon_path = tmp_path / "changing.svg"
+    _write_real_svg(icon_path)
+    helper = WindowHelper()
+    render_spy = Mock(wraps=helper._renderSvgIcon)
+    monkeypatch.setattr(helper, "_renderSvgIcon", render_spy)
+    original_icon = qapp.windowIcon()
+    try:
+        helper.setAppIcon(str(icon_path))
+        before_stat = icon_path.stat()
+        _write_real_svg(icon_path, "#20c050")
+        os.utime(
+            icon_path,
+            ns=(before_stat.st_atime_ns, before_stat.st_mtime_ns + 1_000_000_000),
+        )
+        helper.setAppIcon(str(icon_path))
+
+        assert render_spy.call_count == 2
+        image = qapp.windowIcon().pixmap(QSize(64, 64)).toImage()
+        assert image.pixelColor(32, 32) == QColor("#20c050")
     finally:
         qapp.setWindowIcon(original_icon)
 

@@ -26,9 +26,15 @@ Item {
 
     readonly property int expectedIndicatorWidth: Enums.controlSize.dropdownArrowWidth
     readonly property int expectedToolButtonWidth: Enums.controlSize.buttonHeight
+    readonly property int expectedContentPadding: Enums.spacing.m
+    readonly property real expectedDropdownArrowMargin: Enums.spacing.m
+    readonly property real expectedSplitArrowInset:
+        Enums.spacing.micro + Enums.spacing.xxxl / 2
+    readonly property int featureDropdown: Enums.button.feature_dropdown
+    readonly property int featureSplit: Enums.button.feature_split
 
     width: 180
-    height: 80
+    height: 120
 
     Button {
         id: defaultIndicatorButton
@@ -47,6 +53,18 @@ Item {
         width: 38
         height: 28
         icon: Enums.icon.more_horizontal
+        feature: Enums.button.feature_dropdown
+        showDropdownIndicator: false
+        menuItems: ["Alpha"]
+    }
+
+    Button {
+        id: dynamicIndicatorButton
+        objectName: "dynamicIndicatorButton"
+        y: 80
+        width: 180
+        height: 40
+        text: "Dynamic"
         feature: Enums.button.feature_dropdown
         showDropdownIndicator: false
         menuItems: ["Alpha"]
@@ -100,6 +118,15 @@ def _chevrons(button):
     ]
 
 
+def _all_chevrons(button):
+    return [
+        child
+        for child in _descendants(button)
+        if isinstance(child, QQuickItem)
+        and "ChevronIcon" in child.metaObject().className()
+    ]
+
+
 def _content_icon(button):
     matches = [
         child
@@ -111,6 +138,23 @@ def _content_icon(button):
     ]
     assert len(matches) == 1, [child.metaObject().className() for child in matches]
     return matches[0]
+
+
+def _content_text(button, text):
+    matches = [
+        child
+        for child in _descendants(button)
+        if isinstance(child, QQuickItem)
+        and child.metaObject().indexOfProperty("paintedWidth") >= 0
+        and child.metaObject().indexOfProperty("text") >= 0
+        and child.property("text") == text
+    ]
+    assert len(matches) == 1, [child.metaObject().className() for child in matches]
+    return matches[0]
+
+
+def _center_x(item, relative_to):
+    return item.mapToItem(relative_to, QPointF()).x() + item.width() / 2
 
 
 @pytest.fixture
@@ -155,3 +199,71 @@ def test_icon_dropdown_can_hide_indicator_and_center_icon(dropdown_indicator_sce
     assert _chevrons(button) == []
     icon_left = icon.mapToItem(button, QPointF()).x()
     assert icon_left + icon.width() / 2 == pytest.approx(button.width() / 2)
+
+
+def test_dropdown_reuses_one_arrow_and_preserves_external_open_state(
+    dropdown_indicator_scene,
+):
+    root = dropdown_indicator_scene
+    default_button = _button(root, "defaultIndicatorButton")
+    hidden_button = _button(root, "hiddenIndicatorButton")
+    default_arrows = _all_chevrons(default_button)
+
+    assert len(default_arrows) == 1
+    assert len(_all_chevrons(hidden_button)) == 1
+    assert not default_arrows[0].property("isOpen")
+    assert _center_x(default_arrows[0], default_button) == pytest.approx(
+        default_button.width()
+        - root.property("expectedDropdownArrowMargin")
+        - default_arrows[0].width() / 2
+    )
+
+    default_button.setProperty("dropdownOpen", True)
+    assert default_arrows[0].property("isOpen")
+
+    default_button.setProperty("dropdownOpen", False)
+    assert not default_arrows[0].property("isOpen")
+
+    hidden_button.setProperty("showDropdownIndicator", True)
+    assert len(_chevrons(hidden_button)) == 1
+    hidden_button.setProperty("showDropdownIndicator", False)
+    assert _chevrons(hidden_button) == []
+
+    default_button.setProperty("feature", root.property("featureSplit"))
+    default_button.setProperty("dropdownOpen", True)
+    assert not default_arrows[0].property("isOpen")
+    assert _center_x(default_arrows[0], default_button) == pytest.approx(
+        default_button.width() - root.property("expectedSplitArrowInset")
+    )
+
+    default_button.setProperty("feature", root.property("featureDropdown"))
+    assert default_arrows[0].property("isOpen")
+    assert _center_x(default_arrows[0], default_button) == pytest.approx(
+        default_button.width()
+        - root.property("expectedDropdownArrowMargin")
+        - default_arrows[0].width() / 2
+    )
+
+
+def test_text_dropdown_restores_content_geometry_after_indicator_toggle(
+    dropdown_indicator_scene,
+):
+    root = dropdown_indicator_scene
+    button = _button(root, "dynamicIndicatorButton")
+    text = _content_text(button, "Dynamic")
+
+    button.setProperty("showDropdownIndicator", True)
+    button.setProperty("showDropdownIndicator", False)
+
+    restored_content_width = button.property("contentWidth")
+    restored_text_x = text.mapToItem(button, QPointF()).x()
+    assert button.property("contentWidth") == pytest.approx(button.width())
+    assert restored_text_x == pytest.approx(root.property("expectedContentPadding"))
+
+    resize_delta = root.property("expectedIndicatorWidth")
+    button.setProperty("width", button.width() + resize_delta)
+
+    assert button.property("contentWidth") == pytest.approx(restored_content_width)
+    assert text.mapToItem(button, QPointF()).x() == pytest.approx(
+        restored_text_x + resize_delta / 2
+    )

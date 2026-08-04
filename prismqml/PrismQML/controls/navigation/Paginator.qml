@@ -30,15 +30,74 @@ Item {
     readonly property color _pageIdleColor: Enums.transparent
     readonly property color _pageTextColor: Enums.foregroundColor
     readonly property color _pageSelectedTextColor: Enums.accentForeground
+    readonly property int _pageOffset: {
+        var centerIndex = Math.floor(root.visiblePages / 2)
+        var pageIndex = root.currentPage - 1
+        var maxOffset = root.totalPages - root.visiblePages
+        return Math.max(0, Math.min(maxOffset, pageIndex - centerIndex))
+    }
+    readonly property int _windowStartPage: _pageOffset + 1
+    readonly property int _windowEndPage: Math.min(
+        root.totalPages, _windowStartPage + root.visiblePages - 1
+    )
+    property int _loadedPageStart: _windowStartPage
+    property int _loadedPageEnd: _windowEndPage
+    readonly property int _loadedPageCount: Math.max(
+        0, _loadedPageEnd - _loadedPageStart + 1
+    )
 
     // ==================== Signals 信号 ====================
     signal pageChanged(int page)
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _expandLoadedPages() {
+        var total = Math.max(0, root.totalPages)
+        if (total === 0) {
+            _loadedPageStart = 1
+            _loadedPageEnd = 0
+            return
+        }
+        var nextStart = Math.max(1, Math.min(_windowStartPage, total))
+        var nextEnd = Math.max(nextStart, Math.min(_windowEndPage, total))
+        if (_loadedPageEnd < _loadedPageStart) {
+            _loadedPageStart = nextStart
+            _loadedPageEnd = nextEnd
+            return
+        }
+        _loadedPageStart = Math.min(Math.max(1, _loadedPageStart), nextStart)
+        _loadedPageEnd = Math.min(total, Math.max(_loadedPageEnd, nextEnd))
+    }
+
+    function _settleLoadedPages() {
+        var total = Math.max(0, root.totalPages)
+        if (total === 0) {
+            _loadedPageStart = 1
+            _loadedPageEnd = 0
+            return
+        }
+        _loadedPageStart = Math.max(1, Math.min(_windowStartPage, total))
+        _loadedPageEnd = Math.max(
+            _loadedPageStart, Math.min(_windowEndPage, total)
+        )
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: pagerRow.implicitWidth
     implicitHeight: _buttonSize
+    on_WindowStartPageChanged: _expandLoadedPages()
+    on_WindowEndPageChanged: _expandLoadedPages()
 
     // ==================== Content 内容 ====================
+    Timer {
+        id: pageSettleTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: {
+            if (!pageSlideAnimation.running) root._settleLoadedPages()
+        }
+    }
+
     Row {
         id: pagerRow
         anchors.centerIn: parent
@@ -71,24 +130,21 @@ Item {
             Item {
                 id: innerContainer
 
-                property real _targetX: {
-                    var centerIndex = Math.floor(root.visiblePages / 2)
-                    var pageIndex = root.currentPage - 1
-                    var maxOffset = root.totalPages - root.visiblePages
-                    var offset = Math.max(0, Math.min(maxOffset, pageIndex - centerIndex))
-                    return offset * root._itemWidth
-                }
-
                 width: root.totalPages * root._itemWidth
                 height: root._buttonSize
 
                 // Slide to show current page centered 滑动使当前页居中
-                x: -_targetX
-                
+                x: -root._pageOffset * root._itemWidth
+
                 Behavior on x {
                     NumberAnimation {
+                        id: pageSlideAnimation
+
                         duration: Enums.duration.medium
                         easing.type: Easing.OutCubic
+                        onRunningChanged: {
+                            if (!running) pageSettleTimer.restart()
+                        }
                     }
                 }
 
@@ -110,58 +166,54 @@ Item {
                     }
                 }
                 
-                // Page number buttons 页码按钮
-                Row {
-                    id: pageRow
-                    spacing: root._spacing
-                    
-                    Repeater {
-                        id: pageRepeater
-                        model: root.totalPages
-                        
-                        delegate: Item {
-                            id: pageDelegate
-                            required property int index
-                            
-                            property int pageNum: index + 1
-                            property bool isCurrentPage: pageNum === root.currentPage
-                            
-                            width: root._buttonSize
-                            height: root._buttonSize
-                            
-                            // Hover background 悬停背景
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: root._pageRadius
-                                color: pageMouseArea.containsMouse && !pageDelegate.isCurrentPage 
-                                       ? root._pageHoverColor : root._pageIdleColor
-                                Behavior on color {
-                                    ColorAnimation { duration: Enums.duration.fast }
-                                }
+                // Keep the visible page window and any pages crossed by an active slide 保留可见页窗口以及当前滑动会经过的页码
+                Repeater {
+                    id: pageRepeater
+                    model: root._loadedPageCount
+
+                    delegate: Item {
+                        id: pageDelegate
+                        required property int index
+
+                        property int pageNum: root._loadedPageStart + index
+                        property bool isCurrentPage: pageNum === root.currentPage
+
+                        x: (pageNum - 1) * root._itemWidth
+                        width: root._buttonSize
+                        height: root._buttonSize
+
+                        // Hover background 悬停背景
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: root._pageRadius
+                            color: pageMouseArea.containsMouse && !pageDelegate.isCurrentPage
+                                   ? root._pageHoverColor : root._pageIdleColor
+                            Behavior on color {
+                                ColorAnimation { duration: Enums.duration.fast }
                             }
-                            
-                            // Page number text 页码文字
-                            Label {
-                                anchors.centerIn: parent
-                                type: Enums.label.type_body
-                                text: pageDelegate.pageNum.toString()
-                                color: pageDelegate.isCurrentPage 
-                                       ? root._pageSelectedTextColor
-                                       : root._pageTextColor
-                                Behavior on color {
-                                    ColorAnimation { duration: Enums.duration.fast }
-                                }
+                        }
+
+                        // Page number text 页码文字
+                        Label {
+                            anchors.centerIn: parent
+                            type: Enums.label.type_body
+                            text: pageDelegate.pageNum.toString()
+                            color: pageDelegate.isCurrentPage
+                                   ? root._pageSelectedTextColor
+                                   : root._pageTextColor
+                            Behavior on color {
+                                ColorAnimation { duration: Enums.duration.fast }
                             }
-                            
-                            MouseArea {
-                                id: pageMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.currentPage = pageDelegate.pageNum
-                                    root.pageChanged(pageDelegate.pageNum)
-                                }
+                        }
+
+                        MouseArea {
+                            id: pageMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.currentPage = pageDelegate.pageNum
+                                root.pageChanged(pageDelegate.pageNum)
                             }
                         }
                     }

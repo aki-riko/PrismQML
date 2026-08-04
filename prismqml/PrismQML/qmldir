@@ -19,6 +19,7 @@ MatrixRain effects/MatrixRain.qml
 
 # ==================== Icons 图标 ====================
 Icon controls/icons/Icon.qml
+singleton IconRendererResources controls/icons/IconRendererResources.qml
 ChevronIcon controls/icons/ChevronIcon.qml
 CheckIcon controls/icons/CheckIcon.qml
 CloseIcon controls/icons/CloseIcon.qml

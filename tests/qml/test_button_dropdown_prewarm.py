@@ -7,7 +7,7 @@
 import pytest
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtQuick import QQuickWindow
+from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from _button_dropdown_prewarm_support import (
@@ -17,8 +17,10 @@ from _button_dropdown_prewarm_support import (
     _click,
     _click_popup_item,
     _create_scene,
+    _descendants,
     _dispose_scene,
     _dropdown_popup,
+    _dropdown_popups,
     _invoke,
     _move_to,
     _new_visible_windows,
@@ -61,19 +63,67 @@ def _use_qt_popup_window(popup):
     assert popup.property("useQtPopupWindow")
 
 
+def test_feature_loader_switch_keeps_menu_state_binding_typed(dropdown_scene):
+    root, window, warnings, _windows_before = dropdown_scene
+    button = _button(root, "dropdownButton")
+    dropdown = _button_dropdown(button)
+    assert _dropdown_popups(dropdown) == []
+    _invoke(dropdown, "prewarmMenu")
+    popup = _dropdown_popup(dropdown)
+    popup.setProperty("useQtPopupWindow", False)
+    popup.setProperty("useInWindowPopup", True)
+    _invoke(dropdown, "openMenu")
+    assert _wait_for(lambda: popup.property("isOpen"))
+
+    button.setProperty("feature", root.property("featureProgress"))
+    _pump(50)
+
+    assert [
+        child
+        for child in _descendants(button)
+        if child.metaObject().indexOfProperty("_progressColor") >= 0
+    ]
+    assert [
+        child
+        for child in window.findChildren(QQuickItem, "_popupSurface")
+        if child.isVisible()
+    ] == []
+
+    button.setProperty("feature", root.property("featureSplit"))
+    _pump(50)
+    split_dropdown = _button_dropdown(button)
+    assert split_dropdown.property("feature") == root.property("featureSplit")
+    assert warnings == []
+
+    button.setProperty("feature", root.property("featureDropdown"))
+    _pump(50)
+    reopened_dropdown = _button_dropdown(button)
+    reopened_popup = _dropdown_popup(reopened_dropdown)
+    reopened_popup.setProperty("useQtPopupWindow", False)
+    reopened_popup.setProperty("useInWindowPopup", True)
+    _invoke(reopened_dropdown, "openMenu")
+    assert _wait_for(lambda: reopened_popup.property("isOpen"))
+    _invoke(reopened_popup, "forceReset")
+
+    assert warnings == []
+
+
 def test_dropdown_defaults_to_qt_popup_window(dropdown_scene):
     """Simple menuItems must use a native window. 简单菜单必须使用可跨宿主边界的原生窗口。"""
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
     received = []
     button.menuItemClicked.connect(
         lambda index, text: received.append((index, text))
     )
 
+    assert _dropdown_popups(dropdown) == []
+    _click(window, button)
+    assert _wait_for(lambda: len(_dropdown_popups(dropdown)) == 1)
+    popup = _dropdown_popup(dropdown)
     assert not popup.property("useInWindowPopup")
     assert popup.property("useQtPopupWindow")
-    _click(window, button)
     assert _wait_for(lambda: popup.property("isOpen"))
     alpha = next(
         child
@@ -102,18 +152,15 @@ def test_hover_prewarm_instantiates_hidden_menu_content(
     root, window, warnings, _windows_before = dropdown_scene
     button = _button(root, object_name)
     dropdown = _button_dropdown(button)
-    popup = _dropdown_popup(dropdown)
 
     assert not dropdown.property("_menuContentRequested")
-    assert [
-        child
-        for child in _visual_descendants(_popup_content(popup))
-        if child.metaObject().indexOfProperty("isSeparator") >= 0
-    ] == []
+    assert _dropdown_popups(dropdown) == []
 
     _move_to(window, button, split_arrow)
 
     assert _wait_for(lambda: dropdown.property("_menuContentRequested"))
+    assert _wait_for(lambda: len(_dropdown_popups(dropdown)) == 1)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("_prewarmed"))
     menu_items = [
         child
@@ -135,11 +182,13 @@ def test_dropdown_and_split_hover_prepare_hidden_menu_surface(
 ):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, object_name)
-    popup = _dropdown_popup(_button_dropdown(button))
-    assert not popup.property("_prewarmed")
+    dropdown = _button_dropdown(button)
+    assert _dropdown_popups(dropdown) == []
 
     _move_to(window, button, split_arrow)
 
+    assert _wait_for(lambda: len(_dropdown_popups(dropdown)) == 1)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("_prewarmed"))
     assert not popup.property("_prewarmScheduled")
     assert not popup.property("isOpen")
@@ -154,19 +203,17 @@ def test_dropdown_and_split_hover_prepare_hidden_menu_surface(
 
 
 def test_split_main_action_hover_does_not_prewarm_menu(dropdown_scene):
-    root, window, warnings, windows_before = dropdown_scene
+    root, window, warnings, _windows_before = dropdown_scene
     button = _button(root, "splitButton")
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
+    assert _dropdown_popups(dropdown) == []
     tooltip = _tooltip(button)
 
     _move_to(window, button)
     _pump(120)
 
-    assert not popup.property("_prewarmed")
-    assert not popup.property("_prewarmScheduled")
-    assert not _popup_is_visible(popup)
+    assert _dropdown_popups(dropdown) == []
     assert tooltip.property("visible")
-    assert _popup_window(popup) not in _new_visible_windows(windows_before, window)
     assert warnings == []
 
 
@@ -174,8 +221,10 @@ def test_split_arrow_hover_drives_tooltip_state(dropdown_scene):
     root, window, warnings, _windows_before = dropdown_scene
     button = _button(root, "splitButton")
     dropdown = _button_dropdown(button)
+    assert _dropdown_popups(dropdown) == []
+    _invoke(dropdown, "prewarmMenu")
     popup = _dropdown_popup(dropdown)
-    popup.setProperty("_prewarmed", True)
+    assert _wait_for(lambda: popup.property("_prewarmed"))
 
     _move_to(window, button, True)
 
@@ -197,11 +246,13 @@ def test_dropdown_snapshots_animation_duration(dropdown_scene):
 def test_dropdown_and_split_focus_prewarm(dropdown_scene, object_name):
     root, _window, warnings, _windows_before = dropdown_scene
     button = _button(root, object_name)
-    popup = _dropdown_popup(_button_dropdown(button))
-    assert not popup.property("_prewarmed")
+    dropdown = _button_dropdown(button)
+    assert _dropdown_popups(dropdown) == []
 
     button.forceActiveFocus()
 
+    assert _wait_for(lambda: len(_dropdown_popups(dropdown)) == 1)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("_prewarmed"))
     assert button.hasActiveFocus()
     assert not _popup_is_visible(popup)
@@ -226,6 +277,7 @@ def test_loader_prewarms_when_intent_precedes_dropdown_feature(
     button.setProperty("feature", root.property("featureDropdown"))
     _pump(30)
     dropdown = _button_dropdown(button)
+    assert _wait_for(lambda: len(_dropdown_popups(dropdown)) == 1)
     popup = _dropdown_popup(dropdown)
 
     assert _wait_for(lambda: popup.property("_prewarmed"))
@@ -244,11 +296,11 @@ def test_active_focus_retries_prewarm_when_menu_becomes_available(
         button.setProperty("menuItems", [])
     else:
         button.setProperty("loading", True)
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
     button.forceActiveFocus()
     _pump(30)
     assert button.hasActiveFocus()
-    assert not popup.property("_prewarmed")
+    assert _dropdown_popups(dropdown) == []
 
     if blocked_state == "empty":
         button.setProperty("menuItems", ["Alpha"])
@@ -256,6 +308,8 @@ def test_active_focus_retries_prewarm_when_menu_becomes_available(
         button.setProperty("loading", False)
     assert button.hasActiveFocus()
 
+    assert _wait_for(lambda: len(_dropdown_popups(dropdown)) == 1)
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("_prewarmed"))
     assert warnings == []
 
@@ -271,14 +325,12 @@ def test_unavailable_dropdown_does_not_prewarm(dropdown_scene, blocked_state):
         button.setProperty("loading", True)
     else:
         button.setProperty("menuItems", [])
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
 
     _move_to(window, button)
     _pump(120)
 
-    assert not popup.property("_prewarmed")
-    assert not popup.property("_prewarmScheduled")
-    assert not _popup_is_visible(popup)
+    assert _dropdown_popups(dropdown) == []
     assert _new_visible_windows(windows_before, window) == []
     assert warnings == []
 
@@ -288,9 +340,10 @@ def test_dropdown_prewarm_delegate_is_idempotent(dropdown_scene, object_name):
     root, _window, warnings, _windows_before = dropdown_scene
     button = _button(root, object_name)
     dropdown = _button_dropdown(button)
-    popup = _dropdown_popup(dropdown)
 
     _invoke(dropdown, "prewarmMenu")
+    assert len(_dropdown_popups(dropdown)) == 1
+    popup = _dropdown_popup(dropdown)
     _invoke(dropdown, "prewarmMenu")
     assert dropdown.property("_geometryPrewarmScheduled")
     assert not popup.property("_prewarmed")
@@ -314,9 +367,9 @@ def test_destroying_loader_cancels_queued_geometry_prewarm_work(dropdown_scene):
     root, window, warnings, windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
     dropdown = _button_dropdown(button)
-    popup = _dropdown_popup(dropdown)
 
     _invoke(dropdown, "prewarmMenu")
+    popup = _dropdown_popup(dropdown)
     assert dropdown.property("_geometryPrewarmScheduled")
     assert not popup.property("_prewarmed")
     assert popup.property("_prewarmScheduled")
@@ -335,8 +388,8 @@ def test_open_remeasures_and_tracks_left_aligned_wide_menu(
     root, window, warnings, _windows_before = dropdown_scene
     button = _button(root, object_name)
     dropdown = _button_dropdown(button)
-    popup = _dropdown_popup(dropdown)
     _invoke(dropdown, "prewarmMenu")
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: dropdown.property("_geometryPrepared"))
     prepared_width = popup.property("popupWidth")
 
@@ -410,6 +463,7 @@ def test_in_window_popup_clamps_wide_menu_inside_owner(dropdown_scene):
         ],
     )
     dropdown = _button_dropdown(button)
+    _invoke(dropdown, "prewarmMenu")
     popup = _dropdown_popup(dropdown)
     popup.setProperty("useQtPopupWindow", False)
     popup.setProperty("useInWindowPopup", True)
@@ -447,6 +501,7 @@ def test_reset_menu_near_right_edge_extends_beyond_window(dropdown_scene):
         ],
     )
     dropdown = _button_dropdown(button)
+    _invoke(dropdown, "prewarmMenu")
     popup = _dropdown_popup(dropdown)
     assert not popup.property("useInWindowPopup")
     assert popup.property("useQtPopupWindow")
@@ -480,6 +535,7 @@ def test_reset_menu_tracking_preserves_cross_window_anchor(dropdown_scene):
         ],
     )
     dropdown = _button_dropdown(button)
+    _invoke(dropdown, "prewarmMenu")
     popup = _dropdown_popup(dropdown)
     _use_qt_popup_window(popup)
     _invoke(dropdown, "openMenu")
@@ -518,10 +574,12 @@ def test_qt_popup_window_stays_inside_available_screen(dropdown_scene):
     available = window.screen().availableGeometry()
     window.setX(available.right() - window.width() + 1)
     _pump(20)
-    popup = _dropdown_popup(_button_dropdown(button))
+    dropdown = _button_dropdown(button)
+    _invoke(dropdown, "prewarmMenu")
+    popup = _dropdown_popup(dropdown)
     _use_qt_popup_window(popup)
 
-    _invoke(_button_dropdown(button), "openMenu")
+    _invoke(dropdown, "openMenu")
     assert _wait_for(lambda: popup.property("isOpen"))
 
     popup_window = _active_qt_popup_window(windows_before, window)
@@ -552,9 +610,7 @@ def test_tooltip_hide_animates_but_menu_dismiss_is_immediate(dropdown_scene):
 def test_public_tooltip_hide_cancels_button_show_timer(dropdown_scene):
     root, window, warnings, _windows_before = dropdown_scene
     button = _button(root, "dropdownButton")
-    popup = _dropdown_popup(_button_dropdown(button))
     tooltip = _tooltip(button)
-    popup.setProperty("_prewarmed", True)
 
     _move_to(window, button)
     _pump(20)
@@ -572,10 +628,10 @@ def test_queued_qt_popup_prewarm_cannot_hide_immediate_dropdown_open(
 ):
     root, _window, warnings, _windows_before = dropdown_scene
     dropdown = _button_dropdown(_button(root, "dropdownButton"))
-    popup = _dropdown_popup(dropdown)
-    _use_qt_popup_window(popup)
 
     _invoke(dropdown, "prewarmMenu")
+    popup = _dropdown_popup(dropdown)
+    _use_qt_popup_window(popup)
     assert popup.property("_prewarmScheduled")
     _invoke(dropdown, "openMenu")
     assert _popup_is_visible(popup)

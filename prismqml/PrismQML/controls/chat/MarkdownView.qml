@@ -164,6 +164,11 @@ Item {
                         font.family: Enums.fontFamily
                         font.pixelSize: Enums.typography.body
                         onLinkActivated: (url) => Qt.openUrlExternally(url)
+
+                        HoverHandler {
+                            cursorShape: parent.hoveredLink !== ""
+                                         ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        }
                     }
                 }
                 Component {

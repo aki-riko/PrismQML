@@ -279,6 +279,69 @@ def _exercise_page_transfer(
         assert _new_visible_windows(windows_before) == []
 
 
+def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, warnings = _create_scene(monkeypatch, scene_source)
+    try:
+        assert _wait_for(lambda: window.property("stackedWidget") is not None)
+        loader = window.findChild(QObject, "loadingOverlayLoader")
+        assert loader is not None
+        assert loader.property("active") is False
+        assert loader.property("item") is None
+        assert window.findChild(QQuickItem, "loadingOverlay") is None
+
+        window.setProperty("loadingText", "Loading overlay probe")
+        window.setProperty("_pythonLoading", True)
+        assert _wait_for(lambda: loader.property("item") is not None)
+        overlay = window.findChild(QQuickItem, "loadingOverlay")
+        assert overlay is loader.property("item")
+        assert overlay.property("loading") is True
+        assert overlay.isVisible()
+        assert overlay.property("backgroundColor") == window.property(
+            "contentBgColor"
+        )
+        assert overlay.property("text") == "Loading overlay probe"
+        rings = [
+            child
+            for child in overlay.findChildren(QObject)
+            if child.metaObject().className().startswith("ProgressRing_")
+        ]
+        assert len(rings) == 1
+        assert rings[0].property("indeterminate") is True
+        assert rings[0].findChild(QQuickItem, "progressRingSpinningArc") is not None
+
+        window.setProperty("loadingText", "Updated loading overlay probe")
+        assert _wait_for(
+            lambda: overlay.property("text") == "Updated loading overlay probe"
+        )
+
+        window.setProperty("_pythonLoading", False)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        assert _wait_for(lambda: loader.property("item") is None)
+        assert window.findChild(QQuickItem, "loadingOverlay") is None
+        assert not [
+            child
+            for child in loader.findChildren(QObject)
+            if child.metaObject().className().startswith("ProgressRing_")
+        ]
+
+        window.setProperty("loadingText", "Recreated loading overlay probe")
+        window.setProperty("_pythonLoading", True)
+        assert _wait_for(lambda: loader.property("item") is not None)
+        recreated = window.findChild(QQuickItem, "loadingOverlay")
+        assert recreated is loader.property("item")
+        assert recreated.property("text") == "Recreated loading overlay probe"
+
+        window.setProperty("_pythonLoading", False)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        assert _wait_for(lambda: loader.property("item") is None)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_windows_split_loads_core_and_transfers_default_pages(monkeypatch, qapp):
     _exercise_page_transfer(monkeypatch, SPLIT_SCENE_SOURCE, True)
 
@@ -289,6 +352,14 @@ def test_windows_filled_loads_core_and_transfers_default_pages(monkeypatch, qapp
 
 def test_windows_bar_loads_core_and_transfers_default_pages(monkeypatch, qapp):
     _exercise_page_transfer(monkeypatch, BAR_SCENE_SOURCE)
+
+
+def test_windows_split_creates_loading_overlay_only_while_needed(monkeypatch, qapp):
+    _exercise_loading_overlay_lifecycle(monkeypatch, SPLIT_SCENE_SOURCE)
+
+
+def test_windows_filled_creates_loading_overlay_only_while_needed(monkeypatch, qapp):
+    _exercise_loading_overlay_lifecycle(monkeypatch, FILLED_SCENE_SOURCE)
 
 
 def test_windows_bar_skips_non_item_default_child_and_dismisses_splash(

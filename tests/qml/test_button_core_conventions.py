@@ -376,6 +376,8 @@ def _assert_dropdown_bindings(root, button, dropdown):
         "menuItems"
     ).toVariant()
     assert not dropdown.property("isMenuOpen")
+    if not _matching(dropdown, "_itemsHeight", "_needsScroll"):
+        dropdown._ensureInternalMenu()
     popup = _unique(dropdown, "_itemsHeight", "_needsScroll")
     assert not popup.property("isOpen")
 
@@ -504,27 +506,16 @@ def test_gradient_buttons_share_theme_bound_resource(button_core_scene):
     assert _new_visible_windows(windows_before) == []
 
 
-def test_button_core_shares_neo_press_transform_and_animation(button_core_scene):
+def test_button_core_defers_neo_press_transform(button_core_scene):
     root, warnings, windows_before = button_core_scene
     button = _button(root, "lifecycleButton")
-    descendants = _descendants(button)
-    transforms = [
-        child
-        for child in descendants
-        if child.metaObject().className().startswith("QQuickTranslate")
-    ]
-    behaviors = [
-        child
-        for child in descendants
-        if child.metaObject().className() == "QQuickBehavior"
-    ]
-
-    assert len(transforms) == 1
-    assert len(behaviors) == 1
-    assert button.setProperty("_neoPressShift", 4.0)
-    _pump(250)
-    assert transforms[0].property("x") == pytest.approx(4.0)
-    assert transforms[0].property("y") == pytest.approx(4.0)
+    assert not any(
+        child.metaObject().className().startswith("QQuickTranslate")
+        for child in _descendants(button)
+    )
+    source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    assert "sourceComponent: ButtonNeoShadow" in source
+    assert "Behavior on _neoPressShift" not in source
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 
@@ -607,6 +598,10 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
                 root.property("menuContentLeadingPadding")
             )
         if dropdown:
+            if feature_name == "featureDropdown":
+                assert _matching(
+                    dropdown[0], "_itemsHeight", "_needsScroll"
+                ) == []
             _assert_dropdown_bindings(root, button, dropdown[0])
         if progress:
             _assert_progress_bindings(button, progress[0])
@@ -616,7 +611,8 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
 
 def test_button_core_merges_mutually_exclusive_feature_shells():
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
-    assert "id: featureVisualLoader" in source
+    assert "id: featureLoader" in source
+    assert "id: dropdownFeature" not in source
     assert "id: progressFeatureLoader" not in source
     assert "id: toggleAnimLoader" not in source
     assert "active: true" not in source

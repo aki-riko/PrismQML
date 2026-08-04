@@ -37,11 +37,13 @@ ProgressCore {
     }
     
     // Indeterminate progress 不确定进度(单块加速穿梭)
-    IndeterminateBarImpl {
+    Loader {
         anchors.fill: parent
-        visible: control.indeterminate
-        color: control.progressColor
-        radius: height / 2
-        running: control.indeterminate && control.visible
+        active: control.indeterminate
+        sourceComponent: IndeterminateBarImpl {
+            color: control.progressColor
+            radius: height / 2
+            running: control.indeterminate && control.visible
+        }
     }
 }

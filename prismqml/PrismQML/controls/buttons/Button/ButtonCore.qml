@@ -6,9 +6,9 @@ import QtQuick
 import "../../.."
 import "../../../effects"
 import QtQuick.Effects
-import "../../icons"
 import "../../utils"
 import "../../containers"
+import "ButtonStyle.js" as ButtonStyle
 
 // Button - Unified button component 统一按钮组件
 // Auto-detect type by icon/text content 根据图标/文本自动识别类型
@@ -81,44 +81,38 @@ Widget {
                            ? false : (mouseArea.containsMouse || pseudoHovered)
     property bool pressed: feature === Enums.button.feature_split ? false : ((mouseArea && mouseArea.pressed) || pseudoPressed)
     readonly property bool _toolTipHovered: feature === Enums.button.feature_split
-        ? (pseudoHovered || (dropdownFeature.item &&
-            (dropdownFeature.item.mainHovered || dropdownFeature.item.dropHovered)))
+        ? (pseudoHovered || (featureLoader.item &&
+            (featureLoader.item.mainHovered || featureLoader.item.dropHovered)))
         : hovered
 
-    // Style helper 样式辅助
-    // 用具名 property 持有(而非匿名子项), 避免被 default property alias
-    // contentData(→customContentContainer.data) 的归属探测卷入。
-    // ButtonStyleHelper 是 QtObject(无 data 成员), 作为匿名子项时
-    // 编译器对每个按钮实例都报 "Cannot find member data" 警告并干扰加载。
-    readonly property ButtonStyleHelper styleHelper: ButtonStyleHelper {
-        style: control.style
-        level: control.level
-        controlEnabled: control.enabled
-        loading: control.loading
-        countdownActive: control._countdownActive
-        hovered: control.hovered
-        pressed: control.pressed
-        isToggleChecked: feature === Enums.button.feature_toggle && control.checked
-
-        onBgColorChanged: if (control._colorAnimationsReady) control._updateTargetColors()
-        onBorderColorChanged: if (control._colorAnimationsReady) control._updateTargetColors()
-    }
+    // Shared style calculations avoid one resident QtObject per button.
+    // 共享样式计算避免每个按钮常驻一个QtObject。
+    readonly property bool _styleEffectiveEnabled:
+        control.enabled && !control.loading && !control._countdownActive
+    readonly property bool _styleToggleChecked:
+        feature === Enums.button.feature_toggle && control.checked
+    readonly property var styleHelper: ButtonStyle.snapshot(
+        style, level, _styleEffectiveEnabled, hovered, pressed,
+        _styleToggleChecked, Enums.isNeobrutalism, Enums.button,
+        Enums.stateColor, Enums.textColor, Enums.statusLevel,
+        Enums.accentColor, Enums.cardColor, Enums.accentForeground,
+        Enums.transparent, Enums.opacityLevel, Enums.neo)
+    readonly property color _styleBgColor: styleHelper.bgColor
+    readonly property color _styleBorderColor: styleHelper.borderColor
+    readonly property color _styleTextColor: styleHelper.textColor
 
     // Appearance and animated colors 外观与动画颜色
     property int radius: shape === Enums.button.shape_pill ? height / 2
                          : (Enums.isNeobrutalism ? Enums.neo.radius
                             : (Enums.radius.small))
-    property color color: styleHelper.bgColor
+    property color color: _styleBgColor
 
-    // Neobrutalism 按下位移量: 按下时控件向右下偏移, 视觉上"压平"硬阴影。Fluent 皮肤恒为 0。
-    property real _neoPressShift: (Enums.isNeobrutalism && pressed && !flat)
-                                   ? Enums.neo.pressOffset : 0
-    Behavior on _neoPressShift {
-        NumberAnimation {
-            duration: Enums.duration.fast
-            easing.type: Easing.OutCubic
-        }
-    }
+    // Neobrutalism target press shift. Neo按压目标位移。
+    readonly property real _neoPressTargetShift:
+        (Enums.isNeobrutalism && pressed && !flat) ? Enums.neo.pressOffset : 0
+    // The loaded Neo surface owns animation; Fluent keeps no resident Behavior. 动画由已加载的Neo表面持有，Fluent不常驻Behavior。
+    property real _neoPressShift:
+        neoShadowLoader.item ? neoShadowLoader.item.animatedPressShift : 0
     readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
                                             feature === Enums.button.feature_split
     readonly property bool _hasProgressBarFeature:
@@ -153,7 +147,7 @@ Widget {
     signal countdownFinished()
 
     // ==================== Public Methods 公开方法 ====================
-    function getTextColor() { return styleHelper.textColor }
+    function getTextColor() { return _styleTextColor }
 
     // Programmatic click 程序化点击
     function click() {
@@ -188,8 +182,8 @@ Widget {
     }
 
     function _updateTargetColors() {
-        var newBg = styleHelper.bgColor
-        var newBorder = styleHelper.borderColor
+        var newBg = _styleBgColor
+        var newBorder = _styleBorderColor
 
         if (pressed) {
             // During press: instant update 按下时：瞬间更新
@@ -244,14 +238,14 @@ Widget {
                              feature === Enums.button.feature_split
         if (hasMenuFeature && enabled && !loading &&
                 (menu !== null && menu !== undefined || _safeMenuItems.length > 0) &&
-                dropdownFeature.item) {
-            dropdownFeature.item.prewarmMenu()
+                featureLoader.item) {
+            featureLoader.item.prewarmMenu()
         }
     }
 
     function _retryMenuPrewarm() {
         var splitArrowHovered = feature === Enums.button.feature_split &&
-            dropdownFeature.item && dropdownFeature.item.dropHovered
+            featureLoader.item && featureLoader.item.dropHovered
         if (activeFocus || mouseArea.containsMouse || splitArrowHovered) {
             _prewarmMenu()
         }
@@ -305,10 +299,10 @@ Widget {
 
     Component.onCompleted: {
         // Initialize with current values (break binding) 用当前值初始化（打破绑定）
-        _animatedBgColor = styleHelper.bgColor
-        _animatedBorderColor = styleHelper.borderColor
-        _targetBgColor = styleHelper.bgColor
-        _targetBorderColor = styleHelper.borderColor
+        _animatedBgColor = _styleBgColor
+        _animatedBorderColor = _styleBorderColor
+        _targetBgColor = _styleBgColor
+        _targetBorderColor = _styleBorderColor
         _colorAnimationsReady = true
     }
 
@@ -317,14 +311,30 @@ Widget {
             // Instant press: stop any running animation and set directly 按下瞬间：停止动画直接设置
             bgColorAnim.stop()
             borderColorAnim.stop()
-            _animatedBgColor = styleHelper.bgColor
-            _animatedBorderColor = styleHelper.borderColor
+            _animatedBgColor = _styleBgColor
+            _animatedBorderColor = _styleBorderColor
+        }
+    }
+
+    onShowDropdownIndicatorChanged: {
+        if (showDropdownIndicator &&
+                feature === Enums.button.feature_dropdown &&
+                contentLoader.item) {
+            contentLoader._indicatorTransitionWidth = Math.max(
+                contentLoader.item.implicitWidth,
+                width - _contentLeadingPadding - _contentTrailingPadding)
         }
     }
 
     // Watch hover changes directly for reliable updates 直接监听悬浮变化以确保可靠更新
     onHoveredChanged: {
         _updateTargetColors()
+    }
+    on_StyleBgColorChanged: {
+        if (_colorAnimationsReady) _updateTargetColors()
+    }
+    on_StyleBorderColorChanged: {
+        if (_colorAnimationsReady) _updateTargetColors()
     }
 
     on_ToolTipHoveredChanged: {
@@ -344,13 +354,6 @@ Widget {
     on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
-    // Shared face/content press transform. 共享按钮表面与内容的按下位移。
-    Translate {
-        id: neoPressTransform
-        x: control._neoPressShift
-        y: control._neoPressShift
-    }
-
     // Shadow layer 阴影层
     // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯色矩形, 无模糊)。
     RectangularShadow {
@@ -369,8 +372,9 @@ Widget {
         active: Enums.isNeobrutalism && !control.flat
         z: _bg.z - 1
 
-        sourceComponent: NeoShadow {
+        sourceComponent: ButtonNeoShadow {
             target: _bg
+            targetPressShift: control._neoPressTargetShift
         }
     }
 
@@ -384,14 +388,14 @@ Widget {
         color: _animatedBgColor
         border.width: Enums.isNeobrutalism
             ? (flat ? 0 : Enums.neo.borderWidth)
-            : (((styleHelper.isToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin)))
+            : (((_styleToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin)))
         border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
 
         // Gradient (for gradient style) 渐变
         gradient: style === Enums.button.style_gradient ? Enums._buttonGradientDef : null
 
         // Neobrutalism 按下位移: face 向右下滑向硬阴影, 视觉压平。Fluent 下 shift 恒 0 无影响。
-        transform: neoPressTransform
+        transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
 
     }
 
@@ -430,24 +434,30 @@ Widget {
         onChildrenChanged: control._syncCustomContentState()
         Component.onCompleted: control._syncCustomContentState()
         // Neobrutalism 按下位移: 内容随 face 一起滑动
-        transform: neoPressTransform
+        transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
     }
 
     Loader {
         id: contentLoader
+        property real _indicatorTransitionWidth: -1
+
+        width: item ? (_indicatorTransitionWidth >= 0
+                       ? _indicatorTransitionWidth : item.implicitWidth) : 0
+        x: {
+            if (contentAlignment === Enums.button.align_left)
+                return control._contentLeadingPadding
+            if (contentAlignment === Enums.button.align_right)
+                return parent.width - width - control._contentTrailingPadding
+            var centerOffset = feature === Enums.button.feature_split
+                               ? -Enums.controlSize.splitButtonContentOffset
+                               : (control._showsDropdownIndicator ? -Enums.spacing.m : 0)
+            return (parent.width - width) / 2 + centerOffset
+        }
         anchors.verticalCenter: parent.verticalCenter
-        anchors.left: contentAlignment === Enums.button.align_left ? parent.left : undefined
-        anchors.right: contentAlignment === Enums.button.align_right ? parent.right : undefined
-        anchors.horizontalCenter: contentAlignment === Enums.button.align_center ? parent.horizontalCenter : undefined
-        anchors.leftMargin: contentAlignment === Enums.button.align_left ? control._contentLeadingPadding : 0
-        anchors.rightMargin: contentAlignment === Enums.button.align_right ? control._contentTrailingPadding : 0
-        anchors.horizontalCenterOffset: contentAlignment === Enums.button.align_center ?
-                                        (feature === Enums.button.feature_split ? -Enums.controlSize.splitButtonContentOffset :
-                                        (control._showsDropdownIndicator ? -Enums.spacing.m : 0)) : 0
         z: Enums.zIndex.content
         active: !control.hasCustomContent  // Only load default content when no custom content 仅在无自定义内容时加载默认内容
         // Neobrutalism 按下位移: 默认内容(文字/图标)随 face 一起滑动
-        transform: neoPressTransform
+        transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
         sourceComponent: ButtonContent {
             feature: control.feature
             style: control.style
@@ -466,25 +476,6 @@ Widget {
             countdownActive: control._countdownActive
             countdownRemaining: control._countdownRemaining
             countdownText: control.countdownText
-        }
-    }
-
-    // Dropdown arrow 下拉箭头
-    Loader {
-        readonly property bool _useAccentForeground: control.style === Enums.button.style_primary ||
-                                                      control.style === Enums.button.style_filled ||
-                                                      control.style === Enums.button.style_gradient
-
-        anchors.right: parent.right
-        anchors.rightMargin: Enums.spacing.m
-        anchors.verticalCenter: parent.verticalCenter
-        active: control._showsDropdownIndicator
-
-        sourceComponent: ChevronIcon {
-            animated: true
-            isOpen: control.dropdownOpen || (dropdownFeature.item ? dropdownFeature.item.isMenuOpen : false)
-            color: !control.enabled ? Enums.stateColor.indicatorActive :
-                   (parent._useAccentForeground ? Enums.accentForeground : Enums.textColor.secondary)
         }
     }
 
@@ -537,15 +528,49 @@ Widget {
         }
     }
 
-    // Progress and toggle visuals are mutually exclusive. 进度与切换视觉层互斥。
+    Component {
+        id: dropdownComponent
+
+        ButtonDropdown {
+            isToolButton: control.isToolButton
+            feature: control.feature
+            menuItems: control._safeMenuItems
+            menu: control.menu
+            controlEnabled: control.enabled
+            loading: control.loading
+            showDropdownIndicator: control.showDropdownIndicator
+            dropdownOpen: control.dropdownOpen
+            parentRadius: control.radius
+            fontSize: control.fontSize
+            parentStyle: control.style
+            textColor: control._styleTextColor
+            onMenuItemClicked: (index, text) => control.menuItemClicked(index, text)
+            onMainButtonClicked: control.clicked()
+            onMenuAboutToOpen: {
+                control._dismissToolTipForMenu()
+                control.menuAboutToOpen()
+            }
+        }
+    }
+
+    // Menu, progress, and toggle features are mutually exclusive. 菜单、进度与切换功能互斥。
     Loader {
-        id: featureVisualLoader
+        id: featureLoader
         anchors.fill: parent
-        active: control._hasFeatureVisual
+        active: control._hasFeatureVisual || control._hasMenuFeature
+        onLoaded: {
+            if (control._hasMenuFeature &&
+                    (control.activeFocus ||
+                     (feature === Enums.button.feature_dropdown && mouseArea.containsMouse))) {
+                control._prewarmMenu()
+            }
+        }
         sourceComponent: control._hasProgressBarFeature
                          ? progressFeatureComponent
                          : (feature === Enums.button.feature_toggle
-                            ? toggleFeatureComponent : null)
+                            ? toggleFeatureComponent
+                            : (control._hasMenuFeature
+                               ? dropdownComponent : null))
     }
 
     // Main interaction 主交互
@@ -555,6 +580,8 @@ Widget {
         hoverEnabled: true
         enabled: control.enabled && !control.loading && !control._countdownActive && feature !== Enums.button.feature_split
         visible: feature !== Enums.button.feature_split
+        cursorShape: enabled && control.style === Enums.button.style_hyperlink
+                     ? Qt.PointingHandCursor : Qt.ArrowCursor
 
         onClicked: {
             if (feature === Enums.button.feature_toggle) {
@@ -564,7 +591,7 @@ Widget {
             if (feature === Enums.button.feature_dropdown &&
                     (control.menu !== null && control.menu !== undefined ||
                      control._safeMenuItems.length > 0)) {
-                if (dropdownFeature.item) dropdownFeature.item.openMenu()
+                if (featureLoader.item) featureLoader.item.openMenu()
                 return
             }
             if (feature === Enums.button.feature_countdown) {
@@ -587,38 +614,6 @@ Widget {
             // Replay the suppressed second activation before forwarding the double-click signal 重放被抑制的第二次激活，再转发双击信号
             clicked(mouse)
             control.doubleClicked()
-        }
-    }
-
-    // Dropdown feature 下拉模块
-    Loader {
-        id: dropdownFeature
-        anchors.fill: parent
-        active: feature === Enums.button.feature_split ||
-                feature === Enums.button.feature_dropdown
-        onLoaded: {
-            if (control.activeFocus ||
-                    (feature === Enums.button.feature_dropdown && mouseArea.containsMouse)) {
-                control._prewarmMenu()
-            }
-        }
-        sourceComponent: ButtonDropdown {
-            isToolButton: control.isToolButton
-            feature: control.feature
-            menuItems: control._safeMenuItems
-            menu: control.menu
-            controlEnabled: control.enabled
-            loading: control.loading
-            parentRadius: control.radius
-            fontSize: control.fontSize
-            parentStyle: control.style
-            textColor: styleHelper.textColor
-            onMenuItemClicked: (index, text) => control.menuItemClicked(index, text)
-            onMainButtonClicked: control.clicked()
-            onMenuAboutToOpen: {
-                control._dismissToolTipForMenu()
-                control.menuAboutToOpen()
-            }
         }
     }
 

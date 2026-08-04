@@ -93,6 +93,7 @@ Item {
     property int _feedbackDuration: Enums.duration.none
     property real _feedbackProgress: 0
     property var _feedbackPresenterObject: null
+    property var _updateDialog: null
     readonly property int _bytesPerKibibyte: 1024
     readonly property int _bytesPerMebibyte: _bytesPerKibibyte * _bytesPerKibibyte
 
@@ -236,6 +237,12 @@ Item {
         _createFeedbackPresenter();
     }
 
+    function _ensureUpdateDialog() {
+        if (!root._updateDialog)
+            root._updateDialog = updateDialogComponent.createObject(root);
+        return root._updateDialog;
+    }
+
     function _clearPending() {
         root._pendingVersion = "";
         root._pendingUrl = "";
@@ -277,10 +284,16 @@ Item {
             root._pendingVersion = version;
             root._pendingUrl = downloadUrl;
             root._pendingHtmlUrl = htmlUrl;
-            updateDialog.version = version;
-            updateDialog.currentVersion = root.currentVersion;
-            updateDialog.notes = notes;
-            updateDialog.open();
+            var dialog = root._ensureUpdateDialog();
+            if (!dialog) {
+                root._awaitingDecision = false;
+                console.error("AutoUpdater: Failed to create UpdateDialog.");
+                return;
+            }
+            dialog.version = version;
+            dialog.currentVersion = root.currentVersion;
+            dialog.notes = notes;
+            dialog.open();
         }
 
         function onUpToDate(version) {
@@ -399,27 +412,31 @@ Item {
     }
 
     // ---- 更新确认弹窗 ----
-    UpdateDialog {
-        id: updateDialog
-        confirmText: {
-            Translator._v
-            return Translator.tr("download_and_install")
-        }
-        cancelText: {
-            Translator._v
-            return Translator.tr("later")
-        }
+    Component {
+        id: updateDialogComponent
 
-        onConfirmed: {
-            root._awaitingDecision = false;
-            root.downloadRequested(root._pendingVersion, root._pendingUrl, root._pendingHtmlUrl);
-            if (root.autoDownload)
-                root._beginDownload(root._pendingVersion, root._pendingUrl, root._pendingHtmlUrl);
-        }
-        onCancelled: {
-            // 用户稍后再说,清空待处理状态
-            root._awaitingDecision = false;
-            root._clearPending();
+        UpdateDialog {
+            id: updateDialog
+            confirmText: {
+                Translator._v
+                return Translator.tr("download_and_install")
+            }
+            cancelText: {
+                Translator._v
+                return Translator.tr("later")
+            }
+
+            onConfirmed: {
+                root._awaitingDecision = false;
+                root.downloadRequested(root._pendingVersion, root._pendingUrl, root._pendingHtmlUrl);
+                if (root.autoDownload)
+                    root._beginDownload(root._pendingVersion, root._pendingUrl, root._pendingHtmlUrl);
+            }
+            onCancelled: {
+                // 用户稍后再说,清空待处理状态
+                root._awaitingDecision = false;
+                root._clearPending();
+            }
         }
     }
 

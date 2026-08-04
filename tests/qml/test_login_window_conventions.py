@@ -183,6 +183,61 @@ def test_login_window_clear_form_and_error(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_login_window_prewarms_and_reuses_register_fields(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene()
+    try:
+        email_loader = root.findChild(QObject, "loginEmailInputLoader")
+        confirm_loader = root.findChild(
+            QObject, "loginConfirmPasswordInputLoader"
+        )
+        strength_loader = root.findChild(QObject, "loginPasswordStrengthLoader")
+        mode_toggle = root.findChild(QObject, "loginModeToggleArea")
+        assert email_loader is not None
+        assert confirm_loader is not None
+        assert strength_loader is not None
+        assert mode_toggle is not None
+        remember = _check_box(root, "Remember me")
+        remember.setProperty("checked", True)
+        assert email_loader.property("item") is None
+        assert confirm_loader.property("item") is None
+        assert strength_loader.property("item") is None
+
+        mode_toggle.entered.emit()
+        assert _wait_for(lambda: email_loader.property("item") is not None)
+        assert confirm_loader.property("item") is not None
+        assert strength_loader.property("item") is not None
+        email = _line_edit(root, "Email")
+        confirm = _line_edit(root, "Confirm Password")
+        assert email.property("visible") is False
+        assert confirm.property("visible") is False
+
+        email.setProperty("text", "alice@example.test")
+        confirm.setProperty("text", "secret")
+        root.setProperty("mode", root.property("registerMode"))
+        assert _wait_for(lambda: not root.property("_isLogin"))
+        assert email.property("visible") is True
+        assert confirm.property("visible") is True
+
+        root.setProperty("mode", root.property("loginMode"))
+        assert _wait_for(lambda: root.property("_isLogin"))
+        assert email_loader.property("item") is not None
+        assert confirm_loader.property("item") is not None
+        assert email.property("text") == "alice@example.test"
+        assert confirm.property("text") == "secret"
+        assert remember.property("checked") is True
+
+        assert QMetaObject.invokeMethod(root, "clearForm")
+        assert email.property("text") == ""
+        assert confirm.property("text") == ""
+        assert remember.property("checked") is False
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        _dispose_scene(engine, component, root)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_login_window_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
@@ -192,3 +247,6 @@ def test_login_window_source_conventions():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+    assert 'objectName: "loginModeToggleArea"' in source
+    assert "hoverEnabled: true" in source
+    assert "onEntered: root._prewarmAlternateModeContent()" in source

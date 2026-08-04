@@ -5,12 +5,20 @@
 import QtQuick
 import "../../../.."
 
-// ChartDataZoomLayer - Bottom viewport selector 底部图表视窗选择器
-ChartDataZoom {
-    id: control
+// ChartDataZoomLayer - Lazy bottom viewport selector 延迟创建的底部图表视窗选择器
+Loader {
+    id: root
 
     // ==================== Public Props 公开属性 ====================
     property var chart: null
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool shouldLoad: chart && chart.dataZoomEnabled && chart._isXYChart
+
+    // ==================== Internal Methods 内部方法 ====================
+    function ensureLoaded() {
+        if (shouldLoad) active = true
+    }
 
     anchors.left: parent ? parent.left : undefined
     anchors.right: parent ? parent.right : undefined
@@ -19,19 +27,29 @@ ChartDataZoom {
     anchors.rightMargin: Enums.spacing.m
     anchors.bottomMargin: Enums.spacing.s
     height: Enums.controlSize.chartDataZoomBarHeight
-    visible: chart && chart.dataZoomEnabled && chart._isXYChart
-    chartData: chart ? chart._chartData : []
-    series: chart ? chart._series : []
-    primaryColor: chart ? chart.primaryColor : Enums.accentColor
-    viewportStart: chart ? chart._visualStart : 0
-    viewportEnd: chart ? chart._visualEnd : 1
-    onViewportChanged: (start, end) => {
-        if (!chart) return
-        chart.viewportStart = start
-        chart.viewportEnd = end
-        chart.viewportChanged(start, end)
-    }
-    onInteractiveChanged: (active) => {
-        if (chart) chart._viewportInteractive = active
+    active: false
+    onShouldLoadChanged: ensureLoaded()
+    Component.onCompleted: ensureLoaded()
+
+    // ==================== Content 内容 ====================
+    sourceComponent: Component {
+        ChartDataZoom {
+            anchors.fill: parent
+            visible: root.chart && root.chart.dataZoomEnabled && root.chart._isXYChart
+            chartData: root.chart ? root.chart._chartData : []
+            series: root.chart ? root.chart._series : []
+            primaryColor: root.chart ? root.chart.primaryColor : Enums.accentColor
+            viewportStart: root.chart ? root.chart._visualStart : 0
+            viewportEnd: root.chart ? root.chart._visualEnd : 1
+            onViewportChanged: (start, end) => {
+                if (!root.chart) return
+                root.chart.viewportStart = start
+                root.chart.viewportEnd = end
+                root.chart.viewportChanged(start, end)
+            }
+            onInteractiveChanged: (active) => {
+                if (root.chart) root.chart._viewportInteractive = active
+            }
+        }
     }
 }

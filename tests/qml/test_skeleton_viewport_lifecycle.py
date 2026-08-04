@@ -16,7 +16,7 @@ from PySide6.QtCore import (
     QTimer,
     QUrl,
 )
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
@@ -171,6 +171,19 @@ def _assert_animation_semantics(skeleton: QQuickItem) -> None:
     assert bool(_shimmer_animation(skeleton).property("running")) is expected
 
 
+def _assert_layer_semantics(skeleton: QQuickItem) -> None:
+    pending = list(skeleton.childItems())
+    enabled_layers = 0
+    while pending:
+        item = pending.pop()
+        pending.extend(item.childItems())
+        layer_enabled = QQmlProperty(item, "layer.enabled")
+        if layer_enabled.isValid() and layer_enabled.read() is True:
+            enabled_layers += 1
+    expected = 2 if skeleton.property("_isInViewport") else 0
+    assert enabled_layers == expected
+
+
 def test_viewport_scroll_visibility_position_height_and_loading(skeleton_scene):
     _engine, _component, window, warnings = skeleton_scene
     viewport = window.findChild(QQuickItem, "viewport")
@@ -186,6 +199,7 @@ def test_viewport_scroll_visibility_position_height_and_loading(skeleton_scene):
     assert outside.property("_isInViewport")
     for skeleton in (inside, near_outside, far_outside, outside):
         _assert_animation_semantics(skeleton)
+        _assert_layer_semantics(skeleton)
 
     viewport.setProperty("contentY", 120)
     _pump(30)
@@ -216,6 +230,7 @@ def test_viewport_scroll_visibility_position_height_and_loading(skeleton_scene):
 
     for skeleton in (inside, near_outside, far_outside, outside):
         _assert_animation_semantics(skeleton)
+        _assert_layer_semantics(skeleton)
     assert warnings == []
 
 

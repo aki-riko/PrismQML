@@ -338,42 +338,34 @@ Widget {
                 id: toastProgressClipRect
                 anchors.fill: parent
                 visible: control._isBarMode
-                
+
                 // Mask uses Rectangle's opaque white default and requires a layer 遮罩使用 Rectangle 默认不透明白色，且必须启用 layer
                 Rectangle {
                     id: toastProgressMask
+
+                    objectName: "toastProgressMask"
                     anchors.fill: parent
                     radius: card.radius
-                    layer.enabled: true
+                    layer.enabled: control._isBarMode
                     visible: false
                 }
-                
+
                 // Progress bar content with mask 带遮罩的进度条内容
                 Item {
                     id: toastProgressContent
+
+                    objectName: "toastProgressContent"
                     anchors.fill: parent
-                    layer.enabled: true
+                    layer.enabled: control._isBarMode
                     layer.effect: MultiEffect {
                         maskEnabled: true
                         maskSource: toastProgressMask
                         maskThresholdMin: 0.5
                         maskSpreadAtMin: 0.0
                     }
-                    
-                    // Indeterminate progress bar 不确定进度条
+
                     ProgressBar {
-                        id: toastIndeterminateBar
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        height: Enums.spacing.xs
-                        indeterminate: true
-                        visible: feature === Enums.notification.feature_indeterminate_bar
-                    }
-                    
-                    // Determinate progress bar 确定进度条
-                    ProgressBar {
-                        id: toastDeterminateBar
+                        objectName: "toastProgressBar"
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
@@ -381,7 +373,7 @@ Widget {
                         value: control.progress * 100
                         from: 0
                         to: 100
-                        visible: feature === Enums.notification.feature_progress_bar
+                        indeterminate: feature === Enums.notification.feature_indeterminate_bar
                     }
                 }
             }
@@ -398,9 +390,9 @@ Widget {
                 width: Enums.infoBarMetrics.iconContainerSize
                 height: Enums.infoBarMetrics.iconContainerSize
                 visible: _isRingMode
-                
-                // Determinate progress ring: reuse ProgressRing 确定进度环：复用ProgressRing
+
                 ProgressRing {
+                    objectName: "toastProgressRing"
                     anchors.centerIn: parent
                     width: Enums.infoBarMetrics.iconSize
                     height: width
@@ -408,28 +400,23 @@ Widget {
                     value: control.progress * 100
                     from: 0
                     to: 100
-                    visible: feature === Enums.notification.feature_progress_ring && !control._progressComplete
-                }
-                
-                // Indeterminate progress ring: ProgressRing with indeterminate 不确定进度环：ProgressRing 不确定模式
-                ProgressRing {
-                    anchors.centerIn: parent
-                    width: Enums.infoBarMetrics.iconSize
-                    height: width
-                    strokeWidth: Enums.border.normal
                     indeterminate: feature === Enums.notification.feature_indeterminate_ring && toastRingContainer.visible && control.visible
-                    visible: feature === Enums.notification.feature_indeterminate_ring && control.visible
+                    visible: !control._progressComplete && (
+                        feature === Enums.notification.feature_progress_ring ||
+                        (feature === Enums.notification.feature_indeterminate_ring && control.visible)
+                    )
                 }
-                
+
                 // Complete icon 完成图标
                 Icon {
+                    objectName: "toastProgressCompleteIcon"
                     anchors.centerIn: parent
                     iconSize: Enums.infoBarMetrics.iconSize
                     icon: Enums.icon.checkmark
                     color: Enums.accentColor
                     visible: control._progressComplete
                     opacity: 0
-                    
+
                     NumberAnimation on opacity {
                         running: control._progressComplete
                         from: 0; to: 1

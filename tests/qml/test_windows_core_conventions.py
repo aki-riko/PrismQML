@@ -12,14 +12,17 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QObject,
+    QPoint,
     QPointF,
     QTimer,
+    Qt,
     QUrl,
     Slot,
 )
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 import prismqml.python.core.window_helper as window_helper_module
 import prismqml.python.window as window_module
@@ -62,6 +65,7 @@ import PrismQML
 
 WindowsCore {
     objectName: "window"
+    property bool initialLeftLayout: false
     readonly property int topLayout: Enums.windowType.title_bar_top
     readonly property int leftLayout: Enums.windowType.title_bar_left
     readonly property int noShadow: Enums.windowShadow.mode_none
@@ -76,6 +80,7 @@ WindowsCore {
     shadowMode: Enums.windowShadow.mode_none
     windowTitle: "WindowsCore Contract"
     windowIcon: Qt.resolvedUrl("../../examples/resources/image/avatar/avatar.png")
+    titleBarPosition: initialLeftLayout ? leftLayout : topLayout
 
     Item {
         objectName: "contentProbe"
@@ -165,7 +170,7 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
-def _create_scene(monkeypatch):
+def _create_scene(monkeypatch, *, initial_left_layout: bool = False):
     engine = QQmlApplicationEngine()
     startup_events = []
     native_window = _FakeNativeWindow(startup_events, engine)
@@ -187,7 +192,9 @@ def _create_scene(monkeypatch):
     assert component.status() == QQmlComponent.Status.Ready, [
         error.toString() for error in component.errors()
     ]
-    window = component.create(engine.rootContext())
+    window = component.createWithInitialProperties(
+        {"initialLeftLayout": initial_left_layout}, engine.rootContext()
+    )
     assert isinstance(window, QQuickWindow), [
         error.toString() for error in component.errors()
     ]
@@ -296,6 +303,94 @@ def test_windows_core_deferred_resize_handles_load_once(monkeypatch, qapp):
         assert len(resize_areas) == 4
         _pump(window.property("resizeDelay") // 4)
         assert len(_resize_areas(window)) == 4
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_right_title_chrome_is_layout_scoped(monkeypatch, qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch)
+    try:
+        loader = window.findChild(QObject, "rightTitleChromeLoader")
+        assert loader is not None
+        assert not loader.property("active")
+        assert window.findChild(QObject, "rightTitleChrome") is None
+
+        window.setProperty("titleBarPosition", window.property("leftLayout"))
+        chrome = window.findChild(QQuickItem, "rightTitleChrome")
+        buttons = window.findChild(QQuickItem, "captionButtonsRight")
+        drag_area = window.findChild(QQuickItem, "rightTitleBarDragArea")
+        assert chrome is not None and buttons is not None and drag_area is not None
+        assert buttons.x() == pytest.approx(
+            window.width() - window.property("captionButtonWidth") * 3
+        )
+        assert drag_area.x() == pytest.approx(
+            max(
+                window.property("leftPanelWidth"),
+                window.property("navPanelMinWidth"),
+            )
+            + window.property("dividerWidth")
+        )
+        assert drag_area.width() == pytest.approx(buttons.x() - drag_area.x())
+
+        maximize_center = buttons.mapToItem(
+            window.contentItem(),
+            QPointF(
+                window.property("captionButtonWidth") * 1.5,
+                window.property("captionButtonHeight") / 2,
+            ),
+        )
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            QPoint(round(maximize_center.x()), round(maximize_center.y())),
+        )
+        assert _wait_for(
+            lambda: window.visibility() == QWindow.Visibility.Maximized
+        )
+        window.showNormal()
+        assert _wait_for(lambda: window.visibility() == QWindow.Visibility.Windowed)
+
+        window.setProperty("titleBarPosition", window.property("topLayout"))
+        assert _wait_for(
+            lambda: window.findChild(QObject, "rightTitleChrome") is None
+        )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_initial_left_title_chrome_is_ready(monkeypatch, qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch, initial_left_layout=True)
+    try:
+        loader = window.findChild(QObject, "rightTitleChromeLoader")
+        assert loader is not None and loader.property("active")
+        assert window.findChild(QObject, "rightTitleChrome") is not None
+        assert window.findChild(QObject, "captionButtonsRight") is not None
+        assert window.findChild(QObject, "rightTitleBarDragArea") is not None
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

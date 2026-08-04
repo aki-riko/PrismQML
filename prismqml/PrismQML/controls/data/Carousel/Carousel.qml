@@ -6,7 +6,7 @@ import QtQuick
 import QtQuick.Effects
 import "../../.."
 import "../../../effects"
-import "../FlipView"
+import "../FlipView" as FlipViewControls
 import "_internal"
 
 // Carousel - Carousel component 轮播组件
@@ -59,11 +59,19 @@ Item {
     // Internal 内部属性
     readonly property bool isVertical: orientation === Qt.Vertical
     readonly property int _modelCount: (_safeModel || []).length
+    readonly property bool _needsContentArea:
+        _modelCount > 0 || (shadowLevel !== null && shadowLevel !== undefined)
+    readonly property bool _hasIndicator: showIndicator && _modelCount > 1
+    readonly property bool _hasNavButtons: showNavButtons && _modelCount > 1
     // 指针是否位于 Carousel 范围内（含 itemDelegate 的子元素、导航按钮）。
     // 用 HoverHandler 判定：传统 MouseArea 的 containsMouse 会被子元素自带的 hover MouseArea
     //   「偷走」（停在 delegate 里的按钮上时变 false），导致悬停子元素时自动播放又恢复。
     readonly property bool _isHovered: rootHover.hovered
-    readonly property bool _navVisible: showNavButtons && _modelCount > 1 && _isHovered
+    readonly property bool _navVisible: _hasNavButtons && _isHovered
+    property Item _contentArea: null
+    property Item _indicator: null
+    property Item _prevNavButton: null
+    property Item _nextNavButton: null
 
     // Signals 信号
     signal indexChanged(int index)
@@ -76,7 +84,7 @@ Item {
         } else if (currentIndex < _modelCount - 1) {
             currentIndex++
         }
-        contentArea.setIndex(currentIndex)
+        if (_contentArea) _contentArea.setIndex(currentIndex)
     }
 
     function previous() {
@@ -86,13 +94,13 @@ Item {
         } else if (currentIndex > 0) {
             currentIndex--
         }
-        contentArea.setIndex(currentIndex)
+        if (_contentArea) _contentArea.setIndex(currentIndex)
     }
 
     function goTo(index) {
         if (index >= 0 && index < _modelCount) {
             currentIndex = index
-            contentArea.setIndex(currentIndex)
+            if (_contentArea) _contentArea.setIndex(currentIndex)
         }
     }
 
@@ -100,9 +108,93 @@ Item {
     function setCurrentIndex(idx) { goTo(idx) }
     function getCurrentIndex() { return currentIndex }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _createNavButtons() {
+        if (_prevNavButton && _nextNavButton) return
+        _destroyNavButtons()
+
+        const previous = navButtonComponent.createObject(control, { "isNext": false })
+        const following = navButtonComponent.createObject(control, { "isNext": true })
+        if (!previous || !following) {
+            if (previous) previous.destroy()
+            if (following) following.destroy()
+            console.error("Carousel: failed to create navigation buttons")
+            return
+        }
+
+        _prevNavButton = previous
+        _nextNavButton = following
+        previous._revealEnabled = true
+        following._revealEnabled = true
+    }
+
+    function _destroyNavButtons() {
+        const previous = _prevNavButton
+        const following = _nextNavButton
+        _prevNavButton = null
+        _nextNavButton = null
+        _retireNavButton(previous)
+        _retireNavButton(following)
+    }
+
+    function _retireNavButton(button) {
+        if (!button) return
+        button.visible = false
+        button.x = Enums.spacing.none
+        button.y = Enums.spacing.none
+        button.parent = null
+        button.destroy()
+    }
+
+    function _syncNavButtons() {
+        if (_hasNavButtons) _createNavButtons()
+        else _destroyNavButtons()
+    }
+
+    function _createIndicator() {
+        if (_indicator) return
+        const indicator = indicatorComponent.createObject(control)
+        if (!indicator) {
+            console.error("Carousel: failed to create indicator")
+            return
+        }
+        _indicator = indicator
+    }
+
+    function _destroyIndicator() {
+        const indicator = _indicator
+        _indicator = null
+        if (!indicator) return
+        indicator.visible = false
+        indicator.destroy()
+    }
+
+    function _syncIndicator() {
+        if (_hasIndicator) _createIndicator()
+        else _destroyIndicator()
+    }
+
+    function _createContentArea() {
+        if (_contentArea) return
+        const area = contentAreaComponent.createObject(control)
+        if (!area) {
+            console.error("Carousel: failed to create content area")
+            return
+        }
+        _contentArea = area
+    }
+
+    function _syncContentArea() {
+        if (_needsContentArea) _createContentArea()
+    }
+
     // Size 尺寸
     implicitWidth: Enums.controlSize.carouselDefaultWidth
     implicitHeight: Enums.controlSize.carouselDefaultHeight
+
+    on_NeedsContentAreaChanged: _syncContentArea()
+    on_HasIndicatorChanged: _syncIndicator()
+    on_HasNavButtonsChanged: _syncNavButtons()
 
     // ==================== Content 内容 ====================
     // Hover and wheel area 悬停和滚轮区域
@@ -140,8 +232,11 @@ Item {
         property var _staticFallbackShadow: null
         property var _activeLevel: control.shadowLevel || _staticFallbackShadow
 
-        anchors.fill: contentArea
-        visible: control.shadowLevel !== null && control.shadowLevel !== undefined && !Enums.isNeobrutalism
+        anchors.fill: control._contentArea
+        visible: control._contentArea !== null &&
+                 control.shadowLevel !== null &&
+                 control.shadowLevel !== undefined &&
+                 !Enums.isNeobrutalism
         radius: control.borderRadius
 
         Component.onCompleted: _staticFallbackShadow = ({
@@ -163,91 +258,83 @@ Item {
     }
 
     NeoShadow {
-        target: contentArea
-        visible: Enums.isNeobrutalism && control.shadowLevel !== null && control.shadowLevel !== undefined
+        target: control._contentArea
+        visible: control._contentArea !== null &&
+                 Enums.isNeobrutalism &&
+                 control.shadowLevel !== null &&
+                 control.shadowLevel !== undefined
         radius: control.borderRadius
-        z: contentArea.z - 1
+        z: control._contentArea ? control._contentArea.z - 1 : 0
     }
 
-    // Content area 内容区域
-    CarouselContent {
-        id: contentArea
-        anchors.fill: parent
-        model: control._safeModel
-        effect: control.effect
-        orientation: control.orientation
-        currentIndex: control.currentIndex
-        itemDelegate: control.itemDelegate
-        borderRadius: control.borderRadius
-        
-        onIndexChanged: (index) => {
-            control.currentIndex = index
-            control.indexChanged(index)
+    // Content area factory 内容区域工厂
+    Component {
+        id: contentAreaComponent
+
+        CarouselContent {
+            anchors.fill: parent
+            model: control._safeModel
+            effect: control.effect
+            orientation: control.orientation
+            currentIndex: control.currentIndex
+            itemDelegate: control.itemDelegate
+            borderRadius: control.borderRadius
+
+            onIndexChanged: (index) => {
+                control.currentIndex = index
+                control.indexChanged(index)
+            }
         }
     }
     
-    // Indicator (PipsPager) 指示器
-    HorizontalPipsPager {
-        id: hIndicator
-        visible: control.showIndicator && control._modelCount > 1 && !control.isVertical
-        count: control._modelCount
-        currentIndex: control.currentIndex
-        
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Enums.spacing.l
-        
-        onIndexClicked: (index) => control.goTo(index)
-    }
-    
-    VerticalPipsPager {
-        id: vIndicator
-        visible: control.showIndicator && control._modelCount > 1 && control.isVertical
-        count: control._modelCount
-        currentIndex: control.currentIndex
-        
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.right: parent.right
-        anchors.rightMargin: Enums.spacing.l
-        
-        onIndexClicked: (index) => control.goTo(index)
+    // Indicator factory 指示器工厂
+    Component {
+        id: indicatorComponent
+
+        FlipViewControls.PipsPager {
+            visible: control._hasIndicator
+            count: control._modelCount
+            currentIndex: control.currentIndex
+            orientation: control.orientation
+
+            anchors.horizontalCenter: control.isVertical ? undefined : parent.horizontalCenter
+            anchors.bottom: control.isVertical ? undefined : parent.bottom
+            anchors.bottomMargin: control.isVertical ? Enums.spacing.none : Enums.spacing.l
+            anchors.verticalCenter: control.isVertical ? parent.verticalCenter : undefined
+            anchors.right: control.isVertical ? parent.right : undefined
+            anchors.rightMargin: control.isVertical ? Enums.spacing.l : Enums.spacing.none
+
+            onIndexClicked: (index) => control.goTo(index)
+        }
     }
 
-    // Navigation buttons 导航按钮
-    // Prev button (horizontal left, vertical top) 上一个按钮（水平左侧，垂直顶部）
+    // Navigation button factory 导航按钮工厂
+    Component {
+        id: navButtonComponent
 
-    CarouselNavButton {
-        id: prevButton
-        visible: control._navVisible
-        opacity: control._navVisible ? 1.0 : 0.0
-        isNext: false
-        isVertical: control.isVertical
-        
-        // Position based on orientation 根据方向定位
-        x: control.isVertical ? (parent.width - width) / 2 : Enums.spacing.m
-        y: control.isVertical ? Enums.spacing.m : (parent.height - height) / 2
-        
-        Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-        
-        onClicked: control.previous()
-    }
-    
-    // Next button (horizontal right, vertical bottom) 下一个按钮（水平右侧，垂直底部）
+        CarouselNavButton {
+            property bool _revealEnabled: false
 
-    CarouselNavButton {
-        id: nextButton
-        visible: control._navVisible
-        opacity: control._navVisible ? 1.0 : 0.0
-        isNext: true
-        isVertical: control.isVertical
-        
-        // Position based on orientation 根据方向定位
-        x: control.isVertical ? (parent.width - width) / 2 : (parent.width - width - Enums.spacing.m)
-        y: control.isVertical ? (parent.height - height - Enums.spacing.m) : (parent.height - height) / 2
-        
-        Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
-        
-        onClicked: control.next()
+            visible: control._navVisible
+            opacity: _revealEnabled && control._navVisible ? 1 : 0
+            isVertical: control.isVertical
+
+            x: control.isVertical
+                ? (parent.width - width) / 2
+                : (isNext ? parent.width - width - Enums.spacing.m : Enums.spacing.m)
+            y: control.isVertical
+                ? (isNext ? parent.height - height - Enums.spacing.m : Enums.spacing.m)
+                : (parent.height - height) / 2
+
+            Behavior on opacity {
+                NumberAnimation { duration: Enums.duration.fast }
+            }
+
+            onClicked: {
+                if (isNext) control.next()
+                else control.previous()
+            }
+        }
     }
     
     // Auto play timer 自动播放定时器

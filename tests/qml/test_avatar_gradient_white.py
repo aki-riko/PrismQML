@@ -283,6 +283,29 @@ def test_avatar_and_gradient_preserve_fixed_white_runtime(qapp):
         _pump(1)
 
 
+def test_avatar_selector_defers_and_reuses_dialogs(qapp):
+    engine, component, root = _create_scene()
+    try:
+        avatar = root.findChild(QQuickItem, "avatarSelector")
+        assert avatar is not None
+        assert avatar.property("_fileDialog") is None
+        assert avatar.property("_cropperDialog") is None
+
+        file_dialog = avatar._ensureFileDialog()
+        cropper_dialog = avatar._ensureCropperDialog()
+        assert file_dialog is not None
+        assert cropper_dialog is not None
+        assert file_dialog.parent() == avatar
+        assert cropper_dialog.parent() == avatar
+        assert avatar._ensureFileDialog() == file_dialog
+        assert avatar._ensureCropperDialog() == cropper_dialog
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_color_picker_preserves_fixed_gradient_palette(qapp):
     setTheme(Theme.LIGHT)
     setSkin(Skin.FLUENT)

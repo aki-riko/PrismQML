@@ -71,6 +71,9 @@ Rectangle {
 
     // ==================== Internal Props 内部属性 ====================
     property int _autoItemCount: 0
+    property bool _horizontalScrollRequested: false
+    property bool _horizontalScrollLifecycleReady: false
+    property Item _horizontalScrollMixin: null
 
     // ==================== Readonly State 只读状态 ====================
     readonly property alias _needsVerticalScrollBar: scrollViewportState.needsVertical
@@ -79,7 +82,8 @@ Rectangle {
         scrollViewportState.reserveVerticalGutter
     readonly property alias _reserveHorizontalScrollBarGutter:
         scrollViewportState.reserveHorizontalGutter
-    readonly property bool _hasHorizontalScroll: contentTotalWidth > listView.width
+    readonly property bool _hasHorizontalScroll:
+        listView.width > 0 && contentTotalWidth > listView.width
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
     readonly property real _effectiveContentWidth: _hasHorizontalScroll ? contentTotalWidth : listView.width
@@ -125,6 +129,23 @@ Rectangle {
         if (scrollViewportState) scrollViewportState.invalidate()
     }
 
+    // Create the horizontal branch synchronously on first real overflow, then retain it.
+    // 首次真实溢出时同步创建横向分支，随后常驻以保留滚动与表头状态。
+    function _ensureHorizontalScrollMixin() {
+        if (!_horizontalScrollLifecycleReady
+                || !_hasHorizontalScroll || _horizontalScrollRequested) return
+        _horizontalScrollMixin = horizontalScrollMixinComponent.createObject(contentArea)
+        if (!_horizontalScrollMixin) return
+        _horizontalScrollRequested = true
+    }
+
+    // Ignore transient pre-layout overflow, then enable synchronous runtime requests.
+    // 忽略布局稳定前的瞬时溢出，随后启用运行期同步请求。
+    function _finishHorizontalScrollInitialization() {
+        _horizontalScrollLifecycleReady = true
+        _ensureHorizontalScrollMixin()
+    }
+
     Layout.fillWidth: layoutFillWidth
     Layout.fillHeight: layoutFillHeight
     Layout.alignment: layoutAlignment
@@ -135,12 +156,16 @@ Rectangle {
     onScrollBarWidthChanged: _scheduleScrollBarUpdate()
     onWidthChanged: _scheduleScrollBarUpdate()
     onHeightChanged: _scheduleScrollBarUpdate()
+    on_HasHorizontalScrollChanged: _ensureHorizontalScrollMixin()
     // ==================== Size 尺寸 ====================
     implicitWidth: 200
     implicitHeight: 150
 
     onListModelChanged: _refreshItemCount()
-    Component.onCompleted: _scheduleScrollBarUpdate()
+    Component.onCompleted: {
+        _scheduleScrollBarUpdate()
+        Qt.callLater(_finishHorizontalScrollInitialization)
+    }
 
     // ==================== Content 内容 ====================
     Connections {
@@ -424,19 +449,22 @@ Rectangle {
                 // Horizontal scroll mixin 横向滚动
                 // mixin 内部封装 hScrollHelper / 横向 ScrollBar / Shift+wheel 路由,
                 // 与 TableView 等其他可横向滚动组件共用同一套实现.
-                HorizontalScrollMixin {
-                    id: hScrollMixin
-                    anchors.fill: parent
-                    target: listView
-                    headerContainer: headerLoader
-                    smoothScroll: root.smoothScroll
-                    scrollDuration: root.scrollDuration
-                    scrollStep: root.scrollStep
-                    scrollEasing: root.scrollEasing
-                    barWidth: Math.max(0, root.scrollBarWidth)
-                    showScrollBar: root.showScrollBar
-                    rightInset: root._reserveVerticalScrollBarGutter
-                        ? Math.min(root._scrollBarGutter, Math.max(0, parent.width)) : 0
+                Component {
+                    id: horizontalScrollMixinComponent
+
+                    HorizontalScrollMixin {
+                        target: listView
+                        headerContainer: headerLoader
+                        smoothScroll: root.smoothScroll
+                        scrollDuration: root.scrollDuration
+                        scrollStep: root.scrollStep
+                        scrollEasing: root.scrollEasing
+                        barWidth: Math.max(0, root.scrollBarWidth)
+                        showScrollBar: root.showScrollBar
+                        rightInset: root._reserveVerticalScrollBarGutter
+                            ? Math.min(root._scrollBarGutter,
+                                       Math.max(0, contentArea.width)) : 0
+                    }
                 }
             }
 
@@ -483,7 +511,13 @@ Rectangle {
                     spacing: Enums.spacing.s
 
                     Repeater {
-                        model: Math.min(5, Math.max(3, Math.floor((skeletonArea.height - Enums.spacing.m * 2) / (root.rowHeight + Enums.spacing.s))))
+                        model: root.loading ? Math.min(
+                            5,
+                            Math.max(3, Math.floor(
+                                (skeletonArea.height - Enums.spacing.m * 2)
+                                / (root.rowHeight + Enums.spacing.s)
+                            ))
+                        ) : 0
                         Skeleton {
                             width: parent ? parent.width : 0
                             height: root.rowHeight - Enums.spacing.s

@@ -130,13 +130,13 @@ def test_menu_item_click_survives_opening_animation(
 ):
     root, _window, warnings = dropdown_scene
     dropdown = _button_dropdown(_button(root, object_name))
-    popup = _dropdown_popup(dropdown)
     received = []
     dropdown.menuItemClicked.connect(
         lambda index, text: received.append((index, text))
     )
 
     _invoke(dropdown, "openMenu")
+    popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("isOpen"))
     _pump(20)
     assert popup.property("_scale") < 1.0

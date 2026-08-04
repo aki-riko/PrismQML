@@ -31,6 +31,10 @@ Avatar {
         return Translator.tr("image_files")
     }
 
+    // ==================== Internal Props 内部属性 ====================
+    property var _fileDialog: null
+    property var _cropperDialog: null
+
     // ==================== Signals 信号 ====================
     signal clicked()
     signal avatarChanged(url newSource)
@@ -43,7 +47,30 @@ Avatar {
     }
 
     // Open file dialog 打开文件对话框
-    function openFilePicker() { fileDialog.open() }
+    function openFilePicker() {
+        var dialog = _ensureFileDialog()
+        if (!dialog) {
+            console.error("AvatarSelector: Failed to create FileDialog.")
+            return
+        }
+        dialog.open()
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _ensureFileDialog() {
+        if (!_fileDialog) _fileDialog = fileDialogComponent.createObject(control)
+        return _fileDialog
+    }
+
+    function _ensureCropperDialog() {
+        if (!_cropperDialog) _cropperDialog = cropperDialogComponent.createObject(control)
+        return _cropperDialog
+    }
+
+    function _prewarmDialogs() {
+        _ensureFileDialog()
+        if (enableCrop) _ensureCropperDialog()
+    }
 
     // ==================== Content 内容 ====================
     // Hover overlay 悬停遮罩
@@ -82,40 +109,53 @@ Avatar {
         anchors.fill: parent
         enabled: control.enabled
         hoverEnabled: true
+        onEntered: control._prewarmDialogs()
         onClicked: {
             control.clicked()
-            fileDialog.open()
+            control.openFilePicker()
         }
     }
     
     // File dialog 文件对话框
-    FileDialog {
-        id: fileDialog
-        title: { Translator._v; return Translator.tr("select_avatar") }
-        nameFilters: [control._imageFilesText + " (*.png *.jpg *.jpeg *.bmp *.gif)"]
-        onAccepted: {
-            if (control.enableCrop) {
-                cropperDialog.openWithSource(selectedFile)
-            } else {
-                control.source = selectedFile
-                control.avatarChanged(selectedFile)
+    Component {
+        id: fileDialogComponent
+
+        FileDialog {
+            title: { Translator._v; return Translator.tr("select_avatar") }
+            nameFilters: [control._imageFilesText + " (*.png *.jpg *.jpeg *.bmp *.gif)"]
+            onAccepted: {
+                if (control.enableCrop) {
+                    var cropper = control._ensureCropperDialog()
+                    if (!cropper) {
+                        console.error("AvatarSelector: Failed to create ImageCropperDialog.")
+                        return
+                    }
+                    cropper.openWithSource(selectedFile)
+                } else {
+                    control.source = selectedFile
+                    control.avatarChanged(selectedFile)
+                }
             }
         }
     }
     
     // Crop dialog 裁剪对话框
-    ImageCropperDialog {
-        id: cropperDialog
-        visible: false
-        width: 0
-        height: 0
-        cropShape: Enums.imageCropper.shape_circle
-        
-        onAccepted: (rect) => {
-            control.source = cropperDialog.source
-            control.cropRect = rect
-            control.avatarChanged(cropperDialog.source)
-            control.cropConfirmed(cropperDialog.source, rect)
+    Component {
+        id: cropperDialogComponent
+
+        ImageCropperDialog {
+            id: cropperDialog
+            visible: false
+            width: 0
+            height: 0
+            cropShape: Enums.imageCropper.shape_circle
+
+            onAccepted: (rect) => {
+                control.source = cropperDialog.source
+                control.cropRect = rect
+                control.avatarChanged(cropperDialog.source)
+                control.cropConfirmed(cropperDialog.source, rect)
+            }
         }
     }
 }

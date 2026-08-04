@@ -130,6 +130,9 @@ Item {
     Rectangle {
         id: windowMask
         anchors.fill: parent
+        // Keep the scrim below every derived overlay surface regardless of
+        // QML inheritance order. 遮罩始终低于派生浮层主体，不受QML继承声明顺序影响。
+        z: Enums.zIndex.background
         color: control.maskColor
         
         // Fade animation 淡入淡出动画

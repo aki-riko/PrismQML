@@ -125,11 +125,18 @@ NavigationWindowCore {
         }
         
         // Python lazy-loading overlay. Python 懒加载覆盖层。
-        LoadingOverlay {
+        Loader {
+            objectName: "loadingOverlayLoader"
             anchors.fill: parent
-            loading: window._pythonLoading
-            backgroundColor: window.contentBgColor
-            text: window.loadingText
+            active: window._pythonLoading
+            visible: active
+            asynchronous: false
+            sourceComponent: LoadingOverlay {
+                objectName: "loadingOverlay"
+                loading: window._pythonLoading
+                backgroundColor: window.contentBgColor
+                text: window.loadingText
+            }
         }
         }
     }

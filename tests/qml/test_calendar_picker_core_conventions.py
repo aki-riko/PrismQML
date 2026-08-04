@@ -17,7 +17,13 @@ from PySide6.QtCore import (
     QUrl,
 )
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import (
+    QQmlApplicationEngine,
+    QQmlComponent,
+    QQmlEngine,
+    QQmlExpression,
+    QQmlProperty,
+)
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
@@ -95,6 +101,36 @@ def _day_cells(calendar: QQuickItem) -> list[QQuickItem]:
         and child.metaObject().indexOfProperty("displayDay") >= 0
         and child.metaObject().indexOfProperty("isCurrent") >= 0
     ]
+
+
+def _animation_day_cells(calendar: QQuickItem) -> list[QQuickItem]:
+    return [
+        child
+        for child in _visual_descendants(calendar)
+        if child.metaObject().indexOfProperty("displayDay") >= 0
+        and child.metaObject().indexOfProperty("isCurrent") >= 0
+        and child.metaObject().indexOfProperty("cellDate") < 0
+    ]
+
+
+def _range_bar_containers(calendar: QQuickItem) -> list[QQuickItem]:
+    return [
+        child
+        for child in _visual_descendants(calendar)
+        if child.metaObject().indexOfProperty("showBar") >= 0
+    ]
+
+
+def _evaluate(instance: QQuickItem, source: str):
+    expression = QQmlExpression(
+        QQmlEngine.contextForObject(instance), instance, source
+    )
+    result = expression.evaluate()
+    assert not expression.hasError(), expression.error().toString()
+    if isinstance(result, tuple):
+        result, is_undefined = result
+        assert not is_undefined
+    return result
 
 
 def _current_cell(calendar: QQuickItem, day: int) -> QQuickItem:
@@ -218,11 +254,80 @@ def test_calendar_picker_core_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
+    assert (
+        "visible: showBar\n"
+        "                                layer.enabled: showBar"
+    ) in source
     assert [
         violation
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+
+
+def test_calendar_core_enables_layers_only_for_visible_range_bars(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, calendar, warnings = _create_scene()
+    try:
+        range_bars = _range_bar_containers(calendar)
+        assert len(range_bars) == 42
+        assert all(not item.property("showBar") for item in range_bars)
+        assert all(
+            QQmlProperty(item, "layer.enabled").read() is False
+            for item in range_bars
+        )
+
+        assert _evaluate(
+            calendar,
+            "(rangeMode = true, "
+            "rangeStart = new Date(2026, 3, 10), "
+            "rangeEnd = new Date(2026, 3, 15), true)",
+        ) is True
+        assert _wait_for(
+            lambda: sum(bool(item.property("showBar")) for item in range_bars) == 6
+        )
+        assert all(
+            QQmlProperty(item, "layer.enabled").read()
+            is bool(item.property("showBar"))
+            for item in range_bars
+        )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_calendar_core_lazily_creates_and_reuses_animation_grid(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, calendar, warnings = _create_scene()
+    try:
+        assert not calendar.property("_nextGridRequested")
+        assert _animation_day_cells(calendar) == []
+
+        calendar.nextMonth()
+        assert calendar.property("_nextGridRequested")
+        assert _wait_for(lambda: len(_animation_day_cells(calendar)) == 42)
+
+        current_geometry = sorted(
+            (cell.x(), cell.y(), cell.width(), cell.height())
+            for cell in _day_cells(calendar)
+        )
+        animation_geometry = sorted(
+            (cell.x(), cell.y(), cell.width(), cell.height())
+            for cell in _animation_day_cells(calendar)
+        )
+        assert animation_geometry == current_geometry
+        assert _wait_for(lambda: not calendar.property("_animating"))
+        assert len(_animation_day_cells(calendar)) == 42
+
+        calendar.nextMonth()
+        assert len(_animation_day_cells(calendar)) == 42
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
 
 
 def test_calendar_core_adjacent_day_emits_target_month(qapp):

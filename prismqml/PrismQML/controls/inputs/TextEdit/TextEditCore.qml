@@ -29,6 +29,12 @@ InputCore {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isBrowser: multilineType === Enums.input.multiline_browser
+    readonly property string _hoveredLink: {
+        if (!_isBrowser || !hoverHandler.hovered) return ""
+        var position = hoverHandler.point.position
+        var editorPosition = control.mapToItem(textEdit, position.x, position.y)
+        return textEdit.linkAt(editorPosition.x, editorPosition.y)
+    }
 
     // ==================== Signals 信号 ====================
     signal textEdited()
@@ -73,7 +79,10 @@ InputCore {
     focused: _isBrowser ? false : textEdit.activeFocus  // Browser never focused 浏览器不聚焦
     hovered: _isBrowser ? false : hoverHandler.hovered  // Browser no hover state 浏览器无悬浮状态
     showFocusedBorder: !_isBrowser  // Browser has no focus line 浏览器无聚焦线
-    cursorShape: _isBrowser ? Qt.ArrowCursor : Qt.IBeamCursor  // Browser uses arrow 浏览器用箭头
+    // Browser links use a hand; other browser text remains arrow. 浏览器链接使用手型，其余文本保持箭头。
+    cursorShape: _isBrowser
+                 ? (_hoveredLink !== "" ? Qt.PointingHandCursor : Qt.ArrowCursor)
+                 : Qt.IBeamCursor
     
     // ==================== Size 尺寸 ====================
     // Override InputCore content size 覆盖InputCore内容尺寸

@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Layouts as Layouts
 import "../../.."
+import "FlowLayoutGeometry.js" as FlowLayoutGeometry
 
 // FlowLayout - Enhanced flow layout with multiple modes 增强流式布局（支持多种模式）
 // Supports: default (preserve size), horizontal (equal height), vertical (equal width) 支持：默认（保持尺寸）、水平（等高）、垂直（等宽）
@@ -202,6 +203,8 @@ Item {
         if (children.length === 0) return 0
 
         var containerWidth = Math.floor(control.width)
+        var useSlidingWindow = _usesSlidingWindow(children.length)
+        var positionDeque = useSlidingWindow ? [] : null
         // Heightmap: track occupied height at each pixel column 高度图：追踪每个像素列的已占用高度
         var heightMap = []
         for (var i = 0; i < containerWidth; i++) {
@@ -218,7 +221,10 @@ Item {
             var itemHeight = _originalSizes[i] ? _originalSizes[i].height : item.height
 
             // Find best position (lowest y where item fits) 找到最佳位置（子项能放下的最低y）
-            var pos = _findBestPosition(heightMap, containerWidth, itemWidth, itemHeight)
+            var pos = _findBestPosition(
+                heightMap, containerWidth, itemWidth, itemHeight,
+                useSlidingWindow, positionDeque
+            )
 
             item.x = pos.x
             item.y = pos.y
@@ -247,28 +253,35 @@ Item {
     }
 
     // Find best position for item using heightmap 使用高度图找到子项的最佳位置
-    function _findBestPosition(heightMap, containerWidth, itemWidth, itemHeight) {
+    function _findBestPosition(heightMap, containerWidth, itemWidth,
+                               itemHeight, useSlidingWindow, positionDeque) {
+        if (useSlidingWindow) {
+            return FlowLayoutGeometry.findBestPosition(
+                heightMap, containerWidth, itemWidth,
+                positionDeque || []
+            )
+        }
+
         var bestX = 0
         var bestY = Infinity
-
-        // Scan all possible x positions 扫描所有可能的x位置
         var maxX = containerWidth - itemWidth
         for (var x = 0; x <= maxX; x++) {
-            // Find max height in the range [x, x+itemWidth) 找到范围内的最大高度
-            var maxH = 0
+            var maxHeight = 0
             var endX = Math.min(x + itemWidth, containerWidth)
-            for (var px = x; px < endX; px++) {
-                maxH = Math.max(maxH, heightMap[px])
+            for (var index = x; index < endX; index++) {
+                maxHeight = Math.max(maxHeight, heightMap[index])
             }
-
-            // If this position is lower, use it 如果这个位置更低，使用它
-            if (maxH < bestY) {
-                bestY = maxH
+            if (maxHeight < bestY) {
+                bestY = maxHeight
                 bestX = x
             }
         }
-
         return { x: bestX, y: bestY }
+    }
+
+    // Select the large-layout search path 选择大布局搜索路径
+    function _usesSlidingWindow(itemTotal) {
+        return itemTotal >= Enums.flow.sliding_window_min_items
     }
     // Horizontal mode layout 水平模式布局
     // Equal height per row 同行等高
