@@ -109,7 +109,7 @@ Rectangle {
     // Placeholder when no content 无内容时的占位符
     Icon {
         anchors.centerIn: parent
-        icon: Enums.icon.person
+        icon: control.source === "" && control.text !== "" ? "" : Enums.icon.person
         iconSize: size * 0.5
         color: control._avatarContentColor
         visible: control.source === "" && control.text === ""

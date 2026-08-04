@@ -279,6 +279,16 @@ def test_avatar_preserves_first_and_repeated_image_frames(qapp):
             f"{default_objects}/{restored_text_objects}",
         )
 
+        assert text_placeholder_renderers == 0
+        assert ready_placeholder_renderers == 1
+        assert cleared_placeholder_renderers == 0
+        assert restored_placeholder_renderers == 1
+        assert default_placeholder_renderers == 1
+        assert restored_text_placeholder_renderers == 0
+        assert text_objects < default_objects
+        assert cleared_objects < default_objects
+        assert restored_text_objects < default_objects
+        assert ready_objects == restored_objects == default_objects
         assert first_ready_image == ready_image
         assert first_restored_image == restored_ready_image
         assert first_default_image == default_image
@@ -287,7 +297,6 @@ def test_avatar_preserves_first_and_repeated_image_frames(qapp):
         assert restored_ready_image == ready_image
         assert default_image != text_image
         assert restored_text_again_image == text_image
-        assert ready_objects == cleared_objects == restored_objects
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
