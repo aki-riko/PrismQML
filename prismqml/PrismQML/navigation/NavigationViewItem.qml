@@ -93,6 +93,8 @@ Item {
             id: svgIconComponent
 
             Image {
+                id: svgImage
+
                 width: Enums.iconSize.xl
                 height: Enums.iconSize.xl
                 source: control.icon
@@ -104,7 +106,7 @@ Item {
                 antialiasing: true
 
                 // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
-                layer.enabled: true
+                layer.enabled: svgImage.status === Image.Ready
                 layer.effect: ColorOverlay {
                     color: control._navItemContentColor
                 }
@@ -122,6 +124,8 @@ Item {
                 height: Enums.iconSize.xl
 
                 Image {
+                    id: avatarImage
+
                     anchors.fill: parent
                     source: control.icon
                     fillMode: Image.PreserveAspectCrop
@@ -130,7 +134,7 @@ Item {
                     smooth: true
                     antialiasing: true
 
-                    layer.enabled: true
+                    layer.enabled: avatarImage.status === Image.Ready
                     layer.smooth: true
                     layer.effect: MultiEffect {
                         maskEnabled: true

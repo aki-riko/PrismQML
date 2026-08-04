@@ -118,6 +118,8 @@ Item {
             id: svgIconComponent
 
             Image {
+                id: svgImage
+
                 anchors.fill: parent
                 source: iconContainer._resolveIcon(
                     control.selected && control.selectedIcon ? control.selectedIcon : control.icon
@@ -131,7 +133,7 @@ Item {
                 antialiasing: true
 
                 // Apply color overlay for theme-aware icons 应用颜色叠加实现主题感知
-                layer.enabled: true
+                layer.enabled: svgImage.status === Image.Ready
                 layer.effect: ColorOverlay {
                     color: control._navItemContentColor
                 }
@@ -150,6 +152,8 @@ Item {
                 anchors.fill: parent
 
                 Image {
+                    id: avatarImage
+
                     anchors.fill: parent
                     source: control.selected && control.selectedIcon ? control.selectedIcon : control.icon
                     fillMode: Image.PreserveAspectCrop
@@ -159,7 +163,7 @@ Item {
                     antialiasing: true
                     opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
 
-                    layer.enabled: true
+                    layer.enabled: avatarImage.status === Image.Ready
                     layer.smooth: true
                     layer.effect: MultiEffect {
                         maskEnabled: true

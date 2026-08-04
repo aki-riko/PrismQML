@@ -360,6 +360,9 @@ def test_navigation_icon_layers_preserve_first_ready_frame(qapp):
             f"objects={loading_objects}/{ready_objects}/{error_objects}",
         )
 
+        assert loading_layers == (False, False, False, False)
+        assert ready_layers == (True, True, True, True)
+        assert error_layers == (False, False, False, False)
         assert first_ready_image == ready_image
         assert error_image == loading_image
         assert loading_objects == ready_objects == error_objects
