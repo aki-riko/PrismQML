@@ -31,6 +31,8 @@ import QtQuick.Window
 import PrismQML
 
 Window {
+    readonly property int indeterminateFeature: Enums.button.feature_indeterminate_bar
+
     width: 320
     height: 120
     visible: true
@@ -214,6 +216,12 @@ def test_button_progress_layers_preserve_first_visible_frame(qapp):
         restored_visible_layers = _layer_states(*layers)
         restored_visible_objects = len(window.findChildren(QObject))
 
+        assert button.setProperty("showProgress", False)
+        assert button.setProperty(
+            "feature", window.property("indeterminateFeature")
+        )
+        indeterminate_layers = _layer_states(*layers)
+
         print(
             "BUTTON_PROGRESS_LAYERS",
             "hashes="
@@ -222,12 +230,17 @@ def test_button_progress_layers_preserve_first_visible_frame(qapp):
             f"{_image_hash(restored_visible_image)}",
             "layers="
             f"{hidden_layers}/{visible_layers}/{restored_hidden_layers}/"
-            f"{restored_visible_layers}",
+            f"{restored_visible_layers}/{indeterminate_layers}",
             "objects="
             f"{hidden_objects}/{visible_objects}/{restored_hidden_objects}/"
             f"{restored_visible_objects}",
         )
 
+        assert hidden_layers == (False, False)
+        assert visible_layers == (True, True)
+        assert restored_hidden_layers == (False, False)
+        assert restored_visible_layers == (True, True)
+        assert indeterminate_layers == (True, True)
         assert first_visible_image == visible_image
         assert first_restored_image == restored_visible_image
         assert restored_hidden_image == hidden_image

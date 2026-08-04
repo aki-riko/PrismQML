@@ -483,6 +483,11 @@ Widget {
         id: progressFeatureComponent
 
         Item {
+            id: progressLayerHost
+
+            readonly property bool _progressLayerActive:
+                control.feature === Enums.button.feature_indeterminate_bar || control.showProgress
+
             anchors.fill: parent
 
             // Rectangle defaults to opaque white, the intended mask source Rectangle 默认不透明白色，正是所需的遮罩源
@@ -490,14 +495,14 @@ Widget {
                 id: progressMask
                 anchors.fill: parent
                 radius: control.radius
-                layer.enabled: true
+                layer.enabled: progressLayerHost._progressLayerActive
                 visible: false
             }
 
             Item {
                 id: progressContent
                 anchors.fill: parent
-                layer.enabled: true
+                layer.enabled: progressLayerHost._progressLayerActive
                 layer.effect: MultiEffect {
                     maskEnabled: true
                     maskSource: progressMask
