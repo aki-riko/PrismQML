@@ -16,6 +16,9 @@ Popup {
 
     // ==================== Internal Props 内部属性 ====================
     property bool _pendingShow: false
+    property QtObject _showTimer: null
+    property QtObject _hideTimer: null
+    property QtObject _autoHideTimer: null
     readonly property int _tooltipTextWidth: Math.min(
         Math.ceil(_tooltipMetrics.advanceWidth),
         Enums.controlSize.tooltipMaxWidth)
@@ -94,6 +97,54 @@ Popup {
         var bounds = _screenBounds(sourcePos)
         _applyPosition(_resolvedDirection(sourcePos, bounds), sourcePos, bounds)
     }
+    function _createLifecycleTimer(timerInterval, triggerCallback, releaseCallback) {
+        var timer = lifecycleTimerComponent.createObject(
+            toolTip.contentItem,
+            {
+                "timerInterval": timerInterval,
+                "triggerCallback": triggerCallback,
+                "releaseCallback": releaseCallback
+            }
+        )
+        if (!timer) console.error("Widget tooltip failed to create lifecycle timer")
+        return timer
+    }
+    function _disposeTimer(timer) {
+        if (!timer) return
+        timer.stop()
+        timer.destroy()
+    }
+    function _cancelShowTimer() {
+        var timer = _showTimer
+        _showTimer = null
+        _disposeTimer(timer)
+    }
+    function _cancelHideTimer() {
+        var timer = _hideTimer
+        _hideTimer = null
+        _disposeTimer(timer)
+    }
+    function _cancelAutoHideTimer() {
+        var timer = _autoHideTimer
+        _autoHideTimer = null
+        _disposeTimer(timer)
+    }
+    function _startAutoHideTimer() {
+        if (!_autoHideTimer) {
+            _autoHideTimer = _createLifecycleTimer(
+                widget.toolTipDuration,
+                function() { toolTip.hide() },
+                function(timer) {
+                    if (toolTip._autoHideTimer === timer)
+                        toolTip._autoHideTimer = null
+                }
+            )
+        }
+        if (_autoHideTimer) {
+            _autoHideTimer.timerInterval = widget.toolTipDuration
+            _autoHideTimer.start()
+        }
+    }
     function show() {
         widget._toolTipShowPending = false
         _pendingShow = true
@@ -122,19 +173,45 @@ Popup {
         toolTip.exit = exitTransition
     }
     function startShowTimer(elapsedMilliseconds) {
-        _showTimer.interval = Math.max(0, widget.toolTipShowDelay - elapsedMilliseconds)
-        _showTimer.restart()
+        var remainingDelay = Math.max(
+            0, widget.toolTipShowDelay - elapsedMilliseconds)
+        if (!_showTimer) {
+            _showTimer = _createLifecycleTimer(
+                remainingDelay,
+                function() {
+                    toolTip.show()
+                    if (toolTip.widget.toolTipDuration > 0)
+                        toolTip._startAutoHideTimer()
+                },
+                function(timer) {
+                    if (toolTip._showTimer === timer) toolTip._showTimer = null
+                }
+            )
+        }
+        if (_showTimer) {
+            _showTimer.timerInterval = remainingDelay
+            _showTimer.restart()
+        }
     }
     function stopShowTimer() {
-        _showTimer.stop()
+        _cancelShowTimer()
     }
     function startHideTimer() {
-        _hideTimer.start()
+        if (!_hideTimer) {
+            _hideTimer = _createLifecycleTimer(
+                widget.toolTipHideDelay,
+                function() { toolTip.hide() },
+                function(timer) {
+                    if (toolTip._hideTimer === timer) toolTip._hideTimer = null
+                }
+            )
+        }
+        if (_hideTimer) _hideTimer.start()
     }
     function cancelTimers() {
-        _showTimer.stop()
-        _hideTimer.stop()
-        _autoHideTimer.stop()
+        _cancelShowTimer()
+        _cancelHideTimer()
+        _cancelAutoHideTimer()
     }
     function _doOpen() {
         if (!_pendingShow) return
@@ -192,24 +269,22 @@ Popup {
         font.family: Enums.fontFamily
     }
 
-    Timer {
-        id: _showTimer
-        interval: toolTip.widget.toolTipShowDelay
-        onTriggered: {
-            toolTip.show()
-            if (toolTip.widget.toolTipDuration > 0) {
-                _autoHideTimer.interval = toolTip.widget.toolTipDuration
-                _autoHideTimer.start()
+    Component {
+        id: lifecycleTimerComponent
+
+        Timer {
+            id: lifecycleTimer
+
+            required property int timerInterval
+            required property var triggerCallback
+            required property var releaseCallback
+
+            interval: timerInterval
+            onTriggered: {
+                triggerCallback()
+                releaseCallback(lifecycleTimer)
+                destroy()
             }
         }
-    }
-    Timer {
-        id: _hideTimer
-        interval: toolTip.widget.toolTipHideDelay
-        onTriggered: toolTip.hide()
-    }
-    Timer {
-        id: _autoHideTimer
-        onTriggered: toolTip.hide()
     }
 }

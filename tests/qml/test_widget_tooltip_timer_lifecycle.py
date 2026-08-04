@@ -88,11 +88,12 @@ def _wait_for(predicate, timeout_ms: int = 2_000) -> bool:
 
 
 def _timers(root: QObject) -> list[QObject]:
-    return [
-        child
-        for child in root.findChildren(QObject)
-        if child.metaObject().className() == "QQmlTimer"
-    ]
+    timers = []
+    for property_name in ("_showTimer", "_hideTimer", "_autoHideTimer"):
+        timer = root.property(property_name)
+        if isinstance(timer, QObject) and shiboken6.isValid(timer):
+            timers.append(timer)
+    return timers
 
 
 def _running_timers(root: QObject) -> list[QObject]:
@@ -173,6 +174,8 @@ def test_widget_tooltip_timer_and_native_window_lifecycle(qapp):
     try:
         initial_hash = _stable_hash(window)
         assert widget.findChild(QObject, "_toolTip") is None
+        support = widget.findChild(QObject, "_hoverArea")
+        assert support is not None
 
         assert QMetaObject.invokeMethod(widget, "_startToolTipShowTimer")
         assert _wait_for(
@@ -180,9 +183,17 @@ def test_widget_tooltip_timer_and_native_window_lifecycle(qapp):
         )
         tooltip = widget.findChild(QObject, "_toolTip")
         assert tooltip is not None
+        assert _wait_for(lambda: len(_running_timers(tooltip)) == 1), (
+            len(_timers(tooltip)),
+            tooltip.property("_showTimer"),
+            tooltip.property("_autoHideTimer"),
+            tooltip.property("visible"),
+            support.property("_showScheduled"),
+            support.property("_showRequestedAt"),
+            warnings,
+        )
         scheduled_timer_count = len(_timers(tooltip))
         scheduled_object_count = len(tooltip.findChildren(QObject))
-        assert len(_running_timers(tooltip)) == 1
 
         assert _wait_for(lambda: tooltip.property("visible") is True)
         assert _wait_for(
@@ -208,6 +219,8 @@ def test_widget_tooltip_timer_and_native_window_lifecycle(qapp):
 
         assert QMetaObject.invokeMethod(tooltip, "cancelTimers")
         settled_timer_count = len(_timers(tooltip))
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        _pump()
         settled_object_count = len(tooltip.findChildren(QObject))
         assert _running_timers(tooltip) == []
         restored_hash = _stable_hash(window)
@@ -227,13 +240,13 @@ def test_widget_tooltip_timer_and_native_window_lifecycle(qapp):
             closing_timer_count,
             hidden_timer_count,
             settled_timer_count,
-        ) == (3, 3, 3, 3, 3)
+        ) == (1, 1, 2, 1, 0)
         assert (
             scheduled_object_count,
             visible_object_count,
             hidden_object_count,
             settled_object_count,
-        ) == (14, 17, 20, 20)
+        ) == (13, 16, 19, 18)
         assert (initial_hash, tooltip_hash, restored_hash) == (
             "3bfa5ae50834d18c64f7389dc7a5e29640b1a026a35a2ee1c3ae12590dac6ff7",
             "0b0059793c978ab0cbcd6ead78a0e597d601b8b768dbc43dd779377927fcac0f",
@@ -246,13 +259,21 @@ def test_widget_tooltip_timer_and_native_window_lifecycle(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_widget_tooltip_source_keeps_three_independent_timers():
-    """Baseline keeps the three timer roles separate. 基线保持三个计时器角色独立。"""
+def test_widget_tooltip_source_creates_independent_timers_on_demand():
+    """Timer roles stay independent and exist only while active.
+
+    计时器角色保持独立且仅在活动时存在。
+    """
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("Timer {") == 3
-    assert "id: _showTimer" in source
-    assert "id: _hideTimer" in source
-    assert "id: _autoHideTimer" in source
+    assert source.count("Timer {") == 1
+    assert "id: _showTimer" not in source
+    assert "id: _hideTimer" not in source
+    assert "id: _autoHideTimer" not in source
+    assert "id: lifecycleTimerComponent" in source
+    assert "lifecycleTimerComponent.createObject(" in source
     assert "_showTimer.restart()" in source
     assert "_hideTimer.start()" in source
     assert "_autoHideTimer.start()" in source
+    assert "_cancelShowTimer()" in source
+    assert "_cancelHideTimer()" in source
+    assert "_cancelAutoHideTimer()" in source
