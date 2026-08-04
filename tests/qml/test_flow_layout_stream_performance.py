@@ -208,6 +208,13 @@ def test_flow_layout_tail_append_preserves_geometry_and_pixels(qapp):
         assert _wait_for(lambda: _geometry_hash(flow) == stream_geometry_hash)
         restored_hash = _grab_hash(window)
 
+        cache_changes_before_removal = len(cache_changes)
+        flow.removeWidget(flow.itemAt(5))
+        assert _wait_for(lambda: len(_layout_items(flow)) == 49)
+        assert _wait_for(
+            lambda: len(cache_changes) > cache_changes_before_removal
+        )
+
         print(
             "FLOW_LAYOUT_STREAM",
             f"cache_changes={cache_delta}",
