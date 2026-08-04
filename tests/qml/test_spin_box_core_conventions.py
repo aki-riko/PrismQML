@@ -313,6 +313,7 @@ def _assert_default_tokens(window, normal) -> None:
         if child.metaObject().indexOfProperty("interval") >= 0
         and child.metaObject().indexOfProperty("repeat") >= 0
     ]
+    assert len(timers) == 4
     intervals = [timer.property("interval") for timer in timers]
     assert intervals.count(window.property("repeatDelay")) >= 1
     assert intervals.count(window.property("repeatInterval")) >= 1
