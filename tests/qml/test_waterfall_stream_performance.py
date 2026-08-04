@@ -286,7 +286,7 @@ def test_waterfall_stream_append_preserves_layout_without_full_rescans(qapp):
             f"restored_hash={restored_hash}",
         )
 
-        assert relayout_delta == 30
+        assert relayout_delta == 0
         assert initial_hash == (
             "9f474d1272c55f9cb61581dcc4e695da982533abdc6df454449cac2fcfa1bdec"
         )
