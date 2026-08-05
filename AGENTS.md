@@ -434,6 +434,7 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
    - 🔴 **判是否新增回归的权威法**：`git worktree add /tmp/baseline <改动前 commit>`，从主 venv 把编译好的 `prismqml_rs*.pyd` cp 进去 + `PYTHONPATH=/tmp/baseline` 跑同一 probe，对比 OK/错误/跳过三个数字是否一致；一致即零新增。看到非 0 退出码必须先分析具体错误，不可把它当成既有 required-property 基线。
    - Windows 原生 Mica 不是默认 headless 集合：仅在显式配置 `-DPRISM_BUILD_NATIVE_TESTS=ON` 后运行 `ctest --test-dir cpp\build -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error`。
    - `tests/test_window_buttons.py`、`tests/qml/bench_skin_frames.py`、`scripts/fps_probe.py`、`scripts/run_with_fps.py` 等可视/性能入口属于人工测试，不得混入自动门禁；需要运行时必须明确说明会打开窗口。
+   - 🔴 **Windows 可视性能验收只接受 D3D11**：被测入口与探针都必须固定 `QSGRendererInterface.GraphicsApi.Direct3D11`，并在结果中核验实际 API 确为 `Direct3D11`。严禁使用 OpenGL、software、offscreen 或其他后端的耗时、帧率、截图作为性能收益或视觉验收结论；`offscreen` 仅用于零交互正确性回归。
 3. **提交**：`git add -A && git commit`（commit message 写清修复内容 + 版本号）。
 4. **打 tag + 推送**：
    ```bash
