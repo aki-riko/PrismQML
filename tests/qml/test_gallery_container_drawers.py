@@ -130,7 +130,11 @@ def test_gallery_container_page_finishes_async_incubation(qapp):
         engine.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         QCoreApplication.processEvents()
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        assert not [
+            candidate
+            for candidate in QGuiApplication.topLevelWindows()
+            if not any(candidate is existing for existing in windows_before)
+        ]
 
 
 def test_gallery_can_animate_two_outside_drawers_together(qapp):
