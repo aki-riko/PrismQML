@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 
@@ -36,6 +37,11 @@ EVENT_NAMES = {
     "QML加载完成": "qml_end_ms",
     "窗口准备就绪，进入事件循环": "event_loop_ready_ms",
 }
+
+if os.environ.get("PRISMQML_STARTUP_PROFILE_VERBOSE") == "1":
+    from prismqml.python.core import Logger, getLogger
+
+    getLogger().set_level(Logger.DEBUG)
 
 
 def elapsed_ms() -> float:
@@ -79,6 +85,26 @@ def enum_name(value: object) -> str:
     """Normalize a PySide enum name for JSON. 统一 PySide 枚举名称供 JSON 输出。"""
     name = getattr(value, "name", None)
     return str(name if name is not None else value)
+
+
+def timer_snapshot(root: QObject) -> list[dict[str, object]]:
+    """Capture QML Timer state only on timeout. 仅在超时时捕获 QML Timer 状态。"""
+    timers = []
+    for obj in root.findChildren(QObject):
+        meta_object = obj.metaObject()
+        if meta_object.indexOfProperty("running") < 0:
+            continue
+        if meta_object.indexOfProperty("interval") < 0:
+            continue
+        timers.append(
+            {
+                "interval": int(obj.property("interval")),
+                "object_name": obj.objectName(),
+                "running": bool(obj.property("running")),
+                "type": normalized_type(obj),
+            }
+        )
+    return timers
 
 
 class BenchmarkApplication(ORIGINAL_APPLICATION):
@@ -182,7 +208,11 @@ class BenchmarkApplication(ORIGINAL_APPLICATION):
         timeout = QTimer(self)
         timeout.setSingleShot(True)
         timeout.setInterval(TIMEOUT_MS)
-        timeout.timeout.connect(self.quit)
+        def on_timeout() -> None:
+            METRICS["timeout_timer_snapshot"] = timer_snapshot(window)
+            self.quit()
+
+        timeout.timeout.connect(on_timeout)
         timeout.start()
         STATE["poll_timer"] = poll_timer
         STATE["timeout"] = timeout
