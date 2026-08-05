@@ -37,11 +37,15 @@ import QtQuick.Window
 import PrismQML
 
 Window {
+    id: root
     width: 800
     height: 600
     visible: true
 
+    function useDialog() { cropper.type = Enums.imageCropper.type_dialog }
+
     ImageCropper {
+        id: cropper
         objectName: "cropper"
         x: 40
         y: 40
@@ -131,12 +135,16 @@ def _preview(cropper: QQuickItem) -> QQuickItem:
     return matches[0]
 
 
-def _overlay(cropper: QQuickItem) -> QQuickItem:
-    matches = [
+def _overlays(cropper: QQuickItem) -> list[QQuickItem]:
+    return [
         item
-        for item in _visual_descendants(cropper)
+        for item in _visual_descendants(cropper.window().contentItem())
         if item.metaObject().className().startswith("DialogBoxCore")
     ]
+
+
+def _overlay(cropper: QQuickItem) -> QQuickItem:
+    matches = _overlays(cropper)
     assert len(matches) == 1
     return matches[0]
 
@@ -180,6 +188,8 @@ def test_image_cropper_preserves_preview_geometry_and_source_state(qapp):
         _pump(20)
         assert images[0].isVisible()
         assert not columns[0].isVisible()
+        assert cropper.findChildren(QQuickWindow) == []
+        assert _overlays(cropper) == []
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
@@ -190,12 +200,13 @@ def test_image_cropper_overlay_open_close_has_no_native_window_leak(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, cropper, warnings = _create_scene()
     try:
-        overlay = _overlay(cropper)
+        assert _overlays(cropper) == []
+        assert cropper.findChildren(QQuickWindow) == []
         cropper.setProperty("source", IMAGE_URL)
-        assert not overlay.property("_isOpen")
-        assert not overlay.isVisible()
 
         assert QMetaObject.invokeMethod(cropper, "open")
+        assert _wait_for(lambda: len(_overlays(cropper)) == 1)
+        overlay = _overlay(cropper)
         assert _wait_for(lambda: bool(overlay.property("_isOpen")))
         assert overlay.isVisible()
         assert overlay.parentItem() is window.contentItem()
@@ -206,6 +217,57 @@ def test_image_cropper_overlay_open_close_has_no_native_window_leak(qapp):
         assert QMetaObject.invokeMethod(cropper, "close")
         assert _wait_for(lambda: not bool(overlay.property("_isOpen")))
         assert _wait_for(lambda: not overlay.isVisible())
+        assert _overlay(cropper) is overlay
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_image_cropper_dialog_direct_open_from_cold_keeps_first_action(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, cropper, warnings = _create_scene()
+    try:
+        assert QMetaObject.invokeMethod(window, "useDialog")
+        assert cropper.property("_cropWindow") is None
+
+        assert QMetaObject.invokeMethod(cropper, "open")
+        crop_window = cropper.property("_cropWindow")
+        assert isinstance(crop_window, QQuickWindow)
+        assert _wait_for(crop_window.isVisible)
+
+        assert QMetaObject.invokeMethod(cropper, "close")
+        assert _wait_for(lambda: not crop_window.isVisible())
+        assert cropper.property("_cropWindow") is crop_window
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_image_cropper_prewarm_creates_only_selected_mode_and_reuses(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, cropper, warnings = _create_scene()
+    try:
+        assert QMetaObject.invokeMethod(cropper, "prewarm")
+        overlay = _overlay(cropper)
+        assert not overlay.isVisible()
+        assert cropper.findChildren(QQuickWindow) == []
+
+        overlay_type = cropper.property("type")
+        assert QMetaObject.invokeMethod(window, "useDialog")
+        assert cropper.property("type") != overlay_type
+        assert QMetaObject.invokeMethod(cropper, "prewarm")
+        crop_window = cropper.property("_cropWindow")
+        assert isinstance(crop_window, QQuickWindow)
+        assert not crop_window.isVisible()
+        assert _overlay(cropper) is overlay
+
+        assert QMetaObject.invokeMethod(cropper, "open")
+        assert _wait_for(crop_window.isVisible)
+        assert QMetaObject.invokeMethod(cropper, "close")
+        assert _wait_for(lambda: not crop_window.isVisible())
+        assert cropper.property("_cropWindow") is crop_window
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
