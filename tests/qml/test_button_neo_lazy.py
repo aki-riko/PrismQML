@@ -191,10 +191,10 @@ def test_neo_press_transform_loads_only_with_neo_skin(qapp):
         _pump(1)
 
 
-def test_custom_button_neo_shadow_lifecycle_baseline(qapp):
-    """Lock skin/flat shadow counts and pixels before lazy loading.
+def test_custom_button_loads_neo_shadow_only_when_visible(qapp):
+    """Keep the shadow lazy while preserving skin/flat pixels.
 
-    延迟加载前固化皮肤/flat 阴影对象数与像素。
+    保持阴影延迟加载，同时保留皮肤/flat 像素。
     """
     previous_skin = getSkin()
     setSkin(Skin.FLUENT)
@@ -221,9 +221,7 @@ def test_custom_button_neo_shadow_lifecycle_baseline(qapp):
     assert button is not None
     try:
         assert _wait_for(window.isExposed)
-        shadows = _neo_shadows(button)
-        assert len(shadows) == 1
-        assert not shadows[0].property("visible")
+        assert _neo_shadows(button) == []
         fluent_image = _stable_window_image(window)
 
         setSkin(Skin.NEOBRUTALISM)
@@ -236,9 +234,7 @@ def test_custom_button_neo_shadow_lifecycle_baseline(qapp):
 
         button.setProperty("flat", True)
         _pump(250)
-        shadows = _neo_shadows(button)
-        assert len(shadows) == 1
-        assert not shadows[0].property("visible")
+        assert _neo_shadows(button) == []
 
         button.setProperty("flat", False)
         _pump(250)
@@ -246,9 +242,7 @@ def test_custom_button_neo_shadow_lifecycle_baseline(qapp):
 
         setSkin(Skin.FLUENT)
         _pump(250)
-        shadows = _neo_shadows(button)
-        assert len(shadows) == 1
-        assert not shadows[0].property("visible")
+        assert _neo_shadows(button) == []
         assert _stable_window_image(window) == fluent_image
 
         setSkin(Skin.NEOBRUTALISM)

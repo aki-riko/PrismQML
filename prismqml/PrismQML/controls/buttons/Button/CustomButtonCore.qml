@@ -89,10 +89,13 @@ Widget {
         visible: !control.flat && !Enums.isNeobrutalism
     }
 
-    NeoShadow {
-        target: background
-        visible: !control.flat && Enums.isNeobrutalism
+    Loader {
+        active: !control.flat && Enums.isNeobrutalism
         z: background.z - 1
+
+        sourceComponent: NeoShadow {
+            target: background
+        }
     }
 
     // Background 背景
