@@ -38,7 +38,6 @@ __all__ = [
     # Utils
     "qml_path",
     "configure_qml_environment",
-    "configure_graphics_api",
     "register_types",
     "init_style",
     "EngineManager",
@@ -122,7 +121,6 @@ _LAZY_EXPORTS = {
     # Utils
     "qml_path": (".utils", "qml_path"),
     "configure_qml_environment": (".utils", "configure_qml_environment"),
-    "configure_graphics_api": (".utils", "configure_graphics_api"),
     "register_types": (".utils", "register_types"),
     "init_style": (".utils", "init_style"),
     "EngineManager": (".engine", "EngineManager"),

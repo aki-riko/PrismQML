@@ -39,8 +39,8 @@ def test_drawer_source_uses_clipped_native_window_following():
     assert "Qt.NoDropShadowWindowHint" not in source
     assert "_outsideShadowExtent" not in source
     assert 'objectName: "outsideDrawerShadow"' not in source
-    assert "ShadowManager.enableShadowForWindow(outsideDrawerWindow)" in source
-    assert "MicaManager.setWindowCorner(outsideDrawerWindow, true)" in source
+    assert "ShadowManager.enableShadowForWindow(_outsideDrawerWindow)" in source
+    assert "MicaManager.setWindowCorner(_outsideDrawerWindow, true)" in source
     assert "id: outsideOpeningTimer" not in source
     assert "id: outsideVisibilityTimer" not in source
     assert "Behavior on width" not in source
@@ -53,8 +53,8 @@ def test_drawer_source_uses_clipped_native_window_following():
     assert "control._syncOutsideWindowGeometry()" not in source
     assert source.count("WindowHelper.updateWindowFollowerGeometry(") == 1
     assert "WindowHelper.registerWindowFollower(" in source
-    assert "WindowHelper.unregisterWindowFollower(outsideDrawerWindow)" in source
-    assert "ShadowManager.disableShadowForWindow(outsideDrawerWindow)" in source
+    assert "WindowHelper.unregisterWindowFollower(_outsideDrawerWindow)" in source
+    assert "ShadowManager.disableShadowForWindow(_outsideDrawerWindow)" in source
 
 
 def test_drawer_source_keeps_native_window_behind_host_without_overlap():
@@ -73,12 +73,16 @@ def test_drawer_source_keeps_native_window_behind_host_without_overlap():
 def test_drawer_source_guards_native_window_during_destruction():
     source = SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "if (outsideDrawerWindow" in source
-    assert "|| !outsideDrawerWindow" in source
-    assert "outsideDrawerWindow ? outsideDrawerWindow.width : 0" in source
-    assert "outsideDrawerWindow ? outsideDrawerWindow.height : 0" in source
-    assert "outsideDrawerViewport ? -outsideDrawerViewport.x : 0" in source
-    assert "outsideDrawerViewport ? -outsideDrawerViewport.y : 0" in source
+    assert "readonly property var _outsideDrawerWindow: outsideDrawerWindowLoader.item" in source
+    assert "id: outsideDrawerWindowLoader" in source
+    assert "active: control._isOutside" in source
+    assert "asynchronous: false" in source
+    assert "if (_outsideDrawerWindow" in source
+    assert "|| !_outsideDrawerWindow" in source
+    assert "width: outsideDrawerWindow.width" in source
+    assert "height: outsideDrawerWindow.height" in source
+    assert "x: -outsideDrawerViewport.x" in source
+    assert "y: -outsideDrawerViewport.y" in source
 
 
 def test_drawer_stages_host_signal_connections_until_component_completion():
@@ -94,5 +98,7 @@ def test_drawer_stages_host_signal_connections_until_component_completion():
 def test_drawer_source_reveals_from_the_corresponding_edge():
     source = SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "x: control.position === Enums.position.left\n                ? (outsideDrawerWindow" in source
-    assert "y: control.position === Enums.position.top\n                ? (outsideDrawerWindow" in source
+    assert "x: control.position === Enums.position.left" in source
+    assert "? outsideDrawerWindow.width - width : 0" in source
+    assert "y: control.position === Enums.position.top" in source
+    assert "? outsideDrawerWindow.height - height : 0" in source

@@ -26,6 +26,7 @@ from _button_dropdown_prewarm_support import (
     _popup_content,
     _popup_is_visible,
     _popup_panel_global_position,
+    _popup_windows,
     _pump,
     _tooltip,
     _visual_descendants,
@@ -86,6 +87,7 @@ def test_cold_click_opens_left_aligned_dropdown(
     assert not popup.property("useInWindowPopup")
     assert popup.property("useQtPopupWindow")
     _active_qt_popup_window(windows_before, window)
+    assert _popup_windows(popup) == []
     assert warnings == []
 
 
@@ -225,6 +227,7 @@ def test_qt_popup_window_object_items_select_and_close(
     assert received == [(1, "Claude Desktop 官网版")]
     assert _wait_for(lambda: not popup.property("isOpen"))
     assert _wait_for(lambda: not _popup_is_visible(popup))
+    assert _popup_windows(popup) == []
     assert _new_visible_windows(windows_before, window) == []
     assert warnings == []
 

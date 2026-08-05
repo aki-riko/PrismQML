@@ -63,7 +63,6 @@ __all__ = [
     # Utils
     "qml_path",
     "configure_qml_environment",
-    "configure_graphics_api",
     "register_types",
     "init_style",
     # State
@@ -176,10 +175,6 @@ _LAZY_EXPORTS = {
     "configure_qml_environment": (
         ".python.core.utils",
         "configure_qml_environment",
-    ),
-    "configure_graphics_api": (
-        ".python.core.utils",
-        "configure_graphics_api",
     ),
     "register_types": (".python.core.utils", "register_types"),
     "init_style": (".python.core.utils", "init_style"),

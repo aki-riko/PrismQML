@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GALLERY_MAIN = ROOT / "examples" / "main.py"
 GALLERY_QML = ROOT / "examples" / "main.qml"
+GALLERY_STARTUP_BENCHMARK = ROOT / "tests" / "qml" / "bench_gallery_startup.py"
 GALLERY_AUTO_UPDATE_PAGE = ROOT / "examples" / "pages" / "AutoUpdatePage.qml"
 GALLERY_DRY_RUN_UPDATER = (
     ROOT / "examples" / "pages" / "_internal" / "GalleryDryRunUpdater.qml"
@@ -62,19 +63,25 @@ def test_gallery_disables_debug_logging_by_default():
     assert source.index(level_setup) < source.index("install_qt_message_handler()")
 
 
-def test_gallery_uses_qt_platform_graphics_default():
-    tree = _gallery_tree()
-    calls = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "configure_graphics_api"
-    ]
+def test_gallery_uses_direct3d11_as_its_only_graphics_backend():
+    source = GALLERY_MAIN.read_text(encoding="utf-8")
 
-    assert len(calls) == 1
-    assert calls[0].args == []
-    assert calls[0].keywords == []
+    assert "QSGRendererInterface.GraphicsApi.Direct3D11" in source
+    assert "QSGRendererInterface.OpenGL" not in source
+    assert "GraphicsApi.OpenGL" not in source
+
+
+def test_gallery_startup_benchmark_requires_real_direct3d11_and_real_home_page():
+    source = GALLERY_STARTUP_BENCHMARK.read_text(encoding="utf-8")
+
+    assert 'requested_graphics_api": "direct3d11"' in source
+    assert 'actual_api_name != "Direct3D11"' in source
+    assert '"--graphics-api"' not in source
+    assert "stack.pageLoaded.connect(self._page_loaded)" in source
+    assert 'class_name != "ButtonPage"' in source
+    assert "pending.extend(item.childItems())" in source
+    assert 'output["visual_item_class_counts"]' in source
+    assert 'output["object_class_counts"]' not in source
 
 
 def test_gallery_does_not_duplicate_public_context_or_lazy_providers():

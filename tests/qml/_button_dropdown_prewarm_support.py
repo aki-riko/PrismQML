@@ -174,12 +174,16 @@ def _dropdown_popup(dropdown):
     return matches[0]
 
 
-def _popup_window(popup):
-    windows = [
+def _popup_windows(popup):
+    return [
         window
         for window in popup.findChildren(QWindow)
         if window.metaObject().className() != "QQuickPopupWindow"
     ]
+
+
+def _popup_window(popup):
+    windows = _popup_windows(popup)
     assert len(windows) == 1
     return windows[0]
 

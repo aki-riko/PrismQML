@@ -23,12 +23,10 @@
 #include <QDir>
 #include <QFile>
 #include <QQuickWindow>
-#include <QSGRendererInterface>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QTemporaryDir>
 #include <QtGlobal>
-#include <stdexcept>
 #include <vector>
 #include <type_traits>
 
@@ -247,31 +245,6 @@ int main(int argc, char *argv[]) {
         qputenv(kQmlXhrAllowFileReadEnvironment, originalQmlFileRead);
     else
         qunsetenv(kQmlXhrAllowFileReadEnvironment);
-
-    const bool hadGraphicsApi = qEnvironmentVariableIsSet(kGraphicsApiEnvironment);
-    const QByteArray originalGraphicsApi = qgetenv(kGraphicsApiEnvironment);
-    const auto originalQtGraphicsApi = QQuickWindow::graphicsApi();
-    qputenv(kGraphicsApiEnvironment, "direct3d11");
-    configureGraphicsApi();
-    CHECK(QQuickWindow::graphicsApi() == QSGRendererInterface::Direct3D11,
-          "Qt Quick 图形后端可显式切换为 Direct3D 11");
-    qputenv(kGraphicsApiEnvironment, "opengl");
-    configureGraphicsApi();
-    CHECK(QQuickWindow::graphicsApi() == QSGRendererInterface::OpenGL,
-          "Qt Quick 图形后端可显式回退 OpenGL");
-    qputenv(kGraphicsApiEnvironment, "unknown");
-    bool invalidGraphicsApiRejected = false;
-    try {
-        configureGraphicsApi();
-    } catch (const std::invalid_argument &) {
-        invalidGraphicsApiRejected = true;
-    }
-    CHECK(invalidGraphicsApiRejected, "Qt Quick 拒绝未知图形后端配置");
-    QQuickWindow::setGraphicsApi(originalQtGraphicsApi);
-    if (hadGraphicsApi)
-        qputenv(kGraphicsApiEnvironment, originalGraphicsApi);
-    else
-        qunsetenv(kGraphicsApiEnvironment);
 
     // runInstallerAndQuit 失败路径 (文件不存在应返回 false 且不退出应用)。
     // 成功路径会调 QCoreApplication::quit() 退出进程, 无法在单测内断言, 属合理验证边界。

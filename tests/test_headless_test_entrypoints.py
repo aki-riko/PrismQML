@@ -35,6 +35,7 @@ RUNNER_SUPERVISOR_GRACE_SECONDS = (
 MANUAL_VISIBLE_ENTRYPOINTS = {
     Path("scripts/fps_probe.py"),
     Path("scripts/run_with_fps.py"),
+    Path("tests/qml/bench_gallery_startup.py"),
     Path("tests/qml/bench_skin_frames.py"),
     Path("tests/test_window_buttons.py"),
 }
@@ -385,19 +386,24 @@ def test_shared_qml_bootstrap_forces_noninteractive_policy_before_pyside_import(
     assert state == {"platform": "offscreen", "noninteractive": True}
 
 
-@pytest.mark.parametrize(
-    "relative",
-    (
-        Path("examples/main.py"),
-        Path("scripts/fps_probe.py"),
-        Path("scripts/run_with_fps.py"),
-    ),
-)
-def test_gallery_entrypoints_use_compiled_resource_registry(relative):
-    source = (REPO_ROOT / relative).read_text(encoding="utf-8")
+def test_gallery_main_uses_compiled_resource_registry():
+    source = (REPO_ROOT / "examples" / "main.py").read_text(encoding="utf-8")
 
     assert "gallery_rc" not in source
     assert "register_gallery_resources" in source
+
+
+@pytest.mark.parametrize(
+    "relative",
+    (Path("scripts/fps_probe.py"), Path("scripts/run_with_fps.py")),
+)
+def test_gallery_performance_wrappers_reuse_main_resource_registration(relative):
+    source = (REPO_ROOT / relative).read_text(encoding="utf-8")
+
+    assert "gallery_rc" not in source
+    assert "register_gallery_resources" not in source
+    assert "import examples.main as gallery" in source
+    assert "gallery.main()" in source
 
 
 def test_gallery_main_supports_package_import():

@@ -276,7 +276,9 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
         assert len(interaction_timers) == 4
         assert len(closing_timers) == 5
         assert len(restored_interaction_timers) == 4
-        assert initial_objects == 355
+        # Four unopened menus no longer instantiate one native Window each.
+        # 四个未打开菜单不再各自提前实例化一个原生 Window。
+        assert initial_objects == 351
         assert restored_objects == initial_objects
         assert restored_hash == initial_hash
         assert warnings == []

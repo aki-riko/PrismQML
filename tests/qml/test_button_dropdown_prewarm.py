@@ -30,6 +30,7 @@ from _button_dropdown_prewarm_support import (
     _popup_panel_global_position,
     _popup_surface,
     _popup_window,
+    _popup_windows,
     _pump,
     _qt_popup_windows,
     _tooltip,
@@ -108,6 +109,14 @@ def test_feature_loader_switch_keeps_menu_state_binding_typed(dropdown_scene):
     _invoke(reopened_popup, "forceReset")
 
     assert warnings == []
+
+
+def _use_native_popup_window(popup):
+    """Use the engine-managed native surface. 使用引擎自管原生窗口。"""
+    popup.setProperty("useInWindowPopup", False)
+    popup.setProperty("useQtPopupWindow", False)
+    assert not popup.property("useInWindowPopup")
+    assert not popup.property("useQtPopupWindow")
 
 
 def test_dropdown_defaults_to_qt_popup_window(dropdown_scene):
@@ -200,7 +209,37 @@ def test_dropdown_and_split_hover_prepare_hidden_menu_surface(
     qt_popup_windows = _qt_popup_windows(window)
     assert len(qt_popup_windows) == 1
     assert not qt_popup_windows[0].isVisible()
-    assert _popup_window(popup) not in _new_visible_windows(windows_before, window)
+    assert _popup_windows(popup) == []
+    assert warnings == []
+
+
+@pytest.mark.parametrize(
+    ("object_name", "split_arrow"),
+    [("dropdownButton", False), ("splitButton", True)],
+)
+def test_native_dropdown_hover_prewarms_and_click_reuses_window(
+    dropdown_scene, object_name, split_arrow
+):
+    root, window, warnings, _windows_before = dropdown_scene
+    button = _button(root, object_name)
+    dropdown = _button_dropdown(button)
+    assert _dropdown_popups(dropdown) == []
+    dropdown.setProperty("_internalMenuRequested", True)
+    popup = _dropdown_popup(dropdown)
+    _use_native_popup_window(popup)
+    assert _popup_windows(popup) == []
+
+    _move_to(window, button, split_arrow)
+
+    assert _wait_for(lambda: popup.property("_prewarmed"))
+    popup_window = _popup_window(popup)
+    assert not popup_window.isVisible()
+    assert not popup.property("isOpen")
+
+    _click(window, button, split_arrow)
+
+    assert _wait_for(lambda: popup.property("isOpen") and popup_window.isVisible())
+    assert _popup_windows(popup) == [popup_window]
     assert warnings == []
 
 

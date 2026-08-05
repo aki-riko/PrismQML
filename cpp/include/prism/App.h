@@ -21,14 +21,9 @@ class AppLifecycleBridge;  // 内部: 中转 Qt applicationStateChanged 信号
 class Updater;             // 自动更新底层 (enableAutoUpdate 使用)
 
 inline constexpr char kQmlXhrAllowFileReadEnvironment[] = "QML_XHR_ALLOW_FILE_READ";
-inline constexpr char kGraphicsApiEnvironment[] = "PRISMQML_GRAPHICS_API";
 
 // Must run before QQmlEngine creation. 必须在创建 QQmlEngine 前调用。
 void configureQmlEnvironment(bool allowFileRead = true);
-
-// Keep Qt's native default unless PRISMQML_GRAPHICS_API requests an override.
-// 默认保留 Qt 平台原生后端，仅在环境变量显式请求时覆盖。
-void configureGraphicsApi();
 
 // App - 应用入口门面 (镜像 Python App)
 // 内部持有 QApplication + QQmlApplicationEngine, 构造时完成注入装配。

@@ -26,17 +26,13 @@
 
 ### 1.1 Qt Quick 图形后端（冷启动铁律）
 
-- **默认遵循 Qt 的平台原生图形后端**：Windows 使用 Qt 6 的原生
-  D3D11/QRhi 路径；其他平台同样保留 Qt 的平台默认选择。Python 与 C++
-  宿主必须保持一致。
-- **严禁在 Windows 全局强制 OpenGL**：不得在通用启动路径无条件调用
-  `QQuickWindow.setGraphicsApi(OpenGL)`，也不得无条件设置等价的 Qt 环境
-  变量。实测该错误曾使真实可见 Gallery 的 QML 加载中位数从约
+- **Windows 唯一后端是 D3D11**：Python 与 C++ 宿主都必须在创建首个
+  `QQuickWindow` 前显式设置 `Direct3D11`；不得提供环境变量、命令行参数或
+  公开 API 来切换后端。其他平台保留 Qt 的平台默认选择。
+- **严禁 OpenGL 回退或对照**：不得在启动、探针、基准或测试路径请求
+  OpenGL。实测该后端曾使真实可见 Gallery 的 QML 加载中位数从约
   `350 ms` 恶化到约 `692 ms`，是已确认的重大冷启动回归。
-- **OpenGL 仅作显式兼容回退**：只有用户通过
-  `PRISMQML_GRAPHICS_API=opengl` 明确请求时才启用；不得因历史注释、未经
-  复现的驱动担忧或单个下游应用而改变引擎默认值。
-- **后端变更必须真实 A/B 验收**：使用完全重启、交错样本和真实可见窗口
+- **D3D11 变更必须真实验收**：使用完全重启、交错样本和真实可见窗口
   对比 QML 加载、进入事件循环与首帧；同时验证动画、Mica、DWM 阴影、
   首次弹层交互、像素差异及 `device lost` 日志。仅 offscreen、单次计时或
   “窗口能打开”均不得作为后端性能与视觉验收结论。
@@ -450,7 +446,8 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
    - 🔴 **当前优化基线：probe 应退出码 0，且约 `181 OK / 0 错误 / 7 跳过 = 188`**。6 个 singleton（Enums / Translator / DpiManager / NotificationManager / PopupUtils / IconRendererResources）必须通过 QtObject wrapper 触发 QML 引擎真实创建并读取，且 singleton 创建期 Qt warning / critical / fatal 为 0；仅允许跳过 7 个 required-property 内部子模块（ButtonContent / ButtonDropdown / ButtonProgress / ListWidgetItem / SettingsCardContent / HorizontalScrollMixin / ViewportMixin，由父组件注入 required property，单独 createComponent 不成立）。
    - 🔴 **判是否新增回归的权威法**：`git worktree add /tmp/baseline <改动前 commit>`，从主 venv 把编译好的 `prismqml_rs*.pyd` cp 进去 + `PYTHONPATH=/tmp/baseline` 跑同一 probe，对比 OK/错误/跳过三个数字是否一致；一致即零新增。看到非 0 退出码必须先分析具体错误，不可把它当成既有 required-property 基线。
    - Windows 原生 Mica 不是默认 headless 集合：仅在显式配置 `-DPRISM_BUILD_NATIVE_TESTS=ON` 后运行 `ctest --test-dir cpp\build -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error`。
-   - `tests/test_window_buttons.py`、`tests/qml/bench_skin_frames.py`、`scripts/fps_probe.py`、`scripts/run_with_fps.py` 等可视/性能入口属于人工测试，不得混入自动门禁；需要运行时必须明确说明会打开窗口。
+   - `tests/test_window_buttons.py`、`tests/qml/bench_gallery_startup.py`、`tests/qml/bench_skin_frames.py`、`scripts/fps_probe.py`、`scripts/run_with_fps.py` 等可视/性能入口属于人工测试，不得混入自动门禁；需要运行时必须明确说明会打开窗口。
+   - 🔴 **Windows 可视性能验收只接受 D3D11**：被测入口与探针都必须固定 `QSGRendererInterface.GraphicsApi.Direct3D11`，并在结果中核验实际 API 确为 `Direct3D11`。严禁使用 OpenGL、software、offscreen 或其他后端的耗时、帧率、截图作为性能收益或视觉验收结论；`offscreen` 仅用于零交互正确性回归。
 3. **提交**：`git add -A && git commit`（commit message 写清修复内容 + 版本号）。
 4. **打 tag + 推送**：
    ```bash

@@ -18,7 +18,7 @@ from PySide6.QtCore import (
     QUrl,
     Qt,
 )
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QWheelEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -78,6 +78,7 @@ Window {
     }
     function scrollHorizontal() { horizontalHelper.scrollTo(260) }
     function scrollHorizontalToEnd() { horizontalHelper.scrollToEnd() }
+    function overshootHorizontal() { horizontalHelper.scrollBy(1000) }
     function growHorizontalContent() { horizontalFlick.contentWidth = 820 }
     function scrollPopup() { popupHelper.scrollTo(999) }
     function setVerticalHalf() {
@@ -278,6 +279,35 @@ def _wait_for_stable(predicate, stable_checks: int = 5, timeout_ms: int = 1500) 
     return False
 
 
+def _smooth_scroll_helper(item: QQuickItem, orientation: Qt.Orientation) -> QQuickItem:
+    return next(
+        child
+        for child in item.findChildren(QQuickItem)
+        if "SmoothScrollHelper" in child.metaObject().className()
+        and child.property("orientation") == orientation.value
+    )
+
+
+def _send_wheel(window: QQuickWindow, item: QQuickItem, delta: int) -> QWheelEvent:
+    position = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
+    global_position = QPointF(
+        window.x() + position.x(),
+        window.y() + position.y(),
+    )
+    event = QWheelEvent(
+        position,
+        global_position,
+        QPoint(0, 0),
+        QPoint(0, delta),
+        Qt.MouseButton.NoButton,
+        Qt.KeyboardModifier.NoModifier,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    assert QGuiApplication.sendEvent(window, event)
+    return event
+
+
 def _new_visible_windows(windows_before, *allowed):
     return [
         window
@@ -369,6 +399,112 @@ def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
     assert _wait_for(lambda: window.property("horizontalX") == pytest.approx(260))
     assert QMetaObject.invokeMethod(window, "scrollPopup")
     assert _wait_for(lambda: window.property("popupY") == pytest.approx(380))
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_scroll_area_discards_stale_bounce_peak_after_gui_stall(scroll_scene):
+    window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+    maximum = helper.property("maxScroll")
+
+    values = []
+    area.contentYChanged.connect(
+        lambda: values.append(float(area.property("contentY")))
+    )
+    area.setProperty("contentY", maximum)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+
+    event = _send_wheel(window, area, -360)
+    assert event.isAccepted()
+    _pump(45)
+    assert values
+    before_stall = values[-1]
+    resume_index = len(values)
+
+    QTest.qSleep(160)
+    _pump(1000)
+    resumed_values = values[resume_index:]
+    assert resumed_values
+    assert max(resumed_values) <= before_stall + 0.5
+    assert area.property("contentY") == pytest.approx(maximum)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_scroll_area_preserves_original_return_curve_for_large_bounce(scroll_scene):
+    window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+    maximum = helper.property("maxScroll")
+    step = helper.property("step")
+
+    values = []
+    area.contentYChanged.connect(
+        lambda: values.append(float(area.property("contentY")))
+    )
+
+    area.setProperty("contentY", maximum)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+    normal_event = _send_wheel(window, area, -120)
+    assert normal_event.isAccepted()
+    _pump(1000)
+    normal_values = values.copy()
+    normal_peak = max(normal_values)
+    normal_trough = min(normal_values)
+    assert maximum - step * 0.08 <= normal_trough <= maximum - step * 0.03
+    assert area.property("contentY") == pytest.approx(maximum)
+
+    values.clear()
+    area.setProperty("contentY", maximum)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+    large_event = _send_wheel(window, area, -360)
+    assert large_event.isAccepted()
+    _pump(1000)
+    large_peak = max(values)
+    peak_index = values.index(large_peak)
+    return_values = values[peak_index:]
+    large_trough = min(return_values)
+    trough_index = return_values.index(large_trough)
+    assert large_peak > normal_peak
+    assert maximum - large_trough > maximum - normal_trough
+    assert any(
+        current > previous + 0.5
+        for previous, current in zip(
+            return_values[trough_index:], return_values[trough_index + 1:]
+        )
+    )
+    assert area.property("contentY") == pytest.approx(maximum)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_horizontal_bounce_discards_stale_peak_after_gui_stall(scroll_scene):
+    window, items, warnings, windows_before = scroll_scene
+    flick = items["horizontalFlick"]
+
+    assert QMetaObject.invokeMethod(window, "scrollHorizontalToEnd")
+    assert _wait_for(lambda: window.property("horizontalX") == pytest.approx(520))
+    values = []
+    flick.contentXChanged.connect(
+        lambda: values.append(float(window.property("horizontalX")))
+    )
+
+    assert QMetaObject.invokeMethod(window, "overshootHorizontal")
+    _pump(45)
+    assert values
+    before_stall = values[-1]
+    resume_index = len(values)
+
+    QTest.qSleep(160)
+    _pump(1000)
+    resumed_values = values[resume_index:]
+    assert resumed_values
+    assert max(resumed_values) <= before_stall + 0.5
+    assert window.property("horizontalX") == pytest.approx(520)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

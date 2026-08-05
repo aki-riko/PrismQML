@@ -6,7 +6,7 @@
 
 from pathlib import Path, PurePosixPath
 
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, QUrl
 from PySide6.QtGui import QWindow
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -119,10 +119,8 @@ def test_duration_sentinels_preserve_runtime_behavior(qapp):
         assert tip_popup.property("duration") == root.property("durationPersistent")
         flyout_windows = tip_popup.findChildren(QWindow)
         teaching_windows = teaching_tip.findChildren(QWindow)
-        assert len(flyout_windows) == 1
-        assert len(teaching_windows) == 2
-        assert not any(window.isVisible() for window in flyout_windows)
-        assert not any(window.isVisible() for window in teaching_windows)
+        assert flyout_windows == []
+        assert teaching_windows == []
     finally:
         root.deleteLater()
         del component
@@ -138,8 +136,10 @@ def test_tip_popup_creates_action_buttons_only_when_needed(qapp):
         assert tip_popup.findChild(QQuickItem, "tipPrimaryActionButton") is None
         assert tip_popup.findChild(QQuickItem, "tipSecondaryActionButton") is None
 
+        tip_popup.setProperty("target", root)
         tip_popup.setProperty("primaryButtonText", "Apply")
         tip_popup.setProperty("secondaryButtonText", "Back")
+        assert QMetaObject.invokeMethod(tip_popup, "prewarm")
         _pump()
 
         primary = tip_popup.findChild(QQuickItem, "tipPrimaryActionButton")
@@ -163,16 +163,18 @@ def test_tip_popup_creates_action_buttons_only_when_needed(qapp):
         _pump(1)
 
 
-def test_tip_popup_creates_arrow_window_only_for_teaching_tips(qapp):
+def test_tip_popup_creates_and_reuses_arrow_window_after_teaching_tip_use(qapp):
     engine, component, root = _create_scene()
     try:
         tip_popup = root.findChild(QQuickItem, "tipPopup")
         teaching_tip = root.findChild(QQuickItem, "teachingTip")
         assert tip_popup is not None and teaching_tip is not None
-        assert len(tip_popup.findChildren(QWindow)) == 1
-        assert len(teaching_tip.findChildren(QWindow)) == 2
+        assert tip_popup.findChildren(QWindow) == []
+        assert teaching_tip.findChildren(QWindow) == []
 
+        tip_popup.setProperty("target", root)
         tip_popup.setProperty("tipType", root.property("teachingTipType"))
+        assert QMetaObject.invokeMethod(tip_popup, "prewarm")
         _pump()
         arrow_window = tip_popup.findChild(QWindow, "tipArrowWindow")
         assert arrow_window is not None
@@ -181,8 +183,9 @@ def test_tip_popup_creates_arrow_window_only_for_teaching_tips(qapp):
 
         tip_popup.setProperty("tipType", root.property("flyoutType"))
         _pump()
-        assert tip_popup.findChild(QWindow, "tipArrowWindow") is None
-        assert len(tip_popup.findChildren(QWindow)) == 1
+        assert tip_popup.findChild(QWindow, "tipArrowWindow") is arrow_window
+        assert len(tip_popup.findChildren(QWindow)) == 2
+        assert arrow_window.isVisible() is False
     finally:
         root.deleteLater()
         del component

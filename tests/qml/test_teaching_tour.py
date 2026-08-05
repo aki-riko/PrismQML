@@ -17,6 +17,7 @@ from PySide6.QtCore import (
     Qt,
     QMetaObject,
 )
+from PySide6.QtGui import QWindow
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtTest import QTest
@@ -291,12 +292,15 @@ def test_tour_spotlight_tracks_target_and_keeps_hole_clickable(tour_scene):
 
 def test_tip_actions_advance_finish_and_skip(tour_scene):
     window, tour = tour_scene
+    assert tour.findChildren(QWindow) == []
+    assert QMetaObject.invokeMethod(window, "startTour")
+    assert _wait_for(lambda: tour.property("active"))
+    tip_windows = tour.findChildren(QWindow)
+    assert len(tip_windows) == 2
+    assert all(tip_window.isVisible() for tip_window in tip_windows)
     primary = tour.findChild(QQuickItem, "tipPrimaryActionButton")
     secondary = tour.findChild(QQuickItem, "tipSecondaryActionButton")
     assert primary is not None and secondary is not None
-
-    assert QMetaObject.invokeMethod(window, "startTour")
-    assert _wait_for(lambda: tour.property("active"))
     assert primary.property("text") == "Continue"
 
     assert QMetaObject.invokeMethod(primary, "click")
@@ -307,9 +311,14 @@ def test_tip_actions_advance_finish_and_skip(tour_scene):
     assert QMetaObject.invokeMethod(primary, "click")
     assert _wait_for(lambda: not tour.property("active"))
     assert window.property("completedCount") == 1
+    assert tour.findChildren(QWindow) == tip_windows
+    assert _wait_for(
+        lambda: not any(tip_window.isVisible() for tip_window in tip_windows)
+    )
 
     assert QMetaObject.invokeMethod(window, "startTour")
     assert _wait_for(lambda: tour.property("active"))
+    assert tour.findChildren(QWindow) == tip_windows
     assert QMetaObject.invokeMethod(secondary, "click")
     assert _wait_for(lambda: not tour.property("active"))
     assert window.property("skippedCount") == 1

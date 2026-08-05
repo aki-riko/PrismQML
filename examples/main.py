@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import prismqml
 
-from prismqml import Updater, configure_graphics_api, configure_qml_environment
+from prismqml import Updater, configure_qml_environment
 from prismqml.python.core import Logger, getLogger, log_time
 
 # Keep normal Gallery runs at INFO; diagnostics can still be enabled explicitly.
@@ -41,6 +41,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import Qt, QUrl
+from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 
 from prismqml.python.core import (
     installDwmSyncFilter,
@@ -69,10 +70,11 @@ def main():
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
 
-    # Use Qt's platform-native backend; the engine switch can force a fallback.
-    # 使用 Qt 平台原生后端；必要时可通过引擎开关强制回退。
-    graphics_api = configure_graphics_api()
-    log_time(f"Qt图形后端配置完成: {graphics_api}")
+    if sys.platform == "win32":
+        # Use the only supported Windows graphics backend. 使用唯一受支持的 Windows 图形后端。
+        QQuickWindow.setGraphicsApi(
+            QSGRendererInterface.GraphicsApi.Direct3D11
+        )
 
     applyDpiScale()
     log_time("DPI缩放应用完成")

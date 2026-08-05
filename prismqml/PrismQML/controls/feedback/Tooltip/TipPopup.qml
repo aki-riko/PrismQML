@@ -40,8 +40,13 @@ Item {
     property real _animX: 0
     property real _animY: 0
     property bool _isOpen: false
+    property bool _prewarmed: false
+    property bool _popupWindowRequested: false
+    property bool _arrowWindowRequested: false
     readonly property bool _hasActions: primaryButtonText !== "" || secondaryButtonText !== ""
+    readonly property var _popupWindow: popupWindowLoader.item
     readonly property var _arrowWindow: arrowWindowLoader.item
+    readonly property int _prewarmCoordinate: -32000
 
     // Follow target control position (sync move on scroll) 跟随目标控件位置变化
     readonly property var _targetWindow: target && target.contentItem !== undefined
@@ -54,11 +59,14 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function show() {
-        if (!target) return
+        if (!target || !_ensureWindows()) return
+
+        var popupWindow = _popupWindow
+        var arrowWindow = _arrowWindow
 
         showAnim.stop(); hideAnim.stop(); autoCloseTimer.stop()
         popupWindow.opacity = 0
-        if (control._arrowWindow) control._arrowWindow.opacity = 0
+        if (arrowWindow) arrowWindow.opacity = 0
         _isOpen = true
 
         var pos = posHelper.calculatePosition()
@@ -66,14 +74,17 @@ Item {
         _animX = startPos.x; _animY = startPos.y
 
         popupWindow.show(); popupWindow.raise(); popupWindow.requestActivate()
+        _prewarmed = true
 
         Qt.callLater(function() {
-            if (ShadowManager) ShadowManager.enableShadowForWindow(popupWindow)
+            if (control._popupWindow && ShadowManager) {
+                ShadowManager.enableShadowForWindow(control._popupWindow)
+            }
         })
 
-        if (posHelper.hasArrow && control._arrowWindow) {
+        if (posHelper.hasArrow && arrowWindow) {
             var arrowPos = posHelper.calculateArrowPosition(pos)
-            control._arrowWindow.showAt(arrowPos)
+            arrowWindow.showAt(arrowPos)
         }
 
         if (posHelper.isHorizontalAnimation()) {
@@ -90,16 +101,49 @@ Item {
         if (duration > 0) autoCloseTimer.start()
     }
 
+    function prewarm() {
+        if (!target || (_prewarmed && (!posHelper.hasArrow || _arrowWindow))) return
+        if (!_ensureWindows()) return
+        _prewarmWindow(_popupWindow)
+        if (_arrowWindow) _prewarmWindow(_arrowWindow)
+        _prewarmed = true
+    }
+
     function close() {
         autoCloseTimer.stop()
+        if (!_isOpen || !_popupWindow) return
         hideAnim.start()
     }
 
     // ==================== Internal Methods 内部方法 ====================
+    function _prewarmWindow(window) {
+        var savedX = window.x
+        var savedY = window.y
+        var savedOpacity = window.opacity
+        window.x = _prewarmCoordinate
+        window.y = _prewarmCoordinate
+        window.opacity = 0
+        window.show()
+        window.hide()
+        window.x = savedX
+        window.y = savedY
+        window.opacity = savedOpacity
+    }
+
+    function _ensureWindows() {
+        _popupWindowRequested = true
+        if (posHelper.hasArrow) _arrowWindowRequested = true
+        if (!_popupWindow || (posHelper.hasArrow && !_arrowWindow)) {
+            console.warn("TipPopup failed to create its native window surface")
+            return false
+        }
+        return true
+    }
+
     function _doClose() {
         _isOpen = false
-        popupWindow.hide()
-        if (control._arrowWindow) control._arrowWindow.hide()
+        if (_popupWindow) _popupWindow.hide()
+        if (_arrowWindow) _arrowWindow.hide()
         closed()
         if (deleteOnClose) control.destroy()
     }
@@ -109,10 +153,10 @@ Item {
         _animX = pos.x
         _animY = pos.y
 
-        if (posHelper.hasArrow && control._arrowWindow) {
+        if (posHelper.hasArrow && _arrowWindow) {
             var arrowPos = posHelper.calculateArrowPosition(pos)
-            control._arrowWindow.x = arrowPos.x
-            control._arrowWindow.y = arrowPos.y
+            _arrowWindow.x = arrowPos.x
+            _arrowWindow.y = arrowPos.y
         }
     }
 
@@ -140,199 +184,204 @@ Item {
     }
 
     // Main window 主窗口
-    Window {
-        id: popupWindow
-        flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint
-        color: Enums.transparent
-        width: posHelper.viewWidth
-        height: posHelper.viewHeight
-        x: _animX
-        y: _animY
-        opacity: 0
-        
-        // Focus detection for click outside close 焦点检测实现点击外部关闭
-        onActiveFocusItemChanged: {
-            if (!activeFocusItem && control._isOpen && control.modal) {
-                Qt.callLater(function() {
-                    if (!popupWindow.activeFocusItem && control._isOpen) {
-                        control.close()
-                    }
-                })
-            }
-        }
-        
-        Rectangle {
-            id: contentRect
-            anchors.fill: parent
-            radius: control._tipRadius
-            color: control._tipBackground
-            border.width: control._tipBorderWidth
-            border.color: control._tipBorderColor
-            
-            Column {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: actionRow.visible ? actionRow.top : parent.bottom
-                anchors.topMargin: Enums.spacing.l
-                anchors.leftMargin: Enums.spacing.l
-                anchors.rightMargin: control.closable ? 32 : Enums.spacing.l
-                anchors.bottomMargin: actionRow.visible ? Enums.spacing.s : Enums.spacing.l
-                spacing: Enums.spacing.xs
-                
-                Label {
-                    type: Enums.label.type_body_strong
-                    text: control.title
-                    visible: text !== ""
-                }
-                
-                Label {
-                    type: Enums.label.type_caption
-                    text: control.content
-                    color: Enums.textColor.secondary
-                    wrapMode: Text.Wrap
-                    width: parent.width
-                    visible: text !== ""
-                }
-            }
+    Loader {
+        id: popupWindowLoader
+        active: control._popupWindowRequested
+        asynchronous: false
 
-            // Create action controls only for tips that expose actions.
-            // 仅为带操作的提示创建操作控件。
-            Loader {
-                id: actionRow
+        sourceComponent: Component {
+            Window {
+                id: popupWindow
+                flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint
+                color: Enums.transparent
+                width: posHelper.viewWidth
+                height: posHelper.viewHeight
+                x: control._animX
+                y: control._animY
+                opacity: 0
 
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.rightMargin: Enums.spacing.l
-                anchors.bottomMargin: Enums.spacing.l
-                active: control._hasActions
-                visible: active
-                sourceComponent: Row {
-                    spacing: Enums.spacing.m
-
-                    Button {
-                        objectName: "tipSecondaryActionButton"
-                        text: control.secondaryButtonText
-                        visible: text !== ""
-                        onClicked: control._triggerSecondaryAction()
-                    }
-
-                    Button {
-                        objectName: "tipPrimaryActionButton"
-                        style: Enums.button.style_primary
-                        text: control.primaryButtonText
-                        visible: text !== ""
-                        onClicked: control._triggerPrimaryAction()
+                // Focus detection for click outside close 焦点检测实现点击外部关闭
+                onActiveFocusItemChanged: {
+                    if (!activeFocusItem && control._isOpen && control.modal) {
+                        Qt.callLater(function() {
+                            if (!popupWindow.activeFocusItem && control._isOpen) {
+                                control.close()
+                            }
+                        })
                     }
                 }
-            }
-            
-            CloseButton {
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.topMargin: Enums.spacing.xs
-                anchors.rightMargin: Enums.spacing.xs
-                visible: control.closable
-                onClicked: control.close()
+
+                Rectangle {
+                    id: contentRect
+                    anchors.fill: parent
+                    radius: control._tipRadius
+                    color: control._tipBackground
+                    border.width: control._tipBorderWidth
+                    border.color: control._tipBorderColor
+
+                    Column {
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: actionRow.visible ? actionRow.top : parent.bottom
+                        anchors.topMargin: Enums.spacing.l
+                        anchors.leftMargin: Enums.spacing.l
+                        anchors.rightMargin: control.closable ? 32 : Enums.spacing.l
+                        anchors.bottomMargin: actionRow.visible ? Enums.spacing.s : Enums.spacing.l
+                        spacing: Enums.spacing.xs
+
+                        Label {
+                            type: Enums.label.type_body_strong
+                            text: control.title
+                            visible: text !== ""
+                        }
+
+                        Label {
+                            type: Enums.label.type_caption
+                            text: control.content
+                            color: Enums.textColor.secondary
+                            wrapMode: Text.Wrap
+                            width: parent.width
+                            visible: text !== ""
+                        }
+                    }
+
+                    // Create action controls only for tips that expose actions.
+                    // 仅为带操作的提示创建操作控件。
+                    Loader {
+                        id: actionRow
+
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.rightMargin: Enums.spacing.l
+                        anchors.bottomMargin: Enums.spacing.l
+                        active: control._hasActions
+                        visible: active
+                        sourceComponent: Row {
+                            spacing: Enums.spacing.m
+
+                            Button {
+                                objectName: "tipSecondaryActionButton"
+                                text: control.secondaryButtonText
+                                visible: text !== ""
+                                onClicked: control._triggerSecondaryAction()
+                            }
+
+                            Button {
+                                objectName: "tipPrimaryActionButton"
+                                style: Enums.button.style_primary
+                                text: control.primaryButtonText
+                                visible: text !== ""
+                                onClicked: control._triggerPrimaryAction()
+                            }
+                        }
+                    }
+
+                    CloseButton {
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.topMargin: Enums.spacing.xs
+                        anchors.rightMargin: Enums.spacing.xs
+                        visible: control.closable
+                        onClicked: control.close()
+                    }
+                }
             }
         }
     }
     
-    // Create the arrow window only for TeachingTip; Flyout never renders it.
-    // 仅为 TeachingTip 创建箭头窗口；Flyout 永不渲染该窗口。
+    // Create the arrow window only after TeachingTip first use, then reuse it.
+    // 仅在 TeachingTip 首次使用后创建箭头窗口，随后复用。
     Loader {
         id: arrowWindowLoader
+        active: control._arrowWindowRequested
+        asynchronous: false
 
-        active: posHelper.isTeachingTip
-        sourceComponent: Window {
-            id: arrowWindow
+        sourceComponent: Component {
+            Window {
+                id: arrowWindow
 
-            function showAt(position) {
-                x = position.x
-                y = position.y
-                show()
-                raise()
-                requestArrowPaint()
-            }
+                function showAt(position) {
+                    x = position.x
+                    y = position.y
+                    show()
+                    raise()
+                    requestArrowPaint()
+                }
 
-            function requestArrowPaint() { arrowCanvas.requestPaint() }
+                function requestArrowPaint() { arrowCanvas.requestPaint() }
 
-            objectName: "tipArrowWindow"
-            flags: Qt.Tool | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint | Qt.WindowStaysOnTopHint
-            color: Enums.transparent
-            width: (posHelper.isLeft || posHelper.isRight) ? (posHelper.tailSize + 28) : 44
-            height: (posHelper.isTop || posHelper.isBottom) ? (posHelper.tailSize + 28) : 44
-            visible: false
-            opacity: 0
+                objectName: "tipArrowWindow"
+                flags: Qt.Tool | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint | Qt.WindowStaysOnTopHint
+                color: Enums.transparent
+                width: (posHelper.isLeft || posHelper.isRight) ? (posHelper.tailSize + 28) : 44
+                height: (posHelper.isTop || posHelper.isBottom) ? (posHelper.tailSize + 28) : 44
+                visible: false
+                opacity: 0
 
-            Component.onCompleted: {
-                arrowWindow.show()
-                arrowWindow.hide()
-            }
+                Item {
+                    id: arrowContainer
+                    anchors.centerIn: parent
+                    width: (posHelper.isLeft || posHelper.isRight) ? (posHelper.tailSize + 4) : 20
+                    height: (posHelper.isTop || posHelper.isBottom) ? (posHelper.tailSize + 4) : 20
 
-            Item {
-                id: arrowContainer
-                anchors.centerIn: parent
-                width: (posHelper.isLeft || posHelper.isRight) ? (posHelper.tailSize + 4) : 20
-                height: (posHelper.isTop || posHelper.isBottom) ? (posHelper.tailSize + 4) : 20
+                    Canvas {
+                        id: arrowCanvas
+                        anchors.fill: parent
 
-                Canvas {
-                    id: arrowCanvas
-                    anchors.fill: parent
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.reset()
+                            var bgColor = control._tipBackground
+                            var borderColor = control._tipBorderColor
+                            var w = width, h = height, inset = 2
 
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.reset()
-                        var bgColor = control._tipBackground
-                        var borderColor = control._tipBorderColor
-                        var w = width, h = height, inset = 2
+                            // Draw filled triangle 绘制填充三角形
+                            ctx.beginPath()
+                            if (posHelper.isBottom) {
+                                ctx.moveTo(inset, inset)
+                                ctx.lineTo(w/2, h - inset)
+                                ctx.lineTo(w - inset, inset)
+                            } else if (posHelper.isTop) {
+                                ctx.moveTo(inset, h - inset)
+                                ctx.lineTo(w/2, inset)
+                                ctx.lineTo(w - inset, h - inset)
+                            } else if (posHelper.isLeft) {
+                                ctx.moveTo(w - inset, inset)
+                                ctx.lineTo(inset, h/2)
+                                ctx.lineTo(w - inset, h - inset)
+                            } else if (posHelper.isRight) {
+                                ctx.moveTo(inset, inset)
+                                ctx.lineTo(w - inset, h/2)
+                                ctx.lineTo(inset, h - inset)
+                            }
+                            ctx.closePath()
+                            ctx.fillStyle = bgColor
+                            ctx.fill()
 
-                        // Draw filled triangle 绘制填充三角形
-                        ctx.beginPath()
-                        if (posHelper.isBottom) {
-                            ctx.moveTo(inset, inset)
-                            ctx.lineTo(w/2, h - inset)
-                            ctx.lineTo(w - inset, inset)
-                        } else if (posHelper.isTop) {
-                            ctx.moveTo(inset, h - inset)
-                            ctx.lineTo(w/2, inset)
-                            ctx.lineTo(w - inset, h - inset)
-                        } else if (posHelper.isLeft) {
-                            ctx.moveTo(w - inset, inset)
-                            ctx.lineTo(inset, h/2)
-                            ctx.lineTo(w - inset, h - inset)
-                        } else if (posHelper.isRight) {
-                            ctx.moveTo(inset, inset)
-                            ctx.lineTo(w - inset, h/2)
-                            ctx.lineTo(inset, h - inset)
+                            // Draw border on two sides only (not the edge touching main window) 只描两条斜边（不描贴着主窗口的那条边）
+                            ctx.beginPath()
+                            ctx.strokeStyle = borderColor
+                            ctx.lineWidth = Enums.border.thin
+                            if (posHelper.isBottom) {
+                                ctx.moveTo(inset, inset)
+                                ctx.lineTo(w/2, h - inset)
+                                ctx.lineTo(w - inset, inset)
+                            } else if (posHelper.isTop) {
+                                ctx.moveTo(inset, h - inset)
+                                ctx.lineTo(w/2, inset)
+                                ctx.lineTo(w - inset, h - inset)
+                            } else if (posHelper.isLeft) {
+                                ctx.moveTo(w - inset, inset)
+                                ctx.lineTo(inset, h/2)
+                                ctx.lineTo(w - inset, h - inset)
+                            } else if (posHelper.isRight) {
+                                ctx.moveTo(inset, inset)
+                                ctx.lineTo(w - inset, h/2)
+                                ctx.lineTo(inset, h - inset)
+                            }
+                            ctx.stroke()
                         }
-                        ctx.closePath()
-                        ctx.fillStyle = bgColor
-                        ctx.fill()
-
-                        // Draw border on two sides only (not the edge touching main window) 只描两条斜边（不描贴着主窗口的那条边）
-
-                        ctx.beginPath()
-                        ctx.strokeStyle = borderColor
-                        ctx.lineWidth = Enums.border.thin
-                        if (posHelper.isBottom) {
-                            ctx.moveTo(inset, inset)
-                            ctx.lineTo(w/2, h - inset)
-                            ctx.lineTo(w - inset, inset)
-                        } else if (posHelper.isTop) {
-                            ctx.moveTo(inset, h - inset)
-                            ctx.lineTo(w/2, inset)
-                            ctx.lineTo(w - inset, h - inset)
-                        } else if (posHelper.isLeft) {
-                            ctx.moveTo(w - inset, inset)
-                            ctx.lineTo(inset, h/2)
-                            ctx.lineTo(w - inset, h - inset)
-                        } else if (posHelper.isRight) {
-                            ctx.moveTo(inset, inset)
-                            ctx.lineTo(w - inset, h/2)
-                            ctx.lineTo(inset, h - inset)
-                        }
-                        ctx.stroke()
                     }
                 }
             }
@@ -342,17 +391,17 @@ Item {
     // Animations 动画
     ParallelAnimation {
         id: showAnim
-        NumberAnimation { id: opacityAnim; target: popupWindow; property: "opacity"; from: 0; to: 1; duration: Enums.duration.tipShow; easing.type: Easing.OutQuad }
+        NumberAnimation { id: opacityAnim; target: control._popupWindow; property: "opacity"; from: 0; to: 1; duration: Enums.duration.tipShow; easing.type: Easing.OutQuad }
         NumberAnimation { id: slideXAnim; target: control; property: "_animX"; duration: Enums.duration.tipShow; easing.type: Easing.OutQuad }
         NumberAnimation { id: slideYAnim; target: control; property: "_animY"; duration: Enums.duration.tipShow; easing.type: Easing.OutQuad }
-        NumberAnimation { id: arrowOpacityAnim; target: control._arrowWindow; property: "opacity"; from: 0; to: 1; duration: Enums.duration.tipArrow; easing.type: Easing.OutQuad }
+        NumberAnimation { id: arrowOpacityAnim; target: control._arrowWindow; property: "opacity"; from: 0; to: 1; duration: control._arrowWindow ? Enums.duration.tipArrow : Enums.duration.none; easing.type: Easing.OutQuad }
     }
     
     ParallelAnimation {
         id: hideAnim
         onFinished: control._doClose()
-        NumberAnimation { target: popupWindow; property: "opacity"; from: 1; to: 0; duration: Enums.duration.tipHide; easing.type: Easing.OutQuad }
-        NumberAnimation { target: control._arrowWindow; property: "opacity"; from: 1; to: 0; duration: Enums.duration.tipHide; easing.type: Easing.OutQuad }
+        NumberAnimation { target: control._popupWindow; property: "opacity"; from: 1; to: 0; duration: Enums.duration.tipHide; easing.type: Easing.OutQuad }
+        NumberAnimation { target: control._arrowWindow; property: "opacity"; from: 1; to: 0; duration: control._arrowWindow ? Enums.duration.tipHide : Enums.duration.none; easing.type: Easing.OutQuad }
     }
     
     Timer {
@@ -375,5 +424,20 @@ Item {
             if (control._arrowWindow) control._arrowWindow.requestArrowPaint()
         }
         target: Enums
+    }
+
+    Connections {
+        function onHoveredChanged() {
+            if (control.target && control.target.hovered) control.prewarm()
+        }
+        function onContainsMouseChanged() {
+            if (control.target && control.target.containsMouse) control.prewarm()
+        }
+        function onActiveFocusChanged() {
+            if (control.target && control.target.activeFocus) control.prewarm()
+        }
+
+        target: control.target
+        ignoreUnknownSignals: true
     }
 }

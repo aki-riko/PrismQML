@@ -109,7 +109,6 @@ def run_one(
     environment = os.environ.copy()
     environment.update(
         {
-            "PRISMQML_GRAPHICS_API": "direct3d11",
             "PYTHONPATH": str(repo),
             "QML_DISK_CACHE_PATH": str(cache),
             "QT_QPA_PLATFORM": "windows",

@@ -66,13 +66,17 @@ def _prepare_app_environment(allow_qml_file_read: bool) -> None:
     """Prepare process-wide Qt settings. 准备进程级 Qt 设置。"""
     from ..config import applyDpiScale
     from ..core import (
-        configure_graphics_api,
         configure_qml_environment,
         install_qt_message_handler,
     )
 
     configure_qml_environment(allow_qml_file_read)
-    configure_graphics_api()
+    if os.name == "nt":
+        from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
+
+        QQuickWindow.setGraphicsApi(
+            QSGRendererInterface.GraphicsApi.Direct3D11
+        )
     QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
