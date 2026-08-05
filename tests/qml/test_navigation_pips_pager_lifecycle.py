@@ -164,10 +164,10 @@ def _dispose_scene(engine, component, window) -> None:
     _pump()
 
 
-def test_navigation_pips_pager_direction_delegate_baseline(qapp):
-    """Lock both direction branches, clicks, and restored pixels before optimization.
+def test_navigation_pips_pager_loads_only_active_direction_delegates(qapp):
+    """Keep only active delegates while preserving clicks and restored pixels.
 
-    优化前固化双方向分支、点击与方向恢复像素。
+    仅保留当前方向委托，同时保持点击与方向恢复像素。
     """
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, pager, warnings = _create_scene()
@@ -179,7 +179,7 @@ def test_navigation_pips_pager_direction_delegate_baseline(qapp):
         assert row.isVisible()
         assert not column.isVisible()
         assert len(_pips(row)) == 5
-        assert len(_pips(column)) == 5
+        assert _pips(column) == []
         QTest.mouseMove(window, QPoint(10, 250))
         _pump(int(window.property("animationDuration")) + 50)
         horizontal_image = _stable_window_image(window)
@@ -196,8 +196,10 @@ def test_navigation_pips_pager_direction_delegate_baseline(qapp):
         pager.setProperty("currentIndex", 2)
         window.setProperty("dynamicOrientation", Qt.Orientation.Vertical)
         assert _wait_for(lambda: not row.isVisible() and column.isVisible())
-        assert len(_pips(row)) == 5
+        assert _pips(row) == []
         assert len(_pips(column)) == 5
+        assert column.width() > 0 and column.height() > 0
+        assert len({item.y() for item in _pips(column)}) == 5
 
         QTest.mouseClick(
             window,
@@ -211,6 +213,10 @@ def test_navigation_pips_pager_direction_delegate_baseline(qapp):
         pager.setProperty("currentIndex", 2)
         window.setProperty("dynamicOrientation", Qt.Orientation.Horizontal)
         assert _wait_for(lambda: row.isVisible() and not column.isVisible())
+        assert len(_pips(row)) == 5
+        assert _pips(column) == []
+        assert row.width() > 0 and row.height() > 0
+        assert len({item.x() for item in _pips(row)}) == 5
         QTest.mouseMove(window, QPoint(10, 250))
         _pump(int(window.property("animationDuration")) + 50)
         assert _stable_window_image(window) == horizontal_image

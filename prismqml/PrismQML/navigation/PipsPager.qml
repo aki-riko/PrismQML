@@ -31,6 +31,8 @@ Item {
     readonly property int _safeVisiblePipCount: Math.max(1, visiblePipCount)
     readonly property int _safeCurrentIndex: _safePageCount > 0
         ? Math.max(0, Math.min(currentIndex, _safePageCount - 1)) : 0
+    readonly property int _pipDelegateCount: Math.min(
+        _safePageCount, _safeVisiblePipCount)
 
     // ==================== Signals 信号 ====================
     signal pageClicked(int index)
@@ -80,7 +82,10 @@ Item {
         visible: control.isHorizontal
         
         Repeater {
-            model: Math.min(control._safePageCount, control._safeVisiblePipCount)
+            id: horizontalPipRepeater
+
+            model: control.isHorizontal ? control._pipDelegateCount : 0
+            onCountChanged: pipsRow.forceLayout()
             
             Rectangle {
                 width: index === control._safeCurrentIndex % control._safeVisiblePipCount ? 16 : 8
@@ -111,7 +116,10 @@ Item {
         visible: !control.isHorizontal
         
         Repeater {
-            model: Math.min(control._safePageCount, control._safeVisiblePipCount)
+            id: verticalPipRepeater
+
+            model: control.isHorizontal ? 0 : control._pipDelegateCount
+            onCountChanged: pipsColumn.forceLayout()
             
             Rectangle {
                 width: 8
