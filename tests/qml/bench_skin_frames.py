@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
-"""帧时间基准: 对比 Fluent vs neobrutalism 皮肤下控件密集页的渲染帧间隔。
+"""D3D11 帧时间基准: 对比 Fluent vs neobrutalism 皮肤下控件密集页的渲染帧间隔。
 
 做法: 实例化一批控件(模拟密集页), 连续触发重绘(改 hovered/滚动), 用 frameSwapped
 记录帧间隔, 统计 >20ms 卡帧数与平均帧时间。两皮肤各跑一轮对比。
@@ -101,13 +101,15 @@ def bench_skin(engine, skin, label, out):
     comp.setData(QML.encode("utf-8"), QUrl("inline"))
     win = comp.create(engine.rootContext())
     if win is None:
-        out.append(f"[{label}] create 失败: " + "; ".join(e.toString() for e in comp.errors()))
-        return
+        raise RuntimeError(
+            f"[{label}] create 失败: "
+            + "; ".join(error.toString() for error in comp.errors())
+        )
     _KEEP.append((comp, win))
 
     intervals = []
     last = [0.0]
-    state = {"phase": 0}
+    state = {"phase": 0, "backend_error": ""}
 
     def on_swap():
         now = time.perf_counter() * 1000
@@ -121,6 +123,15 @@ def bench_skin(engine, skin, label, out):
     loop_done = [False]
 
     def start_measure():
+        actual_api = win.rendererInterface().graphicsApi()
+        actual_api_name = getattr(actual_api, "name", str(actual_api))
+        if actual_api_name != "Direct3D11":
+            state["backend_error"] = (
+                f"[{label}] 只接受 Direct3D11，实际为 {actual_api_name}"
+            )
+            loop_done[0] = True
+            return
+        out.append(f"[{label}] 图形后端={actual_api_name}")
         intervals.clear()
         state["phase"] = 1
 
@@ -136,6 +147,9 @@ def bench_skin(engine, skin, label, out):
         time.sleep(0.001)
 
     win.frameSwapped.disconnect(on_swap)
+    if state["backend_error"]:
+        win.setProperty("visible", False)
+        raise RuntimeError(state["backend_error"])
     if intervals:
         avg = sum(intervals) / len(intervals)
         janky = sum(1 for i in intervals if i > 20)
@@ -149,14 +163,21 @@ def bench_skin(engine, skin, label, out):
 def main(argv=None):
     args = parse_args(argv)
     output_path = resolve_output_path(args.output)
-    QQuickWindow.setGraphicsApi(QSGRendererInterface.OpenGL)
+    QQuickWindow.setGraphicsApi(
+        QSGRendererInterface.GraphicsApi.Direct3D11
+    )
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
     register_types(engine)
 
     out = []
-    bench_skin(engine, Skin.FLUENT, "fluent", out)
-    bench_skin(engine, Skin.NEOBRUTALISM, "neo", out)
+    exit_code = 0
+    try:
+        bench_skin(engine, Skin.FLUENT, "fluent", out)
+        bench_skin(engine, Skin.NEOBRUTALISM, "neo", out)
+    except RuntimeError as error:
+        out.append(f"[ERROR] {error}")
+        exit_code = 5
 
     text = "\n".join(out)
     print(text)
@@ -165,7 +186,8 @@ def main(argv=None):
     print(f"结果文件: {output_path}")
     QTimer.singleShot(100, app.quit)
     app.exec()
+    return exit_code
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -1,8 +1,7 @@
 # coding: utf-8
-# Copyright 2026 aki-riko
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
-# 本文件是PrismQML的一部分，采用MIT许可证授权。
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """带实时 FPS 叠加层的 gallery 启动脚本.
 
 用法: python scripts/run_with_fps.py
@@ -15,16 +14,13 @@
 import os
 import sys
 
-# 让 examples/ 能 import resources
-GALLERY_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                           "examples")
-sys.path.insert(0, GALLERY_DIR)
-os.chdir(GALLERY_DIR)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
 
 
 def _inject_fps_overlay(engine):
     """QML 加载完成后, 找 windowInstance.contentItem 并注入 FpsOverlay."""
-    from PySide6.QtCore import QTimer, QUrl
+    from PySide6.QtCore import QCoreApplication, QTimer, QUrl
     from PySide6.QtQml import QQmlComponent
 
     overlay_qml = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -54,12 +50,20 @@ def _inject_fps_overlay(engine):
                 print("[fps-overlay] windowInstance 始终为 None, 放弃")
             return
 
-        # win 是 QQuickWindow, 取它的 contentItem 作为 overlay parent
-        try:
-            content_item = win.contentItem()
-        except Exception as e:
-            print(f"[fps-overlay] 取 contentItem 失败: {e}")
+        actual_api = win.rendererInterface().graphicsApi()
+        actual_api_name = getattr(actual_api, "name", str(actual_api))
+        if actual_api_name != "Direct3D11":
+            print(
+                "[fps-overlay] 只接受 Direct3D11，"
+                f"实际为 {actual_api_name}"
+            )
+            state["injected"] = True
+            QCoreApplication.exit(5)
             return
+        print(f"[fps-overlay] graphics backend = {actual_api_name}")
+
+        # win 是 QQuickWindow, 取它的 contentItem 作为 overlay parent
+        content_item = win.contentItem()
 
         comp = QQmlComponent(engine, QUrl.fromLocalFile(overlay_qml))
         if comp.isError():
@@ -86,84 +90,18 @@ def _inject_fps_overlay(engine):
 
 
 def main():
-    # 复用 gallery main 的全部初始化, 但需要在 engine.load 后插一个钩子
-    # 最简方式: 直接复制 main() 的代码并在 engine.load 后加一行 _inject_fps_overlay
-    import time as _t  # noqa
-    os.environ.setdefault("QT_LOGGING_RULES", "qt.text.font.db=false")
-    os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
-
-    # 项目根加入 sys.path (与 main.py 一致)
-    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, PROJECT_ROOT)
-
-    from prismqml.python.core import (ThemeManager, getShadowManager,
-                                       installDwmSyncFilter,
-                                       install_qt_message_handler)
-    from prismqml.python.config import getConfigManager, applyDpiScale
-    from prismqml.python.providers import (get_qrcode_generator,
-                                            get_qrcode_provider,
-                                            get_screen_eyedropper_manager,
-                                            get_clipboard_helper,
-                                            get_svg_provider)
-    from prismqml.python.window import get_mica_manager, get_acrylic_helper
-    from PySide6.QtWidgets import QApplication
-    from PySide6.QtGui import QGuiApplication
     from PySide6.QtQml import QQmlApplicationEngine
-    from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
-    from PySide6.QtCore import Qt, QUrl
 
-    from resources import GALLERY_RCC_PATH, register_gallery_resources
+    import examples.main as gallery
 
-    if not register_gallery_resources():
-        print(f"[ERROR] Gallery 资源注册失败: {GALLERY_RCC_PATH}")
-        return -1
+    class _FpsOverlayEngine(QQmlApplicationEngine):
+        def load(self, url) -> None:
+            super().load(url)
+            if self.rootObjects():
+                _inject_fps_overlay(self)
 
-    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    QQuickWindow.setGraphicsApi(QSGRendererInterface.OpenGL)
-    applyDpiScale()
-
-    app = QApplication(sys.argv)
-    installDwmSyncFilter()
-    install_qt_message_handler()
-
-    tm = ThemeManager(); sm = getShadowManager(); cm = getConfigManager()
-    mm = get_mica_manager(); ah = get_acrylic_helper()
-    scpm = get_screen_eyedropper_manager()
-
-    engine = QQmlApplicationEngine()
-    ctx = engine.rootContext()
-    ctx.setContextProperty("ThemeManager", tm)
-    ctx.setContextProperty("ShadowManager", sm)
-    ctx.setContextProperty("ConfigManager", cm)
-    ctx.setContextProperty("MicaManager", mm)
-    ctx.setContextProperty("AcrylicHelper", ah)
-    ctx.setContextProperty("QRCodeGenerator", get_qrcode_generator())
-    ctx.setContextProperty("ScreenEyedropperManager", scpm)
-    ctx.setContextProperty("ClipboardHelper", get_clipboard_helper())
-    from prismqml.python.core.window_helper import get_window_helper
-    ctx.setContextProperty("WindowHelper", get_window_helper())
-    engine.addImageProvider("qrcode", get_qrcode_provider())
-    engine.addImageProvider("acrylic", ah.imageProvider)
-    engine.addImageProvider("svg", get_svg_provider())
-
-    prismqml_root = os.path.join(PROJECT_ROOT, "prismqml")
-    engine.addImportPath(prismqml_root)
-    qml_dir = os.path.join(prismqml_root, "PrismQML")
-    for subdir in ["controls/buttons", "controls/inputs", "controls/data",
-                   "controls/containers", "controls/feedback", "controls/menus",
-                   "controls/dialogs", "controls/icons", "controls/utils",
-                   "navigation", "controls/navigation", "controls/settings"]:
-        engine.addImportPath(os.path.join(qml_dir, subdir))
-
-    qml_file = os.path.join(GALLERY_DIR, "main.qml")
-    engine.load(QUrl.fromLocalFile(qml_file))
-    if not engine.rootObjects():
-        print("[ERROR] QML 加载失败")
-        return -1
-
-    _inject_fps_overlay(engine)
-    return app.exec()
+    gallery.QQmlApplicationEngine = _FpsOverlayEngine
+    return int(gallery.main())
 
 
 if __name__ == "__main__":
