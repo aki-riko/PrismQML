@@ -10,11 +10,23 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CPP_HOST = ROOT / "cpp" / "src" / "App.cpp"
 PERFORMANCE_ENTRYPOINTS = (
     ROOT / "scripts" / "fps_probe.py",
     ROOT / "scripts" / "run_with_fps.py",
     ROOT / "tests" / "qml" / "bench_skin_frames.py",
 )
+
+
+def test_cpp_host_requests_direct3d11_as_its_only_graphics_backend():
+    source = CPP_HOST.read_text(encoding="utf-8")
+
+    assert "QSGRendererInterface::Direct3D11" in source
+    assert "QSGRendererInterface::OpenGL" not in source
+    windows_guard = source.index("#if defined(Q_OS_WIN)")
+    direct3d11_request = source.index("QSGRendererInterface::Direct3D11")
+    guard_end = source.index("#endif", direct3d11_request)
+    assert windows_guard < direct3d11_request < guard_end
 
 
 @pytest.mark.parametrize("entrypoint", PERFORMANCE_ENTRYPOINTS)

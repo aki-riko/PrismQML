@@ -65,9 +65,11 @@ App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRea
     // 固定 DPI 缩放配置 (必须在 QApplication 创建前; 镜像 Python applyDpiScale)
     applyDpiScaleBeforeApplication();
 
-    // 强制 OpenGL 后端, 规避部分 Windows 驱动 D3D11 device-lost 崩溃
-    // (镜像 Python main.py: QQuickWindow.setGraphicsApi(OpenGL))
-    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+#if defined(Q_OS_WIN)
+    // Use the only supported Windows graphics backend. 使用唯一受支持的 Windows 图形后端。
+    // Keep the C++ host aligned with the Python main entry. 与 Python 主入口保持一致。
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::Direct3D11);
+#endif
 
     m_app = std::make_unique<QApplication>(argc, argv);
     m_engine = std::make_unique<QQmlApplicationEngine>();
