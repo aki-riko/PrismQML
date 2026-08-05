@@ -401,10 +401,10 @@ def test_slider_vertical_and_range_drag_contracts(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_slider_tooltip_cold_state_and_first_hover_baseline(qapp):
-    """Lock tooltip counts, first-hover pixels, and reuse before optimization.
+def test_slider_tooltip_lazy_first_hover_and_reuse(qapp):
+    """Keep cold state lean while preserving first-hover pixels and reuse.
 
-    优化前固化提示对象数、首次悬停像素与复用行为。
+    保持冷态精简，同时保留首次悬停像素与复用行为。
     """
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, controls, warnings = _create_scene()
@@ -414,13 +414,14 @@ def test_slider_tooltip_cold_state_and_first_hover_baseline(qapp):
         _pump()
         cold_image = _stable_window_image(window)
 
-        assert len(_tooltip_instances(controls["horizontal"])) == 1
-        assert len(_tooltip_instances(controls["vertical"])) == 1
-        assert len(_tooltip_instances(controls["range"])) == 2
+        assert _tooltip_instances(controls["horizontal"]) == []
+        assert _tooltip_instances(controls["vertical"]) == []
+        assert _tooltip_instances(controls["range"]) == []
         assert _new_visible_windows(windows_before, window) == []
 
         handle = _default_handle(slider)
         QTest.mouseMove(window, _point_for(window, handle))
+        assert _wait_for(lambda: len(_tooltip_instances(slider)) == 1)
         tooltip = _tooltip_instances(slider)[0]
         assert _wait_for(lambda: bool(tooltip.property("_windowVisible")))
         tooltip_windows = [

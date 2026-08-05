@@ -222,14 +222,18 @@ Item {
                     Behavior on width { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
                 }
                 
-                // ToolTip (default shows on hover/press) 默认悬浮/按下时显示
-                TooltipCore {
-                    x: (parent.width - width) / 2
-                    y: -height - Enums.spacing.m
-                    text: control._tipText(control.value)
-                    visible: hovered || pressed
-                    // Reposition with handle.x during drag or programmatic changes 拖动或程序改值时跟随手柄重定位
-                    followAnchor: hovered || pressed
+                // Create the tooltip on first hover/press, then reuse it.
+                // 首次悬停/按下时创建提示，随后复用。
+                Loader {
+                    active: hovered || pressed || item !== null
+                    sourceComponent: TooltipCore {
+                        x: (parent.width - width) / 2
+                        y: -height - Enums.spacing.m
+                        text: control._tipText(control.value)
+                        visible: hovered || pressed
+                        // Reposition with handle.x during drag or programmatic changes 拖动或程序改值时跟随手柄重定位
+                        followAnchor: hovered || pressed
+                    }
                 }
 
                 // Avoid drag.target because it breaks the handle.x binding 避免使用会破坏 handle.x 绑定的 drag.target
@@ -338,13 +342,17 @@ Item {
                     Behavior on width { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
                 }
                 
-                TooltipCore {
-                    x: (parent.width - width) / 2
-                    y: -height - Enums.spacing.m
-                    text: control.displayValueFn ? control.displayValueFn(handleValue)
-                                                 : Math.round(handleValue).toString()
-                    visible: rangeHandleArea.containsMouse || rangeHandleArea.pressed
-                    followAnchor: rangeHandleArea.containsMouse || rangeHandleArea.pressed
+                Loader {
+                    active: rangeHandleArea.containsMouse || rangeHandleArea.pressed
+                            || item !== null
+                    sourceComponent: TooltipCore {
+                        x: (parent.width - width) / 2
+                        y: -height - Enums.spacing.m
+                        text: control.displayValueFn ? control.displayValueFn(handleValue)
+                                                     : Math.round(handleValue).toString()
+                        visible: rangeHandleArea.containsMouse || rangeHandleArea.pressed
+                        followAnchor: rangeHandleArea.containsMouse || rangeHandleArea.pressed
+                    }
                 }
                 
                 MouseArea {
