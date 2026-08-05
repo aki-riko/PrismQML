@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """SliderCore runtime contracts. SliderCore 运行时合同。"""
 
+from hashlib import sha256
 import math
 from pathlib import Path, PurePosixPath
 
@@ -12,13 +13,14 @@ from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QObject,
     QPoint,
     QPointF,
     QTimer,
     Qt,
     QUrl,
 )
-from PySide6.QtGui import QGuiApplication, QWheelEvent
+from PySide6.QtGui import QGuiApplication, QImage, QWheelEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -126,6 +128,37 @@ def _visual_descendants(root: QQuickItem) -> list[QQuickItem]:
         result.append(child)
         pending.extend(child.childItems())
     return result
+
+
+def _tooltip_instances(control: QQuickItem) -> list[QObject]:
+    return [
+        child
+        for child in control.findChildren(QObject)
+        if child.metaObject().indexOfProperty("_windowRequested") >= 0
+        and child.metaObject().indexOfProperty("tooltipWidth") >= 0
+    ]
+
+
+def _stable_window_image(window: QQuickWindow) -> QImage:
+    previous = QImage()
+    stable_frames = 0
+    for _ in range(40):
+        current = window.grabWindow()
+        assert not current.isNull()
+        if current == previous:
+            stable_frames += 1
+            if stable_frames == 3:
+                return current
+        else:
+            stable_frames = 0
+        previous = current
+        _pump()
+    raise AssertionError("Slider frame did not stabilize within 800 ms")
+
+
+def _image_hash(image: QImage) -> str:
+    rgba = image.convertToFormat(QImage.Format.Format_RGBA8888)
+    return sha256(bytes(rgba.constBits())).hexdigest()
 
 
 def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
@@ -363,6 +396,56 @@ def test_slider_vertical_and_range_drag_contracts(qapp):
         assert moved[-1] == (first_value, second_value)
         assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
         assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_slider_tooltip_cold_state_and_first_hover_baseline(qapp):
+    """Lock tooltip counts, first-hover pixels, and reuse before optimization.
+
+    优化前固化提示对象数、首次悬停像素与复用行为。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_scene()
+    slider = controls["horizontal"]
+    try:
+        QTest.mouseMove(window, QPoint(520, 310))
+        _pump()
+        cold_image = _stable_window_image(window)
+
+        assert len(_tooltip_instances(controls["horizontal"])) == 1
+        assert len(_tooltip_instances(controls["vertical"])) == 1
+        assert len(_tooltip_instances(controls["range"])) == 2
+        assert _new_visible_windows(windows_before, window) == []
+
+        handle = _default_handle(slider)
+        QTest.mouseMove(window, _point_for(window, handle))
+        tooltip = _tooltip_instances(slider)[0]
+        assert _wait_for(lambda: bool(tooltip.property("_windowVisible")))
+        tooltip_windows = [
+            child for child in tooltip.findChildren(QQuickWindow) if child.isVisible()
+        ]
+        assert len(tooltip_windows) == 1
+        first_tooltip_hash = _image_hash(_stable_window_image(tooltip_windows[0]))
+
+        QTest.mouseMove(window, QPoint(520, 310))
+        assert _wait_for(lambda: not bool(tooltip.property("_windowVisible")))
+        assert _stable_window_image(window) == cold_image
+
+        QTest.mouseMove(window, _point_for(window, handle))
+        assert _tooltip_instances(slider) == [tooltip]
+        assert _wait_for(lambda: bool(tooltip.property("_windowVisible")))
+        tooltip_windows = [
+            child for child in tooltip.findChildren(QQuickWindow) if child.isVisible()
+        ]
+        assert len(tooltip_windows) == 1
+        assert _image_hash(_stable_window_image(tooltip_windows[0])) == first_tooltip_hash
+
+        QTest.mouseMove(window, QPoint(520, 310))
+        assert _wait_for(lambda: not bool(tooltip.property("_windowVisible")))
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
