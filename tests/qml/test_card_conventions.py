@@ -16,7 +16,7 @@ from PySide6.QtCore import (
     QUrl,
     Qt,
 )
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QImage
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -58,6 +58,7 @@ Window {
     readonly property bool elevatedHovered: elevatedCard.hovered
     readonly property bool elevatedPressed: elevatedCard.pressed
     readonly property real cardElevate: Enums.spacing.cardElevate
+    readonly property int mediumDuration: Enums.duration.medium
     readonly property real defaultContentPadding: Enums.spacing.l
     readonly property real headerContentPadding: Enums.spacing.xxxl
 
@@ -195,6 +196,31 @@ def _descendants(item: QQuickItem):
         yield from _descendants(child)
 
 
+def _neo_shadows(item: QQuickItem) -> list[QQuickItem]:
+    return [
+        child
+        for child in _descendants(item)
+        if child.metaObject().className().startswith("NeoShadow_QMLTYPE_")
+    ]
+
+
+def _stable_window_image(window: QQuickWindow) -> QImage:
+    previous = QImage()
+    stable_frames = 0
+    for _ in range(40):
+        current = window.grabWindow()
+        assert not current.isNull()
+        if current == previous:
+            stable_frames += 1
+            if stable_frames == 3:
+                return current
+        else:
+            stable_frames = 0
+        previous = current
+        _pump()
+    raise AssertionError("Card frame did not stabilize within 1.2 seconds")
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -308,26 +334,76 @@ def test_example_card_creates_neo_shadow_only_for_neo_skin(card_scene):
     manager = ThemeManager()
     original_skin = manager.getSkin()
 
-    def neo_shadows():
-        return [
-            child
-            for child in _descendants(example_card)
-            if "NeoShadow" in child.metaObject().className()
-        ]
-
     try:
         manager.setSkin(Skin.FLUENT)
-        assert _wait_for(lambda: neo_shadows() == [])
+        assert _wait_for(lambda: _neo_shadows(example_card) == [])
 
         manager.setSkin(Skin.NEOBRUTALISM)
-        assert _wait_for(lambda: len(neo_shadows()) == 1)
+        assert _wait_for(lambda: len(_neo_shadows(example_card)) == 1)
 
         manager.setSkin(Skin.FLUENT)
-        assert _wait_for(lambda: neo_shadows() == [])
+        assert _wait_for(lambda: _neo_shadows(example_card) == [])
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
         manager.setSkin(original_skin)
+
+
+def test_card_neo_shadow_lifecycle_baseline(card_scene):
+    """Lock Card skin shadow counts and full-window pixels before lazy loading.
+
+    延迟加载前固化 Card 皮肤阴影对象数与整窗像素。
+    """
+    from prismqml.python.core.theme import Skin, ThemeManager
+
+    window, warnings, windows_before = card_scene
+    manager = ThemeManager()
+    original_skin = manager.getSkin()
+    cards = [
+        window.findChild(QQuickItem, name)
+        for name in (
+            "fixedCard",
+            "tallCard",
+            "shortCard",
+            "headerCard",
+            "noPaddingHeader",
+            "elevatedCard",
+        )
+    ]
+    assert all(cards)
+    try:
+        window.show()
+        assert _wait_for(window.isExposed)
+        QTest.mouseMove(window, QPoint(670, 550))
+
+        manager.setSkin(Skin.FLUENT)
+        _pump(int(window.property("mediumDuration")) + 50)
+        assert all(len(_neo_shadows(card)) == 1 for card in cards)
+        assert all(not _neo_shadows(card)[0].isVisible() for card in cards)
+        fluent_image = _stable_window_image(window)
+
+        manager.setSkin(Skin.NEOBRUTALISM)
+        _pump(int(window.property("mediumDuration")) + 50)
+        assert all(len(_neo_shadows(card)) == 1 for card in cards)
+        assert all(_neo_shadows(card)[0].isVisible() for card in cards)
+        neo_image = _stable_window_image(window)
+        assert neo_image != fluent_image
+
+        manager.setSkin(Skin.FLUENT)
+        _pump(int(window.property("mediumDuration")) + 50)
+        assert all(len(_neo_shadows(card)) == 1 for card in cards)
+        assert _stable_window_image(window) == fluent_image
+
+        manager.setSkin(Skin.NEOBRUTALISM)
+        _pump(int(window.property("mediumDuration")) + 50)
+        assert all(len(_neo_shadows(card)) == 1 for card in cards)
+        assert _stable_window_image(window) == neo_image
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        manager.setSkin(original_skin)
+        window.hide()
+        _pump()
 
 
 def test_example_card_creates_component_label_only_for_text(card_scene):
