@@ -217,6 +217,7 @@ def test_drawer_four_direction_geometry(drawer_scene):
     window, drawer, content_item, panel, warnings, windows_before = drawer_scene
     assert drawer.property("mode") == window.property("insideMode")
     assert window.property("insideMode") != window.property("outsideMode")
+    assert _drawer_window() is None
     cases = [
         (window.property("leftPosition"), (0, 0, 180, 400)),
         (window.property("rightPosition"), (420, 0, 180, 400)),
@@ -250,6 +251,31 @@ def test_drawer_first_inside_open_rebases_closed_edge_before_animation(
 
     assert reparent_drawer.parentItem() is window.contentItem()
     assert reparent_panel.x() > final_x
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_drawer_mode_switch_creates_and_releases_outside_window(drawer_scene):
+    window, drawer, content_item, panel, warnings, windows_before = drawer_scene
+    assert _drawer_window() is None
+    assert content_item.parentItem() is panel
+
+    drawer.setProperty("mode", window.property("outsideMode"))
+    outside_window = _drawer_window()
+    outside_panel = drawer.findChild(QQuickItem, "outsideDrawerPanel")
+    assert isinstance(outside_window, QQuickWindow)
+    assert isinstance(outside_panel, QQuickItem)
+    assert content_item.parentItem() is outside_panel
+
+    drawer.setProperty("mode", window.property("insideMode"))
+    assert _wait_for(lambda: _drawer_window() is None)
+    assert content_item.parentItem() is panel
+
+    drawer.setProperty("mode", window.property("outsideMode"))
+    assert isinstance(_drawer_window(), QQuickWindow)
+    assert content_item.parentItem() is drawer.findChild(
+        QQuickItem, "outsideDrawerPanel"
+    )
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
@@ -519,9 +545,10 @@ def test_drawer_outside_mode_closes_with_host_window(qapp):
     engine, component, window, drawer, _content_item, _panel, warnings = (
         _create_scene()
     )
-    drawer_window = _drawer_window()
     try:
         drawer.setProperty("mode", window.property("outsideMode"))
+        drawer_window = _drawer_window()
+        assert isinstance(drawer_window, QQuickWindow)
         assert QMetaObject.invokeMethod(drawer, "open")
         assert _wait_for(drawer_window.isVisible)
         window.close()

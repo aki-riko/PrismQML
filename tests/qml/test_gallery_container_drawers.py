@@ -84,6 +84,7 @@ def test_gallery_uses_one_outside_drawer_per_edge():
 
 
 def test_gallery_container_page_finishes_async_incubation(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
@@ -113,6 +114,13 @@ def test_gallery_container_page_finishes_async_incubation(qapp):
         assert len(
             root.findChildren(QObject, "galleryOutsideLeftDrawer")
         ) == 1
+        drawer_windows = [
+            candidate
+            for candidate in QGuiApplication.topLevelWindows()
+            if candidate.objectName() == "outsideDrawerWindow"
+            and not any(candidate is existing for existing in windows_before)
+        ]
+        assert len(drawer_windows) == 4
     finally:
         if root is not None:
             root.deleteLater()
@@ -122,6 +130,7 @@ def test_gallery_container_page_finishes_async_incubation(qapp):
         engine.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         QCoreApplication.processEvents()
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
 def test_gallery_can_animate_two_outside_drawers_together(qapp):

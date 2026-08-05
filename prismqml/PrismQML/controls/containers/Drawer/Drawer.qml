@@ -55,6 +55,8 @@ OverlayDialogCore {
     readonly property color _drawerBackground: Enums.cardColor
     readonly property int _drawerBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (0)
     readonly property color _drawerBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.transparent)
+    readonly property var _outsideDrawerWindow: outsideDrawerWindowLoader.item
+    readonly property var _outsideDrawerPanel: _outsideDrawerWindow ? _outsideDrawerWindow.panel : null
 
     // ==================== Public Methods 公开方法 ====================
     // Override open to use base class mechanism 重写open使用基类机制
@@ -171,11 +173,11 @@ OverlayDialogCore {
     // 为可见外侧窗口注册原生边缘跟随
     function _registerOutsideWindow() {
         if (!control._isOutside || !control._hostWindow
-                || !outsideDrawerWindow.visible
+                || !_outsideDrawerWindow || !_outsideDrawerWindow.visible
                 || typeof WindowHelper === "undefined" || !WindowHelper) return
         control._outsideFollowRegistered = WindowHelper.registerWindowFollower(
             control._hostWindow,
-            outsideDrawerWindow,
+            _outsideDrawerWindow,
             control.position,
             control._outsideFullExtent)
     }
@@ -183,9 +185,9 @@ OverlayDialogCore {
     // Remove the native follower before hiding or destruction
     // 在隐藏或销毁前移除原生跟随
     function _unregisterOutsideWindow() {
-        if (outsideDrawerWindow
+        if (_outsideDrawerWindow
                 && typeof WindowHelper !== "undefined" && WindowHelper) {
-            WindowHelper.unregisterWindowFollower(outsideDrawerWindow)
+            WindowHelper.unregisterWindowFollower(_outsideDrawerWindow)
         }
         control._outsideFollowRegistered = false
     }
@@ -194,11 +196,11 @@ OverlayDialogCore {
     // 通过一次原生几何调用同时提交位置与尺寸
     function _updateOutsideWindowGeometry() {
         if (!control._isOutside || !control._hostWindow
-                || !outsideDrawerWindow
+                || !_outsideDrawerWindow
                 || typeof WindowHelper === "undefined" || !WindowHelper) return false
         return WindowHelper.updateWindowFollowerGeometry(
             control._hostWindow,
-            outsideDrawerWindow,
+            _outsideDrawerWindow,
             control.position,
             control._outsideFullExtent)
     }
@@ -242,21 +244,21 @@ OverlayDialogCore {
     // Keep native antialiasing; QML still limits panel rounding to the outer corners
     // 保留原生抗锯齿,面板仍仅由 QML 设置远离宿主的两个外角
     function _applyOutsideNativeFrame() {
-        if (outsideDrawerWindow
+        if (_outsideDrawerWindow
                 && typeof MicaManager !== "undefined" && MicaManager) {
-            MicaManager.setWindowCorner(outsideDrawerWindow, true)
+            MicaManager.setWindowCorner(_outsideDrawerWindow, true)
         }
     }
 
     // Hide the full-size HWND shadow while only part of its content is revealed
     // 内容仅部分显露时隐藏完整尺寸 HWND 的阴影
     function _setOutsideNativeShadow(enabled) {
-        if (!outsideDrawerWindow
+        if (!_outsideDrawerWindow
                 || typeof ShadowManager === "undefined" || !ShadowManager) return
         if (enabled) {
-            ShadowManager.enableShadowForWindow(outsideDrawerWindow)
+            ShadowManager.enableShadowForWindow(_outsideDrawerWindow)
         } else {
-            ShadowManager.disableShadowForWindow(outsideDrawerWindow)
+            ShadowManager.disableShadowForWindow(_outsideDrawerWindow)
         }
     }
 
@@ -289,86 +291,87 @@ OverlayDialogCore {
 
     // ==================== Content 内容 ====================
     // Native host for the outside mode 外侧模式的原生承载窗口
-    Window {
-        id: outsideDrawerWindow
-        readonly property bool horizontal: control.isHorizontal
+    Loader {
+        id: outsideDrawerWindowLoader
+        active: control._isOutside
+        asynchronous: false
+        sourceComponent: Component {
+            Window {
+                id: outsideDrawerWindow
+                readonly property alias panel: outsideDrawerPanel
 
-        objectName: "outsideDrawerWindow"
-        x: 0
-        y: 0
-        width: control.drawerWidth
-        height: control.drawerHeight
-        visible: control._isOutside && control._outsideVisible
-            && control._hostWindow !== null
-        opacity: control._outsidePrepared ? 1 : 0
-        flags: Qt.Tool | Qt.FramelessWindowHint
-        color: Enums.transparent
-        transientParent: null
+                objectName: "outsideDrawerWindow"
+                x: 0
+                y: 0
+                width: control.drawerWidth
+                height: control.drawerHeight
+                visible: control._outsideVisible && control._hostWindow !== null
+                opacity: control._outsidePrepared ? 1 : 0
+                flags: Qt.Tool | Qt.FramelessWindowHint
+                color: Enums.transparent
+                transientParent: null
 
-        onVisibleChanged: {
-            if (visible) {
-                control._applyOutsideNativeFrame()
-                control._setOutsideNativeShadow(false)
-                Qt.callLater(control._beginOutsideReveal)
-            } else {
-                control._unregisterOutsideWindow()
-            }
-        }
-        onActiveChanged: {
-            if (active && control._outsidePrepared) {
-                control._scheduleOutsideHostSync()
-            }
-        }
-        onClosing: (close) => control._resetDrawerState()
-        Component.onDestruction: control._unregisterOutsideWindow()
+                onVisibleChanged: {
+                    if (visible) {
+                        control._applyOutsideNativeFrame()
+                        control._setOutsideNativeShadow(false)
+                        Qt.callLater(control._beginOutsideReveal)
+                    } else {
+                        control._unregisterOutsideWindow()
+                    }
+                }
+                onActiveChanged: {
+                    if (active && control._outsidePrepared) {
+                        control._scheduleOutsideHostSync()
+                    }
+                }
+                onClosing: (close) => control._resetDrawerState()
+                Component.onDestruction: control._unregisterOutsideWindow()
+                Item {
+                    id: outsideDrawerViewport
+                    objectName: "outsideDrawerViewport"
 
-        Item {
-            id: outsideDrawerViewport
-            objectName: "outsideDrawerViewport"
+                    x: control.position === Enums.position.left
+                        ? outsideDrawerWindow.width - width : 0
+                    y: control.position === Enums.position.top
+                        ? outsideDrawerWindow.height - height : 0
+                    width: control.isHorizontal
+                        ? Math.min(control._outsideExtent, outsideDrawerWindow.width)
+                        : outsideDrawerWindow.width
+                    height: control.isHorizontal
+                        ? outsideDrawerWindow.height
+                        : Math.min(control._outsideExtent, outsideDrawerWindow.height)
+                    clip: true
 
-            x: control.position === Enums.position.left
-                ? (outsideDrawerWindow ? outsideDrawerWindow.width : 0) - width
-                : 0
-            y: control.position === Enums.position.top
-                ? (outsideDrawerWindow ? outsideDrawerWindow.height : 0) - height
-                : 0
-            width: control.isHorizontal
-                ? Math.min(control._outsideExtent,
-                    outsideDrawerWindow ? outsideDrawerWindow.width : 0)
-                : (outsideDrawerWindow ? outsideDrawerWindow.width : 0)
-            height: control.isHorizontal
-                ? (outsideDrawerWindow ? outsideDrawerWindow.height : 0)
-                : Math.min(control._outsideExtent,
-                    outsideDrawerWindow ? outsideDrawerWindow.height : 0)
-            clip: true
+                    Rectangle {
+                        id: outsideDrawerPanel
+                        objectName: "outsideDrawerPanel"
 
-            Rectangle {
-                id: outsideDrawerPanel
-                objectName: "outsideDrawerPanel"
+                        width: outsideDrawerWindow.width
+                        height: outsideDrawerWindow.height
+                        x: -outsideDrawerViewport.x
+                        y: -outsideDrawerViewport.y
+                        color: control._drawerBackground
+                        radius: Enums.radius.none
+                        topLeftRadius: control.position === Enums.position.left
+                            || control.position === Enums.position.top
+                            ? control.radius : Enums.radius.none
+                        topRightRadius: control.position === Enums.position.right
+                            || control.position === Enums.position.top
+                            ? control.radius : Enums.radius.none
+                        bottomLeftRadius: control.position === Enums.position.left
+                            || control.position === Enums.position.bottom
+                            ? control.radius : Enums.radius.none
+                        bottomRightRadius: control.position === Enums.position.right
+                            || control.position === Enums.position.bottom
+                            ? control.radius : Enums.radius.none
+                        border.width: control._drawerBorderWidth
+                        border.color: control._drawerBorderColor
 
-                width: outsideDrawerWindow ? outsideDrawerWindow.width : 0
-                height: outsideDrawerWindow ? outsideDrawerWindow.height : 0
-                x: outsideDrawerViewport ? -outsideDrawerViewport.x : 0
-                y: outsideDrawerViewport ? -outsideDrawerViewport.y : 0
-                color: control._drawerBackground
-                radius: Enums.radius.none
-                topLeftRadius: control.position === Enums.position.left
-                    || control.position === Enums.position.top
-                    ? control.radius : Enums.radius.none
-                topRightRadius: control.position === Enums.position.right
-                    || control.position === Enums.position.top
-                    ? control.radius : Enums.radius.none
-                bottomLeftRadius: control.position === Enums.position.left
-                    || control.position === Enums.position.bottom
-                    ? control.radius : Enums.radius.none
-                bottomRightRadius: control.position === Enums.position.right
-                    || control.position === Enums.position.bottom
-                    ? control.radius : Enums.radius.none
-                border.width: control._drawerBorderWidth
-                border.color: control._drawerBorderColor
-
-                MouseArea {
-                    anchors.fill: parent
+                        MouseArea {
+                            anchors.fill: parent
+                        }
+                    }
                 }
             }
         }
@@ -458,7 +461,7 @@ OverlayDialogCore {
         id: contentItem
         objectName: "contentItem"  // For Python findChild 供Python查找
 
-        parent: control._isOutside ? outsideDrawerPanel : drawer
+        parent: control._isOutside ? control._outsideDrawerPanel : drawer
         anchors.fill: parent
         anchors.margins: Enums.spacing.xl
 
