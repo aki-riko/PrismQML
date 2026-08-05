@@ -68,6 +68,8 @@ Window {
 
     function openPopup() { popup.openAtControl(anchor) }
     function showTip() { tip.show() }
+    function useFlyout() { tip.tipType = Enums.tip.type_flyout }
+    function useTeachingTip() { tip.tipType = Enums.tip.type_teaching_tip }
 
     width: 420
     height: 280
@@ -322,15 +324,15 @@ def test_tip_popup_follows_target_and_closes_out_of_view_without_polling(
     anchor = items["anchor"]
     flickable = items["flickable"]
     tip = items["tip"]
-    tip_windows = tip.findChildren(QWindow)
-    assert len(tip_windows) == 2
-    popup_window = next(
-        candidate
-        for candidate in tip_windows
-        if candidate.width() == 220 and candidate.height() == 90
-    )
+    assert tip.findChildren(QWindow) == []
 
     assert QMetaObject.invokeMethod(window, "showTip")
+    assert _wait_for(lambda: tip.property("_isOpen"))
+    tip_windows = tip.findChildren(QWindow)
+    assert len(tip_windows) == 1
+    popup_window = tip_windows[0]
+    assert popup_window.width() == 220
+    assert popup_window.height() == 90
     assert _wait_for(lambda: tip.property("_isOpen") and popup_window.isVisible())
     _pump(250)
     assert _repeat_timers(tip) == []
@@ -355,6 +357,49 @@ def test_tip_popup_follows_target_and_closes_out_of_view_without_polling(
     assert _wait_for(lambda: not popup_window.isVisible())
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_tip_popup_prewarm_creates_hidden_reusable_window(popup_scene):
+    window, items, warnings, _windows_before = popup_scene
+    tip = items["tip"]
+    assert tip.findChildren(QWindow) == []
+
+    assert QMetaObject.invokeMethod(tip, "prewarm")
+    tip_windows = tip.findChildren(QWindow)
+    assert len(tip_windows) == 1
+    assert tip.property("_prewarmed")
+    assert not tip_windows[0].isVisible()
+    assert not tip.property("_isOpen")
+
+    assert QMetaObject.invokeMethod(window, "showTip")
+    assert _wait_for(lambda: tip.property("_isOpen") and tip_windows[0].isVisible())
+    assert tip.findChildren(QWindow) == tip_windows
+    assert warnings == []
+
+
+def test_tip_popup_reuses_arrow_window_across_runtime_type_changes(popup_scene):
+    window, items, warnings, _windows_before = popup_scene
+    tip = items["tip"]
+
+    assert QMetaObject.invokeMethod(tip, "prewarm")
+    flyout_windows = tip.findChildren(QWindow)
+    assert len(flyout_windows) == 1
+
+    assert QMetaObject.invokeMethod(window, "useTeachingTip")
+    assert QMetaObject.invokeMethod(tip, "prewarm")
+    teaching_windows = tip.findChildren(QWindow)
+    assert len(teaching_windows) == 2
+    assert flyout_windows[0] in teaching_windows
+    assert not any(candidate.isVisible() for candidate in teaching_windows)
+
+    assert QMetaObject.invokeMethod(window, "useFlyout")
+    assert QMetaObject.invokeMethod(window, "showTip")
+    assert _wait_for(lambda: tip.property("_isOpen"))
+    assert tip.findChildren(QWindow) == teaching_windows
+    assert sum(candidate.isVisible() for candidate in teaching_windows) == 1
+    assert QMetaObject.invokeMethod(tip, "close")
+    assert _wait_for(lambda: not any(candidate.isVisible() for candidate in teaching_windows))
+    assert warnings == []
 
 
 def test_popup_tracking_source_is_event_driven():

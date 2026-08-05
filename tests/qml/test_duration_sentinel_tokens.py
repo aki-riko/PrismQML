@@ -110,8 +110,7 @@ def test_duration_sentinels_preserve_runtime_behavior(qapp):
         assert breadcrumb.property("currentKey") == "leaf"
         assert tip_popup.property("duration") == root.property("durationPersistent")
         windows = tip_popup.findChildren(QWindow)
-        assert len(windows) == 2
-        assert not any(window.isVisible() for window in windows)
+        assert windows == []
     finally:
         root.deleteLater()
         del component
