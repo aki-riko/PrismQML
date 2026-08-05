@@ -87,7 +87,7 @@ def _run(args: argparse.Namespace) -> int:
     os.chdir(repo)
 
     from PySide6.QtCore import QCoreApplication, QObject, QTimer
-    from PySide6.QtGui import QImage
+    from PySide6.QtGui import QGuiApplication, QImage
     from PySide6.QtQml import QQmlApplicationEngine
     from PySide6.QtQuick import QQuickItem
 
@@ -351,6 +351,56 @@ def _run(args: argparse.Namespace) -> int:
                 return
 
             if now - process_start > args.timeout:
+                if window is not None:
+                    application_state = QGuiApplication.applicationState()
+                    output["application_state"] = getattr(
+                        application_state,
+                        "name",
+                        str(_enum_value(application_state)),
+                    )
+                    output["window_visible"] = bool(window.isVisible())
+                    output["window_exposed"] = bool(window.isExposed())
+                    output["window_active"] = bool(window.isActive())
+                    output["window_opacity"] = float(window.opacity())
+                    output["dwm_initialization_done"] = bool(
+                        window.property("_dwmInitializationDone")
+                    )
+                    output["native_hook_ready"] = bool(
+                        window.property("_nativeHookReady")
+                    )
+                    output["show_animation_started"] = bool(
+                        window.property("_showAnimationStarted")
+                    )
+                    output["show_animation_start_count"] = int(
+                        window.property("_showAnimationStartCount") or 0
+                    )
+                    if args.profile_objects:
+                        visual_items = self._visual_items(window)
+                        class_counts = Counter(
+                            self._qml_class_name(item) for item in visual_items
+                        )
+                        output["timeout_visual_item_count"] = len(visual_items)
+                        output["timeout_visual_item_class_counts"] = dict(
+                            class_counts.most_common()
+                        )
+                        timer_states = []
+                        for child in window.findChildren(QObject):
+                            meta = child.metaObject()
+                            if (
+                                meta.indexOfProperty("interval") < 0
+                                or meta.indexOfProperty("running") < 0
+                            ):
+                                continue
+                            timer_states.append(
+                                {
+                                    "class": self._qml_class_name(child),
+                                    "object_name": child.objectName(),
+                                    "interval": int(child.property("interval") or 0),
+                                    "running": bool(child.property("running")),
+                                    "repeat": bool(child.property("repeat")),
+                                }
+                            )
+                        output["timeout_timer_states"] = timer_states
                 output.update(
                     {
                         "error": "timeout",
