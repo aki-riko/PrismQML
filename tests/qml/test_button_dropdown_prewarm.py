@@ -28,6 +28,7 @@ from _button_dropdown_prewarm_support import (
     _popup_panel_global_position,
     _popup_surface,
     _popup_window,
+    _popup_windows,
     _pump,
     _qt_popup_windows,
     _tooltip,
@@ -59,6 +60,14 @@ def _use_qt_popup_window(popup):
     popup.setProperty("useQtPopupWindow", True)
     assert not popup.property("useInWindowPopup")
     assert popup.property("useQtPopupWindow")
+
+
+def _use_native_popup_window(popup):
+    """Use the engine-managed native surface. 使用引擎自管原生窗口。"""
+    popup.setProperty("useInWindowPopup", False)
+    popup.setProperty("useQtPopupWindow", False)
+    assert not popup.property("useInWindowPopup")
+    assert not popup.property("useQtPopupWindow")
 
 
 def test_dropdown_defaults_to_qt_popup_window(dropdown_scene):
@@ -137,6 +146,7 @@ def test_dropdown_and_split_hover_prepare_hidden_menu_surface(
     button = _button(root, object_name)
     popup = _dropdown_popup(_button_dropdown(button))
     assert not popup.property("_prewarmed")
+    assert _popup_windows(popup) == []
 
     _move_to(window, button, split_arrow)
 
@@ -149,15 +159,45 @@ def test_dropdown_and_split_hover_prepare_hidden_menu_surface(
     qt_popup_windows = _qt_popup_windows(window)
     assert len(qt_popup_windows) == 1
     assert not qt_popup_windows[0].isVisible()
-    assert _popup_window(popup) not in _new_visible_windows(windows_before, window)
+    assert _popup_windows(popup) == []
+    assert _popup_windows(popup) == []
+    assert warnings == []
+
+
+@pytest.mark.parametrize(
+    ("object_name", "split_arrow"),
+    [("dropdownButton", False), ("splitButton", True)],
+)
+def test_native_dropdown_hover_prewarms_and_click_reuses_window(
+    dropdown_scene, object_name, split_arrow
+):
+    root, window, warnings, _windows_before = dropdown_scene
+    button = _button(root, object_name)
+    popup = _dropdown_popup(_button_dropdown(button))
+    _use_native_popup_window(popup)
+    assert _popup_windows(popup) == []
+
+    _move_to(window, button, split_arrow)
+
+    assert _wait_for(lambda: popup.property("_prewarmed"))
+    popup_window = _popup_window(popup)
+    assert not popup_window.isVisible()
+    assert not popup.property("isOpen")
+
+    _click(window, button, split_arrow)
+
+    assert _wait_for(lambda: popup.property("isOpen") and popup_window.isVisible())
+    assert _popup_windows(popup) == [popup_window]
     assert warnings == []
 
 
 def test_split_main_action_hover_does_not_prewarm_menu(dropdown_scene):
-    root, window, warnings, windows_before = dropdown_scene
+    root, window, warnings, _windows_before = dropdown_scene
     button = _button(root, "splitButton")
     popup = _dropdown_popup(_button_dropdown(button))
     tooltip = _tooltip(button)
+    _use_native_popup_window(popup)
+    assert _popup_windows(popup) == []
 
     _move_to(window, button)
     _pump(120)
@@ -166,7 +206,7 @@ def test_split_main_action_hover_does_not_prewarm_menu(dropdown_scene):
     assert not popup.property("_prewarmScheduled")
     assert not _popup_is_visible(popup)
     assert tooltip.property("visible")
-    assert _popup_window(popup) not in _new_visible_windows(windows_before, window)
+    assert _popup_windows(popup) == []
     assert warnings == []
 
 

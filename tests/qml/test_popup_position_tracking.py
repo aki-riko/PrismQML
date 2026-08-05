@@ -278,11 +278,13 @@ def test_popup_window_follows_target_and_scroll_without_polling(popup_scene):
     anchor = items["anchor"]
     flickable = items["flickable"]
     popup = items["popup"]
+    assert popup.findChildren(QWindow) == []
+
+    assert QMetaObject.invokeMethod(window, "openPopup")
     popup_windows = popup.findChildren(QWindow)
     assert len(popup_windows) == 1
     popup_window = popup_windows[0]
 
-    assert QMetaObject.invokeMethod(window, "openPopup")
     assert _wait_for(lambda: popup.property("isOpen") and popup_window.isVisible())
     assert _repeat_timers(popup) == []
 

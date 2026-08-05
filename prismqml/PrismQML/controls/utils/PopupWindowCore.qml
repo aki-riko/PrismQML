@@ -57,6 +57,7 @@ Item {
     property bool _prewarmingQtPopup: false
     property Item _prewarmFocusItem: null
     property bool _ownerReleaseInProgress: false
+    property bool _nativeWindowRequested: false
     // Internal: animated clip height for drop-down effect 内部：下拉展开动画的裁剪高度
     property real _clipHeight: 0
     // [Anim C] Spring scale for iOS-style bounce 弹簧缩放
@@ -65,17 +66,13 @@ Item {
     readonly property var _targetWindow: targetControl ? targetControl.Window.window : null
     readonly property Item _inlineParent: _targetWindow ? _targetWindow.contentItem : null
     readonly property bool _usesControlsPopup: useInWindowPopup || useQtPopupWindow
+    readonly property var _popupWindow: popupWindowLoader.item
     readonly property int _outerWidth: Math.max(
-        Enums.popupMetrics.minWidth,
-        popupWidth + Enums.popupMetrics.windowPadding
-    )
+        Enums.popupMetrics.minWidth, popupWidth + Enums.popupMetrics.windowPadding)
     readonly property int _outerHeight: Math.max(
-        Enums.popupMetrics.minHeight,
-        popupHeight + Enums.popupMetrics.windowPadding
-    )
+        Enums.popupMetrics.minHeight, popupHeight + Enums.popupMetrics.windowPadding)
     readonly property bool _surfaceVisible: _usesControlsPopup
-        ? (inlinePopup ? inlinePopup.visible : false)
-        : (popupWindow ? popupWindow.visible : false)
+        ? (inlinePopup ? inlinePopup.visible : false) : (_popupWindow ? _popupWindow.visible : false)
 
     // Popup content 弹出内容
     default property alias popupContent: popupSurface.popupContent
@@ -195,8 +192,18 @@ Item {
             _prewarmed = true
             return
         }
+        if (!useQtPopupWindow && !_ensureNativeWindow()) return
         _prewarmScheduled = true
         prewarmTimer.start()
+    }
+    function _ensureNativeWindow() {
+        if (_usesControlsPopup) return null
+        _nativeWindowRequested = true
+        if (!_popupWindow) {
+            console.warn("PopupWindowCore failed to create the native popup window")
+            return null
+        }
+        return _popupWindow
     }
     function _finishQtPopupPrewarm() {
         var ownerWindow = control.Window.window
@@ -237,18 +244,23 @@ Item {
         }
         // A real open may win the race before this queued callback runs.
         // 真正打开可能先于排队预热执行，此时绝不能再 show+hide 把菜单藏掉。
-        if (!_prewarmScheduled || _prewarmed || isOpen || popupWindow.visible) {
-            if (popupWindow.visible) _prewarmed = true
+        var nativeWindow = _ensureNativeWindow()
+        if (!nativeWindow) {
             _prewarmScheduled = false
             return
         }
-        var savedX = popupWindow.x, savedY = popupWindow.y
-        popupWindow.x = -32000
-        popupWindow.y = -32000
-        popupWindow.show()
-        popupWindow.hide()
-        popupWindow.x = savedX
-        popupWindow.y = savedY
+        if (!_prewarmScheduled || _prewarmed || isOpen || nativeWindow.visible) {
+            if (nativeWindow.visible) _prewarmed = true
+            _prewarmScheduled = false
+            return
+        }
+        var savedX = nativeWindow.x, savedY = nativeWindow.y
+        nativeWindow.x = -32000
+        nativeWindow.y = -32000
+        nativeWindow.show()
+        nativeWindow.hide()
+        nativeWindow.x = savedX
+        nativeWindow.y = savedY
         _prewarmed = true
         _prewarmScheduled = false
     }
@@ -305,28 +317,30 @@ Item {
             return
         }
 
-        popupWindow.width = _outerWidth
-        popupWindow.height = _outerHeight
+        var nativeWindow = _ensureNativeWindow()
+        if (!nativeWindow) return
+        nativeWindow.width = _outerWidth
+        nativeWindow.height = _outerHeight
 
         var bounds = _screenBoundsAt(posX, posY, targetControl)
         if (bounds) {
-            posX = Math.max(bounds.left, Math.min(posX, bounds.right - popupWindow.width))
-            posY = Math.max(bounds.top, Math.min(posY, bounds.bottom - popupWindow.height))
+            posX = Math.max(bounds.left, Math.min(posX, bounds.right - nativeWindow.width))
+            posY = Math.max(bounds.top, Math.min(posY, bounds.bottom - nativeWindow.height))
         }
 
-        popupWindow.x = posX
-        popupWindow.y = posY
+        nativeWindow.x = posX
+        nativeWindow.y = posY
 
         // Show window first, then trigger animation 先显示窗口，再触发动画
-        popupWindow.show()
+        nativeWindow.show()
         _prewarmed = true
         _prewarmScheduled = false
         _prewarmingQtPopup = false
         _prewarmFocusItem = null
         prewarmTimer.stop()
-        popupWindow.raise()
+        nativeWindow.raise()
         if (control.stealFocus) {
-            popupWindow.requestActivate()
+            nativeWindow.requestActivate()
         }
 
         // Delay to trigger animation after window is visible 延迟触发动画
@@ -352,21 +366,23 @@ Item {
         
         if (isClosing) return
         aboutToShow()
+        var nativeWindow = _ensureNativeWindow()
+        if (!nativeWindow) return
         
         var pos = _calcPickerPosition(targetCtrl, rowHeight)
         
-        popupWindow.width = Math.max(Enums.popupMetrics.minWidth, popupWidth + Enums.popupMetrics.windowPadding)
-        popupWindow.height = Math.max(Enums.popupMetrics.minHeight, popupHeight + Enums.popupMetrics.windowPadding)
+        nativeWindow.width = Math.max(Enums.popupMetrics.minWidth, popupWidth + Enums.popupMetrics.windowPadding)
+        nativeWindow.height = Math.max(Enums.popupMetrics.minHeight, popupHeight + Enums.popupMetrics.windowPadding)
         
-        popupWindow.x = pos.x
-        popupWindow.y = pos.y
+        nativeWindow.x = pos.x
+        nativeWindow.y = pos.y
         
-        popupWindow.show()
+        nativeWindow.show()
         _prewarmed = true
         _prewarmScheduled = false
         prewarmTimer.stop()
-        popupWindow.raise()
-        popupWindow.requestActivate()
+        nativeWindow.raise()
+        nativeWindow.requestActivate()
         showAnimTimer.start()
     }
     
@@ -386,8 +402,8 @@ Item {
         // Screen boundary check 屏幕边界检查
         var screen = Screen
         if (screen) {
-            posX = Math.max(0, Math.min(posX, screen.width - popupWindow.width))
-            posY = Math.max(0, Math.min(posY, screen.height - popupWindow.height))
+            posX = Math.max(0, Math.min(posX, screen.width - _outerWidth))
+            posY = Math.max(0, Math.min(posY, screen.height - _outerHeight))
         }
         return Qt.point(posX, posY)
     }
@@ -468,7 +484,7 @@ Item {
         _submenuPlacement = false
         popupSurface.opacity = 0
         if (_usesControlsPopup) inlinePopup.close()
-        else popupWindow.hide()
+        else if (_popupWindow) _popupWindow.hide()
     }
     
     function toggle() {
@@ -495,9 +511,9 @@ Item {
             var localPos = _calcControlsPopupPosition(newX, newY)
             inlinePopup.x = localPos.x
             inlinePopup.y = localPos.y
-        } else {
-            popupWindow.x = newX
-            popupWindow.y = newY
+        } else if (_popupWindow) {
+            _popupWindow.x = newX
+            _popupWindow.y = newY
         }
     }
     
@@ -566,7 +582,7 @@ Item {
         ScriptAction {
             script: {
                 if (control._usesControlsPopup) inlinePopup.close()
-                else popupWindow.hide()
+                else if (control._popupWindow) control._popupWindow.hide()
                 control.isClosing = false
                 control._clipHeight = 0  // [Anim C] reset for next show
             }
@@ -646,25 +662,16 @@ Item {
         ignoreUnknownSignals: true
     }
     
-    Window {
-        id: popupWindow
-        width: control._outerWidth
-        height: control._outerHeight
-        visible: false
-        flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
-        color: Enums.transparent
-        
-        // Auto close on focus lost 失焦自动关闭
-        onActiveFocusItemChanged: {
-            if (!activeFocusItem && control.isOpen && control.closeOnClickOutside) {
-                Qt.callLater(function() {
-                    if (!popupWindow.activeFocusItem && control.isOpen) {
-                        control.close()
-                    }
-                })
+    Loader {
+        id: popupWindowLoader
+        active: control._nativeWindowRequested && !control._usesControlsPopup
+        asynchronous: false
+
+        sourceComponent: Component {
+            PopupNativeWindow {
+                popupControl: control
             }
         }
-        
     }
 
     PopupSurface {
@@ -672,7 +679,7 @@ Item {
 
         parent: control._usesControlsPopup
             ? inlinePopupContent
-            : (popupWindow ? popupWindow.contentItem : null)
+            : (control._popupWindow ? control._popupWindow.contentItem : null)
         outerWidth: control._outerWidth
         outerHeight: control._outerHeight
         popupWidth: control.popupWidth

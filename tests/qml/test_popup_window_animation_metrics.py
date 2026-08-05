@@ -158,9 +158,7 @@ def test_popup_window_animation_metrics_preserve_runtime_values(qapp):
         } == expected
         assert popup.property("isOpen") is False
         assert popup.property("isClosing") is False
-        windows = popup.findChildren(QWindow)
-        assert len(windows) == 1
-        assert not windows[0].isVisible()
+        assert popup.findChildren(QWindow) == []
     finally:
         root.deleteLater()
         del component
