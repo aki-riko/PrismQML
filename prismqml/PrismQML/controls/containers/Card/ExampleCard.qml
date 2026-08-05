@@ -26,8 +26,8 @@ Item {
  implicitHeight: mainColumn.implicitHeight
  width: parent ? parent.width : implicitWidth
 
- // 视口裁剪: 视口外不渲染内部 (ShadowedRectangle + 所有内容), 但保持占位高度不变.
- // Qt 场景图不做 CPU 侧裁剪, 手动 visible=false 是官方推荐做法.
+ // Keep layout active while transparent culling skips offscreen drawing.
+ // 保持布局参与尺寸计算，同时用透明度裁剪跳过屏外绘制。
  ViewportCulling { id: _vpc }
 
  Column {
@@ -35,7 +35,7 @@ Item {
  x: 0 // 确保列左对齐
  width: parent.width
  spacing: Enums.spacing.l
- visible: _vpc.inViewport
+ opacity: _vpc.inViewport ? 1 : 0
  
  // Title 标题
  Label {
