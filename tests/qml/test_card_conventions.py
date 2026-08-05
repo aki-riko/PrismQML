@@ -349,10 +349,10 @@ def test_example_card_creates_neo_shadow_only_for_neo_skin(card_scene):
         manager.setSkin(original_skin)
 
 
-def test_card_neo_shadow_lifecycle_baseline(card_scene):
-    """Lock Card skin shadow counts and full-window pixels before lazy loading.
+def test_card_loads_neo_shadow_only_for_neo_skin(card_scene):
+    """Keep Card shadows lazy while preserving full-window skin pixels.
 
-    延迟加载前固化 Card 皮肤阴影对象数与整窗像素。
+    保持 Card 阴影延迟加载，同时保留整窗皮肤像素。
     """
     from prismqml.python.core.theme import Skin, ThemeManager
 
@@ -378,8 +378,7 @@ def test_card_neo_shadow_lifecycle_baseline(card_scene):
 
         manager.setSkin(Skin.FLUENT)
         _pump(int(window.property("mediumDuration")) + 50)
-        assert all(len(_neo_shadows(card)) == 1 for card in cards)
-        assert all(not _neo_shadows(card)[0].isVisible() for card in cards)
+        assert all(_neo_shadows(card) == [] for card in cards)
         fluent_image = _stable_window_image(window)
 
         manager.setSkin(Skin.NEOBRUTALISM)
@@ -391,7 +390,7 @@ def test_card_neo_shadow_lifecycle_baseline(card_scene):
 
         manager.setSkin(Skin.FLUENT)
         _pump(int(window.property("mediumDuration")) + 50)
-        assert all(len(_neo_shadows(card)) == 1 for card in cards)
+        assert all(_neo_shadows(card) == [] for card in cards)
         assert _stable_window_image(window) == fluent_image
 
         manager.setSkin(Skin.NEOBRUTALISM)

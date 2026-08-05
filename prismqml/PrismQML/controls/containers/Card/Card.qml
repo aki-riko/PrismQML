@@ -84,12 +84,15 @@ Widget {
  }
 
  // Neobrutalism 硬阴影: 复用 NeoShadow 组件。elevated 卡 hover 时偏移翻倍(阴影加大)。
- NeoShadow {
- target: card
- visible: Enums.isNeobrutalism
- offset: (isElevated && hovered && !pressed) ? Enums.neo.shadowOffset * 1.5 : Enums.neo.shadowOffset
+ Loader {
+ active: Enums.isNeobrutalism
  z: card.z - 1
+
+ sourceComponent: NeoShadow {
+ target: card
+ offset: (isElevated && hovered && !pressed) ? Enums.neo.shadowOffset * 1.5 : Enums.neo.shadowOffset
  Behavior on offset { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
+ }
  }
  
  // Card surface 卡片表面
