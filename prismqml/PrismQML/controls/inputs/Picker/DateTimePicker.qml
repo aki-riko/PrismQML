@@ -73,6 +73,7 @@ Rectangle {
     readonly property int _dateColCount: (_showYear ? 1 : 0) + (_showMonth ? 1 : 0) + (_showDay ? 1 : 0)
     readonly property int _timeColCount: (_showHour ? 1 : 0) + (_showMinute ? 1 : 0) + (_showSecond ? 1 : 0) + (_is12Hour ? 1 : 0)
     readonly property int _totalColCount: (_hasDate ? _dateColCount : 0) + (_hasTime ? _timeColCount : 0)
+    readonly property var _popupHost: popupHostLoader.item
 
     // ==================== Internal Props 内部属性 ====================
     property int _tempYear: year
@@ -84,6 +85,7 @@ Rectangle {
     property bool _tempIsAm: true
     property bool _tempUse24H: false  // Temp 24H mode in popup 弹窗内临时24小时制模式
     property bool _initializing: false  // Prevent recursive updates during init 初始化时防止递归更新
+    property bool _popupHostRequested: false  // Defer popup host until hover/open 悬浮或打开时再创建弹层宿主
     property bool _popupContentRequested: false  // Defer popup content until hover/open 悬浮或打开时再创建弹层内容
 
     // ==================== Signals 信号 ====================
@@ -97,8 +99,15 @@ Rectangle {
     function _pad(n) { return Helpers.pad(n) }
     function getDaysInMonth(y, m) { return Helpers.getDaysInMonth(y, m) }
 
+    function _ensurePopupHost() {
+        _popupHostRequested = true
+        return popupHostLoader.item
+    }
+
     function openPopup() {
         _popupContentRequested = true
+        var popup = _ensurePopupHost()
+        if (!popup) return
         var now = new Date()
         _tempYear = year > 0 ? year : now.getFullYear()
         _tempMonth = month > 0 ? month : now.getMonth() + 1
@@ -109,9 +118,9 @@ Rectangle {
         _tempIsAm = _tempHour < 12
         _tempUse24H = false  // Reset to 12H mode when opening 打开时重置为12小时制
 
-        pickerPopup.popupWidth = control.width
-        pickerPopup.popupHeight = 280
-        pickerPopup.openAtPicker(control, control.height)
+        popup.popupWidth = control.width
+        popup.popupHeight = 280
+        popup.openAtPicker(control, control.height)
         isOpen = true
 
         // Set wheel positions after popup opens 弹窗打开后设置滚轮位置
@@ -180,11 +189,12 @@ Rectangle {
             _initializing = false
             return
         }
-        if (!_popupLoader.item) {
+        var contentLoader = _popupHost ? _popupHost.contentLoader : null
+        if (!contentLoader || !contentLoader.item) {
             initTimer.restart()
             return
         }
-        var popup = _popupLoader.item
+        var popup = contentLoader.item
         var dateLoaders = _dateWheelLoaders(popup)
         if (!_wheelLoadersReady(popup, dateLoaders)) {
             initTimer.restart()
@@ -206,13 +216,14 @@ Rectangle {
     function closePopup() {
         initTimer.stop()
         _initializing = false
-        pickerPopup.close()
+        if (_popupHost) _popupHost.close()
         isOpen = false
     }
 
     function _prewarmPopupContent() {
         _popupContentRequested = true
-        if (pickerPopup.prewarm) pickerPopup.prewarm()
+        var popup = _ensurePopupHost()
+        if (popup && popup.prewarm) popup.prewarm()
     }
 
     function reset() {
@@ -268,7 +279,9 @@ Rectangle {
     function _buildSecondModel() { return Helpers.buildSecondModel(_secondSuffix) }
 
     function _updateDayWheel() {
-        var dayLoader = _dateWheelLoaders(_popupLoader.item).day
+        var contentLoader = _popupHost ? _popupHost.contentLoader : null
+        if (!contentLoader || !contentLoader.item) return
+        var dayLoader = _dateWheelLoaders(contentLoader.item).day
         if (!dayLoader || !dayLoader.item) return
         var maxDays = getDaysInMonth(_tempYear, _tempMonth)
         var arr = Helpers.buildDayModel(_tempYear, _tempMonth, _daySuffix)
@@ -354,20 +367,27 @@ Rectangle {
     }
 
     // Popup host 弹窗宿主
-    PopupWindowCore {
-        id: pickerPopup
-        popupWidth: control.width
-        popupHeight: 280
-        popupRadius: Enums.radius.large
-        verticalCenterExpand: true
-        onClosed: control.isOpen = false
+    Loader {
+        id: popupHostLoader
+        active: control._popupHostRequested
 
-        Loader {
-            id: _popupLoader
-            anchors.fill: parent
-            active: control._popupContentRequested
-            sourceComponent: DateTimePickerPopup {}
-            onLoaded: item.control = control
+        sourceComponent: PopupWindowCore {
+            id: pickerPopup
+            readonly property alias contentLoader: popupContentLoader
+
+            popupWidth: control.width
+            popupHeight: 280
+            popupRadius: Enums.radius.large
+            verticalCenterExpand: true
+            onClosed: control.isOpen = false
+
+            Loader {
+                id: popupContentLoader
+                anchors.fill: parent
+                active: control._popupContentRequested
+                sourceComponent: DateTimePickerPopup {}
+                onLoaded: item.control = control
+            }
         }
     }
 }

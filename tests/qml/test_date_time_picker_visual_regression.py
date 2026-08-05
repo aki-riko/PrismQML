@@ -212,6 +212,16 @@ def _popup_core(picker):
     )
 
 
+def _has_popup_core(picker):
+    return any(
+        all(
+            child.metaObject().indexOfProperty(name) >= 0
+            for name in ("verticalCenterExpand", "isClosing", "popupWidth")
+        )
+        for child in _descendants(picker)
+    )
+
+
 def _assert_vertically_centered(item, expected_center):
     center = item.property("y") + item.property("height") / 2
     assert center == pytest.approx(expected_center)
@@ -309,7 +319,7 @@ def test_hover_prewarms_hidden_popup_without_opening(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, picker, warnings = _create_hover_scene()
     try:
-        popup = _popup_core(picker)
+        assert not _has_popup_core(picker)
         assert not picker.property("_popupContentRequested")
         assert not _has_popup_content(picker)
 
@@ -322,6 +332,8 @@ def test_hover_prewarms_hidden_popup_without_opening(qapp):
 
         assert _wait_for(lambda: picker.property("_popupContentRequested"))
         assert _wait_for(lambda: _has_popup_content(picker))
+        assert _wait_for(lambda: _has_popup_core(picker))
+        popup = _popup_core(picker)
         assert _wait_for(lambda: popup.property("_prewarmed"))
         assert not picker.property("isOpen")
         assert not popup.property("isOpen")
@@ -381,6 +393,9 @@ def test_popup_expands_smoothly_from_vertical_center(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, root, picker, warnings = _create_scene()
     try:
+        assert not _has_popup_core(picker)
+        picker.openPopup()
+        assert _wait_for(lambda: _has_popup_core(picker))
         popup = _popup_core(picker)
         panel_scale = popup.findChild(QObject, "_popupPanelScale")
         shadow = popup.findChild(QObject, "_popupShadow")
@@ -388,7 +403,6 @@ def test_popup_expands_smoothly_from_vertical_center(qapp):
         assert panel_scale is not None
         assert shadow is not None
 
-        picker.openPopup()
         assert _wait_for(lambda: popup.property("isOpen"))
         _pump()
         _assert_center_expand_geometry(root, popup, panel_scale, shadow)

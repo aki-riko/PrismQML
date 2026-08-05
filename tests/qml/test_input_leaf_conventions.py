@@ -197,13 +197,17 @@ def _date_time_parts(picker):
     return areas[0], rows[0], buttons
 
 
-def _date_time_popup(picker):
-    matches = [
+def _date_time_popups(picker):
+    return [
         child
         for child in _descendants(picker)
         if child.metaObject().indexOfProperty("popupWidth") >= 0
         and child.metaObject().indexOfProperty("isOpen") >= 0
     ]
+
+
+def _date_time_popup(picker):
+    matches = _date_time_popups(picker)
     assert len(matches) == 1, [item.metaObject().className() for item in matches]
     return matches[0]
 
@@ -414,14 +418,13 @@ def test_date_time_picker_popup_parent_chain(qapp):
         picker = root.findChild(QObject, "dateTimePicker")
         assert picker is not None
         assert not picker.property("isOpen")
-        popup = _date_time_popup(picker)
+        assert _date_time_popups(picker) == []
         assert not picker.property("_popupContentRequested")
-        assert not popup.property("isOpen")
-        assert not popup.property("_prewarmed")
-        assert not popup.property("_prewarmScheduled")
 
         assert QMetaObject.invokeMethod(picker, "_prewarmPopupContent")
         assert _wait_for(lambda: picker.property("_popupContentRequested"))
+        assert _wait_for(lambda: len(_date_time_popups(picker)) == 1)
+        popup = _date_time_popup(picker)
         assert _wait_for(lambda: popup.property("_prewarmed"))
         _assert_picker_popup_runtime(picker)
         assert not picker.property("isOpen")
