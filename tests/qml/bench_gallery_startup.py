@@ -5,10 +5,12 @@
 """Measure the real Windows Gallery startup path. 测量真实 Windows Gallery 启动路径。
 
 This benchmark is intentionally excluded from the automated suite because it
-creates a real Direct3D 11 window. Run it through ``scripts/test_process.py``
-with the Windows platform so the window stays on the isolated test desktop.
-本基准会创建真实 Direct3D 11 窗口，因此不进入自动测试集；运行时必须通过
-``scripts/test_process.py`` 的 Windows 私有桌面边界。
+creates a real Direct3D 11 window. Run it on the active Windows desktop; an
+isolated desktop cannot provide the real swap-chain path. Use
+``--move-offscreen`` to keep the window outside the visible work area.
+本基准会创建真实 Direct3D 11 窗口，因此不进入自动测试集；必须在 Windows
+活动桌面运行，私有桌面无法提供真实交换链。可用 ``--move-offscreen`` 将窗口
+移出可见工作区。
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ import os
 import sys
 import tempfile
 import time
+from collections import Counter
 from pathlib import Path
 
 
@@ -31,18 +34,17 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--window-type", type=int, choices=sorted(WINDOW_TYPE_NAMES), required=True)
-    parser.add_argument(
-        "--graphics-api",
-        choices=("main", "direct3d11"),
-        default="main",
-        help="Use the Gallery entrypoint backend or explicitly request Direct3D 11.",
-    )
     parser.add_argument("--result", type=Path)
     parser.add_argument("--snapshot-dir", type=Path)
     parser.add_argument(
         "--move-offscreen",
         action="store_true",
         help="Move the real window off the active desktop before the event loop starts.",
+    )
+    parser.add_argument(
+        "--profile-objects",
+        action="store_true",
+        help="Record one visual QQuickItem class histogram after the ready landmark.",
     )
     parser.add_argument("--timeout", type=float, default=20.0)
     return parser.parse_args()
@@ -87,10 +89,7 @@ def _run(args: argparse.Namespace) -> int:
     from PySide6.QtCore import QCoreApplication, QObject, QTimer
     from PySide6.QtGui import QImage
     from PySide6.QtQml import QQmlApplicationEngine
-    from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
-
-    if args.graphics_api == "direct3d11":
-        QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.Direct3D11)
+    from PySide6.QtQuick import QQuickItem
 
     import prismqml.python.config.config_manager as config_manager_module
 
@@ -106,7 +105,7 @@ def _run(args: argparse.Namespace) -> int:
         "repo": str(repo),
         "window_type": args.window_type,
         "window_type_name": WINDOW_TYPE_NAMES[args.window_type],
-        "requested_graphics_api": args.graphics_api,
+        "requested_graphics_api": "direct3d11",
     }
     probes: list[object] = []
 
@@ -131,6 +130,10 @@ def _run(args: argparse.Namespace) -> int:
             self.frame_count = 0
             self.first_frame_at: float | None = None
             self.splash_captured = False
+            self.captions: list[QObject] = []
+            self.stack = None
+            self.first_page_item: QQuickItem | None = None
+            self.first_page_loaded = False
             self.ready_landmark_at: float | None = None
             self.ready_landmark_frame = -1
             self.timer = QTimer(self)
@@ -160,24 +163,84 @@ def _run(args: argparse.Namespace) -> int:
                 self.first_frame_at = time.perf_counter()
                 output["first_frame_ms"] = elapsed_ms(self.first_frame_at)
 
+        @staticmethod
+        def _qml_class_name(obj: QObject) -> str:
+            return obj.metaObject().className().split("_QMLTYPE_", 1)[0]
+
+        @staticmethod
+        def _current_page_item(stack) -> QQuickItem | None:
+            if stack is None or int(stack.property("currentIndex")) != 0:
+                return None
+            current = stack.property("currentWidget")
+            if current is None:
+                return None
+            item_index = current.metaObject().indexOfProperty("item")
+            item = current if item_index < 0 else current.property("item")
+            return item if isinstance(item, QQuickItem) else None
+
+        def _mark_first_page_loaded(self, item: QQuickItem, source: str) -> None:
+            if self.first_page_loaded:
+                return
+            class_name = self._qml_class_name(item)
+            if class_name != "ButtonPage":
+                output["error"] = (
+                    "First Gallery page must be ButtonPage; "
+                    f"got {class_name}"
+                )
+                self.timer.stop()
+                publish(6)
+                return
+            self.first_page_item = item
+            self.first_page_loaded = True
+            output["first_page_class"] = class_name
+            output["first_page_ready_source"] = source
+            output["first_page_ready_ms"] = elapsed_ms(time.perf_counter())
+
+        def _page_loaded(self, index: int) -> None:
+            if int(index) != 0 or self.stack is None:
+                return
+            item = self._current_page_item(self.stack)
+            if item is not None:
+                self._mark_first_page_loaded(item, "pageLoaded")
+
+        def _observe_stack(self, stack) -> None:
+            if stack is None or stack is self.stack:
+                return
+            self.stack = stack
+            stack.pageLoaded.connect(self._page_loaded)
+            output["stacked_widget_ms"] = elapsed_ms(time.perf_counter())
+            item = self._current_page_item(stack)
+            if item is not None:
+                self._mark_first_page_loaded(item, "loaderReadyBeforeSignalAttach")
+
+        @staticmethod
+        def _visual_items(window) -> list[QQuickItem]:
+            content_item = window.contentItem()
+            if content_item is None:
+                return []
+            result: list[QQuickItem] = []
+            pending = [content_item]
+            while pending:
+                item = pending.pop()
+                result.append(item)
+                pending.extend(item.childItems())
+            return result
+
         def _snapshot(self):
             roots = self.engine.rootObjects()
             root = roots[0] if roots else None
             window = root.property("windowInstance") if root is not None else None
             stack = window.property("stackedWidget") if window is not None else None
             navigation = window.property("navigationView") if window is not None else None
-            current = stack.property("currentWidget") if stack is not None else None
-            page_ready = False
-            if current is not None:
-                item_index = current.metaObject().indexOfProperty("item")
-                page_ready = item_index < 0 or current.property("item") is not None
-            children = window.findChildren(QObject) if window is not None else []
-            captions = [
-                child for child in children
-                if "CaptionButton" in child.metaObject().className()
-            ]
+            self._observe_stack(stack)
+            page_ready = self.first_page_loaded
+            if window is not None and len(self.captions) != 3:
+                self.captions = [
+                    child for child in window.findChildren(QObject)
+                    if "CaptionButton" in child.metaObject().className()
+                ]
             splash = window.property("_splashInstance") if window is not None else None
-            return root, window, stack, navigation, page_ready, captions, splash
+            return root, window, stack, navigation, page_ready, self.captions, splash
 
         def _capture(self, label: str) -> bool:
             image = self.window.grabWindow().convertToFormat(QImage.Format.Format_RGBA8888)
@@ -201,9 +264,18 @@ def _run(args: argparse.Namespace) -> int:
             output["caption_count"] = len(captions)
             output["window_class"] = window.metaObject().className()
             actual_api = window.rendererInterface().graphicsApi()
-            output["actual_graphics_api"] = getattr(
+            actual_api_name = getattr(
                 actual_api, "name", str(_enum_value(actual_api))
             )
+            output["actual_graphics_api"] = actual_api_name
+            if actual_api_name != "Direct3D11":
+                output["error"] = (
+                    "Gallery startup benchmark requires Direct3D11; "
+                    f"got {actual_api_name}"
+                )
+                self.timer.stop()
+                publish(5)
+                return
             output["dwm_initialization_done"] = bool(
                 window.property("_dwmInitializationDone")
             )
@@ -213,6 +285,13 @@ def _run(args: argparse.Namespace) -> int:
             )
             output["splash_dismissed"] = bool(window.property("_splashDismissed"))
             output["ready_frame_ms"] = elapsed_ms(time.perf_counter())
+            if args.profile_objects:
+                visual_items = self._visual_items(window)
+                class_counts = Counter(
+                    self._qml_class_name(item) for item in visual_items
+                )
+                output["visual_item_count"] = len(visual_items)
+                output["visual_item_class_counts"] = dict(class_counts.most_common())
             self._capture("ready")
             self.timer.stop()
             publish(0)
@@ -227,11 +306,6 @@ def _run(args: argparse.Namespace) -> int:
                     window.setPosition(-32000, -32000)
                     output["window_moved_offscreen"] = True
                 window.frameSwapped.connect(self._frame_swapped)
-            if stack is not None and "stacked_widget_ms" not in output:
-                output["stacked_widget_ms"] = elapsed_ms(now)
-            if page_ready and "first_page_ready_ms" not in output:
-                output["first_page_ready_ms"] = elapsed_ms(now)
-
             if (
                 self.window is not None
                 and self.first_frame_at is not None
@@ -310,13 +384,6 @@ def _run(args: argparse.Namespace) -> int:
             probe = _StartupProbe(self, load_start, load_end)
             probes.append(probe)
 
-    if args.graphics_api == "direct3d11":
-        class _GraphicsApiGuard:
-            @staticmethod
-            def setGraphicsApi(_api) -> None:
-                """Keep the selected D3D backend. 保留基准选择的 D3D 后端。"""
-
-        gallery.QQuickWindow = _GraphicsApiGuard
     gallery.QQmlApplicationEngine = _BenchEngine
     try:
         return int(gallery.main())

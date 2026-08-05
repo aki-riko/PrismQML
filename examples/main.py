@@ -70,9 +70,10 @@ def main():
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
 
-    # 强制使用OpenGL后端，避免 D3D11 device lost 问题
-    # Force OpenGL backend to avoid D3D11 device-lost crashes on some Windows drivers
-    QQuickWindow.setGraphicsApi(QSGRendererInterface.OpenGL)
+    # Use the Windows-native Direct3D 11 backend. 使用 Windows 原生 Direct3D 11 后端。
+    QQuickWindow.setGraphicsApi(
+        QSGRendererInterface.GraphicsApi.Direct3D11
+    )
 
     applyDpiScale()
     log_time("DPI缩放应用完成")
