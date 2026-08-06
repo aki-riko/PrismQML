@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QPointF, QTimer, QUrl, Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QImage
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -147,6 +147,31 @@ def _bar_item(chart: QQuickItem, value: float):
     )
 
 
+def _bar_items(chart: QQuickItem) -> list[QQuickItem]:
+    return [
+        item
+        for item in _descendants(chart)
+        if item.metaObject().indexOfProperty("barValue") >= 0
+    ]
+
+
+def _stable_window_image(window: QQuickWindow) -> QImage:
+    previous = QImage()
+    stable_frames = 0
+    for _ in range(40):
+        current = window.grabWindow()
+        assert not current.isNull()
+        if current == previous:
+            stable_frames += 1
+            if stable_frames == 3:
+                return current
+        else:
+            stable_frames = 0
+        previous = current
+        _pump()
+    raise AssertionError("BarChartContent frame did not stabilize within 1.2 seconds")
+
+
 def _click_item(window: QQuickWindow, item: QQuickItem) -> None:
     point = item.mapToScene(QPointF(item.width() / 2, item.height() / 2)).toPoint()
     QTest.mouseClick(window, Qt.MouseButton.LeftButton, pos=point)
@@ -255,6 +280,34 @@ def test_single_series_vertical_and_horizontal_real_clicks(bar_chart_scene):
     assert horizontal_clicked[0][0] == 1
     assert horizontal_clicked[0][1]["label"] == "Right"
     assert horizontal_clicked[0][1]["value"] == 65
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_single_series_direction_delegate_and_pixel_roundtrip_baseline(
+    bar_chart_scene,
+):
+    window, charts, warnings, windows_before = bar_chart_scene
+    vertical = charts["verticalChart"]
+    horizontal = charts["horizontalChart"]
+
+    vertical_items = _bar_items(vertical)
+    horizontal_items = _bar_items(horizontal)
+    assert len(vertical_items) == 6
+    assert sum(item.isVisible() for item in vertical_items) == 3
+    assert len(horizontal_items) == 4
+    assert sum(item.isVisible() for item in horizontal_items) == 2
+    vertical_image = _stable_window_image(window)
+
+    assert vertical.setProperty("isHorizontal", True)
+    assert _wait_for(lambda: sum(item.isVisible() for item in vertical_items) == 3)
+    assert len(_bar_items(vertical)) == 6
+    assert _stable_window_image(window) != vertical_image
+
+    assert vertical.setProperty("isHorizontal", False)
+    assert _wait_for(lambda: sum(item.isVisible() for item in vertical_items) == 3)
+    assert len(_bar_items(vertical)) == 6
+    assert _stable_window_image(window) == vertical_image
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
