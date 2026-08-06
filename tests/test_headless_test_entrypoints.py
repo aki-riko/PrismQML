@@ -35,8 +35,12 @@ RUNNER_SUPERVISOR_GRACE_SECONDS = (
 MANUAL_VISIBLE_ENTRYPOINTS = {
     Path("scripts/fps_probe.py"),
     Path("scripts/run_with_fps.py"),
+    Path("tests/qml/bench_calendar_range_bars.py"),
     Path("tests/qml/bench_gallery_startup.py"),
+    Path("tests/qml/bench_hidden_loop_visibility.py"),
+    Path("tests/qml/bench_progress_ring_visibility.py"),
     Path("tests/qml/bench_skin_frames.py"),
+    Path("tests/qml/bench_windows_bar_content.py"),
     Path("tests/test_window_buttons.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
