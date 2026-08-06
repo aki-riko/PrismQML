@@ -393,14 +393,17 @@ def test_progress_ring_visibility_preserves_the_active_visual_branch(qapp):
         assert ring is not None
         arc = ring.findChild(QObject, "progressRingIndeterminateArc")
         assert arc is not None
+        assert arc.property("running") is True
 
         ring.setVisible(False)
         _pump(1)
         assert ring.findChild(QObject, "progressRingIndeterminateArc") is arc
+        assert arc.property("running") is False
 
         ring.setVisible(True)
         _pump(1)
         assert ring.findChild(QObject, "progressRingIndeterminateArc") is arc
+        assert arc.property("running") is True
     finally:
         root.deleteLater()
         del component

@@ -123,7 +123,7 @@ Item {
             id: indeterminateArc
             objectName: "progressRingIndeterminateArc"
             anchors.fill: parent
-            running: !control.paused
+            running: !control.paused && control.visible
             color: control.progressColor
             trackColor: control.trackColor
             strokeWidth: control.strokeWidth
