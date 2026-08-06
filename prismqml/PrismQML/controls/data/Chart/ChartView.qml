@@ -135,6 +135,7 @@ ShadowedRectangle {
     readonly property bool _isBoxplot: chartType === Enums.chart.type_boxplot
     readonly property bool _isHorizontalBar: chartType === Enums.chart.type_bar &&
                                              barOrientation === Enums.chart.orientation_horizontal
+    readonly property var _xyChartBase: xyChartBaseLoader.item
     readonly property var _barContent: barContentLoader.item
     readonly property var _lineContent: lineContentLoader.item
     readonly property var _scatterContent: scatterContentLoader.item
@@ -310,135 +311,152 @@ ShadowedRectangle {
         }
     }
     // ==================== Content 内容 ====================
-    XYChartCore {
-        id: xyChartBase
+    Loader {
+        id: xyChartBaseLoader
+        objectName: "xyChartBaseLoader"
+
         // Reserve space for the data zoom bar 为底部数据缩放条预留空间
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: control.dataZoomEnabled && control._isXYChart ? dataZoomBar.top : parent.bottom
         anchors.bottomMargin: control.dataZoomEnabled && control._isXYChart ? Enums.spacing.s : 0
-        visible: control._isXYChart
+        active: control._isXYChart
 
-        chartData: control._viewChartData
-        maxValue: control.maxValue
-        showLabels: control.showLabels
-        showValues: control.showValues
-        showGrid: control.showGrid
-        showLegend: control.showLegend
-        title: control.title
-        subtitle: control.subtitle
-        series: control._viewSeries
-        isScatter: control._isScatter
-        isHorizontal: control._isHorizontalBar
-        yAxisSuffix: control.yAxisSuffix
-        yAxisLabelWidth: control.yAxisLabelWidth
-        valueFormatter: control.valueFormatter
-        hoveredIndex: control._isScatter ? -1 : (control._hoveredBarIndex >= 0 ? control._hoveredBarIndex : control._hoveredPointIndex)
-        viewportScale: control._viewportScale
-        viewportOffsetRatio: control._viewportOffsetRatio
-        viewportTransitionActive: control._viewportTransitionActive
+        sourceComponent: Component {
+            XYChartCore {
+                chartData: control._viewChartData
+                maxValue: control.maxValue
+                showLabels: control.showLabels
+                showValues: control.showValues
+                showGrid: control.showGrid
+                showLegend: control.showLegend
+                title: control.title
+                subtitle: control.subtitle
+                series: control._viewSeries
+                isScatter: control._isScatter
+                isHorizontal: control._isHorizontalBar
+                yAxisSuffix: control.yAxisSuffix
+                yAxisLabelWidth: control.yAxisLabelWidth
+                valueFormatter: control.valueFormatter
+                hoveredIndex: control._isScatter ? -1 : (control._hoveredBarIndex >= 0 ? control._hoveredBarIndex : control._hoveredPointIndex)
+                viewportScale: control._viewportScale
+                viewportOffsetRatio: control._viewportOffsetRatio
+                viewportTransitionActive: control._viewportTransitionActive
 
-        onXLabelHovered: (index) => {
-            if (control.chartType === Enums.chart.type_bar) control._hoveredBarIndex = index
-            else control._hoveredPointIndex = index
+                onXLabelHovered: (index) => {
+                    if (control.chartType === Enums.chart.type_bar) control._hoveredBarIndex = index
+                    else control._hoveredPointIndex = index
+                }
+            }
         }
+    }
+
+    Item {
+        id: chartViewportClip
+        x: control._xyChartBase ? control._xyChartBase.chartAreaX : 0
+        y: control._xyChartBase ? control._xyChartBase.chartAreaY : 0
+        width: control._xyChartBase ? control._xyChartBase.chartAreaWidth : 0
+        height: control._xyChartBase ? control._xyChartBase.chartAreaHeight : 0
+        clip: true
 
         Item {
-            id: chartViewportClip
-            anchors.fill: xyChartBase.chartArea
-            clip: true
+            id: chartViewportLayer
+            x: control._isHorizontalBar ? 0 : control._viewportOffsetRatio * parent.width
+            y: control._isHorizontalBar ? control._viewportOffsetRatio * parent.height : 0
+            width: parent.width
+            height: parent.height
+            transform: Scale {
+                origin.x: 0
+                origin.y: 0
+                xScale: control._isHorizontalBar ? 1 : control._viewportScale
+                yScale: control._isHorizontalBar ? control._viewportScale : 1
+            }
 
-            Item {
-                id: chartViewportLayer
-                x: control._isHorizontalBar ? 0 : control._viewportOffsetRatio * parent.width
-                y: control._isHorizontalBar ? control._viewportOffsetRatio * parent.height : 0
-                width: parent.width
-                height: parent.height
-                transform: Scale {
-                    origin.x: 0
-                    origin.y: 0
-                    xScale: control._isHorizontalBar ? 1 : control._viewportScale
-                    yScale: control._isHorizontalBar ? control._viewportScale : 1
-                }
-
-                Loader {
-                    id: barContentLoader
-                    objectName: "barContentLoader"
-                    anchors.fill: parent
-                    active: control.chartType === Enums.chart.type_bar &&
-                            (control._hasChartData || control._hasSeriesValues)
-                    sourceComponent: Component {
-                        BarChartContent {
-                            chartData: control._viewChartData
-                            series: control._viewSeries
-                            maxValue: control.maxValue
-                            animated: control.animated
-                            showValues: control.showValues
-                            showAverage: control.showAverage
-                            showMinMax: control.showMinMax
-                            showBarGradient: control.showBarGradient
-                            getColor: control.getColor
-                            hoveredIndex: control._hoveredBarIndex
-                            hoveredSeriesIndex: control._hoveredBarSeriesIndex
-                            isHorizontal: control._isHorizontalBar
-                            valueRange: xyChartBase.valueRange
-                            zeroLineRatio: xyChartBase.zeroLineRatio
-                            onBarClicked: (index, data) => control.barClicked(index, data)
-                            onBarHovered: (index) => control._hoveredBarIndex = index
-                            onSeriesBarHovered: (si, bi) => { control._hoveredBarSeriesIndex = si; control._hoveredBarIndex = bi }
-                        }
+            Loader {
+                id: barContentLoader
+                objectName: "barContentLoader"
+                anchors.fill: parent
+                active: control._xyChartBase !== null &&
+                        control.chartType === Enums.chart.type_bar &&
+                        (control._hasChartData || control._hasSeriesValues)
+                sourceComponent: Component {
+                    BarChartContent {
+                        chartData: control._viewChartData
+                        series: control._viewSeries
+                        maxValue: control.maxValue
+                        animated: control.animated
+                        showValues: control.showValues
+                        showAverage: control.showAverage
+                        showMinMax: control.showMinMax
+                        showBarGradient: control.showBarGradient
+                        getColor: control.getColor
+                        hoveredIndex: control._hoveredBarIndex
+                        hoveredSeriesIndex: control._hoveredBarSeriesIndex
+                        isHorizontal: control._isHorizontalBar
+                        valueRange: control._xyChartBase
+                                    ? control._xyChartBase.valueRange
+                                    : ({ min: 0, max: 1, hasNegative: false, hasPositive: true })
+                        zeroLineRatio: control._xyChartBase
+                                       ? control._xyChartBase.zeroLineRatio : 1
+                        onBarClicked: (index, data) => control.barClicked(index, data)
+                        onBarHovered: (index) => control._hoveredBarIndex = index
+                        onSeriesBarHovered: (si, bi) => { control._hoveredBarSeriesIndex = si; control._hoveredBarIndex = bi }
                     }
                 }
+            }
 
-                Loader {
-                    id: lineContentLoader
-                    objectName: "lineContentLoader"
-                    anchors.fill: parent
-                    active: control.chartType === Enums.chart.type_line &&
-                            (control._hasChartData || control._hasSeriesValues)
-                    sourceComponent: Component {
-                        LineChartContent {
-                            chartData: control._viewChartData
-                            series: control._viewSeries
-                            maxValue: control.maxValue
-                            primaryColor: control.primaryColor
-                            smoothLine: control.smoothLine
-                            animated: control.animated
-                            hoverDetectEnabled: control.showTooltip && !control._viewportTransitionActive
-                            showAverage: control.showAverage
-                            showMinMax: control.showMinMax
-                            isArea: false
-                            hoveredIndex: control._hoveredPointIndex
-                            hoveredSeriesIndex: control._hoveredLineSeriesIndex
-                            boundaryGap: control.boundaryGap
-                            showAreaGradient: control.showAreaGradient
-                            stacked: control.stacked
-                            onPointClicked: (index, data) => control.pointClicked(index, data)
-                            onPointHovered: (index) => control._hoveredPointIndex = index
-                            onSeriesPointHovered: (si, pi) => { control._hoveredLineSeriesIndex = si; control._hoveredPointIndex = pi }
-                            onWheelZoomed: (delta, anchorRatio) => control.wheelZoomed(delta, anchorRatio)
-                        }
+            Loader {
+                id: lineContentLoader
+                objectName: "lineContentLoader"
+                anchors.fill: parent
+                active: control._xyChartBase !== null &&
+                        control.chartType === Enums.chart.type_line &&
+                        (control._hasChartData || control._hasSeriesValues)
+                sourceComponent: Component {
+                    LineChartContent {
+                        chartData: control._viewChartData
+                        series: control._viewSeries
+                        maxValue: control.maxValue
+                        primaryColor: control.primaryColor
+                        smoothLine: control.smoothLine
+                        animated: control.animated
+                        hoverDetectEnabled: control.showTooltip && !control._viewportTransitionActive
+                        showAverage: control.showAverage
+                        showMinMax: control.showMinMax
+                        isArea: false
+                        hoveredIndex: control._hoveredPointIndex
+                        hoveredSeriesIndex: control._hoveredLineSeriesIndex
+                        boundaryGap: control.boundaryGap
+                        showAreaGradient: control.showAreaGradient
+                        stacked: control.stacked
+                        onPointClicked: (index, data) => control.pointClicked(index, data)
+                        onPointHovered: (index) => control._hoveredPointIndex = index
+                        onSeriesPointHovered: (si, pi) => { control._hoveredLineSeriesIndex = si; control._hoveredPointIndex = pi }
+                        onWheelZoomed: (delta, anchorRatio) => control.wheelZoomed(delta, anchorRatio)
                     }
                 }
+            }
 
-                Loader {
-                    id: scatterContentLoader
-                    objectName: "scatterContentLoader"
-                    anchors.fill: parent
-                    active: control._isScatter && control._hasScatterData
-                    sourceComponent: Component {
-                        ScatterChartContent {
-                            series: control._viewSeries
-                            dataRange: xyChartBase.scatterDataRange
-                            animated: control.animated
-                            showGrid: control.showGrid
-                            hoveredSeriesIndex: control._hoveredScatterSeriesIndex
-                            hoveredPointIndex: control._hoveredScatterPointIndex
-                            defaultSymbolSize: control.symbolSize
-                            onPointClicked: (index, data) => control.pointClicked(index, data)
-                            onPointHovered: (si, pi) => { control._hoveredScatterSeriesIndex = si; control._hoveredScatterPointIndex = pi }
-                        }
+            Loader {
+                id: scatterContentLoader
+                objectName: "scatterContentLoader"
+                anchors.fill: parent
+                active: control._xyChartBase !== null && control._isScatter &&
+                        control._hasScatterData
+                sourceComponent: Component {
+                    ScatterChartContent {
+                        series: control._viewSeries
+                        dataRange: control._xyChartBase
+                                   ? control._xyChartBase.scatterDataRange
+                                   : ({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 })
+                        animated: control.animated
+                        showGrid: control.showGrid
+                        hoveredSeriesIndex: control._hoveredScatterSeriesIndex
+                        hoveredPointIndex: control._hoveredScatterPointIndex
+                        defaultSymbolSize: control.symbolSize
+                        onPointClicked: (index, data) => control.pointClicked(index, data)
+                        onPointHovered: (si, pi) => { control._hoveredScatterSeriesIndex = si; control._hoveredScatterPointIndex = pi }
                     }
                 }
             }
@@ -448,12 +466,12 @@ ShadowedRectangle {
     // XY chart tooltips XY 图表提示框
     XYSingleTooltip {
         chart: control
-        chartBase: xyChartBase
+        chartBase: control._xyChartBase
     }
 
     XYMultiTooltip {
         chart: control
-        chartBase: xyChartBase
+        chartBase: control._xyChartBase
     }
 
     // XY chart legend; load only the active type with renderable data XY 图表图例；仅加载当前类型且有可渲染数据的图例
@@ -578,7 +596,7 @@ ShadowedRectangle {
     // Chart panning interaction 主图拖动平移交互
     ChartPanArea {
         chart: control
-        anchors.fill: xyChartBase
+        anchors.fill: xyChartBaseLoader
         z: -1
     }
 

@@ -14,6 +14,7 @@ Loader {
     required property var chartBase
 
     x: {
+        if (!chartBase) return 0
         if (chart.chartType === Enums.chart.type_bar) {
             if (chart._hoveredBarIndex < 0 || chart._viewChartData.length === 0) return 0
             var barWidth = (chartBase.chartAreaWidth - chart._viewChartData.length * Enums.spacing.s) / chart._viewChartData.length
@@ -28,6 +29,7 @@ Loader {
         return 0
     }
     y: {
+        if (!chartBase) return 0
         if (chart.chartType === Enums.chart.type_bar)
             return chartBase.chartAreaY + Enums.spacing.m
         if (chart.chartType === Enums.chart.type_line) {

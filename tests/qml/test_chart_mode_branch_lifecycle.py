@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Chart mode branch lifecycle regressions. 图表模式分支生命周期回归。"""
 
+from PySide6.QtCore import QObject
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
@@ -58,6 +59,9 @@ def test_first_xy_mode_after_non_xy_start_preserves_renderer_and_tooltip(qapp):
     engine, component, chart, warnings = _create_initial_pie_chart()
     try:
         loaders = _loaders(chart)
+        xy_base_loader = chart.findChild(QObject, "xyChartBaseLoader")
+        assert xy_base_loader is not None
+        assert xy_base_loader.property("item") is None
         assert loaders["pieAreaLoader"].property("item") is not None
         assert loaders["lineContentLoader"].property("item") is None
 
@@ -65,6 +69,7 @@ def test_first_xy_mode_after_non_xy_start_preserves_renderer_and_tooltip(qapp):
         _pump(20)
 
         line_content = loaders["lineContentLoader"].property("item")
+        assert xy_base_loader.property("item") is not None
         assert line_content is not None
         assert chart.property("_lineContent") is line_content
         assert loaders["pieAreaLoader"].property("item") is None
@@ -78,6 +83,7 @@ def test_first_xy_mode_after_non_xy_start_preserves_renderer_and_tooltip(qapp):
 
         chart.setProperty("chartType", chart.property("pieType"))
         _pump(20)
+        assert xy_base_loader.property("item") is None
         assert loaders["pieAreaLoader"].property("item") is not None
         assert loaders["lineContentLoader"].property("item") is None
         assert not any(

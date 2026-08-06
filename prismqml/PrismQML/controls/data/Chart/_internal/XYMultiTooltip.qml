@@ -14,6 +14,7 @@ Loader {
     required property var chartBase
 
     x: {
+        if (!chartBase) return 0
         if (chart.chartType === Enums.chart.type_line) {
             var lineMouseX = chart._lineContent ? chart._lineContent.mouseX : 0
             var right = lineMouseX + Enums.spacing.m
@@ -29,6 +30,7 @@ Loader {
         return 0
     }
     y: {
+        if (!chartBase) return 0
         if (chart.chartType === Enums.chart.type_line) {
             var lineMouseY = chart._lineContent ? chart._lineContent.mouseY : 0
             var below = lineMouseY + Enums.spacing.m
