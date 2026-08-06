@@ -13,6 +13,10 @@ from pathlib import Path
 import sys
 import time
 
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from PySide6.QtCore import (
     QEventLoop,
     QMetaObject,
@@ -26,10 +30,10 @@ from PySide6.QtGui import QGuiApplication, QImage
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow, QSGRendererInterface
 
-from prismqml import register_types
+import prismqml
+from prismqml import configure_qml_environment, register_types
 
 
-ROOT = Path(__file__).resolve().parents[2]
 MODES = ("single", "range_idle", "range_partial", "range_full", "range_transition")
 QML_TEMPLATE = """
 import QtQuick
@@ -222,7 +226,15 @@ def main(argv=None) -> int:
     args = _parse_args(argv)
     if args.instances < 1:
         raise SystemExit("--instances must be at least 1")
+    package_path = Path(prismqml.__file__).resolve()
+    try:
+        package_path.relative_to(ROOT)
+    except ValueError as error:
+        raise RuntimeError(
+            f"Calendar benchmark imported PrismQML outside checkout: {package_path}"
+        ) from error
 
+    configure_qml_environment()
     QQuickWindow.setGraphicsApi(
         QSGRendererInterface.GraphicsApi.Direct3D11
     )
@@ -272,6 +284,7 @@ def main(argv=None) -> int:
         "instances": args.instances,
         "requested_graphics_api": "Direct3D11",
         "actual_graphics_api": actual_api_name,
+        "package_path": str(package_path),
         "qml_load_ms": round(qml_load_ms, 3),
         "construction_ms": round(construction_ms, 3),
         "ready_frame_ms": round(ready_frame_ms, 3),
