@@ -17,6 +17,7 @@ PERFORMANCE_ENTRYPOINTS = (
     ROOT / "scripts" / "run_with_fps.py",
     ROOT / "tests" / "qml" / "bench_skin_frames.py",
     ROOT / "tests" / "qml" / "bench_calendar_range_bars.py",
+    ROOT / "tests" / "qml" / "bench_windows_bar_content.py",
 )
 
 
