@@ -18,7 +18,6 @@ Item {
 
     // ==================== Public Props 公开属性 ====================
     property var graphPalette: Enums.chartColors.extendedPalette
-    property color nodeBackground: Enums.cardColor
     property color selectedColor: Enums.accentColor
 
     // ==================== Readonly State 只读状态 ====================
@@ -109,21 +108,13 @@ Item {
     }
 
     Rectangle {
-        x: control._nodeX - control._nodeOuterRadius
-        y: control.nodeY - control._nodeOuterRadius
-        width: control._nodeOuterRadius * 2
-        height: control._nodeOuterRadius * 2
-        radius: control._nodeOuterRadius
+        x: control._nodeX - control._nodeRadius
+        y: control.nodeY - control._nodeRadius
+        width: control._nodeRadius * 2
+        height: control._nodeRadius * 2
+        radius: control._nodeRadius
         visible: control.showNode
-        color: control.nodeBackground
-
-        Rectangle {
-            anchors.centerIn: parent
-            width: control._nodeRadius * 2
-            height: control._nodeRadius * 2
-            radius: control._nodeRadius
-            color: control._colorFor((control.graphData || {}).nodeColorIndex)
-        }
+        color: control._colorFor((control.graphData || {}).nodeColorIndex)
     }
 
     Rectangle {
