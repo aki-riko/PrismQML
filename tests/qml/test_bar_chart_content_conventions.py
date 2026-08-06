@@ -293,20 +293,22 @@ def test_single_series_direction_delegate_and_pixel_roundtrip_baseline(
 
     vertical_items = _bar_items(vertical)
     horizontal_items = _bar_items(horizontal)
-    assert len(vertical_items) == 6
-    assert sum(item.isVisible() for item in vertical_items) == 3
-    assert len(horizontal_items) == 4
-    assert sum(item.isVisible() for item in horizontal_items) == 2
+    assert len(vertical_items) == 3
+    assert all(item.isVisible() for item in vertical_items)
+    assert len(horizontal_items) == 2
+    assert all(item.isVisible() for item in horizontal_items)
     vertical_image = _stable_window_image(window)
 
     assert vertical.setProperty("isHorizontal", True)
-    assert _wait_for(lambda: sum(item.isVisible() for item in vertical_items) == 3)
-    assert len(_bar_items(vertical)) == 6
+    assert _bar_item(vertical, 50) is not None
+    assert _wait_for(lambda: len(_bar_items(vertical)) == 3)
+    assert all(item.isVisible() for item in _bar_items(vertical))
     assert _stable_window_image(window) != vertical_image
 
     assert vertical.setProperty("isHorizontal", False)
-    assert _wait_for(lambda: sum(item.isVisible() for item in vertical_items) == 3)
-    assert len(_bar_items(vertical)) == 6
+    assert _bar_item(vertical, 50) is not None
+    assert _wait_for(lambda: len(_bar_items(vertical)) == 3)
+    assert all(item.isVisible() for item in _bar_items(vertical))
     assert _stable_window_image(window) == vertical_image
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []

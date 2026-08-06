@@ -419,7 +419,7 @@ Item {
         visible: !root.isMultiSeries && !root.isHorizontal
         
         Repeater {
-            model: root.chartData
+            model: !root.isMultiSeries && !root.isHorizontal ? root.chartData : []
             
             Item {
                 id: verticalBarItem
@@ -512,7 +512,7 @@ Item {
         visible: !root.isMultiSeries && root.isHorizontal
         
         Repeater {
-            model: root.chartData
+            model: !root.isMultiSeries && root.isHorizontal ? root.chartData : []
             
             Item {
                 id: horizontalBarItem
