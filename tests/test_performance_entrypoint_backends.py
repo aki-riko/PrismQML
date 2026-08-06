@@ -16,6 +16,7 @@ PERFORMANCE_ENTRYPOINTS = (
     ROOT / "scripts" / "fps_probe.py",
     ROOT / "scripts" / "run_with_fps.py",
     ROOT / "tests" / "qml" / "bench_skin_frames.py",
+    ROOT / "tests" / "qml" / "bench_calendar_range_bars.py",
 )
 
 
@@ -58,8 +59,9 @@ def test_gallery_performance_entrypoint_reuses_the_only_main(entrypoint):
     assert "QQuickWindow.setGraphicsApi" not in source
 
 
-def test_standalone_skin_benchmark_requests_direct3d11():
-    source = PERFORMANCE_ENTRYPOINTS[2].read_text(encoding="utf-8")
+@pytest.mark.parametrize("entrypoint", PERFORMANCE_ENTRYPOINTS[2:])
+def test_standalone_benchmark_requests_direct3d11(entrypoint):
+    source = entrypoint.read_text(encoding="utf-8")
 
     assert "QSGRendererInterface.GraphicsApi.Direct3D11" in source
 

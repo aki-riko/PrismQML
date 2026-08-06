@@ -16,7 +16,7 @@ from PySide6.QtCore import (
     Qt,
     QUrl,
 )
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QImage
 from PySide6.QtQml import (
     QQmlApplicationEngine,
     QQmlComponent,
@@ -81,6 +81,23 @@ def _wait_for(predicate, timeout_ms: int = 1600) -> bool:
         _pump()
         elapsed += 20
     return predicate()
+
+
+def _stable_window_image(window: QQuickWindow) -> QImage:
+    previous = QImage()
+    stable_frames = 0
+    for _ in range(30):
+        current = window.grabWindow()
+        assert not current.isNull()
+        if current == previous:
+            stable_frames += 1
+            if stable_frames == 3:
+                return current
+        else:
+            stable_frames = 0
+        previous = current
+        _pump()
+    raise AssertionError("Calendar frame did not stabilize within 600 ms")
 
 
 def _visual_descendants(root: QQuickItem) -> list[QQuickItem]:
@@ -291,6 +308,52 @@ def test_calendar_core_enables_layers_only_for_visible_range_bars(qapp):
             is bool(item.property("showBar"))
             for item in range_bars
         )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_calendar_core_range_bar_first_frame_and_restore_are_stable(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, calendar, warnings = _create_scene()
+    try:
+        range_bars = _range_bar_containers(calendar)
+        initial_image = _stable_window_image(window)
+
+        assert _evaluate(
+            calendar,
+            "(rangeMode = true, "
+            "rangeStart = new Date(2026, 3, 10), "
+            "rangeEnd = new Date(2026, 3, 15), true)",
+        ) is True
+        assert _wait_for(
+            lambda: sum(bool(item.property("showBar")) for item in range_bars) == 6
+        )
+        first_range_image = _stable_window_image(window)
+        assert first_range_image != initial_image
+
+        assert _evaluate(
+            calendar,
+            "(rangeMode = false, rangeStart = null, rangeEnd = null, true)",
+        ) is True
+        assert _wait_for(
+            lambda: all(not item.property("showBar") for item in range_bars)
+        )
+        restored_image = _stable_window_image(window)
+        assert restored_image == initial_image
+
+        assert _evaluate(
+            calendar,
+            "(rangeMode = true, "
+            "rangeStart = new Date(2026, 3, 10), "
+            "rangeEnd = new Date(2026, 3, 15), true)",
+        ) is True
+        assert _wait_for(
+            lambda: sum(bool(item.property("showBar")) for item in range_bars) == 6
+        )
+        assert _stable_window_image(window) == first_range_image
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
