@@ -26,6 +26,13 @@ OverlayDialogCore {
     property int maxWaitingTime: -1  // -1 = infinite wait 无限等待
     property real progress: -1  // -1 = 不确定(转圈), 0~100 = 确定进度百分比
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _progressMinimum: 0
+    readonly property real _progressMaximum: 100
+    readonly property bool _isIndeterminate: progress < _progressMinimum
+    readonly property bool _progressComplete:
+        !_isIndeterminate && progress >= _progressMaximum
+
     readonly property int _dialogRadius: Enums.radius.large
     readonly property color _dialogBackground: Enums.cardColor
     readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
@@ -94,18 +101,37 @@ OverlayDialogCore {
             anchors.centerIn: parent
             spacing: Enums.spacing.xxxl
             
-            // Progress ring 进度环
-            ProgressRing {
-                id: progressRing
+            // Progress indicator 进度指示器
+            Item {
+                id: progressIndicator
+
                 width: control.ringSize
                 height: control.ringSize
-                strokeWidth: control.ringStrokeWidth
-                // progress < 0 时不确定(转圈), 否则按 0~100 显示确定进度
-                indeterminate: control.progress < 0
-                value: control.progress < 0 ? 0 : control.progress
-                from: 0
-                to: 100
                 anchors.verticalCenter: parent.verticalCenter
+
+                ProgressRing {
+                    id: progressRing
+
+                    anchors.fill: parent
+                    strokeWidth: control.ringStrokeWidth
+                    // Negative progress is indeterminate; otherwise use the bounded range.
+                    // 负进度表示不确定状态，否则使用固定百分比范围。
+                    indeterminate: control._isIndeterminate
+                    value: control._isIndeterminate
+                        ? control._progressMinimum
+                        : control.progress
+                    from: control._progressMinimum
+                    to: control._progressMaximum
+                }
+
+                Icon {
+                    objectName: "progressDialogCompletionIcon"
+                    anchors.centerIn: parent
+                    iconSize: Enums.iconSize.xxl
+                    icon: control._progressComplete ? Enums.icon.checkmark : ""
+                    color: progressRing.progressColor
+                    visible: control._progressComplete
+                }
             }
             
             // Text column 文字列

@@ -379,6 +379,23 @@ def test_progress_dialog_presenter_can_replace_default(auto_updater_scene, qapp)
     assert dialog.property("progress") == pytest.approx(25)
 
 
+def test_progress_dialog_shows_ready_icon(auto_updater_scene, qapp):
+    root = auto_updater_scene
+    assert QMetaObject.invokeMethod(root, "useProgressDialogAndCheck")
+    completion_icon = root.findChild(QObject, "progressDialogCompletionIcon")
+    assert completion_icon is not None
+    assert completion_icon.property("icon") == ""
+    assert completion_icon.property("visible") is False
+    assert QMetaObject.invokeMethod(root, "triggerDualSlotPreparation")
+    assert QMetaObject.invokeMethod(root, "finishDualSlotPreparation")
+    qapp.processEvents()
+    dialog = root.findChild(QObject, "autoUpdaterProgressDialog")
+    assert dialog.property("title") == "新版已准备完成"
+    assert dialog.property("progress") == pytest.approx(100)
+    assert completion_icon.property("icon") == "Checkmark"
+    assert completion_icon.property("visible") is True
+
+
 def test_progress_dialog_ready_state_uses_completion_timeout(auto_updater_scene):
     root = auto_updater_scene
     assert QMetaObject.invokeMethod(root, "useProgressDialogAndCheck")
