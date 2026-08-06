@@ -183,7 +183,7 @@ def _create_scene():
     assert _wait_for(
         lambda: axis_core.width() == pytest.approx(window.width())
         and axis_core.height() == pytest.approx(window.height())
-        and len(_axis_labels(window, axis_core)) == 22
+        and len(_axis_labels(window, axis_core)) == 8
     )
     return engine, component, window, axis_core, warnings
 
@@ -215,12 +215,12 @@ def xy_axis_scene(qapp):
 @pytest.mark.parametrize(
     ("mode_property", "expected_label_count", "expected_visible_count"),
     [
-        ("verticalMode", 22, 8),
-        ("horizontalMode", 22, 8),
-        ("scatterMode", 16, 11),
+        ("verticalMode", 8, 8),
+        ("horizontalMode", 8, 8),
+        ("scatterMode", 11, 11),
     ],
 )
-def test_xy_axes_construct_hidden_direction_and_type_delegates_baseline(
+def test_xy_axes_construct_only_active_direction_and_type_delegates(
     mode_property,
     expected_label_count,
     expected_visible_count,
@@ -238,28 +238,22 @@ def test_xy_axes_construct_hidden_direction_and_type_delegates_baseline(
     assert _new_visible_windows(windows_before, window) == []
 
 
-def test_xy_axes_hidden_core_and_grid_still_construct_delegates_baseline(
+def test_xy_axes_skip_hidden_core_and_grid_delegates(
     xy_axis_scene,
 ):
     window, axis_core, warnings, windows_before = xy_axis_scene
     assert len(_grid_lines(window, axis_core)) == 5
 
     assert window.setProperty("gridEnabled", False)
-    assert _wait_for(
-        lambda: len(_grid_lines(window, axis_core)) == 5
-        and not any(line.isVisible() for line in _grid_lines(window, axis_core))
-    )
+    assert _wait_for(lambda: _grid_lines(window, axis_core) == [])
 
     assert window.setProperty("coreVisible", False)
-    assert _wait_for(
-        lambda: len(_axis_labels(window, axis_core)) == 22
-        and not any(label.isVisible() for label in _axis_labels(window, axis_core))
-    )
+    assert _wait_for(lambda: _axis_labels(window, axis_core) == [])
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
 
-def test_xy_axis_direction_pixel_roundtrip_and_first_hover_baseline(
+def test_xy_axis_direction_pixel_roundtrip_and_first_hover(
     xy_axis_scene,
 ):
     window, axis_core, warnings, windows_before = xy_axis_scene

@@ -47,6 +47,16 @@ Item {
     readonly property real chartAreaY: chartAreaItem ? chartAreaItem.y : 0
     readonly property real chartAreaWidth: chartAreaItem ? (chartAreaItem.width || 0) : 0
     readonly property real chartAreaHeight: chartAreaItem ? (chartAreaItem.height || 0) : 0
+    readonly property bool _hasAxisData: chartData.length > 0 || series.length > 0
+    readonly property bool _showGridLines: root.visible && showGrid && _hasAxisData
+    readonly property bool _showVerticalValueAxis:
+        root.visible && _hasAxisData && !isHorizontal
+    readonly property bool _showHorizontalAxes:
+        root.visible && isHorizontal && chartData.length > 0
+    readonly property bool _showVerticalCategoryAxis: root.visible && showLabels
+        && chartData.length > 0 && !isScatter && !isHorizontal
+    readonly property bool _showScatterXAxis:
+        root.visible && isScatter && series.length > 0
     
     // Value range for charts with negative values 支持负值的数值范围
     readonly property var valueRange: {
@@ -152,11 +162,11 @@ Item {
     Item {
         id: gridLines
         anchors.fill: chartAreaItem
-        visible: root.showGrid && (root.chartData.length > 0 || root.series.length > 0)
+        visible: root._showGridLines
         
         // Horizontal grid lines - light and subtle 水平网格线 - 轻量简洁
         Repeater {
-            model: 5
+            model: root._showGridLines ? 5 : 0
             Rectangle {
                 x: 0
                 y: index * (gridLines.height / 4)
@@ -178,7 +188,7 @@ Item {
         
         // Vertical grid lines for horizontal bar chart 水平柱状图的垂直网格线
         Repeater {
-            model: root.isHorizontal ? 5 : 0
+            model: root._showGridLines && root.isHorizontal ? 5 : 0
             Rectangle {
                 x: index * (gridLines.width / 4)
                 y: 0
@@ -196,10 +206,10 @@ Item {
         y: chartAreaItem.y
         width: root.yAxisLabelWidth - Enums.spacing.s
         height: chartAreaItem.height
-        visible: (root.chartData.length > 0 || root.series.length > 0) && !root.isHorizontal
+        visible: root._showVerticalValueAxis
         
         Repeater {
-            model: 5
+            model: root._showVerticalValueAxis ? 5 : 0
             Label {
                 x: 0
                 y: index * (yAxisLabels.height / 4) - Enums.spacing.xs
@@ -234,7 +244,7 @@ Item {
         y: chartAreaItem.y + root.viewportOffsetRatio * chartAreaItem.height
         width: Enums.controlSize.chartYAxisWidth + Enums.spacing.l
         height: chartAreaItem.height
-        visible: root.isHorizontal && root.chartData.length > 0
+        visible: root._showHorizontalAxes
         transform: Scale {
             origin.x: 0
             origin.y: 0
@@ -242,7 +252,7 @@ Item {
         }
         
         Repeater {
-            model: root.chartData
+            model: root._showHorizontalAxes ? root.chartData : []
             Label {
                 width: parent.width
                 height: parent.height / Math.max(root.chartData.length, 1)
@@ -279,10 +289,10 @@ Item {
         y: chartAreaItem.y + chartAreaItem.height + Enums.spacing.xs
         width: chartAreaItem.width
         height: Enums.controlSize.chartXAxisHeight
-        visible: root.isHorizontal && root.chartData.length > 0
+        visible: root._showHorizontalAxes
         
         Repeater {
-            model: 5
+            model: root._showHorizontalAxes ? 5 : 0
             Label {
                 x: index * (parent.width / 4) - (index === 0 ? 0 : width / 2)
                 type: Enums.label.type_caption
@@ -302,7 +312,7 @@ Item {
         x: chartAreaItem.x + root.viewportOffsetRatio * chartAreaItem.width
         y: chartAreaItem.y + chartAreaItem.height + Enums.spacing.xs
         width: chartAreaItem.width
-        visible: root.showLabels && root.chartData.length > 0 && !root.isScatter && !root.isHorizontal
+        visible: root._showVerticalCategoryAxis
         transform: Scale {
             origin.x: 0
             origin.y: 0
@@ -310,7 +320,7 @@ Item {
         }
         
         Repeater {
-            model: root.chartData
+            model: root._showVerticalCategoryAxis ? root.chartData : []
             Label {
                 width: parent.width / root.chartData.length
                 type: Enums.label.type_caption
@@ -351,7 +361,7 @@ Item {
         y: chartAreaItem.y + chartAreaItem.height + Enums.spacing.xs
         width: chartAreaItem.width
         height: Enums.controlSize.chartXAxisHeight
-        visible: root.isScatter && root.series.length > 0
+        visible: root._showScatterXAxis
         transform: Scale {
             origin.x: 0
             origin.y: 0
@@ -359,7 +369,7 @@ Item {
         }
         
         Repeater {
-            model: 6
+            model: root._showScatterXAxis ? 6 : 0
             Label {
                 x: index * (parent.width / 5) - width / 2
                 type: Enums.label.type_caption
