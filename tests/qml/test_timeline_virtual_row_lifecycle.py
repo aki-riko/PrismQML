@@ -196,23 +196,24 @@ def timeline_virtual_row_scene(qapp):
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
-def test_timeline_virtual_rows_skip_the_hidden_full_content_branch(
+def test_timeline_virtual_rows_construct_only_the_active_content_branch(
     timeline_virtual_row_scene,
 ):
     window, timeline, warnings, windows_before = timeline_virtual_row_scene
     rows = _row_delegates(timeline)
 
     assert len(rows) == 3
-    assert all(len(_header_parts(row)) == 1 for row in rows)
-    assert all(len(_card_parts(row)) == 1 for row in rows)
+    assert sorted(
+        (len(_header_parts(row)), len(_card_parts(row))) for row in rows
+    ) == [(0, 1), (0, 1), (1, 0)]
     assert sum(part.isVisible() for row in rows for part in _header_parts(row)) == 1
     assert sum(part.isVisible() for row in rows for part in _card_parts(row)) == 2
     virtual_cards = [card for card in _cards(timeline) if _has_list_view_ancestor(card)]
     hidden_full_cards = [
         card for card in _cards(timeline) if not _has_list_view_ancestor(card)
     ]
-    assert len(virtual_cards) == 3
-    assert sum(card.isVisible() for card in virtual_cards) == 2
+    assert len(virtual_cards) == 2
+    assert all(card.isVisible() for card in virtual_cards)
     assert hidden_full_cards == []
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
@@ -294,8 +295,8 @@ def test_timeline_content_branch_roundtrip_keeps_active_cards(
     assert window.setProperty("useVirtualRows", True)
     assert _wait_for(
         lambda: len(_row_delegates(timeline)) == 3
-        and len(_cards(timeline)) == 3
-        and sum(card.isVisible() for card in _cards(timeline)) == 2
+        and len(_cards(timeline)) == 2
+        and all(card.isVisible() for card in _cards(timeline))
         and all(_has_list_view_ancestor(card) for card in _cards(timeline))
     )
     assert warnings == []

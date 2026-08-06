@@ -477,8 +477,12 @@ Item {
         delegate: Item {
             id: rowDelegate
             required property var model
+            property Item headerPart: null
+            property Item cardPart: null
+            readonly property Item activePart: model.kind === "header"
+                ? headerPart : cardPart
             width: virtualList.width
-            height: model.kind === "header" ? headerPart.height : cardPart.height
+            height: activePart ? activePart.height : 0
             clip: !control._graphMode
 
             // Graph primitives stay inside each row and meet at the exact
@@ -492,130 +496,146 @@ Item {
                 visible: control._graphMode
                 graphData: rowDelegate.model.graphData || {}
                 showNode: rowDelegate.model.kind === "card"
-                nodeY: cardBox.y + cardBox.height / 2
-                selected: showNode && cardPart.isSelected
+                nodeY: rowDelegate.cardPart ? rowDelegate.cardPart.nodeY : 0
+                selected: showNode && !!rowDelegate.cardPart
+                    && rowDelegate.cardPart.isSelected
                 graphPalette: control.graphPalette
             }
 
             // ---------- 组头行 ----------
-            Item {
-                id: headerPart
-                visible: rowDelegate.model.kind === "header"
-                width: parent.width
-                height: visible ? Enums.spacing.timelineHeaderHeight + Enums.spacing.s : 0
-                clip: true
-                Row {
-                    anchors.left: parent.left
-                    anchors.leftMargin: control._graphMode ? control._graphWidth : 0
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Enums.spacing.m
-                    Rectangle {
-                        width: Enums.controlSize.timelineIcon
-                        height: Enums.controlSize.timelineIcon
-                        radius: Enums.controlSize.timelineIcon / 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: control._getStatusColor(rowDelegate.model.status || "info")
-                        visible: !control._graphMode
-                        Icon {
-                            anchors.centerIn: parent
-                            icon: control._getStatusIcon(rowDelegate.model.status || "info")
-                            iconSize: Enums.controlSize.timelineIconText
-                            color: Enums.accentForeground
-                        }
-                    }
+            Repeater {
+                model: rowDelegate.model.kind === "header" ? 1 : 0
+                onItemAdded: (index, item) => rowDelegate.headerPart = item
+                onItemRemoved: (index, item) => {
+                    if (rowDelegate.headerPart === item) rowDelegate.headerPart = null
+                }
 
-                    Label {
-                        type: Enums.label.type_body_strong
+                delegate: Item {
+                    id: headerPart
+                    width: rowDelegate.width
+                    height: Enums.spacing.timelineHeaderHeight + Enums.spacing.s
+                    clip: true
+                    Row {
+                        anchors.left: parent.left
+                        anchors.leftMargin: control._graphMode ? control._graphWidth : 0
                         anchors.verticalCenter: parent.verticalCenter
-                        text: rowDelegate.model.title || ""
+                        spacing: Enums.spacing.m
+                        Rectangle {
+                            width: Enums.controlSize.timelineIcon
+                            height: Enums.controlSize.timelineIcon
+                            radius: Enums.controlSize.timelineIcon / 2
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: control._getStatusColor(rowDelegate.model.status || "info")
+                            visible: !control._graphMode
+                            Icon {
+                                anchors.centerIn: parent
+                                icon: control._getStatusIcon(rowDelegate.model.status || "info")
+                                iconSize: Enums.controlSize.timelineIconText
+                                color: Enums.accentForeground
+                            }
+                        }
+
+                        Label {
+                            type: Enums.label.type_body_strong
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: rowDelegate.model.title || ""
+                        }
                     }
                 }
             }
 
             // ---------- 卡片行 ----------
-            Item {
-                id: cardPart
-                readonly property int shadowPadding: Enums.spacing.cardShadow
-                // 当前选中高亮判定
-                readonly property bool isSelected: control.selectedKey !== undefined
-                    && !!rowDelegate.model.cardData
-                    && (typeof rowDelegate.model.cardData === "object")
-                    && rowDelegate.model.cardData[control.selectedRole] === control.selectedKey
-                visible: rowDelegate.model.kind === "card"
-                width: parent.width
-                height: visible ? cardBox.y + cardBox.height + Enums.spacing.m : 0
-                clip: true
-                // 左侧连接线
-                Rectangle {
-                    x: 7; y: 0
-                    width: Enums.border.normal
-                    height: parent.height
-                    color: Enums.stateColor.borderSubtle
-                    visible: !control._graphMode
+            Repeater {
+                model: rowDelegate.model.kind === "card" ? 1 : 0
+                onItemAdded: (index, item) => rowDelegate.cardPart = item
+                onItemRemoved: (index, item) => {
+                    if (rowDelegate.cardPart === item) rowDelegate.cardPart = null
                 }
-                Card {
-                    id: cardBox
-                    x: control._graphMode ? control._graphWidth : Enums.spacing.timelineIndent
-                    y: cardPart.shadowPadding
-                    // Keep the normal card inset; the viewport reserves the scrollbar gutter.
-                    // 保留常规卡片内缩；滚动条空间由视口统一预留。
-                    width: parent.width - x - Enums.spacing.m
-                    height: cardCol.implicitHeight + Enums.spacing.l * 2
-                    // Graph cards use Fluent elevation and the Card token border.
-                    // 图模式卡片使用 Fluent 层级动效与 Card 自带轻边框。
-                    cardType: control._graphMode
-                        ? Enums.card.type_elevated : Enums.card.type_hover
-                    contentPadding: Enums.spacing.none
-                    clickEnabled: true
 
-                    onClicked: {
-                        control.cardClicked(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.text)
-                        control.cardClickedData(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.cardData)
-                    }
-
-                    // Fluent 左侧选中指示条(圆角 pill,accent 色,短竖条居中)
+                delegate: Item {
+                    id: cardPart
+                    readonly property int shadowPadding: Enums.spacing.cardShadow
+                    // 当前选中高亮判定
+                    readonly property bool isSelected: control.selectedKey !== undefined
+                        && !!rowDelegate.model.cardData
+                        && (typeof rowDelegate.model.cardData === "object")
+                        && rowDelegate.model.cardData[control.selectedRole] === control.selectedKey
+                    readonly property real nodeY: cardBox.y + cardBox.height / 2
+                    width: rowDelegate.width
+                    height: cardBox.y + cardBox.height + Enums.spacing.m
+                    clip: true
+                    // 左侧连接线
                     Rectangle {
-                        anchors.left: parent.left
-                        anchors.leftMargin: Enums.spacing.xs
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Enums.border.thick
-                        radius: Enums.radius.micro
-                        color: Enums.accentColor
-                        height: cardPart.isSelected ? parent.height * 0.5 : 0
-                        opacity: cardPart.isSelected ? 1 : 0
-                        Behavior on height { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
-                        Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                        x: 7; y: 0
+                        width: Enums.border.normal
+                        height: parent.height
+                        color: Enums.stateColor.borderSubtle
+                        visible: !control._graphMode
                     }
-                    Column {
-                        id: cardCol
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: Enums.spacing.l
-                        spacing: Enums.spacing.xxs
-                        Label {
-                            type: Enums.label.type_body
-                            width: parent.width
-                            text: rowDelegate.model.text || ""
-                            color: (rowDelegate.model.strikeOut || false) ? Enums.textColor.secondary : Enums.textColor.primary
-                            wrapMode: Text.Wrap
-                            font.strikeout: rowDelegate.model.strikeOut || false
+                    Card {
+                        id: cardBox
+                        x: control._graphMode ? control._graphWidth : Enums.spacing.timelineIndent
+                        y: cardPart.shadowPadding
+                        // Keep the normal card inset; the viewport reserves the scrollbar gutter.
+                        // 保留常规卡片内缩；滚动条空间由视口统一预留。
+                        width: parent.width - x - Enums.spacing.m
+                        height: cardCol.implicitHeight + Enums.spacing.l * 2
+                        // Graph cards use Fluent elevation and the Card token border.
+                        // 图模式卡片使用 Fluent 层级动效与 Card 自带轻边框。
+                        cardType: control._graphMode
+                            ? Enums.card.type_elevated : Enums.card.type_hover
+                        contentPadding: Enums.spacing.none
+                        clickEnabled: true
+
+                        onClicked: {
+                            control.cardClicked(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.text)
+                            control.cardClickedData(rowDelegate.model.groupIndex, rowDelegate.model.cardIndex, rowDelegate.model.cardData)
                         }
-                        TimelineGraphLabels {
-                            width: parent.width
-                            visible: control._graphMode
-                                && !!rowDelegate.model.cardData
-                                && !!rowDelegate.model.cardData.labels
-                                && rowDelegate.model.cardData.labels.length > 0
-                            labels: visible ? rowDelegate.model.cardData.labels : []
+
+                        // Fluent 左侧选中指示条(圆角 pill,accent 色,短竖条居中)
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.leftMargin: Enums.spacing.xs
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Enums.border.thick
+                            radius: Enums.radius.micro
+                            color: Enums.accentColor
+                            height: cardPart.isSelected ? parent.height * 0.5 : 0
+                            opacity: cardPart.isSelected ? 1 : 0
+                            Behavior on height { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+                            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
                         }
-                        Label {
-                            type: Enums.label.type_caption
-                            width: parent.width
-                            visible: (rowDelegate.model.description || "") !== ""
-                            text: rowDelegate.model.description || ""
-                            color: Enums.textColor.tertiary
-                            wrapMode: Text.Wrap
+                        Column {
+                            id: cardCol
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.margins: Enums.spacing.l
+                            spacing: Enums.spacing.xxs
+                            Label {
+                                type: Enums.label.type_body
+                                width: parent.width
+                                text: rowDelegate.model.text || ""
+                                color: (rowDelegate.model.strikeOut || false) ? Enums.textColor.secondary : Enums.textColor.primary
+                                wrapMode: Text.Wrap
+                                font.strikeout: rowDelegate.model.strikeOut || false
+                            }
+                            TimelineGraphLabels {
+                                width: parent.width
+                                visible: control._graphMode
+                                    && !!rowDelegate.model.cardData
+                                    && !!rowDelegate.model.cardData.labels
+                                    && rowDelegate.model.cardData.labels.length > 0
+                                labels: visible ? rowDelegate.model.cardData.labels : []
+                            }
+                            Label {
+                                type: Enums.label.type_caption
+                                width: parent.width
+                                visible: (rowDelegate.model.description || "") !== ""
+                                text: rowDelegate.model.description || ""
+                                color: Enums.textColor.tertiary
+                                wrapMode: Text.Wrap
+                            }
                         }
                     }
                 }
