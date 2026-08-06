@@ -386,6 +386,28 @@ def test_progress_ring_creates_only_the_active_visual_branch(qapp):
         _pump(1)
 
 
+def test_progress_ring_visibility_preserves_the_active_visual_branch(qapp):
+    engine, component, root = _create_scene()
+    try:
+        ring = root.findChild(QQuickItem, "blockingProgressRing")
+        assert ring is not None
+        arc = ring.findChild(QObject, "progressRingIndeterminateArc")
+        assert arc is not None
+
+        ring.setVisible(False)
+        _pump(1)
+        assert ring.findChild(QObject, "progressRingIndeterminateArc") is arc
+
+        ring.setVisible(True)
+        _pump(1)
+        assert ring.findChild(QObject, "progressRingIndeterminateArc") is arc
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_indeterminate_ring_keeps_rendering_while_gui_thread_is_blocked():
     """同步页面创建占住 GUI 线程时，三种视觉模式都须持续交换帧。"""
     env = os.environ.copy()
