@@ -41,10 +41,10 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     // Internal function to check and start animation 内部函数检查并启动动画
     function _tryStartAnimation() {
-        if (running && _needsScroll && width > 0 && !scrollAnim.running) {
+        if (running && visible && _needsScroll && width > 0 && !scrollAnim.running) {
             marqueeContent.x = 0
             scrollAnim.restart()
-        } else if (!running || !_needsScroll) {
+        } else if (!running || !visible || !_needsScroll) {
             scrollAnim.stop()
             marqueeContent.x = 0
         }
@@ -58,6 +58,7 @@ Item {
     on_NeedsScrollChanged: startTimer.restart()
     on_ScrollDistanceChanged: startTimer.restart()
     onRunningChanged: _tryStartAnimation()
+    onVisibleChanged: _tryStartAnimation()
     onForceScrollChanged: startTimer.restart()
     onScrollGapChanged: startTimer.restart()
     onSpeedChanged: startTimer.restart()

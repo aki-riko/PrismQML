@@ -134,6 +134,8 @@ def test_hidden_loops_preserve_items_and_public_state(qapp):
         assert window.findChild(QQuickItem, "loopingMarquee") is marquee
         assert tag.property("status") == window.property("processingStatus")
         assert marquee.property("running") is True
+        assert tag_animation.property("running") is False
+        assert marquee_animation.property("running") is False
 
         assert QMetaObject.invokeMethod(
             window, "showItems", Qt.ConnectionType.DirectConnection

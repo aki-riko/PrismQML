@@ -63,7 +63,8 @@ Rectangle {
             
             // Processing animation 处理中动画
             SequentialAnimation on opacity {
-                running: control.status === Enums.statusLevel.processing
+                running: control.status === Enums.statusLevel.processing &&
+                         control.visible
                 loops: Animation.Infinite
                 NumberAnimation { to: 0.3; duration: Enums.duration.slow * 2 }
                 NumberAnimation { to: 1; duration: Enums.duration.slow * 2 }
