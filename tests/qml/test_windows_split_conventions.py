@@ -466,3 +466,13 @@ def test_windows_bar_source_conventions_and_zero_delay_token():
         "root.hostWindow.navigationScrollStep : Enums.spacing.navigationScrollStep"
         in content_source
     )
+    assert (
+        "model: root.hostWindow && !root._compactNav\n"
+        "            ? root.hostWindow.navigationItems : []"
+        in content_source
+    )
+    assert (
+        "bottomItems: root.hostWindow && !root._compactNav\n"
+        "            ? root.hostWindow.bottomNavigationItems : []"
+        in content_source
+    )

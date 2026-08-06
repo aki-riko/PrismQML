@@ -46,8 +46,10 @@ Item {
         anchors.bottom: parent.bottom
         visible: !root._compactNav
         width: root._compactNav ? 0 : implicitWidth
-        model: root.hostWindow ? root.hostWindow.navigationItems : []
-        bottomItems: root.hostWindow ? root.hostWindow.bottomNavigationItems : []
+        model: root.hostWindow && !root._compactNav
+            ? root.hostWindow.navigationItems : []
+        bottomItems: root.hostWindow && !root._compactNav
+            ? root.hostWindow.bottomNavigationItems : []
         smoothScroll: root.hostWindow ? root.hostWindow.navigationSmoothScroll : true
         scrollDuration: root.hostWindow ? root.hostWindow.navigationScrollDuration : Enums.duration.navigationScroll
         scrollStep: root.hostWindow ? root.hostWindow.navigationScrollStep : Enums.spacing.navigationScrollStep
