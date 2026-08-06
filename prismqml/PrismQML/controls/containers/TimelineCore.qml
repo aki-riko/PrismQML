@@ -293,7 +293,7 @@ Item {
         visible: !control._usesVirtualList
         
         Repeater {
-            model: control._safeItems
+            model: control._usesVirtualList ? [] : control._safeItems
             
             delegate: Item {
                 id: groupItem

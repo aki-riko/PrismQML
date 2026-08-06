@@ -26,14 +26,16 @@ import QtQuick.Window
 import PrismQML
 
 Window {
+    id: root
     width: 460
     height: 360
     visible: true
+    property bool useVirtualRows: true
 
     TimelineCore {
         objectName: "timeline"
         anchors.fill: parent
-        virtualized: true
+        virtualized: root.useVirtualRows
         showScrollBar: false
         selectedRole: "commit"
         selectedKey: "two"
@@ -194,7 +196,7 @@ def timeline_virtual_row_scene(qapp):
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
-def test_timeline_virtual_rows_construct_both_content_branches_baseline(
+def test_timeline_virtual_rows_skip_the_hidden_full_content_branch(
     timeline_virtual_row_scene,
 ):
     window, timeline, warnings, windows_before = timeline_virtual_row_scene
@@ -211,8 +213,7 @@ def test_timeline_virtual_rows_construct_both_content_branches_baseline(
     ]
     assert len(virtual_cards) == 3
     assert sum(card.isVisible() for card in virtual_cards) == 2
-    assert len(hidden_full_cards) == 2
-    assert not any(card.isVisible() for card in hidden_full_cards)
+    assert hidden_full_cards == []
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
@@ -251,5 +252,51 @@ def test_timeline_virtual_card_keeps_first_click_behavior(
     assert _wait_for(lambda: card_clicks == [(0, 0, "First change")])
     assert card_data[0][0:2] == (0, 0)
     assert card_data[0][2]["commit"] == "one"
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_content_branch_roundtrip_keeps_active_cards(
+    timeline_virtual_row_scene,
+):
+    window, timeline, warnings, windows_before = timeline_virtual_row_scene
+
+    assert window.setProperty("useVirtualRows", False)
+    settled_nonvirtual = _wait_for(
+        lambda: len(
+            [card for card in _cards(timeline) if not _has_list_view_ancestor(card)]
+        )
+        == 2
+        and all(
+            card.isVisible()
+            for card in _cards(timeline)
+            if not _has_list_view_ancestor(card)
+        )
+        and not any(
+            card.isVisible()
+            for card in _cards(timeline)
+            if _has_list_view_ancestor(card)
+        )
+    )
+    assert settled_nonvirtual, {
+        "uses_virtual": timeline.property("_usesVirtualList"),
+        "rows": [row.isVisible() for row in _row_delegates(timeline)],
+        "cards": [
+            {
+                "visible": card.isVisible(),
+                "virtual": _has_list_view_ancestor(card),
+            }
+            for card in _cards(timeline)
+        ],
+        "warnings": warnings,
+    }
+
+    assert window.setProperty("useVirtualRows", True)
+    assert _wait_for(
+        lambda: len(_row_delegates(timeline)) == 3
+        and len(_cards(timeline)) == 3
+        and sum(card.isVisible() for card in _cards(timeline)) == 2
+        and all(_has_list_view_ancestor(card) for card in _cards(timeline))
+    )
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
