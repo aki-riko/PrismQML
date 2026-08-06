@@ -245,7 +245,7 @@ Widget {
             // Title 标题（水平模式）
             Label {
                 id: titleText
-                anchors.left: _isRingMode ? toastRingContainer.right : (_isBarMode ? toastIconContainer.right : parent.left)
+                anchors.left: _isRingMode ? toastProgressModeLoader.right : (_isBarMode ? toastIconContainer.right : parent.left)
                 anchors.leftMargin: (_isRingMode || _isBarMode) ? Enums.infoBarMetrics.textLeftGap : Enums.spacing.xl
                 anchors.top: parent.top
                 anchors.topMargin: Enums.spacing.l
@@ -262,7 +262,7 @@ Widget {
             // Content 内容（水平模式）
             Label {
                 id: messageText
-                anchors.left: _isRingMode ? toastRingContainer.right : (_isBarMode ? toastIconContainer.right : parent.left)
+                anchors.left: _isRingMode ? toastProgressModeLoader.right : (_isBarMode ? toastIconContainer.right : parent.left)
                 anchors.leftMargin: (_isRingMode || _isBarMode) ? Enums.infoBarMetrics.textLeftGap : Enums.spacing.xl
                 anchors.top: titleText.visible ? titleText.bottom : parent.top
                 anchors.topMargin: titleText.visible ? Enums.spacing.xs : Enums.spacing.l
@@ -280,7 +280,7 @@ Widget {
             // Vertical layout 垂直布局
             Column {
                 id: verticalLayout
-                anchors.left: _isRingMode ? toastRingContainer.right : (_isBarMode ? toastIconContainer.right : parent.left)
+                anchors.left: _isRingMode ? toastProgressModeLoader.right : (_isBarMode ? toastIconContainer.right : parent.left)
                 anchors.leftMargin: (_isRingMode || _isBarMode) ? Enums.infoBarMetrics.textLeftGap : Enums.spacing.xl
                 anchors.right: closeBtn.left
                 anchors.rightMargin: Enums.spacing.m
@@ -333,94 +333,106 @@ Widget {
                 onClicked: control.hide()
             }
             
-            // Progress bar 进度条（参考 Button 圆角裁剪方案）
-            Item {
-                id: toastProgressClipRect
-                anchors.fill: parent
-                visible: control._isBarMode
+            // Load only the active progress shape; normal toasts keep both heavy branches absent.
+            // 仅加载当前进度形态；普通 Toast 不常驻两个重型分支。
+            Loader {
+                id: toastProgressModeLoader
 
-                // Mask uses Rectangle's opaque white default and requires a layer 遮罩使用 Rectangle 默认不透明白色，且必须启用 layer
-                Rectangle {
-                    id: toastProgressMask
+                active: control._isBarMode || control._isRingMode
+                x: control._isRingMode ? Enums.infoBarMetrics.margin : 0
+                y: control._isRingMode
+                    ? (control._isVertical ? Enums.spacing.l : (card.height - height) / 2)
+                    : 0
+                width: control._isRingMode ? Enums.infoBarMetrics.iconContainerSize : card.width
+                height: control._isRingMode ? Enums.infoBarMetrics.iconContainerSize : card.height
+                sourceComponent: control._isBarMode
+                    ? toastProgressBarComponent
+                    : (control._isRingMode ? toastProgressRingComponent : null)
+            }
 
-                    objectName: "toastProgressMask"
-                    anchors.fill: parent
-                    radius: card.radius
-                    layer.enabled: control._isBarMode
-                    visible: false
-                }
+            Component {
+                id: toastProgressBarComponent
 
-                // Progress bar content with mask 带遮罩的进度条内容
+                // Progress bar 进度条（参考 Button 圆角裁剪方案）
                 Item {
-                    id: toastProgressContent
+                    // Mask uses Rectangle's opaque white default and requires a layer 遮罩使用 Rectangle 默认不透明白色，且必须启用 layer
+                    Rectangle {
+                        id: toastProgressMask
 
-                    objectName: "toastProgressContent"
-                    anchors.fill: parent
-                    layer.enabled: control._isBarMode
-                    layer.effect: MultiEffect {
-                        maskEnabled: true
-                        maskSource: toastProgressMask
-                        maskThresholdMin: 0.5
-                        maskSpreadAtMin: 0.0
+                        objectName: "toastProgressMask"
+                        anchors.fill: parent
+                        radius: card.radius
+                        layer.enabled: control._isBarMode
+                        visible: false
                     }
 
-                    ProgressBar {
-                        objectName: "toastProgressBar"
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        height: Enums.spacing.xs
-                        value: control.progress * 100
-                        from: 0
-                        to: 100
-                        indeterminate: feature === Enums.notification.feature_indeterminate_bar
+                    // Progress bar content with mask 带遮罩的进度条内容
+                    Item {
+                        id: toastProgressContent
+
+                        objectName: "toastProgressContent"
+                        anchors.fill: parent
+                        layer.enabled: control._isBarMode
+                        layer.effect: MultiEffect {
+                            maskEnabled: true
+                            maskSource: toastProgressMask
+                            maskThresholdMin: 0.5
+                            maskSpreadAtMin: 0.0
+                        }
+
+                        ProgressBar {
+                            objectName: "toastProgressBar"
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: Enums.spacing.xs
+                            value: control.progress * 100
+                            from: 0
+                            to: 100
+                            indeterminate: feature === Enums.notification.feature_indeterminate_bar
+                        }
                     }
                 }
             }
-            
-            // Progress ring 进度环（使用现有组件）
-            // Progress ring container: ref InfoBar margins and size 进度环容器：参考 InfoBar 的边距和尺寸
-            Item {
-                id: toastRingContainer
-                anchors.left: parent.left
-                anchors.leftMargin: Enums.infoBarMetrics.margin
-                anchors.top: _isVertical ? parent.top : undefined
-                anchors.topMargin: _isVertical ? Enums.spacing.l : 0
-                anchors.verticalCenter: _isVertical ? undefined : parent.verticalCenter
-                width: Enums.infoBarMetrics.iconContainerSize
-                height: Enums.infoBarMetrics.iconContainerSize
-                visible: _isRingMode
 
-                ProgressRing {
-                    objectName: "toastProgressRing"
-                    anchors.centerIn: parent
-                    width: Enums.infoBarMetrics.iconSize
-                    height: width
-                    strokeWidth: Enums.border.normal
-                    value: control.progress * 100
-                    from: 0
-                    to: 100
-                    indeterminate: feature === Enums.notification.feature_indeterminate_ring && toastRingContainer.visible && control.visible
-                    visible: !control._progressComplete && (
-                        feature === Enums.notification.feature_progress_ring ||
-                        (feature === Enums.notification.feature_indeterminate_ring && control.visible)
-                    )
-                }
+            Component {
+                id: toastProgressRingComponent
 
-                // Complete icon 完成图标
-                Icon {
-                    objectName: "toastProgressCompleteIcon"
-                    anchors.centerIn: parent
-                    iconSize: Enums.infoBarMetrics.iconSize
-                    icon: Enums.icon.checkmark
-                    color: Enums.accentColor
-                    visible: control._progressComplete
-                    opacity: 0
+                // Progress ring container: ref InfoBar margins and size 进度环容器：参考 InfoBar 的边距和尺寸
+                Item {
+                    id: toastRingContainer
 
-                    NumberAnimation on opacity {
-                        running: control._progressComplete
-                        from: 0; to: 1
-                        duration: Enums.duration.normal
+                    ProgressRing {
+                        objectName: "toastProgressRing"
+                        anchors.centerIn: parent
+                        width: Enums.infoBarMetrics.iconSize
+                        height: width
+                        strokeWidth: Enums.border.normal
+                        value: control.progress * 100
+                        from: 0
+                        to: 100
+                        indeterminate: feature === Enums.notification.feature_indeterminate_ring && toastRingContainer.visible && control.visible
+                        visible: !control._progressComplete && (
+                            feature === Enums.notification.feature_progress_ring ||
+                            (feature === Enums.notification.feature_indeterminate_ring && control.visible)
+                        )
+                    }
+
+                    // Complete icon 完成图标
+                    Icon {
+                        objectName: "toastProgressCompleteIcon"
+                        anchors.centerIn: parent
+                        iconSize: Enums.infoBarMetrics.iconSize
+                        icon: Enums.icon.checkmark
+                        color: Enums.accentColor
+                        visible: control._progressComplete
+                        opacity: 0
+
+                        NumberAnimation on opacity {
+                            running: control._progressComplete
+                            from: 0; to: 1
+                            duration: Enums.duration.normal
+                        }
                     }
                 }
             }

@@ -172,6 +172,7 @@ def test_toast_keeps_two_close_timers(qapp):
         )
 
         assert len(timers) == 2
+        assert object_count == 61
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
@@ -236,17 +237,15 @@ def test_toast_show_does_not_restart_active_completion_timer(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_normal_toast_keeps_one_idle_progress_control_per_shape(qapp):
+def test_normal_toast_creates_no_idle_progress_controls(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, toast, warnings = _create_scene("normal")
     try:
-        assert len(_progress_controls(toast, "ProgressBar")) == 1
-        assert len(_progress_controls(toast, "ProgressRing")) == 1
+        assert _progress_controls(toast, "ProgressBar") == []
+        assert _progress_controls(toast, "ProgressRing") == []
         mask = toast.findChild(QQuickItem, "toastProgressMask")
         content = toast.findChild(QQuickItem, "toastProgressContent")
-        assert mask is not None and content is not None
-        assert QQmlProperty(mask, "layer.enabled").read() is False
-        assert QQmlProperty(content, "layer.enabled").read() is False
+        assert mask is None and content is None
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
@@ -266,6 +265,7 @@ def test_toast_reuses_one_bar_control_for_both_modes(
     try:
         bars = _progress_controls(toast, "ProgressBar")
         assert len(bars) == 1
+        assert _progress_controls(toast, "ProgressRing") == []
         assert bars[0].property("indeterminate") is expected_indeterminate
         mask = toast.findChild(QQuickItem, "toastProgressMask")
         content = toast.findChild(QQuickItem, "toastProgressContent")
@@ -297,6 +297,7 @@ def test_toast_reuses_one_ring_control_for_all_states(
     try:
         rings = _progress_controls(toast, "ProgressRing")
         assert len(rings) == 1
+        assert _progress_controls(toast, "ProgressBar") == []
         assert rings[0].property("indeterminate") is expected_indeterminate
         assert rings[0].property("visible") is (not expected_complete)
         complete_icon = toast.findChild(QQuickItem, "toastProgressCompleteIcon")
@@ -309,25 +310,38 @@ def test_toast_reuses_one_ring_control_for_all_states(
         assert _new_visible_windows(windows_before) == []
 
 
-def test_toast_progress_modes_reuse_the_same_controls(qapp):
+def test_toast_progress_modes_create_only_the_active_shape(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, toast, warnings = _create_scene("normal")
     try:
-        bar = toast.findChild(QQuickItem, "toastProgressBar")
-        ring = toast.findChild(QQuickItem, "toastProgressRing")
-        assert bar is not None and ring is not None
+        assert toast.findChild(QQuickItem, "toastProgressBar") is None
+        assert toast.findChild(QQuickItem, "toastProgressRing") is None
 
         window.setProperty("initialMode", "bar")
+        bar = toast.findChild(QQuickItem, "toastProgressBar")
+        assert bar is not None
         assert toast.findChild(QQuickItem, "toastProgressBar") is bar
+        assert toast.findChild(QQuickItem, "toastProgressRing") is None
         assert not bar.property("indeterminate")
         window.setProperty("initialMode", "ring")
-        assert toast.findChild(QQuickItem, "toastProgressRing") is ring
+        ring = toast.findChild(QQuickItem, "toastProgressRing")
+        assert ring is not None
+        assert _wait_for(
+            lambda: toast.findChild(QQuickItem, "toastProgressBar") is None
+        )
         assert ring.property("visible")
 
+        window.setProperty("initialMode", "bar")
+        assert toast.findChild(QQuickItem, "toastProgressBar") is not None
+        assert _wait_for(
+            lambda: toast.findChild(QQuickItem, "toastProgressRing") is None
+        )
+
         window.setProperty("initialMode", "normal")
-        assert toast.findChild(QQuickItem, "toastProgressBar") is bar
-        assert toast.findChild(QQuickItem, "toastProgressRing") is ring
-        assert not ring.property("visible")
+        assert _wait_for(
+            lambda: toast.findChild(QQuickItem, "toastProgressBar") is None
+            and toast.findChild(QQuickItem, "toastProgressRing") is None
+        )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
