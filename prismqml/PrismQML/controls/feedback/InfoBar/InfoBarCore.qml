@@ -232,7 +232,7 @@ Widget {
     // Text container 文字容器（水平模式）
     Row {
         id: textRow
-        anchors.left: _isRingMode ? ringContainer.right : iconContainer.right
+        anchors.left: _isRingMode ? progressModeLoader.right : iconContainer.right
         anchors.leftMargin: Enums.infoBarMetrics.textLeftGap  // 与图标模式相同的间距
         anchors.right: closeBtn.visible ? closeBtn.left : parent.right
         anchors.rightMargin: Enums.infoBarMetrics.textRightMargin
@@ -347,95 +347,104 @@ Widget {
         onTriggered: control.hide()
     }
     
-    // Progress bar 进度条（使用现有ProgressBar组件）
-    // Progress bar container: ref Button rounded clip solution 进度条容器：参考Button的圆角裁剪方案
+    // Load only the active progress shape; normal notifications keep both heavy branches absent.
+    // 仅加载当前进度形态；普通通知不常驻两个重型分支。
+    Loader {
+        id: progressModeLoader
 
-    Item {
-        id: progressClipRect
-        anchors.fill: parent
-        visible: _isBarMode
-        
-        // Mask uses Rectangle's opaque white default and requires a layer 遮罩使用 Rectangle 默认不透明白色，且必须启用 layer
-        Rectangle {
-            id: progressMask
+        active: control._isBarMode || control._isRingMode
+        x: control._isRingMode ? Enums.infoBarMetrics.margin : 0
+        y: control._isRingMode ? (control.height - height) / 2 : 0
+        width: control._isRingMode ? Enums.infoBarMetrics.iconContainerSize : control.width
+        height: control._isRingMode ? Enums.infoBarMetrics.iconContainerSize : control.height
+        sourceComponent: control._isBarMode
+            ? progressBarComponent
+            : (control._isRingMode ? progressRingComponent : null)
+    }
 
-            objectName: "infoBarProgressMask"
-            anchors.fill: parent
-            radius: control.radius
-            layer.enabled: control._isBarMode
-            visible: false
-        }
-        
-        // Progress bar content with mask 带遮罩的进度条内容
+    Component {
+        id: progressBarComponent
+
+        // Progress bar container: ref Button rounded clip solution 进度条容器：参考Button的圆角裁剪方案
         Item {
-            id: progressContent
+            // Mask uses Rectangle's opaque white default and requires a layer 遮罩使用 Rectangle 默认不透明白色，且必须启用 layer
+            Rectangle {
+                id: progressMask
 
-            objectName: "infoBarProgressContent"
-            anchors.fill: parent
-            layer.enabled: control._isBarMode
-            layer.effect: MultiEffect {
-                maskEnabled: true
-                maskSource: progressMask
-                maskThresholdMin: 0.5
-                maskSpreadAtMin: 0.0
+                objectName: "infoBarProgressMask"
+                anchors.fill: parent
+                radius: control.radius
+                layer.enabled: control._isBarMode
+                visible: false
             }
-            
-            ProgressBar {
-                objectName: "infoBarProgressBar"
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: Enums.spacing.xs
-                value: control.progress * 100
-                from: 0
-                to: 100
-                indeterminate: feature === Enums.notification.feature_indeterminate_bar
+
+            // Progress bar content with mask 带遮罩的进度条内容
+            Item {
+                id: progressContent
+
+                objectName: "infoBarProgressContent"
+                anchors.fill: parent
+                layer.enabled: control._isBarMode
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: progressMask
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 0.0
+                }
+
+                ProgressBar {
+                    objectName: "infoBarProgressBar"
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: Enums.spacing.xs
+                    value: control.progress * 100
+                    from: 0
+                    to: 100
+                    indeterminate: feature === Enums.notification.feature_indeterminate_bar
+                }
             }
         }
     }
-    
-    // Progress ring 进度环（使用现有组件）
-    // Progress ring container: same size and margin as icon container 进度环容器：与图标容器相同的尺寸和间距
 
-    Item {
-        id: ringContainer
-        anchors.left: parent.left
-        anchors.leftMargin: Enums.infoBarMetrics.margin
-        anchors.verticalCenter: parent.verticalCenter
-        width: Enums.infoBarMetrics.iconContainerSize
-        height: Enums.infoBarMetrics.iconContainerSize
-        visible: _isRingMode
-        
-        ProgressRing {
-            objectName: "infoBarProgressRing"
-            anchors.centerIn: parent
-            width: Enums.infoBarMetrics.iconSize
-            height: width
-            strokeWidth: Enums.border.normal
-            value: control.progress * 100
-            from: 0
-            to: 100
-            indeterminate: feature === Enums.notification.feature_indeterminate_ring && ringContainer.visible && control.visible
-            visible: !control._progressComplete && (
-                feature === Enums.notification.feature_progress_ring ||
-                (feature === Enums.notification.feature_indeterminate_ring && control.visible)
-            )
-        }
-        
-        // Complete icon 完成图标
-        Icon {
-            objectName: "infoBarProgressCompleteIcon"
-            anchors.centerIn: parent
-            iconSize: Enums.infoBarMetrics.iconSize
-            icon: control.severityIconName
-            color: control.severityColor
-            visible: control._progressComplete
-            opacity: 0
-            
-            NumberAnimation on opacity {
-                running: control._progressComplete
-                from: 0; to: 1
-                duration: Enums.duration.normal
+    Component {
+        id: progressRingComponent
+
+        // Progress ring container: same size and margin as icon container 进度环容器：与图标容器相同的尺寸和间距
+        Item {
+            id: ringContainer
+
+            ProgressRing {
+                objectName: "infoBarProgressRing"
+                anchors.centerIn: parent
+                width: Enums.infoBarMetrics.iconSize
+                height: width
+                strokeWidth: Enums.border.normal
+                value: control.progress * 100
+                from: 0
+                to: 100
+                indeterminate: feature === Enums.notification.feature_indeterminate_ring && ringContainer.visible && control.visible
+                visible: !control._progressComplete && (
+                    feature === Enums.notification.feature_progress_ring ||
+                    (feature === Enums.notification.feature_indeterminate_ring && control.visible)
+                )
+            }
+
+            // Complete icon 完成图标
+            Icon {
+                objectName: "infoBarProgressCompleteIcon"
+                anchors.centerIn: parent
+                iconSize: Enums.infoBarMetrics.iconSize
+                icon: control.severityIconName
+                color: control.severityColor
+                visible: control._progressComplete
+                opacity: 0
+
+                NumberAnimation on opacity {
+                    running: control._progressComplete
+                    from: 0; to: 1
+                    duration: Enums.duration.normal
+                }
             }
         }
     }

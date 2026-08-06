@@ -169,7 +169,7 @@ def test_infobar_reuses_one_close_timer_for_both_modes(qapp):
         )
 
         assert len(timers) == 1
-        assert object_count == 86
+        assert object_count == 60
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
@@ -253,17 +253,15 @@ def test_infobar_restarts_full_delay_when_normal_becomes_complete(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_normal_infobar_keeps_one_idle_progress_control_per_shape(qapp):
+def test_normal_infobar_creates_no_idle_progress_controls(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, info_bar, warnings = _create_scene("normal")
     try:
-        assert len(_progress_controls(info_bar, "ProgressBar")) == 1
-        assert len(_progress_controls(info_bar, "ProgressRing")) == 1
+        assert _progress_controls(info_bar, "ProgressBar") == []
+        assert _progress_controls(info_bar, "ProgressRing") == []
         mask = info_bar.findChild(QQuickItem, "infoBarProgressMask")
         content = info_bar.findChild(QQuickItem, "infoBarProgressContent")
-        assert mask is not None and content is not None
-        assert QQmlProperty(mask, "layer.enabled").read() is False
-        assert QQmlProperty(content, "layer.enabled").read() is False
+        assert mask is None and content is None
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
@@ -283,6 +281,7 @@ def test_infobar_reuses_one_bar_control_for_both_modes(
     try:
         bars = _progress_controls(info_bar, "ProgressBar")
         assert len(bars) == 1
+        assert _progress_controls(info_bar, "ProgressRing") == []
         assert bars[0].property("indeterminate") is expected_indeterminate
         mask = info_bar.findChild(QQuickItem, "infoBarProgressMask")
         content = info_bar.findChild(QQuickItem, "infoBarProgressContent")
@@ -314,6 +313,7 @@ def test_infobar_reuses_one_ring_control_for_all_states(
     try:
         rings = _progress_controls(info_bar, "ProgressRing")
         assert len(rings) == 1
+        assert _progress_controls(info_bar, "ProgressBar") == []
         assert rings[0].property("indeterminate") is expected_indeterminate
         assert rings[0].property("visible") is (not expected_complete)
         complete_icon = info_bar.findChild(
@@ -328,16 +328,18 @@ def test_infobar_reuses_one_ring_control_for_all_states(
         assert _new_visible_windows(windows_before) == []
 
 
-def test_infobar_progress_modes_reuse_the_same_controls(qapp):
+def test_infobar_progress_modes_create_only_the_active_shape(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, info_bar, warnings = _create_scene("normal")
     try:
-        bar = info_bar.findChild(QQuickItem, "infoBarProgressBar")
-        ring = info_bar.findChild(QQuickItem, "infoBarProgressRing")
-        assert bar is not None and ring is not None
+        assert info_bar.findChild(QQuickItem, "infoBarProgressBar") is None
+        assert info_bar.findChild(QQuickItem, "infoBarProgressRing") is None
 
         window.setProperty("initialMode", "bar")
+        bar = info_bar.findChild(QQuickItem, "infoBarProgressBar")
+        assert bar is not None
         assert info_bar.findChild(QQuickItem, "infoBarProgressBar") is bar
+        assert info_bar.findChild(QQuickItem, "infoBarProgressRing") is None
         assert not bar.property("indeterminate")
 
         window.setProperty("initialMode", "indeterminate_bar")
@@ -345,7 +347,11 @@ def test_infobar_progress_modes_reuse_the_same_controls(qapp):
         assert bar.property("indeterminate")
 
         window.setProperty("initialMode", "ring")
-        assert info_bar.findChild(QQuickItem, "infoBarProgressRing") is ring
+        ring = info_bar.findChild(QQuickItem, "infoBarProgressRing")
+        assert ring is not None
+        assert _wait_for(
+            lambda: info_bar.findChild(QQuickItem, "infoBarProgressBar") is None
+        )
         assert ring.property("visible")
         assert not ring.property("indeterminate")
 
@@ -359,10 +365,18 @@ def test_infobar_progress_modes_reuse_the_same_controls(qapp):
         assert info_bar.findChild(QQuickItem, "infoBarProgressRing") is ring
         assert not ring.property("visible")
 
+        window.setProperty("initialProgress", 0.42)
+        window.setProperty("initialMode", "bar")
+        assert info_bar.findChild(QQuickItem, "infoBarProgressBar") is not None
+        assert _wait_for(
+            lambda: info_bar.findChild(QQuickItem, "infoBarProgressRing") is None
+        )
+
         window.setProperty("initialMode", "normal")
-        assert info_bar.findChild(QQuickItem, "infoBarProgressBar") is bar
-        assert info_bar.findChild(QQuickItem, "infoBarProgressRing") is ring
-        assert not ring.property("visible")
+        assert _wait_for(
+            lambda: info_bar.findChild(QQuickItem, "infoBarProgressBar") is None
+            and info_bar.findChild(QQuickItem, "infoBarProgressRing") is None
+        )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
