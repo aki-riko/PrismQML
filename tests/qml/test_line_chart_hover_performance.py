@@ -93,6 +93,7 @@ def test_single_line_hover_repaints_only_local_points(windowed_chart_scene):
     canvas = _animated_canvases(content)[0]
     painted = QSignalSpy(canvas.painted)
     _request_full_paint(canvas, painted)
+    _settle_paints(painted)
     assert content.property("_lastFramePointDrawCount") == point_count
 
     content.setProperty("hoveredIndex", point_count // 2)
