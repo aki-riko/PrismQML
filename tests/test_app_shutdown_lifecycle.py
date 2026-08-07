@@ -12,6 +12,8 @@ import re
 import subprocess
 import sys
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_PROCESS = REPO_ROOT / "scripts" / "test_process.py"
@@ -22,8 +24,9 @@ from scripts.test_process import prepare_automated_test_process
 
 prepare_automated_test_process()
 
-import shiboken6
+import os
 import sys
+import shiboken6
 from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlComponent
@@ -34,18 +37,36 @@ from prismqml.python.core.engine import EngineManager
 from prismqml.python.window import app as app_module
 from prismqml.python.window.window_core import WindowCore
 
+case_name = os.environ.get("PRISM_SHUTDOWN_PROBE_CASE", "full")
+enable_window = os.environ.get("PRISM_SHUTDOWN_PROBE_WINDOW", "1") == "1"
+enable_tray = os.environ.get("PRISM_SHUTDOWN_PROBE_TRAY", "1") == "1"
+enable_dropdown = os.environ.get("PRISM_SHUTDOWN_PROBE_DROPDOWN", "1") == "1"
+minimum_windows = int(os.environ.get("PRISM_SHUTDOWN_PROBE_MIN_WINDOWS", "0"))
+
 app = App([])
-window = app.create_window()
-window.setSplashEnabled(False)
-window.show()
+window = None
+if enable_window:
+    window = app.create_window()
+    window.setSplashEnabled(False)
+    window.show()
 
-tray = SystemTrayIcon(toolTip="shutdown-probe")
-tray.addAction("Exit", actionId="exit")
-tray._showQmlMenu()
+tray = None
+if enable_tray:
+    tray = SystemTrayIcon(toolTip="shutdown-probe")
+    tray.addAction("Exit", actionId="exit")
+    tray._showQmlMenu()
 
-button_component = QQmlComponent(app.engine, parent=app.engine)
-button_component.setData(
-    b"""import QtQuick
+button_component = None
+button_window = None
+split_button = None
+dropdown = None
+popup_loop = None
+if enable_dropdown:
+    if window is None:
+        raise RuntimeError("dropdown shutdown probe requires a window")
+    button_component = QQmlComponent(app.engine, parent=app.engine)
+    button_component.setData(
+        b"""import QtQuick
 import QtQuick.Window
 import PrismQML
 Window {
@@ -65,22 +86,24 @@ Window {
     }
 }
 """,
-    QUrl("file:///shutdown-button.qml"),
-)
-button_window = button_component.create()
-if button_window is None:
-    raise RuntimeError([error.toString() for error in button_component.errors()])
-split_button = button_window.findChild(QQuickItem, "shutdownSplitButton")
-dropdown = next(
-    child
-    for child in split_button.findChildren(QQuickItem)
-    if child.metaObject().indexOfMethod("openMenu()") >= 0
-)
-if not QMetaObject.invokeMethod(dropdown, "openMenu", Qt.ConnectionType.DirectConnection):
-    raise RuntimeError("ButtonDropdown.openMenu invocation failed")
-popup_loop = QEventLoop()
-QTimer.singleShot(100, popup_loop.quit)
-popup_loop.exec()
+        QUrl("file:///shutdown-button.qml"),
+    )
+    button_window = button_component.create()
+    if button_window is None:
+        raise RuntimeError([error.toString() for error in button_component.errors()])
+    split_button = button_window.findChild(QQuickItem, "shutdownSplitButton")
+    dropdown = next(
+        child
+        for child in split_button.findChildren(QQuickItem)
+        if child.metaObject().indexOfMethod("openMenu()") >= 0
+    )
+    if not QMetaObject.invokeMethod(
+        dropdown, "openMenu", Qt.ConnectionType.DirectConnection
+    ):
+        raise RuntimeError("ButtonDropdown.openMenu invocation failed")
+    popup_loop = QEventLoop()
+    QTimer.singleShot(100, popup_loop.quit)
+    popup_loop.exec()
 
 shutdown_order = []
 original_delete_windows = app_module._delete_remaining_qml_windows
@@ -112,10 +135,15 @@ engine_released = app.engine is None and EngineManager._engine is None
 window_references_released = (
     WindowCore.get_current_window() is None and not app.windows
 )
-tray_engine_released = tray._qml_menu is None and tray._component is None
-component_released = not shiboken6.isValid(button_component)
+tray_engine_released = tray is None or (
+    tray._qml_menu is None and tray._component is None
+)
+component_released = button_component is None or not shiboken6.isValid(
+    button_component
+)
 app.shutdown()
 
+print(f"APP_SHUTDOWN_CASE={case_name}", flush=True)
 print(f"APP_SHUTDOWN_RESULT={result}", flush=True)
 print(f"APP_SHUTDOWN_WINDOWS={windows_before}->{windows_after}", flush=True)
 print(f"APP_SHUTDOWN_ENGINE_RELEASED={int(engine_released)}", flush=True)
@@ -129,7 +157,7 @@ print(f"APP_SHUTDOWN_COMPONENT_RELEASED={int(component_released)}", flush=True)
 
 if (
     result != 7
-    or windows_before < 2
+    or windows_before < minimum_windows
     or windows_after != 0
     or not engine_released
     or not window_references_released
@@ -157,11 +185,43 @@ print("APP_SHUTDOWN_OK", flush=True)
 '''
 
 
-def test_exec_destroys_qml_windows_before_qapplication_teardown() -> None:
+@pytest.mark.parametrize(
+    (
+        "case_name",
+        "enable_window",
+        "enable_tray",
+        "enable_dropdown",
+        "minimum_windows",
+    ),
+    (
+        ("engine", False, False, False, 0),
+        ("window", True, False, False, 1),
+        ("tray", False, True, False, 0),
+        ("dropdown", True, False, True, 2),
+        ("full", True, True, True, 2),
+    ),
+    ids=("engine", "window", "tray", "dropdown", "full"),
+)
+def test_exec_destroys_qml_windows_before_qapplication_teardown(
+    case_name: str,
+    enable_window: bool,
+    enable_tray: bool,
+    enable_dropdown: bool,
+    minimum_windows: int,
+) -> None:
     """Live QML windows must not outlive QApplication. 活 QML 窗口不得晚于应用析构。"""
     environment = os.environ.copy()
     environment["PYTHONPATH"] = str(REPO_ROOT) + os.pathsep + environment.get(
         "PYTHONPATH", ""
+    )
+    environment.update(
+        {
+            "PRISM_SHUTDOWN_PROBE_CASE": case_name,
+            "PRISM_SHUTDOWN_PROBE_WINDOW": str(int(enable_window)),
+            "PRISM_SHUTDOWN_PROBE_TRAY": str(int(enable_tray)),
+            "PRISM_SHUTDOWN_PROBE_DROPDOWN": str(int(enable_dropdown)),
+            "PRISM_SHUTDOWN_PROBE_MIN_WINDOWS": str(minimum_windows),
+        }
     )
     completed = subprocess.run(
         [
@@ -188,10 +248,11 @@ def test_exec_destroys_qml_windows_before_qapplication_teardown() -> None:
 
     output = completed.stdout + completed.stderr
     assert completed.returncode == 0, output
+    assert f"APP_SHUTDOWN_CASE={case_name}" in output
     assert "APP_SHUTDOWN_RESULT=7" in output
     window_result = re.search(r"APP_SHUTDOWN_WINDOWS=(\d+)->0", output)
     assert window_result is not None, output
-    assert int(window_result.group(1)) >= 2
+    assert int(window_result.group(1)) >= minimum_windows
     assert "APP_SHUTDOWN_ENGINE_RELEASED=1" in output
     assert "APP_SHUTDOWN_ORDER=windows,bindings,engine" in output
     assert "APP_SHUTDOWN_WINDOW_REFERENCES_RELEASED=1" in output
