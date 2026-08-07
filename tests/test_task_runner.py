@@ -514,15 +514,34 @@ def test_app_shutdown_waits_for_active_dedicated_thread() -> None:
         assert "visible_windows=0 / job_active_processes=0" in output
 
 
-def test_backend_release_waits_before_dropping_ownership(qapp, monkeypatch) -> None:
+def test_backend_release_retries_before_dropping_ownership(qapp, monkeypatch) -> None:
     """Backend wrappers stay owned until their native work stops. 后端原生工作停止前保持所有权。"""
     events = []
+    retries = []
+
+    def wait_for_backend(_self, timeout):
+        events.append(("wait", timeout))
+        return sum(event[0] == "wait" for event in events) > 1
+
     backend = type("BackendStub", (), {
-        "wait": lambda _self, timeout: events.append(("wait", timeout)) or True,
+        "wait": wait_for_backend,
         "release": lambda _self: events.append(("release",)),
     })()
     handle = task_runner_module.TaskHandle(task_runner_module._TaskControl())
     handle._backend = backend
+    monkeypatch.setattr(
+        task_runner_module,
+        "QTimer",
+        type(
+            "TimerStub",
+            (),
+            {
+                "singleShot": staticmethod(
+                    lambda delay, callback: retries.append((delay, callback))
+                ),
+            },
+        ),
+    )
     monkeypatch.setattr(
         task_runner_module,
         "_release_handle",
@@ -531,7 +550,14 @@ def test_backend_release_waits_before_dropping_ownership(qapp, monkeypatch) -> N
 
     handle._release_backend()
 
-    assert events == [("wait", None), ("release",), ("drop", handle)]
+    assert events == [("wait", 0)]
+    assert handle._backend is backend
+    assert len(retries) == 1
+    assert retries[0][0] == task_runner_module._BACKEND_RELEASE_RETRY_MS
+
+    retries[0][1]()
+
+    assert events == [("wait", 0), ("wait", 0), ("release",), ("drop", handle)]
     assert handle._backend is None
 
 

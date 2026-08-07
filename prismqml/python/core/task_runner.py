@@ -36,6 +36,9 @@ from ._task_types import (
 )
 
 
+_BACKEND_RELEASE_RETRY_MS = 1
+
+
 class _TaskControl:
     """Thread-safe cancellation and completion state. 线程安全的取消与完成状态。"""
 
@@ -315,7 +318,12 @@ class TaskHandle(QObject):
             backend = self._backend
             if backend is None:
                 return
-            backend.wait(None)
+            if not backend.wait(0):
+                QTimer.singleShot(
+                    _BACKEND_RELEASE_RETRY_MS,
+                    self._release_backend,
+                )
+                return
             backend.release()
             self._backend = None
             _release_handle(self)
