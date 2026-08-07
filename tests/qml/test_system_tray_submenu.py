@@ -44,12 +44,15 @@ def test_data_submenu_opens_and_routes_child_action(qapp):
             }
         ],
     )
-    tray._ensureQmlMenu()
+    tray._showQmlMenu()
+    _pump()
     menu = tray._qml_menu
     component = tray._component
     assert menu is not None
     assert component.parent() is engine
     assert menu.parent() is engine
+    assert menu.property("_nativeWindowRequested") is True
+    assert menu.property("_popupWindow") is not None
 
     try:
         assert _evaluate(
@@ -84,6 +87,8 @@ def test_data_submenu_opens_and_routes_child_action(qapp):
         assert shiboken6.isValid(component)
         assert menu.property("isOpen") is False
         assert menu.property("_openSubmenu") is None
+        assert menu.property("_nativeWindowRequested") is False
+        assert menu.property("_popupWindow") is None
         assert _evaluate(
             engine,
             menu,

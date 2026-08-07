@@ -220,6 +220,7 @@ PopupWindowCore {
  else if (submenu.forceReset) submenu.forceReset()
  }
  forceReset()
+ _nativeWindowRequested = false
  }
 
  // Open as a child menu with both first action rows aligned 作为子菜单打开，并对齐父子首行
