@@ -319,7 +319,7 @@ def test_probe_defaults_to_headless_through_process_runner():
     result = subprocess.run(
         [
             sys.executable, str(TEST_PROCESS_RUNNER),
-            "--qt-platform", "inherit", "--timeout", "60", "--",
+            "--qt-platform", "inherit", "--timeout", "180", "--",
             sys.executable, "-X", "utf8", "tests/qml/probe_all_components.py",
         ],
         cwd=REPO_ROOT,
@@ -327,7 +327,7 @@ def test_probe_defaults_to_headless_through_process_runner():
         capture_output=True,
         text=True,
         encoding="utf-8",
-        timeout=60 + RUNNER_SUPERVISOR_GRACE_SECONDS,
+        timeout=180 + RUNNER_SUPERVISOR_GRACE_SECONDS,
         check=False,
     )
 

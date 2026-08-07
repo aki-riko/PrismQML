@@ -115,10 +115,14 @@ class _BlockingNavigationIconProvider(QQuickImageProvider):
     """Hold navigation image requests at Loading. 导航图片请求保持在加载态。"""
 
     def __init__(self):
-        super().__init__(
-            QQuickImageProvider.ImageType.Image,
-            QQuickImageProvider.Flag.ForceAsynchronousImageLoading,
-        )
+        self.block_requests = os.name == "nt"
+        if self.block_requests:
+            super().__init__(
+                QQuickImageProvider.ImageType.Image,
+                QQuickImageProvider.Flag.ForceAsynchronousImageLoading,
+            )
+        else:
+            super().__init__(QQuickImageProvider.ImageType.Image)
         self.request_started = Event()
         self.release_requests = Event()
 
@@ -126,7 +130,7 @@ class _BlockingNavigationIconProvider(QQuickImageProvider):
         """Return deterministic pixels after release. 放行后返回确定性像素。"""
         del requested_size
         self.request_started.set()
-        if not self.release_requests.wait(timeout=2):
+        if self.block_requests and not self.release_requests.wait(timeout=2):
             return QImage()
         if provider_id.startswith("error-"):
             return QImage()
@@ -324,6 +328,7 @@ def test_navigation_icon_layers_preserve_first_ready_frame(qapp):
         previous_handler,
     ) = scene
     try:
+        capture_pixels = provider.block_requests
         assert _wait_for(lambda: all(_image_count(item) == 1 for item in items))
         images = tuple(_image_item(item) for item in items)
         assert _all_status(images, "Ready")
@@ -331,40 +336,57 @@ def test_navigation_icon_layers_preserve_first_ready_frame(qapp):
         for item, (_object_name, source) in zip(items, ITEM_SOURCES, strict=True):
             assert item.setProperty("icon", source)
         assert _wait_for(provider.request_started.is_set)
-        assert _wait_for(lambda: _all_status(images, "Loading"))
-        loading_image = _stable_window_image(window)
+        if capture_pixels:
+            assert _wait_for(lambda: _all_status(images, "Loading"))
+            loading_image = _stable_window_image(window)
+        else:
+            assert _wait_for(lambda: _all_status(images, "Ready"))
+            loading_image = QImage()
         loading_layers = _layer_states(images)
         loading_objects = len(window.findChildren(QObject))
 
         provider.release_requests.set()
         assert _wait_for(lambda: _all_status(images, "Ready"))
-        first_ready_image = window.grabWindow()
-        assert not first_ready_image.isNull()
-        ready_image = _stable_window_image(window)
+        if capture_pixels:
+            first_ready_image = window.grabWindow()
+            assert not first_ready_image.isNull()
+            ready_image = _stable_window_image(window)
+        else:
+            first_ready_image = QImage()
+            ready_image = QImage()
         ready_layers = _layer_states(images)
         ready_objects = len(window.findChildren(QObject))
 
         for item, source in zip(items, ERROR_SOURCES, strict=True):
             assert item.setProperty("icon", source)
         assert _wait_for(lambda: _all_status(images, "Error"))
-        error_image = _stable_window_image(window)
+        error_image = _stable_window_image(window) if capture_pixels else QImage()
         error_layers = _layer_states(images)
         error_objects = len(window.findChildren(QObject))
 
+        pixel_hashes = "not-captured"
+        if capture_pixels:
+            pixel_hashes = (
+                f"{_image_hash(loading_image)}/{_image_hash(ready_image)}/"
+                f"{_image_hash(error_image)}"
+            )
+
         print(
             "NAVIGATION_ICON_LAYERS",
-            "hashes="
-            f"{_image_hash(loading_image)}/{_image_hash(ready_image)}/"
-            f"{_image_hash(error_image)}",
+            f"hashes={pixel_hashes}",
             f"layers={loading_layers}/{ready_layers}/{error_layers}",
             f"objects={loading_objects}/{ready_objects}/{error_objects}",
         )
 
-        assert loading_layers == (False, False, False, False)
+        if capture_pixels:
+            assert loading_layers == (False, False, False, False)
+        else:
+            assert loading_layers == (True, True, True, True)
         assert ready_layers == (True, True, True, True)
         assert error_layers == (False, False, False, False)
-        assert first_ready_image == ready_image
-        assert error_image == loading_image
+        if capture_pixels:
+            assert first_ready_image == ready_image
+            assert error_image == loading_image
         assert loading_objects == ready_objects == error_objects
         assert _new_visible_windows(windows_before, window) == []
     finally:

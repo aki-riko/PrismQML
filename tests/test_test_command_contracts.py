@@ -257,7 +257,7 @@ def test_ci_full_python_gates_have_current_timeout_budget(
     """全量 Python CI 必须保留当前慢速 Windows runner 的时间余量。"""
     source = (PROJECT_ROOT / relative).read_text(encoding="utf-8")
 
-    assert 'PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "480"' in source
+    assert 'PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "720"' in source
     assert f"--timeout {timeout_reference} --" in source
 
 
