@@ -332,7 +332,9 @@ def test_navigation_icon_layers_preserve_first_ready_frame(qapp):
         assert _wait_for(lambda: all(_image_count(item) == 1 for item in items))
         images = tuple(_image_item(item) for item in items)
         assert _all_status(images, "Ready")
-        assert all(image.setProperty("asynchronous", True) for image in images)
+        assert all(
+            image.setProperty("asynchronous", capture_pixels) for image in images
+        )
         for item, (_object_name, source) in zip(items, ITEM_SOURCES, strict=True):
             assert item.setProperty("icon", source)
         assert _wait_for(provider.request_started.is_set)
