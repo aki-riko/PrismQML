@@ -58,6 +58,7 @@ Item {
     property Item _prewarmFocusItem: null
     property bool _ownerReleaseInProgress: false
     property bool _nativeWindowRequested: false
+    readonly property bool _isPopupWindowCore: true
     // Internal: animated clip height for drop-down effect 内部：下拉展开动画的裁剪高度
     property real _clipHeight: 0
     // [Anim C] Spring scale for iOS-style bounce 弹簧缩放
@@ -677,6 +678,7 @@ Item {
     PopupSurface {
         id: popupSurface
 
+        _interactionHost: control
         parent: control._usesControlsPopup
             ? inlinePopupContent
             : (control._popupWindow ? control._popupWindow.contentItem : null)

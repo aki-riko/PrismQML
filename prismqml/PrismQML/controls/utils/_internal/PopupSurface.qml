@@ -25,6 +25,7 @@ Item {
     required property real clipHeight
     required property real panelScale
     required property bool verticalCenterExpand
+    property Item _interactionHost: null
 
     default property alias popupContent: contentContainer.data
 

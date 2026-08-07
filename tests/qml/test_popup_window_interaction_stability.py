@@ -69,6 +69,48 @@ Item {
 """
 
 
+DELEGATE_MENU_SCENE_URL = QUrl.fromLocalFile(
+    str(ROOT / "tests" / "qml" / "popup-interaction-delegate.qml")
+)
+DELEGATE_MENU_SCENE_SOURCE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    property int triggerCount: 0
+
+    function openMenu() {
+        delegatePopup.openAtControl(menuTarget)
+    }
+
+    width: 360
+    height: 240
+
+    Item {
+        id: menuTarget
+        x: 20
+        y: 20
+        width: 160
+        height: 40
+    }
+
+    PopupWindowCore {
+        id: delegatePopup
+        objectName: "delegatePopup"
+        popupWidth: 220
+        popupHeight: 120
+        useQtPopupWindow: true
+
+        MenuDelegate {
+            objectName: "delegateAction"
+            text: "Alpha"
+            onClicked: triggerCount += 1
+        }
+    }
+}
+"""
+
+
 @pytest.fixture
 def dropdown_scene(qapp):
     engine, component, root, warnings = _create_scene()
@@ -96,6 +138,45 @@ def action_menu_scene(qapp):
     register_types(engine)
     component = QQmlComponent(engine)
     component.setData(MENU_SCENE_SOURCE, MENU_SCENE_URL)
+    assert _wait_for(
+        lambda: component.status() != QQmlComponent.Status.Loading
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    assert root is not None, [error.toString() for error in component.errors()]
+    window = QQuickWindow()
+    window.setWidth(360)
+    window.setHeight(240)
+    root.setParentItem(window.contentItem())
+    window.show()
+    window.requestActivate()
+    _pump(30)
+    try:
+        yield root, window, warnings
+    finally:
+        root.setParentItem(None)
+        window.hide()
+        window.close()
+        root.deleteLater()
+        window.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump(20)
+
+
+@pytest.fixture
+def delegate_menu_scene(qapp):
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(DELEGATE_MENU_SCENE_SOURCE, DELEGATE_MENU_SCENE_URL)
     assert _wait_for(
         lambda: component.status() != QQmlComponent.Status.Loading
     )
@@ -220,5 +301,41 @@ def test_action_click_survives_opening_animation(
     _pump(20)
 
     assert stabilized_scale == pytest.approx(1.0)
+    assert root.property("triggerCount") == 1
+    assert warnings == []
+
+
+def test_menu_delegate_auto_stabilizes_popup_on_press(delegate_menu_scene):
+    root, _window, warnings = delegate_menu_scene
+    popup = root.findChild(type(root), "delegatePopup")
+    item = root.findChild(type(root), "delegateAction")
+    assert popup is not None
+    assert item is not None
+
+    _invoke(root, "openMenu")
+    assert _wait_for(lambda: popup.property("isOpen"))
+    _pump(20)
+    assert popup.property("_scale") < 1.0
+
+    popup_window = item.window()
+    assert popup_window is not None
+    click_position = item.mapToScene(
+        QPointF(item.width() / 2, item.height() / 2)
+    ).toPoint()
+    QTest.mousePress(
+        popup_window,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        click_position,
+    )
+    assert popup.property("_scale") == pytest.approx(1.0)
+    QTest.mouseRelease(
+        popup_window,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        click_position,
+    )
+    _pump(20)
+
     assert root.property("triggerCount") == 1
     assert warnings == []

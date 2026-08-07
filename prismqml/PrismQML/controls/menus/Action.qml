@@ -39,6 +39,22 @@ Rectangle {
     signal pressed()
     signal triggered()
     signal submenuRequested()  // Submenu open request 子菜单打开请求
+
+    // ==================== Internal Methods 内部方法 ====================
+    // Stabilize the nearest popup before the press/release hit test begins.
+    // 在按下/释放命中测试开始前稳定最近的弹层。
+    function _stabilizePopupAncestor() {
+        var ancestor = control.parent
+        while (ancestor) {
+            var popupHost = ancestor._interactionHost
+            if (popupHost && popupHost._isPopupWindowCore === true
+                    && typeof popupHost.stabilizeInteraction === "function") {
+                popupHost.stabilizeInteraction()
+                return
+            }
+            ancestor = ancestor.parent
+        }
+    }
     
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : implicitWidth
@@ -175,7 +191,10 @@ Rectangle {
         hoverEnabled: true
         enabled: control.enabled
         cursorShape: Qt.ArrowCursor
-        onPressed: control.pressed()
+        onPressed: {
+            control._stabilizePopupAncestor()
+            control.pressed()
+        }
         onContainsMouseChanged: {
             if (!containsMouse) {
                 if (tipLoader.item) tipLoader.item.hide()
