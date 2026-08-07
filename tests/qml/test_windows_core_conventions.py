@@ -418,8 +418,16 @@ def test_windows_core_initial_left_title_chrome_is_ready(monkeypatch, qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+@pytest.mark.parametrize(
+    ("initial_left_layout", "drag_area_name"),
+    (
+        (False, "topTitleBarDragArea"),
+        (True, "leftTitleBarDragArea"),
+        (True, "rightTitleBarDragArea"),
+    ),
+)
 def test_windows_core_titlebar_double_click_routes_native_transition(
-    monkeypatch, qapp
+    monkeypatch, qapp, initial_left_layout, drag_area_name
 ):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     (
@@ -430,10 +438,12 @@ def test_windows_core_titlebar_double_click_routes_native_transition(
         _left_probe,
         warnings,
         startup_events,
-    ) = _create_scene(monkeypatch, initial_left_layout=True)
+    ) = _create_scene(
+        monkeypatch, initial_left_layout=initial_left_layout
+    )
     try:
-        drag_area = window.findChild(QQuickItem, "rightTitleBarDragArea")
-        assert drag_area is not None
+        drag_area = window.findChild(QQuickItem, drag_area_name)
+        assert drag_area is not None, drag_area_name
 
         def double_click_drag_area():
             center = drag_area.mapToItem(
@@ -480,6 +490,12 @@ def test_windows_core_source_conventions_and_timing_tokens():
     assert "interval: 1200" not in source
     assert "window.showMaximized()" not in source
     assert "window.showNormal()" not in source
+    assert source.count("WindowDragHandle {") == 3
+    assert "window.startSystemMove()" not in source
+    assert "property bool enableDrag: true" in drag_handle_source
+    assert "property bool _doubleClickPending: false" in drag_handle_source
+    assert "onDoubleClicked:" in drag_handle_source
+    assert "onReleased: root._applyPendingDoubleClick()" in drag_handle_source
     assert "NativeWindow.requestMaximize(win)" in drag_handle_source
     assert "NativeWindow.requestRestore(win)" in drag_handle_source
     profile_start = source.index("function profileTime(msg)")

@@ -414,13 +414,14 @@ Window {
                 }
             }
             
-            MouseArea {
+            WindowDragHandle {
+                objectName: "topTitleBarDragArea"
                 anchors.fill: parent
                 anchors.rightMargin: captionButtonWidth * 3
+                enableDrag: !isMaximized
+                enableDoubleClickMaximize: true
                 visible: !_isLeftLayout
                 z: Enums.zIndex.background  // 确保在按钮之下
-                onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
-                onDoubleClicked: isMaximized ? animatedRestore() : animatedMaximize()
             }
                     }
                 }
@@ -455,10 +456,11 @@ Window {
                             anchors.fill: parent
 
                             // Window drag area 窗口拖拽区域
-                            MouseArea {
+                            WindowDragHandle {
+                                objectName: "leftTitleBarDragArea"
                                 anchors.fill: parent
-                                onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
-                                onDoubleClicked: isMaximized ? animatedRestore() : animatedMaximize()
+                                enableDrag: !isMaximized
+                                enableDoubleClickMaximize: true
                             }
 
                             // Window icon 窗口图标
@@ -524,7 +526,7 @@ Window {
                     anchors.fill: parent
 
                     // Window drag area 窗口拖拽区域
-                    MouseArea {
+                    WindowDragHandle {
                         objectName: "rightTitleBarDragArea"
                         anchors.left: parent.left
                         anchors.leftMargin: Math.max(
@@ -534,9 +536,9 @@ Window {
                         anchors.rightMargin: captionButtonWidth * 3
                         anchors.top: parent.top
                         height: titleBarHeight
+                        enableDrag: !isMaximized
+                        enableDoubleClickMaximize: true
                         z: Enums.zIndex.background
-                        onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
-                        onDoubleClicked: isMaximized ? animatedRestore() : animatedMaximize()
                     }
 
                     // Window caption buttons 窗口标题栏按钮
