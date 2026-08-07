@@ -29,6 +29,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtQuick import QQuickImageProvider
 
 from ..core.logger import info, warning, error, debug
+from ._window_frame_capture import grab_window_frame as _grab_window_frame
 
 # Windows 11 build number threshold Windows 11 版本号阈值
 WIN11_BUILD_THRESHOLD = 22000
@@ -386,18 +387,15 @@ class AcrylicImageProvider(QQuickImageProvider):
         """Provide the blurred image to QML 向 QML 提供模糊图片"""
         img = self._state.image()
         if img is None or img.isNull():
-            # Return transparent placeholder 返回透明占位图
             placeholder = QImage(1, 1, QImage.Format.Format_ARGB32)
             placeholder.fill(QColor(0, 0, 0, 0))
             return placeholder
-
         if requestedSize.isValid() and requestedSize.width() > 0 and requestedSize.height() > 0:
             img = img.scaled(
                 requestedSize,
                 Qt.AspectRatioMode.IgnoreAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
-        
         return img
     
     def setImage(self, image: QImage):
@@ -411,15 +409,7 @@ class AcrylicImageProvider(QQuickImageProvider):
 
 
 class AcrylicHelper(QObject):
-    """
-    Acrylic Effect Helper 亚克力效果助手
-    
-    Captures screen region and applies blur for acrylic effect.
-    截取屏幕区域并应用模糊实现亚克力效果。
-    
-    Uses Qt's built-in scaling for blur - no external dependencies (numpy/scipy).
-    使用Qt内置缩放实现模糊 - 无外部依赖（numpy/scipy）。
-    """
+    """Dependency-free screen capture and acrylic blur. 无依赖截图与亚克力模糊。"""
     
     imageReady = Signal(str)  # Emits image source URL 发射图片源URL
     
@@ -480,6 +470,13 @@ class AcrylicHelper(QObject):
         except (ValueError, OSError, RuntimeError) as e:
             error(f"Failed to grab and blur: {e}")
             return ""
+
+    @Slot(QWindow, int, int, int, int, result=str)
+    def grabWindowFrame(self, window: QWindow, x: int, y: int, width: int, height: int) -> str:
+        """Capture the exact visible window pixels without blur. 原样截取可见窗口像素。"""
+        return _grab_window_frame(
+            sys.modules[__name__], self, window, x, y, width, height
+        )
     
     @Slot(result=str)
     def getImageUrl(self) -> str:

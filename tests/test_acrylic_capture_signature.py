@@ -26,3 +26,20 @@ def test_public_slot_and_python_signature_are_preserved():
     index = meta.indexOfMethod("grabAndBlur(QWindow*,int,int,int,int)")
     assert index >= 0
     assert meta.method(index).returnMetaType().name() == "QString"
+
+
+def test_window_frame_slot_and_python_signature_are_exposed():
+    sig = signature(mica_window.AcrylicHelper.grabWindowFrame)
+    params = tuple(sig.parameters.values())
+    names = ("self", "window", "x", "y", "width", "height")
+
+    assert tuple(param.name for param in params) == names
+    assert all(param.kind is Parameter.POSITIONAL_OR_KEYWORD for param in params)
+    assert tuple(param.annotation for param in params[1:]) == (
+        QWindow, int, int, int, int
+    )
+    assert sig.return_annotation is str
+    meta = mica_window.AcrylicHelper.staticMetaObject
+    index = meta.indexOfMethod("grabWindowFrame(QWindow*,int,int,int,int)")
+    assert index >= 0
+    assert meta.method(index).returnMetaType().name() == "QString"

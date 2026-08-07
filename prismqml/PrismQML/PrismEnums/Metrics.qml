@@ -442,7 +442,6 @@ QtObject {
  readonly property int splitStartupDelayMs: 50 // Split-window core loader startup delay 分栏窗口核心加载器启动延迟
  readonly property int micaReapplyDelayMs: 16 // First Mica reapply delay after visibility change 可见性变化后的首次 Mica 重应用延迟
  readonly property int micaLateReapplyDelayMs: 180 // Late Mica reapply fallback delay Mica 延迟重应用兜底时间
- readonly property int closeAnimationCaptureDelayMs: 32 // Freeze two D3D11 frames before hiding source 关闭前等待两帧冻结 D3D11 画面
  readonly property int navPanelMinWidth: 200 // Split-window left panel min width 左侧面板最小宽度
  readonly property int iconRenderSize: 256 // Icon render size for crisp SVG (fixed high-res) 图标渲染尺寸（固定高分辨率）
  }

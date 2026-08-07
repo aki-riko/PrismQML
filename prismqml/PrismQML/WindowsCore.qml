@@ -280,7 +280,7 @@ Window {
         id: animHelper
         targetWindow: window
         targetItem: windowFrame
-        closeBackgroundColor: window.windowColor
+        closeCornerRadius: windowFrame.radius
         onCloseCallback: function() {
             _closeDesktopNotifications()
             var closed = window.close()

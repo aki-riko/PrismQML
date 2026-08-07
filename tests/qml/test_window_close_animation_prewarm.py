@@ -51,6 +51,7 @@ Window {
         id: frame
         anchors.fill: parent
         color: Enums.cardColor
+        radius: Enums.radius.large
     }
 
     Internal.WindowAnimationHelper {
@@ -58,7 +59,7 @@ Window {
         objectName: "animationHelper"
         targetWindow: window
         targetItem: frame
-        closeBackgroundColor: frame.color
+        closeCornerRadius: frame.radius
         onCloseCallback: function() { window.closeCallbacks += 1 }
     }
 
@@ -156,13 +157,14 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert _class_count(helper, "QQuickSequentialAnimation") > 1
     dissolve = helper.findChild(QQuickItem, "windowCloseDissolve")
     assert dissolve is not None
-    frozen_frame = helper.findChild(QQuickItem, "windowCloseFrozenFrame")
+    overlay = dissolve.findChild(QQuickWindow, "windowCloseOverlayWindow")
+    assert overlay is not None
+    frozen_frame = overlay.findChild(QQuickItem, "windowCloseFrozenFrame")
     assert frozen_frame is not None
-    assert frozen_frame.property("live") is False
-    assert _visual_class_count(helper, "QQuickShaderEffectSource") == 1
+    assert _visual_class_count(helper, "QQuickShaderEffectSource") == 0
     grid_cells = {
         child.objectName(): child
-        for child in _visual_items(helper)
+        for child in _visual_items(overlay.contentItem())
         if child.objectName().startswith("windowCloseGridCell_")
     }
     assert len(grid_cells) == dissolve.property("_cellCount")
@@ -171,13 +173,16 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     center_index = (rows // 2) * columns + columns // 2
     center_cell = grid_cells[f"windowCloseGridCell_{center_index}"]
     corner_cell = grid_cells["windowCloseGridCell_0"]
-    assert _wait_for(lambda: helper.property("animOpacity") == 0, timeout_ms=300)
+    assert _wait_for(lambda: helper.property("animOpacity") == 0)
+    assert overlay.isVisible()
+    assert window.opacity() == pytest.approx(0)
     _pump(120)
     assert frozen_frame.opacity() < 1
     assert center_cell.opacity() < corner_cell.opacity()
     assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
     assert window.opacity() == pytest.approx(0)
+    assert not overlay.isVisible()
     assert helper.property("animScale") == pytest.approx(1)
     assert helper.property("animOpacity") == pytest.approx(0)
     assert warnings == []
@@ -196,7 +201,7 @@ def test_close_dissolve_can_be_cancelled_and_restarted(close_animation_scene):
     assert QMetaObject.invokeMethod(
         helper, "animatedClose", Qt.ConnectionType.DirectConnection
     )
-    assert _wait_for(lambda: helper.property("animOpacity") == 0, timeout_ms=300)
+    assert _wait_for(lambda: helper.property("animOpacity") == 0)
     assert QMetaObject.invokeMethod(
         helper, "restoreVisibleState", Qt.ConnectionType.DirectConnection
     )
@@ -204,6 +209,9 @@ def test_close_dissolve_can_be_cancelled_and_restarted(close_animation_scene):
     assert window.opacity() == pytest.approx(1)
     assert helper.property("animScale") == pytest.approx(1)
     assert helper.property("animOpacity") == pytest.approx(1)
+    dissolve = helper.findChild(QQuickItem, "windowCloseDissolve")
+    overlay = dissolve.findChild(QQuickWindow, "windowCloseOverlayWindow")
+    assert not overlay.isVisible()
 
     assert QMetaObject.invokeMethod(
         helper, "animatedClose", Qt.ConnectionType.DirectConnection
@@ -239,16 +247,22 @@ def test_close_animation_source_uses_splash_grid_dissolve():
     assert "active: false" in animation_source
     assert "sourceComponent: WindowCloseDissolve" in animation_source
     assert "targetItem: helper.targetItem" in animation_source
-    assert "backgroundColor: helper.closeBackgroundColor" in animation_source
+    assert "cornerRadius: helper.closeCornerRadius" in animation_source
     assert "helper.animOpacity = Enums.opacityLevel.invisible" in animation_source
+    assert 'objectName: "windowCloseOverlayWindow"' in dissolve_source
+    assert "transientParent: null" in dissolve_source
+    assert "overlayWindow.requestUpdate()" in dissolve_source
+    assert "AcrylicHelper.grabWindowFrame" in dissolve_source
+    assert "targetItem.grabToImage" in dissolve_source
     assert "Repeater {" in dissolve_source
-    assert "delegate: Rectangle" in dissolve_source
+    assert "delegate: Item" in dissolve_source
     assert "delegate: ShaderEffectSource" not in dissolve_source
-    assert dissolve_source.count("ShaderEffectSource {") == 1
+    assert "ShaderEffectSource {" not in dissolve_source
     assert 'objectName: "windowCloseFrozenFrame"' in dissolve_source
     assert 'objectName: "windowCloseGridCell_" + index' in dissolve_source
-    assert "sourceItem: effect.targetItem" in dissolve_source
-    assert "live: false" in dissolve_source
+    assert "x: -gridCell.x" in dissolve_source
+    assert "sourceClipRect:" not in dissolve_source
+    assert "targetWindow.opacity = Enums.opacityLevel.invisible" in dissolve_source
     assert "Enums.duration.splashGridContentFade" in dissolve_source
     assert "Enums.duration.splashGridDelayStep" in dissolve_source
     assert "Enums.duration.splashGridCellFade" in dissolve_source
@@ -256,7 +270,7 @@ def test_close_animation_source_uses_splash_grid_dissolve():
     assert "Enums.splashScreenMetrics.exitContentEndScale" in dissolve_source
     assert "Enums.splashScreenMetrics.exitGridColumns" in dissolve_source
     assert "Enums.splashScreenMetrics.exitGridRows" in dissolve_source
-    assert "effect.onCloseCallback()" in dissolve_source
+    assert "onCloseCallback()" in dissolve_source
     assert (
         "if (captionBtn.isClose) "
         "captionBtn.targetWindow.prewarmCloseAnimation()"

@@ -26,7 +26,7 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property real animScale: 0.95
     property real animOpacity: 0
-    property color closeBackgroundColor: Enums.backgroundColor
+    property real closeCornerRadius: Enums.radius.none
     property bool _closeStartPending: false
 
     // ==================== Internal Methods 内部方法 ====================
@@ -118,7 +118,7 @@ Item {
         sourceComponent: WindowCloseDissolve {
             targetWindow: helper.targetWindow
             targetItem: helper.targetItem
-            backgroundColor: helper.closeBackgroundColor
+            cornerRadius: helper.closeCornerRadius
             onCaptureReady: function() {
                 helper.animScale = Enums.opacityLevel.visible
                 helper.animOpacity = Enums.opacityLevel.invisible
