@@ -401,7 +401,7 @@ Window {
                     iconType: isMaximized ? "restore" : "maximize"
                     buttonWidth: window.captionButtonWidth
                     buttonHeight: captionButtonHeight
-                    onClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                    onClicked: isMaximized ? animatedRestore() : animatedMaximize()
                 }
                 
                 CaptionButton {
@@ -420,7 +420,7 @@ Window {
                 visible: !_isLeftLayout
                 z: Enums.zIndex.background  // 确保在按钮之下
                 onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
-                onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                onDoubleClicked: isMaximized ? animatedRestore() : animatedMaximize()
             }
                     }
                 }
@@ -458,7 +458,7 @@ Window {
                             MouseArea {
                                 anchors.fill: parent
                                 onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
-                                onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                                onDoubleClicked: isMaximized ? animatedRestore() : animatedMaximize()
                             }
 
                             // Window icon 窗口图标
@@ -536,7 +536,7 @@ Window {
                         height: titleBarHeight
                         z: Enums.zIndex.background
                         onPressed: (mouse) => { if (!isMaximized) window.startSystemMove() }
-                        onDoubleClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                        onDoubleClicked: isMaximized ? animatedRestore() : animatedMaximize()
                     }
 
                     // Window caption buttons 窗口标题栏按钮
@@ -564,7 +564,7 @@ Window {
                             iconType: isMaximized ? "restore" : "maximize"
                             buttonWidth: window.captionButtonWidth
                             buttonHeight: captionButtonHeight
-                            onClicked: isMaximized ? window.showNormal() : window.showMaximized()
+                            onClicked: isMaximized ? animatedRestore() : animatedMaximize()
                         }
 
                         CaptionButton {

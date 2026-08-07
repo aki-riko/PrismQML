@@ -56,6 +56,20 @@ MouseArea {
     // 注意:不重声明 clicked,沿用 MouseArea 内置信号(它在 release 且未拖动时触发)
     signal dragStarted()
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _requestMaximize(win) {
+        if (typeof NativeWindow !== "undefined" && NativeWindow &&
+                typeof NativeWindow.requestMaximize === "function" &&
+                NativeWindow.requestMaximize(win) === true) return
+        win.showMaximized()
+    }
+    function _requestRestore(win) {
+        if (typeof NativeWindow !== "undefined" && NativeWindow &&
+                typeof NativeWindow.requestRestore === "function" &&
+                NativeWindow.requestRestore(win) === true) return
+        win.showNormal()
+    }
+
     // Behavior 行为
     // 默认接受左键;使用方可用 acceptedButtons 覆盖(如 Qt.LeftButton | Qt.RightButton)
     acceptedButtons: Qt.LeftButton
@@ -88,9 +102,9 @@ MouseArea {
             var win = Window.window
             if (win) {
                 if (win.visibility === Window.Maximized) {
-                    win.showNormal()
+                    root._requestRestore(win)
                 } else {
-                    win.showMaximized()
+                    root._requestMaximize(win)
                 }
             }
         }

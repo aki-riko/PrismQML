@@ -29,6 +29,8 @@ constexpr qlonglong kPreviousStyle = 0x20;
 constexpr qlonglong kNativeStyle = 0x00CF0010;
 constexpr quint32 kAccessDenied = 5;
 constexpr quint32 kInvalidWindow = 1400;
+constexpr quint32 kScMaximize = 0xF030;
+constexpr quint32 kScRestore = 0xF120;
 const QStringList kReattachAfterRestoreCalls = {
     QStringLiteral("get:101"),
     QStringLiteral("set:101:%1").arg(kNativeStyle),
@@ -151,6 +153,8 @@ void testMetaObjectContract() {
     const QList<QByteArray> methods = {
         QByteArrayLiteral("attach(QVariant)"),
         QByteArrayLiteral("finalizeAttach(QVariant)"),
+        QByteArrayLiteral("requestMaximize(QVariant)"),
+        QByteArrayLiteral("requestRestore(QVariant)"),
         QByteArrayLiteral("detach(QVariant)"),
     };
     for (const QByteArray &signature : methods) {
@@ -226,12 +230,44 @@ void testCheckedFrameChangedContract() {
           "SetWindowPos 严格执行 clear-call-read");
 }
 
+void testCheckedSystemCommandContract() {
+    RawPlatformFixture fixture;
+    fixture.raw->commands = {{1, std::nullopt}};
+    CHECK(fixture.platform.postSystemCommand(
+              kHwnd, kScMaximize, &fixture.errorCode),
+          "PostMessageW 成功投递系统命令");
+    CHECK(fixture.errorCode == 0, "系统命令成功时 LastError 清零");
+    CHECK((fixture.raw->calls == QStringList{
+              QStringLiteral("clear"),
+              QStringLiteral("command:101:%1").arg(kScMaximize),
+              QStringLiteral("last")}),
+          "系统命令严格执行 clear-call-read");
+}
+
 void testRawWinApiResultContract() {
     qInfo() << "=== raw WinAPI result contract ===";
     testLongPtrResultRules();
     testCheckedGetStyleContract();
     testCheckedSetStyleContract();
     testCheckedFrameChangedContract();
+    testCheckedSystemCommandContract();
+}
+
+void testPublicSystemCommandRouting() {
+    qInfo() << "=== native system command routing ===";
+    FakePlatform *platform = nullptr;
+    auto window = makeWindow(&platform);
+    QObject owner;
+    owner.setProperty("winId", QVariant::fromValue(kHwnd));
+    platform->commands = {{true, 0, 0}, {true, 0, 0}};
+    CHECK(window->requestMaximize(QVariant::fromValue(&owner)),
+          "public maximize 投递系统命令");
+    CHECK(window->requestRestore(QVariant::fromValue(&owner)),
+          "public restore 投递系统命令");
+    CHECK((platform->calls == QStringList{
+              QStringLiteral("command:101:%1").arg(kScMaximize),
+              QStringLiteral("command:101:%1").arg(kScRestore),
+          }), "最大化与还原使用对应 WM_SYSCOMMAND");
 }
 
 void testAttachReadFailure() {
@@ -649,6 +685,7 @@ void testRealWindowsCoreConsumer(const QString &qmlImportPath) {
 int runNativeWindowContracts(const QString &qmlImportPath) {
     testMetaObjectContract();
     testRawWinApiResultContract();
+    testPublicSystemCommandRouting();
     testAttachFailureBoundaries();
     testFramechangedRetry();
     testDetachFailureBoundaries();

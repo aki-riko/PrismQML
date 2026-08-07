@@ -26,9 +26,12 @@ public:
     ~NativeWindow() override;
 
 public slots:
-    // QML: NativeWindow.attach/finalizeAttach/detach(window)
+    // QML: NativeWindow attach/state-transition/detach methods.
+    // QML：NativeWindow 附加、状态过渡与解除方法。
     bool attach(const QVariant &window);
     bool finalizeAttach(const QVariant &window);
+    bool requestMaximize(const QVariant &window);
+    bool requestRestore(const QVariant &window);
     bool detach(const QVariant &window);
 
 private:
@@ -61,6 +64,8 @@ private:
     bool reattachRestoredHwnd(qulonglong hwnd, bool applyFramechanged);
     bool finalizeHwnd(qulonglong hwnd);
     bool requestFramechangedHwnd(qulonglong hwnd, const char *operation);
+    bool requestSystemCommand(const QVariant &window, quint32 command,
+                              const char *operation);
     bool applyFramechangedHwnd(qulonglong hwnd);
     bool detachHwnd(qulonglong hwnd);
 

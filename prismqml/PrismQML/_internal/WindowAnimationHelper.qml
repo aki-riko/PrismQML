@@ -14,7 +14,9 @@ import QtQuick.Window  // Keep native Window after the library import. 库导入
 // 任务栏、Win+D 与 Alt+Space 过渡交给 Qt 和 DWM，避免冲突闪烁。
 //
 // - showAnim / closeAnim: retain startup and close transitions. 保留启动和关闭过渡。
-// - minimize / maximize / restore: delegate directly to Qt and DWM. 最小化、最大化和还原直接交给 Qt 与 DWM。
+// - minimize: delegate directly to Qt and DWM. 最小化直接交给 Qt 与 DWM。
+// - maximize / restore: request WM_SYSCOMMAND so DWM keeps native transitions.
+//   最大化与还原请求 WM_SYSCOMMAND，以保留 DWM 原生过渡。
 Item {
     id: helper
 
@@ -64,15 +66,23 @@ Item {
         targetWindow.showMinimized()
     }
 
-    // Maximize directly and let DWM own the transition. 直接最大化并由 DWM 接管过渡。
+    // Request the native maximize transition, then fall back to Qt.
+    // 请求原生最大化过渡，失败时回退 Qt。
     function animatedMaximize() {
         if (!targetWindow) return
+        if (typeof NativeWindow !== "undefined" && NativeWindow &&
+                typeof NativeWindow.requestMaximize === "function" &&
+                NativeWindow.requestMaximize(targetWindow) === true) return
         targetWindow.showMaximized()
     }
 
-    // Restore directly through Qt. 直接通过 Qt 还原窗口。
+    // Request the native restore transition, then fall back to Qt.
+    // 请求原生还原过渡，失败时回退 Qt。
     function animatedRestore() {
         if (!targetWindow) return
+        if (typeof NativeWindow !== "undefined" && NativeWindow &&
+                typeof NativeWindow.requestRestore === "function" &&
+                NativeWindow.requestRestore(targetWindow) === true) return
         targetWindow.showNormal()
     }
 

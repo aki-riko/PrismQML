@@ -26,6 +26,7 @@ public:
     QList<NativeWindowOutcome> gets;
     QList<NativeWindowOutcome> sets;
     QList<NativeWindowOutcome> frames;
+    QList<NativeWindowOutcome> commands;
     QStringList calls;
 
     bool getStyle(qulonglong hwnd, qlonglong *style,
@@ -53,6 +54,16 @@ public:
         return outcome.success;
     }
 
+    bool postSystemCommand(qulonglong hwnd, quint32 command,
+                           quint32 *errorCode) override {
+        calls.append(
+            QStringLiteral("command:%1:%2").arg(hwnd).arg(command));
+        const NativeWindowOutcome outcome =
+            take(commands, QStringLiteral("command"));
+        *errorCode = outcome.error;
+        return outcome.success;
+    }
+
 private:
     NativeWindowOutcome take(QList<NativeWindowOutcome> &outcomes,
                              const QString &operation) {
@@ -73,6 +84,7 @@ public:
     QList<NativeWindowRawOutcome> gets;
     QList<NativeWindowRawOutcome> sets;
     QList<NativeWindowRawOutcome> frames;
+    QList<NativeWindowRawOutcome> commands;
     QStringList calls;
     quint32 error = kUnexpectedNativeWindowError;
 
@@ -99,6 +111,12 @@ public:
     bool setWindowPos(qulonglong hwnd) override {
         calls.append(QStringLiteral("frame:%1").arg(hwnd));
         return take(frames, QStringLiteral("frame")).value != 0;
+    }
+
+    bool postSystemCommand(qulonglong hwnd, quint32 command) override {
+        calls.append(
+            QStringLiteral("command:%1:%2").arg(hwnd).arg(command));
+        return take(commands, QStringLiteral("command")).value != 0;
     }
 
 private:

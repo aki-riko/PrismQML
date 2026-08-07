@@ -7,7 +7,16 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEvent, QEventLoop, QMetaObject, QObject, Qt, QTimer, QUrl
+from PySide6.QtCore import (
+    QEvent,
+    QEventLoop,
+    QMetaObject,
+    QObject,
+    Qt,
+    QTimer,
+    QUrl,
+    Slot,
+)
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
@@ -60,6 +69,24 @@ Window {
 """
 
 
+class _FakeNativeTransition(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.succeed = True
+        self.maximize_calls = 0
+        self.restore_calls = 0
+
+    @Slot(QObject, result=bool)
+    def requestMaximize(self, _window):
+        self.maximize_calls += 1
+        return self.succeed
+
+    @Slot(QObject, result=bool)
+    def requestRestore(self, _window):
+        self.restore_calls += 1
+        return self.succeed
+
+
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
@@ -92,6 +119,10 @@ def close_animation_scene(qapp):
     )
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    native_transition = _FakeNativeTransition(engine)
+    engine.rootContext().setContextProperty(
+        "NativeWindow", native_transition
+    )
     component = QQmlComponent(engine)
     component.setData(SCENE_SOURCE, SCENE_URL)
     assert component.status() == QQmlComponent.Status.Ready, [
@@ -102,7 +133,7 @@ def close_animation_scene(qapp):
         error.toString() for error in component.errors()
     ]
     try:
-        yield window, warnings
+        yield window, warnings, native_transition
     finally:
         window.deleteLater()
         component.deleteLater()
@@ -116,7 +147,7 @@ def close_animation_scene(qapp):
 def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     close_animation_scene,
 ):
-    window, warnings = close_animation_scene
+    window, warnings, _native_transition = close_animation_scene
     helper = window.findChild(QQuickItem, "animationHelper")
     assert helper is not None
     assert _class_count(helper, "QQuickSequentialAnimation") == 0
@@ -136,7 +167,7 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
 
 
 def test_close_caption_entered_prewarms_without_clicking(close_animation_scene):
-    window, warnings = close_animation_scene
+    window, warnings, _native_transition = close_animation_scene
     caption = window.findChild(QQuickItem, "closeCaptionButton")
     assert caption is not None
     mouse_areas = [
@@ -169,3 +200,47 @@ def test_close_animation_source_preserves_visual_timing_and_targets():
         "if (captionBtn.isClose) "
         "captionBtn.targetWindow.prewarmCloseAnimation()"
     ) in caption_source
+
+
+def test_maximize_and_restore_prefer_native_dwm_transition(
+    close_animation_scene,
+):
+    window, warnings, native_transition = close_animation_scene
+    helper = window.findChild(QQuickItem, "animationHelper")
+    assert helper is not None
+
+    assert QMetaObject.invokeMethod(
+        helper, "animatedMaximize", Qt.ConnectionType.DirectConnection
+    )
+    assert QMetaObject.invokeMethod(
+        helper, "animatedRestore", Qt.ConnectionType.DirectConnection
+    )
+
+    assert native_transition.maximize_calls == 1
+    assert native_transition.restore_calls == 1
+    assert window.visibility() == QQuickWindow.Visibility.Hidden
+    assert warnings == []
+
+
+def test_maximize_and_restore_keep_qt_fallback(close_animation_scene):
+    window, warnings, native_transition = close_animation_scene
+    helper = window.findChild(QQuickItem, "animationHelper")
+    assert helper is not None
+    native_transition.succeed = False
+
+    assert QMetaObject.invokeMethod(
+        helper, "animatedMaximize", Qt.ConnectionType.DirectConnection
+    )
+    assert _wait_for(
+        lambda: window.visibility() == QQuickWindow.Visibility.Maximized
+    )
+    assert QMetaObject.invokeMethod(
+        helper, "animatedRestore", Qt.ConnectionType.DirectConnection
+    )
+    assert _wait_for(
+        lambda: window.visibility() == QQuickWindow.Visibility.Windowed
+    )
+
+    assert native_transition.maximize_calls == 1
+    assert native_transition.restore_calls == 1
+    assert warnings == []

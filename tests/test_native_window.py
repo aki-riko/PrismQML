@@ -183,6 +183,55 @@ def test_set_window_pos_zero_without_last_error_fails_closed(
     ]
 
 
+def test_native_system_commands_post_maximize_and_restore(monkeypatch, hook_env):
+    hook, last_error, messages = hook_env
+    fake = _install(
+        monkeypatch,
+        last_error,
+        messages=[_Outcome(1), _Outcome(1)],
+    )
+    window = _FakeWindow()
+
+    assert hook.requestMaximize(window) is True
+    assert hook.requestRestore(window) is True
+
+    assert fake.calls == [
+        (
+            "message",
+            HWND,
+            native_window.WM_SYSCOMMAND,
+            native_window.SC_MAXIMIZE,
+            0,
+        ),
+        (
+            "message",
+            HWND,
+            native_window.WM_SYSCOMMAND,
+            native_window.SC_RESTORE,
+            0,
+        ),
+    ]
+    assert last_error.set_calls == [0, 0]
+    assert messages == []
+
+
+def test_native_system_command_failure_falls_back_cleanly(
+    monkeypatch, hook_env
+):
+    hook, last_error, messages = hook_env
+    _install(
+        monkeypatch,
+        last_error,
+        messages=[_Outcome(0, ERROR_ACCESS_DENIED)],
+    )
+
+    assert hook.requestMaximize(_FakeWindow()) is False
+    assert messages == [
+        "NativeWindowHook.requestMaximize failed: "
+        "OSError: [Errno 5] PostMessageW failed"
+    ]
+
+
 def test_detach_restore_failure_preserves_state(monkeypatch, hook_env):
     hook, last_error, _messages = hook_env
     fake = _install(
