@@ -18,6 +18,9 @@ ROOT = Path(__file__).resolve().parents[2]
 ANIMATION_HELPER_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
 )
+SHATTER_EFFECT_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowCloseShatter.qml"
+)
 CAPTION_BUTTON_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "CaptionButton.qml"
 )
@@ -44,10 +47,17 @@ Window {
         function prewarmCloseAnimation() { window.hoverPrewarmCalls += 1 }
     }
 
+    Rectangle {
+        id: frame
+        anchors.fill: parent
+        color: Enums.cardColor
+    }
+
     Internal.WindowAnimationHelper {
         id: animationHelper
         objectName: "animationHelper"
         targetWindow: window
+        targetItem: frame
         onCloseCallback: function() { window.closeCallbacks += 1 }
     }
 
@@ -66,7 +76,7 @@ def _pump(milliseconds: int = 20) -> None:
     loop.exec()
 
 
-def _wait_for(predicate, timeout_ms: int = 1000) -> bool:
+def _wait_for(predicate, timeout_ms: int = 1500) -> bool:
     elapsed = 0
     while elapsed < timeout_ms:
         if predicate():
@@ -80,6 +90,26 @@ def _class_count(root: QObject, prefix: str) -> int:
     return sum(
         child.metaObject().className().startswith(prefix)
         for child in root.findChildren(QObject)
+    )
+
+
+def _visual_items(root: QQuickItem):
+    for child in root.childItems():
+        yield child
+        yield from _visual_items(child)
+
+
+def _visual_class_count(root: QQuickItem, prefix: str) -> int:
+    return sum(
+        child.metaObject().className().startswith(prefix)
+        for child in _visual_items(root)
+    )
+
+
+def _find_visual_item(root: QQuickItem, object_name: str):
+    return next(
+        (child for child in _visual_items(root) if child.objectName() == object_name),
+        None,
     )
 
 
@@ -119,6 +149,8 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     window, warnings = close_animation_scene
     helper = window.findChild(QQuickItem, "animationHelper")
     assert helper is not None
+    window.show()
+    assert _wait_for(lambda: helper.width() == pytest.approx(window.width()))
     assert _class_count(helper, "QQuickSequentialAnimation") == 0
 
     window.setOpacity(1)
@@ -128,9 +160,22 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
         helper, "animatedClose", Qt.ConnectionType.DirectConnection
     )
     assert _class_count(helper, "QQuickSequentialAnimation") == 1
+    shatter = helper.findChild(QQuickItem, "windowCloseShatter")
+    assert shatter is not None
+    assert _visual_class_count(helper, "QQuickShaderEffectSource") == (
+        shatter.property("_shardCount") + 1
+    )
+    columns = shatter.property("_columns")
+    leading_shard = _find_visual_item(helper, f"windowCloseShard_{columns - 1}")
+    assert leading_shard is not None
+    initial_position = (leading_shard.x(), leading_shard.y())
+    assert _wait_for(lambda: helper.property("animOpacity") == 0, timeout_ms=300)
+    _pump(200)
+    assert (leading_shard.x(), leading_shard.y()) != pytest.approx(initial_position)
+    assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
     assert window.opacity() == pytest.approx(0)
-    assert helper.property("animScale") == pytest.approx(0.95)
+    assert helper.property("animScale") == pytest.approx(1)
     assert helper.property("animOpacity") == pytest.approx(0)
     assert warnings == []
 
@@ -154,17 +199,24 @@ def test_close_caption_entered_prewarms_without_clicking(close_animation_scene):
     assert warnings == []
 
 
-def test_close_animation_source_preserves_visual_timing_and_targets():
+def test_close_animation_source_uses_lazy_frozen_frame_shards():
     animation_source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
+    shatter_source = SHATTER_EFFECT_PATH.read_text(encoding="utf-8")
     caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
     assert "active: false" in animation_source
-    assert "sourceComponent: SequentialAnimation" in animation_source
-    assert animation_source.count("duration: Enums.duration.normal") == 3
-    assert animation_source.count("easing.type: Easing.InCubic") == 3
-    assert 'property: "opacity"; to: 0' in animation_source
-    assert 'property: "animScale"; to: 0.95' in animation_source
-    assert 'property: "animOpacity"; to: 0' in animation_source
-    assert "ScriptAction { script: onCloseCallback() }" in animation_source
+    assert "sourceComponent: WindowCloseShatter" in animation_source
+    assert "targetItem: helper.targetItem" in animation_source
+    assert "helper.animOpacity = Enums.opacityLevel.invisible" in animation_source
+    assert "Repeater {" in shatter_source
+    assert "delegate: ShaderEffectSource" in shatter_source
+    assert 'objectName: "windowCloseFrozenFrame"' in shatter_source
+    assert "sourceItem: effect.targetItem" in shatter_source
+    assert "sourceItem: frozenFrame" in shatter_source
+    assert "sourceRect: Qt.rect(" in shatter_source
+    assert "live: false" in shatter_source
+    assert "duration: Enums.duration.verySlow" in shatter_source
+    assert "Enums.window.closeShatterWaveSpread" in shatter_source
+    assert "effect.onCloseCallback()" in shatter_source
     assert (
         "if (captionBtn.isClose) "
         "captionBtn.targetWindow.prewarmCloseAnimation()"

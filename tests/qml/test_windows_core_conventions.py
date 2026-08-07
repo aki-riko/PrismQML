@@ -43,6 +43,7 @@ WINDOW_LEAF_PATHS = [
         "WindowIcon.qml",
         "CaptionButton.qml",
         "ContentFrame.qml",
+        "WindowCloseShatter.qml",
     )
 ]
 STARTUP_DIAGNOSTIC_PATHS = [
