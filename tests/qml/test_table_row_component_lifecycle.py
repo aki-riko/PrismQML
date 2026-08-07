@@ -26,6 +26,7 @@ ROOT = Path(
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "table-row-component-lifecycle.qml")
 )
+EXPECTED_NORMAL_OBJECTS = 888
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window
@@ -190,6 +191,7 @@ def test_table_rows_preserve_rendering_while_components_are_measured(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, table, warnings = _create_scene()
     try:
+        assert _wait_for(lambda: _object_count(table) == EXPECTED_NORMAL_OBJECTS)
         rows = _row_delegates(table)
         row_components = [_component_count(row) for row in rows]
         normal_objects = _object_count(table)
@@ -215,7 +217,7 @@ def test_table_rows_preserve_rendering_while_components_are_measured(qapp):
 
         assert len(rows) == 12
         assert row_components == [0] * 12
-        assert normal_objects == 888
+        assert normal_objects == EXPECTED_NORMAL_OBJECTS
         if os.name == "nt":
             assert normal_hash == (
                 "866ef579e4a08cfd577606afbc3f990b"
