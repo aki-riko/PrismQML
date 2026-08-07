@@ -47,6 +47,8 @@ def test_data_submenu_opens_and_routes_child_action(qapp):
     tray._ensureQmlMenu()
     menu = tray._qml_menu
     assert menu is not None
+    assert tray._component.parent() is engine
+    assert menu.parent() is engine
 
     try:
         assert _evaluate(
