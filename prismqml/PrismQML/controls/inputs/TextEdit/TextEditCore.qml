@@ -7,6 +7,7 @@ import "../../.."
 import ".."
 import QtQuick.Effects
 import "../../data"
+import "../../containers/ScrollBar"
 
 // TextEditCore - Multiline text input base (extends InputCore) 多行文本输入基类
 // Use multilineType to switch modes 通过multilineType切换模式
@@ -26,6 +27,10 @@ InputCore {
     property int textFormat: _isBrowser ? TextEdit.RichText : TextEdit.PlainText
     property bool showScrollIndicator: false     // Scroll indicator 滚动条指示器
     property bool openExternalLinks: true        // For browser mode 浏览器模式用
+    property bool smoothScroll: true
+    property int scrollDuration: Enums.duration.scroll
+    property real scrollStep: Enums.spacing.xxxl * 3
+    property int scrollEasing: Easing.OutQuart
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isBrowser: multilineType === Enums.input.multiline_browser
@@ -73,6 +78,20 @@ InputCore {
     function isEnabled() { return enabled }
     // Has focus 是否有焦点
     function hasFocus() { return textEdit.activeFocus }
+    function smoothScrollTo(targetY) { scrollHelper.scrollTo(targetY) }
+    function smoothScrollBy(delta) { scrollHelper.scrollBy(delta) }
+    function scrollToTop() { scrollHelper.scrollToStart() }
+    function scrollToBottom() { scrollHelper.scrollToEnd() }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _handleSmoothWheel(event) {
+        if (!smoothScroll || flickable.contentHeight <= flickable.height) {
+            event.accepted = false
+            return
+        }
+        scrollHelper.scrollBy(-event.angleDelta.y / 120 * scrollStep)
+        event.accepted = true
+    }
 
     // Bind inherited InputCore state 绑定继承的 InputCore 状态
     focusTarget: _isBrowser ? null : textEdit
@@ -131,6 +150,34 @@ InputCore {
             onCursorPositionChanged: control.cursorPositionChanged()
             onSelectedTextChanged: control.selectionChanged()
         }
+    }
+
+    SmoothScrollHelper {
+        id: scrollHelper
+
+        target: flickable
+        orientation: Qt.Vertical
+        enabled: control.smoothScroll
+        duration: control.scrollDuration
+        step: control.scrollStep
+        easing: control.scrollEasing
+        bounceEnabled: false
+    }
+
+    Connections {
+        function onMovementEnded() { scrollHelper.syncPosition() }
+        target: flickable
+    }
+
+    MouseArea {
+        id: smoothWheelArea
+        parent: flickable
+        anchors.fill: parent
+        z: Enums.zIndex.controlsAbove
+        acceptedButtons: Qt.NoButton
+        propagateComposedEvents: true
+        enabled: control.smoothScroll
+        onWheel: (event) => control._handleSmoothWheel(event)
     }
     
     // InputCore handles click-to-focus centrally 点击聚焦由 InputCore 统一处理

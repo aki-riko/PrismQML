@@ -40,6 +40,11 @@ Item {
     property real viewportScale: 1       // Viewport visual scale 视窗视觉缩放
     property real viewportOffsetRatio: 0 // Viewport visual offset 视窗视觉偏移
     property bool viewportTransitionActive: false // Viewport transition state 视窗过渡状态
+    property var categoryProjection: ({ sourceLength: chartData.length,
+                                        sourceOffset: 0, sourceIndices: [] })
+    property real viewportStart: 0
+    property real viewportEnd: 1
+    property bool animateValueRange: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property Item chartArea: chartAreaItem
@@ -61,6 +66,16 @@ Item {
     readonly property var _horizontalValueAxisLabels: _buildHorizontalValueAxisLabels()
     readonly property var _scatterXAxisLabelTexts: _buildScatterXAxisLabels()
     readonly property var _categoryLabelTexts: _buildCategoryLabels()
+    readonly property real _categoryViewportStart:
+        isFinite(viewportStart) ? Math.max(0, Math.min(1, viewportStart)) : 0
+    readonly property real _categoryViewportEnd:
+        isFinite(viewportEnd) ? Math.max(_categoryViewportStart, Math.min(1, viewportEnd)) : 1
+    readonly property real _categoryViewportSpan:
+        Math.max(Enums.chart.viewport_epsilon,
+                 _categoryViewportEnd - _categoryViewportStart)
+    readonly property int _categorySourceLength:
+        categoryProjection && categoryProjection.sourceLength > 0
+        ? categoryProjection.sourceLength : chartData.length
     readonly property real effectiveYAxisLabelWidth: {
         if (yAxisLabelWidth > 0) return yAxisLabelWidth
         var labels = isHorizontal ? _categoryLabelTexts : _verticalValueAxisLabels
@@ -72,8 +87,8 @@ Item {
             Enums.spacing.m + Enums.spacing.s
         )
     }
-    readonly property real _categorySlotWidth: chartData.length > 0
-        ? chartAreaItem.width / chartData.length : 0
+    readonly property real _categorySlotWidth: _categorySourceLength > 0
+        ? chartAreaItem.width / (_categorySourceLength * _categoryViewportSpan) : 0
     readonly property int _categoryLabelStride: ChartAxisLayout.categoryStride(
         axisFontMetrics,
         _categoryLabelTexts,
@@ -82,7 +97,7 @@ Item {
     )
     
     // Value range for charts with negative values 支持负值的数值范围
-    readonly property var valueRange: {
+    readonly property var _calculatedValueRange: {
         var min = 0, max = 0
         // 1) chartData 单 series 模式: 每项 {label, value}
         for (var i = 0; i < chartData.length; i++) {
@@ -107,6 +122,18 @@ Item {
         return {
             min: min < 0 ? min - padding : 0,
             max: max > 0 ? max + padding : 0,
+            hasNegative: min < 0,
+            hasPositive: max > 0
+        }
+    }
+    property real _displayRangeMin: _calculatedValueRange.min
+    property real _displayRangeMax: _calculatedValueRange.max
+    readonly property var valueRange: {
+        var min = _displayRangeMin
+        var max = _displayRangeMax
+        return {
+            min: min,
+            max: max,
             hasNegative: min < 0,
             hasPositive: max > 0
         }
@@ -212,6 +239,34 @@ Item {
         return labels
     }
 
+    function _categorySourceIndex(localIndex) {
+        var indices = categoryProjection ? categoryProjection.sourceIndices : null
+        if (indices && typeof indices.length === "number" && indices.length > localIndex) {
+            return indices[localIndex]
+        }
+        var offset = categoryProjection && typeof categoryProjection.sourceOffset === "number"
+            ? categoryProjection.sourceOffset : 0
+        return offset + localIndex
+    }
+
+    function _categorySlotPosition(localIndex, extent) {
+        if (_categorySourceLength <= 0) return 0
+        var normalized = _categorySourceIndex(localIndex) / _categorySourceLength
+        return (normalized - _categoryViewportStart) / _categoryViewportSpan * extent
+    }
+
+    function _categorySlotExtent(extent) {
+        return _categorySourceLength > 0
+            ? extent / (_categorySourceLength * _categoryViewportSpan) : 0
+    }
+
+    function _categorySlotIntersectsViewport(localIndex) {
+        if (_categorySourceLength <= 0) return false
+        var start = _categorySourceIndex(localIndex) / _categorySourceLength
+        var end = start + 1 / _categorySourceLength
+        return end >= _categoryViewportStart && start <= _categoryViewportEnd
+    }
+
     // ==================== Content 内容 ====================
     // Title 标题
     ChartTitle {
@@ -308,44 +363,48 @@ Item {
     }
     
     // Y-axis labels for horizontal bar 水平柱状图Y轴标签（分类）
-    Column {
+    Item {
         id: horizontalYAxisLabels
+        objectName: "chartHorizontalYAxisViewport"
+
         x: Enums.spacing.s
-        y: chartAreaItem.y + root.viewportOffsetRatio * chartAreaItem.height
+        y: chartAreaItem.y
         width: root.effectiveYAxisLabelWidth - Enums.spacing.s
         height: chartAreaItem.height
         visible: root._showHorizontalAxes
-        transform: Scale {
-            origin.x: 0
-            origin.y: 0
-            yScale: root.viewportScale
-        }
+        clip: true
         
         Repeater {
             model: root._showHorizontalAxes ? root.chartData : []
-            Label {
+            Item {
+                y: root._categorySlotPosition(index, horizontalYAxisLabels.height)
                 width: parent.width
-                height: parent.height / Math.max(root.chartData.length, 1)
-                type: Enums.label.type_caption
-                text: root._categoryLabelTexts[index] || ""
-                color: root.hoveredIndex === index
-                       ? Enums.textColor.primary 
-                       : Enums.textColor.tertiary
-                horizontalAlignment: Text.AlignRight
-                verticalAlignment: Text.AlignVCenter
-                elide: Text.ElideRight
-                rightPadding: Enums.spacing.s
-                
-                Behavior on color {
-                    ColorAnimation { duration: Enums.duration.fast }
-                }
-                
-                MouseArea {
+                height: root._categorySlotExtent(horizontalYAxisLabels.height)
+                visible: root._categorySlotIntersectsViewport(index)
+
+                Label {
                     anchors.fill: parent
-                    hoverEnabled: true
-                    enabled: !root.viewportTransitionActive
-                    onEntered: root.xLabelHovered(index)
-                    onExited: root.xLabelHovered(-1)
+                    type: Enums.label.type_caption
+                    text: root._categoryLabelTexts[index] || ""
+                    color: root.hoveredIndex === index
+                           ? Enums.textColor.primary
+                           : Enums.textColor.tertiary
+                    horizontalAlignment: Text.AlignRight
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                    rightPadding: Enums.spacing.s
+
+                    Behavior on color {
+                        ColorAnimation { duration: Enums.duration.fast }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        enabled: !root.viewportTransitionActive
+                        onEntered: root.xLabelHovered(index)
+                        onExited: root.xLabelHovered(-1)
+                    }
                 }
             }
         }
@@ -378,24 +437,22 @@ Item {
     // X-axis labels (category) X轴标签（分类）
     Item {
         id: xAxisLabels
-        x: chartAreaItem.x + root.viewportOffsetRatio * chartAreaItem.width
+        objectName: "chartXAxisViewport"
+
+        x: chartAreaItem.x
         y: chartAreaItem.y + chartAreaItem.height + Enums.spacing.xs
         width: chartAreaItem.width
         height: Enums.controlSize.chartXAxisHeight
         visible: root._showVerticalCategoryAxis
         clip: true
-        transform: Scale {
-            origin.x: 0
-            origin.y: 0
-            xScale: root.viewportScale
-        }
         
         Repeater {
             model: root._showVerticalCategoryAxis ? root.chartData : []
             Item {
-                x: index * root._categorySlotWidth
+                x: root._categorySlotPosition(index, xAxisLabels.width)
                 width: root._categorySlotWidth
                 height: parent.height
+                visible: root._categorySlotIntersectsViewport(index)
 
                 Label {
                     id: categoryLabel
@@ -443,29 +500,56 @@ Item {
     // X-axis labels (numeric for scatter) X轴标签（散点图数值）
     Item {
         id: scatterXAxisLabels
+        objectName: "chartScatterXAxisViewport"
 
-        x: chartAreaItem.x + root.viewportOffsetRatio * chartAreaItem.width
+        x: chartAreaItem.x
         y: chartAreaItem.y + chartAreaItem.height + Enums.spacing.xs
         width: chartAreaItem.width
         height: Enums.controlSize.chartXAxisHeight
         visible: root._showScatterXAxis
         clip: true
-        transform: Scale {
-            origin.x: 0
-            origin.y: 0
-            xScale: root.viewportScale
-        }
-        
-        Repeater {
-            model: root._showScatterXAxis ? 6 : 0
-            Label {
-                x: ChartAxisLayout.clampedCenteredX(
-                    index * (parent.width / 5), width, parent.width
-                )
-                type: Enums.label.type_caption
-                text: root._scatterXAxisLabelTexts[index] || ""
-                color: Enums.textColor.secondary
+
+        Item {
+            id: scatterXAxisLayer
+
+            x: root.viewportOffsetRatio * parent.width
+            width: parent.width
+            height: parent.height
+            transform: Scale {
+                origin.x: 0
+                origin.y: 0
+                xScale: root.viewportScale
             }
+
+            Repeater {
+                model: root._showScatterXAxis ? 6 : 0
+                Label {
+                    x: ChartAxisLayout.clampedCenteredX(
+                        index * (parent.width / 5), width, parent.width
+                    )
+                    type: Enums.label.type_caption
+                    text: root._scatterXAxisLabelTexts[index] || ""
+                    color: Enums.textColor.secondary
+                }
+            }
+        }
+    }
+
+    Behavior on _displayRangeMin {
+        enabled: root.animateValueRange
+
+        NumberAnimation {
+            duration: Enums.duration.normal
+            easing.type: Easing.InOutCubic
+        }
+    }
+
+    Behavior on _displayRangeMax {
+        enabled: root.animateValueRange
+
+        NumberAnimation {
+            duration: Enums.duration.normal
+            easing.type: Easing.InOutCubic
         }
     }
 }

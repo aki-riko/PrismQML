@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
 
@@ -61,18 +62,60 @@ ChartView {
     readonly property real visualEnd: _visualEnd
     readonly property bool transitionActive: _viewportTransitionActive
     readonly property real mappedMidpoint: viewportOffset + viewportScale * 0.5
+    readonly property real chartAreaWidth: _xyChartBase ? _xyChartBase.chartAreaWidth : 0
+    readonly property real lineDisplayRangeMax:
+        _lineContent ? _lineContent.valueRange.max : 0
+    readonly property real lineCalculatedRangeMax:
+        _lineContent ? _lineContent._calculatedValueRange.max : 0
+    readonly property real axisDisplayRangeMax:
+        _xyChartBase ? _xyChartBase.valueRange.max : 0
+    readonly property real axisCalculatedRangeMax:
+        _xyChartBase ? _xyChartBase._calculatedValueRange.max : 0
+    readonly property int trackedLocalIndex: trackedSourceIndex
+        - Math.floor(sourcePoints.length * renderStart)
+    readonly property real trackedPointX: {
+        if (!_lineContent || _lineContent.seriesPointPositions.length === 0) return -1
+        var points = _lineContent.seriesPointPositions[0] || []
+        return trackedLocalIndex >= 0 && trackedLocalIndex < points.length
+            ? points[trackedLocalIndex].x : -1
+    }
+    readonly property real trackedPointY: {
+        if (!_lineContent || _lineContent.seriesPointPositions.length === 0) return -1
+        var points = _lineContent.seriesPointPositions[0] || []
+        return trackedLocalIndex >= 0 && trackedLocalIndex < points.length
+            ? points[trackedLocalIndex].y : -1
+    }
+    readonly property real mappedTrackedPointX: viewportOffset * chartAreaWidth
+        + viewportScale * trackedPointX
+    readonly property real projectedTargetTrackedPointX: {
+        var targetSpan = viewportEnd - viewportStart
+        if (targetSpan <= 0 || trackedPointX < 0) return -1
+        var targetScale = (renderEnd - renderStart) / targetSpan
+        var targetOffset = (renderStart - viewportStart) / targetSpan
+        return targetOffset * chartAreaWidth + targetScale * trackedPointX
+    }
     readonly property string renderedValuesJson: JSON.stringify(
         _viewChartData.map(function(item) { return item.value })
     )
     readonly property string renderedSeriesValuesJson: JSON.stringify(
         _viewSeries.length > 0 ? _viewSeries[0].values : []
     )
+    readonly property string renderedSeriesIndicesJson: JSON.stringify(
+        _viewSeriesProjection.valueSources.length > 0
+            ? _viewSeriesProjection.valueSources[0].sourceIndices : []
+    )
+    readonly property string renderedSeriesPointXsJson: JSON.stringify(
+        _lineContent && _lineContent.seriesPointPositions.length > 0
+            ? _lineContent.seriesPointPositions[0].map(function(point) { return point.x })
+            : []
+    )
     readonly property var sourcePoints: {
         var points = []
         for (var index = 0; index < 100; index++) {
             points.push({
                 label: "P" + index,
-                value: (index * index + 17 * index) % 997
+                value: spikeMode && index === 5
+                    ? 5000 : (index * index + 17 * index) % 997
             })
         }
         return points
@@ -83,6 +126,9 @@ ChartView {
     property int wheelZoomRequest: 0
     property int wheelDelta: 120
     property bool seriesMode: false
+    property bool combinedMode: false
+    property bool spikeMode: false
+    property int trackedSourceIndex: 10
 
     onWheelZoomRequestChanged: {
         if (wheelZoomRequest > 0) wheelZoomed(wheelDelta, zoomAnchor)
@@ -94,8 +140,9 @@ ChartView {
     animated: true
     chartType: Enums.chart.type_line
     dataZoomEnabled: true
-    chartData: seriesMode ? [] : sourcePoints
+    chartData: seriesMode && !combinedMode ? [] : sourcePoints
     series: seriesMode ? [{ name: "series", values: sourceValues }] : []
+    boundaryGap: false
 }
 """
 
@@ -296,6 +343,98 @@ def test_small_dataset_moves_continuously_without_mid_animation_reslicing(qapp):
         _pump(1)
 
 
+def test_31_point_gold_series_keeps_the_same_point_position_when_zoom_commits(qapp):
+    engine, component, chart = _create_chart(point_count=31)
+    window = QQuickWindow()
+    try:
+        window.resize(640, 360)
+        chart.setParentItem(window.contentItem())
+        window.show()
+        chart.setProperty("seriesMode", True)
+        chart.setProperty("combinedMode", True)
+        _pump(50)
+        assert chart.property("trackedPointX") >= 0
+        x_axis_viewport = chart.findChild(QQuickItem, "chartXAxisViewport")
+        assert x_axis_viewport is not None
+        assert x_axis_viewport.clip() is True
+        axis_x = x_axis_viewport.x()
+        axis_width = x_axis_viewport.width()
+
+        chart.setProperty("wheelZoomRequest", 1)
+        _pump(1)
+        assert chart.property("transitionActive") is True
+        projected_target_x = chart.property("projectedTargetTrackedPointX")
+        assert projected_target_x >= 0
+        _pump(chart.property("transitionDuration") // 2)
+        assert x_axis_viewport.x() == pytest.approx(axis_x)
+        assert x_axis_viewport.width() == pytest.approx(axis_width)
+
+        _wait_for_transition(chart)
+        _pump(20)
+        committed_x = chart.property("mappedTrackedPointX")
+        assert committed_x == pytest.approx(projected_target_x, abs=0.5)
+        assert x_axis_viewport.x() == pytest.approx(axis_x)
+        assert x_axis_viewport.width() == pytest.approx(axis_width)
+    finally:
+        chart.setParentItem(None)
+        window.close()
+        window.deleteLater()
+        chart.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_zoom_commit_does_not_jump_y_when_a_peak_leaves_the_view(qapp):
+    engine, component, chart = _create_chart(point_count=31)
+    window = QQuickWindow()
+    try:
+        window.resize(640, 360)
+        chart.setParentItem(window.contentItem())
+        window.show()
+        chart.setProperty("seriesMode", True)
+        chart.setProperty("combinedMode", True)
+        chart.setProperty("spikeMode", True)
+        chart.setProperty("trackedSourceIndex", 20)
+        _pump(chart.property("transitionDuration") + 50)
+        line_start = chart.property("lineDisplayRangeMax")
+        axis_start = chart.property("axisDisplayRangeMax")
+        assert line_start > 0
+        assert axis_start > 0
+
+        chart.setProperty("viewportStart", 0.3)
+        chart.setProperty("viewportEnd", 1.0)
+        _pump(1)
+        assert chart.property("transitionActive") is True
+        _wait_for_transition(chart)
+        line_target = line_start
+        axis_target = axis_start
+        for _ in range(50):
+            _pump(1)
+            line_target = chart.property("lineCalculatedRangeMax")
+            axis_target = chart.property("axisCalculatedRangeMax")
+            if line_target != line_start and axis_target != axis_start:
+                break
+        assert line_target != line_start
+        assert axis_target != axis_start
+        line_first = chart.property("lineDisplayRangeMax")
+        axis_first = chart.property("axisDisplayRangeMax")
+        assert abs(line_first - line_start) < abs(line_target - line_start) * 0.25
+        assert abs(axis_first - axis_start) < abs(axis_target - axis_start) * 0.25
+
+        _pump(chart.property("transitionDuration") + 20)
+        assert chart.property("lineDisplayRangeMax") == pytest.approx(line_target)
+        assert chart.property("axisDisplayRangeMax") == pytest.approx(axis_target)
+    finally:
+        chart.setParentItem(None)
+        window.close()
+        window.deleteLater()
+        chart.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_zoom_out_commits_the_target_slice_once_then_animates_to_identity(qapp):
     engine, component, chart = _create_chart()
     try:
@@ -348,6 +487,49 @@ def test_large_dataset_keeps_the_lttb_slice_stable_during_zoom_in(qapp):
         assert chart.property("renderedPointCount") == initial_count
         assert chart.property("viewportScale") > 1
     finally:
+        chart.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_lttb_points_keep_their_source_x_coordinates_after_zoom_commit(qapp):
+    point_count = 10_000
+    engine, component, chart = _create_chart(point_count=point_count)
+    window = QQuickWindow()
+    try:
+        window.resize(640, 360)
+        chart.setParentItem(window.contentItem())
+        window.show()
+        chart.setProperty("seriesMode", True)
+        chart.setProperty("combinedMode", True)
+        _pump(50)
+
+        chart.setProperty("wheelZoomRequest", 1)
+        _wait_for_transition(chart)
+        _pump(20)
+
+        source_indices = []
+        point_xs = []
+        for _ in range(20):
+            source_indices = json.loads(chart.property("renderedSeriesIndicesJson"))
+            point_xs = json.loads(chart.property("renderedSeriesPointXsJson"))
+            if source_indices and len(source_indices) == len(point_xs):
+                break
+            _pump(10)
+        assert 590 <= len(source_indices) == len(point_xs) <= 600
+        render_start = chart.property("renderStart")
+        render_span = chart.property("renderEnd") - render_start
+        chart_width = chart.property("chartAreaWidth")
+        for local_index in (1, len(source_indices) // 2, len(source_indices) - 2):
+            expected_x = (
+                source_indices[local_index] / (point_count - 1) - render_start
+            ) / render_span * chart_width
+            assert point_xs[local_index] == pytest.approx(expected_x, abs=0.01)
+    finally:
+        chart.setParentItem(None)
+        window.close()
+        window.deleteLater()
         chart.deleteLater()
         del component
         engine.deleteLater()
@@ -425,15 +607,19 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     assert "chart.chartData[chart._hovered" not in tooltip_source
     assert "chart.series[i]" not in tooltip_source
     assert "xScale: root.viewportScale" in xy_chart_core_source
-    assert "yScale: root.viewportScale" in xy_chart_core_source
+    assert "yScale: root.viewportScale" not in xy_chart_core_source
+    assert "root._categorySlotPosition(index, horizontalYAxisLabels.height)" in (
+        xy_chart_core_source
+    )
     assert "y: chartAreaItem.y + root.viewportOffsetRatio" not in (
         xy_chart_core_source.split("id: yAxisLabels", 1)[1]
         .split("id: horizontalYAxisLabels", 1)[0]
     )
     assert (
         "id: horizontalYAxisLabels\n"
+        "        objectName: \"chartHorizontalYAxisViewport\"\n\n"
         "        x: Enums.spacing.s\n"
-        "        y: chartAreaItem.y + root.viewportOffsetRatio * chartAreaItem.height"
+        "        y: chartAreaItem.y"
     ) in xy_chart_core_source
     assert (
         "id: horizontalXAxisLabels\n\n"
@@ -441,12 +627,20 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     ) in xy_chart_core_source
     assert (
         "id: xAxisLabels\n"
-        "        x: chartAreaItem.x + root.viewportOffsetRatio * chartAreaItem.width"
+        "        objectName: \"chartXAxisViewport\"\n\n"
+        "        x: chartAreaItem.x"
     ) in xy_chart_core_source
+    category_axis_source = xy_chart_core_source.split(
+        "id: xAxisLabels", 1
+    )[1].split("id: scatterXAxisLabels", 1)[0]
+    assert "root._categorySlotPosition(index, xAxisLabels.width)" in category_axis_source
+    assert "xScale: root.viewportScale" not in category_axis_source
     assert (
-        "id: scatterXAxisLabels\n\n"
-        "        x: chartAreaItem.x + root.viewportOffsetRatio * chartAreaItem.width"
+        "id: scatterXAxisLabels\n"
+        "        objectName: \"chartScatterXAxisViewport\"\n\n"
+        "        x: chartAreaItem.x"
     ) in xy_chart_core_source
+    assert "id: scatterXAxisLayer" in xy_chart_core_source
 
     for token in (
         "zoom_in_factor",

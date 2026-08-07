@@ -35,6 +35,12 @@ Item {
     property bool animated: false        // Line drawing animation 折线绘制动画
     // Enable pointer hover detection; disable it for dense data to reduce frame drops 启用鼠标悬停检测，密集数据可关闭以减少掉帧
     property bool hoverDetectEnabled: true
+    // Source projection metadata keeps sliced points on original X coordinates 源投影元数据保证切片前后的点保持原始X坐标
+    property var chartDataProjection: ({ sourceLength: chartData.length,
+                                         sourceOffset: 0, sourceIndices: [] })
+    property var seriesValueSources: []
+    property real renderViewportStart: 0
+    property real renderViewportEnd: 1
 
     // ==================== Internal Props 内部属性 ====================
     property var pointPositions: []       // For single series 单系列点位置
@@ -57,7 +63,13 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
-    readonly property var valueRange: _calculateValueRange()
+    readonly property var _calculatedValueRange: _calculateValueRange()
+    property real _displayRangeMin: _calculatedValueRange.min
+    property real _displayRangeMax: _calculatedValueRange.max
+    readonly property var valueRange: ({
+        min: _displayRangeMin,
+        max: _displayRangeMax
+    })
 
     // ==================== Signals 信号 ====================
     signal pointClicked(int index, var data)
@@ -192,10 +204,14 @@ Item {
         var range = valueRange
         var geometry = isMultiSeries
             ? Geometry.buildSeries(series, canvasWidth, canvasHeight, boundaryGap,
-                                   stacked, range.min, range.max)
+                                   stacked, range.min, range.max,
+                                   seriesValueSources,
+                                   renderViewportStart, renderViewportEnd)
             : Geometry.buildSingle(chartData, canvasWidth, canvasHeight,
                                    boundaryGap, Enums.spacing.m,
-                                   range.min, range.max)
+                                   range.min, range.max,
+                                   chartDataProjection,
+                                   renderViewportStart, renderViewportEnd)
         _lineGeometry = geometry
         _lineGeometryBaseline = geometry.baseline
         if (isMultiSeries) {
@@ -259,6 +275,12 @@ Item {
     // onHoveredSeriesIndexChanged: canvas.requestPaint()
     onChartDataChanged: _invalidateLineGeometry()
     onSeriesChanged: _invalidateLineGeometry()
+    onChartDataProjectionChanged: _invalidateLineGeometry()
+    onSeriesValueSourcesChanged: _invalidateLineGeometry()
+    onRenderViewportStartChanged: _invalidateLineGeometry()
+    onRenderViewportEndChanged: _invalidateLineGeometry()
+    on_DisplayRangeMinChanged: _invalidateLineGeometry()
+    on_DisplayRangeMaxChanged: _invalidateLineGeometry()
     onShowAverageChanged: canvas.requestPaint()
     onShowMinMaxChanged: canvas.requestPaint()
     onBoundaryGapChanged: _invalidateLineGeometry()
@@ -306,13 +328,16 @@ Item {
             if (maxLen < 2) return 0
             var drawCount = 0
             
-            var stepX = root.boundaryGap ? width / maxLen : width / (maxLen - 1)
-            var startX = root.boundaryGap ? stepX / 2 : 0
-            
             // Draw vertical indicator 绘制垂直指示线
             if (root.hoveredIndex >= 0 && root.hoveredIndex < maxLen) {
-                var indicatorX = startX + root.hoveredIndex * stepX
-                Painter.drawVerticalIndicator(ctx, indicatorX, height, Enums.chartColors.gridLine)
+                var indicatorPoints = root.seriesPointPositions.length > 0
+                    ? (root.seriesPointPositions[0] || []) : []
+                if (root.hoveredIndex < indicatorPoints.length) {
+                    Painter.drawVerticalIndicator(
+                        ctx, indicatorPoints[root.hoveredIndex].x,
+                        height, Enums.chartColors.gridLine
+                    )
+                }
             }
             
             // Reuse cached points 复用缓存点位
@@ -521,6 +546,24 @@ Item {
                     root.pointClicked(root.hoveredIndex, root.chartData[root.hoveredIndex])
                 }
             }
+        }
+    }
+
+    Behavior on _displayRangeMin {
+        enabled: root.animated
+
+        NumberAnimation {
+            duration: Enums.duration.normal
+            easing.type: Easing.InOutCubic
+        }
+    }
+
+    Behavior on _displayRangeMax {
+        enabled: root.animated
+
+        NumberAnimation {
+            duration: Enums.duration.normal
+            easing.type: Easing.InOutCubic
         }
     }
 }

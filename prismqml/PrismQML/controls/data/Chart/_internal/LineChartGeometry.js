@@ -10,13 +10,37 @@ function _valueToY(value, height, rangeMin, rangeMax) {
     return height - ((value - rangeMin) / range) * height
 }
 
+function _sourceIndex(localIndex, projection) {
+    var indices = projection && projection.sourceIndices
+    if (indices && typeof indices.length === "number" && indices.length > localIndex) {
+        return indices[localIndex]
+    }
+    var offset = projection && typeof projection.sourceOffset === "number"
+        ? projection.sourceOffset : 0
+    return offset + localIndex
+}
+
+function _projectedX(localIndex, localCount, projection, boundaryGap,
+                     viewportStart, viewportEnd, origin, extent) {
+    var sourceLength = projection && projection.sourceLength > 0
+        ? projection.sourceLength : localCount
+    var sourceIndex = _sourceIndex(localIndex, projection)
+    var normalized = boundaryGap
+        ? (sourceIndex + 0.5) / Math.max(sourceLength, 1)
+        : (sourceLength > 1 ? sourceIndex / (sourceLength - 1) : 0.5)
+    var span = viewportEnd - viewportStart
+    if (!(span > 0)) span = 1
+    return origin + (normalized - viewportStart) / span * extent
+}
+
 function buildSingle(chartData, canvasWidth, canvasHeight, boundaryGap,
-                     padding, rangeMin, rangeMax) {
+                     padding, rangeMin, rangeMax, projection,
+                     viewportStart, viewportEnd) {
     var chartHeight = canvasHeight - padding * 2
     var chartWidth = canvasWidth - padding * 2
     var dataCount = chartData.length
-    var stepX = boundaryGap ? chartWidth / dataCount : chartWidth / (dataCount - 1)
-    var startX = boundaryGap ? padding + stepX / 2 : padding
+    var safeViewportStart = typeof viewportStart === "number" ? viewportStart : 0
+    var safeViewportEnd = typeof viewportEnd === "number" ? viewportEnd : 1
     var yScale = canvasHeight > 0 ? chartHeight / canvasHeight : 0
     var baseline = padding + chartHeight
     var points = []
@@ -25,7 +49,10 @@ function buildSingle(chartData, canvasWidth, canvasHeight, boundaryGap,
             chartData[index].value, canvasHeight, rangeMin, rangeMax
         ) * yScale
         points.push({
-            x: startX + index * stepX,
+            x: _projectedX(
+                index, dataCount, projection, boundaryGap,
+                safeViewportStart, safeViewportEnd, padding, chartWidth
+            ),
             y: baseline,
             finalY: targetY
         })
@@ -39,7 +66,8 @@ function buildSingle(chartData, canvasWidth, canvasHeight, boundaryGap,
 }
 
 function buildSeries(seriesData, canvasWidth, canvasHeight, boundaryGap,
-                     stacked, rangeMin, rangeMax) {
+                     stacked, rangeMin, rangeMax, sourceProjections,
+                     viewportStart, viewportEnd) {
     var maxLength = 0
     var seriesIndex
     for (seriesIndex = 0; seriesIndex < seriesData.length; seriesIndex++) {
@@ -49,8 +77,8 @@ function buildSeries(seriesData, canvasWidth, canvasHeight, boundaryGap,
                               ? candidate.values : []
         if (candidateValues.length > maxLength) maxLength = candidateValues.length
     }
-    var stepX = boundaryGap ? canvasWidth / maxLength : canvasWidth / (maxLength - 1)
-    var startX = boundaryGap ? stepX / 2 : 0
+    var safeViewportStart = typeof viewportStart === "number" ? viewportStart : 0
+    var safeViewportEnd = typeof viewportEnd === "number" ? viewportEnd : 1
     var cumulative = []
     for (var index = 0; index < maxLength; index++) cumulative.push(0)
 
@@ -60,13 +88,18 @@ function buildSeries(seriesData, canvasWidth, canvasHeight, boundaryGap,
         var values = seriesItem && seriesItem.values &&
                      typeof seriesItem.values.length === "number"
                      ? seriesItem.values : []
+        var projection = sourceProjections && sourceProjections.length > seriesIndex
+            ? sourceProjections[seriesIndex] : null
         var points = []
         for (index = 0; index < values.length; index++) {
             var value = values[index] || 0
             if (stacked) cumulative[index] += value
             var mappedValue = stacked ? cumulative[index] : value
             points.push({
-                x: startX + index * stepX,
+                x: _projectedX(
+                    index, values.length, projection, boundaryGap,
+                    safeViewportStart, safeViewportEnd, 0, canvasWidth
+                ),
                 y: canvasHeight,
                 finalY: _valueToY(
                     mappedValue, canvasHeight, rangeMin, rangeMax

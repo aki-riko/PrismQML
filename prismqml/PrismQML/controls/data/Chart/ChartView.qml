@@ -141,12 +141,16 @@ ShadowedRectangle {
     readonly property var _scatterContent: scatterContentLoader.item
 
     // Slice the viewport before LTTB sampling to preserve trends and extrema 先按视窗切片，再用 LTTB 保留趋势与峰谷
-    readonly property var _viewChartData: ChartViewport.viewChartData(
-        _chartData, _renderViewport.start, _renderViewport.end, lttbThreshold
-    )
-    readonly property var _viewSeries: ChartViewport.viewSeries(
+    readonly property var _viewSeriesProjection: ChartViewport.projectSeries(
         _series, _renderViewport.start, _renderViewport.end, lttbThreshold
     )
+    readonly property var _viewSeries: _viewSeriesProjection.data
+    readonly property var _viewChartDataProjection: ChartViewport.projectChartData(
+        _chartData, _renderViewport.start, _renderViewport.end, lttbThreshold,
+        _viewSeriesProjection.valueSources.length > 0
+            ? _viewSeriesProjection.valueSources[0] : null
+    )
+    readonly property var _viewChartData: _viewChartDataProjection.data
 
     // ==================== Signals 信号 ====================
     signal barClicked(int index, var data)
@@ -343,6 +347,11 @@ ShadowedRectangle {
                 viewportScale: control._viewportScale
                 viewportOffsetRatio: control._viewportOffsetRatio
                 viewportTransitionActive: control._viewportTransitionActive
+                categoryProjection: control._viewChartDataProjection
+                viewportStart: control._visualStart
+                viewportEnd: control._visualEnd
+                animateValueRange: control.chartType === Enums.chart.type_line
+                                   && control.animated
 
                 onXLabelHovered: (index) => {
                     if (control.chartType === Enums.chart.type_bar) control._hoveredBarIndex = index
@@ -430,6 +439,10 @@ ShadowedRectangle {
                         boundaryGap: control.boundaryGap
                         showAreaGradient: control.showAreaGradient
                         stacked: control.stacked
+                        chartDataProjection: control._viewChartDataProjection
+                        seriesValueSources: control._viewSeriesProjection.valueSources
+                        renderViewportStart: control._renderStart
+                        renderViewportEnd: control._renderEnd
                         onPointClicked: (index, data) => control.pointClicked(index, data)
                         onPointHovered: (index) => control._hoveredPointIndex = index
                         onSeriesPointHovered: (si, pi) => { control._hoveredLineSeriesIndex = si; control._hoveredPointIndex = pi }
