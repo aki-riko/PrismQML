@@ -54,6 +54,9 @@ public:
 public slots:
     // QML: grabAndBlur(window, x, y, w, h) -> image url
     QString grabAndBlur(const QVariant &window, int x, int y, int width, int height);
+    // QML: grabWindowFrame(window, x, y, w, h) -> unmodified image url
+    QString grabWindowFrame(
+        const QVariant &window, int x, int y, int width, int height);
     QString getImageUrl() const;
 signals:
     void imageReady(const QString &url);

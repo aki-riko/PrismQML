@@ -220,6 +220,47 @@ def test_real_qimage_blur_publishes_through_existing_provider(qapp, monkeypatch)
         _dispose_helper(helper)
 
 
+def test_real_qimage_window_frame_stays_unmodified(qapp, monkeypatch):
+    source = _pattern_image()
+    screen = _CapturedScreen(QPixmap.fromImage(source), QRect(-100, 50, 800, 600))
+    helper = mica_window.AcrylicHelper()
+    provider = None
+
+    try:
+        provider = helper.imageProvider
+        emitted = []
+        helper.imageReady.connect(emitted.append)
+        monkeypatch.setattr(mica_window, "debug", lambda _message: None)
+        result = helper.grabWindowFrame(_CapturedWindow(screen), 7, 5, 16, 16)
+        captured = provider.requestImage("1", QSize(), QSize())
+        assert result == "image://acrylic/1"
+        assert emitted == [result]
+        assert screen.calls == [(0, 137, -5, 16, 16)]
+        assert captured.size() == source.size()
+        assert captured.convertToFormat(source.format()) == source
+    finally:
+        provider = None
+        _dispose_helper(helper)
+
+
+@pytest.mark.parametrize(
+    ("window", "width", "height"),
+    ((None, 20, 10), (object(), 0, 10), (object(), 20, 0)),
+)
+def test_window_frame_invalid_parameters_stop_before_capture(
+    monkeypatch, window, width, height
+):
+    warnings = []
+    monkeypatch.setattr(mica_window, "warning", warnings.append)
+    helper = mica_window.AcrylicHelper()
+    try:
+        assert helper.grabWindowFrame(window, 7, 5, width, height) == ""
+        assert warnings == ["Invalid parameters for grabWindowFrame"]
+        assert helper._image_state.image_id == 0
+    finally:
+        _dispose_helper(helper)
+
+
 def test_deleted_qwindow_runtime_error_is_contained(qapp, monkeypatch):
     window = QWindow()
     window.deleteLater()

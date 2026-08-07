@@ -506,6 +506,29 @@ QString AcrylicHelper::grabAndBlur(const QVariant &window, int x, int y, int wid
     return url;
 }
 
+QString AcrylicHelper::grabWindowFrame(
+    const QVariant &window, int x, int y, int width, int height) {
+    if (width <= 0 || height <= 0)
+        return QString();
+    QObject *obj = qvariant_cast<QObject *>(window);
+    QWindow *w = qobject_cast<QWindow *>(obj);
+    QScreen *screen = w ? w->screen() : nullptr;
+    if (!w || !screen)
+        return QString();
+
+    const QRect screenGeometry = screen->geometry();
+    const int grabX = w->x() + x - screenGeometry.x();
+    const int grabY = w->y() + y - screenGeometry.y();
+    const QPixmap pixmap = screen->grabWindow(0, grabX, grabY, width, height);
+    if (pixmap.isNull())
+        return QString();
+
+    m_state->setImage(pixmap.toImage());
+    const QString url = QStringLiteral("image://acrylic/%1").arg(m_state->imageId());
+    emit imageReady(url);
+    return url;
+}
+
 QString AcrylicHelper::getImageUrl() const {
     return QStringLiteral("image://acrylic/%1").arg(m_state->imageId());
 }

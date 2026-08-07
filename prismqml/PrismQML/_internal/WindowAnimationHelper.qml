@@ -22,15 +22,35 @@ Item {
 
     // ==================== Required Props 必需属性 ====================
     required property Window targetWindow
+    required property Item targetItem
     required property var onCloseCallback
 
     // ==================== Internal Props 内部属性 ====================
     property real animScale: 0.95
     property real animOpacity: 0
+    property real closeCornerRadius: Enums.radius.none
+    property bool _closeStartPending: false
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _stopCloseEffect() {
+        _closeStartPending = false
+        if (closeEffectLoader.item) closeEffectLoader.item.stop()
+    }
+
+    function _startPendingCloseEffect() {
+        if (!_closeStartPending || closeEffectLoader.status !== Loader.Ready ||
+                !closeEffectLoader.item) return
+        var effect = closeEffectLoader.item
+        Qt.callLater(function() {
+            if (!helper._closeStartPending || closeEffectLoader.item !== effect) return
+            helper._closeStartPending = false
+            effect.start()
+        })
+    }
 
     // ==================== Public Methods 公开方法 ====================
     function startShow() {
-        if (closeAnimLoader.item) closeAnimLoader.item.stop()
+        _stopCloseEffect()
         showAnim.stop()
         if (!targetWindow || targetWindow.opacity < 0.99) {
             animScale = 0.95
@@ -40,7 +60,7 @@ Item {
     }
 
     function restoreVisibleState() {
-        if (closeAnimLoader.item) closeAnimLoader.item.stop()
+        _stopCloseEffect()
         showAnim.stop()
         if (targetWindow) {
             targetWindow.opacity = 1
@@ -52,13 +72,12 @@ Item {
     function animatedClose() {
         if (!targetWindow) return
         showAnim.stop()
+        _closeStartPending = true
         prewarmCloseAnimation()
-        if (!closeAnimLoader.item) return
-        closeAnimLoader.item.stop()
-        closeAnimLoader.item.start()
+        _startPendingCloseEffect()
     }
 
-    function prewarmCloseAnimation() { closeAnimLoader.active = true }
+    function prewarmCloseAnimation() { closeEffectLoader.active = true }
 
     // Minimize directly and let DWM own the transition. 直接最小化并由 DWM 接管过渡。
     function animatedMinimize() {
@@ -86,6 +105,9 @@ Item {
         targetWindow.showNormal()
     }
 
+    anchors.fill: parent
+    z: Enums.zIndex.overlay
+
     // ==================== Content 内容 ====================
     // Show animation. 显示动画。
     ParallelAnimation {
@@ -95,17 +117,23 @@ Item {
         NumberAnimation { target: helper; property: "animOpacity"; to: 1; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
     }
 
-    // Close animation. 关闭动画。
+    // Splash-style close dissolve effect. Splash 风格关闭溶解效果。
     Loader {
-        id: closeAnimLoader
+        id: closeEffectLoader
+
+        anchors.fill: parent
         active: false
-        sourceComponent: SequentialAnimation {
-            ParallelAnimation {
-                NumberAnimation { target: targetWindow; property: "opacity"; to: 0; duration: Enums.duration.normal; easing.type: Easing.InCubic }
-                NumberAnimation { target: helper; property: "animScale"; to: 0.95; duration: Enums.duration.normal; easing.type: Easing.InCubic }
-                NumberAnimation { target: helper; property: "animOpacity"; to: 0; duration: Enums.duration.normal; easing.type: Easing.InCubic }
+        asynchronous: false
+        onLoaded: helper._startPendingCloseEffect()
+        sourceComponent: WindowCloseDissolve {
+            targetWindow: helper.targetWindow
+            targetItem: helper.targetItem
+            cornerRadius: helper.closeCornerRadius
+            onCaptureReady: function() {
+                helper.animScale = Enums.opacityLevel.visible
+                helper.animOpacity = Enums.opacityLevel.invisible
             }
-            ScriptAction { script: onCloseCallback() }
+            onCloseCallback: helper.onCloseCallback
         }
     }
 

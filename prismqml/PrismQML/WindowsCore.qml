@@ -279,6 +279,8 @@ Window {
     WindowAnimationHelper {
         id: animHelper
         targetWindow: window
+        targetItem: windowFrame
+        closeCornerRadius: windowFrame.radius
         onCloseCallback: function() {
             _closeDesktopNotifications()
             var closed = window.close()
