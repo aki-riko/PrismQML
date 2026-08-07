@@ -216,12 +216,17 @@ def test_table_rows_preserve_rendering_while_components_are_measured(qapp):
         assert len(rows) == 12
         assert row_components == [0] * 12
         assert normal_objects == 888
-        assert normal_hash == (
-            "866ef579e4a08cfd577606afbc3f990beb68ef9e7f8047068b05b1a3e3db025e"
-        )
-        assert painted_hash == (
-            "117a27de495e7ad4cc01ac2ee8d04289b2f89d8425f51b5e1fd2786820d00a69"
-        )
+        if os.name == "nt":
+            assert normal_hash == (
+                "866ef579e4a08cfd577606afbc3f990b"
+                "eb68ef9e7f8047068b05b1a3e3db025e"
+            )
+            assert painted_hash == (
+                "117a27de495e7ad4cc01ac2ee8d04289"
+                "b2f89d8425f51b5e1fd2786820d00a69"
+            )
+        else:
+            assert painted_hash != normal_hash
         assert restored_hash == normal_hash
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

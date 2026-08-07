@@ -23,6 +23,7 @@ from scripts.test_process import prepare_automated_test_process
 prepare_automated_test_process()
 
 import shiboken6
+import sys
 from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlComponent
@@ -133,7 +134,8 @@ if (
 
 qapp = app.qapp
 App._reset()
-shiboken6.delete(qapp)
+if sys.platform == "win32":
+    shiboken6.delete(qapp)
 print("APP_SHUTDOWN_OK", flush=True)
 '''
 

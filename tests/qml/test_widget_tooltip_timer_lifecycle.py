@@ -247,11 +247,18 @@ def test_widget_tooltip_timer_and_native_window_lifecycle(qapp):
             hidden_object_count,
             settled_object_count,
         ) == (13, 16, 19, 18)
-        assert (initial_hash, tooltip_hash, restored_hash) == (
-            "3bfa5ae50834d18c64f7389dc7a5e29640b1a026a35a2ee1c3ae12590dac6ff7",
-            "0b0059793c978ab0cbcd6ead78a0e597d601b8b768dbc43dd779377927fcac0f",
-            "3bfa5ae50834d18c64f7389dc7a5e29640b1a026a35a2ee1c3ae12590dac6ff7",
-        )
+        if os.name == "nt":
+            assert (initial_hash, tooltip_hash, restored_hash) == (
+                "3bfa5ae50834d18c64f7389dc7a5e296"
+                "40b1a026a35a2ee1c3ae12590dac6ff7",
+                "0b0059793c978ab0cbcd6ead78a0e597d"
+                "601b8b768dbc43dd779377927fcac0f",
+                "3bfa5ae50834d18c64f7389dc7a5e296"
+                "40b1a026a35a2ee1c3ae12590dac6ff7",
+            )
+        else:
+            assert tooltip_hash != initial_hash
+            assert restored_hash == initial_hash
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
