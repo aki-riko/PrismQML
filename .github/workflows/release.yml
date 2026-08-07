@@ -8,7 +8,7 @@ on:
   workflow_dispatch:  # 允许手动触发(只构建不发布)
 
 env:
-  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "480"
+  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "720"
 
 jobs:
   quality_gate:

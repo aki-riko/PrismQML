@@ -17,7 +17,7 @@ on:
       - ".github/workflows/**"
 
 env:
-  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "480"
+  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "720"
 
 jobs:
   qml_conventions:

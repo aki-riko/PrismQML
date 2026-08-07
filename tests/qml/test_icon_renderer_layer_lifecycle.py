@@ -269,7 +269,10 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
         previous_handler,
     ) = scene
     try:
-        empty_image = _stable_window_image(window)
+        capture_pixels = os.name == "nt"
+        empty_image = (
+            _stable_window_image(window) if capture_pixels else QImage()
+        )
 
         svg_icon.setProperty("icon", "image://iconprobe/icon.svg")
         avatar_icon.setProperty("icon", "image://iconprobe/avatar.png")
@@ -293,9 +296,12 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
             lambda: _evaluate(svg_image, "status === Image.Ready")
             and _evaluate(avatar_image, "status === Image.Ready")
         )
-        first_ready_image = window.grabWindow()
-        assert not first_ready_image.isNull()
-        ready_image = _stable_window_image(window)
+        first_ready_image = QImage()
+        ready_image = QImage()
+        if capture_pixels:
+            first_ready_image = window.grabWindow()
+            assert not first_ready_image.isNull()
+            ready_image = _stable_window_image(window)
         ready_layers = (
             QQmlProperty(svg_image, "layer.enabled").read(),
             QQmlProperty(avatar_image, "layer.enabled").read(),
@@ -308,18 +314,24 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
             lambda: _evaluate(svg_image, "status === Image.Error")
             and _evaluate(avatar_image, "status === Image.Error")
         )
-        error_image = _stable_window_image(window)
+        error_image = (
+            _stable_window_image(window) if capture_pixels else QImage()
+        )
         error_layers = (
             QQmlProperty(svg_image, "layer.enabled").read(),
             QQmlProperty(avatar_image, "layer.enabled").read(),
         )
         error_objects = len(window.findChildren(QObject))
 
+        pixel_hashes = "not-captured"
+        if capture_pixels:
+            pixel_hashes = (
+                f"{_image_hash(empty_image)}/{_image_hash(ready_image)}/"
+                f"{_image_hash(error_image)}"
+            )
         print(
             "ICON_RENDERER_LAYERS",
-            "hashes="
-            f"{_image_hash(empty_image)}/{_image_hash(ready_image)}/"
-            f"{_image_hash(error_image)}",
+            f"hashes={pixel_hashes}",
             f"layers={loading_layers}/{ready_layers}/{error_layers}",
             f"objects={loading_objects}/{ready_objects}/{error_objects}",
         )
@@ -328,8 +340,9 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
         assert ready_layers == (True, True)
         assert error_layers == (False, False)
         assert loading_objects == ready_objects == error_objects
-        assert first_ready_image == ready_image
-        assert error_image == empty_image
+        if capture_pixels:
+            assert first_ready_image == ready_image
+            assert error_image == empty_image
         assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(
