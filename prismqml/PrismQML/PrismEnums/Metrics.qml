@@ -442,16 +442,7 @@ QtObject {
  readonly property int splitStartupDelayMs: 50 // Split-window core loader startup delay 分栏窗口核心加载器启动延迟
  readonly property int micaReapplyDelayMs: 16 // First Mica reapply delay after visibility change 可见性变化后的首次 Mica 重应用延迟
  readonly property int micaLateReapplyDelayMs: 180 // Late Mica reapply fallback delay Mica 延迟重应用兜底时间
- readonly property int closeFoldCaptureDelayMs: 32 // Freeze two D3D11 frames before hiding source 关闭前等待两帧冻结 D3D11 画面
- readonly property int closeFoldColumns: 18 // Vertical accordion-panel count 竖向手风琴折页面板数
- readonly property int closeFoldCellOverlap: 1 // Prevent sampling seams between fold panels 防止折页面板采样缝隙
- readonly property real closeFoldWaveSpread: 0.34 // Right-to-left folding-wave share 从右向左折叠波次占比
- readonly property real closeFoldAngleDegrees: 82 // Maximum alternating Y-axis fold angle 最大交替 Y 轴折叠角度
- readonly property real closeFoldCollapseStart: 0.58 // Local progress where panels gather to close button 面板向关闭按钮收拢的起始进度
- readonly property real closeFoldFinalScale: 0.06 // Final folded-stack scale 折叠堆最终缩放
- readonly property real closeFoldMotionEasePower: 1.35 // Accordion folding motion curve 手风琴折叠运动曲线
- readonly property real closeFoldFadeStart: 0.76 // Local progress where folded panels start fading 折页面板开始淡出的局部进度
- readonly property real closeFoldWindowFadeStart: 0.88 // Global progress where native shadow starts fading 原生阴影开始淡出的全局进度
+ readonly property int closeAnimationCaptureDelayMs: 32 // Freeze two D3D11 frames before hiding source 关闭前等待两帧冻结 D3D11 画面
  readonly property int navPanelMinWidth: 200 // Split-window left panel min width 左侧面板最小宽度
  readonly property int iconRenderSize: 256 // Icon render size for crisp SVG (fixed high-res) 图标渲染尺寸（固定高分辨率）
  }

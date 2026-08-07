@@ -26,6 +26,7 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property real animScale: 0.95
     property real animOpacity: 0
+    property color closeBackgroundColor: Enums.backgroundColor
     property bool _closeStartPending: false
 
     // ==================== Internal Methods 内部方法 ====================
@@ -106,7 +107,7 @@ Item {
         NumberAnimation { target: helper; property: "animOpacity"; to: 1; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
     }
 
-    // Close fold effect. 关闭折叠效果。
+    // Splash-style close dissolve effect. Splash 风格关闭溶解效果。
     Loader {
         id: closeEffectLoader
 
@@ -114,9 +115,10 @@ Item {
         active: false
         asynchronous: false
         onLoaded: helper._startPendingCloseEffect()
-        sourceComponent: WindowCloseFold {
+        sourceComponent: WindowCloseDissolve {
             targetWindow: helper.targetWindow
             targetItem: helper.targetItem
+            backgroundColor: helper.closeBackgroundColor
             onCaptureReady: function() {
                 helper.animScale = Enums.opacityLevel.visible
                 helper.animOpacity = Enums.opacityLevel.invisible
