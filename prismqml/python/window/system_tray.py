@@ -19,6 +19,8 @@ from typing import Union, Optional, Callable, List
 from enum import Enum
 
 from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
     QObject,
     Signal,
     Slot,
@@ -198,15 +200,21 @@ class SystemTrayIcon(QObject):
         if self._qml_menu is None:
             error("Failed to create SystemTrayMenu instance")
             return
-        self._qml_menu.setParent(engine)
+        self._qml_menu.setParent(self)
         self._qml_menu.actionTriggered.connect(self._onMenuActionTriggered)
         for action in self._actions:
             self._addActionToQml(action)
 
     def release_engine(self) -> None:
-        """Drop references to engine-owned QML objects. 清除引擎所拥有 QML 对象的引用。"""
-        self._qml_menu = None
-        self._component = None
+        """Release QML objects without draining unrelated events. 释放 QML 对象且不冲刷无关事件。"""
+        import shiboken6
+
+        for attribute in ("_qml_menu", "_component"):
+            value = getattr(self, attribute, None)
+            if value is not None and shiboken6.isValid(value):
+                value.deleteLater()
+                QCoreApplication.sendPostedEvents(value, QEvent.Type.DeferredDelete)
+            setattr(self, attribute, None)
 
     @staticmethod
     def _qml_icon_value(icon):

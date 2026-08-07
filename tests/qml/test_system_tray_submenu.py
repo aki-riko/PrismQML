@@ -46,9 +46,10 @@ def test_data_submenu_opens_and_routes_child_action(qapp):
     )
     tray._ensureQmlMenu()
     menu = tray._qml_menu
+    component = tray._component
     assert menu is not None
-    assert tray._component.parent() is engine
-    assert menu.parent() is engine
+    assert component.parent() is engine
+    assert menu.parent() is tray
 
     try:
         assert _evaluate(
@@ -79,6 +80,10 @@ def test_data_submenu_opens_and_routes_child_action(qapp):
         tray.clearActions()
         tray.deleteLater()
         EngineManager.reset()
+        assert tray._qml_menu is None
+        assert tray._component is None
+        assert not shiboken6.isValid(menu)
+        assert not shiboken6.isValid(component)
         engine.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         qapp.processEvents()
