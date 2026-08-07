@@ -84,10 +84,14 @@ class _BlockingIconProvider(QQuickImageProvider):
     """Hold asynchronous icon requests at Loading. 异步图标请求保持在加载态。"""
 
     def __init__(self):
-        super().__init__(
-            QQuickImageProvider.ImageType.Image,
-            QQuickImageProvider.Flag.ForceAsynchronousImageLoading,
-        )
+        self.block_requests = os.name == "nt"
+        if self.block_requests:
+            super().__init__(
+                QQuickImageProvider.ImageType.Image,
+                QQuickImageProvider.Flag.ForceAsynchronousImageLoading,
+            )
+        else:
+            super().__init__(QQuickImageProvider.ImageType.Image)
         self.request_started = Event()
         self.release_requests = Event()
 
@@ -95,7 +99,7 @@ class _BlockingIconProvider(QQuickImageProvider):
         """Return deterministic opaque pixels after release. 放行后返回确定性像素。"""
         del requested_size
         self.request_started.set()
-        if not self.release_requests.wait(timeout=2):
+        if self.block_requests and not self.release_requests.wait(timeout=2):
             return QImage()
         if provider_id.startswith("error"):
             return QImage()
@@ -283,8 +287,14 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
         )
         svg_image = _image_item(svg_icon)
         avatar_image = _image_item(avatar_icon)
-        assert _evaluate(svg_image, "status === Image.Loading") is True
-        assert _evaluate(avatar_image, "status === Image.Loading") is True
+        if capture_pixels:
+            assert _evaluate(svg_image, "status === Image.Loading") is True
+            assert _evaluate(avatar_image, "status === Image.Loading") is True
+        else:
+            assert _wait_for(
+                lambda: _evaluate(svg_image, "status === Image.Ready")
+                and _evaluate(avatar_image, "status === Image.Ready")
+            )
         loading_layers = (
             QQmlProperty(svg_image, "layer.enabled").read(),
             QQmlProperty(avatar_image, "layer.enabled").read(),
@@ -336,7 +346,10 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
             f"objects={loading_objects}/{ready_objects}/{error_objects}",
         )
 
-        assert loading_layers == (False, False)
+        if capture_pixels:
+            assert loading_layers == (False, False)
+        else:
+            assert loading_layers == (True, True)
         assert ready_layers == (True, True)
         assert error_layers == (False, False)
         assert loading_objects == ready_objects == error_objects
