@@ -12,7 +12,7 @@ PrismQML 应用入口类 PrismQML Application Entry
 import os
 from typing import TYPE_CHECKING, List, Optional, Union
 
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, Qt
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 
 _DEFAULT_WINDOW_TYPE = 1
 _MISSING_ENVIRONMENT = object()
+_QML_ENGINE_DELETE_TIMEOUT_MS = 1000
 
 
 def _validate_task_shutdown_timeout(timeout_ms: Optional[int]) -> None:
@@ -126,6 +127,25 @@ def _delete_qt_object(value) -> None:
         shiboken6.delete(value)
 
 
+def _delete_qml_engine(value) -> None:
+    """Delete a QML engine from a live Qt event loop. 在活动 Qt 事件循环中销毁 QML 引擎。"""
+    import shiboken6
+
+    if value is None or not shiboken6.isValid(value):
+        return
+    loop = QEventLoop()
+    timeout_timer = QTimer()
+    timeout_timer.setSingleShot(True)
+    timeout_timer.timeout.connect(loop.quit)
+    value.destroyed.connect(loop.quit)
+    QTimer.singleShot(0, value.deleteLater)
+    timeout_timer.start(_QML_ENGINE_DELETE_TIMEOUT_MS)
+    loop.exec()
+    timeout_timer.stop()
+    if shiboken6.isValid(value):
+        raise RuntimeError("QML engine deferred deletion timed out")
+
+
 def _delete_remaining_qml_windows() -> None:
     """Delete every QML window while QApplication is still alive. 在应用存活时销毁全部 QML 窗口。"""
     import shiboken6
@@ -161,7 +181,7 @@ def _rollback_app_initialization(owner, previous_qml_environment) -> None:
         _run_app_cleanup("engine bindings", EngineManager.reset)
     if owner._dwm_filter_started:
         _run_app_cleanup("DWM filter", reset_dwm_sync_filter)
-    _run_app_cleanup("QML engine", lambda: _delete_qt_object(owner._engine))
+    _run_app_cleanup("QML engine", lambda: _delete_qml_engine(owner._engine))
     if owner._owns_app:
         _run_app_cleanup("QApplication", lambda: _delete_qt_object(owner._app))
     owner._engine = None
@@ -190,7 +210,7 @@ def _shutdown_app_runtime(owner) -> None:
         if EngineManager._engine is owner._engine:
             _run_app_cleanup("engine bindings", EngineManager.reset)
         owner._engine_publish_started = False
-    _run_app_cleanup("QML engine", lambda: _delete_qt_object(owner._engine))
+    _run_app_cleanup("QML engine", lambda: _delete_qml_engine(owner._engine))
     owner._engine = None
 
 

@@ -85,7 +85,7 @@ popup_loop.exec()
 shutdown_order = []
 original_delete_windows = app_module._delete_remaining_qml_windows
 original_engine_reset = EngineManager.reset
-original_delete_qt_object = app_module._delete_qt_object
+original_delete_qml_engine = app_module._delete_qml_engine
 
 def traced_delete_windows():
     shutdown_order.append("windows")
@@ -95,14 +95,14 @@ def traced_engine_reset():
     shutdown_order.append("bindings")
     return original_engine_reset()
 
-def traced_delete_qt_object(value):
+def traced_delete_qml_engine(value):
     if value is app.engine:
         shutdown_order.append("engine")
-    return original_delete_qt_object(value)
+    return original_delete_qml_engine(value)
 
 app_module._delete_remaining_qml_windows = traced_delete_windows
 EngineManager.reset = traced_engine_reset
-app_module._delete_qt_object = traced_delete_qt_object
+app_module._delete_qml_engine = traced_delete_qml_engine
 
 windows_before = len(QGuiApplication.topLevelWindows())
 QTimer.singleShot(100, lambda: App.exit(7))
@@ -141,7 +141,7 @@ if (
 
 app_module._delete_remaining_qml_windows = original_delete_windows
 EngineManager.reset = original_engine_reset
-app_module._delete_qt_object = original_delete_qt_object
+app_module._delete_qml_engine = original_delete_qml_engine
 
 qapp = app.qapp
 App._reset()
