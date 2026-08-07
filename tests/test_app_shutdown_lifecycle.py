@@ -22,12 +22,11 @@ from scripts.test_process import prepare_automated_test_process
 
 prepare_automated_test_process()
 
-import shiboken6
-import sys
 from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlComponent
 from PySide6.QtQuick import QQuickItem
+from PySide6.QtWidgets import QApplication
 from prismqml import App, SystemTrayIcon
 from prismqml.python.core.engine import EngineManager
 from prismqml.python.window import app as app_module
@@ -134,8 +133,11 @@ if (
 
 qapp = app.qapp
 App._reset()
-if sys.platform == "win32":
-    shiboken6.delete(qapp)
+qapp.shutdown()
+qapp_released = QApplication.instance() is None
+print(f"APP_SHUTDOWN_QAPP_RELEASED={int(qapp_released)}", flush=True)
+if not qapp_released:
+    raise SystemExit(5)
 print("APP_SHUTDOWN_OK", flush=True)
 '''
 
@@ -178,6 +180,7 @@ def test_exec_destroys_qml_windows_before_qapplication_teardown() -> None:
     assert "APP_SHUTDOWN_ENGINE_RELEASED=1" in output
     assert "APP_SHUTDOWN_ORDER=windows,bindings,engine" in output
     assert "APP_SHUTDOWN_WINDOW_REFERENCES_RELEASED=1" in output
+    assert "APP_SHUTDOWN_QAPP_RELEASED=1" in output
     assert "QObject::disconnect: Unexpected nullptr parameter" not in output
     assert "PopupWindowCore.qml" not in output
     assert "Cannot read property 'fast' of undefined" not in output
