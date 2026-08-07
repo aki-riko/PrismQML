@@ -205,6 +205,23 @@ PopupWindowCore {
  }
  
  // ==================== Public Methods 公开方法 ====================
+ // Stop native surfaces without scheduling child destruction before engine teardown.
+ // 引擎析构前停止原生弹层，且不为子项排入延迟销毁。
+ function prepareForEngineRelease() {
+ submenuOpenTimer.stop()
+ _pendingSubmenuAction = null
+ _pendingSubmenuComponent = null
+ _pendingSubmenuProperties = null
+ _openSubmenuAction = null
+ var submenu = _openSubmenu
+ _openSubmenu = null
+ if (submenu) {
+ if (submenu.prepareForEngineRelease) submenu.prepareForEngineRelease()
+ else if (submenu.forceReset) submenu.forceReset()
+ }
+ forceReset()
+ }
+
  // Open as a child menu with both first action rows aligned 作为子菜单打开，并对齐父子首行
  function openAsSubmenu(parentAction) {
  if (!parentAction) return

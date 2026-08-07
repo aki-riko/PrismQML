@@ -77,7 +77,6 @@ def test_data_submenu_opens_and_routes_child_action(qapp):
         )
         assert triggered == ["drive_nas"]
     finally:
-        tray.clearActions()
         EngineManager.reset()
         assert tray._qml_menu is None
         assert tray._component is None
@@ -85,6 +84,11 @@ def test_data_submenu_opens_and_routes_child_action(qapp):
         assert shiboken6.isValid(component)
         assert menu.property("isOpen") is False
         assert menu.property("_openSubmenu") is None
+        assert _evaluate(
+            engine,
+            menu,
+            'getAction("_submenu_Drives") !== null',
+        )
         tray.deleteLater()
         engine.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

@@ -209,8 +209,7 @@ class SystemTrayIcon(QObject):
 
         menu = self._qml_menu
         if menu is not None and shiboken6.isValid(menu):
-            QMetaObject.invokeMethod(menu, "clear")
-            QMetaObject.invokeMethod(menu, "forceReset")
+            QMetaObject.invokeMethod(menu, "prepareForEngineRelease")
         self._qml_menu = None
         self._component = None
 
