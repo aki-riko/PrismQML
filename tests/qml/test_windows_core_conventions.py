@@ -67,6 +67,7 @@ import PrismQML
 WindowsCore {
     objectName: "window"
     property bool initialLeftLayout: false
+    property int nativeCloseAcceptedCount: 0
     readonly property int topLayout: Enums.windowType.title_bar_top
     readonly property int leftLayout: Enums.windowType.title_bar_left
     readonly property int noShadow: Enums.windowShadow.mode_none
@@ -82,6 +83,8 @@ WindowsCore {
     windowTitle: "WindowsCore Contract"
     windowIcon: Qt.resolvedUrl("../../examples/resources/image/avatar/avatar.png")
     titleBarPosition: initialLeftLayout ? leftLayout : topLayout
+
+    onNativeCloseAccepted: nativeCloseAcceptedCount += 1
 
     Item {
         objectName: "contentProbe"
@@ -394,6 +397,44 @@ def test_windows_core_initial_left_title_chrome_is_ready(monkeypatch, qapp):
         assert window.findChild(QObject, "rightTitleBarDragArea") is not None
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_native_close_waits_for_exit_animation(monkeypatch, qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch)
+    try:
+        assert _wait_for(
+            lambda: window.opacity() == pytest.approx(1)
+            and window.property("_animOpacity") == pytest.approx(1)
+            and window.property("_animScale") == pytest.approx(1)
+        )
+
+        # The first native/QWindow close is intercepted while the dissolve runs.
+        # 首次原生/QWindow 关闭会在渐隐期间被拦截。
+        assert window.close() is False
+        assert window.isVisible()
+        assert window.property("_closeInProgress") is True
+        assert window.property("nativeCloseAcceptedCount") == 0
+
+        # WindowAnimationHelper closes the QWindow only after the fade completes.
+        # 动画完成后 WindowAnimationHelper 才真正关闭 QWindow。
+        assert _wait_for(
+            lambda: window.property("nativeCloseAcceptedCount") == 1
+            and not window.isVisible(),
+            timeout_ms=3000,
+        )
+        assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
