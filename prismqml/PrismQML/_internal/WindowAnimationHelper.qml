@@ -106,7 +106,7 @@ Item {
         NumberAnimation { target: helper; property: "animOpacity"; to: 1; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
     }
 
-    // Close shatter effect. 关闭粉碎效果。
+    // Close fold effect. 关闭折叠效果。
     Loader {
         id: closeEffectLoader
 
@@ -114,7 +114,7 @@ Item {
         active: false
         asynchronous: false
         onLoaded: helper._startPendingCloseEffect()
-        sourceComponent: WindowCloseShatter {
+        sourceComponent: WindowCloseFold {
             targetWindow: helper.targetWindow
             targetItem: helper.targetItem
             onCaptureReady: function() {

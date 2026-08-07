@@ -442,21 +442,16 @@ QtObject {
  readonly property int splitStartupDelayMs: 50 // Split-window core loader startup delay 分栏窗口核心加载器启动延迟
  readonly property int micaReapplyDelayMs: 16 // First Mica reapply delay after visibility change 可见性变化后的首次 Mica 重应用延迟
  readonly property int micaLateReapplyDelayMs: 180 // Late Mica reapply fallback delay Mica 延迟重应用兜底时间
- readonly property int closeShatterCaptureDelayMs: 32 // Freeze two D3D11 frames before hiding source 关闭前等待两帧冻结 D3D11 画面
- readonly property int closeShatterColumns: 14 // Horizontal shard count 水平碎片数
- readonly property int closeShatterRows: 10 // Vertical shard count 垂直碎片数
- readonly property int closeShatterCellOverlap: 1 // Prevent sampling seams between shards 防止碎片采样缝隙
- readonly property real closeShatterWaveSpread: 0.30 // Staggered close-wave share 关闭波次占总进度比例
- readonly property real closeShatterRowWeight: 0.65 // Downward propagation weight 向下传播权重
- readonly property real closeShatterRandomWaveWeight: 1.15 // Per-shard wave irregularity 碎片波次不规则度
- readonly property real closeShatterHorizontalTravelRatio: 0.10 // Random horizontal drift relative to width 相对窗口宽度的随机横向漂移
- readonly property real closeShatterOutwardTravelRatio: 0.06 // Outward expansion relative to width 相对窗口宽度的向外扩散
- readonly property real closeShatterFallRatio: 0.18 // Downward travel relative to height 相对窗口高度的下坠距离
- readonly property real closeShatterMinFallFactor: 0.45 // Minimum shard fall multiplier 碎片最小下坠倍率
- readonly property real closeShatterRotationDegrees: 70 // Maximum shard rotation 碎片最大旋转角度
- readonly property real closeShatterScaleLoss: 0.22 // Final shard scale reduction 碎片最终缩小比例
- readonly property real closeShatterFadeStart: 0.48 // Local progress where a shard starts fading 碎片开始淡出的局部进度
- readonly property real closeShatterWindowFadeStart: 0.40 // Global progress where native shadow starts fading 原生阴影开始淡出的全局进度
+ readonly property int closeFoldCaptureDelayMs: 32 // Freeze two D3D11 frames before hiding source 关闭前等待两帧冻结 D3D11 画面
+ readonly property int closeFoldColumns: 18 // Vertical accordion-panel count 竖向手风琴折页面板数
+ readonly property int closeFoldCellOverlap: 1 // Prevent sampling seams between fold panels 防止折页面板采样缝隙
+ readonly property real closeFoldWaveSpread: 0.34 // Right-to-left folding-wave share 从右向左折叠波次占比
+ readonly property real closeFoldAngleDegrees: 82 // Maximum alternating Y-axis fold angle 最大交替 Y 轴折叠角度
+ readonly property real closeFoldCollapseStart: 0.58 // Local progress where panels gather to close button 面板向关闭按钮收拢的起始进度
+ readonly property real closeFoldFinalScale: 0.06 // Final folded-stack scale 折叠堆最终缩放
+ readonly property real closeFoldMotionEasePower: 1.35 // Accordion folding motion curve 手风琴折叠运动曲线
+ readonly property real closeFoldFadeStart: 0.76 // Local progress where folded panels start fading 折页面板开始淡出的局部进度
+ readonly property real closeFoldWindowFadeStart: 0.88 // Global progress where native shadow starts fading 原生阴影开始淡出的全局进度
  readonly property int navPanelMinWidth: 200 // Split-window left panel min width 左侧面板最小宽度
  readonly property int iconRenderSize: 256 // Icon render size for crisp SVG (fixed high-res) 图标渲染尺寸（固定高分辨率）
  }

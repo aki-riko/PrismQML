@@ -18,8 +18,8 @@ ROOT = Path(__file__).resolve().parents[2]
 ANIMATION_HELPER_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
 )
-SHATTER_EFFECT_PATH = (
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowCloseShatter.qml"
+FOLD_EFFECT_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowCloseFold.qml"
 )
 CAPTION_BUTTON_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "CaptionButton.qml"
@@ -106,13 +106,6 @@ def _visual_class_count(root: QQuickItem, prefix: str) -> int:
     )
 
 
-def _find_visual_item(root: QQuickItem, object_name: str):
-    return next(
-        (child for child in _visual_items(root) if child.objectName() == object_name),
-        None,
-    )
-
-
 @pytest.fixture
 def close_animation_scene(qapp):
     engine = QQmlApplicationEngine()
@@ -160,18 +153,25 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
         helper, "animatedClose", Qt.ConnectionType.DirectConnection
     )
     assert _class_count(helper, "QQuickSequentialAnimation") == 1
-    shatter = helper.findChild(QQuickItem, "windowCloseShatter")
-    assert shatter is not None
+    fold = helper.findChild(QQuickItem, "windowCloseFold")
+    assert fold is not None
+    frozen_frame = helper.findChild(QQuickItem, "windowCloseFrozenFrame")
+    assert frozen_frame is not None
+    assert frozen_frame.property("live") is False
     assert _visual_class_count(helper, "QQuickShaderEffectSource") == (
-        shatter.property("_shardCount") + 1
+        fold.property("_columns") + 1
     )
-    columns = shatter.property("_columns")
-    leading_shard = _find_visual_item(helper, f"windowCloseShard_{columns - 1}")
-    assert leading_shard is not None
-    initial_position = (leading_shard.x(), leading_shard.y())
+    leading_panel = next(
+        child
+        for child in _visual_items(helper)
+        if child.objectName() == f"windowCloseFoldPanel_{fold.property('_columns') - 1}"
+    )
+    assert leading_panel.property("live") is True
+    initial_angle = leading_panel.property("_foldAngle")
     assert _wait_for(lambda: helper.property("animOpacity") == 0, timeout_ms=300)
     _pump(200)
-    assert (leading_shard.x(), leading_shard.y()) != pytest.approx(initial_position)
+    assert fold.property("progress") > 0
+    assert leading_panel.property("_foldAngle") != pytest.approx(initial_angle)
     assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
     assert window.opacity() == pytest.approx(0)
@@ -199,24 +199,32 @@ def test_close_caption_entered_prewarms_without_clicking(close_animation_scene):
     assert warnings == []
 
 
-def test_close_animation_source_uses_lazy_frozen_frame_shards():
+def test_close_animation_source_uses_lazy_shared_texture_fold_panels():
     animation_source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
-    shatter_source = SHATTER_EFFECT_PATH.read_text(encoding="utf-8")
+    fold_source = FOLD_EFFECT_PATH.read_text(encoding="utf-8")
     caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
     assert "active: false" in animation_source
-    assert "sourceComponent: WindowCloseShatter" in animation_source
+    assert "sourceComponent: WindowCloseFold" in animation_source
     assert "targetItem: helper.targetItem" in animation_source
     assert "helper.animOpacity = Enums.opacityLevel.invisible" in animation_source
-    assert "Repeater {" in shatter_source
-    assert "delegate: ShaderEffectSource" in shatter_source
-    assert 'objectName: "windowCloseFrozenFrame"' in shatter_source
-    assert "sourceItem: effect.targetItem" in shatter_source
-    assert "sourceItem: frozenFrame" in shatter_source
-    assert "sourceRect: Qt.rect(" in shatter_source
-    assert "live: false" in shatter_source
-    assert "duration: Enums.duration.verySlow" in shatter_source
-    assert "Enums.window.closeShatterWaveSpread" in shatter_source
-    assert "effect.onCloseCallback()" in shatter_source
+    assert "Repeater {" in fold_source
+    assert "delegate: ShaderEffectSource" in fold_source
+    assert 'objectName: "windowCloseFrozenFrame"' in fold_source
+    assert "sourceItem: effect.targetItem" in fold_source
+    assert "sourceItem: frozenFrame" in fold_source
+    assert "sourceRect: Qt.rect(" in fold_source
+    assert "transform: Rotation" in fold_source
+    assert "axis.y: 1" in fold_source
+    frozen_start = fold_source.index("ShaderEffectSource {\n        id: frozenFrame")
+    frozen_end = fold_source.index("\n    Repeater {", frozen_start)
+    frozen_source = fold_source[frozen_start:frozen_end]
+    panel_start = fold_source.index("delegate: ShaderEffectSource {")
+    panel_source = fold_source[panel_start:]
+    assert "live: false" in frozen_source
+    assert "live: true" in panel_source
+    assert "duration: Enums.duration.verySlow" in fold_source
+    assert "Enums.window.closeFoldWaveSpread" in fold_source
+    assert "effect.onCloseCallback()" in fold_source
     assert (
         "if (captionBtn.isClose) "
         "captionBtn.targetWindow.prewarmCloseAnimation()"
