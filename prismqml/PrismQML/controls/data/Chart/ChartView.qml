@@ -25,8 +25,8 @@ ShadowedRectangle {
     property string title: ""
     property string subtitle: ""
     property string yAxisSuffix: ""
-    // Y-axis label area width (px) Y 轴标签区宽度;长字符串场景 (多级货币等) 可手动加大
-    property real yAxisLabelWidth: Enums.controlSize.chartYAxisWidth
+    // Explicit Y-axis width; zero enables content measurement 显式Y轴宽度；0表示按内容自动测量
+    property real yAxisLabelWidth: 0
     property color primaryColor: Enums.accentColor
     property bool showLabels: true
     property bool showValues: true
@@ -478,8 +478,10 @@ ShadowedRectangle {
     Loader {
         id: xyLegendLoader
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Enums.spacing.m
+        anchors.bottom: control.dataZoomEnabled && control._isXYChart
+                        ? dataZoomBar.top : parent.bottom
+        anchors.bottomMargin: control.dataZoomEnabled && control._isXYChart
+                              ? Enums.spacing.s : Enums.spacing.m
         active: control.showLegend &&
                 ((control.chartType === Enums.chart.type_line ||
                   control.chartType === Enums.chart.type_bar) ? control._hasSeriesValues :
@@ -581,6 +583,8 @@ ShadowedRectangle {
                 title: control.title
                 subtitle: control.subtitle
                 hoveredIndex: control._hoveredBoxplotIndex
+                yAxisLabelWidth: control.yAxisLabelWidth
+                valueFormatter: control.valueFormatter
                 onBoxClicked: (index, data) => control.boxClicked(index, data)
                 onBoxHovered: (index) => control._hoveredBoxplotIndex = index
             }

@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Effects
 import "../../../.."
 import "../../../data"
+import "ChartAxisLayout.js" as ChartAxisLayout
 
 // BoxplotChartArea - Complete boxplot chart area 完整箱线图区域
 // Includes chart content, axes, tooltip, and grid 包含图表内容、坐标轴、提示框和网格
@@ -24,10 +25,35 @@ Item {
     property string title: ""
     property string subtitle: ""
     property int hoveredIndex: -1
+    // Explicit Y-axis width; zero enables content measurement 显式Y轴宽度；0表示按内容自动测量
+    property real yAxisLabelWidth: 0
+    property var valueFormatter: null
 
     // ==================== Internal Props 内部属性 ====================
     property int _labelHoverIndex: -1
     property int _lastLabelUpdateCount: 0
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var _yAxisLabelTexts: _buildYAxisLabels()
+    readonly property var _categoryLabelTexts: _buildCategoryLabels()
+    readonly property real effectiveYAxisLabelWidth: {
+        if (yAxisLabelWidth > 0) return yAxisLabelWidth
+        return ChartAxisLayout.boundedAxisWidth(
+            axisFontMetrics,
+            _yAxisLabelTexts,
+            Enums.controlSize.chartYAxisWidth,
+            Enums.controlSize.chartYAxisMaxWidth,
+            Enums.spacing.m + Enums.spacing.s
+        )
+    }
+    readonly property real _categorySlotWidth: boxplotData.length > 0
+        ? chartArea.width / boxplotData.length : 0
+    readonly property int _categoryLabelStride: ChartAxisLayout.categoryStride(
+        axisFontMetrics,
+        _categoryLabelTexts,
+        _categorySlotWidth,
+        Enums.spacing.m
+    )
     
     // ==================== Signals 信号 ====================
     signal boxClicked(int index, var data)
@@ -52,6 +78,33 @@ Item {
         _lastLabelUpdateCount = updateCount
     }
 
+    function _formatAxisValue(value) {
+        if (valueFormatter && typeof valueFormatter === "function") {
+            return String(valueFormatter(value))
+        }
+        return String(Math.round(value))
+    }
+
+    function _buildYAxisLabels() {
+        var labels = []
+        if (boxplotData.length === 0) return labels
+        var range = boxplotContent.valueRange
+        for (var index = 0; index < 6; index++) {
+            var value = range.max - (range.max - range.min) * index / 5
+            labels.push(_formatAxisValue(value))
+        }
+        return labels
+    }
+
+    function _buildCategoryLabels() {
+        var labels = []
+        for (var index = 0; index < boxplotData.length; index++) {
+            var item = boxplotData[index]
+            labels.push(item && item.label !== undefined ? String(item.label) : "")
+        }
+        return labels
+    }
+
     onHoveredIndexChanged: _syncHoveredLabel()
     
     // ==================== Content 内容 ====================
@@ -62,6 +115,12 @@ Item {
         title: root.title
         subtitle: root.subtitle
     }
+
+    FontMetrics {
+        id: axisFontMetrics
+        font.family: Enums.fontFamily
+        font.pixelSize: Enums.typography.caption
+    }
     
     // Chart area 图表区域
     Item {
@@ -70,13 +129,13 @@ Item {
         anchors.margins: Enums.spacing.l
         anchors.topMargin: root.title !== "" ? Enums.spacing.xxxl + Enums.spacing.m : Enums.spacing.l
         anchors.bottomMargin: Enums.spacing.xxxl
-        anchors.leftMargin: Enums.spacing.xxxl
+        anchors.leftMargin: root.effectiveYAxisLabelWidth
         
         // Y-axis labels Y轴标签
         Column {
             id: yAxis
-            x: -Enums.spacing.xxxl
-            width: Enums.spacing.xxxl - Enums.spacing.xs
+            x: -root.effectiveYAxisLabelWidth
+            width: root.effectiveYAxisLabelWidth - Enums.spacing.s
             height: parent.height
             
             Repeater {
@@ -85,38 +144,59 @@ Item {
                     width: parent.width
                     y: index * (chartArea.height / 5) - height / 2
                     type: Enums.label.type_caption
-                    text: {
-                        if (root.boxplotData.length === 0) return ""
-                        var range = boxplotContent.valueRange
-                        var val = range.max - (range.max - range.min) * index / 5
-                        return Math.round(val).toString()
-                    }
+                    text: root._yAxisLabelTexts[index] || ""
                     color: Enums.textColor.tertiary
                     horizontalAlignment: Text.AlignRight
+                    elide: Text.ElideLeft
                 }
             }
         }
         
         // X-axis labels X轴标签
-        Row {
+        Item {
+            id: xAxis
+
             y: parent.height + Enums.spacing.s
             width: parent.width
+            height: Enums.controlSize.chartXAxisHeight
+            clip: true
             
             Repeater {
                 id: xAxisLabelRepeater
 
                 model: root.boxplotData
-                Label {
+                Item {
                     property bool _hovered: false
 
-                    width: chartArea.width / root.boxplotData.length
-                    type: Enums.label.type_caption
-                    text: modelData.label || ""
-                    color: _hovered ? Enums.textColor.primary : Enums.textColor.secondary
-                    horizontalAlignment: Text.AlignHCenter
-                    elide: Text.ElideRight
+                    x: index * root._categorySlotWidth
+                    width: root._categorySlotWidth
+                    height: parent.height
                     Component.onCompleted: _hovered = root.hoveredIndex === index
-                    Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+
+                    Label {
+                        x: ChartAxisLayout.clampedCenteredX(
+                            parent.x + parent.width / 2,
+                            width,
+                            xAxis.width
+                        ) - parent.x
+                        width: ChartAxisLayout.categoryLabelWidth(
+                            axisFontMetrics,
+                            text,
+                            root._categorySlotWidth,
+                            root._categoryLabelStride,
+                            Enums.spacing.m,
+                            xAxis.width
+                        )
+                        type: Enums.label.type_caption
+                        visible: ChartAxisLayout.categoryLabelVisible(
+                            index, root.boxplotData.length, root._categoryLabelStride
+                        )
+                        text: root._categoryLabelTexts[index] || ""
+                        color: parent._hovered ? Enums.textColor.primary : Enums.textColor.secondary
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                    }
                 }
             }
         }

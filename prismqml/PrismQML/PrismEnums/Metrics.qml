@@ -345,7 +345,8 @@ QtObject {
  // Chart controls 图表控件
  readonly property int chartLegendWidth: 110 // Chart legend width 图表图例宽度
  readonly property int chartLabelWidth: 90 // Chart label width 图表标签宽度
- readonly property int chartYAxisWidth: 40 // Chart Y-axis width 图表Y轴宽度
+ readonly property int chartYAxisWidth: 40 // Chart Y-axis minimum width 图表Y轴最小宽度
+ readonly property int chartYAxisMaxWidth: 180 // Chart Y-axis automatic maximum width 图表Y轴自动最大宽度
  readonly property int chartXAxisHeight: 25 // Chart X-axis height 图表X轴高度
  readonly property int chartDataZoomDefaultWidth: 400 // Chart data zoom default width 图表数据缩放器默认宽度
  readonly property int chartDataZoomDefaultHeight: 60 // Chart data zoom default height 图表数据缩放器默认高度
