@@ -203,6 +203,13 @@ def _shutdown_app_runtime(owner) -> None:
     if owner._dwm_filter_started:
         _run_app_cleanup("DWM filter", reset_dwm_sync_filter)
         owner._dwm_filter_started = False
+    if owner._engine_publish_started and EngineManager._engine is owner._engine:
+        _run_app_cleanup(
+            "engine surfaces",
+            lambda: EngineManager._release_engine_bindings(
+                owner._engine, include_lazy=False
+            ),
+        )
     _run_app_cleanup("QML windows", _delete_remaining_qml_windows)
     _run_app_cleanup("current window", _clear_current_window_reference)
     owner._windows.clear()

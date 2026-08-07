@@ -41,12 +41,13 @@ class EngineManager:
         setattr(engine, _ENGINE_BINDINGS_ATTR, bindings)
 
     @staticmethod
-    def _release_engine_bindings(engine: QQmlApplicationEngine) -> None:
+    def _release_engine_bindings(
+        engine: QQmlApplicationEngine, *, include_lazy: bool = True
+    ) -> None:
         """Release Python objects that hold this engine. 释放持有该引擎的绑定对象。"""
-        bindings = (
-            tuple(getattr(engine, _ENGINE_BINDINGS_ATTR, ()))
-            + tuple(getattr(engine, "_prismqml_lazy_context_objects", ()))
-        )
+        bindings = tuple(getattr(engine, _ENGINE_BINDINGS_ATTR, ()))
+        if include_lazy:
+            bindings += tuple(getattr(engine, "_prismqml_lazy_context_objects", ()))
         released = set()
         for binding in bindings:
             binding_id = id(binding)
@@ -57,7 +58,8 @@ class EngineManager:
             if release_engine is not None:
                 release_engine()
         setattr(engine, _ENGINE_BINDINGS_ATTR, [])
-        setattr(engine, "_prismqml_lazy_context_objects", [])
+        if include_lazy:
+            setattr(engine, "_prismqml_lazy_context_objects", [])
 
     @classmethod
     def reset(cls):

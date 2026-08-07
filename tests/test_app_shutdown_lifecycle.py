@@ -109,6 +109,7 @@ shutdown_order = []
 original_delete_windows = app_module._delete_remaining_qml_windows
 original_engine_reset = EngineManager.reset
 original_delete_qml_engine = app_module._delete_qml_engine
+original_tray_release_engine = tray.release_engine if tray is not None else None
 
 def traced_delete_windows():
     shutdown_order.append("windows")
@@ -123,9 +124,15 @@ def traced_delete_qml_engine(value):
         shutdown_order.append("engine")
     return original_delete_qml_engine(value)
 
+def traced_tray_release_engine():
+    shutdown_order.append("surfaces")
+    return original_tray_release_engine()
+
 app_module._delete_remaining_qml_windows = traced_delete_windows
 EngineManager.reset = traced_engine_reset
 app_module._delete_qml_engine = traced_delete_qml_engine
+if tray is not None:
+    tray.release_engine = traced_tray_release_engine
 
 windows_before = len(QGuiApplication.topLevelWindows())
 QTimer.singleShot(100, lambda: App.exit(7))
@@ -140,6 +147,11 @@ tray_engine_released = tray is None or (
 )
 component_released = button_component is None or not shiboken6.isValid(
     button_component
+)
+expected_shutdown_order = (
+    ["surfaces", "windows", "bindings", "engine"]
+    if enable_tray
+    else ["windows", "bindings", "engine"]
 )
 app.shutdown()
 
@@ -163,13 +175,15 @@ if (
     or not window_references_released
     or not tray_engine_released
     or not component_released
-    or shutdown_order[:3] != ["windows", "bindings", "engine"]
+    or shutdown_order[:len(expected_shutdown_order)] != expected_shutdown_order
 ):
     raise SystemExit(4)
 
 app_module._delete_remaining_qml_windows = original_delete_windows
 EngineManager.reset = original_engine_reset
 app_module._delete_qml_engine = original_delete_qml_engine
+if tray is not None:
+    tray.release_engine = original_tray_release_engine
 
 qapp = app.qapp
 App._reset()
@@ -254,7 +268,12 @@ def test_exec_destroys_qml_windows_before_qapplication_teardown(
     assert window_result is not None, output
     assert int(window_result.group(1)) >= minimum_windows
     assert "APP_SHUTDOWN_ENGINE_RELEASED=1" in output
-    assert "APP_SHUTDOWN_ORDER=windows,bindings,engine" in output
+    expected_order = (
+        "surfaces,windows,bindings,engine"
+        if enable_tray
+        else "windows,bindings,engine"
+    )
+    assert f"APP_SHUTDOWN_ORDER={expected_order}" in output
     assert "APP_SHUTDOWN_WINDOW_REFERENCES_RELEASED=1" in output
     assert "APP_SHUTDOWN_TRAY_ENGINE_RELEASED=1" in output
     assert "APP_SHUTDOWN_COMPONENT_RELEASED=1" in output
