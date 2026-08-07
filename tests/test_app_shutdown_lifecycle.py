@@ -24,6 +24,7 @@ prepare_automated_test_process()
 
 import gc
 import shiboken6
+import sys
 from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlComponent
@@ -163,11 +164,14 @@ popup_loop = None
 app = None
 gc.collect()
 print("APP_SHUTDOWN_REFERENCES_CLEARED=1", flush=True)
-qapp.shutdown()
-qapp_released = QApplication.instance() is None
-print(f"APP_SHUTDOWN_QAPP_RELEASED={int(qapp_released)}", flush=True)
-if not qapp_released:
-    raise SystemExit(5)
+if sys.platform == "win32":
+    shiboken6.delete(qapp)
+    if QApplication.instance() is not None:
+        raise SystemExit(5)
+    print("APP_SHUTDOWN_QAPP_TEARDOWN=explicit", flush=True)
+else:
+    qapp = None
+    print("APP_SHUTDOWN_QAPP_TEARDOWN=process", flush=True)
 print("APP_SHUTDOWN_OK", flush=True)
 '''
 
@@ -211,7 +215,8 @@ def test_exec_destroys_qml_windows_before_qapplication_teardown() -> None:
     assert "APP_SHUTDOWN_ORDER=windows,bindings,engine" in output
     assert "APP_SHUTDOWN_WINDOW_REFERENCES_RELEASED=1" in output
     assert "APP_SHUTDOWN_REFERENCES_CLEARED=1" in output
-    assert "APP_SHUTDOWN_QAPP_RELEASED=1" in output
+    expected_teardown = "explicit" if sys.platform == "win32" else "process"
+    assert f"APP_SHUTDOWN_QAPP_TEARDOWN={expected_teardown}" in output
     assert "QObject::disconnect: Unexpected nullptr parameter" not in output
     assert "PopupWindowCore.qml" not in output
     assert "Cannot read property 'fast' of undefined" not in output
