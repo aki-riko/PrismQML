@@ -25,6 +25,8 @@ constexpr qlonglong kWsThickframe = 0x00040000;
 constexpr qlonglong kWsSysmenu = 0x00080000;
 constexpr qlonglong kWsMinimizebox = 0x00020000;
 constexpr qlonglong kWsMaximizebox = 0x00010000;
+constexpr quint32 kScMaximize = 0xF030;
+constexpr quint32 kScRestore = 0xF120;
 
 #ifdef Q_OS_WIN
 constexpr UINT kFrameChangedFlags =
@@ -55,6 +57,12 @@ public:
         return SetWindowPos(
             reinterpret_cast<HWND>(hwnd), nullptr, 0, 0, 0, 0,
             kFrameChangedFlags) != FALSE;
+    }
+
+    bool postSystemCommand(qulonglong hwnd, quint32 command) override {
+        return PostMessageW(
+                   reinterpret_cast<HWND>(hwnd), WM_SYSCOMMAND,
+                   static_cast<WPARAM>(command), 0) != FALSE;
     }
 };
 
@@ -140,6 +148,16 @@ bool CheckedNativeWindowPlatform::applyFrameChanged(qulonglong hwnd,
         return false;
     m_rawApi->clearLastError();
     const bool succeeded = m_rawApi->setWindowPos(hwnd);
+    *errorCode = m_rawApi->lastError();
+    return succeeded;
+}
+
+bool CheckedNativeWindowPlatform::postSystemCommand(
+    qulonglong hwnd, quint32 command, quint32 *errorCode) {
+    if (!m_rawApi || !errorCode)
+        return false;
+    m_rawApi->clearLastError();
+    const bool succeeded = m_rawApi->postSystemCommand(hwnd, command);
     *errorCode = m_rawApi->lastError();
     return succeeded;
 }
@@ -320,6 +338,14 @@ bool NativeWindow::finalizeAttach(const QVariant &window) {
     return owner && hwnd && prepareOwner(owner, hwnd) && finalizeHwnd(hwnd);
 }
 
+bool NativeWindow::requestMaximize(const QVariant &window) {
+    return requestSystemCommand(window, kScMaximize, "PostMessageW maximize");
+}
+
+bool NativeWindow::requestRestore(const QVariant &window) {
+    return requestSystemCommand(window, kScRestore, "PostMessageW restore");
+}
+
 bool NativeWindow::detach(const QVariant &window) {
     if (!m_platform)
         return true;
@@ -386,6 +412,23 @@ bool NativeWindow::requestFramechangedHwnd(qulonglong hwnd,
                                            const char *operation) {
     quint32 errorCode = 0;
     if (!m_platform || !m_platform->applyFrameChanged(hwnd, &errorCode)) {
+        logNativeFailure(operation, hwnd, errorCode);
+        return false;
+    }
+    return true;
+}
+
+bool NativeWindow::requestSystemCommand(const QVariant &window,
+                                        quint32 command,
+                                        const char *operation) {
+    if (!m_platform)
+        return false;
+    QObject *owner = objectFromVariant(window);
+    const qulonglong hwnd = winIdFromObject(owner);
+    if (!owner || !hwnd)
+        return false;
+    quint32 errorCode = 0;
+    if (!m_platform->postSystemCommand(hwnd, command, &errorCode)) {
         logNativeFailure(operation, hwnd, errorCode);
         return false;
     }

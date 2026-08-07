@@ -42,6 +42,8 @@ MouseArea {
     id: root
 
     // ==================== Public Props 公开属性 ====================
+    // Whether pointer movement can start a system drag. 是否允许鼠标移动启动系统拖动。
+    property bool enableDrag: true
     // 双击是否切换最大化/还原(默认 false,因为浮窗一般不用)
     property bool enableDoubleClickMaximize: false
     // 鼠标移动多少像素后判定为拖动(用于区分 click vs drag)
@@ -50,11 +52,37 @@ MouseArea {
     // ==================== Internal Props 内部属性 ====================
     property point _pressPoint: Qt.point(0, 0)
     property bool _dragging: false
+    property bool _doubleClickPending: false
 
     // ==================== Signals 信号 ====================
     // 拖动正式开始(超过 dragThreshold)时发射一次
     // 注意:不重声明 clicked,沿用 MouseArea 内置信号(它在 release 且未拖动时触发)
     signal dragStarted()
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _requestMaximize(win) {
+        if (typeof NativeWindow !== "undefined" && NativeWindow &&
+                typeof NativeWindow.requestMaximize === "function" &&
+                NativeWindow.requestMaximize(win) === true) return
+        win.showMaximized()
+    }
+    function _requestRestore(win) {
+        if (typeof NativeWindow !== "undefined" && NativeWindow &&
+                typeof NativeWindow.requestRestore === "function" &&
+                NativeWindow.requestRestore(win) === true) return
+        win.showNormal()
+    }
+    function _applyPendingDoubleClick() {
+        if (!_doubleClickPending) return
+        _doubleClickPending = false
+        var win = Window.window
+        if (!win) return
+        if (win.visibility === Window.Maximized) {
+            root._requestRestore(win)
+        } else {
+            root._requestMaximize(win)
+        }
+    }
 
     // Behavior 行为
     // 默认接受左键;使用方可用 acceptedButtons 覆盖(如 Qt.LeftButton | Qt.RightButton)
@@ -68,7 +96,7 @@ MouseArea {
     }
 
     onPositionChanged: (mouse) => {
-        if (!pressed || _dragging) return
+        if (!enableDrag || !pressed || _dragging) return
         var dx = mouse.x - _pressPoint.x
         var dy = mouse.y - _pressPoint.y
         if (Math.abs(dx) >= dragThreshold || Math.abs(dy) >= dragThreshold) {
@@ -83,16 +111,10 @@ MouseArea {
         }
     }
 
-    onDoubleClicked: (mouse) => {
-        if (enableDoubleClickMaximize) {
-            var win = Window.window
-            if (win) {
-                if (win.visibility === Window.Maximized) {
-                    win.showNormal()
-                } else {
-                    win.showMaximized()
-                }
-            }
-        }
+    onReleased: root._applyPendingDoubleClick()
+    onCanceled: _doubleClickPending = false
+
+    onDoubleClicked: {
+        if (enableDoubleClickMaximize) _doubleClickPending = true
     }
 }

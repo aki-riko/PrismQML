@@ -35,6 +35,14 @@ SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "WindowsCore.qml"
 ANIMATION_HELPER_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
 )
+WINDOW_DRAG_HANDLE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "utils"
+    / "WindowDragHandle.qml"
+)
 WINDOW_LEAF_PATHS = [
     ROOT / "prismqml" / "PrismQML" / "_internal" / name
     for name in (
@@ -111,6 +119,18 @@ class _FakeNativeWindow(QObject):
 
     @Slot(QObject, result=bool)
     def detach(self, _window):
+        return True
+
+    @Slot(QObject, result=bool)
+    def requestMaximize(self, window):
+        self._events.append("native-maximize")
+        window.showMaximized()
+        return True
+
+    @Slot(QObject, result=bool)
+    def requestRestore(self, window):
+        self._events.append("native-restore")
+        window.showNormal()
         return True
 
 
@@ -398,8 +418,65 @@ def test_windows_core_initial_left_title_chrome_is_ready(monkeypatch, qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+@pytest.mark.parametrize(
+    ("initial_left_layout", "drag_area_name"),
+    (
+        (False, "topTitleBarDragArea"),
+        (True, "leftTitleBarDragArea"),
+        (True, "rightTitleBarDragArea"),
+    ),
+)
+def test_windows_core_titlebar_double_click_routes_native_transition(
+    monkeypatch, qapp, initial_left_layout, drag_area_name
+):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        startup_events,
+    ) = _create_scene(
+        monkeypatch, initial_left_layout=initial_left_layout
+    )
+    try:
+        drag_area = window.findChild(QQuickItem, drag_area_name)
+        assert drag_area is not None, drag_area_name
+
+        def double_click_drag_area():
+            center = drag_area.mapToItem(
+                window.contentItem(),
+                QPointF(drag_area.width() / 2, drag_area.height() / 2),
+            )
+            QTest.mouseDClick(
+                window,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                QPoint(round(center.x()), round(center.y())),
+            )
+
+        double_click_drag_area()
+        assert _wait_for(
+            lambda: window.visibility() == QWindow.Visibility.Maximized
+        )
+        double_click_drag_area()
+        assert _wait_for(
+            lambda: window.visibility() == QWindow.Visibility.Windowed
+        )
+        assert startup_events.count("native-maximize") == 1
+        assert startup_events.count("native-restore") == 1
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_windows_core_source_conventions_and_timing_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    drag_handle_source = WINDOW_DRAG_HANDLE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [
@@ -411,6 +488,16 @@ def test_windows_core_source_conventions_and_timing_tokens():
     assert "_animationStartTimer" not in source
     assert "interval: 100" not in source
     assert "interval: 1200" not in source
+    assert "window.showMaximized()" not in source
+    assert "window.showNormal()" not in source
+    assert source.count("WindowDragHandle {") == 3
+    assert "window.startSystemMove()" not in source
+    assert "property bool enableDrag: true" in drag_handle_source
+    assert "property bool _doubleClickPending: false" in drag_handle_source
+    assert "onDoubleClicked:" in drag_handle_source
+    assert "onReleased: root._applyPendingDoubleClick()" in drag_handle_source
+    assert "NativeWindow.requestMaximize(win)" in drag_handle_source
+    assert "NativeWindow.requestRestore(win)" in drag_handle_source
     profile_start = source.index("function profileTime(msg)")
     profile_end = source.index("function profileDetail(msg)", profile_start)
     assert "if (!_startupProfilingVerboseActive) return" in source[

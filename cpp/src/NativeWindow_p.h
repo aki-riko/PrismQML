@@ -23,6 +23,8 @@ public:
     virtual bool setStyle(qulonglong hwnd, qlonglong style,
                           qlonglong *previousStyle, quint32 *errorCode) = 0;
     virtual bool applyFrameChanged(qulonglong hwnd, quint32 *errorCode) = 0;
+    virtual bool postSystemCommand(qulonglong hwnd, quint32 command,
+                                   quint32 *errorCode) = 0;
 };
 
 class NativeWindowRawApi {
@@ -34,6 +36,7 @@ public:
     virtual qlonglong getWindowLongPtr(qulonglong hwnd) = 0;
     virtual qlonglong setWindowLongPtr(qulonglong hwnd, qlonglong style) = 0;
     virtual bool setWindowPos(qulonglong hwnd) = 0;
+    virtual bool postSystemCommand(qulonglong hwnd, quint32 command) = 0;
 };
 
 class CheckedNativeWindowPlatform final : public NativeWindowPlatform {
@@ -47,6 +50,8 @@ public:
     bool setStyle(qulonglong hwnd, qlonglong style,
                   qlonglong *previousStyle, quint32 *errorCode) override;
     bool applyFrameChanged(qulonglong hwnd, quint32 *errorCode) override;
+    bool postSystemCommand(qulonglong hwnd, quint32 command,
+                           quint32 *errorCode) override;
 
 private:
     std::unique_ptr<NativeWindowRawApi> m_rawApi;

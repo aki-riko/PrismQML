@@ -34,6 +34,10 @@ GWL_STYLE = -16
 ERROR_INVALID_WINDOW_HANDLE = 1400
 
 WM_NCCALCSIZE = 0x0083
+WM_SYSCOMMAND = 0x0112
+
+SC_MAXIMIZE = 0xF030
+SC_RESTORE = 0xF120
 
 SWP_NOMOVE = 0x0002
 SWP_NOSIZE = 0x0001
@@ -81,6 +85,14 @@ if sys.platform == "win32":
     user32.IsZoomed.argtypes = [wintypes.HWND]
     user32.IsZoomed.restype = wintypes.BOOL
 
+    user32.PostMessageW.argtypes = [
+        wintypes.HWND,
+        wintypes.UINT,
+        wintypes.WPARAM,
+        wintypes.LPARAM,
+    ]
+    user32.PostMessageW.restype = wintypes.BOOL
+
 
 def _raise_winapi_failure(operation: str, error_code: int) -> None:
     """Raise one deterministic WinAPI failure. 抛出确定性的 WinAPI 失败。"""
@@ -116,6 +128,15 @@ def _request_frame_changed(hwnd: int) -> None:
     error_code = _get_last_error()
     if not succeeded:
         _raise_winapi_failure("SetWindowPos", error_code)
+
+
+def _post_system_command(hwnd: int, command: int) -> None:
+    """Post a native system command or raise. 投递原生系统命令，失败即抛出。"""
+    _set_last_error(0)
+    succeeded = user32.PostMessageW(hwnd, WM_SYSCOMMAND, command, 0)
+    error_code = _get_last_error()
+    if not succeeded:
+        _raise_winapi_failure("PostMessageW", error_code)
 
 
 # ============================================================================
@@ -237,6 +258,39 @@ class NativeWindowHook(QObject):
     def finalizeAttach(self, window: QWindow) -> bool:
         """补执行 SWP_FRAMECHANGED。未 attach 时退化为完整 attach。"""
         return self._attach_boundary(window, "finalizeAttach")
+
+    @Slot(QWindow, result=bool)
+    def requestMaximize(self, window: QWindow) -> bool:
+        """Use the native maximize command for DWM animation. 使用原生最大化命令触发 DWM 动画。"""
+        return self._request_system_command(
+            window, SC_MAXIMIZE, "requestMaximize"
+        )
+
+    @Slot(QWindow, result=bool)
+    def requestRestore(self, window: QWindow) -> bool:
+        """Use the native restore command for DWM animation. 使用原生还原命令触发 DWM 动画。"""
+        return self._request_system_command(
+            window, SC_RESTORE, "requestRestore"
+        )
+
+    def _request_system_command(
+        self, window: QWindow, command: int, operation: str
+    ) -> bool:
+        """Post one guarded system command. 投递一个受保护的系统命令。"""
+        if sys.platform != "win32":
+            return False
+        try:
+            hwnd = self._window_handle(window)
+            if not hwnd:
+                return False
+            _post_system_command(hwnd, command)
+            return True
+        except Exception as exc:
+            exception(
+                f"NativeWindowHook.{operation} failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            return False
 
     def _attach_boundary(self, window: QWindow, operation: str) -> bool:
         """Run one public attach boundary. 执行公开 attach 异常边界。"""

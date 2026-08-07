@@ -40,11 +40,14 @@ class _LastError:
 
 
 class _FakeUser32:
-    def __init__(self, last_error, *, gets=(), sets=(), positions=()):
+    def __init__(
+        self, last_error, *, gets=(), sets=(), positions=(), messages=()
+    ):
         self._last_error = last_error
         self._gets = list(gets)
         self._sets = list(sets)
         self._positions = list(positions)
+        self._messages = list(messages)
         self.calls = []
 
     def _next(self, outcomes, name):
@@ -70,6 +73,10 @@ class _FakeUser32:
             ("position", hwnd, insert_after, x, y, width, height, flags)
         )
         return self._next(self._positions, "SetWindowPos")
+
+    def PostMessageW(self, hwnd, message, wparam, lparam):
+        self.calls.append(("message", hwnd, message, wparam, lparam))
+        return self._next(self._messages, "PostMessageW")
 
 
 class _FakeDestroyedSignal:
