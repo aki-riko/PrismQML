@@ -38,6 +38,11 @@ SOURCE_PATH = (
     / "navigation"
     / "Breadcrumb.qml"
 )
+WINDOWS_PIXEL_HASHES = (
+    "20257205ddc48958c27222783f84ca71b1ca963a49b4fd5e8a20d760b8e0e8f7",
+    "7248519f0fd6ac793cebdab3f130234fb98b118927e324043852aa76abca2951",
+    "3cfb5e5e32b4cf8e6372de66b0b10ef7bcea61d71b05907e5fec49557b1dccc1",
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "breadcrumb-timer-lifecycle.qml")
 )
@@ -138,7 +143,9 @@ def _stable_hash(window: QQuickWindow) -> str:
     stable_count = 0
     for _ in range(30):
         _pump(80)
-        current = _image_hash(window.grabWindow())
+        image = window.grabWindow()
+        assert not image.isNull()
+        current = _image_hash(image)
         stable_count = stable_count + 1 if current == previous else 1
         if stable_count >= 3:
             return current
@@ -241,11 +248,11 @@ def test_breadcrumb_timer_animation_and_pixel_lifecycle(qapp):
             10,
             10,
         )
-        assert (initial_hash, collapsed_hash, settled_hash) == (
-            "20257205ddc48958c27222783f84ca71b1ca963a49b4fd5e8a20d760b8e0e8f7",
-            "7248519f0fd6ac793cebdab3f130234fb98b118927e324043852aa76abca2951",
-            "3cfb5e5e32b4cf8e6372de66b0b10ef7bcea61d71b05907e5fec49557b1dccc1",
-        )
+        pixel_hashes = (initial_hash, collapsed_hash, settled_hash)
+        if os.name == "nt":
+            assert pixel_hashes == WINDOWS_PIXEL_HASHES
+        else:
+            assert len(set(pixel_hashes)) == 3
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

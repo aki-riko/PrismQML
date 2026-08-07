@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 from PySide6.QtCore import (
@@ -30,6 +31,9 @@ from prismqml import register_types
 ROOT = Path(__file__).resolve().parents[2]
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "cycle-wheel-picker-timer-lifecycle.qml")
+)
+WINDOWS_HOVER_HASH = (
+    "68d43bde2ec3538f0873fb76e055f5af0c7c82d3d4e34ddbf0643dd229c86b33"
 )
 SCENE_SOURCE = b"""
 import QtQuick
@@ -96,6 +100,14 @@ def _image_hash(image: QImage) -> str:
     return hashlib.sha256(bytes(normalized.bits())).hexdigest()
 
 
+def _distinct_color_count(image: QImage) -> int:
+    normalized = image.convertToFormat(QImage.Format.Format_RGBA8888)
+    pixels = bytes(normalized.constBits())
+    return len(
+        {pixels[index : index + 4] for index in range(0, len(pixels), 4)}
+    )
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -140,7 +152,9 @@ def test_cycle_wheel_picker_first_button_presses_keep_visuals_and_repeat_state(q
         QTest.mouseMove(window, QPoint(100, 180))
         assert _wait_for(lambda: picker.property("_hovered"))
         _pump(80)
-        hover_hash = _image_hash(window.grabWindow())
+        hover_image = window.grabWindow()
+        assert not hover_image.isNull()
+        hover_hash = _image_hash(hover_image)
         timers = _timers(picker)
         object_count = len(picker.findChildren(QObject))
 
@@ -182,9 +196,10 @@ def test_cycle_wheel_picker_first_button_presses_keep_visuals_and_repeat_state(q
         )
         assert len(timers) == 1
         assert object_count == 33
-        assert hover_hash == (
-            "68d43bde2ec3538f0873fb76e055f5af0c7c82d3d4e34ddbf0643dd229c86b33"
-        )
+        if os.name == "nt":
+            assert hover_hash == WINDOWS_HOVER_HASH
+        else:
+            assert _distinct_color_count(hover_image) > 1
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

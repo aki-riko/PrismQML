@@ -269,6 +269,8 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
         previous_handler,
     ) = scene
     try:
+        empty_image = _stable_window_image(window)
+
         svg_icon.setProperty("icon", "image://iconprobe/icon.svg")
         avatar_icon.setProperty("icon", "image://iconprobe/avatar.png")
         assert _wait_for(provider.request_started.is_set)
@@ -280,7 +282,6 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
         avatar_image = _image_item(avatar_icon)
         assert _evaluate(svg_image, "status === Image.Loading") is True
         assert _evaluate(avatar_image, "status === Image.Loading") is True
-        loading_image = _stable_window_image(window)
         loading_layers = (
             QQmlProperty(svg_image, "layer.enabled").read(),
             QQmlProperty(avatar_image, "layer.enabled").read(),
@@ -317,7 +318,7 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
         print(
             "ICON_RENDERER_LAYERS",
             "hashes="
-            f"{_image_hash(loading_image)}/{_image_hash(ready_image)}/"
+            f"{_image_hash(empty_image)}/{_image_hash(ready_image)}/"
             f"{_image_hash(error_image)}",
             f"layers={loading_layers}/{ready_layers}/{error_layers}",
             f"objects={loading_objects}/{ready_objects}/{error_objects}",
@@ -328,7 +329,7 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
         assert error_layers == (False, False)
         assert loading_objects == ready_objects == error_objects
         assert first_ready_image == ready_image
-        assert error_image == loading_image
+        assert error_image == empty_image
         assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(
