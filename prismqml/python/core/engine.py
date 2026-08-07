@@ -13,6 +13,9 @@ from typing import Optional
 from PySide6.QtQml import QQmlApplicationEngine
 
 
+_ENGINE_BINDINGS_ATTR = "_prismqml_engine_bindings"
+
+
 class EngineManager:
     """QML引擎管理器，管理全局唯一的QQmlApplicationEngine实例"""
     
@@ -30,13 +33,30 @@ class EngineManager:
         return cls._engine
 
     @staticmethod
+    def register_engine_binding(engine: QQmlApplicationEngine, binding) -> None:
+        """Keep one binding alive until its QML engine resets. 保活绑定直到 QML 引擎重置。"""
+        bindings = getattr(engine, _ENGINE_BINDINGS_ATTR, [])
+        if not any(current is binding for current in bindings):
+            bindings.append(binding)
+        setattr(engine, _ENGINE_BINDINGS_ATTR, bindings)
+
+    @staticmethod
     def _release_engine_bindings(engine: QQmlApplicationEngine) -> None:
         """Release Python objects that hold this engine. 释放持有该引擎的绑定对象。"""
-        bindings = tuple(getattr(engine, "_prismqml_lazy_context_objects", ()))
+        bindings = (
+            tuple(getattr(engine, _ENGINE_BINDINGS_ATTR, ()))
+            + tuple(getattr(engine, "_prismqml_lazy_context_objects", ()))
+        )
+        released = set()
         for binding in bindings:
+            binding_id = id(binding)
+            if binding_id in released:
+                continue
+            released.add(binding_id)
             release_engine = getattr(binding, "release_engine", None)
             if release_engine is not None:
                 release_engine()
+        setattr(engine, _ENGINE_BINDINGS_ATTR, [])
         setattr(engine, "_prismqml_lazy_context_objects", [])
 
     @classmethod

@@ -22,7 +22,6 @@ from scripts.test_process import prepare_automated_test_process
 
 prepare_automated_test_process()
 
-import gc
 import shiboken6
 import sys
 from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, Qt, QUrl
@@ -44,7 +43,7 @@ tray = SystemTrayIcon(toolTip="shutdown-probe")
 tray.addAction("Exit", actionId="exit")
 tray._showQmlMenu()
 
-button_component = QQmlComponent(app.engine)
+button_component = QQmlComponent(app.engine, parent=app.engine)
 button_component.setData(
     b"""import QtQuick
 import QtQuick.Window
@@ -113,6 +112,8 @@ engine_released = app.engine is None and EngineManager._engine is None
 window_references_released = (
     WindowCore.get_current_window() is None and not app.windows
 )
+tray_engine_released = tray._qml_menu is None and tray._component is None
+component_released = not shiboken6.isValid(button_component)
 app.shutdown()
 
 print(f"APP_SHUTDOWN_RESULT={result}", flush=True)
@@ -123,6 +124,8 @@ print(
     f"APP_SHUTDOWN_WINDOW_REFERENCES_RELEASED={int(window_references_released)}",
     flush=True,
 )
+print(f"APP_SHUTDOWN_TRAY_ENGINE_RELEASED={int(tray_engine_released)}", flush=True)
+print(f"APP_SHUTDOWN_COMPONENT_RELEASED={int(component_released)}", flush=True)
 
 if (
     result != 7
@@ -130,6 +133,8 @@ if (
     or windows_after != 0
     or not engine_released
     or not window_references_released
+    or not tray_engine_released
+    or not component_released
     or shutdown_order[:3] != ["windows", "bindings", "engine"]
 ):
     raise SystemExit(4)
@@ -138,32 +143,8 @@ app_module._delete_remaining_qml_windows = original_delete_windows
 EngineManager.reset = original_engine_reset
 app_module._delete_qt_object = original_delete_qt_object
 
-tray.hide()
-if shiboken6.isValid(tray._tray):
-    shiboken6.delete(tray._tray)
-tray._tray = None
-tray._qml_menu = None
-tray._component = None
-if shiboken6.isValid(tray):
-    shiboken6.delete(tray)
-
-for value in (popup_loop, button_component):
-    if shiboken6.isValid(value):
-        shiboken6.delete(value)
-
 qapp = app.qapp
-app._app = None
 App._reset()
-window = None
-tray = None
-button_component = None
-button_window = None
-split_button = None
-dropdown = None
-popup_loop = None
-app = None
-gc.collect()
-print("APP_SHUTDOWN_REFERENCES_CLEARED=1", flush=True)
 if sys.platform == "win32":
     shiboken6.delete(qapp)
     if QApplication.instance() is not None:
@@ -214,7 +195,8 @@ def test_exec_destroys_qml_windows_before_qapplication_teardown() -> None:
     assert "APP_SHUTDOWN_ENGINE_RELEASED=1" in output
     assert "APP_SHUTDOWN_ORDER=windows,bindings,engine" in output
     assert "APP_SHUTDOWN_WINDOW_REFERENCES_RELEASED=1" in output
-    assert "APP_SHUTDOWN_REFERENCES_CLEARED=1" in output
+    assert "APP_SHUTDOWN_TRAY_ENGINE_RELEASED=1" in output
+    assert "APP_SHUTDOWN_COMPONENT_RELEASED=1" in output
     expected_teardown = "explicit" if sys.platform == "win32" else "process"
     assert f"APP_SHUTDOWN_QAPP_TEARDOWN={expected_teardown}" in output
     assert "QObject::disconnect: Unexpected nullptr parameter" not in output

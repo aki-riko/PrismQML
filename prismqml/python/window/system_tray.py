@@ -18,7 +18,17 @@ PrismQML SystemTray - 系统托盘组件
 from typing import Union, Optional, Callable, List
 from enum import Enum
 
-from PySide6.QtCore import QObject, Signal, Slot, Property, QUrl, QMetaObject, Q_ARG
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QObject,
+    Signal,
+    Slot,
+    Property,
+    QUrl,
+    QMetaObject,
+    Q_ARG,
+)
 from PySide6.QtGui import QIcon, QCursor
 from PySide6.QtWidgets import QSystemTrayIcon
 from PySide6.QtQml import QQmlComponent
@@ -176,7 +186,12 @@ class SystemTrayIcon(QObject):
     def _create_qml_menu(self, engine) -> None:
         """Create and populate the QML menu. 创建并填充 QML 菜单。"""
         menu_path = qml_path() / "controls" / "menus" / "SystemTrayMenu.qml"
-        self._component = QQmlComponent(engine, QUrl.fromLocalFile(str(menu_path)))
+        self._component = QQmlComponent(
+            engine,
+            QUrl.fromLocalFile(str(menu_path)),
+            parent=engine,
+        )
+        EngineManager.register_engine_binding(engine, self)
         if self._component.isError():
             errors = "\n".join(error.toString() for error in self._component.errors())
             error(f"Failed to load SystemTrayMenu: {errors}")
@@ -189,6 +204,20 @@ class SystemTrayIcon(QObject):
         self._qml_menu.actionTriggered.connect(self._onMenuActionTriggered)
         for action in self._actions:
             self._addActionToQml(action)
+
+    def release_engine(self) -> None:
+        """Release QML menu objects before their engine. 在引擎前释放 QML 菜单对象。"""
+        import shiboken6
+
+        deferred_delete = False
+        for attribute in ("_qml_menu", "_component"):
+            value = getattr(self, attribute, None)
+            if value is not None and shiboken6.isValid(value):
+                value.deleteLater()
+                deferred_delete = True
+            setattr(self, attribute, None)
+        if deferred_delete:
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     @staticmethod
     def _qml_icon_value(icon):
