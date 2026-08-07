@@ -22,6 +22,8 @@ from scripts.test_process import prepare_automated_test_process
 
 prepare_automated_test_process()
 
+import gc
+import shiboken6
 from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlComponent
@@ -131,8 +133,36 @@ if (
 ):
     raise SystemExit(4)
 
+app_module._delete_remaining_qml_windows = original_delete_windows
+EngineManager.reset = original_engine_reset
+app_module._delete_qt_object = original_delete_qt_object
+
+tray.hide()
+if shiboken6.isValid(tray._tray):
+    shiboken6.delete(tray._tray)
+tray._tray = None
+tray._qml_menu = None
+tray._component = None
+if shiboken6.isValid(tray):
+    shiboken6.delete(tray)
+
+for value in (popup_loop, button_component):
+    if shiboken6.isValid(value):
+        shiboken6.delete(value)
+
 qapp = app.qapp
+app._app = None
 App._reset()
+window = None
+tray = None
+button_component = None
+button_window = None
+split_button = None
+dropdown = None
+popup_loop = None
+app = None
+gc.collect()
+print("APP_SHUTDOWN_REFERENCES_CLEARED=1", flush=True)
 qapp.shutdown()
 qapp_released = QApplication.instance() is None
 print(f"APP_SHUTDOWN_QAPP_RELEASED={int(qapp_released)}", flush=True)
@@ -180,6 +210,7 @@ def test_exec_destroys_qml_windows_before_qapplication_teardown() -> None:
     assert "APP_SHUTDOWN_ENGINE_RELEASED=1" in output
     assert "APP_SHUTDOWN_ORDER=windows,bindings,engine" in output
     assert "APP_SHUTDOWN_WINDOW_REFERENCES_RELEASED=1" in output
+    assert "APP_SHUTDOWN_REFERENCES_CLEARED=1" in output
     assert "APP_SHUTDOWN_QAPP_RELEASED=1" in output
     assert "QObject::disconnect: Unexpected nullptr parameter" not in output
     assert "PopupWindowCore.qml" not in output
