@@ -158,7 +158,7 @@ Item {
             target: effect
             property: "_dissolveProgress"
             to: Enums.opacityLevel.visible
-            duration: Enums.duration.splashExitDissolve
+            duration: Enums.windowCloseMetrics.rippleDuration
             easing.type: Easing.OutQuad
         }
         ScriptAction { script: effect._completeClose() }
@@ -171,7 +171,7 @@ Item {
             target: effect.targetWindow
             property: "opacity"
             to: Enums.opacityLevel.invisible
-            duration: Enums.duration.splashExitDissolve
+            duration: Enums.windowCloseMetrics.rippleDuration
             easing.type: Easing.InCubic
         }
         ScriptAction { script: effect._completeClose() }

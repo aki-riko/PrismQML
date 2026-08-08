@@ -41,6 +41,7 @@ Window {
     id: window
     property int closeCallbacks: 0
     property int hoverPrewarmCalls: 0
+    property int closeRippleDuration: Enums.windowCloseMetrics.rippleDuration
 
     width: 320
     height: 200
@@ -146,6 +147,7 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     close_animation_scene,
 ):
     window, warnings = close_animation_scene
+    assert window.property("closeRippleDuration") == 1000
     helper = window.findChild(QQuickItem, "animationHelper")
     assert helper is not None
     window.show()
@@ -284,7 +286,8 @@ def test_close_animation_source_uses_water_ripple_shader():
     assert "sourceClipRect:" not in dissolve_source
     assert "color: Enums.transparent" in dissolve_source
     assert "targetWindow.opacity = Enums.opacityLevel.invisible" in dissolve_source
-    assert "Enums.duration.splashExitDissolve" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleDuration" in dissolve_source
+    assert "Enums.duration.splashExitDissolve" not in dissolve_source
     assert "Enums.windowCloseMetrics.rippleTailLength" in dissolve_source
     assert "Enums.windowCloseMetrics.rippleWaveFrequency" in dissolve_source
     assert "Enums.windowCloseMetrics.rippleWaveDispersion" in dissolve_source

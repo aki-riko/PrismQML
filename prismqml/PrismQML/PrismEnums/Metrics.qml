@@ -598,6 +598,7 @@ QtObject {
 
  // ==================== WindowClose 窗口关闭度量 ====================
  readonly property QtObject windowClose: QtObject {
+ readonly property int rippleDuration: 1000
  readonly property real rippleTailLength: 0.22
  readonly property real rippleWaveFrequency: 54.0
  readonly property real rippleWaveDispersion: 0.65
