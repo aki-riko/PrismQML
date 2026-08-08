@@ -174,9 +174,10 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert radial_mask_texture is not None
     assert dissolve_frame is not None
     assert _visual_class_count(overlay.contentItem(), "QQuickImage") == 2
-    assert _visual_class_count(radial_mask_content, "QQuickRectangle") == 1
+    assert _visual_class_count(radial_mask_content, "QQuickShape") == 1
     assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffectSource") == 1
-    assert radial_mask.width() > (overlay.width() ** 2 + overlay.height() ** 2) ** 0.5
+    assert radial_mask.width() == pytest.approx(overlay.width())
+    assert radial_mask.height() == pytest.approx(overlay.height())
     assert _wait_for(lambda: helper.property("animOpacity") == 0)
     assert overlay.isVisible()
     assert window.opacity() == pytest.approx(0)
@@ -185,8 +186,10 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert frozen_frame.opacity() == pytest.approx(1)
     assert frozen_frame.scale() == pytest.approx(1)
     assert 0 < dissolve.property("_dissolveProgress") < 1
-    assert radial_mask.scale() == pytest.approx(
-        dissolve.property("_dissolveProgress")
+    assert dissolve.property("_radialMaskRadius") == pytest.approx(
+        dissolve.property("_radialMaskDiameter")
+        * dissolve.property("_dissolveProgress")
+        / 2
     )
     assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
@@ -264,16 +267,21 @@ def test_close_animation_source_uses_radial_mask():
     assert "AcrylicHelper.grabWindowFrame" in dissolve_source
     assert "targetItem.grabToImage" in dissolve_source
     assert "MultiEffect {" in dissolve_source
+    assert "import QtQuick.Shapes" in dissolve_source
     assert 'objectName: "windowCloseRadialMaskContent"' in dissolve_source
     assert 'objectName: "windowCloseRadialMask"' in dissolve_source
     assert 'objectName: "windowCloseRadialMaskTexture"' in dissolve_source
     assert 'objectName: "windowCloseDissolveFrame"' in dissolve_source
+    assert "Shape {" in dissolve_source
+    assert "ShapePath {" in dissolve_source
+    assert "fillRule: ShapePath.OddEvenFill" in dissolve_source
+    assert dissolve_source.count("PathArc {") == 2
     assert "Repeater {" not in dissolve_source
     assert "delegate: ShaderEffectSource" not in dissolve_source
     assert dissolve_source.count("ShaderEffectSource {") == 1
     assert "hideSource: true" in dissolve_source
     assert "live: true" in dissolve_source
-    assert "maskInverted: true" in dissolve_source
+    assert "maskInverted" not in dissolve_source
     assert "maskThresholdMin: Enums.mask.thresholdMin" in dissolve_source
     assert "maskSpreadAtMin: Enums.mask.spreadFull" in dissolve_source
     assert 'objectName: "windowCloseFrozenFrame"' in dissolve_source

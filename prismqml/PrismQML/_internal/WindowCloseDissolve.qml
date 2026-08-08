@@ -4,6 +4,7 @@
 
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Shapes
 import ".."
 import QtQuick.Window  // Keep native Window after the library import. 库导入后保留原生 Window 名称。
 
@@ -30,6 +31,8 @@ Item {
     readonly property real _radialMaskDiameter: Math.sqrt(
         overlayClip.width * overlayClip.width + overlayClip.height * overlayClip.height
     ) + Enums.windowCloseMetrics.radialDiameterOvershoot
+    readonly property real _radialMaskRadius: _radialMaskDiameter *
+                                               _dissolveProgress / 2
 
     // ==================== Internal Methods 内部方法 ====================
     function _releaseSnapshot() {
@@ -207,18 +210,45 @@ Item {
                 objectName: "windowCloseRadialMaskContent"
                 anchors.fill: parent
 
-                Rectangle {
+                Shape {
                     id: radialMask
 
                     objectName: "windowCloseRadialMask"
-                    anchors.centerIn: parent
-                    width: effect._radialMaskDiameter
-                    height: width
-                    radius: width / 2
-                    scale: effect._dissolveProgress
-                    color: Enums.foregroundColor
-                    antialiasing: true
-                    transformOrigin: Item.Center
+                    anchors.fill: parent
+                    preferredRendererType: Shape.CurveRenderer
+
+                    ShapePath {
+                        fillColor: Enums.foregroundColor
+                        strokeColor: Enums.transparent
+                        fillRule: ShapePath.OddEvenFill
+                        startX: 0
+                        startY: 0
+
+                        PathLine { x: radialMask.width; y: 0 }
+                        PathLine { x: radialMask.width; y: radialMask.height }
+                        PathLine { x: 0; y: radialMask.height }
+                        PathLine { x: 0; y: 0 }
+                        PathMove {
+                            x: radialMask.width / 2 + effect._radialMaskRadius
+                            y: radialMask.height / 2
+                        }
+                        PathArc {
+                            x: radialMask.width / 2 - effect._radialMaskRadius
+                            y: radialMask.height / 2
+                            radiusX: effect._radialMaskRadius
+                            radiusY: effect._radialMaskRadius
+                            useLargeArc: true
+                            direction: PathArc.Counterclockwise
+                        }
+                        PathArc {
+                            x: radialMask.width / 2 + effect._radialMaskRadius
+                            y: radialMask.height / 2
+                            radiusX: effect._radialMaskRadius
+                            radiusY: effect._radialMaskRadius
+                            useLargeArc: true
+                            direction: PathArc.Counterclockwise
+                        }
+                    }
                 }
             }
 
@@ -245,7 +275,6 @@ Item {
                 layer.effect: MultiEffect {
                     maskEnabled: true
                     maskSource: dissolveMaskTexture
-                    maskInverted: true
                     maskThresholdMin: Enums.mask.thresholdMin
                     maskSpreadAtMin: Enums.mask.spreadFull
                 }
