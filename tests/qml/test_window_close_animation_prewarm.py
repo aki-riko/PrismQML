@@ -161,21 +161,20 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert overlay is not None
     frozen_frame = overlay.findChild(QQuickItem, "windowCloseFrozenFrame")
     assert frozen_frame is not None
-    assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffectSource") == 0
-    assert _visual_class_count(overlay.contentItem(), "QQuickImage") == (
-        dissolve.property("_cellCount") + 1
-    )
-    grid_cells = {
-        child.objectName(): child
+    grid_mask = overlay.findChild(QQuickItem, "windowCloseGridMask")
+    grid_mask_texture = overlay.findChild(QQuickItem, "windowCloseGridMaskTexture")
+    dissolve_frame = overlay.findChild(QQuickItem, "windowCloseDissolveFrame")
+    assert grid_mask is not None
+    assert grid_mask_texture is not None
+    assert dissolve_frame is not None
+    assert dissolve.property("_cellCount") == 384
+    assert _visual_class_count(overlay.contentItem(), "QQuickImage") == 2
+    assert _visual_class_count(grid_mask, "QQuickRectangle") == 384
+    assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffectSource") == 1
+    assert not any(
+        child.objectName().startswith("windowCloseGridCell_")
         for child in _visual_items(overlay.contentItem())
-        if child.objectName().startswith("windowCloseGridCell_")
-    }
-    assert len(grid_cells) == dissolve.property("_cellCount")
-    columns = dissolve.property("_columns")
-    rows = dissolve.property("_rows")
-    center_index = (rows // 2) * columns + columns // 2
-    center_cell = grid_cells[f"windowCloseGridCell_{center_index}"]
-    corner_cell = grid_cells["windowCloseGridCell_0"]
+    )
     assert _wait_for(lambda: helper.property("animOpacity") == 0)
     assert overlay.isVisible()
     assert window.opacity() == pytest.approx(0)
@@ -184,7 +183,6 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert frozen_frame.opacity() == pytest.approx(1)
     assert frozen_frame.scale() == pytest.approx(1)
     assert 0 < dissolve.property("_dissolveProgress") < 1
-    assert center_cell.opacity() < corner_cell.opacity()
     assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
     assert window.opacity() == pytest.approx(0)
@@ -260,23 +258,29 @@ def test_close_animation_source_uses_splash_grid_mask():
     assert "overlayWindow.requestUpdate()" in dissolve_source
     assert "AcrylicHelper.grabWindowFrame" in dissolve_source
     assert "targetItem.grabToImage" in dissolve_source
-    assert "Repeater {" in dissolve_source
-    assert "delegate: Item" in dissolve_source
-    assert 'objectName: "windowCloseGridCell_" + index' in dissolve_source
+    assert "MultiEffect {" in dissolve_source
+    assert 'objectName: "windowCloseGridMask"' in dissolve_source
+    assert 'objectName: "windowCloseGridMaskTexture"' in dissolve_source
+    assert 'objectName: "windowCloseDissolveFrame"' in dissolve_source
+    assert dissolve_source.count("Repeater {") == 2
     assert "delegate: ShaderEffectSource" not in dissolve_source
-    assert "ShaderEffectSource {" not in dissolve_source
+    assert dissolve_source.count("ShaderEffectSource {") == 1
+    assert "hideSource: true" in dissolve_source
+    assert "live: true" in dissolve_source
+    assert "maskThresholdMin: Enums.mask.thresholdMin" in dissolve_source
+    assert "maskSpreadAtMin: Enums.mask.spreadFull" in dissolve_source
     assert 'objectName: "windowCloseFrozenFrame"' in dissolve_source
     assert "sourceClipRect:" not in dissolve_source
     assert "color: Enums.transparent" in dissolve_source
     assert "targetWindow.opacity = Enums.opacityLevel.invisible" in dissolve_source
     assert "Enums.duration.splashExitDissolve" in dissolve_source
-    assert "Enums.duration.splashGridDelayStep" in dissolve_source
     assert "Enums.duration.splashGridCellFade" in dissolve_source
-    assert "Enums.splashScreenMetrics.exitGridColumns" in dissolve_source
-    assert "Enums.splashScreenMetrics.exitGridRows" in dissolve_source
-    assert "x: -gridCell.x" in dissolve_source
+    assert "Enums.windowCloseMetrics.gridColumns" in dissolve_source
+    assert "Enums.windowCloseMetrics.gridRows" in dissolve_source
+    assert "Enums.windowCloseMetrics.maskCellSize" in dissolve_source
     assert dissolve_source.count("Image {") == 2
     assert "function _gridCellOpacity" in dissolve_source
+    assert "function _buildGridBands" in dissolve_source
     assert "Math.pow(-2 * value + 2, 3)" in dissolve_source
     assert "onCloseCallback()" in dissolve_source
     assert (

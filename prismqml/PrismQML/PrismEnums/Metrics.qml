@@ -596,6 +596,13 @@ QtObject {
  readonly property int progressDotTopMargin: root.progressRing.orbitDotTopMargin
  }
 
+ // ==================== WindowClose 窗口关闭度量 ====================
+ readonly property QtObject windowClose: QtObject {
+ readonly property int gridColumns: 24
+ readonly property int gridRows: 16
+ readonly property int maskCellSize: 1
+ }
+
  // ==================== ProgressRing 进度环度量 ====================
  readonly property QtObject progressRing: QtObject {
  readonly property int spinDuration: 800 // Default progress ring rotation cycle 默认进度环旋转周期

@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import QtQuick.Effects
 import ".."
 import QtQuick.Window  // Keep native Window after the library import. 库导入后保留原生 Window 名称。
 
@@ -26,9 +27,13 @@ Item {
     property string _snapshotSource: ""
     property var _grabResult: null
     property real _dissolveProgress: 0
-    readonly property int _columns: Enums.splashScreenMetrics.exitGridColumns
-    readonly property int _rows: Enums.splashScreenMetrics.exitGridRows
+    readonly property int _columns: Enums.windowCloseMetrics.gridColumns
+    readonly property int _rows: Enums.windowCloseMetrics.gridRows
     readonly property int _cellCount: _columns * _rows
+    readonly property real _maxGridDistance: (_columns + _rows - 2) / 2
+    readonly property int _gridDelayRange: Enums.duration.splashExitDissolve -
+                                            Enums.duration.splashGridCellFade
+    readonly property var _gridBands: _buildGridBands()
 
     // ==================== Internal Methods 内部方法 ====================
     function _gridCellOpacity(elapsed, delay) {
@@ -38,6 +43,23 @@ Item {
             ? 4 * value * value * value
             : 1 - Math.pow(-2 * value + 2, 3) / 2
         return 1 - eased
+    }
+
+    function _buildGridBands() {
+        var bands = []
+        for (var index = 0; index <= Math.round(_maxGridDistance); index += 1) {
+            bands.push([])
+        }
+        var centerColumn = (_columns - 1) / 2
+        var centerRow = (_rows - 1) / 2
+        for (var row = 0; row < _rows; row += 1) {
+            for (var column = 0; column < _columns; column += 1) {
+                var distance = Math.round(Math.abs(column - centerColumn) +
+                                          Math.abs(row - centerRow))
+                bands[distance].push([column, row])
+            }
+        }
+        return bands
     }
 
     function _releaseSnapshot() {
@@ -209,48 +231,81 @@ Item {
             radius: effect.cornerRadius
             clip: true
 
-            Repeater {
-                id: dissolveGrid
+            Item {
+                id: dissolveMaskContent
 
-                model: effect._cellCount
+                objectName: "windowCloseGridMask"
+                width: effect._columns
+                height: effect._rows
 
-                delegate: Item {
-                    id: gridCell
+                Repeater {
+                    model: effect._gridBands
 
-                    readonly property int _column: index % effect._columns
-                    readonly property int _row: Math.floor(index / effect._columns)
-                    readonly property real _centerColumn: (effect._columns - 1) / 2
-                    readonly property real _centerRow: (effect._rows - 1) / 2
-                    readonly property int _delay: Math.round((
-                        Math.abs(gridCell._column - gridCell._centerColumn) +
-                        Math.abs(gridCell._row - gridCell._centerRow)
-                    ) * Enums.duration.splashGridDelayStep)
+                    delegate: Item {
+                        id: gridBand
 
-                    objectName: "windowCloseGridCell_" + index
-                    x: gridCell._column * overlayClip.width / effect._columns
-                    y: gridCell._row * overlayClip.height / effect._rows
-                    width: overlayClip.width / effect._columns +
-                           Enums.splashScreenMetrics.exitGridOverlap
-                    height: overlayClip.height / effect._rows +
-                            Enums.splashScreenMetrics.exitGridOverlap
-                    clip: true
-                    opacity: effect._gridCellOpacity(
-                        effect._dissolveProgress * Enums.duration.splashExitDissolve,
-                        gridCell._delay
-                    )
-                    visible: effect._dissolving
+                        required property int index
+                        required property var modelData
+                        readonly property int _distance: index
 
-                    Image {
-                        x: -gridCell.x
-                        y: -gridCell.y
-                        width: overlayClip.width
-                        height: overlayClip.height
-                        source: effect._snapshotSource
-                        fillMode: Image.Stretch
-                        cache: true
-                        asynchronous: false
-                        smooth: true
+                        width: effect._columns
+                        height: effect._rows
+                        opacity: effect._gridCellOpacity(
+                            effect._dissolveProgress * Enums.duration.splashExitDissolve,
+                            _distance * effect._gridDelayRange / effect._maxGridDistance
+                        )
+
+                        Repeater {
+                            model: gridBand.modelData
+
+                            delegate: Rectangle {
+                                required property var modelData
+
+                                x: modelData[0]
+                                y: modelData[1]
+                                width: Enums.windowCloseMetrics.maskCellSize
+                                height: Enums.windowCloseMetrics.maskCellSize
+                                color: Enums.foregroundColor
+                            }
+                        }
                     }
+                }
+            }
+
+            ShaderEffectSource {
+                id: dissolveMaskTexture
+
+                objectName: "windowCloseGridMaskTexture"
+                anchors.fill: parent
+                sourceItem: dissolveMaskContent
+                hideSource: true
+                live: true
+                smooth: false
+                textureSize: Qt.size(effect._columns, effect._rows)
+            }
+
+            Item {
+                id: dissolveFrame
+
+                objectName: "windowCloseDissolveFrame"
+                anchors.fill: parent
+                visible: effect._running
+                layer.enabled: effect._running
+                layer.smooth: false
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: dissolveMaskTexture
+                    maskThresholdMin: Enums.mask.thresholdMin
+                    maskSpreadAtMin: Enums.mask.spreadFull
+                }
+
+                Image {
+                    anchors.fill: parent
+                    source: effect._snapshotSource
+                    fillMode: Image.Stretch
+                    cache: true
+                    asynchronous: false
+                    smooth: true
                 }
             }
 
