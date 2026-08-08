@@ -7,7 +7,7 @@ import QtQuick.Effects
 import ".."
 import QtQuick.Window  // Keep native Window after the library import. 库导入后保留原生 Window 名称。
 
-// WindowCloseDissolve - Native-overlay Splash grid close effect 原生覆盖窗 Splash 网格关闭效果
+// WindowCloseDissolve - Native-overlay radial close effect 原生覆盖窗圆形扩散关闭效果
 Item {
     id: effect
 
@@ -27,41 +27,11 @@ Item {
     property string _snapshotSource: ""
     property var _grabResult: null
     property real _dissolveProgress: 0
-    readonly property int _columns: Enums.windowCloseMetrics.gridColumns
-    readonly property int _rows: Enums.windowCloseMetrics.gridRows
-    readonly property int _cellCount: _columns * _rows
-    readonly property real _maxGridDistance: (_columns + _rows - 2) / 2
-    readonly property int _gridDelayRange: Enums.duration.splashExitDissolve -
-                                            Enums.duration.splashGridCellFade
-    readonly property var _gridBands: _buildGridBands()
+    readonly property real _radialMaskDiameter: Math.sqrt(
+        overlayClip.width * overlayClip.width + overlayClip.height * overlayClip.height
+    ) + Enums.windowCloseMetrics.radialDiameterOvershoot
 
     // ==================== Internal Methods 内部方法 ====================
-    function _gridCellOpacity(elapsed, delay) {
-        var value = Math.max(0, Math.min(1, (elapsed - delay) /
-                             Enums.duration.splashGridCellFade))
-        var eased = value < 0.5
-            ? 4 * value * value * value
-            : 1 - Math.pow(-2 * value + 2, 3) / 2
-        return 1 - eased
-    }
-
-    function _buildGridBands() {
-        var bands = []
-        for (var index = 0; index <= Math.round(_maxGridDistance); index += 1) {
-            bands.push([])
-        }
-        var centerColumn = (_columns - 1) / 2
-        var centerRow = (_rows - 1) / 2
-        for (var row = 0; row < _rows; row += 1) {
-            for (var column = 0; column < _columns; column += 1) {
-                var distance = Math.round(Math.abs(column - centerColumn) +
-                                          Math.abs(row - centerRow))
-                bands[distance].push([column, row])
-            }
-        }
-        return bands
-    }
-
     function _releaseSnapshot() {
         frozenFrame.source = ""
         _snapshotSource = ""
@@ -193,7 +163,7 @@ Item {
             property: "_dissolveProgress"
             to: Enums.opacityLevel.visible
             duration: Enums.duration.splashExitDissolve
-            easing.type: Easing.Linear
+            easing.type: Easing.InOutCubic
         }
         ScriptAction { script: effect._completeClose() }
     }
@@ -234,54 +204,34 @@ Item {
             Item {
                 id: dissolveMaskContent
 
-                objectName: "windowCloseGridMask"
-                width: effect._columns
-                height: effect._rows
+                objectName: "windowCloseRadialMaskContent"
+                anchors.fill: parent
 
-                Repeater {
-                    model: effect._gridBands
+                Rectangle {
+                    id: radialMask
 
-                    delegate: Item {
-                        id: gridBand
-
-                        required property int index
-                        required property var modelData
-                        readonly property int _distance: index
-
-                        width: effect._columns
-                        height: effect._rows
-                        opacity: effect._gridCellOpacity(
-                            effect._dissolveProgress * Enums.duration.splashExitDissolve,
-                            _distance * effect._gridDelayRange / effect._maxGridDistance
-                        )
-
-                        Repeater {
-                            model: gridBand.modelData
-
-                            delegate: Rectangle {
-                                required property var modelData
-
-                                x: modelData[0]
-                                y: modelData[1]
-                                width: Enums.windowCloseMetrics.maskCellSize
-                                height: Enums.windowCloseMetrics.maskCellSize
-                                color: Enums.foregroundColor
-                            }
-                        }
-                    }
+                    objectName: "windowCloseRadialMask"
+                    anchors.centerIn: parent
+                    width: effect._radialMaskDiameter
+                    height: width
+                    radius: width / 2
+                    scale: effect._dissolveProgress
+                    color: Enums.foregroundColor
+                    antialiasing: true
+                    transformOrigin: Item.Center
                 }
             }
 
             ShaderEffectSource {
                 id: dissolveMaskTexture
 
-                objectName: "windowCloseGridMaskTexture"
+                objectName: "windowCloseRadialMaskTexture"
                 anchors.fill: parent
                 sourceItem: dissolveMaskContent
+                sourceRect: Qt.rect(0, 0, width, height)
                 hideSource: true
                 live: true
-                smooth: false
-                textureSize: Qt.size(effect._columns, effect._rows)
+                smooth: true
             }
 
             Item {
@@ -295,6 +245,7 @@ Item {
                 layer.effect: MultiEffect {
                     maskEnabled: true
                     maskSource: dissolveMaskTexture
+                    maskInverted: true
                     maskThresholdMin: Enums.mask.thresholdMin
                     maskSpreadAtMin: Enums.mask.spreadFull
                 }

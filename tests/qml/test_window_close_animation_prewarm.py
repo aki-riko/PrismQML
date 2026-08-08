@@ -161,20 +161,22 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert overlay is not None
     frozen_frame = overlay.findChild(QQuickItem, "windowCloseFrozenFrame")
     assert frozen_frame is not None
-    grid_mask = overlay.findChild(QQuickItem, "windowCloseGridMask")
-    grid_mask_texture = overlay.findChild(QQuickItem, "windowCloseGridMaskTexture")
-    dissolve_frame = overlay.findChild(QQuickItem, "windowCloseDissolveFrame")
-    assert grid_mask is not None
-    assert grid_mask_texture is not None
-    assert dissolve_frame is not None
-    assert dissolve.property("_cellCount") == 384
-    assert _visual_class_count(overlay.contentItem(), "QQuickImage") == 2
-    assert _visual_class_count(grid_mask, "QQuickRectangle") == 384
-    assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffectSource") == 1
-    assert not any(
-        child.objectName().startswith("windowCloseGridCell_")
-        for child in _visual_items(overlay.contentItem())
+    radial_mask_content = overlay.findChild(
+        QQuickItem, "windowCloseRadialMaskContent"
     )
+    radial_mask = overlay.findChild(QQuickItem, "windowCloseRadialMask")
+    radial_mask_texture = overlay.findChild(
+        QQuickItem, "windowCloseRadialMaskTexture"
+    )
+    dissolve_frame = overlay.findChild(QQuickItem, "windowCloseDissolveFrame")
+    assert radial_mask_content is not None
+    assert radial_mask is not None
+    assert radial_mask_texture is not None
+    assert dissolve_frame is not None
+    assert _visual_class_count(overlay.contentItem(), "QQuickImage") == 2
+    assert _visual_class_count(radial_mask_content, "QQuickRectangle") == 1
+    assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffectSource") == 1
+    assert radial_mask.width() > (overlay.width() ** 2 + overlay.height() ** 2) ** 0.5
     assert _wait_for(lambda: helper.property("animOpacity") == 0)
     assert overlay.isVisible()
     assert window.opacity() == pytest.approx(0)
@@ -183,6 +185,9 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert frozen_frame.opacity() == pytest.approx(1)
     assert frozen_frame.scale() == pytest.approx(1)
     assert 0 < dissolve.property("_dissolveProgress") < 1
+    assert radial_mask.scale() == pytest.approx(
+        dissolve.property("_dissolveProgress")
+    )
     assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
     assert window.opacity() == pytest.approx(0)
@@ -244,7 +249,7 @@ def test_close_caption_entered_prewarms_without_clicking(close_animation_scene):
     assert warnings == []
 
 
-def test_close_animation_source_uses_splash_grid_mask():
+def test_close_animation_source_uses_radial_mask():
     animation_source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
     dissolve_source = DISSOLVE_EFFECT_PATH.read_text(encoding="utf-8")
     caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
@@ -259,14 +264,16 @@ def test_close_animation_source_uses_splash_grid_mask():
     assert "AcrylicHelper.grabWindowFrame" in dissolve_source
     assert "targetItem.grabToImage" in dissolve_source
     assert "MultiEffect {" in dissolve_source
-    assert 'objectName: "windowCloseGridMask"' in dissolve_source
-    assert 'objectName: "windowCloseGridMaskTexture"' in dissolve_source
+    assert 'objectName: "windowCloseRadialMaskContent"' in dissolve_source
+    assert 'objectName: "windowCloseRadialMask"' in dissolve_source
+    assert 'objectName: "windowCloseRadialMaskTexture"' in dissolve_source
     assert 'objectName: "windowCloseDissolveFrame"' in dissolve_source
-    assert dissolve_source.count("Repeater {") == 2
+    assert "Repeater {" not in dissolve_source
     assert "delegate: ShaderEffectSource" not in dissolve_source
     assert dissolve_source.count("ShaderEffectSource {") == 1
     assert "hideSource: true" in dissolve_source
     assert "live: true" in dissolve_source
+    assert "maskInverted: true" in dissolve_source
     assert "maskThresholdMin: Enums.mask.thresholdMin" in dissolve_source
     assert "maskSpreadAtMin: Enums.mask.spreadFull" in dissolve_source
     assert 'objectName: "windowCloseFrozenFrame"' in dissolve_source
@@ -274,14 +281,9 @@ def test_close_animation_source_uses_splash_grid_mask():
     assert "color: Enums.transparent" in dissolve_source
     assert "targetWindow.opacity = Enums.opacityLevel.invisible" in dissolve_source
     assert "Enums.duration.splashExitDissolve" in dissolve_source
-    assert "Enums.duration.splashGridCellFade" in dissolve_source
-    assert "Enums.windowCloseMetrics.gridColumns" in dissolve_source
-    assert "Enums.windowCloseMetrics.gridRows" in dissolve_source
-    assert "Enums.windowCloseMetrics.maskCellSize" in dissolve_source
+    assert "Enums.windowCloseMetrics.radialDiameterOvershoot" in dissolve_source
     assert dissolve_source.count("Image {") == 2
-    assert "function _gridCellOpacity" in dissolve_source
-    assert "function _buildGridBands" in dissolve_source
-    assert "Math.pow(-2 * value + 2, 3)" in dissolve_source
+    assert "Easing.InOutCubic" in dissolve_source
     assert "onCloseCallback()" in dissolve_source
     assert (
         "if (captionBtn.isClose) "

@@ -598,9 +598,7 @@ QtObject {
 
  // ==================== WindowClose 窗口关闭度量 ====================
  readonly property QtObject windowClose: QtObject {
- readonly property int gridColumns: 24
- readonly property int gridRows: 16
- readonly property int maskCellSize: 1
+ readonly property int radialDiameterOvershoot: root.border.thick * 2
  }
 
  // ==================== ProgressRing 进度环度量 ====================
