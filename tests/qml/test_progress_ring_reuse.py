@@ -29,6 +29,7 @@ QML_PAGE_EXIT = (
     QML_ROOT / "controls" / "feedback" / "_internal" / "QMLPageExitDissolve.qml"
 )
 CLOSE_RIPPLE_DISSOLVE = QML_ROOT / "_internal" / "CloseRippleDissolve.qml"
+CLOSE_RIPPLE_ANIMATOR = QML_ROOT / "_internal" / "CloseRippleAnimator.qml"
 SPLASH_SCREEN = (
     QML_ROOT / "controls" / "feedback" / "SplashScreen" / "SplashScreen.qml"
 )
@@ -280,10 +281,14 @@ def test_qml_page_preserves_lazy_ring_and_reuses_close_ripple_exit():
 
     exit_source = QML_PAGE_EXIT.read_text(encoding="utf-8")
     ripple_source = CLOSE_RIPPLE_DISSOLVE.read_text(encoding="utf-8")
+    ripple_animator_source = CLOSE_RIPPLE_ANIMATOR.read_text(encoding="utf-8")
     assert "Internal.CloseRippleDissolve" in exit_source
     assert 'objectName: "qmlPageCloseRippleDissolve"' in exit_source
-    assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_source
-    assert "easing.type: Easing.OutQuad" in ripple_source
+    assert "CloseRippleAnimator {" in ripple_source
+    assert "duration: Enums.windowCloseMetrics.rippleDuration" not in ripple_source
+    assert "easing.type: Easing.OutQuad" not in ripple_source
+    assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_animator_source
+    assert "easing.type: Easing.OutQuad" in ripple_animator_source
     assert "CloseRippleFrame {" in ripple_source
     assert "sourceItem.layer.effect = rippleEffectComponent" in ripple_source
     assert "sourceItem.layer.enabled = true" in ripple_source

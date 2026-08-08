@@ -17,6 +17,9 @@ Item {
     required property var onCaptureReady
     required property var onCloseCallback
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _dissolveProgress: closeRippleAnimator.progress
+
     // ==================== Internal Props 内部属性 ====================
     property bool _running: false
     property bool _dissolving: false
@@ -25,7 +28,6 @@ Item {
     property int _captureGeneration: 0
     property string _snapshotSource: ""
     property var _grabResult: null
-    property real _dissolveProgress: 0
 
     // ==================== Internal Methods 内部方法 ====================
     function _releaseSnapshot() {
@@ -36,7 +38,6 @@ Item {
     }
 
     function _resetVisualState() {
-        _dissolveProgress = 0
         frozenFrame.visible = true
         frozenFrame.opacity = Enums.opacityLevel.visible
         frozenFrame.scale = Enums.opacityLevel.visible
@@ -102,7 +103,7 @@ Item {
         onCaptureReady()
         _dissolving = true
         frozenFrame.opacity = Enums.opacityLevel.invisible
-        closeAnimation.start()
+        closeRippleAnimator.start()
     }
 
     function _startFallbackClose(reason) {
@@ -135,7 +136,7 @@ Item {
 
     function stop() {
         _captureGeneration += 1
-        closeAnimation.stop()
+        closeRippleAnimator.stop()
         fallbackCloseAnimation.stop()
         _running = false
         _dissolving = false
@@ -151,17 +152,11 @@ Item {
     visible: false
 
     // ==================== Content 内容 ====================
-    SequentialAnimation {
-        id: closeAnimation
+    CloseRippleAnimator {
+        id: closeRippleAnimator
 
-        NumberAnimation {
-            target: effect
-            property: "_dissolveProgress"
-            to: Enums.opacityLevel.visible
-            duration: Enums.windowCloseMetrics.rippleDuration
-            easing.type: Easing.OutQuad
-        }
-        ScriptAction { script: effect._completeClose() }
+        objectName: "windowCloseRippleAnimator"
+        onFinished: effect._completeClose()
     }
 
     SequentialAnimation {
@@ -203,7 +198,7 @@ Item {
                 objectName: "windowCloseRippleFrame"
                 anchors.fill: parent
                 source: frozenFrame
-                progress: effect._dissolveProgress
+                progress: closeRippleAnimator.progress
                 visible: effect._dissolving
             }
 

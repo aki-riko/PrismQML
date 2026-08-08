@@ -35,6 +35,9 @@ SPLASH_SOURCE = (
 CLOSE_RIPPLE_DISSOLVE_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "CloseRippleDissolve.qml"
 )
+CLOSE_RIPPLE_ANIMATOR_SOURCE = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "CloseRippleAnimator.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "feedback-style.qml"))
 SCENE_SOURCE = b"""
 import QtQuick
@@ -472,11 +475,15 @@ def test_feedback_sources_use_shared_style_tokens():
     )
     assert "duration: Enums.duration.splashBreathe" in splash_source
     ripple_source = CLOSE_RIPPLE_DISSOLVE_SOURCE.read_text(encoding="utf-8")
+    ripple_animator_source = CLOSE_RIPPLE_ANIMATOR_SOURCE.read_text(encoding="utf-8")
     assert 'objectName: "splashCloseRippleLoader"' in splash_source
     assert "sourceComponent: Internal.CloseRippleDissolve" in splash_source
     assert 'objectName: "splashCloseRippleDissolve"' in splash_source
-    assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_source
-    assert "easing.type: Easing.OutQuad" in ripple_source
+    assert "CloseRippleAnimator {" in ripple_source
+    assert "duration: Enums.windowCloseMetrics.rippleDuration" not in ripple_source
+    assert "easing.type: Easing.OutQuad" not in ripple_source
+    assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_animator_source
+    assert "easing.type: Easing.OutQuad" in ripple_animator_source
     assert "CloseRippleFrame {" in ripple_source
     assert "Repeater {" not in splash_source
     assert "splashGridCell_" not in splash_source

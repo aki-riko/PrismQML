@@ -30,6 +30,9 @@ ANIMATION_HELPER_PATH = (
 DISSOLVE_EFFECT_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowCloseDissolve.qml"
 )
+RIPPLE_ANIMATOR_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "CloseRippleAnimator.qml"
+)
 RIPPLE_FRAME_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "CloseRippleFrame.qml"
 )
@@ -194,9 +197,11 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert QMetaObject.invokeMethod(
         helper, "animatedClose", Qt.ConnectionType.DirectConnection
     )
-    assert _class_count(helper, "QQuickSequentialAnimation") > 1
     dissolve = helper.findChild(QQuickItem, "windowCloseDissolve")
     assert dissolve is not None
+    ripple_animator = dissolve.findChild(QObject, "windowCloseRippleAnimator")
+    assert ripple_animator is not None
+    assert _wait_for(lambda: ripple_animator.property("running") is True)
     overlay = dissolve.findChild(QQuickWindow, "windowCloseOverlayWindow")
     assert overlay is not None
     frozen_frame = overlay.findChild(QQuickItem, "windowCloseFrozenFrame")
@@ -293,6 +298,7 @@ def test_close_caption_entered_prewarms_without_clicking(close_animation_scene):
 def test_close_animation_source_uses_water_ripple_shader():
     animation_source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
     dissolve_source = DISSOLVE_EFFECT_PATH.read_text(encoding="utf-8")
+    ripple_animator_source = RIPPLE_ANIMATOR_PATH.read_text(encoding="utf-8")
     ripple_frame_source = RIPPLE_FRAME_PATH.read_text(encoding="utf-8")
     ripple_shader_source = RIPPLE_SHADER_PATH.read_text(encoding="utf-8")
     caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
@@ -306,7 +312,11 @@ def test_close_animation_source_uses_water_ripple_shader():
     assert "overlayWindow.requestUpdate()" in dissolve_source
     assert "AcrylicHelper.grabWindowFrame" in dissolve_source
     assert "targetItem.grabToImage" in dissolve_source
+    assert "CloseRippleAnimator {" in dissolve_source
     assert "CloseRippleFrame {" in dissolve_source
+    assert 'property: "progress"' in ripple_animator_source
+    assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_animator_source
+    assert "easing.type: Easing.OutQuad" in ripple_animator_source
     assert "ShaderEffect {" in ripple_frame_source
     assert 'objectName: "windowCloseRippleFrame"' in dissolve_source
     assert "source: frozenFrame" in dissolve_source
@@ -324,7 +334,8 @@ def test_close_animation_source_uses_water_ripple_shader():
     assert "sourceClipRect:" not in dissolve_source
     assert "color: Enums.transparent" in dissolve_source
     assert "targetWindow.opacity = Enums.opacityLevel.invisible" in dissolve_source
-    assert "Enums.windowCloseMetrics.rippleDuration" in dissolve_source
+    assert dissolve_source.count("duration: Enums.windowCloseMetrics.rippleDuration") == 1
+    assert 'property: "_dissolveProgress"' not in dissolve_source
     assert "Enums.duration.splashExitDissolve" not in dissolve_source
     assert "Enums.windowCloseMetrics.rippleTailLength" in ripple_frame_source
     assert "Enums.windowCloseMetrics.rippleWaveFrequency" in ripple_frame_source
@@ -338,7 +349,7 @@ def test_close_animation_source_uses_water_ripple_shader():
     assert "Enums.windowCloseMetrics.rippleOpacity" in ripple_frame_source
     assert "Enums.windowCloseMetrics.rippleFinishFadeStart" in ripple_frame_source
     assert dissolve_source.count("Image {") == 1
-    assert "Easing.OutQuad" in dissolve_source
+    assert "Easing.OutQuad" not in dissolve_source
     assert RIPPLE_SHADER_BINARY_PATH.is_file()
     assert RIPPLE_SHADER_BINARY_PATH.stat().st_size > 0
     assert "float exteriorAlpha" in ripple_shader_source

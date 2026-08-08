@@ -14,10 +14,10 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool running: _running
+    readonly property real _dissolveProgress: rippleAnimator.progress
 
     // ==================== Internal Props 内部属性 ====================
     property bool _running: false
-    property real _dissolveProgress: Enums.opacityLevel.invisible
 
     // ==================== Signals 信号 ====================
     signal finished()
@@ -26,19 +26,17 @@ Item {
     function start() {
         if (effect._running)
             return
-        rippleAnimation.stop()
-        effect._dissolveProgress = Enums.opacityLevel.invisible
+        rippleAnimator.stop()
         effect._running = true
         effect.sourceItem.layer.effect = rippleEffectComponent
         effect.sourceItem.layer.enabled = true
-        rippleAnimation.start()
+        rippleAnimator.start()
     }
 
     function stop() {
-        rippleAnimation.stop()
+        rippleAnimator.stop()
         effect._disableLayer()
         effect._running = false
-        effect._dissolveProgress = Enums.opacityLevel.invisible
     }
 
     // ==================== Internal Methods 内部方法 ====================
@@ -52,23 +50,13 @@ Item {
     visible: _running
     Component.onDestruction: effect.stop()
 
-    SequentialAnimation {
-        id: rippleAnimation
+    CloseRippleAnimator {
+        id: rippleAnimator
 
-        NumberAnimation {
-            target: effect
-            property: "_dissolveProgress"
-            to: Enums.opacityLevel.visible
-            duration: Enums.windowCloseMetrics.rippleDuration
-            easing.type: Easing.OutQuad
-        }
-
-        ScriptAction {
-            script: {
-                effect._disableLayer()
-                effect._running = false
-                effect.finished()
-            }
+        onFinished: {
+            effect._disableLayer()
+            effect._running = false
+            effect.finished()
         }
     }
 
@@ -78,7 +66,7 @@ Item {
         id: rippleEffectComponent
 
         CloseRippleFrame {
-            progress: effect._dissolveProgress
+            progress: rippleAnimator.progress
         }
     }
 }
