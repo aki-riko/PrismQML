@@ -69,7 +69,14 @@ Window {
             {"text": "Save", "icon": "Save"},
             {"text": "Copy", "icon": "Copy"}
         ]
-        secondaryCommands: [{"text": "Settings", "icon": "Settings"}]
+        secondaryCommands: [
+            {"text": "Settings", "icon": "Settings"},
+            {"text": "Help", "icon": "QuestionCircle"},
+            {"text": "Help 2", "icon": "QuestionCircle"},
+            {"text": "Help 3", "icon": "QuestionCircle"},
+            {"text": "Help 4", "icon": "QuestionCircle"},
+            {"text": "Help 5", "icon": "QuestionCircle"}
+        ]
     }
 
     Internal.CommandBarCore {
@@ -328,6 +335,7 @@ def test_command_bar_more_controls_load_on_demand_and_open(qapp):
         assert _wait_for(lambda: more_menu.property("isOpen"))
         popup_windows = _new_visible_windows(windows_before, root)
         assert len(popup_windows) == 1
+        assert more_menu.property("popupHeight") >= 6 * 32
 
         settings_action = next(
             (
@@ -339,6 +347,13 @@ def test_command_bar_more_controls_load_on_demand_and_open(qapp):
         )
         assert settings_action is not None
         assert settings_action.property("text") == "Settings"
+        visual_secondary_actions = [
+            item
+            for item in _visual_descendants(popup_windows[0].contentItem())
+            if item.objectName().startswith("commandBarSecondaryAction_")
+        ]
+        assert len(visual_secondary_actions) == 6
+        assert all(item.isVisible() for item in visual_secondary_actions)
         assert QMetaObject.invokeMethod(settings_action, "triggered")
         assert _wait_for(lambda: secondary_actions == [(0, "Settings")])
         assert _wait_for(lambda: not more_menu.property("isOpen"))

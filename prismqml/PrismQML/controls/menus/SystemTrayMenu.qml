@@ -25,6 +25,10 @@ MenuCore {
         // 彻底重置旧状态（停止动画 + 隐藏旧窗口 + 清除标志）
         forceReset()
         
+        // Ensure menu items are visible to the size pass before positioning.
+        // 定位前先创建内容宿主，让尺寸计算能看到菜单项。
+        if (!_usesControlsPopup) _ensureNativeWindow()
+
         // 重新计算尺寸
         _updateSize()
         

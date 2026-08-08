@@ -48,6 +48,8 @@ Window {
     readonly property bool trayAtCursor: trayMenu.showAtCursor
     readonly property bool trayCrossesSystemUi: !trayMenu.constrainToAvailableScreen
     readonly property int popupPanelOffset: Enums.popupMetrics.panelOffset
+    readonly property int expectedTrayY:
+        300 - trayMenu.popupHeight - Enums.spacing.xs
 
     function buildMenu() {
         openAction = menu.addAction("Open", "", "Ctrl+O", {
@@ -71,6 +73,8 @@ Window {
     function rebindContext() { contextMenu.bindToParent() }
     function showContext() { contextMenu.show(contextTarget) }
     function hideContext() { contextMenu.hide() }
+    function showTray() { trayMenu.showAtPosition(300, 300) }
+    function hideTray() { trayMenu.forceReset() }
     function buildAndShowSubmenu() {
         submenuAction = menu.addSubmenu("Parent", "", submenuComponent)
         menu.closeOnClickOutside = false
@@ -97,6 +101,11 @@ Window {
         ContextMenu {
             id: contextMenu
             objectName: "contextMenu"
+            Action { text: "Cut"; icon: "Cut" }
+            Action { text: "Copy"; icon: "Copy" }
+            Action { text: "Paste"; icon: "Clipboard" }
+            MenuSeparator {}
+            Action { text: "Delete"; icon: "Delete" }
         }
     }
 
@@ -131,6 +140,12 @@ Window {
     SystemTrayMenu {
         id: trayMenu
         objectName: "systemTrayMenu"
+        initialActions: [
+            { "text": "Open" },
+            { "text": "Settings" },
+            { "text": "About" },
+            { "text": "Exit" }
+        ]
     }
 
     MenuDelegate {
@@ -302,6 +317,37 @@ def test_system_tray_uses_full_screen_bounds(qapp):
         QCoreApplication.processEvents()
 
 
+def test_system_tray_sizes_before_upward_positioning(menu_scene):
+    window, items, warnings, windows_before = menu_scene
+    tray_menu = items["systemTrayMenu"]
+
+    assert QMetaObject.invokeMethod(window, "showTray")
+    assert _wait_for(lambda: len(_new_visible_windows(windows_before, window)) == 1)
+    popup_window = _new_visible_windows(windows_before, window)[0]
+    assert tray_menu.property("popupHeight") >= 4 * 32
+    assert popup_window.y() == window.property("expectedTrayY")
+    assert QMetaObject.invokeMethod(window, "hideTray")
+    assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+    assert warnings == []
+
+
+def test_context_menu_native_window_closes_on_escape(menu_scene):
+    window, items, warnings, windows_before = menu_scene
+    context_menu = items["contextMenu"]
+
+    assert QMetaObject.invokeMethod(window, "showContext")
+    assert _wait_for(lambda: len(_new_visible_windows(windows_before, window)) == 1)
+    assert _wait_for(lambda: context_menu.property("isOpen"))
+    popup_window = _new_visible_windows(windows_before, window)[0]
+    QTest.keyClick(popup_window, Qt.Key.Key_Escape)
+    assert _wait_for(
+        lambda: not context_menu.property("isOpen")
+        and not context_menu.property("isClosing")
+    )
+    assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+    assert warnings == []
+
+
 @pytest.fixture
 def menu_scene(qapp):
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
@@ -401,6 +447,7 @@ def test_menu_delegates_and_context_binding(menu_scene):
     assert QMetaObject.invokeMethod(window, "showContext")
     assert _wait_for(lambda: window.property("contextVisible"))
     assert len(_new_visible_windows(windows_before, window)) == 1
+    assert items["contextMenu"].property("popupHeight") >= 4 * 32 + 8
     assert QMetaObject.invokeMethod(window, "hideContext")
     assert _wait_for(lambda: not window.property("contextVisible"))
     assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])

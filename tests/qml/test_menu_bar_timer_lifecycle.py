@@ -61,7 +61,14 @@ Window {
         x: 40
         y: 40
         items: [
-            { "text": "File", "children": [{ "text": "New" }] }
+            {
+                "text": "File",
+                "children": [
+                    { "text": "New" },
+                    { "text": "Open" },
+                    { "text": "Save" }
+                ]
+            }
         ]
     }
 
@@ -246,6 +253,7 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
             lambda: len(_new_visible_windows(windows_before, window)) == 1
         )
         popup = _popup_core(menu_bar)
+        assert popup.property("popupHeight") >= 3 * 32
 
         assert QMetaObject.invokeMethod(popup, "close")
         closing_timers = _timers(menu_bar)

@@ -298,6 +298,10 @@ Item {
         if (isClosing) return
         if (preservePlacement !== true) _submenuPlacement = false
 
+        // Create the native content host before aboutToShow so content-sized
+        // popups can measure their items while the host is still hidden.
+        // 在 aboutToShow 前创建原生内容宿主，确保隐藏状态下仍能正确测量内容尺寸。
+        var nativeWindow = _usesControlsPopup ? null : _ensureNativeWindow()
         aboutToShow()
 
         var posX = (x !== undefined && !isNaN(x)) ? x : 0
@@ -318,7 +322,7 @@ Item {
             return
         }
 
-        var nativeWindow = _ensureNativeWindow()
+        nativeWindow = nativeWindow || _ensureNativeWindow()
         if (!nativeWindow) return
         nativeWindow.width = _outerWidth
         nativeWindow.height = _outerHeight

@@ -18,6 +18,9 @@ Window {
     visible: false
     flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
     color: Enums.transparent
+    onVisibleChanged: {
+        if (visible && popupControl.stealFocus) keyHandler.forceActiveFocus()
+    }
 
     // Auto close on focus lost 失焦自动关闭
     onActiveFocusItemChanged: {
@@ -29,6 +32,18 @@ Window {
                     popupControl.close()
                 }
             })
+        }
+    }
+
+    Item {
+        id: keyHandler
+
+        anchors.fill: parent
+        focus: popupControl.stealFocus
+        Keys.onEscapePressed: function(event) {
+            if (!popupControl.isOpen || !popupControl.closeOnClickOutside) return
+            popupControl.close()
+            event.accepted = true
         }
     }
 }
