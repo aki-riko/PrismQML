@@ -8,7 +8,7 @@ import QtQuick.Shapes
 import ".."
 import QtQuick.Window  // Keep native Window after the library import. 库导入后保留原生 Window 名称。
 
-// WindowCloseDissolve - Native-overlay radial close effect 原生覆盖窗圆形扩散关闭效果
+// WindowCloseDissolve - Native-overlay ripple close effect 原生覆盖窗水滴涟漪关闭效果
 Item {
     id: effect
 
@@ -28,13 +28,26 @@ Item {
     property string _snapshotSource: ""
     property var _grabResult: null
     property real _dissolveProgress: 0
-    readonly property real _radialMaskDiameter: Math.sqrt(
+    readonly property real _rippleMaskDiameter: Math.sqrt(
         overlayClip.width * overlayClip.width + overlayClip.height * overlayClip.height
-    ) + Enums.windowCloseMetrics.radialDiameterOvershoot
-    readonly property real _radialMaskRadius: _radialMaskDiameter *
-                                               _dissolveProgress / 2
+    ) + Enums.windowCloseMetrics.rippleDiameterOvershoot
+    readonly property real _rippleFrontRadius: _rippleMaskDiameter *
+                                                _dissolveProgress / 2
+    readonly property real _ripplePeriod: _rippleMaskDiameter *
+                                           Enums.windowCloseMetrics.ripplePeriodRatio *
+                                           Math.sin(Math.PI * _dissolveProgress)
 
     // ==================== Internal Methods 内部方法 ====================
+    function _rippleRadius(index) {
+        var periodOffset = Math.floor(index / 2) * _ripplePeriod
+        var gapOffset = index % 2 === 0 ? 0 :
+                        _ripplePeriod * Enums.windowCloseMetrics.rippleGapRatio
+        return Math.max(
+            Enums.windowCloseMetrics.rippleDropRadius,
+            _rippleFrontRadius - periodOffset - gapOffset
+        )
+    }
+
     function _releaseSnapshot() {
         frozenFrame.source = ""
         _snapshotSource = ""
@@ -166,7 +179,7 @@ Item {
             property: "_dissolveProgress"
             to: Enums.opacityLevel.visible
             duration: Enums.duration.splashExitDissolve
-            easing.type: Easing.InOutCubic
+            easing.type: Easing.OutQuad
         }
         ScriptAction { script: effect._completeClose() }
     }
@@ -207,13 +220,21 @@ Item {
             Item {
                 id: dissolveMaskContent
 
-                objectName: "windowCloseRadialMaskContent"
+                objectName: "windowCloseRippleMaskContent"
                 anchors.fill: parent
 
                 Shape {
-                    id: radialMask
+                    id: rippleMask
 
-                    objectName: "windowCloseRadialMask"
+                    readonly property real _radius0: effect._rippleRadius(0)
+                    readonly property real _radius1: effect._rippleRadius(1)
+                    readonly property real _radius2: effect._rippleRadius(2)
+                    readonly property real _radius3: effect._rippleRadius(3)
+                    readonly property real _radius4: effect._rippleRadius(4)
+                    readonly property real _radius5: effect._rippleRadius(5)
+                    readonly property real _radius6: effect._rippleRadius(6)
+
+                    objectName: "windowCloseRippleMask"
                     anchors.fill: parent
                     preferredRendererType: Shape.CurveRenderer
 
@@ -224,29 +245,73 @@ Item {
                         startX: 0
                         startY: 0
 
-                        PathLine { x: radialMask.width; y: 0 }
-                        PathLine { x: radialMask.width; y: radialMask.height }
-                        PathLine { x: 0; y: radialMask.height }
+                        PathLine { x: rippleMask.width; y: 0 }
+                        PathLine { x: rippleMask.width; y: rippleMask.height }
+                        PathLine { x: 0; y: rippleMask.height }
                         PathLine { x: 0; y: 0 }
-                        PathMove {
-                            x: radialMask.width / 2 + effect._radialMaskRadius
-                            y: radialMask.height / 2
+
+                        PathAngleArc {
+                            centerX: rippleMask.width / 2
+                            centerY: rippleMask.height / 2
+                            radiusX: rippleMask._radius0
+                            radiusY: rippleMask._radius0
+                            startAngle: 0
+                            sweepAngle: Enums.windowCloseMetrics.rippleFullCircleSweep
+                            moveToStart: true
                         }
-                        PathArc {
-                            x: radialMask.width / 2 - effect._radialMaskRadius
-                            y: radialMask.height / 2
-                            radiusX: effect._radialMaskRadius
-                            radiusY: effect._radialMaskRadius
-                            useLargeArc: true
-                            direction: PathArc.Counterclockwise
+                        PathAngleArc {
+                            centerX: rippleMask.width / 2
+                            centerY: rippleMask.height / 2
+                            radiusX: rippleMask._radius1
+                            radiusY: rippleMask._radius1
+                            startAngle: 0
+                            sweepAngle: Enums.windowCloseMetrics.rippleFullCircleSweep
+                            moveToStart: true
                         }
-                        PathArc {
-                            x: radialMask.width / 2 + effect._radialMaskRadius
-                            y: radialMask.height / 2
-                            radiusX: effect._radialMaskRadius
-                            radiusY: effect._radialMaskRadius
-                            useLargeArc: true
-                            direction: PathArc.Counterclockwise
+                        PathAngleArc {
+                            centerX: rippleMask.width / 2
+                            centerY: rippleMask.height / 2
+                            radiusX: rippleMask._radius2
+                            radiusY: rippleMask._radius2
+                            startAngle: 0
+                            sweepAngle: Enums.windowCloseMetrics.rippleFullCircleSweep
+                            moveToStart: true
+                        }
+                        PathAngleArc {
+                            centerX: rippleMask.width / 2
+                            centerY: rippleMask.height / 2
+                            radiusX: rippleMask._radius3
+                            radiusY: rippleMask._radius3
+                            startAngle: 0
+                            sweepAngle: Enums.windowCloseMetrics.rippleFullCircleSweep
+                            moveToStart: true
+                        }
+                        PathAngleArc {
+                            centerX: rippleMask.width / 2
+                            centerY: rippleMask.height / 2
+                            radiusX: rippleMask._radius4
+                            radiusY: rippleMask._radius4
+                            startAngle: 0
+                            sweepAngle: Enums.windowCloseMetrics.rippleFullCircleSweep
+                            moveToStart: true
+                        }
+                        PathAngleArc {
+                            centerX: rippleMask.width / 2
+                            centerY: rippleMask.height / 2
+                            radiusX: rippleMask._radius5
+                            radiusY: rippleMask._radius5
+                            startAngle: 0
+                            sweepAngle: Enums.windowCloseMetrics.rippleFullCircleSweep
+                            moveToStart: true
+                        }
+                        PathAngleArc {
+                            centerX: rippleMask.width / 2
+                            centerY: rippleMask.height / 2
+                            radiusX: rippleMask._radius6
+                            radiusY: rippleMask._radius6
+                            startAngle: 0
+                            sweepAngle: Enums.windowCloseMetrics.rippleFullCircleSweep
+                            moveToStart: true
                         }
                     }
                 }
@@ -255,7 +320,7 @@ Item {
             ShaderEffectSource {
                 id: dissolveMaskTexture
 
-                objectName: "windowCloseRadialMaskTexture"
+                objectName: "windowCloseRippleMaskTexture"
                 anchors.fill: parent
                 sourceItem: dissolveMaskContent
                 sourceRect: Qt.rect(0, 0, width, height)

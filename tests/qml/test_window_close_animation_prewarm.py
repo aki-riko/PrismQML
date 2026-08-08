@@ -161,23 +161,24 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert overlay is not None
     frozen_frame = overlay.findChild(QQuickItem, "windowCloseFrozenFrame")
     assert frozen_frame is not None
-    radial_mask_content = overlay.findChild(
-        QQuickItem, "windowCloseRadialMaskContent"
+    ripple_mask_content = overlay.findChild(
+        QQuickItem, "windowCloseRippleMaskContent"
     )
-    radial_mask = overlay.findChild(QQuickItem, "windowCloseRadialMask")
-    radial_mask_texture = overlay.findChild(
-        QQuickItem, "windowCloseRadialMaskTexture"
+    ripple_mask = overlay.findChild(QQuickItem, "windowCloseRippleMask")
+    ripple_mask_texture = overlay.findChild(
+        QQuickItem, "windowCloseRippleMaskTexture"
     )
     dissolve_frame = overlay.findChild(QQuickItem, "windowCloseDissolveFrame")
-    assert radial_mask_content is not None
-    assert radial_mask is not None
-    assert radial_mask_texture is not None
+    assert ripple_mask_content is not None
+    assert ripple_mask is not None
+    assert ripple_mask_texture is not None
     assert dissolve_frame is not None
     assert _visual_class_count(overlay.contentItem(), "QQuickImage") == 2
-    assert _visual_class_count(radial_mask_content, "QQuickShape") == 1
+    assert _visual_class_count(ripple_mask_content, "QQuickShape") == 1
+    assert _class_count(ripple_mask, "QQuickPathAngleArc") == 7
     assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffectSource") == 1
-    assert radial_mask.width() == pytest.approx(overlay.width())
-    assert radial_mask.height() == pytest.approx(overlay.height())
+    assert ripple_mask.width() == pytest.approx(overlay.width())
+    assert ripple_mask.height() == pytest.approx(overlay.height())
     assert _wait_for(lambda: helper.property("animOpacity") == 0)
     assert overlay.isVisible()
     assert window.opacity() == pytest.approx(0)
@@ -186,11 +187,15 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert frozen_frame.opacity() == pytest.approx(1)
     assert frozen_frame.scale() == pytest.approx(1)
     assert 0 < dissolve.property("_dissolveProgress") < 1
-    assert dissolve.property("_radialMaskRadius") == pytest.approx(
-        dissolve.property("_radialMaskDiameter")
+    assert dissolve.property("_rippleFrontRadius") == pytest.approx(
+        dissolve.property("_rippleMaskDiameter")
         * dissolve.property("_dissolveProgress")
         / 2
     )
+    assert dissolve.property("_ripplePeriod") > 0
+    ripple_radii = [ripple_mask.property(f"_radius{index}") for index in range(7)]
+    assert ripple_radii == sorted(ripple_radii, reverse=True)
+    assert ripple_radii[-1] >= 0
     assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
     assert window.opacity() == pytest.approx(0)
@@ -252,7 +257,7 @@ def test_close_caption_entered_prewarms_without_clicking(close_animation_scene):
     assert warnings == []
 
 
-def test_close_animation_source_uses_radial_mask():
+def test_close_animation_source_uses_ripple_mask():
     animation_source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
     dissolve_source = DISSOLVE_EFFECT_PATH.read_text(encoding="utf-8")
     caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
@@ -268,14 +273,15 @@ def test_close_animation_source_uses_radial_mask():
     assert "targetItem.grabToImage" in dissolve_source
     assert "MultiEffect {" in dissolve_source
     assert "import QtQuick.Shapes" in dissolve_source
-    assert 'objectName: "windowCloseRadialMaskContent"' in dissolve_source
-    assert 'objectName: "windowCloseRadialMask"' in dissolve_source
-    assert 'objectName: "windowCloseRadialMaskTexture"' in dissolve_source
+    assert 'objectName: "windowCloseRippleMaskContent"' in dissolve_source
+    assert 'objectName: "windowCloseRippleMask"' in dissolve_source
+    assert 'objectName: "windowCloseRippleMaskTexture"' in dissolve_source
     assert 'objectName: "windowCloseDissolveFrame"' in dissolve_source
     assert "Shape {" in dissolve_source
     assert "ShapePath {" in dissolve_source
     assert "fillRule: ShapePath.OddEvenFill" in dissolve_source
-    assert dissolve_source.count("PathArc {") == 2
+    assert dissolve_source.count("PathAngleArc {") == 7
+    assert "Math.sin(Math.PI * _dissolveProgress)" in dissolve_source
     assert "Repeater {" not in dissolve_source
     assert "delegate: ShaderEffectSource" not in dissolve_source
     assert dissolve_source.count("ShaderEffectSource {") == 1
@@ -289,9 +295,13 @@ def test_close_animation_source_uses_radial_mask():
     assert "color: Enums.transparent" in dissolve_source
     assert "targetWindow.opacity = Enums.opacityLevel.invisible" in dissolve_source
     assert "Enums.duration.splashExitDissolve" in dissolve_source
-    assert "Enums.windowCloseMetrics.radialDiameterOvershoot" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleDiameterOvershoot" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleDropRadius" in dissolve_source
+    assert "Enums.windowCloseMetrics.ripplePeriodRatio" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleGapRatio" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleFullCircleSweep" in dissolve_source
     assert dissolve_source.count("Image {") == 2
-    assert "Easing.InOutCubic" in dissolve_source
+    assert "Easing.OutQuad" in dissolve_source
     assert "onCloseCallback()" in dissolve_source
     assert (
         "if (captionBtn.isClose) "
