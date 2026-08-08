@@ -161,17 +161,30 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert overlay is not None
     frozen_frame = overlay.findChild(QQuickItem, "windowCloseFrozenFrame")
     assert frozen_frame is not None
-    assert _visual_class_count(helper, "QQuickShaderEffectSource") == 0
-    assert not any(
-        child.objectName().startswith("windowCloseGridCell_")
-        for child in _visual_items(overlay.contentItem())
+    assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffectSource") == 0
+    assert _visual_class_count(overlay.contentItem(), "QQuickImage") == (
+        dissolve.property("_cellCount") + 1
     )
+    grid_cells = {
+        child.objectName(): child
+        for child in _visual_items(overlay.contentItem())
+        if child.objectName().startswith("windowCloseGridCell_")
+    }
+    assert len(grid_cells) == dissolve.property("_cellCount")
+    columns = dissolve.property("_columns")
+    rows = dissolve.property("_rows")
+    center_index = (rows // 2) * columns + columns // 2
+    center_cell = grid_cells[f"windowCloseGridCell_{center_index}"]
+    corner_cell = grid_cells["windowCloseGridCell_0"]
     assert _wait_for(lambda: helper.property("animOpacity") == 0)
     assert overlay.isVisible()
     assert window.opacity() == pytest.approx(0)
+    assert not frozen_frame.isVisible()
     _pump(120)
-    assert 0 < frozen_frame.opacity() < 1
-    assert 0 < frozen_frame.scale() < 0.995
+    assert frozen_frame.opacity() == pytest.approx(1)
+    assert frozen_frame.scale() == pytest.approx(1)
+    assert 0 < dissolve.property("_dissolveProgress") < 1
+    assert center_cell.opacity() < corner_cell.opacity()
     assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
     assert window.opacity() == pytest.approx(0)
@@ -233,7 +246,7 @@ def test_close_caption_entered_prewarms_without_clicking(close_animation_scene):
     assert warnings == []
 
 
-def test_close_animation_source_uses_transparent_overlay_retreat():
+def test_close_animation_source_uses_splash_grid_mask():
     animation_source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
     dissolve_source = DISSOLVE_EFFECT_PATH.read_text(encoding="utf-8")
     caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
@@ -247,8 +260,9 @@ def test_close_animation_source_uses_transparent_overlay_retreat():
     assert "overlayWindow.requestUpdate()" in dissolve_source
     assert "AcrylicHelper.grabWindowFrame" in dissolve_source
     assert "targetItem.grabToImage" in dissolve_source
-    assert "Repeater {" not in dissolve_source
-    assert "windowCloseGridCell_" not in dissolve_source
+    assert "Repeater {" in dissolve_source
+    assert "delegate: Item" in dissolve_source
+    assert 'objectName: "windowCloseGridCell_" + index' in dissolve_source
     assert "delegate: ShaderEffectSource" not in dissolve_source
     assert "ShaderEffectSource {" not in dissolve_source
     assert 'objectName: "windowCloseFrozenFrame"' in dissolve_source
@@ -256,12 +270,14 @@ def test_close_animation_source_uses_transparent_overlay_retreat():
     assert "color: Enums.transparent" in dissolve_source
     assert "targetWindow.opacity = Enums.opacityLevel.invisible" in dissolve_source
     assert "Enums.duration.splashExitDissolve" in dissolve_source
-    assert "Enums.duration.splashGridContentFade" in dissolve_source
-    assert 'property: "opacity"' in dissolve_source
-    assert 'property: "scale"' in dissolve_source
-    assert "Enums.splashScreenMetrics.exitContentEndScale" in dissolve_source
-    assert "ParallelAnimation" in dissolve_source
-    assert "Easing.InOutCubic" in dissolve_source
+    assert "Enums.duration.splashGridDelayStep" in dissolve_source
+    assert "Enums.duration.splashGridCellFade" in dissolve_source
+    assert "Enums.splashScreenMetrics.exitGridColumns" in dissolve_source
+    assert "Enums.splashScreenMetrics.exitGridRows" in dissolve_source
+    assert "x: -gridCell.x" in dissolve_source
+    assert dissolve_source.count("Image {") == 2
+    assert "function _gridCellOpacity" in dissolve_source
+    assert "Math.pow(-2 * value + 2, 3)" in dissolve_source
     assert "onCloseCallback()" in dissolve_source
     assert (
         "if (captionBtn.isClose) "

@@ -6,7 +6,7 @@ import QtQuick
 import ".."
 import QtQuick.Window  // Keep native Window after the library import. 库导入后保留原生 Window 名称。
 
-// WindowCloseDissolve - Native-overlay transparent close retreat 原生覆盖窗透明收束关闭效果
+// WindowCloseDissolve - Native-overlay Splash grid close effect 原生覆盖窗 Splash 网格关闭效果
 Item {
     id: effect
 
@@ -25,7 +25,21 @@ Item {
     property int _captureGeneration: 0
     property string _snapshotSource: ""
     property var _grabResult: null
+    property real _dissolveProgress: 0
+    readonly property int _columns: Enums.splashScreenMetrics.exitGridColumns
+    readonly property int _rows: Enums.splashScreenMetrics.exitGridRows
+    readonly property int _cellCount: _columns * _rows
+
     // ==================== Internal Methods 内部方法 ====================
+    function _gridCellOpacity(elapsed, delay) {
+        var value = Math.max(0, Math.min(1, (elapsed - delay) /
+                             Enums.duration.splashGridCellFade))
+        var eased = value < 0.5
+            ? 4 * value * value * value
+            : 1 - Math.pow(-2 * value + 2, 3) / 2
+        return 1 - eased
+    }
+
     function _releaseSnapshot() {
         frozenFrame.source = ""
         _snapshotSource = ""
@@ -34,6 +48,8 @@ Item {
     }
 
     function _resetVisualState() {
+        _dissolveProgress = 0
+        frozenFrame.visible = true
         frozenFrame.opacity = Enums.opacityLevel.visible
         frozenFrame.scale = Enums.opacityLevel.visible
     }
@@ -97,6 +113,7 @@ Item {
         targetWindow.opacity = Enums.opacityLevel.invisible
         onCaptureReady()
         _dissolving = true
+        frozenFrame.visible = false
         closeAnimation.start()
     }
 
@@ -149,21 +166,12 @@ Item {
     SequentialAnimation {
         id: closeAnimation
 
-        ParallelAnimation {
-            NumberAnimation {
-                target: frozenFrame
-                property: "opacity"
-                to: Enums.opacityLevel.invisible
-                duration: Enums.duration.splashExitDissolve
-                easing.type: Easing.InOutCubic
-            }
-            NumberAnimation {
-                target: frozenFrame
-                property: "scale"
-                to: Enums.splashScreenMetrics.exitContentEndScale
-                duration: Enums.duration.splashGridContentFade
-                easing.type: Easing.InCubic
-            }
+        NumberAnimation {
+            target: effect
+            property: "_dissolveProgress"
+            to: Enums.opacityLevel.visible
+            duration: Enums.duration.splashExitDissolve
+            easing.type: Easing.Linear
         }
         ScriptAction { script: effect._completeClose() }
     }
@@ -200,6 +208,51 @@ Item {
             color: Enums.transparent
             radius: effect.cornerRadius
             clip: true
+
+            Repeater {
+                id: dissolveGrid
+
+                model: effect._cellCount
+
+                delegate: Item {
+                    id: gridCell
+
+                    readonly property int _column: index % effect._columns
+                    readonly property int _row: Math.floor(index / effect._columns)
+                    readonly property real _centerColumn: (effect._columns - 1) / 2
+                    readonly property real _centerRow: (effect._rows - 1) / 2
+                    readonly property int _delay: Math.round((
+                        Math.abs(gridCell._column - gridCell._centerColumn) +
+                        Math.abs(gridCell._row - gridCell._centerRow)
+                    ) * Enums.duration.splashGridDelayStep)
+
+                    objectName: "windowCloseGridCell_" + index
+                    x: gridCell._column * overlayClip.width / effect._columns
+                    y: gridCell._row * overlayClip.height / effect._rows
+                    width: overlayClip.width / effect._columns +
+                           Enums.splashScreenMetrics.exitGridOverlap
+                    height: overlayClip.height / effect._rows +
+                            Enums.splashScreenMetrics.exitGridOverlap
+                    clip: true
+                    opacity: effect._gridCellOpacity(
+                        effect._dissolveProgress * Enums.duration.splashExitDissolve,
+                        gridCell._delay
+                    )
+                    visible: effect._dissolving
+
+                    Image {
+                        x: -gridCell.x
+                        y: -gridCell.y
+                        width: overlayClip.width
+                        height: overlayClip.height
+                        source: effect._snapshotSource
+                        fillMode: Image.Stretch
+                        cache: true
+                        asynchronous: false
+                        smooth: true
+                    }
+                }
+            }
 
             Image {
                 id: frozenFrame
