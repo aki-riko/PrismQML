@@ -71,7 +71,7 @@ QtObject {
  readonly property int splashGridContentFade: 180 // Splash grid content retreat 启动画面网格内容退隐
  readonly property int splashGridCellFade: 180 // Splash grid cell dissolve 网格单元溶解
  readonly property int splashGridDelayStep: 28 // Splash grid wave delay step 网格渗透波延迟步长
- readonly property int splashExitDissolve: 460 // Splash grid dissolve total duration 网格渗透退场总时长
+ readonly property int splashExitDissolve: 460 // Splash-style dissolve total duration Splash 风格退场总时长
  readonly property int chart: 500 // Chart animation 图表动画
  readonly property int progressComplete: 1500 // Progress complete display 进度完成后显示时长
  readonly property int copyFeedback: 1500 // Clipboard copy feedback display 复制反馈显示时长
@@ -595,6 +595,22 @@ QtObject {
  readonly property int progressDotSize: root.progressRing.orbitDotSize
  readonly property int progressDotRadius: root.progressRing.orbitDotRadius
  readonly property int progressDotTopMargin: root.progressRing.orbitDotTopMargin
+ }
+
+ // ==================== WindowClose 窗口关闭度量 ====================
+ readonly property QtObject windowClose: QtObject {
+ readonly property int rippleDuration: 500
+ readonly property real rippleTailLength: 0.22
+ readonly property real rippleWaveFrequency: 54.0
+ readonly property real rippleWaveDispersion: 0.65
+ readonly property real rippleWaveDamping: 6.8
+ readonly property real rippleWaveAmplitude: 0.0042
+ readonly property real rippleHighlightStrength: 0.16
+ readonly property real rippleFrontSoftness: 0.005
+ readonly property real rippleFrontRefractionWidth: 0.018
+ readonly property real rippleCrestSharpness: 8.0
+ readonly property real rippleOpacity: 0.24
+ readonly property real rippleFinishFadeStart: 0.92
  }
 
  // ==================== ProgressRing 进度环度量 ====================

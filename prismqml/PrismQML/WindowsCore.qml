@@ -207,6 +207,11 @@ Window {
                 _cancelCloseRequest()
                 return
             }
+            // Hold the first native close request until the dissolve finishes.
+            // 首次原生关闭请求先拦住，等渐隐动画完成后再真正销毁窗口。
+            close.accepted = false
+            _startAcceptedClose()
+            return
         }
         nativeCloseAccepted()
         // 注意: onClosing 在窗口收到「任何」关闭请求时都会触发,包括上层
