@@ -21,6 +21,10 @@ ANIMATION_HELPER_PATH = (
 DISSOLVE_EFFECT_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowCloseDissolve.qml"
 )
+RIPPLE_SHADER_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "shaders" / "window_close_ripple.frag"
+)
+RIPPLE_SHADER_BINARY_PATH = RIPPLE_SHADER_PATH.with_suffix(".frag.qsb")
 CAPTION_BUTTON_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "CaptionButton.qml"
 )
@@ -161,41 +165,35 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert overlay is not None
     frozen_frame = overlay.findChild(QQuickItem, "windowCloseFrozenFrame")
     assert frozen_frame is not None
-    ripple_mask_content = overlay.findChild(
-        QQuickItem, "windowCloseRippleMaskContent"
-    )
-    ripple_mask = overlay.findChild(QQuickItem, "windowCloseRippleMask")
-    ripple_mask_texture = overlay.findChild(
-        QQuickItem, "windowCloseRippleMaskTexture"
-    )
-    dissolve_frame = overlay.findChild(QQuickItem, "windowCloseDissolveFrame")
-    assert ripple_mask_content is not None
-    assert ripple_mask is not None
-    assert ripple_mask_texture is not None
-    assert dissolve_frame is not None
-    assert _visual_class_count(overlay.contentItem(), "QQuickImage") == 2
-    assert _visual_class_count(ripple_mask_content, "QQuickShape") == 1
-    assert _class_count(ripple_mask, "QQuickPathAngleArc") == 7
-    assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffectSource") == 1
-    assert ripple_mask.width() == pytest.approx(overlay.width())
-    assert ripple_mask.height() == pytest.approx(overlay.height())
+    ripple_frame = overlay.findChild(QQuickItem, "windowCloseRippleFrame")
+    assert ripple_frame is not None
+    assert _visual_class_count(overlay.contentItem(), "QQuickImage") == 1
+    assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffect") == 1
+    assert _visual_class_count(overlay.contentItem(), "QQuickShaderEffectSource") == 0
+    assert ripple_frame.width() == pytest.approx(overlay.width())
+    assert ripple_frame.height() == pytest.approx(overlay.height())
     assert _wait_for(lambda: helper.property("animOpacity") == 0)
     assert overlay.isVisible()
     assert window.opacity() == pytest.approx(0)
-    assert not frozen_frame.isVisible()
+    assert frozen_frame.isVisible()
+    assert frozen_frame.opacity() == pytest.approx(0)
     _pump(120)
-    assert frozen_frame.opacity() == pytest.approx(1)
+    assert frozen_frame.opacity() == pytest.approx(0)
     assert frozen_frame.scale() == pytest.approx(1)
     assert 0 < dissolve.property("_dissolveProgress") < 1
-    assert dissolve.property("_rippleFrontRadius") == pytest.approx(
-        dissolve.property("_rippleMaskDiameter")
-        * dissolve.property("_dissolveProgress")
-        / 2
+    assert ripple_frame.property("progress") == pytest.approx(
+        dissolve.property("_dissolveProgress")
     )
-    assert dissolve.property("_ripplePeriod") > 0
-    ripple_radii = [ripple_mask.property(f"_radius{index}") for index in range(7)]
-    assert ripple_radii == sorted(ripple_radii, reverse=True)
-    assert ripple_radii[-1] >= 0
+    assert ripple_frame.property("aspectRatio") > 0
+    assert ripple_frame.property("tailLength") > 0
+    assert ripple_frame.property("waveFrequency") > 0
+    assert ripple_frame.property("waveDispersion") > 0
+    assert ripple_frame.property("waveDamping") > 0
+    assert ripple_frame.property("waveAmplitude") > 0
+    assert ripple_frame.property("frontRefractionWidth") > 0
+    assert ripple_frame.property("crestSharpness") > 1
+    assert 0 < ripple_frame.property("rippleOpacity") < 1
+    assert 0 < ripple_frame.property("finishFadeStart") < 1
     assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
     assert window.opacity() == pytest.approx(0)
@@ -257,9 +255,10 @@ def test_close_caption_entered_prewarms_without_clicking(close_animation_scene):
     assert warnings == []
 
 
-def test_close_animation_source_uses_ripple_mask():
+def test_close_animation_source_uses_water_ripple_shader():
     animation_source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
     dissolve_source = DISSOLVE_EFFECT_PATH.read_text(encoding="utf-8")
+    ripple_shader_source = RIPPLE_SHADER_PATH.read_text(encoding="utf-8")
     caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
     assert "active: false" in animation_source
     assert "sourceComponent: WindowCloseDissolve" in animation_source
@@ -271,37 +270,52 @@ def test_close_animation_source_uses_ripple_mask():
     assert "overlayWindow.requestUpdate()" in dissolve_source
     assert "AcrylicHelper.grabWindowFrame" in dissolve_source
     assert "targetItem.grabToImage" in dissolve_source
-    assert "MultiEffect {" in dissolve_source
-    assert "import QtQuick.Shapes" in dissolve_source
-    assert 'objectName: "windowCloseRippleMaskContent"' in dissolve_source
-    assert 'objectName: "windowCloseRippleMask"' in dissolve_source
-    assert 'objectName: "windowCloseRippleMaskTexture"' in dissolve_source
-    assert 'objectName: "windowCloseDissolveFrame"' in dissolve_source
-    assert "Shape {" in dissolve_source
-    assert "ShapePath {" in dissolve_source
-    assert "fillRule: ShapePath.OddEvenFill" in dissolve_source
-    assert dissolve_source.count("PathAngleArc {") == 7
-    assert "Math.sin(Math.PI * _dissolveProgress)" in dissolve_source
+    assert "ShaderEffect {" in dissolve_source
+    assert 'objectName: "windowCloseRippleFrame"' in dissolve_source
+    assert 'property variant source: frozenFrame' in dissolve_source
+    assert 'fragmentShader: Qt.resolvedUrl("../shaders/window_close_ripple.frag.qsb")' in dissolve_source
+    assert "import QtQuick.Shapes" not in dissolve_source
+    assert "MultiEffect {" not in dissolve_source
+    assert "Shape {" not in dissolve_source
     assert "Repeater {" not in dissolve_source
-    assert "delegate: ShaderEffectSource" not in dissolve_source
-    assert dissolve_source.count("ShaderEffectSource {") == 1
-    assert "hideSource: true" in dissolve_source
-    assert "live: true" in dissolve_source
+    assert "ShaderEffectSource {" not in dissolve_source
     assert "maskInverted" not in dissolve_source
-    assert "maskThresholdMin: Enums.mask.thresholdMin" in dissolve_source
-    assert "maskSpreadAtMin: Enums.mask.spreadFull" in dissolve_source
     assert 'objectName: "windowCloseFrozenFrame"' in dissolve_source
     assert "sourceClipRect:" not in dissolve_source
     assert "color: Enums.transparent" in dissolve_source
     assert "targetWindow.opacity = Enums.opacityLevel.invisible" in dissolve_source
     assert "Enums.duration.splashExitDissolve" in dissolve_source
-    assert "Enums.windowCloseMetrics.rippleDiameterOvershoot" in dissolve_source
-    assert "Enums.windowCloseMetrics.rippleDropRadius" in dissolve_source
-    assert "Enums.windowCloseMetrics.ripplePeriodRatio" in dissolve_source
-    assert "Enums.windowCloseMetrics.rippleGapRatio" in dissolve_source
-    assert "Enums.windowCloseMetrics.rippleFullCircleSweep" in dissolve_source
-    assert dissolve_source.count("Image {") == 2
+    assert "Enums.windowCloseMetrics.rippleTailLength" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleWaveFrequency" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleWaveDispersion" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleWaveDamping" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleWaveAmplitude" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleHighlightStrength" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleFrontSoftness" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleFrontRefractionWidth" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleCrestSharpness" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleOpacity" in dissolve_source
+    assert "Enums.windowCloseMetrics.rippleFinishFadeStart" in dissolve_source
+    assert dissolve_source.count("Image {") == 1
     assert "Easing.OutQuad" in dissolve_source
+    assert RIPPLE_SHADER_BINARY_PATH.is_file()
+    assert RIPPLE_SHADER_BINARY_PATH.stat().st_size > 0
+    assert "float exteriorAlpha" in ripple_shader_source
+    assert "float rippleAlpha" in ripple_shader_source
+    assert "float clearRippleAlpha" in ripple_shader_source
+    assert "float distortionEnvelope" in ripple_shader_source
+    assert "float frontSlope" in ripple_shader_source
+    assert "float surfaceSlope" in ripple_shader_source
+    assert "float rippleCrest" in ripple_shader_source
+    assert "sin(wavePhase)" in ripple_shader_source
+    assert "cos(wavePhase)" in ripple_shader_source
+    assert "pow(abs(waveHeight), crestSharpness)" in ripple_shader_source
+    assert "waveDispersion * tailRatio" in ripple_shader_source
+    assert "exp(-rippleDistance * waveDamping)" in ripple_shader_source
+    assert "signedFrontDistance" in ripple_shader_source
+    assert "vec3 rippleColor" in ripple_shader_source
+    assert "sourceColor.rgb * exteriorAlpha" in ripple_shader_source
+    assert "texture(source, sampleUv)" in ripple_shader_source
     assert "onCloseCallback()" in dissolve_source
     assert (
         "if (captionBtn.isClose) "
