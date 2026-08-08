@@ -28,6 +28,7 @@ QML_PAGE = QML_ROOT / "controls" / "feedback" / "QMLPage.qml"
 QML_PAGE_EXIT = (
     QML_ROOT / "controls" / "feedback" / "_internal" / "QMLPageExitDissolve.qml"
 )
+CLOSE_RIPPLE_DISSOLVE = QML_ROOT / "_internal" / "CloseRippleDissolve.qml"
 SPLASH_SCREEN = (
     QML_ROOT / "controls" / "feedback" / "SplashScreen" / "SplashScreen.qml"
 )
@@ -256,8 +257,8 @@ def test_ring_consumers_delegate_to_canonical_progress_ring():
             assert marker not in source, (source_path, marker)
 
 
-def test_qml_page_preserves_lazy_ring_and_reuses_splash_exit():
-    """公开加载页保留原懒加载圆环，并复用 SplashScreen 退场。"""
+def test_qml_page_preserves_lazy_ring_and_reuses_close_ripple_exit():
+    """公开加载页保留原懒加载圆环，并复用窗口关闭涟漪退场。"""
     helper_source = LAZY_LOADING_HELPER.read_text(encoding="utf-8")
     assert "QMLPage {" in helper_source
     assert "backgroundColor: Enums.transparent" in helper_source
@@ -278,9 +279,17 @@ def test_qml_page_preserves_lazy_ring_and_reuses_splash_exit():
     assert "asynchronous: true" in page_source
 
     exit_source = QML_PAGE_EXIT.read_text(encoding="utf-8")
-    assert 'objectName: "qmlPageGridCell_" + index' in exit_source
-    assert "Enums.duration.splashGridCellFade" in exit_source
-    assert "Enums.duration.splashExitDissolve" in exit_source
+    ripple_source = CLOSE_RIPPLE_DISSOLVE.read_text(encoding="utf-8")
+    assert "Internal.CloseRippleDissolve" in exit_source
+    assert 'objectName: "qmlPageCloseRippleDissolve"' in exit_source
+    assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_source
+    assert "easing.type: Easing.OutQuad" in ripple_source
+    assert "CloseRippleFrame {" in ripple_source
+    assert "sourceItem.layer.effect = rippleEffectComponent" in ripple_source
+    assert "sourceItem.layer.enabled = true" in ripple_source
+    assert "ShaderEffectSource {" not in ripple_source
+    assert "Repeater {" not in exit_source
+    assert "qmlPageGridCell_" not in exit_source
 
     splash_source = SPLASH_SCREEN.read_text(encoding="utf-8")
     assert "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot" in splash_source

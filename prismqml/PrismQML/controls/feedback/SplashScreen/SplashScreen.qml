@@ -4,6 +4,7 @@
 
 import QtQuick.Effects
 import "../../.."
+import "../../../_internal" as Internal
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // SplashScreen - Application splash screen overlay 应用启动画面覆盖层
@@ -23,7 +24,7 @@ import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 //   }
 Rectangle {
     id: control
-    
+
     // ==================== Public Props 公开属性 ====================
     property var icon: null                          // Icon enum value 图标枚举值
     property string iconSource: ""                   // Image path (png/svg/qrc) 图片路径
@@ -31,7 +32,7 @@ Rectangle {
     property bool enableShadow: true                 // Enable icon shadow 启用图标阴影
     property alias titleBar: titleBarLoader.sourceComponent  // Custom title bar 自定义标题栏
     property bool showTitleBar: Qt.platform.os !== "osx"  // Show title bar (hidden on macOS) 显示标题栏
-    
+
     // New: Text props 新增文本属性
     property string title: ""                        // App title 应用标题
     property string subtitle: ""                     // Subtitle or loading text 副标题或加载文字
@@ -51,25 +52,25 @@ Rectangle {
     readonly property real _iconBreatheMinScale: Enums.splashScreenMetrics.iconBreatheMinScale
     readonly property real _iconBreatheMaxScale: Enums.splashScreenMetrics.iconBreatheMaxScale
     property bool _finishing: false
-    
+
     // ==================== Signals 信号 ====================
     signal finished()  // Emitted when splash screen is closed 启动画面关闭时触发
 
     // ==================== Public Methods 公开方法 ====================
     // Close splash screen 关闭启动画面
     function finish() {
-        if (control._finishing) return
-        dissolveGridLoader.active = true
-        if (!dissolveGridLoader.item) {
-            console.error('SplashScreen: failed to create the exit dissolve grid')
+        if (control._finishing)
+            return
+        rippleExitLoader.active = true
+        if (!rippleExitLoader.item) {
+            console.error('SplashScreen: failed to create the close ripple exit')
             return
         }
-        solidBackground.visible = false
         control._finishing = true
         breatheAnim.stop()
-        exitDissolveAnim.start()
+        rippleExitLoader.item.start()
     }
-    
+
     // Set icon (Icon enum or string) 设置图标
     function setIcon(iconValue) {
         if (typeof iconValue === "number") {
@@ -95,38 +96,6 @@ Rectangle {
     opacity: 1
     Component.onCompleted: breatheAnim.start()
 
-    // Grid permeation dissolve animation 网格渗透溶解动画
-    SequentialAnimation {
-        id: exitDissolveAnim
-
-        ParallelAnimation {
-            NumberAnimation {
-                target: contentColumn
-                property: "opacity"
-                to: Enums.opacityLevel.invisible
-                duration: Enums.duration.splashGridContentFade
-                easing.type: Easing.InCubic
-            }
-
-            NumberAnimation {
-                target: contentColumn
-                property: "scale"
-                to: Enums.splashScreenMetrics.exitContentEndScale
-                duration: Enums.duration.splashGridContentFade
-                easing.type: Easing.InCubic
-            }
-
-            PauseAnimation { duration: Enums.duration.splashExitDissolve }
-        }
-
-        ScriptAction {
-            script: {
-                control.visible = false
-                control.finished()
-            }
-        }
-    }
-
     // A single rectangle preserves the complete first frame before exit.
     // 单个矩形在退场前保持完整首帧背景。
     Rectangle {
@@ -137,73 +106,11 @@ Rectangle {
         color: control._splashBackground
     }
 
-    // Create the full dissolve grid synchronously only when finish starts.
-    // 仅在开始退场时同步创建完整溶解网格。
-    Loader {
-        id: dissolveGridLoader
-
-        objectName: "splashDissolveGridLoader"
-        anchors.fill: parent
-        active: false
-        asynchronous: false
-        sourceComponent: dissolveGridComponent
-    }
-
-    Component {
-        id: dissolveGridComponent
-
-        Item {
-            Repeater {
-                id: dissolveGrid
-
-                model: Enums.splashScreenMetrics.exitGridColumns *
-                       Enums.splashScreenMetrics.exitGridRows
-
-                delegate: Rectangle {
-                    id: gridCell
-
-                    readonly property int _column: index % Enums.splashScreenMetrics.exitGridColumns
-                    readonly property int _row: Math.floor(index / Enums.splashScreenMetrics.exitGridColumns)
-                    readonly property real _centerColumn: (Enums.splashScreenMetrics.exitGridColumns - 1) /
-                                                          2
-                    readonly property real _centerRow: (Enums.splashScreenMetrics.exitGridRows - 1) / 2
-                    readonly property int _delay: Math.round((
-                        Math.abs(gridCell._column - gridCell._centerColumn) +
-                        Math.abs(gridCell._row - gridCell._centerRow)
-                    ) * Enums.duration.splashGridDelayStep)
-
-                    objectName: "splashGridCell_" + index
-                    x: gridCell._column * control.width /
-                       Enums.splashScreenMetrics.exitGridColumns
-                    y: gridCell._row * control.height /
-                       Enums.splashScreenMetrics.exitGridRows
-                    width: control.width / Enums.splashScreenMetrics.exitGridColumns +
-                           Enums.splashScreenMetrics.exitGridOverlap
-                    height: control.height / Enums.splashScreenMetrics.exitGridRows +
-                            Enums.splashScreenMetrics.exitGridOverlap
-                    color: control._splashBackground
-                    opacity: Enums.opacityLevel.visible
-
-                    SequentialAnimation on opacity {
-                        running: control._finishing
-
-                        PauseAnimation { duration: gridCell._delay }
-                        NumberAnimation {
-                            to: Enums.opacityLevel.invisible
-                            duration: Enums.duration.splashGridCellFade
-                            easing.type: Easing.InOutCubic
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
     // Breathe animation 呼吸动画
     SequentialAnimation {
         id: breatheAnim
         loops: Animation.Infinite
-        
+
         NumberAnimation {
             target: iconContainer
             property: "scale"
@@ -219,7 +126,7 @@ Rectangle {
             easing.type: Easing.InOutSine
         }
     }
-    
+
     // Title bar 标题栏
     Loader {
         id: titleBarLoader
@@ -230,17 +137,17 @@ Rectangle {
         active: control.showTitleBar
         sourceComponent: defaultTitleBar
     }
-    
+
     Component {
         id: defaultTitleBar
-        
+
         // Default transparent title bar 默认透明标题栏
         Rectangle {
             height: Enums.window.titleBarHeight
             color: Enums.transparent
         }
     }
-    
+
     // ==================== Content 内容 ====================
     Column {
         id: contentColumn
@@ -250,7 +157,7 @@ Rectangle {
         opacity: 1
         transformOrigin: Item.Center
         spacing: Enums.spacing.xl
-        
+
         // Icon Container 图标容器
         Item {
             id: iconContainer
@@ -273,8 +180,7 @@ Rectangle {
                 id: iconDisplayLoader
 
                 anchors.fill: parent
-                active: control.iconSource !== "" ||
-                        (control.icon !== null && control.icon !== undefined)
+                active: control.iconSource !== "" || (control.icon !== null && control.icon !== undefined)
                 sourceComponent: control.iconSource !== "" ? imageDisplayComponent : fluentIconDisplayComponent
             }
 
@@ -304,7 +210,7 @@ Rectangle {
                 }
             }
         }
-        
+
         // Title 标题
         Label {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -312,13 +218,13 @@ Rectangle {
             type: Enums.label.type_subtitle
             visible: control.title !== ""
         }
-        
+
         // Progress + Subtitle row 进度环+副标题行
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: Enums.spacing.m
             visible: control.showProgress || control.subtitle !== ""
-            
+
             // Standard progress ring 标准进度环
             ProgressRing {
                 objectName: "splashProgressRing"
@@ -335,14 +241,10 @@ Rectangle {
                 indeterminateDotRadius: control._progressDotRadius
                 indeterminateDotTopMargin: control._progressDotTopMargin
                 color: control._progressColor
-                trackColorLight: Qt.rgba(
-                    control._progressColor.r,
-                    control._progressColor.g,
-                    control._progressColor.b,
-                    control._progressTrackOpacity)
+                trackColorLight: Qt.rgba(control._progressColor.r, control._progressColor.g, control._progressColor.b, control._progressTrackOpacity)
                 trackColorDark: trackColorLight
             }
-            
+
             // Subtitle 副标题
             Label {
                 text: control.subtitle
@@ -350,6 +252,27 @@ Rectangle {
                 color: Enums.textColor.secondary
                 visible: control.subtitle !== ""
                 anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+    }
+
+    // Create the shared close ripple only when finish starts.
+    // 仅在开始退场时创建共享关闭涟漪。
+    Loader {
+        id: rippleExitLoader
+
+        objectName: "splashCloseRippleLoader"
+        anchors.fill: parent
+        active: false
+        asynchronous: false
+
+        sourceComponent: Internal.CloseRippleDissolve {
+            objectName: "splashCloseRippleDissolve"
+            sourceItem: control
+
+            onFinished: {
+                control.visible = false
+                control.finished()
             }
         }
     }

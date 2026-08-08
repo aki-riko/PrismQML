@@ -68,10 +68,6 @@ QtObject {
  readonly property int marquee: 1000 // Marquee pause 跑马灯暂停
  readonly property int splashBreathe: 1200 // Splash icon breathe cycle half-duration 启动画面图标单程呼吸时长
  readonly property int splashProgressSpin: 1000 // Splash progress rotation cycle 启动画面进度旋转周期
- readonly property int splashGridContentFade: 180 // Splash grid content retreat 启动画面网格内容退隐
- readonly property int splashGridCellFade: 180 // Splash grid cell dissolve 网格单元溶解
- readonly property int splashGridDelayStep: 28 // Splash grid wave delay step 网格渗透波延迟步长
- readonly property int splashExitDissolve: 460 // Splash-style dissolve total duration Splash 风格退场总时长
  readonly property int chart: 500 // Chart animation 图表动画
  readonly property int progressComplete: 1500 // Progress complete display 进度完成后显示时长
  readonly property int copyFeedback: 1500 // Clipboard copy feedback display 复制反馈显示时长
@@ -585,10 +581,6 @@ QtObject {
  readonly property int iconShadowOffset: root.spacing.s
  readonly property real iconBreatheMinScale: 0.9
  readonly property real iconBreatheMaxScale: 1.1
- readonly property int exitGridColumns: 12
- readonly property int exitGridRows: 8
- readonly property real exitContentEndScale: 0.96
- readonly property int exitGridOverlap: root.border.thin
  readonly property int progressRingSize: root.iconSize.xl
  readonly property int progressRingBorderWidth: root.border.normal
  readonly property real progressTrackOpacity: root.opacity.light

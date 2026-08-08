@@ -286,8 +286,8 @@ Item {
         // Keep the lazy-loading surface transparent so the window Mica backdrop remains visible.
         // 保持懒加载表面透明，让窗口云母背板持续可见。
         backgroundColor: Enums.transparent
-        // Preserve the opaque dissolve while the resting surface stays transparent.
-        // 保持常驻表面透明，同时恢复不透明网格退场。
+        // Preserve the opaque ripple snapshot while the resting surface stays transparent.
+        // 保持常驻表面透明，同时保留不透明涟漪快照退场。
         exitBackgroundColor: Enums.backgroundColor
         running: visible && opacity > 0
         visible: false

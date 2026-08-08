@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem
-from PySide6.QtQml import QQmlComponent, QQmlEngine
+from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlProperty
 
 from prismqml import register_types
 
@@ -24,8 +24,6 @@ Item {
     readonly property int lazyRingStyle: Enums.progress.indeterminate_style_fixed_arc
     readonly property int lazyRingSize: Enums.controlSize.navBarHeight
     readonly property int lazyRingSpinDuration: Enums.duration.scroll
-    readonly property color expectedExitColor: Enums.backgroundColor
-
     width: 640
     height: 480
 
@@ -114,7 +112,7 @@ def test_qml_page_is_public_and_preserves_lazy_progress(qapp):
         engine.deleteLater()
 
 
-def test_qml_page_finish_uses_reusable_center_out_grid_dissolve(qapp):
+def test_qml_page_finish_uses_reusable_window_close_ripple(qapp):
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
@@ -137,26 +135,28 @@ def test_qml_page_finish_uses_reusable_center_out_grid_dissolve(qapp):
         assert page is not None and content is not None
         assert exit_loader is not None
         assert exit_loader.property("item") is None
-        assert not any(
-            name.startswith("qmlPageGridCell_") for name in _visual_items(page)
-        )
+        assert QQmlProperty(page, "layer.enabled").read() is False
+        assert page.findChild(QQuickItem, "itemCloseRippleFrame") is None
 
         assert QMetaObject.invokeMethod(page, "finish")
         assert _wait_until(lambda: exit_loader.property("item") is not None)
         visual_items = _visual_items(page)
-        center_cell = visual_items.get("qmlPageGridCell_41")
-        corner_cell = visual_items.get("qmlPageGridCell_0")
-        assert center_cell is not None and corner_cell is not None
-        assert center_cell.property("color") == root.property("expectedExitColor")
-        assert center_cell.property("color").alphaF() > 0
+        ripple = visual_items.get("qmlPageCloseRippleDissolve")
+        assert ripple is not None
+        assert ripple.property("running") is True
+        assert QQmlProperty(page, "layer.enabled").read() is True
+        assert QQmlProperty(page, "layer.effect").read() is not None
+        assert not any(
+            name.startswith("qmlPageGridCell_") for name in visual_items
+        )
         _pump(200)
         assert page.property("finishing") is True
-        assert center_cell.property("opacity") < 0.2
-        assert corner_cell.property("opacity") == 1.0
-        assert content.property("opacity") < 0.1
+        assert 0 < ripple.property("_dissolveProgress") < 1
+        assert content.property("opacity") == pytest.approx(1.0)
 
         _pump(400)
         assert page.property("visible") is False
+        assert QQmlProperty(page, "layer.enabled").read() is False
         assert _wait_until(lambda: exit_loader.property("item") is None)
         assert not any(
             name.startswith("qmlPageGridCell_") for name in _visual_items(page)
@@ -168,6 +168,16 @@ def test_qml_page_finish_uses_reusable_center_out_grid_dissolve(qapp):
         assert page.property("finishing") is False
         assert content.property("opacity") == pytest.approx(1.0)
         assert content.property("scale") == pytest.approx(1.0)
+
+        assert QMetaObject.invokeMethod(page, "finish")
+        assert _wait_until(lambda: exit_loader.property("item") is not None)
+        _pump(100)
+        assert QQmlProperty(page, "layer.enabled").read() is True
+        assert QMetaObject.invokeMethod(page, "start")
+        assert _wait_until(lambda: exit_loader.property("item") is None)
+        assert page.property("visible") is True
+        assert page.property("finishing") is False
+        assert QQmlProperty(page, "layer.enabled").read() is False
     finally:
         root.deleteLater()
         engine.deleteLater()

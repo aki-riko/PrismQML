@@ -32,6 +32,9 @@ SPLASH_SOURCE = (
     / "SplashScreen"
     / "SplashScreen.qml"
 )
+CLOSE_RIPPLE_DISSOLVE_SOURCE = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "CloseRippleDissolve.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "feedback-style.qml"))
 SCENE_SOURCE = b"""
 import QtQuick
@@ -50,9 +53,7 @@ Item {
     readonly property int iconXl: Enums.iconSize.xl
     readonly property int splashBreatheDuration: Enums.duration.splashBreathe
     readonly property int splashProgressSpinDuration: Enums.duration.splashProgressSpin
-    readonly property int splashGridCellFadeDuration: Enums.duration.splashGridCellFade
-    readonly property int splashGridDelayStepDuration: Enums.duration.splashGridDelayStep
-    readonly property int splashExitDissolveDuration: Enums.duration.splashExitDissolve
+    readonly property int closeRippleDuration: Enums.windowCloseMetrics.rippleDuration
     readonly property int splashProgressStyle: Enums.progress.indeterminate_style_orbit_dot
     readonly property int splashProgressDotSize: Enums.splashScreenMetrics.progressDotSize
     readonly property int splashProgressDotRadius: Enums.splashScreenMetrics.progressDotRadius
@@ -289,25 +290,19 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
         assert splash is not None
         breathe_duration = root.property("splashBreatheDuration")
         spin_duration = root.property("splashProgressSpinDuration")
-        grid_cell_fade = root.property("splashGridCellFadeDuration")
-        grid_delay_step = root.property("splashGridDelayStepDuration")
-        exit_dissolve = root.property("splashExitDissolveDuration")
+        close_ripple_duration = root.property("closeRippleDuration")
         shadow_blur = root.property("splashShadowBlur")
         shadow_offset = root.property("splashShadowOffset")
         assert (
             breathe_duration,
             spin_duration,
-            grid_cell_fade,
-            grid_delay_step,
-            exit_dissolve,
+            close_ripple_duration,
             shadow_blur,
             shadow_offset,
         ) == (
             1200,
             1000,
-            180,
-            28,
-            460,
+            500,
             0.8,
             6,
         )
@@ -379,9 +374,9 @@ def test_splash_first_frame_shows_complete_content(qapp):
         icon_container = splash.findChild(QQuickItem, "splashIconContainer")
         assert icon_container is not None
         solid_background = splash.findChild(QQuickItem, "splashSolidBackground")
-        grid_loader = splash.findChild(QQuickItem, "splashDissolveGridLoader")
+        ripple_loader = splash.findChild(QQuickItem, "splashCloseRippleLoader")
         assert solid_background is not None
-        assert grid_loader is not None
+        assert ripple_loader is not None
 
         # The very first visible frame must already be the complete splash.
         # A background-only frame is a user-visible white flash.
@@ -391,9 +386,10 @@ def test_splash_first_frame_shows_complete_content(qapp):
         assert content.property("scale") == pytest.approx(1.0)
         assert icon_container.property("scale") == pytest.approx(1.0, abs=0.005)
         assert solid_background.property("visible") is True
-        assert grid_loader.property("active") is False
+        assert ripple_loader.property("active") is False
+        assert QQmlProperty(splash, "layer.enabled").read() is False
         assert not any(
-            item.objectName().startswith("splashGridCell_")
+            item.objectName() == "itemCloseRippleFrame"
             for item in _walk_visual_tree(splash)
         )
 
@@ -408,7 +404,7 @@ def test_splash_first_frame_shows_complete_content(qapp):
         _pump(1)
 
 
-def test_splash_finish_uses_center_out_grid_dissolve(qapp):
+def test_splash_finish_uses_shared_window_close_ripple(qapp):
     engine, component, root = _create_scene()
     try:
         splash = root.findChild(QQuickItem, "splash")
@@ -417,35 +413,33 @@ def test_splash_finish_uses_center_out_grid_dissolve(qapp):
         solid_background = splash.findChild(QQuickItem, "splashSolidBackground")
         assert content is not None
         assert solid_background is not None
-        assert not any(
-            item.objectName().startswith("splashGridCell_")
-            for item in _walk_visual_tree(splash)
-        )
+        ripple_loader = splash.findChild(QQuickItem, "splashCloseRippleLoader")
+        assert ripple_loader is not None
+        assert ripple_loader.property("active") is False
 
         assert QMetaObject.invokeMethod(splash, "finish")
         visual_items = {item.objectName(): item for item in _walk_visual_tree(splash)}
-        center_cell = visual_items.get("splashGridCell_41")
-        corner_cell = visual_items.get("splashGridCell_0")
-        assert center_cell is not None
-        assert corner_cell is not None
-        assert len([
-            item for name, item in visual_items.items()
-            if name.startswith("splashGridCell_")
-        ]) == 96
-        assert solid_background.property("visible") is False
-
-        assert center_cell.property("opacity") == pytest.approx(1.0)
-        assert corner_cell.property("opacity") == pytest.approx(1.0)
+        ripple = visual_items.get("splashCloseRippleDissolve")
+        assert ripple is not None
+        assert ripple_loader.property("active") is True
+        assert ripple.property("running") is True
+        assert ripple.property("_dissolveProgress") == pytest.approx(0.0)
+        assert QQmlProperty(splash, "layer.enabled").read() is True
+        assert QQmlProperty(splash, "layer.effect").read() is not None
+        assert solid_background.property("visible") is True
+        assert not any(
+            name.startswith("splashGridCell_") for name in visual_items
+        )
 
         _pump(200)
 
         assert splash.property("visible") is True
-        assert center_cell.property("opacity") < 0.2
-        assert corner_cell.property("opacity") == pytest.approx(1.0)
-        assert content.property("opacity") < 0.1
+        assert 0 < ripple.property("_dissolveProgress") < 1
+        assert content.property("opacity") == pytest.approx(1.0)
 
         _pump(350)
         assert splash.property("visible") is False
+        assert QQmlProperty(splash, "layer.enabled").read() is False
     finally:
         root.deleteLater()
         del component
@@ -477,11 +471,15 @@ def test_feedback_sources_use_shared_style_tokens():
         in splash_source
     )
     assert "duration: Enums.duration.splashBreathe" in splash_source
-    assert "id: exitDissolveAnim" in splash_source
-    assert "id: dissolveGrid" in splash_source
-    assert "duration: Enums.duration.splashGridCellFade" in splash_source
-    assert "duration: Enums.duration.splashExitDissolve" in splash_source
-    assert 'objectName: "splashGridCell_" + index' in splash_source
+    ripple_source = CLOSE_RIPPLE_DISSOLVE_SOURCE.read_text(encoding="utf-8")
+    assert 'objectName: "splashCloseRippleLoader"' in splash_source
+    assert "sourceComponent: Internal.CloseRippleDissolve" in splash_source
+    assert 'objectName: "splashCloseRippleDissolve"' in splash_source
+    assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_source
+    assert "easing.type: Easing.OutQuad" in ripple_source
+    assert "CloseRippleFrame {" in ripple_source
+    assert "Repeater {" not in splash_source
+    assert "splashGridCell_" not in splash_source
     assert "border.width:" not in splash_source
     assert "border.color:" not in splash_source
     assert "target: leftCurtain" not in splash_source

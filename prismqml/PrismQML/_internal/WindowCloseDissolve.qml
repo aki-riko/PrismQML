@@ -197,29 +197,14 @@ Item {
             radius: effect.cornerRadius
             clip: true
 
-            ShaderEffect {
+            CloseRippleFrame {
                 id: rippleFrame
-
-                property variant source: frozenFrame
-                property real progress: effect._dissolveProgress
-                property real aspectRatio: width / Math.max(height, 1)
-                property real tailLength: Enums.windowCloseMetrics.rippleTailLength
-                property real waveFrequency: Enums.windowCloseMetrics.rippleWaveFrequency
-                property real waveDispersion: Enums.windowCloseMetrics.rippleWaveDispersion
-                property real waveDamping: Enums.windowCloseMetrics.rippleWaveDamping
-                property real waveAmplitude: Enums.windowCloseMetrics.rippleWaveAmplitude
-                property real highlightStrength: Enums.windowCloseMetrics.rippleHighlightStrength
-                property real frontSoftness: Enums.windowCloseMetrics.rippleFrontSoftness
-                property real frontRefractionWidth: Enums.windowCloseMetrics.rippleFrontRefractionWidth
-                property real crestSharpness: Enums.windowCloseMetrics.rippleCrestSharpness
-                property real rippleOpacity: Enums.windowCloseMetrics.rippleOpacity
-                property real finishFadeStart: Enums.windowCloseMetrics.rippleFinishFadeStart
 
                 objectName: "windowCloseRippleFrame"
                 anchors.fill: parent
+                source: frozenFrame
+                progress: effect._dissolveProgress
                 visible: effect._dissolving
-                blending: true
-                fragmentShader: Qt.resolvedUrl("../shaders/window_close_ripple.frag.qsb")
             }
 
             Image {

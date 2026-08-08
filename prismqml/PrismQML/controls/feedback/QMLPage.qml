@@ -5,7 +5,7 @@
 import "../.."
 import QtQuick  // Keep native types unprefixed after library import 库导入后保留原生类型无前缀
 
-// QMLPage - Reusable QML loading page with SplashScreen exit 可复用 SplashScreen 退场效果的 QML 加载页
+// QMLPage - Reusable QML loading page with close ripple exit 可复用关闭涟漪退场的 QML 加载页
 Rectangle {
     id: control
 
@@ -13,13 +13,14 @@ Rectangle {
     property string text: { Translator._v; return Translator.tr("loading") }  // Loading message 加载提示
     property bool running: visible                  // Run animation while loading 加载时运行动画
     property color backgroundColor: Enums.backgroundColor  // Page background 页面背景
-    property color exitBackgroundColor: backgroundColor  // Exit grid color 退场网格颜色
+    property color exitBackgroundColor: backgroundColor  // Exit ripple backdrop 退场涟漪背板
 
     // ==================== Internal Props 内部属性 ====================
     readonly property bool finishing: _finishing     // Exit is running 正在退场
     property bool _finishing: false
     property bool _exitPrepared: false
     property bool _exitStartPending: false
+    property bool _exitAnimating: false
 
     // ==================== Signals 信号 ====================
     signal finished()  // Emitted after the page is removed 页面移除后触发
@@ -29,6 +30,7 @@ Rectangle {
         control._finishing = false
         control._exitPrepared = false
         control._exitStartPending = false
+        control._exitAnimating = false
         control.visible = true
         contentColumn.opacity = Enums.opacityLevel.visible
         contentColumn.scale = Enums.opacityLevel.visible
@@ -40,8 +42,7 @@ Rectangle {
             exitLoader.setSource(
                 Qt.resolvedUrl("_internal/QMLPageExitDissolve.qml"),
                 {
-                    "contentItem": contentColumn,
-                    "cellColor": control.exitBackgroundColor
+                    "sourceItem": control
                 }
             )
         }
@@ -60,8 +61,8 @@ Rectangle {
     function _startExitAnimation() {
         if (!control._exitStartPending || !exitLoader.item) return
         control._exitStartPending = false
-        exitLoader.item.contentItem = contentColumn
-        exitLoader.item.cellColor = control.exitBackgroundColor
+        control._exitAnimating = true
+        exitLoader.item.sourceItem = control
         exitLoader.item.start()
     }
 
@@ -71,15 +72,17 @@ Rectangle {
         control._finishing = false
         control._exitPrepared = false
         control._exitStartPending = false
+        control._exitAnimating = false
     }
 
-    color: Enums.transparent
+    color: control._exitAnimating ? control.exitBackgroundColor : Enums.transparent
     clip: true
 
     onVisibleChanged: {
         if (!visible && !control._finishing) {
             control._exitPrepared = false
             control._exitStartPending = false
+            control._exitAnimating = false
         }
     }
 
