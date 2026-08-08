@@ -26,8 +26,7 @@ Widget {
     property int shape: Enums.button.shape_default
     property int feature: Enums.button.feature_none
     property bool showDropdownIndicator: true
-    property int contentAlignment: (feature === Enums.button.feature_dropdown && showDropdownIndicator) ||
-                                   feature === Enums.button.feature_split
+    property int contentAlignment: feature === Enums.button.feature_dropdown && showDropdownIndicator
                                    ? Enums.button.align_left
                                    : Enums.button.align_center  // Content alignment 内容对齐
 

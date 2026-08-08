@@ -582,7 +582,7 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
     scenarios = (
         ("featureNone", (1, 0, 0), "alignCenter"),
         ("featureDropdown", (1, 1, 0), "alignLeft"),
-        ("featureSplit", (1, 1, 0), "alignLeft"),
+        ("featureSplit", (1, 1, 0), "alignCenter"),
         ("featureProgress", (1, 0, 1), "alignCenter"),
         ("featureNone", (1, 0, 0), "alignCenter"),
     )
@@ -639,40 +639,44 @@ def test_menu_bar_buttons_default_to_left_alignment(button_core_scene):
     assert _new_visible_windows(windows_before) == []
 
 
-def test_dropdown_and_split_main_content_use_asymmetric_padding(button_core_scene):
+def test_dropdown_uses_asymmetric_padding_and_split_main_content_is_centered(button_core_scene):
     root, warnings, windows_before = button_core_scene
     expected_leading = root.property("menuContentLeadingPadding")
     expected_trailing = root.property("menuContentTrailingPadding")
 
-    for object_name in ("pillDropdownButton", "pillSplitButton"):
-        button = _button(root, object_name)
-        content = _content_modules(button)
-        dropdown = _dropdown_modules(button)
-        chevrons = [
-            child
-            for child in _visual_descendants(button)
-            if child.metaObject().indexOfProperty("animated") >= 0
-            and child.metaObject().indexOfProperty("isOpen") >= 0
-            and child.isVisible()
-        ]
-        assert len(content) == 1
-        assert len(dropdown) == 1
-        assert len(chevrons) == 1
-        texts = _matching(content[0], "text", "font", "paintedWidth")
-        assert len(texts) == 1
-        assert _mapped_x(texts[0], button) == pytest.approx(expected_leading)
+    dropdown_button = _button(root, "pillDropdownButton")
+    dropdown_content = _content_modules(dropdown_button)
+    dropdown_chevrons = [
+        child
+        for child in _visual_descendants(dropdown_button)
+        if child.metaObject().indexOfProperty("animated") >= 0
+        and child.metaObject().indexOfProperty("isOpen") >= 0
+        and child.isVisible()
+    ]
+    assert len(dropdown_content) == 1
+    assert len(dropdown_chevrons) == 1
+    dropdown_texts = _matching(dropdown_content[0], "text", "font", "paintedWidth")
+    assert len(dropdown_texts) == 1
+    assert _mapped_x(dropdown_texts[0], dropdown_button) == pytest.approx(expected_leading)
+    assert _painted_right_gap(dropdown_texts[0], dropdown_chevrons[0], dropdown_button) == pytest.approx(
+        expected_trailing
+    )
 
-        if object_name == "pillDropdownButton":
-            assert _painted_right_gap(texts[0], chevrons[0], button) == pytest.approx(
-                expected_trailing
-            )
-        else:
-            separators = _matching(dropdown[0], "lineLength", "lineColor", "isHorizontal")
-            assert len(separators) == 1
-            split_gap = _painted_right_gap(texts[0], separators[0], button)
-            assert expected_trailing <= split_gap <= (
-                expected_trailing + root.property("menuPaddingTolerance")
-            )
+    split_button = _button(root, "pillSplitButton")
+    split_content = _content_modules(split_button)
+    split_dropdown = _dropdown_modules(split_button)
+    assert len(split_content) == 1
+    assert len(split_dropdown) == 1
+    split_texts = _matching(split_content[0], "text", "font", "paintedWidth")
+    assert len(split_texts) == 1
+    separators = _matching(split_dropdown[0], "lineLength", "lineColor", "isHorizontal")
+    assert len(separators) == 1
+    split_left_gap = _mapped_x(split_texts[0], split_button)
+    split_right_gap = _painted_right_gap(split_texts[0], separators[0], split_button)
+    assert split_left_gap == pytest.approx(
+        split_right_gap,
+        abs=root.property("menuPaddingTolerance"),
+    )
 
     compact_button = _button(root, "compactSplitButton")
     compact_content = _content_modules(compact_button)
