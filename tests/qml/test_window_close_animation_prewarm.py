@@ -147,7 +147,7 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     close_animation_scene,
 ):
     window, warnings = close_animation_scene
-    assert window.property("closeRippleDuration") == 750
+    assert window.property("closeRippleDuration") == 700
     helper = window.findChild(QQuickItem, "animationHelper")
     assert helper is not None
     window.show()
