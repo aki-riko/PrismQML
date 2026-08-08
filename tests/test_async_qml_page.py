@@ -189,8 +189,22 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             lambda: window._window.property("stackedWidget") is not None
         )
         stack = window._window.property("stackedWidget")
+        page_container = window._find_child_by_name("page_1")
+        assert page_container is not None
         loading_seen = False
         animation_after_loading = []
+        animation_finished = []
+        overlay_finishing = []
+        page_states = []
+
+        def capture_page_state():
+            page_states.append(
+                (
+                    bool(page_container.property("visible")),
+                    float(page_container.property("opacity")),
+                    float(page_container.property("y")),
+                )
+            )
 
         def on_loading_changed():
             nonlocal loading_seen
@@ -202,17 +216,47 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             animation_after_loading.append(
                 loading_seen and not window._window.property("_pythonLoading")
             )
+            capture_page_state()
 
         window._window._pythonLoadingChanged.connect(on_loading_changed)
         stack.animationStarted.connect(on_animation_started)
+        stack.animationFinished.connect(lambda: animation_finished.append(True))
+        page_container.opacityChanged.connect(capture_page_state)
+        page_container.yChanged.connect(capture_page_state)
 
         window._window.setProperty("currentIndex", 1)
         window._window.currentPageChanged.emit(1)
+
+        assert _pump_until(
+            lambda: window._window.findChild(QObject, "loadingOverlay") is not None
+        )
+        loading_overlay = window._window.findChild(QObject, "loadingOverlay")
+        loading_overlay.finishingChanged.connect(
+            lambda: overlay_finishing.append(
+                bool(loading_overlay.property("finishing"))
+            )
+        )
 
         assert _pump_until(
             lambda: 1 in window._pages and window._pages[1].is_ready
         )
         assert loading_seen
         assert any(animation_after_loading), animation_after_loading
+        assert any(overlay_finishing), overlay_finishing
+        exit_loader = loading_overlay.findChild(QObject, "qmlPageExitLoader")
+        assert exit_loader is not None
+        assert _pump_until(lambda: exit_loader.property("item") is not None)
+        assert loading_overlay.findChild(
+            QObject, "qmlPageCloseRippleDissolve"
+        ) is exit_loader.property("item")
+        assert _pump_until(lambda: bool(animation_finished))
+        assert any(0.05 < opacity < 0.95 for _, opacity, _ in page_states), page_states
+        assert any(
+            0.5 < y < float(stack.property("popUpOffset")) - 0.5
+            for _, _, y in page_states
+        ), page_states
+        assert _pump_until(
+            lambda: window._window.findChild(QObject, "loadingOverlay") is None
+        )
     finally:
         _dispose_window(window)

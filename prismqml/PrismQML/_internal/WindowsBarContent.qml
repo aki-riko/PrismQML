@@ -5,6 +5,7 @@
 import QtQuick
 import "../navigation"
 import "../controls/navigation"
+import "../controls/feedback"
 import ".."
 
 // WindowsBarContent - Compact navigation window content 紧凑导航窗口内容
@@ -125,17 +126,48 @@ Item {
 
         Loader {
             id: loadingOverlayLoader
+
+            property bool exitActive: false
+
+            objectName: "loadingOverlayLoader"
             anchors.fill: parent
-            active: root._loadingOverlayActive
-            visible: active
+            active: root._loadingOverlayActive || exitActive
             asynchronous: false
-            sourceComponent: LoadingOverlay {
-                loading: root._loadingOverlayActive
-                backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
+            onLoaded: {
+                exitActive = false
+                if (root.hostWindow) root.hostWindow._pythonLoadingOverlay = item
+            }
+            onItemChanged: {
+                if (!item) {
+                    exitActive = false
+                    if (root.hostWindow) root.hostWindow._pythonLoadingOverlay = null
+                }
+            }
+            sourceComponent: QMLPage {
+                property bool loading: root._loadingOverlayActive
+
+                objectName: "loadingOverlay"
+                backgroundColor: Enums.transparent
+                exitBackgroundColor: Enums.backgroundColor
+                running: visible && !finishing
                 text: {
                     Translator._v
                     return root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
                 }
+                Component.onCompleted: if (loading) start()
+                onLoadingChanged: {
+                    if (loading) start()
+                    else finish()
+                }
+            }
+
+            Connections {
+                function onFinishingChanged() {
+                    loadingOverlayLoader.exitActive = target.finishing
+                }
+
+                target: loadingOverlayLoader.item
+                ignoreUnknownSignals: true
             }
         }
     }

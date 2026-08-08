@@ -45,6 +45,9 @@ WindowsCore {
     property bool _micaBackdropReady: false
     property bool _pythonLoading: false
     property int _pythonPendingIndex: -1
+    // The concrete window shell keeps the Python loading page alive during exit.
+    // 具体窗口壳在退场期间持续持有 Python 加载页。
+    property var _pythonLoadingOverlay: null
     property bool _pythonPageMode: false
     property bool _nativeHookReady: false
     property string _micaReapplyReason: ""
@@ -82,9 +85,12 @@ WindowsCore {
     }
 
     function _finishPythonLoading() {
-        _pythonLoading = false
         var idx = _pythonPendingIndex
         _pythonPendingIndex = -1
+        if (_pythonLoadingOverlay && _pythonLoadingOverlay.finish) {
+            _pythonLoadingOverlay.finish()
+        }
+        _pythonLoading = false
         if (stackedWidget && idx >= 0) {
             stackedWidget._completePythonLazySwitch(idx)
         }

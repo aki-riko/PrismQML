@@ -8,6 +8,7 @@ import QtQuick.Effects
 import "../navigation"
 import "../controls/navigation"
 import "../controls/data"
+import "../controls/feedback"
 import ".."
 
 // WindowsFilled - Vertical split navigation window 垂直分割导航窗口
@@ -126,16 +127,46 @@ NavigationWindowCore {
         
         // Python lazy-loading overlay. Python 懒加载覆盖层。
         Loader {
+            id: loadingOverlayLoader
+
+            property bool exitActive: false
+
             objectName: "loadingOverlayLoader"
             anchors.fill: parent
-            active: window._pythonLoading
-            visible: active
+            active: window._pythonLoading || exitActive
             asynchronous: false
-            sourceComponent: LoadingOverlay {
+            onLoaded: {
+                exitActive = false
+                window._pythonLoadingOverlay = item
+            }
+            onItemChanged: {
+                if (!item) {
+                    exitActive = false
+                    window._pythonLoadingOverlay = null
+                }
+            }
+            sourceComponent: QMLPage {
+                property bool loading: window._pythonLoading
+
                 objectName: "loadingOverlay"
-                loading: window._pythonLoading
-                backgroundColor: window.contentBgColor
+                backgroundColor: Enums.transparent
+                exitBackgroundColor: Enums.backgroundColor
+                running: visible && !finishing
                 text: window.loadingText
+                Component.onCompleted: if (loading) start()
+                onLoadingChanged: {
+                    if (loading) start()
+                    else finish()
+                }
+            }
+
+            Connections {
+                function onFinishingChanged() {
+                    loadingOverlayLoader.exitActive = target.finishing
+                }
+
+                target: loadingOverlayLoader.item
+                ignoreUnknownSignals: true
             }
         }
         }

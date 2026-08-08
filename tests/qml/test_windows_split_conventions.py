@@ -7,9 +7,11 @@
 from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import (
+    Q_ARG,
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QMetaObject,
     QObject,
     Property,
     qInstallMessageHandler,
@@ -291,15 +293,16 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert window.findChild(QQuickItem, "loadingOverlay") is None
 
         window.setProperty("loadingText", "Loading overlay probe")
-        window.setProperty("_pythonLoading", True)
+        assert QMetaObject.invokeMethod(
+            window, "_startPythonLoading", Q_ARG("QVariant", 1)
+        )
         assert _wait_for(lambda: loader.property("item") is not None)
         overlay = window.findChild(QQuickItem, "loadingOverlay")
         assert overlay is loader.property("item")
         assert overlay.property("loading") is True
         assert overlay.isVisible()
-        assert overlay.property("backgroundColor") == window.property(
-            "contentBgColor"
-        )
+        assert overlay.property("backgroundColor").alpha() == 0
+        assert overlay.property("exitBackgroundColor").alpha() == 255
         assert overlay.property("text") == "Loading overlay probe"
         rings = [
             child
@@ -315,10 +318,20 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
             lambda: overlay.property("text") == "Updated loading overlay probe"
         )
 
-        window.setProperty("_pythonLoading", False)
+        assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
+        assert overlay.property("finishing") is True
+        exit_loader = overlay.findChild(QObject, "qmlPageExitLoader")
+        assert exit_loader is not None
+        assert _wait_for(lambda: exit_loader.property("item") is not None)
+        dissolve = overlay.findChild(QObject, "qmlPageCloseRippleDissolve")
+        assert dissolve is exit_loader.property("item")
+        assert dissolve.property("running") is True
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         assert _wait_for(lambda: loader.property("item") is None)
-        assert window.findChild(QQuickItem, "loadingOverlay") is None
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        assert _wait_for(
+            lambda: window.findChild(QQuickItem, "loadingOverlay") is None
+        )
         assert not [
             child
             for child in loader.findChildren(QObject)
@@ -326,15 +339,21 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         ]
 
         window.setProperty("loadingText", "Recreated loading overlay probe")
-        window.setProperty("_pythonLoading", True)
+        assert QMetaObject.invokeMethod(
+            window, "_startPythonLoading", Q_ARG("QVariant", 1)
+        )
         assert _wait_for(lambda: loader.property("item") is not None)
         recreated = window.findChild(QQuickItem, "loadingOverlay")
         assert recreated is loader.property("item")
         assert recreated.property("text") == "Recreated loading overlay probe"
 
-        window.setProperty("_pythonLoading", False)
+        assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         assert _wait_for(lambda: loader.property("item") is None)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        assert _wait_for(
+            lambda: window.findChild(QQuickItem, "loadingOverlay") is None
+        )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
@@ -360,6 +379,10 @@ def test_windows_split_creates_loading_overlay_only_while_needed(monkeypatch, qa
 
 def test_windows_filled_creates_loading_overlay_only_while_needed(monkeypatch, qapp):
     _exercise_loading_overlay_lifecycle(monkeypatch, FILLED_SCENE_SOURCE)
+
+
+def test_windows_bar_creates_loading_overlay_only_while_needed(monkeypatch, qapp):
+    _exercise_loading_overlay_lifecycle(monkeypatch, BAR_SCENE_SOURCE)
 
 
 def test_windows_bar_skips_non_item_default_child_and_dismisses_splash(
