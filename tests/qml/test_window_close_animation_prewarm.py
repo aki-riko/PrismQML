@@ -171,6 +171,7 @@ def test_close_animation_is_absent_at_startup_and_programmatic_close_loads_it(
     assert window.opacity() == pytest.approx(0)
     _pump(120)
     assert 0 < frozen_frame.opacity() < 1
+    assert 0 < frozen_frame.scale() < 0.995
     assert window.property("closeCallbacks") == 0
     assert _wait_for(lambda: window.property("closeCallbacks") == 1)
     assert window.opacity() == pytest.approx(0)
@@ -232,7 +233,7 @@ def test_close_caption_entered_prewarms_without_clicking(close_animation_scene):
     assert warnings == []
 
 
-def test_close_animation_source_uses_transparent_overlay_fade():
+def test_close_animation_source_uses_transparent_overlay_retreat():
     animation_source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
     dissolve_source = DISSOLVE_EFFECT_PATH.read_text(encoding="utf-8")
     caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
@@ -255,7 +256,11 @@ def test_close_animation_source_uses_transparent_overlay_fade():
     assert "color: Enums.transparent" in dissolve_source
     assert "targetWindow.opacity = Enums.opacityLevel.invisible" in dissolve_source
     assert "Enums.duration.splashExitDissolve" in dissolve_source
+    assert "Enums.duration.splashGridContentFade" in dissolve_source
     assert 'property: "opacity"' in dissolve_source
+    assert 'property: "scale"' in dissolve_source
+    assert "Enums.splashScreenMetrics.exitContentEndScale" in dissolve_source
+    assert "ParallelAnimation" in dissolve_source
     assert "Easing.InOutCubic" in dissolve_source
     assert "onCloseCallback()" in dissolve_source
     assert (

@@ -6,7 +6,7 @@ import QtQuick
 import ".."
 import QtQuick.Window  // Keep native Window after the library import. 库导入后保留原生 Window 名称。
 
-// WindowCloseDissolve - Native-overlay transparent close fade 原生覆盖窗透明渐隐关闭效果
+// WindowCloseDissolve - Native-overlay transparent close retreat 原生覆盖窗透明收束关闭效果
 Item {
     id: effect
 
@@ -149,12 +149,21 @@ Item {
     SequentialAnimation {
         id: closeAnimation
 
-        NumberAnimation {
-            target: frozenFrame
-            property: "opacity"
-            to: Enums.opacityLevel.invisible
-            duration: Enums.duration.splashExitDissolve
-            easing.type: Easing.InOutCubic
+        ParallelAnimation {
+            NumberAnimation {
+                target: frozenFrame
+                property: "opacity"
+                to: Enums.opacityLevel.invisible
+                duration: Enums.duration.splashExitDissolve
+                easing.type: Easing.InOutCubic
+            }
+            NumberAnimation {
+                target: frozenFrame
+                property: "scale"
+                to: Enums.splashScreenMetrics.exitContentEndScale
+                duration: Enums.duration.splashGridContentFade
+                easing.type: Easing.InCubic
+            }
         }
         ScriptAction { script: effect._completeClose() }
     }
