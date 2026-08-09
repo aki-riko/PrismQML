@@ -302,6 +302,7 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert overlay.property("loading") is True
         assert overlay.isVisible()
         assert overlay.property("backgroundColor").alpha() == 0
+        assert overlay.property("transitionBackgroundColor").alpha() == 255
         assert overlay.property("text") == "Loading overlay probe"
         rings = [
             child
@@ -316,10 +317,22 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert _wait_for(
             lambda: overlay.property("text") == "Updated loading overlay probe"
         )
-        assert overlay.findChild(QObject, "qmlPageExitLoader") is None
+        transition = overlay.findChild(QObject, "qmlPageCircleTransition")
+        circle_frame = overlay.findChild(QObject, "qmlPageCircleFrame")
+        assert transition is not None
+        assert circle_frame is not None
+        assert overlay.property("entering") is True
+        assert transition.property("revealTarget") is False
+        assert transition.property("running") is True
+        assert circle_frame.property("visible") is True
         assert overlay.findChild(QObject, "qmlPageCloseRippleDissolve") is None
 
         assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
+        assert overlay.property("finishing") is True
+        assert _wait_for(lambda: overlay.property("entering") is False)
+        assert transition.property("revealTarget") is True
+        assert transition.property("running") is True
+        assert circle_frame.property("visible") is True
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         assert _wait_for(lambda: loader.property("item") is None)
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

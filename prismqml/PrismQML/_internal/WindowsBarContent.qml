@@ -127,15 +127,19 @@ Item {
         Loader {
             id: loadingOverlayLoader
 
+            property bool transitionActive: false
+
             objectName: "loadingOverlayLoader"
             anchors.fill: parent
-            active: root._loadingOverlayActive
+            active: root._loadingOverlayActive || transitionActive
             asynchronous: false
             onLoaded: {
+                transitionActive = false
                 if (root.hostWindow) root.hostWindow._pythonLoadingOverlay = item
             }
             onItemChanged: {
                 if (!item) {
+                    transitionActive = false
                     if (root.hostWindow) root.hostWindow._pythonLoadingOverlay = null
                 }
             }
@@ -144,7 +148,8 @@ Item {
 
                 objectName: "loadingOverlay"
                 backgroundColor: Enums.transparent
-                running: visible
+                transitionBackgroundColor: Enums.backgroundColor
+                running: visible && !finishing
                 text: {
                     Translator._v
                     return root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
@@ -154,6 +159,15 @@ Item {
                     if (loading) start()
                     else finish()
                 }
+            }
+
+            Connections {
+                function onFinishingChanged() {
+                    loadingOverlayLoader.transitionActive = target.finishing
+                }
+
+                target: loadingOverlayLoader.item
+                ignoreUnknownSignals: true
             }
         }
     }

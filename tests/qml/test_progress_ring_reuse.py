@@ -25,6 +25,20 @@ LAZY_LOADING_HELPER = (
     QML_ROOT / "controls" / "navigation" / "_internal" / "LazyLoadingHelper.qml"
 )
 QML_PAGE = QML_ROOT / "controls" / "feedback" / "QMLPage.qml"
+QML_PAGE_CIRCLE_TRANSITION = (
+    QML_ROOT
+    / "controls"
+    / "feedback"
+    / "_internal"
+    / "QMLPageCircleTransition.qml"
+)
+QML_PAGE_CIRCLE_FRAME = QML_PAGE_CIRCLE_TRANSITION.with_name(
+    "QMLPageCircleFrame.qml"
+)
+QML_PAGE_CIRCLE_SHADER = (
+    QML_ROOT / "shaders" / "qml_page_circle_transition.frag"
+)
+QML_PAGE_CIRCLE_SHADER_BINARY = QML_PAGE_CIRCLE_SHADER.with_suffix(".frag.qsb")
 SPLASH_SCREEN = (
     QML_ROOT / "controls" / "feedback" / "SplashScreen" / "SplashScreen.qml"
 )
@@ -253,12 +267,13 @@ def test_ring_consumers_delegate_to_canonical_progress_ring():
             assert marker not in source, (source_path, marker)
 
 
-def test_qml_page_preserves_lazy_ring_without_ripple():
-    """公开加载页仅保留原懒加载圆环，不复用窗口关闭涟漪。"""
+def test_qml_page_uses_one_aperture_without_close_ripple_layers():
+    """公开加载页使用单层光圈，不复用窗口关闭涟漪。"""
     helper_source = LAZY_LOADING_HELPER.read_text(encoding="utf-8")
     assert "QMLPage {" in helper_source
     assert "backgroundColor: Enums.transparent" in helper_source
-    assert "loadingOverlay.prepareFinish()" not in helper_source
+    assert "transitionBackgroundColor: Enums.backgroundColor" in helper_source
+    assert "onEntered: helper._completeLoadingCover()" in helper_source
     assert "loadingOverlay.finish()" in helper_source
     assert "CloseRipple" not in helper_source
 
@@ -271,11 +286,32 @@ def test_qml_page_preserves_lazy_ring_without_ripple():
     assert "spacing: Enums.spacing.xl" in page_source
     assert "anchors.horizontalCenter: parent.horizontalCenter" in page_source
     assert "function finish()" in page_source
+    assert "signal entered()" in page_source
     assert "signal finished()" in page_source
-    assert 'objectName: "qmlPageExitLoader"' not in page_source
-    assert "QMLPageExitDissolve" not in page_source
+    assert "Internal.QMLPageCircleTransition" in page_source
+    assert 'objectName: "qmlPageCircleTransition"' in page_source
     assert "CloseRipple" not in page_source
-    assert "layer.effect" not in page_source
+
+    transition_source = QML_PAGE_CIRCLE_TRANSITION.read_text(encoding="utf-8")
+    frame_source = QML_PAGE_CIRCLE_FRAME.read_text(encoding="utf-8")
+    shader_source = QML_PAGE_CIRCLE_SHADER.read_text(encoding="utf-8")
+    assert "ShaderEffectSource {" in page_source
+    assert "sourceItem: transitionSurface" in page_source
+    assert "hideSource: circleTransition.running" in page_source
+    assert "Internal.QMLPageCircleFrame" in page_source
+    assert "Easing.InCubic" in transition_source
+    assert "Easing.OutQuint" in transition_source
+    assert 'objectName: "qmlPageCircleFrame"' in page_source
+    assert "qml_page_circle_transition.frag.qsb" in frame_source
+    assert "revealTarget" in frame_source
+    assert shader_source.count("smoothstep(") == 1
+    assert "float apertureRadius" in shader_source
+    assert "float maskAlpha" in shader_source
+    assert "wave" not in shader_source.lower()
+    assert "refraction" not in shader_source.lower()
+    assert QML_PAGE_CIRCLE_SHADER_BINARY.stat().st_size > 0
+    assert "CloseRipple" not in transition_source
+    assert "CloseRipple" not in frame_source
 
     splash_source = SPLASH_SCREEN.read_text(encoding="utf-8")
     assert "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot" in splash_source

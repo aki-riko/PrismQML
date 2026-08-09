@@ -55,9 +55,17 @@ Window {
     property int completedPrevious: -1
     property string stageLog: ""
     readonly property int expectedActivationInterval:
-        Math.max(Enums.duration.tick, Enums.duration.dialog)
+        Math.max(
+            Enums.duration.tick,
+            Enums.duration.dialog
+                - Enums.lazyLoadingTransitionMetrics.coverDuration
+        )
     readonly property int expectedPollingInterval: Enums.duration.tick
     readonly property int expectedRenderInterval: Enums.duration.ultraFast
+    readonly property int expectedCoverDuration:
+        Enums.lazyLoadingTransitionMetrics.coverDuration
+    readonly property int expectedRevealDuration:
+        Enums.lazyLoadingTransitionMetrics.revealDuration
 
     function beginSwitch() {
         lazyHelper.showLoadingAndSwitch(1)
@@ -220,7 +228,7 @@ def _dispose_scene(qapp, engine, component, window) -> None:
 
 
 def test_lazy_loading_helper_timer_phase_baseline(qapp):
-    """One timer starts with the progress-only loading page. 纯进度加载页启动唯一计时器。"""
+    """One timer starts after the circle covers the old page. 单圆覆盖旧页后启动唯一计时器。"""
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, helper, overlay, warnings = _create_scene()
     try:
@@ -236,6 +244,20 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             window.property("stageLog"),
             warnings,
         )
+        assert overlay.property("entering") is True
+        circle_transition = overlay.findChild(QObject, "qmlPageCircleTransition")
+        assert circle_transition is not None
+        assert circle_transition.property("revealTarget") is False
+        assert _running_timers(helper) == []
+        _pump(window.property("expectedCoverDuration") * 3 // 4)
+        assert overlay.property("entering") is True
+        assert window.property("activatedCount") == 0
+        assert _running_timers(helper) == []
+        assert 0 < circle_transition.property("progress") < 1
+
+        assert _wait_for(lambda: overlay.property("entering") is False)
+        covered_hash = _image_hash(window.grabWindow())
+        assert covered_hash != initial_hash
         activation_timer = _direct_timers(helper)[0]
         activation_timer_count = len(_direct_timers(helper))
         assert _running_timers(helper) == [activation_timer]
@@ -267,6 +289,10 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
 
         assert _wait_for(lambda: window.property("completedTarget") == 1)
         assert window.property("completedPrevious") == 0
+        assert overlay.property("finishing") is True
+        assert circle_transition.property("revealTarget") is True
+        _pump(window.property("expectedRevealDuration") // 6)
+        assert 0 < circle_transition.property("progress") < 1
         assert _wait_for(lambda: helper.property("pendingTargetIndex") == -1)
         assert _wait_for(lambda: overlay.property("visible") is False)
         assert _running_timers(helper) == []
@@ -279,7 +305,7 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             f"timers=1/{activation_timer_count}/{polling_timer_count}/"
             f"{render_timer_count}/{settled_timer_count}",
             f"objects={initial_object_count}/{settled_object_count}",
-            f"hashes={initial_hash}/{restored_hash}",
+            f"hashes={initial_hash}/{covered_hash}/{restored_hash}",
         )
 
         assert (
@@ -288,12 +314,13 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             render_timer_count,
             settled_timer_count,
         ) == (1, 1, 1, 1)
-        assert (initial_object_count, settled_object_count) == (15, 15)
+        assert (initial_object_count, settled_object_count) == (24, 24)
         assert (initial_hash, restored_hash) == (
             "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
             "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
         )
         assert warnings == []
+        assert "helper.circle_cover.finish;" in window.property("stageLog")
         assert "helper.loader_activate.begin;" in window.property("stageLog")
         assert "helper.page_ready;" in window.property("stageLog")
         assert "helper.page_render.begin;" in window.property("stageLog")

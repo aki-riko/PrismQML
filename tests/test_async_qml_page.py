@@ -194,6 +194,7 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         loading_seen = False
         animation_after_loading = []
         animation_finished = []
+        circle_reveals = []
         page_states = []
 
         def capture_page_state():
@@ -230,7 +231,18 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             lambda: window._window.findChild(QObject, "loadingOverlay") is not None
         )
         loading_overlay = window._window.findChild(QObject, "loadingOverlay")
-        assert loading_overlay.findChild(QObject, "qmlPageExitLoader") is None
+        circle_transition = loading_overlay.findChild(
+            QObject, "qmlPageCircleTransition"
+        )
+        circle_frame = loading_overlay.findChild(QObject, "qmlPageCircleFrame")
+        assert circle_transition is not None
+        assert circle_frame is not None
+        assert circle_frame.property("visible") is True
+        circle_transition.revealTargetChanged.connect(
+            lambda: circle_reveals.append(
+                bool(circle_transition.property("revealTarget"))
+            )
+        )
         assert (
             loading_overlay.findChild(QObject, "qmlPageCloseRippleDissolve")
             is None
@@ -241,6 +253,10 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         )
         assert loading_seen
         assert any(animation_after_loading), animation_after_loading
+        assert loading_overlay.property("finishing") is True
+        assert any(circle_reveals), circle_reveals
+        assert circle_transition.property("revealTarget") is True
+        assert circle_frame.property("visible") is True
         assert _pump_until(lambda: bool(animation_finished))
         assert any(0.05 < opacity < 0.95 for _, opacity, _ in page_states), page_states
         assert any(

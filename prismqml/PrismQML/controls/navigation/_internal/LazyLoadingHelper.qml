@@ -159,6 +159,14 @@ Item {
         loadingOverlay.start()
         loadingOverlay.y = 0
         loadingOverlay.opacity = 1
+        _trace("helper.show.done", targetIdx)
+    }
+
+    function _completeLoadingCover() {
+        var targetIdx = pendingTargetIndex
+        if (targetIdx < 0) return
+
+        _trace("helper.circle_cover.finish", targetIdx)
         var currentLoader = loaders[helper.currentVisibleIndex]
         if (currentLoader) {
             currentLoader.visible = false
@@ -168,7 +176,6 @@ Item {
             currentLoader.scale = 1
         }
         _startLoaderActivationTimer(targetIdx)
-        _trace("helper.show.done", targetIdx)
     }
 
     function _restoreVisiblePage() {
@@ -219,6 +226,7 @@ Item {
         // Keep the loading surface transparent so the window Mica backdrop remains visible.
         // 保持加载表面透明，让窗口云母背板持续可见。
         backgroundColor: Enums.transparent
+        transitionBackgroundColor: Enums.backgroundColor
         running: visible && opacity > 0
         visible: false
         opacity: 0
@@ -237,6 +245,7 @@ Item {
             helper.animationStart()
             helper._trace("helper.hide_loading.done", targetIndex)
         }
+        onEntered: helper._completeLoadingCover()
     }
     
     // Sequential stage timer 串行阶段计时器
@@ -249,7 +258,10 @@ Item {
 
         objectName: "lazyLoaderActivateTimer"
         interval: _activationPhase
-                  ? Math.max(Enums.duration.tick, helper.loaderActivationDelay)
+                  ? Math.max(
+                        Enums.duration.tick,
+                        helper.loaderActivationDelay
+                            - Enums.lazyLoadingTransitionMetrics.coverDuration)
                   : (_renderPhase
                      ? Enums.duration.ultraFast : Enums.duration.tick)
         repeat: !_activationPhase && !_renderPhase
