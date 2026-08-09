@@ -22,16 +22,12 @@ Item {
     
     // ==================== Public Props 公开属性 ====================
     property string loadingText: { Translator._v; return Translator.tr("loading") }
-    property int animationType: Enums.animation.opacity  // Animation type from parent 父级动画类型
-    property int animationDuration: Enums.duration.slow  // Animation duration 动画时长
     property int loaderActivationDelay: Enums.duration.none  // Extra delay before Loader activation Loader 激活前额外延迟
-    property int popUpOffset: Enums.controlSize.popUpOffset  // PopUp offset PopUp偏移量
 
     // ==================== Internal Props 内部属性 ====================
     property int pendingTargetIndex: -1
     property bool isLoadingSwitching: false
     property int internalLastIndex: 0
-    property int _exitTargetIndex: -1  // Store target index for exit animation callback 存储退出动画回调的目标索引
     property int _observedLoaderIndex: -1
     property int _observedLoaderStatus: Loader.Null
     
@@ -164,77 +160,23 @@ Item {
         loadingOverlay.prepareFinish()
         loadingOverlay.y = 0
         loadingOverlay.opacity = 1
-
-        // Phase 1: Play exit animation for old page based on animationType 第一阶段：根据动画类型播放旧页面退出动画
-        // Loader activation will start after exit animation finishes Loader激活将在退出动画完成后开始
-        var currentLoader = loaders[helper.currentVisibleIndex]
-        if (currentLoader && currentLoader.visible) {
-            _playExitAnimation(currentLoader, targetIdx)
-        } else {
-            // No old page to animate, start loader activation immediately 没有旧页面需要动画，立即开始激活Loader
-            _startLoaderActivationTimer(targetIdx)
-        }
         _trace("helper.show.done", targetIdx)
     }
 
-    function _playExitAnimation(target, targetIdx) {
-        _trace("helper.exit_animation.start", targetIdx)
-        // Store target index for callback 存储目标索引用于回调
-        _exitTargetIndex = targetIdx
+    function _completeLoadingEntrance() {
+        var targetIdx = pendingTargetIndex
+        if (targetIdx < 0) return
 
-        // Reset all animation targets 重置所有动画目标
-        exitFadeAnim.stop()
-        exitPopUpAnim.stop()
-        exitPopDownAnim.stop()
-        exitZoomAnim.stop()
-        exitSlideAnim.stop()
-
-        switch (animationType) {
-            case Enums.animation.opacity:
-                exitFadeAnim.target = target
-                exitFadeAnim.start()
-                break
-            case Enums.animation.popup:
-                exitPopUpAnim.target = target
-                exitPopUpAnim.start()
-                break
-            case Enums.animation.popdown:
-                exitPopDownAnim.target = target
-                exitPopDownAnim.start()
-                break
-            case Enums.animation.zoom:
-                exitZoomAnim.target = target
-                exitZoomAnim.start()
-                break
-            case Enums.animation.slide:
-            case Enums.animation.card:
-                exitSlideAnim.target = target
-                exitSlideAnim.to = -helper.width
-                exitSlideAnim.start()
-                break
-            default:
-                exitFadeAnim.target = target
-                exitFadeAnim.start()
+        _trace("helper.ripple_entrance.finish", targetIdx)
+        var currentLoader = loaders[helper.currentVisibleIndex]
+        if (currentLoader) {
+            currentLoader.visible = false
+            currentLoader.opacity = 1
+            currentLoader.y = 0
+            currentLoader.x = 0
+            currentLoader.scale = 1
         }
-    }
-
-    function _onExitAnimationFinished(target) {
-        var completedTargetIndex = _exitTargetIndex
-        _trace("helper.exit_animation.finish", completedTargetIndex)
-        if (target) {
-            target.visible = false
-            target.opacity = 1
-            target.y = 0
-            target.x = 0
-            target.scale = 1
-        }
-
-        // Start loader activation after exit animation completes 退出动画完成后开始激活 Loader
-
-        if (_exitTargetIndex >= 0 && _exitTargetIndex === pendingTargetIndex) {
-            _startLoaderActivationTimer(_exitTargetIndex)
-        }
-        _exitTargetIndex = -1
+        _startLoaderActivationTimer(targetIdx)
     }
 
     function _restoreVisiblePage() {
@@ -269,7 +211,6 @@ Item {
         loadingOverlay.y = 0
         pendingTargetIndex = -1
         isLoadingSwitching = false
-        _exitTargetIndex = -1
 
         loadingFailed(targetIdx, errorString)
         _trace("helper.loading_failed.done", targetIdx)
@@ -307,58 +248,7 @@ Item {
             helper.animationStart()
             helper._trace("helper.hide_loading.done", targetIndex)
         }
-    }
-
-    // Exit animations 退出动画
-    // Fade exit 淡出
-
-    NumberAnimation {
-        id: exitFadeAnim
-        property: "opacity"
-        from: 1; to: 0
-        duration: helper.animationDuration
-        easing.type: Easing.OutCubic
-        onFinished: helper._onExitAnimationFinished(target)
-    }
-    
-    // PopUp exit (fade + move down) PopUp退出（淡出+下移）
-    ParallelAnimation {
-        id: exitPopUpAnim
-        property Item target
-        onFinished: helper._onExitAnimationFinished(target)
-
-        NumberAnimation { target: exitPopUpAnim.target; property: "opacity"; from: 1; to: 0; duration: helper.animationDuration; easing.type: Easing.OutCubic }
-        NumberAnimation { target: exitPopUpAnim.target; property: "y"; from: 0; to: helper.popUpOffset; duration: helper.animationDuration; easing.type: Easing.OutCubic }
-    }
-    
-    // PopDown exit (fade + move up) PopDown退出（淡出+上移）
-    ParallelAnimation {
-        id: exitPopDownAnim
-        property Item target
-        onFinished: helper._onExitAnimationFinished(target)
-
-        NumberAnimation { target: exitPopDownAnim.target; property: "opacity"; from: 1; to: 0; duration: helper.animationDuration; easing.type: Easing.OutCubic }
-        NumberAnimation { target: exitPopDownAnim.target; property: "y"; from: 0; to: -helper.popUpOffset; duration: helper.animationDuration; easing.type: Easing.OutCubic }
-    }
-    
-    // Zoom exit 缩放退出
-    NumberAnimation {
-        id: exitZoomAnim
-        property: "scale"
-        from: 1; to: 0
-        duration: helper.animationDuration / 2
-        easing.type: Easing.InQuad
-        onFinished: helper._onExitAnimationFinished(target)
-    }
-    
-    // Slide exit 滑动退出
-    NumberAnimation {
-        id: exitSlideAnim
-        property: "x"
-        from: 0
-        duration: helper.animationDuration
-        easing.type: Easing.OutCubic
-        onFinished: helper._onExitAnimationFinished(target)
+        onEntered: helper._completeLoadingEntrance()
     }
     
     // Sequential stage timer 串行阶段计时器
@@ -373,7 +263,8 @@ Item {
         interval: _activationPhase
                   ? Math.max(
                         Enums.duration.tick,
-                        helper.loaderActivationDelay - helper.animationDuration)
+                        helper.loaderActivationDelay
+                            - Enums.windowCloseMetrics.rippleDuration)
                   : (_renderPhase
                      ? Enums.duration.ultraFast : Enums.duration.tick)
         repeat: !_activationPhase && !_renderPhase

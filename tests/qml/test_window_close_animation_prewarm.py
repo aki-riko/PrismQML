@@ -316,7 +316,7 @@ def test_close_animation_source_uses_water_ripple_shader():
     assert "CloseRippleFrame {" in dissolve_source
     assert 'property: "progress"' in ripple_animator_source
     assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_animator_source
-    assert "easing.type: Easing.OutQuad" in ripple_animator_source
+    assert "animator.reverse ? Easing.InQuad : Easing.OutQuad" in ripple_animator_source
     assert "ShaderEffect {" in ripple_frame_source
     assert 'objectName: "windowCloseRippleFrame"' in dissolve_source
     assert "source: frozenFrame" in dissolve_source

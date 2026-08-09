@@ -228,10 +228,7 @@ Item {
         item.targetIndex = Qt.binding(function() { return control.currentIndex })
         item.currentVisibleIndex = Qt.binding(function() { return control._displayIndex })
         item.loadingText = Qt.binding(function() { return control.loadingText })
-        item.animationType = Qt.binding(function() { return control.animationType })
-        item.animationDuration = Qt.binding(function() { return control.animationDuration })
         item.loaderActivationDelay = Qt.binding(function() { return control.lazyActivationDelay })
-        item.popUpOffset = Qt.binding(function() { return control.popUpOffset })
         item.isPageLoadedFunc = control._isPageLoaded
         item.isPageLoadFailedFunc = control._isPageLoadFailedFunc
         item.pageLoadErrorFunc = control._pageLoadErrorFunc

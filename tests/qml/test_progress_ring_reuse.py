@@ -258,8 +258,8 @@ def test_ring_consumers_delegate_to_canonical_progress_ring():
             assert marker not in source, (source_path, marker)
 
 
-def test_qml_page_preserves_lazy_ring_and_reuses_close_ripple_exit():
-    """公开加载页保留原懒加载圆环，并复用窗口关闭涟漪退场。"""
+def test_qml_page_preserves_lazy_ring_and_reuses_reversible_close_ripple():
+    """公开加载页保留原懒加载圆环，并双向复用窗口关闭涟漪。"""
     helper_source = LAZY_LOADING_HELPER.read_text(encoding="utf-8")
     assert "QMLPage {" in helper_source
     assert "backgroundColor: Enums.transparent" in helper_source
@@ -276,6 +276,8 @@ def test_qml_page_preserves_lazy_ring_and_reuses_close_ripple_exit():
     assert "spacing: Enums.spacing.xl" in page_source
     assert "anchors.horizontalCenter: parent.horizontalCenter" in page_source
     assert "function finish()" in page_source
+    assert "signal entered()" in page_source
+    assert "exitLoader.item.reverse = control._transitionPhase === 1" in page_source
     assert 'objectName: "qmlPageExitLoader"' in page_source
     assert "asynchronous: true" in page_source
 
@@ -288,7 +290,10 @@ def test_qml_page_preserves_lazy_ring_and_reuses_close_ripple_exit():
     assert "duration: Enums.windowCloseMetrics.rippleDuration" not in ripple_source
     assert "easing.type: Easing.OutQuad" not in ripple_source
     assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_animator_source
-    assert "easing.type: Easing.OutQuad" in ripple_animator_source
+    assert "property bool reverse: false" in ripple_animator_source
+    assert "animator.reverse ? Easing.InQuad : Easing.OutQuad" in ripple_animator_source
+    assert "rippleAnimator.reverse = effect.reverse" in ripple_source
+    assert "rippleAnimator.prepare()" in ripple_source
     assert "CloseRippleFrame {" in ripple_source
     assert "sourceItem.layer.effect = rippleEffectComponent" in ripple_source
     assert "sourceItem.layer.enabled = true" in ripple_source

@@ -55,9 +55,14 @@ Window {
     property int completedPrevious: -1
     property string stageLog: ""
     readonly property int expectedActivationInterval:
-        Math.max(Enums.duration.tick, Enums.duration.dialog - Enums.duration.fast)
+        Math.max(
+            Enums.duration.tick,
+            Enums.duration.dialog - Enums.windowCloseMetrics.rippleDuration
+        )
     readonly property int expectedPollingInterval: Enums.duration.tick
     readonly property int expectedRenderInterval: Enums.duration.ultraFast
+    readonly property int expectedRippleDuration:
+        Enums.windowCloseMetrics.rippleDuration
 
     function beginSwitch() {
         lazyHelper.showLoadingAndSwitch(1)
@@ -104,8 +109,6 @@ Window {
         loaders: [firstPage, secondPage]
         targetIndex: 1
         currentVisibleIndex: 0
-        animationType: Enums.animation.opacity
-        animationDuration: Enums.duration.fast
         loaderActivationDelay: Enums.duration.dialog
         isPageLoadedFunc: function(index) {
             return index === 1 && root.targetLoaded
@@ -222,7 +225,7 @@ def _dispose_scene(qapp, engine, component, window) -> None:
 
 
 def test_lazy_loading_helper_timer_phase_baseline(qapp):
-    """Three resident timers run one phase at a time. 三个常驻计时器逐阶段单独运行。"""
+    """One timer starts only after the ripple entrance. 唯一计时器仅在涟漪入场后启动。"""
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, helper, overlay, warnings = _create_scene()
     try:
@@ -238,16 +241,15 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             window.property("stageLog"),
             warnings,
         )
-        assert _wait_for(
-            lambda: len(_running_timers(helper)) == 1
-            and window.property("activatedCount") == 0
-        )
-        activation_timer = _running_timers(helper)[0]
+        assert overlay.property("entering") is True
+        _pump(window.property("expectedRippleDuration") // 2)
+        assert overlay.property("entering") is True
+        assert window.property("activatedCount") == 0
+        assert _running_timers(helper) == []
+
+        activation_timer = _direct_timers(helper)[0]
         activation_timer_count = len(_direct_timers(helper))
-        assert activation_timer.property("repeat") is False
-        assert activation_timer.property("interval") == window.property(
-            "expectedActivationInterval"
-        )
+        assert window.property("expectedActivationInterval") == 1
 
         assert _wait_for(lambda: window.property("activatedCount") == 1)
         assert _wait_for(
@@ -292,12 +294,13 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             render_timer_count,
             settled_timer_count,
         ) == (1, 1, 1, 1)
-        assert (initial_object_count, settled_object_count) == (26, 27)
+        assert (initial_object_count, settled_object_count) == (17, 18)
         assert (initial_hash, restored_hash) == (
             "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
             "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
         )
         assert warnings == []
+        assert "helper.ripple_entrance.finish;" in window.property("stageLog")
         assert "helper.loader_activate.begin;" in window.property("stageLog")
         assert "helper.page_ready;" in window.property("stageLog")
         assert "helper.page_render.begin;" in window.property("stageLog")

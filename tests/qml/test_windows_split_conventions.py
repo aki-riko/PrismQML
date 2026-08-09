@@ -318,13 +318,19 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
             lambda: overlay.property("text") == "Updated loading overlay probe"
         )
 
-        assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
-        assert overlay.property("finishing") is True
+        assert overlay.property("entering") is True
         exit_loader = overlay.findChild(QObject, "qmlPageExitLoader")
         assert exit_loader is not None
         assert _wait_for(lambda: exit_loader.property("item") is not None)
         dissolve = overlay.findChild(QObject, "qmlPageCloseRippleDissolve")
         assert dissolve is exit_loader.property("item")
+        assert dissolve.property("reverse") is True
+        assert dissolve.property("running") is True
+
+        assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
+        assert overlay.property("finishing") is True
+        assert _wait_for(lambda: overlay.property("entering") is False)
+        assert dissolve.property("reverse") is False
         assert dissolve.property("running") is True
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         assert _wait_for(lambda: loader.property("item") is None)

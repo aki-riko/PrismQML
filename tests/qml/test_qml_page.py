@@ -112,7 +112,7 @@ def test_qml_page_is_public_and_preserves_lazy_progress(qapp):
         engine.deleteLater()
 
 
-def test_qml_page_finish_uses_reusable_window_close_ripple(qapp):
+def test_qml_page_uses_reversible_ripple_for_entrance_and_exit(qapp):
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
@@ -162,21 +162,50 @@ def test_qml_page_finish_uses_reusable_window_close_ripple(qapp):
             name.startswith("qmlPageGridCell_") for name in _visual_items(page)
         )
 
+        entered = []
+        finished = []
+        page.entered.connect(lambda: entered.append(True))
+        page.finished.connect(lambda: finished.append(True))
         assert QMetaObject.invokeMethod(page, "start")
-        _pump()
+        assert _wait_until(lambda: exit_loader.property("item") is not None)
+        ripple = exit_loader.property("item")
+        assert ripple.property("reverse") is True
         assert page.property("visible") is True
+        assert page.property("entering") is True
         assert page.property("finishing") is False
+        assert QQmlProperty(page, "layer.enabled").read() is True
+        _pump(100)
+        assert 0 < ripple.property("_dissolveProgress") < 1
         assert content.property("opacity") == pytest.approx(1.0)
         assert content.property("scale") == pytest.approx(1.0)
 
         assert QMetaObject.invokeMethod(page, "finish")
-        assert _wait_until(lambda: exit_loader.property("item") is not None)
-        _pump(100)
+        assert page.property("entering") is True
+        assert page.property("finishing") is True
+        assert _wait_until(lambda: entered == [True])
+        assert page.property("entering") is False
+        assert ripple.property("reverse") is False
         assert QQmlProperty(page, "layer.enabled").read() is True
-        assert QMetaObject.invokeMethod(page, "start")
+        assert _wait_until(lambda: finished == [True])
+        assert page.property("visible") is False
         assert _wait_until(lambda: exit_loader.property("item") is None)
+
+        assert QMetaObject.invokeMethod(page, "start")
+        assert _wait_until(lambda: exit_loader.property("item") is not None)
+        assert _wait_until(lambda: page.property("entering") is False)
         assert page.property("visible") is True
+        assert QMetaObject.invokeMethod(page, "finish")
+        assert _wait_until(
+            lambda: QQmlProperty(page, "layer.enabled").read() is True
+        )
+        _pump(100)
+        assert QMetaObject.invokeMethod(page, "start")
+        assert exit_loader.property("item") is not None
+        assert page.property("visible") is True
+        assert page.property("entering") is True
         assert page.property("finishing") is False
+        assert exit_loader.property("item").property("reverse") is True
+        assert _wait_until(lambda: page.property("entering") is False)
         assert QQmlProperty(page, "layer.enabled").read() is False
     finally:
         root.deleteLater()

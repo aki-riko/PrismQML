@@ -12,6 +12,9 @@ Item {
     // ==================== Required Props 必需属性 ====================
     required property Item sourceItem
 
+    // ==================== Public Props 公开属性 ====================
+    property bool reverse: false
+
     // ==================== Readonly State 只读状态 ====================
     readonly property bool running: _running
     readonly property real _dissolveProgress: rippleAnimator.progress
@@ -26,11 +29,12 @@ Item {
     function start() {
         if (effect._running)
             return
-        rippleAnimator.stop()
+        rippleAnimator.reverse = effect.reverse
+        rippleAnimator.prepare()
         effect._running = true
         effect.sourceItem.layer.effect = rippleEffectComponent
         effect.sourceItem.layer.enabled = true
-        rippleAnimator.start()
+        rippleAnimator.startPrepared()
     }
 
     function stop() {
