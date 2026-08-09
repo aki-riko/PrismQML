@@ -173,6 +173,8 @@ def test_qml_page_uses_reversible_ripple_for_entrance_and_exit(qapp):
         assert page.property("visible") is True
         assert page.property("entering") is True
         assert page.property("finishing") is False
+        assert page.property("transitionBackgroundOpacity") == pytest.approx(0.85)
+        assert page.property("color").alphaF() == pytest.approx(0.85, abs=0.01)
         assert QQmlProperty(page, "layer.enabled").read() is True
         _pump(100)
         assert 0 < ripple.property("_dissolveProgress") < 1

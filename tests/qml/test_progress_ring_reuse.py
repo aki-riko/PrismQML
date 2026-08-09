@@ -278,6 +278,7 @@ def test_qml_page_preserves_lazy_ring_and_reuses_reversible_close_ripple():
     assert "function finish()" in page_source
     assert "signal entered()" in page_source
     assert "exitLoader.item.reverse = control._transitionPhase === 1" in page_source
+    assert "transitionBackgroundOpacity: Enums.opacityLevel.strong" in page_source
     assert 'objectName: "qmlPageExitLoader"' in page_source
     assert "asynchronous: true" in page_source
 

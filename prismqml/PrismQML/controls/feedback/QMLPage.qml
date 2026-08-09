@@ -14,10 +14,17 @@ Rectangle {
     property bool running: visible                  // Run animation while loading 加载时运行动画
     property color backgroundColor: Enums.backgroundColor  // Page background 页面背景
     property color exitBackgroundColor: backgroundColor  // Exit ripple backdrop 退场涟漪背板
+    property real transitionBackgroundOpacity: Enums.opacityLevel.strong  // Transition transparency 过渡透明度
 
     // ==================== Internal Props 内部属性 ====================
     readonly property bool entering: _entering       // Entrance is running 正在入场
     readonly property bool finishing: _finishing     // Exit is running 正在退场
+    readonly property color _transitionBackgroundColor: Qt.rgba(
+        exitBackgroundColor.r,
+        exitBackgroundColor.g,
+        exitBackgroundColor.b,
+        exitBackgroundColor.a * Math.max(0, Math.min(1, transitionBackgroundOpacity))
+    )
     property bool _entering: false
     property bool _finishing: false
     property bool _exitPrepared: false
@@ -115,7 +122,8 @@ Rectangle {
         if (control._transitionPhase === 2) control._completeExitAnimation()
     }
 
-    color: control._transitionOpaque ? control.exitBackgroundColor : control.backgroundColor
+    color: control._transitionOpaque
+        ? control._transitionBackgroundColor : control.backgroundColor
     clip: true
 
     onVisibleChanged: {

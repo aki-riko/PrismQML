@@ -153,6 +153,10 @@ StackedWidget {{
             or "[懒加载诊断] StackedWidget #" in message
             for message in messages
         )
+        assert not any(
+            "Cannot assign to non-existent property" in message
+            for message in messages
+        )
     finally:
         qInstallMessageHandler(previous_handler)
         _release(qapp, stack, component, engine)
