@@ -49,6 +49,10 @@ function forceReset(control) {
 }
 
 function handleSurfaceClosed(control) {
+    // Ignore a queued close notification that belongs to an older surface
+    // instance and arrived after the replacement surface is visible again.
+    // 忽略旧 surface 的延迟关闭通知，避免重开后的新 surface 被误复位。
+    if (control._surfaceVisible) return
     if (control.isClosing || !control._openRequested) return
     if (!control.isOpen) {
         _timer(control).stop()
@@ -98,6 +102,7 @@ function _retrySurfaceOpen(control) {
         control._surfaceRecoveryAttemptCount += 1
         control._showCurrentSurface()
     }
+    if (!control._openRequested || control.isClosing || control.isOpen) return
     _timer(control).start()
 }
 
@@ -110,9 +115,19 @@ function _completeOpen(control) {
     _timer(control).stop()
     control._surfaceRecoveryScheduled = false
     control._surfaceRecoveryAttemptCount = 0
-    control._releaseQtPopupCapture()
     control.isOpen = true
+    // Publishing isOpen before the native capture hand-off makes any
+    // synchronous surface close re-enter the "already open" path. The guards
+    // below prevent that re-entrant close from being overwritten by the rest
+    // of this completion callback.
+    // 先发布 isOpen，使原生捕获交接期间同步关闭走“已打开”路径；下方守卫
+    // 防止重入关闭后又被当前完成回调覆盖。
+    control._releaseQtPopupCapture()
+    if (!control._openRequested || control.isClosing
+            || !control.isOpen || !control._surfaceVisible) return
     control._startOpenAnimation()
+    if (!control._openRequested || control.isClosing
+            || !control.isOpen || !control._surfaceVisible) return
     control.opened()
 }
 
