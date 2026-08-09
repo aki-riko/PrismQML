@@ -133,7 +133,11 @@ def _exercise_size_signal_failure(temp_dir):
         pump(80)
         window.setCurrentIndex(1)
         assert wait_for(
-            lambda: window._window.property("_pythonLoading") is False
+            lambda: (
+                1 in window._pages
+                and not shiboken6.isValid(page._qml_item)
+                and window._window.property("_pythonLoading") is False
+            )
         )
         assert window._pages[1] is page
         assert not shiboken6.isValid(page._qml_item)
