@@ -129,19 +129,15 @@ NavigationWindowCore {
         Loader {
             id: loadingOverlayLoader
 
-            property bool exitActive: false
-
             objectName: "loadingOverlayLoader"
             anchors.fill: parent
-            active: window._pythonLoading || exitActive
+            active: window._pythonLoading
             asynchronous: false
             onLoaded: {
-                exitActive = false
                 window._pythonLoadingOverlay = item
             }
             onItemChanged: {
                 if (!item) {
-                    exitActive = false
                     window._pythonLoadingOverlay = null
                 }
             }
@@ -150,23 +146,13 @@ NavigationWindowCore {
 
                 objectName: "loadingOverlay"
                 backgroundColor: Enums.transparent
-                exitBackgroundColor: Enums.backgroundColor
-                running: visible && !finishing
+                running: visible
                 text: window.loadingText
                 Component.onCompleted: if (loading) start()
                 onLoadingChanged: {
                     if (loading) start()
                     else finish()
                 }
-            }
-
-            Connections {
-                function onFinishingChanged() {
-                    loadingOverlayLoader.exitActive = target.finishing
-                }
-
-                target: loadingOverlayLoader.item
-                ignoreUnknownSignals: true
             }
         }
         }

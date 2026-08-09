@@ -157,17 +157,8 @@ Item {
 
         // Show loading overlay 显示加载页
         loadingOverlay.start()
-        loadingOverlay.prepareFinish()
         loadingOverlay.y = 0
         loadingOverlay.opacity = 1
-        _trace("helper.show.done", targetIdx)
-    }
-
-    function _completeLoadingEntrance() {
-        var targetIdx = pendingTargetIndex
-        if (targetIdx < 0) return
-
-        _trace("helper.ripple_entrance.finish", targetIdx)
         var currentLoader = loaders[helper.currentVisibleIndex]
         if (currentLoader) {
             currentLoader.visible = false
@@ -177,6 +168,7 @@ Item {
             currentLoader.scale = 1
         }
         _startLoaderActivationTimer(targetIdx)
+        _trace("helper.show.done", targetIdx)
     }
 
     function _restoreVisiblePage() {
@@ -224,12 +216,9 @@ Item {
         objectName: "lazyLoadingOverlay"
         anchors.fill: parent
         text: helper.loadingText
-        // Keep the lazy-loading surface transparent so the window Mica backdrop remains visible.
-        // 保持懒加载表面透明，让窗口云母背板持续可见。
+        // Keep the loading surface transparent so the window Mica backdrop remains visible.
+        // 保持加载表面透明，让窗口云母背板持续可见。
         backgroundColor: Enums.transparent
-        // Preserve the opaque ripple snapshot while the resting surface stays transparent.
-        // 保持常驻表面透明，同时保留不透明涟漪快照退场。
-        exitBackgroundColor: Enums.backgroundColor
         running: visible && opacity > 0
         visible: false
         opacity: 0
@@ -248,7 +237,6 @@ Item {
             helper.animationStart()
             helper._trace("helper.hide_loading.done", targetIndex)
         }
-        onEntered: helper._completeLoadingEntrance()
     }
     
     // Sequential stage timer 串行阶段计时器
@@ -261,10 +249,7 @@ Item {
 
         objectName: "lazyLoaderActivateTimer"
         interval: _activationPhase
-                  ? Math.max(
-                        Enums.duration.tick,
-                        helper.loaderActivationDelay
-                            - Enums.windowCloseMetrics.rippleDuration)
+                  ? Math.max(Enums.duration.tick, helper.loaderActivationDelay)
                   : (_renderPhase
                      ? Enums.duration.ultraFast : Enums.duration.tick)
         repeat: !_activationPhase && !_renderPhase

@@ -32,7 +32,6 @@ Item {
         anchors.fill: parent
         text: "Loading page"
         backgroundColor: Enums.transparent
-        exitBackgroundColor: Enums.backgroundColor
     }
 }
 """
@@ -42,26 +41,6 @@ def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
-
-
-def _wait_until(predicate, timeout_ms: int = 2000) -> bool:
-    elapsed = 0
-    while elapsed < timeout_ms:
-        if predicate():
-            return True
-        _pump()
-        elapsed += 20
-    return predicate()
-
-
-def _visual_items(root: QQuickItem) -> dict[str, QQuickItem]:
-    items = {}
-    pending = [root]
-    while pending:
-        item = pending.pop()
-        items[item.objectName()] = item
-        pending.extend(item.childItems())
-    return items
 
 
 def test_qml_page_is_public_and_preserves_lazy_progress(qapp):
@@ -112,7 +91,7 @@ def test_qml_page_is_public_and_preserves_lazy_progress(qapp):
         engine.deleteLater()
 
 
-def test_qml_page_uses_reversible_ripple_for_entrance_and_exit(qapp):
+def test_qml_page_starts_and_finishes_without_ripple(qapp):
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
@@ -130,85 +109,30 @@ def test_qml_page_uses_reversible_ripple_for_entrance_and_exit(qapp):
     assert root is not None, [error.toString() for error in component.errors()]
     try:
         page = root.findChild(QQuickItem, "qmlPage")
-        content = root.findChild(QQuickItem, "qmlPageContent")
-        exit_loader = root.findChild(QQuickItem, "qmlPageExitLoader")
-        assert page is not None and content is not None
-        assert exit_loader is not None
-        assert exit_loader.property("item") is None
+        ring = root.findChild(QQuickItem, "qmlPageProgressRing")
+        assert page is not None and ring is not None
+        assert root.findChild(QQuickItem, "qmlPageExitLoader") is None
+        assert root.findChild(QQuickItem, "qmlPageCloseRippleDissolve") is None
         assert QQmlProperty(page, "layer.enabled").read() is False
-        assert page.findChild(QQuickItem, "itemCloseRippleFrame") is None
 
-        assert QMetaObject.invokeMethod(page, "finish")
-        assert _wait_until(lambda: exit_loader.property("item") is not None)
-        visual_items = _visual_items(page)
-        ripple = visual_items.get("qmlPageCloseRippleDissolve")
-        assert ripple is not None
-        assert ripple.property("running") is True
-        assert QQmlProperty(page, "layer.enabled").read() is True
-        assert QQmlProperty(page, "layer.effect").read() is not None
-        assert not any(
-            name.startswith("qmlPageGridCell_") for name in visual_items
-        )
-        _pump(200)
-        assert page.property("finishing") is True
-        assert 0 < ripple.property("_dissolveProgress") < 1
-        assert content.property("opacity") == pytest.approx(1.0)
-
-        _pump(400)
-        assert page.property("visible") is False
-        assert QQmlProperty(page, "layer.enabled").read() is False
-        assert _wait_until(lambda: exit_loader.property("item") is None)
-        assert not any(
-            name.startswith("qmlPageGridCell_") for name in _visual_items(page)
-        )
-
-        entered = []
         finished = []
-        page.entered.connect(lambda: entered.append(True))
         page.finished.connect(lambda: finished.append(True))
-        assert QMetaObject.invokeMethod(page, "start")
-        assert _wait_until(lambda: exit_loader.property("item") is not None)
-        ripple = exit_loader.property("item")
-        assert ripple.property("reverse") is True
-        assert page.property("visible") is True
-        assert page.property("entering") is True
-        assert page.property("finishing") is False
-        assert page.property("transitionBackgroundOpacity") == pytest.approx(0.85)
-        assert page.property("color").alphaF() == pytest.approx(0.85, abs=0.01)
-        assert QQmlProperty(page, "layer.enabled").read() is True
-        _pump(100)
-        assert 0 < ripple.property("_dissolveProgress") < 1
-        assert content.property("opacity") == pytest.approx(1.0)
-        assert content.property("scale") == pytest.approx(1.0)
-
         assert QMetaObject.invokeMethod(page, "finish")
-        assert page.property("entering") is True
-        assert page.property("finishing") is True
-        assert _wait_until(lambda: entered == [True])
-        assert page.property("entering") is False
-        assert ripple.property("reverse") is False
-        assert QQmlProperty(page, "layer.enabled").read() is True
-        assert _wait_until(lambda: finished == [True])
         assert page.property("visible") is False
-        assert _wait_until(lambda: exit_loader.property("item") is None)
+        assert page.property("running") is False
+        assert ring.property("paused") is True
+        assert finished == [True]
+        assert QQmlProperty(page, "layer.enabled").read() is False
+
+        assert QMetaObject.invokeMethod(page, "finish")
+        assert finished == [True]
 
         assert QMetaObject.invokeMethod(page, "start")
-        assert _wait_until(lambda: exit_loader.property("item") is not None)
-        assert _wait_until(lambda: page.property("entering") is False)
         assert page.property("visible") is True
-        assert QMetaObject.invokeMethod(page, "finish")
-        assert _wait_until(
-            lambda: QQmlProperty(page, "layer.enabled").read() is True
-        )
-        _pump(100)
-        assert QMetaObject.invokeMethod(page, "start")
-        assert exit_loader.property("item") is not None
-        assert page.property("visible") is True
-        assert page.property("entering") is True
-        assert page.property("finishing") is False
-        assert exit_loader.property("item").property("reverse") is True
-        assert _wait_until(lambda: page.property("entering") is False)
+        assert page.property("running") is True
+        assert ring.property("indeterminate") is True
         assert QQmlProperty(page, "layer.enabled").read() is False
+        assert root.findChild(QQuickItem, "qmlPageExitLoader") is None
     finally:
         root.deleteLater()
         engine.deleteLater()

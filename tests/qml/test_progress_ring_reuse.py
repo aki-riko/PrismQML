@@ -25,11 +25,6 @@ LAZY_LOADING_HELPER = (
     QML_ROOT / "controls" / "navigation" / "_internal" / "LazyLoadingHelper.qml"
 )
 QML_PAGE = QML_ROOT / "controls" / "feedback" / "QMLPage.qml"
-QML_PAGE_EXIT = (
-    QML_ROOT / "controls" / "feedback" / "_internal" / "QMLPageExitDissolve.qml"
-)
-CLOSE_RIPPLE_DISSOLVE = QML_ROOT / "_internal" / "CloseRippleDissolve.qml"
-CLOSE_RIPPLE_ANIMATOR = QML_ROOT / "_internal" / "CloseRippleAnimator.qml"
 SPLASH_SCREEN = (
     QML_ROOT / "controls" / "feedback" / "SplashScreen" / "SplashScreen.qml"
 )
@@ -258,14 +253,14 @@ def test_ring_consumers_delegate_to_canonical_progress_ring():
             assert marker not in source, (source_path, marker)
 
 
-def test_qml_page_preserves_lazy_ring_and_reuses_reversible_close_ripple():
-    """公开加载页保留原懒加载圆环，并双向复用窗口关闭涟漪。"""
+def test_qml_page_preserves_lazy_ring_without_ripple():
+    """公开加载页仅保留原懒加载圆环，不复用窗口关闭涟漪。"""
     helper_source = LAZY_LOADING_HELPER.read_text(encoding="utf-8")
     assert "QMLPage {" in helper_source
     assert "backgroundColor: Enums.transparent" in helper_source
-    assert "exitBackgroundColor: Enums.backgroundColor" in helper_source
-    assert "loadingOverlay.prepareFinish()" in helper_source
+    assert "loadingOverlay.prepareFinish()" not in helper_source
     assert "loadingOverlay.finish()" in helper_source
+    assert "CloseRipple" not in helper_source
 
     page_source = QML_PAGE.read_text(encoding="utf-8")
     assert "indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc" in page_source
@@ -276,31 +271,11 @@ def test_qml_page_preserves_lazy_ring_and_reuses_reversible_close_ripple():
     assert "spacing: Enums.spacing.xl" in page_source
     assert "anchors.horizontalCenter: parent.horizontalCenter" in page_source
     assert "function finish()" in page_source
-    assert "signal entered()" in page_source
-    assert "exitLoader.item.reverse = control._transitionPhase === 1" in page_source
-    assert "transitionBackgroundOpacity: Enums.opacityLevel.strong" in page_source
-    assert 'objectName: "qmlPageExitLoader"' in page_source
-    assert "asynchronous: true" in page_source
-
-    exit_source = QML_PAGE_EXIT.read_text(encoding="utf-8")
-    ripple_source = CLOSE_RIPPLE_DISSOLVE.read_text(encoding="utf-8")
-    ripple_animator_source = CLOSE_RIPPLE_ANIMATOR.read_text(encoding="utf-8")
-    assert "Internal.CloseRippleDissolve" in exit_source
-    assert 'objectName: "qmlPageCloseRippleDissolve"' in exit_source
-    assert "CloseRippleAnimator {" in ripple_source
-    assert "duration: Enums.windowCloseMetrics.rippleDuration" not in ripple_source
-    assert "easing.type: Easing.OutQuad" not in ripple_source
-    assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_animator_source
-    assert "property bool reverse: false" in ripple_animator_source
-    assert "animator.reverse ? Easing.InQuad : Easing.OutQuad" in ripple_animator_source
-    assert "rippleAnimator.reverse = effect.reverse" in ripple_source
-    assert "rippleAnimator.prepare()" in ripple_source
-    assert "CloseRippleFrame {" in ripple_source
-    assert "sourceItem.layer.effect = rippleEffectComponent" in ripple_source
-    assert "sourceItem.layer.enabled = true" in ripple_source
-    assert "ShaderEffectSource {" not in ripple_source
-    assert "Repeater {" not in exit_source
-    assert "qmlPageGridCell_" not in exit_source
+    assert "signal finished()" in page_source
+    assert 'objectName: "qmlPageExitLoader"' not in page_source
+    assert "QMLPageExitDissolve" not in page_source
+    assert "CloseRipple" not in page_source
+    assert "layer.effect" not in page_source
 
     splash_source = SPLASH_SCREEN.read_text(encoding="utf-8")
     assert "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot" in splash_source

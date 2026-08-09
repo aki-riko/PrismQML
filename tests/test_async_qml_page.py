@@ -194,7 +194,6 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         loading_seen = False
         animation_after_loading = []
         animation_finished = []
-        overlay_finishing = []
         page_states = []
 
         def capture_page_state():
@@ -231,10 +230,10 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             lambda: window._window.findChild(QObject, "loadingOverlay") is not None
         )
         loading_overlay = window._window.findChild(QObject, "loadingOverlay")
-        loading_overlay.finishingChanged.connect(
-            lambda: overlay_finishing.append(
-                bool(loading_overlay.property("finishing"))
-            )
+        assert loading_overlay.findChild(QObject, "qmlPageExitLoader") is None
+        assert (
+            loading_overlay.findChild(QObject, "qmlPageCloseRippleDissolve")
+            is None
         )
 
         assert _pump_until(
@@ -242,13 +241,6 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         )
         assert loading_seen
         assert any(animation_after_loading), animation_after_loading
-        assert any(overlay_finishing), overlay_finishing
-        exit_loader = loading_overlay.findChild(QObject, "qmlPageExitLoader")
-        assert exit_loader is not None
-        assert _pump_until(lambda: exit_loader.property("item") is not None)
-        assert loading_overlay.findChild(
-            QObject, "qmlPageCloseRippleDissolve"
-        ) is exit_loader.property("item")
         assert _pump_until(lambda: bool(animation_finished))
         assert any(0.05 < opacity < 0.95 for _, opacity, _ in page_states), page_states
         assert any(

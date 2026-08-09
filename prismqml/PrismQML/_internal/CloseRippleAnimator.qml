@@ -11,7 +11,6 @@ QtObject {
 
     // ==================== Public Props 公开属性 ====================
     property real progress: Enums.opacityLevel.invisible
-    property bool reverse: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool running: progressAnimation.running
@@ -20,12 +19,9 @@ QtObject {
     property NumberAnimation progressAnimation: NumberAnimation {
         target: animator
         property: "progress"
-        from: animator.reverse
-            ? Enums.opacityLevel.visible : Enums.opacityLevel.invisible
-        to: animator.reverse
-            ? Enums.opacityLevel.invisible : Enums.opacityLevel.visible
+        to: Enums.opacityLevel.visible
         duration: Enums.windowCloseMetrics.rippleDuration
-        easing.type: animator.reverse ? Easing.InQuad : Easing.OutQuad
+        easing.type: Easing.OutQuad
         onFinished: animator.finished()
     }
 
@@ -33,19 +29,9 @@ QtObject {
     signal finished()
 
     // ==================== Public Methods 公开方法 ====================
-    function prepare() {
-        progressAnimation.stop()
-        animator.progress = animator.reverse
-            ? Enums.opacityLevel.visible : Enums.opacityLevel.invisible
-    }
-
-    function startPrepared() {
-        progressAnimation.restart()
-    }
-
     function start() {
-        animator.prepare()
-        animator.startPrepared()
+        animator.progress = Enums.opacityLevel.invisible
+        progressAnimation.restart()
     }
 
     function stop() {
