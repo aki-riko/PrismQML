@@ -410,6 +410,7 @@ def test_window_template_preserves_dollar_values_and_boolean_literals():
     builder._height = 480
     builder._title = 'Dollar $HOME "quoted" {brace}\nline'
     builder._icon_colored = True
+    builder._lazy_loading = True
 
     source = builder._render_window_qml(
         Path("D:/Qml$Root"),
@@ -427,6 +428,7 @@ def test_window_template_preserves_dollar_values_and_boolean_literals():
     assert 'windowIcon: "file:///D:/icon$1.svg"' in source
     assert "windowIconColored: true" in source
     assert "startupProfilingVerbose: false" in source
+    assert "lazyLoading: true" in source
     assert "micaEnabled: true\n    \n" in source
     assert 'navigationItems: [{"text": "$nav"}]' in source
     assert source.endswith("}\n")

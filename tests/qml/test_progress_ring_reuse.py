@@ -304,26 +304,24 @@ def test_lazy_pages_use_one_circle_without_close_ripple_layers():
     transition_source = QML_PAGE_CIRCLE_TRANSITION.read_text(encoding="utf-8")
     frame_source = QML_PAGE_CIRCLE_FRAME.read_text(encoding="utf-8")
     shader_source = QML_PAGE_CIRCLE_SHADER.read_text(encoding="utf-8")
-    assert "transition._captureItem.grabToImage" in lazy_transition_source
     assert 'objectName: "lazyPageCircleOverlayWindow"' in lazy_transition_source
     assert 'objectName: "lazyPageFrozenFrame"' in lazy_transition_source
     assert "source: frozenFrame" in lazy_transition_source
     assert "width: transition._dissolving ? Enums.border.thin" in lazy_transition_source
     assert "opacity: transition._sourceItem" in lazy_transition_source
     assert "scale: transition._sourceItem" in lazy_transition_source
-    assert lazy_transition_source.count("ShaderEffectSource {") == 1
-    assert 'objectName: "lazyPageInWindowSource"' in lazy_transition_source
-    assert 'objectName: "lazyPageInWindowCircleFrame"' in lazy_transition_source
-    assert "inWindowSource.hideSource = true" in lazy_transition_source
-    assert "inWindowSource.sourceItem = transition._captureItem" in lazy_transition_source
-    assert "if (transition._hostWindow)" in lazy_transition_source
-    assert lazy_transition_source.index("if (transition._hostWindow)") < (
-        lazy_transition_source.index("if (transition._hasLoaderItem)")
-    )
+    assert "ShaderEffectSource" not in lazy_transition_source
+    assert "transition._beginPageLayerTransition(collapsing)" in lazy_transition_source
+    assert "sourceItem.layer.effect = pageLayerEffect" in lazy_transition_source
+    assert "sourceItem.layer.enabled = true" in lazy_transition_source
+    assert "transition._restorePageLayer()" in lazy_transition_source
+    assert "if (overlayWindow) overlayWindow.visible = false" in lazy_transition_source
+    assert "if (frozenFrame) transition._releaseSnapshot()" in lazy_transition_source
+    assert "transition._captureItem.grabToImage" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleTransition" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source
-    assert "transition._hasLoaderItem" in lazy_transition_source
     assert "transition._sourceItem.visible = true" in lazy_transition_source
+    assert "property bool _hasLoaderItem" in lazy_transition_source
     assert "signal expandStarted()" in lazy_transition_source
     assert "radiusTransition.prepare(transition._captureCollapsing)" in lazy_transition_source
     assert "target: transition._hostWindow" in lazy_transition_source

@@ -297,7 +297,7 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         )
         assert window.property("activatedCount") == 0
         assert _running_timers(helper) == []
-        assert page_transition.property("_usingInWindowSource") is True
+        assert page_transition.property("_usingPageLayer") is True
         assert not overlay_window.isVisible()
         collapse_center = _sample_pixel(window, 160, 90)
         collapse_corner = _sample_pixel(window, 6, 6)
@@ -352,7 +352,7 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert second_page.property("visible") is True
         assert overlay.property("finishing") is True or not overlay.property("visible")
         assert helper.property("pendingTargetIndex") == 1
-        assert page_transition.property("_usingInWindowSource") is True
+        assert page_transition.property("_usingPageLayer") is True
         assert not overlay_window.isVisible()
         expand_center = _sample_pixel(window, 160, 90)
         expand_corner = _sample_pixel(window, 6, 6)
@@ -361,7 +361,7 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert _wait_for(lambda: overlay.property("visible") is False)
         assert second_page.property("visible") is True
         assert page_transition.property("active") is False
-        assert page_transition.property("_usingInWindowSource") is False
+        assert not overlay_window.isVisible()
         assert _running_timers(helper) == []
         restored_hash = _stable_hash(window)
         settled_timer_count = len(_direct_timers(helper))

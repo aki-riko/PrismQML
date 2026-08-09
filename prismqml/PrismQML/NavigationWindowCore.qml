@@ -49,6 +49,9 @@ WindowsCore {
     // 具体窗口壳在退场期间持续持有 Python 加载页。
     property var _pythonLoadingOverlay: null
     property bool _pythonPageMode: false
+    // Persist readiness until the asynchronously loaded window shell exposes its stack.
+    // 在异步窗口壳暴露堆叠容器前持久保存页面就绪状态。
+    property var _pythonReadyIndexes: []
     property bool _nativeHookReady: false
     property string _micaReapplyReason: ""
     property bool _micaNativeApplySucceeded: false
@@ -114,8 +117,21 @@ WindowsCore {
     }
 
     function _markPythonPageReady(index) {
+        if (index < 0) return
+        if (_pythonReadyIndexes.indexOf(index) < 0) {
+            var readyIndexes = _pythonReadyIndexes.slice()
+            readyIndexes.push(index)
+            _pythonReadyIndexes = readyIndexes
+        }
         if (stackedWidget && stackedWidget._markPythonPageReady) {
             stackedWidget._markPythonPageReady(index)
+        }
+    }
+
+    function _syncPythonReadyPages() {
+        if (!stackedWidget || !stackedWidget._markPythonPageReady) return
+        for (var i = 0; i < _pythonReadyIndexes.length; i++) {
+            stackedWidget._markPythonPageReady(_pythonReadyIndexes[i])
         }
     }
 
@@ -465,6 +481,8 @@ WindowsCore {
     onNavigationViewChanged: {
         _syncNavigationSelection(currentIndex, navigationView, _windowPageSources())
     }
+
+    onStackedWidgetChanged: _syncPythonReadyPages()
 
     onBottomNavigationItemsChanged: {
         _syncNavigationSelection(currentIndex, navigationView, _windowPageSources())

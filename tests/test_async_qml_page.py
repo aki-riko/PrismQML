@@ -190,11 +190,16 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         )
         stack = window._window.property("stackedWidget")
         page_container = window._find_child_by_name("page_1")
+        page_transition = stack.findChild(QObject, "lazyPageCircleTransition")
+        circle_transition = stack.findChild(QObject, "qmlPageCircleTransition")
         assert page_container is not None
+        assert page_transition is not None
+        assert circle_transition is not None
         loading_seen = False
         animation_during_expansion = []
         animation_finished = []
         circle_expansion_seen = []
+        circle_phase_signals = []
         page_states = []
 
         def capture_page_state():
@@ -223,6 +228,15 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         stack.animationFinished.connect(lambda: animation_finished.append(True))
         page_container.opacityChanged.connect(capture_page_state)
         page_container.yChanged.connect(capture_page_state)
+        for signal_name in (
+            "collapseStarted",
+            "collapseFinished",
+            "expandStarted",
+            "expandFinished",
+        ):
+            getattr(page_transition, signal_name).connect(
+                lambda name=signal_name: circle_phase_signals.append(name)
+            )
 
         window._window.setProperty("currentIndex", 1)
         window._window.currentPageChanged.emit(1)
@@ -231,11 +245,7 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             lambda: window._window.findChild(QObject, "loadingOverlay") is not None
         )
         loading_overlay = window._window.findChild(QObject, "loadingOverlay")
-        page_transition = stack.findChild(QObject, "lazyPageCircleTransition")
-        circle_transition = stack.findChild(QObject, "qmlPageCircleTransition")
         circle_frame = loading_overlay.findChild(QObject, "qmlPageCircleFrame")
-        assert page_transition is not None
-        assert circle_transition is not None
         assert circle_frame is None
         circle_transition.runningChanged.connect(
             lambda: circle_expansion_seen.append(
@@ -252,7 +262,22 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             lambda: 1 in window._pages and window._pages[1].is_ready
         )
         assert loading_seen
-        assert _pump_until(lambda: any(circle_expansion_seen)), circle_expansion_seen
+        assert _pump_until(lambda: any(circle_expansion_seen)), (
+            f"signals={circle_expansion_seen} "
+            f"page={page_transition.property('active')}/"
+            f"{page_transition.property('collapsed')}/"
+            f"{page_transition.property('_capturePending')}/"
+            f"{page_transition.property('_overlayFrameStage')}/"
+            f"{page_transition.property('_dissolving')}/"
+            f"{page_transition.property('_mainFramePending')} "
+            f"fallback={page_transition.property('_lastFallbackReason')} "
+            f"circle={circle_transition.property('running')}/"
+            f"{circle_transition.property('collapsing')}/"
+            f"{circle_transition.property('progress')} "
+            f"visible={page_container.property('visible')} "
+            f"size={page_container.width()}x{page_container.height()} "
+            f"loading={window._window.property('_pythonLoading')}"
+        )
         assert any(animation_during_expansion), animation_during_expansion
         assert _pump_until(lambda: bool(animation_finished))
         assert any(0.05 < opacity < 0.95 for _, opacity, _ in page_states), page_states
@@ -265,5 +290,52 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         )
         assert page_transition.property("active") is False
         assert circle_transition.property("collapsing") is False
+        expected_phases = [
+            "collapseStarted",
+            "collapseFinished",
+            "expandStarted",
+            "expandFinished",
+        ]
+        assert circle_phase_signals == expected_phases
+
+        for target_index in (0, 1):
+            phase_count = len(circle_phase_signals)
+            assert window._window.property("_pythonLoading") is False
+            window._window.setProperty("currentIndex", target_index)
+            window._window.currentPageChanged.emit(target_index)
+            assert _pump_until(
+                lambda expected=phase_count + len(expected_phases):
+                len(circle_phase_signals) >= expected
+            ), (
+                f"signals={circle_phase_signals} "
+                f"rootIndex={window._window.property('currentIndex')} "
+                f"stackIndex={stack.property('currentIndex')} "
+                f"displayIndex={stack.property('_displayIndex')} "
+                f"pendingIndex={stack.property('_pendingLazySwitchIndex')} "
+                f"lazy={stack.property('lazyLoading')} "
+                f"pythonMode={stack.property('_pythonPageMode')} "
+                f"ready={stack.property('_pythonReadyIndexes').toVariant()} "
+                f"target={stack.property('_pythonLazyTransitionTargetIndex')} "
+                f"reveal={stack.property('_pythonLazyRevealRequested')} "
+                f"active={page_transition.property('active')} "
+                f"fallback={page_transition.property('_lastFallbackReason')}"
+            )
+            assert circle_phase_signals[phase_count:] == expected_phases
+            assert _pump_until(
+                lambda: page_transition.property("active") is False
+            )
+            assert window._window.property("_pythonLoading") is False
+            assert window._window.findChild(QObject, "loadingOverlay") is None
+
+        window.setLazyLoading(False)
+        assert _pump_until(
+            lambda: window._window.property("lazyLoading") is False
+            and stack.property("lazyLoading") is False
+        )
+        window.setLazyLoading(True)
+        assert _pump_until(
+            lambda: window._window.property("lazyLoading") is True
+            and stack.property("lazyLoading") is True
+        )
     finally:
         _dispose_window(window)

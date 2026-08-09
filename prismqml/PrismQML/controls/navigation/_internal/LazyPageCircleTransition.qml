@@ -15,7 +15,7 @@ Item {
     readonly property bool running: radiusTransition.running
     readonly property bool active:
         _capturePending || _overlayFrameStage > 0 || _dissolving
-        || _usingInWindowSource || _inWindowStartPending
+        || _usingPageLayer || _inWindowStartPending
         || _mainFramePending || radiusTransition.running
     readonly property bool collapsing: radiusTransition.collapsing
     readonly property bool collapsed: _collapsed
@@ -23,7 +23,9 @@ Item {
     readonly property var _hostWindow: transition.Window.window
     readonly property bool _hasLoaderItem: _sourceItem
         && typeof _sourceItem.item !== "undefined" && _sourceItem.item
-    readonly property Item _captureItem: _hasLoaderItem ? _sourceItem.item : _sourceItem
+    readonly property Item _captureItem: _hasLoaderItem
+        ? _sourceItem.item
+        : _sourceItem
 
     // ==================== Internal Props 内部属性 ====================
     property Item _sourceItem: null
@@ -33,13 +35,17 @@ Item {
     property bool _captureCollapsing: false
     property int _overlayFrameStage: 0
     property bool _dissolving: false
-    property bool _usingInWindowSource: false
+    property bool _usingPageLayer: false
     property bool _inWindowStartPending: false
     property bool _mainFramePending: false
     property int _captureGeneration: 0
     property real _sourceStartX: 0
     property real _sourceStartY: 0
     property var _grabResult: null
+    property string _lastFallbackReason: ""
+    property bool _savedLayerEnabled: false
+    property var _savedLayerEffect: null
+    property bool _savedLayerSmooth: false
 
     // ==================== Signals 信号 ====================
     signal collapseStarted()
@@ -61,15 +67,18 @@ Item {
         transition._capturePending = false
         transition._overlayFrameStage = 0
         transition._dissolving = false
-        transition._usingInWindowSource = false
         transition._inWindowStartPending = false
         transition._mainFramePending = false
-        captureTimeout.stop()
-        radiusTransition.stop()
-        overlayWindow.visible = false
-        transition._releaseInWindowSource()
+        // Child ids may already be null when Component.onDestruction invokes stop().
+        // Component.onDestruction 调用 stop() 时，子对象 id 可能已经为空。
+        if (captureTimeout) captureTimeout.stop()
+        if (mainFrameFallback) mainFrameFallback.stop()
+        if (radiusTransition) radiusTransition.stop()
+        if (overlayWindow) overlayWindow.visible = false
+        transition._restorePageLayer()
         transition._detach(true)
-        transition._releaseSnapshot()
+        if (frozenFrame) transition._releaseSnapshot()
+        else transition._grabResult = null
         transition._collapsed = false
     }
 
@@ -86,6 +95,7 @@ Item {
 
     function _beginTransition(sourceItem, collapsing) {
         transition.stop()
+        transition._lastFallbackReason = ""
         if (!transition._attach(sourceItem) || !transition._captureItem) {
             transition._completeWithoutAnimation(collapsing, "source item unavailable")
             return false
@@ -94,20 +104,36 @@ Item {
         transition._captureCollapsing = collapsing
         transition._collapsed = false
         if (transition._hostWindow) {
-            // Render every attached page through one in-window texture. A translucent
-            // Loader snapshot in a native overlay would otherwise be composited over
-            // the still-visible real page and brighten the first collapse frame.
-            // 所有已挂窗页面统一使用同窗口纹理；透明 Loader 快照若放进原生覆盖窗，
-            // 会与仍可见的真实旧页重复合成，导致收紧首帧闪亮。
-            return transition._beginInWindowTransition(collapsing)
+            return transition._beginPageLayerTransition(collapsing)
         }
-        if (transition._hasLoaderItem) {
-            transition._sourceItem.visible = collapsing
-            return transition._beginSnapshotCapture(collapsing)
+        // Keep the complete page container renderable while grabToImage is pending;
+        // the first overlay frame hides it before the radius animation starts.
+        // 抓图等待期间保持完整页面容器可渲染；覆盖窗首帧上屏后才隐藏真实页。
+        transition._sourceItem.visible = true
+        return transition._beginSnapshotCapture(collapsing)
+    }
+
+    function _beginPageLayerTransition(collapsing) {
+        var sourceItem = transition._sourceItem
+        if (!sourceItem || !sourceItem.layer) {
+            transition._completeWithoutAnimation(
+                collapsing, "page layer unavailable", true)
+            return false
         }
-        transition._completeWithoutAnimation(
-            collapsing, "source window unavailable", true)
-        return false
+
+        transition._savedLayerEnabled = sourceItem.layer.enabled
+        transition._savedLayerEffect = sourceItem.layer.effect
+        transition._savedLayerSmooth = sourceItem.layer.smooth
+        sourceItem.visible = true
+        sourceItem.layer.smooth = true
+        sourceItem.layer.effect = pageLayerEffect
+        sourceItem.layer.enabled = true
+        transition._usingPageLayer = true
+        transition._inWindowStartPending = true
+        transition._dissolving = true
+        radiusTransition.prepare(collapsing)
+        transition._hostWindow.requestUpdate()
+        return true
     }
 
     function _beginSnapshotCapture(collapsing) {
@@ -117,27 +143,6 @@ Item {
         frozenFrame.source = ""
         var generation = transition._captureGeneration
         return transition._captureWithItem(generation, collapsing)
-    }
-
-    function _beginInWindowTransition(collapsing) {
-        if (!transition._hostWindow) {
-            transition._completeWithoutAnimation(
-                collapsing, "source window unavailable", true)
-            return false
-        }
-
-        // ShaderEffectSource.hideSource keeps a direct QQuickItem renderable for the
-        // single-circle shader without exposing it in the normal scene.
-        // hideSource 让直接 QQuickItem 保持可渲染，同时不在普通场景中提前露出。
-        transition._sourceItem.visible = true
-        transition._usingInWindowSource = true
-        transition._inWindowStartPending = true
-        transition._dissolving = true
-        radiusTransition.prepare(collapsing)
-        inWindowSource.sourceItem = transition._captureItem
-        inWindowSource.hideSource = true
-        transition._hostWindow.requestUpdate()
-        return true
     }
 
     function _captureWithItem(generation, collapsing) {
@@ -209,17 +214,17 @@ Item {
     function _completeWithoutAnimation(collapsing, reason, expectedFallback) {
         if (expectedFallback) console.warn("LazyPageCircleTransition: " + reason)
         else console.error("LazyPageCircleTransition: " + reason)
+        transition._lastFallbackReason = reason
         transition._capturePending = false
         transition._overlayFrameStage = 0
         transition._dissolving = false
-        transition._usingInWindowSource = false
         transition._inWindowStartPending = false
         transition._mainFramePending = false
         captureTimeout.stop()
         overlayWindow.visible = false
         var sourceItem = transition._sourceItem
         if (sourceItem) sourceItem.visible = !collapsing
-        transition._releaseInWindowSource()
+        transition._restorePageLayer()
         transition._detach(false)
         transition._releaseSnapshot()
         transition._collapsed = collapsing
@@ -238,10 +243,14 @@ Item {
         transition._grabResult = null
     }
 
-    function _releaseInWindowSource() {
-        inWindowSource.hideSource = false
-        inWindowSource.sourceItem = null
-        transition._usingInWindowSource = false
+    function _restorePageLayer() {
+        var sourceItem = transition._sourceItem
+        if (!sourceItem || !transition._usingPageLayer) return
+
+        sourceItem.layer.effect = transition._savedLayerEffect
+        sourceItem.layer.smooth = transition._savedLayerSmooth
+        sourceItem.layer.enabled = transition._savedLayerEnabled
+        transition._usingPageLayer = false
         transition._inWindowStartPending = false
     }
 
@@ -265,12 +274,12 @@ Item {
         // 最终整页快照继续覆盖真实目标页，直到目标窗口完成一次实际渲染换帧。
         var sourceItem = transition._sourceItem
         if (sourceItem) sourceItem.visible = true
-        if (transition._usingInWindowSource) inWindowSource.hideSource = false
         if (!transition._hostWindow) {
             transition._finalizeExpansion()
             return
         }
         transition._mainFramePending = true
+        mainFrameFallback.restart()
         transition._hostWindow.requestUpdate()
     }
 
@@ -278,8 +287,8 @@ Item {
         var sourceItem = transition._sourceItem
         transition._dissolving = false
         if (sourceItem) sourceItem.visible = false
-        if (transition._usingInWindowSource) transition._releaseInWindowSource()
-        else overlayWindow.visible = false
+        transition._restorePageLayer()
+        overlayWindow.visible = false
         transition._detach(false)
         transition._releaseSnapshot()
         transition._collapsed = true
@@ -287,12 +296,13 @@ Item {
     }
 
     function _finalizeExpansion() {
+        mainFrameFallback.stop()
         var sourceItem = transition._sourceItem
         transition._mainFramePending = false
         transition._dissolving = false
         if (sourceItem) sourceItem.visible = true
-        if (transition._usingInWindowSource) transition._releaseInWindowSource()
-        else overlayWindow.visible = false
+        transition._restorePageLayer()
+        overlayWindow.visible = false
         transition._detach(false)
         transition._releaseSnapshot()
         transition._collapsed = false
@@ -311,8 +321,7 @@ Item {
         transition._finalizeExpansion()
     }
 
-    visible: _usingInWindowSource
-    z: Enums.zIndex.popup
+    visible: false
     Component.onDestruction: transition.stop()
 
     FeedbackInternal.QMLPageCircleTransition {
@@ -333,44 +342,29 @@ Item {
         }
     }
 
+    Timer {
+        id: mainFrameFallback
+
+        interval: Enums.duration.ultraFast
+        repeat: false
+        onTriggered: {
+            if (transition._mainFramePending) transition._finalizeExpansion()
+        }
+    }
+
+    Component {
+        id: pageLayerEffect
+
+        FeedbackInternal.QMLPageCircleFrame {
+            progress: radiusTransition.progress
+            revealTarget: false
+        }
+    }
+
     Connections {
         target: transition._hostWindow
 
         function onFrameSwapped() { transition._handleSourceWindowFrameSwapped() }
-    }
-
-    ShaderEffectSource {
-        id: inWindowSource
-
-        objectName: "lazyPageInWindowSource"
-        width: transition._sourceItem ? transition._sourceItem.width : Enums.border.thin
-        height: transition._sourceItem ? transition._sourceItem.height : Enums.border.thin
-        sourceItem: null
-        hideSource: false
-        live: true
-        recursive: true
-        smooth: true
-        visible: false
-    }
-
-    FeedbackInternal.QMLPageCircleFrame {
-        id: inWindowCircleFrame
-
-        objectName: "lazyPageInWindowCircleFrame"
-        x: transition._sourceItem ? transition._sourceItem.x : 0
-        y: transition._sourceItem ? transition._sourceItem.y : 0
-        width: transition._sourceItem ? transition._sourceItem.width : parent.width
-        height: transition._sourceItem ? transition._sourceItem.height : parent.height
-        opacity: transition._sourceItem
-            ? transition._sourceItem.opacity : Enums.opacityLevel.visible
-        scale: transition._sourceItem
-            ? transition._sourceItem.scale : Enums.opacityLevel.visible
-        transformOrigin: transition._sourceItem
-            ? transition._sourceItem.transformOrigin : Item.Center
-        source: inWindowSource
-        progress: radiusTransition.progress
-        revealTarget: false
-        visible: transition._usingInWindowSource && transition._dissolving
     }
 
     Window {

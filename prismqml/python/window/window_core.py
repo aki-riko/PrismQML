@@ -306,7 +306,8 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         self._invoke_window_method("setLanguage", lang)
 
     def setLazyLoading(self, enabled: bool):
-        self._lazy_loading = enabled
+        self._lazy_loading = bool(enabled)
+        self._set_window_property("lazyLoading", self._lazy_loading)
 
     # ==================== Splash 启动画面 ====================
 
