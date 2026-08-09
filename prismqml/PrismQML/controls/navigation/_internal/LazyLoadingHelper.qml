@@ -211,12 +211,6 @@ Item {
 
         var currentLoader = loaders[helper.currentVisibleIndex]
         pageTransition.collapse(currentLoader)
-
-        // Show the wait indicator after the old page has been captured.
-        // 旧页完成截取后再显示等待指示，避免圆环进入收紧画面。
-        loadingOverlay.start()
-        loadingOverlay.y = 0
-        loadingOverlay.opacity = 1
         _trace("helper.show.done", targetIdx)
     }
 
@@ -225,6 +219,10 @@ Item {
         if (targetIdx < 0) return
 
         _trace("helper.page_collapse.finish", targetIdx)
+        loadingOverlay.start()
+        loadingOverlay.y = 0
+        loadingOverlay.opacity = 1
+        _trace("helper.wait_indicator.start", targetIdx)
         _startLoaderActivationTimer(targetIdx)
     }
 

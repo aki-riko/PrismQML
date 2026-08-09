@@ -45,6 +45,9 @@ WindowsCore {
     property bool _micaBackdropReady: false
     property bool _pythonLoading: false
     property int _pythonPendingIndex: -1
+    property bool _pythonLazyCollapseComplete: false
+    property bool _pythonLoadingFinishRequested: false
+    property bool _pythonRevealScheduled: false
     // The concrete window shell keeps the Python loading page alive during exit.
     // 具体窗口壳在退场期间持续持有 Python 加载页。
     property var _pythonLoadingOverlay: null
@@ -84,13 +87,53 @@ WindowsCore {
     // ==================== Internal Methods 内部方法 ====================
     function _startPythonLoading(index) {
         _pythonPendingIndex = index
-        _pythonLoading = true
+        _pythonLazyCollapseComplete = false
+        _pythonLoadingFinishRequested = false
+        _pythonRevealScheduled = false
+        _pythonLoading = false
         if (stackedWidget && stackedWidget._beginPythonLazySwitch) {
-            stackedWidget._beginPythonLazySwitch(index)
+            if (stackedWidget._beginPythonLazySwitch(index)) return
         }
+        _handlePythonLazyCollapseFinished(index)
     }
 
     function _finishPythonLoading() {
+        _pythonLoadingFinishRequested = true
+        // Keep the lightweight host contract synchronous when no stacked
+        // widget owns a visual transition. 没有 StackedWidget 管理视觉过渡时，
+        // 保留轻量宿主的同步完成语义。
+        if (!stackedWidget && _pythonLazyCollapseComplete) {
+            _completePythonLoadingVisual(_pythonPendingIndex)
+            return
+        }
+        _schedulePythonLazyReveal()
+    }
+
+    function _handlePythonLazyCollapseFinished(index) {
+        if (_pythonPendingIndex >= 0 && index !== _pythonPendingIndex) return
+
+        _pythonLazyCollapseComplete = true
+        _pythonLoading = true
+        _schedulePythonLazyReveal()
+    }
+
+    function _handlePythonLoadingOverlayReady() {
+        _schedulePythonLazyReveal()
+    }
+
+    function _schedulePythonLazyReveal() {
+        if (!_pythonLoadingFinishRequested || !_pythonLazyCollapseComplete
+                || !_pythonLoadingOverlay || _pythonRevealScheduled) return
+
+        _pythonRevealScheduled = true
+        Qt.callLater(function() { window._resumePythonLazyReveal() })
+    }
+
+    function _resumePythonLazyReveal() {
+        _pythonRevealScheduled = false
+        if (!_pythonLoadingFinishRequested || !_pythonLazyCollapseComplete
+                || !_pythonLoadingOverlay) return
+
         var idx = _pythonPendingIndex
         if (stackedWidget && idx >= 0 && stackedWidget._completePythonLazySwitch) {
             if (stackedWidget._completePythonLazySwitch(idx)) return
@@ -102,6 +145,9 @@ WindowsCore {
         if (_pythonPendingIndex >= 0 && index !== _pythonPendingIndex) return
 
         _pythonPendingIndex = -1
+        _pythonLazyCollapseComplete = false
+        _pythonLoadingFinishRequested = false
+        _pythonRevealScheduled = false
         if (_pythonLoadingOverlay && _pythonLoadingOverlay.finish) {
             _pythonLoadingOverlay.finish()
         }

@@ -67,7 +67,6 @@ Item {
     property int _lazyDiagnosticSequence: 0
     property int _pythonLazyTransitionTargetIndex: -1
     property bool _pythonLazyRevealRequested: false
-    property bool _pythonLazyLoadingVisualActive: false
     // Python-managed windows must explicitly acknowledge page readiness.
     // Python 页面由宿主生命周期确认就绪，不能把“容器已创建”当成首屏已完成。
     property bool _pythonPageMode: false
@@ -79,6 +78,7 @@ Item {
     signal animationStarted()
     signal pageLoaded(int index)
     signal pageLoadFailed(int index, string errorString)
+    signal pythonLazyCollapseFinished(int index)
     signal pythonLazyExpansionStarted(int index)
     signal pythonLazyTransitionFinished(int index)
 
@@ -267,14 +267,6 @@ Item {
     function _beginPythonLazySwitch(targetIndex) {
         control._pythonLazyTransitionTargetIndex = targetIndex
         control._pythonLazyRevealRequested = false
-        control._pythonLazyLoadingVisualActive = true
-        return pageCircleTransition.collapse(control.widget(control._displayIndex))
-    }
-
-    function _beginLoadedLazySwitch(targetIndex) {
-        control._pythonLazyTransitionTargetIndex = targetIndex
-        control._pythonLazyRevealRequested = true
-        control._pythonLazyLoadingVisualActive = false
         return pageCircleTransition.collapse(control.widget(control._displayIndex))
     }
 
@@ -294,13 +286,11 @@ Item {
     }
 
     function _cancelPythonLazySwitch(targetIndex) {
-        var loadingVisualActive = control._pythonLazyLoadingVisualActive
         pageCircleTransition.stop()
         control._updateVisibility(control._displayIndex)
         control._pythonLazyTransitionTargetIndex = -1
         control._pythonLazyRevealRequested = false
-        control._pythonLazyLoadingVisualActive = false
-        if (loadingVisualActive) control.pythonLazyTransitionFinished(targetIndex)
+        control.pythonLazyTransitionFinished(targetIndex)
     }
 
     function _completePythonLazySwitch(targetIndex) {
@@ -322,26 +312,23 @@ Item {
     }
 
     function _handlePythonLazyCollapseFinished() {
-        if (!control._pythonLazyRevealRequested) return
-        control._startPythonLazyExpansion(control._pythonLazyTransitionTargetIndex)
+        var targetIndex = control._pythonLazyTransitionTargetIndex
+        if (targetIndex < 0) return
+        control.pythonLazyCollapseFinished(targetIndex)
     }
 
     function _handlePythonLazyExpandStarted() {
         var targetIndex = control._pythonLazyTransitionTargetIndex
         if (targetIndex < 0) return
-        if (control._pythonLazyLoadingVisualActive) {
-            control.pythonLazyExpansionStarted(targetIndex)
-        }
+        control.pythonLazyExpansionStarted(targetIndex)
     }
 
     function _handlePythonLazyExpandFinished() {
         var targetIndex = control._pythonLazyTransitionTargetIndex
         if (targetIndex < 0) return
-        var loadingVisualActive = control._pythonLazyLoadingVisualActive
         control._pythonLazyTransitionTargetIndex = -1
         control._pythonLazyRevealRequested = false
-        control._pythonLazyLoadingVisualActive = false
-        if (loadingVisualActive) control.pythonLazyTransitionFinished(targetIndex)
+        control.pythonLazyTransitionFinished(targetIndex)
     }
 
     function _handleLazyLoadingComplete(targetIdx, prevIdx) {
@@ -566,18 +553,17 @@ Item {
             _cancelPendingLazySwitch("retargeted")
         }
 
-        // Every switch between already-loaded lazy pages keeps the same circle
-        // collapse/reveal sequence; only page creation and the loading overlay are skipped.
-        // 已加载懒加载页之间每次切换仍保持同一圆形收紧/展开，仅跳过页面创建和加载覆盖层。
-        if (lazyLoading && _isPageLoaded(currentIndex)) {
-            _beginLoadedLazySwitch(currentIndex)
-        // QML pageSources 懒加载模式：使用 LazyLoadingHelper。
-        } else if (lazyLoading && !_isPageLoaded(currentIndex)) {
-            // 不回退 currentIndex: 旧页靠 _displayIndex(仍为旧值)保持可见,
-            // loading 完成后由 LazyLoadingHelper.onLoadingComplete 更新 _displayIndex。
-            _showLazyLoadingAndSwitch(currentIndex)
+        if (lazyLoading && !_isPageLoaded(currentIndex)) {
+            if (!_pythonPageMode) {
+                // QML pageSources lazy mode is owned by LazyLoadingHelper.
+                // QML pageSources 懒加载模式由 LazyLoadingHelper 管理。
+                _showLazyLoadingAndSwitch(currentIndex)
+            }
+            // Python mode starts its circle transition from _startPythonLoading().
+            // Python 模式由 _startPythonLoading() 启动圆形过渡，此处保持旧页显示。
         } else {
-            // Normal switch or Python mode 正常切换或Python模式
+            // Loaded pages always use the configured StackedWidget transition.
+            // 已加载页面始终使用 StackedWidget 配置的常规切页动画。
             previousIndex = _displayIndex
             _doAnimation(_displayIndex, currentIndex)
             _displayIndex = currentIndex

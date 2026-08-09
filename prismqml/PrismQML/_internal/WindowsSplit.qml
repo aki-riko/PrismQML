@@ -122,6 +122,9 @@ NavigationWindowCore {
  // Synchronize back after animation when needed. 动画结束后按需反向同步。
  if (window.currentIndex !== index) window.currentIndex = index
  }
+ onPythonLazyCollapseFinished: (index) => {
+ window._handlePythonLazyCollapseFinished(index)
+ }
  onPythonLazyExpansionStarted: (index) => {
  window._beginPythonLoadingVisualExit(index)
  }
@@ -142,6 +145,7 @@ NavigationWindowCore {
  onLoaded: {
  transitionActive = false
  window._pythonLoadingOverlay = item
+ window._handlePythonLoadingOverlayReady()
  }
  onItemChanged: {
  if (!item) {

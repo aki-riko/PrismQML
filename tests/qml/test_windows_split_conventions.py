@@ -300,10 +300,21 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         )
         window.setProperty("currentIndex", 1)
 
+        page_transition = stack.findChild(QObject, "lazyPageCircleTransition")
+        transition = stack.findChild(QObject, "qmlPageCircleTransition")
+        assert page_transition is not None
+        assert transition is not None
+
         window.setProperty("loadingText", "Loading overlay probe")
         assert QMetaObject.invokeMethod(
             window, "_startPythonLoading", Q_ARG("QVariant", 1)
         )
+        assert loader.property("item") is None
+        assert _wait_for(
+            lambda: transition.property("collapsing") is True
+            and transition.property("running") is True
+        )
+        assert loader.property("item") is None
         assert _wait_for(lambda: loader.property("item") is not None)
         overlay = window.findChild(QQuickItem, "loadingOverlay")
         assert overlay is loader.property("item")
@@ -324,16 +335,10 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert _wait_for(
             lambda: overlay.property("text") == "Updated loading overlay probe"
         )
-        page_transition = stack.findChild(QObject, "lazyPageCircleTransition")
-        transition = stack.findChild(QObject, "qmlPageCircleTransition")
         circle_frame = overlay.findChild(QObject, "qmlPageCircleFrame")
-        assert page_transition is not None
-        assert transition is not None
         assert circle_frame is None
-        assert _wait_for(
-            lambda: transition.property("collapsing") is True
-            and transition.property("running") is True
-        )
+        assert page_transition.property("collapsed") is True
+        assert transition.property("running") is False
         assert overlay.findChild(QObject, "qmlPageCloseRippleDissolve") is None
 
         assert QMetaObject.invokeMethod(
@@ -368,12 +373,13 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert QMetaObject.invokeMethod(
             window, "_startPythonLoading", Q_ARG("QVariant", 1)
         )
+        assert loader.property("item") is None
+        assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
         assert _wait_for(lambda: loader.property("item") is not None)
         recreated = window.findChild(QQuickItem, "loadingOverlay")
         assert recreated is loader.property("item")
         assert recreated.property("text") == "Recreated loading overlay probe"
 
-        assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         assert _wait_for(lambda: loader.property("item") is None)
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

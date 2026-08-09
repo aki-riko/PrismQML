@@ -122,6 +122,11 @@ Item {
                     root.hostWindow.currentIndex = index
                 }
             }
+            onPythonLazyCollapseFinished: (index) => {
+                if (root.hostWindow) {
+                    root.hostWindow._handlePythonLazyCollapseFinished(index)
+                }
+            }
             onPythonLazyExpansionStarted: (index) => {
                 if (root.hostWindow) {
                     root.hostWindow._beginPythonLoadingVisualExit(index)
@@ -145,7 +150,10 @@ Item {
             asynchronous: false
             onLoaded: {
                 transitionActive = false
-                if (root.hostWindow) root.hostWindow._pythonLoadingOverlay = item
+                if (root.hostWindow) {
+                    root.hostWindow._pythonLoadingOverlay = item
+                    root.hostWindow._handlePythonLoadingOverlayReady()
+                }
             }
             onItemChanged: {
                 if (!item) {

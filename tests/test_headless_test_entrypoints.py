@@ -42,6 +42,9 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     Path("tests/qml/bench_skin_frames.py"),
     Path("tests/qml/bench_windows_bar_content.py"),
     Path("tests/test_window_buttons.py"),
+    # Visible Windows input probe; run manually with a real D3D11 desktop.
+    # 可视 Windows 输入探针；仅在真实 D3D11 桌面上手工运行。
+    Path("scripts/temp/native_popup_sendinput_probe.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"

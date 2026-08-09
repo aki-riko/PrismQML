@@ -273,19 +273,15 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert _running_timers(helper) == []
         assert _is_old_page(_sample_pixel(window, 160, 90))
 
-        assert QMetaObject.invokeMethod(window, "beginSwitch")
-        assert _wait_for(lambda: overlay.property("visible") is True), (
-            helper.property("pendingTargetIndex"),
-            helper.property("isLoadingSwitching"),
-            window.property("stageLog"),
-            warnings,
-        )
         page_transition = window.findChild(QObject, "lazyPageCircleTransition")
         circle_transition = window.findChild(QObject, "qmlPageCircleTransition")
         overlay_window = window.findChild(QQuickWindow, "lazyPageCircleOverlayWindow")
         assert page_transition is not None
         assert circle_transition is not None
         assert overlay_window is not None
+
+        assert QMetaObject.invokeMethod(window, "beginSwitch")
+        assert overlay.property("visible") is False
         assert page_transition.property("active") is True
         assert _running_timers(helper) == []
         assert _wait_for(
@@ -297,6 +293,7 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         )
         assert window.property("activatedCount") == 0
         assert _running_timers(helper) == []
+        assert overlay.property("visible") is False
         assert page_transition.property("_usingPageLayer") is True
         assert not overlay_window.isVisible()
         collapse_center = _sample_pixel(window, 160, 90)
@@ -304,6 +301,12 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert _is_loading_background_or_transparent(collapse_corner), collapse_corner
 
         assert _wait_for(lambda: page_transition.property("collapsed") is True)
+        assert _wait_for(lambda: overlay.property("visible") is True), (
+            helper.property("pendingTargetIndex"),
+            helper.property("isLoadingSwitching"),
+            window.property("stageLog"),
+            warnings,
+        )
         covered_hash = _image_hash(window.grabWindow())
         assert covered_hash != initial_hash
         first_page = window.findChild(QQuickItem, "firstPage")
@@ -391,6 +394,7 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             assert _is_target_page(expand_center), expand_center
         assert warnings == []
         assert "helper.page_collapse.finish;" in window.property("stageLog")
+        assert "helper.wait_indicator.start;" in window.property("stageLog")
         assert "helper.page_expand.finish;" in window.property("stageLog")
         assert "helper.loader_activate.begin;" in window.property("stageLog")
         assert "helper.page_ready;" in window.property("stageLog")

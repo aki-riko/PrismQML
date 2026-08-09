@@ -196,7 +196,7 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         assert page_transition is not None
         assert circle_transition is not None
         loading_seen = False
-        animation_during_expansion = []
+        animation_loading_states = []
         animation_finished = []
         circle_expansion_seen = []
         circle_phase_signals = []
@@ -218,8 +218,8 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             )
 
         def on_animation_started():
-            animation_during_expansion.append(
-                loading_seen and window._window.property("_pythonLoading")
+            animation_loading_states.append(
+                bool(window._window.property("_pythonLoading"))
             )
             capture_page_state()
 
@@ -242,6 +242,16 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         window._window.currentPageChanged.emit(1)
 
         assert _pump_until(
+            lambda: circle_transition.property("running")
+            and circle_transition.property("collapsing")
+        )
+        assert window._window.property("_pythonLoading") is False
+        assert window._window.findChild(QObject, "loadingOverlay") is None
+        assert stack.property("_displayIndex") == 0
+        assert stack.property("_pendingLazySwitchIndex") == -1
+        assert page_container.property("visible") is False
+
+        assert _pump_until(
             lambda: window._window.findChild(QObject, "loadingOverlay") is not None
         )
         loading_overlay = window._window.findChild(QObject, "loadingOverlay")
@@ -257,6 +267,11 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             loading_overlay.findChild(QObject, "qmlPageCloseRippleDissolve")
             is None
         )
+        assert page_transition.property("collapsed") is True
+        assert circle_transition.property("running") is False
+        assert window._window.property("_pythonLoading") is True
+        assert animation_loading_states == []
+        assert page_container.property("visible") is False
 
         assert _pump_until(
             lambda: 1 in window._pages and window._pages[1].is_ready
@@ -278,7 +293,8 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             f"size={page_container.width()}x{page_container.height()} "
             f"loading={window._window.property('_pythonLoading')}"
         )
-        assert any(animation_during_expansion), animation_during_expansion
+        assert _pump_until(lambda: loading_overlay.property("finishing"))
+        assert any(animation_loading_states), animation_loading_states
         assert _pump_until(lambda: bool(animation_finished))
         assert any(0.05 < opacity < 0.95 for _, opacity, _ in page_states), page_states
         assert any(
@@ -288,7 +304,9 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         assert _pump_until(
             lambda: window._window.findChild(QObject, "loadingOverlay") is None
         )
-        assert page_transition.property("active") is False
+        assert _pump_until(
+            lambda: page_transition.property("active") is False
+        )
         assert circle_transition.property("collapsing") is False
         expected_phases = [
             "collapseStarted",
@@ -300,14 +318,17 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
 
         for target_index in (0, 1):
             phase_count = len(circle_phase_signals)
+            animation_started_count = len(animation_loading_states)
+            animation_finished_count = len(animation_finished)
             assert window._window.property("_pythonLoading") is False
             window._window.setProperty("currentIndex", target_index)
             window._window.currentPageChanged.emit(target_index)
             assert _pump_until(
-                lambda expected=phase_count + len(expected_phases):
-                len(circle_phase_signals) >= expected
+                lambda expected=animation_finished_count + 1:
+                len(animation_finished) >= expected
             ), (
-                f"signals={circle_phase_signals} "
+                f"circleSignals={circle_phase_signals} "
+                f"animationStates={animation_loading_states} "
                 f"rootIndex={window._window.property('currentIndex')} "
                 f"stackIndex={stack.property('currentIndex')} "
                 f"displayIndex={stack.property('_displayIndex')} "
@@ -320,10 +341,10 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
                 f"active={page_transition.property('active')} "
                 f"fallback={page_transition.property('_lastFallbackReason')}"
             )
-            assert circle_phase_signals[phase_count:] == expected_phases
-            assert _pump_until(
-                lambda: page_transition.property("active") is False
-            )
+            assert len(animation_loading_states) == animation_started_count + 1
+            assert animation_loading_states[-1] is False
+            assert len(circle_phase_signals) == phase_count
+            assert page_transition.property("active") is False
             assert window._window.property("_pythonLoading") is False
             assert window._window.findChild(QObject, "loadingOverlay") is None
 
