@@ -22,12 +22,20 @@ Item {
     signal finished()
 
     // ==================== Public Methods 公开方法 ====================
-    function start(collapsing) {
-        transition.stop()
+    function prepare(collapsing) {
+        progressAnimation.stop()
         transition._collapsing = collapsing
         transition._progress = collapsing
             ? Enums.opacityLevel.visible : Enums.opacityLevel.invisible
+    }
+
+    function startPrepared() {
         progressAnimation.restart()
+    }
+
+    function start(collapsing) {
+        transition.prepare(collapsing)
+        transition.startPrepared()
     }
 
     function stop() {

@@ -358,10 +358,17 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
 
         assert _wait_for(lambda: window.property("completedTarget") == 1)
         assert window.property("completedPrevious") == 0
+        second_page = window.findChild(QQuickItem, "secondPage")
+        assert second_page is not None
+        assert second_page.property("visible") is False
+        assert page_transition.property("active") is True
         assert circle_transition.property("collapsing") is False
         assert _wait_for(
             lambda: 0.25 < float(circle_transition.property("progress")) < 0.75
         )
+        assert second_page.property("visible") is False
+        assert overlay.property("finishing") is True or not overlay.property("visible")
+        assert helper.property("pendingTargetIndex") == 1
         assert overlay_window.isVisible()
         expand_center = _sample_composited_pixel(overlay_window, 160, 90)
         expand_corner = _sample_composited_pixel(overlay_window, 6, 6)
@@ -369,6 +376,8 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert _is_loading_background_or_transparent(expand_corner), expand_corner
         assert _wait_for(lambda: helper.property("pendingTargetIndex") == -1)
         assert _wait_for(lambda: overlay.property("visible") is False)
+        assert second_page.property("visible") is True
+        assert page_transition.property("active") is False
         assert _running_timers(helper) == []
         restored_hash = _stable_hash(window)
         settled_timer_count = len(_direct_timers(helper))
@@ -401,6 +410,8 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert "helper.loader_activate.begin;" in window.property("stageLog")
         assert "helper.page_ready;" in window.property("stageLog")
         assert "helper.page_render.begin;" in window.property("stageLog")
+        assert "helper.page_expand.begin;" in window.property("stageLog")
+        assert "helper.wait_indicator.finish;" in window.property("stageLog")
     finally:
         _dispose_scene(qapp, engine, component, window)
         assert [

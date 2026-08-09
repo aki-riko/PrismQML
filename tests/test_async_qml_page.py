@@ -194,6 +194,7 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         loading_seen = False
         animation_during_expansion = []
         animation_finished = []
+        circle_expansion_seen = []
         page_states = []
 
         def capture_page_state():
@@ -236,6 +237,12 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
         assert page_transition is not None
         assert circle_transition is not None
         assert circle_frame is None
+        circle_transition.runningChanged.connect(
+            lambda: circle_expansion_seen.append(
+                bool(circle_transition.property("running"))
+                and not bool(circle_transition.property("collapsing"))
+            )
+        )
         assert (
             loading_overlay.findChild(QObject, "qmlPageCloseRippleDissolve")
             is None
@@ -245,6 +252,7 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             lambda: 1 in window._pages and window._pages[1].is_ready
         )
         assert loading_seen
+        assert _pump_until(lambda: any(circle_expansion_seen)), circle_expansion_seen
         assert any(animation_during_expansion), animation_during_expansion
         assert _pump_until(lambda: bool(animation_finished))
         assert any(0.05 < opacity < 0.95 for _, opacity, _ in page_states), page_states

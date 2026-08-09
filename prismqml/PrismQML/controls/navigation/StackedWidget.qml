@@ -78,6 +78,7 @@ Item {
     signal animationStarted()
     signal pageLoaded(int index)
     signal pageLoadFailed(int index, string errorString)
+    signal pythonLazyExpansionStarted(int index)
     signal pythonLazyTransitionFinished(int index)
 
     function _getCurrentWidget() {
@@ -295,6 +296,12 @@ Item {
     function _handlePythonLazyCollapseFinished() {
         if (!control._pythonLazyRevealRequested) return
         control._startPythonLazyExpansion(control._pythonLazyTransitionTargetIndex)
+    }
+
+    function _handlePythonLazyExpandStarted() {
+        var targetIndex = control._pythonLazyTransitionTargetIndex
+        if (targetIndex < 0) return
+        control.pythonLazyExpansionStarted(targetIndex)
     }
 
     function _handlePythonLazyExpandFinished() {
@@ -550,6 +557,7 @@ Item {
 
         objectName: "lazyPageCircleTransition"
         anchors.fill: parent
+        onExpandStarted: control._handlePythonLazyExpandStarted()
         onCollapseFinished: control._handlePythonLazyCollapseFinished()
         onExpandFinished: control._handlePythonLazyExpandFinished()
     }

@@ -122,6 +122,9 @@ NavigationWindowCore {
  // Synchronize back after animation when needed. 动画结束后按需反向同步。
  if (window.currentIndex !== index) window.currentIndex = index
  }
+ onPythonLazyExpansionStarted: (index) => {
+ window._beginPythonLoadingVisualExit(index)
+ }
  onPythonLazyTransitionFinished: (index) => {
  window._completePythonLoadingVisual(index)
  }

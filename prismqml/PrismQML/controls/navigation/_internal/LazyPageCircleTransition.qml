@@ -7,20 +7,23 @@ import QtQuick.Window
 import "../../.."
 import "../../feedback/_internal" as FeedbackInternal
 
-// LazyPageCircleTransition - Native-overlay circle transition for lazy pages 懒加载页面原生覆盖窗圆形过渡
+// LazyPageCircleTransition - Hybrid single-circle transition for lazy pages 懒加载页面混合单圆过渡
 Item {
     id: transition
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool running: radiusTransition.running
     readonly property bool active:
-        _capturePending || _overlayFramePending || _dissolving || radiusTransition.running
+        _capturePending || _overlayFrameStage > 0 || _dissolving
+        || _usingInWindowSource || _inWindowStartPending
+        || _mainFramePending || radiusTransition.running
     readonly property bool collapsing: radiusTransition.collapsing
     readonly property bool collapsed: _collapsed
     readonly property real progress: radiusTransition.progress
-    readonly property Item _captureItem: _sourceItem
+    readonly property var _hostWindow: transition.Window.window
+    readonly property bool _hasLoaderItem: _sourceItem
         && typeof _sourceItem.item !== "undefined" && _sourceItem.item
-        ? _sourceItem.item : _sourceItem
+    readonly property Item _captureItem: _hasLoaderItem ? _sourceItem.item : _sourceItem
 
     // ==================== Internal Props 内部属性 ====================
     property Item _sourceItem: null
@@ -28,34 +31,43 @@ Item {
     property bool _collapsed: false
     property bool _capturePending: false
     property bool _captureCollapsing: false
-    property bool _overlayFramePending: false
+    property int _overlayFrameStage: 0
     property bool _dissolving: false
+    property bool _usingInWindowSource: false
+    property bool _inWindowStartPending: false
+    property bool _mainFramePending: false
     property int _captureGeneration: 0
     property real _sourceStartX: 0
     property real _sourceStartY: 0
     property var _grabResult: null
 
     // ==================== Signals 信号 ====================
+    signal collapseStarted()
+    signal expandStarted()
     signal collapseFinished()
     signal expandFinished()
 
     // ==================== Public Methods 公开方法 ====================
     function collapse(sourceItem) {
-        return transition._beginCapture(sourceItem, true)
+        return transition._beginTransition(sourceItem, true)
     }
 
     function expand(sourceItem) {
-        return transition._beginCapture(sourceItem, false)
+        return transition._beginTransition(sourceItem, false)
     }
 
     function stop() {
         transition._captureGeneration += 1
         transition._capturePending = false
-        transition._overlayFramePending = false
+        transition._overlayFrameStage = 0
         transition._dissolving = false
+        transition._usingInWindowSource = false
+        transition._inWindowStartPending = false
+        transition._mainFramePending = false
         captureTimeout.stop()
         radiusTransition.stop()
         overlayWindow.visible = false
+        transition._releaseInWindowSource()
         transition._detach(true)
         transition._releaseSnapshot()
         transition._collapsed = false
@@ -69,25 +81,55 @@ Item {
         transition._savedVisible = sourceItem.visible
         transition._sourceStartX = sourceItem.x
         transition._sourceStartY = sourceItem.y
-        sourceItem.visible = true
         return true
     }
 
-    function _beginCapture(sourceItem, collapsing) {
+    function _beginTransition(sourceItem, collapsing) {
         transition.stop()
         if (!transition._attach(sourceItem) || !transition._captureItem) {
             transition._completeWithoutAnimation(collapsing, "source item unavailable")
             return false
         }
 
-        transition._captureGeneration += 1
-        transition._capturePending = true
         transition._captureCollapsing = collapsing
         transition._collapsed = false
+        if (transition._hasLoaderItem) {
+            // Loader keeps its loaded item renderable while the Loader itself is hidden.
+            // Loader 隐藏时其已加载 item 仍可抓图，继续使用原生覆盖窗快照路径。
+            transition._sourceItem.visible = collapsing
+            return transition._beginSnapshotCapture(collapsing)
+        }
+        return transition._beginInWindowTransition(collapsing)
+    }
+
+    function _beginSnapshotCapture(collapsing) {
+        transition._captureGeneration += 1
+        transition._capturePending = true
         transition._syncOverlayGeometry()
         frozenFrame.source = ""
         var generation = transition._captureGeneration
         return transition._captureWithItem(generation, collapsing)
+    }
+
+    function _beginInWindowTransition(collapsing) {
+        if (!transition._hostWindow) {
+            transition._completeWithoutAnimation(
+                collapsing, "source window unavailable", true)
+            return false
+        }
+
+        // ShaderEffectSource.hideSource keeps a direct QQuickItem renderable for the
+        // single-circle shader without exposing it in the normal scene.
+        // hideSource 让直接 QQuickItem 保持可渲染，同时不在普通场景中提前露出。
+        transition._sourceItem.visible = true
+        transition._usingInWindowSource = true
+        transition._inWindowStartPending = true
+        transition._dissolving = true
+        radiusTransition.prepare(collapsing)
+        inWindowSource.sourceItem = transition._sourceItem
+        inWindowSource.hideSource = true
+        transition._hostWindow.requestUpdate()
+        return true
     }
 
     function _captureWithItem(generation, collapsing) {
@@ -121,43 +163,78 @@ Item {
         if (!transition._capturePending || frozenFrame.status !== Image.Ready) return
 
         captureTimeout.stop()
-        transition._overlayFramePending = true
+        transition._capturePending = false
+        radiusTransition.prepare(transition._captureCollapsing)
+        // Collapse first presents an identical full-page snapshot. Expansion must
+        // present the radius-zero mask on its very first frame to avoid a full-page flash.
+        // 收紧先呈现与旧页一致的整页快照；展开首帧必须直接是半径零，避免目标页整屏闪现。
+        transition._dissolving = !transition._captureCollapsing
+        transition._overlayFrameStage = transition._captureCollapsing ? 1 : 2
         frozenFrame.visible = true
         frozenFrame.opacity = Enums.opacityLevel.visible
         overlayWindow.visible = true
         overlayWindow.requestUpdate()
     }
 
-    function _beginRadiusTransition() {
-        if (!transition._capturePending || !transition._overlayFramePending) return
+    function _handleOverlayFrameSwapped() {
+        if (transition._overlayFrameStage === 1) {
+            // The full old-page snapshot is now on screen. Prepare the identical
+            // radius-one mask and wait for one more swap before hiding the real page.
+            // 旧页整帧已上屏；再等待半径一遮罩上屏后才隐藏真实旧页。
+            transition._dissolving = true
+            transition._overlayFrameStage = 2
+            overlayWindow.requestUpdate()
+            return
+        }
 
-        transition._overlayFramePending = false
-        transition._capturePending = false
-        transition._dissolving = true
-        if (transition._sourceItem) transition._sourceItem.visible = false
-        radiusTransition.start(transition._captureCollapsing)
+        if (transition._overlayFrameStage === 2) {
+            transition._overlayFrameStage = 0
+            if (transition._sourceItem) transition._sourceItem.visible = false
+            if (transition._captureCollapsing) transition.collapseStarted()
+            else transition.expandStarted()
+            radiusTransition.startPrepared()
+            return
+        }
+
     }
 
     function _completeWithoutAnimation(collapsing, reason, expectedFallback) {
         if (expectedFallback) console.warn("LazyPageCircleTransition: " + reason)
         else console.error("LazyPageCircleTransition: " + reason)
         transition._capturePending = false
-        transition._overlayFramePending = false
+        transition._overlayFrameStage = 0
         transition._dissolving = false
+        transition._usingInWindowSource = false
+        transition._inWindowStartPending = false
+        transition._mainFramePending = false
         captureTimeout.stop()
         overlayWindow.visible = false
         var sourceItem = transition._sourceItem
         if (sourceItem) sourceItem.visible = !collapsing
+        transition._releaseInWindowSource()
         transition._detach(false)
         transition._releaseSnapshot()
         transition._collapsed = collapsing
-        if (collapsing) transition.collapseFinished()
-        else transition.expandFinished()
+        if (collapsing) {
+            transition.collapseStarted()
+            transition.collapseFinished()
+        } else {
+            transition.expandStarted()
+            transition.expandFinished()
+        }
     }
 
     function _releaseSnapshot() {
+        frozenFrame.visible = false
         frozenFrame.source = ""
         transition._grabResult = null
+    }
+
+    function _releaseInWindowSource() {
+        inWindowSource.hideSource = false
+        inWindowSource.sourceItem = null
+        transition._usingInWindowSource = false
+        transition._inWindowStartPending = false
     }
 
     function _detach(restoreVisibility) {
@@ -169,26 +246,65 @@ Item {
     }
 
     function _handleRadiusFinished() {
-        var sourceItem = transition._sourceItem
-        transition._dissolving = false
-        overlayWindow.visible = false
+        if (!transition._dissolving) return
         if (radiusTransition.collapsing) {
-            if (sourceItem) sourceItem.visible = false
-            transition._detach(false)
-            transition._releaseSnapshot()
-            transition._collapsed = true
-            transition.collapseFinished()
+            transition._finalizeCollapse()
             return
         }
 
+        // Keep the final full-page snapshot above the real target until the target
+        // window has rendered and swapped one frame of its own.
+        // 最终整页快照继续覆盖真实目标页，直到目标窗口完成一次实际渲染换帧。
+        var sourceItem = transition._sourceItem
         if (sourceItem) sourceItem.visible = true
+        if (transition._usingInWindowSource) inWindowSource.hideSource = false
+        if (!transition._hostWindow) {
+            transition._finalizeExpansion()
+            return
+        }
+        transition._mainFramePending = true
+        transition._hostWindow.requestUpdate()
+    }
+
+    function _finalizeCollapse() {
+        var sourceItem = transition._sourceItem
+        transition._dissolving = false
+        if (sourceItem) sourceItem.visible = false
+        if (transition._usingInWindowSource) transition._releaseInWindowSource()
+        else overlayWindow.visible = false
+        transition._detach(false)
+        transition._releaseSnapshot()
+        transition._collapsed = true
+        transition.collapseFinished()
+    }
+
+    function _finalizeExpansion() {
+        var sourceItem = transition._sourceItem
+        transition._mainFramePending = false
+        transition._dissolving = false
+        if (sourceItem) sourceItem.visible = true
+        if (transition._usingInWindowSource) transition._releaseInWindowSource()
+        else overlayWindow.visible = false
         transition._detach(false)
         transition._releaseSnapshot()
         transition._collapsed = false
         transition.expandFinished()
     }
 
-    visible: false
+    function _handleSourceWindowFrameSwapped() {
+        if (transition._inWindowStartPending) {
+            transition._inWindowStartPending = false
+            if (transition._captureCollapsing) transition.collapseStarted()
+            else transition.expandStarted()
+            radiusTransition.startPrepared()
+            return
+        }
+        if (!transition._mainFramePending) return
+        transition._finalizeExpansion()
+    }
+
+    visible: _usingInWindowSource
+    z: Enums.zIndex.popup
     Component.onDestruction: transition.stop()
 
     FeedbackInternal.QMLPageCircleTransition {
@@ -209,6 +325,46 @@ Item {
         }
     }
 
+    Connections {
+        target: transition._hostWindow
+
+        function onFrameSwapped() { transition._handleSourceWindowFrameSwapped() }
+    }
+
+    ShaderEffectSource {
+        id: inWindowSource
+
+        objectName: "lazyPageInWindowSource"
+        width: transition._sourceItem ? transition._sourceItem.width : Enums.border.thin
+        height: transition._sourceItem ? transition._sourceItem.height : Enums.border.thin
+        sourceItem: null
+        hideSource: false
+        live: true
+        recursive: true
+        smooth: true
+        visible: false
+    }
+
+    FeedbackInternal.QMLPageCircleFrame {
+        id: inWindowCircleFrame
+
+        objectName: "lazyPageInWindowCircleFrame"
+        x: transition._sourceItem ? transition._sourceItem.x : 0
+        y: transition._sourceItem ? transition._sourceItem.y : 0
+        width: transition._sourceItem ? transition._sourceItem.width : parent.width
+        height: transition._sourceItem ? transition._sourceItem.height : parent.height
+        opacity: transition._sourceItem
+            ? transition._sourceItem.opacity : Enums.opacityLevel.visible
+        scale: transition._sourceItem
+            ? transition._sourceItem.scale : Enums.opacityLevel.visible
+        transformOrigin: transition._sourceItem
+            ? transition._sourceItem.transformOrigin : Item.Center
+        source: inWindowSource
+        progress: radiusTransition.progress
+        revealTarget: false
+        visible: transition._usingInWindowSource && transition._dissolving
+    }
+
     Window {
         id: overlayWindow
 
@@ -219,7 +375,7 @@ Item {
         flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
         transientParent: null
 
-        onFrameSwapped: transition._beginRadiusTransition()
+        onFrameSwapped: transition._handleOverlayFrameSwapped()
 
         FeedbackInternal.QMLPageCircleFrame {
             id: circleFrame

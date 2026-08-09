@@ -311,9 +311,18 @@ def test_lazy_pages_use_one_circle_without_close_ripple_layers():
     assert "width: transition._dissolving ? Enums.border.thin" in lazy_transition_source
     assert "opacity: transition._sourceItem" in lazy_transition_source
     assert "scale: transition._sourceItem" in lazy_transition_source
-    assert "ShaderEffectSource" not in lazy_transition_source
+    assert lazy_transition_source.count("ShaderEffectSource {") == 1
+    assert 'objectName: "lazyPageInWindowSource"' in lazy_transition_source
+    assert 'objectName: "lazyPageInWindowCircleFrame"' in lazy_transition_source
+    assert "inWindowSource.hideSource = true" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleTransition" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source
+    assert "transition._hasLoaderItem" in lazy_transition_source
+    assert "transition._sourceItem.visible = true" in lazy_transition_source
+    assert "signal expandStarted()" in lazy_transition_source
+    assert "radiusTransition.prepare(transition._captureCollapsing)" in lazy_transition_source
+    assert "target: transition._hostWindow" in lazy_transition_source
+    assert "transition._mainFramePending = true" in lazy_transition_source
     assert "Easing.InCubic" in transition_source
     assert "Easing.OutQuint" in transition_source
     assert "from: transition._collapsing" in transition_source

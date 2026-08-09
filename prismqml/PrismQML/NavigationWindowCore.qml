@@ -106,6 +106,13 @@ WindowsCore {
         pythonPageReady(index)
     }
 
+    function _beginPythonLoadingVisualExit(index) {
+        if (_pythonPendingIndex >= 0 && index !== _pythonPendingIndex) return
+        if (_pythonLoadingOverlay && _pythonLoadingOverlay.finish) {
+            _pythonLoadingOverlay.finish()
+        }
+    }
+
     function _markPythonPageReady(index) {
         if (stackedWidget && stackedWidget._markPythonPageReady) {
             stackedWidget._markPythonPageReady(index)

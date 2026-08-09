@@ -31,6 +31,8 @@ Item {
     property int internalLastIndex: 0
     property int _observedLoaderIndex: -1
     property int _observedLoaderStatus: Loader.Null
+    property bool _waitIndicatorFinished: false
+    property bool _targetExpansionFinished: false
     
     // ==================== Signals 信号 ====================
     signal loadingComplete(int targetIndex, int previousIndex)
@@ -129,6 +131,42 @@ Item {
         _trace("helper.page_render.done", targetIdx)
     }
 
+    function _beginTargetExpansion() {
+        if (pendingTargetIndex < 0) return
+
+        _trace("helper.page_expand.begin", pendingTargetIndex)
+        if (!loadingOverlay.visible) {
+            _waitIndicatorFinished = true
+            _finalizeLoadingSwitch()
+            return
+        }
+        loadingOverlay.finish()
+    }
+
+    function _completeWaitIndicatorExit() {
+        if (pendingTargetIndex < 0) return
+
+        _waitIndicatorFinished = true
+        _trace("helper.wait_indicator.finish", pendingTargetIndex)
+        _finalizeLoadingSwitch()
+    }
+
+    function _finalizeLoadingSwitch() {
+        if (pendingTargetIndex < 0 || !_waitIndicatorFinished
+                || !_targetExpansionFinished) return
+
+        var targetIndex = pendingTargetIndex
+        _trace("helper.hide_loading.begin", targetIndex)
+        loadingOverlay.y = 0
+        loadingOverlay.opacity = 1
+        pendingTargetIndex = -1
+        isLoadingSwitching = false
+        _waitIndicatorFinished = false
+        _targetExpansionFinished = false
+        animationStart()
+        _trace("helper.hide_loading.done", targetIndex)
+    }
+
     // ==================== Public Methods 公开方法 ====================
     function cancelPendingLoad() {
         var cancelledTargetIndex = pendingTargetIndex
@@ -141,6 +179,8 @@ Item {
         pendingTargetIndex = -1
         _observedLoaderIndex = -1
         _observedLoaderStatus = Loader.Null
+        _waitIndicatorFinished = false
+        _targetExpansionFinished = false
     }
 
     function showLoadingAndSwitch(targetIdx) {
@@ -148,6 +188,8 @@ Item {
 
         pendingTargetIndex = targetIdx
         isLoadingSwitching = true
+        _waitIndicatorFinished = false
+        _targetExpansionFinished = false
         _trace("helper.show.begin", targetIdx)
         _observeLoaderStatus(targetIdx)
 
@@ -185,7 +227,8 @@ Item {
         if (pendingTargetIndex < 0) return
 
         _trace("helper.page_expand.finish", pendingTargetIndex)
-        loadingOverlay.finish()
+        _targetExpansionFinished = true
+        _finalizeLoadingSwitch()
     }
 
     function _restoreVisiblePage() {
@@ -221,6 +264,8 @@ Item {
         loadingOverlay.y = 0
         pendingTargetIndex = -1
         isLoadingSwitching = false
+        _waitIndicatorFinished = false
+        _targetExpansionFinished = false
 
         loadingFailed(targetIdx, errorString)
         _trace("helper.loading_failed.done", targetIdx)
@@ -228,6 +273,7 @@ Item {
 
     // ==================== Content 内容 ====================
     Connections {
+        function onExpandStarted() { helper._beginTargetExpansion() }
         function onCollapseFinished() { helper._completeLoadingCollapse() }
         function onExpandFinished() { helper._completeTargetExpansion() }
         target: helper.pageTransition
@@ -249,18 +295,7 @@ Item {
         y: 0
         z: Enums.zIndex.controls
 
-        onFinished: {
-            if (helper.pendingTargetIndex < 0) return
-
-            var targetIndex = helper.pendingTargetIndex
-            helper._trace("helper.hide_loading.begin", targetIndex)
-            loadingOverlay.y = 0
-            loadingOverlay.opacity = 1
-            helper.pendingTargetIndex = -1
-            helper.isLoadingSwitching = false
-            helper.animationStart()
-            helper._trace("helper.hide_loading.done", targetIndex)
-        }
+        onFinished: helper._completeWaitIndicatorExit()
     }
     
     // Sequential stage timer 串行阶段计时器

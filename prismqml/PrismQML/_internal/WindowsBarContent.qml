@@ -122,6 +122,11 @@ Item {
                     root.hostWindow.currentIndex = index
                 }
             }
+            onPythonLazyExpansionStarted: (index) => {
+                if (root.hostWindow) {
+                    root.hostWindow._beginPythonLoadingVisualExit(index)
+                }
+            }
             onPythonLazyTransitionFinished: (index) => {
                 if (root.hostWindow) {
                     root.hostWindow._completePythonLoadingVisual(index)
