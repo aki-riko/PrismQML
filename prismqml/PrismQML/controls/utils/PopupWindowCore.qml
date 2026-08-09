@@ -4,6 +4,7 @@
 
 import "../.."
 import "_internal"
+import "_internal/PopupLifecycle.js" as PopupLifecycle
 import QtQuick.Controls as Controls
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
@@ -58,6 +59,11 @@ Item {
     property Item _prewarmFocusItem: null
     property bool _ownerReleaseInProgress: false
     property bool _nativeWindowRequested: false
+    property bool _openRequested: false
+    property bool _surfaceRecoveryScheduled: false
+    property int _surfaceRecoveryAttemptCount: 0
+    readonly property int _maxSurfaceRecoveryAttempts: 1
+    readonly property alias _lifecycleTimer: lifecycleTimer
     readonly property bool _isPopupWindowCore: true
     // Internal: animated clip height for drop-down effect 内部：下拉展开动画的裁剪高度
     property real _clipHeight: 0
@@ -285,56 +291,84 @@ Item {
         var owner = control._targetWindow ? control._targetWindow : control.Window.window
         if (popup && owner) WindowHelper.releasePopupWindowCapture(popup, owner)
     }
-
-    // Windows may destroy an owned native popup when its hidden/minimized owner is torn down.
-    // Windows 可能在隐藏或最小化的 owner 被拆除时连带销毁其原生弹层。
-    function _releaseQtPopupForUnavailableOwner() {
-        if (!useQtPopupWindow || _ownerReleaseInProgress) return
+    function _showCurrentSurface() {
+        if (_usesControlsPopup) {
+            if (!_inlineParent) return false
+            inlinePopup.open()
+            return inlinePopup.visible
+        }
+        var nativeWindow = _popupWindow
+        if (!nativeWindow) return false
+        nativeWindow.show()
+        nativeWindow.raise()
+        if (stealFocus) nativeWindow.requestActivate()
+        return nativeWindow.visible
+    }
+    function _startOpenAnimation() {
+        showAnim.start()
+    }
+    function _resetOpenAppearance() {
+        showAnim.stop()
+        hideAnim.stop()
+        _clipHeight = 0
+        _scale = verticalCenterExpand ? 0 : 0.7
+        popupSurface.opacity = 0
+    }
+    function _handleSurfaceClosed() {
+        PopupLifecycle.handleSurfaceClosed(control)
+    }
+    // A hidden/minimized owner invalidates every popup surface mode. Reset the
+    // shared lifecycle before the owner can be restored. 隐藏或最小化宿主会使
+    // 所有弹层 surface 失效；宿主恢复前统一重置生命周期。
+    function _releasePopupForUnavailableOwner() {
+        if (_ownerReleaseInProgress) return
         var owner = control._targetWindow ? control._targetWindow : control.Window.window
         if (owner && owner.visible
                 && owner.visibility !== Window.Hidden
                 && owner.visibility !== Window.Minimized) return
         _ownerReleaseInProgress = true
-        _clearQtPopupOwner()
+        if (useQtPopupWindow) _clearQtPopupOwner()
         forceReset()
         _ownerReleaseInProgress = false
     }
-
     function open(x, y) {
         _openAtPosition(x, y, false)
     }
-
     function _openAtPosition(x, y, preservePlacement) {
-        // Prevent open during closing animation 防止关闭期间打开
-        if (isClosing) return
         if (preservePlacement !== true) _submenuPlacement = false
 
         // Create the native content host before aboutToShow so content-sized
         // popups can measure their items while the host is still hidden.
         // 在 aboutToShow 前创建原生内容宿主，确保隐藏状态下仍能正确测量内容尺寸。
         var nativeWindow = _usesControlsPopup ? null : _ensureNativeWindow()
+        if (_usesControlsPopup && !_inlineParent) return
+        if (!_usesControlsPopup && !nativeWindow) return
+        // Keep repeated requests idempotent while opening or open. 打开中或已打开时保持幂等。
+        if (!PopupLifecycle.beginOpen(control)) return
         aboutToShow()
+        if (!_openRequested || isClosing) return
 
-        var posX = (x !== undefined && !isNaN(x)) ? x : 0
-        var posY = (y !== undefined && !isNaN(y)) ? y : 0
+        var pickerPos = _isPickerMode
+            ? _calcPickerPosition(targetControl, _pickerRowHeight) : null
+        var posX = pickerPos
+            ? pickerPos.x : ((x !== undefined && !isNaN(x)) ? x : 0)
+        var posY = pickerPos
+            ? pickerPos.y : ((y !== undefined && !isNaN(y)) ? y : 0)
 
         if (_usesControlsPopup) {
-            if (!_inlineParent) return
             _prewarmingQtPopup = false
             _prewarmFocusItem = null
             var localPos = _calcControlsPopupPosition(posX, posY)
             inlinePopup.x = localPos.x
             inlinePopup.y = localPos.y
-            inlinePopup.open()
+            _showCurrentSurface()
             _prewarmed = true
             _prewarmScheduled = false
             prewarmTimer.stop()
-            showAnimTimer.start()
+            PopupLifecycle.scheduleCompletion(control)
             return
         }
 
-        nativeWindow = nativeWindow || _ensureNativeWindow()
-        if (!nativeWindow) return
         nativeWindow.width = _outerWidth
         nativeWindow.height = _outerHeight
 
@@ -348,21 +382,15 @@ Item {
         nativeWindow.y = posY
 
         // Show window first, then trigger animation 先显示窗口，再触发动画
-        nativeWindow.show()
+        _showCurrentSurface()
         _prewarmed = true
         _prewarmScheduled = false
         _prewarmingQtPopup = false
         _prewarmFocusItem = null
         prewarmTimer.stop()
-        nativeWindow.raise()
-        if (control.stealFocus) {
-            nativeWindow.requestActivate()
-        }
-
         // Delay to trigger animation after window is visible 延迟触发动画
-        showAnimTimer.start()
+        PopupLifecycle.scheduleCompletion(control)
     }
-    
     function openAtControl(targetCtrl) {
         if (!targetCtrl) return
         _submenuPlacement = false
@@ -379,33 +407,11 @@ Item {
         targetControl = targetCtrl
         _isPickerMode = true
         _pickerRowHeight = rowHeight
-        
-        if (isClosing) return
-        aboutToShow()
-        var nativeWindow = _ensureNativeWindow()
-        if (!nativeWindow) return
-        
-        var pos = _calcPickerPosition(targetCtrl, rowHeight)
-        
-        nativeWindow.width = Math.max(Enums.popupMetrics.minWidth, popupWidth + Enums.popupMetrics.windowPadding)
-        nativeWindow.height = Math.max(Enums.popupMetrics.minHeight, popupHeight + Enums.popupMetrics.windowPadding)
-        
-        nativeWindow.x = pos.x
-        nativeWindow.y = pos.y
-        
-        nativeWindow.show()
-        _prewarmed = true
-        _prewarmScheduled = false
-        prewarmTimer.stop()
-        nativeWindow.raise()
-        nativeWindow.requestActivate()
-        showAnimTimer.start()
+        _openAtPosition(undefined, undefined, false)
     }
-    
     // Internal: calculate picker position 内部：计算Picker位置
     function _calcPickerPosition(targetCtrl, rowHeight) {
         var controlPos = targetCtrl.mapToGlobal(0, 0)
-        
         // Wheel area height 滚轮区域高度
         var wheelAreaHeight = Enums.controlSize.wheelPickerAreaHeight
         // Selected row is at center of wheel area 选中行在滚轮区域中心
@@ -414,7 +420,6 @@ Item {
         // Align selected row center with control center, fine-tune offset 选中行中心对齐控件中心，微调偏移
         var posY = controlPos.y + targetCtrl.height / 2 - selectedRowCenterY - Enums.spacing.xs - Enums.popupMetrics.panelOffset
         var posX = controlPos.x + (targetCtrl.width - popupWidth) / 2 - Enums.popupMetrics.panelOffset
-        
         // Screen boundary check 屏幕边界检查
         var screen = Screen
         if (screen) {
@@ -423,7 +428,6 @@ Item {
         }
         return Qt.point(posX, posY)
     }
-    
     function openAtMouse() {
         // Get cursor position from Qt.application 从Qt.application获取光标位置
         var cursorPos = Qt.point(0, 0)
@@ -440,7 +444,6 @@ Item {
         }
         open(cursorPos.x, cursorPos.y)
     }
-    
     // Qt Menu API compat - popup at cursor position Qt菜单API兼容
     // mouseX, mouseY: local coordinates relative to triggerItem
     // triggerItem: the item that triggered the popup (e.g. MouseArea's parent)
@@ -456,19 +459,15 @@ Item {
         }
         openAtMouse()
     }
-    
     // Popup at specific global position 在指定全局位置弹出
     function popupAt(globalX, globalY) {
         open(globalX, globalY)
     }
-    
     function close() {
-        if (isClosing || (!isOpen && !showAnimTimer.running && !_surfaceVisible)) return
+        if (!PopupLifecycle.canClose(control, _surfaceVisible)) return
         aboutToHide()
-        showAnimTimer.stop()
+        PopupLifecycle.beginClose(control)
         showAnim.stop()
-        isClosing = true
-        isOpen = false
         _isPickerMode = false  // Reset picker mode 重置Picker模式
         hideAnim.start()
         closed()
@@ -483,22 +482,15 @@ Item {
         _scale = 1
         _clipHeight = popupHeight
     }
-    
     // Force reset all state - for system tray menu reopen 强制重置所有状态（系统托盘菜单重新打开使用）
     function forceReset() {
-        showAnim.stop()
-        hideAnim.stop()
-        showAnimTimer.stop()
+        PopupLifecycle.forceReset(control)
         _prewarmScheduled = false
         _prewarmingQtPopup = false
         _prewarmFocusItem = null
         prewarmTimer.stop()
-        isOpen = false
-        isClosing = false
-        _clipHeight = 0
-        _scale = verticalCenterExpand ? 0 : 0.7   // [Anim C]
+        _isPickerMode = false
         _submenuPlacement = false
-        popupSurface.opacity = 0
         if (_usesControlsPopup) inlinePopup.close()
         else if (_popupWindow) _popupWindow.hide()
     }
@@ -538,6 +530,12 @@ Item {
         id: prewarmTimer
         interval: 0
         onTriggered: control._doPrewarm()
+    }
+
+    Timer {
+        id: lifecycleTimer
+        interval: Enums.popupMetrics.showAnimDelayMs
+        onTriggered: PopupLifecycle.onTimer(control)
     }
 
     // Show animation 弹出动画
@@ -605,17 +603,6 @@ Item {
         }
     }
     
-    Timer {
-        id: showAnimTimer
-        interval: Enums.popupMetrics.showAnimDelayMs  // One frame delay 一帧延迟
-        onTriggered: {
-            control._releaseQtPopupCapture()
-            control.isOpen = true
-            showAnim.start()
-            control.opened()
-        }
-    }
-    
     PopupPositionTracker {
         target: control.targetControl
         targetWindow: control._targetWindow
@@ -648,15 +635,10 @@ Item {
 
         onAboutToHide: control._clearQtPopupOwner()
         onClosed: {
-            if (control.isOpen && !control.isClosing) {
-                showAnim.stop()
-                hideAnim.stop()
-                showAnimTimer.stop()
-                control.isOpen = false
-                control._clipHeight = 0
-                control._scale = control.verticalCenterExpand ? 0 : 0.7
-                popupSurface.opacity = 0
-                control.closed()
+            PopupLifecycle.handleSurfaceClosed(control)
+            if (!control._openRequested) {
+                control._isPickerMode = false
+                control._submenuPlacement = false
             }
         }
         onOpened: {
@@ -672,8 +654,8 @@ Item {
 
     Connections {
         function onNativeCloseAccepted() { control._clearQtPopupOwner() }
-        function onVisibleChanged() { control._releaseQtPopupForUnavailableOwner() }
-        function onVisibilityChanged() { control._releaseQtPopupForUnavailableOwner() }
+        function onVisibleChanged() { control._releasePopupForUnavailableOwner() }
+        function onVisibilityChanged() { control._releasePopupForUnavailableOwner() }
 
         target: control._targetWindow
         ignoreUnknownSignals: true

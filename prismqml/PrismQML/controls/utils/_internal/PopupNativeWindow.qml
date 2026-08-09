@@ -20,6 +20,7 @@ Window {
     color: Enums.transparent
     onVisibleChanged: {
         if (visible && popupControl.stealFocus) keyHandler.forceActiveFocus()
+        if (!visible) popupControl._handleSurfaceClosed()
     }
 
     // Auto close on focus lost 失焦自动关闭

@@ -6,8 +6,8 @@
 
 import pytest
 
-from PySide6.QtCore import QPointF, Qt, QUrl
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import QObject, QPointF, Qt, QUrl
+from PySide6.QtGui import QGuiApplication, QWindow
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtTest import QTest
@@ -330,4 +330,128 @@ def test_menu_delegate_click_preserves_opening_animation(delegate_menu_scene):
     _pump(20)
 
     assert root.property("triggerCount") == 1
+    assert warnings == []
+
+
+def _controls_popup(popup):
+    matches = [
+        child
+        for child in popup.findChildren(QObject)
+        if child.metaObject().className().startswith("Popup_QMLTYPE_")
+    ]
+    assert len(matches) == 1, [
+        child.metaObject().className() for child in popup.findChildren(QObject)
+    ]
+    return matches[0]
+
+
+@pytest.mark.parametrize("object_name", ["dropdownButton", "splitButton"])
+def test_button_menu_recovers_pending_surface_close_and_indicator_state(
+    dropdown_scene, object_name
+):
+    root, _window, warnings = dropdown_scene
+    dropdown = _button_dropdown(_button(root, object_name))
+
+    _invoke(dropdown, "openMenu")
+    popup = _dropdown_popup(dropdown)
+    controls_popup = _controls_popup(popup)
+    assert controls_popup.property("visible")
+    assert not popup.property("isOpen")
+
+    _invoke(controls_popup, "close")
+    assert _wait_for(
+        lambda: popup.property("isOpen") and popup.property("_surfaceVisible")
+    )
+    assert dropdown.property("isMenuOpen")
+    assert controls_popup.property("visible")
+    assert warnings == []
+
+
+@pytest.mark.parametrize("popup_mode", ["qt_window", "in_window", "native_window"])
+def test_surface_close_during_pending_open_recovers_without_false_open_state(
+    action_menu_scene, popup_mode
+):
+    root, _window, warnings = action_menu_scene
+    menu = root.findChild(type(root), "actionMenu")
+    assert menu is not None
+    menu.setProperty("useQtPopupWindow", popup_mode == "qt_window")
+    menu.setProperty("useInWindowPopup", popup_mode == "in_window")
+
+    _invoke(root, "openMenu")
+    controls_popup = None
+    native_popup = None
+    if popup_mode == "native_window":
+        native_popups = menu.findChildren(QWindow)
+        assert len(native_popups) == 1
+        native_popup = native_popups[0]
+        assert native_popup.isVisible()
+    else:
+        controls_popup = _controls_popup(menu)
+        assert controls_popup.property("visible")
+    assert not menu.property("isOpen")
+
+    # Reproduce the real lifecycle race: the platform closes the surface before
+    # PopupWindowCore's delayed opening state is published. 复现真实生命周期竞态：
+    # 平台在 PopupWindowCore 延迟发布打开状态前先关闭了实际弹层。
+    if native_popup is not None:
+        native_popup.hide()
+        assert _wait_for(lambda: not native_popup.isVisible())
+    else:
+        _invoke(controls_popup, "close")
+        assert _wait_for(lambda: not controls_popup.property("visible"))
+    assert _wait_for(
+        lambda: menu.property("isOpen") and menu.property("_surfaceVisible")
+    )
+    if native_popup is not None:
+        assert native_popup.isVisible()
+    else:
+        assert controls_popup.property("visible")
+    assert not menu.property("isClosing")
+
+    _invoke(menu, "close")
+    assert _wait_for(
+        lambda: not menu.property("isOpen")
+        and not menu.property("_surfaceVisible")
+    )
+    _invoke(root, "openMenu")
+    assert _wait_for(
+        lambda: menu.property("isOpen") and menu.property("_surfaceVisible")
+    )
+    if native_popup is not None:
+        assert native_popup.isVisible()
+    else:
+        assert controls_popup.property("visible")
+    assert warnings == []
+
+
+@pytest.mark.parametrize("popup_mode", ["qt_window", "in_window", "native_window"])
+def test_owner_hide_resets_popup_lifecycle_before_reopen(
+    action_menu_scene, popup_mode
+):
+    root, window, warnings = action_menu_scene
+    menu = root.findChild(type(root), "actionMenu")
+    assert menu is not None
+    menu.setProperty("useQtPopupWindow", popup_mode == "qt_window")
+    menu.setProperty("useInWindowPopup", popup_mode == "in_window")
+
+    _invoke(root, "openMenu")
+    assert _wait_for(
+        lambda: menu.property("isOpen") and menu.property("_surfaceVisible")
+    )
+
+    window.hide()
+    assert _wait_for(
+        lambda: not menu.property("isOpen")
+        and not menu.property("_surfaceVisible")
+    )
+    assert not menu.property("_openRequested")
+    assert not menu.property("isClosing")
+
+    window.show()
+    window.requestActivate()
+    _pump(30)
+    _invoke(root, "openMenu")
+    assert _wait_for(
+        lambda: menu.property("isOpen") and menu.property("_surfaceVisible")
+    )
     assert warnings == []
