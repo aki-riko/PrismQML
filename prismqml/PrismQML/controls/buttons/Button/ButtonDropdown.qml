@@ -393,7 +393,6 @@ Item {
                                     icon: modelData && typeof modelData === "object"
                                           ? (modelData.icon || "") : ""
                                     isSeparator: text === "-"
-                                    onPressed: dropDownMenu.stabilizeInteraction()
                                     onClicked: {
                                         dropDownMenu.close()
                                         dropdownFeature.menuItemClicked(index, text)

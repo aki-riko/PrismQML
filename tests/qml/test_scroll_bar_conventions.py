@@ -594,7 +594,17 @@ def test_scroll_bars_follow_position_and_real_drag(scroll_scene):
     QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=target)
     assert _wait_for(lambda: values and moved and released)
     assert pressed == [True]
-    assert flick.property("contentY") > 240
+    assert len(values) == 2
+    assert values == sorted(values)
+    assert len(moved) == 2
+    expected_content_y = 240 + (
+        (target.y() - start.y())
+        / (entry.height() - entry_thumb.height())
+        * (flick.property("contentHeight") - flick.height())
+    )
+    assert flick.property("contentY") == pytest.approx(
+        expected_content_y, abs=1.0
+    )
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

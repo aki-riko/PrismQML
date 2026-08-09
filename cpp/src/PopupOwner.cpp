@@ -68,4 +68,48 @@ bool WindowHelper::ensurePopupWindowOwner(
 #endif
 }
 
+bool WindowHelper::releasePopupWindowCapture(
+    const QVariant &popupWindow, const QVariant &ownerWindow) {
+#ifdef Q_OS_WIN
+    QObject *popupObject = qvariant_cast<QObject *>(popupWindow);
+    QObject *ownerObject = qvariant_cast<QObject *>(ownerWindow);
+    auto *nativePopupWindow = qobject_cast<QWindow *>(popupObject);
+    auto *nativeOwnerWindow = qobject_cast<QWindow *>(ownerObject);
+    if (!nativePopupWindow || !nativeOwnerWindow
+        || (nativePopupWindow->flags() & Qt::WindowType_Mask) != Qt::Popup) {
+        return false;
+    }
+
+    const HWND popupHwnd = reinterpret_cast<HWND>(nativePopupWindow->winId());
+    const HWND ownerHwnd = reinterpret_cast<HWND>(nativeOwnerWindow->winId());
+    if (!popupHwnd || !ownerHwnd || popupHwnd == ownerHwnd)
+        return false;
+
+    DWORD popupProcessId = 0;
+    DWORD ownerProcessId = 0;
+    if (!GetWindowThreadProcessId(popupHwnd, &popupProcessId)
+        || !GetWindowThreadProcessId(ownerHwnd, &ownerProcessId)
+        || popupProcessId != GetCurrentProcessId()
+        || ownerProcessId != popupProcessId
+        || GetWindow(popupHwnd, GW_OWNER) != ownerHwnd
+        || GetCapture() != ownerHwnd) {
+        return false;
+    }
+
+    const bool mouseButtonDown =
+        (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0
+        || (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0
+        || (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0
+        || (GetAsyncKeyState(VK_XBUTTON1) & 0x8000) != 0
+        || (GetAsyncKeyState(VK_XBUTTON2) & 0x8000) != 0;
+    if (mouseButtonDown || !ReleaseCapture())
+        return false;
+    return GetCapture() == nullptr;
+#else
+    Q_UNUSED(popupWindow);
+    Q_UNUSED(ownerWindow);
+    return false;
+#endif
+}
+
 }  // namespace prism

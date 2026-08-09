@@ -28,22 +28,6 @@ Item {
     signal clicked()
     signal pressed()
 
-    // ==================== Internal Methods 内部方法 ====================
-    // Stabilize the nearest popup before the press/release hit test begins.
-    // 在按下/释放命中测试开始前稳定最近的弹层。
-    function _stabilizePopupAncestor() {
-        var ancestor = delegateRoot.parent
-        while (ancestor) {
-            var popupHost = ancestor._interactionHost
-            if (popupHost && popupHost._isPopupWindowCore === true
-                    && typeof popupHost.stabilizeInteraction === "function") {
-                popupHost.stabilizeInteraction()
-                return
-            }
-            ancestor = ancestor.parent
-        }
-    }
-    
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : Enums.comboBoxMetrics.defaultWidth
     height: isSeparator ? Enums.controlSize.menuSeparatorHeight : Enums.comboBoxMetrics.itemHeight
@@ -121,10 +105,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         enabled: !delegateRoot.isSeparator && delegateRoot.itemEnabled
-        onPressed: {
-            delegateRoot._stabilizePopupAncestor()
-            delegateRoot.pressed()
-        }
+        onPressed: delegateRoot.pressed()
         onClicked: delegateRoot.clicked()
     }
 }

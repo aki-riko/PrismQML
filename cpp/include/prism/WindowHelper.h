@@ -28,6 +28,8 @@ public slots:
     QVariantMap screenGeometryAt(int x, int y) const;
     bool ensurePopupWindowOwner(
         const QVariant &popupWindow, const QVariant &ownerWindow);
+    bool releasePopupWindowCapture(
+        const QVariant &popupWindow, const QVariant &ownerWindow);
     bool registerWindowFollower(
         const QVariant &hostWindow, const QVariant &followerWindow,
         int edge, qreal logicalExtent);

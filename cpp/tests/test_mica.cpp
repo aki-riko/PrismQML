@@ -114,6 +114,13 @@ int main(int argc, char *argv[]) {
         CHECK(GetWindow(reinterpret_cast<HWND>(popupId), GW_OWNER)
                   == reinterpret_cast<HWND>(nativeId),
               "弹层原生 owner 指向宿主窗口");
+        SetCapture(reinterpret_cast<HWND>(nativeId));
+        CHECK(GetCapture() == reinterpret_cast<HWND>(nativeId),
+              "弹层打开后的宿主鼠标捕获输入已复现");
+        CHECK(helper->releasePopupWindowCapture(popupVariant, wv),
+              "releasePopupWindowCapture 释放空闲宿主捕获");
+        CHECK(GetCapture() == nullptr,
+              "弹层修复后宿主不再持有鼠标捕获");
         QVariant followerVariant = QVariant::fromValue(static_cast<QObject *>(&follower));
         CHECK(GetWindow(reinterpret_cast<HWND>(followerId), GW_OWNER) == nullptr,
               "外侧附属窗口没有 owner, 可位于宿主下层");

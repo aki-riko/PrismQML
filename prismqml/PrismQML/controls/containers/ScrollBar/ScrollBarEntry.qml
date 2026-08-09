@@ -19,13 +19,13 @@ Rectangle {
  property bool _animEnabled: false
 
  // ==================== Readonly State 只读状态 ====================
- readonly property bool hovered: mouseArea.containsMouse
+ readonly property bool hovered: trackHoverHandler.hovered || thumbHoverHandler.hovered
  readonly property bool active: flickable && (horizontal ? flickable.contentWidth > flickable.width : flickable.contentHeight > flickable.height)
  readonly property color _scrollTrackColor: Enums.stateColor.scrollTrack
  readonly property color _scrollThumbDefaultColor: Enums.stateColor.scrollHandleDefault
  readonly property color _scrollThumbHoverColor: Enums.stateColor.scrollHandleHover
  readonly property color _scrollThumbPressedColor: Enums.accentColor
- readonly property color _scrollThumbColor: thumbArea.pressed ? _scrollThumbPressedColor : (hovered ? _scrollThumbHoverColor : _scrollThumbDefaultColor)
+ readonly property color _scrollThumbColor: thumbPointHandler.active ? _scrollThumbPressedColor : (hovered ? _scrollThumbHoverColor : _scrollThumbDefaultColor)
 
  // ==================== Signals 信号 ====================
  signal valueChanged(int value)
@@ -45,6 +45,28 @@ Rectangle {
   return Math.max(0, Math.min(1, (contentPos - origin) / maxScroll))
  }
 
+ function _applyDragDelta(delta, startScroll) {
+  var travel = horizontal ? (control.width - thumb.width) : (control.height - thumb.height)
+  if (!isFinite(travel) || travel <= 0) return
+  var scrollDelta = delta / travel
+  var maxScroll = horizontal ? (flickable.contentWidth - flickable.width) : (flickable.contentHeight - flickable.height)
+  if (!isFinite(maxScroll) || maxScroll <= 0) return
+  var minScroll = horizontal ? flickable.originX : flickable.originY
+  var newScroll = startScroll + scrollDelta * maxScroll
+  var clampedScroll = Math.max(minScroll, Math.min(minScroll + maxScroll, newScroll))
+
+  if (horizontal) {
+   if (flickable.contentX === clampedScroll) return
+   flickable.contentX = clampedScroll
+   control.valueChanged(Math.round(flickable.contentX))
+  } else {
+   if (flickable.contentY === clampedScroll) return
+   flickable.contentY = clampedScroll
+   control.valueChanged(Math.round(flickable.contentY))
+  }
+  control.sliderMoved()
+ }
+
  Component.onCompleted: Qt.callLater(() => { _animEnabled = true })
 
  // ==================== Size 尺寸 ====================
@@ -53,7 +75,7 @@ Rectangle {
  radius: width / 2
  color: Enums.transparent
  visible: active // Only visible when needed 仅需要时可见
- opacity: (hovered || thumbArea.pressed) ? 1 : 0.6
+ opacity: (hovered || thumbPointHandler.active) ? 1 : 0.6
  
  Behavior on opacity {
  enabled: control._animEnabled
@@ -90,54 +112,44 @@ Rectangle {
  
  Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
  
- MouseArea {
- id: thumbArea
+ }
 
- property real startPos: 0
+ // Stable thumb input layer 稳定滑块输入层
+ Item {
+ id: thumbInput
+
+ anchors.fill: parent
+ containmentMask: thumb
+
+ HoverHandler {
+ id: thumbHoverHandler
+ }
+
+ PointHandler {
+ id: thumbPointHandler
+
  property real startScroll: 0
 
- anchors.fill: parent
- hoverEnabled: true
- 
- onPressed: {
- startPos = horizontal ? mouseX : mouseY
- startScroll = horizontal ? flickable.contentX : flickable.contentY
- control.sliderPressed()
- }
- 
- onReleased: {
- control.sliderReleased()
- }
- 
- onPositionChanged: {
-  if (pressed && flickable) {
-  var delta = horizontal ? (mouseX - startPos) : (mouseY - startPos)
-  var travel = horizontal ? (control.width - thumb.width) : (control.height - thumb.height)
-  if (!isFinite(travel) || travel <= 0) return
-  var scrollDelta = delta / travel
-  var maxScroll = horizontal ? (flickable.contentWidth - flickable.width) : (flickable.contentHeight - flickable.height)
-  if (!isFinite(maxScroll) || maxScroll <= 0) return
-  var minScroll = horizontal ? flickable.originX : flickable.originY
- var newScroll = startScroll + scrollDelta * maxScroll
+ acceptedButtons: Qt.LeftButton
 
- if (horizontal) {
- flickable.contentX = Math.max(minScroll, Math.min(minScroll + maxScroll, newScroll))
- control.valueChanged(Math.round(flickable.contentX))
- } else {
- flickable.contentY = Math.max(minScroll, Math.min(minScroll + maxScroll, newScroll))
- control.valueChanged(Math.round(flickable.contentY))
+ onActiveChanged: {
+  if (active) {
+   startScroll = horizontal ? flickable.contentX : flickable.contentY
+   control.sliderPressed()
+  } else {
+   control.sliderReleased()
+  }
  }
- control.sliderMoved()
- }
+
+ onTranslationChanged: {
+  if (!active || !flickable) return
+  var delta = horizontal ? translation.x : translation.y
+  control._applyDragDelta(delta, startScroll)
  }
  }
  }
  
- MouseArea {
- id: mouseArea
- anchors.fill: parent
- hoverEnabled: true
- propagateComposedEvents: true
- onPressed: (mouse) => { mouse.accepted = false }
+ HoverHandler {
+ id: trackHoverHandler
  }
 }

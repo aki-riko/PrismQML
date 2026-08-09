@@ -275,6 +275,17 @@ Item {
         if (popup && owner) WindowHelper.clearPopupWindowOwner(popup, owner)
     }
 
+    // Qt may retain the owner capture after the opening click has finished.
+    // Qt 可能在打开点击结束后仍保留宿主捕获，阻断弹层子项的首击。
+    function _releaseQtPopupCapture() {
+        if (!useQtPopupWindow
+                || typeof WindowHelper === "undefined" || !WindowHelper
+                || typeof WindowHelper.releasePopupWindowCapture !== "function") return
+        var popup = inlinePopupContent.Window.window
+        var owner = control._targetWindow ? control._targetWindow : control.Window.window
+        if (popup && owner) WindowHelper.releasePopupWindowCapture(popup, owner)
+    }
+
     // Windows may destroy an owned native popup when its hidden/minimized owner is torn down.
     // Windows 可能在隐藏或最小化的 owner 被拆除时连带销毁其原生弹层。
     function _releaseQtPopupForUnavailableOwner() {
@@ -598,6 +609,7 @@ Item {
         id: showAnimTimer
         interval: Enums.popupMetrics.showAnimDelayMs  // One frame delay 一帧延迟
         onTriggered: {
+            control._releaseQtPopupCapture()
             control.isOpen = true
             showAnim.start()
             control.opened()

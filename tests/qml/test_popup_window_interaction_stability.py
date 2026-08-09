@@ -206,7 +206,7 @@ def delegate_menu_scene(qapp):
 
 
 @pytest.mark.parametrize("object_name", ["dropdownButton", "splitButton"])
-def test_menu_item_click_survives_opening_animation(
+def test_menu_item_click_survives_natural_opening_animation(
     dropdown_scene, object_name
 ):
     root, _window, warnings = dropdown_scene
@@ -239,14 +239,8 @@ def test_menu_item_click_survives_opening_animation(
         Qt.KeyboardModifier.NoModifier,
         click_position,
     )
-    stabilized_scale = popup.property("_scale")
-    stabilized_global = item.mapToGlobal(
-        QPointF(item.width() / 2, item.height() / 2)
-    )
+    pressed_scale = popup.property("_scale")
     _pump(100)
-    release_global = item.mapToGlobal(
-        QPointF(item.width() / 2, item.height() / 2)
-    )
     QTest.mouseRelease(
         popup_window,
         Qt.MouseButton.LeftButton,
@@ -255,9 +249,7 @@ def test_menu_item_click_survives_opening_animation(
     )
     _pump(20)
 
-    assert stabilized_scale == pytest.approx(1.0)
-    assert release_global.x() == pytest.approx(stabilized_global.x(), abs=0.5)
-    assert release_global.y() == pytest.approx(stabilized_global.y(), abs=0.5)
+    assert pressed_scale < 1.0
     assert received == [(0, "Alpha")]
     assert warnings == []
 
@@ -305,7 +297,7 @@ def test_action_click_survives_opening_animation(
     assert warnings == []
 
 
-def test_menu_delegate_auto_stabilizes_popup_on_press(delegate_menu_scene):
+def test_menu_delegate_click_preserves_opening_animation(delegate_menu_scene):
     root, _window, warnings = delegate_menu_scene
     popup = root.findChild(type(root), "delegatePopup")
     item = root.findChild(type(root), "delegateAction")
@@ -328,7 +320,7 @@ def test_menu_delegate_auto_stabilizes_popup_on_press(delegate_menu_scene):
         Qt.KeyboardModifier.NoModifier,
         click_position,
     )
-    assert popup.property("_scale") == pytest.approx(1.0)
+    assert popup.property("_scale") < 1.0
     QTest.mouseRelease(
         popup_window,
         Qt.MouseButton.LeftButton,

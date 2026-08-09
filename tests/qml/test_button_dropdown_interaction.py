@@ -162,6 +162,105 @@ def test_qt_popup_window_item_click_emits_and_closes(dropdown_scene):
     assert warnings == []
 
 
+def test_qt_popup_window_long_menu_uses_stable_scrollbar_input_layer(
+    dropdown_scene,
+):
+    root, window, warnings, windows_before = dropdown_scene
+    button = _button(root, "dropdownButton")
+    button.setProperty("menuItems", [f"Server {index}" for index in range(24)])
+    dropdown = _button_dropdown(button)
+
+    _click(window, button)
+    popup = _dropdown_popup(dropdown)
+    assert _wait_for(lambda: popup.property("isOpen"))
+    assert _wait_for(lambda: abs(float(popup.property("_scale")) - 1.0) < 1e-3)
+    popup_window = _active_qt_popup_window(windows_before, window)
+    descendants = _visual_descendants(_popup_content(popup))
+    scrollbar = next(
+        item
+        for item in descendants
+        if item.metaObject().indexOfProperty("minThumbSize") >= 0
+        and item.property("visible")
+    )
+    flickable = next(
+        item
+        for item in descendants
+        if "Flickable" in item.metaObject().className()
+        and item.property("visible")
+    )
+    thumb = next(
+        item
+        for item in scrollbar.childItems()
+        if item.metaObject().className().startswith("QQuickRectangle")
+        and item.height() < scrollbar.height()
+    )
+    input_layers = [
+        item
+        for item in scrollbar.childItems()
+        if any(
+            "PointHandler" in child.metaObject().className()
+            for child in item.children()
+        )
+    ]
+    assert len(input_layers) == 1
+    input_layer = input_layers[0]
+    assert input_layer.window() is popup_window
+    assert input_layer.x() == pytest.approx(0)
+    assert input_layer.y() == pytest.approx(0)
+    assert input_layer.width() == pytest.approx(scrollbar.width())
+    assert input_layer.height() == pytest.approx(scrollbar.height())
+    thumb_center = thumb.mapToItem(
+        input_layer, QPointF(thumb.width() / 2, thumb.height() / 2)
+    )
+    assert input_layer.contains(thumb_center)
+    assert not input_layer.contains(
+        QPointF(input_layer.width() / 2, input_layer.height() - 1)
+    )
+    assert flickable.property("contentHeight") > flickable.height()
+
+    pressed = []
+    moved = []
+    released = []
+    scrollbar.sliderPressed.connect(lambda: pressed.append(True))
+    scrollbar.sliderMoved.connect(lambda: moved.append(True))
+    scrollbar.sliderReleased.connect(lambda: released.append(True))
+    initial_content_y = float(flickable.property("contentY"))
+    start = thumb.mapToScene(
+        QPointF(thumb.width() / 2, thumb.height() / 2)
+    ).toPoint()
+    drag_distance = max(
+        12,
+        min(40, int((scrollbar.height() - thumb.height()) / 3)),
+    )
+    middle = start + QPoint(0, max(1, drag_distance // 2))
+    target = start + QPoint(0, drag_distance)
+
+    QTest.mouseMove(popup_window, start)
+    QTest.mousePress(
+        popup_window,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        start,
+    )
+    assert _wait_for(lambda: pressed == [True])
+    QTest.mouseMove(popup_window, middle, delay=20)
+    QTest.mouseMove(popup_window, target, delay=20)
+    QTest.mouseRelease(
+        popup_window,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        target,
+    )
+
+    assert _wait_for(
+        lambda: float(flickable.property("contentY")) > initial_content_y
+    )
+    assert moved
+    assert released == [True]
+    assert popup.property("isOpen")
+    assert warnings == []
+
+
 def test_qt_popup_window_item_click_closes_before_sync_model_rebuild(
     dropdown_scene,
 ):

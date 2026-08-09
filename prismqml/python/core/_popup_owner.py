@@ -20,6 +20,8 @@ _SWP_NOSIZE = 0x0001
 _SWP_NOMOVE = 0x0002
 _SWP_NOACTIVATE = 0x0010
 _SWP_NOOWNERZORDER = 0x0200
+_KEY_DOWN_MASK = 0x8000
+_VK_MOUSE_BUTTONS = (0x01, 0x02, 0x04, 0x05, 0x06)
 _POPUP_RAISE_FLAGS = (
     _SWP_NOSIZE | _SWP_NOMOVE | _SWP_NOACTIVATE | _SWP_NOOWNERZORDER
 )
@@ -48,6 +50,11 @@ class _WindowsPopupOwnerApi:
             user32, "GetWindowThreadProcessId",
             [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)], wintypes.DWORD,
         )
+        self._get_capture = bind(user32, "GetCapture", [], wintypes.HWND)
+        self._get_async_key_state = bind(
+            user32, "GetAsyncKeyState", [ctypes.c_int], ctypes.c_short
+        )
+        self._release_capture = bind(user32, "ReleaseCapture", [], wintypes.BOOL)
         self._set_window_owner = bind(
             user32, "SetWindowLongPtrW",
             [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t], ctypes.c_ssize_t,
@@ -69,6 +76,21 @@ class _WindowsPopupOwnerApi:
     def owner(self, hwnd: int) -> int:
         """Return the current native owner. 返回当前原生 owner。"""
         return int(self._get_window(hwnd, _GW_OWNER) or 0)
+
+    def capture(self) -> int:
+        """Return the HWND holding mouse capture. 返回持有鼠标捕获的 HWND。"""
+        return int(self._get_capture() or 0)
+
+    def mouse_button_down(self) -> bool:
+        """Return whether any physical mouse button is down. 返回是否有物理鼠标键按下。"""
+        return any(
+            int(self._get_async_key_state(button)) & _KEY_DOWN_MASK
+            for button in _VK_MOUSE_BUTTONS
+        )
+
+    def release_capture(self) -> bool:
+        """Release capture owned by the calling UI thread. 释放当前 UI 线程持有的捕获。"""
+        return bool(self._release_capture())
 
     def set_owner(self, popup_hwnd: int, owner_hwnd: int) -> bool:
         """Assign a top-level owner with zero-return error handling. 设置顶层窗口 owner。"""
@@ -144,6 +166,28 @@ def _clear_popup_owner_with_api(
     return api.owner(popup_hwnd) == 0
 
 
+def _release_stale_popup_capture_with_api(
+    api,
+    popup_hwnd: int,
+    owner_hwnd: int,
+    expected_process_id: int,
+) -> bool:
+    """Release an idle owner capture blocking its popup. 释放阻塞弹层的空闲宿主捕获。"""
+    if not popup_hwnd or not owner_hwnd or popup_hwnd == owner_hwnd:
+        return False
+    if (
+        api.process_id(popup_hwnd) != expected_process_id
+        or api.process_id(owner_hwnd) != expected_process_id
+        or api.owner(popup_hwnd) != owner_hwnd
+        or api.capture() != owner_hwnd
+        or api.mouse_button_down()
+    ):
+        return False
+    if not api.release_capture():
+        return False
+    return api.capture() == 0
+
+
 def ensure_popup_window_owner(popup_hwnd: int, owner_hwnd: int) -> bool:
     """Repair a same-process popup owner on Windows. 修复 Windows 同进程弹层 owner。"""
     if sys.platform != "win32":
@@ -179,4 +223,23 @@ def clear_popup_window_owner(popup_hwnd: int, owner_hwnd: int) -> bool:
         )
     except (AttributeError, OSError, TypeError, ValueError) as exc:
         debug(f"Win32弹层 owner 清理不可用: {exc}")
+        return False
+
+
+def release_stale_popup_capture(popup_hwnd: int, owner_hwnd: int) -> bool:
+    """Release a stale owner capture after a Qt popup opens. 释放 Qt 弹层打开后的陈旧宿主捕获。"""
+    if sys.platform != "win32":
+        return False
+    global _popup_owner_api
+    try:
+        if _popup_owner_api is None:
+            _popup_owner_api = _WindowsPopupOwnerApi()
+        return _release_stale_popup_capture_with_api(
+            _popup_owner_api,
+            popup_hwnd,
+            owner_hwnd,
+            os.getpid(),
+        )
+    except (AttributeError, OSError, TypeError, ValueError) as exc:
+        debug(f"Win32弹层鼠标捕获释放不可用: {exc}")
         return False
