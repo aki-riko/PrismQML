@@ -44,6 +44,16 @@ def pump(ms):
     loop.exec()
 
 
+def wait_for(predicate, timeout_ms=2000):
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        pump(20)
+        elapsed += 20
+    return predicate()
+
+
 def _dispose_window(window):
     qml_window = getattr(window, "_window", None)
     if qml_window is not None and shiboken6.isValid(qml_window):
@@ -122,10 +132,11 @@ def _exercise_size_signal_failure(temp_dir):
         window.show()
         pump(80)
         window.setCurrentIndex(1)
-        pump(240)
+        assert wait_for(
+            lambda: window._window.property("_pythonLoading") is False
+        )
         assert window._pages[1] is page
         assert not shiboken6.isValid(page._qml_item)
-        assert window._window.property("_pythonLoading") is False
     finally:
         _dispose_window(window)
 
