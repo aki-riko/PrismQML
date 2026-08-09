@@ -198,6 +198,23 @@ Item {
         _ensureLazyHelperLoaded(reason)
     }
 
+    function _cancelPendingLazySwitch(reason) {
+        var pendingIndex = _pendingLazySwitchIndex
+        var helper = lazyHelperLoader.item
+        var helperPendingIndex = helper && helper.pendingTargetIndex !== undefined
+                ? helper.pendingTargetIndex : -1
+        if (pendingIndex < 0 && helperPendingIndex < 0) return false
+
+        _pendingLazySwitchIndex = -1
+        if (helper && helper.cancelPendingLoad) helper.cancelPendingLoad()
+        _updateVisibility(_displayIndex)
+        _traceLazyStage(
+            "stacked.lazy_switch.cancel", currentIndex,
+            "reason=" + reason + " pending=" + pendingIndex +
+            " helperPending=" + helperPendingIndex)
+        return true
+    }
+
     function _showLazyLoadingAndSwitch(index) {
         _traceLazyStage("stacked.switch_request", index)
         _pendingLazySwitchIndex = index
@@ -537,8 +554,17 @@ Item {
         profileTime("currentIndex changed to " + currentIndex)
         // currentIndex 是目标页(外部输入)。用 _displayIndex(实际显示页)判重,
         // 内部绝不回写 currentIndex(否则打破外部声明式绑定)。
-        if (currentIndex === _displayIndex) return
+        if (currentIndex === _displayIndex) {
+            _cancelPendingLazySwitch("returned-to-visible")
+            return
+        }
         if (currentIndex < 0 || currentIndex >= count) return
+
+        var helper = lazyHelperLoader.item
+        if (helper && helper.pendingTargetIndex >= 0
+                && helper.pendingTargetIndex !== currentIndex) {
+            _cancelPendingLazySwitch("retargeted")
+        }
 
         // Every switch between already-loaded lazy pages keeps the same circle
         // collapse/reveal sequence; only page creation and the loading overlay are skipped.

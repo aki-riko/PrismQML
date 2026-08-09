@@ -177,10 +177,15 @@ Item {
         pageTransition.stop()
         if (cancelledTargetIndex >= 0) _restoreVisiblePage()
         pendingTargetIndex = -1
+        isLoadingSwitching = false
         _observedLoaderIndex = -1
         _observedLoaderStatus = Loader.Null
         _waitIndicatorFinished = false
         _targetExpansionFinished = false
+        loadingOverlay.visible = false
+        loadingOverlay.opacity = 0
+        loadingOverlay.y = 0
+        _trace("helper.cancel_pending.done", cancelledTargetIndex)
     }
 
     function showLoadingAndSwitch(targetIdx) {
