@@ -93,13 +93,21 @@ Item {
 
         transition._captureCollapsing = collapsing
         transition._collapsed = false
+        if (transition._hostWindow) {
+            // Render every attached page through one in-window texture. A translucent
+            // Loader snapshot in a native overlay would otherwise be composited over
+            // the still-visible real page and brighten the first collapse frame.
+            // 所有已挂窗页面统一使用同窗口纹理；透明 Loader 快照若放进原生覆盖窗，
+            // 会与仍可见的真实旧页重复合成，导致收紧首帧闪亮。
+            return transition._beginInWindowTransition(collapsing)
+        }
         if (transition._hasLoaderItem) {
-            // Loader keeps its loaded item renderable while the Loader itself is hidden.
-            // Loader 隐藏时其已加载 item 仍可抓图，继续使用原生覆盖窗快照路径。
             transition._sourceItem.visible = collapsing
             return transition._beginSnapshotCapture(collapsing)
         }
-        return transition._beginInWindowTransition(collapsing)
+        transition._completeWithoutAnimation(
+            collapsing, "source window unavailable", true)
+        return false
     }
 
     function _beginSnapshotCapture(collapsing) {
@@ -126,7 +134,7 @@ Item {
         transition._inWindowStartPending = true
         transition._dissolving = true
         radiusTransition.prepare(collapsing)
-        inWindowSource.sourceItem = transition._sourceItem
+        inWindowSource.sourceItem = transition._captureItem
         inWindowSource.hideSource = true
         transition._hostWindow.requestUpdate()
         return true

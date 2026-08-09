@@ -315,6 +315,11 @@ def test_lazy_pages_use_one_circle_without_close_ripple_layers():
     assert 'objectName: "lazyPageInWindowSource"' in lazy_transition_source
     assert 'objectName: "lazyPageInWindowCircleFrame"' in lazy_transition_source
     assert "inWindowSource.hideSource = true" in lazy_transition_source
+    assert "inWindowSource.sourceItem = transition._captureItem" in lazy_transition_source
+    assert "if (transition._hostWindow)" in lazy_transition_source
+    assert lazy_transition_source.index("if (transition._hostWindow)") < (
+        lazy_transition_source.index("if (transition._hasLoaderItem)")
+    )
     assert "FeedbackInternal.QMLPageCircleTransition" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source
     assert "transition._hasLoaderItem" in lazy_transition_source

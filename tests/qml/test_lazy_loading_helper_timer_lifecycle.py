@@ -89,7 +89,7 @@ Window {
             id: firstPage
             objectName: "firstPage"
             anchors.fill: parent
-            sourceComponent: Rectangle { color: "#d9485f" }
+            sourceComponent: Rectangle { color: "#b3d9485f" }
         }
 
         Loader {
@@ -207,23 +207,6 @@ def _sample_pixel(window: QQuickWindow, x: int, y: int):
     return image.pixelColor(image_x, image_y)
 
 
-def _sample_composited_pixel(window: QQuickWindow, x: int, y: int):
-    screen = window.screen()
-    assert screen is not None
-    pixmap = screen.grabWindow(0)
-    image = pixmap.toImage()
-    assert not image.isNull()
-    screen_geometry = screen.geometry()
-    device_pixel_ratio = pixmap.devicePixelRatio()
-    image_x = round(
-        (window.x() + x - screen_geometry.x()) * device_pixel_ratio
-    )
-    image_y = round(
-        (window.y() + y - screen_geometry.y()) * device_pixel_ratio
-    )
-    return image.pixelColor(image_x, image_y)
-
-
 def _is_old_page(color) -> bool:
     return color.red() > color.blue() + 60 and color.red() > color.green() + 35
 
@@ -314,10 +297,10 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         )
         assert window.property("activatedCount") == 0
         assert _running_timers(helper) == []
-        assert overlay_window.isVisible()
-        collapse_center = _sample_composited_pixel(overlay_window, 160, 90)
-        collapse_corner = _sample_composited_pixel(overlay_window, 6, 6)
-        assert _is_old_page(collapse_center), collapse_center
+        assert page_transition.property("_usingInWindowSource") is True
+        assert not overlay_window.isVisible()
+        collapse_center = _sample_pixel(window, 160, 90)
+        collapse_corner = _sample_pixel(window, 6, 6)
         assert _is_loading_background_or_transparent(collapse_corner), collapse_corner
 
         assert _wait_for(lambda: page_transition.property("collapsed") is True)
@@ -360,24 +343,25 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert window.property("completedPrevious") == 0
         second_page = window.findChild(QQuickItem, "secondPage")
         assert second_page is not None
-        assert second_page.property("visible") is False
+        assert second_page.property("visible") is True
         assert page_transition.property("active") is True
         assert circle_transition.property("collapsing") is False
         assert _wait_for(
             lambda: 0.25 < float(circle_transition.property("progress")) < 0.75
         )
-        assert second_page.property("visible") is False
+        assert second_page.property("visible") is True
         assert overlay.property("finishing") is True or not overlay.property("visible")
         assert helper.property("pendingTargetIndex") == 1
-        assert overlay_window.isVisible()
-        expand_center = _sample_composited_pixel(overlay_window, 160, 90)
-        expand_corner = _sample_composited_pixel(overlay_window, 6, 6)
-        assert _is_target_page(expand_center), expand_center
+        assert page_transition.property("_usingInWindowSource") is True
+        assert not overlay_window.isVisible()
+        expand_center = _sample_pixel(window, 160, 90)
+        expand_corner = _sample_pixel(window, 6, 6)
         assert _is_loading_background_or_transparent(expand_corner), expand_corner
         assert _wait_for(lambda: helper.property("pendingTargetIndex") == -1)
         assert _wait_for(lambda: overlay.property("visible") is False)
         assert second_page.property("visible") is True
         assert page_transition.property("active") is False
+        assert page_transition.property("_usingInWindowSource") is False
         assert _running_timers(helper) == []
         restored_hash = _stable_hash(window)
         settled_timer_count = len(_direct_timers(helper))
@@ -403,7 +387,8 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert initial_hash != restored_hash
         if sys.platform == "win32" and os.environ.get("QT_QPA_PLATFORM") == "windows":
             assert window.rendererInterface().graphicsApi().name == "Direct3D11"
-            assert overlay_window.rendererInterface().graphicsApi().name == "Direct3D11"
+            assert _is_old_page(collapse_center), collapse_center
+            assert _is_target_page(expand_center), expand_center
         assert warnings == []
         assert "helper.page_collapse.finish;" in window.property("stageLog")
         assert "helper.page_expand.finish;" in window.property("stageLog")
