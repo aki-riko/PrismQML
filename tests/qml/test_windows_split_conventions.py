@@ -292,6 +292,14 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert loader.property("item") is None
         assert window.findChild(QQuickItem, "loadingOverlay") is None
 
+        window.setProperty("_pythonPageMode", True)
+        window.setProperty("lazyLoading", True)
+        stack = window.property("stackedWidget")
+        assert QMetaObject.invokeMethod(
+            window, "_markPythonPageReady", Q_ARG("QVariant", 0)
+        )
+        window.setProperty("currentIndex", 1)
+
         window.setProperty("loadingText", "Loading overlay probe")
         assert QMetaObject.invokeMethod(
             window, "_startPythonLoading", Q_ARG("QVariant", 1)
@@ -302,7 +310,6 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert overlay.property("loading") is True
         assert overlay.isVisible()
         assert overlay.property("backgroundColor").alpha() == 0
-        assert overlay.property("transitionBackgroundColor").alpha() == 255
         assert overlay.property("text") == "Loading overlay probe"
         rings = [
             child
@@ -317,22 +324,28 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert _wait_for(
             lambda: overlay.property("text") == "Updated loading overlay probe"
         )
-        transition = overlay.findChild(QObject, "qmlPageCircleTransition")
+        page_transition = stack.findChild(QObject, "lazyPageCircleTransition")
+        transition = stack.findChild(QObject, "qmlPageCircleTransition")
         circle_frame = overlay.findChild(QObject, "qmlPageCircleFrame")
+        assert page_transition is not None
         assert transition is not None
-        assert circle_frame is not None
-        assert overlay.property("entering") is True
-        assert transition.property("revealTarget") is False
-        assert transition.property("running") is True
-        assert circle_frame.property("visible") is True
+        assert circle_frame is None
+        assert _wait_for(
+            lambda: transition.property("collapsing") is True
+            and transition.property("running") is True
+        )
         assert overlay.findChild(QObject, "qmlPageCloseRippleDissolve") is None
 
+        assert QMetaObject.invokeMethod(
+            window, "_markPythonPageReady", Q_ARG("QVariant", 1)
+        )
         assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
-        assert overlay.property("finishing") is True
-        assert _wait_for(lambda: overlay.property("entering") is False)
-        assert transition.property("revealTarget") is True
-        assert transition.property("running") is True
-        assert circle_frame.property("visible") is True
+        assert _wait_for(
+            lambda: transition.property("collapsing") is False
+            and transition.property("running") is True
+        )
+        assert overlay.property("loading") is True
+        assert _wait_for(lambda: overlay.property("finishing") is True)
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         assert _wait_for(lambda: loader.property("item") is None)
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
@@ -345,6 +358,12 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
             if child.metaObject().className().startswith("ProgressRing_")
         ]
 
+        quick_switch_phases = []
+        transition.collapsingChanged.connect(
+            lambda: quick_switch_phases.append(
+                bool(transition.property("collapsing"))
+            )
+        )
         window.setProperty("loadingText", "Recreated loading overlay probe")
         assert QMetaObject.invokeMethod(
             window, "_startPythonLoading", Q_ARG("QVariant", 1)
@@ -361,6 +380,9 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert _wait_for(
             lambda: window.findChild(QQuickItem, "loadingOverlay") is None
         )
+        assert _wait_for(lambda: page_transition.property("active") is False)
+        assert True in quick_switch_phases
+        assert False in quick_switch_phases
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

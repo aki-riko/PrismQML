@@ -24,9 +24,7 @@ Item {
     readonly property int lazyRingStyle: Enums.progress.indeterminate_style_fixed_arc
     readonly property int lazyRingSize: Enums.controlSize.navBarHeight
     readonly property int lazyRingSpinDuration: Enums.duration.scroll
-    readonly property int coverDuration: Enums.lazyLoadingTransitionMetrics.coverDuration
-    readonly property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
-    readonly property real surfaceOpacity: Enums.lazyLoadingTransitionMetrics.surfaceOpacity
+    readonly property int finishDuration: Enums.duration.fast
     width: 640
     height: 480
 
@@ -35,7 +33,6 @@ Item {
         anchors.fill: parent
         text: "Loading page"
         backgroundColor: Enums.transparent
-        transitionBackgroundColor: Enums.backgroundColor
     }
 }
 """
@@ -105,7 +102,7 @@ def test_qml_page_is_public_and_preserves_lazy_progress(qapp):
         engine.deleteLater()
 
 
-def test_qml_page_uses_one_circle_for_cover_and_target_reveal(qapp):
+def test_qml_page_only_manages_the_wait_indicator(qapp):
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
@@ -123,61 +120,43 @@ def test_qml_page_uses_one_circle_for_cover_and_target_reveal(qapp):
     assert root is not None, [error.toString() for error in component.errors()]
     try:
         page = root.findChild(QQuickItem, "qmlPage")
+        content = root.findChild(QQuickItem, "qmlPageContent")
         ring = root.findChild(QQuickItem, "qmlPageProgressRing")
-        transition = root.findChild(QQuickItem, "qmlPageCircleTransition")
-        circle_frame = root.findChild(QQuickItem, "qmlPageCircleFrame")
-        assert page is not None and ring is not None
-        assert transition is not None
-        assert circle_frame is not None
+        assert page is not None and content is not None and ring is not None
+        assert root.findChild(QQuickItem, "qmlPageCircleTransition") is None
+        assert root.findChild(QQuickItem, "qmlPageCircleFrame") is None
         assert root.findChild(QQuickItem, "qmlPageCloseRippleDissolve") is None
-        assert circle_frame.property("visible") is False
 
-        entered = []
         finished = []
-        page.entered.connect(lambda: entered.append(True))
         page.finished.connect(lambda: finished.append(True))
         assert QMetaObject.invokeMethod(page, "finish")
         assert page.property("finishing") is True
-        assert transition.property("revealTarget") is True
-        assert circle_frame.property("visible") is True
-        _pump(root.property("revealDuration") // 2)
-        assert 0 < transition.property("progress") < 1
+        assert page.property("running") is False
+        _pump(root.property("finishDuration") // 2)
+        assert 0 < content.property("opacity") < 1
+        assert content.property("scale") < 1
         assert _wait_until(lambda: page.property("visible") is False)
         assert finished == [True]
         assert page.property("running") is False
         assert ring.property("paused") is True
-        assert circle_frame.property("visible") is False
 
         assert QMetaObject.invokeMethod(page, "finish")
         assert finished == [True]
 
         assert QMetaObject.invokeMethod(page, "start")
         assert page.property("visible") is True
-        assert page.property("entering") is True
-        assert transition.property("revealTarget") is False
         assert page.property("running") is True
         assert ring.property("indeterminate") is True
-        assert circle_frame.property("visible") is True
-        _pump(root.property("coverDuration") // 2)
-        assert 0 < transition.property("progress") < 1
-        assert _wait_until(lambda: entered == [True])
-        assert page.property("entering") is False
-        assert page.property("color").alphaF() == pytest.approx(
-            root.property("surfaceOpacity"), abs=0.01
-        )
-        assert circle_frame.property("visible") is False
+        assert content.property("opacity") == pytest.approx(1)
+        assert content.property("scale") == pytest.approx(1)
 
         _pump(100)
-        assert root.property("surfaceOpacity") > 0
         assert 0.96 <= ring.property("scale") <= 1.04
 
         assert QMetaObject.invokeMethod(page, "finish")
         assert page.property("finishing") is True
-        assert transition.property("revealTarget") is True
-        assert circle_frame.property("visible") is True
         assert _wait_until(lambda: finished == [True, True])
         assert page.property("visible") is False
-        assert circle_frame.property("visible") is False
     finally:
         root.deleteLater()
         engine.deleteLater()

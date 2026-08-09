@@ -123,6 +123,9 @@ NavigationWindowCore {
                 // Synchronize back after animation when needed. 动画结束后按需反向同步。
                 if (window.currentIndex !== index) window.currentIndex = index
             }
+            onPythonLazyTransitionFinished: (index) => {
+                window._completePythonLoadingVisual(index)
+            }
         }
         
         // Python lazy-loading overlay. Python 懒加载覆盖层。
@@ -150,7 +153,6 @@ NavigationWindowCore {
 
                 objectName: "loadingOverlay"
                 backgroundColor: Enums.transparent
-                transitionBackgroundColor: Enums.backgroundColor
                 running: visible && !finishing
                 text: window.loadingText
                 Component.onCompleted: if (loading) start()

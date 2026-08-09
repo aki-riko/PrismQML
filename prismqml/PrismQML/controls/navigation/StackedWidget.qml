@@ -65,6 +65,8 @@ Item {
     property int _displayIndex: 0
     property int _pendingLazySwitchIndex: -1
     property int _lazyDiagnosticSequence: 0
+    property int _pythonLazyTransitionTargetIndex: -1
+    property bool _pythonLazyRevealRequested: false
     // Python-managed windows must explicitly acknowledge page readiness.
     // Python 页面由宿主生命周期确认就绪，不能把“容器已创建”当成首屏已完成。
     property bool _pythonPageMode: false
@@ -76,6 +78,7 @@ Item {
     signal animationStarted()
     signal pageLoaded(int index)
     signal pageLoadFailed(int index, string errorString)
+    signal pythonLazyTransitionFinished(int index)
 
     function _getCurrentWidget() {
         if (_displayIndex < 0 || _displayIndex >= count) return null
@@ -170,7 +173,8 @@ Item {
             "isPageLoadFailedFunc": control._isPageLoadFailedFunc,
             "pageLoadErrorFunc": control._pageLoadErrorFunc,
             "activateLoaderFunc": control._activateLoader,
-            "diagnosticFunc": control._traceLazyStage
+            "diagnosticFunc": control._traceLazyStage,
+            "pageTransition": pageCircleTransition
         }
     }
 
@@ -231,6 +235,7 @@ Item {
         item.pageLoadErrorFunc = control._pageLoadErrorFunc
         item.activateLoaderFunc = control._activateLoader
         item.diagnosticFunc = control._traceLazyStage
+        item.pageTransition = pageCircleTransition
         item.loadingComplete.connect(control._handleLazyLoadingComplete)
         item.loadingFailed.connect(function(targetIdx, errorString) {
             control._traceLazyStage("stacked.loading_failed", targetIdx)
@@ -240,13 +245,64 @@ Item {
         })
     }
 
+    function _beginPythonLazySwitch(targetIndex) {
+        control._pythonLazyTransitionTargetIndex = targetIndex
+        control._pythonLazyRevealRequested = false
+        return pageCircleTransition.collapse(control.widget(control._displayIndex))
+    }
+
+    function _startPythonLazyExpansion(targetIndex) {
+        var targetWidget = control.widget(targetIndex)
+        if (!targetWidget) {
+            control._cancelPythonLazySwitch(targetIndex)
+            return
+        }
+
+        control.previousIndex = control._displayIndex
+        control._displayIndex = targetIndex
+        if (animations.prepareEnter(targetIndex)) {
+            control._doEnterAnimation(targetIndex)
+        }
+        pageCircleTransition.expand(targetWidget)
+    }
+
+    function _cancelPythonLazySwitch(targetIndex) {
+        pageCircleTransition.stop()
+        control._updateVisibility(control._displayIndex)
+        control._pythonLazyTransitionTargetIndex = -1
+        control._pythonLazyRevealRequested = false
+        control.pythonLazyTransitionFinished(targetIndex)
+    }
+
     function _completePythonLazySwitch(targetIndex) {
         if (targetIndex < 0 || targetIndex >= count || targetIndex !== currentIndex) {
             return false
         }
-        if (!animations.prepareEnter(targetIndex)) return false
-        _doEnterAnimation(targetIndex)
+
+        if (control._pythonPageMode && !control._isPageLoaded(targetIndex)) {
+            control._cancelPythonLazySwitch(targetIndex)
+            return true
+        }
+
+        control._pythonLazyTransitionTargetIndex = targetIndex
+        control._pythonLazyRevealRequested = true
+        if (pageCircleTransition.collapsed || !pageCircleTransition.active) {
+            control._startPythonLazyExpansion(targetIndex)
+        }
         return true
+    }
+
+    function _handlePythonLazyCollapseFinished() {
+        if (!control._pythonLazyRevealRequested) return
+        control._startPythonLazyExpansion(control._pythonLazyTransitionTargetIndex)
+    }
+
+    function _handlePythonLazyExpandFinished() {
+        var targetIndex = control._pythonLazyTransitionTargetIndex
+        if (targetIndex < 0) return
+        control._pythonLazyTransitionTargetIndex = -1
+        control._pythonLazyRevealRequested = false
+        control.pythonLazyTransitionFinished(targetIndex)
     }
 
     function _handleLazyLoadingComplete(targetIdx, prevIdx) {
@@ -487,6 +543,15 @@ Item {
             control.currentChanged(idx)
             control.animationFinished()
         }
+    }
+
+    LazyPageCircleTransition {
+        id: pageCircleTransition
+
+        objectName: "lazyPageCircleTransition"
+        anchors.fill: parent
+        onCollapseFinished: control._handlePythonLazyCollapseFinished()
+        onExpandFinished: control._handlePythonLazyExpandFinished()
     }
 
     // Direct children container 直接子组件容器

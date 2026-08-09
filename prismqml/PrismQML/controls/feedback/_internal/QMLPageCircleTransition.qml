@@ -5,33 +5,35 @@
 import QtQuick
 import "../../.."
 
-// QMLPageCircleTransition - Single-circle loading-page transition 单圆形加载页过渡
+// QMLPageCircleTransition - Real-page circle radius transition 真实页面圆形半径过渡
 Item {
     id: transition
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool running: progressAnimation.running
     readonly property real progress: _progress
-    readonly property bool revealTarget: _revealTarget
+    readonly property bool collapsing: _collapsing
 
     // ==================== Internal Props 内部属性 ====================
     property real _progress: Enums.opacityLevel.invisible
-    property bool _revealTarget: false
+    property bool _collapsing: false
 
     // ==================== Signals 信号 ====================
     signal finished()
 
     // ==================== Public Methods 公开方法 ====================
-    function start(revealTarget) {
+    function start(collapsing) {
         transition.stop()
-        transition._revealTarget = revealTarget
-        transition._progress = Enums.opacityLevel.invisible
+        transition._collapsing = collapsing
+        transition._progress = collapsing
+            ? Enums.opacityLevel.visible : Enums.opacityLevel.invisible
         progressAnimation.restart()
     }
 
     function stop() {
         progressAnimation.stop()
         transition._progress = Enums.opacityLevel.invisible
+        transition._collapsing = false
     }
 
     visible: false
@@ -42,12 +44,14 @@ Item {
 
         target: transition
         property: "_progress"
-        from: Enums.opacityLevel.invisible
-        to: Enums.opacityLevel.visible
-        duration: transition._revealTarget
-            ? Enums.lazyLoadingTransitionMetrics.revealDuration
-            : Enums.lazyLoadingTransitionMetrics.coverDuration
-        easing.type: transition._revealTarget ? Easing.OutQuint : Easing.InCubic
+        from: transition._collapsing
+            ? Enums.opacityLevel.visible : Enums.opacityLevel.invisible
+        to: transition._collapsing
+            ? Enums.opacityLevel.invisible : Enums.opacityLevel.visible
+        duration: transition._collapsing
+            ? Enums.lazyLoadingTransitionMetrics.coverDuration
+            : Enums.lazyLoadingTransitionMetrics.revealDuration
+        easing.type: transition._collapsing ? Easing.InCubic : Easing.OutQuint
         onFinished: transition.finished()
     }
 }

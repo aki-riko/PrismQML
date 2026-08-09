@@ -24,6 +24,10 @@ LOADING_OVERLAY = QML_ROOT / "_internal" / "LoadingOverlay.qml"
 LAZY_LOADING_HELPER = (
     QML_ROOT / "controls" / "navigation" / "_internal" / "LazyLoadingHelper.qml"
 )
+LAZY_PAGE_CIRCLE_TRANSITION = LAZY_LOADING_HELPER.with_name(
+    "LazyPageCircleTransition.qml"
+)
+STACKED_WIDGET = LAZY_LOADING_HELPER.parent.parent / "StackedWidget.qml"
 QML_PAGE = QML_ROOT / "controls" / "feedback" / "QMLPage.qml"
 QML_PAGE_CIRCLE_TRANSITION = (
     QML_ROOT
@@ -267,15 +271,20 @@ def test_ring_consumers_delegate_to_canonical_progress_ring():
             assert marker not in source, (source_path, marker)
 
 
-def test_qml_page_uses_one_aperture_without_close_ripple_layers():
-    """公开加载页使用单层光圈，不复用窗口关闭涟漪。"""
+def test_lazy_pages_use_one_circle_without_close_ripple_layers():
+    """真实懒加载页面使用单层圆形遮罩，不复用窗口关闭涟漪。"""
     helper_source = LAZY_LOADING_HELPER.read_text(encoding="utf-8")
     assert "QMLPage {" in helper_source
     assert "backgroundColor: Enums.transparent" in helper_source
-    assert "transitionBackgroundColor: Enums.backgroundColor" in helper_source
-    assert "onEntered: helper._completeLoadingCover()" in helper_source
+    assert "required property var pageTransition" in helper_source
+    assert "pageTransition.collapse(currentLoader)" in helper_source
+    assert "pageTransition.expand(targetLoader)" in helper_source
     assert "loadingOverlay.finish()" in helper_source
     assert "CloseRipple" not in helper_source
+
+    stacked_source = STACKED_WIDGET.read_text(encoding="utf-8")
+    assert "LazyPageCircleTransition {" in stacked_source
+    assert 'objectName: "lazyPageCircleTransition"' in stacked_source
 
     page_source = QML_PAGE.read_text(encoding="utf-8")
     assert "indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc" in page_source
@@ -286,24 +295,30 @@ def test_qml_page_uses_one_aperture_without_close_ripple_layers():
     assert "spacing: Enums.spacing.xl" in page_source
     assert "anchors.horizontalCenter: parent.horizontalCenter" in page_source
     assert "function finish()" in page_source
-    assert "signal entered()" in page_source
     assert "signal finished()" in page_source
-    assert "Internal.QMLPageCircleTransition" in page_source
-    assert 'objectName: "qmlPageCircleTransition"' in page_source
+    assert "QMLPageCircleTransition" not in page_source
+    assert "ShaderEffectSource" not in page_source
     assert "CloseRipple" not in page_source
 
+    lazy_transition_source = LAZY_PAGE_CIRCLE_TRANSITION.read_text(encoding="utf-8")
     transition_source = QML_PAGE_CIRCLE_TRANSITION.read_text(encoding="utf-8")
     frame_source = QML_PAGE_CIRCLE_FRAME.read_text(encoding="utf-8")
     shader_source = QML_PAGE_CIRCLE_SHADER.read_text(encoding="utf-8")
-    assert "ShaderEffectSource {" in page_source
-    assert "sourceItem: transitionSurface" in page_source
-    assert "hideSource: circleTransition.running" in page_source
-    assert "Internal.QMLPageCircleFrame" in page_source
+    assert "transition._captureItem.grabToImage" in lazy_transition_source
+    assert 'objectName: "lazyPageCircleOverlayWindow"' in lazy_transition_source
+    assert 'objectName: "lazyPageFrozenFrame"' in lazy_transition_source
+    assert "source: frozenFrame" in lazy_transition_source
+    assert "width: transition._dissolving ? Enums.border.thin" in lazy_transition_source
+    assert "opacity: transition._sourceItem" in lazy_transition_source
+    assert "scale: transition._sourceItem" in lazy_transition_source
+    assert "ShaderEffectSource" not in lazy_transition_source
+    assert "FeedbackInternal.QMLPageCircleTransition" in lazy_transition_source
+    assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source
     assert "Easing.InCubic" in transition_source
     assert "Easing.OutQuint" in transition_source
-    assert 'objectName: "qmlPageCircleFrame"' in page_source
+    assert "from: transition._collapsing" in transition_source
+    assert "to: transition._collapsing" in transition_source
     assert "qml_page_circle_transition.frag.qsb" in frame_source
-    assert "revealTarget" in frame_source
     assert shader_source.count("smoothstep(") == 1
     assert "float apertureRadius" in shader_source
     assert "float maskAlpha" in shader_source
@@ -312,6 +327,7 @@ def test_qml_page_uses_one_aperture_without_close_ripple_layers():
     assert QML_PAGE_CIRCLE_SHADER_BINARY.stat().st_size > 0
     assert "CloseRipple" not in transition_source
     assert "CloseRipple" not in frame_source
+    assert "CloseRipple" not in lazy_transition_source
 
     splash_source = SPLASH_SCREEN.read_text(encoding="utf-8")
     assert "indeterminateStyle: Enums.progress.indeterminate_style_orbit_dot" in splash_source

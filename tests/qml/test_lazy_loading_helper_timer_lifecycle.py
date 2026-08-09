@@ -7,7 +7,9 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
+import sys
 
 import shiboken6
 from PySide6.QtCore import (
@@ -77,31 +79,34 @@ Window {
     width: 320
     height: 180
     visible: true
-    color: Enums.backgroundColor
+    color: "#18202b"
 
-    Component {
-        id: pageComponent
+    Item {
+        id: pageHost
+        anchors.fill: parent
 
-        Rectangle {
-            color: Enums.cardColor
+        Loader {
+            id: firstPage
+            objectName: "firstPage"
+            anchors.fill: parent
+            sourceComponent: Rectangle { color: "#d9485f" }
+        }
+
+        Loader {
+            id: secondPage
+            objectName: "secondPage"
+            anchors.fill: parent
+            sourceComponent: Rectangle { color: "#3487eb" }
+            active: false
+            visible: false
+            opacity: 0
         }
     }
 
-    Loader {
-        id: firstPage
-        objectName: "firstPage"
+    LazyPageCircleTransition {
+        id: sharedPageTransition
+        objectName: "lazyPageCircleTransition"
         anchors.fill: parent
-        sourceComponent: pageComponent
-    }
-
-    Loader {
-        id: secondPage
-        objectName: "secondPage"
-        anchors.fill: parent
-        sourceComponent: pageComponent
-        active: false
-        visible: false
-        opacity: 0
     }
 
     LazyLoadingHelper {
@@ -112,6 +117,8 @@ Window {
         loaders: [firstPage, secondPage]
         targetIndex: 1
         currentVisibleIndex: 0
+        loadingText: ""
+        pageTransition: sharedPageTransition
         loaderActivationDelay: Enums.duration.dialog
         isPageLoadedFunc: function(index) {
             return index === 1 && root.targetLoaded
@@ -192,6 +199,51 @@ def _stable_hash(window: QQuickWindow) -> str:
     raise AssertionError("Lazy-loading helper pixels did not stabilize")
 
 
+def _sample_pixel(window: QQuickWindow, x: int, y: int):
+    image = window.grabWindow()
+    assert not image.isNull()
+    image_x = round(x * image.width() / window.width())
+    image_y = round(y * image.height() / window.height())
+    return image.pixelColor(image_x, image_y)
+
+
+def _sample_composited_pixel(window: QQuickWindow, x: int, y: int):
+    screen = window.screen()
+    assert screen is not None
+    pixmap = screen.grabWindow(0)
+    image = pixmap.toImage()
+    assert not image.isNull()
+    screen_geometry = screen.geometry()
+    device_pixel_ratio = pixmap.devicePixelRatio()
+    image_x = round(
+        (window.x() + x - screen_geometry.x()) * device_pixel_ratio
+    )
+    image_y = round(
+        (window.y() + y - screen_geometry.y()) * device_pixel_ratio
+    )
+    return image.pixelColor(image_x, image_y)
+
+
+def _is_old_page(color) -> bool:
+    return color.red() > color.blue() + 60 and color.red() > color.green() + 35
+
+
+def _is_target_page(color) -> bool:
+    return color.blue() > color.red() + 60 and color.blue() > color.green() + 25
+
+
+def _is_loading_background(color) -> bool:
+    return color.red() < 60 and color.green() < 70 and color.blue() < 80
+
+
+def _is_transparent(color) -> bool:
+    return color.alpha() < 32
+
+
+def _is_loading_background_or_transparent(color) -> bool:
+    return _is_loading_background(color) or _is_transparent(color)
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -228,7 +280,7 @@ def _dispose_scene(qapp, engine, component, window) -> None:
 
 
 def test_lazy_loading_helper_timer_phase_baseline(qapp):
-    """One timer starts after the circle covers the old page. 单圆覆盖旧页后启动唯一计时器。"""
+    """旧页先收紧，等待后目标页再展开。"""
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, helper, overlay, warnings = _create_scene()
     try:
@@ -236,6 +288,7 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         initial_object_count = len(helper.findChildren(QObject))
         assert len(_direct_timers(helper)) == 1
         assert _running_timers(helper) == []
+        assert _is_old_page(_sample_pixel(window, 160, 90))
 
         assert QMetaObject.invokeMethod(window, "beginSwitch")
         assert _wait_for(lambda: overlay.property("visible") is True), (
@@ -244,20 +297,36 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             window.property("stageLog"),
             warnings,
         )
-        assert overlay.property("entering") is True
-        circle_transition = overlay.findChild(QObject, "qmlPageCircleTransition")
+        page_transition = window.findChild(QObject, "lazyPageCircleTransition")
+        circle_transition = window.findChild(QObject, "qmlPageCircleTransition")
+        overlay_window = window.findChild(QQuickWindow, "lazyPageCircleOverlayWindow")
+        assert page_transition is not None
         assert circle_transition is not None
-        assert circle_transition.property("revealTarget") is False
+        assert overlay_window is not None
+        assert page_transition.property("active") is True
         assert _running_timers(helper) == []
-        _pump(window.property("expectedCoverDuration") * 3 // 4)
-        assert overlay.property("entering") is True
+        assert _wait_for(
+            lambda: circle_transition.property("collapsing") is True
+            and circle_transition.property("running") is True
+        )
+        assert _wait_for(
+            lambda: 0.25 < float(circle_transition.property("progress")) < 0.75
+        )
         assert window.property("activatedCount") == 0
         assert _running_timers(helper) == []
-        assert 0 < circle_transition.property("progress") < 1
+        assert overlay_window.isVisible()
+        collapse_center = _sample_composited_pixel(overlay_window, 160, 90)
+        collapse_corner = _sample_composited_pixel(overlay_window, 6, 6)
+        assert _is_old_page(collapse_center), collapse_center
+        assert _is_loading_background_or_transparent(collapse_corner), collapse_corner
 
-        assert _wait_for(lambda: overlay.property("entering") is False)
+        assert _wait_for(lambda: page_transition.property("collapsed") is True)
         covered_hash = _image_hash(window.grabWindow())
         assert covered_hash != initial_hash
+        first_page = window.findChild(QQuickItem, "firstPage")
+        assert first_page is not None
+        assert first_page.property("visible") is False
+        assert _is_loading_background(_sample_pixel(window, 160, 90))
         activation_timer = _direct_timers(helper)[0]
         activation_timer_count = len(_direct_timers(helper))
         assert _running_timers(helper) == [activation_timer]
@@ -289,10 +358,15 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
 
         assert _wait_for(lambda: window.property("completedTarget") == 1)
         assert window.property("completedPrevious") == 0
-        assert overlay.property("finishing") is True
-        assert circle_transition.property("revealTarget") is True
-        _pump(window.property("expectedRevealDuration") // 6)
-        assert 0 < circle_transition.property("progress") < 1
+        assert circle_transition.property("collapsing") is False
+        assert _wait_for(
+            lambda: 0.25 < float(circle_transition.property("progress")) < 0.75
+        )
+        assert overlay_window.isVisible()
+        expand_center = _sample_composited_pixel(overlay_window, 160, 90)
+        expand_corner = _sample_composited_pixel(overlay_window, 6, 6)
+        assert _is_target_page(expand_center), expand_center
+        assert _is_loading_background_or_transparent(expand_corner), expand_corner
         assert _wait_for(lambda: helper.property("pendingTargetIndex") == -1)
         assert _wait_for(lambda: overlay.property("visible") is False)
         assert _running_timers(helper) == []
@@ -306,6 +380,8 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             f"{render_timer_count}/{settled_timer_count}",
             f"objects={initial_object_count}/{settled_object_count}",
             f"hashes={initial_hash}/{covered_hash}/{restored_hash}",
+            f"collapse={collapse_center.name()}/{collapse_corner.name()}",
+            f"expand={expand_center.name()}/{expand_corner.name()}",
         )
 
         assert (
@@ -314,13 +390,14 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             render_timer_count,
             settled_timer_count,
         ) == (1, 1, 1, 1)
-        assert (initial_object_count, settled_object_count) == (24, 24)
-        assert (initial_hash, restored_hash) == (
-            "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
-            "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
-        )
+        assert initial_object_count == settled_object_count
+        assert initial_hash != restored_hash
+        if sys.platform == "win32" and os.environ.get("QT_QPA_PLATFORM") == "windows":
+            assert window.rendererInterface().graphicsApi().name == "Direct3D11"
+            assert overlay_window.rendererInterface().graphicsApi().name == "Direct3D11"
         assert warnings == []
-        assert "helper.circle_cover.finish;" in window.property("stageLog")
+        assert "helper.page_collapse.finish;" in window.property("stageLog")
+        assert "helper.page_expand.finish;" in window.property("stageLog")
         assert "helper.loader_activate.begin;" in window.property("stageLog")
         assert "helper.page_ready;" in window.property("stageLog")
         assert "helper.page_render.begin;" in window.property("stageLog")

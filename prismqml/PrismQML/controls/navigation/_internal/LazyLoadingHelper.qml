@@ -19,6 +19,7 @@ Item {
     required property var pageLoadErrorFunc // Function to obtain the Loader error 获取Loader错误的函数
     required property var activateLoaderFunc // Function to activate loader
     required property var diagnosticFunc // Diagnostic stage callback 诊断阶段回调
+    required property var pageTransition // Shared page-circle transition 共享页面圆形过渡
     
     // ==================== Public Props 公开属性 ====================
     property string loadingText: { Translator._v; return Translator.tr("loading") }
@@ -123,14 +124,20 @@ Item {
         _trace("helper.loading_complete.emit_begin", targetIdx)
         loadingComplete(targetIdx, prevIdx)
         _trace("helper.loading_complete.emit_done", targetIdx)
-        loadingOverlay.finish()
+        var targetLoader = loaders[targetIdx]
+        pageTransition.expand(targetLoader)
         _trace("helper.page_render.done", targetIdx)
     }
 
     // ==================== Public Methods 公开方法 ====================
     function cancelPendingLoad() {
-        if (pendingTargetIndex >= 0) _trace("helper.cancel_pending.begin", pendingTargetIndex)
+        var cancelledTargetIndex = pendingTargetIndex
+        if (cancelledTargetIndex >= 0) {
+            _trace("helper.cancel_pending.begin", cancelledTargetIndex)
+        }
         _stopStageTimer()
+        pageTransition.stop()
+        if (cancelledTargetIndex >= 0) _restoreVisiblePage()
         pendingTargetIndex = -1
         _observedLoaderIndex = -1
         _observedLoaderStatus = Loader.Null
@@ -155,27 +162,30 @@ Item {
             }
         }
 
-        // Show loading overlay 显示加载页
+        var currentLoader = loaders[helper.currentVisibleIndex]
+        pageTransition.collapse(currentLoader)
+
+        // Show the wait indicator after the old page has been captured.
+        // 旧页完成截取后再显示等待指示，避免圆环进入收紧画面。
         loadingOverlay.start()
         loadingOverlay.y = 0
         loadingOverlay.opacity = 1
         _trace("helper.show.done", targetIdx)
     }
 
-    function _completeLoadingCover() {
+    function _completeLoadingCollapse() {
         var targetIdx = pendingTargetIndex
         if (targetIdx < 0) return
 
-        _trace("helper.circle_cover.finish", targetIdx)
-        var currentLoader = loaders[helper.currentVisibleIndex]
-        if (currentLoader) {
-            currentLoader.visible = false
-            currentLoader.opacity = 1
-            currentLoader.y = 0
-            currentLoader.x = 0
-            currentLoader.scale = 1
-        }
+        _trace("helper.page_collapse.finish", targetIdx)
         _startLoaderActivationTimer(targetIdx)
+    }
+
+    function _completeTargetExpansion() {
+        if (pendingTargetIndex < 0) return
+
+        _trace("helper.page_expand.finish", pendingTargetIndex)
+        loadingOverlay.finish()
     }
 
     function _restoreVisiblePage() {
@@ -194,6 +204,7 @@ Item {
         _trace("helper.loading_failed.begin", targetIdx)
 
         _stopStageTimer()
+        pageTransition.stop()
 
         var failedLoader = loaders[targetIdx]
         if (failedLoader) {
@@ -216,6 +227,12 @@ Item {
     }
 
     // ==================== Content 内容 ====================
+    Connections {
+        function onCollapseFinished() { helper._completeLoadingCollapse() }
+        function onExpandFinished() { helper._completeTargetExpansion() }
+        target: helper.pageTransition
+    }
+
     // Public QML loading page matching SplashScreen 公开的 SplashScreen 同款 QML 加载页
     QMLPage {
         id: loadingOverlay
@@ -226,7 +243,6 @@ Item {
         // Keep the loading surface transparent so the window Mica backdrop remains visible.
         // 保持加载表面透明，让窗口云母背板持续可见。
         backgroundColor: Enums.transparent
-        transitionBackgroundColor: Enums.backgroundColor
         running: visible && opacity > 0
         visible: false
         opacity: 0
@@ -245,7 +261,6 @@ Item {
             helper.animationStart()
             helper._trace("helper.hide_loading.done", targetIndex)
         }
-        onEntered: helper._completeLoadingCover()
     }
     
     // Sequential stage timer 串行阶段计时器

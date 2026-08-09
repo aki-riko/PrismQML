@@ -82,19 +82,28 @@ WindowsCore {
     function _startPythonLoading(index) {
         _pythonPendingIndex = index
         _pythonLoading = true
+        if (stackedWidget && stackedWidget._beginPythonLazySwitch) {
+            stackedWidget._beginPythonLazySwitch(index)
+        }
     }
 
     function _finishPythonLoading() {
         var idx = _pythonPendingIndex
+        if (stackedWidget && idx >= 0 && stackedWidget._completePythonLazySwitch) {
+            if (stackedWidget._completePythonLazySwitch(idx)) return
+        }
+        _completePythonLoadingVisual(idx)
+    }
+
+    function _completePythonLoadingVisual(index) {
+        if (_pythonPendingIndex >= 0 && index !== _pythonPendingIndex) return
+
         _pythonPendingIndex = -1
         if (_pythonLoadingOverlay && _pythonLoadingOverlay.finish) {
             _pythonLoadingOverlay.finish()
         }
         _pythonLoading = false
-        if (stackedWidget && idx >= 0) {
-            stackedWidget._completePythonLazySwitch(idx)
-        }
-        pythonPageReady(idx)
+        pythonPageReady(index)
     }
 
     function _markPythonPageReady(index) {

@@ -3,119 +3,58 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../.."
-import "_internal" as Internal
 import QtQuick  // Keep native types unprefixed after library import 库导入后保留原生类型无前缀
 
-// QMLPage - Loading page with a single-aperture transition 单层光圈过渡加载页
+// QMLPage - Transparent lazy-loading wait indicator 透明懒加载等待指示页
 Item {
     id: control
 
     // ==================== Public Props 公开属性 ====================
     property string text: { Translator._v; return Translator.tr("loading") }  // Loading message 加载提示
-    property bool running: visible                  // Run animation while loading 加载时运行动画
+    property bool running: visible && !finishing    // Run animation while waiting 等待时运行动画
     property color backgroundColor: Enums.backgroundColor  // Page background 页面背景
-    property color transitionBackgroundColor: backgroundColor  // Aperture surface 光圈过渡表面
-    property color color: _transitionOpaque
-        ? _transitionSurfaceColor : backgroundColor
-    property real transitionBackgroundOpacity:
-        Enums.lazyLoadingTransitionMetrics.surfaceOpacity
-    property real circleMinimumRadius: progressRing.width / 2
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool entering: _entering       // Covering the old page 正在覆盖旧页
-    readonly property bool finishing: _finishing     // Revealing the target page 正在揭示目标页
-    readonly property color _transitionSurfaceColor: Qt.rgba(
-        transitionBackgroundColor.r,
-        transitionBackgroundColor.g,
-        transitionBackgroundColor.b,
-        transitionBackgroundColor.a
-            * Math.max(Enums.opacityLevel.invisible,
-                       Math.min(Enums.opacityLevel.visible, transitionBackgroundOpacity))
-    )
+    readonly property bool finishing: _finishing     // Hiding the wait indicator 正在隐藏等待指示
 
     // ==================== Internal Props 内部属性 ====================
-    property bool _entering: false
     property bool _finishing: false
-    property bool _finishRequested: false
-    property bool _transitionOpaque: false
-    property int _transitionPhase: 0
 
     // ==================== Signals 信号 ====================
-    signal entered()   // Emitted after the aperture covers the old page 光圈覆盖旧页后触发
     signal finished()  // Emitted after the page is removed 页面移除后触发
 
     // ==================== Public Methods 公开方法 ====================
     function start() {
-        circleTransition.stop()
-        control._entering = true
+        finishAnimation.stop()
         control._finishing = false
-        control._finishRequested = false
-        control._transitionOpaque = true
-        control._transitionPhase = 1
         control.visible = true
         contentColumn.opacity = Enums.opacityLevel.visible
         contentColumn.scale = Enums.opacityLevel.visible
-        circleTransition.start(false)
     }
 
     function finish() {
         if (control._finishing || !control.visible) return
         control._finishing = true
-        if (control._entering) {
-            control._finishRequested = true
-            return
-        }
-        control._beginTargetReveal()
+        finishAnimation.restart()
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    function _beginTargetReveal() {
-        control._transitionPhase = 2
-        control._transitionOpaque = true
-        circleTransition.start(true)
-    }
-
-    function _completeCover() {
-        control._transitionPhase = 0
-        control._entering = false
-        control.entered()
-        if (!control._finishRequested) return
-        control._finishRequested = false
-        control._beginTargetReveal()
-    }
-
-    function _completeTargetReveal() {
+    function _completeFinish() {
         control.visible = false
         control.finished()
-        control._entering = false
         control._finishing = false
-        control._finishRequested = false
-        control._transitionOpaque = false
-        control._transitionPhase = 0
+        contentColumn.opacity = Enums.opacityLevel.visible
+        contentColumn.scale = Enums.opacityLevel.visible
     }
 
     clip: true
 
     onVisibleChanged: {
         if (visible || control._finishing) return
-        circleTransition.stop()
-        control._entering = false
-        control._finishRequested = false
-        control._transitionOpaque = false
-        control._transitionPhase = 0
-    }
-
-    Internal.QMLPageCircleTransition {
-        id: circleTransition
-
-        objectName: "qmlPageCircleTransition"
-        onFinished: {
-            if (control._transitionPhase === 1) {
-                control._completeCover()
-            } else if (control._transitionPhase === 2) {
-                control._completeTargetReveal()
-            }
-        }
+        finishAnimation.stop()
+        control._finishing = false
+        contentColumn.opacity = Enums.opacityLevel.visible
+        contentColumn.scale = Enums.opacityLevel.visible
     }
 
     // ==================== Content 内容 ====================
@@ -123,7 +62,7 @@ Item {
         id: transitionSurface
 
         anchors.fill: parent
-        color: control.color
+        color: control.backgroundColor
 
         Column {
             id: contentColumn
@@ -161,32 +100,10 @@ Item {
         }
     }
 
-    ShaderEffectSource {
-        id: transitionSurfaceTexture
-
-        anchors.fill: parent
-        sourceItem: transitionSurface
-        hideSource: circleTransition.running
-        live: true
-        recursive: true
-        visible: false
-    }
-
-    Internal.QMLPageCircleFrame {
-        objectName: "qmlPageCircleFrame"
-        anchors.fill: parent
-        source: transitionSurfaceTexture
-        progress: circleTransition.progress
-        minimumRadiusPixels: control.circleMinimumRadius
-        revealTarget: circleTransition.revealTarget
-        visible: circleTransition.running
-    }
-
     SequentialAnimation {
         id: ringBreatheAnimation
 
-        running: control.visible && !control.entering
-            && !control.finishing && control.running
+        running: control.visible && !control.finishing && control.running
         loops: Animation.Infinite
         onRunningChanged: {
             if (!running) progressRing.scale = Enums.opacityLevel.visible
@@ -209,5 +126,29 @@ Item {
             duration: Enums.lazyLoadingTransitionMetrics.breatheHalfDuration
             easing.type: Easing.InOutSine
         }
+    }
+
+    ParallelAnimation {
+        id: finishAnimation
+
+        NumberAnimation {
+            target: contentColumn
+            property: "opacity"
+            from: Enums.opacityLevel.visible
+            to: Enums.opacityLevel.invisible
+            duration: Enums.duration.fast
+            easing.type: Easing.InCubic
+        }
+
+        NumberAnimation {
+            target: contentColumn
+            property: "scale"
+            from: Enums.opacityLevel.visible
+            to: Enums.lazyLoadingTransitionMetrics.breatheMinScale
+            duration: Enums.duration.fast
+            easing.type: Easing.InCubic
+        }
+
+        onFinished: control._completeFinish()
     }
 }

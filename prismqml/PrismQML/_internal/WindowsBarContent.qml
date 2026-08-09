@@ -122,6 +122,11 @@ Item {
                     root.hostWindow.currentIndex = index
                 }
             }
+            onPythonLazyTransitionFinished: (index) => {
+                if (root.hostWindow) {
+                    root.hostWindow._completePythonLoadingVisual(index)
+                }
+            }
         }
 
         Loader {
@@ -148,7 +153,6 @@ Item {
 
                 objectName: "loadingOverlay"
                 backgroundColor: Enums.transparent
-                transitionBackgroundColor: Enums.backgroundColor
                 running: visible && !finishing
                 text: {
                     Translator._v

@@ -119,7 +119,6 @@ StackedWidget {{
         stack.setProperty("currentIndex", 1)
         _pump(50)
         assert bool(_evaluate(stack, "_loaders[1].active")) is False
-        assert bool(_evaluate(stack, "_loaders[0].visible")) is True
         assert _wait_until(
             lambda: bool(
                 _evaluate(stack, "_loaders[1].status === Loader.Error")
