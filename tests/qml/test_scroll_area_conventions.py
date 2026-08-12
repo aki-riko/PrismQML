@@ -19,7 +19,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
-from prismqml import register_types
+from prismqml import Skin, getSkin, register_types, setSkin
 from scripts.qml_conventions import scan_source_text
 
 
@@ -227,3 +227,25 @@ def test_scroll_area_source_follows_conventions():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+
+
+def test_ticket_default_scroll_area_aligns_one_pixel_borders(qapp):
+    previous_skin = getSkin()
+    setSkin(Skin.VINTAGE_TICKET)
+    engine, component, window, area, warnings = _create_scene()
+    try:
+        viewport = area.property("flickableItem")
+        assert viewport is not None
+        assert viewport.property("pixelAligned") is True
+
+        setSkin(Skin.FLUENT)
+        _pump()
+        assert viewport.property("pixelAligned") is False
+
+        setSkin(Skin.VINTAGE_TICKET)
+        _pump()
+        assert viewport.property("pixelAligned") is True
+        assert warnings == []
+    finally:
+        setSkin(previous_skin)
+        _dispose_scene(engine, component, window)

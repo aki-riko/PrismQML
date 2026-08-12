@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Example page color-token runtime regressions. 示例页面颜色令牌运行时回归。"""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,7 @@ from prismqml import Skin, Theme, register_types, setSkin, setTheme
 
 
 ROOT = Path(__file__).resolve().parents[2]
+CHART_PAGE_PATH = ROOT / "examples" / "pages" / "ChartPage.qml"
 PAGE_NAMES = (
     "CarouselPage.qml",
     "ChartPage.qml",
@@ -146,6 +148,25 @@ def test_migrated_example_sources_reference_global_color_tokens():
     for page_name, references in SOURCE_REFERENCES.items():
         source = (page_root / page_name).read_text(encoding="utf-8")
         assert all(reference in source for reference in references), page_name
+
+
+def test_horizontal_bar_gallery_uses_the_skin_chart_palette():
+    source = CHART_PAGE_PATH.read_text(encoding="utf-8")
+    match = re.search(
+        r"Horizontal Bar Chart.*?(?P<section>ExampleCard \{.*?)"
+        r"// ==================== Line Chart",
+        source,
+        re.DOTALL,
+    )
+    assert match is not None
+    section = match.group("section")
+    assert "demoPalette." not in section
+    for index, product in enumerate("ABCDE"):
+        assert (
+            f'{{label: "产品{product}", value: '
+            in section
+        )
+        assert f"chartColors.palette[{index}]" in section
 
 
 def _assert_light_values(instance) -> None:

@@ -133,6 +133,10 @@ Item {
         contentHeight: contentHolder.implicitHeight + control.padding * 2
         clip: true
         interactive: false
+        // Ticket cards use one-pixel outlines; snap their scrolling surface to
+        // device pixels so horizontal borders keep a stable intensity.
+        // 票据卡片使用 1px 描边；滚动表面对齐设备像素，保持横线亮度稳定。
+        pixelAligned: Enums.isVintageTicket
 
         Item {
             id: contentHolder

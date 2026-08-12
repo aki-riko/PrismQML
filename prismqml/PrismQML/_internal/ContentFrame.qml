@@ -78,10 +78,13 @@ Item {
             ctx.moveTo(off, r)
             ctx.lineTo(off, h)
             ctx.stroke()
-            // Top-left arc. 左上角圆弧。
-            ctx.beginPath()
-            ctx.arc(r, r, r - off, Math.PI, Math.PI * 1.5)
-            ctx.stroke()
+            // Top-left arc; square skins have no arc to draw.
+            // 左上角圆弧；方角皮肤不绘制圆弧，避免向 Canvas 传入负半径。
+            if (r > off) {
+                ctx.beginPath()
+                ctx.arc(r, r, r - off, Math.PI, Math.PI * 1.5)
+                ctx.stroke()
+            }
         }
         
         Component.onCompleted: requestPaint()

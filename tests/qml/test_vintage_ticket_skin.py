@@ -4,13 +4,17 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Vintage ticket skin entrypoint and token regressions. 复古票据皮肤入口与令牌回归。"""
 
+from pathlib import Path
+
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickWindow
 
 from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, setTheme
 
 
+ROOT = Path(__file__).resolve().parents[2]
 QML_SOURCE = b"""
 import QtQuick
 import PrismQML
@@ -146,3 +150,63 @@ def test_invalid_skin_string_still_falls_back_to_fluent():
         assert manager.getSkin() is Skin.FLUENT
     finally:
         manager.setSkin(previous_skin)
+
+
+def test_ticket_content_frame_draws_square_border_without_radius_warning(qapp):
+    previous_skin = getSkin()
+    previous_theme = getTheme()
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.VINTAGE_TICKET)
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    warnings: list[str] = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""
+import QtQuick
+import QtQuick.Window
+import "../../prismqml/PrismQML/_internal" as Internal
+
+Window {
+    width: 320
+    height: 240
+    visible: true
+
+    Internal.ContentFrame {
+        anchors.fill: parent
+        backgroundColor: "#f8f3e8"
+        cornerRadius: 8
+    }
+}
+""",
+        QUrl.fromLocalFile(
+            str(ROOT / "tests" / "qml" / "ticket-content-frame-warning.qml")
+        ),
+    )
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    try:
+        _pump(50)
+        assert not any(
+            "Incorrect argument radius" in warning for warning in warnings
+        ), warnings
+    finally:
+        setTheme(previous_theme)
+        setSkin(previous_skin)
+        window.close()
+        window.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump()

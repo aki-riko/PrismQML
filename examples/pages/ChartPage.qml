@@ -71,11 +71,11 @@ Item {
                         barOrientation: Fluent.Enums.chart.orientation_horizontal
                         title: "销售排名"
                         chartData: [
-                            {label: "产品A", value: 120, color: Fluent.Enums.demoPalette.blue},
-                            {label: "产品B", value: 98, color: Fluent.Enums.demoPalette.green},
-                            {label: "产品C", value: 85, color: Fluent.Enums.demoPalette.orange},
-                            {label: "产品D", value: 72, color: Fluent.Enums.demoPalette.purple},
-                            {label: "产品E", value: 65, color: Fluent.Enums.demoPalette.red}
+                            {label: "产品A", value: 120, color: Fluent.Enums.chartColors.palette[0]},
+                            {label: "产品B", value: 98, color: Fluent.Enums.chartColors.palette[1]},
+                            {label: "产品C", value: 85, color: Fluent.Enums.chartColors.palette[2]},
+                            {label: "产品D", value: 72, color: Fluent.Enums.chartColors.palette[3]},
+                            {label: "产品E", value: 65, color: Fluent.Enums.chartColors.palette[4]}
                         ]
                     }
                 }
