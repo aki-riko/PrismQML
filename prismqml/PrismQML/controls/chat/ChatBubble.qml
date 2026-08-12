@@ -53,14 +53,16 @@ Item {
     readonly property bool _isSystem: role === "system"
     readonly property bool _hasAvatar: !_isUser && !_isSystem && showAvatar
     readonly property bool _hasReasoning: !_isUser && !_isSystem && reasoning !== ""
-    readonly property int _bubbleRadius: Enums.radius.large
-    readonly property int _bubbleTailRadius: Enums.radius.small
+    readonly property int _bubbleRadius: Enums.surfaceRadius(Enums.radius.large)
+    readonly property int _bubbleTailRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property color _assistantBubbleBackground: Enums.cardColor
     readonly property color _userBubbleBackground: Enums.accentColor
     readonly property color _systemBubbleBackground: Enums.hoverColor
     readonly property color _bubbleBackground: _isSystem ? _systemBubbleBackground : (_isUser ? _userBubbleBackground : _assistantBubbleBackground)
-    readonly property int _bubbleBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (_isUser ? 0 : Enums.border.thin)
-    readonly property color _bubbleBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (_isUser ? Enums.transparent : Enums.borderColor)
+    readonly property int _bubbleBorderWidth: Enums.hasOutlinedSurfaces
+        ? Enums.surfaceBorderWidth(Enums.border.thin) : (_isUser ? 0 : Enums.border.thin)
+    readonly property color _bubbleBorderColor: Enums.hasOutlinedSurfaces
+        ? Enums.borderColor : (_isUser ? Enums.transparent : Enums.borderColor)
     readonly property color _contentTextColor: _isUser ? Enums.accentForeground : Enums.textColor.primary
     readonly property color _contentLinkColor: _isUser ? Enums.accentForeground : Enums.accentColor
     readonly property color _reasoningTextColor: Enums.textColor.tertiary
@@ -189,7 +191,7 @@ Item {
     // Assistant card shadow: blurred in Fluent, hard-edged in Neo
     // 助手卡片阴影：Fluent 使用模糊阴影，Neo 使用硬阴影
     RectangularShadow {
-        visible: !control._isUser && !control._isSystem && !Enums.isNeobrutalism
+        visible: !control._isUser && !control._isSystem && Enums.usesSoftElevation
         anchors.fill: bubble
         radius: control._bubbleRadius
         color: control._assistantShadowColor

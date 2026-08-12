@@ -34,7 +34,7 @@ Widget {
     property var onWidgetAdded: null
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _radius: Enums.radius.card + 1
+    readonly property int _radius: Enums.surfaceRadius(Enums.radius.card + 1)
     readonly property bool hovered: !control.disabled && headerArea.containsMouse
     readonly property bool pressed: !control.disabled && headerArea.pressed
     
@@ -98,7 +98,7 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     NeoShadow {
@@ -133,8 +133,14 @@ Widget {
             radius: control._radius
             color: Enums.stateColor.controlBg
             // neo: 粗黑边(Fluent 无边靠阴影区分; neo 需黑边)
-            border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
-            border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent
+            border.width: Enums.hasOutlinedSurfaces
+                ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
+            border.color: Enums.hasOutlinedSurfaces
+                ? Enums.stateColor.border : Enums.transparent
+
+            TicketPaper {
+                anchors.fill: parent
+            }
         }
         
         // Header content 头部内容
@@ -260,7 +266,7 @@ Widget {
             anchors.left: parent.left
             anchors.right: parent.right
             lineColor: Enums.stateColor.expanderSeparator
-            lineWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin  // neo: 粗黑分隔线
+            lineWidth: Enums.surfaceBorderWidth(Enums.border.thin)
             visible: control.expanded
             // 必须高于 viewContainer, 否则 viewContainer 内 expandViewBg
             // (anchors.topMargin: -_radius 向上延伸) 会盖住 separator
@@ -280,7 +286,8 @@ Widget {
 
             // Background with bottom radius 带底部圆角的背景
             Rectangle {
-                readonly property int _neoInset: Enums.isNeobrutalism ? Enums.neo.borderWidth : 0
+                readonly property int _outlinedInset: Enums.hasOutlinedSurfaces
+                    ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
 
                 anchors.fill: parent
                 color: Enums.stateColor.expandViewBg
@@ -290,9 +297,9 @@ Widget {
                 anchors.topMargin: -control._radius
                 // neo: 左右下各内缩边框宽度, 露出底层 bgRect 的黑边(否则白块贴边盖住黑边,
                 // 展开后底部+两侧看不到边)。不加自己的边框, 避免盒中盒。
-                anchors.leftMargin: _neoInset
-                anchors.rightMargin: _neoInset
-                anchors.bottomMargin: _neoInset
+                anchors.leftMargin: _outlinedInset
+                anchors.rightMargin: _outlinedInset
+                anchors.bottomMargin: _outlinedInset
             }
 
             // Content area 内容区域（Column 布局，子控件垂直排列）

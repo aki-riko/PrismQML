@@ -30,10 +30,10 @@ Window {
     readonly property bool hasCustomContent: customContentLoader.sourceComponent !== null && customContentLoader.item !== null
 
     // ==================== Internal Props 内部属性 ====================
-    readonly property int _notificationRadius: Enums.radius.large
+    readonly property int _notificationRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property int _notificationIconRadius: Enums.radius.large
     readonly property color _notificationBackground: Enums.cardColor
-    readonly property int _notificationBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property int _notificationBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _notificationBorderColor: Enums.stateColor.border
     readonly property color _notificationMessageColor: Enums.stateColor.notificationText
     readonly property color _notificationShadowColor: Enums.shadow.level8.color
@@ -98,7 +98,7 @@ Window {
         blur: control._notificationShadowBlur
         offset.x: 0
         offset.y: control._notificationShadowOffset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     NeoShadow {
@@ -116,6 +116,10 @@ Window {
         color: control._notificationBackground
         border.width: control._notificationBorderWidth
         border.color: control._notificationBorderColor
+
+        TicketPaper {
+            anchors.fill: parent
+        }
         
         // Left color bar 左侧色条
         Rectangle {

@@ -25,9 +25,9 @@ Window {
     // ==================== Internal Props 内部属性 ====================
     property Item targetItem: null
     property bool isOpen: false
-    readonly property int _sheetRadius: Enums.radius.large
+    readonly property int _sheetRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property color _sheetBackground: Enums.cardColor
-    readonly property int _sheetBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property int _sheetBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _sheetBorderColor: Enums.stateColor.dialogBorder
     readonly property color _sheetDividerColor: Enums.stateColor.borderLight
 
@@ -76,7 +76,7 @@ Window {
         blur: Enums.shadow.level8.blur
         offset.x: 0
         offset.y: Enums.shadow.level8.offset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     NeoShadow {
@@ -94,6 +94,10 @@ Window {
         color: control._sheetBackground
         border.width: control._sheetBorderWidth
         border.color: control._sheetBorderColor
+
+        TicketPaper {
+            anchors.fill: parent
+        }
         
         // Content area 内容区域
         Item {

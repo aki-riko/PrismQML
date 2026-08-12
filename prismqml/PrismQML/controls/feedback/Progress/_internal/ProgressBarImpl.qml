@@ -95,11 +95,11 @@ Item {
     // Track 轨道
     Rectangle {
         anchors.fill: parent
-        radius: control._barRadius
+        radius: Enums.isVintageTicket ? Enums.ticket.radius : control._barRadius
         color: control.trackColor
         // neo: 轨道加黑边(白轨道靠黑边显形)
-        border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
-        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent
+        border.width: Enums.hasOutlinedSurfaces ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
+        border.color: Enums.hasOutlinedSurfaces ? Enums.stateColor.border : Enums.transparent
     }
     
     // Progress 进度
@@ -108,7 +108,7 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: parent.width * control.position
-        radius: control._barRadius
+        radius: Enums.isVintageTicket ? Enums.ticket.radius : control._barRadius
         color: control.progressColor
         visible: !control.indeterminate
         Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
@@ -129,7 +129,7 @@ Item {
         active: control.indeterminate
         sourceComponent: IndeterminateBarImpl {
             color: control.progressColor
-            radius: control._barRadius
+            radius: Enums.isVintageTicket ? Enums.ticket.radius : control._barRadius
             running: control.indeterminate && control._isInViewport && control.visible
         }
     }

@@ -22,11 +22,10 @@ OverlayDialogCore {
     // Dialog body reference 对话框主体引用
     readonly property alias body: dialogBody
 
-    readonly property int _dialogRadius: Enums.radius.dialog
-    readonly property color _dialogBackground: Enums.isNeobrutalism ? Enums.dialogColor : Enums.dialogColors.containerBg
-    readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.border.thin)
-    readonly property color _dialogBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.stateColor.dialogBorder
+    readonly property int _dialogRadius: Enums.surfaceRadius(Enums.radius.dialog)
+    readonly property color _dialogBackground: Enums.hasOutlinedSurfaces ? Enums.dialogColor : Enums.dialogColors.containerBg
+    readonly property int _dialogBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property color _dialogBorderColor: Enums.hasOutlinedSurfaces ? Enums.borderColor : Enums.stateColor.dialogBorder
     readonly property color _dialogShadowColor: Enums.shadow.level16.color
     readonly property real _dialogShadowBlur: Enums.shadow.level16.blur
     readonly property real _dialogShadowOffset: Enums.shadow.level16.offset
@@ -47,7 +46,7 @@ OverlayDialogCore {
         blur: control._dialogShadowBlur
         offset.x: 0
         offset.y: control._dialogShadowOffset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     NeoShadow {
@@ -74,13 +73,16 @@ OverlayDialogCore {
 
         border.width: control._dialogBorderWidth
         border.color: control._dialogBorderColor
-        
         // Clip children to rounded corners 裁剪子元素以适应圆角
         clip: true
         
         // Animation 动画
         scale: control._isOpen ? 1 : 0.95
         opacity: control._isOpen ? 1 : 0
+
+        TicketPaper {
+            anchors.fill: parent
+        }
         
         Behavior on scale {
             NumberAnimation {

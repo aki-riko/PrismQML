@@ -26,7 +26,7 @@ Widget {
     property color titleBgColor: Enums.backgroundColor
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property real _borderRadius: Enums.radius.small
+    readonly property real _borderRadius: Enums.surfaceRadius(Enums.radius.small)
     // Title height - fixed value based on typography 标题高度 - 基于字体的固定值
     readonly property real _titleHeight: title !== "" ? Enums.typography.body + Enums.spacing.s : 0
     readonly property real _titleLeftMargin: {
@@ -67,8 +67,8 @@ Widget {
         anchors.topMargin: control._titleY
         color: Enums.transparent
         radius: control._borderRadius
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.stateColor.groupBorder
+        border.width: Enums.surfaceBorderWidth(Enums.border.thin)
+        border.color: Enums.hasOutlinedSurfaces ? Enums.stateColor.border : Enums.stateColor.groupBorder
         visible: !control.flat
     }
 

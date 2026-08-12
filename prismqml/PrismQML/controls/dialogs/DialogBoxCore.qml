@@ -32,10 +32,9 @@ OverlayDialogCore {
     default property alias bodyContent: bodyLayout.data
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _dialogRadius: Enums.radius.dialog
+    readonly property int _dialogRadius: Enums.surfaceRadius(Enums.radius.dialog)
     readonly property color _dialogBackground: Enums.dialogColor
-    readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.border.thin)
+    readonly property int _dialogBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _dialogBorderColor: Enums.stateColor.dialogBorder
     readonly property color _dialogMaskColor: Enums.stateColor.dialogOverlay
     readonly property color _actionsRowBackground: Enums.stateColor.actionsRowBg
@@ -102,7 +101,7 @@ OverlayDialogCore {
             offset.y: control._dialogShadowOffset
             opacity: dialogBody.opacity
             scale: dialogBody.scale
-            visible: !Enums.isNeobrutalism
+            visible: Enums.usesSoftElevation
         }
 
         NeoShadow {
@@ -126,10 +125,13 @@ OverlayDialogCore {
             // Border 边框
             border.width: control._dialogBorderWidth
             border.color: control._dialogBorderColor
-            
             // Animation 动画
             scale: control._isOpen ? 1 : 0.9
             opacity: control._isOpen ? 1 : 0
+
+            TicketPaper {
+                anchors.fill: parent
+            }
             
             Behavior on scale { 
                 NumberAnimation { 

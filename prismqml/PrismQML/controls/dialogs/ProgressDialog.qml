@@ -33,10 +33,9 @@ OverlayDialogCore {
     readonly property bool _progressComplete:
         !_isIndeterminate && progress >= _progressMaximum
 
-    readonly property int _dialogRadius: Enums.radius.large
+    readonly property int _dialogRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property color _dialogBackground: Enums.cardColor
-    readonly property int _dialogBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.border.thin)
+    readonly property int _dialogBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _dialogBorderColor: Enums.stateColor.dialogBorder
     readonly property color _dialogShadowColor: Enums.shadow.level16.color
     readonly property real _dialogShadowBlur: Enums.shadow.level16.blur
@@ -54,7 +53,7 @@ OverlayDialogCore {
         blur: control._dialogShadowBlur
         offset.x: 0
         offset.y: control._dialogShadowOffset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     NeoShadow {
@@ -73,10 +72,13 @@ OverlayDialogCore {
         color: control._dialogBackground
         border.width: control._dialogBorderWidth
         border.color: control._dialogBorderColor
-        
         // Animation 动画
         scale: control._isOpen ? 1 : 0.9
         opacity: control._isOpen ? 1 : 0
+
+        TicketPaper {
+            anchors.fill: parent
+        }
         
         Behavior on scale { 
             NumberAnimation { 

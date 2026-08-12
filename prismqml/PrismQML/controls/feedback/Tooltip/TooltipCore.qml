@@ -22,9 +22,9 @@ Item {
     property bool followAnchor: false
 
     // ==================== Internal Props 内部属性 ====================
-    readonly property int _tooltipRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.small)
+    readonly property int _tooltipRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property color _tooltipBackground: Enums.cardColor
-    readonly property int _tooltipBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property int _tooltipBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _tooltipBorderColor: Enums.stateColor.border
     readonly property var _tooltipShadowLevel: Enums.shadow.level8
     readonly property int _tooltipShadowBlur: Enums.shadow.level8.blur
@@ -190,7 +190,11 @@ Item {
                         border.width: control._tooltipBorderWidth
                         border.color: control._tooltipBorderColor
                         shadowLevel: control._tooltipShadowLevel
-                        shadowVisible: !Enums.isNeobrutalism  // neo 关软阴影, 用下方硬阴影
+                        shadowVisible: Enums.usesSoftElevation
+
+                        TicketPaper {
+                            anchors.fill: parent
+                        }
 
                         // Neo hard shadow neo 硬阴影
                         NeoShadow {

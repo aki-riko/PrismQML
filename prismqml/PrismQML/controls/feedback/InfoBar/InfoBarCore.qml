@@ -47,12 +47,12 @@ Widget {
     property int completeDuration: Enums.duration.progressComplete  // 进度完成后持续显示时间(ms)
 
     // Style properties 样式属性
-    property real radius: Enums.radius.large// 圆角半径
+    property real radius: Enums.surfaceRadius(Enums.radius.large)// 圆角半径
     // Border color 边框色 (neo 用控件边框 token=黑; Fluent 用 divider 轻分隔)
-    readonly property color borderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.stateColor.divider)
+    readonly property color borderColor: Enums.hasOutlinedSurfaces ? Enums.stateColor.border : Enums.stateColor.divider
     readonly property real _infoBarRadius: radius
     readonly property color _infoBarBackground: backgroundColor
-    readonly property int _infoBarBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property int _infoBarBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _infoBarBorderColor: borderColor
     readonly property color _infoBarShadowColor: Enums.shadow.level4.color
     readonly property int _infoBarShadowBlur: Enums.shadow.level4.blur
@@ -88,7 +88,7 @@ Widget {
         }
         // Normal mode or after complete: use semantic background color 普通模式或完成后：使用语义背景色
         // Neobrutalism: 白底(靠黑边+左侧色条+硬阴影区分), 不用语义淡背景
-        if (Enums.isNeobrutalism) return Enums.neo.surface
+        if (Enums.hasOutlinedSurfaces) return Enums.cardColor
 
         return Enums.statusLevel.getBgColor(severity)
     }
@@ -173,7 +173,7 @@ Widget {
         blur: control._infoBarShadowBlur
         offset.x: 0
         offset.y: control._infoBarShadowOffset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     NeoShadow {

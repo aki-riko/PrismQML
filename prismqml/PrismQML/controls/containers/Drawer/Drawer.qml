@@ -53,8 +53,11 @@ OverlayDialogCore {
     readonly property int _outsideCollapsedExtent: Enums.border.thin
     readonly property real _outsideFullExtent: isHorizontal ? drawerWidth : drawerHeight
     readonly property color _drawerBackground: Enums.cardColor
-    readonly property int _drawerBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (0)
-    readonly property color _drawerBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.transparent)
+    readonly property int _effectiveRadius: Enums.surfaceRadius(radius)
+    readonly property int _drawerBorderWidth: Enums.hasOutlinedSurfaces
+                                               ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
+    readonly property color _drawerBorderColor: Enums.hasOutlinedSurfaces
+                                                 ? Enums.stateColor.border : Enums.transparent
     readonly property var _outsideDrawerWindow: outsideDrawerWindowLoader.item
     readonly property var _outsideDrawerPanel: _outsideDrawerWindow ? _outsideDrawerWindow.panel : null
 
@@ -355,18 +358,22 @@ OverlayDialogCore {
                         radius: Enums.radius.none
                         topLeftRadius: control.position === Enums.position.left
                             || control.position === Enums.position.top
-                            ? control.radius : Enums.radius.none
+                            ? control._effectiveRadius : Enums.radius.none
                         topRightRadius: control.position === Enums.position.right
                             || control.position === Enums.position.top
-                            ? control.radius : Enums.radius.none
+                            ? control._effectiveRadius : Enums.radius.none
                         bottomLeftRadius: control.position === Enums.position.left
                             || control.position === Enums.position.bottom
-                            ? control.radius : Enums.radius.none
+                            ? control._effectiveRadius : Enums.radius.none
                         bottomRightRadius: control.position === Enums.position.right
                             || control.position === Enums.position.bottom
-                            ? control.radius : Enums.radius.none
+                            ? control._effectiveRadius : Enums.radius.none
                         border.width: control._drawerBorderWidth
                         border.color: control._drawerBorderColor
+
+                        TicketPaper {
+                            anchors.fill: parent
+                        }
 
                         MouseArea {
                             anchors.fill: parent
@@ -391,12 +398,12 @@ OverlayDialogCore {
     // Shadow for drawer 抽屉阴影
     RectangularShadow {
         anchors.fill: drawer
-        radius: control.radius
+        radius: control._effectiveRadius
         color: Enums.shadow.level28.color
         blur: Enums.shadow.level28.blur
         offset.x: 0
         offset.y: Enums.shadow.level28.offset
-        visible: control._isOpen || control._isClosing
+        visible: Enums.usesSoftElevation && (control._isOpen || control._isClosing)
     }
     
     // Drawer panel 抽屉面板
@@ -407,7 +414,7 @@ OverlayDialogCore {
         readonly property real effectiveHeight: control.height > 0 ? control.height : (control.parent ? control.parent.height : 0)
 
         color: control._drawerBackground
-        radius: control.radius
+        radius: control._effectiveRadius
         // Drawer boundary for non-Fluent skins 非 Fluent 皮肤抽屉边界
         border.width: control._drawerBorderWidth
         border.color: control._drawerBorderColor
@@ -416,6 +423,10 @@ OverlayDialogCore {
 
         width: isHorizontal ? control.drawerWidth : effectiveWidth
         height: isHorizontal ? effectiveHeight : control.drawerHeight
+
+        TicketPaper {
+            anchors.fill: parent
+        }
 
         // Block clicks from reaching the overlay mask 阻止点击穿透到遮罩层
         MouseArea {

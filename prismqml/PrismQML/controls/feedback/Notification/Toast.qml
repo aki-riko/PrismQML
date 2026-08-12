@@ -44,10 +44,10 @@ Widget {
     property color backgroundColorDark: Enums.transparent   // Custom dark theme bg 自定义深色背景
     readonly property bool _hasCustomBg: backgroundColorLight.a > 0 || backgroundColorDark.a > 0
     readonly property color _cardColor: _hasCustomBg ? (Enums.isDark ? backgroundColorDark : backgroundColorLight) : Enums.toastCardColor
-    readonly property int _toastRadius: Enums.radius.small
-    readonly property int _toastColorBarRadius: Enums.radius.large
+    readonly property int _toastRadius: Enums.surfaceRadius(Enums.radius.small)
+    readonly property int _toastColorBarRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property color _toastBackground: _cardColor
-    readonly property int _toastBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property int _toastBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _toastBorderColor: Enums.stateColor.borderLight
     readonly property color _toastShadowColor: Enums.shadow.level4.color
     readonly property int _toastShadowBlur: Enums.shadow.level4.blur
@@ -190,7 +190,7 @@ Widget {
             blur: control._toastShadowBlur
             offset.x: 0
             offset.y: control._toastShadowOffset
-            visible: !Enums.isNeobrutalism
+            visible: Enums.usesSoftElevation
         }
 
         NeoShadow {
@@ -219,7 +219,7 @@ Widget {
             color: control._toastBackground  // 支持自定义背景色
             border.width: control._toastBorderWidth
             border.color: control._toastBorderColor
-            
+
             // Icon container: ref InfoBar icon in progress bar mode, hidden in ring mode 图标容器：参考 InfoBar 进度条模式下的图标，环形模式下隐藏
 
             Item {

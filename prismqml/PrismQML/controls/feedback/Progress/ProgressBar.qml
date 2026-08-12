@@ -18,11 +18,11 @@ ProgressCore {
     
     Rectangle {
         anchors.fill: parent
-        radius: height / 2
+        radius: Enums.isVintageTicket ? Enums.ticket.radius : height / 2
         color: trackColor
         // neo: 轨道加黑边显形
-        border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
-        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : Enums.transparent
+        border.width: Enums.hasOutlinedSurfaces ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
+        border.color: Enums.hasOutlinedSurfaces ? Enums.stateColor.border : Enums.transparent
     }
     
     Rectangle {
@@ -30,7 +30,7 @@ ProgressCore {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: parent.width * position
-        radius: height / 2
+        radius: Enums.isVintageTicket ? Enums.ticket.radius : height / 2
         color: progressColor
         visible: !indeterminate
         Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
@@ -42,7 +42,7 @@ ProgressCore {
         active: control.indeterminate
         sourceComponent: IndeterminateBarImpl {
             color: control.progressColor
-            radius: height / 2
+            radius: Enums.isVintageTicket ? Enums.ticket.radius : height / 2
             running: control.indeterminate && control.visible
         }
     }
