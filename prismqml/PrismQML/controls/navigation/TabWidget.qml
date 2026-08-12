@@ -33,6 +33,8 @@ Widget {
     // ==================== Internal Props 内部属性 ====================
     readonly property int _tabHeight: Enums.controlSize.inputHeightLarge - Enums.spacing.xs
     readonly property int _tabBarHeight: Enums.controlSize.tableHeaderHeight
+    readonly property int _selectedTabRadius: Enums.surfaceRadius(Enums.radius.card)
+    readonly property int _selectedTabBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property real _availableWidth: control.width - Enums.spacing.xs * 2 - (control.showAddButton ? Enums.controlSize.segmentedHeight : 0)
     property int _dragSourceIndex: -1
     property int _dragVisualIndex: -1
@@ -314,7 +316,7 @@ Widget {
                 blur: Enums.shadow.level2.blur
                 offset.x: 0
                 offset.y: Enums.shadow.level2.offset
-                visible: control.shadowEnabled && !Enums.isNeobrutalism
+                visible: control.shadowEnabled && Enums.usesSoftElevation
             }
             NeoShadow {
                 target: indicatorBg
@@ -325,12 +327,12 @@ Widget {
             Rectangle {
                 id: indicatorBg
                 anchors.fill: parent
-                radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.card)
-                color: Enums.isNeobrutalism ? Enums.neo.surface
-                       : ((Enums.isDark ? Enums.themeColors.tabSelectedDark : Enums.themeColors.tabSelectedLight))
-                border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-                border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
-                       : ((Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border))
+                radius: control._selectedTabRadius
+                color: Enums.hasOutlinedSurfaces ? Enums.cardColor
+                       : (Enums.isDark ? Enums.themeColors.tabSelectedDark : Enums.themeColors.tabSelectedLight)
+                border.width: control._selectedTabBorderWidth
+                border.color: Enums.hasOutlinedSurfaces ? Enums.borderColor
+                       : (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border)
             }
         }
     }
@@ -445,7 +447,7 @@ Widget {
                         anchors.fill: parent
                         anchors.margins: Enums.border.thin
                         anchors.bottomMargin: Enums.border.thin
-                        radius: Enums.radius.card
+                        radius: Enums.isVintageTicket ? Enums.ticket.radius : Enums.radius.card
                         color: {
                             // 拖拽中的源 tab (含选中态 source): 用稍深 hover 背景 + 边框,
                             // 视觉上像"被抓起来",但不与 selected 同色避免割裂感

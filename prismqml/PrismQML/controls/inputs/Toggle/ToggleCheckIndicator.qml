@@ -18,17 +18,16 @@ Rectangle {
     property color checkedColor: Enums.accentColor
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _indicatorRadius: Enums.isNeobrutalism ? Enums.neo.radius
-                                                                 : (Enums.radius.small)
+    readonly property int _indicatorRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property bool _hasCheckState: checkState !== Enums.toggle.state_unchecked
     readonly property int _indicatorBorderWidth: {
-        if (Enums.isNeobrutalism) return Enums.neo.borderWidth
+        if (Enums.hasOutlinedSurfaces) return Enums.surfaceBorderWidth(Enums.border.thin)
         return _hasCheckState ? Enums.border.none : Enums.border.medium
     }
     readonly property color _indicatorColor: {
         if (!enabled) {
             if (_hasCheckState) return Enums.stateColor.disabledBorder
-            if (Enums.isNeobrutalism) return Enums.stateColor.checkBoxFill
+            if (Enums.hasOutlinedSurfaces) return Enums.stateColor.checkBoxFill
             return Enums.transparent
         }
         if (_hasCheckState) {
@@ -41,7 +40,7 @@ Rectangle {
         return Enums.stateColor.checkBoxFill
     }
     readonly property color _indicatorBorderColor: {
-        if (Enums.isNeobrutalism && _hasCheckState) return enabled ? Enums.stateColor.toggleBorder : Enums.stateColor.disabledBorder
+        if (Enums.hasOutlinedSurfaces && _hasCheckState) return enabled ? Enums.stateColor.toggleBorder : Enums.stateColor.disabledBorder
         if (_hasCheckState) return Enums.transparent
         if (!enabled) return Enums.stateColor.disabledBorder
         if (pressed) return Enums.stateColor.togglePressed
@@ -50,7 +49,7 @@ Rectangle {
     }
     readonly property color _checkIconColor: {
         if (!enabled) return Enums.textColor.disabled
-        return Enums.isDark && !Enums.isNeobrutalism ? Enums.themeColors.foregroundLight : Enums.accentForeground
+        return Enums.isDark && !Enums.hasOutlinedSurfaces ? Enums.themeColors.foregroundLight : Enums.accentForeground
     }
 
     // ==================== Size 尺寸 ====================

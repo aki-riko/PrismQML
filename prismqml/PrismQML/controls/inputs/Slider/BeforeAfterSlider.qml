@@ -19,6 +19,8 @@ Item {
     property url rightImage: ""
     property real position: 0.5  // 0-1
     property int radius: Enums.radius.large  // Corner radius 圆角
+    readonly property int _effectiveRadius: Enums.isVintageTicket
+                                             ? Enums.ticket.radius : radius
     readonly property color _dividerColor: Enums.themeColors.accentForeground
     readonly property color _handleColor: Enums.themeColors.accentForeground
     readonly property color _handleIconColor: Enums.gray.text
@@ -30,23 +32,24 @@ Item {
     implicitHeight: 200
     clip: true  // Clip handle overflow 裁剪手柄溢出
     onPositionChanged: imageCanvas.requestPaint()
+    on_EffectiveRadiusChanged: imageCanvas.requestPaint()
     
     // Shadow layer 阴影层
     // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: parent
-        radius: control.radius
+        radius: control._effectiveRadius
         color: Enums.shadow.level8.color
         blur: Enums.shadow.level8.blur
         offset.x: 0
         offset.y: Enums.shadow.level8.offset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     NeoShadow {
         target: control
         visible: Enums.isNeobrutalism
-        radius: control.radius
+        radius: control._effectiveRadius
         z: -1
     }
     
@@ -82,7 +85,7 @@ Item {
             
             var w = width
             var h = height
-            var r = control.radius
+            var r = control._effectiveRadius
             var pos = control._safePosition
             
             // Draw rounded rect clip path 绘制圆角矩形裁剪路径

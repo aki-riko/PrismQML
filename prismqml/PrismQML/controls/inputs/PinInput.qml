@@ -20,6 +20,8 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool focused: pinInput.activeFocus
+    readonly property int _cellRadius: Enums.surfaceRadius(Enums.radius.small)
+    readonly property int _cellBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
 
     // ==================== Signals 信号 ====================
     signal completed(string pin)
@@ -73,7 +75,7 @@ Item {
                     blur: Enums.shadow.level2.blur
                     offset.x: Enums.spacing.none
                     offset.y: Enums.shadow.level2.offset
-                    visible: !Enums.isNeobrutalism
+                    visible: Enums.usesSoftElevation
                 }
 
                 NeoShadow {
@@ -85,7 +87,7 @@ Item {
                 Rectangle {
                     id: pinCell
                     anchors.fill: parent
-                    radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.small)
+                    radius: control._cellRadius
 
                     // Fluent Design: default/hover/current cell states 默认/悬浮/当前格状态
                     color: {
@@ -95,9 +97,9 @@ Item {
                         return Enums.stateColor.controlBg
                     }
 
-                    border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+                    border.width: control._cellBorderWidth
                     border.color: {
-                        if (Enums.isNeobrutalism) return cellItem.isCurrentCell ? Enums.neo.primary : Enums.stateColor.border
+                        if (Enums.hasOutlinedSurfaces) return cellItem.isCurrentCell ? Enums.accentColor : Enums.stateColor.border
                         if (!control.enabled) return Enums.stateColor.borderLight
                         if (cellItem.hovered) return Enums.stateColor.borderStrong
                         return Enums.stateColor.inputBorderNormal

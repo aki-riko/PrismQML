@@ -44,6 +44,8 @@ Item {
     readonly property var _safeModel:
         model === null || model === undefined ? []
         : (typeof model.length === "number" ? model : [])
+    readonly property real _effectiveBorderRadius: Enums.isVintageTicket
+                                                    ? Enums.ticket.radius : borderRadius
     
     // Feature Props 功能属性
     property bool autoPlay: false
@@ -236,8 +238,8 @@ Item {
         visible: control._contentArea !== null &&
                  control.shadowLevel !== null &&
                  control.shadowLevel !== undefined &&
-                 !Enums.isNeobrutalism
-        radius: control.borderRadius
+                 Enums.usesSoftElevation
+        radius: control._effectiveBorderRadius
 
         Component.onCompleted: _staticFallbackShadow = ({
             color: Enums.transparent,
@@ -263,7 +265,7 @@ Item {
                  Enums.isNeobrutalism &&
                  control.shadowLevel !== null &&
                  control.shadowLevel !== undefined
-        radius: control.borderRadius
+        radius: control._effectiveBorderRadius
         z: control._contentArea ? control._contentArea.z - 1 : 0
     }
 
@@ -278,7 +280,7 @@ Item {
             orientation: control.orientation
             currentIndex: control.currentIndex
             itemDelegate: control.itemDelegate
-            borderRadius: control.borderRadius
+            borderRadius: control._effectiveBorderRadius
 
             onIndexChanged: (index) => {
                 control.currentIndex = index

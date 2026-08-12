@@ -66,6 +66,8 @@ Rectangle {
     // Match the DataWidgetCore family API naming (ListView/TableView, etc.).
     // 与 DataWidgetCore 系列（ListView/TableView 等）API 命名一致。
     property color cardColor: Enums.cardColor
+    readonly property int _effectiveBorderRadius: Enums.isVintageTicket
+                                                   ? Enums.ticket.radius : borderRadius
     readonly property color headerColor: Enums.headerColor
     readonly property color borderColor: Enums.stateColor.borderLight
     readonly property color textColor: Enums.textColor.primary
@@ -172,7 +174,7 @@ Rectangle {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     NeoShadow {
@@ -187,9 +189,16 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: Enums.spacing.m
         color: cardColor
-        radius: borderRadius
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (borderVisible ? Enums.border.thin : 0)
-        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : borderColor
+        radius: control._effectiveBorderRadius
+        border.width: Enums.hasOutlinedSurfaces
+                      ? Enums.surfaceBorderWidth(Enums.border.thin)
+                      : (borderVisible ? Enums.border.thin : 0)
+        border.color: Enums.hasOutlinedSurfaces ? Enums.stateColor.border : borderColor
+
+        TicketPaper {
+            anchors.fill: parent
+            visible: Enums.isVintageTicket && card.color.a > 0
+        }
         
         ColumnLayout {
             anchors.fill: parent
@@ -200,7 +209,7 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Enums.controlSize.tableHeaderHeight
                 color: headerColor
-                radius: borderRadius
+                radius: control._effectiveBorderRadius
                 visible: control._safeHeaderLabels.length > 0
                 Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: parent.height / 2; color: parent.color }
                 Row {
@@ -330,7 +339,7 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Enums.controlSize.inputHeightCompact
                 color: headerColor
-                radius: borderRadius
+                radius: control._effectiveBorderRadius
                 visible: internalModel.count > 0
                 Rectangle { anchors.top: parent.top; width: parent.width; height: parent.height / 2; color: parent.color }
                 Label { anchors.centerIn: parent; type: Enums.label.type_caption; text: Enums.trCount("total_items", internalModel.count); color: secondaryColor }

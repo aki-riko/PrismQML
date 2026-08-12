@@ -57,6 +57,9 @@ Rectangle {
     property int borderRadius: Enums.radius.large
     property color cardColor: Enums.cardColor
 
+    readonly property int _effectiveBorderRadius: Enums.isVintageTicket
+                                                   ? Enums.ticket.radius : borderRadius
+
     // Animation 动画
     property bool animated: true
     property bool hoverElevation: false
@@ -220,7 +223,7 @@ Rectangle {
 
         anchors.fill: card
         radius: card.radius
-        visible: showShadow && !Enums.isNeobrutalism
+        visible: showShadow && Enums.usesSoftElevation
 
         Component.onCompleted: _staticFallbackShadow = ({
             color: Enums.transparent,
@@ -262,10 +265,19 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: cardMargin
         color: cardColor
-        radius: borderRadius
+        radius: root._effectiveBorderRadius
         // neo: 粗黑边(neo 下始终显边, 靠边+硬阴影区分)
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (borderVisible ? Enums.border.thin : 0)
-        border.color: Enums.isNeobrutalism ? Enums.stateColor.border : (borderVisible ? Enums.stateColor.borderLight : Enums.transparent)
+        border.width: Enums.hasOutlinedSurfaces
+                      ? Enums.surfaceBorderWidth(Enums.border.thin)
+                      : (borderVisible ? Enums.border.thin : 0)
+        border.color: Enums.hasOutlinedSurfaces
+                      ? Enums.stateColor.border
+                      : (borderVisible ? Enums.stateColor.borderLight : Enums.transparent)
+
+        TicketPaper {
+            anchors.fill: parent
+            visible: Enums.isVintageTicket && card.color.a > 0
+        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -277,7 +289,7 @@ Rectangle {
                 Layout.fillWidth: true
                 height: root.headerHeight
                 color: headerColor
-                radius: borderRadius
+                radius: root._effectiveBorderRadius
                 visible: showHeader
                 
                 // Bottom half fill 底部半圆填充
@@ -534,7 +546,7 @@ Rectangle {
                 Layout.fillWidth: true
                 height: Enums.controlSize.inputHeightCompact
                 color: headerColor
-                radius: borderRadius
+                radius: root._effectiveBorderRadius
                 visible: showFooter && itemCount > 0
 
                 opacity: visible ? 1 : 0

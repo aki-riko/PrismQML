@@ -30,10 +30,14 @@ Rectangle {
         }
     }
     readonly property color currentColor: Enums.statusLevel.getColorByLevel(status)
-    readonly property int _tagRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.small)
+    readonly property int _tagRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property color _tagBackground: Enums.stateColor.accentSubtle
-    readonly property int _tagBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : (showBorder ? Enums.border.thin : 0)
-    readonly property color _tagBorderColor: Enums.isNeobrutalism ? Enums.stateColor.border : (Enums.isDark ? borderColorDark : borderColorLight)
+    readonly property int _tagBorderWidth: Enums.hasOutlinedSurfaces
+                                            ? Enums.surfaceBorderWidth(Enums.border.thin)
+                                            : (showBorder ? Enums.border.thin : 0)
+    readonly property color _tagBorderColor: Enums.hasOutlinedSurfaces
+                                              ? Enums.stateColor.border
+                                              : (Enums.isDark ? borderColorDark : borderColorLight)
 
     // ==================== Public Methods 公开方法 ====================
     function getText() { return text }

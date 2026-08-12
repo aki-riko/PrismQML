@@ -44,12 +44,13 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property color _trackColor: control.enabled ? Enums.stateColor.sliderTrack : Enums.stateColor.sliderTrackDisabled
     readonly property color _progressColor: control.enabled ? control.accentColor : Enums.stateColor.disabledBorder
-    readonly property int _handleBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.border.thin)
+    readonly property int _handleBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _handleBorderColor: control.enabled
                                                 ? (Enums.stateColor.border)
                                                 : Enums.stateColor.disabledBorder
     readonly property color _handleInnerColor: control.enabled ? control.accentColor : Enums.textColor.disabled
+    readonly property int _trackRadius: Enums.isVintageTicket
+                                         ? Enums.ticket.radius : Enums.radius.tiny
     readonly property bool isHorizontal: orientation === Qt.Horizontal
     readonly property bool _isDefault: type === Enums.slider.type_default
     readonly property bool _isRange: type === Enums.slider.type_range
@@ -163,7 +164,7 @@ Item {
                 anchors.centerIn: parent
                 width: isHorizontal ? parent.width : Enums.radius.small
                 height: isHorizontal ? Enums.radius.small : parent.height
-                radius: Enums.radius.tiny
+                radius: control._trackRadius
                 color: control._trackColor
                 
                 // Progress 进度
@@ -306,7 +307,7 @@ Item {
                 anchors.centerIn: parent
                 width: isHorizontal ? parent.width : Enums.radius.small
                 height: isHorizontal ? Enums.radius.small : parent.height
-                radius: Enums.radius.tiny
+                radius: control._trackRadius
                 color: control._trackColor
             }
             
@@ -315,7 +316,7 @@ Item {
                 y: isHorizontal ? groove.y : groove.y + groove.height * (1 - Math.max(firstPos, secondPos))
                 width: isHorizontal ? groove.width * Math.abs(secondPos - firstPos) : Enums.radius.small
                 height: isHorizontal ? Enums.radius.small : groove.height * Math.abs(secondPos - firstPos)
-                radius: Enums.radius.tiny
+                radius: control._trackRadius
                 color: control._progressColor
             }
             

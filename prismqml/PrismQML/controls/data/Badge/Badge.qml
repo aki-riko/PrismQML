@@ -43,6 +43,12 @@ Rectangle {
     
     // Text color on semantic/accent fill 语义/强调填充上的文字色
     readonly property color _contentColor: Enums.accentForeground
+    readonly property real _badgeBorderWidth: Enums.isNeobrutalism
+                                               ? Enums.border.medium
+                                               : (Enums.isVintageTicket
+                                                  ? Enums.ticket.borderWidth : 0)
+    readonly property color _badgeBorderColor: Enums.hasOutlinedSurfaces
+                                                ? Enums.borderColor : Enums.transparent
 
     // ==================== Size 尺寸 ====================
     implicitWidth: _effectiveDot ? Enums.spacing.s : Math.max(Enums.controlSize.checkboxOuter, contentItem.implicitWidth + Enums.spacing.m)
@@ -53,9 +59,10 @@ Rectangle {
     // Color 颜色
     // 语义色由 getColorByLevel 在 neo 下自动返回高饱和值; 黑边为 neo 结构差异
     color: Enums.statusLevel.getColorByLevel(level)
-    // neo: 黑细粗边(徽章小, 用 medium 不用 thick)
-    border.width: Enums.isNeobrutalism ? Enums.border.medium : 0
-    border.color: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.transparent
+    // Outlined skins keep a visible ink edge; Neo stays on its compact medium width.
+    // 描边皮肤保留可见油墨边；Neo 小徽章继续使用紧凑 medium 宽度。
+    border.width: control._badgeBorderWidth
+    border.color: control._badgeBorderColor
     
     // ==================== Content 内容 ====================
     Item {

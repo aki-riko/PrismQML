@@ -27,6 +27,10 @@ Item {
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
     readonly property color contentColor: checked ? Enums.chipColors.checkedText : Enums.foregroundColor
+    readonly property int _chipRadius: Enums.surfaceRadius(Enums.radius.small)
+    readonly property int _chipBorderWidth: Enums.hasOutlinedSurfaces
+                                             ? Enums.surfaceBorderWidth(Enums.border.thin)
+                                             : (checked ? Enums.border.none : Enums.border.thin)
 
     // ==================== Signals 信号 ====================
     signal clicked()                            // Chip clicked 点击
@@ -53,7 +57,7 @@ Item {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     NeoShadow {
@@ -66,7 +70,7 @@ Item {
     Rectangle {
         id: chipBg
         anchors.fill: parent
-        radius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.small)
+        radius: control._chipRadius
 
         color: {
             if (checked) return Enums.accentColor
@@ -76,7 +80,7 @@ Item {
         }
 
         // neo: 选中态也保留黑边(结构差异); Fluent 选中无边
-        border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : (checked ? Enums.border.none : Enums.border.thin)
+        border.width: control._chipBorderWidth
         border.color: Enums.stateColor.border
 
         // Animations 动画

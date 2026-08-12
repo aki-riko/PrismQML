@@ -20,7 +20,7 @@ Rectangle {
     readonly property bool _effectiveHovered: hovered || switchArea.containsMouse
     readonly property bool _effectivePressed: pressed || switchArea.pressed
     readonly property color _trackColor: {
-        if (Enums.isNeobrutalism) {
+        if (Enums.hasOutlinedSurfaces) {
             if (!enabled) return checked ? Enums.stateColor.primaryDisabled : Enums.stateColor.checkBoxFill
             return checked ? checkedColor : Enums.stateColor.checkBoxFill
         }
@@ -42,10 +42,11 @@ Rectangle {
         return checked ? checkedColor : Enums.stateColor.disabledBorder
     }
     readonly property real _trackOpacity: (enabled ? 1.0 : 0.65)
-    readonly property int _trackBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth
-                                                                  : (Enums.border.none)
+    readonly property int _trackBorderWidth: Enums.hasOutlinedSurfaces
+                                              ? Enums.surfaceBorderWidth(Enums.border.thin)
+                                              : Enums.border.none
     readonly property color _trackBorderColor: {
-        if (Enums.isNeobrutalism) return Enums.stateColor.toggleBorder
+        if (Enums.hasOutlinedSurfaces) return Enums.stateColor.toggleBorder
         if (false) {
             if (!enabled) return Enums.stateColor.disabledBorder
             return checked ? Enums.accentColorDark : Enums.stateColor.toggleBorder
@@ -57,12 +58,17 @@ Rectangle {
             if (!enabled) return Enums.stateColor.controlBgDisabled
             return checked ? Enums.accentForeground : Enums.stateColor.controlBg
         }
-        return enabled ? (Enums.isNeobrutalism ? Enums.neo.background : Enums.accentForeground) : Enums.gray.background
+        if (!enabled) return Enums.gray.background
+        if (Enums.isNeobrutalism) return Enums.neo.background
+        if (Enums.isVintageTicket) return Enums.cardColor
+        return Enums.accentForeground
     }
     readonly property int _handleBorderWidth: Enums.isNeobrutalism ? Enums.border.medium
-                                                                   : (Enums.border.none)
+                                                                   : (Enums.isVintageTicket
+                                                                      ? Enums.ticket.borderWidth
+                                                                      : Enums.border.none)
     readonly property color _handleBorderColor: {
-        if (Enums.isNeobrutalism) return Enums.stateColor.toggleBorder
+        if (Enums.hasOutlinedSurfaces) return Enums.stateColor.toggleBorder
         return Enums.transparent
     }
 
