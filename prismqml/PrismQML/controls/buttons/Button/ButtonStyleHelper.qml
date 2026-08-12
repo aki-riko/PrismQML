@@ -83,6 +83,7 @@ QtObject {
         if (!Enums.stateColor) return Enums.stateColor.border
 
         if (Enums.isNeobrutalism) return _neoBorderColor()
+        if (Enums.isVintageTicket) return _ticketBorderColor()
 
         if (isToggleChecked && style === Enums.button.style_primary) {
             return Enums.accentColor
@@ -168,6 +169,14 @@ QtObject {
             return Enums.transparent
         }
         return Enums.neo.borderColor
+    }
+    function _ticketBorderColor() {
+        if (style === Enums.button.style_transparent ||
+            style === Enums.button.style_text ||
+            style === Enums.button.style_hyperlink) {
+            return Enums.transparent
+        }
+        return Enums.ticket.borderColor
     }
     function _neoTextColor() {
         if (_neoIsAccentStyle()) {

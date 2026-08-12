@@ -36,8 +36,7 @@ Widget {
     property int popupPlacement: 0  // Popup direction 弹出方向
     property int maxVisibleItems: -1  // Qt-style max visible items Qt风格最大可见项数
     property color accentColor: Enums.accentColor
-    property int radius: Enums.isNeobrutalism ? Enums.neo.radius
-                         : (Enums.radius.small)
+    property int radius: Enums.surfaceRadius(Enums.radius.small)
     property bool focused: _inputFocused
     property bool isOpen: false
     property bool showFocusedBorder: style === 0
@@ -225,7 +224,7 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: style === 0 && !Enums.isNeobrutalism  // Only for default style 仅默认样式
+        visible: style === 0 && Enums.usesSoftElevation  // Only for default style 仅默认样式
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件; 展开时 accent=true 转橙强调。
@@ -272,19 +271,19 @@ Widget {
 
         // Fluent Design 边框:亮/暗主题各用低透明度描边,具体取值见 StateColor.pickerBorder
         border.width: style !== 0 ? 0
-            : (Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin)
-        border.color: Enums.isNeobrutalism && style === 0
-            ? (!control.enabled ? Enums.stateColor.comboBoxDisabledBorder
-               : (control.popupVisible ? Enums.neo.primary : Enums.neo.borderColor))
+            : Enums.surfaceBorderWidth(Enums.border.thin)
+        border.color: Enums.hasOutlinedSurfaces && style === 0
+            ? (!control.enabled ? Enums.stateColor.borderLight
+               : (control.popupVisible ? Enums.accentColor : Enums.borderColor))
             : styleHelper.getBorderColor()
     }
     
     // Focus accent line (ONLY for editable mode) 聚焦主题色底线(仅editable模式)
     FocusLine {
-        showLine: !Enums.isNeobrutalism && control.editable && editableInput.activeFocus && showFocusedBorder
+        showLine: !Enums.hasOutlinedSurfaces && control.editable && editableInput.activeFocus && showFocusedBorder
         lineColor: control.focusedBorderColor
         parentRadius: control.radius
-        visible: !Enums.isNeobrutalism && control.editable && showFocusedBorder
+        visible: !Enums.hasOutlinedSurfaces && control.editable && showFocusedBorder
     }
     
     

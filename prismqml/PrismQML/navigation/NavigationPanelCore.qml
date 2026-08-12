@@ -71,7 +71,7 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     // Right-side rounded corner radius 右侧圆角半径
-    readonly property int _cornerRadius: Enums.radius.large
+    readonly property int _cornerRadius: Enums.surfaceRadius(Enums.radius.large)
 
     // Current selected page key 当前选中的页面键
     readonly property string currentKey: {
@@ -437,6 +437,11 @@ Item {
         onHeightChanged: _scheduleBgRepaint()
         on_BackgroundColorChanged: requestPaint()
     }
+
+    TicketPaper {
+        anchors.fill: parent
+        z: -1
+    }
     
     // Layer B: Acrylic blurred background 层B：亚克力模糊背景
     Rectangle {
@@ -446,7 +451,7 @@ Item {
         readonly property color acrylicTintColor: Enums.stateColor.acrylicTintColor
 
         anchors.fill: parent
-        visible: control.acrylicEnabled && control.acrylicImageSource !== ""
+        visible: Enums.usesSoftElevation && control.acrylicEnabled && control.acrylicImageSource !== ""
         z: -1  // Below all content 在所有内容下方
         radius: control._cornerRadius
         clip: true

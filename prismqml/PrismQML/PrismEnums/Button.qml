@@ -8,6 +8,8 @@ import QtQuick
 // For: Button 适用于
 // Note: type is auto-detected by icon/text content 类型根据图标/文本自动识别
 QtObject {
+    property bool isTicket: false
+
     // Styles 样式风格
     readonly property int style_default: 0
     readonly property int style_primary: 1
@@ -44,7 +46,7 @@ QtObject {
     // Gradient positions 渐变位置
     readonly property real gradientStart: 0.0       // Gradient start position 渐变起始位置
     readonly property real gradientEnd: 1.0         // Gradient end position 渐变结束位置
-    readonly property real gradientLighten: 1.2     // Gradient lighten factor 渐变变亮系数
+    readonly property real gradientLighten: isTicket ? 1.0 : 1.2 // Gradient lighten factor 渐变变亮系数
     
     // Color factors 颜色系数
     readonly property real hoverLighten: 1.3        // Hover state lighten factor 悬浮状态变亮系数

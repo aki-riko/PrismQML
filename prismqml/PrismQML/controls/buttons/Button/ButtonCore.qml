@@ -92,10 +92,10 @@ Widget {
         feature === Enums.button.feature_toggle && control.checked
     readonly property var styleHelper: ButtonStyle.snapshot(
         style, level, _styleEffectiveEnabled, hovered, pressed,
-        _styleToggleChecked, Enums.isNeobrutalism, Enums.button,
-        Enums.stateColor, Enums.textColor, Enums.statusLevel,
+        _styleToggleChecked, Enums.isNeobrutalism, Enums.isVintageTicket,
+        Enums.button, Enums.stateColor, Enums.textColor, Enums.statusLevel,
         Enums.accentColor, Enums.cardColor, Enums.accentForeground,
-        Enums.transparent, Enums.opacityLevel, Enums.neo)
+        Enums.transparent, Enums.opacityLevel, Enums.neo, Enums.ticket)
     readonly property color _styleBgColor: styleHelper.bgColor
     readonly property color _styleBorderColor: styleHelper.borderColor
     readonly property color _styleTextColor: styleHelper.textColor
@@ -103,7 +103,8 @@ Widget {
     // Appearance and animated colors 外观与动画颜色
     property int radius: shape === Enums.button.shape_pill ? height / 2
                          : (Enums.isNeobrutalism ? Enums.neo.radius
-                            : (Enums.radius.small))
+                            : (Enums.isVintageTicket ? Enums.ticket.radius
+                               : Enums.radius.small))
     property color color: _styleBgColor
 
     // Neobrutalism target press shift. Neo按压目标位移。
@@ -362,7 +363,7 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !control.flat && !Enums.isNeobrutalism
+        visible: !control.flat && Enums.usesSoftElevation
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件(纯黑零模糊, 偏移)。按下位移由下方 Translate 压平。
@@ -385,9 +386,11 @@ Widget {
         anchors.fill: parent
         radius: control.radius
         color: _animatedBgColor
-        border.width: Enums.isNeobrutalism
-            ? (flat ? 0 : Enums.neo.borderWidth)
-            : (((_styleToggleChecked && style === Enums.button.style_primary) ? Enums.border.normal : (flat ? 0 : Enums.border.thin)))
+        border.width: flat ? 0
+            : (Enums.isNeobrutalism ? Enums.neo.borderWidth
+               : (Enums.isVintageTicket ? Enums.ticket.borderWidth
+                  : ((_styleToggleChecked && style === Enums.button.style_primary)
+                     ? Enums.border.normal : Enums.border.thin)))
         border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
 
         // Gradient (for gradient style) 渐变

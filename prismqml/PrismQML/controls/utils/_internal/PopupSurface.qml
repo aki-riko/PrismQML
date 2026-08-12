@@ -49,7 +49,7 @@ Item {
         blur: surface.popupShadowBlur
         offset.x: 0
         offset.y: surface.popupShadowOffset
-        visible: !Enums.isNeobrutalism
+        visible: Enums.usesSoftElevation
     }
 
     // neo 硬阴影: 偏移纯色矩形(弹层用 explicit 几何, 不用 NeoShadow 的 target)
@@ -92,6 +92,10 @@ Item {
                 origin.y: surface.verticalCenterExpand ? popupPanel.height / 2 : 0
                 xScale: surface.verticalCenterExpand ? 1 : surface.panelScale
                 yScale: surface.panelScale
+            }
+
+            TicketPaper {
+                anchors.fill: parent
             }
 
             // Content container 内容容器

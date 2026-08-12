@@ -31,10 +31,10 @@ Item {
         0, popupWidth - 2 * contentPadding)
     readonly property int availableContentHeight: Math.max(
         0, popupHeight - 2 * contentPadding)
-    property int popupRadius: Enums.radius.large
+    property int popupRadius: Enums.surfaceRadius(Enums.radius.large)
     property int shadowRadius: popupRadius
     readonly property color _popupBackground: Enums.cardColor
-    readonly property int _popupBorderWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+    readonly property int _popupBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _popupBorderColor: Enums.stateColor.border
     readonly property color _popupShadowColor: Enums.shadow.level8.color
     readonly property int _popupShadowBlur: Enums.shadow.level8.blur

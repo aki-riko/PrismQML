@@ -175,7 +175,7 @@ def test_shared_button_style_matches_reference_for_all_states(qapp):
     effective_disabled_cases = state_cases[1:4]
     try:
         styles = root.property("styles").toVariant()
-        for skin in (Skin.FLUENT, Skin.NEOBRUTALISM):
+        for skin in (Skin.FLUENT, Skin.NEOBRUTALISM, Skin.VINTAGE_TICKET):
             setSkin(skin)
             _pump()
             for style in styles:
@@ -237,7 +237,7 @@ def test_shared_button_style_follows_theme_and_accent_updates(qapp):
     )
     try:
         styles = root.property("styles").toVariant()
-        for skin in (Skin.FLUENT, Skin.NEOBRUTALISM):
+        for skin in (Skin.FLUENT, Skin.NEOBRUTALISM, Skin.VINTAGE_TICKET):
             setSkin(skin)
             for theme in (Theme.LIGHT, Theme.DARK):
                 setTheme(theme)

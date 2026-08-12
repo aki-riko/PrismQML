@@ -4,6 +4,7 @@
 
 import QtQuick
 import ".."
+import "../effects"
 
 // ContentFrame - Reusable content area with rounded corner and border 可复用的圆角边框内容区域
 // Used by Window and compact-nav window 用于 Window 和 compact-nav window
@@ -17,20 +18,28 @@ Item {
     // ==================== Public Props 公开属性 ====================
     default property alias content: contentItem.data
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int _effectiveRadius: Enums.surfaceRadius(cornerRadius)
+    readonly property int _effectiveBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+
     // ==================== Content 内容 ====================
     // Background. 背景。
     Rectangle {
         id: background
         anchors.fill: parent
         color: root.backgroundColor
-        radius: root.cornerRadius
+        radius: root._effectiveRadius
+
+        TicketPaper {
+            anchors.fill: parent
+        }
         
         // Bottom-left corner fill. 左下角填充。
         Rectangle {
             anchors.left: parent.left
             anchors.bottom: parent.bottom
-            width: root.cornerRadius
-            height: root.cornerRadius
+            width: root._effectiveRadius
+            height: root._effectiveRadius
             color: parent.color
         }
         
@@ -38,8 +47,8 @@ Item {
         Rectangle {
             anchors.right: parent.right
             anchors.top: parent.top
-            width: root.cornerRadius
-            height: root.cornerRadius
+            width: root._effectiveRadius
+            height: root._effectiveRadius
             color: parent.color
         }
     }
@@ -51,12 +60,13 @@ Item {
         
         onPaint: {
             var ctx = getContext("2d")
-            var w = width, h = height, r = root.cornerRadius
+            var w = width, h = height, r = root._effectiveRadius
             ctx.clearRect(0, 0, w, h)
-            // Use a heavy Neo border or a thin Fluent content border. Neo 使用粗边框，Fluent 使用细内容边框。
-            var neo = Enums.isNeobrutalism
-            ctx.strokeStyle = (neo ? Enums.neo.borderColor : Enums.stateColor.contentBorder).toString()
-            ctx.lineWidth = neo ? Enums.neo.borderWidth : Enums.border.thin
+            // Outlined skins use their ink border; Fluent keeps the content border.
+            // 描边皮肤使用自身油墨边框；Fluent 保持内容边框。
+            ctx.strokeStyle = (Enums.hasOutlinedSurfaces
+                ? Enums.borderColor : Enums.stateColor.contentBorder).toString()
+            ctx.lineWidth = root._effectiveBorderWidth
             var off = ctx.lineWidth / 2  // Center the stroke on pixels. 将描边中心与像素对齐。
             // Top border. 顶部边框。
             ctx.beginPath()
@@ -82,7 +92,7 @@ Item {
     // Theme repaint connection. 主题重绘连接。
     Connections {
         function onIsDarkChanged() { borderCanvas.requestPaint() }
-        function onIsNeobrutalismChanged() { borderCanvas.requestPaint() }
+        function onSkinChanged() { borderCanvas.requestPaint() }
         target: Enums
     }
     
@@ -90,8 +100,8 @@ Item {
     Item {
         id: contentItem
         anchors.fill: parent
-        anchors.topMargin: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
-        anchors.leftMargin: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+        anchors.topMargin: root._effectiveBorderWidth
+        anchors.leftMargin: root._effectiveBorderWidth
         clip: true
 
         // Clear input focus from blank space; keep this below page content. 点击空白处清除输入焦点，并保持在页面内容下方。

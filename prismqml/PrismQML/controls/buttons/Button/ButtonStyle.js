@@ -73,11 +73,23 @@ function _neoBorderColor(style, button, transparent, neo) {
     return neo.borderColor
 }
 
+function _ticketBorderColor(style, button, transparent, ticket) {
+    if (style === button.style_transparent ||
+            style === button.style_text ||
+            style === button.style_hyperlink) {
+        return transparent
+    }
+    return ticket.borderColor
+}
+
 function borderColor(style, level, effectiveEnabled, isToggleChecked,
-                     isNeobrutalism, button, stateColor, statusLevel,
-                     accentColor, transparent, neo) {
+                     isNeobrutalism, isVintageTicket, button, stateColor,
+                     statusLevel, accentColor, transparent, neo, ticket) {
     if (isNeobrutalism) {
         return _neoBorderColor(style, button, transparent, neo)
+    }
+    if (isVintageTicket) {
+        return _ticketBorderColor(style, button, transparent, ticket)
     }
     if (isToggleChecked && style === button.style_primary) return accentColor
 
@@ -158,9 +170,10 @@ function textColor(style, level, effectiveEnabled, hovered, pressed,
 }
 
 function snapshot(style, level, effectiveEnabled, hovered, pressed,
-                  isToggleChecked, isNeobrutalism, button, stateColor,
-                  textColorTokens, statusLevel, accentColor, cardColor,
-                  accentForeground, transparent, opacityLevel, neo) {
+                  isToggleChecked, isNeobrutalism, isVintageTicket, button,
+                  stateColor, textColorTokens, statusLevel, accentColor,
+                  cardColor, accentForeground, transparent, opacityLevel,
+                  neo, ticket) {
     return {
         effectiveEnabled: effectiveEnabled,
         isToggleChecked: isToggleChecked,
@@ -169,7 +182,8 @@ function snapshot(style, level, effectiveEnabled, hovered, pressed,
             button, stateColor, statusLevel, accentColor, cardColor),
         borderColor: borderColor(
             style, level, effectiveEnabled, isToggleChecked, isNeobrutalism,
-            button, stateColor, statusLevel, accentColor, transparent, neo),
+            isVintageTicket, button, stateColor, statusLevel, accentColor,
+            transparent, neo, ticket),
         textColor: textColor(
             style, level, effectiveEnabled, hovered, pressed, isToggleChecked,
             isNeobrutalism, button, textColorTokens, statusLevel, accentColor,

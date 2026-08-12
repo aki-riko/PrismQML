@@ -49,7 +49,8 @@ Item {
  id: cardContainer
  // Shadow needs space to extend outward - use level2 soft shadow 阴影需要向外扩展的空间 - 使用 level2 柔和阴影
 
- property int shadowMargin: Enums.shadow.level2.blur + Enums.shadow.level2.offset + Enums.spacing.xs
+ property int shadowMargin: Enums.isVintageTicket ? Enums.spacing.none
+                            : Enums.shadow.level2.blur + Enums.shadow.level2.offset + Enums.spacing.xs
  
  // Leave enough space for shadow 为阴影留出足够的空间
  width: parent.width
@@ -61,14 +62,15 @@ Item {
  id: card
  width: parent.width
  height: cardContent.implicitHeight
- radius: Enums.radius.dialog
+ radius: Enums.surfaceRadius(Enums.radius.dialog)
  // Opaque background: light gray for light, dark gray for dark theme 不透明背景：浅色用浅灰，深色用深灰
 
- color: (Enums.isDark ? Enums.exampleCardColors.bgDark : Enums.exampleCardColors.bgLight)
+ color: Enums.isVintageTicket ? Enums.ticket.surface
+        : (Enums.isDark ? Enums.exampleCardColors.bgDark : Enums.exampleCardColors.bgLight)
  
  // Shadow: soft shadow, bottom-right direction 阴影：柔和阴影，右下角方向
  // neo: 关软阴影, 改用硬阴影 NeoShadow
- shadowVisible: !Enums.isNeobrutalism && !false
+ shadowVisible: Enums.usesSoftElevation
 
  y: cardContainer.shadowMargin / 2
  shadowLevel: Enums.shadow.level2
@@ -83,6 +85,10 @@ Item {
  sourceComponent: NeoShadow {
  target: card
  }
+ }
+
+ TicketPaper {
+ anchors.fill: parent
  }
 
  Column {
@@ -105,7 +111,7 @@ Item {
  spacing: control.orientation === Qt.Vertical ? Enums.spacing.s : (Enums.spacing.l)
  flow: control.orientation === Qt.Vertical ? Flow.TopToBottom : Flow.LeftToRight
  }
- 
+
  // Component name label
  Loader {
  id: componentLabel
@@ -138,15 +144,16 @@ Item {
  height: parent.height + card.radius
  y: -card.radius
  radius: card.radius
- color: (Enums.isDark ? Enums.exampleCardColors.descBgDark : Enums.exampleCardColors.descBgLight)
+ color: Enums.isVintageTicket ? Enums.ticket.muted
+        : (Enums.isDark ? Enums.exampleCardColors.descBgDark : Enums.exampleCardColors.descBgLight)
  }
  
  // Top separator line 顶部分隔线
  Separator {
  width: parent.width
  // neo: 实黑 2px 硬分隔线(对齐偶数像素宽, 消除细黑线滚动抖动闪烁)
- lineColor: Enums.isNeobrutalism ? Enums.neo.borderColor : Enums.stateColor.divider
- lineWidth: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
+ lineColor: Enums.hasOutlinedSurfaces ? Enums.borderColor : Enums.stateColor.divider
+ lineWidth: Enums.surfaceBorderWidth(Enums.border.thin)
  }
  
  Label {
@@ -170,8 +177,8 @@ Item {
  anchors.fill: card
  radius: card.radius
  color: Enums.transparent
- border.width: Enums.isNeobrutalism ? Enums.neo.borderWidth : Enums.border.thin
- border.color: Enums.isNeobrutalism ? Enums.neo.borderColor
+ border.width: Enums.surfaceBorderWidth(Enums.border.thin)
+ border.color: Enums.hasOutlinedSurfaces ? Enums.borderColor
  : ((Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle))
  }
  }

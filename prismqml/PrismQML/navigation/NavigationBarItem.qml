@@ -26,10 +26,11 @@ Item {
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
     readonly property color accentColor: Enums.accentColor
-    readonly property int _navItemRadius: Enums.isNeobrutalism ? Enums.neo.radius : (Enums.radius.small)
+    readonly property int _navItemRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property color _navItemBackground: {
         if (control.selected) {
             if (Enums.isNeobrutalism) return Enums.neo.primary
+            if (Enums.isVintageTicket) return Enums.ticket.muted
             return Enums.stateColor.navSelected
         }
         if (control.pressed || control.hovered) {
@@ -37,9 +38,13 @@ Item {
         }
         return Enums.transparent
     }
-    readonly property int _navItemBorderWidth: Enums.isNeobrutalism && control.selected ? Enums.neo.borderWidth : (0)
-    readonly property color _navItemBorderColor: Enums.isNeobrutalism ? Enums.neo.borderColor : (Enums.transparent)
-    readonly property color _navItemContentColor: control.selected ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor) : Enums.textColor.primary
+    readonly property int _navItemBorderWidth: control.selected && Enums.hasOutlinedSurfaces
+                                                ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
+    readonly property color _navItemBorderColor: Enums.hasOutlinedSurfaces
+                                                  ? Enums.borderColor : Enums.transparent
+    readonly property color _navItemContentColor: control.selected
+        ? (Enums.isNeobrutalism ? Enums.neo.primaryForeground : control.accentColor)
+        : Enums.textColor.primary
     readonly property real _labelWidth: Math.max(0, width - Enums.spacing.xs * 2)
     readonly property bool _labelOverflowing: label.implicitWidth > label.width
     readonly property bool _showMarqueeLabel: hovered && _labelOverflowing
