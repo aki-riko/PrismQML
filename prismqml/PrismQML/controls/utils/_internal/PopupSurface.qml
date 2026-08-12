@@ -94,8 +94,11 @@ Item {
                 yScale: surface.panelScale
             }
 
-            TicketPaper {
+            Loader {
                 anchors.fill: parent
+                active: Enums.isVintageTicket
+                asynchronous: true
+                source: Qt.resolvedUrl("../../../effects/TicketPaper.qml")
             }
 
             // Content container 内容容器

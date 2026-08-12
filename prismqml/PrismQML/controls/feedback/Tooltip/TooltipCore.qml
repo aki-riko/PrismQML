@@ -192,10 +192,6 @@ Item {
                         shadowLevel: control._tooltipShadowLevel
                         shadowVisible: Enums.usesSoftElevation
 
-                        TicketPaper {
-                            anchors.fill: parent
-                        }
-
                         // Neo hard shadow neo 硬阴影
                         NeoShadow {
                             target: tipBackground

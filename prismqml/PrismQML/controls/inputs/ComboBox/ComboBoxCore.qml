@@ -272,10 +272,14 @@ Widget {
         // Fluent Design 边框:亮/暗主题各用低透明度描边,具体取值见 StateColor.pickerBorder
         border.width: style !== 0 ? 0
             : Enums.surfaceBorderWidth(Enums.border.thin)
-        border.color: Enums.hasOutlinedSurfaces && style === 0
-            ? (!control.enabled ? Enums.stateColor.borderLight
-               : (control.popupVisible ? Enums.accentColor : Enums.borderColor))
+        border.color: Enums.isNeobrutalism && style === 0
+            ? (!control.enabled ? Enums.stateColor.comboBoxDisabledBorder
+               : (control.popupVisible ? Enums.neo.primary : Enums.neo.borderColor))
+            : (Enums.isVintageTicket && style === 0
+               ? (!control.enabled ? Enums.stateColor.borderLight
+                  : (control.popupVisible ? Enums.accentColor : Enums.borderColor))
             : styleHelper.getBorderColor()
+            )
     }
     
     // Focus accent line (ONLY for editable mode) 聚焦主题色底线(仅editable模式)
