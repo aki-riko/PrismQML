@@ -102,6 +102,21 @@ Window {
         selected: true
     }
 
+    NavigationBar {
+        id: navigationBar
+        objectName: "navigationBar"
+        x: 530
+        y: 100
+        width: 150
+        height: 200
+        model: [
+            {key: "archive", text: "ARCHIVE", icon: ""},
+            {key: "tickets", text: "TICKETS", icon: ""}
+        ]
+        currentIndex: 0
+        indicatorAnimationEnabled: false
+    }
+
     PopupWindowCore {
         id: popup
         objectName: "popup"
@@ -145,6 +160,14 @@ def _objects(root: QQuickItem, type_fragment: str) -> list[QQuickItem]:
         item
         for item in [root, *_descendants(root)]
         if type_fragment in item.metaObject().className()
+    ]
+
+
+def _sliding_indicators(root: QQuickItem) -> list[QQuickItem]:
+    return [
+        item
+        for item in _objects(root, "SlidingIndicator")
+        if "SlidingIndicatorAnimation" not in item.metaObject().className()
     ]
 
 
@@ -221,8 +244,9 @@ def test_ticket_core_surfaces_use_square_ink_geometry(ticket_scene):
     input_control = window.findChild(QQuickItem, "input")
     combo = window.findChild(QQuickItem, "combo")
     navigation_item = window.findChild(QQuickItem, "navigationItem")
+    navigation_bar = window.findChild(QQuickItem, "navigationBar")
     popup = window.findChild(QQuickItem, "popup")
-    assert all((button, card, input_control, combo, navigation_item, popup))
+    assert all((button, card, input_control, combo, navigation_item, navigation_bar, popup))
 
     assert button.property("radius") == 0
     assert window.property("buttonBorderWidth") == pytest.approx(1)
@@ -234,6 +258,9 @@ def test_ticket_core_surfaces_use_square_ink_geometry(ticket_scene):
     assert combo.property("radius") == 0
     assert navigation_item.property("_navItemRadius") == 0
     assert navigation_item.property("_navItemBorderWidth") == 1
+    navigation_indicators = _sliding_indicators(navigation_bar)
+    assert len(navigation_indicators) == 1
+    assert not navigation_indicators[0].property("visible")
     assert popup.property("popupRadius") == 0
     assert popup.property("_popupBorderWidth") == 1
     assert window.property("ticketGradientFactor") == pytest.approx(1.0)
@@ -241,6 +268,21 @@ def test_ticket_core_surfaces_use_square_ink_geometry(ticket_scene):
     assert [item for item in QGuiApplication.topLevelWindows() if item.isVisible()] == [
         window
     ]
+
+
+def test_navigation_repaints_when_switching_square_ticket_geometry(ticket_scene):
+    window, warnings, _windows_before = ticket_scene
+    navigation_bar = window.findChild(QQuickItem, "navigationBar")
+    navigation_indicators = _sliding_indicators(navigation_bar)
+    assert len(navigation_indicators) == 1
+
+    setSkin(Skin.FLUENT)
+    assert _wait_for(lambda: navigation_indicators[0].property("visible"))
+    setSkin(Skin.VINTAGE_TICKET)
+    assert _wait_for(lambda: not navigation_indicators[0].property("visible"))
+    _pump()
+
+    assert warnings == []
 
 
 def test_ticket_surfaces_have_paper_without_elevation_or_neo_shadow(ticket_scene):

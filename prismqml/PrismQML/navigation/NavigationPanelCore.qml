@@ -401,6 +401,7 @@ Item {
         id: bgCanvas
 
         readonly property color _backgroundColor: control.backgroundColor
+        readonly property real _paintRadius: control._cornerRadius
 
         function _scheduleBgRepaint() {
             Qt.callLater(bgCanvas.requestPaint)
@@ -436,6 +437,7 @@ Item {
         onWidthChanged: _scheduleBgRepaint()
         onHeightChanged: _scheduleBgRepaint()
         on_BackgroundColorChanged: requestPaint()
+        on_PaintRadiusChanged: requestPaint()
     }
 
     TicketPaper {
@@ -525,6 +527,8 @@ Item {
     Canvas {
         id: rightBorderCanvas
 
+        readonly property real _paintRadius: control._cornerRadius
+
         function _scheduleBorderRepaint() {
             Qt.callLater(rightBorderCanvas.requestPaint)
         }
@@ -546,13 +550,20 @@ Item {
             
             var offset = borderWidth / 2
             ctx.beginPath()
-            // Top-right corner (below title bar) 右上圆角（标题栏下方）
-            ctx.moveTo(w - r, topOffset + offset)
-            ctx.arcTo(w - offset, topOffset + offset, w - offset, topOffset + r, r - offset)
-            // Right edge 右侧边
-            ctx.lineTo(w - offset, h - r)
-            // Bottom-right corner 右下圆角
-            ctx.arcTo(w - offset, h - offset, w - r, h - offset, r - offset)
+            if (r <= offset) {
+                // Square ticket edge avoids a negative Canvas arc radius.
+                // 票据直角边避免向 Canvas 传入负圆弧半径。
+                ctx.moveTo(w - offset, topOffset + offset)
+                ctx.lineTo(w - offset, h - offset)
+            } else {
+                // Top-right corner (below title bar) 右上圆角（标题栏下方）
+                ctx.moveTo(w - r, topOffset + offset)
+                ctx.arcTo(w - offset, topOffset + offset, w - offset, topOffset + r, r - offset)
+                // Right edge 右侧边
+                ctx.lineTo(w - offset, h - r)
+                // Bottom-right corner 右下圆角
+                ctx.arcTo(w - offset, h - offset, w - r, h - offset, r - offset)
+            }
             ctx.stroke()
         }
         
@@ -560,6 +571,7 @@ Item {
         // 尺寸变化时防抖重绘右边框 — 跟随事件循环节拍, 不绑 60fps
         onWidthChanged: _scheduleBorderRepaint()
         onHeightChanged: _scheduleBorderRepaint()
+        on_PaintRadiusChanged: requestPaint()
         
         Connections {
             function onNavDividerChanged() { rightBorderCanvas.requestPaint() }
@@ -596,8 +608,9 @@ Item {
             indicatorHeight: control.indicatorHeight
             radius: Enums.radius.micro
             animationEnabled: control.indicatorAnimationEnabled
-            // neo: 隐藏滑动指示条(选中态用橙实心块代替, 避免双重标记)
-            visible: !Enums.isNeobrutalism
+            // Outlined skins use the selected paper block instead of a second accent strip.
+            // 描边皮肤使用选中纸面块，不再叠加第二条强调指示线。
+            visible: !Enums.hasOutlinedSurfaces
         }
     }
     
