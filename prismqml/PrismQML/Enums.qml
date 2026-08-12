@@ -104,7 +104,13 @@ Item {
     CommandBar { id: _commandBar }
     StateColor { id: _stateColor; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket; accentColor: root.accentColor; constants: _constants }
     Constants { id: _constants; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket }
-    Metrics { id: _metrics; isDark: root.isDark; isTicket: root.isVintageTicket; constants: _constants }
+    Metrics {
+        id: _metrics
+        isDark: root.isDark
+        isTicket: root.isVintageTicket
+        devicePixelRatio: DpiManager.devicePixelRatio
+        constants: _constants
+    }
     Orient { id: _orient }
     Flow { id: _flow }
     Chart { id: _chart }

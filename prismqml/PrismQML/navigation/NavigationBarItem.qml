@@ -38,7 +38,7 @@ Item {
         }
         return Enums.transparent
     }
-    readonly property int _navItemBorderWidth: control.selected && Enums.hasOutlinedSurfaces
+    readonly property real _navItemBorderWidth: control.selected && Enums.hasOutlinedSurfaces
                                                 ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
     readonly property color _navItemBorderColor: Enums.hasOutlinedSurfaces
                                                   ? Enums.borderColor : Enums.transparent

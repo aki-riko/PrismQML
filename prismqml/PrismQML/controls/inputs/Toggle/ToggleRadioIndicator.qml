@@ -16,7 +16,7 @@ Rectangle {
     property bool pressed: false
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _indicatorBorderWidth: {
+    readonly property real _indicatorBorderWidth: {
         if (Enums.hasOutlinedSurfaces) return Enums.surfaceBorderWidth(Enums.border.thin)
         return checked ? Enums.border.none : Enums.border.medium
     }

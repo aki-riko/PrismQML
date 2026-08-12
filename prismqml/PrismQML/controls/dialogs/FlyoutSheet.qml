@@ -27,7 +27,7 @@ Window {
     property bool isOpen: false
     readonly property int _sheetRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property color _sheetBackground: Enums.cardColor
-    readonly property int _sheetBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _sheetBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _sheetBorderColor: Enums.stateColor.dialogBorder
     readonly property color _sheetDividerColor: Enums.stateColor.borderLight
 

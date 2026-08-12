@@ -42,7 +42,7 @@ Rectangle {
         return checked ? checkedColor : Enums.stateColor.disabledBorder
     }
     readonly property real _trackOpacity: (enabled ? 1.0 : 0.65)
-    readonly property int _trackBorderWidth: Enums.hasOutlinedSurfaces
+    readonly property real _trackBorderWidth: Enums.hasOutlinedSurfaces
                                               ? Enums.surfaceBorderWidth(Enums.border.thin)
                                               : Enums.border.none
     readonly property color _trackBorderColor: {
@@ -63,7 +63,7 @@ Rectangle {
         if (Enums.isVintageTicket) return Enums.cardColor
         return Enums.accentForeground
     }
-    readonly property int _handleBorderWidth: Enums.isNeobrutalism ? Enums.border.medium
+    readonly property real _handleBorderWidth: Enums.isNeobrutalism ? Enums.border.medium
                                                                    : (Enums.isVintageTicket
                                                                       ? Enums.ticket.borderWidth
                                                                       : Enums.border.none)

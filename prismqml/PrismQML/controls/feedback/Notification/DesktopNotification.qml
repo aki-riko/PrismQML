@@ -33,7 +33,7 @@ Window {
     readonly property int _notificationRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property int _notificationIconRadius: Enums.radius.large
     readonly property color _notificationBackground: Enums.cardColor
-    readonly property int _notificationBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _notificationBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _notificationBorderColor: Enums.stateColor.border
     readonly property color _notificationMessageColor: Enums.stateColor.notificationText
     readonly property color _notificationShadowColor: Enums.shadow.level8.color

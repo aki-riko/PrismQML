@@ -121,7 +121,7 @@ Item {
         Rectangle {
             id: grip
 
-            readonly property int gripThickness: Enums.border.thick
+            readonly property real gripThickness: Enums.border.thick
             readonly property int gripLength: (handleArea.containsMouse || handleArea.pressed) ? 36 : 24
 
             anchors.centerIn: parent

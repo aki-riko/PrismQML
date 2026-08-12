@@ -24,7 +24,7 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     readonly property int _tooltipRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property color _tooltipBackground: Enums.cardColor
-    readonly property int _tooltipBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _tooltipBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _tooltipBorderColor: Enums.stateColor.border
     readonly property var _tooltipShadowLevel: Enums.shadow.level8
     readonly property int _tooltipShadowBlur: Enums.shadow.level8.blur

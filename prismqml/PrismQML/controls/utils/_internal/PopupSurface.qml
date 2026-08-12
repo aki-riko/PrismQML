@@ -17,7 +17,7 @@ Item {
     required property int contentPadding
     required property int popupRadius
     required property color popupBackground
-    required property int popupBorderWidth
+    required property real popupBorderWidth
     required property color popupBorderColor
     required property color popupShadowColor
     required property int popupShadowBlur

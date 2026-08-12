@@ -42,7 +42,7 @@ Rectangle {
     readonly property color _splashBackground: Enums.backgroundColor
     readonly property color _progressColor: Enums.accentColor
     readonly property int _progressRingSize: Enums.splashScreenMetrics.progressRingSize
-    readonly property int _progressRingBorderWidth: Enums.splashScreenMetrics.progressRingBorderWidth
+    readonly property real _progressRingBorderWidth: Enums.splashScreenMetrics.progressRingBorderWidth
     readonly property real _progressTrackOpacity: Enums.splashScreenMetrics.progressTrackOpacity
     readonly property int _progressDotSize: Enums.splashScreenMetrics.progressDotSize
     readonly property int _progressDotRadius: Enums.splashScreenMetrics.progressDotRadius

@@ -35,7 +35,7 @@ Item {
     readonly property color _tipBackground: Enums.isVintageTicket
         ? Enums.cardColor
         : (Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight)
-    readonly property int _tipBorderWidth: Enums.border.thin
+    readonly property real _tipBorderWidth: Enums.border.thin
     readonly property color _tipBorderColor: Enums.isVintageTicket
         ? Enums.borderColor : Enums.stateColor.maskLight
     

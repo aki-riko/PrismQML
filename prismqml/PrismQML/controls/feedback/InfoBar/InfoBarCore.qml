@@ -52,7 +52,7 @@ Widget {
     readonly property color borderColor: Enums.hasOutlinedSurfaces ? Enums.stateColor.border : Enums.stateColor.divider
     readonly property real _infoBarRadius: radius
     readonly property color _infoBarBackground: backgroundColor
-    readonly property int _infoBarBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _infoBarBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _infoBarBorderColor: borderColor
     readonly property color _infoBarShadowColor: Enums.shadow.level4.color
     readonly property int _infoBarShadowBlur: Enums.shadow.level4.blur

@@ -54,7 +54,7 @@ OverlayDialogCore {
     readonly property real _outsideFullExtent: isHorizontal ? drawerWidth : drawerHeight
     readonly property color _drawerBackground: Enums.cardColor
     readonly property int _effectiveRadius: Enums.surfaceRadius(radius)
-    readonly property int _drawerBorderWidth: Enums.hasOutlinedSurfaces
+    readonly property real _drawerBorderWidth: Enums.hasOutlinedSurfaces
                                                ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
     readonly property color _drawerBorderColor: Enums.hasOutlinedSurfaces
                                                  ? Enums.stateColor.border : Enums.transparent

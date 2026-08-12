@@ -14,7 +14,7 @@ Item {
 
     // ==================== Public Props 公开属性 ====================
     property color color: Enums.accentColor
-    property int strokeWidth: Enums.border.normal
+    property real strokeWidth: Enums.border.normal
     property bool running: true
     property int style: Enums.progress.indeterminate_style_pulse
     property real fixedArcSweep: Enums.progressRingMetrics.fixedArcSweep

@@ -27,7 +27,7 @@ Item {
     readonly property bool micaAllowed: Enums.allowsMica
     readonly property bool usesMonospace: Enums.fontFamily === Enums.fontMonospace
     readonly property int surfaceRadius: Enums.surfaceRadius(Enums.radius.large)
-    readonly property int surfaceBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real surfaceBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color backgroundToken: Enums.backgroundColor
     readonly property color surfaceToken: Enums.cardColor
     readonly property color foregroundToken: Enums.foregroundColor

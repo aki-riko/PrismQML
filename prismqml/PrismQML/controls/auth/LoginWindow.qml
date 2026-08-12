@@ -91,10 +91,10 @@ Rectangle {
         root._cardColor.b,
         root.cardOpacity
     )
-    readonly property int _cardBorderWidth: Enums.border.thin
+    readonly property real _cardBorderWidth: Enums.border.thin
     readonly property color _cardBorderColor: Enums.stateColor.border
     readonly property color _errorBackgroundColor: Enums.statusLevel.getBgColor(Enums.statusLevel.errorStr)
-    readonly property int _errorBorderWidth: Enums.border.thin
+    readonly property real _errorBorderWidth: Enums.border.thin
     readonly property color _errorBorderColor: Enums.statusLevel.getColor(Enums.statusLevel.errorStr)
     readonly property color _errorTextColor: _errorBorderColor
     property bool _registerContentRequested: false

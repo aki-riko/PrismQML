@@ -34,7 +34,7 @@ OverlayDialogCore {
     // ==================== Readonly State 只读状态 ====================
     readonly property int _dialogRadius: Enums.surfaceRadius(Enums.radius.dialog)
     readonly property color _dialogBackground: Enums.dialogColor
-    readonly property int _dialogBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _dialogBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _dialogBorderColor: Enums.stateColor.dialogBorder
     readonly property color _dialogMaskColor: Enums.stateColor.dialogOverlay
     readonly property color _actionsRowBackground: Enums.stateColor.actionsRowBg

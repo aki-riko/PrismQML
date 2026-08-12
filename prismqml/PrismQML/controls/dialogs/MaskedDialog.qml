@@ -24,7 +24,7 @@ OverlayDialogCore {
 
     readonly property int _dialogRadius: Enums.surfaceRadius(Enums.radius.dialog)
     readonly property color _dialogBackground: Enums.hasOutlinedSurfaces ? Enums.dialogColor : Enums.dialogColors.containerBg
-    readonly property int _dialogBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _dialogBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _dialogBorderColor: Enums.hasOutlinedSurfaces ? Enums.borderColor : Enums.stateColor.dialogBorder
     readonly property color _dialogShadowColor: Enums.shadow.level16.color
     readonly property real _dialogShadowBlur: Enums.shadow.level16.blur

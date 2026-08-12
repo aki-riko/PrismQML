@@ -20,7 +20,7 @@ Rectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property int _indicatorRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property bool _hasCheckState: checkState !== Enums.toggle.state_unchecked
-    readonly property int _indicatorBorderWidth: {
+    readonly property real _indicatorBorderWidth: {
         if (Enums.hasOutlinedSurfaces) return Enums.surfaceBorderWidth(Enums.border.thin)
         return _hasCheckState ? Enums.border.none : Enums.border.medium
     }

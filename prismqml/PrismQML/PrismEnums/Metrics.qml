@@ -11,8 +11,14 @@ QtObject {
  
  required property bool isDark
  property bool isTicket: false
+ property real devicePixelRatio: 1
  // Skin palette single sources of truth are injected by Enums 皮肤配色真相源由 Enums 注入
  property var constants: null
+
+ function _physicalPixelWidth(designWidth) {
+ var ratio = root.devicePixelRatio > 0 ? root.devicePixelRatio : 1
+ return Math.max(1, Math.round(designWidth * ratio)) / ratio
+ }
  
  // ==================== Duration 动画时长 ====================
  readonly property QtObject duration: QtObject {
@@ -135,10 +141,13 @@ QtObject {
  // ==================== Border 边框宽度 ====================
  readonly property QtObject border: QtObject {
  readonly property int none: 0
- readonly property int thin: 1
- readonly property real medium: 1.5
- readonly property int normal: 2
- readonly property int thick: 3
+ // Quantize design widths to whole physical pixels. 分数缩放下将设计描边量化为整数物理像素。
+ // This prevents one logical edge from rasterizing as alternating 1/2-pixel lines at 125%/150%.
+ // 避免同一逻辑描边在 125%/150% 下因方向与落点不同交替栅格化为 1/2 像素。
+ readonly property real thin: root._physicalPixelWidth(1)
+ readonly property real medium: root._physicalPixelWidth(1.5)
+ readonly property real normal: root._physicalPixelWidth(2)
+ readonly property real thick: root._physicalPixelWidth(3)
  }
 
  // ==================== Neobrutalism 新粗野皮肤度量+配色 ====================
@@ -146,7 +155,7 @@ QtObject {
  // 否则改一处忘另一处会出 bug(深色边框没反转即此坑)。控件读 Enums.neo.xxx。
  readonly property QtObject neo: QtObject {
  // ---- 几何 ----
- readonly property int borderWidth: 2 // 粗描边宽度
+ readonly property real borderWidth: root._physicalPixelWidth(2) // 粗描边宽度
  readonly property int radius: 6 // 圆角(0.375rem≈6px, 接近直角)
  readonly property real shadowOffset: 4 // 硬阴影偏移(X=Y), 即"纸面投影"距离
  readonly property real pressOffset: 4 // 按下时控件下移/右移距离(= shadowOffset, 视觉上压平阴影)
@@ -169,8 +178,8 @@ QtObject {
  // Ticket surfaces use fine ink lines, square paper geometry and no elevation shadow.
  // 票据表面使用油墨细线、直角纸面与零悬浮阴影。
  readonly property QtObject ticket: QtObject {
- readonly property int borderWidth: 1
- readonly property int emphasisBorderWidth: 2
+ readonly property real borderWidth: root._physicalPixelWidth(1)
+ readonly property real emphasisBorderWidth: root._physicalPixelWidth(2)
  readonly property int radius: 0
  readonly property int perforationLength: 6
  readonly property int perforationGap: 4
@@ -610,7 +619,7 @@ QtObject {
  readonly property real iconBreatheMinScale: 0.9
  readonly property real iconBreatheMaxScale: 1.1
  readonly property int progressRingSize: root.iconSize.xl
- readonly property int progressRingBorderWidth: root.border.normal
+ readonly property real progressRingBorderWidth: root.border.normal
  readonly property real progressTrackOpacity: root.opacity.light
  readonly property int progressDotSize: root.progressRing.orbitDotSize
  readonly property int progressDotRadius: root.progressRing.orbitDotRadius

@@ -34,7 +34,7 @@ Widget {
     readonly property int _tabHeight: Enums.controlSize.inputHeightLarge - Enums.spacing.xs
     readonly property int _tabBarHeight: Enums.controlSize.tableHeaderHeight
     readonly property int _selectedTabRadius: Enums.surfaceRadius(Enums.radius.card)
-    readonly property int _selectedTabBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _selectedTabBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property real _availableWidth: control.width - Enums.spacing.xs * 2 - (control.showAddButton ? Enums.controlSize.segmentedHeight : 0)
     property int _dragSourceIndex: -1
     property int _dragVisualIndex: -1

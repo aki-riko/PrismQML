@@ -19,7 +19,7 @@ Rectangle {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property color _avatarBackground: source !== "" ? Enums.transparent : Enums.accentColor
-    readonly property int _avatarBorderWidth: Enums.hasOutlinedSurfaces
+    readonly property real _avatarBorderWidth: Enums.hasOutlinedSurfaces
                                                ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
     readonly property color _avatarBorderColor: Enums.hasOutlinedSurfaces
                                                  ? Enums.stateColor.border : Enums.transparent

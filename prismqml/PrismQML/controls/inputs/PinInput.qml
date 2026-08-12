@@ -21,7 +21,7 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool focused: pinInput.activeFocus
     readonly property int _cellRadius: Enums.surfaceRadius(Enums.radius.small)
-    readonly property int _cellBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _cellBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
 
     // ==================== Signals 信号 ====================
     signal completed(string pin)

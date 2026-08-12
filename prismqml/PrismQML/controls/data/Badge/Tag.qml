@@ -32,7 +32,7 @@ Rectangle {
     readonly property color currentColor: Enums.statusLevel.getColorByLevel(status)
     readonly property int _tagRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property color _tagBackground: Enums.stateColor.accentSubtle
-    readonly property int _tagBorderWidth: Enums.hasOutlinedSurfaces
+    readonly property real _tagBorderWidth: Enums.hasOutlinedSurfaces
                                             ? Enums.surfaceBorderWidth(Enums.border.thin)
                                             : (showBorder ? Enums.border.thin : 0)
     readonly property color _tagBorderColor: Enums.hasOutlinedSurfaces

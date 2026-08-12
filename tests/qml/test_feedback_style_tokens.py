@@ -464,7 +464,7 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "anchors.topMargin: -3" not in toast_source
 
     assert (
-        "readonly property int _progressRingBorderWidth: "
+        "readonly property real _progressRingBorderWidth: "
         "Enums.splashScreenMetrics.progressRingBorderWidth" in splash_source
     )
     assert "ProgressRing {" in splash_source

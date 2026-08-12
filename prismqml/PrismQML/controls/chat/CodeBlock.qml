@@ -26,7 +26,7 @@ Rectangle {
     readonly property int _radius: Enums.radius.small
     readonly property color _blockBackground: Enums.codeBlockColors.background
     readonly property color _blockBorder: Enums.codeBlockColors.border
-    readonly property int _blockBorderWidth: Enums.border.thin
+    readonly property real _blockBorderWidth: Enums.border.thin
     readonly property color _mutedText: Enums.codeBlockColors.secondaryText
     readonly property color _codeText: Enums.codeBlockColors.foreground
     readonly property color _copyHover: Enums.codeBlockColors.hover

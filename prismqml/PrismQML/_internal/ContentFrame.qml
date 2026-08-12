@@ -20,7 +20,7 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int _effectiveRadius: Enums.surfaceRadius(cornerRadius)
-    readonly property int _effectiveBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _effectiveBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
 
     // ==================== Content 内容 ====================
     // Background. 背景。

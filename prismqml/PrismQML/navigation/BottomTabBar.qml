@@ -28,7 +28,7 @@ Rectangle {
             : Enums.controlSize.bottomTabBarHeight
     readonly property color _bottomTabBackground: window_micaActiveFallback ? Enums.transparent : Enums.backgroundColor
     readonly property color _bottomTabDividerColor: Enums.dividerColor
-    readonly property int _bottomTabDividerHeight: Enums.border.thin
+    readonly property real _bottomTabDividerHeight: Enums.border.thin
 
     // ==================== Signals 信号 ====================
     signal itemClicked(int index)

@@ -44,7 +44,7 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property color _trackColor: control.enabled ? Enums.stateColor.sliderTrack : Enums.stateColor.sliderTrackDisabled
     readonly property color _progressColor: control.enabled ? control.accentColor : Enums.stateColor.disabledBorder
-    readonly property int _handleBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _handleBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _handleBorderColor: control.enabled
                                                 ? (Enums.stateColor.border)
                                                 : Enums.stateColor.disabledBorder

@@ -59,7 +59,7 @@ Item {
     readonly property color _userBubbleBackground: Enums.accentColor
     readonly property color _systemBubbleBackground: Enums.hoverColor
     readonly property color _bubbleBackground: _isSystem ? _systemBubbleBackground : (_isUser ? _userBubbleBackground : _assistantBubbleBackground)
-    readonly property int _bubbleBorderWidth: Enums.hasOutlinedSurfaces
+    readonly property real _bubbleBorderWidth: Enums.hasOutlinedSurfaces
         ? Enums.surfaceBorderWidth(Enums.border.thin) : (_isUser ? 0 : Enums.border.thin)
     readonly property color _bubbleBorderColor: Enums.hasOutlinedSurfaces
         ? Enums.borderColor : (_isUser ? Enums.transparent : Enums.borderColor)

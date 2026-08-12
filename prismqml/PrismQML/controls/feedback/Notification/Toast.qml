@@ -47,7 +47,7 @@ Widget {
     readonly property int _toastRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property int _toastColorBarRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property color _toastBackground: _cardColor
-    readonly property int _toastBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _toastBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _toastBorderColor: Enums.stateColor.borderLight
     readonly property color _toastShadowColor: Enums.shadow.level4.color
     readonly property int _toastShadowBlur: Enums.shadow.level4.blur

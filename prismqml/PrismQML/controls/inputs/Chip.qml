@@ -28,7 +28,7 @@ Item {
     readonly property bool pressed: mouseArea.pressed
     readonly property color contentColor: checked ? Enums.chipColors.checkedText : Enums.foregroundColor
     readonly property int _chipRadius: Enums.surfaceRadius(Enums.radius.small)
-    readonly property int _chipBorderWidth: Enums.hasOutlinedSurfaces
+    readonly property real _chipBorderWidth: Enums.hasOutlinedSurfaces
                                              ? Enums.surfaceBorderWidth(Enums.border.thin)
                                              : (checked ? Enums.border.none : Enums.border.thin)
 
