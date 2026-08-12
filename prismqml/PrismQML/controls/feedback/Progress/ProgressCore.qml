@@ -24,7 +24,8 @@ Widget {
     property color fillColorLight: Enums.accentColor
     property color fillColorDark: Enums.accentColor
     property color trackColorLight: Enums.stateColor.track
-    property color trackColorDark: Enums.stateColor.whiteOverlay
+    property color trackColorDark: Enums.isVintageTicket
+        ? Enums.stateColor.progressTrack : Enums.stateColor.whiteOverlay
     // Keep progress finite and bounded for degenerate or inverted ranges 对退化或反向范围保持有限且有界
     readonly property real position: {
         var range = to - from

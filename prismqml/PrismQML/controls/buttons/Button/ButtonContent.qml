@@ -92,7 +92,9 @@ Row {
                              : Enums.stateColor.track
             trackColorDark: content._hasDeterminateRing
                             ? content._ringBorderColor
-                            : Enums.stateColor.whiteOverlay
+                            : (Enums.isVintageTicket
+                               ? Enums.stateColor.progressTrack
+                               : Enums.stateColor.whiteOverlay)
         }
     }
 

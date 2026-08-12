@@ -240,6 +240,7 @@ Item {
     // Tooltip 提示框
     Rectangle {
         id: tooltip
+        objectName: "boxplotTooltip"
         visible: root.hoveredIndex >= 0 && root.boxplotData.length > 0
         x: chartArea.x + Math.min(Math.max(
             (root.hoveredIndex + 0.5) * (chartArea.width / root.boxplotData.length) - width / 2, 0),
@@ -252,7 +253,7 @@ Item {
         border.width: Enums.border.thin
         border.color: Enums.stateColor.border
         
-        layer.enabled: visible
+        layer.enabled: visible && !Enums.isVintageTicket
         layer.effect: MultiEffect {
             shadowEnabled: true
             shadowColor: Enums.shadow.level2.color

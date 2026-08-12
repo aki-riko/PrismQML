@@ -24,9 +24,12 @@ Rectangle {
     property real fadeSpeed: 0.05                       // Trail fade (0.01-0.2) 拖尾消隐
     
     // Colors 颜色属性
-    property color mainColor: MatrixRainPresets.themes.classic.main       // Main color 主颜色
-    property color headColor: MatrixRainPresets.themes.classic.head       // Head character color 头部字符颜色
-    property color backgroundColor: MatrixRainPresets.themes.classic.bg   // Background color 背景颜色
+    property color mainColor: Enums.isVintageTicket
+        ? Enums.ticket.dividerColor : MatrixRainPresets.themes.classic.main
+    property color headColor: Enums.isVintageTicket
+        ? Enums.ticket.foreground : MatrixRainPresets.themes.classic.head
+    property color backgroundColor: Enums.isVintageTicket
+        ? Enums.ticket.background : MatrixRainPresets.themes.classic.bg
     
     // Direction 方向控制
     property string direction: "down"                   // Direction: down/up/left/right 方向

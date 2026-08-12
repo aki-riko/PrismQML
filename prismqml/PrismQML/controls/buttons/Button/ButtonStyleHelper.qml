@@ -30,12 +30,14 @@ QtObject {
 
         if (isToggleChecked) {
             if (style === Enums.button.style_primary) {
-                if (!effectiveEnabled) return Enums.stateColor.disabled
+                if (!effectiveEnabled) return Enums.isVintageTicket
+                    ? Enums.stateColor.disabledBg : Enums.stateColor.disabled
                 if (pressed) return Enums.stateColor.controlBgPressed
                 if (hovered) return Enums.stateColor.controlBgHover
                 return Enums.cardColor
             }
-            if (!effectiveEnabled) return Enums.stateColor.disabled
+            if (!effectiveEnabled) return Enums.isVintageTicket
+                ? Enums.stateColor.disabledBg : Enums.stateColor.disabled
             if (pressed) return Qt.darker(Enums.accentColor, 1.1)
             if (hovered) return Qt.lighter(Enums.accentColor, 1.1)
             return Enums.accentColor
@@ -59,17 +61,25 @@ QtObject {
                 if (hovered) return Enums.stateColor.transparentHover
                 return Enums.stateColor.controlBgTransparent
             case Enums.button.style_filled:
+                var statusColor = Enums.statusLevel.getColorByLevel(level)
                 if (!effectiveEnabled) {
                     // Preserve the level hue while disabled instead of using neutral gray. 禁用态保留 level 色相（淡化版），不退回中性灰背景。
                     // Otherwise an error-filled destructive button becomes indistinguishable from a default button. 否则错误填充的危险按钮会与默认按钮无法区分。
-                    var fc = Enums.statusLevel.getColorByLevel(level)
-                    return Qt.rgba(fc.r, fc.g, fc.b, Enums.stateColor.filledDisabledAlpha)
+                    return Qt.rgba(
+                        statusColor.r,
+                        statusColor.g,
+                        statusColor.b,
+                        Enums.stateColor.filledDisabledAlpha
+                    )
                 }
+                if (Enums.isVintageTicket && pressed) return Qt.darker(statusColor, 1.12)
+                if (Enums.isVintageTicket && hovered) return Qt.lighter(statusColor, 1.12)
                 if (pressed) return Enums.stateColor.filledPressed
                 if (hovered) return Enums.stateColor.filledHover
-                return Enums.statusLevel.getColorByLevel(level)
+                return statusColor
             case Enums.button.style_gradient:
-                if (!effectiveEnabled) return Enums.stateColor.disabled
+                if (!effectiveEnabled) return Enums.isVintageTicket
+                    ? Enums.stateColor.disabledBg : Enums.stateColor.disabled
                 if (pressed) return Qt.darker(Enums.accentColor, 1.1)
                 if (hovered) return Qt.lighter(Enums.accentColor, 1.1)
                 return Enums.accentColor

@@ -167,7 +167,7 @@ Rectangle {
             width: control.iconSize
             height: control.iconSize
             transformOrigin: Item.Center
-            layer.enabled: control.enableShadow
+            layer.enabled: control.enableShadow && !Enums.isVintageTicket
             layer.effect: MultiEffect {
                 shadowEnabled: true
                 shadowColor: Enums.shadowStrongColor

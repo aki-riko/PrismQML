@@ -15,16 +15,20 @@ function _defaultBackgroundColor(effectiveEnabled, hovered, pressed, stateColor)
 }
 
 function backgroundColor(style, level, effectiveEnabled, hovered, pressed,
-                         isToggleChecked, button, stateColor, statusLevel,
-                         accentColor, cardColor) {
+                         isToggleChecked, isVintageTicket, button, stateColor,
+                         statusLevel, accentColor, cardColor) {
     if (isToggleChecked) {
         if (style === button.style_primary) {
-            if (!effectiveEnabled) return stateColor.disabled
+            if (!effectiveEnabled) {
+                return isVintageTicket ? stateColor.disabledBg : stateColor.disabled
+            }
             if (pressed) return stateColor.controlBgPressed
             if (hovered) return stateColor.controlBgHover
             return cardColor
         }
-        if (!effectiveEnabled) return stateColor.disabled
+        if (!effectiveEnabled) {
+            return isVintageTicket ? stateColor.disabledBg : stateColor.disabled
+        }
         if (pressed) return Qt.darker(accentColor, 1.1)
         if (hovered) return Qt.lighter(accentColor, 1.1)
         return accentColor
@@ -44,17 +48,21 @@ function backgroundColor(style, level, effectiveEnabled, hovered, pressed,
         if (hovered) return stateColor.transparentHover
         return stateColor.controlBgTransparent
     case button.style_filled:
+        var statusColor = statusLevel.getColorByLevel(level)
         if (!effectiveEnabled) {
             // Preserve level hue for disabled filled buttons. 禁用填充按钮保留级别色相。
-            var filledColor = statusLevel.getColorByLevel(level)
-            return Qt.rgba(filledColor.r, filledColor.g, filledColor.b,
+            return Qt.rgba(statusColor.r, statusColor.g, statusColor.b,
                            stateColor.filledDisabledAlpha)
         }
+        if (isVintageTicket && pressed) return Qt.darker(statusColor, 1.12)
+        if (isVintageTicket && hovered) return Qt.lighter(statusColor, 1.12)
         if (pressed) return stateColor.filledPressed
         if (hovered) return stateColor.filledHover
-        return statusLevel.getColorByLevel(level)
+        return statusColor
     case button.style_gradient:
-        if (!effectiveEnabled) return stateColor.disabled
+        if (!effectiveEnabled) {
+            return isVintageTicket ? stateColor.disabledBg : stateColor.disabled
+        }
         if (pressed) return Qt.darker(accentColor, 1.1)
         if (hovered) return Qt.lighter(accentColor, 1.1)
         return accentColor
@@ -179,7 +187,8 @@ function snapshot(style, level, effectiveEnabled, hovered, pressed,
         isToggleChecked: isToggleChecked,
         bgColor: backgroundColor(
             style, level, effectiveEnabled, hovered, pressed, isToggleChecked,
-            button, stateColor, statusLevel, accentColor, cardColor),
+            isVintageTicket, button, stateColor, statusLevel, accentColor,
+            cardColor),
         borderColor: borderColor(
             style, level, effectiveEnabled, isToggleChecked, isNeobrutalism,
             isVintageTicket, button, stateColor, statusLevel, accentColor,

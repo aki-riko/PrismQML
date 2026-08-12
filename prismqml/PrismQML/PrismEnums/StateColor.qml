@@ -246,7 +246,7 @@ QtObject {
     
     // ==================== Chart Colors 图表颜色 ====================
     // Chart tooltip text (white on dark bg) 图表tooltip文字（深色背景上的白字）
-    readonly property color chartTooltipText: Qt.rgba(1,1,1,0.7)
+    readonly property color chartTooltipText: isTicket ? _ticket.secondaryForeground : Qt.rgba(1,1,1,0.7)
     
     // Chart gradient/fill alphas 图表渐变/填充透明度
     readonly property real chartFillStrong: 0.6       // Stacked area fill 堆叠面积填充
@@ -260,8 +260,8 @@ QtObject {
     // ==================== Filled Button Colors 填充按钮颜色 ====================
     // Fluent Design FilledButton hover/pressed fallback colors 填充按钮悬停/按下回退色
     readonly property real filledDisabledAlpha: 0.45
-    readonly property color filledHover: "#c9cacb"
-    readonly property color filledPressed: "#979798"
+    readonly property color filledHover: isTicket ? Qt.lighter(_ticket.primary, 1.12) : "#c9cacb"
+    readonly property color filledPressed: isTicket ? Qt.darker(_ticket.primary, 1.12) : "#979798"
     
     // ==================== SegmentedControl Colors 分段控件颜色 ====================
     // Background 背景

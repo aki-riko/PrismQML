@@ -301,12 +301,18 @@ QtObject {
     
     // ==================== Gray 灰色系 ====================
     readonly property QtObject gray: QtObject {
-        readonly property color text: root.isDark ? themeColors.tertiaryForegroundLight : themeColors.secondaryForegroundLight
-        readonly property color background: root.isDark ? themeColors.surfaceDark : themeColors.scrollTrackLight
-        readonly property color border: root.isDark ? grayColors.borderDark : grayColors.borderLight
-        readonly property color disabled: root.isDark ? themeColors.disabledForegroundLight : themeColors.scrollHandleHoverLight
-        readonly property color handle: root.isDark ? themeColors.pressedDark : grayColors.handleLight
-        readonly property color tooltip: root.isDark ? themeColors.hoverDark : themeColors.pressedDark
+        readonly property color text: root.isTicket ? ticketColors.secondaryForeground
+            : (root.isDark ? themeColors.tertiaryForegroundLight : themeColors.secondaryForegroundLight)
+        readonly property color background: root.isTicket ? ticketColors.surface
+            : (root.isDark ? themeColors.surfaceDark : themeColors.scrollTrackLight)
+        readonly property color border: root.isTicket ? ticketColors.border
+            : (root.isDark ? grayColors.borderDark : grayColors.borderLight)
+        readonly property color disabled: root.isTicket ? ticketColors.disabledForeground
+            : (root.isDark ? themeColors.disabledForegroundLight : themeColors.scrollHandleHoverLight)
+        readonly property color handle: root.isTicket ? ticketColors.surface
+            : (root.isDark ? themeColors.pressedDark : grayColors.handleLight)
+        readonly property color tooltip: root.isTicket ? ticketColors.surface
+            : (root.isDark ? themeColors.hoverDark : themeColors.pressedDark)
     }
     
     // ==================== TextColor 文字颜色 ====================
@@ -375,7 +381,7 @@ QtObject {
     
     // ==================== ConfettiColors 彩纸颜色 ====================
     readonly property QtObject confettiColors: QtObject {
-        readonly property var palette: [
+        readonly property var _fluentPalette: [
             "#FFB900",  // Gold 金色
             "#E74856",  // Coral 珊瑚红
             "#0078D4",  // Fluent Blue Fluent蓝
@@ -383,6 +389,15 @@ QtObject {
             "#8764B8",  // Purple 紫色
             "#00B7C3"   // Cyan 青色
         ]
+        readonly property var _ticketPalette: [
+            ticketColors.primary,
+            ticketColors.warning,
+            ticketColors.danger,
+            ticketColors.success,
+            ticketColors.info,
+            ticketColors.border
+        ]
+        readonly property var palette: root.isTicket ? _ticketPalette : _fluentPalette
     }
     
     // ==================== ColorPickerDefaults 颜色选择器默认值 ====================
@@ -398,7 +413,15 @@ QtObject {
     readonly property QtObject passwordStrengthColors: QtObject {
         readonly property var lightPalette: ["#c42b1c", "#e87a18", "#e8b318", "#54a814", semanticColors.successLight]
         readonly property var darkPalette: [semanticColors.errorDark, "#f6b44b", semanticColors.warningDark, "#59d6c7", semanticColors.successDark]
-        readonly property var palette: root.isDark ? darkPalette : lightPalette
+        readonly property var ticketPalette: [
+            ticketColors.danger,
+            Qt.lighter(ticketColors.danger, 1.12),
+            ticketColors.warning,
+            Qt.lighter(ticketColors.success, 1.12),
+            ticketColors.success
+        ]
+        readonly property var palette: root.isTicket ? ticketPalette
+            : (root.isDark ? darkPalette : lightPalette)
     }
     
     // ==================== CalendarColors 日历颜色 ====================

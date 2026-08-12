@@ -37,8 +37,10 @@ Item {
     // Custom colors 自定义颜色
     property color checkedColorLight: Enums.accentColor
     property color checkedColorDark: Enums.accentColor
-    property color textColorLight: Enums.isDark ? Enums.accentForeground : Enums.grayColors.textPrimaryLight
-    property color textColorDark: Enums.accentForeground
+    property color textColorLight: Enums.isVintageTicket ? Enums.foregroundColor
+        : (Enums.isDark ? Enums.accentForeground : Enums.grayColors.textPrimaryLight)
+    property color textColorDark: Enums.isVintageTicket ? Enums.foregroundColor
+        : Enums.accentForeground
 
     // ==================== Internal Props 内部属性 ====================
     property bool _syncingCheckState: false

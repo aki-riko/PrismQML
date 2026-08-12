@@ -209,7 +209,7 @@ Rectangle {
         }
     }
 
-    color: Enums.transparent
+    color: Enums.isVintageTicket ? Enums.backgroundColor : Enums.transparent
 
     onModeChanged: {
         if (!root._isLogin) root._prewarmRegisterContent()
@@ -220,8 +220,10 @@ Rectangle {
     // Matrix rain background. 矩阵雨背景。
     MatrixRain {
         id: matrixRain
+        objectName: "loginMatrixRain"
         anchors.fill: parent
-        running: root.matrixEnabled && root.visible
+        running: root.matrixEnabled && root.visible && !Enums.isVintageTicket
+        visible: !Enums.isVintageTicket
         speed: root.matrixSpeed
         density: root.matrixDensity
         glowEnabled: root.matrixGlow

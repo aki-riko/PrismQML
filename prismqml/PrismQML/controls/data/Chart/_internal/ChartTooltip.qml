@@ -27,8 +27,10 @@ Item {
     property int pointerDirection: 0     // 0=down, 1=up, 2=left, 3=right 指针方向
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property color _tooltipBackground: Enums.gray.tooltip
-    readonly property color _tooltipBorderColor: Enums.transparent
+    readonly property color _tooltipBackground: Enums.isVintageTicket
+        ? Enums.cardColor : Enums.gray.tooltip
+    readonly property color _tooltipBorderColor: Enums.isVintageTicket
+        ? Enums.borderColor : Enums.transparent
     readonly property int _tooltipRadius: Enums.radius.small
     
     // ==================== Size 尺寸 ====================
@@ -50,7 +52,7 @@ Item {
         
         radius: root._tooltipRadius
         color: root._tooltipBackground
-        border.width: Enums.border.none
+        border.width: Enums.isVintageTicket ? Enums.ticket.borderWidth : Enums.border.none
         border.color: root._tooltipBorderColor
         shadowLevel: Enums.shadow.level2
         shadowVisible: root.visible

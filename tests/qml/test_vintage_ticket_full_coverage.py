@@ -19,6 +19,9 @@ from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, se
 
 ROOT = Path(__file__).resolve().parents[2]
 QMLDIR = ROOT / "prismqml" / "PrismQML" / "qmldir"
+STATE_COLOR_SOURCE = (
+    ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "StateColor.qml"
+)
 RUNNER = ROOT / "scripts" / "test_process.py"
 PROBE = ROOT / "tests" / "qml" / "probe_all_components.py"
 SCENE_URL = QUrl.fromLocalFile(
@@ -67,6 +70,41 @@ Item {
 }
 """
 
+# Functional colors that intentionally remain theme-independent. These tokens
+# are masks, on-accent contrast overlays, color-picker affordances, or a
+# skin-specific branch that never consumes them. 有意保持主题无关的功能色：
+# 遮罩、强调色上的对比覆盖、颜色选择器辅助色，或仅由其他皮肤消费的分支。
+STATE_COLOR_TICKET_EXCEPTIONS = {
+    "comboBoxDisabledBorder",
+    "disabledTextLight",
+    "disabledGray",
+    "dialogOverlay",
+    "contentBgTransparent",
+    "accentSubtle",
+    "accentLight",
+    "accentMedium",
+    "accentBorder",
+    "maskHeavy",
+    "maskMedium",
+    "maskLight",
+    "maskSubtle",
+    "maskWhiteHeavy",
+    "maskWhiteMedium",
+    "maskWhiteLight",
+    "cropperMask",
+    "cropperLine",
+    "whiteTransparent",
+    "whiteOverlay",
+    "whiteOverlayHover",
+    "whiteOverlayPressed",
+    "onAccentOverlay",
+    "onAccentHoverOverlay",
+    "onAccentPressedOverlay",
+    "whiteButton",
+    "whiteButtonHover",
+    "colorSliderThumbBorder",
+}
+
 
 def _registered_type_count() -> int:
     pattern = re.compile(r"^(?:singleton\s+)?[A-Z]\w*\s+\S+\.qml$")
@@ -97,6 +135,20 @@ def _wait_for_component(component: QQmlComponent) -> None:
 
 def _assert_color(root, property_name: str, expected: str) -> None:
     assert root.property(property_name) == QColor(expected)
+
+
+def _state_color_expressions() -> dict[str, str]:
+    source = STATE_COLOR_SOURCE.read_text(encoding="utf-8")
+    pattern = re.compile(
+        r"(?ms)^\s*readonly property color\s+(?P<name>\w+)\s*:\s*"
+        r"(?P<expression>.*?)"
+        r"(?=^\s*(?:readonly property|property|signal|function)\b|"
+        r"^\s*// ====================|\Z)"
+    )
+    return {
+        match.group("name"): match.group("expression")
+        for match in pattern.finditer(source)
+    }
 
 
 @pytest.mark.parametrize("theme_name", ("light", "dark"))
@@ -138,6 +190,21 @@ def test_every_registered_component_creates_in_ticket_skin(theme_name):
     ok, errors, skipped, total = map(int, summary.groups())
     registered = _registered_type_count()
     assert (ok, errors, skipped, total) == (registered, 0, 0, registered)
+
+
+def test_every_state_color_has_ticket_routing_or_a_functional_exception():
+    expressions = _state_color_expressions()
+    assert expressions
+    ticket_routed = {
+        name
+        for name, expression in expressions.items()
+        if re.search(
+            r"\bisTicket\b",
+            re.sub(r"//.*", "", expression),
+        )
+    }
+    unclassified = set(expressions) - ticket_routed
+    assert unclassified == STATE_COLOR_TICKET_EXCEPTIONS
 
 
 def test_ticket_global_surface_contract_preserves_other_skins(qapp):
