@@ -34,15 +34,20 @@ class _FakeScreen:
         self,
         available_geometry: _FakeGeometry,
         geometry: Optional[_FakeGeometry] = None,
+        device_pixel_ratio: float = 1.0,
     ) -> None:
         self._available_geometry = available_geometry
         self._geometry = geometry or available_geometry
+        self._device_pixel_ratio = device_pixel_ratio
 
     def availableGeometry(self) -> _FakeGeometry:
         return self._available_geometry
 
     def geometry(self) -> _FakeGeometry:
         return self._geometry
+
+    def devicePixelRatio(self) -> float:
+        return self._device_pixel_ratio
 
 
 class _FakeApplication:
@@ -101,3 +106,33 @@ def test_screen_geometry_includes_reserved_system_area(
         1060,
     )
     assert result == {"x": -1920, "y": 0, "width": 1920, "height": 1080}
+
+
+def test_device_pixel_ratio_uses_screen_at_global_point(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    geometry = _FakeGeometry(-1920, 40, 1920, 1040)
+    application = _FakeApplication(
+        _FakeScreen(geometry, device_pixel_ratio=1.5)
+    )
+    _FakeQGuiApplication.current = application
+    monkeypatch.setattr(window_helper_module, "QGuiApplication", _FakeQGuiApplication)
+
+    assert WindowHelper().devicePixelRatioAt(-1200, 520) == 1.5
+    assert application.requested_point is not None
+    assert (application.requested_point.x(), application.requested_point.y()) == (
+        -1200,
+        520,
+    )
+
+
+def test_device_pixel_ratio_falls_back_without_application(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    previous_application = _FakeQGuiApplication.current
+    _FakeQGuiApplication.current = None
+    monkeypatch.setattr(window_helper_module, "QGuiApplication", _FakeQGuiApplication)
+    try:
+        assert WindowHelper().devicePixelRatioAt(0, 0) == 1.0
+    finally:
+        _FakeQGuiApplication.current = previous_application

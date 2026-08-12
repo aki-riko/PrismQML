@@ -9,4 +9,5 @@ QtObject {
     readonly property int type_default: 0
     readonly property int type_list: 1
     readonly property int type_grid: 2
+    readonly property real boundary_epsilon: 0.000001
 }

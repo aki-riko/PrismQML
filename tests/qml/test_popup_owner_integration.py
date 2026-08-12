@@ -106,6 +106,16 @@ def _pump(milliseconds: int = 20) -> None:
     loop.exec()
 
 
+def _wait_for(predicate, timeout_ms: int = 200) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 20
+    return predicate()
+
+
 def _invoke(obj, method: str) -> None:
     assert QMetaObject.invokeMethod(obj, method), method
 
@@ -154,8 +164,7 @@ def test_cold_open_repairs_owner_without_deferred_work(qapp):
             popup.metaObject().className() == "QQuickPopupWindow"
             for popup, _ in helper.calls
         )
-        _pump(20)
-        assert helper.release_calls
+        assert _wait_for(lambda: bool(helper.release_calls))
         assert helper.release_calls[-1][1] is root
         assert (
             helper.release_calls[-1][0].metaObject().className()

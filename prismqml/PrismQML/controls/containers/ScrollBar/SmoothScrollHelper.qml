@@ -45,6 +45,7 @@ Item {
     property int _boundaryTargetH: 0  // -1=start, 0=absolute, 1=end
     property QtObject _bounceTimerV: null
     property QtObject _bounceTimerH: null
+    property real _devicePixelRatio: 1.0
     // _syncing = true 时禁用动画, 让 ScrollBar 拖拽场景下 contentX/Y 立即跟随 handle,
     // 不被 Behavior 平滑过渡反向拖拽.
     property bool _syncing: false
@@ -66,6 +67,7 @@ Item {
 
     // Scroll to absolute position 滚动到绝对位置
     function scrollTo(pos) {
+        _refreshDevicePixelRatio()
         if (_isVertical) {
             _boundaryTargetV = 0
             _scrollToY(pos)
@@ -77,6 +79,7 @@ Item {
 
     // Scroll by delta 相对滚动
     function scrollBy(delta) {
+        _refreshDevicePixelRatio()
         if (_isVertical) {
             _boundaryTargetV = 0
             _scrollByY(delta)
@@ -88,6 +91,7 @@ Item {
 
     // Scroll to top/left 滚动到顶部/左侧
     function scrollToStart() {
+        _refreshDevicePixelRatio()
         if (_isVertical) {
             _boundaryTargetV = -1
             _scrollToY(_minY)
@@ -99,6 +103,7 @@ Item {
 
     // Scroll to bottom/right 滚动到底部/右侧
     function scrollToEnd() {
+        _refreshDevicePixelRatio()
         if (_isVertical) {
             _boundaryTargetV = 1
             _scrollToY(_maxY)
@@ -110,6 +115,7 @@ Item {
 
     // Sync position (call after drag) 同步位置（拖拽后调用）
     function syncPosition() {
+        _refreshDevicePixelRatio()
         _syncing = true
         if (_isVertical) {
             _stopBounceTimer(true)
@@ -130,6 +136,31 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _clamp(value, minimum, maximum) {
         return Math.max(minimum, Math.min(maximum, value))
+    }
+
+    function _refreshDevicePixelRatio() {
+        if (typeof WindowHelper === "undefined" || !WindowHelper
+                || typeof WindowHelper.devicePixelRatioAt !== "function") {
+            _devicePixelRatio = 1.0
+            return
+        }
+        var globalCenter = target.mapToGlobal(target.width / 2, target.height / 2)
+        var ratio = WindowHelper.devicePixelRatioAt(
+            Math.round(globalCenter.x), Math.round(globalCenter.y)
+        )
+        _devicePixelRatio = ratio > 0 ? ratio : 1.0
+    }
+
+    function _alignToPhysicalPixel(value) {
+        return Math.round(value * _devicePixelRatio) / _devicePixelRatio
+    }
+
+    function _publishedPosition(value, minimum, maximum) {
+        // Preserve exact legal boundaries for Flickable end-state semantics.
+        // 保留精确合法边界，避免破坏 Flickable 的起止状态语义。
+        if (Math.abs(value - minimum) < Enums.scroll.boundary_epsilon) return minimum
+        if (Math.abs(value - maximum) < Enums.scroll.boundary_epsilon) return maximum
+        return _alignToPhysicalPixel(value)
     }
 
     function _restartBounceTimer(verticalAxis) {
@@ -176,7 +207,7 @@ Item {
             _discardStaleOutwardFrameV()
             return
         }
-        target.contentY = _smoothY
+        target.contentY = _publishedPosition(_smoothY, _minY, _maxY)
         _lastPublishedY = target.contentY
         if (_isOutwardBounceV) _lastBounceFrameTimestampV = now
     }
@@ -191,7 +222,7 @@ Item {
             _discardStaleOutwardFrameH()
             return
         }
-        target.contentX = _smoothX
+        target.contentX = _publishedPosition(_smoothX, _minX, _maxX)
         _lastPublishedX = target.contentX
         if (_isOutwardBounceH) _lastBounceFrameTimestampH = now
     }

@@ -229,22 +229,17 @@ def test_scroll_area_source_follows_conventions():
     ] == []
 
 
-def test_ticket_default_scroll_area_aligns_one_pixel_borders(qapp):
+def test_default_scroll_area_does_not_toggle_pixel_alignment_by_skin(qapp):
     previous_skin = getSkin()
-    setSkin(Skin.VINTAGE_TICKET)
+    setSkin(Skin.FLUENT)
     engine, component, window, area, warnings = _create_scene()
     try:
         viewport = area.property("flickableItem")
         assert viewport is not None
-        assert viewport.property("pixelAligned") is True
-
-        setSkin(Skin.FLUENT)
-        _pump()
-        assert viewport.property("pixelAligned") is False
-
-        setSkin(Skin.VINTAGE_TICKET)
-        _pump()
-        assert viewport.property("pixelAligned") is True
+        for skin in (Skin.FLUENT, Skin.NEOBRUTALISM, Skin.VINTAGE_TICKET):
+            setSkin(skin)
+            _pump()
+            assert viewport.property("pixelAligned") is False
         assert warnings == []
     finally:
         setSkin(previous_skin)

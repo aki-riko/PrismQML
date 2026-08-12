@@ -307,6 +307,21 @@ class WindowHelper(QObject):
         """Return full geometry at a global point. 返回全局点所在完整屏幕。"""
         return _screen_geometry_at(x, y, available=False)
 
+    @Slot(int, int, result=float)
+    def devicePixelRatioAt(self, x: int, y: int) -> float:
+        """Return the device scale at a global point. 返回全局坐标所在屏幕缩放。"""
+        app = QGuiApplication.instance()
+        if app is None:
+            return 1.0
+        screen = app.screenAt(QPoint(x, y)) or app.primaryScreen()
+        if screen is None:
+            return 1.0
+        try:
+            ratio = float(screen.devicePixelRatio())
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            return 1.0
+        return ratio if ratio > 0 else 1.0
+
     def _try_set_svg_icon(
         self,
         app: QGuiApplication,
