@@ -327,7 +327,7 @@ Rectangle {
             Rectangle {
                 Layout.fillWidth: true
                 height: 4
-                visible: showHeader && listView.contentY > 0
+                visible: !Enums.isVintageTicket && showHeader && listView.contentY > 0
                 opacity: Math.min(1, listView.contentY / 20)
                 gradient: Gradient {
                     GradientStop { position: 0; color: root._headerEdgeShadowColor }

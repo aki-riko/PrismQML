@@ -238,14 +238,16 @@ QtObject {
  // ==================== Radius 圆角 ====================
  readonly property QtObject radius: QtObject {
  readonly property int none: 0
- readonly property real micro: 1.5
- readonly property int tiny: 2
- readonly property int small: 4
- readonly property int card: 5
- readonly property int medium: 6 // Medium radius 中等圆角
- readonly property int large: 8
- readonly property int dialog: 10 // Fluent Design dialog radius 对话框圆角
- readonly property int xlarge: 16
+ // Ticket surfaces are square by default; explicit circle geometry keeps semantic circles.
+ // 票据皮肤的通用表面默认直角；显式圆形几何继续保留语义圆形。
+ readonly property real micro: root.isTicket ? 0 : 1.5
+ readonly property int tiny: root.isTicket ? 0 : 2
+ readonly property int small: root.isTicket ? 0 : 4
+ readonly property int card: root.isTicket ? 0 : 5
+ readonly property int medium: root.isTicket ? 0 : 6 // Medium radius 中等圆角
+ readonly property int large: root.isTicket ? 0 : 8
+ readonly property int dialog: root.isTicket ? 0 : 10 // Fluent Design dialog radius 对话框圆角
+ readonly property int xlarge: root.isTicket ? 0 : 16
  readonly property int pill: 9999
  }
  

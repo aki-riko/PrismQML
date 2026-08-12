@@ -23,10 +23,8 @@ Item {
     
     // ==================== Internal Props 内部属性 ====================
     readonly property int _cellSize: Enums.spacing.l
-    readonly property int _normalRadius: Enums.radius.tiny
-    readonly property int _activeRadius: Enums.radius.tiny + 1
-    readonly property int _normalDiameter: _normalRadius
-    readonly property int _activeDiameter: _activeRadius * 2
+    readonly property int _normalDiameter: Enums.spacing.xs
+    readonly property int _activeDiameter: Enums.spacing.s
     readonly property color _pipActiveColor: Enums.stateColor.pipActive
     readonly property color _pipInactiveColor: Enums.stateColor.pipNormal
     readonly property color _pipHoverColor: Enums.stateColor.pipActive

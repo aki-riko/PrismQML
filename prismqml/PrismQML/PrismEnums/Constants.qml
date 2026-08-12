@@ -214,35 +214,35 @@ QtObject {
 
     // ==================== WindowButtonColors 窗口按钮颜色 ====================
     readonly property QtObject windowButtonColors: QtObject {
-        readonly property color closeHover: semanticColors.errorLight
-        readonly property color closePressed: semanticColors.errorLight
-        readonly property color iconLight: themeColors.foregroundDark
-        readonly property color iconDark: themeColors.foregroundLight
+        readonly property color closeHover: root.isTicket ? ticketColors.danger : semanticColors.errorLight
+        readonly property color closePressed: root.isTicket ? Qt.darker(ticketColors.danger, 1.08) : semanticColors.errorLight
+        readonly property color iconLight: root.isTicket ? ticketColors.foreground : themeColors.foregroundDark
+        readonly property color iconDark: root.isTicket ? ticketColors.foreground : themeColors.foregroundLight
 
         // Non-close button background (pressed/hover) 非关闭按钮背景（按下/悬停）
-        readonly property color normalPressedDark: grayColors.borderDark
-        readonly property color normalPressedLight: grayColors.pressedLight
-        readonly property color normalHoverDark: themeColors.surfaceDark
-        readonly property color normalHoverLight: themeColors.borderLight
+        readonly property color normalPressedDark: root.isTicket ? Qt.darker(ticketColors.muted, 1.06) : grayColors.borderDark
+        readonly property color normalPressedLight: root.isTicket ? Qt.darker(ticketColors.muted, 1.06) : grayColors.pressedLight
+        readonly property color normalHoverDark: root.isTicket ? ticketColors.muted : themeColors.surfaceDark
+        readonly property color normalHoverLight: root.isTicket ? ticketColors.muted : themeColors.borderLight
     }
 
     // ==================== DialogColors 对话框颜色 ====================
     readonly property QtObject dialogColors: QtObject {
-        readonly property color containerBg: root.isDark ? "#2b2b2b" : grayColors.handleLight
-        readonly property color borderDark: "#3a3a3a"
+        readonly property color containerBg: root.isTicket ? ticketColors.surface : (root.isDark ? "#2b2b2b" : grayColors.handleLight)
+        readonly property color borderDark: root.isTicket ? ticketColors.border : "#3a3a3a"
         // Light dialog border (Microsoft WinUI SurfaceStrokeColorDefault, 中性灰)
-        readonly property color borderLight: "#c4c4c4"
+        readonly property color borderLight: root.isTicket ? ticketColors.border : "#c4c4c4"
         readonly property color border: root.isDark ? borderDark : borderLight
 
-        readonly property color dividerDark: "#1d1d1d"
-        readonly property color dividerLight: "#e5e5e5"
+        readonly property color dividerDark: root.isTicket ? ticketColors.divider : "#1d1d1d"
+        readonly property color dividerLight: root.isTicket ? ticketColors.divider : "#e5e5e5"
         readonly property color divider: root.isDark ? dividerDark : dividerLight
 
-        readonly property color text: root.isDark ? themeColors.foregroundDark : grayColors.textPrimaryLight
-        readonly property color selectedText: root.isDark ? grayColors.textPrimaryLight : grayColors.handleLight
+        readonly property color text: root.isTicket ? ticketColors.foreground : (root.isDark ? themeColors.foregroundDark : grayColors.textPrimaryLight)
+        readonly property color selectedText: root.isTicket ? ticketColors.primaryForeground : (root.isDark ? grayColors.textPrimaryLight : grayColors.handleLight)
 
         // Shadow
-        readonly property color shadowColor: Qt.rgba(0, 0, 0, 0.2)
+        readonly property color shadowColor: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.2)
     }
 
 
@@ -337,32 +337,40 @@ QtObject {
 
     // Fixed code-block palette 固定代码块色板
     readonly property QtObject codeBlockColors: QtObject {
-        readonly property color background: "#1E1E1E"
-        readonly property color border: Qt.rgba(1, 1, 1, 0.08)
-        readonly property color secondaryText: "#9CA3AF"
-        readonly property color hover: Qt.rgba(1, 1, 1, 0.1)
-        readonly property color copySuccess: "#10B981"
-        readonly property color foreground: "#E5E7EB"
+        readonly property color background: root.isTicket ? ticketColors.muted : "#1E1E1E"
+        readonly property color border: root.isTicket ? ticketColors.border : Qt.rgba(1, 1, 1, 0.08)
+        readonly property color secondaryText: root.isTicket ? ticketColors.secondaryForeground : "#9CA3AF"
+        readonly property color hover: root.isTicket ? Qt.darker(ticketColors.muted, 1.06) : Qt.rgba(1, 1, 1, 0.1)
+        readonly property color copySuccess: root.isTicket ? ticketColors.success : "#10B981"
+        readonly property color foreground: root.isTicket ? ticketColors.foreground : "#E5E7EB"
     }
     
     // ==================== ChartColors 图表颜色 ====================
     readonly property QtObject chartColors: QtObject {
         // Fixed strong text on colored markers and dark tooltips 彩色标记与深色提示框上的固定强文字
-        readonly property color strongText: themeColors.accentForeground
+        readonly property color strongText: root.isTicket ? ticketColors.foreground : themeColors.accentForeground
         readonly property var _fluentPalette: [
             "#0078D4", "#107C10", "#FFB900", "#D13438", "#8764B8",
             "#00B7C3", "#498205", "#FF8C00", "#E81123", "#881798"
         ]
+        readonly property var _ticketPalette: [
+            ticketColors.primary, ticketColors.success, ticketColors.warning,
+            ticketColors.danger, ticketColors.info, ticketColors.border,
+            Qt.lighter(ticketColors.success, 1.12),
+            Qt.lighter(ticketColors.warning, 1.12),
+            Qt.lighter(ticketColors.danger, 1.12),
+            Qt.lighter(ticketColors.info, 1.12)
+        ]
         // Fluent chart palette Fluent 图表调色板
-        readonly property var palette: _fluentPalette
+        readonly property var palette: root.isTicket ? _ticketPalette : _fluentPalette
         // Pie/Radar/Scatter chart palette 饼图/雷达图/散点图调色板
         readonly property var pieRadarPalette: palette
         // Extended palette for more data series 扩展调色板
         readonly property var extendedPalette: palette
         // Grid line color 网格线颜色
-        readonly property color gridLine: root.isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.08)
+        readonly property color gridLine: root.isTicket ? ticketColors.divider : (root.isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.08))
         // Axis label color 坐标轴标签颜色
-        readonly property color axisLabel: root.isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
+        readonly property color axisLabel: root.isTicket ? ticketColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6))
     }
     
     // ==================== ConfettiColors 彩纸颜色 ====================
@@ -395,10 +403,10 @@ QtObject {
     
     // ==================== CalendarColors 日历颜色 ====================
     readonly property QtObject calendarColors: QtObject {
-        readonly property color navIconDark: "#9c9c9c"
-        readonly property color navIconLight: "#5e5e5e"
-        readonly property color rangeBarDark: "#262626"
-        readonly property color rangeBarLight: "#F0F0F0"
+        readonly property color navIconDark: root.isTicket ? ticketColors.foreground : "#9c9c9c"
+        readonly property color navIconLight: root.isTicket ? ticketColors.foreground : "#5e5e5e"
+        readonly property color rangeBarDark: root.isTicket ? ticketColors.muted : "#262626"
+        readonly property color rangeBarLight: root.isTicket ? ticketColors.muted : "#F0F0F0"
     }
     
     // ==================== ExampleCardColors 示例卡片颜色 ====================
@@ -429,7 +437,7 @@ QtObject {
 
     // ==================== ChipColors 标签颜色 ====================
     readonly property QtObject chipColors: QtObject {
-        readonly property color checkedText: "#ffffff"
+        readonly property color checkedText: root.isTicket ? ticketColors.primaryForeground : "#ffffff"
         // Text on light/dark backgrounds 浅色/深色背景上的文字
         readonly property color textOnLight: grayColors.textPrimaryLight
         readonly property color textOnDark: themeColors.accentForeground

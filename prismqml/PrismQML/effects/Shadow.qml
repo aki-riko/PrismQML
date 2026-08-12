@@ -27,7 +27,7 @@ MultiEffect {
     property real spread
     
     // MultiEffect mapping MultiEffect 映射
-    shadowEnabled: true
+    shadowEnabled: !Enums.isVintageTicket
     shadowColor: root.color
     shadowBlur: root.blur
     shadowHorizontalOffset: root.horizontalOffset

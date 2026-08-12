@@ -24,7 +24,6 @@ Item {
     readonly property color _navButtonHoverColor: Enums.stateColor.controlBgHover
     readonly property color _navButtonIdleColor: Enums.transparent
     readonly property color _navIconColor: Enums.textColor.tertiary
-    readonly property int _pipRadius: Enums.radius.small
     readonly property color _pipActiveColor: control.accentColor
     readonly property color _pipInactiveColor: Enums.stateColor.pipNormal
     readonly property int _safePageCount: Math.max(0, pageCount)
@@ -90,7 +89,7 @@ Item {
             Rectangle {
                 width: index === control._safeCurrentIndex % control._safeVisiblePipCount ? 16 : 8
                 height: 8
-                radius: control._pipRadius
+                radius: height / 2
                 color: index === control._safeCurrentIndex % control._safeVisiblePipCount
                     ? control._pipActiveColor
                     : control._pipInactiveColor
@@ -124,7 +123,7 @@ Item {
             Rectangle {
                 width: 8
                 height: index === control._safeCurrentIndex % control._safeVisiblePipCount ? 16 : 8
-                radius: control._pipRadius
+                radius: width / 2
                 color: index === control._safeCurrentIndex % control._safeVisiblePipCount
                     ? control._pipActiveColor
                     : control._pipInactiveColor

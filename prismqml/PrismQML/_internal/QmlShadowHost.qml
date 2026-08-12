@@ -22,6 +22,7 @@ Item {
         blur: Enums.shadow.level28.blur
         offset.x: 0
         offset.y: Enums.shadow.level28.offset
+        visible: Enums.usesSoftElevation
     }
 
     Rectangle {

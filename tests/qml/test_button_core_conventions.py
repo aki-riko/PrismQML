@@ -495,10 +495,8 @@ def test_gradient_buttons_share_theme_bound_resource(button_core_scene):
 
     assert gradient_a is gradient_b
     assert "property Gradient _gradientDef" not in button_source
-    assert (
-        "gradient: style === Enums.button.style_gradient "
-        "? Enums._buttonGradientDef : null"
-    ) in button_source
+    assert "gradient: style === Enums.button.style_gradient && !Enums.isVintageTicket" in button_source
+    assert "? Enums._buttonGradientDef : null" in button_source
     assert "readonly property Gradient _buttonGradientDef: Gradient" in enums_source
     assert "color: Qt.lighter(root.accentColor, _button.gradientLighten)" in enums_source
     assert "color: root.accentColor" in enums_source

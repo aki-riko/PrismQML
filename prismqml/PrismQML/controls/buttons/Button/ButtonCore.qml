@@ -394,7 +394,8 @@ Widget {
         border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
 
         // Gradient (for gradient style) 渐变
-        gradient: style === Enums.button.style_gradient ? Enums._buttonGradientDef : null
+        gradient: style === Enums.button.style_gradient && !Enums.isVintageTicket
+                  ? Enums._buttonGradientDef : null
 
         // Neobrutalism 按下位移: face 向右下滑向硬阴影, 视觉压平。Fluent 下 shift 恒 0 无影响。
         transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null

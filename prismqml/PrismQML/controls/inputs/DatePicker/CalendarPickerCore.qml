@@ -307,7 +307,7 @@ Item {
                                     anchors.centerIn: parent
                                     width: Enums.controlSize.calendarCell
                                     height: Enums.controlSize.calendarCell
-                                    radius: Enums.radius.xlarge
+                                    radius: width / 2
                                     color: control._rangeBarColor
                                 }
                             }
@@ -316,7 +316,7 @@ Item {
                                 anchors.centerIn: parent
                                 width: Enums.controlSize.calendarCell
                                 height: Enums.controlSize.calendarCell
-                                radius: Enums.radius.xlarge
+                                radius: width / 2
                                 color: dayCell.isToday ? control.accentColor : 
                                        (dayCell.selected || dayCell.isRangeStart || dayCell.isRangeEnd) ? Enums.stateColor.transparentPressed :
                                        dayCell.hovered ? Enums.stateColor.transparentHover : Enums.transparent
@@ -401,7 +401,7 @@ Item {
                                         anchors.centerIn: parent
                                         width: Enums.controlSize.calendarCell
                                         height: Enums.controlSize.calendarCell
-                                        radius: Enums.radius.xlarge
+                                        radius: width / 2
                                         color: parent.isToday ? control.accentColor : Enums.transparent
                                     }
 

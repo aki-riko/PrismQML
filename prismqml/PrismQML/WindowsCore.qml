@@ -29,7 +29,7 @@ Window {
     readonly property int captionButtonWidth: Enums.window.captionButtonWidth
     property int titleBarLeftMargin: Enums.window.titleBarLeftMargin
     property string windowTitle: ""
-    property int windowRadius: Enums.radius.large
+    property int windowRadius: Enums.surfaceRadius(Enums.radius.large)
     property int shadowSize: Enums.window.qmlShadowSize
     property color windowColor: Enums.backgroundColor
     property int shadowMode: Enums.windowShadow.mode_auto
@@ -51,12 +51,14 @@ Window {
     property bool _dwmInitializationDone: false
     readonly property bool _platformSupportsNative: ShadowManager ? ShadowManager.useNative : false
     readonly property bool _useNativeShadow: {
+        if (Enums.isVintageTicket) return false
         if (shadowMode === Enums.windowShadow.mode_none) return false
         if (shadowMode === Enums.windowShadow.mode_native) return true
         if (shadowMode === Enums.windowShadow.mode_qml) return false
         return _platformSupportsNative
     }
     readonly property bool _useQmlShadow: {
+        if (Enums.isVintageTicket) return false
         if (shadowMode === Enums.windowShadow.mode_none) return false
         if (shadowMode === Enums.windowShadow.mode_native) return false
         if (shadowMode === Enums.windowShadow.mode_qml) return true
@@ -301,7 +303,7 @@ Window {
             if (!ShadowManager) return
             var enabled = ConfigManager.dwmShadow
             logTime("ConfigManager.dwmShadow changed: " + enabled)
-            if (enabled) {
+            if (enabled && window._useNativeShadow) {
                 ShadowManager.enableShadowForWindow(window)
             } else {
                 ShadowManager.disableShadowForWindow(window)

@@ -232,7 +232,7 @@ Item {
         anchors.bottom: parent.bottom
         anchors.right: splitLine.left
         anchors.margins: Enums.spacing.micro
-        radius: dropdownFeature.parentRadius > 0 ? dropdownFeature.parentRadius - 1 : Enums.radius.small - 1
+        radius: Math.max(Enums.radius.none, dropdownFeature.parentRadius - 1)
         color: splitMainMouse.pressed ? dropdownFeature._splitPressedColor :
                (splitMainMouse.containsMouse ? dropdownFeature._splitHoverColor : dropdownFeature._splitTransparent)
         visible: feature === Enums.button.feature_split
@@ -261,7 +261,7 @@ Item {
         anchors.bottom: parent.bottom
         anchors.margins: Enums.spacing.micro
         width: Enums.spacing.xxxl
-        radius: dropdownFeature.parentRadius > 0 ? dropdownFeature.parentRadius - 1 : Enums.radius.small - 1
+        radius: Math.max(Enums.radius.none, dropdownFeature.parentRadius - 1)
         color: splitDropMouse.pressed ? dropdownFeature._splitPressedColor :
                (splitDropMouse.containsMouse ? dropdownFeature._splitHoverColor : dropdownFeature._splitTransparent)
         visible: feature === Enums.button.feature_split

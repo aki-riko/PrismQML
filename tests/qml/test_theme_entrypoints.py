@@ -6,7 +6,17 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QMetaObject, QObject, Property, QTimer, QUrl, Slot
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QMetaObject,
+    QObject,
+    Property,
+    QTimer,
+    QUrl,
+    Slot,
+)
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlEngine, QQmlExpression
 
 from prismqml import Skin, Theme, register_types, setSkin, setTheme
@@ -49,6 +59,19 @@ def _pump(milliseconds: int = 10) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _dispose_qml(engine, component, instance) -> None:
+    """Synchronously drain deferred QML deletion. 同步冲刷 QML 延迟删除。"""
+    if instance is not None:
+        instance.deleteLater()
+    if component is not None:
+        component.deleteLater()
+    engine.collectGarbage()
+    engine.clearComponentCache()
+    engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
 
 
 def _create(engine: QQmlApplicationEngine, source: bytes):
@@ -126,10 +149,7 @@ Label {
 
         assert "_type_" not in LABEL_SOURCE.read_text(encoding="utf-8")
     finally:
-        if instance is not None:
-            instance.deleteLater()
-        del component
-        engine.deleteLater()
+        _dispose_qml(engine, component, instance)
         setSkin(Skin.FLUENT)
         setTheme(Theme.LIGHT)
 
@@ -214,10 +234,7 @@ Item {{
             "12pt " + instance.property("expectedCanvasFontFamily")
         ) in font_specs
     finally:
-        if instance is not None:
-            instance.deleteLater()
-        del component
-        engine.deleteLater()
+        _dispose_qml(engine, component, instance)
         setSkin(Skin.FLUENT)
         setTheme(Theme.LIGHT)
 
@@ -256,10 +273,7 @@ Item {{
         assert "iconFontFamily" not in ENUMS_SOURCE.read_text(encoding="utf-8")
         assert "monospaceFontFamily" not in METRICS_SOURCE.read_text(encoding="utf-8")
     finally:
-        if instance is not None:
-            instance.deleteLater()
-        del component
-        engine.deleteLater()
+        _dispose_qml(engine, component, instance)
         setSkin(Skin.FLUENT)
         setTheme(Theme.LIGHT)
 
@@ -314,7 +328,4 @@ NavigationWindowCore {
     finally:
         setSkin(Skin.FLUENT)
         setTheme(Theme.LIGHT)
-        if instance is not None:
-            instance.deleteLater()
-        del component
-        engine.deleteLater()
+        _dispose_qml(engine, component, instance)

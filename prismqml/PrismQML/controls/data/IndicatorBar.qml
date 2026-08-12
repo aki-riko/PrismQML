@@ -87,7 +87,7 @@ Rectangle {
     // Avoid visual jumps from dynamically switching gradient/color 避免动态切换 gradient/color 出现视觉跳变
     gradient: Gradient {
         orientation: control._isVertical ? Gradient.Vertical : Gradient.Horizontal
-        GradientStop { position: 0.0; color: control._animatedTop }
+        GradientStop { position: 0.0; color: Enums.isVintageTicket ? control._animatedBottom : control._animatedTop }
         GradientStop { position: 1.0; color: control._animatedBottom }
     }
 }

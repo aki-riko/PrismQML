@@ -70,7 +70,7 @@ Item {
         spread: root.shadowSpread
         offset.x: root.shadowOffsetX
         offset.y: root.shadowOffsetY
-        visible: root.shadowVisible
+        visible: root.shadowVisible && !Enums.isVintageTicket
     }
     
     // Content layer 内容层

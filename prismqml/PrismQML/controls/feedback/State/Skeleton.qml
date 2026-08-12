@@ -130,13 +130,13 @@ Item {
             
             gradient: Gradient {
                 orientation: Gradient.Horizontal
-                GradientStop { position: 0; color: Enums.transparent }
-                GradientStop { position: 0.5; color: control.shimmerColor }
-                GradientStop { position: 1; color: Enums.transparent }
+                GradientStop { position: 0; color: Enums.isVintageTicket ? control.baseColor : Enums.transparent }
+                GradientStop { position: 0.5; color: Enums.isVintageTicket ? control.baseColor : control.shimmerColor }
+                GradientStop { position: 1; color: Enums.isVintageTicket ? control.baseColor : Enums.transparent }
             }
             
             SequentialAnimation on x {
-                running: control.loading && control.visible && control._isInViewport
+                running: control.loading && control.visible && control._isInViewport && !Enums.isVintageTicket
                 loops: Animation.Infinite
                 
                 NumberAnimation { 

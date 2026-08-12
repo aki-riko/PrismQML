@@ -199,8 +199,9 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     
                     // Gradient based on position and progress 基于位置和进度的渐变
-                    gradient: bar._played
-                        ? control._playedGradient : control._unplayedGradient
+                    gradient: Enums.isVintageTicket ? null
+                        : (bar._played ? control._playedGradient : control._unplayedGradient)
+                    color: _played ? control.progressColor : control.waveColor
                     
                     // Subtle glow effect for active bars 活跃条的微妙发光效果
                     opacity: bar._played ? 1.0 : (control._hovered ? 0.85 : 0.7)
