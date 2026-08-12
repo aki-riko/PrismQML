@@ -13,7 +13,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtWidgets import QApplication
 
-from prismqml import Skin, register_types, setSkin
+from prismqml import Skin, configure_qml_environment, register_types, setSkin
 from prismqml.python.config import applyDpiScale
 from prismqml.python.core import install_qt_message_handler
 from prismqml.python.core.logger import error, info
@@ -44,6 +44,7 @@ def _create_preview_engine() -> QQmlApplicationEngine:
 
 def main() -> int:
     """Create the real D3D11 preview window. 创建真实 D3D11 预览窗口。"""
+    configure_qml_environment()
     _configure_graphics_backend()
     applyDpiScale()
     app = QApplication(sys.argv)

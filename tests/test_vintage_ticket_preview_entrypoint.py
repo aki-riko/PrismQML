@@ -28,9 +28,11 @@ def _pump(milliseconds: int = 20) -> None:
 def test_vintage_ticket_preview_uses_the_real_skin_and_d3d11():
     source = ENTRYPOINT.read_text(encoding="utf-8")
 
+    assert "configure_qml_environment()" in source
     assert "setSkin(Skin.VINTAGE_TICKET)" in source
     assert "QSGRendererInterface.GraphicsApi.Direct3D11" in source
     assert 'actual_api != "Direct3D11"' in source
+    assert source.index("configure_qml_environment()") < source.index("QApplication(sys.argv)")
     assert source.index("QQuickWindow.setGraphicsApi") < source.index("QApplication(sys.argv)")
     assert "QSGRendererInterface.OpenGL" not in source
     assert "GraphicsApi.OpenGL" not in source
