@@ -34,25 +34,45 @@ Item {
     function trCount(key, count) { return Translator.tr(key).replace("{count}", count) }
     function setTheme(value) { if (ThemeManager) ThemeManager.setThemeFromQml(value) }
     function setSkin(value) { if (ThemeManager) ThemeManager.setSkinFromQml(value) }
+    function surfaceRadius(fluentRadius) {
+        if (isVintageTicket) return ticket.radius
+        if (isNeobrutalism) return neo.radius
+        return fluentRadius
+    }
+    function surfaceBorderWidth(fluentWidth) {
+        if (isVintageTicket) return ticket.borderWidth
+        if (isNeobrutalism) return neo.borderWidth
+        return fluentWidth
+    }
     
     // ==================== Global Theme Props 全局主题属性 ====================
     readonly property string theme: ThemeManager ? ThemeManager.theme : "auto"
     readonly property bool isDark: ThemeManager ? ThemeManager.isDark : false
-    // Skin (design language) 皮肤（设计语言）: "fluent" | "neobrutalism"
+    // Skin (design language) 皮肤（设计语言）: "fluent" | "neobrutalism" | "vintage_ticket"
     // 与 isDark 正交: isDark 控明暗, skin 控设计语言。控件按 skin 切换几何/阴影范式。
     readonly property string skin: ThemeManager ? ThemeManager.skin : "fluent"
     readonly property bool isNeobrutalism: skin === "neobrutalism"
-    readonly property string fontFamily: ThemeManager ? ThemeManager.fontFamily : "Microsoft YaHei UI, Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, sans-serif"
+    readonly property bool isVintageTicket: skin === "vintage_ticket"
+    readonly property bool hasOutlinedSurfaces: isNeobrutalism || isVintageTicket
+    readonly property bool usesSoftElevation: !hasOutlinedSurfaces
+    readonly property bool allowsMica: !hasOutlinedSurfaces
+    readonly property string _uiFontFamily: ThemeManager ? ThemeManager.fontFamily : "Microsoft YaHei UI, Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, sans-serif"
+    readonly property string fontFamily: isVintageTicket ? fontMonospace : _uiFontFamily
     readonly property string fontMonospace: ThemeManager ? ThemeManager.fontMonospace : "Cascadia Code, Consolas, SF Mono, Menlo, Roboto Mono, monospace"
     readonly property string canvasFontFamily: "'" + fontFamily.split(",")[0].trim() + "', sans-serif"
     // Skin accent resolver 皮肤主色解析器:
     // Existing accent consumers auto-switch colors under skins 现有主色消费者在皮肤下自动换色。
     readonly property color _rawAccentColor: ThemeManager ? ThemeManager.accentColor : _constants.accentDefaults.accent
-    readonly property color accentColor: isNeobrutalism ? _constants.neoColors.primary : _rawAccentColor
+    readonly property color accentColor: isNeobrutalism ? _constants.neoColors.primary
+        : (isVintageTicket ? _constants.ticketColors.primary : _rawAccentColor)
     readonly property color accentColorLight: isNeobrutalism ? Qt.lighter(_constants.neoColors.primary, 1.08)
+        : (isVintageTicket ? Qt.lighter(_constants.ticketColors.primary, 1.12)
         : (ThemeManager ? ThemeManager.accentColorLight : _constants.accentDefaults.accentLight)
+        )
     readonly property color accentColorDark: isNeobrutalism ? Qt.darker(_constants.neoColors.primary, 1.15)
+        : (isVintageTicket ? Qt.darker(_constants.ticketColors.primary, 1.18)
         : (ThemeManager ? ThemeManager.accentColorDark : _constants.accentDefaults.accentDark)
+        )
     
     // Transparent color constant 透明色常量
     readonly property color transparent: "transparent"
@@ -77,14 +97,14 @@ Item {
     }
     
     // ==================== Modular Components 模块化组件 ====================
-    Theme { id: _theme; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; accentColorLight: root.accentColorLight; accentColorDark: root.accentColorDark; constants: _constants }
-    StatusLevel { id: _statusLevel; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; constants: _constants }
+    Theme { id: _theme; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket; accentColor: root.accentColor; accentColorLight: root.accentColorLight; accentColorDark: root.accentColorDark; constants: _constants }
+    StatusLevel { id: _statusLevel; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket; accentColor: root.accentColor; constants: _constants }
     Button { id: _button }
     Tab { id: _tab }
     CommandBar { id: _commandBar }
-    StateColor { id: _stateColor; isDark: root.isDark; isNeo: root.isNeobrutalism; accentColor: root.accentColor; constants: _constants }
-    Constants { id: _constants; isDark: root.isDark; isNeo: root.isNeobrutalism }
-    Metrics { id: _metrics; isDark: root.isDark; constants: _constants }
+    StateColor { id: _stateColor; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket; accentColor: root.accentColor; constants: _constants }
+    Constants { id: _constants; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket }
+    Metrics { id: _metrics; isDark: root.isDark; isTicket: root.isVintageTicket; constants: _constants }
     Orient { id: _orient }
     Flow { id: _flow }
     Chart { id: _chart }
@@ -234,6 +254,7 @@ Item {
     readonly property alias mask: _metrics.mask
     readonly property alias border: _metrics.border
     readonly property alias neo: _metrics.neo
+    readonly property alias ticket: _metrics.ticket
     readonly property alias iconSize: _metrics.iconSize
     readonly property alias spacing: _metrics.spacing
     readonly property alias radius: _metrics.radius

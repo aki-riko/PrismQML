@@ -12,6 +12,7 @@ QtObject {
     required property bool isDark
     // neo 皮肤标志: neo 仅 light 配色, 文字色等需无视 isDark 强制走 light(否则深色主题下白字落 neo 米白底=隐形)
     property bool isNeo: false
+    property bool isTicket: false
 
     // ==================== ThemeColors 主题基础色 ====================
     readonly property QtObject themeColors: QtObject {
@@ -115,6 +116,26 @@ QtObject {
         readonly property color danger: root.isDark ? "#F87171" : "#EF4444"       // 红
         readonly property color warning: root.isDark ? "#FBBF24" : "#F59E0B"      // 琥珀
         readonly property color info: root.isDark ? "#60A5FA" : "#3B82F6"         // 蓝
+    }
+
+    // ==================== TicketColors 复古票据皮肤原始调色板 ====================
+    // Warm paper, aged ink and stamp colors are the single source of truth for vintage_ticket.
+    // 暖纸、旧油墨与印章色是 vintage_ticket 皮肤的唯一配色真相源。
+    readonly property QtObject ticketColors: QtObject {
+        readonly property color background: root.isDark ? "#1D1A17" : "#E9E1D2"
+        readonly property color surface: root.isDark ? "#28231E" : "#F8F3E8"
+        readonly property color muted: root.isDark ? "#342E27" : "#EEE6D8"
+        readonly property color foreground: root.isDark ? "#EDE3D2" : "#2B211A"
+        readonly property color secondaryForeground: root.isDark ? "#B9AB98" : "#74685B"
+        readonly property color disabledForeground: root.isDark ? "#766B60" : "#A79B8B"
+        readonly property color border: root.isDark ? "#B4A48E" : "#5A4637"
+        readonly property color divider: root.isDark ? "#776A5B" : "#B8AA96"
+        readonly property color primary: root.isDark ? "#C6A66B" : "#5A3D2B"
+        readonly property color primaryForeground: root.isDark ? "#1D1A17" : "#FFF9EE"
+        readonly property color success: root.isDark ? "#68A77C" : "#267451"
+        readonly property color danger: root.isDark ? "#D37B72" : "#A33E36"
+        readonly property color warning: root.isDark ? "#C9A45D" : "#91651F"
+        readonly property color info: root.isDark ? "#88A9AE" : "#416C73"
     }
 
     // ==================== SemanticColors 语义色 ====================
@@ -290,23 +311,28 @@ QtObject {
     
     // ==================== TextColor 文字颜色 ====================
     readonly property QtObject textColor: QtObject {
-        // Neo text uses its skin tokens; Fluent follows the light/dark theme.
-        // Neo 文字使用自身皮肤 token；Fluent 跟随明暗主题。
-        readonly property color onAccent: root.isNeo
-            ? neoColors.primaryForeground
-            : (themeColors.accentForeground)
+        // Non-Fluent text uses its skin tokens; Fluent follows the light/dark theme.
+        // 非 Fluent 文字使用对应皮肤 token；Fluent 跟随明暗主题。
+        readonly property color onAccent: root.isNeo ? neoColors.primaryForeground
+            : (root.isTicket ? ticketColors.primaryForeground : themeColors.accentForeground)
         readonly property color onAccentTimestamp: Qt.rgba(
             onAccent.r,
             onAccent.g,
             onAccent.b,
             textOpacity.timestamp
         )
-        readonly property color primary: root.isNeo ? neoColors.foreground : ((root.isDark ? themeColors.foregroundDark : grayColors.textPrimaryLight))
-        readonly property color secondary: root.isNeo ? neoColors.secondaryForeground : ((root.isDark ? Qt.rgba(1, 1, 1, textOpacity.secondary) : Qt.rgba(0, 0, 0, 0.6)))
-        readonly property color tertiary: root.isNeo ? neoColors.secondaryForeground : ((root.isDark ? Qt.rgba(1, 1, 1, textOpacity.tertiary) : Qt.rgba(0, 0, 0, textOpacity.tertiary)))
-        readonly property color disabled: (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.disabled) : Qt.rgba(0, 0, 0, textOpacity.disabled))
-        readonly property color strong: root.isNeo ? neoColors.foreground : ((root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.strong)))
-        readonly property color pressed: root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.pressedLight)
+        readonly property color primary: root.isNeo ? neoColors.foreground
+            : (root.isTicket ? ticketColors.foreground : (root.isDark ? themeColors.foregroundDark : grayColors.textPrimaryLight))
+        readonly property color secondary: root.isNeo ? neoColors.secondaryForeground
+            : (root.isTicket ? ticketColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.secondary) : Qt.rgba(0, 0, 0, 0.6)))
+        readonly property color tertiary: root.isNeo ? neoColors.secondaryForeground
+            : (root.isTicket ? ticketColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.tertiary) : Qt.rgba(0, 0, 0, textOpacity.tertiary)))
+        readonly property color disabled: root.isTicket ? ticketColors.disabledForeground
+            : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.disabled) : Qt.rgba(0, 0, 0, textOpacity.disabled))
+        readonly property color strong: root.isNeo ? neoColors.foreground
+            : (root.isTicket ? ticketColors.foreground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.strong)))
+        readonly property color pressed: root.isTicket ? ticketColors.primary
+            : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.pressedLight))
     }
 
     // Fixed code-block palette 固定代码块色板

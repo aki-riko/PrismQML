@@ -11,6 +11,7 @@ QtObject {
     
     required property bool isDark
     property bool isNeo: false
+    property bool isTicket: false
     required property color accentColor
     required property var constants
     
@@ -58,6 +59,15 @@ QtObject {
                 default: return constants.neoColors.primary
             }
         }
+        if (isTicket) {
+            switch (level) {
+                case 1: return constants.ticketColors.success
+                case 2: return constants.ticketColors.warning
+                case 3: return constants.ticketColors.danger
+                case 0: return constants.ticketColors.info
+                default: return constants.ticketColors.primary
+            }
+        }
         switch (level) {
             case 1: return root.isDark ? successColorDark : successColor
             case 2: return root.isDark ? warningColorDark : warningColor
@@ -70,6 +80,16 @@ QtObject {
     
     // Get color by severity string 根据severity获取颜色
     function getColor(severity) {
+        if (isTicket) {
+            switch (severity) {
+                case "success": return constants.ticketColors.success
+                case "warning": return constants.ticketColors.warning
+                case "error": return constants.ticketColors.danger
+                case "attention": return constants.ticketColors.warning
+                case "processing": return constants.ticketColors.primary
+                default: return constants.ticketColors.info
+            }
+        }
         switch (severity) {
             case "success": return root.isDark ? successColorDark : successColor
             case "warning": return root.isDark ? warningColorDark : warningColor
@@ -82,6 +102,10 @@ QtObject {
     
     // Background color 背景色
     function getBgColor(severity) {
+        if (isTicket) {
+            var ticketColor = getColor(severity)
+            return Qt.rgba(ticketColor.r, ticketColor.g, ticketColor.b, 0.12)
+        }
         if (root.isDark) {
             var c = getColor(severity)
             return Qt.rgba(c.r * 0.25, c.g * 0.25, c.b * 0.25, 1)

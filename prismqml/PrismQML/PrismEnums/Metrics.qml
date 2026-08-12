@@ -10,7 +10,8 @@ QtObject {
  id: root
  
  required property bool isDark
- // neo 配色单一真相源(Constants.neoColors, dark-aware), 由 Enums 注入
+ property bool isTicket: false
+ // Skin palette single sources of truth are injected by Enums 皮肤配色真相源由 Enums 注入
  property var constants: null
  
  // ==================== Duration 动画时长 ====================
@@ -162,6 +163,31 @@ QtObject {
  readonly property color danger: root.constants.neoColors.danger
  readonly property color warning: root.constants.neoColors.warning
  readonly property color info: root.constants.neoColors.info
+ }
+
+ // ==================== Vintage Ticket 复古票据皮肤度量+配色 ====================
+ // Ticket surfaces use fine ink lines, square paper geometry and no elevation shadow.
+ // 票据表面使用油墨细线、直角纸面与零悬浮阴影。
+ readonly property QtObject ticket: QtObject {
+ readonly property int borderWidth: 1
+ readonly property int emphasisBorderWidth: 2
+ readonly property int radius: 0
+ readonly property int perforationLength: 6
+ readonly property int perforationGap: 4
+ readonly property color background: root.constants.ticketColors.background
+ readonly property color surface: root.constants.ticketColors.surface
+ readonly property color muted: root.constants.ticketColors.muted
+ readonly property color foreground: root.constants.ticketColors.foreground
+ readonly property color secondaryForeground: root.constants.ticketColors.secondaryForeground
+ readonly property color disabledForeground: root.constants.ticketColors.disabledForeground
+ readonly property color borderColor: root.constants.ticketColors.border
+ readonly property color dividerColor: root.constants.ticketColors.divider
+ readonly property color primary: root.constants.ticketColors.primary
+ readonly property color primaryForeground: root.constants.ticketColors.primaryForeground
+ readonly property color success: root.constants.ticketColors.success
+ readonly property color danger: root.constants.ticketColors.danger
+ readonly property color warning: root.constants.ticketColors.warning
+ readonly property color info: root.constants.ticketColors.info
  }
  
  // ==================== IconSize 图标尺寸 ====================
@@ -777,55 +803,55 @@ QtObject {
  // Usage: Card, SimpleCard, HeaderCard, button hover state
  // Visual: Barely floating, almost touching surface
  readonly property QtObject level2: QtObject {
- readonly property real offset: 1
- readonly property real blur: 4
- readonly property int samples: 13
- readonly property color color: Qt.rgba(0, 0, 0, 0.08 * shadow._alphaMultiplier)
- readonly property real blurNormalized: 0.1
+ readonly property real offset: root.isTicket ? 0 : 1
+ readonly property real blur: root.isTicket ? 0 : 4
+ readonly property int samples: root.isTicket ? 1 : 13
+ readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.08 * shadow._alphaMultiplier)
+ readonly property real blurNormalized: root.isTicket ? 0 : 0.1
  }
  
  // Level 4: Standard elevation 标准悬浮
  // Usage: ElevatedCard, ComboBox dropdown, InfoBar, Toast
  // Visual: Clearly floating, layered appearance
  readonly property QtObject level4: QtObject {
- readonly property real offset: 2
- readonly property real blur: 8
- readonly property int samples: 17
- readonly property color color: Qt.rgba(0, 0, 0, 0.12 * shadow._alphaMultiplier)
- readonly property real blurNormalized: 0.15
+ readonly property real offset: root.isTicket ? 0 : 2
+ readonly property real blur: root.isTicket ? 0 : 8
+ readonly property int samples: root.isTicket ? 1 : 17
+ readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.12 * shadow._alphaMultiplier)
+ readonly property real blurNormalized: root.isTicket ? 0 : 0.15
  }
  
  // Level 8: Medium elevation 中等悬浮
  // Usage: Menu, ContextMenu, Tooltip, Flyout, TeachingTip
  // Visual: Significantly floating, temporary overlay
  readonly property QtObject level8: QtObject {
- readonly property real offset: 4
- readonly property real blur: 16
- readonly property int samples: 21
- readonly property color color: Qt.rgba(0, 0, 0, 0.14 * shadow._alphaMultiplier)
- readonly property real blurNormalized: 0.25
+ readonly property real offset: root.isTicket ? 0 : 4
+ readonly property real blur: root.isTicket ? 0 : 16
+ readonly property int samples: root.isTicket ? 1 : 21
+ readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.14 * shadow._alphaMultiplier)
+ readonly property real blurNormalized: root.isTicket ? 0 : 0.25
  }
  
  // Level 16: High elevation 高悬浮
  // Usage: Dialog, MessageBox, Modal windows
  // Visual: Highly floating, focus emphasis
  readonly property QtObject level16: QtObject {
- readonly property real offset: 8
- readonly property real blur: 32
- readonly property int samples: 25
- readonly property color color: Qt.rgba(0, 0, 0, 0.18 * shadow._alphaMultiplier)
- readonly property real blurNormalized: 0.4
+ readonly property real offset: root.isTicket ? 0 : 8
+ readonly property real blur: root.isTicket ? 0 : 32
+ readonly property int samples: root.isTicket ? 1 : 25
+ readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.18 * shadow._alphaMultiplier)
+ readonly property real blurNormalized: root.isTicket ? 0 : 0.4
  }
  
  // Level 28: Highest elevation 最高悬浮
  // Usage: Main window shadow, standalone popup windows
  // Visual: Maximum shadow, window level
  readonly property QtObject level28: QtObject {
- readonly property real offset: 12
- readonly property real blur: 48
- readonly property int samples: 29
- readonly property color color: Qt.rgba(0, 0, 0, 0.22 * shadow._alphaMultiplier)
- readonly property real blurNormalized: 0.5
+ readonly property real offset: root.isTicket ? 0 : 12
+ readonly property real blur: root.isTicket ? 0 : 48
+ readonly property int samples: root.isTicket ? 1 : 29
+ readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.22 * shadow._alphaMultiplier)
+ readonly property real blurNormalized: root.isTicket ? 0 : 0.5
  }
 
  // Splash icon MultiEffect shadow 启动画面图标 MultiEffect 阴影

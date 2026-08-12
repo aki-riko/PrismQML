@@ -264,7 +264,7 @@ Item {{
         setTheme(Theme.LIGHT)
 
 
-def test_neobrutalism_runtime_switch_disables_mica(qapp):
+def test_outlined_skin_runtime_switch_disables_mica(qapp):
     setTheme(Theme.LIGHT)
     setSkin(Skin.FLUENT)
     engine = QQmlApplicationEngine()
@@ -294,6 +294,12 @@ NavigationWindowCore {
         assert instance.property("_micaBackdropReady") is True
 
         setSkin(Skin.NEOBRUTALISM)
+        _pump(1)
+        assert instance.property("_micaActive") is False
+        assert fake_mica.calls[-1] == (False, False)
+        assert instance.property("_micaBackdropReady") is False
+
+        setSkin(Skin.VINTAGE_TICKET)
         _pump(1)
         assert instance.property("_micaActive") is False
         assert fake_mica.calls[-1] == (False, False)

@@ -14,6 +14,7 @@ ColorOverlay effects/ColorOverlay.qml
 OpacityMask effects/OpacityMask.qml
 GaussianBlur effects/GaussianBlur.qml
 ShadowedRectangle effects/ShadowedRectangle.qml
+TicketPaper effects/TicketPaper.qml
 ToggleAnimation effects/ToggleAnimation.qml
 MatrixRain effects/MatrixRain.qml
 

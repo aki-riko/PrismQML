@@ -11,39 +11,41 @@ QtObject {
     
     required property bool isDark
     property bool isNeo: false
+    property bool isTicket: false
     required property color accentColor
     property var constants: null
     readonly property QtObject _neo: constants ? constants.neoColors : null
+    readonly property QtObject _ticket: constants ? constants.ticketColors : null
     
     // Hover state bg 悬停状态背景
-    readonly property color hover: (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.04))
-    readonly property color hoverStrong: (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06))
-    readonly property color tabDragSource: (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05))
-    readonly property color bgMedium: (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.03))
+    readonly property color hover: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.04))
+    readonly property color hoverStrong: isTicket ? Qt.darker(_ticket.muted, 1.04) : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06))
+    readonly property color tabDragSource: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05))
+    readonly property color bgMedium: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.03))
     // Pressed state bg 按下状态背景
-    readonly property color pressed: (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04))
-    readonly property color pressedStrong: (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
-    readonly property color tabPressed: (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03))
+    readonly property color pressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04))
+    readonly property color pressedStrong: isTicket ? Qt.darker(_ticket.muted, 1.10) : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
+    readonly property color tabPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03))
     // Border color 边框颜色
-    readonly property color border: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08)))
-    readonly property color borderLight: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)))
-    readonly property color borderStrong: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12)))
+    readonly property color border: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08)))
+    readonly property color borderLight: isNeo ? _neo.border : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)))
+    readonly property color borderStrong: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12)))
     // Divider 分隔线
     // divider: 轻量分隔线(非控件边框)。neo 用中等灰, 不用纯黑(纯黑细线滚动会抖动闪烁,
     // 且 neo 的轻分隔不该和粗黑边一样重)。控件边框需黑用 border/dialogBorder。
-    readonly property color divider: isNeo ? Qt.rgba(0,0,0,0.22) : ((root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12)))
+    readonly property color divider: isNeo ? Qt.rgba(0,0,0,0.22) : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12)))
     // Edge shadow for sticky headers / scroll edges 粘性表头/滚动边缘阴影
-    readonly property color edgeShadow: (isNeo ? _neo.shadow : (root.isDark ? constants.themeColors.shadowDark : constants.themeColors.shadowLight))
+    readonly property color edgeShadow: isNeo ? _neo.shadow : (isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.shadowDark : constants.themeColors.shadowLight))
     // Navigation divider (lighter in light mode) 导航分隔线（浅色模式更淡）
-    readonly property color navDivider: (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.04))
+    readonly property color navDivider: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.04))
     // Selected state 选中状态 — 浅色模式必须用 accent 浅色 (#cce4f7), 之前的 "white"
     // 跟 cardColor 完全一样, 用户看不见选中, 列表/表格看似永远没选中。
-    readonly property color selected: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.20) : ((root.isDark ? "#0d3d6d" : "#cce4f7"))
+    readonly property color selected: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.20) : (isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.16) : (root.isDark ? "#0d3d6d" : "#cce4f7"))
     // Selected + hover 叠加色 — 选中行 hover 时颜色再加深一点, 跟 Excel/QTableWidget 一致,
     // 让用户知道悬浮在选中行上 (而不是 hover 被 selected 覆盖看似没反应)
-    readonly property color selectedHover: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.30) : ((root.isDark ? "#13558f" : "#b8d8f0"))
+    readonly property color selectedHover: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.30) : (isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.24) : (root.isDark ? "#13558f" : "#b8d8f0"))
     // Track/Background 轨道/背景
-    readonly property color track: (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08))
+    readonly property color track: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08))
     // Close button hover 关闭按钮悬停
     readonly property color closeHover: (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1))
     // Scrollbar/Indicator 滚动条/指示器
@@ -60,10 +62,10 @@ QtObject {
     readonly property color scrollThumbHover: (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.4))
     readonly property color scrollThumbPressed: (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.5))
     // Input border 输入框边框
-    readonly property color inputBorder: (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.1))
-    readonly property color inputBorderStrong: (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15))
-    readonly property color inputBorderNormal: (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05))
-    readonly property color inputBorderDisabled: (root.isDark ? Qt.rgba(1,1,1,0.07) : Qt.rgba(0,0,0,0.05))
+    readonly property color inputBorder: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.1))
+    readonly property color inputBorderStrong: isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15))
+    readonly property color inputBorderNormal: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05))
+    readonly property color inputBorderDisabled: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.07) : Qt.rgba(0,0,0,0.05))
     readonly property color comboBoxDisabledBorder: Qt.rgba(
         constants.grayColors.textPrimaryLight.r,
         constants.grayColors.textPrimaryLight.g,
@@ -71,7 +73,7 @@ QtObject {
         0.4
     )
     // Card border 卡片边框
-    readonly property color cardBorder: (root.isDark ? indicator : Qt.rgba(0,0,0,0.08))
+    readonly property color cardBorder: isTicket ? _ticket.border : (root.isDark ? indicator : Qt.rgba(0,0,0,0.08))
     // Background variants 背景色变体
     readonly property color bgLight: (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.04))
     // Hover variants hover变体
@@ -85,24 +87,24 @@ QtObject {
     // Border subtle 边框透明
     readonly property color borderSubtle: (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05))
     // Disabled bg 禁用背景
-    readonly property color disabledBg: (root.isDark ? "#2a2a2a" : "#e8e8e8")
+    readonly property color disabledBg: isTicket ? _ticket.muted : (root.isDark ? "#2a2a2a" : "#e8e8e8")
     // Primary button disabled bg Primary按钮禁用背景
     // Microsoft WinUI AccentFillColorDisabled: Dark #28FFFFFF / Light #37000000
     readonly property color primaryDisabled: (root.isDark ? Qt.rgba(1,1,1,0.157) : Qt.rgba(0,0,0,0.216))
     // Disabled border 禁用边框
     readonly property color disabledBorder: (root.isDark ? Qt.rgba(1,1,1,0.16) : Qt.rgba(0,0,0,0.22))
     // Toggle special states Toggle特殊状态
-    readonly property color toggleBorder: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.45)))
-    readonly property color toggleBorderHover: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.78) : Qt.rgba(0,0,0,0.57)))
-    readonly property color togglePressed: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.45)))
+    readonly property color toggleBorder: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.45)))
+    readonly property color toggleBorderHover: isNeo ? _neo.border : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.78) : Qt.rgba(0,0,0,0.57)))
+    readonly property color togglePressed: isNeo ? _neo.border : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.45)))
     // CheckBox unchecked fill 复选框未勾选填充
     // Microsoft WinUI ControlAltFill 官方令牌:
     //   normal = ControlAltFillColorSecondary (Dark #19000000 / Light #06000000)
     //   hover  = ControlAltFillColorTertiary  (Dark #0BFFFFFF / Light #0F000000)
     //   press  = ControlAltFillColorQuarternary(Dark #12FFFFFF / Light #18000000)
-    readonly property color checkBoxFill: isNeo ? _neo.surface : ((root.isDark ? Qt.rgba(0,0,0,0.098) : Qt.rgba(0,0,0,0.024)))
-    readonly property color checkBoxFillHover: isNeo ? _neo.muted : ((root.isDark ? Qt.rgba(1,1,1,0.043) : Qt.rgba(0,0,0,0.059)))
-    readonly property color checkBoxFillPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : ((root.isDark ? Qt.rgba(1,1,1,0.071) : Qt.rgba(0,0,0,0.094)))
+    readonly property color checkBoxFill: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(0,0,0,0.098) : Qt.rgba(0,0,0,0.024)))
+    readonly property color checkBoxFillHover: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.043) : Qt.rgba(0,0,0,0.059)))
+    readonly property color checkBoxFillPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.071) : Qt.rgba(0,0,0,0.094)))
     // Semi-transparent text 半透明文字
     readonly property color textMedium: (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.5))
     // Drop zone 拖放区域
@@ -112,7 +114,7 @@ QtObject {
     readonly property color disabledTextLight: (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.35))
     readonly property color disabledGray: Qt.rgba(0.5,0.5,0.5,0.5)
     readonly property color dialogOverlay: Qt.rgba(0,0,0,0.4)
-    readonly property color dialogBorder: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)))
+    readonly property color dialogBorder: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)))
     // GroupBox border 组边框
     readonly property color groupBorder: (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12))
     // Strong text 强调文字
@@ -127,51 +129,51 @@ QtObject {
     readonly property color cardDefaultBg: (root.isDark ? Qt.rgba(1,1,1,0.03) : Qt.rgba(0,0,0,0.02))
     readonly property color notificationText: (root.isDark ? Qt.rgba(1,1,1,0.75) : Qt.rgba(0,0,0,0.65))
     // compact-nav window content area 内容区
-    readonly property color contentBorder: (root.isDark ? Qt.rgba(0,0,0,0.18) : "#e4e7ea")
-    readonly property color contentBg: isNeo ? _neo.background : ((root.isDark ? "#272727" : "#f7f9fc"))
+    readonly property color contentBorder: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(0,0,0,0.18) : "#e4e7ea")
+    readonly property color contentBg: isNeo ? _neo.background : (isTicket ? _ticket.background : (root.isDark ? "#272727" : "#f7f9fc"))
     // Semi-transparent content bg for Mica effect 云母效果半透明内容背景
     readonly property color contentBgTransparent: root.isDark ? Qt.rgba(1,1,1,0.03) : Qt.rgba(1,1,1,0.5)
     // Loading/Progress 加载/进度
     readonly property color loadingBorder: (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1))
-    readonly property color progressTrack: isNeo ? _neo.muted : ((root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06)))
+    readonly property color progressTrack: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06)))
     
     // Skeleton loading 骨架屏
     readonly property color skeletonBase: (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.09))
     readonly property color skeletonShimmer: (root.isDark ? Qt.rgba(1,1,1,0.25) : Qt.rgba(0,0,0,0.04))
     
     // SettingCard 颜色 (Fluent Design 配色规范)
-    readonly property color settingCardBg: (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7))
-    readonly property color settingCardBorder: (root.isDark ? Qt.rgba(0,0,0,0.2) : Qt.rgba(0,0,0,0.075))
+    readonly property color settingCardBg: isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7))
+    readonly property color settingCardBorder: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(0,0,0,0.2) : Qt.rgba(0,0,0,0.075))
     // Expand view bg 展开视图背景
-    readonly property color expandViewBg: isNeo ? _neo.surface : ((root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7)))
+    readonly property color expandViewBg: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7)))
     // Content label color (Microsoft WinUI TextFillColorSecondary: Dark #C5FFFFFF / Light #9E000000)
     readonly property color settingCardContent: (root.isDark ? Qt.rgba(1,1,1,0.77) : Qt.rgba(0,0,0,0.61))
     // Expand button hover/pressed
     readonly property color expandBtnHover: (root.isDark ? Qt.rgba(1,1,1,0.055) : Qt.rgba(0,0,0,0.055))
     readonly property color expandBtnPressed: (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04))
     // Expander separator (stronger than border) 展开器分隔线（比边框更深）
-    readonly property color expanderSeparator: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15)))
+    readonly property color expanderSeparator: isNeo ? _neo.border : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15)))
     
     // ==================== Fluent Design Precise Values 精确匹配值 ====================
     // Control background colors 控件背景颜色（按钮、输入框、下拉框等）
     // Unified opaque colors for all controls 所有控件统一不透明色
     // Light: 默认fefefe, 悬浮fafafa, 按下/聚焦fcfcfc
     // Dark: 默认4e4e4e, 悬浮595959, 按下/聚焦4e4e4e
-    readonly property color controlBg: isNeo ? _neo.surface : ((root.isDark ? "#4e4e4e" : "#fefefe"))
+    readonly property color controlBg: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? "#4e4e4e" : "#fefefe"))
     // 全局统一 hover/pressed 灰阶 (Fluent UI 标准 subtle hover):
     // controlBgHover = menuItemHover = tableHoverLight = #f0f0f0,
     // 所有可交互行/项 hover 视觉一致, 用户能明显感知。
-    readonly property color controlBgHover: isNeo ? _neo.muted : ((root.isDark ? "#3c3c3c" : "#f0f0f0"))
-    readonly property color controlBgPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : ((root.isDark ? "#353535" : "#e5e5e5"))
-    readonly property color controlBgDisabled: isNeo ? _neo.muted : ((root.isDark ? "#3a3a3a" : "#ffffff"))
+    readonly property color controlBgHover: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0"))
+    readonly property color controlBgPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#353535" : "#e5e5e5"))
+    readonly property color controlBgDisabled: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#ffffff"))
     // Transparent button colors 透明按钮颜色
     // Light: hover ebebeb, pressed ededed | Dark: hover 3a3a3a, pressed 323232
-    readonly property color transparentHover: isNeo ? _neo.muted : ((root.isDark ? "#3a3a3a" : "#ebebeb"))
-    readonly property color transparentPressed: isNeo ? Qt.darker(_neo.muted, 1.05) : ((root.isDark ? "#323232" : "#ededed"))
+    readonly property color transparentHover: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#ebebeb"))
+    readonly property color transparentPressed: isNeo ? Qt.darker(_neo.muted, 1.05) : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#323232" : "#ededed"))
     // Transparent button default bg (same RGB as hover, alpha=0) 透明按钮默认背景（与悬浮色相同RGB，alpha=0）
     // Prevents gray flash during ColorAnimation from transparent to hover color 防止从透明到悬浮色的颜色动画出现灰色闪烁
     readonly property color controlBgTransparent: (root.isDark ? Qt.rgba(58/255, 58/255, 58/255, 0) : Qt.rgba(235/255, 235/255, 235/255, 0))
-    readonly property color pickerBorder: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.07)))
+    readonly property color pickerBorder: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.07)))
     readonly property color pickerTextDisabled: (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.35))
     readonly property color pickerTextPlaceholder: (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.6))
     readonly property color pickerTextSecondary: (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.4))
@@ -182,13 +184,13 @@ QtObject {
     
     // Menu item colors (popup menu, dropdown list items) 菜单项颜色（弹出菜单、下拉列表项）
     // Default transparent, hover (light: #f0f0f0, dark: #3c3c3c), pressed (light: #eaeaea, dark: #373737) 默认透明，悬浮浅色 f0f0f0/深色 3c3c3c，按下浅色 eaeaea/深色 373737
-    readonly property color menuItemHover: (root.isDark ? "#3c3c3c" : "#f0f0f0")
-    readonly property color menuItemPressed: (root.isDark ? "#373737" : "#eaeaea")
+    readonly property color menuItemHover: isTicket ? _ticket.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0")
+    readonly property color menuItemPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#373737" : "#eaeaea")
     
     // Chip 颜色 (不透明)
-    readonly property color chipBg: (root.isDark ? "#2d2d2d" : "#f0f0f0")
-    readonly property color chipBgHover: (root.isDark ? "#3a3a3a" : "#e8e8e8")
-    readonly property color chipBgPressed: (root.isDark ? "#212121" : "#f7f7f7")
+    readonly property color chipBg: isTicket ? _ticket.surface : (root.isDark ? "#2d2d2d" : "#f0f0f0")
+    readonly property color chipBgHover: isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#e8e8e8")
+    readonly property color chipBgPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#212121" : "#f7f7f7")
     readonly property color chipCloseHover: (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06))
     readonly property color chipClosePressed: (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1))
     
@@ -238,8 +240,8 @@ QtObject {
     
     // ==================== PipsPager Specific 分页指示器专用 ====================
     // Pip indicator colors 分页指示器颜色
-    readonly property color pipNormal: isNeo ? _neo.border : ((root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.45)))
-    readonly property color pipActive: isNeo ? _neo.primary : ((root.isDark ? Qt.rgba(1,1,1,0.8) : Qt.rgba(0,0,0,0.62)))
+    readonly property color pipNormal: isNeo ? _neo.border : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.45)))
+    readonly property color pipActive: isNeo ? _neo.primary : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.8) : Qt.rgba(0,0,0,0.62)))
     readonly property real indicatorInactiveGradientAlpha: 0.25 // Inactive gradient end alpha 非激活渐变末端透明度
     
     // ==================== Chart Colors 图表颜色 ====================
@@ -277,12 +279,12 @@ QtObject {
     
     // ==================== Dialog Button Group 对话框按钮组 ====================
     // Button group background 按钮组背景
-    readonly property color actionsRowBg: isNeo ? _neo.muted : ((root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.024)))
+    readonly property color actionsRowBg: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.024)))
     
     // ==================== Navigation Selected 导航选中 ====================
     // Navigation bar item selected bg 导航栏项选中背景
     // dark: navigation selected overlay; Light: use transparentHover for Mica contrast
-    readonly property color navSelected: (root.isDark ? Qt.rgba(1,1,1,0.16) : transparentHover)
+    readonly property color navSelected: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.16) : transparentHover)
     
     // ==================== TreeWidget Colors 树形组件颜色 ====================
     // Tree item hover/selected bg 树形项悬停/选中背景

@@ -33,10 +33,12 @@ class Skin(Enum):
     与 Theme（明暗）正交：theme 控制明暗，skin 控制设计语言。
     fluent       → 默认 Fluent Design（圆角、模糊阴影）
     neobrutalism → 新粗野（粗黑边、硬阴影、按下位移）
+    vintage_ticket → 复古票据（暖纸、油墨细线、印章语义色）
     """
 
     FLUENT = "fluent"
     NEOBRUTALISM = "neobrutalism"
+    VINTAGE_TICKET = "vintage_ticket"
 
 
 class ThemeManager(QObject):
@@ -154,7 +156,7 @@ class ThemeManager(QObject):
 
     @Property(str, notify=skinChanged)
     def skin(self) -> str:
-        """当前皮肤（fluent/neobrutalism）"""
+        """当前皮肤（fluent/neobrutalism/vintage_ticket）"""
         return self._skin.value
 
     def setSkin(self, skin: Skin):
@@ -172,11 +174,12 @@ class ThemeManager(QObject):
         """从QML设置皮肤（Slot方法）
 
         Args:
-            skin_str: 皮肤字符串 "fluent"/"neobrutalism"
+            skin_str: 皮肤字符串 "fluent"/"neobrutalism"/"vintage_ticket"
         """
         skin_map = {
             "fluent": Skin.FLUENT,
             "neobrutalism": Skin.NEOBRUTALISM,
+            "vintage_ticket": Skin.VINTAGE_TICKET,
         }
         skin = skin_map.get(skin_str.lower(), Skin.FLUENT)
         self.setSkin(skin)
@@ -342,7 +345,7 @@ def setSkin(skin: Skin):
     """设置皮肤（设计语言）
 
     Args:
-        skin: Skin.FLUENT 或 Skin.NEOBRUTALISM
+        skin: Skin.FLUENT、Skin.NEOBRUTALISM 或 Skin.VINTAGE_TICKET
 
     示例:
         setSkin(Skin.NEOBRUTALISM)  # 切到新粗野皮肤

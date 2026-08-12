@@ -65,8 +65,8 @@ WindowsCore {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _micaAvailable: MicaManager ? MicaManager.isMicaSupported : false
-    // Neo uses an opaque surface and hard shadow, so Mica must stay disabled. Neo 使用实色表面与硬阴影，因此必须关闭 Mica。
-    readonly property bool _micaActive: micaEnabled && _micaAvailable && !Enums.isNeobrutalism
+    // Outlined skins own opaque surfaces, so Mica must stay disabled. 描边皮肤使用实色表面，因此必须关闭 Mica。
+    readonly property bool _micaActive: micaEnabled && _micaAvailable && Enums.allowsMica
     readonly property bool _micaTransparent: _micaActive && _micaBackdropReady
     readonly property color contentBgColor: _micaTransparent
         ? Enums.stateColor.contentBgTransparent
@@ -650,7 +650,7 @@ WindowsCore {
         function onIsDarkChanged() {
             if (window._micaActive && MicaManager) window._scheduleMicaReapply("themeChanged")
         }
-        function onIsNeobrutalismChanged() {
+        function onAllowsMicaChanged() {
             if (MicaManager) window._applyMicaEffect("skinChanged")
         }
 
