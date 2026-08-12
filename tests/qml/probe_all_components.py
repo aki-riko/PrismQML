@@ -5,8 +5,9 @@
 """Headless 全组件加载 probe — 重排验证工具
 
 遍历根 qmldir 注册的全部公开组件,逐个 createComponent 实例化；singleton
-通过 QtObject wrapper 强制引擎创建并读取。已知必须由父组件注入 required
-property 的内部子模块会被归类为预期跳过,真正新增的加载错误仍会失败。
+通过 QtObject wrapper 强制引擎创建并读取。默认模式下，必须由父组件注入
+required property 的内部子模块会被归类为预期跳过；--full-required 模式会
+使用真实依赖 wrapper 创建这些模块，使 Skin 专项覆盖可以达到全部注册项。
 
 用法: python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python tests/qml/probe_all_components.py
 退出码: 0=无非预期错误, 1=有非预期加载错误
@@ -49,6 +50,83 @@ EXPECTED_REQUIRED_PROPERTY_SKIPS = {
     "ViewportMixin": "Mixin 附着组件, target 由宿主组件注入",
 }
 
+REQUIRED_PROPERTY_PROBES = {
+    "ButtonContent": """
+import QtQuick
+import PrismQML
+ButtonContent {
+    feature: Enums.button.feature_standard
+    style: Enums.button.style_default
+    text: "TICKET"
+    icon: ""
+    iconSize: Enums.iconSize.medium
+    loading: false
+    loadingText: ""
+    progress: 0
+    textColor: Enums.foregroundColor
+    fontSize: Enums.typography.body
+}
+""",
+    "ButtonDropdown": """
+import QtQuick
+import PrismQML
+ButtonDropdown {
+    isToolButton: false
+    feature: Enums.button.feature_standard
+    menuItems: []
+    menu: null
+    controlEnabled: true
+    loading: false
+    showDropdownIndicator: false
+    dropdownOpen: false
+    parentRadius: Enums.surfaceRadius(Enums.radius.small)
+    fontSize: Enums.typography.body
+    textColor: Enums.foregroundColor
+}
+""",
+    "ButtonProgress": """
+import QtQuick
+import PrismQML
+ButtonProgress {
+    feature: Enums.button.feature_standard
+    style: Enums.button.style_default
+    progress: 0
+    showProgress: false
+}
+""",
+    "ListWidgetItem": """
+import QtQuick
+import PrismQML
+ListWidgetItem {
+    itemIndex: 0
+    itemData: ({})
+}
+""",
+    "SettingsCardContent": """
+import QtQuick
+import PrismQML
+SettingsCardContent {
+    type: Enums.settingsCard.type_default
+}
+""",
+    "HorizontalScrollMixin": """
+import QtQuick
+import PrismQML
+Item {
+    Flickable { id: targetItem; width: 100; height: 100 }
+    HorizontalScrollMixin { target: targetItem }
+}
+""",
+    "ViewportMixin": """
+import QtQuick
+import PrismQML
+Item {
+    Item { id: targetItem; width: 100; height: 100 }
+    ViewportMixin { target: targetItem }
+}
+""",
+}
+
 
 def parse_args():
     """解析 probe 运行来源。"""
@@ -57,6 +135,21 @@ def parse_args():
         "--installed",
         action="store_true",
         help="从当前解释器已安装的 prismqml 包探测 QML 组件",
+    )
+    parser.add_argument(
+        "--skin",
+        choices=("fluent", "neobrutalism", "vintage_ticket"),
+        help="创建组件前设置指定 Skin",
+    )
+    parser.add_argument(
+        "--theme",
+        choices=("light", "dark"),
+        help="创建组件前设置指定明暗主题",
+    )
+    parser.add_argument(
+        "--full-required",
+        action="store_true",
+        help="使用依赖 wrapper 创建全部 required-property 内部模块",
     )
     return parser.parse_args()
 
@@ -86,7 +179,7 @@ def load_runtime_setup(package_root: Path):
         raise RuntimeError(
             f"PrismQML Python/QML 根不一致: {imported_root} != {package_root}"
         )
-    return package.configure_qml_environment, package.register_types
+    return package
 
 
 def configure_probe_font_directory() -> None:
@@ -167,9 +260,17 @@ def create_probe_object(engine: QQmlEngine, type_name: str, qml: str):
     return comp, obj, []
 
 
-def probe_component(engine: QQmlEngine, type_name: str):
+def probe_component(
+    engine: QQmlEngine,
+    type_name: str,
+    full_required: bool = False,
+):
     """创建单个普通组件并返回成功状态与错误。"""
-    qml = f"import PrismQML\n{type_name} {{}}\n"
+    qml = (
+        REQUIRED_PROPERTY_PROBES[type_name]
+        if full_required and type_name in REQUIRED_PROPERTY_PROBES
+        else f"import PrismQML\n{type_name} {{}}\n"
+    )
     component, obj, errors = create_probe_object(engine, type_name, qml)
     if obj is None:
         return False, errors
@@ -246,7 +347,7 @@ def collect_singleton_results(engine: QQmlEngine, types):
     return ok, errors
 
 
-def collect_results(engine: QQmlEngine, types):
+def collect_results(engine: QQmlEngine, types, full_required: bool = False):
     """收集组件创建、预期跳过和真实错误。"""
     ok, errors = collect_singleton_results(engine, types)
     expected_required_skips = {}
@@ -254,7 +355,7 @@ def collect_results(engine: QQmlEngine, types):
     for type_name, is_singleton in types:
         if is_singleton:
             continue
-        passed, type_errors = probe_component(engine, type_name)
+        passed, type_errors = probe_component(engine, type_name, full_required)
         if passed:
             ok += 1
         elif is_expected_required_property_skip(type_name, type_errors):
@@ -288,19 +389,23 @@ def main():
     """运行源码树或安装包的全组件 probe。"""
     args = parse_args()
     package_root = resolve_package_root(args.installed)
-    configure_qml_environment, register_types = load_runtime_setup(package_root)
+    package = load_runtime_setup(package_root)
     qmldir = package_root / "PrismQML" / "qmldir"
     if not qmldir.is_file():
         raise FileNotFoundError(f"找不到 QML 模块注册文件: {qmldir}")
 
-    configure_qml_environment()
+    package.configure_qml_environment()
     configure_probe_font_directory()
     app = QApplication([sys.argv[0]])
+    if args.skin:
+        package.setSkin(package.Skin(args.skin))
+    if args.theme:
+        package.setTheme(package.Theme(args.theme))
     engine = QQmlEngine()
-    register_types(engine)
+    package.register_types(engine)
     engine.addImportPath(str(package_root))
     types = parse_qmldir(qmldir)
-    results = collect_results(engine, types)
+    results = collect_results(engine, types, args.full_required)
     QTimer.singleShot(0, app.quit)
     app.exec()
     report_results(*results, len(types))
