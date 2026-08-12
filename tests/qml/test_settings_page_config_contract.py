@@ -276,12 +276,16 @@ def test_appearance_cards_follow_selected_and_external_runtime_state(qapp):
         with _settings_page(manager, qapp) as root:
             theme_card, skin_card = _appearance_cards(root)
             theme_nodes = _activate_combo_index(theme_card, 2)
-            skin_nodes = _activate_combo_index(skin_card, 1)
+            skin_nodes = _activate_combo_index(skin_card, 2)
             qapp.processEvents()
 
             assert theme_manager.theme == "dark"
-            assert theme_manager.skin == "neobrutalism"
+            assert theme_manager.skin == "vintage_ticket"
             _assert_combo_index(theme_card, *theme_nodes, 2)
+            _assert_combo_index(skin_card, *skin_nodes, 2)
+
+            theme_manager.setSkinFromQml("neobrutalism")
+            qapp.processEvents()
             _assert_combo_index(skin_card, *skin_nodes, 1)
 
             theme_manager.setThemeFromQml("auto")

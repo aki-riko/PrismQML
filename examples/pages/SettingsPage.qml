@@ -127,20 +127,20 @@ Item {
                     }
                 }
 
-                // Design skin 设计皮肤 (Fluent / Neobrutalism)
+                // Design skin 设计皮肤 (Fluent / Neobrutalism / Vintage Ticket)
                 SettingsCard {
                     id: skinCard
 
-                    readonly property var skinValues: ["fluent", "neobrutalism"]
+                    readonly property var skinValues: ["fluent", "neobrutalism", "vintage_ticket"]
                     readonly property int skinIndex: skinValues.indexOf(Fluent.Enums.skin)
 
                     objectName: "skinSettingsCard"
                     width: parent ? parent.width : 0
                     title: "设计皮肤"
-                    content: "切换设计语言：Fluent / 新粗野"
+                    content: "切换设计语言：Fluent / 新粗野 / 复古票据"
                     icon: iconPath("Color")
                     type: Fluent.Enums.settingCard.type_combobox
-                    model: ["Fluent", "新粗野 Neobrutalism"]
+                    model: ["Fluent", "新粗野 Neobrutalism", "复古票据 Vintage Ticket"]
                     currentIndex: skinIndex >= 0 ? skinIndex : 0
 
                     onIndexSelected: function(idx) {
