@@ -195,9 +195,10 @@ Rectangle {
                       : (borderVisible ? Enums.border.thin : 0)
         border.color: Enums.hasOutlinedSurfaces ? Enums.stateColor.border : borderColor
 
-        TicketPaper {
+        Loader {
             anchors.fill: parent
-            visible: Enums.isVintageTicket && card.color.a > 0
+            active: Enums.isVintageTicket && card.color.a > 0
+            source: Qt.resolvedUrl("../../../../effects/TicketPaper.qml")
         }
         
         ColumnLayout {

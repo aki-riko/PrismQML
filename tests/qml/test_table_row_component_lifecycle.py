@@ -26,7 +26,7 @@ ROOT = Path(
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "table-row-component-lifecycle.qml")
 )
-EXPECTED_NORMAL_OBJECTS = 888
+EXPECTED_NORMAL_OBJECTS = 889
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window
@@ -196,6 +196,11 @@ def test_table_rows_preserve_rendering_while_components_are_measured(qapp):
         row_components = [_component_count(row) for row in rows]
         normal_objects = _object_count(table)
         normal_hash = _grab_hash(window)
+
+        assert not any(
+            "TicketPaper" in child.metaObject().className()
+            for child in table.findChildren(QObject)
+        )
 
         table.setProperty("paintedRowMode", True)
         assert _wait_for(lambda: len(_painted_rows(table)) == len(rows))

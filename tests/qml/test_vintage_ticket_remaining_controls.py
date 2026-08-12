@@ -242,6 +242,14 @@ def _single(root: QObject, type_fragment: str) -> QQuickItem:
     return matches[0]
 
 
+def _paper_surface(paper: QObject) -> QObject:
+    surface = paper.parent()
+    while surface is not None and surface.metaObject().indexOfProperty("radius") < 0:
+        surface = surface.parent()
+    assert surface is not None
+    return surface
+
+
 @pytest.fixture
 def ticket_controls(qapp):
     previous_skin = getSkin()
@@ -313,13 +321,14 @@ def test_ticket_data_paper_is_visible_and_all_elevation_is_hidden(ticket_control
     papers = _objects(window, "TicketPaper")
     soft_shadows = _objects(window, "RectangularShadow")
     neo_shadows = _objects(window, "NeoShadow")
+    surfaces = [_paper_surface(paper) for paper in papers]
 
     assert len(papers) == 2
     assert all(bool(item.property("visible")) for item in papers)
-    assert all(item.parent().property("radius") == pytest.approx(0) for item in papers)
+    assert all(surface.property("radius") == pytest.approx(0) for surface in surfaces)
     assert all(
-        QQmlProperty(item.parent(), "border.width").read() == pytest.approx(1)
-        for item in papers
+        QQmlProperty(surface, "border.width").read() == pytest.approx(1)
+        for surface in surfaces
     )
     assert soft_shadows
     assert all(not bool(item.property("visible")) for item in soft_shadows)
