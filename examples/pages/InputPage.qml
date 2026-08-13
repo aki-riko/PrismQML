@@ -29,27 +29,27 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Enums.spacing.xs
-                Text { text: "输入组件"; font.pixelSize: Enums.typography.displayLarge; font.bold: true; color: Enums.textColor.primary; font.family: Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_85b015684ed1a12c", Fluent.Translator._v); font.pixelSize: Enums.typography.displayLarge; font.bold: true; color: Enums.textColor.primary; font.family: Enums.fontFamily }
                 Text { text: "prismqml.controls.inputs"; font.pixelSize: Enums.typography.caption; color: Enums.textColor.secondary; font.family: Enums.fontFamily }
             }
             
             // 文本输入
             ExampleCard {
-                title: "文本输入"
+                title: Fluent.Translator.tr("gallery_5420b6d872e828b9", Fluent.Translator._v)
                 description: "LineEdit / TextEdit"
                 Column {
                     spacing: Enums.spacing.l
                     Row {
                         spacing: Enums.spacing.l
                         ComponentCard { label: "type_normal"; LineEdit { placeholderText: "LineEdit"; width: 180 } }
-                        ComponentCard { label: "type_password"; LineEdit { inputType: Enums.input.type_password; placeholderText: "密码"; width: 180 } }
-                        ComponentCard { label: "type_search"; LineEdit { inputType: Enums.input.type_search; placeholderText: "搜索"; width: 180 } }
-                        ComponentCard { label: "collapsible"; LineEdit { inputType: Enums.input.type_search; collapsible: true; placeholderText: "搜索"; expandedWidth: 200 } }
+                        ComponentCard { label: "type_password"; LineEdit { inputType: Enums.input.type_password; placeholderText: Fluent.Translator.tr("gallery_a621ab606db2a11f", Fluent.Translator._v); width: 180 } }
+                        ComponentCard { label: "type_search"; LineEdit { inputType: Enums.input.type_search; placeholderText: Fluent.Translator.tr("gallery_44ce7ae909bbb28b", Fluent.Translator._v); width: 180 } }
+                        ComponentCard { label: "collapsible"; LineEdit { inputType: Enums.input.type_search; collapsible: true; placeholderText: Fluent.Translator.tr("gallery_44ce7ae909bbb28b", Fluent.Translator._v); expandedWidth: 200 } }
                     }
                     Row {
                         spacing: Enums.spacing.l
-                        ComponentCard { label: "type_label"; LineEdit { inputType: Enums.input.type_label; label: "用户名"; width: 200 } }
-                        ComponentCard { label: "type_tag"; LineEdit { inputType: Enums.input.type_tag; placeholderText: "添加标签..."; width: 280; maxTags: 5; suggestions: ["测试", "测试2", "选项A", "选项B", "标签1", "标签2"] } }
+                        ComponentCard { label: "type_label"; LineEdit { inputType: Enums.input.type_label; label: Fluent.Translator.tr("gallery_1a3f0617d6de8e52", Fluent.Translator._v); width: 200 } }
+                        ComponentCard { label: "type_tag"; LineEdit { inputType: Enums.input.type_tag; placeholderText: Fluent.Translator.tr("gallery_01e6fe14b3dc3cf4", Fluent.Translator._v); width: 280; maxTags: 5; suggestions: [Fluent.Translator.tr("gallery_6aa8f49cc992dfd7", Fluent.Translator._v), Fluent.Translator.tr("gallery_cb647750b60eb6e9", Fluent.Translator._v), Fluent.Translator.tr("gallery_4c91d67075d07d9f", Fluent.Translator._v), Fluent.Translator.tr("gallery_0f722881d96fd668", Fluent.Translator._v), Fluent.Translator.tr("gallery_6c273ecc79d229ed", Fluent.Translator._v), Fluent.Translator.tr("gallery_8d7f8612a58f664d", Fluent.Translator._v)] } }
                     }
                     Row {
                         spacing: Enums.spacing.l
@@ -58,7 +58,7 @@ Item {
                             label: "tag_validate"
                             LineEdit {
                                 inputType: Enums.input.type_tag
-                                placeholderText: "≥2字, 逗号分隔"
+                                placeholderText: Fluent.Translator.tr("gallery_555623c1af9dccfd", Fluent.Translator._v)
                                 width: 280
                                 extraSeparators: [",", ";"]
                                 validateTag: (t) => t.length >= 2
@@ -69,13 +69,13 @@ Item {
                             label: "tag_colors"
                             LineEdit {
                                 inputType: Enums.input.type_tag
-                                placeholderText: "彩色描边标签"
+                                placeholderText: Fluent.Translator.tr("gallery_df30a51e65e7062e", Fluent.Translator._v)
                                 width: 280
-                                tags: ["紧急", "普通", "完成"]
+                                tags: [Fluent.Translator.tr("gallery_0efa477b24b1f3c7", Fluent.Translator._v), Fluent.Translator.tr("gallery_de907d10df98b498", Fluent.Translator._v), Fluent.Translator.tr("gallery_c0b3fbff51ccc40b", Fluent.Translator._v)]
                                 tagColors: ({
-                                    "紧急": Enums.chartColors.palette[3],
-                                    "普通": Enums.chartColors.palette[0],
-                                    "完成": Enums.chartColors.palette[1]
+                                    Fluent.Translator.tr("gallery_0efa477b24b1f3c7", Fluent.Translator._v): Enums.chartColors.palette[3],
+                                    Fluent.Translator.tr("gallery_de907d10df98b498", Fluent.Translator._v): Enums.chartColors.palette[0],
+                                    Fluent.Translator.tr("gallery_c0b3fbff51ccc40b", Fluent.Translator._v): Enums.chartColors.palette[1]
                                 })
                             }
                         }
@@ -83,46 +83,46 @@ Item {
                     Row {
                         spacing: Enums.spacing.l
                         ComponentCard { label: "multiline_plain"; TextEdit { multilineType: Enums.input.multiline_plain; placeholderText: "PlainTextEdit"; width: 200; height: 60 } }
-                        ComponentCard { label: "multiline_browser"; TextEdit { multilineType: Enums.input.multiline_browser; width: 200; height: 60; text: "<b>支持</b>富文本<i>显示</i>" } }
+                        ComponentCard { label: "multiline_browser"; TextEdit { multilineType: Enums.input.multiline_browser; width: 200; height: 60; text: Fluent.Translator.tr("gallery_b97be57c7ccdf579", Fluent.Translator._v) } }
                     }
                 }
             }
             
             // 下拉选择
             ExampleCard {
-                title: "下拉选择"
+                title: Fluent.Translator.tr("gallery_095b751a68e708b2", Fluent.Translator._v)
                 description: "ComboBox - type/style/feature"
                 Column {
                     spacing: Enums.spacing.l
                     Row {
                         spacing: Enums.spacing.l
-                        ComponentCard { label: "默认"; ComboBox { model: ["选项1", "选项2", "选项3", "选项4", "选项5", "选项6", "选项7", "选项8", "选项9", "选项10"]; width: 140 } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v); ComboBox { model: [Fluent.Translator.tr("gallery_96198518dab609f0", Fluent.Translator._v), Fluent.Translator.tr("gallery_5f04a01fe105bb4d", Fluent.Translator._v), Fluent.Translator.tr("gallery_74b97119bee5c66d", Fluent.Translator._v), Fluent.Translator.tr("gallery_400823a3d4340d25", Fluent.Translator._v), Fluent.Translator.tr("gallery_3b13a36cf3789cb7", Fluent.Translator._v), Fluent.Translator.tr("gallery_a827ea9a6cf89c08", Fluent.Translator._v), Fluent.Translator.tr("gallery_c16eb8a24ffc6ce9", Fluent.Translator._v), Fluent.Translator.tr("gallery_7ddc74635d0d5e24", Fluent.Translator._v), Fluent.Translator.tr("gallery_5a4c64fc826dfedf", Fluent.Translator._v), Fluent.Translator.tr("gallery_7881ad1b2622aae3", Fluent.Translator._v)]; width: 140 } }
                         ComponentCard { label: "style_primary"; ComboBox { style: Enums.comboBox.style_primary; model: ["Primary1", "Primary2"]; width: 140 } }
-                        ComponentCard { label: "style_transparent"; ComboBox { style: Enums.comboBox.style_transparent; model: ["透明1", "透明2"]; width: 140 } }
-                        ComponentCard { label: "feature_editable"; ComboBox { feature: Enums.comboBox.feature_editable; model: ["北京", "上海", "广州", "深圳", "杭州", "南京", "成都", "武汉", "西安", "重庆"]; placeholderText: "输入城市..."; width: 140 } }
+                        ComponentCard { label: "style_transparent"; ComboBox { style: Enums.comboBox.style_transparent; model: [Fluent.Translator.tr("gallery_d8efa593c9afae84", Fluent.Translator._v), Fluent.Translator.tr("gallery_c224e980b5cd88f2", Fluent.Translator._v)]; width: 140 } }
+                        ComponentCard { label: "feature_editable"; ComboBox { feature: Enums.comboBox.feature_editable; model: [Fluent.Translator.tr("gallery_68c77e155132565e", Fluent.Translator._v), Fluent.Translator.tr("gallery_4906a49adc5c472b", Fluent.Translator._v), Fluent.Translator.tr("gallery_85da183b0683e5f7", Fluent.Translator._v), Fluent.Translator.tr("gallery_1bb5e3986433569c", Fluent.Translator._v), Fluent.Translator.tr("gallery_a8027f71a8e38bcb", Fluent.Translator._v), Fluent.Translator.tr("gallery_c690fe6240419c66", Fluent.Translator._v), Fluent.Translator.tr("gallery_d222587118255cbd", Fluent.Translator._v), Fluent.Translator.tr("gallery_48afd8d3b9269706", Fluent.Translator._v), Fluent.Translator.tr("gallery_e2d11378ac1898de", Fluent.Translator._v), Fluent.Translator.tr("gallery_ea31f4d6d27dd76d", Fluent.Translator._v)]; placeholderText: Fluent.Translator.tr("gallery_854f96221f84c69e", Fluent.Translator._v); width: 140 } }
                     }
                     Row {
                         spacing: Enums.spacing.l
-                        ComponentCard { label: "type_multi"; ComboBox { type: Enums.comboBox.type_multi; model: ["多选1", "多选2", "多选3", "多选4", "多选5", "多选6", "多选7", "多选8", "多选9", "多选10", "多选11", "多选12", "多选13", "多选14", "多选15", "多选16", "多选17", "多选18", "多选19", "多选20", "多选21", "多选22", "多选23", "多选24", "多选25", "多选26", "多选27", "多选28", "多选29", "多选30"]; width: 180 } }
+                        ComponentCard { label: "type_multi"; ComboBox { type: Enums.comboBox.type_multi; model: [Fluent.Translator.tr("gallery_f14e92b3ca94f9b1", Fluent.Translator._v), Fluent.Translator.tr("gallery_4b52fe9ca014ce17", Fluent.Translator._v), Fluent.Translator.tr("gallery_cbd3f762ab062eaf", Fluent.Translator._v), Fluent.Translator.tr("gallery_479d2d25532faf4f", Fluent.Translator._v), Fluent.Translator.tr("gallery_eca7d57c116f0045", Fluent.Translator._v), Fluent.Translator.tr("gallery_370e2a15bf17a364", Fluent.Translator._v), Fluent.Translator.tr("gallery_d4ed5df31880da18", Fluent.Translator._v), Fluent.Translator.tr("gallery_c7be748e4d27bdaf", Fluent.Translator._v), Fluent.Translator.tr("gallery_30f06e50bbd7be40", Fluent.Translator._v), Fluent.Translator.tr("gallery_28b8848421d707c2", Fluent.Translator._v), Fluent.Translator.tr("gallery_1c610efe7eaf2a2b", Fluent.Translator._v), Fluent.Translator.tr("gallery_2e51176514bb2ea3", Fluent.Translator._v), Fluent.Translator.tr("gallery_4819555b3d58110d", Fluent.Translator._v), Fluent.Translator.tr("gallery_74ebc830dbb4e309", Fluent.Translator._v), Fluent.Translator.tr("gallery_3ecdfaee94f24576", Fluent.Translator._v), Fluent.Translator.tr("gallery_b8e811e24395dc25", Fluent.Translator._v), Fluent.Translator.tr("gallery_40efddaf0ee898b9", Fluent.Translator._v), Fluent.Translator.tr("gallery_c06d62700d71e22e", Fluent.Translator._v), Fluent.Translator.tr("gallery_c87ddad2c91b256f", Fluent.Translator._v), Fluent.Translator.tr("gallery_798c85e0b474bf74", Fluent.Translator._v), Fluent.Translator.tr("gallery_1784ebb55ffa5b65", Fluent.Translator._v), Fluent.Translator.tr("gallery_6f7a3be34579b316", Fluent.Translator._v), Fluent.Translator.tr("gallery_be5b212d0ab9a9eb", Fluent.Translator._v), Fluent.Translator.tr("gallery_e49752e2be94493f", Fluent.Translator._v), Fluent.Translator.tr("gallery_2648657b4d98050e", Fluent.Translator._v), Fluent.Translator.tr("gallery_905b6866f5175b1a", Fluent.Translator._v), Fluent.Translator.tr("gallery_3717a12e06b9d4d7", Fluent.Translator._v), Fluent.Translator.tr("gallery_196f9bae9c07e8af", Fluent.Translator._v), Fluent.Translator.tr("gallery_795502c9f30ef515", Fluent.Translator._v), Fluent.Translator.tr("gallery_cda276fb07fc6f86", Fluent.Translator._v)]; width: 180 } }
                         ComponentCard { 
                             label: "type_multi_tree"
                             ComboBoxMultiTree { 
                                 width: 220
-                                placeholderText: "请选择"
-                                selectedPaths: [["华东地区", "江苏省", "南京市"], ["华东地区", "浙江省", "杭州市"]]
+                                placeholderText: Fluent.Translator.tr("gallery_da590a8fe3ce4de0", Fluent.Translator._v)
+                                selectedPaths: [[Fluent.Translator.tr("gallery_780e5b757b2d7a5b", Fluent.Translator._v), Fluent.Translator.tr("gallery_ac7240a660d14397", Fluent.Translator._v), Fluent.Translator.tr("gallery_93413130d8fdae07", Fluent.Translator._v)], [Fluent.Translator.tr("gallery_780e5b757b2d7a5b", Fluent.Translator._v), Fluent.Translator.tr("gallery_5395aa56194876b9", Fluent.Translator._v), Fluent.Translator.tr("gallery_38150fb2d76a683e", Fluent.Translator._v)]]
                                 model: [
                                     {
-                                        text: "华东地区",
+                                        text: Fluent.Translator.tr("gallery_780e5b757b2d7a5b", Fluent.Translator._v),
                                         children: [
-                                            { text: "上海市", children: [{ text: "黄浦区" }, { text: "浦东新区" }] },
-                                            { text: "江苏省", children: [{ text: "南京市" }, { text: "苏州市" }] },
-                                            { text: "浙江省", children: [{ text: "杭州市" }, { text: "宁波市" }, { text: "温州市" }] }
+                                            { text: Fluent.Translator.tr("gallery_2e9414cac2cae506", Fluent.Translator._v), children: [{ text: Fluent.Translator.tr("gallery_88bf5f4eea8d83fb", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_e7ce130eda090dc3", Fluent.Translator._v) }] },
+                                            { text: Fluent.Translator.tr("gallery_ac7240a660d14397", Fluent.Translator._v), children: [{ text: Fluent.Translator.tr("gallery_93413130d8fdae07", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_6cf593f0fccdae21", Fluent.Translator._v) }] },
+                                            { text: Fluent.Translator.tr("gallery_5395aa56194876b9", Fluent.Translator._v), children: [{ text: Fluent.Translator.tr("gallery_38150fb2d76a683e", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_3b79e1953b16287e", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_23e2e8acf2e9eead", Fluent.Translator._v) }] }
                                         ]
                                     },
                                     {
-                                        text: "华南地区",
+                                        text: Fluent.Translator.tr("gallery_5715f626316ce566", Fluent.Translator._v),
                                         children: [
-                                            { text: "广东省", children: [{ text: "广州市" }, { text: "深圳市" }, { text: "珠海市" }] }
+                                            { text: Fluent.Translator.tr("gallery_ee410024807c0467", Fluent.Translator._v), children: [{ text: Fluent.Translator.tr("gallery_892d3dbc5120a794", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_70ac7d972dc46eaf", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_9d050b910649e5ae", Fluent.Translator._v) }] }
                                         ]
                                     }
                                 ]
@@ -133,21 +133,21 @@ Item {
                             ComboBox { 
                                 type: Enums.comboBox.type_tree
                                 width: 200
-                                placeholderText: "请选择"
+                                placeholderText: Fluent.Translator.tr("gallery_da590a8fe3ce4de0", Fluent.Translator._v)
                                 showPathFromRoot: false
                                 model: [
                                     {
-                                        text: "华东地区",
+                                        text: Fluent.Translator.tr("gallery_780e5b757b2d7a5b", Fluent.Translator._v),
                                         children: [
-                                            { text: "上海市", children: [{ text: "黄浦区" }, { text: "浦东新区" }, { text: "徐汇区" }] },
-                                            { text: "江苏省", children: [{ text: "南京市" }, { text: "苏州市" }, { text: "无锡市" }] },
-                                            { text: "浙江省", children: [{ text: "杭州市" }, { text: "宁波市" }, { text: "温州市" }, { text: "绍兴市" }, { text: "嘉兴市" }] }
+                                            { text: Fluent.Translator.tr("gallery_2e9414cac2cae506", Fluent.Translator._v), children: [{ text: Fluent.Translator.tr("gallery_88bf5f4eea8d83fb", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_e7ce130eda090dc3", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_f8900163cf9f19bc", Fluent.Translator._v) }] },
+                                            { text: Fluent.Translator.tr("gallery_ac7240a660d14397", Fluent.Translator._v), children: [{ text: Fluent.Translator.tr("gallery_93413130d8fdae07", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_6cf593f0fccdae21", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_fe86bd150a840d95", Fluent.Translator._v) }] },
+                                            { text: Fluent.Translator.tr("gallery_5395aa56194876b9", Fluent.Translator._v), children: [{ text: Fluent.Translator.tr("gallery_38150fb2d76a683e", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_3b79e1953b16287e", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_23e2e8acf2e9eead", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_a68ef6ab683bf681", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_351267ac91b3d871", Fluent.Translator._v) }] }
                                         ]
                                     },
                                     {
-                                        text: "华南地区",
+                                        text: Fluent.Translator.tr("gallery_5715f626316ce566", Fluent.Translator._v),
                                         children: [
-                                            { text: "广东省", children: [{ text: "广州市" }, { text: "深圳市" }, { text: "珠海市" }, { text: "佛山市" }, { text: "东莞市" }] }
+                                            { text: Fluent.Translator.tr("gallery_ee410024807c0467", Fluent.Translator._v), children: [{ text: Fluent.Translator.tr("gallery_892d3dbc5120a794", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_70ac7d972dc46eaf", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_9d050b910649e5ae", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_34f32ac09a7f85b5", Fluent.Translator._v) }, { text: Fluent.Translator.tr("gallery_b90341e24a5fa6f7", Fluent.Translator._v) }] }
                                         ]
                                     }
                                 ]
@@ -161,7 +161,7 @@ Item {
             
             // 数值输入
             ExampleCard {
-                title: "数值输入"
+                title: Fluent.Translator.tr("gallery_cde4729fd9104c52", Fluent.Translator._v)
                 description: "SpinBox (type: normal / double / compact / compact_double)"
                 Column {
                     spacing: Enums.spacing.l
@@ -180,7 +180,7 @@ Item {
             
             // Toggle 切换控件
             ExampleCard {
-                title: "Toggle 切换控件"
+                title: Fluent.Translator.tr("gallery_9aa66d632584eebb", Fluent.Translator._v)
                 description: "Toggle (controlType: checkbox / radio / switch, type: default / indicator / subtitle)"
                 Column {
                     spacing: Enums.spacing.l
@@ -190,7 +190,7 @@ Item {
                         spacing: Enums.spacing.xxl
                         ComponentCard { label: "control_checkbox"; Toggle { controlType: Enums.toggle.control_checkbox; text: "Toggle" } }
                         ComponentCard { label: "type_indicator"; Toggle { controlType: Enums.toggle.control_checkbox; type: Enums.toggle.type_indicator } }
-                        ComponentCard { label: "type_subtitle"; Toggle { controlType: Enums.toggle.control_checkbox; type: Enums.toggle.type_subtitle; text: "Toggle"; subtitle: "说明文字" } }
+                        ComponentCard { label: "type_subtitle"; Toggle { controlType: Enums.toggle.control_checkbox; type: Enums.toggle.type_subtitle; text: "Toggle"; subtitle: Fluent.Translator.tr("gallery_a75800abd20b81bd", Fluent.Translator._v) } }
                     }
                     
                     // RadioButton
@@ -198,7 +198,7 @@ Item {
                         spacing: Enums.spacing.xxl
                         ComponentCard { label: "control_radio"; Toggle { controlType: Enums.toggle.control_radio; text: "Toggle"; checked: true } }
                         ComponentCard { label: "type_indicator"; Toggle { controlType: Enums.toggle.control_radio; type: Enums.toggle.type_indicator } }
-                        ComponentCard { label: "type_subtitle"; Toggle { controlType: Enums.toggle.control_radio; type: Enums.toggle.type_subtitle; text: "Toggle"; subtitle: "说明文字" } }
+                        ComponentCard { label: "type_subtitle"; Toggle { controlType: Enums.toggle.control_radio; type: Enums.toggle.type_subtitle; text: "Toggle"; subtitle: Fluent.Translator.tr("gallery_a75800abd20b81bd", Fluent.Translator._v) } }
                     }
                     
                     // ToggleSwitch
@@ -206,14 +206,14 @@ Item {
                         spacing: Enums.spacing.xxl
                         ComponentCard { label: "control_switch"; Toggle { controlType: Enums.toggle.control_switch; text: "Toggle" } }
                         ComponentCard { label: "type_indicator"; Toggle { controlType: Enums.toggle.control_switch; type: Enums.toggle.type_indicator } }
-                        ComponentCard { label: "type_subtitle"; Toggle { controlType: Enums.toggle.control_switch; type: Enums.toggle.type_subtitle; text: "Toggle"; subtitle: "说明文字" } }
+                        ComponentCard { label: "type_subtitle"; Toggle { controlType: Enums.toggle.control_switch; type: Enums.toggle.type_subtitle; text: "Toggle"; subtitle: Fluent.Translator.tr("gallery_a75800abd20b81bd", Fluent.Translator._v) } }
                     }
                 }
             }
             
             // 滑块
             ExampleCard {
-                title: "滑块"
+                title: Fluent.Translator.tr("gallery_a7c3e94cbb35a809", Fluent.Translator._v)
                 description: "Slider"
                 Column {
                     spacing: Enums.spacing.xl
@@ -224,27 +224,27 @@ Item {
             
             // 日期时间选择器（统一组件）
             ExampleCard {
-                title: "日期时间选择器"
-                description: "DateTimePicker - 统一滚轮选择器，自动本地化"
+                title: Fluent.Translator.tr("gallery_b087092ffece72c8", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_a3845a3dee776402", Fluent.Translator._v)
                 Column {
                     spacing: Enums.spacing.xl
                     Row {
                         spacing: Enums.spacing.xl
-                        ComponentCard { label: "日期"; DateTimePicker { type: Enums.picker.type_date } }
-                        ComponentCard { label: "时间"; DateTimePicker { type: Enums.picker.type_time } }
-                        ComponentCard { label: "时间(秒)"; DateTimePicker { type: Enums.picker.type_time; timePrecision: Enums.picker.time_second } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_70d0c1b33626ba4b", Fluent.Translator._v); DateTimePicker { type: Enums.picker.type_date } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_8b6ff498515bcc2f", Fluent.Translator._v); DateTimePicker { type: Enums.picker.type_time } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_bb901de8fdfa0a09", Fluent.Translator._v); DateTimePicker { type: Enums.picker.type_time; timePrecision: Enums.picker.time_second } }
                     }
                     Row {
                         spacing: Enums.spacing.xl
-                        ComponentCard { label: "12小时制"; DateTimePicker { type: Enums.picker.type_time; timeFormat: Enums.picker.format_12h } }
-                        ComponentCard { label: "日期+时间"; DateTimePicker { type: Enums.picker.type_datetime } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_a57f56726b3b5c0d", Fluent.Translator._v); DateTimePicker { type: Enums.picker.type_time; timeFormat: Enums.picker.format_12h } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_c3a9540159f53ded", Fluent.Translator._v); DateTimePicker { type: Enums.picker.type_datetime } }
                     }
                 }
             }
             
             // 日历选择器
             ExampleCard {
-                title: "日历选择器"
+                title: Fluent.Translator.tr("gallery_1e2f7daf79570e9c", Fluent.Translator._v)
                 description: "CalendarPicker / CalendarPickerCore"
                 Row {
                     spacing: Enums.spacing.xl
@@ -256,7 +256,7 @@ Item {
             
             // 特殊输入
             ExampleCard {
-                title: "特殊输入"
+                title: Fluent.Translator.tr("gallery_3b1c70eca9718194", Fluent.Translator._v)
                 description: "PinInput / Rating"
                 Row {
                     spacing: Enums.spacing.xxl
@@ -267,7 +267,7 @@ Item {
             
             // 图片相关
             ExampleCard {
-                title: "图片"
+                title: Fluent.Translator.tr("gallery_d24c10d37db0feea", Fluent.Translator._v)
                 description: "BeforeAfterSlider / ImageCropper (Dialog / Overlay)"
                 Row {
                     spacing: Enums.spacing.xl
@@ -279,14 +279,14 @@ Item {
             
             // 过滤器
             ExampleCard {
-                title: "过滤器"
+                title: Fluent.Translator.tr("gallery_4aaccba26873ebc2", Fluent.Translator._v)
                 description: "FilterBar (text / icon / icon+text)"
                 Column {
                     spacing: Enums.spacing.xl
                     Row {
                         spacing: Enums.spacing.l
                         Text { 
-                            text: "纯文本"; 
+                            text: Fluent.Translator.tr("gallery_f9124b40e8ccbeab", Fluent.Translator._v);
                             font.pixelSize: Enums.typography.body; 
                             font.family: Enums.fontFamily
                             color: Enums.textColor.primary
@@ -298,7 +298,7 @@ Item {
                     Row {
                         spacing: Enums.spacing.l
                         Text { 
-                            text: "纯图标"; 
+                            text: Fluent.Translator.tr("gallery_9232c621254bb0d8", Fluent.Translator._v);
                             font.pixelSize: Enums.typography.body; 
                             font.family: Enums.fontFamily
                             color: Enums.textColor.primary
@@ -310,7 +310,7 @@ Item {
                     Row {
                         spacing: Enums.spacing.l
                         Text { 
-                            text: "图标+文本"; 
+                            text: Fluent.Translator.tr("gallery_8813a2458fd4724c", Fluent.Translator._v);
                             font.pixelSize: Enums.typography.body; 
                             font.family: Enums.fontFamily
                             color: Enums.textColor.primary
@@ -319,10 +319,10 @@ Item {
                         }
                         FilterBar {
                             items: [
-                                { icon: "Home", text: "首页" },
-                                { icon: "Apps", text: "应用" },
-                                { icon: "Document", text: "文档" },
-                                { icon: "Globe", text: "网页" }
+                                { icon: "Home", text: Fluent.Translator.tr("gallery_203c08e0d44ac375", Fluent.Translator._v) },
+                                { icon: "Apps", text: Fluent.Translator.tr("gallery_63c73c4730f4473e", Fluent.Translator._v) },
+                                { icon: "Document", text: Fluent.Translator.tr("gallery_2687ccdbb1d2288a", Fluent.Translator._v) },
+                                { icon: "Globe", text: Fluent.Translator.tr("gallery_005074b65962188c", Fluent.Translator._v) }
                             ]
                             currentIndex: 1
                         }
@@ -330,7 +330,7 @@ Item {
                     Row {
                         spacing: Enums.spacing.l
                         Text { 
-                            text: "多选混搭"; 
+                            text: Fluent.Translator.tr("gallery_0b03d8a35cda2f98", Fluent.Translator._v);
                             font.pixelSize: Enums.typography.body; 
                             font.family: Enums.fontFamily
                             color: Enums.textColor.primary
@@ -341,9 +341,9 @@ Item {
                             exclusive: false
                             items: [
                                 "All",
-                                { icon: "Image", text: "图片" },
-                                { icon: "Video", text: "视频" },
-                                { icon: "MusicNote1", text: "音乐" }
+                                { icon: "Image", text: Fluent.Translator.tr("gallery_d24c10d37db0feea", Fluent.Translator._v) },
+                                { icon: "Video", text: Fluent.Translator.tr("gallery_c20f7618d330a854", Fluent.Translator._v) },
+                                { icon: "MusicNote1", text: Fluent.Translator.tr("gallery_db95142124934467", Fluent.Translator._v) }
                             ]
                             selectedIndices: [0, 1]
                         }
@@ -353,14 +353,14 @@ Item {
             
             // 平滑滚动条
             ExampleCard {
-                title: "平滑滚动条"
-                description: "ScrollBar (垂直/水平)"
+                title: Fluent.Translator.tr("gallery_dd5e3983be8e0f6e", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_b233049163c5e4c2", Fluent.Translator._v)
                 Row {
                     spacing: Enums.spacing.xxxl
                     
                     // 垂直滚动条 - 带实际内容
                     ComponentCard {
-                        label: "垂直"
+                        label: Fluent.Translator.tr("gallery_1777a1e5f3a54dee", Fluent.Translator._v)
                         Rectangle {
                             width: 150
                             height: 100
@@ -403,7 +403,7 @@ Item {
                     
                     // 水平滚动条
                     ComponentCard {
-                        label: "水平"
+                        label: Fluent.Translator.tr("gallery_4995b90d72fc59f9", Fluent.Translator._v)
                         Rectangle {
                             width: 150
                             height: 80
@@ -444,7 +444,7 @@ Item {
             
             // 颜色选择器
             ExampleCard {
-                title: "颜色选择器"
+                title: Fluent.Translator.tr("gallery_6b4298bb407fc598", Fluent.Translator._v)
                 description: "ColorPicker (type: picker/palette/circle/screen/dialog)"
                 Column {
                     spacing: Enums.spacing.m
@@ -455,7 +455,7 @@ Item {
                         ComponentCard { 
                             label: "ColorDialog"
                             Button { 
-                                text: "打开颜色对话框"
+                                text: Fluent.Translator.tr("gallery_b499c14cb63cd338", Fluent.Translator._v)
                                 onClicked: colorDialog.open()
                             }
                         }
@@ -470,16 +470,16 @@ Item {
             
             // 快捷键选择器
             ExampleCard {
-                title: "快捷键选择器"
-                description: "ShortcutEditor (allowSingleKey: 单键录入 / 组合键录入)"
+                title: Fluent.Translator.tr("gallery_da0b8919b7ad7da3", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_6d9b62998a127d13", Fluent.Translator._v)
                 Row {
                     spacing: Enums.spacing.l
                     ComponentCard {
-                        label: "组合键 (默认)"
+                        label: Fluent.Translator.tr("gallery_491968b6105dd32f", Fluent.Translator._v)
                         ShortcutEditor { width: 200; shortcut: "Ctrl+S" }
                     }
                     ComponentCard {
-                        label: "允许单键 allowSingleKey"
+                        label: Fluent.Translator.tr("gallery_00e9d95ae98ff2bc", Fluent.Translator._v)
                         ShortcutEditor { width: 200; allowSingleKey: true }
                     }
                 }
@@ -492,9 +492,9 @@ Item {
     // overlayTarget设置为scrollArea，覆盖页面内容区域而非整个窗口
     ColorPickerDialog {
         id: colorDialog
-        title: "选择背景颜色"
+        title: Fluent.Translator.tr("gallery_53c8bd2fe9d60274", Fluent.Translator._v)
         selectedColor: Enums.accentColor
         overlayTarget: scrollArea  // 覆盖ScrollArea
-        onColorAccepted: (c) => console.log("选择的颜色:", c)
+        onColorAccepted: (c) => console.log(Fluent.Translator.tr("gallery_c80b23dc43aefe9f", Fluent.Translator._v), c)
     }
 }

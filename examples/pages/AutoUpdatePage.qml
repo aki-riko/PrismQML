@@ -21,7 +21,7 @@ Item {
     readonly property var activeUpdater: dryRunMode
         ? dryRunUpdater
         : updaterBackend
-    property string statusText: "DRY 模式：等待开始演示"
+    property string statusText: Fluent.Translator.tr("gallery_d815f8ae15604066", Fluent.Translator._v)
     property string latestVersion: ""
     property bool useProgressDialog: false
 
@@ -40,16 +40,16 @@ Item {
     function resetStatusForMode() {
         latestVersion = ""
         statusText = dryRunMode
-            ? "DRY 模式：等待开始演示"
+            ? Fluent.Translator.tr("gallery_d815f8ae15604066", Fluent.Translator._v)
             : (updaterBackend
-                ? "真实模式：尚未检查"
-                : "真实模式不可用：Gallery 未注入 appUpdater")
+                ? Fluent.Translator.tr("gallery_c3a7f22f02dbf5be", Fluent.Translator._v)
+                : Fluent.Translator.tr("gallery_bb2f5a1bc47e85f4", Fluent.Translator._v))
     }
 
     function statusForUpdate(version) {
         latestVersion = version
-        statusText = (dryRunMode ? "DRY：发现模拟版本 " : "发现新版本 ")
-            + version + "，等待确认"
+        statusText = (dryRunMode ? Fluent.Translator.tr("gallery_ea965553d7b1859b", Fluent.Translator._v) : Fluent.Translator.tr("gallery_596dd46cfde5249d", Fluent.Translator._v))
+            + version + Fluent.Translator.tr("gallery_01724aca88b28fcd")
     }
 
     onDryRunModeChanged: resetStatusForMode()
@@ -67,7 +67,7 @@ Item {
                 spacing: Fluent.Enums.spacing.xs
 
                 Text {
-                    text: "自动更新"
+                    text: Fluent.Translator.tr("gallery_736cff237d7d9255", Fluent.Translator._v)
                     font.family: Fluent.Enums.fontFamily
                     font.pixelSize: Fluent.Enums.typography.displayLarge
                     font.bold: true
@@ -83,11 +83,11 @@ Item {
 
             ExampleCard {
                 title: root.dryRunMode
-                    ? "DRY 下载并安装演示"
-                    : "真实 GitHub Releases 更新流程"
+                    ? Fluent.Translator.tr("gallery_42af2e26ff25e6dd", Fluent.Translator._v)
+                    : Fluent.Translator.tr("gallery_e7a7cc8a258f77dc", Fluent.Translator._v)
                 description: root.dryRunMode
-                    ? "完整展示检查、确认、下载进度、后台写入非活动槽和下次启动切换；全程不访问网络、不创建文件，也不启动安装器。"
-                    : "使用 Gallery 注入的真实 Updater 检查 Release；此模式可能访问网络并打开发布页。"
+                    ? Fluent.Translator.tr("gallery_03c05ebdc6e9216f", Fluent.Translator._v)
+                    : Fluent.Translator.tr("gallery_168f3c5f6ee51608", Fluent.Translator._v)
                 orientation: Qt.Vertical
 
                 Column {
@@ -102,8 +102,8 @@ Item {
                             objectName: "galleryAutoUpdateDryRunToggle"
                             controlType: Fluent.Enums.toggle.control_switch
                             text: checked
-                                ? "DRY 演示模式（安全模拟）"
-                                : "真实 Release 模式"
+                                ? Fluent.Translator.tr("gallery_43638d9715e217ac", Fluent.Translator._v)
+                                : Fluent.Translator.tr("gallery_3aa15fd389abde55", Fluent.Translator._v)
                             checked: root.dryRunMode
                             enabled: root.canChangeMode()
                             onToggled: function(checked) {
@@ -114,8 +114,8 @@ Item {
                         Text {
                             width: parent ? parent.width : 0
                             text: root.dryRunMode
-                                ? "用户会看到真实对话框和进度反馈，但不会产生任何安装副作用。"
-                                : "真实模式取决于 Release 是否提供当前平台安装资产。"
+                                ? Fluent.Translator.tr("gallery_35a4f3eef6a0e6cf", Fluent.Translator._v)
+                                : Fluent.Translator.tr("gallery_fadb1e1080535c78", Fluent.Translator._v)
                             font.family: Fluent.Enums.fontFamily
                             font.pixelSize: Fluent.Enums.typography.caption
                             color: Fluent.Enums.textColor.tertiary
@@ -126,7 +126,7 @@ Item {
                     Toggle {
                         objectName: "galleryAutoUpdatePresenterToggle"
                         controlType: Fluent.Enums.toggle.control_switch
-                        text: checked ? "ProgressDialog" : "右下角 Toast"
+                        text: checked ? "ProgressDialog" : Fluent.Translator.tr("gallery_0acfb46690c50b2a", Fluent.Translator._v)
                         checked: root.useProgressDialog
                         onToggled: function(checked) {
                             root.useProgressDialog = checked
@@ -145,15 +145,15 @@ Item {
                             spacing: Fluent.Enums.spacing.xs
 
                             Text {
-                                text: (root.dryRunMode ? "演示源：" : "仓库：")
-                                    + (autoUpdater.repository || "未配置")
+                                text: (root.dryRunMode ? Fluent.Translator.tr("gallery_7dac0a434f2c4ced", Fluent.Translator._v) : Fluent.Translator.tr("gallery_aca80488058c3db1", Fluent.Translator._v))
+                                    + (autoUpdater.repository || Fluent.Translator.tr("gallery_80a57e03f0717f91", Fluent.Translator._v))
                                 font.family: Fluent.Enums.fontFamily
                                 font.pixelSize: Fluent.Enums.typography.body
                                 color: Fluent.Enums.textColor.primary
                                 elide: Text.ElideRight
                             }
                             Text {
-                                text: "当前版本：" + (autoUpdater.currentVersion || "未配置")
+                                text: Fluent.Translator.tr("gallery_435bd0f89db53b12", Fluent.Translator._v) + (autoUpdater.currentVersion || Fluent.Translator.tr("gallery_80a57e03f0717f91", Fluent.Translator._v))
                                 font.family: Fluent.Enums.fontFamily
                                 font.pixelSize: Fluent.Enums.typography.bodySmall
                                 color: Fluent.Enums.textColor.secondary
@@ -164,10 +164,10 @@ Item {
                             id: checkButton
                             objectName: "galleryAutoUpdateCheckButton"
                             text: autoUpdater._installPreparing
-                                ? "后台准备中…"
+                                ? Fluent.Translator.tr("gallery_6dd602065dbc624a", Fluent.Translator._v)
                                 : (autoUpdater._checking
-                                    ? (root.dryRunMode ? "模拟检查中…" : "检查中…")
-                                    : (root.dryRunMode ? "开始 DRY 演示" : "检查更新"))
+                                    ? (root.dryRunMode ? Fluent.Translator.tr("gallery_563bc55f19cf95dc", Fluent.Translator._v) : Fluent.Translator.tr("gallery_fb11aa6f29827095", Fluent.Translator._v))
+                                    : (root.dryRunMode ? Fluent.Translator.tr("gallery_688bfdcebbc5683d", Fluent.Translator._v) : Fluent.Translator.tr("gallery_7f68ebad19ba6bcd", Fluent.Translator._v)))
                             icon: root.dryRunMode ? "Beaker" : "ArrowSync"
                             style: Fluent.Enums.button.style_filled
                             enabled: root.canCheck()
@@ -201,8 +201,8 @@ Item {
                     Text {
                         width: parent ? parent.width : 0
                         text: root.latestVersion !== ""
-                            ? "最近检测到：" + root.latestVersion
-                            : "最近检测到：暂无"
+                            ? Fluent.Translator.tr("gallery_28a283caa1210bfe") + root.latestVersion
+                            : Fluent.Translator.tr("gallery_48c34effb083ee53", Fluent.Translator._v)
                         font.family: Fluent.Enums.fontFamily
                         font.pixelSize: Fluent.Enums.typography.caption
                         color: Fluent.Enums.textColor.tertiary
@@ -211,8 +211,8 @@ Item {
             }
 
             ExampleCard {
-                title: "更新链路"
-                description: "Gallery 中可以直接看到门面组件如何编排底层 Updater、UpdateDialog 和可替换反馈展示器。"
+                title: Fluent.Translator.tr("gallery_50989d57fa728663", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_56df4f714ccb84b5", Fluent.Translator._v)
                 orientation: Qt.Vertical
 
                 Column {
@@ -222,16 +222,16 @@ Item {
                     Repeater {
                         model: root.dryRunMode
                             ? [
-                                "1. 模拟检查并返回一个演示版本",
-                                "2. 使用真实 UpdateDialog 展示说明与“下载并安装”确认",
-                                "3. 使用真实 Toast 或 ProgressDialog 将模拟进度推进到 100%",
-                                "4. 模拟 ISS 后台替换非活动槽，本次继续运行、下次启动切到新版"
+                                Fluent.Translator.tr("gallery_c690f3d0291abc07", Fluent.Translator._v),
+                                Fluent.Translator.tr("gallery_10c0380b93f668a7", Fluent.Translator._v),
+                                Fluent.Translator.tr("gallery_ca2ad481307e7199", Fluent.Translator._v),
+                                Fluent.Translator.tr("gallery_db0d7260525e8cc2", Fluent.Translator._v)
                             ]
                             : [
-                                "1. 检查 GitHub Releases 并比较当前版本",
-                                "2. 发现新版本后显示更新说明和确认对话框",
-                                "3. 下载时由 Toast 或 ProgressDialog 显示不确定/确定进度",
-                                "4. 双槽模式后台替换非活动槽，下次启动自动切到新版"
+                                Fluent.Translator.tr("gallery_762fc61305fbb999", Fluent.Translator._v),
+                                Fluent.Translator.tr("gallery_7e2cc0c8ed7296d6", Fluent.Translator._v),
+                                Fluent.Translator.tr("gallery_34c08a5b0b855bdc", Fluent.Translator._v),
+                                Fluent.Translator.tr("gallery_8f6e4a4cb2a5c74f", Fluent.Translator._v)
                             ]
 
                         delegate: Text {
@@ -287,13 +287,13 @@ Item {
 
         onUpToDateNotified: function(version) {
             root.latestVersion = version
-            root.statusText = "已是最新版本 " + version
+            root.statusText = Fluent.Translator.tr("gallery_94c0372cbcf556d1") + version
         }
         onErrorOccurred: function(message) {
-            root.statusText = "检查失败：" + message
+            root.statusText = Fluent.Translator.tr("gallery_d2bd1fcb3b15dbdf") + message
         }
         onDownloadRequested: function(version) {
-            root.statusText = "已确认下载 " + version
+            root.statusText = Fluent.Translator.tr("gallery_68b849d1a0436c51") + version
         }
     }
 
@@ -308,7 +308,7 @@ Item {
             root.latestVersion = version
         }
         function onCheckFailed(error) {
-            root.statusText = "检查失败：" + error
+            root.statusText = Fluent.Translator.tr("gallery_d2bd1fcb3b15dbdf") + error
         }
     }
 

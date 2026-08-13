@@ -48,6 +48,7 @@ public:
     ~Window();
 
     void setWindowTitle(const QString &title);
+    void setTranslatedWindowTitle(const QString &translationKey);
     // setWindowIcon - 设置标题栏 app 图标 (镜像 Python windowIcon 属性)
     // iconUrl: 图标路径(qrc:/file:/磁盘路径或图标名); colored: true=彩色图标跳过着色叠加。
     void setWindowIcon(const QString &iconUrl, bool colored = true);
@@ -60,11 +61,18 @@ public:
     int addPage(const QString &pageQmlUrl, const QString &icon,
                 const QString &text, NavPosition position = NavPosition::Top,
                 bool selectable = true);
+    int addTranslatedPage(const QString &pageQmlUrl, const QString &icon,
+                          const QString &translationKey,
+                          NavPosition position = NavPosition::Top,
+                          bool selectable = true);
 
     // setSplash - 配置启动画面 (镜像 Python setSplash)。show() 前调用。
     // 默认开启, icon/title 空则回退 windowIcon/windowTitle。enabled=false 禁用。
     void setSplash(bool enabled, const QString &icon = QString(),
                    const QString &title = QString(), const QString &subtitle = QString());
+    void setTranslatedSplash(bool enabled, const QString &icon = QString(),
+                             const QString &titleKey = QString(),
+                             const QString &subtitleKey = QString());
 
     // onBottomItemClicked - 底部导航项点击回调 (镜像 QML bottomItemClicked 信号)。
     // 纯功能项(selectable=false, 如 User 头像)点击时触发, 参数为该项的索引;
@@ -88,6 +96,7 @@ private:
         QString pageQmlUrl;
         QString icon;
         QString text;
+        bool translated = false;
         NavPosition position;
         bool selectable = true;  // false=纯功能项(不切换页面, 如User头像), 仅触发回调
     };
@@ -97,6 +106,7 @@ private:
     WindowType m_type;
     QObject *m_root = nullptr;
     QString m_title;
+    bool m_titleTranslated = false;
     QString m_windowIcon;
     bool m_windowIconColored = true;
     int m_width = 1000;
@@ -111,6 +121,8 @@ private:
     // 启动画面(SplashScreen): 默认开启, 图标/标题空则回退 windowIcon/windowTitle
     bool m_splashEnabled = true;
     QString m_splashIcon, m_splashTitle, m_splashSubtitle;
+    bool m_splashTitleTranslated = false;
+    bool m_splashSubtitleTranslated = false;
     std::function<void(int)> m_onBottomItemClicked;  // 底部项点击回调
 
     void build();
@@ -120,6 +132,7 @@ private:
     void onCurrentPageChanged(int index);
 
     static QString escapeQml(const QString &text);
+    static QString qmlTextExpression(const QString &text, bool translated);
     static QString qmlComponentName(WindowType type);
     QString navItemsJson(const QList<NavItem> &items, int indexOffset, bool isBottom = false) const;
 };

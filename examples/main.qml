@@ -28,8 +28,8 @@ QtObject {
     readonly property int shadowMode: (ConfigManager && ConfigManager.dwmShadow) ? Fluent.Enums.windowShadow.mode_native : Fluent.Enums.windowShadow.mode_none
     readonly property bool micaEnabled: ConfigManager ? ConfigManager.micaEnabled : false
     readonly property bool lazyLoading: ConfigManager ? ConfigManager.lazyLoading : true
-    readonly property string loadingText: "加载中"
-    readonly property string splashSubtitle: "正在加载组件..."
+    readonly property string loadingText: Fluent.Translator.tr("gallery_d04fcbda737fc0c6", Fluent.Translator._v)
+    readonly property string splashSubtitle: Fluent.Translator.tr("gallery_12422784480e8784", Fluent.Translator._v)
     
     // 图标路径解析函数
     function iconPath(name) {
@@ -38,24 +38,24 @@ QtObject {
     
     // 导航项配置
     property var navItems: [
-        { "text": "按钮", "icon": iconPath("CursorClick") },
-        { "text": "输入", "icon": iconPath("Keyboard") },
-        { "text": "标签", "icon": iconPath("Tag") },
-        { "text": "卡片", "icon": iconPath("CardUI") },
-        { "text": "轮播", "icon": iconPath("SlideMultiple") },
-        { "text": "反馈", "icon": iconPath("Alert") },
-        { "text": "自动更新", "icon": iconPath("ArrowSync") },
-        { "text": "菜单", "icon": iconPath("Navigation") },
-        { "text": "导航", "icon": iconPath("CompassNorthwest") },
-        { "text": "容器", "icon": iconPath("LayoutRowFour") },
-        { "text": "图表", "icon": iconPath("DataPie") },
-        { "text": "图标", "icon": iconPath("Icons") },
-        { "text": "特效", "icon": iconPath("Sparkle") }
+        { "text": Fluent.Translator.tr("gallery_ad1c50c9367c756d", Fluent.Translator._v), "icon": iconPath("CursorClick") },
+        { "text": Fluent.Translator.tr("gallery_2087c777c06fefe5", Fluent.Translator._v), "icon": iconPath("Keyboard") },
+        { "text": Fluent.Translator.tr("gallery_1d0fd5f9336d9103", Fluent.Translator._v), "icon": iconPath("Tag") },
+        { "text": Fluent.Translator.tr("gallery_fb5640f8e12e3337", Fluent.Translator._v), "icon": iconPath("CardUI") },
+        { "text": Fluent.Translator.tr("gallery_85f05ecc2a4f3f5d", Fluent.Translator._v), "icon": iconPath("SlideMultiple") },
+        { "text": Fluent.Translator.tr("gallery_8b2106ca13719cb2", Fluent.Translator._v), "icon": iconPath("Alert") },
+        { "text": Fluent.Translator.tr("gallery_736cff237d7d9255", Fluent.Translator._v), "icon": iconPath("ArrowSync") },
+        { "text": Fluent.Translator.tr("gallery_4ce4cafdd0561280", Fluent.Translator._v), "icon": iconPath("Navigation") },
+        { "text": Fluent.Translator.tr("gallery_e72622fe470d04bc", Fluent.Translator._v), "icon": iconPath("CompassNorthwest") },
+        { "text": Fluent.Translator.tr("gallery_6d23f04b26967d64", Fluent.Translator._v), "icon": iconPath("LayoutRowFour") },
+        { "text": Fluent.Translator.tr("gallery_8cb443ab83797881", Fluent.Translator._v), "icon": iconPath("DataPie") },
+        { "text": Fluent.Translator.tr("gallery_0d720eeea26466dd", Fluent.Translator._v), "icon": iconPath("Icons") },
+        { "text": Fluent.Translator.tr("gallery_8829dbcbcfce6e54", Fluent.Translator._v), "icon": iconPath("Sparkle") }
     ]
     
     property var bottomNavItems: [
         { "text": "User", "icon": "qrc:/image/avatar/avatar.png", "selectable": false },
-        { "text": "设置", "icon": iconPath("Settings"), "key": "SettingsPage" }
+        { "text": Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v), "icon": iconPath("Settings"), "key": "SettingsPage" }
     ]
     
     property var pagePaths: [

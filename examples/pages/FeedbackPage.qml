@@ -21,7 +21,7 @@ Item {
     Component {
         id: desktopToastAction
         Button {
-            text: "打开目录"
+            text: Fluent.Translator.tr("gallery_7d0d5850515d9421", Fluent.Translator._v)
             width: parent ? parent.width : implicitWidth
         }
     }
@@ -37,13 +37,13 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "反馈组件"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_bf367252d1ee1b72", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
                 Text { text: "prismqml.controls.feedback"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // 进度指示
             ExampleCard {
-                title: "进度指示"
+                title: Fluent.Translator.tr("gallery_b16f0cf94c81feaa", Fluent.Translator._v)
                 description: "Progress (type_bar / type_bar_filled / type_ring)"
                 Column {
                     spacing: Fluent.Enums.spacing.l
@@ -65,7 +65,7 @@ Item {
             
             // 骨架屏
             ExampleCard {
-                title: "骨架屏"
+                title: Fluent.Translator.tr("gallery_76f59696529a636c", Fluent.Translator._v)
                 description: "Skeleton (shape_rounded / shape_rect / shape_circle)"
                 Column {
                     spacing: Fluent.Enums.spacing.xl
@@ -80,7 +80,7 @@ Item {
                         // 方形个人信息骨架
                         Column {
                             spacing: Fluent.Enums.spacing.none
-                            Text { text: "方形个人信息骨架"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.secondaryForeground; bottomPadding: Fluent.Enums.spacing.m }
+                            Text { text: Fluent.Translator.tr("gallery_b2a08a05f90e151b", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.secondaryForeground; bottomPadding: Fluent.Enums.spacing.m }
                             Row {
                                 spacing: Fluent.Enums.spacing.l
                                 Skeleton { shape: Fluent.Enums.skeleton.shape_rect; width: 64; height: 64 }
@@ -94,7 +94,7 @@ Item {
                         // 圆形个人信息骨架
                         Column {
                             spacing: Fluent.Enums.spacing.none
-                            Text { text: "圆形个人信息骨架"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.secondaryForeground; bottomPadding: Fluent.Enums.spacing.m }
+                            Text { text: Fluent.Translator.tr("gallery_1840f748c438cea2", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.secondaryForeground; bottomPadding: Fluent.Enums.spacing.m }
                             Row {
                                 spacing: Fluent.Enums.spacing.l
                                 Skeleton { shape: Fluent.Enums.skeleton.shape_circle; width: 64; height: 64 }
@@ -115,67 +115,67 @@ Item {
             // NotificationManager - InfoBar - 6个位置
             ExampleCard {
                 title: "NotificationManager.infoBar"
-                description: "InfoBar - 左上/中上/右上/左下/中下/右下"
+                description: Fluent.Translator.tr("gallery_f0b6509128f2c22d", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.infoBar.info(root, "提示", "左上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.infoBar.success(root, "成功", "中上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.infoBar.warning(root, "警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.infoBar.error(root, "错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.infoBar.attention(root, "注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.infoBar.processing(root, "处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.infoBar.info(root, Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v), Fluent.Translator.tr("gallery_a59f733a80883766", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.infoBar.success(root, Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v), Fluent.Translator.tr("gallery_58b9ea35c2e8aeb8", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.infoBar.warning(root, Fluent.Translator.tr("gallery_a8b7a4480407ac8a", Fluent.Translator._v), Fluent.Translator.tr("gallery_37a1933200b062da", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.infoBar.error(root, Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v), Fluent.Translator.tr("gallery_84eb9f344f50a101", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.infoBar.attention(root, Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v), Fluent.Translator.tr("gallery_b90cd29061ebe116", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.infoBar.processing(root, Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v), Fluent.Translator.tr("gallery_3ff4eacca4b44501", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
                 }
             }
             
             // NotificationManager - Toast - 6个位置
             ExampleCard {
                 title: "NotificationManager.toast"
-                description: "Toast - 左上/中上/右上/左下/中下/右下"
+                description: Fluent.Translator.tr("gallery_e31c57087766b9ba", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.toast.info(root, "提示", "左上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.toast.success(root, "成功", "中上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.toast.warning(root, "警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.toast.error(root, "错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.toast.attention(root, "注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.toast.processing(root, "处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.toast.info(root, Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v), Fluent.Translator.tr("gallery_a59f733a80883766", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.toast.success(root, Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v), Fluent.Translator.tr("gallery_58b9ea35c2e8aeb8", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.toast.warning(root, Fluent.Translator.tr("gallery_a8b7a4480407ac8a", Fluent.Translator._v), Fluent.Translator.tr("gallery_37a1933200b062da", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.toast.error(root, Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v), Fluent.Translator.tr("gallery_84eb9f344f50a101", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.toast.attention(root, Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v), Fluent.Translator.tr("gallery_b90cd29061ebe116", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.toast.processing(root, Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v), Fluent.Translator.tr("gallery_3ff4eacca4b44501", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
                 }
             }
             
             // NotificationManager - Desktop (InfoBar样式) - 6个位置
             ExampleCard {
                 title: "NotificationManager.desktop (InfoBar)"
-                description: "桌面InfoBar通知 (独立窗口) - 左上/中上/右上/左下/中下/右下"
+                description: Fluent.Translator.tr("gallery_3361e7282d6d0633", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.infoBar("info", "提示", "左上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.infoBar("success", "成功", "中上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.infoBar("warning", "警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.infoBar("error", "错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.infoBar("attention", "注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.infoBar("processing", "处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.infoBar("info", Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v), Fluent.Translator.tr("gallery_a59f733a80883766", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.infoBar("success", Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v), Fluent.Translator.tr("gallery_58b9ea35c2e8aeb8", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.infoBar("warning", Fluent.Translator.tr("gallery_a8b7a4480407ac8a", Fluent.Translator._v), Fluent.Translator.tr("gallery_37a1933200b062da", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.infoBar("error", Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v), Fluent.Translator.tr("gallery_84eb9f344f50a101", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.infoBar("attention", Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v), Fluent.Translator.tr("gallery_b90cd29061ebe116", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.infoBar("processing", Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v), Fluent.Translator.tr("gallery_3ff4eacca4b44501", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
                 }
             }
             
             // NotificationManager - Desktop (Toast样式) - 6个位置
             ExampleCard {
                 title: "NotificationManager.desktop (Toast)"
-                description: "桌面Toast通知 (独立窗口) - 左上/中上/右上/左下/中下/右下"
+                description: Fluent.Translator.tr("gallery_1af315c4161471c1", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.info("提示", "左上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.success("成功", "中上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.warning("警告", "右上位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.error("错误", "左下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.info("注意", "中下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.info("处理中", "右下位置", Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.info(Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v), Fluent.Translator.tr("gallery_a59f733a80883766", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.success(Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v), Fluent.Translator.tr("gallery_58b9ea35c2e8aeb8", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.warning(Fluent.Translator.tr("gallery_a8b7a4480407ac8a", Fluent.Translator._v), Fluent.Translator.tr("gallery_37a1933200b062da", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.error(Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v), Fluent.Translator.tr("gallery_84eb9f344f50a101", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.info(Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v), Fluent.Translator.tr("gallery_b90cd29061ebe116", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
+                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.info(Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v), Fluent.Translator.tr("gallery_3ff4eacca4b44501", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
                 }
             }
 
             // Desktop Toast options demo 桌面 Toast 选项演示
             ExampleCard {
                 title: "NotificationManager.desktop (Toast options)"
-                description: "特殊选项 - 垂直布局/自定义内容/显式屏幕"
+                description: Fluent.Translator.tr("gallery_11eb088399ff4760", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.l
                     Button {
@@ -183,7 +183,7 @@ Item {
                         level: 1
                         text: "Success + options"
                         onClicked: NotificationManager.desktop.success(
-                            "成功",
+                            Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v),
                             "00:14\nC:/recordings/clip.mp4",
                             Fluent.Enums.duration.notification,
                             Fluent.Enums.notification.posBottomRight,
@@ -204,13 +204,13 @@ Item {
             
             // 状态组件 - StateWidget（统一组件）
             ExampleCard {
-                title: "状态组件"
-                description: "StateWidget（统一状态组件，用stateType区分）"
+                title: Fluent.Translator.tr("gallery_7cffe28ddcedd1d0", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_9b6c6de92f21ee98", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.demoMetrics.gapLarge
                     ComponentCard { label: "type_no_data"; StateWidget { width: 160; height: 180; stateType: Fluent.Enums.state.type_no_data } }
-                    ComponentCard { label: "type_result (success)"; StateWidget { width: 160; height: 180; stateType: Fluent.Enums.state.type_result; severity: "success"; title: "提交成功" } }
-                    ComponentCard { label: "type_result (error)"; StateWidget { width: 160; height: 180; stateType: Fluent.Enums.state.type_result; severity: "error"; title: "操作失败" } }
+                    ComponentCard { label: "type_result (success)"; StateWidget { width: 160; height: 180; stateType: Fluent.Enums.state.type_result; severity: "success"; title: Fluent.Translator.tr("gallery_205dfc7ce8cd7288", Fluent.Translator._v) } }
+                    ComponentCard { label: "type_result (error)"; StateWidget { width: 160; height: 180; stateType: Fluent.Enums.state.type_result; severity: "error"; title: Fluent.Translator.tr("gallery_0c3b4cf7aa259edb", Fluent.Translator._v) } }
                     ComponentCard { label: "type_no_internet"; StateWidget { width: 160; height: 200; stateType: Fluent.Enums.state.type_no_internet } }
                 }
             }
@@ -218,104 +218,104 @@ Item {
             
             // 对话框
             ExampleCard {
-                title: "对话框"
+                title: Fluent.Translator.tr("gallery_dffaa1bf796588bc", Fluent.Translator._v)
                 description: "MessageBox / DialogBoxCore / ProgressDialog"
                 Column {
                     spacing: Fluent.Enums.spacing.l
                     Row {
                         spacing: Fluent.Enums.spacing.l
-                        ComponentCard { label: "MessageBox"; Button { text: "消息框"; onClicked: demoMessageBox.open() } }
-                        ComponentCard { label: "确认框"; Button { text: "确认框"; onClicked: confirmBox.open() } }
-                        ComponentCard { label: "可拖拽"; Button { text: "可拖拽"; onClicked: draggableBox.open() } }
-                        ComponentCard { label: "点击遮罩关闭"; Button { text: "点击遮罩关闭"; onClicked: maskCloseBox.open() } }
-                        Text { id: dialogResult; text: "结果: 未操作"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; topPadding: Fluent.Enums.spacing.m }
+                        ComponentCard { label: "MessageBox"; Button { text: Fluent.Translator.tr("gallery_877850d2f430ee78", Fluent.Translator._v); onClicked: demoMessageBox.open() } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_a0e0c0bae980ef35", Fluent.Translator._v); Button { text: Fluent.Translator.tr("gallery_a0e0c0bae980ef35", Fluent.Translator._v); onClicked: confirmBox.open() } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_eb400e6c1e6b2899", Fluent.Translator._v); Button { text: Fluent.Translator.tr("gallery_eb400e6c1e6b2899", Fluent.Translator._v); onClicked: draggableBox.open() } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_0bb79bdc93beabe5", Fluent.Translator._v); Button { text: Fluent.Translator.tr("gallery_0bb79bdc93beabe5", Fluent.Translator._v); onClicked: maskCloseBox.open() } }
+                        Text { id: dialogResult; text: Fluent.Translator.tr("gallery_d1f5b5d4bdea4b12", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; topPadding: Fluent.Enums.spacing.m }
                     }
                     Row {
                         spacing: Fluent.Enums.spacing.l
-                        ComponentCard { label: "无边框对话框"; Button { text: "无边框对话框"; onClicked: dialogDemo.open() } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_a500fb63eeacf9ac", Fluent.Translator._v); Button { text: Fluent.Translator.tr("gallery_a500fb63eeacf9ac", Fluent.Translator._v); onClicked: dialogDemo.open() } }
                         ComponentCard { label: "ProgressDialog"; Button { text: "ProgressDialog"; onClicked: { progressDlg.open(); progressTimer.start() } } }
-                        ComponentCard { label: "隐藏取消按钮"; Button { text: "隐藏取消"; onClicked: noCancelBox.open() } }
-                        ComponentCard { label: "内容可复制"; Button { text: "可复制"; onClicked: copyableBox.open() } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_f10123490a7f9380", Fluent.Translator._v); Button { text: Fluent.Translator.tr("gallery_1d0be325f2993f8a", Fluent.Translator._v); onClicked: noCancelBox.open() } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_fd6e988db6d48cca", Fluent.Translator._v); Button { text: Fluent.Translator.tr("gallery_a1ac66a4569080c3", Fluent.Translator._v); onClicked: copyableBox.open() } }
                     }
                 }
             }
             
             // 弹出层 - Flyout (6种动画)
             ExampleCard {
-                title: "Flyout 弹出层"
-                description: "Flyout - 6种动画: pullUp/dropDown/slideLeft/slideRight/fadeIn/none + modal模态"
+                title: Fluent.Translator.tr("gallery_470739e4f4ac1431", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_087b36f7897ea738", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
                         label: "PullUp"
-                        Button { id: flyoutBtn1; text: "上拉"; onClicked: flyout1.show() }
-                        Flyout { id: flyout1; target: flyoutBtn1; title: "提示"; content: "上拉弹出"; animationType: Fluent.Enums.flyout.pullUp }
+                        Button { id: flyoutBtn1; text: Fluent.Translator.tr("gallery_4c944bc1575e5d3c", Fluent.Translator._v); onClicked: flyout1.show() }
+                        Flyout { id: flyout1; target: flyoutBtn1; title: Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_2bb39825adcd3750", Fluent.Translator._v); animationType: Fluent.Enums.flyout.pullUp }
                     }
                     ComponentCard {
                         label: "DropDown"
-                        Button { id: flyoutBtn2; text: "下拉"; onClicked: flyout2.show() }
-                        Flyout { id: flyout2; target: flyoutBtn2; title: "提示"; content: "下拉弹出"; animationType: Fluent.Enums.flyout.dropDown; deleteOnClose: false }
+                        Button { id: flyoutBtn2; text: Fluent.Translator.tr("gallery_2d57905608fe316e", Fluent.Translator._v); onClicked: flyout2.show() }
+                        Flyout { id: flyout2; target: flyoutBtn2; title: Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_02ae362b3e5af9a5", Fluent.Translator._v); animationType: Fluent.Enums.flyout.dropDown; deleteOnClose: false }
                     }
                     ComponentCard {
                         label: "SlideLeft"
-                        Button { id: flyoutBtn3; text: "左滑"; onClicked: flyout3.show() }
-                        Flyout { id: flyout3; target: flyoutBtn3; title: "提示"; content: "左滑弹出"; animationType: Fluent.Enums.flyout.slideLeft; deleteOnClose: false }
+                        Button { id: flyoutBtn3; text: Fluent.Translator.tr("gallery_3f481edbbfdb168b", Fluent.Translator._v); onClicked: flyout3.show() }
+                        Flyout { id: flyout3; target: flyoutBtn3; title: Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_edebb5eedd236bfa", Fluent.Translator._v); animationType: Fluent.Enums.flyout.slideLeft; deleteOnClose: false }
                     }
                     ComponentCard {
                         label: "SlideRight"
-                        Button { id: flyoutBtn5; text: "右滑"; onClicked: flyout5.show() }
-                        Flyout { id: flyout5; target: flyoutBtn5; title: "提示"; content: "右滑弹出"; animationType: Fluent.Enums.flyout.slideRight; deleteOnClose: false }
+                        Button { id: flyoutBtn5; text: Fluent.Translator.tr("gallery_7058a7d72aed6230", Fluent.Translator._v); onClicked: flyout5.show() }
+                        Flyout { id: flyout5; target: flyoutBtn5; title: Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_186d8705e08e55e4", Fluent.Translator._v); animationType: Fluent.Enums.flyout.slideRight; deleteOnClose: false }
                     }
                     ComponentCard {
                         label: "FadeIn"
-                        Button { id: flyoutBtn4; text: "淡入"; onClicked: flyout4.show() }
-                        Flyout { id: flyout4; target: flyoutBtn4; title: "提示"; content: "淡入弹出"; animationType: Fluent.Enums.flyout.fadeIn; deleteOnClose: false }
+                        Button { id: flyoutBtn4; text: Fluent.Translator.tr("gallery_f72b83eaba1cc7f0", Fluent.Translator._v); onClicked: flyout4.show() }
+                        Flyout { id: flyout4; target: flyoutBtn4; title: Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_476e94748b0959ce", Fluent.Translator._v); animationType: Fluent.Enums.flyout.fadeIn; deleteOnClose: false }
                     }
                     ComponentCard {
-                        label: "非模态"
-                        Button { id: flyoutBtn6; text: "非模态"; onClicked: flyout6.show() }
-                        Flyout { id: flyout6; target: flyoutBtn6; title: "非模态提示"; content: "不会自动关闭"; modal: false; deleteOnClose: false }
+                        label: Fluent.Translator.tr("gallery_d31df5e84bc61e71", Fluent.Translator._v)
+                        Button { id: flyoutBtn6; text: Fluent.Translator.tr("gallery_d31df5e84bc61e71", Fluent.Translator._v); onClicked: flyout6.show() }
+                        Flyout { id: flyout6; target: flyoutBtn6; title: Fluent.Translator.tr("gallery_5124e57901af8928", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_f86a3402e9505e66", Fluent.Translator._v); modal: false; deleteOnClose: false }
                     }
                 }
             }
             
             // TeachingTip (带箭头)
             ExampleCard {
-                title: "TeachingTip 教学提示"
-                description: "TeachingTip - 带箭头的教学提示 (anchor_bottom/top/left/right...)"
+                title: Fluent.Translator.tr("gallery_4ea266b55b66cdff", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_f40558e0064fd14c", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
                         label: "Bottom"
-                        Button { id: tipBtn1; text: "底部"; onClicked: tip1.show() }
-                        TeachingTip { id: tip1; target: tipBtn1; title: "教程"; content: "底部箭头"; anchorPosition: Fluent.Enums.teachingTip.anchor_bottom; deleteOnClose: false }
+                        Button { id: tipBtn1; text: Fluent.Translator.tr("gallery_3f049887991b880c", Fluent.Translator._v); onClicked: tip1.show() }
+                        TeachingTip { id: tip1; target: tipBtn1; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_96a13a16b9f46d25", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_bottom; deleteOnClose: false }
                     }
                     ComponentCard {
                         label: "Top"
-                        Button { id: tipBtn2; text: "顶部"; onClicked: tip2.show() }
-                        TeachingTip { id: tip2; target: tipBtn2; title: "教程"; content: "顶部箭头"; anchorPosition: Fluent.Enums.teachingTip.anchor_top; deleteOnClose: false }
+                        Button { id: tipBtn2; text: Fluent.Translator.tr("gallery_6f2a4a02e60e067c", Fluent.Translator._v); onClicked: tip2.show() }
+                        TeachingTip { id: tip2; target: tipBtn2; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_c6505f122d94191b", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_top; deleteOnClose: false }
                     }
                     ComponentCard {
                         label: "Left"
-                        Button { id: tipBtn3; text: "左侧"; onClicked: tip3.show() }
-                        TeachingTip { id: tip3; target: tipBtn3; title: "教程"; content: "左侧箭头"; anchorPosition: Fluent.Enums.teachingTip.anchor_left; deleteOnClose: false }
+                        Button { id: tipBtn3; text: Fluent.Translator.tr("gallery_6a24b14f33c72be4", Fluent.Translator._v); onClicked: tip3.show() }
+                        TeachingTip { id: tip3; target: tipBtn3; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_c115c0dde27a7b9a", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_left; deleteOnClose: false }
                     }
                     ComponentCard {
                         label: "Right"
-                        Button { id: tipBtn4; text: "右侧"; onClicked: tip4.show() }
-                        TeachingTip { id: tip4; target: tipBtn4; title: "教程"; content: "右侧箭头"; anchorPosition: Fluent.Enums.teachingTip.anchor_right; deleteOnClose: false }
+                        Button { id: tipBtn4; text: Fluent.Translator.tr("gallery_1cf1d4d0b24b0b16", Fluent.Translator._v); onClicked: tip4.show() }
+                        TeachingTip { id: tip4; target: tipBtn4; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_e8f5dd6d4b0a27b7", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_right; deleteOnClose: false }
                     }
                     ComponentCard {
-                        label: "非模态"
-                        Button { id: tipBtnModal; text: "非模态"; onClicked: tipModal.show() }
-                        TeachingTip { id: tipModal; target: tipBtnModal; title: "非模态提示"; content: "不会自动关闭"; anchorPosition: Fluent.Enums.teachingTip.anchor_bottom; modal: false; deleteOnClose: false }
+                        label: Fluent.Translator.tr("gallery_d31df5e84bc61e71", Fluent.Translator._v)
+                        Button { id: tipBtnModal; text: Fluent.Translator.tr("gallery_d31df5e84bc61e71", Fluent.Translator._v); onClicked: tipModal.show() }
+                        TeachingTip { id: tipModal; target: tipBtnModal; title: Fluent.Translator.tr("gallery_5124e57901af8928", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_f86a3402e9505e66", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_bottom; modal: false; deleteOnClose: false }
                     }
                 }
             }
             FeedbackTeachingTourExample {}
             // 其他弹出组件
             ExampleCard {
-                title: "其他弹出组件"
+                title: Fluent.Translator.tr("gallery_08f2cb12e2942057", Fluent.Translator._v)
                 description: "ToolTip"
                 Row {
                     spacing: Fluent.Enums.spacing.l
@@ -323,8 +323,8 @@ Item {
                         label: "ToolTip"
                         Rectangle {
                             width: 90; height: 30; color: Fluent.Enums.hoverColor; radius: Fluent.Enums.radius.small
-                            Text { anchors.centerIn: parent; text: "悬浮"; font.pixelSize: Fluent.Enums.demoMetrics.toolTipFontSize; color: Fluent.Enums.textColor.primary }
-                            ToolTip { id: demoTooltip; x: (parent.width - width) / 2; y: parent.height + 5; text: "这是ToolTip" }
+                            Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_b70c4e8a2e1d27ad", Fluent.Translator._v); font.pixelSize: Fluent.Enums.demoMetrics.toolTipFontSize; color: Fluent.Enums.textColor.primary }
+                            ToolTip { id: demoTooltip; x: (parent.width - width) / 2; y: parent.height + 5; text: Fluent.Translator.tr("gallery_497f14a4db87906b", Fluent.Translator._v) }
                             MouseArea { anchors.fill: parent; hoverEnabled: true; onEntered: demoTooltip.show(); onExited: demoTooltip.hide() }
                         }
                     }
@@ -334,12 +334,12 @@ Item {
             
             // 彩纸动画
             ExampleCard {
-                title: "彩纸动画"
-                description: "Confetti（显示在主窗口）"
+                title: Fluent.Translator.tr("gallery_83a058f36678dc08", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_fd58a8c832d36df0", Fluent.Translator._v)
                 ComponentCard {
                     label: "Confetti"
                     Button { 
-                        text: "触发彩纸"; icon: Fluent.Enums.icon.sparkle
+                        text: Fluent.Translator.tr("gallery_0adb4a51d235d998", Fluent.Translator._v); icon: Fluent.Enums.icon.sparkle
                         onClicked: confettiEffect.start()
                     }
                 }
@@ -349,31 +349,31 @@ Item {
     }
     
     // 对话框组件 - 必须放在root级别以正确填充窗口
-    MessageBox { id: demoMessageBox; title: "提示"; content: "这是一条消息" }
+    MessageBox { id: demoMessageBox; title: Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_200bf3564876553e", Fluent.Translator._v) }
     MessageBox { 
-        id: confirmBox; title: "确认"; content: "确定要执行此操作吗？"
-        onAccepted: dialogResult.text = "结果: 确定"
-        onRejected: dialogResult.text = "结果: 取消"
+        id: confirmBox; title: Fluent.Translator.tr("gallery_36f33adaf0942634", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_7fa2094884a8778a", Fluent.Translator._v)
+        onAccepted: dialogResult.text = Fluent.Translator.tr("gallery_248c56d1d038beee", Fluent.Translator._v)
+        onRejected: dialogResult.text = Fluent.Translator.tr("gallery_0206596380c612b5", Fluent.Translator._v)
     }
     MessageBox { 
-        id: draggableBox; title: "可拖拽对话框"; content: "拖动此对话框试试"
+        id: draggableBox; title: Fluent.Translator.tr("gallery_faf52acf2fa72035", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_fda29a858bda01eb", Fluent.Translator._v)
         draggable: true
     }
     MessageBox { 
-        id: maskCloseBox; title: "点击遮罩关闭"; content: "点击遮罩层可以关闭此对话框"
+        id: maskCloseBox; title: Fluent.Translator.tr("gallery_0bb79bdc93beabe5", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_fc5cf77d4e27a599", Fluent.Translator._v)
         dismissOnScrimClick: true
     }
     MessageBox { 
-        id: noCancelBox; title: "仅确定按钮"; content: "此对话框只有确定按钮"
+        id: noCancelBox; title: Fluent.Translator.tr("gallery_0358d2c4093bd1d4", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_9c21f6dad136bcb7", Fluent.Translator._v)
         cancelButtonVisible: false
     }
     MessageBox { 
-        id: copyableBox; title: "可复制内容"; content: "选中此文本可以复制：PrismQML是一个QML组件库"
+        id: copyableBox; title: Fluent.Translator.tr("gallery_a6cc5d53a3888b48", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_91c9e9dd5d5635c9", Fluent.Translator._v)
         contentCopyable: true
     }
     // Dialog - 无边框对话框
-    MessageBox { id: dialogDemo; title: "这是一个无边框对话框"; content: "这是一个无边框对话框的示例内容，可以在这里放置任意自定义文本，用于演示对话框的标题、正文与按钮布局效果。" }
-    ProgressDialog { id: progressDlg; title: "请耐心等待..."; content: "正在准备下载任务中 ..."; maxWaitingTime: Fluent.Enums.duration.toast; onTimeout: progressTimer.stop() }
+    MessageBox { id: dialogDemo; title: Fluent.Translator.tr("gallery_13a8f3d660ec7a2d", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_104eef2a24a54e2a", Fluent.Translator._v) }
+    ProgressDialog { id: progressDlg; title: Fluent.Translator.tr("gallery_9cbb625342267237", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_f1bd46290e9ead41", Fluent.Translator._v); maxWaitingTime: Fluent.Enums.duration.toast; onTimeout: progressTimer.stop() }
     Timer { id: progressTimer; interval: Fluent.Enums.duration.toast; onTriggered: progressDlg.close() }
     
     // 彩纸效果 - 显示在主窗口级别

@@ -26,10 +26,10 @@ QtObject {
     readonly property string installerSilentArgs:
         "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
     readonly property string releaseNotes:
-        "## DRY 演示更新\n\n"
-        + "- 展示真实更新确认对话框\n"
-        + "- 模拟下载进度从 0% 到 100%\n"
-        + "- 模拟 ISS 静默安装交接，不创建文件或启动程序"
+        Fluent.Translator.tr("gallery_fdd95a07de7bba4c", Fluent.Translator._v)
+        + Fluent.Translator.tr("gallery_5274664fbfa7dd5b", Fluent.Translator._v)
+        + Fluent.Translator.tr("gallery_13321e8fb49bf67f", Fluent.Translator._v)
+        + Fluent.Translator.tr("gallery_138d19b516ca852a", Fluent.Translator._v)
     readonly property int totalProgress: 100
     readonly property int bytesPerMebibyte: 1024 * 1024
     readonly property int totalDownloadBytes: totalProgress * bytesPerMebibyte
@@ -51,7 +51,7 @@ QtObject {
         repeat: false
 
         onTriggered: {
-            root.stageChanged("DRY：双槽已准备完成，下次启动自动切换")
+            root.stageChanged(Fluent.Translator.tr("gallery_a9e0091fbab4d524", Fluent.Translator._v))
             root.installPreparationFinished()
         }
     }
@@ -60,7 +60,7 @@ QtObject {
         repeat: false
 
         onTriggered: {
-            root.stageChanged("DRY：发现模拟版本，等待用户确认")
+            root.stageChanged(Fluent.Translator.tr("gallery_b5e0ef52a7a37b1d", Fluent.Translator._v))
             root.updateAvailable(
                 root.simulatedVersion,
                 root.releaseNotes,
@@ -82,10 +82,10 @@ QtObject {
                 root.totalDownloadBytes * root._progress / root.totalProgress
             )
             root.downloadProgress(receivedBytes, root.totalDownloadBytes)
-            root.stageChanged("DRY：模拟下载中 " + root._progress + "%")
+            root.stageChanged(Fluent.Translator.tr("gallery_127f9ed8b1424cd5") + root._progress + "%")
             if (root._progress >= root.totalProgress) {
                 stop()
-                root.stageChanged("DRY：模拟下载完成，正在交接安装")
+                root.stageChanged(Fluent.Translator.tr("gallery_2f5728cf56fedde6", Fluent.Translator._v))
                 root.downloadFinished(root.installerPath)
             }
         }
@@ -111,38 +111,38 @@ QtObject {
     // ==================== Public Methods 公开方法 ====================
     function checkForUpdate() {
         if (root._checkTimer.running || root._downloadTimer.running) {
-            root.checkFailed("DRY 演示正在进行")
+            root.checkFailed(Fluent.Translator.tr("gallery_df9f58a00cbd3fba", Fluent.Translator._v))
             return
         }
         root._checkSimulationCount += 1
         root._progress = 0
-        root.stageChanged("DRY：正在模拟检查更新…")
+        root.stageChanged(Fluent.Translator.tr("gallery_099a3aa23c93d0a0", Fluent.Translator._v))
         root._checkTimer.restart()
     }
 
     function downloadUpdate(token) {
         if (token !== root.downloadToken) {
-            root.downloadFailed("DRY 下载令牌无效")
+            root.downloadFailed(Fluent.Translator.tr("gallery_95e7b76fc84f3c1b", Fluent.Translator._v))
             return
         }
         if (root._downloadTimer.running) {
-            root.downloadFailed("DRY 模拟下载正在进行")
+            root.downloadFailed(Fluent.Translator.tr("gallery_55f00b29001662c4", Fluent.Translator._v))
             return
         }
         root._downloadSimulationCount += 1
         root._progress = 0
-        root.stageChanged("DRY：准备模拟下载")
+        root.stageChanged(Fluent.Translator.tr("gallery_92632cc23944f0d8", Fluent.Translator._v))
         root._downloadTimer.restart()
     }
 
     function runInstallerAndQuit(path, args) {
         root._lastInstallerArgs = args
         if (path !== root.installerPath) {
-            root.stageChanged("DRY：安装交接失败")
+            root.stageChanged(Fluent.Translator.tr("gallery_a611629f3acb875b", Fluent.Translator._v))
             return false
         }
         root._installSimulationCount += 1
-        root.stageChanged("DRY 演示完成：已模拟静默安装交接，未下载文件、未启动安装器")
+        root.stageChanged(Fluent.Translator.tr("gallery_05707114351490dc", Fluent.Translator._v))
         root.installSimulated(path)
         return true
     }
@@ -150,18 +150,18 @@ QtObject {
     function stageInstallerForNextLaunch(path, args) {
         root._lastInstallerArgs = args
         if (path !== root.installerPath) {
-            root.stageChanged("DRY：双槽安装交接失败")
-            root.installPreparationFailed("DRY 安装包路径无效")
+            root.stageChanged(Fluent.Translator.tr("gallery_a6d25e4657be00d5", Fluent.Translator._v))
+            root.installPreparationFailed(Fluent.Translator.tr("gallery_010faedd6f1eae59", Fluent.Translator._v))
             return false
         }
         root._installSimulationCount += 1
-        root.stageChanged("DRY：正在后台准备非活动槽")
+        root.stageChanged(Fluent.Translator.tr("gallery_b53ff9606b8b1f8c", Fluent.Translator._v))
         root._prepareTimer.restart()
         return true
     }
 
     function openInBrowser(url) {
-        root.stageChanged("DRY 模式不会打开外部页面")
+        root.stageChanged(Fluent.Translator.tr("gallery_26448145cd75932b", Fluent.Translator._v))
         return true
     }
 }

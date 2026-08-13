@@ -27,7 +27,7 @@ Item {
 
                 Fluent.Label {
                     type: Fluent.Enums.label.type_title
-                    text: "卡片与容器"
+                    text: Fluent.Translator.tr("gallery_e49c9ff56ab3ff33", Fluent.Translator._v)
                 }
 
                 Fluent.Label {
@@ -39,7 +39,7 @@ Item {
 
             // Basic cards 基础卡片
             Fluent.ExampleCard {
-                title: "基础卡片"
+                title: Fluent.Translator.tr("gallery_8f4182dc6776fdf7", Fluent.Translator._v)
                 description: "Card · contentPadding / autoHeight"
 
                 Column {
@@ -61,12 +61,12 @@ Item {
 
                                 Fluent.Label {
                                     type: Fluent.Enums.label.type_body_strong
-                                    text: "简单卡片"
+                                    text: Fluent.Translator.tr("gallery_df57da586612dd9c", Fluent.Translator._v)
                                 }
 
                                 Fluent.Label {
                                     type: Fluent.Enums.label.type_caption
-                                    text: "无悬停效果"
+                                    text: Fluent.Translator.tr("gallery_04c86b844e5aafcd", Fluent.Translator._v)
                                     color: Fluent.Enums.textColor.secondary
                                 }
                             }
@@ -89,12 +89,12 @@ Item {
 
                                 Fluent.Label {
                                     type: Fluent.Enums.label.type_body_strong
-                                    text: "普通卡片"
+                                    text: Fluent.Translator.tr("gallery_e24fa4e9e43c92ef", Fluent.Translator._v)
                                 }
 
                                 Fluent.Label {
                                     type: Fluent.Enums.label.type_caption
-                                    text: "悬停变色，不上浮"
+                                    text: Fluent.Translator.tr("gallery_533d082728a974dd", Fluent.Translator._v)
                                     color: Fluent.Enums.textColor.secondary
                                 }
                             }
@@ -117,12 +117,12 @@ Item {
 
                                 Fluent.Label {
                                     type: Fluent.Enums.label.type_body_strong
-                                    text: "悬浮卡片"
+                                    text: Fluent.Translator.tr("gallery_08ca5ffe51355ae3", Fluent.Translator._v)
                                 }
 
                                 Fluent.Label {
                                     type: Fluent.Enums.label.type_caption
-                                    text: "悬停上浮并增强阴影"
+                                    text: Fluent.Translator.tr("gallery_a9386c7967197a97", Fluent.Translator._v)
                                     color: Fluent.Enums.textColor.secondary
                                 }
                             }
@@ -135,14 +135,14 @@ Item {
                         Fluent.Card {
                             objectName: "galleryHeaderCard"
                             cardType: Fluent.Enums.card.type_header
-                            title: "标题卡片"
+                            title: Fluent.Translator.tr("gallery_f58a5cac5007dcae", Fluent.Translator._v)
                             width: Fluent.Enums.controlSize.cardContentWidth
 
                             Fluent.Label {
                                 objectName: "galleryHeaderContent"
                                 type: Fluent.Enums.label.type_body
                                 width: parent.width
-                                text: "带独立标题区域的卡片"
+                                text: Fluent.Translator.tr("gallery_b23a61f0161cbed6", Fluent.Translator._v)
                             }
                         }
                     }
@@ -151,7 +151,7 @@ Item {
 
             // Specialized cards 特殊卡片
             Fluent.ExampleCard {
-                title: "特殊卡片"
+                title: Fluent.Translator.tr("gallery_39eeb2728ba92eaa", Fluent.Translator._v)
                 description: "SettingsCard / Expander"
 
                 Column {
@@ -163,7 +163,7 @@ Item {
                         Fluent.SettingsCard {
                             width: Fluent.Enums.controlSize.cardContentWidth
                             title: "SettingsCard"
-                            content: "设置项卡片"
+                            content: Fluent.Translator.tr("gallery_7f04cfa92e2a13eb", Fluent.Translator._v)
                             icon: root.iconPath("Settings")
                         }
                     }
@@ -174,11 +174,11 @@ Item {
                         Fluent.Expander {
                             width: Fluent.Enums.controlSize.cardContentWidth
                             title: "Expander"
-                            content: "点击展开"
+                            content: Fluent.Translator.tr("gallery_59c9e9c47dd38531", Fluent.Translator._v)
 
                             Fluent.Label {
                                 type: Fluent.Enums.label.type_body
-                                text: "展开内容"
+                                text: Fluent.Translator.tr("gallery_6ad8768c2dfe934f", Fluent.Translator._v)
                             }
                         }
                     }

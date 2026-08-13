@@ -16,7 +16,7 @@ Fluent.Timeline {
     selectedKey: "merge-feature"
     items: [
         {
-            title: "Git graph · 150% DPI",
+            title: Fluent.Translator.tr("gallery_c1af7bcd8081939f", Fluent.Translator._v),
             graph: {
                 segments: [
                     {fromLane: 0, toLane: 0, colorIndex: 0}
@@ -42,7 +42,7 @@ Fluent.Timeline {
                     }
                 },
                 {
-                    text: "fix: 修复提交图边界像素",
+                    text: Fluent.Translator.tr("gallery_ad8f635a6b81da15", Fluent.Translator._v),
                     description: "d9c1b5f · feature/timeline",
                     commit: "feature-fix",
                     graph: {
@@ -55,7 +55,7 @@ Fluent.Timeline {
                     }
                 },
                 {
-                    text: "test: 增加分数滚动像素门禁",
+                    text: Fluent.Translator.tr("gallery_117038fca5ff03f9", Fluent.Translator._v),
                     description: "7a6728d · feature/timeline",
                     commit: "feature-test",
                     graph: {
@@ -68,7 +68,7 @@ Fluent.Timeline {
                     }
                 },
                 {
-                    text: "同步 feature/timeline",
+                    text: Fluent.Translator.tr("gallery_886816422bf7b518", Fluent.Translator._v),
                     description: "cacec6e · main",
                     commit: "sync-feature",
                     graph: {
@@ -82,7 +82,7 @@ Fluent.Timeline {
                     }
                 },
                 {
-                    text: "refactor: 整理 Timeline 数据模型",
+                    text: Fluent.Translator.tr("gallery_7a0249c9221b1e73", Fluent.Translator._v),
                     description: "e34acf8 · main",
                     commit: "main-refactor",
                     graph: {
@@ -94,7 +94,7 @@ Fluent.Timeline {
                     }
                 },
                 {
-                    text: "feat: 创建 gallery 分支",
+                    text: Fluent.Translator.tr("gallery_aa6961aea844cb9c", Fluent.Translator._v),
                     description: "be281d0 · main",
                     commit: "branch-gallery",
                     graph: {
@@ -108,7 +108,7 @@ Fluent.Timeline {
                     }
                 },
                 {
-                    text: "style: 调整 Gallery 展示密度",
+                    text: Fluent.Translator.tr("gallery_a4bbb56e773b37b3", Fluent.Translator._v),
                     description: "fca8d6e · gallery",
                     commit: "gallery-style",
                     graph: {
@@ -135,7 +135,7 @@ Fluent.Timeline {
                     }
                 },
                 {
-                    text: "chore: 初始化提交图示例",
+                    text: Fluent.Translator.tr("gallery_6a20fc431bc6bb3a", Fluent.Translator._v),
                     description: "65bf901 · main",
                     commit: "graph-base",
                     graph: {

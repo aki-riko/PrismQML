@@ -28,27 +28,27 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "菜单与列表"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_0f978a6dffcf9c4e", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
                 Text { text: "prismqml.controls.menus"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // 右键菜单
             ExampleCard {
-                title: "右键菜单"
-                description: "ContextMenu - 自动绑定父组件右键事件"
+                title: Fluent.Translator.tr("gallery_8cbbf31c44ce3dba", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_b7d9e9d08c3dac12", Fluent.Translator._v)
                 ComponentCard {
                     label: "ContextMenu"
                     Rectangle {
                         width: 180; height: 55; radius: Fluent.Enums.radius.small
                         color: Fluent.Enums.stateColor.controlBgHover
                         border.width: Fluent.Enums.border.thin; border.color: Fluent.Enums.stateColor.border
-                        Text { anchors.centerIn: parent; text: "右键点击此区域"; color: Fluent.Enums.textColor.secondary }
+                        Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_8f5812a418105b65", Fluent.Translator._v); color: Fluent.Enums.textColor.secondary }
                         ContextMenu {
-                            Action { text: "剪切"; icon: "Cut" }
-                            Action { text: "复制"; icon: "Copy" }
-                            Action { text: "粘贴"; icon: "Clipboard" }
+                            Action { text: Fluent.Translator.tr("gallery_410a8e8a6bf253ac", Fluent.Translator._v); icon: "Cut" }
+                            Action { text: Fluent.Translator.tr("gallery_63d90d977348ab1f", Fluent.Translator._v); icon: "Copy" }
+                            Action { text: Fluent.Translator.tr("gallery_33517926747180e6", Fluent.Translator._v); icon: "Clipboard" }
                             MenuSeparator {}
-                            Action { text: "删除"; icon: "Delete" }
+                            Action { text: Fluent.Translator.tr("gallery_2f9daa828907b93f", Fluent.Translator._v); icon: "Delete" }
                         }
                     }
                 }
@@ -56,17 +56,17 @@ Item {
             
             // 滚动文字
             ExampleCard {
-                title: "滚动文字"
+                title: Fluent.Translator.tr("gallery_251a120b78b76504", Fluent.Translator._v)
                 description: "Marquee"
                 ComponentCard {
                     label: "Marquee"
-                    Marquee { width: 280; text: "滚动文字 - PrismQML 组件库展示"; forceScroll: true }
+                    Marquee { width: 280; text: Fluent.Translator.tr("gallery_6d6f1b5d7d8dcb73", Fluent.Translator._v); forceScroll: true }
                 }
             }
             
             // 列表与表格组件
             ExampleCard {
-                title: "列表与表格组件"
+                title: Fluent.Translator.tr("gallery_ee9fee3d038211be", Fluent.Translator._v)
                 description: "ListWidget / TableWidget / TreeWidget"
                 Row {
                     spacing: Fluent.Enums.spacing.xl
@@ -77,7 +77,7 @@ Item {
                             width: 200; height: 360
                             Component.onCompleted: {
                                 var items = []
-                                for (var i = 1; i <= 100; i++) items.push("列表项" + i)
+                                for (var i = 1; i <= 100; i++) items.push(Fluent.Translator.tr("gallery_795dec6ac7650b6e") + i)
                                 model = items
                             }
                         }
@@ -89,46 +89,46 @@ Item {
                             width: 280; height: 360
                             model: [
                                 {
-                                    text: "技术部",
+                                    text: Fluent.Translator.tr("gallery_1f7e2646130e9a9b", Fluent.Translator._v),
                                     expanded: true,
                                     children: [
-                                        { text: "前端组" },
-                                        { text: "后端组" },
-                                        { text: "测试组" }
+                                        { text: Fluent.Translator.tr("gallery_f7a2b9c330141e74", Fluent.Translator._v) },
+                                        { text: Fluent.Translator.tr("gallery_b24a00b60dae4662", Fluent.Translator._v) },
+                                        { text: Fluent.Translator.tr("gallery_7c8ef03c3f78d9d2", Fluent.Translator._v) }
                                     ]
                                 },
                                 {
-                                    text: "产品部",
+                                    text: Fluent.Translator.tr("gallery_46cf15a123d5abfb", Fluent.Translator._v),
                                     expanded: true,
                                     children: [
                                         {
-                                            text: "设计组",
+                                            text: Fluent.Translator.tr("gallery_8f56450d0a5b9f4d", Fluent.Translator._v),
                                             expanded: false,
                                             children: [
-                                                { text: "视觉设计" },
-                                                { text: "交互设计" },
-                                                { text: "用户研究" }
+                                                { text: Fluent.Translator.tr("gallery_eb8bb03c922871b3", Fluent.Translator._v) },
+                                                { text: Fluent.Translator.tr("gallery_1175ec13252066a8", Fluent.Translator._v) },
+                                                { text: Fluent.Translator.tr("gallery_eba180059a944e2a", Fluent.Translator._v) }
                                             ]
                                         },
                                         {
-                                            text: "运营组",
+                                            text: Fluent.Translator.tr("gallery_f1cb456890d5171c", Fluent.Translator._v),
                                             expanded: false,
                                             children: [
-                                                { text: "内容运营" },
-                                                { text: "活动运营" }
+                                                { text: Fluent.Translator.tr("gallery_70a3c398dfd4eab9", Fluent.Translator._v) },
+                                                { text: Fluent.Translator.tr("gallery_c521d2a476a35d3c", Fluent.Translator._v) }
                                             ]
                                         },
-                                        { text: "项目经理" },
-                                        { text: "数据分析师" }
+                                        { text: Fluent.Translator.tr("gallery_11888e7c9cd66fe3", Fluent.Translator._v) },
+                                        { text: Fluent.Translator.tr("gallery_32f619c0fc80a1fc", Fluent.Translator._v) }
                                     ]
                                 },
                                 {
-                                    text: "市场部",
+                                    text: Fluent.Translator.tr("gallery_ce6bdd090825f25c", Fluent.Translator._v),
                                     expanded: false,
                                     children: [
-                                        { text: "品牌推广" },
-                                        { text: "渠道合作" },
-                                        { text: "商务拓展" }
+                                        { text: Fluent.Translator.tr("gallery_9a5855b14903159c", Fluent.Translator._v) },
+                                        { text: Fluent.Translator.tr("gallery_7826bf6e0b3b589b", Fluent.Translator._v) },
+                                        { text: Fluent.Translator.tr("gallery_27a9b1bc3c7194af", Fluent.Translator._v) }
                                     ]
                                 }
                             ]
@@ -142,12 +142,12 @@ Item {
                             showFooter: true
                             defaultContextMenuEnabled: true
 
-                            columns: [{text: "名称", width: 0.4, role: "name"}, {text: "数量", width: 0.3, role: "count"}, {text: "价格", width: 0.3, role: "price"}]
+                            columns: [{text: Fluent.Translator.tr("gallery_d44e9b3d3b31d37b", Fluent.Translator._v), width: 0.4, role: "name"}, {text: Fluent.Translator.tr("gallery_5e29d121dda011c5", Fluent.Translator._v), width: 0.3, role: "count"}, {text: Fluent.Translator.tr("gallery_0f4371a7a9cf224a", Fluent.Translator._v), width: 0.3, role: "price"}]
 
                             Component.onCompleted: {
                                 var newTableData = []
                                 for (var i = 1; i <= 10; i++) {
-                                    newTableData.push({name: "商品" + i, count: i * 2, price: "￥" + (i * 10)})
+                                    newTableData.push({name: Fluent.Translator.tr("gallery_58fdb0941f368f2b") + i, count: i * 2, price: "￥" + (i * 10)})
                                 }
                                 tableData = newTableData
                             }
@@ -158,8 +158,8 @@ Item {
 
             // 列表/表格视图 (低阶 View)
             ExampleCard {
-                title: "列表/表格视图"
-                description: "ListView / TableView / TreeView - 低阶 View,需自定义 delegate"
+                title: Fluent.Translator.tr("gallery_ccff6b9a85f87905", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_d8cae3421f371e22", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.xl
                     ComponentCard {
@@ -172,7 +172,7 @@ Item {
                             showFooter: true
                             Component.onCompleted: {
                                 var items = []
-                                for (var i = 1; i <= 100; i++) items.push("视图项 " + i)
+                                for (var i = 1; i <= 100; i++) items.push(Fluent.Translator.tr("gallery_b0eac693d60d649a") + i)
                                 model = items
                             }
                             delegate: Rectangle {
@@ -254,13 +254,13 @@ Item {
                             width: 380; height: 360
                             columns: [
                                 { text: "ID", width: 60 },
-                                { text: "名称", width: 0.4 },
-                                { text: "状态", fillWidth: true }
+                                { text: Fluent.Translator.tr("gallery_d44e9b3d3b31d37b", Fluent.Translator._v), width: 0.4 },
+                                { text: Fluent.Translator.tr("gallery_6320b4a8722a851f", Fluent.Translator._v), fillWidth: true }
                             ]
                             Component.onCompleted: {
                                 var rows = []
                                 for (var i = 1; i <= 50; i++) {
-                                    rows.push({ id: i, name: "条目 " + i, status: i % 2 === 0 ? "启用" : "停用" })
+                                    rows.push({ id: i, name: Fluent.Translator.tr("gallery_1bef9f8b5e0b21fe") + i, status: i % 2 === 0 ? Fluent.Translator.tr("gallery_f4f0ead1116b5b62", Fluent.Translator._v) : Fluent.Translator.tr("gallery_4e6fd0e28c55860b", Fluent.Translator._v) })
                                 }
                                 model = rows
                             }
@@ -328,7 +328,7 @@ Item {
                                             width: _statusLabel.implicitWidth + 16
                                             height: 22
                                             radius: 11
-                                            color: _tvDelegate.modelData.status === "启用"
+                                            color: _tvDelegate.modelData.status === Fluent.Translator.tr("gallery_f4f0ead1116b5b62", Fluent.Translator._v)
                                                    ? Fluent.Enums.examplePageColors.statusEnabledBg
                                                    : Fluent.Enums.examplePageColors.statusDisabledBg
                                             Fluent.Label {
@@ -336,7 +336,7 @@ Item {
                                                 anchors.centerIn: parent
                                                 type: Fluent.Enums.label.type_caption
                                                 text: _tvDelegate.modelData.status
-                                                color: _tvDelegate.modelData.status === "启用"
+                                                color: _tvDelegate.modelData.status === Fluent.Translator.tr("gallery_f4f0ead1116b5b62", Fluent.Translator._v)
                                                        ? Fluent.Enums.examplePageColors.statusEnabledText
                                                        : Fluent.Enums.examplePageColors.statusDisabledText
                                                 font.pixelSize: Fluent.Enums.typography.captionCompact
@@ -360,25 +360,25 @@ Item {
                             width: 280; height: 360
                             model: [
                                 {
-                                    text: "文档", expanded: true, children: [
-                                        { text: "工作报告.docx" },
-                                        { text: "会议纪要.pdf" },
-                                        { text: "需求文档.md" }
+                                    text: Fluent.Translator.tr("gallery_2687ccdbb1d2288a", Fluent.Translator._v), expanded: true, children: [
+                                        { text: Fluent.Translator.tr("gallery_ee332475c5e213a1", Fluent.Translator._v) },
+                                        { text: Fluent.Translator.tr("gallery_97b3323f272a34d2", Fluent.Translator._v) },
+                                        { text: Fluent.Translator.tr("gallery_93b6bdad23478090", Fluent.Translator._v) }
                                     ]
                                 },
                                 {
-                                    text: "图片", expanded: false, children: [
-                                        { text: "截图", children: [
+                                    text: Fluent.Translator.tr("gallery_d24c10d37db0feea", Fluent.Translator._v), expanded: false, children: [
+                                        { text: Fluent.Translator.tr("gallery_c95dc99afe57b285", Fluent.Translator._v), children: [
                                             { text: "bug-01.png" },
                                             { text: "bug-02.png" }
                                         ]},
-                                        { text: "照片", children: [
-                                            { text: "团建.jpg" }
+                                        { text: Fluent.Translator.tr("gallery_7b50017ae47eca32", Fluent.Translator._v), children: [
+                                            { text: Fluent.Translator.tr("gallery_fe4003e1194c58cf", Fluent.Translator._v) }
                                         ]}
                                     ]
                                 },
                                 {
-                                    text: "代码", expanded: true, children: [
+                                    text: Fluent.Translator.tr("gallery_e6f04ffbaa424001", Fluent.Translator._v), expanded: true, children: [
                                         { text: "src", expanded: true, children: [
                                             { text: "main.py" },
                                             { text: "utils.py" }
@@ -394,7 +394,7 @@ Item {
                 }
             }
             ExampleCard {
-                title: "标签页"
+                title: Fluent.Translator.tr("gallery_a626aad412b751f1", Fluent.Translator._v)
                 description: "TabWidget"
                 Column {
                     spacing: Fluent.Enums.spacing.l
@@ -408,36 +408,36 @@ Item {
                                 showAddButton: true
                                 closable: true
                                 tabs: [
-                                    {title: "标签1", icon: "", content: tab1Content},
-                                    {title: "标签2", icon: "", content: tab2Content},
-                                    {title: "标签3", icon: "", content: tab3Content}
+                                    {title: Fluent.Translator.tr("gallery_6c273ecc79d229ed", Fluent.Translator._v), icon: "", content: tab1Content},
+                                    {title: Fluent.Translator.tr("gallery_8d7f8612a58f664d", Fluent.Translator._v), icon: "", content: tab2Content},
+                                    {title: Fluent.Translator.tr("gallery_222b33ef1adb6046", Fluent.Translator._v), icon: "", content: tab3Content}
                                 ]
-                                onTabClosed: (index) => { removeTab(index); apiStatus.text = "已关闭标签 " + index }
-                                onTabAddClicked: { addTab("新标签" + (count() + 1), "", tab4Content); apiStatus.text = "已添加新标签" }
-                                onCurrentChanged: (index) => apiStatus.text = "切换到标签 " + index
+                                onTabClosed: (index) => { removeTab(index); apiStatus.text = Fluent.Translator.tr("gallery_2ef467443bfc1d59") + index }
+                                onTabAddClicked: { addTab(Fluent.Translator.tr("gallery_7b545b05f46129d5", Fluent.Translator._v) + (count() + 1), "", tab4Content); apiStatus.text = Fluent.Translator.tr("gallery_d58198f696132ad1", Fluent.Translator._v) }
+                                onCurrentChanged: (index) => apiStatus.text = Fluent.Translator.tr("gallery_b63e5b2e2fde167a") + index
                             }
                         }
                     }
                     // API演示
                     Row {
                         spacing: Fluent.Enums.spacing.m
-                        Button { text: "添加标签"; onClicked: { defaultTabWidget.addTab("动态标签", "", tab4Content); apiStatus.text = "addTab() 已添加" } }
-                        Button { text: "移除当前"; onClicked: { defaultTabWidget.removeTab(defaultTabWidget.currentIndex); apiStatus.text = "removeTab() 已移除" } }
-                        Button { text: "修改文本"; onClicked: { defaultTabWidget.setTabText(defaultTabWidget.currentIndex, "已修改"); apiStatus.text = "setTabText() 已修改" } }
-                        Button { text: "清空全部"; onClicked: { defaultTabWidget.clear(); apiStatus.text = "clear() 已清空" } }
-                        Button { text: "重置"; onClicked: { defaultTabWidget.tabs = [{title: "标签1", icon: "", content: tab1Content}, {title: "标签2", icon: "", content: tab2Content}, {title: "标签3", icon: "", content: tab3Content}]; apiStatus.text = "已重置" } }
-                        Text { id: apiStatus; text: "API状态"; color: Fluent.Enums.textColor.secondary; font.pixelSize: Fluent.Enums.typography.caption; anchors.verticalCenter: parent.verticalCenter }
+                        Button { text: Fluent.Translator.tr("gallery_795cbff909c46891", Fluent.Translator._v); onClicked: { defaultTabWidget.addTab(Fluent.Translator.tr("gallery_de92c86f4334f894", Fluent.Translator._v), "", tab4Content); apiStatus.text = Fluent.Translator.tr("gallery_d9823a8fc15af97a", Fluent.Translator._v) } }
+                        Button { text: Fluent.Translator.tr("gallery_0c8a8bcb43c7e759", Fluent.Translator._v); onClicked: { defaultTabWidget.removeTab(defaultTabWidget.currentIndex); apiStatus.text = Fluent.Translator.tr("gallery_de23e1d3bdb33279", Fluent.Translator._v) } }
+                        Button { text: Fluent.Translator.tr("gallery_304bb8616c79fb9c", Fluent.Translator._v); onClicked: { defaultTabWidget.setTabText(defaultTabWidget.currentIndex, Fluent.Translator.tr("gallery_682d211b7142758a", Fluent.Translator._v)); apiStatus.text = Fluent.Translator.tr("gallery_b2fce17b9e453cf0", Fluent.Translator._v) } }
+                        Button { text: Fluent.Translator.tr("gallery_1b590914091ca145", Fluent.Translator._v); onClicked: { defaultTabWidget.clear(); apiStatus.text = Fluent.Translator.tr("gallery_ca775625638ee91c", Fluent.Translator._v) } }
+                        Button { text: Fluent.Translator.tr("gallery_cb5d682bac3d1a2d", Fluent.Translator._v); onClicked: { defaultTabWidget.tabs = [{title: Fluent.Translator.tr("gallery_6c273ecc79d229ed", Fluent.Translator._v), icon: "", content: tab1Content}, {title: Fluent.Translator.tr("gallery_8d7f8612a58f664d", Fluent.Translator._v), icon: "", content: tab2Content}, {title: Fluent.Translator.tr("gallery_222b33ef1adb6046", Fluent.Translator._v), icon: "", content: tab3Content}]; apiStatus.text = Fluent.Translator.tr("gallery_d2cd2e209c5fe4eb", Fluent.Translator._v) } }
+                        Text { id: apiStatus; text: Fluent.Translator.tr("gallery_d79826f94092ff35", Fluent.Translator._v); color: Fluent.Enums.textColor.secondary; font.pixelSize: Fluent.Enums.typography.caption; anchors.verticalCenter: parent.verticalCenter }
                     }
                 }
-                Component { id: tab1Content; Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.blue; Text { anchors.centerIn: parent; text: "内容1"; color: Fluent.Enums.accentForeground } } }
-                Component { id: tab2Content; Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.green; Text { anchors.centerIn: parent; text: "内容2"; color: Fluent.Enums.accentForeground } } }
-                Component { id: tab3Content; Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.orange; Text { anchors.centerIn: parent; text: "内容3"; color: Fluent.Enums.accentForeground } } }
-                Component { id: tab4Content; Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: "动态内容"; color: Fluent.Enums.accentForeground } } }
+                Component { id: tab1Content; Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.blue; Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_b072d7a8ed7cae83", Fluent.Translator._v); color: Fluent.Enums.accentForeground } } }
+                Component { id: tab2Content; Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.green; Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_66e3d2b49b5d3fcf", Fluent.Translator._v); color: Fluent.Enums.accentForeground } } }
+                Component { id: tab3Content; Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.orange; Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_eac570e3ce1cf6a3", Fluent.Translator._v); color: Fluent.Enums.accentForeground } } }
+                Component { id: tab4Content; Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_473e84592c3040cf", Fluent.Translator._v); color: Fluent.Enums.accentForeground } } }
             }
             
             // 数据展示
             ExampleCard {
-                title: "数据展示"
+                title: Fluent.Translator.tr("gallery_7b0b7388ec0c5902", Fluent.Translator._v)
                 description: "Timeline"
                 Row {
                     spacing: Fluent.Enums.spacing.xl
@@ -446,14 +446,14 @@ Item {
                         Timeline { 
                             width: 320
                             items: [
-                                {title: "已完成", status: "success", cards: [{text: "完成需求评审与设计稿", strikeOut: true}]},
-                                {title: "今日安排", status: "info", cards: [{text: "开发首页组件", status: "warning"}, {text: "编写单元测试", status: "warning"}]},
-                                {title: "待办事项", status: "error", cards: [{text: "提交代码评审", status: "error"}]}
+                                {title: Fluent.Translator.tr("gallery_f28461bb49c85647", Fluent.Translator._v), status: "success", cards: [{text: Fluent.Translator.tr("gallery_30282754460515c2", Fluent.Translator._v), strikeOut: true}]},
+                                {title: Fluent.Translator.tr("gallery_8ecc1c9957a6e584", Fluent.Translator._v), status: "info", cards: [{text: Fluent.Translator.tr("gallery_112feed1bcbc4554", Fluent.Translator._v), status: "warning"}, {text: Fluent.Translator.tr("gallery_5a5b05be06f7e7e7", Fluent.Translator._v), status: "warning"}]},
+                                {title: Fluent.Translator.tr("gallery_5e415ae2bb8630c1", Fluent.Translator._v), status: "error", cards: [{text: Fluent.Translator.tr("gallery_73cf53321aa44b97", Fluent.Translator._v), status: "error"}]}
                             ]
                         }
                     }
                     ComponentCard {
-                        label: "Timeline · Git graph（分数缩放接缝验收）"
+                        label: Fluent.Translator.tr("gallery_d00765cd31018c82", Fluent.Translator._v)
                         TimelineGitGraphDemo {}
                     }
                 }
@@ -461,8 +461,8 @@ Item {
             
             // Image
             ExampleCard {
-                title: "图片组件"
-                description: "ImageWidget - 支持圆角、加载状态、点击事件"
+                title: Fluent.Translator.tr("gallery_893dd28e165123b9", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_ca0dd5a280400c51", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.xl
                     ComponentCard {
@@ -471,29 +471,29 @@ Item {
                             id: apiImage
                             width: 320; height: 180
                             source: "qrc:/image/background.jpg"
-                            onClicked: imageText.text = "clicked信号触发!"
+                            onClicked: imageText.text = Fluent.Translator.tr("gallery_800665bf2c53f968", Fluent.Translator._v)
                         }
                     }
                     Column {
                         spacing: Fluent.Enums.spacing.xs
-                        Text { text: "点击图片测试clicked信号"; font.pixelSize: Fluent.Enums.typography.bodySmall; color: Fluent.Enums.textColor.primary }
-                        Text { id: imageText; text: "状态: 未点击"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary }
+                        Text { text: Fluent.Translator.tr("gallery_163f19a0af53019c", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.bodySmall; color: Fluent.Enums.textColor.primary }
+                        Text { id: imageText; text: Fluent.Translator.tr("gallery_c3cf4e0ecdbbd776", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary }
                     }
                 }
             }
             
             // 分页指示器
             ExampleCard {
-                title: "分页指示器"
-                description: "PipsPager - 支持翻页按钮、可见数量限制、平滑滚动"
+                title: Fluent.Translator.tr("gallery_0876e77f76f912ed", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_f48abd0dc464735c", Fluent.Translator._v)
                 Column {
                     spacing: Fluent.Enums.spacing.l
                     Row {
                         spacing: Fluent.Enums.spacing.xl
-                        ComponentCard { label: "基础 (5点)"; HorizontalPipsPager { count: 5; currentIndex: 2 } }
-                        ComponentCard { label: "垂直"; VerticalPipsPager { count: 4; currentIndex: 1 } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_0cadf1cdc6144b04", Fluent.Translator._v); HorizontalPipsPager { count: 5; currentIndex: 2 } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_1777a1e5f3a54dee", Fluent.Translator._v); VerticalPipsPager { count: 4; currentIndex: 1 } }
                         ComponentCard {
-                            label: "带按钮 (始终显示)"
+                            label: Fluent.Translator.tr("gallery_50d8fc2f69be51e0", Fluent.Translator._v)
                             HorizontalPipsPager {
                                 count: 10; currentIndex: 3; maxVisible: 5
                                 prevButtonMode: Fluent.Enums.pipsPager.button_always

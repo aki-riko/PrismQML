@@ -28,13 +28,13 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "容器组件"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_ece4a638e075fe2d", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
                 Text { text: "prismqml.controls.containers"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // 布局组件
             ExampleCard {
-                title: "布局组件"
+                title: Fluent.Translator.tr("gallery_047006167c1e7f73", Fluent.Translator._v)
                 description: "Layout(mode=mode_horizontal/mode_vertical/mode_grid)"
                 Row {
                     spacing: Fluent.Enums.spacing.l
@@ -79,8 +79,8 @@ Item {
             
             // 流式布局
             ExampleCard {
-                title: "流式布局"
-                description: "Layout(mode=mode_default) - FlowLayout内部模式切换"
+                title: Fluent.Translator.tr("gallery_49967e9c544605f9", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_0057bf9f1eab521a", Fluent.Translator._v)
                 Column {
                     spacing: Fluent.Enums.spacing.l
                     width: parent ? parent.width : 0
@@ -88,10 +88,10 @@ Item {
                     // 模式切换控制 Mode switch controls
                     Row {
                         spacing: Fluent.Enums.spacing.m
-                        Text { text: "模式切换："; color: Fluent.Enums.textColor.primary; anchors.verticalCenter: parent.verticalCenter }
-                        Button { text: "默认"; style: flowDemo.mode === Fluent.Enums.flow.default_ ? Fluent.Enums.button.style_primary : Fluent.Enums.button.style_default; onClicked: flowDemo.mode = Fluent.Enums.flow.default_ }
-                        Button { text: "水平(等高)"; style: flowDemo.mode === Fluent.Enums.flow.horizontal ? Fluent.Enums.button.style_primary : Fluent.Enums.button.style_default; onClicked: flowDemo.mode = Fluent.Enums.flow.horizontal }
-                        Button { text: "垂直(等宽)"; style: flowDemo.mode === Fluent.Enums.flow.vertical ? Fluent.Enums.button.style_primary : Fluent.Enums.button.style_default; onClicked: flowDemo.mode = Fluent.Enums.flow.vertical }
+                        Text { text: Fluent.Translator.tr("gallery_ad23faff8799802b", Fluent.Translator._v); color: Fluent.Enums.textColor.primary; anchors.verticalCenter: parent.verticalCenter }
+                        Button { text: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v); style: flowDemo.mode === Fluent.Enums.flow.default_ ? Fluent.Enums.button.style_primary : Fluent.Enums.button.style_default; onClicked: flowDemo.mode = Fluent.Enums.flow.default_ }
+                        Button { text: Fluent.Translator.tr("gallery_0d92873337101494", Fluent.Translator._v); style: flowDemo.mode === Fluent.Enums.flow.horizontal ? Fluent.Enums.button.style_primary : Fluent.Enums.button.style_default; onClicked: flowDemo.mode = Fluent.Enums.flow.horizontal }
+                        Button { text: Fluent.Translator.tr("gallery_161909ed3a63d957", Fluent.Translator._v); style: flowDemo.mode === Fluent.Enums.flow.vertical ? Fluent.Enums.button.style_primary : Fluent.Enums.button.style_default; onClicked: flowDemo.mode = Fluent.Enums.flow.vertical }
                     }
                     
                     // 演示区域
@@ -154,9 +154,9 @@ Item {
                     
                     // 说明文字
                     Text {
-                        text: flowDemo.mode === Fluent.Enums.flow.default_ ? "默认模式：保持每个子项的原始尺寸，自动换行" :
-                              flowDemo.mode === Fluent.Enums.flow.horizontal ? "水平模式：同一行内所有子项等高（取该行最大高度）" :
-                              "垂直模式：所有子项等宽（按列数平分宽度）"
+                        text: flowDemo.mode === Fluent.Enums.flow.default_ ? Fluent.Translator.tr("gallery_f7d09fb46f23e857", Fluent.Translator._v) :
+                              flowDemo.mode === Fluent.Enums.flow.horizontal ? Fluent.Translator.tr("gallery_67355d877cd81630", Fluent.Translator._v) :
+                              Fluent.Translator.tr("gallery_04ad03a8d3134451", Fluent.Translator._v)
                         color: Fluent.Enums.textColor.secondary
                         font.pixelSize: Fluent.Enums.typography.caption
                     }
@@ -165,33 +165,33 @@ Item {
             
             // 分隔线
             ExampleCard {
-                title: "分隔线"
+                title: Fluent.Translator.tr("gallery_c64dd5eb2135d0ba", Fluent.Translator._v)
                 description: "Separator"
                 ComponentCard {
                     label: "Separator"
                     Column {
                         spacing: Fluent.Enums.spacing.l
                         width: 250
-                        Text { text: "上方内容"; color: Fluent.Enums.textColor.primary }
+                        Text { text: Fluent.Translator.tr("gallery_be583c92f424149d", Fluent.Translator._v); color: Fluent.Enums.textColor.primary }
                         Separator { type: 0; lineLength: parent ? parent.width : 0 }  // 0=horizontal
-                        Text { text: "下方内容"; color: Fluent.Enums.textColor.primary }
+                        Text { text: Fluent.Translator.tr("gallery_4b404edb0e246217", Fluent.Translator._v); color: Fluent.Enums.textColor.primary }
                     }
                 }
             }
             
             // 分组框
             ExampleCard {
-                title: "分组框"
+                title: Fluent.Translator.tr("gallery_e05a542493aa6e37", Fluent.Translator._v)
                 description: "GroupBox"
                 ComponentCard {
                     label: "GroupBox"
-                    GroupBox { title: "分组标题"; width: 250; Text { text: "分组内容"; color: Fluent.Enums.textColor.primary } }
+                    GroupBox { title: Fluent.Translator.tr("gallery_b257b86285540bce", Fluent.Translator._v); width: 250; Text { text: Fluent.Translator.tr("gallery_8df30761e5aab1cc", Fluent.Translator._v); color: Fluent.Enums.textColor.primary } }
                 }
             }
             
             // 滚动组件
             ExampleCard {
-                title: "滚动组件"
+                title: Fluent.Translator.tr("gallery_dc4ef2ff18e2a748", Fluent.Translator._v)
                 description: "ScrollArea"
                 ComponentCard {
                     label: "ScrollArea"
@@ -199,7 +199,7 @@ Item {
                         width: 220; height: 100
                         Column {
                             spacing: Fluent.Enums.spacing.xs
-                            Repeater { model: 20; Text { text: "滚动项 " + (index + 1); color: Fluent.Enums.textColor.primary } }
+                            Repeater { model: 20; Text { text: Fluent.Translator.tr("gallery_33d76fa741442f73", Fluent.Translator._v) + (index + 1); color: Fluent.Enums.textColor.primary } }
                         }
                     }
                 }
@@ -207,7 +207,7 @@ Item {
             
             // 分割器
             ExampleCard {
-                title: "分割器"
+                title: Fluent.Translator.tr("gallery_94e5ca260bd07309", Fluent.Translator._v)
                 description: "SplitPane"
                 Row {
                     spacing: Fluent.Enums.spacing.xl
@@ -216,8 +216,8 @@ Item {
                         SplitPane {
                             width: 280; height: 100
                             orientation: Qt.Horizontal
-                            firstContent: Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.blue; Text { anchors.centerIn: parent; text: "左"; color: Fluent.Enums.accentForeground } }
-                            secondContent: Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.green; Text { anchors.centerIn: parent; text: "右"; color: Fluent.Enums.accentForeground } }
+                            firstContent: Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.blue; Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_e2e0c454e5d53186", Fluent.Translator._v); color: Fluent.Enums.accentForeground } }
+                            secondContent: Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.green; Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_14ab1f2bce0a8777", Fluent.Translator._v); color: Fluent.Enums.accentForeground } }
                         }
                     }
                     ComponentCard {
@@ -225,8 +225,8 @@ Item {
                         SplitPane {
                             width: 150; height: 120
                             orientation: Qt.Vertical
-                            firstContent: Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.orange; Text { anchors.centerIn: parent; text: "上"; color: Fluent.Enums.accentForeground } }
-                            secondContent: Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: "下"; color: Fluent.Enums.accentForeground } }
+                            firstContent: Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.orange; Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_db5ba671d244ee82", Fluent.Translator._v); color: Fluent.Enums.accentForeground } }
+                            secondContent: Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_13c12b064b635e06", Fluent.Translator._v); color: Fluent.Enums.accentForeground } }
                         }
                     }
                 }
@@ -234,51 +234,51 @@ Item {
             
             // 抽屉
             ExampleCard {
-                title: "抽屉"
+                title: Fluent.Translator.tr("gallery_3bf97e9265673fb5", Fluent.Translator._v)
                 description: "Drawer (mode_inside)"
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    ComponentCard { label: "position.left"; Button { text: "左侧抽屉"; onClicked: leftDrawer.open() } }
-                    ComponentCard { label: "position.right"; Button { text: "右侧抽屉"; onClicked: rightDrawer.open() } }
-                    ComponentCard { label: "position.top"; Button { text: "顶部抽屉"; onClicked: topDrawer.open() } }
-                    ComponentCard { label: "position.bottom"; Button { text: "底部抽屉"; onClicked: bottomDrawer.open() } }
+                    ComponentCard { label: "position.left"; Button { text: Fluent.Translator.tr("gallery_e5646ede46742a0b", Fluent.Translator._v); onClicked: leftDrawer.open() } }
+                    ComponentCard { label: "position.right"; Button { text: Fluent.Translator.tr("gallery_8d768501ecb25a2b", Fluent.Translator._v); onClicked: rightDrawer.open() } }
+                    ComponentCard { label: "position.top"; Button { text: Fluent.Translator.tr("gallery_5f24728a1463f050", Fluent.Translator._v); onClicked: topDrawer.open() } }
+                    ComponentCard { label: "position.bottom"; Button { text: Fluent.Translator.tr("gallery_8c4f369c0ee4bc8d", Fluent.Translator._v); onClicked: bottomDrawer.open() } }
                 }
             }
 
             ExampleCard {
-                title: "窗口外侧抽屉"
+                title: Fluent.Translator.tr("gallery_ba59d151d3d96219", Fluent.Translator._v)
                 description: "Drawer (mode_outside)"
                 Row {
                     spacing: Fluent.Enums.spacing.l
-                    ComponentCard { label: "position.left"; Button { text: "左侧展开"; onClicked: outsideLeftDrawer.open() } }
-                    ComponentCard { label: "position.right"; Button { text: "右侧展开"; onClicked: outsideRightDrawer.open() } }
-                    ComponentCard { label: "position.top"; Button { text: "顶部展开"; onClicked: outsideTopDrawer.open() } }
-                    ComponentCard { label: "position.bottom"; Button { text: "底部展开"; onClicked: outsideBottomDrawer.open() } }
+                    ComponentCard { label: "position.left"; Button { text: Fluent.Translator.tr("gallery_86d5449130890834", Fluent.Translator._v); onClicked: outsideLeftDrawer.open() } }
+                    ComponentCard { label: "position.right"; Button { text: Fluent.Translator.tr("gallery_8013ac3b2f8ddbe7", Fluent.Translator._v); onClicked: outsideRightDrawer.open() } }
+                    ComponentCard { label: "position.top"; Button { text: Fluent.Translator.tr("gallery_2d9684736007999f", Fluent.Translator._v); onClicked: outsideTopDrawer.open() } }
+                    ComponentCard { label: "position.bottom"; Button { text: Fluent.Translator.tr("gallery_c9cd0c54442b0a16", Fluent.Translator._v); onClicked: outsideBottomDrawer.open() } }
                 }
             }
             
             
             // 二维码
             ExampleCard {
-                title: "二维码"
+                title: Fluent.Translator.tr("gallery_9b1cd3668052b24b", Fluent.Translator._v)
                 description: "QRCode"
                 Row {
                     spacing: Fluent.Enums.spacing.xxxl
                     ComponentCard { label: "size: 120"; QRCode { content: "https://github.com"; size: 120 } }
-                    ComponentCard { label: "size: 150"; QRCode { content: "PrismQML 组件库"; size: 150 } }
-                    ComponentCard { label: "errorLevel: H"; QRCode { content: "高纠错"; size: 120; errorLevel: "H" } }
+                    ComponentCard { label: "size: 150"; QRCode { content: Fluent.Translator.tr("gallery_3534dd4f90ae9616", Fluent.Translator._v); size: 150 } }
+                    ComponentCard { label: "errorLevel: H"; QRCode { content: Fluent.Translator.tr("gallery_304f337d9663c528", Fluent.Translator._v); size: 120; errorLevel: "H" } }
                 }
             }
             
             // 水印
             ExampleCard {
-                title: "水印"
+                title: Fluent.Translator.tr("gallery_aa9f217c81861768", Fluent.Translator._v)
                 description: "Watermark"
                 ComponentCard {
                     label: "Watermark"
                     Watermark {
                         width: 280; height: 100
-                        text: "机密文档"
+                        text: Fluent.Translator.tr("gallery_79b8782c06e0964e", Fluent.Translator._v)
                         Rectangle { anchors.fill: parent; color: Fluent.Enums.surfaceColor; z: Fluent.Enums.zIndex.background }
                     }
                 }
@@ -286,7 +286,7 @@ Item {
             
             // 文件拖放
             ExampleCard {
-                title: "文件拖放"
+                title: Fluent.Translator.tr("gallery_0c8f29023557e79a", Fluent.Translator._v)
                 description: "DropZone"
                 ComponentCard {
                     label: "DropZone"
@@ -303,8 +303,8 @@ Item {
         drawerWidth: 280
         Column {
             anchors.centerIn: parent; spacing: Fluent.Enums.spacing.l
-            Text { text: "左侧抽屉"; font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
-            Button { text: "关闭"; onClicked: leftDrawer.close() }
+            Text { text: Fluent.Translator.tr("gallery_e5646ede46742a0b", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
+            Button { text: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v); onClicked: leftDrawer.close() }
         }
     }
     
@@ -314,8 +314,8 @@ Item {
         drawerWidth: 280
         Column {
             anchors.centerIn: parent; spacing: Fluent.Enums.spacing.l
-            Text { text: "右侧抽屉"; font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
-            Button { text: "关闭"; onClicked: rightDrawer.close() }
+            Text { text: Fluent.Translator.tr("gallery_8d768501ecb25a2b", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
+            Button { text: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v); onClicked: rightDrawer.close() }
         }
     }
     
@@ -325,8 +325,8 @@ Item {
         drawerHeight: 200
         Column {
             anchors.centerIn: parent; spacing: Fluent.Enums.spacing.l
-            Text { text: "顶部抽屉"; font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
-            Button { text: "关闭"; onClicked: topDrawer.close() }
+            Text { text: Fluent.Translator.tr("gallery_5f24728a1463f050", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
+            Button { text: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v); onClicked: topDrawer.close() }
         }
     }
     
@@ -336,8 +336,8 @@ Item {
         drawerHeight: 200
         Column {
             anchors.centerIn: parent; spacing: Fluent.Enums.spacing.l
-            Text { text: "底部抽屉"; font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
-            Button { text: "关闭"; onClicked: bottomDrawer.close() }
+            Text { text: Fluent.Translator.tr("gallery_8c4f369c0ee4bc8d", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
+            Button { text: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v); onClicked: bottomDrawer.close() }
         }
     }
 
@@ -351,8 +351,8 @@ Item {
 
         Column {
             anchors.centerIn: parent; spacing: Fluent.Enums.spacing.l
-            Text { text: "窗口外侧抽屉"; font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
-            Button { text: "关闭"; onClicked: outsideControl.close() }
+            Text { text: Fluent.Translator.tr("gallery_ba59d151d3d96219", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
+            Button { text: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v); onClicked: outsideControl.close() }
         }
     }
 

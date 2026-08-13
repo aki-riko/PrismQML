@@ -28,70 +28,70 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "导航组件"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_416a19daaaa5e27a", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
                 Text { text: "prismqml.controls.navigation"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // 面包屑
             ExampleCard {
-                title: "面包屑导航"
-                description: "BreadcrumbBar - 流畅动画、图标支持、主题色指示器"
+                title: Fluent.Translator.tr("gallery_6c3f7b6a12a97468", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_aefd232185a863d6", Fluent.Translator._v)
                 Column {
                     spacing: Fluent.Enums.spacing.l
                     
                     // Basic breadcrumb 基础面包屑
                     ComponentCard {
-                        label: "基础面包屑"
+                        label: Fluent.Translator.tr("gallery_71fd13b9ab679678", Fluent.Translator._v)
                         Column {
                             spacing: Fluent.Enums.spacing.m
                             Breadcrumb { 
                                 id: basicBreadcrumb
                                 showIcons: false
                                 Component.onCompleted: {
-                                    addItem("home", "首页")
-                                    addItem("docs", "文档")
-                                    addItem("components", "组件")
-                                    addItem("navigation", "导航")
+                                    addItem("home", Fluent.Translator.tr("gallery_203c08e0d44ac375", Fluent.Translator._v))
+                                    addItem("docs", Fluent.Translator.tr("gallery_2687ccdbb1d2288a", Fluent.Translator._v))
+                                    addItem("components", Fluent.Translator.tr("gallery_783d638053ea1897", Fluent.Translator._v))
+                                    addItem("navigation", Fluent.Translator.tr("gallery_e72622fe470d04bc", Fluent.Translator._v))
                                 }
-                                onCurrentItemChanged: (key) => basicText.text = "当前: " + key
+                                onCurrentItemChanged: (key) => basicText.text = Fluent.Translator.tr("gallery_6245bfb449a7e29a") + key
                             }
                             Row {
                                 spacing: Fluent.Enums.spacing.s
-                                Button { text: "添加子页"; onClicked: basicBreadcrumb.addItem("sub" + basicBreadcrumb.count, "子页" + basicBreadcrumb.count) }
-                                Button { text: "返回上级"; onClicked: basicBreadcrumb.popItem() }
+                                Button { text: Fluent.Translator.tr("gallery_9f63b859185cc52e", Fluent.Translator._v); onClicked: basicBreadcrumb.addItem("sub" + basicBreadcrumb.count, Fluent.Translator.tr("gallery_6fc800788812ce20") + basicBreadcrumb.count) }
+                                Button { text: Fluent.Translator.tr("gallery_6e280f54e3f9a1b5", Fluent.Translator._v); onClicked: basicBreadcrumb.popItem() }
                             }
-                            Text { id: basicText; text: "点击面包屑项测试截断"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                            Text { id: basicText; text: Fluent.Translator.tr("gallery_af28875a2bfd7a3c", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
                         }
                     }
                     
                     // Breadcrumb with icons 带图标面包屑
                     ComponentCard {
-                        label: "带图标面包屑"
+                        label: Fluent.Translator.tr("gallery_098537ecdc81e809", Fluent.Translator._v)
                         Column {
                             spacing: Fluent.Enums.spacing.m
                             Breadcrumb { 
                                 id: iconBreadcrumb
                                 showIcons: true
                                 Component.onCompleted: {
-                                    addItem("home", "首页", Fluent.Enums.icon.home)
-                                    addItem("folder", "文件夹", Fluent.Enums.icon.folder)
-                                    addItem("docs", "文档", Fluent.Enums.icon.document)
-                                    addItem("file", "文件", Fluent.Enums.icon.document_text)
+                                    addItem("home", Fluent.Translator.tr("gallery_203c08e0d44ac375", Fluent.Translator._v), Fluent.Enums.icon.home)
+                                    addItem("folder", Fluent.Translator.tr("gallery_7c7802d8adaed72e", Fluent.Translator._v), Fluent.Enums.icon.folder)
+                                    addItem("docs", Fluent.Translator.tr("gallery_2687ccdbb1d2288a", Fluent.Translator._v), Fluent.Enums.icon.document)
+                                    addItem("file", Fluent.Translator.tr("gallery_39932f24fe11a6ba", Fluent.Translator._v), Fluent.Enums.icon.document_text)
                                 }
-                                onCurrentItemChanged: (key) => iconText.text = "当前: " + key
+                                onCurrentItemChanged: (key) => iconText.text = Fluent.Translator.tr("gallery_6245bfb449a7e29a") + key
                             }
                             Row {
                                 spacing: Fluent.Enums.spacing.s
-                                Button { text: "添加图片"; onClicked: iconBreadcrumb.addItem("img" + iconBreadcrumb.count, "图片" + iconBreadcrumb.count, Fluent.Enums.icon.image) }
-                                Button { text: "返回上级"; onClicked: iconBreadcrumb.popItem() }
+                                Button { text: Fluent.Translator.tr("gallery_9f0d4e4656ee5dbc", Fluent.Translator._v); onClicked: iconBreadcrumb.addItem("img" + iconBreadcrumb.count, Fluent.Translator.tr("gallery_d24c10d37db0feea") + iconBreadcrumb.count, Fluent.Enums.icon.image) }
+                                Button { text: Fluent.Translator.tr("gallery_6e280f54e3f9a1b5", Fluent.Translator._v); onClicked: iconBreadcrumb.popItem() }
                             }
-                            Text { id: iconText; text: "带图标的面包屑导航"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                            Text { id: iconText; text: Fluent.Translator.tr("gallery_9931589c64452c89", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
                         }
                     }
                     
                     // Overflow demo 溢出演示
                     ComponentCard {
-                        label: "溢出省略 (maxVisibleItems: 4)"
+                        label: Fluent.Translator.tr("gallery_3f8772eda407feb6", Fluent.Translator._v)
                         Column {
                             spacing: Fluent.Enums.spacing.m
                             Breadcrumb { 
@@ -99,21 +99,21 @@ Item {
                                 maxVisibleItems: 4
                                 showIcons: true
                                 Component.onCompleted: {
-                                    addItem("root", "根目录", Fluent.Enums.icon.home)
-                                    addItem("level1", "一级目录", Fluent.Enums.icon.folder)
-                                    addItem("level2", "二级目录", Fluent.Enums.icon.folder)
-                                    addItem("level3", "三级目录", Fluent.Enums.icon.folder)
-                                    addItem("level4", "四级目录", Fluent.Enums.icon.folder)
-                                    addItem("current", "当前位置", Fluent.Enums.icon.location)
+                                    addItem("root", Fluent.Translator.tr("gallery_42ee2863b6d776ff", Fluent.Translator._v), Fluent.Enums.icon.home)
+                                    addItem("level1", Fluent.Translator.tr("gallery_a64ef18ab49bdc3d", Fluent.Translator._v), Fluent.Enums.icon.folder)
+                                    addItem("level2", Fluent.Translator.tr("gallery_d5335a84faaada38", Fluent.Translator._v), Fluent.Enums.icon.folder)
+                                    addItem("level3", Fluent.Translator.tr("gallery_646dd7daa0ffcf85", Fluent.Translator._v), Fluent.Enums.icon.folder)
+                                    addItem("level4", Fluent.Translator.tr("gallery_4f4ceee94c6d268a", Fluent.Translator._v), Fluent.Enums.icon.folder)
+                                    addItem("current", Fluent.Translator.tr("gallery_6be6c8248ec61181", Fluent.Translator._v), Fluent.Enums.icon.location)
                                 }
                             }
                             Row {
                                 spacing: Fluent.Enums.spacing.s
-                                Button { text: "添加层级"; onClicked: overflowBreadcrumb.addItem("deep" + overflowBreadcrumb.count, "深层" + overflowBreadcrumb.count, Fluent.Enums.icon.folder) }
-                                Button { text: "返回上级"; onClicked: overflowBreadcrumb.popItem() }
-                                Button { text: "重置"; onClicked: { overflowBreadcrumb.clear(); overflowBreadcrumb.addItem("root", "根目录", Fluent.Enums.icon.home) } }
+                                Button { text: Fluent.Translator.tr("gallery_65b1aa217f342c3b", Fluent.Translator._v); onClicked: overflowBreadcrumb.addItem("deep" + overflowBreadcrumb.count, Fluent.Translator.tr("gallery_e88300b4a20a8512") + overflowBreadcrumb.count, Fluent.Enums.icon.folder) }
+                                Button { text: Fluent.Translator.tr("gallery_6e280f54e3f9a1b5", Fluent.Translator._v); onClicked: overflowBreadcrumb.popItem() }
+                                Button { text: Fluent.Translator.tr("gallery_cb5d682bac3d1a2d", Fluent.Translator._v); onClicked: { overflowBreadcrumb.clear(); overflowBreadcrumb.addItem("root", Fluent.Translator.tr("gallery_42ee2863b6d776ff", Fluent.Translator._v), Fluent.Enums.icon.home) } }
                             }
-                            Text { text: "超过4项时自动折叠中间项到省略菜单"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
+                            Text { text: Fluent.Translator.tr("gallery_ef08bff1a9823248", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
                         }
                     }
                 }
@@ -121,19 +121,19 @@ Item {
             
             // 分段控件
             ExampleCard {
-                title: "分段/切换控件"
+                title: Fluent.Translator.tr("gallery_e998714a526683d7", Fluent.Translator._v)
                 description: "SegmentedControl / Pivot"
                 Column {
                     spacing: Fluent.Enums.spacing.l
-                    ComponentCard { label: "SegmentedControl"; SegmentedControl { items: ["选项1", "选项2", "选项3"] } }
-                    ComponentCard { label: "Pivot"; Pivot { items: ["全部", "文档", "图片", "视频"] } }
+                    ComponentCard { label: "SegmentedControl"; SegmentedControl { items: [Fluent.Translator.tr("gallery_96198518dab609f0", Fluent.Translator._v), Fluent.Translator.tr("gallery_5f04a01fe105bb4d", Fluent.Translator._v), Fluent.Translator.tr("gallery_74b97119bee5c66d", Fluent.Translator._v)] } }
+                    ComponentCard { label: "Pivot"; Pivot { items: [Fluent.Translator.tr("gallery_5c55a67935af8f45", Fluent.Translator._v), Fluent.Translator.tr("gallery_2687ccdbb1d2288a", Fluent.Translator._v), Fluent.Translator.tr("gallery_d24c10d37db0feea", Fluent.Translator._v), Fluent.Translator.tr("gallery_c20f7618d330a854", Fluent.Translator._v)] } }
                 }
             }
             
             // 步骤进度条
             ExampleCard {
-                title: "步骤进度条"
-                description: "Stepper - 支持图标和文字"
+                title: Fluent.Translator.tr("gallery_ae9e675a583eeb35", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_e8ac692d3cae2e98", Fluent.Translator._v)
                 ComponentCard {
                     label: "Stepper"
                     Column {
@@ -142,18 +142,18 @@ Item {
                             id: stepProgress
                             width: 500
                             steps: [
-                                {text: "订单", icon: "Clipboard"},
-                                {text: "购物车", icon: "Cart"},
-                                {text: "账户信息", icon: "Person"},
-                                {text: "配送", icon: ""},
-                                {text: "支付", icon: ""}
+                                {text: Fluent.Translator.tr("gallery_3d5436ea23d2e9a2", Fluent.Translator._v), icon: "Clipboard"},
+                                {text: Fluent.Translator.tr("gallery_f5e1243b0aa8c3c3", Fluent.Translator._v), icon: "Cart"},
+                                {text: Fluent.Translator.tr("gallery_34e5636c63cc8f78", Fluent.Translator._v), icon: "Person"},
+                                {text: Fluent.Translator.tr("gallery_a662b954e297a878", Fluent.Translator._v), icon: ""},
+                                {text: Fluent.Translator.tr("gallery_5d3ba34cc66cea45", Fluent.Translator._v), icon: ""}
                             ]
                             currentStep: 2
                         }
                         Row {
                             spacing: Fluent.Enums.spacing.s
-                            Button { text: "上一步"; onClicked: stepProgress.stepBack() }
-                            Button { text: "下一步"; onClicked: stepProgress.stepNext() }
+                            Button { text: Fluent.Translator.tr("gallery_da336fdc0dbd1818", Fluent.Translator._v); onClicked: stepProgress.stepBack() }
+                            Button { text: Fluent.Translator.tr("gallery_acfc4e74a650e7df", Fluent.Translator._v); onClicked: stepProgress.stepNext() }
                         }
                     }
                 }
@@ -161,8 +161,8 @@ Item {
             
             // StackedWidget 动画类型展示
             ExampleCard {
-                title: "StackedWidget (animationType枚举)"
-                description: "StackedWidget - 通过animationType切换动画类型"
+                title: Fluent.Translator.tr("gallery_ee1f55ea470c1fb0", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_9f6fc091d21f095d", Fluent.Translator._v)
                 Row {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
@@ -272,37 +272,37 @@ Item {
             
             // 命令栏视图
             ExampleCard {
-                title: "命令栏视图"
+                title: Fluent.Translator.tr("gallery_1b2a34ab3faa47a8", Fluent.Translator._v)
                 description: "CommandBar (type_view)"
                 ComponentCard {
                     label: "CommandBar View"
                     CommandBar { 
                         type: Fluent.Enums.commandBar.type_view
-                        primaryCommands: [{text: "新建", icon: iconPath("DocumentAdd")}, {text: "打开", icon: iconPath("FolderOpen")}, {text: "保存", icon: iconPath("Save")}, {separator: true}, {text: "剪切", icon: iconPath("Cut")}, {text: "复制", icon: iconPath("Copy")}]
+                        primaryCommands: [{text: Fluent.Translator.tr("gallery_50ef2f4cf6a46924", Fluent.Translator._v), icon: iconPath("DocumentAdd")}, {text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v), icon: iconPath("FolderOpen")}, {text: Fluent.Translator.tr("gallery_a3030bf8f16dc63c", Fluent.Translator._v), icon: iconPath("Save")}, {separator: true}, {text: Fluent.Translator.tr("gallery_410a8e8a6bf253ac", Fluent.Translator._v), icon: iconPath("Cut")}, {text: Fluent.Translator.tr("gallery_63d90d977348ab1f", Fluent.Translator._v), icon: iconPath("Copy")}]
                     }
                 }
             }
             
             // CommandBar
             ExampleCard {
-                title: "命令栏"
+                title: Fluent.Translator.tr("gallery_7e97e91f3221fc25", Fluent.Translator._v)
                 description: "CommandBar"
                 ComponentCard {
                     label: "CommandBar"
                     CommandBar { 
                         width: 380
                         primaryCommands: [
-                            {icon: iconPath("DocumentAdd"), text: "新建"},
-                            {icon: iconPath("FolderOpen"), text: "打开"},
-                            {icon: iconPath("Save"), text: "保存"}
+                            {icon: iconPath("DocumentAdd"), text: Fluent.Translator.tr("gallery_50ef2f4cf6a46924", Fluent.Translator._v)},
+                            {icon: iconPath("FolderOpen"), text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v)},
+                            {icon: iconPath("Save"), text: Fluent.Translator.tr("gallery_a3030bf8f16dc63c", Fluent.Translator._v)}
                         ]
                         secondaryCommands: [
-                            {icon: iconPath("Settings"), text: "设置"},
-                            {icon: iconPath("QuestionCircle"), text: "帮助"},
-                            {icon: iconPath("QuestionCircle"), text: "帮助2"},
-                            {icon: iconPath("QuestionCircle"), text: "帮助3"},
-                            {icon: iconPath("QuestionCircle"), text: "帮助4"},
-                            {icon: iconPath("QuestionCircle"), text: "帮助5"}
+                            {icon: iconPath("Settings"), text: Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v)},
+                            {icon: iconPath("QuestionCircle"), text: Fluent.Translator.tr("gallery_a57cfcb8428da408", Fluent.Translator._v)},
+                            {icon: iconPath("QuestionCircle"), text: Fluent.Translator.tr("gallery_b5857e11ccce5cae", Fluent.Translator._v)},
+                            {icon: iconPath("QuestionCircle"), text: Fluent.Translator.tr("gallery_e758fedc5fa97363", Fluent.Translator._v)},
+                            {icon: iconPath("QuestionCircle"), text: Fluent.Translator.tr("gallery_8bdbd7f81a95dd3f", Fluent.Translator._v)},
+                            {icon: iconPath("QuestionCircle"), text: Fluent.Translator.tr("gallery_11cf409424a0de6d", Fluent.Translator._v)}
                         ]
                     }
                 }
@@ -310,7 +310,7 @@ Item {
             
             // 分页器
             ExampleCard {
-                title: "分页器"
+                title: Fluent.Translator.tr("gallery_4bf9ffa772b28b9d", Fluent.Translator._v)
                 description: "Paginator"
                 ComponentCard {
                     label: "Paginator"
@@ -320,16 +320,16 @@ Item {
             
             // 菜单栏
             ExampleCard {
-                title: "菜单栏"
+                title: Fluent.Translator.tr("gallery_a304cb9cd6c523bb", Fluent.Translator._v)
                 description: "MenuBar"
                 ComponentCard {
                     label: "MenuBar"
                     MenuBar {
                         width: 400
                         items: [
-                            {text: "文件", children: [{text: "新建"}, {text: "打开"}, {text: "保存"}]},
-                            {text: "编辑", children: [{text: "撤销"}, {text: "重做"}]},
-                            {text: "帮助", children: [{text: "关于"}]}
+                            {text: Fluent.Translator.tr("gallery_39932f24fe11a6ba", Fluent.Translator._v), children: [{text: Fluent.Translator.tr("gallery_50ef2f4cf6a46924", Fluent.Translator._v)}, {text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v)}, {text: Fluent.Translator.tr("gallery_a3030bf8f16dc63c", Fluent.Translator._v)}]},
+                            {text: Fluent.Translator.tr("gallery_051836569928a9f9", Fluent.Translator._v), children: [{text: Fluent.Translator.tr("gallery_926a50b98ece2667", Fluent.Translator._v)}, {text: Fluent.Translator.tr("gallery_03717b6f10700f87", Fluent.Translator._v)}]},
+                            {text: Fluent.Translator.tr("gallery_a57cfcb8428da408", Fluent.Translator._v), children: [{text: Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v)}]}
                         ]
                     }
                 }

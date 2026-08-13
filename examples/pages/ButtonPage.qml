@@ -16,8 +16,8 @@ Item {
 
     MenuCore {
         id: externalButtonMenu
-        Action { text: "外部动作一" }
-        Action { text: "外部动作二" }
+        Action { text: Fluent.Translator.tr("gallery_d54f1a0703d99975", Fluent.Translator._v) }
+        Action { text: Fluent.Translator.tr("gallery_b03fab65bf7cae21", Fluent.Translator._v) }
     }
 
     // 图标路径解析函数 (用模块内 Enums.iconPath, 可移植: 不依赖源码树位置)
@@ -36,26 +36,26 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "按钮"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_ad1c50c9367c756d", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
                 Text { text: "prismqml.controls.buttons"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.tertiary; font.family: Fluent.Enums.fontFamily }
             }
             
             // Button - 自动类型识别
             ExampleCard {
-                title: "Button - 自动类型识别"
-                description: "仅图标→ToolButton样式，文本/图标+文本→PushButton样式"
+                title: Fluent.Translator.tr("gallery_9df73ba243d56878", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_4f8d02a998ca3cb8", Fluent.Translator._v)
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
-                    ComponentCard { label: "仅文本 (Push)"; Button { text: "Push" } }
-                    ComponentCard { label: "仅图标 (Tool)"; Button { icon: Fluent.Enums.icon.settings } }
-                    ComponentCard { label: "图标+文本 (Push)"; Button { icon: Fluent.Enums.icon.settings; text: "Settings" } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_176f5d049824c610", Fluent.Translator._v); Button { text: "Push" } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_f674860ca9d21976", Fluent.Translator._v); Button { icon: Fluent.Enums.icon.settings } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_b994c45127c39259", Fluent.Translator._v); Button { icon: Fluent.Enums.icon.settings; text: "Settings" } }
                 }
             }
             
             // Button - Style样式
             ExampleCard {
-                title: "Button - Style样式 (6种)"
+                title: Fluent.Translator.tr("gallery_ea6e9be218124517", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -71,7 +71,7 @@ Item {
             
             // Button - Shape形状
             ExampleCard {
-                title: "Button - Shape形状 (2种)"
+                title: Fluent.Translator.tr("gallery_601b9653de2a0d77", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -83,7 +83,7 @@ Item {
             
             // Button - Feature功能
             ExampleCard {
-                title: "Button - Feature功能 (9种)"
+                title: Fluent.Translator.tr("gallery_a84744df3f2acf0e", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -115,8 +115,8 @@ Item {
                         Button { 
                             feature: Fluent.Enums.button.feature_dropdown
                             text: "DropDown"
-                            menuItems: ["选项1", "选项2", "-", "选项3"]
-                            onMenuItemClicked: function(index, text) { console.log("选中:", text) }
+                            menuItems: [Fluent.Translator.tr("gallery_96198518dab609f0", Fluent.Translator._v), Fluent.Translator.tr("gallery_5f04a01fe105bb4d", Fluent.Translator._v), "-", Fluent.Translator.tr("gallery_74b97119bee5c66d", Fluent.Translator._v)]
+                            onMenuItemClicked: function(index, text) { console.log(Fluent.Translator.tr("gallery_667bc88022ff7f7b", Fluent.Translator._v), text) }
                         }
                     }
                     ComponentCard { 
@@ -125,9 +125,9 @@ Item {
                             style: Fluent.Enums.button.style_primary
                             feature: Fluent.Enums.button.feature_split
                             text: "Split"
-                            menuItems: ["操作A", "操作B"]
-                            onClicked: console.log("主按钮点击")
-                            onMenuItemClicked: function(index, text) { console.log("菜单:", text) }
+                            menuItems: [Fluent.Translator.tr("gallery_661302e956cba192", Fluent.Translator._v), Fluent.Translator.tr("gallery_353ad4f734d73cdd", Fluent.Translator._v)]
+                            onClicked: console.log(Fluent.Translator.tr("gallery_6b3dc852457b0e1b", Fluent.Translator._v))
+                            onMenuItemClicked: function(index, text) { console.log(Fluent.Translator.tr("gallery_5248f80383486038", Fluent.Translator._v), text) }
                         }
                     }
                     ComponentCard {
@@ -135,9 +135,9 @@ Item {
                         Button {
                             style: Fluent.Enums.button.style_primary
                             feature: Fluent.Enums.button.feature_split
-                            text: "外部菜单"
+                            text: Fluent.Translator.tr("gallery_c0dd9864b2f72353", Fluent.Translator._v)
                             menu: externalButtonMenu
-                            onClicked: console.log("外部菜单主按钮点击")
+                            onClicked: console.log(Fluent.Translator.tr("gallery_69b751f934f21944", Fluent.Translator._v))
                         }
                     }
                     ComponentCard { 
@@ -145,7 +145,7 @@ Item {
                         Button { 
                             style: Fluent.Enums.button.style_primary
                             feature: Fluent.Enums.button.feature_countdown
-                            text: "发送验证码"
+                            text: Fluent.Translator.tr("gallery_4656fed515ae8f99", Fluent.Translator._v)
                             countdown: 5
                             countdownText: "s"
                         }
@@ -155,7 +155,7 @@ Item {
             
             // Button - Filled状态等级
             ExampleCard {
-                title: "Button - Filled状态等级 (6种)"
+                title: Fluent.Translator.tr("gallery_7f767ea033795bff", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -171,8 +171,8 @@ Item {
             
             // Button - Text状态等级 (Filled变体：无背景，文字为状态色)
             ExampleCard {
-                title: "Button - Text状态等级 (6种)"
-                description: "Button - Filled变体：无背景，文字为状态色"
+                title: Fluent.Translator.tr("gallery_b860143490c75717", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_57b234af8b8c5664", Fluent.Translator._v)
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
@@ -187,8 +187,8 @@ Item {
             
             // Button - ToolButton变体 (仅图标自动识别)
             ExampleCard {
-                title: "Button - ToolButton样式 (6种)"
-                description: "仅图标时自动识别为ToolButton"
+                title: Fluent.Translator.tr("gallery_3491313cdeed61bd", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_d78dacc24620346e", Fluent.Translator._v)
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
@@ -203,8 +203,8 @@ Item {
             
             // Button - ToolButton + Feature组合
             ExampleCard {
-                title: "Button - ToolButton + Feature组合"
-                description: "仅图标 + feature"
+                title: Fluent.Translator.tr("gallery_00522ef617a7739f", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_d52c6910f1028bbf", Fluent.Translator._v)
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
@@ -228,13 +228,13 @@ Item {
                             }
                         }
                     }
-                    ComponentCard { label: "tool+dropdown"; Button { feature: Fluent.Enums.button.feature_dropdown; icon: Fluent.Enums.icon.more_vertical; menuItems: ["编辑", "删除", "-", "属性"] } }
+                    ComponentCard { label: "tool+dropdown"; Button { feature: Fluent.Enums.button.feature_dropdown; icon: Fluent.Enums.icon.more_vertical; menuItems: [Fluent.Translator.tr("gallery_051836569928a9f9", Fluent.Translator._v), Fluent.Translator.tr("gallery_2f9daa828907b93f", Fluent.Translator._v), "-", Fluent.Translator.tr("gallery_86de52d178203799", Fluent.Translator._v)] } }
                 }
             }
             
             // ==================== Style + Shape 组合 ====================
             ExampleCard {
-                title: "Style + Shape 组合"
+                title: Fluent.Translator.tr("gallery_9da0be8d3424c2f6", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -251,7 +251,7 @@ Item {
             
             // ==================== Style + Feature 组合 (default shape) ====================
             ExampleCard {
-                title: "Style + Feature 组合 (progress_bar)"
+                title: Fluent.Translator.tr("gallery_75c35fc86861bed6", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -266,7 +266,7 @@ Item {
             }
             
             ExampleCard {
-                title: "Style + Feature 组合 (indeterminate_bar)"
+                title: Fluent.Translator.tr("gallery_a8047b2e50f7a29e", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -281,7 +281,7 @@ Item {
             }
             
             ExampleCard {
-                title: "Style + Feature 组合 (progress_ring)"
+                title: Fluent.Translator.tr("gallery_cc632cfcf0dd35cd", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -296,7 +296,7 @@ Item {
             }
             
             ExampleCard {
-                title: "Style + Feature 组合 (indeterminate_ring)"
+                title: Fluent.Translator.tr("gallery_2bc3f24e0d0af60e", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -311,7 +311,7 @@ Item {
             }
             
             ExampleCard {
-                title: "Style + Feature 组合 (toggle)"
+                title: Fluent.Translator.tr("gallery_b492250d3d055380", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -326,7 +326,7 @@ Item {
             }
             
             ExampleCard {
-                title: "Style + Feature 组合 (dropdown)"
+                title: Fluent.Translator.tr("gallery_db17582db8989f94", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -341,7 +341,7 @@ Item {
             }
             
             ExampleCard {
-                title: "Style + Feature 组合 (split)"
+                title: Fluent.Translator.tr("gallery_ba20d1ba26f732c1", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -356,8 +356,8 @@ Item {
             }
             
             ExampleCard {
-                title: "Style + Feature 组合 (countdown)"
-                description: "Button - 倒计时按钮与各样式组合"
+                title: Fluent.Translator.tr("gallery_c6980cd8e3dd8bce", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_26b67774bf5eb396", Fluent.Translator._v)
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
@@ -372,7 +372,7 @@ Item {
             
             // ==================== Shape + Feature 组合 (pill shape) ====================
             ExampleCard {
-                title: "Shape(pill) + Feature 组合"
+                title: Fluent.Translator.tr("gallery_fbe90a9a175d9f91", Fluent.Translator._v)
                 description: "Button"
                 Flow {
                     width: parent ? parent.width : 0
@@ -390,8 +390,8 @@ Item {
             
             // ==================== Style + Shape(pill) + Feature 三维组合 ====================
             ExampleCard {
-                title: "Style + Pill + Toggle 组合"
-                description: "Button - 7种样式 × pill形状 × toggle功能"
+                title: Fluent.Translator.tr("gallery_629e20b073cb6a0d", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_d646a41804e706bd", Fluent.Translator._v)
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
@@ -405,8 +405,8 @@ Item {
             }
             
             ExampleCard {
-                title: "Style + Pill + Progress 组合"
-                description: "Button - 样式 × pill形状 × 进度功能"
+                title: Fluent.Translator.tr("gallery_fc8572060fdb0ca5", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_5311b05e9da8a4bf", Fluent.Translator._v)
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
@@ -418,8 +418,8 @@ Item {
             }
             
             ExampleCard {
-                title: "Style + Pill + Dropdown/Split 组合"
-                description: "Button - 样式 × pill形状 × 下拉/分割功能"
+                title: Fluent.Translator.tr("gallery_3f0653334f872292", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_a92cafc0366f99a0", Fluent.Translator._v)
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
@@ -432,7 +432,7 @@ Item {
             
             // ==================== 带徽章的组合 ====================
             ExampleCard {
-                title: "带徽章的组合 (Badge)"
+                title: Fluent.Translator.tr("gallery_1eefca4b4783ce1d", Fluent.Translator._v)
                 description: "Button + Badge"
                 Flow {
                     width: parent ? parent.width : 0

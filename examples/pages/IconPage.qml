@@ -54,7 +54,7 @@ Item {
 
             // Title 标题
             Text {
-                text: "图标"
+                text: Fluent.Translator.tr("gallery_0d720eeea26466dd", Fluent.Translator._v)
                 font.pixelSize: Fluent.Enums.typography.display
                 font.bold: true
                 color: Fluent.Enums.textColor.primary
@@ -66,7 +66,7 @@ Item {
                 id: searchBox
                 width: Math.min(parent.width, 400)
                 inputType: Fluent.Enums.input.type_search
-                placeholderText: "搜索图标"
+                placeholderText: Fluent.Translator.tr("gallery_ebb240a1930e8bfb", Fluent.Translator._v)
                 onTextChanged: root.searchText = text
             }
 
@@ -157,7 +157,7 @@ Item {
                     spacing: Fluent.Enums.spacing.xs
                     
                     Text {
-                        text: "图标名"
+                        text: Fluent.Translator.tr("gallery_f4b8d441609401a3", Fluent.Translator._v)
                         font.pixelSize: Fluent.Enums.typography.caption
                         color: Fluent.Enums.textColor.secondary
                         font.family: Fluent.Enums.fontFamily
@@ -189,7 +189,7 @@ Item {
                     spacing: Fluent.Enums.spacing.xs
                     
                     Text {
-                        text: "枚举成员名"
+                        text: Fluent.Translator.tr("gallery_650ba83c6a8425e7", Fluent.Translator._v)
                         font.pixelSize: Fluent.Enums.typography.caption
                         color: Fluent.Enums.textColor.secondary
                         font.family: Fluent.Enums.fontFamily
@@ -221,7 +221,7 @@ Item {
                     spacing: Fluent.Enums.spacing.xs
                     
                     Text {
-                        text: "Python 代码"
+                        text: Fluent.Translator.tr("gallery_bd94d92b7cdcee2d", Fluent.Translator._v)
                         font.pixelSize: Fluent.Enums.typography.caption
                         color: Fluent.Enums.textColor.secondary
                         font.family: Fluent.Enums.fontFamily

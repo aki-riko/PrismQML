@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     };
 
     Window &w = app.createWindow(WindowType::Bar);
-    w.setWindowTitle(QStringLiteral("PrismQML Gallery (C++ 宿主)"));
+    w.setTranslatedWindowTitle(QStringLiteral("gallery_90b8157cfce0dbe5"));
     // 标题栏 app 图标 (桌面: examples/resources 磁盘路径; 可被 PRISM_GALLERY_ICON 覆盖)
     {
         QString iconUrl = QProcessEnvironment::systemEnvironment()
@@ -61,30 +61,32 @@ int main(int argc, char *argv[]) {
     w.resize(1200, 800);
 
     // 启动画面(标题/图标回退到窗口配置)
-    w.setSplash(/*enabled=*/true, QString(), QStringLiteral("PrismQML Gallery"),
-                QStringLiteral("加载中..."));
+    w.setTranslatedSplash(/*enabled=*/true, QString(),
+                          QStringLiteral("gallery_8b6903f932b56197"),
+                          QStringLiteral("loading"));
 
     // 13 个组件展示页 (图标/标题对照 examples/main.qml 的 navItems)
-    struct Page { const char *file; const char *icon; const char *title; };
+    struct Page { const char *file; const char *icon; const char *titleKey; };
     const Page pages[] = {
-        {"ButtonPage.qml",     "CursorClick",       "按钮"},
-        {"InputPage.qml",      "Keyboard",          "输入"},
-        {"LabelPage.qml",      "Tag",               "标签"},
-        {"CardPage.qml",       "CardUI",            "卡片"},
-        {"CarouselPage.qml",   "SlideMultiple",     "轮播"},
-        {"FeedbackPage.qml",   "Alert",             "反馈"},
-        {"MenuPage.qml",       "Navigation",        "菜单"},
-        {"NavigationPage.qml", "CompassNorthwest",  "导航"},
-        {"ContainerPage.qml",  "LayoutRowFour",     "容器"},
-        {"ChartPage.qml",      "DataPie",           "图表"},
-        {"IconPage.qml",       "Icons",             "图标"},
-        {"EffectsPage.qml",    "Sparkle",           "特效"},
-        {"SettingsPage.qml",   "Settings",          "设置"},
+        {"ButtonPage.qml",     "CursorClick",       "gallery_ad1c50c9367c756d"},
+        {"InputPage.qml",      "Keyboard",          "gallery_2087c777c06fefe5"},
+        {"LabelPage.qml",      "Tag",               "gallery_1d0fd5f9336d9103"},
+        {"CardPage.qml",       "CardUI",            "gallery_fb5640f8e12e3337"},
+        {"CarouselPage.qml",   "SlideMultiple",     "gallery_85f05ecc2a4f3f5d"},
+        {"FeedbackPage.qml",   "Alert",             "gallery_8b2106ca13719cb2"},
+        {"MenuPage.qml",       "Navigation",        "gallery_4ce4cafdd0561280"},
+        {"NavigationPage.qml", "CompassNorthwest",  "gallery_e72622fe470d04bc"},
+        {"ContainerPage.qml",  "LayoutRowFour",     "gallery_6d23f04b26967d64"},
+        {"ChartPage.qml",      "DataPie",           "gallery_8cb443ab83797881"},
+        {"IconPage.qml",       "Icons",             "gallery_0d720eeea26466dd"},
+        {"EffectsPage.qml",    "Sparkle",           "gallery_8829dbcbcfce6e54"},
+        {"SettingsPage.qml",   "Settings",          "gallery_df3d58c7d84b85f2"},
     };
     int firstIdx = -1;
     for (const auto &p : pages) {
-        int idx = w.addPage(pagePath(QString::fromUtf8(p.file)),
-                            QString::fromUtf8(p.icon), QString::fromUtf8(p.title));
+        int idx = w.addTranslatedPage(
+            pagePath(QString::fromUtf8(p.file)), QString::fromUtf8(p.icon),
+            QString::fromUtf8(p.titleKey));
         if (firstIdx < 0) firstIdx = idx;
     }
     qInfo() << "Gallery: addPage x" << (int)(sizeof(pages) / sizeof(pages[0]))
@@ -92,9 +94,10 @@ int main(int argc, char *argv[]) {
 
     // 纯功能底部项(selectable=false): 点击不切页, 触发 onBottomItemClicked 回调
     // (演示导航项的功能项能力, 如 User 头像点击弹菜单)
-    const int aboutIdx = w.addPage(QString(), QStringLiteral("Person"),
-                                   QStringLiteral("关于"), NavPosition::Bottom,
-                                   /*selectable=*/false);
+    const int aboutIdx = w.addTranslatedPage(
+        QString(), QStringLiteral("Person"),
+        QStringLiteral("gallery_52d25a9e30ba94f1"), NavPosition::Bottom,
+        /*selectable=*/false);
     w.onBottomItemClicked([aboutIdx](int index) {
         if (index == aboutIdx)
             qInfo() << "GALLERY_FUNC_ITEM_CLICKED: 纯功能项'关于'被点击(未切页) index=" << index;

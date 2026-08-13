@@ -33,14 +33,14 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { 
-                    text: "轮播图 & 分页指示器"
+                    text: Fluent.Translator.tr("gallery_8da557d5b8a7f49a", Fluent.Translator._v)
                     font.pixelSize: Fluent.Enums.typography.displayLarge
                     font.bold: true
                     color: Fluent.Enums.textColor.primary
                     font.family: Fluent.Enums.fontFamily 
                 }
                 Text { 
-                    text: "Carousel + PipsPager - 统一轮播组件配合分页指示器"
+                    text: Fluent.Translator.tr("gallery_21d472b97eb91c0b", Fluent.Translator._v)
                     font.pixelSize: Fluent.Enums.typography.caption
                     color: Fluent.Enums.textColor.secondary
                     font.family: Fluent.Enums.fontFamily 
@@ -49,8 +49,8 @@ Item {
 
             // ==================== PipsPager Section 分页指示器部分 ====================
             ExampleCard {
-                title: "分页指示器 (PipsPager)"
-                description: "HorizontalPipsPager / VerticalPipsPager - 支持翻页按钮、可见数量限制、平滑滚动"
+                title: Fluent.Translator.tr("gallery_c5cf81e08f22e5d5", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_feed68ac96819f85", Fluent.Translator._v)
                 
                 Column {
                     spacing: Fluent.Enums.spacing.l
@@ -59,7 +59,7 @@ Item {
                         spacing: Fluent.Enums.spacing.xxl
                         
                         ComponentCard {
-                            label: "水平基础 (5点)"
+                            label: Fluent.Translator.tr("gallery_1671919a8d15b42a", Fluent.Translator._v)
                             HorizontalPipsPager {
                                 count: 5
                                 currentIndex: 2
@@ -67,7 +67,7 @@ Item {
                         }
                         
                         ComponentCard {
-                            label: "垂直基础 (4点)"
+                            label: Fluent.Translator.tr("gallery_e0a3ea0c1284da73", Fluent.Translator._v)
                             VerticalPipsPager {
                                 count: 4
                                 currentIndex: 1
@@ -75,7 +75,7 @@ Item {
                         }
                         
                         ComponentCard {
-                            label: "带按钮 (始终显示)"
+                            label: Fluent.Translator.tr("gallery_50d8fc2f69be51e0", Fluent.Translator._v)
                             HorizontalPipsPager {
                                 count: 10
                                 currentIndex: 3
@@ -86,7 +86,7 @@ Item {
                         }
                         
                         ComponentCard {
-                            label: "垂直带按钮"
+                            label: Fluent.Translator.tr("gallery_054b03a76cff840d", Fluent.Translator._v)
                             VerticalPipsPager {
                                 count: 8
                                 currentIndex: 2
@@ -101,14 +101,14 @@ Item {
             
             // ==================== Peek Carousel 露边轮播 ====================
             ExampleCard {
-                title: "露边轮播"
-                description: "Carousel - orientation 水平/垂直 + 外部 PipsPager 联动"
+                title: Fluent.Translator.tr("gallery_cce4c8c1bc7d34b4", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_9e17cc2bef9868b7", Fluent.Translator._v)
 
                 Row {
                     spacing: Fluent.Enums.spacing.xxl
 
                     ComponentCard {
-                        label: "水平 (默认)"
+                        label: Fluent.Translator.tr("gallery_3f72e872c52f702f", Fluent.Translator._v)
                         Carousel {
                             width: 400
                             height: 180
@@ -119,7 +119,7 @@ Item {
                     }
 
                     ComponentCard {
-                        label: "垂直 (orientation: Qt.Vertical)"
+                        label: Fluent.Translator.tr("gallery_414c4d713eeb6da0", Fluent.Translator._v)
                         Carousel {
                             width: 200
                             height: 280
@@ -130,7 +130,7 @@ Item {
                     }
 
                     ComponentCard {
-                        label: "外部 PipsPager 联动 + loop"
+                        label: Fluent.Translator.tr("gallery_8448d9ffc9f9fc92", Fluent.Translator._v)
                         Column {
                             spacing: Fluent.Enums.spacing.s
                             Carousel {
@@ -154,14 +154,14 @@ Item {
 
             // ==================== Plain Slide Carousel 普通滑动轮播 ====================
             ExampleCard {
-                title: "普通滑动轮播"
-                description: "Carousel - effect: effect_slide(整图滑动，无两侧 peek)"
+                title: Fluent.Translator.tr("gallery_22672541d05520ef", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_cc38c3b4060f1068", Fluent.Translator._v)
 
                 Row {
                     spacing: Fluent.Enums.spacing.xxl
 
                     ComponentCard {
-                        label: "effect_slide (水平)"
+                        label: Fluent.Translator.tr("gallery_93881536b744e50f", Fluent.Translator._v)
                         Carousel {
                             width: 400
                             height: 180
@@ -173,7 +173,7 @@ Item {
                     }
 
                     ComponentCard {
-                        label: "effect_slide + 垂直"
+                        label: Fluent.Translator.tr("gallery_22cb302040e89090", Fluent.Translator._v)
                         Carousel {
                             width: 200
                             height: 280

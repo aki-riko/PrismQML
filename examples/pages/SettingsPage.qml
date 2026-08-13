@@ -32,13 +32,13 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "设置组件"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_b4a4ca71fb7539c7", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
                 Text { text: "prismqml.controls.settings"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.tertiary; font.family: Fluent.Enums.fontFamily }
             }
             
             // ==================== 实际功能设置 Functional Settings ====================
             SettingsCardGroup {
-                title: "窗口设置"
+                title: Fluent.Translator.tr("gallery_248c888b290d234f", Fluent.Translator._v)
                 width: parent ? parent.width : 0
                 
                 // 窗口类型
@@ -48,8 +48,8 @@ Item {
 
                     objectName: "windowTypeSettingsCard"
                     width: parent ? parent.width : 0
-                    title: "窗口类型"
-                    content: "重启生效"
+                    title: Fluent.Translator.tr("gallery_6cc070864e568c6b", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_c58314ff3c291c53", Fluent.Translator._v)
                     icon: iconPath("Window")
                     type: Fluent.Enums.settingCard.type_combobox
                     model: windowTypeValues.map(function(value) {
@@ -69,8 +69,8 @@ Item {
                 // 云母效果
                 SettingsCard {
                     width: parent ? parent.width : 0
-                    title: "云母效果"
-                    content: "仅 Windows 11 支持"
+                    title: Fluent.Translator.tr("gallery_491d8a1d801bb51f", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_73d650e292eac352", Fluent.Translator._v)
                     icon: iconPath("Blur")
                     type: Fluent.Enums.settingCard.type_switch
                     checked: ConfigManager ? ConfigManager.micaEnabled : false
@@ -87,8 +87,8 @@ Item {
                 // DWM原生阴影
                 SettingsCard {
                     width: parent ? parent.width : 0
-                    title: "DWM 原生阴影"
-                    content: "Windows 原生窗口阴影"
+                    title: Fluent.Translator.tr("gallery_1001f6a8b689600b", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_32df12f693e56719", Fluent.Translator._v)
                     icon: iconPath("SquareShadow")
                     type: Fluent.Enums.settingCard.type_switch
                     checked: ConfigManager ? ConfigManager.dwmShadow : true
@@ -101,7 +101,7 @@ Item {
             }
             
             SettingsCardGroup {
-                title: "应用设置"
+                title: Fluent.Translator.tr("gallery_a1a42cd9b16e2162", Fluent.Translator._v)
                 width: parent ? parent.width : 0
                 
                 // 应用主题 Application theme
@@ -115,11 +115,11 @@ Item {
 
                     objectName: "themeSettingsCard"
                     width: parent ? parent.width : 0
-                    title: "应用主题"
-                    content: "调整应用外观"
+                    title: Fluent.Translator.tr("gallery_0e61f173997cf413", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_db463b04c2ffb6eb", Fluent.Translator._v)
                     icon: iconPath("DarkTheme")
                     type: Fluent.Enums.settingCard.type_combobox
-                    model: ["跟随系统", "浅色", "深色"]
+                    model: [Fluent.Translator.tr("gallery_217cfe7db1e3d10a", Fluent.Translator._v), Fluent.Translator.tr("gallery_aa0819dfc4d8d782", Fluent.Translator._v), Fluent.Translator.tr("gallery_a6b75d0680322a61", Fluent.Translator._v)]
                     currentIndex: themeIndex >= 0 ? themeIndex : 0
                     
                     onIndexSelected: function(idx) {
@@ -172,8 +172,8 @@ Item {
                 // 懒加载
                 SettingsCard {
                     width: parent ? parent.width : 0
-                    title: "懒加载"
-                    content: "延迟加载页面内容"
+                    title: Fluent.Translator.tr("gallery_d05c55bc5b9d134b", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_e2748c46180717bc", Fluent.Translator._v)
                     icon: iconPath("Timer")
                     type: Fluent.Enums.settingCard.type_switch
                     checked: ConfigManager ? ConfigManager.lazyLoading : true
@@ -193,12 +193,12 @@ Item {
 
                     objectName: "dpiScaleSettingsCard"
                     width: parent ? parent.width : 0
-                    title: "DPI 缩放"
-                    content: "重启生效"
+                    title: Fluent.Translator.tr("gallery_2d406700ef62534f", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_c58314ff3c291c53", Fluent.Translator._v)
                     icon: iconPath("ResizeImage")
                     type: Fluent.Enums.settingCard.type_combobox
                     model: dpiValues.map(function(value) {
-                        return value === 0 ? "跟随系统" : value + "%"
+                        return value === 0 ? Fluent.Translator.tr("gallery_217cfe7db1e3d10a", Fluent.Translator._v) : value + "%"
                     })
                     currentIndex: ConfigManager
                         ? dpiValues.indexOf(ConfigManager.dpiScale)
@@ -224,8 +224,8 @@ Item {
 
                     objectName: "languageSettingsCard"
                     width: parent ? parent.width : 0
-                    title: "界面语言"
-                    content: "选择显示语言"
+                    title: Fluent.Translator.tr("gallery_3d13868593ae4eeb", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_0af6a6aa673343b7", Fluent.Translator._v)
                     icon: iconPath("LocalLanguage")
                     type: Fluent.Enums.settingCard.type_combobox
                     model: languages.map(lang => lang.nativeName)
@@ -243,8 +243,8 @@ Item {
                 SettingsCard {
                     objectName: "accentColorSettingsCard"
                     width: parent ? parent.width : 0
-                    title: "主题色"
-                    content: "选择默认或自定义颜色"
+                    title: Fluent.Translator.tr("gallery_0f132a452ea8ac60", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_ac73d3f02e42efa3", Fluent.Translator._v)
                     icon: iconPath("Color")
                     type: Fluent.Enums.settingCard.type_color
                     defaultColor: Fluent.Enums.accentDefaults.accent
@@ -252,9 +252,9 @@ Item {
                         ? ConfigManager.accentColor : Fluent.Enums.accentColor
                     useCustomColor: customColor.toString().toLowerCase()
                         !== defaultColor.toString().toLowerCase()
-                    defaultColorText: "默认颜色"
-                    customColorText: "自定义颜色"
-                    chooseColorText: "选择颜色"
+                    defaultColorText: Fluent.Translator.tr("gallery_af76608af89e9682", Fluent.Translator._v)
+                    customColorText: Fluent.Translator.tr("gallery_781b07fdcb56b56a", Fluent.Translator._v)
+                    chooseColorText: Fluent.Translator.tr("gallery_369b82fa0700db02", Fluent.Translator._v)
                     onCustomColorPicked: function(c) {
                         if (ConfigManager) {
                             ConfigManager.setAccentColor(c.toString())
@@ -268,28 +268,28 @@ Item {
             // 按钮类型
             ExampleCard {
                 title: "SettingsCard - type_push"
-                description: "按钮设置卡片"
+                description: Fluent.Translator.tr("gallery_914e756532bd250d", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "关于"
-                    content: "查看软件信息"
+                    title: Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_551f2dc464fae243", Fluent.Translator._v)
                     icon: iconPath("Info")
                     type: Fluent.Enums.settingCard.type_push
-                    buttonText: "查看"
+                    buttonText: Fluent.Translator.tr("gallery_db8db0530432bd15", Fluent.Translator._v)
                 }
             }
             
             // 主要按钮类型
             ExampleCard {
                 title: "SettingsCard - type_primary_push"
-                description: "主要按钮设置卡片"
+                description: Fluent.Translator.tr("gallery_8e65e38666703464", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "保存设置"
-                    content: "保存当前配置"
+                    title: Fluent.Translator.tr("gallery_c8550237ba701f64", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_4dba5cf72a199d63", Fluent.Translator._v)
                     icon: iconPath("Save")
                     type: Fluent.Enums.settingCard.type_primary_push
-                    buttonText: "保存"
+                    buttonText: Fluent.Translator.tr("gallery_a3030bf8f16dc63c", Fluent.Translator._v)
                     onClicked: console.log("Primary button clicked")
                 }
             }
@@ -297,14 +297,14 @@ Item {
             // 超链接类型
             ExampleCard {
                 title: "SettingsCard - type_hyperlink"
-                description: "超链接设置卡片"
+                description: Fluent.Translator.tr("gallery_beaed9f02826599d", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "帮助文档"
-                    content: "查看在线帮助"
+                    title: Fluent.Translator.tr("gallery_8914957fc91d8750", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_2cce4a7e9cf9cb3d", Fluent.Translator._v)
                     icon: iconPath("QuestionCircle")
                     type: Fluent.Enums.settingCard.type_hyperlink
-                    linkText: "打开文档"
+                    linkText: Fluent.Translator.tr("gallery_d1961d380a4d68c2", Fluent.Translator._v)
                     url: "https://github.com"
                 }
             }
@@ -312,16 +312,16 @@ Item {
             // 开关类型
             ExampleCard {
                 title: "SettingsCard - type_switch"
-                description: "开关设置卡片"
+                description: Fluent.Translator.tr("gallery_582b6e71b6aeb922", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "自动更新"
-                    content: "启用自动检查更新"
+                    title: Fluent.Translator.tr("gallery_736cff237d7d9255", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_7adf0b48e0c26ee0", Fluent.Translator._v)
                     icon: iconPath("ArrowSync")
                     type: Fluent.Enums.settingCard.type_switch
                     checked: true
-                    onText: "开启"
-                    offText: "关闭"
+                    onText: Fluent.Translator.tr("gallery_8da97ddda990e7c4", Fluent.Translator._v)
+                    offText: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v)
                     onSwitchToggled: function(isChecked) { console.log("Switch:", isChecked) }
                 }
             }
@@ -329,14 +329,14 @@ Item {
             // 下拉框类型
             ExampleCard {
                 title: "SettingsCard - type_combobox"
-                description: "下拉框设置卡片"
+                description: Fluent.Translator.tr("gallery_0fa997528dd177b4", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "主题模式"
-                    content: "选择界面主题"
+                    title: Fluent.Translator.tr("gallery_44fb814b166ed6ae", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_bd67011ea3772093", Fluent.Translator._v)
                     icon: iconPath("DarkTheme")
                     type: Fluent.Enums.settingCard.type_combobox
-                    model: ["跟随系统", "浅色", "深色"]
+                    model: [Fluent.Translator.tr("gallery_217cfe7db1e3d10a", Fluent.Translator._v), Fluent.Translator.tr("gallery_aa0819dfc4d8d782", Fluent.Translator._v), Fluent.Translator.tr("gallery_a6b75d0680322a61", Fluent.Translator._v)]
                     currentIndex: 0
                     onIndexSelected: function(idx) { console.log("Selected:", idx) }
                 }
@@ -345,11 +345,11 @@ Item {
             // 滑块类型
             ExampleCard {
                 title: "SettingsCard - type_range"
-                description: "滑块设置卡片"
+                description: Fluent.Translator.tr("gallery_c86ac18a0b13e88d", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "音量"
-                    content: "调整系统音量"
+                    title: Fluent.Translator.tr("gallery_8bf8b9780d342816", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_c8300c46e0364940", Fluent.Translator._v)
                     icon: iconPath("Speaker2")
                     type: Fluent.Enums.settingCard.type_range
                     from: 0
@@ -362,11 +362,11 @@ Item {
             // 快捷键类型
             ExampleCard {
                 title: "SettingsCard - type_shortcut"
-                description: "快捷键设置卡片"
+                description: Fluent.Translator.tr("gallery_eb0b8b4e64fe083c", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "快捷键"
-                    content: "设置全局快捷键"
+                    title: Fluent.Translator.tr("gallery_ee2638183d3ea860", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_608ccbd8e0e252ce", Fluent.Translator._v)
                     icon: iconPath("Keyboard")
                     type: Fluent.Enums.settingCard.type_shortcut
                 }
@@ -377,14 +377,14 @@ Item {
             // 选项类型
             ExampleCard {
                 title: "SettingsCard - type_options"
-                description: "选项设置卡片（展开式）"
+                description: Fluent.Translator.tr("gallery_23a4bff729ae8251", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "启动行为"
-                    content: "选择程序启动时的行为"
+                    title: Fluent.Translator.tr("gallery_74b46009cf439128", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_f9cc4eee6d96db9e", Fluent.Translator._v)
                     icon: iconPath("Play")
                     type: Fluent.Enums.settingCard.type_options
-                    options: ["最小化到托盘", "显示主窗口", "恢复上次状态"]
+                    options: [Fluent.Translator.tr("gallery_f323fc507d585565", Fluent.Translator._v), Fluent.Translator.tr("gallery_91a1d31663b93d6b", Fluent.Translator._v), Fluent.Translator.tr("gallery_fb1f260586829d95", Fluent.Translator._v)]
                     selectedIndex: 1
                     onOptionSelected: function(idx, txt) { console.log("Option:", idx, txt) }
                 }
@@ -393,14 +393,14 @@ Item {
             // 文件夹列表类型
             ExampleCard {
                 title: "SettingsCard - type_folder_list"
-                description: "文件夹列表设置卡片（展开式）"
+                description: Fluent.Translator.tr("gallery_21680a285de1b212", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "音乐文件夹"
-                    content: "管理音乐库文件夹"
+                    title: Fluent.Translator.tr("gallery_c8218193acec7663", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_8ccb568e459c7c3c", Fluent.Translator._v)
                     icon: iconPath("MusicNote2")
                     type: Fluent.Enums.settingCard.type_folder_list
-                    addButtonText: "添加文件夹"
+                    addButtonText: Fluent.Translator.tr("gallery_45da2d9c85d15628", Fluent.Translator._v)
                     folders: ["/path/to/music", "/path/to/downloads"]
                     onFoldersUpdated: function(list) { console.log("Folders:", list) }
                 }
@@ -409,18 +409,18 @@ Item {
             // 颜色类型
             ExampleCard {
                 title: "SettingsCard - type_color"
-                description: "颜色设置卡片（展开式）"
+                description: Fluent.Translator.tr("gallery_03ecf0cfeaad9b9e", Fluent.Translator._v)
                 SettingsCard { 
                     width: 380
-                    title: "主题颜色"
-                    content: "选择默认或自定义颜色"
+                    title: Fluent.Translator.tr("gallery_7d5ce714f1d6c411", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_ac73d3f02e42efa3", Fluent.Translator._v)
                     icon: iconPath("Color")
                     type: Fluent.Enums.settingCard.type_color
                     defaultColor: Fluent.Enums.accentColor
                     customColor: Fluent.Enums.examplePageColors.settingsCustomAccent
-                    defaultColorText: "默认颜色"
-                    customColorText: "自定义颜色"
-                    chooseColorText: "选择颜色"
+                    defaultColorText: Fluent.Translator.tr("gallery_af76608af89e9682", Fluent.Translator._v)
+                    customColorText: Fluent.Translator.tr("gallery_781b07fdcb56b56a", Fluent.Translator._v)
+                    chooseColorText: Fluent.Translator.tr("gallery_369b82fa0700db02", Fluent.Translator._v)
                     onCustomColorPicked: function(c) { console.log("Color:", c) }
                 }
             }
@@ -428,24 +428,24 @@ Item {
             // 设置卡片分组
             ExampleCard {
                 title: "SettingsCardGroup"
-                description: "设置卡片分组容器"
+                description: Fluent.Translator.tr("gallery_ee4385d9240af7c1", Fluent.Translator._v)
                 SettingsCardGroup {
-                    title: "个性化设置"
+                    title: Fluent.Translator.tr("gallery_185b58c5903abc5f", Fluent.Translator._v)
                     width: 400
                     
                     SettingsCard { 
                         width: parent.width
-                        title: "主题"
-                        content: "选择界面主题"
+                        title: Fluent.Translator.tr("gallery_788db1cfec2a3db5", Fluent.Translator._v)
+                        content: Fluent.Translator.tr("gallery_bd67011ea3772093", Fluent.Translator._v)
                         icon: iconPath("DarkTheme")
                         type: Fluent.Enums.settingCard.type_combobox
-                        model: ["浅色", "深色", "跟随系统"]
+                        model: [Fluent.Translator.tr("gallery_aa0819dfc4d8d782", Fluent.Translator._v), Fluent.Translator.tr("gallery_a6b75d0680322a61", Fluent.Translator._v), Fluent.Translator.tr("gallery_217cfe7db1e3d10a", Fluent.Translator._v)]
                     }
                     
                     SettingsCard { 
                         width: parent.width
-                        title: "动画效果"
-                        content: "启用界面动画"
+                        title: Fluent.Translator.tr("gallery_d1d1bedf66228659", Fluent.Translator._v)
+                        content: Fluent.Translator.tr("gallery_dc0158797445f3e1", Fluent.Translator._v)
                         icon: iconPath("Play")
                         type: Fluent.Enums.settingCard.type_switch
                         checked: true
@@ -453,8 +453,8 @@ Item {
                     
                     SettingsCard { 
                         width: parent.width
-                        title: "透明度"
-                        content: "调整窗口透明度"
+                        title: Fluent.Translator.tr("gallery_05f1293993aea38a", Fluent.Translator._v)
+                        content: Fluent.Translator.tr("gallery_231b1081d5073e31", Fluent.Translator._v)
                         icon: iconPath("BrightnessHigh")
                         type: Fluent.Enums.settingCard.type_range
                         from: 50

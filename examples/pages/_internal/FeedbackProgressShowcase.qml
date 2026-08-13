@@ -31,8 +31,8 @@ Column {
 
     // InfoBar progress modes InfoBar 进度模式
     ExampleCard {
-        title: "InfoBar 进度模式"
-        description: "InfoBar 的四种进度 feature"
+        title: Fluent.Translator.tr("gallery_7a466042afd5186a", Fluent.Translator._v)
+        description: Fluent.Translator.tr("gallery_900db63e40422949", Fluent.Translator._v)
 
         Column {
             spacing: Enums.spacing.l
@@ -42,11 +42,11 @@ Column {
                 spacing: Enums.spacing.m
 
                 ComponentCard {
-                    label: "进度条 60%"
+                    label: Fluent.Translator.tr("gallery_27ce4e7bae1a94fa", Fluent.Translator._v)
 
                     InfoBar {
                         objectName: "galleryProgressInfoBarProgressBar"
-                        title: "下载中"
+                        title: Fluent.Translator.tr("gallery_e2fc571a4cf00ceb", Fluent.Translator._v)
                         message: "60%"
                         feature: Enums.notification.feature_progress_bar
                         progress: 0.6
@@ -56,12 +56,12 @@ Column {
                 }
 
                 ComponentCard {
-                    label: "不确定进度条"
+                    label: Fluent.Translator.tr("gallery_494a635922be0b85", Fluent.Translator._v)
 
                     InfoBar {
                         objectName: "galleryProgressInfoBarIndeterminateBar"
-                        title: "加载中"
-                        message: "请稍候..."
+                        title: Fluent.Translator.tr("gallery_d04fcbda737fc0c6", Fluent.Translator._v)
+                        message: Fluent.Translator.tr("gallery_6a651b85a4259148", Fluent.Translator._v)
                         feature: Enums.notification.feature_indeterminate_bar
                         width: Enums.demoMetrics.feedbackNotificationWidth
                         duration: Enums.duration.persistent
@@ -73,11 +73,11 @@ Column {
                 spacing: Enums.spacing.m
 
                 ComponentCard {
-                    label: "进度环 40%"
+                    label: Fluent.Translator.tr("gallery_407b3ced57ef87c2", Fluent.Translator._v)
 
                     InfoBar {
                         objectName: "galleryProgressInfoBarProgressRing"
-                        title: "上传中"
+                        title: Fluent.Translator.tr("gallery_403b055e56f59395", Fluent.Translator._v)
                         message: "40%"
                         feature: Enums.notification.feature_progress_ring
                         progress: 0.4
@@ -87,12 +87,12 @@ Column {
                 }
 
                 ComponentCard {
-                    label: "不确定进度环"
+                    label: Fluent.Translator.tr("gallery_c26a5889102dc0c3", Fluent.Translator._v)
 
                     InfoBar {
                         objectName: "galleryProgressInfoBarIndeterminateRing"
-                        title: "处理中"
-                        message: "请稍候..."
+                        title: Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v)
+                        message: Fluent.Translator.tr("gallery_6a651b85a4259148", Fluent.Translator._v)
                         feature: Enums.notification.feature_indeterminate_ring
                         width: Enums.demoMetrics.feedbackNotificationWidth
                         duration: Enums.duration.persistent
@@ -105,13 +105,13 @@ Column {
                 spacing: Enums.spacing.l
 
                 Button {
-                    text: "进度条"
+                    text: Fluent.Translator.tr("gallery_cd2e8707a7db3b3f", Fluent.Translator._v)
                     style: Enums.button.style_primary
                     onClicked: {
                         var bar = NotificationManager.infoBar.progressBar(
                             root.notificationParent,
-                            "下载中",
-                            "正在下载文件..."
+                            Fluent.Translator.tr("gallery_e2fc571a4cf00ceb", Fluent.Translator._v),
+                            Fluent.Translator.tr("gallery_e3742345058701ab", Fluent.Translator._v)
                         )
                         root._animateProgress(
                             bar,
@@ -122,21 +122,21 @@ Column {
                 }
 
                 Button {
-                    text: "不确定进度条"
+                    text: Fluent.Translator.tr("gallery_494a635922be0b85", Fluent.Translator._v)
                     onClicked: NotificationManager.infoBar.indeterminateBar(
                         root.notificationParent,
-                        "加载中",
-                        "正在处理..."
+                        Fluent.Translator.tr("gallery_d04fcbda737fc0c6", Fluent.Translator._v),
+                        Fluent.Translator.tr("gallery_2ca049d69ce16975", Fluent.Translator._v)
                     )
                 }
 
                 Button {
-                    text: "进度环"
+                    text: Fluent.Translator.tr("gallery_029926f219a66e79", Fluent.Translator._v)
                     onClicked: {
                         var ring = NotificationManager.infoBar.progressRing(
                             root.notificationParent,
-                            "上传中",
-                            "正在上传..."
+                            Fluent.Translator.tr("gallery_403b055e56f59395", Fluent.Translator._v),
+                            Fluent.Translator.tr("gallery_4342d63e83c75f86", Fluent.Translator._v)
                         )
                         root._animateProgress(
                             ring,
@@ -147,11 +147,11 @@ Column {
                 }
 
                 Button {
-                    text: "不确定进度环"
+                    text: Fluent.Translator.tr("gallery_c26a5889102dc0c3", Fluent.Translator._v)
                     onClicked: NotificationManager.infoBar.indeterminateRing(
                         root.notificationParent,
-                        "同步中",
-                        "正在同步数据..."
+                        Fluent.Translator.tr("gallery_bb429d0227b7d9d6", Fluent.Translator._v),
+                        Fluent.Translator.tr("gallery_49c69133a643bad3", Fluent.Translator._v)
                     )
                 }
             }
@@ -160,8 +160,8 @@ Column {
 
     // Toast progress modes Toast 进度模式
     ExampleCard {
-        title: "Toast 进度模式"
-        description: "Toast 的四种进度 feature"
+        title: Fluent.Translator.tr("gallery_d79cd9adc7a9260b", Fluent.Translator._v)
+        description: Fluent.Translator.tr("gallery_2d64e8ce312f974f", Fluent.Translator._v)
 
         Column {
             spacing: Enums.spacing.l
@@ -171,11 +171,11 @@ Column {
                 spacing: Enums.spacing.m
 
                 ComponentCard {
-                    label: "进度条 60%"
+                    label: Fluent.Translator.tr("gallery_27ce4e7bae1a94fa", Fluent.Translator._v)
 
                     Toast {
                         objectName: "galleryProgressToastProgressBar"
-                        title: "下载中"
+                        title: Fluent.Translator.tr("gallery_e2fc571a4cf00ceb", Fluent.Translator._v)
                         message: "60%"
                         feature: Enums.notification.feature_progress_bar
                         progress: 0.6
@@ -186,12 +186,12 @@ Column {
                 }
 
                 ComponentCard {
-                    label: "不确定进度条"
+                    label: Fluent.Translator.tr("gallery_494a635922be0b85", Fluent.Translator._v)
 
                     Toast {
                         objectName: "galleryProgressToastIndeterminateBar"
-                        title: "加载中"
-                        message: "请稍候..."
+                        title: Fluent.Translator.tr("gallery_d04fcbda737fc0c6", Fluent.Translator._v)
+                        message: Fluent.Translator.tr("gallery_6a651b85a4259148", Fluent.Translator._v)
                         feature: Enums.notification.feature_indeterminate_bar
                         width: Enums.demoMetrics.feedbackNotificationWidth
                         duration: Enums.duration.persistent
@@ -204,11 +204,11 @@ Column {
                 spacing: Enums.spacing.m
 
                 ComponentCard {
-                    label: "进度环 40%"
+                    label: Fluent.Translator.tr("gallery_407b3ced57ef87c2", Fluent.Translator._v)
 
                     Toast {
                         objectName: "galleryProgressToastProgressRing"
-                        title: "上传中"
+                        title: Fluent.Translator.tr("gallery_403b055e56f59395", Fluent.Translator._v)
                         message: "40%"
                         feature: Enums.notification.feature_progress_ring
                         progress: 0.4
@@ -219,12 +219,12 @@ Column {
                 }
 
                 ComponentCard {
-                    label: "不确定进度环"
+                    label: Fluent.Translator.tr("gallery_c26a5889102dc0c3", Fluent.Translator._v)
 
                     Toast {
                         objectName: "galleryProgressToastIndeterminateRing"
-                        title: "处理中"
-                        message: "请稍候..."
+                        title: Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v)
+                        message: Fluent.Translator.tr("gallery_6a651b85a4259148", Fluent.Translator._v)
                         feature: Enums.notification.feature_indeterminate_ring
                         width: Enums.demoMetrics.feedbackNotificationWidth
                         duration: Enums.duration.persistent
@@ -238,13 +238,13 @@ Column {
                 spacing: Enums.spacing.l
 
                 Button {
-                    text: "进度条"
+                    text: Fluent.Translator.tr("gallery_cd2e8707a7db3b3f", Fluent.Translator._v)
                     style: Enums.button.style_primary
                     onClicked: {
                         var bar = NotificationManager.toast.progressBar(
                             root.notificationParent,
-                            "下载中",
-                            "正在下载..."
+                            Fluent.Translator.tr("gallery_e2fc571a4cf00ceb", Fluent.Translator._v),
+                            Fluent.Translator.tr("gallery_355f28c799501267", Fluent.Translator._v)
                         )
                         root._animateProgress(
                             bar,
@@ -255,21 +255,21 @@ Column {
                 }
 
                 Button {
-                    text: "不确定进度条"
+                    text: Fluent.Translator.tr("gallery_494a635922be0b85", Fluent.Translator._v)
                     onClicked: NotificationManager.toast.indeterminateBar(
                         root.notificationParent,
-                        "处理中",
-                        "请稍候..."
+                        Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v),
+                        Fluent.Translator.tr("gallery_6a651b85a4259148", Fluent.Translator._v)
                     )
                 }
 
                 Button {
-                    text: "进度环"
+                    text: Fluent.Translator.tr("gallery_029926f219a66e79", Fluent.Translator._v)
                     onClicked: {
                         var ring = NotificationManager.toast.progressRing(
                             root.notificationParent,
-                            "上传中",
-                            "正在上传..."
+                            Fluent.Translator.tr("gallery_403b055e56f59395", Fluent.Translator._v),
+                            Fluent.Translator.tr("gallery_4342d63e83c75f86", Fluent.Translator._v)
                         )
                         root._animateProgress(
                             ring,
@@ -280,11 +280,11 @@ Column {
                 }
 
                 Button {
-                    text: "不确定进度环"
+                    text: Fluent.Translator.tr("gallery_c26a5889102dc0c3", Fluent.Translator._v)
                     onClicked: NotificationManager.toast.indeterminateRing(
                         root.notificationParent,
-                        "同步中",
-                        "正在同步..."
+                        Fluent.Translator.tr("gallery_bb429d0227b7d9d6", Fluent.Translator._v),
+                        Fluent.Translator.tr("gallery_3c3df3f45f33435f", Fluent.Translator._v)
                     )
                 }
             }

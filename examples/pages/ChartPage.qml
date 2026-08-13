@@ -28,13 +28,13 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "图表组件"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_519ccb00791b0b9f", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
                 Text { text: "prismqml.controls.data - Fluent Design Style"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // ==================== Bar Chart - Multi Series 柱状图 - 多系列 ====================
             ExampleCard {
-                title: "柱状图 (Bar Chart)"
+                title: Fluent.Translator.tr("gallery_e5b63006a73c1640", Fluent.Translator._v)
                 description: "ChartView - Multi-series bar chart"
                 ComponentCard {
                     label: "type_bar"
@@ -61,7 +61,7 @@ Item {
             
             // ==================== Horizontal Bar Chart 水平柱状图 ====================
             ExampleCard {
-                title: "水平柱状图 (Horizontal Bar Chart)"
+                title: Fluent.Translator.tr("gallery_859edeb6b0ef412d", Fluent.Translator._v)
                 description: "ChartView - barOrientation: orientation_horizontal"
                 ComponentCard {
                     label: "horizontal"
@@ -69,13 +69,13 @@ Item {
                         width: 420; height: 220
                         chartType: Fluent.Enums.chart.type_bar
                         barOrientation: Fluent.Enums.chart.orientation_horizontal
-                        title: "销售排名"
+                        title: Fluent.Translator.tr("gallery_3a84ef1fd6c433e4", Fluent.Translator._v)
                         chartData: [
-                            {label: "产品A", value: 120, color: Fluent.Enums.chartColors.palette[0]},
-                            {label: "产品B", value: 98, color: Fluent.Enums.chartColors.palette[1]},
-                            {label: "产品C", value: 85, color: Fluent.Enums.chartColors.palette[2]},
-                            {label: "产品D", value: 72, color: Fluent.Enums.chartColors.palette[3]},
-                            {label: "产品E", value: 65, color: Fluent.Enums.chartColors.palette[4]}
+                            {label: Fluent.Translator.tr("gallery_bc89675cb97d885b", Fluent.Translator._v), value: 120, color: Fluent.Enums.chartColors.palette[0]},
+                            {label: Fluent.Translator.tr("gallery_37a41cac23af4aca", Fluent.Translator._v), value: 98, color: Fluent.Enums.chartColors.palette[1]},
+                            {label: Fluent.Translator.tr("gallery_14ae1ed5ea1092e3", Fluent.Translator._v), value: 85, color: Fluent.Enums.chartColors.palette[2]},
+                            {label: Fluent.Translator.tr("gallery_2fc2cfbe651c8f7a", Fluent.Translator._v), value: 72, color: Fluent.Enums.chartColors.palette[3]},
+                            {label: Fluent.Translator.tr("gallery_d00568f458f0dfd1", Fluent.Translator._v), value: 65, color: Fluent.Enums.chartColors.palette[4]}
                         ]
                     }
                 }
@@ -83,7 +83,7 @@ Item {
 
             // ==================== Line Chart - Multi Series 折线图 - 多系列 ====================
             ExampleCard {
-                title: "折线图 (Line Chart)"
+                title: Fluent.Translator.tr("gallery_963916ba956b4ff3", Fluent.Translator._v)
                 description: "ChartView - Multi-series line chart with area gradient"
                 ComponentCard {
                     label: "type_line"
@@ -110,7 +110,7 @@ Item {
             
             // ==================== Stacked Area Chart 堆叠面积图 ====================
             ExampleCard {
-                title: "堆叠面积图 (Stacked Area Chart)"
+                title: Fluent.Translator.tr("gallery_abb744eaa0c954a7", Fluent.Translator._v)
                 description: "ChartView - stacked: true"
                 ComponentCard {
                     label: "stacked"
@@ -137,7 +137,7 @@ Item {
             
             // ==================== Pie Chart 饼图 ====================
             ExampleCard {
-                title: "饼图 (Pie Chart)"
+                title: Fluent.Translator.tr("gallery_ff1dc8827e7acaf2", Fluent.Translator._v)
                 description: "ChartView - Pie chart with hover effect"
                 ComponentCard {
                     label: "type_pie"
@@ -159,7 +159,7 @@ Item {
             
             // ==================== Donut Chart 环形图 ====================
             ExampleCard {
-                title: "环形图 (Donut Chart)"
+                title: Fluent.Translator.tr("gallery_37f9b294197d0733", Fluent.Translator._v)
                 description: "ChartView - isDonut: true"
                 ComponentCard {
                     label: "type_donut"
@@ -184,7 +184,7 @@ Item {
             
             // ==================== Donut Chart with Emphasis Center 带中心强调的环形图 ====================
             ExampleCard {
-                title: "环形图 - 中心强调 (Emphasis Center)"
+                title: Fluent.Translator.tr("gallery_3cf407787b79ad97", Fluent.Translator._v)
                 description: "ChartView - emphasisCenter: true (hover to see effect)"
                 ComponentCard {
                     label: "emphasisCenter"
@@ -208,7 +208,7 @@ Item {
             
             // ==================== Scatter Chart 散点图 ====================
             ExampleCard {
-                title: "散点图 (Scatter Chart)"
+                title: Fluent.Translator.tr("gallery_36af541acfbcd432", Fluent.Translator._v)
                 description: "ChartView - Scatter plot with outlier detection"
                 ComponentCard {
                     label: "type_scatter"
@@ -236,7 +236,7 @@ Item {
             
             // ==================== Radar Chart 雷达图 ====================
             ExampleCard {
-                title: "雷达图 (Radar Chart)"
+                title: Fluent.Translator.tr("gallery_1d35f107645d5a6c", Fluent.Translator._v)
                 description: "ChartView - Multi-indicator radar chart"
                 ComponentCard {
                     label: "type_radar"
@@ -262,7 +262,7 @@ Item {
             
             // ==================== Boxplot Chart 箱线图 ====================
             ExampleCard {
-                title: "箱线图 (Boxplot Chart)"
+                title: Fluent.Translator.tr("gallery_430076d0d0890898", Fluent.Translator._v)
                 description: "ChartView - Statistical distribution"
                 ComponentCard {
                     label: "type_boxplot"
@@ -284,7 +284,7 @@ Item {
             
             // ==================== Boxplot with Outliers 带异常点的箱线图 ====================
             ExampleCard {
-                title: "箱线图 - 带异常点 (Boxplot with Outliers)"
+                title: Fluent.Translator.tr("gallery_a4888ea5661fa13a", Fluent.Translator._v)
                 description: "ChartView - Boxplot showing outlier detection"
                 ComponentCard {
                     label: "outliers"
@@ -304,7 +304,7 @@ Item {
             
             // ==================== Audio Waveform 音频波形 ====================
             ExampleCard {
-                title: "音频波形 (AudioWaveform)"
+                title: Fluent.Translator.tr("gallery_8e2a8035d8dc6368", Fluent.Translator._v)
                 description: "AudioWaveform"
                 ComponentCard {
                     label: "AudioWaveform"

@@ -55,6 +55,12 @@ QString Window::escapeQml(const QString &text) {
     return t;
 }
 
+QString Window::qmlTextExpression(const QString &text, bool translated) {
+    if (translated && !text.isEmpty())
+        return QStringLiteral("Translator.tr(\"%1\", Translator._v)").arg(escapeQml(text));
+    return QStringLiteral("\"%1\"").arg(escapeQml(text));
+}
+
 QString Window::qmlComponentName(WindowType type) {
     switch (type) {
         case WindowType::Split:  return QStringLiteral("WindowsSplit");
@@ -71,7 +77,22 @@ int Window::addPage(const QString &pageQmlUrl, const QString &icon,
         qWarning() << "prism::Window: addPage 必须在 show() 之前调用";
         return -1;
     }
-    NavItem item{pageQmlUrl, icon, text, position, selectable};
+    NavItem item{pageQmlUrl, icon, text, false, position, selectable};
+    if (position == NavPosition::Bottom)
+        m_bottomNavItems.append(item);
+    else
+        m_navItems.append(item);
+    return m_navItems.size() + m_bottomNavItems.size() - 1;
+}
+
+int Window::addTranslatedPage(const QString &pageQmlUrl, const QString &icon,
+                              const QString &translationKey,
+                              NavPosition position, bool selectable) {
+    if (m_built) {
+        qWarning() << "prism::Window: addTranslatedPage 必须在 show() 之前调用";
+        return -1;
+    }
+    NavItem item{pageQmlUrl, icon, translationKey, true, position, selectable};
     if (position == NavPosition::Bottom)
         m_bottomNavItems.append(item);
     else
@@ -85,6 +106,23 @@ void Window::setSplash(bool enabled, const QString &icon,
     m_splashIcon = icon;
     m_splashTitle = title;
     m_splashSubtitle = subtitle;
+    m_splashTitleTranslated = false;
+    m_splashSubtitleTranslated = false;
+}
+
+void Window::setTranslatedSplash(bool enabled, const QString &icon,
+                                 const QString &titleKey,
+                                 const QString &subtitleKey) {
+    if (m_built) {
+        qWarning() << "prism::Window: setTranslatedSplash 必须在 show() 之前调用";
+        return;
+    }
+    m_splashEnabled = enabled;
+    m_splashIcon = icon;
+    m_splashTitle = titleKey;
+    m_splashSubtitle = subtitleKey;
+    m_splashTitleTranslated = !titleKey.isEmpty();
+    m_splashSubtitleTranslated = !subtitleKey.isEmpty();
 }
 
 void Window::onBottomItemClicked(std::function<void(int)> cb) {
@@ -105,14 +143,17 @@ QString Window::navItemsJson(const QList<NavItem> &items, int indexOffset, bool 
     QStringList parts;
     for (int i = 0; i < items.size(); ++i) {
         const NavItem &it = items.at(i);
+        const QString textQml = it.translated
+            ? QStringLiteral("Translator.tr(\"%1\", Translator._v)").arg(escapeQml(it.text))
+            : QStringLiteral("\"%1\"").arg(escapeQml(it.text));
         if (isBottom) {
-            parts << QStringLiteral("{ \"text\": \"%1\", \"icon\": \"%2\", \"key\": \"page_%3\", \"selectable\": %4 }")
-                         .arg(escapeQml(it.text), escapeQml(it.icon))
+            parts << QStringLiteral("{ \"text\": %1, \"icon\": \"%2\", \"key\": \"page_%3\", \"selectable\": %4 }")
+                         .arg(textQml, escapeQml(it.icon))
                          .arg(indexOffset + i)
                          .arg(it.selectable ? QStringLiteral("true") : QStringLiteral("false"));
         } else {
-            parts << QStringLiteral("{ \"text\": \"%1\", \"icon\": \"%2\", \"key\": \"page_%3\" }")
-                         .arg(escapeQml(it.text), escapeQml(it.icon))
+            parts << QStringLiteral("{ \"text\": %1, \"icon\": \"%2\", \"key\": \"page_%3\" }")
+                         .arg(textQml, escapeQml(it.icon))
                          .arg(indexOffset + i);
         }
     }
@@ -121,8 +162,18 @@ QString Window::navItemsJson(const QList<NavItem> &items, int indexOffset, bool 
 
 void Window::setWindowTitle(const QString &title) {
     m_title = title;
+    m_titleTranslated = false;
     if (m_root)
         m_root->setProperty("windowTitle", title);
+}
+
+void Window::setTranslatedWindowTitle(const QString &translationKey) {
+    if (m_built) {
+        qWarning() << "prism::Window: setTranslatedWindowTitle 必须在 show() 之前调用";
+        return;
+    }
+    m_title = translationKey;
+    m_titleTranslated = !translationKey.isEmpty();
 }
 
 void Window::setWindowIcon(const QString &iconUrl, bool colored) {
@@ -237,13 +288,13 @@ void Window::build() {
     const QString splashQml = QStringLiteral(
         "    splashEnabled: %1\n"
         "    splashIcon: \"%2\"\n"
-        "    splashTitle: \"%3\"\n"
-        "    splashSubtitle: \"%4\"\n"
+        "    splashTitle: %3\n"
+        "    splashSubtitle: %4\n"
     ).arg(
         m_splashEnabled ? QStringLiteral("true") : QStringLiteral("false"),
         escapeQml(effectiveSplashIcon),
-        escapeQml(m_splashTitle),
-        escapeQml(m_splashSubtitle)
+        qmlTextExpression(m_splashTitle, m_splashTitleTranslated),
+        qmlTextExpression(m_splashSubtitle, m_splashSubtitleTranslated)
     );
     const QString extraQml = iconQml + micaQml + shadowQml + splashQml;
 
@@ -257,7 +308,7 @@ void Window::build() {
         "    objectName: \"mainWindow\"\n"
         "    width: %3\n"
         "    height: %4\n"
-        "    windowTitle: \"%5\"\n"
+        "    windowTitle: %5\n"
         "%9"
         "    lazyLoading: false\n"
         "    navigationItems: [%6]\n"
@@ -266,7 +317,7 @@ void Window::build() {
         "}\n"
     ).arg(importPrefix + qmlDir, component)
      .arg(m_width).arg(m_height)
-     .arg(escapeQml(m_title), navJson, bottomJson, pagesQml)
+     .arg(qmlTextExpression(m_title, m_titleTranslated), navJson, bottomJson, pagesQml)
      .arg(extraQml);
 
     auto *comp = new QQmlComponent(m_engine);
