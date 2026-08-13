@@ -190,7 +190,7 @@ Widget {
             blur: control._toastShadowBlur
             offset.x: 0
             offset.y: control._toastShadowOffset
-            visible: Enums.usesSoftElevation
+            visible: Enums.usesSoftElevation && !Enums.isNeumorphism
         }
 
         NeoShadow {

@@ -70,7 +70,7 @@ Item {
  
  // Shadow: soft shadow, bottom-right direction 阴影：柔和阴影，右下角方向
  // neo: 关软阴影, 改用硬阴影 NeoShadow
- shadowVisible: Enums.usesSoftElevation
+ shadowVisible: Enums.usesSoftElevation && !Enums.isNeumorphism
 
  y: cardContainer.shadowMargin / 2
  shadowLevel: Enums.shadow.level2

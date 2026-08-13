@@ -73,7 +73,8 @@ Item {
     readonly property bool isVintageTicket: skin === "vintage_ticket"
     readonly property bool isNeumorphism: skin === "neumorphism"
     readonly property bool hasOutlinedSurfaces: isNeobrutalism || isVintageTicket
-    readonly property bool usesSoftElevation: !hasOutlinedSurfaces || isNeumorphism
+    readonly property bool usesSoftElevation: !hasOutlinedSurfaces && !isNeumorphism
+    readonly property bool usesNeumorphicElevation: isNeumorphism
     readonly property bool allowsMica: !hasOutlinedSurfaces && !isNeumorphism
     readonly property string _uiFontFamily: ThemeManager ? ThemeManager.fontFamily : "Microsoft YaHei UI, Segoe UI Variable, Segoe UI, -apple-system, PingFang SC, Roboto, Noto Sans CJK SC, sans-serif"
     readonly property string fontFamily: isVintageTicket ? fontMonospace : _uiFontFamily

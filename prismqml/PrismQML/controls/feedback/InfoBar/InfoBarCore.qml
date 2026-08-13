@@ -173,7 +173,7 @@ Widget {
         blur: control._infoBarShadowBlur
         offset.x: 0
         offset.y: control._infoBarShadowOffset
-        visible: Enums.usesSoftElevation
+        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
     }
 
     NeoShadow {

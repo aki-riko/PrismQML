@@ -191,7 +191,7 @@ Item {
     // Assistant card shadow: blurred in Fluent, hard-edged in Neo
     // 助手卡片阴影：Fluent 使用模糊阴影，Neo 使用硬阴影
     RectangularShadow {
-        visible: !control._isUser && !control._isSystem && Enums.usesSoftElevation
+        visible: !control._isUser && !control._isSystem && Enums.usesSoftElevation && !Enums.isNeumorphism
         anchors.fill: bubble
         radius: control._bubbleRadius
         color: control._assistantShadowColor

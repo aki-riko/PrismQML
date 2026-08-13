@@ -76,7 +76,7 @@ Window {
         blur: Enums.shadow.level8.blur
         offset.x: 0
         offset.y: Enums.shadow.level8.offset
-        visible: Enums.usesSoftElevation
+        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
     }
 
     NeoShadow {

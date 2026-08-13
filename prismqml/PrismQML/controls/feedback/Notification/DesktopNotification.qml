@@ -98,7 +98,7 @@ Window {
         blur: control._notificationShadowBlur
         offset.x: 0
         offset.y: control._notificationShadowOffset
-        visible: Enums.usesSoftElevation
+        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
     }
 
     NeoShadow {

@@ -364,7 +364,7 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !control.flat && Enums.usesSoftElevation
+        visible: !control.flat && Enums.usesSoftElevation && !Enums.isNeumorphism
                  && !Enums.isNeumorphism
     }
 

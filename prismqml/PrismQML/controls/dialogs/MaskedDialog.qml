@@ -46,7 +46,7 @@ OverlayDialogCore {
         blur: control._dialogShadowBlur
         offset.x: 0
         offset.y: control._dialogShadowOffset
-        visible: Enums.usesSoftElevation
+        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
     }
 
     NeoShadow {

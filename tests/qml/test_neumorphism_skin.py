@@ -23,6 +23,7 @@ Item {
     readonly property bool neumorphismActive: Enums.isNeumorphism
     readonly property bool outlined: Enums.hasOutlinedSurfaces
     readonly property bool softElevation: Enums.usesSoftElevation
+    readonly property bool neumorphicElevation: Enums.usesNeumorphicElevation
     readonly property bool micaAllowed: Enums.allowsMica
     readonly property int surfaceRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property real surfaceBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
@@ -31,6 +32,7 @@ Item {
     readonly property color foregroundToken: Enums.foregroundColor
     readonly property color darkShadowToken: Enums.neumorphism.shadowDark
     readonly property color lightShadowToken: Enums.neumorphism.shadowLight
+    readonly property color successToken: Enums.statusLevel.getColorByLevel(Enums.statusLevel.success)
 
     width: 320
     height: 180
@@ -97,7 +99,8 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
         assert root.property("skinName") == "neumorphism"
         assert root.property("neumorphismActive") is True
         assert root.property("outlined") is False
-        assert root.property("softElevation") is True
+        assert root.property("softElevation") is False
+        assert root.property("neumorphicElevation") is True
         assert root.property("micaAllowed") is False
         assert root.property("surfaceRadius") == 14
         assert root.property("surfaceBorderWidth") == 0
@@ -106,6 +109,7 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
         _assert_color(root, "foregroundToken", "#27364a")
         _assert_color(root, "darkShadowToken", "#b7c2d0")
         _assert_color(root, "lightShadowToken", "#ffffff")
+        _assert_color(root, "successToken", "#238b64")
 
         for object_name in ("button", "input", "card"):
             surface = root.findChild(QObject, object_name)

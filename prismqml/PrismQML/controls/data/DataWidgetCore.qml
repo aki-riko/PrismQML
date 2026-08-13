@@ -223,7 +223,7 @@ Rectangle {
 
         anchors.fill: card
         radius: card.radius
-        visible: showShadow && Enums.usesSoftElevation
+        visible: showShadow && Enums.usesSoftElevation && !Enums.isNeumorphism
 
         Component.onCompleted: _staticFallbackShadow = ({
             color: Enums.transparent,

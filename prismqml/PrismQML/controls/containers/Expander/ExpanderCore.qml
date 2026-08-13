@@ -98,7 +98,7 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: Enums.usesSoftElevation
+        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
     }
 
     NeoShadow {

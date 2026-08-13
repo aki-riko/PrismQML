@@ -50,6 +50,15 @@ QtObject {
     
     // Get color by level 根据level获取颜色
     function getColorByLevel(level) {
+        if (isNeumorphism) {
+            switch (level) {
+                case 1: return constants.neumorphismColors.success
+                case 2: return constants.neumorphismColors.warning
+                case 3: return constants.neumorphismColors.danger
+                case 0: return constants.neumorphismColors.info
+                default: return constants.neumorphismColors.primary
+            }
+        }
         if (isNeo) {
             // neo 高饱和语义色(success/warning/error/info), attention/processing 回退橙主色
             switch (level) {
@@ -81,6 +90,16 @@ QtObject {
     
     // Get color by severity string 根据severity获取颜色
     function getColor(severity) {
+        if (isNeumorphism) {
+            switch (severity) {
+                case "success": return constants.neumorphismColors.success
+                case "warning": return constants.neumorphismColors.warning
+                case "error": return constants.neumorphismColors.danger
+                case "attention": return constants.neumorphismColors.warning
+                case "processing": return constants.neumorphismColors.primary
+                default: return constants.neumorphismColors.info
+            }
+        }
         if (isTicket) {
             switch (severity) {
                 case "success": return constants.ticketColors.success
@@ -103,6 +122,10 @@ QtObject {
     
     // Background color 背景色
     function getBgColor(severity) {
+        if (isNeumorphism) {
+            var neumorphicColor = getColor(severity)
+            return Qt.rgba(neumorphicColor.r, neumorphicColor.g, neumorphicColor.b, 0.14)
+        }
         if (isTicket) {
             var ticketColor = getColor(severity)
             return Qt.rgba(ticketColor.r, ticketColor.g, ticketColor.b, 0.12)
