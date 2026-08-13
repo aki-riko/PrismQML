@@ -12,10 +12,8 @@ import ".."
 Item {
     id: root
 
-    // ==================== Required Props 必需属性 ====================
-    required property Item target
-
     // ==================== Public Props 公开属性 ====================
+    property Item target: parent
     property bool inset: false
     property bool pressed: false
     property bool accent: false

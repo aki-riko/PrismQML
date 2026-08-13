@@ -179,7 +179,7 @@ QtObject {
  // Convex surfaces use paired outer shadows; inputs and tracks opt into inset mode.
  // 凸起表面使用双向外阴影，输入框与轨道可使用内凹模式。
  readonly property QtObject neumorphism: QtObject {
-     readonly property real borderWidth: root._physicalPixelWidth(0)
+     readonly property real borderWidth: 0
      readonly property int radius: 14
      readonly property real shadowOffset: 7
      readonly property real shadowBlur: 18
