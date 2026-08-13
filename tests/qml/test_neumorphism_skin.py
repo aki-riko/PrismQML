@@ -57,6 +57,45 @@ Item {
 }
 """
 
+NESTED_TARGET_SOURCE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    width: 320
+    height: 180
+
+    Item {
+        id: outerContainer
+        objectName: "outerContainer"
+        x: 24
+        y: 18
+
+        Item {
+            id: innerContainer
+            objectName: "innerContainer"
+            x: 13
+            y: 9
+
+            Rectangle {
+                id: nestedTarget
+                objectName: "nestedTarget"
+                x: 7
+                y: 5
+                width: 96
+                height: 42
+                radius: Enums.radius.large
+            }
+        }
+    }
+
+    NeumorphicShadow {
+        objectName: "nestedShadow"
+        target: nestedTarget
+    }
+}
+"""
+
 
 def _pump(milliseconds: int = 10) -> None:
     loop = QEventLoop()
@@ -65,6 +104,12 @@ def _pump(milliseconds: int = 10) -> None:
 
 
 def _create_scene() -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list[str]]:
+    return _create_scene_from_source(QML_SOURCE, "inline:neumorphism-skin.qml")
+
+
+def _create_scene_from_source(
+    source: bytes, source_url: str
+) -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list[str]]:
     engine = QQmlApplicationEngine()
     register_types(engine)
     warnings: list[str] = []
@@ -72,7 +117,7 @@ def _create_scene() -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list
         lambda errors: warnings.extend(error.toString() for error in errors)
     )
     component = QQmlComponent(engine)
-    component.setData(QML_SOURCE, QUrl("inline:neumorphism-skin.qml"))
+    component.setData(source, QUrl(source_url))
     for _ in range(50):
         if component.status() != QQmlComponent.Status.Loading:
             break
@@ -129,6 +174,41 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
         assert warnings == []
     finally:
         setTheme(previous_theme)
+        setSkin(previous_skin)
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump()
+
+
+def test_neumorphic_shadow_maps_nested_target_geometry(qapp):
+    previous_skin = getSkin()
+    setSkin(Skin.NEUMORPHISM)
+    engine, component, root, warnings = _create_scene_from_source(
+        NESTED_TARGET_SOURCE, "inline:neumorphism-nested-target.qml"
+    )
+    try:
+        outer = root.findChild(QObject, "outerContainer")
+        inner = root.findChild(QObject, "innerContainer")
+        target = root.findChild(QObject, "nestedTarget")
+        shadow = root.findChild(QObject, "nestedShadow")
+        assert outer is not None
+        assert inner is not None
+        assert target is not None
+        assert shadow is not None
+
+        assert shadow.property("x") == 44
+        assert shadow.property("y") == 32
+        assert shadow.property("width") == 96
+        assert shadow.property("height") == 42
+
+        outer.setProperty("x", 38)
+        inner.setProperty("y", 21)
+        _pump()
+        assert shadow.property("x") == 58
+        assert shadow.property("y") == 44
+        assert warnings == []
+    finally:
         setSkin(previous_skin)
         root.deleteLater()
         component.deleteLater()
