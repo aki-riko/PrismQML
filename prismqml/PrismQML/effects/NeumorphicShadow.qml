@@ -52,86 +52,105 @@ Item {
     height: target ? target.height : 0
 
     // ==================== Content 内容 ====================
-    RectangularShadow {
-        id: darkShadow
-        anchors.fill: parent
-        radius: target && target.radius !== undefined ? target.radius : 0
-        color: root.accent ? Enums.accentColor : root.darkColor
-        blur: root.blur
-        offset.x: root.inset ? -root.offset : root.offset
-        offset.y: root.inset ? -root.offset : root.offset
-        spread: root.inset ? -root.offset / 2 : 0
-        visible: !root._insetActive
-    }
+    Loader {
+        id: outerShadowLoader
 
-    RectangularShadow {
-        id: lightShadow
+        objectName: "_neumorphicOuterShadowLoader"
         anchors.fill: parent
-        radius: target && target.radius !== undefined ? target.radius : 0
-        color: root.lightColor
-        blur: root.blur
-        offset.x: -root.offset
-        offset.y: -root.offset
-        spread: 0
-        visible: !root._insetActive
+        active: root.visible && !root._insetActive && root.target !== null
+        sourceComponent: Component {
+            Item {
+                anchors.fill: parent
+
+                RectangularShadow {
+                    objectName: "_neumorphicDarkOuterShadow"
+                    anchors.fill: parent
+                    radius: root.target && root.target.radius !== undefined
+                            ? root.target.radius : 0
+                    color: root.accent ? Enums.accentColor : root.darkColor
+                    blur: root.blur
+                    offset.x: root.offset
+                    offset.y: root.offset
+                    spread: 0
+                }
+
+                RectangularShadow {
+                    objectName: "_neumorphicLightOuterShadow"
+                    anchors.fill: parent
+                    radius: root.target && root.target.radius !== undefined
+                            ? root.target.radius : 0
+                    color: root.lightColor
+                    blur: root.blur
+                    offset.x: -root.offset
+                    offset.y: -root.offset
+                    spread: 0
+                }
+            }
+        }
     }
 
     // Concave edge layer is reparented onto the target so it remains visible above an opaque face.
     // 内凹边缘层重定父级到目标表面，避免被不透明底色遮住。
-    Item {
-        id: insetLayer
+    Loader {
+        id: insetLayerLoader
 
-        parent: root.target
-        anchors.fill: parent
-        z: Enums.zIndex.controlsAbove
-        clip: true
-        visible: root._insetActive
+        objectName: "_neumorphicInsetLayerLoader"
+        active: root.visible && root._insetActive && root.target !== null
+        sourceComponent: Component {
+            Item {
+                objectName: "_neumorphicInsetLayer"
+                parent: root.target
+                anchors.fill: parent
+                z: Enums.zIndex.controlsAbove
+                clip: true
 
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: root._edgeSize
-            gradient: Gradient {
-                orientation: Gradient.Vertical
-                GradientStop { position: 0; color: root.darkColor }
-                GradientStop { position: 1; color: Enums.transparent }
-            }
-        }
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: root._edgeSize
+                    gradient: Gradient {
+                        orientation: Gradient.Vertical
+                        GradientStop { position: 0; color: root.darkColor }
+                        GradientStop { position: 1; color: Enums.transparent }
+                    }
+                }
 
-        Rectangle {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: root._edgeSize
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0; color: root.darkColor }
-                GradientStop { position: 1; color: Enums.transparent }
-            }
-        }
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: root._edgeSize
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: root.darkColor }
+                        GradientStop { position: 1; color: Enums.transparent }
+                    }
+                }
 
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: root._edgeSize
-            gradient: Gradient {
-                orientation: Gradient.Vertical
-                GradientStop { position: 0; color: Enums.transparent }
-                GradientStop { position: 1; color: root.lightColor }
-            }
-        }
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: root._edgeSize
+                    gradient: Gradient {
+                        orientation: Gradient.Vertical
+                        GradientStop { position: 0; color: Enums.transparent }
+                        GradientStop { position: 1; color: root.lightColor }
+                    }
+                }
 
-        Rectangle {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: root._edgeSize
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0; color: Enums.transparent }
-                GradientStop { position: 1; color: root.lightColor }
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: root._edgeSize
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: Enums.transparent }
+                        GradientStop { position: 1; color: root.lightColor }
+                    }
+                }
             }
         }
     }

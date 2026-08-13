@@ -93,6 +93,7 @@ Item {
     NeumorphicShadow {
         objectName: "nestedShadow"
         target: nestedTarget
+        visible: Enums.isNeumorphism
     }
 }
 """
@@ -337,6 +338,50 @@ def test_neumorphic_shadow_maps_nested_target_geometry(qapp):
         _pump()
 
 
+def test_neumorphic_shadow_loads_only_the_active_state(qapp):
+    previous_skin = getSkin()
+    setSkin(Skin.NEUMORPHISM)
+    engine, component, root, warnings = _create_scene_from_source(
+        NESTED_TARGET_SOURCE, "inline:neumorphism-shadow-lifecycle.qml"
+    )
+    try:
+        shadow = root.findChild(QObject, "nestedShadow")
+        assert shadow is not None
+
+        outer_shadows = _owned(shadow, "RectangularShadow")
+        assert len(outer_shadows) == 2
+        assert all(bool(item.property("visible")) for item in outer_shadows)
+        assert not _owned(shadow, "_neumorphicInsetLayer")
+
+        shadow.setProperty("pressed", True)
+        _pump()
+        assert not _owned(shadow, "RectangularShadow")
+        inset_layers = [
+            item
+            for item in _owned(shadow, "QQuickItem")
+            if item.objectName() == "_neumorphicInsetLayer"
+        ]
+        assert len(inset_layers) == 1
+        assert bool(inset_layers[0].property("visible"))
+
+        setSkin(Skin.FLUENT)
+        _pump()
+        assert not bool(shadow.property("visible"))
+        assert not _owned(shadow, "RectangularShadow")
+        assert not [
+            item
+            for item in _owned(shadow, "QQuickItem")
+            if item.objectName() == "_neumorphicInsetLayer"
+        ]
+        assert warnings == []
+    finally:
+        setSkin(previous_skin)
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump()
+
+
 def test_neumorphism_extended_surfaces_use_engine_shadow(qapp):
     previous_skin = getSkin()
     setSkin(Skin.NEUMORPHISM)
@@ -367,8 +412,7 @@ def test_neumorphism_extended_surfaces_use_engine_shadow(qapp):
             assert all(
                 not bool(shadow.property("visible"))
                 for shadow in _owned(surface, "RectangularShadow")
-                if shadow.parent() is not None
-                and "NeumorphicShadow" not in shadow.parent().metaObject().className()
+                if not shadow.objectName().startswith("_neumorphic")
             ), object_name
         assert warnings == []
     finally:
