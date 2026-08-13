@@ -9,7 +9,7 @@ from importlib import import_module as _import_module
 
 # Keep this synchronized with pyproject.toml during release version bumps.
 # 发布升版时与 pyproject.toml 同步，避免导入阶段扫描分发元数据。
-__version__ = "0.3.4.4"
+__version__ = "0.4.0.1"
 __author__ = "aki-riko"
 
 __all__ = [

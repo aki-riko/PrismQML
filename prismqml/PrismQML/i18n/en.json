@@ -176,5 +176,10 @@
   "warning": "Warning",
   "watermark": "Watermark",
   "welcome_back": "Welcome Back",
+  "design_skin": "Design Skin",
+  "design_skin_description": "Switch design style",
+  "skin_fluent_design": "Fluent Design",
+  "skin_neobrutalism": "Neobrutalism",
+  "skin_vintage_ticket": "Vintage Ticket",
   "column": "Column {index}"
 }

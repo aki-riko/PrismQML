@@ -176,5 +176,10 @@
   "warning": "Avviso",
   "watermark": "Filigrana",
   "welcome_back": "Bentornato",
+  "design_skin": "Stile di design",
+  "design_skin_description": "Cambia lo stile di design",
+  "skin_fluent_design": "Design fluido",
+  "skin_neobrutalism": "Neobrutalismo",
+  "skin_vintage_ticket": "Biglietto vintage",
   "column": "Colonna {index}"
 }

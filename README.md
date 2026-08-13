@@ -3,7 +3,7 @@
 **简体中文** | [English](./README.en.md)
 
 > **一套 QML 控件，多种设计语言一键切换。**
-> PrismQML（棱镜映界）是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件，运行时在 **Fluent** 与 **新粗野（Neobrutalism）** 之间自由切换，120fps+ 流畅动画。
+> PrismQML（棱镜映界）是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件，运行时自由切换 **流畅设计（Fluent Design）**、**新粗野主义（Neobrutalism）**与**复古票据（Vintage Ticket）**，120fps+ 流畅动画。
 
 ![PrismQML（棱镜映界）Fluent 与 Neobrutalism 皮肤对比](docs/images/prismqml-skins.png)
 
@@ -17,7 +17,7 @@ setSkin(Skin.NEOBRUTALISM)   # 一行切换整个应用的设计语言
 
 ## ✨ 特性
 
-- **🎨 多皮肤引擎**：同一套控件，`setSkin()` 一键切换 Fluent / 新粗野，支持 light/dark
+- **🎨 多皮肤引擎**：同一套控件，`setSkin()` 一键切换流畅设计 / 新粗野主义 / 复古票据，支持 light/dark
 - **🧩 token 驱动架构**：颜色、几何、阴影全走 token —— 新增皮肤几乎**零控件改动**
 - **⚡ 纯 QML 渲染**：无帧率限制，120fps+ 流畅动画
 - **🐍 PySide6 原生**：无缝集成，Python 侧管理业务逻辑，不碰 C++

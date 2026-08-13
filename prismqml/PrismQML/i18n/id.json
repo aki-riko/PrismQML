@@ -176,5 +176,10 @@
   "warning": "Peringatan",
   "watermark": "Tanda air",
   "welcome_back": "Selamat Datang Kembali",
+  "design_skin": "Gaya desain",
+  "design_skin_description": "Ganti gaya desain",
+  "skin_fluent_design": "Desain Fluent",
+  "skin_neobrutalism": "Neobrutalisme",
+  "skin_vintage_ticket": "Tiket vintage",
   "column": "Kolom {index}"
 }

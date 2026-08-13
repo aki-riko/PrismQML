@@ -176,5 +176,10 @@
   "warning": "Предупреждение",
   "watermark": "Водяной знак",
   "welcome_back": "Добро пожаловать обратно",
+  "design_skin": "Стиль оформления",
+  "design_skin_description": "Сменить стиль оформления",
+  "skin_fluent_design": "Плавный дизайн",
+  "skin_neobrutalism": "Необрутализм",
+  "skin_vintage_ticket": "Винтажный билет",
   "column": "Столбец {index}"
 }

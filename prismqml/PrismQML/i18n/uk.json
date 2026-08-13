@@ -176,5 +176,10 @@
   "warning": "Попередження",
   "watermark": "Водяний знак",
   "welcome_back": "Ласкаво просимо назад",
+  "design_skin": "Стиль оформлення",
+  "design_skin_description": "Змінити стиль оформлення",
+  "skin_fluent_design": "Плавний дизайн",
+  "skin_neobrutalism": "Необруталізм",
+  "skin_vintage_ticket": "Вінтажний квиток",
   "column": "Стовпець {index}"
 }

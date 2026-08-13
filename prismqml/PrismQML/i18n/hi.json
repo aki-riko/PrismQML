@@ -176,5 +176,10 @@
   "warning": "चेतावनी",
   "watermark": "वॉटरमार्क",
   "welcome_back": "पुनः स्वागत है",
+  "design_skin": "डिज़ाइन शैली",
+  "design_skin_description": "डिज़ाइन शैली बदलें",
+  "skin_fluent_design": "फ्लुएंट डिज़ाइन",
+  "skin_neobrutalism": "नव-ब्रूटलिज़्म",
+  "skin_vintage_ticket": "विंटेज टिकट",
   "column": "कॉलम {index}"
 }

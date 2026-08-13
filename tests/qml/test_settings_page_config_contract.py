@@ -107,6 +107,10 @@ def _find_qml_descendant(root, qml_type):
     raise AssertionError(f"未找到 QML 子对象: {qml_type}")
 
 
+def _to_variant(value):
+    return value.toVariant() if hasattr(value, "toVariant") else value
+
+
 def _activate_combo_index(card, index):
     entry = _find_qml_descendant(card, "ComboBoxEntry")
     inner = _find_qml_descendant(entry, "ComboBoxDefault")
@@ -181,6 +185,14 @@ def _appearance_cards(root):
     assert theme_card is not None
     assert skin_card is not None
     return theme_card, skin_card
+
+
+def _skin_and_language_cards(root):
+    skin_card = root.findChild(QObject, "skinSettingsCard")
+    language_card = root.findChild(QObject, "languageSettingsCard")
+    assert skin_card is not None
+    assert language_card is not None
+    return skin_card, language_card
 
 
 def _follow_system_cards(root):
@@ -296,6 +308,37 @@ def test_appearance_cards_follow_selected_and_external_runtime_state(qapp):
     finally:
         theme_manager.setThemeFromQml(previous_theme)
         theme_manager.setSkinFromQml(previous_skin)
+
+
+def test_skin_labels_follow_runtime_language_without_changing_values(qapp):
+    manager = _ConfigManagerFixture()
+    with _settings_page(manager, qapp) as root:
+        skin_card, language_card = _skin_and_language_cards(root)
+
+        _emit_card_index_selected(language_card, 1)
+        qapp.processEvents()
+        assert skin_card.property("title") == "Design Skin"
+        assert skin_card.property("content") == "Switch design style"
+        assert _to_variant(skin_card.property("model")) == [
+            "Fluent Design",
+            "Neobrutalism",
+            "Vintage Ticket",
+        ]
+
+        _emit_card_index_selected(language_card, 2)
+        qapp.processEvents()
+        chinese_labels = _to_variant(skin_card.property("model"))
+        assert skin_card.property("title") == "设计皮肤"
+        assert skin_card.property("content") == "切换设计风格"
+        assert chinese_labels == ["流畅设计", "新粗野主义", "复古票据"]
+        assert all(not any(character.isascii() and character.isalpha()
+                           for character in label)
+                   for label in chinese_labels)
+        assert _to_variant(skin_card.property("skinValues")) == [
+            "fluent",
+            "neobrutalism",
+            "vintage_ticket",
+        ]
 
 
 def test_gallery_defaults_theme_dpi_and_language_to_follow_system(qapp):

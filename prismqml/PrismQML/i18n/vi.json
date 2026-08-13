@@ -176,5 +176,10 @@
   "warning": "Cảnh báo",
   "watermark": "Hình mờ",
   "welcome_back": "Chào mừng trở lại",
+  "design_skin": "Phong cách thiết kế",
+  "design_skin_description": "Chuyển phong cách thiết kế",
+  "skin_fluent_design": "Thiết kế mượt mà",
+  "skin_neobrutalism": "Chủ nghĩa Tân thô mộc",
+  "skin_vintage_ticket": "Vé cổ điển",
   "column": "Cột {index}"
 }

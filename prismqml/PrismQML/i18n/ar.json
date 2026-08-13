@@ -176,5 +176,10 @@
   "warning": "تحذير",
   "watermark": "العلامة المائية",
   "welcome_back": "مرحبا بكم مرة أخرى",
+  "design_skin": "مظهر التصميم",
+  "design_skin_description": "تبديل نمط التصميم",
+  "skin_fluent_design": "التصميم السلس",
+  "skin_neobrutalism": "الوحشية الجديدة",
+  "skin_vintage_ticket": "تذكرة عتيقة",
   "column": "العمود {index}"
 }

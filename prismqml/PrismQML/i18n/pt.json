@@ -176,5 +176,10 @@
   "warning": "Aviso",
   "watermark": "Marca d'água",
   "welcome_back": "Bem-vindo de volta",
+  "design_skin": "Estilo de design",
+  "design_skin_description": "Alterar o estilo de design",
+  "skin_fluent_design": "Design fluido",
+  "skin_neobrutalism": "Neobrutalismo",
+  "skin_vintage_ticket": "Bilhete vintage",
   "column": "Coluna {index}"
 }

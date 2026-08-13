@@ -176,5 +176,10 @@
   "warning": "警告",
   "watermark": "透かし",
   "welcome_back": "おかえりなさい",
+  "design_skin": "デザインスタイル",
+  "design_skin_description": "デザインスタイルを切り替える",
+  "skin_fluent_design": "フルーエントデザイン",
+  "skin_neobrutalism": "ネオブルータリズム",
+  "skin_vintage_ticket": "ヴィンテージチケット",
   "column": "列 {index}"
 }

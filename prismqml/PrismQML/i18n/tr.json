@@ -176,5 +176,10 @@
   "warning": "Uyarı",
   "watermark": "Filigran",
   "welcome_back": "Tekrar hoş geldiniz",
+  "design_skin": "Tasarım stili",
+  "design_skin_description": "Tasarım stilini değiştir",
+  "skin_fluent_design": "Akıcı Tasarım",
+  "skin_neobrutalism": "Neobrütalizm",
+  "skin_vintage_ticket": "Retro Bilet",
   "column": "Sütun {index}"
 }

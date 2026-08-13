@@ -176,5 +176,10 @@
   "warning": "Warnung",
   "watermark": "Wasserzeichen",
   "welcome_back": "Willkommen zurück",
+  "design_skin": "Designstil",
+  "design_skin_description": "Designstil wechseln",
+  "skin_fluent_design": "Fluent Design",
+  "skin_neobrutalism": "Neobrutalismus",
+  "skin_vintage_ticket": "Vintage-Ticket",
   "column": "Spalte {index}"
 }

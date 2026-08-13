@@ -176,5 +176,10 @@
   "warning": "Ostrzeżenie",
   "watermark": "Znak wodny",
   "welcome_back": "Witamy z powrotem",
+  "design_skin": "Styl projektu",
+  "design_skin_description": "Zmień styl projektu",
+  "skin_fluent_design": "Płynne wzornictwo",
+  "skin_neobrutalism": "Neobrutalizm",
+  "skin_vintage_ticket": "Bilet retro",
   "column": "Kolumna {index}"
 }

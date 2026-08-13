@@ -127,20 +127,35 @@ Item {
                     }
                 }
 
-                // Design skin 设计皮肤 (Fluent / Neobrutalism / Vintage Ticket)
+                // Design skin 设计皮肤
                 SettingsCard {
                     id: skinCard
 
                     readonly property var skinValues: ["fluent", "neobrutalism", "vintage_ticket"]
                     readonly property int skinIndex: skinValues.indexOf(Fluent.Enums.skin)
+                    readonly property int _translationVersion: Fluent.Translator._v
+                    readonly property var skinLabels: {
+                        _translationVersion
+                        return [
+                            Fluent.Translator.tr("skin_fluent_design"),
+                            Fluent.Translator.tr("skin_neobrutalism"),
+                            Fluent.Translator.tr("skin_vintage_ticket")
+                        ]
+                    }
 
                     objectName: "skinSettingsCard"
                     width: parent ? parent.width : 0
-                    title: "设计皮肤"
-                    content: "切换设计语言：Fluent / 新粗野 / 复古票据"
+                    title: {
+                        _translationVersion
+                        return Fluent.Translator.tr("design_skin")
+                    }
+                    content: {
+                        _translationVersion
+                        return Fluent.Translator.tr("design_skin_description")
+                    }
                     icon: iconPath("Color")
                     type: Fluent.Enums.settingCard.type_combobox
-                    model: ["Fluent", "新粗野 Neobrutalism", "复古票据 Vintage Ticket"]
+                    model: skinLabels
                     currentIndex: skinIndex >= 0 ? skinIndex : 0
 
                     onIndexSelected: function(idx) {

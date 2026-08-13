@@ -176,5 +176,10 @@
   "warning": "Waarschuwing",
   "watermark": "Watermerk",
   "welcome_back": "Welkom terug",
+  "design_skin": "Ontwerpstijl",
+  "design_skin_description": "Ontwerpstijl wijzigen",
+  "skin_fluent_design": "Vloeiend ontwerp",
+  "skin_neobrutalism": "Neobrutalisme",
+  "skin_vintage_ticket": "Vintagekaartje",
   "column": "Kolom {index}"
 }

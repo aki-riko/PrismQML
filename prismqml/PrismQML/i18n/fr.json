@@ -176,5 +176,10 @@
   "warning": "Avertissement",
   "watermark": "Filigrane",
   "welcome_back": "Bienvenue à nouveau",
+  "design_skin": "Style de conception",
+  "design_skin_description": "Changer le style de conception",
+  "skin_fluent_design": "Conception fluide",
+  "skin_neobrutalism": "Néobrutalisme",
+  "skin_vintage_ticket": "Billet vintage",
   "column": "Colonne {index}"
 }

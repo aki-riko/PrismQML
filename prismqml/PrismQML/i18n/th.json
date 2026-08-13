@@ -176,5 +176,10 @@
   "warning": "คำเตือน",
   "watermark": "ลายน้ำ",
   "welcome_back": "ยินดีต้อนรับกลับ",
+  "design_skin": "รูปแบบการออกแบบ",
+  "design_skin_description": "เปลี่ยนรูปแบบการออกแบบ",
+  "skin_fluent_design": "การออกแบบแบบลื่นไหล",
+  "skin_neobrutalism": "นีโอบรูทัลลิสม์",
+  "skin_vintage_ticket": "ตั๋ววินเทจ",
   "column": "คอลัมน์ {index}"
 }

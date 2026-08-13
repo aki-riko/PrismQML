@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 # PyPI 分发名为 prismqml(pip install prismqml);导入名 prismqml(import prismqml)
 name = "prismqml"
-version = "0.3.4.4"
-description = "A pure QML multi-skin component engine (Fluent + Neobrutalism) with 120fps+ smooth animations"
+version = "0.4.0.1"
+description = "A pure QML multi-skin component engine (Fluent Design + Neobrutalism + Vintage Ticket) with 120fps+ smooth animations"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
     {name = "aki-riko"}
 ]
-keywords = ["qml", "fluent", "neobrutalism", "ui", "pyside6", "qt", "design", "skin"]
+keywords = ["qml", "fluent", "neobrutalism", "vintage-ticket", "ui", "pyside6", "qt", "design", "skin"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
