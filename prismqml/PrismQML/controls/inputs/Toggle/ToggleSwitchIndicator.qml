@@ -86,6 +86,19 @@ Rectangle {
     border.width: _trackBorderWidth
     border.color: _trackBorderColor
 
+    NeumorphicShadow {
+        target: track
+        inset: !checked
+        visible: Enums.isNeumorphism
+        z: track.z - 1
+    }
+
+    NeumorphicShadow {
+        target: handle
+        visible: Enums.isNeumorphism && checked
+        z: handle.z - 1
+    }
+
     Behavior on color { ColorAnimation { duration: Enums.duration.normal } }
     Behavior on opacity { NumberAnimation { duration: Enums.duration.normal } }
 

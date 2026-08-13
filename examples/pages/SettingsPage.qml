@@ -143,7 +143,8 @@ Item {
                         return [
                             Fluent.Translator.tr("skin_fluent_design"),
                             Fluent.Translator.tr("skin_neobrutalism"),
-                            Fluent.Translator.tr("skin_vintage_ticket")
+                            Fluent.Translator.tr("skin_vintage_ticket"),
+                            Fluent.Translator.tr("skin_neumorphism")
                         ]
                     }
 

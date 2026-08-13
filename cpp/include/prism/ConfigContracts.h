@@ -28,8 +28,8 @@ inline constexpr std::array<int, 3> kValidWindowTypes = {0, 1, 2};
 inline constexpr std::array<const char *, 3> kValidThemes = {
     "auto", "light", "dark",
 };
-inline constexpr std::array<const char *, 3> kValidSkins = {
-    "fluent", "neobrutalism", "vintage_ticket",
+inline constexpr std::array<const char *, 4> kValidSkins = {
+    "fluent", "neobrutalism", "vintage_ticket", "neumorphism",
 };
 inline constexpr std::array<const char *, 21> kValidLanguages = {
     "auto", "en", "zh_CN", "zh_TW", "hi", "es", "ar", "pt", "ru", "ja",

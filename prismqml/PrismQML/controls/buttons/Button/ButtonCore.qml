@@ -103,6 +103,7 @@ Widget {
     // Appearance and animated colors 外观与动画颜色
     property int radius: shape === Enums.button.shape_pill ? height / 2
                          : (Enums.isNeobrutalism ? Enums.neo.radius
+                         : (Enums.isNeumorphism ? Enums.neumorphism.radius
                             : (Enums.isVintageTicket ? Enums.ticket.radius
                                : Enums.radius.small))
     property color color: _styleBgColor
@@ -364,6 +365,15 @@ Widget {
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
         visible: !control.flat && Enums.usesSoftElevation
+                 && !Enums.isNeumorphism
+    }
+
+    NeumorphicShadow {
+        target: _bg
+        inset: control.pressed
+        pressed: control.pressed
+        visible: !control.flat && Enums.isNeumorphism
+        z: _bg.z - 1
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件(纯黑零模糊, 偏移)。按下位移由下方 Translate 压平。

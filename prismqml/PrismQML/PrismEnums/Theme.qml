@@ -15,6 +15,7 @@ QtObject {
     // 皮肤标志选择调色板，theme 仍独立控制明暗。
     property bool isNeo: false
     property bool isTicket: false
+    property bool isNeumorphism: false
     required property color accentColor
     required property color accentColorLight
     required property color accentColorDark
@@ -23,15 +24,16 @@ QtObject {
     // Skin palettes 皮肤调色板快捷引用
     readonly property QtObject _neo: constants.neoColors
     readonly property QtObject _ticket: constants.ticketColors
+    readonly property QtObject _neu: constants.neumorphismColors
 
     // ==================== Background Colors 背景色 ====================
-    readonly property color backgroundColor: isNeo ? _neo.background : (isTicket ? _ticket.background : (root.isDark ? constants.themeColors.backgroundDark : constants.themeColors.backgroundLight))
-    readonly property color surfaceColor: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.surfaceDark : constants.themeColors.surfaceLight))
-    readonly property color cardColor: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.cardDark : constants.themeColors.cardLight))
-    readonly property color toastCardColor: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.toastCardDark : constants.themeColors.toastCardLight))
-    readonly property color dialogColor: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.dialogDark : constants.themeColors.dialogLight))
-    readonly property color headerColor: isNeo ? _neo.background : (isTicket ? _ticket.background : (root.isDark ? constants.themeColors.headerDark : constants.themeColors.headerLight))
-    readonly property color tableHoverColor: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.tableHoverDark : constants.themeColors.tableHoverLight))
+    readonly property color backgroundColor: isNeo ? _neo.background : (isNeumorphism ? _neu.background : (isTicket ? _ticket.background : (root.isDark ? constants.themeColors.backgroundDark : constants.themeColors.backgroundLight)))
+    readonly property color surfaceColor: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.surfaceDark : constants.themeColors.surfaceLight)))
+    readonly property color cardColor: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.cardDark : constants.themeColors.cardLight)))
+    readonly property color toastCardColor: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.toastCardDark : constants.themeColors.toastCardLight)))
+    readonly property color dialogColor: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.dialogDark : constants.themeColors.dialogLight)))
+    readonly property color headerColor: isNeo ? _neo.background : (isNeumorphism ? _neu.background : (isTicket ? _ticket.background : (root.isDark ? constants.themeColors.headerDark : constants.themeColors.headerLight)))
+    readonly property color tableHoverColor: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.tableHoverDark : constants.themeColors.tableHoverLight)))
     readonly property color alternateRowColor: isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.alternateRowDark : constants.themeColors.alternateRowLight)
     readonly property color scrollTrackColor: isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.scrollTrackDark : constants.themeColors.scrollTrackLight)
     readonly property color scrollHandleColor: isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.scrollHandleDark : constants.themeColors.scrollHandleLight)
@@ -39,10 +41,10 @@ QtObject {
     readonly property color tableBgColor: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.tableBgDark : constants.themeColors.tableBgLight))
 
     // ==================== Foreground Colors 前景色 ====================
-    readonly property color foregroundColor: isNeo ? _neo.foreground : (isTicket ? _ticket.foreground : (root.isDark ? constants.themeColors.foregroundDark : constants.themeColors.foregroundLight))
-    readonly property color secondaryForeground: isNeo ? _neo.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? constants.themeColors.secondaryForegroundDark : constants.themeColors.secondaryForegroundLight))
+    readonly property color foregroundColor: isNeo ? _neo.foreground : (isNeumorphism ? _neu.foreground : (isTicket ? _ticket.foreground : (root.isDark ? constants.themeColors.foregroundDark : constants.themeColors.foregroundLight)))
+    readonly property color secondaryForeground: isNeo ? _neo.secondaryForeground : (isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? constants.themeColors.secondaryForegroundDark : constants.themeColors.secondaryForegroundLight)))
     readonly property color tertiaryForeground: isNeo ? _neo.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? constants.themeColors.tertiaryForegroundDark : constants.themeColors.tertiaryForegroundLight))
-    readonly property color disabledForeground: isTicket ? _ticket.disabledForeground : (root.isDark ? constants.themeColors.disabledForegroundDark : constants.themeColors.disabledForegroundLight)
+    readonly property color disabledForeground: isNeumorphism ? _neu.disabledForeground : (isTicket ? _ticket.disabledForeground : (root.isDark ? constants.themeColors.disabledForegroundDark : constants.themeColors.disabledForegroundLight))
     readonly property color accentForeground: isNeo ? _neo.primaryForeground : (isTicket ? _ticket.primaryForeground : constants.themeColors.accentForeground)
 
     // ==================== Border Colors 边框色 ====================
@@ -52,14 +54,14 @@ QtObject {
     readonly property color dividerColor: isNeo ? _neo.border : (isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.dividerDark : constants.themeColors.dividerLight))
 
     // ==================== Interaction Colors 交互色 ====================
-    readonly property color hoverColor: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.hoverDark : constants.themeColors.hoverLight))
-    readonly property color pressedColor: isNeo ? Qt.darker(_neo.surface, 1.08) : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? constants.themeColors.pressedDark : constants.themeColors.pressedLight))
-    readonly property color disabledColor: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.disabledDark : constants.themeColors.disabledLight))
+    readonly property color hoverColor: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.hoverDark : constants.themeColors.hoverLight)))
+    readonly property color pressedColor: isNeo ? Qt.darker(_neo.surface, 1.08) : (isNeumorphism ? _neu.muted : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? constants.themeColors.pressedDark : constants.themeColors.pressedLight)))
+    readonly property color disabledColor: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.disabledDark : constants.themeColors.disabledLight)))
     readonly property color selectedColor: isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.16) : (root.isDark ? constants.themeColors.selectedDark : constants.themeColors.selectedLight)
     readonly property color starColor: isTicket ? _ticket.warning : constants.themeColors.star
     readonly property color infoAccentColor: isTicket ? _ticket.info : (root.isDark ? constants.themeColors.infoAccentDark : constants.themeColors.infoAccentLight)
 
     // ==================== Shadow Colors 阴影色 ====================
-    readonly property color shadowColor: isTicket ? Qt.rgba(0, 0, 0, 0) : (root.isDark ? constants.themeColors.shadowDark : constants.themeColors.shadowLight)
-    readonly property color shadowStrongColor: isTicket ? Qt.rgba(0, 0, 0, 0) : (root.isDark ? constants.themeColors.shadowStrongDark : constants.themeColors.shadowStrongLight)
+    readonly property color shadowColor: isNeumorphism ? _neu.shadowDark : (isTicket ? Qt.rgba(0, 0, 0, 0) : (root.isDark ? constants.themeColors.shadowDark : constants.themeColors.shadowLight))
+    readonly property color shadowStrongColor: isNeumorphism ? _neu.shadowDark : (isTicket ? Qt.rgba(0, 0, 0, 0) : (root.isDark ? constants.themeColors.shadowStrongDark : constants.themeColors.shadowStrongLight))
 }

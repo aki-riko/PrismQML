@@ -21,7 +21,7 @@ MICA_ENABLED_VALIDATOR = Validator.boolean()
 DPI_SCALE_VALIDATOR = Validator.choice([0, 100, 125, 150, 175, 200])
 WINDOW_TYPE_VALIDATOR = Validator.choice([0, 1, 2])
 THEME_OPTIONS = ["auto", "light", "dark"]
-SKIN_OPTIONS = ["fluent", "neobrutalism", "vintage_ticket"]
+SKIN_OPTIONS = ["fluent", "neobrutalism", "vintage_ticket", "neumorphism"]
 LANGUAGE_OPTIONS = [
     "auto",
     "en",

@@ -20,8 +20,9 @@ Widget {
     property string icon: ""           // Icon name / image path 图标名或图片路径
     property int iconSize: Enums.iconSize.m
     property bool flat: false          // No border 是否无边框
-    property int radius_: Enums.isVintageTicket ? Enums.ticket.radius
-                          : Enums.radius.small + 1// Use radius_ to avoid Rectangle.radius conflict 避免冲突
+    property int radius_: Enums.isNeumorphism ? Enums.neumorphism.radius
+                          : (Enums.isVintageTicket ? Enums.ticket.radius
+                          : Enums.radius.small + 1)// Use radius_ to avoid Rectangle.radius conflict 避免冲突
     property bool iconThemeAware: true // Icon follows theme color 图标跟随主题色
 
     // Text style 文本样式
@@ -87,7 +88,15 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !control.flat && Enums.usesSoftElevation
+        visible: !control.flat && Enums.usesSoftElevation && !Enums.isNeumorphism
+    }
+
+    NeumorphicShadow {
+        target: background
+        inset: control.pressed
+        pressed: control.pressed
+        visible: !control.flat && Enums.isNeumorphism
+        z: background.z - 1
     }
 
     Loader {

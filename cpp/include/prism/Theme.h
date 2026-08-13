@@ -14,7 +14,7 @@ namespace prism {
 enum class Theme { Light, Dark, Auto };
 
 // Skin - 皮肤(设计语言)枚举 与 Theme 正交 (镜像 Python Skin(Enum))
-enum class Skin { Fluent, Neobrutalism, VintageTicket };
+enum class Skin { Fluent, Neobrutalism, VintageTicket, Neumorphism };
 
 // 字符串 <-> 枚举互转 (QML 侧用字符串, 与 Python 的 .value 对齐)
 QString themeToString(Theme t);

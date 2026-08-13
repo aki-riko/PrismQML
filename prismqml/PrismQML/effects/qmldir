@@ -5,6 +5,7 @@ OpacityMask OpacityMask.qml
 GaussianBlur GaussianBlur.qml
 ShadowedRectangle ShadowedRectangle.qml
 NeoShadow NeoShadow.qml
+NeumorphicShadow NeumorphicShadow.qml
 TicketPaper TicketPaper.qml
 ToggleAnimation ToggleAnimation.qml
 MatrixRain MatrixRain.qml

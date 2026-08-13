@@ -11,6 +11,7 @@ QtObject {
  
  required property bool isDark
  property bool isTicket: false
+ property bool isNeumorphism: false
  property real devicePixelRatio: 1
  // Skin palette single sources of truth are injected by Enums 皮肤配色真相源由 Enums 注入
  property var constants: null
@@ -172,6 +173,27 @@ QtObject {
  readonly property color danger: root.constants.neoColors.danger
  readonly property color warning: root.constants.neoColors.warning
  readonly property color info: root.constants.neoColors.info
+ }
+
+ // ==================== Neumorphism 新拟态皮肤度量+配色 ====================
+ // Convex surfaces use paired outer shadows; inputs and tracks opt into inset mode.
+ // 凸起表面使用双向外阴影，输入框与轨道可使用内凹模式。
+ readonly property QtObject neumorphism: QtObject {
+     readonly property real borderWidth: root._physicalPixelWidth(0)
+     readonly property int radius: 14
+     readonly property real shadowOffset: 7
+     readonly property real shadowBlur: 18
+     readonly property real pressInset: 2
+     readonly property color background: root.constants.neumorphismColors.background
+     readonly property color surface: root.constants.neumorphismColors.surface
+     readonly property color muted: root.constants.neumorphismColors.muted
+     readonly property color foreground: root.constants.neumorphismColors.foreground
+     readonly property color secondaryForeground: root.constants.neumorphismColors.secondaryForeground
+     readonly property color disabledForeground: root.constants.neumorphismColors.disabledForeground
+     readonly property color shadowDark: root.constants.neumorphismColors.shadowDark
+     readonly property color shadowLight: root.constants.neumorphismColors.shadowLight
+     readonly property color primary: root.constants.neumorphismColors.primary
+     readonly property color primaryForeground: root.constants.neumorphismColors.primaryForeground
  }
 
  // ==================== Vintage Ticket 复古票据皮肤度量+配色 ====================

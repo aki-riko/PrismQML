@@ -12,6 +12,7 @@ QtObject {
     required property bool isDark
     property bool isNeo: false
     property bool isTicket: false
+    property bool isNeumorphism: false
     required property color accentColor
     required property var constants
     

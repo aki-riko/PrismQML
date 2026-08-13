@@ -12,10 +12,12 @@ QtObject {
     required property bool isDark
     property bool isNeo: false
     property bool isTicket: false
+    property bool isNeumorphism: false
     required property color accentColor
     property var constants: null
     readonly property QtObject _neo: constants ? constants.neoColors : null
     readonly property QtObject _ticket: constants ? constants.ticketColors : null
+    readonly property QtObject _neu: constants ? constants.neumorphismColors : null
     
     // Hover state bg 悬停状态背景
     readonly property color hover: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.04))
@@ -27,8 +29,8 @@ QtObject {
     readonly property color pressedStrong: isTicket ? Qt.darker(_ticket.muted, 1.10) : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
     readonly property color tabPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03))
     // Border color 边框颜色
-    readonly property color border: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08)))
-    readonly property color borderLight: isNeo ? _neo.border : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)))
+    readonly property color border: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08))))
+    readonly property color borderLight: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))))
     readonly property color borderStrong: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12)))
     // Divider 分隔线
     // divider: 轻量分隔线(非控件边框)。neo 用中等灰, 不用纯黑(纯黑细线滚动会抖动闪烁,
@@ -159,13 +161,13 @@ QtObject {
     // Unified opaque colors for all controls 所有控件统一不透明色
     // Light: 默认fefefe, 悬浮fafafa, 按下/聚焦fcfcfc
     // Dark: 默认4e4e4e, 悬浮595959, 按下/聚焦4e4e4e
-    readonly property color controlBg: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? "#4e4e4e" : "#fefefe"))
+    readonly property color controlBg: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? "#4e4e4e" : "#fefefe")))
     // 全局统一 hover/pressed 灰阶 (Fluent UI 标准 subtle hover):
     // controlBgHover = menuItemHover = tableHoverLight = #f0f0f0,
     // 所有可交互行/项 hover 视觉一致, 用户能明显感知。
-    readonly property color controlBgHover: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0"))
-    readonly property color controlBgPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#353535" : "#e5e5e5"))
-    readonly property color controlBgDisabled: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#ffffff"))
+    readonly property color controlBgHover: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0")))
+    readonly property color controlBgPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (isNeumorphism ? _neu.muted : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#353535" : "#e5e5e5")))
+    readonly property color controlBgDisabled: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#ffffff")))
     // Transparent button colors 透明按钮颜色
     // Light: hover ebebeb, pressed ededed | Dark: hover 3a3a3a, pressed 323232
     readonly property color transparentHover: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#ebebeb"))

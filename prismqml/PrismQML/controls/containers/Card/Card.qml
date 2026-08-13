@@ -76,11 +76,17 @@ Widget {
  blur: _shadowBlur
  offset.x: 0
  offset.y: _shadowOffset
- visible: Enums.usesSoftElevation && (isElevated || hovered)
+ visible: Enums.usesSoftElevation && !Enums.isNeumorphism && (isElevated || hovered)
 
  // Shadow properties based on type and state 根据类型和状态计算阴影
  Behavior on _shadowBlur { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
  Behavior on _shadowColor { ColorAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
+ }
+
+ NeumorphicShadow {
+ target: card
+ visible: Enums.isNeumorphism
+ inset: pressed
  }
 
  // Neobrutalism 硬阴影: 复用 NeoShadow 组件。elevated 卡 hover 时偏移翻倍(阴影加大)。

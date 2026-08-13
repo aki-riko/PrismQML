@@ -224,7 +224,14 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: style === 0 && Enums.usesSoftElevation  // Only for default style 仅默认样式
+        visible: style === 0 && Enums.usesSoftElevation && !Enums.isNeumorphism  // Only for default style 仅默认样式
+    }
+
+    NeumorphicShadow {
+        target: background
+        inset: true
+        visible: style === 0 && Enums.isNeumorphism
+        z: background.z - 1
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件; 展开时 accent=true 转橙强调。

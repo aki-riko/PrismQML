@@ -30,6 +30,7 @@ QString skinToString(Skin s) {
         case Skin::Fluent:       return QStringLiteral("fluent");
         case Skin::Neobrutalism: return QStringLiteral("neobrutalism");
         case Skin::VintageTicket: return QStringLiteral("vintage_ticket");
+        case Skin::Neumorphism:  return QStringLiteral("neumorphism");
     }
     return QStringLiteral("fluent");
 }
@@ -38,6 +39,7 @@ Skin skinFromString(const QString &s) {
     const QString v = s.toLower();
     if (v == QLatin1String("neobrutalism")) return Skin::Neobrutalism;
     if (v == QLatin1String("vintage_ticket")) return Skin::VintageTicket;
+    if (v == QLatin1String("neumorphism")) return Skin::Neumorphism;
     return Skin::Fluent;  // 默认 fluent
 }
 

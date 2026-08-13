@@ -107,7 +107,14 @@ Widget {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: !control.transparentBackground && Enums.usesSoftElevation
+        visible: !control.transparentBackground && Enums.usesSoftElevation && !Enums.isNeumorphism
+    }
+
+    NeumorphicShadow {
+        target: _bg
+        inset: true
+        visible: !control.transparentBackground && Enums.isNeumorphism
+        z: _bg.z - 1
     }
 
     // Neobrutalism 硬阴影: 复用 NeoShadow 组件; 聚焦时 accent=true 转橙主色强调。
