@@ -105,7 +105,7 @@ Widget {
                          : (Enums.isNeobrutalism ? Enums.neo.radius
                          : (Enums.isNeumorphism ? Enums.neumorphism.radius
                             : (Enums.isVintageTicket ? Enums.ticket.radius
-                               : Enums.radius.small))
+                               : Enums.radius.small)))
     property color color: _styleBgColor
 
     // Neobrutalism target press shift. Neo按压目标位移。

@@ -24,6 +24,10 @@ Item {
     property color darkColor: Enums.neumorphism.shadowDark
     property color lightColor: Enums.neumorphism.shadowLight
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _insetActive: inset || pressed
+    readonly property real _edgeSize: Math.max(Enums.spacing.xs, blur / 2)
+
     // ==================== Size 尺寸 ====================
     anchors.fill: target
 
@@ -37,7 +41,7 @@ Item {
         offset.x: root.inset ? -root.offset : root.offset
         offset.y: root.inset ? -root.offset : root.offset
         spread: root.inset ? -root.offset / 2 : 0
-        visible: !root.inset
+        visible: !root._insetActive
     }
 
     RectangularShadow {
@@ -46,9 +50,69 @@ Item {
         radius: target ? target.radius : 0
         color: root.lightColor
         blur: root.blur
-        offset.x: root.inset ? root.offset : -root.offset
-        offset.y: root.inset ? root.offset : -root.offset
-        spread: root.inset ? -root.offset / 2 : 0
-        visible: true
+        offset.x: -root.offset
+        offset.y: -root.offset
+        spread: 0
+        visible: !root._insetActive
+    }
+
+    // Concave edge layer is reparented onto the target so it remains visible above an opaque face.
+    // 内凹边缘层重定父级到目标表面，避免被不透明底色遮住。
+    Item {
+        id: insetLayer
+
+        parent: root.target
+        anchors.fill: parent
+        z: Enums.zIndex.controlsAbove
+        clip: true
+        visible: root._insetActive
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: root._edgeSize
+            gradient: Gradient {
+                orientation: Gradient.Vertical
+                GradientStop { position: 0; color: root.darkColor }
+                GradientStop { position: 1; color: Enums.transparent }
+            }
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: root._edgeSize
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0; color: root.darkColor }
+                GradientStop { position: 1; color: Enums.transparent }
+            }
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: root._edgeSize
+            gradient: Gradient {
+                orientation: Gradient.Vertical
+                GradientStop { position: 0; color: Enums.transparent }
+                GradientStop { position: 1; color: root.lightColor }
+            }
+        }
+
+        Rectangle {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: root._edgeSize
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0; color: Enums.transparent }
+                GradientStop { position: 1; color: root.lightColor }
+            }
+        }
     }
 }
