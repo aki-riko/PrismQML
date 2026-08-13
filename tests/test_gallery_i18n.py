@@ -33,6 +33,7 @@ MANUAL_LONG_TEXT_ALLOWLISTS = {
     },
     "it": set(),
     "nl": set(),
+    "pl": set(),
     "pt": {
         "ScrollBar (vertical/horizontal)",
         "Vertical (orientation: Qt.Vertical)",
