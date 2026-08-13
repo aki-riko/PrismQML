@@ -19,6 +19,7 @@ EXPECTED_LANGUAGES = {
     "nl", "pl", "pt", "ru", "th", "tr", "uk", "vi", "zh_CN", "zh_TW",
 }
 MANUAL_LONG_TEXT_ALLOWLISTS = {
+    "ar": set(),
     "de": {"effect_slide (horizontal)"},
     "es": {
         "ScrollBar (vertical/horizontal)",
