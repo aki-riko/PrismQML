@@ -28,8 +28,8 @@ MIGRATED_EXAMPLE_ARRAY_PATHS = (
     PurePosixPath("examples/pages/ChartPage.qml"),
 )
 GLOBAL_PALETTE_VALUE_LINES = {
-    257, 259, 261, 263, 265, 267, 272, 273, 359, 360, 385, 386, 387, 388,
-    389, 390, 408, 414, 415,
+    278, 280, 282, 284, 286, 288, 293, 294, 385, 386, 411, 412, 413, 414,
+    415, 416, 434, 440, 441,
 }
 
 
@@ -132,7 +132,11 @@ def test_real_color_maps_use_tokens_but_literal_maps_remain_reported():
         'second: "#D13438" }) }\n'
     )
 
-    assert '"紧急": Enums.chartColors.palette[3]' in source
+    assert (
+        'colors[Fluent.Translator.tr("gallery_0efa477b24b1f3c7", '
+        "Fluent.Translator._v)] = Enums.chartColors.palette[3]"
+        in source
+    )
     assert _qml010_lines(source, path) == []
     assert _qml010_lines(compressed) == [1]
 

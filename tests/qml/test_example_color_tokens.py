@@ -161,9 +161,17 @@ def test_horizontal_bar_gallery_uses_the_skin_chart_palette():
     assert match is not None
     section = match.group("section")
     assert "demoPalette." not in section
-    for index, product in enumerate("ABCDE"):
+    label_keys = (
+        "gallery_bc89675cb97d885b",
+        "gallery_37a41cac23af4aca",
+        "gallery_14ae1ed5ea1092e3",
+        "gallery_2fc2cfbe651c8f7a",
+        "gallery_d00568f458f0dfd1",
+    )
+    for index, label_key in enumerate(label_keys):
         assert (
-            f'{{label: "产品{product}", value: '
+            f'{{label: Fluent.Translator.tr("{label_key}", '
+            "Fluent.Translator._v), value: "
             in section
         )
         assert f"chartColors.palette[{index}]" in section
