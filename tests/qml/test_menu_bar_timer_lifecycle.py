@@ -287,7 +287,7 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
         # Four unopened menus no longer instantiate one native Window each.
         # 四个未打开菜单不再各自提前实例化一个原生 Window。
         if os.name == "nt":
-            assert initial_objects == 395
+            assert initial_objects == 363
         else:
             assert initial_objects > 0
         assert restored_objects == initial_objects

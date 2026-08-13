@@ -217,7 +217,7 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
             30,
             30,
             36,
-            58,
+            59,
             30,
         )
         assert warnings == []

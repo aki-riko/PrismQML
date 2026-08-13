@@ -172,7 +172,7 @@ def test_toast_keeps_two_close_timers(qapp):
         )
 
         assert len(timers) == 2
-        assert object_count == 66
+        assert object_count == 62
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

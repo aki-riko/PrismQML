@@ -26,7 +26,7 @@ ROOT = Path(
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "table-row-component-lifecycle.qml")
 )
-EXPECTED_NORMAL_OBJECTS = 894
+EXPECTED_NORMAL_OBJECTS = 890
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window

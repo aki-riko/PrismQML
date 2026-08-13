@@ -9,7 +9,7 @@ import ".."
 // NeumorphicShadow - paired soft light/dark shadows 新拟态双向软阴影
 // One reusable primitive provides convex and concave surfaces for all controls.
 // 统一提供凸起与凹入表面，避免控件散落手写阴影。
-Item {
+Loader {
     id: root
 
     // ==================== Public Props 公开属性 ====================
@@ -52,106 +52,10 @@ Item {
     height: target ? target.height : 0
 
     // ==================== Content 内容 ====================
-    Loader {
-        id: outerShadowLoader
-
-        objectName: "_neumorphicOuterShadowLoader"
-        anchors.fill: parent
-        active: root.visible && !root._insetActive && root.target !== null
-        sourceComponent: Component {
-            Item {
-                anchors.fill: parent
-
-                RectangularShadow {
-                    objectName: "_neumorphicDarkOuterShadow"
-                    anchors.fill: parent
-                    radius: root.target && root.target.radius !== undefined
-                            ? root.target.radius : 0
-                    color: root.accent ? Enums.accentColor : root.darkColor
-                    blur: root.blur
-                    offset.x: root.offset
-                    offset.y: root.offset
-                    spread: 0
-                }
-
-                RectangularShadow {
-                    objectName: "_neumorphicLightOuterShadow"
-                    anchors.fill: parent
-                    radius: root.target && root.target.radius !== undefined
-                            ? root.target.radius : 0
-                    color: root.lightColor
-                    blur: root.blur
-                    offset.x: -root.offset
-                    offset.y: -root.offset
-                    spread: 0
-                }
-            }
-        }
-    }
-
-    // Concave edge layer is reparented onto the target so it remains visible above an opaque face.
-    // 内凹边缘层重定父级到目标表面，避免被不透明底色遮住。
-    Loader {
-        id: insetLayerLoader
-
-        objectName: "_neumorphicInsetLayerLoader"
-        active: root.visible && root._insetActive && root.target !== null
-        sourceComponent: Component {
-            Item {
-                objectName: "_neumorphicInsetLayer"
-                parent: root.target
-                anchors.fill: parent
-                z: Enums.zIndex.controlsAbove
-                clip: true
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    height: root._edgeSize
-                    gradient: Gradient {
-                        orientation: Gradient.Vertical
-                        GradientStop { position: 0; color: root.darkColor }
-                        GradientStop { position: 1; color: Enums.transparent }
-                    }
-                }
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: root._edgeSize
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0; color: root.darkColor }
-                        GradientStop { position: 1; color: Enums.transparent }
-                    }
-                }
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: root._edgeSize
-                    gradient: Gradient {
-                        orientation: Gradient.Vertical
-                        GradientStop { position: 0; color: Enums.transparent }
-                        GradientStop { position: 1; color: root.lightColor }
-                    }
-                }
-
-                Rectangle {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: root._edgeSize
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0; color: Enums.transparent }
-                        GradientStop { position: 1; color: root.lightColor }
-                    }
-                }
-            }
-        }
-    }
+    active: visible && target !== null
+    source: active
+            ? Qt.resolvedUrl(_insetActive
+                             ? "_internal/NeumorphicInsetLayer.qml"
+                             : "_internal/NeumorphicOuterShadow.qml")
+            : ""
 }
