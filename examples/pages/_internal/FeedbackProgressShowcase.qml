@@ -4,6 +4,7 @@
 
 import QtQuick
 import PrismQML
+import PrismQML as Fluent
 
 // FeedbackProgressShowcase - Unified progress notification gallery 统一进度通知画廊
 Column {

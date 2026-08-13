@@ -72,11 +72,13 @@ Item {
                                 placeholderText: Fluent.Translator.tr("gallery_df30a51e65e7062e", Fluent.Translator._v)
                                 width: 280
                                 tags: [Fluent.Translator.tr("gallery_0efa477b24b1f3c7", Fluent.Translator._v), Fluent.Translator.tr("gallery_de907d10df98b498", Fluent.Translator._v), Fluent.Translator.tr("gallery_c0b3fbff51ccc40b", Fluent.Translator._v)]
-                                tagColors: ({
-                                    Fluent.Translator.tr("gallery_0efa477b24b1f3c7", Fluent.Translator._v): Enums.chartColors.palette[3],
-                                    Fluent.Translator.tr("gallery_de907d10df98b498", Fluent.Translator._v): Enums.chartColors.palette[0],
-                                    Fluent.Translator.tr("gallery_c0b3fbff51ccc40b", Fluent.Translator._v): Enums.chartColors.palette[1]
-                                })
+                                tagColors: {
+                                    const colors = {}
+                                    colors[Fluent.Translator.tr("gallery_0efa477b24b1f3c7", Fluent.Translator._v)] = Enums.chartColors.palette[3]
+                                    colors[Fluent.Translator.tr("gallery_de907d10df98b498", Fluent.Translator._v)] = Enums.chartColors.palette[0]
+                                    colors[Fluent.Translator.tr("gallery_c0b3fbff51ccc40b", Fluent.Translator._v)] = Enums.chartColors.palette[1]
+                                    return colors
+                                }
                             }
                         }
                     }

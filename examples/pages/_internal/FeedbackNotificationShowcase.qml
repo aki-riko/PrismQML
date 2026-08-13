@@ -4,6 +4,7 @@
 
 import QtQuick
 import PrismQML
+import PrismQML as Fluent
 
 // FeedbackNotificationShowcase - Static notification severity gallery 静态通知级别画廊
 Column {

@@ -4,6 +4,7 @@
 
 import QtQuick
 import PrismQML
+import PrismQML as Fluent
 
 // GalleryDryRunUpdater - Gallery-only updater simulator Gallery 专用更新模拟器
 // Implements the public Updater contract without network, files, processes, or quit.
@@ -13,8 +14,8 @@ QtObject {
 
     // ==================== Public Props 公开属性 ====================
     property string currentVersion: "Gallery"
-    property int checkDelay: Enums.duration.slower
-    property int progressInterval: Enums.duration.medium
+    property int checkDelay: Fluent.Enums.duration.slower
+    property int progressInterval: Fluent.Enums.duration.medium
     property int progressStep: 10
 
     // ==================== Readonly State 只读状态 ====================
@@ -47,7 +48,7 @@ QtObject {
     property int _installSimulationCount: 0
     property string _lastInstallerArgs: ""
     property Timer _prepareTimer: Timer {
-        interval: Enums.duration.slower
+        interval: Fluent.Enums.duration.slower
         repeat: false
 
         onTriggered: {
@@ -56,7 +57,7 @@ QtObject {
         }
     }
     property Timer _checkTimer: Timer {
-        interval: Math.max(Enums.duration.tick, root.checkDelay)
+        interval: Math.max(Fluent.Enums.duration.tick, root.checkDelay)
         repeat: false
 
         onTriggered: {
@@ -70,7 +71,7 @@ QtObject {
         }
     }
     property Timer _downloadTimer: Timer {
-        interval: Math.max(Enums.duration.tick, root.progressInterval)
+        interval: Math.max(Fluent.Enums.duration.tick, root.progressInterval)
         repeat: true
 
         onTriggered: {
