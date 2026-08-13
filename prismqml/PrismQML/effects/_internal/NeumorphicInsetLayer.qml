@@ -12,6 +12,10 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property Item control: parent
     readonly property Item target: control ? control.target : null
+    readonly property real edgeSize: control ? control._edgeSize : 0
+    readonly property real cornerInset: target && target.radius !== undefined
+        ? Math.max(0, target.radius - edgeSize / 2) : 0
+    readonly property real edgeRadius: edgeSize / 2
 
     // ==================== Size 尺寸 ====================
     anchors.fill: parent
@@ -30,7 +34,10 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            height: layer.control ? layer.control._edgeSize : 0
+            anchors.leftMargin: layer.cornerInset
+            anchors.rightMargin: layer.cornerInset
+            height: layer.edgeSize
+            radius: layer.edgeRadius
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0; color: layer.control ? layer.control.darkColor : Enums.transparent }
@@ -42,7 +49,10 @@ Item {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: layer.control ? layer.control._edgeSize : 0
+            anchors.topMargin: layer.cornerInset
+            anchors.bottomMargin: layer.cornerInset
+            width: layer.edgeSize
+            radius: layer.edgeRadius
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0; color: layer.control ? layer.control.darkColor : Enums.transparent }
@@ -54,7 +64,10 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            height: layer.control ? layer.control._edgeSize : 0
+            anchors.leftMargin: layer.cornerInset
+            anchors.rightMargin: layer.cornerInset
+            height: layer.edgeSize
+            radius: layer.edgeRadius
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0; color: Enums.transparent }
@@ -66,7 +79,10 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: layer.control ? layer.control._edgeSize : 0
+            anchors.topMargin: layer.cornerInset
+            anchors.bottomMargin: layer.cornerInset
+            width: layer.edgeSize
+            radius: layer.edgeRadius
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0; color: Enums.transparent }
