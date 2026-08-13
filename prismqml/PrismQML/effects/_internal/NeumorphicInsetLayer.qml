@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import QtQuick.Effects
 import "../.."
 
 // NeumorphicInsetLayer - Lazily loaded concave edge layer 按需加载的新拟态内凹边缘层
@@ -13,14 +14,22 @@ Item {
     readonly property Item control: parent
     readonly property Item target: control ? control.target : null
     readonly property real edgeSize: control ? control._edgeSize : 0
-    readonly property real cornerInset: target && target.radius !== undefined
-        ? Math.max(0, target.radius - edgeSize / 2) : 0
-    readonly property real edgeRadius: edgeSize / 2
 
     // ==================== Size 尺寸 ====================
     anchors.fill: parent
 
     // ==================== Content 内容 ====================
+    Rectangle {
+        id: roundedMask
+
+        parent: layer.target ? layer.target : layer
+        anchors.fill: parent
+        radius: layer.target && layer.target.radius !== undefined
+                ? layer.target.radius : 0
+        visible: false
+        layer.enabled: true
+    }
+
     // Reparent the painted layer onto the opaque target so the inset remains visible.
     // 将绘制层重定父级到不透明目标上，保证内凹边缘可见。
     Item {
@@ -29,15 +38,19 @@ Item {
         anchors.fill: parent
         z: Enums.zIndex.controlsAbove
         clip: true
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: roundedMask
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 0.0
+        }
 
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.leftMargin: layer.cornerInset
-            anchors.rightMargin: layer.cornerInset
             height: layer.edgeSize
-            radius: layer.edgeRadius
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0; color: layer.control ? layer.control.darkColor : Enums.transparent }
@@ -49,10 +62,7 @@ Item {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.topMargin: layer.cornerInset
-            anchors.bottomMargin: layer.cornerInset
             width: layer.edgeSize
-            radius: layer.edgeRadius
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0; color: layer.control ? layer.control.darkColor : Enums.transparent }
@@ -64,10 +74,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.leftMargin: layer.cornerInset
-            anchors.rightMargin: layer.cornerInset
             height: layer.edgeSize
-            radius: layer.edgeRadius
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0; color: Enums.transparent }
@@ -79,10 +86,7 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.topMargin: layer.cornerInset
-            anchors.bottomMargin: layer.cornerInset
             width: layer.edgeSize
-            radius: layer.edgeRadius
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0; color: Enums.transparent }
