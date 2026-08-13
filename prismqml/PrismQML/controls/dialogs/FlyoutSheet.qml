@@ -79,6 +79,12 @@ Window {
         visible: Enums.usesSoftElevation && !Enums.isNeumorphism
     }
 
+    NeumorphicShadow {
+        target: container
+        visible: Enums.isNeumorphism
+        z: container.z - 1
+    }
+
     NeoShadow {
         target: container
         visible: Enums.isNeobrutalism

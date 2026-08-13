@@ -193,6 +193,12 @@ Widget {
             visible: Enums.usesSoftElevation && !Enums.isNeumorphism
         }
 
+        NeumorphicShadow {
+            target: card
+            visible: Enums.isNeumorphism
+            z: card.z - 1
+        }
+
         NeoShadow {
             target: card
             visible: Enums.isNeobrutalism

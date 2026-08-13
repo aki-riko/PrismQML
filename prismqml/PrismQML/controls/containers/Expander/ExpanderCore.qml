@@ -101,6 +101,12 @@ Widget {
         visible: Enums.usesSoftElevation && !Enums.isNeumorphism
     }
 
+    NeumorphicShadow {
+        target: mainContainer
+        visible: Enums.isNeumorphism
+        z: mainContainer.z - 1
+    }
+
     NeoShadow {
         target: mainContainer
         visible: Enums.isNeobrutalism

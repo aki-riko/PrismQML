@@ -9,6 +9,7 @@ from pathlib import Path
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, setTheme
 
@@ -96,6 +97,104 @@ Item {
 }
 """
 
+EXTENDED_SURFACES_SOURCE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    width: 1200
+    height: 900
+
+    ShadowedRectangle {
+        objectName: "shadowedRectangle"
+        width: 180
+        height: 90
+    }
+
+    PinInput {
+        objectName: "pinInput"
+        x: 220
+        length: 4
+    }
+
+    ChatBubble {
+        objectName: "chatBubble"
+        y: 140
+        width: 360
+        role: "assistant"
+        content: "Surface"
+        showAvatar: false
+    }
+
+    Expander {
+        objectName: "expander"
+        x: 400
+        y: 140
+        width: 320
+        title: "Surface"
+    }
+
+    InfoBarCore {
+        objectName: "infoBar"
+        y: 320
+        width: 360
+        title: "Surface"
+        desktopMode: true
+    }
+
+    Toast {
+        objectName: "toast"
+        x: 400
+        y: 320
+        width: 320
+        title: "Surface"
+        duration: 0
+        desktopMode: true
+    }
+
+    DesktopNotification {
+        objectName: "desktopNotification"
+        x: 760
+        y: 320
+        title: "Surface"
+        duration: 0
+    }
+
+    DataWidgetCore {
+        objectName: "dataWidget"
+        y: 500
+        width: 320
+        height: 180
+    }
+
+    TreeWidget {
+        objectName: "treeWidget"
+        x: 360
+        y: 500
+        width: 320
+        height: 180
+    }
+
+    Carousel {
+        objectName: "carousel"
+        x: 720
+        y: 500
+        width: 320
+        height: 180
+        model: ["Surface"]
+        shadowLevel: Enums.shadow.level4
+        itemDelegate: Rectangle { color: Enums.cardColor }
+    }
+
+    BeforeAfterSlider {
+        objectName: "beforeAfterSlider"
+        x: 760
+        width: 320
+        height: 220
+    }
+}
+"""
+
 
 def _pump(milliseconds: int = 10) -> None:
     loop = QEventLoop()
@@ -132,6 +231,28 @@ def _create_scene_from_source(
 
 def _assert_color(root: QObject, name: str, expected: str) -> None:
     assert root.property(name) == QColor(expected)
+
+
+def _owned(root: QObject, type_fragment: str) -> list[QObject]:
+    owned = [
+        child
+        for child in root.findChildren(QObject)
+        if type_fragment in child.metaObject().className()
+    ]
+    seen = {id(child) for child in owned}
+    if isinstance(root, QQuickWindow):
+        pending = [root.contentItem()]
+    elif isinstance(root, QQuickItem):
+        pending = list(root.childItems())
+    else:
+        pending = []
+    while pending:
+        child = pending.pop()
+        if id(child) not in seen and type_fragment in child.metaObject().className():
+            owned.append(child)
+            seen.add(id(child))
+        pending.extend(child.childItems())
+    return owned
 
 
 def test_neumorphism_runtime_tokens_and_surfaces(qapp):
@@ -207,6 +328,48 @@ def test_neumorphic_shadow_maps_nested_target_geometry(qapp):
         _pump()
         assert shadow.property("x") == 58
         assert shadow.property("y") == 44
+        assert warnings == []
+    finally:
+        setSkin(previous_skin)
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump()
+
+
+def test_neumorphism_extended_surfaces_use_engine_shadow(qapp):
+    previous_skin = getSkin()
+    setSkin(Skin.NEUMORPHISM)
+    engine, component, root, warnings = _create_scene_from_source(
+        EXTENDED_SURFACES_SOURCE, "inline:neumorphism-extended-surfaces.qml"
+    )
+    try:
+        for object_name in (
+            "shadowedRectangle",
+            "pinInput",
+            "chatBubble",
+            "expander",
+            "infoBar",
+            "toast",
+            "desktopNotification",
+            "dataWidget",
+            "treeWidget",
+            "carousel",
+            "beforeAfterSlider",
+        ):
+            surface = root.findChild(QObject, object_name)
+            assert surface is not None, object_name
+            assert _owned(surface, "NeumorphicShadow"), object_name
+            assert all(
+                not bool(shadow.property("visible"))
+                for shadow in _owned(surface, "NeoShadow")
+            ), object_name
+            assert all(
+                not bool(shadow.property("visible"))
+                for shadow in _owned(surface, "RectangularShadow")
+                if shadow.parent() is not None
+                and "NeumorphicShadow" not in shadow.parent().metaObject().className()
+            ), object_name
         assert warnings == []
     finally:
         setSkin(previous_skin)

@@ -49,6 +49,12 @@ OverlayDialogCore {
         visible: Enums.usesSoftElevation && !Enums.isNeumorphism
     }
 
+    NeumorphicShadow {
+        target: dialogBody
+        visible: Enums.isNeumorphism
+        z: dialogBody.z - 1
+    }
+
     NeoShadow {
         target: dialogBody
         visible: Enums.isNeobrutalism

@@ -200,6 +200,13 @@ Item {
         offset.y: control._assistantShadowOffset
     }
 
+    NeumorphicShadow {
+        target: bubble
+        visible: !control._isSystem && Enums.isNeumorphism
+        accent: control._isUser
+        z: bubble.z - 1
+    }
+
     NeoShadow {
         target: bubble
         visible: !control._isUser && !control._isSystem && Enums.isNeobrutalism

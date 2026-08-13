@@ -259,6 +259,15 @@ Item {
                   : (_staticFallbackShadow ? _staticFallbackShadow.offset : 0)
     }
 
+    NeumorphicShadow {
+        target: control._contentArea
+        visible: control._contentArea !== null
+                 && Enums.isNeumorphism
+                 && control.shadowLevel !== null
+                 && control.shadowLevel !== undefined
+        z: control._contentArea ? control._contentArea.z - 1 : 0
+    }
+
     NeoShadow {
         target: control._contentArea
         visible: control._contentArea !== null &&

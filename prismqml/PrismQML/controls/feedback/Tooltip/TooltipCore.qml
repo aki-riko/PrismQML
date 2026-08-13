@@ -190,7 +190,7 @@ Item {
                         border.width: control._tooltipBorderWidth
                         border.color: control._tooltipBorderColor
                         shadowLevel: control._tooltipShadowLevel
-                        shadowVisible: Enums.usesSoftElevation
+                        shadowVisible: Enums.usesSoftElevation || Enums.usesNeumorphicElevation
 
                         // Neo hard shadow neo 硬阴影
                         NeoShadow {

@@ -50,7 +50,9 @@ Item {
  // Shadow needs space to extend outward - use level2 soft shadow 阴影需要向外扩展的空间 - 使用 level2 柔和阴影
 
  property int shadowMargin: Enums.isVintageTicket ? Enums.spacing.none
-                            : Enums.shadow.level2.blur + Enums.shadow.level2.offset + Enums.spacing.xs
+                            : (Enums.isNeumorphism
+                               ? Enums.neumorphism.shadowBlur + Enums.neumorphism.shadowOffset + Enums.spacing.xs
+                               : Enums.shadow.level2.blur + Enums.shadow.level2.offset + Enums.spacing.xs)
  
  // Leave enough space for shadow 为阴影留出足够的空间
  width: parent.width
@@ -66,11 +68,12 @@ Item {
  // Opaque background: light gray for light, dark gray for dark theme 不透明背景：浅色用浅灰，深色用深灰
 
  color: Enums.isVintageTicket ? Enums.ticket.surface
-        : (Enums.isDark ? Enums.exampleCardColors.bgDark : Enums.exampleCardColors.bgLight)
+        : (Enums.isNeumorphism ? Enums.cardColor
+           : (Enums.isDark ? Enums.exampleCardColors.bgDark : Enums.exampleCardColors.bgLight))
  
  // Shadow: soft shadow, bottom-right direction 阴影：柔和阴影，右下角方向
  // neo: 关软阴影, 改用硬阴影 NeoShadow
- shadowVisible: Enums.usesSoftElevation && !Enums.isNeumorphism
+ shadowVisible: Enums.usesSoftElevation || Enums.usesNeumorphicElevation
 
  y: cardContainer.shadowMargin / 2
  shadowLevel: Enums.shadow.level2
@@ -145,7 +148,8 @@ Item {
  y: -card.radius
  radius: card.radius
  color: Enums.isVintageTicket ? Enums.ticket.muted
-        : (Enums.isDark ? Enums.exampleCardColors.descBgDark : Enums.exampleCardColors.descBgLight)
+        : (Enums.isNeumorphism ? Enums.neumorphism.muted
+           : (Enums.isDark ? Enums.exampleCardColors.descBgDark : Enums.exampleCardColors.descBgLight))
  }
  
  // Top separator line 顶部分隔线

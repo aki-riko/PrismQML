@@ -46,6 +46,13 @@ Item {
         visible: Enums.usesSoftElevation
     }
 
+    NeumorphicShadow {
+        target: control
+        inset: true
+        visible: Enums.isNeumorphism
+        z: -1
+    }
+
     NeoShadow {
         target: control
         visible: Enums.isNeobrutalism

@@ -138,7 +138,7 @@ def parse_args():
     )
     parser.add_argument(
         "--skin",
-        choices=("fluent", "neobrutalism", "vintage_ticket"),
+        choices=("fluent", "neobrutalism", "vintage_ticket", "neumorphism"),
         help="创建组件前设置指定 Skin",
     )
     parser.add_argument(

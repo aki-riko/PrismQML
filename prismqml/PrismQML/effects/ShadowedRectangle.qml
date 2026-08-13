@@ -31,6 +31,9 @@ Item {
 
     // Shadow visibility control 阴影显隐控制
     property bool shadowVisible: true
+    property bool neumorphicInset: false
+    property bool neumorphicPressed: false
+    property bool neumorphicAccent: false
 
     // ==================== Internal Props 内部属性 ====================
     readonly property color _rectangleColor: Enums.cardColor
@@ -54,6 +57,7 @@ Item {
     // Shadow access 阴影访问
     // Expose shadow for animation binding 暴露阴影供动画绑定
     property alias shadowItem: shadow
+    property alias neumorphicShadowItem: neumorphicShadow
     
     // ==================== Size 尺寸 ====================
     implicitWidth: content.implicitWidth
@@ -70,7 +74,19 @@ Item {
         spread: root.shadowSpread
         offset.x: root.shadowOffsetX
         offset.y: root.shadowOffsetY
-        visible: root.shadowVisible && !Enums.isVintageTicket
+        visible: root.shadowVisible && !Enums.isVintageTicket && !Enums.isNeumorphism
+    }
+
+    NeumorphicShadow {
+        id: neumorphicShadow
+
+        objectName: "_shadowedRectangleNeumorphicShadow"
+        target: content
+        inset: root.neumorphicInset
+        pressed: root.neumorphicPressed
+        accent: root.neumorphicAccent
+        visible: root.shadowVisible && Enums.isNeumorphism
+        z: content.z - 1
     }
     
     // Content layer 内容层

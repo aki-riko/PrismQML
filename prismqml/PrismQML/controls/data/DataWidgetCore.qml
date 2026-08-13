@@ -252,6 +252,12 @@ Rectangle {
         }
     }
 
+    NeumorphicShadow {
+        target: card
+        visible: showShadow && Enums.isNeumorphism
+        z: card.z - 1
+    }
+
     // neo 硬阴影
     NeoShadow {
         target: card

@@ -78,6 +78,13 @@ Item {
                     visible: Enums.usesSoftElevation && !Enums.isNeumorphism
                 }
 
+                NeumorphicShadow {
+                    target: pinCell
+                    inset: true
+                    visible: Enums.isNeumorphism
+                    z: pinCell.z - 1
+                }
+
                 NeoShadow {
                     target: pinCell
                     visible: Enums.isNeobrutalism
