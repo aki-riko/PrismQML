@@ -54,8 +54,13 @@ Item {
 
     NeumorphicShadow {
         target: popupPanel
-        visible: Enums.isNeumorphism
         z: Enums.zIndex.background
+        anchors.fill: null
+        x: clipContainer.x
+        y: clipContainer.y + (surface.popupHeight - height) / 2
+        width: popupPanel.width
+        height: surface.verticalCenterExpand ? popupPanel.height * surface.panelScale : popupPanel.height
+        visible: Enums.isNeumorphism
     }
 
     // neo 硬阴影: 偏移纯色矩形(弹层用 explicit 几何, 不用 NeoShadow 的 target)
