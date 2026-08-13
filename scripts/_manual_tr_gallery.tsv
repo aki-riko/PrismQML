@@ -1,0 +1,742 @@
+001	Simgeler
+002	Bileşenler yükleniyor...
+003	Etiketler
+004	Girdiler
+005	Menüler
+006	Kapsayıcılar
+007	Otomatik güncelleme
+008	Döngüsel galeri
+009	Efektler
+010	Geri bildirim
+011	Grafikler
+012	Düğmeler
+013	Yükleniyor
+014	Ayarlar
+015	Gezinme
+016	Kartlar
+017	Bir hata oluştu
+018	İşlem başarılı
+019	Dikkat gerekiyor
+020	Bilgi
+021	İşleniyor...
+022	InfoBar
+023	İlerleme halkası
+024	İlerleme çubuğu %60
+025	İşleniyor...
+026	Dört Toast ilerleme özelliği
+027	İndiriliyor...
+028	Eşitleniyor...
+029	Yükleme
+030	İlerleme halkası %40
+031	Yükleniyor...
+032	Belirsiz ilerleme çubuğu
+033	Veriler eşitleniyor...
+034	İşleniyor
+035	Lütfen bekleyin...
+036	InfoBar ilerleme modu
+037	Dört InfoBar ilerleme özelliği
+038	Eşitleniyor
+039	Belirsiz ilerleme halkası
+040	İlerleme çubuğu
+041	Toast ilerleme modu
+042	İndirme
+043	Dosyalar indiriliyor...
+044	Geçersiz DRY yükleyici yolu
+045	DRY demosu tamamlandı: sessiz kurulum devri benzetildi; hiçbir dosya indirilmedi ve yükleyici başlatılmadı
+046	DRY: güncelleme kontrolü benzetiliyor...
+047	DRY: benzetilmiş indirme<SP>
+048	- İndirme ilerlemesini %0’dan %100’e kadar benzet<NL>
+049	- Dosya oluşturmadan veya program başlatmadan Inno Setup sessiz kurulum devrini benzet
+050	DRY modu dış sayfaları açmaz
+051	DRY: benzetilmiş indirme tamamlandı; kuruluma devrediliyor
+052	- Gerçek güncelleme onay iletişim kutusunu göster<NL>
+053	DRY benzetilmiş indirme sürüyor
+054	DRY: benzetilmiş indirme hazırlanıyor
+055	Geçersiz DRY indirme belirteci
+056	DRY: kurulum devri başarısız
+057	DRY: çift yuvalı kurulum devri başarısız
+058	DRY: çift yuva hazırlığı tamamlandı; sonraki açılışta otomatik geçiş yapılacak
+059	DRY: etkin olmayan yuva arka planda hazırlanıyor
+060	DRY: benzetilmiş sürüm bulundu; onay bekleniyor
+061	DRY demosu sürüyor
+062	## DRY demo güncellemesi<NL><NL>
+063	, onay bekleniyor
+064	Kontrolü, onayı, indirme ilerlemesini, etkin olmayan yuvaya arka planda yazmayı ve sonraki açılışta geçişi gösterir; ağa erişmez, dosya oluşturmaz veya yükleyici başlatmaz.
+065	Sağ altta Toast
+066	2. Notları göstermek ve “İndir ve Kur” seçimini onaylamak için gerçek UpdateDialog kullan
+067	Releases denetimi için Gallery tarafından eklenen gerçek Updater’ı kullan; bu mod ağa erişebilir ve sürüm sayfasını açabilir.
+068	Son algılanan:
+069	3. Toast veya ProgressDialog ile belirsiz ya da belirli indirme ilerlemesini göster
+070	Kullanıcılar gerçek iletişim kutularını ve ilerleme geri bildirimini görür, ancak kurulumun yan etkileri oluşmaz.
+071	Gerçek Release modu
+072	DRY indirme ve kurulum demosu
+073	Geçerli sürüm:
+074	DRY demo modu (güvenli benzetim)
+075	Son algılanan: yok
+076	Güncelleme akışı
+077	Kontrol benzetiliyor...
+078	Gallery, cephe bileşeninin alttaki Updater, UpdateDialog ve değiştirilebilir geri bildirim sunucusunu nasıl yönettiğini doğrudan gösterir.
+079	Yeni sürüm bulundu<SP>
+080	DRY demosunu başlat
+081	İndirme onaylandı<SP>
+082	Arka planda hazırlanıyor...
+083	1. GitHub Releases’ı denetle ve geçerli sürümle karşılaştır
+084	Demo kaynağı:
+085	2. Yeni sürüm bulunduğunda sürüm notlarını ve onay iletişim kutusunu göster
+086	Güncellemeleri denetle
+087	Yapılandırılmadı
+088	4. Çift yuva modunda etkin olmayan yuvayı arka planda değiştir ve sonraki açılışta yeni sürüme geç
+089	Zaten güncel<SP>
+090	Depo:
+091	Gerçek mod kullanılamıyor: Gallery appUpdater eklemedi
+092	Gerçek mod: henüz denetlenmedi
+093	1. Bir kontrolü benzet ve demo sürümü döndür
+094	3. Benzetilmiş ilerlemeyi %100’e taşımak için gerçek Toast veya ProgressDialog kullan
+095	Kontrol başarısız:
+096	DRY modu: demo başlangıcı bekleniyor
+097	4. Inno Setup ile etkin olmayan yuvanın arka planda değiştirilmesini benzet; bu sürümü çalışır tut ve sonraki açılışta geçiş yap
+098	Gerçek GitHub Releases güncelleme akışı
+099	DRY: benzetilmiş sürüm bulundu<SP>
+100	Gerçek mod, Release içinde geçerli platforma ait bir yükleyici varlığı bulunmasını gerektirir.
+101	Denetleniyor...
+102	Button - ToolButton ve özellik birleşimleri
+103	Düzenle
+104	Yalnızca metin (Push)
+105	Rozetli birleşim (Badge)
+106	Button - her stille birleştirilmiş geri sayım düğmeleri
+107	Stil ve özellik birleşimi (indeterminate_ring)
+108	Sil
+109	Button - ToolButton stilleri (6)
+110	Eylem B
+111	Style, Pill ve Dropdown/Split birleşimleri
+112	Doğrulama kodu gönder
+113	Yalnızca simge → ToolButton stili; metin veya simge + metin → PushButton stili
+114	Menü:
+115	Button - stil × Pill şekli × ilerleme özelliği
+116	Button - Filled çeşitleri: arka plan yok, durum renkli metin
+117	Seçenek 2
+118	Button - şekiller (2)
+119	Style, Pill ve Toggle birleşimleri
+120	Eylem A
+121	Seçili:
+122	Dış menü ana düğmesine tıklandı
+123	Ana düğmeye tıklandı
+124	Seçenek 3
+125	Stil ve özellik birleşimi (progress_bar)
+126	Button - Filled durum düzeyleri (6)
+127	Özellikler
+128	Seçenek 1
+129	Stil ve şekil birleşimleri
+130	Button - otomatik tür algılama
+131	Stil ve özellik birleşimi (indeterminate_bar)
+132	Button - özellikler (9)
+133	Button - stil × Pill şekli × dropdown/split özelliği
+134	Dış eylem 2
+135	Stil ve özellik birleşimi (toggle)
+136	Button - Text durum düzeyleri (6)
+137	Simge + metin (Push)
+138	Stil ve özellik birleşimi (split)
+139	Dış menü
+140	Stil ve özellik birleşimi (countdown)
+141	Stil ve özellik birleşimi (progress_ring)
+142	Yalnızca simge + özellik
+143	Dış eylem 1
+144	Button - 7 stil × Pill şekli × toggle özelliği
+145	Yalnızca simgeli düğmeler otomatik olarak ToolButton şeklinde algılanır
+146	Stil ve özellik birleşimi (dropdown)
+147	Button - stiller (6)
+148	Yalnızca simge (Tool)
+149	Şekil (Pill) ve özellik birleşimleri
+150	Style, Pill ve Progress birleşimleri
+151	Üzerine gelme efekti yok
+152	Üzerine gelinen kart
+153	Özel kart
+154	Yükselmeden, üzerine gelince renk değiştirir
+155	Genişletmek için tıklayın
+156	Genişletilmiş içerik
+157	Ayar kartı
+158	Temel kart
+159	Üzerine gelince daha güçlü bir gölgeyle yükselir
+160	Ayrı başlık alanlı kart
+161	Basit kart
+162	Standart kart
+163	Kartlar ve kapsayıcılar
+164	Başlıklı kart
+165	Düğmeli dikey
+166	Temel yatay (5 nokta)
+167	Carousel + PipsPager - sayfa göstergeli birleşik döngüsel galeri
+168	Standart kayan döngüsel galeri
+169	effect_slide + dikey
+170	Yatay (varsayılan)
+171	Dikey (orientation: Qt.Vertical)
+172	Düğmeli (her zaman görünür)
+173	Dış PipsPager eşitlemesi + döngü
+174	Döngüsel galeri ve sayfa göstergeleri
+175	effect_slide (yatay)
+176	Carousel - yatay/dikey yön + dış PipsPager eşitlemesi
+177	Sayfa göstergesi (PipsPager)
+178	Carousel - effect_slide efekti (yan önizleme olmadan tüm resmin kayması)
+179	Yan önizlemeli döngüsel galeri
+180	Temel dikey (4 nokta)
+181	HorizontalPipsPager / VerticalPipsPager - sayfa düğmeleri, görünür sayı sınırı ve yumuşak kaydırma
+182	Ürün C
+183	Radar grafik
+184	Ürün D
+185	Dağılım grafiği
+186	Ürün B
+187	Halka grafik
+188	Satış sıralaması
+189	Halka grafik - vurgulu merkez
+190	Kutu grafik
+191	Grafik bileşenleri
+192	Yatay çubuk grafik
+193	Ses dalga biçimi (AudioWaveform)
+194	Çizgi grafik
+195	Kutu grafik - aykırı değerlerle
+196	Yığılmış alan grafiği
+197	Ürün A
+198	Ürün E
+199	Çubuk grafik
+200	Pasta grafik
+201	Layout (mode=mode_default) - dahili FlowLayout modu değiştirme
+202	Düzen bileşenleri
+203	Dikey mod: tüm alt öğeler eşit genişliğe sahiptir (sütun genişliği eşit bölünür)
+204	Dosya bırakma
+205	Yatay (eşit yükseklik)
+206	Aşağı
+207	Sağ
+208	Dikey (eşit genişlik)
+209	Üstten genişlet
+210	Yüksek hata düzeltme
+211	Kaydırma öğesi<SP>
+212	PrismQML bileşen kitaplığı
+213	Çekmece
+214	Kapat
+215	Akış düzeni
+216	Alttaki içerik
+217	Üst çekmece
+218	Yatay mod: bir satırdaki tüm alt öğeler eşit yüksekliğe sahiptir (satırın en büyük yüksekliği)
+219	Gizli belge
+220	Sağdan genişlet
+221	Varsayılan
+222	Soldan genişlet
+223	Alt çekmece
+224	Sağ çekmece
+225	Gruplandırılmış içerik
+226	Ayırıcı
+227	QR kodu
+228	Filigran
+229	Mod değiştir:
+230	Grup başlığı
+231	Pencere dışı çekmece
+232	Üstteki içerik
+233	Bölücü
+234	Alttan genişlet
+235	Yukarı
+236	Kaydırma bileşenleri
+237	Grup kutusu
+238	Sol
+239	Sol çekmece
+240	Kapsayıcı bileşenleri
+241	Varsayılan mod: her alt öğenin özgün boyutunu koru ve otomatik kaydır
+242	Temalar: klasik, camgöbeği, kehribar, kırmızı, mor, mavi, beyaz, pembe, altın, limon yeşili, turuncu, deniz mavisi, neon, gün batımı, okyanus, orman, gece yarısı
+243	→ Sağ
+244	Yön
+245	Gökkuşağı modu
+246	Karakter kümesi
+247	✓ Titreşim
+248	Duraklat/Sürdür
+249	Hız:<SP>
+250	✓ Parlama
+251	↓ Aşağı
+252	Karakter kümesi ön ayarları: Japonca, katakana, ikili, rakamlar, onaltılık, Çince, simgeler, ASCII, Yunanca, runik
+253	Yöntemler: start(), stop(), pause(), resume(), toggle(), reset(), setTheme(name), setDirection(dir), setCharsetPreset(preset), setCustomCharset(chars), enableGlow(intensity), disableGlow(), enableFlicker(rate), disableFlicker(), enableInteraction(radius), disableInteraction(), enableRainbow(), disableRainbow(), setPerspective(value), configure(options)
+254	✓ Gökkuşağı modu
+255	İz:<SP>
+256	Özellikler: running, paused, speed, fontSize, density, fadeSpeed, direction, mainColor, headColor, backgroundColor, charset, charsetPreset, glowEnabled, glowIntensity, flickerEnabled, flickerRate, perspective, interactive, interactionRadius, rainbowMode
+257	Çalıştır
+258	Yoğunluk:<SP>
+259	Yazı tipi:<SP>
+260	✓ Fare etkileşimi
+261	← Sol
+262	MatrixRain - dijital yağmur efekti
+263	Parlama
+264	Bileşen özellikleri ve yöntemleri
+265	3B perspektif
+266	Kapsamlı yapılandırmaya sahip klasik Matrix tarzı dijital yağmur
+267	Sıfırla
+268	Titreşim
+269	Renk teması
+270	✓ 3B perspektif
+271	↑ Yukarı
+272	Fare etkileşimi
+273	Sonuç: İptal
+274	Açılır panel
+275	Yalnızca Tamam düğmesi
+276	Başarılı
+277	Flyout - 6 animasyon: pullUp/dropDown/slideLeft/slideRight/fadeIn/none + kalıcı mod
+278	Diğer açılır bileşenler
+279	Konfeti başlat
+280	Kapatmak için kaplamaya tıklayın
+281	Hata
+282	İşlem başarısız
+283	Bu, kenarlıksız iletişim kutusu için örnek içeriktir. Başlık, gövde ve düğme düzenini göstermek üzere buraya özel metin yerleştirilebilir.
+284	Özel seçenekler - dikey düzen/özel içerik/açık ekran
+285	Bu kenarlıksız bir iletişim kutusudur
+286	Dairesel profil iskeleti
+287	Sağdan kaydır
+288	Masaüstü Toast bildirimleri (ayrı pencere) - sol üst/üst orta/sağ üst/sol alt/alt orta/sağ alt
+289	Sağ
+290	İptal’i gizle
+291	Bu bir iletidir
+292	Başarıyla gönderildi
+293	Sonuç: Tamam
+294	Yukarı açılan panel
+295	Aşağı aç
+296	Masaüstü InfoBar bildirimleri (ayrı pencere) - sol üst/üst orta/sağ üst/sol alt/alt orta/sağ alt
+297	Onayla
+298	Sağ üst konum
+299	Alt
+300	Sola kaydır
+301	Sağ alt konum
+302	Açılır panel
+303	Beliren panel
+304	Bu bir ToolTip’tir
+305	Yukarı çek
+306	TeachingTip
+307	Dikkat
+308	Kalıcı olmayan ipucu
+309	Üst orta konum
+310	Sol
+311	Üst
+312	Sağa kaydır
+313	İskelet
+314	Durum bileşenleri
+315	Klasörü aç
+316	Bu eylemi gerçekleştirmek istediğinizden emin misiniz?
+317	Konfeti animasyonu
+318	Sol alt konum
+319	İleti kutusu
+320	Öğretici
+321	Kopyalamak için bu metni seçin: PrismQML bir QML bileşen kitaplığıdır
+322	Aşağı oku
+323	StateWidget (stateType ile ayrılan birleşik durum bileşeni)
+324	Bu iletişim kutusunda yalnızca Tamam düğmesi vardır
+325	Lütfen sabırla bekleyin...
+326	Onay kutusu
+327	Kopyalanabilir
+328	Kenarlıksız iletişim kutusu
+329	Sol üst konum
+330	Kopyalanabilir içerik
+331	Uyarı
+332	İlerleme göstergeleri
+333	Kare profil iskeleti
+334	Üzerine gelme
+335	Alt orta konum
+336	Geri bildirim bileşenleri
+337	Sol ok
+338	Yukarı oku
+339	Sonuç: eylem yok
+340	Kalıcı değil
+341	İletişim kutusu
+342	Toast - sol üst/üst orta/sağ üst/sol alt/alt orta/sağ alt
+343	Sağ ok
+344	Sürüklenebilir
+345	Soldan kaydır
+346	InfoBar - sol üst/üst orta/sağ üst/sol alt/alt orta/sağ alt
+347	İptal düğmesini gizle
+348	İndirme görevi hazırlanıyor...
+349	TeachingTip - oklu öğretici ipucu (anchor_bottom/top/left/right...)
+350	İpucu
+351	Belirme
+352	Otomatik kapanmaz
+353	Sürüklenebilir iletişim kutusu
+354	Bu iletişim kutusunu kapatmak için kaplamaya tıklayın
+355	Konfeti (ana pencerede gösterilir)
+356	İçerik kopyalanabilir
+357	Bu iletişim kutusunu sürüklemeyi deneyin
+358	Kılavuzlu turu başlat
+359	Bildirim ayarları
+360	Adım 2
+361	Adım 1
+362	TeachingTour kılavuzlu turu
+363	Avatarınızı ve kişisel bilgilerinizi burada düzenleyin.
+364	Profil
+365	Almak istediğiniz bildirimleri burada seçin.
+366	Tam pencere kaplaması hedef alana odaklanır ve İleri, Bitir ve Atla seçeneklerini destekler
+367	Numaralandırma üyesi adı
+368	Python kodu
+369	Simgeleri ara
+370	Simge adı
+371	Web
+372	Tek tuşa izin ver (allowSingleKey)
+373	Etiket ekle...
+374	Açılır seçim
+375	Karma çoklu seçim
+376	Acil
+377	Seçenek B
+378	Dikey
+379	Çoklu seçim 21
+380	Çoklu seçim 28
+381	Kullanıcı adı
+382	Shenzhen
+383	Çoklu seçim 11
+384	Takvim seçici
+385	Ana sayfa
+386	Wenzhou
+387	Çoklu seçim 25
+388	Belgeler
+389	Çoklu seçim 10
+390	Çoklu seçim 12
+391	Şanghay
+392	Çoklu seçim 9
+393	Foshan
+394	Jiaxing
+395	Çoklu seçim 6
+396	Çoklu seçim 27
+397	Hangzhou
+398	Seçenek 5
+399	Özel girdiler
+400	Ningbo
+401	Çoklu seçim 15
+402	Seçenek 4
+403	Çoklu seçim 17
+404	Ara
+405	Çoklu seçim 4
+406	Çoklu seçim 13
+407	Wuhan
+408	Şanghay
+409	Tuş birleşimi (varsayılan)
+410	Yatay
+411	Filtre
+412	Çoklu seçim 2
+413	Seçenek A
+414	Zhejiang Eyaleti
+415	Arka plan rengini seç
+416	Metin girişi
+417	En az 2 karakter, virgülle ayrılmış
+418	Güney Çin
+419	Seçenek 9
+420	Uygula
+421	Pekin
+422	Test
+423	Renk seçici
+424	Etiket 1
+425	Suzhou
+426	ShortcutEditor (allowSingleKey: tek tuş girişi / tuş birleşimi girişi)
+427	Çoklu seçim 22
+428	Shenzhen
+429	Tarih
+430	Çoklu seçim 14
+431	Doğu Çin
+432	Seçenek 10
+433	Çoklu seçim 29
+434	Çoklu seçim 20
+435	Seçenek 8
+436	Bir şehir girin...
+437	Girdi bileşenleri
+438	Guangzhou
+439	Simge + metin
+440	Huangpu Bölgesi
+441	Guangzhou
+442	Saat
+443	Etiket 2
+444	Çoklu seçim 26
+445	Yalnızca simge
+446	Nanjing
+447	Geçiş denetimi
+448	Zhuhai
+449	DateTimePicker - otomatik yerelleştirmeli birleşik tekerlek seçici
+450	12 saat biçimi
+451	Parola
+452	Shaoxing
+453	Açıklama metni
+454	Kaydırıcı
+455	Hangzhou
+456	Seçenek 6
+457	Jiangsu Eyaleti
+458	Tarih ve saat seçici
+459	ScrollBar (dikey/yatay)
+460	Renk iletişim kutusunu aç
+461	Çoklu seçim 16
+462	Dongguan
+463	<b>Zengin metin</b> <i>gösterimini destekler</i>
+464	Süre (saniye)
+465	Çoklu seçim 23
+466	Çoklu seçim 18
+467	Bitir
+468	Seçenek 7
+469	Video
+470	Saydam 2
+471	Tarih + saat
+472	Nanjing
+473	Çoklu seçim 8
+474	Seçilen renk:
+475	Çoklu seçim 19
+476	Test 2
+477	Çoklu seçim 3
+478	Çoklu seçim 30
+479	Sayısal giriş
+480	Chengdu
+481	Görüntüler
+482	Çoklu seçim 7
+483	Saydam 1
+484	Kısayol seçici
+485	Lütfen seçin
+486	Müzik
+487	Yumuşak kaydırma çubuğu
+488	Standart
+489	Renkli anahat etiketi
+490	Xi’an
+491	Çoklu seçim 24
+492	Pudong Yeni Bölgesi
+493	Chongqing
+494	Çoklu seçim 5
+495	Guangdong Eyaleti
+496	Çoklu seçim 1
+497	Xuhui Bölgesi
+498	Yalnızca metin
+499	Wuxi
+500	Destek metni
+501	Etiketler ve rozetler
+502	Rozet
+503	Düz renk · sekme
+504	Durum etiketi
+505	Avatar
+506	Seçili
+507	İletiler
+508	Kalın gövde
+509	Yatay · gradyan · normal
+510	Etiketler, rozetler, çipler ve etiketler
+511	Alt başlık
+512	Düz renk · normal
+513	Metin etiketi
+514	Köprü metni
+515	Gradyan · sekme
+516	Yatay · düz renk · sekme
+517	Başlık
+518	Animasyonlu gösterge/vurgu çubuğu - colorStyle × animationStyle × orientation; active durumunu değiştirmek için karta tıklayın
+519	Gövde
+520	Büyük başlık
+521	Değiştirilebilir çip etiketi
+522	Bilgi
+523	Gradyan · normal
+524	Kapatma düğmesi yok
+525	Badge - birleşik rozet bileşeni
+526	Avatar / AvatarSelector - source (görüntü) / text (metin) / size (boyut)
+527	Zhang
+528	Yatay · gradyan · sekme
+529	Sayfa göstergesi
+530	Geçerliyi kaldır
+531	Temel (5 nokta)
+532	Fiyat
+533	Menüler ve listeler
+534	Ana sayfa bileşenlerini geliştir
+535	Etkileşim tasarımı
+536	Proje yöneticisi
+537	clicked sinyalini test etmek için görüntüye tıklayın
+538	Tümünü temizle
+539	Öğe<SP>
+540	Mühendislik Bölümü
+541	Etiket 3
+542	Kayan metin
+543	İş geliştirme
+544	Kapatılmış etiket<SP>
+545	Gereksinim incelemesini ve tasarım taslaklarını tamamla
+546	Metni değiştir
+547	Veri analisti
+548	Yapıştır
+549	Kes
+550	Ürün Bölümü
+551	Dinamik içerik
+552	Devre dışı bırak
+553	Ürün
+554	Birim testleri yaz
+555	Miktar
+556	Yapılacaklar
+557	Durum
+558	Kopyala
+559	İçerik 2
+560	Değiştirildi
+561	Kayan metin - PrismQML bileşen kitaplığı gösterimi
+562	İçerik işlemleri
+563	Kod incelemesine gönder
+564	Kanal ortaklıkları
+565	Etiket ekle
+566	Liste öğesi
+567	Veri görünümü
+568	Fotoğraflar
+569	Yeni etiket
+570	Kalite Ekibi
+571	clicked sinyali tetiklendi!
+572	Görüntü bileşeni
+573	Bağlam menüsü
+574	Bugünün programı
+575	Tasarım Ekibi
+576	Bu alana sağ tıklayın
+577	Gereksinimler.md
+578	Toplantı Notları.pdf
+579	Marka tanıtımı
+580	Sekmeler
+581	İçerik 1
+582	Görünüm öğesi<SP>
+583	Backend Ekibi
+584	setTabText() metni değiştirdi
+585	Sekmeye geç<SP>
+586	ContextMenu - üst bileşenin sağ tıklama olayına otomatik bağlanır
+587	Durum: tıklanmadı
+588	Kampanya işlemleri
+589	Ekran görüntüleri
+590	ImageWidget - yuvarlatılmış köşeler, yükleme durumu ve tıklama olayları
+591	clear() tümünü temizledi
+592	Liste/tablo görünümleri
+593	Pazarlama Bölümü
+594	Timeline · Git grafiği (kesirli ölçek dikiş kabulü)
+595	Sıfırla
+596	Ad
+597	Yeni etiket eklendi
+598	API durumu
+599	ListView / TableView / TreeView - özel delegate gerektiren düşük düzey görünümler
+600	addTab() sekme ekledi
+601	removeTab() sekmeyi kaldırdı
+602	Dinamik sekmeler
+603	Kod
+604	İçerik 3
+605	Görsel tasarım
+606	Kullanıcı araştırması
+607	Çalışma Raporu.docx
+608	Liste ve tablo bileşenleri
+609	Operasyon Ekibi
+610	Tamamlandı
+611	PipsPager - sayfa düğmeleri, görünür sayı sınırı ve yumuşak kaydırma
+612	Etkinleştir
+613	Frontend Ekibi
+614	Takım Etkinliği.jpg
+615	Yinele
+616	Simgeli kırıntı yolu
+617	Yardım 5
+618	Komut çubuğu görünümü
+619	Hesap bilgileri
+620	Dosya
+621	Siparişler
+622	Taşma üç noktası (maxVisibleItems: 4)
+623	Gezinme bileşenleri
+624	Kök dizin
+625	Sayfalama
+626	4. düzey dizin
+627	Yeni
+628	Hakkında
+629	Tümü
+630	Ödeme
+631	Geçerli:<SP>
+632	3. düzey dizin
+633	Düzey ekle
+634	Geçerli konum
+635	Kırıntı yolu gezintisi
+636	Bir düzey yukarı
+637	Alt sayfa
+638	Temel kırıntı yolu
+639	Bileşenler
+640	Klasör
+641	Komut çubuğu
+642	Yardım 4
+643	Geri al
+644	Simgeli kırıntı yolu gezintisi
+645	Görüntü ekle
+646	Alt sayfa ekle
+647	StackedWidget - animationType ile animasyon türlerini değiştir
+648	Kaydet
+649	Menü çubuğu
+650	Yardım
+651	1. düzey dizin
+652	Kargo
+653	İleri
+654	Adım ilerleme çubuğu
+655	BreadcrumbBar - akıcı animasyon, simge desteği ve tema rengi göstergesi
+656	Kısaltmayı test etmek için kırıntı yolu öğesine tıklayın
+657	Yardım 2
+658	Aç
+659	2. düzey dizin
+660	Önceki
+661	Yardım 3
+662	Derin düzey
+663	Stepper - simgeleri ve metni destekler
+664	Bölümlü/geçiş denetimleri
+665	StackedWidget (animationType numaralandırması)
+666	Dörtten fazla öğe olduğunda ortadaki öğeler otomatik olarak üç nokta menüsüne daraltılır
+667	Alışveriş sepeti
+668	Renk ayar kartı (genişletilebilir)
+669	Opaklık
+670	Görüntüleme dilini seç
+671	Temayı uygula
+672	Vurgu rengi
+673	Birleşik giriş ayar kartı
+674	Yerel DWM gölgesi
+675	Kişiselleştirme
+676	Klasör listesi ayar kartı (genişletilebilir)
+677	Sistemi izle
+678	Pencere opaklığını ayarla
+679	Seçenekler kartı (genişletilebilir)
+680	Pencere ayarları
+681	Çevrimiçi yardımı görüntüle
+682	DPI ölçeklendirme
+683	Yerel Windows pencere gölgesi
+684	Renk seç
+685	Arayüz dili
+686	Tema modu
+687	Klasör ekle
+688	Mica efekti
+689	Geçerli yapılandırmayı kaydet
+690	Yazılım bilgilerini görüntüle
+691	Geçiş ayar kartı
+692	Genel kısayol ayarla
+693	Pencere türü
+694	Yalnızca Windows 11
+695	Başlangıç davranışı
+696	Özel renk
+697	Tema
+698	Otomatik güncelleme denetimlerini etkinleştir
+699	Tema rengi
+700	Yardım belgeleri
+701	Ses düzeyi
+702	Müzik kitaplığı klasörlerini yönet
+703	Açık
+704	Ana düğme ayar kartı
+705	Düğme ayar kartı
+706	Ana pencereyi göster
+707	Uygulama ayarları
+708	Koyu
+709	Açık
+710	Varsayılan veya özel renk seç
+711	Varsayılan renk
+712	Ayar bileşenleri
+713	Arayüz temasını seç
+714	Köprü ayar kartı
+715	Yeniden başlatma gerekli
+716	Müzik klasörleri
+717	Sistem ses düzeyini ayarla
+718	Ayarları kaydet
+719	Kaydırıcı ayar kartı
+720	Tembel yükleme
+721	Belgeleri aç
+722	Animasyon efektleri
+723	Uygulama görünümünü ayarla
+724	Görüntüle
+725	Arayüz animasyonlarını etkinleştir
+726	Sayfa içeriğini gerektiğinde yükle
+727	Kısayol ayar kartı
+728	Kısayol
+729	Ayar kartları grup kapsayıcısı
+730	Sistem tepsisine küçült
+731	Başlangıçta uygulama davranışını seç
+732	Önceki durumu geri yükle
+733	test: kesirli kaydırma piksel denetimi ekle
+734	chore: commit grafiği örneğini başlat
+735	refactor: Timeline veri modelini düzenle
+736	feature/timeline birleştir
+737	style: Gallery görüntü yoğunluğunu ayarla
+738	feat: gallery dalı oluştur
+739	fix: commit grafiği sınır piksellerini düzelt
+740	Git grafiği · %150 DPI
+741	PrismQML Gallery
+742	PrismQML Gallery (C++ ana bilgisayarı)
