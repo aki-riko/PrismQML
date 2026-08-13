@@ -42,6 +42,7 @@ MANUAL_LONG_TEXT_ALLOWLISTS = {
         "effect_slide + vertical",
     },
     "tr": set(),
+    "uk": set(),
     "vi": set(),
 }
 
