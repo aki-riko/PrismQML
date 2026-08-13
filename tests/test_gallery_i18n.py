@@ -60,6 +60,21 @@ def test_japanese_gallery_catalog_is_a_complete_manual_translation():
     }
 
 
+def test_korean_gallery_catalog_is_a_complete_manual_translation():
+    korean = _catalog("ko")
+    english = _catalog("en")
+    keys = gallery_i18n.referenced_keys()
+    identical = {
+        english[key] for key in keys
+        if korean[key] == english[key]
+    }
+    assert identical == {
+        "InfoBar",
+        "PrismQML Gallery",
+        "TeachingTip",
+    }
+
+
 def test_english_gallery_catalog_is_a_complete_manual_baseline():
     source = _catalog("zh_CN")
     english = _catalog("en")
