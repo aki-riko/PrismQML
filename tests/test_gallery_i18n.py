@@ -45,18 +45,18 @@ def test_non_chinese_gallery_catalogs_do_not_reuse_source_strings():
         assert not untranslated, f"{language}: {untranslated}"
 
 
-def test_japanese_only_reuses_intentionally_shared_ideographs():
-    source = _catalog("zh_CN")
+def test_japanese_gallery_catalog_is_a_complete_manual_translation():
     japanese = _catalog("ja")
     english = _catalog("en")
     keys = gallery_i18n.referenced_keys()
     identical = {
-        source[key] for key in keys
-        if japanese[key] == source[key] and english[key] != source[key]
+        english[key] for key in keys
+        if japanese[key] == english[key]
     }
     assert identical == {
-        "effect_slide + 垂直", "effect_slide (水平)", "ScrollBar (垂直/水平)",
-        "右", "左", "成功", "警告", "垂直", "水平", "保存", "音量",
+        "InfoBar",
+        "PrismQML Gallery",
+        "TeachingTip",
     }
 
 
