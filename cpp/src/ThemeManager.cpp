@@ -4,6 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - ThemeManager 实现 (1:1 镜像 Python core/theme.py)
 #include "prism/ThemeManager.h"
+#include "prism/ConfigManager.h"
 
 #include <QGuiApplication>
 #include <QPalette>
@@ -60,6 +61,10 @@ QString ThemeManager::accentColorDark() const { return m_accentColorDark; }
 
 // ==================== 主题 ====================
 void ThemeManager::setTheme(Theme theme) {
+    ConfigManager::instance()->setTheme(themeToString(theme));
+}
+
+void ThemeManager::applyTheme(Theme theme) {
     if (m_theme != theme) {
         m_theme = theme;
         emit themeChanged(themeToString(theme));
@@ -77,6 +82,10 @@ void ThemeManager::setThemeFromQml(const QString &themeStr) {
 
 // ==================== 皮肤 ====================
 void ThemeManager::setSkin(Skin skin) {
+    ConfigManager::instance()->setSkin(skinToString(skin));
+}
+
+void ThemeManager::applySkin(Skin skin) {
     if (m_skin != skin) {
         m_skin = skin;
         emit skinChanged(skinToString(skin));
@@ -97,6 +106,10 @@ void ThemeManager::setAccentColor(const QString &color) {
                  qUtf8Printable(color));
         return;  // C++ 侧不抛异常, 记日志后忽略 (与 Python raise 行为差异: 见文档)
     }
+    ConfigManager::instance()->setAccentColor(color);
+}
+
+void ThemeManager::applyAccentColor(const QString &color) {
     if (m_accentColor != color) {
         m_accentColor = color;
         m_accentColorLight = lightenColor(color, LIGHTEN_FACTOR);

@@ -6,6 +6,7 @@
 // 不依赖 Python: 用 prism C++ 宿主的 addPage API 加载 examples/pages 的 13 个组件展示页,
 // 让只用 C++ 的用户也能看到和 Python 版一样的组件画廊。
 #include "prism/App.h"
+#include "prism/ConfigManager.h"
 #include "prism/Theme.h"
 
 #include <QDebug>
@@ -43,7 +44,8 @@ int main(int argc, char *argv[]) {
         return QDir(pagesDir).filePath(name);
     };
 
-    Window &w = app.createWindow(WindowType::Bar);
+    Window &w = app.createWindow(
+        static_cast<WindowType>(ConfigManager::instance()->windowType()));
     w.setTranslatedWindowTitle(QStringLiteral("gallery_90b8157cfce0dbe5"));
     // 标题栏 app 图标 (桌面: examples/resources 磁盘路径; 可被 PRISM_GALLERY_ICON 覆盖)
     {

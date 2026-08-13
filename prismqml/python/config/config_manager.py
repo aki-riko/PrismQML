@@ -82,6 +82,8 @@ class ConfigManager(QObject):
         self._cfg.load(path)
         self._pending_updates = deque()
         self._active_persistence = None
+        self._runtime_overrides = {}
+        self._runtime_request_id = 0
         self._connect_config_signals()
         self._apply_appearance_to_runtime()
         app = QCoreApplication.instance()
@@ -111,35 +113,73 @@ class ConfigManager(QObject):
         from ..core.theme import getThemeManager
 
         manager = getThemeManager()
-        manager.setThemeFromQml(self.theme)
-        manager.setSkinFromQml(self.skin)
-        manager.setAccentColor(self.accentColor)
+        manager._apply_theme_from_qml(self.theme)
+        manager._apply_skin_from_qml(self.skin)
+        manager._apply_accent_color(self.accentColor)
 
     @Property(bool, notify=persistencePendingChanged)
     def persistencePending(self) -> bool:
         """Whether a serialized background write is active. 是否有后台写入。"""
         return bool(self._active_persistence or self._pending_updates)
 
-    def _set_value(self, entry, value, after_commit=None):
+    def _set_value(
+        self, entry, value, after_commit=None, after_failure=None
+    ):
         """Persist on one serial worker before publishing. 串行后台落盘后发布。"""
         if QCoreApplication.instance() is None:
-            if self._cfg.set(entry, value) and after_commit is not None:
-                after_commit()
+            if self._cfg.set(entry, value):
+                if after_commit is not None:
+                    after_commit()
+            elif after_failure is not None:
+                after_failure()
             return
         was_pending = self.persistencePending
-        self._pending_updates.append((entry, value, after_commit))
+        self._pending_updates.append(
+            (entry, value, after_commit, after_failure)
+        )
         if not was_pending:
             self.persistencePendingChanged.emit()
         self._start_next_persistence()
+
+    def _set_runtime_value(
+        self, entry, value, apply_runtime, apply_committed
+    ):
+        """Apply a public engine setting now and persist it in the background."""
+        apply_runtime(value)
+        field = entry.name
+        self._runtime_request_id += 1
+        request_id = self._runtime_request_id
+        self._runtime_overrides[field] = request_id
+        committed = lambda: self._settle_runtime_override(
+            field, request_id, False, apply_committed
+        )
+        failed = lambda: self._settle_runtime_override(
+            field, request_id, True, apply_committed
+        )
+        self._set_value(entry, value, committed, failed)
+
+    def _settle_runtime_override(
+        self, field, request_id, failed, apply_committed
+    ):
+        """Release only the matching immediate-runtime request. 释放匹配请求。"""
+        if self._runtime_overrides.get(field) != request_id:
+            return
+        self._runtime_overrides.pop(field, None)
+        if failed:
+            apply_committed()
 
     def _start_next_persistence(self):
         """Start the next queued snapshot without blocking Qt. 启动下一后台快照。"""
         if self._active_persistence is not None:
             return
         while self._pending_updates:
-            entry, value, after_commit = self._pending_updates.popleft()
+            entry, value, after_commit, after_failure = (
+                self._pending_updates.popleft()
+            )
             update = self._cfg._prepare_update(entry, value)
             if update is None:
+                if after_commit is not None:
+                    after_commit()
                 continue
             current, prepared, mapping = update
             from ..core.task_runner import run_in_thread
@@ -150,8 +190,16 @@ class ConfigManager(QObject):
                 )
             except Exception as exc:
                 error(f"提交配置后台任务失败 Config persistence task failed: {exc}")
+                if after_failure is not None:
+                    after_failure()
                 continue
-            self._active_persistence = (handle, current, prepared, after_commit)
+            self._active_persistence = (
+                handle,
+                current,
+                prepared,
+                after_commit,
+                after_failure,
+            )
             handle.succeeded.connect(self._publish_persisted_update)
             handle.finished.connect(self._finish_persistence)
             return
@@ -160,7 +208,9 @@ class ConfigManager(QObject):
     @Slot("QVariant")
     def _publish_persisted_update(self, _result):
         """Commit a successful worker result on the Qt thread. 在 Qt 线程提交。"""
-        _handle, current, prepared, after_commit = self._active_persistence
+        _handle, current, prepared, after_commit, _after_failure = (
+            self._active_persistence
+        )
         self._cfg._commit_prepared_update(
             current, prepared, before_notify=after_commit
         )
@@ -172,6 +222,9 @@ class ConfigManager(QObject):
         if handle.failure is not None:
             caught = handle.failure.exception
             error(f"保存失败 Save failed: {caught}")
+            after_failure = self._active_persistence[4]
+            if after_failure is not None:
+                after_failure()
         self._active_persistence = None
         self._start_next_persistence()
 
@@ -272,10 +325,11 @@ class ConfigManager(QObject):
             return
         from ..core.theme import getThemeManager
 
-        self._set_value(
+        self._set_runtime_value(
             self._cfg.theme,
             value,
-            lambda: getThemeManager().setThemeFromQml(self.theme),
+            lambda candidate: getThemeManager()._apply_theme_from_qml(candidate),
+            lambda: getThemeManager()._apply_theme_from_qml(self.theme),
         )
 
     @Property(str, notify=skinChanged)
@@ -293,10 +347,11 @@ class ConfigManager(QObject):
             return
         from ..core.theme import getThemeManager
 
-        self._set_value(
+        self._set_runtime_value(
             self._cfg.skin,
             value,
-            lambda: getThemeManager().setSkinFromQml(self.skin),
+            lambda candidate: getThemeManager()._apply_skin_from_qml(candidate),
+            lambda: getThemeManager()._apply_skin_from_qml(self.skin),
         )
 
     @Property(str, notify=languageChanged)
@@ -327,10 +382,11 @@ class ConfigManager(QObject):
             return
         from ..core.theme import getThemeManager
 
-        self._set_value(
+        self._set_runtime_value(
             self._cfg.accent_color,
             value,
-            lambda: getThemeManager().setAccentColor(self.accentColor),
+            lambda candidate: getThemeManager()._apply_accent_color(candidate),
+            lambda: getThemeManager()._apply_accent_color(self.accentColor),
         )
     
     @Slot(result=str)

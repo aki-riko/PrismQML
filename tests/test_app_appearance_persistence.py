@@ -11,7 +11,14 @@ import threading
 import time
 
 from prismqml.python.config.config_manager import ConfigManager
-from prismqml.python.core.theme import ThemeManager
+from prismqml.python.core.theme import (
+    Skin,
+    Theme,
+    ThemeManager,
+    setAccentColor,
+    setSkin,
+    setTheme,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,9 +61,9 @@ def test_appearance_settings_round_trip_and_restore_runtime(qapp, tmp_path):
         assert theme_manager.skin == "vintage_ticket"
         assert theme_manager.accentColor == "#123456"
 
-        theme_manager.setThemeFromQml("light")
-        theme_manager.setSkinFromQml("fluent")
-        theme_manager.setAccentColor("#abcdef")
+        theme_manager._apply_theme_from_qml("light")
+        theme_manager._apply_skin_from_qml("fluent")
+        theme_manager._apply_accent_color("#abcdef")
         restored = _new_manager(path)
 
         assert restored.theme == "dark"
@@ -67,9 +74,74 @@ def test_appearance_settings_round_trip_and_restore_runtime(qapp, tmp_path):
         assert theme_manager.skin == "vintage_ticket"
         assert theme_manager.accentColor == "#123456"
     finally:
-        theme_manager.setThemeFromQml(previous[0])
-        theme_manager.setSkinFromQml(previous[1])
-        theme_manager.setAccentColor(previous[2])
+        theme_manager._apply_theme_from_qml(previous[0])
+        theme_manager._apply_skin_from_qml(previous[1])
+        theme_manager._apply_accent_color(previous[2])
+        ConfigManager._instance = original_config
+
+
+def test_public_theme_api_persists_and_restores_without_stale_runtime(
+    qapp, tmp_path, monkeypatch
+):
+    """Public engine setters must persist without replaying an older request."""
+    path = tmp_path / "app.json"
+    original_config = ConfigManager._instance
+    theme_manager = ThemeManager()
+    previous = (
+        theme_manager.theme,
+        theme_manager.skin,
+        theme_manager.accentColor,
+    )
+    observed_themes = []
+    try:
+        manager = _new_manager(path)
+        original_write = manager.cfg._write_mapping_file
+
+        def delayed_write(file_path, mapping):
+            time.sleep(0.05)
+            original_write(file_path, mapping)
+
+        monkeypatch.setattr(manager.cfg, "_write_mapping_file", delayed_write)
+        theme_manager.themeChanged.connect(observed_themes.append)
+
+        setTheme(Theme.DARK)
+        setTheme(Theme.LIGHT)
+        setSkin(Skin.VINTAGE_TICKET)
+        setAccentColor("#123456")
+
+        assert theme_manager.theme == "light"
+        assert theme_manager.skin == "vintage_ticket"
+        assert theme_manager.accentColor == "#123456"
+        assert observed_themes == ["dark", "light"]
+        _wait_persistence(manager)
+        assert observed_themes == ["dark", "light"]
+
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        assert payload["Appearance"] == {
+            "Theme": "light",
+            "Skin": "vintage_ticket",
+            "Language": "auto",
+            "AccentColor": "#123456",
+        }
+
+        theme_manager.setThemeFromQml("dark")
+        theme_manager.setSkinFromQml("neobrutalism")
+        theme_manager.setAccentColor("#abcdef")
+        _wait_persistence(manager)
+        restored = _new_manager(path)
+
+        assert restored.theme == "dark"
+        assert restored.skin == "neobrutalism"
+        assert restored.accentColor == "#abcdef"
+        assert theme_manager.theme == "dark"
+        assert theme_manager.skin == "neobrutalism"
+        assert theme_manager.accentColor == "#abcdef"
+    finally:
+        theme_manager._apply_theme_from_qml(previous[0])
+        theme_manager._apply_skin_from_qml(previous[1])
+        theme_manager._apply_accent_color(previous[2])
+        if ConfigManager._instance is not None:
+            ConfigManager._instance.waitForPersistence(5000)
         ConfigManager._instance = original_config
 
 
@@ -118,15 +190,17 @@ def test_invalid_appearance_setters_do_not_persist_or_change_runtime(qapp, tmp_p
         assert theme_manager.skin == "fluent"
         assert theme_manager.accentColor == ThemeManager.DEFAULT_ACCENT
     finally:
-        theme_manager.setThemeFromQml(previous[0])
-        theme_manager.setSkinFromQml(previous[1])
-        theme_manager.setAccentColor(previous[2])
+        theme_manager._apply_theme_from_qml(previous[0])
+        theme_manager._apply_skin_from_qml(previous[1])
+        theme_manager._apply_accent_color(previous[2])
         ConfigManager._instance = original_config
 
 
 def test_qml_setter_persists_off_main_thread(qapp, tmp_path, monkeypatch):
     path = tmp_path / "app.json"
     original_config = ConfigManager._instance
+    theme_manager = ThemeManager()
+    previous = theme_manager.theme
     try:
         manager = _new_manager(path)
         worker_threads = []
@@ -145,10 +219,12 @@ def test_qml_setter_persists_off_main_thread(qapp, tmp_path, monkeypatch):
         assert callback_ms < 8
         assert manager.persistencePending
         assert manager.theme == "auto"
+        assert theme_manager.theme == "dark"
         _wait_persistence(manager)
         assert manager.theme == "dark"
         assert worker_threads and worker_threads[0] != threading.get_ident()
     finally:
+        theme_manager._apply_theme_from_qml(previous)
         ConfigManager._instance = original_config
 
 
@@ -170,7 +246,7 @@ def test_runtime_appearance_is_applied_before_public_notification(
 
         assert observed == [("dark", "dark")]
     finally:
-        theme_manager.setThemeFromQml(previous)
+        theme_manager._apply_theme_from_qml(previous)
         ConfigManager._instance = original_config
 
 
@@ -195,7 +271,7 @@ def test_failed_background_save_keeps_committed_appearance(
         assert theme_manager.theme == "auto"
         assert not path.exists()
     finally:
-        theme_manager.setThemeFromQml(previous)
+        theme_manager._apply_theme_from_qml(previous)
         ConfigManager._instance = original_config
 
 

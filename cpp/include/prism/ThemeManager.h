@@ -11,6 +11,8 @@
 
 namespace prism {
 
+class ConfigManager;
+
 // ThemeManager - 主题管理器(单例) 经 setContextProperty 注入 QML, 供 Enums.qml 读取
 class ThemeManager : public QObject {
     Q_OBJECT
@@ -67,7 +69,11 @@ signals:
     void skinChanged(const QString &skin);
 
 private:
+    friend class ConfigManager;
     explicit ThemeManager(QObject *parent = nullptr);
+    void applyTheme(Theme theme);
+    void applySkin(Skin skin);
+    void applyAccentColor(const QString &color);
     static QString lightenColor(const QString &hexColor, double factor);
     static QString darkenColor(const QString &hexColor, double factor);
 

@@ -9,6 +9,7 @@
 #include "prism/Updater.h"
 #include "prism/SqlListModel.h"
 #include "prism/ConfigManager.h"
+#include "prism/Theme.h"
 #include "prism/PlatformInfo.h"
 #include "prism/Accessors.h"
 #include "prism/Icon.h"
@@ -22,6 +23,8 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QQuickWindow>
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -322,6 +325,40 @@ int main(int argc, char *argv[]) {
         // windowType 校验 (0-3)
         cfg->setWindowType(99);
         CHECK(cfg->windowType() != 99, "非法 windowType 被拒绝");
+        std::vector<QString> observedThemes;
+        QObject::connect(ThemeManager::instance(), &ThemeManager::themeChanged,
+                         [&](const QString &theme) {
+                             observedThemes.push_back(theme);
+                         });
+        setTheme(Theme::Dark);
+        setTheme(Theme::Light);
+        setSkin(Skin::VintageTicket);
+        setAccentColor(QStringLiteral("#123456"));
+        CHECK(getTheme() == Theme::Light && getSkin() == Skin::VintageTicket &&
+                  getAccentColor() == QStringLiteral("#123456"),
+              "公开主题 API 立即更新运行时状态");
+        CHECK(observedThemes == std::vector<QString>({QStringLiteral("dark"),
+                                                      QStringLiteral("light")}),
+              "快速连续主题请求不回放旧运行时值");
+        CHECK(cfg->waitForPersistence(), "公开主题 API 后后台持久化完成");
+        const QJsonObject appearance =
+            QJsonDocument::fromJson([&]() {
+                QFile file(path);
+                if (!file.open(QIODevice::ReadOnly)) return QByteArray{};
+                return file.readAll();
+            }()).object().value(QStringLiteral("Appearance")).toObject();
+        CHECK(cfg->theme() == QStringLiteral("light") &&
+                  cfg->skin() == QStringLiteral("vintage_ticket") &&
+                  cfg->accentColor() == QStringLiteral("#123456") &&
+                  appearance.value(QStringLiteral("Theme")).toString() ==
+                      QStringLiteral("light") &&
+                  appearance.value(QStringLiteral("Skin")).toString() ==
+                      QStringLiteral("vintage_ticket") &&
+                  appearance.value(QStringLiteral("Language")).toString() ==
+                      QStringLiteral("auto") &&
+                  appearance.value(QStringLiteral("AccentColor")).toString() ==
+                      QStringLiteral("#123456"),
+              "公开主题 API 持久化完整 Appearance 并提交内存状态");
         CHECK(!origMica && origDpi == 0,
               "隔离配置从默认值启动，不读取真实用户数据");
     }

@@ -16,6 +16,7 @@
 #include <QString>
 #include <QVariant>
 
+#include <array>
 #include <functional>
 #include <optional>
 
@@ -124,11 +125,13 @@ private:
     struct PendingUpdate {
         Field field;
         QVariant value;
+        quint64 runtimeRequestId = 0;
     };
 
     struct ActiveWrite {
         Field field;
         State candidate;
+        quint64 runtimeRequestId = 0;
     };
 
     using PersistenceWriter =
@@ -139,10 +142,14 @@ private:
     void load();
     static QByteArray serialize(const State &candidate);
     static bool applyUpdate(State &candidate, const PendingUpdate &update);
-    void enqueueUpdate(Field field, const QVariant &value);
+    void enqueueUpdate(
+        Field field, const QVariant &value, quint64 runtimeRequestId = 0);
+    void enqueueRuntimeUpdate(Field field, const QVariant &value);
     void startNextPersistence();
     void finishPersistence();
     void publishCommittedField(Field field);
+    void settleRuntimeOverride(Field field, quint64 requestId, bool failed);
+    bool hasRuntimeOverride(Field field) const;
     void applyAppearanceToRuntime() const;
 
     friend class ConfigManagerTestAccess;
@@ -152,6 +159,8 @@ private:
     std::optional<ActiveWrite> m_activeWrite;
     QFutureWatcher<bool> m_persistenceWatcher;
     PersistenceWriter m_persistenceWriter;
+    std::array<quint64, 9> m_runtimeOverrides{};
+    quint64 m_runtimeRequestId = 0;
 };
 
 }  // namespace prism

@@ -161,9 +161,9 @@ QByteArray ConfigManager::serialize(const State &candidate) {
 void ConfigManager::applyAppearanceToRuntime() const {
     if (!QCoreApplication::instance()) return;
     auto *manager = ThemeManager::instance();
-    manager->setThemeFromQml(m_state.theme);
-    manager->setSkinFromQml(m_state.skin);
-    manager->setAccentColor(m_state.accentColor);
+    manager->applyTheme(themeFromString(m_state.theme));
+    manager->applySkin(skinFromString(m_state.skin));
+    manager->applyAccentColor(m_state.accentColor);
 }
 
 bool ConfigManager::applyUpdate(State &candidate, const PendingUpdate &update) {
@@ -226,11 +226,32 @@ bool ConfigManager::applyUpdate(State &candidate, const PendingUpdate &update) {
     return false;
 }
 
-void ConfigManager::enqueueUpdate(Field field, const QVariant &value) {
+void ConfigManager::enqueueUpdate(Field field, const QVariant &value,
+                                  quint64 runtimeRequestId) {
     const bool wasPending = persistencePending();
-    m_pendingUpdates.enqueue({field, value});
+    m_pendingUpdates.enqueue({field, value, runtimeRequestId});
     if (!wasPending) emit persistencePendingChanged();
     startNextPersistence();
+}
+
+void ConfigManager::enqueueRuntimeUpdate(Field field, const QVariant &value) {
+    auto *manager = ThemeManager::instance();
+    switch (field) {
+    case Field::Theme:
+        manager->applyTheme(themeFromString(value.toString()));
+        break;
+    case Field::Skin:
+        manager->applySkin(skinFromString(value.toString()));
+        break;
+    case Field::AccentColor:
+        manager->applyAccentColor(value.toString());
+        break;
+    default:
+        break;
+    }
+    const quint64 requestId = ++m_runtimeRequestId;
+    m_runtimeOverrides.at(static_cast<std::size_t>(field)) = requestId;
+    enqueueUpdate(field, value, requestId);
 }
 
 void ConfigManager::startNextPersistence() {
@@ -238,12 +259,16 @@ void ConfigManager::startNextPersistence() {
     while (!m_pendingUpdates.isEmpty()) {
         const PendingUpdate update = m_pendingUpdates.dequeue();
         State candidate = m_state;
-        if (!applyUpdate(candidate, update)) continue;
+        if (!applyUpdate(candidate, update)) {
+            settleRuntimeOverride(update.field, update.runtimeRequestId, false);
+            continue;
+        }
 
         const QString path = configFilePath();
         const QByteArray payload = serialize(candidate);
         const PersistenceWriter writer = m_persistenceWriter;
-        m_activeWrite = ActiveWrite{update.field, candidate};
+        m_activeWrite = ActiveWrite{
+            update.field, candidate, update.runtimeRequestId};
         m_persistenceWatcher.setFuture(QtConcurrent::run(
             [writer, path, payload]() { return writer(path, payload); }));
         return;
@@ -256,8 +281,11 @@ void ConfigManager::finishPersistence() {
     const ActiveWrite completed = *m_activeWrite;
     if (m_persistenceWatcher.result()) {
         m_state = completed.candidate;
+        settleRuntimeOverride(completed.field, completed.runtimeRequestId, false);
         publishCommittedField(completed.field);
         emit configChanged();
+    } else {
+        settleRuntimeOverride(completed.field, completed.runtimeRequestId, true);
     }
     m_activeWrite.reset();
     startNextPersistence();
@@ -281,19 +309,51 @@ void ConfigManager::publishCommittedField(Field field) {
         emit windowTypeChanged();
         break;
     case Field::Theme:
-        ThemeManager::instance()->setThemeFromQml(m_state.theme);
+        if (!hasRuntimeOverride(field))
+            ThemeManager::instance()->applyTheme(themeFromString(m_state.theme));
         emit themeChanged();
         break;
     case Field::Skin:
-        ThemeManager::instance()->setSkinFromQml(m_state.skin);
+        if (!hasRuntimeOverride(field))
+            ThemeManager::instance()->applySkin(skinFromString(m_state.skin));
         emit skinChanged();
         break;
     case Field::Language:
         emit languageChanged();
         break;
     case Field::AccentColor:
-        ThemeManager::instance()->setAccentColor(m_state.accentColor);
+        if (!hasRuntimeOverride(field))
+            ThemeManager::instance()->applyAccentColor(m_state.accentColor);
         emit accentColorChanged();
+        break;
+    }
+}
+
+bool ConfigManager::hasRuntimeOverride(Field field) const {
+    return m_runtimeOverrides.at(static_cast<std::size_t>(field)) != 0;
+}
+
+void ConfigManager::settleRuntimeOverride(Field field, quint64 requestId,
+                                          bool failed) {
+    if (requestId == 0) return;
+    auto &activeRequest =
+        m_runtimeOverrides.at(static_cast<std::size_t>(field));
+    if (activeRequest != requestId) return;
+    activeRequest = 0;
+    if (!failed) return;
+
+    auto *manager = ThemeManager::instance();
+    switch (field) {
+    case Field::Theme:
+        manager->applyTheme(themeFromString(m_state.theme));
+        break;
+    case Field::Skin:
+        manager->applySkin(skinFromString(m_state.skin));
+        break;
+    case Field::AccentColor:
+        manager->applyAccentColor(m_state.accentColor);
+        break;
+    default:
         break;
     }
 }
@@ -354,7 +414,7 @@ void ConfigManager::setTheme(const QString &value) {
         return;
     }
     if (!persistencePending() && m_state.theme == value) return;
-    enqueueUpdate(Field::Theme, value);
+    enqueueRuntimeUpdate(Field::Theme, value);
 }
 void ConfigManager::setSkin(const QString &value) {
     if (!isValidSkin(value)) {
@@ -362,7 +422,7 @@ void ConfigManager::setSkin(const QString &value) {
         return;
     }
     if (!persistencePending() && m_state.skin == value) return;
-    enqueueUpdate(Field::Skin, value);
+    enqueueRuntimeUpdate(Field::Skin, value);
 }
 void ConfigManager::setLanguage(const QString &value) {
     if (!isValidLanguage(value)) {
@@ -378,7 +438,7 @@ void ConfigManager::setAccentColor(const QString &value) {
         return;
     }
     if (!persistencePending() && m_state.accentColor == value) return;
-    enqueueUpdate(Field::AccentColor, value);
+    enqueueRuntimeUpdate(Field::AccentColor, value);
 }
 
 }  // namespace prism

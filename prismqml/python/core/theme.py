@@ -34,11 +34,13 @@ class Skin(Enum):
     fluent       → 默认 Fluent Design（圆角、模糊阴影）
     neobrutalism → 新粗野（粗黑边、硬阴影、按下位移）
     vintage_ticket → 复古票据（暖纸、油墨细线、印章语义色）
+    neumorphism → 新拟态（同色表面、双向软阴影、凹凸压按）
     """
 
     FLUENT = "fluent"
     NEOBRUTALISM = "neobrutalism"
     VINTAGE_TICKET = "vintage_ticket"
+    NEUMORPHISM = "neumorphism"
 
 
 class ThemeManager(QObject):
@@ -123,7 +125,15 @@ class ThemeManager(QObject):
         return self._theme == Theme.DARK
 
     def setTheme(self, theme: Theme):
-        """设置主题"""
+        """立即设置主题并在后台持久化。"""
+        if not isinstance(theme, Theme):
+            raise TypeError("theme must be a Theme")
+        from ..config import getConfigManager
+
+        getConfigManager().setTheme(theme.value)
+
+    def _apply_theme(self, theme: Theme):
+        """Apply committed runtime state without scheduling persistence."""
         if self._theme != theme:
             self._theme = theme
             self.themeChanged.emit(theme.value)
@@ -152,6 +162,11 @@ class ThemeManager(QObject):
         theme = theme_map.get(theme_str.lower(), Theme.LIGHT)
         self.setTheme(theme)
 
+    def _apply_theme_from_qml(self, theme_str: str):
+        """Apply a validated persisted theme without writing it again."""
+        theme_map = {"light": Theme.LIGHT, "dark": Theme.DARK, "auto": Theme.AUTO}
+        self._apply_theme(theme_map.get(theme_str.lower(), Theme.LIGHT))
+
     # ==================== 皮肤属性 ====================
 
     @Property(str, notify=skinChanged)
@@ -160,7 +175,15 @@ class ThemeManager(QObject):
         return self._skin.value
 
     def setSkin(self, skin: Skin):
-        """设置皮肤（设计语言）"""
+        """立即设置皮肤并在后台持久化。"""
+        if not isinstance(skin, Skin):
+            raise TypeError("skin must be a Skin")
+        from ..config import getConfigManager
+
+        getConfigManager().setSkin(skin.value)
+
+    def _apply_skin(self, skin: Skin):
+        """Apply committed runtime state without scheduling persistence."""
         if self._skin != skin:
             self._skin = skin
             self.skinChanged.emit(skin.value)
@@ -180,9 +203,20 @@ class ThemeManager(QObject):
             "fluent": Skin.FLUENT,
             "neobrutalism": Skin.NEOBRUTALISM,
             "vintage_ticket": Skin.VINTAGE_TICKET,
+            "neumorphism": Skin.NEUMORPHISM,
         }
         skin = skin_map.get(skin_str.lower(), Skin.FLUENT)
         self.setSkin(skin)
+
+    def _apply_skin_from_qml(self, skin_str: str):
+        """Apply a validated persisted skin without writing it again."""
+        skin_map = {
+            "fluent": Skin.FLUENT,
+            "neobrutalism": Skin.NEOBRUTALISM,
+            "vintage_ticket": Skin.VINTAGE_TICKET,
+            "neumorphism": Skin.NEUMORPHISM,
+        }
+        self._apply_skin(skin_map.get(skin_str.lower(), Skin.FLUENT))
 
     # ==================== 字体属性 ====================
 
@@ -294,9 +328,15 @@ class ThemeManager(QObject):
         Args:
             color: HEX颜色值，如 "#0078d4" 或 "#107c10"
         """
-        # Validate color format 验证颜色格式
-        if not color.startswith("#") or len(color) not in (4, 7, 9):
+        from ..config import getConfigManager
+
+        manager = getConfigManager()
+        if not manager.cfg.accent_color.validator.accepts(color):
             raise ValueError(f"无效的颜色格式: {color}，请使用HEX格式如 #0078d4")
+        manager.setAccentColor(color)
+
+    def _apply_accent_color(self, color: str):
+        """Apply a validated persisted accent without writing it again."""
 
         if self._accent_color != color:
             self._accent_color = color
@@ -332,7 +372,7 @@ class ThemeManager(QObject):
 
 
 def setTheme(theme: Theme):
-    """设置主题"""
+    """设置并持久化主题"""
     ThemeManager().setTheme(theme)
 
 
@@ -342,10 +382,10 @@ def getTheme() -> Theme:
 
 
 def setSkin(skin: Skin):
-    """设置皮肤（设计语言）
+    """设置并持久化皮肤（设计语言）
 
     Args:
-        skin: Skin.FLUENT、Skin.NEOBRUTALISM 或 Skin.VINTAGE_TICKET
+        skin: Skin.FLUENT、Skin.NEOBRUTALISM、Skin.VINTAGE_TICKET 或 Skin.NEUMORPHISM
 
     示例:
         setSkin(Skin.NEOBRUTALISM)  # 切到新粗野皮肤
