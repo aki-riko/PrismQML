@@ -18,6 +18,20 @@ EXPECTED_LANGUAGES = {
     "ar", "de", "en", "es", "fr", "hi", "id", "it", "ja", "ko",
     "nl", "pl", "pt", "ru", "th", "tr", "uk", "vi", "zh_CN", "zh_TW",
 }
+MANUAL_LONG_TEXT_ALLOWLISTS = {
+    "de": {"effect_slide (horizontal)"},
+    "es": {
+        "ScrollBar (vertical/horizontal)",
+        "Vertical (orientation: Qt.Vertical)",
+        "effect_slide (horizontal)",
+        "effect_slide + vertical",
+    },
+    "fr": {
+        "Vertical (orientation: Qt.Vertical)",
+        "effect_slide (horizontal)",
+        "effect_slide + vertical",
+    },
+}
 
 
 def _catalog(language: str) -> dict[str, str]:
@@ -90,35 +104,17 @@ def test_russian_gallery_catalog_is_a_complete_manual_translation():
     }
 
 
-def test_german_gallery_catalog_has_no_untranslated_sentences():
-    german = _catalog("de")
+def test_completed_gallery_catalogs_have_no_untranslated_sentences():
     english = _catalog("en")
     keys = gallery_i18n.referenced_keys()
-    identical_sentences = {
-        english[key] for key in keys
-        if german[key] == english[key]
-        and (len(english[key]) > 24 or len(english[key].split()) >= 3)
-    }
-    assert identical_sentences == {
-        "effect_slide (horizontal)",
-    }
-
-
-def test_spanish_gallery_catalog_has_no_untranslated_sentences():
-    spanish = _catalog("es")
-    english = _catalog("en")
-    keys = gallery_i18n.referenced_keys()
-    identical_sentences = {
-        english[key] for key in keys
-        if spanish[key] == english[key]
-        and (len(english[key]) > 24 or len(english[key].split()) >= 3)
-    }
-    assert identical_sentences == {
-        "ScrollBar (vertical/horizontal)",
-        "Vertical (orientation: Qt.Vertical)",
-        "effect_slide (horizontal)",
-        "effect_slide + vertical",
-    }
+    for language, allowed in MANUAL_LONG_TEXT_ALLOWLISTS.items():
+        catalog = _catalog(language)
+        identical_sentences = {
+            english[key] for key in keys
+            if catalog[key] == english[key]
+            and (len(english[key]) > 24 or len(english[key].split()) >= 3)
+        }
+        assert identical_sentences == allowed, language
 
 
 def test_english_gallery_catalog_is_a_complete_manual_baseline():
