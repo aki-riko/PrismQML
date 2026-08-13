@@ -32,6 +32,7 @@ MANUAL_LONG_TEXT_ALLOWLISTS = {
         "effect_slide + vertical",
     },
     "it": set(),
+    "nl": set(),
     "pt": {
         "ScrollBar (vertical/horizontal)",
         "Vertical (orientation: Qt.Vertical)",

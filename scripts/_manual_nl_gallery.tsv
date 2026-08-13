@@ -1,0 +1,742 @@
+001	Pictogrammen
+002	Componenten laden...
+003	Labels
+004	Invoer
+005	Menu’s
+006	Containers
+007	Automatisch bijwerken
+008	Carrousel
+009	Effecten
+010	Feedback
+011	Grafieken
+012	Knoppen
+013	Laden
+014	Instellingen
+015	Navigatie
+016	Kaarten
+017	Er is een fout opgetreden
+018	Bewerking geslaagd
+019	Aandacht vereist
+020	Informatie
+021	Verwerken...
+022	InfoBar
+023	Voortgangsring
+024	Voortgangsbalk 60%
+025	Verwerken...
+026	Vier Toast-voortgangsfuncties
+027	Downloaden...
+028	Synchroniseren...
+029	Uploaden
+030	Voortgangsring 40%
+031	Uploaden...
+032	Onbepaalde voortgangsbalk
+033	Gegevens synchroniseren...
+034	Verwerken
+035	Even geduld...
+036	InfoBar-voortgangsmodus
+037	Vier InfoBar-voortgangsfuncties
+038	Synchroniseren
+039	Onbepaalde voortgangsring
+040	Voortgangsbalk
+041	Toast-voortgangsmodus
+042	Downloaden
+043	Bestanden downloaden...
+044	Ongeldig DRY-installatiepad
+045	DRY-demo voltooid: overdracht naar een stille installatie is gesimuleerd; er zijn geen bestanden gedownload en er is geen installatieprogramma gestart
+046	DRY: updatecontrole simuleren...
+047	DRY: gesimuleerde download<SP>
+048	- Downloadvoortgang van 0% tot 100% simuleren<NL>
+049	- Overdracht naar een stille Inno Setup-installatie simuleren zonder bestanden te maken of programma’s te starten
+050	De DRY-modus opent geen externe pagina’s
+051	DRY: gesimuleerde download voltooid; overdragen aan installatie
+052	- Het echte bevestigingsvenster voor de update tonen<NL>
+053	Gesimuleerde DRY-download wordt uitgevoerd
+054	DRY: gesimuleerde download voorbereiden
+055	Ongeldig DRY-downloadtoken
+056	DRY: overdracht aan installatie mislukt
+057	DRY: overdracht aan installatie met twee sleuven mislukt
+058	DRY: voorbereiding met twee sleuven voltooid; automatisch wisselen bij de volgende start
+059	DRY: de inactieve sleuf op de achtergrond voorbereiden
+060	DRY: gesimuleerde versie gevonden; wacht op bevestiging
+061	DRY-demo wordt uitgevoerd
+062	## DRY-demo-update<NL><NL>
+063	, wacht op bevestiging
+064	Demonstreert controle, bevestiging, downloadvoortgang, schrijven naar de inactieve sleuf op de achtergrond en wisselen bij de volgende start; er wordt nooit netwerktoegang gebruikt, een bestand gemaakt of een installatieprogramma gestart.
+065	Toast rechtsonder
+066	2. De echte UpdateDialog gebruiken om de opmerkingen te tonen en ‘Downloaden en installeren’ te bevestigen
+067	De echte door Gallery geïnjecteerde Updater gebruiken om Releases te controleren; deze modus kan het netwerk gebruiken en de releasepagina openen.
+068	Laatst gedetecteerd:
+069	3. Onbepaalde of bepaalde downloadvoortgang tonen met een Toast of ProgressDialog
+070	Gebruikers zien echte dialoogvensters en voortgangsfeedback, maar er treden geen installatiebijwerkingen op.
+071	Echte Release-modus
+072	DRY-demo voor downloaden en installeren
+073	Huidige versie:
+074	DRY-demomodus (veilige simulatie)
+075	Laatst gedetecteerd: niets
+076	Updateproces
+077	Controle simuleren...
+078	Gallery demonstreert rechtstreeks hoe de façadecomponent de onderliggende Updater, UpdateDialog en vervangbare feedbackweergave coördineert.
+079	Nieuwe versie gevonden<SP>
+080	DRY-demo starten
+081	Download bevestigd<SP>
+082	Op de achtergrond voorbereiden...
+083	1. GitHub Releases controleren en vergelijken met de huidige versie
+084	Demobron:
+085	2. Releaseopmerkingen en een bevestigingsvenster tonen wanneer een nieuwe versie is gevonden
+086	Controleren op updates
+087	Niet geconfigureerd
+088	4. In de modus met twee sleuven de inactieve sleuf op de achtergrond vervangen en bij de volgende start naar de nieuwe versie wisselen
+089	Al bijgewerkt<SP>
+090	Repository:
+091	Echte modus niet beschikbaar: Gallery heeft appUpdater niet geïnjecteerd
+092	Echte modus: nog niet gecontroleerd
+093	1. Een controle simuleren en een demoversie teruggeven
+094	3. Een echte Toast of ProgressDialog gebruiken om de gesimuleerde voortgang tot 100% te laten oplopen
+095	Controle mislukt:
+096	DRY-modus: wachten om de demo te starten
+097	4. Een Inno Setup-vervanging van de inactieve sleuf op de achtergrond simuleren; deze versie actief houden en bij de volgende start wisselen
+098	Echt updateproces via GitHub Releases
+099	DRY: gesimuleerde versie gevonden<SP>
+100	De echte modus vereist dat Release een installatiebestand voor het huidige platform aanbiedt.
+101	Controleren...
+102	Button - combinaties van ToolButton en functies
+103	Bewerken
+104	Alleen tekst (Push)
+105	Combinatie met badge (Badge)
+106	Button - aftelknoppen gecombineerd met elke stijl
+107	Combinatie van stijl en functie (indeterminate_ring)
+108	Verwijderen
+109	Button - ToolButton-stijlen (6)
+110	Actie B
+111	Combinaties van Style, Pill en Dropdown/Split
+112	Verificatiecode verzenden
+113	Alleen pictogram → ToolButton-stijl; tekst of pictogram + tekst → PushButton-stijl
+114	Menu:
+115	Button - stijl × Pill-vorm × voortgangsfunctie
+116	Button - Filled-varianten: geen achtergrond, tekst in statuskleur
+117	Optie 2
+118	Button - vormen (2)
+119	Combinaties van Style, Pill en Toggle
+120	Actie A
+121	Geselecteerd:
+122	Primaire knop van extern menu aangeklikt
+123	Primaire knop aangeklikt
+124	Optie 3
+125	Combinatie van stijl en functie (progress_bar)
+126	Button - Filled-statusniveaus (6)
+127	Eigenschappen
+128	Optie 1
+129	Combinaties van stijl en vorm
+130	Button - automatische typedetectie
+131	Combinatie van stijl en functie (indeterminate_bar)
+132	Button - functies (9)
+133	Button - stijl × Pill-vorm × dropdown/split-functie
+134	Externe actie 2
+135	Combinatie van stijl en functie (toggle)
+136	Button - Text-statusniveaus (6)
+137	Pictogram + tekst (Push)
+138	Combinatie van stijl en functie (split)
+139	Extern menu
+140	Combinatie van stijl en functie (countdown)
+141	Combinatie van stijl en functie (progress_ring)
+142	Alleen pictogram + functie
+143	Externe actie 1
+144	Button - 7 stijlen × Pill-vorm × toggle-functie
+145	Knoppen met alleen een pictogram worden automatisch als ToolButton gedetecteerd
+146	Combinatie van stijl en functie (dropdown)
+147	Button - stijlen (6)
+148	Alleen pictogram (Tool)
+149	Combinaties van vorm (Pill) en functies
+150	Combinaties van Style, Pill en Progress
+151	Geen aanwijseffect
+152	Kaart met aanwijseffect
+153	Speciale kaart
+154	Verandert van kleur bij aanwijzen zonder omhoog te komen
+155	Klik om uit te vouwen
+156	Uitgevouwen inhoud
+157	Instellingenkaart
+158	Basiskaart
+159	Komt bij aanwijzen omhoog met een sterkere schaduw
+160	Kaart met een apart titelgebied
+161	Eenvoudige kaart
+162	Standaardkaart
+163	Kaarten en containers
+164	Titelkaart
+165	Verticaal met knoppen
+166	Horizontaal basis (5 punten)
+167	Carousel + PipsPager - geïntegreerde carrousel met pagina-indicatoren
+168	Standaard schuifcarrousel
+169	effect_slide + verticaal
+170	Horizontaal (standaard)
+171	Verticaal (orientation: Qt.Vertical)
+172	Met knoppen (altijd zichtbaar)
+173	Externe PipsPager-synchronisatie + herhaling
+174	Carrousel en pagina-indicatoren
+175	effect_slide (horizontaal)
+176	Carousel - horizontale/verticale richting + externe PipsPager-synchronisatie
+177	Pagina-indicator (PipsPager)
+178	Carousel - effect effect_slide (volledige afbeelding schuift zonder zijvoorvertoning)
+179	Carrousel met zijvoorvertoning
+180	Verticaal basis (4 punten)
+181	HorizontalPipsPager / VerticalPipsPager - paginaknoppen, limiet voor zichtbaar aantal en soepel scrollen
+182	Product C
+183	Radardiagram
+184	Product D
+185	Spreidingsdiagram
+186	Product B
+187	Ringdiagram
+188	Verkoopranglijst
+189	Ringdiagram - benadrukt midden
+190	Boxplot
+191	Diagramcomponenten
+192	Horizontaal staafdiagram
+193	Audiogolfvorm (AudioWaveform)
+194	Lijndiagram
+195	Boxplot - met uitschieters
+196	Gestapeld vlakdiagram
+197	Product A
+198	Product E
+199	Staafdiagram
+200	Cirkeldiagram
+201	Layout (mode=mode_default) - interne omschakeling van FlowLayout-modus
+202	Lay-outcomponenten
+203	Verticale modus: alle onderliggende elementen hebben dezelfde breedte (kolombreedte gelijk verdeeld)
+204	Bestand neerzetten
+205	Horizontaal (gelijke hoogte)
+206	Omlaag
+207	Rechts
+208	Verticaal (gelijke breedte)
+209	Vanaf boven uitvouwen
+210	Hoge foutcorrectie
+211	Scrollelement<SP>
+212	PrismQML-componentenbibliotheek
+213	Lade
+214	Sluiten
+215	Stroomlay-out
+216	Inhoud eronder
+217	Bovenste lade
+218	Horizontale modus: alle onderliggende elementen in een rij hebben dezelfde hoogte (de maximale rijhoogte)
+219	Vertrouwelijk document
+220	Vanaf rechts uitvouwen
+221	Standaard
+222	Vanaf links uitvouwen
+223	Onderste lade
+224	Rechterlade
+225	Gegroepeerde inhoud
+226	Splitsbalk
+227	QR-code
+228	Watermerk
+229	Modus wisselen:
+230	Groepstitel
+231	Lade buiten het venster
+232	Inhoud erboven
+233	Scheidingslijn
+234	Vanaf onder uitvouwen
+235	Omhoog
+236	Scrollcomponenten
+237	Groepsvak
+238	Links
+239	Linkerlade
+240	Containercomponenten
+241	Standaardmodus: oorspronkelijke grootte van elk onderliggend element behouden en automatisch teruglopen
+242	Thema’s: klassiek, cyaan, amber, rood, paars, blauw, wit, roze, goud, limoen, oranje, groenblauw, neon, zonsondergang, oceaan, bos, middernacht
+243	→ Rechts
+244	Richting
+245	Regenboogmodus
+246	Tekenset
+247	✓ Flikkering
+248	Pauzeren/Hervatten
+249	Snelheid:<SP>
+250	✓ Gloed
+251	↓ Omlaag
+252	Voorinstellingen voor tekenset: Japans, katakana, binair, cijfers, hexadecimaal, Chinees, symbolen, ASCII, Grieks, runen
+253	Methoden: start(), stop(), pause(), resume(), toggle(), reset(), setTheme(name), setDirection(dir), setCharsetPreset(preset), setCustomCharset(chars), enableGlow(intensity), disableGlow(), enableFlicker(rate), disableFlicker(), enableInteraction(radius), disableInteraction(), enableRainbow(), disableRainbow(), setPerspective(value), configure(options)
+254	✓ Regenboogmodus
+255	Spoor:<SP>
+256	Eigenschappen: running, paused, speed, fontSize, density, fadeSpeed, direction, mainColor, headColor, backgroundColor, charset, charsetPreset, glowEnabled, glowIntensity, flickerEnabled, flickerRate, perspective, interactive, interactionRadius, rainbowMode
+257	Uitvoeren
+258	Dichtheid:<SP>
+259	Lettertype:<SP>
+260	✓ Muisinteractie
+261	← Links
+262	MatrixRain - digitaal regeneffect
+263	Gloed
+264	Componenteigenschappen en -methoden
+265	3D-perspectief
+266	Klassieke digitale regen in Matrix-stijl met uitgebreide configuratie
+267	Herstellen
+268	Flikkering
+269	Kleurthema
+270	✓ 3D-perspectief
+271	↑ Omhoog
+272	Muisinteractie
+273	Resultaat: Annuleren
+274	Uitklapvenster
+275	Alleen OK-knop
+276	Geslaagd
+277	Flyout - 6 animaties: pullUp/dropDown/slideLeft/slideRight/fadeIn/none + modale modus
+278	Andere pop-upcomponenten
+279	Confetti starten
+280	Klik op de overlay om te sluiten
+281	Fout
+282	Bewerking mislukt
+283	Dit is voorbeeldinhoud voor een randloos dialoogvenster. Hier kan aangepaste tekst staan om titel, inhoud en knopindeling te demonstreren.
+284	Speciale opties - verticale lay-out/aangepaste inhoud/expliciet scherm
+285	Dit is een randloos dialoogvenster
+286	Rond profielskelet
+287	Vanaf rechts inschuiven
+288	Toast-bureaubladmeldingen (apart venster) - linksboven/middenboven/rechtsboven/linksonder/middenonder/rechtsonder
+289	Rechts
+290	Annuleren verbergen
+291	Dit is een bericht
+292	Verzonden
+293	Resultaat: OK
+294	Omhoog trekkend uitklapvenster
+295	Omlaag uitklappen
+296	InfoBar-bureaubladmeldingen (apart venster) - linksboven/middenboven/rechtsboven/linksonder/middenonder/rechtsonder
+297	Bevestigen
+298	Positie rechtsboven
+299	Onder
+300	Naar links schuiven
+301	Positie rechtsonder
+302	Uitklapvenster
+303	Invagend uitklapvenster
+304	Dit is een ToolTip
+305	Omhoog trekken
+306	TeachingTip
+307	Let op
+308	Niet-modale tip
+309	Positie middenboven
+310	Links
+311	Boven
+312	Naar rechts schuiven
+313	Skelet
+314	Statuscomponenten
+315	Map openen
+316	Weet u zeker dat u deze actie wilt uitvoeren?
+317	Confetti-animatie
+318	Positie linksonder
+319	Berichtvenster
+320	Rondleiding
+321	Selecteer deze tekst om te kopiëren: PrismQML is een QML-componentenbibliotheek
+322	Pijl omlaag
+323	StateWidget (uniforme statuscomponent onderscheiden door stateType)
+324	Dit dialoogvenster heeft alleen een OK-knop
+325	Een ogenblik geduld...
+326	Bevestigingsvenster
+327	Kopieerbaar
+328	Randloos dialoogvenster
+329	Positie linksboven
+330	Kopieerbare inhoud
+331	Waarschuwing
+332	Voortgangsindicatoren
+333	Vierkant profielskelet
+334	Aanwijzen
+335	Positie middenonder
+336	Feedbackcomponenten
+337	Pijl links
+338	Pijl omhoog
+339	Resultaat: geen actie
+340	Niet-modaal
+341	Dialoogvenster
+342	Toast - linksboven/middenboven/rechtsboven/linksonder/middenonder/rechtsonder
+343	Pijl rechts
+344	Versleepbaar
+345	Vanaf links inschuiven
+346	InfoBar - linksboven/middenboven/rechtsboven/linksonder/middenonder/rechtsonder
+347	Knop Annuleren verbergen
+348	Downloadtaak voorbereiden...
+349	TeachingTip - instructietip met pijl (anchor_bottom/top/left/right...)
+350	Tip
+351	Invagen
+352	Sluit niet automatisch
+353	Versleepbaar dialoogvenster
+354	Klik op de overlay om dit dialoogvenster te sluiten
+355	Confetti (in het hoofdvenster weergegeven)
+356	Inhoud kan worden gekopieerd
+357	Probeer dit dialoogvenster te verslepen
+358	Begeleide rondleiding starten
+359	Meldingsinstellingen
+360	Stap 2
+361	Stap 1
+362	Begeleide TeachingTour
+363	Bewerk hier uw avatar en persoonlijke gegevens.
+364	Profiel
+365	Kies hier welke meldingen u wilt ontvangen.
+366	Een overlay over het volledige venster richt de aandacht op het doelgebied en ondersteunt Volgende, Voltooien en Overslaan
+367	Naam van enum-lid
+368	Python-code
+369	Pictogrammen zoeken
+370	Pictogramnaam
+371	Web
+372	Eén toets toestaan (allowSingleKey)
+373	Label toevoegen...
+374	Keuzelijst
+375	Gemengde meervoudige selectie
+376	Dringend
+377	Optie B
+378	Verticaal
+379	Meervoudige selectie 21
+380	Meervoudige selectie 28
+381	Gebruikersnaam
+382	Shenzhen
+383	Meervoudige selectie 11
+384	Kalenderkiezer
+385	Start
+386	Wenzhou
+387	Meervoudige selectie 25
+388	Documenten
+389	Meervoudige selectie 10
+390	Meervoudige selectie 12
+391	Shanghai
+392	Meervoudige selectie 9
+393	Foshan
+394	Jiaxing
+395	Meervoudige selectie 6
+396	Meervoudige selectie 27
+397	Hangzhou
+398	Optie 5
+399	Speciale invoer
+400	Ningbo
+401	Meervoudige selectie 15
+402	Optie 4
+403	Meervoudige selectie 17
+404	Zoeken
+405	Meervoudige selectie 4
+406	Meervoudige selectie 13
+407	Wuhan
+408	Shanghai
+409	Toetsencombinatie (standaard)
+410	Horizontaal
+411	Filter
+412	Meervoudige selectie 2
+413	Optie A
+414	Provincie Zhejiang
+415	Achtergrondkleur kiezen
+416	Tekstinvoer
+417	Minimaal 2 tekens, door komma’s gescheiden
+418	Zuid-China
+419	Optie 9
+420	Toepassen
+421	Peking
+422	Test
+423	Kleurkiezer
+424	Label 1
+425	Suzhou
+426	ShortcutEditor (allowSingleKey: invoer van één toets / invoer van toetsencombinatie)
+427	Meervoudige selectie 22
+428	Shenzhen
+429	Datum
+430	Meervoudige selectie 14
+431	Oost-China
+432	Optie 10
+433	Meervoudige selectie 29
+434	Meervoudige selectie 20
+435	Optie 8
+436	Voer een stad in...
+437	Invoercomponenten
+438	Guangzhou
+439	Pictogram + tekst
+440	District Huangpu
+441	Guangzhou
+442	Tijd
+443	Label 2
+444	Meervoudige selectie 26
+445	Alleen pictogram
+446	Nanjing
+447	Schakelaar
+448	Zhuhai
+449	DateTimePicker - uniforme wielkiezer met automatische lokalisatie
+450	12-uursnotatie
+451	Wachtwoord
+452	Shaoxing
+453	Beschrijvingstekst
+454	Schuifregelaar
+455	Hangzhou
+456	Optie 6
+457	Provincie Jiangsu
+458	Datum- en tijdkiezer
+459	ScrollBar (verticaal/horizontaal)
+460	Kleurvenster openen
+461	Meervoudige selectie 16
+462	Dongguan
+463	<b>Ondersteunt</b> weergave van <i>opgemaakte tekst</i>
+464	Tijd (seconden)
+465	Meervoudige selectie 23
+466	Meervoudige selectie 18
+467	Voltooien
+468	Optie 7
+469	Video
+470	Transparant 2
+471	Datum + tijd
+472	Nanjing
+473	Meervoudige selectie 8
+474	Geselecteerde kleur:
+475	Meervoudige selectie 19
+476	Test 2
+477	Meervoudige selectie 3
+478	Meervoudige selectie 30
+479	Numerieke invoer
+480	Chengdu
+481	Afbeeldingen
+482	Meervoudige selectie 7
+483	Transparant 1
+484	Sneltoetskiezer
+485	Selecteer
+486	Muziek
+487	Soepele schuifbalk
+488	Standaard
+489	Label met gekleurde omtrek
+490	Xi’an
+491	Meervoudige selectie 24
+492	Nieuw gebied Pudong
+493	Chongqing
+494	Meervoudige selectie 5
+495	Provincie Guangdong
+496	Meervoudige selectie 1
+497	District Xuhui
+498	Alleen tekst
+499	Wuxi
+500	Ondersteunende tekst
+501	Labels en badges
+502	Badge
+503	Effen kleur · stuiteren
+504	Statuslabel
+505	Avatar
+506	Geselecteerd
+507	Berichten
+508	Vetgedrukte hoofdtekst
+509	Horizontaal · verloop · normaal
+510	Labels, badges, chips en tags
+511	Ondertitel
+512	Effen kleur · normaal
+513	Tekstlabel
+514	Hyperlinktekst
+515	Verloop · stuiteren
+516	Horizontaal · effen kleur · stuiteren
+517	Titel
+518	Geanimeerde indicator/accentbalk - colorStyle × animationStyle × orientation; klik op de kaart om de active-status te wisselen
+519	Hoofdtekst
+520	Grote titel
+521	Schakelbare chiptag
+522	Informatie
+523	Verloop · normaal
+524	Geen sluitknop
+525	Badge - uniforme badgecomponent
+526	Avatar / AvatarSelector - source (afbeelding) / text (tekst) / size (grootte)
+527	Zhang
+528	Horizontaal · verloop · stuiteren
+529	Pagina-indicator
+530	Huidige verwijderen
+531	Basis (5 punten)
+532	Prijs
+533	Menu’s en lijsten
+534	Componenten van de startpagina ontwikkelen
+535	Interactieve vormgeving
+536	Projectmanager
+537	Klik op de afbeelding om het clicked-signaal te testen
+538	Alles wissen
+539	Item<SP>
+540	Technische afdeling
+541	Label 3
+542	Lopende tekst
+543	Bedrijfsontwikkeling
+544	Gesloten tag<SP>
+545	Beoordeling van vereisten en ontwerpmodellen voltooien
+546	Tekst wijzigen
+547	Gegevensanalist
+548	Plakken
+549	Knippen
+550	Productafdeling
+551	Dynamische inhoud
+552	Uitschakelen
+553	Product
+554	Eenheidstests schrijven
+555	Aantal
+556	Taken
+557	Status
+558	Kopiëren
+559	Inhoud 2
+560	Gewijzigd
+561	Lopende tekst - demonstratie van de PrismQML-componentenbibliotheek
+562	Inhoudsbeheer
+563	Codebeoordeling indienen
+564	Kanaalpartnerschappen
+565	Tag toevoegen
+566	Lijstitem
+567	Gegevensweergave
+568	Foto’s
+569	Nieuwe tag
+570	Testteam
+571	clicked-signaal geactiveerd!
+572	Afbeeldingscomponent
+573	Contextmenu
+574	Planning van vandaag
+575	Ontwerpteam
+576	Klik met de rechtermuisknop in dit gebied
+577	Vereisten.md
+578	Vergadernotities.pdf
+579	Merkpromotie
+580	Tabbladen
+581	Inhoud 1
+582	Weergave-item<SP>
+583	Backendteam
+584	setTabText() heeft de tekst gewijzigd
+585	Naar tabblad wisselen<SP>
+586	ContextMenu - koppelt automatisch aan de rechtermuisklik van de bovenliggende component
+587	Status: niet aangeklikt
+588	Campagnebeheer
+589	Schermafbeeldingen
+590	ImageWidget - afgeronde hoeken, laadstatus en klikgebeurtenissen
+591	clear() heeft alles gewist
+592	Lijst-/tabelweergaven
+593	Marketingafdeling
+594	Timeline · Git-grafiek (naadcontrole bij fractionele schaal)
+595	Herstellen
+596	Naam
+597	Nieuwe tag toegevoegd
+598	API-status
+599	ListView / TableView / TreeView - laag-niveauweergaven waarvoor een aangepaste delegate nodig is
+600	addTab() heeft toegevoegd
+601	removeTab() heeft verwijderd
+602	Dynamische tabbladen
+603	Code
+604	Inhoud 3
+605	Visueel ontwerp
+606	Gebruikersonderzoek
+607	Werkrapport.docx
+608	Lijst- en tabelcomponenten
+609	Beheerteam
+610	Voltooid
+611	PipsPager - paginaknoppen, limiet voor zichtbaar aantal en soepel scrollen
+612	Inschakelen
+613	Frontendteam
+614	Teamuitje.jpg
+615	Opnieuw
+616	Kruimelpad met pictogrammen
+617	Help 5
+618	Opdrachtbalkweergave
+619	Accountgegevens
+620	Bestand
+621	Bestellingen
+622	Overloop-ellips (maxVisibleItems: 4)
+623	Navigatiecomponenten
+624	Hoofdmap
+625	Paginering
+626	Mapniveau 4
+627	Nieuw
+628	Over
+629	Alles
+630	Betaling
+631	Huidig:<SP>
+632	Mapniveau 3
+633	Niveau toevoegen
+634	Huidige locatie
+635	Kruimelpadnavigatie
+636	Een niveau omhoog
+637	Subpagina
+638	Basiskruimelpad
+639	Componenten
+640	Map
+641	Opdrachtbalk
+642	Help 4
+643	Ongedaan maken
+644	Kruimelpadnavigatie met pictogrammen
+645	Afbeelding toevoegen
+646	Subpagina toevoegen
+647	StackedWidget - animatietypen wisselen via animationType
+648	Opslaan
+649	Menubalk
+650	Help
+651	Mapniveau 1
+652	Verzending
+653	Volgende
+654	Stapsgewijze voortgangsbalk
+655	BreadcrumbBar - vloeiende animatie, ondersteuning voor pictogrammen en indicator in themakleur
+656	Klik op een kruimelpadelement om afkapping te testen
+657	Help 2
+658	Openen
+659	Mapniveau 2
+660	Vorige
+661	Help 3
+662	Diep niveau
+663	Stepper - ondersteunt pictogrammen en tekst
+664	Gesegmenteerde/schakelbediening
+665	StackedWidget (animationType-opsomming)
+666	Bij meer dan vier items worden middelste items automatisch ingeklapt in het ellipsmenu
+667	Winkelwagen
+668	Kleurinstellingenkaart (uitvouwbaar)
+669	Dekking
+670	Weergavetaal selecteren
+671	Thema toepassen
+672	Accentkleur
+673	Keuzelijstinstellingenkaart
+674	Native DWM-schaduw
+675	Personalisatie
+676	Mappenlijstinstellingenkaart (uitvouwbaar)
+677	Systeem volgen
+678	Vensterdekking aanpassen
+679	Optiekaart (uitvouwbaar)
+680	Vensterinstellingen
+681	Onlinehulp bekijken
+682	DPI-schaal
+683	Native Windows-vensterschaduw
+684	Kleur kiezen
+685	Interfacetaal
+686	Themamodus
+687	Map toevoegen
+688	Mica-effect
+689	Huidige configuratie opslaan
+690	Programmagegevens bekijken
+691	Schakelinstellingenkaart
+692	Algemene sneltoets instellen
+693	Venstertype
+694	Alleen Windows 11
+695	Opstartgedrag
+696	Aangepaste kleur
+697	Thema
+698	Automatische updatecontrole inschakelen
+699	Themakleur
+700	Helpdocumentatie
+701	Volume
+702	Mappen van muziekbibliotheek beheren
+703	Aan
+704	Instellingenkaart voor primaire knop
+705	Knopinstellingenkaart
+706	Hoofdvenster tonen
+707	Toepassingsinstellingen
+708	Donker
+709	Licht
+710	Standaard- of aangepaste kleur kiezen
+711	Standaardkleur
+712	Instellingencomponenten
+713	Interfacethema kiezen
+714	Hyperlinkinstellingenkaart
+715	Opnieuw starten vereist
+716	Muziekmappen
+717	Systeemvolume aanpassen
+718	Instellingen opslaan
+719	Schuifregelaarinstellingenkaart
+720	Uitgesteld laden
+721	Documentatie openen
+722	Animatie-effecten
+723	Uiterlijk van toepassing aanpassen
+724	Weergeven
+725	Interface-animaties inschakelen
+726	Pagina-inhoud op aanvraag laden
+727	Sneltoetsinstellingenkaart
+728	Sneltoets
+729	Groepscontainer voor instellingenkaarten
+730	Minimaliseren naar systeemvak
+731	Toepassingsgedrag bij opstarten kiezen
+732	Vorige status herstellen
+733	test: pixelcontrole voor fractioneel scrollen toevoegen
+734	chore: voorbeeld van commitgrafiek initialiseren
+735	refactor: Timeline-gegevensmodel ordenen
+736	feature/timeline samenvoegen
+737	style: weergavedichtheid van Gallery aanpassen
+738	feat: gallery-tak maken
+739	fix: randpixels van commitgrafiek corrigeren
+740	Git-grafiek · 150% DPI
+741	PrismQML Gallery
+742	PrismQML Gallery (C++-host)
