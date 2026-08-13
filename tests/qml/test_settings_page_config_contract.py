@@ -128,7 +128,7 @@ class _ConfigManagerFixture(QObject):
 
     @Property("QVariantList", constant=True)
     def skinOptions(self):
-        return ["fluent", "neobrutalism", "vintage_ticket"]
+        return ["fluent", "neobrutalism", "vintage_ticket", "neumorphism"]
 
     @Slot(str)
     def setSkin(self, value):
@@ -391,6 +391,7 @@ def test_skin_labels_follow_runtime_language_without_changing_values(qapp):
             "Fluent Design",
             "Neobrutalism",
             "Vintage Ticket",
+            "Neumorphism",
         ]
 
         _emit_card_index_selected(language_card, 2)
@@ -398,7 +399,7 @@ def test_skin_labels_follow_runtime_language_without_changing_values(qapp):
         chinese_labels = _to_variant(skin_card.property("model"))
         assert skin_card.property("title") == "设计皮肤"
         assert skin_card.property("content") == "切换设计风格"
-        assert chinese_labels == ["流畅设计", "新粗野主义", "复古票据"]
+        assert chinese_labels == ["流畅设计", "新粗野主义", "复古票据", "新拟态"]
         assert all(not any(character.isascii() and character.isalpha()
                            for character in label)
                    for label in chinese_labels)
@@ -406,6 +407,7 @@ def test_skin_labels_follow_runtime_language_without_changing_values(qapp):
             "fluent",
             "neobrutalism",
             "vintage_ticket",
+            "neumorphism",
         ]
 
 
