@@ -1,0 +1,742 @@
+001	Icons
+002	Loading components...
+003	Labels
+004	Inputs
+005	Menus
+006	Containers
+007	Auto Update
+008	Carousel
+009	Effects
+010	Feedback
+011	Charts
+012	Buttons
+013	Loading
+014	Settings
+015	Navigation
+016	Cards
+017	An error occurred
+018	Operation successful
+019	Attention required
+020	Information
+021	Processing...
+022	InfoBar
+023	Progress ring
+024	Progress bar 60%
+025	Processing...
+026	Four Toast progress features
+027	Downloading...
+028	Synchronizing...
+029	Uploading
+030	Progress ring 40%
+031	Uploading...
+032	Indeterminate progress bar
+033	Synchronizing data...
+034	Processing
+035	Please wait...
+036	InfoBar progress mode
+037	Four InfoBar progress features
+038	Synchronizing
+039	Indeterminate progress ring
+040	Progress bar
+041	Toast progress mode
+042	Downloading
+043	Downloading files...
+044	Invalid DRY installer path
+045	DRY demo complete: simulated silent-install handoff; no files downloaded and no installer launched
+046	DRY: simulating update check...
+047	DRY: simulated download<SP>
+048	- Simulate download progress from 0% to 100%<NL>
+049	- Simulate an Inno Setup silent-install handoff without creating files or launching programs
+050	DRY mode does not open external pages
+051	DRY: simulated download complete; handing off installation
+052	- Show the real update confirmation dialog<NL>
+053	DRY simulated download in progress
+054	DRY: preparing simulated download
+055	Invalid DRY download token
+056	DRY: installation handoff failed
+057	DRY: dual-slot installation handoff failed
+058	DRY: dual-slot preparation complete; switch automatically on next launch
+059	DRY: preparing the inactive slot in the background
+060	DRY: simulated version found; awaiting confirmation
+061	DRY demo in progress
+062	## DRY demo update<NL><NL>
+063	, awaiting confirmation
+064	Demonstrates checking, confirmation, download progress, background writes to the inactive slot, and switching on the next launch; it never accesses the network, creates files, or launches an installer.
+065	Bottom-right Toast
+066	2. Use the real UpdateDialog to show the notes and confirm “Download and Install”
+067	Use the real Updater injected by Gallery to check Releases; this mode may access the network and open the release page.
+068	Last detected:
+069	3. Show indeterminate or determinate download progress with a Toast or ProgressDialog
+070	Users see real dialogs and progress feedback, but no installation side effects occur.
+071	Real Release mode
+072	DRY download-and-install demo
+073	Current version:
+074	DRY demo mode (safe simulation)
+075	Last detected: none
+076	Update pipeline
+077	Simulating check...
+078	Gallery directly demonstrates how the facade component orchestrates the underlying Updater, UpdateDialog, and replaceable feedback presenter.
+079	New version found<SP>
+080	Start DRY demo
+081	Download confirmed<SP>
+082	Preparing in background...
+083	1. Check GitHub Releases and compare with the current version
+084	Demo source:
+085	2. Show release notes and a confirmation dialog when a new version is found
+086	Check for updates
+087	Not configured
+088	4. In dual-slot mode, replace the inactive slot in the background and switch to the new version on the next launch
+089	Already up to date<SP>
+090	Repository:
+091	Real mode unavailable: Gallery did not inject appUpdater
+092	Real mode: not checked yet
+093	1. Simulate a check and return a demo version
+094	3. Use a real Toast or ProgressDialog to advance simulated progress to 100%
+095	Check failed:
+096	DRY mode: waiting to start demo
+097	4. Simulate an Inno Setup background replacement of the inactive slot; keep this version running and switch on the next launch
+098	Real GitHub Releases update workflow
+099	DRY: simulated version found<SP>
+100	Real mode depends on the Release providing an installer asset for the current platform.
+101	Checking...
+102	Button - ToolButton and feature combinations
+103	Edit
+104	Text only (Push)
+105	Combination with badge (Badge)
+106	Button - countdown buttons combined with every style
+107	Style and feature combination (indeterminate_ring)
+108	Delete
+109	Button - ToolButton styles (6)
+110	Action B
+111	Style, Pill, and Dropdown/Split combinations
+112	Send verification code
+113	Icon only → ToolButton style; text or icon + text → PushButton style
+114	Menu:
+115	Button - style × pill shape × progress feature
+116	Button - Filled variants: no background, status-colored text
+117	Option 2
+118	Button - shapes (2)
+119	Style, Pill, and Toggle combinations
+120	Action A
+121	Selected:
+122	External menu primary button clicked
+123	Primary button clicked
+124	Option 3
+125	Style and feature combination (progress_bar)
+126	Button - Filled status levels (6)
+127	Properties
+128	Option 1
+129	Style and shape combinations
+130	Button - automatic type detection
+131	Style and feature combination (indeterminate_bar)
+132	Button - features (9)
+133	Button - style × pill shape × dropdown/split feature
+134	External action 2
+135	Style and feature combination (toggle)
+136	Button - Text status levels (6)
+137	Icon + text (Push)
+138	Style and feature combination (split)
+139	External menu
+140	Style and feature combination (countdown)
+141	Style and feature combination (progress_ring)
+142	Icon only + feature
+143	External action 1
+144	Button - 7 styles × pill shape × toggle feature
+145	Icon-only buttons are automatically detected as ToolButton
+146	Style and feature combination (dropdown)
+147	Button - styles (6)
+148	Icon only (Tool)
+149	Shape (pill) and feature combinations
+150	Style, Pill, and Progress combinations
+151	No hover effect
+152	Hover card
+153	Special card
+154	Changes color on hover without lifting
+155	Click to expand
+156	Expanded content
+157	Settings card
+158	Basic card
+159	Lifts on hover with a stronger shadow
+160	Card with a separate title area
+161	Simple card
+162	Standard card
+163	Cards and containers
+164	Title card
+165	Vertical with buttons
+166	Horizontal basic (5 dots)
+167	Carousel + PipsPager - unified carousel with page indicators
+168	Standard sliding carousel
+169	effect_slide + vertical
+170	Horizontal (default)
+171	Vertical (orientation: Qt.Vertical)
+172	With buttons (always visible)
+173	External PipsPager synchronization + loop
+174	Carousel and page indicators
+175	effect_slide (horizontal)
+176	Carousel - horizontal/vertical orientation + external PipsPager synchronization
+177	Page indicator (PipsPager)
+178	Carousel - effect: effect_slide (whole-image slide without side peeking)
+179	Peeking carousel
+180	Vertical basic (4 dots)
+181	HorizontalPipsPager / VerticalPipsPager - page buttons, visible-count limit, and smooth scrolling
+182	Product C
+183	Radar chart
+184	Product D
+185	Scatter chart
+186	Product B
+187	Donut chart
+188	Sales ranking
+189	Donut chart - emphasized center
+190	Boxplot chart
+191	Chart components
+192	Horizontal bar chart
+193	Audio waveform (AudioWaveform)
+194	Line chart
+195	Boxplot chart - with outliers
+196	Stacked area chart
+197	Product A
+198	Product E
+199	Bar chart
+200	Pie chart
+201	Layout (mode=mode_default) - internal FlowLayout mode switching
+202	Layout components
+203	Vertical mode: all children have equal widths (column width divided evenly)
+204	File drop
+205	Horizontal (equal height)
+206	Down
+207	Right
+208	Vertical (equal width)
+209	Expand from top
+210	High error correction
+211	Scroll item<SP>
+212	PrismQML component library
+213	Drawer
+214	Close
+215	Flow layout
+216	Content below
+217	Top drawer
+218	Horizontal mode: all children in a row have equal heights (the row’s maximum height)
+219	Confidential document
+220	Expand from right
+221	Default
+222	Expand from left
+223	Bottom drawer
+224	Right drawer
+225	Grouped content
+226	Splitter
+227	QR code
+228	Watermark
+229	Mode switch:
+230	Group title
+231	Outside-window drawer
+232	Content above
+233	Divider
+234	Expand from bottom
+235	Up
+236	Scroll components
+237	Group box
+238	Left
+239	Left drawer
+240	Container components
+241	Default mode: preserve each child’s original size and wrap automatically
+242	Themes: classic, cyan, amber, red, purple, blue, white, pink, gold, lime, orange, teal, neon, sunset, ocean, forest, midnight
+243	→ Right
+244	Direction
+245	Rainbow mode
+246	Character set
+247	✓ Flicker
+248	Pause/Resume
+249	Speed:<SP>
+250	✓ Glow
+251	↓ Down
+252	Character-set presets: japanese, katakana, binary, digits, hex, chinese, symbols, ascii, greek, runic
+253	Methods: start(), stop(), pause(), resume(), toggle(), reset(), setTheme(name), setDirection(dir), setCharsetPreset(preset), setCustomCharset(chars), enableGlow(intensity), disableGlow(), enableFlicker(rate), disableFlicker(), enableInteraction(radius), disableInteraction(), enableRainbow(), disableRainbow(), setPerspective(value), configure(options)
+254	✓ Rainbow mode
+255	Trail:<SP>
+256	Properties: running, paused, speed, fontSize, density, fadeSpeed, direction, mainColor, headColor, backgroundColor, charset, charsetPreset, glowEnabled, glowIntensity, flickerEnabled, flickerRate, perspective, interactive, interactionRadius, rainbowMode
+257	Run
+258	Density:<SP>
+259	Font:<SP>
+260	✓ Mouse interaction
+261	← Left
+262	MatrixRain - digital rain effect
+263	Glow
+264	Component properties and methods
+265	3D perspective
+266	Classic Matrix-style digital rain with extensive configuration
+267	Reset
+268	Flicker
+269	Color theme
+270	✓ 3D perspective
+271	↑ Up
+272	Mouse interaction
+273	Result: Cancel
+274	Drop-down flyout
+275	OK button only
+276	Success
+277	Flyout - 6 animations: pullUp/dropDown/slideLeft/slideRight/fadeIn/none + modal mode
+278	Other popup components
+279	Launch confetti
+280	Click the overlay to close
+281	Error
+282	Operation failed
+283	This is sample content for a borderless dialog. Any custom text can go here to demonstrate the dialog title, body, and button layout.
+284	Special options - vertical layout/custom content/explicit screen
+285	This is a borderless dialog
+286	Circular profile skeleton
+287	Slide in from right
+288	Desktop Toast notifications (separate window) - top-left/top-center/top-right/bottom-left/bottom-center/bottom-right
+289	Right
+290	Hide Cancel
+291	This is a message
+292	Submitted successfully
+293	Result: OK
+294	Pull-up flyout
+295	Drop down
+296	Desktop InfoBar notifications (separate window) - top-left/top-center/top-right/bottom-left/bottom-center/bottom-right
+297	Confirm
+298	Top-right position
+299	Bottom
+300	Slide left
+301	Bottom-right position
+302	Flyout
+303	Fade-in flyout
+304	This is a ToolTip
+305	Pull up
+306	TeachingTip
+307	Attention
+308	Non-modal tip
+309	Top-center position
+310	Left
+311	Top
+312	Slide right
+313	Skeleton
+314	State components
+315	Open folder
+316	Are you sure you want to perform this action?
+317	Confetti animation
+318	Bottom-left position
+319	Message box
+320	Tutorial
+321	Select this text to copy it: PrismQML is a QML component library
+322	Bottom arrow
+323	StateWidget (unified state component distinguished by stateType)
+324	This dialog has only an OK button
+325	Please wait patiently...
+326	Confirmation box
+327	Copyable
+328	Borderless dialog
+329	Top-left position
+330	Copyable content
+331	Warning
+332	Progress indicators
+333	Square profile skeleton
+334	Hover
+335	Bottom-center position
+336	Feedback components
+337	Left arrow
+338	Top arrow
+339	Result: No action
+340	Non-modal
+341	Dialog
+342	Toast - top-left/top-center/top-right/bottom-left/bottom-center/bottom-right
+343	Right arrow
+344	Draggable
+345	Slide-in from left
+346	InfoBar - top-left/top-center/top-right/bottom-left/bottom-center/bottom-right
+347	Hide Cancel button
+348	Preparing the download task...
+349	TeachingTip - instructional tip with arrow (anchor_bottom/top/left/right...)
+350	Tip
+351	Fade in
+352	Does not close automatically
+353	Draggable dialog
+354	Click the overlay to close this dialog
+355	Confetti (shown in the main window)
+356	Content can be copied
+357	Try dragging this dialog
+358	Start guided tour
+359	Notification settings
+360	Step 2
+361	Step 1
+362	TeachingTour guided tour
+363	Edit your avatar and personal information here.
+364	Profile
+365	Choose which notifications to receive here.
+366	A full-window overlay focuses the target area and supports Next, Finish, and Skip
+367	Enum member name
+368	Python code
+369	Search icons
+370	Icon name
+371	Web
+372	Allow a single key (allowSingleKey)
+373	Add tag...
+374	Drop-down selection
+375	Mixed multi-select
+376	Urgent
+377	Option B
+378	Vertical
+379	Multi-select 21
+380	Multi-select 28
+381	Username
+382	Shenzhen
+383	Multi-select 11
+384	Calendar picker
+385	Home
+386	Wenzhou
+387	Multi-select 25
+388	Documents
+389	Multi-select 10
+390	Multi-select 12
+391	Shanghai
+392	Multi-select 9
+393	Foshan
+394	Jiaxing
+395	Multi-select 6
+396	Multi-select 27
+397	Hangzhou
+398	Option 5
+399	Special inputs
+400	Ningbo
+401	Multi-select 15
+402	Option 4
+403	Multi-select 17
+404	Search
+405	Multi-select 4
+406	Multi-select 13
+407	Wuhan
+408	Shanghai
+409	Key combination (default)
+410	Horizontal
+411	Filter
+412	Multi-select 2
+413	Option A
+414	Zhejiang Province
+415	Choose background color
+416	Text input
+417	≥2 characters, comma-separated
+418	South China
+419	Option 9
+420	Apply
+421	Beijing
+422	Test
+423	Color picker
+424	Tag 1
+425	Suzhou
+426	ShortcutEditor (allowSingleKey: single-key input / key-combination input)
+427	Multi-select 22
+428	Shenzhen
+429	Date
+430	Multi-select 14
+431	East China
+432	Option 10
+433	Multi-select 29
+434	Multi-select 20
+435	Option 8
+436	Enter a city...
+437	Input components
+438	Guangzhou
+439	Icon + text
+440	Huangpu District
+441	Guangzhou
+442	Time
+443	Tag 2
+444	Multi-select 26
+445	Icon only
+446	Nanjing
+447	Toggle control
+448	Zhuhai
+449	DateTimePicker - unified wheel picker with automatic localization
+450	12-hour format
+451	Password
+452	Shaoxing
+453	Description text
+454	Slider
+455	Hangzhou
+456	Option 6
+457	Jiangsu Province
+458	Date and time picker
+459	ScrollBar (vertical/horizontal)
+460	Open color dialog
+461	Multi-select 16
+462	Dongguan
+463	<b>Supports</b> <i>rich text</i> display
+464	Time (seconds)
+465	Multi-select 23
+466	Multi-select 18
+467	Finish
+468	Option 7
+469	Video
+470	Transparent 2
+471	Date + time
+472	Nanjing
+473	Multi-select 8
+474	Selected color:
+475	Multi-select 19
+476	Test 2
+477	Multi-select 3
+478	Multi-select 30
+479	Numeric input
+480	Chengdu
+481	Images
+482	Multi-select 7
+483	Transparent 1
+484	Shortcut picker
+485	Please select
+486	Music
+487	Smooth scroll bar
+488	Standard
+489	Colored outline label
+490	Xi’an
+491	Multi-select 24
+492	Pudong New Area
+493	Chongqing
+494	Multi-select 5
+495	Guangdong Province
+496	Multi-select 1
+497	Xuhui District
+498	Text only
+499	Wuxi
+500	Supporting text
+501	Labels and badges
+502	Badge
+503	Solid color · bounce
+504	Status label
+505	Avatar
+506	Selected
+507	Messages
+508	Bold body
+509	Horizontal · gradient · normal
+510	Labels, Badges, Chips, Tags
+511	Subtitle
+512	Solid color · normal
+513	Text label
+514	Hyperlink text
+515	Gradient · bounce
+516	Horizontal · solid color · bounce
+517	Title
+518	Animated indicator/accent bar - colorStyle × animationStyle × orientation; click the card to toggle active state
+519	Body
+520	Large title
+521	Toggleable chip tag
+522	Information
+523	Gradient · normal
+524	No close button
+525	Badge - unified badge component
+526	Avatar / AvatarSelector - source (image) / text / size
+527	Zhang
+528	Horizontal · gradient · bounce
+529	Page indicator
+530	Remove current
+531	Basic (5 dots)
+532	Price
+533	Menus and lists
+534	Develop the home-page components
+535	Interaction design
+536	Project manager
+537	Click the image to test the clicked signal
+538	Clear all
+539	Item<SP>
+540	Engineering Department
+541	Tag 3
+542	Scrolling text
+543	Business development
+544	Closed tag<SP>
+545	Complete requirements review and design mockups
+546	Change text
+547	Data analyst
+548	Paste
+549	Cut
+550	Product Department
+551	Dynamic content
+552	Disable
+553	Product
+554	Write unit tests
+555	Quantity
+556	To-do items
+557	Status
+558	Copy
+559	Content 2
+560	Modified
+561	Scrolling text - PrismQML component library showcase
+562	Content operations
+563	Submit code review
+564	Channel partnerships
+565	Add tag
+566	List item
+567	Data display
+568	Photos
+569	New tag
+570	QA Team
+571	clicked signal fired!
+572	Image component
+573	Context menu
+574	Today’s schedule
+575	Design Team
+576	Right-click this area
+577	Requirements.md
+578	Meeting Notes.pdf
+579	Brand promotion
+580	Tabs
+581	Content 1
+582	View item<SP>
+583	Backend Team
+584	setTabText() modified
+585	Switch to tab<SP>
+586	ContextMenu - automatically binds to the parent component’s right-click event
+587	Status: not clicked
+588	Campaign operations
+589	Screenshots
+590	ImageWidget - rounded corners, loading state, and click events
+591	clear() cleared all
+592	List/table views
+593	Marketing Department
+594	Timeline · Git graph (fractional-scale seam acceptance)
+595	Reset
+596	Name
+597	New tag added
+598	API status
+599	ListView / TableView / TreeView - low-level views requiring a custom delegate
+600	addTab() added
+601	removeTab() removed
+602	Dynamic tabs
+603	Code
+604	Content 3
+605	Visual design
+606	User research
+607	Work Report.docx
+608	List and table components
+609	Operations Team
+610	Completed
+611	PipsPager - page buttons, visible-count limit, and smooth scrolling
+612	Enable
+613	Frontend Team
+614	Team Building.jpg
+615	Redo
+616	Breadcrumbs with icons
+617	Help 5
+618	Command bar view
+619	Account information
+620	File
+621	Orders
+622	Overflow ellipsis (maxVisibleItems: 4)
+623	Navigation components
+624	Root directory
+625	Pager
+626	Level 4 directory
+627	New
+628	About
+629	All
+630	Payment
+631	Current:<SP>
+632	Level 3 directory
+633	Add level
+634	Current location
+635	Breadcrumb navigation
+636	Go up
+637	Subpage
+638	Basic breadcrumbs
+639	Components
+640	Folder
+641	Command bar
+642	Help 4
+643	Undo
+644	Breadcrumb navigation with icons
+645	Add image
+646	Add subpage
+647	StackedWidget - switch animation types through animationType
+648	Save
+649	Menu bar
+650	Help
+651	Level 1 directory
+652	Shipping
+653	Next
+654	Step progress bar
+655	BreadcrumbBar - fluid animation, icon support, and theme-color indicator
+656	Click a breadcrumb item to test truncation
+657	Help 2
+658	Open
+659	Level 2 directory
+660	Previous
+661	Help 3
+662	Deep level
+663	Stepper - supports icons and text
+664	Segmented/toggle controls
+665	StackedWidget (animationType enum)
+666	When there are more than four items, middle items collapse automatically into the ellipsis menu
+667	Shopping cart
+668	Color settings card (expandable)
+669	Opacity
+670	Select display language
+671	Apply theme
+672	Accent color
+673	Combo-box settings card
+674	Native DWM shadow
+675	Personalization
+676	Folder-list settings card (expandable)
+677	Follow system
+678	Adjust window opacity
+679	Options settings card (expandable)
+680	Window settings
+681	View online help
+682	DPI scaling
+683	Native Windows window shadow
+684	Choose color
+685	Interface language
+686	Theme mode
+687	Add folder
+688	Mica effect
+689	Save current configuration
+690	View software information
+691	Toggle settings card
+692	Set global shortcut
+693	Window type
+694	Windows 11 only
+695	Startup behavior
+696	Custom color
+697	Theme
+698	Enable automatic update checks
+699	Theme color
+700	Help documentation
+701	Volume
+702	Manage music-library folders
+703	On
+704	Primary-button settings card
+705	Button settings card
+706	Show main window
+707	Application settings
+708	Dark
+709	Light
+710	Choose default or custom color
+711	Default color
+712	Settings components
+713	Choose interface theme
+714	Hyperlink settings card
+715	Restart required
+716	Music folders
+717	Adjust system volume
+718	Save settings
+719	Slider settings card
+720	Lazy loading
+721	Open documentation
+722	Animation effects
+723	Adjust application appearance
+724	View
+725	Enable interface animations
+726	Load page content on demand
+727	Shortcut settings card
+728	Shortcut
+729	Settings-card group container
+730	Minimize to tray
+731	Choose application behavior at startup
+732	Restore previous state
+733	test: add fractional-scroll pixel gate
+734	chore: initialize commit-graph example
+735	refactor: organize Timeline data model
+736	Merge feature/timeline
+737	style: adjust Gallery display density
+738	feat: create gallery branch
+739	fix: correct commit-graph boundary pixels
+740	Git graph · 150% DPI
+741	PrismQML Gallery
+742	PrismQML Gallery (C++ host)

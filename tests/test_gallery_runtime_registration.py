@@ -132,7 +132,7 @@ def test_gallery_exposes_dry_and_real_auto_update_backends():
 
     assert "gallery_repository, prismqml.__version__, gallery_asset_keyword" in main_source
     assert 'setContextProperty("appUpdater", gallery_updater)' in main_source
-    assert '"text": "自动更新"' in qml_source
+    assert 'Fluent.Translator.tr("gallery_736cff237d7d9255"' in qml_source
     assert 'pages/AutoUpdatePage.qml' in qml_source
     assert "Fluent.AutoUpdater" in page_source
     assert "updater: root.activeUpdater" in page_source
@@ -147,8 +147,9 @@ def test_gallery_exposes_dry_and_real_auto_update_backends():
 def test_gallery_hyperlink_label_targets_github_repository():
     source = GALLERY_LABEL_PAGE.read_text(encoding="utf-8")
 
-    assert 'text: "超链接文本"; url: "https://github.com/aki-riko/PrismQML"' in source
-    assert 'text: "超链接文本"; url: "https://example.com"' not in source
+    assert 'Fluent.Translator.tr("gallery_8f9a5b6031177e4e"' in source
+    assert 'url: "https://github.com/aki-riko/PrismQML"' in source
+    assert 'url: "https://example.com"' not in source
 
 
 def test_gallery_list_view_delegate_keeps_current_item_selected():
