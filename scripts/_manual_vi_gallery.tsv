@@ -1,0 +1,742 @@
+001	Biểu tượng
+002	Đang tải các thành phần...
+003	Nhãn
+004	Đầu vào
+005	Trình đơn
+006	Vùng chứa
+007	Tự động cập nhật
+008	Băng chuyền
+009	Hiệu ứng
+010	Phản hồi
+011	Biểu đồ
+012	Nút
+013	Đang tải
+014	Cài đặt
+015	Điều hướng
+016	Thẻ
+017	Đã xảy ra lỗi
+018	Thao tác thành công
+019	Cần chú ý
+020	Thông tin
+021	Đang xử lý...
+022	InfoBar
+023	Vòng tiến trình
+024	Thanh tiến trình 60%
+025	Đang xử lý...
+026	Bốn tính năng tiến trình Toast
+027	Đang tải xuống...
+028	Đang đồng bộ...
+029	Tải lên
+030	Vòng tiến trình 40%
+031	Đang tải lên...
+032	Thanh tiến trình không xác định
+033	Đang đồng bộ dữ liệu...
+034	Đang xử lý
+035	Vui lòng chờ...
+036	Chế độ tiến trình InfoBar
+037	Bốn tính năng tiến trình InfoBar
+038	Đang đồng bộ
+039	Vòng tiến trình không xác định
+040	Thanh tiến trình
+041	Chế độ tiến trình Toast
+042	Tải xuống
+043	Đang tải tệp xuống...
+044	Đường dẫn trình cài đặt DRY không hợp lệ
+045	Đã hoàn tất bản demo DRY: đã mô phỏng việc bàn giao cho cài đặt im lặng; không tải tệp nào và không khởi chạy trình cài đặt
+046	DRY: đang mô phỏng kiểm tra cập nhật...
+047	DRY: bản tải xuống mô phỏng<SP>
+048	- Mô phỏng tiến trình tải xuống từ 0% đến 100%<NL>
+049	- Mô phỏng việc bàn giao cài đặt im lặng Inno Setup mà không tạo tệp hoặc khởi chạy chương trình
+050	Chế độ DRY không mở trang bên ngoài
+051	DRY: đã hoàn tất tải xuống mô phỏng; đang bàn giao cho cài đặt
+052	- Hiển thị hộp thoại xác nhận cập nhật thực tế<NL>
+053	Đang tiến hành tải xuống mô phỏng DRY
+054	DRY: đang chuẩn bị tải xuống mô phỏng
+055	Mã tải xuống DRY không hợp lệ
+056	DRY: bàn giao cài đặt thất bại
+057	DRY: bàn giao cài đặt hai vùng thất bại
+058	DRY: đã chuẩn bị xong hai vùng; tự động chuyển ở lần khởi chạy tiếp theo
+059	DRY: đang chuẩn bị vùng không hoạt động trong nền
+060	DRY: đã tìm thấy phiên bản mô phỏng; đang chờ xác nhận
+061	Bản demo DRY đang chạy
+062	## Cập nhật bản demo DRY<NL><NL>
+063	, đang chờ xác nhận
+064	Minh họa việc kiểm tra, xác nhận, tiến trình tải xuống, ghi nền vào vùng không hoạt động và chuyển đổi ở lần khởi chạy tiếp theo; không bao giờ truy cập mạng, tạo tệp hoặc khởi chạy trình cài đặt.
+065	Toast góc dưới bên phải
+066	2. Dùng UpdateDialog thực tế để hiển thị ghi chú và xác nhận “Tải xuống và cài đặt”
+067	Dùng Updater thực tế do Gallery cung cấp để kiểm tra Releases; chế độ này có thể truy cập mạng và mở trang phát hành.
+068	Phát hiện gần nhất:
+069	3. Hiển thị tiến trình tải xuống xác định hoặc không xác định bằng Toast hoặc ProgressDialog
+070	Người dùng thấy hộp thoại và phản hồi tiến trình thực tế, nhưng không phát sinh tác dụng phụ của cài đặt.
+071	Chế độ Release thực tế
+072	Bản demo tải xuống và cài đặt DRY
+073	Phiên bản hiện tại:
+074	Chế độ demo DRY (mô phỏng an toàn)
+075	Phát hiện gần nhất: không có
+076	Quy trình cập nhật
+077	Đang mô phỏng kiểm tra...
+078	Gallery minh họa trực tiếp cách thành phần mặt tiền điều phối Updater, UpdateDialog và bộ trình bày phản hồi có thể thay thế bên dưới.
+079	Đã tìm thấy phiên bản mới<SP>
+080	Bắt đầu bản demo DRY
+081	Đã xác nhận tải xuống<SP>
+082	Đang chuẩn bị trong nền...
+083	1. Kiểm tra GitHub Releases và so sánh với phiên bản hiện tại
+084	Nguồn demo:
+085	2. Hiển thị ghi chú phát hành và hộp thoại xác nhận khi tìm thấy phiên bản mới
+086	Kiểm tra cập nhật
+087	Chưa cấu hình
+088	4. Trong chế độ hai vùng, thay thế vùng không hoạt động trong nền và chuyển sang phiên bản mới ở lần khởi chạy tiếp theo
+089	Đã là phiên bản mới nhất<SP>
+090	Kho mã:
+091	Không thể dùng chế độ thực tế: Gallery không cung cấp appUpdater
+092	Chế độ thực tế: chưa kiểm tra
+093	1. Mô phỏng kiểm tra và trả về một phiên bản demo
+094	3. Dùng Toast hoặc ProgressDialog thực tế để tăng tiến trình mô phỏng lên 100%
+095	Kiểm tra thất bại:
+096	Chế độ DRY: đang chờ bắt đầu demo
+097	4. Mô phỏng Inno Setup thay thế vùng không hoạt động trong nền; giữ phiên bản này chạy và chuyển ở lần khởi chạy tiếp theo
+098	Quy trình cập nhật GitHub Releases thực tế
+099	DRY: đã tìm thấy phiên bản mô phỏng<SP>
+100	Chế độ thực tế yêu cầu Release cung cấp tệp cài đặt cho nền tảng hiện tại.
+101	Đang kiểm tra...
+102	Button - tổ hợp ToolButton và tính năng
+103	Chỉnh sửa
+104	Chỉ văn bản (Push)
+105	Kết hợp với huy hiệu (Badge)
+106	Button - các nút đếm ngược kết hợp với mọi kiểu
+107	Tổ hợp kiểu và tính năng (indeterminate_ring)
+108	Xóa
+109	Button - kiểu ToolButton (6)
+110	Hành động B
+111	Tổ hợp Style, Pill và Dropdown/Split
+112	Gửi mã xác minh
+113	Chỉ biểu tượng → kiểu ToolButton; văn bản hoặc biểu tượng + văn bản → kiểu PushButton
+114	Trình đơn:
+115	Button - kiểu × hình Pill × tính năng tiến trình
+116	Button - biến thể Filled: không nền, văn bản theo màu trạng thái
+117	Tùy chọn 2
+118	Button - hình dạng (2)
+119	Tổ hợp Style, Pill và Toggle
+120	Hành động A
+121	Đã chọn:
+122	Đã nhấn nút chính của trình đơn bên ngoài
+123	Đã nhấn nút chính
+124	Tùy chọn 3
+125	Tổ hợp kiểu và tính năng (progress_bar)
+126	Button - mức trạng thái Filled (6)
+127	Thuộc tính
+128	Tùy chọn 1
+129	Tổ hợp kiểu và hình dạng
+130	Button - tự động phát hiện loại
+131	Tổ hợp kiểu và tính năng (indeterminate_bar)
+132	Button - tính năng (9)
+133	Button - kiểu × hình Pill × tính năng dropdown/split
+134	Hành động bên ngoài 2
+135	Tổ hợp kiểu và tính năng (toggle)
+136	Button - mức trạng thái Text (6)
+137	Biểu tượng + văn bản (Push)
+138	Tổ hợp kiểu và tính năng (split)
+139	Trình đơn bên ngoài
+140	Tổ hợp kiểu và tính năng (countdown)
+141	Tổ hợp kiểu và tính năng (progress_ring)
+142	Chỉ biểu tượng + tính năng
+143	Hành động bên ngoài 1
+144	Button - 7 kiểu × hình Pill × tính năng toggle
+145	Nút chỉ có biểu tượng được tự động phát hiện là ToolButton
+146	Tổ hợp kiểu và tính năng (dropdown)
+147	Button - kiểu (6)
+148	Chỉ biểu tượng (Tool)
+149	Tổ hợp hình dạng (Pill) và tính năng
+150	Tổ hợp Style, Pill và Progress
+151	Không có hiệu ứng khi rê chuột
+152	Thẻ có hiệu ứng rê chuột
+153	Thẻ đặc biệt
+154	Đổi màu khi rê chuột mà không nâng lên
+155	Nhấp để mở rộng
+156	Nội dung đã mở rộng
+157	Thẻ cài đặt
+158	Thẻ cơ bản
+159	Nâng lên khi rê chuột với bóng đổ mạnh hơn
+160	Thẻ có vùng tiêu đề riêng
+161	Thẻ đơn giản
+162	Thẻ tiêu chuẩn
+163	Thẻ và vùng chứa
+164	Thẻ có tiêu đề
+165	Dọc với nút
+166	Ngang cơ bản (5 chấm)
+167	Carousel + PipsPager - băng chuyền hợp nhất với chỉ báo trang
+168	Băng chuyền trượt tiêu chuẩn
+169	effect_slide + dọc
+170	Ngang (mặc định)
+171	Dọc (orientation: Qt.Vertical)
+172	Có nút (luôn hiển thị)
+173	Đồng bộ PipsPager bên ngoài + lặp
+174	Băng chuyền và chỉ báo trang
+175	effect_slide (ngang)
+176	Carousel - hướng ngang/dọc + đồng bộ PipsPager bên ngoài
+177	Chỉ báo trang (PipsPager)
+178	Carousel - hiệu ứng effect_slide (trượt toàn bộ ảnh, không hé ảnh bên cạnh)
+179	Băng chuyền hé ảnh bên cạnh
+180	Dọc cơ bản (4 chấm)
+181	HorizontalPipsPager / VerticalPipsPager - nút trang, giới hạn số lượng hiển thị và cuộn mượt
+182	Sản phẩm C
+183	Biểu đồ radar
+184	Sản phẩm D
+185	Biểu đồ phân tán
+186	Sản phẩm B
+187	Biểu đồ vành khuyên
+188	Xếp hạng doanh số
+189	Biểu đồ vành khuyên - nhấn mạnh phần giữa
+190	Biểu đồ hộp
+191	Thành phần biểu đồ
+192	Biểu đồ thanh ngang
+193	Dạng sóng âm thanh (AudioWaveform)
+194	Biểu đồ đường
+195	Biểu đồ hộp - có giá trị ngoại lệ
+196	Biểu đồ vùng xếp chồng
+197	Sản phẩm A
+198	Sản phẩm E
+199	Biểu đồ thanh
+200	Biểu đồ tròn
+201	Layout (mode=mode_default) - chuyển chế độ FlowLayout nội bộ
+202	Thành phần bố cục
+203	Chế độ dọc: tất cả phần tử con có chiều rộng bằng nhau (chiều rộng cột được chia đều)
+204	Thả tệp
+205	Ngang (cùng chiều cao)
+206	Xuống
+207	Phải
+208	Dọc (cùng chiều rộng)
+209	Mở rộng từ trên
+210	Sửa lỗi mức cao
+211	Mục cuộn<SP>
+212	Thư viện thành phần PrismQML
+213	Ngăn kéo
+214	Đóng
+215	Bố cục dòng chảy
+216	Nội dung bên dưới
+217	Ngăn kéo trên
+218	Chế độ ngang: tất cả phần tử con trong một hàng có chiều cao bằng nhau (chiều cao lớn nhất của hàng)
+219	Tài liệu mật
+220	Mở rộng từ phải
+221	Mặc định
+222	Mở rộng từ trái
+223	Ngăn kéo dưới
+224	Ngăn kéo phải
+225	Nội dung được nhóm
+226	Thanh chia
+227	Mã QR
+228	Hình mờ
+229	Chuyển chế độ:
+230	Tiêu đề nhóm
+231	Ngăn kéo ngoài cửa sổ
+232	Nội dung bên trên
+233	Đường phân cách
+234	Mở rộng từ dưới
+235	Lên
+236	Thành phần cuộn
+237	Hộp nhóm
+238	Trái
+239	Ngăn kéo trái
+240	Thành phần vùng chứa
+241	Chế độ mặc định: giữ kích thước gốc của từng phần tử con và tự động xuống dòng
+242	Chủ đề: cổ điển, lục lam, hổ phách, đỏ, tím, xanh lam, trắng, hồng, vàng, xanh chanh, cam, xanh ngọc, neon, hoàng hôn, đại dương, rừng, nửa đêm
+243	→ Phải
+244	Hướng
+245	Chế độ cầu vồng
+246	Bộ ký tự
+247	✓ Nhấp nháy
+248	Tạm dừng/Tiếp tục
+249	Tốc độ:<SP>
+250	✓ Phát sáng
+251	↓ Xuống
+252	Các bộ ký tự định sẵn: tiếng Nhật, katakana, nhị phân, chữ số, hex, tiếng Trung, ký hiệu, ASCII, Hy Lạp, rune
+253	Phương thức: start(), stop(), pause(), resume(), toggle(), reset(), setTheme(name), setDirection(dir), setCharsetPreset(preset), setCustomCharset(chars), enableGlow(intensity), disableGlow(), enableFlicker(rate), disableFlicker(), enableInteraction(radius), disableInteraction(), enableRainbow(), disableRainbow(), setPerspective(value), configure(options)
+254	✓ Chế độ cầu vồng
+255	Vệt:<SP>
+256	Thuộc tính: running, paused, speed, fontSize, density, fadeSpeed, direction, mainColor, headColor, backgroundColor, charset, charsetPreset, glowEnabled, glowIntensity, flickerEnabled, flickerRate, perspective, interactive, interactionRadius, rainbowMode
+257	Chạy
+258	Mật độ:<SP>
+259	Phông chữ:<SP>
+260	✓ Tương tác chuột
+261	← Trái
+262	MatrixRain - hiệu ứng mưa kỹ thuật số
+263	Phát sáng
+264	Thuộc tính và phương thức của thành phần
+265	Phối cảnh 3D
+266	Mưa kỹ thuật số phong cách Matrix cổ điển với nhiều tùy chọn cấu hình
+267	Đặt lại
+268	Nhấp nháy
+269	Chủ đề màu
+270	✓ Phối cảnh 3D
+271	↑ Lên
+272	Tương tác chuột
+273	Kết quả: Hủy
+274	Flyout thả xuống
+275	Chỉ có nút OK
+276	Thành công
+277	Flyout - 6 hiệu ứng: pullUp/dropDown/slideLeft/slideRight/fadeIn/none + chế độ modal
+278	Các thành phần bật lên khác
+279	Khởi chạy pháo giấy
+280	Nhấp vào lớp phủ để đóng
+281	Lỗi
+282	Thao tác thất bại
+283	Đây là nội dung mẫu cho hộp thoại không viền. Có thể đặt bất kỳ văn bản tùy chỉnh nào ở đây để minh họa tiêu đề, nội dung và bố cục nút của hộp thoại.
+284	Tùy chọn đặc biệt - bố cục dọc/nội dung tùy chỉnh/màn hình chỉ định
+285	Đây là hộp thoại không viền
+286	Khung xương hồ sơ hình tròn
+287	Trượt vào từ bên phải
+288	Thông báo Toast trên màn hình nền (cửa sổ riêng) - trên-trái/trên-giữa/trên-phải/dưới-trái/dưới-giữa/dưới-phải
+289	Phải
+290	Ẩn nút Hủy
+291	Đây là một thông báo
+292	Gửi thành công
+293	Kết quả: OK
+294	Flyout kéo lên
+295	Thả xuống
+296	Thông báo InfoBar trên màn hình nền (cửa sổ riêng) - trên-trái/trên-giữa/trên-phải/dưới-trái/dưới-giữa/dưới-phải
+297	Xác nhận
+298	Vị trí trên-phải
+299	Dưới
+300	Trượt sang trái
+301	Vị trí dưới-phải
+302	Flyout
+303	Flyout hiện dần
+304	Đây là một ToolTip
+305	Kéo lên
+306	TeachingTip
+307	Chú ý
+308	Mẹo không modal
+309	Vị trí trên-giữa
+310	Trái
+311	Trên
+312	Trượt sang phải
+313	Khung xương
+314	Các thành phần trạng thái
+315	Mở thư mục
+316	Bạn có chắc muốn thực hiện thao tác này không?
+317	Hiệu ứng pháo giấy
+318	Vị trí dưới-trái
+319	Hộp thông báo
+320	Hướng dẫn
+321	Chọn văn bản này để sao chép: PrismQML là một thư viện thành phần QML
+322	Mũi tên dưới
+323	StateWidget (thành phần trạng thái hợp nhất, phân biệt bằng stateType)
+324	Hộp thoại này chỉ có nút OK
+325	Vui lòng kiên nhẫn chờ...
+326	Hộp xác nhận
+327	Có thể sao chép
+328	Hộp thoại không viền
+329	Vị trí trên-trái
+330	Nội dung có thể sao chép
+331	Cảnh báo
+332	Chỉ báo tiến trình
+333	Khung xương hồ sơ hình vuông
+334	Di chuột
+335	Vị trí dưới-giữa
+336	Các thành phần phản hồi
+337	Mũi tên trái
+338	Mũi tên trên
+339	Kết quả: Không có thao tác
+340	Không modal
+341	Hộp thoại
+342	Toast - trên-trái/trên-giữa/trên-phải/dưới-trái/dưới-giữa/dưới-phải
+343	Mũi tên phải
+344	Có thể kéo
+345	Trượt vào từ bên trái
+346	InfoBar - trên-trái/trên-giữa/trên-phải/dưới-trái/dưới-giữa/dưới-phải
+347	Ẩn nút Hủy
+348	Đang chuẩn bị tác vụ tải xuống...
+349	TeachingTip - mẹo hướng dẫn có mũi tên (anchor_bottom/top/left/right...)
+350	Mẹo
+351	Hiện dần
+352	Không tự động đóng
+353	Hộp thoại có thể kéo
+354	Nhấp vào lớp phủ để đóng hộp thoại này
+355	Pháo giấy (hiển thị trong cửa sổ chính)
+356	Có thể sao chép nội dung
+357	Hãy thử kéo hộp thoại này
+358	Bắt đầu chuyến hướng dẫn
+359	Cài đặt thông báo
+360	Bước 2
+361	Bước 1
+362	Chuyến hướng dẫn TeachingTour
+363	Chỉnh sửa ảnh đại diện và thông tin cá nhân tại đây.
+364	Hồ sơ
+365	Chọn các thông báo muốn nhận tại đây.
+366	Lớp phủ toàn cửa sổ làm nổi bật vùng mục tiêu và hỗ trợ Tiếp theo, Hoàn tất và Bỏ qua
+367	Tên thành viên enum
+368	Mã Python
+369	Tìm biểu tượng
+370	Tên biểu tượng
+371	Web
+372	Cho phép một phím đơn (allowSingleKey)
+373	Thêm thẻ...
+374	Lựa chọn thả xuống
+375	Đa lựa chọn hỗn hợp
+376	Khẩn cấp
+377	Tùy chọn B
+378	Dọc
+379	Đa lựa chọn 21
+380	Đa lựa chọn 28
+381	Tên người dùng
+382	Thâm Quyến
+383	Đa lựa chọn 11
+384	Bộ chọn lịch
+385	Trang chủ
+386	Ôn Châu
+387	Đa lựa chọn 25
+388	Tài liệu
+389	Đa lựa chọn 10
+390	Đa lựa chọn 12
+391	Thượng Hải
+392	Đa lựa chọn 9
+393	Phật Sơn
+394	Gia Hưng
+395	Đa lựa chọn 6
+396	Đa lựa chọn 27
+397	Hàng Châu
+398	Tùy chọn 5
+399	Kiểu nhập đặc biệt
+400	Ninh Ba
+401	Đa lựa chọn 15
+402	Tùy chọn 4
+403	Đa lựa chọn 17
+404	Tìm kiếm
+405	Đa lựa chọn 4
+406	Đa lựa chọn 13
+407	Vũ Hán
+408	Thượng Hải
+409	Tổ hợp phím (mặc định)
+410	Ngang
+411	Lọc
+412	Đa lựa chọn 2
+413	Tùy chọn A
+414	Tỉnh Chiết Giang
+415	Chọn màu nền
+416	Nhập văn bản
+417	≥2 ký tự, phân tách bằng dấu phẩy
+418	Hoa Nam
+419	Tùy chọn 9
+420	Áp dụng
+421	Bắc Kinh
+422	Kiểm tra
+423	Bộ chọn màu
+424	Thẻ 1
+425	Tô Châu
+426	ShortcutEditor (allowSingleKey: nhập một phím / nhập tổ hợp phím)
+427	Đa lựa chọn 22
+428	Thâm Quyến
+429	Ngày
+430	Đa lựa chọn 14
+431	Hoa Đông
+432	Tùy chọn 10
+433	Đa lựa chọn 29
+434	Đa lựa chọn 20
+435	Tùy chọn 8
+436	Nhập một thành phố...
+437	Các thành phần nhập liệu
+438	Quảng Châu
+439	Biểu tượng + văn bản
+440	Quận Hoàng Phố
+441	Quảng Châu
+442	Thời gian
+443	Thẻ 2
+444	Đa lựa chọn 26
+445	Chỉ biểu tượng
+446	Nam Kinh
+447	Điều khiển bật/tắt
+448	Châu Hải
+449	DateTimePicker - bộ chọn bánh xe hợp nhất có bản địa hóa tự động
+450	Định dạng 12 giờ
+451	Mật khẩu
+452	Thiệu Hưng
+453	Văn bản mô tả
+454	Thanh trượt
+455	Hàng Châu
+456	Tùy chọn 6
+457	Tỉnh Giang Tô
+458	Bộ chọn ngày và giờ
+459	ScrollBar (dọc/ngang)
+460	Mở hộp thoại màu
+461	Đa lựa chọn 16
+462	Đông Quan
+463	<b>Hỗ trợ</b> hiển thị <i>văn bản đa dạng thức</i>
+464	Thời gian (giây)
+465	Đa lựa chọn 23
+466	Đa lựa chọn 18
+467	Hoàn tất
+468	Tùy chọn 7
+469	Video
+470	Trong suốt 2
+471	Ngày + giờ
+472	Nam Kinh
+473	Đa lựa chọn 8
+474	Màu đã chọn:
+475	Đa lựa chọn 19
+476	Kiểm tra 2
+477	Đa lựa chọn 3
+478	Đa lựa chọn 30
+479	Nhập số
+480	Thành Đô
+481	Hình ảnh
+482	Đa lựa chọn 7
+483	Trong suốt 1
+484	Bộ chọn phím tắt
+485	Vui lòng chọn
+486	Âm nhạc
+487	Thanh cuộn mượt
+488	Tiêu chuẩn
+489	Nhãn viền có màu
+490	Tây An
+491	Đa lựa chọn 24
+492	Khu mới Phố Đông
+493	Trùng Khánh
+494	Đa lựa chọn 5
+495	Tỉnh Quảng Đông
+496	Đa lựa chọn 1
+497	Quận Từ Hối
+498	Chỉ văn bản
+499	Vô Tích
+500	Văn bản bổ trợ
+501	Nhãn và huy hiệu
+502	Huy hiệu
+503	Màu đặc · nảy
+504	Nhãn trạng thái
+505	Ảnh đại diện
+506	Đã chọn
+507	Tin nhắn
+508	Nội dung in đậm
+509	Ngang · chuyển màu · bình thường
+510	Nhãn, huy hiệu, chip và thẻ
+511	Tiêu đề phụ
+512	Màu đặc · bình thường
+513	Nhãn văn bản
+514	Văn bản siêu liên kết
+515	Chuyển màu · nảy
+516	Ngang · màu đặc · nảy
+517	Tiêu đề
+518	Chỉ báo/thanh nhấn động - colorStyle × animationStyle × orientation; nhấp vào thẻ để chuyển trạng thái hoạt động
+519	Nội dung
+520	Tiêu đề lớn
+521	Thẻ chip có thể bật/tắt
+522	Thông tin
+523	Chuyển màu · bình thường
+524	Không có nút đóng
+525	Badge - thành phần huy hiệu hợp nhất
+526	Avatar / AvatarSelector - source (hình ảnh) / văn bản / kích thước
+527	Trương
+528	Ngang · chuyển màu · nảy
+529	Chỉ báo trang
+530	Xóa mục hiện tại
+531	Cơ bản (5 chấm)
+532	Giá
+533	Trình đơn và danh sách
+534	Phát triển các thành phần trang chủ
+535	Thiết kế tương tác
+536	Quản lý dự án
+537	Nhấp vào hình ảnh để kiểm tra tín hiệu clicked
+538	Xóa tất cả
+539	Mục<SP>
+540	Phòng Kỹ thuật
+541	Thẻ 3
+542	Văn bản cuộn
+543	Phát triển kinh doanh
+544	Thẻ đã đóng<SP>
+545	Hoàn tất đánh giá yêu cầu và bản mô phỏng thiết kế
+546	Thay đổi văn bản
+547	Nhà phân tích dữ liệu
+548	Dán
+549	Cắt
+550	Phòng Sản phẩm
+551	Nội dung động
+552	Tắt
+553	Sản phẩm
+554	Viết kiểm thử đơn vị
+555	Số lượng
+556	Việc cần làm
+557	Trạng thái
+558	Sao chép
+559	Nội dung 2
+560	Đã sửa đổi
+561	Văn bản cuộn - trình diễn thư viện thành phần PrismQML
+562	Thao tác nội dung
+563	Gửi đánh giá mã
+564	Hợp tác kênh
+565	Thêm thẻ
+566	Mục danh sách
+567	Hiển thị dữ liệu
+568	Ảnh
+569	Thẻ mới
+570	Nhóm Đảm bảo chất lượng
+571	Tín hiệu clicked đã được phát!
+572	Thành phần hình ảnh
+573	Trình đơn ngữ cảnh
+574	Lịch hôm nay
+575	Nhóm Thiết kế
+576	Nhấp chuột phải vào vùng này
+577	Yêu cầu.md
+578	Biên bản cuộc họp.pdf
+579	Quảng bá thương hiệu
+580	Thẻ tab
+581	Nội dung 1
+582	Xem mục<SP>
+583	Nhóm Backend
+584	setTabText() đã sửa đổi
+585	Chuyển sang thẻ<SP>
+586	ContextMenu - tự động liên kết với sự kiện nhấp chuột phải của thành phần cha
+587	Trạng thái: chưa nhấp
+588	Vận hành chiến dịch
+589	Ảnh chụp màn hình
+590	ImageWidget - góc bo tròn, trạng thái tải và sự kiện nhấp
+591	clear() đã xóa tất cả
+592	Dạng xem danh sách/bảng
+593	Phòng Tiếp thị
+594	Dòng thời gian · đồ thị Git (kiểm tra đường nối ở tỷ lệ phân số)
+595	Đặt lại
+596	Tên
+597	Đã thêm thẻ mới
+598	Trạng thái API
+599	ListView / TableView / TreeView - dạng xem cấp thấp yêu cầu delegate tùy chỉnh
+600	addTab() đã thêm
+601	removeTab() đã xóa
+602	Thẻ động
+603	Mã
+604	Nội dung 3
+605	Thiết kế trực quan
+606	Nghiên cứu người dùng
+607	Báo cáo công việc.docx
+608	Các thành phần danh sách và bảng
+609	Nhóm Vận hành
+610	Đã hoàn thành
+611	PipsPager - nút trang, giới hạn số lượng hiển thị và cuộn mượt
+612	Bật
+613	Nhóm Frontend
+614	Xây dựng đội ngũ.jpg
+615	Làm lại
+616	Đường dẫn phân cấp có biểu tượng
+617	Trợ giúp 5
+618	Dạng xem thanh lệnh
+619	Thông tin tài khoản
+620	Tệp
+621	Đơn hàng
+622	Dấu chấm lửng tràn (maxVisibleItems: 4)
+623	Các thành phần điều hướng
+624	Thư mục gốc
+625	Bộ phân trang
+626	Thư mục cấp 4
+627	Mới
+628	Giới thiệu
+629	Tất cả
+630	Thanh toán
+631	Hiện tại:<SP>
+632	Thư mục cấp 3
+633	Thêm cấp
+634	Vị trí hiện tại
+635	Điều hướng đường dẫn phân cấp
+636	Đi lên
+637	Trang con
+638	Đường dẫn phân cấp cơ bản
+639	Thành phần
+640	Thư mục
+641	Thanh lệnh
+642	Trợ giúp 4
+643	Hoàn tác
+644	Điều hướng đường dẫn phân cấp có biểu tượng
+645	Thêm hình ảnh
+646	Thêm trang con
+647	StackedWidget - chuyển kiểu hiệu ứng thông qua animationType
+648	Lưu
+649	Thanh trình đơn
+650	Trợ giúp
+651	Thư mục cấp 1
+652	Vận chuyển
+653	Tiếp theo
+654	Thanh tiến trình theo bước
+655	BreadcrumbBar - hiệu ứng mượt, hỗ trợ biểu tượng và chỉ báo màu chủ đề
+656	Nhấp vào một mục đường dẫn phân cấp để kiểm tra việc rút gọn
+657	Trợ giúp 2
+658	Mở
+659	Thư mục cấp 2
+660	Trước
+661	Trợ giúp 3
+662	Cấp sâu
+663	Stepper - hỗ trợ biểu tượng và văn bản
+664	Điều khiển phân đoạn/bật tắt
+665	StackedWidget (enum animationType)
+666	Khi có hơn bốn mục, các mục ở giữa sẽ tự động thu gọn vào trình đơn dấu chấm lửng
+667	Giỏ hàng
+668	Thẻ cài đặt màu (có thể mở rộng)
+669	Độ mờ
+670	Chọn ngôn ngữ hiển thị
+671	Áp dụng chủ đề
+672	Màu nhấn
+673	Thẻ cài đặt hộp kết hợp
+674	Bóng DWM gốc
+675	Cá nhân hóa
+676	Thẻ cài đặt danh sách thư mục (có thể mở rộng)
+677	Theo hệ thống
+678	Điều chỉnh độ mờ cửa sổ
+679	Thẻ cài đặt tùy chọn (có thể mở rộng)
+680	Cài đặt cửa sổ
+681	Xem trợ giúp trực tuyến
+682	Tỷ lệ DPI
+683	Bóng cửa sổ Windows gốc
+684	Chọn màu
+685	Ngôn ngữ giao diện
+686	Chế độ chủ đề
+687	Thêm thư mục
+688	Hiệu ứng Mica
+689	Lưu cấu hình hiện tại
+690	Xem thông tin phần mềm
+691	Thẻ cài đặt bật/tắt
+692	Đặt phím tắt toàn cục
+693	Kiểu cửa sổ
+694	Chỉ Windows 11
+695	Hành vi khởi động
+696	Màu tùy chỉnh
+697	Chủ đề
+698	Bật tự động kiểm tra cập nhật
+699	Màu chủ đề
+700	Tài liệu trợ giúp
+701	Âm lượng
+702	Quản lý các thư mục thư viện nhạc
+703	Bật
+704	Thẻ cài đặt nút chính
+705	Thẻ cài đặt nút
+706	Hiển thị cửa sổ chính
+707	Cài đặt ứng dụng
+708	Tối
+709	Sáng
+710	Chọn màu mặc định hoặc màu tùy chỉnh
+711	Màu mặc định
+712	Các thành phần cài đặt
+713	Chọn chủ đề giao diện
+714	Thẻ cài đặt siêu liên kết
+715	Cần khởi động lại
+716	Thư mục nhạc
+717	Điều chỉnh âm lượng hệ thống
+718	Lưu cài đặt
+719	Thẻ cài đặt thanh trượt
+720	Tải lười
+721	Mở tài liệu
+722	Hiệu ứng hoạt ảnh
+723	Điều chỉnh giao diện ứng dụng
+724	Xem
+725	Bật hoạt ảnh giao diện
+726	Tải nội dung trang theo yêu cầu
+727	Thẻ cài đặt phím tắt
+728	Phím tắt
+729	Vùng chứa nhóm thẻ cài đặt
+730	Thu nhỏ xuống khay hệ thống
+731	Chọn hành vi ứng dụng khi khởi động
+732	Khôi phục trạng thái trước đó
+733	kiểm thử: thêm cổng kiểm tra pixel khi cuộn phân số
+734	bảo trì: khởi tạo ví dụ đồ thị commit
+735	tái cấu trúc: sắp xếp mô hình dữ liệu Dòng thời gian
+736	Hợp nhất feature/timeline
+737	kiểu dáng: điều chỉnh mật độ hiển thị Gallery
+738	tính năng: tạo nhánh gallery
+739	sửa lỗi: chỉnh các pixel biên của đồ thị commit
+740	Đồ thị Git · DPI 150%
+741	PrismQML Gallery
+742	PrismQML Gallery (máy chủ C++)
