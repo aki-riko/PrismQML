@@ -92,11 +92,6 @@ QtObject {
         }
     }
     
-    // 公共初始化函数 Common init function
-    function initWindow(win) {
-        Fluent.Translator.setLanguage(Fluent.Enums.lang.auto)
-    }
-    
     // 启动时创建窗口
     Component.onCompleted: {
         windowInstance = windowComponent.createObject(null)
@@ -122,9 +117,6 @@ QtObject {
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
-            Component.onCompleted: {
-                root.initWindow(this)
-            }
             onBottomItemClicked: (index) => {
                 // Handle function items (e.g., avatar click) 处理功能项（如头像点击）
                 if (index === 0) {
@@ -148,9 +140,6 @@ QtObject {
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
-            Component.onCompleted: {
-                root.initWindow(this)
-            }
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
             }
@@ -171,9 +160,6 @@ QtObject {
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
-            Component.onCompleted: {
-                root.initWindow(this)
-            }
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
             }

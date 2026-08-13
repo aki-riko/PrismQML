@@ -112,6 +112,11 @@ bool evaluateQml(QObject *bridge, const QString &source) {
     return ok;
 }
 
+bool evaluateQmlAndWait(QObject *bridge, ConfigManager &config,
+                        const QString &source) {
+    return evaluateQml(bridge, source) && config.waitForPersistence();
+}
+
 QObject *createQmlBridge(QQmlEngine &engine, QQmlComponent &component) {
     component.setData(QByteArray(kQmlBridgeSource),
                       QUrl(QStringLiteral("inline:cpp-config-contract.qml")));
@@ -139,6 +144,7 @@ void testRejectedExpression(Checks &checks, const QString &rootPath,
     ConfigManager config(path);
     if (dpi) config.setDpiScale(150);
     else config.setWindowType(2);
+    checks.check(config.waitForPersistence(), "QML setter 后后台持久化完成");
     const bool baselineReady =
         dpi ? config.dpiScale() == 150 : config.windowType() == 2;
     checks.check(baselineReady && !readBytes(path).isEmpty(),
@@ -223,18 +229,21 @@ void testOptionRoundTrips(Checks &checks, const QString &rootPath,
         QDir(rootPath).filePath(QStringLiteral("qml-option-roundtrip/app.json")));
     config.setDpiScale(125);
     config.setWindowType(2);
+    checks.check(config.waitForPersistence(), "QML 组合 setter 后后台持久化完成");
     ManagerBinding binding(bridge, config);
     checks.check(binding.isBound(), "QML 候选元素 manager 绑定成功");
     if (!binding.isBound()) return;
     for (int i = 0; i < static_cast<int>(kValidDpiScales.size()); ++i) {
         const QString expression = QStringLiteral("setDpiOption(%1)").arg(i);
-        checks.check(evaluateQml(&bridge, expression) &&
+        const bool invoked = evaluateQmlAndWait(&bridge, config, expression);
+        checks.check(invoked && config.waitForPersistence() &&
                          config.dpiScale() == kValidDpiScales[i],
                      QStringLiteral("DPI 候选元素真实往返 %1").arg(i));
     }
     for (int i = 0; i < static_cast<int>(kValidWindowTypes.size()); ++i) {
         const QString expression = QStringLiteral("setWindowOption(%1)").arg(i);
-        checks.check(evaluateQml(&bridge, expression) &&
+        const bool invoked = evaluateQmlAndWait(&bridge, config, expression);
+        checks.check(invoked && config.waitForPersistence() &&
                          config.windowType() == kValidWindowTypes[i],
                      QStringLiteral("WindowType 候选元素真实往返 %1").arg(i));
     }
@@ -250,6 +259,7 @@ void testAcceptedValue(Checks &checks, const QString &rootPath, int value,
                              : (value == 2 ? 0 : 2);
     if (dpi) config.setDpiScale(baseline);
     else config.setWindowType(baseline);
+    checks.check(config.waitForPersistence(), "QML 回滚 setter 后后台持久化完成");
     checks.check(!readBytes(path).isEmpty(),
                  QStringLiteral("合法 QML 基线已落盘 %1-%2").arg(kind).arg(value));
     ManagerBinding binding(bridge, config);
@@ -270,20 +280,22 @@ void testAcceptedValue(Checks &checks, const QString &rootPath, int value,
     const QString expression =
         (dpi ? QStringLiteral("setDpi(%1)") : QStringLiteral("setWindow(%1)"))
             .arg(value);
-    checks.check(evaluateQml(&bridge, expression),
+    checks.check(evaluateQmlAndWait(&bridge, config, expression),
                  QStringLiteral("合法 QML setter 调用 %1-%2").arg(kind).arg(value));
     const QString field = dpi ? QStringLiteral("DpiScale")
                               : QStringLiteral("WindowType");
-    checks.check((dpi ? config.dpiScale() : config.windowType()) == value &&
-                     readWindow(path).value(field).toInt() == value,
+    checks.check(config.waitForPersistence() &&
+                     (dpi ? config.dpiScale() : config.windowType()) == value &&
+                      readWindow(path).value(field).toInt() == value,
                  QStringLiteral("合法候选提交 %1-%2").arg(kind).arg(value));
-    checks.check(propertyChanges == 1 && configChanges == 1,
+    checks.check(config.waitForPersistence() && propertyChanges == 1 &&
+                     configChanges == 1,
                  QStringLiteral("合法候选单次信号 %1-%2").arg(kind).arg(value));
     checks.check(setSentinelModificationTime(path),
                  QStringLiteral("设置同值探针 %1-%2").arg(kind).arg(value));
     const QByteArray committedBytes = readBytes(path);
     const QDateTime committedModified = QFileInfo(path).lastModified();
-    checks.check(evaluateQml(&bridge, expression),
+    checks.check(evaluateQmlAndWait(&bridge, config, expression),
                  QStringLiteral("QML 同值调用 %1-%2").arg(kind).arg(value));
     checks.check(propertyChanges == 1 && configChanges == 1 &&
                      readBytes(path) == committedBytes &&

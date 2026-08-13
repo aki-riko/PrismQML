@@ -309,6 +309,7 @@ int main(int argc, char *argv[]) {
         // set + 持久化往返
         const bool origMica = cfg->micaEnabled();
         cfg->setMicaEnabled(!origMica);
+        CHECK(cfg->waitForPersistence(), "setMicaEnabled 后后台持久化完成");
         CHECK(cfg->micaEnabled() == !origMica, "setMicaEnabled 生效");
         CHECK(QFile::exists(path), "set 后配置文件已落盘");
         // 校验拒绝非法值 (dpiScale 只接受 0/100/125/150/175/200)
@@ -316,6 +317,7 @@ int main(int argc, char *argv[]) {
         cfg->setDpiScale(999);  // 非法
         CHECK(cfg->dpiScale() == origDpi, "非法 dpiScale 被拒绝");
         cfg->setDpiScale(150);  // 合法
+        CHECK(cfg->waitForPersistence(), "setDpiScale 后后台持久化完成");
         CHECK(cfg->dpiScale() == 150, "合法 dpiScale 接受");
         // windowType 校验 (0-3)
         cfg->setWindowType(99);

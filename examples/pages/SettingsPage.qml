@@ -108,8 +108,10 @@ Item {
                 SettingsCard {
                     id: themeCard
 
-                    readonly property var themeValues: ["auto", "light", "dark"]
-                    readonly property int themeIndex: themeValues.indexOf(Fluent.Enums.theme)
+                    readonly property var themeValues:
+                        ConfigManager ? ConfigManager.themeOptions : []
+                    readonly property int themeIndex: ConfigManager
+                        ? themeValues.indexOf(ConfigManager.theme) : -1
 
                     objectName: "themeSettingsCard"
                     width: parent ? parent.width : 0
@@ -122,7 +124,7 @@ Item {
                     
                     onIndexSelected: function(idx) {
                         if (idx >= 0 && idx < themeValues.length) {
-                            Fluent.Enums.setTheme(themeValues[idx])
+                            ConfigManager.setTheme(themeValues[idx])
                         }
                     }
                 }
@@ -131,8 +133,10 @@ Item {
                 SettingsCard {
                     id: skinCard
 
-                    readonly property var skinValues: ["fluent", "neobrutalism", "vintage_ticket"]
-                    readonly property int skinIndex: skinValues.indexOf(Fluent.Enums.skin)
+                    readonly property var skinValues:
+                        ConfigManager ? ConfigManager.skinOptions : []
+                    readonly property int skinIndex: ConfigManager
+                        ? skinValues.indexOf(ConfigManager.skin) : -1
                     readonly property int _translationVersion: Fluent.Translator._v
                     readonly property var skinLabels: {
                         _translationVersion
@@ -160,7 +164,7 @@ Item {
 
                     onIndexSelected: function(idx) {
                         if (idx >= 0 && idx < skinValues.length) {
-                            Fluent.Enums.setSkin(skinValues[idx])
+                            ConfigManager.setSkin(skinValues[idx])
                         }
                     }
                 }
@@ -237,18 +241,23 @@ Item {
                 
                 // 主题色
                 SettingsCard {
+                    objectName: "accentColorSettingsCard"
                     width: parent ? parent.width : 0
                     title: "主题色"
                     content: "选择默认或自定义颜色"
                     icon: iconPath("Color")
                     type: Fluent.Enums.settingCard.type_color
                     defaultColor: Fluent.Enums.accentDefaults.accent
+                    customColor: ConfigManager
+                        ? ConfigManager.accentColor : Fluent.Enums.accentColor
+                    useCustomColor: customColor.toString().toLowerCase()
+                        !== defaultColor.toString().toLowerCase()
                     defaultColorText: "默认颜色"
                     customColorText: "自定义颜色"
                     chooseColorText: "选择颜色"
                     onCustomColorPicked: function(c) {
-                        if (ThemeManager) {
-                            ThemeManager.setAccentColor(c)
+                        if (ConfigManager) {
+                            ConfigManager.setAccentColor(c.toString())
                         }
                     }
                 }

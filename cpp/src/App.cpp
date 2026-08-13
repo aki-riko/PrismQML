@@ -4,6 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - App 实现 (镜像 Python window/app.py)
 #include "prism/App.h"
+#include "prism/ConfigManager.h"
 #include "prism/ConfigContracts.h"
 #include "prism/Registry.h"
 #include "prism/ShadowManager.h"
@@ -88,6 +89,8 @@ App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRea
 }
 
 App::~App() {
+    if (!ConfigManager::instance()->waitForPersistence())
+        qWarning() << "App 析构前配置持久化等待超时";
     // QML 托盘菜单依赖 m_engine，必须先于引擎销毁。
     m_systemTrays.clear();
     s_instance = nullptr;
@@ -143,7 +146,10 @@ SystemTrayIcon &App::createSystemTrayIcon(const QString &icon,
 }
 
 int App::exec() {
-    return m_app->exec();
+    const int result = m_app->exec();
+    if (!ConfigManager::instance()->waitForPersistence())
+        qWarning() << "App 退出前配置持久化等待超时";
+    return result;
 }
 
 }  // namespace prism

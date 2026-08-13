@@ -15,6 +15,8 @@ from pathlib import Path
 from ._app_config_schema import (
     DEFAULT_APP_CONFIG,
     DPI_SCALE_VALIDATOR,
+    resolve_app_config_path,
+    validate_app_appearance_mapping,
     validate_app_window_mapping,
 )
 from ..core import debug, info, warning
@@ -105,8 +107,14 @@ def _read_configured_dpi_scale(config_file: Path) -> int:
         warning("DPI 配置根节点必须是对象 DPI config root must be an object")
         return 0
     window = payload.get("Window", {})
+    appearance = payload.get("Appearance", {})
     if not validate_app_window_mapping(window):
         warning("DPI 启动配置含无效 Window 字段 Invalid Window startup config")
+        return 0
+    if not validate_app_appearance_mapping(appearance):
+        warning(
+            "DPI 启动配置含无效 Appearance 字段 Invalid Appearance startup config"
+        )
         return 0
     value = window.get("DpiScale", 0)
     if not DPI_SCALE_VALIDATOR.accepts(value):
@@ -129,7 +137,7 @@ def applyDpiScale(config_path: str = None) -> int:
         int: 应用的DPI缩放值（0=跟随系统）
              Applied DPI scale value (0=follow system)
     """
-    config_file = Path(config_path) if config_path else DEFAULT_APP_CONFIG
+    config_file = resolve_app_config_path(config_path, default=DEFAULT_APP_CONFIG)
     dpi_scale = _read_configured_dpi_scale(config_file)
 
     if dpi_scale > 0:

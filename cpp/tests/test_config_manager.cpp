@@ -4,6 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // ConfigManager transactional persistence regression tests. ConfigManager 事务持久化回归测试。
 #include "prism/ConfigManager.h"
+#include "prism/ThemeManager.h"
 #include "ConfigContractTests.h"
 #include "TestProcess.h"
 
@@ -43,12 +44,19 @@ static bool writeBytes(const QString &path, const QByteArray &data) {
            file.write(data) == data.size();
 }
 
-static QJsonObject readWindow(const QString &path) {
+static QJsonObject readRoot(const QString &path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
         return {};
-    return QJsonDocument::fromJson(file.readAll()).object()
-        .value(QStringLiteral("Window")).toObject();
+    return QJsonDocument::fromJson(file.readAll()).object();
+}
+
+static QJsonObject readWindow(const QString &path) {
+    return readRoot(path).value(QStringLiteral("Window")).toObject();
+}
+
+static QJsonObject readAppearance(const QString &path) {
+    return readRoot(path).value(QStringLiteral("Appearance")).toObject();
 }
 
 static QJsonObject validWindow() {
@@ -67,10 +75,29 @@ static QJsonObject invalidWindow(const QString &field, const QJsonValue &value) 
     return window;
 }
 
+static QJsonObject validAppearance() {
+    return {
+        {QStringLiteral("Theme"), QStringLiteral("dark")},
+        {QStringLiteral("Skin"), QStringLiteral("neobrutalism")},
+        {QStringLiteral("Language"), QStringLiteral("en")},
+        {QStringLiteral("AccentColor"), QStringLiteral("#e81123")},
+    };
+}
+
+static QJsonObject invalidAppearance(const QString &field,
+                                     const QJsonValue &value) {
+    QJsonObject appearance = validAppearance();
+    appearance[field] = value;
+    return appearance;
+}
+
 static bool hasDefaults(const ConfigManager &config) {
     return config.lazyLoading() && config.dwmShadow() &&
            !config.micaEnabled() && config.dpiScale() == 0 &&
-           config.windowType() == 1;
+           config.windowType() == 1 && config.theme() == QStringLiteral("auto") &&
+           config.skin() == QStringLiteral("fluent") &&
+           config.language() == QStringLiteral("auto") &&
+           config.accentColor() == QStringLiteral("#0e5a9c");
 }
 
 struct SignalCounts {
@@ -80,9 +107,16 @@ struct SignalCounts {
     int mica = 0;
     int dpi = 0;
     int window = 0;
+    int theme = 0;
+    int skin = 0;
+    int language = 0;
+    int accent = 0;
     bool committedBeforeNotify = true;
 
-    int properties() const { return lazy + shadow + mica + dpi + window; }
+    int properties() const {
+        return lazy + shadow + mica + dpi + window + theme + skin + language +
+               accent;
+    }
 };
 
 class EnvironmentOverride {
@@ -130,6 +164,31 @@ static void observeSignals(ConfigManager &config, const QString &path,
         ++counts.window; counts.committedBeforeNotify &=
             config.windowType() == 2 && readWindow(path).value("WindowType").toInt() == 2;
     });
+    QObject::connect(&config, &ConfigManager::themeChanged, [&]() {
+        ++counts.theme; counts.committedBeforeNotify &=
+            config.theme() == QStringLiteral("dark") &&
+            readAppearance(path).value("Theme").toString() == QStringLiteral("dark") &&
+            ThemeManager::instance()->theme() == QStringLiteral("dark");
+    });
+    QObject::connect(&config, &ConfigManager::skinChanged, [&]() {
+        ++counts.skin; counts.committedBeforeNotify &=
+            config.skin() == QStringLiteral("neobrutalism") &&
+            readAppearance(path).value("Skin").toString() ==
+                QStringLiteral("neobrutalism") &&
+            ThemeManager::instance()->skin() == QStringLiteral("neobrutalism");
+    });
+    QObject::connect(&config, &ConfigManager::languageChanged, [&]() {
+        ++counts.language; counts.committedBeforeNotify &=
+            config.language() == QStringLiteral("en") &&
+            readAppearance(path).value("Language").toString() == QStringLiteral("en");
+    });
+    QObject::connect(&config, &ConfigManager::accentColorChanged, [&]() {
+        ++counts.accent; counts.committedBeforeNotify &=
+            config.accentColor() == QStringLiteral("#e81123") &&
+            readAppearance(path).value("AccentColor").toString() ==
+                QStringLiteral("#e81123") &&
+            ThemeManager::instance()->accentColor() == QStringLiteral("#e81123");
+    });
 }
 
 static void applyAllChanges(ConfigManager &config) {
@@ -138,6 +197,11 @@ static void applyAllChanges(ConfigManager &config) {
     config.setMicaEnabled(true);
     config.setDpiScale(150);
     config.setWindowType(2);
+    config.setTheme(QStringLiteral("dark"));
+    config.setSkin(QStringLiteral("neobrutalism"));
+    config.setLanguage(QStringLiteral("en"));
+    config.setAccentColor(QStringLiteral("#e81123"));
+    CHECK(config.waitForPersistence(), "九个 setter 后后台持久化完成");
 }
 
 static void testPathResolution(const QTemporaryDir &directory,
@@ -153,12 +217,38 @@ static void testPathResolution(const QTemporaryDir &directory,
 
 static void testValidLoad(const QTemporaryDir &directory) {
     const QString path = directory.filePath(QStringLiteral("valid/app.json"));
-    CHECK(writeJson(path, {{QStringLiteral("Window"), validWindow()}}),
+    CHECK(writeJson(path, {
+              {QStringLiteral("Window"), validWindow()},
+              {QStringLiteral("Appearance"), validAppearance()},
+          }),
           "写入合法配置夹具");
     ConfigManager config(path);
     CHECK(!config.lazyLoading() && !config.dwmShadow() && config.micaEnabled() &&
-              config.dpiScale() == 150 && config.windowType() == 2,
-          "合法配置一次性加载全部字段");
+              config.dpiScale() == 150 && config.windowType() == 2 &&
+              config.theme() == QStringLiteral("dark") &&
+              config.skin() == QStringLiteral("neobrutalism") &&
+              config.language() == QStringLiteral("en") &&
+              config.accentColor() == QStringLiteral("#e81123"),
+          "合法配置一次性加载窗口与外观全部字段");
+    CHECK(ThemeManager::instance()->theme() == QStringLiteral("dark") &&
+              ThemeManager::instance()->skin() == QStringLiteral("neobrutalism") &&
+              ThemeManager::instance()->accentColor() == QStringLiteral("#e81123"),
+          "C++ 宿主加载后恢复外观运行时状态");
+}
+
+static void testLegacyWindowLoad(const QTemporaryDir &directory) {
+    const QString path =
+        directory.filePath(QStringLiteral("legacy-window-only/app.json"));
+    CHECK(writeJson(path, {{QStringLiteral("Window"), validWindow()}}),
+          "写入旧版仅 Window 配置夹具");
+    ConfigManager config(path);
+    CHECK(!config.lazyLoading() && !config.dwmShadow() && config.micaEnabled() &&
+              config.dpiScale() == 150 && config.windowType() == 2 &&
+              config.theme() == QStringLiteral("auto") &&
+              config.skin() == QStringLiteral("fluent") &&
+              config.language() == QStringLiteral("auto") &&
+              config.accentColor() == QStringLiteral("#0e5a9c"),
+          "旧版 Window 配置兼容加载并补齐外观默认值");
 }
 
 static void testRejectedLoad(const QString &path, const QJsonObject &window,
@@ -173,6 +263,18 @@ static void testRawRejectedLoad(const QString &path, const QByteArray &data,
     CHECK(writeBytes(path, data), "写入结构错误真实 JSON");
     ConfigManager config(path);
     CHECK(hasDefaults(config), name);
+}
+
+static void testRejectedAppearanceLoad(const QString &path,
+                                       const QJsonObject &appearance,
+                                       const char *fixtureName,
+                                       const char *resultName) {
+    CHECK(writeJson(path, {
+              {QStringLiteral("Window"), validWindow()},
+              {QStringLiteral("Appearance"), appearance},
+          }), fixtureName);
+    ConfigManager config(path);
+    CHECK(hasDefaults(config), resultName);
 }
 
 static void testInvalidFieldLoads(const QTemporaryDir &directory) {
@@ -215,6 +317,26 @@ static void testInvalidFieldLoads(const QTemporaryDir &directory) {
             "{\"Window\":{\"LazyLoading\":false,\"DwmShadow\":false,"
             "\"MicaEnabled\":true,\"DpiScale\":150.0,\"WindowType\":2}}"),
         "积分浮点词法 DPI 仍被严格拒绝");
+    testRejectedAppearanceLoad(
+        directory.filePath(QStringLiteral("invalid-theme/app.json")),
+        invalidAppearance(QStringLiteral("Theme"), QStringLiteral("sepia")),
+        "写入非法主题真实 JSON", "非法主题使整份加载回退默认状态");
+    testRejectedAppearanceLoad(
+        directory.filePath(QStringLiteral("invalid-skin/app.json")),
+        invalidAppearance(QStringLiteral("Skin"), QStringLiteral("classic")),
+        "写入非法皮肤真实 JSON", "非法皮肤使整份加载回退默认状态");
+    testRejectedAppearanceLoad(
+        directory.filePath(QStringLiteral("invalid-language/app.json")),
+        invalidAppearance(QStringLiteral("Language"), QStringLiteral("xx")),
+        "写入非法语言真实 JSON", "非法语言使整份加载回退默认状态");
+    testRejectedAppearanceLoad(
+        directory.filePath(QStringLiteral("invalid-accent/app.json")),
+        invalidAppearance(QStringLiteral("AccentColor"), QStringLiteral("#zzzzzz")),
+        "写入非法主题色真实 JSON", "非法主题色使整份加载回退默认状态");
+    testRejectedAppearanceLoad(
+        directory.filePath(QStringLiteral("invalid-theme-type/app.json")),
+        invalidAppearance(QStringLiteral("Theme"), 1),
+        "写入主题类型错误真实 JSON", "外观字段类型错误不留下部分加载状态");
 }
 
 static void testLoads(const QTemporaryDir &directory) {
@@ -223,6 +345,7 @@ static void testLoads(const QTemporaryDir &directory) {
         directory.filePath(QStringLiteral("missing/app.json")));
     CHECK(hasDefaults(missing), "缺失配置使用完整默认状态");
     testValidLoad(directory);
+    testLegacyWindowLoad(directory);
     testInvalidFieldLoads(directory);
     testRawRejectedLoad(directory.filePath(QStringLiteral("malformed/app.json")),
                         QByteArrayLiteral("{"), "畸形 JSON 保持完整默认状态");
@@ -231,6 +354,9 @@ static void testLoads(const QTemporaryDir &directory) {
     testRawRejectedLoad(directory.filePath(QStringLiteral("window-array/app.json")),
                         QByteArrayLiteral("{\"Window\":[]}"),
                         "Window 非对象保持完整默认状态");
+    testRawRejectedLoad(directory.filePath(QStringLiteral("appearance-array/app.json")),
+                        QByteArrayLiteral("{\"Appearance\":[]}"),
+                        "Appearance 非对象保持完整默认状态");
 }
 
 static void testSuccessfulCommit(const QTemporaryDir &directory) {
@@ -240,16 +366,34 @@ static void testSuccessfulCommit(const QTemporaryDir &directory) {
     SignalCounts counts;
     observeSignals(config, path, counts);
     applyAllChanges(config);
-    CHECK(readWindow(path) == validWindow(), "五个 setter 原子保存完整候选状态");
-    CHECK(counts.config == 5 && counts.lazy == 1 && counts.shadow == 1 &&
-              counts.mica == 1 && counts.dpi == 1 && counts.window == 1,
+    CHECK(readWindow(path) == validWindow() &&
+              readAppearance(path) == validAppearance(),
+          "九个 setter 原子保存完整窗口与外观候选状态");
+    CHECK(counts.config == 9 && counts.lazy == 1 && counts.shadow == 1 &&
+              counts.mica == 1 && counts.dpi == 1 && counts.window == 1 &&
+              counts.theme == 1 && counts.skin == 1 && counts.language == 1 &&
+              counts.accent == 1,
           "每个成功 setter 只发对应属性信号和 configChanged");
     CHECK(counts.committedBeforeNotify, "属性信号观察到的内存和磁盘均已提交");
+    ConfigManager reloaded(path);
+    CHECK(!reloaded.lazyLoading() && !reloaded.dwmShadow() &&
+              reloaded.micaEnabled() && reloaded.dpiScale() == 150 &&
+              reloaded.windowType() == 2 &&
+              reloaded.theme() == QStringLiteral("dark") &&
+              reloaded.skin() == QStringLiteral("neobrutalism") &&
+              reloaded.language() == QStringLiteral("en") &&
+              reloaded.accentColor() == QStringLiteral("#e81123"),
+          "重新构造 C++ ConfigManager 后恢复九项持久化状态");
     config.setDpiScale(999);
     config.setWindowType(3);
     config.setWindowType(99);
+    config.setTheme(QStringLiteral("sepia"));
+    config.setSkin(QStringLiteral("classic"));
+    config.setLanguage(QStringLiteral("xx"));
+    config.setAccentColor(QStringLiteral("#zzzzzz"));
     config.setMicaEnabled(true);
-    CHECK(counts.config == 5 && counts.properties() == 5,
+    CHECK(config.waitForPersistence(), "保存失败队列已结算");
+    CHECK(counts.config == 9 && counts.properties() == 9,
           "非法值和相同值均不保存也不发信号");
 }
 
@@ -266,7 +410,7 @@ static void testBlockedParent(const QTemporaryDir &directory) {
     SignalCounts counts;
     observeSignals(config, path, counts);
     applyAllChanges(config);
-    CHECK(hasDefaults(config), "父路径为普通文件时五个 setter 均不提交");
+    CHECK(hasDefaults(config), "父路径为普通文件时九个 setter 均不提交");
     CHECK(counts.config == 0 && counts.properties() == 0,
           "真实保存失败不泄露任何成功信号");
     QFile unchanged(blocker);
@@ -281,6 +425,7 @@ static void testDirectoryTarget(const QTemporaryDir &directory) {
     SignalCounts counts;
     observeSignals(config, target, counts);
     config.setMicaEnabled(true);
+    CHECK(config.waitForPersistence(), "目录目标保存队列已结算");
     CHECK(!config.micaEnabled() && counts.config == 0 && counts.properties() == 0 &&
               QFileInfo(target).isDir(),
           "目标为目录时保持旧内存、零信号且目录不变");
@@ -291,6 +436,7 @@ static void testEmptyExplicitPath() {
     SignalCounts counts;
     observeSignals(config, QString(), counts);
     config.setMicaEnabled(true);
+    CHECK(config.waitForPersistence(), "空路径保存队列已结算");
     CHECK(hasDefaults(config) && counts.config == 0 && counts.properties() == 0,
           "空显式路径 fail closed 且零未提交通知");
 }

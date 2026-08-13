@@ -12,8 +12,29 @@ import QtQuick
 QtObject {
     id: translator
     
-    // Current language (default auto - follow system) 当前语言
+    // Public runtime language remains writable for existing QML consumers.
+    // 公开运行时语言保持可写，兼容现有 QML 消费方。
     property string language: "auto"
+    property string _pendingLanguage: ""
+    property bool _updatingLanguage: false
+
+    property QtObject _configConnections: Connections {
+        target: typeof ConfigManager !== "undefined" ? ConfigManager : null
+
+        function onLanguageChanged() {
+            if (translator._pendingLanguage === "") {
+                translator._updateLanguage(ConfigManager.language)
+            }
+        }
+
+        function onPersistencePendingChanged() {
+            if (!ConfigManager.persistencePending &&
+                    translator._pendingLanguage !== "") {
+                translator._pendingLanguage = ""
+                translator._updateLanguage(ConfigManager.language)
+            }
+        }
+    }
     
     // Actual resolved language 实际解析后的语言
     property string _resolvedLanguage: "en"
@@ -153,11 +174,8 @@ QtObject {
         _initialized = true
     }
 
-    // Set language 设置语言
-    function setLanguage(lang) {
-        language = lang
-        
-        // Resolve actual language 解析实际语言
+    // Apply one validated language to loaded dictionaries 应用语言到已加载词典
+    function _applyLanguage(lang) {
         if (lang === "auto") {
             _resolvedLanguage = detectSystemLanguage()
         } else if (_isValidLang(lang)) {
@@ -166,18 +184,53 @@ QtObject {
             console.warn("Translator: Unsupported language:", lang)
             _resolvedLanguage = "en"
         }
-        
-        // Load translation 加载翻译
+
         if (!_initialized) _fallback = _loadTranslation("en")
         _currentDict = _loadTranslation(_resolvedLanguage)
         _initialized = true
-        
-        _v++  // Increment version to trigger bindings 递增版本触发绑定更新
+        _v++
         languageUpdated(_resolvedLanguage)
+    }
+
+    // Update language without treating backend synchronization as a user edit.
+    // 更新语言，但不把后端同步误判为用户编辑。
+    function _updateLanguage(lang) {
+        if (language === lang) return
+        _updatingLanguage = true
+        language = lang
+        _updatingLanguage = false
+    }
+
+    // Persist one already validated runtime language. 持久化已校验的运行时语言。
+    function _persistLanguage(lang) {
+        _pendingLanguage = lang
+        ConfigManager.setLanguage(lang)
+        // Synchronous/no-op hosts do not emit a pending transition.
+        // 同步或无变化宿主不会产生持久化状态切换，此时立即收敛到已提交值。
+        if (!ConfigManager.persistencePending) {
+            _pendingLanguage = ""
+            _updateLanguage(ConfigManager.language)
+        }
+    }
+
+    // Set language 设置语言
+    function setLanguage(lang) {
+        if (typeof ConfigManager !== "undefined" && ConfigManager) {
+            if (ConfigManager.languageOptions.indexOf(lang) < 0) {
+                console.warn("Translator: Unsupported language:", lang)
+                return
+            }
+            _pendingLanguage = lang
+            _updateLanguage(lang)
+            _persistLanguage(lang)
+        } else {
+            _updateLanguage(lang)
+        }
     }
     
     // Get translated text 获取翻译文本
-    function tr(key) {
+    function tr(key, version) {
+        void(version)
         return _currentDict[key] || _fallback[key] || key
     }
     
@@ -187,9 +240,21 @@ QtObject {
         void(_v)
         return tr(key)
     }
-    
+
+    onLanguageChanged: {
+        _applyLanguage(language)
+        if (!_updatingLanguage &&
+                typeof ConfigManager !== "undefined" && ConfigManager &&
+                ConfigManager.languageOptions.indexOf(language) >= 0) {
+            _persistLanguage(language)
+        }
+    }
+
     // Initialize on startup 启动时初始化
     Component.onCompleted: {
+        if (typeof ConfigManager !== "undefined" && ConfigManager) {
+            _updateLanguage(ConfigManager.language)
+        }
         _ensureInitialized()
     }
 }

@@ -457,14 +457,16 @@ def test_dotted_group_and_name_keys_load_without_collision(tmp_path):
 
 
 def test_config_manager_property_signal_is_silent_on_save_failure(
-    tmp_path, monkeypatch
+    qapp, tmp_path, monkeypatch
 ):
     blocker = tmp_path / "blocked-parent"
     blocker.write_text("not a directory", encoding="utf-8")
     original_instance = ConfigManager._instance
     ConfigManager._instance = None
     diagnostics = []
-    monkeypatch.setattr(settings_core_module, "exception", diagnostics.append)
+    from prismqml.python.config import config_manager as config_manager_module
+
+    monkeypatch.setattr(config_manager_module, "error", diagnostics.append)
     try:
         manager = ConfigManager(str(blocker / "settings.json"))
         property_changes = []
@@ -473,6 +475,7 @@ def test_config_manager_property_signal_is_silent_on_save_failure(
         manager.configChanged.connect(lambda: config_changes.append(True))
 
         manager.setMicaEnabled(True)
+        assert manager.waitForPersistence(5000)
 
         assert manager.micaEnabled is False
         assert property_changes == []

@@ -22,9 +22,6 @@ int main(int argc, char *argv[]) {
     using namespace prism;
 
     App app(argc, argv);
-    setSkin(Skin::Fluent);
-    // 用 Fluent 默认 accent(沉稳深蓝 #0e5a9c), 不强设橙色(#F97316 是 Neobrutalism 主色)
-
 #ifdef PRISM_QML_FROM_QRC
     app.engine()->addImportPath(QStringLiteral("qrc:/"));
     const QString pagesDir = QStringLiteral("qrc:/pages");

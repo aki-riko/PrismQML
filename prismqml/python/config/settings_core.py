@@ -185,6 +185,27 @@ class SettingsCore(QObject):
         self.configChanged.emit()
         return True
 
+    def _prepare_update(self, entry: SettingEntry, value):
+        """Prepare one candidate and its full disk snapshot. 准备候选与磁盘快照。"""
+        current = self.entry(entry)
+        codec = current.clone()
+        candidate = codec.prepare(self._isolate(current, value))
+        prepared = current._prepare_commit(candidate)
+        if prepared.stored == current.value:
+            return None
+        mapping = self._to_mapping(overrides={current: prepared.stored})
+        return current, prepared, mapping
+
+    def _commit_prepared_update(self, current, prepared, before_notify=None):
+        """Publish one already-persisted candidate. 发布已持久化候选。"""
+        current._apply_prepared(prepared, False)
+        if before_notify is not None:
+            before_notify()
+        current.valueUpdated.emit(prepared.signal)
+        if current.restart:
+            self.restartRequested.emit()
+        self.configChanged.emit()
+
     @staticmethod
     def _isolate(entry: SettingEntry, value):
         """对可深拷贝的值做隔离副本;Qt 原生对象退化为原值。
@@ -239,20 +260,26 @@ class SettingsCore(QObject):
             except OSError as exc:
                 warning(f"清理配置临时文件失败: {tmp_path}: {exc}")
 
-    def _write_mapping(self, mapping: dict):
-        """写入完整快照;os.replace 是唯一持久化提交点。"""
-        self._file.parent.mkdir(parents=True, exist_ok=True)
+    @staticmethod
+    def _write_mapping_file(file_path: Path, mapping: dict):
+        """Write one pure snapshot without touching QObjects. 后台写入纯快照。"""
+        file_path = Path(file_path)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_fd, tmp_path = tempfile.mkstemp(
-            dir=str(self._file.parent), suffix=".tmp"
+            dir=str(file_path.parent), suffix=".tmp"
         )
         try:
             with os.fdopen(tmp_fd, "w", encoding="utf-8") as fp:
                 tmp_fd = None
                 json.dump(mapping, fp, ensure_ascii=False, indent=2)
-            os.replace(tmp_path, self._file)
+            os.replace(tmp_path, file_path)
             tmp_path = None
         finally:
-            self._cleanup_atomic_write(tmp_fd, tmp_path)
+            SettingsCore._cleanup_atomic_write(tmp_fd, tmp_path)
+
+    def _write_mapping(self, mapping: dict):
+        """写入完整快照;os.replace 是唯一持久化提交点。"""
+        self._write_mapping_file(self._file, mapping)
 
     def _persist(self, overrides=None) -> bool:
         """序列化并原子提交快照;普通扩展异常保留 traceback。"""

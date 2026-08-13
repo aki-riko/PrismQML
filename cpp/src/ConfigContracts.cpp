@@ -31,6 +31,14 @@ bool contains(const std::array<int, Size> &values, int value) {
     return std::find(values.begin(), values.end(), value) != values.end();
 }
 
+template <std::size_t Size>
+bool containsString(const std::array<const char *, Size> &values,
+                    const QString &value) {
+    return std::any_of(values.begin(), values.end(), [&](const char *candidate) {
+        return value == QLatin1String(candidate);
+    });
+}
+
 class JsonIntegerFieldScanner {
 public:
     explicit JsonIntegerFieldScanner(const QByteArray &data) : m_data(data) {}
@@ -198,8 +206,8 @@ detail::ConfigLoadStatus readConfigBytes(const QString &path, QByteArray &data,
     return detail::ConfigLoadStatus::Invalid;
 }
 
-detail::ConfigLoadStatus parseWindowObject(
-    const QByteArray &data, QJsonObject &window,
+detail::ConfigLoadStatus parseConfigObjects(
+    const QByteArray &data, QJsonObject &window, QJsonObject &appearance,
     QHash<QString, bool> &integerTokens, QString &error) {
     if (data.startsWith(kUtf8Bom)) {
         error = QStringLiteral("UTF-8 BOM is not supported");
@@ -215,14 +223,33 @@ detail::ConfigLoadStatus parseWindowObject(
         error = QStringLiteral("root must be an object");
         return detail::ConfigLoadStatus::Invalid;
     }
-    const QJsonValue value = document.object().value(QStringLiteral("Window"));
-    if (!value.isUndefined() && !value.isObject()) {
+    const QJsonObject root = document.object();
+    const QJsonValue windowValue = root.value(QStringLiteral("Window"));
+    if (!windowValue.isUndefined() && !windowValue.isObject()) {
         error = QStringLiteral("Window must be an object");
         return detail::ConfigLoadStatus::Invalid;
     }
-    window = value.toObject();
+    const QJsonValue appearanceValue = root.value(QStringLiteral("Appearance"));
+    if (!appearanceValue.isUndefined() && !appearanceValue.isObject()) {
+        error = QStringLiteral("Appearance must be an object");
+        return detail::ConfigLoadStatus::Invalid;
+    }
+    window = windowValue.toObject();
+    appearance = appearanceValue.toObject();
     integerTokens = JsonIntegerFieldScanner(data).scan();
     return detail::ConfigLoadStatus::Valid;
+}
+
+bool readOptionalString(const QJsonObject &object, const QString &key,
+                        QString &target, QString &invalidField) {
+    const QJsonValue value = object.value(key);
+    if (value.isUndefined()) return true;
+    if (!value.isString()) {
+        invalidField = key;
+        return false;
+    }
+    target = value.toString();
+    return true;
 }
 
 bool readOptionalBool(const QJsonObject &object, const QString &key, bool &target,
@@ -285,6 +312,25 @@ QString resolveConfigFilePath(const QString &configured) {
 
 bool isValidDpiScale(int value) { return contains(kValidDpiScales, value); }
 bool isValidWindowType(int value) { return contains(kValidWindowTypes, value); }
+bool isValidTheme(const QString &value) { return containsString(kValidThemes, value); }
+bool isValidSkin(const QString &value) { return containsString(kValidSkins, value); }
+bool isValidLanguage(const QString &value) {
+    return containsString(kValidLanguages, value);
+}
+bool isValidAccentColor(const QString &value) {
+    const int length = value.length();
+    if (!value.startsWith(QLatin1Char('#')) ||
+        (length != 4 && length != 7 && length != 9))
+        return false;
+    for (int index = 1; index < length; ++index) {
+        const QChar character = value.at(index);
+        if (!character.isDigit() &&
+            !(character >= QLatin1Char('a') && character <= QLatin1Char('f')) &&
+            !(character >= QLatin1Char('A') && character <= QLatin1Char('F')))
+            return false;
+    }
+    return true;
+}
 
 bool strictIntegerVariant(const QVariant &value, int &result) {
     if (value.metaType().id() != QMetaType::Int) return false;
@@ -304,36 +350,78 @@ QVariantList windowTypeOptions() {
     return result;
 }
 
+template <std::size_t Size>
+QVariantList stringOptions(const std::array<const char *, Size> &values) {
+    QVariantList result;
+    for (const char *value : values)
+        result.append(QString::fromLatin1(value));
+    return result;
+}
+
+QVariantList themeOptions() { return stringOptions(kValidThemes); }
+QVariantList skinOptions() { return stringOptions(kValidSkins); }
+QVariantList languageOptions() { return stringOptions(kValidLanguages); }
+
 namespace detail {
-ConfigLoadStatus readWindowConfigState(const QString &path,
-                                       WindowConfigState &state,
-                                       QString &error,
-                                       QString &invalidField) {
+ConfigLoadStatus readAppConfigState(const QString &path,
+                                    AppConfigState &state,
+                                    QString &error,
+                                    QString &invalidField) {
     QByteArray data;
     const ConfigLoadStatus readStatus = readConfigBytes(path, data, error);
     if (readStatus != ConfigLoadStatus::Valid) return readStatus;
     QJsonObject window;
+    QJsonObject appearance;
     QHash<QString, bool> integerTokens;
     const ConfigLoadStatus parseStatus =
-        parseWindowObject(data, window, integerTokens, error);
+        parseConfigObjects(data, window, appearance, integerTokens, error);
     if (parseStatus != ConfigLoadStatus::Valid) return parseStatus;
-    WindowConfigState candidate = state;
-    const bool valid =
+    AppConfigState candidate = state;
+    const bool windowValid =
         readOptionalBool(window, QStringLiteral("LazyLoading"),
-                         candidate.lazyLoading, invalidField) &&
+                         candidate.window.lazyLoading, invalidField) &&
         readOptionalBool(window, QStringLiteral("DwmShadow"),
-                         candidate.dwmShadow, invalidField) &&
+                         candidate.window.dwmShadow, invalidField) &&
         readOptionalBool(window, QStringLiteral("MicaEnabled"),
-                         candidate.micaEnabled, invalidField) &&
+                         candidate.window.micaEnabled, invalidField) &&
         readOptionalInteger(window, QStringLiteral("DpiScale"),
-                            candidate.dpiScale, kValidDpiScales,
+                            candidate.window.dpiScale, kValidDpiScales,
                             integerTokens, invalidField) &&
         readOptionalInteger(window, QStringLiteral("WindowType"),
-                            candidate.windowType, kValidWindowTypes,
+                            candidate.window.windowType, kValidWindowTypes,
                             integerTokens, invalidField);
-    if (!valid) return ConfigLoadStatus::Invalid;
+    const bool appearanceTyped =
+        readOptionalString(appearance, QStringLiteral("Theme"),
+                           candidate.appearance.theme, invalidField) &&
+        readOptionalString(appearance, QStringLiteral("Skin"),
+                           candidate.appearance.skin, invalidField) &&
+        readOptionalString(appearance, QStringLiteral("Language"),
+                           candidate.appearance.language, invalidField) &&
+        readOptionalString(appearance, QStringLiteral("AccentColor"),
+                           candidate.appearance.accentColor, invalidField);
+    const bool appearanceValid = appearanceTyped &&
+        isValidTheme(candidate.appearance.theme) &&
+        isValidSkin(candidate.appearance.skin) &&
+        isValidLanguage(candidate.appearance.language) &&
+        isValidAccentColor(candidate.appearance.accentColor);
+    if (!windowValid || !appearanceValid) {
+        if (invalidField.isEmpty()) invalidField = QStringLiteral("Appearance");
+        return ConfigLoadStatus::Invalid;
+    }
     state = candidate;
     return ConfigLoadStatus::Valid;
+}
+
+ConfigLoadStatus readWindowConfigState(const QString &path,
+                                       WindowConfigState &state,
+                                       QString &error,
+                                       QString &invalidField) {
+    AppConfigState appState;
+    appState.window = state;
+    const ConfigLoadStatus status =
+        readAppConfigState(path, appState, error, invalidField);
+    if (status == ConfigLoadStatus::Valid) state = appState.window;
+    return status;
 }
 }  // namespace detail
 

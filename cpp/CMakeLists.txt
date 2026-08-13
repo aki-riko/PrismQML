@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
 set(PRISM_MIN_QT_VERSION 6.9)
-find_package(Qt6 ${PRISM_MIN_QT_VERSION} REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network Sql
+find_package(Qt6 ${PRISM_MIN_QT_VERSION} REQUIRED COMPONENTS Core Gui Qml Quick Svg Widgets Network Sql Concurrent
     QuickControls2 QuickLayouts QuickEffects)
 
 qt_standard_project_setup()
@@ -95,6 +95,7 @@ target_link_libraries(prism PUBLIC
     Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Svg Qt6::Widgets Qt6::Network Qt6::Sql
     Qt6::QuickControls2 Qt6::QuickLayouts Qt6::QuickEffects
 )
+target_link_libraries(prism PRIVATE Qt6::Concurrent)
 
 # ==================== Embedded QML runtime ====================
 # Keep the complete source module in the exported prism target.  A generated

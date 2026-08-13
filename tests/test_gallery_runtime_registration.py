@@ -105,11 +105,11 @@ def test_gallery_does_not_duplicate_public_context_or_lazy_providers():
     assert provider_names.isdisjoint({"acrylic", "qrcode"})
 
 
-def test_gallery_defaults_language_to_follow_system():
+def test_gallery_does_not_override_persisted_language():
     source = GALLERY_QML.read_text(encoding="utf-8")
 
-    assert "Fluent.Translator.setLanguage(Fluent.Enums.lang.auto)" in source
-    assert "Fluent.Translator.setLanguage(Fluent.Enums.lang.zh_CN)" not in source
+    assert "Fluent.Translator.setLanguage(" not in source
+    assert "ConfigManager.setLanguage(" not in source
 
 
 def test_gallery_exposes_fractional_dpi_git_graph_timeline():

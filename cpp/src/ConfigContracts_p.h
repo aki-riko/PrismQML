@@ -19,10 +19,26 @@ struct WindowConfigState {
     int windowType = 1;
 };
 
+struct AppearanceConfigState {
+    QString theme = QStringLiteral("auto");
+    QString skin = QStringLiteral("fluent");
+    QString language = QStringLiteral("auto");
+    QString accentColor = QStringLiteral("#0e5a9c");
+};
+
+struct AppConfigState {
+    WindowConfigState window;
+    AppearanceConfigState appearance;
+};
+
 ConfigLoadStatus readWindowConfigState(const QString &path,
                                        WindowConfigState &state,
                                        QString &error,
                                        QString &invalidField);
+ConfigLoadStatus readAppConfigState(const QString &path,
+                                    AppConfigState &state,
+                                    QString &error,
+                                    QString &invalidField);
 
 }  // namespace detail
 }  // namespace prism

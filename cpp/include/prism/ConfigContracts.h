@@ -25,13 +25,30 @@ inline constexpr std::array<int, 6> kValidDpiScales = {
     0, 100, 125, 150, 175, 200,
 };
 inline constexpr std::array<int, 3> kValidWindowTypes = {0, 1, 2};
+inline constexpr std::array<const char *, 3> kValidThemes = {
+    "auto", "light", "dark",
+};
+inline constexpr std::array<const char *, 3> kValidSkins = {
+    "fluent", "neobrutalism", "vintage_ticket",
+};
+inline constexpr std::array<const char *, 21> kValidLanguages = {
+    "auto", "en", "zh_CN", "zh_TW", "hi", "es", "ar", "pt", "ru", "ja",
+    "de", "fr", "ko", "it", "vi", "th", "id", "tr", "pl", "nl", "uk",
+};
 
 QString resolveConfigFilePath(const QString &configured = QString());
 bool isValidDpiScale(int value);
 bool isValidWindowType(int value);
+bool isValidTheme(const QString &value);
+bool isValidSkin(const QString &value);
+bool isValidLanguage(const QString &value);
+bool isValidAccentColor(const QString &value);
 bool strictIntegerVariant(const QVariant &value, int &result);
 QVariantList dpiScaleOptions();
 QVariantList windowTypeOptions();
+QVariantList themeOptions();
+QVariantList skinOptions();
+QVariantList languageOptions();
 
 // Apply validated startup DPI environment before QApplication construction.
 // 在 QApplication 构造前应用经过整份配置校验的 DPI 环境。

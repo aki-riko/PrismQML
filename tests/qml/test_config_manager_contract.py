@@ -74,14 +74,18 @@ def _evaluate(bridge, source):
 
 def _spy_persistence(manager, monkeypatch):
     calls = []
-    original = manager.cfg._persist
+    original = manager.cfg._write_mapping_file
 
-    def persist(overrides=None):
-        calls.append(overrides)
-        return original(overrides)
+    def persist(file_path, mapping):
+        calls.append(mapping)
+        return original(file_path, mapping)
 
-    monkeypatch.setattr(manager.cfg, "_persist", persist)
+    monkeypatch.setattr(manager.cfg, "_write_mapping_file", persist)
     return calls
+
+
+def _wait_persistence(manager):
+    assert manager.waitForPersistence(5000)
 
 
 def test_qml_reads_exact_runtime_options(qml_config_bridge):
@@ -114,6 +118,7 @@ def test_qml_dpi_setter_rejects_values_before_numeric_conversion(
 ):
     manager, bridge, path = qml_config_bridge
     manager.setDpiScale(150)
+    _wait_persistence(manager)
     baseline = path.read_bytes()
     persist_calls = _spy_persistence(manager, monkeypatch)
     dpi_changes = []
@@ -147,6 +152,7 @@ def test_qml_window_type_setter_rejects_non_contract_values(
 ):
     manager, bridge, path = qml_config_bridge
     manager.setWindowType(2)
+    _wait_persistence(manager)
     baseline = path.read_bytes()
     persist_calls = _spy_persistence(manager, monkeypatch)
     window_changes = []
@@ -168,12 +174,14 @@ def test_qml_legal_dpi_candidates_commit_once(qml_config_bridge, scale):
     manager, bridge, path = qml_config_bridge
     baseline = 100 if scale != 100 else 125
     manager.setDpiScale(baseline)
+    _wait_persistence(manager)
     dpi_changes = []
     config_changes = []
     manager.dpiScaleChanged.connect(lambda: dpi_changes.append(True))
     manager.configChanged.connect(lambda: config_changes.append(True))
 
     _evaluate(bridge, f"setDpi({scale})")
+    _wait_persistence(manager)
 
     assert manager.dpiScale == scale
     assert json.loads(path.read_text(encoding="utf-8"))["Window"]["DpiScale"] == scale
@@ -186,12 +194,14 @@ def test_qml_legal_window_types_commit_once(qml_config_bridge, window_type):
     manager, bridge, path = qml_config_bridge
     baseline = (window_type + 1) % 3
     manager.setWindowType(baseline)
+    _wait_persistence(manager)
     window_changes = []
     config_changes = []
     manager.windowTypeChanged.connect(lambda: window_changes.append(True))
     manager.configChanged.connect(lambda: config_changes.append(True))
 
     _evaluate(bridge, f"setWindow({window_type})")
+    _wait_persistence(manager)
 
     assert manager.windowType == window_type
     assert json.loads(path.read_text(encoding="utf-8"))["Window"][

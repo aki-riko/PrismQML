@@ -29,6 +29,11 @@ ROOT = Path(__file__).resolve().parents[2]
 class _ConfigManagerFixture(QObject):
     windowTypeChanged = Signal()
     dpiScaleChanged = Signal()
+    themeChanged = Signal()
+    skinChanged = Signal()
+    languageChanged = Signal()
+    accentColorChanged = Signal()
+    persistencePendingChanged = Signal()
 
     def __init__(self, *, accept_updates=True, dpi_options=None):
         super().__init__()
@@ -36,8 +41,16 @@ class _ConfigManagerFixture(QObject):
         self._dpi_options = dpi_options or [200, 0, 125]
         self._window_type = 0
         self._dpi_scale = 0
+        self._theme = "auto"
+        self._skin = "fluent"
+        self._language = "auto"
+        self._accent_color = "#0e5a9c"
         self.window_calls = []
         self.dpi_calls = []
+
+    @Property(bool, notify=persistencePendingChanged)
+    def persistencePending(self):
+        return False
 
     @Property("QVariantList", constant=True)
     def windowTypeOptions(self):
@@ -94,6 +107,61 @@ class _ConfigManagerFixture(QObject):
     @Slot(bool)
     def setLazyLoading(self, _value):
         pass
+
+    @Property(str, notify=themeChanged)
+    def theme(self):
+        return self._theme
+
+    @Property("QVariantList", constant=True)
+    def themeOptions(self):
+        return ["auto", "light", "dark"]
+
+    @Slot(str)
+    def setTheme(self, value):
+        self._theme = value
+        ThemeManager().setThemeFromQml(value)
+        self.themeChanged.emit()
+
+    @Property(str, notify=skinChanged)
+    def skin(self):
+        return self._skin
+
+    @Property("QVariantList", constant=True)
+    def skinOptions(self):
+        return ["fluent", "neobrutalism", "vintage_ticket"]
+
+    @Slot(str)
+    def setSkin(self, value):
+        self._skin = value
+        ThemeManager().setSkinFromQml(value)
+        self.skinChanged.emit()
+
+    @Property(str, notify=languageChanged)
+    def language(self):
+        return self._language
+
+    @Property("QVariantList", constant=True)
+    def languageOptions(self):
+        return [
+            "auto", "en", "zh_CN", "zh_TW", "hi", "es", "ar", "pt",
+            "ru", "ja", "de", "fr", "ko", "it", "vi", "th", "id",
+            "tr", "pl", "nl", "uk",
+        ]
+
+    @Slot(str)
+    def setLanguage(self, value):
+        self._language = value
+        self.languageChanged.emit()
+
+    @Property(str, notify=accentColorChanged)
+    def accentColor(self):
+        return self._accent_color
+
+    @Slot(str)
+    def setAccentColor(self, value):
+        self._accent_color = value
+        ThemeManager().setAccentColor(value)
+        self.accentColorChanged.emit()
 
 
 def _find_qml_descendant(root, qml_type):
@@ -276,7 +344,7 @@ def test_settings_page_reverts_selection_when_backend_rejects_update(qapp):
         _assert_combo_index(dpi_card, *dpi_nodes, 1)
 
 
-def test_appearance_cards_follow_selected_and_external_runtime_state(qapp):
+def test_appearance_cards_follow_selected_and_persisted_state(qapp):
     theme_manager = ThemeManager()
     previous_theme = theme_manager.theme
     previous_skin = theme_manager.skin
@@ -296,12 +364,12 @@ def test_appearance_cards_follow_selected_and_external_runtime_state(qapp):
             _assert_combo_index(theme_card, *theme_nodes, 2)
             _assert_combo_index(skin_card, *skin_nodes, 2)
 
-            theme_manager.setSkinFromQml("neobrutalism")
+            manager.setSkin("neobrutalism")
             qapp.processEvents()
             _assert_combo_index(skin_card, *skin_nodes, 1)
 
-            theme_manager.setThemeFromQml("auto")
-            theme_manager.setSkinFromQml("fluent")
+            manager.setTheme("auto")
+            manager.setSkin("fluent")
             qapp.processEvents()
             _assert_combo_index(theme_card, *theme_nodes, 0)
             _assert_combo_index(skin_card, *skin_nodes, 0)

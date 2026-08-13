@@ -21,6 +21,7 @@ PrismQML 配置项验证器
 """
 
 from enum import Enum, IntEnum
+import re
 from typing import Any, Iterable, List, Tuple
 
 
@@ -39,6 +40,7 @@ class ValidationKind(Enum):
     RANGE = "range"              # 数值闭区间
     CHOICE = "choice"            # 离散候选
     BOOLEAN = "boolean"          # True / False
+    HEX_COLOR = "hex_color"      # #RGB / #RRGGBB / #AARRGGBB
 
 
 class Validator:
@@ -101,6 +103,11 @@ class Validator:
         """布尔候选(True / False)，coerce 默认到 True"""
         return cls(ValidationKind.BOOLEAN, options=[True, False])
 
+    @classmethod
+    def hex_color(cls) -> "Validator":
+        """Strict HEX color accepted by persisted appearance. 持久化 HEX 颜色。"""
+        return cls(ValidationKind.HEX_COLOR)
+
     # ---------- 兼容只读属性 ----------
     # RangedEntry / EnumEntry 通过这两个属性把约束暴露给 UI 层
     # （例如滑块需要知道 lo/hi、下拉框需要知道 options）
@@ -136,6 +143,11 @@ class Validator:
             return isinstance(value, bool)
         if kind is ValidationKind.CHOICE:
             return any(_choice_matches(value, option) for option in self._options)
+        if kind is ValidationKind.HEX_COLOR:
+            return isinstance(value, str) and re.fullmatch(
+                r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{5})?",
+                value,
+            ) is not None
         return False
 
     def coerce(self, value: Any) -> Any:
@@ -160,6 +172,8 @@ class Validator:
                 if _choice_matches(value, option):
                     return option
             return self._options[0]
+        if kind is ValidationKind.HEX_COLOR:
+            return value if self.accepts(value) else "#0e5a9c"
         return value
 
     # ---------- 调试友好 ----------
@@ -171,6 +185,8 @@ class Validator:
             return f"Validator.choice({self._options!r})"
         if self.kind is ValidationKind.BOOLEAN:
             return "Validator.boolean()"
+        if self.kind is ValidationKind.HEX_COLOR:
+            return "Validator.hex_color()"
         return "Validator.passthrough()"
 
 

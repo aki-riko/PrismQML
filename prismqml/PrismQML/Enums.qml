@@ -32,8 +32,24 @@ Item {
     // ==================== Translation Shortcuts 快捷翻译方法 ====================
     function tr(key) { return Translator.tr(key) }
     function trCount(key, count) { return Translator.tr(key).replace("{count}", count) }
-    function setTheme(value) { if (ThemeManager) ThemeManager.setThemeFromQml(value) }
-    function setSkin(value) { if (ThemeManager) ThemeManager.setSkinFromQml(value) }
+    function setTheme(value) {
+        if (typeof ConfigManager !== "undefined" && ConfigManager)
+            ConfigManager.setTheme(value)
+        else if (ThemeManager)
+            ThemeManager.setThemeFromQml(value)
+    }
+    function setSkin(value) {
+        if (typeof ConfigManager !== "undefined" && ConfigManager)
+            ConfigManager.setSkin(value)
+        else if (ThemeManager)
+            ThemeManager.setSkinFromQml(value)
+    }
+    function setAccentColor(value) {
+        if (typeof ConfigManager !== "undefined" && ConfigManager)
+            ConfigManager.setAccentColor(value.toString())
+        else if (ThemeManager)
+            ThemeManager.setAccentColor(value.toString())
+    }
     function surfaceRadius(fluentRadius) {
         if (isVintageTicket) return ticket.radius
         if (isNeobrutalism) return neo.radius

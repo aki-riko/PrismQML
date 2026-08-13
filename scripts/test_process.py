@@ -14,6 +14,7 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from collections.abc import Sequence
 from pathlib import Path
@@ -41,6 +42,7 @@ PROCESS_FORCE_KILL_WAIT_SECONDS = 5
 PROCESS_GROUP_POLL_INTERVAL_SECONDS = 0.05
 AUTOMATED_TEST_BOUNDARY_ENV = "PRISMQML_AUTOMATED_TEST_BOUNDARY"
 AUTOMATED_TEST_BOUNDARY_VERSION = "v1"
+TEST_CONFIG_FILE_ENV = "PRISMQML_CONFIG_FILE"
 _PYTHON_COMMAND_ALIASES = frozenset(("python", "python.exe"))
 LOGGER = logging.getLogger(__name__)
 
@@ -377,7 +379,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     qt_platform = None if args.qt_platform == "inherit" else args.qt_platform
     configure_test_launcher(qt_platform)
     mark_automated_test_boundary()
-    return run_child(args.command, args.timeout)
+    with tempfile.TemporaryDirectory(prefix="prismqml-test-config-") as directory:
+        os.environ[TEST_CONFIG_FILE_ENV] = str(Path(directory) / "app.json")
+        return run_child(args.command, args.timeout)
 
 
 if __name__ == "__main__":

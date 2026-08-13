@@ -4,14 +4,19 @@
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - ConfigManager 实现 (镜像 config_manager.py + settings_core.py)
 #include "prism/ConfigManager.h"
+#include "prism/ThemeManager.h"
 #include "ConfigContracts_p.h"
 
 #include <QDir>
+#include <QCoreApplication>
+#include <QEventLoop>
 #include <QFileInfo>
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
+#include <QTimer>
+#include <QtConcurrentRun>
 
 namespace prism {
 
@@ -54,12 +59,23 @@ ConfigManager::ConfigManager(QObject *parent)
     : ConfigManager(resolveConfigFilePath(), parent) {}
 
 ConfigManager::ConfigManager(const QString &configFilePath, QObject *parent)
-    : QObject(parent), m_configFilePath(configFilePath) {
+    : QObject(parent), m_configFilePath(configFilePath),
+      m_persistenceWriter(writeAtomically) {
+    connect(&m_persistenceWatcher, &QFutureWatcher<bool>::finished,
+            this, &ConfigManager::finishPersistence);
     if (m_configFilePath.isEmpty()) {
         qWarning() << "prism::ConfigManager 拒绝空配置路径";
         return;
     }
     load();
+    applyAppearanceToRuntime();
+}
+
+ConfigManager::~ConfigManager() {
+    if (persistencePending() && !waitForPersistence())
+        qWarning() << "prism::ConfigManager 析构前持久化未完成";
+    if (m_persistenceWatcher.isRunning())
+        m_persistenceWatcher.waitForFinished();
 }
 
 // 配置路径: ~/.prismqml/app.json (镜像 Python DEFAULT_APP_CONFIG)
@@ -77,17 +93,33 @@ QVariantList ConfigManager::windowTypeOptions() const {
     return prism::windowTypeOptions();
 }
 
+QVariantList ConfigManager::themeOptions() const { return prism::themeOptions(); }
+QVariantList ConfigManager::skinOptions() const { return prism::skinOptions(); }
+QVariantList ConfigManager::languageOptions() const { return prism::languageOptions(); }
+
+bool ConfigManager::persistencePending() const {
+    return m_activeWrite.has_value() || !m_pendingUpdates.isEmpty();
+}
+
 void ConfigManager::load() {
-    detail::WindowConfigState candidate{
-        m_state.lazyLoading,
-        m_state.dwmShadow,
-        m_state.micaEnabled,
-        m_state.dpiScale,
-        m_state.windowType,
+    detail::AppConfigState candidate{
+        {
+            m_state.lazyLoading,
+            m_state.dwmShadow,
+            m_state.micaEnabled,
+            m_state.dpiScale,
+            m_state.windowType,
+        },
+        {
+            m_state.theme,
+            m_state.skin,
+            m_state.language,
+            m_state.accentColor,
+        },
     };
     QString error;
     QString invalidField;
-    const detail::ConfigLoadStatus status = detail::readWindowConfigState(
+    const detail::ConfigLoadStatus status = detail::readAppConfigState(
         configFilePath(), candidate, error, invalidField);
     if (status == detail::ConfigLoadStatus::Missing) return;
     if (status == detail::ConfigLoadStatus::Invalid) {
@@ -96,51 +128,203 @@ void ConfigManager::load() {
         return;
     }
     m_state = State{
-        candidate.lazyLoading,
-        candidate.dwmShadow,
-        candidate.micaEnabled,
-        candidate.dpiScale,
-        candidate.windowType,
+        candidate.window.lazyLoading,
+        candidate.window.dwmShadow,
+        candidate.window.micaEnabled,
+        candidate.window.dpiScale,
+        candidate.window.windowType,
+        candidate.appearance.theme,
+        candidate.appearance.skin,
+        candidate.appearance.language,
+        candidate.appearance.accentColor,
     };
 }
 
-// 原子写入 (镜像 Python: 临时文件 + os.replace, 用 QSaveFile 等价)
-bool ConfigManager::save(const State &candidate) const {
+QByteArray ConfigManager::serialize(const State &candidate) {
     QJsonObject win;
     win[QStringLiteral("LazyLoading")] = candidate.lazyLoading;
     win[QStringLiteral("DwmShadow")] = candidate.dwmShadow;
     win[QStringLiteral("MicaEnabled")] = candidate.micaEnabled;
     win[QStringLiteral("DpiScale")] = candidate.dpiScale;
     win[QStringLiteral("WindowType")] = candidate.windowType;
+    QJsonObject appearance;
+    appearance[QStringLiteral("Theme")] = candidate.theme;
+    appearance[QStringLiteral("Skin")] = candidate.skin;
+    appearance[QStringLiteral("Language")] = candidate.language;
+    appearance[QStringLiteral("AccentColor")] = candidate.accentColor;
     QJsonObject root;
     root[QStringLiteral("Window")] = win;
-    const QByteArray payload = QJsonDocument(root).toJson(QJsonDocument::Indented);
-    return writeAtomically(configFilePath(), payload);
+    root[QStringLiteral("Appearance")] = appearance;
+    return QJsonDocument(root).toJson(QJsonDocument::Indented);
 }
 
-bool ConfigManager::commit(const State &candidate) {
-    if (!save(candidate))
+void ConfigManager::applyAppearanceToRuntime() const {
+    if (!QCoreApplication::instance()) return;
+    auto *manager = ThemeManager::instance();
+    manager->setThemeFromQml(m_state.theme);
+    manager->setSkinFromQml(m_state.skin);
+    manager->setAccentColor(m_state.accentColor);
+}
+
+bool ConfigManager::applyUpdate(State &candidate, const PendingUpdate &update) {
+    switch (update.field) {
+    case Field::LazyLoading: {
+        const bool value = update.value.toBool();
+        if (candidate.lazyLoading == value) return false;
+        candidate.lazyLoading = value;
+        return true;
+    }
+    case Field::DwmShadow: {
+        const bool value = update.value.toBool();
+        if (candidate.dwmShadow == value) return false;
+        candidate.dwmShadow = value;
+        return true;
+    }
+    case Field::MicaEnabled: {
+        const bool value = update.value.toBool();
+        if (candidate.micaEnabled == value) return false;
+        candidate.micaEnabled = value;
+        return true;
+    }
+    case Field::DpiScale: {
+        const int value = update.value.toInt();
+        if (candidate.dpiScale == value) return false;
+        candidate.dpiScale = value;
+        return true;
+    }
+    case Field::WindowType: {
+        const int value = update.value.toInt();
+        if (candidate.windowType == value) return false;
+        candidate.windowType = value;
+        return true;
+    }
+    case Field::Theme: {
+        const QString value = update.value.toString();
+        if (candidate.theme == value) return false;
+        candidate.theme = value;
+        return true;
+    }
+    case Field::Skin: {
+        const QString value = update.value.toString();
+        if (candidate.skin == value) return false;
+        candidate.skin = value;
+        return true;
+    }
+    case Field::Language: {
+        const QString value = update.value.toString();
+        if (candidate.language == value) return false;
+        candidate.language = value;
+        return true;
+    }
+    case Field::AccentColor: {
+        const QString value = update.value.toString();
+        if (candidate.accentColor == value) return false;
+        candidate.accentColor = value;
+        return true;
+    }
+    }
+    return false;
+}
+
+void ConfigManager::enqueueUpdate(Field field, const QVariant &value) {
+    const bool wasPending = persistencePending();
+    m_pendingUpdates.enqueue({field, value});
+    if (!wasPending) emit persistencePendingChanged();
+    startNextPersistence();
+}
+
+void ConfigManager::startNextPersistence() {
+    if (m_activeWrite.has_value()) return;
+    while (!m_pendingUpdates.isEmpty()) {
+        const PendingUpdate update = m_pendingUpdates.dequeue();
+        State candidate = m_state;
+        if (!applyUpdate(candidate, update)) continue;
+
+        const QString path = configFilePath();
+        const QByteArray payload = serialize(candidate);
+        const PersistenceWriter writer = m_persistenceWriter;
+        m_activeWrite = ActiveWrite{update.field, candidate};
+        m_persistenceWatcher.setFuture(QtConcurrent::run(
+            [writer, path, payload]() { return writer(path, payload); }));
+        return;
+    }
+    emit persistencePendingChanged();
+}
+
+void ConfigManager::finishPersistence() {
+    if (!m_activeWrite.has_value()) return;
+    const ActiveWrite completed = *m_activeWrite;
+    if (m_persistenceWatcher.result()) {
+        m_state = completed.candidate;
+        publishCommittedField(completed.field);
+        emit configChanged();
+    }
+    m_activeWrite.reset();
+    startNextPersistence();
+}
+
+void ConfigManager::publishCommittedField(Field field) {
+    switch (field) {
+    case Field::LazyLoading:
+        emit lazyLoadingChanged();
+        break;
+    case Field::DwmShadow:
+        emit dwmShadowChanged();
+        break;
+    case Field::MicaEnabled:
+        emit micaEnabledChanged();
+        break;
+    case Field::DpiScale:
+        emit dpiScaleChanged();
+        break;
+    case Field::WindowType:
+        emit windowTypeChanged();
+        break;
+    case Field::Theme:
+        ThemeManager::instance()->setThemeFromQml(m_state.theme);
+        emit themeChanged();
+        break;
+    case Field::Skin:
+        ThemeManager::instance()->setSkinFromQml(m_state.skin);
+        emit skinChanged();
+        break;
+    case Field::Language:
+        emit languageChanged();
+        break;
+    case Field::AccentColor:
+        ThemeManager::instance()->setAccentColor(m_state.accentColor);
+        emit accentColorChanged();
+        break;
+    }
+}
+
+bool ConfigManager::waitForPersistence(int timeoutMs) {
+    if (timeoutMs < 0) {
+        qWarning() << "prism::ConfigManager 持久化等待超时不能为负数:" << timeoutMs;
         return false;
-    m_state = candidate;
-    return true;
+    }
+    if (!persistencePending()) return true;
+    if (!QCoreApplication::instance() || timeoutMs == 0) return false;
+
+    QEventLoop loop;
+    QTimer timer;
+    timer.setSingleShot(true);
+    connect(this, &ConfigManager::persistencePendingChanged,
+            &loop, &QEventLoop::quit);
+    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    timer.start(timeoutMs);
+    while (persistencePending() && timer.isActive()) loop.exec();
+    return !persistencePending();
 }
 
-// ---- setters: 去重 + 落盘 + 发信号 (镜像 Python set 行为) ----
+// ---- setters: 去重 + 串行后台落盘 + 成功后发信号 ----
 void ConfigManager::setLazyLoading(bool value) {
-    if (m_state.lazyLoading == value) return;
-    State candidate = m_state;
-    candidate.lazyLoading = value;
-    if (!commit(candidate)) return;
-    emit lazyLoadingChanged();
-    emit configChanged();
+    if (!persistencePending() && m_state.lazyLoading == value) return;
+    enqueueUpdate(Field::LazyLoading, value);
 }
 void ConfigManager::setDwmShadow(bool value) {
-    if (m_state.dwmShadow == value) return;
-    State candidate = m_state;
-    candidate.dwmShadow = value;
-    if (!commit(candidate)) return;
-    emit dwmShadowChanged();
-    emit configChanged();
+    if (!persistencePending() && m_state.dwmShadow == value) return;
+    enqueueUpdate(Field::DwmShadow, value);
 }
 void ConfigManager::setDpiScale(const QVariant &candidateValue) {
     int value = 0;
@@ -148,20 +332,12 @@ void ConfigManager::setDpiScale(const QVariant &candidateValue) {
         qWarning() << "prism::ConfigManager 无效 dpiScale:" << candidateValue;
         return;
     }
-    if (m_state.dpiScale == value) return;
-    State candidate = m_state;
-    candidate.dpiScale = value;
-    if (!commit(candidate)) return;
-    emit dpiScaleChanged();
-    emit configChanged();
+    if (!persistencePending() && m_state.dpiScale == value) return;
+    enqueueUpdate(Field::DpiScale, value);
 }
 void ConfigManager::setMicaEnabled(bool value) {
-    if (m_state.micaEnabled == value) return;
-    State candidate = m_state;
-    candidate.micaEnabled = value;
-    if (!commit(candidate)) return;
-    emit micaEnabledChanged();
-    emit configChanged();
+    if (!persistencePending() && m_state.micaEnabled == value) return;
+    enqueueUpdate(Field::MicaEnabled, value);
 }
 void ConfigManager::setWindowType(const QVariant &candidateValue) {
     int value = 0;
@@ -169,12 +345,40 @@ void ConfigManager::setWindowType(const QVariant &candidateValue) {
         qWarning() << "prism::ConfigManager 无效 windowType:" << candidateValue;
         return;
     }
-    if (m_state.windowType == value) return;
-    State candidate = m_state;
-    candidate.windowType = value;
-    if (!commit(candidate)) return;
-    emit windowTypeChanged();
-    emit configChanged();
+    if (!persistencePending() && m_state.windowType == value) return;
+    enqueueUpdate(Field::WindowType, value);
+}
+void ConfigManager::setTheme(const QString &value) {
+    if (!isValidTheme(value)) {
+        qWarning() << "prism::ConfigManager 无效 theme:" << value;
+        return;
+    }
+    if (!persistencePending() && m_state.theme == value) return;
+    enqueueUpdate(Field::Theme, value);
+}
+void ConfigManager::setSkin(const QString &value) {
+    if (!isValidSkin(value)) {
+        qWarning() << "prism::ConfigManager 无效 skin:" << value;
+        return;
+    }
+    if (!persistencePending() && m_state.skin == value) return;
+    enqueueUpdate(Field::Skin, value);
+}
+void ConfigManager::setLanguage(const QString &value) {
+    if (!isValidLanguage(value)) {
+        qWarning() << "prism::ConfigManager 无效 language:" << value;
+        return;
+    }
+    if (!persistencePending() && m_state.language == value) return;
+    enqueueUpdate(Field::Language, value);
+}
+void ConfigManager::setAccentColor(const QString &value) {
+    if (!isValidAccentColor(value)) {
+        qWarning() << "prism::ConfigManager 无效 accentColor:" << value;
+        return;
+    }
+    if (!persistencePending() && m_state.accentColor == value) return;
+    enqueueUpdate(Field::AccentColor, value);
 }
 
 }  // namespace prism

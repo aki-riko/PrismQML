@@ -5,9 +5,8 @@
 
 """PrismQML 应用级设置 — 落盘到 ~/.prismqml/app.json
 
-这是 PrismQML 自带的 SettingsCore 子类,承载窗口外观、DPI、窗口类型等
-进程级偏好。下游业务可自行继承 SettingsCore 定义业务条目,
-这里只放引擎自身需要的 5 项。
+这是 PrismQML 自带的 SettingsCore 子类,承载窗口、DPI、主题、皮肤、语言与
+主题色等进程级偏好。下游业务可自行继承 SettingsCore 定义业务条目。
 """
 
 from pathlib import Path
@@ -16,6 +15,7 @@ from typing import ClassVar
 from . import _app_config_schema as _schema
 from .config_item import EnumEntry, SettingEntry
 from .settings_core import SettingsCore
+from ..core.theme import ThemeManager
 
 
 # ---------- 默认存放路径 ----------
@@ -70,10 +70,44 @@ class AppConfig(SettingsCore):
         restart=True,
     )
 
+    # ── Appearance ──
+    theme: ClassVar[EnumEntry] = EnumEntry(
+        group="Appearance",
+        name="Theme",
+        default="auto",
+        validator=_schema.THEME_VALIDATOR,
+    )
+
+    skin: ClassVar[EnumEntry] = EnumEntry(
+        group="Appearance",
+        name="Skin",
+        default="fluent",
+        validator=_schema.SKIN_VALIDATOR,
+    )
+
+    language: ClassVar[EnumEntry] = EnumEntry(
+        group="Appearance",
+        name="Language",
+        default="auto",
+        validator=_schema.LANGUAGE_VALIDATOR,
+    )
+
+    accent_color: ClassVar[SettingEntry] = SettingEntry(
+        group="Appearance",
+        name="AccentColor",
+        default=ThemeManager.DEFAULT_ACCENT,
+        validator=_schema.ACCENT_COLOR_VALIDATOR,
+    )
+
 
 def validate_app_window_mapping(window) -> bool:
     """严格校验 AppConfig 已声明的 Window 字段；未知字段保持可扩展。"""
     return _schema.validate_app_window_mapping(window)
+
+
+def validate_app_appearance_mapping(appearance) -> bool:
+    """严格校验 AppConfig 已声明的 Appearance 字段。"""
+    return _schema.validate_app_appearance_mapping(appearance)
 
 
 __all__ = [
@@ -81,4 +115,5 @@ __all__ = [
     "DEFAULT_CONFIG_DIR",
     "DEFAULT_APP_CONFIG",
     "validate_app_window_mapping",
+    "validate_app_appearance_mapping",
 ]
