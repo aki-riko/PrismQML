@@ -1,0 +1,742 @@
+001	Ikon
+002	Memuat komponen...
+003	Label
+004	Masukan
+005	Menu
+006	Kontainer
+007	Pembaruan otomatis
+008	Karosel
+009	Efek
+010	Umpan balik
+011	Bagan
+012	Tombol
+013	Memuat
+014	Pengaturan
+015	Navigasi
+016	Kartu
+017	Terjadi kesalahan
+018	Operasi berhasil
+019	Perlu perhatian
+020	Informasi
+021	Memproses...
+022	InfoBar
+023	Cincin progres
+024	Bilah progres 60%
+025	Memproses...
+026	Empat fitur progres Toast
+027	Mengunduh...
+028	Menyinkronkan...
+029	Unggah
+030	Cincin progres 40%
+031	Mengunggah...
+032	Bilah progres tak tentu
+033	Menyinkronkan data...
+034	Memproses
+035	Harap tunggu...
+036	Mode progres InfoBar
+037	Empat fitur progres InfoBar
+038	Menyinkronkan
+039	Cincin progres tak tentu
+040	Bilah progres
+041	Mode progres Toast
+042	Unduh
+043	Mengunduh berkas...
+044	Jalur penginstal DRY tidak valid
+045	Demo DRY selesai: penyerahan ke instalasi senyap disimulasikan; tidak ada berkas yang diunduh dan tidak ada penginstal yang dijalankan
+046	DRY: menyimulasikan pemeriksaan pembaruan...
+047	DRY: unduhan simulasi<SP>
+048	- Simulasikan progres unduhan dari 0% hingga 100%<NL>
+049	- Simulasikan penyerahan instalasi senyap Inno Setup tanpa membuat berkas atau menjalankan program
+050	Mode DRY tidak membuka halaman eksternal
+051	DRY: unduhan simulasi selesai; menyerahkan ke instalasi
+052	- Tampilkan dialog konfirmasi pembaruan yang sebenarnya<NL>
+053	Unduhan simulasi DRY sedang berlangsung
+054	DRY: menyiapkan unduhan simulasi
+055	Token unduhan DRY tidak valid
+056	DRY: penyerahan instalasi gagal
+057	DRY: penyerahan instalasi slot ganda gagal
+058	DRY: persiapan slot ganda selesai; beralih otomatis pada peluncuran berikutnya
+059	DRY: menyiapkan slot tidak aktif di latar belakang
+060	DRY: versi simulasi ditemukan; menunggu konfirmasi
+061	Demo DRY sedang berlangsung
+062	## Pembaruan demo DRY<NL><NL>
+063	, menunggu konfirmasi
+064	Mendemonstrasikan pemeriksaan, konfirmasi, progres unduhan, penulisan latar belakang ke slot tidak aktif, dan peralihan pada peluncuran berikutnya; tidak pernah mengakses jaringan, membuat berkas, atau menjalankan penginstal.
+065	Toast kanan bawah
+066	2. Gunakan UpdateDialog sebenarnya untuk menampilkan catatan dan mengonfirmasi “Unduh dan Instal”
+067	Gunakan Updater sebenarnya yang disuntikkan oleh Gallery untuk memeriksa Releases; mode ini dapat mengakses jaringan dan membuka halaman rilis.
+068	Terakhir terdeteksi:
+069	3. Tampilkan progres unduhan tak tentu atau tertentu dengan Toast atau ProgressDialog
+070	Pengguna melihat dialog dan umpan balik progres sebenarnya, tetapi tidak ada efek samping instalasi.
+071	Mode Release sebenarnya
+072	Demo unduh dan instal DRY
+073	Versi saat ini:
+074	Mode demo DRY (simulasi aman)
+075	Terakhir terdeteksi: tidak ada
+076	Alur pembaruan
+077	Menyimulasikan pemeriksaan...
+078	Gallery mendemonstrasikan secara langsung cara komponen fasad mengatur Updater, UpdateDialog, dan penyaji umpan balik yang dapat diganti di bawahnya.
+079	Versi baru ditemukan<SP>
+080	Mulai demo DRY
+081	Unduhan dikonfirmasi<SP>
+082	Menyiapkan di latar belakang...
+083	1. Periksa GitHub Releases dan bandingkan dengan versi saat ini
+084	Sumber demo:
+085	2. Tampilkan catatan rilis dan dialog konfirmasi saat versi baru ditemukan
+086	Periksa pembaruan
+087	Belum dikonfigurasi
+088	4. Dalam mode slot ganda, ganti slot tidak aktif di latar belakang dan beralih ke versi baru pada peluncuran berikutnya
+089	Sudah terbaru<SP>
+090	Repositori:
+091	Mode sebenarnya tidak tersedia: Gallery tidak menyuntikkan appUpdater
+092	Mode sebenarnya: belum diperiksa
+093	1. Simulasikan pemeriksaan dan kembalikan versi demo
+094	3. Gunakan Toast atau ProgressDialog sebenarnya untuk menaikkan progres simulasi hingga 100%
+095	Pemeriksaan gagal:
+096	Mode DRY: menunggu demo dimulai
+097	4. Simulasikan penggantian slot tidak aktif di latar belakang dengan Inno Setup; biarkan versi ini berjalan dan beralih pada peluncuran berikutnya
+098	Alur pembaruan GitHub Releases sebenarnya
+099	DRY: versi simulasi ditemukan<SP>
+100	Mode sebenarnya bergantung pada Release yang menyediakan aset penginstal untuk platform saat ini.
+101	Memeriksa...
+102	Button - kombinasi ToolButton dan fitur
+103	Edit
+104	Hanya teks (Push)
+105	Kombinasi dengan lencana (Badge)
+106	Button - tombol hitung mundur yang digabungkan dengan setiap gaya
+107	Kombinasi gaya dan fitur (indeterminate_ring)
+108	Hapus
+109	Button - gaya ToolButton (6)
+110	Tindakan B
+111	Kombinasi Style, Pill, dan Dropdown/Split
+112	Kirim kode verifikasi
+113	Hanya ikon → gaya ToolButton; teks atau ikon + teks → gaya PushButton
+114	Menu:
+115	Button - gaya × bentuk Pill × fitur progres
+116	Button - varian Filled: tanpa latar belakang, teks berwarna status
+117	Opsi 2
+118	Button - bentuk (2)
+119	Kombinasi Style, Pill, dan Toggle
+120	Tindakan A
+121	Dipilih:
+122	Tombol utama menu eksternal diklik
+123	Tombol utama diklik
+124	Opsi 3
+125	Kombinasi gaya dan fitur (progress_bar)
+126	Button - tingkat status Filled (6)
+127	Properti
+128	Opsi 1
+129	Kombinasi gaya dan bentuk
+130	Button - deteksi jenis otomatis
+131	Kombinasi gaya dan fitur (indeterminate_bar)
+132	Button - fitur (9)
+133	Button - gaya × bentuk Pill × fitur dropdown/split
+134	Tindakan eksternal 2
+135	Kombinasi gaya dan fitur (toggle)
+136	Button - tingkat status Text (6)
+137	Ikon + teks (Push)
+138	Kombinasi gaya dan fitur (split)
+139	Menu eksternal
+140	Kombinasi gaya dan fitur (countdown)
+141	Kombinasi gaya dan fitur (progress_ring)
+142	Hanya ikon + fitur
+143	Tindakan eksternal 1
+144	Button - 7 gaya × bentuk Pill × fitur toggle
+145	Tombol khusus ikon secara otomatis terdeteksi sebagai ToolButton
+146	Kombinasi gaya dan fitur (dropdown)
+147	Button - gaya (6)
+148	Hanya ikon (Tool)
+149	Kombinasi bentuk (Pill) dan fitur
+150	Kombinasi Style, Pill, dan Progress
+151	Tanpa efek saat penunjuk diarahkan
+152	Kartu dengan efek penunjuk
+153	Kartu khusus
+154	Berubah warna saat penunjuk diarahkan tanpa terangkat
+155	Klik untuk memperluas
+156	Konten yang diperluas
+157	Kartu pengaturan
+158	Kartu dasar
+159	Terangkat saat penunjuk diarahkan dengan bayangan lebih kuat
+160	Kartu dengan area judul terpisah
+161	Kartu sederhana
+162	Kartu standar
+163	Kartu dan kontainer
+164	Kartu berjudul
+165	Vertikal dengan tombol
+166	Horizontal dasar (5 titik)
+167	Carousel + PipsPager - karosel terpadu dengan indikator halaman
+168	Karosel geser standar
+169	effect_slide + vertikal
+170	Horizontal (bawaan)
+171	Vertikal (orientation: Qt.Vertical)
+172	Dengan tombol (selalu terlihat)
+173	Sinkronisasi PipsPager eksternal + perulangan
+174	Karosel dan indikator halaman
+175	effect_slide (horizontal)
+176	Carousel - orientasi horizontal/vertikal + sinkronisasi PipsPager eksternal
+177	Indikator halaman (PipsPager)
+178	Carousel - efek effect_slide (geseran seluruh gambar tanpa pratinjau samping)
+179	Karosel dengan pratinjau samping
+180	Vertikal dasar (4 titik)
+181	HorizontalPipsPager / VerticalPipsPager - tombol halaman, batas jumlah terlihat, dan gulir halus
+182	Produk C
+183	Bagan radar
+184	Produk D
+185	Bagan sebar
+186	Produk B
+187	Bagan donat
+188	Peringkat penjualan
+189	Bagan donat - pusat ditonjolkan
+190	Bagan kotak
+191	Komponen bagan
+192	Bagan batang horizontal
+193	Gelombang audio (AudioWaveform)
+194	Bagan garis
+195	Bagan kotak - dengan pencilan
+196	Bagan area bertumpuk
+197	Produk A
+198	Produk E
+199	Bagan batang
+200	Bagan pai
+201	Layout (mode=mode_default) - peralihan mode FlowLayout internal
+202	Komponen tata letak
+203	Mode vertikal: semua anak memiliki lebar sama (lebar kolom dibagi merata)
+204	Jatuhkan berkas
+205	Horizontal (tinggi sama)
+206	Bawah
+207	Kanan
+208	Vertikal (lebar sama)
+209	Perluas dari atas
+210	Koreksi kesalahan tinggi
+211	Item gulir<SP>
+212	Pustaka komponen PrismQML
+213	Laci
+214	Tutup
+215	Tata letak alir
+216	Konten di bawah
+217	Laci atas
+218	Mode horizontal: semua anak dalam satu baris memiliki tinggi sama (tinggi maksimum baris)
+219	Dokumen rahasia
+220	Perluas dari kanan
+221	Bawaan
+222	Perluas dari kiri
+223	Laci bawah
+224	Laci kanan
+225	Konten yang dikelompokkan
+226	Pemisah
+227	Kode QR
+228	Tanda air
+229	Alihkan mode:
+230	Judul grup
+231	Laci di luar jendela
+232	Konten di atas
+233	Garis pemisah
+234	Perluas dari bawah
+235	Atas
+236	Komponen gulir
+237	Kotak grup
+238	Kiri
+239	Laci kiri
+240	Komponen kontainer
+241	Mode bawaan: pertahankan ukuran asli setiap anak dan bungkus secara otomatis
+242	Tema: klasik, sian, amber, merah, ungu, biru, putih, merah muda, emas, limau, jingga, hijau kebiruan, neon, matahari terbenam, samudra, hutan, tengah malam
+243	→ Kanan
+244	Arah
+245	Mode pelangi
+246	Kumpulan karakter
+247	✓ Kedipan
+248	Jeda/Lanjutkan
+249	Kecepatan:<SP>
+250	✓ Cahaya
+251	↓ Bawah
+252	Prasetel kumpulan karakter: Jepang, katakana, biner, digit, heksadesimal, Tionghoa, simbol, ASCII, Yunani, rune
+253	Metode: start(), stop(), pause(), resume(), toggle(), reset(), setTheme(name), setDirection(dir), setCharsetPreset(preset), setCustomCharset(chars), enableGlow(intensity), disableGlow(), enableFlicker(rate), disableFlicker(), enableInteraction(radius), disableInteraction(), enableRainbow(), disableRainbow(), setPerspective(value), configure(options)
+254	✓ Mode pelangi
+255	Jejak:<SP>
+256	Properti: running, paused, speed, fontSize, density, fadeSpeed, direction, mainColor, headColor, backgroundColor, charset, charsetPreset, glowEnabled, glowIntensity, flickerEnabled, flickerRate, perspective, interactive, interactionRadius, rainbowMode
+257	Jalankan
+258	Kepadatan:<SP>
+259	Font:<SP>
+260	✓ Interaksi mouse
+261	← Kiri
+262	MatrixRain - efek hujan digital
+263	Cahaya
+264	Properti dan metode komponen
+265	Perspektif 3D
+266	Hujan digital klasik bergaya Matrix dengan konfigurasi luas
+267	Atur ulang
+268	Kedipan
+269	Tema warna
+270	✓ Perspektif 3D
+271	↑ Atas
+272	Interaksi mouse
+273	Hasil: Batal
+274	Panel tarik-turun
+275	Hanya tombol OK
+276	Berhasil
+277	Flyout - 6 animasi: pullUp/dropDown/slideLeft/slideRight/fadeIn/none + mode modal
+278	Komponen pop-up lainnya
+279	Luncurkan konfeti
+280	Klik hamparan untuk menutup
+281	Kesalahan
+282	Operasi gagal
+283	Ini adalah contoh konten untuk dialog tanpa bingkai. Teks khusus apa pun dapat ditempatkan di sini untuk mendemonstrasikan judul, isi, dan tata letak tombol.
+284	Opsi khusus - tata letak vertikal/konten khusus/layar eksplisit
+285	Ini adalah dialog tanpa bingkai
+286	Kerangka profil melingkar
+287	Geser masuk dari kanan
+288	Notifikasi Toast desktop (jendela terpisah) - kiri atas/tengah atas/kanan atas/kiri bawah/tengah bawah/kanan bawah
+289	Kanan
+290	Sembunyikan Batal
+291	Ini adalah pesan
+292	Berhasil dikirim
+293	Hasil: OK
+294	Panel yang ditarik ke atas
+295	Buka ke bawah
+296	Notifikasi InfoBar desktop (jendela terpisah) - kiri atas/tengah atas/kanan atas/kiri bawah/tengah bawah/kanan bawah
+297	Konfirmasi
+298	Posisi kanan atas
+299	Bawah
+300	Geser ke kiri
+301	Posisi kanan bawah
+302	Panel pop-up
+303	Panel memudar masuk
+304	Ini adalah ToolTip
+305	Tarik ke atas
+306	TeachingTip
+307	Perhatian
+308	Tip nonmodal
+309	Posisi tengah atas
+310	Kiri
+311	Atas
+312	Geser ke kanan
+313	Kerangka
+314	Komponen status
+315	Buka folder
+316	Apakah Anda yakin ingin melakukan tindakan ini?
+317	Animasi konfeti
+318	Posisi kiri bawah
+319	Kotak pesan
+320	Tutorial
+321	Pilih teks ini untuk menyalinnya: PrismQML adalah pustaka komponen QML
+322	Panah bawah
+323	StateWidget (komponen status terpadu yang dibedakan oleh stateType)
+324	Dialog ini hanya memiliki tombol OK
+325	Harap tunggu dengan sabar...
+326	Kotak konfirmasi
+327	Dapat disalin
+328	Dialog tanpa bingkai
+329	Posisi kiri atas
+330	Konten yang dapat disalin
+331	Peringatan
+332	Indikator progres
+333	Kerangka profil persegi
+334	Arahkan penunjuk
+335	Posisi tengah bawah
+336	Komponen umpan balik
+337	Panah kiri
+338	Panah atas
+339	Hasil: tidak ada tindakan
+340	Nonmodal
+341	Dialog
+342	Toast - kiri atas/tengah atas/kanan atas/kiri bawah/tengah bawah/kanan bawah
+343	Panah kanan
+344	Dapat diseret
+345	Geser masuk dari kiri
+346	InfoBar - kiri atas/tengah atas/kanan atas/kiri bawah/tengah bawah/kanan bawah
+347	Sembunyikan tombol Batal
+348	Menyiapkan tugas unduhan...
+349	TeachingTip - tip instruksional dengan panah (anchor_bottom/top/left/right...)
+350	Tip
+351	Memudar masuk
+352	Tidak menutup otomatis
+353	Dialog yang dapat diseret
+354	Klik hamparan untuk menutup dialog ini
+355	Konfeti (ditampilkan di jendela utama)
+356	Konten dapat disalin
+357	Cobalah menyeret dialog ini
+358	Mulai tur terpandu
+359	Pengaturan notifikasi
+360	Langkah 2
+361	Langkah 1
+362	Tur terpandu TeachingTour
+363	Edit avatar dan informasi pribadi Anda di sini.
+364	Profil
+365	Pilih notifikasi yang ingin Anda terima di sini.
+366	Hamparan seluruh jendela memusatkan area target dan mendukung Berikutnya, Selesai, dan Lewati
+367	Nama anggota enum
+368	Kode Python
+369	Cari ikon
+370	Nama ikon
+371	Web
+372	Izinkan satu tombol (allowSingleKey)
+373	Tambahkan label...
+374	Pilihan tarik-turun
+375	Multi-pilihan campuran
+376	Mendesak
+377	Opsi B
+378	Vertikal
+379	Multi-pilihan 21
+380	Multi-pilihan 28
+381	Nama pengguna
+382	Shenzhen
+383	Multi-pilihan 11
+384	Pemilih kalender
+385	Beranda
+386	Wenzhou
+387	Multi-pilihan 25
+388	Dokumen
+389	Multi-pilihan 10
+390	Multi-pilihan 12
+391	Shanghai
+392	Multi-pilihan 9
+393	Foshan
+394	Jiaxing
+395	Multi-pilihan 6
+396	Multi-pilihan 27
+397	Hangzhou
+398	Opsi 5
+399	Masukan khusus
+400	Ningbo
+401	Multi-pilihan 15
+402	Opsi 4
+403	Multi-pilihan 17
+404	Cari
+405	Multi-pilihan 4
+406	Multi-pilihan 13
+407	Wuhan
+408	Shanghai
+409	Kombinasi tombol (bawaan)
+410	Horizontal
+411	Filter
+412	Multi-pilihan 2
+413	Opsi A
+414	Provinsi Zhejiang
+415	Pilih warna latar belakang
+416	Masukan teks
+417	Minimal 2 karakter, dipisahkan koma
+418	Tiongkok Selatan
+419	Opsi 9
+420	Terapkan
+421	Beijing
+422	Uji
+423	Pemilih warna
+424	Label 1
+425	Suzhou
+426	ShortcutEditor (allowSingleKey: masukan satu tombol / masukan kombinasi tombol)
+427	Multi-pilihan 22
+428	Shenzhen
+429	Tanggal
+430	Multi-pilihan 14
+431	Tiongkok Timur
+432	Opsi 10
+433	Multi-pilihan 29
+434	Multi-pilihan 20
+435	Opsi 8
+436	Masukkan kota...
+437	Komponen masukan
+438	Guangzhou
+439	Ikon + teks
+440	Distrik Huangpu
+441	Guangzhou
+442	Waktu
+443	Label 2
+444	Multi-pilihan 26
+445	Hanya ikon
+446	Nanjing
+447	Kontrol alih
+448	Zhuhai
+449	DateTimePicker - pemilih roda terpadu dengan pelokalan otomatis
+450	Format 12 jam
+451	Kata sandi
+452	Shaoxing
+453	Teks deskripsi
+454	Penggeser
+455	Hangzhou
+456	Opsi 6
+457	Provinsi Jiangsu
+458	Pemilih tanggal dan waktu
+459	ScrollBar (vertikal/horizontal)
+460	Buka dialog warna
+461	Multi-pilihan 16
+462	Dongguan
+463	<b>Mendukung</b> tampilan <i>teks kaya</i>
+464	Waktu (detik)
+465	Multi-pilihan 23
+466	Multi-pilihan 18
+467	Selesai
+468	Opsi 7
+469	Video
+470	Transparan 2
+471	Tanggal + waktu
+472	Nanjing
+473	Multi-pilihan 8
+474	Warna terpilih:
+475	Multi-pilihan 19
+476	Uji 2
+477	Multi-pilihan 3
+478	Multi-pilihan 30
+479	Masukan angka
+480	Chengdu
+481	Gambar
+482	Multi-pilihan 7
+483	Transparan 1
+484	Pemilih pintasan
+485	Silakan pilih
+486	Musik
+487	Bilah gulir halus
+488	Standar
+489	Label garis luar berwarna
+490	Xi’an
+491	Multi-pilihan 24
+492	Area Baru Pudong
+493	Chongqing
+494	Multi-pilihan 5
+495	Provinsi Guangdong
+496	Multi-pilihan 1
+497	Distrik Xuhui
+498	Hanya teks
+499	Wuxi
+500	Teks pendukung
+501	Label dan lencana
+502	Lencana
+503	Warna solid · memantul
+504	Label status
+505	Avatar
+506	Dipilih
+507	Pesan
+508	Isi tebal
+509	Horizontal · gradien · normal
+510	Label, lencana, chip, dan tag
+511	Subjudul
+512	Warna solid · normal
+513	Label teks
+514	Teks pranala
+515	Gradien · memantul
+516	Horizontal · warna solid · memantul
+517	Judul
+518	Indikator/bilah aksen beranimasi - colorStyle × animationStyle × orientation; klik kartu untuk mengalihkan status active
+519	Isi
+520	Judul besar
+521	Tag chip yang dapat dialihkan
+522	Informasi
+523	Gradien · normal
+524	Tanpa tombol tutup
+525	Badge - komponen lencana terpadu
+526	Avatar / AvatarSelector - source (gambar) / text (teks) / size (ukuran)
+527	Zhang
+528	Horizontal · gradien · memantul
+529	Indikator halaman
+530	Hapus saat ini
+531	Dasar (5 titik)
+532	Harga
+533	Menu dan daftar
+534	Kembangkan komponen halaman beranda
+535	Desain interaksi
+536	Manajer proyek
+537	Klik gambar untuk menguji sinyal clicked
+538	Bersihkan semua
+539	Item<SP>
+540	Departemen Teknik
+541	Label 3
+542	Teks bergulir
+543	Pengembangan bisnis
+544	Tag tertutup<SP>
+545	Selesaikan tinjauan persyaratan dan mockup desain
+546	Ubah teks
+547	Analis data
+548	Tempel
+549	Potong
+550	Departemen Produk
+551	Konten dinamis
+552	Nonaktifkan
+553	Produk
+554	Tulis pengujian unit
+555	Jumlah
+556	Daftar tugas
+557	Status
+558	Salin
+559	Konten 2
+560	Diubah
+561	Teks bergulir - pameran pustaka komponen PrismQML
+562	Operasi konten
+563	Ajukan tinjauan kode
+564	Kemitraan kanal
+565	Tambahkan tag
+566	Item daftar
+567	Tampilan data
+568	Foto
+569	Tag baru
+570	Tim QA
+571	Sinyal clicked dipicu!
+572	Komponen gambar
+573	Menu konteks
+574	Jadwal hari ini
+575	Tim Desain
+576	Klik kanan area ini
+577	Persyaratan.md
+578	Catatan Rapat.pdf
+579	Promosi merek
+580	Tab
+581	Konten 1
+582	Item tampilan<SP>
+583	Tim Backend
+584	setTabText() mengubah teks
+585	Beralih ke tab<SP>
+586	ContextMenu - otomatis terikat ke peristiwa klik kanan komponen induk
+587	Status: belum diklik
+588	Operasi kampanye
+589	Tangkapan layar
+590	ImageWidget - sudut membulat, status pemuatan, dan peristiwa klik
+591	clear() membersihkan semua
+592	Tampilan daftar/tabel
+593	Departemen Pemasaran
+594	Timeline · grafik Git (penerimaan sambungan skala pecahan)
+595	Atur ulang
+596	Nama
+597	Tag baru ditambahkan
+598	Status API
+599	ListView / TableView / TreeView - tampilan tingkat rendah yang memerlukan delegate khusus
+600	addTab() menambahkan tab
+601	removeTab() menghapus tab
+602	Tab dinamis
+603	Kode
+604	Konten 3
+605	Desain visual
+606	Riset pengguna
+607	Laporan Kerja.docx
+608	Komponen daftar dan tabel
+609	Tim Operasi
+610	Selesai
+611	PipsPager - tombol halaman, batas jumlah terlihat, dan gulir halus
+612	Aktifkan
+613	Tim Frontend
+614	Kegiatan Tim.jpg
+615	Ulangi
+616	Navigasi jejak dengan ikon
+617	Bantuan 5
+618	Tampilan bilah perintah
+619	Informasi akun
+620	Berkas
+621	Pesanan
+622	Elipsis luapan (maxVisibleItems: 4)
+623	Komponen navigasi
+624	Direktori akar
+625	Paginasi
+626	Direktori tingkat 4
+627	Baru
+628	Tentang
+629	Semua
+630	Pembayaran
+631	Saat ini:<SP>
+632	Direktori tingkat 3
+633	Tambahkan tingkat
+634	Lokasi saat ini
+635	Navigasi jejak
+636	Naik satu tingkat
+637	Subhalaman
+638	Jejak dasar
+639	Komponen
+640	Folder
+641	Bilah perintah
+642	Bantuan 4
+643	Urungkan
+644	Navigasi jejak dengan ikon
+645	Tambahkan gambar
+646	Tambahkan subhalaman
+647	StackedWidget - alihkan jenis animasi melalui animationType
+648	Simpan
+649	Bilah menu
+650	Bantuan
+651	Direktori tingkat 1
+652	Pengiriman
+653	Berikutnya
+654	Bilah progres langkah
+655	BreadcrumbBar - animasi mulus, dukungan ikon, dan indikator warna tema
+656	Klik item jejak untuk menguji pemotongan
+657	Bantuan 2
+658	Buka
+659	Direktori tingkat 2
+660	Sebelumnya
+661	Bantuan 3
+662	Tingkat dalam
+663	Stepper - mendukung ikon dan teks
+664	Kontrol bersegmen/alih
+665	StackedWidget (enum animationType)
+666	Saat ada lebih dari empat item, item tengah otomatis diciutkan ke menu elipsis
+667	Keranjang belanja
+668	Kartu pengaturan warna (dapat diperluas)
+669	Opasitas
+670	Pilih bahasa tampilan
+671	Terapkan tema
+672	Warna aksen
+673	Kartu pengaturan kotak kombo
+674	Bayangan DWM native
+675	Personalisasi
+676	Kartu daftar folder (dapat diperluas)
+677	Ikuti sistem
+678	Sesuaikan opasitas jendela
+679	Kartu opsi (dapat diperluas)
+680	Pengaturan jendela
+681	Lihat bantuan daring
+682	Penskalaan DPI
+683	Bayangan jendela Windows native
+684	Pilih warna
+685	Bahasa antarmuka
+686	Mode tema
+687	Tambahkan folder
+688	Efek Mica
+689	Simpan konfigurasi saat ini
+690	Lihat informasi perangkat lunak
+691	Kartu pengaturan alih
+692	Tetapkan pintasan global
+693	Jenis jendela
+694	Khusus Windows 11
+695	Perilaku saat mulai
+696	Warna khusus
+697	Tema
+698	Aktifkan pemeriksaan pembaruan otomatis
+699	Warna tema
+700	Dokumentasi bantuan
+701	Volume
+702	Kelola folder pustaka musik
+703	Aktif
+704	Kartu tombol utama
+705	Kartu tombol
+706	Tampilkan jendela utama
+707	Pengaturan aplikasi
+708	Gelap
+709	Terang
+710	Pilih warna bawaan atau khusus
+711	Warna bawaan
+712	Komponen pengaturan
+713	Pilih tema antarmuka
+714	Kartu pranala
+715	Perlu mulai ulang
+716	Folder musik
+717	Sesuaikan volume sistem
+718	Simpan pengaturan
+719	Kartu penggeser
+720	Pemuatan malas
+721	Buka dokumentasi
+722	Efek animasi
+723	Sesuaikan tampilan aplikasi
+724	Lihat
+725	Aktifkan animasi antarmuka
+726	Muat konten halaman sesuai kebutuhan
+727	Kartu pintasan
+728	Pintasan
+729	Kontainer grup kartu pengaturan
+730	Minimalkan ke baki sistem
+731	Pilih perilaku aplikasi saat mulai
+732	Pulihkan status sebelumnya
+733	test: tambahkan gerbang piksel gulir pecahan
+734	chore: inisialisasi contoh grafik commit
+735	refactor: rapikan model data Timeline
+736	Gabungkan feature/timeline
+737	style: sesuaikan kepadatan tampilan Gallery
+738	feat: buat cabang gallery
+739	fix: perbaiki piksel batas grafik commit
+740	Grafik Git · DPI 150%
+741	PrismQML Gallery
+742	PrismQML Gallery (host C++)

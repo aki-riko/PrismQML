@@ -31,6 +31,7 @@ MANUAL_LONG_TEXT_ALLOWLISTS = {
         "effect_slide (horizontal)",
         "effect_slide + vertical",
     },
+    "id": {"effect_slide (horizontal)"},
     "it": set(),
     "nl": set(),
     "pl": set(),
