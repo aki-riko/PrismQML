@@ -257,8 +257,12 @@ void Window::build() {
             .arg(escapeQml(effectiveIcon),
                  m_windowIconColored ? QStringLiteral("true") : QStringLiteral("false"));
 
-    // 消费 ConfigManager 设置 (镜像 Python _window_builder): mica 效果 + DWM 阴影模式。
+    // 消费 ConfigManager 设置 (镜像 Python _window_builder): 懒加载、Mica 与 DWM 阴影。
     auto *cfg = ConfigManager::instance();
+    const QString lazyLoadingQml = QStringLiteral("    lazyLoading: %1\n")
+                                       .arg(cfg->lazyLoading()
+                                                ? QStringLiteral("true")
+                                                : QStringLiteral("false"));
     const QString micaQml = QStringLiteral("    micaEnabled: %1\n")
                                 .arg(cfg->micaEnabled() ? QStringLiteral("true") : QStringLiteral("false"));
     // shadowMode: dwmShadow=false → mode_none(3, 跨平台禁用); dwmShadow=true →
@@ -296,7 +300,8 @@ void Window::build() {
         qmlTextExpression(m_splashTitle, m_splashTitleTranslated),
         qmlTextExpression(m_splashSubtitle, m_splashSubtitleTranslated)
     );
-    const QString extraQml = iconQml + micaQml + shadowQml + splashQml;
+    const QString extraQml =
+        iconQml + lazyLoadingQml + micaQml + shadowQml + splashQml;
 
     const QString qml = QStringLiteral(
         "import QtQuick\n"
@@ -310,7 +315,6 @@ void Window::build() {
         "    height: %4\n"
         "    windowTitle: %5\n"
         "%9"
-        "    lazyLoading: false\n"
         "    navigationItems: [%6]\n"
         "    bottomNavigationItems: [%7]\n"
         "%8"

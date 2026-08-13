@@ -4,6 +4,7 @@
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - SystemTray/SingleInstance 运行时烟测 (需 QApplication)
 #include "prism/App.h"
+#include "prism/ConfigManager.h"
 #include "prism/SystemTray.h"
 #include "prism/SingleInstance.h"
 #include "prism/WindowHelper.h"
@@ -105,6 +106,25 @@ static void testApplicationIconFacade(prism::App &app) {
     QSystemTrayIcon *nativeTray = tray.findChild<QSystemTrayIcon *>();
     CHECK(nativeTray && !nativeTray->icon().isNull(),
           "App-created tray inherits the application icon");
+}
+
+static void testWindowRestoresLazyLoading(prism::App &app) {
+    prism::ConfigManager *config = prism::ConfigManager::instance();
+    config->setLazyLoading(false);
+    CHECK(config->waitForPersistence(), "关闭懒加载配置持久化完成");
+    prism::Window &eagerWindow = app.createWindow();
+    eagerWindow.show();
+    CHECK(eagerWindow.rootObject() &&
+              !eagerWindow.rootObject()->property("lazyLoading").toBool(),
+          "C++ Window 消费已提交的关闭懒加载配置");
+
+    config->setLazyLoading(true);
+    CHECK(config->waitForPersistence(), "开启懒加载配置持久化完成");
+    prism::Window &lazyWindow = app.createWindow();
+    lazyWindow.show();
+    CHECK(lazyWindow.rootObject() &&
+              lazyWindow.rootObject()->property("lazyLoading").toBool(),
+          "C++ Window 消费已提交的开启懒加载配置");
 }
 
 static void testAvailableScreenGeometry() {
@@ -353,6 +373,7 @@ int main(int argc, char *argv[]) {
     testIconPathUrlMatrix();
     testRealEncodedIcon();
     testApplicationIconFacade(app);
+    testWindowRestoresLazyLoading(app);
     testAvailableScreenGeometry();
     testDroppedFolderPathValidation();
     testWindowFollowerGeometry();
