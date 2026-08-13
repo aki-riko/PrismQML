@@ -104,6 +104,23 @@ def test_german_gallery_catalog_has_no_untranslated_sentences():
     }
 
 
+def test_spanish_gallery_catalog_has_no_untranslated_sentences():
+    spanish = _catalog("es")
+    english = _catalog("en")
+    keys = gallery_i18n.referenced_keys()
+    identical_sentences = {
+        english[key] for key in keys
+        if spanish[key] == english[key]
+        and (len(english[key]) > 24 or len(english[key].split()) >= 3)
+    }
+    assert identical_sentences == {
+        "ScrollBar (vertical/horizontal)",
+        "Vertical (orientation: Qt.Vertical)",
+        "effect_slide (horizontal)",
+        "effect_slide + vertical",
+    }
+
+
 def test_english_gallery_catalog_is_a_complete_manual_baseline():
     source = _catalog("zh_CN")
     english = _catalog("en")
