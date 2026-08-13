@@ -101,7 +101,16 @@ OverlayDialogCore {
             offset.y: control._dialogShadowOffset
             opacity: dialogBody.opacity
             scale: dialogBody.scale
-            visible: Enums.usesSoftElevation
+            visible: Enums.usesSoftElevation && !Enums.isNeumorphism
+        }
+
+        NeumorphicShadow {
+            target: dialogBody
+            visible: Enums.isNeumorphism
+            opacity: dialogBody.opacity
+            scale: dialogBody.scale
+            transformOrigin: dialogBody.transformOrigin
+            z: dialogBody.z - 1
         }
 
         NeoShadow {

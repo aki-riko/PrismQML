@@ -5,6 +5,7 @@
 import QtQuick
 import "../../.."
 import "../../icons"
+import "../../../effects"
 
 // Badge - Unified badge component 统一徽章组件
 // Supports: count, text, icon, dot modes 支持：计数、文本、图标、点模式
@@ -63,6 +64,12 @@ Rectangle {
     // 描边皮肤保留可见油墨边；Neo 小徽章继续使用紧凑 medium 宽度。
     border.width: control._badgeBorderWidth
     border.color: control._badgeBorderColor
+
+    NeumorphicShadow {
+        target: control
+        visible: Enums.isNeumorphism
+        z: control.z - 1
+    }
     
     // ==================== Content 内容 ====================
     Item {

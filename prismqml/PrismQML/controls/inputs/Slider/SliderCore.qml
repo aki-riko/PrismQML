@@ -6,6 +6,7 @@ import QtQuick
 import "../../.."
 import ".."
 import "../../feedback"
+import "../../../effects"
 
 // Slider - Unified slider component 统一滑块组件
 // Distinguish by type: type_default/type_range 通过type区分
@@ -166,6 +167,12 @@ Item {
                 height: isHorizontal ? Enums.radius.small : parent.height
                 radius: control._trackRadius
                 color: control._trackColor
+
+                NeumorphicShadow {
+                    target: track
+                    inset: true
+                    visible: Enums.isNeumorphism
+                }
                 
                 // Progress 进度
                 Rectangle {
@@ -213,6 +220,13 @@ Item {
                 color: control.handleColor
                 border.width: control._handleBorderWidth
                 border.color: control._handleBorderColor
+
+                NeumorphicShadow {
+                    target: handle
+                    inset: handleArea.pressed
+                    visible: Enums.isNeumorphism
+                    z: handle.z - 1
+                }
                 
                 Rectangle {
                     anchors.centerIn: parent

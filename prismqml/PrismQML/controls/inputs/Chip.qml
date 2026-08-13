@@ -57,7 +57,14 @@ Item {
         blur: Enums.shadow.level2.blur
         offset.x: 0
         offset.y: Enums.shadow.level2.offset
-        visible: Enums.usesSoftElevation
+        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
+    }
+
+    NeumorphicShadow {
+        target: chipBg
+        inset: control.pressed || control.checked
+        visible: Enums.isNeumorphism
+        z: chipBg.z - 1
     }
 
     NeoShadow {

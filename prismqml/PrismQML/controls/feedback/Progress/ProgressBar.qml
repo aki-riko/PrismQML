@@ -15,6 +15,12 @@ ProgressCore {
     contentWidth: Enums.controlSize.inputDefaultWidth
     contentHeight: Enums.controlSize.progressBarHeight
     clip: true
+
+    NeumorphicShadow {
+        target: control
+        inset: true
+        visible: Enums.isNeumorphism
+    }
     
     Rectangle {
         anchors.fill: parent

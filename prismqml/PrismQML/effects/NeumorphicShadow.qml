@@ -33,7 +33,7 @@ Item {
     RectangularShadow {
         id: darkShadow
         anchors.fill: parent
-        radius: target ? target.radius : 0
+        radius: target && target.radius !== undefined ? target.radius : 0
         color: root.accent ? Enums.accentColor : root.darkColor
         blur: root.blur
         offset.x: root.inset ? -root.offset : root.offset
@@ -45,7 +45,7 @@ Item {
     RectangularShadow {
         id: lightShadow
         anchors.fill: parent
-        radius: target ? target.radius : 0
+        radius: target && target.radius !== undefined ? target.radius : 0
         color: root.lightColor
         blur: root.blur
         offset.x: -root.offset

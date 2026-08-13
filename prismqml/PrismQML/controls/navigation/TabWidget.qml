@@ -317,6 +317,13 @@ Widget {
                 offset.x: 0
                 offset.y: Enums.shadow.level2.offset
                 visible: control.shadowEnabled && Enums.usesSoftElevation
+                         && !Enums.isNeumorphism
+            }
+            NeumorphicShadow {
+                target: indicatorBg
+                inset: true
+                visible: control.shadowEnabled && Enums.isNeumorphism
+                z: indicatorBg.z - 1
             }
             NeoShadow {
                 target: indicatorBg
@@ -328,7 +335,7 @@ Widget {
                 id: indicatorBg
                 anchors.fill: parent
                 radius: control._selectedTabRadius
-                color: Enums.hasOutlinedSurfaces ? Enums.cardColor
+                color: Enums.hasOutlinedSurfaces || Enums.isNeumorphism ? Enums.cardColor
                        : (Enums.isDark ? Enums.themeColors.tabSelectedDark : Enums.themeColors.tabSelectedLight)
                 border.width: control._selectedTabBorderWidth
                 border.color: Enums.hasOutlinedSurfaces ? Enums.borderColor

@@ -49,7 +49,13 @@ Item {
         blur: surface.popupShadowBlur
         offset.x: 0
         offset.y: surface.popupShadowOffset
-        visible: Enums.usesSoftElevation
+        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
+    }
+
+    NeumorphicShadow {
+        target: popupPanel
+        visible: Enums.isNeumorphism
+        z: Enums.zIndex.background
     }
 
     // neo 硬阴影: 偏移纯色矩形(弹层用 explicit 几何, 不用 NeoShadow 的 target)

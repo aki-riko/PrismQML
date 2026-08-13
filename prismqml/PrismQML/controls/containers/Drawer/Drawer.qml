@@ -403,7 +403,14 @@ OverlayDialogCore {
         blur: Enums.shadow.level28.blur
         offset.x: 0
         offset.y: Enums.shadow.level28.offset
-        visible: Enums.usesSoftElevation && (control._isOpen || control._isClosing)
+        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
+                 && (control._isOpen || control._isClosing)
+    }
+
+    NeumorphicShadow {
+        target: drawer
+        visible: Enums.isNeumorphism && (control._isOpen || control._isClosing)
+        z: drawer.z - 1
     }
     
     // Drawer panel 抽屉面板
