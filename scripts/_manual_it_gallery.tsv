@@ -1,0 +1,742 @@
+001	Icone
+002	Caricamento dei componenti...
+003	Etichette
+004	Input
+005	Menu
+006	Contenitori
+007	Aggiornamento automatico
+008	Carosello
+009	Effetti
+010	Feedback
+011	Grafici
+012	Pulsanti
+013	Caricamento
+014	Impostazioni
+015	Navigazione
+016	Schede
+017	Si è verificato un errore
+018	Operazione riuscita
+019	Attenzione richiesta
+020	Informazioni
+021	Elaborazione...
+022	InfoBar
+023	Anello di avanzamento
+024	Barra di avanzamento 60%
+025	Elaborazione...
+026	Quattro funzioni di avanzamento Toast
+027	Download in corso...
+028	Sincronizzazione...
+029	Caricamento
+030	Anello di avanzamento 40%
+031	Caricamento...
+032	Barra di avanzamento indeterminata
+033	Sincronizzazione dei dati...
+034	Elaborazione
+035	Attendere...
+036	Modalità di avanzamento InfoBar
+037	Quattro funzioni di avanzamento InfoBar
+038	Sincronizzazione
+039	Anello di avanzamento indeterminato
+040	Barra di avanzamento
+041	Modalità di avanzamento Toast
+042	Download
+043	Download dei file...
+044	Percorso del programma di installazione DRY non valido
+045	Demo DRY completata: è stato simulato il passaggio all’installazione silenziosa; nessun file è stato scaricato e nessun programma di installazione è stato avviato
+046	DRY: simulazione del controllo degli aggiornamenti...
+047	DRY: download simulato<SP>
+048	- Simula l’avanzamento del download dallo 0% al 100%<NL>
+049	- Simula il passaggio a un’installazione silenziosa di Inno Setup senza creare file né avviare programmi
+050	La modalità DRY non apre pagine esterne
+051	DRY: download simulato completato; passaggio all’installazione
+052	- Mostra la finestra di conferma reale dell’aggiornamento<NL>
+053	Download DRY simulato in corso
+054	DRY: preparazione del download simulato
+055	Token di download DRY non valido
+056	DRY: passaggio all’installazione non riuscito
+057	DRY: passaggio all’installazione a doppio slot non riuscito
+058	DRY: preparazione del doppio slot completata; cambio automatico al prossimo avvio
+059	DRY: preparazione dello slot inattivo in background
+060	DRY: trovata una versione simulata; in attesa di conferma
+061	Demo DRY in corso
+062	## Aggiornamento demo DRY<NL><NL>
+063	, in attesa di conferma
+064	Dimostra controllo, conferma, avanzamento del download, scrittura in background nello slot inattivo e cambio al successivo avvio; non accede mai alla rete, non crea file e non avvia un programma di installazione.
+065	Toast in basso a destra
+066	2. Usa il vero UpdateDialog per mostrare le note e confermare “Scarica e installa”
+067	Usa il vero Updater inserito da Gallery per controllare le Releases; questa modalità può accedere alla rete e aprire la pagina della versione.
+068	Ultimo rilevamento:
+069	3. Mostra l’avanzamento del download, determinato o indeterminato, con un Toast o ProgressDialog
+070	Gli utenti vedono finestre reali e feedback di avanzamento, ma non si verificano effetti collaterali dell’installazione.
+071	Modalità Release reale
+072	Demo DRY di download e installazione
+073	Versione corrente:
+074	Modalità demo DRY (simulazione sicura)
+075	Ultimo rilevamento: nessuno
+076	Flusso di aggiornamento
+077	Simulazione del controllo...
+078	Gallery mostra direttamente come il componente facciata coordina Updater, UpdateDialog e il presentatore di feedback sostituibile sottostanti.
+079	Trovata una nuova versione<SP>
+080	Avvia demo DRY
+081	Download confermato<SP>
+082	Preparazione in background...
+083	1. Controlla GitHub Releases e confronta con la versione corrente
+084	Origine della demo:
+085	2. Mostra le note di rilascio e una finestra di conferma quando viene trovata una nuova versione
+086	Controlla aggiornamenti
+087	Non configurato
+088	4. In modalità doppio slot, sostituisci lo slot inattivo in background e passa alla nuova versione al prossimo avvio
+089	Già aggiornato<SP>
+090	Repository:
+091	Modalità reale non disponibile: Gallery non ha inserito appUpdater
+092	Modalità reale: non ancora controllata
+093	1. Simula un controllo e restituisci una versione demo
+094	3. Usa un vero Toast o ProgressDialog per portare l’avanzamento simulato al 100%
+095	Controllo non riuscito:
+096	Modalità DRY: in attesa di avviare la demo
+097	4. Simula la sostituzione in background dello slot inattivo tramite Inno Setup; mantieni in esecuzione questa versione e cambia al prossimo avvio
+098	Flusso reale di aggiornamento GitHub Releases
+099	DRY: trovata una versione simulata<SP>
+100	La modalità reale richiede che Release fornisca un programma di installazione per la piattaforma corrente.
+101	Controllo...
+102	Button - combinazioni di ToolButton e funzioni
+103	Modifica
+104	Solo testo (Push)
+105	Combinazione con badge (Badge)
+106	Button - pulsanti con conto alla rovescia combinati con ogni stile
+107	Combinazione di stile e funzione (indeterminate_ring)
+108	Elimina
+109	Button - stili ToolButton (6)
+110	Azione B
+111	Combinazioni Style, Pill e Dropdown/Split
+112	Invia codice di verifica
+113	Solo icona → stile ToolButton; testo o icona + testo → stile PushButton
+114	Menu:
+115	Button - stile × forma Pill × funzione di avanzamento
+116	Button - varianti Filled: nessuno sfondo, testo con colore di stato
+117	Opzione 2
+118	Button - forme (2)
+119	Combinazioni Style, Pill e Toggle
+120	Azione A
+121	Selezionato:
+122	Pulsante principale del menu esterno premuto
+123	Pulsante principale premuto
+124	Opzione 3
+125	Combinazione di stile e funzione (progress_bar)
+126	Button - livelli di stato Filled (6)
+127	Proprietà
+128	Opzione 1
+129	Combinazioni di stile e forma
+130	Button - rilevamento automatico del tipo
+131	Combinazione di stile e funzione (indeterminate_bar)
+132	Button - funzioni (9)
+133	Button - stile × forma Pill × funzione dropdown/split
+134	Azione esterna 2
+135	Combinazione di stile e funzione (toggle)
+136	Button - livelli di stato Text (6)
+137	Icona + testo (Push)
+138	Combinazione di stile e funzione (split)
+139	Menu esterno
+140	Combinazione di stile e funzione (countdown)
+141	Combinazione di stile e funzione (progress_ring)
+142	Solo icona + funzione
+143	Azione esterna 1
+144	Button - 7 stili × forma Pill × funzione toggle
+145	I pulsanti con sola icona vengono rilevati automaticamente come ToolButton
+146	Combinazione di stile e funzione (dropdown)
+147	Button - stili (6)
+148	Solo icona (Tool)
+149	Combinazioni di forma (Pill) e funzioni
+150	Combinazioni Style, Pill e Progress
+151	Nessun effetto al passaggio del mouse
+152	Scheda con effetto al passaggio del mouse
+153	Scheda speciale
+154	Cambia colore al passaggio del mouse senza sollevarsi
+155	Fai clic per espandere
+156	Contenuto espanso
+157	Scheda impostazioni
+158	Scheda di base
+159	Si solleva al passaggio del mouse con un’ombra più intensa
+160	Scheda con area del titolo separata
+161	Scheda semplice
+162	Scheda standard
+163	Schede e contenitori
+164	Scheda con titolo
+165	Verticale con pulsanti
+166	Orizzontale di base (5 punti)
+167	Carousel + PipsPager - carosello unificato con indicatori di pagina
+168	Carosello scorrevole standard
+169	effect_slide + verticale
+170	Orizzontale (predefinito)
+171	Verticale (orientation: Qt.Vertical)
+172	Con pulsanti (sempre visibili)
+173	Sincronizzazione esterna PipsPager + ciclo
+174	Carosello e indicatori di pagina
+175	effect_slide (orizzontale)
+176	Carousel - orientamento orizzontale/verticale + sincronizzazione esterna PipsPager
+177	Indicatore di pagina (PipsPager)
+178	Carousel - effetto effect_slide (scorrimento dell’immagine intera senza anteprima laterale)
+179	Carosello con anteprima laterale
+180	Verticale di base (4 punti)
+181	HorizontalPipsPager / VerticalPipsPager - pulsanti di pagina, limite del numero visibile e scorrimento fluido
+182	Prodotto C
+183	Grafico radar
+184	Prodotto D
+185	Grafico a dispersione
+186	Prodotto B
+187	Grafico ad anello
+188	Classifica vendite
+189	Grafico ad anello - centro evidenziato
+190	Grafico a scatola
+191	Componenti grafici
+192	Grafico a barre orizzontale
+193	Forma d’onda audio (AudioWaveform)
+194	Grafico a linee
+195	Grafico a scatola - con valori anomali
+196	Grafico ad area in pila
+197	Prodotto A
+198	Prodotto E
+199	Grafico a barre
+200	Grafico a torta
+201	Layout (mode=mode_default) - cambio interno della modalità FlowLayout
+202	Componenti di layout
+203	Modalità verticale: tutti i figli hanno la stessa larghezza (larghezza della colonna divisa equamente)
+204	Rilascio file
+205	Orizzontale (stessa altezza)
+206	Giù
+207	Destra
+208	Verticale (stessa larghezza)
+209	Espandi dall’alto
+210	Correzione errori elevata
+211	Elemento di scorrimento<SP>
+212	Libreria di componenti PrismQML
+213	Cassetto
+214	Chiudi
+215	Layout a flusso
+216	Contenuto sotto
+217	Cassetto superiore
+218	Modalità orizzontale: tutti i figli in una riga hanno la stessa altezza (l’altezza massima della riga)
+219	Documento riservato
+220	Espandi da destra
+221	Predefinito
+222	Espandi da sinistra
+223	Cassetto inferiore
+224	Cassetto destro
+225	Contenuto raggruppato
+226	Separatore
+227	Codice QR
+228	Filigrana
+229	Cambio modalità:
+230	Titolo gruppo
+231	Cassetto fuori finestra
+232	Contenuto sopra
+233	Divisore
+234	Espandi dal basso
+235	Su
+236	Componenti di scorrimento
+237	Riquadro gruppo
+238	Sinistra
+239	Cassetto sinistro
+240	Componenti contenitore
+241	Modalità predefinita: conserva le dimensioni originali di ogni figlio e va a capo automaticamente
+242	Temi: classico, ciano, ambra, rosso, viola, blu, bianco, rosa, oro, lime, arancione, verde acqua, neon, tramonto, oceano, foresta, mezzanotte
+243	→ Destra
+244	Direzione
+245	Modalità arcobaleno
+246	Set di caratteri
+247	✓ Sfarfallio
+248	Pausa/Riprendi
+249	Velocità:<SP>
+250	✓ Bagliore
+251	↓ Giù
+252	Preimpostazioni del set di caratteri: giapponese, katakana, binario, cifre, esadecimale, cinese, simboli, ASCII, greco, rune
+253	Metodi: start(), stop(), pause(), resume(), toggle(), reset(), setTheme(name), setDirection(dir), setCharsetPreset(preset), setCustomCharset(chars), enableGlow(intensity), disableGlow(), enableFlicker(rate), disableFlicker(), enableInteraction(radius), disableInteraction(), enableRainbow(), disableRainbow(), setPerspective(value), configure(options)
+254	✓ Modalità arcobaleno
+255	Scia:<SP>
+256	Proprietà: running, paused, speed, fontSize, density, fadeSpeed, direction, mainColor, headColor, backgroundColor, charset, charsetPreset, glowEnabled, glowIntensity, flickerEnabled, flickerRate, perspective, interactive, interactionRadius, rainbowMode
+257	Esegui
+258	Densità:<SP>
+259	Carattere:<SP>
+260	✓ Interazione con il mouse
+261	← Sinistra
+262	MatrixRain - effetto pioggia digitale
+263	Bagliore
+264	Proprietà e metodi del componente
+265	Prospettiva 3D
+266	Classica pioggia digitale in stile Matrix con ampia configurazione
+267	Reimposta
+268	Sfarfallio
+269	Tema colore
+270	✓ Prospettiva 3D
+271	↑ Su
+272	Interazione con il mouse
+273	Risultato: Annulla
+274	Riquadro a discesa
+275	Solo pulsante OK
+276	Operazione riuscita
+277	Flyout - 6 animazioni: pullUp/dropDown/slideLeft/slideRight/fadeIn/none + modalità modale
+278	Altri componenti popup
+279	Avvia coriandoli
+280	Fai clic sulla sovrapposizione per chiudere
+281	Errore
+282	Operazione non riuscita
+283	Questo è contenuto di esempio per una finestra senza bordi. Puoi inserire qualsiasi testo personalizzato per mostrare titolo, corpo e disposizione dei pulsanti.
+284	Opzioni speciali - layout verticale/contenuto personalizzato/schermo esplicito
+285	Questa è una finestra senza bordi
+286	Scheletro profilo circolare
+287	Scorri da destra
+288	Notifiche Toast desktop (finestra separata) - in alto a sinistra/in alto al centro/in alto a destra/in basso a sinistra/in basso al centro/in basso a destra
+289	Destra
+290	Nascondi Annulla
+291	Questo è un messaggio
+292	Inviato correttamente
+293	Risultato: OK
+294	Riquadro che sale
+295	Apri verso il basso
+296	Notifiche InfoBar desktop (finestra separata) - in alto a sinistra/in alto al centro/in alto a destra/in basso a sinistra/in basso al centro/in basso a destra
+297	Conferma
+298	Posizione in alto a destra
+299	Basso
+300	Scorri a sinistra
+301	Posizione in basso a destra
+302	Riquadro popup
+303	Riquadro in dissolvenza
+304	Questo è un ToolTip
+305	Tira su
+306	TeachingTip
+307	Attenzione
+308	Suggerimento non modale
+309	Posizione in alto al centro
+310	Sinistra
+311	Alto
+312	Scorri a destra
+313	Scheletro
+314	Componenti di stato
+315	Apri cartella
+316	Vuoi davvero eseguire questa azione?
+317	Animazione coriandoli
+318	Posizione in basso a sinistra
+319	Finestra messaggio
+320	Esercitazione
+321	Seleziona questo testo per copiarlo: PrismQML è una libreria di componenti QML
+322	Freccia in basso
+323	StateWidget (componente di stato unificato distinto da stateType)
+324	Questa finestra contiene solo un pulsante OK
+325	Attendere...
+326	Finestra di conferma
+327	Copiabile
+328	Finestra senza bordi
+329	Posizione in alto a sinistra
+330	Contenuto copiabile
+331	Avviso
+332	Indicatori di avanzamento
+333	Scheletro profilo quadrato
+334	Passaggio del mouse
+335	Posizione in basso al centro
+336	Componenti di feedback
+337	Freccia a sinistra
+338	Freccia in alto
+339	Risultato: nessuna azione
+340	Non modale
+341	Finestra di dialogo
+342	Toast - in alto a sinistra/in alto al centro/in alto a destra/in basso a sinistra/in basso al centro/in basso a destra
+343	Freccia a destra
+344	Trascinabile
+345	Scorri da sinistra
+346	InfoBar - in alto a sinistra/in alto al centro/in alto a destra/in basso a sinistra/in basso al centro/in basso a destra
+347	Nascondi pulsante Annulla
+348	Preparazione dell’attività di download...
+349	TeachingTip - suggerimento didattico con freccia (anchor_bottom/top/left/right...)
+350	Suggerimento
+351	Dissolvenza in entrata
+352	Non si chiude automaticamente
+353	Finestra trascinabile
+354	Fai clic sulla sovrapposizione per chiudere questa finestra
+355	Coriandoli (mostrati nella finestra principale)
+356	Il contenuto può essere copiato
+357	Prova a trascinare questa finestra
+358	Avvia tour guidato
+359	Impostazioni notifiche
+360	Passaggio 2
+361	Passaggio 1
+362	Tour guidato TeachingTour
+363	Modifica qui avatar e informazioni personali.
+364	Profilo
+365	Scegli qui quali notifiche ricevere.
+366	Una sovrapposizione a finestra intera evidenzia l’area di destinazione e supporta Avanti, Fine e Salta
+367	Nome membro enumerazione
+368	Codice Python
+369	Cerca icone
+370	Nome icona
+371	Web
+372	Consenti un solo tasto (allowSingleKey)
+373	Aggiungi etichetta...
+374	Selezione a discesa
+375	Selezione multipla mista
+376	Urgente
+377	Opzione B
+378	Verticale
+379	Selezione multipla 21
+380	Selezione multipla 28
+381	Nome utente
+382	Shenzhen
+383	Selezione multipla 11
+384	Selettore calendario
+385	Home
+386	Wenzhou
+387	Selezione multipla 25
+388	Documenti
+389	Selezione multipla 10
+390	Selezione multipla 12
+391	Shanghai
+392	Selezione multipla 9
+393	Foshan
+394	Jiaxing
+395	Selezione multipla 6
+396	Selezione multipla 27
+397	Hangzhou
+398	Opzione 5
+399	Input speciali
+400	Ningbo
+401	Selezione multipla 15
+402	Opzione 4
+403	Selezione multipla 17
+404	Cerca
+405	Selezione multipla 4
+406	Selezione multipla 13
+407	Wuhan
+408	Shanghai
+409	Combinazione di tasti (predefinita)
+410	Orizzontale
+411	Filtro
+412	Selezione multipla 2
+413	Opzione A
+414	Provincia di Zhejiang
+415	Scegli colore di sfondo
+416	Input di testo
+417	Almeno 2 caratteri, separati da virgole
+418	Cina meridionale
+419	Opzione 9
+420	Applica
+421	Pechino
+422	Test
+423	Selettore colore
+424	Etichetta 1
+425	Suzhou
+426	ShortcutEditor (allowSingleKey: input di un tasto / input combinazione di tasti)
+427	Selezione multipla 22
+428	Shenzhen
+429	Data
+430	Selezione multipla 14
+431	Cina orientale
+432	Opzione 10
+433	Selezione multipla 29
+434	Selezione multipla 20
+435	Opzione 8
+436	Inserisci una città...
+437	Componenti di input
+438	Guangzhou
+439	Icona + testo
+440	Distretto di Huangpu
+441	Guangzhou
+442	Ora
+443	Etichetta 2
+444	Selezione multipla 26
+445	Solo icona
+446	Nanchino
+447	Controllo di attivazione
+448	Zhuhai
+449	DateTimePicker - selettore a rotella unificato con localizzazione automatica
+450	Formato 12 ore
+451	Password
+452	Shaoxing
+453	Testo descrittivo
+454	Dispositivo di scorrimento
+455	Hangzhou
+456	Opzione 6
+457	Provincia di Jiangsu
+458	Selettore data e ora
+459	ScrollBar (verticale/orizzontale)
+460	Apri finestra colore
+461	Selezione multipla 16
+462	Dongguan
+463	<b>Supporta</b> la visualizzazione di <i>testo formattato</i>
+464	Tempo (secondi)
+465	Selezione multipla 23
+466	Selezione multipla 18
+467	Fine
+468	Opzione 7
+469	Video
+470	Trasparente 2
+471	Data + ora
+472	Nanchino
+473	Selezione multipla 8
+474	Colore selezionato:
+475	Selezione multipla 19
+476	Test 2
+477	Selezione multipla 3
+478	Selezione multipla 30
+479	Input numerico
+480	Chengdu
+481	Immagini
+482	Selezione multipla 7
+483	Trasparente 1
+484	Selettore scorciatoia
+485	Seleziona
+486	Musica
+487	Barra di scorrimento fluida
+488	Standard
+489	Etichetta con contorno colorato
+490	Xi’an
+491	Selezione multipla 24
+492	Nuova area di Pudong
+493	Chongqing
+494	Selezione multipla 5
+495	Provincia di Guangdong
+496	Selezione multipla 1
+497	Distretto di Xuhui
+498	Solo testo
+499	Wuxi
+500	Testo di supporto
+501	Etichette e badge
+502	Badge
+503	Colore pieno · rimbalzo
+504	Etichetta di stato
+505	Avatar
+506	Selezionato
+507	Messaggi
+508	Corpo in grassetto
+509	Orizzontale · sfumato · normale
+510	Etichette, badge, chip e tag
+511	Sottotitolo
+512	Colore pieno · normale
+513	Etichetta di testo
+514	Testo collegamento
+515	Sfumato · rimbalzo
+516	Orizzontale · colore pieno · rimbalzo
+517	Titolo
+518	Indicatore/barra di accento animata - colorStyle × animationStyle × orientation; fai clic sulla scheda per attivare o disattivare lo stato active
+519	Corpo
+520	Titolo grande
+521	Etichetta chip attivabile
+522	Informazioni
+523	Sfumato · normale
+524	Nessun pulsante di chiusura
+525	Badge - componente badge unificato
+526	Avatar / AvatarSelector - source (immagine) / text (testo) / size (dimensione)
+527	Zhang
+528	Orizzontale · sfumato · rimbalzo
+529	Indicatore di pagina
+530	Rimuovi corrente
+531	Base (5 punti)
+532	Prezzo
+533	Menu ed elenchi
+534	Sviluppa i componenti della pagina iniziale
+535	Progettazione dell’interazione
+536	Responsabile del progetto
+537	Fai clic sull’immagine per testare il segnale clicked
+538	Cancella tutto
+539	Elemento<SP>
+540	Reparto tecnico
+541	Etichetta 3
+542	Testo scorrevole
+543	Sviluppo commerciale
+544	Etichetta chiusa<SP>
+545	Completa la revisione dei requisiti e le bozze di progettazione
+546	Modifica testo
+547	Analista dati
+548	Incolla
+549	Taglia
+550	Reparto prodotto
+551	Contenuto dinamico
+552	Disattiva
+553	Prodotto
+554	Scrivi test unitari
+555	Quantità
+556	Attività
+557	Stato
+558	Copia
+559	Contenuto 2
+560	Modificato
+561	Testo scorrevole - vetrina della libreria di componenti PrismQML
+562	Gestione contenuti
+563	Invia revisione del codice
+564	Partnership di canale
+565	Aggiungi etichetta
+566	Elemento elenco
+567	Visualizzazione dati
+568	Foto
+569	Nuova etichetta
+570	Team controllo qualità
+571	Segnale clicked attivato!
+572	Componente immagine
+573	Menu contestuale
+574	Programma di oggi
+575	Team di progettazione
+576	Fai clic con il pulsante destro in quest’area
+577	Requisiti.md
+578	Note riunione.pdf
+579	Promozione del marchio
+580	Schede
+581	Contenuto 1
+582	Elemento vista<SP>
+583	Team backend
+584	setTabText() ha modificato il testo
+585	Passa alla scheda<SP>
+586	ContextMenu - si collega automaticamente all’evento di clic destro del componente padre
+587	Stato: non premuto
+588	Gestione campagne
+589	Schermate
+590	ImageWidget - angoli arrotondati, stato di caricamento ed eventi di clic
+591	clear() ha cancellato tutto
+592	Viste elenco/tabella
+593	Reparto marketing
+594	Timeline · grafo Git (verifica giunzioni con scala frazionaria)
+595	Reimposta
+596	Nome
+597	Nuova etichetta aggiunta
+598	Stato API
+599	ListView / TableView / TreeView - viste di basso livello che richiedono un delegate personalizzato
+600	addTab() ha aggiunto una scheda
+601	removeTab() ha rimosso una scheda
+602	Schede dinamiche
+603	Codice
+604	Contenuto 3
+605	Progettazione visiva
+606	Ricerca utenti
+607	Rapporto di lavoro.docx
+608	Componenti elenco e tabella
+609	Team operativo
+610	Completato
+611	PipsPager - pulsanti di pagina, limite del numero visibile e scorrimento fluido
+612	Attiva
+613	Team frontend
+614	Attività di gruppo.jpg
+615	Ripeti
+616	Percorso di navigazione con icone
+617	Aiuto 5
+618	Vista barra comandi
+619	Informazioni account
+620	File
+621	Ordini
+622	Puntini di sospensione per overflow (maxVisibleItems: 4)
+623	Componenti di navigazione
+624	Directory radice
+625	Paginatore
+626	Directory di livello 4
+627	Nuovo
+628	Informazioni
+629	Tutto
+630	Pagamento
+631	Corrente:<SP>
+632	Directory di livello 3
+633	Aggiungi livello
+634	Posizione corrente
+635	Navigazione a percorso
+636	Vai al livello superiore
+637	Sottopagina
+638	Percorso di base
+639	Componenti
+640	Cartella
+641	Barra comandi
+642	Aiuto 4
+643	Annulla
+644	Navigazione a percorso con icone
+645	Aggiungi immagine
+646	Aggiungi sottopagina
+647	StackedWidget - cambia i tipi di animazione tramite animationType
+648	Salva
+649	Barra dei menu
+650	Aiuto
+651	Directory di livello 1
+652	Spedizione
+653	Avanti
+654	Barra di avanzamento a passaggi
+655	BreadcrumbBar - animazione fluida, supporto icone e indicatore del colore tema
+656	Fai clic su un elemento del percorso per testare il troncamento
+657	Aiuto 2
+658	Apri
+659	Directory di livello 2
+660	Indietro
+661	Aiuto 3
+662	Livello profondo
+663	Stepper - supporta icone e testo
+664	Controlli segmentati/di attivazione
+665	StackedWidget (enumerazione animationType)
+666	Quando ci sono più di quattro elementi, quelli centrali vengono compressi automaticamente nel menu con puntini di sospensione
+667	Carrello
+668	Scheda impostazioni colore (espandibile)
+669	Opacità
+670	Seleziona lingua di visualizzazione
+671	Applica tema
+672	Colore principale
+673	Scheda impostazioni casella combinata
+674	Ombra DWM nativa
+675	Personalizzazione
+676	Scheda elenco cartelle (espandibile)
+677	Segui il sistema
+678	Regola opacità finestra
+679	Scheda opzioni (espandibile)
+680	Impostazioni finestra
+681	Visualizza guida online
+682	Ridimensionamento DPI
+683	Ombra finestra Windows nativa
+684	Scegli colore
+685	Lingua interfaccia
+686	Modalità tema
+687	Aggiungi cartella
+688	Effetto Mica
+689	Salva configurazione corrente
+690	Visualizza informazioni software
+691	Scheda di attivazione
+692	Imposta scorciatoia globale
+693	Tipo finestra
+694	Solo Windows 11
+695	Comportamento all’avvio
+696	Colore personalizzato
+697	Tema
+698	Attiva controllo automatico aggiornamenti
+699	Colore tema
+700	Documentazione della guida
+701	Volume
+702	Gestisci cartelle della libreria musicale
+703	Attivo
+704	Scheda pulsante principale
+705	Scheda pulsante
+706	Mostra finestra principale
+707	Impostazioni applicazione
+708	Scuro
+709	Chiaro
+710	Scegli colore predefinito o personalizzato
+711	Colore predefinito
+712	Componenti impostazioni
+713	Scegli tema interfaccia
+714	Scheda collegamento ipertestuale
+715	Riavvio necessario
+716	Cartelle musica
+717	Regola volume di sistema
+718	Salva impostazioni
+719	Scheda dispositivo di scorrimento
+720	Caricamento differito
+721	Apri documentazione
+722	Effetti animazione
+723	Regola aspetto applicazione
+724	Visualizza
+725	Attiva animazioni interfaccia
+726	Carica contenuto pagina su richiesta
+727	Scheda scorciatoia
+728	Scorciatoia
+729	Contenitore gruppo schede impostazioni
+730	Riduci nell’area di notifica
+731	Scegli comportamento applicazione all’avvio
+732	Ripristina stato precedente
+733	test: aggiungi controllo pixel per scorrimento frazionario
+734	chore: inizializza esempio del grafo commit
+735	refactor: organizza modello dati Timeline
+736	Unisci feature/timeline
+737	style: regola densità di visualizzazione Gallery
+738	feat: crea ramo gallery
+739	fix: correggi pixel del bordo del grafo commit
+740	Grafo Git · 150% DPI
+741	PrismQML Gallery
+742	PrismQML Gallery (host C++)
