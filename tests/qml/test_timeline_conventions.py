@@ -536,6 +536,55 @@ def test_timeline_graph_type_uses_virtual_rows_and_renders_graph_layers(timeline
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_timeline_selection_uses_render_thread_animators(timeline_scene):
+    """Selection motion must survive GUI-thread result processing. 选中动效须独立于 GUI 线程。"""
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    graph_timeline = window.findChild(QQuickItem, "graphTimeline")
+    assert graph_timeline is not None
+    assert _wait_for(
+        lambda: len(
+            [
+                item
+                for item in _visual_descendants(graph_timeline)
+                if item.objectName() == "timelineCardSelectionIndicator"
+            ]
+        )
+        == 2
+    )
+
+    graph_timeline.setProperty("selectedKey", "feature")
+    _pump(250)
+    descendants = _visual_descendants(graph_timeline)
+    card_indicators = [
+        item
+        for item in descendants
+        if item.objectName() == "timelineCardSelectionIndicator"
+    ]
+    graph_rings = [
+        item
+        for item in descendants
+        if item.objectName() == "timelineGraphSelectionRing"
+    ]
+
+    assert sorted(round(item.opacity(), 3) for item in card_indicators) == [0.0, 1.0]
+    graph_ring_opacities = [round(item.opacity(), 3) for item in graph_rings]
+    assert graph_ring_opacities.count(1.0) == 1
+    assert all(opacity in (0.0, 1.0) for opacity in graph_ring_opacities)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_selection_animation_does_not_change_geometry_on_gui_thread():
+    timeline_source = SOURCE_PATH.read_text(encoding="utf-8")
+    graph_source = GRAPH_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "Behavior on height" not in timeline_source
+    assert "OpacityAnimator" in timeline_source
+    assert "ScaleAnimator" in timeline_source
+    assert "OpacityAnimator" in graph_source
+    assert "ScaleAnimator" in graph_source
+
+
 def test_timeline_core_source_follows_conventions():
     for source_path in (SOURCE_PATH, GRAPH_SOURCE_PATH, GRAPH_LABELS_SOURCE_PATH):
         path = PurePosixPath(source_path.relative_to(ROOT).as_posix())

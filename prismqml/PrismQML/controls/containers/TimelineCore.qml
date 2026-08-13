@@ -594,16 +594,28 @@ Item {
 
                         // Fluent 左侧选中指示条(圆角 pill,accent 色,短竖条居中)
                         Rectangle {
+                            objectName: "timelineCardSelectionIndicator"
                             anchors.left: parent.left
                             anchors.leftMargin: Enums.spacing.xs
                             anchors.verticalCenter: parent.verticalCenter
                             width: Enums.border.thick
                             radius: Enums.radius.micro
                             color: Enums.accentColor
-                            height: cardPart.isSelected ? parent.height * 0.5 : 0
+                            height: parent.height * 0.5
                             opacity: cardPart.isSelected ? 1 : 0
-                            Behavior on height { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
-                            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                            scale: cardPart.isSelected ? 1 : 0.7
+                            transformOrigin: Item.Center
+                            // Animator 在渲染线程推进；即使 GUI 线程正回填异步结果，
+                            // 选中切换也不会停在半截。
+                            Behavior on opacity {
+                                OpacityAnimator { duration: Enums.duration.fast }
+                            }
+                            Behavior on scale {
+                                ScaleAnimator {
+                                    duration: Enums.duration.fast
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
                         }
                         Column {
                             id: cardCol

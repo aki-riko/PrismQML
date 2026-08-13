@@ -118,14 +118,27 @@ Item {
     }
 
     Rectangle {
+        objectName: "timelineGraphSelectionRing"
         x: control._nodeX - width / 2
         y: control.nodeY - height / 2
         width: (control._nodeOuterRadius + Enums.spacing.xxs) * 2
         height: width
         radius: width / 2
-        visible: control.showNode && control.selected
+        visible: control.showNode
         color: Enums.transparent
         border.width: control._strokeWidth
         border.color: control.selectedColor
+        opacity: control.selected ? 1 : 0
+        scale: control.selected ? 1 : 0.7
+        transformOrigin: Item.Center
+        Behavior on opacity {
+            OpacityAnimator { duration: Enums.duration.fast }
+        }
+        Behavior on scale {
+            ScaleAnimator {
+                duration: Enums.duration.fast
+                easing.type: Easing.OutCubic
+            }
+        }
     }
 }
