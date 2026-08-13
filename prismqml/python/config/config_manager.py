@@ -181,29 +181,30 @@ class ConfigManager(QObject):
                 if after_commit is not None:
                     after_commit()
                 continue
-            current, prepared, mapping = update
-            from ..core.task_runner import run_in_thread
-
-            try:
-                handle = run_in_thread(
-                    self._cfg._write_mapping_file, self._cfg.file, mapping
-                )
-            except Exception as exc:
-                error(f"提交配置后台任务失败 Config persistence task failed: {exc}")
-                if after_failure is not None:
-                    after_failure()
-                continue
-            self._active_persistence = (
-                handle,
-                current,
-                prepared,
-                after_commit,
-                after_failure,
-            )
-            handle.succeeded.connect(self._publish_persisted_update)
-            handle.finished.connect(self._finish_persistence)
-            return
+            if self._launch_persistence(update, after_commit, after_failure):
+                return
         self.persistencePendingChanged.emit()
+
+    def _launch_persistence(self, update, after_commit, after_failure):
+        """Launch one prepared disk write. 启动一次已准备的磁盘写入。"""
+        current, prepared, mapping = update
+        from ..core.task_runner import run_in_thread
+
+        try:
+            handle = run_in_thread(
+                self._cfg._write_mapping_file, self._cfg.file, mapping
+            )
+        except Exception as exc:
+            error(f"提交配置后台任务失败 Config persistence task failed: {exc}")
+            if after_failure is not None:
+                after_failure()
+            return False
+        self._active_persistence = (
+            handle, current, prepared, after_commit, after_failure
+        )
+        handle.succeeded.connect(self._publish_persisted_update)
+        handle.finished.connect(self._finish_persistence)
+        return True
 
     @Slot("QVariant")
     def _publish_persisted_update(self, _result):
