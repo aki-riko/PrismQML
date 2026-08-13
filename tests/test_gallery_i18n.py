@@ -133,6 +133,42 @@ def test_completed_gallery_catalogs_have_no_untranslated_sentences():
         assert identical_sentences == allowed, language
 
 
+def test_traditional_chinese_gallery_catalog_uses_reviewed_taiwan_terminology():
+    traditional = _catalog("zh_TW")
+    expected = {
+        "标签": "標籤",
+        "菜单": "選單",
+        "反馈": "回饋",
+        "项目经理": "專案經理",
+        "复制": "複製",
+        "粘贴": "貼上",
+        "窗口设置": "視窗設定",
+        "界面语言": "介面語系",
+        "帮助文档": "說明文件",
+        "Toast 的四种进度 feature": "Toast 的四種進度功能",
+        "feat: 创建 gallery 分支": "feat: 建立 gallery 分支",
+    }
+    for source, translation in expected.items():
+        assert traditional[gallery_i18n.translation_key(source)] == translation
+
+    forbidden = {
+        "標簽", "菜單", "反饋", "支持", "窗口", "文檔", "項目經理",
+        "創建", "復制", "粘貼", "界面", "后端", "賬戶", "控件",
+        "面包屑", "保存", "全局", "自定義", "托盤", "演示", "檢測",
+        "當前", "錄入", "布局", "屏幕", "消息框", "搜索", "字符集",
+        "交互", "拖拽", "運行",
+    }
+    values = [
+        traditional[key]
+        for key in gallery_i18n.referenced_keys()
+    ]
+    remaining = {
+        phrase for phrase in forbidden
+        if any(phrase in value for value in values)
+    }
+    assert not remaining
+
+
 def test_english_gallery_catalog_is_a_complete_manual_baseline():
     source = _catalog("zh_CN")
     english = _catalog("en")
