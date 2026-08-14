@@ -49,3 +49,4 @@ cpp/build-android-x64/
 cpp/*.log
 cpp/build-android-apk/
 cpp/build-ios/
+cpp/build-*/
