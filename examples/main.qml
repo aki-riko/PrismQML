@@ -18,6 +18,8 @@ QtObject {
     
     // 从配置读取窗口类型 Read window type from config
     property int windowType: ConfigManager ? ConfigManager.windowType : Fluent.Enums.windowType.type_ms
+    // Runtime changes apply after the next full restart. 运行时变更在下次完整启动后生效。
+    property bool _startupLazyLoading: true
     
     // ==================== Common Config 公共配置 ====================
     readonly property int windowWidth: 1200
@@ -27,7 +29,7 @@ QtObject {
     readonly property bool windowIconColored: true  // Use colored icon 使用彩色图标
     readonly property int shadowMode: (ConfigManager && ConfigManager.dwmShadow) ? Fluent.Enums.windowShadow.mode_native : Fluent.Enums.windowShadow.mode_none
     readonly property bool micaEnabled: ConfigManager ? ConfigManager.micaEnabled : false
-    readonly property bool lazyLoading: ConfigManager ? ConfigManager.lazyLoading : true
+    readonly property bool lazyLoading: _startupLazyLoading
     readonly property string loadingText: Fluent.Translator.tr("gallery_d04fcbda737fc0c6", Fluent.Translator._v)
     readonly property string splashSubtitle: Fluent.Translator.tr("gallery_12422784480e8784", Fluent.Translator._v)
     
@@ -94,6 +96,7 @@ QtObject {
     
     // 启动时创建窗口
     Component.onCompleted: {
+        _startupLazyLoading = ConfigManager ? ConfigManager.lazyLoading : true
         windowInstance = windowComponent.createObject(null)
     }
     

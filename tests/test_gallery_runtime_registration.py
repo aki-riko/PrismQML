@@ -15,6 +15,7 @@ GALLERY_MAIN = ROOT / "examples" / "main.py"
 GALLERY_QML = ROOT / "examples" / "main.qml"
 GALLERY_STARTUP_BENCHMARK = ROOT / "tests" / "qml" / "bench_gallery_startup.py"
 GALLERY_AUTO_UPDATE_PAGE = ROOT / "examples" / "pages" / "AutoUpdatePage.qml"
+GALLERY_SETTINGS_PAGE = ROOT / "examples" / "pages" / "SettingsPage.qml"
 GALLERY_DRY_RUN_UPDATER = (
     ROOT / "examples" / "pages" / "_internal" / "GalleryDryRunUpdater.qml"
 )
@@ -110,6 +111,24 @@ def test_gallery_does_not_override_persisted_language():
 
     assert "Fluent.Translator.setLanguage(" not in source
     assert "ConfigManager.setLanguage(" not in source
+
+
+def test_gallery_applies_lazy_loading_changes_after_restart():
+    qml_source = GALLERY_QML.read_text(encoding="utf-8")
+    settings_source = GALLERY_SETTINGS_PAGE.read_text(encoding="utf-8")
+    snapshot_assignment = (
+        "_startupLazyLoading = ConfigManager ? ConfigManager.lazyLoading : true"
+    )
+    window_creation = "windowInstance = windowComponent.createObject(null)"
+
+    assert "property bool _startupLazyLoading: true" in qml_source
+    assert "readonly property bool lazyLoading: _startupLazyLoading" in qml_source
+    assert snapshot_assignment in qml_source
+    assert qml_source.index(snapshot_assignment) < qml_source.index(window_creation)
+    assert (
+        "readonly property bool lazyLoading: ConfigManager" not in qml_source
+    )
+    assert "ConfigManager.setLazyLoading(isChecked)" in settings_source
 
 
 def test_gallery_exposes_fractional_dpi_git_graph_timeline():
