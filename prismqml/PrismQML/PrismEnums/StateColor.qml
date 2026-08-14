@@ -144,10 +144,10 @@ QtObject {
     readonly property color skeletonShimmer: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.25) : Qt.rgba(0,0,0,0.04))
     
     // SettingCard 颜色 (Fluent Design 配色规范)
-    readonly property color settingCardBg: isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7))
-    readonly property color settingCardBorder: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(0,0,0,0.2) : Qt.rgba(0,0,0,0.075))
+    readonly property color settingCardBg: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7))))
+    readonly property color settingCardBorder: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(0,0,0,0.2) : Qt.rgba(0,0,0,0.075))))
     // Expand view bg 展开视图背景
-    readonly property color expandViewBg: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7)))
+    readonly property color expandViewBg: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7))))
     // Content label color (Microsoft WinUI TextFillColorSecondary: Dark #C5FFFFFF / Light #9E000000)
     readonly property color settingCardContent: isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.77) : Qt.rgba(0,0,0,0.61))
     // Expand button hover/pressed

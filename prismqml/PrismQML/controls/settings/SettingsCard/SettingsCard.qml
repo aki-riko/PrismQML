@@ -509,9 +509,9 @@ Item {
                         id: chooseColorBtn
                         width: Enums.settingCard.color_button_width
                         height: Enums.settingCard.color_block_height
-                        radius: Enums.radius.small
+                        radius: Enums.surfaceRadius(Enums.radius.small)
                         color: chooseColorArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.stateColor.controlBg
-                        border.width: Enums.border.thin
+                        border.width: Enums.surfaceBorderWidth(Enums.border.thin)
                         border.color: Enums.stateColor.border
                         opacity: control.useCustomColor ? Enums.opacityLevel.visible : Enums.opacityLevel.disabled
                         anchors.verticalCenter: parent.verticalCenter

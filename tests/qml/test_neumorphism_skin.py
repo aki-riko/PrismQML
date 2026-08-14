@@ -86,6 +86,43 @@ Item {
 }
 """
 
+SETTINGS_SURFACE_SOURCE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    readonly property int normalRadius: settingsCore.borderRadius
+    readonly property int expanderRadius: expander._radius
+    readonly property color settingCardBackground: Enums.stateColor.settingCardBg
+    readonly property color expandViewBackground: Enums.stateColor.expandViewBg
+    readonly property color surfaceBackground: Enums.cardColor
+    readonly property real surfaceBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+
+    width: 640
+    height: 180
+
+    SettingsCardCore {
+        id: settingsCore
+        width: 280
+        title: "Settings"
+        content: "Description"
+    }
+
+    Expander {
+        id: expander
+        x: 320
+        width: 280
+        title: "Color"
+        expanded: true
+
+        Rectangle {
+            width: 100
+            height: 32
+        }
+    }
+}
+"""
+
 NESTED_TARGET_SOURCE = b"""
 import QtQuick
 import PrismQML
@@ -391,6 +428,37 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
     finally:
         setTheme(previous_theme)
         setSkin(previous_skin)
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump()
+
+
+def test_neumorphism_settings_surfaces_share_color_and_radius(qapp):
+    previous_skin = getSkin()
+    previous_theme = getTheme()
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.NEUMORPHISM)
+    engine, component, root, warnings = _create_scene_from_source(
+        SETTINGS_SURFACE_SOURCE, "inline:neumorphism-settings-surfaces.qml"
+    )
+    try:
+        assert root.property("normalRadius") == 14
+        assert root.property("expanderRadius") == 14
+        assert root.property("surfaceBorderWidth") == 0
+        _assert_color(root, "settingCardBackground", "#e4ebf3")
+        _assert_color(root, "expandViewBackground", "#e4ebf3")
+        _assert_color(root, "surfaceBackground", "#e4ebf3")
+
+        setSkin(Skin.FLUENT)
+        _pump()
+        assert root.property("normalRadius") == 5
+        assert root.property("expanderRadius") == 5
+        assert root.property("surfaceBorderWidth") == 1
+        assert warnings == []
+    finally:
+        setSkin(previous_skin)
+        setTheme(previous_theme)
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()

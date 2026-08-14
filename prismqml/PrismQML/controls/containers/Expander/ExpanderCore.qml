@@ -34,7 +34,7 @@ Widget {
     property var onWidgetAdded: null
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _radius: Enums.surfaceRadius(Enums.radius.card + 1)
+    readonly property int _radius: Enums.surfaceRadius(Enums.radius.card)
     readonly property bool hovered: !control.disabled && headerArea.containsMouse
     readonly property bool pressed: !control.disabled && headerArea.pressed
     
@@ -227,7 +227,7 @@ Widget {
                     
                     Rectangle {
                         anchors.fill: parent
-                        radius: Enums.radius.small
+                        radius: Enums.surfaceRadius(Enums.radius.small)
                         color: {
                             if (control.pressed) return Enums.stateColor.expandBtnPressed
                             if (control.hovered) return Enums.stateColor.expandBtnHover
@@ -330,7 +330,7 @@ Widget {
         anchors.fill: mainContainer
         radius: control._radius
         color: Enums.transparent
-        border.width: Enums.border.thin
+        border.width: Enums.surfaceBorderWidth(Enums.border.thin)
         // borderLight (黑 6%) 在 controlBg (#fefefe) 上几乎不可见, 改用 borderStrong (黑 12%)
         border.color: Enums.stateColor.borderStrong
         z: Enums.zIndex.controlsAbove

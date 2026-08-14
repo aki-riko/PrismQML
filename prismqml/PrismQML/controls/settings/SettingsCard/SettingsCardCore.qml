@@ -45,7 +45,7 @@ Card {
     implicitHeight: mainRow.implicitHeight + (expandable && expanded ? expandArea.height : 0)
     cardType: Enums.card.type_default
     contentPadding: Enums.spacing.none
-    borderRadius: Enums.radius.card
+    borderRadius: Enums.surfaceRadius(Enums.radius.card)
     opacity: disabled ? Enums.opacityLevel.disabled : Enums.opacityLevel.visible
 
     // Expand state change 展开状态变化
