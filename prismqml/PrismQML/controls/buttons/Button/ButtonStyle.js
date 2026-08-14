@@ -15,8 +15,8 @@ function _defaultBackgroundColor(effectiveEnabled, hovered, pressed, stateColor)
 }
 
 function backgroundColor(style, level, effectiveEnabled, hovered, pressed,
-                         isToggleChecked, isVintageTicket, button, stateColor,
-                         statusLevel, accentColor, cardColor) {
+                         isToggleChecked, isVintageTicket, isNeumorphism,
+                         button, stateColor, statusLevel, accentColor, cardColor) {
     if (isToggleChecked) {
         if (style === button.style_primary) {
             if (!effectiveEnabled) {
@@ -54,8 +54,12 @@ function backgroundColor(style, level, effectiveEnabled, hovered, pressed,
             return Qt.rgba(statusColor.r, statusColor.g, statusColor.b,
                            stateColor.filledDisabledAlpha)
         }
-        if (isVintageTicket && pressed) return Qt.darker(statusColor, 1.12)
-        if (isVintageTicket && hovered) return Qt.lighter(statusColor, 1.12)
+        if ((isVintageTicket || isNeumorphism) && pressed) {
+            return Qt.darker(statusColor, 1.12)
+        }
+        if ((isVintageTicket || isNeumorphism) && hovered) {
+            return Qt.lighter(statusColor, 1.12)
+        }
         if (pressed) return stateColor.filledPressed
         if (hovered) return stateColor.filledHover
         return statusColor
@@ -178,17 +182,17 @@ function textColor(style, level, effectiveEnabled, hovered, pressed,
 }
 
 function snapshot(style, level, effectiveEnabled, hovered, pressed,
-                  isToggleChecked, isNeobrutalism, isVintageTicket, button,
-                  stateColor, textColorTokens, statusLevel, accentColor,
-                  cardColor, accentForeground, transparent, opacityLevel,
-                  neo, ticket) {
+                  isToggleChecked, isNeobrutalism, isVintageTicket,
+                  isNeumorphism, button, stateColor, textColorTokens,
+                  statusLevel, accentColor, cardColor, accentForeground,
+                  transparent, opacityLevel, neo, ticket) {
     return {
         effectiveEnabled: effectiveEnabled,
         isToggleChecked: isToggleChecked,
         bgColor: backgroundColor(
             style, level, effectiveEnabled, hovered, pressed, isToggleChecked,
-            isVintageTicket, button, stateColor, statusLevel, accentColor,
-            cardColor),
+            isVintageTicket, isNeumorphism, button, stateColor, statusLevel,
+            accentColor, cardColor),
         borderColor: borderColor(
             style, level, effectiveEnabled, isToggleChecked, isNeobrutalism,
             isVintageTicket, button, stateColor, statusLevel, accentColor,

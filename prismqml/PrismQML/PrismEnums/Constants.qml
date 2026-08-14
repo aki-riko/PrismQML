@@ -146,6 +146,12 @@ QtObject {
         readonly property color background: root.isDark ? "#252B35" : "#E4EBF3"
         readonly property color surface: root.isDark ? "#252B35" : "#E4EBF3"
         readonly property color muted: root.isDark ? "#303947" : "#D7E0EB"
+        readonly property color hover: root.isDark ? "#2D3541" : "#DCE5EF"
+        readonly property color pressed: root.isDark ? "#202731" : "#CDD8E5"
+        readonly property color disabledSurface: root.isDark ? "#2A313C" : "#DDE5EE"
+        readonly property color divider: root.isDark ? "#465365" : "#C2CCD9"
+        readonly property color indicator: root.isDark ? "#7F8DA1" : "#7A899D"
+        readonly property color indicatorHover: root.isDark ? "#AAB7C8" : "#596A80"
         readonly property color foreground: root.isDark ? "#E8EEF7" : "#27364A"
         readonly property color secondaryForeground: root.isDark ? "#AAB7C8" : "#66758A"
         readonly property color disabledForeground: root.isDark ? "#697687" : "#9BA8B8"
@@ -324,19 +330,25 @@ QtObject {
     
     // ==================== Gray 灰色系 ====================
     readonly property QtObject gray: QtObject {
-        readonly property color text: root.isTicket ? ticketColors.secondaryForeground
+        readonly property color text: root.isNeumorphism ? neumorphismColors.secondaryForeground
+            : (root.isTicket ? ticketColors.secondaryForeground
             : (root.isDark ? themeColors.tertiaryForegroundLight : themeColors.secondaryForegroundLight)
+            )
         readonly property color background: root.isNeumorphism ? neumorphismColors.surface
             : (root.isTicket ? ticketColors.surface
             : (root.isDark ? themeColors.surfaceDark : themeColors.scrollTrackLight))
-        readonly property color border: root.isTicket ? ticketColors.border
-            : (root.isDark ? grayColors.borderDark : grayColors.borderLight)
-        readonly property color disabled: root.isTicket ? ticketColors.disabledForeground
-            : (root.isDark ? themeColors.disabledForegroundLight : themeColors.scrollHandleHoverLight)
-        readonly property color handle: root.isTicket ? ticketColors.surface
-            : (root.isDark ? themeColors.pressedDark : grayColors.handleLight)
-        readonly property color tooltip: root.isTicket ? ticketColors.surface
-            : (root.isDark ? themeColors.hoverDark : themeColors.pressedDark)
+        readonly property color border: root.isNeumorphism ? Qt.rgba(0, 0, 0, 0)
+            : (root.isTicket ? ticketColors.border
+            : (root.isDark ? grayColors.borderDark : grayColors.borderLight))
+        readonly property color disabled: root.isNeumorphism ? neumorphismColors.disabledForeground
+            : (root.isTicket ? ticketColors.disabledForeground
+            : (root.isDark ? themeColors.disabledForegroundLight : themeColors.scrollHandleHoverLight))
+        readonly property color handle: root.isNeumorphism ? neumorphismColors.indicator
+            : (root.isTicket ? ticketColors.surface
+            : (root.isDark ? themeColors.pressedDark : grayColors.handleLight))
+        readonly property color tooltip: root.isNeumorphism ? neumorphismColors.surface
+            : (root.isTicket ? ticketColors.surface
+            : (root.isDark ? themeColors.hoverDark : themeColors.pressedDark))
     }
     
     // ==================== TextColor 文字颜色 ====================
@@ -359,14 +371,17 @@ QtObject {
             : (root.isNeumorphism ? neumorphismColors.secondaryForeground
             : (root.isTicket ? ticketColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.secondary) : Qt.rgba(0, 0, 0, 0.6))))
         readonly property color tertiary: root.isNeo ? neoColors.secondaryForeground
-            : (root.isTicket ? ticketColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.tertiary) : Qt.rgba(0, 0, 0, textOpacity.tertiary)))
+            : (root.isNeumorphism ? neumorphismColors.secondaryForeground
+            : (root.isTicket ? ticketColors.secondaryForeground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.tertiary) : Qt.rgba(0, 0, 0, textOpacity.tertiary))))
         readonly property color disabled: root.isNeumorphism ? neumorphismColors.disabledForeground
             : (root.isTicket ? ticketColors.disabledForeground
             : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.disabled) : Qt.rgba(0, 0, 0, textOpacity.disabled)))
         readonly property color strong: root.isNeo ? neoColors.foreground
-            : (root.isTicket ? ticketColors.foreground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.strong)))
-        readonly property color pressed: root.isTicket ? ticketColors.primary
-            : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.pressedLight))
+            : (root.isNeumorphism ? neumorphismColors.foreground
+            : (root.isTicket ? ticketColors.foreground : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.strong))))
+        readonly property color pressed: root.isNeumorphism ? neumorphismColors.secondaryForeground
+            : (root.isTicket ? ticketColors.primary
+            : (root.isDark ? Qt.rgba(1, 1, 1, textOpacity.strong) : Qt.rgba(0, 0, 0, textOpacity.pressedLight)))
     }
 
     // Fixed code-block palette 固定代码块色板

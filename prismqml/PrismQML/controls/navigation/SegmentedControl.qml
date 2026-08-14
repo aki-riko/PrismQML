@@ -102,9 +102,9 @@ Rectangle {
     implicitHeight: Enums.controlSize.segmentedHeight
 
     // Background 背景
-    radius: Enums.radius.small
+    radius: Enums.surfaceRadius(Enums.radius.small)
     color: Enums.stateColor.segmentedBg
-    border.width: Enums.border.thin
+    border.width: Enums.surfaceBorderWidth(Enums.border.thin)
     border.color: Enums.stateColor.segmentedBorder
 
     Component.onCompleted: slideSyncTimer.schedule(false)
@@ -119,10 +119,10 @@ Rectangle {
         y: Enums.spacing.xxs
         width: control._selectedItemWidth
         height: control.height - Enums.spacing.xxs * 2
-        radius: Enums.radius.small
+        radius: Enums.surfaceRadius(Enums.radius.small)
         visible: control._safeItems.length > 0
         color: Enums.stateColor.segmentedSelected
-        border.width: Enums.border.thin
+        border.width: Enums.surfaceBorderWidth(Enums.border.thin)
         border.color: Enums.stateColor.segmentedSelectedBorder
         
         Behavior on x { NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic } }
@@ -222,7 +222,7 @@ Rectangle {
                 // Hover/Press background for non-selected items 非选中项的悬停/按下背景
                 Rectangle {
                     anchors.fill: parent
-                    radius: Enums.radius.small
+                    radius: Enums.surfaceRadius(Enums.radius.small)
                     visible: !segmentItem.selected && (segmentItem.hovered || segmentItem.pressed)
                     color: {
                         if (segmentItem.pressed) return Enums.stateColor.segmentedPressed

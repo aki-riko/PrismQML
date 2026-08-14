@@ -93,6 +93,7 @@ Widget {
     readonly property var styleHelper: ButtonStyle.snapshot(
         style, level, _styleEffectiveEnabled, hovered, pressed,
         _styleToggleChecked, Enums.isNeobrutalism, Enums.isVintageTicket,
+        Enums.isNeumorphism,
         Enums.button, Enums.stateColor, Enums.textColor, Enums.statusLevel,
         Enums.accentColor, Enums.cardColor, Enums.accentForeground,
         Enums.transparent, Enums.opacityLevel, Enums.neo, Enums.ticket)
@@ -396,11 +397,9 @@ Widget {
         anchors.fill: parent
         radius: control.radius
         color: _animatedBgColor
-        border.width: flat ? 0
-            : (Enums.isNeobrutalism ? Enums.neo.borderWidth
-               : (Enums.isVintageTicket ? Enums.ticket.borderWidth
-                  : ((_styleToggleChecked && style === Enums.button.style_primary)
-                     ? Enums.border.normal : Enums.border.thin)))
+        border.width: flat ? 0 : Enums.surfaceBorderWidth(
+            (_styleToggleChecked && style === Enums.button.style_primary)
+                ? Enums.border.normal : Enums.border.thin)
         border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
 
         // Gradient (for gradient style) 渐变

@@ -72,8 +72,10 @@ QtObject {
                         Enums.stateColor.filledDisabledAlpha
                     )
                 }
-                if (Enums.isVintageTicket && pressed) return Qt.darker(statusColor, 1.12)
-                if (Enums.isVintageTicket && hovered) return Qt.lighter(statusColor, 1.12)
+                if ((Enums.isVintageTicket || Enums.isNeumorphism) && pressed)
+                    return Qt.darker(statusColor, 1.12)
+                if ((Enums.isVintageTicket || Enums.isNeumorphism) && hovered)
+                    return Qt.lighter(statusColor, 1.12)
                 if (pressed) return Enums.stateColor.filledPressed
                 if (hovered) return Enums.stateColor.filledHover
                 return statusColor

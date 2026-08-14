@@ -20,26 +20,26 @@ QtObject {
     readonly property QtObject _neu: constants ? constants.neumorphismColors : null
     
     // Hover state bg 悬停状态背景
-    readonly property color hover: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.04))
-    readonly property color hoverStrong: isTicket ? Qt.darker(_ticket.muted, 1.04) : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06))
-    readonly property color tabDragSource: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05))
-    readonly property color bgMedium: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.03))
+    readonly property color hover: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.04)))
+    readonly property color hoverStrong: isNeumorphism ? _neu.muted : (isTicket ? Qt.darker(_ticket.muted, 1.04) : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06)))
+    readonly property color tabDragSource: isNeumorphism ? _neu.selected : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05)))
+    readonly property color bgMedium: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.03)))
     // Pressed state bg 按下状态背景
-    readonly property color pressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04))
-    readonly property color pressedStrong: isTicket ? Qt.darker(_ticket.muted, 1.10) : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
-    readonly property color tabPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03))
+    readonly property color pressed: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04)))
+    readonly property color pressedStrong: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.10) : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)))
+    readonly property color tabPressed: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03)))
     // Border color 边框颜色
     readonly property color border: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08))))
     readonly property color borderLight: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))))
-    readonly property color borderStrong: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12)))
+    readonly property color borderStrong: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12))))
     // Divider 分隔线
     // divider: 轻量分隔线(非控件边框)。neo 用中等灰, 不用纯黑(纯黑细线滚动会抖动闪烁,
     // 且 neo 的轻分隔不该和粗黑边一样重)。控件边框需黑用 border/dialogBorder。
-    readonly property color divider: isNeo ? Qt.rgba(0,0,0,0.22) : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12)))
+    readonly property color divider: isNeo ? Qt.rgba(0,0,0,0.22) : (isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12))))
     // Edge shadow for sticky headers / scroll edges 粘性表头/滚动边缘阴影
-    readonly property color edgeShadow: isNeo ? _neo.shadow : (isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.shadowDark : constants.themeColors.shadowLight))
+    readonly property color edgeShadow: isNeo ? _neo.shadow : (isNeumorphism ? _neu.shadowDark : (isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.shadowDark : constants.themeColors.shadowLight)))
     // Navigation divider (lighter in light mode) 导航分隔线（浅色模式更淡）
-    readonly property color navDivider: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.04))
+    readonly property color navDivider: isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.04)))
     // Selected state uses each skin's semantic accent surface instead of cardColor.
     // 选中态使用各皮肤的语义强调表面色，避免与 cardColor 相同而无法辨认。
     readonly property color selected: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.20) : (isNeumorphism ? _neu.selected : (isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.16) : (root.isDark ? "#0d3d6d" : "#cce4f7")))
@@ -47,101 +47,101 @@ QtObject {
     // 让用户知道悬浮在选中行上 (而不是 hover 被 selected 覆盖看似没反应)
     readonly property color selectedHover: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.30) : (isNeumorphism ? _neu.selectedHover : (isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.24) : (root.isDark ? "#13558f" : "#b8d8f0")))
     // Track/Background 轨道/背景
-    readonly property color track: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08))
+    readonly property color track: isNeumorphism ? _neu.muted : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08)))
     // Close button hover 关闭按钮悬停
-    readonly property color closeHover: isTicket ? _ticket.danger : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1))
+    readonly property color closeHover: isNeumorphism ? Qt.rgba(_neu.danger.r, _neu.danger.g, _neu.danger.b, 0.16) : (isTicket ? _ticket.danger : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1)))
     // Scrollbar/Indicator 滚动条/指示器
-    readonly property color indicator: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.2))
-    readonly property color indicatorHover: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.25) : Qt.rgba(0,0,0,0.25))
-    readonly property color indicatorActive: isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.3) : Qt.rgba(0,0,0,0.3))
+    readonly property color indicator: isNeumorphism ? _neu.indicator : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.2)))
+    readonly property color indicatorHover: isNeumorphism ? _neu.indicatorHover : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.25) : Qt.rgba(0,0,0,0.25)))
+    readonly property color indicatorActive: isNeumorphism ? _neu.primary : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.3) : Qt.rgba(0,0,0,0.3)))
     // Light pressed 轻按下状态
-    readonly property color pressedLight: isTicket ? Qt.darker(_ticket.muted, 1.04) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03))
+    readonly property color pressedLight: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.04) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03)))
     // Separator 分割线
-    readonly property color separator: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.08))
+    readonly property color separator: isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.08)))
     // Scroll track/thumb 滚动条
-    readonly property color scrollTrack: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03))
-    readonly property color scrollThumb: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.35) : Qt.rgba(0,0,0,0.25))
-    readonly property color scrollThumbHover: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.4))
-    readonly property color scrollThumbPressed: isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.5))
+    readonly property color scrollTrack: isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.03)))
+    readonly property color scrollThumb: isNeumorphism ? _neu.indicator : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.35) : Qt.rgba(0,0,0,0.25)))
+    readonly property color scrollThumbHover: isNeumorphism ? _neu.indicatorHover : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.4)))
+    readonly property color scrollThumbPressed: isNeumorphism ? _neu.primary : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.5)))
     // Input border 输入框边框
-    readonly property color inputBorder: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.1))
-    readonly property color inputBorderStrong: isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15))
-    readonly property color inputBorderNormal: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05))
-    readonly property color inputBorderDisabled: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.07) : Qt.rgba(0,0,0,0.05))
-    readonly property color comboBoxDisabledBorder: Qt.rgba(
+    readonly property color inputBorder: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.1)))
+    readonly property color inputBorderStrong: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15)))
+    readonly property color inputBorderNormal: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05)))
+    readonly property color inputBorderDisabled: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.07) : Qt.rgba(0,0,0,0.05)))
+    readonly property color comboBoxDisabledBorder: isNeumorphism ? Qt.rgba(0,0,0,0) : Qt.rgba(
         constants.grayColors.textPrimaryLight.r,
         constants.grayColors.textPrimaryLight.g,
         constants.grayColors.textPrimaryLight.b,
         0.4
     )
     // Card border 卡片边框
-    readonly property color cardBorder: isTicket ? _ticket.border : (root.isDark ? indicator : Qt.rgba(0,0,0,0.08))
+    readonly property color cardBorder: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? indicator : Qt.rgba(0,0,0,0.08)))
     // Background variants 背景色变体
-    readonly property color bgLight: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.04))
+    readonly property color bgLight: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.04)))
     // Hover variants hover变体
-    readonly property color hoverLight: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03))
-    readonly property color hoverMedium: isTicket ? Qt.darker(_ticket.muted, 1.04) : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.06))
+    readonly property color hoverLight: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03)))
+    readonly property color hoverMedium: isNeumorphism ? _neu.muted : (isTicket ? Qt.darker(_ticket.muted, 1.04) : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.06)))
     // Selected variants 选中状态变体
-    readonly property color selectedStrong: isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06))
+    readonly property color selectedStrong: isNeumorphism ? _neu.selectedHover : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06)))
     // Hover/Pressed subtle hover/pressed超轻
-    readonly property color hoverSubtle: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.02))
-    readonly property color pressedSubtle: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.04))
+    readonly property color hoverSubtle: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.02)))
+    readonly property color pressedSubtle: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.04)))
     // Border subtle 边框透明
-    readonly property color borderSubtle: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05))
+    readonly property color borderSubtle: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.05)))
     // Disabled bg 禁用背景
-    readonly property color disabledBg: isTicket ? _ticket.muted : (root.isDark ? "#2a2a2a" : "#e8e8e8")
+    readonly property color disabledBg: isNeumorphism ? _neu.disabledSurface : (isTicket ? _ticket.muted : (root.isDark ? "#2a2a2a" : "#e8e8e8"))
     // Primary button disabled bg Primary按钮禁用背景
     // Microsoft WinUI AccentFillColorDisabled: Dark #28FFFFFF / Light #37000000
-    readonly property color primaryDisabled: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.157) : Qt.rgba(0,0,0,0.216))
+    readonly property color primaryDisabled: isNeumorphism ? _neu.disabledSurface : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.157) : Qt.rgba(0,0,0,0.216)))
     // Disabled border 禁用边框
-    readonly property color disabledBorder: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.16) : Qt.rgba(0,0,0,0.22))
+    readonly property color disabledBorder: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.16) : Qt.rgba(0,0,0,0.22)))
     // Toggle special states Toggle特殊状态
-    readonly property color toggleBorder: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.45)))
-    readonly property color toggleBorderHover: isNeo ? _neo.border : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.78) : Qt.rgba(0,0,0,0.57)))
-    readonly property color togglePressed: isNeo ? _neo.border : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.45)))
+    readonly property color toggleBorder: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.45))))
+    readonly property color toggleBorderHover: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.78) : Qt.rgba(0,0,0,0.57))))
+    readonly property color togglePressed: isNeo ? _neo.border : (isNeumorphism ? _neu.pressed : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(0,0,0,0.45))))
     // CheckBox unchecked fill 复选框未勾选填充
     // Microsoft WinUI ControlAltFill 官方令牌:
     //   normal = ControlAltFillColorSecondary (Dark #19000000 / Light #06000000)
     //   hover  = ControlAltFillColorTertiary  (Dark #0BFFFFFF / Light #0F000000)
     //   press  = ControlAltFillColorQuarternary(Dark #12FFFFFF / Light #18000000)
-    readonly property color checkBoxFill: isNeo ? _neo.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(0,0,0,0.098) : Qt.rgba(0,0,0,0.024)))
-    readonly property color checkBoxFillHover: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.043) : Qt.rgba(0,0,0,0.059)))
-    readonly property color checkBoxFillPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.071) : Qt.rgba(0,0,0,0.094)))
+    readonly property color checkBoxFill: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(0,0,0,0.098) : Qt.rgba(0,0,0,0.024))))
+    readonly property color checkBoxFillHover: isNeo ? _neo.muted : (isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.043) : Qt.rgba(0,0,0,0.059))))
+    readonly property color checkBoxFillPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.071) : Qt.rgba(0,0,0,0.094))))
     // Semi-transparent text 半透明文字
-    readonly property color textMedium: isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.5))
+    readonly property color textMedium: isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.5)))
     // Drop zone 拖放区域
-    readonly property color dropBg: isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.02) : Qt.rgba(0,0,0,0.01))
-    readonly property color dropBorder: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.18))
-    readonly property color dropBorderHover: isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.3) : Qt.rgba(0,0,0,0.2))
-    readonly property color disabledTextLight: (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.35))
-    readonly property color disabledGray: Qt.rgba(0.5,0.5,0.5,0.5)
+    readonly property color dropBg: isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.02) : Qt.rgba(0,0,0,0.01)))
+    readonly property color dropBorder: isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.18)))
+    readonly property color dropBorderHover: isNeumorphism ? _neu.primary : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.3) : Qt.rgba(0,0,0,0.2)))
+    readonly property color disabledTextLight: isNeumorphism ? _neu.disabledForeground : (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.35))
+    readonly property color disabledGray: isNeumorphism ? _neu.disabledForeground : Qt.rgba(0.5,0.5,0.5,0.5)
     readonly property color dialogOverlay: Qt.rgba(0,0,0,0.4)
-    readonly property color dialogBorder: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)))
+    readonly property color dialogBorder: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1))))
     // GroupBox border 组边框
-    readonly property color groupBorder: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12))
+    readonly property color groupBorder: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12)))
     // Strong text 强调文字
-    readonly property color textStrong: isTicket ? _ticket.foreground : (root.isDark ? Qt.rgba(1,1,1,0.9) : Qt.rgba(0,0,0,0.8))
+    readonly property color textStrong: isNeumorphism ? _neu.foreground : (isTicket ? _ticket.foreground : (root.isDark ? Qt.rgba(1,1,1,0.9) : Qt.rgba(0,0,0,0.8)))
     // Slider track 滑块轨道
-    readonly property color sliderTrack: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.39))
-    readonly property color sliderTrackDisabled: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.29))
+    readonly property color sliderTrack: isNeumorphism ? _neu.muted : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.39)))
+    readonly property color sliderTrackDisabled: isNeumorphism ? _neu.disabledSurface : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.29)))
     // Scroll handle 滚动条手柄
-    readonly property color scrollHandleHover: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.3))
-    readonly property color scrollHandleDefault: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.25) : Qt.rgba(0,0,0,0.2))
+    readonly property color scrollHandleHover: isNeumorphism ? _neu.indicatorHover : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.3)))
+    readonly property color scrollHandleDefault: isNeumorphism ? _neu.indicator : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.25) : Qt.rgba(0,0,0,0.2)))
     // Card default bg 卡片默认背景
-    readonly property color cardDefaultBg: isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.03) : Qt.rgba(0,0,0,0.02))
-    readonly property color notificationText: isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.75) : Qt.rgba(0,0,0,0.65))
+    readonly property color cardDefaultBg: isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.03) : Qt.rgba(0,0,0,0.02)))
+    readonly property color notificationText: isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.75) : Qt.rgba(0,0,0,0.65)))
     // compact-nav window content area 内容区
-    readonly property color contentBorder: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(0,0,0,0.18) : "#e4e7ea")
-    readonly property color contentBg: isNeo ? _neo.background : (isTicket ? _ticket.background : (root.isDark ? "#272727" : "#f7f9fc"))
+    readonly property color contentBorder: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(0,0,0,0.18) : "#e4e7ea"))
+    readonly property color contentBg: isNeo ? _neo.background : (isNeumorphism ? _neu.background : (isTicket ? _ticket.background : (root.isDark ? "#272727" : "#f7f9fc")))
     // Semi-transparent content bg for Mica effect 云母效果半透明内容背景
-    readonly property color contentBgTransparent: root.isDark ? Qt.rgba(1,1,1,0.03) : Qt.rgba(1,1,1,0.5)
+    readonly property color contentBgTransparent: isNeumorphism ? _neu.background : (root.isDark ? Qt.rgba(1,1,1,0.03) : Qt.rgba(1,1,1,0.5))
     // Loading/Progress 加载/进度
-    readonly property color loadingBorder: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1))
-    readonly property color progressTrack: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06)))
+    readonly property color loadingBorder: isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1)))
+    readonly property color progressTrack: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06))))
     
     // Skeleton loading 骨架屏
-    readonly property color skeletonBase: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.09))
-    readonly property color skeletonShimmer: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.25) : Qt.rgba(0,0,0,0.04))
+    readonly property color skeletonBase: isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.09)))
+    readonly property color skeletonShimmer: isNeumorphism ? _neu.hover : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.25) : Qt.rgba(0,0,0,0.04)))
     
     // SettingCard 颜色 (Fluent Design 配色规范)
     readonly property color settingCardBg: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7))))
@@ -149,12 +149,12 @@ QtObject {
     // Expand view bg 展开视图背景
     readonly property color expandViewBg: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.7))))
     // Content label color (Microsoft WinUI TextFillColorSecondary: Dark #C5FFFFFF / Light #9E000000)
-    readonly property color settingCardContent: isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.77) : Qt.rgba(0,0,0,0.61))
+    readonly property color settingCardContent: isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.77) : Qt.rgba(0,0,0,0.61)))
     // Expand button hover/pressed
-    readonly property color expandBtnHover: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.055) : Qt.rgba(0,0,0,0.055))
-    readonly property color expandBtnPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04))
+    readonly property color expandBtnHover: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.055) : Qt.rgba(0,0,0,0.055)))
+    readonly property color expandBtnPressed: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.04)))
     // Expander separator (stronger than border) 展开器分隔线（比边框更深）
-    readonly property color expanderSeparator: isNeo ? _neo.border : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15)))
+    readonly property color expanderSeparator: isNeo ? _neo.border : (isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.15))))
     
     // ==================== Fluent Design Precise Values 精确匹配值 ====================
     // Control background colors 控件背景颜色（按钮、输入框、下拉框等）
@@ -165,36 +165,36 @@ QtObject {
     // 全局统一 hover/pressed 灰阶 (Fluent UI 标准 subtle hover):
     // controlBgHover = menuItemHover = tableHoverLight = #f0f0f0,
     // 所有可交互行/项 hover 视觉一致, 用户能明显感知。
-    readonly property color controlBgHover: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0")))
-    readonly property color controlBgPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (isNeumorphism ? _neu.muted : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#353535" : "#e5e5e5")))
-    readonly property color controlBgDisabled: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#ffffff")))
+    readonly property color controlBgHover: isNeo ? _neo.muted : (isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0")))
+    readonly property color controlBgPressed: isNeo ? Qt.darker(_neo.surface, 1.08) : (isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#353535" : "#e5e5e5")))
+    readonly property color controlBgDisabled: isNeo ? _neo.muted : (isNeumorphism ? _neu.disabledSurface : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#ffffff")))
     // Transparent button colors 透明按钮颜色
     // Light: hover ebebeb, pressed ededed | Dark: hover 3a3a3a, pressed 323232
-    readonly property color transparentHover: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#ebebeb"))
-    readonly property color transparentPressed: isNeo ? Qt.darker(_neo.muted, 1.05) : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#323232" : "#ededed"))
+    readonly property color transparentHover: isNeo ? _neo.muted : (isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#ebebeb")))
+    readonly property color transparentPressed: isNeo ? Qt.darker(_neo.muted, 1.05) : (isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#323232" : "#ededed")))
     // Transparent button default bg (same RGB as hover, alpha=0) 透明按钮默认背景（与悬浮色相同RGB，alpha=0）
     // Prevents gray flash during ColorAnimation from transparent to hover color 防止从透明到悬浮色的颜色动画出现灰色闪烁
-    readonly property color controlBgTransparent: isTicket ? Qt.rgba(_ticket.muted.r, _ticket.muted.g, _ticket.muted.b, 0) : (root.isDark ? Qt.rgba(58/255, 58/255, 58/255, 0) : Qt.rgba(235/255, 235/255, 235/255, 0))
-    readonly property color pickerBorder: isNeo ? _neo.border : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.07)))
-    readonly property color pickerTextDisabled: isTicket ? _ticket.disabledForeground : (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.35))
-    readonly property color pickerTextPlaceholder: isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.6))
-    readonly property color pickerTextSecondary: isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.4))
+    readonly property color controlBgTransparent: isNeumorphism ? Qt.rgba(_neu.surface.r, _neu.surface.g, _neu.surface.b, 0) : (isTicket ? Qt.rgba(_ticket.muted.r, _ticket.muted.g, _ticket.muted.b, 0) : (root.isDark ? Qt.rgba(58/255, 58/255, 58/255, 0) : Qt.rgba(235/255, 235/255, 235/255, 0)))
+    readonly property color pickerBorder: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.07))))
+    readonly property color pickerTextDisabled: isNeumorphism ? _neu.disabledForeground : (isTicket ? _ticket.disabledForeground : (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.35)))
+    readonly property color pickerTextPlaceholder: isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.6) : Qt.rgba(0,0,0,0.6)))
+    readonly property color pickerTextSecondary: isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.4)))
     
     // Calendar navigation button 日历导航按钮
-    readonly property color calendarNavHover: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.035) : Qt.rgba(0,0,0,0.035))
-    readonly property color calendarNavPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.024) : Qt.rgba(0,0,0,0.024))
+    readonly property color calendarNavHover: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.035) : Qt.rgba(0,0,0,0.035)))
+    readonly property color calendarNavPressed: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.024) : Qt.rgba(0,0,0,0.024)))
     
     // Menu item colors (popup menu, dropdown list items) 菜单项颜色（弹出菜单、下拉列表项）
     // Default transparent, hover (light: #f0f0f0, dark: #3c3c3c), pressed (light: #eaeaea, dark: #373737) 默认透明，悬浮浅色 f0f0f0/深色 3c3c3c，按下浅色 eaeaea/深色 373737
-    readonly property color menuItemHover: isTicket ? _ticket.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0")
-    readonly property color menuItemPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#373737" : "#eaeaea")
+    readonly property color menuItemHover: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0"))
+    readonly property color menuItemPressed: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#373737" : "#eaeaea"))
     
     // Chip 颜色 (不透明)
-    readonly property color chipBg: isTicket ? _ticket.surface : (root.isDark ? "#2d2d2d" : "#f0f0f0")
-    readonly property color chipBgHover: isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#e8e8e8")
-    readonly property color chipBgPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#212121" : "#f7f7f7")
-    readonly property color chipCloseHover: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06))
-    readonly property color chipClosePressed: isTicket ? _ticket.danger : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1))
+    readonly property color chipBg: isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? "#2d2d2d" : "#f0f0f0"))
+    readonly property color chipBgHover: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? "#3a3a3a" : "#e8e8e8"))
+    readonly property color chipBgPressed: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? "#212121" : "#f7f7f7"))
+    readonly property color chipCloseHover: isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06)))
+    readonly property color chipClosePressed: isNeumorphism ? _neu.danger : (isTicket ? _ticket.danger : (root.isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1)))
     
     // ==================== Accent Color Variants 主题色变体 ====================
     // Accent with alpha - for backgrounds 主题色透明度背景
@@ -237,13 +237,13 @@ QtObject {
     
     // ==================== FilterBar Specific 筛选栏专用 ====================
     // FilterBar container/item 容器/选项
-    readonly property color filterContainer: isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.04))
-    readonly property color filterItemHover: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
+    readonly property color filterContainer: isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(0,0,0,0.04)))
+    readonly property color filterItemHover: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)))
     
     // ==================== PipsPager Specific 分页指示器专用 ====================
     // Pip indicator colors 分页指示器颜色
-    readonly property color pipNormal: isNeo ? _neo.border : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.45)))
-    readonly property color pipActive: isNeo ? _neo.primary : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.8) : Qt.rgba(0,0,0,0.62)))
+    readonly property color pipNormal: isNeo ? _neo.border : (isNeumorphism ? _neu.indicator : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.45))))
+    readonly property color pipActive: isNeo ? _neo.primary : (isNeumorphism ? _neu.primary : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.8) : Qt.rgba(0,0,0,0.62))))
     readonly property real indicatorInactiveGradientAlpha: 0.25 // Inactive gradient end alpha 非激活渐变末端透明度
     
     // ==================== Chart Colors 图表颜色 ====================
@@ -267,21 +267,21 @@ QtObject {
     
     // ==================== SegmentedControl Colors 分段控件颜色 ====================
     // Background 背景
-    readonly property color segmentedBg: isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(0,0,0,0.1) : Qt.rgba(0,0,0,0.02))
+    readonly property color segmentedBg: isNeumorphism ? _neu.muted : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(0,0,0,0.1) : Qt.rgba(0,0,0,0.02)))
     // Border 边框
-    readonly property color segmentedBorder: isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06))
+    readonly property color segmentedBorder: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.border : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)))
     // Selected item bg 选中项背景
-    readonly property color segmentedSelected: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(1,1,1,0.7))
+    readonly property color segmentedSelected: isNeumorphism ? _neu.selected : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.06) : Qt.rgba(1,1,1,0.7)))
     // Selected item border 选中项边框
-    readonly property color segmentedSelectedBorder: isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.055) : Qt.rgba(0,0,0,0.075))
+    readonly property color segmentedSelectedBorder: isNeumorphism ? Qt.rgba(0,0,0,0) : (isTicket ? _ticket.primary : (root.isDark ? Qt.rgba(1,1,1,0.055) : Qt.rgba(0,0,0,0.075)))
     // Hover bg 悬停背景
-    readonly property color segmentedHover: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.035) : Qt.rgba(0,0,0,0.035))
+    readonly property color segmentedHover: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.035) : Qt.rgba(0,0,0,0.035)))
     // Pressed bg 按下背景
-    readonly property color segmentedPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.025) : Qt.rgba(0,0,0,0.025))
+    readonly property color segmentedPressed: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.025) : Qt.rgba(0,0,0,0.025)))
     
     // ==================== Dialog Button Group 对话框按钮组 ====================
     // Button group background 按钮组背景
-    readonly property color actionsRowBg: isNeo ? _neo.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.024)))
+    readonly property color actionsRowBg: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.024))))
     
     // ==================== Navigation Selected 导航选中 ====================
     // Navigation bar item selected bg 导航栏项选中背景
@@ -291,19 +291,19 @@ QtObject {
     
     // ==================== TreeWidget Colors 树形组件颜色 ====================
     // Tree item hover/selected bg 树形项悬停/选中背景
-    readonly property color treeItemHover: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.035) : Qt.rgba(0,0,0,0.035))
+    readonly property color treeItemHover: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.035) : Qt.rgba(0,0,0,0.035)))
 
     // ==================== List item state layers 列表项状态层 ====================
     // Microsoft WinUI SubtleFill 官方令牌:
     //   hover  = SubtleFillColorSecondary (Dark #0FFFFFFF / Light #09000000)
     //   press  = SubtleFillColorTertiary  (Dark #0AFFFFFF / Light #06000000)
-    readonly property color listItemHover: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.059) : Qt.rgba(0,0,0,0.035))
-    readonly property color listItemPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.039) : Qt.rgba(0,0,0,0.024))
-    readonly property color listItemRevealGlow: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03))
+    readonly property color listItemHover: isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.059) : Qt.rgba(0,0,0,0.035)))
+    readonly property color listItemPressed: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.039) : Qt.rgba(0,0,0,0.024)))
+    readonly property color listItemRevealGlow: isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.03)))
     
     // ==================== Acrylic Effect 亚克力效果 ====================
     // Acrylic tint color 亚克力 tint 颜色
     // dark: 微软 WinUI AcrylicInAppFillColorDefault 基色 #2C2C2C + 80% opacity (0.8 档)
     // light: #f3f3f3 with ~70% opacity
-    readonly property color acrylicTintColor: isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(44/255, 44/255, 44/255, 204/255) : Qt.rgba(243/255, 243/255, 243/255, 180/255))
+    readonly property color acrylicTintColor: isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? Qt.rgba(44/255, 44/255, 44/255, 204/255) : Qt.rgba(243/255, 243/255, 243/255, 180/255)))
 }

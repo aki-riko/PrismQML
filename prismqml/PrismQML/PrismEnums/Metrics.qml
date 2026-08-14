@@ -203,6 +203,12 @@ QtObject {
      readonly property color background: root.constants.neumorphismColors.background
      readonly property color surface: root.constants.neumorphismColors.surface
      readonly property color muted: root.constants.neumorphismColors.muted
+     readonly property color hover: root.constants.neumorphismColors.hover
+     readonly property color pressed: root.constants.neumorphismColors.pressed
+     readonly property color disabledSurface: root.constants.neumorphismColors.disabledSurface
+     readonly property color divider: root.constants.neumorphismColors.divider
+     readonly property color indicator: root.constants.neumorphismColors.indicator
+     readonly property color indicatorHover: root.constants.neumorphismColors.indicatorHover
      readonly property color foreground: root.constants.neumorphismColors.foreground
      readonly property color secondaryForeground: root.constants.neumorphismColors.secondaryForeground
      readonly property color disabledForeground: root.constants.neumorphismColors.disabledForeground
