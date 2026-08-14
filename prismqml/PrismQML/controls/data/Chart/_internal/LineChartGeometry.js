@@ -176,10 +176,14 @@ function paintRange(points, region, fullPaint, pathPadding) {
     if (!points || fullPaint) {
         return { start: 0, end: points ? points.length : 0 }
     }
-    var start = _lowerBoundX(points, region.x - pathPadding)
-    var end = Math.min(
-        points.length,
-        _lowerBoundX(points, region.x + region.width + pathPadding)
+    var firstInside = _lowerBoundX(points, region.x - pathPadding)
+    var lastInside = _lowerBoundX(
+        points, region.x + region.width + pathPadding
     )
+    // Preserve quadratic-curve context across the clipped paint edge
+    // 保留裁剪绘制边缘两侧的二次曲线上下文
+    var contextPointCount = 2
+    var start = Math.max(0, firstInside - contextPointCount)
+    var end = Math.min(points.length, lastInside + contextPointCount)
     return { start: start, end: end }
 }

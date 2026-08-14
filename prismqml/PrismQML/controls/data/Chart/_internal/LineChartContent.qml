@@ -63,6 +63,9 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isMultiSeries: series.length > 0
+    readonly property int _dirtyPixelQuantum: _calculateDirtyPixelQuantum(
+        Screen.devicePixelRatio
+    )
     readonly property var _calculatedValueRange: _calculateValueRange()
     property real _displayRangeMin: _calculatedValueRange.min
     property real _displayRangeMax: _calculatedValueRange.max
@@ -80,6 +83,19 @@ Item {
     signal wheelZoomed(int delta, real anchorRatio)
 
     // ==================== Internal Methods 内部方法 ====================
+    function _calculateDirtyPixelQuantum(devicePixelRatio) {
+        // Canvas rounds dirty regions to integer DIPs; find a whole-physical-pixel DIP grid
+        // Canvas会把脏区取整到整数DIP；计算同时落在完整物理像素上的DIP网格
+        var ratio = devicePixelRatio > 0 ? devicePixelRatio : 1
+        for (var quantum = 1; quantum <= 16; quantum++) {
+            var physicalPixels = ratio * quantum
+            if (Math.abs(physicalPixels - Math.round(physicalPixels)) < 0.000001) {
+                return quantum
+            }
+        }
+        return 1
+    }
+
     function _calculateValueRange() {
         var min = Infinity, max = -Infinity
         if (isMultiSeries) {
@@ -264,7 +280,13 @@ Item {
         )
         if (!previous && !current) return
         var dirty = Geometry.unitedBounds(previous, current)
-        canvas.markDirty(Qt.rect(dirty.x, dirty.y, dirty.width, dirty.height))
+        var quantum = _dirtyPixelQuantum
+        var left = Math.max(0, Math.floor(dirty.x / quantum) * quantum)
+        var right = Math.min(
+            width,
+            Math.ceil((dirty.x + dirty.width) / quantum) * quantum
+        )
+        canvas.markDirty(Qt.rect(left, dirty.y, right - left, dirty.height))
     }
 
     onHoveredIndexChanged: _requestHoverPaint()
