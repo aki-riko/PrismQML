@@ -446,6 +446,12 @@ def test_neumorphism_settings_surfaces_share_color_and_radius(qapp):
         assert root.property("normalRadius") == 14
         assert root.property("expanderRadius") == 14
         assert root.property("surfaceBorderWidth") == 0
+        expanders = _owned(root, "Expander")
+        assert len(expanders) == 1
+        expander = expanders[0]
+        separators = _owned(expander, "Separator")
+        assert len(separators) == 1
+        assert separators[0].property("lineWidth") == 1
         _assert_color(root, "settingCardBackground", "#e4ebf3")
         _assert_color(root, "expandViewBackground", "#e4ebf3")
         _assert_color(root, "surfaceBackground", "#e4ebf3")

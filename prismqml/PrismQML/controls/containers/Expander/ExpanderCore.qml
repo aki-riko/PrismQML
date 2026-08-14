@@ -272,7 +272,9 @@ Widget {
             anchors.left: parent.left
             anchors.right: parent.right
             lineColor: Enums.stateColor.expanderSeparator
-            lineWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+            // Content divider remains visible when neumorphic surface outlines are disabled.
+            // 内容分隔线独立于表面描边，新拟态仍需保留分隔线。
+            lineWidth: Enums.border.thin
             visible: control.expanded
             // 必须高于 viewContainer, 否则 viewContainer 内 expandViewBg
             // (anchors.topMargin: -_radius 向上延伸) 会盖住 separator
