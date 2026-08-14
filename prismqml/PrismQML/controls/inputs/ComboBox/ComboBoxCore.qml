@@ -270,12 +270,6 @@ Widget {
             return Enums.stateColor.controlBg
         }
 
-        // Color animation (not applied during close to avoid delay) 颜色动画
-        Behavior on color {
-            enabled: !comboPopup.isClosing
-            ColorAnimation { duration: Enums.duration.fast }
-        }
-
         // Fluent Design 边框:亮/暗主题各用低透明度描边,具体取值见 StateColor.pickerBorder
         border.width: style !== 0 ? 0
             : Enums.surfaceBorderWidth(Enums.border.thin)
@@ -287,6 +281,14 @@ Widget {
                   : (control.popupVisible ? Enums.accentColor : Enums.borderColor))
             : styleHelper.getBorderColor()
             )
+
+        // Color animation (not applied during close to avoid delay) 颜色动画
+        HoverBehavior on color {
+            active: control.hovered && !control.pressed &&
+                    !control.popupVisible
+            animationEnabled: !comboPopup.isClosing
+            enterDuration: Enums.duration.fast
+        }
     }
     
     // Focus accent line (ONLY for editable mode) 聚焦主题色底线(仅editable模式)

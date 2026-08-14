@@ -182,7 +182,11 @@ Item {
         height: Enums.spacing.xxl
         radius: width / 2
         scale: dragArea.pressed ? 0.95 : (dragArea.containsMouse ? 1.08 : 1.0)
-        Behavior on scale { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutBack } }
+        HoverBehavior on scale {
+            active: dragArea.containsMouse && !dragArea.pressed
+            enterDuration: Enums.duration.fast
+            easingType: Easing.OutBack
+        }
 
         // Handle shadow 手柄阴影
         Rectangle {

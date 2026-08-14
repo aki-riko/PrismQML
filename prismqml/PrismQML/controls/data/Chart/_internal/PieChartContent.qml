@@ -127,13 +127,6 @@ Item {
 
         anchors.fill: parent
 
-        Behavior on hoverOffset {
-            NumberAnimation { 
-                duration: Enums.duration.fast
-                easing.type: Easing.OutCubic 
-            }
-        }
-        
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
@@ -282,6 +275,12 @@ Item {
         onTransitionProgressChanged: {
             if (transitionProgress >= 1) root.previousHoveredIndex = -1
             requestPaint()
+        }
+
+        HoverBehavior on hoverOffset {
+            active: root.hoveredIndex >= 0
+            enterDuration: Enums.duration.fast
+            easingType: Easing.OutCubic
         }
 
         NumberAnimation {

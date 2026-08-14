@@ -226,7 +226,7 @@ def test_audio_waveform_bar_caches_position_and_played_state():
     assert source.count("bar._played") == 2
 
 
-def test_audio_waveform_hover_scale_preserves_curve_and_retargeting(qapp):
+def test_audio_waveform_hover_scale_preserves_entry_curve_and_resets_exit(qapp):
     engine, component, window, waveform, warnings = _create_scene(
         ANIMATED_SCENE_SOURCE
     )
@@ -255,21 +255,7 @@ def test_audio_waveform_hover_scale_preserves_curve_and_retargeting(qapp):
 
         QTest.mouseMove(window, QPoint(350, 110))
         assert _wait_for(lambda: waveform.property("_hovered") is False)
-        assert _wait_for(
-            lambda: all(
-                1.0 < x_scale < 1.05
-                for x_scale, _ in _scale_values(waveform)
-            )
-        )
-        leaving = _scale_values(waveform)
-        assert leaving == pytest.approx([leaving[0]] * 4)
-        assert (leaving[0][0] - 1.0) / 0.05 == pytest.approx(
-            (leaving[0][1] - 1.0) / 0.02,
-            abs=1e-4,
-        )
-        assert _wait_for(
-            lambda: _scale_values(waveform) == pytest.approx([(1.0, 1.0)] * 4)
-        )
+        assert _scale_values(waveform) == pytest.approx([(1.0, 1.0)] * 4)
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)

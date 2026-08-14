@@ -74,7 +74,10 @@ Item {
                     border.width: hovered && Enums.border.none
                     border.color: root._itemBorderColor
 
-                    Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                    HoverBehavior on color {
+                        active: hovered
+                        enterDuration: Enums.duration.fast
+                    }
                 }
                 
                 Row {
@@ -92,7 +95,10 @@ Item {
                         radius: root.legendStyle === "dot" ? width / 2 : Enums.radius.micro
                         color: isItemHidden ? Enums.textColor.tertiary : root.getItemColor(index)
                         opacity: root.hoveredIndex === -1 || hovered ? 1.0 : Enums.opacityLevel.medium
-                        Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                        HoverBehavior on opacity {
+                            active: hovered
+                            enterDuration: Enums.duration.fast
+                        }
                         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
                         
                         // Line style center dot 线条样式中心点
@@ -115,7 +121,10 @@ Item {
                         font.strikeout: isItemHidden
                         color: isItemHidden ? Enums.textColor.tertiary 
                                : (hovered ? Enums.textColor.primary : Enums.textColor.secondary)
-                        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                        HoverBehavior on color {
+                            active: hovered
+                            enterDuration: Enums.duration.fast
+                        }
                     }
                 }
                 

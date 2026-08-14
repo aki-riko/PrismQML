@@ -64,7 +64,10 @@ Rectangle {
                 return Qt.tint(Enums.cardColor, Enums.stateColor.treeItemHover)
             return Enums.cardColor
         }
-        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+        HoverBehavior on color {
+            active: delegateRoot.hovered && !delegateRoot.pressed
+            enterDuration: Enums.duration.fast
+        }
     }
 
     // Selection indicator 选中指示条

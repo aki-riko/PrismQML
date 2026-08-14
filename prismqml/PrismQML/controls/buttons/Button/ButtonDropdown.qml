@@ -237,8 +237,9 @@ Item {
                (splitMainMouse.containsMouse ? dropdownFeature._splitHoverColor : dropdownFeature._splitTransparent)
         visible: feature === Enums.button.feature_split
         
-        Behavior on color {
-            ColorAnimation { duration: dropdownFeature._animationDuration }
+        HoverBehavior on color {
+            active: splitMainMouse.containsMouse && !splitMainMouse.pressed
+            enterDuration: dropdownFeature._animationDuration
         }
     }
     
@@ -266,8 +267,9 @@ Item {
                (splitDropMouse.containsMouse ? dropdownFeature._splitHoverColor : dropdownFeature._splitTransparent)
         visible: feature === Enums.button.feature_split
         
-        Behavior on color {
-            ColorAnimation { duration: dropdownFeature._animationDuration }
+        HoverBehavior on color {
+            active: splitDropMouse.containsMouse && !splitDropMouse.pressed
+            enterDuration: dropdownFeature._animationDuration
         }
         
         MouseArea {

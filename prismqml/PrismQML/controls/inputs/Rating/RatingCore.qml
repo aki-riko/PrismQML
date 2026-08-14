@@ -61,8 +61,15 @@ Item {
                            (parent.hovered ? control._effectiveHoverColor : control._effectiveOutlineColor)
                     
                     scale: parent.hovered ? 1.15 : 1.0
-                    Behavior on scale { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutBack } }
-                    Behavior on color { ColorAnimation { duration: Enums.duration.normal } }
+                    HoverBehavior on scale {
+                        active: !!(parent && parent.hovered)
+                        enterDuration: Enums.duration.fast
+                        easingType: Easing.OutBack
+                    }
+                    HoverBehavior on color {
+                        active: !!(parent && parent.hovered)
+                        enterDuration: Enums.duration.normal
+                    }
                 }
                 
                 MouseArea {

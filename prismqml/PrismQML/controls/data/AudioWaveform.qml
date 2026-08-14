@@ -113,9 +113,10 @@ Item {
         border.color: control._waveformBorderColor
         shadowLevel: control._hovered ? Enums.shadow.level4 : Enums.shadow.level2
         
-        Behavior on border.color {
-            enabled: control.animated
-            ColorAnimation { duration: Enums.duration.fast }
+        HoverBehavior on border.color {
+            active: control._hovered && !control._pressed
+            animationEnabled: control.animated
+            enterDuration: Enums.duration.fast
         }
     }
     
@@ -218,9 +219,10 @@ Item {
                               * control._hoverScaleProgress
                     }
                     
-                    Behavior on opacity {
-                        enabled: control.animated
-                        NumberAnimation { duration: Enums.duration.fast }
+                    HoverBehavior on opacity {
+                        active: control._hovered && !control._pressed
+                        animationEnabled: control.animated
+                        enterDuration: Enums.duration.fast
                     }
                 }
             }
@@ -293,12 +295,11 @@ Item {
         }
     }
 
-    Behavior on _hoverScaleProgress {
-        enabled: control.animated
-        NumberAnimation {
-            duration: Enums.duration.medium
-            easing.type: Easing.OutCubic
-        }
+    HoverBehavior on _hoverScaleProgress {
+        active: control._hovered && !control._pressed
+        animationEnabled: control.animated
+        enterDuration: Enums.duration.medium
+        easingType: Easing.OutCubic
     }
 
 }

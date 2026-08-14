@@ -65,9 +65,10 @@ Rectangle {
         enabled: !rowDelegate.recycling
         NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic }
     }
-    Behavior on color {
-        enabled: !rowDelegate.recycling
-        ColorAnimation { duration: Enums.duration.fast }
+    HoverBehavior on color {
+        active: rowDelegate.hovered && !mouseArea.pressed
+        animationEnabled: !rowDelegate.recycling
+        enterDuration: Enums.duration.fast
     }
 
     Rectangle {

@@ -88,7 +88,9 @@ QtObject {
 
  // ==================== Motion 运动参数 ====================
  readonly property QtObject motion: QtObject {
+ readonly property int hoverExitDuration: root.duration.none // Hover exit resets immediately 悬浮退出立即复位
  readonly property int navigationTitleMarqueeSpeed: 25 // Navigation title hover marquee speed in pixels per second 导航标题悬浮跑马灯速度（像素/秒）
+
  }
  
  // ==================== Z-Index 层级 ====================

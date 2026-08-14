@@ -65,8 +65,14 @@ Rectangle {
     border.width: _indicatorBorderWidth
     border.color: _indicatorBorderColor
 
-    Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
-    Behavior on border.color { ColorAnimation { duration: Enums.duration.fast } }
+    HoverBehavior on color {
+        active: hovered && !pressed
+        enterDuration: Enums.duration.fast
+    }
+    HoverBehavior on border.color {
+        active: hovered && !pressed
+        enterDuration: Enums.duration.fast
+    }
 
     // ==================== Content 内容 ====================
     CheckIcon {

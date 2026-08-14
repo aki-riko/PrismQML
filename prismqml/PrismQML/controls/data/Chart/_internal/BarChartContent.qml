@@ -490,7 +490,10 @@ Item {
                     font.weight: verticalBarItem.hovered ? Font.DemiBold : Font.Normal
                     color: verticalBarItem.hovered ? Enums.textColor.primary : Enums.textColor.secondary
                     visible: root.showValues
-                    Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                    HoverBehavior on color {
+                        active: verticalBarItem.hovered
+                        enterDuration: Enums.duration.fast
+                    }
                 }
                 
                 MouseArea {
@@ -617,7 +620,10 @@ Item {
                     font.weight: horizontalBarItem.hovered ? Font.DemiBold : Font.Normal
                     color: horizontalBarItem.hovered ? Enums.textColor.primary : Enums.textColor.secondary
                     visible: root.showValues
-                    Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                    HoverBehavior on color {
+                        active: horizontalBarItem.hovered
+                        enterDuration: Enums.duration.fast
+                    }
                 }
                 
                 MouseArea {

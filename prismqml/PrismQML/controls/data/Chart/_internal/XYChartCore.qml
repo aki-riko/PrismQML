@@ -394,8 +394,9 @@ Item {
                     elide: Text.ElideRight
                     rightPadding: Enums.spacing.s
 
-                    Behavior on color {
-                        ColorAnimation { duration: Enums.duration.fast }
+                    HoverBehavior on color {
+                        active: root.hoveredIndex === index
+                        enterDuration: Enums.duration.fast
                     }
 
                     MouseArea {
@@ -481,8 +482,9 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
 
-                    Behavior on color {
-                        ColorAnimation { duration: Enums.duration.fast }
+                    HoverBehavior on color {
+                        active: root.hoveredIndex === index
+                        enterDuration: Enums.duration.fast
                     }
 
                     MouseArea {

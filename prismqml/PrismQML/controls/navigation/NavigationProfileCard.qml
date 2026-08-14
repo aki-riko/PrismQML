@@ -46,7 +46,10 @@ Item {
  radius: control._profileRadius
  color: control._profileBackground
  
- Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+ HoverBehavior on color {
+ active: mouseArea.containsMouse && !mouseArea.pressed
+ enterDuration: Enums.duration.fast
+ }
  }
  
  // Avatar 头像

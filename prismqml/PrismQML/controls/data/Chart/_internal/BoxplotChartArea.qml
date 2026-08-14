@@ -195,7 +195,10 @@ Item {
                         color: parent._hovered ? Enums.textColor.primary : Enums.textColor.secondary
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
-                        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                        HoverBehavior on color {
+                            active: !!(parent && parent._hovered)
+                            enterDuration: Enums.duration.fast
+                        }
                     }
                 }
             }

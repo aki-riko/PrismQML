@@ -476,7 +476,10 @@ Widget {
                         border.width: tabItem.isDragSource ? control._selectedTabBorderWidth : 0
                         border.color: (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border)
 
-                        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                        HoverBehavior on color {
+                            active: tabItem.hovered && !tabItem.pressed
+                            enterDuration: Enums.duration.fast
+                        }
                     }
 
                     // Content - Fluent Design style 内容 - Fluent Design风格

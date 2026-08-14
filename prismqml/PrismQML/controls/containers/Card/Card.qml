@@ -53,7 +53,11 @@ Widget {
  // Elevation animation for elevated cards 悬浮卡片上浮动画
  transform: Translate { 
  y: !Enums.isVintageTicket && isElevated && hovered && !pressed ? -Enums.spacing.cardElevate : 0
- Behavior on y { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
+ HoverBehavior on y {
+ active: control.hovered && !control.pressed
+ enterDuration: Enums.duration.medium
+ easingType: Easing.OutCubic
+ }
  }
  
  // ==================== Content 内容 ====================
@@ -79,8 +83,16 @@ Widget {
  visible: Enums.usesSoftElevation && !Enums.isNeumorphism && (isElevated || hovered)
 
  // Shadow properties based on type and state 根据类型和状态计算阴影
- Behavior on _shadowBlur { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
- Behavior on _shadowColor { ColorAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
+ HoverBehavior on _shadowBlur {
+ active: control.hovered && !control.pressed
+ enterDuration: Enums.duration.medium
+ easingType: Easing.OutCubic
+ }
+ HoverBehavior on _shadowColor {
+ active: control.hovered && !control.pressed
+ enterDuration: Enums.duration.medium
+ easingType: Easing.OutCubic
+ }
  }
 
  NeumorphicShadow {
@@ -97,7 +109,11 @@ Widget {
  sourceComponent: NeoShadow {
  target: card
  offset: (isElevated && hovered && !pressed) ? Enums.neo.shadowOffset * 1.5 : Enums.neo.shadowOffset
- Behavior on offset { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
+ HoverBehavior on offset {
+ active: control.hovered && !control.pressed
+ enterDuration: Enums.duration.medium
+ easingType: Easing.OutCubic
+ }
  }
  }
  
@@ -132,11 +148,14 @@ Widget {
  // Background Color 背景色
  color: _bgColor
  
- Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
- 
- // Border 边框
- border.width: Enums.surfaceBorderWidth(Enums.border.thin)
- border.color: Enums.stateColor.borderLight// neo 黑边由 token 自动返回
+    // Border 边框
+    border.width: Enums.surfaceBorderWidth(Enums.border.thin)
+    border.color: Enums.stateColor.borderLight// neo 黑边由 token 自动返回
+
+    HoverBehavior on color {
+        active: control.hovered && !control.pressed
+        enterDuration: Enums.duration.fast
+    }
 
  TicketPaper {
  anchors.fill: parent

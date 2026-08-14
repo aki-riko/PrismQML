@@ -72,7 +72,10 @@ Item {
                     
                     // Hover effect 悬停效果
                     opacity: circleArea.containsMouse ? Enums.colorPickerMetrics.circleHoverOpacity : Enums.opacityLevel.visible
-                    Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                    HoverBehavior on opacity {
+                        active: circleArea.containsMouse
+                        enterDuration: Enums.duration.fast
+                    }
                 }
                 
                 MouseArea {

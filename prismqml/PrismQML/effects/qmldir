@@ -8,4 +8,5 @@ NeoShadow NeoShadow.qml
 NeumorphicShadow NeumorphicShadow.qml
 TicketPaper TicketPaper.qml
 ToggleAnimation ToggleAnimation.qml
+HoverBehavior HoverBehavior.qml
 MatrixRain MatrixRain.qml

@@ -59,8 +59,10 @@ Row {
                     lineLength: parent.height * 0.5
                     opacity: headerItem.hovered || resizeHandle.pressed ? 1.0 : 0.4
 
-                    Behavior on opacity {
-                        NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic }
+                    HoverBehavior on opacity {
+                        active: headerItem.hovered && !resizeHandle.pressed
+                        enterDuration: Enums.duration.fast
+                        easingType: Easing.OutCubic
                     }
                 }
 

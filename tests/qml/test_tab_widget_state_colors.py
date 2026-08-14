@@ -124,6 +124,8 @@ def _assert_state_colors(root, tab, delegate, background, expected):
     delegate.setProperty("hovered", True)
     _wait_for_color(background, expected["hover"], poll_interval, timeout)
     delegate.setProperty("hovered", False)
+    _pump(1)
+    _assert_color(background.property("color"), (0, 0, 0, 0))
     delegate.setProperty("pressed", True)
     _wait_for_color(background, expected["pressed"], poll_interval, timeout)
     delegate.setProperty("pressed", False)

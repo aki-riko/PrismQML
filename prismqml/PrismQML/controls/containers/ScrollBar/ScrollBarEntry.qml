@@ -77,9 +77,10 @@ Rectangle {
  visible: active // Only visible when needed 仅需要时可见
  opacity: (hovered || thumbPointHandler.active) ? 1 : 0.6
  
- Behavior on opacity {
- enabled: control._animEnabled
- NumberAnimation { duration: Enums.duration.normal }
+ HoverBehavior on opacity {
+ active: control.hovered && !thumbPointHandler.active
+ animationEnabled: control._animEnabled
+ enterDuration: Enums.duration.normal
  }
 
  // ==================== Content 内容 ====================
@@ -110,7 +111,10 @@ Rectangle {
  
  color: control._scrollThumbColor
  
- Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+ HoverBehavior on color {
+ active: control.hovered && !thumbPointHandler.active
+ enterDuration: Enums.duration.fast
+ }
  
  }
 

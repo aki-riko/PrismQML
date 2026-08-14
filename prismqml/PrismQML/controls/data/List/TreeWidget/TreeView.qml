@@ -106,7 +106,10 @@ DataWidgetCore {
                 color: delegateRoot.hovered
                        ? Qt.tint(Enums.cardColor, Enums.stateColor.treeItemHover)
                        : Enums.cardColor
-                Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                HoverBehavior on color {
+                    active: delegateRoot.hovered && !delegateRoot.pressed
+                    enterDuration: Enums.duration.fast
+                }
             }
 
             Row {

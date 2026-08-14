@@ -112,8 +112,14 @@ Item {
                         return Enums.stateColor.inputBorderNormal
                     }
 
-                    Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
-                    Behavior on border.color { ColorAnimation { duration: Enums.duration.fast } }
+                    HoverBehavior on color {
+                        active: cellItem.hovered && !cellItem.isCurrentCell
+                        enterDuration: Enums.duration.fast
+                    }
+                    HoverBehavior on border.color {
+                        active: cellItem.hovered && !cellItem.isCurrentCell
+                        enterDuration: Enums.duration.fast
+                    }
 
                     // Display content 显示内容
                     Label {

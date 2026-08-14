@@ -81,7 +81,10 @@ Avatar {
         opacity: hovered ? 1 : 0
         antialiasing: true
         
-        Behavior on opacity { NumberAnimation { duration: Enums.duration.normal } }
+        HoverBehavior on opacity {
+            active: control.hovered
+            enterDuration: Enums.duration.normal
+        }
         
         Column {
             anchors.centerIn: parent

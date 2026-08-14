@@ -61,6 +61,8 @@ Item {
     readonly property color actualBackground: button._styleBgColor
     readonly property color actualBorder: button._styleBorderColor
     readonly property color actualText: button._styleTextColor
+    readonly property color animatedBackground: button._animatedBgColor
+    readonly property color animatedBorder: button._animatedBorderColor
     readonly property color publicHelperBackground: button.styleHelper.bgColor
     readonly property color publicHelperBorder: button.styleHelper.borderColor
     readonly property color publicHelperText: button.styleHelper.textColor
@@ -196,6 +198,26 @@ def test_shared_button_style_matches_reference_for_all_states(qapp):
         assert warnings == []
     finally:
         setSkin(previous_skin)
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump()
+
+
+def test_button_hover_exit_resets_animated_surface_immediately(qapp):
+    engine, component, root, warnings = _create_scene()
+    try:
+        root.setProperty("testHovered", True)
+        _pump(250)
+        assert root.property("animatedBackground") == root.property("actualBackground")
+        assert root.property("animatedBorder") == root.property("actualBorder")
+
+        root.setProperty("testHovered", False)
+        _pump(1)
+        assert root.property("animatedBackground") == root.property("actualBackground")
+        assert root.property("animatedBorder") == root.property("actualBorder")
+        assert warnings == []
+    finally:
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()

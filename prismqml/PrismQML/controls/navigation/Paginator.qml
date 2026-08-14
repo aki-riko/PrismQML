@@ -188,8 +188,10 @@ Item {
                             radius: root._pageRadius
                             color: pageMouseArea.containsMouse && !pageDelegate.isCurrentPage
                                    ? root._pageHoverColor : root._pageIdleColor
-                            Behavior on color {
-                                ColorAnimation { duration: Enums.duration.fast }
+                            HoverBehavior on color {
+                                active: pageMouseArea.containsMouse &&
+                                        !pageDelegate.isCurrentPage
+                                enterDuration: Enums.duration.fast
                             }
                         }
 

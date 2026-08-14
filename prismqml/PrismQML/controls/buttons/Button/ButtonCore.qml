@@ -133,6 +133,7 @@ Widget {
     property color _targetBgColor
     property color _targetBorderColor
     property bool _colorAnimationsReady: false
+    property bool _hoverExitPending: false
     property bool _menuPrewarmRetryScheduled: false
 
     // ==================== Signals 信号 ====================
@@ -183,21 +184,34 @@ Widget {
         return feature === Enums.button.feature_toggle
     }
 
-    function _updateTargetColors() {
+    function _updateTargetColors(hoverActive) {
         var newBg = _styleBgColor
         var newBorder = _styleBorderColor
+        var animate = hoverActive === undefined ? true : hoverActive
+        var transitionDuration = animate
+            ? Enums.duration.medium : Enums.motion.hoverExitDuration
 
-        if (pressed) {
-            // During press: instant update 按下时：瞬间更新
+        if (pressed || transitionDuration === Enums.duration.none) {
+            // Press and hover exit reset immediately. 按下与悬浮退出立即复位。
+            bgColorAnim.stop()
+            borderColorAnim.stop()
+            _targetBgColor = newBg
+            _targetBorderColor = newBorder
             _animatedBgColor = newBg
             _animatedBorderColor = newBorder
         } else {
-            // Not pressed: always animate to new color 非按下：始终动画到新颜色
+            // Hover entry and non-hover style changes retain their animation. 悬浮进入及非悬浮样式变化保留动画。
             _targetBgColor = newBg
             _targetBorderColor = newBorder
             bgColorAnim.restart()
             borderColorAnim.restart()
         }
+    }
+
+    function _completeHoverExit() {
+        if (!_hoverExitPending || hovered) return
+        _updateTargetColors(false)
+        _hoverExitPending = false
     }
 
     function _syncCustomContentState() {
@@ -330,13 +344,15 @@ Widget {
 
     // Watch hover changes directly for reliable updates 直接监听悬浮变化以确保可靠更新
     onHoveredChanged: {
-        _updateTargetColors()
+        _hoverExitPending = !hovered
+        _updateTargetColors(hovered)
+        if (_hoverExitPending) Qt.callLater(control._completeHoverExit)
     }
     on_StyleBgColorChanged: {
-        if (_colorAnimationsReady) _updateTargetColors()
+        if (_colorAnimationsReady) _updateTargetColors(!_hoverExitPending)
     }
     on_StyleBorderColorChanged: {
-        if (_colorAnimationsReady) _updateTargetColors()
+        if (_colorAnimationsReady) _updateTargetColors(!_hoverExitPending)
     }
 
     on_ToolTipHoveredChanged: {

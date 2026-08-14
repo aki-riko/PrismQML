@@ -71,7 +71,10 @@ Rectangle {
         // Color 颜色
         color: control._scrollHandleColor
         
-        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+        HoverBehavior on color {
+            active: handleArea.containsMouse && !handleArea.pressed
+            enterDuration: Enums.duration.fast
+        }
         
         // Drag interaction 拖拽交互
         MouseArea {

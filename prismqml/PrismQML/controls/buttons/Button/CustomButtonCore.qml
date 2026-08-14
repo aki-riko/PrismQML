@@ -116,7 +116,10 @@ Widget {
         border.width: control.flat ? 0 : Enums.surfaceBorderWidth(Enums.border.thin)
         border.color: control.getBorderColor()
         
-        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+        HoverBehavior on color {
+            active: control.hovered && !control.pressed
+            enterDuration: Enums.duration.fast
+        }
     }
 
     // Content row 内容行

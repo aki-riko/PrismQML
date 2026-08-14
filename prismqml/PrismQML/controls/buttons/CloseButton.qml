@@ -41,7 +41,10 @@ Item {
         anchors.fill: parent
         radius: control.width / 2
         color: control.pressed ? control.pressedBgColor : (control.hovered ? control.hoverBgColor : Enums.stateColor.controlBgTransparent)
-        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+        HoverBehavior on color {
+            active: control.hovered && !control.pressed
+            enterDuration: Enums.duration.fast
+        }
     }
 
     // Icon 图标
@@ -51,7 +54,10 @@ Item {
         icon: Enums.icon.dismiss
         iconSize: control.iconSizeValue
         color: control.hovered ? control.hoverIconColor : control.normalIconColor
-        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+        HoverBehavior on color {
+            active: control.hovered
+            enterDuration: Enums.duration.fast
+        }
     }
 
     // Interaction 交互

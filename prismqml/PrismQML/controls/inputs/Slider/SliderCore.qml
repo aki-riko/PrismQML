@@ -234,7 +234,11 @@ Item {
                     width: handleArea.pressed ? Enums.iconSize.micro : (hovered ? Enums.iconSize.xs : Enums.iconSize.tiny)
                     height: width; radius: width / 2
                     color: control._handleInnerColor
-                    Behavior on width { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+                    HoverBehavior on width {
+                        active: hovered && !pressed
+                        enterDuration: Enums.duration.fast
+                        easingType: Easing.OutCubic
+                    }
                 }
                 
                 // Create the tooltip on first hover/press, then reuse it.
@@ -354,7 +358,12 @@ Item {
                     width: rangeHandleArea.pressed ? Enums.iconSize.micro : (rangeHandleArea.containsMouse ? Enums.iconSize.xs : Enums.iconSize.tiny)
                     height: width; radius: width / 2
                     color: control._handleInnerColor
-                    Behavior on width { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+                    HoverBehavior on width {
+                        active: rangeHandleArea.containsMouse &&
+                                !rangeHandleArea.pressed
+                        enterDuration: Enums.duration.fast
+                        easingType: Easing.OutCubic
+                    }
                 }
                 
                 Loader {

@@ -57,7 +57,10 @@ Rectangle {
     color: _bgColor
     radius: Enums.radius.card
 
-    Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+    HoverBehavior on color {
+        active: hovered && !pressed
+        enterDuration: Enums.duration.fast
+    }
 
     // ==================== Content 内容 ====================
     // Reveal highlight 悬浮光晕
@@ -76,8 +79,10 @@ Rectangle {
             color: root._revealGlowColor
 
             opacity: hovered ? 1 : 0
-            Behavior on opacity {
-                NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic }
+            HoverBehavior on opacity {
+                active: hovered && !pressed
+                enterDuration: Enums.duration.normal
+                easingType: Easing.OutCubic
             }
         }
     }

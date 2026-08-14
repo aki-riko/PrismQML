@@ -199,7 +199,11 @@ Rectangle {
                     transformOrigin: Item.Center
                     
                     // Animations 动画
-                    Behavior on color { ColorAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic } }
+                    HoverBehavior on color {
+                        active: filterItem.hovered && !filterItem.pressed
+                        enterDuration: Enums.duration.normal
+                        easingType: Easing.OutCubic
+                    }
                     Behavior on scale { 
                         NumberAnimation { 
                             duration: control.exclusive ? Enums.duration.fast : Enums.duration.medium

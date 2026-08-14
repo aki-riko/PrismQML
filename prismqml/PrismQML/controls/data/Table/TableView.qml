@@ -130,7 +130,11 @@ DataWidgetCore {
                             lineColor: root.borderColor
                             visible: index < (root._safeColumns || []).length - 1
                             opacity: parent._hovered ? 1.0 : 0.4
-                            Behavior on opacity { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+                            HoverBehavior on opacity {
+                                active: !!(parent && parent._hovered)
+                                enterDuration: Enums.duration.fast
+                                easingType: Easing.OutCubic
+                            }
                         }
 
                         Label {

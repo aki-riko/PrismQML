@@ -143,7 +143,10 @@ Item {
                     color: control._navItemContentColor
                 }
 
-                Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                HoverBehavior on opacity {
+                    active: control.hovered && !control.pressed
+                    enterDuration: Enums.duration.fast
+                }
             }
         }
 
@@ -184,7 +187,10 @@ Item {
                         }
                     }
 
-                    Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                    HoverBehavior on opacity {
+                        active: control.hovered && !control.pressed
+                        enterDuration: Enums.duration.fast
+                    }
                 }
             }
         }
@@ -200,7 +206,10 @@ Item {
                 color: control._navItemContentColor
                 opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
 
-                Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+                HoverBehavior on opacity {
+                    active: control.hovered && !control.pressed
+                    enterDuration: Enums.duration.fast
+                }
                 Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
             }
         }

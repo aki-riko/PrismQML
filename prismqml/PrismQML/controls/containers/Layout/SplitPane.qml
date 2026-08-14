@@ -115,7 +115,10 @@ Item {
 
         // Default transparent, tint only on hover/press 默认透明，悬停/按下才着色
         color: control._splitHandleColor
-        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+        HoverBehavior on color {
+            active: handleArea.containsMouse && !handleArea.pressed
+            enterDuration: Enums.duration.fast
+        }
 
         // Grip pill — draggable cue 药丸抓手，提示可拖拽
         Rectangle {
@@ -130,12 +133,22 @@ Item {
             // Lengthens slightly on interaction 交互时略微变长 (px)
             width: control.isHorizontal ? gripThickness : gripLength
             height: control.isHorizontal ? gripLength : gripThickness
-            Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
-            Behavior on height { NumberAnimation { duration: Enums.duration.fast } }
 
             // Neutral grey, deepens on interaction 中性灰，交互时加深
             color: control._splitGripColor
-            Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+
+            HoverBehavior on width {
+                active: handleArea.containsMouse && !handleArea.pressed
+                enterDuration: Enums.duration.fast
+            }
+            HoverBehavior on height {
+                active: handleArea.containsMouse && !handleArea.pressed
+                enterDuration: Enums.duration.fast
+            }
+            HoverBehavior on color {
+                active: handleArea.containsMouse && !handleArea.pressed
+                enterDuration: Enums.duration.fast
+            }
         }
         
         // Mouse area inside handle 鼠标区域放在handle内部

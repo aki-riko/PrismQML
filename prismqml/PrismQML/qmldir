@@ -17,6 +17,7 @@ ShadowedRectangle effects/ShadowedRectangle.qml
 NeumorphicShadow effects/NeumorphicShadow.qml
 TicketPaper effects/TicketPaper.qml
 ToggleAnimation effects/ToggleAnimation.qml
+HoverBehavior effects/HoverBehavior.qml
 MatrixRain effects/MatrixRain.qml
 
 # ==================== Icons 图标 ====================

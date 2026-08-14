@@ -214,8 +214,16 @@ Item {
                                ? control._pipActiveColor
                                : (pipMouse.containsMouse ? control._pipHoverColor : control._pipInactiveColor)
 
-                        Behavior on width { NumberAnimation { duration: Enums.duration.fast } }
-                        Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+                        HoverBehavior on width {
+                            active: pipMouse.containsMouse &&
+                                    index !== control.currentIndex
+                            enterDuration: Enums.duration.fast
+                        }
+                        HoverBehavior on color {
+                            active: pipMouse.containsMouse &&
+                                    index !== control.currentIndex
+                            enterDuration: Enums.duration.fast
+                        }
                     }
 
                     MouseArea {

@@ -91,8 +91,9 @@ Item {
         border.color: Enums.stateColor.border
 
         // Animations 动画
-        Behavior on color {
-            ColorAnimation { duration: Enums.duration.fast }
+        HoverBehavior on color {
+            active: control.hovered && !control.pressed
+            enterDuration: Enums.duration.fast
         }
         Behavior on border.width {
             NumberAnimation { duration: Enums.duration.fast }

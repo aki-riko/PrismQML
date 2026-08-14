@@ -52,7 +52,10 @@ Rectangle {
     color: _bgColor
     radius: Enums.radius.card
 
-    Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
+    HoverBehavior on color {
+        active: hovered && !pressed
+        enterDuration: Enums.duration.fast
+    }
 
     // ==================== Content 内容 ====================
     // Selection indicator 左侧选中竖条

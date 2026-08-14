@@ -242,13 +242,17 @@ Rectangle {
                   ? _activeLevel.offset
                   : (_staticFallbackShadow ? _staticFallbackShadow.offset : 0)
 
-        Behavior on blur {
-            enabled: root.animated && hoverElevation
-            NumberAnimation { duration: Enums.duration.elevation; easing.type: Easing.OutCubic }
+        HoverBehavior on blur {
+            active: wheelArea.containsMouse
+            animationEnabled: root.animated && hoverElevation
+            enterDuration: Enums.duration.elevation
+            easingType: Easing.OutCubic
         }
-        Behavior on offset {
-            enabled: root.animated && hoverElevation
-            NumberAnimation { duration: Enums.duration.elevation; easing.type: Easing.OutCubic }
+        HoverBehavior on offset {
+            active: wheelArea.containsMouse
+            animationEnabled: root.animated && hoverElevation
+            enterDuration: Enums.duration.elevation
+            easingType: Easing.OutCubic
         }
     }
 

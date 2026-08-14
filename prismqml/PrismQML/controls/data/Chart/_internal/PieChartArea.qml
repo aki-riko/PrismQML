@@ -109,15 +109,26 @@ Item {
                 color: root.hoveredIndex >= 0 ? root.getColor(root.hoveredIndex) : Enums.textColor.primary
                 visible: root.emphasisCenter && root.hoveredIndex >= 0
                 
-                Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
-                
                 transform: Scale {
                     origin.x: emphasisValue.width / 2
                     origin.y: emphasisValue.height / 2
                     xScale: root.hoveredIndex >= 0 ? 1.0 : 0.8
                     yScale: root.hoveredIndex >= 0 ? 1.0 : 0.8
-                    Behavior on xScale { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
-                    Behavior on yScale { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+                    HoverBehavior on xScale {
+                        active: root.hoveredIndex >= 0
+                        enterDuration: Enums.duration.fast
+                        easingType: Easing.OutCubic
+                    }
+                    HoverBehavior on yScale {
+                        active: root.hoveredIndex >= 0
+                        enterDuration: Enums.duration.fast
+                        easingType: Easing.OutCubic
+                    }
+                }
+
+                HoverBehavior on color {
+                    active: root.hoveredIndex >= 0
+                    enterDuration: Enums.duration.fast
                 }
             }
             
