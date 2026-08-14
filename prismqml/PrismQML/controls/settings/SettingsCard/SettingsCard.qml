@@ -84,6 +84,11 @@ Item {
                                          type === Enums.settingCard.type_folder_list ||
                                          type === Enums.settingCard.type_color
     readonly property color currentColor: useCustomColor ? customColor : defaultColor
+    readonly property real _surfaceBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property color _surfaceBorderColor: Enums.surfaceBorderColor(
+        Enums.stateColor.borderLight,
+        Enums.stateColor.controlBg
+    )
     readonly property var _safeModel:
         model === null || model === undefined ? []
         : (typeof model.length === "number" ? model : [])
@@ -221,6 +226,8 @@ Item {
             title: control.title
             content: control.content
             disabled: control.disabled
+            border.width: control._surfaceBorderWidth
+            border.color: control._surfaceBorderColor
             
             contentItem: SettingsCardContent {
                 type: control.type
@@ -287,6 +294,8 @@ Item {
             icon: rootControl.icon
             expanded: rootControl.expanded
             disabled: rootControl.disabled
+            borderWidth: rootControl._surfaceBorderWidth
+            borderColor: rootControl._surfaceBorderColor
             // SettingsCard 的 expandComponent 内部已自带 verticalCenter padding 模式
             // (Item height = X.implicit + spacing.l*2), 显式设 contentPadding=0 退回旧行为,
             // 避免与引擎默认 spacing.l 双叠加. 业务侧直接用 Expander 不受影响.

@@ -8,11 +8,17 @@ from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QTimer, QUrl
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtGui import QColor, QGuiApplication
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
-from prismqml import configure_qml_environment, register_types
+from prismqml import (
+    Skin,
+    configure_qml_environment,
+    getSkin,
+    register_types,
+    setSkin,
+)
 from scripts.qml_conventions import scan_source_text
 
 
@@ -132,6 +138,18 @@ Window {
         content: "Description"
     }
 
+    SettingsCard {
+        id: normalCard
+        objectName: "normalSettingsCard"
+        x: 380
+        y: 160
+        width: 320
+        type: Enums.settingCard.type_combobox
+        title: "Language"
+        model: ["System", "English"]
+        currentIndex: 0
+    }
+
     SettingsCardGroup {
         id: group
         objectName: "settingsCardGroup"
@@ -220,6 +238,7 @@ def _create_scene():
             "settingsCardCore",
             "settingsCardGroup",
             "settingsCardContent",
+            "normalSettingsCard",
         )
     }
     assert all(items.values())
@@ -333,6 +352,48 @@ def test_settings_card_core_and_group_composition(settings_scene):
     )
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_settings_card_normal_and_expandable_surfaces_share_border_contract(
+    settings_scene,
+):
+    window, items, warnings, windows_before = settings_scene
+    expandable_card = items["settingsCard"]
+    normal_card = items["normalSettingsCard"]
+    expandable_surfaces = [
+        item
+        for item in _visual_items(expandable_card)
+        if item.metaObject().indexOfProperty("borderColor") >= 0
+        and item.metaObject().indexOfProperty("borderWidth") >= 0
+    ]
+    assert len(expandable_surfaces) == 1
+    expandable_surface = expandable_surfaces[0]
+    normal_surfaces = [
+        item
+        for item in _visual_items(normal_card)
+        if item.metaObject().className().split("_QMLTYPE_", 1)[0]
+        == "SettingsCardCore"
+    ]
+    assert len(normal_surfaces) == 1
+    normal_surface = normal_surfaces[0]
+    previous_skin = getSkin()
+
+    try:
+        for skin in (Skin.FLUENT, Skin.VINTAGE_TICKET):
+            setSkin(skin)
+            assert _wait_for(
+                lambda: expandable_surface.property("borderColor")
+                == QQmlProperty(normal_surface, "border.color").read()
+            )
+            border_color = QColor(expandable_surface.property("borderColor"))
+            assert border_color.alphaF() == pytest.approx(1)
+            assert float(expandable_surface.property("borderWidth")) == pytest.approx(
+                float(QQmlProperty(normal_surface, "border.width").read())
+            )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        setSkin(previous_skin)
 
 
 def test_settings_card_default_placeholder_follows_runtime_language(settings_scene):

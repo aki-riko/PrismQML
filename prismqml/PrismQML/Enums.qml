@@ -62,6 +62,21 @@ Item {
         if (isNeumorphism) return neumorphism.borderWidth
         return fluentWidth
     }
+    // Resolve translucent strokes against their target surface before different render layers draw them.
+    // 在不同渲染层绘制前，先将半透明描边与目标表面合成，避免最终像素颜色不一致。
+    function surfaceBorderColor(borderColor, surfaceColor) {
+        var borderAlpha = borderColor.a
+        if (borderAlpha <= 0 || borderAlpha >= 1) return borderColor
+        var surfaceContribution = surfaceColor.a * (1 - borderAlpha)
+        var outputAlpha = borderAlpha + surfaceContribution
+        if (outputAlpha <= 0) return transparent
+        return Qt.rgba(
+            (borderColor.r * borderAlpha + surfaceColor.r * surfaceContribution) / outputAlpha,
+            (borderColor.g * borderAlpha + surfaceColor.g * surfaceContribution) / outputAlpha,
+            (borderColor.b * borderAlpha + surfaceColor.b * surfaceContribution) / outputAlpha,
+            outputAlpha
+        )
+    }
     
     // ==================== Global Theme Props 全局主题属性 ====================
     readonly property string theme: ThemeManager ? ThemeManager.theme : "auto"

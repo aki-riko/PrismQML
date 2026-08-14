@@ -26,6 +26,8 @@ Widget {
     // 业务直接塞 GridLayout / Row / Column 等无自带 padding 容器即可上下对称, 不需要包 Item.
     // 设 0 退回旧行为 (业务自管 padding, 仅在已知内容自带 verticalCenter padding 时使用).
     property int contentPadding: Enums.spacing.l
+    property real borderWidth: Enums.surfaceBorderWidth(Enums.border.thin) // Surface border width 表面边线宽度
+    property color borderColor: Enums.stateColor.borderStrong // Surface border color 表面边线颜色
     default property alias expandContent: contentArea.data
     
     // Header right content (between title and expand button) 头部右侧内容（标题和展开按钮之间）
@@ -140,9 +142,9 @@ Widget {
             color: Enums.stateColor.controlBg
             // neo: 粗黑边(Fluent 无边靠阴影区分; neo 需黑边)
             border.width: Enums.hasOutlinedSurfaces
-                ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
+                ? control.borderWidth : Enums.border.none
             border.color: Enums.hasOutlinedSurfaces
-                ? Enums.stateColor.border : Enums.transparent
+                ? control.borderColor : Enums.transparent
 
             TicketPaper {
                 anchors.fill: parent
@@ -332,9 +334,10 @@ Widget {
         anchors.fill: mainContainer
         radius: control._radius
         color: Enums.transparent
-        border.width: Enums.surfaceBorderWidth(Enums.border.thin)
-        // borderLight (黑 6%) 在 controlBg (#fefefe) 上几乎不可见, 改用 borderStrong (黑 12%)
-        border.color: Enums.stateColor.borderStrong
+        border.width: control.borderWidth
+        // Standalone expanders default to a strong edge; embedded surfaces may inject their own token.
+        // 独立展开器默认使用强边线；嵌入式表面可注入自己的令牌。
+        border.color: control.borderColor
         z: Enums.zIndex.controlsAbove
     }
 }
