@@ -376,6 +376,31 @@ def test_prepare_before_show_waits_for_first_presented_frame(monkeypatch, qapp):
         _delete_deferred(engine)
 
 
+def test_startup_presentation_ready_waits_for_visible_animation_frame(
+    monkeypatch, qapp
+):
+    fake = _FakeNativeWindow([True])
+    engine = _create_engine(monkeypatch, fake, [])
+    component = instance = None
+    try:
+        component, instance = _create_window(engine)
+        assert QMetaObject.invokeMethod(instance, "prepareBeforeShow")
+        assert instance.property("_startupPresentationReady") is False
+
+        instance.show()
+        _wait_until(
+            lambda: bool(instance.property("_startupPresentationReady")),
+            QML_LOAD_TIMEOUT_MS,
+        )
+
+        assert instance.property("_showAnimationStarted") is True
+        assert float(instance.property("opacity")) >= 0.99
+    finally:
+        _delete_deferred(instance)
+        component = None
+        _delete_deferred(engine)
+
+
 def test_native_hook_transient_failure_retries_once(monkeypatch, qapp):
     result = _exercise(monkeypatch, _FakeNativeWindow([False, True]))
 

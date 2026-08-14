@@ -19,6 +19,7 @@ Item {
     property bool retryAttempted: false
     property bool readyPublished: false
     property bool firstFramePresented: false
+    property bool startupPresentationReady: false
     property bool waitingForFirstFrame: false
     property bool showAnimationStarted: false
     property int showAnimationStartCount: 0
@@ -51,8 +52,14 @@ Item {
             firstFramePresented = true
             targetWindow.profileTime("first frame swapped")
         }
-        if (!waitingForFirstFrame) return
-        root._ensureStartupVisible()
+        if (waitingForFirstFrame) {
+            root._ensureStartupVisible()
+            return
+        }
+        if (showAnimationStarted && !animationHelper.showAnimationRunning) {
+            startupPresentationReady = true
+            targetWindow.profileTime("startup presentation ready")
+        }
     }
     function _ensureStartupVisible() {
         if (showAnimationStarted) return
@@ -120,7 +127,7 @@ Item {
         function onFrameSwapped() { root._handleFrameSwapped() }
 
         target: root.targetWindow
-        enabled: !root.firstFramePresented
+        enabled: !root.startupPresentationReady
     }
 
     Timer {

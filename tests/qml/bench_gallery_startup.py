@@ -37,6 +37,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--result", type=Path)
     parser.add_argument("--snapshot-dir", type=Path)
     parser.add_argument(
+        "--lazy-loading",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Keep page loading lazy; use --no-lazy-loading for eager startup.",
+    )
+    parser.add_argument(
         "--move-offscreen",
         action="store_true",
         help="Move the real window off the active desktop before the event loop starts.",
@@ -63,10 +69,10 @@ def _image_payload(image) -> tuple[str, bytes]:
     return hashlib.sha256(pixels).hexdigest(), pixels
 
 
-def _write_config(path: Path, window_type: int) -> None:
+def _write_config(path: Path, window_type: int, lazy_loading: bool) -> None:
     payload = {
         "Window": {
-            "LazyLoading": True,
+            "LazyLoading": lazy_loading,
             "DwmShadow": True,
             "MicaEnabled": True,
             "DpiScale": 0,
@@ -95,7 +101,7 @@ def _run(args: argparse.Namespace) -> int:
 
     temporary_config = tempfile.TemporaryDirectory(prefix="prismqml-gallery-startup-")
     config_path = Path(temporary_config.name) / "app.json"
-    _write_config(config_path, args.window_type)
+    _write_config(config_path, args.window_type, args.lazy_loading)
     config_manager_module.DEFAULT_APP_CONFIG = config_path
     config_manager_module.ConfigManager._instance = None
 
@@ -105,6 +111,7 @@ def _run(args: argparse.Namespace) -> int:
         "repo": str(repo),
         "window_type": args.window_type,
         "window_type_name": WINDOW_TYPE_NAMES[args.window_type],
+        "lazy_loading": args.lazy_loading,
         "requested_graphics_api": "direct3d11",
     }
     probes: list[object] = []
@@ -152,6 +159,7 @@ def _run(args: argparse.Namespace) -> int:
                 return
             self.window = window
             output["window_instance_ms"] = elapsed_ms(time.perf_counter())
+            output["observed_lazy_loading"] = bool(window.property("lazyLoading"))
             if args.move_offscreen:
                 window.setPosition(-32000, -32000)
                 output["window_moved_offscreen"] = True
@@ -162,6 +170,14 @@ def _run(args: argparse.Namespace) -> int:
             if self.first_frame_at is None:
                 self.first_frame_at = time.perf_counter()
                 output["first_frame_ms"] = elapsed_ms(self.first_frame_at)
+
+        def _record_startup_presentation(self, window) -> None:
+            if output.get("startup_presentation_ready_ms") is not None:
+                return
+            if bool(window.property("_startupPresentationReady")):
+                output["startup_presentation_ready_ms"] = elapsed_ms(
+                    time.perf_counter()
+                )
 
         @staticmethod
         def _qml_class_name(obj: QObject) -> str:
@@ -299,6 +315,8 @@ def _run(args: argparse.Namespace) -> int:
         def _poll(self) -> None:
             now = time.perf_counter()
             root, window, stack, navigation, page_ready, captions, splash = self._snapshot()
+            if window is not None:
+                self._record_startup_presentation(window)
             if window is not None and self.window is None:
                 self.window = window
                 output["window_instance_ms"] = elapsed_ms(now)

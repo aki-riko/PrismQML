@@ -15,6 +15,7 @@ NavigationWindowCore {
     default property list<QtObject> pages
     property int contentTopMargin: Enums.spacing.none
     property var pageSources: []
+    property bool _startupContentStarted: false
 
     windowTitle: ""
     titleBarHeight: Enums.spacing.xxxl * 2
@@ -27,8 +28,12 @@ NavigationWindowCore {
         Timer {
             id: startupTimer
             interval: Enums.duration.none
-            running: true
+            // Eager pages wait until a visible Splash frame is presented.
+            // 全量页面等待可见 Splash 首帧提交后再开始创建。
+            running: !window._startupContentStarted &&
+                (window.lazyLoading || window._startupPresentationReady)
             onTriggered: {
+                window._startupContentStarted = true
                 window.profileTime("WindowsBar startupTimer triggered")
                 mainLoader.setSource(Qt.resolvedUrl("WindowsBarContent.qml"), {
                     "hostWindow": window,

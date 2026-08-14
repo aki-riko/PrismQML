@@ -31,6 +31,10 @@ Item {
     property real closeCornerRadius: Enums.radius.none
     property bool _closeStartPending: false
 
+    // Expose startup animation state to the native presentation gate.
+    // 向原生首帧门槛暴露启动动画状态。
+    readonly property bool showAnimationRunning: showAnim.running
+
     // ==================== Internal Methods 内部方法 ====================
     function _stopCloseEffect() {
         _closeStartPending = false

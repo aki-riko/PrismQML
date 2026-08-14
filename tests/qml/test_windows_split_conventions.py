@@ -494,7 +494,7 @@ def test_windows_filled_source_conventions_and_stack_binding():
     assert "scrollDuration: window.navigationScrollDuration" in source
 
 
-def test_windows_bar_source_conventions_and_zero_delay_token():
+def test_windows_bar_source_conventions_and_startup_gate():
     source = BAR_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(BAR_SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
@@ -505,6 +505,12 @@ def test_windows_bar_source_conventions_and_zero_delay_token():
     ] == []
     assert "interval: Enums.duration.none" in source
     assert "interval: 0" not in source
+    assert (
+        "running: !window._startupContentStarted &&\n"
+        "                (window.lazyLoading || window._startupPresentationReady)"
+        in source
+    )
+    assert "window._startupContentStarted = true" in source
     assert "window._moveDefaultPages(" in source
     assert "default property list<QtObject> pages" in source
     assert "id: _hiddenStack" not in source

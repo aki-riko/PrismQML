@@ -43,6 +43,8 @@ Window {
         (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
     readonly property alias _showAnimationStarted: nativeWindowStartup.showAnimationStarted
     readonly property alias _showAnimationStartCount: nativeWindowStartup.showAnimationStartCount
+    readonly property alias _startupPresentationReady:
+        nativeWindowStartup.startupPresentationReady
     property alias _animScale: animHelper.animScale
     property alias _animOpacity: animHelper.animOpacity
     property bool _closeInProgress: false
