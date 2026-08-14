@@ -90,12 +90,18 @@ Item {
         }
         
         // Action button 操作按钮
-        Rectangle {
+        ShadowedRectangle {
+            id: actionSurface
+
+            objectName: "resultStateActionSurface"
             anchors.horizontalCenter: parent.horizontalCenter
             width: actionBtnText.implicitWidth + 32
             height: Enums.controlSize.inputHeightLarge - 4
-            radius: Enums.radius.small
+            radius: Enums.surfaceRadius(Enums.radius.small)
             color: actionArea.pressed ? Enums.accentColorDark : (actionArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
+            border.width: Enums.surfaceBorderWidth(Enums.border.none)
+            shadowVisible: Enums.isNeumorphism
+            neumorphicPressed: actionArea.pressed
             visible: actionText !== ""
             
             Label {

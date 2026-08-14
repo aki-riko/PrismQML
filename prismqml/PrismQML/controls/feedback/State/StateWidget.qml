@@ -154,12 +154,18 @@ Item {
         }
         
         // Action button 操作按钮
-        Rectangle {
+        ShadowedRectangle {
+            id: actionSurface
+
+            objectName: "stateActionSurface"
             anchors.horizontalCenter: parent.horizontalCenter
             width: actionBtnText.implicitWidth + (_isResultType ? Enums.controlSize.stateButtonPaddingLarge : Enums.controlSize.stateButtonPaddingSmall)
             height: _isResultType ? Enums.controlSize.topNavItemHeight : Enums.controlSize.emptyStateButtonHeight
-            radius: Enums.radius.small
+            radius: Enums.surfaceRadius(Enums.radius.small)
             color: actionArea.pressed ? Enums.accentColorDark : (actionArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
+            border.width: Enums.surfaceBorderWidth(Enums.border.none)
+            shadowVisible: Enums.isNeumorphism
+            neumorphicPressed: actionArea.pressed
             visible: (control.actionText || _defaultActionText) !== ""
             
             Label {

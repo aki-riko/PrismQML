@@ -52,12 +52,18 @@ Item {
             visible: text !== ""
         }
         
-        Rectangle {
+        ShadowedRectangle {
+            id: actionSurface
+
+            objectName: "emptyStateActionSurface"
             anchors.horizontalCenter: parent.horizontalCenter
             width: actionBtnText.implicitWidth + 24
             height: 32
-            radius: Enums.radius.small
+            radius: Enums.surfaceRadius(Enums.radius.small)
             color: actionArea.pressed ? Enums.accentColorDark : (actionArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
+            border.width: Enums.surfaceBorderWidth(Enums.border.none)
+            shadowVisible: Enums.isNeumorphism
+            neumorphicPressed: actionArea.pressed
             visible: actionText !== ""
             
             Label {

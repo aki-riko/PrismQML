@@ -454,7 +454,7 @@ Widget {
                         anchors.fill: parent
                         anchors.margins: Enums.border.thin
                         anchors.bottomMargin: Enums.border.thin
-                        radius: Enums.isVintageTicket ? Enums.ticket.radius : Enums.radius.card
+                        radius: control._selectedTabRadius
                         color: {
                             // 拖拽中的源 tab (含选中态 source): 用稍深 hover 背景 + 边框,
                             // 视觉上像"被抓起来",但不与 selected 同色避免割裂感
@@ -473,7 +473,7 @@ Widget {
                             return Enums.transparent
                         }
                         // 拖拽中的源 tab 加细边框,提示"被抓起来"的视觉
-                        border.width: tabItem.isDragSource ? Enums.border.thin : 0
+                        border.width: tabItem.isDragSource ? control._selectedTabBorderWidth : 0
                         border.color: (Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border)
 
                         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }

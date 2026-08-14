@@ -60,12 +60,18 @@ Item {
         }
         
         // Retry button 重试按钮
-        Rectangle {
+        ShadowedRectangle {
+            id: retrySurface
+
+            objectName: "offlineStateActionSurface"
             anchors.horizontalCenter: parent.horizontalCenter
             width: retryTextItem.width + 32
             height: 32
-            radius: Enums.radius.small
+            radius: Enums.surfaceRadius(Enums.radius.small)
             color: retryArea.pressed ? Enums.accentColorDark : (retryArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
+            border.width: Enums.surfaceBorderWidth(Enums.border.none)
+            shadowVisible: Enums.isNeumorphism
+            neumorphicPressed: retryArea.pressed
             
             Label {
                 id: retryTextItem

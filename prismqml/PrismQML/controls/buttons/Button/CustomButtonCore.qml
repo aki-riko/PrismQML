@@ -20,9 +20,7 @@ Widget {
     property string icon: ""           // Icon name / image path 图标名或图片路径
     property int iconSize: Enums.iconSize.m
     property bool flat: false          // No border 是否无边框
-    property int radius_: Enums.isNeumorphism ? Enums.neumorphism.radius
-                          : (Enums.isVintageTicket ? Enums.ticket.radius
-                          : Enums.radius.small + 1)// Use radius_ to avoid Rectangle.radius conflict 避免冲突
+    property int radius_: Enums.surfaceRadius(Enums.radius.small + 1) // Use radius_ to avoid Rectangle.radius conflict 避免冲突
     property bool iconThemeAware: true // Icon follows theme color 图标跟随主题色
 
     // Text style 文本样式
@@ -111,12 +109,11 @@ Widget {
     // Background 背景
     Rectangle {
         id: background
+        objectName: "_customButtonSurface"
         anchors.fill: parent
         radius: control.radius_
         color: control.getBackgroundColor()
-        border.width: control.flat ? 0
-            : (Enums.isNeobrutalism ? Enums.neo.borderWidth
-               : (Enums.isVintageTicket ? Enums.ticket.borderWidth : Enums.border.thin))
+        border.width: control.flat ? 0 : Enums.surfaceBorderWidth(Enums.border.thin)
         border.color: control.getBorderColor()
         
         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
