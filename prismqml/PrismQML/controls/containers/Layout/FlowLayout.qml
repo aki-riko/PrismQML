@@ -201,16 +201,13 @@ Item {
     function _scheduleLayout() {
         if (_layoutPending) return
         _layoutPending = true
-        Qt.callLater(_performLayout)
+        layoutTimer.restart()
     }
 
     function _scheduleAppendLayout() {
         if (_appendLayoutPending || _layoutPending) return
         _appendLayoutPending = true
-        Qt.callLater(function() {
-            _appendLayoutPending = false
-            _appendDefaultItems()
-        })
+        appendLayoutTimer.restart()
     }
 
     function _placeDefaultItem(item, originalSize, heightMap,
@@ -570,6 +567,24 @@ Item {
     }
 
     // ==================== Content 内容 ====================
+    // Component-owned timers cancel queued work when Loader destroys the layout 组件自有定时器确保 Loader 销毁布局时取消排队任务
+    Timer {
+        id: layoutTimer
+        interval: 0
+        repeat: false
+        onTriggered: control._performLayout()
+    }
+
+    Timer {
+        id: appendLayoutTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            control._appendLayoutPending = false
+            control._appendDefaultItems()
+        }
+    }
+
     Item {
         id: contentItem
         objectName: "contentItem"

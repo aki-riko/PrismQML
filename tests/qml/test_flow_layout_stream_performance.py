@@ -118,6 +118,45 @@ Window {
 """
 
 
+LIFECYCLE_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: host
+
+    width: 240
+    height: 180
+    visible: false
+
+    Loader {
+        id: flowLoader
+        objectName: "flowLoader"
+        sourceComponent: flowComponent
+    }
+
+    Component {
+        id: flowComponent
+
+        FlowLayout {
+            objectName: "loadedFlow"
+            width: 200
+            height: 120
+
+            Rectangle {
+                width: 80
+                height: 24
+                color: Enums.accentColor
+            }
+        }
+    }
+
+    Component.onCompleted: flowLoader.active = false
+}
+"""
+
+
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
@@ -209,6 +248,26 @@ def _create_scene():
     return engine, component, window, flow, warnings
 
 
+def _create_lifecycle_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(LIFECYCLE_SCENE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    return engine, component, window, warnings
+
+
 def _dispose_scene(engine, component, window) -> None:
     window.setVisible(False)
     window.deleteLater()
@@ -218,6 +277,22 @@ def _dispose_scene(engine, component, window) -> None:
     engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
+
+
+def test_flow_layout_loader_unload_cancels_delayed_layout_callback(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, warnings = _create_lifecycle_scene()
+    try:
+        _pump(100)
+        assert not any(
+            "invalid context" in warning
+            or "_getVisibleChildren" in warning
+            for warning in warnings
+        ), warnings
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
 
 
 def test_flow_layout_tail_append_preserves_geometry_and_pixels(qapp):
