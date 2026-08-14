@@ -34,6 +34,7 @@ Item {
                                       ? Math.min(Enums.neumorphism.insetSoftness,
                                                  layer.control.blur)
                                       : Enums.neumorphism.insetSoftness
+        property real normalSampleStep: Enums.neumorphism.insetNormalSampleStep
         property real darkR: layer._darkColor.r
         property real darkG: layer._darkColor.g
         property real darkB: layer._darkColor.b

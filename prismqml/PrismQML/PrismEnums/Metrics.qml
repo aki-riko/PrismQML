@@ -194,8 +194,9 @@ QtObject {
      readonly property real popupShadowMargin: root.spacing.xl
      readonly property real insetEdgeSize: root.spacing.xs
      readonly property real insetSoftness: root.spacing.s
-     readonly property real insetDarkOpacity: root.opacity.medium
-     readonly property real insetLightOpacity: root.opacity.secondary
+     readonly property real insetNormalSampleStep: root.spacing.micro
+     readonly property real insetDarkOpacity: root.opacity.light
+     readonly property real insetLightOpacity: root.opacity.light
      readonly property real switchShadowOffset: 2
      readonly property real switchShadowBlur: 6
      readonly property real switchShadowSpread: -switchShadowOffset

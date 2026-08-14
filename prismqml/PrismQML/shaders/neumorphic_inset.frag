@@ -12,6 +12,7 @@ layout(std140, binding = 0) uniform buf {
     float cornerRadius;
     float shadowDepth;
     float shadowSoftness;
+    float normalSampleStep;
     float darkR;
     float darkG;
     float darkB;
@@ -41,17 +42,18 @@ void main() {
 
     float insideDepth = -distanceToSurface;
     float softness = max(shadowSoftness, 0.001);
-    float edgeFade = exp(-insideDepth / softness);
-    float sampleStep = max(shadowDepth, 1.0);
+    float sampleStep = max(normalSampleStep, 0.001);
+    float edgeRange = max(shadowDepth + softness, sampleStep);
+    float edgeFade = 1.0 - smoothstep(0.0, edgeRange, insideDepth);
     float dx = roundedBoxSDF(point + vec2(sampleStep, 0.0), halfSize, radius)
              - roundedBoxSDF(point - vec2(sampleStep, 0.0), halfSize, radius);
     float dy = roundedBoxSDF(point + vec2(0.0, sampleStep), halfSize, radius)
              - roundedBoxSDF(point - vec2(0.0, sampleStep), halfSize, radius);
     vec2 gradient = vec2(dx, dy);
     float gradientLength = length(gradient);
-    // Avoid the zero-gradient center and keep the shadow near the edge.
-    // 避免中心零梯度伪影，并将阴影限制在边缘附近。
-    if (gradientLength < 0.001 || insideDepth > softness * 1.5) {
+    // Avoid the zero-gradient center after the smooth edge falloff reaches zero.
+    // 平滑边缘衰减归零后避开中心零梯度伪影。
+    if (edgeFade <= 0.0 || gradientLength < 0.001) {
         fragColor = vec4(0.0);
         return;
     }
@@ -59,8 +61,10 @@ void main() {
 
     // Light comes from the upper-left: darken upper/left edges and lift lower/right edges.
     // 光源来自左上：左上边缘压暗，右下边缘提亮。
-    float darkWeight = clamp(max(-outwardNormal.x, -outwardNormal.y), 0.0, 1.0);
-    float lightWeight = clamp(max(outwardNormal.x, outwardNormal.y), 0.0, 1.0);
+    vec2 lightDirection = normalize(vec2(-1.0, -1.0));
+    float directionalWeight = dot(outwardNormal, lightDirection);
+    float darkWeight = smoothstep(0.0, 1.0, max(directionalWeight, 0.0));
+    float lightWeight = smoothstep(0.0, 1.0, max(-directionalWeight, 0.0));
     float darkAlpha = edgeFade * darkWeight * darkOpacity * qt_Opacity;
     float lightAlpha = edgeFade * lightWeight * lightOpacity * qt_Opacity;
     float alpha = min(darkAlpha + lightAlpha, 1.0);

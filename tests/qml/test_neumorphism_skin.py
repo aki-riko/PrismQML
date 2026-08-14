@@ -396,8 +396,8 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
         )
         assert root.property("insetEdgeToken") == 4
         assert root.property("insetSoftnessToken") == 6
-        assert root.property("insetDarkOpacityToken") == 0.5
-        assert root.property("insetLightOpacityToken") == 0.6
+        assert root.property("insetDarkOpacityToken") == 0.3
+        assert root.property("insetLightOpacityToken") == 0.3
         _assert_color(root, "successToken", "#238b64")
 
         for object_name in ("button", "input", "card"):
