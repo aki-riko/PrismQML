@@ -39,6 +39,21 @@ Item {
     }
 
     // ==================== Content 内容 ====================
+    NeumorphicShadow {
+        target: modeSelector
+        inset: modeArea.pressed
+        pressed: modeArea.pressed
+        visible: Enums.isNeumorphism && modeSelector.visible
+        z: modeSelector.z - 1
+    }
+
+    NeumorphicShadow {
+        target: hexInputBox
+        inset: true
+        visible: Enums.isNeumorphism && hexInputBox.visible
+        z: hexInputBox.z - 1
+    }
+
     Column {
         id: contentColumn
         anchors.fill: parent
@@ -51,12 +66,13 @@ Item {
             
             // Mode selector 模式选择器
             Rectangle {
+                id: modeSelector
                 visible: control.showModeSelector
                 width: Enums.colorPickerMetrics.inputsModeWidth
                 height: Enums.controlSize.inputHeightCompact
-                radius: Enums.radius.small
+                radius: Enums.surfaceRadius(Enums.radius.small)
                 color: Enums.stateColor.controlBg
-                border.width: Enums.border.thin
+                border.width: Enums.surfaceBorderWidth(Enums.border.thin)
                 border.color: Enums.stateColor.border
                 
                 Row {
@@ -78,6 +94,7 @@ Item {
                 }
                 
                 MouseArea {
+                    id: modeArea
                     anchors.fill: parent
                     enabled: control.enabled
                     onClicked: {
@@ -101,11 +118,16 @@ Item {
                 }
                 
                 Rectangle {
+                    id: hexInputBox
                     width: Enums.colorPickerMetrics.inputsHexWidth
                     height: Enums.controlSize.inputHeightCompact
-                    radius: Enums.radius.small
+                    radius: Enums.surfaceRadius(Enums.radius.small)
                     color: Enums.stateColor.controlBg
-                    border.width: hexInput.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
+                    border.width: hexInput.activeFocus
+                        ? (Enums.isNeumorphism
+                           ? Enums.border.none
+                           : Enums.colorPickerMetrics.channelInputFocusedBorderWidth)
+                        : Enums.surfaceBorderWidth(Enums.colorPickerMetrics.channelInputBorderWidth)
                     border.color: hexInput.activeFocus ? Enums.accentColor : Enums.stateColor.border
                     
                     TextInput {

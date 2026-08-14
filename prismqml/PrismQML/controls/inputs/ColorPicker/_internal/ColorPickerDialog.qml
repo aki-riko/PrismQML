@@ -78,6 +78,14 @@ MessageBox {
     onAccepted: colorAccepted(selectedColor)
 
     // ==================== Content 内容 ====================
+    NeumorphicShadow {
+        parent: control
+        target: hexInputBox
+        inset: true
+        visible: Enums.isNeumorphism
+        z: hexInputBox.z - 1
+    }
+
     Column {
         id: contentColumn
         width: Enums.colorPickerMetrics.dialogContentWidth
@@ -209,11 +217,16 @@ MessageBox {
                 }
                 
                 Rectangle {
+                    id: hexInputBox
                     width: Enums.colorPickerMetrics.dialogInputWidth
                     height: Enums.colorPickerMetrics.dialogInputHeight
-                    radius: Enums.radius.small
+                    radius: Enums.surfaceRadius(Enums.radius.small)
                     color: Enums.stateColor.controlBg
-                    border.width: hexInput.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
+                    border.width: hexInput.activeFocus
+                        ? (Enums.isNeumorphism
+                           ? Enums.border.none
+                           : Enums.colorPickerMetrics.channelInputFocusedBorderWidth)
+                        : Enums.surfaceBorderWidth(Enums.colorPickerMetrics.channelInputBorderWidth)
                     border.color: hexInput.activeFocus ? Enums.accentColor : Enums.stateColor.border
                     
                     Label {
@@ -264,13 +277,26 @@ MessageBox {
                 
                 Row {
                     spacing: Enums.spacing.m
+
+                    NeumorphicShadow {
+                        parent: control
+                        target: rgbInputBox
+                        inset: true
+                        visible: Enums.isNeumorphism
+                        z: rgbInputBox.z - 1
+                    }
                     
                     Rectangle {
+                        id: rgbInputBox
                         width: Enums.colorPickerMetrics.dialogInputWidth
                         height: Enums.colorPickerMetrics.dialogInputHeight
-                        radius: Enums.radius.small
+                        radius: Enums.surfaceRadius(Enums.radius.small)
                         color: Enums.stateColor.controlBg
-                        border.width: rgbInput.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
+                        border.width: rgbInput.activeFocus
+                            ? (Enums.isNeumorphism
+                               ? Enums.border.none
+                               : Enums.colorPickerMetrics.channelInputFocusedBorderWidth)
+                            : Enums.surfaceBorderWidth(Enums.colorPickerMetrics.channelInputBorderWidth)
                         border.color: rgbInput.activeFocus ? Enums.accentColor : Enums.stateColor.border
                         
                         TextInput {

@@ -69,6 +69,21 @@ Item {
     Component.onCompleted: updateHsvFromColor()
 
     // ==================== Content 内容 ====================
+    NeumorphicShadow {
+        target: modeSelector
+        inset: modeArea.pressed
+        pressed: modeArea.pressed
+        visible: Enums.isNeumorphism
+        z: modeSelector.z - 1
+    }
+
+    NeumorphicShadow {
+        target: hexInputBox
+        inset: true
+        visible: Enums.isNeumorphism
+        z: hexInputBox.z - 1
+    }
+
     Column {
         id: contentColumn
         anchors.fill: parent
@@ -111,11 +126,12 @@ Item {
             
             // Mode selector 模式选择器
             Rectangle {
+                id: modeSelector
                 width: Enums.colorPickerMetrics.dropdownModeWidth
                 height: Enums.controlSize.inputHeightCompact
-                radius: Enums.radius.small
+                radius: Enums.surfaceRadius(Enums.radius.small)
                 color: modeArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.stateColor.controlBg
-                border.width: Enums.border.thin
+                border.width: Enums.surfaceBorderWidth(Enums.border.thin)
                 border.color: Enums.stateColor.border
                 
                 Row {
@@ -146,11 +162,16 @@ Item {
             
             // Hex input Hex输入
             Rectangle {
+                id: hexInputBox
                 width: parent.width - Enums.colorPickerMetrics.dropdownHexGap
                 height: Enums.controlSize.inputHeightCompact
-                radius: Enums.radius.small
+                radius: Enums.surfaceRadius(Enums.radius.small)
                 color: Enums.stateColor.controlBg
-                border.width: hexInput.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
+                border.width: hexInput.activeFocus
+                    ? (Enums.isNeumorphism
+                       ? Enums.border.none
+                       : Enums.colorPickerMetrics.channelInputFocusedBorderWidth)
+                    : Enums.surfaceBorderWidth(Enums.colorPickerMetrics.channelInputBorderWidth)
                 border.color: hexInput.activeFocus ? Enums.accentColor : Enums.stateColor.border
                 
                 TextInput {

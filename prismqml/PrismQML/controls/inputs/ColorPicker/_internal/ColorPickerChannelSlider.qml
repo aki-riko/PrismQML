@@ -29,8 +29,15 @@ Item {
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.colorPickerMetrics.channelSliderWidth
     implicitHeight: Enums.spacing.xxxl
-    
+
     // ==================== Content 内容 ====================
+    NeumorphicShadow {
+        target: inputBox
+        inset: true
+        visible: Enums.isNeumorphism && inputBox.visible
+        z: inputBox.z - 1
+    }
+
     Row {
         anchors.fill: parent
         spacing: Enums.spacing.m
@@ -49,9 +56,13 @@ Item {
             visible: control.showInput
             width: Enums.colorPickerMetrics.channelInputWidth
             height: Enums.controlSize.inputHeightCompact
-            radius: Enums.radius.small
+            radius: Enums.surfaceRadius(Enums.radius.small)
             color: Enums.stateColor.controlBg
-            border.width: inputField.activeFocus ? Enums.colorPickerMetrics.channelInputFocusedBorderWidth : Enums.colorPickerMetrics.channelInputBorderWidth
+            border.width: inputField.activeFocus
+                ? (Enums.isNeumorphism
+                   ? Enums.border.none
+                   : Enums.colorPickerMetrics.channelInputFocusedBorderWidth)
+                : Enums.surfaceBorderWidth(Enums.colorPickerMetrics.channelInputBorderWidth)
             border.color: inputField.activeFocus ? Enums.accentColor : Enums.stateColor.border
             anchors.verticalCenter: parent.verticalCenter
             
