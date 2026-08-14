@@ -24,7 +24,7 @@ ShadowedRectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property color _tooltipBackground: Enums.cardColor
     readonly property color _tooltipBorderColor: Enums.stateColor.border
-    readonly property int _tooltipRadius: Enums.radius.medium
+    readonly property int _tooltipRadius: Enums.surfaceRadius(Enums.radius.medium)
     
     // ==================== Size 尺寸 ====================
     width: Math.max(contentColumn.width + Enums.spacing.l, 80)
@@ -33,7 +33,7 @@ ShadowedRectangle {
     // Style 样式
     radius: _tooltipRadius
     color: _tooltipBackground
-    border.width: Enums.border.thin
+    border.width: Enums.surfaceBorderWidth(Enums.border.thin)
     border.color: _tooltipBorderColor
     shadowLevel: Enums.shadow.level8
     shadowVisible: visible

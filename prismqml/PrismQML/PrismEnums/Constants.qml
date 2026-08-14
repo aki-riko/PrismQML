@@ -397,7 +397,8 @@ QtObject {
     // ==================== ChartColors 图表颜色 ====================
     readonly property QtObject chartColors: QtObject {
         // Fixed strong text on colored markers and dark tooltips 彩色标记与深色提示框上的固定强文字
-        readonly property color strongText: root.isTicket ? ticketColors.foreground : themeColors.accentForeground
+        readonly property color strongText: root.isNeumorphism ? neumorphismColors.foreground
+            : (root.isTicket ? ticketColors.foreground : themeColors.accentForeground)
         readonly property var _fluentPalette: [
             "#0078D4", "#107C10", "#FFB900", "#D13438", "#8764B8",
             "#00B7C3", "#498205", "#FF8C00", "#E81123", "#881798"

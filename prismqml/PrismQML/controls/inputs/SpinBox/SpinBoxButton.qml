@@ -21,6 +21,6 @@ ButtonCore {
     preferredWidth: preferredHeight
     
     // Auto adjust radius to keep it rounded 自动调整圆角（可选）
-    radius: Enums.radius.small
+    radius: Enums.surfaceRadius(Enums.radius.small)
 
 }

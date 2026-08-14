@@ -82,8 +82,8 @@ Rectangle {
         oauthProviders === null || oauthProviders === undefined ? []
         : (typeof oauthProviders.length === "number" ? oauthProviders : [])
     readonly property bool _isLogin: mode === Enums.auth.mode_login
-    readonly property int _cardRadius: Enums.radius.large
-    readonly property int _errorRadius: Enums.radius.small
+    readonly property int _cardRadius: Enums.surfaceRadius(Enums.radius.large)
+    readonly property int _errorRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property color _cardColor: Enums.cardColor
     readonly property color _cardBackgroundColor: Qt.rgba(
         root._cardColor.r,
@@ -91,7 +91,7 @@ Rectangle {
         root._cardColor.b,
         root.cardOpacity
     )
-    readonly property real _cardBorderWidth: Enums.border.thin
+    readonly property real _cardBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _cardBorderColor: Enums.stateColor.border
     readonly property color _errorBackgroundColor: Enums.statusLevel.getBgColor(Enums.statusLevel.errorStr)
     readonly property real _errorBorderWidth: Enums.border.thin

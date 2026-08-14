@@ -247,8 +247,8 @@ QtObject {
     readonly property real indicatorInactiveGradientAlpha: 0.25 // Inactive gradient end alpha 非激活渐变末端透明度
     
     // ==================== Chart Colors 图表颜色 ====================
-    // Chart tooltip text (white on dark bg) 图表tooltip文字（深色背景上的白字）
-    readonly property color chartTooltipText: isTicket ? _ticket.secondaryForeground : Qt.rgba(1,1,1,0.7)
+    // Chart tooltip secondary text 图表提示框次要文字
+    readonly property color chartTooltipText: isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : Qt.rgba(1,1,1,0.7))
     
     // Chart gradient/fill alphas 图表渐变/填充透明度
     readonly property real chartFillStrong: 0.6       // Stacked area fill 堆叠面积填充

@@ -31,11 +31,13 @@ Item {
     property string primaryButtonText: ""
     property string secondaryButtonText: ""
     property bool closeOnAction: true
-    readonly property int _tipRadius: Enums.radius.large
+    readonly property int _tipRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property color _tipBackground: Enums.isVintageTicket
         ? Enums.cardColor
-        : (Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight)
-    readonly property real _tipBorderWidth: Enums.border.thin
+        : (Enums.isNeumorphism
+           ? Enums.cardColor
+           : (Enums.isDark ? Enums.themeColors.tooltipBgDark : Enums.themeColors.tooltipBgLight))
+    readonly property real _tipBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _tipBorderColor: Enums.isVintageTicket
         ? Enums.borderColor : Enums.stateColor.maskLight
     
@@ -216,6 +218,7 @@ Item {
 
                 Rectangle {
                     id: contentRect
+                    objectName: "tipPopupSurface"
                     anchors.fill: parent
                     radius: control._tipRadius
                     color: control._tipBackground
@@ -362,28 +365,31 @@ Item {
                             ctx.fillStyle = bgColor
                             ctx.fill()
 
-                            // Draw border on two sides only (not the edge touching main window) 只描两条斜边（不描贴着主窗口的那条边）
-                            ctx.beginPath()
-                            ctx.strokeStyle = borderColor
-                            ctx.lineWidth = Enums.border.thin
-                            if (posHelper.isBottom) {
-                                ctx.moveTo(inset, inset)
-                                ctx.lineTo(w/2, h - inset)
-                                ctx.lineTo(w - inset, inset)
-                            } else if (posHelper.isTop) {
-                                ctx.moveTo(inset, h - inset)
-                                ctx.lineTo(w/2, inset)
-                                ctx.lineTo(w - inset, h - inset)
-                            } else if (posHelper.isLeft) {
-                                ctx.moveTo(w - inset, inset)
-                                ctx.lineTo(inset, h/2)
-                                ctx.lineTo(w - inset, h - inset)
-                            } else if (posHelper.isRight) {
-                                ctx.moveTo(inset, inset)
-                                ctx.lineTo(w - inset, h/2)
-                                ctx.lineTo(inset, h - inset)
+                            // Draw the same border contract as the popup surface on the two exposed sides.
+                            // 箭头仅在两条外露斜边复用主表面的描边合同。
+                            if (control._tipBorderWidth > Enums.border.none) {
+                                ctx.beginPath()
+                                ctx.strokeStyle = borderColor
+                                ctx.lineWidth = control._tipBorderWidth
+                                if (posHelper.isBottom) {
+                                    ctx.moveTo(inset, inset)
+                                    ctx.lineTo(w/2, h - inset)
+                                    ctx.lineTo(w - inset, inset)
+                                } else if (posHelper.isTop) {
+                                    ctx.moveTo(inset, h - inset)
+                                    ctx.lineTo(w/2, inset)
+                                    ctx.lineTo(w - inset, h - inset)
+                                } else if (posHelper.isLeft) {
+                                    ctx.moveTo(w - inset, inset)
+                                    ctx.lineTo(inset, h/2)
+                                    ctx.lineTo(w - inset, h - inset)
+                                } else if (posHelper.isRight) {
+                                    ctx.moveTo(inset, inset)
+                                    ctx.lineTo(w - inset, h/2)
+                                    ctx.lineTo(inset, h - inset)
+                                }
+                                ctx.stroke()
                             }
-                            ctx.stroke()
                         }
                     }
                 }

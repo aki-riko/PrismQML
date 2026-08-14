@@ -31,7 +31,7 @@ Item {
         ? Enums.cardColor : Enums.gray.tooltip
     readonly property color _tooltipBorderColor: Enums.isVintageTicket
         ? Enums.borderColor : Enums.transparent
-    readonly property int _tooltipRadius: Enums.radius.small
+    readonly property int _tooltipRadius: Enums.surfaceRadius(Enums.radius.small)
     
     // ==================== Size 尺寸 ====================
     width: tooltipRect.width
@@ -52,7 +52,9 @@ Item {
         
         radius: root._tooltipRadius
         color: root._tooltipBackground
-        border.width: Enums.isVintageTicket ? Enums.ticket.borderWidth : Enums.border.none
+        border.width: Enums.isVintageTicket
+                      ? Enums.ticket.borderWidth
+                      : Enums.surfaceBorderWidth(Enums.border.none)
         border.color: root._tooltipBorderColor
         shadowLevel: Enums.shadow.level2
         shadowVisible: root.visible
