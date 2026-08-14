@@ -271,7 +271,7 @@ Item {
                 title: "SettingsCard - type_push"
                 description: Fluent.Translator.tr("gallery_914e756532bd250d", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_551f2dc464fae243", Fluent.Translator._v)
                     icon: iconPath("Info")
@@ -285,7 +285,7 @@ Item {
                 title: "SettingsCard - type_primary_push"
                 description: Fluent.Translator.tr("gallery_8e65e38666703464", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_c8550237ba701f64", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_4dba5cf72a199d63", Fluent.Translator._v)
                     icon: iconPath("Save")
@@ -300,7 +300,7 @@ Item {
                 title: "SettingsCard - type_hyperlink"
                 description: Fluent.Translator.tr("gallery_beaed9f02826599d", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_8914957fc91d8750", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_2cce4a7e9cf9cb3d", Fluent.Translator._v)
                     icon: iconPath("QuestionCircle")
@@ -315,7 +315,7 @@ Item {
                 title: "SettingsCard - type_switch"
                 description: Fluent.Translator.tr("gallery_582b6e71b6aeb922", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_736cff237d7d9255", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_7adf0b48e0c26ee0", Fluent.Translator._v)
                     icon: iconPath("ArrowSync")
@@ -332,14 +332,20 @@ Item {
                 title: "SettingsCard - type_combobox"
                 description: Fluent.Translator.tr("gallery_0fa997528dd177b4", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    property int galleryComboIndex: 0
+
+                    objectName: "galleryComboSettingsCard"
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_44fb814b166ed6ae", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_bd67011ea3772093", Fluent.Translator._v)
                     icon: iconPath("DarkTheme")
                     type: Fluent.Enums.settingCard.type_combobox
                     model: [Fluent.Translator.tr("gallery_217cfe7db1e3d10a", Fluent.Translator._v), Fluent.Translator.tr("gallery_aa0819dfc4d8d782", Fluent.Translator._v), Fluent.Translator.tr("gallery_a6b75d0680322a61", Fluent.Translator._v)]
-                    currentIndex: 0
-                    onIndexSelected: function(idx) { console.log("Selected:", idx) }
+                    currentIndex: galleryComboIndex
+                    onIndexSelected: function(idx) {
+                        galleryComboIndex = idx
+                        console.log("Selected:", idx)
+                    }
                 }
             }
             
@@ -348,7 +354,7 @@ Item {
                 title: "SettingsCard - type_range"
                 description: Fluent.Translator.tr("gallery_c86ac18a0b13e88d", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_8bf8b9780d342816", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_c8300c46e0364940", Fluent.Translator._v)
                     icon: iconPath("Speaker2")
@@ -365,7 +371,7 @@ Item {
                 title: "SettingsCard - type_shortcut"
                 description: Fluent.Translator.tr("gallery_eb0b8b4e64fe083c", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_ee2638183d3ea860", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_608ccbd8e0e252ce", Fluent.Translator._v)
                     icon: iconPath("Keyboard")
@@ -380,7 +386,7 @@ Item {
                 title: "SettingsCard - type_options"
                 description: Fluent.Translator.tr("gallery_23a4bff729ae8251", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_74b46009cf439128", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_f9cc4eee6d96db9e", Fluent.Translator._v)
                     icon: iconPath("Play")
@@ -396,7 +402,7 @@ Item {
                 title: "SettingsCard - type_folder_list"
                 description: Fluent.Translator.tr("gallery_21680a285de1b212", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_c8218193acec7663", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_8ccb568e459c7c3c", Fluent.Translator._v)
                     icon: iconPath("MusicNote2")
@@ -412,7 +418,7 @@ Item {
                 title: "SettingsCard - type_color"
                 description: Fluent.Translator.tr("gallery_03ecf0cfeaad9b9e", Fluent.Translator._v)
                 SettingsCard { 
-                    width: 380
+                    width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_7d5ce714f1d6c411", Fluent.Translator._v)
                     content: Fluent.Translator.tr("gallery_ac73d3f02e42efa3", Fluent.Translator._v)
                     icon: iconPath("Color")
@@ -432,15 +438,20 @@ Item {
                 description: Fluent.Translator.tr("gallery_ee4385d9240af7c1", Fluent.Translator._v)
                 SettingsCardGroup {
                     title: Fluent.Translator.tr("gallery_185b58c5903abc5f", Fluent.Translator._v)
-                    width: 400
+                    width: parent ? parent.width : 0
                     
                     SettingsCard { 
+                        property int galleryComboIndex: 0
+
+                        objectName: "galleryGroupComboSettingsCard"
                         width: parent.width
                         title: Fluent.Translator.tr("gallery_788db1cfec2a3db5", Fluent.Translator._v)
                         content: Fluent.Translator.tr("gallery_bd67011ea3772093", Fluent.Translator._v)
                         icon: iconPath("DarkTheme")
                         type: Fluent.Enums.settingCard.type_combobox
                         model: [Fluent.Translator.tr("gallery_aa0819dfc4d8d782", Fluent.Translator._v), Fluent.Translator.tr("gallery_a6b75d0680322a61", Fluent.Translator._v), Fluent.Translator.tr("gallery_217cfe7db1e3d10a", Fluent.Translator._v)]
+                        currentIndex: galleryComboIndex
+                        onIndexSelected: galleryComboIndex = idx
                     }
                     
                     SettingsCard { 

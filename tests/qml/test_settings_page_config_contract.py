@@ -344,6 +344,26 @@ def test_settings_page_reverts_selection_when_backend_rejects_update(qapp):
         _assert_combo_index(dpi_card, *dpi_nodes, 1)
 
 
+def test_gallery_combo_examples_keep_local_selection_state(qapp):
+    manager = _ConfigManagerFixture()
+    with _settings_page(manager, qapp) as root:
+        gallery_card = root.findChild(QObject, "galleryComboSettingsCard")
+        grouped_gallery_card = root.findChild(
+            QObject, "galleryGroupComboSettingsCard"
+        )
+        assert gallery_card is not None
+        assert grouped_gallery_card is not None
+        assert gallery_card.property("currentIndex") == 0
+        assert grouped_gallery_card.property("currentIndex") == 0
+
+        _emit_card_index_selected(gallery_card, 2)
+        _emit_card_index_selected(grouped_gallery_card, 1)
+        qapp.processEvents()
+
+        assert gallery_card.property("currentIndex") == 2
+        assert grouped_gallery_card.property("currentIndex") == 1
+
+
 def test_appearance_cards_follow_selected_and_persisted_state(qapp):
     theme_manager = ThemeManager()
     previous_theme = theme_manager.theme
