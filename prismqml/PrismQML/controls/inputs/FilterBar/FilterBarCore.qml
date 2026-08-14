@@ -108,13 +108,19 @@ Rectangle {
     // ==================== Size 尺寸 ====================
     implicitWidth: filterRow.implicitWidth + Enums.spacing.m * 2
     implicitHeight: Enums.controlSize.inputHeightLarge  // 40
-    radius: Enums.radius.small
+    radius: Enums.surfaceRadius(Enums.radius.small)
 
     // Appearance 外观
     color: getContainerColor()
     opacity: enabled ? 1.0 : 0.5
 
     // ==================== Content 内容 ====================
+    NeumorphicShadow {
+        target: control
+        inset: true
+        visible: Enums.isNeumorphism
+    }
+
     Item {
         id: contentContainer
         anchors.centerIn: parent

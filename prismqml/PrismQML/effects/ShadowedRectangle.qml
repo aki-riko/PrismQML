@@ -37,7 +37,7 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     readonly property color _rectangleColor: Enums.cardColor
-    readonly property int _rectangleRadius: Enums.radius.large
+    readonly property int _rectangleRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property real _defaultShadowBlur: Enums.shadow.level4.blur
     readonly property color _defaultShadowColor: Enums.shadow.level4.color
     readonly property real _defaultShadowOffset: Enums.shadow.level4.offset

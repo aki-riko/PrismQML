@@ -30,9 +30,9 @@ ShadowedRectangle {
     implicitHeight: innerBar.implicitHeight + Enums.spacing.s * 2
     
     // Style 样式
-    radius: Enums.radius.large
+    radius: Enums.surfaceRadius(Enums.radius.large)
     color: Enums.cardColor
-    border.width: Enums.border.thin
+    border.width: Enums.surfaceBorderWidth(Enums.border.thin)
     border.color: Enums.stateColor.border
     
     // Shadow 阴影

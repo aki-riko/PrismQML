@@ -19,8 +19,7 @@ Item {
     property url rightImage: ""
     property real position: 0.5  // 0-1
     property int radius: Enums.radius.large  // Corner radius 圆角
-    readonly property int _effectiveRadius: Enums.isVintageTicket
-                                             ? Enums.ticket.radius : radius
+    readonly property int _effectiveRadius: Enums.surfaceRadius(radius)
     readonly property color _dividerColor: Enums.themeColors.accentForeground
     readonly property color _handleColor: Enums.themeColors.accentForeground
     readonly property color _handleIconColor: Enums.gray.text

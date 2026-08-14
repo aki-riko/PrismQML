@@ -154,9 +154,9 @@ DialogBoxCore {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: control.notes !== ""
-            radius: Enums.radius.medium
+            radius: Enums.surfaceRadius(Enums.radius.medium)
             color: Enums.transparent
-            border.width: Enums.border.thin
+            border.width: Enums.surfaceBorderWidth(Enums.border.thin)
             border.color: Enums.stateColor.cardBorder
 
             ScrollArea {

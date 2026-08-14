@@ -133,7 +133,7 @@ InputCore {
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.spinBoxWidth
     implicitHeight: Enums.controlSize.inputHeight
-    radius: Enums.radius.small
+    radius: Enums.surfaceRadius(Enums.radius.small)
 
     // ==================== Content 内容 ====================
     Component {

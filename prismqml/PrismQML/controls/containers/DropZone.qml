@@ -85,7 +85,7 @@ Rectangle {
     implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
 
     // Appearance 外观
-    radius: Enums.radius.small
+    radius: Enums.surfaceRadius(Enums.radius.small)
     color: Enums.transparent
     border.width: Enums.border.none
 

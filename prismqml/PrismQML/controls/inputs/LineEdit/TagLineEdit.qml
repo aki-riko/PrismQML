@@ -150,7 +150,7 @@ InputCore {
     // ==================== Size 尺寸 ====================
     implicitWidth: 300
     implicitHeight: Math.max(Enums.controlSize.inputHeight, tagsFlow.height + Enums.spacing.l)
-    radius: Enums.radius.small
+    radius: Enums.surfaceRadius(Enums.radius.small)
 
     // ==================== Content 内容 ====================
     Flow {

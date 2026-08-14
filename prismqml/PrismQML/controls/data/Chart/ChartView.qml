@@ -251,8 +251,8 @@ ShadowedRectangle {
     implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
     implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
     color: Enums.cardColor
-    radius: Enums.radius.large
-    border.width: Enums.border.thin
+    radius: Enums.surfaceRadius(Enums.radius.large)
+    border.width: Enums.surfaceBorderWidth(Enums.border.thin)
     border.color: Enums.stateColor.border
     shadowLevel: Enums.shadow.level2
 

@@ -295,7 +295,7 @@ Rectangle {
     // ==================== Size 尺寸 ====================
     implicitWidth: Math.max(200, _totalColCount * 70)
     implicitHeight: Enums.controlSize.inputHeight
-    radius: Enums.radius.small
+    radius: Enums.surfaceRadius(Enums.radius.small)
 
     layer.enabled: true
     layer.effect: OpacityMask {
@@ -307,10 +307,16 @@ Rectangle {
         if (pickerMouseArea && pickerMouseArea.containsMouse) return Enums.stateColor.controlBgHover
         return Enums.stateColor.controlBg
     }
-    border.width: Enums.border.thin
+    border.width: Enums.surfaceBorderWidth(Enums.border.thin)
     border.color: isOpen ? Enums.accentColor : Enums.stateColor.border
 
     // ==================== Content 内容 ====================
+    NeumorphicShadow {
+        target: control
+        inset: true
+        visible: Enums.isNeumorphism
+    }
+
     // Focus line 聚焦底线
     FocusLine {
         showLine: isOpen

@@ -154,7 +154,7 @@ Rectangle {
     // ==================== Size 尺寸 ====================
     implicitWidth: _isRange ? Enums.controlSize.calendarPickerRangeWidth : Enums.controlSize.calendarPickerWidth
     implicitHeight: Enums.controlSize.inputHeight
-    radius: Enums.radius.small
+    radius: Enums.surfaceRadius(Enums.radius.small)
 
     // Fluent Design CalendarPicker style 样式
     color: {
@@ -164,10 +164,16 @@ Rectangle {
         return Enums.stateColor.controlBg
     }
 
-    border.width: Enums.border.thin
+    border.width: Enums.surfaceBorderWidth(Enums.border.thin)
     border.color: Enums.stateColor.pickerBorder
 
     // ==================== Content 内容 ====================
+    NeumorphicShadow {
+        target: control
+        inset: true
+        visible: Enums.isNeumorphism
+    }
+
     Label {
         anchors.left: parent.left
         anchors.right: calIcon.left

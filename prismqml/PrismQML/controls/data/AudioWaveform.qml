@@ -29,7 +29,7 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _hovered: mouseArea.containsMouse
     readonly property bool _pressed: mouseArea.pressed
-    readonly property int _waveformRadius: Enums.radius.large
+    readonly property int _waveformRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property int _waveformInnerRadius: Enums.radius.small
     readonly property color _waveformBorderColor: control._hovered ? Enums.accentColor : Enums.stateColor.cardBorder
     readonly property color _progressOverlayColor: Enums.stateColor.accentSubtle
@@ -109,7 +109,7 @@ Item {
         anchors.fill: parent
         color: control.backgroundColor
         radius: control._waveformRadius
-        border.width: Enums.border.thin
+        border.width: Enums.surfaceBorderWidth(Enums.border.thin)
         border.color: control._waveformBorderColor
         shadowLevel: control._hovered ? Enums.shadow.level4 : Enums.shadow.level2
         

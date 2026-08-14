@@ -232,9 +232,9 @@ Popup {
 
     // ==================== Content 内容 ====================
     background: Rectangle {
-        radius: Enums.radius.small
+        radius: Enums.surfaceRadius(Enums.radius.small)
         color: Enums.cardColor
-        border.width: Enums.border.thin
+        border.width: Enums.surfaceBorderWidth(Enums.border.thin)
         border.color: Enums.stateColor.borderStrong
     }
 
