@@ -74,6 +74,32 @@ def test_positive_hresult_commits_window_state_and_signal(qapp, backdrop_result)
     assert signals == [True]
 
 
+def test_reapply_keeps_dwm_calls_but_logs_only_state_transitions(qapp, monkeypatch):
+    del qapp
+    dwm = _FakeDwmSetAttribute()
+    manager = _manager(dwm)
+    window = _FakeWindow()
+    signals = []
+    info_messages = []
+    debug_messages = []
+    manager.micaEnabledChanged.connect(signals.append)
+    monkeypatch.setattr(mica_window, "info", info_messages.append)
+    monkeypatch.setattr(mica_window, "debug", debug_messages.append)
+
+    assert manager.setMicaEffect(window, True, False) is True
+    assert manager.setMicaEffect(window, True, False) is True
+    assert manager.setMicaEffect(window, False, False) is True
+    assert manager.setMicaEffect(window, False, False) is True
+
+    assert len(dwm.calls) == 12
+    assert signals == [True, False]
+    assert info_messages == ["Mica effect enabled", "Mica effect disabled"]
+    assert debug_messages == [
+        "Mica effect enabled reapplied (hwnd=4660)",
+        "Mica effect disabled reapplied (hwnd=4660)",
+    ]
+
+
 def test_negative_hresult_keeps_previous_state(qapp):
     del qapp
     dwm = _FakeDwmSetAttribute(

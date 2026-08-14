@@ -55,6 +55,10 @@ def test_drawer_source_uses_clipped_native_window_following():
     assert "WindowHelper.registerWindowFollower(" in source
     assert "WindowHelper.unregisterWindowFollower(_outsideDrawerWindow)" in source
     assert "ShadowManager.disableShadowForWindow(_outsideDrawerWindow)" in source
+    assert "property var _outsideNativeShadowState: null" in source
+    assert "if (_outsideNativeShadowState === enabled) return" in source
+    assert "if (applied) _outsideNativeShadowState = enabled" in source
+    assert "onItemChanged: control._outsideNativeShadowState = null" in source
 
 
 def test_drawer_source_keeps_native_window_behind_host_without_overlap():

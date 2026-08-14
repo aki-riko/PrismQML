@@ -158,10 +158,24 @@ class MicaManager(QObject):
             hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop
         )
         if _dwm_hresult_succeeded(result):
-            info(f"Mica effect {'enabled' if enabled else 'disabled'}")
             return True
         warning(f"DwmSetWindowAttribute failed: {result}")
         return False
+
+    def _commit_mica_state(self, window: QWindow, hwnd: int, enabled: bool) -> None:
+        """Commit state and log only logical transitions. 提交状态并仅记录逻辑变化。"""
+        target_changed = self._current_hwnd != hwnd or self._mica_enabled != enabled
+        enabled_changed = self._mica_enabled != enabled
+        self._current_window = window
+        self._current_hwnd = hwnd
+        self._mica_enabled = enabled
+        message = f"Mica effect {'enabled' if enabled else 'disabled'}"
+        if target_changed:
+            info(message)
+        else:
+            debug(f"{message} reapplied (hwnd={hwnd})")
+        if enabled_changed:
+            self.micaEnabledChanged.emit(enabled)
 
     def _applyMica(self, window: QWindow, enabled: bool) -> bool:
         """Internal: Apply mica effect 内部方法：应用云母效果"""
@@ -215,10 +229,7 @@ class MicaManager(QObject):
             )
             if not self._apply_mica_to_hwnd(hwnd, enabled):
                 return False
-            self._current_window = window
-            self._current_hwnd = hwnd
-            self._mica_enabled = enabled
-            self.micaEnabledChanged.emit(enabled)
+            self._commit_mica_state(window, hwnd, enabled)
             return True
         except (ValueError, OSError, TypeError) as e:
             error(f"Failed to set mica effect: {e}")

@@ -41,6 +41,7 @@ OverlayDialogCore {
     property bool _outsidePrepared: false
     property bool _outsideResetting: false
     property bool _outsideVisible: false
+    property var _outsideNativeShadowState: null
     property real _outsideExtent: _outsideCollapsedExtent
     property bool _insideAnimationReady: false
     property bool _insideOpenPending: false
@@ -258,11 +259,14 @@ OverlayDialogCore {
     function _setOutsideNativeShadow(enabled) {
         if (!_outsideDrawerWindow
                 || typeof ShadowManager === "undefined" || !ShadowManager) return
+        if (_outsideNativeShadowState === enabled) return
+        var applied
         if (enabled) {
-            ShadowManager.enableShadowForWindow(_outsideDrawerWindow)
+            applied = ShadowManager.enableShadowForWindow(_outsideDrawerWindow)
         } else {
-            ShadowManager.disableShadowForWindow(_outsideDrawerWindow)
+            applied = ShadowManager.disableShadowForWindow(_outsideDrawerWindow)
         }
+        if (applied) _outsideNativeShadowState = enabled
     }
 
     // Overlay overrides 覆盖层配置
@@ -298,6 +302,7 @@ OverlayDialogCore {
         id: outsideDrawerWindowLoader
         active: control._isOutside
         asynchronous: false
+        onItemChanged: control._outsideNativeShadowState = null
         sourceComponent: Component {
             Window {
                 id: outsideDrawerWindow
