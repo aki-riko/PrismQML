@@ -77,8 +77,8 @@ Item {
                 return
             }
             if (!helper._allPagesLoaded()) return
-            helper.activationActive = false
             helper.ready = true
+            helper.activationActive = false
             helper.requestedIndex = -1
             stop()
         }

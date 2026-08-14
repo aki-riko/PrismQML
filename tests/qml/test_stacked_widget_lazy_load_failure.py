@@ -338,9 +338,9 @@ StackedWidget {{
 
 
 def test_runtime_eager_switch_stages_real_gallery_pages(qapp):
-    """Disabling lazy loading must not activate every Gallery Loader in one turn.
+    """Disabling lazy loading must stage and retain every Gallery page once.
 
-    运行时关闭懒加载不得在同一事件处理中同步激活 Gallery 的全部 Loader。
+    运行时关闭懒加载须分片激活 Gallery 页面，且每页只加载一次。
     """
     configure_qml_environment()
     page_urls = [
@@ -385,6 +385,8 @@ StackedWidget {{
         eager_helper = stack.findChild(QObject, "eagerActivationHelper")
         assert eager_helper is not None
         assert _wait_until(lambda: bool(_evaluate(stack, "_isPageLoaded(0)")))
+        loaded_indexes = []
+        stack.pageLoaded.connect(lambda index: loaded_indexes.append(index))
 
         stack.setProperty("lazyLoading", False)
         assert eager_helper.property("ready") is False
@@ -406,6 +408,9 @@ StackedWidget {{
             ),
             timeout_ms=5000,
         )
+        _pump(100)
+        assert {1, 2}.issubset(loaded_indexes)
+        assert len(loaded_indexes) == len(set(loaded_indexes))
     finally:
         _release(qapp, stack, component, engine)
 
