@@ -139,6 +139,9 @@ Item {
         if (_pythonPageMode) {
             return count === 0 || _pythonReadyIndexes.indexOf(index) >= 0
         }
+        if (!lazyLoading && _useSourceMode && !eagerActivationHelper.ready) {
+            return eagerActivationHelper.isPageLoaded(index)
+        }
         if (!lazyLoading || !_useSourceMode) return true
         return _loaders[index] && _loaders[index].status === Loader.Ready
     }
@@ -532,9 +535,23 @@ Item {
     }
     Component.onDestruction: _destroying = true
 
-    onLazyLoadingChanged: if (lazyLoading) _preloadLazyHelperWhenReady("lazyLoadingChanged")
+    onLazyLoadingChanged: {
+        if (lazyLoading) {
+            eagerActivationHelper.cancel()
+            _preloadLazyHelperWhenReady("lazyLoadingChanged")
+        } else {
+            eagerActivationHelper.start()
+        }
+    }
     onPageLoaded: (index) => {
         if (index === _displayIndex) _preloadLazyHelperWhenReady("pageLoaded index=" + index)
+        if (!lazyLoading && index === eagerActivationHelper.requestedIndex &&
+                index !== _displayIndex && index === currentIndex) {
+            eagerActivationHelper.requestedIndex = -1
+            previousIndex = _displayIndex
+            _doAnimation(_displayIndex, index)
+            _displayIndex = index
+        }
     }
     onCurrentIndexChanged: {
         _traceLazyStage("stacked.current_index_changed", currentIndex)
@@ -561,6 +578,8 @@ Item {
             }
             // Python mode starts its circle transition from _startPythonLoading().
             // Python 模式由 _startPythonLoading() 启动圆形过渡，此处保持旧页显示。
+        } else if (!lazyLoading && _useSourceMode && !_isPageLoaded(currentIndex)) {
+            eagerActivationHelper.request(currentIndex)
         } else {
             // Loaded pages always use the configured StackedWidget transition.
             // 已加载页面始终使用 StackedWidget 配置的常规切页动画。
@@ -582,6 +601,16 @@ Item {
             control.currentChanged(idx)
             control.animationFinished()
         }
+    }
+
+    EagerLoadingHelper {
+        id: eagerActivationHelper
+
+        objectName: "eagerActivationHelper"
+        loaders: control._loaders
+        count: control.count
+        lazyLoading: control.lazyLoading
+        sourceMode: control._useSourceMode
     }
 
     LazyPageCircleTransition {
@@ -652,7 +681,13 @@ Item {
                         ? (index === control._displayIndex || _loadOnce
                            ? (control._safePageSources[index] || "") : "")
                         : (control._safePageSources[index] || "")
-                active: !control.lazyLoading || index === control._displayIndex || _loadOnce
+                active: control.lazyLoading
+                        ? (index === control._displayIndex || _loadOnce)
+                        : (index === control._displayIndex ||
+                           eagerActivationHelper.ready ||
+                           (eagerActivationHelper.activationActive &&
+                            index <= eagerActivationHelper.cursor) ||
+                           index === eagerActivationHelper.requestedIndex)
                 visible: index === control._displayIndex
                 opacity: index === control._displayIndex ? 1 : 0
                 scale: 1

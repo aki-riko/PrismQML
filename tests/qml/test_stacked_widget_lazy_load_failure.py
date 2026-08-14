@@ -337,6 +337,79 @@ StackedWidget {{
         _release(qapp, stack, component, engine)
 
 
+def test_runtime_eager_switch_stages_real_gallery_pages(qapp):
+    """Disabling lazy loading must not activate every Gallery Loader in one turn.
+
+    运行时关闭懒加载不得在同一事件处理中同步激活 Gallery 的全部 Loader。
+    """
+    configure_qml_environment()
+    page_urls = [
+        QUrl.fromLocalFile(str(_ROOT / "examples/pages/ButtonPage.qml")).toString(),
+        QUrl.fromLocalFile(str(_ROOT / "examples/pages/InputPage.qml")).toString(),
+        QUrl.fromLocalFile(str(_ROOT / "examples/pages/NavigationPage.qml")).toString(),
+    ]
+    scene = f"""
+import QtQuick
+import PrismQML
+
+StackedWidget {{
+    width: 1200
+    height: 800
+    animationEnabled: false
+    lazyLoading: true
+    currentIndex: 0
+    pageSources: ["{page_urls[0]}", "{page_urls[1]}", "{page_urls[2]}"]
+}}
+"""
+    engine = QQmlApplicationEngine()
+    component = None
+    stack = None
+    try:
+        register_types(engine)
+        engine.rootContext().setContextProperty(
+            "PrismQmlAsynchronousPageLoaderEnabled", False
+        )
+        component = QQmlComponent(engine)
+        component.setData(
+            scene.encode("utf-8"),
+            QUrl.fromLocalFile(str(_ROOT / "tests/qml/gallery-eager-switch.qml")),
+        )
+        assert _wait_until(
+            lambda: component.status() != QQmlComponent.Status.Loading
+        )
+        assert component.status() == QQmlComponent.Status.Ready, [
+            error.toString() for error in component.errors()
+        ]
+        stack = component.create(engine.rootContext())
+        assert stack is not None, [error.toString() for error in component.errors()]
+        eager_helper = stack.findChild(QObject, "eagerActivationHelper")
+        assert eager_helper is not None
+        assert _wait_until(lambda: bool(_evaluate(stack, "_isPageLoaded(0)")))
+
+        stack.setProperty("lazyLoading", False)
+        assert eager_helper.property("ready") is False
+        assert _evaluate(
+            stack,
+            "_loaders.filter(function(loader) { return loader.active }).length",
+        ) == 1
+
+        stack.setProperty("currentIndex", 2)
+        assert _wait_until(
+            lambda: int(_evaluate(stack, "_displayIndex")) == 2,
+            timeout_ms=5000,
+        )
+        assert _wait_until(
+            lambda: bool(eager_helper.property("ready"))
+            and all(
+                bool(_evaluate(stack, f"_isPageLoaded({index})"))
+                for index in range(len(page_urls))
+            ),
+            timeout_ms=5000,
+        )
+    finally:
+        _release(qapp, stack, component, engine)
+
+
 def test_lazy_helper_respects_unsafe_incubation_fallback():
     """The helper Loader must share the page Loader safety gate. 辅助 Loader 必须共用页面安全门禁。"""
     source = (
