@@ -28,7 +28,7 @@ Item {
         blur: layer.control ? layer.control.blur : 0
         offset.x: layer.control ? layer.control.offset : 0
         offset.y: layer.control ? layer.control.offset : 0
-        spread: 0
+        spread: layer.control ? layer.control.spread : 0
     }
 
     RectangularShadow {
@@ -40,6 +40,6 @@ Item {
         blur: layer.control ? layer.control.blur : 0
         offset.x: layer.control ? -layer.control.offset : 0
         offset.y: layer.control ? -layer.control.offset : 0
-        spread: 0
+        spread: layer.control ? layer.control.spread : 0
     }
 }

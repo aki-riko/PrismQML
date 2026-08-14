@@ -39,6 +39,13 @@ Item {
     readonly property color _popupShadowColor: Enums.shadow.level8.color
     readonly property int _popupShadowBlur: Enums.shadow.level8.blur
     readonly property int _popupShadowOffset: Enums.shadow.level8.offset
+    readonly property real _popupNeumorphicShadowBlur: Enums.neumorphism.popupShadowBlur
+    readonly property real _popupNeumorphicShadowOffset: Enums.neumorphism.popupShadowOffset
+    readonly property real _popupNeumorphicShadowSpread: Enums.neumorphism.popupShadowSpread
+    // The panel inset and native surface size must follow the active shadow contract.
+    // 面板内缩与原生表面尺寸必须跟随当前阴影合同。
+    readonly property real _panelOffset: Enums.isNeumorphism
+        ? Enums.neumorphism.popupShadowMargin : Enums.popupMetrics.panelOffset
     property bool modal: false
     property bool closeOnClickOutside: true
     property bool stealFocus: true  // Whether to steal focus when opening 打开时是否抢夺焦点
@@ -75,9 +82,9 @@ Item {
     readonly property bool _usesControlsPopup: useInWindowPopup || useQtPopupWindow
     readonly property var _popupWindow: popupWindowLoader.item
     readonly property int _outerWidth: Math.max(
-        Enums.popupMetrics.minWidth, popupWidth + Enums.popupMetrics.windowPadding)
+        Enums.popupMetrics.minWidth, Math.ceil(popupWidth + 2 * _panelOffset))
     readonly property int _outerHeight: Math.max(
-        Enums.popupMetrics.minHeight, popupHeight + Enums.popupMetrics.windowPadding)
+        Enums.popupMetrics.minHeight, Math.ceil(popupHeight + 2 * _panelOffset))
     readonly property bool _surfaceVisible: _usesControlsPopup
         ? (inlinePopup ? inlinePopup.visible : false) : (_popupWindow ? _popupWindow.visible : false)
 
@@ -168,7 +175,7 @@ Item {
             targetControl.width / 2, targetControl.height / 2)
         var outerWidth = _outerWidth
         var outerHeight = _outerHeight
-        var panelOffset = Enums.popupMetrics.panelOffset
+        var panelOffset = _panelOffset
         var gap = Enums.spacing.xs + Enums.popupMetrics.controlGap
         var posX = actionRight.x + gap - panelOffset
         var posY = actionTop.y - panelOffset - Enums.spacing.xs
@@ -397,7 +404,7 @@ Item {
         targetControl = targetCtrl
         var pos = targetCtrl.mapToGlobal(0, targetCtrl.height + Enums.popupMetrics.controlGap)
         // Align standard control popups by their left edges. 标准控件弹层统一左边缘对齐
-        open(pos.x - Enums.popupMetrics.panelOffset, pos.y - Enums.popupMetrics.panelOffset)
+        open(pos.x - _panelOffset, pos.y - _panelOffset)
     }
     
     // Open popup above control with selected row aligned to control (Fluent Design Picker style) 在控件上方打开弹出框，选中行与控件对齐（Fluent Design Picker 风格）
@@ -418,8 +425,8 @@ Item {
         var selectedRowCenterY = wheelAreaHeight / 2
         
         // Align selected row center with control center, fine-tune offset 选中行中心对齐控件中心，微调偏移
-        var posY = controlPos.y + targetCtrl.height / 2 - selectedRowCenterY - Enums.spacing.xs - Enums.popupMetrics.panelOffset
-        var posX = controlPos.x + (targetCtrl.width - popupWidth) / 2 - Enums.popupMetrics.panelOffset
+        var posY = controlPos.y + targetCtrl.height / 2 - selectedRowCenterY - Enums.spacing.xs - _panelOffset
+        var posX = controlPos.x + (targetCtrl.width - popupWidth) / 2 - _panelOffset
         // Screen boundary check 屏幕边界检查
         var screen = Screen
         if (screen) {
@@ -512,8 +519,8 @@ Item {
             newX = pickerPos.x
             newY = pickerPos.y
         } else {
-            newX = currentGlobalPos.x - Enums.popupMetrics.panelOffset
-            newY = currentGlobalPos.y + targetControl.height + Enums.popupMetrics.controlGap - Enums.popupMetrics.panelOffset
+            newX = currentGlobalPos.x - _panelOffset
+            newY = currentGlobalPos.y + targetControl.height + Enums.popupMetrics.controlGap - _panelOffset
         }
         if (_usesControlsPopup && _inlineParent) {
             var localPos = _calcControlsPopupPosition(newX, newY)
@@ -685,6 +692,7 @@ Item {
         popupWidth: control.popupWidth
         popupHeight: control.popupHeight
         contentPadding: control.contentPadding
+        panelOffset: control._panelOffset
         popupRadius: control.popupRadius
         popupBackground: control._popupBackground
         popupBorderWidth: control._popupBorderWidth
@@ -692,6 +700,9 @@ Item {
         popupShadowColor: control._popupShadowColor
         popupShadowBlur: control._popupShadowBlur
         popupShadowOffset: control._popupShadowOffset
+        popupNeumorphicShadowBlur: control._popupNeumorphicShadowBlur
+        popupNeumorphicShadowOffset: control._popupNeumorphicShadowOffset
+        popupNeumorphicShadowSpread: control._popupNeumorphicShadowSpread
         clipHeight: control._clipHeight
         panelScale: control._scale
         verticalCenterExpand: control.verticalCenterExpand

@@ -15,6 +15,7 @@ Item {
     required property int popupWidth
     required property int popupHeight
     required property int contentPadding
+    required property real panelOffset
     required property int popupRadius
     required property color popupBackground
     required property real popupBorderWidth
@@ -22,6 +23,9 @@ Item {
     required property color popupShadowColor
     required property int popupShadowBlur
     required property int popupShadowOffset
+    required property real popupNeumorphicShadowBlur
+    required property real popupNeumorphicShadowOffset
+    required property real popupNeumorphicShadowSpread
     required property real clipHeight
     required property real panelScale
     required property bool verticalCenterExpand
@@ -36,7 +40,8 @@ Item {
 
     // Shadow Layer 阴影层 (z: background to ensure it's behind popupPanel)
     // Sync opacity with popupPanel for smooth fade animation 与面板同步透明度实现平滑淡入
-    // Fluent: 模糊阴影; neo: 硬阴影(偏移纯色矩形)
+    // Fluent uses one elevation shadow; neumorphism uses a paired shadow below.
+    // Fluent 使用单层高度阴影；新拟态使用下方的双向阴影。
     RectangularShadow {
         objectName: "_popupShadow"
         z: Enums.zIndex.background
@@ -53,7 +58,11 @@ Item {
     }
 
     NeumorphicShadow {
+        objectName: "_popupNeumorphicShadow"
         target: popupPanel
+        offset: surface.popupNeumorphicShadowOffset
+        blur: surface.popupNeumorphicShadowBlur
+        spread: surface.popupNeumorphicShadowSpread
         z: Enums.zIndex.background
         anchors.fill: null
         x: clipContainer.x
@@ -63,7 +72,8 @@ Item {
         visible: Enums.isNeumorphism
     }
 
-    // neo 硬阴影: 偏移纯色矩形(弹层用 explicit 几何, 不用 NeoShadow 的 target)
+    // Neobrutalism hard shadow; popup geometry stays explicit.
+    // 新粗野硬阴影；弹层继续使用显式几何。
     Rectangle {
         objectName: "_popupNeoShadow"
         z: Enums.zIndex.background
@@ -80,8 +90,8 @@ Item {
     Item {
         id: clipContainer
 
-        x: Enums.popupMetrics.panelOffset
-        y: Enums.popupMetrics.panelOffset
+        x: surface.panelOffset
+        y: surface.panelOffset
         width: surface.popupWidth
         height: surface.clipHeight
         clip: true

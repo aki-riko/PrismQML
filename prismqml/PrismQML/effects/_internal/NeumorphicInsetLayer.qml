@@ -3,10 +3,9 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import QtQuick.Effects
 import "../.."
 
-// NeumorphicInsetLayer - Lazily loaded concave edge layer 按需加载的新拟态内凹边缘层
+// NeumorphicInsetLayer - Rounded SDF inset shadow 圆角距离场内阴影层
 Item {
     id: layer
 
@@ -14,84 +13,45 @@ Item {
     readonly property Item control: parent
     readonly property Item target: control ? control.target : null
     readonly property real edgeSize: control ? control._edgeSize : 0
+    readonly property color _darkColor: control ? control.darkColor : Enums.transparent
+    readonly property color _lightColor: control ? control.lightColor : Enums.transparent
 
     // ==================== Size 尺寸 ====================
+    objectName: "_neumorphicInsetLayer"
     anchors.fill: parent
 
     // ==================== Content 内容 ====================
-    Rectangle {
-        id: roundedMask
+    ShaderEffect {
+        id: insetShader
 
-        parent: layer.target ? layer.target : layer
-        anchors.fill: parent
-        radius: layer.target && layer.target.radius !== undefined
-                ? layer.target.radius : 0
-        visible: false
-        layer.enabled: true
-    }
+        // ==================== Internal Props 内部属性 ====================
+        property real itemWidth: width
+        property real itemHeight: height
+        property real cornerRadius: layer.target && layer.target.radius !== undefined
+                                    ? layer.target.radius : 0
+        property real shadowDepth: layer.edgeSize
+        property real shadowSoftness: layer.control
+                                      ? Math.min(Enums.neumorphism.insetSoftness,
+                                                 layer.control.blur)
+                                      : Enums.neumorphism.insetSoftness
+        property real darkR: layer._darkColor.r
+        property real darkG: layer._darkColor.g
+        property real darkB: layer._darkColor.b
+        property real darkOpacity: layer.control
+                                   ? layer.control.insetDarkOpacity
+                                   : Enums.opacityLevel.invisible
+        property real lightR: layer._lightColor.r
+        property real lightG: layer._lightColor.g
+        property real lightB: layer._lightColor.b
+        property real lightOpacity: layer.control
+                                    ? layer.control.insetLightOpacity
+                                    : Enums.opacityLevel.invisible
 
-    // Reparent the painted layer onto the opaque target so the inset remains visible.
-    // 将绘制层重定父级到不透明目标上，保证内凹边缘可见。
-    Item {
-        objectName: "_neumorphicInsetLayer"
+        objectName: "_neumorphicInsetShader"
         parent: layer.target ? layer.target : layer
         anchors.fill: parent
         z: Enums.zIndex.controlsAbove
-        clip: true
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            maskEnabled: true
-            maskSource: roundedMask
-            maskThresholdMin: 0.5
-            maskSpreadAtMin: 0.0
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: layer.edgeSize
-            gradient: Gradient {
-                orientation: Gradient.Vertical
-                GradientStop { position: 0; color: layer.control ? layer.control.darkColor : Enums.transparent }
-                GradientStop { position: 1; color: Enums.transparent }
-            }
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: layer.edgeSize
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0; color: layer.control ? layer.control.darkColor : Enums.transparent }
-                GradientStop { position: 1; color: Enums.transparent }
-            }
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: layer.edgeSize
-            gradient: Gradient {
-                orientation: Gradient.Vertical
-                GradientStop { position: 0; color: Enums.transparent }
-                GradientStop { position: 1; color: layer.control ? layer.control.lightColor : Enums.transparent }
-            }
-        }
-
-        Rectangle {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: layer.edgeSize
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0; color: Enums.transparent }
-                GradientStop { position: 1; color: layer.control ? layer.control.lightColor : Enums.transparent }
-            }
-        }
+        blending: true
+        fragmentShader: Qt.resolvedUrl("../../shaders/neumorphic_inset.frag.qsb")
     }
 }

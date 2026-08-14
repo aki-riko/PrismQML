@@ -183,6 +183,22 @@ QtObject {
      readonly property int radius: 14
      readonly property real shadowOffset: 7
      readonly property real shadowBlur: 18
+     // Pull the opaque shadow core under the surface so it cannot look like a half outline.
+     // 将阴影实色核心收回表面下方，避免形成半圈描边。
+     readonly property real shadowSpread: -shadowOffset
+     readonly property real popupShadowOffset: 4
+     readonly property real popupShadowBlur: 14
+     readonly property real popupShadowSpread: -popupShadowOffset
+     // Transparent native-window margin for the complete popup shadow.
+     // 原生透明窗口为完整弹层阴影预留的安全边距。
+     readonly property real popupShadowMargin: root.spacing.xl
+     readonly property real insetEdgeSize: root.spacing.xs
+     readonly property real insetSoftness: root.spacing.s
+     readonly property real insetDarkOpacity: root.opacity.medium
+     readonly property real insetLightOpacity: root.opacity.secondary
+     readonly property real switchShadowOffset: 2
+     readonly property real switchShadowBlur: 6
+     readonly property real switchShadowSpread: -switchShadowOffset
      readonly property real pressInset: 2
      readonly property color background: root.constants.neumorphismColors.background
      readonly property color surface: root.constants.neumorphismColors.surface

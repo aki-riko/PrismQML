@@ -19,12 +19,18 @@ Loader {
     property bool accent: false
     property real offset: Enums.neumorphism.shadowOffset
     property real blur: Enums.neumorphism.shadowBlur
+    property real spread: Enums.neumorphism.shadowSpread
     property color darkColor: Enums.neumorphism.shadowDark
     property color lightColor: Enums.neumorphism.shadowLight
+    property real insetDarkOpacity: Enums.neumorphism.insetDarkOpacity
+    property real insetLightOpacity: Enums.neumorphism.insetLightOpacity
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _insetActive: inset || pressed
-    readonly property real _edgeSize: Math.max(Enums.spacing.xs, blur / 2)
+    readonly property real _edgeSize: Math.max(
+        Enums.spacing.xxs,
+        Math.min(Enums.neumorphism.insetEdgeSize, offset)
+    )
     readonly property point _targetPosition: _mapTargetPosition()
 
     // ==================== Internal Methods 内部方法 ====================

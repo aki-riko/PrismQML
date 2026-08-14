@@ -20,6 +20,10 @@ Rectangle {
     readonly property bool _effectiveHovered: hovered || switchArea.containsMouse
     readonly property bool _effectivePressed: pressed || switchArea.pressed
     readonly property color _trackColor: {
+        if (Enums.isNeumorphism) {
+            if (!enabled) return Enums.neumorphism.muted
+            return checked ? checkedColor : Enums.neumorphism.muted
+        }
         if (Enums.hasOutlinedSurfaces) {
             if (!enabled) return checked ? Enums.stateColor.primaryDisabled : Enums.stateColor.checkBoxFill
             return checked ? checkedColor : Enums.stateColor.checkBoxFill
@@ -54,6 +58,10 @@ Rectangle {
         return Enums.transparent
     }
     readonly property color _handleColor: {
+        if (Enums.isNeumorphism) {
+            if (!enabled) return Enums.neumorphism.muted
+            return checked ? Enums.accentForeground : Enums.neumorphism.surface
+        }
         if (false) {
             if (!enabled) return Enums.stateColor.controlBgDisabled
             return checked ? Enums.accentForeground : Enums.stateColor.controlBg
@@ -89,14 +97,20 @@ Rectangle {
     NeumorphicShadow {
         target: track
         inset: !checked
+        offset: Enums.neumorphism.switchShadowOffset
+        blur: Enums.neumorphism.switchShadowBlur
+        spread: Enums.neumorphism.switchShadowSpread
         visible: Enums.isNeumorphism
         z: track.z - 1
     }
 
     NeumorphicShadow {
         target: handle
-        visible: Enums.isNeumorphism && checked
-        z: handle.z - 1
+        offset: Enums.neumorphism.switchShadowOffset
+        blur: Enums.neumorphism.switchShadowBlur
+        spread: Enums.neumorphism.switchShadowSpread
+        visible: Enums.isNeumorphism
+        z: Enums.zIndex.controls
     }
 
     Behavior on color { ColorAnimation { duration: Enums.duration.normal } }
@@ -113,6 +127,7 @@ Rectangle {
         border.color: track._handleBorderColor
         anchors.verticalCenter: parent.verticalCenter
         x: checked ? parent.width - width - Enums.spacing.xxs : Enums.spacing.xxs
+        z: Enums.zIndex.controlsAbove
 
         Behavior on x {
             NumberAnimation {

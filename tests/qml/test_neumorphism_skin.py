@@ -15,6 +15,18 @@ from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, se
 
 
 ROOT = Path(__file__).resolve().parents[2]
+INSET_LAYER_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "effects"
+    / "_internal"
+    / "NeumorphicInsetLayer.qml"
+)
+INSET_SHADER_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "shaders" / "neumorphic_inset.frag"
+)
+INSET_SHADER_BINARY_PATH = INSET_SHADER_PATH.with_suffix(".frag.qsb")
 QML_SOURCE = b"""
 import QtQuick
 import PrismQML
@@ -33,6 +45,16 @@ Item {
     readonly property color foregroundToken: Enums.foregroundColor
     readonly property color darkShadowToken: Enums.neumorphism.shadowDark
     readonly property color lightShadowToken: Enums.neumorphism.shadowLight
+    readonly property real shadowOffsetToken: Enums.neumorphism.shadowOffset
+    readonly property real shadowSpreadToken: Enums.neumorphism.shadowSpread
+    readonly property real popupShadowOffsetToken: Enums.neumorphism.popupShadowOffset
+    readonly property real popupShadowBlurToken: Enums.neumorphism.popupShadowBlur
+    readonly property real popupShadowSpreadToken: Enums.neumorphism.popupShadowSpread
+    readonly property real popupShadowMarginToken: Enums.neumorphism.popupShadowMargin
+    readonly property real insetEdgeToken: Enums.neumorphism.insetEdgeSize
+    readonly property real insetSoftnessToken: Enums.neumorphism.insetSoftness
+    readonly property real insetDarkOpacityToken: Enums.neumorphism.insetDarkOpacity
+    readonly property real insetLightOpacityToken: Enums.neumorphism.insetLightOpacity
     readonly property color successToken: Enums.statusLevel.getColorByLevel(Enums.statusLevel.success)
 
     width: 320
@@ -54,6 +76,12 @@ Item {
         y: 72
         width: 160
         height: 80
+    }
+
+    PopupWindowCore {
+        objectName: "popup"
+        popupWidth: 180
+        popupHeight: 120
     }
 }
 """
@@ -196,6 +224,32 @@ Item {
 }
 """
 
+TOGGLE_SURFACE_SOURCE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    readonly property color mutedToken: Enums.neumorphism.muted
+    readonly property real switchShadowOffset: Enums.neumorphism.switchShadowOffset
+    readonly property real switchShadowBlur: Enums.neumorphism.switchShadowBlur
+    readonly property real switchShadowSpread: Enums.neumorphism.switchShadowSpread
+
+    width: 180
+    height: 80
+
+    ToggleSwitch {
+        objectName: "offToggle"
+        checked: false
+    }
+
+    ToggleSwitch {
+        objectName: "onToggle"
+        x: 80
+        checked: true
+    }
+}
+"""
+
 
 def _pump(milliseconds: int = 10) -> None:
     loop = QEventLoop()
@@ -276,6 +330,21 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
         _assert_color(root, "foregroundToken", "#27364a")
         _assert_color(root, "darkShadowToken", "#b7c2d0")
         _assert_color(root, "lightShadowToken", "#ffffff")
+        assert root.property("shadowOffsetToken") == 7
+        assert root.property("shadowSpreadToken") == -7
+        assert root.property("popupShadowOffsetToken") == 4
+        assert root.property("popupShadowBlurToken") == 14
+        assert root.property("popupShadowSpreadToken") == -4
+        assert root.property("popupShadowMarginToken") == 16
+        assert root.property("popupShadowMarginToken") >= (
+            root.property("popupShadowBlurToken")
+            + abs(root.property("popupShadowOffsetToken"))
+            + root.property("popupShadowSpreadToken")
+        )
+        assert root.property("insetEdgeToken") == 4
+        assert root.property("insetSoftnessToken") == 6
+        assert root.property("insetDarkOpacityToken") == 0.5
+        assert root.property("insetLightOpacityToken") == 0.6
         _assert_color(root, "successToken", "#238b64")
 
         for object_name in ("button", "input", "card"):
@@ -286,6 +355,25 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
                 for child in surface.findChildren(QObject)
             )
 
+        popup = root.findChild(QObject, "popup")
+        popup_shadow = root.findChild(QObject, "_popupNeumorphicShadow")
+        assert popup is not None
+        assert popup_shadow is not None
+        assert popup.property("_panelOffset") == root.property(
+            "popupShadowMarginToken"
+        )
+        assert popup.property("_outerWidth") == 212
+        assert popup.property("_outerHeight") == 152
+        assert popup_shadow.property("offset") == root.property(
+            "popupShadowOffsetToken"
+        )
+        assert popup_shadow.property("blur") == root.property(
+            "popupShadowBlurToken"
+        )
+        assert popup_shadow.property("spread") == root.property(
+            "popupShadowSpreadToken"
+        )
+
         setTheme(Theme.DARK)
         _pump()
         _assert_color(root, "backgroundToken", "#252b35")
@@ -293,6 +381,12 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
         _assert_color(root, "foregroundToken", "#e8eef7")
         _assert_color(root, "darkShadowToken", "#171c24")
         _assert_color(root, "lightShadowToken", "#3e4a5b")
+
+        setSkin(Skin.FLUENT)
+        _pump()
+        assert popup.property("_panelOffset") == 8
+        assert popup.property("_outerWidth") == 196
+        assert popup.property("_outerHeight") == 136
         assert warnings == []
     finally:
         setTheme(previous_theme)
@@ -351,28 +445,30 @@ def test_neumorphic_shadow_loads_only_the_active_state(qapp):
         outer_shadows = _owned(shadow, "RectangularShadow")
         assert len(outer_shadows) == 2
         assert all(bool(item.property("visible")) for item in outer_shadows)
+        assert all(
+            item.property("spread") == shadow.property("spread")
+            for item in outer_shadows
+        )
+        assert shadow.property("spread") == -shadow.property("offset")
         assert not _owned(shadow, "_neumorphicInsetLayer")
 
         shadow.setProperty("pressed", True)
         _pump()
         assert not _owned(shadow, "RectangularShadow")
-        inset_layers = [
-            item
-            for item in _owned(shadow, "QQuickItem")
-            if item.objectName() == "_neumorphicInsetLayer"
-        ]
-        assert len(inset_layers) == 1
-        assert bool(inset_layers[0].property("visible"))
+        inset_layer = root.findChild(QObject, "_neumorphicInsetLayer")
+        inset_shader = root.findChild(QObject, "_neumorphicInsetShader")
+        assert inset_layer is not None
+        assert inset_shader is not None
+        assert bool(inset_shader.property("visible"))
+        assert inset_shader.property("darkOpacity") == shadow.property("insetDarkOpacity")
+        assert inset_shader.property("lightOpacity") == shadow.property("insetLightOpacity")
+        assert inset_shader.property("shadowDepth") == shadow.property("_edgeSize")
 
         setSkin(Skin.FLUENT)
         _pump()
         assert not bool(shadow.property("visible"))
         assert not _owned(shadow, "RectangularShadow")
-        assert not [
-            item
-            for item in _owned(shadow, "QQuickItem")
-            if item.objectName() == "_neumorphicInsetLayer"
-        ]
+        assert root.findChild(QObject, "_neumorphicInsetLayer") is None
         assert warnings == []
     finally:
         setSkin(previous_skin)
@@ -423,6 +519,48 @@ def test_neumorphism_extended_surfaces_use_engine_shadow(qapp):
         _pump()
 
 
+def test_neumorphic_toggle_uses_recessed_track_and_raised_thumb(qapp):
+    previous_skin = getSkin()
+    setSkin(Skin.NEUMORPHISM)
+    engine, component, root, warnings = _create_scene_from_source(
+        TOGGLE_SURFACE_SOURCE, "inline:neumorphism-toggle-surface.qml"
+    )
+    try:
+        for object_name, checked in (("offToggle", False), ("onToggle", True)):
+            toggle = root.findChild(QObject, object_name)
+            assert toggle is not None
+            indicators = _owned(toggle, "ToggleSwitchIndicator")
+            assert len(indicators) == 1
+            indicator = indicators[0]
+            shadows = _owned(indicator, "NeumorphicShadow")
+            assert len(shadows) == 2
+            assert all(bool(shadow.property("visible")) for shadow in shadows)
+            assert all(
+                shadow.property("offset") == root.property("switchShadowOffset")
+                for shadow in shadows
+            )
+            assert all(
+                shadow.property("blur") == root.property("switchShadowBlur")
+                for shadow in shadows
+            )
+            assert all(
+                shadow.property("spread") == root.property("switchShadowSpread")
+                for shadow in shadows
+            )
+            assert sum(bool(shadow.property("inset")) for shadow in shadows) == (
+                0 if checked else 1
+            )
+            if not checked:
+                assert indicator.property("_trackColor") == root.property("mutedToken")
+        assert warnings == []
+    finally:
+        setSkin(previous_skin)
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump()
+
+
 def test_neumorphism_python_skin_round_trip():
     from prismqml.python.core.theme import ThemeManager
 
@@ -445,3 +583,14 @@ def test_neumorphism_is_registered_without_gallery_dependency():
     )
     assert "NeumorphicShadow NeumorphicShadow.qml" in effect_qmldir
     assert "NeumorphicShadow effects/NeumorphicShadow.qml" in root_qmldir
+
+
+def test_neumorphic_inset_uses_precompiled_rounded_sdf_shader():
+    layer_source = INSET_LAYER_PATH.read_text(encoding="utf-8")
+    shader_source = INSET_SHADER_PATH.read_text(encoding="utf-8")
+    assert 'fragmentShader: Qt.resolvedUrl("../../shaders/neumorphic_inset.frag.qsb")' in layer_source
+    assert "ShaderEffect {" in layer_source
+    assert "roundedBoxSDF" in shader_source
+    assert "gradientLength < 0.001" in shader_source
+    assert INSET_SHADER_BINARY_PATH.is_file()
+    assert INSET_SHADER_BINARY_PATH.stat().st_size > 0

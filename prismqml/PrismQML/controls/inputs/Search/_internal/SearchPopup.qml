@@ -14,7 +14,8 @@ import "../../../data/Label"
 // 跟 ComboBox 下拉一致.
 //
 // popupMode:
-//   0 = AnchoredBelow  → openAtControl: 底层自动处理 panelOffset(8) +
+//   0 = AnchoredBelow  → openAtControl: core resolves the active skin panelOffset +
+//                        锚定下方：底层按当前皮肤处理 panelOffset +
 //                        controlGap(2) + centerOffset, 不再自己算
 //   1 = CenteredOverlay → 居中屏幕,固定宽 600
 //
