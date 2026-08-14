@@ -1,12 +1,18 @@
 # coding: utf-8
 # SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Neobrutalism 皮肤真机预览 — 摆 Button/Card 各状态, 肉眼看硬阴影/粗边/橙主色/按下位移。
 
-用法: .venv/Scripts/python.exe demo_neo.py
+用法: .venv/Scripts/python.exe examples/demo_neo.py
 环境变量 SKIN=fluent 可对比 Fluent 原样(默认 neobrutalism)。
 """
 import os
 import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine

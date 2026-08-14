@@ -16,6 +16,7 @@
 用法: <venv>/python scripts/test_process.py --qt-platform offscreen --timeout 180 -- <venv>/python tests/qml/test_realwindow_lazy_reload.py
 退出码: 0=通过(主页未被卸载), 1=失败(主页被卸载=会重新懒加载)
 """
+import os
 import sys
 from pathlib import Path
 
@@ -32,6 +33,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from prismqml.python.core.utils import register_types  # noqa: E402
 
 PAGES_DIR = Path(__file__).resolve().parents[2] / "examples" / "pages"
+_configured_artifact_root = os.environ.get("PRISM_ARTIFACT_ROOT")
+ARTIFACT_ROOT = (
+    Path(_configured_artifact_root).expanduser().resolve()
+    if _configured_artifact_root
+    else Path(__file__).resolve().parents[2] / ".artifacts"
+)
+RESULT_PATH = (
+    ARTIFACT_ROOT
+    / "python"
+    / "test-results"
+    / "test_realwindow_lazy_reload.result.txt"
+)
+
+
+def _write_result(content: str) -> None:
+    RESULT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    RESULT_PATH.write_text(content, encoding="utf-8")
 
 
 def pump(ms):
@@ -102,8 +120,7 @@ Fluent.Windows {{
                 break
 
     if stack is None:
-        Path(__file__).with_suffix(".result.txt").write_text(
-            "RESULT: ERROR - 等待超时: window.stackedWidget 仍为 None", encoding="utf-8")
+        _write_result("RESULT: ERROR - 等待超时: window.stackedWidget 仍为 None")
         sys.stderr.write("\n>>>RESULT_BEGIN>>>\nstack is None\n<<<RESULT_END<<<\n")
         sys.exit(1)
 
@@ -141,7 +158,7 @@ Fluent.Windows {{
     out = "\n".join(lines)
     sys.stderr.write("\n>>>RESULT_BEGIN>>>\n" + out + "\n<<<RESULT_END<<<\n")
     sys.stderr.flush()
-    Path(__file__).with_suffix(".result.txt").write_text(out, encoding="utf-8")
+    _write_result(out)
 
     QTimer.singleShot(0, app.quit)
     app.exec()

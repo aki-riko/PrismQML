@@ -44,7 +44,7 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     Path("tests/test_window_buttons.py"),
     # Visible Windows input probe; run manually with a real D3D11 desktop.
     # 可视 Windows 输入探针；仅在真实 D3D11 桌面上手工运行。
-    Path("scripts/temp/native_popup_sendinput_probe.py"),
+    Path("scripts/manual/native_popup_sendinput_probe.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"
@@ -447,6 +447,19 @@ def test_standalone_qt_entrypoints_bootstrap_before_pyside_import():
         if (failure := _entrypoint_bootstrap_failure(relative)) is not None
     ]
     assert failures == []
+
+
+def test_realwindow_lazy_reload_result_uses_artifact_root():
+    source = (
+        REPO_ROOT / "tests" / "qml" / "test_realwindow_lazy_reload.py"
+    ).read_text(encoding="utf-8")
+
+    assert re.search(
+        r'RESULT_PATH\s*=\s*\(\s*ARTIFACT_ROOT\s*/\s*"python"'
+        r'\s*/\s*"test-results"',
+        source,
+    )
+    assert 'with_suffix(".result.txt")' not in source
 
 
 def test_runtime_matrix_covers_every_automated_qt_entrypoint():
