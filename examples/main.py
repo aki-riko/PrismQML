@@ -96,7 +96,15 @@ def main():
 
     # Install safe sliced incubation for lazy pages. 为懒加载页面安装安全的分片孵化。
     # Known-unsafe Qt builds fall back automatically. 已知不安全的 Qt 构建会自动回退。
-    from prismqml.python.core.incubation import install_default_incubation_controller
+    from prismqml.python.core.incubation import (
+        asynchronous_page_loader_enabled,
+        install_default_incubation_controller,
+    )
+
+    engine.rootContext().setContextProperty(
+        "PrismQmlAsynchronousPageLoaderEnabled",
+        asynchronous_page_loader_enabled(),
+    )
     install_default_incubation_controller(engine)
     
     # 资源已通过 QResource.registerResource(gallery.rcc) 在模块加载时注册
