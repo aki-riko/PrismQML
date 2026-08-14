@@ -129,29 +129,29 @@ jobs:
           else
             QTCMAKE="qt-cmake"
           fi
-          "$QTCMAKE" -S cpp -B cpp/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          "$QTCMAKE" -S cpp -B .artifacts/cpp/ci-desktop -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DPRISM_BUILD_NATIVE_TESTS=ON
-          cmake --build cpp/build
+          cmake --build .artifacts/cpp/ci-desktop
       - name: Run headless unit tests
         shell: bash
         env:
           QT_QPA_PLATFORM: offscreen
         run: >-
-          ctest --test-dir cpp/build -L headless --interactive-debug-mode 0
+          ctest --test-dir .artifacts/cpp/ci-desktop -L headless --interactive-debug-mode 0
           --output-on-failure --no-tests=error
       - name: Run native platform tests
         if: runner.os == 'Windows'
         shell: bash
         run: >-
-          ctest --test-dir cpp/build -L native --interactive-debug-mode 0
+          ctest --test-dir .artifacts/cpp/ci-desktop -L native --interactive-debug-mode 0
           --output-on-failure --no-tests=error
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}
           path: |
-            cpp/build/prism_demo*
-            cpp/build/libprism.*
-            cpp/build/prism.lib
+            .artifacts/cpp/ci-desktop/prism_demo*
+            .artifacts/cpp/ci-desktop/libprism.*
+            .artifacts/cpp/ci-desktop/prism.lib
           if-no-files-found: warn
 
   # ==================== Android arm64 ====================
@@ -186,19 +186,19 @@ jobs:
           QT_HOST="$QT_BASE/gcc_64"
           echo "QT_ANDROID=$QT_ANDROID  QT_HOST=$QT_HOST"
           ls "$QT_HOST/lib/cmake/Qt6CoreTools" || echo "WARN: host 缺 CoreTools"
-          "$QT_ANDROID/bin/qt-cmake" -S cpp -B cpp/build-android -G Ninja \
+          "$QT_ANDROID/bin/qt-cmake" -S cpp -B .artifacts/cpp/ci-android-arm64 -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DQT_HOST_PATH="$QT_HOST" \
             -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" \
             -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
             -DQT_ANDROID_ABIS=arm64-v8a \
             -DPRISM_BUILD_TESTS=OFF -DPRISM_VERIFY_MOBILE=OFF
-          cmake --build cpp/build-android --target prism_demo_make_apk
-          find cpp/build-android -name "*.apk"
+          cmake --build .artifacts/cpp/ci-android-arm64 --target prism_demo_make_apk
+          find .artifacts/cpp/ci-android-arm64 -name "*.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: android-arm64-apk
-          path: cpp/build-android/**/*.apk
+          path: .artifacts/cpp/ci-android-arm64/**/*.apk
           if-no-files-found: warn
 
   # ==================== iOS (模拟器, 免开发者账号) ====================
@@ -228,12 +228,12 @@ jobs:
           QT_IOS="$QT_BASE/ios"
           QT_HOST="$QT_BASE/macos"
           echo "QT_IOS=$QT_IOS  QT_HOST=$QT_HOST"
-          "$QT_IOS/bin/qt-cmake" -S cpp -B cpp/build-ios -G Xcode \
+          "$QT_IOS/bin/qt-cmake" -S cpp -B .artifacts/cpp/ci-ios -G Xcode \
             -DCMAKE_BUILD_TYPE=Release \
             -DQT_HOST_PATH="$QT_HOST" \
             -DPRISM_BUILD_TESTS=OFF -DPRISM_VERIFY_MOBILE=OFF \
             -DCMAKE_OSX_SYSROOT=iphonesimulator
-          cd cpp/build-ios
+          cd .artifacts/cpp/ci-ios
           # 工程名=顶层 project(prism) → prism.xcodeproj; target/scheme=prism_demo。
           # 不用 | tail(pipefail下会吞 xcodebuild 失败码 → 假成功)。
           xcodebuild -project prism.xcodeproj -scheme prism_demo \
@@ -245,7 +245,7 @@ jobs:
         with:
           name: ios-simulator-app
           path: |
-            cpp/build-ios/**/*.app
-            cpp/build-ios/Release-iphonesimulator/**
+            .artifacts/cpp/ci-ios/**/*.app
+            .artifacts/cpp/ci-ios/Release-iphonesimulator/**
           if-no-files-found: error
 

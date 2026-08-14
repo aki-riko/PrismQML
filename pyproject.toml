@@ -85,4 +85,5 @@ addopts = [
     "-p", "scripts.pytest_boundary",
     "--disable-plugin-autoload",
 ]
+cache_dir = ".artifacts/python/pytest-cache"
 pythonpath = ["."]

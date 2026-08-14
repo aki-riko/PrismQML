@@ -7,7 +7,8 @@ call "%~dp0build_env.bat" require-dir QT_HOST_PATH
 if errorlevel 1 exit /b 10
 
 if not defined PRISM_CMAKE_COMMAND set "PRISM_CMAKE_COMMAND=cmake"
-if not defined PRISM_DESKTOP_BUILD_DIR set "PRISM_DESKTOP_BUILD_DIR=%~dp0build"
+if not defined PRISM_ARTIFACT_ROOT set "PRISM_ARTIFACT_ROOT=%~dp0..\.artifacts"
+if not defined PRISM_DESKTOP_BUILD_DIR set "PRISM_DESKTOP_BUILD_DIR=%PRISM_ARTIFACT_ROOT%\cpp\desktop"
 
 call "%PRISM_VCVARS64%"
 if errorlevel 1 (echo VCVARS_FAIL & exit /b 10)

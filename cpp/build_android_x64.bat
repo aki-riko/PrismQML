@@ -15,7 +15,8 @@ if errorlevel 1 exit /b 10
 call "%~dp0build_env.bat" require-file NINJA
 if errorlevel 1 exit /b 10
 
-if not defined PRISM_ANDROID_BUILD_DIR set "PRISM_ANDROID_BUILD_DIR=%~dp0build-android-x64"
+if not defined PRISM_ARTIFACT_ROOT set "PRISM_ARTIFACT_ROOT=%~dp0..\.artifacts"
+if not defined PRISM_ANDROID_BUILD_DIR set "PRISM_ANDROID_BUILD_DIR=%PRISM_ARTIFACT_ROOT%\cpp\android-x64"
 for %%I in ("%NINJA%") do set "PATH=%%~dpI;%JAVA_HOME%\bin;%PATH%"
 pushd "%~dp0"
 if errorlevel 1 (echo CPP_DIR_FAIL & exit /b 10)

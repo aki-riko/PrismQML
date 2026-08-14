@@ -263,6 +263,17 @@ Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur
 
 > 完整组件清单见各 `controls/` 子目录的 `qmldir`。`ComboBox`、`Slider` 等与 QtQuick 原生同名的组件需经子模块目录导入。
 
+## 🧰 开发产物
+
+本地构建产物和缓存统一写入仓库根目录 `.artifacts/`，按用途分为：
+
+- `.artifacts/cpp/`：CMake 桌面、Android、iOS 构建树
+- `.artifacts/python/`：Python 构建、分发包、pytest 缓存和字节码缓存
+- `.artifacts/rust/`：Cargo target
+- `.artifacts/docs/`：MkDocs 站点
+
+历史散落目录已移到各类别的 `legacy/`，不再作为新的构建入口。需要把产物放到仓库外时，设置 `PRISM_ARTIFACT_ROOT`；C++ 脚本仍可用 `PRISM_DESKTOP_BUILD_DIR` 或 `PRISM_ANDROID_BUILD_DIR` 单独覆盖。
+
 ## 🧪 测试
 
 ```bash

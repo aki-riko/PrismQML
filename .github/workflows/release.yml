@@ -55,19 +55,19 @@ jobs:
       - name: Configure and build C++ tests
         shell: bash
         run: |
-          qt-cmake -S cpp -B cpp/build-quality -G Ninja \
+          qt-cmake -S cpp -B .artifacts/cpp/ci-quality -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DPRISM_BUILD_DEMO=OFF \
             -DPRISM_BUILD_GALLERY=OFF \
             -DPRISM_VERIFY_MOBILE=OFF \
             -DPRISM_BUILD_TESTS=ON \
             -DPython3_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')"
-          cmake --build cpp/build-quality
+          cmake --build .artifacts/cpp/ci-quality
       - name: Run headless C++ tests
         env:
           QT_QPA_PLATFORM: offscreen
         run: >-
-          ctest --test-dir cpp/build-quality -L headless --interactive-debug-mode 0
+          ctest --test-dir .artifacts/cpp/ci-quality -L headless --interactive-debug-mode 0
           --output-on-failure --no-tests=error
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
@@ -188,9 +188,9 @@ jobs:
       - name: Build sdist
         run: |
           python -m pip install build
-          python -m build --sdist
+          python -m build --sdist --outdir .artifacts/python/dist
       - name: Validate sdist contents
-        run: python scripts/validate_dist.py --expect-sdist "dist/*.tar.gz"
+        run: python scripts/validate_dist.py --expect-sdist ".artifacts/python/dist/*.tar.gz"
       - name: Install sdist probe runtime dependencies
         run: |
           sudo apt-get update
@@ -198,7 +198,7 @@ jobs:
       - name: Install and probe sdist
         shell: bash
         run: |
-          SDIST_PATH="$(find "$GITHUB_WORKSPACE/dist" -maxdepth 1 -name '*.tar.gz' -print -quit)"
+          SDIST_PATH="$(find "$GITHUB_WORKSPACE/.artifacts/python/dist" -maxdepth 1 -name '*.tar.gz' -print -quit)"
           TEST_VENV="$RUNNER_TEMP/prism-sdist-venv"
           python -m venv "$TEST_VENV"
           "$TEST_VENV/bin/python" -m pip install --disable-pip-version-check "$SDIST_PATH"
@@ -215,7 +215,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: sdist
-          path: ./dist/*.tar.gz
+          path: ./.artifacts/python/dist/*.tar.gz
 
   publish:
     name: Publish to PyPI
@@ -230,12 +230,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          path: dist
+          path: .artifacts/python/dist
           merge-multiple: true
       - name: Revalidate merged release artifacts
-        run: python scripts/validate_dist.py --expect-sdist --expect-wheels 3 "dist/*"
+        run: python scripts/validate_dist.py --expect-sdist --expect-wheels 3 ".artifacts/python/dist/*"
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist
+          packages-dir: .artifacts/python/dist
 

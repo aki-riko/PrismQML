@@ -37,9 +37,9 @@ cpp\build.bat
 ```bat
 call "%PRISM_VCVARS64%"
 set "PATH=%QT_HOST_PATH%\bin;%PATH%"
-cmake -S cpp -B cpp/build -G "NMake Makefiles" ^
+cmake -S cpp -B .artifacts/cpp/desktop -G "NMake Makefiles" ^
   -DCMAKE_BUILD_TYPE=Release "-DCMAKE_PREFIX_PATH=%QT_HOST_PATH%"
-cmake --build cpp/build
+cmake --build .artifacts/cpp/desktop
 ```
 
 ## 运行测试
@@ -49,8 +49,8 @@ cmake --build cpp/build
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r cpp\tests\requirements.txt
-ctest --test-dir cpp\build -N
-ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
+ctest --test-dir .artifacts\cpp\desktop -N
+ctest --test-dir .artifacts\cpp\desktop -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
 ```
 
 默认 headless 集合为 7 个 C++ 测试程序加 1 个 QR 独立解码测试，共 8 项。
@@ -68,9 +68,9 @@ Job 中后代进程归零。不要绕过 CTest 直接运行 `prism_test_*.exe`�
 Windows 11 的 Mica 用例属于显式原生集合，默认不注册。需要验证时重新配置：
 
 ```powershell
-cmake -S cpp -B cpp\build -DPRISM_BUILD_NATIVE_TESTS=ON
-cmake --build cpp\build
-ctest --test-dir cpp\build -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error
+cmake -S cpp -B .artifacts\cpp\desktop -DPRISM_BUILD_NATIVE_TESTS=ON
+cmake --build .artifacts\cpp\desktop
+ctest --test-dir .artifacts\cpp\desktop -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error
 ```
 
 Mica 使用真实 `windows` 平台插件并在私有 Desktop 中运行，但只创建隐藏 HWND，
@@ -82,8 +82,8 @@ Mica 使用真实 `windows` 平台插件并在私有 Desktop 中运行，但只�
 
 ```bash
 export PATH="$QTDIR/bin:$PATH"
-./cpp/build/prism_demo.exe       # 4 页最小 demo
-./cpp/build/prism_gallery.exe    # 13 页完整组件画廊
+./.artifacts/cpp/desktop/prism_demo.exe       # 4 页最小 demo
+./.artifacts/cpp/desktop/prism_gallery.exe    # 13 页完整组件画廊
 ```
 
 > 开发树下 **无需设环境变量** —— CMake 在编译期注入了源码树的 QML/页面默认路径
@@ -202,7 +202,7 @@ C++ `Updater` 与 Python 使用同一响应和下载事务合同：release 必�
 先安装（QML 组件、头文件、库、CMake config 一并装好）：
 
 ```bash
-cmake --install cpp/build --prefix <你的安装前缀>
+cmake --install .artifacts/cpp/desktop --prefix <你的安装前缀>
 ```
 
 其他 CMake 项目消费时，`find_package(prism)` 会导出库目标 + QML 组件目录变量

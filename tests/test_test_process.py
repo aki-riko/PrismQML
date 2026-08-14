@@ -18,8 +18,10 @@ import pytest
 
 from scripts._windows_test_result import BOUNDARY_RESULT_PREFIX
 from scripts.test_process import (
+    ARTIFACT_ROOT_ENV,
     PROCESS_GRACEFUL_WAIT_SECONDS,
     PROCESS_GROUP_POLL_INTERVAL_SECONDS,
+    PYTHON_CACHE_PREFIX_ENV,
     SEM_NOGPFAULTERRORBOX,
     TEST_CLEANUP_FAILURE_EXIT_CODE,
     TEST_TIMEOUT_EXIT_CODE,
@@ -235,13 +237,29 @@ def test_configure_automated_process_overrides_visible_qt_platform(monkeypatch):
     monkeypatch.setenv("QT_QPA_PLATFORM", "windows")
     monkeypatch.setenv("QML_DISABLE_DISK_CACHE", "0")
     monkeypatch.setenv("QML_FORCE_DISK_CACHE", "1")
+    monkeypatch.delenv(ARTIFACT_ROOT_ENV, raising=False)
+    monkeypatch.setenv(PYTHON_CACHE_PREFIX_ENV, "outside-cache")
     configure_automated_test_process()
     assert os.environ["QT_QPA_PLATFORM"] == "offscreen"
     assert os.environ["QML_DISABLE_DISK_CACHE"] == "1"
     assert "QML_FORCE_DISK_CACHE" not in os.environ
+    assert Path(os.environ[PYTHON_CACHE_PREFIX_ENV]) == (
+        REPO_ROOT / ".artifacts" / "python" / "pycache"
+    )
+    assert Path(sys.pycache_prefix) == REPO_ROOT / ".artifacts" / "python" / "pycache"
     assert automated_test_process_is_noninteractive()
     if sys.platform == "win32":
         assert _windows_ucrt_error_mode() == UCRT_OUT_TO_STDERR
+
+
+def test_configure_automated_process_honors_artifact_root(monkeypatch, tmp_path):
+    artifact_root = tmp_path / "custom-artifacts"
+    monkeypatch.setenv(ARTIFACT_ROOT_ENV, str(artifact_root))
+    configure_automated_test_process(None)
+    assert Path(os.environ[PYTHON_CACHE_PREFIX_ENV]) == (
+        artifact_root / "python" / "pycache"
+    )
+    assert Path(sys.pycache_prefix) == artifact_root / "python" / "pycache"
 
 
 def test_runner_forces_headless_environment_in_child():

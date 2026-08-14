@@ -6,6 +6,7 @@ __pycache__/
 _pytmp/
 
 # Build & packaging artifacts
+.artifacts/
 *.egg-info/
 build/
 dist/

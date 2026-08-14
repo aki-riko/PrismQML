@@ -52,7 +52,7 @@ set "NINJA=<ninja executable>"
 
 `build_android.bat`、`build_android_apk.bat` 使用 arm64 Qt kit；
 `build_android_x64.bat` 使用 x86_64 Qt kit。需要自定义构建目录时设置
-`PRISM_ANDROID_BUILD_DIR`，否则脚本使用自身目录下对应的 `build-android*`。
+`PRISM_ANDROID_BUILD_DIR`，否则脚本写入仓库根目录 `.artifacts/cpp/` 下的对应目录。
 
 ## 三、构建 prism for Android
 
@@ -70,17 +70,17 @@ cpp\build_android_x64.bat
 ```bash
 # qt-cmake 在 Qt android 目录的 bin 下
 "%QT_ANDROID_CMAKE%" ^
-  -S cpp -B cpp/build-android ^
+  -S cpp -B .artifacts/cpp/android-arm64 ^
   -G Ninja ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DANDROID_ABI=arm64-v8a ^
   -DQT_ANDROID_BUILD_ALL_ABIS=OFF
 
-cmake --build cpp/build-android
+cmake --build .artifacts/cpp/android-arm64
 ```
 
 `qt-cmake` 会自动设 `CMAKE_TOOLCHAIN_FILE` 指向 NDK 的 android.toolchain.cmake
-并注入 Qt 的 Android 部署支持。产物 apk 在 `build-android` 下。
+并注入 Qt 的 Android 部署支持。产物 apk 在 `.artifacts/cpp/android-arm64` 下。
 
 ### CMakeLists 已就绪点
 

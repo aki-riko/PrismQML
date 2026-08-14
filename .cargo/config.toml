@@ -1,0 +1,3 @@
+[build]
+# Keep Cargo intermediates under the repository artifact root.
+target-dir = ".artifacts/rust/target"

@@ -240,6 +240,17 @@ Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur
 
 > See each `controls/` subdirectory's `qmldir` for the full component list. Components that share names with QtQuick native types (e.g. `ComboBox`, `Slider`) must be imported via their submodule directory.
 
+## 🧰 Development artifacts
+
+Local build outputs and caches are now kept under the repository root `.artifacts/`, grouped by purpose:
+
+- `.artifacts/cpp/`: CMake desktop, Android, and iOS build trees
+- `.artifacts/python/`: Python builds, distributions, pytest cache, and bytecode cache
+- `.artifacts/rust/`: Cargo target directory
+- `.artifacts/docs/`: MkDocs site
+
+Historical scattered directories were moved under each category's `legacy/` folder and are not used as new build entry points. Set `PRISM_ARTIFACT_ROOT` to place artifacts outside the repository; C++ scripts also support `PRISM_DESKTOP_BUILD_DIR` and `PRISM_ANDROID_BUILD_DIR` for per-build overrides.
+
 ## 🧪 Testing
 
 ```bash

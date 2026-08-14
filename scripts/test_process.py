@@ -40,11 +40,28 @@ TEST_VISIBLE_WINDOW_EXIT_CODE = 126
 PROCESS_GRACEFUL_WAIT_SECONDS = 2
 PROCESS_FORCE_KILL_WAIT_SECONDS = 5
 PROCESS_GROUP_POLL_INTERVAL_SECONDS = 0.05
+ARTIFACT_ROOT_ENV = "PRISM_ARTIFACT_ROOT"
+PYTHON_CACHE_PREFIX_ENV = "PYTHONPYCACHEPREFIX"
 AUTOMATED_TEST_BOUNDARY_ENV = "PRISMQML_AUTOMATED_TEST_BOUNDARY"
 AUTOMATED_TEST_BOUNDARY_VERSION = "v1"
 TEST_CONFIG_FILE_ENV = "PRISMQML_CONFIG_FILE"
 _PYTHON_COMMAND_ALIASES = frozenset(("python", "python.exe"))
 LOGGER = logging.getLogger(__name__)
+
+
+def _artifact_root() -> Path:
+    """Return the shared local artifact root. 返回统一的本地产物根目录。"""
+    configured = os.environ.get(ARTIFACT_ROOT_ENV)
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return Path(__file__).resolve().parents[1] / ".artifacts"
+
+
+def _configure_python_cache() -> None:
+    """Keep Python bytecode under the shared artifact root. 集中 Python 字节码缓存。"""
+    cache_path = _artifact_root() / "python" / "pycache"
+    os.environ[PYTHON_CACHE_PREFIX_ENV] = str(cache_path)
+    sys.pycache_prefix = str(cache_path)
 
 if sys.platform == "win32":
     if __package__:
@@ -164,6 +181,7 @@ def configure_automated_test_process(qt_platform: str | None = "offscreen") -> N
     """Force non-interactive Qt and Windows crash handling before Qt is imported."""
     if qt_platform is not None:
         os.environ["QT_QPA_PLATFORM"] = qt_platform
+    _configure_python_cache()
     _configure_qml_disk_cache()
     os.environ["PYTHONFAULTHANDLER"] = "1"
     os.environ["PYTHONIOENCODING"] = "utf-8"
@@ -177,6 +195,7 @@ def configure_test_launcher(qt_platform: str | None = "offscreen") -> None:
     """Protect a child before its own test bootstrap can configure WER."""
     if qt_platform is not None:
         os.environ["QT_QPA_PLATFORM"] = qt_platform
+    _configure_python_cache()
     _configure_qml_disk_cache()
     os.environ["PYTHONFAULTHANDLER"] = "1"
     os.environ["PYTHONIOENCODING"] = "utf-8"
