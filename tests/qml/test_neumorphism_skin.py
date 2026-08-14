@@ -43,6 +43,11 @@ Item {
     readonly property color backgroundToken: Enums.backgroundColor
     readonly property color surfaceToken: Enums.cardColor
     readonly property color foregroundToken: Enums.foregroundColor
+    readonly property color selectedToken: Enums.selectedColor
+    readonly property color stateSelectedToken: Enums.stateColor.selected
+    readonly property color stateSelectedHoverToken: Enums.stateColor.selectedHover
+    readonly property color navigationSelectedToken: Enums.stateColor.navSelected
+    readonly property color navigationItemBackground: navigationItem._navItemBackground
     readonly property color darkShadowToken: Enums.neumorphism.shadowDark
     readonly property color lightShadowToken: Enums.neumorphism.shadowLight
     readonly property real shadowOffsetToken: Enums.neumorphism.shadowOffset
@@ -76,6 +81,12 @@ Item {
         y: 72
         width: 160
         height: 80
+    }
+
+    NavigationViewItem {
+        id: navigationItem
+        width: 100
+        selected: true
     }
 
     PopupWindowCore {
@@ -365,6 +376,11 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
         _assert_color(root, "backgroundToken", "#e4ebf3")
         _assert_color(root, "surfaceToken", "#e4ebf3")
         _assert_color(root, "foregroundToken", "#27364a")
+        _assert_color(root, "selectedToken", "#ccd9ef")
+        _assert_color(root, "stateSelectedToken", "#ccd9ef")
+        _assert_color(root, "stateSelectedHoverToken", "#c2d2ec")
+        _assert_color(root, "navigationSelectedToken", "#ccd9ef")
+        _assert_color(root, "navigationItemBackground", "#ccd9ef")
         _assert_color(root, "darkShadowToken", "#b7c2d0")
         _assert_color(root, "lightShadowToken", "#ffffff")
         assert root.property("shadowOffsetToken") == 7
@@ -416,6 +432,11 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
         _assert_color(root, "backgroundToken", "#252b35")
         _assert_color(root, "surfaceToken", "#252b35")
         _assert_color(root, "foregroundToken", "#e8eef7")
+        _assert_color(root, "selectedToken", "#344159")
+        _assert_color(root, "stateSelectedToken", "#344159")
+        _assert_color(root, "stateSelectedHoverToken", "#3a4a64")
+        _assert_color(root, "navigationSelectedToken", "#344159")
+        _assert_color(root, "navigationItemBackground", "#344159")
         _assert_color(root, "darkShadowToken", "#171c24")
         _assert_color(root, "lightShadowToken", "#3e4a5b")
 

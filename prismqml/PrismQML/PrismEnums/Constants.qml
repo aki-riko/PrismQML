@@ -153,6 +153,8 @@ QtObject {
         readonly property color shadowLight: root.isDark ? "#3E4A5B" : "#FFFFFF"
         readonly property color primary: root.isDark ? "#8CB4FF" : "#3867D6"
         readonly property color primaryForeground: "#FFFFFF"
+        readonly property color selected: root.isDark ? "#344159" : "#CCD9EF"
+        readonly property color selectedHover: root.isDark ? "#3A4A64" : "#C2D2EC"
         readonly property color success: root.isDark ? "#72D6A0" : "#238B64"
         readonly property color danger: root.isDark ? "#FF9A9A" : "#C94B58"
         readonly property color warning: root.isDark ? "#F2C879" : "#A86F1E"

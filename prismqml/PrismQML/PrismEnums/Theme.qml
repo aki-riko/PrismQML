@@ -57,7 +57,7 @@ QtObject {
     readonly property color hoverColor: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.hoverDark : constants.themeColors.hoverLight)))
     readonly property color pressedColor: isNeo ? Qt.darker(_neo.surface, 1.08) : (isNeumorphism ? _neu.muted : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? constants.themeColors.pressedDark : constants.themeColors.pressedLight)))
     readonly property color disabledColor: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.disabledDark : constants.themeColors.disabledLight)))
-    readonly property color selectedColor: isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.16) : (root.isDark ? constants.themeColors.selectedDark : constants.themeColors.selectedLight)
+    readonly property color selectedColor: isNeumorphism ? _neu.selected : (isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.16) : (root.isDark ? constants.themeColors.selectedDark : constants.themeColors.selectedLight))
     readonly property color starColor: isTicket ? _ticket.warning : constants.themeColors.star
     readonly property color infoAccentColor: isTicket ? _ticket.info : (root.isDark ? constants.themeColors.infoAccentDark : constants.themeColors.infoAccentLight)
 

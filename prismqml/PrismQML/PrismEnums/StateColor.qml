@@ -40,12 +40,12 @@ QtObject {
     readonly property color edgeShadow: isNeo ? _neo.shadow : (isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.shadowDark : constants.themeColors.shadowLight))
     // Navigation divider (lighter in light mode) 导航分隔线（浅色模式更淡）
     readonly property color navDivider: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.04))
-    // Selected state 选中状态 — 浅色模式必须用 accent 浅色 (#cce4f7), 之前的 "white"
-    // 跟 cardColor 完全一样, 用户看不见选中, 列表/表格看似永远没选中。
-    readonly property color selected: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.20) : (isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.16) : (root.isDark ? "#0d3d6d" : "#cce4f7"))
+    // Selected state uses each skin's semantic accent surface instead of cardColor.
+    // 选中态使用各皮肤的语义强调表面色，避免与 cardColor 相同而无法辨认。
+    readonly property color selected: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.20) : (isNeumorphism ? _neu.selected : (isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.16) : (root.isDark ? "#0d3d6d" : "#cce4f7")))
     // Selected + hover 叠加色 — 选中行 hover 时颜色再加深一点, 跟 Excel/QTableWidget 一致,
     // 让用户知道悬浮在选中行上 (而不是 hover 被 selected 覆盖看似没反应)
-    readonly property color selectedHover: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.30) : (isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.24) : (root.isDark ? "#13558f" : "#b8d8f0"))
+    readonly property color selectedHover: isNeo ? Qt.rgba(_neo.primary.r, _neo.primary.g, _neo.primary.b, 0.30) : (isNeumorphism ? _neu.selectedHover : (isTicket ? Qt.rgba(_ticket.primary.r, _ticket.primary.g, _ticket.primary.b, 0.24) : (root.isDark ? "#13558f" : "#b8d8f0")))
     // Track/Background 轨道/背景
     readonly property color track: isTicket ? _ticket.divider : (root.isDark ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.08))
     // Close button hover 关闭按钮悬停
@@ -285,8 +285,9 @@ QtObject {
     
     // ==================== Navigation Selected 导航选中 ====================
     // Navigation bar item selected bg 导航栏项选中背景
-    // dark: navigation selected overlay; Light: use transparentHover for Mica contrast
-    readonly property color navSelected: isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.16) : transparentHover)
+    // Neumorphism uses its accent surface; Fluent keeps the Mica contrast overlay.
+    // 新拟态使用强调表面色；Fluent 保留适配 Mica 对比度的叠加层。
+    readonly property color navSelected: isNeumorphism ? _neu.selected : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.16) : transparentHover))
     
     // ==================== TreeWidget Colors 树形组件颜色 ====================
     // Tree item hover/selected bg 树形项悬停/选中背景
