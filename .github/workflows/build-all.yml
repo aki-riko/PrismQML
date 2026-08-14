@@ -35,16 +35,16 @@ jobs:
       - name: Run scanner regression tests
         run: >-
           python scripts/test_process.py --qt-platform offscreen --timeout 120 --
-          python -m pytest tests/test_qml_conventions.py
-          tests/test_qml_color_arrays.py
-          tests/test_qml_color_array_returns.py
-          tests/test_qml_color_constructors.py
-          tests/test_qml_color_dataflow.py
-          tests/test_qml_color_dataflow_performance.py
-          tests/test_qml_color_dataflow_scopes.py
-          tests/test_qml_color_findings.py
-          tests/test_qml_example_scope.py
-          tests/test_qml_lexer.py -q
+          python -m pytest tests/tooling/test_qml_conventions.py
+          tests/tooling/test_qml_color_arrays.py
+          tests/tooling/test_qml_color_array_returns.py
+          tests/tooling/test_qml_color_constructors.py
+          tests/tooling/test_qml_color_dataflow.py
+          tests/tooling/test_qml_color_dataflow_performance.py
+          tests/tooling/test_qml_color_dataflow_scopes.py
+          tests/tooling/test_qml_color_findings.py
+          tests/tooling/test_qml_example_scope.py
+          tests/tooling/test_qml_lexer.py -q
       - name: Reject newly introduced QML violations
         shell: bash
         run: |
@@ -108,8 +108,8 @@ jobs:
       - name: Verify non-interactive test launcher
         run: >-
           python scripts/test_process.py --qt-platform offscreen --timeout 120 --
-          python -m pytest tests/test_test_process.py
-          tests/test_windows_test_process.py -q
+          python -m pytest tests/tooling/test_test_process.py
+          tests/tooling/test_windows_test_process.py -q
       - name: Install Qt (desktop)
         uses: jurplel/install-qt-action@v4
         with:

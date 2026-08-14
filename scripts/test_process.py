@@ -70,24 +70,24 @@ _configure_python_cache()
 
 if sys.platform == "win32":
     if __package__:
-        from ._windows_test_process import (
+        from ._test_support.windows.process import (
             WINDOWS_DESCENDANT_EXIT_GRACE_SECONDS,
             WINDOWS_JOB_CLEANUP_WAIT_SECONDS,
             run_isolated_windows_child,
         )
-        from ._windows_test_api import current_process_test_boundary_status
+        from ._test_support.windows.api import current_process_test_boundary_status
     else:
         script_directory = str(Path(__file__).resolve().parent)
         inserted_script_directory = script_directory not in sys.path
         if inserted_script_directory:
             sys.path.insert(0, script_directory)
         try:
-            from _windows_test_process import (
+            from _test_support.windows.process import (
                 WINDOWS_DESCENDANT_EXIT_GRACE_SECONDS,
                 WINDOWS_JOB_CLEANUP_WAIT_SECONDS,
                 run_isolated_windows_child,
             )
-            from _windows_test_api import current_process_test_boundary_status
+            from _test_support.windows.api import current_process_test_boundary_status
         finally:
             if inserted_script_directory:
                 sys.path.remove(script_directory)

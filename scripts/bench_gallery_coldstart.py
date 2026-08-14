@@ -62,7 +62,7 @@ TIMEOUT_EXIT_CODE = 124
 
 def run_private(command: Sequence[str], timeout_seconds: float) -> int:
     """Run one visible child on a private Windows desktop. 在 Windows 私有桌面运行可见子进程。"""
-    from scripts._windows_test_process import (
+    from scripts._test_support.windows.process import (
         WINDOWS_DESCENDANT_EXIT_GRACE_SECONDS,
         _WindowsTestBoundary,
     )

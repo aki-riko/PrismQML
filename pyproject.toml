@@ -82,7 +82,7 @@ py-limited-api = "cp39"
 [tool.pytest.ini_options]
 minversion = "8.4"
 addopts = [
-    "-p", "scripts.pytest_boundary",
+    "-p", "scripts._test_support.pytest_boundary",
     "--disable-plugin-autoload",
 ]
 cache_dir = ".artifacts/python/pytest-cache"

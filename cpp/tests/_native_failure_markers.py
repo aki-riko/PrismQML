@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import re
 
-from scripts._windows_test_result import BOUNDARY_RESULT_PREFIX
+from scripts._test_support.windows.result import BOUNDARY_RESULT_PREFIX
 
 
 FAILURE_PREFIX = "PRISM_NATIVE_FAILURE "
