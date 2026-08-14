@@ -252,6 +252,15 @@ def test_configure_automated_process_overrides_visible_qt_platform(monkeypatch):
         assert _windows_ucrt_error_mode() == UCRT_OUT_TO_STDERR
 
 
+def test_python_cache_is_configured_before_repository_helpers_import():
+    source = RUNNER.read_text(encoding="utf-8")
+
+    cache_bootstrap = source.index("\n_configure_python_cache()\n")
+    windows_helper_import = source.index("from ._windows_test_process import")
+
+    assert cache_bootstrap < windows_helper_import
+
+
 def test_configure_automated_process_honors_artifact_root(monkeypatch, tmp_path):
     artifact_root = tmp_path / "custom-artifacts"
     monkeypatch.setenv(ARTIFACT_ROOT_ENV, str(artifact_root))

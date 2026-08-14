@@ -63,6 +63,11 @@ def _configure_python_cache() -> None:
     os.environ[PYTHON_CACHE_PREFIX_ENV] = str(cache_path)
     sys.pycache_prefix = str(cache_path)
 
+
+# Configure before importing repository helper modules. 在导入仓库辅助模块前配置缓存。
+_configure_python_cache()
+
+
 if sys.platform == "win32":
     if __package__:
         from ._windows_test_process import (

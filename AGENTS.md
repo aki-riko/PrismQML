@@ -61,6 +61,46 @@ import PrismQML as Fluent                              // ✅ 模块名引入（
 import "../prismqml/PrismQML/controls/buttons"        // 目录引入（按需）
 ```
 
+### 1.2 构建产物与缓存集中管理（铁律）
+
+> **唯一仓内产物根目录是 `.artifacts/`。** 所有构建、中间文件、测试缓存、
+> 字节码缓存和文档站点必须写入其分类子目录，不得在仓库根目录、`cpp/`、
+> `rust/`、源码包或测试目录中新增散落产物。
+
+| 类别 | 默认目录 | 包含内容 |
+|------|----------|----------|
+| C++ / CMake | `.artifacts/cpp/<target>/` | 桌面、Android、iOS、CI 构建树 |
+| Python | `.artifacts/python/` | `build`、`dist`、pytest 与 Python 字节码缓存 |
+| Rust / Cargo | `.artifacts/rust/target/` | Cargo 中间文件与编译产物 |
+| 文档 | `.artifacts/docs/site/` | MkDocs 生成站点 |
+| 历史归档 | `.artifacts/<category>/legacy/` | 迁移前的旧产物；不得作为新构建入口 |
+
+- 仓内默认路径必须由仓库配置或入口脚本负责，不得要求调用者手工传参才能
+  避免污染源码树。需要把全部产物放到仓库外时，只允许通过
+  `PRISM_ARTIFACT_ROOT` 覆盖；C++ 单次构建可使用已有的
+  `PRISM_DESKTOP_BUILD_DIR` / `PRISM_ANDROID_BUILD_DIR` 精确覆盖。
+- 新增或修改构建、测试、代码生成、文档工具时，必须先核对其默认输出与
+  缓存路径，并在同一批修改中同步配置、入口脚本、CI 和文档。禁止重新使用
+  根目录 `build/`、`dist/`、`site/`、`cpp/build*`、`rust/target/`、源码树
+  `__pycache__/`、`cpp/*.log`、`tests/**/*.result.txt`、根目录
+  `prismqml_rs*.pyd` / `prismqml_rs*.so` 或仓内任意临时目录。需要本地加载
+  Rust 扩展时，应安装到项目 `.venv`，或把 `.artifacts/` 下对应构建目录加入
+  该进程的模块搜索路径，不得复制扩展二进制到仓库根目录。
+- Python 自动测试与探针必须继续通过 `scripts/test_process.py` 启动；它会把
+  `PYTHONPYCACHEPREFIX` 和 `sys.pycache_prefix` 指向
+  `.artifacts/python/pycache`。新增 Python 子进程必须继承该环境，或在导入
+  项目模块前实施等价的集中缓存设置。
+- `.artifacts/` 必须整体保持 Git 忽略，内部生成文件一律不得提交。发现新
+  散落产物时，应修正产生它的配置或命令并迁回分类目录，禁止只追加
+  `.gitignore` 规则来掩盖问题。
+- `prismqml.egg-info/` 是当前唯一允许保留在仓库根目录的生成目录，必须继续
+  Git 忽略。不得配置 `egg_info.egg_base` 将其移入 `.artifacts/`：该方案已
+  验证会把 `.artifacts/python/prismqml.egg-info` 嵌入 sdist。除此之外新增
+  任何例外必须先评审，并提供构建包内容检查证明。
+- 相关修改提交前至少执行 `git status --short --ignored`，确认新增生成内容
+  仅位于 `.artifacts/` 或上述 `prismqml.egg-info/` 例外；涉及 sdist 时还必须
+  检查归档内不存在 `.artifacts/`、`build/` 或 `dist/` 路径。
+
 ---
 
 ## 二、枚举系统规范
@@ -439,13 +479,13 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
    ```powershell
    .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 480 -- .\.venv\Scripts\python.exe -m pytest
    .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
-   ctest --test-dir cpp\build -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
+   ctest --test-dir .artifacts\cpp\desktop -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
    ```
    - `scripts/test_process.py` 在 Qt 导入前固定 headless、UTF-8、faulthandler 与原生无 UI 策略；Windows launcher 先用可继承的错误模式保护 bootstrap，实际测试再启用 WER `NO_UI + QUEUE`。新增自动化子进程必须复用 runner，或在导入 Qt 前调用同一 bootstrap，不得无保护地直接启动。
    - QML probe 遍历 qmldir 全组件 `createComponent`，自身也会强制 `offscreen`；调用者显式传入 `windows/minimal` 不再覆盖自动门禁。
    - 🔴 **当前优化基线：probe 应退出码 0，且约 `181 OK / 0 错误 / 7 跳过 = 188`**。6 个 singleton（Enums / Translator / DpiManager / NotificationManager / PopupUtils / IconRendererResources）必须通过 QtObject wrapper 触发 QML 引擎真实创建并读取，且 singleton 创建期 Qt warning / critical / fatal 为 0；仅允许跳过 7 个 required-property 内部子模块（ButtonContent / ButtonDropdown / ButtonProgress / ListWidgetItem / SettingsCardContent / HorizontalScrollMixin / ViewportMixin，由父组件注入 required property，单独 createComponent 不成立）。
    - 🔴 **判是否新增回归的权威法**：`git worktree add /tmp/baseline <改动前 commit>`，从主 venv 把编译好的 `prismqml_rs*.pyd` cp 进去 + `PYTHONPATH=/tmp/baseline` 跑同一 probe，对比 OK/错误/跳过三个数字是否一致；一致即零新增。看到非 0 退出码必须先分析具体错误，不可把它当成既有 required-property 基线。
-   - Windows 原生 Mica 不是默认 headless 集合：仅在显式配置 `-DPRISM_BUILD_NATIVE_TESTS=ON` 后运行 `ctest --test-dir cpp\build -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error`。
+   - Windows 原生 Mica 不是默认 headless 集合：仅在显式配置 `-DPRISM_BUILD_NATIVE_TESTS=ON` 后运行 `ctest --test-dir .artifacts\cpp\desktop -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error`。
    - `tests/test_window_buttons.py`、`tests/qml/bench_gallery_startup.py`、`tests/qml/bench_skin_frames.py`、`scripts/fps_probe.py`、`scripts/run_with_fps.py` 等可视/性能入口属于人工测试，不得混入自动门禁；需要运行时必须明确说明会打开窗口。
    - 🔴 **Windows 可视性能验收只接受 D3D11**：被测入口与探针都必须固定 `QSGRendererInterface.GraphicsApi.Direct3D11`，并在结果中核验实际 API 确为 `Direct3D11`。严禁使用 OpenGL、software、offscreen 或其他后端的耗时、帧率、截图作为性能收益或视觉验收结论；`offscreen` 仅用于零交互正确性回归。
 3. **提交**：`git add -A && git commit`（commit message 写清修复内容 + 版本号）。
