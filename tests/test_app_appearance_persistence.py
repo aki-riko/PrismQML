@@ -13,6 +13,7 @@ import time
 from prismqml import Skin, Theme, setAccentColor, setSkin, setTheme
 from prismqml.python.config.config_manager import ConfigManager
 from prismqml.python.core.theme import ThemeManager
+from prismqml.python.runtime import get_config_manager
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _new_manager(path):
     ConfigManager._instance = None
-    return ConfigManager(str(path))
+    return get_config_manager(str(path))
 
 
 def _wait_persistence(manager):
