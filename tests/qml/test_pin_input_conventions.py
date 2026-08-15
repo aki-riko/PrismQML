@@ -6,7 +6,15 @@
 
 from pathlib import Path, PurePosixPath
 
-from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, Qt, QUrl
+from PySide6.QtCore import (
+    QEventLoop,
+    QMetaObject,
+    QObject,
+    QPointF,
+    QTimer,
+    Qt,
+    QUrl,
+)
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -25,6 +33,7 @@ SOURCE_PATH = (
     / "inputs"
     / "PinInput.qml"
 )
+CONTENT_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "PinInputCell.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "pin-input-conventions.qml")
 )
@@ -242,7 +251,16 @@ def test_pin_input_keyboard_selection_and_editing_commands(qapp):
 
         pin = root.findChild(QObject, "customPin")
         hidden = _hidden_input(pin)
-        hidden.forceActiveFocus()
+        first_cell = _cells(pin)[0]
+        cell_point = first_cell.mapToItem(
+            window.contentItem(),
+            QPointF(first_cell.width() / 2, first_cell.height() / 2),
+        )
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            pos=cell_point.toPoint(),
+        )
         assert _wait_for(lambda: bool(hidden.property("activeFocus")))
         assert hidden.property("activeFocusOnTab")
 
@@ -316,20 +334,34 @@ def test_pin_input_keyboard_selection_and_editing_commands(qapp):
 
 
 def test_pin_input_source_conventions():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        item for item in violations if item.rule in {"QML008", "QML009"}
-    ] == []
+    sources = (
+        (SOURCE_PATH, SOURCE_PATH.read_text(encoding="utf-8")),
+        (CONTENT_SOURCE_PATH, CONTENT_SOURCE_PATH.read_text(encoding="utf-8")),
+    )
+    violations = []
+    for path, source in sources:
+        violations.extend(
+            item
+            for item in scan_source_text(
+                source, PurePosixPath(path.relative_to(ROOT).as_posix())
+            )
+            if item.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
 
 
 def test_pin_input_uses_enum_tokens():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert "Enums.input.pinDefaultLength" in source
-    assert "Enums.input.pinEchoModeNormal" in source
-    assert "Enums.input.pinMaskCharacter" in source
-    assert "Enums.opacityLevel.invisible" in source
-    assert "Enums.opacityLevel.visible" in source
-    assert "Enums.accentColor" in source
-    assert "Enums.accentForeground" in source
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (SOURCE_PATH, CONTENT_SOURCE_PATH)
+    )
+    for token in (
+        "Enums.input.pinDefaultLength",
+        "Enums.input.pinEchoModeNormal",
+        "Enums.input.pinMaskCharacter",
+        "Enums.opacityLevel.invisible",
+        "Enums.opacityLevel.visible",
+        "Enums.accentColor",
+        "Enums.accentForeground",
+    ):
+        assert token in source

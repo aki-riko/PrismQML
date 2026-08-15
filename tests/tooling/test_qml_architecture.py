@@ -972,3 +972,43 @@ def test_segmented_control_keeps_delegate_visuals_modularized():
         "\n                TapHandler {",
     ):
         assert marker not in source
+
+
+def test_pin_input_keeps_cell_delegate_modularized():
+    entry = _source("prismqml/PrismQML/controls/inputs/PinInput.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/_internal/PinInputCell.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 180
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 170
+    assert 'import "_internal" as InputInternal' in source
+    assert "InputInternal.PinInputCell {" in source
+    assert "required property var pinControl" in helper_source
+    assert "required property int index" in helper_source
+    assert "\nItem {\n" in helper_source
+    assert "pinControl._focusInput()" in helper_source
+    assert "function _focusInput()" in source
+
+    violations = []
+    for path, candidate in ((entry, source), (helper, helper_source)):
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                candidate, PurePosixPath(path.relative_to(ROOT).as_posix())
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
+
+    for marker in (
+        "\n            Item {",
+        "\n                RectangularShadow {",
+        "\n                NeumorphicShadow {",
+        "\n                NeoShadow {",
+        "\n                MouseArea {",
+    ):
+        assert marker not in source

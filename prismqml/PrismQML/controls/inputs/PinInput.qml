@@ -3,10 +3,8 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import QtQuick.Effects
 import "../.."
-import "../../effects"
-import "../data"
+import "_internal" as InputInternal
 
 // PinInput - Fluent Design PIN input PIN码输入框
 // Features: hover state, focus line, current cell highlight 悬浮状态/聚焦线/当前格高亮
@@ -54,6 +52,10 @@ Item {
     function isEnabled() { return enabled }
 
     // ==================== Internal Methods 内部方法 ====================
+    function _focusInput() {
+        pinInput.forceActiveFocus()
+    }
+
     function _dispatchEditAction(actionName) {
         if (!pinInput || typeof pinInput[actionName] !== "function") return false
         pinInput[actionName]()
@@ -89,115 +91,8 @@ Item {
         Repeater {
             model: control.length
 
-            Item {
-                id: cellItem
-                // Cell state 单元格状态
-                property bool hasValue: index < control.value.length
-                property bool isCurrentCell: control.focused && index === control.value.length
-                property bool hovered: cellMouseArea.containsMouse
-                property bool selected: control._isCellSelected(index)
-
-                width: Enums.controlSize.pinBoxCellSize
-                height: Enums.controlSize.pinBoxCellSize
-
-                // Shadow 阴影
-                // Fluent: 模糊阴影; neo: 硬阴影
-                RectangularShadow {
-                    anchors.fill: pinCell
-                    radius: pinCell.radius
-                    color: Enums.shadow.level2.color
-                    blur: Enums.shadow.level2.blur
-                    offset.x: Enums.spacing.none
-                    offset.y: Enums.shadow.level2.offset
-                    visible: Enums.usesSoftElevation && !Enums.isNeumorphism
-                }
-
-                NeumorphicShadow {
-                    target: pinCell
-                    inset: true
-                    visible: Enums.isNeumorphism
-                    z: pinCell.z - 1
-                }
-
-                NeoShadow {
-                    target: pinCell
-                    visible: Enums.isNeobrutalism
-                    z: pinCell.z - 1
-                }
-
-                Rectangle {
-                    id: pinCell
-                    anchors.fill: parent
-                    radius: control._cellRadius
-
-                    // Fluent Design: default/hover/current cell states 默认/悬浮/当前格状态
-                    color: {
-                        if (!control.enabled) return Enums.stateColor.controlBgDisabled
-                        if (cellItem.selected) return Enums.accentColor
-                        if (cellItem.isCurrentCell) return Enums.cardColor
-                        if (cellItem.hovered) return Enums.stateColor.controlBgHover
-                        return Enums.stateColor.controlBg
-                    }
-
-                    border.width: control._cellBorderWidth
-                    border.color: {
-                        if (cellItem.selected) return Enums.accentColor
-                        if (Enums.hasOutlinedSurfaces) return cellItem.isCurrentCell ? Enums.accentColor : Enums.stateColor.border
-                        if (!control.enabled) return Enums.stateColor.borderLight
-                        if (cellItem.hovered) return Enums.stateColor.borderStrong
-                        return Enums.stateColor.inputBorderNormal
-                    }
-
-                    HoverBehavior on color {
-                        active: cellItem.hovered && !cellItem.isCurrentCell && !cellItem.selected
-                        enterDuration: Enums.duration.fast
-                    }
-                    HoverBehavior on border.color {
-                        active: cellItem.hovered && !cellItem.isCurrentCell && !cellItem.selected
-                        enterDuration: Enums.duration.fast
-                    }
-
-                    // Display content 显示内容
-                    Label {
-                        anchors.centerIn: parent
-                        type: control.password ? Enums.label.type_title : Enums.label.type_subtitle
-                        text: cellItem.hasValue ? (control.password ? Enums.input.pinMaskCharacter : control.value.charAt(index)) : ""
-                        color: cellItem.selected ? Enums.accentForeground
-                            : (control.enabled ? Enums.textColor.primary : Enums.textColor.disabled)
-                    }
-
-                    // Cursor (only in current cell) 光标（仅当前格）
-                    Rectangle {
-                        id: cursor
-                        anchors.centerIn: parent
-                        width: Enums.border.medium
-                        height: Enums.spacing.xxl
-                        color: Enums.accentColor
-                        visible: cellItem.isCurrentCell
-                        opacity: Enums.opacityLevel.visible
-
-                        SequentialAnimation on opacity {
-                            running: cellItem.isCurrentCell
-                            loops: Animation.Infinite
-                            NumberAnimation { to: Enums.opacityLevel.invisible; duration: Enums.duration.slower }
-                            NumberAnimation { to: Enums.opacityLevel.visible; duration: Enums.duration.slower }
-                        }
-                    }
-
-                    // Focus line (Fluent Design) 聚焦底线
-                    FocusLine {
-                        showLine: cellItem.isCurrentCell
-                        parentRadius: pinCell.radius
-                    }
-                }
-
-                // Per-cell hover detection 单元格悬浮检测
-                MouseArea {
-                    id: cellMouseArea
-                    anchors.fill: parent
-                    hoverEnabled: control.enabled
-                    onClicked: pinInput.forceActiveFocus()
-                }
+            InputInternal.PinInputCell {
+                pinControl: control
             }
         }
     }
