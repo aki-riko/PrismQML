@@ -6,6 +6,7 @@ import QtQuick
 import "../../.."
 import "../../icons"
 import "../../data"
+import "../../../effects"
 
 // Stepper - Fluent Design step progress bar 步骤进度条
 // Features: icon support, animated progress line, and clickable steps 特性：图标、进度线动画与可点击步骤
@@ -170,6 +171,7 @@ Item {
                             
                             // Hover effect 悬停效果
                             MouseArea {
+                                id: indicatorArea
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 hoverEnabled: true
@@ -178,7 +180,11 @@ Item {
                                 onExited: indicator.scale = 1.0
                             }
                             
-                            Behavior on scale { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutQuad } }
+                            HoverBehavior on scale {
+                                active: indicatorArea.containsMouse
+                                enterDuration: Enums.duration.fast
+                                easingType: Easing.OutQuad
+                            }
                         }
                     }
                     

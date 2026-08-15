@@ -337,8 +337,9 @@ Item {
                 ? (isNext ? parent.height - height - Enums.spacing.m : Enums.spacing.m)
                 : (parent.height - height) / 2
 
-            Behavior on opacity {
-                NumberAnimation { duration: Enums.duration.fast }
+            HoverBehavior on opacity {
+                active: _revealEnabled && control._navVisible
+                enterDuration: Enums.duration.fast
             }
 
             onClicked: {
