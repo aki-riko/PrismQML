@@ -7,6 +7,7 @@ import ".."
 import "../../menus/"
 import "../../navigation/"
 import "_internal" as TableInternal
+import "_internal/TableDataController.js" as TableDataController
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // TableWidget - Fluent style table widget 表格控件
@@ -243,164 +244,34 @@ DataWidgetCore {
         itemSelectionChanged()
     }
 
-    function _captureCellWidgetEntries(data) {
-        var entries = []
-        var keys = Object.keys(cellWidgets)
-        for (var i = 0; i < keys.length; i++) {
-            var separator = keys[i].indexOf("_")
-            var row = parseInt(keys[i].slice(0, separator))
-            var column = parseInt(keys[i].slice(separator + 1))
-            if (row >= 0 && row < data.length) {
-                entries.push({ rowData: data[row], column: column, widget: cellWidgets[keys[i]] })
-            }
-        }
-        return entries
-    }
+    // ==================== Data API 数据 API ====================
+    // Keep the public surface on TableWidget while delegating data state.
+    // 保留 TableWidget 公开面，同时委托数据状态处理。
+    function _isPureJsArray() { return TableDataController._isPureJsArray(root) }
 
-    function _restoreCellWidgets(entries, data) {
-        var nextWidgets = {}
-        for (var i = 0; i < entries.length; i++) {
-            var row = data.indexOf(entries[i].rowData)
-            if (row >= 0) nextWidgets[row + "_" + entries[i].column] = entries[i].widget
-        }
-        cellWidgets = nextWidgets
-    }
+    function addRow(data) { TableDataController.addRow(root, data) }
 
-    function _rowRefs(indices, data) {
-        var refs = []
-        for (var i = 0; i < indices.length; i++) {
-            if (indices[i] >= 0 && indices[i] < data.length) refs.push(data[indices[i]])
-        }
-        return refs
-    }
+    function clearData() { TableDataController.clearData(root) }
 
-    function _rowIndices(refs, data) {
-        var indices = []
-        for (var i = 0; i < refs.length; i++) {
-            var row = data.indexOf(refs[i])
-            if (row >= 0) indices.push(row)
-        }
-        return indices
-    }
+    function removeRow(index) { TableDataController.removeRow(root, index) }
 
-    // ==================== Public Methods 公开方法 ====================
-    // Data API 数据 API
-    // Note: To use these JS modifying methods, tableData MUST be a pure Javascript Array. 注意：若使用这些 JS 操作方法，tableData 必须保证是纯 JavaScript 数组。
-    // If a QAbstractListModel is bound, you should perform modifications at Python side! 如果绑定了 C++ ListModel，应该在 Python 后端进行这些修改！
-    function _isPureJsArray() { return Array.isArray(tableData) }
+    function getRow(index) { return TableDataController.getRow(root, index) }
 
-    function addRow(data) {
-        if (!_isPureJsArray()) { console.warn("TableWidget: Cannot addRow via JS when a QAbstractListModel is bound."); return }
-        tableData = tableData.concat([data])
-    }
+    function setRowCount(count) { TableDataController.setRowCount(root, count) }
 
-    function clearData() {
-        if (!_isPureJsArray()) { console.warn("TableWidget: Cannot clearData via JS when a QAbstractListModel is bound."); return }
-        tableData = []
-        selectedRows = []
-        currentRow = -1
-        currentColumn = -1
-        cellWidgets = ({})
-    }
-
-    function removeRow(idx) {
-        if (!_isPureJsArray()) { console.warn("TableWidget: Cannot removeRow via JS when a QAbstractListModel is bound."); return }
-        if (idx >= 0 && idx < tableData.length) {
-            var arr = tableData.slice()
-            var currentValid = currentRow >= 0 && currentRow < arr.length
-            var currentRef = currentValid ? arr[currentRow] : null
-            var selectedRefs = _rowRefs(selectedRows, arr)
-            var widgetEntries = _captureCellWidgetEntries(arr)
-            arr.splice(idx, 1)
-            tableData = arr
-            currentRow = currentValid ? arr.indexOf(currentRef) : -1
-            if (currentRow < 0) currentColumn = -1
-            selectedRows = _rowIndices(selectedRefs, arr)
-            _restoreCellWidgets(widgetEntries, arr)
-        }
-    }
-
-    function getRow(idx) {
-        if (!_isPureJsArray()) return null; // Model data should be fetched from Python side.
-        return idx >= 0 && idx < tableData.length ? tableData[idx] : null
-    }
-
-    function setRowCount(count) {
-        if (!_isPureJsArray()) { console.warn("TableWidget: Cannot setRowCount via JS when a QAbstractListModel is bound."); return }
-        var targetCount = Number(count)
-        if (!isFinite(targetCount) || targetCount < 0) targetCount = 0
-        targetCount = Math.floor(targetCount)
-        var arr = tableData.slice()
-        var currentValid = currentRow >= 0 && currentRow < arr.length
-        var currentRef = currentValid ? arr[currentRow] : null
-        var selectedRefs = _rowRefs(selectedRows, arr)
-        var widgetEntries = _captureCellWidgetEntries(arr)
-        while (arr.length < targetCount) arr.push({})
-        while (arr.length > targetCount) arr.pop()
-        tableData = arr
-        currentRow = currentValid ? arr.indexOf(currentRef) : -1
-        if (currentRow < 0) currentColumn = -1
-        selectedRows = _rowIndices(selectedRefs, arr)
-        _restoreCellWidgets(widgetEntries, arr)
-    }
-
-    function setColumnCount(count) {
-        // Columns are defined via columns property 列通过columns属性定义
-        var cols = (_safeColumns || []).slice()
-        while (cols.length < count) cols.push({ text: "", width: 0.15, role: "col" + cols.length })
-        while (cols.length > count) cols.pop()
-        columns = cols
-    }
+    function setColumnCount(count) { TableDataController.setColumnCount(root, count) }
 
     function setHorizontalHeaderLabels(labels) {
-        var cols = []
-        var safeLabels = _listOrEmpty(labels)
-        if (safeLabels.length === 0) {
-            columns = []
-            return
-        }
-        for (var i = 0; i < safeLabels.length; i++) {
-            cols.push({ text: safeLabels[i], width: 1.0 / safeLabels.length, role: "col" + i })
-        }
-        columns = cols
+        TableDataController.setHorizontalHeaderLabels(root, labels)
     }
 
     function setItem(row, column, value) {
-        if (!_isPureJsArray()) { console.warn("TableWidget: Cannot setItem via JS when a QAbstractListModel is bound."); return }
-        var safeColumns = _safeColumns || []
-        if (row >= 0 && row < tableData.length && column >= 0 && column < safeColumns.length) {
-            var arr = tableData.slice()
-            var rowData = Object.assign({}, arr[row])
-            var columnData = safeColumns[column] || {}
-            rowData[columnData.role] = typeof value === "string" ? value : (value && value.text || value)
-            arr[row] = rowData
-            tableData = arr
-        }
+        TableDataController.setItem(root, row, column, value)
     }
 
-    function item(row, column) {
-        var safeColumns = _safeColumns || []
-        if (!_isPureJsArray()) return null
-        if (row >= 0 && row < tableData.length && column >= 0 && column < safeColumns.length) {
-            var columnData = safeColumns[column] || {}
-            var rowData = tableData[row] || {}
-            var val = rowData[columnData.role]
-            return { text: (val === null || val === undefined) ? "" : val, row: row, column: column }
-        }
-        return null
-    }
+    function item(row, column) { return TableDataController.item(root, row, column) }
 
-    // Selection API 选择 API
-    function selectedItems() {
-        var result = []
-        for (var i = 0; i < selectedRows.length; i++) {
-            var row = selectedRows[i]
-            for (var c = 0; c < (_safeColumns || []).length; c++) {
-                result.push(item(row, c))
-            }
-        }
-        return result
-    }
+    function selectedItems() { return TableDataController.selectedItems(root) }
 
     function clearSelection() {
         selectedRows = []
@@ -424,92 +295,35 @@ DataWidgetCore {
 
     function currentItem() { return item(currentRow, currentColumn >= 0 ? currentColumn : 0) }
 
-    // Sorting API 排序 API
+    // ==================== Sorting API 排序 API ====================
     function sortItems(column, order) {
-        var safeColumns = _safeColumns || []
-        if (column < 0 || column >= safeColumns.length) return
-        if (!_isPureJsArray()) { console.warn("TableWidget: Cannot sortItems via JS when a QAbstractListModel is bound."); return }
-        var role = (safeColumns[column] || {}).role
-        var arr = tableData.slice()
-        var currentValid = currentRow >= 0 && currentRow < arr.length
-        var currentRef = currentValid ? arr[currentRow] : null
-        var selectedRefs = _rowRefs(selectedRows, arr)
-        var widgetEntries = _captureCellWidgetEntries(arr)
-        arr.sort(function(a, b) {
-            var valueA = (a || {})[role]
-            var valueB = (b || {})[role]
-            var textA = String((valueA === null || valueA === undefined) ? "" : valueA)
-            var textB = String((valueB === null || valueB === undefined) ? "" : valueB)
-            var cmp = textA.localeCompare(textB)
-            return order === 1 ? -cmp : cmp
-        })
-        tableData = arr
-        currentRow = currentValid ? arr.indexOf(currentRef) : -1
-        selectedRows = _rowIndices(selectedRefs, arr)
-        _restoreCellWidgets(widgetEntries, arr)
+        TableDataController.sortItems(root, column, order)
     }
 
     // Scroll API 滚动 API
     function scrollToTop() { listView.positionViewAtBeginning() }
     function scrollToBottom() { listView.positionViewAtEnd() }
-    function scrollToRow(row) { if (row >= 0 && row < rowCount) listView.positionViewAtIndex(row, ListView.Center) }
+    function scrollToRow(row) {
+        if (row >= 0 && row < rowCount)
+            listView.positionViewAtIndex(row, ListView.Center)
+    }
 
     // setData convenience API setData 便捷 API
-    // Set data from 2D array with optional headers 从二维数组设置数据
     function setData(data, headers) {
-        if (headers) setHorizontalHeaderLabels(headers)
-        if (!data || !data.length) { tableData = []; return }
-
-        var safeColumns = _safeColumns || []
-        var cols = safeColumns.length > 0 ? safeColumns.slice() : []
-        if (cols.length === 0 && data[0]) {
-            var colCount = Array.isArray(data[0]) ? data[0].length : Object.keys(data[0]).length
-            for (var c = 0; c < colCount; c++) {
-                cols.push({
-                    text: _columnLabel(c + 1),
-                    width: 1.0 / colCount,
-                    role: "col" + c
-                })
-            }
-            columns = cols
-        }
-
-        var result = []
-        for (var r = 0; r < data.length; r++) {
-            var rowObj = {}
-            if (Array.isArray(data[r])) {
-                for (var c2 = 0; c2 < data[r].length && c2 < cols.length; c2++) {
-                    rowObj[cols[c2].role] = data[r][c2]
-                }
-            } else {
-                rowObj = data[r]
-            }
-            result.push(rowObj)
-        }
-        tableData = result
+        TableDataController.setData(root, data, headers)
     }
 
     // Cell widget support 单元格控件支持
-    // Set widget in cell 在单元格中放置控件
     function setCellWidget(row, column, widget) {
-        if (!widget) return
-        var key = row + "_" + column
-        var newWidgets = Object.assign({}, cellWidgets)
-        newWidgets[key] = widget
-        cellWidgets = newWidgets
-        // console.log("[TableWidget] setCellWidget:", row, column, widget)
+        TableDataController.setCellWidget(root, row, column, widget)
     }
 
-    // Get widget from cell 获取单元格控件
     function cellWidget(row, column) {
-        var key = row + "_" + column
-        return cellWidgets[key] || null
+        return TableDataController.cellWidget(root, row, column)
     }
 
-    // Check if cell has widget 检查单元格是否有控件
     function hasCellWidget(row, column) {
-        var key = row + "_" + column
-        return cellWidgets.hasOwnProperty(key)
+        return TableDataController.hasCellWidget(root, row, column)
     }
 
     function _showDefaultContextMenu(rowIndex, x, y) {
