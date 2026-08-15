@@ -1107,3 +1107,35 @@ def test_slider_keeps_default_visual_content_modularized():
         "text: control._tipText(control.value)",
     ):
         assert marker not in source
+
+
+def test_slider_keeps_range_visual_content_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/Slider/SliderCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/Slider/_internal/"
+        "SliderRangeContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 190
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 230
+    assert 'import "_internal" as SliderInternal' in source
+    assert "SliderInternal.SliderRangeContent {" in source
+    assert "required property var sliderControl" in helper_source
+    assert "readonly property real firstPos" in helper_source
+    assert "readonly property real secondPos" in helper_source
+    assert "component RangeHandle: Rectangle" in helper_source
+    assert "sliderControl.sliderMoved(" in helper_source
+    assert "sourceComponent: rangeSliderComponent" in source
+
+    for marker in (
+        "\n            RangeHandle {",
+        "\n            component RangeHandle:",
+        "id: rangeHandleArea",
+        "property real firstPos:",
+    ):
+        assert marker not in source

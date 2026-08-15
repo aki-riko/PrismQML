@@ -5,8 +5,6 @@
 import QtQuick
 import "../../.."
 import ".."
-import "../../feedback"
-import "../../../effects"
 import "_internal" as SliderInternal
 
 // Slider - Unified slider component 统一滑块组件
@@ -153,100 +151,8 @@ Item {
     
     Component {
         id: rangeSliderComponent
-        Item {
-            readonly property real firstPos: control._safePosition(control.firstValue)
-            readonly property real secondPos: control._safePosition(control.secondValue)
-
-            anchors.fill: parent
-
-            Rectangle {
-                id: groove
-                anchors.centerIn: parent
-                width: isHorizontal ? parent.width : Enums.radius.small
-                height: isHorizontal ? Enums.radius.small : parent.height
-                radius: control._trackRadius
-                color: control._trackColor
-            }
-            
-            Rectangle {
-                x: isHorizontal ? groove.x + groove.width * Math.min(firstPos, secondPos) : groove.x
-                y: isHorizontal ? groove.y : groove.y + groove.height * (1 - Math.max(firstPos, secondPos))
-                width: isHorizontal ? groove.width * Math.abs(secondPos - firstPos) : Enums.radius.small
-                height: isHorizontal ? Enums.radius.small : groove.height * Math.abs(secondPos - firstPos)
-                radius: control._trackRadius
-                color: control._progressColor
-            }
-            
-            RangeHandle { handleValue: control.firstValue; onValueChanged: (v) => { control.firstValue = v; control.sliderMoved(control.firstValue, control.secondValue) } }
-            RangeHandle { handleValue: control.secondValue; onValueChanged: (v) => { control.secondValue = v; control.sliderMoved(control.firstValue, control.secondValue) } }
-            
-            component RangeHandle: Rectangle {
-                property real handleValue: 0
-                signal valueChanged(real v)
-                
-                width: Enums.controlSize.switchHeight; height: Enums.controlSize.switchHeight; radius: width / 2
-                x: isHorizontal ? Math.max(0, Math.min(parent.width-width, (parent.width-width)*control._safePosition(handleValue))) : (parent.width-width)/2
-                y: isHorizontal ? (parent.height-height)/2 : Math.max(0, Math.min(parent.height-height, (parent.height-height)*(1-control._safePosition(handleValue))))
-                color: control.handleColor
-                border.width: control._handleBorderWidth
-                border.color: control._handleBorderColor
-                
-                Rectangle {
-                    anchors.centerIn: parent
-                    // Handle inner circle: shrinks on press, grows on hover 内圆:按下缩小,悬停放大
-                    width: rangeHandleArea.pressed ? Enums.iconSize.micro : (rangeHandleArea.containsMouse ? Enums.iconSize.xs : Enums.iconSize.tiny)
-                    height: width; radius: width / 2
-                    color: control._handleInnerColor
-                    HoverBehavior on width {
-                        active: rangeHandleArea.containsMouse &&
-                                !rangeHandleArea.pressed
-                        enterDuration: Enums.duration.fast
-                        easingType: Easing.OutCubic
-                    }
-                }
-                
-                Loader {
-                    active: rangeHandleArea.containsMouse || rangeHandleArea.pressed
-                            || item !== null
-                    sourceComponent: TooltipCore {
-                        x: (parent.width - width) / 2
-                        y: -height - Enums.spacing.m
-                        text: control.displayValueFn ? control.displayValueFn(handleValue)
-                                                     : Math.round(handleValue).toString()
-                        visible: rangeHandleArea.containsMouse || rangeHandleArea.pressed
-                        followAnchor: rangeHandleArea.containsMouse || rangeHandleArea.pressed
-                    }
-                }
-                
-                MouseArea {
-                    id: rangeHandleArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    drag.target: parent
-                    drag.axis: isHorizontal ? Drag.XAxis : Drag.YAxis
-                    drag.minimumX: 0; drag.maximumX: Math.max(0, parent.parent.width - parent.width)
-                    drag.minimumY: 0; drag.maximumY: Math.max(0, parent.parent.height - parent.height)
-                    enabled: control.enabled
-                    preventStealing: true
-                    
-                    onPositionChanged: {
-                        var available = isHorizontal
-                                ? parent.parent.width - parent.width
-                                : parent.parent.height - parent.height
-                        var pos = available > 0
-                                ? (isHorizontal
-                                   ? control._safeTrackPosition(parent.x, available)
-                                   : 1 - control._safeTrackPosition(parent.y, available))
-                                : 0
-                        pos = Math.max(0, Math.min(1, pos))
-                        var newVal = control.from + pos * (control.to - control.from)
-                        if (control.stepSize > 0 && isFinite(control.stepSize)) {
-                            newVal = Math.round(newVal / control.stepSize) * control.stepSize
-                        }
-                        valueChanged(newVal)
-                    }
-                }
-            }
+        SliderInternal.SliderRangeContent {
+            sliderControl: control
         }
     }
 }

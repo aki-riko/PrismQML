@@ -34,7 +34,12 @@ SOURCE_PATH = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "Slider" / "SliderCore.qml"
 )
 DEFAULT_CONTENT_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "SliderDefaultContent.qml"
-SOURCE_PATHS = (SOURCE_PATH, DEFAULT_CONTENT_SOURCE_PATH)
+RANGE_CONTENT_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "SliderRangeContent.qml"
+SOURCE_PATHS = (
+    SOURCE_PATH,
+    DEFAULT_CONTENT_SOURCE_PATH,
+    RANGE_CONTENT_SOURCE_PATH,
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "slider-core-conventions.qml")
 )
