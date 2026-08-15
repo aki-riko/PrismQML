@@ -5,7 +5,7 @@
 import QtQuick
 import QtQuick.Layouts as Layouts
 import "../../.."
-import "FlowLayoutGeometry.js" as FlowLayoutGeometry
+import "FlowLayoutEngine.js" as FlowLayoutEngine
 
 // FlowLayout - Enhanced flow layout with multiple modes 增强流式布局（支持多种模式）
 // Supports: default (preserve size), horizontal (equal height), vertical (equal width) 支持：默认（保持尺寸）、水平（等高）、垂直（等宽）
@@ -130,6 +130,37 @@ Item {
 
     // ==================== Internal Methods 内部方法 ====================
 
+    // Read engine-owned state without exposing mutable aliases 通过显式桥接读取引擎状态
+    function _getEngineState(name) {
+        switch (name) {
+        case "layoutPending": return _layoutPending
+        case "layoutAppendable": return _layoutAppendable
+        case "laidOutItemCount": return _laidOutItemCount
+        case "pendingAppendItems": return _pendingAppendItems
+        case "defaultHeightMap": return _defaultHeightMap
+        case "defaultMaxHeight": return _defaultMaxHeight
+        case "rowCount": return _rowCount
+        case "rowHeights": return _rowHeights
+        case "originalSizes": return _originalSizes
+        default: return undefined
+        }
+    }
+
+    // Update engine-owned state through one validated bridge 通过统一桥接更新引擎状态
+    function _setEngineState(name, value) {
+        switch (name) {
+        case "layoutPending": _layoutPending = value; break
+        case "layoutAppendable": _layoutAppendable = value; break
+        case "laidOutItemCount": _laidOutItemCount = value; break
+        case "pendingAppendItems": _pendingAppendItems = value; break
+        case "defaultHeightMap": _defaultHeightMap = value; break
+        case "defaultMaxHeight": _defaultMaxHeight = value; break
+        case "rowCount": _rowCount = value; break
+        case "rowHeights": _rowHeights = value; break
+        default: break
+        }
+    }
+
     function _isLayoutChild(child) {
         if (!child) return false
         if (child.toString().indexOf("QQuickRepeater") !== -1) return false
@@ -213,325 +244,71 @@ Item {
     function _placeDefaultItem(item, originalSize, heightMap,
                                containerWidth, useSlidingWindow,
                                positionDeque) {
-        var itemWidth = originalSize ? originalSize.width : item.width
-        var itemHeight = originalSize ? originalSize.height : item.height
-        var pos = _findBestPosition(
-            heightMap, containerWidth, itemWidth, itemHeight,
+        return FlowLayoutEngine.placeDefaultItem(
+            control, item, originalSize, heightMap, containerWidth,
             useSlidingWindow, positionDeque
         )
-        item.x = pos.x
-        item.y = pos.y
-        item.width = itemWidth
-        item.height = itemHeight
-        var endX = Math.min(pos.x + itemWidth, containerWidth)
-        var newHeight = pos.y + itemHeight + rowSpacing
-        for (var px = pos.x; px < endX; px++) heightMap[px] = newHeight
-        var gapEnd = Math.min(endX + spacing, containerWidth)
-        for (var gx = endX; gx < gapEnd; gx++) {
-            heightMap[gx] = Math.max(heightMap[gx], newHeight)
-        }
-        return pos.y + itemHeight
     }
 
     function _appendDefaultItems() {
-        if (!_layoutAppendable || _layoutPending
-                || mode !== Enums.flow.default_) return
-        var items = _pendingAppendItems.slice(0)
-        _pendingAppendItems = []
-        if (items.length === 0) return
-        var containerWidth = Math.floor(control.width)
-        if (_defaultHeightMap.length !== containerWidth
-                || _laidOutItemCount + items.length
-                    !== _originalSizes.length) {
-            _invalidateLayout()
-            return
-        }
-        for (var check = 0; check < items.length; check++) {
-            if (!_isLayoutChild(items[check])) {
-                _invalidateLayout()
-                return
-            }
-        }
-        var heightMap = _defaultHeightMap.slice(0)
-        var maxHeight = _defaultMaxHeight
-        var useSlidingWindow = _usesSlidingWindow(_originalSizes.length)
-        var positionDeque = useSlidingWindow ? [] : null
-        for (var index = 0; index < items.length; index++) {
-            maxHeight = Math.max(maxHeight, _placeDefaultItem(
-                items[index], _originalSizes[_laidOutItemCount + index],
-                heightMap, containerWidth, useSlidingWindow, positionDeque
-            ))
-        }
-        _laidOutItemCount += items.length
-        _defaultHeightMap = heightMap
-        _defaultMaxHeight = maxHeight
-        _rowCount = 0
-        _rowHeights = []
-        implicitHeight = maxHeight
+        FlowLayoutEngine.appendDefaultItems(
+            control, Enums.flow.default_, Enums.flow.sliding_window_min_items
+        )
     }
 
     // Perform layout based on mode 根据模式执行布局
     function _performLayout() {
-        _layoutPending = false
-        _layoutAppendable = false
-        _laidOutItemCount = 0
-        _pendingAppendItems = []
-
-        // Validate mode 验证模式
-        if (mode < 0 || mode > 2) {
-            console.warn("FlowLayout: Invalid mode value, falling back to default")
-            mode = Enums.flow.default_
-            return
-        }
-
-        var children = _getVisibleChildren()
-
-        // Skip if no items or invalid width 无子项或无效宽度时跳过
-        if (children.length === 0 || control.width <= 0) {
-            implicitHeight = 0
-            _rowCount = 0
-            _rowHeights = []
-            return
-        }
-
-        // Execute layout based on mode 根据模式执行布局
-        switch (mode) {
-            case Enums.flow.horizontal:
-                implicitHeight = _layoutHorizontal(children)
-                break
-            case Enums.flow.vertical:
-                implicitHeight = _layoutVertical(children)
-                break
-            default:
-                implicitHeight = _layoutDefault(children)
-        }
+        FlowLayoutEngine.performLayout(
+            control, Enums.flow.default_, Enums.flow.horizontal,
+            Enums.flow.vertical, Enums.flow.sliding_window_min_items
+        )
     }
     // Default mode layout 默认模式布局
     // Compact packing: items float up to fill gaps 紧凑填充：子项上浮填补空隙
     // Uses heightmap algorithm to find lowest available position 使用高度图算法找到最低可用位置
     function _layoutDefault(children) {
-        if (children.length === 0) return 0
-
-        var containerWidth = Math.floor(control.width)
-        var useSlidingWindow = _usesSlidingWindow(children.length)
-        var positionDeque = useSlidingWindow ? [] : null
-        // Heightmap: track occupied height at each pixel column 高度图：追踪每个像素列的已占用高度
-        var heightMap = []
-        for (var i = 0; i < containerWidth; i++) {
-            heightMap.push(0)
-        }
-
-        var maxHeight = 0
-
-        for (var i = 0; i < children.length; i++) {
-            maxHeight = Math.max(maxHeight, _placeDefaultItem(
-                children[i], _originalSizes[i], heightMap,
-                containerWidth, useSlidingWindow, positionDeque
-            ))
-        }
-
-        _rowCount = 0
-        _rowHeights = []
-        _defaultHeightMap = heightMap
-        _defaultMaxHeight = maxHeight
-        _laidOutItemCount = children.length
-        _layoutAppendable = true
-
-        return maxHeight
+        return FlowLayoutEngine.layoutDefault(
+            control, children, Enums.flow.sliding_window_min_items
+        )
     }
 
     // Find best position for item using heightmap 使用高度图找到子项的最佳位置
     function _findBestPosition(heightMap, containerWidth, itemWidth,
                                itemHeight, useSlidingWindow, positionDeque) {
-        if (useSlidingWindow) {
-            return FlowLayoutGeometry.findBestPosition(
-                heightMap, containerWidth, itemWidth,
-                positionDeque || []
-            )
-        }
-
-        var bestX = 0
-        var bestY = Infinity
-        var maxX = containerWidth - itemWidth
-        for (var x = 0; x <= maxX; x++) {
-            var maxHeight = 0
-            var endX = Math.min(x + itemWidth, containerWidth)
-            for (var index = x; index < endX; index++) {
-                maxHeight = Math.max(maxHeight, heightMap[index])
-            }
-            if (maxHeight < bestY) {
-                bestY = maxHeight
-                bestX = x
-            }
-        }
-        return { x: bestX, y: bestY }
+        return FlowLayoutEngine.findBestPosition(
+            heightMap, containerWidth, itemWidth, itemHeight,
+            useSlidingWindow, positionDeque
+        )
     }
 
     // Select the large-layout search path 选择大布局搜索路径
     function _usesSlidingWindow(itemTotal) {
-        return itemTotal >= Enums.flow.sliding_window_min_items
+        return FlowLayoutEngine.usesSlidingWindow(
+            control, itemTotal, Enums.flow.sliding_window_min_items
+        )
     }
     // Horizontal mode layout 水平模式布局
     // Equal height per row 同行等高
     function _layoutHorizontal(children) {
-        // Phase 1: Calculate rows with original sizes 第一阶段：用原始尺寸计算行
-        var rows = _calculateRows(children)
-
-        // Phase 2: Apply equal height per row 第二阶段：应用每行等高
-        var y = 0
-        for (var r = 0; r < rows.length; r++) {
-            var row = rows[r]
-            var x = 0
-
-            for (var i = 0; i < row.items.length; i++) {
-                var item = row.items[i]
-                var itemIndex = row.indices[i]
-
-                item.x = x
-                item.y = y
-
-                // Apply row height 应用行高
-                if (preserveAspectRatio && _originalSizes[itemIndex]) {
-                    var original = _originalSizes[itemIndex]
-                    if (original.height > 0) {
-                        var ratio = original.width / original.height
-                        item.height = row.maxHeight
-                        item.width = row.maxHeight * ratio
-                    }
-                } else {
-                    item.height = row.maxHeight
-                    // Restore original width 恢复原始宽度
-                    if (_originalSizes[itemIndex]) {
-                        item.width = _originalSizes[itemIndex].width
-                    }
-                }
-
-                x += item.width + spacing
-            }
-
-            y += row.maxHeight + rowSpacing
-        }
-
-        _rowCount = rows.length
-        _rowHeights = rows.map(r => r.maxHeight)
-
-        return rows.length > 0 ? y - rowSpacing : 0
+        return FlowLayoutEngine.layoutHorizontal(
+            control, children, Enums.flow.sliding_window_min_items
+        )
     }
 
     // Calculate rows based on original sizes 根据原始尺寸计算行
     function _calculateRows(children) {
-        var rows = []
-        var currentRow = { items: [], indices: [], maxHeight: 0, totalWidth: 0 }
-        var x = 0
-
-        for (var i = 0; i < children.length; i++) {
-            var item = children[i]
-
-            // Use original size for calculation 使用原始尺寸计算
-            var itemWidth = _originalSizes[i] ? _originalSizes[i].width : item.width
-            var itemHeight = _originalSizes[i] ? _originalSizes[i].height : item.height
-
-            // Check if line break needed 检查是否需要换行
-            if (x + itemWidth > control.width && x > 0) {
-                rows.push(currentRow)
-                currentRow = { items: [], indices: [], maxHeight: 0, totalWidth: 0 }
-                x = 0
-            }
-
-            currentRow.items.push(item)
-            currentRow.indices.push(i)
-            currentRow.maxHeight = Math.max(currentRow.maxHeight, itemHeight)
-            currentRow.totalWidth = x + itemWidth
-
-            x += itemWidth + spacing
-        }
-
-        // Add last row 添加最后一行
-        if (currentRow.items.length > 0) {
-            rows.push(currentRow)
-        }
-
-        return rows
+        return FlowLayoutEngine.calculateRows(control, children)
     }
     // Vertical mode layout 垂直模式布局
     // Equal width, variable height (waterfall flow) 等宽不等高（瀑布流）
     // Items are placed in the shortest column 子项放入最短的列
     function _layoutVertical(children) {
-        if (children.length === 0) return 0
-
-        // Calculate column count and item width 计算列数和子项宽度
-        var cols = columnCount > 0 ? columnCount : _calculateAutoColumnCount(children)
-        if (cols <= 0) cols = 1
-
-        var itemWidth = (control.width - (cols - 1) * spacing) / cols
-
-        // Initialize column heights 初始化各列高度
-        var columnHeights = []
-        for (var c = 0; c < cols; c++) {
-            columnHeights.push(0)
-        }
-
-        // Place each item in the shortest column 将每个子项放入最短的列
-        for (var i = 0; i < children.length; i++) {
-            var item = children[i]
-
-            // Find shortest column 找到最短的列
-            var shortestCol = 0
-            var minHeight = columnHeights[0]
-            for (var col = 1; col < cols; col++) {
-                if (columnHeights[col] < minHeight) {
-                    minHeight = columnHeights[col]
-                    shortestCol = col
-                }
-            }
-
-            // Get original height for this item 获取子项的原始高度
-            var originalHeight = _originalSizes[i] ? _originalSizes[i].height : item.height
-            var originalWidth = _originalSizes[i] ? _originalSizes[i].width : item.width
-
-            // Calculate item height 计算子项高度
-            var itemHeight
-            if (preserveAspectRatio && originalWidth > 0) {
-                // Scale height proportionally 按比例缩放高度
-                var ratio = originalHeight / originalWidth
-                itemHeight = itemWidth * ratio
-            } else {
-                // Keep original height 保持原始高度
-                itemHeight = originalHeight
-            }
-
-            // Position and size item 定位和设置子项尺寸
-            item.x = shortestCol * (itemWidth + spacing)
-            item.y = columnHeights[shortestCol]
-            item.width = itemWidth
-            item.height = itemHeight  // Apply calculated height 应用计算的高度
-
-            // Update column height 更新列高度
-            columnHeights[shortestCol] += itemHeight + rowSpacing
-        }
-
-        // Calculate max height 计算最大高度
-        var maxHeight = 0
-        for (var h = 0; h < columnHeights.length; h++) {
-            maxHeight = Math.max(maxHeight, columnHeights[h])
-        }
-
-        _rowCount = cols
-        _rowHeights = columnHeights
-
-        return maxHeight > 0 ? maxHeight - rowSpacing : 0
+        return FlowLayoutEngine.layoutVertical(control, children)
     }
 
     // Calculate auto column count based on max item width 根据最大子项宽度计算自动列数
     function _calculateAutoColumnCount(children) {
-        var maxWidth = 0
-        for (var i = 0; i < _originalSizes.length; i++) {
-            if (_originalSizes[i]) {
-                maxWidth = Math.max(maxWidth, _originalSizes[i].width)
-            }
-        }
-        if (maxWidth <= 0) maxWidth = 100
-        return Math.max(1, Math.floor((control.width + spacing) / (maxWidth + spacing)))
+        return FlowLayoutEngine.calculateAutoColumnCount(control, children)
     }
 
     // ==================== Size 尺寸 ====================
