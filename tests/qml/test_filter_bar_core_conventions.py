@@ -36,6 +36,7 @@ SOURCE_PATH = (
     / "FilterBar"
     / "FilterBarCore.qml"
 )
+CONTENT_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "FilterBarContent.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "filter-bar-core-conventions.qml")
 )
@@ -282,11 +283,17 @@ def test_filter_bar_single_multi_dynamic_and_signal_contracts(qapp):
 
 
 def test_filter_bar_core_source_conventions():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
+    sources = (
+        (SOURCE_PATH, SOURCE_PATH.read_text(encoding="utf-8")),
+        (CONTENT_SOURCE_PATH, CONTENT_SOURCE_PATH.read_text(encoding="utf-8")),
+    )
+    violations = []
+    for path, source in sources:
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source, PurePosixPath(path.relative_to(ROOT).as_posix())
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []

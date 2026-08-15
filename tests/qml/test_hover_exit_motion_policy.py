@@ -71,7 +71,7 @@ HOVER_POLICY_COUNTS = {
     "controls/data/List/TreeWidget/_internal/TreeWidgetDelegate.qml": 1,
     "controls/data/List/TreeWidget/TreeView.qml": 1,
     "controls/data/List/ListWidgetItem.qml": 2,
-    "controls/inputs/FilterBar/FilterBarCore.qml": 1,
+    "controls/inputs/FilterBar/_internal/FilterBarContent.qml": 1,
     "controls/containers/Card/Card.qml": 5,
     "controls/data/Chart/_internal/ChartBottomLegend.qml": 3,
     "controls/data/Chart/_internal/PieChartContent.qml": 1,

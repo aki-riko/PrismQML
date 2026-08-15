@@ -799,3 +799,34 @@ def test_color_picker_keeps_content_and_popup_tree_modularized():
         "Connections {",
     ):
         assert marker not in source
+
+
+def test_filter_bar_core_keeps_visual_content_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/FilterBar/FilterBarCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/FilterBar/_internal/"
+        "FilterBarContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 180
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 260
+    assert 'import "_internal" as FilterBarInternal' in source
+    assert "FilterBarInternal.FilterBarContent {" in source
+    assert "required property var filterControl" in helper_source
+    assert "property alias itemRepeater: itemRepeater" in helper_source
+    assert "readonly property real contentWidth" in helper_source
+    assert helper_source.count("parent: filterControl") == 2
+
+    for marker in (
+        "NeumorphicShadow {",
+        "Repeater {",
+        "MouseArea {",
+        "Icon {",
+        "Label {",
+    ):
+        assert marker not in source
