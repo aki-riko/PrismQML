@@ -267,7 +267,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
 
     def _setAppIcon(self, icon: str) -> None:
         """Set the shared application icon. 设置共享应用图标。"""
-        from ..core.window_helper import get_window_helper
+        from ..runtime import get_window_helper
 
         get_window_helper().setAppIcon(icon)
 

@@ -390,6 +390,40 @@ def test_window_runtime_composition_has_one_owner():
         }
 
 
+def test_window_helper_access_has_one_runtime_owner():
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    runtime_services = PYTHON_PACKAGE / "runtime" / "window_services.py"
+    runtime_registry = PYTHON_PACKAGE / "runtime" / "registry.py"
+    window_core = WINDOW_PACKAGE / "window_core.py"
+    application_icon = WINDOW_PACKAGE / "_application_icon_runtime.py"
+    runtime_exports = _lazy_exports(runtime_init)
+
+    assert runtime_exports["get_window_helper"] == (
+        ".window_services",
+        "get_window_helper",
+    )
+    assert "get_window_helper" in _function_names(runtime_services)
+    assert (
+        "prismqml.python.core.window_helper.get_window_helper"
+        in {
+            target for _line, target in _resolved_imports(runtime_services)
+        }
+    )
+
+    registry_imports = {
+        target for _line, target in _resolved_imports(runtime_registry)
+    }
+    assert (
+        "prismqml.python.runtime.window_services.get_window_helper"
+        in registry_imports
+    )
+    for owner in (window_core, application_icon):
+        imports = {target for _line, target in _resolved_imports(owner)}
+        assert "prismqml.python.runtime.get_window_helper" in imports
+        assert "prismqml.python.core.window_helper.get_window_helper" not in imports
+    assert "prismqml.python.core.window_helper.get_window_helper" not in registry_imports
+
+
 def test_qml_engine_composition_has_one_runtime_owner():
     app = WINDOW_PACKAGE / "app.py"
     window_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"

@@ -88,7 +88,7 @@ def _register_window_context(
 def _register_support_context(context: QQmlContext) -> None:
     """Register shadow and window helpers. 注册阴影与窗口辅助对象。"""
     from ..core.shadow import getShadowManager
-    from ..core.window_helper import get_window_helper
+    from .window_services import get_window_helper
 
     register_context_property(context, "ShadowManager", getShadowManager())
     register_context_property(context, "WindowHelper", get_window_helper())

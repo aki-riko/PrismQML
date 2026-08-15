@@ -68,7 +68,7 @@ def apply_application_icon_to_window(owner, window) -> None:
 
 def configure_application_icon(owner, icon: IconSource, colored: bool) -> str:
     """Publish one icon to Qt and every managed window. 同步图标到 Qt 与全部托管窗口。"""
-    from ..core.window_helper import get_window_helper
+    from ..runtime import get_window_helper
 
     source = normalize_application_icon(icon)
     owner._application_icon = source
