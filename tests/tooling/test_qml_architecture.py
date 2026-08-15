@@ -902,3 +902,29 @@ def test_shortcut_editor_keeps_scrollable_content_modularized():
         "\n        Label {",
     ):
         assert marker not in source
+
+
+def test_cycle_wheel_picker_keeps_scroll_buttons_modularized():
+    entry = _source("prismqml/PrismQML/controls/inputs/CycleWheelPicker.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/_internal/"
+        "CycleWheelPickerButtons.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 330
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert 'import "_internal" as InputInternal' in source
+    assert "InputInternal.CycleWheelPickerButtons {" in source
+    assert "required property var wheelControl" in helper_source
+    assert "\nRectangle {\n" in helper_source
+    assert helper_source.count("parent: wheelControl") == 1
+
+    for marker in (
+        "\n    Rectangle {",
+        "\n        Icon {",
+        "\n        MouseArea {",
+    ):
+        assert marker not in source

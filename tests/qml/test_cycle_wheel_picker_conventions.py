@@ -24,6 +24,15 @@ SOURCE_PATH = (
     / "inputs"
     / "CycleWheelPicker.qml"
 )
+CONTENT_SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "_internal"
+    / "CycleWheelPickerButtons.qml"
+)
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "cycle-wheel-picker-conventions.qml")
@@ -258,14 +267,21 @@ def test_cycle_wheel_picker_repeat_timers_preserve_both_directions(qapp):
 
 
 def test_cycle_wheel_picker_source_conventions_and_motion_tokens():
+    sources = (
+        (SOURCE_PATH, SOURCE_PATH.read_text(encoding="utf-8")),
+        (CONTENT_SOURCE_PATH, CONTENT_SOURCE_PATH.read_text(encoding="utf-8")),
+    )
+    violations = []
+    for path, source in sources:
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source, PurePosixPath(path.relative_to(ROOT).as_posix())
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
     for token in (
         "Enums.duration.wheelPickerRepeatInterval",
         "Enums.duration.wheelPickerRepeatDelay",

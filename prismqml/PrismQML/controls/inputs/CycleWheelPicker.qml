@@ -3,8 +3,8 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../.."
-import "../icons"
 import "../data"
+import "_internal" as InputInternal
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // CycleWheelPicker - Cycle wheel picker with scroll buttons 循环滚轮选择器（带滚动按钮）
@@ -301,64 +301,8 @@ Item {
     }
     
     // Scroll buttons 滚动按钮
-    Rectangle {
-        id: upButton
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: Enums.controlSize.wheelPickerItemHeight
-        color: upArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
-        visible: control.showScrollButtons && control._hovered
-        z: Enums.zIndex.popup
-        
-        Icon {
-            anchors.centerIn: parent
-            icon: Enums.icon.chevron_up
-            iconSize: upArea.pressed ? Enums.iconSize.xs : Enums.iconSize.s
-            color: Enums.textColor.secondary
-        }
-        
-        MouseArea {
-            id: upArea
-
-            anchors.fill: parent
-            hoverEnabled: true
-
-            onClicked: control.scrollUp()
-            onPressed: control._startRepeat(-1)
-            onReleased: control._stopRepeat(-1)
-            onExited: control._stopRepeat(-1)
-        }
-    }
-    
-    Rectangle {
-        id: downButton
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: Enums.controlSize.wheelPickerItemHeight
-        color: downArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
-        visible: control.showScrollButtons && control._hovered
-        z: Enums.zIndex.popup
-        
-        Icon {
-            anchors.centerIn: parent
-            icon: Enums.icon.chevron_down
-            iconSize: downArea.pressed ? Enums.iconSize.xs : Enums.iconSize.s
-            color: Enums.textColor.secondary
-        }
-        
-        MouseArea {
-            id: downArea
-
-            anchors.fill: parent
-            hoverEnabled: true
-
-            onClicked: control.scrollDown()
-            onPressed: control._startRepeat(1)
-            onReleased: control._stopRepeat(1)
-            onExited: control._stopRepeat(1)
-        }
+    InputInternal.CycleWheelPickerButtons {
+        wheelControl: control
     }
 
 }
