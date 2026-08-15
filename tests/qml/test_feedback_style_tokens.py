@@ -60,6 +60,7 @@ Item {
     readonly property int splashBreatheDuration: Enums.duration.splashBreathe
     readonly property int splashProgressSpinDuration: Enums.duration.splashProgressSpin
     readonly property int closeRippleDuration: Enums.windowCloseMetrics.rippleDuration
+    readonly property int splashRevealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
     readonly property int splashProgressStyle: Enums.progress.indeterminate_style_orbit_dot
     readonly property int splashProgressDotSize: Enums.splashScreenMetrics.progressDotSize
     readonly property int splashProgressDotRadius: Enums.splashScreenMetrics.progressDotRadius
@@ -429,7 +430,10 @@ def test_splash_finish_uses_shared_lazy_switch_transition(qapp):
         transition = visual_items.get("splashLazyPageCircleTransition")
         assert transition is not None
         assert lazy_loader.property("active") is True
-        assert transition.property("collapsing") is True
+        assert transition.property("collapsing") is False
+        assert transition.property("revealDuration") == root.property(
+            "splashRevealDuration"
+        )
         assert QQmlProperty(splash, "layer.enabled").read() is True
         assert QQmlProperty(splash, "layer.effect").read() is not None
         assert solid_background.property("visible") is True
@@ -440,7 +444,7 @@ def test_splash_finish_uses_shared_lazy_switch_transition(qapp):
         assert 0 < transition.property("progress") < 1
         assert content.property("opacity") == pytest.approx(1.0)
 
-        _pump(220)
+        _pump(520)
         assert splash.property("visible") is False
         assert QQmlProperty(splash, "layer.enabled").read() is False
     finally:
@@ -480,7 +484,8 @@ def test_feedback_sources_use_shared_style_tokens():
     assert 'objectName: "splashLazyTransitionLoader"' in splash_source
     assert "sourceComponent: NavigationInternal.LazyPageCircleTransition" in splash_source
     assert 'objectName: "splashLazyPageCircleTransition"' in splash_source
-    assert "lazyExitLoader.item.collapse(control)" in splash_source
+    assert "lazyExitLoader.item.expand(control)" in splash_source
+    assert "revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration" in splash_source
     assert "CloseRipple" not in splash_source
     assert "signal collapseFinished()" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source

@@ -27,6 +27,9 @@ Item {
         ? _sourceItem.item
         : _sourceItem
 
+    // ==================== Public Props 公开属性 ====================
+    property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
+
     // ==================== Internal Props 内部属性 ====================
     property Item _sourceItem: null
     property bool _savedVisible: false
@@ -328,6 +331,7 @@ Item {
         id: radiusTransition
 
         objectName: "qmlPageCircleTransition"
+        revealDuration: transition.revealDuration
         onFinished: transition._handleRadiusFinished()
     }
 

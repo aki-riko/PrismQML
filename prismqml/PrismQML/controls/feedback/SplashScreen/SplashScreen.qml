@@ -68,7 +68,7 @@ Rectangle {
         }
         control._finishing = true
         breatheAnim.stop()
-        lazyExitLoader.item.collapse(control)
+        lazyExitLoader.item.expand(control)
     }
 
     // Set icon (Icon enum or string) 设置图标
@@ -268,8 +268,9 @@ Rectangle {
 
         sourceComponent: NavigationInternal.LazyPageCircleTransition {
             objectName: "splashLazyPageCircleTransition"
+            revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
 
-            onCollapseFinished: {
+            onExpandFinished: {
                 control.visible = false
                 control.finished()
             }

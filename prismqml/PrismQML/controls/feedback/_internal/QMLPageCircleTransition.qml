@@ -9,6 +9,10 @@ import "../../.."
 Item {
     id: transition
 
+    // ==================== Public Props 公开属性 ====================
+    property int coverDuration: Enums.lazyLoadingTransitionMetrics.coverDuration
+    property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
+
     // ==================== Readonly State 只读状态 ====================
     readonly property bool running: progressAnimation.running
     readonly property real progress: _progress
@@ -57,8 +61,8 @@ Item {
         to: transition._collapsing
             ? Enums.opacityLevel.invisible : Enums.opacityLevel.visible
         duration: transition._collapsing
-            ? Enums.lazyLoadingTransitionMetrics.coverDuration
-            : Enums.lazyLoadingTransitionMetrics.revealDuration
+            ? transition.coverDuration
+            : transition.revealDuration
         easing.type: transition._collapsing ? Easing.InCubic : Easing.OutQuint
         onFinished: transition.finished()
     }
