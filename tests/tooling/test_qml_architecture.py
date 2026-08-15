@@ -40,6 +40,26 @@ def test_qml_files_respect_hard_size_limit():
     assert violations == []
 
 
+def test_windows_core_keeps_frame_modularized():
+    entry = _source("prismqml/PrismQML/WindowsCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/_internal/WindowsCoreFrame.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 500
+    assert "WindowsCoreFrame {" in source
+    assert "required property var targetWindow" in helper_source
+    assert "property alias contentData: contentContainer.data" in helper_source
+    assert "property alias leftPanelData: leftPanelContainer.data" in helper_source
+    assert "id: windowFrame\n" not in source
+    assert "id: contentContainer" not in source
+    assert "WindowDragHandle {" not in source
+
+
 def test_navigation_window_core_keeps_orchestration_modularized():
     entry = _source("prismqml/PrismQML/NavigationWindowCore.qml")
     loading = _source(

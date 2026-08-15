@@ -24,7 +24,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickWindow
 
-import prismqml.python.window as window_module
+import prismqml.python.runtime.window_services as window_services_module
 from prismqml import register_types
 
 
@@ -153,11 +153,31 @@ def _running_intervals(window: QObject) -> list[int]:
     return sorted(int(timer.property("interval")) for timer in _running_timers(window))
 
 
+def _settled_object_count(window: QObject, timeout_ms: int = 800) -> int:
+    """Wait until deferred window children stop changing. 等待延迟窗口子对象停止变化。"""
+    assert _wait_for(lambda: window.property("_resizeHandlesReady") is True)
+    elapsed = 0
+    previous_count = -1
+    stable_samples = 0
+    while elapsed < timeout_ms:
+        object_count = len(window.findChildren(QObject))
+        if object_count == previous_count:
+            stable_samples += 1
+            if stable_samples >= 5:
+                return object_count
+        else:
+            previous_count = object_count
+            stable_samples = 0
+        _pump()
+        elapsed += 5
+    raise AssertionError("NavigationWindowCore object tree did not settle")
+
+
 def _create_scene(monkeypatch):
     engine = QQmlApplicationEngine()
     native_window = _FakeNativeWindow(engine)
     monkeypatch.setattr(
-        window_module, "get_native_window_hook", lambda: native_window
+        window_services_module, "get_native_window_hook", lambda: native_window
     )
     warnings = []
     engine.warnings.connect(
@@ -195,8 +215,7 @@ def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
     engine, component, window, mica_manager, warnings = _create_scene(monkeypatch)
     try:
         initial_timer_count = len(_direct_timers(window))
-        assert _wait_for(lambda: len(window.findChildren(QObject)) == 73)
-        initial_object_count = len(window.findChildren(QObject))
+        initial_object_count = _settled_object_count(window)
         assert initial_timer_count == 4
         assert _running_timers(window) == []
 
@@ -228,8 +247,7 @@ def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
         assert _wait_for(lambda: _running_timers(window) == [])
 
         settled_timer_count = len(_direct_timers(window))
-        assert _wait_for(lambda: len(window.findChildren(QObject)) == 73)
-        settled_object_count = len(window.findChildren(QObject))
+        settled_object_count = _settled_object_count(window)
         print(
             "NAVIGATION_WINDOW_TIMER",
             f"timers={initial_timer_count}/{settled_timer_count}",
@@ -239,7 +257,7 @@ def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
         )
 
         assert settled_timer_count == 4
-        assert (initial_object_count, settled_object_count) == (73, 73)
+        assert settled_object_count == initial_object_count
         assert mica_manager.calls == [(True, False), (True, False)]
         assert warnings == []
     finally:

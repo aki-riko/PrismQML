@@ -24,14 +24,16 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
-import prismqml.python.core.window_helper as window_helper_module
-import prismqml.python.window as window_module
+import prismqml.python.runtime.window_services as window_services_module
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "WindowsCore.qml"
+WINDOW_FRAME_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsCoreFrame.qml"
+)
 ANIMATION_HELPER_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
 )
@@ -52,6 +54,7 @@ WINDOW_LEAF_PATHS = [
         "CaptionButton.qml",
         "ContentFrame.qml",
         "WindowCloseDissolve.qml",
+        "WindowsCoreFrame.qml",
     )
 ]
 STARTUP_DIAGNOSTIC_PATHS = [
@@ -200,10 +203,10 @@ def _create_scene(monkeypatch, *, initial_left_layout: bool = False):
     native_window = _FakeNativeWindow(startup_events, engine)
     window_helper = _FakeWindowHelper(startup_events, engine)
     monkeypatch.setattr(
-        window_module, "get_native_window_hook", lambda: native_window
+        window_services_module, "get_native_window_hook", lambda: native_window
     )
     monkeypatch.setattr(
-        window_helper_module, "get_window_helper", lambda: window_helper
+        window_services_module, "get_window_helper", lambda: window_helper
     )
     warnings = []
     engine.warnings.connect(
@@ -518,6 +521,7 @@ def test_windows_core_native_close_waits_for_exit_animation(monkeypatch, qapp):
 
 def test_windows_core_source_conventions_and_timing_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    frame_source = WINDOW_FRAME_PATH.read_text(encoding="utf-8")
     drag_handle_source = WINDOW_DRAG_HANDLE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
@@ -532,7 +536,9 @@ def test_windows_core_source_conventions_and_timing_tokens():
     assert "interval: 1200" not in source
     assert "window.showMaximized()" not in source
     assert "window.showNormal()" not in source
-    assert source.count("WindowDragHandle {") == 3
+    assert "WindowsCoreFrame {" in source
+    assert "WindowDragHandle {" not in source
+    assert frame_source.count("WindowDragHandle {") == 3
     assert "window.startSystemMove()" not in source
     assert "property bool enableDrag: true" in drag_handle_source
     assert "property bool _doubleClickPending: false" in drag_handle_source
@@ -590,7 +596,9 @@ def test_window_leaf_source_conventions_and_icon_delay_token():
             for violation in violations
             if violation.rule in {"QML008", "QML009"}
         ] == []
-    window_icon = WINDOW_LEAF_PATHS[2].read_text(encoding="utf-8")
+    window_icon = (
+        ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowIcon.qml"
+    ).read_text(encoding="utf-8")
     assert "interval: Enums.window.iconDeferredLoadDelayMs" in window_icon
     assert "interval: 1" not in window_icon
     metrics = METRICS_PATH.read_text(encoding="utf-8")

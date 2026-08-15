@@ -22,7 +22,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from prismqml import register_types
 from prismqml.python.config.app_config import DEFAULT_APP_CONFIG
-import prismqml.python.window as window_module
+import prismqml.python.runtime.window_services as window_services_module
 
 
 QML_LOAD_TIMEOUT_MS = 5000
@@ -252,7 +252,9 @@ def _destroy_window_for_snapshot(
 
 
 def _create_engine(monkeypatch, fake, engine_warnings):
-    monkeypatch.setattr(window_module, "get_native_window_hook", lambda: fake)
+    monkeypatch.setattr(
+        window_services_module, "get_native_window_hook", lambda: fake
+    )
     engine = QQmlApplicationEngine()
     register_types(engine)
     if engine_warnings is not None:
