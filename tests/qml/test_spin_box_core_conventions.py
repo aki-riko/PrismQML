@@ -284,6 +284,8 @@ def _assert_public_methods(normal, wrapped) -> None:
     normal.valueUpdated.connect(updates.append)
     normal.valueModified.connect(modified.append)
     assert normal.property("displayValue") == "$5.0 kg"
+    normal.selectAll()
+    assert _text_input(normal).property("selectedText") == "$5.0 kg"
     normal.setRange(0, 6)
     normal.increase()
     assert (normal.getValue(), updates, modified) == (6, [6], [6])

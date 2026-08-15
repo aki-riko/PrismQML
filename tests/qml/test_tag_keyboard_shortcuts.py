@@ -243,3 +243,45 @@ def test_tag_clipboard_history_and_text_shortcuts(qapp):
         clipboard.setText(previous_clipboard)
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_tag_programmatic_edit_commands(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, control, warnings = _create_scene()
+    text_input = control.property("textInput")
+    clipboard = QGuiApplication.clipboard()
+    previous_clipboard = clipboard.text()
+    try:
+        control.setProperty("tags", ["one", "two"])
+        control.selectAll()
+        assert _wait_for(
+            lambda: all(item.property("selected") for item in _tag_tokens(control))
+        )
+
+        control.copy()
+        assert clipboard.text() == "one two"
+        control.cut()
+        assert _variant(control.property("tags")) == []
+        control.undo()
+        assert _variant(control.property("tags")) == ["one", "two"]
+        control.redo()
+        assert _variant(control.property("tags")) == []
+
+        control.undo()
+        clipboard.setText("three four")
+        control.selectAll()
+        control.paste()
+        assert _variant(control.property("tags")) == ["three", "four"]
+
+        text_input.setProperty("text", "draft")
+        control.selectAll()
+        assert text_input.property("selectedText") == "draft"
+        control.clear()
+        assert text_input.property("text") == ""
+        assert _variant(control.property("tags")) == []
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        clipboard.setText(previous_clipboard)
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []

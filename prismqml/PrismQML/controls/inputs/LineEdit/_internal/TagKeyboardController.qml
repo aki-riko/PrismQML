@@ -49,6 +49,55 @@ QtObject {
         return true
     }
 
+    function clear() {
+        var hadText = editor.text.length > 0
+        if (hadText) editor.text = ""
+        if (control._safeTags.length > 0) return clearTags()
+        clearTagSelection()
+        return hadText
+    }
+
+    function selectAll() {
+        if (editor.text.length > 0) {
+            clearTagSelection()
+            editor.selectAll()
+            return true
+        }
+        return selectAllTags()
+    }
+
+    function undo() {
+        if ((_lastEditWasTag || !editor.canUndo) && _undoTags()) return true
+        if (!editor.canUndo) return false
+        editor.undo()
+        return true
+    }
+
+    function redo() {
+        if ((_lastEditWasTag || !editor.canRedo) && _redoTags()) return true
+        if (!editor.canRedo) return false
+        editor.redo()
+        return true
+    }
+
+    function copy() {
+        if (_copySelectedTags()) return true
+        editor.copy()
+        return true
+    }
+
+    function cut() {
+        if (_cutSelectedTags()) return true
+        editor.cut()
+        return true
+    }
+
+    function paste() {
+        if (_pasteOverSelection()) return true
+        editor.paste()
+        return true
+    }
+
     function resetForExternalTags() {
         _undoStack = []
         _redoStack = []

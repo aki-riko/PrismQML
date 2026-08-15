@@ -81,6 +81,14 @@ InputCore {
         return keyboardController.clearTags()
     }
 
+    function clear() { return keyboardController.clear() }
+    function selectAll() { return keyboardController.selectAll() }
+    function undo() { return keyboardController.undo() }
+    function redo() { return keyboardController.redo() }
+    function copy() { return keyboardController.copy() }
+    function cut() { return keyboardController.cut() }
+    function paste() { return keyboardController.paste() }
+
     // ==================== Internal Methods 内部方法 ====================
     // Remove one tag and publish the same signals as the close button 删除单个标签并发送与关闭按钮相同的信号
     function _removeTagAt(index) {

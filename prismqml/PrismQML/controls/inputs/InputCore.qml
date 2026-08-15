@@ -18,6 +18,8 @@ Widget {
     // ==================== Public Props 公开属性 ====================
     // 焦点代理属性，子类覆盖指向内部能实际接受输入的组件
     property Item focusTarget: null
+    // Editing command target defaults to the focus target 编辑命令目标默认为焦点目标
+    property var editActionTarget: focusTarget
     // FocusScope 语义: 容器本身不持有焦点(不设 activeFocusOnTab 自聚焦), 焦点直接
     // 落在 focusTarget 上, 消除"容器接焦点再 onActiveFocusChanged 转发"的竞态
     // (旧设计在边缘点击时容器/child 焦点反复横跳导致进焦→立刻失焦)。
@@ -74,7 +76,23 @@ Widget {
     // ==================== Signals 信号 ====================
     signal folderDropped(string path)
 
+    // ==================== Public Methods 公开方法 ====================
+    function clear() { return _dispatchEditAction("clear") }
+    function selectAll() { return _dispatchEditAction("selectAll") }
+    function undo() { return _dispatchEditAction("undo") }
+    function redo() { return _dispatchEditAction("redo") }
+    function copy() { return _dispatchEditAction("copy") }
+    function cut() { return _dispatchEditAction("cut") }
+    function paste() { return _dispatchEditAction("paste") }
+
     // ==================== Internal Methods 内部方法 ====================
+    function _dispatchEditAction(actionName) {
+        var target = editActionTarget
+        if (!target || typeof target[actionName] !== "function") return false
+        var result = target[actionName]()
+        return result === undefined || !!result
+    }
+
     function _acceptsFolderDrag(dragEvent) {
         return dragEvent && dragEvent.hasUrls && dragEvent.urls.length === 1
             && (dragEvent.supportedActions & Qt.CopyAction) !== 0

@@ -49,25 +49,7 @@ InputCore {
     signal selectionChanged()  // Selection changed 选择变化
 
     // ==================== Public Methods 公开方法 ====================
-    function clear() { textEdit.text = "" }
-    function selectAll() { textEdit.selectAll() }
     function setFocus() { textEdit.forceActiveFocus() }
-
-    // Undo last edit 撤销
-    function undo() { textEdit.undo() }
-
-    // Redo last undone edit 重做
-    function redo() { textEdit.redo() }
-
-
-    // Copy selected text 复制
-    function copy() { textEdit.copy() }
-
-    // Cut selected text 剪切
-    function cut() { textEdit.cut() }
-
-    // Paste from clipboard 粘贴
-    function paste() { textEdit.paste() }
 
     // Append text 追加文本
     function append(text) { textEdit.text += text }
@@ -95,6 +77,7 @@ InputCore {
 
     // Bind inherited InputCore state 绑定继承的 InputCore 状态
     focusTarget: _isBrowser ? null : textEdit
+    editActionTarget: textEdit
     focused: _isBrowser ? false : textEdit.activeFocus  // Browser never focused 浏览器不聚焦
     hovered: _isBrowser ? false : hoverHandler.hovered  // Browser no hover state 浏览器无悬浮状态
     showFocusedBorder: !_isBrowser  // Browser has no focus line 浏览器无聚焦线

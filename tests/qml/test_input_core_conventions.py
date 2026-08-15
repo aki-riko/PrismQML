@@ -229,6 +229,29 @@ def _assert_disabled_and_transparent(window, control) -> None:
     assert window.property("inputBorderWidth") == 0
 
 
+def _assert_edit_action_contract(control, editor) -> None:
+    clipboard = QGuiApplication.clipboard()
+    previous_clipboard = clipboard.text()
+    try:
+        control.selectAll()
+        assert editor.property("selectedText") == "Prism"
+        control.copy()
+        assert clipboard.text() == "Prism"
+        control.cut()
+        assert editor.property("text") == ""
+        control.undo()
+        assert editor.property("text") == "Prism"
+        control.redo()
+        assert editor.property("text") == ""
+        clipboard.setText("PrismQML")
+        control.paste()
+        assert editor.property("text") == "PrismQML"
+        control.clear()
+        assert editor.property("text") == ""
+    finally:
+        clipboard.setText(previous_clipboard)
+
+
 def test_input_core_size_focus_padding_and_visual_states(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, control, editor, warnings = _create_scene()
@@ -236,6 +259,18 @@ def test_input_core_size_focus_padding_and_visual_states(qapp):
         _assert_size_and_style(window, control)
         _assert_focus_and_padding_click(window, control, editor)
         _assert_disabled_and_transparent(window, control)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_input_core_edit_action_contract(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, control, editor, warnings = _create_scene()
+    try:
+        _assert_edit_action_contract(control, editor)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

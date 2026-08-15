@@ -70,25 +70,6 @@ InputCore {
     signal selectionChanged()  // Selection changed 选择变化
 
     // ==================== Public Methods 公开方法 ====================
-    function clear() { if (loader.item && loader.item.clear) loader.item.clear() }
-    function selectAll() { if (textInput) textInput.selectAll() }
-
-    // Undo last edit 撤销
-    function undo() { if (textInput) textInput.undo() }
-
-    // Redo last undone edit 重做
-    function redo() { if (textInput) textInput.redo() }
-
-    // Copy selected text 复制
-    function copy() { if (textInput) textInput.copy() }
-
-    // Cut selected text 剪切
-    function cut() { if (textInput) textInput.cut() }
-
-    // Paste from clipboard 粘贴
-    function paste() { if (textInput) textInput.paste() }
-
-    // ==================== Public Methods 公开方法 ====================
     // Set text 设置文本 (现在也可直接用 .text = value)
     function setText(t) { text = t }
     function getText() { return text }
@@ -103,6 +84,8 @@ InputCore {
 
     // ==================== Size 尺寸 ====================
     focusTarget: textInput
+    editActionTarget: inputType === Enums.input.type_tag && loader.item
+        ? loader.item.editActionTarget : textInput
     focused: loader.item ? loader.item.focused : false
     hovered: loader.item ? loader.item.hovered : false
     _folderDropTarget: control
@@ -248,6 +231,7 @@ InputCore {
             readonly property bool focused: tagEdit.focused
             readonly property bool hovered: tagEdit.hovered
             property var textInput: tagEdit.textInput
+            readonly property var editActionTarget: tagEdit
             readonly property real contentHeight: tagEdit.implicitHeight
 
             TagLineEdit {
