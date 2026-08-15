@@ -701,6 +701,26 @@ def test_public_appearance_mutations_cross_the_runtime_boundary():
         assert root_exports[name] == (".python.runtime.appearance", name)
 
 
+def test_core_does_not_expose_runtime_owned_appearance_facades():
+    core_init = CORE_PACKAGE / "__init__.py"
+    core_exports = _lazy_exports(core_init)
+    core_public_names = set(_literal_assignment(core_init, "__all__"))
+    runtime_owned_names = {
+        "setTheme",
+        "getTheme",
+        "setSkin",
+        "getSkin",
+        "isDark",
+        "setAccentColor",
+        "getAccentColor",
+        "accentQColor",
+        "getThemeManager",
+    }
+
+    assert runtime_owned_names.isdisjoint(core_public_names)
+    assert runtime_owned_names.isdisjoint(core_exports)
+
+
 def test_appearance_persistence_has_one_runtime_composition_owner():
     appearance = PYTHON_PACKAGE / "runtime" / "appearance.py"
     appearance_defaults = CORE_PACKAGE / "appearance_defaults.py"
