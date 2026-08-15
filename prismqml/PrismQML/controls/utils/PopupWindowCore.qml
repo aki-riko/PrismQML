@@ -312,11 +312,11 @@ Item {
         return nativeWindow.visible
     }
     function _startOpenAnimation() {
-        showAnim.start()
+        popupAnimations.showAnimation.start()
     }
     function _resetOpenAppearance() {
-        showAnim.stop()
-        hideAnim.stop()
+        popupAnimations.showAnimation.stop()
+        popupAnimations.hideAnimation.stop()
         _clipHeight = 0
         _scale = verticalCenterExpand ? 0 : 0.7
         popupSurface.opacity = 0
@@ -474,17 +474,17 @@ Item {
         if (!PopupLifecycle.canClose(control, _surfaceVisible)) return
         aboutToHide()
         PopupLifecycle.beginClose(control)
-        showAnim.stop()
+        popupAnimations.showAnimation.stop()
         _isPickerMode = false  // Reset picker mode 重置Picker模式
-        hideAnim.start()
+        popupAnimations.hideAnimation.start()
         closed()
     }
 
     // Finish geometry-changing entrance motion before a child handles a press.
     // 子项处理按下事件前结束会改变命中区域的入场动画。
     function stabilizeInteraction() {
-        if (!showAnim.running) return
-        showAnim.stop()
+        if (!popupAnimations.showAnimation.running) return
+        popupAnimations.showAnimation.stop()
         popupSurface.opacity = 1
         _scale = 1
         _clipHeight = popupHeight
@@ -545,69 +545,14 @@ Item {
         onTriggered: PopupLifecycle.onTimer(control)
     }
 
-    // Show animation 弹出动画
-    // [Anim C] Spring scale or vertical center expansion 弹簧缩放或垂直中心展开
-    ParallelAnimation {
-        id: showAnim
+    PopupAnimations {
+        id: popupAnimations
 
-        NumberAnimation {
-            target: popupSurface
-            property: "opacity"
-            from: 0; to: 1
-            duration: Enums.popupMetrics.showOpacityDuration
-            easing.type: Easing.OutQuad
-        }
-        NumberAnimation {
-            target: control
-            property: "_scale"
-            from: control.verticalCenterExpand ? 0 : 0.7; to: 1.0
-            duration: Enums.popupMetrics.showScaleDuration
-            easing.type: control.verticalCenterExpand ? Easing.OutCubic : Easing.OutBack
-            easing.overshoot: 1.4
-        }
-        NumberAnimation {
-            target: control
-            property: "_clipHeight"
-            from: 0
-            to: control.popupHeight
-            duration: Enums.popupMetrics.clipRevealDuration
-            easing.type: Easing.Linear
-        }
-    }
-
-    // Hide animation 收起动画
-    // [Anim C] Quick collapse with subtle InBack
-    // ⚠️ Don't shrink _clipHeight here — clipContainer.height binds to it,
-    // would clip out the panel before scale animation can play
-    SequentialAnimation {
-        id: hideAnim
-
-        ParallelAnimation {
-            NumberAnimation {
-                target: popupSurface
-                property: "opacity"
-                to: 0
-                duration: Enums.popupMetrics.hideOpacityDuration
-                easing.type: Easing.InQuad
-            }
-            NumberAnimation {
-                target: control
-                property: "_scale"
-                to: control.verticalCenterExpand ? 0 : 0.85
-                duration: Enums.popupMetrics.hideScaleDuration
-                easing.type: control.verticalCenterExpand ? Easing.InCubic : Easing.InBack
-                easing.overshoot: 1.2
-            }
-        }
-
-        ScriptAction {
-            script: {
-                if (control._usesControlsPopup) inlinePopup.close()
-                else if (control._popupWindow) control._popupWindow.hide()
-                control.isClosing = false
-                control._clipHeight = 0  // [Anim C] reset for next show
-            }
-        }
+        control: control
+        surface: popupSurface
+        usesControlsPopup: control._usesControlsPopup
+        inlinePopup: inlinePopup
+        popupWindow: control._popupWindow
     }
     
     PopupPositionTracker {

@@ -21,6 +21,15 @@ METRICS_SOURCE = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 POPUP_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "utils" / "PopupWindowCore.qml"
 )
+ANIMATIONS_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "utils"
+    / "_internal"
+    / "PopupAnimations.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "popup-window-animation-metrics.qml")
 )
@@ -235,13 +244,11 @@ def test_popup_shadow_tracks_panel_geometry_not_animation_clip(qapp):
 
 def test_popup_window_animation_source_uses_role_tokens():
     metrics_source = METRICS_SOURCE.read_text(encoding="utf-8")
-    popup_source = POPUP_SOURCE.read_text(encoding="utf-8")
+    animation_source = ANIMATIONS_SOURCE.read_text(encoding="utf-8")
     metrics_block = metrics_source.split(
         "readonly property QtObject popup: QtObject {", 1
     )[1].split("// ==================== InfoBar", 1)[0]
-    animation_block = popup_source.split("id: showAnim", 1)[1].split(
-        "id: showAnimTimer", 1
-    )[0]
+    animation_block = animation_source
 
     for declaration in (
         "readonly property int showOpacityDuration: 120",
