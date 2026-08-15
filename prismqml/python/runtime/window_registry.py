@@ -5,7 +5,7 @@
 
 """Window engine and QML dependency setup. 窗口引擎与 QML 依赖装配。"""
 
-from ..providers import get_svg_provider
+from .provider_services import get_svg_provider
 from .context_registry import (
     FULL_CONTEXT_REGISTRATION,
     WINDOW_CONTEXT_REGISTRATION,

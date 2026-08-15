@@ -43,13 +43,13 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 
-from prismqml.python.core import (
-    installDwmSyncFilter,
-    install_qt_message_handler,
-    register_types,
-)
+from prismqml import register_types
+from prismqml.python.core import install_qt_message_handler
 from prismqml.python.config import applyDpiScale
-from prismqml.python.providers import get_svg_provider
+from prismqml.python.runtime import (
+    get_svg_provider,
+    install_application_dwm_filter,
+)
 from examples.resources import GALLERY_RCC_PATH, register_gallery_resources
 
 # 注册二进制资源文件(QML 通过 qrc:/ 访问图片等)
@@ -84,7 +84,7 @@ def main():
     
     # 安装DWM同步过滤器（解决resize撕裂问题）
     # Install DWM sync filter (fix resize tearing)
-    installDwmSyncFilter()
+    install_application_dwm_filter()
     log_time("DWM同步过滤器安装完成")
     
     # 将QML/Qt日志重定向到项目logger

@@ -39,7 +39,7 @@ class LazyQRCodeGenerator(QObject):
 
     def _ensure_generator(self):
         if self._generator is None:
-            from ..providers.qrcode_generator import get_qrcode_generator
+            from .provider_services import get_qrcode_generator
 
             self._generator = get_qrcode_generator()
         return self._generator
@@ -49,7 +49,7 @@ class LazyQRCodeGenerator(QObject):
             return
         if self._engine is None:
             raise RuntimeError("QML engine is no longer available")
-        from ..providers.qrcode_generator import get_qrcode_provider
+        from .provider_services import get_qrcode_provider
 
         register_image_provider_once(
             self._engine, "qrcode", get_qrcode_provider
@@ -99,7 +99,7 @@ class LazyScreenEyedropperManager(QObject):
 
     def _ensure_manager(self):
         if self._manager is None:
-            from ..providers.screen_eyedropper import get_screen_eyedropper_manager
+            from .provider_services import get_screen_eyedropper_manager
 
             self._manager = get_screen_eyedropper_manager()
         if not self._connected:

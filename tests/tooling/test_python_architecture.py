@@ -498,6 +498,65 @@ def test_shadow_manager_access_has_one_runtime_owner():
     assert violations == []
 
 
+def test_optional_provider_factories_have_one_runtime_owner():
+    root_init = REPO_ROOT / "prismqml" / "__init__.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    provider_services = PYTHON_PACKAGE / "runtime" / "provider_services.py"
+    lazy_context = PYTHON_PACKAGE / "runtime" / "lazy_context.py"
+    window_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
+    example = REPO_ROOT / "examples" / "main.py"
+    root_exports = _lazy_exports(root_init)
+    runtime_exports = _lazy_exports(runtime_init)
+    provider_names = (
+        "get_qrcode_generator",
+        "get_qrcode_provider",
+        "get_screen_eyedropper_manager",
+        "get_svg_provider",
+    )
+
+    for name in provider_names:
+        assert root_exports[name] == (".python.runtime", name)
+        assert runtime_exports[name] == (".provider_services", name)
+        assert name in _function_names(provider_services)
+
+    provider_imports = {
+        target for _line, target in _resolved_imports(provider_services)
+    }
+    assert {
+        "prismqml.python.providers.qrcode_generator.get_qrcode_generator",
+        "prismqml.python.providers.qrcode_generator.get_qrcode_provider",
+        "prismqml.python.providers.screen_eyedropper.get_screen_eyedropper_manager",
+        "prismqml.python.providers.svg_provider.get_svg_provider",
+    } <= provider_imports
+
+    lazy_imports = {target for _line, target in _resolved_imports(lazy_context)}
+    assert {
+        "prismqml.python.runtime.provider_services.get_qrcode_generator",
+        "prismqml.python.runtime.provider_services.get_qrcode_provider",
+        "prismqml.python.runtime.provider_services.get_screen_eyedropper_manager",
+    } <= lazy_imports
+    assert not {
+        "prismqml.python.providers.qrcode_generator.get_qrcode_generator",
+        "prismqml.python.providers.qrcode_generator.get_qrcode_provider",
+        "prismqml.python.providers.screen_eyedropper.get_screen_eyedropper_manager",
+    } & lazy_imports
+
+    window_imports = {
+        target for _line, target in _resolved_imports(window_registry)
+    }
+    assert "prismqml.python.runtime.provider_services.get_svg_provider" in (
+        window_imports
+    )
+    assert "prismqml.python.providers.svg_provider.get_svg_provider" not in (
+        window_imports
+    )
+
+    example_imports = {target for _line, target in _resolved_imports(example)}
+    assert "prismqml.python.runtime.get_svg_provider" in example_imports
+    assert "prismqml.python.providers.get_svg_provider" not in example_imports
+    assert "prismqml.python.core.register_types" not in example_imports
+
+
 def test_window_helper_access_has_one_runtime_owner():
     root_init = REPO_ROOT / "prismqml" / "__init__.py"
     runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"

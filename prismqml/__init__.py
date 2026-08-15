@@ -183,8 +183,8 @@ _LAZY_EXPORTS = {
     # QRCode
     "QRCodeGenerator": (".python.providers.qrcode_generator", "QRCodeGenerator"),
     "QRCodeImageProvider": (".python.providers.qrcode_generator", "QRCodeImageProvider"),
-    "get_qrcode_generator": (".python.providers.qrcode_generator", "get_qrcode_generator"),
-    "get_qrcode_provider": (".python.providers.qrcode_generator", "get_qrcode_provider"),
+    "get_qrcode_generator": (".python.runtime", "get_qrcode_generator"),
+    "get_qrcode_provider": (".python.runtime", "get_qrcode_provider"),
     # Mica & Acrylic
     "MicaManager": (".python.window.mica_window", "MicaManager"),
     "get_mica_manager": (".python.runtime", "get_mica_manager"),
@@ -193,13 +193,13 @@ _LAZY_EXPORTS = {
     "get_acrylic_helper": (".python.runtime", "get_acrylic_helper"),
     # Screen Eyedropper
     "ScreenEyedropperManager": (".python.providers.screen_eyedropper", "ScreenEyedropperManager"),
-    "get_screen_eyedropper_manager": (".python.providers.screen_eyedropper", "get_screen_eyedropper_manager"),
+    "get_screen_eyedropper_manager": (".python.runtime", "get_screen_eyedropper_manager"),
     # Clipboard
     "ClipboardHelper": (".python.providers.clipboard", "ClipboardHelper"),
     "get_clipboard_helper": (".python.runtime", "get_clipboard_helper"),
     # SVG
     "SvgImageProvider": (".python.providers.svg_provider", "SvgImageProvider"),
-    "get_svg_provider": (".python.providers.svg_provider", "get_svg_provider"),
+    "get_svg_provider": (".python.runtime", "get_svg_provider"),
     # SystemTray
     "SystemTrayIcon": (".python.window.system_tray", "SystemTrayIcon"),
     "MessageIcon": (".python.window.system_tray", "MessageIcon"),
