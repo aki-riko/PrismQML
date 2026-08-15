@@ -3,7 +3,6 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import QtQuick.Shapes
 import "../.."
 
 // TimelineGraphLayer - Generic per-row graph renderer 通用时间线逐行图渲染器
@@ -83,6 +82,20 @@ Item {
             readonly property real curveMiddleY: (curveStartY + curveEndY) / 2
             readonly property color segmentColor: control._colorFor((modelData || {}).colorIndex)
 
+            function _paintCurve(ctx, pathFromX, pathToX, pathStartY,
+                    pathEndY, pathMiddleY, pathColor) {
+                ctx.clearRect(0, 0, width, height)
+                ctx.beginPath()
+                ctx.moveTo(pathFromX, pathStartY)
+                ctx.bezierCurveTo(
+                    pathFromX, pathMiddleY, pathToX, pathMiddleY, pathToX, pathEndY)
+                ctx.lineWidth = control._strokeWidth
+                ctx.lineCap = "butt"
+                ctx.lineJoin = "round"
+                ctx.strokeStyle = pathColor
+                ctx.stroke()
+            }
+
             width: control.width
             height: control.height
 
@@ -97,38 +110,30 @@ Item {
                 color: segmentItem.segmentColor
             }
 
-            Shape {
+            Canvas {
+                id: canvas
+                property real pathFromX: segmentItem.fromX
+                property real pathToX: segmentItem.toX
+                property real pathStartY: segmentItem.curveStartY
+                property real pathEndY: segmentItem.curveEndY
+                property real pathMiddleY: segmentItem.curveMiddleY
+                property color pathColor: segmentItem.segmentColor
+
                 anchors.fill: parent
                 visible: segmentItem.fromX !== segmentItem.toX
-                preferredRendererType: Shape.CurveRenderer
-
-                ShapePath {
-                    startX: segmentItem.fromX
-                    startY: segmentItem.startY
-                    strokeWidth: control._strokeWidth
-                    strokeColor: segmentItem.segmentColor
-                    fillColor: Enums.transparent
-                    capStyle: ShapePath.FlatCap
-
-                    PathLine {
-                        x: segmentItem.fromX
-                        y: segmentItem.curveStartY
-                    }
-
-                    PathCubic {
-                        x: segmentItem.toX
-                        y: segmentItem.curveEndY
-                        control1X: segmentItem.fromX
-                        control1Y: segmentItem.curveMiddleY
-                        control2X: segmentItem.toX
-                        control2Y: segmentItem.curveMiddleY
-                    }
-
-                    PathLine {
-                        x: segmentItem.toX
-                        y: segmentItem.endY
-                    }
-                }
+                antialiasing: true
+                onPaint: segmentItem._paintCurve(
+                    getContext("2d"), pathFromX, pathToX, pathStartY,
+                    pathEndY, pathMiddleY, pathColor)
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
+                onVisibleChanged: if (visible) requestPaint()
+                onPathFromXChanged: requestPaint()
+                onPathToXChanged: requestPaint()
+                onPathStartYChanged: requestPaint()
+                onPathEndYChanged: requestPaint()
+                onPathMiddleYChanged: requestPaint()
+                onPathColorChanged: requestPaint()
             }
 
             Rectangle {
