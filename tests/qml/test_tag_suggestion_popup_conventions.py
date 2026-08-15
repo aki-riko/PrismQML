@@ -7,10 +7,19 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QObject,
+    Qt,
+    QTimer,
+    QUrl,
+)
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -28,6 +37,7 @@ POPUP_SOURCE_PATH = (
     / "TagSuggestionPopup.qml"
 )
 TAG_LINE_EDIT_SOURCE_PATH = POPUP_SOURCE_PATH.parent.parent / "TagLineEdit.qml"
+TAG_KEYBOARD_SOURCE_PATH = POPUP_SOURCE_PATH.parent / "TagKeyboardController.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "tag-suggestion-popup-runtime.qml")
 )
@@ -117,6 +127,20 @@ def _tag_line_edit(tag_input: QQuickItem) -> QQuickItem:
     ]
     assert len(matches) == 1, [item.metaObject().className() for item in matches]
     return matches[0]
+
+
+def _suggestion_delegates() -> list[QQuickItem]:
+    result = []
+    for window in QGuiApplication.topLevelWindows():
+        if not window.isVisible() or window.contentItem() is None:
+            continue
+        result.extend(
+            item
+            for item in _visual_descendants(window.contentItem())
+            if item.metaObject().indexOfProperty("itemText") >= 0
+            and item.metaObject().indexOfProperty("selected") >= 0
+        )
+    return result
 
 
 def _variant(value):
@@ -298,6 +322,80 @@ def test_tag_line_edit_keeps_only_first_eight_eligible_suggestions(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_tag_suggestion_popup_keyboard_navigation_accept_and_escape(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, tag_input, warnings = _create_scene()
+    try:
+        popup = _popup_core(tag_input)
+        tag_edit = _tag_line_edit(tag_input)
+        text_input = tag_input.property("textInput")
+        text_input.forceActiveFocus()
+        assert _wait_for(lambda: text_input.property("activeFocus"))
+
+        QTest.keyClick(window, Qt.Key.Key_A)
+        assert _wait_for(lambda: popup.property("isOpen"))
+        QTest.keyClick(window, Qt.Key.Key_Down)
+        assert tag_edit.property("_suggestionIndex") == 0
+        QTest.keyClick(window, Qt.Key.Key_Down)
+        assert tag_edit.property("_suggestionIndex") == 1
+        assert _wait_for(
+            lambda: [
+                item.property("itemText")
+                for item in _suggestion_delegates()
+                if item.property("selected")
+            ]
+            == ["Beta"]
+        )
+        QTest.keyClick(window, Qt.Key.Key_Return)
+        assert _wait_for(lambda: _variant(tag_input.property("tags")) == ["Beta"])
+        assert text_input.property("text") == ""
+        assert _wait_for(lambda: not popup.property("isOpen"))
+        assert _wait_for(lambda: not popup.property("isClosing"))
+        assert text_input.property("activeFocus")
+
+        tag_edit.clearTags()
+        window.requestActivate()
+        assert _wait_for(window.isActive)
+        QTest.keyClick(window, Qt.Key.Key_A)
+        assert text_input.property("text") == "a"
+        assert _wait_for(lambda: popup.property("isOpen"))
+        QTest.keyClick(window, Qt.Key.Key_Tab)
+        assert _wait_for(lambda: _variant(tag_input.property("tags")) == ["Alpha"])
+        assert _wait_for(lambda: not popup.property("isClosing"))
+
+        tag_edit.clearTags()
+        window.requestActivate()
+        assert _wait_for(window.isActive)
+        QTest.keyClick(window, Qt.Key.Key_A)
+        assert text_input.property("text") == "a"
+        assert _wait_for(lambda: popup.property("isOpen"))
+        QTest.keyClick(window, Qt.Key.Key_Escape)
+        assert text_input.property("text") == "a"
+        assert _wait_for(lambda: not popup.property("isOpen"))
+        QTest.keyClick(window, Qt.Key.Key_L)
+        assert text_input.property("text") == "al"
+        assert _wait_for(lambda: popup.property("isOpen"))
+        QTest.keyClick(window, Qt.Key.Key_Escape)
+        assert _wait_for(lambda: not popup.property("isOpen"))
+        text_input.setProperty("text", "")
+        QTest.keyClick(window, Qt.Key.Key_F4)
+        assert _wait_for(lambda: popup.property("isOpen"))
+        assert _variant(popup.property("listModel")) == ["Alpha", "Beta", "Gamma"]
+        QTest.keyClick(
+            window,
+            Qt.Key.Key_Up,
+            Qt.KeyboardModifier.AltModifier,
+        )
+        assert _wait_for(lambda: not popup.property("isOpen"))
+        assert warnings == []
+        assert _wait_for(
+            lambda: _new_visible_windows(windows_before, window) == []
+        )
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_tag_suggestion_popup_source_conventions():
     source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(POPUP_SOURCE_PATH.relative_to(ROOT).as_posix())
@@ -332,6 +430,14 @@ def test_tag_line_edit_source_conventions():
         violation
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
+    ] == []
+    keyboard_source = TAG_KEYBOARD_SOURCE_PATH.read_text(encoding="utf-8")
+    keyboard_path = PurePosixPath(TAG_KEYBOARD_SOURCE_PATH.relative_to(ROOT).as_posix())
+    keyboard_violations = scan_source_text(keyboard_source, keyboard_path)
+    assert [
+        violation
+        for violation in keyboard_violations
+        if violation.rule in {"QML008", "QML009", "QML010"}
     ] == []
 
 

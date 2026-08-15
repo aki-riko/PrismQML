@@ -18,6 +18,7 @@ Item {
     property var control  // Parent TagLineEdit 父标签输入框
     property var filteredItems: []
     property bool showSuggestions: false
+    property int currentIndex: -1
 
     // ==================== Internal Methods 内部方法 ====================
     // Handle item selection (called from TagLineEdit) 处理选项选择
@@ -76,6 +77,13 @@ Item {
         popupRadius: Enums.radius.large
         closeOnClickOutside: false  // Don't auto close, controlled by focus 不自动关闭，由焦点控制
         stealFocus: false  // Keep focus on input field 保持输入框焦点
+        onIsClosingChanged: {
+            // Reopen with the latest query when typing resumes during close.
+            // 关闭动画期间继续输入时，按最新查询重新打开。
+            if (!isClosing && root.showSuggestions && !isOpen && root.control) {
+                openAtControl(root.control)
+            }
+        }
 
         // ==================== Content 内容 ====================
         ListView {
@@ -90,6 +98,7 @@ Item {
             delegate: TagSuggestionDelegate {
                 width: ListView.view ? ListView.view.width : suggestionList.width
                 itemText: typeof modelData === 'string' ? modelData : (modelData.text || '')
+                selected: index === root.currentIndex
                 onItemClicked: function(text) {
                     popup.itemSelected(text)
                 }

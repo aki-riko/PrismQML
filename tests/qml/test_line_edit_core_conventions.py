@@ -126,6 +126,18 @@ def _text_input(control: QQuickItem) -> QQuickItem:
     return matches[0]
 
 
+def _tag_tokens(control: QQuickItem) -> list[QQuickItem]:
+    return sorted(
+        [
+            item
+            for item in _visual_descendants(control)
+            if item.metaObject().indexOfProperty("tokenIndex") >= 0
+            and item.metaObject().indexOfProperty("selected") >= 0
+        ],
+        key=lambda item: item.property("tokenIndex"),
+    )
+
+
 def _visible_descendant(control: QQuickItem, class_prefix: str) -> QQuickItem:
     matches = [
         item
@@ -351,12 +363,7 @@ def test_line_edit_core_tag_select_all_visual_and_clear(qapp):
         assert _wait_for(lambda: bool(text_input.property("activeFocus")))
 
         _pump()
-        tokens = [
-            item
-            for item in _visual_descendants(tag_control)
-            if item.metaObject().indexOfProperty("tokenIndex") >= 0
-            and item.metaObject().indexOfProperty("selected") >= 0
-        ]
+        tokens = _tag_tokens(tag_control)
         assert len(tokens) == 2
         QTest.keyClick(window, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
         assert _wait_for(lambda: all(item.property("selected") for item in tokens))

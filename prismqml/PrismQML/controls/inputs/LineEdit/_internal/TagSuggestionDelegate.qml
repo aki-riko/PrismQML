@@ -13,6 +13,7 @@ Rectangle {
     
     // ==================== Public Props 公开属性 ====================
     property string itemText: ""
+    property bool selected: false
     
     // ==================== Signals 信号 ====================
     signal itemClicked(string text)
@@ -22,8 +23,8 @@ Rectangle {
 
     // Visual style 视觉样式
     radius: Enums.radius.small
-    color: mouseArea.pressed ? Enums.stateColor.menuItemPressed 
-         : mouseArea.containsMouse ? Enums.stateColor.menuItemHover 
+    color: mouseArea.pressed ? Enums.stateColor.menuItemPressed
+         : (mouseArea.containsMouse || delegateRoot.selected) ? Enums.stateColor.menuItemHover
          : Enums.transparent
     
     // ==================== Content 内容 ====================

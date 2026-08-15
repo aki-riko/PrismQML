@@ -32,7 +32,6 @@ InputCore {
 
     // ==================== Internal Props 内部属性 ====================
     property bool _forceShowAll: false  // Force show all items 强制显示全部
-    property bool _allTagsSelected: false  // Keyboard select-all state 键盘全选标签状态
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var _safeTags:
@@ -44,6 +43,8 @@ InputCore {
     readonly property var _safeExtraSeparators:
         extraSeparators === null || extraSeparators === undefined ? []
         : (typeof extraSeparators.length === "number" ? extraSeparators : [])
+    readonly property bool _allTagsSelected: keyboardController.allTagsSelected
+    readonly property int _suggestionIndex: keyboardController.suggestionIndex
     // Filtered suggestions 过滤后的建议列表
     readonly property var _filteredItems: {
         var inputText = _forceShowAll ? "" : inputField.text.trim()
@@ -61,7 +62,8 @@ InputCore {
         }
         return result  // Max 8 items 最多8个
     }
-    readonly property bool _showSuggestions: _filteredItems.length > 0 && inputField.activeFocus
+    readonly property bool _showSuggestions: !keyboardController.suggestionsDismissed
+        && _filteredItems.length > 0 && inputField.activeFocus
     readonly property string _countText: maxTags > 0 ? _safeTags.length + "/" + maxTags : ""
 
     // ==================== Signals 信号 ====================
@@ -72,36 +74,26 @@ InputCore {
 
     // ==================== Public Methods 公开方法 ====================
     function addTag(text, icon) {
-        var trimmed = (text || "").trim()
-        if (!_canAcceptTag(trimmed)) return
-        // QML array needs reassign to trigger update QML数组重新赋值触发更新
-        var newTags = (_safeTags || []).slice()
-        newTags.push(trimmed)
-        tags = newTags
-        tagsModified(tags)
-        tagAdded(trimmed)
+        return keyboardController.addTag(text, true)
     }
 
     function clearTags() {
-        tags = []
-        tagsModified(tags)
+        return keyboardController.clearTags()
     }
 
     // ==================== Internal Methods 内部方法 ====================
     // Remove one tag and publish the same signals as the close button 删除单个标签并发送与关闭按钮相同的信号
     function _removeTagAt(index) {
-        var newTags = (_safeTags || []).slice()
-        if (index < 0 || index >= newTags.length) return false
-        var removed = newTags.splice(index, 1)[0]
-        tags = newTags
-        tagsModified(tags)
-        tagRemoved(index, removed)
-        return true
+        return keyboardController.removeTagAt(index)
     }
 
     // Remove the last tag for keyboard backspace 键盘退格删除最后一个标签
     function _removeLastTag() {
         return _removeTagAt(_safeTags.length - 1)
+    }
+
+    function _isTagSelected(index) {
+        return keyboardController.isTagSelected(index)
     }
 
     // All separator chars (primary + extras) 全部分隔符集合
@@ -128,25 +120,29 @@ InputCore {
 
     // Unified gate shared by addTag() and key/paste paths 统一校验闸门
     // 去重 / maxTags / allowCustomTags / validateTag 集中一处, 避免逻辑散落
-    function _canAcceptTag(text) {
+    function _canAcceptTagInList(text, currentTags) {
         if (!text) return false
-        if (maxTags > 0 && _safeTags.length >= maxTags) return false
-        if (_safeTags.indexOf(text) >= 0) return false  // Block duplicate 拒绝重复
+        if (maxTags > 0 && currentTags.length >= maxTags) return false
+        if (currentTags.indexOf(text) >= 0) return false  // Block duplicate 拒绝重复
         if (!allowCustomTags && !_isSuggested(text)) return false  // Only suggested 仅允许建议项
         if (validateTag && !validateTag(text)) return false  // User validation 用户校验
         return true
     }
 
+    function _canAcceptTag(text) {
+        return _canAcceptTagInList(text, _safeTags)
+    }
+
     // Split raw text by all separators and add each accepted segment 按分隔符拆分并批量添加
     // 用于粘贴 "a,b,c" 场景; 返回是否消费了输入 (含分隔符即消费)
-    function _addSplit(raw) {
+    function _splitRaw(raw) {
         var seps = _allSeparators()
-        if (!seps.length) return false
+        if (!seps.length) return null
         var hasSep = false
         for (var s = 0; s < seps.length; s++) {
             if (raw.indexOf(seps[s]) >= 0) { hasSep = true; break }
         }
-        if (!hasSep) return false
+        if (!hasSep) return null
         // Build a regex-safe split on any separator 用任一分隔符拆分
         var parts = [raw]
         for (var k = 0; k < seps.length; k++) {
@@ -156,13 +152,22 @@ InputCore {
             }
             parts = next
         }
-        for (var j = 0; j < parts.length; j++) addTag(parts[j])
+        return parts
+    }
+
+    function _addSplit(raw) {
+        var parts = _splitRaw(raw)
+        if (parts === null) return false
+        keyboardController.addTags(parts, true)
         return true
     }
 
     // Bind InputCore interaction state 绑定 InputCore 交互状态
     focused: inputField.activeFocus
     hovered: hoverHandler.hovered
+    onTagsChanged: {
+        if (!keyboardController.internalTagsChange) keyboardController.resetForExternalTags()
+    }
 
     // ==================== Size 尺寸 ====================
     implicitWidth: 300
@@ -170,6 +175,13 @@ InputCore {
     radius: Enums.surfaceRadius(Enums.radius.small)
 
     // ==================== Content 内容 ====================
+    TagKeyboardController {
+        id: keyboardController
+
+        control: control
+        editor: inputField
+    }
+
     Flow {
         id: tagsFlow
         // Keep tag close buttons above this nested InputCore interaction layer.
@@ -217,57 +229,19 @@ InputCore {
             verticalAlignment: Text.AlignVCenter
 
             onActiveFocusChanged: {
-                if (!activeFocus) control._allTagsSelected = false
+                if (!activeFocus) keyboardController.resetAfterFocusLoss()
             }
 
             onTextEdited: {
                 control._forceShowAll = false  // Reset when typing 输入时重置
-                control._allTagsSelected = false
+                keyboardController.resetAfterTextEdit()
                 // Paste/typed separators → split into multiple tags 粘贴或输入分隔符时拆分成多个标签
                 // (single-char separator keystroke also routes here; trailing empty segment is dropped)
                 if (control._addSplit(text)) text = ""
             }
 
             Keys.onPressed: (event) => {
-                var hasControl = (event.modifiers & Qt.ControlModifier) !== 0
-                // Ctrl+A on an empty buffer selects all tags for the next backspace.
-                // 空输入框按 Ctrl+A 后，下一次退格删除全部标签。
-                if (event.key === Qt.Key_A && hasControl && !text
-                        && control._safeTags.length > 0) {
-                    control._allTagsSelected = true
-                    event.accepted = true
-                    return
-                }
-
-                if (event.key === Qt.Key_Backspace) {
-                    if (control._allTagsSelected && !text) {
-                        control.clearTags()
-                        control._allTagsSelected = false
-                        event.accepted = true
-                        return
-                    }
-                    if (!text && control._safeTags.length > 0) {
-                        control._removeLastTag()
-                        event.accepted = true
-                        return
-                    }
-                }
-
-                control._allTagsSelected = false
-                // Enter/Return commits the current buffer; separators are handled in onTextEdited.
-                // Enter 提交当前缓冲; 分隔符拆分已在 onTextEdited 处理 (此处兜底 Enter)
-                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                    var trimmedText = text.trim()
-                    if (trimmedText) {
-                        // _canAcceptTag 统一处理 maxTags/去重/allowCustomTags/validateTag
-                        if (control._canAcceptTag(trimmedText)) {
-                            control.addTag(trimmedText)
-                            text = ""
-                        }
-                        // Rejected: keep text so user can fix 被拒时保留文本供修正
-                    }
-                    event.accepted = true
-                }
+                if (keyboardController.handleKey(event)) event.accepted = true
             }
 
             InputsInternal.InputPlaceholderLabel {
@@ -304,7 +278,7 @@ InputCore {
             anchors.verticalCenter: parent.verticalCenter
             onClicked: {
                 // Show all completion items 显示所有补全项
-                control._forceShowAll = true
+                keyboardController.showAllSuggestions()
                 inputField.forceActiveFocus()
                 control.searched(inputField.text)
             }
@@ -316,6 +290,7 @@ InputCore {
         control: control
         filteredItems: control._filteredItems
         showSuggestions: control._showSuggestions
+        currentIndex: keyboardController.suggestionIndex
     }
 
     // Hover and tap detection 悬浮与点击检测
