@@ -407,7 +407,28 @@ _internal/
 - **子模块**：用 `required property` 接收必需属性，通过信号向上传递事件
 - ❌ 入口文件实现具体功能 / 子模块直接访问父组件 / 创建上帝类
 
-### 5.3 qmldir 规范
+### 5.3 架构腐化治理（铁律）
+
+- 治理必须按可独立验证的小阶段推进；每个阶段只处理一个清晰的所有权边界，
+  不得顺手改变公开 API、交互、视觉、层级、动态加载策略或对象创建时序。
+- 组件入口只保留公开属性、信号、状态编排和公开方法；视觉树、内容委托或独立
+  功能分支应提取到 `_internal/`。子模块必须通过 `required property` 接收宿主，
+  跨边界对象必须用明确的 `property alias` 暴露，禁止复制状态或依赖父级内部 id。
+- 拆分动态 `Component`、`Loader` 或运行期 `createObject()` 路径时，必须保持原父
+  对象、同步/异步语义、首次创建条件、常驻/销毁策略和 z 层关系；仅“能够创建”
+  不能证明生命周期与视觉未回归。
+- 源码合同测试必须迁移到真实的新所有者，禁止继续扫描已不持有实现的入口文件。
+  每个治理阶段必须在 `tests/tooling/test_qml_architecture.py` 增加防回流门禁，至少
+  锁定入口/helper 行数、helper 类型、`required property`、关键 alias 与入口中
+  不应再出现的实现标记。
+- 每阶段完成后必须执行相关的最小定向源码测试和真实 QML 运行时测试；涉及共享
+  视觉层时还必须覆盖受影响皮肤。测试统一经 `scripts/test_process.py` 启动，并在
+  Review 阶段执行 `git diff --check`、`git status --short --ignored`，确认无散落产物。
+- 独立阶段 Review 与定向测试全部通过后，立即提交并显式执行
+  `git push prism main`；不得积攒多个未审阶段后一次性提交，也不得用全仓测试替代
+  阶段边界验证。
+
+### 5.4 qmldir 规范
 - 根 `qmldir` 注册 `Enums` 为 singleton（`module PrismQML`）
 - 子目录 `qmldir` 不再注册枚举文件，组件按功能分类注册
 
