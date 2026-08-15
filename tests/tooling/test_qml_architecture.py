@@ -373,6 +373,31 @@ def test_line_chart_content_keeps_canvas_modularized():
     assert "function paintMultiSeries(" not in source
 
 
+def test_boxplot_chart_content_keeps_canvas_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/BoxplotChartContent.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/BoxplotChartCanvas.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 250
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 350
+    assert "BoxplotChartCanvas {" in source
+    assert "boxplotControl: root" in source
+    assert "required property var boxplotControl" in helper_source
+    assert "readonly property var control: boxplotControl" in helper_source
+    assert "function paintVertical(" in helper_source
+    assert "function paintHorizontal(" in helper_source
+    assert "Geometry.paintRange(" in helper_source
+    assert "\n    Canvas {" not in source
+    assert "function paintVertical(" not in source
+    assert "function paintHorizontal(" not in source
+
+
 def test_xy_chart_core_keeps_axes_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/XYChartCore.qml"

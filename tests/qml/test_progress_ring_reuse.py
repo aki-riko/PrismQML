@@ -63,7 +63,7 @@ RING_CONSUMERS = (
 NON_PROGRESS_ARC_SOURCES = {
     "_internal/ContentFrame.qml",
     "controls/data/Avatar/Avatar.qml",
-    "controls/data/Chart/_internal/BoxplotChartContent.qml",
+    "controls/data/Chart/_internal/BoxplotChartCanvas.qml",
     "controls/data/Chart/_internal/PieChartContent.qml",
     "controls/data/Chart/_internal/RadarChartContent.qml",
     "controls/data/Chart/_internal/ScatterChartContent.qml",
