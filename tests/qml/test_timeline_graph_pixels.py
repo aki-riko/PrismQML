@@ -18,6 +18,7 @@ BOUNDARY_PROBE = r'''
 from pathlib import Path
 
 from PySide6.QtCore import QEventLoop, QPointF, QTimer, QUrl
+from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtWidgets import QApplication
@@ -54,29 +55,41 @@ Window {
         width: 380
         height: 380
         type: Enums.timeline.type_graph
-        graphLaneCount: 1
-        graphPalette: ["#0078d4"]
+        graphLaneCount: 2
+        graphPalette: ["#0078d4", "#107c10"]
         items: [{
             "title": "Graph",
             "graph": {"segments": [
                 {"fromLane": 0, "toLane": 0, "colorIndex": 0}
             ]},
             "cards": [
-                {"text": "One", "graph": {"nodeLane": 0,
+                {"text": "Branch", "graph": {"nodeLane": 0,
                     "nodeColorIndex": 0, "segments": [
-                        {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0,
+                            "endAtNode": true},
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0,
+                            "startAtNode": true},
+                        {"fromLane": 0, "toLane": 1, "colorIndex": 1,
+                            "startAtNode": true}
                     ]}},
                 {"text": "Two", "graph": {"nodeLane": 0,
                     "nodeColorIndex": 0, "segments": [
-                        {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0},
+                        {"fromLane": 1, "toLane": 1, "colorIndex": 1}
                     ]}},
                 {"text": "Three", "graph": {"nodeLane": 0,
                     "nodeColorIndex": 0, "segments": [
-                        {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0},
+                        {"fromLane": 1, "toLane": 1, "colorIndex": 1}
                     ]}},
-                {"text": "Four", "graph": {"nodeLane": 0,
+                {"text": "Merge", "graph": {"nodeLane": 0,
                     "nodeColorIndex": 0, "segments": [
-                        {"fromLane": 0, "toLane": 0, "colorIndex": 0}
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0,
+                            "endAtNode": true},
+                        {"fromLane": 1, "toLane": 0, "colorIndex": 1,
+                            "endAtNode": true},
+                        {"fromLane": 0, "toLane": 0, "colorIndex": 0,
+                            "startAtNode": true}
                     ]}},
                 {"text": "Five", "graph": {"nodeLane": 0,
                     "nodeColorIndex": 0, "segments": [
@@ -170,7 +183,103 @@ for layer, boundary_y in boundaries:
         failures.append((boundary_y, interior_profile, junction_profiles))
 assert failures == [], (failures, scale, list_view.property("contentY"))
 
+branch_channel_tolerance = 2
+branch_edge_chroma_threshold = 8
+node_chroma_threshold = 40
+
+def max_channel_delta(left, right):
+    return max(
+        abs(((left >> shift) & 0xff) - ((right >> shift) & 0xff))
+        for shift in (0, 8, 16, 24)
+    )
+
+branch_failures = []
+branch_boundaries = []
+branch_stroke = QColor("#107c10").rgba()
+for current, following in zip(layer_rows, layer_rows[1:]):
+    current_layer, current_row = current
+    following_layer, following_row = following
+    current_bottom = current_row.mapToScene(QPointF(0, current_row.height())).y()
+    following_top = following_row.mapToScene(QPointF(0, 0)).y()
+    if abs(current_bottom - following_top) >= 0.01:
+        continue
+    current_data = current_layer.property("graphData") or {}
+    following_data = following_layer.property("graphData") or {}
+    current_segments = current_data.get("segments", [])
+    following_segments = following_data.get("segments", [])
+    curve_before = any(
+        segment.get("colorIndex") == 1
+        and segment.get("fromLane") != segment.get("toLane")
+        and not segment.get("endAtNode", False)
+        for segment in current_segments
+    )
+    curve_after = any(
+        segment.get("colorIndex") == 1
+        and segment.get("fromLane") != segment.get("toLane")
+        and not segment.get("startAtNode", False)
+        for segment in following_segments
+    )
+    if not curve_before and not curve_after:
+        continue
+    branch_boundaries.append((current_layer, current_bottom, curve_before))
+
+assert len(branch_boundaries) == 2, branch_boundaries
+for layer, boundary_y, curve_before in branch_boundaries:
+    lane_x = layer.mapToScene(QPointF(32, 0)).x()
+    sample_x = round(lane_x * scale)
+    boundary = round(boundary_y * scale)
+    profile_radius = 4
+
+    def branch_profile(sample_y):
+        return [
+            image.pixelColor(sample_point, sample_y).rgba()
+            for sample_point in range(
+                sample_x - profile_radius, sample_x + profile_radius + 1
+            )
+        ]
+
+    interior_offset = 6 if curve_before else -6
+    interior_profile = branch_profile(boundary + interior_offset)
+    junction_profiles = [
+        branch_profile(sample_y)
+        for sample_y in range(boundary - 1, boundary + 2)
+    ]
+
+    def branch_stroke_mask(profile):
+        return [
+            ((color >> 8) & 0xff)
+            - max((color >> 16) & 0xff, color & 0xff)
+            > branch_edge_chroma_threshold
+            for color in profile
+        ]
+
+    interior_mask = branch_stroke_mask(interior_profile)
+    mismatched_profiles = [
+        profile
+        for profile in junction_profiles
+        if branch_stroke_mask(profile) != interior_mask
+        or any(
+            max_channel_delta(color, branch_stroke) > branch_channel_tolerance
+            for color, is_stroke in zip(profile, branch_stroke_mask(profile))
+            if is_stroke
+        )
+    ]
+    if mismatched_profiles:
+        branch_failures.append(
+            (boundary_y, curve_before, interior_profile, mismatched_profiles)
+        )
+assert branch_failures == [], (
+    branch_failures,
+    scale,
+    list_view.property("contentY"),
+)
+
 node_failures = []
+
+def is_graph_pixel(color):
+    channels = ((color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff)
+    return max(channels) - min(channels) > node_chroma_threshold
+
 for layer, _row in layer_rows:
     if not layer.property("showNode"):
         continue
@@ -181,13 +290,12 @@ for layer, _row in layer_rows:
     sample_x = round(lane_x * scale)
     sample_y = round(node_y * scale)
     sample_span = round(9 * scale)
-    expected = image.pixelColor(sample_x, sample_y).rgba()
     profile = [
         image.pixelColor(sample_x, point_y).rgba()
         for point_y in range(sample_y - sample_span, sample_y + sample_span + 1)
     ]
-    if any(color != expected for color in profile):
-        node_failures.append((node_y, expected, profile))
+    if any(not is_graph_pixel(color) for color in profile):
+        node_failures.append((node_y, profile))
 assert node_failures == [], (node_failures, scale, list_view.property("contentY"))
 assert warnings == [], warnings
 print(

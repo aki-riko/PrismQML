@@ -22,6 +22,12 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property real _strokeWidth: Enums.border.normal
+    readonly property real _halfStrokeWidth: _strokeWidth / 2
+    readonly property real _curveTerminalLength: Enums.spacing.xs
+    readonly property real _devicePixelRatio: Math.max(
+        1, DpiManager.devicePixelRatio || 1)
+    readonly property int _strokePixelCount: Math.max(
+        1, Math.round(_strokeWidth * _devicePixelRatio))
     readonly property real _nodeRadius: Enums.controlSize.timelineGraphNode / 2
     readonly property real _nodeOuterRadius: _nodeRadius + _strokeWidth
     readonly property real _nodeX: _laneX((graphData || {}).nodeLane)
@@ -39,9 +45,13 @@ Item {
 
     function _laneX(lane) {
         var safeLane = Math.max(0, Number(lane) || 0)
-        return Enums.spacing.timelineGraphPadding
+        var laneCenter = Enums.spacing.timelineGraphPadding
             + Enums.spacing.timelineGraphLane / 2
             + safeLane * Enums.spacing.timelineGraphLane
+        // Center odd-pixel strokes on physical half-pixels. 奇数物理像素描边对齐半像素中心。
+        var physicalPhase = control._strokePixelCount % 2 === 0 ? 0 : 0.5
+        return (Math.round(laneCenter * control._devicePixelRatio - physicalPhase)
+            + physicalPhase) / control._devicePixelRatio
     }
 
     function _colorFor(index) {
@@ -64,7 +74,13 @@ Item {
             readonly property real toX: control._laneX((modelData || {}).toLane)
             readonly property real startY: (modelData || {}).startAtNode ? control.nodeY : 0
             readonly property real endY: (modelData || {}).endAtNode ? control.nodeY : height
-            readonly property real middleY: (startY + endY) / 2
+            readonly property real terminalLength: Math.min(
+                control._curveTerminalLength, Math.max(0, (endY - startY) / 4))
+            readonly property real curveStartY: startY
+                + ((modelData || {}).startAtNode ? 0 : terminalLength)
+            readonly property real curveEndY: endY
+                - ((modelData || {}).endAtNode ? 0 : terminalLength)
+            readonly property real curveMiddleY: (curveStartY + curveEndY) / 2
             readonly property color segmentColor: control._colorFor((modelData || {}).colorIndex)
 
             width: control.width
@@ -94,15 +110,43 @@ Item {
                     fillColor: Enums.transparent
                     capStyle: ShapePath.FlatCap
 
+                    PathLine {
+                        x: segmentItem.fromX
+                        y: segmentItem.curveStartY
+                    }
+
                     PathCubic {
                         x: segmentItem.toX
-                        y: segmentItem.endY
+                        y: segmentItem.curveEndY
                         control1X: segmentItem.fromX
-                        control1Y: segmentItem.middleY
+                        control1Y: segmentItem.curveMiddleY
                         control2X: segmentItem.toX
-                        control2Y: segmentItem.middleY
+                        control2Y: segmentItem.curveMiddleY
+                    }
+
+                    PathLine {
+                        x: segmentItem.toX
+                        y: segmentItem.endY
                     }
                 }
+            }
+
+            Rectangle {
+                x: segmentItem.fromX - control._halfStrokeWidth
+                y: segmentItem.startY
+                width: control._strokeWidth
+                height: segmentItem.curveStartY - segmentItem.startY
+                visible: segmentItem.fromX !== segmentItem.toX && height > 0
+                color: segmentItem.segmentColor
+            }
+
+            Rectangle {
+                x: segmentItem.toX - control._halfStrokeWidth
+                y: segmentItem.curveEndY
+                width: control._strokeWidth
+                height: segmentItem.endY - segmentItem.curveEndY
+                visible: segmentItem.fromX !== segmentItem.toX && height > 0
+                color: segmentItem.segmentColor
             }
         }
     }
