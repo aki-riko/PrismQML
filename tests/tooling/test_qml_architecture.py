@@ -830,3 +830,40 @@ def test_filter_bar_core_keeps_visual_content_modularized():
         "Label {",
     ):
         assert marker not in source
+
+
+def test_audio_waveform_keeps_visual_content_modularized():
+    entry = _source("prismqml/PrismQML/controls/data/AudioWaveform.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/data/_internal/AudioWaveformContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 160
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 260
+    assert 'import "_internal" as DataInternal' in source
+    assert "DataInternal.AudioWaveformContent {" in source
+    assert "required property var waveformControl" in helper_source
+    assert "property alias waveformContainer: waveformContainer" in helper_source
+    assert "property alias mouseArea: mouseArea" in helper_source
+    assert helper_source.startswith(
+        "// Copyright 2026 aki-riko\n"
+        "// SPDX-License-Identifier: MIT\n"
+        "// This file is part of PrismQML, licensed under MIT.\n\n"
+        "import QtQuick\n"
+        "import \"../../..\"\n"
+        "import \"../../../effects\"\n\n"
+        "// AudioWaveformContent"
+    )
+    assert "ShadowedRectangle {" in helper_source
+    assert helper_source.count("parent: waveformControl") == 2
+
+    for marker in (
+        "ShadowedRectangle {",
+        "Repeater {",
+        "MouseArea {",
+        "\n    Item {",
+    ):
+        assert marker not in source

@@ -33,6 +33,15 @@ SOURCE_PATH = (
     / "data"
     / "AudioWaveform.qml"
 )
+CONTENT_SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "data"
+    / "_internal"
+    / "AudioWaveformContent.qml"
+)
 SCENE_SOURCE = b"""import QtQuick
 import QtQuick.Window
 import PrismQML
@@ -218,8 +227,8 @@ def test_audio_waveform_progress_preserves_bar_opacity_groups(qapp):
 
 
 def test_audio_waveform_bar_caches_position_and_played_state():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("_dataIndex / control._safeWaveformData.length") == 1
+    source = CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
+    assert source.count("_dataIndex / waveformControl._safeWaveformData.length") == 1
     assert "readonly property int _dataIndex:" in source
     assert "readonly property real _positionRatio:" in source
     assert "readonly property bool _played:" in source
