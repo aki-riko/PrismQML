@@ -33,6 +33,8 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "Slider" / "SliderCore.qml"
 )
+DEFAULT_CONTENT_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "SliderDefaultContent.qml"
+SOURCE_PATHS = (SOURCE_PATH, DEFAULT_CONTENT_SOURCE_PATH)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "slider-core-conventions.qml")
 )
@@ -453,9 +455,11 @@ def test_slider_tooltip_lazy_first_hover_and_reuse(qapp):
 
 
 def test_slider_core_source_conventions():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
+    violations = []
+    for source_path in SOURCE_PATHS:
+        source = source_path.read_text(encoding="utf-8")
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(scan_source_text(source, path))
     assert [
         violation
         for violation in violations

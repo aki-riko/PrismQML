@@ -1077,3 +1077,33 @@ def test_expander_keeps_header_visuals_modularized():
         "\n            Icon {\n                icon: Enums.icon.chevron_down",
     ):
         assert marker not in source
+
+
+def test_slider_keeps_default_visual_content_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/Slider/SliderCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/Slider/_internal/"
+        "SliderDefaultContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 280
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 240
+    assert 'import "_internal" as SliderInternal' in source
+    assert "SliderInternal.SliderDefaultContent {" in source
+    assert "required property var sliderControl" in helper_source
+    assert "readonly property bool hovered" in helper_source
+    assert "sourceComponent: defaultSliderComponent" in source
+    assert "sourceComponent: rangeSliderComponent" in source
+
+    for marker in (
+        "\n            MouseArea {\n                id: wheelArea",
+        "\n                NeumorphicShadow {\n                    target: track",
+        "\n                MouseArea {\n                    id: handleArea",
+        "text: control._tipText(control.value)",
+    ):
+        assert marker not in source
