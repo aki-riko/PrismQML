@@ -137,7 +137,7 @@ _LAZY_EXPORTS = {
     "make_theme_icon": (".python.core.icon_core", "make_theme_icon"),
     "paint_icon": (".python.core.icon_core", "paint_icon"),
     "IconProvider": (".python.core.icon_provider", "IconProvider"),
-    "register_icon_provider": (".python.core.icon_provider", "register_icon_provider"),
+    "register_icon_provider": (".python.runtime", "register_icon_provider"),
     "get_icon_provider": (".python.core.icon_provider", "get_icon_provider"),
     "prepare_windows_icon": (
         ".python.core.application_icon",

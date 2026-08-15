@@ -5,9 +5,8 @@
 
 """Explicit Fluent icon path provider. 显式 Fluent 图标路径提供器。
 
-Usage:
-    from prismqml.python.core.icon_provider import register_icon_provider
-    register_icon_provider(engine)
+The QML context registration entrypoint is exposed by ``prismqml``. QML context
+注册入口由 ``prismqml`` 公开。
 
     // QML中使用 QML usage
     Icon.getPath("Add")
@@ -15,8 +14,6 @@ Usage:
 """
 
 from PySide6.QtCore import QObject, Slot
-from PySide6.QtQml import QQmlEngine
-
 from .utils import qml_path
 
 
@@ -58,9 +55,3 @@ class IconProvider(QObject):
 def get_icon_provider() -> IconProvider:
     """Return the process IconProvider singleton. 返回进程级单例。"""
     return IconProvider()
-
-
-def register_icon_provider(engine: QQmlEngine) -> None:
-    """Explicitly inject the Icon context property. 显式注入 Icon context。"""
-    provider = get_icon_provider()
-    engine.rootContext().setContextProperty("Icon", provider)
