@@ -13,11 +13,12 @@ from PySide6.QtCore import (
     QEventLoop,
     QMetaObject,
     QPoint,
+    QPointF,
     QTimer,
     QUrl,
     Qt,
 )
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QWheelEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -256,6 +257,23 @@ def _visual_descendants(item):
     return descendants
 
 
+def _send_wheel(window, item, delta):
+    position = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
+    global_position = QPointF(window.x() + position.x(), window.y() + position.y())
+    event = QWheelEvent(
+        position,
+        global_position,
+        QPoint(0, 0),
+        QPoint(0, delta),
+        Qt.MouseButton.NoButton,
+        Qt.KeyboardModifier.NoModifier,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    assert QGuiApplication.sendEvent(window, event)
+    return event
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -440,6 +458,70 @@ def test_timeline_virtual_scroll_to_start_tracks_dynamic_origin(timeline_scene):
         list_view.property("originY"), abs=1
     )
     assert handle.y() == pytest.approx(0, abs=1)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_virtual_wheel_bounces_at_both_boundaries_without_jitter(
+    timeline_scene,
+):
+    """Wheel overshoot must return once without boundary jitter. 滚轮越界须单次回弹且不抖动。"""
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    large_timeline = window.findChild(QQuickItem, "largeVirtualTimeline")
+    assert large_timeline is not None
+    list_view = next(
+        item
+        for item in large_timeline.findChildren(QQuickItem)
+        if item.objectName() == "timelineVirtualViewport"
+    )
+    helper = next(
+        item
+        for item in large_timeline.findChildren(QQuickItem)
+        if "SmoothScrollHelper" in item.metaObject().className()
+    )
+    assert _wait_for(
+        lambda: list_view.property("count")
+        == window.property("largeVirtualFlatCount")
+        and helper.property("maxScroll") > helper.property("minScroll")
+    )
+
+    for at_start, wheel_delta in ((True, 120), (False, -120)):
+        method = "scrollToStart" if at_start else "scrollToEnd"
+        boundary_name = "minScroll" if at_start else "maxScroll"
+        assert QMetaObject.invokeMethod(helper, method)
+        assert _wait_for(
+            lambda: list_view.property("contentY")
+            == pytest.approx(helper.property(boundary_name), abs=0.5)
+            and not helper.property("isOvershot")
+        )
+        boundary = float(helper.property(boundary_name))
+        maximum_overshoot = float(helper.property("_maxOvershoot"))
+        values = []
+        list_view.contentYChanged.connect(
+            lambda bucket=values: bucket.append(
+                float(list_view.property("contentY")))
+        )
+
+        event = _send_wheel(window, list_view, wheel_delta)
+        assert event.isAccepted()
+        crossed = (lambda value: value < boundary) if at_start else (
+            lambda value: value > boundary
+        )
+        assert _wait_for(lambda: any(crossed(value) for value in values))
+        assert all(abs(value - boundary) <= maximum_overshoot + 0.5 for value in values)
+        assert _wait_for(
+            lambda: list_view.property("contentY")
+            == pytest.approx(boundary, abs=0.5)
+            and not helper.property("isOvershot"),
+            timeout_ms=3000,
+        )
+        settled_index = len(values)
+        _pump(300)
+        assert all(
+            value == pytest.approx(boundary, abs=0.5)
+            for value in values[settled_index:]
+        ), values
+
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
