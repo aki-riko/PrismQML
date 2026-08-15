@@ -350,6 +350,29 @@ def test_bar_chart_keeps_single_series_delegate_modularized():
     assert entry.read_text(encoding="utf-8").count("BarChartBar {") == 2
 
 
+def test_line_chart_content_keeps_canvas_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/LineChartContent.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/LineChartCanvas.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 300
+    assert "LineChartCanvas {" in source
+    assert "lineControl: root" in source
+    assert "required property var lineControl" in helper_source
+    assert "function paintSingleSeries(" in helper_source
+    assert "function paintMultiSeries(" in helper_source
+    assert "\n    Canvas {" not in source
+    assert "function paintSingleSeries(" not in source
+    assert "function paintMultiSeries(" not in source
+
+
 def test_chart_view_keeps_render_layer_modularized():
     entry = _source("prismqml/PrismQML/controls/data/Chart/ChartView.qml")
     helper = _source(
