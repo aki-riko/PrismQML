@@ -28,12 +28,7 @@ MultiSelectToken {
     // Handle token removal 处理标签删除
     onRemoveClicked: (idx) => {
         var ctrl = tag.tagControl
-        if (!ctrl || !ctrl.tags) return
-        var removed = ctrl.tags[idx]
-        var newTags = ctrl.tags.slice()
-        newTags.splice(idx, 1)
-        ctrl.tags = newTags
-        ctrl.tagsModified(ctrl.tags)
-        ctrl.tagRemoved(idx, removed)
+        if (!ctrl || typeof ctrl._removeTagAt !== "function") return
+        ctrl._removeTagAt(idx)
     }
 }

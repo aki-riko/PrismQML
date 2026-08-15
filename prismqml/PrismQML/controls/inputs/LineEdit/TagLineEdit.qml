@@ -32,6 +32,7 @@ InputCore {
 
     // ==================== Internal Props 内部属性 ====================
     property bool _forceShowAll: false  // Force show all items 强制显示全部
+    property bool _allTagsSelected: false  // Keyboard select-all state 键盘全选标签状态
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var _safeTags:
@@ -87,6 +88,22 @@ InputCore {
     }
 
     // ==================== Internal Methods 内部方法 ====================
+    // Remove one tag and publish the same signals as the close button 删除单个标签并发送与关闭按钮相同的信号
+    function _removeTagAt(index) {
+        var newTags = (_safeTags || []).slice()
+        if (index < 0 || index >= newTags.length) return false
+        var removed = newTags.splice(index, 1)[0]
+        tags = newTags
+        tagsModified(tags)
+        tagRemoved(index, removed)
+        return true
+    }
+
+    // Remove the last tag for keyboard backspace 键盘退格删除最后一个标签
+    function _removeLastTag() {
+        return _removeTagAt(_safeTags.length - 1)
+    }
+
     // All separator chars (primary + extras) 全部分隔符集合
     function _allSeparators() {
         var list = (separator && separator.length) ? [separator] : []
@@ -199,14 +216,44 @@ InputCore {
             clip: true
             verticalAlignment: Text.AlignVCenter
 
+            onActiveFocusChanged: {
+                if (!activeFocus) control._allTagsSelected = false
+            }
+
             onTextEdited: {
                 control._forceShowAll = false  // Reset when typing 输入时重置
+                control._allTagsSelected = false
                 // Paste/typed separators → split into multiple tags 粘贴或输入分隔符时拆分成多个标签
                 // (single-char separator keystroke also routes here; trailing empty segment is dropped)
                 if (control._addSplit(text)) text = ""
             }
 
             Keys.onPressed: (event) => {
+                var hasControl = (event.modifiers & Qt.ControlModifier) !== 0
+                // Ctrl+A on an empty buffer selects all tags for the next backspace.
+                // 空输入框按 Ctrl+A 后，下一次退格删除全部标签。
+                if (event.key === Qt.Key_A && hasControl && !text
+                        && control._safeTags.length > 0) {
+                    control._allTagsSelected = true
+                    event.accepted = true
+                    return
+                }
+
+                if (event.key === Qt.Key_Backspace) {
+                    if (control._allTagsSelected && !text) {
+                        control.clearTags()
+                        control._allTagsSelected = false
+                        event.accepted = true
+                        return
+                    }
+                    if (!text && control._safeTags.length > 0) {
+                        control._removeLastTag()
+                        event.accepted = true
+                        return
+                    }
+                }
+
+                control._allTagsSelected = false
                 // Enter/Return commits the current buffer; separators are handled in onTextEdited.
                 // Enter 提交当前缓冲; 分隔符拆分已在 onTextEdited 处理 (此处兜底 Enter)
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
@@ -221,7 +268,6 @@ InputCore {
                     }
                     event.accepted = true
                 }
-                // Backspace should NOT remove tags, only X button can 退格键不应删除tag，只能通过X按钮删除
             }
 
             InputsInternal.InputPlaceholderLabel {

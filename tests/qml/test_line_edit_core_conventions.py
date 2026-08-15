@@ -311,6 +311,41 @@ def test_line_edit_core_tag_buttons_accept_real_mouse_click(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_line_edit_core_tag_keyboard_deletion(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_scene()
+    tag_control = controls["tagControl"]
+    text_input = tag_control.property("textInput")
+    removed = []
+    modified = []
+    tag_control.tagRemoved.connect(lambda index, tag: removed.append((index, tag)))
+    tag_control.tagsModified.connect(lambda tags: modified.append(_variant(tags)))
+    try:
+        tag_control.setProperty("tags", ["one", "two"])
+        text_input.forceActiveFocus()
+        assert _wait_for(lambda: bool(text_input.property("activeFocus")))
+
+        QTest.keyClick(window, Qt.Key.Key_Backspace)
+        assert _wait_for(lambda: _variant(tag_control.property("tags")) == ["one"])
+        assert removed == [(1, "two")]
+
+        text_input.setProperty("text", "x")
+        QTest.keyClick(window, Qt.Key.Key_Backspace)
+        assert text_input.property("text") == ""
+        assert _variant(tag_control.property("tags")) == ["one"]
+
+        tag_control.setProperty("tags", ["one", "two"])
+        QTest.keyClick(window, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
+        QTest.keyClick(window, Qt.Key.Key_Backspace)
+        assert _wait_for(lambda: _variant(tag_control.property("tags")) == [])
+        assert modified[-1] == []
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_line_edit_core_source_conventions_and_width_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
