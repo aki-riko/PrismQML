@@ -7,7 +7,7 @@
 import ast
 from pathlib import Path
 
-from prismqml.python.core import notification
+from prismqml.python.runtime import notification
 
 
 _SOURCE_PATH = Path(notification.__file__).resolve()

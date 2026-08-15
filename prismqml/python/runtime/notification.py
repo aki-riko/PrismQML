@@ -19,7 +19,7 @@ helper 全局单例缓存, 第一次调用时按需 lazy load。
 
 接入示例
 ========
-    from prismqml.python.core.notification import (
+    from prismqml.python.runtime.notification import (
         showDesktopWarning, showDesktopInfo, Position, Severity,
     )
     showDesktopWarning("标题", "消息内容")
@@ -35,8 +35,8 @@ from typing import Any, Mapping, Optional
 from PySide6.QtCore import QObject, QUrl, Qt, QMetaObject, Q_ARG, Slot
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
-from .engine import EngineManager
-from .logger import getLogger
+from ..core.engine import EngineManager
+from ..core.logger import getLogger
 
 _logger = getLogger("notification")
 

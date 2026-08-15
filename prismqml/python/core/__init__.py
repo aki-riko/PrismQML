@@ -59,16 +59,6 @@ __all__ = [
     "get_icon_provider",
     "prepare_windows_icon",
     "nuitka_icon_options",
-    # Notification (Python helper, 不需要业务方手撸 NotificationBridge.qml 胶水)
-    "NotificationPosition",
-    "NotificationSeverity",
-    "showDesktopNotification",
-    "showDesktopInfo",
-    "showDesktopSuccess",
-    "showDesktopWarning",
-    "showDesktopError",
-    "showDesktopInfoBar",
-    "closeAllDesktopNotifications",
     # Background tasks
     "PoolSubmitPolicy",
     "PoolTaskOptions",
@@ -142,16 +132,6 @@ _LAZY_EXPORTS = {
     "get_icon_provider": (".icon_provider", "get_icon_provider"),
     "prepare_windows_icon": (".application_icon", "prepare_windows_icon"),
     "nuitka_icon_options": (".application_icon", "nuitka_icon_options"),
-    # Notification
-    "NotificationPosition": (".notification", "Position"),
-    "NotificationSeverity": (".notification", "Severity"),
-    "showDesktopNotification": (".notification", "showDesktopNotification"),
-    "showDesktopInfo": (".notification", "showDesktopInfo"),
-    "showDesktopSuccess": (".notification", "showDesktopSuccess"),
-    "showDesktopWarning": (".notification", "showDesktopWarning"),
-    "showDesktopError": (".notification", "showDesktopError"),
-    "showDesktopInfoBar": (".notification", "showDesktopInfoBar"),
-    "closeAllDesktopNotifications": (".notification", "closeAllDesktopNotifications"),
     # Background tasks
     "PoolSubmitPolicy": (".task_runner", "PoolSubmitPolicy"),
     "PoolTaskOptions": (".task_runner", "PoolTaskOptions"),

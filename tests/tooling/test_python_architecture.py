@@ -361,3 +361,31 @@ def test_appearance_persistence_has_one_runtime_composition_owner():
             in imports
         )
         assert _named_function_calls(owner, "install_appearance_persistence")
+
+
+def test_notification_qml_helper_has_one_runtime_composition_owner():
+    core_notification = CORE_PACKAGE / "notification.py"
+    runtime_notification = PYTHON_PACKAGE / "runtime" / "notification.py"
+    core_init = CORE_PACKAGE / "__init__.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    core_exports = _lazy_exports(core_init)
+    runtime_exports = _lazy_exports(runtime_init)
+    runtime_imports = {
+        target for _line, target in _resolved_imports(runtime_notification)
+    }
+
+    assert not core_notification.exists()
+    assert runtime_notification.exists()
+    assert "NotificationPosition" not in core_exports
+    assert "NotificationSeverity" not in core_exports
+    assert "showDesktopInfo" not in core_exports
+    assert runtime_exports["NotificationPosition"] == (
+        ".notification",
+        "Position",
+    )
+    assert runtime_exports["showDesktopInfo"] == (
+        ".notification",
+        "showDesktopInfo",
+    )
+    assert "prismqml.python.core.engine.EngineManager" in runtime_imports
+    assert "prismqml.python.core.logger.getLogger" in runtime_imports

@@ -9,7 +9,7 @@ import shiboken6
 from PySide6.QtCore import QtMsgType, qInstallMessageHandler
 from PySide6.QtQml import QQmlApplicationEngine, qmlEngine
 
-from prismqml.python.core import notification
+from prismqml.python.runtime import notification
 from prismqml.python.core.engine import EngineManager
 from prismqml import register_types
 
@@ -20,6 +20,18 @@ _QT_FAILURE_TYPES = {
     QtMsgType.QtFatalMsg,
 }
 _OFFSCREEN_FONT_WARNING = "QFontDatabase: Cannot find font directory"
+
+
+def test_notification_helper_public_exports_live_in_runtime():
+    from prismqml.python.runtime import (
+        NotificationPosition,
+        NotificationSeverity,
+        showDesktopInfo,
+    )
+
+    assert NotificationPosition is notification.Position
+    assert NotificationSeverity is notification.Severity
+    assert showDesktopInfo is notification.showDesktopInfo
 
 
 def test_position_enum_matches_nine_grid_contract():

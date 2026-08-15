@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from prismqml.python.core import notification
+from prismqml.python.runtime import notification
 
 
 _DEFAULT = object()

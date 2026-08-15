@@ -7,12 +7,37 @@
 
 from importlib import import_module as _import_module
 
-__all__ = ["register_types", "register_icon_provider", "enable_auto_update"]
+__all__ = [
+    "register_types",
+    "register_icon_provider",
+    "enable_auto_update",
+    "NotificationPosition",
+    "NotificationSeverity",
+    "showDesktopNotification",
+    "showDesktopInfo",
+    "showDesktopSuccess",
+    "showDesktopWarning",
+    "showDesktopError",
+    "showDesktopInfoBar",
+    "closeAllDesktopNotifications",
+]
 
 _LAZY_EXPORTS = {
     "register_types": (".registry", "register_types"),
     "register_icon_provider": (".icon_registry", "register_icon_provider"),
     "enable_auto_update": (".auto_update", "enable_auto_update"),
+    "NotificationPosition": (".notification", "Position"),
+    "NotificationSeverity": (".notification", "Severity"),
+    "showDesktopNotification": (".notification", "showDesktopNotification"),
+    "showDesktopInfo": (".notification", "showDesktopInfo"),
+    "showDesktopSuccess": (".notification", "showDesktopSuccess"),
+    "showDesktopWarning": (".notification", "showDesktopWarning"),
+    "showDesktopError": (".notification", "showDesktopError"),
+    "showDesktopInfoBar": (".notification", "showDesktopInfoBar"),
+    "closeAllDesktopNotifications": (
+        ".notification",
+        "closeAllDesktopNotifications",
+    ),
 }
 
 
