@@ -177,6 +177,39 @@ def test_runtime_registration_has_one_composition_owner():
     )
 
 
+def test_icon_context_registration_has_one_composition_owner():
+    root_init = REPO_ROOT / "prismqml" / "__init__.py"
+    core_init = CORE_PACKAGE / "__init__.py"
+    core_icon_provider = CORE_PACKAGE / "icon_provider.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    runtime_icon_registry = PYTHON_PACKAGE / "runtime" / "icon_registry.py"
+    root_exports = _lazy_exports(root_init)
+    core_exports = _lazy_exports(core_init)
+    runtime_exports = _lazy_exports(runtime_init)
+
+    assert root_exports["register_icon_provider"] == (
+        ".python.runtime",
+        "register_icon_provider",
+    )
+    assert runtime_exports["register_icon_provider"] == (
+        ".icon_registry",
+        "register_icon_provider",
+    )
+    assert "register_icon_provider" not in _literal_assignment(core_init, "__all__")
+    assert "register_icon_provider" not in core_exports
+    assert "register_icon_provider" not in _function_names(core_icon_provider)
+    assert "register_icon_provider" in _function_names(runtime_icon_registry)
+
+    core_icon_calls = _literal_method_calls(core_icon_provider)
+    assert ("setContextProperty", "Icon") not in {
+        (method, name) for _line, method, name in core_icon_calls
+    }
+    assert ("setContextProperty", "Icon") in {
+        (method, name)
+        for _line, method, name in _literal_method_calls(runtime_icon_registry)
+    }
+
+
 def test_window_runtime_composition_has_one_owner():
     builder = WINDOW_PACKAGE / "_window_builder.py"
     runtime_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
