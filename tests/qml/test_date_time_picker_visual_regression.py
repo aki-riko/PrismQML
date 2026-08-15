@@ -10,6 +10,7 @@ import pytest
 from PySide6.QtCore import (
     Q_ARG,
     QEventLoop,
+    QLocale,
     QMetaObject,
     QObject,
     QPoint,
@@ -130,14 +131,22 @@ def _variant(value):
 
 
 def _use_language(root, language, auto_resolved=False):
+    previous_locale = QLocale() if auto_resolved else None
     if auto_resolved:
-        assert QMetaObject.invokeMethod(root, "useAutoResolvedChinese")
-        assert root.property("selectedLanguage") == "auto"
-    else:
-        assert QMetaObject.invokeMethod(
-            root, "useLanguage", Q_ARG("QVariant", language)
-        )
-    assert _wait_for(lambda: root.property("resolvedLanguage") == language)
+        # Keep auto-resolution deterministic across developer and CI locales.
+        QLocale.setDefault(QLocale(language))
+    try:
+        if auto_resolved:
+            assert QMetaObject.invokeMethod(root, "useAutoResolvedChinese")
+            assert root.property("selectedLanguage") == "auto"
+        else:
+            assert QMetaObject.invokeMethod(
+                root, "useLanguage", Q_ARG("QVariant", language)
+            )
+        assert _wait_for(lambda: root.property("resolvedLanguage") == language)
+    finally:
+        if previous_locale is not None:
+            QLocale.setDefault(previous_locale)
 
 
 def _create_scene():
