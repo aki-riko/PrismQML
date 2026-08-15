@@ -694,3 +694,37 @@ def test_infobar_core_keeps_visual_content_modularized():
         "\n    Component {",
     ):
         assert marker not in source
+
+
+def test_toast_keeps_visual_content_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/Toast.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/ToastContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 250
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 400
+    assert 'import "_internal" as NotificationInternal' in source
+    assert "NotificationInternal.ToastContent {" in source
+    assert "required property var toast" in helper_source
+    assert "property alias customContent: customContentLoader.sourceComponent" in helper_source
+    assert "readonly property real calculatedContentWidth" in helper_source
+    assert "readonly property real horizontalHeight" in helper_source
+    assert "readonly property real verticalHeight" in helper_source
+
+    for marker in (
+        "RectangularShadow {",
+        "NeumorphicShadow {",
+        "NeoShadow {",
+        "CloseButton {",
+        "ProgressBar {",
+        "ProgressRing {",
+        "\n    Loader {",
+        "\n    Component {",
+    ):
+        assert marker not in source

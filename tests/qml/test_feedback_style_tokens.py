@@ -24,6 +24,16 @@ TOAST_SOURCE = (
     / "Notification"
     / "Toast.qml"
 )
+TOAST_CONTENT_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "feedback"
+    / "Notification"
+    / "_internal"
+    / "ToastContent.qml"
+)
 SPLASH_SOURCE = (
     ROOT
     / "prismqml"
@@ -471,14 +481,16 @@ def test_splash_finish_uses_shared_lazy_switch_transition(qapp):
 
 def test_feedback_sources_use_shared_style_tokens():
     toast_source = TOAST_SOURCE.read_text(encoding="utf-8")
+    toast_content_source = TOAST_CONTENT_SOURCE.read_text(encoding="utf-8")
     splash_source = SPLASH_SOURCE.read_text(encoding="utf-8")
 
     assert 'import "../../icons"' not in splash_source
     assert 'import "../../data"' not in splash_source
     assert (
-        "anchors.topMargin: Enums.spacing.m + Enums.spacing.cardElevate" in toast_source
+        "anchors.topMargin: Enums.spacing.m + Enums.spacing.cardElevate"
+        in toast_content_source
     )
-    assert "anchors.topMargin: -Enums.spacing.cardElevate" in toast_source
+    assert "anchors.topMargin: -Enums.spacing.cardElevate" in toast_content_source
     assert "Enums.spacing.m + 3" not in toast_source
     assert "anchors.topMargin: -3" not in toast_source
 
