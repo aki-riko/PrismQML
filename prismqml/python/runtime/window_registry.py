@@ -7,6 +7,14 @@
 
 from ..core.incubation import asynchronous_page_loader_enabled
 from ..providers import get_svg_provider
+from .context_registry import (
+    FULL_CONTEXT_REGISTRATION,
+    WINDOW_CONTEXT_REGISTRATION,
+    context_registration_level,
+    mark_context_registration,
+    register_context_property,
+    register_image_provider_once,
+)
 from .engine import get_or_create_qml_engine
 
 
@@ -48,41 +56,55 @@ def _inject_window_context(
     ThemeManager, getShadowManager, get_config_manager = core_managers
     get_mica_manager, get_native_window_hook, get_clipboard_helper = window_dependencies
     context = builder._engine.rootContext()
-    context.setContextProperty("ThemeManager", ThemeManager())
-    context.setContextProperty("ShadowManager", getShadowManager())
-    context.setContextProperty("ConfigManager", get_config_manager())
-    context.setContextProperty("MicaManager", get_mica_manager())
-    context.setContextProperty("ClipboardHelper", get_clipboard_helper())
-    context.setContextProperty(
+    register_context_property(context, "ThemeManager", ThemeManager())
+    register_context_property(context, "ShadowManager", getShadowManager())
+    register_context_property(context, "ConfigManager", get_config_manager())
+    register_context_property(context, "MicaManager", get_mica_manager())
+    register_context_property(context, "ClipboardHelper", get_clipboard_helper())
+    register_context_property(
+        context,
         "PrismQmlStartupProfileVerbose", startup_profile_verbose
     )
-    context.setContextProperty(
+    register_context_property(
+        context,
         "PrismQmlAsynchronousPageLoaderEnabled",
         asynchronous_page_loader_enabled(),
     )
     # WindowCore defers NativeWindow attach/finalizeAttach for DWM animations.
     # WindowCore 延后 NativeWindow attach/finalizeAttach，以保留 DWM 动画。
-    context.setContextProperty("NativeWindow", get_native_window_hook())
+    register_context_property(context, "NativeWindow", get_native_window_hook())
     profile("注入 ContextProperty")
 
 
 def _register_window_image_providers(builder, profile) -> None:
     """Register the engine-owned SVG provider. 注册引擎持有的 SVG provider。"""
-    builder._engine.addImageProvider("svg", get_svg_provider())
-    profile("注册 ImageProvider")
+    registered = register_image_provider_once(
+        builder._engine, "svg", get_svg_provider
+    )
+    profile("注册 ImageProvider" if registered else "复用 ImageProvider")
 
 
 def prepare_window_engine(builder, startup_profile_verbose, profile):
     """Prepare the engine, context, and providers in startup order. 按启动顺序装配引擎、上下文和 provider。"""
     core_managers = _load_core_window_managers(profile)
     _ensure_window_engine(builder, profile)
-    window_dependencies = _load_window_dependencies(profile)
-    _inject_window_context(
-        builder,
-        startup_profile_verbose,
-        core_managers,
-        window_dependencies,
-        profile,
-    )
+    registration_level = context_registration_level(builder._engine)
+    if registration_level < FULL_CONTEXT_REGISTRATION:
+        if registration_level < WINDOW_CONTEXT_REGISTRATION:
+            window_dependencies = _load_window_dependencies(profile)
+            _inject_window_context(
+                builder,
+                startup_profile_verbose,
+                core_managers,
+                window_dependencies,
+                profile,
+            )
+            mark_context_registration(
+                builder._engine, WINDOW_CONTEXT_REGISTRATION
+            )
+        else:
+            profile("复用 ContextProperty")
+    else:
+        profile("复用完整 ContextProperty")
     _register_window_image_providers(builder, profile)
     return core_managers[2]

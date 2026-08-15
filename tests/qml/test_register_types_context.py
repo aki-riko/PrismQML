@@ -239,6 +239,12 @@ def test_register_types_injects_enabled_verbose_diagnostic_switch(
 def test_register_types_preserves_complete_engine_registration(registered_context):
     """Keep every public binding and lazy engine reference. 保留全部公开绑定与延迟引用。"""
     manager, clipboard, engines, _probe, _messages = registered_context
+    original_lazy_objects = {
+        engine: tuple(engine._prismqml_lazy_context_objects)
+        for engine in engines
+    }
+    for engine in engines:
+        register_types(engine)
     expected_singletons = _expected_singletons(manager, clipboard)
     expected_import_path = qml_path().parent.resolve()
 
@@ -248,6 +254,7 @@ def test_register_types_preserves_complete_engine_registration(registered_contex
             assert context.contextProperty(name) is expected
 
         lazy_objects = engine._prismqml_lazy_context_objects
+        assert tuple(lazy_objects) == original_lazy_objects[engine]
         assert len(lazy_objects) == 2
         qrcode_generator, eyedropper_manager = lazy_objects
         assert isinstance(qrcode_generator, LazyQRCodeGenerator)

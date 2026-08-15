@@ -144,6 +144,15 @@ def _expected_engine_provider_calls(scenario):
     ]
 
 
+def _expected_engine_reuse_prefix():
+    return [
+        "load_core_imports",
+        ("profile", "导入核心管理器"),
+        "get_engine",
+        ("profile", "获取/创建 QML Engine"),
+    ]
+
+
 def test_window_engine_setup_preserves_context_provider_and_profile_order(monkeypatch):
     from prismqml.python.runtime import window_registry as setup
 
@@ -205,6 +214,65 @@ def test_window_engine_setup_assigns_runtime_engine(monkeypatch):
         "get_or_create",
         ("profile", "获取/创建 QML Engine"),
     ]
+
+
+def test_window_engine_setup_reuses_complete_context_registration(monkeypatch):
+    from prismqml.python.runtime import context_registry
+    from prismqml.python.runtime import window_registry as setup
+
+    scenario = _EngineSetupScenario()
+    scenario.patch_setup(monkeypatch, setup)
+    context_registry.mark_context_registration(
+        scenario.engine, context_registry.FULL_CONTEXT_REGISTRATION
+    )
+    monkeypatch.setattr(
+        setup,
+        "_load_window_dependencies",
+        lambda _profile: pytest.fail("complete context must be reused"),
+    )
+    builder = SimpleNamespace()
+
+    get_config_manager = setup.prepare_window_engine(
+        builder, True, scenario.profile
+    )
+
+    expected = _expected_engine_reuse_prefix()
+    expected += [
+        ("profile", "复用完整 ContextProperty"),
+        ("factory", "svg"),
+        ("image_provider", "svg", scenario.svg_provider),
+        ("profile", "注册 ImageProvider"),
+    ]
+    assert get_config_manager is scenario.config_factory
+    assert scenario.calls == expected
+
+
+def test_window_engine_setup_reuses_window_context_registration(monkeypatch):
+    from prismqml.python.runtime import context_registry
+    from prismqml.python.runtime import window_registry as setup
+
+    scenario = _EngineSetupScenario()
+    scenario.patch_setup(monkeypatch, setup)
+    context_registry.mark_context_registration(
+        scenario.engine, context_registry.WINDOW_CONTEXT_REGISTRATION
+    )
+    monkeypatch.setattr(
+        setup,
+        "_load_window_dependencies",
+        lambda _profile: pytest.fail("window context must be reused"),
+    )
+    builder = SimpleNamespace()
+
+    setup.prepare_window_engine(builder, True, scenario.profile)
+
+    expected = _expected_engine_reuse_prefix()
+    expected += [
+        ("profile", "复用 ContextProperty"),
+        ("factory", "svg"),
+        ("image_provider", "svg", scenario.svg_provider),
+        ("profile", "注册 ImageProvider"),
+    ]
+    assert scenario.calls == expected
 
 
 @pytest.mark.parametrize("error_type", [ValueError, KeyboardInterrupt, SystemExit])

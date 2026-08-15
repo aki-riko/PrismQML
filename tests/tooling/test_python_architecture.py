@@ -318,6 +318,7 @@ def test_lazy_provider_registration_has_one_runtime_owner():
 def test_window_runtime_composition_has_one_owner():
     builder = WINDOW_PACKAGE / "_window_builder.py"
     runtime_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
+    runtime_context = PYTHON_PACKAGE / "runtime" / "context_registry.py"
     builder_imports = {target for _line, target in _resolved_imports(builder)}
 
     assert (
@@ -326,6 +327,8 @@ def test_window_runtime_composition_has_one_owner():
     )
     assert not (WINDOW_PACKAGE / "_window_engine_setup.py").exists()
     assert "prepare_window_engine" in _function_names(runtime_registry)
+    assert "register_context_property" in _function_names(runtime_context)
+    assert "register_image_provider_once" in _function_names(runtime_context)
 
     violations = []
     for path in sorted(WINDOW_PACKAGE.rglob("*.py")):
@@ -342,6 +345,28 @@ def test_window_runtime_composition_has_one_owner():
                 violations.append(f"{relative_path}:{line}: {method}({name!r})")
 
     assert violations == []
+
+    shared_context_owners = (
+        PYTHON_PACKAGE / "runtime" / "registry.py",
+        runtime_registry,
+    )
+    for owner in shared_context_owners:
+        assert not {
+            (method, name)
+            for _line, method, name in _literal_method_calls(owner)
+            if method == "setContextProperty"
+            and name
+            in {
+                "ThemeManager",
+                "ShadowManager",
+                "ConfigManager",
+                "MicaManager",
+                "ClipboardHelper",
+                "NativeWindow",
+                "PrismQmlStartupProfileVerbose",
+                "PrismQmlAsynchronousPageLoaderEnabled",
+            }
+        }
 
 
 def test_qml_engine_composition_has_one_runtime_owner():
