@@ -646,7 +646,10 @@ def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
 
 def test_scroll_bar_sources_follow_conventions():
     violations = []
-    for source_path in sorted(SOURCE_DIR.glob("*.qml")):
+    source_paths = sorted(SOURCE_DIR.glob("*.qml")) + [
+        SOURCE_DIR / "_internal" / "SmoothScrollWheelArea.qml"
+    ]
+    for source_path in source_paths:
         path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
         violations.extend(
             violation

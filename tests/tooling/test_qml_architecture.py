@@ -427,6 +427,31 @@ def test_drawer_keeps_outside_window_modularized():
         assert token not in source
 
 
+def test_smooth_scroll_helper_keeps_wheel_input_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/SmoothScrollHelper.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/_internal/"
+        "SmoothScrollWheelArea.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert 'import "_internal" as ScrollBarInternal' in source
+    assert "ScrollBarInternal.SmoothScrollWheelArea {" in source
+    assert "scrollHelper: helper" in source
+    assert "required property var scrollHelper" in helper_source
+    assert "parent: scrollHelper.target" in helper_source
+    assert "anchors.fill: parent" in helper_source
+    assert "onWheel:" in helper_source
+    assert "MouseArea {" not in source
+    assert "onWheel:" not in source
+
+
 def test_xy_chart_core_keeps_axes_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/XYChartCore.qml"

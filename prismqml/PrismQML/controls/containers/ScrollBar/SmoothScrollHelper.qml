@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../../.."
+import "_internal" as ScrollBarInternal
 
 // SmoothScrollHelper - Reusable smooth scroll logic 可复用平滑滚动逻辑
 // Usage 用法:
@@ -14,7 +15,7 @@ Item {
     
     // ==================== Required Props 必需属性 ====================
     required property Flickable target  // Target view (ListView/GridView/Flickable) 目标视图
-    
+
     // ==================== Public Props 公开属性 ====================
     property int orientation: Qt.Vertical  // Qt.Vertical or Qt.Horizontal 滚动方向
     property int duration: Enums.duration.scroll
@@ -22,7 +23,6 @@ Item {
     property int easing: Easing.OutQuart
     property bool bounceEnabled: true  // Enable overshoot bounce 启用边界回弹
     property bool handleWheel: false  // Auto handle mouse wheel 自动处理鼠标滚轮
-    
     // ==================== Internal Props 内部属性 ====================
     // Vertical state 垂直状态
     property real _targetY: 0
@@ -64,7 +64,6 @@ Item {
     readonly property real _maxOvershoot: Enums.spacing.scrollOvershoot
 
     // ==================== Public Methods 公开方法 ====================
-
     // Scroll to absolute position 滚动到绝对位置
     function scrollTo(pos) {
         _refreshDevicePixelRatio()
@@ -76,7 +75,6 @@ Item {
             _scrollToX(pos)
         }
     }
-
     // Scroll by delta 相对滚动
     function scrollBy(delta) {
         _refreshDevicePixelRatio()
@@ -88,7 +86,6 @@ Item {
             _scrollByX(delta)
         }
     }
-
     // Scroll to top/left 滚动到顶部/左侧
     function scrollToStart() {
         _refreshDevicePixelRatio()
@@ -100,7 +97,6 @@ Item {
             _scrollToX(_minX)
         }
     }
-
     // Scroll to bottom/right 滚动到底部/右侧
     function scrollToEnd() {
         _refreshDevicePixelRatio()
@@ -112,7 +108,6 @@ Item {
             _scrollToX(_maxX)
         }
     }
-
     // Sync position (call after drag) 同步位置（拖拽后调用）
     function syncPosition() {
         _refreshDevicePixelRatio()
@@ -132,12 +127,10 @@ Item {
         }
         _syncing = false
     }
-
     // ==================== Internal Methods 内部方法 ====================
     function _clamp(value, minimum, maximum) {
         return Math.max(minimum, Math.min(maximum, value))
     }
-
     function _refreshDevicePixelRatio() {
         if (typeof WindowHelper === "undefined" || !WindowHelper
                 || typeof WindowHelper.devicePixelRatioAt !== "function") {
@@ -500,31 +493,7 @@ Item {
     }
 
     // Auto wheel handler 自动滚轮处理
-    // Use parent binding instead of anchors to avoid "not a parent or sibling" warning 使用 parent 绑定而非 anchors 避免锚点警告
-
-    MouseArea {
-        id: wheelArea
-        parent: helper.target
-        anchors.fill: parent
-        enabled: helper.handleWheel
-        visible: helper.handleWheel
-        propagateComposedEvents: true
-        z: Enums.zIndex.background
-        
-        onWheel: (event) => {
-            // Check if scroll is needed 检查是否需要滚动
-            var contentSize = helper._isVertical ? target.contentHeight : target.contentWidth
-            var viewSize = helper._isVertical ? target.height : target.width
-            if (contentSize <= viewSize) {
-                event.accepted = false
-                return
-            }
-            
-            helper.scrollBy(-event.angleDelta.y / 120 * helper.step)
-            event.accepted = true
-        }
-        onPressed: (event) => event.accepted = false
-        onReleased: (event) => event.accepted = false
-        onClicked: (event) => event.accepted = false
+    ScrollBarInternal.SmoothScrollWheelArea {
+        scrollHelper: helper
     }
 }
