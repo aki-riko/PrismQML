@@ -311,15 +311,13 @@ def test_line_edit_core_tag_buttons_accept_real_mouse_click(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_line_edit_core_tag_keyboard_deletion(qapp):
+def test_line_edit_core_tag_backspace_deletion(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, controls, warnings = _create_scene()
     tag_control = controls["tagControl"]
     text_input = tag_control.property("textInput")
     removed = []
-    modified = []
     tag_control.tagRemoved.connect(lambda index, tag: removed.append((index, tag)))
-    tag_control.tagsModified.connect(lambda tags: modified.append(_variant(tags)))
     try:
         tag_control.setProperty("tags", ["one", "two"])
         text_input.forceActiveFocus()
@@ -333,9 +331,35 @@ def test_line_edit_core_tag_keyboard_deletion(qapp):
         QTest.keyClick(window, Qt.Key.Key_Backspace)
         assert text_input.property("text") == ""
         assert _variant(tag_control.property("tags")) == ["one"]
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
 
+
+def test_line_edit_core_tag_select_all_visual_and_clear(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_scene()
+    tag_control = controls["tagControl"]
+    text_input = tag_control.property("textInput")
+    modified = []
+    tag_control.tagsModified.connect(lambda tags: modified.append(_variant(tags)))
+    try:
         tag_control.setProperty("tags", ["one", "two"])
+        text_input.forceActiveFocus()
+        assert _wait_for(lambda: bool(text_input.property("activeFocus")))
+
+        _pump()
+        tokens = [
+            item
+            for item in _visual_descendants(tag_control)
+            if item.metaObject().indexOfProperty("tokenIndex") >= 0
+            and item.metaObject().indexOfProperty("selected") >= 0
+        ]
+        assert len(tokens) == 2
         QTest.keyClick(window, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
+        assert _wait_for(lambda: all(item.property("selected") for item in tokens))
         QTest.keyClick(window, Qt.Key.Key_Backspace)
         assert _wait_for(lambda: _variant(tag_control.property("tags")) == [])
         assert modified[-1] == []

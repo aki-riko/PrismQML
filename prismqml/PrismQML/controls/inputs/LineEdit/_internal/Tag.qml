@@ -24,6 +24,7 @@ MultiSelectToken {
     text: modelData
     tokenIndex: index
     borderColorOverride: tagColor      // Forward outline to token 透传描边颜色
+    selected: tagControl._allTagsSelected
 
     // Handle token removal 处理标签删除
     onRemoveClicked: (idx) => {

@@ -21,11 +21,16 @@ Rectangle {
     // Per-token outline override. Empty/transparent → keep default accent border. 描边覆盖,空则走默认强调色边框
     // Only TagLineEdit passes this; ComboBoxMulti/Tree leave it unset (zero impact). 仅TagLineEdit传入,ComboBox不传零影响
     property string borderColorOverride: ""
+    property bool selected: false  // Keyboard selection state 键盘选中状态
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _outlined: borderColorOverride !== "" && borderColorOverride !== "transparent"
-    readonly property color _tokenBackgroundColor: _outlined ? Enums.transparent : Enums.stateColor.accentLight
-    readonly property color _tokenBorderColor: _outlined ? borderColorOverride : Enums.stateColor.accentBorder
+    readonly property color _tokenBackgroundColor: selected
+        ? Enums.stateColor.selected
+        : (_outlined ? Enums.transparent : Enums.stateColor.accentLight)
+    readonly property color _tokenBorderColor: selected
+        ? Enums.accentColor
+        : (_outlined ? borderColorOverride : Enums.stateColor.accentBorder)
 
     // ==================== Signals 信号 ====================
     signal removeClicked(int tokenIndex)

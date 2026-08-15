@@ -11,7 +11,7 @@ from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
-from prismqml import register_types
+from prismqml import Skin, getSkin, register_types, setSkin
 from scripts.qml_conventions import scan_source_text
 
 
@@ -38,6 +38,8 @@ Item {
     readonly property color expectedTokenBackground: Enums.stateColor.accentLight
     readonly property color expectedOutlinedBackground: Enums.transparent
     readonly property color expectedDefaultBorder: Enums.stateColor.accentBorder
+    readonly property color expectedSelectedBackground: Enums.stateColor.selected
+    readonly property color expectedSelectedBorder: Enums.accentColor
     readonly property real expectedTokenPadding: Enums.spacing.m
 
     width: 720
@@ -225,12 +227,57 @@ def test_multi_select_token_public_parent_chains(qapp):
         _pump(1)
 
 
+def test_multi_select_token_selected_state_tracks_all_skins(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    previous_skin = getSkin()
+    engine, warnings = _create_engine()
+    component = root = None
+    try:
+        component, root = _create(engine, SCENE_SOURCE, SCENE_URL)
+        tag_input = root.findChild(QObject, "tagInput")
+        assert tag_input is not None
+        token = next(
+            item for item in _tokens(tag_input)
+            if item.property("text") == "Light token"
+        )
+        token.setProperty("selected", True)
+        selected_colors = set()
+
+        for skin in (
+            Skin.FLUENT,
+            Skin.NEOBRUTALISM,
+            Skin.VINTAGE_TICKET,
+            Skin.NEUMORPHISM,
+        ):
+            setSkin(skin)
+            _pump()
+            expected_background = root.property("expectedSelectedBackground")
+            expected_border = root.property("expectedSelectedBorder")
+            assert token.property("_tokenBackgroundColor") == expected_background
+            assert token.property("color") == expected_background
+            assert token.property("_tokenBorderColor") == expected_border
+            selected_colors.add(expected_background.name(QColor.NameFormat.HexArgb))
+
+        assert len(selected_colors) == 4
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        setSkin(previous_skin)
+        if root is not None:
+            root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_multi_select_token_source_limits_tag_color_to_outline():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [item for item in violations if item.rule == "QML010"] == []
     assert "property string borderColorOverride" in source
+    assert "property bool selected" in source
     assert "color: token._tokenBackgroundColor" in source
     assert "border.color: token._tokenBorderColor" in source
-    assert "_outlined ? Enums.transparent : Enums.stateColor.accentLight" in source
+    assert "? Enums.stateColor.selected" in source
+    assert ": (_outlined ? Enums.transparent : Enums.stateColor.accentLight)" in source
