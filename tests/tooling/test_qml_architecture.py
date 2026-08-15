@@ -373,6 +373,37 @@ def test_line_chart_content_keeps_canvas_modularized():
     assert "function paintMultiSeries(" not in source
 
 
+def test_xy_chart_core_keeps_axes_visuals_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/XYChartCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/XYChartAxes.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 350
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 350
+    assert "XYChartAxes {" in source
+    assert "chartControl: root" in source
+    assert "required property var chartControl" in helper_source
+    assert "required property var axisFontMetrics" in helper_source
+    assert "readonly property Item chartArea: axesLayer.chartArea" in source
+    assert "readonly property Item chartArea: chartAreaItem" in helper_source
+    assert "readonly property var control: chartControl" in helper_source
+    for token in (
+        "id: gridLines",
+        "id: horizontalYAxisLabels",
+        "id: xAxisLabels",
+        "id: scatterXAxisLabels",
+        "HoverBehavior on color",
+        'objectName: "chartXAxisViewport"',
+    ):
+        assert token not in source
+
+
 def test_chart_view_keeps_render_layer_modularized():
     entry = _source("prismqml/PrismQML/controls/data/Chart/ChartView.qml")
     helper = _source(

@@ -29,6 +29,7 @@ CHART_RENDER_LAYER_SOURCE = (
 )
 LINE_CHART_SOURCE = CHART_VIEW_SOURCE.parent / "_internal" / "LineChartContent.qml"
 XY_CHART_CORE_SOURCE = CHART_VIEW_SOURCE.parent / "_internal" / "XYChartCore.qml"
+XY_CHART_AXES_SOURCE = CHART_VIEW_SOURCE.parent / "_internal" / "XYChartAxes.qml"
 XY_SINGLE_TOOLTIP_SOURCE = (
     CHART_VIEW_SOURCE.parent / "_internal" / "XYSingleTooltip.qml"
 )
@@ -577,6 +578,7 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     data_zoom_layer_source = CHART_DATA_ZOOM_LAYER_SOURCE.read_text(encoding="utf-8")
     line_chart_source = LINE_CHART_SOURCE.read_text(encoding="utf-8")
     xy_chart_core_source = XY_CHART_CORE_SOURCE.read_text(encoding="utf-8")
+    xy_chart_axes_source = XY_CHART_AXES_SOURCE.read_text(encoding="utf-8")
     single_tooltip_source = XY_SINGLE_TOOLTIP_SOURCE.read_text(encoding="utf-8")
     multi_tooltip_source = XY_MULTI_TOOLTIP_SOURCE.read_text(encoding="utf-8")
     animator_source = VIEWPORT_ANIMATOR_SOURCE.read_text(encoding="utf-8")
@@ -589,6 +591,7 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
         + data_zoom_layer_source
         + line_chart_source
         + xy_chart_core_source
+        + xy_chart_axes_source
         + single_tooltip_source
         + multi_tooltip_source
         + animator_source
@@ -611,13 +614,13 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     assert "chart._viewSeries" in tooltip_source
     assert "chart.chartData[chart._hovered" not in tooltip_source
     assert "chart.series[i]" not in tooltip_source
-    assert "xScale: root.viewportScale" in xy_chart_core_source
-    assert "yScale: root.viewportScale" not in xy_chart_core_source
-    assert "root._categorySlotPosition(index, horizontalYAxisLabels.height)" in (
-        xy_chart_core_source
+    assert "xScale: control.viewportScale" in xy_chart_axes_source
+    assert "yScale: control.viewportScale" not in xy_chart_axes_source
+    assert "control._categorySlotPosition(index, horizontalYAxisLabels.height)" in (
+        xy_chart_axes_source
     )
-    assert "y: chartAreaItem.y + root.viewportOffsetRatio" not in (
-        xy_chart_core_source.split("id: yAxisLabels", 1)[1]
+    assert "y: chartAreaItem.y + control.viewportOffsetRatio" not in (
+        xy_chart_axes_source.split("id: yAxisLabels", 1)[1]
         .split("id: horizontalYAxisLabels", 1)[0]
     )
     assert (
@@ -625,27 +628,27 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
         "        objectName: \"chartHorizontalYAxisViewport\"\n\n"
         "        x: Enums.spacing.s\n"
         "        y: chartAreaItem.y"
-    ) in xy_chart_core_source
+    ) in xy_chart_axes_source
     assert (
         "id: horizontalXAxisLabels\n\n"
         "        x: chartAreaItem.x"
-    ) in xy_chart_core_source
+    ) in xy_chart_axes_source
     assert (
         "id: xAxisLabels\n"
         "        objectName: \"chartXAxisViewport\"\n\n"
         "        x: chartAreaItem.x"
-    ) in xy_chart_core_source
-    category_axis_source = xy_chart_core_source.split(
+    ) in xy_chart_axes_source
+    category_axis_source = xy_chart_axes_source.split(
         "id: xAxisLabels", 1
     )[1].split("id: scatterXAxisLabels", 1)[0]
-    assert "root._categorySlotPosition(index, xAxisLabels.width)" in category_axis_source
-    assert "xScale: root.viewportScale" not in category_axis_source
+    assert "control._categorySlotPosition(index, xAxisLabels.width)" in category_axis_source
+    assert "xScale: control.viewportScale" not in category_axis_source
     assert (
         "id: scatterXAxisLabels\n"
         "        objectName: \"chartScatterXAxisViewport\"\n\n"
         "        x: chartAreaItem.x"
-    ) in xy_chart_core_source
-    assert "id: scatterXAxisLayer" in xy_chart_core_source
+    ) in xy_chart_axes_source
+    assert "id: scatterXAxisLayer" in xy_chart_axes_source
 
     for token in (
         "zoom_in_factor",
