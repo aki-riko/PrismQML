@@ -12,6 +12,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYTHON_PACKAGE = REPO_ROOT / "prismqml" / "python"
 CORE_PACKAGE = PYTHON_PACKAGE / "core"
+PROVIDERS_PACKAGE = PYTHON_PACKAGE / "providers"
 WINDOW_PACKAGE = PYTHON_PACKAGE / "window"
 FORBIDDEN_CORE_DEPENDENCIES = (
     "prismqml.python.config",
@@ -111,6 +112,19 @@ def _function_names(path: Path) -> set[str]:
         node.name
         for node in ast.walk(tree)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+
+def _class_names(path: Path) -> set[str]:
+    tree = ast.parse(
+        path.read_text(encoding="utf-8"),
+        filename=str(path),
+        feature_version=(3, 9),
+    )
+    return {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
     }
 
 
@@ -234,6 +248,37 @@ def test_app_updater_composition_has_one_runtime_owner():
     assert ("setContextProperty", "appUpdater") in {
         (method, name)
         for _line, method, name in _literal_method_calls(runtime_auto_update)
+    }
+
+
+def test_lazy_provider_registration_has_one_runtime_owner():
+    runtime_registry = PYTHON_PACKAGE / "runtime" / "registry.py"
+    runtime_lazy_context = PYTHON_PACKAGE / "runtime" / "lazy_context.py"
+    registry_imports = {target for _line, target in _resolved_imports(runtime_registry)}
+
+    assert not (PROVIDERS_PACKAGE / "lazy_context.py").exists()
+    assert (
+        "prismqml.python.runtime.lazy_context.LazyQRCodeGenerator"
+        in registry_imports
+    )
+    assert (
+        "prismqml.python.runtime.lazy_context.LazyScreenEyedropperManager"
+        in registry_imports
+    )
+    assert "LazyQRCodeGenerator" in _class_names(runtime_lazy_context)
+    assert "LazyScreenEyedropperManager" in _class_names(runtime_lazy_context)
+
+    violations = []
+    for path in sorted(PROVIDERS_PACKAGE.rglob("*.py")):
+        for line, method, name in _literal_method_calls(path):
+            if method in {"setContextProperty", "addImageProvider"}:
+                violations.append(
+                    f"{path.relative_to(REPO_ROOT)}:{line}: {method}({name!r})"
+                )
+    assert violations == []
+    assert ("addImageProvider", "qrcode") in {
+        (method, name)
+        for _line, method, name in _literal_method_calls(runtime_lazy_context)
     }
 
 
