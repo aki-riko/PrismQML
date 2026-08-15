@@ -168,7 +168,7 @@ Window {
         y: 32
         text: "Open documentation"
         type: Enums.label.type_hyperlink
-        url: "https://example.invalid/label"
+        url: ""
     }
 }
 """
@@ -389,25 +389,35 @@ def test_dialog_content_preserves_hyperlink_cursors(qapp) -> None:
         _dispose_scene(engine, component, window)
 
 
-def test_label_hyperlink_hover_surface_is_scoped_to_hover(qapp) -> None:
+def test_label_hyperlink_uses_text_only_press_feedback(qapp) -> None:
     engine, component, window, warnings = _create_scene(LABEL_HOVER_SCENE)
     try:
         label = window.findChild(QQuickItem, "labelLink")
-        surface = window.findChild(QQuickItem, "hyperlinkHoverSurface")
         assert label is not None
-        assert surface is not None
-        assert surface.opacity() == 0
+        assert label.property("pressed") is False
+        assert label.scale() == 1
+        assert label.property("_interactiveTextColor") == label.property("_textColor")
 
         _move_to_item(window, label, label.boundingRect().center())
         assert label.property("hovered") is True
-        _pump(140)
-        assert surface.opacity() > 0.95
-        assert surface.scale() > 0.99
+        assert label.property("font").underline() is True
+
+        scene_point = label.mapToItem(window.contentItem(), label.boundingRect().center())
+        QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=scene_point.toPoint())
+        _pump(20)
+        assert label.property("pressed") is True
+        assert label.scale() < 1
+        assert label.property("_interactiveTextColor") != label.property("_textColor")
+
+        QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=scene_point.toPoint())
+        _pump(120)
+        assert label.property("pressed") is False
+        assert label.scale() > 0.99
+        assert label.property("_interactiveTextColor") == label.property("_textColor")
 
         QTest.mouseMove(window, QPoint(window.width() - 2, window.height() - 2))
-        _pump(140)
+        _pump()
         assert label.property("hovered") is False
-        assert surface.opacity() < 0.05
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
