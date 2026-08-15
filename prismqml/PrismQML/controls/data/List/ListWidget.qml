@@ -4,6 +4,7 @@
 
 import "../../.."
 import "../../../controls/containers/ScrollBar"
+import "_internal/ListDataController.js" as ListDataController
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ListWidget - Fluent style list widget 列表控件
@@ -54,6 +55,7 @@ Rectangle {
     property int _pressedRow: -1
     property var _selectedRows: []  // Multi-selection support 多选支持
     property var _previousItem: null
+    property alias _listModel: listModel
     readonly property int _externalModelLength:
         model === null || model === undefined ? 0
         : (typeof model.length === "number" ? model.length : 0)
@@ -77,174 +79,92 @@ Rectangle {
 
     // Add single item 添加单项
     function addItem(item) {
-        var entry = _normalizeItem(item)
-        listModel.append(entry)
+        ListDataController.addItem(control, item)
     }
 
     // Add multiple items 添加多项
     function addItems(items) {
-        var safeItems = items && typeof items.length === "number" ? items : []
-        for (var i = 0; i < safeItems.length; i++) {
-            addItem(safeItems[i])
-        }
+        ListDataController.addItems(control, items)
     }
 
     // Insert item at row 在指定行插入项
     function insertItem(row, item) {
-        if (row < 0) row = 0
-        if (row > listModel.count) row = listModel.count
-        var entry = _normalizeItem(item)
-        listModel.insert(row, entry)
+        ListDataController.insertItem(control, row, item)
     }
 
     // Insert multiple items 插入多项
     function insertItems(row, items) {
-        var safeItems = items && typeof items.length === "number" ? items : []
-        for (var i = 0; i < safeItems.length; i++) {
-            insertItem(row + i, safeItems[i])
-        }
+        ListDataController.insertItems(control, row, items)
     }
 
     // Take (remove and return) item at row 移除并返回指定行的项
     function takeItem(row) {
-        if (row < 0 || row >= listModel.count) return null
-        var item = _getItemObject(row)
-        listModel.remove(row)
-        _updateSelectedRows()
-        return item
+        return ListDataController.takeItem(control, row)
     }
 
     // Get item at row 获取指定行的项
     function item(row) {
-        if (row < 0 || row >= listModel.count) return null
-        return _getItemObject(row)
+        return ListDataController.item(control, row)
     }
 
     // Get row of item (by text match) 获取项的行号
     function row(item) {
-        var searchText = typeof item === "string" ? item : (item ? (item.text || "") : "")
-        for (var i = 0; i < listModel.count; i++) {
-            if (listModel.get(i).text === searchText) return i
-        }
-        return -1
+        return ListDataController.row(control, item)
     }
     // Current item 当前项
 
     function currentItem() {
-        return item(listView.currentIndex)
+        return ListDataController.currentItem(control)
     }
 
     function setCurrentItem(item, command) {
-        var r = row(item)
-        if (r >= 0) setCurrentRow(r, command)
+        ListDataController.setCurrentItem(control, item, command)
     }
 
     function currentRow() {
-        return listView.currentIndex
+        return ListDataController.currentRow(control)
     }
 
     function setCurrentRow(row, command) {
-        if (row >= 0 && row < listModel.count) {
-            listView.currentIndex = row
-            if (selectionMode !== noSelection) {
-                _selectedRows = [row]
-                itemSelectionChanged()
-            }
-        }
+        ListDataController.setCurrentRow(control, row, command)
     }
 
     // Selection 选择
 
     function selectedItems() {
-        var result = []
-        for (var i = 0; i < _selectedRows.length; i++) {
-            var it = item(_selectedRows[i])
-            if (it) result.push(it)
-        }
-        return result
+        return ListDataController.selectedItems(control)
     }
 
     function clearSelection() {
-        _selectedRows = []
-        listView.currentIndex = -1
-        itemSelectionChanged()
+        ListDataController.clearSelection(control)
     }
 
     function selectAll() {
-        if (selectionMode === noSelection || selectionMode === singleSelection) return
-        _selectedRows = []
-        for (var i = 0; i < listModel.count; i++) {
-            _selectedRows.push(i)
-        }
-        itemSelectionChanged()
+        ListDataController.selectAll(control)
     }
 
     function setSelectionMode(mode) {
-        selectionMode = mode
-        if (mode === singleSelection && _selectedRows.length > 1) {
-            _selectedRows = listView.currentIndex >= 0 ? [listView.currentIndex] : []
-        }
+        ListDataController.setSelectionMode(control, mode)
     }
     // Search 搜索
 
     // Find items matching text 查找匹配文本的项
     // flags: 0=ExactMatch, 1=Contains, 2=StartsWith, 3=EndsWith, 4=RegExp 匹配模式
     function findItems(text, flags) {
-        var result = []
-        var pattern = text.toLowerCase()
-        for (var i = 0; i < listModel.count; i++) {
-            var itemText = (listModel.get(i).text || "").toLowerCase()
-            var match = false
-            if (flags === 0) match = (itemText === pattern)
-            else if (flags === 1) match = (itemText.indexOf(pattern) >= 0)
-            else if (flags === 2) match = itemText.startsWith(pattern)
-            else if (flags === 3) match = itemText.endsWith(pattern)
-            else if (flags === 4) match = new RegExp(text).test(itemText)
-            if (match) result.push(_getItemObject(i))
-        }
-        return result
+        return ListDataController.findItems(control, text, flags)
     }
 
     // Sorting 排序
 
     // Sort items (order: 0=Ascending, 1=Descending) 排序项目（0=升序，1=降序）
     function sortItems(order) {
-        var sortedRows = []
-        var currentOrder = []
-        var currentOriginalIndex = listView.currentIndex
-        var selectedOriginalRows = _selectedRows.slice()
-        for (var i = 0; i < listModel.count; i++) {
-            sortedRows.push({
-                originalIndex: i,
-                text: String(listModel.get(i).text || "")
-            })
-            currentOrder.push(i)
-        }
-        sortedRows.sort(function(a, b) {
-            var cmp = a.text.localeCompare(b.text)
-            return order === 1 ? -cmp : cmp
-        })
-        for (var target = 0; target < sortedRows.length; target++) {
-            var source = currentOrder.indexOf(sortedRows[target].originalIndex)
-            if (source === target) continue
-            listModel.move(source, target, 1)
-            var moved = currentOrder.splice(source, 1)[0]
-            currentOrder.splice(target, 0, moved)
-        }
-        listView.currentIndex = currentOrder.indexOf(currentOriginalIndex)
-        _selectedRows = selectedOriginalRows.map(function(row) {
-            return currentOrder.indexOf(row)
-        }).filter(function(row) {
-            return row >= 0
-        })
+        ListDataController.sortItems(control, order)
     }
 
     // Clear 清空
 
     function clear() {
-        listModel.clear()
-        _selectedRows = []
-        listView.currentIndex = -1
+        ListDataController.clear(control)
     }
 
     // Scroll 滚动
@@ -270,52 +190,31 @@ Rectangle {
     // Item properties 项属性
 
     function setItemText(row, text) {
-        if (row >= 0 && row < listModel.count) {
-            listModel.setProperty(row, "text", text)
-        }
+        ListDataController.setItemText(control, row, text)
     }
 
     function setItemIcon(row, icon) {
-        if (row >= 0 && row < listModel.count) {
-            listModel.setProperty(row, "icon", icon)
-        }
+        ListDataController.setItemIcon(control, row, icon)
     }
 
     function setItemData(row, role, value) {
-        if (row >= 0 && row < listModel.count) {
-            var d = listModel.get(row).data || {}
-            d[role] = value
-            listModel.setProperty(row, "data", d)
-        }
+        ListDataController.setItemData(control, row, role, value)
     }
 
     function itemData(row, role) {
-        if (row < 0 || row >= listModel.count) return undefined
-        var d = listModel.get(row).data
-        return d ? d[role] : undefined
+        return ListDataController.itemData(control, row, role)
     }
 
     function setItemCheckState(row, state) {
-        if (row >= 0 && row < listModel.count) {
-            listModel.setProperty(row, "checkState", state)
-        }
+        ListDataController.setItemCheckState(control, row, state)
     }
 
     function itemCheckState(row) {
-        if (row < 0 || row >= listModel.count) return 0
-        return listModel.get(row).checkState || 0
+        return ListDataController.itemCheckState(control, row)
     }
 
     function setItemSelected(row, selected) {
-        if (row < 0 || row >= listModel.count) return
-        listModel.setProperty(row, "selected", selected)
-        var idx = _selectedRows.indexOf(row)
-        if (selected && idx < 0) {
-            _selectedRows.push(row)
-        } else if (!selected && idx >= 0) {
-            _selectedRows.splice(idx, 1)
-        }
-        _selectedRows = _selectedRows.slice()
+        ListDataController.setItemSelected(control, row, selected)
     }
 
     function isItemSelected(row) {
@@ -331,78 +230,11 @@ Rectangle {
     }
 
     function _handleItemClick(row, button, modifiers) {
-        if (selectionMode === noSelection) return
-
-        if (button === Qt.RightButton && !selectOnRightClick) return
-
-        if (selectionMode === singleSelection) {
-            listView.currentIndex = row
-            _selectedRows = [row]
-        } else if (selectionMode === multiSelection) {
-            var idx = _selectedRows.indexOf(row)
-            if (idx >= 0) {
-                _selectedRows.splice(idx, 1)
-            } else {
-                _selectedRows.push(row)
-            }
-            _selectedRows = _selectedRows.slice()  // Trigger binding update
-            listView.currentIndex = row
-        } else if (selectionMode === extendedSelection) {
-            if (modifiers & Qt.ControlModifier) {
-                var idx2 = _selectedRows.indexOf(row)
-                if (idx2 >= 0) _selectedRows.splice(idx2, 1)
-                else _selectedRows.push(row)
-                _selectedRows = _selectedRows.slice()
-            } else if (modifiers & Qt.ShiftModifier && listView.currentIndex >= 0) {
-                var start = Math.min(listView.currentIndex, row)
-                var end = Math.max(listView.currentIndex, row)
-                _selectedRows = []
-                for (var i = start; i <= end; i++) _selectedRows.push(i)
-            } else {
-                _selectedRows = [row]
-            }
-            listView.currentIndex = row
-        }
-        _pressedRow = -1
-        itemSelectionChanged()
+        ListDataController.handleItemClick(control, row, button, modifiers, Qt)
     }
 
     function _updateSelectedRows() {
-        // Called when model changes 模型变化时调用
-        _selectedRows = _selectedRows.filter(function(r) { return r < listModel.count })
-    }
-
-    function _normalizeItem(item) {
-        if (typeof item === "string") {
-            return { text: item, icon: "", data: {}, checkable: false, checkState: 0, selected: false, flags: 0 }
-        }
-        if (!item || typeof item !== "object") {
-            return { text: "", icon: "", data: {}, checkable: false, checkState: 0, selected: false, flags: 0 }
-        }
-        return {
-            text: item.text || "",
-            icon: item.icon || item.iconSource || "",
-            data: item.data || {},
-            checkable: item.checkable || false,
-            checkState: item.checkState || item.checked || 0,
-            selected: item.selected || false,
-            flags: item.flags || 0
-        }
-    }
-
-    function _getItemObject(row) {
-        if (row < 0 || row >= listModel.count) return null
-        var m = listModel.get(row)
-        return {
-            text: m.text,
-            icon: m.icon,
-            data: m.data,
-            checkable: m.checkable,
-            checkState: m.checkState,
-            selected: _isRowSelected(row),
-            flags: m.flags,
-            row: row
-        }
+        ListDataController.updateSelectedRows(control)
     }
 
     // ==================== Internal Methods 内部方法 ====================

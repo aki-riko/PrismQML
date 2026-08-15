@@ -156,6 +156,39 @@ def test_popup_window_core_keeps_positioning_and_prewarm_modularized():
     assert "PopupPrewarm.doPrewarm(" in source
 
 
+def test_list_widget_keeps_data_and_selection_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/List/ListWidget.qml"
+    )
+    controller = _source(
+        "prismqml/PrismQML/controls/data/List/_internal/ListDataController.js"
+    )
+    source = entry.read_text(encoding="utf-8")
+    controller_source = controller.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert controller.exists()
+    assert len(controller_source.splitlines()) < 500
+    assert ".pragma library" in controller_source
+    assert (
+        'import "_internal/ListDataController.js" as ListDataController'
+        in source
+    )
+
+    delegated_methods = (
+        "addItem", "addItems", "insertItem", "insertItems", "takeItem",
+        "item", "row", "currentItem", "setCurrentItem", "currentRow",
+        "setCurrentRow", "selectedItems", "clearSelection", "selectAll",
+        "setSelectionMode", "findItems", "sortItems", "clear",
+        "setItemText", "setItemIcon", "setItemData", "itemData",
+        "setItemCheckState", "itemCheckState", "setItemSelected",
+        "handleItemClick", "updateSelectedRows",
+    )
+    for method in delegated_methods:
+        assert f"function {method}(" in controller_source
+        assert f"ListDataController.{method}(" in source
+
+
 def test_stacked_widget_keeps_source_pages_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/navigation/StackedWidget.qml",
