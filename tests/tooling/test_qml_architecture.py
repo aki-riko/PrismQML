@@ -72,6 +72,33 @@ def test_navigation_window_core_keeps_orchestration_modularized():
     assert "NavigationWindowRouting.handleBottomItemClicked(window," in source
 
 
+def test_navigation_panel_keeps_background_layer_modularized():
+    entry = _source("prismqml/PrismQML/navigation/NavigationPanelCore.qml")
+    background = _source(
+        "prismqml/PrismQML/navigation/_internal/NavigationPanelBackground.qml"
+    )
+    border = _source(
+        "prismqml/PrismQML/navigation/_internal/NavigationPanelBorder.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert 'import "_internal"' in source
+    assert "NavigationPanelBackground {" in source
+    assert "NavigationPanelBorder {" in source
+    for helper in (background, border):
+        assert helper.exists()
+        helper_source = helper.read_text(encoding="utf-8")
+        assert len(helper_source.splitlines()) < 300
+        assert "required property var panel" in helper_source
+        assert "readonly property var control: panel" in helper_source
+    assert "z: -2" in background.read_text(encoding="utf-8")
+    assert "id: bgCanvas" not in source
+    assert "id: acrylicLayer" not in source
+    assert "id: rightBorderCanvas" not in source
+    assert "TicketPaper {" not in source
+
+
 def test_button_core_keeps_behavior_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/buttons/Button/ButtonCore.qml"

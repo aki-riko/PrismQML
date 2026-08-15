@@ -22,6 +22,8 @@ ROOT_NAV_SOURCE_PATHS = tuple(
     ROOT / "prismqml" / "PrismQML" / "navigation" / name
     for name in (
         "_internal/NavigationSmoothScroll.qml",
+        "_internal/NavigationPanelBackground.qml",
+        "_internal/NavigationPanelBorder.qml",
         "NavigationBar.qml",
         "NavigationBarItem.qml",
         "NavigationPanelCore.qml",

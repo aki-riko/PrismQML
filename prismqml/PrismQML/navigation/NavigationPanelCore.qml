@@ -5,6 +5,7 @@
 import QtQuick
 import ".."
 import "../controls/navigation/_internal"
+import "_internal"
 
 // NavigationPanelCore - Base class for navigation panels 导航面板基类
 // Provides common navigation logic: indicator animation, top/bottom items, route mapping 提供公共导航逻辑：指示器动画、上下项、路由映射
@@ -396,189 +397,16 @@ Item {
 
     // ==================== Content 内容 ====================
 
-    // Layer A: opaque background with right-side rounded corners 层A：右侧圆角不透明背景
-    Canvas {
-        id: bgCanvas
-
-        readonly property color _backgroundColor: control.backgroundColor
-        readonly property real _paintRadius: control._cornerRadius
-
-        function _scheduleBgRepaint() {
-            Qt.callLater(bgCanvas.requestPaint)
-        }
-
+    NavigationPanelBackground {
+        id: backgroundLayer
         anchors.fill: parent
-        z: -2  // Lowest layer 最底层
-        
-        onPaint: {
-            var ctx = getContext("2d")
-            var w = width, h = height, r = control._cornerRadius
-            var topOffset = control.titleBarHeight  // Top-right corner starts below title bar 右上圆角从标题栏下方开始
-            ctx.clearRect(0, 0, w, h)
-            
-            // Fill background 填充背景
-            ctx.fillStyle = _backgroundColor.toString()
-            ctx.beginPath()
-            ctx.moveTo(0, 0)
-            ctx.lineTo(w, 0)  // Top edge (no corner, extends into title bar) 顶边（无圆角，延伸到标题栏）
-            ctx.lineTo(w, topOffset)  // Right edge above title bar 标题栏上方的右边
-            ctx.lineTo(w - r, topOffset)  // Move to top-right corner start 移动到右上圆角起点
-            ctx.arcTo(w, topOffset, w, topOffset + r, r)  // Top-right corner below title bar 标题栏下方的右上圆角
-            ctx.lineTo(w, h - r)
-            ctx.arcTo(w, h, w - r, h, r)  // Bottom-right corner 右下圆角
-            ctx.lineTo(0, h)
-            ctx.closePath()
-            ctx.fill()
-        }
-        
-        // Repaint when size or color changes (debounced via Qt.callLater)
-        // 尺寸或颜色变化时防抖重绘 — Qt.callLater 自动合并同一事件循环中的多次调用,
-        // 不绑死 60fps 帧时长, 跟随事件循环节拍刷新一次
-        onWidthChanged: _scheduleBgRepaint()
-        onHeightChanged: _scheduleBgRepaint()
-        on_BackgroundColorChanged: requestPaint()
-        on_PaintRadiusChanged: requestPaint()
+        panel: control
     }
-
-    TicketPaper {
+    NavigationPanelBorder {
+        id: borderLayer
         anchors.fill: parent
-        z: -1
+        panel: control
     }
-    
-    // Layer B: Acrylic blurred background 层B：亚克力模糊背景
-    Rectangle {
-        id: acrylicLayer
-
-        // Acrylic tint color: pure white/dark gray; keeps Mica tint 亚克力着色：纯白/深灰，保留云母色调
-        readonly property color acrylicTintColor: Enums.stateColor.acrylicTintColor
-
-        anchors.fill: parent
-        visible: Enums.usesSoftElevation && control.acrylicEnabled && control.acrylicImageSource !== ""
-        z: -1  // Below all content 在所有内容下方
-        radius: control._cornerRadius
-        clip: true
-        color: Enums.transparent
-        
-        // Blurred background image 模糊背景图片
-        Image {
-            id: acrylicImage
-            anchors.fill: parent
-            source: control.acrylicImageSource
-            fillMode: Image.PreserveAspectCrop
-            cache: false  // Disable cache for dynamic updates 禁用缓存以支持动态更新
-        }
-        
-        // Tint overlay (pure white/dark gray to preserve Mica tone) 着色叠加层（纯白/深灰保留云母色调）
-        Rectangle {
-            anchors.fill: parent
-            color: acrylicLayer.acrylicTintColor
-        }
-        
-        // Fill top-left corner (no radius) 填充左上角（无圆角）
-        Rectangle {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            width: parent.radius
-            height: control.titleBarHeight + parent.radius
-            color: Enums.transparent
-            clip: true
-            
-            Image {
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                width: acrylicImage.width
-                height: acrylicImage.height
-                source: control.acrylicImageSource
-                fillMode: Image.PreserveAspectCrop
-                cache: false
-            }
-            Rectangle {
-                anchors.fill: parent
-                color: acrylicLayer.acrylicTintColor
-            }
-        }
-        
-        // Fill bottom-left corner (no radius) 填充左下角（无圆角）
-        Rectangle {
-            anchors.left: parent.left
-            anchors.bottom: parent.bottom
-            width: parent.radius
-            height: parent.radius
-            color: Enums.transparent
-            clip: true
-            
-            Image {
-                anchors.right: parent.right
-                anchors.top: parent.top
-                width: acrylicImage.width
-                height: acrylicImage.height
-                source: control.acrylicImageSource
-                fillMode: Image.PreserveAspectCrop
-                cache: false
-            }
-            Rectangle {
-                anchors.fill: parent
-                color: acrylicLayer.acrylicTintColor
-            }
-        }
-    }
-    
-    // Right border with rounded corners 带圆角的右侧边框
-    Canvas {
-        id: rightBorderCanvas
-
-        readonly property real _paintRadius: control._cornerRadius
-
-        function _scheduleBorderRepaint() {
-            Qt.callLater(rightBorderCanvas.requestPaint)
-        }
-
-        anchors.fill: parent
-        visible: control.borderEnabled && (control.backgroundColor.a > 0 || control.acrylicEnabled)  // Show when border enabled and bg visible 边框启用且背景可见时显示
-        z: 0  // Above acrylic layer 在亚克力层之上
-        
-        onPaint: {
-            var ctx = getContext("2d")
-            var w = width, h = height, r = control._cornerRadius
-            var topOffset = control.titleBarHeight
-            var borderWidth = Enums.border.normal
-            ctx.clearRect(0, 0, w, h)
-            
-            // Draw right border with rounded corners 绘制带圆角的右侧边框
-            ctx.strokeStyle = Enums.stateColor.navDivider.toString()
-            ctx.lineWidth = borderWidth
-            
-            var offset = borderWidth / 2
-            ctx.beginPath()
-            if (r <= offset) {
-                // Square ticket edge avoids a negative Canvas arc radius.
-                // 票据直角边避免向 Canvas 传入负圆弧半径。
-                ctx.moveTo(w - offset, topOffset + offset)
-                ctx.lineTo(w - offset, h - offset)
-            } else {
-                // Top-right corner (below title bar) 右上圆角（标题栏下方）
-                ctx.moveTo(w - r, topOffset + offset)
-                ctx.arcTo(w - offset, topOffset + offset, w - offset, topOffset + r, r - offset)
-                // Right edge 右侧边
-                ctx.lineTo(w - offset, h - r)
-                // Bottom-right corner 右下圆角
-                ctx.arcTo(w - offset, h - offset, w - r, h - offset, r - offset)
-            }
-            ctx.stroke()
-        }
-        
-        // Repaint right border on size change (debounced via Qt.callLater)
-        // 尺寸变化时防抖重绘右边框 — 跟随事件循环节拍, 不绑 60fps
-        onWidthChanged: _scheduleBorderRepaint()
-        onHeightChanged: _scheduleBorderRepaint()
-        on_PaintRadiusChanged: requestPaint()
-        
-        Connections {
-            function onNavDividerChanged() { rightBorderCanvas.requestPaint() }
-            target: Enums.stateColor
-        }
-    }
-    
     // 指示器裁剪容器: top/left/right 贴 control(容器内坐标系原点 == control 原点,
     // 故 navIndicator 的 x/y 仍按 control 坐标系算, _computeIndicatorRect 无需改)。
     // height 动态: 跟踪底部项或动画进行中 → 全高不裁(指示器要能显示在底部区/动画
