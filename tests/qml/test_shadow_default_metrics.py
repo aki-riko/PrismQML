@@ -16,6 +16,14 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 METRICS_SOURCE = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+SHADOW_METRICS_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "PrismEnums"
+    / "_internal"
+    / "MetricsShadow.qml"
+)
 SHADOW_SOURCE = ROOT / "prismqml" / "PrismQML" / "effects" / "Shadow.qml"
 SHADOWED_RECTANGLE_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "effects" / "ShadowedRectangle.qml"
@@ -132,16 +140,18 @@ def test_shadow_defaults_and_public_bindings_preserve_runtime_values(qapp):
 
 def test_shadow_zero_defaults_rely_on_qml_real_type_defaults():
     metrics_source = METRICS_SOURCE.read_text(encoding="utf-8")
+    shadow_metrics_source = SHADOW_METRICS_SOURCE.read_text(encoding="utf-8")
     shadow_source = SHADOW_SOURCE.read_text(encoding="utf-8")
     rectangle_source = SHADOWED_RECTANGLE_SOURCE.read_text(encoding="utf-8")
 
+    assert 'import "_internal" as MetricsInternal' in metrics_source
     assert "property real horizontalOffset\n" in shadow_source
     assert "property real spread\n" in shadow_source
     assert "property real horizontalOffset: 0" not in shadow_source
     assert "property real spread: 0.0" not in shadow_source
     assert "shadowScale: Enums.shadow.baseScale + root.spread" in shadow_source
     assert "shadowScale: 1.0 + root.spread" not in shadow_source
-    assert "readonly property real baseScale: 1.0" in metrics_source
+    assert "readonly property real baseScale: 1.0" in shadow_metrics_source
 
     assert "property real shadowOffsetX\n" in rectangle_source
     assert "property real shadowSpread\n" in rectangle_source

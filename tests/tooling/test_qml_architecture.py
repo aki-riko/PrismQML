@@ -475,6 +475,29 @@ def test_constants_keeps_theme_colors_modularized():
     assert "required property bool isDark" not in helper_source
 
 
+def test_metrics_keeps_shadow_logic_modularized():
+    entry = _source("prismqml/PrismQML/PrismEnums/Metrics.qml")
+    helper = _source(
+        "prismqml/PrismQML/PrismEnums/_internal/MetricsShadow.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 900
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 150
+    assert 'import "_internal" as MetricsInternal' in source
+    assert "readonly property QtObject shadow: MetricsInternal.MetricsShadow {" in source
+    assert "isDark: root.isDark" in source
+    assert "isTicket: root.isTicket" in source
+    assert "readonly property QtObject shadow: QtObject {" not in source
+    assert "required property bool isDark" in helper_source
+    assert "required property bool isTicket" in helper_source
+    for level in (2, 4, 8, 16, 28):
+        assert f"readonly property QtObject level{level}: QtObject {{" in helper_source
+        assert f"function applyLevel{level}(target)" in helper_source
+
+
 def test_xy_chart_core_keeps_axes_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/XYChartCore.qml"

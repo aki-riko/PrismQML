@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "_internal" as MetricsInternal
 
 // Metrics - Size and spacing constants 尺寸和间距常量
 // Includes: Duration, Spacing, Radius, Typography, IconSize, etc.
@@ -850,85 +851,13 @@ QtObject {
  readonly property int mega: 68
  }
  
- // ==================== Shadow 阴影 ====================
- // 阴影系统: 多层 elevation 规范
- // RectangularShadow params: offset (Y shift), blur, color (alpha), samples (MultiEffect), blurNormalized (0-1) 阴影参数：偏移（Y轴）、模糊、颜色（透明度）、采样数、归一化模糊值
- // Shadows are more pronounced in dark theme (alpha increased by 50%) 暗色主题下阴影更明显（alpha 增加 50%）
- // Shadow Level Mapping: L2 (Card/Btn hover), L4 (ComboBox/Toast), L8 (Menu/Tooltip), L16 (Dialog/Modal), L28 (Window) 阴影层级映射：L2（卡片按钮）、L4（下拉框信息条）、L8（菜单提示）、L16（对话框）、L28（窗口）
-
- readonly property QtObject shadow: QtObject {
- readonly property real _alphaMultiplier: root.isDark ? 1.5 : 1.0
- readonly property real baseScale: 1.0 // MultiEffect neutral shadow scale MultiEffect 中性阴影缩放
- 
- // Level 2: Slight elevation 轻微悬浮
- // Usage: Card, SimpleCard, HeaderCard, button hover state
- // Visual: Barely floating, almost touching surface
- readonly property QtObject level2: QtObject {
- readonly property real offset: root.isTicket ? 0 : 1
- readonly property real blur: root.isTicket ? 0 : 4
- readonly property int samples: root.isTicket ? 1 : 13
- readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.08 * shadow._alphaMultiplier)
- readonly property real blurNormalized: root.isTicket ? 0 : 0.1
- }
- 
- // Level 4: Standard elevation 标准悬浮
- // Usage: ElevatedCard, ComboBox dropdown, InfoBar, Toast
- // Visual: Clearly floating, layered appearance
- readonly property QtObject level4: QtObject {
- readonly property real offset: root.isTicket ? 0 : 2
- readonly property real blur: root.isTicket ? 0 : 8
- readonly property int samples: root.isTicket ? 1 : 17
- readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.12 * shadow._alphaMultiplier)
- readonly property real blurNormalized: root.isTicket ? 0 : 0.15
- }
- 
- // Level 8: Medium elevation 中等悬浮
- // Usage: Menu, ContextMenu, Tooltip, Flyout, TeachingTip
- // Visual: Significantly floating, temporary overlay
- readonly property QtObject level8: QtObject {
- readonly property real offset: root.isTicket ? 0 : 4
- readonly property real blur: root.isTicket ? 0 : 16
- readonly property int samples: root.isTicket ? 1 : 21
- readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.14 * shadow._alphaMultiplier)
- readonly property real blurNormalized: root.isTicket ? 0 : 0.25
- }
- 
- // Level 16: High elevation 高悬浮
- // Usage: Dialog, MessageBox, Modal windows
- // Visual: Highly floating, focus emphasis
- readonly property QtObject level16: QtObject {
- readonly property real offset: root.isTicket ? 0 : 8
- readonly property real blur: root.isTicket ? 0 : 32
- readonly property int samples: root.isTicket ? 1 : 25
- readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.18 * shadow._alphaMultiplier)
- readonly property real blurNormalized: root.isTicket ? 0 : 0.4
- }
- 
- // Level 28: Highest elevation 最高悬浮
- // Usage: Main window shadow, standalone popup windows
- // Visual: Maximum shadow, window level
- readonly property QtObject level28: QtObject {
- readonly property real offset: root.isTicket ? 0 : 12
- readonly property real blur: root.isTicket ? 0 : 48
- readonly property int samples: root.isTicket ? 1 : 29
- readonly property color color: root.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.22 * shadow._alphaMultiplier)
- readonly property real blurNormalized: root.isTicket ? 0 : 0.5
- }
-
- // Splash icon MultiEffect shadow 启动画面图标 MultiEffect 阴影
- readonly property QtObject splashIcon: QtObject {
- readonly property real blurNormalized: 0.8
- readonly property real offset: 6
- }
- 
- // ==================== Helper Functions 辅助函数 ====================
- // Apply shadow to MultiEffect (for scenarios not supporting RectangularShadow)
- function applyLevel2(target) { target.verticalOffset = level2.offset; target.blur = level2.blurNormalized; target.samples = level2.samples; target.color = level2.color }
- function applyLevel4(target) { target.verticalOffset = level4.offset; target.blur = level4.blurNormalized; target.samples = level4.samples; target.color = level4.color }
- function applyLevel8(target) { target.verticalOffset = level8.offset; target.blur = level8.blurNormalized; target.samples = level8.samples; target.color = level8.color }
- function applyLevel16(target) { target.verticalOffset = level16.offset; target.blur = level16.blurNormalized; target.samples = level16.samples; target.color = level16.color }
- function applyLevel28(target) { target.verticalOffset = level28.offset; target.blur = level28.blurNormalized; target.samples = level28.samples; target.color = level28.color }
- }
+  // ==================== Shadow 阴影 ====================
+  // Shadow levels keep their public Enums.shadow object shape while the
+  // skin-dependent implementation lives in a dedicated owner.
+  readonly property QtObject shadow: MetricsInternal.MetricsShadow {
+  isDark: root.isDark
+  isTicket: root.isTicket
+  }
 
  readonly property QtObject demoMetrics: QtObject {
  readonly property int carouselInterval: 2500
