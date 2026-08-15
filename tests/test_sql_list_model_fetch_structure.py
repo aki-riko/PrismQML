@@ -9,10 +9,11 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from prismqml.python.models import sql_list_model
+from prismqml.python.models import _sql_page_loader, sql_list_model
 
 
 _SOURCE_PATH = Path(sql_list_model.__file__).resolve()
+_LOADER_PATH = Path(_sql_page_loader.__file__).resolve()
 _FETCH_HELPERS = {
     "_route_page",
     "_plan_page",
@@ -44,11 +45,11 @@ def _parse_source(path: Path) -> tuple[str, ast.Module]:
     return source, ast.parse(source, filename=str(path), feature_version=(3, 9))
 
 
-def _method_map(tree: ast.Module) -> dict[str, ast.FunctionDef]:
+def _method_map(tree: ast.Module, class_name: str) -> dict[str, ast.FunctionDef]:
     model_class = next(
         node
         for node in tree.body
-        if isinstance(node, ast.ClassDef) and node.name == "SqlListModel"
+        if isinstance(node, ast.ClassDef) and node.name == class_name
     )
     return {
         node.name: node
@@ -161,9 +162,20 @@ def test_fetch_page_pipeline_preserves_order_and_duplicate_column_boundary(
 
 def test_fetch_page_helpers_stay_small_and_reused():
     source, tree = _parse_source(_SOURCE_PATH)
-    methods = _method_map(tree)
+    loader_source, loader_tree = _parse_source(_LOADER_PATH)
+    methods = _method_map(loader_tree, "SqlPageLoaderMixin")
+    model_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "SqlListModel"
+    )
 
     assert len(source.splitlines()) < 700
+    assert len(loader_source.splitlines()) < 500
+    assert [ast.unparse(base) for base in model_class.bases] == [
+        "SqlPageLoaderMixin",
+        "QAbstractListModel",
+    ]
     assert _FETCH_HELPERS <= methods.keys()
     for name in sorted(_FETCH_HELPERS):
         method = methods[name]
