@@ -25,7 +25,7 @@ from prismqml.python.core.theme import getThemeManager
 from prismqml.python.core.utils import qml_path
 from prismqml.python.core.window_helper import get_window_helper
 from prismqml.python.providers import clipboard as clipboard_module
-from prismqml.python.providers.lazy_context import (
+from prismqml.python.runtime.lazy_context import (
     LazyQRCodeGenerator,
     LazyScreenEyedropperManager,
 )

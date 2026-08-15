@@ -3,7 +3,7 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
-"""Lazy QML context providers.
+"""Lazy QML runtime context proxies. 延迟 QML 运行时 context 代理。
 
 These lightweight proxies keep App/engine creation from importing optional
 providers that are only needed by specific controls.
@@ -17,7 +17,7 @@ from PySide6.QtCore import QObject, Property, Signal, Slot
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine
 
-from ._qrcode_constants import DEFAULT_QR_CODE_SIZE
+from ..providers._qrcode_constants import DEFAULT_QR_CODE_SIZE
 
 
 class LazyQRCodeGenerator(QObject):
@@ -38,7 +38,7 @@ class LazyQRCodeGenerator(QObject):
 
     def _ensure_generator(self):
         if self._generator is None:
-            from .qrcode_generator import get_qrcode_generator
+            from ..providers.qrcode_generator import get_qrcode_generator
 
             self._generator = get_qrcode_generator()
         return self._generator
@@ -48,7 +48,7 @@ class LazyQRCodeGenerator(QObject):
             return
         if self._engine is None:
             raise RuntimeError("QML engine is no longer available")
-        from .qrcode_generator import get_qrcode_provider
+        from ..providers.qrcode_generator import get_qrcode_provider
 
         self._engine.addImageProvider("qrcode", get_qrcode_provider())
         self._provider_registered = True
@@ -96,7 +96,7 @@ class LazyScreenEyedropperManager(QObject):
 
     def _ensure_manager(self):
         if self._manager is None:
-            from .screen_eyedropper import get_screen_eyedropper_manager
+            from ..providers.screen_eyedropper import get_screen_eyedropper_manager
 
             self._manager = get_screen_eyedropper_manager()
         if not self._connected:

@@ -32,7 +32,7 @@ def _register_lazy_context(
     engine: QQmlApplicationEngine, context: QQmlContext
 ) -> None:
     """Keep lazy proxies alive on their engine. 在引擎上保活延迟代理。"""
-    from ..providers.lazy_context import (
+    from .lazy_context import (
         LazyQRCodeGenerator,
         LazyScreenEyedropperManager,
     )

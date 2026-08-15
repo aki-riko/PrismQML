@@ -25,7 +25,7 @@ from PySide6.QtWidgets import QApplication
 import prismqml.python.providers.qrcode_generator as qrcode_generator
 from prismqml.python.providers.qrcode_generator import get_qrcode_provider
 from prismqml.python.providers._qrcode_protocol import create_request, encode_provider_id
-from prismqml.python.providers.lazy_context import LazyQRCodeGenerator
+from prismqml.python.runtime.lazy_context import LazyQRCodeGenerator
 from prismqml.python.providers.svg_provider import get_svg_provider
 from prismqml.python.core.engine import EngineManager
 from prismqml import register_types
