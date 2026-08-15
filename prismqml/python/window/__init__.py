@@ -200,10 +200,10 @@ _LAZY_EXPORTS = {
     "AsyncQmlPage": (".async_qml_page", "AsyncQmlPage"),
     # Mica/Acrylic
     "MicaManager": (".mica_window", "MicaManager"),
-    "get_mica_manager": (".mica_window", "get_mica_manager"),
+    "get_mica_manager": ("..runtime", "get_mica_manager"),
     "AcrylicHelper": (".mica_window", "AcrylicHelper"),
     "AcrylicImageProvider": (".mica_window", "AcrylicImageProvider"),
-    "get_acrylic_helper": (".mica_window", "get_acrylic_helper"),
+    "get_acrylic_helper": ("..runtime", "get_acrylic_helper"),
     # SystemTray
     "SystemTrayIcon": (".system_tray", "SystemTrayIcon"),
     "MessageIcon": (".system_tray", "MessageIcon"),
@@ -211,7 +211,7 @@ _LAZY_EXPORTS = {
     "createSystemTrayIcon": (".system_tray", "createSystemTrayIcon"),
     # NativeWindow
     "NativeWindowHook": (".native_window", "NativeWindowHook"),
-    "get_native_window_hook": (".native_window", "get_native_window_hook"),
+    "get_native_window_hook": ("..runtime", "get_native_window_hook"),
 }
 
 

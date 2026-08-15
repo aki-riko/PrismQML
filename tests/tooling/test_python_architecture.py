@@ -460,6 +460,7 @@ def test_window_helper_access_has_one_runtime_owner():
     runtime_services = PYTHON_PACKAGE / "runtime" / "window_services.py"
     runtime_registry = PYTHON_PACKAGE / "runtime" / "registry.py"
     runtime_composition = PYTHON_PACKAGE / "runtime" / "context_composition.py"
+    window_exports = _lazy_exports(WINDOW_PACKAGE / "__init__.py")
     window_core = WINDOW_PACKAGE / "window_core.py"
     application_icon = WINDOW_PACKAGE / "_application_icon_runtime.py"
     root_exports = _lazy_exports(root_init)
@@ -481,6 +482,12 @@ def test_window_helper_access_has_one_runtime_owner():
         assert runtime_exports[name] == (".window_services", name)
     for name in ("get_mica_manager", "get_acrylic_helper", "get_clipboard_helper"):
         assert root_exports[name] == (".python.runtime", name)
+    for name in (
+        "get_mica_manager",
+        "get_acrylic_helper",
+        "get_native_window_hook",
+    ):
+        assert window_exports[name] == ("..runtime", name)
     assert "get_window_helper" in _function_names(runtime_services)
     assert "get_mica_manager" in _function_names(runtime_services)
     assert {
