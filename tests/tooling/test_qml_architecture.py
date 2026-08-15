@@ -1044,3 +1044,36 @@ def test_spin_box_keeps_dynamic_button_components_modularized():
         "\n        MiniSpinButton {",
     ):
         assert marker not in source
+
+
+def test_expander_keeps_header_visuals_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/containers/Expander/ExpanderCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/containers/Expander/_internal/"
+        "HeaderContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 240
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 180
+    assert 'import "_internal" as ExpanderInternal' in source
+    assert "ExpanderInternal.HeaderContent {" in source
+    assert "required property var expanderControl" in helper_source
+    assert "property alias titleLabel: titleLabel" in helper_source
+    assert "property alias contentLabel: contentLabel" in helper_source
+    assert "property alias headerContent: headerContentLoader.sourceComponent" in helper_source
+    assert "property alias headerContentLoader: headerContentLoader" in helper_source
+    assert "expanderControl.toggled(expanderControl.expanded)" in helper_source
+
+    for marker in (
+        "\n        Row {\n            id: headerRow",
+        "\n            Column {\n                id: titleCol",
+        "\n        Loader {\n            id: headerContentLoader",
+        "\n        MouseArea {\n            id: headerArea",
+        "\n            Icon {\n                icon: Enums.icon.chevron_down",
+    ):
+        assert marker not in source

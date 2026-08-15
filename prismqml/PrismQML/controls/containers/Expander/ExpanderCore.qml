@@ -5,19 +5,18 @@
 import QtQuick
 import QtQuick.Effects
 import "../../.."
-import "../../icons"
 import "../Card"
 import "../../../effects"
-import "../../data/Label"
 import ".."
+import "_internal" as ExpanderInternal
 
 // ExpanderCore - Expander using Card base 展开器基类
 Widget {
     id: control
     
     // ==================== Public Props 公开属性 ====================
-    property alias title: titleLabel.text
-    property alias content: contentLabel.text  // Description text 描述文本
+    property alias title: headerView.title
+    property alias content: headerView.content  // Description text 描述文本
     property string icon: ""
     property bool expanded: false
     property bool disabled: false
@@ -31,14 +30,14 @@ Widget {
     default property alias expandContent: contentArea.data
     
     // Header right content (between title and expand button) 头部右侧内容（标题和展开按钮之间）
-    property alias headerContent: headerContentLoader.sourceComponent
+    property alias headerContent: headerView.headerContent
     // Hook for subclass to handle widget addition 子类处理控件添加的钩子
     property var onWidgetAdded: null
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int _radius: Enums.surfaceRadius(Enums.radius.card)
-    readonly property bool hovered: !control.disabled && headerArea.containsMouse
-    readonly property bool pressed: !control.disabled && headerArea.pressed
+    readonly property bool hovered: headerView.hovered
+    readonly property bool pressed: headerView.pressed
     
     // ==================== Signals 信号 ====================
     signal toggled(bool expanded)
@@ -70,8 +69,9 @@ Widget {
     
     // Add widget to header (right side) 添加控件到头部（右侧）
     function addHeaderWidget(widget) {
-        if (headerContentLoader && headerContentLoader.item) {
-            widget.parent = headerContentLoader.item
+        if (headerView.headerContentLoader
+                && headerView.headerContentLoader.item) {
+            widget.parent = headerView.headerContentLoader.item
         }
     }
     
@@ -122,7 +122,7 @@ Widget {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: headerContent.height + (control.expanded ? viewContainer.height : 0)
+        height: headerView.height + (control.expanded ? viewContainer.height : 0)
         clip: true
         opacity: control.disabled ? Enums.opacityLevel.disabled : Enums.opacityLevel.visible
         
@@ -152,125 +152,14 @@ Widget {
         }
         
         // Header content 头部内容
-        Item {
-            id: headerContent
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: contentLabel.text !== "" ? 72 : 48
-            
-            // Card layout 卡片布局
-            Row {
-                id: headerRow
-                anchors.fill: parent
-                anchors.leftMargin: Enums.spacing.xl
-                anchors.rightMargin: Enums.spacing.xl  // 对称, 之前 spacing.m 比左侧窄
-                spacing: Enums.spacing.none
-                z: Enums.zIndex.content  // Above mouse area 在鼠标区域之上
-                
-                // Icon 图标
-                Item {
-                    width: control.icon !== "" ? (Enums.iconSize.m + Enums.spacing.xl) : 0
-                    height: parent.height
-                    visible: control.icon !== ""
-                    
-                    Icon {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        iconSize: Enums.iconSize.m
-                        icon: control.icon
-                        color: Enums.textColor.primary
-                    }
-                }
-                
-                // Title and content 标题和内容
-                Column {
-                    id: titleCol
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Enums.spacing.none
-                    
-                    Label {
-                        id: titleLabel
-                        type: Enums.label.type_body
-                    }
-                    
-                    Label {
-                        id: contentLabel
-                        type: Enums.label.type_caption
-                        color: Enums.stateColor.settingCardContent
-                        visible: text !== ""
-                    }
-                }
-                
-                // Spacer 弹性空间
-                Item { 
-                    width: Math.max(1, headerContent.width - Enums.spacing.xl - Enums.spacing.m - (control.icon !== "" ? (Enums.iconSize.m + Enums.spacing.xl) : 0) - titleCol.implicitWidth - headerContentLoader.width - Enums.controlSize.expanderIconSize - (headerContentLoader.item ? Enums.spacing.xl : 0))
-                    height: Enums.border.thin 
-                }
-                
-                // Header content loader 头部内容加载器
-                Loader {
-                    id: headerContentLoader
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-                
-                // Spacing between header content and expand button 头部内容与展开按钮之间的间距
-                Item {
-                    width: headerContentLoader.item ? Enums.spacing.xl : 0
-                    height: Enums.border.thin
-                    visible: headerContentLoader.item
-                }
-                
-                // Expand button 展开按钮 (Fluent Design: 30x30)
-                Item {
-                    width: Enums.controlSize.expanderIconSize
-                    height: Enums.controlSize.expanderIconSize
-                    anchors.verticalCenter: parent.verticalCenter
-                    
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: Enums.surfaceRadius(Enums.radius.small)
-                        color: {
-                            if (control.pressed) return Enums.stateColor.expandBtnPressed
-                            if (control.hovered) return Enums.stateColor.expandBtnHover
-                            return Enums.transparent
-                        }
-                    }
-                    
-                    // Arrow icon with rotation 带旋转的箭头图标
-                    Icon {
-                        anchors.centerIn: parent
-                        iconSize: Enums.iconSize.tiny
-                        icon: Enums.icon.chevron_down
-                        color: Enums.textColor.secondary
-                        rotation: control.expanded ? 180 : 0
-                        
-                        Behavior on rotation {
-                            NumberAnimation { 
-                                duration: Enums.duration.medium
-                                easing.type: Easing.OutQuad
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Click handler 点击处理
-            MouseArea {
-                id: headerArea
-                anchors.fill: parent
-                hoverEnabled: true
-                enabled: !control.disabled
-                onClicked: { 
-                    control.expanded = !control.expanded
-                    control.toggled(control.expanded)
-                }
-            }
+        ExpanderInternal.HeaderContent {
+            id: headerView
+            expanderControl: control
         }
         
         // Separator 分隔线
         Separator {
-            anchors.top: headerContent.bottom
+            anchors.top: headerView.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             lineColor: Enums.stateColor.expanderSeparator
@@ -286,7 +175,7 @@ Widget {
         // Expanded view 展开内容
         Item {
             id: viewContainer
-            anchors.top: headerContent.bottom
+            anchors.top: headerView.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             // contentPadding 默认 0 (兼容 SettingsCard 内层 Item 自带 padding 场景);

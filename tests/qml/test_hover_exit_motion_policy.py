@@ -25,6 +25,7 @@ FRAME_SAMPLE_MS = 30
 HOVER_MOTION_AUDIT_EXEMPTIONS = {
     "controls/buttons/Button/ButtonCore.qml",
     "controls/containers/Expander/ExpanderCore.qml",
+    "controls/containers/Expander/_internal/HeaderContent.qml",
     "controls/data/Chart/_internal/BoxplotChartContent.qml",
     "controls/data/Chart/_internal/LineChartContent.qml",
     "controls/data/Chart/_internal/XYChartCore.qml",

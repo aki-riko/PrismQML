@@ -41,6 +41,14 @@ SOURCE_PATHS = (
     / "controls"
     / "containers"
     / "Expander"
+    / "_internal"
+    / "HeaderContent.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "containers"
+    / "Expander"
     / "GroupBox.qml",
 )
 SCENE_URL = QUrl.fromLocalFile(
@@ -59,9 +67,16 @@ Window {
     readonly property bool groupState: groupBox.isChecked()
     readonly property string groupTitle: groupBox.getTitle()
     readonly property real disabledOpacity: Enums.opacityLevel.disabled
+    property var lastAddedWidget: null
 
     function resetGroup() {
         groupBox.setChecked(true)
+    }
+
+    function attachExpanderWidgets() {
+        expander.addHeaderWidget(headerWidget)
+        expander.addExpandWidget(expandWidget)
+        lastAddedWidget = expandWidget
     }
 
     width: 720
@@ -77,11 +92,35 @@ Window {
         title: "Details"
         content: "Description"
 
+        headerContent: Component {
+            Item {
+                objectName: "headerSlot"
+                width: 40
+                height: 24
+            }
+        }
+
         Rectangle {
             objectName: "expandedChild"
             width: 120
             height: 40
         }
+    }
+
+    Rectangle {
+        id: headerWidget
+        objectName: "headerWidget"
+        width: 8
+        height: 8
+        visible: false
+    }
+
+    Rectangle {
+        id: expandWidget
+        objectName: "expandWidget"
+        width: 8
+        height: 8
+        visible: false
     }
 
     GroupBox {
@@ -230,6 +269,29 @@ def test_group_box_checkbox_controls_content(expander_scene):
     assert content_area.isEnabled()
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_expander_custom_header_and_widget_parent_contracts(expander_scene):
+    window, expander, _group_box, warnings, _windows_before = expander_scene
+    header_slot = window.findChild(QQuickItem, "headerSlot")
+    header_widget = window.findChild(QQuickItem, "headerWidget")
+    expand_widget = window.findChild(QQuickItem, "expandWidget")
+    content_area = expander.findChild(QQuickItem, "contentArea")
+
+    assert header_slot is not None
+    assert header_widget is not None
+    assert expand_widget is not None
+    assert content_area is not None
+    assert header_widget.parentItem() is not header_slot
+    assert expand_widget.parentItem() is not content_area
+
+    assert QMetaObject.invokeMethod(window, "attachExpanderWidgets")
+    assert _wait_for(lambda: header_widget.parentItem() is header_slot)
+    assert expand_widget.parentItem() is content_area
+    last_added = window.property("lastAddedWidget")
+    assert last_added is not None
+    assert last_added.objectName() == "expandWidget"
+    assert warnings == []
 
 
 def test_expander_sources_follow_conventions():
