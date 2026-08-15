@@ -22,9 +22,20 @@ Text {
     property bool _useCustomColor: customTextColor != Enums.transparent
 
     // ==================== Readonly State 只读状态 ====================
+    readonly property bool _isHyperlink: type === Enums.label.type_hyperlink
     readonly property bool hovered: _mouseArea.item
         ? _mouseArea.item.containsMouse
         : false
+    readonly property real _paintedTextX: {
+        switch (horizontalAlignment) {
+            case Text.AlignHCenter:
+                return Math.max(0, (width - paintedWidth) / 2)
+            case Text.AlignRight:
+                return Math.max(0, width - paintedWidth)
+            default:
+                return 0
+        }
+    }
     readonly property int _fontSize: {
         switch (type) {
             case Enums.label.type_body:
@@ -96,18 +107,50 @@ Text {
     font.family: Enums.fontFamily
     font.pixelSize: _fontSize
     font.weight: _fontWeight
-    font.underline: type === Enums.label.type_hyperlink && (!underlineOnHover || hovered)
+    font.underline: _isHyperlink && (!underlineOnHover || hovered)
     color: _textColor
     wrapMode: (type === Enums.label.type_body || type === Enums.label.type_body_strong || type === Enums.label.type_body_small)
               ? Text.WordWrap : Text.NoWrap
     elide: type === Enums.label.type_display ? Text.ElideRight : Text.ElideNone
 
     // ==================== Content 内容 ====================
+    // Hyperlink hover surface gives links a tactile, theme-aware focus cue. 超链接悬浮底纹提供有触感且跟随主题的焦点提示。
+    Rectangle {
+        id: hyperlinkHoverSurface
+        objectName: "hyperlinkHoverSurface"
+        z: -1
+        x: control._paintedTextX - Enums.spacing.xs
+        y: (control.height - control.paintedHeight) / 2 - Enums.spacing.xxs
+        width: control.paintedWidth + Enums.spacing.m
+        height: control.paintedHeight + Enums.spacing.xxs * 2
+        radius: Enums.radius.small
+        color: Enums.stateColor.accentSubtle
+        border.width: Enums.border.thin
+        border.color: Enums.stateColor.accentBorder
+        opacity: control._isHyperlink && control.hovered ? Enums.opacityLevel.visible : Enums.opacityLevel.invisible
+        scale: control._isHyperlink && control.hovered ? 1 : 0.92
+        transformOrigin: Item.Center
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Enums.duration.fast
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: Enums.duration.fast
+                easing.type: Easing.OutBack
+            }
+        }
+    }
+
     // Hyperlink interaction 超链接交互
     Loader {
         id: _mouseArea
         anchors.fill: parent
-        active: type === Enums.label.type_hyperlink
+        active: _isHyperlink
 
         sourceComponent: MouseArea {
             anchors.fill: parent

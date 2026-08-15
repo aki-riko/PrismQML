@@ -152,6 +152,28 @@ def _find_link_target(root, expected_url: str):
     raise AssertionError(f"link target not found: {expected_url}")
 
 
+LABEL_HOVER_SCENE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    width: 360
+    height: 140
+    visible: true
+
+    Label {
+        objectName: "labelLink"
+        x: 24
+        y: 32
+        text: "Open documentation"
+        type: Enums.label.type_hyperlink
+        url: "https://example.invalid/label"
+    }
+}
+"""
+
+
 DIALOG_SCENE = b"""
 import QtQuick
 import QtQuick.Window
@@ -362,6 +384,30 @@ def test_dialog_content_preserves_hyperlink_cursors(qapp) -> None:
             )
             _assert_pointing_cursor(window)
 
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_label_hyperlink_hover_surface_is_scoped_to_hover(qapp) -> None:
+    engine, component, window, warnings = _create_scene(LABEL_HOVER_SCENE)
+    try:
+        label = window.findChild(QQuickItem, "labelLink")
+        surface = window.findChild(QQuickItem, "hyperlinkHoverSurface")
+        assert label is not None
+        assert surface is not None
+        assert surface.opacity() == 0
+
+        _move_to_item(window, label, label.boundingRect().center())
+        assert label.property("hovered") is True
+        _pump(140)
+        assert surface.opacity() > 0.95
+        assert surface.scale() > 0.99
+
+        QTest.mouseMove(window, QPoint(window.width() - 2, window.height() - 2))
+        _pump(140)
+        assert label.property("hovered") is False
+        assert surface.opacity() < 0.05
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
