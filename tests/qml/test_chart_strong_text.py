@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
-"""Chart strong-text fixed-white regressions. 图表强文字固定白色回归。"""
+"""Chart strong-text contrast regressions. 图表强文字对比度回归。"""
 
 from pathlib import Path
 
@@ -21,9 +21,11 @@ CHART_INTERNAL = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "data" / "Chart" / "_internal"
 )
 STRONG_TEXT_SOURCES = {
+    CHART_INTERNAL / "ChartTooltip.qml": 1,
+}
+MARKER_TEXT_SOURCES = {
     CHART_INTERNAL / "BarChartContent.qml": 2,
     CHART_INTERNAL / "LineChartMarkers.qml": 2,
-    CHART_INTERNAL / "ChartTooltip.qml": 1,
 }
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "chart-strong-text.qml")
@@ -38,6 +40,7 @@ Item {
 
     readonly property color defaultWhite: defaultRectangle.color
     readonly property color chartStrongText: Enums.chartColors.strongText
+    readonly property color chartMarkerText: Enums.chartColors.markerText
     readonly property color textPrimary: Enums.textColor.primary
 
     width: 1000
@@ -156,7 +159,7 @@ def _strong_text_items(root: QQuickItem) -> tuple[QQuickItem, ...]:
     )
 
 
-def test_chart_strong_text_remains_fixed_white(qapp):
+def test_chart_strong_text_preserves_surface_contrast(qapp):
     setTheme(Theme.LIGHT)
     setSkin(Skin.FLUENT)
     engine, component, root = _create_scene()
@@ -175,6 +178,22 @@ def test_chart_strong_text_remains_fixed_white(qapp):
             _pump(5)
             for item in items:
                 _assert_color(item.property("color"), expected)
+
+        setTheme(Theme.LIGHT)
+        setSkin(Skin.VINTAGE_TICKET)
+        _pump(5)
+        marker_items = items[:4]
+        for item in marker_items:
+            _assert_color(item.property("color"), QColor("#FFF9EE"))
+        _assert_color(items[-1].property("color"), QColor("#2B211A"))
+        _assert_color(root.property("chartMarkerText"), QColor("#FFF9EE"))
+
+        setTheme(Theme.DARK)
+        _pump(5)
+        for item in marker_items:
+            _assert_color(item.property("color"), QColor("#1D1A17"))
+        _assert_color(items[-1].property("color"), QColor("#EDE3D2"))
+        _assert_color(root.property("chartMarkerText"), QColor("#1D1A17"))
     finally:
         setSkin(Skin.FLUENT)
         setTheme(Theme.LIGHT)
@@ -194,4 +213,9 @@ def test_chart_sources_use_strong_text_token():
     for source_path, expected_count in STRONG_TEXT_SOURCES.items():
         source = source_path.read_text(encoding="utf-8")
         assert source.count("color: Enums.chartColors.strongText") == expected_count
+        assert 'color: "white"' not in source
+
+    for source_path, expected_count in MARKER_TEXT_SOURCES.items():
+        source = source_path.read_text(encoding="utf-8")
+        assert source.count("color: Enums.chartColors.markerText") == expected_count
         assert 'color: "white"' not in source

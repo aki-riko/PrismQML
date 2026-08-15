@@ -116,9 +116,11 @@ Item {
             }
 
             Loader {
+                objectName: "ticketPaperLoader"
                 anchors.fill: parent
                 active: Enums.isVintageTicket
-                asynchronous: true
+                // Complete the surface before its popup can be destroyed. 在弹层可能销毁前同步完成表面创建。
+                asynchronous: false
                 source: Qt.resolvedUrl("../../../effects/TicketPaper.qml")
             }
 

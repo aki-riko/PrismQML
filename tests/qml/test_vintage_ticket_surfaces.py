@@ -293,12 +293,15 @@ def test_ticket_surfaces_have_paper_without_elevation_or_neo_shadow(ticket_scene
     popup_shadow = window.findChild(QQuickItem, "_popupShadow")
     popup_neo_shadow = window.findChild(QQuickItem, "_popupNeoShadow")
     popup_surface = window.findChild(QQuickItem, "_popupSurface")
+    ticket_loader = window.findChild(QQuickItem, "ticketPaperLoader")
     popup = window.findChild(QQuickItem, "popup")
 
     assert len(ticket_papers) >= 1
     assert all(item.property("visible") for item in ticket_papers)
     assert popup is not None
     assert popup_surface is not None
+    assert ticket_loader is not None
+    assert ticket_loader.property("asynchronous") is False
     assert len(_objects(popup_surface, "TicketPaper")) == 1
     assert QMetaObject.invokeMethod(window, "openPopup")
     assert _wait_for(
