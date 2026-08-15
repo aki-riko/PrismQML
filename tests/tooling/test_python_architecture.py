@@ -615,5 +615,5 @@ def test_notification_qml_helper_has_one_runtime_composition_owner():
         ".notification",
         "showDesktopInfo",
     )
-    assert "prismqml.python.core.engine.EngineManager" in runtime_imports
+    assert "prismqml.python.runtime.engine.get_published_qml_engine" in runtime_imports
     assert "prismqml.python.core.logger.getLogger" in runtime_imports

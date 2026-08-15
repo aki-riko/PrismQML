@@ -35,8 +35,8 @@ from typing import Any, Mapping, Optional
 from PySide6.QtCore import QObject, QUrl, Qt, QMetaObject, Q_ARG, Slot
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
-from ..core.engine import EngineManager
 from ..core.logger import getLogger
+from .engine import get_published_qml_engine
 
 _logger = getLogger("notification")
 
@@ -136,7 +136,7 @@ def _create_helper(engine: QQmlApplicationEngine) -> Optional[QObject]:
 def _get_helper() -> Optional[QObject]:
     """Lazy-create the cached helper. 懒创建并缓存通知 helper。"""
     try:
-        engine = EngineManager.get_engine()
+        engine = get_published_qml_engine()
     except RuntimeError:
         _logger.warning("Engine 未初始化, 通知 helper 不可用")
         return None

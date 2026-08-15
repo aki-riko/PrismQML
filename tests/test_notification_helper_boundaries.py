@@ -4,8 +4,6 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Notification helper boundary contracts. 通知 helper 边界合同。"""
 
-from types import SimpleNamespace
-
 import pytest
 
 from prismqml.python.runtime import notification
@@ -194,8 +192,9 @@ def _restore_notification_helper():
 def scenario(monkeypatch):
     """Install a pure fake dependency graph. 安装纯 fake 依赖图。"""
     current = _Scenario()
-    engine_manager = SimpleNamespace(get_engine=current.get_engine)
-    monkeypatch.setattr(notification, "EngineManager", engine_manager)
+    monkeypatch.setattr(
+        notification, "get_published_qml_engine", current.get_engine
+    )
     monkeypatch.setattr(notification, "QQmlComponent", current.component_ctor)
     monkeypatch.setattr(notification, "QUrl", current.qurl_ctor)
     monkeypatch.setattr(notification, "_logger", current.logger)
