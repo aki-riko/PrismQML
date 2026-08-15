@@ -19,21 +19,24 @@ SOURCE_PATH = (
     / "Drawer"
     / "Drawer.qml"
 )
+OUTSIDE_WINDOW_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "DrawerOutsideWindow.qml"
 
 
 def test_drawer_source_follows_conventions():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
+    for source_path in (SOURCE_PATH, OUTSIDE_WINDOW_SOURCE_PATH):
+        source = source_path.read_text(encoding="utf-8")
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations = scan_source_text(source, path)
+        assert [
+            violation
+            for violation in violations
+            if violation.rule in {"QML008", "QML009"}
+        ] == []
 
 
 def test_drawer_source_uses_clipped_native_window_following():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
     assert "Qt.NoFluentShadowWindowHint" not in source
     assert "Qt.NoDropShadowWindowHint" not in source
@@ -47,8 +50,8 @@ def test_drawer_source_uses_clipped_native_window_following():
     assert "Behavior on height" not in source
     assert 'id: outsideGeometryAnimation' in source
     assert 'property: "_outsideExtent"' in source
-    assert 'objectName: "outsideDrawerViewport"' in source
-    assert "clip: true" in source
+    assert 'objectName: "outsideDrawerViewport"' in helper_source
+    assert "clip: true" in helper_source
     assert "on_OutsideExtentChanged" not in source
     assert "control._syncOutsideWindowGeometry()" not in source
     assert source.count("WindowHelper.updateWindowFollowerGeometry(") == 1
@@ -63,19 +66,21 @@ def test_drawer_source_uses_clipped_native_window_following():
 
 def test_drawer_source_keeps_native_window_behind_host_without_overlap():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "transientParent: null" in source
-    assert "outsideDrawerWindow.requestActivate()" not in source
-    assert "_outsideSeamOverlap" not in source
+    assert "transientParent: null" in helper_source
+    assert "outsideDrawerWindow.requestActivate()" not in helper_source
+    assert "_outsideSeamOverlap" not in helper_source
     assert "? Enums.radius.large" in source
-    assert "topLeftRadius:" in source
-    assert "topRightRadius:" in source
-    assert "bottomLeftRadius:" in source
-    assert "bottomRightRadius:" in source
+    assert "topLeftRadius:" in helper_source
+    assert "topRightRadius:" in helper_source
+    assert "bottomLeftRadius:" in helper_source
+    assert "bottomRightRadius:" in helper_source
 
 
 def test_drawer_source_guards_native_window_during_destruction():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
     assert "readonly property var _outsideDrawerWindow: outsideDrawerWindowLoader.item" in source
     assert "id: outsideDrawerWindowLoader" in source
@@ -83,10 +88,10 @@ def test_drawer_source_guards_native_window_during_destruction():
     assert "asynchronous: false" in source
     assert "if (_outsideDrawerWindow" in source
     assert "|| !_outsideDrawerWindow" in source
-    assert "width: outsideDrawerWindow.width" in source
-    assert "height: outsideDrawerWindow.height" in source
-    assert "x: -outsideDrawerViewport.x" in source
-    assert "y: -outsideDrawerViewport.y" in source
+    assert "width: outsideDrawerWindow.width" in helper_source
+    assert "height: outsideDrawerWindow.height" in helper_source
+    assert "x: -outsideDrawerViewport.x" in helper_source
+    assert "y: -outsideDrawerViewport.y" in helper_source
 
 
 def test_drawer_stages_host_signal_connections_until_component_completion():
@@ -100,7 +105,7 @@ def test_drawer_stages_host_signal_connections_until_component_completion():
 
 
 def test_drawer_source_reveals_from_the_corresponding_edge():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
+    source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
     assert "x: control.position === Enums.position.left" in source
     assert "? outsideDrawerWindow.width - width : 0" in source

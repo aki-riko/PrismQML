@@ -398,6 +398,35 @@ def test_boxplot_chart_content_keeps_canvas_modularized():
     assert "function paintHorizontal(" not in source
 
 
+def test_drawer_keeps_outside_window_modularized():
+    entry = _source("prismqml/PrismQML/controls/containers/Drawer/Drawer.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/containers/Drawer/_internal/"
+        "DrawerOutsideWindow.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 150
+    assert 'import "_internal" as DrawerInternal' in source
+    assert "DrawerInternal.DrawerOutsideWindow {" in source
+    assert "property var drawerControl: control" in source
+    assert "drawerControl: outsideDrawerWindowLoader.drawerControl" in source
+    assert "required property var drawerControl" in helper_source
+    assert "readonly property alias panel: outsideDrawerPanel" in helper_source
+    assert "readonly property var control: drawerControl" in helper_source
+    assert 'objectName: "outsideDrawerWindow"' in helper_source
+    for token in (
+        'objectName: "outsideDrawerViewport"',
+        'objectName: "outsideDrawerPanel"',
+        "transientParent: null",
+        "\n            Window {",
+    ):
+        assert token not in source
+
+
 def test_xy_chart_core_keeps_axes_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/XYChartCore.qml"
