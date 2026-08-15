@@ -85,13 +85,24 @@ class _EngineSetupScenario:
         )
 
     def patch_setup(self, monkeypatch, setup):
+        from prismqml.python.core import incubation
+        from prismqml.python.runtime import context_composition
+
         monkeypatch.setattr(
             setup, "get_or_create_qml_engine", self.get_engine
         )
-        monkeypatch.setattr(setup, "_load_core_window_managers", self.load_core)
-        monkeypatch.setattr(setup, "_load_window_dependencies", self.load_window)
         monkeypatch.setattr(
-            setup,
+            context_composition,
+            "load_core_window_managers",
+            self.load_core,
+        )
+        monkeypatch.setattr(
+            context_composition,
+            "load_window_dependencies",
+            self.load_window,
+        )
+        monkeypatch.setattr(
+            incubation,
             "asynchronous_page_loader_enabled",
             _recording_factory(self.calls, "asynchronous_page_loader", False),
         )
@@ -176,13 +187,13 @@ def test_window_dependency_loaders_preserve_real_identity_and_profile_order():
     from prismqml.python.core import ThemeManager, getShadowManager
     from prismqml.python.providers.clipboard import get_clipboard_helper
     from prismqml.python.runtime.configuration import get_config_manager
-    from prismqml.python.runtime import window_registry as setup
+    from prismqml.python.runtime import context_composition as setup
     from prismqml.python.window.mica_window import get_mica_manager
     from prismqml.python.window.native_window import get_native_window_hook
 
     profiles = []
-    core_managers = setup._load_core_window_managers(profiles.append)
-    window_dependencies = setup._load_window_dependencies(profiles.append)
+    core_managers = setup.load_core_window_managers(profiles.append)
+    window_dependencies = setup.load_window_dependencies(profiles.append)
 
     assert core_managers == (ThemeManager, getShadowManager, get_config_manager)
     assert window_dependencies == (
@@ -218,6 +229,7 @@ def test_window_engine_setup_assigns_runtime_engine(monkeypatch):
 
 def test_window_engine_setup_reuses_complete_context_registration(monkeypatch):
     from prismqml.python.runtime import context_registry
+    from prismqml.python.runtime import context_composition
     from prismqml.python.runtime import window_registry as setup
 
     scenario = _EngineSetupScenario()
@@ -226,8 +238,8 @@ def test_window_engine_setup_reuses_complete_context_registration(monkeypatch):
         scenario.engine, context_registry.FULL_CONTEXT_REGISTRATION
     )
     monkeypatch.setattr(
-        setup,
-        "_load_window_dependencies",
+        context_composition,
+        "load_window_dependencies",
         lambda _profile: pytest.fail("complete context must be reused"),
     )
     builder = SimpleNamespace()
@@ -249,6 +261,7 @@ def test_window_engine_setup_reuses_complete_context_registration(monkeypatch):
 
 def test_window_engine_setup_reuses_window_context_registration(monkeypatch):
     from prismqml.python.runtime import context_registry
+    from prismqml.python.runtime import context_composition
     from prismqml.python.runtime import window_registry as setup
 
     scenario = _EngineSetupScenario()
@@ -257,8 +270,8 @@ def test_window_engine_setup_reuses_window_context_registration(monkeypatch):
         scenario.engine, context_registry.WINDOW_CONTEXT_REGISTRATION
     )
     monkeypatch.setattr(
-        setup,
-        "_load_window_dependencies",
+        context_composition,
+        "load_window_dependencies",
         lambda _profile: pytest.fail("window context must be reused"),
     )
     builder = SimpleNamespace()
@@ -328,7 +341,7 @@ def _expected_context_failure_calls():
 
 @pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
 def test_window_context_setup_fail_fast(error_type):
-    from prismqml.python.runtime import window_registry as setup
+    from prismqml.python.runtime import context_composition as setup
 
     calls = []
     context = _FailingEngineSetupContext(calls, error_type)
@@ -339,7 +352,7 @@ def test_window_context_setup_fail_fast(error_type):
     )
 
     with pytest.raises(error_type, match="stop"):
-        setup._inject_window_context(
+        setup.register_window_engine_context(
             SimpleNamespace(_engine=engine),
             False,
             factories,

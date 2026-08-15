@@ -18,6 +18,30 @@ class _Engine:
         self.calls.append((name, provider))
 
 
+class _Context:
+    def __init__(self):
+        self.calls = []
+
+    def setContextProperty(self, name, value):
+        self.calls.append((name, value))
+
+
+def test_context_properties_run_factories_in_registration_order():
+    context = _Context()
+    calls = []
+
+    context_registry.register_context_properties(
+        context,
+        (
+            ("first", lambda: calls.append("first") or 1),
+            ("second", lambda: calls.append("second") or 2),
+        ),
+    )
+
+    assert calls == ["first", "second"]
+    assert context.calls == [("first", 1), ("second", 2)]
+
+
 def test_context_registration_level_only_moves_forward():
     engine = _Engine()
 

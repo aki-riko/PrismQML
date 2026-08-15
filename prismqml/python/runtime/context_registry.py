@@ -17,6 +17,12 @@ def register_context_property(context, name: str, value) -> None:
     context.setContextProperty(name, value)
 
 
+def register_context_properties(context, registrations) -> None:
+    """Register ordered lazy context factories. 按顺序执行上下文工厂并注册属性。"""
+    for name, factory in registrations:
+        register_context_property(context, name, factory())
+
+
 def context_registration_level(engine) -> int:
     """Return the highest context registration level on an engine. 获取引擎注册级别。"""
     return int(getattr(engine, _CONTEXT_REGISTRATION_LEVEL_ATTR, 0))

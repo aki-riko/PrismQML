@@ -300,8 +300,14 @@ def test_app_updater_composition_has_one_runtime_owner():
 
 def test_lazy_provider_registration_has_one_runtime_owner():
     runtime_registry = PYTHON_PACKAGE / "runtime" / "registry.py"
+    runtime_composition = PYTHON_PACKAGE / "runtime" / "context_composition.py"
     runtime_lazy_context = PYTHON_PACKAGE / "runtime" / "lazy_context.py"
-    registry_imports = {target for _line, target in _resolved_imports(runtime_registry)}
+    registry_imports = {
+        target for _line, target in _resolved_imports(runtime_registry)
+    }
+    composition_imports = {
+        target for _line, target in _resolved_imports(runtime_composition)
+    }
     lazy_context_imports = {
         target for _line, target in _resolved_imports(runtime_lazy_context)
     }
@@ -309,11 +315,15 @@ def test_lazy_provider_registration_has_one_runtime_owner():
     assert not (PROVIDERS_PACKAGE / "lazy_context.py").exists()
     assert (
         "prismqml.python.runtime.lazy_context.LazyQRCodeGenerator"
-        in registry_imports
+        in composition_imports
     )
     assert (
         "prismqml.python.runtime.lazy_context.LazyScreenEyedropperManager"
-        in registry_imports
+        in composition_imports
+    )
+    assert not any(
+        target.startswith("prismqml.python.runtime.lazy_context.")
+        for target in registry_imports
     )
     assert "LazyQRCodeGenerator" in _class_names(runtime_lazy_context)
     assert "LazyScreenEyedropperManager" in _class_names(runtime_lazy_context)
@@ -338,11 +348,19 @@ def test_lazy_provider_registration_has_one_runtime_owner():
 
 def test_window_runtime_composition_has_one_owner():
     builder = WINDOW_PACKAGE / "_window_builder.py"
+    runtime_registry_owner = PYTHON_PACKAGE / "runtime" / "registry.py"
     runtime_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
+    runtime_composition = PYTHON_PACKAGE / "runtime" / "context_composition.py"
     runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
     runtime_context = PYTHON_PACKAGE / "runtime" / "context_registry.py"
     builder_imports = {target for _line, target in _resolved_imports(builder)}
     runtime_exports = _lazy_exports(runtime_init)
+    registry_imports = {
+        target for _line, target in _resolved_imports(runtime_registry_owner)
+    }
+    window_registry_imports = {
+        target for _line, target in _resolved_imports(runtime_registry)
+    }
 
     assert (
         "prismqml.python.runtime.prepare_window_engine"
@@ -355,7 +373,36 @@ def test_window_runtime_composition_has_one_owner():
     assert not (WINDOW_PACKAGE / "_window_engine_setup.py").exists()
     assert "prepare_window_engine" in _function_names(runtime_registry)
     assert "register_context_property" in _function_names(runtime_context)
+    assert "register_context_properties" in _function_names(runtime_context)
     assert "register_image_provider_once" in _function_names(runtime_context)
+    assert {
+        "load_core_window_managers",
+        "load_window_dependencies",
+        "register_primary_context",
+        "register_lazy_context",
+        "register_window_context",
+        "register_support_context",
+        "register_window_engine_context",
+    } <= _function_names(runtime_composition)
+    for name in (
+        "register_primary_context",
+        "register_lazy_context",
+        "register_window_context",
+        "register_support_context",
+    ):
+        assert (
+            f"prismqml.python.runtime.context_composition.{name}"
+            in registry_imports
+        )
+    assert (
+        "prismqml.python.runtime.context_composition"
+        in window_registry_imports
+    )
+    for name in ("load_core_window_managers", "load_window_dependencies"):
+        assert _attribute_function_calls(runtime_registry, "context_composition", name)
+    assert _attribute_function_calls(
+        runtime_registry, "context_composition", "register_window_engine_context"
+    )
 
     violations = []
     for path in sorted(WINDOW_PACKAGE.rglob("*.py")):
@@ -373,8 +420,19 @@ def test_window_runtime_composition_has_one_owner():
 
     assert violations == []
 
+    for owner in (runtime_registry_owner, runtime_registry):
+        assert not {
+            "load_core_window_managers",
+            "load_window_dependencies",
+            "register_primary_context",
+            "register_lazy_context",
+            "register_window_context",
+            "register_support_context",
+            "register_window_engine_context",
+        } & _function_names(owner)
+
     shared_context_owners = (
-        PYTHON_PACKAGE / "runtime" / "registry.py",
+        runtime_registry_owner,
         runtime_registry,
     )
     for owner in shared_context_owners:
@@ -400,6 +458,7 @@ def test_window_helper_access_has_one_runtime_owner():
     runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
     runtime_services = PYTHON_PACKAGE / "runtime" / "window_services.py"
     runtime_registry = PYTHON_PACKAGE / "runtime" / "registry.py"
+    runtime_composition = PYTHON_PACKAGE / "runtime" / "context_composition.py"
     window_core = WINDOW_PACKAGE / "window_core.py"
     application_icon = WINDOW_PACKAGE / "_application_icon_runtime.py"
     runtime_exports = _lazy_exports(runtime_init)
@@ -424,9 +483,12 @@ def test_window_helper_access_has_one_runtime_owner():
     registry_imports = {
         target for _line, target in _resolved_imports(runtime_registry)
     }
+    composition_imports = {
+        target for _line, target in _resolved_imports(runtime_composition)
+    }
     assert (
         "prismqml.python.runtime.window_services.get_window_helper"
-        in registry_imports
+        in composition_imports
     )
     assert (
         "prismqml.python.window.mica_window.get_mica_manager"
@@ -444,6 +506,7 @@ def test_window_helper_access_has_one_runtime_owner():
     assert "prismqml.python.runtime.get_mica_manager" in window_core_imports
     assert "prismqml.python.window.mica_window.get_mica_manager" not in window_core_imports
     assert "prismqml.python.core.window_helper.get_window_helper" not in registry_imports
+    assert "prismqml.python.core.window_helper.get_window_helper" not in composition_imports
 
 
 def test_qml_engine_composition_has_one_runtime_owner():
@@ -587,6 +650,7 @@ def test_appearance_persistence_has_one_runtime_composition_owner():
     config_manager = PYTHON_PACKAGE / "config" / "config_manager.py"
     registry = PYTHON_PACKAGE / "runtime" / "registry.py"
     window_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
+    composition = PYTHON_PACKAGE / "runtime" / "context_composition.py"
 
     appearance_imports = {target for _line, target in _resolved_imports(appearance)}
     config_imports = {target for _line, target in _resolved_imports(config_manager)}
@@ -624,13 +688,16 @@ def test_appearance_persistence_has_one_runtime_composition_owner():
                 )
     assert runtime_factory_violations == []
 
+    composition_imports = {
+        target for _line, target in _resolved_imports(composition)
+    }
+    assert (
+        "prismqml.python.runtime.appearance.install_appearance_persistence"
+        in composition_imports
+    )
+    assert _named_function_calls(composition, "install_appearance_persistence")
     for owner in (registry, window_registry):
-        imports = {target for _line, target in _resolved_imports(owner)}
-        assert (
-            "prismqml.python.runtime.appearance.install_appearance_persistence"
-            in imports
-        )
-        assert _named_function_calls(owner, "install_appearance_persistence")
+        assert not _named_function_calls(owner, "install_appearance_persistence")
 
 
 def test_configuration_singleton_has_one_runtime_composition_owner():
