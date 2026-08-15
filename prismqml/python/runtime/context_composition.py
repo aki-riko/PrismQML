@@ -45,8 +45,7 @@ def load_window_dependencies(profile):
 def register_primary_context(context: QQmlContext) -> None:
     """Register shared managers and startup flags. 注册共享管理器与启动开关。"""
     from ..core.incubation import asynchronous_page_loader_enabled
-    from ..core.theme import getThemeManager
-    from .appearance import install_appearance_persistence
+    from .appearance import getThemeManager, install_appearance_persistence
     from .configuration import get_config_manager
 
     install_appearance_persistence()

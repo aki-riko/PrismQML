@@ -502,6 +502,11 @@ def test_window_helper_access_has_one_runtime_owner():
         target for _line, target in _resolved_imports(runtime_composition)
     }
     assert (
+        "prismqml.python.runtime.appearance.getThemeManager"
+        in composition_imports
+    )
+    assert "prismqml.python.core.theme.getThemeManager" not in composition_imports
+    assert (
         "prismqml.python.runtime.window_services.get_mica_manager"
         in composition_imports
     )
