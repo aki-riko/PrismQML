@@ -23,7 +23,6 @@ BUTTON_CORE_SOURCE = (
 FRAME_SAMPLE_MS = 30
 
 HOVER_MOTION_AUDIT_EXEMPTIONS = {
-    "controls/auth/LoginWindow.qml",
     "controls/buttons/Button/ButtonCore.qml",
     "controls/containers/Expander/ExpanderCore.qml",
     "controls/data/Chart/_internal/BoxplotChartContent.qml",

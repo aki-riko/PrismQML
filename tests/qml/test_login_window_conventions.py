@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "auth" / "LoginWindow.qml"
 )
+CONTENT_PATH = SOURCE_PATH.parent / "_internal" / "LoginWindowContent.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "login-window-conventions.qml")
 )
@@ -240,13 +241,20 @@ def test_login_window_prewarms_and_reuses_register_fields(qapp):
 
 def test_login_window_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
-    assert 'objectName: "loginModeToggleArea"' in source
-    assert "hoverEnabled: true" in source
-    assert "onEntered: root._prewarmAlternateModeContent()" in source
+    content_source = CONTENT_PATH.read_text(encoding="utf-8")
+    for source_path, candidate_source in (
+        (SOURCE_PATH, source),
+        (CONTENT_PATH, content_source),
+    ):
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations = scan_source_text(candidate_source, path)
+        assert [
+            violation
+            for violation in violations
+            if violation.rule in {"QML008", "QML009"}
+        ] == []
+    assert 'objectName: "loginModeToggleArea"' in content_source
+    assert "hoverEnabled: true" in content_source
+    assert (
+        "onEntered: control._prewarmAlternateModeContent()" in content_source
+    )

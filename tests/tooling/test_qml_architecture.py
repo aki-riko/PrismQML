@@ -60,6 +60,29 @@ def test_windows_core_keeps_frame_modularized():
     assert "WindowDragHandle {" not in source
 
 
+def test_login_window_keeps_visual_content_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/auth/LoginWindow.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/auth/_internal/LoginWindowContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 300
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 500
+    assert 'import "_internal"' in source
+    assert "LoginWindowContent {" in source
+    assert "required property var loginControl" in helper_source
+    assert "property alias usernameInput: usernameInput" in helper_source
+    assert "property alias passwordInput: passwordInput" in helper_source
+    assert "MatrixRain {" not in source
+    assert "ShadowedRectangle {" not in source
+    assert 'objectName: "loginModeToggleArea"' not in source
+
+
 def test_navigation_window_core_keeps_orchestration_modularized():
     entry = _source("prismqml/PrismQML/NavigationWindowCore.qml")
     loading = _source(
