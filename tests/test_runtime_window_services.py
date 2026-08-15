@@ -6,6 +6,16 @@
 """Window service runtime contracts. 窗口服务 runtime 合同。"""
 
 
+def test_shadow_manager_facade_delegates_to_core(monkeypatch):
+    from prismqml.python.core import shadow as core_shadow
+    from prismqml.python.runtime.window_services import getShadowManager
+
+    sentinel = object()
+    monkeypatch.setattr(core_shadow, "getShadowManager", lambda: sentinel)
+
+    assert getShadowManager() is sentinel
+
+
 def test_window_helper_facade_delegates_to_core(monkeypatch):
     from prismqml.python.core import window_helper as core_window_helper
     from prismqml.python.runtime.window_services import get_window_helper

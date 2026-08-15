@@ -6,6 +6,13 @@
 """Window service composition. 窗口服务运行时装配。"""
 
 
+def getShadowManager():
+    """Return the runtime-owned shadow manager. 获取 runtime 持有的阴影管理器。"""
+    from ..core.shadow import getShadowManager as _get_shadow_manager
+
+    return _get_shadow_manager()
+
+
 def get_window_helper():
     """Return the runtime-owned WindowHelper singleton. 获取 runtime 持有的窗口辅助单例。"""
     from ..core.window_helper import get_window_helper as _get_window_helper

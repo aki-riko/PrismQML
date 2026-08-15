@@ -17,9 +17,10 @@ from .context_registry import (
 
 def load_core_window_managers(profile):
     """Load core managers at the window startup boundary. 在窗口启动边界加载核心管理器。"""
-    from ..core import ThemeManager, getShadowManager
+    from ..core import ThemeManager
     from .appearance import install_appearance_persistence
     from .configuration import get_config_manager
+    from .window_services import getShadowManager
 
     install_appearance_persistence()
     profile("导入核心管理器")
@@ -119,8 +120,7 @@ def register_window_context(
 
 def register_support_context(context: QQmlContext) -> None:
     """Register shadow and window helpers. 注册阴影与窗口辅助对象。"""
-    from ..core.shadow import getShadowManager
-    from .window_services import get_window_helper
+    from .window_services import getShadowManager, get_window_helper
 
     register_context_properties(
         context,

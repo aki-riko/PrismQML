@@ -454,6 +454,50 @@ def test_window_runtime_composition_has_one_owner():
         }
 
 
+def test_shadow_manager_access_has_one_runtime_owner():
+    root_init = REPO_ROOT / "prismqml" / "__init__.py"
+    core_init = CORE_PACKAGE / "__init__.py"
+    core_shadow = CORE_PACKAGE / "shadow.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    runtime_services = PYTHON_PACKAGE / "runtime" / "window_services.py"
+    runtime_composition = PYTHON_PACKAGE / "runtime" / "context_composition.py"
+    root_exports = _lazy_exports(root_init)
+    core_exports = _lazy_exports(core_init)
+    core_public_names = set(_literal_assignment(core_init, "__all__"))
+    runtime_exports = _lazy_exports(runtime_init)
+
+    assert runtime_exports["getShadowManager"] == (
+        ".window_services",
+        "getShadowManager",
+    )
+    assert root_exports["getShadowManager"] == (
+        ".python.runtime",
+        "getShadowManager",
+    )
+    assert "getShadowManager" not in core_exports
+    assert "getShadowManager" not in core_public_names
+    assert "getShadowManager" in _function_names(runtime_services)
+    service_imports = {target for _line, target in _resolved_imports(runtime_services)}
+    assert "prismqml.python.core.shadow.getShadowManager" in service_imports
+
+    composition_imports = {
+        target for _line, target in _resolved_imports(runtime_composition)
+    }
+    assert "prismqml.python.runtime.window_services.getShadowManager" in (
+        composition_imports
+    )
+    assert "prismqml.python.core.shadow.getShadowManager" not in composition_imports
+
+    violations = []
+    for path in sorted(PYTHON_PACKAGE.rglob("*.py")):
+        if path in (core_shadow, runtime_services):
+            continue
+        for line, target in _resolved_imports(path):
+            if target == "prismqml.python.core.shadow.getShadowManager":
+                violations.append(f"{path.relative_to(REPO_ROOT)}:{line}: {target}")
+    assert violations == []
+
+
 def test_window_helper_access_has_one_runtime_owner():
     root_init = REPO_ROOT / "prismqml" / "__init__.py"
     runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
