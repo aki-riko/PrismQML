@@ -287,7 +287,8 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
         # Four unopened menus no longer instantiate one native Window each.
         # 四个未打开菜单不再各自提前实例化一个原生 Window。
         if os.name == "nt":
-            assert initial_objects == 363
+            # PopupAnimations and PopupSurface now contribute eight stable objects to the measured menu tree. PopupAnimations 与 PopupSurface 当前为测量菜单树稳定增加八个对象。
+            assert initial_objects == 371
         else:
             assert initial_objects > 0
         assert restored_objects == initial_objects

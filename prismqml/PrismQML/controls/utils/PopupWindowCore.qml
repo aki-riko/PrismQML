@@ -5,6 +5,8 @@
 import "../.."
 import "_internal"
 import "_internal/PopupLifecycle.js" as PopupLifecycle
+import "_internal/PopupPositioning.js" as PopupPositioning
+import "_internal/PopupPrewarm.js" as PopupPrewarm
 import QtQuick.Controls as Controls
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
@@ -99,101 +101,24 @@ Item {
     
     // ==================== Public Methods 公开方法 ====================
     function _boundsFromGeometry(geometry) {
-        if (!geometry || geometry.width <= 0 || geometry.height <= 0) return null
-        return {
-            left: geometry.x,
-            top: geometry.y,
-            right: geometry.x + geometry.width,
-            bottom: geometry.y + geometry.height
-        }
+        return PopupPositioning.boundsFromGeometry(geometry)
     }
 
     function _screenBoundsAt(globalX, globalY, sourceItem) {
-        var geometry = null
-        if (typeof WindowHelper !== "undefined" && WindowHelper) {
-            if (constrainToAvailableScreen
-                    && typeof WindowHelper.availableScreenGeometryAt === "function") {
-                geometry = WindowHelper.availableScreenGeometryAt(
-                    Math.round(globalX), Math.round(globalY))
-            } else if (!constrainToAvailableScreen
-                    && typeof WindowHelper.screenGeometryAt === "function") {
-                geometry = WindowHelper.screenGeometryAt(
-                    Math.round(globalX), Math.round(globalY))
-            }
-            var injectedBounds = _boundsFromGeometry(geometry)
-            if (injectedBounds) return injectedBounds
-        }
-
-        var screen = sourceItem && sourceItem.Screen ? sourceItem.Screen : Screen
-        if (screen && screen.width > 0 && screen.height > 0) {
-            var virtualX = typeof screen.virtualX === "number" ? screen.virtualX : 0
-            var virtualY = typeof screen.virtualY === "number" ? screen.virtualY : 0
-            return _boundsFromGeometry({
-                x: virtualX, y: virtualY,
-                width: screen.width, height: screen.height
-            })
-        }
-        return null
+        var sourceScreen = sourceItem && sourceItem.Screen ? sourceItem.Screen : Screen
+        return PopupPositioning.screenBoundsAt(
+            control, globalX, globalY,
+            typeof WindowHelper !== "undefined" ? WindowHelper : null,
+            sourceScreen)
     }
 
     function _calcControlsPopupPosition(globalX, globalY) {
-        if (!_inlineParent) return Qt.point(0, 0)
-        // Popup.Window owns a top-level Qt::Popup surface and may cross the
-        // host window boundary. Only Popup.Item needs host-window clamping.
-        // Popup.Window由Qt管理顶层弹层，可越过宿主边界；仅页内Popup.Item需夹紧。
-        if (useQtPopupWindow) {
-            var bounds = _screenBoundsAt(globalX, globalY, targetControl)
-            if (bounds) {
-                globalX = Math.max(
-                    bounds.left,
-                    Math.min(globalX, bounds.right - _outerWidth)
-                )
-                globalY = Math.max(
-                    bounds.top,
-                    Math.min(globalY, bounds.bottom - _outerHeight)
-                )
-            }
-            return _inlineParent.mapFromGlobal(globalX, globalY)
-        }
-        var localPos = _inlineParent.mapFromGlobal(globalX, globalY)
-        var fitsHorizontally = _outerWidth <= _inlineParent.width
-        var fitsVertically = _outerHeight <= _inlineParent.height
-        var maxX = _inlineParent.width - _outerWidth
-        var maxY = _inlineParent.height - _outerHeight
-        return Qt.point(
-            fitsHorizontally ? Math.max(0, Math.min(localPos.x, maxX)) : localPos.x,
-            fitsVertically ? Math.max(0, Math.min(localPos.y, maxY)) : localPos.y
-        )
+        return PopupPositioning.calcControlsPopupPosition(
+            control, globalX, globalY, Qt)
     }
 
     function _calcSubmenuPosition() {
-        if (!targetControl || !targetControl.mapToGlobal) return Qt.point(0, 0)
-
-        var actionTop = targetControl.mapToGlobal(0, 0)
-        var actionRight = targetControl.mapToGlobal(targetControl.width, 0)
-        var actionCenter = targetControl.mapToGlobal(
-            targetControl.width / 2, targetControl.height / 2)
-        var outerWidth = _outerWidth
-        var outerHeight = _outerHeight
-        var panelOffset = _panelOffset
-        var gap = Enums.spacing.xs + Enums.popupMetrics.controlGap
-        var posX = actionRight.x + gap - panelOffset
-        var posY = actionTop.y - panelOffset - Enums.spacing.xs
-        var bounds = _screenBoundsAt(
-            actionCenter.x,
-            actionCenter.y,
-            targetControl
-        )
-
-        if (bounds) {
-            var leftPosX = actionTop.x - gap - outerWidth + panelOffset
-            if (posX + outerWidth > bounds.right && leftPosX >= bounds.left) {
-                posX = leftPosX
-            }
-            posX = Math.max(bounds.left, Math.min(posX, bounds.right - outerWidth))
-            posY = Math.max(bounds.top, Math.min(posY, bounds.bottom - outerHeight))
-        }
-        return Qt.point(posX, posY)
+        return PopupPositioning.calcSubmenuPosition(control, Qt, Enums)
     }
 
     // 预热 native window handle —— 第一次 show() 在 Windows 上会同步阻塞
@@ -201,14 +126,7 @@ Item {
     // 让真正点击时走暖路径 (<5ms)。已预热则 no-op。
     // 真正的预热推到 Qt.callLater, 避免 hover 进入瞬间卡顿主线程。
     function prewarm() {
-        if (_prewarmed || _prewarmScheduled || isOpen) return
-        if (useInWindowPopup) {
-            _prewarmed = true
-            return
-        }
-        if (!useQtPopupWindow && !_ensureNativeWindow()) return
-        _prewarmScheduled = true
-        prewarmTimer.start()
+        PopupPrewarm.prewarm(control, prewarmTimer)
     }
     function _ensureNativeWindow() {
         if (_usesControlsPopup) return null
@@ -220,63 +138,12 @@ Item {
         return _popupWindow
     }
     function _finishQtPopupPrewarm() {
-        var ownerWindow = control.Window.window
-        var focusItem = _prewarmFocusItem
-        _prewarmingQtPopup = false
-        _prewarmFocusItem = null
-        if (!_prewarmScheduled || isOpen || inlinePopup.visible) return
-        if (ownerWindow) ownerWindow.requestActivate()
-        if (focusItem) focusItem.forceActiveFocus()
-        _prewarmed = true
-        _prewarmScheduled = false
+        PopupPrewarm.finishQtPopupPrewarm(
+            control, inlinePopup, control.Window.window)
     }
     function _doPrewarm() {
-        if (useInWindowPopup) {
-            _prewarmed = true
-            _prewarmScheduled = false
-            return
-        }
-        if (useQtPopupWindow) {
-            if (!_prewarmScheduled || _prewarmed || isOpen || inlinePopup.visible) {
-                if (inlinePopup.visible) _prewarmed = true
-                _prewarmScheduled = false
-                return
-            }
-            var savedInlineX = inlinePopup.x, savedInlineY = inlinePopup.y
-            _prewarmingQtPopup = true
-            _prewarmFocusItem = control.Window.window
-                ? control.Window.window.activeFocusItem
-                : null
-            inlinePopup.x = -32000
-            inlinePopup.y = -32000
-            inlinePopup.open()
-            inlinePopup.close()
-            inlinePopup.x = savedInlineX
-            inlinePopup.y = savedInlineY
-            Qt.callLater(control._finishQtPopupPrewarm)
-            return
-        }
-        // A real open may win the race before this queued callback runs.
-        // 真正打开可能先于排队预热执行，此时绝不能再 show+hide 把菜单藏掉。
-        var nativeWindow = _ensureNativeWindow()
-        if (!nativeWindow) {
-            _prewarmScheduled = false
-            return
-        }
-        if (!_prewarmScheduled || _prewarmed || isOpen || nativeWindow.visible) {
-            if (nativeWindow.visible) _prewarmed = true
-            _prewarmScheduled = false
-            return
-        }
-        var savedX = nativeWindow.x, savedY = nativeWindow.y
-        nativeWindow.x = -32000
-        nativeWindow.y = -32000
-        nativeWindow.show()
-        nativeWindow.hide()
-        nativeWindow.x = savedX
-        nativeWindow.y = savedY
-        _prewarmed = true
-        _prewarmScheduled = false
+        PopupPrewarm.doPrewarm(
+            control, inlinePopup, prewarmTimer, Qt, control.Window.window)
     }
 
     function _clearQtPopupOwner() {
@@ -418,22 +285,8 @@ Item {
     }
     // Internal: calculate picker position 内部：计算Picker位置
     function _calcPickerPosition(targetCtrl, rowHeight) {
-        var controlPos = targetCtrl.mapToGlobal(0, 0)
-        // Wheel area height 滚轮区域高度
-        var wheelAreaHeight = Enums.controlSize.wheelPickerAreaHeight
-        // Selected row is at center of wheel area 选中行在滚轮区域中心
-        var selectedRowCenterY = wheelAreaHeight / 2
-        
-        // Align selected row center with control center, fine-tune offset 选中行中心对齐控件中心，微调偏移
-        var posY = controlPos.y + targetCtrl.height / 2 - selectedRowCenterY - Enums.spacing.xs - _panelOffset
-        var posX = controlPos.x + (targetCtrl.width - popupWidth) / 2 - _panelOffset
-        // Screen boundary check 屏幕边界检查
-        var screen = Screen
-        if (screen) {
-            posX = Math.max(0, Math.min(posX, screen.width - _outerWidth))
-            posY = Math.max(0, Math.min(posY, screen.height - _outerHeight))
-        }
-        return Qt.point(posX, posY)
+        return PopupPositioning.calcPickerPosition(
+            control, targetCtrl, Qt, Enums, Screen)
     }
     function openAtMouse() {
         // Get cursor position from Qt.application 从Qt.application获取光标位置
@@ -509,27 +362,8 @@ Item {
 
     // ==================== Internal Methods 内部方法 ====================
     function _applyTrackedPosition(currentGlobalPos) {
-        var newX, newY
-        if (_submenuPlacement) {
-            var submenuPos = _calcSubmenuPosition()
-            newX = submenuPos.x
-            newY = submenuPos.y
-        } else if (_isPickerMode) {
-            var pickerPos = _calcPickerPosition(targetControl, _pickerRowHeight)
-            newX = pickerPos.x
-            newY = pickerPos.y
-        } else {
-            newX = currentGlobalPos.x - _panelOffset
-            newY = currentGlobalPos.y + targetControl.height + Enums.popupMetrics.controlGap - _panelOffset
-        }
-        if (_usesControlsPopup && _inlineParent) {
-            var localPos = _calcControlsPopupPosition(newX, newY)
-            inlinePopup.x = localPos.x
-            inlinePopup.y = localPos.y
-        } else if (_popupWindow) {
-            _popupWindow.x = newX
-            _popupWindow.y = newY
-        }
+        PopupPositioning.applyTrackedPosition(
+            control, inlinePopup, currentGlobalPos, Qt, Enums, Screen)
     }
     
     // ==================== Content 内容 ====================

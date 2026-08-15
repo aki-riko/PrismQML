@@ -126,6 +126,36 @@ def test_popup_window_core_keeps_animation_logic_modularized():
     )
 
 
+def test_popup_window_core_keeps_positioning_and_prewarm_modularized():
+    entry = _source("prismqml/PrismQML/controls/utils/PopupWindowCore.qml")
+    helpers = (
+        _source(
+            "prismqml/PrismQML/controls/utils/_internal/PopupPositioning.js"
+        ),
+        _source(
+            "prismqml/PrismQML/controls/utils/_internal/PopupPrewarm.js"
+        ),
+    )
+    source = entry.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    for helper in helpers:
+        assert helper.exists()
+        helper_source = helper.read_text(encoding="utf-8")
+        assert len(helper_source.splitlines()) < 500
+        assert ".pragma library" in helper_source
+        assert "Enums" not in helper_source
+
+    assert (
+        'import "_internal/PopupPositioning.js" as PopupPositioning'
+        in source
+    )
+    assert 'import "_internal/PopupPrewarm.js" as PopupPrewarm' in source
+    assert "PopupPositioning.calcControlsPopupPosition(" in source
+    assert "PopupPositioning.applyTrackedPosition(" in source
+    assert "PopupPrewarm.doPrewarm(" in source
+
+
 def test_stacked_widget_keeps_source_pages_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/navigation/StackedWidget.qml",
