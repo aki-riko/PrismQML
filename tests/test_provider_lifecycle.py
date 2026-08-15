@@ -8,6 +8,7 @@ import logging
 import runpy
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_PROCESS = runpy.run_path(str(REPO_ROOT / "scripts" / "test_process.py"))
@@ -21,6 +22,7 @@ from PySide6.QtGui import QColor, QImage
 from PySide6.QtQml import QQmlEngine
 from PySide6.QtWidgets import QApplication
 
+import prismqml.python.providers.qrcode_generator as qrcode_generator
 from prismqml.python.providers.qrcode_generator import get_qrcode_provider
 from prismqml.python.providers._qrcode_protocol import create_request, encode_provider_id
 from prismqml.python.providers.lazy_context import LazyQRCodeGenerator
@@ -190,6 +192,31 @@ def test_engine_manager_reset() -> None:
 def test_reset_after_engine_delete() -> None:
     """Verify reset after explicit deletion. 验证显式销毁后的 reset。"""
     run_reset_after_engine_delete()
+
+
+def test_lazy_qrcode_provider_registration_is_deferred_and_idempotent(
+    qapp, monkeypatch
+) -> None:
+    """Keep QR provider registration lazy and one-shot. 保持二维码 provider 延迟且只注册一次。"""
+    calls = []
+    provider = object()
+
+    class _Engine:
+        def addImageProvider(self, name, value):
+            calls.append((name, value))
+
+    monkeypatch.setattr(
+        qrcode_generator,
+        "get_qrcode_provider",
+        lambda: provider,
+    )
+    binding = LazyQRCodeGenerator(SimpleNamespace())
+    binding._engine = _Engine()
+
+    assert calls == []
+    binding._ensure_provider()
+    binding._ensure_provider()
+    assert calls == [("qrcode", provider)]
 
 
 def main() -> int:
