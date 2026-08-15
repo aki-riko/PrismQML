@@ -40,6 +40,38 @@ def test_qml_files_respect_hard_size_limit():
     assert violations == []
 
 
+def test_navigation_window_core_keeps_orchestration_modularized():
+    entry = _source("prismqml/PrismQML/NavigationWindowCore.qml")
+    loading = _source(
+        "prismqml/PrismQML/_internal/NavigationWindowLoading.js"
+    )
+    routing = _source(
+        "prismqml/PrismQML/_internal/NavigationWindowRouting.js"
+    )
+    source = entry.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    for helper in (loading, routing):
+        assert helper.exists()
+        helper_source = helper.read_text(encoding="utf-8")
+        assert len(helper_source.splitlines()) < 500
+        assert ".pragma library" in helper_source
+
+    assert (
+        'import "_internal/NavigationWindowLoading.js" '
+        "as NavigationWindowLoading"
+    ) in source
+    assert (
+        'import "_internal/NavigationWindowRouting.js" '
+        "as NavigationWindowRouting"
+    ) in source
+    assert "NavigationWindowLoading.start(window, index)" in source
+    assert "NavigationWindowLoading.completeVisual(window, index)" in source
+    assert "NavigationWindowRouting.moveDefaultPages(window," in source
+    assert "NavigationWindowRouting.syncSelection(window," in source
+    assert "NavigationWindowRouting.handleBottomItemClicked(window," in source
+
+
 def test_popup_window_core_keeps_animation_logic_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/utils/PopupWindowCore.qml",

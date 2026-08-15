@@ -5,6 +5,8 @@
 import QtQuick
 import QtQuick.Window
 import "controls/feedback/SplashScreen"
+import "_internal/NavigationWindowLoading.js" as NavigationWindowLoading
+import "_internal/NavigationWindowRouting.js" as NavigationWindowRouting
 
 // NavigationWindowCore - Base class for navigation windows 导航窗口基类
 // Provides common navigation logic for all navigation windows 为所有导航窗口提供公共导航逻辑
@@ -85,101 +87,16 @@ WindowsCore {
     signal currentPageChanged(int index)
 
     // ==================== Internal Methods 内部方法 ====================
-    function _startPythonLoading(index) {
-        _pythonPendingIndex = index
-        _pythonLazyCollapseComplete = false
-        _pythonLoadingFinishRequested = false
-        _pythonRevealScheduled = false
-        _pythonLoading = false
-        if (stackedWidget && stackedWidget._beginPythonLazySwitch) {
-            if (stackedWidget._beginPythonLazySwitch(index)) return
-        }
-        _handlePythonLazyCollapseFinished(index)
-    }
-
-    function _finishPythonLoading() {
-        _pythonLoadingFinishRequested = true
-        // Keep the lightweight host contract synchronous when no stacked
-        // widget owns a visual transition. 没有 StackedWidget 管理视觉过渡时，
-        // 保留轻量宿主的同步完成语义。
-        if (!stackedWidget && _pythonLazyCollapseComplete) {
-            _completePythonLoadingVisual(_pythonPendingIndex)
-            return
-        }
-        _schedulePythonLazyReveal()
-    }
-
-    function _handlePythonLazyCollapseFinished(index) {
-        if (_pythonPendingIndex >= 0 && index !== _pythonPendingIndex) return
-
-        _pythonLazyCollapseComplete = true
-        _pythonLoading = true
-        _schedulePythonLazyReveal()
-    }
-
-    function _handlePythonLoadingOverlayReady() {
-        _schedulePythonLazyReveal()
-    }
-
-    function _schedulePythonLazyReveal() {
-        if (!_pythonLoadingFinishRequested || !_pythonLazyCollapseComplete
-                || !_pythonLoadingOverlay || _pythonRevealScheduled) return
-
-        _pythonRevealScheduled = true
-        Qt.callLater(function() { window._resumePythonLazyReveal() })
-    }
-
-    function _resumePythonLazyReveal() {
-        _pythonRevealScheduled = false
-        if (!_pythonLoadingFinishRequested || !_pythonLazyCollapseComplete
-                || !_pythonLoadingOverlay) return
-
-        var idx = _pythonPendingIndex
-        if (stackedWidget && idx >= 0 && stackedWidget._completePythonLazySwitch) {
-            if (stackedWidget._completePythonLazySwitch(idx)) return
-        }
-        _completePythonLoadingVisual(idx)
-    }
-
-    function _completePythonLoadingVisual(index) {
-        if (_pythonPendingIndex >= 0 && index !== _pythonPendingIndex) return
-
-        _pythonPendingIndex = -1
-        _pythonLazyCollapseComplete = false
-        _pythonLoadingFinishRequested = false
-        _pythonRevealScheduled = false
-        if (_pythonLoadingOverlay && _pythonLoadingOverlay.finish) {
-            _pythonLoadingOverlay.finish()
-        }
-        _pythonLoading = false
-        pythonPageReady(index)
-    }
-
-    function _beginPythonLoadingVisualExit(index) {
-        if (_pythonPendingIndex >= 0 && index !== _pythonPendingIndex) return
-        if (_pythonLoadingOverlay && _pythonLoadingOverlay.finish) {
-            _pythonLoadingOverlay.finish()
-        }
-    }
-
-    function _markPythonPageReady(index) {
-        if (index < 0) return
-        if (_pythonReadyIndexes.indexOf(index) < 0) {
-            var readyIndexes = _pythonReadyIndexes.slice()
-            readyIndexes.push(index)
-            _pythonReadyIndexes = readyIndexes
-        }
-        if (stackedWidget && stackedWidget._markPythonPageReady) {
-            stackedWidget._markPythonPageReady(index)
-        }
-    }
-
-    function _syncPythonReadyPages() {
-        if (!stackedWidget || !stackedWidget._markPythonPageReady) return
-        for (var i = 0; i < _pythonReadyIndexes.length; i++) {
-            stackedWidget._markPythonPageReady(_pythonReadyIndexes[i])
-        }
-    }
+    function _startPythonLoading(index) { NavigationWindowLoading.start(window, index) }
+    function _finishPythonLoading() { NavigationWindowLoading.finish(window) }
+    function _handlePythonLazyCollapseFinished(index) { NavigationWindowLoading.handleLazyCollapseFinished(window, index) }
+    function _handlePythonLoadingOverlayReady() { NavigationWindowLoading.handleOverlayReady(window) }
+    function _schedulePythonLazyReveal() { NavigationWindowLoading.scheduleLazyReveal(window) }
+    function _resumePythonLazyReveal() { NavigationWindowLoading.resumeLazyReveal(window) }
+    function _completePythonLoadingVisual(index) { NavigationWindowLoading.completeVisual(window, index) }
+    function _beginPythonLoadingVisualExit(index) { NavigationWindowLoading.beginVisualExit(window, index) }
+    function _markPythonPageReady(index) { NavigationWindowLoading.markPageReady(window, index) }
+    function _syncPythonReadyPages() { NavigationWindowLoading.syncReadyPages(window) }
 
     function _applyMicaEffect(reason) {
         if (!MicaManager || !_micaAvailable || !_nativeHookReady) {
@@ -236,22 +153,7 @@ WindowsCore {
         }
     }
 
-    function _moveDefaultPages(stagedItems, container, ownerName) {
-        var items = []
-        for (var i = 0; i < stagedItems.length; i++) {
-            items.push(stagedItems[i])
-        }
-
-        var pageIndex = 0
-        for (var sourceIndex = 0; sourceIndex < items.length; sourceIndex++) {
-            if (_moveDefaultPage(
-                items[sourceIndex], container, pageIndex, sourceIndex, ownerName
-            )) {
-                pageIndex += 1
-            }
-        }
-        return pageIndex
-    }
+    function _moveDefaultPages(stagedItems, container, ownerName) { return NavigationWindowRouting.moveDefaultPages(window, stagedItems, container, ownerName) }
 
     function _dismissSplashWhenReady(stack) {
         profileTime("NavigationWindowCore _dismissSplashWhenReady start")
@@ -346,91 +248,12 @@ WindowsCore {
         profileTime("NavigationWindowCore splash finish done")
     }
 
-    function _safeNavigationPageSources(pageSources) {
-        return pageSources && typeof pageSources.length === "number" ? pageSources : []
-    }
-
-    function _windowPageSources() {
-        return _safeNavigationPageSources(window["pageSources"])
-    }
-
-    function _resolveBottomPageIndex(item, pageSources) {
-        if (!item || item.key === undefined || item.selectable === false) return -1
-
-        var itemKey = String(item.key)
-        // Prefer the Python window key format page_N. 优先解析 Python 窗口的 page_N 键格式。
-        var match = itemKey.match(/^page_(\d+)$/)
-        if (match) return parseInt(match[1], 10)
-
-        // Otherwise search QML lazy-loading sources. 否则搜索 QML 懒加载源。
-        var safePageSources = _safeNavigationPageSources(pageSources)
-        for (var i = 0; i < safePageSources.length; i++) {
-            var source = safePageSources[i]
-            if (source === null || source === undefined) continue
-            if (String(source).indexOf(itemKey) !== -1) return i
-        }
-        return -1
-    }
-
-    function _findBottomPageItem(pageIndex, pageSources) {
-        for (var i = 0; i < _safeBottomNavigationItems.length; i++) {
-            var item = _safeBottomNavigationItems[i]
-            if (_resolveBottomPageIndex(item, pageSources) === pageIndex) return item
-        }
-        return null
-    }
-
-    function _syncNavigationSelection(pageIndex, navPanel, pageSources) {
-        if (!navPanel) return false
-
-        var item = _findBottomPageItem(pageIndex, pageSources)
-        if (!item) {
-            if (navPanel["_currentKey"] !== undefined) navPanel._currentKey = ""
-            if (navPanel["_bottomItemActive"] !== undefined) navPanel._bottomItemActive = false
-            return false
-        }
-
-        // Keep the bottom delegate, selected icon, and indicator on the same source index.
-        // 让底部委托、选中图标和指示器共同跟随同一个源索引。
-        var oldMap = navPanel._bottomPageIndexMap || {}
-        var map = ({})
-        for (var key in oldMap) { map[key] = oldMap[key] }
-        map[item.key] = pageIndex
-        navPanel._bottomPageIndexMap = map
-        if (navPanel["_currentKey"] !== undefined) navPanel._currentKey = String(item.key)
-        if (navPanel["_bottomItemActive"] !== undefined) navPanel._bottomItemActive = true
-        if (typeof navPanel.updateIndicatorForBottomItem === "function") {
-            navPanel.updateIndicatorForBottomItem(item.key)
-        }
-        return true
-    }
-
-    function _handleBottomItemClicked(index, navPanel, stack, pageSources) {
-        var item = _safeBottomNavigationItems[index]
-        var isPageItem = item && item.key !== undefined
-        var isSelectable = item && item.selectable !== false
-
-        if (!isPageItem || !isSelectable) {
-            // Function items only emit the public signal. 功能项只发送公开信号。
-            bottomItemClicked(index)
-            return -1
-        }
-
-        var pageIndex = _resolveBottomPageIndex(item, pageSources)
-
-        if (pageIndex >= 0) {
-            // Change the window source index only; direct stack writes would break its binding.
-            // 只修改窗口源索引；直接写 stack 会破坏其声明式绑定。
-            var changed = currentIndex !== pageIndex
-            currentIndex = pageIndex
-            // Re-selecting the active bottom page emits no currentIndex change; synchronize explicitly.
-            // 再次选择当前底部页不会触发 currentIndex 变化，因此显式同步一次。
-            if (!changed) _syncNavigationSelection(pageIndex, navPanel, pageSources)
-            currentPageChanged(pageIndex)
-        }
-        bottomItemClicked(index)
-        return pageIndex
-    }
+    function _safeNavigationPageSources(pageSources) { return NavigationWindowRouting.safePageSources(pageSources) }
+    function _windowPageSources() { return NavigationWindowRouting.windowPageSources(window) }
+    function _resolveBottomPageIndex(item, pageSources) { return NavigationWindowRouting.resolveBottomPageIndex(item, pageSources) }
+    function _findBottomPageItem(pageIndex, pageSources) { return NavigationWindowRouting.findBottomPageItem(window, pageIndex, pageSources) }
+    function _syncNavigationSelection(pageIndex, navPanel, pageSources) { return NavigationWindowRouting.syncSelection(window, pageIndex, navPanel, pageSources) }
+    function _handleBottomItemClicked(index, navPanel, stack, pageSources) { return NavigationWindowRouting.handleBottomItemClicked(window, index, navPanel, pageSources) }
 
     // ==================== Public Methods 公开方法 ====================
     function setMicaEffectEnabled(enabled) {
