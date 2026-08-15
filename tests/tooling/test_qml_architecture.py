@@ -452,6 +452,29 @@ def test_smooth_scroll_helper_keeps_wheel_input_modularized():
     assert "onWheel:" not in source
 
 
+def test_constants_keeps_theme_colors_modularized():
+    entry = _source("prismqml/PrismQML/PrismEnums/Constants.qml")
+    helper = _source(
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsThemeColors.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 120
+    assert 'import "_internal" as ConstantsInternal' in source
+    assert (
+        "readonly property QtObject themeColors: "
+        "ConstantsInternal.ConstantsThemeColors {}"
+    ) in source
+    assert "readonly property QtObject themeColors: QtObject {" not in source
+    assert "readonly property color backgroundDark" in helper_source
+    assert "readonly property color accentForeground" in helper_source
+    assert "readonly property color tabSelectedLight" in helper_source
+    assert "required property bool isDark" not in helper_source
+
+
 def test_xy_chart_core_keeps_axes_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/XYChartCore.qml"
