@@ -56,6 +56,30 @@ def test_stacked_widget_keeps_source_pages_modularized():
     )
 
 
+def test_stacked_widget_keeps_switching_orchestration_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/StackedWidget.qml")
+    source = entry.read_text(encoding="utf-8")
+    assert len(source.splitlines()) < 500
+
+    for relative_path, helper_type in (
+        (
+            "prismqml/PrismQML/controls/navigation/_internal/StackedLazyController.qml",
+            "StackedLazyController",
+        ),
+        (
+            "prismqml/PrismQML/controls/navigation/_internal/StackedVisibilityController.qml",
+            "StackedVisibilityController",
+        ),
+    ):
+        helper = _source(relative_path)
+        assert helper.exists()
+        assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
+        assert f"{helper_type} {{" in source
+
+    assert "lazyController.preloadLazyHelperWhenReady" in source
+    assert "visibilityController.doAnimation" in source
+
+
 def test_tab_widget_keeps_content_pages_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/navigation/TabWidget.qml",

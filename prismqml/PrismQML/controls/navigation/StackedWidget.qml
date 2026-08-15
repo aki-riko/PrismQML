@@ -197,279 +197,72 @@ Item {
     }
 
     function _preloadLazyHelperWhenReady(reason) {
-        if (!control.lazyLoading || !_isPageLoaded(_displayIndex)) return
-        _ensureLazyHelperLoaded(reason)
+        lazyController.preloadLazyHelperWhenReady(reason)
     }
 
     function _cancelPendingLazySwitch(reason) {
-        var pendingIndex = _pendingLazySwitchIndex
-        var helper = lazyHelperLoader.item
-        var helperPendingIndex = helper && helper.pendingTargetIndex !== undefined
-                ? helper.pendingTargetIndex : -1
-        if (pendingIndex < 0 && helperPendingIndex < 0) return false
-
-        _pendingLazySwitchIndex = -1
-        if (helper && helper.cancelPendingLoad) helper.cancelPendingLoad()
-        _updateVisibility(_displayIndex)
-        _traceLazyStage(
-            "stacked.lazy_switch.cancel", currentIndex,
-            "reason=" + reason + " pending=" + pendingIndex +
-            " helperPending=" + helperPendingIndex)
-        return true
+        return lazyController.cancelPendingLazySwitch(reason)
     }
 
     function _showLazyLoadingAndSwitch(index) {
-        _traceLazyStage("stacked.switch_request", index)
-        _pendingLazySwitchIndex = index
-        _ensureLazyHelperLoaded("switch target=" + index)
-        if (!lazyHelperLoader.item) return
-        if (!lazyHelperLoader.active) {
-            lazyHelperLoader.active = true
-            profileTime("lazyHelper deferred load reactivated target=" + index)
-            return
-        }
-        _flushPendingLazySwitch()
+        lazyController.showLazyLoadingAndSwitch(index)
     }
 
     function _flushPendingLazySwitch() {
-        if (_pendingLazySwitchIndex < 0) return
-        if (!lazyHelperLoader.item) return
-
-        var target = _pendingLazySwitchIndex
-        _pendingLazySwitchIndex = -1
-        _traceLazyStage("stacked.helper_dispatch.begin", target)
-        lazyHelperLoader.item.showLoadingAndSwitch(target)
-        _traceLazyStage("stacked.helper_dispatch.done", target)
+        lazyController.flushPendingLazySwitch()
     }
 
     function _configureLazyHelper(item) {
-        if (!item) return
-
-        item.width = Qt.binding(function() { return lazyHelperLoader.width })
-        item.height = Qt.binding(function() { return lazyHelperLoader.height })
-        item.loaders = Qt.binding(function() { return control._loaders })
-        item.targetIndex = Qt.binding(function() { return control.currentIndex })
-        item.currentVisibleIndex = Qt.binding(function() { return control._displayIndex })
-        item.loadingText = Qt.binding(function() { return control.loadingText })
-        item.loaderActivationDelay = Qt.binding(function() { return control.lazyActivationDelay })
-        item.isPageLoadedFunc = control._isPageLoaded
-        item.isPageLoadFailedFunc = control._isPageLoadFailedFunc
-        item.pageLoadErrorFunc = control._pageLoadErrorFunc
-        item.activateLoaderFunc = control._activateLoader
-        item.diagnosticFunc = control._traceLazyStage
-        item.pageTransition = pageCircleTransition
-        item.loadingComplete.connect(control._handleLazyLoadingComplete)
-        item.loadingFailed.connect(function(targetIdx, errorString) {
-            control._traceLazyStage("stacked.loading_failed", targetIdx)
-            control.profileTime(
-                "lazyHelper loadingFailed target=" + targetIdx + ", error=" + errorString)
-            control.pageLoadFailed(targetIdx, errorString)
-        })
+        lazyController.configureLazyHelper(item)
     }
 
     function _beginPythonLazySwitch(targetIndex) {
-        control._pythonLazyTransitionTargetIndex = targetIndex
-        control._pythonLazyRevealRequested = false
-        return pageCircleTransition.collapse(control.widget(control._displayIndex))
+        return lazyController.beginPythonLazySwitch(targetIndex)
     }
 
     function _startPythonLazyExpansion(targetIndex) {
-        var targetWidget = control.widget(targetIndex)
-        if (!targetWidget) {
-            control._cancelPythonLazySwitch(targetIndex)
-            return
-        }
-
-        control.previousIndex = control._displayIndex
-        control._displayIndex = targetIndex
-        if (animations.prepareEnter(targetIndex)) {
-            control._doEnterAnimation(targetIndex)
-        }
-        pageCircleTransition.expand(targetWidget)
+        lazyController.startPythonLazyExpansion(targetIndex)
     }
 
     function _cancelPythonLazySwitch(targetIndex) {
-        pageCircleTransition.stop()
-        control._updateVisibility(control._displayIndex)
-        control._pythonLazyTransitionTargetIndex = -1
-        control._pythonLazyRevealRequested = false
-        control.pythonLazyTransitionFinished(targetIndex)
+        lazyController.cancelPythonLazySwitch(targetIndex)
     }
 
     function _completePythonLazySwitch(targetIndex) {
-        if (targetIndex < 0 || targetIndex >= count || targetIndex !== currentIndex) {
-            return false
-        }
-
-        if (control._pythonPageMode && !control._isPageLoaded(targetIndex)) {
-            control._cancelPythonLazySwitch(targetIndex)
-            return true
-        }
-
-        control._pythonLazyTransitionTargetIndex = targetIndex
-        control._pythonLazyRevealRequested = true
-        if (pageCircleTransition.collapsed || !pageCircleTransition.active) {
-            control._startPythonLazyExpansion(targetIndex)
-        }
-        return true
+        return lazyController.completePythonLazySwitch(targetIndex)
     }
 
     function _handlePythonLazyCollapseFinished() {
-        var targetIndex = control._pythonLazyTransitionTargetIndex
-        if (targetIndex < 0) return
-        control.pythonLazyCollapseFinished(targetIndex)
+        lazyController.handlePythonLazyCollapseFinished()
     }
 
     function _handlePythonLazyExpandStarted() {
-        var targetIndex = control._pythonLazyTransitionTargetIndex
-        if (targetIndex < 0) return
-        control.pythonLazyExpansionStarted(targetIndex)
+        lazyController.handlePythonLazyExpandStarted()
     }
 
     function _handlePythonLazyExpandFinished() {
-        var targetIndex = control._pythonLazyTransitionTargetIndex
-        if (targetIndex < 0) return
-        control._pythonLazyTransitionTargetIndex = -1
-        control._pythonLazyRevealRequested = false
-        control.pythonLazyTransitionFinished(targetIndex)
+        lazyController.handlePythonLazyExpandFinished()
     }
 
     function _handleLazyLoadingComplete(targetIdx, prevIdx) {
-        control._traceLazyStage("stacked.loading_complete.begin", targetIdx,
-                                "previous=" + prevIdx)
-        control.profileTime("lazyHelper loadingComplete start target=" + targetIdx + ", prev=" + prevIdx)
-        // 更新实际显示页(不写 currentIndex: 它已是 targetIdx 且不能命令式写,
-        // 否则打破外部 'currentIndex: window.currentIndex' 绑定)。
-        control.previousIndex = control._displayIndex
-        control._displayIndex = targetIdx
-        if (animations.prepareEnter(targetIdx)) {
-            control._doEnterAnimation(targetIdx)
-        }
-        control.profileTime("lazyHelper loadingComplete done")
-        control._traceLazyStage("stacked.loading_complete.done", targetIdx,
-                                "previous=" + prevIdx)
+        lazyController.handleLazyLoadingComplete(targetIdx, prevIdx)
     }
 
     // Animation execution 动画执行
     function _doAnimation(oldIndex, newIndex) {
-        var oldW = widget(oldIndex)
-        var newW = widget(newIndex)
-        _hideAllExcept([oldIndex, newIndex])
-
-        if (!animationEnabled || animationType === Enums.animation.none) {
-            _updateVisibility(newIndex)
-            currentChanged(newIndex)
-            return
-        }
-
-        var isBack = newIndex < oldIndex
-
-        switch (animationType) {
-            case Enums.animation.opacity:
-                animations.fadeTransition(oldIndex, newIndex)
-                break
-            case Enums.animation.popup:
-                animations.popUpTransition(oldIndex, newIndex)
-                break
-            case Enums.animation.popdown:
-                animations.popDownTransition(oldIndex, newIndex)
-                break
-            case Enums.animation.slide:
-                animations.slideTransition(oldIndex, newIndex, isBack)
-                break
-            case Enums.animation.card:
-                animations.cardTransition(oldIndex, newIndex, isBack)
-                break
-            case Enums.animation.zoom:
-                animations.zoomTransition(oldIndex, newIndex)
-                break
-            default:
-                animations.fadeTransition(oldIndex, newIndex)
-        }
-
-        animationStarted()
+        visibilityController.doAnimation(oldIndex, newIndex)
     }
+
     function _hideAllExcept(exceptIndices) {
-        if (_destroying) return
-        if (_useSourceMode) {
-            for (var i = 0; i < _loaders.length; i++) {
-                var loader = _loaders[i]
-                if (loader && exceptIndices.indexOf(i) === -1) {
-                    // Each assignment may synchronously destroy a Loader through bindings.
-                    // 每次赋值都可能通过绑定同步销毁 Loader，因此逐项重验引用。
-                    loader.visible = false
-                    if (!loader) continue
-                    loader.opacity = 0
-                    if (!loader) continue
-                    loader.y = 0
-                    if (!loader) continue
-                    loader.x = 0
-                    if (!loader) continue
-                    loader.scale = 1
-                }
-            }
-        } else {
-            for (var j = 0; j < stackLayout.children.length; j++) {
-                if (exceptIndices.indexOf(j) === -1) {
-                    var child = stackLayout.children[j]
-                    child.visible = false
-                    child.opacity = 0
-                    child.y = 0
-                    child.x = 0
-                    child.scale = 1
-                }
-            }
-        }
+        visibilityController.hideAllExcept(exceptIndices)
     }
 
     function _doEnterAnimation(newIndex) {
-        _hideAllExcept([newIndex])
-
-        if (!animationEnabled || animationType === Enums.animation.none) {
-            _updateVisibility(newIndex)
-            currentChanged(newIndex)
-            return
-        }
-
-        switch (animationType) {
-            case Enums.animation.opacity:
-                animations.enterFadeOnly(newIndex)
-                break
-            case Enums.animation.popup:
-                animations.enterPopUpOnly(newIndex)
-                break
-            case Enums.animation.popdown:
-                animations.enterPopDownOnly(newIndex)
-                break
-            case Enums.animation.zoom:
-                animations.enterZoomOnly(newIndex)
-                break
-            case Enums.animation.slide:
-            case Enums.animation.card:
-                animations.enterSlideOnly(newIndex)
-                break
-            default:
-                animations.enterFadeOnly(newIndex)
-        }
-        animationStarted()
+        visibilityController.doEnterAnimation(newIndex)
     }
 
     function _updateVisibility(newIndex) {
-        if (_useSourceMode) {
-            for (var i = 0; i < _loaders.length; i++) {
-                if (_loaders[i]) {
-                    var isCurrent = (i === newIndex)
-                    _loaders[i].visible = isCurrent
-                    _loaders[i].opacity = isCurrent ? 1 : 0
-                }
-            }
-        } else {
-            for (var j = 0; j < stackLayout.children.length; j++) {
-                var child = stackLayout.children[j]
-                child.visible = (j === newIndex)
-                child.opacity = (j === newIndex) ? 1 : 0
-            }
-        }
+        visibilityController.updateVisibility(newIndex)
     }
     // Get current index 获取当前索引
     function getCurrentIndex() {
@@ -677,5 +470,22 @@ Item {
                 "stacked.helper_loader.loaded.done", control.currentIndex,
                 "", lazyHelperLoader)
         }
+    }
+
+    // Lazy switch orchestration 懒切换编排
+    StackedLazyController {
+        id: lazyController
+        host: control
+        lazyHelperLoader: lazyHelperLoader
+        pageTransition: pageCircleTransition
+        animations: animations
+    }
+
+    // Visibility and animation orchestration 可见性与动画编排
+    StackedVisibilityController {
+        id: visibilityController
+        host: control
+        animations: animations
+        container: stackLayout
     }
 }
