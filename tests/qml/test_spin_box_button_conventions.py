@@ -41,6 +41,14 @@ SOURCE_PATHS = (
     / "inputs"
     / "SpinBox"
     / "MiniSpinButton.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "SpinBox"
+    / "_internal"
+    / "SpinBoxButtonGroups.qml",
 )
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "spin-box-button-conventions.qml")

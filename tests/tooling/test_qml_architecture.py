@@ -1012,3 +1012,35 @@ def test_pin_input_keeps_cell_delegate_modularized():
         "\n                MouseArea {",
     ):
         assert marker not in source
+
+
+def test_spin_box_keeps_dynamic_button_components_modularized():
+    entry = _source("prismqml/PrismQML/controls/inputs/SpinBox/SpinBoxCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/SpinBox/_internal/"
+        "SpinBoxButtonGroups.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 330
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 150
+    assert 'import "_internal" as SpinBoxInternal' in source
+    assert "SpinBoxInternal.SpinBoxButtonGroups {" in source
+    assert "required property var spinControl" in helper_source
+    assert "property alias inlineButtonsComponent: inlineButtonsComponent" in helper_source
+    assert "property alias compactButtonsComponent: compactButtonsComponent" in helper_source
+    assert "sourceComponent: control.compactMode" in source
+    assert "buttonGroups.compactButtonsComponent" in source
+    assert "buttonGroups.inlineButtonsComponent" in source
+    assert "Loader {" in source
+    assert "Loader {" not in helper_source
+    assert "onItemChanged:" in source
+
+    for marker in (
+        "\n    Component {",
+        "\n        SpinBoxButton {",
+        "\n        MiniSpinButton {",
+    ):
+        assert marker not in source
