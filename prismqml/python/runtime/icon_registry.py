@@ -7,8 +7,13 @@
 
 from PySide6.QtQml import QQmlEngine
 
-from ..core.icon_provider import get_icon_provider
+from ..core.icon_provider import IconProvider, get_icon_provider as _get_icon_provider
 from .context_registry import register_context_property
+
+
+def get_icon_provider() -> IconProvider:
+    """Return the process IconProvider singleton. 返回进程级 IconProvider 单例。"""
+    return _get_icon_provider()
 
 
 def register_icon_provider(engine: QQmlEngine) -> None:

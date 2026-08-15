@@ -10,6 +10,7 @@ from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 from prismqml import get_icon_provider, register_icon_provider
+from prismqml.python.runtime import icon_registry
 ROOT = Path(__file__).resolve().parents[1]
 VALID_ICON = "Add"
 INVALID_ICON = "MissingProviderContractIcon"
@@ -82,3 +83,10 @@ def test_explicit_registration_reuses_process_singleton(qapp):
 
     assert first.rootContext().contextProperty("Icon") is provider
     assert second.rootContext().contextProperty("Icon") is provider
+
+
+def test_runtime_icon_provider_query_delegates_to_core_implementation(monkeypatch):
+    sentinel = object()
+    monkeypatch.setattr(icon_registry, "_get_icon_provider", lambda: sentinel)
+
+    assert icon_registry.get_icon_provider() is sentinel

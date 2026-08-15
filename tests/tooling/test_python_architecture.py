@@ -557,6 +557,44 @@ def test_optional_provider_factories_have_one_runtime_owner():
     assert "prismqml.python.core.register_types" not in example_imports
 
 
+def test_icon_provider_access_has_one_runtime_owner():
+    root_init = REPO_ROOT / "prismqml" / "__init__.py"
+    core_init = CORE_PACKAGE / "__init__.py"
+    core_icon_provider = CORE_PACKAGE / "icon_provider.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    runtime_icon_registry = PYTHON_PACKAGE / "runtime" / "icon_registry.py"
+    root_exports = _lazy_exports(root_init)
+    core_exports = _lazy_exports(core_init)
+    runtime_exports = _lazy_exports(runtime_init)
+
+    assert root_exports["get_icon_provider"] == (
+        ".python.runtime",
+        "get_icon_provider",
+    )
+    assert runtime_exports["get_icon_provider"] == (
+        ".icon_registry",
+        "get_icon_provider",
+    )
+    assert "get_icon_provider" not in _literal_assignment(core_init, "__all__")
+    assert "get_icon_provider" not in core_exports
+    assert "get_icon_provider" in _function_names(runtime_icon_registry)
+    assert "get_icon_provider" in _function_names(core_icon_provider)
+
+    runtime_imports = {
+        target for _line, target in _resolved_imports(runtime_icon_registry)
+    }
+    assert "prismqml.python.core.icon_provider.get_icon_provider" in runtime_imports
+
+    violations = []
+    for path in sorted(PYTHON_PACKAGE.rglob("*.py")):
+        if path in (core_icon_provider, runtime_icon_registry):
+            continue
+        for line, target in _resolved_imports(path):
+            if target == "prismqml.python.core.icon_provider.get_icon_provider":
+                violations.append(f"{path.relative_to(REPO_ROOT)}:{line}: {target}")
+    assert violations == []
+
+
 def test_window_helper_access_has_one_runtime_owner():
     root_init = REPO_ROOT / "prismqml" / "__init__.py"
     runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"

@@ -46,7 +46,6 @@ __all__ = [
     "make_theme_icon",
     "paint_icon",
     "IconProvider",
-    "get_icon_provider",
     "prepare_windows_icon",
     "nuitka_icon_options",
     # Background tasks
@@ -109,7 +108,6 @@ _LAZY_EXPORTS = {
     "make_theme_icon": (".icon_core", "make_theme_icon"),
     "paint_icon": (".icon_core", "paint_icon"),
     "IconProvider": (".icon_provider", "IconProvider"),
-    "get_icon_provider": (".icon_provider", "get_icon_provider"),
     "prepare_windows_icon": (".application_icon", "prepare_windows_icon"),
     "nuitka_icon_options": (".application_icon", "nuitka_icon_options"),
     # Background tasks

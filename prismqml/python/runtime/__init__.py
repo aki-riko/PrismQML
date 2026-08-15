@@ -10,6 +10,7 @@ from importlib import import_module as _import_module
 __all__ = [
     "register_types",
     "register_icon_provider",
+    "get_icon_provider",
     "enable_auto_update",
     "get_config_manager",
     "get_qrcode_generator",
@@ -52,6 +53,7 @@ __all__ = [
 _LAZY_EXPORTS = {
     "register_types": (".registry", "register_types"),
     "register_icon_provider": (".icon_registry", "register_icon_provider"),
+    "get_icon_provider": (".icon_registry", "get_icon_provider"),
     "enable_auto_update": (".auto_update", "enable_auto_update"),
     "get_config_manager": (".configuration", "get_config_manager"),
     "get_qrcode_generator": (".provider_services", "get_qrcode_generator"),
