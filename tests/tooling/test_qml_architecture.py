@@ -728,3 +728,35 @@ def test_toast_keeps_visual_content_modularized():
         "\n    Component {",
     ):
         assert marker not in source
+
+
+def test_calendar_picker_core_keeps_content_tree_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/DatePicker/CalendarPickerCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/DatePicker/_internal/"
+        "CalendarPickerContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 200
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 450
+    assert 'import "_internal" as DatePickerInternal' in source
+    assert "DatePickerInternal.CalendarPickerContent {" in source
+    assert "required property var calendarControl" in helper_source
+    assert "property alias gridWrapperBehavior: gridWrapperBehavior" in helper_source
+    assert "property alias dayGrid: dayGrid" in helper_source
+    assert "property alias nextGrid: nextGrid" in helper_source
+    assert "readonly property real gridContainerHeight" in helper_source
+
+    for marker in (
+        "\n    Column {",
+        "\n    Timer {",
+        "CalendarNavButton {",
+        "Grid {",
+        "Repeater {",
+    ):
+        assert marker not in source

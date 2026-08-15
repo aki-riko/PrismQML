@@ -36,6 +36,7 @@ HOVER_MOTION_AUDIT_EXEMPTIONS = {
     "controls/feedback/Tooltip/TipPopup.qml",
     "controls/inputs/ComboBox/ComboBoxMulti.qml",
     "controls/inputs/DatePicker/CalendarPickerCore.qml",
+    "controls/inputs/DatePicker/_internal/CalendarPickerContent.qml",
     "controls/inputs/LineEdit/LineEditCore.qml",
     "controls/inputs/LineEdit/LineEditLabel.qml",
     "controls/inputs/LineEdit/LineEditNormal.qml",

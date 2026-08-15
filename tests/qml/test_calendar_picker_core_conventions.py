@@ -41,6 +41,7 @@ SOURCE_PATH = (
     / "DatePicker"
     / "CalendarPickerCore.qml"
 )
+CONTENT_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "CalendarPickerContent.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "calendar-picker-core-conventions.qml")
 )
@@ -269,12 +270,16 @@ def test_calendar_core_current_day_and_cross_year_navigation(qapp):
 
 def test_calendar_picker_core_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    content_source = CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
+    content_path = PurePosixPath(CONTENT_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path) + scan_source_text(
+        content_source, content_path
+    )
     assert (
         "visible: showBar\n"
         "                                layer.enabled: showBar"
-    ) in source
+    ) in content_source
     assert [
         violation
         for violation in violations
