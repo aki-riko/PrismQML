@@ -7,11 +7,12 @@
 
 from importlib import import_module as _import_module
 
-__all__ = ["register_types", "register_icon_provider"]
+__all__ = ["register_types", "register_icon_provider", "enable_auto_update"]
 
 _LAZY_EXPORTS = {
     "register_types": (".registry", "register_types"),
     "register_icon_provider": (".icon_registry", "register_icon_provider"),
+    "enable_auto_update": (".auto_update", "enable_auto_update"),
 }
 
 

@@ -473,24 +473,15 @@ class App(ApplicationIconMixin):
         Returns:
             创建的 ``Updater`` 实例;引擎未就绪时返回 ``None``。
         """
-        from ..core import Updater
+        from ..runtime import enable_auto_update
 
-        if self._engine is None:
-            from ..core.logger import warning
-
-            warning("App enable_auto_update: 引擎未就绪，无法启用自动更新")
-            return None
-        # 以最后一次调用为准重建底层 Updater;parent=None,生命周期由 self 持有。
-        self._updater = Updater(
+        return enable_auto_update(
+            self,
             repo,
             current_version,
             asset_keyword,
-            None,
             install_strategy=install_strategy,
         )
-        self._updater.set_require_artifact_digest(True)
-        self._engine.rootContext().setContextProperty("appUpdater", self._updater)
-        return self._updater
 
     @property
     def engine(self) -> Optional[QQmlApplicationEngine]:
