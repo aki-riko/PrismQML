@@ -28,7 +28,7 @@ _LAZY_EXPORTS = {
     "get_qrcode_generator": ("..runtime", "get_qrcode_generator"),
     "get_qrcode_provider": ("..runtime", "get_qrcode_provider"),
     "ClipboardHelper": (".clipboard", "ClipboardHelper"),
-    "get_clipboard_helper": (".clipboard", "get_clipboard_helper"),
+    "get_clipboard_helper": ("..runtime", "get_clipboard_helper"),
     "ScreenEyedropperManager": (".screen_eyedropper", "ScreenEyedropperManager"),
     "get_screen_eyedropper_manager": ("..runtime", "get_screen_eyedropper_manager"),
 }
