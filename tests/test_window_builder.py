@@ -148,7 +148,7 @@ def _expected_engine_provider_calls(scenario):
 
 
 def test_window_engine_setup_preserves_context_provider_and_profile_order(monkeypatch):
-    from prismqml.python.window import _window_engine_setup as setup
+    from prismqml.python.runtime import window_registry as setup
 
     scenario = _EngineSetupScenario()
     scenario.patch_setup(monkeypatch, setup)
@@ -170,7 +170,7 @@ def test_window_dependency_loaders_preserve_real_identity_and_profile_order():
     from prismqml.python.config import getConfigManager
     from prismqml.python.core import ThemeManager, getShadowManager
     from prismqml.python.providers.clipboard import get_clipboard_helper
-    from prismqml.python.window import _window_engine_setup as setup
+    from prismqml.python.runtime import window_registry as setup
     from prismqml.python.window.mica_window import get_mica_manager
     from prismqml.python.window.native_window import get_native_window_hook
 
@@ -205,7 +205,7 @@ def _patch_missing_engine(monkeypatch, setup, calls, engine):
 
 
 def test_window_engine_setup_creates_and_registers_missing_engine(monkeypatch):
-    from prismqml.python.window import _window_engine_setup as setup
+    from prismqml.python.runtime import window_registry as setup
 
     calls = []
     engine = object()
@@ -229,7 +229,7 @@ def test_window_engine_setup_creates_and_registers_missing_engine(monkeypatch):
 def test_window_engine_setup_propagates_non_runtime_errors(
     monkeypatch, error_type
 ):
-    from prismqml.python.window import _window_engine_setup as setup
+    from prismqml.python.runtime import window_registry as setup
 
     class FailingEngineManager:
         @staticmethod
@@ -281,7 +281,7 @@ def _expected_context_failure_calls():
 
 @pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
 def test_window_context_setup_fail_fast(error_type):
-    from prismqml.python.window import _window_engine_setup as setup
+    from prismqml.python.runtime import window_registry as setup
 
     calls = []
     context = _FailingEngineSetupContext(calls, error_type)
@@ -320,7 +320,7 @@ class _FailingProviderEngine:
 def test_window_svg_provider_setup_fail_fast(
     monkeypatch, error_type, failure_stage
 ):
-    from prismqml.python.window import _window_engine_setup as setup
+    from prismqml.python.runtime import window_registry as setup
 
     calls = []
     provider = object()

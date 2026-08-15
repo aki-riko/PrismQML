@@ -33,8 +33,8 @@ def _ensure_window_engine(builder, profile) -> None:
 
 def _load_window_dependencies(profile):
     """Load window-only dependencies at their original boundary. 在原边界加载窗口依赖。"""
-    from .mica_window import get_mica_manager
-    from .native_window import get_native_window_hook
+    from ..window.mica_window import get_mica_manager
+    from ..window.native_window import get_native_window_hook
     from ..providers.clipboard import get_clipboard_helper
 
     profile("导入窗口依赖")
