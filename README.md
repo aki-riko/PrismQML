@@ -73,6 +73,7 @@ prismqml/
 └── python/                 # Python 模块
     ├── config/             # 配置管理系统
     ├── core/               # 核心引擎（主题/日志/图标/阴影）
+    ├── runtime/            # 运行时装配（注册/外观持久化边界）
     ├── window/             # 窗口管理（懒加载/云母/托盘）
     ├── state/              # 响应式状态存储
     ├── providers/          # 功能提供者（SVG/二维码/取色器）
@@ -155,14 +156,15 @@ Fluent.Button {
     style: Fluent.Enums.button.style_primary
 }
 
-// 访问 ThemeManager 属性
+// 所有主题 token 统一通过 Enums 访问
 Rectangle {
-    color: ThemeManager.accentColor
+    color: Fluent.Enums.accentColor
 }
 ```
 
-> 说明：`ComboBox`、`Slider` 因与 QtQuick.Controls 原生类型同名，未在顶层 `PrismQML` 模块导出，
-> 需按子模块目录导入后使用，例如 `import "../prismqml/PrismQML/controls/inputs"`。
+> `ComboBox`、`Slider` 已在顶层 `PrismQML` 模块注册。使用
+> `import PrismQML as Fluent` 后直接写 `Fluent.ComboBox` / `Fluent.Slider`，
+> 无需导入 QtQuick.Controls 或内部目录。
 
 ## ⚙️ 配置系统
 

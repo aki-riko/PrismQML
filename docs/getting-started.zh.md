@@ -39,9 +39,9 @@ Fluent.Button {
 }
 ```
 
-!!! note "ComboBox / Slider 的导入"
-    `ComboBox`、`Slider` 因与 QtQuick.Controls 原生类型同名，未在顶层 `PrismQML` 模块导出，
-    需按子模块目录导入，例如 `import "../prismqml/PrismQML/controls/inputs"`。
+!!! note "ComboBox / Slider"
+    `ComboBox`、`Slider` 已在顶层 `PrismQML` 模块注册。通过模块别名直接使用
+    `Fluent.ComboBox` / `Fluent.Slider`，无需导入 QtQuick.Controls 或内部目录。
 
 ## 一键切换皮肤
 

@@ -42,6 +42,6 @@ Fluent.Button {
 }
 
 Rectangle {
-    color: ThemeManager.accentColor   // access the ThemeManager singleton directly
+    color: Fluent.Enums.accentColor   // access theme tokens through Enums
 }
 ```

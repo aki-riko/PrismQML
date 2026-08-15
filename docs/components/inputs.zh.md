@@ -17,18 +17,16 @@ Fluent.LineEdit {
 
 ## ComboBox 下拉框
 
-!!! warning "导入方式"
-    `ComboBox` 与 QtQuick 同名，需子模块导入：
-    ```qml
-    import "../prismqml/PrismQML/controls/inputs/ComboBox"
-    ComboBoxDefault { model: ["选项一", "选项二", "选项三"] }
-    ```
+```qml
+import PrismQML as Fluent
+Fluent.ComboBoxDefault { model: ["选项一", "选项二", "选项三"] }
+```
 
 ## Slider 滑块
 
 ```qml
-import "../prismqml/PrismQML/controls/inputs/Slider"
-SliderCore { value: 60; from: 0; to: 100 }
+import PrismQML as Fluent
+Fluent.Slider { value: 60; from: 0; to: 100 }
 ```
 
 ## 勾选类

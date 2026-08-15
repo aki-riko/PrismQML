@@ -42,6 +42,6 @@ Fluent.Button {
 }
 
 Rectangle {
-    color: ThemeManager.accentColor   // 直接访问 ThemeManager 单例
+    color: Fluent.Enums.accentColor   // 统一通过 Enums 访问主题 token
 }
 ```

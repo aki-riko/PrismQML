@@ -17,18 +17,16 @@ Supports clear button, password mode, labels (LineEditLabel), tag input (TagLine
 
 ## ComboBox
 
-!!! warning "Import"
-    `ComboBox` shares a name with QtQuick, import by submodule:
-    ```qml
-    import "../prismqml/PrismQML/controls/inputs/ComboBox"
-    ComboBoxDefault { model: ["Option 1", "Option 2", "Option 3"] }
-    ```
+```qml
+import PrismQML as Fluent
+Fluent.ComboBoxDefault { model: ["Option 1", "Option 2", "Option 3"] }
+```
 
 ## Slider
 
 ```qml
-import "../prismqml/PrismQML/controls/inputs/Slider"
-SliderCore { value: 60; from: 0; to: 100 }
+import PrismQML as Fluent
+Fluent.Slider { value: 60; from: 0; to: 100 }
 ```
 
 ## Toggles

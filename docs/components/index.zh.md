@@ -13,9 +13,9 @@ Fluent.Button { text: "确定" }
 Fluent.Card { /* ... */ }
 ```
 
-!!! warning "与 QtQuick 同名的控件"
-    `ComboBox`、`Slider` 等与 QtQuick.Controls 原生类型同名，未在顶层 `PrismQML` 模块导出，
-    需按子模块目录导入：`import "../prismqml/PrismQML/controls/inputs"`。
+!!! note "顶层组件"
+    `ComboBox`、`Slider` 已在顶层 `PrismQML` 模块注册。通过模块别名使用
+    `Fluent.ComboBox` / `Fluent.Slider`，无需导入 QtQuick.Controls 或内部目录。
 
 ## 分类
 

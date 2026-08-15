@@ -13,10 +13,10 @@ Fluent.Button { text: "OK" }
 Fluent.Card { /* ... */ }
 ```
 
-!!! warning "Controls sharing names with QtQuick"
-    `ComboBox`, `Slider`, etc. share names with QtQuick.Controls native types and are not exported
-    at the top-level `PrismQML` module. Import by submodule directory:
-    `import "../prismqml/PrismQML/controls/inputs"`.
+!!! note "Top-level components"
+    `ComboBox` and `Slider` are registered by the top-level `PrismQML` module. Use
+    `Fluent.ComboBox` / `Fluent.Slider` through the module alias; do not import
+    QtQuick.Controls or internal directories.
 
 ## Categories
 

@@ -66,7 +66,7 @@
 ### 1.2 耦合面（决定 C++ 适配成本的核心）
 PrismQML 的 QML 层对后端的耦合**极窄且干净**：
 
-- **Python 公开装配**（`prismqml/python/core/utils.py::register_types`）：
+- **Python 公开装配**（`prismqml/python/runtime/registry.py::register_types`）：
   - 10 个 `setContextProperty`：ThemeManager / ConfigManager / QRCodeGenerator /
     MicaManager / AcrylicHelper / NativeWindow / ClipboardHelper /
     ScreenEyedropperManager / ShadowManager / WindowHelper；

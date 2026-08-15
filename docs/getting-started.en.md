@@ -39,10 +39,10 @@ Fluent.Button {
 }
 ```
 
-!!! note "Importing ComboBox / Slider"
-    `ComboBox` and `Slider` share names with QtQuick.Controls native types, so they are not
-    exported at the top-level `PrismQML` module. Import them by submodule directory, e.g.
-    `import "../prismqml/PrismQML/controls/inputs"`.
+!!! note "ComboBox / Slider"
+    `ComboBox` and `Slider` are registered by the top-level `PrismQML` module. Use
+    `Fluent.ComboBox` / `Fluent.Slider` through the module alias; do not import
+    QtQuick.Controls or internal directories.
 
 ## Switch skins in one line
 

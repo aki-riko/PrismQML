@@ -48,10 +48,10 @@ prismqml/
 │   ├── controls/             # UI 控件（按功能分类）
 │   │   ├── buttons/  inputs/  feedback/  containers/
 │   │   ├── data/  navigation/  effects/  icons/ ...
-│   ├── FluentEnums/          # 枚举/常量/图标映射数据
+│   ├── PrismEnums/           # 枚举/常量/图标映射数据
 │   └── _internal/            # 内部窗口实现
 └── python/                   # Python 模块
-    ├── config/  core/  window/  state/  providers/  models/
+    ├── config/  core/  runtime/  window/  state/  providers/  models/
 ```
 
 **QML 引入方式**（Python 端通过 `engine.addImportPath(qml_path().parent)` 注册）：
@@ -61,7 +61,24 @@ import PrismQML as Fluent                              // ✅ 模块名引入（
 import "../prismqml/PrismQML/controls/buttons"        // 目录引入（按需）
 ```
 
-### 1.2 构建产物与缓存集中管理（铁律）
+### 1.2 Python 依赖方向与运行时装配（铁律）
+
+- `prismqml/python/core/` 是底层叶子层，只允许依赖标准库、PySide6 与同层
+  `core` 模块；严禁以绝对、相对、延迟或动态导入方式依赖 `config`、
+  `providers`、`window`、`runtime`。
+- 跨层对象创建、QML context/provider 注册和持久化 adapter 装配统一归
+  `prismqml/python/runtime/`。新增跨模块 wiring 必须放在该层，禁止塞回
+  `core/utils.py`、主题对象或其他底层工具。
+- `config`、`providers`、`window` 可依赖 `core`；`window/app.py` 作为宿主入口
+  只调用 `runtime` 的公开装配函数，不得复制 context/provider 注册流程。
+- 根包公开 `register_types` 必须解析到 `python.runtime.registry`，不得重新从
+  `core`、`core.__init__` 或 `core.utils` 暴露。根包公开 `setTheme`、`setSkin`、
+  `setAccentColor` 必须经过 `python.runtime.appearance`，确保先装配持久化边界。
+- 依赖方向由 `tests/tooling/test_python_architecture.py` 的 AST 门禁强制执行；
+  修改上述目录或公开装配入口后，至少运行该定向测试。不得通过字符串动态
+  导入、兼容别名或复制注册逻辑绕过门禁。
+
+### 1.3 构建产物与缓存集中管理（铁律）
 
 > **唯一仓内产物根目录是 `.artifacts/`。** 所有构建、中间文件、测试缓存、
 > 字节码缓存和文档站点必须写入其分类子目录，不得在仓库根目录、`cpp/`、
@@ -370,7 +387,7 @@ error(f"错误: {e}")
 
 **生成型 Python 枚举数据例外（严格受限）**：只有能由仓内生成器在 `--check` 模式下确定性地复现相同文本内容、文件头明确标注生成来源、且内容仅含枚举/常量数据与必要的无副作用查询方法时，才可超过 700 行。渲染、文件 I/O、主题判断或业务逻辑必须移入普通模块；生成文件不得手改。
 
-当前 `prismqml/python/core/icons.py` **尚不满足该例外**：`scripts/extract_icons.py --check` 不能复现现有 Python/QML 注册表，且文件混有生成器未产出的图标路径与渲染逻辑。它在 P8B 完成生成器、双注册表和运行逻辑同步前属于待整改遗留文件；P7 不得盲拆、粉饰为合规或直接重生成覆盖。
+当前 `prismqml/python/core/icons.py` **满足该例外**：`scripts/extract_icons.py --check` 可从 2,497 个 SVG 确定性复现 Python/QML 双注册表，文件头标明生成来源，渲染逻辑已移入 `_icon_enum_runtime.py`。该生成文件不得手改；图标变更必须经生成器更新并以 `--check` 验证。
 
 ### 5.2 模块化架构模式
 
