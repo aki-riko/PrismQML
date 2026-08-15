@@ -19,7 +19,7 @@ from PySide6.QtCore import (
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
-from prismqml import register_types
+from prismqml import Skin, getSkin, register_types, setSkin
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -142,6 +142,19 @@ def skeleton_scene(qapp):
         _dispose_scene(*scene[:3])
 
 
+@pytest.fixture
+def vintage_ticket_skeleton_scene(qapp):
+    previous_skin = getSkin()
+    setSkin(Skin.VINTAGE_TICKET)
+    scene = _create_scene()
+    try:
+        yield scene
+    finally:
+        _dispose_scene(*scene[:3])
+        setSkin(previous_skin)
+        _pump(20)
+
+
 def _skeleton(window: QQuickWindow, name: str) -> QQuickItem:
     pending = list(window.contentItem().childItems())
     while pending:
@@ -231,6 +244,23 @@ def test_viewport_scroll_visibility_position_height_and_loading(skeleton_scene):
     for skeleton in (inside, near_outside, far_outside, outside):
         _assert_animation_semantics(skeleton)
         _assert_layer_semantics(skeleton)
+    assert warnings == []
+
+
+def test_vintage_ticket_skeleton_shimmer_moves(vintage_ticket_skeleton_scene):
+    _engine, _component, window, warnings = vintage_ticket_skeleton_scene
+    skeleton = _skeleton(window, "outsideSkeleton")
+    animation = _shimmer_animation(skeleton)
+
+    assert skeleton.property("loading") is True
+    assert skeleton.property("_isInViewport") is True
+    assert animation.property("running") is True
+
+    shimmer = skeleton.findChild(QQuickItem, "skeletonShimmer")
+    assert shimmer is not None
+    start_x = shimmer.x()
+    _pump(120)
+    assert shimmer.x() != pytest.approx(start_x)
     assert warnings == []
 
 

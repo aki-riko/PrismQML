@@ -124,6 +124,7 @@ Item {
         // Shimmer effect 闪光效果
         Rectangle {
             id: shimmer
+            objectName: "skeletonShimmer"
             width: parent.width * Enums.skeletonMetrics.shimmerWidthRatio
             height: parent.height
             x: -width
@@ -131,12 +132,12 @@ Item {
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0; color: Enums.isVintageTicket ? control.baseColor : Enums.transparent }
-                GradientStop { position: 0.5; color: Enums.isVintageTicket ? control.baseColor : control.shimmerColor }
+                GradientStop { position: 0.5; color: control.shimmerColor }
                 GradientStop { position: 1; color: Enums.isVintageTicket ? control.baseColor : Enums.transparent }
             }
             
             SequentialAnimation on x {
-                running: control.loading && control.visible && control._isInViewport && !Enums.isVintageTicket
+                running: control.loading && control.visible && control._isInViewport
                 loops: Animation.Infinite
                 
                 NumberAnimation { 
