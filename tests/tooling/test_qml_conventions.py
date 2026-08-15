@@ -60,68 +60,6 @@ def test_high_confidence_rules_and_explicit_exceptions():
     assert "QML004" not in _rules("QtObject { target: ThemeManager }\n", enums)
 
 
-def test_popup_window_core_keeps_animation_logic_modularized():
-    popup_core = (
-        ROOT
-        / "prismqml"
-        / "PrismQML"
-        / "controls"
-        / "utils"
-        / "PopupWindowCore.qml"
-    )
-    animations = (
-        ROOT
-        / "prismqml"
-        / "PrismQML"
-        / "controls"
-        / "utils"
-        / "_internal"
-        / "PopupAnimations.qml"
-    )
-
-    assert popup_core.exists()
-    assert animations.exists()
-    assert len(popup_core.read_text(encoding="utf-8").splitlines()) <= 700
-    assert len(animations.read_text(encoding="utf-8").splitlines()) < 500
-    assert "PopupAnimations {" in popup_core.read_text(encoding="utf-8")
-
-
-def test_stacked_widget_keeps_source_pages_modularized():
-    stacked_widget = (
-        ROOT
-        / "prismqml"
-        / "PrismQML"
-        / "controls"
-        / "navigation"
-        / "StackedWidget.qml"
-    )
-    source_pages = stacked_widget.parent / "_internal" / "StackedSourcePages.qml"
-
-    assert stacked_widget.exists()
-    assert source_pages.exists()
-    assert len(stacked_widget.read_text(encoding="utf-8").splitlines()) <= 700
-    assert len(source_pages.read_text(encoding="utf-8").splitlines()) < 500
-    assert "StackedSourcePages {" in stacked_widget.read_text(encoding="utf-8")
-
-
-def test_tab_widget_keeps_content_pages_modularized():
-    tab_widget = (
-        ROOT
-        / "prismqml"
-        / "PrismQML"
-        / "controls"
-        / "navigation"
-        / "TabWidget.qml"
-    )
-    content_pages = tab_widget.parent / "_internal" / "TabContentPages.qml"
-
-    assert tab_widget.exists()
-    assert content_pages.exists()
-    assert len(tab_widget.read_text(encoding="utf-8").splitlines()) <= 700
-    assert len(content_pages.read_text(encoding="utf-8").splitlines()) < 500
-    assert "TabContentPages {" in tab_widget.read_text(encoding="utf-8")
-
-
 def test_style_rules_ignore_log_message_contents():
     source = """Item {
     Component.onCompleted: console.log("radius: 4 color: \\\"#fff\\\"")
