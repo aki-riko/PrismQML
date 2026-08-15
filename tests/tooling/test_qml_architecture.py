@@ -1139,3 +1139,34 @@ def test_slider_keeps_range_visual_content_modularized():
         "property real firstPos:",
     ):
         assert marker not in source
+
+
+def test_toggle_keeps_visual_assembly_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/Toggle/Toggle.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/Toggle/_internal/"
+        "ToggleContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 210
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 180
+    assert 'import "_internal" as ToggleInternal' in source
+    assert "ToggleInternal.ToggleContent {" in source
+    assert "required property var toggleControl" in helper_source
+    assert "readonly property bool contentLoaded" in helper_source
+    assert "sourceComponent: content.toggleControl._isSubtitle" in helper_source
+
+    for marker in (
+        "\n    Row {\n        id: mainRow",
+        "\n    Component {\n        id: checkboxIndicator",
+        "\n    Component {\n        id: radioIndicator",
+        "\n    Component {\n        id: switchIndicator",
+        "\n    Component {\n        id: defaultContent",
+        "\n    Component {\n        id: subtitleContent",
+    ):
+        assert marker not in source

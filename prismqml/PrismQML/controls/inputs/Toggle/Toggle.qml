@@ -5,8 +5,7 @@
 import QtQuick
 import "../../.."
 import ".."
-import "../../icons"
-import "../../data/Label"
+import "_internal" as ToggleInternal
 
 // Toggle - Unified toggle control 统一切换控件
 // Control via controlType: checkbox/radio/switch 通过controlType控制控件类型
@@ -147,10 +146,15 @@ Item {
     }
 
     // ==================== Size 尺寸 ====================
-    implicitWidth: mainRow.implicitWidth
+    implicitWidth: toggleContent.implicitWidth
     implicitHeight: {
         if (_isSubtitle)
-            return Math.max(Enums.controlSize.emptyStateButtonHeight, contentLoader.item ? contentLoader.item.implicitHeight + Enums.spacing.m : Enums.controlSize.emptyStateButtonHeight)
+            return Math.max(
+                Enums.controlSize.emptyStateButtonHeight,
+                toggleContent.contentLoaded
+                    ? toggleContent.contentImplicitHeight + Enums.spacing.m
+                    : Enums.controlSize.emptyStateButtonHeight
+            )
         if (_isSwitch) return Enums.controlSize.switchHeight
         if (_isRadio) return Enums.controlSize.radioOuter
         return Enums.controlSize.checkboxOuter
@@ -171,89 +175,9 @@ Item {
     }
 
     // ==================== Content 内容 ====================
-    Row {
-        id: mainRow
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: _isIndicatorOnly ? 0 : (_isSubtitle ? Enums.spacing.l : Enums.spacing.m)
-
-        // Indicator 指示器
-        Loader {
-            id: indicatorLoader
-            anchors.verticalCenter: _isSubtitle ? undefined : parent.verticalCenter
-            anchors.top: _isSubtitle ? parent.top : undefined
-            anchors.topMargin: _isSubtitle ? Enums.spacing.xxs : 0
-            sourceComponent: {
-                if (control._isSwitch) return switchIndicator
-                if (control._isRadio) return radioIndicator
-                return checkboxIndicator
-            }
-        }
-
-        // Content 内容
-        Loader {
-            id: contentLoader
-            anchors.verticalCenter: parent.verticalCenter
-            active: !control._isIndicatorOnly && (control.text !== "" || control.subtitle !== "")
-            sourceComponent: control._isSubtitle ? subtitleContent : defaultContent
-        }
-    }
-
-    // CheckBox indicator 复选框指示器
-    Component {
-        id: checkboxIndicator
-        ToggleCheckIndicator {
-            checkState: control.checkState
-            enabled: control.enabled
-            hovered: control.hovered
-            pressed: control.pressed
-            checkedColor: control._checkedColor
-        }
-    }
-
-    // Radio indicator 单选按钮指示器
-    Component {
-        id: radioIndicator
-        ToggleRadioIndicator {
-            checked: control.checked
-            enabled: control.enabled
-            hovered: control.hovered
-            pressed: control.pressed
-        }
-    }
-
-    // Switch indicator 开关指示器
-    Component {
-        id: switchIndicator
-        ToggleSwitchIndicator {
-            checked: control.checked
-            enabled: control.enabled
-            hovered: control.hovered
-            pressed: control.pressed
-            checkedColor: control._checkedColor
-            onClicked: control._handleClick()
-        }
-    }
-
-    // Default content 默认内容
-    Component {
-        id: defaultContent
-        ToggleDefaultContent {
-            text: control.text
-            icon: control.icon
-            iconSize: control.iconSize
-            textColor: control._textColor
-            showIcon: control._isCheckBox
-        }
-    }
-
-    // Subtitle content 副标题内容
-    Component {
-        id: subtitleContent
-        ToggleSubtitleContent {
-            text: control.text
-            subtitle: control.subtitle
-            textColor: control._textColor
-        }
+    ToggleInternal.ToggleContent {
+        id: toggleContent
+        toggleControl: control
     }
 
 

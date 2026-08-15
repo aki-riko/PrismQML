@@ -41,6 +41,16 @@ TOKEN_SOURCES = (
     / "ToggleCheckIndicator.qml",
     ROOT / "prismqml" / "PrismQML" / "controls" / "icons" / "CheckIcon.qml",
 )
+TOGGLE_CONTENT_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "Toggle"
+    / "_internal"
+    / "ToggleContent.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "toggle-conventions.qml")
 )
@@ -305,15 +315,15 @@ def test_toggle_check_states_use_public_enum_tokens():
 
 
 def test_toggle_source_conventions():
-    source_path = TOKEN_SOURCES[1]
-    source = source_path.read_text(encoding="utf-8")
-    path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
+    for source_path in (TOKEN_SOURCES[1], TOGGLE_CONTENT_SOURCE):
+        source = source_path.read_text(encoding="utf-8")
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations = scan_source_text(source, path)
+        assert [
+            violation
+            for violation in violations
+            if violation.rule in {"QML008", "QML009"}
+        ] == []
 
 
 def test_toggle_external_checked_and_check_state_resynchronize(qapp):
