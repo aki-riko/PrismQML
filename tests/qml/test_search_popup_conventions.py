@@ -20,7 +20,7 @@ from PySide6.QtCore import (
     Qt,
     QUrl,
 )
-from PySide6.QtGui import QGuiApplication, QInputMethodEvent
+from PySide6.QtGui import QGuiApplication, QInputMethodEvent, QKeyEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -214,6 +214,17 @@ def _type_text(text_input: QQuickItem, text: str) -> None:
     event.setCommitString(text)
     QCoreApplication.sendEvent(text_input, event)
     _pump(20)
+
+
+def _send_control_shortcut(text_input: QQuickItem, key: Qt.Key) -> None:
+    QCoreApplication.sendEvent(
+        text_input,
+        QKeyEvent(QEvent.Type.KeyPress, key, Qt.KeyboardModifier.ControlModifier),
+    )
+    QCoreApplication.sendEvent(
+        text_input,
+        QKeyEvent(QEvent.Type.KeyRelease, key, Qt.KeyboardModifier.ControlModifier),
+    )
 
 
 def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
@@ -476,13 +487,14 @@ def test_local_search_bar_public_editing_commands_track_popup(qapp):
         assert _wait_for(lambda: search.property("query") == "")
         assert _wait_for(lambda: not search.property("isOpen"))
         popup_core = _popup_core(_search_popup(search))
-        assert _wait_for(lambda: not popup_core.property("isClosing"))
+        assert popup_core.property("isClosing")
         assert edited[-1] == ""
 
         clipboard.setText("pasted")
         assert QMetaObject.invokeMethod(search, "paste")
         assert _wait_for(lambda: search.property("query") == "pasted")
         assert _wait_for(lambda: search.property("isOpen"))
+        assert not popup_core.property("isClosing")
         assert edited[-1] == "pasted"
         assert QMetaObject.invokeMethod(search, "undo")
         assert _wait_for(lambda: search.property("query") == "")
@@ -497,6 +509,24 @@ def test_local_search_bar_public_editing_commands_track_popup(qapp):
         assert _wait_for(lambda: not search.property("isOpen"))
         assert _wait_for(lambda: not popup_core.property("isClosing"))
         assert cleared == [True]
+
+        assert QMetaObject.invokeMethod(
+            search, "setQuery", Q_ARG("QVariant", "shortcut")
+        )
+        assert _wait_for(lambda: search.property("isOpen"))
+        text_input = _text_input(search)
+        _send_control_shortcut(text_input, Qt.Key.Key_A)
+        _send_control_shortcut(text_input, Qt.Key.Key_X)
+        assert search.property("query") == ""
+        assert not search.property("isOpen")
+        assert popup_core.property("isClosing")
+        _send_control_shortcut(text_input, Qt.Key.Key_V)
+        assert search.property("query") == "shortcut"
+        assert _wait_for(lambda: search.property("isOpen"))
+        assert not popup_core.property("isClosing")
+        assert QMetaObject.invokeMethod(search, "dismiss")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert _wait_for(lambda: not popup_core.property("isClosing"))
         assert warnings == []
         assert _wait_for(
             lambda: _visible_popup_windows(windows_before, window) == []

@@ -204,6 +204,19 @@ def test_pin_input_value_lifecycle(qapp):
         assert completed == ["1234"]
         assert QMetaObject.invokeMethod(pin, "clear")
         assert pin.property("value") == ""
+
+        modified.clear()
+        completed.clear()
+        pin.setProperty("value", "98765")
+        _pump()
+        assert pin.property("value") == "9876"
+        assert hidden.property("text") == "9876"
+        assert modified == []
+        assert completed == []
+        assert QMetaObject.invokeMethod(pin, "selectAll")
+        assert pin.property("selectedText") == "9876"
+        assert QMetaObject.invokeMethod(pin, "clear")
+        assert modified == [""]
         assert warnings == []
     finally:
         root.deleteLater()
@@ -232,6 +245,13 @@ def test_pin_input_keyboard_selection_and_editing_commands(qapp):
         hidden.forceActiveFocus()
         assert _wait_for(lambda: bool(hidden.property("activeFocus")))
         assert hidden.property("activeFocusOnTab")
+
+        pin.setProperty("value", "1234")
+        assert _wait_for(lambda: hidden.property("text") == "1234")
+        QTest.keyClick(window, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
+        assert _wait_for(lambda: pin.property("selectedText") == "1234")
+        QTest.keyClick(window, Qt.Key.Key_Backspace)
+        assert _wait_for(lambda: pin.property("value") == "")
 
         for key in (Qt.Key.Key_1, Qt.Key.Key_2, Qt.Key.Key_3, Qt.Key.Key_4):
             QTest.keyClick(window, key)

@@ -18,6 +18,9 @@ Item {
     property string value: ""
     property bool password: true
 
+    // ==================== Internal Props 内部属性 ====================
+    property bool _syncingValue: false
+
     // ==================== Readonly State 只读状态 ====================
     readonly property bool focused: pinInput.activeFocus
     readonly property int selectionStart: pinInput.selectionStart
@@ -57,6 +60,14 @@ Item {
         return true
     }
 
+    function _syncInputFromValue() {
+        if (_syncingValue || !pinInput || pinInput.text === value) return
+        _syncingValue = true
+        pinInput.text = value
+        if (value !== pinInput.text) value = pinInput.text
+        _syncingValue = false
+    }
+
     function _isCellSelected(index) {
         var rangeStart = Math.min(pinInput.selectionStart, pinInput.selectionEnd)
         var rangeEnd = Math.max(pinInput.selectionStart, pinInput.selectionEnd)
@@ -66,6 +77,9 @@ Item {
     // ==================== Size 尺寸 ====================
     implicitWidth: length * Enums.controlSize.pinBoxCellSize + (length - 1) * Enums.spacing.m
     implicitHeight: Enums.controlSize.pinBoxCellSize
+
+    onValueChanged: _syncInputFromValue()
+    Component.onCompleted: _syncInputFromValue()
 
     // ==================== Content 内容 ====================
     Row {
@@ -200,7 +214,10 @@ Item {
         activeFocusOnTab: true
 
         onTextChanged: {
+            if (control._syncingValue) return
+            control._syncingValue = true
             control.value = text
+            control._syncingValue = false
             control.valueModified(text)
             if (text.length === control.length) {
                 control.completed(text)

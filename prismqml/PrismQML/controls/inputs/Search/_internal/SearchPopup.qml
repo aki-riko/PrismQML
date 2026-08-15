@@ -29,6 +29,9 @@ Item {
     property int popupMode: Enums.input.search_popup_anchored_below
     property var rootContent: null      // SearchResultList 实例,父级注入
 
+    // ==================== Internal Props 内部属性 ====================
+    property bool _reopenRequested: false
+
     // isOpen 直接绑底层 PopupWindowCore 的状态,避免两份独立状态不同步
     readonly property bool isOpen: popupBase.isOpen
 
@@ -61,7 +64,15 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function open() {
-        if (popupBase.isOpen) return
+        if (popupBase.isOpen) {
+            _reopenRequested = false
+            return
+        }
+        if (popupBase.isClosing) {
+            _reopenRequested = true
+            return
+        }
+        _reopenRequested = false
 
         // 实时同步尺寸 (rootContent 可能在 open 调用前刚换内容)
         popupBase.popupWidth = popupRoot._resolvedWidth
@@ -82,6 +93,7 @@ Item {
     }
 
     function dismiss() {
+        _reopenRequested = false
         popupBase.close()
     }
 
@@ -111,6 +123,9 @@ Item {
         popupWidth: popupRoot._resolvedWidth
         implicitContentHeight: popupRoot._resolvedContentHeight
 
+        onIsClosingChanged: {
+            if (!isClosing && popupRoot._reopenRequested) popupRoot.open()
+        }
         onOpened: popupRoot.opened()
         onClosed: popupRoot.dismissed()
 

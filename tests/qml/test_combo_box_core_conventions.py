@@ -531,18 +531,26 @@ def test_combo_box_core_public_editing_commands_preserve_model(qapp):
         assert _wait_for(lambda: editable.property("currentText") == "")
         assert editable.property("currentIndex") == -1
         assert _variant(editable.property("model")) == model_before
+        assert edited == [""]
+        assert QMetaObject.invokeMethod(editable, "clearEditText")
+        assert edited == [""]
 
         clipboard.setText("custom")
         assert QMetaObject.invokeMethod(editable, "paste")
         assert _wait_for(lambda: editable.property("currentText") == "custom")
+        assert edited == ["", "custom"]
         assert QMetaObject.invokeMethod(editable, "undo")
         assert _wait_for(lambda: editable.property("currentText") == "")
+        assert edited == ["", "custom", ""]
         assert QMetaObject.invokeMethod(editable, "redo")
         assert _wait_for(lambda: editable.property("currentText") == "custom")
+        assert edited == ["", "custom", "", "custom"]
         assert QMetaObject.invokeMethod(editable, "selectAll")
         assert QMetaObject.invokeMethod(editable, "cut")
         assert _wait_for(lambda: editable.property("currentText") == "")
-        assert edited[-1] == ""
+        assert edited == ["", "custom", "", "custom", ""]
+        assert QMetaObject.invokeMethod(editable, "cut")
+        assert edited == ["", "custom", "", "custom", ""]
         assert warnings == []
         assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
     finally:
