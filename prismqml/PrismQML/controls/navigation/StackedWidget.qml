@@ -647,85 +647,11 @@ Item {
         }
     }
     // pageSources mode 文件路径模式
-    Item {
-        id: sourceContainer
+    StackedSourcePages {
+        id: sourcePages
         anchors.fill: parent
-        visible: control._useSourceMode
-        
-        Repeater {
-            id: sourceRepeater
-            model: control._useSourceMode ? control._safePageSources.length : 0
-            
-            Loader {
-                id: sourceLoader
-
-                property bool _loadOnce: false
-                property int pageIndex: index
-
-                width: sourceContainer.width
-                height: sourceContainer.height
-                // latch 用独立布尔 _loadOnce, 不自引用 active(自引用——含绕 _loaders[index]
-                // 间接自引用——会因 Loader.active 默认 true / _loaders 数组 slice 重建触发
-                // 连锁, 导致所有页一启动就 active 全加载, 懒加载失效)。
-                // _loadOnce 初始 false → 初始 active 仅跟 index===_displayIndex(只当前页);
-                // 页面一旦被激活 onActiveChanged 锁 _loadOnce=true, 切走再切回仍 active,
-                // source 不清空(避免 status===Ready latch 的切走退出 Ready→source 清空→永久轮询死锁)。
-                onActiveChanged: {
-                    if (active) _loadOnce = true
-                    control._traceLazyStage(
-                        "stacked.source_loader.active_changed", index, "", sourceLoader)
-                }
-                onStatusChanged: control._traceLazyStage(
-                    "stacked.source_loader.status_changed", index, "", sourceLoader)
-                source: control.lazyLoading
-                        ? (index === control._displayIndex || _loadOnce
-                           ? (control._safePageSources[index] || "") : "")
-                        : (control._safePageSources[index] || "")
-                active: control.lazyLoading
-                        ? (index === control._displayIndex || _loadOnce)
-                        : (index === control._displayIndex ||
-                           eagerActivationHelper.ready ||
-                           (eagerActivationHelper.activationActive &&
-                            index <= eagerActivationHelper.cursor) ||
-                           index === eagerActivationHelper.requestedIndex)
-                visible: index === control._displayIndex
-                opacity: index === control._displayIndex ? 1 : 0
-                scale: 1
-                transformOrigin: Item.Center
-                asynchronous: control.lazyLoading && control._asynchronousPageLoaderEnabled
-                
-                Component.onCompleted: {
-                    var loaders = control._loaders.slice()
-                    loaders[index] = sourceLoader
-                    control._loaders = loaders
-                    control.profileTime("sourceLoader registered index=" + index)
-                }
-                Component.onDestruction: {
-                    if (!control || control._destroying) return
-                    var loaders = control._loaders.slice()
-                    var registeredIndex = pageIndex
-                    if (registeredIndex >= 0 && loaders[registeredIndex] === sourceLoader) {
-                        loaders[registeredIndex] = null
-                        while (loaders.length > 0 && !loaders[loaders.length - 1]) loaders.pop()
-                        control._loaders = loaders
-                    }
-                }
-
-                // latch on actual load completion 加载完成即合锁。
-                // 初始当前页(主页)启动时 active 默认即 true, 绑定算出 true 但值未发生
-                // 变化 → onActiveChanged 不触发 → _loadOnce 漏锁 → 切走被卸载、切回重新
-                // 懒加载。onLoaded 是"已加载"的权威信号, 主页启动会触发, 在此补锁兜底。
-                onLoaded: {
-                    control._traceLazyStage(
-                        "stacked.source_loader.loaded.begin", index, "", sourceLoader)
-                    _loadOnce = true
-                    control.pageLoaded(index)
-                    control.profileTime("sourceLoader onLoaded index=" + index)
-                    control._traceLazyStage(
-                        "stacked.source_loader.loaded.done", index, "", sourceLoader)
-                }
-            }
-        }
+        host: control
+        eagerHelper: eagerActivationHelper
     }
     
     // QML lazy-loading helper for pure QML usage 纯QML使用的懒加载辅助器

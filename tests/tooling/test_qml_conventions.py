@@ -86,6 +86,24 @@ def test_popup_window_core_keeps_animation_logic_modularized():
     assert "PopupAnimations {" in popup_core.read_text(encoding="utf-8")
 
 
+def test_stacked_widget_keeps_source_pages_modularized():
+    stacked_widget = (
+        ROOT
+        / "prismqml"
+        / "PrismQML"
+        / "controls"
+        / "navigation"
+        / "StackedWidget.qml"
+    )
+    source_pages = stacked_widget.parent / "_internal" / "StackedSourcePages.qml"
+
+    assert stacked_widget.exists()
+    assert source_pages.exists()
+    assert len(stacked_widget.read_text(encoding="utf-8").splitlines()) <= 700
+    assert len(source_pages.read_text(encoding="utf-8").splitlines()) < 500
+    assert "StackedSourcePages {" in stacked_widget.read_text(encoding="utf-8")
+
+
 def test_style_rules_ignore_log_message_contents():
     source = """Item {
     Component.onCompleted: console.log("radius: 4 color: \\\"#fff\\\"")
