@@ -36,6 +36,16 @@ SOURCE_PATH = (
     / "ComboBox"
     / "ComboBoxMultiTree.qml"
 )
+CONTENT_SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "ComboBox"
+    / "_internal"
+    / "ComboBoxMultiTreeContent.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "combo-box-multi-tree-conventions.qml")
 )
@@ -286,13 +296,18 @@ def test_combo_box_multi_tree_fast_close_during_popup_startup(qapp):
 
 def test_combo_box_multi_tree_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    content_source = CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert "interactive: false" in source
+    content_path = PurePosixPath(CONTENT_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path) + scan_source_text(
+        content_source, content_path
+    )
+    assert "interactive: false" in content_source
     assert (
-        "PopupSmoothScroll { flickable: treeListView; "
-        "enabled: treeContainer.needsScroll }"
-    ) in source
+        "PopupSmoothScroll {" in content_source
+        and "flickable: treeListView" in content_source
+        and "enabled: treeContainer.needsScroll" in content_source
+    )
     assert 'var searchText = _searchText.toLowerCase()' in source
     assert source.count("_searchText.toLowerCase()") == 1
     assert "_hasMatchingDescendants(node.children, searchText)" in source

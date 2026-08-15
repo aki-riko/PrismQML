@@ -3,18 +3,9 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../../.."
-import "../../../effects"
-import QtQuick.Effects
-import "../../data"
-import "../../icons"
-import "../../utils"
 import ".."
-import "../../containers"
-import "../../containers/ScrollBar"
-import "../../menus"
 import "_internal"
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
-import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
 
 // ComboBoxMultiTree - Tree multi-select dropdown with search 带搜索的树形多选下拉框
 // Extends ComboBoxCore for consistent styling 继承ComboBoxCore保持样式一致
@@ -36,6 +27,8 @@ ComboBoxCore {
     property string _searchText: ""
     property real _targetX: 0
     property real _smoothContentX: 0
+    property alias _flatListModel: multiTreeContent.flatListModel
+    property alias tokenFlickable: multiTreeContent.tokenFlickable
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var _safeSelectedPaths: {
@@ -336,71 +329,8 @@ ComboBoxCore {
     // ==================== Size 尺寸 ====================
     implicitWidth: 280
 
-    // Popup content override 弹窗内容覆盖
-    popupContent: Component {
-        Column {
-            anchors.fill: parent
-            spacing: Enums.spacing.none
-
-            // Search box 搜索框
-            PopupSearchBox {
-                id: searchBox
-                width: parent.width
-                searchEnabled: control.searchEnabled
-                placeholderText: control.searchPlaceholder
-                onSearchTextChanged: (text) => control._searchText = text
-            }
-
-            // Tree content 树内容
-            Item {
-                id: treeContainer
-
-                readonly property bool needsScroll: treeListView.contentHeight > treeListView.height
-
-                width: parent.width
-                height: parent.height - (control.searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0)
-
-                ListView {
-                    id: treeListView
-                    anchors.fill: parent
-                    anchors.rightMargin: treeContainer.needsScroll ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-                    interactive: false  // Disable native scroll, use smooth scroll 禁用原生滚动，使用平滑滚动
-                    model: control._flatListModel
-
-                    delegate: TreeMenuDelegate {
-                        width: treeListView.width
-                        text: model.text
-                        depth: model.depth
-                        hasChildren: model.hasChildren
-                        expanded: model.expanded
-                        checkable: true
-                        checkState: model.selected ? 2 : (model.isPartialSelected ? 1 : 0)
-
-                        onToggleExpand: control._toggleExpand(model.nodeId)
-                        onCheckToggled: control._toggleSelection(JSON.parse(model.path))
-                    }
-
-                    // Smooth scroll 平滑滚动
-                    PopupSmoothScroll { flickable: treeListView; enabled: treeContainer.needsScroll }
-                }
-
-                Loader {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    anchors.margins: Enums.spacing.xxs
-                    width: Enums.comboBoxMetrics.scrollBarWidth
-                    active: treeContainer.needsScroll
-                    sourceComponent: ScrollBarEntry {
-                        flickable: treeListView
-                        width: Enums.comboBoxMetrics.scrollBarWidth
-                    }
-                }
-            }
-        }
-    }
+    // Popup content and token visuals live in the dedicated internal owner.
+    popupContent: multiTreeContent.popupContent
 
     Behavior on _smoothContentX { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }
 
@@ -416,70 +346,8 @@ ComboBoxCore {
     onWheelScrolled: (delta) => smoothScrollTo(_targetX - delta * 0.8)
 
     // ==================== Content 内容 ====================
-    // Use ListModel for animation support 使用ListModel以支持动画
-    property alias _flatListModel: _internalFlatListModel
-    ListModel {
-        id: _internalFlatListModel
+    ComboBoxMultiTreeContent {
+        id: multiTreeContent
+        comboControl: control
     }
-
-    // Token Display Area 标签显示区域 (use base class arrow) 使用基类箭头
-    Flickable {
-        id: tokenFlickable
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: Enums.spacing.m
-        anchors.rightMargin: Enums.comboBoxMetrics.arrowAreaWidth
-        height: Enums.spacing.xxxl
-        contentWidth: tokenRow.width
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
-        flickableDirection: Flickable.HorizontalFlick
-        interactive: false  // Disable drag, use wheel only 禁用拖拽，仅用滚轮
-
-        Row {
-            id: tokenRow
-            height: Enums.spacing.xxxl
-            spacing: Enums.spacing.xs
-
-            // Placeholder text 占位符文本
-            Label {
-                type: Enums.label.type_body
-                text: control.placeholderText
-                color: Enums.textColor.disabled
-                visible: control._leafSelectedPaths.length === 0
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            // Token tags 标签 (only show leaf nodes 只显示叶子节点)
-            Repeater {
-                model: control._leafSelectedPaths
-
-                delegate: MultiSelectToken {
-                    id: tokenDelegate
-                    required property int index
-                    required property var modelData
-
-                    readonly property var _control: control  // Capture control reference 捕获control引用
-
-                    text: modelData[modelData.length - 1] || ""
-                    tokenIndex: index
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    onRemoveClicked: (idx) => {
-                        // Find the path in selectedPaths by matching 通过匹配在selectedPaths中找到路径
-                        var pathToRemove = tokenDelegate._control._leafSelectedPaths[idx]
-                        var pathStr = tokenDelegate._control._pathToString(pathToRemove)
-                        var newPaths = tokenDelegate._control._safeSelectedPaths.filter(function(p) {
-                            return tokenDelegate._control._pathToString(p) !== pathStr
-                        })
-                        tokenDelegate._control.selectedPaths = newPaths
-                        tokenDelegate._control.selectionChanged(tokenDelegate._control._safeSelectedPaths)
-                        tokenDelegate._control._updateSelectionStates()
-                    }
-                }
-            }
-        }
-    }
-
 }

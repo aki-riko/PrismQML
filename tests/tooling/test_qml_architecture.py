@@ -527,6 +527,35 @@ def test_combo_box_core_keeps_visual_content_modularized():
     assert "layer.enabled: true" not in source
 
 
+def test_combo_box_multi_tree_keeps_visual_content_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxMultiTree.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/ComboBox/_internal/ComboBoxMultiTreeContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 400
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 220
+    assert 'import "_internal"' in source
+    assert "ComboBoxMultiTreeContent {" in source
+    assert "required property var comboControl" in helper_source
+    assert "property alias _flatListModel: multiTreeContent.flatListModel" in source
+    assert "property alias tokenFlickable: multiTreeContent.tokenFlickable" in source
+    assert "property alias flatListModel: internalFlatListModel" in helper_source
+    assert "property alias tokenFlickable: tokenFlickable" in helper_source
+    assert "property alias popupContent: treePopupContent" in helper_source
+    for visual_type in ("PopupSearchBox", "TreeMenuDelegate", "MultiSelectToken"):
+        assert f"{visual_type} {{" in helper_source
+        assert f"{visual_type} {{" not in source
+    assert "ListModel {" in helper_source
+    assert "Flickable {" in helper_source
+    assert "popupContent: multiTreeContent.popupContent" in source
+
+
 def test_xy_chart_core_keeps_axes_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/XYChartCore.qml"
