@@ -932,6 +932,46 @@ def test_cycle_wheel_picker_keeps_scroll_buttons_modularized():
         assert marker not in source
 
 
+def test_cycle_wheel_picker_keeps_delegates_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/CycleWheelPicker.qml"
+    )
+    path_delegate = _source(
+        "prismqml/PrismQML/controls/inputs/_internal/"
+        "CycleWheelPickerPathDelegate.qml"
+    )
+    list_delegate = _source(
+        "prismqml/PrismQML/controls/inputs/_internal/"
+        "CycleWheelPickerListDelegate.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    path_source = path_delegate.read_text(encoding="utf-8")
+    list_source = list_delegate.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 270
+    assert path_delegate.exists()
+    assert list_delegate.exists()
+    assert len(path_source.splitlines()) < 100
+    assert len(list_source.splitlines()) < 110
+    assert 'import "_internal" as InputInternal' in source
+    assert "InputInternal.CycleWheelPickerPathDelegate {" in source
+    assert "InputInternal.CycleWheelPickerListDelegate {" in source
+    for helper_source in (path_source, list_source):
+        assert "required property var wheelControl" in helper_source
+        assert "required property var modelData" in helper_source
+        assert "wheelControl._distanceFromCenter" in helper_source
+    assert "required property int index" in list_source
+    assert "ListView.view.currentIndex" in list_source
+    assert "PathView.isCurrentItem" in path_source
+
+    for marker in (
+        "\n        delegate: Item {",
+        "property real distanceFromCenter:",
+        "text: String(modelData)",
+    ):
+        assert marker not in source
+
+
 def test_segmented_control_keeps_delegate_visuals_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/SegmentedControl.qml")
     helper = _source(

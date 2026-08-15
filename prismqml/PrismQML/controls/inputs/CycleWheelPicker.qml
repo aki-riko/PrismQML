@@ -3,7 +3,6 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../.."
-import "../data"
 import "_internal" as InputInternal
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
@@ -166,35 +165,8 @@ Item {
             }
         }
         
-        delegate: Item {
-            property real distanceFromCenter: {
-                var center = control.height / 2
-                var itemCenter = y + height / 2
-                return control._distanceFromCenter(center, itemCenter)
-            }
-
-            width: control.width
-            height: control._safeItemHeight
-            x: -width / 2  // PathView centers on path, offset to fill width 沿路径居中,左偏使内容填满列
-            // Keep Item instead of Rectangle so transparent delegates do not occlude the popup highlight.
-            // 保持 Item，避免透明 Rectangle 委托遮挡弹窗选中高亮。
-
-            Label {
-                anchors.centerIn: parent
-                type: Enums.label.type_body
-                text: String(modelData)
-                font.pixelSize: PathView.isCurrentItem ? Enums.typography.subtitle : Enums.typography.body
-                font.weight: PathView.isCurrentItem ? Font.Medium : Font.Normal
-                horizontalAlignment: control.textAlignment
-                verticalAlignment: Text.AlignVCenter
-                color: {
-                    if (PathView.isCurrentItem) {
-                        return Enums.textColor.primary
-                    }
-                    return Enums.stateColor.textMedium
-                }
-                opacity: PathView.isCurrentItem ? 1 : Math.max(0.3, 1 - distanceFromCenter * 0.6)
-            }
+        delegate: InputInternal.CycleWheelPickerPathDelegate {
+            wheelControl: control
         }
     }
     
@@ -226,35 +198,8 @@ Item {
             }
         }
         
-        delegate: Item {
-            property bool isCurrent: index === listView.currentIndex
-            property real distanceFromCenter: {
-                var center = control.height / 2
-                var itemCenter = y - listView.contentY + height / 2
-                return control._distanceFromCenter(center, itemCenter)
-            }
-
-            width: listView.width
-            height: control._safeItemHeight
-            // Keep Item instead of Rectangle so transparent delegates do not occlude the popup highlight.
-            // 保持 Item，避免透明 Rectangle 委托遮挡弹窗选中高亮。
-
-            Label {
-                anchors.centerIn: parent
-                type: Enums.label.type_body
-                text: String(modelData)
-                font.pixelSize: isCurrent ? Enums.typography.subtitle : Enums.typography.body
-                font.weight: isCurrent ? Font.Medium : Font.Normal
-                horizontalAlignment: control.textAlignment
-                verticalAlignment: Text.AlignVCenter
-                color: isCurrent ? Enums.textColor.primary : Enums.stateColor.textMedium
-                opacity: isCurrent ? 1 : Math.max(0.3, 1 - parent.distanceFromCenter * 0.6)
-            }
-            
-            MouseArea {
-                anchors.fill: parent
-                onClicked: listView.currentIndex = index
-            }
+        delegate: InputInternal.CycleWheelPickerListDelegate {
+            wheelControl: control
         }
     }
     

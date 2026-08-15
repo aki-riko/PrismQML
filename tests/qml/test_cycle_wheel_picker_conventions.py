@@ -33,6 +33,18 @@ CONTENT_SOURCE_PATH = (
     / "_internal"
     / "CycleWheelPickerButtons.qml"
 )
+PATH_DELEGATE_SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "_internal"
+    / "CycleWheelPickerPathDelegate.qml"
+)
+LIST_DELEGATE_SOURCE_PATH = PATH_DELEGATE_SOURCE_PATH.with_name(
+    "CycleWheelPickerListDelegate.qml"
+)
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "cycle-wheel-picker-conventions.qml")
@@ -270,6 +282,14 @@ def test_cycle_wheel_picker_source_conventions_and_motion_tokens():
     sources = (
         (SOURCE_PATH, SOURCE_PATH.read_text(encoding="utf-8")),
         (CONTENT_SOURCE_PATH, CONTENT_SOURCE_PATH.read_text(encoding="utf-8")),
+        (
+            PATH_DELEGATE_SOURCE_PATH,
+            PATH_DELEGATE_SOURCE_PATH.read_text(encoding="utf-8"),
+        ),
+        (
+            LIST_DELEGATE_SOURCE_PATH,
+            LIST_DELEGATE_SOURCE_PATH.read_text(encoding="utf-8"),
+        ),
     )
     violations = []
     for path, source in sources:
