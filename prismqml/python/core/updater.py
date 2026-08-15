@@ -5,14 +5,9 @@
 
 """通用应用更新组件 - 基于 GitHub Releases 的检测 / 下载 / 安装启动。
 
-典型用法(应用层)::
-
-    from prismqml import Updater
-
-    updater = Updater("owner/repo", "v1.0.3", asset_keyword="Setup")
-    ctx.setContextProperty("Updater", updater)
-    # QML 侧:Updater.checkForUpdate() / 接 updateAvailable 信号 / downloadUpdate(url)
-    #          / runInstallerAndQuit(path, "/VERYSILENT")
+QML context composition belongs to ``prismqml.python.runtime``. QML context
+装配归 ``prismqml.python.runtime`` 负责；应用层应通过公开 runtime 装配入口
+持有更新器并把它绑定到自己的 QML context。
 
 所有网络操作均异步,通过信号回传结果;不阻塞 GUI 线程。
 """
