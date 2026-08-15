@@ -47,4 +47,3 @@ def test_flow_layout_preserves_qml_proxy_contract():
     assert "function getState(layout, name)" in engine_source
     assert "function setState(layout, name, value)" in engine_source
     assert "FlowLayoutGeometry.js" not in source
-
