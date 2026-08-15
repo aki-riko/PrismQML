@@ -253,6 +253,38 @@ def test_bar_chart_keeps_single_series_delegate_modularized():
     assert entry.read_text(encoding="utf-8").count("BarChartBar {") == 2
 
 
+def test_chart_view_keeps_render_layer_modularized():
+    entry = _source("prismqml/PrismQML/controls/data/Chart/ChartView.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/ChartRenderLayer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 500
+    assert "ChartRenderLayer {" in source
+    assert "required property var chartControl" in helper_source
+    assert "renderLayer.chart" not in helper_source
+    for loader_name in (
+        "xyChartBaseLoader", "barContentLoader", "lineContentLoader",
+        "scatterContentLoader",
+    ):
+        assert f"property alias {loader_name}: {loader_name}" in helper_source
+        assert f'objectName: "{loader_name}"' in helper_source
+    for property_name, loader_name in (
+        ("_xyChartBase", "xyChartBaseLoader"),
+        ("_barContent", "barContentLoader"),
+        ("_lineContent", "lineContentLoader"),
+        ("_scatterContent", "scatterContentLoader"),
+    ):
+        assert (
+            f"readonly property var {property_name}: "
+            f"renderLayer.{loader_name}.item"
+        ) in source
+
+
 def test_chat_message_list_keeps_slot_delegate_modularized():
     entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
     helper = _source(
