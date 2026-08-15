@@ -760,3 +760,42 @@ def test_calendar_picker_core_keeps_content_tree_modularized():
         "Repeater {",
     ):
         assert marker not in source
+
+
+def test_color_picker_keeps_content_and_popup_tree_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/ColorPicker/ColorPicker.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/ColorPicker/_internal/"
+        "ColorPickerContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 220
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 350
+    assert 'import "_internal" as ColorPickerInternal' in source
+    assert "ColorPickerInternal.ColorPickerContent {" in source
+    assert "required property var colorControl" in helper_source
+    for alias in (
+        "property alias circleLoader: circleLoader",
+        "property alias popup: popup",
+        "property alias paletteDialogLoader: paletteDialogLoader",
+        "property alias dialogLoader: dialogLoader",
+    ):
+        assert alias in helper_source
+    assert helper_source.count("parent: colorControl") == 6
+
+    for marker in (
+        "Loader {",
+        "PopupWindowCore {",
+        "ColorPickerTrigger {",
+        "ColorPalette {",
+        "ColorPickerDropdown {",
+        "ColorPickerDialog {",
+        "CustomButtonCore {",
+        "Connections {",
+    ):
+        assert marker not in source

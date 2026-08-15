@@ -26,6 +26,7 @@ SOURCE_PATH = (
     / "ColorPicker"
     / "ColorPicker.qml"
 )
+CONTENT_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "ColorPickerContent.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "color-picker-circle-async-width.qml")
 )
@@ -121,8 +122,12 @@ def test_public_circle_async_loader_preserves_runtime_width(qapp):
 
 def test_public_color_picker_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    content_source = CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
+    content_path = PurePosixPath(CONTENT_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path) + scan_source_text(
+        content_source, content_path
+    )
     assert [
         item for item in violations if item.rule in {"QML008", "QML009"}
     ] == []
@@ -130,6 +135,8 @@ def test_public_color_picker_source_conventions():
 
 def test_public_color_picker_uses_circle_and_popup_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    content_source = CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
+    combined_source = source + content_source
     for token in (
         "Enums.colorPickerMetrics.circleLoaderFallbackWidth",
         "Enums.colorPickerMetrics.circleDefaultSize",
@@ -140,7 +147,7 @@ def test_public_color_picker_uses_circle_and_popup_tokens():
         "Enums.colorPickerMetrics.pickerPopupHeight",
         "Enums.colorPickerMetrics.fallbackPopupHeight",
     ):
-        assert token in source
+        assert token in combined_source
     assert (
         "circleLoader.item ? circleLoader.item.implicitWidth "
         ": circleLoader.item.implicitWidth"

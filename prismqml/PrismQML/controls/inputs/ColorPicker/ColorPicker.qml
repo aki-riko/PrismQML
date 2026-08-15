@@ -3,10 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../../.."
-import "_internal"
-import "../../utils"
-import "../../buttons/Button"
-import "../../icons"
+import "_internal" as ColorPickerInternal
 import QtQuick.Window  // 置于库import后:原生Window名归库后不被覆盖
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
@@ -78,24 +75,24 @@ Item {
         if (type === Enums.colorPicker.type_dialog) {
             _dialogRequested = true
             // Set overlay target before opening 打开前设置覆盖目标
-            if (dialogLoader.item) {
-                dialogLoader.item.overlayTarget = control.parent
-                dialogLoader.item.open()
+            if (contentLayer.dialogLoader.item) {
+                contentLayer.dialogLoader.item.overlayTarget = control.parent
+                contentLayer.dialogLoader.item.open()
             }
             _isOpen = true
         } else if (type === Enums.colorPicker.type_palette ||
                    type === Enums.colorPicker.type_picker) {
             _popupContentRequested = true
-            popup.openAtControl(control)
+            contentLayer.popup.openAtControl(control)
             _isOpen = true
         }
     }
 
     function close() {
         if (type === Enums.colorPicker.type_dialog) {
-            if (dialogLoader.item) dialogLoader.item.close()
+            if (contentLayer.dialogLoader.item) contentLayer.dialogLoader.item.close()
         } else {
-            popup.close()
+            contentLayer.popup.close()
         }
         _isOpen = false
     }
@@ -122,11 +119,11 @@ Item {
     function _openPaletteDialog() {
         if (_mainWindow && _mainWindow.contentItem) {
             _paletteDialogRequested = true
-            paletteDialogLoader.parent = _mainWindow.contentItem
-            paletteDialogLoader.anchors.fill = _mainWindow.contentItem
-            if (paletteDialogLoader.item) {
-                paletteDialogLoader.item.selectedColor = control.selectedColor
-                paletteDialogLoader.item.open()
+            contentLayer.paletteDialogLoader.parent = _mainWindow.contentItem
+            contentLayer.paletteDialogLoader.anchors.fill = _mainWindow.contentItem
+            if (contentLayer.paletteDialogLoader.item) {
+                contentLayer.paletteDialogLoader.item.selectedColor = control.selectedColor
+                contentLayer.paletteDialogLoader.item.open()
             }
         }
     }
@@ -155,7 +152,10 @@ Item {
             case Enums.colorPicker.type_dialog: return Enums.colorPickerMetrics.triggerWidth
             case Enums.colorPicker.type_palette: return Enums.colorPickerMetrics.triggerWidth
             case Enums.colorPicker.type_picker: return Enums.colorPickerMetrics.triggerWidth
-            case Enums.colorPicker.type_circle: return circleLoader.item ? circleLoader.item.implicitWidth : Enums.colorPickerMetrics.circleLoaderFallbackWidth
+            case Enums.colorPicker.type_circle:
+                return contentLayer.circleLoader.item
+                    ? contentLayer.circleLoader.item.implicitWidth
+                    : Enums.colorPickerMetrics.circleLoaderFallbackWidth
             case Enums.colorPicker.type_screen: return Enums.colorPickerMetrics.triggerWidth
             default: return Enums.colorPickerMetrics.triggerWidth
         }
@@ -169,256 +169,8 @@ Item {
     }
 
     // ==================== Content 内容 ====================
-    // Trigger button for dropdown types 下拉类型触发按钮
-    Loader {
-        id: triggerLoader
-        anchors.fill: parent
-        active: type === Enums.colorPicker.type_dialog ||
-                type === Enums.colorPicker.type_palette ||
-                type === Enums.colorPicker.type_picker
-        sourceComponent: ColorPickerTrigger {
-            selectedColor: control.selectedColor
-            isOpen: control._isOpen
-            enabled: control.enabled
-            menu: control.type === Enums.colorPicker.type_palette ||
-                  control.type === Enums.colorPicker.type_picker ? popup : null
-            onMenuAboutToOpen: control._preparePopup()
-            onHoveredChanged: {
-                if (hovered) control._prewarmTriggerContent()
-            }
-            onClicked: {
-                // Prevent reopen during closing animation 防止关闭动画期间重新打开
-                if (popup.isClosing) return
-                if (control._isOpen) {
-                    control.close()
-                } else {
-                    control.open()
-                }
-            }
-        }
-    }
-
-    // Circle colors 圆形颜色
-    Loader {
-        id: circleLoader
-        anchors.fill: parent
-        active: type === Enums.colorPicker.type_circle
-        sourceComponent: ColorCircles {
-            selectedColor: control.selectedColor
-            colors: control.circleColors
-            circleSize: control.circleSize
-            enabled: control.enabled
-            onColorSelected: (c) => {
-                control.selectedColor = c
-                control.colorSelected(c)
-                control.colorChanged(c)
-            }
-        }
-    }
-
-    // Screen picker 屏幕取色器
-    Loader {
-        id: screenLoader
-        anchors.fill: parent
-        active: type === Enums.colorPicker.type_screen
-        sourceComponent: CustomButtonCore {
-            id: screenPickerBtn
-            text: ""
-            enabled: control.enabled
-            
-            // Override background color 覆盖背景色
-            getBackgroundColor: function() {
-                if (!enabled) return Enums.stateColor.controlBgDisabled
-                if (pressed) return Enums.stateColor.controlBgPressed
-                if (hovered) return Enums.stateColor.controlBgHover
-                return Enums.stateColor.controlBg
-            }
-            
-            getBorderColor: function() {
-                if (!enabled) return Enums.stateColor.borderLight
-                if (hovered) return Enums.stateColor.borderStrong
-                return Enums.stateColor.border
-            }
-            
-            onClicked: {
-                if (!control.picking) {
-                    // Start picking via Python manager 通过Python管理器开始取色
-                    control.picking = true
-                    control.pickingStarted()
-                    if (typeof ScreenEyedropperManager !== "undefined") {
-                        ScreenEyedropperManager.startPicking(Enums.isDark)
-                    }
-                }
-            }
-            
-            // Custom content 自定义内容
-            Row {
-                anchors.centerIn: parent
-                spacing: Enums.spacing.s
-                
-                // Left: Color swatch 左侧：色块
-                Rectangle {
-                    width: Enums.spacing.xl
-                    height: Enums.spacing.xl
-                    radius: Enums.radius.small
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: control.selectedColor
-                    border.width: Enums.border.thin
-                    border.color: Enums.stateColor.inputBorderStrong
-                }
-                
-                // Right: Eyedropper icon 右侧：吸管图标
-                Icon {
-                    icon: Enums.icon.eyedropper
-                    iconSize: Enums.iconSize.s
-                    color: screenPickerBtn.getTextColor()
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
-        }
-    }
-
-    // Screen picker connections 屏幕取色器连接
-    Connections {
-        function onColorPicked(color) {
-            control.selectedColor = color
-            control.colorSelected(color)
-            control.colorChanged(color)
-        }
-        
-        function onPickingFinished() {
-            control.picking = false
-            control.pickingFinished()
-        }
-        
-        function onPickingCancelled() {
-            control.picking = false
-        }
-
-        target: typeof ScreenEyedropperManager !== "undefined" ? ScreenEyedropperManager : null
-        enabled: control.type === Enums.colorPicker.type_screen
-    }
-
-    // Palette and picker popup 调色板与选择器弹层
-    PopupWindowCore {
-        id: popup
-        popupWidth: {
-            switch (control.type) {
-                case Enums.colorPicker.type_palette: return Enums.colorPickerMetrics.palettePopupWidth
-                case Enums.colorPicker.type_picker: return Enums.colorPickerMetrics.pickerPopupWidth
-                default: return Enums.colorPickerMetrics.fallbackPopupWidth
-            }
-        }
-        popupHeight: {
-            switch (control.type) {
-                case Enums.colorPicker.type_palette: return Enums.colorPickerMetrics.palettePopupHeight
-                case Enums.colorPicker.type_picker: return Enums.colorPickerMetrics.pickerPopupHeight
-                default: return Enums.colorPickerMetrics.fallbackPopupHeight
-            }
-        }
-        
-        onClosed: control._isOpen = false
-        
-        // Palette content 调色板内容
-        Loader {
-            anchors.fill: parent
-            active: control.type === Enums.colorPicker.type_palette &&
-                    (control._isOpen || control._popupContentRequested)
-            sourceComponent: ColorPalette {
-                selectedColor: control.selectedColor
-                showAutomatic: control.showAutomatic
-                showMoreColors: control.showMoreColors
-                automaticText: control.automaticText
-                themeColorsText: control.themeColorsText
-                standardColorsText: control.standardColorsText
-                moreColorsText: control.moreColorsText
-                enabled: control.enabled
-                onColorSelected: (c) => {
-                    control.selectedColor = c
-                    control.colorSelected(c)
-                    control.colorChanged(c)
-                    popup.close()
-                }
-                onMoreColorsClicked: {
-                    popup.close()  // Close palette popup first 先关闭调色板弹窗
-                    control.moreColorsClicked()
-                    control._openPaletteDialog()  // Open ColorDialog 打开颜色对话框
-                }
-                onMoreColorsPrewarmRequested: control._paletteDialogRequested = true
-            }
-        }
-        
-        // Picker content 选择器内容
-        Loader {
-            anchors.fill: parent
-            active: control.type === Enums.colorPicker.type_picker &&
-                    (control._isOpen || control._popupContentRequested)
-            sourceComponent: ColorPickerDropdown {
-                selectedColor: control.selectedColor
-                colorMode: control.colorMode
-                enableAlpha: control.enableAlpha
-                enabled: control.enabled
-                onColorChanged: (c) => {
-                    control.selectedColor = c
-                    control.colorChanged(c)
-                }
-                onAccepted: (c) => {
-                    control.selectedColor = c
-                    control.colorSelected(c)
-                    control.accepted(c)
-                    popup.close()
-                }
-                onRejected: {
-                    control.selectedColor = control.defaultColor
-                    control.rejected()
-                    popup.close()
-                }
-            }
-        }
-    }
-
-    // Palette color-dialog loader 调色板颜色对话框加载器
-    Loader {
-        id: paletteDialogLoader
-        active: control.type === Enums.colorPicker.type_palette &&
-                control._paletteDialogRequested
-        sourceComponent: ColorPickerDialog {
-            title: { Translator._v; return Translator.tr("custom_color") }
-            selectedColor: control.selectedColor
-            onColorAccepted: (c) => {
-                control.selectedColor = c
-                control.colorSelected(c)
-            }
-        }
-    }
-
-    // Modal dialog loader 模态对话框加载器
-    Loader {
-        id: dialogLoader
-        active: control.type === Enums.colorPicker.type_dialog &&
-                control._dialogRequested
-        sourceComponent: ColorPickerDialog {
-            selectedColor: control.selectedColor
-            title: control.dialogTitle
-            editColorText: control.editColorText
-            confirmText: control.confirmText
-            cancelText: control.cancelText
-            enableAlpha: control.enableAlpha
-            enabled: control.enabled
-            overlayTarget: control.parent  // Overlay parent component 覆盖父组件
-            onColorAccepted: (c) => {
-                control.selectedColor = c
-                control.colorSelected(c)
-                control.accepted(c)
-                control._isOpen = false
-            }
-            onRejected: {
-                control.rejected()
-                control._isOpen = false
-            }
-            onColorUpdated: (c) => {
-                control.colorChanged(c)
-            }
-        }
+    ColorPickerInternal.ColorPickerContent {
+        id: contentLayer
+        colorControl: control
     }
 }
