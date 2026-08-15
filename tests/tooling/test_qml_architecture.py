@@ -4,7 +4,9 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """QML architecture boundaries and size gates. QML 架构边界与大小门禁。"""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+
+from scripts.qml_conventions import scan_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -926,5 +928,47 @@ def test_cycle_wheel_picker_keeps_scroll_buttons_modularized():
         "\n    Rectangle {",
         "\n        Icon {",
         "\n        MouseArea {",
+    ):
+        assert marker not in source
+
+
+def test_segmented_control_keeps_delegate_visuals_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/SegmentedControl.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/SegmentedItem.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 230
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 130
+    assert 'import "_internal" as NavigationInternal' in source
+    assert "NavigationInternal.SegmentedItem {" in source
+    assert "required property var segmentedControl" in helper_source
+    assert "required property int index" in helper_source
+    assert "required property var modelData" in helper_source
+    assert "\nItem {\n" in helper_source
+    assert "segmentedControl._scheduleSlideSync(false)" in helper_source
+    assert "function _scheduleSlideSync(shouldAnimate)" in source
+    assert "repeater.itemAt" in source
+
+    violations = []
+    for path, candidate in ((entry, source), (helper, helper_source)):
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                candidate, PurePosixPath(path.relative_to(ROOT).as_posix())
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
+
+    for marker in (
+        "\n            Item {",
+        "\n                Rectangle {",
+        "\n                Row {",
+        "\n                HoverHandler {",
+        "\n                TapHandler {",
     ):
         assert marker not in source

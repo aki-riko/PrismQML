@@ -4,9 +4,7 @@
 
 import QtQuick
 import "../.."
-import "../icons"
-import "../data"
-import "_internal"
+import "_internal" as NavigationInternal
 
 // SegmentedControl - Segmented control with icon+text support 分段控件
 // Uses HoverHandler to provide stable hover behavior 使用HoverHandler提供稳定的悬停行为
@@ -74,6 +72,10 @@ Rectangle {
         }
     }
 
+    function _scheduleSlideSync(shouldAnimate) {
+        slideSyncTimer.schedule(shouldAnimate)
+    }
+
     // ==================== Public Methods 公开方法 ====================
     function setCurrentItem(key) {
         for (var i = 0; i < _safeItems.length; i++) {
@@ -130,7 +132,7 @@ Rectangle {
     }
     
     // Bottom indicator with shared horizontal stretch behavior 统一基类的水平橡皮筋粘滞底部指示器
-    SlidingIndicator {
+    NavigationInternal.SlidingIndicator {
         id: navIndicator
         orientation: Qt.Horizontal
         indicatorWidth: control.indicatorSize
@@ -201,77 +203,8 @@ Rectangle {
             id: repeater
             model: control._safeItems
             
-            Item {
-                id: segmentItem
-                property bool selected: index === control.currentIndex
-                property bool hovered: hoverHandler.hovered
-                property bool pressed: tapHandler.pressed
-                property string itemText: typeof modelData === "string" ? modelData : (modelData && modelData.text !== undefined ? modelData.text : "")
-                property string itemIcon: modelData && modelData.icon !== undefined ? modelData.icon : ""
-                property string key: modelData && modelData.key !== undefined ? modelData.key : (itemText !== "" ? itemText : itemIcon)
-                property bool hasIcon: itemIcon !== ""
-                property bool hasText: itemText !== ""
-
-                width: Math.max(Enums.controlSize.segmentedMinWidth, itemContent.implicitWidth + Enums.spacing.l * 2)
-                height: control.height - Enums.spacing.xxs * 2
-                onSelectedChanged: if (selected) slideSyncTimer.schedule(false)
-                onWidthChanged: if (selected) slideSyncTimer.schedule(false)
-                onXChanged: if (selected) slideSyncTimer.schedule(false)
-                Component.onCompleted: if (selected) slideSyncTimer.schedule(false)
-                
-                // Hover/Press background for non-selected items 非选中项的悬停/按下背景
-                Rectangle {
-                    anchors.fill: parent
-                    radius: Enums.surfaceRadius(Enums.radius.small)
-                    visible: !segmentItem.selected && (segmentItem.hovered || segmentItem.pressed)
-                    color: {
-                        if (segmentItem.pressed) return Enums.stateColor.segmentedPressed
-                        if (segmentItem.hovered) return Enums.stateColor.segmentedHover
-                        return Enums.transparent
-                    }
-                }
-                
-                // Content row (icon + text) 内容行
-                Row {
-                    id: itemContent
-                    anchors.centerIn: parent
-                    spacing: (segmentItem.hasIcon && segmentItem.hasText) ? Enums.spacing.s : 0
-                    
-                    Icon {
-                        id: iconItem
-                        icon: segmentItem.itemIcon
-                        iconSize: control.iconSize
-                        color: textItem.color
-                        visible: segmentItem.hasIcon
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    
-                    Label {
-                        id: textItem
-                        type: Enums.label.type_body
-                        text: segmentItem.itemText
-                        font.pixelSize: control.itemFontSize
-                        visible: segmentItem.hasText
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-                
-                // HoverHandler for stable hover 使用HoverHandler实现稳定hover
-                HoverHandler {
-                    id: hoverHandler
-                    cursorShape: Qt.PointingHandCursor
-                }
-                
-                // TapHandler for click 使用TapHandler处理点击
-                TapHandler {
-                    id: tapHandler
-                    onTapped: {
-                        if (index !== control.currentIndex) {
-                            control.setCurrentIndex(index)
-                            control.itemClicked(index, true)
-                        }
-                    }
-                }
+            NavigationInternal.SegmentedItem {
+                segmentedControl: control
             }
         }
     }
