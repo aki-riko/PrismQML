@@ -9,7 +9,7 @@ import ".."
 Behavior {
     id: root
 
-    required property bool active
+    property bool active: false
     property bool animationEnabled: true
     property int enterDuration: Enums.duration.fast
     property int easingType: Easing.Linear

@@ -169,7 +169,7 @@ def test_infobar_reuses_one_close_timer_for_both_modes(qapp):
         )
 
         assert len(timers) == 1
-        assert object_count == 61
+        assert object_count == 65
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

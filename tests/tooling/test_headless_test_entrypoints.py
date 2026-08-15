@@ -45,6 +45,8 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     # Visible Windows input probe; run manually with a real D3D11 desktop.
     # 可视 Windows 输入探针；仅在真实 D3D11 桌面上手工运行。
     Path("scripts/manual/native_popup_sendinput_probe.py"),
+    Path("scripts/manual/gallery_menu_tab_hover_probe.py"),
+    Path("scripts/manual/tab_widget_shadow_artifact_probe.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"
@@ -340,7 +342,7 @@ def test_probe_defaults_to_headless_through_process_runner():
         result.stdout,
     )
     assert summary is not None, result.stdout
-    assert tuple(map(int, summary.groups())) == (183, 0, 7)
+    assert tuple(map(int, summary.groups())) == (184, 0, 7)
     assert "单例跳过" not in result.stdout
 
 

@@ -3,12 +3,7 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
-"""
-Mica Effect Manager & Acrylic Helper 云母效果管理器 & 亚克力助手
-
-Provides Windows 11 Mica backdrop effect and Acrylic blur for PrismQML windows.
-为 PrismQML 窗口提供 Windows 11 云母背景效果和亚克力模糊。
-"""
+"""Mica and Acrylic effect manager. 云母与亚克力效果管理器。"""
 import sys
 from threading import Lock
 from typing import Any, Optional
@@ -51,11 +46,9 @@ DWMWCP_ROUND = 2
 DWM_BACKDROP_NONE = 1   # DWMSBT_NONE
 DWM_BACKDROP_MICA = 2   # DWMSBT_MAINWINDOW (Mica)
 
-
 def _dwm_hresult_succeeded(result: int) -> bool:
     """Apply Windows SUCCEEDED semantics. 使用 Windows SUCCEEDED 语义。"""
     return int(result) >= 0
-
 
 def _is_win11() -> bool:
     """Check if running on Windows 11 检查是否运行在 Windows 11"""

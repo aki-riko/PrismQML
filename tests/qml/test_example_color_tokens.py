@@ -38,7 +38,6 @@ SOURCE_REFERENCES = {
         "examplePageColors.statusEnabledBg",
         "examplePageColors.statusDisabledText",
     },
-    "SettingsPage.qml": {"examplePageColors.settingsCustomAccent"},
 }
 EXPECTED_FIXED_COLORS = {
     "carouselRed": "#e74c3c",

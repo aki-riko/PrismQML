@@ -188,7 +188,7 @@ def test_hover_motion_policy_disables_exit_animation():
     behavior_source = (
         QML_ROOT / "effects" / "HoverBehavior.qml"
     ).read_text(encoding="utf-8")
-    assert "required property bool active" in behavior_source
+    assert "property bool active: false" in behavior_source
     assert "property bool _transitionWasActive: false" in behavior_source
     assert "onActiveChanged: _recordActiveChange()" in behavior_source
     assert "onTargetValueChanged: _selectTransitionDirection()" in behavior_source

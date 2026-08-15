@@ -28,8 +28,8 @@ MIGRATED_EXAMPLE_ARRAY_PATHS = (
     PurePosixPath("examples/pages/ChartPage.qml"),
 )
 GLOBAL_PALETTE_VALUE_LINES = {
-    278, 280, 282, 284, 286, 288, 293, 294, 385, 386, 411, 412, 413, 414,
-    415, 416, 434, 440, 441,
+    286, 288, 290, 292, 294, 296, 301, 302, 406, 407, 432, 433, 434, 435,
+    436, 437, 455, 461, 462,
 }
 
 
