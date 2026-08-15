@@ -84,8 +84,8 @@ class ConfigManager(QObject):
         self._active_persistence = None
         self._runtime_overrides = {}
         self._runtime_request_id = 0
+        self._appearance_runtime = None
         self._connect_config_signals()
-        self._apply_appearance_to_runtime()
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(lambda: self.waitForPersistence())
@@ -108,14 +108,32 @@ class ConfigManager(QObject):
         """获取底层AppConfig Get underlying AppConfig"""
         return self._cfg
 
-    def _apply_appearance_to_runtime(self):
-        """Apply persisted appearance after loading. 加载后应用持久化外观。"""
-        from ..core.theme import getThemeManager
+    def _bind_appearance_runtime(self, apply_appearance):
+        """Bind and initialize the outer appearance port. 绑定并初始化外观端口。"""
+        if self._appearance_runtime is apply_appearance:
+            return
+        previous = self._appearance_runtime
+        self._appearance_runtime = apply_appearance
+        ready = False
+        try:
+            self._apply_appearance_to_runtime()
+            ready = True
+        finally:
+            if not ready:
+                self._appearance_runtime = previous
 
-        manager = getThemeManager()
-        manager._apply_theme_from_qml(self.theme)
-        manager._apply_skin_from_qml(self.skin)
-        manager._apply_accent_color(self.accentColor)
+    def _apply_appearance_to_runtime(self):
+        """Apply persisted appearance through the bound port. 通过端口应用外观。"""
+        if self._appearance_runtime is None:
+            return
+        self._appearance_runtime("theme", self.theme)
+        self._appearance_runtime("skin", self.skin)
+        self._appearance_runtime("accent_color", self.accentColor)
+
+    def _apply_runtime_appearance(self, field, value):
+        """Apply one runtime value when the outer port is bound. 应用单项运行时值。"""
+        if self._appearance_runtime is not None:
+            self._appearance_runtime(field, value)
 
     @Property(bool, notify=persistencePendingChanged)
     def persistencePending(self) -> bool:
@@ -324,13 +342,12 @@ class ConfigManager(QObject):
         if not self._cfg.theme.validator.accepts(value):
             warning(f"拒绝无效主题 Invalid theme rejected: {value!r}")
             return
-        from ..core.theme import getThemeManager
 
         self._set_runtime_value(
             self._cfg.theme,
             value,
-            lambda candidate: getThemeManager()._apply_theme_from_qml(candidate),
-            lambda: getThemeManager()._apply_theme_from_qml(self.theme),
+            lambda candidate: self._apply_runtime_appearance("theme", candidate),
+            lambda: self._apply_runtime_appearance("theme", self.theme),
         )
 
     @Property(str, notify=skinChanged)
@@ -346,13 +363,12 @@ class ConfigManager(QObject):
         if not self._cfg.skin.validator.accepts(value):
             warning(f"拒绝无效皮肤 Invalid skin rejected: {value!r}")
             return
-        from ..core.theme import getThemeManager
 
         self._set_runtime_value(
             self._cfg.skin,
             value,
-            lambda candidate: getThemeManager()._apply_skin_from_qml(candidate),
-            lambda: getThemeManager()._apply_skin_from_qml(self.skin),
+            lambda candidate: self._apply_runtime_appearance("skin", candidate),
+            lambda: self._apply_runtime_appearance("skin", self.skin),
         )
 
     @Property(str, notify=languageChanged)
@@ -381,13 +397,16 @@ class ConfigManager(QObject):
         if not validate_accent_color(value):
             warning(f"拒绝无效主题色 Invalid accent color rejected: {value!r}")
             return
-        from ..core.theme import getThemeManager
 
         self._set_runtime_value(
             self._cfg.accent_color,
             value,
-            lambda candidate: getThemeManager()._apply_accent_color(candidate),
-            lambda: getThemeManager()._apply_accent_color(self.accentColor),
+            lambda candidate: self._apply_runtime_appearance(
+                "accent_color", candidate
+            ),
+            lambda: self._apply_runtime_appearance(
+                "accent_color", self.accentColor
+            ),
         )
     
     @Slot(result=str)

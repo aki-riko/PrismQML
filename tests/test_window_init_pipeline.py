@@ -62,6 +62,9 @@ class _ConfigProbe:
         self._value = value
         self._error = error
 
+    def _bind_appearance_runtime(self, _callback):
+        pass
+
     @property
     def lazyLoading(self):
         self._events.append(("config", "property"))
@@ -96,7 +99,10 @@ class _RecordingWindowCore(window_core.WindowCore):
 
 
 def _install_config_value(monkeypatch, value):
-    manager = SimpleNamespace(lazyLoading=value)
+    manager = SimpleNamespace(
+        lazyLoading=value,
+        _bind_appearance_runtime=lambda _callback: None,
+    )
     monkeypatch.setattr(config, "getConfigManager", lambda: manager)
 
 

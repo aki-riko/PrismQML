@@ -15,7 +15,6 @@ from typing import ClassVar
 from . import _app_config_schema as _schema
 from .config_item import EnumEntry, SettingEntry
 from .settings_core import SettingsCore
-from ..core.theme import ThemeManager
 
 
 # ---------- 默认存放路径 ----------
@@ -95,7 +94,7 @@ class AppConfig(SettingsCore):
     accent_color: ClassVar[SettingEntry] = SettingEntry(
         group="Appearance",
         name="AccentColor",
-        default=ThemeManager.DEFAULT_ACCENT,
+        default=_schema.DEFAULT_ACCENT,
         validator=_schema.ACCENT_COLOR_VALIDATOR,
     )
 

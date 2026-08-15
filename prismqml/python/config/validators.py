@@ -59,7 +59,7 @@ class Validator:
         v.coerce(value)   # 收敛到允许集合
     """
 
-    __slots__ = ("kind", "_lo", "_hi", "_options")
+    __slots__ = ("kind", "_lo", "_hi", "_options", "_fallback")
 
     def __init__(
         self,
@@ -68,11 +68,13 @@ class Validator:
         lo: Any = None,
         hi: Any = None,
         options: List = None,
+        fallback: Any = None,
     ):
         self.kind = kind
         self._lo = lo
         self._hi = hi
         self._options = options
+        self._fallback = fallback
 
     # ---------- 工厂方法 ----------
 
@@ -104,9 +106,14 @@ class Validator:
         return cls(ValidationKind.BOOLEAN, options=[True, False])
 
     @classmethod
-    def hex_color(cls) -> "Validator":
+    def hex_color(cls, fallback: str) -> "Validator":
         """Strict HEX color accepted by persisted appearance. 持久化 HEX 颜色。"""
-        return cls(ValidationKind.HEX_COLOR)
+        if not isinstance(fallback, str) or re.fullmatch(
+            r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{5})?",
+            fallback,
+        ) is None:
+            raise ValueError("Validator.hex_color: fallback 必须是合法 HEX 颜色")
+        return cls(ValidationKind.HEX_COLOR, fallback=fallback)
 
     # ---------- 兼容只读属性 ----------
     # RangedEntry / EnumEntry 通过这两个属性把约束暴露给 UI 层
@@ -173,7 +180,7 @@ class Validator:
                     return option
             return self._options[0]
         if kind is ValidationKind.HEX_COLOR:
-            return value if self.accepts(value) else "#0e5a9c"
+            return value if self.accepts(value) else self._fallback
         return value
 
     # ---------- 调试友好 ----------
@@ -186,7 +193,7 @@ class Validator:
         if self.kind is ValidationKind.BOOLEAN:
             return "Validator.boolean()"
         if self.kind is ValidationKind.HEX_COLOR:
-            return "Validator.hex_color()"
+            return f"Validator.hex_color({self._fallback!r})"
         return "Validator.passthrough()"
 
 

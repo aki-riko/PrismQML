@@ -14,6 +14,22 @@ from ..core.theme import (
 from .configuration import get_config_manager
 
 
+def _apply_config_appearance(field: str, value: str) -> None:
+    """Apply one persisted value to the theme runtime. 应用单项持久化外观。"""
+    manager = getThemeManager()
+    applicators = {
+        "theme": manager._apply_theme_from_qml,
+        "skin": manager._apply_skin_from_qml,
+        "accent_color": manager._apply_accent_color,
+    }
+    applicators[field](value)
+
+
+def install_config_appearance_runtime(manager) -> None:
+    """Bind config values to the theme runtime. 绑定配置值与主题运行时。"""
+    manager._bind_appearance_runtime(_apply_config_appearance)
+
+
 def _persist_appearance_change(field: str, value: str) -> None:
     """Route core appearance requests through config. 通过配置路由外观请求。"""
     manager = get_config_manager()

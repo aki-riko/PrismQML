@@ -8,6 +8,7 @@
 import os
 from pathlib import Path
 
+from ..core.appearance_defaults import DEFAULT_ACCENT
 from .validators import Validator
 
 
@@ -48,7 +49,7 @@ LANGUAGE_OPTIONS = [
 THEME_VALIDATOR = Validator.choice(THEME_OPTIONS)
 SKIN_VALIDATOR = Validator.choice(SKIN_OPTIONS)
 LANGUAGE_VALIDATOR = Validator.choice(LANGUAGE_OPTIONS)
-ACCENT_COLOR_VALIDATOR = Validator.hex_color()
+ACCENT_COLOR_VALIDATOR = Validator.hex_color(DEFAULT_ACCENT)
 
 
 def resolve_app_config_path(configured=None, *, default=None) -> Path:
@@ -120,6 +121,7 @@ __all__ = [
     "SKIN_VALIDATOR",
     "LANGUAGE_VALIDATOR",
     "ACCENT_COLOR_VALIDATOR",
+    "DEFAULT_ACCENT",
     "resolve_app_config_path",
     "validate_accent_color",
     "validate_app_window_mapping",

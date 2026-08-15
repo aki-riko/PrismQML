@@ -9,7 +9,11 @@
 def get_config_manager(config_path: str = None):
     """Return the process configuration singleton. 获取进程配置单例。"""
     from ..config import getConfigManager
+    from .appearance import install_config_appearance_runtime
 
     if config_path is None:
-        return getConfigManager()
-    return getConfigManager(config_path)
+        manager = getConfigManager()
+    else:
+        manager = getConfigManager(config_path)
+    install_config_appearance_runtime(manager)
+    return manager

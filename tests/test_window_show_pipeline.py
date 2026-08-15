@@ -47,7 +47,10 @@ class _RecordingWindow:
 
 @pytest.fixture
 def manager(monkeypatch):
-    config_manager = SimpleNamespace(lazyLoading=True)
+    config_manager = SimpleNamespace(
+        lazyLoading=True,
+        _bind_appearance_runtime=lambda _callback: None,
+    )
     monkeypatch.setattr(config, "getConfigManager", lambda: config_manager)
     original_current = window_core.WindowCore._current_window_instance
     previous = object()

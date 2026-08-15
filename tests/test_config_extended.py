@@ -239,6 +239,24 @@ class TestValidatorBoolean:
         assert v.kind is ValidationKind.BOOLEAN
 
 
+class TestValidatorHexColor:
+    def test_invalid_value_uses_explicit_fallback(self):
+        validator = Validator.hex_color("#123456")
+
+        assert validator.coerce("missing") == "#123456"
+        assert validator.coerce("#abcdef") == "#abcdef"
+
+    @pytest.mark.parametrize("fallback", [None, "missing", "#xyzxyz"])
+    def test_invalid_fallback_is_rejected(self, fallback):
+        with pytest.raises(ValueError, match="fallback"):
+            Validator.hex_color(fallback)
+
+    def test_repr_includes_fallback(self):
+        validator = Validator.hex_color("#123456")
+
+        assert repr(validator) == "Validator.hex_color('#123456')"
+
+
 # ==================== SettingEntry 测试 ====================
 
 

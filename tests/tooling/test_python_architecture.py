@@ -12,6 +12,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYTHON_PACKAGE = REPO_ROOT / "prismqml" / "python"
 CORE_PACKAGE = PYTHON_PACKAGE / "core"
+CONFIG_PACKAGE = PYTHON_PACKAGE / "config"
 PROVIDERS_PACKAGE = PYTHON_PACKAGE / "providers"
 WINDOW_PACKAGE = PYTHON_PACKAGE / "window"
 FORBIDDEN_CORE_DEPENDENCIES = (
@@ -335,6 +336,7 @@ def test_public_appearance_mutations_cross_the_runtime_boundary():
 
 def test_appearance_persistence_has_one_runtime_composition_owner():
     appearance = PYTHON_PACKAGE / "runtime" / "appearance.py"
+    appearance_defaults = CORE_PACKAGE / "appearance_defaults.py"
     config_manager = PYTHON_PACKAGE / "config" / "config_manager.py"
     registry = PYTHON_PACKAGE / "runtime" / "registry.py"
     window_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
@@ -348,11 +350,32 @@ def test_appearance_persistence_has_one_runtime_composition_owner():
     )
     assert "_persist_appearance_change" in _function_names(appearance)
     assert "install_appearance_persistence" in _function_names(appearance)
+    assert "_apply_config_appearance" in _function_names(appearance)
+    assert "install_config_appearance_runtime" in _function_names(appearance)
     assert (
         "prismqml.python.core.theme._bind_appearance_persistence"
         not in config_imports
     )
+    assert "prismqml.python.core.theme.getThemeManager" not in config_imports
     assert "_persist_appearance_change" not in _function_names(config_manager)
+    assert "_bind_appearance_runtime" in _function_names(config_manager)
+    assert _literal_assignment(appearance_defaults, "DEFAULT_ACCENT") == "#0e5a9c"
+
+    accent_literal_owners = [
+        path
+        for path in sorted(PYTHON_PACKAGE.rglob("*.py"))
+        if "#0e5a9c" in path.read_text(encoding="utf-8")
+    ]
+    assert accent_literal_owners == [appearance_defaults]
+
+    runtime_factory_violations = []
+    for path in sorted(CONFIG_PACKAGE.rglob("*.py")):
+        for line, target in _resolved_imports(path):
+            if target.endswith((".getThemeManager", ".ThemeManager")):
+                runtime_factory_violations.append(
+                    f"{path.relative_to(REPO_ROOT)}:{line}: {target}"
+                )
+    assert runtime_factory_violations == []
 
     for owner in (registry, window_registry):
         imports = {target for _line, target in _resolved_imports(owner)}
@@ -377,8 +400,12 @@ def test_configuration_singleton_has_one_runtime_composition_owner():
     )
     assert "get_config_manager" in _function_names(configuration)
     assert configuration_imports == {
-        "prismqml.python.config.getConfigManager"
+        "prismqml.python.config.getConfigManager",
+        "prismqml.python.runtime.appearance.install_config_appearance_runtime",
     }
+    assert _named_function_calls(
+        configuration, "install_config_appearance_runtime"
+    )
 
     for owner in (
         WINDOW_PACKAGE / "app.py",

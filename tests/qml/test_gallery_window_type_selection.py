@@ -33,6 +33,9 @@ class _GalleryConfig(QObject):
         super().__init__()
         self._window_type = window_type
 
+    def _bind_appearance_runtime(self, _callback) -> None:
+        pass
+
     @Property(int, notify=windowTypeChanged)
     def windowType(self) -> int:
         return self._window_type

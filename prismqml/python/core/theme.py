@@ -19,6 +19,7 @@ from typing import Callable, Optional
 from PySide6.QtCore import QObject, Signal, Property, Slot
 from PySide6.QtGui import QColor
 
+from .appearance_defaults import DEFAULT_ACCENT as _DEFAULT_ACCENT
 from .logger import debug
 
 
@@ -95,7 +96,7 @@ class ThemeManager(QObject):
     # Default accent color (deep Fluent blue) 默认主题色：沉稳深蓝
     # 选用 #0E5A9C 的依据：白字对比度 7.09 达 WCAG AAA 级，浅色背景上比 #0078D4 更沉稳不刺眼，
     # 且与库内图表/Confetti 的 Fluent 蓝同色系统一。
-    DEFAULT_ACCENT = "#0e5a9c"
+    DEFAULT_ACCENT = _DEFAULT_ACCENT
 
     # Color variant factors 颜色变体系数
     LIGHTEN_FACTOR = 1.1  # Hover state lightening factor 悬停状态变亮系数

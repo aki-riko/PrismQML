@@ -18,8 +18,8 @@ _EXPECTED_HELPERS = {"initialize_splash_state", "initialize_window_state"}
 _EXPECTED_INIT_STATEMENTS = (
     "super().__init__(parent)",
     "initialize_window_state(self, window_type)",
-    "from ..config import getConfigManager",
-    "self._lazy_loading = getConfigManager().lazyLoading",
+    "from ..runtime import get_config_manager",
+    "self._lazy_loading = get_config_manager().lazyLoading",
     "initialize_splash_state(self)",
 )
 _EXPECTED_WINDOW_STATE = (
