@@ -18,10 +18,11 @@ from PySide6.QtCore import (
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickWindow
 
+from prismqml import register_types
 from prismqml.python.config.config_manager import ConfigManager
 from prismqml.python.core.shadow import getShadowManager
 from prismqml.python.core.theme import getThemeManager
-from prismqml.python.core.utils import qml_path, register_types
+from prismqml.python.core.utils import qml_path
 from prismqml.python.core.window_helper import get_window_helper
 from prismqml.python.providers import clipboard as clipboard_module
 from prismqml.python.providers.lazy_context import (
