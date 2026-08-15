@@ -40,17 +40,41 @@ ComboBoxCore {
     function openPopup() {
         _rebuildFlatModel()
         _popup.popupWidth = Math.max(control.width, Enums.comboBoxMetrics.treePopupMinWidth)
+        _popup.openAtControl(control)
+        isOpen = true
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _updatePopupContentHeight() {
         var itemCount = _flatModel.length
         var searchHeight = searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0
         _popup.implicitContentHeight = Math.min(
             itemCount * Enums.comboBoxMetrics.itemHeight + searchHeight,
             Math.max(0, Enums.comboBoxMetrics.treePopupHeight
                 - 2 * _popup.contentPadding))
-        _popup.openAtControl(control)
-        isOpen = true
+        if (isOpen) _syncOpenPopupGeometry()
     }
 
-    // ==================== Internal Methods 内部方法 ====================
+    function _syncOpenPopupGeometry() {
+        _popup.stabilizeInteraction()
+        _popup._clipHeight = _popup.popupHeight
+        var popupWindow = _popup._popupWindow
+        if (!popupWindow) return
+        popupWindow.width = _popup._outerWidth
+        popupWindow.height = _popup._outerHeight
+        _popup._applyTrackedPosition(control.mapToGlobal(0, 0))
+        var bounds = _popup._screenBoundsAt(popupWindow.x, popupWindow.y, control)
+        if (!bounds) return
+        popupWindow.x = Math.max(
+            bounds.left,
+            Math.min(popupWindow.x, bounds.right - _popup._outerWidth)
+        )
+        popupWindow.y = Math.max(
+            bounds.top,
+            Math.min(popupWindow.y, bounds.bottom - _popup._outerHeight)
+        )
+    }
+
     function _initTree() {
         // Component.onCompleted can run before ComboBoxCore's derived
         // _safeModel binding is ready in an asynchronous Loader. Read the
@@ -90,6 +114,7 @@ ComboBoxCore {
         var searchText = _searchText.toLowerCase()
         _flattenTree(_safeModel, [], 0, "root", flat, searchText)
         _flatModel = flat
+        _updatePopupContentHeight()
     }
     
     function _flattenTree(nodes, parentPath, depth, parentId, result, searchText) {
@@ -155,6 +180,7 @@ ComboBoxCore {
     onModelChanged: _initTree()
     on_ExpandedNodesChanged: _rebuildFlatModel()
     on_SearchTextChanged: _rebuildFlatModel()
+    onSearchEnabledChanged: _updatePopupContentHeight()
 
     // ==================== Content 内容 ====================
     popupContent: Component {

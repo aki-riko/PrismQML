@@ -104,6 +104,15 @@ def _flat_model(combo: QQuickItem):
     return _variant(combo.property("_flatModel"))
 
 
+def _expected_popup_height(window: QQuickWindow, combo: QQuickItem) -> int:
+    return min(
+        len(_flat_model(combo)) * window.property("expectedItemHeight")
+        + window.property("expectedSearchHeight")
+        + window.property("expectedSpacing"),
+        window.property("expectedMaxHeight"),
+    )
+
+
 def _popup_core(combo: QQuickItem) -> QQuickItem:
     matches = [
         child
@@ -218,13 +227,7 @@ def _open_popup(window, combo, windows_before) -> QQuickItem:
     assert popup.property("popupWidth") == max(
         combo.width(), window.property("expectedPopupMinWidth")
     )
-    expected_height = min(
-        len(_flat_model(combo)) * window.property("expectedItemHeight")
-        + window.property("expectedSearchHeight")
-        + window.property("expectedSpacing"),
-        window.property("expectedMaxHeight"),
-    )
-    assert popup.property("popupHeight") == expected_height
+    assert popup.property("popupHeight") == _expected_popup_height(window, combo)
     assert _wait_for(lambda: popup.property("isOpen"))
     assert _wait_for(lambda: len(_new_visible_windows(windows_before, window)) == 1)
     popup_window = _new_visible_windows(windows_before, window)[0]
@@ -233,6 +236,35 @@ def _open_popup(window, combo, windows_before) -> QQuickItem:
         "expectedPanelOffset"
     ) == target_global.x()
     return popup
+
+
+def _assert_open_popup_tracks_expansion(
+    combo: QQuickItem,
+    popup: QQuickItem,
+    window: QQuickWindow,
+    windows_before,
+) -> None:
+    collapsed_height = popup.property("popupHeight")
+    combo._toggleExpand("root_0")
+    assert _wait_for(lambda: len(_flat_model(combo)) == 5)
+    expected_height = _expected_popup_height(window, combo)
+    assert expected_height > collapsed_height
+    assert _wait_for(lambda: popup.property("popupHeight") == expected_height)
+    assert popup.property("_clipHeight") == expected_height
+    popup_window = _new_visible_windows(windows_before, window)[0]
+    assert popup_window.height() == (
+        expected_height + 2 * window.property("expectedPanelOffset")
+    )
+    combo._toggleExpand("root_0")
+    assert _wait_for(lambda: len(_flat_model(combo)) == 2)
+    assert _wait_for(lambda: popup.property("popupHeight") == collapsed_height)
+    assert popup.property("_clipHeight") == collapsed_height
+    assert popup_window.height() == (
+        collapsed_height + 2 * window.property("expectedPanelOffset")
+    )
+    combo._toggleExpand("root_0")
+    assert _wait_for(lambda: len(_flat_model(combo)) == 5)
+    assert _wait_for(lambda: popup.property("popupHeight") == expected_height)
 
 
 def _assert_path_selection(combo, popup, windows_before, window, selected) -> None:
@@ -257,7 +289,12 @@ def test_combo_box_tree_expand_search_select_and_popup_lifecycle(qapp):
             lambda text, path: selected.append((text, _variant(path)))
         )
         _assert_expand_and_search(combo)
+        combo._toggleExpand("root_0")
+        assert _wait_for(lambda: len(_flat_model(combo)) == 2)
         popup = _open_popup(window, combo, windows_before)
+        _assert_open_popup_tracks_expansion(
+            combo, popup, window, windows_before
+        )
         _assert_path_selection(combo, popup, windows_before, window, selected)
         assert warnings == []
     finally:
