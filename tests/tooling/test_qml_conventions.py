@@ -104,6 +104,24 @@ def test_stacked_widget_keeps_source_pages_modularized():
     assert "StackedSourcePages {" in stacked_widget.read_text(encoding="utf-8")
 
 
+def test_tab_widget_keeps_content_pages_modularized():
+    tab_widget = (
+        ROOT
+        / "prismqml"
+        / "PrismQML"
+        / "controls"
+        / "navigation"
+        / "TabWidget.qml"
+    )
+    content_pages = tab_widget.parent / "_internal" / "TabContentPages.qml"
+
+    assert tab_widget.exists()
+    assert content_pages.exists()
+    assert len(tab_widget.read_text(encoding="utf-8").splitlines()) <= 700
+    assert len(content_pages.read_text(encoding="utf-8").splitlines()) < 500
+    assert "TabContentPages {" in tab_widget.read_text(encoding="utf-8")
+
+
 def test_style_rules_ignore_log_message_contents():
     source = """Item {
     Component.onCompleted: console.log("radius: 4 color: \\\"#fff\\\"")

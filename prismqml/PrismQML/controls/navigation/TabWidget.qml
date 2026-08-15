@@ -657,51 +657,12 @@ Widget {
     }
     
     // Content area 内容区
-    Rectangle {
-        id: contentArea
+    TabContentPages {
+        id: tabContentPages
         anchors.top: tabBarBg.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        color: Enums.cardColor
-        clip: true  // 裁掉滑入/滑出时露在区域外的内容
-
-        Repeater {
-            model: control._safeTabs
-
-            Loader {
-                id: pageLoader
-
-                readonly property bool isCurrent: index === control.currentIndex
-                property bool _animatingOut: false
-
-                width: contentArea.width
-                height: contentArea.height
-                y: 0
-                sourceComponent: (modelData && modelData.content && typeof modelData.content === 'object') ? modelData.content : null
-
-                // 动画期间(自身正在滑出)保持 active+visible, 否则卸载省资源
-                active: isCurrent || _animatingOut
-                visible: active
-
-                // 胶片模型: 所有页并排, 第 i 页停在 (i - currentIndex)*width。
-                // 当前页 x=0; 切到更大 index → 整条胶片左移(旧页滑出左侧, 新页从右侧进);
-                // 切到更小 index → 右移。方向天然自适应, 无需单独记方向。
-                x: (index - control.currentIndex) * contentArea.width
-
-                Behavior on x {
-                    enabled: !control._dragging
-                    NumberAnimation {
-                        duration: Enums.duration.slow
-                        easing.type: Easing.OutCubic
-                        // 旧页滑出动画结束 → 卸载
-                        onRunningChanged: if (!running && !pageLoader.isCurrent) pageLoader._animatingOut = false
-                    }
-                }
-
-                // 成为旧页(刚被切走)时, 标记为正在滑出, 维持 active 直到动画结束
-                onIsCurrentChanged: if (!isCurrent) _animatingOut = true
-            }
-        }
+        host: control
     }
 }
