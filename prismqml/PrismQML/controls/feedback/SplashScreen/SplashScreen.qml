@@ -4,7 +4,7 @@
 
 import QtQuick.Effects
 import "../../.."
-import "../../../_internal" as Internal
+import "../../navigation/_internal" as NavigationInternal
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // SplashScreen - Application splash screen overlay 应用启动画面覆盖层
@@ -61,14 +61,14 @@ Rectangle {
     function finish() {
         if (control._finishing)
             return
-        rippleExitLoader.active = true
-        if (!rippleExitLoader.item) {
-            console.error('SplashScreen: failed to create the close ripple exit')
+        lazyExitLoader.active = true
+        if (!lazyExitLoader.item) {
+            console.error('SplashScreen: failed to create the lazy switch exit')
             return
         }
         control._finishing = true
         breatheAnim.stop()
-        rippleExitLoader.item.start()
+        lazyExitLoader.item.collapse(control)
     }
 
     // Set icon (Icon enum or string) 设置图标
@@ -256,21 +256,20 @@ Rectangle {
         }
     }
 
-    // Create the shared close ripple only when finish starts.
-    // 仅在开始退场时创建共享关闭涟漪。
+    // Create the shared lazy-switch transition only when finish starts.
+    // 仅在开始退场时创建共享懒加载切换过渡。
     Loader {
-        id: rippleExitLoader
+        id: lazyExitLoader
 
-        objectName: "splashCloseRippleLoader"
+        objectName: "splashLazyTransitionLoader"
         anchors.fill: parent
         active: false
         asynchronous: false
 
-        sourceComponent: Internal.CloseRippleDissolve {
-            objectName: "splashCloseRippleDissolve"
-            sourceItem: control
+        sourceComponent: NavigationInternal.LazyPageCircleTransition {
+            objectName: "splashLazyPageCircleTransition"
 
-            onFinished: {
+            onCollapseFinished: {
                 control.visible = false
                 control.finished()
             }

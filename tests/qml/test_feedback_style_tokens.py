@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
-from PySide6.QtQuick import QQuickItem
+from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 
 from prismqml import register_types
@@ -32,11 +32,14 @@ SPLASH_SOURCE = (
     / "SplashScreen"
     / "SplashScreen.qml"
 )
-CLOSE_RIPPLE_DISSOLVE_SOURCE = (
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "CloseRippleDissolve.qml"
-)
-CLOSE_RIPPLE_ANIMATOR_SOURCE = (
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "CloseRippleAnimator.qml"
+LAZY_PAGE_CIRCLE_TRANSITION_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "navigation"
+    / "_internal"
+    / "LazyPageCircleTransition.qml"
 )
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "feedback-style.qml"))
 SCENE_SOURCE = b"""
@@ -108,6 +111,10 @@ def _create_scene():
     ]
     root = component.create(engine.rootContext())
     assert root is not None, [error.toString() for error in component.errors()]
+    window = QQuickWindow()
+    root.setParentItem(window.contentItem())
+    window.show()
+    root.destroyed.connect(lambda: (window.close(), window.deleteLater()))
     _pump(1)
     return engine, component, root
 
@@ -377,9 +384,9 @@ def test_splash_first_frame_shows_complete_content(qapp):
         icon_container = splash.findChild(QQuickItem, "splashIconContainer")
         assert icon_container is not None
         solid_background = splash.findChild(QQuickItem, "splashSolidBackground")
-        ripple_loader = splash.findChild(QQuickItem, "splashCloseRippleLoader")
+        lazy_loader = splash.findChild(QQuickItem, "splashLazyTransitionLoader")
         assert solid_background is not None
-        assert ripple_loader is not None
+        assert lazy_loader is not None
 
         # The very first visible frame must already be the complete splash.
         # A background-only frame is a user-visible white flash.
@@ -389,12 +396,9 @@ def test_splash_first_frame_shows_complete_content(qapp):
         assert content.property("scale") == pytest.approx(1.0)
         assert icon_container.property("scale") == pytest.approx(1.0, abs=0.005)
         assert solid_background.property("visible") is True
-        assert ripple_loader.property("active") is False
+        assert lazy_loader.property("active") is False
         assert QQmlProperty(splash, "layer.enabled").read() is False
-        assert not any(
-            item.objectName() == "itemCloseRippleFrame"
-            for item in _walk_visual_tree(splash)
-        )
+        assert splash.findChild(QObject, "splashLazyPageCircleTransition") is None
 
         _pump(80)
         assert splash.property("opacity") == pytest.approx(1.0)
@@ -407,7 +411,7 @@ def test_splash_first_frame_shows_complete_content(qapp):
         _pump(1)
 
 
-def test_splash_finish_uses_shared_window_close_ripple(qapp):
+def test_splash_finish_uses_shared_lazy_switch_transition(qapp):
     engine, component, root = _create_scene()
     try:
         splash = root.findChild(QQuickItem, "splash")
@@ -416,31 +420,27 @@ def test_splash_finish_uses_shared_window_close_ripple(qapp):
         solid_background = splash.findChild(QQuickItem, "splashSolidBackground")
         assert content is not None
         assert solid_background is not None
-        ripple_loader = splash.findChild(QQuickItem, "splashCloseRippleLoader")
-        assert ripple_loader is not None
-        assert ripple_loader.property("active") is False
+        lazy_loader = splash.findChild(QQuickItem, "splashLazyTransitionLoader")
+        assert lazy_loader is not None
+        assert lazy_loader.property("active") is False
 
         assert QMetaObject.invokeMethod(splash, "finish")
         visual_items = {item.objectName(): item for item in _walk_visual_tree(splash)}
-        ripple = visual_items.get("splashCloseRippleDissolve")
-        assert ripple is not None
-        assert ripple_loader.property("active") is True
-        assert ripple.property("running") is True
-        assert ripple.property("_dissolveProgress") == pytest.approx(0.0)
+        transition = visual_items.get("splashLazyPageCircleTransition")
+        assert transition is not None
+        assert lazy_loader.property("active") is True
+        assert transition.property("collapsing") is True
         assert QQmlProperty(splash, "layer.enabled").read() is True
         assert QQmlProperty(splash, "layer.effect").read() is not None
         assert solid_background.property("visible") is True
-        assert not any(
-            name.startswith("splashGridCell_") for name in visual_items
-        )
 
-        _pump(200)
+        _pump(80)
 
         assert splash.property("visible") is True
-        assert 0 < ripple.property("_dissolveProgress") < 1
+        assert 0 < transition.property("progress") < 1
         assert content.property("opacity") == pytest.approx(1.0)
 
-        _pump(350)
+        _pump(220)
         assert splash.property("visible") is False
         assert QQmlProperty(splash, "layer.enabled").read() is False
     finally:
@@ -474,19 +474,17 @@ def test_feedback_sources_use_shared_style_tokens():
         in splash_source
     )
     assert "duration: Enums.duration.splashBreathe" in splash_source
-    ripple_source = CLOSE_RIPPLE_DISSOLVE_SOURCE.read_text(encoding="utf-8")
-    ripple_animator_source = CLOSE_RIPPLE_ANIMATOR_SOURCE.read_text(encoding="utf-8")
-    assert 'objectName: "splashCloseRippleLoader"' in splash_source
-    assert "sourceComponent: Internal.CloseRippleDissolve" in splash_source
-    assert 'objectName: "splashCloseRippleDissolve"' in splash_source
-    assert "CloseRippleAnimator {" in ripple_source
-    assert "duration: Enums.windowCloseMetrics.rippleDuration" not in ripple_source
-    assert "easing.type: Easing.OutQuad" not in ripple_source
-    assert "duration: Enums.windowCloseMetrics.rippleDuration" in ripple_animator_source
-    assert "easing.type: Easing.OutQuad" in ripple_animator_source
-    assert "CloseRippleFrame {" in ripple_source
+    lazy_transition_source = LAZY_PAGE_CIRCLE_TRANSITION_SOURCE.read_text(
+        encoding="utf-8"
+    )
+    assert 'objectName: "splashLazyTransitionLoader"' in splash_source
+    assert "sourceComponent: NavigationInternal.LazyPageCircleTransition" in splash_source
+    assert 'objectName: "splashLazyPageCircleTransition"' in splash_source
+    assert "lazyExitLoader.item.collapse(control)" in splash_source
+    assert "CloseRipple" not in splash_source
+    assert "signal collapseFinished()" in lazy_transition_source
+    assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source
     assert "Repeater {" not in splash_source
-    assert "splashGridCell_" not in splash_source
     assert "border.width:" not in splash_source
     assert "border.color:" not in splash_source
     assert "target: leftCurtain" not in splash_source
