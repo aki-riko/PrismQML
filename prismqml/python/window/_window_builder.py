@@ -19,7 +19,7 @@ from ._generated_qml_cache import (
     GENERATED_WINDOW_QML_CACHE_DIR,
     write_generated_qml,
 )
-from ..runtime.window_registry import prepare_window_engine
+from ..runtime import prepare_window_engine
 from ._splash_builder import build_splash_properties, build_splash_template_values
 from ._window_root_setup import finish_window_startup
 from ._window_startup import (

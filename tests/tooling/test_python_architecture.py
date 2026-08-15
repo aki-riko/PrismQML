@@ -339,12 +339,18 @@ def test_lazy_provider_registration_has_one_runtime_owner():
 def test_window_runtime_composition_has_one_owner():
     builder = WINDOW_PACKAGE / "_window_builder.py"
     runtime_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
     runtime_context = PYTHON_PACKAGE / "runtime" / "context_registry.py"
     builder_imports = {target for _line, target in _resolved_imports(builder)}
+    runtime_exports = _lazy_exports(runtime_init)
 
     assert (
-        "prismqml.python.runtime.window_registry.prepare_window_engine"
+        "prismqml.python.runtime.prepare_window_engine"
         in builder_imports
+    )
+    assert runtime_exports["prepare_window_engine"] == (
+        ".window_registry",
+        "prepare_window_engine",
     )
     assert not (WINDOW_PACKAGE / "_window_engine_setup.py").exists()
     assert "prepare_window_engine" in _function_names(runtime_registry)
