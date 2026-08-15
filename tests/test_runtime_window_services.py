@@ -26,3 +26,33 @@ def test_mica_manager_facade_delegates_to_window(monkeypatch):
     monkeypatch.setattr(mica_window, "get_mica_manager", lambda: sentinel)
 
     assert get_mica_manager() is sentinel
+
+
+def test_acrylic_helper_facade_delegates_to_window(monkeypatch):
+    from prismqml.python.runtime.window_services import get_acrylic_helper
+    from prismqml.python.window import mica_window
+
+    sentinel = object()
+    monkeypatch.setattr(mica_window, "get_acrylic_helper", lambda: sentinel)
+
+    assert get_acrylic_helper() is sentinel
+
+
+def test_native_window_hook_facade_delegates_to_window(monkeypatch):
+    from prismqml.python.runtime.window_services import get_native_window_hook
+    from prismqml.python.window import native_window
+
+    sentinel = object()
+    monkeypatch.setattr(native_window, "get_native_window_hook", lambda: sentinel)
+
+    assert get_native_window_hook() is sentinel
+
+
+def test_clipboard_helper_facade_delegates_to_provider(monkeypatch):
+    from prismqml.python.providers import clipboard
+    from prismqml.python.runtime.window_services import get_clipboard_helper
+
+    sentinel = object()
+    monkeypatch.setattr(clipboard, "get_clipboard_helper", lambda: sentinel)
+
+    assert get_clipboard_helper() is sentinel

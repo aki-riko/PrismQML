@@ -455,12 +455,14 @@ def test_window_runtime_composition_has_one_owner():
 
 
 def test_window_helper_access_has_one_runtime_owner():
+    root_init = REPO_ROOT / "prismqml" / "__init__.py"
     runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
     runtime_services = PYTHON_PACKAGE / "runtime" / "window_services.py"
     runtime_registry = PYTHON_PACKAGE / "runtime" / "registry.py"
     runtime_composition = PYTHON_PACKAGE / "runtime" / "context_composition.py"
     window_core = WINDOW_PACKAGE / "window_core.py"
     application_icon = WINDOW_PACKAGE / "_application_icon_runtime.py"
+    root_exports = _lazy_exports(root_init)
     runtime_exports = _lazy_exports(runtime_init)
 
     assert runtime_exports["get_window_helper"] == (
@@ -471,8 +473,21 @@ def test_window_helper_access_has_one_runtime_owner():
         ".window_services",
         "get_mica_manager",
     )
+    for name in (
+        "get_acrylic_helper",
+        "get_native_window_hook",
+        "get_clipboard_helper",
+    ):
+        assert runtime_exports[name] == (".window_services", name)
+    for name in ("get_mica_manager", "get_acrylic_helper", "get_clipboard_helper"):
+        assert root_exports[name] == (".python.runtime", name)
     assert "get_window_helper" in _function_names(runtime_services)
     assert "get_mica_manager" in _function_names(runtime_services)
+    assert {
+        "get_acrylic_helper",
+        "get_native_window_hook",
+        "get_clipboard_helper",
+    } <= _function_names(runtime_services)
     assert (
         "prismqml.python.core.window_helper.get_window_helper"
         in {
@@ -486,6 +501,26 @@ def test_window_helper_access_has_one_runtime_owner():
     composition_imports = {
         target for _line, target in _resolved_imports(runtime_composition)
     }
+    assert (
+        "prismqml.python.runtime.window_services.get_mica_manager"
+        in composition_imports
+    )
+    assert (
+        "prismqml.python.runtime.window_services.get_native_window_hook"
+        in composition_imports
+    )
+    assert (
+        "prismqml.python.runtime.window_services.get_clipboard_helper"
+        in composition_imports
+    )
+    assert (
+        "prismqml.python.runtime.window_services.get_acrylic_helper"
+        in composition_imports
+    )
+    assert "prismqml.python.window.mica_window.get_mica_manager" not in composition_imports
+    assert "prismqml.python.window.mica_window.get_acrylic_helper" not in composition_imports
+    assert "prismqml.python.window.native_window.get_native_window_hook" not in composition_imports
+    assert "prismqml.python.providers.clipboard.get_clipboard_helper" not in composition_imports
     assert (
         "prismqml.python.runtime.window_services.get_window_helper"
         in composition_imports

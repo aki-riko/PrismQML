@@ -185,11 +185,13 @@ def test_window_engine_setup_preserves_context_provider_and_profile_order(monkey
 
 def test_window_dependency_loaders_preserve_real_identity_and_profile_order():
     from prismqml.python.core import ThemeManager, getShadowManager
-    from prismqml.python.providers.clipboard import get_clipboard_helper
     from prismqml.python.runtime.configuration import get_config_manager
     from prismqml.python.runtime import context_composition as setup
-    from prismqml.python.window.mica_window import get_mica_manager
-    from prismqml.python.window.native_window import get_native_window_hook
+    from prismqml.python.runtime.window_services import (
+        get_clipboard_helper,
+        get_mica_manager,
+        get_native_window_hook,
+    )
 
     profiles = []
     core_managers = setup.load_core_window_managers(profiles.append)

@@ -28,9 +28,11 @@ def load_core_window_managers(profile):
 
 def load_window_dependencies(profile):
     """Load window-only dependencies at their original boundary. 在原边界加载窗口依赖。"""
-    from ..window.mica_window import get_mica_manager
-    from ..window.native_window import get_native_window_hook
-    from ..providers.clipboard import get_clipboard_helper
+    from .window_services import (
+        get_clipboard_helper,
+        get_mica_manager,
+        get_native_window_hook,
+    )
 
     profile("导入窗口依赖")
     return (
@@ -99,8 +101,12 @@ def register_window_context(
     engine: QQmlApplicationEngine, context: QQmlContext
 ) -> None:
     """Register full window services and acrylic provider. 注册完整窗口服务与亚克力源。"""
-    from ..providers.clipboard import get_clipboard_helper
-    from ..window import get_acrylic_helper, get_mica_manager, get_native_window_hook
+    from .window_services import (
+        get_acrylic_helper,
+        get_clipboard_helper,
+        get_mica_manager,
+        get_native_window_hook,
+    )
 
     register_context_property(context, "MicaManager", get_mica_manager())
     acrylic_helper = get_acrylic_helper()
