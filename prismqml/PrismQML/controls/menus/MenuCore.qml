@@ -7,6 +7,7 @@ import "../.."
 import "../utils"
 import "../containers/ScrollBar"
 import "." // For MenuSeparator, Action 引入同目录组件
+import "_internal"
 
 // MenuCore - Menu base class (Qt-style, children only) 菜单基类
 // Usage 用法:
@@ -34,7 +35,7 @@ PopupWindowCore {
  // ==================== Public Props 公开属性 ====================
  property int minWidth: Enums.controlSize.menuMinWidth
  property int maxHeight: Enums.comboBoxMetrics.popupMaxHeight // Max menu height 菜单最大高度
- default property alias actions: itemsColumn.data
+ default property alias actions: menuContent.actions
 
  // ==================== Internal Props 内部属性 ====================
  property bool _needsScroll: false
@@ -71,7 +72,7 @@ PopupWindowCore {
 
  function _syncMenuItems() {
  // Persist visual menu items before popup reparenting makes children mode-dependent. 弹层重挂载前持久记录视觉菜单项
- var children = itemsColumn.children
+ var children = menuContent.itemContainer.children
  for (var i = 0; i < children.length; i++) {
  _registerMenuItem(children[i])
  }
@@ -239,9 +240,9 @@ PopupWindowCore {
  // @param onClick: function - click callback
  function addWidget(widget, selectable, onClick) {
  if (!widget) return
- widget.parent = itemsColumn
+ widget.parent = menuContent.itemContainer
  _registerMenuItem(widget)
- widget.width = Qt.binding(function() { return itemsColumn.width })
+ widget.width = Qt.binding(function() { return menuContent.itemContainer.width })
  
  if (selectable && onClick) {
  // Create mouse area for selectable widgets 为可选组件创建鼠标区域
@@ -255,7 +256,7 @@ PopupWindowCore {
  
  // Add separator to menu 添加分隔线
  function addSeparator() {
- var separator = separatorComponent.createObject(itemsColumn)
+ var separator = separatorComponent.createObject(menuContent.itemContainer)
  _registerMenuItem(separator)
  Qt.callLater(_updateSize)
  }
@@ -280,9 +281,9 @@ PopupWindowCore {
  if (options.hasSubmenu !== undefined) props.hasSubmenu = options.hasSubmenu
  }
  
- var action = actionComponent.createObject(itemsColumn, props)
+ var action = actionComponent.createObject(menuContent.itemContainer, props)
  _registerMenuItem(action)
- // triggered → actionTriggered + close 由 itemsColumn.onChildrenChanged 统一接管,
+ // triggered → actionTriggered + close 由 MenuContent.onChildrenChanged 统一接管,
  // 这里不再 connect, 避免双发。
  Qt.callLater(_updateSize)
  return action
@@ -436,73 +437,9 @@ PopupWindowCore {
  }
  }
  
- // Menu content 菜单内容
- Flickable {
- id: menuFlickable
+ MenuContent {
+ id: menuContent
  anchors.fill: parent
- anchors.rightMargin: control._needsScroll ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
- contentWidth: width
- contentHeight: itemsColumn.height
- clip: true
- boundsBehavior: Flickable.StopAtBounds
- interactive: false // Disable native scroll, use smooth scroll 禁用原生滚动，使用平滑滚动
- 
- // Smooth scroll 平滑滚动
- PopupSmoothScroll { flickable: menuFlickable; enabled: control._needsScroll }
- 
- Column {
- id: itemsColumn
-
- // Cache auto-bound Action object references for deduplication 缓存已自动绑定的 Action 对象引用用于去重
- property var _autoBoundActions: []
-
- width: parent.width
-
- onChildrenChanged: {
- // 声明式子项 Action 不走 addAction(那条路径会显式 connect),所以 triggered
- // 后菜单不会自动关。这里统一在 children 变化时给所有 Action 补 connect。
- control._syncMenuItems()
- var items = control._menuItems()
- for (var i = 0; i < items.length; i++) {
- var c = items[i]
- if (c && c.triggered && _autoBoundActions.indexOf(c) === -1) {
- _autoBoundActions.push(c)
- if (c.pressed) {
- c.pressed.connect(function() {
- control.stabilizeInteraction()
- })
- }
- if (c.hoveredChanged) {
- c.hoveredChanged.connect((function(child) {
- return function() {
- if (child.hovered && !child.hasSubmenu) control._closeOpenSubmenu()
- }
- })(c))
- }
- c.triggered.connect((function(child) {
- return function() {
- control.actionTriggered(child.actionId || child.text || "")
- control.close()
- }
- })(c))
- }
- }
- Qt.callLater(control._updateSize)
- }
- }
- }
- 
- // Scrollbar 滚动条
- Loader {
- anchors.right: parent.right
- anchors.top: parent.top
- anchors.bottom: parent.bottom
- anchors.margins: Enums.spacing.xxs
- width: Enums.comboBoxMetrics.scrollBarWidth
- active: control._needsScroll
- sourceComponent: ScrollBarEntry {
- flickable: menuFlickable
- width: Enums.comboBoxMetrics.scrollBarWidth
- }
+ menu: control
  }
 }

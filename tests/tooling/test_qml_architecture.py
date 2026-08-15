@@ -122,3 +122,13 @@ def test_chat_message_list_keeps_slot_delegate_modularized():
     assert helper.exists()
     assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
     assert "ChatMessageSlot {" in entry.read_text(encoding="utf-8")
+
+
+def test_menu_core_keeps_visual_content_modularized():
+    entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
+    helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")
+
+    assert len(entry.read_text(encoding="utf-8").splitlines()) < 500
+    assert helper.exists()
+    assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
+    assert "MenuContent {" in entry.read_text(encoding="utf-8")
